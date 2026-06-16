@@ -1,0 +1,141 @@
+// 宏观：六层分层架构图（Graphviz DOT）
+// 渲染: dot -Tpng architecture.dot -o architecture.png
+
+digraph Architecture {
+    // 全局设置
+    rankdir=TB;
+    fontname="Helvetica";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10];
+    edge [fontname="Helvetica", fontsize=8, color="#333333"];
+    bgcolor="#FAFAFA";
+    pad=0.3;
+    nodesep=0.5;
+    ranksep=0.6;
+
+    // ==========================================
+    // 层 1：CLI 引导层
+    // ==========================================
+    subgraph cluster_L1 {
+        label="① CLI 引导层";
+        style="filled,rounded";
+        color="#E3F2FD";
+        fillcolor="#E3F2FD";
+        fontcolor="#1565C0";
+        fontsize=11;
+
+        cli [label="entrypoints/cli.tsx\n早期分流 · 快路径退出", fillcolor="#BBDEFB"];
+    }
+
+    // ==========================================
+    // 层 2：初始化层
+    // ==========================================
+    subgraph cluster_L2 {
+        label="② 初始化层";
+        style="filled,rounded";
+        color="#E8F5E9";
+        fillcolor="#E8F5E9";
+        fontcolor="#2E7D32";
+        fontsize=11;
+
+        main [label="main.tsx\n总控入口 · 能力装配", fillcolor="#C8E6C9"];
+        init [label="entrypoints/init.ts\n逻辑初始化 · trust 前/后", fillcolor="#C8E6C9"];
+        setup [label="setup.ts\n运行环境初始化", fillcolor="#C8E6C9"];
+    }
+
+    // ==========================================
+    // 层 3：控制面 / 命令层
+    // ==========================================
+    subgraph cluster_L3 {
+        label="③ 控制面 / 命令层";
+        style="filled,rounded";
+        color="#FFF3E0";
+        fillcolor="#FFF3E0";
+        fontcolor="#E65100";
+        fontsize=11;
+
+        cmd [label="commands.ts\nslash 命令 · feature gates", fillcolor="#FFE0B2"];
+    }
+
+    // ==========================================
+    // 层 4：TUI / REPL 层
+    // ==========================================
+    subgraph cluster_L4 {
+        label="④ TUI / REPL 层";
+        style="filled,rounded";
+        color="#F3E5F5";
+        fillcolor="#F3E5F5";
+        fontcolor="#6A1B9A";
+        fontsize=11;
+
+        app [label="components/App.tsx\nProvider 根包装", fillcolor="#E1BEE7"];
+        repl [label="screens/REPL.tsx\n会话工作台", fillcolor="#E1BEE7"];
+        pi [label="PromptInput\n输入编排", fillcolor="#E1BEE7"];
+        msg [label="Messages\n消息渲染", fillcolor="#E1BEE7"];
+    }
+
+    // ==========================================
+    // 层 5：执行内核
+    // ==========================================
+    subgraph cluster_L5 {
+        label="⑤ 执行内核";
+        style="filled,rounded";
+        color="#FFEBEE";
+        fillcolor="#FFEBEE";
+        fontcolor="#C62828";
+        fontsize=11;
+
+        qe [label="QueryEngine.ts\n无 UI 执行引擎", fillcolor="#FFCDD2"];
+        q [label="query.ts\n主循环 · 工具闭环", fillcolor="#FFCDD2"];
+        api [label="services/api/claude.ts\nAPI 调用层", fillcolor="#FFCDD2"];
+    }
+
+    // ==========================================
+    // 层 6：能力层
+    // ==========================================
+    subgraph cluster_L6 {
+        label="⑥ 能力层";
+        style="filled,rounded";
+        color="#ECEFF1";
+        fillcolor="#ECEFF1";
+        fontcolor="#37474F";
+        fontsize=11;
+
+        tool [label="Tool.ts / toolOrchestration\n工具池 · 调度", fillcolor="#CFD8DC"];
+        mem [label="memdir / SessionMemory\n多层记忆系统", fillcolor="#CFD8DC"];
+        mcp [label="services/mcp/client.ts\nMCP 集成", fillcolor="#CFD8DC"];
+        ext [label="Plugin / Swarm / Bridge\n扩展运行时", fillcolor="#CFD8DC"];
+    }
+
+    // ==========================================
+    // 层间调用边
+    // ==========================================
+
+    // L1 -> L2
+    cli -> main [label="import main()", color="#1565C0", penwidth=1.5];
+
+    // L2 内部
+    main -> init [label="preAction", color="#2E7D32"];
+    main -> setup [label="action", color="#2E7D32"];
+    main -> cmd [label="getCommands()", color="#2E7D32"];
+
+    // L2 -> L4
+    main -> repl [label="launchRepl()", color="#6A1B9A", penwidth=1.5];
+
+    // L4 内部
+    repl -> app [label="渲染"];
+    app -> pi [label="组合"];
+    app -> msg [label="组合"];
+
+    // L4 -> L5
+    pi -> qe [label="用户输入", color="#C62828", penwidth=1.5];
+    qe -> q [label="submitMessage()", color="#C62828"];
+
+    // L5 内部
+    q -> api [label="stream", color="#C62828"];
+    q -> tool [label="runTools()", color="#C62828"];
+
+    // L5 -> L6
+    q -> mem [label="memory 注入", color="#37474F"];
+    tool -> mcp [label="MCP 工具", color="#37474F"];
+    ext -> q [label="多 agent", color="#37474F", style=dashed];
+}

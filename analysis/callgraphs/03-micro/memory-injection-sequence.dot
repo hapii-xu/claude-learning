@@ -1,0 +1,129 @@
+// 微观：Memory 注入链路时序图（Graphviz DOT）
+// 渲染: dot -Tpng memory-injection-sequence.dot -o memory-injection-sequence.png
+
+digraph MemoryInjection {
+    rankdir=TB;
+    fontname="Helvetica";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=9, margin="0.12,0.06"];
+    edge [fontname="Helvetica", fontsize=7, color="#555555"];
+    bgcolor="#FAFAFA";
+    pad=0.3;
+    nodesep=0.35;
+    ranksep=0.35;
+
+    // ==========================================
+    // 链路 A：Auto Memory 注入 System Prompt
+    // ==========================================
+    subgraph cluster_chainA {
+        label="链路 A：Auto Memory → System Prompt";
+        style="filled,rounded";
+        color="#FFF3E0";
+        fillcolor="#FFF3E0";
+        fontcolor="#E65100";
+        fontsize=10;
+
+        a_prompts [label="constants/prompts.ts\ngetSystemPrompt()\nsystemPromptSection 'memory'", fillcolor="#FFE0B2"];
+        a_load [label="memdir.ts::loadMemoryPrompt()\nisAutoMemoryEnabled()", fillcolor="#FFE0B2", penwidth=1.5];
+        a_paths [label="paths.ts::getAutoMemPath()\ngetMemoryBaseDir()\nsanitizePath()\nfindCanonicalGitRoot()", fillcolor="#FFE0B2"];
+        a_ensure [label="memdir.ts\nensureMemoryDirExists(path)", fillcolor="#FFE0B2"];
+        a_build [label="memdir.ts\nbuildMemoryLines()\ntruncateEntrypointContent()\n← 硬截断 200行 / 25KB", fillcolor="#FFE0B2"];
+        a_fs [label="文件系统\n读取 MEMORY.md 入口文件", fillcolor="#ECEFF1", shape=cylinder];
+        a_team [label="teamMemPaths.ts\n[if TEAMMEM feature]\nisTeamMemoryEnabled()\ngetTeamMemPath()\nbuildCombinedMemoryPrompt()", fillcolor="#FFE0B2"];
+        a_result [label="memory prompt 文本\n→ 注入 system prompt", fillcolor="#FFE0B2", shape=oval];
+    }
+
+    // ==========================================
+    // 链路 B：Relevant Memory 召回
+    // ==========================================
+    subgraph cluster_chainB {
+        label="链路 B：Relevant Memory 召回（异步预取）";
+        style="filled,rounded";
+        color="#E8F5E9";
+        fillcolor="#E8F5E9";
+        fontcolor="#2E7D32";
+        fontsize=10;
+
+        b_attach [label="utils/attachments.ts\nprefetchMemories()\n← query 循环开始时触发", fillcolor="#C8E6C9"];
+        b_find [label="findRelevantMemories.ts\nfindRelevantMemories(query, memoryDir)", fillcolor="#C8E6C9", penwidth=1.5];
+        b_scan [label="memoryScan.ts\nscanMemoryFiles(memoryDir)\n扫描 memories/ 下所有 .md", fillcolor="#C8E6C9"];
+        b_format [label="memoryScan.ts\nformatMemoryManifest()\n→ 文件清单 + 内容摘要", fillcolor="#C8E6C9"];
+        b_select [label="findRelevantMemories.ts\nselectRelevantMemories(manifest, query)", fillcolor="#C8E6C9"];
+        b_sideq [label="utils/sideQuery.ts\nsideQuery(prompt)\n← 用 LLM 筛选相关记忆", fillcolor="#A5D6A7", penwidth=1.5];
+        b_result [label="召回的记忆内容\n→ 注入本轮附件消息", fillcolor="#C8E6C9", shape=oval];
+    }
+
+    // ==========================================
+    // 链路 C：Session Memory
+    // ==========================================
+    subgraph cluster_chainC {
+        label="链路 C：Session Memory（会话摘要）";
+        style="filled,rounded";
+        color="#E3F2FD";
+        fillcolor="#E3F2FD";
+        fontcolor="#1565C0";
+        fontsize=10;
+
+        c_init [label="setup.ts → sessionMemory.ts\ninitSessionMemory()\n注册 postSamplingHook:\nextractSessionMemory", fillcolor="#BBDEFB"];
+        c_check [label="sessionMemory.ts\nshouldExtractMemory()\nhasMetInitializationThreshold()\nhasMetUpdateThreshold()", fillcolor="#BBDEFB"];
+        c_setup_file [label="setupSessionMemoryFile()\nloadSessionMemoryTemplate()", fillcolor="#BBDEFB"];
+        c_build_prompt [label="buildSessionMemoryUpdatePrompt()", fillcolor="#BBDEFB"];
+        c_fork [label="runForkedAgent(prompt)\n← 分叉子 agent 做摘要", fillcolor="#90CAF9", penwidth=1.5];
+        c_write [label="写入 session memory 文件\n(markdown)", fillcolor="#BBDEFB"];
+    }
+
+    // ==========================================
+    // 链路 D：Agent Memory
+    // ==========================================
+    subgraph cluster_chainD {
+        label="链路 D：Agent Memory（agent 专属记忆）";
+        style="filled,rounded";
+        color="#F3E5F5";
+        fillcolor="#F3E5F5";
+        fontcolor="#6A1B9A";
+        fontsize=10;
+
+        d_load_agents [label="loadAgentsDir.ts\ngetAgentDefinitionsWithOverrides()", fillcolor="#E1BEE7"];
+        d_load_mem [label="agentMemory.ts\nloadAgentMemoryPrompt(agentDef)\ngetAgentMemoryDir()\n← scope: user/project/local", fillcolor="#E1BEE7", penwidth=1.5];
+        d_ensure [label="memdir.ts\nensureMemoryDirExists(dir)", fillcolor="#E1BEE7"];
+        d_build [label="memdir.ts\nbuildMemoryPrompt(displayName, memoryDir)\nbuildMemoryLines()\ntruncateEntrypointContent()", fillcolor="#E1BEE7"];
+        d_result [label="agent memory prompt\n→ 注入 agent system prompt", fillcolor="#E1BEE7", shape=oval];
+
+        d_snapshot [label="agentMemorySnapshot.ts\ncheckAgentMemorySnapshot()\ninitializeFromSnapshot()\ncopySnapshotToLocal()", fillcolor="#CE93D8"];
+    }
+
+    // ==========================================
+    // 边
+    // ==========================================
+
+    // 链路 A
+    a_prompts -> a_load [penwidth=1.2, color="#E65100"];
+    a_load -> a_paths;
+    a_paths -> a_ensure;
+    a_ensure -> a_fs;
+    a_fs -> a_build;
+    a_build -> a_team [style=dashed, label="可选"];
+    a_team -> a_result;
+    a_build -> a_result [label="无 team mem"];
+
+    // 链路 B
+    b_attach -> b_find [penwidth=1.2, color="#2E7D32"];
+    b_find -> b_scan;
+    b_scan -> b_format;
+    b_format -> b_select;
+    b_select -> b_sideq [penwidth=1.2];
+    b_sideq -> b_result;
+
+    // 链路 C
+    c_init -> c_check [penwidth=1.2, color="#1565C0"];
+    c_check -> c_setup_file [label="达到阈值"];
+    c_setup_file -> c_build_prompt;
+    c_build_prompt -> c_fork [penwidth=1.2];
+    c_fork -> c_write;
+
+    // 链路 D
+    d_load_agents -> d_load_mem [penwidth=1.2, color="#6A1B9A"];
+    d_load_mem -> d_ensure;
+    d_ensure -> d_build;
+    d_build -> d_result;
+    d_load_mem -> d_snapshot [style=dashed, label="可选"];
+}

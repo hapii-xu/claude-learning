@@ -54,6 +54,41 @@ import {
   worktreeBranchName,
 } from './utils/worktree.js'
 
+/**
+ * 环境准备函数 —— 在 Commander 默认 action 中、进入 REPL 之前调用。
+ * Environment setup function — called in Commander's default action, before entering REPL.
+ *
+ * 与 init.ts 的区别：
+ *   init() 做"全局、一次性"的初始化（网络、遥测、配置系统），
+ *   setup() 做"与当前会话 cwd 相关"的准备（hooks、worktree、插件预取）。
+ *
+ * 参数：
+ *   cwd               —— 当前工作目录
+ *   permissionMode    —— 权限模式（auto/ask/bypass...）
+ *   allowDangerouslySkipPermissions —— 是否跳过权限检查（需 Docker/sandbox 环境）
+ *   worktreeEnabled   —— 是否启用 git worktree 隔离模式
+ *   worktreeName      —— worktree 名称（可选，默认使用 plan slug）
+ *   tmuxEnabled       —— 是否同时创建 tmux 会话
+ *   customSessionId   —— 自定义 session ID（可选）
+ *   worktreePRNumber  —— PR 编号（用于命名 worktree，可选）
+ *   messagingSocketPath —— UDS 消息服务器 socket 路径（可选）
+ *
+ * 执行顺序：
+ *   1. 检查 Node.js 版本（>= 18）
+ *   2. 设置自定义 session ID
+ *   3. 启动 UDS 消息服务器（ant-only，用于外部注入消息）
+ *   4. 捕获 teammate snapshot（swarm 模式）
+ *   5. 恢复终端备份（iTerm2/Terminal.app，swarm 中断后还原）
+ *   6. setCwd(cwd) —— 设置当前工作目录（必须在其他依赖 cwd 的操作之前）
+ *   7. captureHooksConfigSnapshot() —— 快照 hooks 配置，防止被隐蔽篡改
+ *   8. 处理 worktree（创建 git worktree + tmux session）
+ *   9. 注册后台任务（SessionMemory、SkillLearning、ContextCollapse）
+ *  10. 预取插件 hooks + 命令（与 getCommands 并行）
+ *  11. 注册 attribution hooks（commit 归因追踪，ant-only）
+ *  12. initSinks() —— 挂载日志/分析接收器
+ *  13. 检查 release notes + 上次会话统计
+ *  14. 验证 bypassPermissions 的安全环境（非 root、Docker/sandbox、无网络）
+ */
 export async function setup(
   cwd: string,
   permissionMode: PermissionMode,

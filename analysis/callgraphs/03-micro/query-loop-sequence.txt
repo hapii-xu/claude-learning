@@ -1,0 +1,104 @@
+微观：Query 执行循环时序图（ASCII）
+=========================================
+
+    用户/REPL                   QueryEngine.ts                query.ts
+    ─────────                   ──────────────                ────────
+    [用户输入]
+         │
+         v
+    submitMessage(userInput)
+         │
+         ├── fetchSystemPromptParts()
+         ├── processUserInput()
+         │
+         v
+    ╔═══════════════════════ 进入 query 主循环 ═══════════════════════╗
+    ║                                                                 ║
+    ║  ┌─── Step 1: 组装上下文 ──────────────────────────────────────┐ ║
+    ║  │                                                             │ ║
+    ║  │  startRelevantMemoryPrefetch()  ← 异步预取相关 memory       │ ║
+    ║  │  getAttachmentMessages()        ← 获取附件（memory/文件）   │ ║
+    ║  │  filterDuplicateMemoryAttachments()                         │ ║
+    ║  │  normalizeMessagesForAPI(messages)                          │ ║
+    ║  │  createBudgetTracker()                                      │ ║
+    ║  │  checkTokenBudget()                                         │ ║
+    ║  └─────────────────────────────────────────────────────────────┘ ║
+    ║                         │                                         ║
+    ║                         v                                         ║
+    ║  ┌─── Step 2: 调用 Claude API ─────────────────────────────────┐ ║
+    ║  │                                                             │ ║
+    ║  │  deps.callModel(apiMessages, systemPrompt)                  │ ║
+    ║  │    = claude.ts::queryModelWithStreaming()                    │ ║
+    ║  │         │                                                   │ ║
+    ║  │         v                                                   │ ║
+    ║  │    AsyncGenerator<StreamEvent>  ← 流式接收模型响应          │ ║
+    ║  │                                                             │ ║
+    ║  │  updateUsage() / accumulateUsage()                          │ ║
+    ║  └─────────────────────────────────────────────────────────────┘ ║
+    ║                         │                                         ║
+    ║                         v                                         ║
+    ║  ┌─── Step 3: 提取并执行工具 ──────────────────────────────────┐ ║
+    ║  │                                                             │ ║
+    ║  │  extractToolUseBlocks(messages)                             │ ║
+    ║  │         │                                                   │ ║
+    ║  │    ┌────┴────┐                                              │ ║
+    ║  │    │ 有 tool_use │ 无 tool_use                              │ ║
+    ║  │    v           v                                            │ ║
+    ║  │                                                             │ ║
+    ║  │  [有 tool_use]                                              │ ║
+    ║  │    runTools(toolUseMessages, ...)                            │ ║
+    ║  │      │                                                      │ ║
+    ║  │      v                                                      │ ║
+    ║  │    partitionToolCalls()  ← 分为并发批次 + 串行批次          │ ║
+    ║  │      │                                                      │ ║
+    ║  │      ├── [并发批次] runToolsConcurrently(blocks)             │ ║
+    ║  │      │      └── runToolUse()                                │ ║
+    ║  │      │           ├── findToolByName(name)                    │ ║
+    ║  │      │           ├── checkPermissionsAndCallTool()          │ ║
+    ║  │      │           │    ├── runPreToolUseHooks()               │ ║
+    ║  │      │           │    ├── tool.call(input) → ToolResult     │ ║
+    ║  │      │           │    ├── processToolResultBlock()          │ ║
+    ║  │      │           │    └── runPostToolUseHooks()             │ ║
+    ║  │      │           └── yield MessageUpdate → 实时回传 UI      │ ║
+    ║  │      │                                                      │ ║
+    ║  │      └── [串行批次] runToolsSerially(blocks)                │ ║
+    ║  │              └── (同上流程，逐个执行)                        │ ║
+    ║  │                                                             │ ║
+    ║  │    messages = [...messages, ...toolResults]  → 进入下一轮   │ ║
+    ║  │                                                             │ ║
+    ║  │  [无 tool_use]                                              │ ║
+    ║  │    → 模型纯文本回复 → 跳出循环                              │ ║
+    ║  └─────────────────────────────────────────────────────────────┘ ║
+    ║                         │                                         ║
+    ║                         v                                         ║
+    ║  ┌─── Step 4: 后处理 ──────────────────────────────────────────┐ ║
+    ║  │                                                             │ ║
+    ║  │  executePostSamplingHooks(messages, ctx)                    │ ║
+    ║  │  shouldCompact(messages)?                                   │ ║
+    ║  │    └── 是 → autoCompactIfNeeded() / microcompactMessages()  │ ║
+    ║  └─────────────────────────────────────────────────────────────┘ ║
+    ║                         │                                         ║
+    ║                         └──── 循环 ────> 回到 Step 1              ║
+    ║                                                                   ║
+    ╚══════════════════════ 循环结束 ═══════════════════════════════════╝
+                                   │
+                                   v
+    ┌─── Step 5: 结果回流 ──────────────────────────────────────────────┐
+    │                                                                    │
+    │  recordTranscript()                                                │
+    │  flushSessionStorage()                                             │
+    │  getTotalCost() / getModelUsage()                                  │
+    │  → 返回最终响应给用户                                              │
+    └────────────────────────────────────────────────────────────────────┘
+
+
+    循环终止条件
+    ============
+
+    ┌──────────────────────────────────────────────────────────┐
+    │  1. 模型不输出 tool_use  → 纯文本回复，自然结束          │
+    │  2. Token 预算耗尽       → checkTokenBudget() 触发       │
+    │  3. 用户中断             → createUserInterruptionMessage │
+    │  4. API 错误             → createAssistantAPIErrorMessage│
+    │  5. 最大轮次保护         → 循环上限                      │
+    └──────────────────────────────────────────────────────────┘

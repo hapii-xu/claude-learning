@@ -11,6 +11,22 @@ type AppWrapperProps = {
   initialState: AppState;
 };
 
+/**
+ * 启动交互式 REPL 界面 —— 渲染 React/Ink 组件树并阻塞直到会话结束。
+ * Launches the interactive REPL screen — renders the React/Ink component tree
+ * and blocks until the session ends.
+ *
+ * 调用时机：main.tsx 的默认 action 中，setup() 完成后调用。
+ *
+ * 组件树结构：
+ *   <SentryErrorBoundary>   ← 错误边界，捕获未处理异常
+ *     <App>                 ← 根 Provider（AppState、Stats、FpsMetrics）
+ *       <REPL />            ← 主交互界面（消息列表、输入框、状态栏）
+ *     </App>
+ *   </SentryErrorBoundary>
+ *
+ * renderAndRun 会启动 Ink 渲染循环，并将 stdin 切换到 raw mode（键盘输入）。
+ */
 export async function launchRepl(
   root: Root,
   appProps: AppWrapperProps,

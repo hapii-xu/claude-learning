@@ -1,0 +1,89 @@
+微观：启动链路时序图（ASCII）
+===================================
+
+    cli.tsx                         main.tsx                      init.ts
+    ───────                         ────────                      ───────
+    [1] main()
+     ├── profileCheckpoint("cli:start")
+     ├── parseArgs(process.argv)
+     │
+     ├── [快路径?] ─── 是 ──> 执行并退出
+     │                 (--version / --dump-* / daemon / remote-control)
+     │
+     └── [否] ─────> import('./main.tsx')
+                           │
+                           v
+                      main(argv)
+                       ├── initializeWarningHandler()
+                       ├── startCapturingEarlyInput()
+                       ├── initializeEntrypoint()
+                       ├── eagerLoadSettings()
+                       │
+                       └── run()
+                            │
+                            ├─── preAction hook ───────────────────────────────
+                            │         │
+                            │         v
+                            │    init(argv)
+                            │     ├── applySafeConfigEnvironmentVariables()
+                            │     ├── applyExtraCACertsFromConfig()
+                            │     ├── configureGlobalMTLS()
+                            │     ├── configureGlobalAgents()
+                            │     ├── preconnectAnthropicApi()
+                            │     ├── initJetBrainsDetection()
+                            │     ├── detectCurrentRepository()
+                            │     ├── setupGracefulShutdown()
+                            │     └── ensureScratchpadDir()
+                            │
+                            ├─── action handler ───────────────────────────────
+                            │         │
+                            │         v
+                            │    setup(argv, permissionContext)
+                            │     ├── switchSession()
+                            │     ├── setCwd(resolvedWorkingDir)
+                            │     ├── captureHooksConfigSnapshot()
+                            │     ├── initializeFileChangedWatcher()
+                            │     ├── createWorktreeForSession()
+                            │     ├── initSessionMemory()
+                            │     └── prefetchApiKeyFromApiKeyHelperIfSafe()
+                            │
+                            │    getCommands(options) ──> Command[]
+                            │    getMcpToolsCommandsAndResources() ──> {tools, commands}
+                            │    initBundledSkills()
+                            │    initBuiltinPlugins()
+                            │    getAgentDefinitionsWithOverrides()
+                            │    initializeGrowthBook()
+                            │    initializeTelemetryAfterTrust()
+                            │         └── doInitializeTelemetry()
+                            │              └── initializeTelemetry()  ← trust 后才启动
+                            │    showSetupScreens()
+                            │    settingsChangeDetector.start()
+                            │
+                            └─── launchRepl() ──────────────────────────────────
+                                      │
+                                      v
+                                 replLauncher.tsx::launchRepl()
+                                  ├── 动态 import App.tsx
+                                  ├── 动态 import REPL.tsx
+                                  └── Ink 渲染循环启动
+                                        │
+                                        v
+                                   ┌─────────────────────────┐
+                                   │  App                     │
+                                   │   └── REPL               │
+                                   │        ├── Messages      │
+                                   │        └── PromptInput   │
+                                   └─────────────────────────┘
+                                        │
+                                        v
+                                   用户可见交互式工作台
+
+
+    时间线总结
+    ==========
+
+    ──┬──────────┬──────────┬──────────┬──────────┬──────────┬──────────┬──>
+      cli.tsx    init.ts    setup.ts   能力装配    telemetry  launchRepl  交互
+      参数解析   trust前     环境准备   tools/mcp   sink启动   App+REPL    工作台
+                 初始化     hooks/mem   skills/     延迟到
+                                     plugins     trust后

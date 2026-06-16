@@ -1,0 +1,155 @@
+// 微观：Query 执行循环时序图（Graphviz DOT）
+// 渲染: dot -Tpng query-loop-sequence.dot -o query-loop-sequence.png
+
+digraph QueryLoop {
+    rankdir=TB;
+    fontname="Helvetica";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=9, margin="0.12,0.06"];
+    edge [fontname="Helvetica", fontsize=7, color="#555555"];
+    bgcolor="#FAFAFA";
+    pad=0.3;
+    nodesep=0.35;
+    ranksep=0.4;
+
+    // ==========================================
+    // 入口
+    // ==========================================
+    entry [label="用户/REPL\nsubmitMessage(userInput)", fillcolor="#E3F2FD", shape=oval];
+    qe_pre [label="QueryEngine.ts\nfetchSystemPromptParts()\nprocessUserInput()", fillcolor="#E3F2FD"];
+
+    // ==========================================
+    // 主循环
+    // ==========================================
+    subgraph cluster_loop {
+        label="主循环（直到无 tool_use）";
+        style="filled,rounded";
+        color="#ECEFF1";
+        fillcolor="#FAFAFA";
+        fontcolor="#37474F";
+        fontsize=10;
+
+        // Step 1: 组装上下文
+        subgraph cluster_step1 {
+            label="Step 1: 组装上下文";
+            style="filled,rounded";
+            color="#FFF3E0";
+            fillcolor="#FFF3E0";
+            fontcolor="#E65100";
+            fontsize=9;
+
+            s1_prefetch [label="attachments.ts\nstartRelevantMemoryPrefetch()\n← 异步预取相关 memory", fillcolor="#FFE0B2"];
+            s1_attach [label="attachments.ts\ngetAttachmentMessages()\nfilterDuplicateMemoryAttachments()", fillcolor="#FFE0B2"];
+            s1_norm [label="utils/messages.ts\nnormalizeMessagesForAPI(messages)", fillcolor="#FFE0B2"];
+            s1_budget [label="query/tokenBudget.ts\ncreateBudgetTracker()\ncheckTokenBudget()", fillcolor="#FFE0B2"];
+        }
+
+        // Step 2: 调用 API
+        subgraph cluster_step2 {
+            label="Step 2: 调用 Claude API";
+            style="filled,rounded";
+            color="#E8F5E9";
+            fillcolor="#E8F5E9";
+            fontcolor="#2E7D32";
+            fontsize=9;
+
+            s2_call [label="claude.ts\nqueryModelWithStreaming()\n→ AsyncGenerator<StreamEvent>", fillcolor="#C8E6C9"];
+            s2_stream [label="流式接收模型响应\n累积 assistant message", fillcolor="#C8E6C9"];
+            s2_usage [label="claude.ts\nupdateUsage() / accumulateUsage()", fillcolor="#C8E6C9"];
+        }
+
+        // Step 3: 工具执行
+        subgraph cluster_step3 {
+            label="Step 3: 提取并执行工具";
+            style="filled,rounded";
+            color="#E3F2FD";
+            fillcolor="#E3F2FD";
+            fontcolor="#1565C0";
+            fontsize=9;
+
+            s3_extract [label="extractToolUseBlocks(messages)", fillcolor="#BBDEFB"];
+
+            s3_orch [label="toolOrchestration.ts\nrunTools()\npartitionToolCalls()\n← 分为并发/串行批次", fillcolor="#90CAF9", penwidth=1.5];
+            s3_concurrent [label="[并发批次]\nrunToolsConcurrently()", fillcolor="#BBDEFB"];
+            s3_serial [label="[串行批次]\nrunToolsSerially()", fillcolor="#BBDEFB"];
+            s3_exec [label="toolExecution.ts\nrunToolUse()\nfindToolByName()\ncheckPermissionsAndCallTool()", fillcolor="#BBDEFB"];
+            s3_hooks_pre [label="toolHooks.ts\nrunPreToolUseHooks()", fillcolor="#BBDEFB"];
+            s3_call [label="Tool.ts\ntool.call(input)\n→ ToolResult", fillcolor="#90CAF9", penwidth=1.5];
+            s3_hooks_post [label="toolHooks.ts\nrunPostToolUseHooks()\nprocessToolResultBlock()", fillcolor="#BBDEFB"];
+            s3_yield [label="yield MessageUpdate\n→ 实时回传 UI", fillcolor="#BBDEFB"];
+            s3_append [label="messages += toolResults", fillcolor="#BBDEFB"];
+        }
+
+        // Step 4: 后处理
+        subgraph cluster_step4 {
+            label="Step 4: 后处理";
+            style="filled,rounded";
+            color="#F3E5F5";
+            fillcolor="#F3E5F5";
+            fontcolor="#6A1B9A";
+            fontsize=9;
+
+            s4_hooks [label="utils/hooks.ts\nexecutePostSamplingHooks()", fillcolor="#E1BEE7"];
+            s4_compact [label="compact.ts\nshouldCompact? → autoCompactIfNeeded()\n/ microcompactMessages()", fillcolor="#E1BEE7"];
+        }
+    }
+
+    // ==========================================
+    // 出口
+    // ==========================================
+    subgraph cluster_exit {
+        label="Step 5: 结果回流";
+        style="filled,rounded";
+        color="#FFEBEE";
+        fillcolor="#FFEBEE";
+        fontcolor="#C62828";
+        fontsize=9;
+
+        s5_record [label="sessionStorage.ts\nrecordTranscript()\nflushSessionStorage()", fillcolor="#FFCDD2"];
+        s5_usage [label="QueryEngine.ts\ngetTotalCost()\ngetModelUsage()", fillcolor="#FFCDD2"];
+        s5_return [label="返回最终响应给用户", fillcolor="#FFCDD2", shape=oval];
+    }
+
+    // 循环决策节点
+    loop_decision [label="有 tool_use blocks?", fillcolor="#FFF9C4", shape=diamond];
+    loop_back [label="回到 Step 1", fillcolor="#FFF9C4", shape=oval];
+
+    // ==========================================
+    // 边
+    // ==========================================
+    entry -> qe_pre [penwidth=1.2, color="#1565C0"];
+
+    qe_pre -> s1_prefetch [penwidth=1.2, color="#E65100"];
+    s1_prefetch -> s1_attach;
+    s1_attach -> s1_norm;
+    s1_norm -> s1_budget;
+
+    s1_budget -> s2_call [penwidth=1.2, color="#2E7D32"];
+    s2_call -> s2_stream;
+    s2_stream -> s2_usage;
+
+    s2_usage -> s3_extract [penwidth=1.2, color="#1565C0"];
+    s3_extract -> loop_decision;
+
+    loop_decision -> s3_orch [label="是", color="#1565C0", penwidth=1.2];
+    loop_decision -> s4_hooks [label="否\n(纯文本回复)", color="#6A1B9A", style=dashed];
+
+    s3_orch -> s3_concurrent [label="并发安全"];
+    s3_orch -> s3_serial [label="需串行"];
+    s3_concurrent -> s3_exec;
+    s3_serial -> s3_exec;
+
+    s3_exec -> s3_hooks_pre;
+    s3_hooks_pre -> s3_call [penwidth=1.2];
+    s3_call -> s3_hooks_post;
+    s3_hooks_post -> s3_yield;
+    s3_yield -> s3_append;
+
+    s3_append -> s4_hooks [penwidth=1.2, color="#6A1B9A"];
+    s4_hooks -> s4_compact;
+    s4_compact -> loop_back;
+    loop_back -> s1_prefetch [style=dashed, color="#999", constraint=false];
+
+    s4_compact -> s5_record [penwidth=1.2, color="#C62828"];
+    s5_record -> s5_usage;
+    s5_usage -> s5_return;
+}

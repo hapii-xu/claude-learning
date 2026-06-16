@@ -467,8 +467,20 @@ async function logStartupTelemetry(): Promise<void> {
   });
 }
 
-// @[MODEL LAUNCH]: Consider any migrations you may need for model strings. See migrateSonnet1mToSonnet45.ts for an example.
-// Bump this when adding a new sync migration so existing users re-run the set.
+/**
+ * 执行配置迁移，将旧版配置格式升级到最新版。
+ * Runs configuration migrations to upgrade legacy config formats to the current version.
+ *
+ * 迁移是同步执行的（CURRENT_MIGRATION_VERSION 控制），每次升级版本号后，
+ * 已迁移的用户不会重复执行。异步迁移（如 changelog）fire-and-forget。
+ *
+ * 迁移内容包括：
+ *   - 权限配置迁移到 settings.json
+ *   - MCP 服务器启用状态迁移
+ *   - 模型字符串升级（Sonnet 1M → Sonnet 4.5 → Sonnet 4.6，Opus → Opus 1M 等）
+ *   - bridge 配置迁移到 remoteControlAtStartup
+ *   - auto mode 选项重置（当 TRANSCRIPT_CLASSIFIER 启用时）
+ */
 const CURRENT_MIGRATION_VERSION = 11;
 function runMigrations(): void {
   if (getGlobalConfig().migrationVersion !== CURRENT_MIGRATION_VERSION) {
@@ -527,10 +539,23 @@ function prefetchSystemContextIfSafe(): void {
 }
 
 /**
- * Start background prefetches and housekeeping that are NOT needed before first render.
- * These are deferred from setup() to reduce event loop contention and child process
- * spawning during the critical startup path.
- * Call this after the REPL has been rendered.
+ * 启动延迟预取任务 —— 在 REPL 首次渲染完成后调用，不阻塞首屏。
+ * Starts background prefetches that are NOT needed before first render.
+ * 这些任务在用户输入第一个问题时才会用到，因此可以在 REPL 渲染后再执行，
+ * 利用"用户正在打字"的时间窗口完成预取，减少首次 API 调用的延迟。
+ *
+ * 预取内容包括：
+ *   - initUser()：用户信息（用于 Langfuse 等遥测）
+ *   - getUserContext()：用户上下文（CLAUDE.md 等）
+ *   - getSystemContext()：系统上下文（git 状态等，需先确认 trust）
+ *   - getRelevantTips()：使用提示
+ *   - AWS/GCP 凭证预取（Bedrock/Vertex 模式下）
+ *   - countFilesRoundedRg()：文件数量统计
+ *   - initializeAnalyticsGates()：GrowthBook 功能门控
+ *   - refreshModelCapabilities()：模型能力缓存
+ *   - settingsChangeDetector / skillChangeDetector：文件变更监听器
+ *
+ * --bare 模式下全部跳过（脚本调用无需这些预热）。
  */
 export function startDeferredPrefetches(): void {
   // This function runs after first render, so it doesn't block the initial paint.
@@ -740,6 +765,19 @@ const _pendingSSH: PendingSSH | undefined = feature('SSH_REMOTE')
     }
   : undefined;
 
+/**
+ * 完整 CLI 应用入口函数（由 cli.tsx 的默认路径动态导入后调用）。
+ * Full CLI application entry — dynamically imported and invoked by cli.tsx's default path.
+ *
+ * 职责：
+ *   1. 设置安全环境变量（防 PATH 劫持）
+ *   2. 初始化 warning handler 和进程退出清理
+ *   3. 处理特殊 URL 协议（cc://、--handle-uri）
+ *   4. 处理 ssh/assistant 子命令的 argv 重写
+ *   5. 判断会话类型（交互/非交互）和客户端类型（cli/sdk/remote...）
+ *   6. 提前加载 settings
+ *   7. 调用 run() 启动 Commander.js 命令分发
+ */
 export async function main() {
   profileCheckpoint('main_function_start');
 
@@ -1063,6 +1101,20 @@ async function getInputPrompt(
   return prompt;
 }
 
+/**
+ * 创建 Commander.js 程序并注册所有子命令，然后解析命令行参数。
+ * Creates the Commander.js program, registers all subcommands, and parses CLI arguments.
+ *
+ * 主要流程：
+ *   1. 创建 CommanderCommand，配置帮助信息排序
+ *   2. 注册 preAction hook（在每个命令执行前统一做初始化：init()、migrations、远程设置等）
+ *   3. 注册所有子命令（mcp、server、ssh、open、auth、plugin、agents、doctor、update 等）
+ *   4. 注册默认 action（即不带子命令时的交互模式入口）：
+ *      - setup() 环境准备
+ *      - 加载工具列表、MCP 配置、权限模式
+ *      - 处理会话恢复（--resume / --continue）
+ *      - 创建 Ink root 并调用 launchRepl() 进入交互界面
+ */
 async function run(): Promise<CommanderCommand> {
   profileCheckpoint('run_function_start');
 
@@ -1082,6 +1134,9 @@ async function run(): Promise<CommanderCommand> {
   const program = new CommanderCommand().configureHelp(createSortedHelpConfig()).enablePositionalOptions();
   profileCheckpoint('run_commander_initialized');
 
+  // ── Commander preAction hook ─────────────────────────────────────────────
+  // 在每个子命令（或默认命令）执行前统一运行，负责全局初始化。
+  // 这样设计的好处：显示 --help 时不会触发这些初始化（只有真正执行命令才会）。
   // Use preAction hook to run initialization only when executing a command,
   // not when displaying help. This avoids the need for env variable signaling.
   program.hook('preAction', async thisCommand => {

@@ -273,6 +273,29 @@ type State = {
   transition: Continue | undefined
 }
 
+/**
+ * 底层 API 查询循环（async generator）—— 核心执行引擎。
+ * Low-level API query loop (async generator) — the core execution engine.
+ *
+ * 工作方式：
+ *   调用方（QueryEngine / print.ts）通过 for-await 消费这个 generator，
+ *   每次 yield 返回一个事件（流式 token、工具调用、消息完成等），
+ *   直到整个对话轮次结束，返回 Terminal 对象描述终止原因。
+ *
+ * 内部循环（queryLoop）的核心逻辑：
+ *   1. 构建 system prompt + messages 列表
+ *   2. 调用 Anthropic API（services/api/claude.ts）获取流式响应
+ *   3. 逐 chunk yield 流式事件给调用方（UI 实时渲染）
+ *   4. 响应完成后，检查是否有工具调用（tool_use block）
+ *   5. 若有工具调用 → 执行工具 → 将工具结果追加到 messages → 继续循环（回到步骤 2）
+ *   6. 若无工具调用 → 本轮结束，返回 Terminal
+ *
+ * 还负责：
+ *   - 自动压缩（auto compact）：当上下文接近窗口限制时自动压缩历史
+ *   - Langfuse 链路追踪（创建/结束 trace）
+ *   - 命令队列生命周期管理
+ *   - JSC Performance 内存清理（防止长时间会话内存泄漏）
+ */
 export async function* query(
   params: QueryParams,
 ): AsyncGenerator<
@@ -390,6 +413,20 @@ export async function* query(
   return terminal!
 }
 
+/**
+ * query() 的内部循环实现 —— 实际执行 API 调用和工具执行。
+ * Internal loop implementation of query() — performs the actual API calls and tool executions.
+ *
+ * 使用可变 state 对象管理跨迭代状态（messages、toolUseContext 等），
+ * 每次迭代结束时通过 `state = { ... }` 整体更新，避免 9 个独立赋值。
+ *
+ * 每次迭代的步骤：
+ *   1. 预处理 messages（规范化、注入附件、memory 等）
+ *   2. 调用 API，yield 流式事件
+ *   3. 处理工具调用（runTools）→ 结果追加到 messages
+ *   4. 判断终止条件（无工具调用 / 达到 maxTurns / 被中断）
+ *   5. 若未终止 → 继续下一次迭代
+ */
 async function* queryLoop(
   params: QueryParams,
   consumedCommandUuids: string[],

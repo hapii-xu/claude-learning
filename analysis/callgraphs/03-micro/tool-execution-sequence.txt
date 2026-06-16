@@ -1,0 +1,114 @@
+微观：Tool 执行链路时序图（ASCII）
+=========================================
+
+    query.ts                    toolOrchestration.ts          toolExecution.ts
+    ────────                    ────────────────────          ────────────────
+
+    [模型输出 tool_use blocks]
+         │
+         v
+    runTools(toolUseMessages, assistantMessages, canUseTool, ctx)
+         │
+         v
+    ╔═══════════════ Phase 1: 分组 ═══════════════════════════════════════╗
+    ║                                                                      ║
+    ║  partitionToolCalls(toolUseMessages, ctx)                            ║
+    ║       │                                                              ║
+    ║       │  for each toolUse:                                           ║
+    ║       │    findToolByName(tools, toolUse.name)                       ║
+    ║       │    tool.isConcurrencySafe(parsedInput.data)                  ║
+    ║       │                                                              ║
+    ║       └──> Batch[] = [                                               ║
+    ║              { isConcurrencySafe: true,  blocks: [A, B, C] },        ║
+    ║              { isConcurrencySafe: false, blocks: [D] },              ║
+    ║              { isConcurrencySafe: true,  blocks: [E, F] },           ║
+    ║            ]                                                         ║
+    ║                                                                      ║
+    ╚══════════════════════════════════════════════════════════════════════╝
+         │
+         v
+    ╔═══════════════ Phase 2: 按批次执行 ═════════════════════════════════╗
+    ║                                                                      ║
+    ║  for each Batch:                                                     ║
+    ║       │                                                              ║
+    ║       ├── [isConcurrencySafe = true]                                 ║
+    ║       │     runToolsConcurrently(blocks, canUseTool, ctx)            ║
+    ║       │       └── Promise.all( blocks.map(b => runToolUse(b)) )      ║
+    ║       │                                                              ║
+    ║       └── [isConcurrencySafe = false]                                ║
+    ║             runToolsSerially(blocks, canUseTool, ctx)                ║
+    ║               └── for...of 逐个 await runToolUse(block)             ║
+    ║                                                                      ║
+    ║  ┌─── 单次 runToolUse 完整流程 ────────────────────────────────────┐ ║
+    ║  │                                                                  │ ║
+    ║  │  [1] findToolByName(allTools, name)                             │ ║
+    ║  │       └── 也搜索 MCP 工具 (mcp__server__tool)                   │ ║
+    ║  │                                                                  │ ║
+    ║  │  [2] streamedCheckPermissionsAndCallTool()                      │ ║
+    ║  │       └── checkPermissionsAndCallTool()                         │ ║
+    ║  │            │                                                     │ ║
+    ║  │            v                                                     │ ║
+    ║  │                                                                  │ ║
+    ║  │  [3] runPreToolUseHooks(toolUse, ctx)                           │ ║
+    ║  │       └── HookDecision: allow / deny / modify                   │ ║
+    ║  │            │                                                     │ ║
+    ║  │       ┌────┴────┐                                               │ ║
+    ║  │       │ 拒绝    │ 允许                                          │ ║
+    ║  │       v         v                                               │ ║
+    ║  │  createProgress  [4] tool.inputSchema.parse(input)              │ ║
+    ║  │  Message("blocked")        │                                    │ ║
+    ║  │                        ┌───┴───┐                                │ ║
+    ║  │                        │ 失败  │ 通过                           │ ║
+    ║  │                        v       v                                │ ║
+    ║  │                   formatZod  [5] checkPermission(tool, input)   │ ║
+    ║  │                   Error          │                              │ ║
+    ║  │                                  ├── allow ─────────────┐       │ ║
+    ║  │                                  ├── ask → 等待用户审批  │       │ ║
+    ║  │                                  └── deny ──────────────┘       │ ║
+    ║  │                                              │                  │ ║
+    ║  │                                              v                  │ ║
+    ║  │                                     [6] tool.call(input, ctx)   │ ║
+    ║  │                                              │                  │ ║
+    ║  │                                              v                  │ ║
+    ║  │                                         ToolResult              │ ║
+    ║  │                                              │                  │ ║
+    ║  │                                              v                  │ ║
+    ║  │                                     [7] processToolResultBlock  │ ║
+    ║  │                                              │                  │ ║
+    ║  │                                              v                  │ ║
+    ║  │                                     [8] runPostToolUseHooks     │ ║
+    ║  │                                              │                  │ ║
+    ║  │                                         ┌────┴────┐             │ ║
+    ║  │                                         │ 成功    │ 失败        │ ║
+    ║  │                                         v         v             │ ║
+    ║  │                                       (继续)  runPostToolUse    │ ║
+    ║  │                                               FailureHooks      │ ║
+    ║  │                                              │                  │ ║
+    ║  │                                              v                  │ ║
+    ║  │                                     [9] createUserMessage       │ ║
+    ║  │                                          (toolResult)           │ ║
+    ║  │                                              │                  │ ║
+    ║  │                                              v                  │ ║
+    ║  │                                     yield MessageUpdate         │ ║
+    ║  │                                                                  │ ║
+    ║  └──────────────────────────────────────────────────────────────────┘ ║
+    ║                                                                      ║
+    ╚══════════════════════════════════════════════════════════════════════╝
+         │
+         v
+    yield 所有 MessageUpdate → 追加到 messages → 进入下一轮 query
+
+
+    并发分组规则
+    ============
+
+    ┌────────────────────────────────────────────────────────────────┐
+    │  连续 isConcurrencySafe=true  → 合并为同一并发批次             │
+    │  中间出现 isConcurrencySafe=false → 断点，新开串行批次         │
+    │  MCP 工具                       → 默认 isConcurrencySafe=true │
+    └────────────────────────────────────────────────────────────────┘
+
+    典型分组示例：
+    ──────────────────────────────────────────────>
+    [Read A][Read B][Read C] | [Edit D] | [Read E][Read F]
+     ← 并发批次 1 →          ←串行→    ← 并发批次 2 →

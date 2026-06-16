@@ -1,0 +1,159 @@
+// 微观：Tool 执行链路时序图（Graphviz DOT）
+// 渲染: dot -Tpng tool-execution-sequence.dot -o tool-execution-sequence.png
+
+digraph ToolExecution {
+    rankdir=TB;
+    fontname="Helvetica";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=9, margin="0.12,0.06"];
+    edge [fontname="Helvetica", fontsize=7, color="#555555"];
+    bgcolor="#FAFAFA";
+    pad=0.3;
+    nodesep=0.35;
+    ranksep=0.35;
+
+    // ==========================================
+    // 入口
+    // ==========================================
+    entry [label="query.ts\n模型输出 tool_use blocks", fillcolor="#E3F2FD", shape=oval];
+    runTools [label="toolOrchestration.ts::runTools()\ntoolUseMessages, assistantMessages\ncanUseTool, toolUseContext", fillcolor="#E3F2FD", penwidth=1.5];
+
+    // ==========================================
+    // Phase 1: 分组
+    // ==========================================
+    subgraph cluster_phase1 {
+        label="Phase 1: 分组";
+        style="filled,rounded";
+        color="#FFF3E0";
+        fillcolor="#FFF3E0";
+        fontcolor="#E65100";
+        fontsize=10;
+
+        partition [label="partitionToolCalls()\nfor each toolUse:\n  findToolByName(tools, name)\n  tool.isConcurrencySafe(input)", fillcolor="#FFE0B2"];
+        batch_result [label="Batch[] 输出\n[{safe:true, blocks:[A,B,C]},\n {safe:false, blocks:[D]},\n {safe:true, blocks:[E,F]}]", fillcolor="#FFE0B2", shape=note];
+    }
+
+    // ==========================================
+    // Phase 2: 按批次执行
+    // ==========================================
+    subgraph cluster_phase2 {
+        label="Phase 2: 按批次执行";
+        style="filled,rounded";
+        color="#E8F5E9";
+        fillcolor="#E8F5E9";
+        fontcolor="#2E7D32";
+        fontsize=10;
+
+        dispatch [label="dispatch()\nfor each Batch", fillcolor="#C8E6C9"];
+        concurrent [label="[并发安全批次]\nrunToolsConcurrently()\nPromise.all 并发", fillcolor="#A5D6A7"];
+        serial [label="[需串行批次]\nrunToolsSerially()\nfor...of 逐个 await", fillcolor="#A5D6A7"];
+    }
+
+    // ==========================================
+    // 单次 runToolUse 流程
+    // ==========================================
+    subgraph cluster_runtooluse {
+        label="单次 runToolUse 完整流程";
+        style="filled,rounded";
+        color="#E3F2FD";
+        fillcolor="#E3F2FD";
+        fontcolor="#1565C0";
+        fontsize=10;
+
+        step1 [label="① findToolByName(allTools, name)\n也搜索 MCP 工具 (mcp__server__tool)", fillcolor="#BBDEFB"];
+        step2 [label="② streamedCheckPermissionsAndCallTool()\n→ checkPermissionsAndCallTool()", fillcolor="#BBDEFB"];
+
+        subgraph cluster_hooks_pre {
+            label="③ Pre-tool-use Hooks";
+            style="filled,rounded";
+            color="#F3E5F5";
+            fillcolor="#F3E5F5";
+            fontcolor="#6A1B9A";
+            fontsize=9;
+
+            hooks_pre [label="runPreToolUseHooks(toolUse, ctx)\nHookDecision: allow / deny / modify", fillcolor="#E1BEE7"];
+            hook_deny [label="deny → createProgressMessage\n('blocked by hook')", fillcolor="#FFCDD2"];
+        }
+
+        subgraph cluster_schema {
+            label="④ Schema 校验";
+            style="filled,rounded";
+            color="#FFF3E0";
+            fillcolor="#FFF3E0";
+            fontcolor="#E65100";
+            fontsize=9;
+
+            schema [label="tool.inputSchema.parse(input)\nZod 校验输入参数", fillcolor="#FFE0B2"];
+            schema_fail [label="失败 → formatZodValidationError()", fillcolor="#FFCDD2"];
+        }
+
+        subgraph cluster_perm {
+            label="⑤ 权限检查";
+            style="filled,rounded";
+            color="#FFEBEE";
+            fillcolor="#FFEBEE";
+            fontcolor="#C62828";
+            fontsize=9;
+
+            perm [label="checkPermission(tool, input, ctx)\nallow / ask / deny", fillcolor="#FFCDD2"];
+            perm_ask [label="ask → 等待用户审批", fillcolor="#FFE0B2"];
+        }
+
+        subgraph cluster_call {
+            label="⑥ 工具执行";
+            style="filled,rounded";
+            color="#E8F5E9";
+            fillcolor="#E8F5E9";
+            fontcolor="#2E7D32";
+            fontsize=9;
+
+            call [label="tool.call(validatedInput, context)\n→ ToolResult (content, metadata)", fillcolor="#C8E6C9", penwidth=1.5];
+        }
+
+        subgraph cluster_result {
+            label="⑦ 结果处理";
+            style="filled,rounded";
+            color="#ECEFF1";
+            fillcolor="#ECEFF1";
+            fontcolor="#37474F";
+            fontsize=9;
+
+            process [label="processToolResultBlock(toolResult)\n处理大结果 → toolResultStorage", fillcolor="#CFD8DC"];
+            hooks_post [label="⑧ runPostToolUseHooks()\n可选: runPostToolUseFailureHooks()", fillcolor="#CFD8DC"];
+            msg [label="⑨ createUserMessage(toolResult)\nyield MessageUpdate", fillcolor="#CFD8DC"];
+        }
+    }
+
+    // 出口
+    exit_node [label="yield 所有 MessageUpdate\n→ 追加到 messages → 下一轮 query", fillcolor="#FFCDD2", shape=oval];
+
+    // ==========================================
+    // 边
+    // ==========================================
+    entry -> runTools [penwidth=1.2, color="#1565C0"];
+
+    runTools -> partition [penwidth=1.2, color="#E65100"];
+    partition -> batch_result;
+
+    batch_result -> dispatch [penwidth=1.2, color="#2E7D32"];
+    dispatch -> concurrent [label="并发安全"];
+    dispatch -> serial [label="需串行"];
+    concurrent -> step1;
+    serial -> step1;
+
+    step1 -> step2;
+    step2 -> hooks_pre;
+    hooks_pre -> hook_deny [label="deny", style=dashed];
+    hooks_pre -> schema [label="allow", penwidth=1.2];
+
+    schema -> schema_fail [label="失败", style=dashed];
+    schema -> perm [label="通过", penwidth=1.2];
+
+    perm -> perm_ask [label="ask", style=dashed];
+    perm -> call [label="allow", penwidth=1.2, color="#2E7D32"];
+
+    call -> process [penwidth=1.2];
+    process -> hooks_post;
+    hooks_post -> msg;
+
+    msg -> exit_node [penwidth=1.2, color="#C62828"];
+}

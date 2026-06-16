@@ -70,12 +70,23 @@ if (feature('ABLATION_BASELINE') && process.env.CLAUDE_CODE_ABLATION_BASELINE) {
 
 /**
  * Bootstrap entrypoint - checks for special flags before loading the full CLI.
+ * 引导入口点 —— 在加载完整 CLI 之前检查特殊标志（快速路径）。
+ *
  * All imports are dynamic to minimize module evaluation for fast paths.
+ * 所有 import 均为动态导入，以最小化快速路径的模块加载开销。
+ *
  * Fast-path for --version has zero imports beyond this file.
+ * --version 快速路径：除本文件外不加载任何模块，实现最快启动。
+ *
+ * 整体设计思路：
+ *   本函数是一个"分流器"，按优先级依次检查命令行参数，
+ *   匹配到哪个快速路径就动态导入对应模块并提前 return，
+ *   只有默认路径才会加载完整的 main.tsx（即完整 CLI 应用）。
  */
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
+  // ── 快速路径 1：打印版本号，零模块加载 ──────────────────────────────────────
   // Fast-path for --version/-v: zero module loading needed
   if (args.length === 1 && (args[0] === '--version' || args[0] === '-v' || args[0] === '-V')) {
     // MACRO.VERSION is inlined at build time
@@ -87,6 +98,7 @@ async function main(): Promise<void> {
   const { profileCheckpoint } = await import('../utils/startupProfiler.js');
   profileCheckpoint('cli_entry');
 
+  // ── 快速路径 2：输出系统 prompt 后退出（仅用于 prompt 敏感度评估，Anthropic 内部功能）──
   // Fast-path for --dump-system-prompt: output the rendered system prompt and exit.
   // Used by prompt sensitivity evals to extract the system prompt at a specific commit.
   // Ant-only: eliminated from external builds via feature flag.
@@ -103,6 +115,9 @@ async function main(): Promise<void> {
     return;
   }
 
+  // ── 快速路径 3：Chrome 浏览器集成 MCP 模式 ─────────────────────────────────
+  // --claude-in-chrome-mcp: 启动 Claude-in-Chrome MCP 服务器
+  // --chrome-native-host: 启动 Chrome Native Messaging Host（浏览器扩展通信）
   if (process.argv[2] === '--claude-in-chrome-mcp') {
     profileCheckpoint('cli_claude_in_chrome_mcp_path');
     const { runClaudeInChromeMcpServer } = await import('../utils/claudeInChrome/mcpServer.js');
@@ -113,6 +128,7 @@ async function main(): Promise<void> {
     const { runChromeNativeHost } = await import('../utils/claudeInChrome/chromeNativeHost.js');
     await runChromeNativeHost();
     return;
+    // --computer-use-mcp: 启动 Computer Use MCP 服务器（截图/键鼠控制，需 CHICAGO_MCP feature）
   } else if (feature('CHICAGO_MCP') && process.argv[2] === '--computer-use-mcp') {
     profileCheckpoint('cli_computer_use_mcp_path');
     const { runComputerUseMcpServer } = await import('../utils/computerUse/mcpServer.js');
@@ -120,6 +136,7 @@ async function main(): Promise<void> {
     return;
   }
 
+  // ── 快速路径 4：ACP（Agent Client Protocol）模式，通过 stdio 通信 ──────────
   // Fast-path for `--acp` — ACP (Agent Client Protocol) agent mode over stdio.
   if (feature('ACP') && process.argv[2] === '--acp') {
     profileCheckpoint('cli_acp_path');
@@ -128,6 +145,7 @@ async function main(): Promise<void> {
     return;
   }
 
+  // ── 快速路径 5：微信集成（weixin CLI 子命令）─────────────────────────────────
   if (args[0] === 'weixin') {
     profileCheckpoint('cli_weixin_path');
     const { handleWeixinCli } = await import('@claude-code-best/weixin');
@@ -156,6 +174,7 @@ async function main(): Promise<void> {
     return;
   }
 
+  // ── 快速路径 6：daemon worker 模式（supervisor 内部派生，高性能敏感）────────
   // Fast-path for `--daemon-worker=<kind>` (internal — supervisor spawns this).
   // Must come before the daemon subcommand check: spawned per-worker, so
   // perf-sensitive. No enableConfigs(), no analytics sinks at this layer —
@@ -175,6 +194,7 @@ async function main(): Promise<void> {
     return;
   }
 
+  // ── 快速路径 7：远程控制/Bridge 模式（claude remote-control / rc / remote / sync / bridge）──
   // Fast-path for `claude remote-control` (also accepts legacy `claude remote` / `claude sync` / `claude bridge`):
   // serve local machine as bridge environment.
   // feature() must stay inline for build-time dead code elimination;
@@ -225,6 +245,7 @@ async function main(): Promise<void> {
     return;
   }
 
+  // ── 快速路径 8：daemon 模式（长驻 supervisor，管理后台 worker）─────────────
   // Fast-path for `claude daemon [subcommand]`: unified daemon + session management.
   // Handles both supervisor (start/stop) and background session (bg/attach/logs/kill)
   // subcommands under one namespace.
@@ -241,6 +262,7 @@ async function main(): Promise<void> {
     return;
   }
 
+  // ── 快速路径 9：autonomy 状态查询命令（无需完整 CLI 启动）─────────────────
   // Fast-path for `claude autonomy ...`: state inspection/management commands
   // do not need the full interactive CLI bootstrap. The full Commander path
   // imports main.tsx and runs root preAction initialization before the autonomy
@@ -262,6 +284,7 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
+  // ── 快速路径 10：--bg / --background 快捷方式（启动后台会话）────────────────
   // Fast-path for `--bg`/`--background` shortcut → daemon bg.
   if (feature('BG_SESSIONS') && (args.includes('--bg') || args.includes('--background'))) {
     profileCheckpoint('cli_daemon_path');
@@ -274,6 +297,7 @@ async function main(): Promise<void> {
     return;
   }
 
+  // ── 向后兼容：ps/logs/attach/kill → 转发给 daemon <sub>（已废弃）──────────
   // Backward-compat: ps/logs/attach/kill → daemon <sub> (deprecated)
   if (
     feature('BG_SESSIONS') &&
@@ -293,6 +317,7 @@ async function main(): Promise<void> {
     return;
   }
 
+  // ── 快速路径 11：模板任务命令（claude job new/list/reply）─────────────────
   // Fast-path for `claude job <subcommand>`: template jobs.
   if (feature('TEMPLATES') && args[0] === 'job') {
     profileCheckpoint('cli_templates_path');
@@ -314,6 +339,7 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
+  // ── 快速路径 12：BYOC 环境运行器（无头模式，用于云端构建环境）────────────────
   // Fast-path for `claude environment-runner`: headless BYOC runner.
   // feature() must stay inline for build-time dead code elimination.
   if (feature('BYOC_ENVIRONMENT_RUNNER') && args[0] === 'environment-runner') {
@@ -323,6 +349,7 @@ async function main(): Promise<void> {
     return;
   }
 
+  // ── 快速路径 13：自托管运行器（轮询心跳模式）────────────────────────────────
   // Fast-path for `claude self-hosted-runner`: headless self-hosted-runner
   // targeting the SelfHostedRunnerWorkerService API (register + poll; poll IS
   // heartbeat). feature() must stay inline for build-time dead code elimination.
@@ -333,6 +360,7 @@ async function main(): Promise<void> {
     return;
   }
 
+  // ── 快速路径 14：--worktree --tmux 组合（在 tmux 中启动隔离工作区）──────────
   // Fast-path for --worktree --tmux: exec into tmux before loading full CLI
   const hasTmuxFlag = args.includes('--tmux') || args.includes('--tmux=classic');
   if (
@@ -368,7 +396,9 @@ async function main(): Promise<void> {
     process.env.CLAUDE_CODE_SIMPLE = '1';
   }
 
+  // ── 默认路径：没有匹配到任何快速路径，加载完整 CLI 应用 ─────────────────────
   // No special flags detected, load and run the full CLI
+  // 动态导入 main.tsx（包含 Commander.js 定义和所有子命令），然后执行 cliMain()
   const { startCapturingEarlyInput } = await import('../utils/earlyInput.js');
   startCapturingEarlyInput();
   profileCheckpoint('cli_before_main_import');

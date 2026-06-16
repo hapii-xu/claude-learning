@@ -189,6 +189,25 @@ export type QueryEngineConfig = {
  * turn within the same conversation. State (messages, file cache, usage, etc.)
  * persists across turns.
  */
+/**
+ * 高层对话调度器 —— 封装 query() 并管理会话级别的状态。
+ * High-level conversation orchestrator — wraps query() and manages session-level state.
+ *
+ * 与 query() 的关系：
+ *   query() 是"单次轮次"的底层执行器（调用 API + 执行工具 → 返回消息）；
+ *   QueryEngine 在 query() 之上，负责：
+ *   - 维护完整的对话历史（mutableMessages）
+ *   - 处理用户输入（submitMessage）
+ *   - 上下文压缩（compact）
+ *   - 文件历史快照（file history snapshot，用于 undo/diff）
+ *   - token 用量累计（totalUsage）
+ *   - 会话持久化（transcript 写入）
+ *   - 权限拒绝记录（permissionDenials）
+ *
+ * 使用方式：
+ *   REPL 组件持有 QueryEngine 实例，每次用户输入调用 engine.submitMessage()，
+ *   通过 for-await 消费返回的 SDKMessage 流来更新 UI。
+ */
 export class QueryEngine {
   private config: QueryEngineConfig
   private mutableMessages: Message[]
@@ -214,6 +233,25 @@ export class QueryEngine {
     this.totalUsage = EMPTY_USAGE
   }
 
+  /**
+   * 提交用户消息并启动一轮完整的 Agent 执行循环。
+   * Submits a user message and starts a full Agent execution turn.
+   *
+   * 流程：
+   *   1. 处理用户输入（可能是文本 prompt，也可能是 slash 命令）
+   *   2. 获取系统 prompt（fetchSystemPromptParts）
+   *   3. 调用 query() 执行 API 请求 + 工具调用循环
+   *   4. 将每步产生的消息 yield 给调用方（REPL 用来更新 UI）
+   *   5. 轮次结束后：记录 transcript、累计 token、生成文件历史快照
+   *
+   * 支持的功能：
+   *   - 自定义 system prompt / 追加 system prompt
+   *   - 自定义模型 / fallback 模型
+   *   - 最大轮次限制（maxTurns）
+   *   - 预算限制（maxBudgetUsd / taskBudget）
+   *   - JSON schema 结构化输出
+   *   - Agent 定义列表（用于 sub-agent 派发）
+   */
   async *submitMessage(
     prompt: string | ContentBlockParam[],
     options?: { uuid?: string; isMeta?: boolean },
@@ -1247,9 +1285,13 @@ export class QueryEngine {
 }
 
 /**
+ * 一次性查询便捷函数 —— 发送单个 prompt 并返回响应，不进入交互模式。
  * Sends a single prompt to the Claude API and returns the response.
  * Assumes that claude is being used non-interactively -- will not
  * ask the user for permissions or further input.
+ *
+ * 适用于：-p / --print 管道模式、SDK 调用、脚本自动化。
+ * 内部创建一个临时 QueryEngine 实例，执行一次 submitMessage() 后销毁。
  *
  * Convenience wrapper around QueryEngine for one-shot usage.
  */

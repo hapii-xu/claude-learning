@@ -1,0 +1,188 @@
+// 中观：模块间文件依赖图（Graphviz DOT）
+// 渲染: dot -Tpng module-deps.dot -o module-deps.png
+
+digraph ModuleDeps {
+    rankdir=LR;
+    fontname="Helvetica";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=9, margin="0.15,0.08"];
+    edge [fontname="Helvetica", fontsize=7, color="#555555"];
+    bgcolor="#FAFAFA";
+    pad=0.4;
+    nodesep=0.4;
+    ranksep=0.7;
+    compound=true;
+
+    // ==========================================
+    // 启动组
+    // ==========================================
+    subgraph cluster_startup {
+        label="🚀 启动组";
+        style="filled,rounded";
+        color="#E3F2FD";
+        fillcolor="#E3F2FD";
+        fontcolor="#1565C0";
+        fontsize=10;
+
+        cli [label="entrypoints/cli.tsx", fillcolor="#BBDEFB"];
+        main [label="main.tsx", fillcolor="#90CAF9", penwidth=2];
+        init [label="entrypoints/init.ts", fillcolor="#BBDEFB"];
+        setup [label="setup.ts", fillcolor="#BBDEFB"];
+        replLauncher [label="replLauncher.tsx", fillcolor="#BBDEFB"];
+    }
+
+    // ==========================================
+    // 交互组
+    // ==========================================
+    subgraph cluster_ui {
+        label="🖥️ 交互组";
+        style="filled,rounded";
+        color="#F3E5F5";
+        fillcolor="#F3E5F5";
+        fontcolor="#6A1B9A";
+        fontsize=10;
+
+        App [label="components/App.tsx", fillcolor="#E1BEE7"];
+        REPL [label="screens/REPL.tsx", fillcolor="#CE93D8", penwidth=2];
+        PI [label="PromptInput/PromptInput.tsx", fillcolor="#E1BEE7"];
+        MSG [label="components/Messages.tsx", fillcolor="#E1BEE7"];
+        VML [label="VirtualMessageList.tsx", fillcolor="#E1BEE7"];
+    }
+
+    // ==========================================
+    // 执行组
+    // ==========================================
+    subgraph cluster_exec {
+        label="⚙️ 执行组";
+        style="filled,rounded";
+        color="#FFEBEE";
+        fillcolor="#FFEBEE";
+        fontcolor="#C62828";
+        fontsize=10;
+
+        QE [label="QueryEngine.ts", fillcolor="#FFCDD2"];
+        query [label="query.ts", fillcolor="#EF9A9A", penwidth=2];
+        claude [label="services/api/claude.ts", fillcolor="#FFCDD2"];
+    }
+
+    // ==========================================
+    // 工具组
+    // ==========================================
+    subgraph cluster_tools {
+        label="🔧 工具组";
+        style="filled,rounded";
+        color="#FFF3E0";
+        fillcolor="#FFF3E0";
+        fontcolor="#E65100";
+        fontsize=10;
+
+        Tool [label="Tool.ts", fillcolor="#FFE0B2", penwidth=2];
+        toolOrch [label="services/tools/\ntoolOrchestration.ts", fillcolor="#FFE0B2"];
+        toolExec [label="services/tools/\ntoolExecution.ts", fillcolor="#FFE0B2"];
+    }
+
+    // ==========================================
+    // 记忆组
+    // ==========================================
+    subgraph cluster_memory {
+        label="🧠 记忆组";
+        style="filled,rounded";
+        color="#E8F5E9";
+        fillcolor="#E8F5E9";
+        fontcolor="#2E7D32";
+        fontsize=10;
+
+        memdir [label="memdir/memdir.ts", fillcolor="#C8E6C9", penwidth=2];
+        findRel [label="memdir/\nfindRelevantMemories.ts", fillcolor="#C8E6C9"];
+        sessMem [label="services/SessionMemory/\nsessionMemory.ts", fillcolor="#C8E6C9"];
+        agentMem [label="tools/AgentTool/\nagentMemory.ts", fillcolor="#C8E6C9"];
+    }
+
+    // ==========================================
+    // 扩展组
+    // ==========================================
+    subgraph cluster_ext {
+        label="🔌 扩展组";
+        style="filled,rounded";
+        color="#ECEFF1";
+        fillcolor="#ECEFF1";
+        fontcolor="#37474F";
+        fontsize=10;
+
+        mcpClient [label="services/mcp/client.ts", fillcolor="#CFD8DC"];
+        swarm [label="utils/swarm/backends/\nregistry.ts", fillcolor="#CFD8DC"];
+        plugins [label="plugins/bundled/index.ts", fillcolor="#CFD8DC"];
+        skills [label="skills/bundled/index.ts", fillcolor="#CFD8DC"];
+    }
+
+    // ==========================================
+    // 辅助模块
+    // ==========================================
+    subgraph cluster_helpers {
+        label="📦 辅助";
+        style="filled,rounded";
+        color="#FFFDE7";
+        fillcolor="#FFFDE7";
+        fontcolor="#F57F17";
+        fontsize=10;
+
+        cmds [label="commands.ts", fillcolor="#FFF9C4"];
+        attachments [label="utils/attachments.ts", fillcolor="#FFF9C4"];
+        sessionStorage [label="utils/sessionStorage.ts", fillcolor="#FFF9C4"];
+        prompts [label="constants/prompts.ts", fillcolor="#FFF9C4"];
+    }
+
+    // ==========================================
+    // 启动链
+    // ==========================================
+    cli -> main [label="import main", color="#1565C0", penwidth=1.2];
+    main -> init [label="preAction", color="#2E7D32"];
+    main -> setup [label="action", color="#2E7D32"];
+    main -> cmds [label="getCommands", color="#F57F17"];
+    main -> mcpClient [label="getMcpTools", color="#37474F"];
+    main -> skills [label="initBundledSkills", color="#37474F"];
+    main -> plugins [label="initBuiltinPlugins", color="#37474F"];
+    main -> agentMem [label="getAgentDefs", color="#2E7D32"];
+    main -> replLauncher [label="launchRepl", color="#6A1B9A", penwidth=1.2];
+    replLauncher -> App [label="动态加载", color="#6A1B9A", style=dashed];
+    replLauncher -> REPL [label="动态加载", color="#6A1B9A", style=dashed];
+
+    // ==========================================
+    // 交互组
+    // ==========================================
+    App -> REPL [color="#6A1B9A"];
+    REPL -> PI [color="#6A1B9A"];
+    REPL -> MSG [color="#6A1B9A"];
+    MSG -> VML [color="#6A1B9A"];
+    PI -> QE [label="用户输入", color="#C62828", penwidth=1.2];
+
+    // ==========================================
+    // 执行组
+    // ==========================================
+    QE -> query [label="submitMessage", color="#C62828", penwidth=1.2];
+    query -> claude [label="stream", color="#C62828"];
+    query -> toolOrch [label="runTools", color="#E65100", penwidth=1.2];
+    query -> attachments [label="getAttachmentMsgs", color="#F57F17"];
+    query -> sessionStorage [label="recordTranscript", color="#F57F17"];
+    prompts -> memdir [label="loadMemoryPrompt", color="#2E7D32"];
+
+    // ==========================================
+    // 工具组
+    // ==========================================
+    toolOrch -> Tool [label="partitionToolCalls\n/ findToolByName", color="#E65100"];
+    toolOrch -> toolExec [label="runToolUse", color="#E65100"];
+    toolExec -> Tool [label="findToolByName\n+ tool.call()", color="#E65100", penwidth=1.2];
+
+    // ==========================================
+    // 记忆组
+    // ==========================================
+    memdir -> findRel [label="findRelevantMemories", color="#2E7D32"];
+    setup -> sessMem [label="initSessionMemory", color="#2E7D32"];
+    agentMem -> memdir [label="buildMemoryPrompt", color="#2E7D32"];
+    findRel -> attachments [label="prefetchMemories", color="#2E7D32", style=dashed];
+
+    // ==========================================
+    // 扩展组
+    // ==========================================
+    mcpClient -> Tool [label="注册 MCP 工具", color="#37474F", style=dashed];
+    swarm -> QE [label="spawnTeammate", color="#37474F", style=dashed];
+}

@@ -63,6 +63,30 @@ import { setThemeConfigCallbacks } from '@anthropic/ink'
 // Track if telemetry has been initialized to prevent double initialization
 let telemetryInitialized = false
 
+/**
+ * 一次性全局初始化函数（memoized，整个进程生命周期只执行一次）。
+ * One-time global initialization (memoized — runs exactly once per process lifetime).
+ *
+ * 调用时机：在 Commander preAction hook 中，每个命令执行前调用。
+ *
+ * 初始化内容（按执行顺序）：
+ *   1. enableConfigs()        —— 启用配置读取（settings.json、global config）
+ *   2. applySafeConfigEnvironmentVariables() —— 应用安全的环境变量（trust 前可执行的部分）
+ *   3. applyExtraCACertsFromConfig() —— 加载额外 CA 证书（必须在首次 TLS 握手前）
+ *   4. setupGracefulShutdown() —— 注册进程退出清理钩子
+ *   5. 初始化 1P event logging（异步，不阻塞）
+ *   6. 启动 balance polling（查询 API 余额，异步）
+ *   7. populateOAuthAccountInfoIfNeeded() —— 补充 OAuth 账户信息
+ *   8. initJetBrainsDetection() —— 检测 JetBrains IDE 环境
+ *   9. 初始化远程管理设置 / 策略限制的 loading promise
+ *  10. configureGlobalMTLS() + configureGlobalAgents() —— 配置 mTLS 和 HTTP 代理
+ *  11. initSentry() + initLangfuse() —— 错误上报 / 链路追踪
+ *  12. preconnectAnthropicApi() —— TCP+TLS 预连接（节省 ~100-200ms）
+ *  13. setShellIfWindows() —— Windows 下设置 git-bash shell
+ *  14. ensureScratchpadDir() —— 创建临时工作目录
+ *
+ * 如果配置文件解析失败（ConfigParseError），会弹出交互式错误对话框。
+ */
 export const init = memoize(async (): Promise<void> => {
   const initStartTime = Date.now()
   logForDiagnosticsNoPII('info', 'init_started')
@@ -280,11 +304,18 @@ export const init = memoize(async (): Promise<void> => {
 })
 
 /**
- * Initialize telemetry after trust has been granted.
- * For remote-settings-eligible users, waits for settings to load (non-blocking),
- * then re-applies env vars (to include remote settings) before initializing telemetry.
- * For non-eligible users, initializes telemetry immediately.
- * This should only be called once, after the trust dialog has been accepted.
+ * 在用户确认 trust dialog 之后初始化遥测（OTel）。
+ * Initializes telemetry after trust has been granted by the user.
+ *
+ * 为什么要等到 trust 之后？
+ *   遥测需要读取用户配置（远程管理设置可能改变环境变量），
+ *   而读取配置必须先通过 trust dialog 确认项目是可信的。
+ *
+ * 两种路径：
+ *   - 符合远程管理设置资格的用户：等远程设置加载完 → 重新应用环境变量 → 初始化遥测
+ *   - 其他用户：直接初始化遥测
+ *
+ * 此函数只应调用一次（trust 确认后）。
  */
 export function initializeTelemetryAfterTrust(): void {
   if (isEligibleForRemoteManagedSettings()) {
@@ -327,6 +358,14 @@ export function initializeTelemetryAfterTrust(): void {
   }
 }
 
+/**
+ * 实际执行遥测初始化的内部函数。
+ * Internal function that performs the actual telemetry initialization.
+ *
+ * 前置条件：CLAUDE_CODE_ENABLE_TELEMETRY 环境变量必须为真，否则跳过。
+ * 懒加载 OpenTelemetry 模块（~400KB），避免未启用遥测时浪费内存。
+ * 初始化后会设置全局 Meter，供 attributed counter 使用。
+ */
 async function doInitializeTelemetry(): Promise<void> {
   if (telemetryInitialized) {
     // Already initialized, nothing to do
