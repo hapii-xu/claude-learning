@@ -1,44 +1,44 @@
 /**
- * Pure utility functions for building OpenAI request bodies and detecting
- * thinking mode. Extracted from index.ts so tests can import them without
- * triggering heavy module side-effects (OpenAI client, stream adapter, etc.).
+ * 纯工具函数，用于构建 OpenAI 请求体与检测 thinking 模式。
+ * 从 index.ts 中提取出来，以便测试可直接导入而不会触发
+ * 重量级模块副作用（OpenAI 客户端、流适配器等）。
  */
 import type { ChatCompletionCreateParamsStreaming } from 'openai/resources/chat/completions/completions.mjs'
 import { isEnvTruthy, isEnvDefinedFalsy } from '../../../utils/envUtils.js'
 
 /**
- * Detect whether thinking mode should be enabled for this model.
+ * 检测当前模型是否应启用 thinking 模式。
  *
- * Enabled when:
- * 1. OPENAI_ENABLE_THINKING=1 is set (explicit enable), OR
- * 2. Model name contains "deepseek" or "mimo" (auto-detect, case-insensitive)
+ * 启用条件：
+ * 1. 设置了 OPENAI_ENABLE_THINKING=1（显式启用），或
+ * 2. 模型名包含 "deepseek" 或 "mimo"（自动检测，不区分大小写）
  *
- * Disabled when:
- * - OPENAI_ENABLE_THINKING=0/false/no/off is explicitly set (overrides model detection)
+ * 禁用条件：
+ * - 显式设置了 OPENAI_ENABLE_THINKING=0/false/no/off（覆盖模型检测）
  *
- * @param model - The resolved OpenAI model name
+ * @param model - 已解析的 OpenAI 模型名
  */
 export function isOpenAIThinkingEnabled(model: string): boolean {
-  // Explicit disable takes priority (overrides model auto-detect)
+  // 显式禁用优先级最高（覆盖模型自动检测）
   if (isEnvDefinedFalsy(process.env.OPENAI_ENABLE_THINKING)) return false
-  // Explicit enable
+  // 显式启用
   if (isEnvTruthy(process.env.OPENAI_ENABLE_THINKING)) return true
-  // Auto-detect from model name (DeepSeek and MiMo models support thinking mode).
-  // Grok is intentionally excluded — Grok reasoning models reason automatically
-  // and do NOT require thinking/enable_thinking request body parameters.
+  // 根据模型名自动检测（DeepSeek 与 MiMo 模型支持 thinking 模式）。
+  // Grok 被有意排除 —— Grok 推理模型会自动推理，
+  // 不需要在请求体中传入 thinking/enable_thinking 参数。
   const modelLower = model.toLowerCase()
   return modelLower.includes('deepseek') || modelLower.includes('mimo')
 }
 
 /**
- * Resolve max output tokens for the OpenAI-compatible path.
+ * 解析 OpenAI 兼容路径的最大输出 token 数。
  *
- * Override priority:
- * 1. maxOutputTokensOverride (programmatic, from query pipeline)
- * 2. OPENAI_MAX_TOKENS env var (OpenAI-specific, useful for local models
- *    with small context windows, e.g. RTX 3060 12GB running 65536-token models)
- * 3. CLAUDE_CODE_MAX_OUTPUT_TOKENS env var (generic override)
- * 4. upperLimit default (64000)
+ * 覆盖优先级：
+ * 1. maxOutputTokensOverride（程序化，来自查询管线）
+ * 2. OPENAI_MAX_TOKENS 环境变量（OpenAI 专用，适用于小上下文窗口的本地模型，
+ *    如 RTX 3060 12GB 运行 65536-token 模型）
+ * 3. CLAUDE_CODE_MAX_OUTPUT_TOKENS 环境变量（通用覆盖）
+ * 4. upperLimit 默认值（64000）
  */
 export function resolveOpenAIMaxTokens(
   upperLimit: number,
@@ -57,15 +57,14 @@ export function resolveOpenAIMaxTokens(
 }
 
 /**
- * Build the request body for OpenAI chat.completions.create().
- * Extracted for testability — the thinking mode params are injected here.
+ * 构建 OpenAI chat.completions.create() 的请求体。
+ * 提取出来以便测试 —— thinking 模式参数在此注入。
  *
- * Three thinking-mode formats are sent simultaneously; each endpoint uses the
- * format it recognizes and ignores the others:
- * - Official DeepSeek API:    `thinking: { type: 'enabled' }`
- * - Self-hosted DeepSeek:     `enable_thinking: true` + `chat_template_kwargs: { thinking: true }`
- * - MiMo (Xiaomi):            `chat_template_kwargs: { enable_thinking: true }`
- * OpenAI SDK passes unknown keys through to the HTTP body.
+ * 同时发送三种 thinking-mode 格式；各端点使用其能识别的格式并忽略其他：
+ * - 官方 DeepSeek API：   `thinking: { type: 'enabled' }`
+ * - 自部署 DeepSeek：     `enable_thinking: true` + `chat_template_kwargs: { thinking: true }`
+ * - MiMo（小米）：        `chat_template_kwargs: { enable_thinking: true }`
+ * OpenAI SDK 会将未知键透传到 HTTP body。
  */
 export function buildOpenAIRequestBody(params: {
   model: string
@@ -99,18 +98,18 @@ export function buildOpenAIRequestBody(params: {
     }),
     stream: true,
     stream_options: { include_usage: true },
-    // Enable chain-of-thought output for DeepSeek and MiMo models.
-    // When active, temperature/top_p/presence_penalty/frequency_penalty are ignored.
+    // 为 DeepSeek 与 MiMo 模型启用思维链输出。
+    // 启用后 temperature/top_p/presence_penalty/frequency_penalty 会被忽略。
     ...(enableThinking && {
-      // Official DeepSeek API format
+      // 官方 DeepSeek API 格式
       thinking: { type: 'enabled' },
-      // Self-hosted DeepSeek-V3.2 format
+      // 自部署 DeepSeek-V3.2 格式
       enable_thinking: true,
-      // Both DeepSeek self-hosted and MiMo formats in chat_template_kwargs
+      // DeepSeek 自部署与 MiMo 共用的 chat_template_kwargs 格式
       chat_template_kwargs: { thinking: true, enable_thinking: true },
     }),
-    // Only send temperature when thinking mode is off (DeepSeek ignores it anyway,
-    // but other providers may respect it)
+    // 仅在 thinking 模式关闭时发送 temperature（DeepSeek 反正会忽略，
+    // 但其他 provider 可能会尊重该参数）
     ...(!enableThinking &&
       temperatureOverride !== undefined && {
         temperature: temperatureOverride,

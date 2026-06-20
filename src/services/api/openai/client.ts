@@ -29,7 +29,7 @@ function wrapFetchForUsage(base: typeof fetch): typeof fetch {
     try {
       updateProviderBuckets('openai', openaiAdapter.parseHeaders(res.headers))
     } catch {
-      // Ignore — usage tracking must not affect the request path.
+      // 忽略 —— 用量跟踪不能影响请求路径。
     }
     return res
   }

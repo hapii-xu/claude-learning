@@ -97,12 +97,12 @@ function getChatGPTResponsesReasoningEffort(
 }
 
 /**
- * Mirrors the Anthropic request path's deferred-tool announcement for OpenAI.
+ * 镜像 Anthropic 请求路径的 deferred-tool 公告，供 OpenAI 使用。
  *
- * OpenAI-compatible endpoints cannot consume Anthropic's `defer_loading` or
- * `tool_reference` beta payloads directly, so the model needs the same textual
- * list of deferred MCP tool names that Anthropic receives before it can ask
- * SearchExtraToolsTool to load their full schemas.
+ * OpenAI 兼容端点无法直接消费 Anthropic 的 `defer_loading` 或
+ * `tool_reference` beta payload，因此模型需要与 Anthropic 接收到
+ * 相同的延迟 MCP 工具名文本列表，然后才能调用 SearchExtraToolsTool
+ * 加载其完整 schema。
  */
 function prependDeferredToolListIfNeeded(
   messages: (AssistantMessage | UserMessage)[],
@@ -136,9 +136,8 @@ function isOpenAIConvertibleMessage(
 }
 
 /**
- * Assemble the final AssistantMessage (and optional max_tokens error) from
- * accumulated stream state. Extracted to avoid duplication between the
- * `message_stop` handler and the post-loop safety fallback.
+ * 从累积的流状态组装最终的 AssistantMessage（以及可选的 max_tokens 错误）。
+ * 提取出来以避免 `message_stop` 处理函数与循环后的兜底逻辑重复实现。
  */
 function assembleFinalAssistantOutputs(params: {
   partialMessage: BetaMessage | null
@@ -206,10 +205,9 @@ function assembleFinalAssistantOutputs(params: {
 }
 
 /**
- * OpenAI-compatible query path. Converts Anthropic-format messages/tools to
- * OpenAI format, calls the OpenAI-compatible endpoint, and converts the
- * SSE stream back to Anthropic BetaRawMessageStreamEvent for consumption
- * by the existing query pipeline.
+ * OpenAI 兼容查询路径。将 Anthropic 格式的 messages/tools 转换为 OpenAI 格式，
+ * 调用 OpenAI 兼容端点，然后将 SSE 流转换回 Anthropic BetaRawMessageStreamEvent
+ * 供现有查询管线使用。
  */
 export async function* queryModelOpenAI(
   messages: Message[],
@@ -222,13 +220,13 @@ export async function* queryModelOpenAI(
   void
 > {
   try {
-    // 1. Resolve model name
+    // 1. 解析模型名
     const openaiModel = resolveOpenAIModel(options.model)
 
-    // 2. Normalize messages using shared preprocessing
+    // 2. 使用共享预处理规范化 messages
     const messagesForAPI = normalizeMessagesForAPI(messages, tools)
 
-    // 3. Check if tool search is enabled (similar to Anthropic path)
+    // 3. 检查是否启用 tool search（类似 Anthropic 路径）
     const useSearchExtraTools = await isSearchExtraToolsEnabled(
       options.model,
       tools,
@@ -238,7 +236,7 @@ export async function* queryModelOpenAI(
       options.querySource,
     )
 
-    // 4. Build deferred tools set (similar to Anthropic path)
+    // 4. 构建 deferred tools 集合（类似 Anthropic 路径）
     const deferredToolNames = new Set<string>()
     if (useSearchExtraTools) {
       for (const t of tools) {
@@ -246,23 +244,23 @@ export async function* queryModelOpenAI(
       }
     }
 
-    // 5. Filter tools (similar to Anthropic path)
-    // Never include deferred tools in the API tools array — they are invoked
-    // via ExecuteExtraTool which looks them up from the global tool registry
-    // at runtime. Keeping the tools array stable preserves the prompt cache.
+    // 5. 过滤 tools（类似 Anthropic 路径）
+    // 永远不要在 API tools 数组中包含 deferred tools —— 它们通过
+    // ExecuteExtraTool 在运行时从全局 tool 注册表查询调用。保持 tools
+    // 数组稳定可保留 prompt cache。
     let filteredTools = tools
     if (useSearchExtraTools && deferredToolNames.size > 0) {
       filteredTools = tools.filter(tool => {
-        // Always include non-deferred tools
+        // 始终包含非 deferred tools
         if (!deferredToolNames.has(tool.name)) return true
-        // Always include SearchExtraToolsTool (so it can discover more tools)
+        // 始终包含 SearchExtraToolsTool（以便它能发现更多 tools）
         if (toolMatchesName(tool, SEARCH_EXTRA_TOOLS_TOOL_NAME)) return true
-        // All other deferred tools are excluded — use ExecuteExtraTool instead
+        // 其他所有 deferred tools 都被排除 —— 改用 ExecuteExtraTool
         return false
       })
     }
 
-    // 6. Build tool schemas with deferLoading flag
+    // 6. 使用 deferLoading flag 构建 tool schemas
     const toolSchemas = await Promise.all(
       filteredTools.map(tool =>
         toolToAPISchema(tool, {
@@ -276,7 +274,7 @@ export async function* queryModelOpenAI(
       ),
     )
 
-    // 7. Filter out non-standard tools (server tools like advisor)
+    // 7. 过滤非标准 tools（advisor 等服务端 tools）
     const standardTools = toolSchemas.filter(
       (t): t is BetaToolUnion & { type: string } => {
         const anyT = t as unknown as Record<string, unknown>
@@ -286,7 +284,7 @@ export async function* queryModelOpenAI(
       },
     )
 
-    // 8. Convert messages and tools to OpenAI format
+    // 8. 将 messages 和 tools 转换为 OpenAI 格式
     const enableThinking = isOpenAIThinkingEnabled(openaiModel)
     const openAIConvertibleMessages = messagesForAPI.filter(
       isOpenAIConvertibleMessage,
@@ -308,37 +306,35 @@ export async function* queryModelOpenAI(
       options.effortValue,
     )
 
-    // 9. Log tool filtering details
+    // 9. 记录 tool 过滤详情
     if (useSearchExtraTools) {
       const includedDeferredTools = filteredTools.filter(t =>
         deferredToolNames.has(t.name),
       ).length
       logForDebugging(
-        `[OpenAI] Tool search enabled: ${includedDeferredTools}/${deferredToolNames.size} deferred tools included, total tools=${openaiTools.length}`,
+        `[OpenAI] Tool search 已启用：${includedDeferredTools}/${deferredToolNames.size} deferred tools 已包含，总 tools=${openaiTools.length}`,
       )
     } else {
       logForDebugging(
-        `[OpenAI] Tool search disabled, total tools=${openaiTools.length}`,
+        `[OpenAI] Tool search 未启用，总 tools=${openaiTools.length}`,
       )
     }
 
-    // 10. Compute max_tokens — required by most OpenAI-compatible endpoints.
-    //     Without this the server uses a tiny default, and when
-    //     thinking is enabled the thinking phase consumes the entire budget
-    //     leaving no tokens for the final response.
+    // 10. 计算 max_tokens —— 大多数 OpenAI 兼容端点必需。
+    //     不设置则服务端使用很小的默认值，当启用 thinking 时，
+    //     thinking 阶段会消耗完整个预算，导致最终响应无 token 可用。
     //
-    //     Use upperLimit (not the slot-cap default) because the Anthropic path's
-    //     slot-reservation cap (CAPPED_DEFAULT_MAX_TOKENS=8k) is paired with an
-    //     auto-retry at 64k in query.ts. The OpenAI path has no such retry, so
-    //     using the capped 8k default would silently truncate responses in
-    //     multi-turn conversations where thinking consumes most of the budget.
+    //     使用 upperLimit（而非 slot-cap 默认值）是因为 Anthropic 路径的
+    //     slot 预留上限（CAPPED_DEFAULT_MAX_TOKENS=8k）与 query.ts 中
+    //     64k 的自动重试配对使用。OpenAI 路径没有此类重试，因此使用
+    //     上限 8k 默认值会在多轮对话中悄悄截断响应（thinking 会消耗大部分预算）。
     //
-    //     Override priority:
-    //     1. options.maxOutputTokensOverride (programmatic)
-    //     2. OPENAI_MAX_TOKENS env var (OpenAI-specific, useful for local models
-    //        with small context windows, e.g. RTX 3060 12GB running 65536-token models)
-    //     3. CLAUDE_CODE_MAX_OUTPUT_TOKENS env var (generic override)
-    //     4. upperLimit default (64000)
+    //     覆盖优先级：
+    //     1. options.maxOutputTokensOverride（程序化）
+    //     2. OPENAI_MAX_TOKENS 环境变量（OpenAI 专用，适用于小上下文窗口的本地模型，
+    //        如 RTX 3060 12GB 运行 65536-token 模型）
+    //     3. CLAUDE_CODE_MAX_OUTPUT_TOKENS 环境变量（通用覆盖）
+    //     4. upperLimit 默认值（64000）
     const { upperLimit } = getModelMaxOutputTokens(openaiModel)
     const maxTokens = resolveOpenAIMaxTokens(
       upperLimit,
@@ -349,9 +345,8 @@ export async function* queryModelOpenAI(
       `[OpenAI] Calling model=${openaiModel}, messages=${openaiMessages.length}, tools=${openaiTools.length}, thinking=${enableThinking}`,
     )
 
-    // 11. Call OpenAI API with streaming. ChatGPT subscription auth uses the
-    // Codex Responses backend; API-key/OpenAI-compatible auth keeps the
-    // existing Chat Completions adapter.
+    // 11. 使用流式调用 OpenAI API。ChatGPT 订阅认证使用 Codex Responses 后端；
+    // API key / OpenAI 兼容认证保留现有的 Chat Completions 适配器。
     const adaptedStream = isChatGPTAuthEnabled()
       ? adaptResponsesStreamToAnthropic(
           await createChatGPTResponsesStream({
@@ -387,10 +382,10 @@ export async function* queryModelOpenAI(
           openaiModel,
         )
 
-    // 12. Convert OpenAI stream to Anthropic events, then process into
-    //     AssistantMessage + StreamEvent (matching the Anthropic path behavior)
+    // 12. 将 OpenAI 流转换为 Anthropic 事件，然后处理成
+    //     AssistantMessage + StreamEvent（与 Anthropic 路径行为一致）
 
-    // Accumulate content blocks and usage, same as the Anthropic path in claude.ts
+    // 累积 content blocks 和 usage，与 claude.ts 中 Anthropic 路径相同
     const contentBlocks: Record<number, Record<string, unknown>> = {}
     const collectedMessages: AssistantMessage[] = []
     let partialMessage: BetaMessage | null = null
@@ -450,7 +445,7 @@ export async function* queryModelOpenAI(
           break
         }
         case 'content_block_stop': {
-          // Block accumulation is complete; assembly happens at message_stop.
+          // Block 累积完成；组装在 message_stop 时进行。
           break
         }
         case 'message_delta': {
@@ -467,9 +462,9 @@ export async function* queryModelOpenAI(
           break
         }
         case 'message_stop': {
-          // Assemble ONE AssistantMessage with ALL content blocks, matching the
-          // Anthropic SDK path. Real usage (input + output tokens) is available
-          // here and injected so tokenCountWithEstimation() can read it.
+          // 组装一个包含所有 content blocks 的 AssistantMessage，匹配
+          // Anthropic SDK 路径。真实 usage（input + output tokens）此处可用，
+          // 会被注入以便 tokenCountWithEstimation() 读取。
           if (partialMessage) {
             for (const output of assembleFinalAssistantOutputs({
               partialMessage,
@@ -485,11 +480,11 @@ export async function* queryModelOpenAI(
               }
               yield output
             }
-            // Reset partialMessage so the post-loop safety fallback does not
-            // yield a second identical AssistantMessage.
+            // 重置 partialMessage，使循环后的兜底逻辑不会 yield
+            // 第二个相同的 AssistantMessage。
             partialMessage = null
           }
-          // Track cost and token usage
+          // 跟踪成本与 token 用量
           if (usage.input_tokens + usage.output_tokens > 0) {
             const costUSD = calculateUSDCost(
               openaiModel,
@@ -505,7 +500,7 @@ export async function* queryModelOpenAI(
         }
       }
 
-      // Also yield as StreamEvent for real-time display (matching Anthropic path)
+      // 同时 yield 为 StreamEvent 以便实时显示（匹配 Anthropic 路径）
       yield {
         type: 'stream_event',
         event,
@@ -513,7 +508,7 @@ export async function* queryModelOpenAI(
       } as StreamEvent
     }
 
-    // Record LLM observation in Langfuse (no-op if not configured)
+    // 在 Langfuse 中记录 LLM 观测（未配置时为 no-op）
     recordLLMObservation(options.langfuseTrace ?? null, {
       model: openaiModel,
       provider: 'openai',
@@ -532,7 +527,7 @@ export async function* queryModelOpenAI(
       ...(enableThinking && { thinking: { type: 'enabled' } }),
     })
 
-    // Safety: if stream ended without message_stop, assemble and yield whatever we have
+    // 兜底：若流未以 message_stop 结束，组装并 yield 当前已有的内容
     if (partialMessage) {
       for (const output of assembleFinalAssistantOutputs({
         partialMessage,

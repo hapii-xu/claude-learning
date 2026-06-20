@@ -44,9 +44,9 @@ import {
 } from '../../../utils/messages.js'
 
 /**
- * Grok (xAI) query path. Grok uses an OpenAI-compatible API, so we reuse
- * the OpenAI message/tool converters and stream adapter. Only the client
- * (different base URL + API key) and model mapping are Grok-specific.
+ * Grok (xAI) 查询路径。Grok 使用 OpenAI 兼容 API，
+ * 因此复用 OpenAI 的 message/tool 转换器与流适配器。
+ * 仅客户端（不同的 base URL + API key）与模型映射为 Grok 专属。
  */
 export async function* queryModelGrok(
   messages: Message[],
@@ -246,7 +246,7 @@ export async function* queryModelGrok(
       } as StreamEvent
     }
 
-    // Record LLM observation in Langfuse (no-op if not configured)
+    // 在 Langfuse 中记录 LLM 观测（未配置时为 no-op）
     recordLLMObservation(options.langfuseTrace ?? null, {
       model: grokModel,
       provider: 'grok',

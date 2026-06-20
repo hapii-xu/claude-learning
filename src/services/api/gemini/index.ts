@@ -199,7 +199,7 @@ export async function* queryModelGemini(
       } as StreamEvent
     }
 
-    // Record LLM observation in Langfuse (no-op if not configured)
+    // 在 Langfuse 中记录 LLM 观测（未配置时为 no-op）
     recordLLMObservation(options.langfuseTrace ?? null, {
       model: geminiModel,
       provider: 'gemini',
