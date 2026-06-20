@@ -1,5 +1,5 @@
 /**
- * Tests for vault index.tsx (command definition)
+ * vault index.tsx（命令定义）的测试
  */
 
 import { describe, expect, test } from 'bun:test'
@@ -33,17 +33,17 @@ describe('vaultCommand definition', () => {
   test('command isHidden is boolean (dynamic: false when ANTHROPIC_API_KEY set, true when absent)', async () => {
     const mod = await import('../index.js')
     const cmd = mod.default
-    // isHidden is !process.env['ANTHROPIC_API_KEY']: boolean at import time
+    // isHidden 在 import 时取值：!process.env['ANTHROPIC_API_KEY']（布尔值）
     expect(typeof cmd.isHidden).toBe('boolean')
   })
 
   test('isHidden reflects ANTHROPIC_API_KEY presence: hidden when key absent', () => {
     // isHidden = !process.env['ANTHROPIC_API_KEY']
-    // We test the invariant directly since module is cached
+    // 由于模块已被缓存，这里直接测试该不变式
     const hasKey = Boolean(process.env['ANTHROPIC_API_KEY'])
-    // In CI/test environment without ANTHROPIC_API_KEY, isHidden should be true
-    // With key set, isHidden should be false
-    expect(typeof hasKey).toBe('boolean') // invariant: env var determines visibility
+    // 在没有 ANTHROPIC_API_KEY 的 CI/测试环境中，isHidden 应为 true；
+    // 设置了 key 时，isHidden 应为 false
+    expect(typeof hasKey).toBe('boolean') // 不变式：由环境变量决定可见性
   })
 
   test('command load resolves callVault function', async () => {

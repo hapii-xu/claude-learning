@@ -6,17 +6,17 @@ import type { PermissionMode } from '../../utils/permissions/PermissionMode.js'
 import type { AgentProgress } from '../LocalAgentTask/LocalAgentTask.js'
 
 /**
- * Teammate identity stored in task state.
- * Same shape as TeammateContext (runtime) but stored as plain data.
- * TeammateContext is for AsyncLocalStorage; this is for AppState persistence.
+ * 存储在任务状态中的 teammate 身份。
+ * 形状与 TeammateContext（运行时）相同，但以普通数据形式存储。
+ * TeammateContext 用于 AsyncLocalStorage，而此结构用于 AppState 持久化。
  */
 export type TeammateIdentity = {
-  agentId: string // e.g., "researcher@my-team"
-  agentName: string // e.g., "researcher"
+  agentId: string // 例如 "researcher@my-team"
+  agentName: string // 例如 "researcher"
   teamName: string
   color?: string
   planModeRequired: boolean
-  parentSessionId: string // Leader's session ID
+  parentSessionId: string // Leader 的 session ID
 }
 
 export type PendingTeammateUserMessage = {
@@ -29,55 +29,55 @@ export type PendingTeammateUserMessage = {
 export type InProcessTeammateTaskState = TaskStateBase & {
   type: 'in_process_teammate'
 
-  // Identity as sub-object (matches TeammateContext shape for consistency)
-  // Stored as plain data in AppState, NOT a reference to AsyncLocalStorage
+  // 身份作为子对象存储（形状与 TeammateContext 保持一致）
+  // 以普通数据形式存储在 AppState 中，而不是对 AsyncLocalStorage 的引用
   identity: TeammateIdentity
 
-  // Execution
+  // 执行相关
   prompt: string
-  // Optional model override for this teammate
+  // 可选：为该 teammate 指定模型覆盖
   model?: string
-  // Optional: Only set if teammate uses a specific agent definition
-  // Many teammates run as general-purpose agents without a predefined definition
+  // 可选：仅在 teammate 使用特定 agent 定义时设置
+  // 许多 teammate 作为通用 agent 运行，没有预定义的定义
   selectedAgent?: AgentDefinition
-  abortController?: AbortController // Runtime only, not serialized to disk - kills WHOLE teammate
-  currentWorkAbortController?: AbortController // Runtime only - aborts current turn without killing teammate
-  unregisterCleanup?: () => void // Runtime only
+  abortController?: AbortController // 仅运行时使用，不会序列化到磁盘 —— 会终止整个 teammate
+  currentWorkAbortController?: AbortController // 仅运行时使用 —— 只中断当前一轮，不会终止 teammate
+  unregisterCleanup?: () => void // 仅运行时使用
 
-  // Plan mode approval tracking (planModeRequired is in identity)
+  // plan mode 审批跟踪（planModeRequired 放在 identity 中）
   awaitingPlanApproval: boolean
 
-  // Permission mode for this teammate (cycled independently via Shift+Tab when viewing)
+  // 该 teammate 的权限模式（查看时通过 Shift+Tab 独立切换）
   permissionMode: PermissionMode
 
-  // State
+  // 状态
   error?: string
-  result?: AgentToolResult // Reuse existing type since teammates run via runAgent()
+  result?: AgentToolResult // 复用已有类型，因为 teammate 通过 runAgent() 运行
   progress?: AgentProgress
 
-  // Conversation history for zoomed view (NOT mailbox messages)
-  // Mailbox messages are stored separately in teamContext.inProcessMailboxes
+  // 用于 zoomed view 的对话历史（不是 mailbox 消息）
+  // mailbox 消息单独存储在 teamContext.inProcessMailboxes 中
   messages?: Message[]
 
-  // Tool use IDs currently being executed (for animation in transcript view)
+  // 当前正在执行的工具调用 ID（用于对话记录视图中的动画）
   inProgressToolUseIDs?: Set<string>
 
-  // Queue of user messages to deliver when viewing teammate transcript
+  // 当查看 teammate 对话记录时需要投递的用户消息队列
   pendingUserMessages: PendingTeammateUserMessage[]
 
-  // UI: random spinner verbs (stable across re-renders, shared between components)
+  // UI：随机的 spinner 动词（在多次重渲染之间保持稳定，多组件共享）
   spinnerVerb?: string
   pastTenseVerb?: string
 
-  // Lifecycle
+  // 生命周期
   isIdle: boolean
   shutdownRequested: boolean
 
-  // Callbacks to notify when teammate becomes idle (runtime only)
-  // Used by leader to efficiently wait without polling
+  // teammate 变为 idle 时用于通知的回调（仅运行时使用）
+  // Leader 通过它实现高效等待，无需轮询
   onIdleCallbacks?: Array<() => void>
 
-  // Progress tracking (for computing deltas in notifications)
+  // 进度跟踪（用于计算通知中的增量）
   lastReportedToolCount: number
   lastReportedTokenCount: number
 }
@@ -94,23 +94,22 @@ export function isInProcessTeammateTask(
 }
 
 /**
- * Cap on the number of messages kept in task.messages (the AppState UI mirror).
+ * task.messages（AppState UI 镜像）中保留的消息数量上限。
  *
- * task.messages exists purely for the zoomed transcript dialog, which only
- * needs recent context. The full conversation lives in the local allMessages
- * array (inProcessRunner) and on disk at the agent transcript path.
+ * task.messages 仅为 zoomed 对话记录对话框而存在，后者只需要最近的上下文。
+ * 完整对话保存在本地的 allMessages 数组（inProcessRunner）以及
+ * agent 对话记录路径下的磁盘文件中。
  *
- * BQ analysis (round 9, 2026-03-20) showed ~20MB RSS per agent at 500+ turn
- * sessions and ~125MB per concurrent agent in swarm bursts. Whale session
- * 9a990de8 launched 292 agents in 2 minutes and reached 36.8GB. The dominant
- * cost is this array holding a second full copy of every message.
+ * BQ 分析（第 9 轮，2026-03-20）显示：500+ 轮会话下每个 agent 大约占用
+ * 20MB RSS；在 swarm 突发场景下每个并发 agent 大约 125MB。Whale 会话
+ * 9a990de8 在 2 分钟内启动了 292 个 agent，峰值达到 36.8GB。
+ * 主要开销正是这个数组 —— 它为每条消息保存了第二份完整副本。
  */
 export const TEAMMATE_MESSAGES_UI_CAP = 50
 
 /**
- * Append an item to a message array, capping the result at
- * TEAMMATE_MESSAGES_UI_CAP entries by dropping the oldest. Always returns
- * a new array (AppState immutability).
+ * 向消息数组追加一项，通过丢弃最旧的条目将结果截断到
+ * TEAMMATE_MESSAGES_UI_CAP 条。总是返回一个新数组（AppState 不可变性）。
  */
 export function appendCappedMessage<T>(
   prev: readonly T[] | undefined,

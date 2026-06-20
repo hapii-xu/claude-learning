@@ -21,7 +21,7 @@ export const callSkillStore: LocalJSXCommandCall = async (onDone, _context, args
 
   const parsed = parseSkillStoreArgs(args ?? '');
 
-  // ── invalid args ──────────────────────────────────────────────────────────
+  // ── 无效参数 ──────────────────────────────────────────────────────────
   if (parsed.action === 'invalid') {
     logEvent('tengu_skill_store_failed', {
       reason: parsed.reason as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -30,7 +30,7 @@ export const callSkillStore: LocalJSXCommandCall = async (onDone, _context, args
     return null;
   }
 
-  // ── list skills ───────────────────────────────────────────────────────────
+  // ── 列出 skills ───────────────────────────────────────────────────────
   if (parsed.action === 'list') {
     logEvent('tengu_skill_store_list', {});
     try {
@@ -49,7 +49,7 @@ export const callSkillStore: LocalJSXCommandCall = async (onDone, _context, args
     }
   }
 
-  // ── get skill ─────────────────────────────────────────────────────────────
+  // ── 获取 skill ───────────────────────────────────────────────────────
   if (parsed.action === 'get') {
     const { id } = parsed;
     logEvent('tengu_skill_store_get', {
@@ -69,7 +69,7 @@ export const callSkillStore: LocalJSXCommandCall = async (onDone, _context, args
     }
   }
 
-  // ── list versions ─────────────────────────────────────────────────────────
+  // ── 列出版本 ─────────────────────────────────────────────────────────
   if (parsed.action === 'versions') {
     const { id } = parsed;
     logEvent('tengu_skill_store_versions', {
@@ -98,7 +98,7 @@ export const callSkillStore: LocalJSXCommandCall = async (onDone, _context, args
     }
   }
 
-  // ── get specific version ──────────────────────────────────────────────────
+  // ── 获取特定版本 ─────────────────────────────────────────────────────
   if (parsed.action === 'version') {
     const { id, version } = parsed;
     logEvent('tengu_skill_store_version', {
@@ -123,7 +123,7 @@ export const callSkillStore: LocalJSXCommandCall = async (onDone, _context, args
     }
   }
 
-  // ── create skill ──────────────────────────────────────────────────────────
+  // ── 创建 skill ───────────────────────────────────────────────────────
   if (parsed.action === 'create') {
     const { name, markdown } = parsed;
     logEvent('tengu_skill_store_create', {
@@ -143,7 +143,7 @@ export const callSkillStore: LocalJSXCommandCall = async (onDone, _context, args
     }
   }
 
-  // ── delete skill ──────────────────────────────────────────────────────────
+  // ── 删除 skill ───────────────────────────────────────────────────────
   if (parsed.action === 'delete') {
     const { id } = parsed;
     logEvent('tengu_skill_store_delete', {
@@ -163,24 +163,24 @@ export const callSkillStore: LocalJSXCommandCall = async (onDone, _context, args
     }
   }
 
-  // ── install skill ─────────────────────────────────────────────────────────
+  // ── 安装 skill ───────────────────────────────────────────────────────
   // parsed.action === 'install'
   const { id, version } = parsed;
   logEvent('tengu_skill_store_install', {
     id: id as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   });
   try {
-    // Fetch the skill markdown body
+    // 获取 skill 的 markdown 正文
     let skillName: string;
     let body: string;
     if (version !== undefined) {
       const ver = await getSkillVersion(id, version);
       body = ver.body;
-      // Derive a safe name from the version's skill_id or id
+      // 从 version 的 skill_id 或 id 中推导出安全的名称
       skillName = ver.skill_id;
     } else {
       const skill = await getSkill(id);
-      // To get the body we need to fetch the latest version
+      // 要获取正文，我们需要拉取最新版本
       const versions = await getSkillVersions(id);
       if (versions.length === 0) {
         onDone(`Skill ${id} has no published versions to install.`, {
@@ -191,7 +191,7 @@ export const callSkillStore: LocalJSXCommandCall = async (onDone, _context, args
           message: `Skill ${id} has no published versions to install.`,
         });
       }
-      // Sort by created_at descending and pick latest
+      // 按 created_at 降序排序并取最新
       const sorted = [...versions].sort((a, b) => {
         const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
         const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -211,7 +211,7 @@ export const callSkillStore: LocalJSXCommandCall = async (onDone, _context, args
       skillName = skill.name;
     }
 
-    // Sanitize skill name to a safe directory name
+    // 将 skill 名称清理为安全的目录名
     const safeName = skillName.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/^-+|-+$/g, '') || id;
 
     const skillDir = join(getClaudeConfigHomeDir(), 'skills', safeName);

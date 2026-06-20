@@ -67,8 +67,8 @@ export function useDiffInIDE({
   const shouldShowDiffInIDE =
     hasAccessToIDEExtensionDiffFeature(toolUseContext.options.mcpClients) &&
     getGlobalConfig().diffTool === 'auto' &&
-    // Diffs should only be for file edits.
-    // File writes may come through here but are not supported for diffs.
+    // Diff 应仅用于文件编辑。
+    // 文件写入可能会走到这里但不支持 diff。
     !filePath.endsWith('.ipynb')
 
   const ideName =
@@ -88,7 +88,7 @@ export function useDiffInIDE({
         toolUseContext,
         tabName,
       )
-      // Skip if component has been unmounted
+      // 如果组件已卸载则跳过
       if (isUnmounted.current) {
         return
       }
@@ -103,14 +103,14 @@ export function useDiffInIDE({
       )
 
       if (newEdits.length === 0) {
-        // No changes -- edit was rejected (eg. reverted)
+        // 无更改 —— 编辑被拒绝（例如，已还原）
         logEvent('tengu_ext_diff_rejected', {})
-        // We close the tab here because 'no' no longer auto-closes
+        // 我们在这里关闭标签页，因为 'no' 不再自动关闭
         const ideClient = getConnectedIdeClient(
           toolUseContext.options.mcpClients,
         )
         if (ideClient) {
-          // Close the tab in the IDE
+          // 在 IDE 中关闭标签页
           await closeTabInIDE(tabName, ideClient)
         }
         onChange(
@@ -123,7 +123,7 @@ export function useDiffInIDE({
         return
       }
 
-      // File was modified - edit was accepted
+      // 文件已修改 - 编辑被接受
       onChange(
         { type: 'accept-once' },
         {
@@ -140,7 +140,7 @@ export function useDiffInIDE({
   useEffect(() => {
     void showDiff()
 
-    // Set flag on unmount
+    // 在卸载时设置标志
     return () => {
       isUnmounted.current = true
     }
@@ -164,8 +164,8 @@ export function useDiffInIDE({
 }
 
 /**
- * Re-computes the edits from the old and new contents. This is necessary
- * to apply any edits the user may have made to the new contents.
+ * 从新旧内容重新计算编辑。这是必要的，
+ * 以应用用户可能对新内容所做的任何编辑。
  */
 export function computeEditsFromContents(
   filePath: string,
@@ -173,7 +173,7 @@ export function computeEditsFromContents(
   newContent: string,
   editMode: 'single' | 'multiple',
 ): FileEdit[] {
-  // Use unformatted patches, otherwise the edits will be formatted.
+  // 使用未格式化的补丁，否则编辑将被格式化。
   const singleHunk = editMode === 'single'
   const patch = getPatchFromContents({
     filePath,
@@ -186,7 +186,7 @@ export function computeEditsFromContents(
     return []
   }
 
-  // For single edit mode, verify we only got one hunk
+  // 对于单编辑模式，验证我们只得到一个块
   if (singleHunk && patch.length > 1) {
     logError(
       new Error(
@@ -195,23 +195,23 @@ export function computeEditsFromContents(
     )
   }
 
-  // Re-compute the edits to match the patch
+  // 重新计算编辑以匹配补丁
   return getEditsForPatch(patch)
 }
 
 /**
- * Done if:
+ * 完成条件：
  *
- * 1. Tab is closed in IDE
- * 2. Tab is saved in IDE (we then close the tab)
- * 3. User selected an option in IDE
- * 4. User selected an option in terminal (or hit esc)
+ * 1. 标签页在 IDE 中被关闭
+ * 2. 标签页在 IDE 中被保存（然后我们关闭标签页）
+ * 3. 用户在 IDE 中选择了选项
+ * 4. 用户在终端中选择了选项（或按了 esc）
  *
- * Resolves with the new file content.
+ * 以新文件内容解析。
  *
- * TODO: Time out after 5 mins of inactivity?
- * TODO: Update auto-approval UI when IDE exits
- * TODO: Close the IDE tab when the approval prompt is unmounted
+ * TODO: 在 5 分钟不活动后超时？
+ * TODO: 当 IDE 退出时更新自动批准 UI
+ * TODO: 当批准提示卸载时关闭 IDE 标签页
  */
 async function showDiffInIDE(
   file_path: string,
@@ -232,14 +232,14 @@ async function showDiffInIDE(
   }
 
   async function cleanup() {
-    // Careful to avoid race conditions, since this
-    // function can be called from multiple places.
+    // 注意避免竞态条件，因为此
+    // 函数可能从多个地方被调用。
     if (isCleanedUp) {
       return
     }
     isCleanedUp = true
 
-    // Don't fail if this fails
+    // 如果失败不要抛出
     try {
       await closeTabInIDE(tabName, ideClient)
     } catch (e) {
@@ -250,11 +250,11 @@ async function showDiffInIDE(
     toolUseContext.abortController.signal.removeEventListener('abort', cleanup)
   }
 
-  // Cleanup if the user hits esc to cancel the tool call - or on exit
+  // 如果用户按 esc 取消工具调用则清理 - 或在退出时清理
   toolUseContext.abortController.signal.addEventListener('abort', cleanup)
   process.on('beforeExit', cleanup)
 
-  // Open the diff in the IDE
+  // 在 IDE 中打开 diff
   const ideClient = getConnectedIdeClient(toolUseContext.options.mcpClients)
   try {
     const { updatedFile } = getPatchForEdits({
@@ -268,7 +268,7 @@ async function showDiffInIDE(
     }
     let ideOldPath = oldFilePath
 
-    // Only convert paths if we're in WSL and IDE is on Windows
+    // 仅当我们在 WSL 中且 IDE 在 Windows 上时才转换路径
     const ideRunningInWindows =
       (ideClient.config as McpSSEIDEServerConfig | McpWebSocketIDEServerConfig)
         .ideRunningInWindows === true
@@ -292,10 +292,10 @@ async function showDiffInIDE(
       ideClient,
     )
 
-    // Convert the raw RPC result to a ToolCallResponse format
+    // 将原始 RPC 结果转换为 ToolCallResponse 格式
     const data = Array.isArray(rpcResult) ? rpcResult : [rpcResult]
 
-    // If the user saved the file then take the new contents and resolve with that.
+    // 如果用户保存了文件，则获取新内容并用其解析。
     if (isSaveMessage(data)) {
       void cleanup()
       return {
@@ -316,8 +316,8 @@ async function showDiffInIDE(
       }
     }
 
-    // Indicates that the tool call completed with none of the expected
-    // results. Did the user close the IDE?
+    // 表示工具调用完成但没有预期的
+    // 结果。用户是否关闭了 IDE？
     throw new Error('Not accepted')
   } catch (error) {
     logError(error as Error)
@@ -335,11 +335,11 @@ async function closeTabInIDE(
       throw new Error('IDE client not available')
     }
 
-    // Use direct RPC to close the tab
+    // 使用直接 RPC 关闭标签页
     await callIdeRpc('close_tab', { tab_name: tabName }, ideClient)
   } catch (error) {
     logError(error as Error)
-    // Don't throw - this is a cleanup operation
+    // 不要抛出 - 这是清理操作
   }
 }
 

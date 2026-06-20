@@ -82,7 +82,7 @@ describe('perf-issue command', () => {
     ).load()
     const result = await loaded.call('', {} as never)
     if (result.type === 'text') {
-      // Extract the path from the result message
+      // 从结果信息中提取路径
       const pathMatch = result.value.match(/\n\s+`?(\S+?\.md)`?/)
       if (pathMatch) {
         const reportContent = readFileSync(pathMatch[1], 'utf8')
@@ -94,7 +94,7 @@ describe('perf-issue command', () => {
   })
 
   test('handles missing log gracefully', async () => {
-    // Without a log file it should still work
+    // 没有日志文件时它仍然应该可以工作
     const mod = await import('../index.js')
     const cmd = mod.default
     const loaded = await (
@@ -110,7 +110,7 @@ describe('perf-issue command', () => {
     const result = await loaded.call('', {} as never)
     expect(result.type).toBe('text')
     if (result.type === 'text') {
-      // Should still produce a report, even if log section shows "not found"
+      // 即使 log 段显示 "not found"，也应该生成报告
       expect(result.value).toContain('written to')
     }
   })
@@ -126,14 +126,14 @@ describe('perf-issue command', () => {
 
     const now = Date.now()
     const logLines = [
-      // Numeric timestamp (covers lines 109-110)
+      // 数字时间戳（覆盖 109-110 行）
       JSON.stringify({
         role: 'user',
         content: 'hello',
         timestamp: now - 5000,
         usage: { input_tokens: 100 },
       }),
-      // String ISO timestamp (covers lines 112-113)
+      // 字符串 ISO 时间戳（覆盖 112-113 行）
       JSON.stringify({
         role: 'assistant',
         content: [
@@ -142,7 +142,7 @@ describe('perf-issue command', () => {
         timestamp: new Date(now - 3000).toISOString(),
         usage: { output_tokens: 50 },
       }),
-      // tool_result matching tool_use (covers lines 138-148)
+      // tool_result 匹配 tool_use（覆盖 138-148 行）
       JSON.stringify({
         role: 'user',
         content: [
@@ -187,19 +187,18 @@ describe('perf-issue command', () => {
     const encodedCwd = sanitizePath(getOriginalCwd())
     const projectsDir = join(claudeDir, 'projects', encodedCwd)
     mkdirSync(projectsDir, { recursive: true })
-    // Write a log file where readFileSync succeeds but split/parse fails.
-    // Actually analyzeLog does try/catch per line, so the outer catch at 154-156
-    // is triggered only if readFileSync itself throws — but existsSync already
-    // checked. We simulate by writing a log file that will pass existsSync but
-    // causes analyzeLog to throw at the readFileSync level: we can't do this
-    // without mocking fs (which we must not do).
+    // 写入一个 readFileSync 成功但 split/parse 会失败的日志文件。
+    // 实际上 analyzeLog 会对每行 try/catch，因此外层 154-156 行的
+    // catch 仅在 readFileSync 本身抛错时触发——但 existsSync 已经检查过了。
+    // 我们通过写入一个会通过 existsSync 但会让 analyzeLog 在 readFileSync
+    // 层抛错的日志文件来模拟：不 mock fs（不能 mock）的话我们做不到。
     //
-    // Alternative: write a valid log and verify the normal path works.
-    // The parse-error path (lines 154-156) is the catch for analyzeLog()
-    // inside hasLog=true block. Since analyzeLog's per-line errors are caught
-    // internally, the outer catch only fires if readFileSync itself throws
-    // (TOCTOU race). This is functionally unreachable in tests.
-    // This test confirms the happy path without parse errors.
+    // 替代方案：写入一个合法的日志并验证正常路径能工作。
+    // 解析错误路径（154-156 行）是 hasLog=true 块内 analyzeLog()
+    // 的 catch。由于 analyzeLog 的逐行错误都在内部被捕获，外层
+    // catch 只有在 readFileSync 本身抛错时（TOCTOU 竞争）才会触发。
+    // 在测试中功能上不可达。
+    // 本测试确认没有解析错误的正常路径能工作。
     writeFileSync(
       join(projectsDir, `${getSessionId()}.jsonl`),
       JSON.stringify({
@@ -405,7 +404,7 @@ describe('perf-issue command', () => {
     }
   })
 
-  // ── H1 regression: tool durations must use log timestamps, not Date.now() ──
+  // ── H1 回归：工具耗时必须使用日志时间戳，而非 Date.now() ──
   test('H1: tool durations are computed from log entry timestamps, not parse-time Date.now()', async () => {
     const { sanitizePath } = await import('../../../utils/path.js')
     const { getSessionId, getOriginalCwd } = await import(
@@ -415,7 +414,7 @@ describe('perf-issue command', () => {
     const projectsDir = join(claudeDir, 'projects', encodedCwd)
     mkdirSync(projectsDir, { recursive: true })
 
-    const t0 = 1_000_000_000_000 // fixed epoch ms
+    const t0 = 1_000_000_000_000 // 固定的 epoch 毫秒
     const toolUseEntry = JSON.stringify({
       role: 'assistant',
       content: [
@@ -427,7 +426,7 @@ describe('perf-issue command', () => {
     const toolResultEntry = JSON.stringify({
       role: 'user',
       content: [{ type: 'tool_result', tool_use_id: 'id_reg1', content: 'ok' }],
-      // 3 seconds after tool_use
+      // 比 tool_use 晚 3 秒
       timestamp: t0 + 3000,
     })
 
@@ -454,17 +453,17 @@ describe('perf-issue command', () => {
       if (pathMatch) {
         const { readFileSync } = await import('node:fs')
         const parsed = JSON.parse(readFileSync(pathMatch[1], 'utf8'))
-        // BashTool avg should be ~3000ms (from timestamps), not <1ms (from Date.now())
+        // BashTool 平均应约为 3000ms（来自时间戳），而不是 <1ms（来自 Date.now()）
         const avgMs = parsed.tool_avg_ms?.BashTool
         expect(typeof avgMs).toBe('number')
-        // Must be close to 3000ms (±500ms tolerance for CI variability)
+        // 必须接近 3000ms（±500ms 的容差以应对 CI 波动）
         expect(avgMs).toBeGreaterThan(2000)
         expect(avgMs).toBeLessThan(4000)
       }
     }
   })
 
-  // ── H2 regression: per-model cost lookup, unknown model → null ──
+  // ── H2 回归：按模型查询费用，未知模型 → null ──
   test('H2: known model produces cost estimate; unknown model produces null', async () => {
     const { sanitizePath } = await import('../../../utils/path.js')
     const { getSessionId, getOriginalCwd } = await import(
@@ -474,7 +473,7 @@ describe('perf-issue command', () => {
     const projectsDir = join(claudeDir, 'projects', encodedCwd)
     mkdirSync(projectsDir, { recursive: true })
 
-    // Write a log with a known model field
+    // 写入带有已知 model 字段的日志
     writeFileSync(
       join(projectsDir, `${getSessionId()}.jsonl`),
       JSON.stringify({
@@ -503,7 +502,7 @@ describe('perf-issue command', () => {
       if (pathMatch) {
         const { readFileSync } = await import('node:fs')
         const parsed = JSON.parse(readFileSync(pathMatch[1], 'utf8'))
-        // Known model → numeric cost
+        // 已知模型 → 数字费用
         expect(typeof parsed.estimated_cost_usd).toBe('number')
         expect(parsed.estimated_cost_usd).toBeGreaterThan(0)
         expect(parsed.detected_model).toBe('claude-sonnet-4-20260401')
@@ -552,16 +551,16 @@ describe('perf-issue command', () => {
     }
   })
 
-  // ── M6 regression: error messages must be sanitized (no absolute home path) ──
+  // ── M6 回归：错误信息必须经过净化（不含绝对家目录路径） ──
   test('M6: error messages do not expose absolute home dir paths', async () => {
     const { homedir } = await import('node:os')
     const home = homedir()
-    // Write an invalid perf report dir to force writeFileSync to fail
-    // by pointing CLAUDE_CONFIG_DIR to a file (not a directory).
+    // 写入一个无效的 perf 报告目录，通过把 CLAUDE_CONFIG_DIR 指向
+    // 一个文件（而非目录）来强制 writeFileSync 失败。
     const filePath = join(tmpDir, 'not-a-dir')
     const { writeFileSync: wfs } = await import('node:fs')
     wfs(filePath, 'block', 'utf8')
-    // Override CLAUDE_CONFIG_DIR to point to a file so mkdirSync inside call() fails
+    // 覆盖 CLAUDE_CONFIG_DIR 指向一个文件，使 call() 内部的 mkdirSync 失败
     process.env.CLAUDE_CONFIG_DIR = filePath
 
     const mod = await import('../index.js')
@@ -577,19 +576,19 @@ describe('perf-issue command', () => {
     ).load()
     const result = await loaded.call('', {} as never)
 
-    // Restore CLAUDE_CONFIG_DIR so subsequent tests are not affected
+    // 恢复 CLAUDE_CONFIG_DIR，使后续测试不受影响
     process.env.CLAUDE_CONFIG_DIR = claudeDir
 
     if (result.type === 'text' && result.value.includes('Failed')) {
-      // Must not contain the raw home directory path
+      // 不能包含原始的家目录路径
       expect(result.value).not.toContain(home)
-      // Must be at most 200 chars in the error portion
+      // 错误部分最多 200 个字符
       const errPart = result.value.replace('Failed to write perf report: ', '')
-      expect(errPart.length).toBeLessThanOrEqual(210) // +small overhead for the prefix chars
+      expect(errPart.length).toBeLessThanOrEqual(210) // +前缀字符的少量开销
     }
   })
 
-  // ── M4 regression: --limit caps lines read ──
+  // ── M4 回归：--limit 限制读取的行数 ──
   test('M4: --limit N caps the number of log lines analyzed', async () => {
     const { sanitizePath } = await import('../../../utils/path.js')
     const { getSessionId, getOriginalCwd } = await import(
@@ -599,7 +598,7 @@ describe('perf-issue command', () => {
     const projectsDir = join(claudeDir, 'projects', encodedCwd)
     mkdirSync(projectsDir, { recursive: true })
 
-    // Write 10 lines with usage
+    // 写入 10 行带 usage 的数据
     const logLines = Array.from({ length: 10 }, (_, i) =>
       JSON.stringify({
         role: 'user',
@@ -623,14 +622,14 @@ describe('perf-issue command', () => {
         }>
       }
     ).load()
-    // --limit 3 should only analyze last 3 lines (30 tokens)
+    // --limit 3 只应分析最后 3 行（30 个 token）
     const result = await loaded.call('--format=json --limit 3', {} as never)
     if (result.type === 'text') {
       const pathMatch = result.value.match(/\n\s+`?(\S+?\.json)`?/)
       if (pathMatch) {
         const { readFileSync } = await import('node:fs')
         const parsed = JSON.parse(readFileSync(pathMatch[1], 'utf8'))
-        // With --limit 3, only 3 lines × 10 tokens = 30 input tokens
+        // 使用 --limit 3 时，只有 3 行 × 10 token = 30 个 input token
         expect(parsed.tokens.input).toBe(30)
       }
     }

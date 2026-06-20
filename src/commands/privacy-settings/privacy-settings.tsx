@@ -17,7 +17,7 @@ export async function call(onDone: LocalJSXCommandOnDone): Promise<React.ReactNo
   }
 
   const [settingsResult, configResult] = await Promise.all([getGroveSettings(), getGroveNoticeConfig()]);
-  // Hide dialog on API failure (after retry)
+  // API 失败（重试后）时隐藏对话框
   if (!settingsResult.success) {
     onDone(FALLBACK_MESSAGE);
     return null;
@@ -54,8 +54,7 @@ export async function call(onDone: LocalJSXCommandOnDone): Promise<React.ReactNo
     }
   }
 
-  // Show privacy settings directly if the user has already accepted the
-  // terms.
+  // 如果用户已经接受了条款，则直接显示隐私设置。
   if (settings.grove_enabled !== null) {
     return (
       <PrivacySettingsDialog
@@ -66,6 +65,6 @@ export async function call(onDone: LocalJSXCommandOnDone): Promise<React.ReactNo
     );
   }
 
-  // Show the GroveDialog for users who haven't accepted terms yet
+  // 为尚未接受条款的用户显示 GroveDialog
   return <GroveDialog showIfAlreadyViewed={true} onDone={onDoneWithDecision} location={'settings'} />;
 }

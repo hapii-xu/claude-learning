@@ -22,17 +22,17 @@ type Props = {
 };
 
 /**
- * /remote-control-server command — manages the daemon-backed persistent bridge server.
+ * /remote-control-server 命令 — 管理 daemon 支持的持久化 bridge 服务器。
  *
- * When invoked, it starts the daemon supervisor as a child process, which in
- * turn spawns remoteControl workers that run headless bridge loops. The server
- * accepts multiple concurrent remote sessions.
+ * 调用时，它会以子进程方式启动 daemon supervisor，后者再
+ * 派生出运行 headless bridge 循环的 remoteControl worker。该服务器
+ * 支持多个并发的远程会话。
  *
- * If the server is already running, shows a management dialog with status
- * and options to stop or continue.
+ * 如果服务器已在运行，则显示管理对话框，包含状态
+ * 以及停止或继续的选项。
  */
 
-// Module-level state to track the daemon process across invocations
+// 模块级状态，跨多次调用跟踪 daemon 进程
 let daemonProcess: ChildProcess | null = null;
 let daemonStatus: ServerStatus = 'stopped';
 let daemonLogs: string[] = [];
@@ -43,7 +43,7 @@ function RemoteControlServer({ onDone }: Props): React.ReactNode {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // If already running, show management dialog
+    // 如果已在运行，显示管理对话框
     if (daemonProcess && !daemonProcess.killed) {
       setStatus('running');
       return;
@@ -51,7 +51,7 @@ function RemoteControlServer({ onDone }: Props): React.ReactNode {
 
     let cancelled = false;
     void (async () => {
-      // Pre-flight checks
+      // 启动前预检
       const checkError = await checkPrerequisites();
       if (cancelled) return;
       if (checkError) {
@@ -59,7 +59,7 @@ function RemoteControlServer({ onDone }: Props): React.ReactNode {
         return;
       }
 
-      // Start the daemon
+      // 启动 daemon
       setStatus('starting');
       try {
         startDaemon();
@@ -98,7 +98,7 @@ function RemoteControlServer({ onDone }: Props): React.ReactNode {
 }
 
 /**
- * Dialog shown when /remote-control-server is used while the daemon is running.
+ * 当 /remote-control-server 在 daemon 运行期间被调用时显示的对话框。
  */
 function ServerManagementDialog({ onDone }: Props): React.ReactNode {
   useRegisterOverlay('remote-control-server-dialog');
@@ -182,7 +182,7 @@ function ServerManagementDialog({ onDone }: Props): React.ReactNode {
 }
 
 /**
- * Check prerequisites for starting the Remote Control Server.
+ * 检查启动 Remote Control Server 的前置条件。
  */
 async function checkPrerequisites(): Promise<string | null> {
   const disabledReason = await getBridgeDisabledReason();
@@ -198,7 +198,7 @@ async function checkPrerequisites(): Promise<string | null> {
 }
 
 /**
- * Start the daemon supervisor as a child process.
+ * 以子进程方式启动 daemon supervisor。
  */
 function startDaemon(): void {
   const dir = resolve('.');
@@ -248,21 +248,21 @@ function startDaemon(): void {
 }
 
 /**
- * Stop the daemon supervisor.
+ * 停止 daemon supervisor。
  */
 function stopDaemon(): void {
   if (daemonProcess && !daemonProcess.killed) {
     daemonProcess.kill('SIGTERM');
-    // Force kill after 10s grace
+    // 10 秒宽限期后强制杀死
     const pid = daemonProcess.pid;
     setTimeout(() => {
       try {
-        if (pid) process.kill(pid, 0); // Check if still alive
+        if (pid) process.kill(pid, 0); // 检查是否仍然存活
         if (daemonProcess && !daemonProcess.killed) {
           daemonProcess.kill('SIGKILL');
         }
       } catch {
-        // Process already gone
+        // 进程已退出
       }
     }, 10_000);
   }

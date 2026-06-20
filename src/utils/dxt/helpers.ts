@@ -3,12 +3,12 @@ import { errorMessage } from '../errors.js'
 import { jsonParse } from '../slowOperations.js'
 
 /**
- * Parses and validates a DXT manifest from a JSON object.
+ * 从 JSON 对象解析并验证 DXT manifest。
  *
- * Lazy-imports @anthropic-ai/mcpb: that package uses zod v3 which eagerly
- * creates 24 .bind(this) closures per schema instance (~300 instances between
- * schemas.js and schemas-loose.js). Deferring the import keeps ~700KB of bound
- * closures out of the startup heap for sessions that never touch .dxt/.mcpb.
+ * 延迟导入 @anthropic-ai/mcpb：该包使用 zod v3，每个 schema 实例
+ * 急切创建 24 个 .bind(this) 闭包（schemas.js 和 schemas-loose.js
+ * 之间约 300 个实例）。延迟导入可以使约 700KB 的绑定闭包远离
+ * 启动堆，适用于从不接触 .dxt/.mcpb 的会话。
  */
 export async function validateManifest(
   manifestJson: unknown,
@@ -28,14 +28,14 @@ export async function validateManifest(
       .filter(Boolean)
       .join('; ')
 
-    throw new Error(`Invalid manifest: ${errorMessages}`)
+    throw new Error(`无效的 manifest：${errorMessages}`)
   }
 
   return parseResult.data
 }
 
 /**
- * Parses and validates a DXT manifest from raw text data.
+ * 从原始文本数据解析并验证 DXT manifest。
  */
 export async function parseAndValidateManifestFromText(
   manifestText: string,
@@ -45,14 +45,14 @@ export async function parseAndValidateManifestFromText(
   try {
     manifestJson = jsonParse(manifestText)
   } catch (error) {
-    throw new Error(`Invalid JSON in manifest.json: ${errorMessage(error)}`)
+    throw new Error(`manifest.json 中的 JSON 无效：${errorMessage(error)}`)
   }
 
   return validateManifest(manifestJson)
 }
 
 /**
- * Parses and validates a DXT manifest from raw binary data.
+ * 从原始二进制数据解析并验证 DXT manifest。
  */
 export async function parseAndValidateManifestFromBytes(
   manifestData: Uint8Array,
@@ -62,8 +62,8 @@ export async function parseAndValidateManifestFromBytes(
 }
 
 /**
- * Generates an extension ID from author name and extension name.
- * Uses the same algorithm as the directory backend for consistency.
+ * 从作者名称和扩展名称生成扩展 ID。
+ * 使用与目录后端相同的算法以保持一致性。
  */
 export function generateExtensionId(
   manifest: McpbManifestAny,

@@ -25,17 +25,17 @@ Return a list of filenames for the memories that will clearly be useful to Claud
 `
 
 /**
- * Find memory files relevant to a query by scanning memory file headers
- * and asking Sonnet to select the most relevant ones.
+ * 通过扫描记忆文件头部并让 Sonnet 选择最相关的记忆，
+ * 找到与查询相关的记忆文件。
  *
- * Returns absolute file paths + mtime of the most relevant memories
- * (up to 5). Excludes MEMORY.md (already loaded in system prompt).
- * mtime is threaded through so callers can surface freshness to the
- * main model without a second stat.
+ * 返回最相关记忆的绝对文件路径 + mtime（最多 5 个）。
+ * 排除 MEMORY.md（已加载到系统提示中）。
+ * mtime 被传递以便调用方可以向主模型展示新鲜度信息，
+ * 而无需再次 stat。
  *
- * `alreadySurfaced` filters paths shown in prior turns before the
- * Sonnet call, so the selector spends its 5-slot budget on fresh
- * candidates instead of re-picking files the caller will discard.
+ * `alreadySurfaced` 在 Sonnet 调用之前过滤先前回合中
+ * 已展示过的路径，这样选择器就可以将 5 个名额的预算
+ * 用于新的候选项，而不是重新选择调用方会丢弃的文件。
  */
 export async function findRelevantMemories(
   query: string,
@@ -64,8 +64,8 @@ export async function findRelevantMemories(
     .map(filename => byFilename.get(filename))
     .filter((m): m is MemoryHeader => m !== undefined)
 
-  // Fires even on empty selection: selection-rate needs the denominator,
-  // and -1 ages distinguish "ran, picked nothing" from "never ran".
+  // 即使在选择为空时也触发：选择率需要分母，且 -1 ages 区分
+  // "运行了，没选择任何内容"和"从未运行"。
   if (feature('MEMORY_SHAPE_TELEMETRY')) {
     /* eslint-disable @typescript-eslint/no-require-imports */
     const { logMemoryRecallShape } =
@@ -88,11 +88,10 @@ async function selectRelevantMemories(
 
   const manifest = formatMemoryManifest(memories)
 
-  // When Claude Code is actively using a tool (e.g. mcp__X__spawn),
-  // surfacing that tool's reference docs is noise — the conversation
-  // already contains working usage.  The selector otherwise matches
-  // on keyword overlap ("spawn" in query + "spawn" in a memory
-  // description → false positive).
+  // 当 Claude Code 正在积极使用工具时（例如 mcp__X__spawn），
+  // 显示该工具的参考文档是噪音 —— 对话已经包含可用的用法。
+  // 否则选择器会在关键字重叠时匹配（query 中的 "spawn" + 记忆
+  // 描述中的 "spawn" → 误报）。
   const toolsSection =
     recentTools.length > 0
       ? `\n\nRecently used tools: ${recentTools.join(', ')}`

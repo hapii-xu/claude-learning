@@ -1,11 +1,11 @@
 /**
- * Tests for launchSchedule.ts
+ * launchSchedule.ts 的测试
  *
- * Strategy per feedback_mock_dependency_not_subject:
- * - DO NOT mock triggersApi.ts itself (would pollute api.test.ts)
- * - Mock axios (the underlying HTTP layer) to control API responses
- * - Mock auth dependencies so real triggersApi functions can build headers
- * - Let real triggersApi functions run real code paths
+ * 遵循 feedback_mock_dependency_not_subject 策略：
+ * - 不要 mock triggersApi.ts 本身（会污染 api.test.ts）
+ * - 通过 mock axios（底层 HTTP 层）来控制 API 响应
+ * - mock 认证依赖，以便真实的 triggersApi 函数能够构造请求头
+ * - 让真实的 triggersApi 函数运行真实代码路径
  */
 
 import {
@@ -24,18 +24,18 @@ import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
 
-// ── Analytics mock ──────────────────────────────────────────────────────────
+// ── Analytics mock ──────────────────────────────────────────────────
 const logEventMock = mock(() => {})
 mock.module('src/services/analytics/index.js', () => ({
   logEvent: logEventMock,
 }))
 
-// ── Cron utility mock ───────────────────────────────────────────────────────
+// ── Cron 工具 mock ───────────────────────────────────────────────────
 mock.module('src/utils/cron.js', () => ({
   parseCronExpression: (cron: string) => {
     const fields = cron.trim().split(/\s+/)
     if (fields.length !== 5) return null
-    // Reject if any field contains a letter (invalid cron field)
+    // 任意字段包含字母时拒绝（无效 cron 字段）
     const hasWord = fields.some(f => /[a-zA-Z]/.test(f))
     if (hasWord) return null
     return {
@@ -49,13 +49,13 @@ mock.module('src/utils/cron.js', () => ({
   cronToHuman: (cron: string) => `human(${cron})`,
 }))
 
-// ── ScheduleView mock ───────────────────────────────────────────────────────
+// ── ScheduleView mock ───────────────────────────────────────────────────
 const scheduleViewMock = mock((_props: unknown) => null)
 mock.module('src/commands/schedule/ScheduleView.js', () => ({
   ScheduleView: scheduleViewMock,
 }))
 
-// ── Auth / OAuth mocks ──────────────────────────────────────────────────────
+// ── Auth / OAuth mocks ──────────────────────────────────────────────────
 mock.module('src/utils/auth.js', () => ({
   getClaudeAIOAuthTokens: () => ({ accessToken: 'test-token-schedule' }),
 }))
@@ -84,7 +84,7 @@ mock.module('src/services/auth/hostGuard.ts', () => ({
   assertNoAnthropicEnvForOpenAI: () => {},
 }))
 
-// ── Axios mock ──────────────────────────────────────────────────────────────
+// ── Axios mock ──────────────────────────────────────────────────────────
 const axiosGetMock = mock(async () => ({}))
 const axiosPostMock = mock(async () => ({}))
 const axiosDeleteMock = mock(async () => ({}))
@@ -103,7 +103,7 @@ axiosHandle.stubs.post = axiosPostMock
 axiosHandle.stubs.delete = axiosDeleteMock
 axiosHandle.stubs.isAxiosError = axiosIsAxiosError
 
-// ── Lazy import ─────────────────────────────────────────────────────────────
+// ── 懒加载 import ─────────────────────────────────────────────────────
 let callSchedule: typeof import('../launchSchedule.js').callSchedule
 
 beforeAll(async () => {
@@ -220,9 +220,9 @@ describe('callSchedule: create', () => {
 
   test('create with invalid cron → validation error without hitting API', async () => {
     const onDone = makeOnDone()
-    // 4 fields only — invalid
+    // 仅 4 个字段 — 无效
     await callSchedule(onDone, {} as never, 'create 0 9 * * report only')
-    // axios.post should not be called
+    // 不应调用 axios.post
     expect(axiosPostMock).not.toHaveBeenCalled()
   })
 

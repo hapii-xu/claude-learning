@@ -10,19 +10,18 @@ import {
 import { createInterface } from 'readline'
 
 /**
- * Cross-platform real-time log output. Ctrl+C exits tail without killing
- * the background process.
+ * 跨平台实时日志输出。Ctrl+C 可退出 tail 而不会终止后台进程。
  *
- * Strategy:
- *  1. Read existing content and output to stdout
- *  2. Use fs.watchFile() (polling-based — works everywhere including Windows)
- *  3. On change, read new bytes from the last known position
- *  4. SIGINT exits cleanly
+ * 策略：
+ *  1. 读取现有内容并输出到 stdout
+ *  2. 使用 fs.watchFile()（基于轮询 — 在所有平台上都能工作，包括 Windows）
+ *  3. 文件变化时从上次已知位置读取新增字节
+ *  4. SIGINT 干净退出
  */
 export async function tailLog(logPath: string): Promise<void> {
   let position = 0
 
-  // Output existing content
+  // 输出已有内容
   try {
     const stat = statSync(logPath)
     position = stat.size
@@ -34,7 +33,7 @@ export async function tailLog(logPath: string): Promise<void> {
       }
     }
   } catch {
-    // File may not exist yet — that's fine
+    // 文件可能还不存在 — 这没关系
   }
 
   console.log('\n[tail] Watching for new output... (Ctrl+C to detach)\n')
@@ -63,7 +62,7 @@ export async function tailLog(logPath: string): Promise<void> {
           closeSync(fd)
         }
       } catch {
-        // File may have been deleted or truncated
+        // 文件可能已被删除或被截断
       }
     })
   })

@@ -155,7 +155,7 @@ export function ScheduleView(props: Props): React.ReactNode {
     );
   }
 
-  // error mode
+  // 错误模式
   return (
     <Box>
       <Text color={'error' as keyof Theme}>{props.message}</Text>

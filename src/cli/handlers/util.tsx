@@ -1,8 +1,8 @@
 /**
- * Miscellaneous subcommand handlers — extracted from main.tsx for lazy loading.
- * setup-token, doctor, install
+ * 杂项子命令处理器 — 从 main.tsx 抽出以便懒加载。
+ * 包含 setup-token、doctor、install
  */
-/* eslint-disable custom-rules/no-process-exit -- CLI subcommand handlers intentionally exit */
+/* eslint-disable custom-rules/no-process-exit -- CLI 子命令处理器需要主动退出 */
 
 import { cwd } from 'process';
 import React from 'react';
@@ -54,7 +54,7 @@ export async function setupTokenHandler(root: Root): Promise<void> {
   process.exit(0);
 }
 
-// DoctorWithPlugins wrapper + doctor handler
+// DoctorWithPlugins 包装组件 + doctor 处理器
 const DoctorLazy = React.lazy(() => import('../../screens/Doctor.js').then(m => ({ default: m.Doctor })));
 
 function DoctorWithPlugins({ onDone }: { onDone: () => void }): React.ReactNode {
@@ -88,7 +88,7 @@ export async function doctorHandler(root: Root): Promise<void> {
   process.exit(0);
 }
 
-// install handler
+// install 处理器
 export async function installHandler(target: string | undefined, options: { force?: boolean }): Promise<void> {
   const { setup } = await import('../../setup.js');
   await setup(cwd(), 'default', false, false, undefined, false);

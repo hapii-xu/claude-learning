@@ -12,10 +12,10 @@ import {
 } from '../../utils/teleport.js'
 import { fetchCodeSessionsFromSessionsAPI } from '../../utils/teleport/api.js'
 
-// Minimum length for a UUID-like session ID (8 hex chars with dashes allowed)
+// 类似 UUID 的会话 ID 的最小长度（8 个十六进制字符，允许包含连字符）
 const SESSION_ID_MIN_LENGTH = 8
 
-// Maximum sessions to display in the interactive picker
+// 在交互式选择器中最多显示的会话数量
 const PICKER_PAGE_CAP = 20
 
 function meta(
@@ -32,8 +32,8 @@ export type TeleportProgressStep =
   | 'error'
 
 /**
- * Formats a sessions list as a text picker (no interactive UI in headless mode).
- * Returns a prompt the user can copy a session ID from.
+ * 将会话列表格式化为文本选择器（headless 模式下没有交互式 UI）。
+ * 返回一段提示，用户可从中复制所需的会话 ID。
  */
 function formatSessionsPicker(
   sessions: Array<{
@@ -62,16 +62,16 @@ function formatSessionsPicker(
 /**
  * /teleport [session-id]
  *
- * Without session-id: fetches the user's session list from the Sessions API
- * and renders an interactive picker (or text list in headless mode).
+ * 不带 session-id：从 Sessions API 拉取用户的会话列表，
+ * 并渲染交互式选择器（或在 headless 模式下输出文本列表）。
  *
- * With session-id:
- * 1. Validates local git state (must be clean)
- * 2. Fetches session logs + branch via teleportResumeCodeSession()
- * 3. Looks up the session LogOption by ID
- * 4. Hands off to the REPL via context.resume()
+ * 带 session-id：
+ * 1. 验证本地 git 状态（必须为干净状态）
+ * 2. 通过 teleportResumeCodeSession() 拉取会话日志和分支
+ * 3. 按 ID 查找对应的会话 LogOption
+ * 4. 通过 context.resume() 移交给 REPL
  *
- * Telemetry coverage:
+ * 遥测覆盖范围：
  * - tengu_teleport_started
  * - tengu_teleport_events_fetch_fail
  * - tengu_teleport_page_cap
@@ -96,7 +96,7 @@ export const callTeleport: LocalJSXCommandCall = async (
   args,
 ) => {
   const rawArgs = args.trim()
-  // --print flag: headless / non-interactive output
+  // --print 标志：headless / 非交互式输出
   const isPrintMode = rawArgs === '--print' || rawArgs.startsWith('--print ')
   const sessionId = isPrintMode
     ? rawArgs.replace(/^--print\s*/, '').trim()
@@ -106,7 +106,7 @@ export const callTeleport: LocalJSXCommandCall = async (
     has_session_id: meta(sessionId ? 'true' : 'false'),
   })
 
-  // ── No session ID: interactive picker ──
+  // ── 无 session ID：交互式选择器 ──
   if (!sessionId) {
     logEvent('tengu_teleport_source_decision', {
       source: meta('sessions_api'),
@@ -193,14 +193,14 @@ export const callTeleport: LocalJSXCommandCall = async (
       return null
     }
 
-    // Interactive context: display the list and prompt user to run with an ID.
-    // A full Ink <SelectInput> picker requires an event loop that isn't safely
-    // available from all command contexts; text list is the portable fallback.
+    // 交互式上下文：显示列表，提示用户携带 ID 重新运行。
+    // 完整的 Ink <SelectInput> 选择器需要事件循环，而并非所有命令上下文都能
+    // 安全地提供；文本列表是可移植的兜底方案。
     onDone(pickerText, { display: 'system' })
     return null
   }
 
-  // ── Basic format guard ──
+  // ── 基本格式校验 ──
   if (
     sessionId.length < SESSION_ID_MIN_LENGTH ||
     !/^[0-9a-f-]{8,}$/i.test(sessionId)
@@ -217,13 +217,13 @@ export const callTeleport: LocalJSXCommandCall = async (
 
   logEvent('tengu_teleport_source_decision', { source: meta('explicit_id') })
 
-  // ── Progress tracker (internal, no Ink rendering needed) ──
+  // ── 进度跟踪（仅内部使用，无需 Ink 渲染） ──
   const steps: TeleportProgressStep[] = []
   const recordStep = (step: TeleportProgressStep) => {
     steps.push(step)
   }
 
-  // ── Git state validation ──
+  // ── Git 状态校验 ──
   recordStep('validate')
   try {
     await validateGitState()
@@ -236,7 +236,7 @@ export const callTeleport: LocalJSXCommandCall = async (
     return null
   }
 
-  // ── Resume session ──
+  // ── 恢复会话 ──
   recordStep('resume')
   try {
     let lastProgress = ''
@@ -253,7 +253,7 @@ export const callTeleport: LocalJSXCommandCall = async (
 
     if (!context.resume) {
       logEvent('tengu_teleport_null', {})
-      // resume callback unavailable (e.g. non-interactive context)
+      // resume 回调不可用（例如非交互式上下文）
       if (isPrintMode) {
         onDone(`Session ${sessionId} fetched successfully.`, {
           display: 'system',
@@ -267,7 +267,7 @@ export const callTeleport: LocalJSXCommandCall = async (
       return null
     }
 
-    // Look up the session log so we can pass it to context.resume().
+    // 查找会话日志，以便传递给 context.resume()。
     recordStep('fetch')
     const log: LogOption | null = await getLastSessionLog(sessionId as UUID)
     if (!log) {
@@ -288,7 +288,7 @@ export const callTeleport: LocalJSXCommandCall = async (
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
 
-    // Map error message content to specific telemetry event names
+    // 将错误消息内容映射到具体的遥测事件名
     let evt = 'tengu_teleport_failed'
     if (/not found/i.test(msg)) {
       evt = 'tengu_teleport_error_session_not_found_'

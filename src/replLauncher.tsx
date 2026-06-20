@@ -13,8 +13,6 @@ type AppWrapperProps = {
 
 /**
  * 启动交互式 REPL 界面 —— 渲染 React/Ink 组件树并阻塞直到会话结束。
- * Launches the interactive REPL screen — renders the React/Ink component tree
- * and blocks until the session ends.
  *
  * 调用时机：main.tsx 的默认 action 中，setup() 完成后调用。
  *

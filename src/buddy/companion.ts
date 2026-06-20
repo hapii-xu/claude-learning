@@ -13,7 +13,7 @@ import {
   type StatName,
 } from './types.js'
 
-// Mulberry32 — tiny seeded PRNG, good enough for picking ducks
+// Mulberry32 — 轻量带种子的伪随机数生成器，足够用来抽取 ducks
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0
   return function () {
@@ -59,7 +59,7 @@ const RARITY_FLOOR: Record<Rarity, number> = {
   legendary: 50,
 }
 
-// One peak stat, one dump stat, rest scattered. Rarity bumps the floor.
+// 一项 peak（巅峰）属性、一项 dump（短板）属性，其余随机分散。稀有度会抬高下限。
 function rollStats(
   rng: () => number,
   rarity: Rarity,
@@ -102,8 +102,8 @@ function rollFrom(rng: () => number): Roll {
   return { bones, inspirationSeed: Math.floor(rng() * 1e9) }
 }
 
-// Called from three hot paths (500ms sprite tick, per-keystroke PromptInput,
-// per-turn observer) with the same userId → cache the deterministic result.
+// 从三处热路径（500ms sprite tick、每次按键的 PromptInput、
+// 每轮 observer）以相同 userId 调用 → 缓存确定性结果。
 let rollCache: { key: string; value: Roll } | undefined
 export function roll(userId: string): Roll {
   const key = userId + SALT
@@ -147,15 +147,15 @@ export function inferLegacyCompanionBones(
   return inferred
 }
 
-// Regenerate bones from seed or userId, merge with stored soul.
+// 从 seed 或 userId 重新生成 bones，与已存储的 soul 合并。
 export function getCompanion(): Companion | undefined {
   const stored = getGlobalConfig().companion
   if (!stored) return undefined
   const seed = stored.seed ?? companionUserId()
   const { bones } = rollWithSeed(seed)
   const legacyBones = inferLegacyCompanionBones(stored)
-  // Seeded companions use regenerated bones. Legacy seedless companions may
-  // have species/rarity embedded in their generated soul text; keep that
-  // visible identity coherent when the userId-derived roll drifts.
+  // 带 seed 的 companion 使用重新生成的 bones。不带 seed 的旧版 companion
+  // 可能在生成时已经把 species/rarity 写入 soul 文本中；当 userId 推导出的
+  // roll 发生漂移时，仍保留这部分可见的身份信息以保持一致。
   return { ...stored, ...bones, ...legacyBones }
 }

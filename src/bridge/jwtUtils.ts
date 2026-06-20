@@ -4,7 +4,7 @@ import { logForDiagnosticsNoPII } from '../utils/diagLogs.js'
 import { errorMessage } from '../utils/errors.js'
 import { jsonParse } from '../utils/slowOperations.js'
 
-/** Format a millisecond duration as a human-readable string (e.g. "5m 30s"). */
+/** 把毫秒时长格式化成易读字符串（例如 "5m 30s"）。 */
 function formatDuration(ms: number): string {
   if (ms < 60_000) return `${Math.round(ms / 1000)}s`
   const m = Math.floor(ms / 60_000)
@@ -13,10 +13,10 @@ function formatDuration(ms: number): string {
 }
 
 /**
- * Decode a JWT's payload segment without verifying the signature.
- * Strips the `sk-ant-si-` session-ingress prefix if present.
- * Returns the parsed JSON payload as `unknown`, or `null` if the
- * token is malformed or the payload is not valid JSON.
+ * 不校验签名地解码 JWT 的 payload 段。
+ * 如果存在 `sk-ant-si-` session-ingress 前缀，会先剥离。
+ * 返回解析后的 JSON payload（类型为 `unknown`）；若 token 格式错误或
+ * payload 不是合法 JSON，则返回 `null`。
  */
 export function decodeJwtPayload(token: string): unknown | null {
   const jwt = token.startsWith('sk-ant-si-')
@@ -32,8 +32,8 @@ export function decodeJwtPayload(token: string): unknown | null {
 }
 
 /**
- * Decode the `exp` (expiry) claim from a JWT without verifying the signature.
- * @returns The `exp` value in Unix seconds, or `null` if unparseable
+ * 不校验签名地从 JWT 中解码 `exp`（过期时间）claim。
+ * @returns 以 Unix 秒为单位的 `exp` 值；无法解析时返回 `null`
  */
 export function decodeJwtExpiry(token: string): number | null {
   const payload = decodeJwtPayload(token)
@@ -48,26 +48,26 @@ export function decodeJwtExpiry(token: string): number | null {
   return null
 }
 
-/** Refresh buffer: request a new token before expiry. */
+/** 刷新缓冲：在过期之前请求一个新 token。 */
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000
 
-/** Fallback refresh interval when the new token's expiry is unknown. */
-const FALLBACK_REFRESH_INTERVAL_MS = 30 * 60 * 1000 // 30 minutes
+/** 新 token 过期时间未知时的兜底刷新间隔。 */
+const FALLBACK_REFRESH_INTERVAL_MS = 30 * 60 * 1000 // 30 分钟
 
-/** Max consecutive failures before giving up on the refresh chain. */
+/** 放弃刷新链之前的最大连续失败次数。 */
 const MAX_REFRESH_FAILURES = 3
 
-/** Retry delay when getAccessToken returns undefined. */
+/** getAccessToken 返回 undefined 时的重试延迟。 */
 const REFRESH_RETRY_DELAY_MS = 60_000
 
 /**
- * Creates a token refresh scheduler that proactively refreshes session tokens
- * before they expire. Used by both the standalone bridge and the REPL bridge.
+ * 创建一个 token 刷新调度器，在 session token 过期前主动刷新。
+ * 同时被 standalone bridge 和 REPL bridge 使用。
  *
- * When a token is about to expire, the scheduler calls `onRefresh` with the
- * session ID and the bridge's OAuth access token. The caller is responsible
- * for delivering the token to the appropriate transport (child process stdin
- * for standalone bridge, WebSocket reconnect for REPL bridge).
+ * token 即将过期时，调度器会用 session ID 和 bridge 的 OAuth access
+ * token 调用 `onRefresh`。调用方负责把 token 投递到正确的 transport
+ *（standalone bridge 投递到子进程 stdin，REPL bridge 通过 WebSocket
+ * 重连投递）。
  */
 export function createTokenRefreshScheduler({
   getAccessToken,
@@ -78,7 +78,7 @@ export function createTokenRefreshScheduler({
   getAccessToken: () => string | undefined | Promise<string | undefined>
   onRefresh: (sessionId: string, oauthToken: string) => void
   label: string
-  /** How long before expiry to fire refresh. Defaults to 5 min. */
+  /** 距离过期多久开始触发刷新。默认 5 分钟。 */
   refreshBufferMs?: number
 }): {
   schedule: (sessionId: string, token: string) => void
@@ -88,9 +88,9 @@ export function createTokenRefreshScheduler({
 } {
   const timers = new Map<string, ReturnType<typeof setTimeout>>()
   const failureCounts = new Map<string, number>()
-  // Generation counter per session — incremented by schedule() and cancel()
-  // so that in-flight async doRefresh() calls can detect when they've been
-  // superseded and should skip setting follow-up timers.
+  // 每个 session 一个 generation 计数 —— schedule() 和 cancel() 会自增，
+  // 这样在途的 async doRefresh() 调用能检测到自己已被取代，
+  // 应当跳过设置后续 timer。
   const generations = new Map<string, number>()
 
   function nextGeneration(sessionId: string): number {
@@ -102,23 +102,22 @@ export function createTokenRefreshScheduler({
   function schedule(sessionId: string, token: string): void {
     const expiry = decodeJwtExpiry(token)
     if (!expiry) {
-      // Token is not a decodable JWT (e.g. an OAuth token passed from the
-      // REPL bridge WebSocket open handler).  Preserve any existing timer
-      // (such as the follow-up refresh set by doRefresh) so the refresh
-      // chain is not broken.
+      // token 不是可解码的 JWT（例如从 REPL bridge WebSocket 打开处理
+      // 里传来的 OAuth token）。保留任何已有的 timer（例如 doRefresh
+      // 设置的后续刷新），避免刷新链中断。
       logForDebugging(
         `[${label}:token] Could not decode JWT expiry for sessionId=${sessionId}, token prefix=${token.slice(0, 15)}…, keeping existing timer`,
       )
       return
     }
 
-    // Clear any existing refresh timer — we have a concrete expiry to replace it.
+    // 清掉已有的刷新 timer —— 我们现在有具体的过期时间来替换它。
     const existing = timers.get(sessionId)
     if (existing) {
       clearTimeout(existing)
     }
 
-    // Bump generation to invalidate any in-flight async doRefresh.
+    // 自增 generation 让在途的 async doRefresh 失效。
     const gen = nextGeneration(sessionId)
 
     const expiryDate = new Date(expiry * 1000).toISOString()
@@ -140,9 +139,9 @@ export function createTokenRefreshScheduler({
   }
 
   /**
-   * Schedule refresh using an explicit TTL (seconds until expiry) rather
-   * than decoding a JWT's exp claim. Used by callers whose JWT is opaque
-   * (e.g. POST /v1/code/sessions/{id}/bridge returns expires_in directly).
+   * 用显式 TTL（距离过期的秒数）调度刷新，而不是解码 JWT 的 exp claim。
+   * 用于 JWT 不透明的调用方（例如 POST /v1/code/sessions/{id}/bridge
+   * 直接返回 expires_in）。
    */
   function scheduleFromExpiresIn(
     sessionId: string,
@@ -151,9 +150,9 @@ export function createTokenRefreshScheduler({
     const existing = timers.get(sessionId)
     if (existing) clearTimeout(existing)
     const gen = nextGeneration(sessionId)
-    // Clamp to 30s floor — if refreshBufferMs exceeds the server's expires_in
-    // (e.g. very large buffer for frequent-refresh testing, or server shortens
-    // expires_in unexpectedly), unclamped delayMs ≤ 0 would tight-loop.
+    // 钳制到 30s 下限 —— 如果 refreshBufferMs 超过了服务器的 expires_in
+    //（例如高频刷新测试用到了超大 buffer，或服务器意外缩短了 expires_in），
+    // 不钳制会让 delayMs ≤ 0，触发紧密循环。
     const delayMs = Math.max(expiresInSeconds * 1000 - refreshBufferMs, 30_000)
     logForDebugging(
       `[${label}:token] Scheduled token refresh for sessionId=${sessionId} in ${formatDuration(delayMs)} (expires_in=${expiresInSeconds}s, buffer=${refreshBufferMs / 1000}s)`,
@@ -173,8 +172,8 @@ export function createTokenRefreshScheduler({
       )
     }
 
-    // If the session was cancelled or rescheduled while we were awaiting,
-    // the generation will have changed — bail out to avoid orphaned timers.
+    // 如果在 await 期间 session 被取消或重排，generation 会变 ——
+    // 直接退出避免遗留 timer。
     if (generations.get(sessionId) !== gen) {
       logForDebugging(
         `[${label}:token] doRefresh for sessionId=${sessionId} stale (gen ${gen} vs ${generations.get(sessionId)}), skipping`,
@@ -190,9 +189,8 @@ export function createTokenRefreshScheduler({
         { level: 'error' },
       )
       logForDiagnosticsNoPII('error', 'bridge_token_refresh_no_oauth')
-      // Schedule a retry so the refresh chain can recover if the token
-      // becomes available again (e.g. transient cache clear during refresh).
-      // Cap retries to avoid spamming on genuine failures.
+      // 安排一次重试，让刷新链在 token 重新可用时（例如刷新期间临时
+      // 清缓存）能恢复。重试次数有上限，避免在真实失败场景下刷屏。
       if (failures < MAX_REFRESH_FAILURES) {
         const retryTimer = setTimeout(
           doRefresh,
@@ -205,7 +203,7 @@ export function createTokenRefreshScheduler({
       return
     }
 
-    // Reset failure counter on successful token retrieval
+    // 成功取到 token 后重置失败计数
     failureCounts.delete(sessionId)
 
     logForDebugging(
@@ -214,9 +212,9 @@ export function createTokenRefreshScheduler({
     logEvent('tengu_bridge_token_refreshed', {})
     onRefresh(sessionId, oauthToken)
 
-    // Schedule a follow-up refresh so long-running sessions stay authenticated.
-    // Without this, the initial one-shot timer leaves the session vulnerable
-    // to token expiry if it runs past the first refresh window.
+    // 安排一次后续刷新，让长运行 session 保持认证。
+    // 不做这一步的话，一次性 timer 会让 session 在跑过第一个刷新窗口后
+    // 暴露在 token 过期风险里。
     const timer = setTimeout(
       doRefresh,
       FALLBACK_REFRESH_INTERVAL_MS,
@@ -230,7 +228,7 @@ export function createTokenRefreshScheduler({
   }
 
   function cancel(sessionId: string): void {
-    // Bump generation to invalidate any in-flight async doRefresh.
+    // 自增 generation 让在途的 async doRefresh 失效。
     nextGeneration(sessionId)
     const timer = timers.get(sessionId)
     if (timer) {
@@ -241,7 +239,7 @@ export function createTokenRefreshScheduler({
   }
 
   function cancelAll(): void {
-    // Bump all generations so in-flight doRefresh calls are invalidated.
+    // 把所有 generation 自增，让在途的 doRefresh 调用失效。
     for (const sessionId of generations.keys()) {
       nextGeneration(sessionId)
     }

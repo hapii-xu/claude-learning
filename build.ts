@@ -5,17 +5,17 @@ import { DEFAULT_BUILD_FEATURES } from './scripts/defines.ts'
 
 const outdir = 'dist'
 
-// Step 1: Clean output directory
+// 步骤 1：清理输出目录
 const { rmSync } = await import('fs')
 rmSync(outdir, { recursive: true, force: true })
 
-// Collect FEATURE_* env vars → Bun.build features
+// 收集 FEATURE_* 环境变量 → Bun.build features
 const envFeatures = Object.keys(process.env)
   .filter(k => k.startsWith('FEATURE_'))
   .map(k => k.replace('FEATURE_', ''))
 const features = [...new Set([...DEFAULT_BUILD_FEATURES, ...envFeatures])]
 
-// Step 2: Bundle with splitting
+// 步骤 2：带 splitting 的打包
 const result = await Bun.build({
   entrypoints: ['src/entrypoints/cli.tsx'],
   outdir,
@@ -24,9 +24,9 @@ const result = await Bun.build({
   sourcemap: 'linked',
   define: {
     ...getMacroDefines(),
-    // React production mode — eliminates _debugStack Error objects
-    // (6,889 objects × ~1.7KB = 12MB in development builds) and removes
-    // prop-type / key warnings not useful in a production CLI tool.
+    // React 生产模式 —— 消除 _debugStack Error 对象
+    //（开发构建中有 6,889 个对象 × ~1.7KB = 12MB），并移除在生产 CLI 工具中
+    // 无实际价值的 prop-type / key 警告。
     'process.env.NODE_ENV': JSON.stringify('production'),
   },
   features,
@@ -40,7 +40,7 @@ if (!result.success) {
   process.exit(1)
 }
 
-// Step 3: Post-process — replace Bun-only `import.meta.require` with Node.js compatible version
+// 步骤 3：后处理 —— 将 Bun 专用的 `import.meta.require` 替换为 Node.js 兼容版本
 const files = await readdir(outdir)
 const IMPORT_META_REQUIRE = 'var __require = import.meta.require;'
 const COMPAT_REQUIRE = `var __require = typeof import.meta.require === "function" ? import.meta.require : (await import("module")).createRequire(import.meta.url);`
@@ -59,8 +59,8 @@ for (const file of files) {
   }
 }
 
-// Also patch unguarded globalThis.Bun destructuring from third-party deps
-// (e.g. @anthropic-ai/sandbox-runtime) so Node.js doesn't crash at import time.
+// 同时 patch 第三方依赖（例如 @anthropic-ai/sandbox-runtime）中未加保护的
+// globalThis.Bun 解构，避免 Node.js 在 import 时崩溃。
 let bunPatched = 0
 const BUN_DESTRUCTURE = /var \{([^}]+)\} = globalThis\.Bun;?/g
 const BUN_DESTRUCTURE_SAFE =
@@ -83,7 +83,7 @@ console.log(
   `Bundled ${result.outputs.length} files to ${outdir}/ (patched ${patched} for import.meta.require, ${bunPatched} for Bun destructure)`,
 )
 
-// Step 4: Copy native .node addon files (audio-capture) and vendored binaries (ripgrep)
+// 步骤 4：复制原生 .node addon 文件（audio-capture）和 vendored 二进制（ripgrep）
 const audioCaptureDir = join(outdir, 'vendor', 'audio-capture')
 await cp('vendor/audio-capture', audioCaptureDir, { recursive: true })
 console.log(`Copied vendor/audio-capture/ → ${audioCaptureDir}/`)
@@ -92,7 +92,7 @@ const ripgrepDir = join(outdir, 'vendor', 'ripgrep')
 await cp('src/utils/vendor/ripgrep', ripgrepDir, { recursive: true })
 console.log(`Copied src/utils/vendor/ripgrep/ → ${ripgrepDir}/`)
 
-// Step 5: Generate cli-bun and cli-node executable entry points
+// 步骤 5：生成 cli-bun 和 cli-node 可执行入口
 const cliBun = join(outdir, 'cli-bun.js')
 const cliNode = join(outdir, 'cli-node.js')
 
@@ -100,7 +100,7 @@ await writeFile(cliBun, '#!/usr/bin/env bun\nimport "./cli.js"\n')
 
 await writeFile(cliNode, '#!/usr/bin/env node\nimport "./cli.js"\n')
 
-// Make both executable
+// 为两者添加可执行权限
 const { chmodSync } = await import('fs')
 chmodSync(cliBun, 0o755)
 chmodSync(cliNode, 0o755)

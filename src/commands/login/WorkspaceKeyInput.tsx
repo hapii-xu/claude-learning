@@ -1,15 +1,15 @@
 /**
- * WorkspaceKeyInput — Ink form component for entering a workspace API key.
+ * WorkspaceKeyInput —— 用于输入 workspace API key 的 Ink 表单组件。
  *
- * Security properties:
- * - Input is masked: displayed as sk-ant-api03-****...****
- * - Enter is disabled until the key has the correct prefix and minimum length
- * - Prefix validation shown inline as the user types — no submit required
- * - Raw key value never appears in rendered output
+ * 安全特性：
+ * - 输入会被遮蔽：显示为 sk-ant-api03-****...****
+ * - 在 key 拥有正确前缀且达到最小长度之前，回车被禁用
+ * - 前缀校验在用户输入时即时展示 —— 无需提交
+ * - 原始 key 值永不出现在渲染输出中
  *
- * UX:
- * - Press Enter to save (calls onSave with the validated key)
- * - Press Esc to cancel (calls onCancel)
+ * UX：
+ * - 按 Enter 保存（用校验过的 key 调用 onSave）
+ * - 按 Esc 取消（调用 onCancel）
  */
 
 import * as React from 'react';
@@ -17,7 +17,7 @@ import { Box, Text, useInput } from '@anthropic/ink';
 import { saveWorkspaceKey } from '../../services/auth/saveWorkspaceKey.js';
 
 // ---------------------------------------------------------------------------
-// Constants
+// 常量
 // ---------------------------------------------------------------------------
 
 const PREFIX = 'sk-ant-api03-';
@@ -25,14 +25,14 @@ const MIN_KEY_LENGTH = 20;
 const MAX_KEY_LENGTH = 256;
 
 // ---------------------------------------------------------------------------
-// Helpers
+// 辅助函数
 // ---------------------------------------------------------------------------
 
 /**
- * Returns a masked display string for the current input.
- * Never exposes raw key characters beyond the prefix.
+ * 返回当前输入的遮蔽显示字符串。
+ * 永不暴露前缀之外的原始 key 字符。
  *
- * Examples:
+ * 示例：
  *   ''                        → ''
  *   'sk-ant-api03-'           → 'sk-ant-api03-'
  *   'sk-ant-api03-ABCDE...'   → 'sk-ant-api03-****...****'
@@ -40,22 +40,22 @@ const MAX_KEY_LENGTH = 256;
 function maskKeyInput(value: string): string {
   if (value.length === 0) return '';
   if (!value.startsWith(PREFIX)) {
-    // Show first 4 chars only
+    // 仅显示前 4 个字符
     return value.slice(0, 4) + (value.length > 4 ? '...' : '');
   }
   const suffix = value.slice(PREFIX.length);
   if (suffix.length === 0) return PREFIX;
-  // Show last 4 suffix chars masked; hide the rest
+  // 显示 suffix 的最后 4 个字符（已遮蔽）；其余隐藏
   const stars = '****';
   return `${PREFIX}${stars}...${suffix.slice(-Math.min(4, suffix.length)).replace(/./g, '*')}`;
 }
 
 /**
- * Validates the current input value.
- * Returns an inline error string, or null when valid.
+ * 校验当前输入值。
+ * 返回行内错误字符串，校验通过时返回 null。
  */
 function validateKey(value: string): string | null {
-  if (value.length === 0) return null; // no input yet — no error shown
+  if (value.length === 0) return null; // 尚无输入 —— 不显示错误
   if (!value.startsWith(PREFIX)) {
     return `Key must start with "${PREFIX}"`;
   }
@@ -69,22 +69,22 @@ function validateKey(value: string): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// Types
+// 类型
 // ---------------------------------------------------------------------------
 
 export interface WorkspaceKeyInputProps {
-  /** Called with the validated key after the user presses Enter */
+  /** 在用户按 Enter 后用校验通过的 key 调用 */
   onSave: (key: string) => void;
-  /** Called when the user presses Esc */
+  /** 用户按 Esc 时调用 */
   onCancel: () => void;
-  /** If true, the save operation is in progress */
+  /** 若为 true，表示保存操作正在进行中 */
   saving?: boolean;
-  /** Error from the save operation itself (fs write errors, etc.) */
+  /** 来自保存操作本身的错误（fs 写入错误等） */
   saveError?: string | null;
 }
 
 // ---------------------------------------------------------------------------
-// Component
+// 组件
 // ---------------------------------------------------------------------------
 
 export function WorkspaceKeyInput({
@@ -108,7 +108,7 @@ export function WorkspaceKeyInput({
 
       if (key.return) {
         if (!canSubmit) return;
-        // Clear any previous error and delegate to parent
+        // 清除之前的错误并交给父组件处理
         setError(null);
         onSave(value);
         return;
@@ -119,14 +119,14 @@ export function WorkspaceKeyInput({
         return;
       }
 
-      // Append printable characters (ignore control chars)
+      // 追加可打印字符（忽略控制字符）
       if (input && input.length > 0) {
         const char = input;
-        // Only accept printable ASCII (32–126) — avoid pasting escape sequences
+        // 只接受可打印 ASCII（32–126）—— 避免粘贴转义序列
         if (char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126) {
           setValue(prev => {
             const next = prev + char;
-            // Silently cap at MAX_KEY_LENGTH — user sees error if already over
+            // 静默限制为 MAX_KEY_LENGTH —— 若已超出则用户会看到错误
             return next.length <= MAX_KEY_LENGTH ? next : prev;
           });
         }
@@ -180,13 +180,13 @@ export function WorkspaceKeyInput({
 }
 
 // ---------------------------------------------------------------------------
-// Container with async save logic
+// 带异步保存逻辑的 Container
 // ---------------------------------------------------------------------------
 
 export interface WorkspaceKeyInputContainerProps {
-  /** Called after the key is successfully saved */
+  /** key 成功保存后调用 */
   onSaved: () => void;
-  /** Called when the user cancels */
+  /** 用户取消时调用 */
   onCancel: () => void;
 }
 

@@ -19,13 +19,13 @@ function MemoryCommand({
 }): React.ReactNode {
   const handleSelectMemoryFile = async (memoryPath: string) => {
     try {
-      // Create claude directory if it doesn't exist (idempotent with recursive)
+      // 若 claude 目录不存在则创建（recursive 使其幂等）
       if (memoryPath.includes(getClaudeConfigHomeDir())) {
         await mkdir(getClaudeConfigHomeDir(), { recursive: true });
       }
 
-      // Create file if it doesn't exist (wx flag fails if file exists,
-      // which we catch to preserve existing content)
+      // 若文件不存在则创建（wx flag 在文件已存在时会失败，
+      // 我们捕获该异常以保留已有内容）
       try {
         await writeFile(memoryPath, '', { encoding: 'utf8', flag: 'wx' });
       } catch (e: unknown) {
@@ -36,7 +36,7 @@ function MemoryCommand({
 
       await editFileInEditor(memoryPath);
 
-      // Determine which environment variable controls the editor
+      // 判断是哪个环境变量控制编辑器
       let editorSource = 'default';
       let editorValue = '';
       if (process.env.VISUAL) {
@@ -82,8 +82,8 @@ function MemoryCommand({
 }
 
 export const call: LocalJSXCommandCall = async onDone => {
-  // Clear + prime before rendering — Suspense handles the unprimed case,
-  // but awaiting here avoids a fallback flash on initial open.
+  // 渲染前先清除并预热 —— Suspense 能处理未预热的情况，
+  // 但在此处 await 可避免初次打开时出现 fallback 闪烁。
   clearMemoryFileCaches();
   await getMemoryFiles();
   return <MemoryCommand onDone={onDone} />;

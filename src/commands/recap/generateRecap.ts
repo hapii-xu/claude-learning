@@ -1,13 +1,13 @@
 /**
- * generateRecap — On-demand "while you were away" session recap.
+ * generateRecap — 按需生成的"离开期间"会话回顾。
  *
- * Implementation mirrors the official v2.1.123 tt8() function:
- *   - Reads getLastCacheSafeParams() (set after each turn) to share prompt cache
- *   - Forks a single-turn query with the recap prompt
- *   - Returns a discriminated union: ok / api-error / no-turn / aborted / failed
+ * 实现对应官方 v2.1.123 的 tt8() 函数：
+ *   - 读取 getLastCacheSafeParams()（每个 turn 后设置）以共享 prompt cache
+ *   - 使用 recap prompt fork 出一个单轮 query
+ *   - 返回一个可辨识联合类型：ok / api-error / no-turn / aborted / failed
  *
- * The fork uses skipTranscript + skipCacheWrite to stay ephemeral and avoid
- * polluting the main session log or creating unnecessary cache entries.
+ * 该 fork 使用 skipTranscript + skipCacheWrite 保持临时性，避免
+ * 污染主会话日志或创建不必要的缓存条目。
  */
 
 import { APIUserAbortError } from '@anthropic-ai/sdk'
@@ -21,8 +21,8 @@ import {
   getAssistantMessageText,
 } from '../../utils/messages.js'
 
-// Matches the official G$9 constant in v2.1.123:
-// "lead with goal + current task, then one next action, ≤40 words, no markdown"
+// 对应官方 v2.1.123 中的 G$9 常量：
+// "以目标 + 当前任务开头，然后一个下一步行动，≤40 词，无 markdown"
 const RECAP_PROMPT_EN =
   'The user stepped away and is coming back. Recap in under 40 words, 1-2 plain sentences, no markdown. Lead with the overall goal and current task, then the one next action. Skip root-cause narrative, fix internals, secondary to-dos, and em-dash tangents.'
 
@@ -46,12 +46,12 @@ async function getRecapPrompt(): Promise<string> {
 }
 
 /**
- * Generates a single-sentence recap of the current session.
- * Uses the cached CacheSafeParams from the last turn so the request
- * can share the prompt-cache prefix with the main loop.
+ * 生成当前会话的一句话回顾。
+ * 使用上一轮缓存的 CacheSafeParams，使请求可以与主循环共享
+ * prompt-cache 前缀。
  *
- * @param signal - AbortSignal to cancel in-flight requests
- * @returns RecapResult discriminated union
+ * @param signal - 用于取消进行中请求的 AbortSignal
+ * @returns RecapResult 可辨识联合类型
  */
 export async function generateRecap(signal: AbortSignal): Promise<RecapResult> {
   const cacheSafeParams = getLastCacheSafeParams()
@@ -60,7 +60,7 @@ export async function generateRecap(signal: AbortSignal): Promise<RecapResult> {
     return { kind: 'no-turn' }
   }
 
-  // Wrap the parent signal so we can abort our inner request independently
+  // 包装父级 signal，以便我们能够独立地中断内部请求
   const inner = new AbortController()
   signal.addEventListener('abort', () => inner.abort(), { once: true })
 
@@ -85,7 +85,7 @@ export async function generateRecap(signal: AbortSignal): Promise<RecapResult> {
       return { kind: 'aborted' }
     }
 
-    // Check for API error response in the message list
+    // 检查消息列表中是否存在 API 错误响应
     const errorMsg = messages.find(
       m => m.type === 'assistant' && m.isApiErrorMessage,
     )
@@ -96,7 +96,7 @@ export async function generateRecap(signal: AbortSignal): Promise<RecapResult> {
       }
     }
 
-    // Extract the assistant text from the last assistant message
+    // 从最后一条 assistant 消息中提取文本
     const assistantMsg = messages
       .filter(m => m.type === 'assistant' && !m.isApiErrorMessage)
       .pop()

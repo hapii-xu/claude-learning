@@ -37,7 +37,7 @@ export function OAuthFlowStep({ onSuccess, onCancel }: OAuthFlowStepProps): Reac
   const [showPastePrompt, setShowPastePrompt] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
   const timersRef = useRef<Set<NodeJS.Timeout>>(new Set());
-  // Separate ref so startOAuth's timer clear doesn't cancel the urlCopied reset
+  // 独立的 ref，避免 startOAuth 清理定时器时把 urlCopied 的重置也取消
   const urlCopiedTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const terminalSize = useTerminalSize();
@@ -60,7 +60,7 @@ export function OAuthFlowStep({ onSuccess, onCancel }: OAuthFlowStepProps): Reac
 
   async function handleSubmitCode(value: string, url: string) {
     try {
-      // Expecting format "authorizationCode#state" from the authorization callback URL
+      // 期望的格式来自授权回调 URL： "authorizationCode#state"
       const [authorizationCode, state] = value.split('#');
 
       if (!authorizationCode || !state) {
@@ -72,7 +72,7 @@ export function OAuthFlowStep({ onSuccess, onCancel }: OAuthFlowStepProps): Reac
         return;
       }
 
-      // Track which path the user is taking (manual code entry)
+      // 记录用户走的哪条路径（手动输入 code）
       logEvent('tengu_oauth_manual_entry', {});
       oauthService.handleManualAuthCodeInput({
         authorizationCode,
@@ -89,7 +89,7 @@ export function OAuthFlowStep({ onSuccess, onCancel }: OAuthFlowStepProps): Reac
   }
 
   const startOAuth = useCallback(async () => {
-    // Clear any existing timers when starting new OAuth flow
+    // 启动新的 OAuth 流程时，清理所有现有定时器
     timersRef.current.forEach(timer => clearTimeout(timer));
     timersRef.current.clear();
 
@@ -101,25 +101,24 @@ export function OAuthFlowStep({ onSuccess, onCancel }: OAuthFlowStepProps): Reac
           timersRef.current.add(timer);
         },
         {
-          loginWithClaudeAi: true, // Always use Claude AI for subscription tokens
+          loginWithClaudeAi: true, // 订阅 token 始终使用 Claude AI
           inferenceOnly: true,
-          expiresIn: 365 * 24 * 60 * 60, // 1 year
+          expiresIn: 365 * 24 * 60 * 60, // 1 年
         },
       );
 
-      // Show processing state
+      // 显示处理中状态
       setOAuthStatus({ state: 'processing' });
 
-      // OAuthFlowStep creates inference-only tokens for GitHub Actions, not a
-      // replacement login. Use saveOAuthTokensIfNeeded directly to avoid
-      // performLogout which would destroy the user's existing auth session.
+      // OAuthFlowStep 为 GitHub Actions 创建仅推理 token，并非替代登录。
+      // 直接使用 saveOAuthTokensIfNeeded，避免 performLogout 会破坏用户已有的认证会话。
       saveOAuthTokensIfNeeded(result);
 
-      // For OAuth flow, the access token can be used as an API key
+      // 对于 OAuth 流程，访问 token 可直接当作 API key 使用
       const timer1 = setTimeout(
         (setOAuthStatus, accessToken, onSuccess, timersRef) => {
           setOAuthStatus({ state: 'success', token: accessToken });
-          // Auto-continue after brief delay to show success
+          // 展示成功状态后短暂延迟并自动继续
           const timer2 = setTimeout(onSuccess, 1000, accessToken);
           timersRef.current.add(timer2 as unknown as NodeJS.Timeout);
         },
@@ -135,7 +134,7 @@ export function OAuthFlowStep({ onSuccess, onCancel }: OAuthFlowStepProps): Reac
       setOAuthStatus({
         state: 'error',
         message: errorMessage,
-        toRetry: { state: 'starting' }, // Allow retry by starting fresh OAuth flow
+        toRetry: { state: 'starting' }, // 允许通过重新启动 OAuth 流程来重试
       });
       logError(err);
       logEvent('tengu_oauth_error', {
@@ -150,12 +149,12 @@ export function OAuthFlowStep({ onSuccess, onCancel }: OAuthFlowStepProps): Reac
     }
   }, [oauthStatus.state, startOAuth]);
 
-  // Retry logic
+  // 重试逻辑
   useEffect(() => {
     if (oauthStatus.state === 'about_to_retry') {
       const timer = setTimeout(
         (nextState, setShowPastePrompt, setOAuthStatus) => {
-          // Only show paste prompt when retrying to waiting_for_login
+          // 仅在重试进入 waiting_for_login 状态时显示粘贴提示
           setShowPastePrompt(nextState.state === 'waiting_for_login');
           setOAuthStatus(nextState);
         },
@@ -180,19 +179,19 @@ export function OAuthFlowStep({ onSuccess, onCancel }: OAuthFlowStepProps): Reac
     }
   }, [pastedCode, oauthStatus, showPastePrompt, urlCopied]);
 
-  // Cleanup OAuth service and timers when component unmounts
+  // 组件卸载时清理 OAuth service 和定时器
   useEffect(() => {
     const timers = timersRef.current;
     return () => {
       oauthService.cleanup();
-      // Clear all timers
+      // 清理所有定时器
       timers.forEach(timer => clearTimeout(timer));
       timers.clear();
       clearTimeout(urlCopiedTimerRef.current);
     };
   }, [oauthService]);
 
-  // Helper function to render the appropriate status message
+  // 辅助函数：渲染合适的状态消息
   function renderStatusMessage(): React.ReactNode {
     switch (oauthStatus.state) {
       case 'starting':
@@ -271,21 +270,21 @@ export function OAuthFlowStep({ onSuccess, onCancel }: OAuthFlowStepProps): Reac
 
   return (
     <Box flexDirection="column" gap={1} tabIndex={0} autoFocus onKeyDown={handleKeyDown}>
-      {/* Show header inline only for initial starting state */}
+      {/* 仅在初始 starting 状态时内联显示 header */}
       {oauthStatus.state === 'starting' && (
         <Box flexDirection="column" gap={1} paddingBottom={1}>
           <Text bold>Create Authentication Token</Text>
           <Text dimColor>Creating a long-lived token for GitHub Actions</Text>
         </Box>
       )}
-      {/* Show header for non-starting states (to avoid duplicate with inline header)*/}
+      {/* 非 starting 状态显示 header（避免与内联 header 重复）*/}
       {oauthStatus.state !== 'success' && oauthStatus.state !== 'starting' && oauthStatus.state !== 'processing' && (
         <Box key="header" flexDirection="column" gap={1} paddingBottom={1}>
           <Text bold>Create Authentication Token</Text>
           <Text dimColor>Creating a long-lived token for GitHub Actions</Text>
         </Box>
       )}
-      {/* Show URL when paste prompt is visible */}
+      {/* 粘贴提示可见时显示 URL */}
       {oauthStatus.state === 'waiting_for_login' && showPastePrompt && (
         <Box flexDirection="column" key="urlToCopy" gap={1} paddingBottom={1}>
           <Box paddingX={1}>

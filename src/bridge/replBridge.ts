@@ -1,4 +1,4 @@
-// biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+// biome-ignore-all assist/source/organizeImports: ANT-ONLY 导入标记不可重排
 import { randomUUID } from 'crypto'
 import {
   createBridgeApiClient,
@@ -57,13 +57,12 @@ import type {
 import type { StdoutMessage } from '../entrypoints/sdk/controlTypes.js'
 
 /**
- * StdoutMessage with optional session_id. The transport layer accepts
- * StdoutMessage but we add session_id at runtime. Using optional because
- * the type system can't verify that adding session_id to a union type
- * is always valid, even though it is at runtime.
+ * 带可选 session_id 的 StdoutMessage。transport 层接收 StdoutMessage，
+ * 但我们在运行时给它加上 session_id。用 optional 是因为类型系统无法
+ * 验证给 union 类型加 session_id 永远合法，尽管运行时确实如此。
  *
- * We need to use 'as StdoutMessage' when passing to transport because
- * TypeScript can't verify that objects with session_id are valid StdoutMessage.
+ * 传给 transport 时需要用 'as StdoutMessage'，因为 TypeScript 无法
+ * 验证带 session_id 的对象是合法的 StdoutMessage。
  */
 type TransportMessage = StdoutMessage & { session_id?: string }
 import { createCapacityWake, type CapacitySignal } from './capacityWake.js'
@@ -98,10 +97,9 @@ export type ReplBridgeHandle = {
 export type BridgeState = 'ready' | 'connected' | 'reconnecting' | 'failed'
 
 /**
- * Explicit-param input to initBridgeCore. Everything initReplBridge reads
- * from bootstrap state (cwd, session ID, git, OAuth) becomes a field here.
- * A daemon caller (Agent SDK, PR 4) that never runs main.tsx fills these
- * in itself.
+ * initBridgeCore 的显式参数输入。initReplBridge 之前从 bootstrap state
+ * 读取的所有内容（cwd、session ID、git、OAuth）都变成这里的字段。
+ * 从不运行 main.tsx 的 daemon 调用方（Agent SDK，PR 4）自行填入。
  */
 export type BridgeCoreParams = {
   dir: string
@@ -112,24 +110,23 @@ export type BridgeCoreParams = {
   baseUrl: string
   sessionIngressUrl: string
   /**
-   * Opaque string sent as metadata.worker_type. Use BridgeWorkerType for
-   * the two CLI-originated values; daemon callers may send any string the
-   * backend recognizes (it's just a filter key on the web side).
+   * 作为 metadata.worker_type 下发的字符串。两个 CLI 来源值请用
+   * BridgeWorkerType；daemon 调用方可下发后端认可的任意字符串
+   *（这只是 web 端的一个过滤 key）。
    */
   workerType: string
   getAccessToken: () => string | undefined
   /**
-   * POST /v1/sessions. Injected because `createSession.ts` lazy-loads
-   * `auth.ts`/`model.ts`/`oauth/client.ts` and `bun --outfile` inlines
-   * dynamic imports — the lazy-load doesn't help, the whole REPL tree ends
-   * up in the Agent SDK bundle.
+   * POST /v1/sessions。注入是因为 `createSession.ts` 会 lazy-load
+   * `auth.ts`/`model.ts`/`oauth/client.ts`，而 `bun --outfile` 会内联
+   * 动态导入 —— lazy-load 没用，整个 REPL 树最终都进到了 Agent SDK 包。
    *
-   * REPL wrapper passes `createBridgeSession` from `createSession.ts`.
-   * Daemon wrapper passes `createBridgeSessionLean` from `sessionApi.ts`
-   * (HTTP-only, orgUUID+model supplied by the daemon caller).
+   * REPL 包装器传 `createSession.ts` 里的 `createBridgeSession`。
+   * Daemon 包装器传 `sessionApi.ts` 里的 `createBridgeSessionLean`
+   *（纯 HTTP，orgUUID+model 由 daemon 调用方提供）。
    *
-   * Receives `gitRepoUrl`+`branch` so the REPL wrapper can build the git
-   * source/outcome for claude.ai's session card. Daemon ignores them.
+   * 带 `gitRepoUrl`+`branch` 是为了让 REPL 包装器能给 claude.ai 的
+   * session 卡片构造 git source/outcome。Daemon 会忽略它们。
    */
   createSession: (opts: {
     environmentId: string
@@ -139,53 +136,48 @@ export type BridgeCoreParams = {
     signal: AbortSignal
   }) => Promise<string | null>
   /**
-   * POST /v1/sessions/{id}/archive. Same injection rationale. Best-effort;
-   * the callback MUST NOT throw.
+   * POST /v1/sessions/{id}/archive。注入理由同上。尽力而为；
+   * 回调绝对不能抛异常。
    */
   archiveSession: (sessionId: string) => Promise<void>
   /**
-   * Invoked on reconnect-after-env-lost to refresh the title. REPL wrapper
-   * reads session storage (picks up /rename); daemon returns the static
-   * title. Defaults to () => title.
+   * 在 env-lost 后重连时调用以刷新 title。REPL 包装器读 session storage
+   *（感知 /rename）；daemon 返回静态 title。默认 () => title。
    */
   getCurrentTitle?: () => string
   /**
-   * Converts internal Message[] → SDKMessage[] for writeMessages() and the
-   * initial-flush/drain paths. REPL wrapper passes the real toSDKMessages
-   * from utils/messages/mappers.ts. Daemon callers that only use
-   * writeSdkMessages() and pass no initialMessages can omit this — those
-   * code paths are unreachable.
+   * 把内部 Message[] 转成 SDKMessage[]，供 writeMessages() 和
+   * initial-flush/drain 路径使用。REPL 包装器传 utils/messages/mappers.ts
+   * 里的真实 toSDKMessages。只用 writeSdkMessages() 且不传 initialMessages
+   * 的 daemon 调用方可省略 —— 这些代码路径走不到。
    *
-   * Injected rather than imported because mappers.ts transitively pulls in
-   * src/commands.ts via messages.ts → api.ts → prompts.ts, dragging the
-   * entire command registry + React tree into the Agent SDK bundle.
+   * 注入而非直接 import，是因为 mappers.ts 会通过 messages.ts → api.ts →
+   * prompts.ts 传递性地拉入 src/commands.ts，把整个 command registry 和
+   * React 树都拖进 Agent SDK 包。
    */
   toSDKMessages?: (messages: Message[]) => SDKMessage[]
   /**
-   * OAuth 401 refresh handler passed to createBridgeApiClient. REPL wrapper
-   * passes handleOAuth401Error; daemon passes its AuthManager's handler.
-   * Injected because utils/auth.ts transitively pulls in the command
-   * registry via config.ts → file.ts → permissions/filesystem.ts →
-   * sessionStorage.ts → commands.ts.
+   * 传给 createBridgeApiClient 的 OAuth 401 刷新处理器。REPL 包装器传
+   * handleOAuth401Error；daemon 传其 AuthManager 的处理器。注入是因为
+   * utils/auth.ts 会通过 config.ts → file.ts → permissions/filesystem.ts →
+   * sessionStorage.ts → commands.ts 传递性地拉入 command registry。
    */
   onAuth401?: (staleAccessToken: string) => Promise<boolean>
   /**
-   * Poll interval config getter for the work-poll heartbeat loop. REPL
-   * wrapper passes the GrowthBook-backed getPollIntervalConfig (allows ops
-   * to live-tune poll rates fleet-wide). Daemon passes a static config
-   * with a 60s heartbeat (5× headroom under the 300s work-lease TTL).
-   * Injected because growthbook.ts transitively pulls in the command
-   * registry via the same config.ts chain.
+   * work-poll heartbeat 循环用的 poll interval 配置 getter。REPL 包装器
+   * 传 GrowthBook 支持的 getPollIntervalConfig（允许 ops 全集群实时调
+   * poll 频率）。Daemon 传静态配置，60s heartbeat（300s work-lease TTL
+   * 的 5 倍余量）。注入是因为 growthbook.ts 也会通过同样的 config.ts
+   * 链路传递性拉入 command registry。
    */
   getPollIntervalConfig?: () => PollIntervalConfig
   /**
-   * Max initial messages to replay on connect. REPL wrapper reads from the
-   * tengu_bridge_initial_history_cap GrowthBook flag. Daemon passes no
-   * initialMessages so this is never read. Default 200 matches the flag
-   * default.
+   * connect 时重放的最大 initial messages 数量。REPL 包装器从
+   * tengu_bridge_initial_history_cap GrowthBook flag 读取。Daemon 不传
+   * initialMessages，所以这个值不会被读到。默认 200，与 flag 默认一致。
    */
   initialHistoryCap?: number
-  // Same REPL-flush machinery as InitBridgeOptions — daemon omits these.
+  // 与 InitBridgeOptions 同样的 REPL-flush 机制 —— daemon 省略这些。
   initialMessages?: Message[]
   previouslyFlushedUUIDs?: Set<string>
   onInboundMessage?: (msg: SDKMessage) => void
@@ -194,83 +186,78 @@ export type BridgeCoreParams = {
   onSetModel?: (model: string | undefined) => void
   onSetMaxThinkingTokens?: (maxTokens: number | null) => void
   /**
-   * Returns a policy verdict so this module can emit an error control_response
-   * without importing the policy checks itself (bootstrap-isolation constraint).
-   * The callback must guard `auto` (isAutoModeGateEnabled) and
-   * `bypassPermissions` (isBypassPermissionsModeDisabled AND
-   * isBypassPermissionsModeAvailable) BEFORE calling transitionPermissionMode —
-   * that function's internal auto-gate check is a defensive throw, not a
-   * graceful guard, and its side-effect order is setAutoModeActive(true) then
-   * throw, which corrupts the 3-way invariant documented in src/CLAUDE.md if
-   * the callback lets the throw escape here.
+   * 返回一个 policy verdict，让本模块在不自行 import policy 校验的情况下
+   *（bootstrap 隔离约束）发送 error control_response。回调必须在调用
+   * transitionPermissionMode 之前先校验 `auto`（isAutoModeGateEnabled）和
+   * `bypassPermissions`（isBypassPermissionsModeDisabled 与
+   * isBypassPermissionsModeAvailable）—— 该函数内部的 auto-gate 校验
+   * 是防御性抛错，不是优雅的守卫，且副作用顺序是先
+   * setAutoModeActive(true) 再抛错，一旦这里让异常逃出，就会破坏
+   * src/CLAUDE.md 里描述的三态不变量。
    */
   onSetPermissionMode?: (
     mode: PermissionMode,
   ) => { ok: true } | { ok: false; error: string }
   onStateChange?: (state: BridgeState, detail?: string) => void
   /**
-   * Fires on each real user message to flow through writeMessages() until
-   * the callback returns true (done). Mirrors remoteBridgeCore.ts's
-   * onUserMessage so the REPL bridge can derive a session title from early
-   * prompts when none was set at init time (e.g. user runs /remote-control
-   * on an empty conversation, then types). Tool-result wrappers, meta
-   * messages, and display-tag-only messages are skipped. Receives
-   * currentSessionId so the wrapper can PATCH the title without a closure
-   * dance to reach the not-yet-returned handle. The caller owns the
-   * derive-at-count-1-and-3 policy; the transport just keeps calling until
-   * told to stop. Not fired for the writeSdkMessages daemon path (daemon
-   * sets its own title at init). Distinct from SessionSpawnOpts's
-   * onFirstUserMessage (spawn-bridge, PR #21250), which stays fire-once.
+   * 每条流经 writeMessages() 的真实 user 消息都会触发，直到回调返回
+   * true（结束）。对应 remoteBridgeCore.ts 的 onUserMessage，让 REPL
+   * bridge 能在 init 时没设 title 的情况下从早期 prompt 推导 session 标题
+   *（例如用户在一个空对话里运行 /remote-control 再输入）。tool-result
+   * 包裹、meta 消息、纯 display-tag 消息都会跳过。传入 currentSessionId
+   * 让包装器能 PATCH 标题，不必通过闭包去够那个尚未返回的 handle。
+   * 调用方自负"count 1 和 3 时推导"的策略；transport 只是一直调用直到
+   * 被叫停。writeSdkMessages 的 daemon 路径不触发（daemon 在 init 时自定
+   * 标题）。与 SessionSpawnOpts 的 onFirstUserMessage（spawn-bridge，
+   * PR #21250）不同 —— 那个是只触发一次。
    */
   onUserMessage?: (text: string, sessionId: string) => boolean
-  /** See InitBridgeOptions.perpetual. */
+  /** 见 InitBridgeOptions.perpetual。 */
   perpetual?: boolean
   /**
-   * Seeds lastTransportSequenceNum — the SSE event-stream high-water mark
-   * that's carried across transport swaps within one process. Daemon callers
-   * pass the value they persisted at shutdown so the FIRST SSE connect of a
-   * fresh process sends from_sequence_num and the server doesn't replay full
-   * history. REPL callers omit (fresh session each run → 0 is correct).
+   * 用于初始化 lastTransportSequenceNum —— SSE 事件流的高水位线，
+   * 跨一个进程内的多次 transport 切换保留。Daemon 调用方传它们在关闭时
+   * 持久化的值，让新进程第一次 SSE connect 时带上 from_sequence_num，
+   * 服务器就不会重放完整历史。REPL 调用方省略（每次运行都是新 session
+   * → 0 才是对的）。
    */
   initialSSESequenceNum?: number
 }
 
 /**
- * Superset of ReplBridgeHandle. Adds getSSESequenceNum for daemon callers
- * that persist the SSE seq-num across process restarts and pass it back as
- * initialSSESequenceNum on the next start.
+ * ReplBridgeHandle 的超集。新增 getSSESequenceNum，供跨进程重启持久化
+ * SSE seq-num 并在下次启动时作为 initialSSESequenceNum 回传的 daemon
+ * 调用方使用。
  */
 export type BridgeCoreHandle = ReplBridgeHandle & {
   /**
-   * Current SSE sequence-number high-water mark. Updates as transports
-   * swap. Daemon callers persist this on shutdown and pass it back as
-   * initialSSESequenceNum on next start.
+   * 当前的 SSE sequence-number 高水位线。随 transport 切换而更新。
+   * Daemon 调用方在关闭时持久化此值，下次启动时作为
+   * initialSSESequenceNum 回传。
    */
   getSSESequenceNum(): number
 }
 
 /**
- * Poll error recovery constants. When the work poll starts failing (e.g.
- * server 500s), we use exponential backoff and give up after this timeout.
- * This is deliberately long — the server is the authority on when a session
- * is truly dead. As long as the server accepts our poll, we keep waiting
- * for it to re-dispatch the work item.
+ * Poll 错误恢复常量。当 work poll 开始失败（例如服务器 500）时，
+ * 我们用指数退避，超过这个时长就放弃。这里故意设得很长 —— 服务器才
+ * 是判定 session 是否真死的权威。只要服务器还接受我们的 poll，我们
+ * 就一直等它重新派发 work item。
  */
 const POLL_ERROR_INITIAL_DELAY_MS = 2_000
 const POLL_ERROR_MAX_DELAY_MS = 60_000
 const POLL_ERROR_GIVE_UP_MS = 15 * 60 * 1000
 
-// Monotonically increasing counter for distinguishing init calls in logs
+// 单调递增的计数器，用于在日志中区分不同的 init 调用
 let initSequence = 0
 
 /**
- * Bootstrap-free core: env registration → session creation → poll loop →
- * ingress WS → teardown. Reads nothing from bootstrap/state or
- * sessionStorage — all context comes from params. Caller (initReplBridge
- * below, or a daemon in PR 4) has already passed entitlement gates and
- * gathered git/auth/title.
+ * 不依赖 bootstrap 的核心流程：env 注册 → session 创建 → poll 循环 →
+ * ingress WS → teardown。不从 bootstrap/state 或 sessionStorage 读任何
+ * 东西 —— 所有上下文都来自参数。调用方（下面的 initReplBridge，或
+ * PR 4 里的 daemon）已经过了 entitlement 门禁并准备好 git/auth/title。
  *
- * Returns null on registration or session-creation failure.
+ * 注册或 session 创建失败时返回 null。
  */
 export async function initBridgeCore(
   params: BridgeCoreParams,
@@ -312,17 +299,16 @@ export async function initBridgeCore(
 
   const seq = ++initSequence
 
-  // bridgePointer import hoisted: perpetual mode reads it before register;
-  // non-perpetual writes it after session create; both use clear at teardown.
+  // bridgePointer 导入前置：perpetual 模式在 register 之前读取；
+  // 非 perpetual 在 session create 之后写入；两者都在 teardown 时 clear。
   const { writeBridgePointer, clearBridgePointer, readBridgePointer } =
     await import('./bridgePointer.js')
 
-  // Perpetual mode: read the crash-recovery pointer and treat it as prior
-  // state. The pointer is written unconditionally after session create
-  // (crash-recovery for all sessions); perpetual mode just skips the
-  // teardown clear so it survives clean exits too. Only reuse 'repl'
-  // pointers — a crashed standalone bridge (`claude remote-control`)
-  // writes source:'standalone' with a different workerType.
+  // Perpetual 模式：读取崩溃恢复指针并当作前置状态。指针在 session
+  // create 之后无条件写入（为所有 session 做崩溃恢复）；perpetual 模式
+  // 只是跳过 teardown 的 clear，让它在干净退出后也留存。只复用 'repl'
+  // 指针 —— 崩溃的 standalone bridge（`claude remote-control`）写入的是
+  // source:'standalone'，对应的 workerType 不同。
   const rawPrior = perpetual ? await readBridgePointer(dir) : null
   const prior = rawPrior?.source === 'repl' ? rawPrior : null
 
@@ -330,7 +316,7 @@ export async function initBridgeCore(
     `[bridge:repl] initBridgeCore #${seq} starting (initialMessages=${initialMessages?.length ?? 0}${prior ? ` perpetual prior=env:${prior.environmentId}` : ''})`,
   )
 
-  // 5. Register bridge environment
+  // 5. 注册 bridge environment
   const rawApi = createBridgeApiClient({
     baseUrl,
     getAccessToken,
@@ -339,8 +325,8 @@ export async function initBridgeCore(
     onAuth401,
     getTrustedDeviceToken,
   })
-  // Ant-only: interpose so /bridge-kick can inject poll/register/heartbeat
-  // failures. Zero cost in external builds (rawApi passes through unchanged).
+  // 仅 ant：在 API 层前包一层，让 /bridge-kick 能注入 poll/register/
+  // heartbeat 失败。外部构建零开销（rawApi 透传不变）。
   const api =
     process.env.USER_TYPE === 'ant' ? wrapApiForFaultInjection(rawApi) : rawApi
 
@@ -372,8 +358,8 @@ export async function initBridgeCore(
       'registration_failed',
       `[bridge:repl] Environment registration failed: ${errorMessage(err)}`,
     )
-    // Stale pointer may be the cause (expired/deleted env) — clear it so
-    // the next start doesn't retry the same dead ID.
+    // 指针过期可能是原因（env 过期或被删） —— 清掉它，避免下次启动
+    // 又去试这个已经失效的 ID。
     if (prior) {
       await clearBridgePointer(dir)
     }
@@ -386,12 +372,11 @@ export async function initBridgeCore(
   logEvent('tengu_bridge_repl_env_registered', {})
 
   /**
-   * Reconnect-in-place: if the just-registered environmentId matches what
-   * was requested, call reconnectSession to force-stop stale workers and
-   * re-queue the session. Used at init (perpetual mode — env is alive but
-   * idle after clean teardown) and in doReconnect() Strategy 1 (env lost
-   * then resurrected). Returns true on success; caller falls back to
-   * fresh session creation on false.
+   * 原地重连：如果刚注册的 environmentId 与请求一致，就调用
+   * reconnectSession 强制停掉残留 worker 并把 session 重新入队。
+   * 用于 init（perpetual 模式 —— env 还活着但干净 teardown 后空闲）和
+   * doReconnect() 的 Strategy 1（env 丢失后又复活）。成功返回 true；
+   * 失败时调用方回退到全新 session 创建。
    */
   async function tryReconnectInPlace(
     requestedEnvId: string,
@@ -403,14 +388,13 @@ export async function initBridgeCore(
       )
       return false
     }
-    // The pointer stores what createBridgeSession returned (session_*,
-    // compat/convert.go:41). /bridge/reconnect is an environments-layer
-    // endpoint — once the server's ccr_v2_compat_enabled gate is on it
-    // looks sessions up by their infra tag (cse_*) and returns "Session
-    // not found" for the session_* costume. We don't know the gate state
-    // pre-poll, so try both; the re-tag is a no-op if the ID is already
-    // cse_* (doReconnect Strategy 1 path — currentSessionId never mutates
-    // to cse_* but future-proof the check).
+    // 指针里存的是 createBridgeSession 的返回值（session_*，
+    // compat/convert.go:41）。/bridge/reconnect 是 environments 层的
+    // endpoint —— 一旦服务器的 ccr_v2_compat_enabled gate 打开，它会按
+    // infra tag（cse_*）查找 session，对 session_* 的外衣返回 "Session
+    // not found"。poll 之前我们不知道 gate 状态，所以两种都试一遍；
+    // 如果 ID 已经是 cse_*，重新打 tag 是 no-op（doReconnect Strategy 1
+    // 路径 —— currentSessionId 不会变更为 cse_*，但这里为将来留余地）。
     const infraId = toInfraSessionId(sessionId)
     const candidates =
       infraId === sessionId ? [sessionId] : [sessionId, infraId]
@@ -433,10 +417,9 @@ export async function initBridgeCore(
     return false
   }
 
-  // Perpetual init: env is alive but has no queued work after clean
-  // teardown. reconnectSession re-queues it. doReconnect() has the same
-  // call but only fires on poll 404 (env dead);
-  // here the env is alive but idle.
+  // Perpetual init：env 还活着，但干净 teardown 之后没有排队 work。
+  // reconnectSession 会把它重新入队。doReconnect() 里有相同的调用，
+  // 但只在 poll 404（env 死了）时触发；这里 env 活着但空闲。
   const reusedPriorSession = prior
     ? await tryReconnectInPlace(prior.environmentId, prior.sessionId)
     : false
@@ -444,13 +427,11 @@ export async function initBridgeCore(
     await clearBridgePointer(dir)
   }
 
-  // 6. Create session on the bridge. Initial messages are NOT included as
-  // session creation events because those use STREAM_ONLY persistence and
-  // are published before the CCR UI subscribes, so they get lost. Instead,
-  // initial messages are flushed via the ingress WebSocket once it connects.
+  // 6. 在 bridge 上创建 session。Initial messages 不作为 session creation
+  // 事件提交，因为那些用的是 STREAM_ONLY 持久化，会在 CCR UI 订阅之前
+  // 就发布，导致丢失。改用 ingress WebSocket 连上之后通过它 flush。
 
-  // Mutable session ID — updated when the environment+session pair is
-  // re-created after a connection loss.
+  // 可变的 session ID —— 当 env+session 对在连接丢失后被重建时会更新。
   let currentSessionId: string
 
   if (reusedPriorSession && prior) {
@@ -458,10 +439,10 @@ export async function initBridgeCore(
     logForDebugging(
       `[bridge:repl] Perpetual session reused: ${currentSessionId}`,
     )
-    // Server already has all initialMessages from the prior CLI run. Mark
-    // them as previously-flushed so the initial flush filter excludes them
-    // (previouslyFlushedUUIDs is a fresh Set on every CLI start). Duplicate
-    // UUIDs cause the server to kill the WebSocket.
+    // 服务器已经持有上一次 CLI 运行所有 initialMessages。把它们标记为
+    // previously-flushed，让 initial flush 过滤掉它们
+    //（previouslyFlushedUUIDs 是每次 CLI 启动时新建的 Set）。重复的
+    // UUID 会让服务器杀掉 WebSocket。
     if (initialMessages && previouslyFlushedUUIDs) {
       for (const msg of initialMessages) {
         previouslyFlushedUUIDs.add(msg.uuid)
@@ -490,11 +471,10 @@ export async function initBridgeCore(
     logForDebugging(`[bridge:repl] Session created: ${currentSessionId}`)
   }
 
-  // Crash-recovery pointer: written now so a kill -9 at any point after
-  // this leaves a recoverable trail. Cleared in teardown (non-perpetual)
-  // or left alone (perpetual mode — pointer survives clean exit too).
-  // `claude remote-control --continue` from the same directory will detect
-  // it and offer to resume.
+  // 崩溃恢复指针：现在就写入，这样此后任何时刻发生 kill -9 都留有可恢复
+  // 的痕迹。teardown 时清掉（非 perpetual），或不动它（perpetual 模式 ——
+  // 指针在干净退出后也留存）。从同一目录运行
+  // `claude remote-control --continue` 会检测到并提示恢复。
   await writeBridgePointer(dir, {
     sessionId: currentSessionId,
     environmentId,
@@ -506,8 +486,8 @@ export async function initBridgeCore(
     inProtectedNamespace: isInProtectedNamespace(),
   })
 
-  // UUIDs of initial messages. Used for dedup in writeMessages to avoid
-  // re-sending messages that were already flushed on WebSocket open.
+  // initial messages 的 UUID 集合。用于 writeMessages 中去重，避免重复
+  // 发送 WebSocket 打开时已经 flush 过的消息。
   const initialMessageUUIDs = new Set<string>()
   if (initialMessages) {
     for (const msg of initialMessages) {
@@ -515,50 +495,46 @@ export async function initBridgeCore(
     }
   }
 
-  // Bounded ring buffer of UUIDs for messages we've already sent to the
-  // server via the ingress WebSocket. Serves two purposes:
-  //  1. Echo filtering — ignore our own messages bouncing back on the WS.
-  //  2. Secondary dedup in writeMessages — catch race conditions where
-  //     the hook's index-based tracking isn't sufficient.
+  // 有界环形缓冲，存放已经通过 ingress WebSocket 发给服务器的消息 UUID。
+  // 两个用途：
+  //  1. Echo 过滤 —— 忽略我们自己发出、在 WS 上回弹回来的消息。
+  //  2. writeMessages 的二级去重 —— 兜底 hook 基于索引追踪不够用的竞态。
   //
-  // Seeded with initialMessageUUIDs so that when the server echoes back
-  // the initial conversation context over the ingress WebSocket, those
-  // messages are recognized as echoes and not re-injected into the REPL.
+  // 用 initialMessageUUIDs 作为种子，这样服务器在 ingress WebSocket 上
+  // 把初始对话上下文回弹回来时，这些消息会被识别为 echo，不会再次注入
+  // REPL。
   //
-  // Capacity of 2000 covers well over any realistic echo window (echoes
-  // arrive within milliseconds) and any messages that might be re-encountered
-  // after compaction. The hook's lastWrittenIndexRef is the primary dedup;
-  // this is a safety net.
+  // 容量 2000 足够覆盖任何现实的 echo 窗口（echo 在毫秒内到达）以及
+  // compact 后可能再次遇到的任何消息。hook 的 lastWrittenIndexRef 是
+  // 主去重；这里是安全网。
   const recentPostedUUIDs = new BoundedUUIDSet(2000)
   for (const uuid of initialMessageUUIDs) {
     recentPostedUUIDs.add(uuid)
   }
 
-  // Bounded set of INBOUND prompt UUIDs we've already forwarded to the REPL.
-  // Defensive dedup for when the server re-delivers prompts (seq-num
-  // negotiation failure, server edge cases, transport swap races). The
-  // seq-num carryover below is the primary fix; this is the safety net.
+  // 有界集合，存放已转发到 REPL 的 INBOUND prompt UUID。当服务器重新
+  // 投递 prompt 时（seq-num 协商失败、服务器边缘场景、transport 切换
+  // 竞态）的防御性去重。下面的 seq-num 携带是主要修复；这是安全网。
   const recentInboundUUIDs = new BoundedUUIDSet(2000)
 
-  // 7. Start poll loop for work items — this is what makes the session
-  // "live" on claude.ai. When a user types there, the backend dispatches
-  // a work item to our environment. We poll for it, get the ingress token,
-  // and connect the ingress WebSocket.
+  // 7. 启动 work item 的 poll 循环 —— 这才让 session 在 claude.ai 上
+  // "活"起来。用户在那边输入时，后端给我们环境派发一个 work item。我们
+  // 把它 poll 出来，拿到 ingress token，并连上 ingress WebSocket。
   //
-  // The poll loop keeps running: when work arrives it connects the ingress
-  // WebSocket, and if the WebSocket drops unexpectedly (code != 1000) it
-  // resumes polling to get a fresh ingress token and reconnect.
+  // poll 循环会持续运行：work 到达时连 ingress WebSocket，而如果
+  // WebSocket 意外断开（code != 1000），它会恢复 polling 以拿到新的
+  // ingress token 并重连。
   const pollController = new AbortController()
-  // Adapter over either HybridTransport (v1: WS reads + POST writes to
-  // Session-Ingress) or SSETransport+CCRClient (v2: SSE reads + POST
-  // writes to CCR /worker/*). The v1/v2 choice is made in onWorkReceived:
-  // server-driven via secret.use_code_sessions, with CLAUDE_BRIDGE_USE_CCR_V2
-  // as an ant-dev override.
+  // 适配 HybridTransport（v1：WS 读 + POST 写到 Session-Ingress）或
+  // SSETransport+CCRClient（v2：SSE 读 + POST 写到 CCR /worker/*）。
+  // v1/v2 的选择在 onWorkReceived 里做：由服务器的
+  // secret.use_code_sessions 驱动，CLAUDE_BRIDGE_USE_CCR_V2 作为 ant
+  // 开发覆盖。
   let transport: ReplBridgeTransport | null = null
-  // Mirror external metadata updates from the active REPL into whichever
-  // transport currently owns the remote-control session. v1 ignores the call;
-  // v2 forwards it to CCR /worker external_metadata so standby/sleeping and
-  // other session metadata survive on web/mobile.
+  // 把当前 REPL 的 external metadata 更新镜像到当前持有 remote-control
+  // session 的 transport。v1 会忽略该调用；v2 会转发到 CCR /worker 的
+  // external_metadata，让 standby/sleeping 等会话元数据在 web/mobile 上
+  // 留存。
   setSessionMetadataChangedListener(
     metadata => {
       if (pollController.signal.aborted) return
@@ -566,66 +542,61 @@ export async function initBridgeCore(
     },
     { replayCurrent: true },
   )
-  // Bumped on every onWorkReceived. Captured in createV2ReplTransport's .then()
-  // closure to detect stale resolutions: if two calls race while transport is
-  // null, both registerWorker() (bumping server epoch), and whichever resolves
-  // SECOND is the correct one — but the transport !== null check gets this
-  // backwards (first-to-resolve installs, second discards). The generation
-  // counter catches it independent of transport state.
+  // 每次 onWorkReceived 都自增。被 createV2ReplTransport 的 .then()
+  // 闭包捕获，用于检测过期的解析结果：如果两次调用在 transport 为 null
+  // 时竞态，两者都会 registerWorker()（让服务器 epoch 自增），而第二个
+  // resolve 的才是对的 —— 但 transport !== null 检查会判断反（先 resolve
+  // 的安装，后 resolve 的丢弃）。generation 计数器能在不依赖 transport
+  // 状态的情况下抓住这种情况。
   let v2Generation = 0
-  // SSE sequence-number high-water mark carried across transport swaps.
-  // Without this, each new SSETransport starts at 0, sends no
-  // from_sequence_num / Last-Event-ID on its first connect, and the server
-  // replays the entire session event history — every prompt ever sent
-  // re-delivered as fresh inbound messages on every onWorkReceived.
+  // 跨 transport 切换保留的 SSE sequence-number 高水位线。没这个的话，
+  // 每个新 SSETransport 都从 0 开始，第一次 connect 不带
+  // from_sequence_num / Last-Event-ID，服务器就会重放整个 session 事件
+  // 历史 —— 每次发过的 prompt 都会在每次 onWorkReceived 时当作新 inbound
+  // 消息再下发一遍。
   //
-  // Seed only when we actually reconnected the prior session. If
-  // `reusedPriorSession` is false we fell through to `createSession()` —
-  // the caller's persisted seq-num belongs to a dead session and applying
-  // it to the fresh stream (starting at 1) silently drops events. Same
-  // hazard as doReconnect Strategy 2; same fix as the reset there.
+  // 只有真的复用了上一个 session 才 seed。若 `reusedPriorSession` 为
+  // false，我们会落到 `createSession()` —— 调用方持久化的 seq-num 属于
+  // 一个已死的 session，套到新流（从 1 开始）会静默丢事件。与
+  // doReconnect Strategy 2 同样的风险；同样的修复（在那里重置）。
   let lastTransportSequenceNum = reusedPriorSession ? initialSSESequenceNum : 0
-  // Track the current work ID so teardown can call stopWork
+  // 记录当前 work ID，以便 teardown 时调用 stopWork
   let currentWorkId: string | null = null
-  // Session ingress JWT for the current work item — used for heartbeat auth.
+  // 当前 work item 的 session ingress JWT —— 用于 heartbeat 认证。
   let currentIngressToken: string | null = null
-  // Signal to wake the at-capacity sleep early when the transport is lost,
-  // so the poll loop immediately switches back to fast polling for new work.
+  // transport 丢失时提前唤醒 at-capacity sleep 的信号，让 poll 循环
+  // 立刻切回快速轮询寻找新 work。
   const capacityWake = createCapacityWake(pollController.signal)
   const wakePollLoop = capacityWake.wake
   const capacitySignal = capacityWake.signal
-  // Gates message writes during the initial flush to prevent ordering
-  // races where new messages arrive at the server interleaved with history.
+  // initial flush 期间门控消息写入，避免新消息与历史交错到达服务器产生
+  // 顺序竞态。
   const flushGate = new FlushGate<Message>()
 
-  // Latch for onUserMessage — flips true when the callback returns true
-  // (policy says "done deriving"). If no callback, skip scanning entirely
-  // (daemon path — no title derivation needed).
+  // onUserMessage 的闩锁 —— 回调返回 true（策略认为"推导完"）时翻为
+  // true。若无回调，直接跳过扫描（daemon 路径 —— 不需要推导标题）。
   let userMessageCallbackDone = !onUserMessage
 
-  // Shared counter for environment re-creations, used by both
-  // onEnvironmentLost and the abnormal-close handler.
+  // env 重建的共享计数器，onEnvironmentLost 和异常关闭处理器都会用到。
   const MAX_ENVIRONMENT_RECREATIONS = 3
   let environmentRecreations = 0
   let reconnectPromise: Promise<boolean> | null = null
 
   /**
-   * Recover from onEnvironmentLost (poll returned 404 — env was reaped
-   * server-side). Tries two strategies in order:
+   * 从 onEnvironmentLost（poll 返回 404 —— env 在服务器侧被回收）中恢复。
+   * 按顺序尝试两种策略：
    *
-   *   1. Reconnect-in-place: idempotent re-register with reuseEnvironmentId
-   *      → if the backend returns the same env ID, call reconnectSession()
-   *      to re-queue the existing session. currentSessionId stays the same;
-   *      the URL on the user's phone stays valid; previouslyFlushedUUIDs is
-   *      preserved so history isn't re-sent.
+   *   1. 原地重连：带 reuseEnvironmentId 做幂等 re-register，如果后端
+   *      返回相同的 env ID，就调用 reconnectSession() 把现有 session
+   *      重新入队。currentSessionId 保持不变；用户手机上的 URL 继续可用；
+   *      previouslyFlushedUUIDs 保留，历史不会被重发。
    *
-   *   2. Fresh session fallback: if the backend returns a different env ID
-   *      (original TTL-expired, e.g. laptop slept >4h) or reconnectSession()
-   *      throws, archive the old session and create a new one on the
-   *      now-registered env. Old behavior before #20460 primitives landed.
+   *   2. 全新 session 兜底：如果后端返回不同的 env ID（原 TTL 过期，
+   *      例如笔记本睡眠超过 4 小时）或 reconnectSession() 抛异常，归档
+   *      旧 session 并在刚注册的 env 上创建新 session。#20460 基础设施
+   *      落地之前的旧行为。
    *
-   * Uses a promise-based reentrancy guard so concurrent callers share the
-   * same reconnection attempt.
+   * 使用 promise 实现的重入保护，让并发调用方共享同一次重连尝试。
    */
   async function reconnectEnvironmentWithSession(): Promise<boolean> {
     if (reconnectPromise) {
@@ -647,9 +618,8 @@ export async function initBridgeCore(
         ` sessionId=${currentSessionId}` +
         ` workId=${currentWorkId}`,
     )
-    // Invalidate any in-flight v2 handshake — the environment is being
-    // recreated, so a stale transport arriving post-reconnect would be
-    // pointed at a dead session.
+    // 让在途的 v2 握手失效 —— env 正在被重建，重连后到达的过期 transport
+    // 会指向一个已死的 session。
     v2Generation++
     logForDebugging(
       `[bridge:repl] Reconnecting after env lost (attempt ${environmentRecreations}/${MAX_ENVIRONMENT_RECREATIONS})`,
@@ -662,10 +632,10 @@ export async function initBridgeCore(
       return false
     }
 
-    // Close the stale transport. Capture seq BEFORE close — if Strategy 1
-    // (tryReconnectInPlace) succeeds we keep the SAME session, and the
-    // next transport must resume where this one left off, not replay from
-    // the last transport-swap checkpoint.
+    // 关闭过期 transport。close 之前先捕获 seq —— 如果 Strategy 1
+    //（tryReconnectInPlace）成功，我们保留同一个 session，下一个 transport
+    // 必须从这个 transport 停下的位置继续，而不是从上一次 transport 切换
+    // 的检查点重放。
     if (transport) {
       const seq = transport.getLastSequenceNum()
       if (seq > lastTransportSequenceNum) {
@@ -674,27 +644,25 @@ export async function initBridgeCore(
       transport.close()
       transport = null
     }
-    // Transport is gone — wake the poll loop out of its at-capacity
-    // heartbeat sleep so it can fast-poll for re-dispatched work.
+    // transport 已经没了 —— 把 poll 循环从 at-capacity heartbeat sleep 中
+    // 唤醒，让它能快速 poll 寻找重新派发的 work。
     wakePollLoop()
-    // Reset flush gate so writeMessages() hits the !transport guard
-    // instead of silently queuing into a dead buffer.
+    // 重置 flush gate，让 writeMessages() 命中 !transport 守卫，而不是静默
+    // 地把消息塞进一个死缓冲。
     flushGate.drop()
 
-    // Release the current work item (force=false — we may want the session
-    // back). Best-effort: the env is probably gone, so this likely 404s.
+    // 释放当前 work item（force=false —— 我们可能还想要这个 session）。
+    // 尽力而为：env 多半已经没了，所以这个请求很可能会 404。
     if (currentWorkId) {
       const workIdBeingCleared = currentWorkId
       await api
         .stopWork(environmentId, workIdBeingCleared, false)
         .catch(() => {})
-      // When doReconnect runs concurrently with the poll loop (ws_closed
-      // handler case — void-called, unlike the awaited onEnvironmentLost
-      // path), onWorkReceived can fire during the stopWork await and set
-      // a fresh currentWorkId. If it did, the poll loop has already
-      // recovered on its own — defer to it rather than proceeding to
-      // archiveSession, which would destroy the session its new
-      // transport is connected to.
+      // 当 doReconnect 与 poll 循环并发执行时（ws_closed 处理器的情况 ——
+      // void 调用，不像 onEnvironmentLost 路径那样 await），onWorkReceived
+      // 可能在 stopWork await 期间触发并设置新的 currentWorkId。如果发生
+      // 了，说明 poll 循环已经自行恢复了 —— 让位给它，而不是继续去
+      // archiveSession，那会把它新 transport 连着的 session 毁掉。
       if (currentWorkId !== workIdBeingCleared) {
         logForDebugging(
           '[bridge:repl] Poll loop recovered during stopWork await — deferring to it',
@@ -706,16 +674,15 @@ export async function initBridgeCore(
       currentIngressToken = null
     }
 
-    // Bail out if teardown started while we were awaiting
+    // 如果在 await 期间开始了 teardown，就退出
     if (pollController.signal.aborted) {
       logForDebugging('[bridge:repl] Reconnect aborted by teardown')
       return false
     }
 
-    // Strategy 1: idempotent re-register with the server-issued env ID.
-    // If the backend resurrects the same env (fresh secret), we can
-    // reconnect the existing session. If it hands back a different ID, the
-    // original env is truly gone and we fall through to a fresh session.
+    // Strategy 1：用服务器下发的 env ID 做幂等 re-register。
+    // 如果后端复活了同一个 env（新 secret），我们就能重连已有 session。
+    // 如果它换了个不同的 ID，说明原 env 真没了，落到全新 session 分支。
     const requestedEnvId = environmentId
     bridgeConfig.reuseEnvironmentId = requestedEnvId
     try {
@@ -729,15 +696,15 @@ export async function initBridgeCore(
       )
       return false
     }
-    // Clear before any await — a stale value would poison the next fresh
-    // registration if doReconnect runs again.
+    // 任何 await 之前先清掉 —— 如果 doReconnect 再跑一次，残留值会污染
+    // 下一次全新注册。
     bridgeConfig.reuseEnvironmentId = undefined
 
     logForDebugging(
       `[bridge:repl] Re-registered: requested=${requestedEnvId} got=${environmentId}`,
     )
 
-    // Bail out if teardown started while we were registering
+    // 如果在注册期间开始了 teardown，就退出
     if (pollController.signal.aborted) {
       logForDebugging(
         '[bridge:repl] Reconnect aborted after env registration, cleaning up',
@@ -746,9 +713,9 @@ export async function initBridgeCore(
       return false
     }
 
-    // Same race as above, narrower window: poll loop may have set up a
-    // transport during the registerBridgeEnvironment await. Bail before
-    // tryReconnectInPlace/archiveSession kill it server-side.
+    // 与上面相同的竞态，窗口更窄：poll 循环可能在 registerBridgeEnvironment
+    // 的 await 期间就建好了 transport。在 tryReconnectInPlace/archiveSession
+    // 把它在服务器侧杀掉之前先退出。
     if (transport !== null) {
       logForDebugging(
         '[bridge:repl] Poll loop recovered during registerBridgeEnvironment await — deferring to it',
@@ -757,27 +724,26 @@ export async function initBridgeCore(
       return true
     }
 
-    // Strategy 1: same helper as perpetual init. currentSessionId stays
-    // the same on success; URL on mobile/web stays valid;
-    // previouslyFlushedUUIDs preserved (no re-flush).
+    // Strategy 1：与 perpetual init 同一个辅助函数。成功时
+    // currentSessionId 不变；mobile/web 上的 URL 仍然有效；
+    // previouslyFlushedUUIDs 保留（不重新 flush）。
     if (await tryReconnectInPlace(requestedEnvId, currentSessionId)) {
       logEvent('tengu_bridge_repl_reconnected_in_place', {})
       environmentRecreations = 0
       return true
     }
-    // Env differs → TTL-expired/reaped; or reconnect failed.
-    // Don't deregister — we have a fresh secret for this env either way.
+    // Env 不同 → TTL 过期/被回收；或重连失败。
+    // 不 deregister —— 不管怎样我们都拿到了这个 env 的新 secret。
     if (environmentId !== requestedEnvId) {
       logEvent('tengu_bridge_repl_env_expired_fresh_session', {})
     }
 
-    // Strategy 2: fresh session on the now-registered environment.
-    // Archive the old session first — it's orphaned (bound to a dead env,
-    // or reconnectSession rejected it). Don't deregister the env — we just
-    // got a fresh secret for it and are about to use it.
+    // Strategy 2：在刚注册的 env 上创建全新 session。
+    // 先归档旧 session —— 它已成孤儿（绑定到已死的 env，或 reconnectSession
+    // 拒绝了它）。不要 deregister env —— 我们刚拿到新 secret，马上要用。
     await archiveSession(currentSessionId)
 
-    // Bail out if teardown started while we were archiving
+    // 如果在归档期间开始了 teardown，就退出
     if (pollController.signal.aborted) {
       logForDebugging(
         '[bridge:repl] Reconnect aborted after archive, cleaning up',
@@ -786,12 +752,12 @@ export async function initBridgeCore(
       return false
     }
 
-    // Re-read the current title in case the user renamed the session.
-    // REPL wrapper reads session storage; daemon wrapper returns the
-    // original title (nothing to refresh).
+    // 重新读取当前 title，以防用户给 session 改过名。
+    // REPL 包装器读 session storage；daemon 包装器返回原始 title
+    //（没什么可刷新的）。
     const currentTitle = getCurrentTitle()
 
-    // Create a new session on the now-registered environment
+    // 在刚注册的 env 上创建新 session
     const newSessionId = await createSession({
       environmentId,
       title: currentTitle,
@@ -807,7 +773,7 @@ export async function initBridgeCore(
       return false
     }
 
-    // Bail out if teardown started during session creation (up to 15s)
+    // session 创建期间（最长 15s）若开始了 teardown，就退出
     if (pollController.signal.aborted) {
       logForDebugging(
         '[bridge:repl] Reconnect aborted after session creation, cleaning up',
@@ -817,64 +783,59 @@ export async function initBridgeCore(
     }
 
     currentSessionId = newSessionId
-    // Re-publish to the PID file so peer dedup (peerRegistry.ts) picks up the
-    // new ID — setReplBridgeHandle only fires at init/teardown, not reconnect.
+    // 重新发布到 PID 文件，让 peer 去重（peerRegistry.ts）拿到新 ID ——
+    // setReplBridgeHandle 只在 init/teardown 时触发，重连不触发。
     void updateSessionBridgeId(toCompatSessionId(newSessionId)).catch(() => {})
-    // Reset per-session transport state IMMEDIATELY after the session swap,
-    // before any await. If this runs after `await writeBridgePointer` below,
-    // there's a window where handle.bridgeSessionId already returns session B
-    // but getSSESequenceNum() still returns session A's seq — a daemon
-    // persistState() in that window writes {bridgeSessionId: B, seq: OLD_A},
-    // which PASSES the session-ID validation check and defeats it entirely.
+    // session 切换之后立即重置 per-session transport 状态，在任何 await 之前。
+    // 如果放到下面 `await writeBridgePointer` 之后，会出现一个窗口：
+    // handle.bridgeSessionId 已经返回 session B，但 getSSESequenceNum() 还在
+    // 返回 session A 的 seq —— 此时 daemon 的 persistState() 会写入
+    // {bridgeSessionId: B, seq: OLD_A}，该数据能通过 session-ID 校验，
+    // 使该校验完全失效。
     //
-    // The SSE seq-num is scoped to the session's event stream — carrying it
-    // over leaves the transport's lastSequenceNum stuck high (seq only
-    // advances when received > last), and its next internal reconnect would
-    // send from_sequence_num=OLD_SEQ against a stream starting at 1 → all
-    // events in the gap silently dropped. Inbound UUID dedup is also
-    // session-scoped.
+    // SSE seq-num 是 session 事件流范围内的 —— 把它带过来会让 transport
+    // 的 lastSequenceNum 卡在高位（seq 仅在 received > last 时前进），下一
+    // 次内部重连会带着 from_sequence_num=OLD_SEQ 去连一个从 1 开始的流 →
+    // 中间的事件全部静默丢弃。Inbound UUID 去重也是 session 范围的。
     lastTransportSequenceNum = 0
     recentInboundUUIDs.clear()
-    // Title derivation is session-scoped too: if the user typed during the
-    // createSession await above, the callback fired against the OLD archived
-    // session ID (PATCH lost) and the new session got `currentTitle` captured
-    // BEFORE they typed. Reset so the next prompt can re-derive. Self-
-    // correcting: if the caller's policy is already done (explicit title or
-    // count ≥ 3), it returns true on the first post-reset call and re-latches.
+    // 标题推导也是 session 范围的：如果用户在 createSession 的 await 期间
+    // 输入了内容，回调针对的是旧归档 session ID（PATCH 丢失），而新
+    // session 拿到的是他们输入之前捕获的 `currentTitle`。重置以让下一次
+    // prompt 可以重新推导。自我修正：如果调用方的策略已经完成
+    //（显式标题或 count ≥ 3），它在重置后的第一次调用会返回 true 并重新
+    // 锁定。
     userMessageCallbackDone = !onUserMessage
     logForDebugging(`[bridge:repl] Re-created session: ${currentSessionId}`)
 
-    // Rewrite the crash-recovery pointer with the new IDs so a crash after
-    // this point resumes the right session. (The reconnect-in-place path
-    // above doesn't touch the pointer — same session, same env.)
+    // 用新 ID 重写崩溃恢复指针，这样此后的崩溃能恢复到正确的 session。
+    //（上方的原地重连路径不动指针 —— 同一个 session、同一个 env。）
     await writeBridgePointer(dir, {
       sessionId: currentSessionId,
       environmentId,
       source: 'repl',
     })
 
-    // Clear flushed UUIDs so initial messages are re-sent to the new session.
-    // UUIDs are scoped per-session on the server, so re-flushing is safe.
+    // 清掉已 flush 的 UUID，让 initial messages 重新发到新 session。
+    // UUID 在服务器侧按 session 划分，重新 flush 是安全的。
     previouslyFlushedUUIDs?.clear()
 
-    // Reset the counter so independent reconnections hours apart don't
-    // exhaust the limit — it guards against rapid consecutive failures,
-    // not lifetime total.
+    // 重置计数器，让相隔数小时的独立重连不会耗尽限制 —— 它防的是连续
+    // 快速失败，而不是生命周期总数。
     environmentRecreations = 0
 
     return true
   }
 
-  // Helper: get the current OAuth access token for session ingress auth.
-  // Unlike the JWT path, OAuth tokens are refreshed by the standard OAuth
-  // flow — no proactive scheduler needed.
+  // 辅助：获取当前 OAuth access token 用于 session ingress 认证。
+  // 与 JWT 路径不同，OAuth token 由标准 OAuth 流程刷新 —— 不需要主动
+  // 调度器。
   function getOAuthToken(): string | undefined {
     return getAccessToken()
   }
 
-  // Drain any messages that were queued during the initial flush.
-  // Called after writeBatch completes (or fails) so queued messages
-  // are sent in order after the historical messages.
+  // 排空在 initial flush 期间排队的消息。在 writeBatch 完成（或失败）后
+  // 调用，让排队消息按顺序排到历史消息之后。
   function drainFlushGate(): void {
     const msgs = flushGate.end()
     if (msgs.length === 0) return
@@ -898,21 +859,21 @@ export async function initBridgeCore(
     void transport.writeBatch(events as StdoutMessage[])
   }
 
-  // Teardown reference — set after definition below. All callers are async
-  // callbacks that run after assignment, so the reference is always valid.
+  // Teardown 引用 —— 在下面的定义之后赋值。所有调用方都是在赋值之后
+  // 运行的 async 回调，所以引用总是有效。
   let doTeardownImpl: (() => Promise<void>) | null = null
   function triggerTeardown(): void {
     void doTeardownImpl?.()
   }
 
   /**
-   * Body of the transport's setOnClose callback, hoisted to initBridgeCore
-   * scope so /bridge-kick can fire it directly. setOnClose wraps this with
-   * a stale-transport guard; debugFireClose calls it bare.
+   * transport setOnClose 回调的主体，提升到 initBridgeCore 作用域，
+   * 以便 /bridge-kick 能直接触发。setOnClose 用过期 transport 守卫包裹
+   * 它；debugFireClose 直接裸调。
    *
-   * With autoReconnect:true, this only fires on: clean close (1000),
-   * permanent server rejection (4001/1002/4003), or 10-min budget
-   * exhaustion. Transient drops are retried internally by the transport.
+   * autoReconnect:true 时，只在以下情况触发：干净关闭（1000）、永久
+   * 服务器拒绝（4001/1002/4003）、或 10 分钟预算耗尽。瞬时断开由
+   * transport 内部重试。
    */
   function handleTransportPermanentClose(closeCode: number | undefined): void {
     rcLog(
@@ -926,9 +887,9 @@ export async function initBridgeCore(
     logEvent('tengu_bridge_repl_ws_closed', {
       code: closeCode,
     })
-    // Capture SSE seq high-water mark before nulling. When called from
-    // setOnClose the guard guarantees transport !== null; when fired from
-    // /bridge-kick it may already be null (e.g. fired twice) — skip.
+    // 置空之前捕获 SSE seq 高水位线。从 setOnClose 调用时，守卫保证
+    // transport !== null；从 /bridge-kick 触发时它可能已经是 null
+    //（例如被触发两次）—— 跳过。
     if (transport) {
       const closedSeq = transport.getLastSequenceNum()
       if (closedSeq > lastTransportSequenceNum) {
@@ -936,15 +897,14 @@ export async function initBridgeCore(
       }
       transport = null
     }
-    // Transport is gone — wake the poll loop out of its at-capacity
-    // heartbeat sleep so it's fast-polling by the time the reconnect
-    // below completes and the server re-queues work.
+    // transport 没了 —— 把 poll 循环从 at-capacity heartbeat sleep 中
+    // 唤醒，让它在下面的重连完成、服务器重新派发 work 之前就开始快速
+    // poll。
     wakePollLoop()
-    // Reset flush state so writeMessages() hits the !transport guard
-    // (with a warning log) instead of silently queuing into a buffer
-    // that will never be drained. Unlike onWorkReceived (which
-    // preserves pending messages for the new transport), onClose is
-    // a permanent close — no new transport will drain these.
+    // 重置 flush 状态，让 writeMessages() 命中 !transport 守卫
+    //（带一条警告日志），而不是静默地把消息塞进一个永远不会被排空的
+    // 缓冲。与 onWorkReceived（会为新 transport 保留 pending 消息）不同，
+    // onClose 是永久关闭 —— 没有新 transport 来排空这些消息。
     const dropped = flushGate.drop()
     if (dropped > 0) {
       logForDebugging(
@@ -954,22 +914,19 @@ export async function initBridgeCore(
     }
 
     if (closeCode === 1000) {
-      // Clean close — session ended normally. Tear down the bridge.
+      // 干净关闭 —— session 正常结束。Teardown 掉 bridge。
       onStateChange?.('failed', 'session ended')
       pollController.abort()
       triggerTeardown()
       return
     }
 
-    // Transport reconnect budget exhausted or permanent server
-    // rejection. By this point the env has usually been reaped
-    // server-side (BQ 2026-03-12: ~98% of ws_closed never recover
-    // via poll alone). stopWork(force=false) can't re-dispatch work
-    // from an archived env; reconnectEnvironmentWithSession can
-    // re-activate it via POST /bridge/reconnect, or fall through
-    // to a fresh session if the env is truly gone. The poll loop
-    // (already woken above) picks up the re-queued work once
-    // doReconnect completes.
+    // transport 重连预算耗尽或服务器永久拒绝。到这一步 env 通常已经被
+    // 服务器回收（BQ 2026-03-12：约 98% 的 ws_closed 永远无法只靠 poll
+    // 恢复）。stopWork(force=false) 无法从已归档 env 重新派发 work；
+    // reconnectEnvironmentWithSession 能通过 POST /bridge/reconnect 重新
+    // 激活它，或在 env 真没了时落到全新 session。poll 循环（上面已唤醒）
+    // 在 doReconnect 完成后会把重新入队的 work 接走。
     onStateChange?.(
       'reconnecting',
       `Remote Control connection lost (code ${closeCode})`,
@@ -979,16 +936,15 @@ export async function initBridgeCore(
     )
     void reconnectEnvironmentWithSession().then(success => {
       if (success) return
-      // doReconnect has four abort-check return-false sites for
-      // teardown-in-progress. Don't pollute the BQ failure signal
-      // or double-teardown when the user just quit.
+      // doReconnect 有四个"teardown 进行中"导致的 abort-check
+      // return-false 位置。用户刚退出时不要污染 BQ 失败信号，也不要重复
+      // teardown。
       if (pollController.signal.aborted) return
-      // doReconnect returns false (never throws) on genuine failure.
-      // The dangerous case: registerBridgeEnvironment succeeded (so
-      // environmentId now points at a fresh valid env) but
-      // createSession failed — poll loop would poll a sessionless
-      // env getting null work with no errors, never hitting any
-      // give-up path. Tear down explicitly.
+      // doReconnect 在真实失败时返回 false（从不抛异常）。危险的场景是：
+      // registerBridgeEnvironment 成功了（environmentId 已指向一个全新有效
+      // env），但 createSession 失败 —— poll 循环会在一个无 session 的 env
+      // 上 poll 到 null work，没有错误，永远走不到任何 give-up 路径。
+      // 显式 teardown。
       logForDebugging(
         '[bridge:repl] reconnectEnvironmentWithSession resolved false — tearing down',
       )
@@ -1000,9 +956,9 @@ export async function initBridgeCore(
     })
   }
 
-  // Ant-only: SIGUSR2 → force doReconnect() for manual testing. Skips the
-  // ~30s poll wait — fire-and-observe in the debug log immediately.
-  // Windows has no USR signals; `process.on` would throw there.
+  // 仅 ant：SIGUSR2 → 强制 doReconnect()，用于手动测试。跳过约 30s 的
+  // poll 等待 —— 立即触发并在 debug 日志里观察。Windows 没有 USR 信号；
+  // 在那里 `process.on` 会抛异常。
   let sigusr2Handler: (() => void) | undefined
   if (process.env.USER_TYPE === 'ant' && process.platform !== 'win32') {
     sigusr2Handler = () => {
@@ -1014,10 +970,10 @@ export async function initBridgeCore(
     process.on('SIGUSR2', sigusr2Handler)
   }
 
-  // Ant-only: /bridge-kick fault injection. handleTransportPermanentClose
-  // is defined below and assigned into this slot so the slash command can
-  // invoke it directly — the real setOnClose callback is buried inside
-  // wireTransport which is itself inside onWorkReceived.
+  // 仅 ant：/bridge-kick 故障注入。handleTransportPermanentClose 在下方
+  // 定义，并被赋到这个槽里，让 slash command 能直接触发 —— 真正的
+  // setOnClose 回调深埋在 wireTransport 里，而 wireTransport 本身又嵌在
+  // onWorkReceived 里。
   let debugFireClose: ((code: number) => void) | null = null
   if (process.env.USER_TYPE === 'ant') {
     registerBridgeDebugHandle({
@@ -1047,9 +1003,9 @@ export async function initBridgeCore(
     getPollIntervalConfig,
     onStateChange,
     getWsState: () => transport?.getStateLabel() ?? 'null',
-    // REPL bridge is single-session: having any transport == at capacity.
-    // No need to check isConnectedStatus() — even while the transport is
-    // auto-reconnecting internally (up to 10 min), poll is heartbeat-only.
+    // REPL bridge 是单 session：只要有 transport 就是 at capacity。
+    // 没必要检查 isConnectedStatus() —— 即使 transport 正在内部自动重连
+    //（最长 10 分钟），poll 也只是心跳。
     isAtCapacity: () => transport !== null,
     capacitySignal,
     onFatalError: triggerTeardown,
@@ -1063,13 +1019,12 @@ export async function initBridgeCore(
         sessionToken: currentIngressToken,
       }
     },
-    // Work-item JWT expired (or work gone). The transport is useless —
-    // SSE reconnects and CCR writes use the same stale token. Without
-    // this callback the poll loop would do a 10-min at-capacity backoff,
-    // during which the work lease (300s TTL) expires and the server stops
-    // forwarding prompts → ~25-min dead window observed in daemon logs.
-    // Kill the transport + work state so isAtCapacity()=false; the loop
-    // fast-polls and picks up the server's re-dispatched work in seconds.
+    // Work-item JWT 过期（或 work 没了）。transport 无用 —— SSE 重连和
+    // CCR 写入用的都是同一个过期 token。没这个回调的话，poll 循环会做
+    // 一次 10 分钟的 at-capacity 退避，期间 work lease（300s TTL）过期，
+    // 服务器不再转发 prompt → daemon 日志里观察到约 25 分钟的死窗口。
+    // 杀掉 transport 和 work 状态，让 isAtCapacity()=false；循环快速
+    // poll，几秒内拿到服务器重新派发的 work。
     onHeartbeatFatal: (err: BridgeFatalError) => {
       logForDebugging(
         `[bridge:repl] heartbeatWork fatal (status=${err.status}) — tearing down work item for fast re-dispatch`,
@@ -1083,8 +1038,8 @@ export async function initBridgeCore(
         transport = null
       }
       flushGate.drop()
-      // force=false → server re-queues. Likely already expired, but
-      // idempotent and makes re-dispatch immediate if not.
+      // force=false → 服务器重新入队。多半已过期，但这是幂等的，
+      // 如果没过期则能让重新派发立即生效。
       if (currentWorkId) {
         void api
           .stopWork(environmentId, currentWorkId, false)
@@ -1115,14 +1070,12 @@ export async function initBridgeCore(
       workId: string,
       serverUseCcrV2: boolean,
     ) => {
-      // When new work arrives while a transport is already open, the
-      // server has decided to re-dispatch (e.g. token rotation, server
-      // restart). Close the existing transport and reconnect — discarding
-      // the work causes a stuck 'reconnecting' state if the old WS dies
-      // shortly after (the server won't re-dispatch a work item it
-      // already delivered).
-      // ingressToken (JWT) is stored for heartbeat auth (both v1 and v2).
-      // Transport auth diverges — see the v1/v2 split below.
+      // 当 transport 已打开时又来新 work，说明服务器决定重新派发
+      //（例如 token 轮换、服务器重启）。关闭现有 transport 并重连 ——
+      // 丢弃 work 会在旧 WS 随后挂掉时陷入卡死的 'reconnecting' 状态
+      //（服务器不会重新派发它已经投递过的 work item）。
+      // ingressToken（JWT）用于 heartbeat 认证（v1 和 v2 都用）。
+      // transport 认证不同 —— 见下文 v1/v2 分支。
       if (transport?.isConnectedStatus()) {
         logForDebugging(
           `[bridge:repl] Work received while transport connected, replacing with fresh token (workId=${workId})`,
@@ -1133,25 +1086,24 @@ export async function initBridgeCore(
         `[bridge:repl] Work received: workId=${workId} workSessionId=${workSessionId} currentSessionId=${currentSessionId} match=${sameSessionId(workSessionId, currentSessionId)}`,
       )
 
-      // Refresh the crash-recovery pointer's mtime. Staleness checks file
-      // mtime (not embedded timestamp) so this re-write bumps the clock —
-      // a 5h+ session that crashes still has a fresh pointer. Fires once
-      // per work dispatch (infrequent — bounded by user message rate).
+      // 刷新崩溃恢复指针的 mtime。过期检查看的是文件 mtime（不是嵌入的
+      // 时间戳），所以这次重写会刷新时钟 —— 一个 5 小时以上又崩溃的
+      // session 仍然有新鲜指针。每次 work 派发触发一次（不频繁 —— 受用户
+      // 消息速率限制）。
       void writeBridgePointer(dir, {
         sessionId: currentSessionId,
         environmentId,
         source: 'repl',
       })
 
-      // Reject foreign session IDs — the server shouldn't assign sessions
-      // from other environments. Since we create env+session as a pair,
-      // a mismatch indicates an unexpected server-side reassignment.
+      // 拒绝外部 session ID —— 服务器不应该把其他 env 的 session 派发
+      // 给我们。因为我们总是成对创建 env+session，不匹配说明服务器侧
+      // 出现了意外的重新指派。
       //
-      // Compare by underlying UUID, not by tagged-ID prefix. When CCR
-      // v2's compat layer serves the session, createBridgeSession gets
-      // session_* from the v1-facing API (compat/convert.go:41) but the
-      // infrastructure layer delivers cse_* in the work queue
-      // (container_manager.go:129). Same UUID, different tag.
+      // 按底层 UUID 比较，而不是带 tag 的前缀。当 CCR v2 的 compat 层
+      // 服务该 session 时，createBridgeSession 从面向 v1 的 API 拿到
+      // session_*（compat/convert.go:41），但基础设施层在 work 队列里
+      // 投递 cse_*（container_manager.go:129）。同一个 UUID，不同 tag。
       if (!sameSessionId(workSessionId, currentSessionId)) {
         logForDebugging(
           `[bridge:repl] Rejecting foreign session: expected=${currentSessionId} got=${workSessionId}`,
@@ -1162,31 +1114,30 @@ export async function initBridgeCore(
       currentWorkId = workId
       currentIngressToken = ingressToken
 
-      // Server decides per-session (secret.use_code_sessions from the work
-      // secret, threaded through runWorkPollLoop). The env var is an ant-dev
-      // override for forcing v2 before the server flag is on for your user —
-      // requires ccr_v2_compat_enabled server-side or registerWorker 404s.
+      // 服务器按 session 决定（work secret 里的 secret.use_code_sessions，
+      // 通过 runWorkPollLoop 透传）。环境变量是 ant 开发覆盖，用于在
+      // 服务器 flag 对你打开之前强制 v2 —— 需要服务器侧 ccr_v2_compat_enabled
+      // 打开，否则 registerWorker 会 404。
       //
-      // Kept separate from CLAUDE_CODE_USE_CCR_V2 (the child-SDK transport
-      // selector set by sessionRunner/environment-manager) to avoid the
-      // inheritance hazard in spawn mode where the parent's orchestrator
-      // var would leak into a v1 child.
+      // 与 CLAUDE_CODE_USE_CCR_V2（sessionRunner/environment-manager 设置
+      // 的子 SDK transport 选择器）保持独立，避免 spawn 模式下的继承风险：
+      // 父进程的 orchestrator 变量会泄漏到 v1 子进程。
       const useCcrV2 =
         serverUseCcrV2 || isEnvTruthy(process.env.CLAUDE_BRIDGE_USE_CCR_V2)
 
-      // Auth is the one place v1 and v2 diverge hard:
+      // 认证是 v1 和 v2 唯一严重分歧的地方：
       //
-      // - v1 (Session-Ingress): accepts OAuth OR JWT. We prefer OAuth
-      //   because the standard OAuth refresh flow handles expiry — no
-      //   separate JWT refresh scheduler needed.
+      // - v1（Session-Ingress）：接受 OAuth 或 JWT。我们优先用 OAuth，
+      //   因为标准 OAuth 刷新流程能处理过期 —— 不需要独立的 JWT 刷新
+      //   调度器。
       //
-      // - v2 (CCR /worker/*): REQUIRES the JWT. register_worker.go:32
-      //   validates the session_id claim, which OAuth tokens don't carry.
-      //   The JWT from the work secret has both that claim and the worker
-      //   role (environment_auth.py:856). JWT refresh: when it expires the
-      //   server re-dispatches work with a fresh one, and onWorkReceived
-      //   fires again. createV2ReplTransport stores it via
-      //   updateSessionIngressAuthToken() before touching the network.
+      // - v2（CCR /worker/*）：必须用 JWT。register_worker.go:32 会校验
+      //   session_id claim，OAuth token 不带这个 claim。work secret 里的
+      //   JWT 同时带这个 claim 和 worker 角色
+      //   （environment_auth.py:856）。JWT 刷新：过期时服务器会带着
+      //   新的 JWT 重新派发 work，onWorkReceived 再次触发。
+      //   createV2ReplTransport 在接触网络之前通过
+      //   updateSessionIngressAuthToken() 把它存起来。
       let v1OauthToken: string | undefined
       if (!useCcrV2) {
         v1OauthToken = getOAuthToken()
@@ -1200,31 +1151,28 @@ export async function initBridgeCore(
       }
       logEvent('tengu_bridge_repl_work_received', {})
 
-      // Close the previous transport. Nullify BEFORE calling close() so
-      // the close callback doesn't treat the programmatic close as
-      // "session ended normally" and trigger a full teardown.
+      // 关闭上一个 transport。close() 之前先置空，让 close 回调不会把
+      // 编程式关闭当成"session 正常结束"而触发完整 teardown。
       if (transport) {
         const oldTransport = transport
         transport = null
-        // Capture the SSE sequence high-water mark so the next transport
-        // resumes the stream instead of replaying from seq 0. Use max() —
-        // a transport that died early (never received any frames) would
-        // otherwise reset a non-zero mark back to 0.
+        // 捕获 SSE 序列高水位线，让下一个 transport 能从流的位置继续，
+        // 而不是从 seq 0 重放。用 max() —— 一个早夭的 transport
+        //（从未收到任何 frame）会让一个非零水位线被重置回 0。
         const oldSeq = oldTransport.getLastSequenceNum()
         if (oldSeq > lastTransportSequenceNum) {
           lastTransportSequenceNum = oldSeq
         }
         oldTransport.close()
       }
-      // Reset flush state — the old flush (if any) is no longer relevant.
-      // Preserve pending messages so they're drained after the new
-      // transport's flush completes (the hook has already advanced its
-      // lastWrittenIndex and won't re-send them).
+      // 重置 flush 状态 —— 旧的 flush（如果有）不再相关。保留 pending
+      // 消息，让它们在新 transport 的 flush 完成后排空（hook 已经推进
+      // lastWrittenIndex，不会重发它们）。
       flushGate.deactivate()
 
-      // Closure adapter over the shared handleServerControlRequest —
-      // captures transport/currentSessionId so the transport.setOnData
-      // callback below doesn't need to thread them through.
+      // 对共享的 handleServerControlRequest 的闭包适配 —— 捕获
+      // transport/currentSessionId，让下面的 transport.setOnData 回调
+      // 不必把它们透传进去。
       const onServerControlRequest = (request: SDKControlRequest): void =>
         handleServerControlRequest(request, {
           transport,
@@ -1237,25 +1185,24 @@ export async function initBridgeCore(
 
       let initialFlushDone = false
 
-      // Wire callbacks onto a freshly constructed transport and connect.
-      // Extracted so the (sync) v1 and (async) v2 construction paths can
-      // share the identical callback + flush machinery.
+      // 在新构造的 transport 上接好回调并连接。抽出来是为了让（同步的）
+      // v1 和（异步的）v2 构造路径共用同一套回调和 flush 机制。
       const wireTransport = (newTransport: ReplBridgeTransport): void => {
         transport = newTransport
 
         newTransport.setOnConnect(() => {
-          // Guard: if transport was replaced by a newer onWorkReceived call
-          // while the WS was connecting, ignore this stale callback.
+          // 守卫：如果 WS 正在连接时 transport 被更新的 onWorkReceived
+          // 调用替换掉了，忽略这个过期回调。
           if (transport !== newTransport) return
 
           logForDebugging('[bridge:repl] Ingress transport connected')
           logEvent('tengu_bridge_repl_ws_connected', {})
 
-          // Update the env var with the latest OAuth token so POST writes
-          // (which read via getSessionIngressAuthToken()) use a fresh token.
-          // v2 skips this — createV2ReplTransport already stored the JWT,
-          // and overwriting it with OAuth would break subsequent /worker/*
-          // requests (session_id claim check).
+          // 用最新的 OAuth token 更新环境变量，让 POST 写入
+          //（通过 getSessionIngressAuthToken() 读取）用上新鲜的 token。
+          // v2 跳过这步 —— createV2ReplTransport 已经把 JWT 存好了，
+          // 用 OAuth 覆盖会破坏后续 /worker/* 请求（session_id claim
+          // 校验）。
           if (!useCcrV2) {
             const freshToken = getOAuthToken()
             if (freshToken) {
@@ -1263,16 +1210,14 @@ export async function initBridgeCore(
             }
           }
 
-          // Reset teardownStarted so future teardowns are not blocked.
+          // 重置 teardownStarted，让后续 teardown 不被阻塞。
           teardownStarted = false
 
-          // Flush initial messages only on first connect, not on every
-          // WS reconnection. Re-flushing would cause duplicate messages.
-          // IMPORTANT: onStateChange('connected') is deferred until the
-          // flush completes. This prevents writeMessages() from sending
-          // new messages that could arrive at the server interleaved with
-          // the historical messages, and delays the web UI from showing
-          // the session as active until history is persisted.
+          // 只在第一次 connect 时 flush initial messages，不是每次 WS
+          // 重连都 flush。重复 flush 会导致消息重复。
+          // 重要：onStateChange('connected') 延迟到 flush 完成才触发。
+          // 这能防止 writeMessages() 发送的新消息在服务器上与历史消息
+          // 交错，并延迟 web UI 显示 session 活跃直到历史落库。
           if (
             !initialFlushDone &&
             initialMessages &&
@@ -1280,10 +1225,10 @@ export async function initBridgeCore(
           ) {
             initialFlushDone = true
 
-            // Cap the initial flush to the most recent N messages. The full
-            // history is UI-only (model doesn't see it) and large replays cause
-            // slow session-ingress persistence (each event is a threadstore write)
-            // plus elevated Firestore pressure. A 0 or negative cap disables it.
+            // 把 initial flush 限制到最近 N 条。完整历史只用于 UI
+            //（模型看不到），大量重放会让 session-ingress 持久化变慢
+            //（每个事件都是一次 threadstore 写入），并加大 Firestore
+            // 压力。cap 为 0 或负数则禁用该限制。
             const historyCap = initialHistoryCap
             const eligibleMessages = initialMessages.filter(
               m =>
@@ -1316,11 +1261,11 @@ export async function initBridgeCore(
               void newTransport
                 .writeBatch(events as StdoutMessage[])
                 .then(() => {
-                  // If any batch was dropped during this flush (SI down for
-                  // maxConsecutiveFailures attempts), flush() still resolved
-                  // normally but the events were NOT delivered. Don't mark
-                  // UUIDs as flushed — keep them eligible for re-send on the
-                  // next onWorkReceived (JWT refresh re-dispatch, line ~1144).
+                  // 如果 flush 期间有批次被丢弃（SI 宕机达到
+                  // maxConsecutiveFailures 次数），flush() 仍会正常 resolve，
+                  // 但事件实际没送达。不要把 UUID 标记为 flushed —— 让它们
+                  // 在下次 onWorkReceived 时仍可重发（JWT 刷新重新派发，
+                  // 约在 1144 行）。
                   if (newTransport.droppedBatchCount > dropsBefore) {
                     logForDebugging(
                       `[bridge:repl] Initial flush dropped ${newTransport.droppedBatchCount - dropsBefore} batch(es) — not marking ${sdkMessages.length} UUID(s) as flushed`,
@@ -1339,27 +1284,26 @@ export async function initBridgeCore(
                   logForDebugging(`[bridge:repl] Initial flush failed: ${e}`),
                 )
                 .finally(() => {
-                  // Guard: if transport was replaced during the flush,
-                  // don't signal connected or drain — the new transport
-                  // owns the lifecycle now.
+                  // 守卫：如果 flush 期间 transport 被替换，不要发
+                  // connected 信号也不要排空 —— 新 transport 接管生命
+                  // 周期。
                   if (transport !== newTransport) return
                   drainFlushGate()
                   onStateChange?.('connected')
                 })
             } else {
-              // All initial messages were already flushed (filtered by
-              // previouslyFlushedUUIDs). No flush POST needed — clear
-              // the flag and signal connected immediately. This is the
-              // first connect for this transport (inside !initialFlushDone),
-              // so no flush POST is in-flight — the flag was set before
-              // connect() and must be cleared here.
+              // 所有 initial messages 已经 flush 过（被 previouslyFlushedUUIDs
+              // 过滤掉）。不需要 flush POST —— 清标志并立即发 connected 信号。
+              // 这是该 transport 的首次连接（在 !initialFlushDone 内），
+              // 所以没有在途的 flush POST —— 标志在 connect() 之前设置，
+              // 必须在这里清掉。
               drainFlushGate()
               onStateChange?.('connected')
             }
           } else if (!flushGate.active) {
-            // No initial messages or already flushed on first connect.
-            // WS auto-reconnect path — only signal connected if no flush
-            // POST is in-flight. If one is, .finally() owns the lifecycle.
+            // 无 initial messages，或首次连接时已 flush。WS 自动重连路径
+            // —— 只在没有在途 flush POST 时发 connected 信号。如果有，
+            // .finally() 接管生命周期。
             onStateChange?.('connected')
           }
         })
@@ -1387,15 +1331,15 @@ export async function initBridgeCore(
           )
         })
 
-        // Body lives at initBridgeCore scope so /bridge-kick can call it
-        // directly via debugFireClose. All referenced closures (transport,
-        // wakePollLoop, flushGate, reconnectEnvironmentWithSession, etc.)
-        // are already at that scope. The only lexical dependency on
-        // wireTransport was `newTransport.getLastSequenceNum()` — but after
-        // the guard below passes we know transport === newTransport.
+        // 主体位于 initBridgeCore 作用域，让 /bridge-kick 能通过
+        // debugFireClose 直接调用。所有被引用的闭包（transport、
+        // wakePollLoop、flushGate、reconnectEnvironmentWithSession 等）都
+        // 已在该作用域。对 wireTransport 仅有的词法依赖是
+        // `newTransport.getLastSequenceNum()` —— 但下面的守卫通过后
+        // 我们知道 transport === newTransport。
         debugFireClose = handleTransportPermanentClose
         newTransport.setOnClose(closeCode => {
-          // Guard: if transport was replaced, ignore stale close.
+          // 守卫：如果 transport 被替换，忽略过期 close。
           if (transport !== newTransport) return
           rcLog(
             `transport onClose: code=${closeCode}` +
@@ -1406,12 +1350,10 @@ export async function initBridgeCore(
           handleTransportPermanentClose(closeCode)
         })
 
-        // Start the flush gate before connect() to cover the WS handshake
-        // window. Between transport assignment and setOnConnect firing,
-        // writeMessages() could send messages via HTTP POST before the
-        // initial flush starts. Starting the gate here ensures those
-        // calls are queued. If there are no initial messages, the gate
-        // stays inactive.
+        // 在 connect() 之前启动 flush gate，覆盖 WS 握手窗口。在 transport
+        // 赋值与 setOnConnect 触发之间，writeMessages() 可能在 initial
+        // flush 开始之前就通过 HTTP POST 发送消息。在这里启动 gate 能确保
+        // 这些调用被排队。如果没有 initial messages，gate 保持非激活。
         if (
           !initialFlushDone &&
           initialMessages &&
@@ -1421,17 +1363,17 @@ export async function initBridgeCore(
         }
 
         newTransport.connect()
-      } // end wireTransport
+      } // wireTransport 结束
 
-      // Bump unconditionally — ANY new transport (v1 or v2) invalidates an
-      // in-flight v2 handshake. Also bumped in doReconnect().
+      // 无条件自增 —— 任何新 transport（v1 或 v2）都会让在途的 v2 握手
+      // 失效。doReconnect() 里也会自增。
       v2Generation++
 
       if (useCcrV2) {
-        // workSessionId is the cse_* form (infrastructure-layer ID from the
-        // work queue), which is what /v1/code/sessions/{id}/worker/* wants.
-        // The session_* form (currentSessionId) is NOT usable here —
-        // handler/convert.go:30 validates TagCodeSession.
+        // workSessionId 是 cse_* 形式（来自 work 队列的基础设施层 ID），
+        // 正是 /v1/code/sessions/{id}/worker/* 想要的。
+        // session_* 形式（currentSessionId）在这里不能用 ——
+        // handler/convert.go:30 会校验 TagCodeSession。
         const sessionUrl = buildCCRv2SdkUrl(baseUrl, workSessionId)
         const thisGen = v2Generation
         logForDebugging(
@@ -1444,20 +1386,19 @@ export async function initBridgeCore(
           initialSequenceNum: lastTransportSequenceNum,
         }).then(
           t => {
-            // Teardown started while registerWorker was in flight. Teardown
-            // saw transport === null and skipped close(); installing now
-            // would leak CCRClient heartbeat timers and reset
-            // teardownStarted via wireTransport's side effects.
+            // registerWorker 在途期间开始了 teardown。Teardown 看到
+            // transport === null 就跳过了 close()；这里安装会泄漏
+            // CCRClient heartbeat 定时器，并通过 wireTransport 的副作用
+            // 重置 teardownStarted。
             if (pollController.signal.aborted) {
               t.close()
               return
             }
-            // onWorkReceived may have fired again while registerWorker()
-            // was in flight (server re-dispatch with a fresh JWT). The
-            // transport !== null check alone gets the race wrong when BOTH
-            // attempts saw transport === null — it keeps the first resolver
-            // (stale epoch) and discards the second (correct epoch). The
-            // generation check catches it regardless of transport state.
+            // registerWorker() 在途期间 onWorkReceived 可能再次触发
+            //（服务器用新 JWT 重新派发）。transport !== null 单独判断会
+            // 出竞态错误：两次尝试都看到 transport === null 时，它会保留
+            // 第一个 resolver（过期 epoch），丢弃第二个（正确 epoch）。
+            // generation 检查能不依赖 transport 状态抓到这种情况。
             if (thisGen !== v2Generation) {
               logForDebugging(
                 `[bridge:repl] CCR v2: discarding stale handshake gen=${thisGen} current=${v2Generation}`,
@@ -1473,12 +1414,11 @@ export async function initBridgeCore(
               { level: 'error' },
             )
             logEvent('tengu_bridge_repl_ccr_v2_init_failed', {})
-            // If a newer attempt is in flight or already succeeded, don't
-            // touch its work item — our failure is irrelevant.
+            // 如果更新的尝试在途或已成功，不要碰它的 work item ——
+            // 我们的失败无关紧要。
             if (thisGen !== v2Generation) return
-            // Release the work item so the server re-dispatches immediately
-            // instead of waiting for its own timeout. currentWorkId was set
-            // above; without this, the session looks stuck to the user.
+            // 释放 work item，让服务器立即重新派发，而不是等自己的超时。
+            // currentWorkId 上面已设；不这样做的话，用户看 session 会卡住。
             if (currentWorkId) {
               void api
                 .stopWork(environmentId, currentWorkId, false)
@@ -1494,22 +1434,20 @@ export async function initBridgeCore(
           },
         )
       } else {
-        // v1: HybridTransport (WS reads + POST writes to Session-Ingress).
-        // autoReconnect is true (default) — when the WS dies, the transport
-        // reconnects automatically with exponential backoff. POST writes
-        // continue during reconnection (they use getSessionIngressAuthToken()
-        // independently of WS state). The poll loop remains as a secondary
-        // fallback if the reconnect budget is exhausted (10 min).
+        // v1：HybridTransport（WS 读 + POST 写到 Session-Ingress）。
+        // autoReconnect 为 true（默认）—— WS 死掉时，transport 用指数退避
+        // 自动重连。重连期间 POST 写入继续（它用
+        // getSessionIngressAuthToken()，独立于 WS 状态）。如果重连预算
+        // 耗尽（10 分钟），poll 循环作为二级兜底。
         //
-        // Auth: uses OAuth tokens directly instead of the JWT from the work
-        // secret. refreshHeaders picks up the latest OAuth token on each
-        // WS reconnect attempt.
+        // 认证：直接用 OAuth token，而不是 work secret 里的 JWT。
+        // refreshHeaders 会在每次 WS 重连尝试时取最新 OAuth token。
         const wsUrl = buildSdkUrl(sessionIngressUrl, workSessionId)
         logForDebugging(`[bridge:repl] Ingress URL: ${wsUrl}`)
         logForDebugging(
           `[bridge:repl] Creating HybridTransport: session=${workSessionId}`,
         )
-        // v1OauthToken was validated non-null above (we'd have returned early).
+        // v1OauthToken 上面已校验非空（否则早就 return 了）。
         const oauthToken = v1OauthToken ?? ''
         wireTransport(
           createV1ReplTransport(
@@ -1524,10 +1462,10 @@ export async function initBridgeCore(
                 Authorization: `Bearer ${getOAuthToken() ?? oauthToken}`,
                 'anthropic-version': '2023-06-01',
               }),
-              // Cap retries so a persistently-failing session-ingress can't
-              // pin the uploader drain loop for the lifetime of the bridge.
-              // 50 attempts ≈ 20 min (15s POST timeout + 8s backoff + jitter
-              // per cycle at steady state). Bridge-only — 1P keeps indefinite.
+              // 给重试次数封顶，避免一个持续失败的 session-ingress 把
+              // uploader 排空循环钉死在 bridge 的整个生命周期上。
+              // 50 次 ≈ 20 分钟（稳态下每轮 15s POST 超时 + 8s 退避 +
+              // 抖动）。仅 bridge —— 1P 保持无限重试。
               {
                 maxConsecutiveFailures: 50,
                 isBridge: true,
@@ -1536,14 +1474,13 @@ export async function initBridgeCore(
                     'reconnecting',
                     'Lost sync with Remote Control — events could not be delivered',
                   )
-                  // SI has been down ~20 min. Wake the poll loop so that when
-                  // SI recovers, next poll → onWorkReceived → fresh transport
-                  // → initial flush succeeds → onStateChange('connected') at
-                  // ~line 1420. Without this, state stays 'reconnecting' even
-                  // after SI recovers — daemon.ts:437 denies all permissions,
-                  // useReplBridge.ts:311 keeps replBridgeSessionActive=false.
-                  // If the env was archived during the outage, poll 404 →
-                  // onEnvironmentLost recovery path handles it.
+                  // SI 已经宕机约 20 分钟。唤醒 poll 循环，让 SI 恢复后：
+                  // 下一次 poll → onWorkReceived → 全新 transport →
+                  // initial flush 成功 → 约 1420 行 onStateChange('connected')。
+                  // 不做这步，SI 恢复后状态仍是 'reconnecting' ——
+                  // daemon.ts:437 拒绝所有权限，useReplBridge.ts:311 保持
+                  // replBridgeSessionActive=false。如果宕机期间 env 被归档，
+                  // poll 404 → onEnvironmentLost 恢复路径会处理。
                   wakePollLoop()
                 },
               },
@@ -1555,19 +1492,18 @@ export async function initBridgeCore(
   }
   void startWorkPollLoop(pollOpts)
 
-  // Perpetual mode: hourly mtime refresh of the crash-recovery pointer.
-  // The onWorkReceived refresh only fires per user prompt — a
-  // daemon idle for >4h would have a stale pointer, and the next restart
-  // would clear it (readBridgePointer TTL check) → fresh session. The
-  // standalone bridge (bridgeMain.ts) has an identical hourly timer.
+  // Perpetual 模式：每小时刷新崩溃恢复指针的 mtime。onWorkReceived 的
+  // 刷新只按用户 prompt 触发 —— 一个空闲超过 4 小时的 daemon 指针会过期，
+  // 下次重启会清掉它（readBridgePointer TTL 检查）→ 全新 session。
+  // Standalone bridge（bridgeMain.ts）也有相同的每小时定时器。
   const pointerRefreshTimer = perpetual
     ? setInterval(() => {
-        // doReconnect() reassigns currentSessionId/environmentId non-
-        // atomically (env at ~:634, session at ~:719, awaits in between).
-        // If this timer fires in that window, its fire-and-forget write can
-        // race with (and overwrite) doReconnect's own pointer write at ~:740,
-        // leaving the pointer at the now-archived old session. doReconnect
-        // writes the pointer itself, so skipping here is free.
+        // doReconnect() 非原子地重新赋值 currentSessionId/environmentId
+        //（env 在约 :634，session 在约 :719，中间有 await）。如果这个
+        // 定时器在那个窗口里触发，它的 fire-and-forget 写入可能与
+        // doReconnect 自己在约 :740 的指针写入竞态（并覆盖），让指针停在
+        // 现在已归档的旧 session 上。doReconnect 自己会写指针，这里跳过
+        // 零成本。
         if (reconnectPromise) return
         void writeBridgePointer(dir, {
           sessionId: currentSessionId,
@@ -1578,12 +1514,12 @@ export async function initBridgeCore(
     : null
   pointerRefreshTimer?.unref?.()
 
-  // Push a silent keep_alive frame on a fixed interval so upstream proxies
-  // and the session-ingress layer don't GC an otherwise-idle remote control
-  // session. The keep_alive type is filtered before reaching any client UI
-  // (Query.ts drops it; web/iOS/Android never see it in their message loop).
-  // Interval comes from GrowthBook (tengu_bridge_poll_interval_config
-  // session_keepalive_interval_v2_ms, default 120s); 0 = disabled.
+  // 按固定间隔推一个静默 keep_alive 帧，避免上游代理和 session-ingress
+  // 层把一个本来空闲的 remote control session GC 掉。keep_alive 类型在
+  // 到达任何客户端 UI 之前就被过滤掉（Query.ts 丢弃它；
+  // web/iOS/Android 的消息循环里永远看不到）。间隔来自 GrowthBook
+  //（tengu_bridge_poll_interval_config 的
+  // session_keepalive_interval_v2_ms，默认 120s）；0 = 禁用。
   const keepAliveIntervalMs =
     getPollIntervalConfig().session_keepalive_interval_v2_ms
   const keepAliveTimer =
@@ -1600,8 +1536,8 @@ export async function initBridgeCore(
       : null
   keepAliveTimer?.unref?.()
 
-  // Shared teardown sequence used by both cleanup registration and
-  // the explicit teardown() method on the returned handle.
+  // cleanup 注册和返回 handle 上的显式 teardown() 方法共用的 teardown
+  // 序列。
   let teardownStarted = false
   doTeardownImpl = async (): Promise<void> => {
     if (teardownStarted) {
@@ -1632,12 +1568,12 @@ export async function initBridgeCore(
     pollController.abort()
     logForDebugging('[bridge:repl] Teardown: poll loop aborted')
 
-    // Capture the live transport's seq BEFORE close() — close() is sync
-    // (just aborts the SSE fetch) and does NOT invoke onClose, so the
-    // setOnClose capture path never runs for explicit teardown.
-    // Without this, getSSESequenceNum() after teardown returns the stale
-    // lastTransportSequenceNum (captured at the last transport swap), and
-    // daemon callers persisting that value lose all events since then.
+    // 在 close() 之前抓取活 transport 的 seq —— close() 是同步的
+    //（只是 abort SSE fetch），不会触发 onClose，所以 setOnClose 的抓取
+    // 路径在显式 teardown 时永远跑不到。不做这步的话，teardown 之后
+    // getSSESequenceNum() 会返回 stale 的 lastTransportSequenceNum（上一次
+    // transport 切换时抓的），持久化这个值的 daemon 调用方会丢失从那以后
+    // 的所有事件。
     if (transport) {
       const finalSeq = transport.getLastSequenceNum()
       if (finalSeq > lastTransportSequenceNum) {
@@ -1646,17 +1582,16 @@ export async function initBridgeCore(
     }
 
     if (perpetual) {
-      // Perpetual teardown is LOCAL-ONLY — do not send result, do not call
-      // stopWork, do not close the transport. All of those signal the
-      // server (and any mobile/attach subscribers) that the session is
-      // ending. Instead: stop polling, let the socket die with the
-      // process; the backend times the work-item lease back to pending on
-      // its own (TTL 300s). Next daemon start reads the pointer and
-      // reconnectSession re-queues work.
+      // Perpetual 的 teardown 是纯本地的 —— 不发 result，不调 stopWork，
+      // 不关 transport。这些都意味着向服务器（以及 mobile/attach 订阅方）
+      // 发"session 即将结束"的信号。改为：停止 polling，让 socket 随进程
+      // 退出而死；后端会自行把 work-item lease 超时回到 pending
+      //（TTL 300s）。下次 daemon 启动读指针，reconnectSession 把 work 重新
+      // 入队。
       transport = null
       flushGate.drop()
-      // Refresh the pointer mtime so that sessions lasting longer than
-      // BRIDGE_POINTER_TTL_MS (4h) don't appear stale on next start.
+      // 刷新指针 mtime，让超过 BRIDGE_POINTER_TTL_MS（4h）的 session 在
+      // 下次启动时不显示为过期。
       await writeBridgePointer(dir, {
         sessionId: currentSessionId,
         environmentId,
@@ -1668,12 +1603,12 @@ export async function initBridgeCore(
       return
     }
 
-    // Fire the result message, then archive, THEN close. transport.write()
-    // only enqueues (SerialBatchEventUploader resolves on buffer-add); the
-    // stopWork/archive latency (~200-500ms) is the drain window for the
-    // result POST. Closing BEFORE archive meant relying on HybridTransport's
-    // void-ed 3s grace period, which nothing awaits — forceExit can kill the
-    // socket mid-POST. Same reorder as remoteBridgeCore.ts teardown (#22803).
+    // 先发 result 消息，再 archive，最后 close。transport.write() 只是入队
+    //（SerialBatchEventUploader 在 buffer-add 时就 resolve）；stopWork/archive
+    // 的延迟（约 200-500ms）就是 result POST 的排空窗口。先 archive 再
+    // close 等于依赖 HybridTransport 那个 void 的 3s 宽限期，但没人 await
+    // 它 —— forceExit 可能在 POST 中途杀掉 socket。与 remoteBridgeCore.ts
+    // 的 teardown（#22803）同样的重排序。
     const teardownTransport = transport
     transport = null
     flushGate.drop()
@@ -1698,11 +1633,10 @@ export async function initBridgeCore(
           })
       : Promise.resolve()
 
-    // Run stopWork and archiveSession in parallel. gracefulShutdown.ts:407
-    // races runCleanupFunctions() against 2s (NOT the 5s outer failsafe),
-    // so archive is capped at 1.5s at the injection site to stay under budget.
-    // archiveSession is contractually no-throw; the injected implementations
-    // log their own success/failure internally.
+    // 并行运行 stopWork 和 archiveSession。gracefulShutdown.ts:407 让
+    // runCleanupFunctions() 与 2s 赛跑（不是 5s 外层保险），所以 archive 在
+    // 注入点被钳到 1.5s 以保持在预算内。archiveSession 契约上 no-throw；
+    // 注入的实现自己记成功/失败日志。
     await Promise.all([stopWorkP, archiveSession(currentSessionId)])
 
     teardownTransport?.close()
@@ -1714,9 +1648,8 @@ export async function initBridgeCore(
       )
     })
 
-    // Clear the crash-recovery pointer — explicit disconnect or clean REPL
-    // exit means the user is done with this session. Crash/kill-9 never
-    // reaches this line, leaving the pointer for next-launch recovery.
+    // 清掉崩溃恢复指针 —— 显式断开或干净 REPL 退出意味着用户已经结束
+    // 这个 session。崩溃/kill-9 永远到不了这一行，把指针留给下次启动恢复。
     await clearBridgePointer(dir)
 
     logForDebugging(
@@ -1724,7 +1657,7 @@ export async function initBridgeCore(
     )
   }
 
-  // 8. Register cleanup for graceful shutdown
+  // 8. 为优雅关闭注册 cleanup
   const unregister = registerCleanup(() => doTeardownImpl?.())
 
   logForDebugging(
@@ -1740,19 +1673,18 @@ export async function initBridgeCore(
       return environmentId
     },
     getSSESequenceNum() {
-      // lastTransportSequenceNum only updates when a transport is CLOSED
-      // (captured at swap/onClose). During normal operation the CURRENT
-      // transport's live seq isn't reflected there. Merge both so callers
-      // (e.g. daemon persistState()) get the actual high-water mark.
+      // lastTransportSequenceNum 只在 transport 被关闭时（切换/onClose 时
+      // 捕获）才更新。正常运行期间，当前 transport 的实时 seq 不会反映
+      // 到这里。把两者合并，让调用方（如 daemon 的 persistState()）拿到
+      // 真正的高水位线。
       const live = transport?.getLastSequenceNum() ?? 0
       return Math.max(lastTransportSequenceNum, live)
     },
     sessionIngressUrl,
     writeMessages(messages) {
-      // Filter to user/assistant messages that haven't already been sent.
-      // Two layers of dedup:
-      //  - initialMessageUUIDs: messages sent as session creation events
-      //  - recentPostedUUIDs: messages recently sent via POST
+      // 过滤出尚未发送过的 user/assistant 消息。两层去重：
+      //  - initialMessageUUIDs：作为 session creation 事件发送过的消息
+      //  - recentPostedUUIDs：最近通过 POST 发送过的消息
       const filtered = messages.filter(
         m =>
           isEligibleBridgeMessage(m) &&
@@ -1761,10 +1693,9 @@ export async function initBridgeCore(
       )
       if (filtered.length === 0) return
 
-      // Fire onUserMessage for title derivation. Scan before the flushGate
-      // check — prompts are title-worthy even if they queue behind the
-      // initial history flush. Keeps calling on every title-worthy message
-      // until the callback returns true; the caller owns the policy.
+      // 触发 onUserMessage 推导标题。在 flushGate 检查之前扫描 —— 即使
+      // prompt 排在 initial 历史 flush 之后，它仍然有资格当标题。对每条
+      // 有资格当标题的消息都调，直到回调返回 true；策略由调用方决定。
       if (!userMessageCallbackDone) {
         for (const m of filtered) {
           const text = extractTitleText(m)
@@ -1775,8 +1706,8 @@ export async function initBridgeCore(
         }
       }
 
-      // Queue messages while the initial flush is in progress to prevent
-      // them from arriving at the server interleaved with history.
+      // initial flush 进行期间把消息排队，避免它们在服务器上与历史消息
+      // 交错到达。
       if (flushGate.enqueue(...filtered)) {
         logForDebugging(
           `[bridge:repl] Queued ${filtered.length} message(s) during initial flush`,
@@ -1793,7 +1724,7 @@ export async function initBridgeCore(
         return
       }
 
-      // Track in the bounded ring buffer for echo filtering and dedup.
+      // 在有界环形缓冲中追踪，用于 echo 过滤和去重。
       for (const msg of filtered) {
         recentPostedUUIDs.add(msg.uuid)
       }
@@ -1802,8 +1733,8 @@ export async function initBridgeCore(
         `[bridge:repl] Sending ${filtered.length} message(s) via transport`,
       )
 
-      // Convert to SDK format and send via HTTP POST (HybridTransport).
-      // The web UI receives them via the subscribe WebSocket.
+      // 转成 SDK 格式并通过 HTTP POST 发送（HybridTransport）。
+      // web UI 通过 subscribe WebSocket 接收。
       const sdkMessages = toSDKMessages(filtered)
       const events: TransportMessage[] = sdkMessages.map(sdkMsg => ({
         ...sdkMsg,
@@ -1812,10 +1743,10 @@ export async function initBridgeCore(
       void transport.writeBatch(events as StdoutMessage[])
     },
     writeSdkMessages(messages) {
-      // Daemon path: query() already yields SDKMessage, skip conversion.
-      // Still run echo dedup (server bounces writes back on the WS).
-      // No initialMessageUUIDs filter — daemon has no initial messages.
-      // No flushGate — daemon never starts it (no initial flush).
+      // Daemon 路径：query() 已经产出 SDKMessage，跳过转换。
+      // 仍然做 echo 去重（服务器会在 WS 上把写入回弹回来）。
+      // 没有 initialMessageUUIDs 过滤 —— daemon 没有 initial messages。
+      // 没有 flushGate —— daemon 从不启动它（没有 initial flush）。
       const filtered = messages.filter(
         m => !m.uuid || !recentPostedUUIDs.has(m.uuid as string),
       )
@@ -1910,14 +1841,12 @@ export async function initBridgeCore(
 }
 
 /**
- * Persistent poll loop for work items. Runs in the background for the
- * lifetime of the bridge connection.
+ * 持续轮询 work item 的循环。在 bridge 连接的整个生命周期内后台运行。
  *
- * When a work item arrives, acknowledges it and calls onWorkReceived
- * with the session ID and ingress token (which connects the ingress
- * WebSocket). Then continues polling — the server will dispatch a new
- * work item if the ingress WebSocket drops, allowing automatic
- * reconnection without tearing down the bridge.
+ * work item 到达时，对其 ack 并调用 onWorkReceived，传入 session ID 和
+ * ingress token（后者用于连接 ingress WebSocket）。之后继续 polling ——
+ * 如果 ingress WebSocket 断开，服务器会派发新的 work item，让我们能
+ * 自动重连而不必 teardown bridge。
  */
 async function startWorkPollLoop({
   api,
@@ -1944,33 +1873,31 @@ async function startWorkPollLoop({
     workId: string,
     useCodeSessions: boolean,
   ) => void
-  /** Called when the environment has been deleted. Returns new credentials or null. */
+  /** env 被删除时调用。返回新的凭据，或 null。 */
   onEnvironmentLost?: () => Promise<{
     environmentId: string
     environmentSecret: string
   } | null>
-  /** Returns the current WebSocket readyState label for diagnostic logging. */
+  /** 返回当前 WebSocket readyState 标签，用于诊断日志。 */
   getWsState?: () => string
   /**
-   * Returns true when the caller cannot accept new work (transport already
-   * connected). When true, the loop polls at the configured at-capacity
-   * interval as a heartbeat only. Server-side BRIDGE_LAST_POLL_TTL is
-   * 4 hours — anything shorter than that is sufficient for liveness.
+   * 当调用方无法接新 work（transport 已连接）时返回 true。为 true 时，
+   * 循环只按配置的 at-capacity interval 做心跳式 poll。服务器侧
+   * BRIDGE_LAST_POLL_TTL 为 4 小时 —— 只要短于它就足以维持存活。
    */
   isAtCapacity?: () => boolean
   /**
-   * Produces a signal that aborts when capacity frees up (transport lost),
-   * merged with the loop signal. Used to interrupt the at-capacity sleep
-   * so recovery polling starts immediately.
+   * 生成一个在容量释放（transport 丢失）时 abort 的信号，与循环信号合并。
+   * 用于中断 at-capacity sleep，让恢复性 poll 立即开始。
    */
   capacitySignal?: () => CapacitySignal
-  /** Called on unrecoverable errors (e.g. server-side expiry) to trigger full teardown. */
+  /** 出现不可恢复错误（例如服务器侧过期）时调用，触发完整 teardown。 */
   onFatalError?: () => void
-  /** Poll interval config getter — defaults to DEFAULT_POLL_CONFIG. */
+  /** Poll interval 配置 getter —— 默认 DEFAULT_POLL_CONFIG。 */
   getPollIntervalConfig?: () => PollIntervalConfig
   /**
-   * Returns the current work ID and session ingress token for heartbeat.
-   * When null, heartbeat is not possible (no active work item).
+   * 返回当前 work ID 和 session ingress token 用于 heartbeat。
+   * 为 null 时无法 heartbeat（没有活跃 work item）。
    */
   getHeartbeatInfo?: () => {
     environmentId: string
@@ -1978,13 +1905,12 @@ async function startWorkPollLoop({
     sessionToken: string
   } | null
   /**
-   * Called when heartbeatWork throws BridgeFatalError (401/403/404/410 —
-   * JWT expired or work item gone). Caller should tear down the transport
-   * + work state so isAtCapacity() flips to false and the loop fast-polls
-   * for the server's re-dispatched work item. When provided, the loop
-   * SKIPS the at-capacity backoff sleep (which would otherwise cause a
-   * ~10-minute dead window before recovery). When omitted, falls back to
-   * the backoff sleep to avoid a tight poll+heartbeat loop.
+   * 当 heartbeatWork 抛出 BridgeFatalError（401/403/404/410 —— JWT 过期
+   * 或 work item 没了）时调用。调用方应当 teardown transport 和 work 状态，
+   * 让 isAtCapacity() 变回 false，循环快速 poll 寻找服务器重新派发的
+   * work item。提供时，循环会跳过 at-capacity 退避 sleep（否则会造一个
+   * 约 10 分钟的死窗口才能恢复）。省略时，回落到退避 sleep，避免紧密的
+   * poll+heartbeat 循环。
    */
   onHeartbeatFatal?: (err: BridgeFatalError) => void
 }): Promise<void> {
@@ -1998,17 +1924,14 @@ async function startWorkPollLoop({
   let firstErrorTime: number | null = null
   let lastPollErrorTime: number | null = null
   let environmentRecreations = 0
-  // Set when the at-capacity sleep overruns its deadline by a large margin
-  // (process suspension). Consumed at the top of the next iteration to
-  // force one fast-poll cycle — isAtCapacity() is `transport !== null`,
-  // which stays true while the transport auto-reconnects, so the poll
-  // loop would otherwise go straight back to a 10-minute sleep on a
-  // transport that may be pointed at a dead socket.
+  // at-capacity sleep 超出截止时间很多（进程被挂起）时置位。在下一次迭代
+  // 顶部消费，强制走一次快速 poll —— isAtCapacity() 是
+  // `transport !== null`，transport 自动重连时它仍是 true，否则循环会
+  // 直接回到 10 分钟 sleep，而 transport 可能连着一个死 socket。
   let suspensionDetected = false
 
   while (!signal.aborted) {
-    // Capture credentials outside try so the catch block can detect
-    // whether a concurrent reconnection replaced the environment.
+    // 在 try 外面捕获凭据，让 catch 块能检测并发重连是否替换了 env。
     const { environmentId: envId, environmentSecret: envSecret } =
       getCredentials()
     const pollConfig = getPollIntervalConfig()
@@ -2020,15 +1943,14 @@ async function startWorkPollLoop({
         pollConfig.reclaim_older_than_ms,
       )
 
-      // A successful poll proves the env is genuinely healthy — reset the
-      // env-loss counter so events hours apart each start fresh. Outside
-      // the state-change guard below because onEnvLost's success path
-      // already emits 'ready'; emitting again here would be a duplicate.
-      // (onEnvLost returning creds does NOT reset this — that would break
-      // oscillation protection when the new env immediately dies.)
+      // 一次成功的 poll 证明 env 是真健康的 —— 重置 env-loss 计数器，让
+      // 相隔数小时的事件各自重新开始。放在下面的 state-change 守卫之外，
+      // 因为 onEnvLost 的成功路径已经发了 'ready'；这里再发就是重复。
+      //（onEnvLost 返回凭据不会重置它 —— 否则新 env 立即死掉时会破坏
+      // 振荡保护。）
       environmentRecreations = 0
 
-      // Reset error tracking on successful poll
+      // 成功 poll 时重置错误追踪
       if (consecutiveErrors > 0) {
         logForDebugging(
           `[bridge:repl] Poll recovered after ${consecutiveErrors} consecutive error(s)`,
@@ -2040,23 +1962,22 @@ async function startWorkPollLoop({
       }
 
       if (!work) {
-        // Read-and-clear: after a detected suspension, skip the at-capacity
-        // branch exactly once. The pollForWork above already refreshed the
-        // server's BRIDGE_LAST_POLL_TTL; this fast cycle gives any
-        // re-dispatched work item a chance to land before we go back under.
+        // 读后清：检测到挂起后，只跳过 at-capacity 分支一次。上面的
+        // pollForWork 已经刷新了服务器侧的 BRIDGE_LAST_POLL_TTL；这次
+        // 快速循环让任何重新派发的 work item 在我们再次进入睡眠前有机会
+        // 落地。
         const skipAtCapacityOnce = suspensionDetected
         suspensionDetected = false
         if (isAtCapacity?.() && capacitySignal && !skipAtCapacityOnce) {
           const atCapMs = pollConfig.poll_interval_ms_at_capacity
-          // Heartbeat loops WITHOUT polling. When at-capacity polling is also
-          // enabled (atCapMs > 0), the loop tracks a deadline and breaks out
-          // to poll at that interval — heartbeat and poll compose instead of
-          // one suppressing the other. Breaks out when:
-          //   - Poll deadline reached (atCapMs > 0 only)
-          //   - Auth fails (JWT expired → poll refreshes tokens)
-          //   - Capacity wake fires (transport lost → poll for new work)
-          //   - Heartbeat config disabled (GrowthBook update)
-          //   - Loop aborted (shutdown)
+          // 无 poll 的 heartbeat 循环。当 at-capacity poll 也启用
+          //（atCapMs > 0）时，循环追踪一个截止时间，到点就跳出来 poll ——
+          // heartbeat 和 poll 组合而非相互压制。跳出条件：
+          //   - Poll 截止时间到（仅 atCapMs > 0 时）
+          //   - 认证失败（JWT 过期 → poll 刷新 token）
+          //   - 容量唤醒触发（transport 丢失 → poll 寻找新 work）
+          //   - Heartbeat 配置禁用（GrowthBook 更新）
+          //   - 循环 abort（关闭）
           if (
             pollConfig.non_exclusive_heartbeat_interval_ms > 0 &&
             getHeartbeatInfo
@@ -2065,8 +1986,8 @@ async function startWorkPollLoop({
               heartbeat_interval_ms:
                 pollConfig.non_exclusive_heartbeat_interval_ms,
             })
-            // Deadline computed once at entry — GB updates to atCapMs don't
-            // shift an in-flight deadline (next entry picks up the new value).
+            // 进入时一次性计算截止时间 —— GB 对 atCapMs 的更新不会改变
+            // 在途截止时间（下一次进入取新值）。
             const pollDeadline = atCapMs > 0 ? Date.now() + atCapMs : null
             let needsBackoff = false
             let hbCycles = 0
@@ -2081,9 +2002,8 @@ async function startWorkPollLoop({
               const info = getHeartbeatInfo()
               if (!info) break
 
-              // Capture capacity signal BEFORE the async heartbeat call so
-              // a transport loss during the HTTP request is caught by the
-              // subsequent sleep.
+              // 在 async heartbeat 调用之前捕获 capacity signal，让 HTTP
+              // 请求期间的 transport 丢失能被随后的 sleep 抓到。
               const cap = capacitySignal()
 
               try {
@@ -2105,14 +2025,12 @@ async function startWorkPollLoop({
                       ? 'auth_failed'
                       : 'fatal') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                   })
-                  // JWT expired (401/403) or work item gone (404/410).
-                  // Either way the current transport is dead — SSE
-                  // reconnects and CCR writes will fail on the same
-                  // stale token. If the caller gave us a recovery hook,
-                  // tear down work state and skip backoff: isAtCapacity()
-                  // flips to false, next outer-loop iteration fast-polls
-                  // for the server's re-dispatched work item. Without
-                  // the hook, backoff to avoid tight poll+heartbeat loop.
+                  // JWT 过期（401/403）或 work item 没了（404/410）。
+                  // 无论哪种，当前 transport 都已死 —— SSE 重连和 CCR 写入
+                  // 在同一个过期 token 上会失败。如果调用方给了恢复钩子，
+                  // teardown work 状态并跳过退避：isAtCapacity() 变回 false，
+                  // 下一次外循环迭代快速 poll 寻找服务器重新派发的 work
+                  // item。没钩子则退避，避免紧密的 poll+heartbeat 循环。
                   if (onHeartbeatFatal) {
                     onHeartbeatFatal(err)
                     logForDebugging(
@@ -2148,15 +2066,16 @@ async function startWorkPollLoop({
               heartbeat_cycles: hbCycles,
             })
 
-            // On auth_failed or fatal, backoff before polling to avoid a
-            // tight poll+heartbeat loop. Fall through to the shared sleep
-            // below — it's the same capacitySignal-wrapped sleep the legacy
-            // path uses, and both need the suspension-overrun check.
+            // auth_failed 或 fatal 时，在 poll 之前退避，避免紧密的
+            // poll+heartbeat 循环。落到下面共享的 sleep —— 它和 legacy
+            // 路径用的是同一个 capacitySignal 包装的 sleep，两者都需要
+            // 挂起超限检查。
             if (!needsBackoff) {
               if (exitReason === 'poll_due') {
-                // bridgeApi throttles empty-poll logs (EMPTY_POLL_LOG_INTERVAL=100)
-                // so the once-per-10min poll_due poll is invisible at counter=2.
-                // Log it here so verification runs see both endpoints in the debug log.
+                // bridgeApi 对 empty-poll 日志做了节流
+                //（EMPTY_POLL_LOG_INTERVAL=100），所以每 10 分钟一次的
+                // poll_due poll 在 counter=2 时是看不到的。在这里记一条，
+                // 让验证运行在 debug 日志里能看到两端。
                 logForDebugging(
                   `[bridge:repl] Heartbeat poll_due after ${hbCycles} cycles — falling through to pollForWork`,
                 )
@@ -2164,13 +2083,12 @@ async function startWorkPollLoop({
               continue
             }
           }
-          // At-capacity sleep — reached by both the legacy path (heartbeat
-          // disabled) and the heartbeat-backoff path (needsBackoff=true).
-          // Merged so the suspension detector covers both; previously the
-          // backoff path had no overrun check and could go straight back
-          // under for 10 min after a laptop wake. Use atCapMs when enabled,
-          // else the heartbeat interval as a floor (guaranteed > 0 on the
-          // backoff path) so heartbeat-only configs don't tight-loop.
+          // At-capacity sleep —— legacy 路径（heartbeat 禁用）和
+          // heartbeat-backoff 路径（needsBackoff=true）都走到这里。合并
+          // 起来让挂起检测覆盖两者；以前 backoff 路径没有超限检查，笔记本
+          // 唤醒后可能直接回到 10 分钟睡眠。启用时用 atCapMs，否则用
+          // heartbeat interval 作为下限（backoff 路径上保证 > 0），避免
+          // 只配 heartbeat 的配置紧密循环。
           const sleepMs =
             atCapMs > 0
               ? atCapMs
@@ -2180,15 +2098,13 @@ async function startWorkPollLoop({
             const sleepStart = Date.now()
             await sleep(sleepMs, cap.signal)
             cap.cleanup()
-            // Process-suspension detector. A setTimeout overshooting its
-            // deadline by 60s means the process was suspended (laptop lid,
-            // SIGSTOP, VM pause) — even a pathological GC pause is seconds,
-            // not minutes. Early aborts (wakePollLoop → cap.signal) produce
-            // overrun < 0 and fall through. Note: this only catches sleeps
-            // that outlast their deadline; WebSocketTransport's ping
-            // interval (10s granularity) is the primary detector for shorter
-            // suspensions. This is the backstop for when that detector isn't
-            // running (transport mid-reconnect, interval stopped).
+            // 进程挂起检测器。一个 setTimeout 超过其截止时间 60s 意味着
+            // 进程被挂起过（笔记本合盖、SIGSTOP、VM 暂停）—— 即使是病态
+            // GC 停顿也是秒级，不是分钟级。提前 abort
+            //（wakePollLoop → cap.signal）会产生 overrun < 0 并落空。注意：
+            // 这里只捕获超过截止时间的 sleep；WebSocketTransport 的 ping
+            // 间隔（10s 粒度）是更短挂起的主要检测器。这里是在那个检测器
+            // 没跑时（transport 重连中、interval 停了）的兜底。
             const overrun = Date.now() - sleepStart - sleepMs
             if (overrun > 60_000) {
               logForDebugging(
@@ -2206,7 +2122,7 @@ async function startWorkPollLoop({
         continue
       }
 
-      // Decode before type dispatch — need the JWT for the explicit ack.
+      // 在按类型派发之前先解码 —— 显式 ack 需要 JWT。
       let secret
       try {
         secret = decodeWorkSecret(work.secret)
@@ -2215,14 +2131,14 @@ async function startWorkPollLoop({
           `[bridge:repl] Failed to decode work secret: ${errorMessage(err)}`,
         )
         logEvent('tengu_bridge_repl_work_secret_failed', {})
-        // Can't ack (needs the JWT we failed to decode). stopWork uses OAuth.
-        // Prevents XAUTOCLAIM re-delivering this poisoned item every cycle.
+        // 无法 ack（ack 需要我们刚解码失败的 JWT）。stopWork 用 OAuth。
+        // 防止 XAUTOCLAIM 把这个毒丸每轮重新投递一次。
         await api.stopWork(envId, work.id, false).catch(() => {})
         continue
       }
 
-      // Explicitly acknowledge to prevent redelivery. Non-fatal on failure:
-      // server re-delivers, and the onWorkReceived callback handles dedup.
+      // 显式 ack 以防重复投递。失败不致命：服务器会重新投递，
+      // onWorkReceived 回调负责去重。
       logForDebugging(`[bridge:repl] Acknowledging workId=${work.id}`)
       try {
         await api.acknowledgeWork(envId, work.id, secret.session_ingress_token)
@@ -2259,24 +2175,22 @@ async function startWorkPollLoop({
     } catch (err) {
       if (signal.aborted) break
 
-      // Detect permanent "environment deleted" error — no amount of
-      // retrying will recover. Re-register a new environment instead.
-      // Checked BEFORE the generic BridgeFatalError bail. pollForWork uses
-      // validateStatus: s => s < 500, so 404 is always wrapped into a
-      // BridgeFatalError by handleErrorStatus() — never an axios-shaped
-      // error. The poll endpoint's only path param is the env ID; 404
-      // unambiguously means env-gone (no-work is a 200 with null body).
-      // The server sends error.type='not_found_error' (standard Anthropic
-      // API shape), not a bridge-specific string — but status===404 is
-      // the real signal and survives body-shape changes.
+      // 检测永久的"environment 已删除"错误 —— 再多重试也救不回来。
+      // 改为重新注册一个新 env。先于通用 BridgeFatalError 退出之前检查。
+      // pollForWork 使用 validateStatus: s => s < 500，所以 404 总是被
+      // handleErrorStatus() 包装成 BridgeFatalError —— 绝不会是 axios 形状
+      // 的错误。poll endpoint 唯一的路径参数是 env ID；404 明确表示
+      // env-gone（无 work 是 200 + null body）。服务器发送
+      // error.type='not_found_error'（标准 Anthropic API 形状），不是
+      // bridge 专属字符串 —— 但 status===404 才是真正的信号，能挺过
+      // body 形状变更。
       if (
         err instanceof BridgeFatalError &&
         err.status === 404 &&
         onEnvironmentLost
       ) {
-        // If credentials have already been refreshed by a concurrent
-        // reconnection (e.g. WS close handler), the stale poll's error
-        // is expected — skip onEnvironmentLost and retry with fresh creds.
+        // 如果凭据已经被并发重连刷新（例如 WS close 处理器），这次过期
+        // poll 的错误是预期内的 —— 跳过 onEnvironmentLost 并用新凭据重试。
         const currentEnvId = getCredentials().environmentId
         if (envId !== currentEnvId) {
           logForDebugging(
@@ -2309,20 +2223,17 @@ async function startWorkPollLoop({
 
         onStateChange?.('reconnecting', 'environment lost, recreating session')
         const newCreds = await onEnvironmentLost()
-        // doReconnect() makes several sequential network calls (1-5s).
-        // If the user triggered teardown during that window, its internal
-        // abort checks return false — but we need to re-check here to
-        // avoid emitting a spurious 'failed' + onFatalError() during
-        // graceful shutdown.
+        // doReconnect() 会做多次顺序网络调用（1-5s）。如果用户在这个窗口
+        // 里触发了 teardown，它内部的 abort 检查会返回 false —— 但我们要
+        // 在这里再检查一次，避免在优雅关闭期间发出虚假 'failed' +
+        // onFatalError()。
         if (signal.aborted) break
         if (newCreds) {
-          // Credentials are updated in the outer scope via
-          // reconnectEnvironmentWithSession — getCredentials() will
-          // return the fresh values on the next poll iteration.
-          // Do NOT reset environmentRecreations here — onEnvLost returning
-          // creds only proves we tried to fix it, not that the env is
-          // healthy. A successful poll (above) is the reset point; if the
-          // new env immediately dies again we still want the limit to fire.
+          // 凭据通过 reconnectEnvironmentWithSession 在外层作用域更新 ——
+          // 下一次 poll 迭代时 getCredentials() 返回新值。
+          // 不要在这里重置 environmentRecreations —— onEnvLost 返回凭据
+          // 只说明我们试过修，不说明 env 健康。成功的 poll（上面）才是
+          // 重置点；如果新 env 立即死掉，我们仍然希望限制能触发。
           consecutiveErrors = 0
           firstErrorTime = null
           onStateChange?.('ready')
@@ -2340,7 +2251,7 @@ async function startWorkPollLoop({
         break
       }
 
-      // Fatal errors (401/403/404/410) — no point retrying
+      // 致命错误（401/403/404/410）—— 重试无意义
       if (err instanceof BridgeFatalError) {
         const isExpiry = isExpiredErrorType(err.errorType)
         const isSuppressible = isSuppressible403(err)
@@ -2357,9 +2268,9 @@ async function startWorkPollLoop({
           'bridge_repl_fatal_error',
           { status: err.status, error_type: err.errorType },
         )
-        // Cosmetic 403 errors (e.g., external_poll_sessions scope,
-        // environments:manage permission) — suppress user-visible error
-        // but always trigger teardown so cleanup runs.
+        // 装饰性 403 错误（例如 external_poll_sessions scope、
+        // environments:manage 权限）—— 抑制用户可见错误，但总是触发
+        // teardown 以保证 cleanup 执行。
         if (!isSuppressible) {
           onStateChange?.(
             'failed',
@@ -2368,18 +2279,17 @@ async function startWorkPollLoop({
               : err.message,
           )
         }
-        // Always trigger teardown — matches bridgeMain.ts where fatalExit=true
-        // is unconditional and post-loop cleanup always runs.
+        // 总是触发 teardown —— 与 bridgeMain.ts 一致，那里
+        // fatalExit=true 是无条件的，循环后 cleanup 总会跑。
         onFatalError?.()
         break
       }
 
       const now = Date.now()
 
-      // Detect system sleep/wake: if the gap since the last poll error
-      // greatly exceeds the max backoff delay, the machine likely slept.
-      // Reset error tracking so we retry with a fresh budget instead of
-      // immediately giving up.
+      // 检测系统 sleep/wake：如果距离上次 poll 错误的间隔远大于最大退避
+      // 延迟，机器多半睡过了。重置错误追踪，让我们用新的预算重试，而非
+      // 立即放弃。
       if (
         lastPollErrorTime !== null &&
         now - lastPollErrorTime > POLL_ERROR_MAX_DELAY_MS * 2
@@ -2413,13 +2323,13 @@ async function startWorkPollLoop({
         elapsedMs: elapsed,
       } as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS)
 
-      // Only transition to 'reconnecting' on the first error — stay
-      // there until a successful poll (avoid flickering the UI state).
+      // 只在第一次错误时转为 'reconnecting' —— 在成功 poll 之前保持
+      // 该状态（避免 UI 状态闪烁）。
       if (consecutiveErrors === 1) {
         onStateChange?.('reconnecting', errMsg)
       }
 
-      // Give up after continuous failures
+      // 持续失败超过阈值就放弃
       if (elapsed >= POLL_ERROR_GIVE_UP_MS) {
         logForDebugging(
           `[bridge:repl] Poll failures exceeded ${POLL_ERROR_GIVE_UP_MS / 1000}s (${consecutiveErrors} errors), giving up`,
@@ -2434,15 +2344,15 @@ async function startWorkPollLoop({
         break
       }
 
-      // Exponential backoff: 2s → 4s → 8s → 16s → 32s → 60s (cap)
+      // 指数退避：2s → 4s → 8s → 16s → 32s → 60s（上限）
       const backoff = Math.min(
         POLL_ERROR_INITIAL_DELAY_MS * 2 ** (consecutiveErrors - 1),
         POLL_ERROR_MAX_DELAY_MS,
       )
-      // The poll_due heartbeat-loop exit leaves a healthy lease exposed to
-      // this backoff path. Heartbeat before each sleep so /poll outages
-      // (the VerifyEnvironmentSecretAuth DB path heartbeat was introduced to
-      // avoid) don't kill the 300s lease TTL.
+      // poll_due 的 heartbeat 循环退出把一个健康的 lease 暴露给了这条
+      // 退避路径。每次 sleep 之前先 heartbeat，让 /poll 宕机
+      //（heartbeat 被引入就是为了避免那个 VerifyEnvironmentSecretAuth
+      // DB 路径）不至于干掉 300s 的 lease TTL。
       if (getPollIntervalConfig().non_exclusive_heartbeat_interval_ms > 0) {
         const info = getHeartbeatInfo?.()
         if (info) {
@@ -2453,9 +2363,9 @@ async function startWorkPollLoop({
               info.sessionToken,
             )
           } catch {
-            // Best-effort — if heartbeat also fails the lease dies, same as
-            // pre-poll_due behavior (where the only heartbeat-loop exits were
-            // ones where the lease was already dying).
+            // 尽力而为 —— 如果 heartbeat 也失败，lease 就死了，与
+            // pre-poll_due 行为一致（那时 heartbeat 循环退出的唯一情况
+            // 就是 lease 已经在死）。
           }
         }
       }
@@ -2468,7 +2378,7 @@ async function startWorkPollLoop({
   )
 }
 
-// Exported for testing only
+// 仅为测试导出
 export {
   startWorkPollLoop as _startWorkPollLoopForTesting,
   POLL_ERROR_INITIAL_DELAY_MS as _POLL_ERROR_INITIAL_DELAY_MS_ForTesting,

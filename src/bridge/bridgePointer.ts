@@ -12,29 +12,27 @@ import {
 import { jsonParse, jsonStringify } from '../utils/slowOperations.js'
 
 /**
- * Upper bound on worktree fanout. git worktree list is naturally bounded
- * (50 is a LOT), but this caps the parallel stat() burst and guards against
- * pathological setups. Above this, --continue falls back to current-dir-only.
+ * worktree 扇出的上限。git worktree list 本身天然有界（50 已经很多了），
+ * 这个上限用来控制并发的 stat() 突发，并防御病态配置。超过这个数量时，
+ * --continue 会回退为只扫描当前目录。
  */
 const MAX_WORKTREE_FANOUT = 50
 
 /**
- * Crash-recovery pointer for Remote Control sessions.
+ * Remote Control session 的崩溃恢复指针。
  *
- * Written immediately after a bridge session is created, periodically
- * refreshed during the session, and cleared on clean shutdown. If the
- * process dies unclean (crash, kill -9, terminal closed), the pointer
- * persists. On next startup, `claude remote-control` detects it and offers
- * to resume via the --session-id flow from #20460.
+ * 在 bridge session 创建后立即写入、session 期间周期性刷新、干净关闭时
+ * 清除。如果进程异常死亡（崩溃、kill -9、终端关闭），指针会保留下来。
+ * 下次启动时，`claude remote-control` 会检测到它，并通过 #20460 的
+ * --session-id 流程提示用户恢复。
  *
- * Staleness is checked against the file's mtime (not an embedded timestamp)
- * so that a periodic re-write with the same content serves as a refresh —
- * matches the backend's rolling BRIDGE_LAST_POLL_TTL (4h) semantics. A
- * bridge that's been polling for 5+ hours and then crashes still has a
- * fresh pointer as long as the refresh ran within the window.
+ * 陈旧判断基于文件的 mtime（而非内嵌时间戳），因此周期性写回相同内容
+ * 就能起到刷新作用 —— 与后端滚动的 BRIDGE_LAST_POLL_TTL（4h）语义一致。
+ * 一个已经轮询 5+ 小时然后崩溃的 bridge，只要在窗口内跑过一次刷新，
+ * 指针就仍然是新鲜的。
  *
- * Scoped per working directory (alongside transcript JSONL files) so two
- * concurrent bridges in different repos don't clobber each other.
+ * 按工作目录分文件存放（紧挨着 transcript JSONL 文件），避免不同仓库下
+ * 同时运行的两个 bridge 互相覆盖。
  */
 
 export const BRIDGE_POINTER_TTL_MS = 4 * 60 * 60 * 1000
@@ -54,10 +52,9 @@ export function getBridgePointerPath(dir: string): string {
 }
 
 /**
- * Write the pointer. Also used to refresh mtime during long sessions —
- * calling with the same IDs is a cheap no-content-change write that bumps
- * the staleness clock. Best-effort — a crash-recovery file must never
- * itself cause a crash. Logs and swallows on error.
+ * 写入指针。在长 session 中也用它来刷新 mtime —— 用相同的 ID 调用是
+ * 一次内容不变的廉价写入，只是推动陈旧时钟前进。best-effort —— 崩溃
+ * 恢复文件本身绝不能引发崩溃。出错时记录日志并吞掉。
  */
 export async function writeBridgePointer(
   dir: string,
@@ -74,11 +71,10 @@ export async function writeBridgePointer(
 }
 
 /**
- * Read the pointer and its age (ms since last write). Operates directly
- * and handles errors — no existence check (CLAUDE.md TOCTOU rule). Returns
- * null on any failure: missing file, corrupted JSON, schema mismatch, or
- * stale (mtime > 4h ago). Stale/invalid pointers are deleted so they don't
- * keep re-prompting after the backend has already GC'd the env.
+ * 读取指针及其 age（距上次写入的毫秒数）。直接操作并处理错误 ——
+ * 不做存在性检查（CLAUDE.md 的 TOCTOU 原则）。任何失败都返回 null：
+ * 文件缺失、JSON 损坏、schema 不匹配、或陈旧（mtime 早于 4 小时前）。
+ * 陈旧/无效的指针会被删除，避免在后端已经 GC 掉 env 之后还反复弹窗。
  */
 export async function readBridgePointer(
   dir: string,
@@ -87,8 +83,8 @@ export async function readBridgePointer(
   let raw: string
   let mtimeMs: number
   try {
-    // stat for mtime (staleness anchor), then read. Two syscalls, but both
-    // are needed — mtime IS the data we return, not a TOCTOU guard.
+    // 先 stat 拿 mtime（陈旧判断锚点），再读内容。两次系统调用都
+    // 必不可少 —— mtime 本身就是我们返回的数据，不是 TOCTOU 防护。
     mtimeMs = (await stat(path)).mtimeMs
     raw = await readFile(path, 'utf8')
   } catch {
@@ -113,31 +109,31 @@ export async function readBridgePointer(
 }
 
 /**
- * Worktree-aware read for `--continue`. The REPL bridge writes its pointer
- * to `getOriginalCwd()` which EnterWorktreeTool/activeWorktreeSession can
- * mutate to a worktree path — but `claude remote-control --continue` runs
- * with `resolve('.')` = shell CWD. This fans out across git worktree
- * siblings to find the freshest pointer, matching /resume's semantics.
+ * 为 `--continue` 提供的 worktree 感知读取。REPL bridge 把指针写到
+ * `getOriginalCwd()`，而 EnterWorktreeTool/activeWorktreeSession 可能把它
+ * 改成某个 worktree 路径 —— 但 `claude remote-control --continue` 是以
+ * `resolve('.')` = shell CWD 运行的。这里跨 git worktree 兄弟目录扇出
+ * 查找最新的指针，与 /resume 的语义保持一致。
  *
- * Fast path: checks `dir` first. Only shells out to `git worktree list` if
- * that misses — the common case (pointer in launch dir) is one stat, zero
- * exec. Fanout reads run in parallel; capped at MAX_WORKTREE_FANOUT.
+ * 快速路径：先检查 `dir`。只有没命中时才 shell out 跑 `git worktree list`
+ * —— 常见场景（指针就在启动目录）只需一次 stat、零次 exec。扇出读
+ * 并发执行；上限 MAX_WORKTREE_FANOUT。
  *
- * Returns the pointer AND the dir it was found in, so the caller can clear
- * the right file on resume failure.
+ * 返回指针以及找到它的目录，这样调用方在 resume 失败时可以清掉正确
+ * 的那个文件。
  */
 export async function readBridgePointerAcrossWorktrees(
   dir: string,
 ): Promise<{ pointer: BridgePointer & { ageMs: number }; dir: string } | null> {
-  // Fast path: current dir. Covers standalone bridge (always matches) and
-  // REPL bridge when no worktree mutation happened.
+  // 快速路径：当前目录。覆盖 standalone bridge（永远匹配）以及没有发生
+  // worktree 变更的 REPL bridge。
   const here = await readBridgePointer(dir)
   if (here) {
     return { pointer: here, dir }
   }
 
-  // Fanout: scan worktree siblings. getWorktreePathsPortable has a 5s
-  // timeout and returns [] on any error (not a git repo, git not installed).
+  // 扇出：扫描 worktree 兄弟。getWorktreePathsPortable 有 5s 超时，任何
+  // 错误（不是 git 仓库、git 未安装）都返回 []。
   const worktrees = await getWorktreePathsPortable(dir)
   if (worktrees.length <= 1) return null
   if (worktrees.length > MAX_WORKTREE_FANOUT) {
@@ -147,15 +143,15 @@ export async function readBridgePointerAcrossWorktrees(
     return null
   }
 
-  // Dedupe against `dir` so we don't re-stat it. sanitizePath normalizes
-  // case/separators so worktree-list output matches our fast-path key even
-  // on Windows where git may emit C:/ vs stored c:/.
+  // 相对 `dir` 去重，避免重复 stat。sanitizePath 归一化大小写/分隔符，
+  // 让 worktree-list 的输出与快速路径的 key 匹配 —— 在 Windows 上这很
+  // 重要，git 可能吐出 C:/ 而我们存的是 c:/。
   const dirKey = sanitizePath(dir)
   const candidates = worktrees.filter(wt => sanitizePath(wt) !== dirKey)
 
-  // Parallel stat+read. Each readBridgePointer is a stat() that ENOENTs
-  // for worktrees with no pointer (cheap) plus a ~100-byte read for the
-  // rare ones that have one. Promise.all → latency ≈ slowest single stat.
+  // 并发 stat+read。每个 readBridgePointer 都是一次 stat()（没有指针的
+  // worktree 会 ENOENT，很廉价），再加上罕见命中时一次约 100 字节的读。
+  // Promise.all → 总延迟约等于最慢的那一次 stat。
   const results = await Promise.all(
     candidates.map(async wt => {
       const p = await readBridgePointer(wt)
@@ -163,9 +159,8 @@ export async function readBridgePointerAcrossWorktrees(
     }),
   )
 
-  // Pick freshest (lowest ageMs). The pointer stores environmentId so
-  // resume reconnects to the right env regardless of which worktree
-  // --continue was invoked from.
+  // 挑最新的（ageMs 最小）。指针里保存了 environmentId，所以不管
+  // --continue 是从哪个 worktree 启动的，resume 都能重连到正确的 env。
   let freshest: {
     pointer: BridgePointer & { ageMs: number }
     dir: string
@@ -184,8 +179,7 @@ export async function readBridgePointerAcrossWorktrees(
 }
 
 /**
- * Delete the pointer. Idempotent — ENOENT is expected when the process
- * shut down clean previously.
+ * 删除指针。幂等 —— 进程上次已经干净关闭时 ENOENT 是预期内的。
  */
 export async function clearBridgePointer(dir: string): Promise<void> {
   const path = getBridgePointerPath(dir)

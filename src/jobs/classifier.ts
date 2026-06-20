@@ -3,13 +3,13 @@ import { join } from 'path'
 import type { AssistantMessage } from '../types/message.js'
 
 /**
- * Classify the job status from the turn's assistant messages and update state.json.
+ * 从本轮的助手消息中对任务状态进行分类，并更新 state.json。
  *
- * Called by stopHooks.ts after each repl_main_thread turn when CLAUDE_JOB_DIR is set.
- * Only the main thread calls this (not subagents).
+ * 由 stopHooks.ts 在每次 repl_main_thread 轮次后调用（当设置了 CLAUDE_JOB_DIR 时）。
+ * 只有主线程会调用此函数（子代理不会）。
  *
- * @param jobDir - Path to the job directory (from CLAUDE_JOB_DIR env)
- * @param assistantMessages - Assistant messages from this turn
+ * @param jobDir - 任务目录的路径（来自 CLAUDE_JOB_DIR 环境变量）
+ * @param assistantMessages - 本轮的助手消息
  */
 export async function classifyAndWriteState(
   jobDir: string,
@@ -21,7 +21,7 @@ export async function classifyAndWriteState(
   try {
     state = JSON.parse(readFileSync(stateFile, 'utf-8'))
   } catch {
-    // No state file or corrupt — not a valid job directory
+    // 没有 state 文件或已损坏——不是有效的任务目录
     return
   }
 
@@ -33,11 +33,11 @@ export async function classifyAndWriteState(
 }
 
 /**
- * Determine job status from assistant messages.
+ * 根据助手消息确定任务状态。
  *
- * - Has tool_use blocks → still running (tools executing)
- * - stop_reason === 'end_turn' → completed (model finished)
- * - Otherwise → running
+ * - 有 tool_use 块 → 仍在运行（工具正在执行）
+ * - stop_reason === 'end_turn' → 已完成（模型已结束）
+ * - 否则 → 运行中
  */
 function classifyStatus(messages: AssistantMessage[]): string {
   if (messages.length === 0) return 'running'
@@ -45,7 +45,7 @@ function classifyStatus(messages: AssistantMessage[]): string {
   const lastMessage = messages[messages.length - 1]!
   const content = lastMessage.message?.content
 
-  // Check if the last message has tool_use blocks (still executing)
+  // 检查最后一条消息是否包含 tool_use 块（仍在执行）
   if (Array.isArray(content)) {
     const hasToolUse = content.some(
       block =>
@@ -57,7 +57,7 @@ function classifyStatus(messages: AssistantMessage[]): string {
     if (hasToolUse) return 'running'
   }
 
-  // Check stop_reason via index signature
+  // 通过索引签名检查 stop_reason
   const stopReason = (lastMessage.message as Record<string, unknown>)
     ?.stop_reason
   if (stopReason === 'end_turn') return 'completed'

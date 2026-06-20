@@ -3,9 +3,9 @@ import { count } from '../utils/array.js'
 import type { BackgroundTaskState } from './types.js'
 
 /**
- * Produces the compact footer-pill label for a set of background tasks.
- * Used by both the footer pill and the turn-duration transcript line so the
- * two surfaces agree on terminology.
+ * 为一组后台任务生成紧凑的 footer-pill 标签。
+ * footer pill 和按轮次计时的对话记录行都会调用此函数，
+ * 这样两处的用词保持一致。
  */
 export function getPillLabel(tasks: BackgroundTaskState[]): string {
   const n = tasks.length
@@ -38,8 +38,8 @@ export function getPillLabel(tasks: BackgroundTaskState[]): string {
         return n === 1 ? '1 local agent' : `${n} local agents`
       case 'remote_agent': {
         const first = tasks[0]!
-        // Per design mockup: ◇ open diamond while running/needs-input,
-        // ◆ filled once ExitPlanMode is awaiting approval.
+        // 按设计稿：处于 running/needs-input 时显示 ◇ 空心菱形，
+        // ExitPlanMode 等待审批时显示 ◆ 实心菱形。
         if (n === 1 && first.type === 'remote_agent' && first.isUltraplan) {
           switch (first.ultraplanPhase) {
             case 'plan_ready':
@@ -67,9 +67,9 @@ export function getPillLabel(tasks: BackgroundTaskState[]): string {
 }
 
 /**
- * True when the pill should show the dimmed " · ↓ to view" call-to-action.
- * Per the state diagram: only the two attention states (needs_input,
- * plan_ready) surface the CTA; plain running shows just the diamond + label.
+ * 判断 pill 是否应当展示弱化的「 · ↓ to view」召唤动作。
+ * 按状态图：只有两个需要注意的状态（needs_input、plan_ready）
+ * 才展示 CTA；普通的 running 只显示菱形 + 文本。
  */
 export function pillNeedsCta(tasks: BackgroundTaskState[]): boolean {
   if (tasks.length !== 1) return false

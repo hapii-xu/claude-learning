@@ -1,10 +1,10 @@
 /**
- * Tests for launchMemoryStores.ts
+ * launchMemoryStores.ts 的测试
  *
- * Strategy per feedback_mock_dependency_not_subject:
- * - DO NOT mock memoryStoresApi.js itself (would pollute api.test.ts)
- * - Mock axios (the underlying HTTP layer) to control API responses
- * - Let real memoryStoresApi functions run real code paths
+ * 策略（依据 feedback_mock_dependency_not_subject）：
+ * - 不要 mock memoryStoresApi.js 本身（会污染 api.test.ts）
+ * - mock 掉 axios（底层 HTTP 层）来控制 API 响应
+ * - 让真实的 memoryStoresApi 函数走真实代码路径
  */
 
 import {
@@ -23,7 +23,7 @@ import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
 
-// ── Analytics mock ──────────────────────────────────────────────────────────
+// ── Analytics mock ──────────────────────────────────────────────────────────（Analytics mock）
 const realAnalytics = await import('src/services/analytics/index.js')
 const logEventMock = mock(() => {})
 mock.module('src/services/analytics/index.js', () => ({
@@ -31,7 +31,7 @@ mock.module('src/services/analytics/index.js', () => ({
   logEvent: logEventMock,
 }))
 
-// ── Auth / OAuth mocks ──────────────────────────────────────────────────────
+// ── Auth / OAuth mocks ──────────────────────────────────────────────────────（Auth / OAuth mock）
 const realAuth = await import('src/utils/auth.js')
 mock.module('src/utils/auth.js', () => ({
   ...realAuth,
@@ -43,9 +43,9 @@ mock.module('src/services/oauth/client.js', () => ({
 mock.module('src/constants/oauth.js', () => ({
   getOauthConfig: () => ({ BASE_API_URL: 'https://api.anthropic.com' }),
 }))
-// Spread real teleport/api so any export not explicitly stubbed (like
-// prepareApiRequest, axiosGetWithRetry, type guards, schemas)
-// remains available to transitive importers.
+// 展开真实的 teleport/api，使任何未显式 stub 的导出（例如
+// prepareApiRequest、axiosGetWithRetry、类型守卫、schemas）
+// 对传递性导入者保持可用。
 const realTeleportApi = await import('src/utils/teleport/api.js')
 mock.module('src/utils/teleport/api.js', () => ({
   ...realTeleportApi,
@@ -63,13 +63,13 @@ mock.module('src/services/auth/hostGuard.ts', () => ({
   assertNoAnthropicEnvForOpenAI: () => {},
 }))
 
-// ── MemoryStoresView mock ───────────────────────────────────────────────────
+// ── MemoryStoresView mock ───────────────────────────────────────────────────（MemoryStoresView mock）
 const memoryStoresViewMock = mock((_props: unknown) => null)
 mock.module('src/commands/memory-stores/MemoryStoresView.js', () => ({
   MemoryStoresView: memoryStoresViewMock,
 }))
 
-// ── Axios mock ──────────────────────────────────────────────────────────────
+// ── Axios mock ──────────────────────────────────────────────────────────────（Axios mock）
 const axiosGetMock = mock(async () => ({}))
 const axiosPostMock = mock(async () => ({}))
 const axiosPatchMock = mock(async () => ({}))
@@ -90,7 +90,7 @@ axiosHandle.stubs.patch = axiosPatchMock
 axiosHandle.stubs.delete = axiosDeleteMock
 axiosHandle.stubs.isAxiosError = axiosIsAxiosError
 
-// ── Lazy imports ─────────────────────────────────────────────────────────────
+// ── 懒加载 imports ─────────────────────────────────────────────────────
 let callMemoryStores: typeof import('../launchMemoryStores.js').callMemoryStores
 
 beforeAll(async () => {
@@ -103,7 +103,7 @@ afterAll(() => {
   axiosHandle.useStubs = false
 })
 
-// ── Helper ────────────────────────────────────────────────────────────────────
+// ── 辅助函数 ────────────────────────────────────────────────────────────
 function makeOnDone() {
   const calls: [string | undefined, unknown][] = []
   const onDone = (msg?: string, opts?: unknown) => calls.push([msg, opts])
@@ -119,7 +119,7 @@ beforeEach(() => {
   memoryStoresViewMock.mockClear()
 })
 
-// ── invalid args ──────────────────────────────────────────────────────────────
+// ── 非法参数 ──────────────────────────────────────────────────────────────
 describe('callMemoryStores: invalid args', () => {
   test('invalid subcommand → onDone with usage + null', async () => {
     const { onDone, calls } = makeOnDone()
@@ -129,7 +129,7 @@ describe('callMemoryStores: invalid args', () => {
   })
 })
 
-// ── list ──────────────────────────────────────────────────────────────────────
+// ── list ──────────────────────────────────────────────────────────────────────（list）
 describe('callMemoryStores: list', () => {
   test('list returns empty stores', async () => {
     axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
@@ -157,7 +157,7 @@ describe('callMemoryStores: list', () => {
   })
 })
 
-// ── get ───────────────────────────────────────────────────────────────────────
+// ── get ───────────────────────────────────────────────────────────────────────（get）
 describe('callMemoryStores: get', () => {
   test('get calls axios.get with id in URL', async () => {
     const store = { memory_store_id: 'ms_get', name: 'Work Store' }
@@ -177,7 +177,7 @@ describe('callMemoryStores: get', () => {
   })
 })
 
-// ── create ────────────────────────────────────────────────────────────────────
+// ── create ────────────────────────────────────────────────────────────────────（create）
 describe('callMemoryStores: create', () => {
   test('create calls axios.post with name in body', async () => {
     const store = { memory_store_id: 'ms_new', name: 'New Store' }
@@ -201,7 +201,7 @@ describe('callMemoryStores: create', () => {
   })
 })
 
-// ── archive ───────────────────────────────────────────────────────────────────
+// ── archive ───────────────────────────────────────────────────────────────────（archive）
 describe('callMemoryStores: archive', () => {
   test('archive calls axios.post with id in URL', async () => {
     const store = {
@@ -227,7 +227,7 @@ describe('callMemoryStores: archive', () => {
   })
 })
 
-// ── memories ──────────────────────────────────────────────────────────────────
+// ── memories ──────────────────────────────────────────────────────────────────（memories）
 describe('callMemoryStores: memories', () => {
   test('memories lists memories in store', async () => {
     const memories = [
@@ -251,7 +251,7 @@ describe('callMemoryStores: memories', () => {
   })
 })
 
-// ── create-memory ─────────────────────────────────────────────────────────────
+// ── create-memory ─────────────────────────────────────────────────────────────（create-memory）
 describe('callMemoryStores: create-memory', () => {
   test('create-memory calls axios.post with storeId in URL and content in body', async () => {
     const memory = {
@@ -289,7 +289,7 @@ describe('callMemoryStores: create-memory', () => {
   })
 })
 
-// ── get-memory ────────────────────────────────────────────────────────────────
+// ── get-memory ────────────────────────────────────────────────────────────────（get-memory）
 describe('callMemoryStores: get-memory', () => {
   test('get-memory calls axios.get with storeId and memoryId in URL', async () => {
     const memory = {
@@ -314,7 +314,7 @@ describe('callMemoryStores: get-memory', () => {
   })
 })
 
-// ── update-memory ─────────────────────────────────────────────────────────────
+// ── update-memory ─────────────────────────────────────────────────────────────（update-memory）
 describe('callMemoryStores: update-memory', () => {
   test('update-memory calls axios.patch with storeId, memoryId in URL and content in body', async () => {
     const memory = {
@@ -352,7 +352,7 @@ describe('callMemoryStores: update-memory', () => {
   })
 })
 
-// ── delete-memory ─────────────────────────────────────────────────────────────
+// ── delete-memory ─────────────────────────────────────────────────────────────（delete-memory）
 describe('callMemoryStores: delete-memory', () => {
   test('delete-memory calls axios.delete with storeId and memoryId in URL', async () => {
     axiosDeleteMock.mockResolvedValueOnce({ data: {}, status: 204 })
@@ -377,7 +377,7 @@ describe('callMemoryStores: delete-memory', () => {
   })
 })
 
-// ── versions ──────────────────────────────────────────────────────────────────
+// ── versions ──────────────────────────────────────────────────────────────────（versions）
 describe('callMemoryStores: versions', () => {
   test('versions lists memory versions', async () => {
     const versions = [
@@ -405,7 +405,7 @@ describe('callMemoryStores: versions', () => {
   })
 })
 
-// ── redact ────────────────────────────────────────────────────────────────────
+// ── redact ────────────────────────────────────────────────────────────────────（redact）
 describe('callMemoryStores: redact', () => {
   test('redact calls axios.post with storeId and versionId in URL', async () => {
     const version = {

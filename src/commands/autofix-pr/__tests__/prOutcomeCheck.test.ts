@@ -134,8 +134,8 @@ describe('summariseAutofixOutcome · OPEN PR with push, CI variations', () => {
   })
 
   test('statusCheckRollup undefined → treated as no checks configured (success)', () => {
-    // Distinct from empty-array: GitHub omits the field entirely on PRs
-    // without any configured checks. The !rollup branch covers undefined.
+    // 与空数组场景不同：GitHub 对完全没配置 check 的 PR 会把整字段省略掉。
+    // !rollup 分支负责覆盖 undefined 的情况。
     const result = summariseAutofixOutcome(
       basePayload({
         state: 'OPEN',
@@ -151,9 +151,9 @@ describe('summariseAutofixOutcome · OPEN PR with push, CI variations', () => {
   })
 
   test('check with COMPLETED status but empty conclusion → counted as pending', () => {
-    // Edge case: GitHub sometimes reports a check as COMPLETED with a null/
-    // missing conclusion (in-flight result mid-write). The defensive branch
-    // treats empty conclusion after a passed status check as pending.
+    // 边缘场景：GitHub 有时会以 COMPLETED 状态 + null/缺失 conclusion 报告 check
+    // （写入过程中途的 in-flight 结果）。防御性分支会把「status 已通过但 conclusion
+    // 为空」的情况当作 pending 处理。
     const result = summariseAutofixOutcome(
       basePayload({
         state: 'OPEN',

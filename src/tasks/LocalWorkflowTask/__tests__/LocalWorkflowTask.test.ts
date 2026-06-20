@@ -35,13 +35,13 @@ mock.module('src/utils/task/diskOutput.js', () => ({
   initTaskOutputAsSymlink: async () => {},
 }))
 
-// ─── Import after mocks ───
+// ─── 在 mock 之后导入 ───
 
 const { registerLocalWorkflowTask, failWorkflowTask } = await import(
   '../LocalWorkflowTask.js'
 )
 
-// ─── Helpers ───
+// ─── 辅助函数 ───
 
 type AppStateLike = { tasks: Record<string, any> }
 type SetAppStateLike = (f: (prev: AppStateLike) => AppStateLike) => void
@@ -59,7 +59,7 @@ function createSetState(): {
   }
 }
 
-// ─── Tests ───
+// ─── 测试 ───
 
 describe('failWorkflowTask', () => {
   test('保存 error 字符串到 state（供 BackgroundTasksDialog 显示失败原因）', () => {

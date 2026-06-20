@@ -5,15 +5,15 @@ import { getFsImplementation } from '../fsOperations.js'
 import { containsPathTraversal } from '../path.js'
 
 const LIMITS = {
-  MAX_FILE_SIZE: 512 * 1024 * 1024, // 512MB per file
-  MAX_TOTAL_SIZE: 1024 * 1024 * 1024, // 1024MB total uncompressed
-  MAX_FILE_COUNT: 100000, // Maximum number of files
-  MAX_COMPRESSION_RATIO: 50, // Anything above 50:1 is suspicious
-  MIN_COMPRESSION_RATIO: 0.5, // Below 0.5:1 might indicate already compressed malicious content
+  MAX_FILE_SIZE: 512 * 1024 * 1024, // 每个文件最大 512MB
+  MAX_TOTAL_SIZE: 1024 * 1024 * 1024, // 总解压大小最大 1024MB
+  MAX_FILE_COUNT: 100000, // 最大文件数
+  MAX_COMPRESSION_RATIO: 50, // 超过 50:1 的任何比例都可疑
+  MIN_COMPRESSION_RATIO: 0.5, // 低于 0.5:1 可能表示已经是压缩的恶意内容
 }
 
 /**
- * State tracker for zip file validation during extraction
+ * zip 文件解压期间的状态跟踪器
  */
 type ZipValidationState = {
   fileCount: number
@@ -23,7 +23,7 @@ type ZipValidationState = {
 }
 
 /**
- * File metadata from fflate filter
+ * 来自 fflate 过滤器的文件元数据
  */
 type ZipFileMetadata = {
   name: string
@@ -31,7 +31,7 @@ type ZipFileMetadata = {
 }
 
 /**
- * Result of validating a single file in a zip archive
+ * 验证 zip 归档中单个文件的结果
  */
 type FileValidationResult = {
   isValid: boolean
@@ -39,17 +39,17 @@ type FileValidationResult = {
 }
 
 /**
- * Validates a file path to prevent path traversal attacks
+ * 验证文件路径以防止路径遍历攻击
  */
 export function isPathSafe(filePath: string): boolean {
   if (containsPathTraversal(filePath)) {
     return false
   }
 
-  // Normalize the path to resolve any '.' segments
+  // 规范化路径以解析任何 '.' 段
   const normalized = normalize(filePath)
 
-  // Check for absolute paths (we only want relative paths in archives)
+  // 检查绝对路径（我们在归档中只需要相对路径）
   if (isAbsolute(normalized)) {
     return false
   }
@@ -58,7 +58,7 @@ export function isPathSafe(filePath: string): boolean {
 }
 
 /**
- * Validates a single file during zip extraction
+ * 在 zip 解压期间验证单个文件
  */
 export function validateZipFile(
   file: ZipFileMetadata,
@@ -68,47 +68,47 @@ export function validateZipFile(
 
   let error: string | undefined
 
-  // Check file count
+  // 检查文件数量
   if (state.fileCount > LIMITS.MAX_FILE_COUNT) {
-    error = `Archive contains too many files: ${state.fileCount} (max: ${LIMITS.MAX_FILE_COUNT})`
+    error = `归档包含过多文件：${state.fileCount}（最大：${LIMITS.MAX_FILE_COUNT}）`
   }
 
-  // Validate path safety
+  // 验证路径安全性
   if (!isPathSafe(file.name)) {
-    error = `Unsafe file path detected: "${file.name}". Path traversal or absolute paths are not allowed.`
+    error = `检测到不安全的文件路径："${file.name}"。不允许路径遍历或绝对路径。`
   }
 
-  // Check individual file size
+  // 检查单个文件大小
   const fileSize = file.originalSize || 0
   if (fileSize > LIMITS.MAX_FILE_SIZE) {
-    error = `File "${file.name}" is too large: ${Math.round(fileSize / 1024 / 1024)}MB (max: ${Math.round(LIMITS.MAX_FILE_SIZE / 1024 / 1024)}MB)`
+    error = `文件 "${file.name}" 过大：${Math.round(fileSize / 1024 / 1024)}MB（最大：${Math.round(LIMITS.MAX_FILE_SIZE / 1024 / 1024)}MB）`
   }
 
-  // Track total uncompressed size
+  // 跟踪总解压大小
   state.totalUncompressedSize += fileSize
 
-  // Check total size
+  // 检查总大小
   if (state.totalUncompressedSize > LIMITS.MAX_TOTAL_SIZE) {
-    error = `Archive total size is too large: ${Math.round(state.totalUncompressedSize / 1024 / 1024)}MB (max: ${Math.round(LIMITS.MAX_TOTAL_SIZE / 1024 / 1024)}MB)`
+    error = `归档总大小过大：${Math.round(state.totalUncompressedSize / 1024 / 1024)}MB（最大：${Math.round(LIMITS.MAX_TOTAL_SIZE / 1024 / 1024)}MB）`
   }
 
-  // Check compression ratio for zip bomb detection
+  // 检查压缩比以检测 zip 炸弹
   const currentRatio = state.totalUncompressedSize / state.compressedSize
   if (currentRatio > LIMITS.MAX_COMPRESSION_RATIO) {
-    error = `Suspicious compression ratio detected: ${currentRatio.toFixed(1)}:1 (max: ${LIMITS.MAX_COMPRESSION_RATIO}:1). This may be a zip bomb.`
+    error = `检测到可疑的压缩比：${currentRatio.toFixed(1)}:1（最大：${LIMITS.MAX_COMPRESSION_RATIO}:1）。这可能是 zip 炸弹。`
   }
 
   return error ? { isValid: false, error } : { isValid: true }
 }
 
 /**
- * Unzips data from a Buffer and returns its contents as a record of file paths to Uint8Array data.
- * Uses unzipSync to avoid fflate worker termination crashes in bun.
- * Accepts raw zip bytes so that the caller can read the file asynchronously.
+ * 从 Buffer 解压数据并将其内容作为文件路径到 Uint8Array 数据的记录返回。
+ * 使用 unzipSync 以避免 bun 中 fflate worker 终止崩溃。
+ * 接受原始 zip 字节，以便调用方可以异步读取文件。
  *
- * fflate is lazy-imported to avoid its ~196KB of top-level lookup tables (revfd
- * Int32Array(32769), rev Uint16Array(32768), etc.) being allocated at startup
- * when this module is reached via the plugin loader chain.
+ * fflate 是延迟导入的，以避免其约 196KB 的顶级查找表
+ * （revfd Int32Array(32769)、rev Uint16Array(32768) 等）在启动时
+ * 通过插件加载器链到达此模块时被分配。
  */
 export async function unzipFile(
   zipData: Buffer,
@@ -134,37 +134,36 @@ export async function unzipFile(
   })
 
   logForDebugging(
-    `Zip extraction completed: ${state.fileCount} files, ${Math.round(state.totalUncompressedSize / 1024)}KB uncompressed`,
+    `Zip 解压完成：${state.fileCount} 个文件，${Math.round(state.totalUncompressedSize / 1024)}KB 解压后大小`,
   )
 
   return result
 }
 
 /**
- * Parse Unix file modes from a zip's central directory.
+ * 从 zip 的中央目录解析 Unix 文件模式。
  *
- * fflate's `unzipSync` returns only `Record<string, Uint8Array>` — it does not
- * surface the external file attributes stored in the central directory. This
- * means executable bits are lost during extraction (everything becomes 0644).
- * The git-clone path preserves +x natively, but the GCS/zip path needs this
- * helper to keep parity.
+ * fflate 的 `unzipSync` 只返回 `Record<string, Uint8Array>` — 它不
+ * 暴露存储在中央目录中的外部文件属性。这意味着可执行位
+ * 在解压过程中丢失（所有文件变为 0644）。git-clone 路径原生
+ * 保留 +x，但 GCS/zip 路径需要此辅助函数来保持对等。
  *
- * Returns `name → mode` for entries created on a Unix host (`versionMadeBy`
- * high byte === 3). Entries from other hosts, or with no mode bits set, are
- * omitted. Callers should treat a missing key as "use default mode".
+ * 返回在 Unix 主机上创建的条目的 `name → mode`（`versionMadeBy`
+ * 高字节 === 3）。来自其他主机的条目，或未设置模式位的条目
+ * 被省略。调用方应将缺失的键视为"使用默认模式"。
  *
- * Format per PKZIP APPNOTE.TXT §4.3.12 (central directory) and §4.3.16 (EOCD).
- * ZIP64 is not handled — returns `{}` on archives >4GB or >65535 entries,
- * which is fine for marketplace zips (~3.5MB) and MCPB bundles.
+ * 格式根据 PKZIP APPNOTE.TXT §4.3.12（中央目录）和 §4.3.16（EOCD）。
+ * 不处理 ZIP64 — 对 >4GB 或 >65535 个条目的归档返回 `{}`，
+ * 这对于 marketplace zip（约 3.5MB）和 MCPB 包来说没问题。
  */
 export function parseZipModes(data: Uint8Array): Record<string, number> {
-  // Buffer view for readUInt* methods — shares memory, no copy.
+  // Buffer 视图用于 readUInt* 方法 — 共享内存，无复制。
   const buf = Buffer.from(data.buffer, data.byteOffset, data.byteLength)
   const modes: Record<string, number> = {}
 
-  // 1. Find the End of Central Directory record (sig 0x06054b50). It lives in
-  //    the trailing 22 + 65535 bytes (fixed EOCD size + max comment length).
-  //    Scan backwards — the EOCD is typically the last 22 bytes.
+  // 1. 查找中央目录结束记录（签名 0x06054b50）。它位于
+  //    尾部 22 + 65535 字节（固定 EOCD 大小 + 最大注释长度）。
+  //    向后扫描 — EOCD 通常是最后 22 个字节。
   const minEocd = Math.max(0, buf.length - 22 - 0xffff)
   let eocd = -1
   for (let i = buf.length - 22; i >= minEocd; i--) {
@@ -173,13 +172,13 @@ export function parseZipModes(data: Uint8Array): Record<string, number> {
       break
     }
   }
-  if (eocd < 0) return modes // malformed — let fflate's error surface elsewhere
+  if (eocd < 0) return modes // 格式错误 — 让 fflate 的错误在其他地方浮现
 
   const entryCount = buf.readUInt16LE(eocd + 10)
-  let off = buf.readUInt32LE(eocd + 16) // central directory start offset
+  let off = buf.readUInt32LE(eocd + 16) // 中央目录起始偏移
 
-  // 2. Walk central directory entries (sig 0x02014b50). Each entry has a
-  //    46-byte fixed header followed by variable-length name/extra/comment.
+  // 2. 遍历中央目录条目（签名 0x02014b50）。每个条目有一个
+  //    46 字节的固定头，后跟可变长度的名称/额外/注释。
   for (let i = 0; i < entryCount; i++) {
     if (off + 46 > buf.length || buf.readUInt32LE(off) !== 0x02014b50) break
     const versionMadeBy = buf.readUInt16LE(off + 4)
@@ -189,8 +188,8 @@ export function parseZipModes(data: Uint8Array): Record<string, number> {
     const externalAttr = buf.readUInt32LE(off + 38)
     const name = buf.toString('utf8', off + 46, off + 46 + nameLen)
 
-    // versionMadeBy high byte = host OS. 3 = Unix. For Unix zips, the high
-    // 16 bits of externalAttr hold st_mode (file type + permission bits).
+    // versionMadeBy 高字节 = 主机操作系统。3 = Unix。对于 Unix zip，
+    // externalAttr 的高 16 位保存 st_mode（文件类型 + 权限位）。
     if (versionMadeBy >> 8 === 3) {
       const mode = (externalAttr >>> 16) & 0xffff
       if (mode) modes[name] = mode
@@ -203,8 +202,8 @@ export function parseZipModes(data: Uint8Array): Record<string, number> {
 }
 
 /**
- * Reads a zip file from disk asynchronously and unzips it.
- * Returns its contents as a record of file paths to Uint8Array data.
+ * 从磁盘异步读取 zip 文件并解压。
+ * 将其内容作为文件路径到 Uint8Array 数据的记录返回。
  */
 export async function readAndUnzipFile(
   filePath: string,
@@ -213,14 +212,14 @@ export async function readAndUnzipFile(
 
   try {
     const zipData = await fs.readFileBytes(filePath)
-    // await is required here: without it, rejections from the now-async
-    // unzipFile() escape the try/catch and bypass the error wrapping below.
+    // 这里需要 await：没有它，来自现在异步的
+    // unzipFile() 的拒绝会逃脱 try/catch 并绕过下面的错误包装。
     return await unzipFile(zipData)
   } catch (error) {
     if (isENOENT(error)) {
       throw error
     }
     const errorMessage = error instanceof Error ? error.message : String(error)
-    throw new Error(`Failed to read or unzip file: ${errorMessage}`)
+    throw new Error(`读取或解压文件失败：${errorMessage}`)
   }
 }

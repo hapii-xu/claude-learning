@@ -1,4 +1,4 @@
-// Auto-generated stub — replace with real implementation
+// 自动生成的存根 - 用真实实现替换
 import type { MemoryHeader } from './memoryScan.js'
 import type { MemoryScope } from '../utils/memoryFileDetection.js'
 

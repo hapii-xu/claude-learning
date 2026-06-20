@@ -24,7 +24,7 @@ import { WorkspaceKeyInputContainer } from './WorkspaceKeyInput.js';
 import { removeWorkspaceKey } from '../../services/auth/saveWorkspaceKey.js';
 
 export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXCommandContext): Promise<React.ReactNode> {
-  // Snapshot auth state once at call time (pure, no network)
+  // 在调用时一次性快照认证状态（纯函数，无网络）
   const authStatus = getAuthStatus();
 
   return (
@@ -32,32 +32,31 @@ export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXComma
       authStatus={authStatus}
       onDone={async success => {
         context.onChangeAPIKey();
-        // Signature-bearing blocks (thinking, connector_text) are bound to the API key —
-        // strip them so the new key doesn't reject stale signatures.
+        // 带签名的 block（thinking、connector_text）与 API key 绑定 ——
+        // 把它们剥离掉，避免新 key 拒绝旧的签名。
         context.setMessages(stripSignatureBlocks);
         if (success) {
-          // Post-login refresh logic. Keep in sync with onboarding in src/interactiveHelpers.tsx
-          // Reset cost state when switching accounts
+          // 登录后刷新逻辑。需与 src/interactiveHelpers.tsx 中的 onboarding 保持同步
+          // 切换账号时重置 cost 状态
           resetCostState();
-          // Refresh remotely managed settings after login (non-blocking)
+          // 登录后刷新远程托管设置（非阻塞）
           void refreshRemoteManagedSettings();
-          // Refresh policy limits after login (non-blocking)
+          // 登录后刷新 policy limits（非阻塞）
           void refreshPolicyLimits();
-          // Clear user data cache BEFORE GrowthBook refresh so it picks up fresh credentials
+          // 在 GrowthBook 刷新前清除用户数据缓存，使其能拿到最新凭证
           resetUserCache();
-          // Refresh GrowthBook after login to get updated feature flags (e.g., for claude.ai MCPs)
+          // 登录后刷新 GrowthBook，获取最新的 feature flag（例如 claude.ai MCPs 相关）
           refreshGrowthBookAfterAuthChange();
-          // Clear any stale trusted device token from a previous account before
-          // re-enrolling — prevents sending the old token on bridge calls while
-          // the async enrollTrustedDevice() is in-flight.
+          // 在重新注册为可信设备之前，清除上一个账号遗留的 trusted device token ——
+          // 避免在异步 enrollTrustedDevice() 进行期间 bridge 调用仍发送旧 token。
           clearTrustedDeviceToken();
-          // Enroll as a trusted device for Remote Control (10-min fresh-session window)
+          // 注册为 Remote Control 的可信设备（10 分钟的新鲜会话窗口）
           void enrollTrustedDevice();
-          // Reset killswitch gate checks and re-run with new org
+          // 重置 killswitch 门控检查，并在新 org 下重新执行
           resetAutoModeGateCheck();
           const appState = context.getAppState();
           void checkAndDisableAutoModeIfNeeded(appState.toolPermissionContext, context.setAppState, appState.fastMode);
-          // Increment authVersion to trigger re-fetching of auth-dependent data in hooks (e.g., MCP servers)
+          // 自增 authVersion，触发 hooks 重新拉取依赖认证的数据（例如 MCP 服务器）
           context.setAppState(prev => ({
             ...prev,
             authVersion: prev.authVersion + 1,
@@ -72,7 +71,7 @@ export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXComma
 export function Login(props: {
   onDone: (success: boolean, mainLoopModel: string) => void;
   startingMessage?: string;
-  /** Pre-computed auth status snapshot — passed from call() to avoid re-computing */
+  /** 预先计算好的认证状态快照 —— 由 call() 传入以避免重复计算 */
   authStatus?: import('./getAuthStatus.js').AuthStatus;
 }): React.ReactNode {
   const mainLoopModel = useMainLoopModel();
@@ -81,11 +80,11 @@ export function Login(props: {
   const [removeState, setRemoveState] = React.useState<
     { phase: 'idle' } | { phase: 'confirm-remove' } | { phase: 'removing' } | { phase: 'error'; message: string }
   >({ phase: 'idle' });
-  // Re-snapshot auth status after a key is saved/removed so the row updates immediately
+  // 保存/删除 key 后重新快照认证状态，使对应行立即更新
   const [liveAuthStatus, setLiveAuthStatus] = React.useState(props.authStatus);
 
   const workspaceKeySet = liveAuthStatus !== undefined && liveAuthStatus.workspaceKey.set;
-  // Source distinguishes env-var (cannot be deleted from UI) vs settings-saved
+  // 通过 source 区分 env-var（无法从 UI 删除）和 settings 保存的 key
   const workspaceKeyFromSettings = workspaceKeySet && liveAuthStatus.workspaceKey.source === 'settings';
 
   const refreshLiveStatus = React.useCallback(() => {
@@ -93,7 +92,7 @@ export function Login(props: {
     setLiveAuthStatus(getAuthStatus());
   }, []);
 
-  // W = enter/replace key; D = delete (only when stored in settings)
+  // W = 输入/替换 key；D = 删除（仅当存储在 settings 中时）
   useInput(
     (input: string) => {
       if (showWorkspaceKeyInput) return;

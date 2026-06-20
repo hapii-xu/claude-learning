@@ -35,9 +35,8 @@ export function ChooseRepoStep({
     onSubmit();
   }, [useCurrentRepo, currentRepo, repoUrl, onSubmit]);
 
-  // When the text input is visible, omit confirm:yes so bare 'y' passes
-  // through to the input instead of submitting. TextInput's onSubmit handles
-  // Enter. Keep the Confirmation context (not Settings) to avoid j/k bindings.
+  // 当文本输入可见时，省略 confirm:yes，使单独的 'y' 直接透传到输入框而非提交。
+  // TextInput 的 onSubmit 处理 Enter。保留 Confirmation 上下文（不是 Settings）以避免 j/k 绑定。
   const isTextInputVisible = !useCurrentRepo || !currentRepo;
   const handlePrevious = useCallback(() => {
     onToggleUseCurrentRepo(true);

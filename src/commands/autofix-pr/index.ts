@@ -1,10 +1,10 @@
 import { feature } from 'bun:bundle'
 import type { Command } from '../../types/command.js'
 
-// `feature()` from bun:bundle can only appear directly inside an if statement
-// or ternary condition (Bun macro restriction). A named function with a
-// `return feature(...)` body is the cleanest way to satisfy this constraint
-// while keeping the Command object readable.
+// 来自 bun:bundle 的 `feature()` 只能直接出现在 if 语句
+// 或三元条件的条件位置（Bun macro 限制）。用具名函数 +
+// `return feature(...)` 函数体是满足此约束、同时保持 Command 对象可读性
+// 的最干净写法。
 function isAutofixPrEnabled(): boolean {
   return feature('AUTOFIX_PR') ? true : false
 }
@@ -13,8 +13,8 @@ const autofixPr: Command = {
   type: 'local-jsx',
   name: 'autofix-pr',
   description: 'Auto-fix CI failures on a pull request',
-  // Avoid `<x>` in hints — REPL markdown renderer eats angle-bracketed
-  // tokens as HTML tags. Uppercase placeholders survive intact.
+  // hint 中避免使用 `<x>` —— REPL 的 markdown 渲染器会把尖括号包裹的
+  // token 当作 HTML 标签吞掉。使用大写占位符才能原样保留。
   argumentHint: 'PR_NUMBER | stop | OWNER/REPO#N',
   isEnabled: isAutofixPrEnabled,
   isHidden: false,

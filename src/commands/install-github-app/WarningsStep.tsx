@@ -10,7 +10,7 @@ interface WarningsStepProps {
 }
 
 export function WarningsStep({ warnings, onContinue }: WarningsStepProps) {
-  // Enter to continue
+  // 回车继续
   useKeybinding('confirm:yes', onContinue, { context: 'Confirmation' });
 
   return (

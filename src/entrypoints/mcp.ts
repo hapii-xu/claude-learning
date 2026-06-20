@@ -37,8 +37,8 @@ export async function startMCPServer(
   debug: boolean,
   verbose: boolean,
 ): Promise<void> {
-  // Use size-limited LRU cache for readFileState to prevent unbounded memory growth
-  // 100 files and 25MB limit should be sufficient for MCP server operations
+  // 为 readFileState 使用带大小限制的 LRU 缓存，防止内存无限制增长
+  // 100 个文件、25MB 上限对 MCP 服务器场景应当足够
   const READ_FILE_STATE_CACHE_SIZE = 100
   const readFileStateCache = createFileStateCacheWithSizeLimit(
     READ_FILE_STATE_CACHE_SIZE,
@@ -59,7 +59,7 @@ export async function startMCPServer(
   server.setRequestHandler(
     ListToolsRequestSchema,
     async (): Promise<ListToolsResult> => {
-      // TODO: Also re-expose any MCP tools
+      // TODO：同时重新暴露所有 MCP 工具
       const toolPermissionContext = getEmptyToolPermissionContext()
       const tools = getTools(toolPermissionContext)
       return {
@@ -68,9 +68,9 @@ export async function startMCPServer(
             let outputSchema: ToolOutput | undefined
             if (tool.outputSchema) {
               const convertedSchema = zodToJsonSchema(tool.outputSchema)
-              // MCP SDK requires outputSchema to have type: "object" at root level
-              // Skip schemas with anyOf/oneOf at root (from z.union, z.discriminatedUnion, etc.)
-              // See: https://github.com/anthropics/claude-code/issues/8014
+              // MCP SDK 要求 outputSchema 根层级必须为 type: "object"
+              // 跳过根层级含 anyOf/oneOf 的 schema（来自 z.union、z.discriminatedUnion 等）
+              // 参见：https://github.com/anthropics/claude-code/issues/8014
               if (
                 typeof convertedSchema === 'object' &&
                 convertedSchema !== null &&
@@ -100,15 +100,14 @@ export async function startMCPServer(
     CallToolRequestSchema,
     async ({ params: { name, arguments: args } }): Promise<CallToolResult> => {
       const toolPermissionContext = getEmptyToolPermissionContext()
-      // TODO: Also re-expose any MCP tools
+      // TODO：同时重新暴露所有 MCP 工具
       const tools = getTools(toolPermissionContext)
       const tool = findToolByName(tools, name)
       if (!tool) {
-        throw new Error(`Tool ${name} not found`)
+        throw new Error(`未找到工具 ${name}`)
       }
 
-      // Assume MCP servers do not read messages separately from the tool
-      // call arguments.
+      // 假设 MCP 服务器不会独立于工具调用参数之外单独读取消息。
       const toolUseContext: ToolUseContext = {
         abortController: createAbortController(),
         options: {
@@ -133,10 +132,10 @@ export async function startMCPServer(
         updateAttributionState: () => {},
       }
 
-      // TODO: validate input types with zod
+      // TODO：用 zod 校验输入类型
       try {
         if (!tool.isEnabled()) {
-          throw new Error(`Tool ${name} is not enabled`)
+          throw new Error(`工具 ${name} 未启用`)
         }
         const validationResult = await tool.validateInput?.(
           (args as never) ?? {},
@@ -144,7 +143,7 @@ export async function startMCPServer(
         )
         if (validationResult && !validationResult.result) {
           throw new Error(
-            `Tool ${name} input is invalid: ${'message' in validationResult ? validationResult.message : String(validationResult)}`,
+            `工具 ${name} 输入无效：${'message' in validationResult ? validationResult.message : String(validationResult)}`,
           )
         }
         const finalResult = await tool.call(
@@ -172,7 +171,7 @@ export async function startMCPServer(
 
         const parts =
           error instanceof Error ? getErrorParts(error) : [String(error)]
-        const errorText = parts.filter(Boolean).join('\n').trim() || 'Error'
+        const errorText = parts.filter(Boolean).join('\n').trim() || '错误'
 
         return {
           isError: true,

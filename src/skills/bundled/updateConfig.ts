@@ -4,8 +4,8 @@ import { jsonStringify } from '../../utils/slowOperations.js'
 import { registerBundledSkill } from '../bundledSkills.js'
 
 /**
- * Generate JSON Schema from the settings Zod schema.
- * This keeps the skill prompt in sync with the actual types.
+ * 从设置 Zod schema 生成 JSON Schema。
+ * 这确保技能提示与实际类型保持同步。
  */
 function generateSettingsSchema(): string {
   const jsonSchema = toJSONSchema(SettingsSchema(), { io: 'input' })
@@ -103,9 +103,9 @@ Plugin syntax: \`plugin-name@source\` where source is \`claude-code-marketplace\
 - \`syntaxHighlightingDisabled\`: Disable diff highlighting
 `
 
-// Note: We keep hand-written examples for common patterns since they're more
-// actionable than auto-generated schema docs. The generated schema list
-// provides completeness while examples provide clarity.
+// 注意：我们保留常见模式的手写示例，因为它们比自动生成的
+// schema 文档更具可操作性。生成的 schema 列表提供完整性，
+// 而示例提供清晰度。
 
 const HOOKS_DOCS = `## Hooks Configuration
 
@@ -459,7 +459,7 @@ export function registerUpdateConfigSkill(): void {
         return [{ type: 'text', text: prompt }]
       }
 
-      // Generate schema dynamically to stay in sync with types
+      // 动态生成 schema 以与类型保持同步
       const jsonSchema = generateSettingsSchema()
 
       let prompt = UPDATE_CONFIG_PROMPT

@@ -1,8 +1,8 @@
 /**
- * /stats — alias for /usage (v2.1.118 upstream alignment).
+ * /stats — /usage 的别名（与 v2.1.118 上游对齐）。
  *
- * /usage is the primary command; /cost and /stats are registered as aliases.
- * This file re-exports the unified usage command so that any code that imports
- * from stats/index directly still gets the correct Command object.
+ * /usage 是主命令；/cost 和 /stats 作为别名注册。
+ * 本文件重新导出统一的 usage 命令，这样任何直接从 stats/index
+ * 导入的代码仍能拿到正确的 Command 对象。
  */
 export { default } from '../usage/index.js'

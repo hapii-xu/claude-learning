@@ -1,12 +1,12 @@
 /**
- * InProcessTeammateTask - Manages in-process teammate lifecycle
+ * InProcessTeammateTask —— 管理进程内 teammate 的生命周期
  *
- * This component implements the Task interface for in-process teammates.
- * Unlike LocalAgentTask (background agents), in-process teammates:
- * 1. Run in the same Node.js process using AsyncLocalStorage for isolation
- * 2. Have team-aware identity (agentName@teamName)
- * 3. Support plan mode approval flow
- * 4. Can be idle (waiting for work) or active (processing)
+ * 此组件为进程内 teammate 实现了 Task 接口。
+ * 与 LocalAgentTask（后台 agent）不同，进程内 teammate：
+ * 1. 在同一个 Node.js 进程中运行，通过 AsyncLocalStorage 进行隔离
+ * 2. 拥有团队感知的身份（agentName@teamName）
+ * 3. 支持 plan mode 审批流程
+ * 4. 可以处于 idle（等待任务）或 active（正在处理）状态
  */
 
 import { isTerminalTaskStatus, type SetAppState, type Task, type TaskStateBase } from '../../Task.js';
@@ -19,7 +19,7 @@ import type { InProcessTeammateTaskState, PendingTeammateUserMessage } from './t
 import { appendCappedMessage, isInProcessTeammateTask } from './types.js';
 
 /**
- * InProcessTeammateTask - Handles in-process teammate execution.
+ * InProcessTeammateTask —— 负责进程内 teammate 的执行。
  */
 export const InProcessTeammateTask: Task = {
   name: 'InProcessTeammateTask',
@@ -30,7 +30,7 @@ export const InProcessTeammateTask: Task = {
 };
 
 /**
- * Request shutdown for a teammate.
+ * 请求关闭某个 teammate。
  */
 export function requestTeammateShutdown(taskId: string, setAppState: SetAppState): void {
   updateTaskState<InProcessTeammateTaskState>(taskId, setAppState, task => {
@@ -46,8 +46,8 @@ export function requestTeammateShutdown(taskId: string, setAppState: SetAppState
 }
 
 /**
- * Append a message to a teammate's conversation history.
- * Used for zoomed view to show the teammate's conversation.
+ * 在某个 teammate 的对话历史中追加消息。
+ * 用于在 zoomed view 中展示该 teammate 的对话。
  */
 export function appendTeammateMessage(taskId: string, message: Message, setAppState: SetAppState): void {
   updateTaskState<InProcessTeammateTaskState>(taskId, setAppState, task => {
@@ -63,9 +63,9 @@ export function appendTeammateMessage(taskId: string, message: Message, setAppSt
 }
 
 /**
- * Inject a user message to a teammate's pending queue.
- * Used when viewing a teammate's transcript to send typed messages to them.
- * Also adds the message to task.messages so it appears immediately in the transcript.
+ * 将一条用户消息注入到 teammate 的待处理队列中。
+ * 用于在查看某个 teammate 的对话时向其发送输入的消息。
+ * 同时会把消息加入 task.messages，使其立即出现在对话记录中。
  */
 export function injectUserMessageToTeammate(
   taskId: string,
@@ -81,8 +81,8 @@ export function injectUserMessageToTeammate(
 ): boolean {
   let injected = false;
   updateTaskState<InProcessTeammateTaskState>(taskId, setAppState, task => {
-    // Allow message injection when teammate is running or idle (waiting for input)
-    // Only reject if teammate is in a terminal state
+    // teammate 处于 running 或 idle（等待输入）时都允许注入消息
+    // 只有在 terminal 状态下才会拒绝
     if (isTerminalTaskStatus(task.status)) {
       logForDebugging(`Dropping message for teammate task ${taskId}: task status is "${task.status}"`);
       return task;
@@ -118,10 +118,10 @@ export function injectUserMessageToTeammate(
 }
 
 /**
- * Get teammate task by agent ID from AppState.
- * Prefers running tasks over killed/completed ones in case multiple tasks
- * with the same agentId exist.
- * Returns undefined if not found.
+ * 根据 AppState 中的 agent ID 查找 teammate 任务。
+ * 如果同一个 agentId 对应多个任务，优先返回 running 的任务，
+ * 而不是 killed/completed 的。
+ * 未找到时返回 undefined。
  */
 export function findTeammateTaskByAgentId(
   agentId: string,
@@ -130,12 +130,12 @@ export function findTeammateTaskByAgentId(
   let fallback: InProcessTeammateTaskState | undefined;
   for (const task of Object.values(tasks)) {
     if (isInProcessTeammateTask(task) && task.identity.agentId === agentId) {
-      // Prefer running tasks in case old killed tasks still exist in AppState
-      // alongside new running ones with the same agentId
+      // 优先返回 running 的任务，因为 AppState 中可能同时存在旧的
+      // killed 任务与新的、使用相同 agentId 的 running 任务
       if (task.status === 'running') {
         return task;
       }
-      // Keep first match as fallback in case no running task exists
+      // 保留第一个匹配项作为兜底，以防没有 running 任务
       if (!fallback) {
         fallback = task;
       }
@@ -145,17 +145,16 @@ export function findTeammateTaskByAgentId(
 }
 
 /**
- * Get all in-process teammate tasks from AppState.
+ * 从 AppState 中获取所有进程内 teammate 任务。
  */
 export function getAllInProcessTeammateTasks(tasks: Record<string, TaskStateBase>): InProcessTeammateTaskState[] {
   return Object.values(tasks).filter(isInProcessTeammateTask);
 }
 
 /**
- * Get running in-process teammates sorted alphabetically by agentName.
- * Shared between TeammateSpinnerTree display, PromptInput footer selector,
- * and useBackgroundTaskNavigation — selectedIPAgentIndex maps into this
- * array, so all three must agree on sort order.
+ * 获取所有 running 的进程内 teammate，按 agentName 字母序排序。
+ * TeammateSpinnerTree 展示、PromptInput 底部选择器、useBackgroundTaskNavigation
+ * 三处共用 —— selectedIPAgentIndex 会映射到这个数组，因此三处对排序必须保持一致。
  */
 export function getRunningTeammatesSorted(tasks: Record<string, TaskStateBase>): InProcessTeammateTaskState[] {
   return getAllInProcessTeammateTasks(tasks)

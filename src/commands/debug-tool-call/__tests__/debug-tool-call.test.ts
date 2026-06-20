@@ -15,11 +15,10 @@ mock.module('src/services/analytics/index.js', () => ({
 let tmpDir: string
 let claudeDir: string
 
-// Mock envUtils to read CLAUDE_CONFIG_DIR from process.env dynamically.
-// Other test files (cacheStats, SessionMemory/prompts, MagicDocs/prompts)
-// mock envUtils with static paths — by reading process.env at call time,
-// our mock stays compatible with the full suite where other tests also
-// drive the real CLAUDE_CONFIG_DIR.
+// 将 envUtils mock 为从 process.env 动态读取 CLAUDE_CONFIG_DIR。
+// 其他测试文件（cacheStats、SessionMemory/prompts、MagicDocs/prompts）
+// 使用静态路径 mock envUtils — 通过在调用时读取 process.env，
+// 我们的 mock 能与完整测试套件保持兼容，因为其他测试也会驱动真实的 CLAUDE_CONFIG_DIR。
 mock.module('src/utils/envUtils.js', () => ({
   getClaudeConfigHomeDir: () =>
     process.env.CLAUDE_CONFIG_DIR ?? `${tmpdir()}/dummy-claude`,
@@ -55,7 +54,7 @@ async function makeLogWithToolCalls(
   const { getSessionId, getOriginalCwd } = await import(
     '../../../bootstrap/state.js'
   )
-  // Use state values as they'll be seen by the command (may be mocked)
+  // 使用命令将要看到的状态值（可能被 mock）
   const encodedCwd = sanitizePath(getOriginalCwd())
   const projectsDir = join(claudeDir, 'projects', encodedCwd)
   mkdirSync(projectsDir, { recursive: true })
@@ -182,14 +181,14 @@ describe('debug-tool-call command', () => {
   })
 
   test('renderValue handles non-JSON-serializable input gracefully (lines 53-54)', async () => {
-    // renderValue catches JSON.stringify errors for circular references.
-    // We need to create a log entry whose `input` field, when read from JSON,
-    // is an ordinary object. However, since JSON.stringify is used to serialize
-    // `use.input` AFTER JSON.parse, parsed values are always JSON-safe.
-    // The only way to hit the catch is to have a non-serializable value.
-    // Since the value comes from JSON.parse, it will always be serializable.
-    // Therefore lines 53-54 are unreachable in normal flow. This test
-    // documents this by passing a valid log and confirming the happy path works.
+    // renderValue 会捕获循环引用导致的 JSON.stringify 错误。
+    // 我们需要创建一个日志条目，其 `input` 字段从 JSON 读取后是普通对象。
+    // 但由于 JSON.stringify 用于在 JSON.parse 之后序列化 `use.input`，
+    // 解析出的值始终是 JSON 安全的。
+    // 触发 catch 的唯一方式是传入一个不可序列化的值。
+    // 由于值来自 JSON.parse，它总是可序列化的。
+    // 因此第 53-54 行在正常流程下不可达。该测试通过传入有效日志并确认
+    // 正常路径正常工作来记录这一情况。
     const { sanitizePath } = await import('../../../utils/path.js')
     const { getSessionId, getOriginalCwd } = await import(
       '../../../bootstrap/state.js'
@@ -198,7 +197,7 @@ describe('debug-tool-call command', () => {
     const projectsDir = join(claudeDir, 'projects', encodedCwd)
     mkdirSync(projectsDir, { recursive: true })
 
-    // Write a log with a tool call whose input is a deeply nested object
+    // 写入一条日志，其中包含一个工具调用，其 input 为深层嵌套对象
     writeFileSync(
       join(projectsDir, `${getSessionId()}.jsonl`),
       [
@@ -263,7 +262,7 @@ describe('debug-tool-call command', () => {
     const result = await loaded.call('2', {} as never)
     expect(result.type).toBe('text')
     if (result.type === 'text') {
-      // Should show 2 of 3 total
+      // 应显示总共 3 个中的后 2 个
       expect(result.value).toContain('Last 2 Tool Calls')
     }
   })
@@ -297,15 +296,15 @@ describe('debug-tool-call command', () => {
   }
 
   test('renderValue catch: triggers fallback when JSON.stringify throws', async () => {
-    // Patch JSON.stringify to throw for ANY object input — exercises lines 53-54
-    // (catch branch). We restore in finally so other tests aren't affected.
+    // 将 JSON.stringify patch 为对任何对象输入都抛错 — 触发第 53-54 行
+    //（catch 分支）。在 finally 中恢复，以免影响其他测试。
     const originalStringify = JSON.stringify
     JSON.stringify = ((
       v: unknown,
       replacer?: (this: unknown, key: string, value: unknown) => unknown,
       space?: string | number,
     ) => {
-      // Allow string/number/null pass-through (test setup uses these)
+      // 允许 string/number/null 透传（测试 setup 会用到这些）
       if (
         typeof v === 'string' ||
         typeof v === 'number' ||
@@ -315,17 +314,17 @@ describe('debug-tool-call command', () => {
       ) {
         return originalStringify(v, replacer as never, space)
       }
-      // Object input from a tool_use → throw to hit the catch
+      // 来自 tool_use 的对象输入 → 抛错以触发 catch
       throw new Error('forced JSON.stringify failure')
     }) as typeof JSON.stringify
     try {
       const out = await runWithLogLines([
-        // Tool use with object input — renderValue will JSON.stringify it
-        // Note: we manually construct the line string since JSON.stringify is patched
+        // 带对象输入的工具调用 — renderValue 会对它执行 JSON.stringify
+        // 注意：由于 JSON.stringify 已被 patch，这里手动构造行字符串
         '{"role":"assistant","content":[{"type":"tool_use","id":"x","name":"X","input":{"obj":1}}]}',
         '{"role":"user","content":[{"type":"tool_result","tool_use_id":"x","content":"y"}]}',
       ])
-      // Should still render but Input field shows the String fallback
+      // 仍应能渲染，但 Input 字段显示 String 回退值
       expect(out).toContain('X')
     } finally {
       JSON.stringify = originalStringify
@@ -503,7 +502,7 @@ describe('debug-tool-call command', () => {
         ],
       }),
     ])
-    // No pairs → "no tool call pairs found"
+    // 无配对 → "no tool call pairs found"
     expect(out).toContain('No tool call')
   })
 
@@ -524,7 +523,7 @@ describe('debug-tool-call command', () => {
     const result = await loaded.call('not-a-number', {} as never)
     expect(result.type).toBe('text')
     if (result.type === 'text') {
-      // Default is 5 → "Last 5 Tool Calls (of 7 total)"
+      // 默认为 5 → "Last 5 Tool Calls (of 7 total)"
       expect(result.value).toContain('Last 5 Tool Calls')
       expect(result.value).toContain('of 7 total')
     }

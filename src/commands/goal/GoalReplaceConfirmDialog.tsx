@@ -1,6 +1,5 @@
 /**
- * Confirmation dialog shown when the user runs `/goal <objective>`
- * while a non-complete goal is already active.
+ * 当用户在已有未完成的活动目标时运行 `/goal <objective>` 所显示的确认对话框。
  */
 import * as React from 'react';
 

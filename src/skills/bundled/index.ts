@@ -17,13 +17,13 @@ import { registerUpdateConfigSkill } from './updateConfig.js'
 import { registerVerifySkill } from './verify.js'
 
 /**
- * Initialize all bundled skills.
- * Called at startup to register skills that ship with the CLI.
+ * 初始化所有捆绑技能。
+ * 在启动时调用，用于注册随 CLI 一起发布的技能。
  *
- * To add a new bundled skill:
- * 1. Create a new file in src/skills/bundled/ (e.g., myskill.ts)
- * 2. Export a register function that calls registerBundledSkill()
- * 3. Import and call that function here
+ * 添加新的捆绑技能步骤：
+ * 1. 在 src/skills/bundled/ 中创建新文件（例如 myskill.ts）
+ * 2. 导出一个调用 registerBundledSkill() 的注册函数
+ * 3. 在此处导入并调用该函数
  */
 export function initBundledSkills(): void {
   registerUpdateConfigSkill()

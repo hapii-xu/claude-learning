@@ -1,8 +1,8 @@
 /**
- * Poor mode state — when active, skips extract_memories and prompt_suggestion
- * to reduce token consumption.
+ * 穷鬼模式状态 —— 激活时跳过 extract_memories 和 prompt_suggestion，
+ * 以减少 token 消耗。
  *
- * Persisted to settings.json so it survives session restarts.
+ * 持久化到 settings.json，因此可以在会话重启后保留。
  */
 
 import {

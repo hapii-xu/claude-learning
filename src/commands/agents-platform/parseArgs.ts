@@ -1,13 +1,13 @@
 /**
- * Parse the args string for the /agents-platform command.
+ * 解析 /agents-platform 命令的参数字符串。
  *
- * Supported sub-commands:
+ * 支持的子命令：
  *   list                              → { action: 'list' }
  *   create <cron-expr> <prompt>       → { action: 'create', cron, prompt }
  *   delete <id>                       → { action: 'delete', id }
  *   run <id>                          → { action: 'run', id }
- *   (empty)                           → { action: 'list' }
- *   anything else                     → { action: 'invalid', reason }
+ *   （空）                              → { action: 'list' }
+ *   其他任意输入                         → { action: 'invalid', reason }
  */
 
 export type AgentsPlatformArgs =
@@ -18,10 +18,10 @@ export type AgentsPlatformArgs =
   | { action: 'invalid'; reason: string }
 
 /**
- * Cron expressions are 5 space-separated fields.
- * This helper extracts the first 5 whitespace-separated tokens and joins them.
- * The remainder of the string is the prompt.
- * Returns null if fewer than 5 tokens are present.
+ * cron 表达式由 5 个空格分隔的字段组成。
+ * 本辅助函数提取前 5 个空白分隔的 token 并拼接为 cron，
+ * 剩余字符串作为 prompt。
+ * 若 token 数少于 5 个则返回 null。
  */
 export function splitCronAndPrompt(
   rest: string,
@@ -40,7 +40,7 @@ export function parseAgentsPlatformArgs(args: string): AgentsPlatformArgs {
     return { action: 'list' }
   }
 
-  // Extract first token as sub-command
+  // 取首个 token 作为子命令
   const spaceIdx = trimmed.indexOf(' ')
   const subCmd = spaceIdx === -1 ? trimmed : trimmed.slice(0, spaceIdx)
   const rest = spaceIdx === -1 ? '' : trimmed.slice(spaceIdx + 1).trim()
@@ -62,8 +62,8 @@ export function parseAgentsPlatformArgs(args: string): AgentsPlatformArgs {
       }
     }
     const { cron, prompt } = parsed
-    // splitCronAndPrompt joins slice(5) so prompt is non-empty by construction;
-    // this guard is a defensive fallback against future refactors.
+    // splitCronAndPrompt 会把 slice(5) 拼接起来，因此 prompt 在构造上不可能为空；
+    // 此守卫是面向未来重构的防御性回退。
     /* istanbul ignore next -- prompt is non-empty by construction from splitCronAndPrompt */
     if (!prompt.trim()) {
       return { action: 'invalid', reason: 'prompt cannot be empty' }

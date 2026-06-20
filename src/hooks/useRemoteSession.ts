@@ -36,12 +36,12 @@ import { generateSessionTitle } from '../utils/sessionTitle.js'
 import type { RemoteMessageContent } from '../utils/teleport/api.js'
 import { updateSessionTitle } from '../utils/teleport/api.js'
 
-// How long to wait for a response before showing a warning
-const RESPONSE_TIMEOUT_MS = 60000 // 60 seconds
-// Extended timeout during compaction — compact API calls take 5-30s and
-// block other SDK messages, so the normal 60s timeout isn't enough when
-// compaction itself runs close to the edge.
-const COMPACTION_TIMEOUT_MS = 180000 // 3 minutes
+// 等待响应多久后显示警告
+const RESPONSE_TIMEOUT_MS = 60000 // 60 秒
+// 压缩期间的延长超时 — 压缩 API 调用耗时 5-30 秒并
+// 阻塞其他 SDK 消息，因此当压缩本身接近边界时
+// 通常的 60 秒超时不够。
+const COMPACTION_TIMEOUT_MS = 180000 // 3 分钟
 
 type UseRemoteSessionProps = {
   config: RemoteSessionConfig | undefined
@@ -68,13 +68,13 @@ type UseRemoteSessionResult = {
 }
 
 /**
- * Hook for managing a remote CCR session in the REPL.
+ * 用于在 REPL 中管理远程 CCR 会话的 Hook。
  *
- * Handles:
- * - WebSocket connection to CCR
- * - Converting SDK messages to REPL messages
- * - Sending user input to CCR via HTTP POST
- * - Permission request/response flow via existing ToolUseConfirm queue
+ * 处理：
+ * - 与 CCR 的 WebSocket 连接
+ * - 将 SDK 消息转换为 REPL 消息
+ * - 通过 HTTP POST 将用户输入发送到 CCR
+ * - 通过现有 ToolUseConfirm 队列的权限请求/响应流程
  */
 export function useRemoteSession({
   config,
@@ -100,9 +100,9 @@ export function useRemoteSession({
     [setAppState],
   )
 
-  // Event-sourced count of subagents running inside the remote daemon child.
-  // The viewer's own AppState.tasks is empty — tasks live in a different
-  // process. task_started/task_notification reach us via the bridge WS.
+  // 事件源计数：远程守护子进程中运行的子代理数量。
+  // 观察者自身的 AppState.tasks 为空 — 任务在另一个进程中。
+  // task_started/task_notification 通过 bridge WS 传达到我们。
   const runningTaskIdsRef = useRef(new Set<string>())
   const writeTaskCount = useCallback(() => {
     const n = runningTaskIdsRef.current.size
@@ -113,41 +113,39 @@ export function useRemoteSession({
     )
   }, [setAppState])
 
-  // Timer for detecting stuck sessions
+  // 用于检测卡住会话的计时器
   const responseTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Track whether the remote session is compacting. During compaction the
-  // CLI worker is busy with an API call and won't emit messages for a while;
-  // use a longer timeout and suppress spurious "unresponsive" warnings.
+  // 跟踪远程会话是否正在压缩。压缩期间 CLI worker
+  // 忙于 API 调用，一段时间内不会发出消息；
+  // 使用更长的超时并抑制虚假的"无响应"警告。
   const isCompactingRef = useRef(false)
 
   const managerRef = useRef<RemoteSessionManager | null>(null)
 
-  // Track whether we've already updated the session title (for no-initial-prompt sessions)
+  // 跟踪是否已更新会话标题（针对无初始提示的会话）
   const hasUpdatedTitleRef = useRef(false)
 
-  // UUIDs of user messages we POSTed locally — the WS echoes them back and
-  // we must filter them out when convertUserTextMessages is on, or the viewer
-  // sees every typed message twice (once from local createUserMessage, once
-  // from the echo). A single POST can echo MULTIPLE times with the same uuid:
-  // the server may broadcast the POST directly to /subscribe, AND the worker
-  // (cowork desktop / CLI daemon) echoes it again on its write path. A
-  // delete-on-first-match Set would let the second echo through — use a
-  // bounded ring instead. Cap is generous: users don't type 50 messages
-  // faster than echoes arrive.
-  // NOTE: this does NOT dedup history-vs-live overlap at attach time (nothing
-  // seeds the set from history UUIDs; only sendMessage populates it).
+  // 我们在本地 POST 的用户消息的 UUID — WS 会将它们回显回来，
+  // 当 convertUserTextMessages 开启时必须过滤掉，否则观察者
+  // 会看到每条输入消息两次（一次来自本地 createUserMessage，一次来自回显）。
+  // 单个 POST 可能以相同 uuid 回显多次：服务器可能直接将 POST 广播到
+  // /subscribe，并且 worker（cowork desktop / CLI daemon）在其写入路径上再次回显。
+  // 首次匹配删除的 Set 会让第二次回显通过 — 使用有界环代替。
+  // 上限很宽松：用户不会在回显到达之前输入 50 条消息。
+  // 注意：这不会在 attach 时去重 history-vs-live 重叠（没有
+  // 从 history UUID 种子填充 set；只有 sendMessage 填充它）。
   const sentUUIDsRef = useRef(new BoundedUUIDSet(50))
 
-  // Keep a ref to tools so the WebSocket callback doesn't go stale
+  // 保持 tools 的 ref 以便 WebSocket 回调不会过时
   const toolsRef = useRef(tools)
   useEffect(() => {
     toolsRef.current = tools
   }, [tools])
 
-  // Initialize and connect to remote session
+  // 初始化并连接远程会话
   useEffect(() => {
-    // Skip if not in remote mode
+    // 非远程模式则跳过
     if (!config) {
       return
     }
@@ -170,20 +168,19 @@ export function useRemoteSession({
         }
         logForDebugging(`[useRemoteSession] Received ${parts.join(' ')}`)
 
-        // Clear response timeout on any message received — including the WS
-        // echo of our own POST, which acts as a heartbeat. This must run
-        // BEFORE the echo filter, or slow-to-stream agents (compaction, cold
-        // start) spuriously trip the 60s unresponsive warning + reconnect.
+        // 收到任何消息时清除响应超时 — 包括我们自己 POST 的 WS
+        // 回显，它充当心跳。这必须在回显过滤器之前运行，否则
+        // 慢速响应代理（压缩、冷启动）会虚假触发 60 秒无响应警告+重连。
         if (responseTimeoutRef.current) {
           clearTimeout(responseTimeoutRef.current)
           responseTimeoutRef.current = null
         }
 
-        // Echo filter: drop user messages we already added locally before POST.
-        // The server and/or worker round-trip our own send back on the WS with
-        // the same uuid we passed to sendEventToRemoteSession. DO NOT delete on
-        // match — the same uuid can echo more than once (server broadcast +
-        // worker echo), and BoundedUUIDSet already caps growth via its ring.
+        // 回显过滤器：丢弃我们在 POST 之前已在本地添加的用户消息。
+        // 服务器和/或 worker 往返会将我们自己的发送以相同 uuid
+        // 在 WS 上回显。不要在匹配时删除 — 同一个 uuid 可能回显
+        // 多次（服务器广播 + worker 回显），而 BoundedUUIDSet 已通过
+        // 其环限制了增长。
         if (
           sdkMessage.type === 'user' &&
           sdkMessage.uuid &&
@@ -194,7 +191,7 @@ export function useRemoteSession({
           )
           return
         }
-        // Handle init message - extract available slash commands
+        // 处理 init 消息 - 提取可用的斜杠命令
         if (
           sdkMessage.type === 'system' &&
           sdkMessage.subtype === 'init' &&
@@ -207,10 +204,10 @@ export function useRemoteSession({
           onInit(slashCommands)
         }
 
-        // Track remote subagent lifecycle for the "N in background" counter.
-        // All task types (Agent/teammate/workflow/bash) flow through
-        // registerTask() → task_started, and complete via task_notification.
-        // Return early — these are status signals, not renderable messages.
+        // 跟踪远程子代理生命周期，用于"N in background"计数器。
+        // 所有任务类型（Agent/teammate/workflow/bash）都通过
+        // registerTask() → task_started，并通过 task_notification 完成。
+        // 提前返回 — 这些是状态信号，不是可渲染消息。
         if (sdkMessage.type === 'system') {
           if (sdkMessage.subtype === 'task_started') {
             runningTaskIdsRef.current.add(sdkMessage.task_id as string)
@@ -225,10 +222,9 @@ export function useRemoteSession({
           if (sdkMessage.subtype === 'task_progress') {
             return
           }
-          // Track compaction state. The CLI emits status='compacting' at
-          // the start and status=null when done; compact_boundary also
-          // signals completion. Repeated 'compacting' status messages
-          // (keep-alive ticks) update the ref but don't append to messages.
+          // 跟踪压缩状态。CLI 在开始时发出 status='compacting'，
+          // 完成时 status=null；compact_boundary 也表示完成。
+          // 重复的 'compacting' 状态消息（心跳）更新 ref 但不追加到消息。
           if (sdkMessage.subtype === 'status') {
             const wasCompacting = isCompactingRef.current
             isCompactingRef.current = sdkMessage.status === 'compacting'
@@ -241,18 +237,18 @@ export function useRemoteSession({
           }
         }
 
-        // Check if session ended
+        // 检查会话是否已结束
         if (isSessionEndMessage(sdkMessage)) {
           isCompactingRef.current = false
           setIsLoading(false)
         }
 
-        // Clear in-progress tool_use IDs when their tool_result arrives.
-        // Must read the RAW sdkMessage: in non-viewerOnly mode,
-        // convertSDKMessage returns {type:'ignored'} for user messages, so the
-        // delete would never fire post-conversion. Mirrors the add site below
-        // and inProcessRunner.ts; without this the set grows unbounded for the
-        // session lifetime (BQ: CCR cohort shows 5.2x higher RSS slope).
+        // 当 tool_result 到达时清除进行中的 tool_use ID。
+        // 必须读取原始 sdkMessage：在非 viewerOnly 模式下，
+        // convertSDKMessage 对用户消息返回 {type:'ignored'}，因此转换后
+        // 删除永远不会触发。反映下方和 inProcessRunner.ts 的添加位置；
+        // 没有此逻辑，该集合在会话生命周期内会无限增长
+        //（BQ: CCR 队列显示 RSS 斜率高 5.2 倍）。
         if (setInProgressToolUseIDs && sdkMessage.type === 'user') {
           const content = (
             sdkMessage.message as { content?: unknown } | undefined
@@ -274,10 +270,10 @@ export function useRemoteSession({
           }
         }
 
-        // Convert SDK message to REPL message. In viewerOnly mode, the
-        // remote agent runs BriefTool (SendUserMessage) — its tool_use block
-        // renders empty (userFacingName() === ''), actual content is in the
-        // tool_result. So we must convert tool_results to render them.
+        // 将 SDK 消息转换为 REPL 消息。在 viewerOnly 模式下，
+        // 远程代理运行 BriefTool（SendUserMessage）— 其 tool_use 块
+        // 渲染为空（userFacingName() === ''），实际内容在 tool_result 中。
+        // 因此我们必须转换 tool_results 才能渲染它们。
         const converted = convertSDKMessage(
           sdkMessage,
           config.viewerOnly
@@ -286,14 +282,14 @@ export function useRemoteSession({
         )
 
         if (converted.type === 'message') {
-          // When we receive a complete message, clear streaming tool uses
-          // since the complete message replaces the partial streaming state
+          // 收到完整消息时，清除流式工具使用
+          // 因为完整消息替换了部分流式状态
           setStreamingToolUses?.(prev => (prev.length > 0 ? [] : prev))
 
-          // Mark tool_use blocks as in-progress so the UI shows the correct
-          // spinner state instead of "Waiting…" (queued). In local sessions,
-          // toolOrchestration.ts handles this, but remote sessions receive
-          // pre-built assistant messages without running local tool execution.
+          // 将 tool_use 块标记为进行中，这样 UI 显示正确的
+          // spinner 状态而不是"Waiting…"（排队）。在本地会话中，
+          // toolOrchestration.ts 处理此逻辑，但远程会话接收预构建的
+          // 助手消息而不运行本地工具执行。
           if (
             setInProgressToolUseIDs &&
             converted.message.type === 'assistant'
@@ -316,16 +312,16 @@ export function useRemoteSession({
           }
 
           setMessages(prev => [...prev, converted.message])
-          // Note: Don't stop loading on assistant messages - the agent may still be
-          // working (tool use loops). Loading stops only on session end or permission request.
+          // 注意：收到助手消息时不要停止加载 - 代理可能仍在工作
+          //（工具使用循环）。加载仅在会话结束或权限请求时停止。
         } else if (converted.type === 'stream_event') {
-          // Process streaming events to update UI in real-time
+          // 处理流事件以实时更新 UI
           if (setStreamingToolUses && setStreamMode) {
             handleMessageFromStream(
               converted.event,
               message => setMessages(prev => [...prev, message]),
               () => {
-                // No-op for response length - remote sessions don't track this
+                // 响应长度为空操作 - 远程会话不跟踪此项
               },
               setStreamMode,
               setStreamingToolUses,
@@ -336,14 +332,14 @@ export function useRemoteSession({
             )
           }
         }
-        // 'ignored' messages are silently dropped
+        // 'ignored' 消息被静默丢弃
       },
       onPermissionRequest: (request, requestId) => {
         logForDebugging(
           `[useRemoteSession] Permission request for tool: ${request.tool_name}`,
         )
 
-        // Look up the Tool object by name, or create a stub for unknown tools
+        // 按名称查找 Tool 对象，或为未知工具创建 stub
         const tool =
           findToolByName(toolsRef.current, request.tool_name) ??
           createToolStub(request.tool_name)
@@ -372,7 +368,7 @@ export function useRemoteSession({
           permissionResult,
           permissionPromptStartTimeMs: Date.now(),
           onUserInteraction() {
-            // No-op for remote — classifier runs on the container
+            // 远程无操作 — 分类器在容器上运行
           },
           onAbort() {
             const response: RemotePermissionResponse = {
@@ -393,7 +389,7 @@ export function useRemoteSession({
             setToolUseConfirmQueue(queue =>
               queue.filter(item => item.toolUseID !== request.tool_use_id),
             )
-            // Resume loading indicator after approving
+            // 批准后恢复加载指示器
             setIsLoading(true)
           },
           onReject(feedback?: string) {
@@ -407,12 +403,12 @@ export function useRemoteSession({
             )
           },
           async recheckPermission() {
-            // No-op for remote — permission state is on the container
+            // 远程无操作 — 权限状态在容器上
           },
         }
 
         setToolUseConfirmQueue(queue => [...queue, toolUseConfirm])
-        // Pause loading indicator while waiting for permission
+        // 等待权限时暂停加载指示器
         setIsLoading(false)
       },
       onPermissionCancelled: (requestId, toolUseId) => {
@@ -432,12 +428,12 @@ export function useRemoteSession({
       onReconnecting: () => {
         logForDebugging('[useRemoteSession] Reconnecting')
         setConnStatus('reconnecting')
-        // WS gap = we may miss task_notification events. Clear rather than
-        // drift high forever. Undercounts tasks that span the gap; accepted.
+        // WS 间隙 = 可能错过 task_notification 事件。清空而不是永远偏高。
+        // 少计跨越间隙的任务；可接受。
         runningTaskIdsRef.current.clear()
         writeTaskCount()
-        // Same for tool_use IDs: missed tool_result during the gap would
-        // leave stale spinner state forever.
+        // tool_use ID 同理：间隙期间错过的 tool_result 会
+        // 让过时的 spinner 状态永远保留。
         setInProgressToolUseIDs?.(prev => (prev.size > 0 ? new Set() : prev))
       },
       onDisconnected: () => {
@@ -458,7 +454,7 @@ export function useRemoteSession({
 
     return () => {
       logForDebugging('[useRemoteSession] Cleanup - disconnecting')
-      // Clear any pending timeout
+      // 清除任何待处理的超时
       if (responseTimeoutRef.current) {
         clearTimeout(responseTimeoutRef.current)
         responseTimeoutRef.current = null
@@ -479,7 +475,7 @@ export function useRemoteSession({
     writeTaskCount,
   ])
 
-  // Send a user message to the remote session
+  // 向远程会话发送用户消息
   const sendMessage = useCallback(
     async (
       content: RemoteMessageContent,
@@ -491,29 +487,29 @@ export function useRemoteSession({
         return false
       }
 
-      // Clear any existing timeout
+      // 清除任何现有超时
       if (responseTimeoutRef.current) {
         clearTimeout(responseTimeoutRef.current)
       }
 
       setIsLoading(true)
 
-      // Track locally-added message UUIDs so the WS echo can be filtered.
-      // Must record BEFORE the POST to close the race where the echo arrives
-      // before the POST promise resolves.
+      // 跟踪本地添加的消息 UUID，以便过滤 WS 回显。
+      // 必须在 POST 之前记录，以关闭回显在 POST promise
+      // 解析之前到达的竞态。
       if (opts?.uuid) sentUUIDsRef.current.add(opts.uuid)
 
       const success = await manager.sendMessage(content, opts)
 
       if (!success) {
-        // No need to undo the pre-POST add — BoundedUUIDSet's ring evicts it.
+        // 无需撤销 POST 前的添加 — BoundedUUIDSet 的环会逐出它。
         setIsLoading(false)
         return false
       }
 
-      // Update the session title after the first message when no initial prompt was provided.
-      // This gives the session a meaningful title on claude.ai instead of "Background task".
-      // Skip in viewerOnly mode — the remote agent owns the session title.
+      // 当未提供初始提示时，在第一条消息后更新会话标题。
+      // 这为 claude.ai 上的会话提供有意义的标题，而不是"Background task"。
+      // 在 viewerOnly 模式下跳过 — 远程代理拥有会话标题。
       if (
         !hasUpdatedTitleRef.current &&
         config &&
@@ -522,14 +518,14 @@ export function useRemoteSession({
       ) {
         hasUpdatedTitleRef.current = true
         const sessionId = config.sessionId
-        // Extract plain text from content (may be string or content block array)
+        // 从内容中提取纯文本（可能是字符串或内容块数组）
         const description =
           typeof content === 'string'
             ? content
             : extractTextContent(content, ' ')
         if (description) {
-          // generateSessionTitle never rejects (wraps body in try/catch,
-          // returns null on failure), so no .catch needed on this chain.
+          // generateSessionTitle 永远不会 reject（用 try/catch 包装 body，
+          // 失败时返回 null），因此此链无需 .catch。
           void generateSessionTitle(
             description,
             new AbortController().signal,
@@ -542,10 +538,10 @@ export function useRemoteSession({
         }
       }
 
-      // Start timeout to detect stuck sessions. Skip in viewerOnly mode —
-      // the remote agent may be idle-shut and take >60s to respawn.
-      // Use a longer timeout when the remote session is compacting, since
-      // the CLI worker is busy with an API call and won't emit messages.
+      // 启动超时以检测卡住的会话。在 viewerOnly 模式下跳过 —
+      // 远程代理可能已空闲关闭，需要 >60 秒才能重新唤醒。
+      // 当远程会话压缩时使用更长的超时，因为
+      // CLI worker 忙于 API 调用，不会发出消息。
       if (!config?.viewerOnly) {
         const timeoutMs = isCompactingRef.current
           ? COMPACTION_TIMEOUT_MS
@@ -555,14 +551,14 @@ export function useRemoteSession({
             logForDebugging(
               '[useRemoteSession] Response timeout - attempting reconnect',
             )
-            // Add a warning message to the conversation
+            // 向对话添加警告消息
             const warningMessage = createSystemMessage(
               'Remote session may be unresponsive. Attempting to reconnect…',
               'warning',
             )
             setMessages(prev => [...prev, warningMessage])
 
-            // Attempt to reconnect the WebSocket - the subscription may have become stale
+            // 尝试重新连接 WebSocket - 订阅可能已变得过时
             manager.reconnect()
           },
           timeoutMs,
@@ -576,16 +572,16 @@ export function useRemoteSession({
     [config, setIsLoading, setMessages],
   )
 
-  // Cancel the current request on the remote session
+  // 取消远程会话上的当前请求
   const cancelRequest = useCallback(() => {
-    // Clear any pending timeout
+    // 清除任何待处理的超时
     if (responseTimeoutRef.current) {
       clearTimeout(responseTimeoutRef.current)
       responseTimeoutRef.current = null
     }
 
-    // Send interrupt signal to CCR. Skip in viewerOnly mode — Ctrl+C
-    // should never interrupt the remote agent.
+    // 向 CCR 发送中断信号。在 viewerOnly 模式下跳过 —
+    // Ctrl+C 绝不应中断远程代理。
     if (!config?.viewerOnly) {
       managerRef.current?.cancelSession()
     }
@@ -593,9 +589,9 @@ export function useRemoteSession({
     setIsLoading(false)
   }, [config, setIsLoading])
 
-  // Disconnect from the session
+  // 从会话断开连接
   const disconnect = useCallback(() => {
-    // Clear any pending timeout
+    // 清除任何待处理的超时
     if (responseTimeoutRef.current) {
       clearTimeout(responseTimeoutRef.current)
       responseTimeoutRef.current = null
@@ -604,11 +600,11 @@ export function useRemoteSession({
     managerRef.current = null
   }, [])
 
-  // All four fields are already stable (boolean derived from a prop that
-  // doesn't change mid-session, three useCallbacks with stable deps). The
-  // result object is consumed by REPL's onSubmit useCallback deps — without
-  // memoization the fresh literal invalidates onSubmit on every REPL render,
-  // which in turn churns PromptInput's props and downstream memoization.
+  // 所有四个字段都已稳定（布尔值由会话期间不变的 prop 派生，
+  // 三个 useCallback 具有稳定依赖）。结果对象被 REPL 的
+  // onSubmit useCallback 依赖使用 — 没有 useMemo，
+  // 每次 REPL 渲染时新的字面量都会使 onSubmit 失效，
+  // 进而扰动 PromptInput 的 props 和下游记忆化。
   return useMemo(
     () => ({ isRemoteMode, sendMessage, cancelRequest, disconnect }),
     [isRemoteMode, sendMessage, cancelRequest, disconnect],

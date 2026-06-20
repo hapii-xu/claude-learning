@@ -16,7 +16,7 @@ import {
 export const call: LocalCommandCall = async (_args, context) => {
   const args = _args.trim()
 
-  // Enable status line + toggle selector open
+  // 启用状态行 + 切换选择器开关
   context.setAppState(prev => {
     const pipeIpc = getPipeIpc(prev)
     return {
@@ -29,7 +29,7 @@ export const call: LocalCommandCall = async (_args, context) => {
     }
   })
 
-  // Handle select/deselect subcommands
+  // 处理 select/deselect 子命令
   if (args.startsWith('select ') || args.startsWith('sel ')) {
     const pipeName = args.replace(/^(select|sel)\s+/, '').trim()
     if (!pipeName)
@@ -123,7 +123,7 @@ export const call: LocalCommandCall = async (_args, context) => {
     )
   }
 
-  // Show main from registry
+  // 从注册表中显示 main
   if (registry.main) {
     const m = registry.main
     const alive = await isPipeAlive(m.pipeName, 1000)
@@ -133,7 +133,7 @@ export const call: LocalCommandCall = async (_args, context) => {
     )
   }
 
-  // Show subs from registry with selection status
+  // 从注册表中显示 subs 及其选择状态
   const discoveredPipes: Array<{
     id: string
     pipeName: string
@@ -170,7 +170,7 @@ export const call: LocalCommandCall = async (_args, context) => {
     lines.push('No other pipes in registry.')
   }
 
-  // Show LAN peers (if LAN_PIPES enabled)
+  // 显示 LAN 对端（如果启用了 LAN_PIPES）
   if (feature('LAN_PIPES')) {
     const { getLanBeacon } =
       require('../../utils/lanBeacon.js') as typeof import('../../utils/lanBeacon.js')
@@ -208,7 +208,7 @@ export const call: LocalCommandCall = async (_args, context) => {
     }
   }
 
-  // Update state
+  // 更新状态
   context.setAppState(prev => ({
     ...prev,
     pipeIpc: { ...getPipeIpc(prev), discoveredPipes },

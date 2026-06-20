@@ -9,34 +9,34 @@ type UsePaginationOptions = {
 }
 
 type UsePaginationResult<T> = {
-  // For backwards compatibility with page-based terminology
+  // 为了与基于页码的术语保持向后兼容
   currentPage: number
   totalPages: number
   startIndex: number
   endIndex: number
   needsPagination: boolean
   pageSize: number
-  // Get visible slice of items
+  // 获取可见的项切片
   getVisibleItems: (items: T[]) => T[]
-  // Convert visible index to actual index
+  // 将可见索引转换为实际索引
   toActualIndex: (visibleIndex: number) => number
-  // Check if actual index is visible
+  // 检查实际索引是否可见
   isOnCurrentPage: (actualIndex: number) => boolean
-  // Navigation (kept for API compatibility)
+  // 导航（为了 API 兼容性而保留）
   goToPage: (page: number) => void
   nextPage: () => void
   prevPage: () => void
-  // Handle selection - just updates the index, scrolling is automatic
+  // 处理选择 —— 仅更新索引，滚动是自动的
   handleSelectionChange: (
     newIndex: number,
     setSelectedIndex: (index: number) => void,
   ) => void
-  // Page navigation - returns false for continuous scrolling (not needed)
+  // 页面导航 —— 连续滚动时返回 false（不需要）
   handlePageNavigation: (
     direction: 'left' | 'right',
     setSelectedIndex: (index: number) => void,
   ) => boolean
-  // Scroll position info for UI display
+  // 用于 UI 展示的滚动位置信息
   scrollPosition: {
     current: number
     total: number
@@ -52,31 +52,31 @@ export function usePagination<T>({
 }: UsePaginationOptions): UsePaginationResult<T> {
   const needsPagination = totalItems > maxVisible
 
-  // Use a ref to track the previous scroll offset for smooth scrolling
+  // 使用 ref 跟踪上一次的滚动偏移，以实现平滑滚动
   const scrollOffsetRef = useRef(0)
 
-  // Compute the scroll offset based on selectedIndex
-  // This ensures the selected item is always visible
+  // 基于 selectedIndex 计算滚动偏移
+  // 这确保了被选中的项总是可见
   const scrollOffset = useMemo(() => {
     if (!needsPagination) return 0
 
     const prevOffset = scrollOffsetRef.current
 
-    // If selected item is above the visible window, scroll up
+    // 如果选中项在可见窗口之上，向上滚动
     if (selectedIndex < prevOffset) {
       scrollOffsetRef.current = selectedIndex
       return selectedIndex
     }
 
-    // If selected item is below the visible window, scroll down
+    // 如果选中项在可见窗口之下，向下滚动
     if (selectedIndex >= prevOffset + maxVisible) {
       const newOffset = selectedIndex - maxVisible + 1
       scrollOffsetRef.current = newOffset
       return newOffset
     }
 
-    // Selected item is within visible window, keep current offset
-    // But ensure offset is still valid
+    // 选中项在可见窗口内，保持当前偏移
+    // 但要确保偏移仍然有效
     const maxOffset = Math.max(0, totalItems - maxVisible)
     const clampedOffset = Math.min(prevOffset, maxOffset)
     scrollOffsetRef.current = clampedOffset
@@ -108,21 +108,21 @@ export function usePagination<T>({
     [startIndex, endIndex],
   )
 
-  // These are mostly no-ops for continuous scrolling but kept for API compatibility
+  // 这些在连续滚动时基本是 no-op，但为了 API 兼容性而保留
   const goToPage = useCallback((_page: number) => {
-    // No-op - scrolling is controlled by selectedIndex
+    // No-op —— 滚动由 selectedIndex 控制
   }, [])
 
   const nextPage = useCallback(() => {
-    // No-op - scrolling is controlled by selectedIndex
+    // No-op —— 滚动由 selectedIndex 控制
   }, [])
 
   const prevPage = useCallback(() => {
-    // No-op - scrolling is controlled by selectedIndex
+    // No-op —— 滚动由 selectedIndex 控制
   }, [])
 
-  // Simple selection handler - just updates the index
-  // Scrolling happens automatically via the useMemo above
+  // 简单的选择处理器 —— 只更新索引
+  // 滚动通过上面的 useMemo 自动发生
   const handleSelectionChange = useCallback(
     (newIndex: number, setSelectedIndex: (index: number) => void) => {
       const clampedIndex = Math.max(0, Math.min(newIndex, totalItems - 1))
@@ -131,7 +131,7 @@ export function usePagination<T>({
     [totalItems],
   )
 
-  // Page navigation - disabled for continuous scrolling
+  // 页面导航 —— 连续滚动时禁用
   const handlePageNavigation = useCallback(
     (
       _direction: 'left' | 'right',
@@ -142,7 +142,7 @@ export function usePagination<T>({
     [],
   )
 
-  // Calculate page-like values for backwards compatibility
+  // 为向后兼容计算类页码值
   const totalPages = Math.max(1, Math.ceil(totalItems / maxVisible))
   const currentPage = Math.floor(scrollOffset / maxVisible)
 

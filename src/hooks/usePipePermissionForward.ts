@@ -1,10 +1,10 @@
 /**
- * usePipePermissionForward — Forward slave permission requests to master UI.
+ * usePipePermissionForward — 将 slave 权限请求转发到 master UI。
  *
- * Subscribes to slave pipe messages via subscribePipeEntries, and:
- * 1. permission_request → enqueue into toolUseConfirmQueue for master approval
- * 2. permission_cancel → remove from queue
- * 3. stream/error/done → display as system messages
+ * 通过 subscribePipeEntries 订阅 slave pipe 消息，并：
+ * 1. permission_request → 入队到 toolUseConfirmQueue 供 master 批准
+ * 2. permission_cancel → 从队列中移除
+ * 3. stream/error/done → 显示为系统消息
  */
 import { feature } from 'bun:bundle'
 import { useEffect } from 'react'
@@ -142,7 +142,7 @@ export function usePipePermissionForward({
               },
             ])
           } catch {
-            // Malformed permission request — ignore
+            // 畸形权限请求 —— 忽略
           }
           return
         }
@@ -156,7 +156,7 @@ export function usePipePermissionForward({
               ),
             )
           } catch {
-            // Malformed — ignore
+            // 畸形 —— 忽略
           }
           return
         }

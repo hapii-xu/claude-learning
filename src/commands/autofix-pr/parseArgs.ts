@@ -5,8 +5,8 @@ export type ParsedArgs =
   | { action: 'invalid'; reason: string }
 
 /**
- * Parse a PR-number string. Restricts to 1..9_999_999_999 (1–10 digits, no
- * leading zero) so we never produce 0, negatives, or unsafe integers.
+ * 解析 PR 编号字符串。范围限制为 1..9_999_999_999（1-10 位数字，不含前导零），
+ * 确保永远不产生 0、负数或 unsafe integer。
  */
 export function parsePrNumber(raw: string): number | null {
   if (!/^[1-9]\d{0,9}$/.test(raw)) return null

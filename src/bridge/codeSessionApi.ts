@@ -1,10 +1,10 @@
 /**
- * Thin HTTP wrappers for the CCR v2 code-session API.
+ * CCR v2 code-session API 的薄 HTTP 封装。
  *
- * Separate file from remoteBridgeCore.ts so the SDK /bridge subpath can
- * export createCodeSession + fetchRemoteCredentials without bundling the
- * heavy CLI tree (analytics, transport, etc.). Callers supply explicit
- * accessToken + baseUrl — no implicit auth or config reads.
+ * 与 remoteBridgeCore.ts 分文件存放，是为了让 SDK /bridge 子路径可以
+ * 导出 createCodeSession + fetchRemoteCredentials 而不把重型 CLI 树
+ *（analytics、transport 等）打进来。调用方显式传入 accessToken +
+ * baseUrl —— 没有隐式鉴权或 config 读取。
  */
 
 import axios from 'axios'
@@ -35,9 +35,9 @@ export async function createCodeSession(
   try {
     response = await axios.post(
       url,
-      // bridge: {} is the positive signal for the oneof runner — omitting it
-      // (or sending environment_id: "") now 400s. BridgeRunner is an empty
-      // message today; it's a placeholder for future bridge-specific options.
+      // bridge: {} 是 oneof runner 的正向信号 —— 省略它
+      //（或传 environment_id: ""）现在会返回 400。BridgeRunner 目前是空
+      // message，作为未来 bridge 专属选项的占位符。
       { title, bridge: {}, ...(tags?.length ? { tags } : {}) },
       {
         headers: oauthHeaders(accessToken),
@@ -80,8 +80,8 @@ export async function createCodeSession(
 }
 
 /**
- * Credentials from POST /bridge. JWT is opaque — do not decode.
- * Each /bridge call bumps worker_epoch server-side (it IS the register).
+ * POST /bridge 返回的凭据。JWT 是不透明的 —— 不要解码。
+ * 每次 /bridge 调用都会在服务器侧递增 worker_epoch（它本身就是注册动作）。
  */
 export type RemoteCredentials = {
   worker_jwt: string
@@ -145,8 +145,8 @@ export async function fetchRemoteCredentials(
     )
     return null
   }
-  // protojson serializes int64 as a string to avoid JS precision loss;
-  // Go may also return a number depending on encoder settings.
+  // protojson 把 int64 序列化为字符串以避免 JS 精度丢失；
+  // 根据 encoder 设置，Go 也可能返回一个数字。
   const rawEpoch = data.worker_epoch
   const epoch = typeof rawEpoch === 'string' ? Number(rawEpoch) : rawEpoch
   if (

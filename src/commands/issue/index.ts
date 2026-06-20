@@ -23,8 +23,8 @@ import { sanitizePath } from '../../utils/path.js'
 import * as childProcess from 'node:child_process'
 import { promisify } from 'node:util'
 
-// Re-resolved at call time via namespace import so that test runners using
-// mock.module('node:child_process') see the replacement.
+// 在调用时通过 namespace import 重新解析，使使用 mock.module('node:child_process')
+// 的测试运行器能看到替换后的实现。
 function execFileAsync(
   cmd: string,
   args: string[],
@@ -82,8 +82,8 @@ function ghCliAvailable(): boolean {
 }
 
 /**
- * Checks whether issues are enabled in the repo (gh API call).
- * Returns null when we can't determine (no auth, no network).
+ * 检查仓库中是否启用了 issues（通过 gh API 调用）。
+ * 无法判定时（无认证、无网络）返回 null。
  */
 async function repoHasIssuesEnabled(
   owner: string,
@@ -105,8 +105,8 @@ async function repoHasIssuesEnabled(
 }
 
 /**
- * Returns the first .github/ISSUE_TEMPLATE/*.md body (front-matter stripped),
- * or null if none exists.
+ * 返回第一个 .github/ISSUE_TEMPLATE/*.md 的正文（已去除 front-matter），
+ * 若不存在则返回 null。
  */
 function detectIssueTemplate(cwd: string): string | null {
   const templateDir = join(cwd, '.github', 'ISSUE_TEMPLATE')
@@ -117,12 +117,12 @@ function detectIssueTemplate(cwd: string): string | null {
     )
     if (files.length === 0) return null
 
-    // Use the first markdown template
+    // 使用第一个 markdown 模板
     const mdFile = files.find(f => f.endsWith('.md'))
     if (!mdFile) return null
 
     const content = readFileSync(join(templateDir, mdFile), 'utf8')
-    // Strip YAML front-matter (---...---)
+    // 去除 YAML front-matter (---...---)
     const stripped = content.replace(/^---[\s\S]*?---\n?/, '').trim()
     return stripped || null
   } catch {
@@ -131,8 +131,8 @@ function detectIssueTemplate(cwd: string): string | null {
 }
 
 /**
- * Extracts the last N turns from the session log, truncating each to 200 chars.
- * Includes the current error if any tool_result has an error indicator.
+ * 从会话日志中提取最后 N 轮对话，每条截断为 200 字符。
+ * 如果任意 tool_result 含错误标记，则包含当前错误。
  */
 function getTranscriptSummary(maxTurns = 5): string {
   try {
@@ -160,7 +160,7 @@ function getTranscriptSummary(maxTurns = 5): string {
         const entry = JSON.parse(line) as Record<string, unknown>
         const role = entry.role as string | undefined
 
-        // Collect errors from tool_result blocks
+        // 从 tool_result 块收集错误
         if (Array.isArray(entry.content)) {
           for (const block of entry.content as Array<Record<string, unknown>>) {
             if (
@@ -187,11 +187,11 @@ function getTranscriptSummary(maxTurns = 5): string {
           if (text) summaryParts.push(`[${role}] ${text}`)
         }
       } catch {
-        // skip malformed lines
+        // 跳过格式错误的行
       }
     }
 
-    const recentParts = summaryParts.slice(-maxTurns * 2) // user + assistant per turn
+    const recentParts = summaryParts.slice(-maxTurns * 2) // 每轮包含 user + assistant
     let result =
       recentParts.length > 0
         ? recentParts.join('\n')
@@ -215,11 +215,11 @@ interface IssueOptions {
 }
 
 /**
- * Parses /issue args.
+ * 解析 /issue 参数。
  *
- * Format: /issue [--label <label>]* [--assignee <user>]* <title words...>
+ * 格式：/issue [--label <label>]* [--assignee <user>]* <标题词...>
  *
- * Examples:
+ * 示例：
  *   /issue Fix login bug
  *   /issue --label bug --assignee alice Fix login bug
  */
@@ -348,10 +348,10 @@ const issue: Command = {
       })
 
       if (!hasGh || !parsed) {
-        // Fallback: provide URL-encoded browser link.
-        // Browsers silently truncate URLs beyond ~8KB so we cap the body at
-        // MAX_URL_BODY characters. When the full body is larger we save a draft
-        // to ~/.claude/issue-drafts/ and tell the user where to find it.
+        // 回退：提供经过 URL 编码的浏览器链接。
+        // 浏览器会静默截断超过 ~8KB 的 URL，因此我们将正文限制在
+        // MAX_URL_BODY 字符以内。当完整正文超出限制时，会保存草稿到
+        // ~/.claude/issue-drafts/ 并告知用户位置。
         const MAX_URL_BODY = 4096
         const sessionSummary = getTranscriptSummary()
         const fullBodyText = `## Context from Claude Code session\n\n${sessionSummary}`
@@ -373,7 +373,7 @@ const issue: Command = {
               'utf8',
             )
           } catch {
-            // Non-fatal; proceed without draft
+            // 非致命错误；不带草稿继续
           }
         }
 
@@ -412,7 +412,7 @@ const issue: Command = {
         return { type: 'text', value: lines.join('\n') }
       }
 
-      // Check if issues are enabled on this repo — fall back to Discussions if not
+      // 检查仓库是否启用了 issues，若未启用则回退到 Discussions
       const hasIssues = await repoHasIssuesEnabled(parsed.owner, parsed.repo)
       if (hasIssues === false) {
         logEvent('tengu_issue_fallback', {
@@ -433,10 +433,10 @@ const issue: Command = {
         }
       }
 
-      // Detect issue template
+      // 检测 issue 模板
       const templateBody = detectIssueTemplate(cwd)
 
-      // Build rich body: session context + template (if present) + errors
+      // 构造富正文：会话上下文 + 模板（若存在）+ 错误
       const sessionSummary = getTranscriptSummary(5)
       const bodyParts: string[] = [
         '## Context from Claude Code session',
@@ -453,7 +453,7 @@ const issue: Command = {
       )
       const body = bodyParts.join('\n')
 
-      // Build gh issue create args
+      // 构造 gh issue create 参数
       const ghArgs: string[] = [
         'issue',
         'create',

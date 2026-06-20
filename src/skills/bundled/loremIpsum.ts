@@ -1,9 +1,9 @@
 import { registerBundledSkill } from '../bundledSkills.js'
 
-// Verified 1-token words (tested via API token counting)
-// All common English words confirmed to tokenize as single tokens
+// 已验证的 1-token 单词（通过 API token 计数测试）
+// 所有常见英文单词已确认为单 token
 const ONE_TOKEN_WORDS = [
-  // Articles & pronouns
+  // 冠词和代词
   'the',
   'a',
   'an',
@@ -28,7 +28,7 @@ const ONE_TOKEN_WORDS = [
   'that',
   'what',
   'who',
-  // Common verbs
+  // 常见动词
   'is',
   'are',
   'was',
@@ -78,7 +78,7 @@ const ONE_TOKEN_WORDS = [
   'seem',
   'leave',
   'put',
-  // Common nouns & adjectives
+  // 常见名词和形容词
   'time',
   'year',
   'day',
@@ -115,7 +115,7 @@ const ONE_TOKEN_WORDS = [
   'bad',
   'same',
   'able',
-  // Prepositions & conjunctions
+  // 介词和连词
   'in',
   'on',
   'at',
@@ -151,7 +151,7 @@ const ONE_TOKEN_WORDS = [
   'where',
   'why',
   'how',
-  // Common adverbs
+  // 常见副词
   'not',
   'now',
   'just',
@@ -178,7 +178,7 @@ const ONE_TOKEN_WORDS = [
   'down',
   'out',
   'up',
-  // Tech/common words
+  // 科技/常见词汇
   'test',
   'code',
   'data',
@@ -204,7 +204,7 @@ function generateLoremIpsum(targetTokens: number): string {
   let result = ''
 
   while (tokens < targetTokens) {
-    // Sentence: 10-20 words
+    // 句子：10-20 个词
     const sentenceLength = 10 + Math.floor(Math.random() * 11)
     let wordsInSentence = 0
 
@@ -222,7 +222,7 @@ function generateLoremIpsum(targetTokens: number): string {
       }
     }
 
-    // Paragraph break every 5-8 sentences (roughly 20% chance per sentence)
+    // 每 5-8 句换段（大约每句 20% 概率）
     if (wordsInSentence > 0 && Math.random() < 0.2 && tokens < targetTokens) {
       result += '\n\n'
     }
@@ -256,7 +256,7 @@ export function registerLoremIpsumSkill(): void {
 
       const targetTokens = parsed || 10000
 
-      // Cap at 500k tokens for safety
+      // 安全上限 50 万 token
       const cappedTokens = Math.min(targetTokens, 500_000)
 
       if (cappedTokens < targetTokens) {
@@ -270,7 +270,7 @@ export function registerLoremIpsumSkill(): void {
 
       const loremText = generateLoremIpsum(cappedTokens)
 
-      // Just dump the lorem ipsum text into the conversation
+      // 直接将 lorem ipsum 文本输出到对话中
       return [
         {
           type: 'text',

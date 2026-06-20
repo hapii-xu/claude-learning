@@ -1,23 +1,23 @@
 /**
- * Thin HTTP client for the /v1/memory_stores endpoint.
+ * /v1/memory_stores 端点的轻量 HTTP 客户端。
  *
- * Key spec facts (from binary reverse-engineering of v2.1.123):
+ * 关键 spec 事实（来自对 v2.1.123 二进制的逆向工程）：
  *   - list stores:    GET    /v1/memory_stores
  *   - create store:   POST   /v1/memory_stores
  *   - get store:      GET    /v1/memory_stores/{id}
- *   - archive store:  POST   /v1/memory_stores/{id}/archive  ← POST not DELETE
+ *   - archive store:  POST   /v1/memory_stores/{id}/archive  ← 是 POST 不是 DELETE
  *   - list memories:  GET    /v1/memory_stores/{id}/memories
  *   - create memory:  POST   /v1/memory_stores/{id}/memories
  *   - get memory:     GET    /v1/memory_stores/{id}/memories/{mid}
- *   - update memory:  PATCH  /v1/memory_stores/{id}/memories/{mid}  ← PATCH not POST
+ *   - update memory:  PATCH  /v1/memory_stores/{id}/memories/{mid}  ← 是 PATCH 不是 POST
  *   - delete memory:  DELETE /v1/memory_stores/{id}/memories/{mid}
  *   - list versions:  GET    /v1/memory_stores/{id}/memory_versions
  *   - redact version: POST   /v1/memory_stores/{id}/memory_versions/{vid}/redact
  *
- * CRITICAL INVARIANT: updateMemory uses PATCH (not POST).
- * Binary evidence: "PATCH /v1/memory_stores/{memory_store_id}/memories"
+ * 关键不变式：updateMemory 使用 PATCH（不是 POST）。
+ * 二进制证据："PATCH /v1/memory_stores/{memory_store_id}/memories"
  *
- * Reuses the same base-URL + auth-header pattern as triggersApi.ts / agentsApi.ts.
+ * 复用与 triggersApi.ts / agentsApi.ts 相同的 base-URL + auth-header 模式。
  */
 
 import axios from 'axios'
@@ -73,9 +73,9 @@ type ListVersionsResponse = {
   data: MemoryVersion[]
 }
 
-// Server requires this exact beta header — confirmed from runtime error
-// "this API is in beta: add `managed-agents-2026-04-01`". Memory stores share
-// the managed-agents beta umbrella with /v1/agents and /v1/code/triggers.
+// 服务器要求精确匹配该 beta header —— 来自运行时错误信息确认：
+// "this API is in beta: add `managed-agents-2026-04-01`"。Memory stores 与
+// /v1/agents 和 /v1/code/triggers 共享同一个 managed-agents beta 大类。
 const MEMORY_STORES_BETA_HEADER = 'managed-agents-2026-04-01'
 const MAX_RETRIES = 3
 
@@ -94,10 +94,10 @@ class MemoryStoresApiError extends Error {
 }
 
 async function buildHeaders(): Promise<Record<string, string>> {
-  // /v1/memory_stores requires a workspace-scoped API key (sk-ant-api03-*).
-  // Server explicitly returns: "memory stores require a workspace-scoped API key or session"
-  // (probed 2026-05-03). Subscription OAuth bearer tokens always 401 here.
-  // Guard the host before sending the key to prevent credential leakage.
+  // /v1/memory_stores 需要一个 workspace 级 API key (sk-ant-api03-*)。
+  // 服务器会明确返回："memory stores require a workspace-scoped API key or session"
+  // (2026-05-03 探测确认)。Subscription OAuth bearer token 在这里始终返回 401。
+  // 在发送 key 之前先校验 host，以防止凭证泄漏。
   let apiKey: string
   try {
     const prepared = await prepareWorkspaceApiRequest()
@@ -158,9 +158,9 @@ function classifyError(err: unknown): MemoryStoresApiError {
 }
 
 /**
- * Parses the Retry-After header value into milliseconds.
- * Accepts both integer-seconds (e.g. "30") and HTTP-date strings.
- * Returns null when the header is absent or unparseable.
+ * 把 Retry-After header 的值解析为毫秒。
+ * 同时接受整数秒（例如 "30"）和 HTTP-date 字符串。
+ * 当 header 缺失或无法解析时返回 null。
  */
 function parseRetryAfterMs(header: string | undefined): number | null {
   if (!header) return null
@@ -178,7 +178,7 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
       return await fn()
     } catch (err: unknown) {
       const classified = classifyError(err)
-      // Only retry 5xx errors
+      // 仅对 5xx 错误重试
       if (classified.statusCode >= 500) {
         lastErr = classified
         if (attempt < MAX_RETRIES - 1) {
@@ -199,7 +199,7 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   throw lastErr ?? new MemoryStoresApiError('Request failed after retries', 0)
 }
 
-// ── Store CRUD ─────────────────────────────────────────────────────────────
+// ── Store 增删改查 ─────────────────────────────────────────────────────────────
 
 export async function listStores(): Promise<MemoryStore[]> {
   return withRetry(async () => {
@@ -245,10 +245,10 @@ export async function getStore(id: string): Promise<MemoryStore> {
 }
 
 /**
- * Archive a memory store (soft delete).
+ * 归档一个 memory store（软删除）。
  *
- * IMPORTANT: The upstream API uses POST (not DELETE) for archiving.
- * Binary literal evidence: "POST /v1/memory_stores/{memory_store_id}/archive"
+ * 重要：上游 API 归档使用 POST（不是 DELETE）。
+ * 二进制字面量证据："POST /v1/memory_stores/{memory_store_id}/archive"
  */
 export async function archiveStore(id: string): Promise<MemoryStore> {
   return withRetry(async () => {
@@ -262,7 +262,7 @@ export async function archiveStore(id: string): Promise<MemoryStore> {
   })
 }
 
-// ── Memory CRUD ────────────────────────────────────────────────────────────
+// ── Memory 增删改查 ────────────────────────────────────────────────────────────
 
 export async function listMemories(storeId: string): Promise<Memory[]> {
   return withRetry(async () => {
@@ -306,11 +306,11 @@ export async function getMemory(
 }
 
 /**
- * Update a memory's content.
+ * 更新某条 memory 的内容。
  *
- * CRITICAL INVARIANT: This endpoint uses PATCH (not POST/PUT).
- * Binary literal evidence: "PATCH /v1/memory_stores/{memory_store_id}/memories"
- * Test name: "updateMemory calls PATCH /v1/memory_stores/{id}/memories/{mid} (not POST)"
+ * 关键不变式：此端点使用 PATCH（不是 POST/PUT）。
+ * 二进制字面量证据："PATCH /v1/memory_stores/{memory_store_id}/memories"
+ * 测试名："updateMemory calls PATCH /v1/memory_stores/{id}/memories/{mid} (not POST)"
  */
 export async function updateMemory(
   storeId: string,
@@ -342,7 +342,7 @@ export async function deleteMemory(
   })
 }
 
-// ── Versions ───────────────────────────────────────────────────────────────
+// ── 版本 ───────────────────────────────────────────────────────────────
 
 export async function listVersions(storeId: string): Promise<MemoryVersion[]> {
   return withRetry(async () => {
@@ -356,10 +356,10 @@ export async function listVersions(storeId: string): Promise<MemoryVersion[]> {
 }
 
 /**
- * Redact a memory version (PII removal).
+ * 对某个 memory 版本进行脱敏（移除 PII）。
  *
- * IMPORTANT: Uses POST (not DELETE) for redaction.
- * Binary literal evidence: "POST /v1/memory_stores/{id}/memory_versions/{vid}/redact"
+ * 重要：脱敏使用 POST（不是 DELETE）。
+ * 二进制字面量证据："POST /v1/memory_stores/{id}/memory_versions/{vid}/redact"
  */
 export async function redactVersion(
   storeId: string,

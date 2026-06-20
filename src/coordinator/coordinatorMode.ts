@@ -16,12 +16,11 @@ import { TEAM_CREATE_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/Tea
 import { TEAM_DELETE_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/TeamDeleteTool/constants.js'
 import { isEnvTruthy } from '../utils/envUtils.js'
 
-// Checks the same gate as isScratchpadEnabled() in
-// utils/permissions/filesystem.ts. Duplicated here because importing
-// filesystem.ts creates a circular dependency (filesystem -> permissions
-// -> ... -> coordinatorMode). The actual scratchpad path is passed in via
-// getCoordinatorUserContext's scratchpadDir parameter (dependency injection
-// from QueryEngine.ts, which lives higher in the dep graph).
+// 检查的 gate 与 utils/permissions/filesystem.ts 中 isScratchpadEnabled() 相同。
+// 这里重复实现是因为直接 import filesystem.ts 会产生循环依赖
+// （filesystem -> permissions -> ... -> coordinatorMode）。实际的 scratchpad
+// 路径通过 getCoordinatorUserContext 的 scratchpadDir 参数注入（依赖由位于
+// 依赖图更高层的 QueryEngine.ts 提供）。
 function isScratchpadGateEnabled(): boolean {
   return checkStatsigFeatureGate_CACHED_MAY_BE_STALE('tengu_scratch')
 }
@@ -41,15 +40,14 @@ export function isCoordinatorMode(): boolean {
 }
 
 /**
- * Checks if the current coordinator mode matches the session's stored mode.
- * If mismatched, flips the environment variable so isCoordinatorMode() returns
- * the correct value for the resumed session. Returns a warning message if
- * the mode was switched, or undefined if no switch was needed.
+ * 检查当前 coordinator 模式是否与会话存储的模式一致。
+ * 若不一致，会翻转环境变量，使得 isCoordinatorMode() 在恢复会话时返回
+ * 正确的值。如果发生了模式切换则返回一条警告信息；无需切换时返回 undefined。
  */
 export function matchSessionMode(
   sessionMode: 'coordinator' | 'normal' | undefined,
 ): string | undefined {
-  // No stored mode (old session before mode tracking) — do nothing
+  // 没有存储的模式（在引入模式追踪之前的旧会话）—— 什么都不做
   if (!sessionMode) {
     return undefined
   }
@@ -61,7 +59,7 @@ export function matchSessionMode(
     return undefined
   }
 
-  // Flip the env var — isCoordinatorMode() reads it live, no caching
+  // 翻转环境变量 —— isCoordinatorMode() 实时读取，不做缓存
   if (sessionIsCoordinator) {
     process.env.CLAUDE_CODE_COORDINATOR_MODE = '1'
   } else {

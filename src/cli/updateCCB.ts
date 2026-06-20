@@ -1,9 +1,9 @@
 /**
- * `ccb update` — Check and install the latest version of claude-code-best.
+ * `ccb update` — 检查并安装最新版本的 claude-code-best。
  *
- * Detection strategy:
- *  1. If `bun` is available and the current installation was done via bun → use `bun update -g`
- *  2. Otherwise → use `npm install -g`
+ * 检测策略：
+ *  1. 如果 `bun` 可用且当前安装是通过 bun 进行的 → 使用 `bun update -g`
+ *  2. 否则 → 使用 `npm install -g`
  */
 import chalk from 'chalk'
 import { execSync } from 'node:child_process'
@@ -19,7 +19,7 @@ import { writeToStdout } from '../utils/process.js'
 const PACKAGE_NAME = 'claude-code-best'
 
 function getCurrentVersion(): string {
-  // Read version from the nearest package.json (walks up from dist root)
+  // 从最近的 package.json 读取版本号（从 dist root 向上查找）
   try {
     const pkgPath = join(distRoot, '..', 'package.json')
     if (existsSync(pkgPath)) {
@@ -27,7 +27,7 @@ function getCurrentVersion(): string {
       if (pkg.version) return pkg.version
     }
   } catch {
-    // fallback
+    // 回退
   }
   return MACRO.VERSION
 }
@@ -42,17 +42,17 @@ function isCommandAvailable(cmd: string): boolean {
 }
 
 /**
- * Detect whether the current installation was done via bun.
- * Checks if the binary path contains "bun" or if bun's global install dir has our package.
+ * 检测当前安装是否通过 bun 进行。
+ * 检查二进制路径是否包含 "bun"，或 bun 的全局安装目录是否包含我们的包。
  */
 function isBunInstallation(): boolean {
-  // Check if the running binary is under bun's global install path
+  // 检查正在运行的二进制是否位于 bun 的全局安装路径下
   const execPath = process.execPath
   if (execPath.includes('bun')) {
     return true
   }
 
-  // Check bun's global install directory
+  // 检查 bun 的全局安装目录
   const bunGlobalDir = join(homedir(), '.bun', 'install', 'global')
   if (existsSync(join(bunGlobalDir, 'node_modules', PACKAGE_NAME))) {
     return true
@@ -62,7 +62,7 @@ function isBunInstallation(): boolean {
 }
 
 /**
- * Get the latest version from npm registry.
+ * 从 npm registry 获取最新版本。
  */
 async function getLatestVersion(): Promise<string | null> {
   const result = await execFileNoThrowWithCwd(
@@ -78,7 +78,7 @@ async function getLatestVersion(): Promise<string | null> {
 }
 
 /**
- * Compare two semver strings. Returns true if a >= b.
+ * 比较两个 semver 字符串。当 a >= b 时返回 true。
  */
 function gte(a: string, b: string): boolean {
   const parseVer = (v: string) => v.replace(/^\D/, '').split('.').map(Number)
@@ -95,7 +95,7 @@ export async function updateCCB(): Promise<void> {
   const currentVersion = getCurrentVersion()
   writeToStdout(`Current version: ${currentVersion}\n`)
 
-  // Determine package manager
+  // 确定包管理器
   const hasBun = isCommandAvailable('bun')
   const useBun = isBunInstallation()
   const pkgManager = useBun && hasBun ? 'bun' : 'npm'
@@ -103,7 +103,7 @@ export async function updateCCB(): Promise<void> {
   writeToStdout(`Package manager: ${pkgManager}\n`)
   writeToStdout('Checking for updates...\n')
 
-  // Get latest version
+  // 获取最新版本
   const latestVersion = await getLatestVersion()
   if (!latestVersion) {
     process.stderr.write(chalk.red('Failed to check for updates') + '\n')
@@ -112,7 +112,7 @@ export async function updateCCB(): Promise<void> {
     return
   }
 
-  // Already up to date?
+  // 已经是最新版本？
   if (latestVersion === currentVersion || gte(currentVersion, latestVersion)) {
     writeToStdout(chalk.green(`ccb is up to date (${currentVersion})`) + '\n')
     await gracefulShutdown(0)

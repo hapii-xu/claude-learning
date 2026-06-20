@@ -1,4 +1,4 @@
-// Re-export from @anthropic/ink keybindings module
+// 从 @anthropic/ink keybindings 模块重新导出
 export {
   parseKeystroke,
   parseChord,

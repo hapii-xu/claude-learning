@@ -24,9 +24,9 @@ import * as childProcess from 'node:child_process'
 import { promisify } from 'node:util'
 
 /**
- * Sanitizes an error message before surfacing it to the user:
- * - Replaces the home directory path with "~" to avoid leaking absolute paths.
- * - Truncates to 200 characters to avoid leaking large stack traces or token fragments.
+ * 在将错误消息展示给用户前对其进行脱敏处理：
+ * - 将 home 目录路径替换为 "~"，避免泄漏绝对路径。
+ * - 截断到 200 字符以内，避免泄漏大段堆栈跟踪或 token 片段。
  */
 function sanitizeErrorMessage(msg: string): string {
   const home = homedir()
@@ -38,9 +38,9 @@ function sanitizeErrorMessage(msg: string): string {
   return sanitized
 }
 
-// Re-resolved at call time via namespace import so that test runners using
-// mock.module('node:child_process') see the replacement (unlike module-load
-// promisify capture which binds the original reference permanently).
+// 通过 namespace import 在调用时重新解析，这样使用
+// mock.module('node:child_process') 的测试运行器能看到替换结果（不同于
+// 在模块加载时通过 promisify 捕获，后者会永久绑定原始引用）。
 function execFileAsync(
   cmd: string,
   args: string[],
@@ -49,9 +49,9 @@ function execFileAsync(
   return promisify(childProcess.execFile)(cmd, args, opts)
 }
 
-// Patterns to mask in shared content (API keys, tokens, passwords, secrets)
+// 在共享内容中需要遮蔽的模式（API 密钥、token、密码、机密信息）
 const SECRET_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
-  // Anthropic / OpenAI-style API keys
+  // Anthropic / OpenAI 风格的 API 密钥
   {
     pattern: /\b(sk-ant-[A-Za-z0-9_-]{20,})/g,
     replacement: '[REDACTED_ANTHROPIC_KEY]',
@@ -60,40 +60,40 @@ const SECRET_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
     pattern: /\b(sk-[A-Za-z0-9_-]{20,})/g,
     replacement: '[REDACTED_API_KEY]',
   },
-  // Bearer / Authorization tokens
+  // Bearer / Authorization token
   {
     pattern: /\b(Bearer\s+)[A-Za-z0-9._~+/-]{20,}/gi,
     replacement: '$1[REDACTED_TOKEN]',
   },
-  // Generic: key/token/secret/password followed by = or : and a value
+  // 通用模式：key/token/secret/password 后接 = 或 : 再接值
   {
     pattern:
       /("(?:api[_-]?key|token|secret|password|passwd|auth)["\s]*[:=]\s*")[^"]{8,}"/gi,
     replacement: '$1[REDACTED]"',
   },
-  // AWS-style access keys
+  // AWS 风格的访问密钥
   {
     pattern: /\b(AKIA[A-Z0-9]{16})\b/g,
     replacement: '[REDACTED_AWS_KEY]',
   },
-  // GitHub personal access tokens (ghp_*, gho_*, ghs_*, ghr_*)
+  // GitHub 个人访问令牌（ghp_*、gho_*、ghs_*、ghr_*）
   {
     pattern: /\b(gh[a-z]_[A-Za-z0-9_]{36,})/g,
     replacement: '[REDACTED_GH_TOKEN]',
   },
-  // Slack bot tokens (xoxb-*)
+  // Slack bot token（xoxb-*）
   {
     pattern: /\b(xoxb-[A-Za-z0-9-]{30,})/g,
     replacement: '[REDACTED_SLACK_TOKEN]',
   },
-  // NOTE: We intentionally do NOT redact generic ≥32-char hex strings because
-  // they match legitimate git commit SHAs and base64 content, producing
-  // garbled share output. Token detection is limited to prefixed patterns above.
+  // 注意：我们有意不对通用的 ≥32 字符十六进制字符串进行脱敏，因为
+  // 它们会匹配合法的 git commit SHA 和 base64 内容，导致共享输出变得
+  // 混乱。Token 检测仅限于上方带前缀的模式。
 ]
 
 /**
- * Masks secret-looking strings in the given text.
- * Exported for testing.
+ * 遮蔽文本中形似机密信息的字符串。
+ * 导出用于测试。
  */
 export function maskSecrets(text: string): string {
   let result = text
@@ -104,8 +104,8 @@ export function maskSecrets(text: string): string {
 }
 
 /**
- * Builds a summary-only version of the session JSONL:
- * Takes the first 200 chars of each turn's text content (user/assistant only).
+ * 构建会话 JSONL 的摘要版本：
+ * 取每一轮（仅 user/assistant）文本内容的前 200 个字符。
  */
 function buildSummaryContent(logPath: string): string {
   try {
@@ -135,12 +135,12 @@ function buildSummaryContent(logPath: string): string {
           summaryLines.push(JSON.stringify({ role, content: text }))
         }
       } catch {
-        // skip malformed
+        // 跳过格式错误的内容
       }
     }
     return summaryLines.join('\n')
   } catch {
-    // Defensive: log file disappeared between existsSync and readFileSync (TOCTOU)
+    // 防御性处理：日志文件在 existsSync 与 readFileSync 之间消失（TOCTOU）
     return ''
   }
 }
@@ -194,8 +194,8 @@ async function uploadToGist(
 }
 
 /**
- * Fallback upload via 0x0.st (free text paste service).
- * Only used when gh gist fails and --allow-public-fallback is set.
+ * 通过 0x0.st（免费文本粘贴服务）进行回退上传。
+ * 仅在 gh gist 失败且设置了 --allow-public-fallback 时使用。
  */
 async function uploadTo0x0(filePath: string): Promise<string> {
   const result = await execFileAsync(
@@ -211,8 +211,8 @@ async function uploadTo0x0(filePath: string): Promise<string> {
 }
 
 /**
- * Parses /share flags.
- * Supported: --public, --private (default), --mask-secrets, --summary-only, --allow-public-fallback
+ * 解析 /share 标志。
+ * 支持：--public、--private（默认）、--mask-secrets、--summary-only、--allow-public-fallback
  */
 interface ShareOptions {
   isPublic: boolean
@@ -341,7 +341,7 @@ const share: Command = {
         }
       }
 
-      // Prepare the content to upload
+      // 准备要上传的内容
       let uploadContent: string
       if (opts.summaryOnly) {
         uploadContent = buildSummaryContent(logPath)
@@ -355,18 +355,18 @@ const share: Command = {
         uploadContent = readFileSync(logPath, 'utf8')
       }
 
-      // Mask secrets if requested
+      // 如有需要则遮蔽机密信息
       if (opts.maskSecrets) {
         uploadContent = maskSecrets(uploadContent)
       }
 
-      // Write to a temp file so we can pass the (possibly modified) content
+      // 写入临时文件，以便传递（可能已修改的）内容
       const tmpDir = mkdtempSync(join(tmpdir(), 'cc-share-'))
       const tmpFile = join(tmpDir, 'claude-session.jsonl')
       try {
         writeFileSync(tmpFile, uploadContent, 'utf8')
       } catch (writeErr: unknown) {
-        // Defensive: tmpfile write failed after mkdtempSync succeeded (TOCTOU)
+        // 防御性处理：mkdtempSync 成功后临时文件写入失败（TOCTOU）
         rmSync(tmpDir, { recursive: true, force: true })
         const msg = sanitizeErrorMessage(
           writeErr instanceof Error ? writeErr.message : String(writeErr),
@@ -384,12 +384,12 @@ const share: Command = {
             method = 'GitHub Gist'
           } catch (gistErr: unknown) {
             if (!opts.allowPublicFallback) throw gistErr
-            // Gist failed — try 0x0.st fallback
+            // Gist 失败 — 尝试 0x0.st 回退
             url = await uploadTo0x0(tmpFile)
             method = '0x0.st (fallback)'
           }
         } else {
-          // No gh, but --allow-public-fallback was set
+          // 没有 gh，但设置了 --allow-public-fallback
           url = await uploadTo0x0(tmpFile)
           method = '0x0.st (fallback)'
         }

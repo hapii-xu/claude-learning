@@ -1,9 +1,9 @@
 /**
- * BgEngine — cross-platform background session engine abstraction.
+ * BgEngine — 跨平台后台会话引擎抽象。
  *
- * Implementations:
- *   TmuxEngine    — macOS/Linux with tmux installed
- *   DetachedEngine — Windows, or macOS/Linux without tmux (fallback)
+ * 实现：
+ *   TmuxEngine    — 安装了 tmux 的 macOS/Linux
+ *   DetachedEngine — Windows，或未安装 tmux 的 macOS/Linux（兜底方案）
  */
 
 export interface SessionEntry {
@@ -41,7 +41,7 @@ export interface BgStartResult {
 
 export interface BgEngine {
   readonly name: 'tmux' | 'detached'
-  /** Whether the engine provides a TTY for interactive REPL input. */
+  /** 该引擎是否提供 TTY 以支持交互式 REPL 输入。 */
   readonly supportsInteractiveInput: boolean
   available(): Promise<boolean>
   start(opts: BgStartOptions): Promise<BgStartResult>

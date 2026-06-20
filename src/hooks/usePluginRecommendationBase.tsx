@@ -1,7 +1,7 @@
 /**
- * Shared state machine + install helper for plugin-recommendation hooks
- * (LSP, claude-code-hint). Centralizes the gate chain, async-guard,
- * and success/failure notification JSX so new sources stay small.
+ * 插件推荐 hook 的共享状态机 + 安装辅助函数
+ * （LSP、claude-code-hint）。集中门控链、异步守卫
+ * 和成功/失败通知 JSX，以便新源保持精简。
  */
 
 import figures from 'figures';
@@ -16,10 +16,10 @@ type AddNotification = ReturnType<typeof useNotifications>['addNotification'];
 type PluginData = NonNullable<Awaited<ReturnType<typeof getPluginById>>>;
 
 /**
- * Call tryResolve inside a useEffect; it applies standard gates (remote
- * mode, already-showing, in-flight) then runs resolve(). Non-null return
- * becomes the recommendation. Include tryResolve in effect deps — its
- * identity tracks recommendation, so clearing re-triggers resolution.
+ * 在 useEffect 内调用 tryResolve；它应用标准门控（远程
+ * 模式、已显示、进行中）然后运行 resolve()。非空返回
+ * 成为推荐。将 tryResolve 包含在 effect 依赖中 —— 它的
+ * 身份跟踪推荐，所以清除会重新触发解析。
  */
 export function usePluginRecommendationBase<T>(): {
   recommendation: T | null;
@@ -53,7 +53,7 @@ export function usePluginRecommendationBase<T>(): {
   return { recommendation, clearRecommendation, tryResolve };
 }
 
-/** Look up plugin, run install(), emit standard success/failure notification. */
+/** 查找插件，运行 install()，发出标准成功/失败通知。 */
 export async function installPluginAndNotify(
   pluginId: string,
   pluginName: string,

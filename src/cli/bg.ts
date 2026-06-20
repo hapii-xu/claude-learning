@@ -37,7 +37,7 @@ export async function listLiveSessions(): Promise<SessionEntry[]> {
       const entry = jsonParse(raw) as SessionEntry
       sessions.push(entry)
     } catch {
-      // Corrupt file — skip
+      // 损坏的文件 — 跳过
     }
   }
 
@@ -62,9 +62,9 @@ function formatTime(ts: number): string {
 }
 
 /**
- * Resolve the engine type for an existing session.
- * Backward-compatible: sessions without an `engine` field are inferred
- * from the presence of `tmuxSessionName`.
+ * 解析已存在会话的引擎类型。
+ * 向后兼容：没有 `engine` 字段的会话根据是否包含
+ * `tmuxSessionName` 来推断。
  */
 function resolveSessionEngine(session: SessionEntry): 'tmux' | 'detached' {
   if (session.engine) return session.engine
@@ -72,7 +72,7 @@ function resolveSessionEngine(session: SessionEntry): 'tmux' | 'detached' {
 }
 
 /**
- * `claude daemon status` / `claude ps` — list live sessions.
+ * `claude daemon status` / `claude ps` — 列出活跃会话。
  */
 export async function psHandler(_args: string[]): Promise<void> {
   const sessions = await listLiveSessions()
@@ -110,7 +110,7 @@ export async function psHandler(_args: string[]): Promise<void> {
 }
 
 /**
- * `claude daemon logs <target>` — show logs for a session.
+ * `claude daemon logs <target>` — 显示某个会话的日志。
  */
 export async function logsHandler(target: string | undefined): Promise<void> {
   const sessions = await listLiveSessions()
@@ -155,15 +155,15 @@ export async function logsHandler(target: string | undefined): Promise<void> {
 }
 
 /**
- * `claude daemon attach <target>` — attach to a background session.
+ * `claude daemon attach <target>` — 连接到一个后台会话。
  *
- * Engine-aware: tmux sessions use tmux attach, detached sessions use log tail.
+ * 引擎感知：tmux 会话使用 tmux attach，detached 会话使用日志 tail。
  */
 export async function attachHandler(target: string | undefined): Promise<void> {
   const sessions = await listLiveSessions()
 
   if (!target) {
-    // Find bg sessions (tmux or detached)
+    // 查找后台会话（tmux 或 detached）
     const bgSessions = sessions.filter(
       s => s.tmuxSessionName || s.engine === 'detached',
     )
@@ -219,7 +219,7 @@ export async function attachHandler(target: string | undefined): Promise<void> {
 }
 
 /**
- * `claude daemon kill <target>` — kill a session.
+ * `claude daemon kill <target>` — 终止一个会话。
  */
 export async function killHandler(target: string | undefined): Promise<void> {
   const sessions = await listLiveSessions()
@@ -271,19 +271,19 @@ export async function killHandler(target: string | undefined): Promise<void> {
 }
 
 /**
- * `claude daemon bg [args]` — start a background session.
+ * `claude daemon bg [args]` — 启动一个后台会话。
  *
- * Cross-platform: uses TmuxEngine on macOS/Linux when tmux is available,
- * falls back to DetachedEngine on Windows or when tmux is absent.
+ * 跨平台：macOS/Linux 上当 tmux 可用时使用 TmuxEngine，
+ * 在 Windows 上或缺少 tmux 时回退到 DetachedEngine。
  */
 export async function handleBgStart(args: string[]): Promise<void> {
   const engine = await selectEngine()
 
-  // Strip --bg/--background from args (for backward-compat shortcut)
+  // 从参数中过滤掉 --bg/--background（为向后兼容的快捷方式保留）
   const filteredArgs = args.filter(a => a !== '--bg' && a !== '--background')
 
-  // Engines without interactive TTY input (e.g. detached) require -p/--print
-  // or piped input. Tmux provides a virtual terminal so it works without -p.
+  // 不支持交互式 TTY 输入的引擎（例如 detached）需要 -p/--print
+  // 或管道输入。Tmux 提供虚拟终端，因此无需 -p 也能工作。
   if (
     !engine.supportsInteractiveInput &&
     !filteredArgs.some(a => a === '-p' || a === '--print' || a === '--pipe')
@@ -337,5 +337,5 @@ export async function handleBgStart(args: string[]): Promise<void> {
   }
 }
 
-// Legacy export alias — kept for backward compatibility with cli.tsx
+// 旧版导出别名 — 保留是为了与 cli.tsx 向后兼容
 export const handleBgFlag = handleBgStart

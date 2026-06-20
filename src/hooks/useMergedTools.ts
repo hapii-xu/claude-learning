@@ -3,18 +3,19 @@ import { useMemo } from 'react'
 import type { Tools, ToolPermissionContext } from '../Tool.js'
 import { assembleToolPool } from '../tools.js'
 import { mergeAndFilterTools } from '../utils/toolPool.js'
+import { logForDebugging } from '../utils/debug.js'
 
 /**
- * React hook that assembles the full tool pool for the REPL.
+ * React hook，为 REPL 组装完整的工具池。
  *
- * Uses assembleToolPool() (the shared pure function used by both REPL and runAgent)
- * to combine built-in tools with MCP tools, applying deny rules and deduplication.
- * Any extra initialTools are merged on top.
+ * 使用 assembleToolPool()（REPL 和 runAgent 共用的纯函数）
+ * 将内置工具与 MCP 工具组合，应用拒绝规则和去重。
+ * 任何额外的 initialTools 会被合并到顶部。
  *
- * @param initialTools - Extra tools to include (built-in + startup MCP from props).
- *   These are merged with the assembled pool and take precedence in deduplication.
- * @param mcpTools - MCP tools discovered dynamically (from mcp state)
- * @param toolPermissionContext - Permission context for filtering
+ * @param initialTools - 要包含的额外工具（内置 + 来自 props 的启动 MCP）。
+ *   这些与组装的工具池合并，在去重时优先。
+ * @param mcpTools - 动态发现的 MCP 工具（来自 mcp 状态）
+ * @param toolPermissionContext - 用于过滤的权限上下文
  */
 export function useMergedTools(
   initialTools: Tools,
@@ -24,15 +25,20 @@ export function useMergedTools(
   let replBridgeEnabled = false
   let replBridgeOutboundOnly = false
   return useMemo(() => {
-    // assembleToolPool is the shared function that both REPL and runAgent use.
-    // It handles: getTools() + MCP deny-rule filtering + dedup + MCP CLI exclusion.
+    // assembleToolPool 是 REPL 和 runAgent 共用的函数。
+    // 它处理：getTools() + MCP 拒绝规则过滤 + 去重 + MCP CLI 排除。
     const assembled = assembleToolPool(toolPermissionContext, mcpTools)
 
-    return mergeAndFilterTools(
+    const merged = mergeAndFilterTools(
       initialTools,
       assembled,
       toolPermissionContext.mode,
     )
+    logForDebugging(
+      `[Tool 合并] useMergedTools 内置 ${initialTools.length} + MCP ${assembled.length} → 合并后 ${merged.length} 个工具`,
+      { level: 'info' },
+    )
+    return merged
   }, [
     initialTools,
     mcpTools,

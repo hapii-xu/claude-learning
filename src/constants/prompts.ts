@@ -1,4 +1,4 @@
-// biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+// biome-ignore-all assist/source/organizeImports: ANT 专用导入标记不得重排序
 import { type as osType, version as osVersion, release as osRelease } from 'os'
 import { env } from '../utils/env.js'
 import { getIsGit } from '../utils/git.js'
@@ -65,7 +65,7 @@ import { getAntModelOverrideConfig } from '../utils/model/antModels.js'
 import { isMcpInstructionsDeltaEnabled } from '../utils/mcpInstructionsDelta.js'
 import { getCurrentMode } from 'src/modes/store.js'
 
-// Dead code elimination: conditional imports for feature-gated modules
+// 死代码消除：针对 feature-gated 模块的条件导入
 /* eslint-disable @typescript-eslint/no-require-imports */
 const getCachedMCConfigForFRC = feature('CACHED_MICROCOMPACT')
   ? (
@@ -95,8 +95,8 @@ const DISCOVER_SKILLS_TOOL_NAME: string | null = feature(
       require('@claude-code-best/builtin-tools/tools/DiscoverSkillsTool/prompt.js') as typeof import('@claude-code-best/builtin-tools/tools/DiscoverSkillsTool/prompt.js')
     ).DISCOVER_SKILLS_TOOL_NAME
   : null
-// Capture the module (not .isSkillSearchEnabled directly) so spyOn() in tests
-// patches what we actually call — a captured function ref would point past the spy.
+// 捕获模块（不直接取 .isSkillSearchEnabled），以便测试中的 spyOn() 能
+// patch 我们实际调用的内容 —— 捕获的函数引用会绕过 spy。
 const skillSearchFeatureCheck = feature('EXPERIMENTAL_SKILL_SEARCH')
   ? (require('../services/skillSearch/featureCheck.js') as typeof import('../services/skillSearch/featureCheck.js'))
   : null
@@ -108,21 +108,21 @@ export const CLAUDE_CODE_DOCS_MAP_URL =
   'https://code.claude.com/docs/en/claude_code_docs_map.md'
 
 /**
- * Boundary marker separating static (cross-org cacheable) content from dynamic content.
- * Everything BEFORE this marker in the system prompt array can use scope: 'global'.
- * Everything AFTER contains user/session-specific content and should not be cached.
+ * 分隔静态（可跨组织缓存）内容与动态内容的边界标记。
+ * 系统提示数组中此标记之前的内容都可以使用 scope: 'global'。
+ * 之后的内容包含用户/会话相关的特定信息，不应被缓存。
  *
- * WARNING: Do not remove or reorder this marker without updating cache logic in:
- * - src/utils/api.ts (splitSysPromptPrefix)
- * - src/services/api/claude.ts (buildSystemPromptBlocks)
+ * 警告：不要在未更新缓存逻辑的情况下移除或重排此标记，相关逻辑位于：
+ * - src/utils/api.ts（splitSysPromptPrefix）
+ * - src/services/api/claude.ts（buildSystemPromptBlocks）
  */
 export const SYSTEM_PROMPT_DYNAMIC_BOUNDARY =
   '__SYSTEM_PROMPT_DYNAMIC_BOUNDARY__'
 
-// @[MODEL LAUNCH]: Update the latest frontier model.
+// @[模型发布]：更新为最新的前沿模型。
 const FRONTIER_MODEL_NAME = 'Claude Opus 4.7'
 
-// @[MODEL LAUNCH]: Update the model family IDs below to the latest in each tier.
+// @[模型发布]：将下方各档位的模型家族 ID 更新为最新版本。
 const CLAUDE_LATEST_MODEL_IDS = {
   opus: 'claude-opus-4-7',
   sonnet: 'claude-sonnet-4-6',
@@ -208,11 +208,11 @@ function getSimpleDoingTasksSection(): string {
     `Don't add features, refactor code, or make "improvements" beyond what was asked. A bug fix doesn't need surrounding code cleaned up. A simple feature doesn't need extra configurability. Don't add docstrings, comments, or type annotations to code you didn't change. Only add comments where the logic isn't self-evident.`,
     `Don't add error handling, fallbacks, or validation for scenarios that can't happen. Trust internal code and framework guarantees. Only validate at system boundaries (user input, external APIs). Don't use feature flags or backwards-compatibility shims when you can just change the code.`,
     `Don't create helpers, utilities, or abstractions for one-time operations. Don't design for hypothetical future requirements. The right amount of complexity is what the task actually requires—no speculative abstractions, but no half-finished implementations either. Three similar lines of code is better than a premature abstraction.`,
-    // Comment writing guidance — un-gated from ant-only for all users
+    // 注释编写指引 —— 从 ant 专属放开给所有用户
     `Default to writing no comments. Only add one when the WHY is non-obvious: a hidden constraint, a subtle invariant, a workaround for a specific bug, behavior that would surprise a reader. If removing the comment wouldn't confuse a future reader, don't write it.`,
     `Don't explain WHAT the code does, since well-named identifiers already do that. Don't reference the current task, fix, or callers ("used by X", "added for the Y flow", "handles the case from issue #123"), since those belong in the PR description and rot as the codebase evolves.`,
     `Don't remove existing comments unless you're removing the code they describe or you know they're wrong. A comment that looks pointless to you may encode a constraint or a lesson from a past bug that isn't visible in the current diff.`,
-    // Thoroughness counterweight — un-gated from ant-only for all users
+    // 彻底性的平衡条款 —— 从 ant 专属放开给所有用户
     `Before reporting a task complete, verify it actually works: run the test, execute the script, check the output. Minimum complexity means no gold-plating, not skipping the finish line. If you can't verify (no test exists, can't run the code), say so explicitly rather than claiming success.`,
   ]
 
@@ -225,7 +225,7 @@ function getSimpleDoingTasksSection(): string {
     `The user will primarily request you to perform software engineering tasks. These may include solving bugs, adding new functionality, refactoring code, explaining code, and more. When given an unclear or generic instruction, consider it in the context of these software engineering tasks and the current working directory. For example, if the user asks you to change "methodName" to snake case, do not reply with just "method_name", instead find the method in the code and modify the code.`,
     `You are highly capable and often allow users to complete ambitious tasks that would otherwise be too complex or take too long. You should defer to user judgement about whether a task is too large to attempt.`,
     `Default to helping. Decline a request only when helping would create a concrete, specific risk of serious harm — not because a request feels edgy, unfamiliar, or unusual. When in doubt, help.`,
-    // Assertiveness counterweight — un-gated from ant-only for all users
+    // 主动性平衡条款 —— 从 ant 专属放开给所有用户
     `If you notice the user's request is based on a misconception, or spot a bug adjacent to what they asked about, say so. You're a collaborator, not just an executor—users benefit from your judgment, not just your compliance.`,
     `In general, do not propose changes to code you haven't read. If a user asks about or wants you to modify a file, read it first. Understand existing code before suggesting modifications.`,
     `Do not create files unless they're absolutely necessary for achieving your goal. Generally prefer editing an existing file to creating a new one, as this prevents file bloat and builds on existing work more effectively. Linguistic signals for when to create vs. answer inline: "write a script", "create a config", "generate a component", "save", "export" → create a file. "show me how", "explain", "what does X do", "why does" → answer inline. Code over 20 lines that the user needs to run → create a file.`,
@@ -234,11 +234,11 @@ function getSimpleDoingTasksSection(): string {
     `Be careful not to introduce security vulnerabilities such as command injection, XSS, SQL injection, and other OWASP top 10 vulnerabilities. If you notice that you wrote insecure code, immediately fix it. Prioritize writing safe, secure, and correct code. When working with security-sensitive code (authentication, encryption, API keys), err on the side of saying less about implementation details in your output — focus on the fix, not on explaining the vulnerability in detail.`,
     ...codeStyleSubitems,
     `Avoid backwards-compatibility hacks like renaming unused _vars, re-exporting types, adding // removed comments for removed code, etc. If you are certain that something is unused, you can delete it completely.`,
-    // False-claims mitigation — un-gated from ant-only for all users
+    // 防止虚假声明 —— 从 ant 专属放开给所有用户
     `Report outcomes faithfully: if tests fail, say so with the relevant output; if you did not run a verification step, say that rather than implying it succeeded. Never claim "all tests pass" when output shows failures, never suppress or simplify failing checks (tests, lints, type errors) to manufacture a green result, and never characterize incomplete or broken work as done. Equally, when a check did pass or a task is complete, state it plainly — do not hedge confirmed results with unnecessary disclaimers, downgrade finished work to "partial," or re-verify things you already checked. The goal is an accurate report, not a defensive one.`,
     `Take accountability for mistakes without collapsing into over-apology, self-abasement, or surrender. If the user pushes back repeatedly or becomes harsh, stay steady and honest rather than becoming increasingly agreeable to appease them. Acknowledge what went wrong, stay focused on solving the problem, and maintain self-respect — don't abandon a correct position just because the user is frustrated.`,
     `Don't proactively mention your knowledge cutoff date or a lack of real-time data unless the user's message makes it directly relevant. Cutoff information is already in the environment section — you don't need to repeat it in responses.`,
-    // TODO: Customize for our fork — replace /share + Slack channel with our own feedback channel
+    // TODO：针对本 fork 定制 —— 用我们自己的反馈渠道替换 /share + Slack 频道
     `If the user reports a bug, slowness, or unexpected behavior with Claude Code itself (as opposed to asking you to fix their own code), recommend the appropriate slash command: /issue for model-related problems (odd outputs, wrong tool choices, hallucinations, refusals), or /share to upload the full session transcript for product bugs, crashes, slowness, or general issues. Only recommend these when the user is describing a problem with Claude Code. After /share produces a ccshare link, if you have a Slack MCP tool available, offer to post the link to #claude-code-feedback (channel ID C07VBSHV7EV) for the user.`,
     `If the user asks for help or wants to give feedback inform them of the following:`,
     userHelpSubitems,
@@ -266,9 +266,9 @@ function getUsingYourToolsSection(enabledTools: Set<string>): string {
     enabledTools.has(n),
   )
 
-  // In REPL mode, Read/Write/Edit/Glob/Grep/Bash/Agent are hidden from direct
-  // use (REPL_ONLY_TOOLS). The "prefer dedicated tools over Bash" guidance is
-  // irrelevant — REPL's own prompt covers how to call them from scripts.
+  // 在 REPL 模式下，Read/Write/Edit/Glob/Grep/Bash/Agent 被隐藏，不能
+  // 直接使用（REPL_ONLY_TOOLS）。此时「优先使用专用工具而非 Bash」的指引
+  // 无意义 —— REPL 自己的 prompt 已说明如何在脚本中调用它们。
   if (isReplModeEnabled()) {
     const items = [
       taskToolName
@@ -297,15 +297,15 @@ function getAgentToolSection(): string {
 }
 
 /**
- * Guidance for the skill_discovery attachment ("Skills relevant to your
- * task:") and the DiscoverSkills tool. Shared between the main-session
- * getUsingYourToolsSection bullet and the subagent path in
- * enhanceSystemPromptWithEnvDetails — subagents receive skill_discovery
- * attachments (post #22830) but don't go through getSystemPrompt, so
- * without this they'd see the reminders with no framing.
+ * 针对 skill_discovery attachment（「Skills relevant to your
+ * task:」）以及 DiscoverSkills 工具的指引。在主会话的
+ * getUsingYourToolsSection 条目和 enhanceSystemPromptWithEnvDetails 中的
+ * 子代理路径之间共享 —— 子代理接收 skill_discovery
+ * attachments（自 #22830 起），但不走 getSystemPrompt，因此
+ * 若没有这段指引，它们只会看到提醒而没有任何上下文说明。
  *
- * feature() guard is internal — external builds DCE the string literal
- * along with the DISCOVER_SKILLS_TOOL_NAME interpolation.
+ * feature() 守卫仅内部使用 —— 外部构建会通过 DCE 连同
+ * DISCOVER_SKILLS_TOOL_NAME 插值一起消除字符串字面量。
  */
 function getDiscoverSkillsGuidance(): string | null {
   if (
@@ -318,13 +318,13 @@ function getDiscoverSkillsGuidance(): string | null {
 }
 
 /**
- * Session-variant guidance that would fragment the cacheScope:'global'
- * prefix if placed before SYSTEM_PROMPT_DYNAMIC_BOUNDARY. Each conditional
- * here is a runtime bit that would otherwise multiply the Blake2b prefix
- * hash variants (2^N). See PR #24490, #24171 for the same bug class.
+ * 会话变体指引 —— 若放在 SYSTEM_PROMPT_DYNAMIC_BOUNDARY 之前，
+ * 会拆分 cacheScope:'global' 前缀。这里的每个条件都是运行时位，
+ * 否则会让 Blake2b 前缀哈希的变体数量呈 2^N 倍增。
+ * 同类 bug 参见 PR #24490、#24171。
  *
- * outputStyleConfig intentionally NOT moved here — identity framing lives
- * in the static intro pending eval.
+ * outputStyleConfig 故意不迁移至此 —— 身份框架位于
+ * 静态 intro 中，等待评估。
  */
 function getSessionSpecificGuidanceSection(
   enabledTools: Set<string>,
@@ -345,8 +345,8 @@ function getSessionSpecificGuidanceSection(
     getIsNonInteractiveSession()
       ? null
       : `If you need the user to run a shell command themselves (e.g., an interactive login like \`gcloud auth login\`), suggest they type \`! <command>\` in the prompt — the \`!\` prefix runs the command in this session so its output lands directly in the conversation.`,
-    // isForkSubagentEnabled() reads getIsNonInteractiveSession() — must be
-    // post-boundary or it fragments the static prefix on session type.
+    // isForkSubagentEnabled() 会读取 getIsNonInteractiveSession() —— 必须位于
+    // boundary 之后，否则会按会话类型拆分静态前缀。
     hasAgentTool ? getAgentToolSection() : null,
     ...(hasAgentTool &&
     areExplorePlanAgentsEnabled() &&
@@ -366,9 +366,9 @@ function getSessionSpecificGuidanceSection(
       : null,
     hasAgentTool &&
     feature('VERIFICATION_AGENT') &&
-    // 3P default: false — verification agent is ant-only A/B
+    // 3P 默认：false —— verification agent 是 ant 专属 A/B
     getFeatureValue_CACHED_MAY_BE_STALE('tengu_hive_evidence', false) &&
-    // Poor mode: skip verification agent to save tokens
+    // 穷鬼模式：跳过 verification agent 以节省 token
     !isPoorModeActive()
       ? `The contract: when non-trivial implementation happens on your turn, independent adversarial verification must happen before you report completion \u2014 regardless of who did the implementing (you directly, a fork you spawned, or a subagent). You are the one reporting to the user; you own the gate. Non-trivial means: 3+ file edits, backend/API changes, or infrastructure changes. Spawn the ${AGENT_TOOL_NAME} tool with subagent_type="${VERIFICATION_AGENT_TYPE}". Your own checks, caveats, and a fork's self-checks do NOT substitute \u2014 only the verifier assigns a verdict; you cannot self-assign PARTIAL. Pass the original user request, all files changed (by anyone), the approach, and the plan file path if applicable. Flag concerns if you have them but do NOT share test results or claim things work. On FAIL: fix, resume the verifier with its findings plus your fix, repeat until PASS. On PASS: spot-check it \u2014 re-run 2-3 commands from its report, confirm every PASS has a Command run block with output that matches your re-run. If any PASS lacks a command block or diverges, resume the verifier with the specifics. On PARTIAL (from the verifier): report what passed and what could not be verified.`
       : null,
@@ -378,9 +378,9 @@ function getSessionSpecificGuidanceSection(
   return ['# Session-specific guidance', ...prependBullets(items)].join('\n')
 }
 
-// Un-gated: all users get the detailed "Communicating with the user" guidance
-// (upstream ant-only version). The short "Output efficiency" fallback was a
-// placeholder for external users; the detailed version produces better UX.
+// 放开限制：所有用户都获得详细的「Communicating with the user」指引
+// （上游 ant 专属版本的简版）。「Output efficiency」的短回退只是
+// 外部用户的占位文案，详细版本的 UX 更好。
 function getOutputEfficiencySection(): string {
   return `# Communication style
 Write for a person, not a console. Assume users can't see most tool calls or thinking — only your text output. Before your first tool call, briefly state what you're about to do. While working, give short updates at key moments: when you find something load-bearing, when changing direction, or when you've made progress without an update.
@@ -448,8 +448,8 @@ ${CYBER_RISK_INSTRUCTION}`,
       await loadMemoryPrompt(),
       envInfo,
       getLanguageSection(settings.language),
-      // When delta enabled, instructions are announced via persisted
-      // mcp_instructions_delta attachments (attachments.ts) instead.
+      // delta 启用时，指令改由持久化的 mcp_instructions_delta
+      // attachments（attachments.ts）来通告。
       isMcpInstructionsDeltaEnabled()
         ? null
         : getMcpInstructionsSection(mcpClients),
@@ -478,11 +478,11 @@ ${CYBER_RISK_INSTRUCTION}`,
     systemPromptSection('output_style', () =>
       getOutputStyleSection(outputStyleConfig),
     ),
-    // When delta enabled, instructions are announced via persisted
-    // mcp_instructions_delta attachments (attachments.ts) instead of this
-    // per-turn recompute, which busts the prompt cache on late MCP connect.
-    // Gate check inside compute (not selecting between section variants)
-    // so a mid-session gate flip doesn't read a stale cached value.
+    // delta 启用时，指令改由持久化的 mcp_instructions_delta attachments
+    // （attachments.ts）通告，而不再使用这种每回合重新计算的方式 ——
+    // 后者会在 MCP 晚连接时击穿 prompt 缓存。
+    // gate 检查放在 compute 内部（而不是在 section 变体之间选择），
+    // 这样会话中途 gate 翻转时不会读到过期的缓存值。
     DANGEROUS_uncachedSystemPromptSection(
       'mcp_instructions',
       () =>
@@ -499,11 +499,11 @@ ${CYBER_RISK_INSTRUCTION}`,
     ),
     ...(feature('TOKEN_BUDGET')
       ? [
-          // Cached unconditionally — the "When the user specifies..." phrasing
-          // makes it a no-op with no budget active. Was DANGEROUS_uncached
-          // (toggled on getCurrentTurnTokenBudget()), busting ~20K tokens per
-          // budget flip. Not moved to a tail attachment: first-response and
-          // budget-continuation paths don't see attachments (#21577).
+          // 无条件缓存 —— 「When the user specifies...」 的措辞
+          // 使其在无预算激活时是 no-op。此前为 DANGEROUS_uncached
+          // （由 getCurrentTurnTokenBudget() 切换），每次预算翻转
+          // 会击穿约 20K token。未迁移到尾部 attachment：首次响应和
+          // 预算续接路径看不到 attachments（#21577）。
           systemPromptSection(
             'token_budget',
             () =>
@@ -520,7 +520,7 @@ ${CYBER_RISK_INSTRUCTION}`,
     await resolveSystemPromptSections(dynamicSections)
 
   return [
-    // --- Static content (cacheable) ---
+    // --- 静态内容（可缓存） ---
     getSimpleIntroSection(outputStyleConfig),
     getSimpleSystemSection(),
     outputStyleConfig === null ||
@@ -530,9 +530,9 @@ ${CYBER_RISK_INSTRUCTION}`,
     getActionsSection(),
     getUsingYourToolsSection(enabledTools),
     getOutputEfficiencySection(),
-    // === BOUNDARY MARKER - DO NOT MOVE OR REMOVE ===
+    // === 边界标记 - 勿移动或删除 ===
     ...(shouldUseGlobalCacheScope() ? [SYSTEM_PROMPT_DYNAMIC_BOUNDARY] : []),
-    // --- Dynamic content (registry-managed) ---
+    // --- 动态内容（由注册表管理） ---
     ...resolvedDynamicSections,
   ].filter(s => s !== null)
 }
@@ -570,17 +570,17 @@ export async function computeEnvInfo(
 ): Promise<string> {
   const [isGit, unameSR] = await Promise.all([getIsGit(), getUnameSR()])
 
-  // Undercover: keep ALL model names/IDs out of the system prompt so nothing
-  // internal can leak into public commits/PRs. This includes the public
-  // FRONTIER_MODEL_* constants — if those ever point at an unannounced model,
-  // we don't want them in context. Go fully dark.
+  // 隐身模式：将所有模型名称/ID 从系统提示中剔除，避免内部信息
+  // 泄漏到公开 commit/PR 中。这也包括公开的 FRONTIER_MODEL_* 常量 ——
+  // 一旦它们指向未发布的模型，我们绝不想让它们出现在上下文中。
+  // 彻底隐身。
   //
-  // DCE: `process.env.USER_TYPE === 'ant'` is build-time --define. It MUST be
-  // inlined at each callsite (not hoisted to a const) so the bundler can
-  // constant-fold it to `false` in external builds and eliminate the branch.
+  // DCE：`process.env.USER_TYPE === 'ant'` 是构建期 --define。必须
+  // 在每个调用点内联（不要提取为 const），这样打包器才能
+  // 在外部构建中将其常量折叠为 `false` 并消除该分支。
   let modelDescription = ''
   if (process.env.USER_TYPE === 'ant' && isUndercover()) {
-    // suppress
+    // 抑制输出
   } else {
     const marketingName = getMarketingNameForModel(modelId)
     modelDescription = marketingName
@@ -615,11 +615,11 @@ export async function computeSimpleEnvInfo(
 ): Promise<string> {
   const [isGit, unameSR] = await Promise.all([getIsGit(), getUnameSR()])
 
-  // Undercover: strip all model name/ID references. See computeEnvInfo.
-  // DCE: inline the USER_TYPE check at each site — do NOT hoist to a const.
+  // 隐身模式：剥离所有模型名称/ID 引用。参见 computeEnvInfo。
+  // DCE：在每个调用点内联 USER_TYPE 检查 —— 不要提取为 const。
   let modelDescription: string | null = null
   if (process.env.USER_TYPE === 'ant' && isUndercover()) {
-    // suppress
+    // 抑制输出
   } else {
     const marketingName = getMarketingNameForModel(modelId)
     modelDescription = marketingName
@@ -670,7 +670,7 @@ export async function computeSimpleEnvInfo(
   ].join(`\n`)
 }
 
-// @[MODEL LAUNCH]: Add a knowledge cutoff date for the new model.
+// @[模型发布]：为新模型添加知识截止日期。
 function getKnowledgeCutoff(modelId: string): string | null {
   const canonical = getCanonicalName(modelId)
   if (canonical.includes('claude-sonnet-4-6')) {
@@ -706,12 +706,12 @@ function getShellInfoLine(): string {
 }
 
 export function getUnameSR(): string {
-  // os.type() and os.release() both wrap uname(3) on POSIX, producing output
-  // byte-identical to `uname -sr`: "Darwin 25.3.0", "Linux 6.6.4", etc.
-  // Windows has no uname(3); os.type() returns "Windows_NT" there, but
-  // os.version() gives the friendlier "Windows 11 Pro" (via GetVersionExW /
-  // RtlGetVersion) so use that instead. Feeds the OS Version line in the
-  // system prompt env section.
+  // os.type() 和 os.release() 在 POSIX 上都封装自 uname(3)，输出与
+  // `uname -sr` 字节一致：「Darwin 25.3.0」、「Linux 6.6.4」 等。
+  // Windows 没有 uname(3)；os.type() 在此返回 「Windows_NT」，但
+  // os.version() 给出更友好的 「Windows 11 Pro」（经 GetVersionExW /
+  // RtlGetVersion），因此改用它。此值填充系统 prompt 的 env 段中的
+  // OS Version 行。
   if (env.platform === 'win32') {
     return `${osVersion()} ${osRelease()}`
   }
@@ -731,12 +731,12 @@ export async function enhanceSystemPromptWithEnvDetails(
 - In your final response, share file paths (always absolute, never relative) that are relevant to the task. Include code snippets only when the exact text is load-bearing (e.g., a bug you found, a function signature the caller asked for) — do not recap code you merely read.
 - For clear communication with the user the assistant MUST avoid using emojis.
 - Do not use a colon before tool calls. Text like "Let me read the file:" followed by a read tool call should just be "Let me read the file." with a period.`
-  // Subagents get skill_discovery attachments (prefetch.ts runs in query(),
-  // no agentId guard since #22830) but don't go through getSystemPrompt —
-  // surface the same DiscoverSkills framing the main session gets. Gated on
-  // enabledToolNames when the caller provides it (runAgent.ts does).
-  // AgentTool.tsx:768 builds the prompt before assembleToolPool:830 so it
-  // omits this param — `?? true` preserves guidance there.
+  // 子代理会收到 skill_discovery attachments（prefetch.ts 在 query() 中
+  // 运行，自 #22830 起没有 agentId 守卫），但不走 getSystemPrompt ——
+  // 这里向其呈现主会话所获得的相同 DiscoverSkills 框架。当调用方
+  // 提供 enabledToolNames 时（runAgent.ts 会提供），以此进行 gate。
+  // AgentTool.tsx:768 在 assembleToolPool:830 之前构造 prompt，因此
+  // 省略了该参数 —— `?? true` 保证那里的指引仍然存在。
   const discoverSkillsGuidance =
     feature('EXPERIMENTAL_SKILL_SEARCH') &&
     skillSearchFeatureCheck?.isSkillSearchEnabled() &&
@@ -754,8 +754,8 @@ export async function enhanceSystemPromptWithEnvDetails(
 }
 
 /**
- * Returns instructions for using the scratchpad directory if enabled.
- * The scratchpad is a per-session directory where Claude can write temporary files.
+ * 返回使用 scratchpad 目录的指引（若启用）。
+ * scratchpad 是每个会话独有的目录，Claude 可在其中写入临时文件。
  */
 export function getScratchpadInstructions(): string | null {
   if (!isScratchpadEnabled()) {
@@ -806,12 +806,11 @@ const SUMMARIZE_TOOL_RESULTS_SECTION = `When working with tool results, write do
 function getBriefSection(): string | null {
   if (!(feature('KAIROS') || feature('KAIROS_BRIEF'))) return null
   if (!BRIEF_PROACTIVE_SECTION) return null
-  // Whenever the tool is available, the model is told to use it. The
-  // /brief toggle and --brief flag now only control the isBriefOnly
-  // display filter — they no longer gate model-facing behavior.
+  // 只要工具可用，就会告知模型使用它。/brief 开关和 --brief 标志
+  // 现在只控制 isBriefOnly 显示过滤器 —— 不再 gate 模型可见行为。
   if (!getBriefToolModule()?.isBriefEnabled()) return null
-  // When proactive is active, getProactiveSection() already appends the
-  // section inline. Skip here to avoid duplicating it in the system prompt.
+  // proactive 激活时，getProactiveSection() 已内联追加该 section。
+  // 这里跳过，避免在系统 prompt 中重复。
   if (
     (feature('PROACTIVE') || feature('KAIROS')) &&
     proactiveModule?.isProactiveActive()

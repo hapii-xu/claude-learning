@@ -1,8 +1,7 @@
-// Background task entry for MCP resource monitoring.
-// Tracks a long-running subscription to an MCP server resource so the
-// otherwise-invisible stream is visible in the footer pill and Shift+Down
-// dialog. Follows the DreamTask pattern: pure UI surfacing via the existing
-// task registry.
+// MCP 资源监控的后台任务入口。
+// 跟踪对 MCP 服务器资源的长期订阅，让原本不可见的流显示在
+// footer pill 和 Shift+Down 对话框中。沿用 DreamTask 模式：
+// 通过已有的任务注册表进行纯 UI 呈现。
 
 import type { AppState } from '../../state/AppState.js'
 import type { SetAppState, Task, TaskStateBase } from '../../Task.js'
@@ -13,15 +12,15 @@ import { registerTask, updateTaskState } from '../../utils/task/framework.js'
 
 export type MonitorMcpTaskState = TaskStateBase & {
   type: 'monitor_mcp'
-  /** The MCP server name being monitored. */
+  /** 被监控的 MCP 服务器名称。 */
   serverName: string
-  /** The resource URI being subscribed to. */
+  /** 订阅的资源 URI。 */
   resourceUri: string
-  /** The shell command used to drive monitoring (if any). */
+  /** 用于驱动监控的 shell 命令（如果有）。 */
   command?: string
-  /** Agent that spawned this task. Used to kill orphaned tasks on agent exit. */
+  /** spawn 此任务的 agent，用于在 agent 退出时清理孤儿任务。 */
   agentId?: AgentId
-  /** Abort controller to cancel the subscription. */
+  /** 用于取消订阅的 abort controller。 */
   abortController?: AbortController
 }
 
@@ -102,9 +101,8 @@ export function killMonitorMcp(taskId: string, setAppState: SetAppState): void {
 }
 
 /**
- * Kill all running monitor_mcp tasks spawned by a given agent.
- * Called from runAgent.ts finally block so subscriptions don't outlive
- * the agent that started them.
+ * 终止由某个 agent spawn 的所有运行中的 monitor_mcp 任务。
+ * 由 runAgent.ts 的 finally 块调用，确保订阅不会比启动它的 agent 存活更久。
  */
 export function killMonitorMcpTasksForAgent(
   agentId: AgentId,

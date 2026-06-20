@@ -15,7 +15,7 @@ function SessionInfo({ onDone }: Props): React.ReactNode {
   const remoteSessionUrl = useAppState(s => s.remoteSessionUrl);
   const [qrCode, setQrCode] = useState<string>('');
 
-  // Generate QR code when URL is available
+  // 当 URL 可用时生成二维码
   useEffect(() => {
     if (!remoteSessionUrl) return;
 
@@ -27,16 +27,16 @@ function SessionInfo({ onDone }: Props): React.ReactNode {
       });
       setQrCode(qr);
     }
-    // Intentionally silent fail - URL is still shown so QR is non-critical
+    // 故意静默失败 - URL 仍会展示，因此二维码并非关键功能
     generateQRCode().catch(e => {
       logForDebugging('QR code generation failed', e);
     });
   }, [remoteSessionUrl]);
 
-  // Handle ESC to dismiss
+  // 处理 ESC 以关闭
   useKeybinding('confirm:no', onDone, { context: 'Confirmation' });
 
-  // Not in remote mode
+  // 不在 remote 模式
   if (!remoteSessionUrl) {
     return (
       <Pane>
@@ -55,7 +55,7 @@ function SessionInfo({ onDone }: Props): React.ReactNode {
         <Text bold>Remote session</Text>
       </Box>
 
-      {/* QR Code - silently fails if generation errors, URL is still shown */}
+      {/* 二维码 - 生成失败时静默处理，URL 仍会展示 */}
       {isLoading ? <Text dimColor>Generating QR code…</Text> : lines.map((line, i) => <Text key={i}>{line}</Text>)}
 
       {/* URL */}

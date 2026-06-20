@@ -1,7 +1,7 @@
 /**
- * Tests for agents-platform/index.ts — command metadata only.
- * We verify load() resolves without error but do NOT mock launchAgentsPlatform,
- * to avoid polluting other test files via Bun's process-level mock.module cache.
+ * 针对 agents-platform/index.ts 的测试 —— 仅校验命令元数据。
+ * 我们验证 load() 能正常 resolve，但不 mock launchAgentsPlatform，
+ * 以免通过 Bun 进程级 mock.module 缓存污染其他测试文件。
  */
 import { beforeAll, describe, expect, mock, test } from 'bun:test'
 

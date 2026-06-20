@@ -1,4 +1,4 @@
-// Re-export types from @anthropic/ink keybindings module
+// 从 @anthropic/ink keybindings 模块重新导出类型
 export type {
   ParsedBinding,
   ParsedKeystroke,

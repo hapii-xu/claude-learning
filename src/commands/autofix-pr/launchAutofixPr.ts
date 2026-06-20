@@ -1,7 +1,6 @@
-// NOTE: subscribePR (KAIROS_GITHUB_WEBHOOKS feature) is omitted here.
-// The kairos client is not fully available in this repo. The feature-gated
-// call is a nice-to-have and safe to skip — teleport + registerRemoteAgentTask
-// is sufficient for the core autofix flow.
+// NOTE：这里没有实现 subscribePR（KAIROS_GITHUB_WEBHOOKS feature）。
+// 本仓库中 kairos client 尚未完全可用。这个 feature-gated 调用属于锦上添花、
+// 可以安全跳过 —— teleport + registerRemoteAgentTask 已经足以支撑核心 autofix 流程。
 
 import React from 'react'
 import { feature } from 'bun:bundle'
@@ -37,10 +36,10 @@ import { parseAutofixArgs } from './parseArgs.js'
 import { checkPrAutofixOutcome, fetchPrHeadSha } from './prFetch.js'
 import { detectAutofixSkills, formatSkillsHint } from './skillDetect.js'
 
-// Throttle map for the completionChecker: gh CLI is called at most once per
-// PR per CHECK_INTERVAL_MS, regardless of the framework's 1s poll cadence.
-// Key is `${owner}/${repo}#${prNumber}`. Cleared when the completion hook
-// fires so a re-launched monitor starts with a fresh budget.
+// completionChecker 的限流 map：无论框架 1s 一次的轮询节奏如何，
+// 每个 PR 在 CHECK_INTERVAL_MS 内最多调用一次 gh CLI。
+// Key 为 `${owner}/${repo}#${prNumber}`。completion hook 触发时清理，
+// 这样重新启动的 monitor 会拿到全新的预算。
 const lastCheckAt = new Map<string, number>()
 const CHECK_INTERVAL_MS = 5_000
 
@@ -48,10 +47,10 @@ function throttleKey(meta: AutofixPrRemoteTaskMetadata): string {
   return `${meta.owner}/${meta.repo}#${meta.prNumber}`
 }
 
-// Register the completionChecker once at module load. The framework calls it
-// on every poll tick for tasks with remoteTaskType==='autofix-pr'; throttle
-// inside so we don't fire gh CLI 60×/min. Returns the summary string on
-// completion (becomes the task-notification body) or null to keep polling.
+// 在模块加载时一次性注册 completionChecker。框架会在每次 poll tick
+// 时对所有 remoteTaskType==='autofix-pr' 的任务调用它；内部限流，
+// 避免每分钟触发 60 次 gh CLI。完成时返回摘要字符串
+// （作为 task-notification 的正文），返回 null 表示继续轮询。
 registerCompletionChecker('autofix-pr', async metadata => {
   const meta = metadata as AutofixPrRemoteTaskMetadata | undefined
   if (!meta) return null
@@ -70,24 +69,22 @@ registerCompletionChecker('autofix-pr', async metadata => {
   return result.completed ? result.summary : null
 })
 
-// Release the singleton monitor lock when the framework transitions the
-// autofix task to a terminal state. Without this, the lock — keyed by the
-// framework-assigned taskId (after callAutofixPr's updateActiveMonitor swap)
-// — would dangle past natural completion, blocking subsequent /autofix-pr
-// invocations until the process restarts. Registered at module load; the
-// framework's runCompletionHook invokes it once per terminal transition.
-// Also clear the per-PR throttle entry so a re-launch starts fresh.
+// 当框架把 autofix 任务切换到终态时，释放单例 monitor 锁。
+// 若不释放，这把锁（key 是框架分配的 taskId，即 callAutofixPr 中
+// updateActiveMonitor 替换后的值）会一直挂到自然完成，阻塞后续的
+// /autofix-pr 调用，直到进程重启。在模块加载时注册；
+// 框架的 runCompletionHook 在每次终态切换时调用它一次。
+// 同时清理该 PR 的限流条目，让重新启动从零开始。
 registerCompletionHook('autofix-pr', (taskId, metadata) => {
   clearActiveMonitor(taskId)
   const meta = metadata as AutofixPrRemoteTaskMetadata | undefined
   if (meta) lastCheckAt.delete(throttleKey(meta))
 })
 
-// Phase 3 content return: extract the <autofix-result> tag from the session
-// log so the local model sees the agent's structured outcome (commits
-// pushed, files changed, CI status) inline in the completion task-
-// notification — instead of just a file-path pointer. The framework falls
-// back to the generic notification if extraction returns null.
+// Phase 3 内容返回：从会话日志中提取 <autofix-result> 标签，
+// 让本地模型在完成任务的 task-notification 里直接看到 agent 的结构化结果
+// （push 的 commit、改动的文件、CI 状态），而不只是一个文件路径指针。
+// 提取返回 null 时框架回退到通用通知。
 registerContentExtractor('autofix-pr', log => extractAutofixResultFromLog(log))
 
 function makeErrorText(message: string, code: string): string {
@@ -108,7 +105,7 @@ export const callAutofixPr: LocalJSXCommandCall = async (
   try {
     const parsed = parseAutofixArgs(args)
 
-    // 1. stop sub-command
+    // 1. stop 子命令
     if (parsed.action === 'stop') {
       const m = getActiveMonitor()
       if (!m) {
@@ -116,10 +113,9 @@ export const callAutofixPr: LocalJSXCommandCall = async (
         return null
       }
       clearActiveMonitor()
-      // Honest message: the local lock is released and any in-flight
-      // teleport request is aborted, but a CCR session that has already
-      // started running on the cloud will continue until it completes or is
-      // cancelled from claude.ai/code.
+      // 诚实的措辞：本地锁已释放，进行中的 teleport 请求也被中止，
+      // 但已经启动并跑在云端的 CCR 会话会继续运行，直到它自行完成或被
+      // 用户在 claude.ai/code 上取消。
       onDone(
         `Stopped local monitoring of ${m.repo}#${m.prNumber}. Any already-running remote session continues until it finishes or is cancelled from claude.ai/code.`,
         { display: 'system' },
@@ -127,7 +123,7 @@ export const callAutofixPr: LocalJSXCommandCall = async (
       return null
     }
 
-    // 2. invalid
+    // 2. 参数非法
     if (parsed.action === 'invalid') {
       onDone(
         `Invalid args: ${parsed.reason}. Use /autofix-pr <pr-number> | stop | <owner>/<repo>#<n>`,
@@ -138,7 +134,7 @@ export const callAutofixPr: LocalJSXCommandCall = async (
       return null
     }
 
-    // 3. freeform — not yet supported
+    // 3. freeform —— 暂不支持
     if (parsed.action === 'freeform') {
       onDone(
         'Freeform prompt mode not yet supported. Use /autofix-pr <pr-number>.',
@@ -149,8 +145,8 @@ export const callAutofixPr: LocalJSXCommandCall = async (
       return null
     }
 
-    // 4. start. has_repo_path tracks whether the user supplied an explicit
-    // owner/repo via cross-repo syntax (vs relying on directory detection).
+    // 4. 启动。has_repo_path 标记用户是否通过 cross-repo 语法显式提供了
+    // owner/repo（相对依赖目录自动探测而言）。
     logEvent('tengu_autofix_pr_started', {
       action:
         'start' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -161,9 +157,9 @@ export const callAutofixPr: LocalJSXCommandCall = async (
       ) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
 
-    // 4.1 resolve owner/repo. Always detect cwd repo first because teleport
-    // takes the git source from the working directory; cross-repo args that
-    // don't match cwd would silently work on the wrong repo.
+    // 4.1 解析 owner/repo。始终先探测 cwd 仓库，因为 teleport 会从
+    // 工作目录取 git source；如果 cross-repo 参数与 cwd 不匹配，
+    // 会静默地跑到错误的仓库上。
     let detected: { host: string; owner: string; name: string } | null
     try {
       detected = await detectCurrentRepositoryWithHost()
@@ -188,11 +184,10 @@ export const callAutofixPr: LocalJSXCommandCall = async (
       return null
     }
 
-    // Cross-repo args (owner/repo#n) must match the current working directory;
-    // teleport's git source is taken from cwd, so a mismatch would create a
-    // session against the wrong repo. Accept both as a safety check rather
-    // than as a real cross-repo capability — true cross-repo support requires
-    // a separate clone path not yet implemented here.
+    // cross-repo 参数（owner/repo#n）必须与当前工作目录匹配；
+    // teleport 的 git source 取自 cwd，不匹配会针对错误仓库创建会话。
+    // 这里同时接受两者是安全校验，而不是真正的 cross-repo 能力 ——
+    // 真正的 cross-repo 支持需要独立的 clone 路径，本仓库尚未实现。
     if (
       (parsed.owner && parsed.owner !== detected.owner) ||
       (parsed.repo && parsed.repo !== detected.name)
@@ -211,7 +206,7 @@ export const callAutofixPr: LocalJSXCommandCall = async (
 
     const { prNumber } = parsed
 
-    // 4.2 singleton lock — already monitoring this exact PR
+    // 4.2 单例锁 —— 已在监控这个具体 PR
     if (isMonitoring(owner, repo, prNumber)) {
       logEvent('tengu_autofix_pr_result', {
         result:
@@ -223,17 +218,16 @@ export const callAutofixPr: LocalJSXCommandCall = async (
       return null
     }
 
-    // 4.2b note: the existing-different-PR check is folded into the
-    // trySetActiveMonitor call below. Doing the check + set atomically there
-    // avoids a TOCTOU window between the read and the write under concurrent
-    // invocations.
+    // 4.2b 说明：已存在的「另一个 PR」检查被合并到下面的 trySetActiveMonitor 调用里。
+    // 在那里原子地完成「检查 + 设置」，避免在并发调用下产生读写之间的
+    // TOCTOU 窗口。
 
-    // 4.3 eligibility check (tolerate no_remote_environment, surface real reasons).
-    // skipBundle:true matches the teleport call below — autofix needs to push
-    // back to GitHub, which a git bundle cannot do.
+    // 4.3 资格检查（容忍 no_remote_environment，暴露真实原因）。
+    // skipBundle:true 与下方 teleport 调用保持一致 —— autofix 需要回推到 GitHub，
+    // 而 git bundle 做不到这件事。
     const eligibility = await checkRemoteAgentEligibility({ skipBundle: true })
     if (!eligibility.eligible) {
-      // Discriminated union: TypeScript narrows `eligibility` here, no cast needed.
+      // 可辨识联合：TypeScript 在此收窄 `eligibility`，无需强转。
       const blockers = eligibility.errors.filter(
         (e: BackgroundRemoteSessionPrecondition) =>
           e.type !== 'no_remote_environment',
@@ -251,11 +245,11 @@ export const callAutofixPr: LocalJSXCommandCall = async (
       }
     }
 
-    // 4.4 detect skills
+    // 4.4 探测 skill
     const skills = detectAutofixSkills(process.cwd())
     const skillsHint = formatSkillsHint(skills)
 
-    // 4.5 compose message
+    // 4.5 拼装消息
     const target = `${owner}/${repo}#${prNumber}`
     const branchName = `refs/pull/${prNumber}/head`
     const initialMessage = `Auto-fix failing CI checks on PR #${prNumber} in ${owner}/${repo}.${skillsHint}
@@ -276,12 +270,11 @@ When you finish (or hit a blocker you can't recover from), output the following 
 
 If no fix was needed, omit <commits-pushed> and <files-changed> and explain in <summary>. If you only attempted partial work, list the commits you did push and explain the remainder in <summary>.`
 
-    // 4.6 in-process teammate
+    // 4.6 进程内 teammate
     const teammate = createAutofixTeammate(initialMessage, target)
 
-    // 4.7 acquire lock atomically BEFORE doing any awaits. This closes the
-    // TOCTOU race where two concurrent invocations both see active=null and
-    // both try to create remote sessions.
+    // 4.7 在任何 await 之前原子地获取锁。这消除了一个 TOCTOU 竞态：
+    // 两个并发调用同时看到 active=null，然后都尝试创建远程会话。
     const lockAcquired = trySetActiveMonitor({
       taskId: teammate.taskId,
       owner,
@@ -302,14 +295,14 @@ If no fix was needed, omit <commits-pushed> and <files-changed> and explain in <
       return null
     }
 
-    // 4.8 teleport — wire BOTH onBundleFail and onCreateFail so HTTP-layer
-    // failures (4xx/5xx, expired token, invalid PR ref) reach the user with
-    // the upstream message instead of the generic fallback. skipBundle:true
-    // is required for autofix: the remote container must push back to GitHub,
-    // which a bundle-cloned source cannot do (teleport.tsx documents this).
-    // Note: refs/pull/<n>/head is not a pushable ref. We do NOT pass
-    // reuseOutcomeBranch — the orchestrator generates a claude/* branch and
-    // the user pushes/PRs from claude.ai/code.
+    // 4.8 teleport —— 同时接入 onBundleFail 和 onCreateFail，让 HTTP 层的失败
+    // （4xx/5xx、token 过期、无效的 PR ref）能带着上游消息反馈给用户，
+    // 而不是给出通用回退。autofix 必须传 skipBundle:true：
+    // 远程容器需要回推到 GitHub，而 bundle clone 出来的源做不到
+    // （teleport.tsx 中对此有说明）。
+    // 注意：refs/pull/<n>/head 不是可 push 的 ref。我们「不」传
+    // reuseOutcomeBranch —— orchestrator 会生成一个 claude/* 分支，
+    // 用户从 claude.ai/code 上做 push / 发 PR。
     let teleportFailMsg: string | undefined
     const captureFailMsg = (msg: string) => {
       teleportFailMsg = msg
@@ -350,25 +343,21 @@ If no fix was needed, omit <commits-pushed> and <files-changed> and explain in <
       return null
     }
 
-    // 4.8b capture PR head SHA before registering so the completionChecker
-    // can detect when the agent has pushed new commits. Best-effort — if gh
-    // is unavailable or the call fails, leave initialHeadSha undefined and
-    // the checker falls back to terminal-state-only completion (closed /
-    // merged). Don't block on this; teleport succeeded already.
+    // 4.8b 在注册之前抓取 PR head SHA，这样 completionChecker 才能检测到
+    // agent 是否 push 了新 commit。尽力而为 —— 如果 gh 不可用或调用失败，
+    // 就让 initialHeadSha 保持 undefined，checker 回退到只看终态
+    // （closed / merged）的完成判定。不要在这里阻塞；teleport 已经成功了。
     const initialHeadSha =
       (await fetchPrHeadSha(owner, repo, prNumber).catch(() => null)) ??
       undefined
 
-    // 4.9 register task. If this throws, release the lock so the user can
-    // retry — the remote CCR session is already created so we surface a
-    // dedicated error code.
+    // 4.9 注册任务。若抛错，释放锁让用户可以重试 —— 远程 CCR 会话已创建，
+    // 因此对外暴露一个专门的错误码。
     //
-    // After registration succeeds, swap the lock's taskId from the tentative
-    // teammate UUID (used to acquire the lock atomically before teleport) to
-    // the framework-assigned taskId. Without this swap, the framework's own
-    // cleanup path (clearActiveMonitor(frameworkTaskId) on natural completion)
-    // would no-op against a lock keyed by teammate.taskId, leaving the
-    // singleton lock dangling and blocking future /autofix-pr invocations.
+    // 注册成功后，把锁的 taskId 从暂行 teammate UUID（teleport 前用于原子
+    // 获取锁）替换为框架分配的 taskId。不做这次替换，框架自己的清理路径
+    // （自然完成时调用 clearActiveMonitor(frameworkTaskId)）会对以
+    // teammate.taskId 为 key 的锁无操作，导致单例锁悬挂，阻塞后续 /autofix-pr。
     try {
       const { taskId: frameworkTaskId } = registerRemoteAgentTask({
         remoteTaskType: 'autofix-pr',
@@ -392,23 +381,23 @@ If no fix was needed, omit <commits-pushed> and <files-changed> and explain in <
       return null
     }
 
-    // 4.10 PR webhook subscription (feature-gated, non-fatal)
+    // 4.10 PR webhook 订阅（feature-gated，非致命）
     if (feature('KAIROS_GITHUB_WEBHOOKS')) {
-      // kairos client not available in this repo — skip silently
+      // 本仓库中 kairos client 不可用 —— 静默跳过
     }
 
-    // 4.11 success
+    // 4.11 成功
     const sessionUrl = getRemoteTaskSessionUrl(session.id)
     logEvent('tengu_autofix_pr_result', {
       result:
         'success_rc' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
-    // Also call onDone so callers that listen to the callback get notified.
+    // 同时调用 onDone，让监听回调的调用方收到通知。
     onDone(`Autofix launched for ${target}. Track: ${sessionUrl}`, {
       display: 'system',
     })
-    // Return a React progress UI showing the completed pipeline.
-    // The REPL renders the returned React element inline alongside the text.
+    // 返回展示已完成管线的 React 进度 UI。
+    // REPL 会把返回的 React 元素与文本一起内联渲染。
     return React.createElement(AutofixProgress, {
       phase: 'done',
       target,

@@ -49,7 +49,7 @@ export async function checkBackgroundRemoteSessionEligibility({
 } = {}): Promise<BackgroundRemoteSessionPrecondition[]> {
   const errors: BackgroundRemoteSessionPrecondition[] = []
 
-  // Check policy first - if blocked, no need to check other preconditions
+  // 先检查策略 - 如果被阻止，无需检查其他前提条件
   if (!isPolicyAllowed('allow_remote_sessions')) {
     errors.push({ type: 'policy_blocked' })
     return errors
@@ -69,9 +69,9 @@ export async function checkBackgroundRemoteSessionEligibility({
     errors.push({ type: 'no_remote_environment' })
   }
 
-  // When bundle seeding is on, in-git-repo is enough — CCR can seed from
-  // a local bundle. No GitHub remote or app needed. Same gate as
-  // teleport.tsx bundleSeedGateOn.
+  // 当 bundle seeding 开启时，在 git 仓库内就足够了 - CCR 可以从
+  // 本地 bundle 种子。不需要 GitHub remote 或 app。与
+  // teleport.tsx bundleSeedGateOn 相同的门控。
   const bundleSeedGateOn =
     !skipBundle &&
     (isEnvTruthy(process.env.CCR_FORCE_BUNDLE) ||
@@ -81,7 +81,7 @@ export async function checkBackgroundRemoteSessionEligibility({
   if (!checkIsInGitRepo()) {
     errors.push({ type: 'not_in_git_repo' })
   } else if (bundleSeedGateOn) {
-    // has .git/, bundle will work — skip remote+app checks
+    // 有 .git/，bundle 将生效 - 跳过远程+应用检查
   } else if (repository === null) {
     errors.push({ type: 'no_git_remote' })
   } else if (repository.host === 'github.com') {

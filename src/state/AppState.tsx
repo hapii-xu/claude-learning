@@ -11,8 +11,8 @@ import { applySettingsChange } from '../utils/settings/applySettingsChange.js';
 import type { SettingSource } from '../utils/settings/constants.js';
 import { createStore } from './store.js';
 
-// DCE: voice context is ant-only. External builds get a noop provider that
-// still wraps children in VoiceContext so useVoiceState never throws.
+// DCE：语音上下文是 ant-only。外部构建获得一个空操作提供者，
+// 仍将子组件包装在 VoiceContext 中，以便 useVoiceState 永不抛出。
 /* eslint-disable @typescript-eslint/no-require-imports */
 const VoiceProvider: (props: { children: React.ReactNode }) => React.ReactNode = feature('VOICE_MODE')
   ? require('../context/voice.js').VoiceProvider
@@ -33,9 +33,9 @@ const VoiceProvider: (props: { children: React.ReactNode }) => React.ReactNode =
 /* eslint-enable @typescript-eslint/no-require-imports */
 import { type AppState, type AppStateStore, getDefaultAppState } from './AppStateStore.js';
 
-// TODO: Remove these re-exports once all callers import directly from
-// ./AppStateStore.js. Kept for back-compat during migration so .ts callers
-// can incrementally move off the .tsx import and stop pulling React.
+// TODO: 在所有调用者直接从 ./AppStateStore.js 导入后移除此处重新导出。
+// 在迁移期间保留向后兼容，以便 .ts 调用者可以逐步
+// 从 .tsx 导入迁移并停止拉取 React。
 export {
   type AppState,
   type AppStateStore,
@@ -57,22 +57,22 @@ type Props = {
 const HasAppStateContext = React.createContext<boolean>(false);
 
 export function AppStateProvider({ children, initialState, onChangeAppState }: Props): React.ReactNode {
-  // Don't allow nested AppStateProviders.
+  // 不允许嵌套的 AppStateProvider。
   const hasAppStateContext = useContext(HasAppStateContext);
   if (hasAppStateContext) {
-    throw new Error('AppStateProvider can not be nested within another AppStateProvider');
+    throw new Error('AppStateProvider 不能嵌套在另一个 AppStateProvider 内');
   }
 
-  // Store is created once and never changes -- stable context value means
-  // the provider never triggers re-renders. Consumers subscribe to slices
-  // via useSyncExternalStore in useAppState(selector).
+  // Store 创建一次且永不改变 —— 稳定的上下文值意味着
+  // 提供者永不触发重新渲染。消费者通过 useSyncExternalStore
+  // 在 useAppState(selector) 中订阅切片。
   const [store] = useState(() => createStore<AppState>(initialState ?? getDefaultAppState(), onChangeAppState));
 
-  // Check on mount if bypass mode should be disabled
-  // This handles the race condition where remote settings load BEFORE this component mounts,
-  // meaning the settings change notification was sent when no listeners were subscribed.
-  // On subsequent sessions, the cached remote-settings.json is read during initial setup,
-  // but on the first session the remote fetch may complete before React mounts.
+  // 在挂载时检查是否应禁用绕过模式
+  // 这处理了远程设置在组件挂载前加载的竞争条件，
+  // 意味着设置更改通知发送时没有订阅的监听器。
+  // 在后续会话中，缓存的 remote-settings.json 在初始设置期间读取，
+  // 但在首次会话中远程获取可能在 React 挂载前完成。
   useEffect(() => {
     const { toolPermissionContext } = store.getState();
     if (toolPermissionContext.isBypassPermissionsModeAvailable && isBypassPermissionsModeDisabled()) {
@@ -84,9 +84,9 @@ export function AppStateProvider({ children, initialState, onChangeAppState }: P
     }
   }, []);
 
-  // Listen for external settings changes and sync to AppState.
-  // This ensures file watcher changes propagate through the app --
-  // shared with the headless/SDK path via applySettingsChange.
+  // 监听外部设置变更并同步到 AppState。
+  // 这确保文件观察者的变更传播到整个应用 -
+  // 通过 applySettingsChange 与无头/SDK 路径共享。
   const onSettingsChange = useEffectEvent((source: SettingSource) => applySettingsChange(source, store.setState));
   useSettingsChange(onSettingsChange);
 
@@ -111,19 +111,19 @@ function useAppStore(): AppStateStore {
 }
 
 /**
- * Subscribe to a slice of AppState. Only re-renders when the selected value
- * changes (compared via Object.is).
+ * 订阅 AppState 的一个切片。仅当所选值更改时重新渲染
+ * （通过 Object.is 比较）。
  *
- * For multiple independent fields, call the hook multiple times:
+ * 对于多个独立字段，多次调用此 hook：
  * ```
  * const verbose = useAppState(s => s.verbose)
  * const model = useAppState(s => s.mainLoopModel)
  * ```
  *
- * Do NOT return new objects from the selector -- Object.is will always see
- * them as changed. Instead, select an existing sub-object reference:
+ * 不要从选择器返回新对象 -- Object.is 会始终认为它们已更改。
+ * 相反，选择一个现有的子对象引用：
  * ```
- * const { text, promptId } = useAppState(s => s.promptSuggestion) // good
+ * const { text, promptId } = useAppState(s => s.promptSuggestion) // 正确
  * ```
  */
 export function useAppState<T>(selector: (state: AppState) => T): T {
@@ -146,16 +146,16 @@ export function useAppState<T>(selector: (state: AppState) => T): T {
 }
 
 /**
- * Get the setAppState updater without subscribing to any state.
- * Returns a stable reference that never changes -- components using only
- * this hook will never re-render from state changes.
+ * 获取 setAppState 更新器而不订阅任何状态。
+ * 返回永不更改的稳定引用 -- 仅使用此 hook 的组件
+ * 不会因状态更改而重新渲染。
  */
 export function useSetAppState(): (updater: (prev: AppState) => AppState) => void {
   return useAppStore().setState;
 }
 
 /**
- * Get the store directly (for passing getState/setState to non-React code).
+ * 直接获取 store（用于将 getState/setState 传递给非 React 代码）。
  */
 export function useAppStateStore(): AppStateStore {
   return useAppStore();
@@ -164,8 +164,8 @@ export function useAppStateStore(): AppStateStore {
 const NOOP_SUBSCRIBE = () => () => {};
 
 /**
- * Safe version of useAppState that returns undefined if called outside of AppStateProvider.
- * Useful for components that may be rendered in contexts where AppStateProvider isn't available.
+ * useAppState 的安全版本，在 AppStateProvider 外部调用时返回 undefined。
+ * 适用于可能在 AppStateProvider 不可用的上下文中渲染的组件。
  */
 export function useAppStateMaybeOutsideOfProvider<T>(selector: (state: AppState) => T): T | undefined {
   const store = useContext(AppStoreContext);

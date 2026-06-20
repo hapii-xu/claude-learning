@@ -9,9 +9,9 @@ type Options = {
   pluginName: string
   pluginCommand: string
   /**
-   * The prompt to use while the marketplace is private.
-   * External users will get this prompt. Once the marketplace is public,
-   * this parameter and the fallback logic can be removed.
+   * 在 marketplace 私有期间使用的 prompt。
+   * 外部用户将收到这条 prompt。待 marketplace 公开后，
+   * 可移除该参数以及回退逻辑。
    */
   getPromptWhileMarketplaceIsPrivate: (
     args: string,
@@ -32,7 +32,7 @@ export function createMovedToPluginCommand({
     name,
     description,
     progressMessage,
-    contentLength: 0, // Dynamic content
+    contentLength: 0, // 动态内容
     userFacingName() {
       return name
     },

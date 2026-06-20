@@ -4,7 +4,7 @@ import { Box } from '@anthropic/ink';
 type QueuedMessageContextValue = {
   isQueued: boolean;
   isFirst: boolean;
-  /** Width reduction for container padding (e.g., 4 for paddingX={2}) */
+  /** 容器内边距的宽度减少（例如，paddingX={2} 时为 4） */
   paddingWidth: number;
 };
 
@@ -23,8 +23,9 @@ type Props = {
 };
 
 export function QueuedMessageProvider({ isFirst, useBriefLayout, children }: Props): React.ReactNode {
-  // Brief mode already indents via paddingLeft in HighlightedThinkingText /
-  // BriefTool UI — adding paddingX here would double-indent the queue.
+  // 简要模式已经通过 HighlightedThinkingText /
+  // BriefTool UI 中的 paddingLeft 进行缩进——在此处添加 paddingX
+  // 会导致队列的双重缩进。
   const padding = useBriefLayout ? 0 : PADDING_X;
   const value = React.useMemo(() => ({ isQueued: true, isFirst, paddingWidth: padding * 2 }), [isFirst, padding]);
 

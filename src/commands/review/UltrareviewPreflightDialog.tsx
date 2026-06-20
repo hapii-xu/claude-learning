@@ -9,9 +9,9 @@ type Props = {
 };
 
 /**
- * Dialog shown when /v1/ultrareview/preflight returns action='confirm'.
- * Displays the server-provided billing_note (or a generic fallback) and
- * gives the user a Proceed / Cancel choice.
+ * 当 /v1/ultrareview/preflight 返回 action='confirm' 时显示的对话框。
+ * 展示服务端提供的 billing_note（或通用的兜底文案），并给用户
+ * 提供 Proceed / Cancel 选择。
  */
 export function UltrareviewPreflightDialog({ billingNote, onConfirm, onCancel }: Props): React.ReactNode {
   const [isLaunching, setIsLaunching] = useState(false);

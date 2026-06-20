@@ -1,10 +1,9 @@
 /**
- * Tests for fix: 修复 n 快捷键导致关闭的问题
+ * 测试修复：修复 n 快捷键导致关闭的问题
  *
- * Before the fix, 'y' and 'n' were bound to confirm:yes / confirm:no in the
- * Confirmation context, which caused accidental dismissal when typing those
- * letters in other inputs. The fix removed those bindings, keeping only
- * enter/escape.
+ * 修复前，'y' 和 'n' 在 Confirmation 上下文中绑定到
+ * confirm:yes / confirm:no，这导致在其他输入中输入这些
+ * 字母时会意外关闭。修复移除了这些绑定，仅保留 enter/escape。
  */
 import { describe, expect, test } from 'bun:test'
 import { DEFAULT_BINDINGS } from '../defaultBindings.js'

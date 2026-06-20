@@ -1,9 +1,9 @@
 /**
  * promptEngineeringAudit.test.ts
  *
- * Thin subprocess wrapper that runs the real audit in an isolated bun:test
- * process. This prevents the 30+ mock.module() calls in the runner from
- * leaking into other test files in the same bun test batch.
+ * 轻量的子进程包装器，在隔离的 bun:test 进程中运行真实的审计。
+ * 这样可以避免 runner 中的 30+ 个 mock.module() 调用
+ * 泄漏到同一 bun test 批次中的其他测试文件里。
  */
 
 import { describe, test, expect } from 'bun:test'

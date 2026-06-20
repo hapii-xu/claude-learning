@@ -1,6 +1,6 @@
 /**
- * Selectors for deriving computed state from AppState.
- * Keep selectors pure and simple - just data extraction, no side effects.
+ * 从 AppState 派生计算状态的选择器。
+ * 保持选择器纯粹且简单 - 仅数据提取，无副作用。
  */
 
 import type { InProcessTeammateTaskState } from '../tasks/InProcessTeammateTask/types.js'
@@ -9,29 +9,29 @@ import type { LocalAgentTaskState } from '../tasks/LocalAgentTask/LocalAgentTask
 import type { AppState } from './AppStateStore.js'
 
 /**
- * Get the currently viewed teammate task, if any.
- * Returns undefined if:
- * - No teammate is being viewed (viewingAgentTaskId is undefined)
- * - The task ID doesn't exist in tasks
- * - The task is not an in-process teammate task
+ * 获取当前查看的队友任务（如果有）。
+ * 以下情况返回 undefined：
+ * - 未查看任何队友（viewingAgentTaskId 为 undefined）
+ * - 任务 ID 在 tasks 中不存在
+ * - 任务不是进程内队友任务
  */
 export function getViewedTeammateTask(
   appState: Pick<AppState, 'viewingAgentTaskId' | 'tasks'>,
 ): InProcessTeammateTaskState | undefined {
   const { viewingAgentTaskId, tasks } = appState
 
-  // Not viewing any teammate
+  // 未查看任何队友
   if (!viewingAgentTaskId) {
     return undefined
   }
 
-  // Look up the task
+  // 查找任务
   const task = tasks[viewingAgentTaskId]
   if (!task) {
     return undefined
   }
 
-  // Verify it's an in-process teammate task
+  // 验证是否为进程内队友任务
   if (!isInProcessTeammateTask(task)) {
     return undefined
   }
@@ -40,8 +40,8 @@ export function getViewedTeammateTask(
 }
 
 /**
- * Return type for getActiveAgentForInput selector.
- * Discriminated union for type-safe input routing.
+ * getActiveAgentForInput 选择器的返回类型。
+ * 用于类型安全输入路由的判别联合类型。
  */
 export type ActiveAgentForInput =
   | { type: 'leader' }
@@ -49,12 +49,12 @@ export type ActiveAgentForInput =
   | { type: 'named_agent'; task: LocalAgentTaskState }
 
 /**
- * Determine where user input should be routed.
- * Returns:
- * - { type: 'leader' } when not viewing a teammate (input goes to leader)
- * - { type: 'viewed', task } when viewing an agent (input goes to that agent)
+ * 确定用户输入应路由到何处。
+ * 返回：
+ * - { type: 'leader' } 当未查看队友时（输入发送给领导者）
+ * - { type: 'viewed', task } 当查看代理时（输入发送给该代理）
  *
- * Used by input routing logic to direct user messages to the correct agent.
+ * 由输入路由逻辑使用，将用户消息定向到正确的代理。
  */
 export function getActiveAgentForInput(
   appState: AppState,

@@ -1,11 +1,11 @@
 /**
- * Surfaces plugin-install prompts driven by `<claude-code-hint />` tags
- * that CLIs/SDKs emit to stderr. See docs/claude-code-hints.md.
+ * 显示由 `<claude-code-hint />` 标签驱动的插件安装提示，
+ * CLI/SDK 将其输出到 stderr。见 docs/claude-code-hints.md。
  *
- * Show-once semantics: each plugin is prompted for at most once ever,
- * recorded in config regardless of yes/no. The pre-store gate in
- * maybeRecordPluginHint already dropped installed/shown/capped hints, so
- * anything that reaches this hook is worth resolving.
+ * 单次显示语义：每个插件最多提示一次，
+ * 无论 yes/no 都记录在配置中。maybeRecordPluginHint 中的
+ * 预存储门控已丢弃已安装/已显示/达到上限的提示，所以
+ * 到达此 hook 的任何内容都值得解析。
  */
 
 import * as React from 'react';
@@ -51,9 +51,9 @@ export function useClaudeCodeHintRecommendation(): UseClaudeCodeHintRecommendati
         );
         markShownThisSession();
       }
-      // Drop the slot — but only if it still holds the hint we just
-      // resolved. A newer hint may have overwritten it during the async
-      // lookup; don't clobber that.
+      // 丢弃该槽位 —— 但仅当它仍然持有我们刚刚
+      // 解析的提示时。在异步查找期间，更新的提示
+      // 可能已覆盖它；不要覆盖那个。
       if (getPendingHintSnapshot() === pendingHint) {
         clearPendingHint();
       }
@@ -65,9 +65,9 @@ export function useClaudeCodeHintRecommendation(): UseClaudeCodeHintRecommendati
     (response: 'yes' | 'no' | 'disable') => {
       if (!recommendation) return;
 
-      // Record show-once here, not at resolution-time — the dialog may have
-      // been blocked by a higher-priority focusedInputDialog and never
-      // rendered. Auto-dismiss reaches this via onResponse('no').
+      // 在此处记录单次显示，而不是在解析时 —— 对话框可能
+      // 被更高优先级的 focusedInputDialog 阻塞且从未渲染。
+      // 自动关闭通过 onResponse('no') 到达这里。
       markHintPluginShown(recommendation.pluginId);
       logEvent('tengu_plugin_hint_response', {
         _PROTO_plugin_name: recommendation.pluginName as AnalyticsMetadata_I_VERIFIED_THIS_IS_PII_TAGGED,

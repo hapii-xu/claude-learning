@@ -5,9 +5,9 @@ import { Text } from '@anthropic/ink';
 import { getGlobalConfig } from '../utils/config.js';
 import { getRainbowColor } from '../utils/thinking.js';
 
-// Local date, not UTC — 24h rolling wave across timezones. Sustained Twitter
-// buzz instead of a single UTC-midnight spike, gentler on soul-gen load.
-// Teaser window: April 1-7, 2026 only. Command stays live forever after.
+// 使用本地日期而非 UTC — 在不同时区形成 24 小时滚动的浪潮。
+// 相比单一的 UTC 午夜高峰，能维持更持续的 Twitter 热度，对 soul 生成负载也更温和。
+// 预热窗口：仅在 2026 年 4 月 1-7 日。之后命令永久可用。
 export function isBuddyTeaserWindow(): boolean {
   if (process.env.USER_TYPE === 'ant') return true;
   const d = new Date();
@@ -32,8 +32,8 @@ function RainbowText({ text }: { text: string }): React.ReactNode {
   );
 }
 
-// Rainbow /buddy teaser shown on startup when no companion hatched yet.
-// Idle presence and reactions are handled by CompanionSprite directly.
+// 启动时展示的彩虹版 /buddy 预热提示，仅在尚未孵化 companion 时出现。
+// 空闲状态的展示和反应由 CompanionSprite 直接处理。
 export function useBuddyNotification(): void {
   const { addNotification, removeNotification } = useNotifications();
 

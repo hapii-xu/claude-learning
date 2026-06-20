@@ -15,7 +15,7 @@ import type {
   LocalJSXCommandOnDone,
 } from '../../types/command.js'
 
-// Species → default name fragments for hatch (no API needed)
+// Species → 孵化时使用的默认名称片段（无需 API 调用）
 const SPECIES_NAMES: Record<string, string> = {
   duck: 'Waddles',
   goose: 'Goosberry',
@@ -75,21 +75,21 @@ export async function call(
   const sub = args?.trim().toLowerCase() ?? ''
   const setState = context.setAppState
 
-  // ── /buddy off — mute companion ──
+  // ── /buddy off — 静音 companion ──
   if (sub === 'off') {
     saveGlobalConfig(cfg => ({ ...cfg, companionMuted: true }))
     onDone('companion muted', { display: 'system' })
     return null
   }
 
-  // ── /buddy on — unmute companion ──
+  // ── /buddy on — 取消静音 companion ──
   if (sub === 'on') {
     saveGlobalConfig(cfg => ({ ...cfg, companionMuted: false }))
     onDone('companion unmuted', { display: 'system' })
     return null
   }
 
-  // ── /buddy pet — trigger heart animation + auto unmute ──
+  // ── /buddy pet — 触发爱心动画 + 自动取消静音 ──
   if (sub === 'pet') {
     const companion = getCompanion()
     if (!companion) {
@@ -97,11 +97,11 @@ export async function call(
       return null
     }
 
-    // Auto-unmute on pet + trigger heart animation
+    // 抚摸时自动取消静音 + 触发爱心动画
     saveGlobalConfig(cfg => ({ ...cfg, companionMuted: false }))
     setState?.(prev => ({ ...prev, companionPetAt: Date.now() }))
 
-    // Trigger a post-pet reaction
+    // 触发抚摸后的反应
     triggerCompanionReaction(context.messages ?? [], reaction =>
       setState?.(prev =>
         prev.companionReaction === reaction
@@ -114,16 +114,16 @@ export async function call(
     return null
   }
 
-  // ── /buddy (no args) — show existing or hatch ──
+  // ── /buddy（无参数）— 展示现有 companion 或孵化新的 ──
   const companion = getCompanion()
 
-  // Auto-unmute when viewing
+  // 查看时自动取消静音
   if (companion && getGlobalConfig().companionMuted) {
     saveGlobalConfig(cfg => ({ ...cfg, companionMuted: false }))
   }
 
   if (companion) {
-    // Return JSX card — matches official vc8 component
+    // 返回 JSX 卡片 — 与官方 vc8 组件保持一致
     const lastReaction = context.getAppState?.()?.companionReaction
     return React.createElement(CompanionCard, {
       companion,
@@ -134,7 +134,7 @@ export async function call(
     })
   }
 
-  // ── No companion → hatch ──
+  // ── 没有 companion → 孵化 ──
   const seed = generateSeed()
   const r = rollWithSeed(seed)
   const name = SPECIES_NAMES[r.bones.species] ?? 'Buddy'

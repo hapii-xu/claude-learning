@@ -42,8 +42,8 @@ function phaseIndex(phase: AutofixPhase): number {
 }
 
 /**
- * Inline progress component for /autofix-pr.
- * Rendered by the REPL alongside the onDone text message.
+ * /autofix-pr 的内联进度组件。
+ * 由 REPL 在渲染 onDone 文本消息时一并渲染。
  */
 export function AutofixProgress({ phase, target, sessionUrl, errorMessage }: AutofixProgressProps): React.ReactElement {
   const currentIdx = phaseIndex(phase);

@@ -27,7 +27,7 @@ import { OFFICIAL_MARKETPLACE_NAME } from '../../utils/plugins/officialMarketpla
 import { loadAllPlugins } from '../../utils/plugins/pluginLoader.js';
 import { installSelectedPlugins } from '../../utils/plugins/pluginStartupCheck.js';
 
-// Marketplace and plugin identifiers - varies by user type
+// Marketplace 和插件标识符 —— 按用户类型不同而变化
 const INTERNAL_MARKETPLACE_NAME = 'claude-code-marketplace';
 const INTERNAL_MARKETPLACE_REPO = 'anthropics/claude-code-marketplace';
 const OFFICIAL_MARKETPLACE_REPO = 'anthropics/claude-plugins-official';
@@ -47,7 +47,7 @@ function getPluginId(): string {
 const SKILL_NAME = 'thinkback';
 
 /**
- * Get the thinkback skill directory from the installed plugin's cache path
+ * 从已安装插件的缓存路径中获取 thinkback skill 目录
  */
 async function getThinkbackSkillDir(): Promise<string | null> {
   const { enabled } = await loadAllPlugins();
@@ -72,14 +72,13 @@ export async function playAnimation(skillDir: string): Promise<{
   const dataPath = join(skillDir, 'year_in_review.js');
   const playerPath = join(skillDir, 'player.js');
 
-  // Both files are prerequisites for the node subprocess. Read them here
-  // (not at call sites) so all callers get consistent error messaging. The
-  // subprocess runs with reject: false, so a missing file would otherwise
-  // silently return success. Using readFile (not access) per CLAUDE.md.
+  // 这两个文件是 node 子进程的前置依赖。在这里读取（而非在调用点读取），
+  // 以确保所有调用方获得一致的错误信息。子进程以 reject: false 方式运行，
+  // 因此文件缺失时本会静默返回成功。按 CLAUDE.md 的要求使用 readFile（而非 access）。
   //
-  // Non-ENOENT errors (EACCES etc) are logged and returned as failures rather
-  // than thrown — the old pathExists-based code never threw, and one caller
-  // (handleSelect) uses `void playAnimation().then(...)` without a .catch().
+  // 非 ENOENT 错误（例如 EACCES）会被记录并以失败返回，而不是抛出 ——
+  // 旧的基于 pathExists 的代码从不抛异常，而且其中一个调用方
+  // （handleSelect）使用 `void playAnimation().then(...)` 且没有 .catch()。
   try {
     await readFile(dataPath);
   } catch (e: unknown) {
@@ -112,7 +111,7 @@ export async function playAnimation(skillDir: string): Promise<{
     };
   }
 
-  // Get ink instance for terminal takeover
+  // 获取用于接管终端的 ink 实例
   const inkInstance = instances.get(process.stdout);
   if (!inkInstance) {
     return { success: false, message: 'Failed to access terminal instance' };
@@ -126,12 +125,12 @@ export async function playAnimation(skillDir: string): Promise<{
       reject: false,
     });
   } catch {
-    // Animation may have been interrupted (e.g., Ctrl+C)
+    // 动画可能被中断（例如 Ctrl+C）
   } finally {
     inkInstance.exitAlternateScreen();
   }
 
-  // Open the HTML file in browser for video download
+  // 在浏览器中打开 HTML 文件以便下载视频
   const htmlPath = join(skillDir, 'year_in_review.html');
   if (await pathExists(htmlPath)) {
     const platform = getPlatform();
@@ -163,18 +162,18 @@ function ThinkbackInstaller({
   useEffect(() => {
     async function checkAndInstall(): Promise<void> {
       try {
-        // Check if marketplace is installed
+        // 检查 marketplace 是否已安装
         const knownMarketplaces = await loadKnownMarketplacesConfig();
         const marketplaceName = getMarketplaceName();
         const marketplaceRepo = getMarketplaceRepo();
         const pluginId = getPluginId();
         const marketplaceInstalled = marketplaceName in knownMarketplaces;
 
-        // Check if plugin is already installed first
+        // 首先检查插件是否已安装
         const pluginAlreadyInstalled = isPluginInstalled(pluginId);
 
         if (!marketplaceInstalled) {
-          // Install the marketplace
+          // 安装 marketplace
           setState({ phase: 'installing-marketplace' });
           logForDebugging(`Installing marketplace ${marketplaceRepo}`);
 
@@ -184,8 +183,8 @@ function ThinkbackInstaller({
           clearAllCaches();
           logForDebugging(`Marketplace ${marketplaceName} installed`);
         } else if (!pluginAlreadyInstalled) {
-          // Marketplace installed but plugin not installed - refresh to get latest plugins
-          // Only refresh when needed to avoid potentially destructive git operations
+          // marketplace 已安装但插件未安装 —— 刷新以获取最新插件
+          // 仅在需要时刷新，以避免潜在的破坏性 git 操作
           setState({ phase: 'installing-marketplace' });
           setProgressMessage('Updating marketplace…');
           logForDebugging(`Refreshing marketplace ${marketplaceName}`);
@@ -199,7 +198,7 @@ function ThinkbackInstaller({
         }
 
         if (!pluginAlreadyInstalled) {
-          // Install the plugin
+          // 安装插件
           setState({ phase: 'installing-plugin' });
           logForDebugging(`Installing plugin ${pluginId}`);
 
@@ -213,12 +212,12 @@ function ThinkbackInstaller({
           clearAllCaches();
           logForDebugging(`Plugin ${pluginId} installed`);
         } else {
-          // Plugin is installed, check if it's enabled
+          // 插件已安装，检查是否已启用
           const { disabled } = await loadAllPlugins();
           const isDisabled = disabled.some(p => p.name === 'thinkback' || p.source?.includes(pluginId));
 
           if (isDisabled) {
-            // Enable the plugin
+            // 启用插件
             setState({ phase: 'enabling-plugin' });
             logForDebugging(`Enabling plugin ${pluginId}`);
 
@@ -326,7 +325,7 @@ function ThinkbackMenu({
   function handleSelect(value: MenuAction): void {
     setHasSelected(true);
     if (value === 'play') {
-      // Play runs the terminal-takeover animation, then signal done with skip
+      // 播放会运行接管终端的动画，随后以 skip 方式通知完成
       void playAnimation(skillDir).then(() => {
         onDone(undefined, { display: 'skip' });
       });
@@ -351,7 +350,7 @@ function ThinkbackMenu({
       color="claude"
     >
       <Box flexDirection="column" gap={1}>
-        {/* Description for first-time users */}
+        {/* 面向首次使用用户的描述 */}
         {!hasGenerated && (
           <Box flexDirection="column">
             <Text>Relive your year of coding with Claude.</Text>
@@ -359,7 +358,7 @@ function ThinkbackMenu({
           </Box>
         )}
 
-        {/* Menu */}
+        {/* 菜单 */}
         <Select options={options} onChange={handleSelect} visibleOptionCount={5} />
       </Box>
     </Dialog>
@@ -392,7 +391,7 @@ function ThinkbackFlow({
   const handleError = useCallback(
     (message: string): void => {
       setInstallError(message);
-      // Call onDone with the error message so the model can continue
+      // 调用 onDone 并附带错误消息，以便模型可以继续处理
       onDone(`Error with thinkback: ${message}. Try running /plugin to manually install the think-back plugin.`, {
         display: 'system',
       });
@@ -402,7 +401,7 @@ function ThinkbackFlow({
 
   useEffect(() => {
     if (installComplete && !skillDir && !installError) {
-      // Get the skill directory after installation
+      // 安装完成后获取 skill 目录
       void getThinkbackSkillDir().then(dir => {
         if (dir) {
           logForDebugging(`Thinkback skill directory: ${dir}`);
@@ -414,7 +413,7 @@ function ThinkbackFlow({
     }
   }, [installComplete, skillDir, installError, handleError]);
 
-  // Check for generated file once we have skillDir
+  // 一旦拿到 skillDir，就检查生成文件是否存在
   useEffect(() => {
     if (!skillDir) {
       return;
@@ -428,7 +427,7 @@ function ThinkbackFlow({
   }, [skillDir]);
 
   function handleAction(action: GenerativeAction): void {
-    // Send prompt to model based on action
+    // 根据动作向模型发送对应的 prompt
     const prompts: Record<GenerativeAction, string> = {
       edit: EDIT_PROMPT,
       fix: FIX_PROMPT,

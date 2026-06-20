@@ -1,8 +1,8 @@
 /**
- * /proactive — Toggle proactive (autonomous tick-driven) mode.
+ * /proactive —— 切换 proactive（基于 tick 的自主）模式。
  *
- * When enabled, the model receives periodic <tick> prompts and works
- * autonomously between user inputs.  SleepTool controls pacing.
+ * 开启后，模型会周期性收到 <tick> 提示，并在用户输入之间自主工作。
+ * SleepTool 控制节奏。
  */
 import { feature } from 'bun:bundle'
 import type { ToolUseContext } from '../Tool.js'
@@ -30,7 +30,7 @@ const proactive = {
         onDone: LocalJSXCommandOnDone,
         _context: ToolUseContext & LocalJSXCommandContext,
       ): Promise<React.ReactNode> {
-        // Dynamic require to avoid pulling proactive into non-gated builds
+        // 动态 require，避免把 proactive 拉进未开启 feature gate 的构建产物
         const mod =
           require('../proactive/index.js') as typeof import('../proactive/index.js')
 

@@ -12,34 +12,34 @@ import { getClaudeConfigHomeDir } from '../../utils/envUtils.js'
 import type { Command, LocalCommandResult } from '../../types/command.js'
 
 /**
- * Path to the next-request-no-cache marker file.
- * When this file exists, the main API call path should append a random
- * comment to the system prompt to bust the prefix-cache hash, then delete it.
+ * next-request-no-cache 标记文件的路径。
+ * 当该文件存在时，主 API 调用路径应在 system prompt 中追加一段随机
+ * 注释以破坏 prefix-cache 哈希，随后删除该文件。
  *
- * Convention: public so other modules (e.g. claude.ts) can check it.
+ * 约定：公开导出，以便其他模块（如 claude.ts）可以检查它。
  */
 export function getBreakCacheMarkerPath(): string {
   return join(getClaudeConfigHomeDir(), '.next-request-no-cache')
 }
 
 /**
- * Path to the always-on break-cache flag file.
- * When this file exists, EVERY API request gets a cache-busting nonce
- * (instead of just the next one).
+ * always-on break-cache 标志文件的路径。
+ * 当该文件存在时，每次 API 请求都会获得一个 cache-busting nonce
+ *（而不只是下一次请求）。
  */
 export function getBreakCacheAlwaysPath(): string {
   return join(getClaudeConfigHomeDir(), '.break-cache-always')
 }
 
 /**
- * Path to the append-only JSONL log that records each cache-break event.
+ * 记录每次 cache-break 事件的 append-only JSONL 日志路径。
  *
- * Replaces the old read-modify-write stats JSON to avoid lost increments when
- * two concurrent `/break-cache once` invocations race. Each break appends one
- * line; `readStats()` aggregates at read time.
+ * 替代旧的 read-modify-write 统计 JSON，以避免两个并发的
+ * `/break-cache once` 调用相互竞争导致计数丢失。每次 break 追加一行；
+ * `readStats()` 在读取时进行聚合。
  *
- * Uses getClaudeConfigHomeDir() so that CLAUDE_CONFIG_DIR env var overrides
- * the path in test environments.
+ * 使用 getClaudeConfigHomeDir()，以便 CLAUDE_CONFIG_DIR 环境变量在
+ * 测试环境中覆盖路径。
  */
 export function getBreakCacheStatsPath(): string {
   return join(getClaudeConfigHomeDir(), 'break-cache-events.jsonl')
@@ -57,8 +57,8 @@ interface BreakCacheEvent {
 }
 
 /**
- * Reads stats by aggregating the append-only event log.
- * Because we only append, concurrent writers cannot lose increments.
+ * 通过聚合 append-only 事件日志来读取统计信息。
+ * 由于仅追加，并发写入者不会丢失计数。
  */
 function readStats(): BreakCacheStats {
   try {
@@ -94,9 +94,9 @@ function readStats(): BreakCacheStats {
 }
 
 /**
- * Appends a single event line to the stats log.
- * append is atomic at the OS level for small writes, so concurrent callers
- * cannot overwrite each other's increments.
+ * 向统计日志追加一行事件。
+ * 对于小规模写入，append 在操作系统层面是原子的，因此并发调用者
+ * 不会相互覆盖计数。
  */
 function appendBreakEvent(kind: BreakCacheEvent['kind']): void {
   const statsPath = getBreakCacheStatsPath()
@@ -206,7 +206,7 @@ export async function callBreakCache(
     }
   }
 
-  // ── once (legacy default, or explicit "once") ──
+  // ── once（legacy 默认值，或显式的 "once"）──
   if (scope === '' || scope === 'once') {
     const timestamp = new Date().toISOString()
     writeFileSync(markerPath, timestamp, 'utf8')
@@ -235,7 +235,7 @@ export async function callBreakCache(
     }
   }
 
-  // ── unknown scope ──
+  // ── 未知 scope ──
   return {
     type: 'text',
     value: [`Unknown scope: "${scope}"`, '', USAGE_TEXT].join('\n'),

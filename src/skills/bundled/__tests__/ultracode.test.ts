@@ -4,16 +4,16 @@ import type { PromptCommand } from '../../../types/command.js'
 import { clearBundledSkills, getBundledSkills } from '../../bundledSkills.js'
 import { registerUltracodeSkill } from '../ultracode.js'
 
-// Command is a union; source/getPromptForCommand only exist on the prompt
-// variant. Narrow via type assertion once we've confirmed type === 'prompt'.
+// Command 是一个联合类型；source/getPromptForCommand 仅存在于 prompt 变体。
+// 在确认 type === 'prompt' 后通过类型断言收窄。
 function asPrompt(c: { type: string }): PromptCommand {
   return c as unknown as PromptCommand
 }
 
-// bundledSkills is a process-global registry (per CLAUDE.md mock/state rules,
-// module-level singletons leak across test files in one bun test process).
-// Clear after each test so `ultracode` never leaks into other suites that
-// enumerate registered skills (e.g. skill-search prefetch discovery).
+// bundledSkills 是一个进程全局注册表（根据 CLAUDE.md 的 mock/state 规则，
+// 模块级单例会在一个 bun 测试进程中跨测试文件泄漏）。
+// 每次测试后清理，这样 `ultracode` 就不会泄漏到其他枚举已注册技能
+// 的套件中（例如 skill-search prefetch discovery）。
 afterEach(() => {
   clearBundledSkills()
 })
@@ -47,18 +47,18 @@ describe('registerUltracodeSkill', () => {
     expect(blocks[0]!.type).toBe('text')
 
     const text = (blocks[0] as { type: 'text'; text: string }).text
-    // Title + opt-in rule + harness-injection note
+    // 标题 + 选择加入规则 + harness 注入说明
     expect(text).toContain('Workflow Orchestration Playbook')
     expect(text).toContain('explicitly opted into multi-agent orchestration')
     expect(text).toContain('harness')
-    // Orchestration primitives
+    // 编排原语
     expect(text).toContain('Script body hooks')
     expect(text).toContain('parallel')
     expect(text).toContain('pipeline')
-    // Determinism / script-execution-model constraints (JS not TS; Date.now/Math.random throw)
+    // 确定性 / 脚本执行模型约束（JS 而非 TS；Date.now/Math.random 会抛出）
     expect(text).toContain('plain JavaScript, NOT TypeScript')
     expect(text).toContain('Date.now()')
-    // Barrier vs pipeline guidance, quality patterns, resume, hard limits
+    // Barrier 与 pipeline 指南、质量模式、恢复、硬限制
     expect(text).toContain('DEFAULT TO pipeline()')
     expect(text).toContain('Quality patterns')
     expect(text).toContain('resumeFromRunId')
@@ -80,8 +80,8 @@ describe('registerUltracodeSkill', () => {
   })
 
   test('is not gated behind USER_TYPE — registers with no env set', () => {
-    // No USER_TYPE env is configured in this test process. If the skill were
-    // ant-gated (like stuck.ts), it would not appear here.
+    // 此测试进程中未配置 USER_TYPE 环境变量。如果该技能是
+    // ant 限定的（如 stuck.ts），它就不会出现在这里。
     const previousUserType = process.env.USER_TYPE
     delete process.env.USER_TYPE
     clearBundledSkills()
@@ -90,7 +90,7 @@ describe('registerUltracodeSkill', () => {
     const skills = getBundledSkills()
     expect(skills.some(s => s.name === 'ultracode')).toBe(true)
 
-    // Restore so we never mutate the process env for other test files.
+    // 恢复，这样我们永远不会为其他测试文件修改进程环境。
     if (previousUserType === undefined) delete process.env.USER_TYPE
     else process.env.USER_TYPE = previousUserType
   })

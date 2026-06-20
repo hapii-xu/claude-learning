@@ -1,7 +1,7 @@
 /**
- * Shared helper functions and types for plugin details views
+ * 插件详情视图的共享辅助函数和类型
  *
- * Used by both DiscoverPlugins and BrowseMarketplace components.
+ * 被 DiscoverPlugins 和 BrowseMarketplace 组件共同使用。
  */
 
 import * as React from 'react';
@@ -10,7 +10,7 @@ import { Box, Byline, Text } from '@anthropic/ink';
 import type { PluginMarketplaceEntry } from '../../utils/plugins/schemas.js';
 
 /**
- * Represents a plugin available for installation from a marketplace
+ * 表示一个可从市场安装的插件
  */
 export type InstallablePlugin = {
   entry: PluginMarketplaceEntry;
@@ -20,7 +20,7 @@ export type InstallablePlugin = {
 };
 
 /**
- * Menu option for plugin details view
+ * 插件详情视图的菜单选项
  */
 export type PluginDetailsMenuOption = {
   label: string;
@@ -28,7 +28,7 @@ export type PluginDetailsMenuOption = {
 };
 
 /**
- * Extract GitHub repo info from a plugin's source
+ * 从插件的源中提取 GitHub 仓库信息
  */
 export function extractGitHubRepo(plugin: InstallablePlugin): string | null {
   const isGitHub =
@@ -45,7 +45,7 @@ export function extractGitHubRepo(plugin: InstallablePlugin): string | null {
 }
 
 /**
- * Build menu options for plugin details view with scoped installation options
+ * 为插件详情视图构造菜单选项（含按作用域的安装选项）
  */
 export function buildPluginDetailsMenuOptions(
   hasHomepage: string | undefined,
@@ -73,7 +73,7 @@ export function buildPluginDetailsMenuOptions(
 }
 
 /**
- * Key hint component for plugin selection screens
+ * 插件选择界面的快捷键提示组件
  */
 export function PluginSelectionKeyHint({ hasSelection }: { hasSelection: boolean }): React.ReactNode {
   return (

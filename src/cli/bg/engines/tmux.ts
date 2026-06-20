@@ -40,8 +40,8 @@ export class TmuxEngine implements BgEngine {
       throw new Error('Failed to create tmux session.')
     }
 
-    // tmux doesn't directly report the child PID; we return 0.
-    // The actual session process writes its own PID file.
+    // tmux 不会直接上报子进程 PID；这里返回 0。
+    // 实际的会话进程会自行写入自己的 PID 文件。
     return {
       pid: 0,
       sessionName: opts.sessionName,

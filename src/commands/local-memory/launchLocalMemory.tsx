@@ -43,15 +43,15 @@ function formatEntryList(store: string, keys: string[]): string {
   return [`Entries in "${store}"`, ...keys.map(key => `- ${key}`)].join('\n');
 }
 
-// ── Interactive multi-step panel ───────────────────────────────────────────
-// State machine:
-//   menu                 — pick an action
-//   collect-store        — input STORE_NAME (Create/Store/Fetch/Entries/Archive)
-//   collect-key          — input KEY (Store/Fetch)
-//   collect-value        — input VALUE (Store)
-//   confirm-archive      — Y/N confirmation (Archive)
-//   confirm-overwrite    — Y/N confirmation (Store when key exists)
-// Each step has inline validation; Esc cancels back to menu (or closes from menu).
+// ── 交互式多步面板 ───────────────────────────────────────────
+// 状态机：
+//   menu                 — 选择一个操作
+//   collect-store        — 输入 STORE_NAME（Create/Store/Fetch/Entries/Archive）
+//   collect-key          — 输入 KEY（Store/Fetch）
+//   collect-value        — 输入 VALUE（Store）
+//   confirm-archive      — Y/N 确认（Archive）
+//   confirm-overwrite    — Y/N 确认（Store 当 key 已存在时）
+// 每步都有行内校验；Esc 会回退到菜单（若已在菜单则关闭）。
 
 type ActionKind = 'list' | 'create' | 'store' | 'fetch' | 'entries' | 'archive' | 'about';
 
@@ -116,7 +116,7 @@ function LocalMemoryPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.
   const [cursorOffset, setCursorOffset] = React.useState(0);
   const [error, setError] = React.useState<string | null>(null);
 
-  // Reset text/error when step transitions
+  // 步骤切换时重置 text/error
   const transition = React.useCallback((next: Step) => {
     setStep(next);
     setTextValue('');
@@ -126,7 +126,7 @@ function LocalMemoryPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.
 
   const closeWith = React.useCallback((msg: string) => onDone(msg, { display: 'system' }), [onDone]);
 
-  // Run an action when it has all required inputs.
+  // 当拥有全部必要输入时执行操作。
   const runAction = React.useCallback(
     (
       action: ActionKind,
@@ -181,7 +181,7 @@ function LocalMemoryPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.
             setError('Internal: missing key or value');
             return;
           }
-          // Confirm overwrite if key already exists (safety prompt)
+          // 若 key 已存在则确认覆盖（安全提示）
           if (!opts.confirmedOverwrite && getEntry(store, key) !== null) {
             transition({
               kind: 'confirm-overwrite',
@@ -202,7 +202,7 @@ function LocalMemoryPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.
     [closeWith, transition],
   );
 
-  // ── Menu step ──────────────────────────────────────────────────────────
+  // ── 菜单步骤 ──────────────────────────────────────────────────────────
   useInput(
     (input, key) => {
       if (step.kind !== 'menu') return;
@@ -221,11 +221,11 @@ function LocalMemoryPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.
           runAction(choice.kind, undefined, undefined, undefined);
           return;
         }
-        // Everything else needs a store
+        // 其他操作都需要 store
         transition({ kind: 'collect-store', action: choice.kind });
         return;
       }
-      // Quick-key shortcuts: 1..7
+      // 快捷键：1..7
       const n = Number(input);
       if (Number.isInteger(n) && n >= 1 && n <= MENU.length) {
         setSelectedIndex(n - 1);
@@ -234,7 +234,7 @@ function LocalMemoryPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.
     { isActive: step.kind === 'menu' },
   );
 
-  // ── confirm-archive / confirm-overwrite Y/N handling ───────────────────
+  // ── confirm-archive / confirm-overwrite 的 Y/N 处理 ───────────────────
   useInput(
     (input, key) => {
       if (step.kind !== 'confirm-archive' && step.kind !== 'confirm-overwrite') {
@@ -262,14 +262,14 @@ function LocalMemoryPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.
     },
   );
 
-  // Esc to back-step in collect-* steps
+  // 在 collect-* 步骤中按 Esc 回退一步
   useInput(
     (_input, key) => {
       if (step.kind !== 'collect-store' && step.kind !== 'collect-key' && step.kind !== 'collect-value') {
         return;
       }
       if (key.escape) {
-        // Walk back one step
+        // 回退一步
         if (step.kind === 'collect-value') {
           transition({
             kind: 'collect-key',
@@ -282,7 +282,7 @@ function LocalMemoryPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.
           transition({ kind: 'collect-store', action: step.action });
           return;
         }
-        // collect-store → menu
+        // collect-store → 菜单
         transition({ kind: 'menu' });
       }
     },
@@ -291,7 +291,7 @@ function LocalMemoryPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.
     },
   );
 
-  // ── Render ──────────────────────────────────────────────────────────────
+  // ── 渲染 ──────────────────────────────────────────────────────────────
   if (step.kind === 'menu') {
     return (
       <Dialog
@@ -316,7 +316,7 @@ function LocalMemoryPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.
     );
   }
 
-  // Confirmation prompts
+  // 确认提示
   if (step.kind === 'confirm-archive') {
     return (
       <Dialog title="Confirm Archive" onCancel={() => transition({ kind: 'menu' })} color="warning" hideInputGuide>
@@ -344,7 +344,7 @@ function LocalMemoryPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.
     );
   }
 
-  // collect-* steps share the same TextInput render
+  // collect-* 步骤共用同一套 TextInput 渲染逻辑
   const fieldLabel = step.kind === 'collect-store' ? 'STORE NAME' : step.kind === 'collect-key' ? 'KEY NAME' : 'VALUE';
   const placeholder =
     step.kind === 'collect-store'
@@ -363,7 +363,7 @@ function LocalMemoryPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.
         setError('Invalid store name (no /, \\, :, null byte, or leading dot; max 255 chars)');
         return;
       }
-      // Action-specific completion
+      // 根据具体动作完成
       if (step.action === 'create' || step.action === 'entries' || step.action === 'archive') {
         if (step.action === 'archive') {
           transition({ kind: 'confirm-archive', store: trimmed });
@@ -371,7 +371,7 @@ function LocalMemoryPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.
           runAction(step.action, trimmed, undefined, undefined);
         }
       } else {
-        // Store / Fetch — need key next
+        // Store / Fetch —— 接下来需要 key
         transition({
           kind: 'collect-key',
           action: step.action,
@@ -392,7 +392,7 @@ function LocalMemoryPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.
       if (step.action === 'fetch') {
         runAction('fetch', step.store, trimmed, undefined);
       } else {
-        // store action — collect value next
+        // store 动作 —— 接下来收集 value
         transition({
           kind: 'collect-value',
           action: 'store',
@@ -403,7 +403,7 @@ function LocalMemoryPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.
       return;
     }
     if (step.kind === 'collect-value') {
-      // Value can be empty (allowed). Just submit.
+      // value 可以为空（允许）。直接提交即可。
       runAction('store', step.store, step.key, raw);
     }
   };
@@ -497,7 +497,7 @@ async function dispatchLocalMemory(
     return null;
   }
 
-  // Exhaustive guard
+  // 穷尽性守卫
   onDone(USAGE, { display: 'system' });
   return null;
 }

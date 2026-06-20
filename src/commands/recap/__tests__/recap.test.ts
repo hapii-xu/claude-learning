@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
-// Mock bun:bundle before any imports that use feature()
-// Note: in the test environment AWAY_SUMMARY compile-time flag is false, so
-// isEnabled() will always return false regardless of the GrowthBook value.
-// We mock to true here to allow other feature-flagged code paths to be tested.
+// 在任何使用 feature() 的 import 之前 mock bun:bundle
+// 注意：在测试环境中 AWAY_SUMMARY 编译期 flag 为 false，
+// 因此无论 GrowthBook 的值是什么，isEnabled() 都会返回 false。
+// 这里我们 mock 为 true，以便测试其他受 feature flag 控制的代码路径。
 mock.module('bun:bundle', () => ({
   feature: (_name: string) => true,
 }))
 
-// Mock log/debug to avoid bootstrap side effects
+// Mock log/debug 以避免 bootstrap 副作用
 mock.module('src/utils/log.ts', () => ({
   logError: () => {},
   logInfo: () => {},
@@ -19,21 +19,21 @@ mock.module('src/utils/debug.ts', () => ({
   isDebug: () => false,
 }))
 
-// Mock settings to avoid filesystem side effects
+// Mock settings 以避免文件系统副作用
 mock.module('src/utils/settings/settings.js', () => ({
   getCachedSettings: () => ({}),
   getSettings: async () => ({}),
   updateSettings: async () => {},
 }))
 
-// Mock analytics (GrowthBook) — required for isEnabled()
+// Mock analytics（GrowthBook）— isEnabled() 所需
 let gbValue = true
 mock.module('src/services/analytics/growthbook.js', () => ({
   getFeatureValue_CACHED_MAY_BE_STALE: (_key: string, defaultVal: unknown) =>
     gbValue ?? defaultVal,
 }))
 
-// Mock the forkedAgent utility used by generateRecap
+// Mock generateRecap 所使用的 forkedAgent 工具函数
 let mockRecapResult: {
   kind: 'ok' | 'api-error' | 'no-turn' | 'aborted' | 'failed'
   text?: string
@@ -54,7 +54,7 @@ beforeEach(async () => {
     kind: 'ok',
     text: 'Working on fixing the auth bug. Next: run tests.',
   }
-  // Re-import to get fresh module
+  // 重新 import 以获取全新模块
   const mod = await import('../index.js')
   recapCmd = mod.default
   const loaded = await recapCmd.load()
@@ -66,7 +66,7 @@ afterEach(() => {
   callFn = undefined
 })
 
-// ── Metadata ──────────────────────────────────────────────────────────────────
+// ── 元数据 ──────────────────────────────────────────────────────────────────
 
 describe('recap command metadata', () => {
   test('has correct name', () => {
@@ -94,16 +94,16 @@ describe('recap command metadata', () => {
   })
 
   test('isEnabled returns boolean', () => {
-    // feature('AWAY_SUMMARY') is a compile-time constant; in the test env
-    // it evaluates to false (flag not set), so isEnabled() returns false
-    // regardless of GrowthBook. We verify it returns a boolean, not throws.
+    // feature('AWAY_SUMMARY') 是编译期常量；在测试环境中
+    // 它求值为 false（未设置 flag），因此无论 GrowthBook 如何，
+    // isEnabled() 都返回 false。我们只验证它返回的是 boolean 而不抛异常。
     const result = recapCmd.isEnabled()
     expect(typeof result).toBe('boolean')
   })
 
   test('isEnabled returns false when GrowthBook flag is false', () => {
-    // GrowthBook off → isEnabled must be false (belt-and-suspenders check
-    // for when the feature flag is true in a real build)
+    // GrowthBook 关闭 → isEnabled 必须为 false（双保险检查，
+    // 适用于真实 build 中 feature flag 为 true 的情况）
     gbValue = false
     const result = recapCmd.isEnabled()
     expect(result).toBe(false)
@@ -115,10 +115,10 @@ describe('recap command metadata', () => {
   })
 })
 
-// ── Call behavior ─────────────────────────────────────────────────────────────
+// ── Call 行为 ─────────────────────────────────────────────────────────────
 
 describe('recap command call()', () => {
-  // Cast to any: test only needs abortController, not the full ToolUseContext shape
+  // Cast 为 any：测试只需要 abortController，不需要完整的 ToolUseContext 结构
   const fakeContext: any = {
     abortController: new AbortController(),
     messages: [],

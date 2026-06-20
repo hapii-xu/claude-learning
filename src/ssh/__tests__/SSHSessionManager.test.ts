@@ -73,7 +73,7 @@ function createMockSubprocess(options?: {
       try {
         stdoutController.close()
       } catch {
-        // may already be closed
+        // 可能已经关闭
       }
       for (const resolve of exitResolvers) resolve(code)
     },

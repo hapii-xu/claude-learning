@@ -31,8 +31,8 @@ import {
 } from '../utils/ultraplan/prompt.js';
 import { registerCleanup } from '../utils/cleanupRegistry.js';
 
-// TODO(prod-hardening): OAuth token may go stale over the 30min poll;
-// consider refresh.
+// TODO(prod-hardening): 在 30 分钟轮询期间 OAuth token 可能过期；
+// 后续考虑刷新机制。
 
 export const CCR_TERMS_URL = 'https://code.claude.com/docs/en/claude-code-on-the-web';
 
@@ -41,7 +41,7 @@ export function getUltraplanTimeoutMs(): number {
 }
 
 /**
- * 是否启用 ultraplan, 默认启用
+ * 是否启用 ultraplan，默认启用
  *
  * @returns
  */
@@ -52,23 +52,22 @@ export function isUltraplanEnabled(): boolean {
   );
 }
 
-// prompt.txt is wrapped in <system-reminder> so the CCR browser hides
-// scaffolding (CLI_BLOCK_TAGS dropped by stripSystemNotifications)
-// while the model still sees full text.
-// Phrasing deliberately avoids the feature name because
-// the remote CCR CLI runs keyword detection on raw input before
-// any tag stripping, and a bare "ultraplan" in the prompt would self-trigger as
-// /ultraplan, which is filtered out of headless mode as "Unknown skill"
+// prompt.txt 被包裹在 <system-reminder> 中，让 CCR 浏览器隐藏脚手架文本
+// （CLI_BLOCK_TAGS 会被 stripSystemNotifications 剥离），
+// 同时模型仍能看到完整文本。
+// 措辞上刻意回避功能名，因为远程 CCR CLI 在任何 tag 剥离之前就会
+// 对原始输入做关键词检测；如果 prompt 中出现裸的 "ultraplan"，
+// 会自触发为 /ultraplan，在 headless 模式下会被当作 "Unknown skill" 过滤掉。
 //
-// Bundler inlines .txt as a string; the test runner wraps it as {default}.
+// Bundler 把 .txt 内联为字符串；测试运行器会包装为 {default}。
 /* eslint-disable @typescript-eslint/no-require-imports */
 const _rawPrompt = require('../utils/ultraplan/prompt.txt');
 /* eslint-enable @typescript-eslint/no-require-imports */
 const DEFAULT_INSTRUCTIONS: string = (typeof _rawPrompt === 'string' ? _rawPrompt : _rawPrompt.default).trimEnd();
 
 /**
- * Assemble the initial CCR user message. seedPlan and blurb stay outside the
- * system-reminder so the browser renders them; scaffolding is hidden.
+ * 组装初始的 CCR user 消息。seedPlan 和 blurb 留在
+ * system-reminder 之外以便浏览器渲染；脚手架文本保持隐藏。
  */
 export function buildUltraplanPrompt(blurb: string, seedPlan?: string, promptId?: PromptIdentifier): string {
   const parts: string[] = [];
@@ -115,11 +114,11 @@ function startDetachedPoll(
         execution_target: executionTarget as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       });
       if (executionTarget === 'remote') {
-        // User chose "execute in CCR" in the browser PlanModal — the remote
-        // session is now coding. Skip archive (ARCHIVE has no running-check,
-        // would kill mid-execution) and skip the choice dialog (already chose).
-        // Guard on task status so a poll that resolves after stopUltraplan
-        // doesn't notify for a killed session.
+        // 用户在浏览器 PlanModal 中选择了「在 CCR 中执行」—— 远程会话
+        // 已开始编码。跳过 archive（ARCHIVE 不检查运行状态，会中途打断执行）
+        // 并跳过选择对话框（已经选过了）。
+        // 通过任务状态做保护，避免轮询在 stopUltraplan 之后 resolve
+        // 时为已终止的会话发出通知。
         const task = getAppState().tasks?.[taskId];
         if (task?.status !== 'running') return;
         updateTaskState<RemoteAgentTaskState>(taskId, setAppState, t =>
@@ -135,10 +134,9 @@ function startDetachedPoll(
           mode: 'task-notification',
         });
       } else {
-        // Teleport: set pendingChoice so REPL mounts UltraplanChoiceDialog.
-        // The dialog owns archive + URL clear on choice. Guard on task status
-        // so a poll that resolves after stopUltraplan doesn't resurrect the
-        // dialog for a killed session.
+        // Teleport：设置 pendingChoice 让 REPL 挂载 UltraplanChoiceDialog。
+        // 该对话框负责选择后的 archive + URL 清理。通过任务状态保护，
+        // 避免轮询在 stopUltraplan 之后 resolve 时为已终止的会话重新弹出对话框。
         setAppState(prev => {
           const task = prev.tasks?.[taskId];
           if (!task || task.status !== 'running') return prev;
@@ -149,9 +147,8 @@ function startDetachedPoll(
         });
       }
     } catch (e) {
-      // If the task was stopped (stopUltraplan sets status=killed), the poll
-      // erroring is expected — skip the failure notification and cleanup
-      // (kill() already archived; stopUltraplan cleared the URL).
+      // 如果任务已被停止（stopUltraplan 将 status 置为 killed），轮询报错是
+      // 预期行为 —— 跳过失败通知与清理（kill() 已归档；stopUltraplan 已清 URL）。
       const task = getAppState().tasks?.[taskId];
       if (task?.status !== 'running') return;
       failed = true;
@@ -166,21 +163,17 @@ function startDetachedPoll(
         value: `Ultraplan failed: ${errorMessage(e)}\n\nSession: ${url}`,
         mode: 'task-notification',
       });
-      // Error path owns cleanup; teleport path defers to the dialog; remote
-      // path handled its own cleanup above.
+      // 错误路径负责清理；teleport 路径交给对话框处理；remote 路径在上面已自行清理。
       void archiveRemoteSession(sessionId).catch(e => logForDebugging(`ultraplan archive failed: ${String(e)}`));
       setAppState(prev =>
-        // Compare against this poll's URL so a newer relaunched session's
-        // URL isn't cleared by a stale poll erroring out.
+        // 与本次轮询的 URL 做比较，避免过期的轮询报错清掉新会话的 URL。
         prev.ultraplanSessionUrl === url ? { ...prev, ultraplanSessionUrl: undefined } : prev,
       );
     } finally {
-      // Remote path already set status=completed above; teleport path
-      // leaves status=running so the pill shows the ultraplanPhase state
-      // until UltraplanChoiceDialog completes the task after the user's
-      // choice. Setting completed here would filter the task out of
-      // isBackgroundTask before the pill can render the phase state.
-      // Failure path has no dialog, so it owns the status transition here.
+      // Remote 路径已在上方将 status 置为 completed；teleport 路径保持 status=running，
+      // 这样胶囊按钮能展示 ultraplanPhase 状态，直到用户在 UltraplanChoiceDialog
+      // 做出选择后由该对话框完成任务。若在此处置为 completed，会在胶囊渲染阶段状态前
+      // 就被 isBackgroundTask 过滤掉。失败路径没有对话框，因此在此处自行做状态转换。
       if (failed) {
         updateTaskState<RemoteAgentTaskState>(taskId, setAppState, t =>
           t.status !== 'running' ? t : { ...t, status: 'failed', endTime: Date.now() },
@@ -190,8 +183,7 @@ function startDetachedPoll(
   })();
 }
 
-// Renders immediately so the terminal doesn't appear hung during the
-// multi-second teleportToRemote round-trip.
+// 立即渲染，避免在 teleportToRemote 数秒往返过程中终端看起来卡住。
 function buildLaunchMessage(disconnectedBridge?: boolean): string {
   const prefix = disconnectedBridge ? `${REMOTE_CONTROL_DISCONNECTED_MSG} ` : '';
   return `${DIAMOND_OPEN} ultraplan\n${prefix}Starting Claude Code on the web…`;
@@ -208,19 +200,17 @@ function buildAlreadyActiveMessage(url: string | undefined): string {
 }
 
 /**
- * Stop a running ultraplan: archive the remote session (halts it but keeps the
- * URL viewable), kill the local task entry (clears the pill), and clear
- * ultraplanSessionUrl (re-arms the keyword trigger). startDetachedPoll's
- * shouldStop callback sees the killed status on its next tick and throws;
- * the catch block early-returns when status !== 'running'.
+ * 停止运行中的 ultraplan：归档远程会话（停止运行但 URL 仍可查看），
+ * 终结本地任务条目（清掉胶囊），并清除 ultraplanSessionUrl（重新武装关键词触发）。
+ * startDetachedPoll 的 shouldStop 回调会在下次 tick 看到已终止的状态并抛错；
+ * catch 分支在 status !== 'running' 时提前返回。
  */
 export async function stopUltraplan(
   taskId: string,
   sessionId: string,
   setAppState: (f: (prev: AppState) => AppState) => void,
 ): Promise<void> {
-  // RemoteAgentTask.kill archives the session (with .catch) — no separate
-  // archive call needed here.
+  // RemoteAgentTask.kill 会归档会话（带 .catch）—— 此处不需要单独调用 archive。
   await RemoteAgentTask.kill(taskId, setAppState);
   setAppState(prev =>
     prev.ultraplanSessionUrl || prev.ultraplanPendingChoice || prev.ultraplanLaunching
@@ -246,13 +236,11 @@ export async function stopUltraplan(
 }
 
 /**
- * Shared entry for the slash command, keyword trigger, and the plan-approval
- * dialog's "Ultraplan" button. When seedPlan is present (dialog path), it is
- * prepended as a draft to refine; blurb may be empty in that case.
+ * 斜杠命令、关键词触发、以及 plan-approval 对话框中「Ultraplan」按钮的共享入口。
+ * 当 seedPlan 存在（对话框路径）时，会作为待细化的草稿前置拼接；这种情况下 blurb 可为空。
  *
- * Resolves immediately with the user-facing message. Eligibility check,
- * session creation, and task registration run detached and failures surface via
- * enqueuePendingNotification.
+ * 立即 resolve 返回给用户的消息。资格校验、会话创建与任务注册都以后台 detached 方式运行，
+ * 失败通过 enqueuePendingNotification 暴露。
  */
 export async function launchUltraplan(opts: {
   blurb: string;
@@ -261,14 +249,13 @@ export async function launchUltraplan(opts: {
   getAppState: () => AppState;
   setAppState: (f: (prev: AppState) => AppState) => void;
   signal: AbortSignal;
-  /** True if the caller disconnected Remote Control before launching. */
+  /** 调用方在启动前已断开 Remote Control 时为 true。 */
   disconnectedBridge?: boolean;
   /**
-   * Called once teleportToRemote resolves with a session URL. Callers that
-   * have setMessages (REPL) append this as a second transcript message so the
-   * URL is visible without opening the ↓ detail view. Callers without
-   * transcript access (ExitPlanModePermissionRequest) omit this — the pill
-   * still shows live status.
+   * 在 teleportToRemote resolve 出会话 URL 时调用一次。持有 setMessages 的
+   * 调用方（REPL）会把它作为第二条 transcript 消息追加，这样无需展开 ↓ 详情也能看到 URL。
+   * 没有 transcript 访问权的调用方（ExitPlanModePermissionRequest）可省略 ——
+   * 胶囊按钮仍会展示实时状态。
    */
   onSessionReady?: (msg: string) => void;
 }): Promise<string> {
@@ -286,10 +273,10 @@ export async function launchUltraplan(opts: {
   }
 
   if (!blurb && !seedPlan) {
-    // No event — bare /ultraplan is a usage query, not an attempt.
+    // 不打点 —— 裸的 /ultraplan 是用法查询，不是一次尝试。
     return [
-      // Rendered via <Markdown>; raw <message> is tokenized as HTML
-      // and dropped. Backslash-escape the brackets.
+      // 通过 <Markdown> 渲染；裸的 <message> 会被当作 HTML 分词并丢弃。
+      // 用反斜杠转义尖括号。
       'Usage: /ultraplan \\<prompt\\>, or include "ultraplan" anywhere',
       'in your prompt',
       '',
@@ -304,8 +291,7 @@ export async function launchUltraplan(opts: {
     ].join('\n');
   }
 
-  // Set synchronously before the detached flow to prevent duplicate launches
-  // during the teleportToRemote window.
+  // 在 detached 流程之前同步置位，避免 teleportToRemote 期间出现重复启动。
   setAppState(prev => (prev.ultraplanLaunching ? prev : { ...prev, ultraplanLaunching: true }));
   void launchDetached({
     blurb,
@@ -337,8 +323,8 @@ async function launchDetached(opts: {
     signal,
     onSessionReady,
   } = opts;
-  // Hoisted so the catch block can archive the remote session if an error
-  // occurs after teleportToRemote succeeds (avoids 30min orphan).
+  // 提升到外层，便于 catch 分支在 teleportToRemote 成功后发生错误时归档远程会话
+  // （避免出现 30 分钟孤儿会话）。
   let sessionId: string | undefined;
   try {
     // const model = getUltraplanModel()
@@ -406,8 +392,8 @@ async function launchDetached(opts: {
       prompt_identifier: promptIdentifier as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       // model: model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     });
-    // TODO(#23985): replace registerRemoteAgentTask + startDetachedPoll with
-    // ExitPlanModeScanner inside startRemoteSessionPolling.
+    // TODO(#23985): 用 startRemoteSessionPolling 内部的
+    // ExitPlanModeScanner 替换 registerRemoteAgentTask + startDetachedPoll。
     const { taskId } = registerRemoteAgentTask({
       remoteTaskType: 'ultraplan',
       session: { id: session.id, title: blurb || 'Ultraplan' },
@@ -442,17 +428,16 @@ async function launchDetached(opts: {
     });
 
     if (sessionId) {
-      // Error after teleport succeeded — archive so the remote doesn't sit
-      // running for 30min with nobody polling it.
+      // teleport 成功后出错 —— 归档远程会话，避免它挂着运行 30 分钟却没人轮询。
       void archiveRemoteSession(sessionId).catch(err =>
         logForDebugging('ultraplan: failed to archive orphaned session', err),
       );
-      // ultraplanSessionUrl may have been set before the throw; clear it so
-      // the "already polling" guard doesn't block future launches.
+      // ultraplanSessionUrl 可能在抛错前已被设置；清除它，避免「already polling」守卫
+      // 阻挡后续启动。
       setAppState(prev => (prev.ultraplanSessionUrl ? { ...prev, ultraplanSessionUrl: undefined } : prev));
     }
   } finally {
-    // No-op on success: the url-setting setAppState already cleared this.
+    // 成功路径下为 no-op：设置 URL 的 setAppState 已经清掉了该字段。
     setAppState(prev => (prev.ultraplanLaunching ? { ...prev, ultraplanLaunching: undefined } : prev));
   }
 }
@@ -460,7 +445,7 @@ async function launchDetached(opts: {
 const call: LocalJSXCommandCall = async (onDone, context, args) => {
   const blurb = args.trim();
 
-  // Bare /ultraplan (no args, no seed plan) just shows usage — no dialog.
+  // 裸 /ultraplan（无参数、无 seed plan）只展示用法 —— 不弹对话框。
   if (!blurb) {
     const msg = await launchUltraplan({
       blurb,
@@ -472,9 +457,8 @@ const call: LocalJSXCommandCall = async (onDone, context, args) => {
     return null;
   }
 
-  // Guard matches launchUltraplan's own check — showing the dialog when a
-  // session is already active or launching would waste the user's click and set
-  // hasSeenUltraplanTerms before the launch fails.
+  // 与 launchUltraplan 内部的检查一致 —— 如果会话已激活或正在启动就弹对话框，
+  // 既浪费用户的点击，又会在启动失败前就把 hasSeenUltraplanTerms 置位。
   const { ultraplanSessionUrl: active, ultraplanLaunching } = context.getAppState();
   if (active || ultraplanLaunching) {
     logEvent('tengu_ultraplan_create_failed', {
@@ -486,12 +470,10 @@ const call: LocalJSXCommandCall = async (onDone, context, args) => {
     return null;
   }
 
-  // Mount the pre-launch dialog via focusedInputDialog (bottom region, like
-  // permission dialogs) rather than returning JSX (transcript area, anchors
-  // at top of scrollback). REPL.tsx handles launch/clear/cancel on choice.
+  // 通过 focusedInputDialog 挂载启动前对话框（底部区域，与权限对话框相同），
+  // 而不是返回 JSX（transcript 区域，锚定在回滚顶部）。REPL.tsx 负责选择后的启动/清除/取消。
   context.setAppState(prev => ({ ...prev, ultraplanLaunchPending: { blurb } }));
-  // 'skip' suppresses the (no content) echo — the dialog's choice handler
-  // adds the real /ultraplan echo + launch confirmation.
+  // 'skip' 抑制（空内容的）回显 —— 对话框的选择处理器会补上真正的 /ultraplan 回显和启动确认。
   onDone(undefined, { display: 'skip' });
   return null;
 };

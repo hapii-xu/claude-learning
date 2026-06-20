@@ -6,9 +6,9 @@ const localMemoryCommand: Command = {
   aliases: ['lm'],
   description:
     'Manage local memory stores for notes and context. Stored in ~/.claude/local-memory/ — no API key required.',
-  // Avoid `<store>` / `<key>` / `<value>` in hint — REPL markdown renderer
-  // strips angle-bracketed words as HTML tags. Uppercase placeholders are
-  // visible. Same fix as /local-vault.
+  // 避免在 hint 中使用 `<store>` / `<key>` / `<value>` —— REPL markdown 渲染器
+  // 会把尖括号包裹的词当成 HTML 标签过滤掉。大写的占位符可见。
+  // 与 /local-vault 是同一种修复方式。
   argumentHint: 'list | create STORE | store STORE KEY VALUE | fetch STORE KEY | entries STORE | archive STORE',
   isHidden: false,
   isEnabled: () => true,

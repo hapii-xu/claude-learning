@@ -26,12 +26,11 @@ import type { QueuedCommand } from '../types/textInputTypes.js'
 type Props = {
   isLoading: boolean
   /**
-   * When true, bypasses the isLoading gate so tasks can enqueue while a
-   * query is streaming rather than deferring to the next 1s check tick
-   * after the turn ends. Assistant mode no longer forces --proactive
-   * (#20425) so isLoading drops between turns like a normal REPL — this
-   * bypass is now a latency nicety, not a starvation fix. The prompt is
-   * enqueued at 'later' priority either way and drains between turns.
+   * 为 true 时绕过 isLoading 门控，这样任务可以在查询流式传输时
+   * 入队，而不是推迟到回合结束后的下一个 1 秒检查 tick。
+   * 助手模式不再强制 --proactive（#20425），因此 isLoading 在回合间
+   * 像普通 REPL 一样下降 — 此绕过现在是延迟优化，而非饥饿修复。
+   * 无论如何提示以 'later' 优先级入队并在回合间排空。
    */
   assistantMode?: boolean
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>

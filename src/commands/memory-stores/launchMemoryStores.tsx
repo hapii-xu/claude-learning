@@ -226,7 +226,7 @@ async function dispatchMemoryStores(
     }
   }
 
-  // parsed.action === 'redact' (all other actions handled above)
+  // parsed.action === 'redact'（其他 action 已在上面处理）
   const redactParsed = parsed as { action: 'redact'; storeId: string; versionId: string };
   const { storeId, versionId } = redactParsed;
   logEvent('tengu_memory_stores_redact', {
@@ -272,8 +272,7 @@ export const callMemoryStores: LocalJSXCommandCall = launchCommand<
   },
   dispatch: dispatchMemoryStores,
   View: MemoryStoresView,
-  // The invalid-args path returns null (matching original behaviour) since the
-  // error reason is already surfaced via onDone. The dispatch-error path
-  // renders an error view with the thrown message.
+  // 参数非法路径返回 null（与原行为一致），因为错误原因已通过 onDone 暴露。
+  // dispatch 出错路径会用抛出的 message 渲染错误视图。
   errorView: (_msg: string) => null,
 });

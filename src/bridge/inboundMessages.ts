@@ -8,15 +8,14 @@ import type { SDKMessage } from '../entrypoints/agentSdkTypes.js'
 import { detectImageFormatFromBase64 } from '../utils/imageResizer.js'
 
 /**
- * Process an inbound user message from the bridge, extracting content
- * and UUID for enqueueing. Supports both string content and
- * ContentBlockParam[] (e.g. messages containing images).
+ * 处理 bridge 上的一条 inbound user 消息，抽出内容和 UUID 供入队使用。
+ * 同时支持字符串内容和 ContentBlockParam[]（例如包含图片的消息）。
  *
- * Normalizes image blocks from bridge clients that may use camelCase
- * `mediaType` instead of snake_case `media_type` (mobile-apps#5825).
+ * 对 bridge 客户端可能用 camelCase `mediaType` 而不是 snake_case
+ * `media_type` 的图片 block 做归一化（mobile-apps#5825）。
  *
- * Returns the extracted fields, or undefined if the message should be
- * skipped (non-user type, missing/empty content).
+ * 返回抽出的字段，需要跳过该消息（非 user 类型、内容缺失/为空）时
+ * 返回 undefined。
  */
 export function extractInboundMessageFields(
   msg: SDKMessage,
@@ -42,14 +41,12 @@ export function extractInboundMessageFields(
 }
 
 /**
- * Normalize image content blocks from bridge clients. iOS/web clients may
- * send `mediaType` (camelCase) instead of `media_type` (snake_case), or
- * omit the field entirely. Without normalization, the bad block poisons
- * the session — every subsequent API call fails with
- * "media_type: Field required".
+ * 归一化 bridge 客户端发来的 image content block。iOS/web 客户端可能
+ * 发 `mediaType`（驼峰）而非 `media_type`（下划线），也可能干脆省略。
+ * 不归一化的话，坏 block 会毒化 session —— 之后每次 API 调用都会以
+ * "media_type: Field required" 失败。
  *
- * Fast-path scan returns the original array reference when no
- * normalization is needed (zero allocation on the happy path).
+ * 快速路径扫描：无需归一化时返回原数组引用（happy path 零分配）。
  */
 export function normalizeImageBlocks(
   blocks: Array<ContentBlockParam>,

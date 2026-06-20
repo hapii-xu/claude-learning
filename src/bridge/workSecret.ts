@@ -2,7 +2,7 @@ import axios from 'axios'
 import { jsonParse, jsonStringify } from '../utils/slowOperations.js'
 import type { WorkSecret } from './types.js'
 
-/** Decode a base64url-encoded work secret and validate its version. */
+/** 解码 base64url 编码的 work secret 并校验其版本号。 */
 export function decodeWorkSecret(secret: string): WorkSecret {
   const json = Buffer.from(secret, 'base64url').toString('utf-8')
   const parsed: unknown = jsonParse(json)
@@ -32,11 +32,11 @@ export function decodeWorkSecret(secret: string): WorkSecret {
 }
 
 /**
- * Build a WebSocket SDK URL from the API base URL and session ID.
- * Strips the HTTP(S) protocol and constructs a ws(s):// ingress URL.
+ * 根据API base URL 和 session ID 构造 WebSocket SDK URL。
+ * 剥离 HTTP(S) 协议，构造 ws(s):// ingress URL。
  *
- * Uses /v2/ for localhost (direct to session-ingress, no Envoy rewrite)
- * and /v1/ for production (Envoy rewrites /v1/ → /v2/).
+ * localhost 使用 /v2/（直连 session-ingress，不走 Envoy 改写）；
+ * 生产环境使用 /v1/（Envoy 会把 /v1/ 改写为 /v2/）。
  */
 export function buildSdkUrl(apiBaseUrl: string, sessionId: string): string {
   const isLocalhost =
@@ -48,35 +48,34 @@ export function buildSdkUrl(apiBaseUrl: string, sessionId: string): string {
 }
 
 /**
- * Compare two session IDs regardless of their tagged-ID prefix.
+ * 比较两个 session ID 是否相同（忽略其带 tag 的 ID 前缀）。
  *
- * Tagged IDs have the form {tag}_{body} or {tag}_staging_{body}, where the
- * body encodes a UUID. CCR v2's compat layer returns `session_*` to v1 API
- * clients (compat/convert.go:41) but the infrastructure layer (sandbox-gateway
- * work queue, work poll response) uses `cse_*` (compat/CLAUDE.md:13). Both
- * have the same underlying UUID.
+ * 带 tag 的 ID 形如 {tag}_{body} 或 {tag}_staging_{body}，其中 body
+ * 编码一个 UUID。CCR v2 的 compat 层向 v1 API 客户端返回 `session_*`
+ * （compat/convert.go:41），但基础设施层（sandbox-gateway work 队列、
+ * work poll 响应）使用 `cse_*`（compat/CLAUDE.md:13）。两者底层是同一个
+ * UUID。
  *
- * Without this, replBridge rejects its own session as "foreign" at the
- * work-received check when the ccr_v2_compat_enabled gate is on.
+ * 若没有这个处理，当 ccr_v2_compat_enabled gate 开启时，replBridge 会
+ * 在 work-received 校验环节把自己的 session 当作"外部 session"拒绝掉。
  */
 export function sameSessionId(a: string, b: string): boolean {
   if (a === b) return true
-  // The body is everything after the last underscore — this handles both
-  // `{tag}_{body}` and `{tag}_staging_{body}`.
+  // body 是最后一个下划线之后的所有内容 —— 同时处理
+  // `{tag}_{body}` 和 `{tag}_staging_{body}` 两种形式。
   const aBody = a.slice(a.lastIndexOf('_') + 1)
   const bBody = b.slice(b.lastIndexOf('_') + 1)
-  // Guard against IDs with no underscore (bare UUIDs): lastIndexOf returns -1,
-  // slice(0) returns the whole string, and we already checked a === b above.
-  // Require a minimum length to avoid accidental matches on short suffixes
-  // (e.g. single-char tag remnants from malformed IDs).
+  // 防御没有下划线的 ID（裸 UUID）：lastIndexOf 返回 -1，
+  // slice(0) 返回整个字符串，而上面已经检查过 a === b。
+  // 要求最小长度，避免短后缀意外匹配（例如格式错误的 ID 残留的单字符 tag）。
   return aBody.length >= 4 && aBody === bBody
 }
 
 /**
- * Build a CCR v2 session URL from the API base URL and session ID.
- * Unlike buildSdkUrl, this returns an HTTP(S) URL (not ws://) and points at
- * /v1/code/sessions/{id} — the child CC will derive the SSE stream path
- * and worker endpoints from this base.
+ * 根据API base URL 和 session ID 构造 CCR v2 session URL。
+ * 与 buildSdkUrl 不同，这里返回 HTTP(S) URL（而非 ws://），并指向
+ * /v1/code/sessions/{id} —— 子 CC 进程会从这个 base 推导出 SSE 流路径
+ * 和 worker endpoint。
  */
 export function buildCCRv2SdkUrl(
   apiBaseUrl: string,
@@ -87,12 +86,12 @@ export function buildCCRv2SdkUrl(
 }
 
 /**
- * Register this bridge as the worker for a CCR v2 session.
- * Returns the worker_epoch, which must be passed to the child CC process
- * so its CCRClient can include it in every heartbeat/state/event request.
+ * 把当前 bridge 注册为某个 CCR v2 session 的 worker。
+ * 返回 worker_epoch，必须传给子 CC 进程，使其 CCRClient 在每个
+ * heartbeat/state/event 请求里都带上。
  *
- * Mirrors what environment-manager does in the container path
- * (api-go/environment-manager/cmd/cmd_task_run.go RegisterWorker).
+ * 对应容器路径中 environment-manager 的实现
+ * （api-go/environment-manager/cmd/cmd_task_run.go RegisterWorker）。
  */
 export async function registerWorker(
   sessionUrl: string,
@@ -110,8 +109,8 @@ export async function registerWorker(
       timeout: 10_000,
     },
   )
-  // protojson serializes int64 as a string to avoid JS number precision loss;
-  // the Go side may also return a number depending on encoder settings.
+  // protojson 把 int64 序列化为字符串以避免 JS 数字精度丢失；
+  // Go 侧根据编码器设置也可能返回数字。
   const raw = response.data?.worker_epoch
   const epoch = typeof raw === 'string' ? Number(raw) : raw
   if (

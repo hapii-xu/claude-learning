@@ -1,16 +1,16 @@
 /**
- * Regression tests for skillsApi.ts
+ * skillsApi.ts 的回归测试
  *
- * Key invariants under test:
- *   - Every request MUST include ?beta=true query parameter
+ * 测试的核心不变式：
+ *   - 每个请求都必须包含 ?beta=true 查询参数
  *   - listSkills: GET /v1/skills?beta=true
  *   - getSkill:   GET /v1/skills/{id}?beta=true
  *   - getSkillVersions: GET /v1/skills/{id}/versions?beta=true
  *   - getSkillVersion:  GET /v1/skills/{id}/versions/{v}?beta=true
  *   - createSkill: POST /v1/skills?beta=true
  *   - deleteSkill: DELETE /v1/skills/{id}?beta=true
- *   - 401/403/404/429/5xx classified correctly
- *   - withRetry retries only 5xx, not 4xx
+ *   - 401/403/404/429/5xx 分类正确
+ *   - withRetry 仅重试 5xx，不重试 4xx
  */
 
 import {
@@ -30,7 +30,7 @@ import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
 
-// ── Workspace API key mock ──────────────────────────────────────────────────
+// ── Workspace API key mock ────────────────────────────────────────────
 const mockApiKey = 'sk-ant-api03-test-skill-store-key'
 
 mock.module('src/constants/oauth.js', () => ({
@@ -45,12 +45,12 @@ mock.module('src/utils/teleport/api.js', () => ({
   prepareWorkspaceApiRequest: prepareWorkspaceApiRequestMock,
 }))
 
-// Note: we do NOT mock src/services/auth/hostGuard.js here.
-// The real assertWorkspaceHost() is called with the URL from getOauthConfig()
-// (mocked to https://api.anthropic.com), which passes the host guard.
-// Mocking hostGuard would pollute hostGuard's own test file via Bun process-level cache.
+// 注意：我们在此不 mock src/services/auth/hostGuard.js。
+// 真实的 assertWorkspaceHost() 会使用 getOauthConfig() 返回的 URL（被 mock
+// 为 https://api.anthropic.com）进行调用，该 URL 能通过 host 校验。
+// 若 mock hostGuard，会通过 Bun 进程级缓存污染 hostGuard 自己的测试文件。
 
-// ── Axios mock ──────────────────────────────────────────────────────────────
+// ── Axios mock ──────────────────────────────────────────────────────────
 const axiosGetMock = mock(async () => ({}))
 const axiosPostMock = mock(async () => ({}))
 const axiosDeleteMock = mock(async () => ({}))
@@ -70,7 +70,7 @@ axiosHandle.stubs.post = axiosPostMock
 axiosHandle.stubs.delete = axiosDeleteMock
 axiosHandle.stubs.isAxiosError = axiosIsAxiosError
 
-// ── Lazy import after mocks ─────────────────────────────────────────────────
+// ── 在 mocks 之后的懒加载 import ─────────────────────────────────────
 let listSkills: typeof import('../skillsApi.js').listSkills
 let getSkill: typeof import('../skillsApi.js').getSkill
 let getSkillVersions: typeof import('../skillsApi.js').getSkillVersions
@@ -105,7 +105,7 @@ afterEach(() => {
   delete process.env['ANTHROPIC_API_KEY']
 })
 
-// ── REGRESSION: All endpoints MUST include ?beta=true ─────────────────────
+// ── 回归测试：所有端点都必须包含 ?beta=true ─────────────────────────
 describe('beta=true query invariant', () => {
   test('listSkills includes ?beta=true in URL', async () => {
     axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
@@ -189,7 +189,7 @@ describe('beta=true query invariant', () => {
   })
 })
 
-// ── Happy path tests ────────────────────────────────────────────────────────
+// ── Happy path 测试 ────────────────────────────────────────────────────
 describe('listSkills', () => {
   test('returns empty array on empty data', async () => {
     axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
@@ -270,7 +270,7 @@ describe('createSkill', () => {
     axiosPostMock.mockResolvedValueOnce({ data: skill, status: 201 })
     const result = await createSkill('new-skill', '# New Skill\nContent')
     expect(result.skill_id).toBe('sk_new')
-    // Verify body contains name and markdown
+    // 验证 body 中包含 name 和 markdown
     const calls = axiosPostMock.mock.calls as unknown as [
       string,
       unknown,
@@ -293,7 +293,7 @@ describe('deleteSkill', () => {
   })
 })
 
-// ── Error classification tests ──────────────────────────────────────────────
+// ── 错误分类测试 ──────────────────────────────────────────────────────
 describe('error classification', () => {
   function makeAxiosError(
     status: number,
@@ -350,7 +350,7 @@ describe('error classification', () => {
   })
 })
 
-// ── Invariant: buildHeaders must return x-api-key, not Authorization ─────────
+// ── 不变式：buildHeaders 必须返回 x-api-key，而非 Authorization ──────
 describe('invariant: x-api-key present, no Authorization, no x-organization-uuid', () => {
   test('buildHeaders returns x-api-key header (workspace key)', async () => {
     axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })

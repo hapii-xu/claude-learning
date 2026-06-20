@@ -14,10 +14,9 @@ import { getSourceDisplayName } from '../../utils/settings/constants.js'
 import { plural } from '../../utils/stringUtils.js'
 
 /**
- * Shared data-collection path for `/context` (slash command) and the SDK
- * `get_context_usage` control request. Mirrors query.ts's pre-API transforms
- * (compact boundary, projectView, microcompact) so the token count reflects
- * what the model actually sees.
+ * `/context`（slash 命令）和 SDK `get_context_usage` 控制请求共用的数据收集路径。
+ * 镜像 query.ts 的 pre-API 转换（compact 边界、projectView、microcompact），
+ * 以便 token 计数反映模型实际看到的内容。
  */
 type CollectContextDataInput = {
   messages: Message[]
@@ -65,14 +64,14 @@ export async function collectContextData(
     tools,
     agentDefinitions,
     undefined, // terminalWidth
-    // analyzeContextUsage only reads options.{customSystemPrompt,appendSystemPrompt}
-    // but its signature declares the full Pick<ToolUseContext, 'options'>.
+    // analyzeContextUsage 仅读取 options.{customSystemPrompt,appendSystemPrompt}，
+    // 但其签名声明了完整的 Pick<ToolUseContext, 'options'>。
     { options: { customSystemPrompt, appendSystemPrompt } } as Pick<
       ToolUseContext,
       'options'
     >,
     undefined, // mainThreadAgentDefinition
-    apiView, // original messages for API usage extraction
+    apiView, // 用于 API 用量提取的原始消息
   )
 }
 
@@ -107,9 +106,8 @@ function formatContextAsMarkdownTable(data: ContextData): string {
   output += `**Model:** ${model}  \n`
   output += `**Tokens:** ${formatTokens(totalTokens)} / ${formatTokens(rawMaxTokens)} (${percentage}%)\n`
 
-  // Context-collapse status. Always show when the runtime gate is on —
-  // the user needs to know which strategy is managing their context
-  // even before anything has fired.
+  // Context-collapse 状态。当运行时开关开启时始终显示 ——
+  // 即使在任何操作触发之前，用户也需要知道是哪种策略在管理其上下文。
   if (feature('CONTEXT_COLLAPSE')) {
     /* eslint-disable @typescript-eslint/no-require-imports */
     const { getStats, isContextCollapseEnabled } =
@@ -147,7 +145,7 @@ function formatContextAsMarkdownTable(data: ContextData): string {
   }
   output += '\n'
 
-  // Main categories table
+  // 主要分类表格
   const visibleCategories = categories.filter(
     cat =>
       cat.tokens > 0 &&
@@ -188,7 +186,7 @@ function formatContextAsMarkdownTable(data: ContextData): string {
     output += `\n`
   }
 
-  // MCP tools
+  // MCP 工具
   if (mcpTools.length > 0) {
     output += `### MCP Tools\n\n`
     output += `| Tool | Server | Tokens |\n`
@@ -199,7 +197,7 @@ function formatContextAsMarkdownTable(data: ContextData): string {
     output += `\n`
   }
 
-  // System tools (ant-only)
+  // 系统工具（仅 ant）
   if (
     systemTools &&
     systemTools.length > 0 &&
@@ -214,7 +212,7 @@ function formatContextAsMarkdownTable(data: ContextData): string {
     output += `\n`
   }
 
-  // System prompt sections (ant-only)
+  // System prompt 各段（仅 ant）
   if (
     systemPromptSections &&
     systemPromptSections.length > 0 &&
@@ -229,7 +227,7 @@ function formatContextAsMarkdownTable(data: ContextData): string {
     output += `\n`
   }
 
-  // Custom agents
+  // 自定义 agents
   if (agents.length > 0) {
     output += `### Custom Agents\n\n`
     output += `| Agent Type | Source | Tokens |\n`
@@ -266,7 +264,7 @@ function formatContextAsMarkdownTable(data: ContextData): string {
     output += `\n`
   }
 
-  // Memory files
+  // Memory 文件
   if (memoryFiles.length > 0) {
     output += `### Memory Files\n\n`
     output += `| Type | Path | Tokens |\n`
@@ -277,7 +275,7 @@ function formatContextAsMarkdownTable(data: ContextData): string {
     output += `\n`
   }
 
-  // Skills
+  // 技能
   if (skills && skills.tokens > 0 && skills.skillFrontmatter.length > 0) {
     output += `### Skills\n\n`
     output += `| Skill | Source | Tokens |\n`
@@ -288,7 +286,7 @@ function formatContextAsMarkdownTable(data: ContextData): string {
     output += `\n`
   }
 
-  // Message breakdown (ant-only)
+  // 消息细分（仅 ant）
   if (messageBreakdown && process.env.USER_TYPE === 'ant') {
     output += `### [ANT-ONLY] Message Breakdown\n\n`
     output += `| Category | Tokens |\n`

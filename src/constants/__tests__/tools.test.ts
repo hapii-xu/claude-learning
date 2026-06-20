@@ -5,7 +5,7 @@ import { mock } from 'bun:test'
 
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
-// Mock growthbook to cut analytics dependency
+// Mock growthbook 以切断 analytics 依赖
 mock.module('src/services/analytics/growthbook.js', () => ({
   getFeatureValue_CACHED_MAY_BE_STALE: () => false,
   checkStatsigFeatureGate_CACHED_MAY_BE_STALE: () => false,
@@ -52,7 +52,7 @@ function makeTool(overrides: Partial<MockTool> = {}): MockTool {
 
 describe('CORE_TOOLS', () => {
   test('contains expected number of tools', () => {
-    // 7 SHELL_TOOL_NAMES + 19 independent tool names
+    // 7 个 SHELL_TOOL_NAMES + 19 个独立工具名
     expect(CORE_TOOLS.size).toBeGreaterThanOrEqual(26)
   })
 
@@ -93,10 +93,10 @@ describe('CORE_TOOLS', () => {
   })
 
   test('is a ReadonlySet', () => {
-    // ReadonlySet is not directly distinguishable at runtime from Set,
-    // but we verify the cast was applied by checking it's a Set
+    // ReadonlySet 在运行时与 Set 无法直接区分，
+    // 但我们通过检查它是 Set 来确认做过 cast
     expect(CORE_TOOLS).toBeInstanceOf(Set)
-    // The `as ReadonlySet<string>` ensures type-level immutability
+    // `as ReadonlySet<string>` 保证了类型层面的不可变性
   })
 })
 
@@ -146,7 +146,7 @@ describe('isDeferredTool', () => {
   })
 
   test('alwaysLoad takes precedence over CORE_TOOLS membership', () => {
-    // A tool in CORE_TOOLS with alwaysLoad: false should still not be deferred
+    // 在 CORE_TOOLS 中且 alwaysLoad: false 的工具也不应被 deferred
     const tool = makeTool({ name: 'Read', alwaysLoad: true })
     expect(isDeferredTool(tool as never)).toBe(false)
   })

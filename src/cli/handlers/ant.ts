@@ -11,7 +11,7 @@ import type { LogOption } from '../../types/logs.js'
 
 const DEFAULT_LIST = 'default'
 
-// ─── Group C: Task CRUD ──────────────────────────────────────────────────────
+// ─── C 组：Task 增删改查 ──────────────────────────────────────────────────────
 
 export async function taskCreateHandler(
   subject: string,
@@ -105,7 +105,7 @@ export async function taskDirHandler(opts: { list?: string }): Promise<void> {
   console.log(getTasksDir(listId))
 }
 
-// ─── Group B: Log / Error / Export ───────────────────────────────────────────
+// ─── B 组：日志 / 错误 / 导出 ───────────────────────────────────────────────────
 
 export async function logHandler(
   logId: string | number | undefined,
@@ -145,7 +145,7 @@ export async function logHandler(
 }
 
 export async function errorHandler(num: number | undefined): Promise<void> {
-  // Error log viewing — shows recent session errors
+  // 查看错误日志 — 显示最近的会话错误
   const logs = await getRecentActivity()
   const count = num ?? 5
 
@@ -166,7 +166,7 @@ export async function exportHandler(
   const { writeFile, readFile } = await import('fs/promises')
   const logs = await getRecentActivity()
 
-  // Try as index first
+  // 先尝试当作索引解析
   const idx = parseInt(source, 10)
   let log: LogOption | undefined
   if (Number.isFinite(idx) && idx >= 0 && idx < logs.length) {
@@ -176,7 +176,7 @@ export async function exportHandler(
   }
 
   if (!log) {
-    // Try as file path
+    // 再尝试当作文件路径
     try {
       const content = await readFile(source, 'utf-8')
       await writeFile(outputFile, content, 'utf-8')
@@ -193,7 +193,7 @@ export async function exportHandler(
   console.log(`Exported session ${log.sessionId} → ${outputFile}`)
 }
 
-// ─── Group D: Completion ─────────────────────────────────────────────────────
+// ─── D 组：补全 ─────────────────────────────────────────────────────────────
 
 export async function completionHandler(
   shell: string,
@@ -205,11 +205,11 @@ export async function completionHandler(
   )
 
   if (opts.output) {
-    // Generate and write to file
+    // 生成并写入文件
     await regenerateCompletionCache()
     console.log(`Completion cache regenerated for ${shell}.`)
   } else {
-    // Regenerate and output to stdout
+    // 重新生成并输出到 stdout
     await regenerateCompletionCache()
     console.log(`Completion cache regenerated for ${shell}.`)
   }

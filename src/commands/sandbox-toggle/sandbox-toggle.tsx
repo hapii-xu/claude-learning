@@ -19,7 +19,7 @@ export async function call(
   const platform = getPlatform();
 
   if (!SandboxManager.isSupportedPlatform()) {
-    // WSL1 users will see this since isSupportedPlatform returns false for WSL1
+    // WSL1 用户会看到此消息，因为 isSupportedPlatform 对 WSL1 返回 false
     const errorMessage =
       platform === 'wsl'
         ? 'Error: Sandboxing requires WSL2. WSL1 is not supported.'
@@ -29,10 +29,10 @@ export async function call(
     return null;
   }
 
-  // Check dependencies - get structured result with errors/warnings
+  // 检查依赖 - 获取包含错误/警告的结构化结果
   const depCheck = SandboxManager.checkDependencies();
 
-  // Check if platform is in enabledPlatforms list (undocumented enterprise setting)
+  // 检查平台是否位于 enabledPlatforms 列表中（未公开的企业设置）
   if (!SandboxManager.isPlatformInEnabledList()) {
     const message = color(
       'error',
@@ -42,7 +42,7 @@ export async function call(
     return null;
   }
 
-  // Check if sandbox settings are locked by higher-priority settings
+  // 检查沙箱设置是否被更高优先级的设置锁定
   if (SandboxManager.areSandboxSettingsLockedByPolicy()) {
     const message = color(
       'error',
@@ -52,21 +52,21 @@ export async function call(
     return null;
   }
 
-  // Parse the arguments
+  // 解析参数
   const trimmedArgs = args?.trim() || '';
 
-  // If no args, show the interactive menu
+  // 无参数时显示交互式菜单
   if (!trimmedArgs) {
     return <SandboxSettings onComplete={onDone} depCheck={depCheck} />;
   }
 
-  // Handle subcommands
+  // 处理子命令
   if (trimmedArgs) {
     const parts = trimmedArgs.split(' ');
     const subcommand = parts[0];
 
     if (subcommand === 'exclude') {
-      // Handle exclude subcommand
+      // 处理 exclude 子命令
       const commandPattern = trimmedArgs.slice('exclude '.length).trim();
 
       if (!commandPattern) {
@@ -78,13 +78,13 @@ export async function call(
         return null;
       }
 
-      // Remove quotes if present
+      // 去除首尾引号（如果存在）
       const cleanPattern = commandPattern.replace(/^["']|["']$/g, '');
 
-      // Add to excludedCommands
+      // 添加到 excludedCommands
       addToExcludedCommands(cleanPattern);
 
-      // Get the local settings path and make it relative to cwd
+      // 获取本地 settings 路径并相对于 cwd 表示
       const localSettingsPath = getSettingsFilePathForSource('localSettings');
       const relativePath = localSettingsPath
         ? relative(getCwdState(), localSettingsPath)
@@ -95,7 +95,7 @@ export async function call(
       onDone(message);
       return null;
     } else {
-      // Unknown subcommand
+      // 未知子命令
       const message = color(
         'error',
         themeName,
@@ -105,6 +105,6 @@ export async function call(
     }
   }
 
-  // Should never reach here since we handle all cases above
+  // 由于上方已处理所有情况，这里永远不会到达
   return null;
 }

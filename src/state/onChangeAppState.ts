@@ -19,7 +19,7 @@ import {
 } from '../utils/sessionState.js'
 import type { AppState } from './AppStateStore.js'
 
-// Inverse of the push below — restore on worker restart.
+// 下方推送的逆操作 - 在工作器重启时恢复。
 export function externalMetadataToAppState(
   metadata: SessionExternalMetadata,
 ): (prev: AppState) => AppState {
@@ -46,36 +46,35 @@ export function onChangeAppState({
   newState: AppState
   oldState: AppState
 }) {
-  // toolPermissionContext.mode — single choke point for CCR/SDK mode sync.
+  // toolPermissionContext.mode — CCR/SDK 模式同步的唯一汇合点。
   //
-  // Prior to this block, mode changes were relayed to CCR by only 2 of 8+
-  // mutation paths: a bespoke setAppState wrapper in print.ts (headless/SDK
-  // mode only) and a manual notify in the set_permission_mode handler.
-  // Every other path — Shift+Tab cycling, ExitPlanModePermissionRequest
-  // dialog options, the /plan slash command, rewind, the REPL bridge's
-  // onSetPermissionMode — mutated AppState without telling
-  // CCR, leaving external_metadata.permission_mode stale and the web UI out
-  // of sync with the CLI's actual mode.
+  // 在此块之前，模式变更仅由 8+ 个变异路径中的 2 个转发到 CCR：
+  // print.ts 中的特制 setAppState 包装器（仅无头/SDK 模式）和
+  // set_permission_mode 处理器中的手动通知。其他所有路径 -
+  // Shift+Tab 循环、ExitPlanModePermissionRequest 对话框选项、/plan
+  // 斜杠命令、倒带、REPL 桥接的 onSetPermissionMode - 都变异了
+  // AppState 但未通知 CCR，导致 external_metadata.permission_mode
+  // 过时，Web UI 与 CLI 的实际模式不同步。
   //
-  // Hooking the diff here means ANY setAppState call that changes the mode
-  // notifies CCR (via notifySessionMetadataChanged → ccrClient.reportMetadata)
-  // and the SDK status stream (via notifyPermissionModeChanged → registered
-  // in print.ts). The scattered callsites above need zero changes.
+  // 在此处挂钩差异意味着任何更改模式的 setAppState 调用都会
+  // 通知 CCR（通过 notifySessionMetadataChanged → ccrClient.reportMetadata）
+  // 和 SDK 状态流（通过 notifyPermissionModeChanged → 在 print.ts 中注册）。
+  // 上述分散的调用点无需任何更改。
   const prevMode = oldState.toolPermissionContext.mode
   const newMode = newState.toolPermissionContext.mode
   if (prevMode !== newMode) {
-    // CCR external_metadata must not receive internal-only mode names
-    // (bubble, ungated auto). Externalize first — and skip
-    // the CCR notify if the EXTERNAL mode didn't change (e.g.,
-    // default→bubble→default is noise from CCR's POV since both
-    // externalize to 'default'). The SDK channel (notifyPermissionModeChanged)
-    // passes raw mode; its listener in print.ts applies its own filter.
+    // CCR external_metadata 不能接收仅内部使用的模式名称
+    // （bubble、ungated auto）。先外部化 - 如果外部模式未更改
+    // （例如 default→bubble→default 从 CCR 角度看是噪音，因为两者
+    // 都外部化为 'default'），则跳过 CCR 通知。SDK 通道
+    // （notifyPermissionModeChanged）传递原始模式；其在 print.ts 中的
+    // 监听器应用自己的过滤器。
     const prevExternal = toExternalPermissionMode(prevMode)
     const newExternal = toExternalPermissionMode(newMode)
     if (prevExternal !== newExternal) {
-      // Ultraplan = first plan cycle only. The initial control_request
-      // sets mode and isUltraplanMode atomically, so the flag's
-      // transition gates it. null per RFC 7396 (removes the key).
+      // Ultraplan = 仅首个计划周期。初始 control_request
+      // 原子地设置模式和 isUltraplanMode，因此标志的
+      // 转换门控它。null 按 RFC 7396（移除键）。
       const isUltraplan =
         newExternal === 'plan' &&
         newState.isUltraplanMode &&
@@ -90,15 +89,15 @@ export function onChangeAppState({
     notifyPermissionModeChanged(newMode)
   }
 
-  // mainLoopModel: session-scoped only (do NOT persist to userSettings).
-  // Writing to settings.json would leak model changes into other running
-  // sessions (anthropics/claude-code#37596). Each process keeps its own
-  // model override in memory via setMainLoopModelOverride.
+  // mainLoopModel：仅会话作用域（不要持久化到 userSettings）。
+  // 写入 settings.json 会将模型更改泄漏到其他运行中的会话
+  // （anthropics/claude-code#37596）。每个进程通过
+  // setMainLoopModelOverride 在内存中保留自己的模型覆盖。
   if (newState.mainLoopModel !== oldState.mainLoopModel) {
     setMainLoopModelOverride(newState.mainLoopModel)
   }
 
-  // expandedView → persist as showExpandedTodos + showSpinnerTree for backwards compat
+  // expandedView → 持久化为 showExpandedTodos + showSpinnerTree 以向后兼容
   if (newState.expandedView !== oldState.expandedView) {
     const showExpandedTodos = newState.expandedView === 'tasks'
     const showSpinnerTree = newState.expandedView === 'teammates'
@@ -126,7 +125,7 @@ export function onChangeAppState({
     }))
   }
 
-  // tungstenPanelVisible (ant-only tmux panel sticky toggle)
+  // tungstenPanelVisible（ant 专属的 tmux 面板粘性切换）
   if (process.env.USER_TYPE === 'ant') {
     if (
       newState.tungstenPanelVisible !== oldState.tungstenPanelVisible &&
@@ -138,16 +137,16 @@ export function onChangeAppState({
     }
   }
 
-  // settings: clear auth-related caches when settings change
-  // This ensures apiKeyHelper and AWS/GCP credential changes take effect immediately
+  // 设置：当设置更改时清除认证相关的缓存
+  // 这确保 apiKeyHelper 和 AWS/GCP 凭据更改立即生效
   if (newState.settings !== oldState.settings) {
     try {
       clearApiKeyHelperCache()
       clearAwsCredentialsCache()
       clearGcpCredentialsCache()
 
-      // Re-apply environment variables when settings.env changes
-      // This is additive-only: new vars are added, existing may be overwritten, nothing is deleted
+      // 当 settings.env 更改时重新应用环境变量
+      // 这是仅添加操作：新变量被添加，现有变量可能被覆盖，不会删除任何内容
       if (newState.settings.env !== oldState.settings.env) {
         applyConfigEnvironmentVariables()
       }

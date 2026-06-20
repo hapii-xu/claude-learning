@@ -1,12 +1,12 @@
 /**
- * Tests for vault parseArgs.ts
+ * vault parseArgs.ts 的测试
  */
 
 import { describe, expect, test } from 'bun:test'
 import { parseVaultArgs } from '../parseArgs.js'
 
 describe('parseVaultArgs', () => {
-  // ── list ──────────────────────────────────────────────────────────────────
+  // ── list（列出）──
   test('empty string → list', () => {
     expect(parseVaultArgs('')).toEqual({ action: 'list' })
   })
@@ -19,7 +19,7 @@ describe('parseVaultArgs', () => {
     expect(parseVaultArgs('  list  ')).toEqual({ action: 'list' })
   })
 
-  // ── create ────────────────────────────────────────────────────────────────
+  // ── create（创建）──
   test('create with name → create action', () => {
     expect(parseVaultArgs('create My Work Vault')).toEqual({
       action: 'create',
@@ -35,7 +35,7 @@ describe('parseVaultArgs', () => {
     }
   })
 
-  // ── get ───────────────────────────────────────────────────────────────────
+  // ── get（查询）──
   test('get with id → get action', () => {
     expect(parseVaultArgs('get vault_123')).toEqual({
       action: 'get',
@@ -51,7 +51,7 @@ describe('parseVaultArgs', () => {
     }
   })
 
-  // ── archive ───────────────────────────────────────────────────────────────
+  // ── archive（归档）──
   test('archive with id → archive action', () => {
     expect(parseVaultArgs('archive vault_456')).toEqual({
       action: 'archive',
@@ -67,7 +67,7 @@ describe('parseVaultArgs', () => {
     }
   })
 
-  // ── add-credential ────────────────────────────────────────────────────────
+  // ── add-credential（添加凭据）──
   test('add-credential with vault_id, key, value → add-credential action', () => {
     expect(
       parseVaultArgs('add-credential vault_123 MY_KEY secret-value'),
@@ -110,7 +110,7 @@ describe('parseVaultArgs', () => {
     expect(result.action).toBe('invalid')
   })
 
-  // ── archive-credential ────────────────────────────────────────────────────
+  // ── archive-credential（归档凭据）──
   test('archive-credential with vault_id and cred_id → archive-credential action', () => {
     expect(parseVaultArgs('archive-credential vault_123 cred_456')).toEqual({
       action: 'archive-credential',
@@ -132,7 +132,7 @@ describe('parseVaultArgs', () => {
     expect(result.action).toBe('invalid')
   })
 
-  // ── unknown subcommand ────────────────────────────────────────────────────
+  // ── 未知子命令 ──
   test('unknown subcommand → invalid with usage hint', () => {
     const result = parseVaultArgs('delete vault_123')
     expect(result.action).toBe('invalid')

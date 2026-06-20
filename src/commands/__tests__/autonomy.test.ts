@@ -70,7 +70,7 @@ describe('/autonomy', () => {
       onDoneCalled = true
     }
     const jsx = await mod.call(onDone as any, {} as any, '')
-    // Without args, the panel JSX is returned (onDone is NOT called)
+    // 不带参数时返回 panel JSX（不会调用 onDone）
     expect(jsx).not.toBeNull()
     expect(onDoneCalled).toBe(false)
     expect(getAutonomyPanelBaseActionCountForTests()).toBeGreaterThan(10)

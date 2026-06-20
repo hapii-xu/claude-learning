@@ -1,14 +1,14 @@
 /**
- * Parse the args string for the /local-vault command.
+ * 解析 /local-vault 命令的 args 字符串。
  *
- * Supported sub-commands:
+ * 支持的子命令：
  *   list                         → { action: 'list' }
  *   set <key> <value>            → { action: 'set', key, value }
  *   get <key>                    → { action: 'get', key, reveal: false }
  *   get <key> --reveal           → { action: 'get', key, reveal: true }
  *   delete <key>                 → { action: 'delete', key }
- *   (empty)                      → { action: 'list' }
- *   anything else                → { action: 'invalid', reason }
+ *   （空）                        → { action: 'list' }
+ *   其他任意值                   → { action: 'invalid', reason }
  */
 
 export type LocalVaultArgs =
@@ -18,19 +18,17 @@ export type LocalVaultArgs =
   | { action: 'delete'; key: string }
   | { action: 'invalid'; reason: string }
 
-// Markdown renderer in REPL output treats `<key>` / `<value>` as HTML tags
-// and strips them. Use uppercase placeholder names without angle brackets
-// so the full usage line is visible to users.
+// REPL 输出的 markdown 渲染器会把 `<key>` / `<value>` 当作 HTML 标签并剥离。
+// 使用不带尖括号的大写占位符名，确保用户能看到完整的 usage 行。
 const USAGE =
   'Usage: /local-vault list | set KEY VALUE | get KEY [--reveal] | delete KEY'
 
-// M1 fix (codecov-100 audit #4): defensively reject hyphen-like Unicode
-// prefixes on key names. ASCII '-' is the obvious flag prefix, but a key
-// stored as e.g. '−mykey' (U+2212 MINUS SIGN) would round-trip through
-// /local-vault set and then be unretrievable via the CLI because the
-// shell-style tokenizer here is consistent. Reject any key whose first
-// character is in the Unicode hyphen / dash family. List drawn from
-// Unicode general category Pd (Dash_Punctuation) plus the math minus.
+// M1 修复（codecov-100 审计 #4）：防御性地拒绝以类似连字符的 Unicode 字符开头的
+// key 名称。ASCII '-' 显然是 flag 前缀，但存储为例如 '−mykey'
+// (U+2212 MINUS SIGN) 的 key 会经过 /local-vault set 往返存储，
+// 之后却无法通过 CLI 检索，因为这里的 shell 风格 tokenizer 是一致的。
+// 凡是首字符属于 Unicode 连字符 / 破折号家族的 key 都拒绝。
+// 列表取自 Unicode 通用类别 Pd (Dash_Punctuation)，外加数学减号。
 //   U+002D HYPHEN-MINUS                    -
 //   U+2010 HYPHEN                          ‐
 //   U+2011 NON-BREAKING HYPHEN             ‑
@@ -65,18 +63,16 @@ export function parseLocalVaultArgs(args: string): LocalVaultArgs {
     if (!key) {
       return { action: 'invalid', reason: `set requires a key name. ${USAGE}` }
     }
-    // D3 + M1: reject keys that start with '-' or any hyphen-like Unicode
-    // character. ASCII '-' would be mistaken for a flag; non-ASCII hyphen
-    // lookalikes (e.g. U+2212 MINUS SIGN) would silently store but then be
-    // unretrievable because the user typically can't reproduce the exact
-    // codepoint at the shell.
+    // D3 + M1：拒绝以 '-' 或任何类似连字符的 Unicode 字符开头的 key。
+    // ASCII '-' 会被误判为 flag；非 ASCII 的连字符替身（例如 U+2212 MINUS SIGN）
+    // 会被静默存储，之后却无法检索，因为用户通常无法在 shell 中复现精确的码点。
     if (HYPHEN_LIKE_PREFIX_REGEX.test(key)) {
       return {
         action: 'invalid',
         reason: `Key name must not start with "-" or a hyphen-like character (reserved for flags). ${USAGE}`,
       }
     }
-    // D4: value is tokens[2..] joined, not substring math (handles keys with repeated substrings)
+    // D4：value 是 tokens[2..] 拼接而成，不用 substring 计算（可处理 key 含有重复子串的情况）
     const rest = tokens.slice(2).join(' ')
     if (!rest) {
       return {
@@ -89,8 +85,8 @@ export function parseLocalVaultArgs(args: string): LocalVaultArgs {
 
   // ── get ───────────────────────────────────────────────────────────────────
   if (subCmd === 'get') {
-    // Strip flags before extracting the key so that `get --reveal MY_KEY`
-    // correctly resolves MY_KEY as the key rather than --reveal.
+    // 在提取 key 之前剥离 flag，使得 `get --reveal MY_KEY` 能正确把
+    // MY_KEY 解析为 key，而不是 --reveal。
     const flags = ['--reveal']
     const argsWithoutFlags = tokens.filter(t => !flags.includes(t))
     const key = argsWithoutFlags[1] // argsWithoutFlags[0] is 'get'

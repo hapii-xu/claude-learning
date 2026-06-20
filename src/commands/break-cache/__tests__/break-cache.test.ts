@@ -22,9 +22,9 @@ mock.module('src/services/analytics/index.js', () => ({
 let tmpDir: string
 let claudeDir: string
 
-// Dynamic envUtils mock — reads CLAUDE_CONFIG_DIR from process.env at call
-// time so it stays compatible across the full suite when other test files
-// also drive their own dirs via process.env.
+// 动态 envUtils mock —— 在调用时从 process.env 读取 CLAUDE_CONFIG_DIR，
+// 这样当其他测试文件也通过 process.env 驱动各自目录时，
+// 整个测试套件依然保持兼容。
 mock.module('src/utils/envUtils.js', () => ({
   getClaudeConfigHomeDir: () =>
     process.env.CLAUDE_CONFIG_DIR ?? `${tmpdir()}/dummy-claude`,
@@ -55,13 +55,13 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  // Clean up any lingering marker files
+  // 清理任何残留的 marker 文件
   try {
     const { getBreakCacheMarkerPath } = require('../index.js')
     const markerPath = getBreakCacheMarkerPath()
     if (existsSync(markerPath)) unlinkSync(markerPath)
   } catch {
-    // ignore
+    // 忽略
   }
   rmSync(tmpDir, { recursive: true, force: true })
   delete process.env.CLAUDE_CONFIG_DIR
@@ -104,12 +104,12 @@ describe('break-cache command', () => {
       expect(result.value).toContain('next API call')
     }
 
-    // Marker file must exist under CLAUDE_CONFIG_DIR
+    // marker 文件必须存在于 CLAUDE_CONFIG_DIR 下
     const markerPath = getBreakCacheMarkerPath()
     expect(markerPath).toContain('.next-request-no-cache')
     expect(existsSync(markerPath)).toBe(true)
 
-    // Clean up
+    // 清理
     unlinkSync(markerPath)
   })
 
@@ -117,12 +117,12 @@ describe('break-cache command', () => {
     const mod = await import('../index.js')
     const { getBreakCacheMarkerPath } = mod
 
-    // Set the marker first
+    // 先设置 marker
     await invokeBreakCache('')
     const markerPath = getBreakCacheMarkerPath()
     expect(existsSync(markerPath)).toBe(true)
 
-    // Now clear it
+    // 然后清除它
     const clearResult = await invokeBreakCache('--clear')
     expect(clearResult.type).toBe('text')
     if (clearResult.type === 'text') {
@@ -136,7 +136,7 @@ describe('break-cache command', () => {
     const { getBreakCacheMarkerPath } = mod
     const markerPath = getBreakCacheMarkerPath()
 
-    // Ensure it does not exist
+    // 确保它不存在
     if (existsSync(markerPath)) unlinkSync(markerPath)
 
     const result = await invokeBreakCache('--clear')
@@ -150,7 +150,7 @@ describe('break-cache command', () => {
     const { getBreakCacheMarkerPath } = await import('../index.js')
     const path = getBreakCacheMarkerPath()
     expect(path).toContain('.next-request-no-cache')
-    // The path should be under claudeDir (CLAUDE_CONFIG_DIR)
+    // 路径应位于 claudeDir（CLAUDE_CONFIG_DIR）之下
     expect(path.startsWith(claudeDir)).toBe(true)
   })
 
@@ -175,19 +175,19 @@ describe('break-cache command', () => {
       expect(result.value).toContain('Always-on')
     }
     expect(existsSync(getBreakCacheAlwaysPath())).toBe(true)
-    // Clean up
+    // 清理
     unlinkSync(getBreakCacheAlwaysPath())
   })
 
   test('"off" scope clears both flags', async () => {
     const mod = await import('../index.js')
     const { getBreakCacheMarkerPath, getBreakCacheAlwaysPath } = mod
-    // Set both markers
+    // 设置两个 marker
     await invokeBreakCache('')
     await invokeBreakCache('always')
     expect(existsSync(getBreakCacheMarkerPath())).toBe(true)
     expect(existsSync(getBreakCacheAlwaysPath())).toBe(true)
-    // Clear both
+    // 清除两者
     const result = await invokeBreakCache('off')
     expect(result.type).toBe('text')
     if (result.type === 'text') {
@@ -223,22 +223,22 @@ describe('break-cache command', () => {
     expect(typeof getBreakCacheAlwaysPath()).toBe('string')
     expect(typeof getBreakCacheStatsPath()).toBe('string')
     expect(getBreakCacheAlwaysPath()).toContain('.break-cache-always')
-    // File was renamed to append-only JSONL (H3 fix: atomic append prevents RMW race)
+    // 文件已重命名为 append-only JSONL（H3 修复：原子 append 防止 RMW 竞争）
     expect(getBreakCacheStatsPath()).toContain('break-cache-events.jsonl')
   })
 
-  // ── H3 regression: append-only stats log accumulates correctly ──
+  // ── H3 回归测试：append-only 统计日志能正确累积 ──
   test('H3: each /break-cache once appends one event; totalBreaks reflects all calls', async () => {
     const { readFileSync } = await import('node:fs')
     const mod = await import('../index.js')
     const { getBreakCacheStatsPath } = mod
 
-    // Call /break-cache once, twice
+    // 调用 /break-cache once 共三次
     await invokeBreakCache('once')
     await invokeBreakCache('once')
     await invokeBreakCache('once')
 
-    // Stats path should be a JSONL file with 3 'once' events
+    // 统计路径应该是包含 3 个 'once' 事件的 JSONL 文件
     const statsPath = getBreakCacheStatsPath()
     const lines = readFileSync(statsPath, 'utf8')
       .trim()
@@ -248,7 +248,7 @@ describe('break-cache command', () => {
     const onceEvents = events.filter(e => e.kind === 'once')
     expect(onceEvents.length).toBe(3)
 
-    // The status command should report totalBreaks = 3
+    // status 命令应报告 totalBreaks = 3
     const statusResult = await invokeBreakCache('status')
     if (statusResult.type === 'text') {
       expect(statusResult.value).toContain('total_breaks:   3')
@@ -300,7 +300,7 @@ describe('break-cache command', () => {
         '{"truncated":',
       ].join('\n') + '\n',
     )
-    // Status read uses readEvents internally → exercises the JSON.parse catch.
+    // status 读取内部使用 readEvents → 会触发 JSON.parse 的 catch 分支。
     const result = await invokeBreakCache('status')
     expect(result.type).toBe('text')
     expect(result.value).toContain('Break-Cache Status')

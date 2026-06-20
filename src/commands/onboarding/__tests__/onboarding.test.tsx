@@ -3,10 +3,10 @@ import * as React from 'react';
 import { logMock } from '../../../../tests/mocks/log';
 import { debugMock } from '../../../../tests/mocks/debug';
 
-// Pre-import real ink so we can fall through after this suite. Bun's
-// mock.module is process-global / last-write-wins; without delegation the
-// stub Box/Pane/Text/useTheme leak into other test files (e.g.
-// AgentsPlatformView.test.tsx) that need real ink components.
+// 预先导入真实的 ink，以便此测试套件结束后可以回落到真实实现。
+// Bun 的 mock.module 是进程级 / last-write-wins；如果不委托，桩化的
+// Box/Pane/Text/useTheme 会泄漏到其他需要真实 ink 组件的测试文件
+// （例如 AgentsPlatformView.test.tsx）。
 const _realOnboardingInkMod = (await import('@anthropic/ink')) as Record<string, unknown>;
 let _useStubInkForOnboarding = true;
 afterAll(() => {
@@ -27,8 +27,8 @@ mock.module('src/services/analytics/index.js', () => ({
   },
 }));
 
-// In-memory config used by the global/project config helpers so the
-// command's persistence path is exercised without touching disk.
+// 内存中的配置，供 global/project 配置助手使用，从而在
+// 不触碰磁盘的情况下测试命令的持久化路径。
 const fakeGlobalConfig: {
   theme?: string;
   hasCompletedOnboarding?: boolean;
@@ -46,9 +46,9 @@ mock.module('src/utils/config.js', () => ({
   },
 }));
 
-// Stub heavy theme + ink imports — the launcher only references them for
-// the `theme` subcommand JSX render path. Spread real ink so when the flag
-// flips off in afterAll, later test files see real components.
+// 桩化较重的 theme + ink 导入——launcher 仅在 `theme` 子命令的 JSX
+// 渲染路径中引用它们。展开真实的 ink，这样当 afterAll 中标志翻回关闭时，
+// 后续的测试文件就能看到真实组件。
 mock.module('@anthropic/ink', () => {
   if (_useStubInkForOnboarding) {
     return {
@@ -246,12 +246,12 @@ describe('callOnboarding behavior', () => {
   });
 
   test('rendering ThemeSubcommand executes its body once', () => {
-    // Pull the ThemeSubcommand render path through React.createElement so its
-    // body (useTheme + ThemePicker JSX) executes under coverage.
+    // 通过 React.createElement 拉取 ThemeSubcommand 的渲染路径，确保其
+    // body（useTheme + ThemePicker JSX）在覆盖率统计下被执行。
     const result = callOnboarding(() => undefined, makeContext(), 'theme');
     return result.then(node => {
       if (!React.isValidElement(node)) throw new Error('not element');
-      // Render the inner element by invoking its component function once.
+      // 通过调用内部元素的组件函数一次来渲染它。
       const Comp = (node as React.ReactElement).type as (p: unknown) => React.ReactNode;
       const rendered = Comp((node as React.ReactElement).props);
       expect(rendered).toBeDefined();

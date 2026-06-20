@@ -1,28 +1,28 @@
 import { sleep } from '../../utils/sleep.js'
 
 /**
- * Coalescing uploader for PUT /worker (session state + metadata).
+ * 面向 PUT /worker 的合并式上传器（session 状态 + 元数据）。
  *
- * - 1 in-flight PUT + 1 pending patch
- * - New calls coalesce into pending (never grows beyond 1 slot)
- * - On success: send pending if exists
- * - On failure: exponential backoff (clamped), retries indefinitely
- *   until success or close(). Absorbs any pending patches before each retry.
- * - No backpressure needed — naturally bounded at 2 slots
+ * - 1 个在途 PUT + 1 个挂起 patch
+ * - 新调用会合并进挂起项（不会超过 1 个槽位）
+ * - 成功时：若存在挂起项则发送
+ * - 失败时：指数退避（有上限），无限重试直到成功或 close()。
+ *   每次重试前吸收所有挂起的 patch。
+ * - 无需背压 —— 天然被限制在 2 个槽位
  *
- * Coalescing rules:
- * - Top-level keys (worker_status, external_metadata) — last value wins
- * - Inside external_metadata / internal_metadata — RFC 7396 merge:
- *   keys are added/overwritten, null values preserved (server deletes)
+ * 合并规则：
+ * - 顶层 key（worker_status、external_metadata）—— 后值优先
+ * - external_metadata / internal_metadata 内部 —— RFC 7396 合并：
+ *   key 被新增/覆盖，null 值保留（服务端据此删除）
  */
 
 type WorkerStateUploaderConfig = {
   send: (body: Record<string, unknown>) => Promise<boolean>
-  /** Base delay for exponential backoff (ms) */
+  /** 指数退避的基准延迟（ms） */
   baseDelayMs: number
-  /** Max delay cap (ms) */
+  /** 最大延迟上限（ms） */
   maxDelayMs: number
-  /** Random jitter range added to retry delay (ms) */
+  /** 加到重试延迟上的随机抖动范围（ms） */
   jitterMs: number
 }
 
@@ -37,8 +37,8 @@ export class WorkerStateUploader {
   }
 
   /**
-   * Enqueue a patch to PUT /worker. Coalesces with any existing pending
-   * patch. Fire-and-forget — callers don't need to await.
+   * 入队一个发往 PUT /worker 的 patch。会与任何已存在的挂起 patch 合并。
+   * Fire-and-forget —— 调用方无需 await。
    */
   enqueue(patch: Record<string, unknown>): void {
     if (this.closed) return
@@ -66,7 +66,7 @@ export class WorkerStateUploader {
     })
   }
 
-  /** Retries indefinitely with exponential backoff until success or close(). */
+  /** 以指数退避无限重试，直到成功或 close()。 */
   private async sendWithRetry(payload: Record<string, unknown>): Promise<void> {
     let current = payload
     let failures = 0
@@ -77,7 +77,7 @@ export class WorkerStateUploader {
       failures++
       await sleep(this.retryDelay(failures))
 
-      // Absorb any patches that arrived during the retry
+      // 吸收重试期间到达的任何 patch
       if (this.pending && !this.closed) {
         current = coalescePatches(current, this.pending)
         this.pending = null
@@ -96,12 +96,11 @@ export class WorkerStateUploader {
 }
 
 /**
- * Coalesce two patches for PUT /worker.
+ * 合并两个发往 PUT /worker 的 patch。
  *
- * Top-level keys: overlay replaces base (last value wins).
- * Metadata keys (external_metadata, internal_metadata): RFC 7396 merge
- * one level deep — overlay keys are added/overwritten, null values
- * preserved for server-side delete.
+ * 顶层 key：overlay 覆盖 base（后值优先）。
+ * 元数据 key（external_metadata、internal_metadata）：RFC 7396 合并一层
+ * —— overlay 的 key 被新增/覆盖，null 值保留以便服务端删除。
  */
 function coalescePatches(
   base: Record<string, unknown>,
@@ -117,7 +116,7 @@ function coalescePatches(
       typeof value === 'object' &&
       value !== null
     ) {
-      // RFC 7396 merge — overlay keys win, nulls preserved for server
+      // RFC 7396 合并 —— overlay 的 key 优先，null 保留以便服务端删除
       merged[key] = {
         ...(merged[key] as Record<string, unknown>),
         ...(value as Record<string, unknown>),

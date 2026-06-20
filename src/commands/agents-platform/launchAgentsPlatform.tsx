@@ -37,7 +37,7 @@ async function dispatchAgentsPlatform(
   if (parsed.action === 'create') {
     const { cron, prompt } = parsed;
 
-    // Validate cron expression client-side before hitting the network
+    // 在发起网络请求前，先在客户端校验 cron 表达式
     const cronFields = parseCronExpression(cron);
     if (!cronFields) {
       const reason = `Invalid cron expression: "${cron}". Expected 5 fields (minute hour day month weekday).`;
@@ -84,7 +84,7 @@ async function dispatchAgentsPlatform(
     }
   }
 
-  // parsed.action === 'run' (all other actions handled above)
+  // parsed.action === 'run'（其他 action 已在上面处理）
   const runParsed = parsed as { action: 'run'; id: string };
   const { id } = runParsed;
   logEvent('tengu_agents_platform_run', {
@@ -127,6 +127,6 @@ export const callAgentsPlatform: LocalJSXCommandCall = launchCommand<
   },
   dispatch: dispatchAgentsPlatform,
   View: AgentsPlatformView,
-  // Invalid args returns null to match original behaviour (error already surfaced via onDone)
+  // 非法参数时返回 null，以保持原有行为（错误已通过 onDone 暴露）
   errorView: (_msg: string) => null,
 });

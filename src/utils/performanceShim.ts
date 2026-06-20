@@ -1,24 +1,21 @@
 /**
- * Performance shim — replaces globalThis.performance to prevent JSC's C++ Vector
- * from growing without bound.
+ * Performance shim —— 替换 globalThis.performance，防止 JSC 的 C++ Vector 无限增长。
  *
- * In Bun, globalThis.performance is JSC's native Performance object. It stores
- * marks, measures, and resource timings in a C++ Vector that never shrinks even
- * after clearMarks(). Long-running sessions (daemon, /loop) accumulate hundreds
- * of MB of dead capacity.
+ * 在 Bun 中，globalThis.performance 是 JSC 原生的 Performance 对象。它将 marks、
+ * measures 和 resource timings 存放在一个 C++ Vector 中，即便调用 clearMarks()
+ * 也永不收缩。长时间运行的会话（daemon、/loop）会累积数百 MB 的死容量。
  *
- * This shim keeps performance.now() on the native object (fast, no memory cost)
- * but redirects mark/measure/getEntries operations to a plain JS Map that the GC
- * can reclaim. Third-party code (React reconciler, OTel/Langfuse) uses
- * performance.now() for timing — that stays native. The accumulating operations
- * go to GC-able JS memory instead.
+ * 本 shim 将 performance.now() 留在原生对象上（快，无内存成本），但把 mark/measure/
+ * getEntries 操作重定向到一个普通 JS Map，GC 可以回收其内存。第三方代码
+ * （React reconciler、OTel/Langfuse）使用 performance.now() 计时 —— 那部分保持原生。
+ * 累积性操作则落到可被 GC 回收的 JS 内存里。
  *
- * MUST be installed before React/OTel import — see cli.tsx first import.
+ * 必须在 React/OTel import 之前安装 —— 见 cli.tsx 的首个 import。
  */
 
 const original = globalThis.performance
 
-// JS-backed storage — fully GC-able
+// JS 后端存储 —— 完全可被 GC 回收
 const marks = new Map<string, number>()
 const measures = new Map<
   string,
@@ -31,8 +28,8 @@ function now(): number {
 
 function mark(name: string): PerformanceMark {
   marks.set(name, now())
-  // Return a minimal PerformanceMark-like object to satisfy the interface.
-  // React/OTel only use mark() for side effects, not the return value.
+  // 返回一个最小的类 PerformanceMark 对象以满足接口要求。
+  // React/OTel 只将 mark() 用于副作用，并不使用其返回值。
   return {
     name,
     entryType: 'mark',
@@ -121,9 +118,9 @@ function clearMeasures(name?: string): void {
   }
 }
 
-// Plain object shim — must NOT inherit from Performance.prototype because
-// native getters (onresourcetimingbufferfull, timeOrigin, toJSON) check
-// that `this` is an actual JSC Performance instance and throw otherwise.
+// 普通对象 shim —— 一定不要继承 Performance.prototype，因为原生 getter
+//（onresourcetimingbufferfull、timeOrigin、toJSON）会检查 `this` 是否为真正的
+// JSC Performance 实例，否则会抛异常。
 const shim = {
   now,
   mark,
@@ -135,10 +132,10 @@ const shim = {
   clearResourceTimings: (() => {}) as typeof performance.clearResourceTimings,
   setResourceTimingBufferSize:
     (() => {}) as typeof performance.setResourceTimingBufferSize,
-  // Node.js v22 undici internal calls this after every fetch — must exist to
-  // avoid TypeError: markResourceTiming is not a function
+  // Node.js v22 undici 内部在每次 fetch 后都会调用它 —— 必须存在，
+  // 否则会抛 TypeError: markResourceTiming is not a function
   markResourceTiming: (() => {}) as () => void,
-  // Delegate read-only properties to the original
+  // 只读属性委托给原始对象
   get timeOrigin() {
     return original.timeOrigin
   },
@@ -147,7 +144,7 @@ const shim = {
       .onresourcetimingbufferfull
   },
   set onresourcetimingbufferfull(_v: any) {
-    // no-op — prevent accumulation
+    // no-op —— 防止累积
   },
   toJSON() {
     return original.toJSON()
@@ -155,9 +152,8 @@ const shim = {
 } as unknown as typeof performance
 
 /**
- * Install the shim onto globalThis.performance. Safe to call multiple times.
- * Must run before React and OTel import to prevent them from capturing the
- * native Performance reference.
+ * 将 shim 安装到 globalThis.performance。可安全地多次调用。
+ * 必须在 React 和 OTel import 之前运行，防止它们捕获原生 Performance 引用。
  */
 export function installPerformanceShim(): void {
   if ((globalThis as Record<string, unknown>).__performanceShimInstalled) return
@@ -165,5 +161,5 @@ export function installPerformanceShim(): void {
   globalThis.performance = shim
 }
 
-// Auto-install on import
+// import 时自动安装
 installPerformanceShim()

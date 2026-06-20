@@ -90,9 +90,8 @@ describe('extractAutofixResultFromLog', () => {
   })
 
   test('returns earlier complete tag when latest open tag is truncated within the same block', () => {
-    // Retry scenario: a full result was emitted, then a second result tag
-    // started but got cut off. We should surface the earlier complete pair
-    // rather than dropping the whole block.
+    // 重试场景：先输出了一个完整 result，随后又起了第二个 result 标签但被截断。
+    // 应当输出更早的完整对，而不是把整块丢掉。
     const complete = sampleTag('earlier complete result')
     const truncated = `<${AUTOFIX_RESULT_TAG}>\n<summary>truncated retry...`
     const log = [assistantTextMessage(`${complete}\n${truncated}`)]
@@ -110,7 +109,7 @@ describe('extractAutofixResultFromLog', () => {
   })
 
   test('ignores tag-shaped strings that span across messages (no concatenation)', () => {
-    // Open tag in one message, close tag in another — should NOT be stitched.
+    // 开标签在一条消息里、闭标签在另一条消息里 —— 不应该被拼接。
     const log = [
       assistantTextMessage(`<${AUTOFIX_RESULT_TAG}>\n<summary>part 1`),
       assistantTextMessage(`part 2</summary>\n</${AUTOFIX_RESULT_TAG}>`),
@@ -119,9 +118,8 @@ describe('extractAutofixResultFromLog', () => {
   })
 
   test('extracts when assistant content is a string (not block array)', () => {
-    // Some SDK paths emit assistant content as a raw string instead of
-    // a content-block array. Current implementation skips those — verify
-    // graceful no-op rather than crash.
+    // 某些 SDK 路径会把 assistant content 以裸字符串形式输出，而不是
+    // content-block 数组。当前实现会跳过这些 —— 验证优雅无操作、不崩溃。
     const log = [
       {
         type: 'assistant',

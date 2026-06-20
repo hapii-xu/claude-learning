@@ -1,5 +1,5 @@
 /**
- * Tests for memory-stores/index.ts — command metadata only.
+ * memory-stores/index.ts 的测试 —— 仅覆盖命令元数据。
  */
 import { beforeAll, describe, expect, mock, test } from 'bun:test'
 

@@ -38,8 +38,8 @@ async function checkLoginState(): Promise<CheckResult> {
     return { status: 'gh_not_authenticated' };
   }
 
-  // ghStatus === 'authenticated'. getGhAuthStatus spawns with stdout:'ignore'
-  // (telemetry-safe); spawn once more with stdout:'pipe' to read the token.
+  // ghStatus === 'authenticated'。getGhAuthStatus 以 stdout:'ignore' 方式
+  // spawn（telemetry 安全）；再以 stdout:'pipe' 方式 spawn 一次以读取 token。
   const { stdout } = await execa('gh', ['auth', 'token'], {
     stdout: 'pipe',
     stderr: 'ignore',
@@ -99,7 +99,7 @@ function Web({ onDone }: { onDone: LocalJSXCommandOnDone }) {
           setStep({ name: 'confirm', token: result.token });
       }
     });
-    // onDone is stable across renders; intentionally not in deps.
+    // onDone 在多次渲染间是稳定的；有意不放入 deps。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -124,9 +124,9 @@ function Web({ onDone }: { onDone: LocalJSXCommandOnDone }) {
       return;
     }
 
-    // Token import succeeded. Environment creation is best-effort — if it
-    // fails, the web state machine routes to env-setup on landing, which is
-    // one extra click but still better than the OAuth dance.
+    // Token 导入成功。环境创建是尽力而为 — 如果失败，
+    // web 状态机在落地时会路由到 env-setup，
+    // 虽然多一次点击，但仍胜过 OAuth 流程。
     await createDefaultEnvironment();
 
     const url = getCodeWebUrl();

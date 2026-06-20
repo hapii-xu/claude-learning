@@ -32,10 +32,10 @@ export function ApiKeyStep({
 
   const handlePrevious = useCallback(() => {
     if (selectedOption === 'new' && onCreateOAuthToken) {
-      // From 'new' go up to 'oauth'
+      // 从 'new' 向上切到 'oauth'
       onSelectOption?.('oauth');
     } else if (selectedOption === 'oauth' && existingApiKey) {
-      // From 'oauth' go up to 'existing' (only if it exists)
+      // 从 'oauth' 向上切到 'existing'（仅当其存在时）
       onSelectOption?.('existing');
       onToggleUseExistingKey(true);
     }
@@ -43,11 +43,11 @@ export function ApiKeyStep({
 
   const handleNext = useCallback(() => {
     if (selectedOption === 'existing') {
-      // From 'existing' go down to 'oauth' (if available) or 'new'
+      // 从 'existing' 向下切到 'oauth'（若可用）或 'new'
       onSelectOption?.(onCreateOAuthToken ? 'oauth' : 'new');
       onToggleUseExistingKey(false);
     } else if (selectedOption === 'oauth') {
-      // From 'oauth' go down to 'new'
+      // 从 'oauth' 向下切到 'new'
       onSelectOption?.('new');
     }
   }, [selectedOption, onCreateOAuthToken, onSelectOption, onToggleUseExistingKey]);
@@ -60,9 +60,8 @@ export function ApiKeyStep({
     }
   }, [selectedOption, onCreateOAuthToken, onSubmit]);
 
-  // When the text input is visible, omit confirm:yes so bare 'y' passes
-  // through to the input instead of submitting. TextInput's onSubmit handles
-  // Enter. Keep the Confirmation context (not Settings) to avoid j/k bindings.
+  // 当文本输入可见时，省略 confirm:yes，使单独的 'y' 直接透传到输入框而非提交。
+  // TextInput 的 onSubmit 处理 Enter。保留 Confirmation 上下文（不是 Settings）以避免 j/k 绑定。
   const isTextInputVisible = selectedOption === 'new';
   useKeybindings(
     {

@@ -1,7 +1,7 @@
 import { registerBundledSkill } from '../bundledSkills.js'
 
-// Prompt text contains `ps` commands as instructions for Claude to run,
-// not commands this file executes.
+// 提示文本包含 `ps` 命令作为 Claude 运行的指令，
+// 而非本文件执行的命令。
 // eslint-disable-next-line custom-rules/no-direct-ps-commands
 const STUCK_PROMPT = `# /stuck — diagnose frozen/slow Claude Code sessions
 

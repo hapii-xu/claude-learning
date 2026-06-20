@@ -1,5 +1,5 @@
 /**
- * Unit tests for parseSkillStoreArgs
+ * parseSkillStoreArgs 的单元测试
  */
 
 import { describe, expect, test } from 'bun:test'

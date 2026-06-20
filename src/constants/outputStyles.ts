@@ -15,9 +15,9 @@ export type OutputStyleConfig = {
   source: SettingSource | 'built-in' | 'plugin'
   keepCodingInstructions?: boolean
   /**
-   * If true, this output style will be automatically applied when the plugin is enabled.
-   * Only applicable to plugin output styles.
-   * When multiple plugins have forced output styles, only one is chosen (logged via debug).
+   * 若为 true，当插件启用时此输出风格会被自动应用。
+   * 仅适用于插件输出风格。
+   * 当多个插件具有强制输出风格时，只会选择其中一个（通过 debug 日志记录）。
    */
   forceForPlugin?: boolean
 }
@@ -26,7 +26,7 @@ export type OutputStyles = {
   readonly [K in OutputStyle]: OutputStyleConfig | null
 }
 
-// Used in both the Explanatory and Learning modes
+// 同时用于 Explanatory 和 Learning 模式
 const EXPLANATORY_FEATURE_PROMPT = `
 ## Insights
 In order to encourage learning, before and after writing code, always provide brief educational explanations about implementation choices using (with backticks):
@@ -140,7 +140,7 @@ export const getAllOutputStyles = memoize(async function getAllOutputStyles(
   const customStyles = await getOutputStyleDirStyles(cwd)
   const pluginStyles = await loadPluginOutputStyles()
 
-  // Start with built-in modes
+  // 从内置模式开始
   const allStyles = {
     ...OUTPUT_STYLE_CONFIG,
   }
@@ -155,7 +155,7 @@ export const getAllOutputStyles = memoize(async function getAllOutputStyles(
     style => style.source === 'projectSettings',
   )
 
-  // Add styles in priority order (lowest to highest): built-in, plugin, managed, user, project
+  // 按优先级顺序（从低到高）添加：内置、插件、托管、用户、项目
   const styleGroups = [pluginStyles, userStyles, projectStyles, managedStyles]
 
   for (const styles of styleGroups) {
@@ -181,7 +181,7 @@ export function clearAllOutputStylesCache(): void {
 export async function getOutputStyleConfig(): Promise<OutputStyleConfig | null> {
   const allStyles = await getAllOutputStyles(getCwd())
 
-  // Check for forced plugin output styles
+  // 检查是否存在强制的插件输出风格
   const forcedStyles = Object.values(allStyles).filter(
     (style): style is OutputStyleConfig =>
       style !== null &&

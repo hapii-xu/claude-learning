@@ -1,9 +1,9 @@
 import { logForDebugging } from '../utils/debug.js'
 
 /**
- * Minimal session type for assistant discovery.
- * Only `id` is consumed by main.tsx (L4757); other fields are for chooser display.
- * ID format is `session_*` (compat prefix) — viewer endpoints use /v1/sessions/*.
+ * assistant 发现所需的最小会话类型。
+ * 只有 `id` 会被 main.tsx（L4757）使用；其他字段用于选择器展示。
+ * ID 格式为 `session_*`（兼容前缀）— viewer 端点使用 /v1/sessions/*。
  */
 export type AssistantSession = {
   id: string
@@ -13,13 +13,13 @@ export type AssistantSession = {
 }
 
 /**
- * Discover assistant sessions on Anthropic CCR.
+ * 发现 Anthropic CCR 上的 assistant 会话。
  *
- * Reuses the existing fetchCodeSessionsFromSessionsAPI() which calls
- * GET /v1/sessions with proper OAuth + anthropic-beta headers.
+ * 复用现有的 fetchCodeSessionsFromSessionsAPI()，该函数会带上
+ * 正确的 OAuth + anthropic-beta headers 调用 GET /v1/sessions。
  *
- * Throws on failure — main.tsx L4720-4725 catch displays the error.
- * Does NOT return [] on error (that would silently redirect to install wizard).
+ * 失败时抛出异常 — main.tsx L4720-4725 会捕获并展示错误。
+ * 出错时绝不返回 []（否则会静默跳转到安装向导）。
  */
 export async function discoverAssistantSessions(): Promise<AssistantSession[]> {
   const { fetchCodeSessionsFromSessionsAPI } = await import(
@@ -36,7 +36,7 @@ export async function discoverAssistantSessions(): Promise<AssistantSession[]> {
     throw err
   }
 
-  // Filter to active/working sessions only — completed/archived are not attachable
+  // 仅保留 active/working 状态的会话 — completed/archived 不可挂载
   return allSessions
     .filter(
       s =>

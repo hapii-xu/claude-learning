@@ -7,7 +7,7 @@ import {
 } from 'src/services/analytics/index.js';
 import { ConfigurableShortcutHint } from '../../components/ConfigurableShortcutHint.js';
 import { Byline, KeyboardShortcutHint } from '@anthropic/ink';
-// eslint-disable-next-line custom-rules/prefer-use-keybindings -- useInput needed for marketplace-specific u/r shortcuts and y/n confirmation not in keybinding schema
+// eslint-disable-next-line custom-rules/prefer-use-keybindings -- useInput 需要用于市场专用的 u/r 快捷键以及 keybinding schema 中未涵盖的 y/n 确认
 import { Box, Text, useInput } from '@anthropic/ink';
 import { useKeybinding, useKeybindings } from '../../keybindings/useKeybinding.js';
 import type { LoadedPlugin } from '../../types/plugin.js';
@@ -83,7 +83,7 @@ export function ManageMarketplaces({
   const [detailsMenuIndex, setDetailsMenuIndex] = useState(0);
   const hasAttemptedAutoAction = useRef(false);
 
-  // Load marketplaces and their installed plugins
+  // 加载市场及其已安装的插件
   useEffect(() => {
     async function loadMarketplaces() {
       try {
@@ -91,12 +91,12 @@ export function ManageMarketplaces({
         const { enabled, disabled } = await loadAllPlugins();
         const allPlugins = [...enabled, ...disabled];
 
-        // Load marketplaces with graceful degradation
+        // 以优雅降级方式加载市场
         const { marketplaces, failures } = await loadMarketplacesWithGracefulDegradation(config);
 
         const states: MarketplaceState[] = [];
         for (const { name, config: entry, data: marketplace } of marketplaces) {
-          // Get all plugins installed from this marketplace
+          // 获取所有从此市场安装的插件
           const installedFromMarketplace = allPlugins.filter(plugin => plugin.source.endsWith(`@${name}`));
 
           states.push({
@@ -111,7 +111,7 @@ export function ManageMarketplaces({
           });
         }
 
-        // Sort: claude-plugin-directory first, then alphabetically
+        // 排序：claude-plugin-directory 优先，其余按字母顺序
         states.sort((a, b) => {
           if (a.name === 'claude-plugin-directory') return -1;
           if (b.name === 'claude-plugin-directory') return 1;
@@ -119,7 +119,7 @@ export function ManageMarketplaces({
         });
         setMarketplaceStates(states);
 
-        // Handle marketplace loading errors/warnings
+        // 处理市场加载错误/警告
         const successCount = count(marketplaces, m => m.data !== null);
         const errorResult = formatMarketplaceLoadingErrors(failures, successCount);
         if (errorResult) {
@@ -130,15 +130,15 @@ export function ManageMarketplaces({
           }
         }
 
-        // Auto-execute if target and action provided
+        // 如果提供了目标和操作，则自动执行
         if (targetMarketplace && !hasAttemptedAutoAction.current && !error) {
           hasAttemptedAutoAction.current = true;
           const targetIndex = states.findIndex(s => s.name === targetMarketplace);
           if (targetIndex >= 0) {
             const targetState = states[targetIndex];
             if (action) {
-              // Mark the action as pending and execute
-              setSelectedIndex(targetIndex + 1); // +1 because "Add Marketplace" is at index 0
+              // 将操作标记为待处理并执行
+              setSelectedIndex(targetIndex + 1); // +1 因为 "Add Marketplace" 位于索引 0
               const newStates = [...states];
               if (action === 'update') {
                 newStates[targetIndex]!.pendingUpdate = true;
@@ -146,11 +146,11 @@ export function ManageMarketplaces({
                 newStates[targetIndex]!.pendingRemove = true;
               }
               setMarketplaceStates(newStates);
-              // Apply the change immediately
+              // 立即应用更改
               setTimeout(applyChanges, 100, newStates);
             } else if (targetState) {
-              // No action - just show the details view for this marketplace
-              setSelectedIndex(targetIndex + 1); // +1 because "Add Marketplace" is at index 0
+              // 无操作 - 只显示该市场的详情视图
+              setSelectedIndex(targetIndex + 1); // +1 因为 "Add Marketplace" 位于索引 0
               setSelectedMarketplace(targetState);
               setInternalView('details');
             }
@@ -171,19 +171,19 @@ export function ManageMarketplaces({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetMarketplace, action, error]);
 
-  // Check if there are any pending changes
+  // 检查是否有任何待处理的更改
   const hasPendingChanges = () => {
     return marketplaceStates.some(state => state.pendingUpdate || state.pendingRemove);
   };
 
-  // Get count of pending operations
+  // 获取待处理操作的计数
   const getPendingCounts = () => {
     const updateCount = count(marketplaceStates, s => s.pendingUpdate);
     const removeCount = count(marketplaceStates, s => s.pendingRemove);
     return { updateCount, removeCount };
   };
 
-  // Apply all pending changes
+  // 应用所有待处理的更改
   const applyChanges = async (states?: MarketplaceState[]) => {
     const statesToProcess = states || marketplaceStates;
     const wasInDetailsView = internalView === 'details';
@@ -199,14 +199,14 @@ export function ManageMarketplaces({
       const refreshedMarketplaces = new Set<string>();
 
       for (const state of statesToProcess) {
-        // Handle remove
+        // 处理移除
         if (state.pendingRemove) {
-          // First uninstall all plugins from this marketplace
+          // 首先卸载该市场中的所有插件
           if (state.installedPlugins && state.installedPlugins.length > 0) {
             const newEnabledPlugins = { ...settings?.enabledPlugins };
             for (const plugin of state.installedPlugins) {
               const pluginId = createPluginId(plugin.name, state.name);
-              // Mark as disabled/uninstalled
+              // 标记为禁用/卸载
               newEnabledPlugins[pluginId] = false;
             }
             updateSettingsForSource('userSettings', {
@@ -214,7 +214,7 @@ export function ManageMarketplaces({
             });
           }
 
-          // Then remove the marketplace
+          // 然后移除市场
           await removeMarketplaceSource(state.name);
           removedCount++;
 
@@ -225,9 +225,9 @@ export function ManageMarketplaces({
           continue;
         }
 
-        // Handle update
+        // 处理更新
         if (state.pendingUpdate) {
-          // Refresh individual marketplace for efficiency with progress reporting
+          // 为提高效率并支持进度报告，单独刷新市场
           await refreshMarketplace(state.name, (message: string) => {
             setProgressMessage(message);
           });
@@ -240,29 +240,29 @@ export function ManageMarketplaces({
         }
       }
 
-      // After marketplace clones are refreshed, bump installed plugins from
-      // those marketplaces to the new version. Without this, the loader's
-      // cache-on-miss (copyPluginToVersionedCache) creates the new version
-      // dir on the next loadAllPlugins() call, but installed_plugins.json
-      // stays on the old version — so cleanupOrphanedPluginVersionsInBackground
-      // stamps the NEW dir with .orphaned_at on the next startup. See #29512.
-      // updatePluginOp (called inside the helper) is what actually writes
-      // installed_plugins.json via updateInstallationPathOnDisk.
+      // 市场克隆刷新后，将来自这些市场的已安装插件
+      // 升级到新版本。否则加载器的 cache-on-miss
+      // （copyPluginToVersionedCache）会在下一次 loadAllPlugins() 调用时
+      // 创建新版本目录，但 installed_plugins.json 仍然停留在旧版本 ——
+      // 于是 cleanupOrphanedPluginVersionsInBackground 在下一次启动时
+      // 会给新目录打上 .orphaned_at 标记。参见 #29512。
+      // updatePluginOp（在 helper 内部调用）才是真正通过
+      // updateInstallationPathOnDisk 写入 installed_plugins.json 的地方。
       let updatedPluginCount = 0;
       if (refreshedMarketplaces.size > 0) {
         const updatedPluginIds = await updatePluginsForMarketplaces(refreshedMarketplaces);
         updatedPluginCount = updatedPluginIds.length;
       }
 
-      // Clear caches after changes
+      // 更改后清除缓存
       clearAllCaches();
 
-      // Call completion callback
+      // 调用完成回调
       if (onManageComplete) {
         await onManageComplete();
       }
 
-      // Reload marketplace data to show updated timestamps
+      // 重新加载市场数据以显示更新后的时间戳
       const config = await loadKnownMarketplacesConfig();
       const { enabled, disabled } = await loadAllPlugins();
       const allPlugins = [...enabled, ...disabled];
@@ -285,7 +285,7 @@ export function ManageMarketplaces({
         });
       }
 
-      // Sort: claude-plugin-directory first, then alphabetically
+      // 排序：claude-plugin-directory 优先，其余按字母顺序
       newStates.sort((a, b) => {
         if (a.name === 'claude-plugin-directory') return -1;
         if (b.name === 'claude-plugin-directory') return 1;
@@ -293,7 +293,7 @@ export function ManageMarketplaces({
       });
       setMarketplaceStates(newStates);
 
-      // Update selected marketplace reference with fresh data
+      // 用最新数据更新所选市场的引用
       if (wasInDetailsView && selectedMarketplace) {
         const updatedMarketplace = newStates.find(s => s.name === selectedMarketplace.name);
         if (updatedMarketplace) {
@@ -301,7 +301,7 @@ export function ManageMarketplaces({
         }
       }
 
-      // Build success message
+      // 构建成功消息
       const actions: string[] = [];
       if (updatedCount > 0) {
         const pluginPart =
@@ -314,11 +314,11 @@ export function ManageMarketplaces({
 
       if (actions.length > 0) {
         const successMsg = `${figures.tick} ${actions.join(', ')}`;
-        // If we were in details view, stay there and show success
+        // 如果之前在详情视图，则停留在该视图并显示成功信息
         if (wasInDetailsView) {
           setSuccessMessage(successMsg);
         } else {
-          // Otherwise show result and exit to menu
+          // 否则显示结果并退出到菜单
           setResult(successMsg);
           setTimeout(setViewState, 2000, { type: 'menu' as const });
         }
@@ -337,11 +337,11 @@ export function ManageMarketplaces({
     }
   };
 
-  // Handle confirming marketplace removal
+  // 处理确认移除市场
   const confirmRemove = async () => {
     if (!selectedMarketplace) return;
 
-    // Mark for removal and apply
+    // 标记为待移除并应用
     const newStates = marketplaceStates.map(state =>
       state.name === selectedMarketplace.name ? { ...state, pendingRemove: true } : state,
     );
@@ -349,7 +349,7 @@ export function ManageMarketplaces({
     await applyChanges(newStates);
   };
 
-  // Build menu options for details view
+  // 为详情视图构建菜单选项
   const buildDetailsMenuOptions = (
     marketplace: MarketplaceState | null,
   ): Array<{ label: string; secondaryLabel?: string; value: string }> => {
@@ -373,7 +373,7 @@ export function ManageMarketplaces({
       },
     ];
 
-    // Only show auto-update toggle if auto-updater is not globally disabled
+    // 只有在自动更新器未被全局禁用时才显示自动更新开关
     if (!shouldSkipPluginAutoupdate()) {
       options.push({
         label: marketplace.autoUpdate ? 'Disable auto-update' : 'Enable auto-update',
@@ -386,25 +386,25 @@ export function ManageMarketplaces({
     return options;
   };
 
-  // Handle toggling auto-update for a marketplace
+  // 处理切换某个市场的自动更新
   const handleToggleAutoUpdate = async (marketplace: MarketplaceState) => {
     const newAutoUpdate = !marketplace.autoUpdate;
     try {
       await setMarketplaceAutoUpdate(marketplace.name, newAutoUpdate);
 
-      // Update local state
+      // 更新本地状态
       setMarketplaceStates(prev =>
         prev.map(state => (state.name === marketplace.name ? { ...state, autoUpdate: newAutoUpdate } : state)),
       );
 
-      // Update selected marketplace reference
+      // 更新所选市场的引用
       setSelectedMarketplace(prev => (prev ? { ...prev, autoUpdate: newAutoUpdate } : prev));
     } catch (err) {
       setProcessError(err instanceof Error ? err.message : 'Failed to update setting');
     }
   };
 
-  // Escape in details or confirm-remove view - go back to list
+  // 在详情或确认移除视图按下 Escape - 返回列表
   useKeybinding(
     'confirm:no',
     () => {
@@ -417,7 +417,7 @@ export function ManageMarketplaces({
     },
   );
 
-  // Escape in list view with pending changes - clear pending changes
+  // 在有待处理更改的列表视图按下 Escape - 清除待处理更改
   useKeybinding(
     'confirm:no',
     () => {
@@ -436,7 +436,7 @@ export function ManageMarketplaces({
     },
   );
 
-  // Escape in list view without pending changes - exit to parent menu
+  // 在无待处理更改的列表视图按下 Escape - 退出到父菜单
   useKeybinding(
     'confirm:no',
     () => {
@@ -448,7 +448,7 @@ export function ManageMarketplaces({
     },
   );
 
-  // List view — navigation (up/down/enter via configurable keybindings)
+  // 列表视图 —— 导航（通过可配置的快捷键实现 上/下/回车）
   useKeybindings(
     {
       'select:previous': () => setSelectedIndex(prev => Math.max(0, prev - 1)),
@@ -475,7 +475,7 @@ export function ManageMarketplaces({
     { context: 'Select', isActive: !isProcessing && internalView === 'list' },
   );
 
-  // List view — marketplace-specific actions (u/r shortcuts)
+  // 列表视图 —— 市场专用操作（u/r 快捷键）
   useInput(
     input => {
       const marketplaceIndex = selectedIndex - 1;
@@ -502,7 +502,7 @@ export function ManageMarketplaces({
     { isActive: !isProcessing && internalView === 'list' },
   );
 
-  // Details view — navigation
+  // 详情视图 —— 导航
   useKeybindings(
     {
       'select:previous': () => setDetailsMenuIndex(prev => Math.max(0, prev - 1)),
@@ -538,7 +538,7 @@ export function ManageMarketplaces({
     },
   );
 
-  // Confirm-remove view — y/n input
+  // 确认移除视图 —— y/n 输入
   useInput(
     input => {
       if (input === 'y' || input === 'Y') {
@@ -562,7 +562,7 @@ export function ManageMarketplaces({
           <Text bold>Manage marketplaces</Text>
         </Box>
 
-        {/* Add Marketplace option */}
+        {/* Add Marketplace 选项 */}
         <Box flexDirection="row" gap={1}>
           <Text color="suggestion">{figures.pointer} +</Text>
           <Text bold color="suggestion">
@@ -596,7 +596,7 @@ export function ManageMarketplaces({
     );
   }
 
-  // Show confirmation dialog
+  // 显示确认对话框
   if (internalView === 'confirm-remove' && selectedMarketplace) {
     const pluginCount = selectedMarketplace.installedPlugins?.length || 0;
     return (
@@ -631,10 +631,10 @@ export function ManageMarketplaces({
     );
   }
 
-  // Show marketplace details
+  // 显示市场详情
   if (internalView === 'details' && selectedMarketplace) {
-    // Check if this marketplace is currently being processed
-    // Check pendingUpdate first so we show updating state immediately when user presses Enter
+    // 检查该市场是否正在处理中
+    // 优先检查 pendingUpdate，以便在用户按下回车时立即显示更新状态
     const isUpdating = selectedMarketplace.pendingUpdate || isProcessing;
 
     const menuOptions = buildDetailsMenuOptions(selectedMarketplace);
@@ -649,7 +649,7 @@ export function ManageMarketplaces({
           </Text>
         </Box>
 
-        {/* Installed plugins section */}
+        {/* 已安装插件区段 */}
         {selectedMarketplace.installedPlugins && selectedMarketplace.installedPlugins.length > 0 && (
           <Box flexDirection="column" marginTop={1}>
             <Text bold>
@@ -670,7 +670,7 @@ export function ManageMarketplaces({
           </Box>
         )}
 
-        {/* Processing indicator */}
+        {/* 处理中指示器 */}
         {isUpdating && (
           <Box marginTop={1} flexDirection="column">
             <Text color="claude">Updating marketplace…</Text>
@@ -678,21 +678,21 @@ export function ManageMarketplaces({
           </Box>
         )}
 
-        {/* Success message */}
+        {/* 成功消息 */}
         {!isUpdating && successMessage && (
           <Box marginTop={1}>
             <Text color="claude">{successMessage}</Text>
           </Box>
         )}
 
-        {/* Error message */}
+        {/* 错误消息 */}
         {!isUpdating && processError && (
           <Box marginTop={1}>
             <Text color="error">{processError}</Text>
           </Box>
         )}
 
-        {/* Menu options */}
+        {/* 菜单选项 */}
         {!isUpdating && (
           <Box flexDirection="column" marginTop={1}>
             {menuOptions.map((option, idx) => {
@@ -710,7 +710,7 @@ export function ManageMarketplaces({
           </Box>
         )}
 
-        {/* Show explanatory text at the bottom when auto-update is enabled */}
+        {/* 当自动更新启用时在底部显示说明文字 */}
         {!isUpdating && !shouldSkipPluginAutoupdate() && selectedMarketplace.autoUpdate && (
           <Box marginTop={1}>
             <Text dimColor>
@@ -745,7 +745,7 @@ export function ManageMarketplaces({
     );
   }
 
-  // Show marketplace list
+  // 显示市场列表
   const { updateCount, removeCount } = getPendingCounts();
 
   return (
@@ -754,7 +754,7 @@ export function ManageMarketplaces({
         <Text bold>Manage marketplaces</Text>
       </Box>
 
-      {/* Add Marketplace option */}
+      {/* Add Marketplace 选项 */}
       <Box flexDirection="row" gap={1} marginBottom={1}>
         <Text color={selectedIndex === 0 ? 'suggestion' : undefined}>
           {selectedIndex === 0 ? figures.pointer : ' '} +
@@ -764,12 +764,12 @@ export function ManageMarketplaces({
         </Text>
       </Box>
 
-      {/* Marketplace list */}
+      {/* 市场列表 */}
       <Box flexDirection="column">
         {marketplaceStates.map((state, idx) => {
-          const isSelected = idx + 1 === selectedIndex; // +1 because Add Marketplace is at index 0
+          const isSelected = idx + 1 === selectedIndex; // +1 因为 Add Marketplace 位于索引 0
 
-          // Build status indicators
+          // 构建状态指示器
           const indicators: string[] = [];
           if (state.pendingUpdate) indicators.push('UPDATE');
           if (state.pendingRemove) indicators.push('REMOVE');
@@ -802,7 +802,7 @@ export function ManageMarketplaces({
         })}
       </Box>
 
-      {/* Pending changes summary */}
+      {/* 待处理更改汇总 */}
       {hasPendingChanges() && (
         <Box marginTop={1} flexDirection="column">
           <Text>
@@ -821,14 +821,14 @@ export function ManageMarketplaces({
         </Box>
       )}
 
-      {/* Processing indicator */}
+      {/* 处理中指示器 */}
       {isProcessing && (
         <Box marginTop={1}>
           <Text color="claude">Processing changes…</Text>
         </Box>
       )}
 
-      {/* Error display */}
+      {/* 错误显示 */}
       {processError && (
         <Box marginTop={1}>
           <Text color="error">{processError}</Text>

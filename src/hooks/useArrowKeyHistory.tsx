@@ -10,38 +10,38 @@ import type { HistoryEntry, PastedContent } from '../utils/config.js';
 
 export type HistoryMode = PromptInputMode;
 
-// Load history entries in chunks to reduce disk reads on rapid keypresses
+// 按块加载历史条目以减少快速按键时的磁盘读取
 const HISTORY_CHUNK_SIZE = 10;
 
-// Shared state for batching concurrent load requests into a single disk read
-// Mode filter is included to ensure we don't mix filtered and unfiltered caches
+// 共享状态，用于将并发加载请求批处理为单次磁盘读取
+// 包含模式过滤器以确保我们不会混合过滤和未过滤的缓存
 let pendingLoad: Promise<HistoryEntry[]> | null = null;
 let pendingLoadTarget = 0;
 let pendingLoadModeFilter: HistoryMode | undefined;
 
 async function loadHistoryEntries(minCount: number, modeFilter?: HistoryMode): Promise<HistoryEntry[]> {
-  // Round up to next chunk to avoid repeated small reads
+  // 向上取整到下一个块以避免重复的小读取
   const target = Math.ceil(minCount / HISTORY_CHUNK_SIZE) * HISTORY_CHUNK_SIZE;
 
-  // If a load is already pending with the same mode filter and will satisfy our needs, wait for it
+  // 如果已经有一个具有相同模式过滤器的加载正在进行且将满足我们的需求，等待它
   if (pendingLoad && pendingLoadTarget >= target && pendingLoadModeFilter === modeFilter) {
     return pendingLoad;
   }
 
-  // If a load is pending but won't satisfy our needs or has different filter, we need to wait for it
-  // to complete first, then start a new one (can't interrupt an ongoing read)
+  // 如果有加载正在进行但无法满足我们的需求或有不同的过滤器，我们需要等待它
+  // 完成，然后开始新的（无法中断正在进行的读取）
   if (pendingLoad) {
     await pendingLoad;
   }
 
-  // Start a new load
+  // 开始新的加载
   pendingLoadTarget = target;
   pendingLoadModeFilter = modeFilter;
   pendingLoad = (async () => {
     const entries: HistoryEntry[] = [];
     let loaded = 0;
     for await (const entry of getHistory()) {
-      // If mode filter is specified, only include entries that match the mode
+      // 如果指定了模式过滤器，只包含匹配模式的条目
       if (modeFilter) {
         const entryMode = getModeFromInput(entry.display);
         if (entryMode !== modeFilter) {
@@ -85,26 +85,26 @@ export function useArrowKeyHistory(
   const hasShownSearchHintRef = useRef(false);
   const { addNotification, removeNotification } = useNotifications();
 
-  // Cache loaded history entries
+  // 缓存已加载的历史条目
   const historyCache = useRef<HistoryEntry[]>([]);
-  // Track which mode filter the cache was loaded with
+  // 跟踪缓存加载时使用的模式过滤器
   const historyCacheModeFilter = useRef<HistoryMode | undefined>(undefined);
 
-  // Synchronous tracker for history index to avoid stale closure issues
-  // React state updates are async, so rapid keypresses can see stale values
+  // 历史索引的同步跟踪器以避免过时闭包问题
+  // React 状态更新是异步的，所以快速按键可能看到过时的值
   const historyIndexRef = useRef(0);
 
-  // Track the mode filter that was active when history navigation started
-  // This is set on the first arrow press and stays fixed until reset
+  // 跟踪历史导航开始时活动的模式过滤器
+  // 这在第一次箭头按下时设置并保持固定直到重置
   const initialModeFilterRef = useRef<HistoryMode | undefined>(undefined);
 
-  // Refs to track current input values for draft preservation
-  // These ensure we capture the draft with the latest values, not stale closure values
+  // 用于跟踪当前输入值的 ref，以便草稿保留
+  // 这些确保我们使用最新值捕获草稿，而不是过时的闭包值
   const currentInputRef = useRef(currentInput);
   const pastedContentsRef = useRef(pastedContents);
   const currentModeRef = useRef(currentMode);
 
-  // Keep refs in sync with props (synchronous update on each render)
+  // 保持 ref 与 props 同步（每次渲染时同步更新）
   currentInputRef.current = currentInput;
   pastedContentsRef.current = pastedContents;
   currentModeRef.current = currentMode;
@@ -148,7 +148,7 @@ export function useArrowKeyHistory(
   }, [addNotification]);
 
   const onHistoryUp = useCallback((): void => {
-    // Capture and increment synchronously to handle rapid keypresses
+    // 同步捕获并递增以处理快速按键
     const targetIndex = historyIndexRef.current;
     historyIndexRef.current++;
 
@@ -159,8 +159,8 @@ export function useArrowKeyHistory(
     if (targetIndex === 0) {
       initialModeFilterRef.current = modeAtPress === 'bash' ? modeAtPress : undefined;
 
-      // Save draft synchronously using refs for the latest values
-      // This ensures we capture the draft before any async operations or re-renders
+      // 使用 ref 同步保存草稿以获取最新值
+      // 这确保我们在任何异步操作或重新渲染之前捕获草稿
       const hasInput = inputAtPress.trim() !== '';
       setLastShownHistoryEntry(
         hasInput
@@ -176,31 +176,31 @@ export function useArrowKeyHistory(
     const modeFilter = initialModeFilterRef.current;
 
     void (async () => {
-      const neededCount = targetIndex + 1; // How many entries we need
+      const neededCount = targetIndex + 1; // 我们需要多少条目
 
-      // If mode filter changed, invalidate cache
+      // 如果模式过滤器更改，使缓存失效
       if (historyCacheModeFilter.current !== modeFilter) {
         historyCache.current = [];
         historyCacheModeFilter.current = modeFilter;
         historyIndexRef.current = 0;
       }
 
-      // Load more entries if needed
+      // 如果需要加载更多条目
       if (historyCache.current.length < neededCount) {
-        // Batches concurrent requests - rapid keypresses share a single disk read
+        // 批处理并发请求 - 快速按键共享单次磁盘读取
         const entries = await loadHistoryEntries(neededCount, modeFilter);
-        // Only update cache if we loaded more than currently cached
-        // (handles race condition where multiple loads complete out of order)
+        // 仅当我们加载的内容多于当前缓存时才更新缓存
+        // （处理多个加载乱序完成的竞争条件）
         if (entries.length > historyCache.current.length) {
           historyCache.current = entries;
         }
       }
 
-      // Check if we can navigate
+      // 检查是否可以导航
       if (targetIndex >= historyCache.current.length) {
-        // Rollback the ref since we can't navigate
+        // 回滚 ref，因为我们无法导航
         historyIndexRef.current--;
-        // Keep the draft intact - user stays on their current input
+        // 保持草稿完整 - 用户停留在当前输入
         return;
       }
 
@@ -208,7 +208,7 @@ export function useArrowKeyHistory(
       setHistoryIndex(newIndex);
       updateInput(historyCache.current[targetIndex], true);
 
-      // Show hint once per session after navigating through 2 history entries
+      // 在每次会话中导航通过 2 个历史条目后显示一次提示
       if (newIndex >= 2 && !hasShownSearchHintRef.current) {
         hasShownSearchHintRef.current = true;
         showSearchHint();
@@ -217,7 +217,7 @@ export function useArrowKeyHistory(
   }, [updateInput, showSearchHint]);
 
   const onHistoryDown = useCallback((): boolean => {
-    // Use the ref for consistent reads
+    // 使用 ref 保持一致的读取
     const currentIndex = historyIndexRef.current;
     if (currentIndex > 1) {
       historyIndexRef.current--;
@@ -227,7 +227,7 @@ export function useArrowKeyHistory(
       historyIndexRef.current = 0;
       setHistoryIndex(0);
       if (lastShownHistoryEntry) {
-        // Restore the draft with its saved mode if available
+        // 恢复草稿及其保存的模式（如果可用）
         const savedMode = lastShownHistoryEntry.mode;
         if (savedMode) {
           setInputWithCursor(lastShownHistoryEntry.display, savedMode, lastShownHistoryEntry.pastedContents ?? {});
@@ -235,7 +235,7 @@ export function useArrowKeyHistory(
           updateInput(lastShownHistoryEntry);
         }
       } else {
-        // When in filtered mode, stay in that mode when clearing input
+        // 在过滤模式下，清除输入时保持该模式
         setInputWithCursor('', initialModeFilterRef.current ?? 'prompt', {});
       }
     }

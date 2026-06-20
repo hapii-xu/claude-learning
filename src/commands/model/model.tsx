@@ -64,7 +64,7 @@ function ModelPickerWrapper({
       message += ` with ${chalk.bold(effort)} effort`;
     }
 
-    // Turn off fast mode if switching to unsupported model
+    // 切换到不支持的模型时关闭 fast mode
     let wasFastModeToggledOn;
     if (isFastModeEnabled()) {
       clearFastModeCooldown();
@@ -74,7 +74,7 @@ function ModelPickerWrapper({
           fastMode: false,
         }));
         wasFastModeToggledOn = false;
-        // Do not update fast mode in settings since this is an automatic downgrade
+        // 不要在 settings 中更新 fast mode，因为这是自动降级
       } else if (isFastModeSupportedByModel(model) && isFastModeAvailable() && isFastMode) {
         message += ` · Fast mode ON`;
         wasFastModeToggledOn = true;
@@ -86,7 +86,7 @@ function ModelPickerWrapper({
     }
 
     if (wasFastModeToggledOn === false) {
-      // Fast mode was toggled off, show suffix after extra usage billing
+      // fast mode 被关闭，在 extra usage 计费后显示后缀
       message += ` · Fast mode OFF`;
     }
 
@@ -127,7 +127,7 @@ function SetModelAndClose({
         return;
       }
 
-      // @[MODEL LAUNCH]: Update check for 1M access.
+      // @[MODEL LAUNCH]: 更新对 1M 访问的检查。
       if (model && isOpus1mUnavailable(model)) {
         onDone(
           `Opus 4.7 with 1M context is not available for your account. Learn more: https://code.claude.com/docs/en/model-config#extended-context-with-1m`,
@@ -144,22 +144,22 @@ function SetModelAndClose({
         return;
       }
 
-      // Skip validation for default model
+      // 默认模型跳过校验
       if (!model) {
         setModel(null);
         return;
       }
 
-      // Skip validation for known aliases - they're predefined and should work
+      // 已知别名跳过校验 —— 它们是预定义的，应当可用
       if (isKnownAlias(model)) {
         setModel(model);
         return;
       }
 
-      // Validate and set custom model
+      // 校验并设置自定义模型
       try {
-        // Don't use parseUserSpecifiedModel for non-aliases since it lowercases the input
-        // and model names are case-sensitive
+        // 非 alias 不要用 parseUserSpecifiedModel，因为它会把输入小写化
+        // 而模型名是大小写敏感的
         const { valid, error } = await validateModel(model);
 
         if (valid) {
@@ -193,7 +193,7 @@ function SetModelAndClose({
             fastMode: false,
           }));
           wasFastModeToggledOn = false;
-          // Do not update fast mode in settings since this is an automatic downgrade
+          // 不要在 settings 中更新 fast mode，因为这是自动降级
         } else if (isFastModeSupportedByModel(modelValue) && isFastMode) {
           message += ` · Fast mode ON`;
           wasFastModeToggledOn = true;
@@ -205,7 +205,7 @@ function SetModelAndClose({
       }
 
       if (wasFastModeToggledOn === false) {
-        // Fast mode was toggled off, show suffix after extra usage billing
+        // fast mode 被关闭，在 extra usage 计费后显示后缀
         message += ` · Fast mode OFF`;
       }
 
@@ -229,8 +229,8 @@ function isOpus1mUnavailable(model: string): boolean {
 
 function isSonnet1mUnavailable(model: string): boolean {
   const m = model.toLowerCase();
-  // Warn about Sonnet and Sonnet 4.6, but not Sonnet 4.5 since that had
-  // a different access criteria.
+  // 对 Sonnet 和 Sonnet 4.6 发出警告，但不包括 Sonnet 4.5，因为它的
+  // 访问判定标准不同。
   return !checkSonnet1mAccess() && (m.includes('sonnet[1m]') || m.includes('sonnet-4-6[1m]'));
 }
 

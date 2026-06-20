@@ -14,8 +14,8 @@ import type { LocalJSXCommandOnDone } from '../../types/command.js';
 import type { AppState } from '../../state/AppState.js';
 
 /**
- * Compute the default directory for assistant daemon installation.
- * Prefers git root of cwd; falls back to cwd itself.
+ * 计算 assistant daemon 安装的默认目录。
+ * 优先使用 cwd 的 git 根目录；否则回退到 cwd 本身。
  */
 export async function computeDefaultInstallDir(): Promise<string> {
   const cwd = process.cwd();
@@ -31,12 +31,11 @@ interface WizardProps {
 }
 
 /**
- * Install wizard for assistant mode. Shown when `claude assistant` finds
- * zero CCR sessions. Guides the user to start a daemon that registers
- * a bridge → CCR cloud session.
+ * assistant 模式的安装向导。当 `claude assistant` 找不到任何 CCR 会话时显示。
+ * 引导用户启动一个 daemon，由它注册 bridge → CCR 云端会话。
  *
- * After installation, main.tsx tells the user to run `claude assistant`
- * again in a few seconds (daemon needs time to register the bridge session).
+ * 安装完成后，main.tsx 会提示用户几秒后再次运行 `claude assistant`
+ * （daemon 需要一点时间来注册 bridge 会话）。
  */
 export function NewInstallWizard({ defaultDir, onInstalled, onCancel, onError }: WizardProps): React.ReactNode {
   useRegisterOverlay('assistant-install-wizard');
@@ -79,9 +78,9 @@ export function NewInstallWizard({ defaultDir, onInstalled, onCancel, onError }:
         onError(`Failed to start daemon: ${err.message}`);
       });
 
-      // Give the daemon a moment to initialize, then report success.
-      // The daemon still needs several more seconds to register the bridge
-      // and create a CCR session — main.tsx will tell the user to reconnect.
+      // 给 daemon 一点初始化时间，然后上报成功。
+      // daemon 还需要几秒来注册 bridge 并创建 CCR 会话 ——
+      // main.tsx 会提示用户重新连接。
       setTimeout(() => {
         onInstalled(dir);
       }, 1500);
@@ -120,10 +119,10 @@ export function NewInstallWizard({ defaultDir, onInstalled, onCancel, onError }:
 }
 
 /**
- * /assistant command implementation.
+ * /assistant 命令实现。
  *
- * First invocation activates KAIROS (sets kairosActive, enables brief
- * and proactive tools). Subsequent invocations toggle the assistant panel.
+ * 首次调用会激活 KAIROS（设置 kairosActive，启用 brief 与 proactive 工具）。
+ * 后续调用切换 assistant 面板的可见性。
  */
 export async function call(
   onDone: LocalJSXCommandOnDone,
@@ -132,7 +131,7 @@ export async function call(
 ): Promise<React.ReactNode> {
   const { setAppState, getAppState } = context;
 
-  // First invocation: activate KAIROS
+  // 首次调用：激活 KAIROS
   if (!getKairosActive()) {
     setKairosActive(true);
     setAppState(
@@ -147,7 +146,7 @@ export async function call(
     return null;
   }
 
-  // Subsequent invocations: toggle panel visibility
+  // 后续调用：切换面板可见性
   const current = getAppState();
   const isVisible = (current as Record<string, unknown>).assistantPanelVisible;
 

@@ -9,8 +9,8 @@ function isEnabled(): boolean {
   if (feature('DAEMON')) {
     return isBridgeEnabled()
   }
-  // DAEMON feature disabled — still allow the command but warn at runtime
-  // that headless/daemon worker mode is unavailable.
+  // DAEMON feature 被禁用 — 仍然允许该命令，但在运行时警告
+  // headless/daemon worker 模式不可用。
   return isBridgeEnabled()
 }
 

@@ -1,6 +1,6 @@
 /**
- * Regression tests for launchCommand factory (H2 finding).
- * Tests MUST fail before the factory is created, then pass after.
+ * launchCommand 工厂的回归测试（H2 结论）。
+ * 工厂创建前这些测试必须失败，创建后必须通过。
  */
 import { describe, test, expect, mock } from 'bun:test'
 import { logMock } from '../../../../tests/mocks/log.js'
@@ -17,13 +17,13 @@ import type { LaunchCommandOptions } from '../launchCommand.js'
 
 let launchCommand: typeof import('../launchCommand.js').launchCommand
 
-// Lazy import so mocks are in place first
+// 懒加载 import，确保 mock 先就位
 const loadModule = async () => {
   const mod = await import('../launchCommand.js')
   launchCommand = mod.launchCommand
 }
 
-// Simple parsed union for tests
+// 用于测试的简单 parsed 联合类型
 type TestParsed =
   | { action: 'greet'; name: string }
   | { action: 'invalid'; reason: string }
@@ -86,7 +86,7 @@ describe('launchCommand factory', () => {
     expect(onDone).toHaveBeenCalledTimes(1)
     const [msg] = onDone.mock.calls[0] as unknown as [string]
     expect(msg).toContain('empty args')
-    // errorView should return something (not null from dispatch)
+    // errorView 应返回某个值（而非 dispatch 的 null）
     expect(result).not.toBeUndefined()
   })
 

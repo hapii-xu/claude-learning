@@ -2,7 +2,7 @@ import { afterEach, describe, expect, mock, test } from 'bun:test'
 import { debugMock } from '../../../../tests/mocks/debug.js'
 import { logMock } from '../../../../tests/mocks/log.js'
 
-// ─── Mocks ───
+// ─── Mock（模拟）───
 
 const noop = () => {}
 
@@ -23,7 +23,7 @@ mock.module('src/utils/task/diskOutput.js', () => ({
   getTaskOutputDelta: async () => null,
 }))
 
-// Capture enqueuePendingNotification calls for verification
+// 捕获 enqueuePendingNotification 调用以供校验
 const enqueuedNotifications: string[] = []
 mock.module('src/utils/messageQueueManager.js', () => ({
   enqueuePendingNotification: (cmd: any) => {
@@ -91,7 +91,7 @@ mock.module('src/utils/collapseReadSearch.js', () => ({
   getSearchExtraToolsOrReadInfo: () => undefined,
 }))
 
-// ─── Import after mocks ───
+// ─── 在 mock 之后导入 ───
 
 const {
   createProgressTracker,
@@ -106,7 +106,7 @@ const {
   isLocalAgentTask,
 } = await import('../LocalAgentTask.js')
 
-// ─── Helpers ───
+// ─── 辅助函数 ───
 
 type AppStateLike = { tasks: Record<string, any> }
 type SetAppStateLike = (f: (prev: AppStateLike) => AppStateLike) => void
@@ -163,7 +163,7 @@ afterEach(() => {
   enqueuedNotifications.length = 0
 })
 
-// ─── Tests ───
+// ─── 测试 ───
 
 describe('createProgressTracker', () => {
   test('returns initial state with zero counts', () => {
@@ -433,7 +433,7 @@ describe('enqueueAgentNotification', () => {
       setAppState: setAppState as any,
     })
 
-    // Second call — notified flag already set by first call
+    // 第二次调用 —— notified 标志已由第一次调用设置
     enqueueAgentNotification({
       taskId: 'test-agent-001',
       description: 'test',

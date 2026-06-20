@@ -27,7 +27,7 @@ async function createWorkflowFile(
     secretExists?: boolean
   },
 ): Promise<void> {
-  // Check if workflow file already exists
+  // 检查工作流文件是否已存在
   const checkFileResult = await execFileNoThrow('gh', [
     'api',
     `repos/${repoName}/contents/${workflowPath}`,
@@ -42,13 +42,13 @@ async function createWorkflowFile(
 
   let content = workflowContent
   if (secretName === 'CLAUDE_CODE_OAUTH_TOKEN') {
-    // For OAuth tokens, use the claude_code_oauth_token parameter
+    // 对于 OAuth token，使用 claude_code_oauth_token 参数
     content = workflowContent.replace(
       /anthropic_api_key: \$\{\{ secrets\.ANTHROPIC_API_KEY \}\}/g,
       `claude_code_oauth_token: \${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`,
     )
   } else if (secretName !== 'ANTHROPIC_API_KEY') {
-    // For other custom secret names, keep using anthropic_api_key parameter
+    // 对于其他自定义 secret 名称，继续使用 anthropic_api_key 参数
     content = workflowContent.replace(
       /anthropic_api_key: \$\{\{ secrets\.ANTHROPIC_API_KEY \}\}/g,
       `anthropic_api_key: \${{ secrets.${secretName} }}`,
@@ -134,7 +134,7 @@ export async function setupGitHubActions(
       ...context,
     })
 
-    // Check if repository exists
+    // 检查仓库是否存在
     const repoCheckResult = await execFileNoThrow('gh', [
       'api',
       `repos/${repoName}`,
@@ -153,7 +153,7 @@ export async function setupGitHubActions(
       )
     }
 
-    // Get default branch
+    // 获取默认分支
     const defaultBranchResult = await execFileNoThrow('gh', [
       'api',
       `repos/${repoName}`,
@@ -173,7 +173,7 @@ export async function setupGitHubActions(
     }
     const defaultBranch = defaultBranchResult.stdout.trim()
 
-    // Get SHA of default branch
+    // 获取默认分支的 SHA
     const shaResult = await execFileNoThrow('gh', [
       'api',
       `repos/${repoName}/git/ref/heads/${defaultBranch}`,
@@ -195,7 +195,7 @@ export async function setupGitHubActions(
 
     if (!skipWorkflow) {
       updateProgress()
-      // Create new branch
+      // 创建新分支
       branchName = `add-claude-github-actions-${Date.now()}`
       const createBranchResult = await execFileNoThrow('gh', [
         'api',
@@ -218,7 +218,7 @@ export async function setupGitHubActions(
       }
 
       updateProgress()
-      // Create selected workflow files
+      // 创建已选中的工作流文件
       const workflows = []
 
       if (selectedWorkflows.includes('claude')) {
@@ -251,7 +251,7 @@ export async function setupGitHubActions(
     }
 
     updateProgress()
-    // Set the API key as a secret if provided
+    // 如果提供了 API key，将其设置为 secret
     if (apiKeyOrOAuthToken) {
       const setSecretResult = await execFileNoThrow('gh', [
         'secret',
@@ -284,7 +284,7 @@ export async function setupGitHubActions(
 
     if (!skipWorkflow && branchName) {
       updateProgress()
-      // Create PR template URL instead of creating PR directly
+      // 创建 PR 模板 URL，而不是直接创建 PR
       const compareUrl = `https://github.com/${repoName}/compare/${defaultBranch}...${branchName}?quick_pull=1&title=${encodeURIComponent(PR_TITLE)}&body=${encodeURIComponent(PR_BODY)}`
 
       await openBrowser(compareUrl)

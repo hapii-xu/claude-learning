@@ -20,13 +20,13 @@ function hasSummarySinceLastUserTurn(messages: readonly Message[]): boolean {
 }
 
 /**
- * Appends a "while you were away" summary message after the terminal has been
- * blurred for 5 minutes. Fires only when (a) 5min since blur, (b) no turn in
- * progress, and (c) no existing away_summary since the last user message.
+ * 在终端失去焦点 5 分钟后追加"你离开时"的摘要消息。
+ * 仅在以下情况触发：(a) 失去焦点后 5 分钟，(b) 没有进行中的回合，
+ * 且 (c) 自上次用户消息以来没有现有的 away_summary。
  *
- * For terminals that don't support DECSET 1004 focus events (CMD, PowerShell),
- * falls back to idle-based detection: starts an idle timer after each turn
- * ends, resets it when the user starts a new turn.
+ * 对于不支持 DECSET 1004 焦点事件的终端（CMD、PowerShell），
+ * 回退到基于空闲的检测：在每个回合结束后启动空闲计时器，
+ * 当用户开始新回合时重置它。
  */
 export function useAwaySummary(
   messages: readonly Message[],
@@ -90,9 +90,9 @@ export function useAwaySummary(
     function onFocusChange(): void {
       const state = getTerminalFocusState()
       if (state === 'blurred' || state === 'unknown') {
-        // For 'unknown' terminals (CMD, PowerShell), treat mount as
-        // potentially away — start idle timer. The isLoading effect
-        // below resets the timer on each turn transition.
+        // 对于"未知"终端（CMD、PowerShell），将挂载视为
+        // 可能离开 —— 启动空闲计时器。下面的 isLoading 效果
+        // 在每次回合转换时重置计时器。
         clearTimer()
         timerRef.current = setTimeout(onBlurTimerFire, BLUR_DELAY_MS)
       } else if (state === 'focused') {
@@ -103,7 +103,7 @@ export function useAwaySummary(
     }
 
     const unsubscribe = subscribeTerminalFocus(onFocusChange)
-    // Handle the case where we're already blurred when the effect mounts
+    // 处理效果挂载时我们已经失去焦点的情况
     onFocusChange()
     generateRef.current = generate
 
@@ -115,7 +115,7 @@ export function useAwaySummary(
     }
   }, [gbEnabled, setMessages])
 
-  // Timer fired mid-turn → fire when turn ends (if still away)
+  // 计时器在回合中期触发 → 在回合结束时触发（如果仍然离开）
   useEffect(() => {
     if (isLoading) return
     if (!pendingRef.current) return
@@ -124,16 +124,16 @@ export function useAwaySummary(
     void generateRef.current?.()
   }, [isLoading])
 
-  // For 'unknown' terminals: use isLoading transitions as presence signal.
-  // User starts a turn → they're present, cancel idle timer.
-  // Turn ends → restart idle timer.
+  // 对于"未知"终端：使用 isLoading 转换作为存在信号。
+  // 用户开始回合 → 他们在，取消空闲计时器。
+  // 回合结束 → 重新启动空闲计时器。
   useEffect(() => {
     if (getTerminalFocusState() !== 'unknown') return
     if (!feature('AWAY_SUMMARY')) return
     if (!gbEnabled) return
 
     if (isLoading) {
-      // User is actively using — cancel idle timer
+      // 用户正在积极使用 —— 取消空闲计时器
       if (timerRef.current !== null) {
         clearTimeout(timerRef.current)
         timerRef.current = null
@@ -142,7 +142,7 @@ export function useAwaySummary(
       abortRef.current = null
       pendingRef.current = false
     } else {
-      // Turn ended — restart idle timer
+      // 回合结束 —— 重新启动空闲计时器
       if (timerRef.current !== null) {
         clearTimeout(timerRef.current)
       }

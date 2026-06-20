@@ -18,16 +18,16 @@ async function launchAndDone(
   signal?: AbortSignal,
 ): Promise<void> {
   const result = await launchRemoteReview(args, context, billingNote);
-  // User hit Escape during the ~5s launch — the dialog already showed
-  // "cancelled" and unmounted, so skip onDone (would write to a dead
-  // transcript slot) and let the caller skip confirmOverage.
+  // 用户在约 5 秒启动过程中按下了 Escape — 对话框已经显示
+  // "cancelled" 并卸载，因此跳过 onDone（否则会写入一个已失效的
+  // transcript slot），并让调用方跳过 confirmOverage。
   if (signal?.aborted) return;
   if (result) {
     onDone(contentBlocksToString(result), { shouldQuery: true });
   } else {
-    // Precondition failures now return specific ContentBlockParam[] above.
-    // null only reaches here on teleport failure (PR mode) or non-github
-    // repo — both are CCR/repo connectivity issues.
+    // Precondition 失败现在已在上方返回具体的 ContentBlockParam[]。
+    // 到这里为 null 仅可能发生在 teleport 失败（PR 模式）或非 github
+    // repo — 两者都是 CCR/repo 连接性问题。
     onDone('Ultrareview failed to launch the remote session. Check that this is a GitHub repo and try again.', {
       display: 'system',
     });
@@ -57,9 +57,9 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
       <UltrareviewOverageDialog
         onProceed={async signal => {
           await launchAndDone(args, context, onDone, ' This review bills as Extra Usage.', signal);
-          // Only persist the confirmation flag after a non-aborted launch —
-          // otherwise Escape-during-launch would leave the flag set and
-          // skip this dialog on the next attempt.
+          // 仅在非中断的启动之后才持久化确认 flag —
+          // 否则启动过程中按 Escape 会使 flag 保持设置状态，
+          // 从而在下一次尝试时跳过该对话框。
           if (!signal.aborted) confirmOverage();
         }}
         onCancel={() => onDone('Ultrareview cancelled.', { display: 'system' })}

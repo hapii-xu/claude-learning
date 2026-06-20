@@ -407,7 +407,7 @@ describe('Opus 4.7 Prompt Engineering Audit', () => {
 
     test('expanded cost asymmetry with multiple scenarios', async () => {
       const prompt = await getFullPrompt()
-      // Simplified prompt conveys cost via "search before saying unknown"
+      // 简化版 prompt 通过 「search before saying unknown」 传达成本概念
       expect(prompt).toContain('search with')
     })
   })

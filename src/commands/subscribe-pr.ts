@@ -5,9 +5,9 @@ import { detectCurrentRepositoryWithHost } from '../utils/detectRepository.js'
 import { getClaudeConfigHomeDir } from '../utils/envUtils.js'
 
 /**
- * File-backed store for PR webhook subscriptions.
- * Each subscription tracks the repo + PR number so the bridge layer
- * (useReplBridge / webhookSanitizer) can filter inbound events.
+ * PR webhook 订阅的文件型存储。
+ * 每条订阅记录 repo 和 PR 编号，供 bridge 层
+ * (useReplBridge / webhookSanitizer) 过滤入站事件使用。
  */
 interface PRSubscription {
   repo: string // "owner/repo"
@@ -37,19 +37,19 @@ function writeSubscriptions(subs: PRSubscription[]): void {
 }
 
 /**
- * Parse a PR URL or number into { repo, prNumber }.
+ * 将 PR URL 或编号解析为 { repo, prNumber }。
  *
- * Accepts:
- *   - Full URL:  https://github.com/owner/repo/pull/123
- *   - Short ref: owner/repo#123
- *   - Bare number: 123  (uses the current git repository)
+ * 接受：
+ *   - 完整 URL：https://github.com/owner/repo/pull/123
+ *   - 短引用：owner/repo#123
+ *   - 纯数字：123（使用当前 git 仓库）
  */
 async function parsePRArg(
   arg: string,
 ): Promise<{ repo: string; prNumber: number } | { error: string }> {
   const trimmed = arg.trim()
 
-  // Full GitHub PR URL
+  // 完整的 GitHub PR URL
   const urlMatch = trimmed.match(
     /^https?:\/\/[^/]+\/([^/]+\/[^/]+)\/pull\/(\d+)/,
   )
@@ -57,13 +57,13 @@ async function parsePRArg(
     return { repo: urlMatch[1]!, prNumber: parseInt(urlMatch[2]!, 10) }
   }
 
-  // Short ref: owner/repo#123
+  // 短引用：owner/repo#123
   const shortMatch = trimmed.match(/^([^/]+\/[^/]+)#(\d+)$/)
   if (shortMatch) {
     return { repo: shortMatch[1]!, prNumber: parseInt(shortMatch[2]!, 10) }
   }
 
-  // Bare number — resolve repo from current git checkout
+  // 纯数字 —— 从当前 git 检出推断 repo
   const numMatch = trimmed.match(/^#?(\d+)$/)
   if (numMatch) {
     const prNumber = parseInt(numMatch[1]!, 10)
@@ -86,7 +86,7 @@ async function parsePRArg(
 const call: LocalCommandCall = async (args, _context) => {
   const trimmed = args.trim()
 
-  // List current subscriptions
+  // 列出当前订阅
   if (!trimmed || trimmed === '--list' || trimmed === 'list') {
     const subs = readSubscriptions()
     if (subs.length === 0) {
@@ -105,7 +105,7 @@ const call: LocalCommandCall = async (args, _context) => {
     }
   }
 
-  // Unsubscribe
+  // 取消订阅
   if (trimmed.startsWith('--remove ') || trimmed.startsWith('remove ')) {
     const rest = trimmed.replace(/^(--remove|remove)\s+/, '')
     const parsed = await parsePRArg(rest)
@@ -130,7 +130,7 @@ const call: LocalCommandCall = async (args, _context) => {
     }
   }
 
-  // Subscribe
+  // 订阅
   const parsed = await parsePRArg(trimmed)
   if ('error' in parsed) {
     return { type: 'text', value: parsed.error }

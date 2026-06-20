@@ -12,7 +12,7 @@ import { debugMock } from '../../../../tests/mocks/debug.js'
 import { logMock } from '../../../../tests/mocks/log.js'
 import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
 
-// Mock side-effect modules first
+// 先 mock 有副作用的依赖模块
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
 
@@ -31,10 +31,10 @@ mock.module('src/utils/teleport/api.js', () => ({
   prepareWorkspaceApiRequest: prepareWorkspaceApiRequestMock,
 }))
 
-// Note: we do NOT mock src/services/auth/hostGuard.js here.
-// The real assertWorkspaceHost() is called with the URL from getOauthConfig()
-// (mocked to https://api.anthropic.com), which passes the host guard.
-// Mocking hostGuard would pollute hostGuard's own test file via Bun process-level cache.
+// 注意：此处我们不 mock src/services/auth/hostGuard.js。
+// 真正的 assertWorkspaceHost() 会用 getOauthConfig()（已被 mock 成 https://api.anthropic.com）
+// 返回的 URL 调用，能通过 host guard。
+// 如果 mock hostGuard，会通过 Bun 进程级缓存污染 hostGuard 自己的测试文件。
 
 // ── Axios mock ──────────────────────────────────────────────────────────────
 const axiosGetMock = mock(async () => ({}))
@@ -56,7 +56,7 @@ axiosHandle.stubs.post = axiosPostMock
 axiosHandle.stubs.delete = axiosDeleteMock
 axiosHandle.stubs.isAxiosError = axiosIsAxiosError
 
-// Lazy import after mocks are in place
+// 在 mock 设置好之后再懒加载模块
 let listAgents: typeof import('../agentsApi.js').listAgents
 let createAgent: typeof import('../agentsApi.js').createAgent
 let deleteAgent: typeof import('../agentsApi.js').deleteAgent
@@ -80,16 +80,16 @@ beforeEach(() => {
   axiosPostMock.mockClear()
   axiosDeleteMock.mockClear()
   prepareWorkspaceApiRequestMock.mockClear()
-  // Ensure ANTHROPIC_API_KEY is set for happy-path tests
+  // 为 happy-path 测试确保 ANTHROPIC_API_KEY 已设置
   process.env['ANTHROPIC_API_KEY'] = mockApiKey
 })
 
 afterEach(() => {
-  // Clean up env var to avoid test pollution
+  // 清理环境变量以避免测试间污染
   delete process.env['ANTHROPIC_API_KEY']
 })
 
-// afterEach handled above
+// afterEach 已在上方处理
 
 describe('listAgents', () => {
   test('returns agents on 200', async () => {
@@ -244,7 +244,7 @@ describe('runAgent', () => {
   })
 })
 
-// ── M3 regression: createAgent must use system timezone, not hardcoded UTC ──
+// ── M3 回归：createAgent 必须使用系统时区，而非硬编码 UTC ──
 describe('createAgent M3: timezone uses system TZ not hardcoded UTC', () => {
   test('createAgent passes system timezone to the API body', async () => {
     axiosPostMock.mockResolvedValueOnce({
@@ -267,18 +267,18 @@ describe('createAgent M3: timezone uses system TZ not hardcoded UTC', () => {
     ][]
     const body = calls[0]?.[1]
     expect(body).toHaveProperty('timezone')
-    // Must NOT be the hardcoded 'UTC' string — must be a real timezone string
-    // In CI the system TZ may be UTC, but the field must still be present and a string.
+    // 绝不能是硬编码的 'UTC' 字符串 —— 必须是真实的时区字符串
+    // CI 里系统时区可能是 UTC，但该字段必须存在且是字符串。
     expect(typeof body?.timezone).toBe('string')
     expect((body?.timezone as string).length).toBeGreaterThan(0)
   })
 })
 
-// ── M5 regression: withRetry must honor Retry-After header ──
+// ── M5 回归：withRetry 必须遵守 Retry-After 头 ──
 describe('withRetry M5: honors Retry-After header on 5xx', () => {
   test('waits at least Retry-After seconds before retrying on 5xx', async () => {
-    // First call: 503 with Retry-After: 0 (immediate, so test is fast)
-    // Second call: success
+    // 第一次调用：503 + Retry-After: 0（立即重试，保证测试快速）
+    // 第二次调用：成功
     const serverErr = Object.assign(new Error('Service Unavailable'), {
       isAxiosError: true,
       response: { status: 503, data: {}, headers: { 'retry-after': '0' } },
@@ -296,13 +296,13 @@ describe('withRetry M5: honors Retry-After header on 5xx', () => {
     )
 
     const result = await listAgents()
-    // Should have retried and succeeded on second attempt
+    // 应当重试并在第二次尝试时成功
     expect(result).toHaveLength(0)
     expect(axiosGetMock).toHaveBeenCalledTimes(2)
   })
 })
 
-// ── Regression: auth must use prepareWorkspaceApiRequest (not subscription OAuth) ──
+// ── 回归：鉴权必须使用 prepareWorkspaceApiRequest（而非订阅型 OAuth）──
 describe('regression: uses prepareWorkspaceApiRequest for auth', () => {
   test('listAgents calls prepareWorkspaceApiRequest to obtain workspace API key', async () => {
     prepareWorkspaceApiRequestMock.mockClear()
@@ -314,7 +314,7 @@ describe('regression: uses prepareWorkspaceApiRequest for auth', () => {
   })
 })
 
-// ── Invariant: buildHeaders must return x-api-key, not Authorization ─────────
+// ── 不变式：buildHeaders 必须返回 x-api-key，而非 Authorization ─────────
 describe('invariant: x-api-key present, no Authorization, no x-organization-uuid', () => {
   test('buildHeaders returns x-api-key header (workspace key)', async () => {
     axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
@@ -361,9 +361,9 @@ describe('invariant: x-api-key present, no Authorization, no x-organization-uuid
   })
 
   test('throws 501 when ANTHROPIC_API_KEY is missing (all 3 retries fail)', async () => {
-    // withRetry retries 5xx errors (statusCode >= 500 including 501).
-    // buildHeaders throws AgentsApiError(msg, 501) for config errors.
-    // All 3 retry attempts must fail for the error to propagate.
+    // withRetry 会重试 5xx 错误（statusCode >= 500，包含 501）。
+    // buildHeaders 在配置错误时抛出 AgentsApiError(msg, 501)。
+    // 必须 3 次重试全部失败，错误才会向外抛出。
     const missingKeyError = new Error('ANTHROPIC_API_KEY is required')
     prepareWorkspaceApiRequestMock
       .mockRejectedValueOnce(missingKeyError)
@@ -373,7 +373,7 @@ describe('invariant: x-api-key present, no Authorization, no x-organization-uuid
   }, 5000)
 
   test('request goes to api.anthropic.com (host guard passes for correct host)', async () => {
-    // The real assertWorkspaceHost() runs and passes since BASE_API_URL is api.anthropic.com
+    // 真正的 assertWorkspaceHost() 会执行并通过，因为 BASE_API_URL 是 api.anthropic.com
     axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })
     await listAgents()
     const calls = axiosGetMock.mock.calls as unknown as [string, unknown][]

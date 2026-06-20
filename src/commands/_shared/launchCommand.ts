@@ -1,13 +1,13 @@
 /**
- * launchCommand — generic factory for local-jsx command implementations.
+ * launchCommand —— 用于 local-jsx 命令实现的通用工厂。
  *
- * Encapsulates the repeated boilerplate across the 6 command launch files:
- *   - args parsing + invalid-args handling
- *   - dispatch error capture + onDone error message
- *   - errorView rendering
- *   - React.createElement call for the happy-path View
+ * 封装 6 个命令启动文件中重复出现的样板代码：
+ *   - 参数解析 + 非法参数处理
+ *   - dispatch 错误捕获 + onDone 错误消息
+ *   - errorView 渲染
+ *   - happy-path View 的 React.createElement 调用
  *
- * Usage (H2 finding — cuts boilerplate ~50%):
+ * 用法（H2 结论 —— 可减少约 50% 样板代码）：
  *
  *   export const callMyCmd: LocalJSXCommandCall = launchCommand<MyParsed, MyViewProps>({
  *     commandName: 'my-cmd',
@@ -25,7 +25,7 @@ import type {
 } from '../../types/command.js'
 import type { ToolUseContext } from '../../Tool.js'
 
-/** Shape returned by parseArgs when args are invalid. */
+/** 参数非法时 parseArgs 返回的形状。 */
 export interface InvalidParsed {
   action: 'invalid'
   reason: string
@@ -33,22 +33,22 @@ export interface InvalidParsed {
 
 export interface LaunchCommandOptions<TParsed, TViewProps> {
   /**
-   * Command name used in error messages (e.g. "local-vault").
-   * Appears in the onDone text when dispatch throws.
+   * 出现在错误消息中的命令名（例如 "local-vault"）。
+   * dispatch 抛错时会出现在 onDone 文本中。
    */
   commandName: string
 
   /**
-   * Parse raw args string into a typed action union or an invalid sentinel.
-   * Must return `{ action: 'invalid'; reason: string }` when args are bad.
+   * 将原始参数字符串解析为带类型的 action 联合类型或 invalid 标记。
+   * 当参数非法时必须返回 `{ action: 'invalid'; reason: string }`。
    */
   parseArgs: (rawArgs: string) => TParsed | InvalidParsed
 
   /**
-   * Perform the command operation.
-   * - Call onDone with the user-visible summary text.
-   * - Return the View props to render, or null to render nothing.
-   * - Throw to trigger the error path.
+   * 执行命令操作。
+   * - 调用 onDone 传入用户可见的摘要文本。
+   * - 返回 View 的 props 用于渲染，或返回 null 不渲染。
+   * - 抛出异常以触发错误路径。
    */
   dispatch: (
     parsed: TParsed,
@@ -57,27 +57,27 @@ export interface LaunchCommandOptions<TParsed, TViewProps> {
   ) => Promise<TViewProps | null>
 
   /**
-   * React component rendered with the props returned by dispatch.
+   * 使用 dispatch 返回的 props 渲染的 React 组件。
    */
   View: React.FC<TViewProps>
 
   /**
-   * Render an error node when parseArgs returns invalid or dispatch throws.
-   * Receives the human-readable error message string.
+   * 当 parseArgs 返回 invalid 或 dispatch 抛错时渲染的错误节点。
+   * 接收人类可读的错误消息字符串。
    */
   errorView: (message: string) => React.ReactNode
 
   /**
-   * Optional hook called when dispatch throws, before the error is surfaced.
-   * Useful for analytics logEvent calls.
-   * Default: no-op.
+   * 可选钩子，在 dispatch 抛错后、错误暴露前调用。
+   * 适合用于打点 logEvent。
+   * 默认：no-op。
    */
   onDispatchError?: (err: unknown) => void
 }
 
 /**
- * Returns a LocalJSXCommandCall that wraps the provided parse / dispatch / View
- * triple with uniform error handling.
+ * 返回一个 LocalJSXCommandCall，用统一的错误处理包装传入的
+ * parse / dispatch / View 三元组。
  */
 export function launchCommand<TParsed, TViewProps>(
   opts: LaunchCommandOptions<TParsed, TViewProps>,
@@ -87,7 +87,7 @@ export function launchCommand<TParsed, TViewProps>(
     context: ToolUseContext,
     args: string,
   ): Promise<React.ReactNode> => {
-    // ── Parse args ────────────────────────────────────────────────────────────
+    // ── 解析参数 ────────────────────────────────────────────────────────────
     const parsed = opts.parseArgs(args ?? '')
 
     if (isInvalid(parsed)) {
@@ -95,7 +95,7 @@ export function launchCommand<TParsed, TViewProps>(
       return opts.errorView(parsed.reason)
     }
 
-    // ── Dispatch ──────────────────────────────────────────────────────────────
+    // ── 执行 dispatch ──────────────────────────────────────────────────────
     try {
       const viewProps = await opts.dispatch(parsed as TParsed, onDone, context)
       if (viewProps === null) return null

@@ -4,14 +4,14 @@ import type { LocalJSXCommandCall } from '../../../types/command.js'
 import { debugMock } from '../../../../tests/mocks/debug.js'
 import { logMock } from '../../../../tests/mocks/log.js'
 
-// ── Mock module-level side effects BEFORE any imports ──
+// ── 在任何 import 之前 mock 掉模块级副作用 ──
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
 mock.module('bun:bundle', () => ({
   feature: (_name: string) => false,
 }))
 
-// ── Teleport utilities ──
+// ── Teleport 相关工具 ──
 const validateGitStateMock = mock(() => Promise.resolve())
 const teleportResumeMock = mock(
   (_id: string, _onProgress?: (stage: string) => void) =>
@@ -37,7 +37,7 @@ mock.module('src/utils/teleport.js', () => ({
   archiveRemoteSession: mock(() => Promise.resolve()),
 }))
 
-// ── Sessions API mock ──
+// ── Sessions API mock（会话 API mock）──
 const fetchSessionsMock = mock(() =>
   Promise.resolve([
     {
@@ -52,7 +52,7 @@ mock.module('src/utils/teleport/api.js', () => ({
   fetchCodeSessionsFromSessionsAPI: fetchSessionsMock,
 }))
 
-// ── Session storage ──
+// ── Session storage（会话存储）──
 const mockLog: LogOption = {
   date: '2026-04-29',
   messages: [],
@@ -68,7 +68,7 @@ mock.module('src/utils/sessionStorage.js', () => ({
   getLastSessionLog: getLastSessionLogMock,
 }))
 
-// ── Analytics ──
+// ── Analytics（分析）──
 const logEventMock = mock(() => {})
 mock.module('src/services/analytics/index.js', () => ({
   logEvent: logEventMock,
@@ -78,7 +78,7 @@ mock.module('src/services/analytics/index.js', () => ({
   stripProtoFields: mock((v: unknown) => v),
 }))
 
-// ── Import SUT after mocks ──
+// ── 在 mock 之后导入被测代码 ──
 let callTeleport: LocalJSXCommandCall
 
 beforeAll(async () => {
@@ -86,7 +86,7 @@ beforeAll(async () => {
   callTeleport = sut.callTeleport
 })
 
-// ── Test helpers ──
+// ── 测试辅助函数 ──
 const onDone = mock((_result?: string, _opts?: unknown) => {})
 const resumeMockFn = mock(() => Promise.resolve())
 
@@ -111,7 +111,7 @@ beforeEach(() => {
   logEventMock.mockClear()
   onDone.mockClear()
   resumeMockFn.mockClear()
-  // Restore default happy-path implementations
+  // 恢复默认的成功路径实现
   validateGitStateMock.mockImplementation(() => Promise.resolve())
   teleportResumeMock.mockImplementation(
     (_id: string, _onProgress?: (stage: string) => void) =>
@@ -196,7 +196,7 @@ describe('callTeleport', () => {
   })
 
   test('empty args + exactly PICKER_PAGE_CAP sessions → page_cap event', async () => {
-    // 20 sessions triggers the page cap log
+    // 20 个会话会触发分页上限日志
     const sessions = Array.from({ length: 20 }, (_, i) => ({
       id: `session_${i}`,
       title: `Session ${i}`,
@@ -356,7 +356,7 @@ describe('callTeleport', () => {
   })
 
   test('valid session id without context.resume → fallback message', async () => {
-    const ctx = makeContext(false) // no resume callback
+    const ctx = makeContext(false) // 无 resume 回调
     await callTeleport(onDone, ctx, '12345678-abcd-ef01-2345-6789abcdef01')
     const firstArg = onDone.mock.calls[0]?.[0] as string | undefined
     expect(firstArg).toMatch(/did not provide a resume callback/)

@@ -1,7 +1,7 @@
 /**
- * MCP add CLI subcommand
+ * MCP add CLI 子命令
  *
- * Extracted from main.tsx to enable direct testing.
+ * 从 main.tsx 中抽取出来以便直接进行测试。
  */
 import { type Command, Option } from '@commander-js/extra-typings'
 import { cliError, cliOk } from '../../cli/exit.js'
@@ -28,7 +28,7 @@ import { parseEnvVars } from '../../utils/envUtils.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
 
 /**
- * Registers the `mcp add` subcommand on the given Commander command.
+ * 在指定的 Commander command 上注册 `mcp add` 子命令。
  */
 export function registerMcpAddCommand(mcp: Command): void {
   mcp
@@ -79,11 +79,11 @@ export function registerMcpAddCommand(mcp: Command): void {
       ).hideHelp(!isXaaEnabled()),
     )
     .action(async (name, commandOrUrl, args, options) => {
-      // Commander.js handles -- natively: it consumes -- and everything after becomes args
+      // Commander.js 原生处理 --：它会消费 -- 及其后的所有内容作为 args
       const actualCommand = commandOrUrl
       const actualArgs = args
 
-      // If no name is provided, error
+      // 若未提供 name，则报错
       if (!name) {
         cliError(
           'Error: Server name is required.\n' +
@@ -100,7 +100,7 @@ export function registerMcpAddCommand(mcp: Command): void {
         const scope = ensureConfigScope(options.scope)
         const transport = ensureTransport(options.transport)
 
-        // XAA fail-fast: validate at add-time, not auth-time.
+        // XAA fail-fast：在 add 时校验，而不是 auth 时。
         if (options.xaa && !isXaaEnabled()) {
           cliError(
             'Error: --xaa requires CLAUDE_CODE_ENABLE_XAA=1 in your environment',
@@ -121,10 +121,10 @@ export function registerMcpAddCommand(mcp: Command): void {
           }
         }
 
-        // Check if transport was explicitly provided
+        // 检查是否显式提供了 transport
         const transportExplicit = options.transport !== undefined
 
-        // Check if the command looks like a URL (likely incorrect usage)
+        // 检查命令看起来是否像 URL（很可能是错误用法）
         const looksLikeUrl =
           actualCommand.startsWith('http://') ||
           actualCommand.startsWith('https://') ||
@@ -248,7 +248,7 @@ export function registerMcpAddCommand(mcp: Command): void {
             )
           }
 
-          // Warn if this looks like a URL but transport wasn't explicitly specified
+          // 当看起来像 URL 但未显式指定 transport 时给出警告
           if (!transportExplicit && looksLikeUrl) {
             process.stderr.write(
               `\nWarning: The command "${actualCommand}" looks like a URL, but is being interpreted as a stdio server as --transport was not specified.\n`,

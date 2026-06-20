@@ -12,7 +12,7 @@ export async function call(
   context: LocalJSXCommandContext,
 ): Promise<React.ReactNode | null> {
   try {
-    // Check if user is already on the highest Max plan (20x)
+    // 检查用户是否已在最高的 Max 套餐（20x）
     if (isClaudeAISubscriber()) {
       const tokens = getClaudeAIOAuthTokens();
       let isMax20x = false;

@@ -1,13 +1,13 @@
 /**
- * Tests for getAuthStatus.ts
- * Covers subscription set/unset, workspace API key prefix variants, and third-party provider env vars.
- * All tests are pure (no network calls) — only process.env + mocked OAuth file reads.
+ * getAuthStatus.ts 的测试
+ * 覆盖 subscription 的设置/未设置、workspace API key 前缀的各种变体，以及第三方 provider 的环境变量。
+ * 所有测试均为纯测试（无网络请求）—— 只涉及 process.env 和被 mock 的 OAuth 文件读取。
  */
 import { describe, expect, test, mock, beforeEach, afterEach } from 'bun:test'
 import { logMock } from '../../../../tests/mocks/log'
 import { debugMock } from '../../../../tests/mocks/debug'
 
-// Mock side-effect modules before importing subject
+// 在导入被测对象之前 mock 掉有副作用的模块
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
 mock.module('bun:bundle', () => ({ feature: () => false }))
@@ -23,9 +23,9 @@ mock.module('src/utils/config.ts', () => ({
   saveGlobalConfig: (_updater: unknown) => undefined,
 }))
 
-// We mock auth.ts getClaudeAIOAuthTokens to return controlled values
-// per test — we mock getClaudeAIOAuthTokens from within the test using spies
-// on process.env, no network calls happen.
+// 我们 mock auth.ts 的 getClaudeAIOAuthTokens，让每个测试返回受控的值
+// —— 我们在测试内部通过对 process.env 使用 spy 来 mock getClaudeAIOAuthTokens，
+// 不发起任何网络请求。
 
 const SUBSCRIPTION_TOKEN_FIXTURE = {
   accessToken: 'access-token-value',
@@ -36,12 +36,12 @@ const SUBSCRIPTION_TOKEN_FIXTURE = {
   rateLimitTier: null,
 }
 
-// We'll import getAuthStatus lazily after setting up mocks
+// 我们会在 mock 设置完成后再懒加载 import getAuthStatus
 describe('getAuthStatus', () => {
   const origEnv = { ...process.env }
 
   beforeEach(() => {
-    // Reset env to clean state before each test
+    // 每个测试前重置 env 到干净状态
     delete process.env.ANTHROPIC_API_KEY
     delete process.env.CEREBRAS_API_KEY
     delete process.env.GROQ_API_KEY
@@ -52,7 +52,7 @@ describe('getAuthStatus', () => {
   })
 
   afterEach(() => {
-    // Restore original env
+    // 还原原始 env
     for (const key of Object.keys(process.env)) {
       if (!(key in origEnv)) {
         delete process.env[key]
@@ -107,7 +107,7 @@ describe('getAuthStatus', () => {
   })
 
   test('workspaceKey.set=true, prefixValid=true with valid sk-ant-api03- prefix', async () => {
-    // 52-char key: prefix (14) + 38 chars
+    // 52 字符的 key：prefix (14) + 38 字符
     process.env.ANTHROPIC_API_KEY =
       'sk-ant-api03-AbCdEfGhIjKlMnOpQrStUvWxYz0123456789'
     mock.module('src/utils/auth.ts', () => ({
@@ -121,11 +121,11 @@ describe('getAuthStatus', () => {
     expect(status.workspaceKey.set).toBe(true)
     expect(status.workspaceKey.prefixValid).toBe(true)
     expect(status.workspaceKey.keyPreview).not.toBeNull()
-    // Preview must NOT include full key value
+    // 预览不得包含完整 key 值
     expect(status.workspaceKey.keyPreview).not.toContain(
       'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789',
     )
-    // Preview must contain masked form
+    // 预览必须包含遮蔽形式
     expect(status.workspaceKey.keyPreview).toContain('...')
   })
 
@@ -145,7 +145,7 @@ describe('getAuthStatus', () => {
   })
 
   test('keyPreview format: shows first4 + ... + last2 + length for valid key', async () => {
-    // Build a key: sk-ant-api03- (14 chars) + ABCDEFGHIJKLMNOPQRSTUVWXYZ01234567 (34 chars) = 48 chars total
+    // 构造一个 key：sk-ant-api03- (14 字符) + ABCDEFGHIJKLMNOPQRSTUVWXYZ01234567 (34 字符) = 共 48 字符
     const key = 'sk-ant-api03-ABCDEFGHIJKLMNOPQRSTUVWXYZ01234567'
     process.env.ANTHROPIC_API_KEY = key
     mock.module('src/utils/auth.ts', () => ({
@@ -158,18 +158,18 @@ describe('getAuthStatus', () => {
     const status = getAuthStatus()
     const preview = status.workspaceKey.keyPreview
     expect(preview).not.toBeNull()
-    // Must contain length
+    // 必须包含长度
     expect(preview).toContain(`(${key.length}`)
-    // Must contain first 4 chars
+    // 必须包含前 4 个字符
     expect(preview).toContain('sk-a')
-    // Must contain last 2 chars
+    // 必须包含最后 2 个字符
     expect(preview).toContain('67')
-    // Full suffix must not appear
+    // 完整 suffix 不得出现
     expect(preview).not.toContain('ABCDEFGHIJKLMNOPQRSTUVWXYZ01234567')
   })
 
   // ---------------------------------------------------------------------------
-  // Dual-source workspace key tests (env vs settings)
+  // 双来源 workspace key 测试（env 与 settings）
   // ---------------------------------------------------------------------------
 
   test('workspaceKey.source=env when ANTHROPIC_API_KEY env var is set', async () => {
@@ -247,15 +247,14 @@ describe('getAuthStatus', () => {
     }))
     const { getAuthStatus } = await import('../getAuthStatus.js')
     const status = getAuthStatus()
-    // env wins
+    // env 优先
     expect(status.workspaceKey.source).toBe('env')
-    // preview must NOT contain the settings key suffix
+    // 预览不得包含 settings key 的 suffix
     expect(status.workspaceKey.keyPreview).not.toContain('FROMSETTINGS')
   })
 
-  // Third-party provider tests removed 2026-05-06 — that surface was deleted
-  // from AuthStatus to defer to fork's existing /login form for OpenAI-compat
-  // configuration. See AuthPlaneSummary.tsx for the rationale.
+  // 第三方 provider 相关测试于 2026-05-06 移除 —— 该展示面已从 AuthStatus 删除，
+  // 以便让 fork 已有的 /login 表单负责 OpenAI-compat 配置。原因见 AuthPlaneSummary.tsx。
 
   test('subscription with non-standard subscriptionType → plan="unknown"', async () => {
     mock.module('src/utils/auth.ts', () => ({

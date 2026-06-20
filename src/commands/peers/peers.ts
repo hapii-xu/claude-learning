@@ -11,7 +11,7 @@ export const call: LocalCommandCall = async (_args, _context) => {
 
   const lines: string[] = []
 
-  // Show own socket
+  // 显示自己的 socket
   lines.push(`Your socket: ${mySocket ?? '(not started)'}`)
   lines.push('')
 

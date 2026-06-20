@@ -10,9 +10,9 @@ export interface SSHAuthProxy {
 
 export interface AuthProxyInfo {
   proxy: SSHAuthProxy
-  /** Unix socket path or 127.0.0.1:<port> */
+  /** Unix socket 路径或 127.0.0.1:<port> */
   localAddress: string
-  /** Environment variables to inject into the remote/child CLI process */
+  /** 注入到远程/子 CLI 进程的环境变量 */
   authEnv: Record<string, string>
 }
 
@@ -122,7 +122,7 @@ async function createUnixSocketAuthProxy(id: string): Promise<AuthProxyInfo> {
       try {
         unlinkSync(socketPath)
       } catch {
-        // Socket file may already be cleaned up
+        // socket 文件可能已被清理
       }
     },
   }

@@ -52,7 +52,7 @@ async function dispatchVault(
   if (parsed.action === 'add-credential') {
     const { vaultId, key, secret } = parsed;
     const cred = await addCredential(vaultId, key, secret);
-    // SECURITY: credential value is NOT echoed in onDone message
+    // 安全：credential 的值不会出现在 onDone 消息中
     onDone(`Credential added: ${cred.credential_id}`, { display: 'system' });
     return { mode: 'credential-added', vaultId, credentialId: cred.credential_id };
   }
@@ -64,7 +64,7 @@ async function dispatchVault(
     return { mode: 'credential-archived', vaultId, credentialId };
   }
 
-  // Fallback: list vaults for any unrecognised action (matches original behaviour)
+  // 兜底：对任何未识别的动作都列出 vault（与原始行为保持一致）
   const vaults = await listVaults();
   onDone(vaults.length === 0 ? 'No vaults found.' : `${vaults.length} vault(s).`, { display: 'system' });
   return { mode: 'list', vaults };

@@ -1,10 +1,10 @@
 /**
- * /monitor <command> — Start a background monitor task.
+ * /monitor <command> —— 启动一个后台监控任务。
  *
- * Shortcut for the MonitorTool. Spawns a long-running shell command
- * as a background task visible in the footer pill (Shift+Down to view).
+ * MonitorTool 的快捷入口。把一个长时间运行的 shell 命令作为后台任务启动，
+ * 显示在底部胶囊按钮里（Shift+Down 查看）。
  *
- * Usage:
+ * 用法：
  *   /monitor tail -f /var/log/syslog
  *   /monitor watch -n 5 git status
  *   /monitor "while true; do curl -s http://localhost:3000/health; sleep 10; done"
@@ -47,7 +47,7 @@ const monitor = {
           return null
         }
 
-        // Windows compatibility: convert `watch -n <sec> <cmd>` to a PowerShell loop
+        // Windows 兼容：把 `watch -n <秒> <命令>` 转换为 PowerShell 循环
         if (process.platform === 'win32') {
           const watchMatch = command.match(/^watch\s+-n\s+(\d+)\s+(.+)$/)
           if (watchMatch) {
@@ -57,7 +57,7 @@ const monitor = {
           }
         }
 
-        // Dynamic require to stay behind feature gate
+        // 动态 require 以留在 feature gate 之后
         const { spawnShellTask } =
           require('../tasks/LocalShellTask/LocalShellTask.js') as typeof import('../tasks/LocalShellTask/LocalShellTask.js')
         const { exec } =

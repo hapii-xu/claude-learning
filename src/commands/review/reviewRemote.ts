@@ -1,12 +1,12 @@
 /**
- * Teleported /ultrareview execution. Creates a CCR session with the current repo,
- * sends the review prompt as the initial message, and registers a
- * RemoteAgentTask so the polling loop pipes results back into the local
- * session via task-notification. Mirrors the /ultraplan → CCR flow.
+ * 传送式 /ultrareview 执行。基于当前 repo 创建 CCR session，
+ * 将 review prompt 作为初始消息发送，并注册一个
+ * RemoteAgentTask，以便轮询循环通过 task-notification 把结果
+ * 回传到本地 session。对应 /ultraplan → CCR 流程。
  *
- * TODO(#22051): pass useBundleMode once landed so local-only / uncommitted
- * repo state is captured. The GitHub-clone path (current) only works for
- * pushed branches on repos with the Claude GitHub app installed.
+ * TODO(#22051): 待 useBundleMode 落地后传入，以便捕获 local-only /
+ * 未提交的 repo 状态。当前的 GitHub-clone 路径只对
+ * 已安装 Claude GitHub app 的 repo 上已 push 的分支生效。
  */
 
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.js'
@@ -31,9 +31,8 @@ import { execFileNoThrow } from '../../utils/execFileNoThrow.js'
 import { getDefaultBranch, gitExe } from '../../utils/git.js'
 import { teleportToRemote } from '../../utils/teleport.js'
 
-// One-time session flag: once the user confirms overage billing via the
-// dialog, all subsequent /ultrareview invocations in this session proceed
-// without re-prompting.
+// 一次性 session flag：一旦用户通过对话框确认了 overage 计费，
+// 本 session 内后续所有的 /ultrareview 调用都不再提示。
 let sessionOverageConfirmed = false
 
 export function confirmOverage(): void {
@@ -47,13 +46,13 @@ export type OverageGate =
   | { kind: 'needs-confirm' }
 
 /**
- * Determine whether the user can launch an ultrareview and under what
- * billing terms. Fetches quota and utilization in parallel.
+ * 判断用户是否可以发起 ultrareview，以及在何种计费条件下。
+ * 并行获取 quota 和 utilization。
  */
 export async function checkOverageGate(): Promise<OverageGate> {
-  // Team and Enterprise plans include ultrareview — no free-review quota
-  // or Extra Usage dialog. The quota endpoint is scoped to consumer plans
-  // (pro/max); hitting it on team/ent would surface a confusing dialog.
+  // Team 和 Enterprise 套餐已包含 ultrareview — 无免费 review 额度
+  // 也无 Extra Usage 对话框。该 quota 端点仅适用于消费者套餐
+  // （pro/max）；对 team/ent 调用会弹出一个令人困惑的对话框。
   if (isTeamSubscriber() || isEnterpriseSubscriber()) {
     return { kind: 'proceed', billingNote: '' }
   }
@@ -63,8 +62,8 @@ export async function checkOverageGate(): Promise<OverageGate> {
     fetchUtilization().catch(() => null),
   ])
 
-  // No quota info (non-subscriber or endpoint down) — let it through,
-  // server-side billing will handle it.
+  // 无 quota 信息（非订阅者或端点不可用）— 放行，
+  // 由服务端计费处理。
   if (!quota) {
     return { kind: 'proceed', billingNote: '' }
   }
@@ -76,20 +75,20 @@ export async function checkOverageGate(): Promise<OverageGate> {
     }
   }
 
-  // Utilization fetch failed (transient network error, timeout, etc.) —
-  // let it through, same rationale as the quota fallback above.
+  // Utilization 获取失败（瞬时网络错误、超时等）— 放行，
+  // 理由同上面的 quota 兜底。
   if (!utilization) {
     return { kind: 'proceed', billingNote: '' }
   }
 
-  // Free reviews exhausted — check Extra Usage setup.
+  // 免费 review 已用尽 — 检查 Extra Usage 设置。
   const extraUsage = utilization.extra_usage
   if (!extraUsage?.is_enabled) {
     logEvent('tengu_review_overage_not_enabled', {})
     return { kind: 'not-enabled' }
   }
 
-  // Check available balance (null monthly_limit = unlimited).
+  // 检查可用余额（monthly_limit 为 null 表示无限制）。
   const monthlyLimit = extraUsage.monthly_limit
   const usedCredits = extraUsage.used_credits ?? 0
   const available =
@@ -114,17 +113,16 @@ export async function checkOverageGate(): Promise<OverageGate> {
 }
 
 /**
- * Launch a teleported review session. Returns ContentBlockParam[] describing
- * the launch outcome for injection into the local conversation (model is then
- * queried with this content, so it can narrate the launch to the user).
+ * 启动一个传送式 review session。返回 ContentBlockParam[] 描述启动
+ * 结果，用于注入本地会话（随后模型会基于这些内容被查询，从而向用户
+ * 叙述启动情况）。
  *
- * Returns ContentBlockParam[] with user-facing error messages on recoverable
- * failures (missing merge-base, empty diff, bundle too large), or null on
- * other failures so the caller falls through to the local-review prompt.
- * Reason is captured in analytics.
+ * 当出现可恢复的失败（缺少 merge-base、diff 为空、bundle 过大）时，
+ * 返回包含面向用户错误信息的 ContentBlockParam[]；其他失败返回 null，
+ * 让调用方回退到 local-review prompt。失败原因会被记录到 analytics。
  *
- * Caller must run checkOverageGate() BEFORE calling this function
- * (ultrareviewCommand.tsx handles the dialog).
+ * 调用方必须在调用本函数之前先执行 checkOverageGate()
+ * （对话框由 ultrareviewCommand.tsx 处理）。
  */
 export async function launchRemoteReview(
   args: string,
@@ -132,10 +130,10 @@ export async function launchRemoteReview(
   billingNote?: string,
 ): Promise<ContentBlockParam[] | null> {
   const eligibility = await checkRemoteAgentEligibility()
-  // Synthetic DEFAULT_CODE_REVIEW_ENVIRONMENT_ID works without per-org CCR
-  // setup, so no_remote_environment isn't a blocker. Server-side quota
-  // consume at session creation routes billing: first N zero-rate, then
-  // anthropic:cccr org-service-key (overage-only).
+  // 合成的 DEFAULT_CODE_REVIEW_ENVIRONMENT_ID 无需按组织配置 CCR 即可工作，
+  // 因此 no_remote_environment 不是阻塞项。服务端在 session 创建时消费
+  // quota 并路由计费：前 N 次零费率，之后走
+  // anthropic:cccr org-service-key（仅 overage）。
   if (!eligibility.eligible) {
     const blockers = (
       eligibility as { eligible: false; errors: Array<{ type: string }> }
@@ -164,19 +162,19 @@ export async function launchRemoteReview(
 
   const prNumber = args.trim()
   const isPrNumber = /^\d+$/.test(prNumber)
-  // Synthetic code_review env. Go taggedid.FromUUID(TagEnvironment,
-  // UUID{...,0x02}) encodes with version prefix '01' — NOT Python's
-  // legacy tagged_id() format. Verified in prod.
+  // 合成的 code_review env。Go 的 taggedid.FromUUID(TagEnvironment,
+  // UUID{...,0x02}) 以版本前缀 '01' 编码 — 不是 Python 的
+  // legacy tagged_id() 格式。已在生产环境验证。
   const CODE_REVIEW_ENV_ID = 'env_011111111111111111111113'
-  // Lite-review bypasses bughunter.go entirely, so it doesn't see the
-  // webhook's bug_hunter_config (different GB project). These env vars are
-  // the only tuning surface — without them, run_hunt.sh's bash defaults
-  // apply (60min, 120s agent timeout), and 120s kills verifiers mid-run
-  // which causes infinite respawn.
+  // Lite-review 完全绕过 bughunter.go，因此它读不到
+  // webhook 里的 bug_hunter_config（属于不同的 GB project）。这些环境变量是
+  // 唯一可调的入口 — 不设置的话，run_hunt.sh 的 bash 默认值
+  // 会生效（60min wallclock、120s agent timeout），而 120s 会
+  // 在运行中杀死 verifier，从而引发无限重启。
   //
-  // total_wallclock must stay below RemoteAgentTask's 30min poll timeout
-  // with headroom for finalization (~3min synthesis). Per-field guards
-  // match autoDream.ts — GB cache can return stale wrong-type values.
+  // total_wallclock 必须低于 RemoteAgentTask 的 30min 轮询超时，
+  // 并为收尾（约 3min synthesis）留出余量。各字段守卫
+  // 与 autoDream.ts 一致 — GB 缓存可能返回过期的错误类型值。
   const raw = getFeatureValue_CACHED_MAY_BE_STALE<Record<
     string,
     unknown
@@ -187,9 +185,9 @@ export async function launchRemoteReview(
     if (n <= 0) return fallback
     return max !== undefined && n > max ? fallback : n
   }
-  // Upper bounds: 27min on wallclock leaves ~3min for finalization under
-  // RemoteAgentTask's 30min poll timeout. If GB is set above that, the
-  // hang we're fixing comes back — fall to the safe default instead.
+  // 上限：wallclock 取 27min，在 RemoteAgentTask 30min 轮询超时下
+  // 留出约 3min 用于收尾。如果 GB 设置值高于该上限，我们正在修复的
+  // 挂起问题就会复现 — 因此回退到安全默认值。
   const commonEnvVars = {
     BUGHUNTER_DRY_RUN: '1',
     BUGHUNTER_FLEET_SIZE: String(posInt(raw?.fleet_size, 5, 20)),
@@ -209,7 +207,7 @@ export async function launchRemoteReview(
   let command
   let target
   if (isPrNumber) {
-    // PR mode: refs/pull/N/head via github.com. Orchestrator --pr N.
+    // PR 模式：通过 github.com 拉取 refs/pull/N/head。Orchestrator 使用 --pr N。
     const repo = await detectCurrentRepositoryWithHost()
     if (!repo || repo.host !== 'github.com') {
       logEvent('tengu_review_remote_precondition_failed', {})
@@ -230,13 +228,13 @@ export async function launchRemoteReview(
     command = `/ultrareview ${prNumber}`
     target = `${repo.owner}/${repo.name}#${prNumber}`
   } else {
-    // Branch mode: bundle the working tree, orchestrator diffs against
-    // the fork point. No PR, no existing comments, no dedup.
+    // Branch 模式：打包工作区，orchestrator 基于
+    // fork point 做 diff。无 PR，无既有评论，无去重。
     const baseBranch = (await getDefaultBranch()) || 'main'
-    // Env-manager's `git remote remove origin` after bundle-clone
-    // deletes refs/remotes/origin/* — the base branch name won't resolve
-    // in the container. Pass the merge-base SHA instead: it's reachable
-    // from HEAD's history so `git diff <sha>` works without a named ref.
+    // Env-manager 在 bundle-clone 之后执行 `git remote remove origin`，
+    // 这会删除 refs/remotes/origin/* — base 分支名在容器中将无法解析。
+    // 改为传 merge-base SHA：它可以从 HEAD 的历史中到达，
+    // 因此 `git diff <sha>` 无需命名 ref 即可工作。
     const { stdout: mbOut, code: mbCode } = await execFileNoThrow(
       gitExe(),
       ['merge-base', baseBranch, 'HEAD'],
@@ -253,8 +251,7 @@ export async function launchRemoteReview(
       ]
     }
 
-    // Bail early on empty diffs instead of launching a container that
-    // will just echo "no changes".
+    // 对空 diff 提前退出，而不是启动一个只会回显"no changes"的容器。
     const { stdout: diffStat, code: diffCode } = await execFileNoThrow(
       gitExe(),
       ['diff', '--shortstat', mergeBaseSha],
@@ -307,9 +304,9 @@ export async function launchRemoteReview(
   })
   logEvent('tengu_review_remote_launched', {})
   const sessionUrl = getRemoteTaskSessionUrl(session.id)
-  // Concise — the tool-output block is visible to the user, so the model
-  // shouldn't echo the same info. Just enough for Claude to acknowledge the
-  // launch without restating the target/URL (both already printed above).
+  // 简洁 — tool-output 块对用户可见，因此模型不应
+  // 重复相同信息。只给 Claude 足够的信息来确认启动，
+  // 而不重复 target/URL（两者已在上方打印）。
   return [
     {
       type: 'text',

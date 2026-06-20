@@ -3,6 +3,7 @@
     "biomejs.biome",
     "ms-typescript.typescript",
     "oven.bun-vscode",
-    "editorconfig.editorconfig"
+    "editorconfig.editorconfig",
+    "msjsdiag.debugger-for-edge"
   ]
 }

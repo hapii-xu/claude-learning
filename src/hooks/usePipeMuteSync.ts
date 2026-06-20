@@ -1,12 +1,12 @@
 /**
- * usePipeMuteSync — Sync master's UI selection state to slave relay mute flags.
+ * usePipeMuteSync — 将 master 的 UI 选择状态同步到 slave 中继静音标志。
  *
- * Watches routeMode, selectedPipes, slave client registry, and send-override
- * changes. When a slave is deselected or routeMode switches to 'local', sends
- * relay_mute. When re-selected, sends relay_unmute. Also maintains the
- * master-side muted set for in-flight message filtering.
+ * 监听 routeMode、selectedPipes、slave 客户端注册表和 send-override
+ * 变化。当 slave 被取消选择或 routeMode 切换到 'local' 时，发送
+ * relay_mute。当重新选择时，发送 relay_unmute。还维护
+ * master 侧的静音集合用于飞行中消息过滤。
  *
- * Feature-gated by UDS_INBOX (conditional import in REPL.tsx).
+ * 由 UDS_INBOX 功能门控（REPL.tsx 中的条件导入）。
  */
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { useAppState } from '../state/AppState.js'
@@ -34,8 +34,8 @@ type UsePipeMuteSyncDeps = {
 export function usePipeMuteSync({
   setToolUseConfirmQueue,
 }: UsePipeMuteSyncDeps): void {
-  // Subscribe to individual scalars to avoid object-selector re-render churn
-  // (AppState.tsx warns against object-returning selectors)
+  // 订阅单独标量以避免对象选择器重新渲染抖动
+  // （AppState.tsx 警告不要使用返回对象的选择器）
   const routeMode = useAppState(
     s => (getPipeIpc(s).routeMode as 'selected' | 'local') ?? 'selected',
   )
@@ -43,14 +43,14 @@ export function usePipeMuteSync({
     s => (getPipeIpc(s).selectedPipes as string[]) ?? [],
   )
 
-  // Subscribe to slave client registry changes
+  // 订阅 slave 客户端注册表变化
   const registryVersion = useSyncExternalStore(
     subscribeToSlaveClientRegistry,
     getSlaveClientRegistryVersion,
     getSlaveClientRegistryVersion,
   )
 
-  // Subscribe to send-override changes so mute recalculates after /send completes
+  // 订阅 send-override 变化，以便静音在 /send 完成后重新计算
   const sendOverrideVersion = useSyncExternalStore(
     subscribeSendOverride,
     getSendOverrideVersion,
@@ -62,17 +62,17 @@ export function usePipeMuteSync({
   useEffect(() => {
     const slaves = getAllSlaveClients()
 
-    // Compute which slaves should be muted now
+    // 计算现在哪些 slaves 应该被静音
     const nextMuted = new Set<string>()
     if (routeMode === 'local') {
-      // All connected slaves muted
+      // 所有已连接的 slaves 静音
       for (const name of slaves.keys()) {
         if (!hasSendOverride(name)) {
           nextMuted.add(name)
         }
       }
     } else {
-      // routeMode === 'selected': mute slaves NOT in selectedPipes
+      // routeMode === 'selected'：静音不在 selectedPipes 中的 slaves
       const selectedSet = new Set(selectedPipes)
       for (const name of slaves.keys()) {
         if (!selectedSet.has(name) && !hasSendOverride(name)) {
@@ -81,15 +81,15 @@ export function usePipeMuteSync({
       }
     }
 
-    // Step 1: Update master-side muted set FIRST (before sending control packets)
+    // 步骤 1：首先更新 master 侧静音集合（在发送控制包之前）
     setMasterMutedPipes(nextMuted)
 
     const prevMuted = prevMutedRef.current
 
-    // Step 2: For newly muted slaves — abort pending permissions, then send relay_mute
+    // 步骤 2：对于新静音的 slaves —— 中止待处理的权限，然后发送 relay_mute
     for (const name of nextMuted) {
       if (!prevMuted.has(name)) {
-        // Abort pending permission prompts for this slave
+        // 中止此 slave 的待处理权限提示
         setToolUseConfirmQueue((queue: Record<string, unknown>[]) => {
           const toAbort = queue.filter(
             (item: Record<string, unknown>) => item.pipeName === name,
@@ -98,7 +98,7 @@ export function usePipeMuteSync({
             try {
               ;(item.onAbort as (() => void) | undefined)?.()
             } catch {
-              // onAbort may throw if client disconnected — safe to ignore
+              // 如果客户端断开连接，onAbort 可能抛出 —— 可安全忽略
             }
           }
           return queue.filter(
@@ -106,19 +106,19 @@ export function usePipeMuteSync({
           )
         })
 
-        // Send relay_mute to slave
+        // 向 slave 发送 relay_mute
         const client = slaves.get(name)
         if (client?.connected) {
           try {
             client.send({ type: 'relay_mute' })
           } catch {
-            // send may fail if socket is closing — non-fatal
+            // 如果 socket 正在关闭，send 可能失败 —— 非致命
           }
         }
       }
     }
 
-    // Step 3: For newly unmuted slaves — send relay_unmute
+    // 步骤 3：对于新取消静音的 slaves —— 发送 relay_unmute
     for (const name of prevMuted) {
       if (!nextMuted.has(name)) {
         const client = slaves.get(name)
@@ -126,7 +126,7 @@ export function usePipeMuteSync({
           try {
             client.send({ type: 'relay_unmute' })
           } catch {
-            // non-fatal
+            // 非致命
           }
         }
       }
@@ -141,7 +141,7 @@ export function usePipeMuteSync({
     setToolUseConfirmQueue,
   ])
 
-  // Cleanup on unmount: clear all master-side mute state
+  // 卸载时清理：清除所有 master 侧静音状态
   useEffect(() => {
     return () => {
       clearMasterMutedPipes()

@@ -1,10 +1,10 @@
 import type { LocalJSXCommandOnDone, LocalJSXCommandContext } from '../../types/command.js';
 
 /**
- * /daemon slash command — manages daemon and background sessions from the REPL.
+ * /daemon 斜杠命令 — 在 REPL 中管理 daemon 和后台会话。
  *
- * Subcommands: status | start | stop | bg | attach | logs | kill
- * Default (no args): status
+ * 子命令：status | start | stop | bg | attach | logs | kill
+ * 默认（无参数）：status
  */
 export async function call(
   onDone: LocalJSXCommandOnDone,
@@ -14,13 +14,13 @@ export async function call(
   const parts = args ? args.trim().split(/\s+/) : [];
   const sub = parts[0] || 'status';
 
-  // attach is interactive/blocking — not available inside the REPL
+  // attach 是交互式/阻塞的 — REPL 内不可用
   if (sub === 'attach') {
     onDone('Use `claude daemon attach` from the CLI. Attach is not available inside the REPL.', { display: 'system' });
     return null;
   }
 
-  // For all other subcommands, capture console output and return via onDone
+  // 对于所有其他子命令，捕获 console 输出并通过 onDone 返回
   const lines = await captureConsole(async () => {
     if (sub === 'bg') {
       const bg = await import('../../cli/bg.js');

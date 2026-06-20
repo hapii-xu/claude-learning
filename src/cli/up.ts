@@ -4,12 +4,12 @@ import { spawnSync } from 'child_process'
 import { findGitRoot } from '../utils/git.js'
 
 /**
- * `claude up` — run the "# claude up" section from the nearest CLAUDE.md.
+ * `claude up` — 运行最近的 CLAUDE.md 中的 "# claude up" 段落。
  *
- * Walks up from CWD looking for CLAUDE.md files, extracts the section
- * under the `# claude up` heading, and executes it as a shell script.
+ * 从 CWD 向上查找 CLAUDE.md 文件，提取 `# claude up` 标题下的段落，
+ * 并作为 shell 脚本执行。
  *
- * ANT-only command (USER_TYPE === "ant").
+ * 仅 ANT 可用的命令（USER_TYPE === "ant"）。
  */
 export async function up(): Promise<void> {
   const cwd = process.cwd()
@@ -28,7 +28,7 @@ export async function up(): Promise<void> {
         break
       }
     } catch {
-      // File not found — continue searching
+      // 文件未找到 — 继续查找
     }
   }
 
@@ -63,9 +63,9 @@ export async function up(): Promise<void> {
 }
 
 /**
- * Extract the content under "# claude up" heading from markdown.
- * Returns the text between `# claude up` and the next `#` heading (or EOF).
- * Strips fenced code block markers if present.
+ * 从 markdown 中提取 "# claude up" 标题下的内容。
+ * 返回 `# claude up` 和下一个 `#` 标题（或 EOF）之间的文本。
+ * 如果存在代码块标记则将其去除。
  */
 function extractUpSection(markdown: string): string | null {
   const lines = markdown.split('\n')
@@ -87,7 +87,7 @@ function extractUpSection(markdown: string): string | null {
 
   if (sectionLines.length === 0) return null
 
-  // Strip fenced code block markers
+  // 去除代码块标记
   let text = sectionLines.join('\n').trim()
   text = text.replace(/^```\w*\n?/, '').replace(/\n?```\s*$/, '')
 

@@ -59,7 +59,7 @@ const command = {
   name: 'commit',
   description: 'Create a git commit',
   allowedTools: ALLOWED_TOOLS,
-  contentLength: 0, // Dynamic content
+  contentLength: 0, // 动态内容
   progressMessage: 'creating commit',
   source: 'builtin',
   async getPromptForCommand(_args, context) {

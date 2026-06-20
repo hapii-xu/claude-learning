@@ -91,9 +91,9 @@ export function getErrorGuidance(error: PluginError): string | null {
     case 'mcp-config-invalid':
       return 'Check MCP server configuration in .mcp.json or manifest';
     case 'mcp-server-suppressed-duplicate': {
-      // duplicateOf is "plugin:name:srv" when another plugin won dedup —
-      // users can't remove plugin-provided servers from their MCP config,
-      // so point them at the winning plugin instead.
+      // 当另一个插件在去重中胜出时，duplicateOf 为 "plugin:name:srv" ——
+      // 用户无法从自己的 MCP 配置中移除插件提供的服务器，
+      // 因此引导他们去看获胜的那个插件。
       if (error.duplicateOf.startsWith('plugin:')) {
         const winningPlugin = error.duplicateOf.split(':')[1] ?? 'the other plugin';
         return `Disable plugin "${winningPlugin}" if you want this plugin's version instead`;

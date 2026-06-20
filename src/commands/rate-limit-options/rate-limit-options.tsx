@@ -45,18 +45,18 @@ function RateLimitOptionsMenu({ onDone, context }: RateLimitOptionsMenuProps): R
     if (extraUsage.isEnabled()) {
       const hasBillingAccess = hasClaudeAiBillingAccess();
       const needsToRequestFromAdmin = isTeamOrEnterprise && !hasBillingAccess;
-      // Org spend cap depleted - non-admins can't request more since there's nothing to allocate
-      // - out_of_credits: wallet empty
-      // - org_level_disabled_until: org spend cap hit for the month
-      // - org_service_zero_credit_limit: org service has zero credit limit
+      // 组织支出上限已耗尽 - 非管理员无法申请更多额度，因为没有可分配的额度
+      // - out_of_credits: 钱包已空
+      // - org_level_disabled_until: 本月组织支出上限已达到
+      // - org_service_zero_credit_limit: 组织服务额度上限为零
       const isOrgSpendCapDepleted =
         claudeAiLimits.overageDisabledReason === 'out_of_credits' ||
         claudeAiLimits.overageDisabledReason === 'org_level_disabled_until' ||
         claudeAiLimits.overageDisabledReason === 'org_service_zero_credit_limit';
 
-      // Hide for non-admin Team/Enterprise users when org spend cap is depleted
+      // 当组织支出上限已耗尽时，对非管理员的 Team/Enterprise 用户隐藏
       if (needsToRequestFromAdmin && isOrgSpendCapDepleted) {
-        // Don't show extra-usage option
+        // 不显示额外用量选项
       } else {
         const isOverageState =
           claudeAiLimits.overageStatus === 'rejected' || claudeAiLimits.overageStatus === 'allowed_warning';

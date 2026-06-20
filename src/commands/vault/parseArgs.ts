@@ -1,15 +1,15 @@
 /**
- * Parse the args string for the /vault command.
+ * 解析 /vault 命令的参数字符串。
  *
- * Supported sub-commands:
+ * 支持的子命令：
  *   list                                         → { action: 'list' }
  *   create <name>                                → { action: 'create', name }
  *   get <id>                                     → { action: 'get', id }
  *   archive <id>                                 → { action: 'archive', id }
  *   add-credential <vault_id> <key> <value>      → { action: 'add-credential', vaultId, key, secret }
  *   archive-credential <vault_id> <cred_id>      → { action: 'archive-credential', vaultId, credentialId }
- *   (empty)                                      → { action: 'list' }
- *   anything else                                → { action: 'invalid', reason }
+ *   （空）                                        → { action: 'list' }
+ *   其他                                          → { action: 'invalid', reason }
  */
 
 export type VaultArgs =
@@ -40,7 +40,7 @@ export function parseVaultArgs(args: string): VaultArgs {
   const subCmd = spaceIdx === -1 ? trimmed : trimmed.slice(0, spaceIdx)
   const rest = spaceIdx === -1 ? '' : trimmed.slice(spaceIdx + 1).trim()
 
-  // ── create ────────────────────────────────────────────────────────────────
+  // ── create（创建）──
   if (subCmd === 'create') {
     if (!rest) {
       return {
@@ -51,7 +51,7 @@ export function parseVaultArgs(args: string): VaultArgs {
     return { action: 'create', name: rest }
   }
 
-  // ── get ───────────────────────────────────────────────────────────────────
+  // ── get（查询）──
   if (subCmd === 'get') {
     if (!rest) {
       return { action: 'invalid', reason: 'get requires a vault id' }
@@ -64,7 +64,7 @@ export function parseVaultArgs(args: string): VaultArgs {
     return { action: 'get', id }
   }
 
-  // ── archive ───────────────────────────────────────────────────────────────
+  // ── archive（归档）──
   if (subCmd === 'archive') {
     if (!rest) {
       return { action: 'invalid', reason: 'archive requires a vault id' }
@@ -77,7 +77,7 @@ export function parseVaultArgs(args: string): VaultArgs {
     return { action: 'archive', id }
   }
 
-  // ── add-credential ────────────────────────────────────────────────────────
+  // ── add-credential（添加凭据）──
   if (subCmd === 'add-credential') {
     const parts = rest.split(/\s+/)
     if (parts.length < 2 || !parts[0] || !parts[1]) {
@@ -104,7 +104,7 @@ export function parseVaultArgs(args: string): VaultArgs {
     }
   }
 
-  // ── archive-credential ────────────────────────────────────────────────────
+  // ── archive-credential（归档凭据）──
   if (subCmd === 'archive-credential') {
     const parts = rest.split(/\s+/)
     if (parts.length < 2 || !parts[0] || !parts[1]) {

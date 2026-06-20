@@ -2,12 +2,11 @@ import type { Command, LocalCommandResult } from '../../types/command.js'
 import { getSessionId } from '../../bootstrap/state.js'
 
 /**
- * /env — show the user a snapshot of the current environment, claude config,
- * feature flags, and version info. All secrets are masked.
+ * /env — 向用户展示当前环境、claude 配置、feature flag 和版本信息的快照。
+ * 所有密钥都会被遮蔽。
  *
- * Pure-local command: no Anthropic backend dependency. Restored from stub
- * 2026-04-29 (was Anthropic-internal in upstream; safe to expose to fork
- * users since output is local-only).
+ * 纯本地命令：无 Anthropic 后端依赖。2026-04-29 从 stub 恢复
+ *（在上游为 Anthropic 内部使用；对 fork 用户来说是安全的，因为输出仅限本地）。
  */
 
 const SECRET_KEY_PATTERNS = [

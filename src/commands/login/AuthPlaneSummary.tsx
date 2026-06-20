@@ -1,8 +1,7 @@
 /**
- * AuthPlaneSummary — pure presentational Ink component.
+ * AuthPlaneSummary —— 纯展示型 Ink 组件。
  *
- * Renders the three auth plane status table shown when the user runs /login
- * without arguments:
+ * 当用户运行不带参数的 /login 时渲染三栏 auth plane 状态表：
  *
  *   Anthropic auth status:
  *     ☑ Subscription (claude.ai)         pro plan
@@ -16,14 +15,14 @@
  *     ☐ Groq       (GROQ_API_KEY not set)
  *     ...
  *
- * Security: never renders raw API key values. All output uses masked previews.
+ * 安全：永不渲染原始 API key 值，所有输出都使用遮蔽后的预览。
  */
 import * as React from 'react';
 import { Box, Text } from '@anthropic/ink';
 import type { AuthStatus } from './getAuthStatus.js';
 
 // ---------------------------------------------------------------------------
-// Sub-components
+// 子组件
 // ---------------------------------------------------------------------------
 
 function SubscriptionRow({ subscription }: { subscription: AuthStatus['subscription'] }): React.ReactNode {
@@ -61,7 +60,7 @@ function WorkspaceKeyRow({ workspaceKey }: { workspaceKey: AuthStatus['workspace
     );
   }
 
-  // Source label: distinguish env var from saved settings
+  // 来源标签：区分 env var 和保存到 settings 中的 key
   const sourceLabel =
     workspaceKey.source === 'settings'
       ? '  (saved to settings)'
@@ -85,7 +84,7 @@ function WorkspaceKeyInstructions({
   subscription: AuthStatus['subscription'];
   workspaceKey: AuthStatus['workspaceKey'];
 }): React.ReactNode {
-  // Show setup guide when workspace key is missing and subscription is active (user is logged in)
+  // 当 workspace key 缺失且 subscription 处于激活状态（用户已登录）时显示设置指引
   if (!workspaceKey.set && subscription.active) {
     return (
       <Box flexDirection="column" marginLeft={5} marginTop={0}>
@@ -102,15 +101,14 @@ function WorkspaceKeyInstructions({
 }
 
 // ---------------------------------------------------------------------------
-// Root component
+// 根组件
 // ---------------------------------------------------------------------------
 //
-// Third-party providers were previously listed here with their own status rows
-// (Cerebras / Groq / Qwen / DeepSeek). Removed 2026-05-06 because the fork's
-// existing `<Login>` "Anthropic Compatible Setup" form already configures the
-// same Base URL + API key, and showing two parallel UIs for the same goal
-// confused users. Subscription + Workspace key remain — those are distinct
-// Anthropic-side auth planes the fork form doesn't surface.
+// 此前这里列出了第三方 provider 的状态行（Cerebras / Groq / Qwen / DeepSeek）。
+// 2026-05-06 移除，因为 fork 已有的 `<Login>` "Anthropic Compatible Setup" 表单
+// 已经配置了同样的 Base URL + API key，为同一目标展示两套并行的 UI 会让用户困惑。
+// Subscription + Workspace key 保留 —— 它们是 fork 表单不暴露的、Anthropic 侧
+// 独立的认证 plane。
 
 export interface AuthPlaneSummaryProps {
   status: AuthStatus;
@@ -119,7 +117,7 @@ export interface AuthPlaneSummaryProps {
 export function AuthPlaneSummary({ status }: AuthPlaneSummaryProps): React.ReactNode {
   return (
     <Box flexDirection="column" marginBottom={1}>
-      {/* Section: Anthropic auth status */}
+      {/* 区块：Anthropic 认证状态 */}
       <Box marginBottom={0}>
         <Text bold>Anthropic auth status:</Text>
       </Box>

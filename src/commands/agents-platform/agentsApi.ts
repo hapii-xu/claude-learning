@@ -1,11 +1,11 @@
 /**
- * Thin HTTP client for the /v1/agents endpoint.
+ * /v1/agents 端点的轻量 HTTP 客户端。
  *
- * Reuses the same base-URL + auth-header pattern as the rest of the codebase:
- *   getOauthConfig().BASE_API_URL → base
+ * 复用代码库其他部分相同的 base-URL + auth-header 模式：
+ *   getOauthConfig().BASE_API_URL → 基址
  *   getClaudeAIOAuthTokens()?.accessToken → Bearer token
- *   getOAuthHeaders(token) → Authorization + anthropic-version headers
- *   getOrganizationUUID() → x-organization-uuid header
+ *   getOAuthHeaders(token) → Authorization + anthropic-version 头
+ *   getOrganizationUUID() → x-organization-uuid 头
  */
 
 import axios from 'axios'
@@ -31,7 +31,7 @@ type AgentRunResponse = {
   run_id: string
 }
 
-// Server requires the managed-agents umbrella beta header.
+// 服务器要求携带 managed-agents 的 umbrella beta 头。
 const AGENTS_BETA_HEADER = 'managed-agents-2026-04-01'
 const MAX_RETRIES = 3
 
@@ -50,9 +50,9 @@ class AgentsApiError extends Error {
 }
 
 async function buildHeaders(): Promise<Record<string, string>> {
-  // /v1/agents requires a workspace-scoped API key (sk-ant-api03-*).
-  // Subscription OAuth bearer tokens always 401 here (server-enforced plane separation).
-  // Guard the host before sending the key to prevent credential leakage.
+  // /v1/agents 需要带 workspace 作用域的 API key（sk-ant-api03-*）。
+  // 订阅型 OAuth bearer token 在这里始终返回 401（服务器层面的 plane 分离）。
+  // 发送 key 之前先校验 host，避免凭证泄漏。
   let apiKey: string
   try {
     const prepared = await prepareWorkspaceApiRequest()
@@ -92,7 +92,7 @@ function classifyError(err: unknown): AgentsApiError {
     if (status === 404) {
       return new AgentsApiError('Agent not found.', 404)
     }
-    // G2: add 429 handler (was missing; other P2 clients have it)
+    // G2：新增 429 处理（此前缺失；其他 P2 客户端有）
     if (status === 429) {
       const retryAfter =
         (err.response?.headers as Record<string, string> | undefined)?.[
@@ -111,9 +111,9 @@ function classifyError(err: unknown): AgentsApiError {
 }
 
 /**
- * Parses the Retry-After header value into milliseconds.
- * Accepts both integer-seconds (e.g. "30") and HTTP-date strings.
- * Returns null when the header is absent or unparseable.
+ * 将 Retry-After 头的值解析为毫秒。
+ * 同时接受整数秒（例如 "30"）和 HTTP-date 字符串。
+ * 头部缺失或无法解析时返回 null。
  */
 function parseRetryAfterMs(header: string | undefined): number | null {
   if (!header) return null
@@ -131,11 +131,11 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
       return await fn()
     } catch (err: unknown) {
       const classified = classifyError(err)
-      // Only retry 5xx errors
+      // 仅对 5xx 错误进行重试
       if (classified.statusCode >= 500) {
         lastErr = classified
         if (attempt < MAX_RETRIES - 1) {
-          // Honor Retry-After if present; fall back to exponential backoff.
+          // 如有 Retry-After 则遵守；否则使用指数退避。
           const retryAfterHeader = axios.isAxiosError(err)
             ? (err.response?.headers as Record<string, string> | undefined)?.[
                 'retry-after'
@@ -174,10 +174,9 @@ export async function createAgent(
       {
         cron_expr: cron,
         prompt,
-        // Server-side agent execution always runs in UTC; the timezone field
-        // tells the server how to interpret the cron expression. We use the
-        // system timezone so that "9am every Monday" means 9am local time.
-        // Users can override via the --tz flag parsed in parseArgs.ts.
+        // 服务器端的 agent 执行始终以 UTC 运行；timezone 字段用于告诉服务器
+        // 如何解读 cron 表达式。这里使用系统时区，使「每周一早 9 点」就是本地 9 点。
+        // 用户可通过 parseArgs.ts 中解析的 --tz 参数覆盖。
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC',
       },
       { headers },

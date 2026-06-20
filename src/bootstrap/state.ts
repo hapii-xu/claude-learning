@@ -10,10 +10,11 @@ import { cwd } from 'process'
 import type { HookEvent, ModelUsage } from 'src/entrypoints/agentSdkTypes.js'
 import type { AgentColorName } from '@claude-code-best/builtin-tools/tools/AgentTool/agentColorManager.js'
 import type { HookCallbackMatcher } from 'src/types/hooks.js'
-// Indirection for browser-sdk build (package.json "browser" field swaps
-// crypto.ts for crypto.browser.ts). Pure leaf re-export of node:crypto —
-// zero circular-dep risk. Path-alias import bypasses bootstrap-isolation
-// (rule only checks ./ and / prefixes); explicit disable documents intent.
+// 为 browser-sdk 构建提供间接引用（package.json 的 "browser" 字段会将
+// crypto.ts 替换为 crypto.browser.ts）。这里纯粹是对 node:crypto 的叶子
+// 重新导出——完全没有循环依赖风险。使用路径别名导入是为了绕过
+// bootstrap 隔离规则（该规则只检查 ./ 和 / 前缀）；显式禁用该规则
+// 是为了记录此意图。
 // eslint-disable-next-line custom-rules/bootstrap-isolation
 import { randomUUID } from 'src/utils/crypto.js'
 import type { ModelSetting } from 'src/utils/model/model.js'
@@ -23,17 +24,17 @@ import { resetSettingsCache } from 'src/utils/settings/settingsCache.js'
 import type { PluginHookMatcher } from 'src/utils/settings/types.js'
 import { createSignal } from 'src/utils/signal.js'
 
-// Union type for registered hooks - can be SDK callbacks or native plugin hooks
+// 已注册钩子的联合类型——可以是 SDK 回调或原生插件钩子
 type RegisteredHookMatcher = HookCallbackMatcher | PluginHookMatcher
 
 import type { SessionId } from 'src/types/ids.js'
 
-// DO NOT ADD MORE STATE HERE - BE JUDICIOUS WITH GLOBAL STATE
+// 不要在此处添加更多状态——对待全局状态要谨慎
 
-// dev: true on entries that came via --dangerously-load-development-channels.
-// The allowlist gate checks this per-entry (not the session-wide
-// hasDevChannels bit) so passing both flags doesn't let the dev dialog's
-// acceptance leak allowlist-bypass to the --channels entries.
+// dev: 对通过 --dangerously-load-development-channels 加载的条目设为 true。
+// 允许列表检查会针对每个条目独立判断（而不是会话级别的
+// hasDevChannels 标志），这样即使同时传入两个标志，开发对话框的
+// 接受也不会让 --channels 的条目绕过允许列表检查。
 export type ChannelEntry =
   | { kind: 'plugin'; name: string; marketplace: string; dev?: boolean }
   | { kind: 'server'; name: string; dev?: boolean }
@@ -44,9 +45,9 @@ export type AttributedCounter = {
 
 type State = {
   originalCwd: string
-  // Stable project root - set once at startup (including by --worktree flag),
-  // never updated by mid-session EnterWorktreeTool.
-  // Use for project identity (history, skills, sessions) not file operations.
+  // 稳定的项目根目录——启动时设置一次（包括通过 --worktree 标志），
+  // 不会被会话中途的 EnterWorktreeTool 更新。
+  // 用于项目标识（历史、技能、会话），而非文件操作。
   projectRoot: string
   totalCostUSD: number
   totalAPIDuration: number
@@ -70,10 +71,9 @@ type State = {
   modelStrings: ModelStrings | null
   isInteractive: boolean
   kairosActive: boolean
-  // When true, ensureToolResultPairing throws on mismatch instead of
-  // repairing with synthetic placeholders. HFI opts in at startup so
-  // trajectories fail fast rather than conditioning the model on fake
-  // tool_results.
+  // 当为 true 时，ensureToolResultPairing 在遇到不匹配时会抛出错误，
+  // 而不是用合成的占位符进行修复。HFI 在启动时选择启用此选项，
+  // 这样轨迹会快速失败，而不是基于虚假的 tool_results 进行模型训练。
   strictToolResultPairing: boolean
   sdkAgentProgressSummariesEnabled: boolean
   userMsgOptIn: boolean
@@ -86,7 +86,7 @@ type State = {
   sessionIngressToken: string | null | undefined
   oauthTokenFromFd: string | null | undefined
   apiKeyFromFd: string | null | undefined
-  // Telemetry state
+  // 遥测状态
   meter: Meter | null
   sessionCounter: AttributedCounter | null
   locCounter: AttributedCounter | null
@@ -98,83 +98,83 @@ type State = {
   activeTimeCounter: AttributedCounter | null
   statsStore: { observe(name: string, value: number): void } | null
   sessionId: SessionId
-  // Parent session ID for tracking session lineage (e.g., plan mode -> implementation)
+  // 用于跟踪会话谱系的父会话 ID（例如，计划模式 -> 实现）
   parentSessionId: SessionId | undefined
-  // Logger state
+  // 日志记录器状态
   loggerProvider: LoggerProvider | null
   eventLogger: ReturnType<typeof logs.getLogger> | null
-  // Meter provider state
+  // 指标提供器状态
   meterProvider: MeterProvider | null
-  // Tracer provider state
+  // 追踪器提供器状态
   tracerProvider: BasicTracerProvider | null
-  // Agent color state
+  // Agent 颜色状态
   agentColorMap: Map<string, AgentColorName>
   agentColorIndex: number
-  // Last API request for bug reports
+  // 最后一次 API 请求，用于错误报告
   lastAPIRequest: Omit<BetaMessageStreamParams, 'messages'> | null
-  // Messages from the last API request (ant-only; reference, not clone).
-  // Captures the exact post-compaction, CLAUDE.md-injected message set sent
-  // to the API so /share's serialized_conversation.json reflects reality.
+  // 最后一次 API 请求的消息（仅限 ant——引用，非克隆）。
+  // 捕获发送给 API 的精确压缩后、CLAUDE.md 注入的消息集合，
+  // 以便 /share 的 serialized_conversation.json 反映真实情况。
   lastAPIRequestMessages: BetaMessageStreamParams['messages'] | null
-  // Last auto-mode classifier request(s) for /share transcript
+  // 最后一次自动模式分类器请求，用于 /share 转录
   lastClassifierRequests: unknown[] | null
-  // CLAUDE.md content cached by context.ts for the auto-mode classifier.
-  // Breaks the yoloClassifier → claudemd → filesystem → permissions cycle.
+  // context.ts 为自动模式分类器缓存的 CLAUDE.md 内容。
+  // 打破 yoloClassifier → claudemd → filesystem → permissions 的循环。
   cachedClaudeMdContent: string | null
-  // In-memory error log for recent errors
+  // 近期错误的内存日志
   inMemoryErrorLog: Array<{ error: string; timestamp: string }>
-  // Session-only plugins from --plugin-dir flag
+  // 来自 --plugin-dir 标志的仅限会话的插件
   inlinePlugins: Array<string>
-  // Explicit --chrome / --no-chrome flag value (undefined = not set on CLI)
+  // 显式的 --chrome / --no-chrome 标志值（undefined 表示未在 CLI 中设置）
   chromeFlagOverride: boolean | undefined
-  // Use cowork_plugins directory instead of plugins (--cowork flag or env var)
+  // 使用 cowork_plugins 目录而非 plugins（通过 --cowork 标志或环境变量）
   useCoworkPlugins: boolean
-  // Session-only bypass permissions mode flag (not persisted)
+  // 仅限会话的绕过权限模式标志（不持久化）
   sessionBypassPermissionsMode: boolean
-  // Session-only flag gating the .claude/scheduled_tasks.json watcher
-  // (useScheduledTasks). Set by cronScheduler.start() when the JSON has
-  // entries, or by CronCreateTool. Not persisted.
+  // 控制 .claude/scheduled_tasks.json 观察器的仅限会话标志
+  // （useScheduledTasks）。当 JSON 有条目时由 cronScheduler.start() 设置，
+  // 或由 CronCreateTool 设置。不持久化。
   scheduledTasksEnabled: boolean
-  // Session-only cron tasks created via CronCreate with durable: false.
-  // Fire on schedule like file-backed tasks but are never written to
-  // .claude/scheduled_tasks.json — they die with the process. Typed via
-  // SessionCronTask below (not importing from cronTasks.ts keeps
-  // bootstrap a leaf of the import DAG).
+  // 通过 CronCreate 以 durable: false 创建的仅限会话的 cron 任务。
+  // 按计划触发，类似于文件持久化的任务，但永远不会写入
+  // .claude/scheduled_tasks.json——随进程终止而消失。通过下方的
+  // SessionCronTask 类型定义（不导入 cronTasks.ts 以保持
+  // bootstrap 位于导入 DAG 的叶子节点）。
   sessionCronTasks: SessionCronTask[]
-  // Teams created this session via TeamCreate. cleanupSessionTeams()
-  // removes these on gracefulShutdown so subagent-created teams don't
-  // persist on disk forever (gh-32730). TeamDelete removes entries to
-  // avoid double-cleanup. Lives here (not teamHelpers.ts) so
-  // resetStateForTests() clears it between tests.
+  // 本会话通过 TeamCreate 创建的任务团队。cleanupSessionTeams()
+  // 在 gracefulShutdown 时移除这些，这样子代理创建的任务团队
+  // 就不会永久残留在磁盘上（gh-32730）。TeamDelete 会移除条目
+  // 以避免重复清理。放在这里（而非 teamHelpers.ts）是为了让
+  // resetStateForTests() 在测试之间清除它。
   sessionCreatedTeams: Set<string>
-  // Session-only trust flag for home directory (not persisted to disk)
-  // When running from home dir, trust dialog is shown but not saved to disk.
-  // This flag allows features requiring trust to work during the session.
+  // 主目录的仅限会话的信任标志（不持久化到磁盘）
+  // 当从主目录运行时，信任对话框会显示但不会保存到磁盘。
+  // 此标志允许需要信任的功能在会话期间正常工作。
   sessionTrustAccepted: boolean
-  // Session-only flag to disable session persistence to disk
+  // 禁用会话持久化到磁盘的仅限会话标志
   sessionPersistenceDisabled: boolean
-  // Track if user has exited plan mode in this session (for re-entry guidance)
+  // 跟踪用户是否在本会话中退出过计划模式（用于重新进入引导）
   hasExitedPlanMode: boolean
-  // Track if we need to show the plan mode exit attachment (one-time notification)
+  // 跟踪是否需要显示计划模式退出附件（一次性通知）
   needsPlanModeExitAttachment: boolean
-  // Track if we need to show the auto mode exit attachment (one-time notification)
+  // 跟踪是否需要显示自动模式退出附件（一次性通知）
   needsAutoModeExitAttachment: boolean
-  // Track if LSP plugin recommendation has been shown this session (only show once)
+  // 跟踪本会话是否已显示过 LSP 插件推荐（只显示一次）
   lspRecommendationShownThisSession: boolean
-  // SDK init event state - jsonSchema for structured output
+  // SDK 初始化事件状态——用于结构化输出的 jsonSchema
   initJsonSchema: Record<string, unknown> | null
-  // Registered hooks - SDK callbacks and plugin native hooks
+  // 已注册的钩子——SDK 回调和插件原生钩子
   registeredHooks: Partial<Record<HookEvent, RegisteredHookMatcher[]>> | null
-  // Cache for plan slugs: sessionId -> wordSlug
+  // 计划 slug 缓存：sessionId -> wordSlug
   planSlugCache: Map<string, string>
-  // Track teleported session for reliability logging
+  // 跟踪传送会话以进行可靠性日志记录
   teleportedSessionInfo: {
     isTeleported: boolean
     hasLoggedFirstMessage: boolean
     sessionId: string | null
   } | null
-  // Track invoked skills for preservation across compaction
-  // Keys are composite: `${agentId ?? ''}:${skillName}` to prevent cross-agent overwrites
+  // 跟踪已调用的技能以便跨压缩保留
+  // 键为复合形式：`${agentId ?? ''}:${skillName}`，以防止跨代理覆盖
   invokedSkills: Map<
     string,
     {
@@ -185,76 +185,76 @@ type State = {
       agentId: string | null
     }
   >
-  // Track slow operations for dev bar display (ant-only)
+  // 跟踪慢速操作以在开发者工具栏显示（仅限 ant）
   slowOperations: Array<{
     operation: string
     durationMs: number
     timestamp: number
   }>
-  // SDK-provided betas (e.g., context-1m-2025-08-07)
+  // SDK 提供的 beta 功能（例如，context-1m-2025-08-07）
   sdkBetas: string[] | undefined
-  // Main thread agent type (from --agent flag or settings)
+  // 主线程代理类型（来自 --agent 标志或设置）
   mainThreadAgentType: string | undefined
-  // Remote mode (--remote flag)
+  // 远程模式（--remote 标志）
   isRemoteMode: boolean
-  // Direct connect server URL (for display in header)
+  // 直连服务器 URL（用于在标题栏显示）
   directConnectServerUrl: string | undefined
-  // System prompt section cache state
+  // 系统提示区块缓存状态
   systemPromptSectionCache: Map<string, string | null>
-  // Last date emitted to the model (for detecting midnight date changes)
+  // 最后发送给模型的日期（用于检测午夜日期变化）
   lastEmittedDate: string | null
-  // Additional directories from --add-dir flag (for CLAUDE.md loading)
+  // 来自 --add-dir 标志的额外目录（用于加载 CLAUDE.md）
   additionalDirectoriesForClaudeMd: string[]
-  // Channel server allowlist from --channels flag (servers whose channel
-  // notifications should register this session). Parsed once in main.tsx —
-  // the tag decides trust model: 'plugin' → marketplace verification +
-  // allowlist, 'server' → allowlist always fails (schema is plugin-only).
-  // Either kind needs entry.dev to bypass allowlist.
+  // 来自 --channels 标志的频道服务器允许列表（其中的频道
+  // 通知应注册此会话）。在 main.tsx 中解析一次——
+  // 标签决定信任模型：'plugin' → 市场验证 + 允许列表，
+  // 'server' → 允许列表始终失败（schema 仅支持 plugin）。
+  // 两种类型都需要 entry.dev 来绕过允许列表。
   allowedChannels: ChannelEntry[]
-  // True if any entry in allowedChannels came from
-  // --dangerously-load-development-channels (so ChannelsNotice can name the
-  // right flag in policy-blocked messages)
+  // 如果 allowedChannels 中有任何条目来自
+  // --dangerously-load-development-channels（这样 ChannelsNotice
+  // 可以在策略阻止的消息中指明正确的标志）
   hasDevChannels: boolean
-  // Dir containing the session's `.jsonl`; null = derive from originalCwd.
+  // 包含会话 `.jsonl` 的目录；null = 从 originalCwd 派生。
   sessionProjectDir: string | null
-  // Cached prompt cache 1h TTL allowlist from GrowthBook (session-stable)
+  // 来自 GrowthBook 的缓存提示缓存 1 小时 TTL 允许列表（会话稳定）
   promptCache1hAllowlist: string[] | null
-  // Cached 1h TTL user eligibility (session-stable). Latched on first
-  // evaluation so mid-session overage flips don't change the cache_control
-  // TTL, which would bust the server-side prompt cache.
+  // 缓存的 1 小时 TTL 用户资格（会话稳定）。首次评估时锁定，
+  // 这样会话中期的超额波动就不会改变 cache_control TTL，
+  // 否则会破坏服务端的提示缓存。
   promptCache1hEligible: boolean | null
-  // Sticky-on latch for AFK_MODE_BETA_HEADER. Once auto mode is first
-  // activated, keep sending the header for the rest of the session so
-  // Shift+Tab toggles don't bust the ~50-70K token prompt cache.
+  // AFK_MODE_BETA_HEADER 的锁定开关。一旦自动模式首次激活，
+  // 在会话其余时间持续发送该 header，这样 Shift+Tab 切换
+  // 就不会破坏约 50-70K token 的提示缓存。
   afkModeHeaderLatched: boolean | null
-  // Sticky-on latch for FAST_MODE_BETA_HEADER. Once fast mode is first
-  // enabled, keep sending the header so cooldown enter/exit doesn't
-  // double-bust the prompt cache. The `speed` body param stays dynamic.
+  // FAST_MODE_BETA_HEADER 的锁定开关。一旦快速模式首次启用，
+  // 持续发送该 header，这样冷却进入/退出就不会双重破坏
+  // 提示缓存。`speed` body 参数保持动态。
   fastModeHeaderLatched: boolean | null
-  // Sticky-on latch for the cache-editing beta header. Once cached
-  // microcompact is first enabled, keep sending the header so mid-session
-  // GrowthBook/settings toggles don't bust the prompt cache.
+  // 缓存编辑 beta header 的锁定开关。一旦缓存微压缩首次启用，
+  // 持续发送该 header，这样会话中期的 GrowthBook/设置切换
+  // 就不会破坏提示缓存。
   cacheEditingHeaderLatched: boolean | null
-  // Current prompt ID (UUID) correlating a user prompt with subsequent OTel events
+  // 当前提示 ID（UUID），用于将用户提示与后续 OTel 事件关联
   promptId: string | null
-  // Last API requestId for the main conversation chain (not subagents).
-  // Updated after each successful API response for main-session queries.
-  // Read at shutdown to send cache eviction hints to inference.
+  // 主会话链（非子代理）的最后一次 API requestId。
+  // 在每次主会话查询成功响应后更新。
+  // 在关闭时读取以向推理服务发送缓存逐出提示。
   lastMainRequestId: string | undefined
-  // Timestamp (Date.now()) of the last successful API call completion.
-  // Used to compute timeSinceLastApiCallMs in tengu_api_success for
-  // correlating cache misses with idle time (cache TTL is ~5min).
+  // 最后一次成功 API 调用完成的时间戳（Date.now()）。
+  // 用于在 tengu_api_success 中计算 timeSinceLastApiCallMs，
+  // 将缓存未命中与空闲时间关联（缓存 TTL 约为 5 分钟）。
   lastApiCompletionTimestamp: number | null
-  // Set to true after compaction (auto or manual /compact). Consumed by
-  // logAPISuccess to tag the first post-compaction API call so we can
-  // distinguish compaction-induced cache misses from TTL expiry.
+  // 压缩后（自动或手动 /compact）设为 true。由 logAPISuccess 消费，
+  // 用于标记压缩后的第一次 API 调用，以便区分压缩引起的
+  // 缓存未命中和 TTL 过期。
   pendingPostCompaction: boolean
 }
 
-// ALSO HERE - THINK THRICE BEFORE MODIFYING
+// 也要在这里注意——修改前请三思
 function getInitialState(): State {
-  // Resolve symlinks in cwd to match behavior of shell.ts setCwd
-  // This ensures consistency with how paths are sanitized for session storage
+  // 解析 cwd 中的符号链接以匹配 shell.ts 中 setCwd 的行为
+  // 这确保了与会话存储路径清理方式的一致性
   let resolvedCwd = ''
   if (
     typeof process !== 'undefined' &&
@@ -265,7 +265,7 @@ function getInitialState(): State {
     try {
       resolvedCwd = realpathSync(rawCwd).normalize('NFC')
     } catch {
-      // File Provider EPERM on CloudStorage mounts (lstat per path component).
+      // 文件提供器在 CloudStorage 挂载点上返回 EPERM（对每个路径组件执行 lstat）。
       resolvedCwd = rawCwd.normalize('NFC')
     }
   }
@@ -312,7 +312,7 @@ function getInitialState(): State {
       'flagSettings',
       'policySettings',
     ],
-    // Telemetry state
+    // 遥测状态
     meter: null,
     sessionCounter: null,
     locCounter: null,
@@ -325,91 +325,91 @@ function getInitialState(): State {
     statsStore: null,
     sessionId: randomUUID() as SessionId,
     parentSessionId: undefined,
-    // Logger state
+    // 日志记录器状态
     loggerProvider: null,
     eventLogger: null,
-    // Meter provider state
+    // 指标提供器状态
     meterProvider: null,
     tracerProvider: null,
-    // Agent color state
+    // Agent 颜色状态
     agentColorMap: new Map(),
     agentColorIndex: 0,
-    // Last API request for bug reports
+    // 最后一次 API 请求，用于错误报告
     lastAPIRequest: null,
     lastAPIRequestMessages: null,
-    // Last auto-mode classifier request(s) for /share transcript
+    // 最后一次自动模式分类器请求，用于 /share 转录
     lastClassifierRequests: null,
     cachedClaudeMdContent: null,
-    // In-memory error log for recent errors
+    // 近期错误的内存日志
     inMemoryErrorLog: [],
-    // Session-only plugins from --plugin-dir flag
+    // 来自 --plugin-dir 标志的仅限会话的插件
     inlinePlugins: [],
-    // Explicit --chrome / --no-chrome flag value (undefined = not set on CLI)
+    // 显式的 --chrome / --no-chrome 标志值（undefined 表示未在 CLI 中设置）
     chromeFlagOverride: undefined,
-    // Use cowork_plugins directory instead of plugins
+    // 使用 cowork_plugins 目录而非 plugins
     useCoworkPlugins: false,
-    // Session-only bypass permissions mode flag (not persisted)
+    // 仅限会话的绕过权限模式标志（不持久化）
     sessionBypassPermissionsMode: false,
-    // Scheduled tasks disabled until flag or dialog enables them
+    // 定时任务在标志或对话框启用前保持禁用
     scheduledTasksEnabled: false,
     sessionCronTasks: [],
     sessionCreatedTeams: new Set(),
-    // Session-only trust flag (not persisted to disk)
+    // 仅限会话的信任标志（不持久化到磁盘）
     sessionTrustAccepted: false,
-    // Session-only flag to disable session persistence to disk
+    // 禁用会话持久化到磁盘的仅限会话标志
     sessionPersistenceDisabled: false,
-    // Track if user has exited plan mode in this session
+    // 跟踪用户是否在本会话中退出过计划模式
     hasExitedPlanMode: false,
-    // Track if we need to show the plan mode exit attachment
+    // 跟踪是否需要显示计划模式退出附件
     needsPlanModeExitAttachment: false,
-    // Track if we need to show the auto mode exit attachment
+    // 跟踪是否需要显示自动模式退出附件
     needsAutoModeExitAttachment: false,
-    // Track if LSP plugin recommendation has been shown this session
+    // 跟踪本会话是否已显示过 LSP 插件推荐
     lspRecommendationShownThisSession: false,
-    // SDK init event state
+    // SDK 初始化事件状态
     initJsonSchema: null,
     registeredHooks: null,
-    // Cache for plan slugs
+    // 计划 slug 缓存
     planSlugCache: new Map(),
-    // Track teleported session for reliability logging
+    // 跟踪传送会话以进行可靠性日志记录
     teleportedSessionInfo: null,
-    // Track invoked skills for preservation across compaction
+    // 跟踪已调用的技能以便跨压缩保留
     invokedSkills: new Map(),
-    // Track slow operations for dev bar display
+    // 跟踪慢速操作以在开发者工具栏显示
     slowOperations: [],
-    // SDK-provided betas
+    // SDK 提供的 beta 功能
     sdkBetas: undefined,
-    // Main thread agent type
+    // 主线程代理类型
     mainThreadAgentType: undefined,
-    // Remote mode
+    // 远程模式
     isRemoteMode: false,
     ...(process.env.USER_TYPE === 'ant'
       ? {
           replBridgeActive: false,
         }
       : {}),
-    // Direct connect server URL
+    // 直连服务器 URL
     directConnectServerUrl: undefined,
-    // System prompt section cache state
+    // 系统提示区块缓存状态
     systemPromptSectionCache: new Map(),
-    // Last date emitted to the model
+    // 最后发送给模型的日期
     lastEmittedDate: null,
-    // Additional directories from --add-dir flag (for CLAUDE.md loading)
+    // 来自 --add-dir 标志的额外目录（用于加载 CLAUDE.md）
     additionalDirectoriesForClaudeMd: [],
-    // Channel server allowlist from --channels flag
+    // 来自 --channels 标志的频道服务器允许列表
     allowedChannels: [],
     hasDevChannels: false,
-    // Session project dir (null = derive from originalCwd)
+    // 会话项目目录（null = 从 originalCwd 派生）
     sessionProjectDir: null,
-    // Prompt cache 1h allowlist (null = not yet fetched from GrowthBook)
+    // 提示缓存 1 小时允许列表（null = 尚未从 GrowthBook 获取）
     promptCache1hAllowlist: null,
-    // Prompt cache 1h eligibility (null = not yet evaluated)
+    // 提示缓存 1 小时资格（null = 尚未评估）
     promptCache1hEligible: null,
-    // Beta header latches (null = not yet triggered)
+    // Beta header 锁定（null = 尚未触发）
     afkModeHeaderLatched: null,
     fastModeHeaderLatched: null,
     cacheEditingHeaderLatched: null,
-    // Current prompt ID
+    // 当前提示 ID
     promptId: null,
     lastMainRequestId: undefined,
     lastApiCompletionTimestamp: null,
@@ -419,7 +419,7 @@ function getInitialState(): State {
   return state
 }
 
-// AND ESPECIALLY HERE
+// 尤其是在这里——更要三思
 const STATE: State = getInitialState()
 
 export function getSessionId(): SessionId {
@@ -432,12 +432,12 @@ export function regenerateSessionId(
   if (options.setCurrentAsParent) {
     STATE.parentSessionId = STATE.sessionId
   }
-  // Drop the outgoing session's plan-slug entry so the Map doesn't
-  // accumulate stale keys. Callers that need to carry the slug across
-  // (REPL.tsx clearContext) read it before calling clearConversation.
+  // 移除即将退出会话的计划 slug 条目，以免 Map 中
+  // 积累过期键。需要跨调用保留 slug 的调用方
+  // （REPL.tsx 的 clearContext）会在调用 clearConversation 之前读取它。
   STATE.planSlugCache.delete(STATE.sessionId)
-  // Regenerated sessions live in the current project: reset projectDir to
-  // null so getTranscriptPath() derives from originalCwd.
+  // 重新生成的会话位于当前项目中：将 projectDir 重置为
+  // null，这样 getTranscriptPath() 会从 originalCwd 派生。
   STATE.sessionId = randomUUID() as SessionId
   STATE.sessionProjectDir = null
   return STATE.sessionId
@@ -448,24 +448,22 @@ export function getParentSessionId(): SessionId | undefined {
 }
 
 /**
- * Atomically switch the active session. `sessionId` and `sessionProjectDir`
- * always change together — there is no separate setter for either, so they
- * cannot drift out of sync (CC-34).
+ * 原子性地切换活跃会话。`sessionId` 和 `sessionProjectDir`
+ * 总是同步变化——没有单独的 setter，因此它们不会不同步（CC-34）。
  *
- * @param projectDir — directory containing `<sessionId>.jsonl`. Omit (or
- *   pass `null`) for sessions in the current project — the path will derive
- *   from originalCwd at read time. Pass `dirname(transcriptPath)` when the
- *   session lives in a different project directory (git worktrees,
- *   cross-project resume). Every call resets the project dir; it never
- *   carries over from the previous session.
+ * @param projectDir — 包含 `<sessionId>.jsonl` 的目录。对于当前项目中的
+ *   会话，省略（或传 `null`）——路径会在读取时从 originalCwd 派生。
+ *   当会话位于不同项目目录时（git worktree、跨项目恢复），
+ *   传 `dirname(transcriptPath)`。每次调用都会重置项目目录；
+ *   它永远不会从上一个会话继承。
  */
 export function switchSession(
   sessionId: SessionId,
   projectDir: string | null = null,
 ): void {
-  // Drop the outgoing session's plan-slug entry so the Map stays bounded
-  // across repeated /resume. Only the current session's slug is ever read
-  // (plans.ts getPlanSlug defaults to getSessionId()).
+  // 移除即将退出会话的计划 slug 条目，以保持 Map 在重复
+  // /resume 调用间的大小有限。只有当前会话的 slug 会被读取
+  // （plans.ts 的 getPlanSlug 默认使用 getSessionId()）。
   STATE.planSlugCache.delete(STATE.sessionId)
   STATE.sessionId = sessionId
   STATE.sessionProjectDir = projectDir
@@ -475,17 +473,16 @@ export function switchSession(
 const sessionSwitched = createSignal<[id: SessionId]>()
 
 /**
- * Register a callback that fires when switchSession changes the active
- * sessionId. bootstrap can't import listeners directly (DAG leaf), so
- * callers register themselves. concurrentSessions.ts uses this to keep the
- * PID file's sessionId in sync with --resume.
+ * 注册一个回调，当 switchSession 改变活跃 sessionId 时触发。
+ * bootstrap 不能直接导入监听器（DAG 叶子节点约束），所以由调用方
+ * 自行注册。concurrentSessions.ts 使用此机制来保持 PID 文件中的
+ * sessionId 与 --resume 同步。
  */
 export const onSessionSwitch = sessionSwitched.subscribe
 
 /**
- * Project directory the current session's transcript lives in, or `null` if
- * the session was created in the current project (common case — derive from
- * originalCwd). See `switchSession()`.
+ * 当前会话转录文件所在的项目目录，如果会话是在当前项目中创建的
+ * 则返回 `null`（常见情况——从 originalCwd 派生）。参见 `switchSession()`。
  */
 export function getSessionProjectDir(): string | null {
   return STATE.sessionProjectDir
@@ -496,11 +493,11 @@ export function getOriginalCwd(): string {
 }
 
 /**
- * Get the stable project root directory.
- * Unlike getOriginalCwd(), this is never updated by mid-session EnterWorktreeTool
- * (so skills/history stay stable when entering a throwaway worktree).
- * It IS set at startup by --worktree, since that worktree is the session's project.
- * Use for project identity (history, skills, sessions) not file operations.
+ * 获取稳定的项目根目录。
+ * 与 getOriginalCwd() 不同，此值不会被会话中途的 EnterWorktreeTool 更新
+ * （所以当进入一次性 worktree 时，技能/历史保持稳定）。
+ * 但它在启动时会由 --worktree 设置，因为该 worktree 就是会话的项目。
+ * 用于项目标识（历史、技能、会话），而非文件操作。
  */
 export function getProjectRoot(): string {
   return STATE.projectRoot
@@ -511,8 +508,8 @@ export function setOriginalCwd(cwd: string): void {
 }
 
 /**
- * Only for --worktree startup flag. Mid-session EnterWorktreeTool must NOT
- * call this — skills/history should stay anchored to where the session started.
+ * 仅用于 --worktree 启动标志。会话中途的 EnterWorktreeTool 绝不能
+ * 调用此函数——技能/历史应保持锚定在会话开始的位置。
  */
 export function setProjectRoot(cwd: string): void {
   STATE.projectRoot = cwd.normalize('NFC')
@@ -645,16 +642,15 @@ export function setStatsStore(
 }
 
 /**
- * Marks that an interaction occurred.
+ * 标记发生了一次交互。
  *
- * By default the actual Date.now() call is deferred until the next Ink render
- * frame (via flushInteractionTime()) so we avoid calling Date.now() on every
- * single keypress.
+ * 默认情况下，实际的 Date.now() 调用会延迟到下一次 Ink 渲染帧
+ * （通过 flushInteractionTime()），以避免在每次按键时都调用 Date.now()。
  *
- * Pass `immediate = true` when calling from React useEffect callbacks or
- * other code that runs *after* the Ink render cycle has already flushed.
- * Without it the timestamp stays stale until the next render, which may never
- * come if the user is idle (e.g. permission dialog waiting for input).
+ * 从 React useEffect 回调或其他在 Ink 渲染周期已刷新后运行的代码中
+ * 调用时，传 `immediate = true`。否则时间戳会保持陈旧直到下一次渲染，
+ * 而如果用户处于空闲状态（例如权限对话框等待输入），下一次渲染可能
+ * 永远不会到来。
  */
 let interactionTimeDirty = false
 
@@ -667,9 +663,9 @@ export function updateLastInteractionTime(immediate?: boolean): void {
 }
 
 /**
- * If an interaction was recorded since the last flush, update the timestamp
- * now. Called by Ink before each render cycle so we batch many keypresses into
- * a single Date.now() call.
+ * 如果自上次刷新以来有交互记录，则立即更新时间戳。
+ * 由 Ink 在每次渲染周期前调用，这样可以将多次按键合并
+ * 为单次 Date.now() 调用。
  */
 export function flushInteractionTime(): void {
   if (interactionTimeDirty) {
@@ -760,14 +756,14 @@ export function setLastApiCompletionTimestamp(timestamp: number): void {
   STATE.lastApiCompletionTimestamp = timestamp
 }
 
-/** Mark that a compaction just occurred. The next API success event will
- *  include isPostCompaction=true, then the flag auto-resets. */
+/** 标记压缩刚刚发生。下一次 API 成功事件会包含
+ *  isPostCompaction=true，然后该标志自动重置。 */
 export function markPostCompaction(): void {
   STATE.pendingPostCompaction = true
 }
 
-/** Consume the post-compaction flag. Returns true once after compaction,
- *  then returns false until the next compaction. */
+/** 消费压缩后标志。压缩后返回一次 true，
+ *  然后返回 false 直到下一次压缩。 */
 export function consumePostCompaction(): boolean {
   const was = STATE.pendingPostCompaction
   STATE.pendingPostCompaction = false
@@ -778,17 +774,17 @@ export function getLastInteractionTime(): number {
   return STATE.lastInteractionTime
 }
 
-// Scroll drain suspension — background intervals check this before doing work
-// so they don't compete with scroll frames for the event loop. Set by
-// ScrollBox scrollBy/scrollTo, cleared SCROLL_DRAIN_IDLE_MS after the last
-// scroll event. Module-scope (not in STATE) — ephemeral hot-path flag, no
-// test-reset needed since the debounce timer self-clears.
+// 滚动排空暂停——后台间隔在执行工作前会检查此标志，
+// 以免与滚动帧竞争事件循环。由 ScrollBox 的 scrollBy/scrollTo 设置，
+// 在最后一次滚动事件后 SCROLL_DRAIN_IDLE_MS 毫秒时清除。
+// 模块作用域（不在 STATE 中）——临时热路径标志，不需要测试重置，
+// 因为防抖计时器会自行清除。
 let scrollDraining = false
 let scrollDrainTimer: ReturnType<typeof setTimeout> | undefined
 const SCROLL_DRAIN_IDLE_MS = 150
 
-/** Mark that a scroll event just happened. Background intervals gate on
- *  getIsScrollDraining() and skip their work until the debounce clears. */
+/** 标记刚刚发生了滚动事件。后台间隔会通过 getIsScrollDraining() 判断
+ *  并在防抖清除前跳过其工作。 */
 export function markScrollActivity(): void {
   scrollDraining = true
   if (scrollDrainTimer) clearTimeout(scrollDrainTimer)
@@ -799,19 +795,18 @@ export function markScrollActivity(): void {
   scrollDrainTimer.unref?.()
 }
 
-/** True while scroll is actively draining (within 150ms of last event).
- *  Intervals should early-return when this is set — the work picks up next
- *  tick after scroll settles. */
+/** 当滚动正在排空时返回 true（在最后一次事件后 150ms 内）。
+ *  间隔应在此值被设置时提前返回——工作会在滚动稳定后的
+ *  下一个 tick 恢复。 */
 export function getIsScrollDraining(): boolean {
   return scrollDraining
 }
 
-/** Await this before expensive one-shot work (network, subprocess) that could
- *  coincide with scroll. Resolves immediately if not scrolling; otherwise
- *  polls at the idle interval until the flag clears. */
+/** 在执行可能与滚动重叠的一次性工作（网络、子进程）前等待此函数。
+ *  如果未在滚动则立即 resolve；否则以空闲间隔轮询直到标志清除。 */
 export async function waitForScrollIdle(): Promise<void> {
   while (scrollDraining) {
-    // bootstrap-isolation forbids importing sleep() from src/utils/
+    // bootstrap-isolation 禁止从 src/utils/ 导入 sleep()
     // eslint-disable-next-line no-restricted-syntax
     await new Promise(r => setTimeout(r, SCROLL_DRAIN_IDLE_MS).unref?.())
   }
@@ -826,8 +821,7 @@ export function getUsageForModel(model: string): ModelUsage | undefined {
 }
 
 /**
- * Gets the model override set from the --model CLI flag or after the user
- * updates their configured model.
+ * 获取来自 --model CLI 标志或用户更新其配置模型后的模型覆盖设置。
  */
 export function getMainLoopModelOverride(): ModelSetting | undefined {
   return STATE.mainLoopModelOverride
@@ -869,8 +863,8 @@ export function resetCostState(): void {
 }
 
 /**
- * Sets cost state values for session restore.
- * Called by restoreCostStateForSession in cost-tracker.ts.
+ * 为会话恢复设置成本状态值。
+ * 由 cost-tracker.ts 中的 restoreCostStateForSession 调用。
  */
 export function setCostStateForRestore({
   totalCostUSD,
@@ -898,18 +892,18 @@ export function setCostStateForRestore({
   STATE.totalLinesAdded = totalLinesAdded
   STATE.totalLinesRemoved = totalLinesRemoved
 
-  // Restore per-model usage breakdown
+  // 恢复按模型分类的使用明细
   if (modelUsage) {
     STATE.modelUsage = modelUsage
   }
 
-  // Adjust startTime to make wall duration accumulate
+  // 调整 startTime 以使墙上时钟时长累加
   if (lastDuration) {
     STATE.startTime = Date.now() - lastDuration
   }
 }
 
-// Only used in tests
+// 仅在测试中使用
 export function resetStateForTests(): void {
   if (process.env.NODE_ENV !== 'test') {
     throw new Error('resetStateForTests can only be called in tests')
@@ -923,18 +917,18 @@ export function resetStateForTests(): void {
   sessionSwitched.clear()
 }
 
-// You shouldn't use this directly. See src/utils/model/modelStrings.ts::getModelStrings()
+// 你不应该直接使用此函数。参见 src/utils/model/modelStrings.ts::getModelStrings()
 export function getModelStrings(): ModelStrings | null {
   return STATE.modelStrings
 }
 
-// You shouldn't use this directly. See src/utils/model/modelStrings.ts
+// 你不应该直接使用此函数。参见 src/utils/model/modelStrings.ts
 export function setModelStrings(modelStrings: ModelStrings): void {
   STATE.modelStrings = modelStrings
 }
 
-// Test utility function to reset model strings for re-initialization.
-// Separate from setModelStrings because we only want to accept 'null' in tests.
+// 用于重置模型字符串以进行重新初始化的测试工具函数。
+// 与 setModelStrings 分离，因为我们只希望在测试中接受 'null'。
 export function resetModelStringsForTestingOnly() {
   STATE.modelStrings = null
 }
@@ -945,7 +939,7 @@ export function setMeter(
 ): void {
   STATE.meter = meter
 
-  // Initialize all counters using the provided factory
+  // 使用提供的工厂初始化所有计数器
   STATE.sessionCounter = createCounter('claude_code.session.count', {
     description: 'Count of CLI sessions started',
   })
@@ -1092,9 +1086,9 @@ export function setStrictToolResultPairing(value: boolean): void {
   STATE.strictToolResultPairing = value
 }
 
-// Field name 'userMsgOptIn' avoids excluded-string substrings ('BriefTool',
-// 'SendUserMessage' — case-insensitive). All callers are inside feature()
-// guards so these accessors don't need their own (matches getKairosActive).
+// 字段名 'userMsgOptIn' 避免了被排除的字符串子串（'BriefTool'、
+// 'SendUserMessage'——不区分大小写）。所有调用方都在 feature() 守卫
+// 内部，所以这些访问器不需要自己的守卫（与 getKairosActive 一致）。
 export function getUserMsgOptIn(): boolean {
   return STATE.userMsgOptIn
 }
@@ -1212,7 +1206,7 @@ export function addToInMemoryErrorLog(errorInfo: {
 }): void {
   const MAX_IN_MEMORY_ERRORS = 100
   if (STATE.inMemoryErrorLog.length >= MAX_IN_MEMORY_ERRORS) {
-    STATE.inMemoryErrorLog.shift() // Remove oldest error
+    STATE.inMemoryErrorLog.shift() // 移除最旧的错误
   }
   STATE.inMemoryErrorLog.push(errorInfo)
 }
@@ -1226,7 +1220,7 @@ export function setAllowedSettingSources(sources: SettingSource[]): void {
 }
 
 export function preferThirdPartyAuthentication(): boolean {
-  // IDE extension should behave as 1P for authentication reasons.
+  // IDE 扩展应该出于认证原因表现为第一方。
   return getIsNonInteractiveSession() && STATE.clientType !== 'claude-vscode'
 }
 
@@ -1278,9 +1272,9 @@ export type SessionCronTask = {
   createdAt: number
   recurring?: boolean
   /**
-   * When set, the task was created by an in-process teammate (not the team lead).
-   * The scheduler routes fires to that teammate's pendingUserMessages queue
-   * instead of the main REPL command queue. Session-only — never written to disk.
+   * 设置后，表示该任务是由进程内的队友（而非团队负责人）创建的。
+   * 调度器会将触发路由到该队友的 pendingUserMessages 队列，
+   * 而不是主 REPL 命令队列。仅限会话——永远不会写入磁盘。
    */
   agentId?: string
 }
@@ -1294,9 +1288,9 @@ export function addSessionCronTask(task: SessionCronTask): void {
 }
 
 /**
- * Returns the number of tasks actually removed. Callers use this to skip
- * downstream work (e.g. the disk read in removeCronTasks) when all ids
- * were accounted for here.
+ * 返回实际移除的任务数量。调用方使用此值来跳过下游工作
+ * （例如 removeCronTasks 中的磁盘读取），当所有 id 都在这里
+ * 被处理完毕时。
  */
 export function removeSessionCronTasks(ids: readonly string[]): number {
   if (ids.length === 0) return 0
@@ -1344,13 +1338,13 @@ export function handlePlanModeTransition(
   fromMode: string,
   toMode: string,
 ): void {
-  // If switching TO plan mode, clear any pending exit attachment
-  // This prevents sending both plan_mode and plan_mode_exit when user toggles quickly
+  // 如果切换到计划模式，清除任何待处理的退出附件
+  // 这可以防止用户快速切换时同时发送 plan_mode 和 plan_mode_exit
   if (toMode === 'plan' && fromMode !== 'plan') {
     STATE.needsPlanModeExitAttachment = false
   }
 
-  // If switching out of plan mode, trigger the plan_mode_exit attachment
+  // 如果切换出计划模式，触发 plan_mode_exit 附件
   if (fromMode === 'plan' && toMode !== 'plan') {
     STATE.needsPlanModeExitAttachment = true
   }
@@ -1368,9 +1362,9 @@ export function handleAutoModeTransition(
   fromMode: string,
   toMode: string,
 ): void {
-  // Auto↔plan transitions are handled by prepareContextForPlanMode (auto may
-  // stay active through plan if opted in) and ExitPlanMode (restores mode).
-  // Skip both directions so this function only handles direct auto transitions.
+  // Auto↔plan 转换由 prepareContextForPlanMode 处理（如果选择加入，
+  // auto 可能在 plan 期间保持活跃）和 ExitPlanMode（恢复模式）。
+  // 跳过两个方向，这样此函数只处理直接的 auto 转换。
   if (
     (fromMode === 'auto' && toMode === 'plan') ||
     (fromMode === 'plan' && toMode === 'auto')
@@ -1380,19 +1374,19 @@ export function handleAutoModeTransition(
   const fromIsAuto = fromMode === 'auto'
   const toIsAuto = toMode === 'auto'
 
-  // If switching TO auto mode, clear any pending exit attachment
-  // This prevents sending both auto_mode and auto_mode_exit when user toggles quickly
+  // 如果切换到自动模式，清除任何待处理的退出附件
+  // 这可以防止用户快速切换时同时发送 auto_mode 和 auto_mode_exit
   if (toIsAuto && !fromIsAuto) {
     STATE.needsAutoModeExitAttachment = false
   }
 
-  // If switching out of auto mode, trigger the auto_mode_exit attachment
+  // 如果切换出自动模式，触发 auto_mode_exit 附件
   if (fromIsAuto && !toIsAuto) {
     STATE.needsAutoModeExitAttachment = true
   }
 }
 
-// LSP plugin recommendation session tracking
+// LSP 插件推荐的会话跟踪
 export function hasShownLspRecommendationThisSession(): boolean {
   return STATE.lspRecommendationShownThisSession
 }
@@ -1401,7 +1395,7 @@ export function setLspRecommendationShownThisSession(value: boolean): void {
   STATE.lspRecommendationShownThisSession = value
 }
 
-// SDK init event state
+// SDK 初始化事件状态
 export function setInitJsonSchema(schema: Record<string, unknown>): void {
   STATE.initJsonSchema = schema
 }
@@ -1417,7 +1411,7 @@ export function registerHookCallbacks(
     STATE.registeredHooks = {}
   }
 
-  // `registerHookCallbacks` may be called multiple times, so we need to merge (not overwrite)
+  // `registerHookCallbacks` 可能被多次调用，所以我们需要合并（而非覆盖）
   for (const [event, matchers] of Object.entries(hooks)) {
     const eventKey = event as HookEvent
     if (!STATE.registeredHooks[eventKey]) {
@@ -1444,7 +1438,7 @@ export function clearRegisteredPluginHooks(): void {
 
   const filtered: Partial<Record<HookEvent, RegisteredHookMatcher[]>> = {}
   for (const [event, matchers] of Object.entries(STATE.registeredHooks)) {
-    // Keep only callback hooks (those without pluginRoot)
+    // 仅保留回调钩子（那些没有 pluginRoot 的）
     const callbackHooks = (matchers ?? []).filter(m => !('pluginRoot' in m))
     if (callbackHooks.length > 0) {
       filtered[event as HookEvent] = callbackHooks
@@ -1477,7 +1471,7 @@ export function getSessionCreatedTeams(): Set<string> {
   return STATE.sessionCreatedTeams
 }
 
-// Teleported session tracking for reliability logging
+// 传送会话跟踪以进行可靠性日志记录
 export function setTeleportedSessionInfo(info: {
   sessionId: string | null
 }): void {
@@ -1502,7 +1496,7 @@ export function markFirstTeleportMessageLogged(): void {
   }
 }
 
-// Invoked skills tracking for preservation across compaction
+// 已调用技能的跟踪以便跨压缩保留
 export type InvokedSkillInfo = {
   skillName: string
   skillPath: string
@@ -1566,25 +1560,25 @@ export function clearInvokedSkillsForAgent(agentId: string): void {
   }
 }
 
-// Slow operations tracking for dev bar
+// 开发者工具栏的慢速操作跟踪
 const MAX_SLOW_OPERATIONS = 10
 const SLOW_OPERATION_TTL_MS = 10000
 
 export function addSlowOperation(operation: string, durationMs: number): void {
   if (process.env.USER_TYPE !== 'ant') return
-  // Skip tracking for editor sessions (user editing a prompt file in $EDITOR)
-  // These are intentionally slow since the user is drafting text
+  // 跳过编辑器会话的跟踪（用户在 $EDITOR 中编辑提示文件）
+  // 这些故意较慢，因为用户正在起草文本
   if (operation.includes('exec') && operation.includes('claude-prompt-')) {
     return
   }
   const now = Date.now()
-  // Remove stale operations
+  // 移除过期的操作
   STATE.slowOperations = STATE.slowOperations.filter(
     op => now - op.timestamp < SLOW_OPERATION_TTL_MS,
   )
-  // Add new operation
+  // 添加新操作
   STATE.slowOperations.push({ operation, durationMs, timestamp: now })
-  // Keep only the most recent operations
+  // 只保留最近的操作
   if (STATE.slowOperations.length > MAX_SLOW_OPERATIONS) {
     STATE.slowOperations = STATE.slowOperations.slice(-MAX_SLOW_OPERATIONS)
   }
@@ -1601,14 +1595,15 @@ export function getSlowOperations(): ReadonlyArray<{
   durationMs: number
   timestamp: number
 }> {
-  // Most common case: nothing tracked. Return a stable reference so the
-  // caller's setState() can bail via Object.is instead of re-rendering at 2fps.
+  // 最常见的情况：没有跟踪到任何内容。返回一个稳定的引用，
+  // 这样调用方的 setState() 可以通过 Object.is 跳过更新，
+  // 而不是以 2fps 的频率重新渲染。
   if (STATE.slowOperations.length === 0) {
     return EMPTY_SLOW_OPERATIONS
   }
   const now = Date.now()
-  // Only allocate a new array when something actually expired; otherwise keep
-  // the reference stable across polls while ops are still fresh.
+  // 只有当有操作实际过期时才分配新数组；否则在操作仍然新鲜时
+  // 保持引用稳定跨轮询。
   if (
     STATE.slowOperations.some(op => now - op.timestamp >= SLOW_OPERATION_TTL_MS)
   ) {
@@ -1619,8 +1614,8 @@ export function getSlowOperations(): ReadonlyArray<{
       return EMPTY_SLOW_OPERATIONS
     }
   }
-  // Safe to return directly: addSlowOperation() reassigns STATE.slowOperations
-  // before pushing, so the array held in React state is never mutated.
+  // 可以直接返回：addSlowOperation() 在 push 之前会重新赋值
+  // STATE.slowOperations，所以 React state 中持有的数组永远不会被修改。
   return STATE.slowOperations
 }
 
@@ -1640,7 +1635,7 @@ export function setIsRemoteMode(value: boolean): void {
   STATE.isRemoteMode = value
 }
 
-// System prompt section accessors
+// 系统提示区块访问器
 
 export function getSystemPromptSectionCache(): Map<string, string | null> {
   return STATE.systemPromptSectionCache
@@ -1663,7 +1658,7 @@ export function clearSystemPromptSectionState(): void {
   STATE.systemPromptSectionCache.clear()
 }
 
-// Last emitted date accessors (for detecting midnight date changes)
+// 最后发送的日期访问器（用于检测午夜日期变化）
 
 export function getLastEmittedDate(): string | null {
   return STATE.lastEmittedDate
@@ -1740,8 +1735,8 @@ export function setCacheEditingHeaderLatched(v: boolean): void {
 }
 
 /**
- * Reset beta header latches to null. Called on /clear and /compact so a
- * fresh conversation gets fresh header evaluation.
+ * 重置 beta header 锁定状态为 null。在 /clear 和 /compact 时调用，
+ * 这样新的对话会重新评估 header。
  */
 export function clearBetaHeaderLatches(): void {
   STATE.afkModeHeaderLatched = null

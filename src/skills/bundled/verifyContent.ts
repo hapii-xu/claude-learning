@@ -1,5 +1,5 @@
-// Content for the verify bundled skill.
-// Each .md file is inlined as a string at build time via Bun's text loader.
+// verify 捆绑技能的内容。
+// 每个 .md 文件在构建时通过 Bun 的文本加载器内联为字符串。
 
 import cliMd from './verify/examples/cli.md'
 import serverMd from './verify/examples/server.md'

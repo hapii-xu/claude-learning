@@ -13,7 +13,7 @@ import { isVoiceAvailable } from '../../voice/voiceModeEnabled.js'
 const LANG_HINT_MAX_SHOWS = 2
 
 export const call: LocalCommandCall = async args => {
-  // Check kill-switch before allowing voice mode
+  // 在允许进入语音模式前，先检查 kill-switch
   if (!isVoiceAvailable()) {
     return {
       type: 'text' as const,
@@ -25,7 +25,7 @@ export const call: LocalCommandCall = async args => {
   const isCurrentlyEnabled = currentSettings.voiceEnabled === true
   const providerArg = args?.trim().toLowerCase()
 
-  // Handle provider argument when already enabled — switch backend only
+  // 已启用时传入 provider 参数 —— 仅切换后端
   if (isCurrentlyEnabled && providerArg === 'doubao') {
     const result = updateSettingsForSource('userSettings', {
       voiceProvider: 'doubao',
@@ -45,7 +45,7 @@ export const call: LocalCommandCall = async args => {
     }
   }
 
-  // Handle provider argument when already enabled — switch to anthropic
+  // 已启用时传入 provider 参数 —— 切换到 anthropic
   if (isCurrentlyEnabled && providerArg === 'anthropic') {
     const result = updateSettingsForSource('userSettings', {
       voiceProvider: 'anthropic',
@@ -65,7 +65,7 @@ export const call: LocalCommandCall = async args => {
     }
   }
 
-  // Toggle OFF — no checks needed
+  // 关闭 —— 无需任何检查
   if (isCurrentlyEnabled) {
     const result = updateSettingsForSource('userSettings', {
       voiceEnabled: false,
@@ -85,16 +85,16 @@ export const call: LocalCommandCall = async args => {
     }
   }
 
-  // Toggle ON — determine provider from argument or default
+  // 开启 —— 根据参数或默认值确定 provider
   const provider = providerArg === 'doubao' ? 'doubao' : 'anthropic'
 
-  // Run pre-flight checks
+  // 执行预检
   const { isVoiceStreamAvailable } = await import(
     '../../services/voiceStreamSTT.js'
   )
   const { checkRecordingAvailability } = await import('../../services/voice.js')
 
-  // Check recording availability (microphone access)
+  // 检查录音可用性（麦克风访问）
   const recording = await checkRecordingAvailability()
   if (!recording.available) {
     return {
@@ -104,7 +104,7 @@ export const call: LocalCommandCall = async args => {
     }
   }
 
-  // Check for API key (only for Anthropic backend — Doubao uses its own credentials)
+  // 检查 API key（仅 Anthropic 后端需要 —— Doubao 使用自己的凭据）
   if (provider !== 'doubao' && !isVoiceStreamAvailable()) {
     return {
       type: 'text' as const,
@@ -113,7 +113,7 @@ export const call: LocalCommandCall = async args => {
     }
   }
 
-  // Check for recording tools
+  // 检查录音工具
   const { checkVoiceDependencies, requestMicrophonePermission } = await import(
     '../../services/voice.js'
   )
@@ -128,8 +128,8 @@ export const call: LocalCommandCall = async args => {
     }
   }
 
-  // Probe mic access so the OS permission dialog fires now rather than
-  // on the user's first hold-to-talk activation.
+  // 提前探测麦克风权限，让操作系统的权限弹窗现在就出现，
+  // 而不是等用户第一次按住说话键时才弹出。
   if (!(await requestMicrophonePermission())) {
     let guidance: string
     if (process.platform === 'win32') {
@@ -145,7 +145,7 @@ export const call: LocalCommandCall = async args => {
     }
   }
 
-  // All checks passed — enable voice with provider
+  // 所有检查都通过 —— 启用语音并指定 provider
   const result = updateSettingsForSource('userSettings', {
     voiceEnabled: true,
     ...(provider === 'doubao' ? { voiceProvider: 'doubao' } : {}),
@@ -162,7 +162,7 @@ export const call: LocalCommandCall = async args => {
   const key = getShortcutDisplay('voice:pushToTalk', 'Chat', 'Space')
   let langNote = ''
   const providerLabel = provider === 'doubao' ? 'Doubao ASR' : 'Anthropic'
-  // Doubao backend handles all languages natively — skip language hints
+  // Doubao 后端原生支持所有语言 —— 跳过语言提示
   if (provider !== 'doubao') {
     const stt = normalizeLanguageForSTT(currentSettings.language)
     const cfg = getGlobalConfig()

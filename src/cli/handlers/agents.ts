@@ -1,6 +1,6 @@
 /**
- * Agents subcommand handler — prints the list of configured agents.
- * Dynamically imported only when `claude agents` runs.
+ * Agents 子命令处理器 — 打印已配置的 agents 列表。
+ * 仅在执行 `claude agents` 时动态加载。
  */
 
 import {

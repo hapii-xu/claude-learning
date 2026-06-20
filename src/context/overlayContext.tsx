@@ -1,42 +1,42 @@
 /**
- * Overlay tracking for Escape key coordination.
+ * 覆盖层跟踪，用于 Escape 键协调。
  *
- * This solves the problem of escape key handling when overlays (like Select with onCancel)
- * are open. The CancelRequestHandler needs to know when an overlay is active so it doesn't
- * cancel requests when the user just wants to dismiss the overlay.
+ * 这解决了当覆盖层（如带有 onCancel 的 Select）打开时的 escape 键
+ * 处理问题。CancelRequestHandler 需要知道覆盖层何时处于活跃状态，
+ * 这样就不会在用户只想关闭覆盖层时取消请求。
  *
- * Usage:
- * 1. Call useRegisterOverlay() in any overlay component to automatically register it
- * 2. Call useIsOverlayActive() to check if any overlay is currently active
+ * 用法：
+ * 1. 在任何覆盖层组件中调用 useRegisterOverlay() 以自动注册
+ * 2. 调用 useIsOverlayActive() 以检查是否有任何覆盖层当前处于活跃状态
  *
- * The hook automatically registers on mount and unregisters on unmount,
- * so no manual cleanup or state management is needed.
+ * 此钩子在挂载时自动注册，在卸载时自动注销，
+ * 因此不需要手动清理或状态管理。
  */
 import { useContext, useEffect, useLayoutEffect } from 'react';
 import { instances } from '@anthropic/ink';
 import { AppStoreContext, useAppState } from '../state/AppState.js';
 
-// Non-modal overlays that shouldn't disable TextInput focus
+// 不应禁用 TextInput 焦点的非模态覆盖层
 const NON_MODAL_OVERLAYS = new Set(['autocomplete']);
 
 /**
- * Hook to register a component as an active overlay.
- * Automatically registers on mount and unregisters on unmount.
+ * 将组件注册为活跃覆盖层的钩子。
+ * 在挂载时自动注册，在卸载时自动注销。
  *
- * @param id - Unique identifier for this overlay (e.g., 'select', 'multi-select')
- * @param enabled - Whether to register (default: true). Use this to conditionally register
- *                  based on component props, e.g., only register when onCancel is provided.
+ * @param id - 此覆盖层的唯一标识符（例如，'select'、'multi-select'）
+ * @param enabled - 是否注册（默认：true）。使用此参数根据组件 props
+ *                  有条件地注册，例如，仅在提供 onCancel 时注册。
  *
  * @example
- * // Conditional registration based on whether cancel is supported
+ * // 基于是否支持取消进行条件注册
  * function useSelectInput({ state }) {
  *   useRegisterOverlay('select', !!state.onCancel)
  *   // ...
  * }
  */
 export function useRegisterOverlay(id: string, enabled = true): void {
-  // Use context directly so this is a no-op when rendered outside AppStateProvider
-  // (e.g., in isolated component tests that don't need the full app state tree).
+  // 直接使用上下文，以便在 AppStateProvider 外部渲染时为无操作
+  // （例如，不需要完整应用状态树的独立组件测试中）。
   const store = useContext(AppStoreContext);
   const setAppState = store?.setState;
   useEffect(() => {
@@ -57,14 +57,14 @@ export function useRegisterOverlay(id: string, enabled = true): void {
     };
   }, [id, enabled, setAppState]);
 
-  // On overlay close, force the next render to full-damage diff instead
-  // of blit. A tall overlay (e.g. FuzzyPicker with a 20-line preview)
-  // shrinks the Ink-managed region on unmount; the blit fast path can
-  // copy stale cells from the overlay's previous frame into rows the
-  // shorter layout no longer reaches, leaving a ghost title/divider.
-  // useLayoutEffect so cleanup runs synchronously before the microtask-
-  // deferred onRender (scheduleRender queues a microtask from
-  // resetAfterCommit; passive-effect cleanup would land after it).
+  // 覆盖层关闭时，强制下一次渲染使用完整脏差异
+  // 而不是 blit。较高的覆盖层（例如带有 20 行预览的 FuzzyPicker）
+  // 在卸载时会缩小 Ink 管理的区域；blit 快速路径可能会
+  // 将覆盖层上一帧的陈旧单元格复制到较短布局
+  // 不再覆盖的行中，留下幽灵标题/分隔线。
+  // 使用 useLayoutEffect 以便清理在微任务延迟的 onRender 之前
+  // 同步运行（scheduleRender 从 resetAfterCommit 中
+  // 排队一个微任务；被动效果清理会在其后执行）。
   useLayoutEffect(() => {
     if (!enabled) return;
     return () => instances.get(process.stdout)?.invalidatePrevFrame();
@@ -72,10 +72,10 @@ export function useRegisterOverlay(id: string, enabled = true): void {
 }
 
 /**
- * Hook to check if any overlay is currently active.
- * This is reactive - the component will re-render when the overlay state changes.
+ * 检查是否有任何覆盖层当前处于活跃状态的钩子。
+ * 这是响应式的——当覆盖层状态改变时，组件会重新渲染。
  *
- * @returns true if any overlay is currently active
+ * @returns 如果有任何覆盖层当前处于活跃状态则返回 true
  *
  * @example
  * function CancelRequestHandler() {
@@ -89,14 +89,14 @@ export function useIsOverlayActive(): boolean {
 }
 
 /**
- * Hook to check if any modal overlay is currently active.
- * Modal overlays are overlays that should capture all input (like Select dialogs).
- * Non-modal overlays (like autocomplete) don't disable TextInput focus.
+ * 检查是否有任何模态覆盖层当前处于活跃状态的钩子。
+ * 模态覆盖层是指应该捕获所有输入的覆盖层（例如 Select 对话框）。
+ * 非模态覆盖层（例如 autocomplete）不会禁用 TextInput 焦点。
  *
- * @returns true if any modal overlay is currently active
+ * @returns 如果有任何模态覆盖层当前处于活跃状态则返回 true
  *
  * @example
- * // Use for TextInput focus - allows typing during autocomplete
+ * // 用于 TextInput 焦点——允许在自动补全期间输入
  * focus: !isSearchingHistory && !isModalOverlayActive
  */
 export function useIsModalOverlayActive(): boolean {

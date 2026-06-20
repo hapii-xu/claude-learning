@@ -26,16 +26,15 @@ type Props = {
 };
 
 /**
- * /remote-control command — manages the bidirectional bridge connection.
+ * /remote-control 命令 — 管理双向 bridge 连接。
  *
- * When enabled, sets replBridgeEnabled in AppState, which triggers
- * useReplBridge in REPL.tsx to initialize the bridge connection.
- * The bridge registers an environment, creates a session with the current
- * conversation, polls for work, and connects an ingress WebSocket for
- * bidirectional messaging between the CLI and claude.ai.
+ * 启用时会在 AppState 中设置 replBridgeEnabled，从而触发
+ * REPL.tsx 中的 useReplBridge 初始化 bridge 连接。
+ * bridge 会注册一个环境，基于当前对话创建会话，
+ * 轮询工作，并连接一个入口 WebSocket 以实现 CLI 和 claude.ai 之间的双向消息传递。
  *
- * Running /remote-control when already connected shows a dialog with the session
- * URL and options to disconnect or continue.
+ * 在已连接时运行 /remote-control 会显示一个包含会话 URL 的对话框，
+ * 以及断开连接或继续的选项。
  */
 function BridgeToggle({ onDone, name }: Props): React.ReactNode {
   const setAppState = useSetAppState();
@@ -45,9 +44,9 @@ function BridgeToggle({ onDone, name }: Props): React.ReactNode {
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
 
   useEffect(() => {
-    // If already connected or enabled in full bidirectional mode, show
-    // disconnect confirmation. Outbound-only (CCR mirror) doesn't count —
-    // /remote-control upgrades it to full RC instead.
+    // 如果已经连接或以完整双向模式启用，则显示
+    // 断开连接确认。仅出站（CCR 镜像）不算在内 ——
+    // /remote-control 会将其升级为完整 RC。
     if ((replBridgeConnected || replBridgeEnabled) && !replBridgeOutboundOnly) {
       setShowDisconnectDialog(true);
       return;
@@ -55,8 +54,8 @@ function BridgeToggle({ onDone, name }: Props): React.ReactNode {
 
     let cancelled = false;
     void (async () => {
-      // Pre-flight checks before enabling (awaits GrowthBook init if disk
-      // cache is stale — so Max users don't get a false "not enabled" error)
+      // 启用前的预检查（当磁盘缓存过期时会等待 GrowthBook 初始化 ——
+      // 这样 Max 用户就不会错误地收到 "not enabled" 错误）
       const error = await checkBridgePrerequisites();
       if (cancelled) return;
       if (error) {
@@ -67,9 +66,9 @@ function BridgeToggle({ onDone, name }: Props): React.ReactNode {
         return;
       }
 
-      // Show first-time remote dialog if not yet seen.
-      // Store the name now so it's in AppState when the callout handler later
-      // enables the bridge (the handler only sets replBridgeEnabled, not the name).
+      // 如果尚未展示过，则显示首次 remote 对话框。
+      // 立即保存 name，这样当后续 callout 处理器启用 bridge 时它已在 AppState 中
+      //（该处理器只设置 replBridgeEnabled，不设置 name）。
       if (shouldShowRemoteCallout()) {
         setAppState(prev => {
           if (prev.showRemoteCallout) return prev;
@@ -83,8 +82,8 @@ function BridgeToggle({ onDone, name }: Props): React.ReactNode {
         return;
       }
 
-      // Enable the bridge — useReplBridge in REPL.tsx handles the rest:
-      // registers environment, creates session with conversation, connects WebSocket
+      // 启用 bridge —— REPL.tsx 中的 useReplBridge 处理其余工作：
+      // 注册环境、基于对话创建会话、连接 WebSocket
       logEvent('tengu_bridge_command', {
         action: 'connect' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       });
@@ -106,7 +105,7 @@ function BridgeToggle({ onDone, name }: Props): React.ReactNode {
     return () => {
       cancelled = true;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- 挂载时仅运行一次
 
   if (showDisconnectDialog) {
     return <BridgeDisconnectDialog onDone={onDone} />;
@@ -116,8 +115,8 @@ function BridgeToggle({ onDone, name }: Props): React.ReactNode {
 }
 
 /**
- * Dialog shown when /remote-control is used while the bridge is already connected.
- * Shows the session URL and lets the user disconnect or continue.
+ * 当 bridge 已连接时运行 /remote-control 显示的对话框。
+ * 显示会话 URL 并允许用户断开连接或继续。
  */
 function BridgeDisconnectDialog({ onDone }: Props): React.ReactNode {
   useRegisterOverlay('bridge-disconnect-dialog');
@@ -131,7 +130,7 @@ function BridgeDisconnectDialog({ onDone }: Props): React.ReactNode {
 
   const displayUrl = sessionActive ? sessionUrl : connectUrl;
 
-  // Generate QR code when URL changes or QR is toggled on
+  // 当 URL 变化或切换 QR 开启时生成二维码
   useEffect(() => {
     if (!showQR || !displayUrl) {
       setQrText('');
@@ -223,13 +222,12 @@ function BridgeDisconnectDialog({ onDone }: Props): React.ReactNode {
 }
 
 /**
- * Check bridge prerequisites. Returns an error message if a precondition
- * fails, or null if all checks pass. Awaits GrowthBook init if the disk
- * cache is stale, so a user who just became entitled (e.g. upgraded to Max,
- * or the flag just launched) gets an accurate result on the first try.
+ * 检查 bridge 前置条件。如果某项前置条件失败则返回错误消息，
+ * 否则返回 null 表示全部通过。当磁盘缓存过期时会等待 GrowthBook 初始化，
+ * 这样刚获得权限的用户（例如升级到 Max 或 flag 刚上线）首次即可获得准确结果。
  */
 async function checkBridgePrerequisites(): Promise<string | null> {
-  // Check organization policy — remote control may be disabled
+  // 检查组织策略 — remote control 可能被禁用
   const { waitForPolicyLimitsToLoad, isPolicyAllowed } = await import('../../services/policyLimits/index.js');
   await waitForPolicyLimitsToLoad();
   if (!isPolicyAllowed('allow_remote_control')) {
@@ -241,10 +239,9 @@ async function checkBridgePrerequisites(): Promise<string | null> {
     return disabledReason;
   }
 
-  // Mirror the v1/v2 branching logic in initReplBridge: env-less (v2) is used
-  // only when the flag is on AND the session is not perpetual.  In assistant
-  // mode (KAIROS) useReplBridge sets perpetual=true, which forces
-  // initReplBridge onto the v1 path — so the prerequisite check must match.
+  // 镜像 initReplBridge 中的 v1/v2 分支逻辑：仅当 flag 开启且会话非永久时
+  // 才使用 env-less（v2）。在 assistant 模式（KAIROS）下 useReplBridge 会设置
+  // perpetual=true，强制 initReplBridge 走 v1 路径 —— 因此前置检查必须匹配。
   let useV2 = isEnvLessBridgeEnabled();
   if (feature('KAIROS') && useV2) {
     const { isAssistantMode } = await import('../../assistant/index.js');

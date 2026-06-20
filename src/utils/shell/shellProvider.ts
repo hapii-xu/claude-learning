@@ -8,8 +8,8 @@ export type ShellProvider = {
   detached: boolean
 
   /**
-   * Build the full command string including all shell-specific setup.
-   * For bash: source snapshot, session env, disable extglob, eval-wrap, pwd tracking.
+   * 构建完整的命令字符串，包含所有 shell 特定的初始化。
+   * 对 bash：source snapshot、session env、禁用 extglob、eval 包装、pwd 跟踪。
    */
   buildExecCommand(
     command: string,
@@ -21,13 +21,13 @@ export type ShellProvider = {
   ): Promise<{ commandString: string; cwdFilePath: string }>
 
   /**
-   * Shell args for spawn (e.g., ['-c', '-l', cmd] for bash).
+   * 用于 spawn 的 shell 参数（例如 bash 使用 ['-c', '-l', cmd]）。
    */
   getSpawnArgs(commandString: string): string[]
 
   /**
-   * Extra env vars for this shell type.
-   * May perform async initialization (e.g., tmux socket setup for bash).
+   * 该 shell 类型附加的环境变量。
+   * 可能执行异步初始化（例如 bash 的 tmux socket 初始化）。
    */
   getEnvironmentOverrides(command: string): Promise<Record<string, string>>
 }

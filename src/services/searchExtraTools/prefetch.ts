@@ -23,7 +23,7 @@ const SESSION_TRACKING_MAX = 500
 const SESSION_TRACKING_TRIM_TO = 400
 const discoveredToolsThisSession = new Set<string>()
 
-// Latest prefetch result for UI subscription (useSyncExternalStore)
+// 最新的预取结果，供 UI 订阅（useSyncExternalStore）
 let latestPrefetchResult: ToolDiscoveryResult[] = []
 const prefetchListeners = new Set<() => void>()
 
@@ -139,9 +139,9 @@ export async function getTurnZeroSearchExtraToolsPrefetch(
   _input: string,
   _tools: Tools,
 ): Promise<Attachment | null> {
-  // Disabled: turn-zero user-input tool recommendations caused frequent
-  // popups. Inter-turn discovery (startSearchExtraToolsPrefetch) is still
-  // active and provides non-intrusive suggestions during assistant turns.
+  // 已禁用：第零轮用户输入工具推荐会导致频繁弹窗。
+  // 轮间发现（startSearchExtraToolsPrefetch）仍然活跃，
+  // 在助手轮次期间提供非侵入性建议。
   return null
 }
 

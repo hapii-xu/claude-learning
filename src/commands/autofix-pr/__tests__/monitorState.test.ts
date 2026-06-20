@@ -74,7 +74,7 @@ describe('monitorState', () => {
   test('trySetActiveMonitor returns false when monitor already active', () => {
     expect(trySetActiveMonitor(makeState({ prNumber: 1 }))).toBe(true)
     expect(trySetActiveMonitor(makeState({ prNumber: 2 }))).toBe(false)
-    // First state remains
+    // 保留的是第一个 state
     expect(getActiveMonitor()?.prNumber).toBe(1)
   })
 
@@ -88,21 +88,20 @@ describe('monitorState', () => {
     expect(updateActiveMonitor({ taskId: 'framework-task-id' })).toBe(true)
     const after = getActiveMonitor()
     expect(after?.taskId).toBe('framework-task-id')
-    // Other fields untouched
+    // 其他字段保持不变
     expect(after?.owner).toBe('acme')
     expect(after?.repo).toBe('myrepo')
     expect(after?.prNumber).toBe(42)
   })
 
   test('updateActiveMonitor with new taskId makes clearActiveMonitor recognise framework taskId', () => {
-    // Reproduce the latent bug scenario: lock acquired with one taskId,
-    // framework assigns a different one. Before the fix, the framework's
-    // clearActiveMonitor(frameworkTaskId) would no-op because guard fails.
+    // 复现潜在 bug 场景：用一个 taskId 拿到锁，框架又分配了另一个 taskId。
+    // 修复之前，框架调用 clearActiveMonitor(frameworkTaskId) 会因守卫失败而无操作。
     setActiveMonitor(makeState({ taskId: 'teammate-uuid' }))
-    // Framework cleanup using its own taskId — would fail guard before the fix
+    // 框架用自己的 taskId 做清理 —— 修复之前守卫会失败
     clearActiveMonitor('framework-uuid')
     expect(getActiveMonitor()).not.toBeNull()
-    // After updateActiveMonitor swaps the taskId, framework cleanup works
+    // updateActiveMonitor 替换 taskId 之后，框架清理就能生效
     updateActiveMonitor({ taskId: 'framework-uuid' })
     clearActiveMonitor('framework-uuid')
     expect(getActiveMonitor()).toBeNull()

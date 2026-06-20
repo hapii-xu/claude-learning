@@ -60,6 +60,7 @@ import {
 } from './utils/fileStateCache.js'
 import { headlessProfilerCheckpoint } from './utils/headlessProfiler.js'
 import { registerStructuredOutputEnforcement } from './utils/hooks/hookHelpers.js'
+import { logForDebugging } from './utils/debug.js'
 import { getInMemoryErrors } from './utils/log.js'
 import { countToolCalls, SYNTHETIC_MESSAGES } from './utils/messages.js'
 import {
@@ -84,7 +85,7 @@ import {
   type ThinkingConfig,
 } from './utils/thinking.js'
 
-// Lazy: MessageSelector.tsx pulls React/ink; only needed for message filtering at query time
+// 懒加载：MessageSelector.tsx 引入 React/ink；仅在查询时做消息过滤才需要
 /* eslint-disable @typescript-eslint/no-require-imports */
 const messageSelector = ():
   | typeof import('src/components/MessageSelector.js')
@@ -115,7 +116,7 @@ import {
   normalizeMessage,
 } from './utils/queryHelpers.js'
 
-// Dead code elimination: conditional import for coordinator mode
+// 死代码消除：协调器模式的条件导入
 /* eslint-disable @typescript-eslint/no-require-imports */
 const getCoordinatorUserContext: (
   mcpClients: ReadonlyArray<{ name: string }>,
@@ -125,7 +126,7 @@ const getCoordinatorUserContext: (
   : () => ({})
 /* eslint-enable @typescript-eslint/no-require-imports */
 
-// Dead code elimination: conditional import for snip compaction
+// 死代码消除：snip 压缩的条件导入
 /* eslint-disable @typescript-eslint/no-require-imports */
 const snipModule = feature('HISTORY_SNIP')
   ? (require('./services/compact/snipCompact.js') as typeof import('./services/compact/snipCompact.js'))
@@ -157,22 +158,20 @@ export type QueryEngineConfig = {
   jsonSchema?: Record<string, unknown>
   verbose?: boolean
   replayUserMessages?: boolean
-  /** Handler for URL elicitations triggered by MCP tool -32042 errors. */
+  /** 处理由 MCP 工具 -32042 错误触发的 URL 询问。 */
   handleElicitation?: ToolUseContext['handleElicitation']
   includePartialMessages?: boolean
   setSDKStatus?: (status: SDKStatus) => void
   abortController?: AbortController
   orphanedPermission?: OrphanedPermission
   /**
-   * Snip-boundary handler: receives each yielded system message plus the
-   * current mutableMessages store. Returns undefined if the message is not a
-   * snip boundary; otherwise returns the replayed snip result. Injected by
-   * ask() when HISTORY_SNIP is enabled so feature-gated strings stay inside
-   * the gated module (keeps QueryEngine free of excluded strings and testable
-   * despite feature() returning false under bun test). SDK-only: the REPL
-   * keeps full history for UI scrollback and projects on demand via
-   * projectSnippedView; QueryEngine truncates here to bound memory in long
-   * headless sessions (no UI to preserve).
+   * Snip 边界处理器：接收每个 yield 出来的系统消息以及当前 mutableMessages
+   * 存储。若该消息不是 snip 边界则返回 undefined；否则返回重放后的 snip
+   * 结果。由 ask() 在启用 HISTORY_SNIP 时注入，使 feature 门控的字符串
+   * 保留在被门控的模块内（保证 QueryEngine 不含被排除的字符串，即便
+   * feature() 在 bun test 下返回 false 仍可测试）。仅 SDK 使用：REPL
+   * 保留完整历史用于 UI 回滚并按需通过 projectSnippedView 投影；
+   * QueryEngine 在此截断以限制长时会话的内存占用（无 UI 需要保留）。
    */
   snipReplay?: (
     yieldedSystemMsg: Message,
@@ -181,17 +180,15 @@ export type QueryEngineConfig = {
 }
 
 /**
- * QueryEngine owns the query lifecycle and session state for a conversation.
- * It extracts the core logic from ask() into a standalone class that can be
- * used by both the headless/SDK path and (in a future phase) the REPL.
+ * QueryEngine 拥有对话的查询生命周期和会话状态。
+ * 它将 ask() 中的核心逻辑抽取为独立类，可同时被 headless/SDK 路径
+ * 以及（未来阶段）REPL 使用。
  *
- * One QueryEngine per conversation. Each submitMessage() call starts a new
- * turn within the same conversation. State (messages, file cache, usage, etc.)
- * persists across turns.
+ * 每个对话对应一个 QueryEngine。每次 submitMessage() 调用都会在
+ * 同一会话内开启一轮新对话。状态（消息、文件缓存、用量等）跨轮次持久化。
  */
 /**
  * 高层对话调度器 —— 封装 query() 并管理会话级别的状态。
- * High-level conversation orchestrator — wraps query() and manages session-level state.
  *
  * 与 query() 的关系：
  *   query() 是"单次轮次"的底层执行器（调用 API + 执行工具 → 返回消息）；
@@ -216,11 +213,10 @@ export class QueryEngine {
   private totalUsage: NonNullableUsage
   private hasHandledOrphanedPermission = false
   private readFileState: FileStateCache
-  // Turn-scoped skill discovery tracking (feeds was_discovered on
-  // tengu_skill_tool_invocation). Must persist across the two
-  // processUserInputContext rebuilds inside submitMessage, but is cleared
-  // at the start of each submitMessage to avoid unbounded growth across
-  // many turns in SDK mode.
+  // 按轮次作用域的技能发现追踪（为 tengu_skill_tool_invocation 的
+  // was_discovered 提供数据）。需在 submitMessage 内两次
+  // processUserInputContext 重建之间持久化，但在每次 submitMessage
+  // 开头清空，避免 SDK 模式下多轮次堆积导致无界增长。
   private discoveredSkillNames = new Set<string>()
   private loadedNestedMemoryPaths = new Set<string>()
 
@@ -235,7 +231,6 @@ export class QueryEngine {
 
   /**
    * 提交用户消息并启动一轮完整的 Agent 执行循环。
-   * Submits a user message and starts a full Agent execution turn.
    *
    * 流程：
    *   1. 处理用户输入（可能是文本 prompt，也可能是 slash 命令）
@@ -286,8 +281,12 @@ export class QueryEngine {
     setCwd(cwd)
     const persistSession = !isSessionPersistenceDisabled()
     const startTime = Date.now()
+    logForDebugging(
+      `[QueryEngine] submitMessage 开始, prompt长度=${typeof prompt === 'string' ? prompt.length : prompt.length}, 当前消息数=${this.mutableMessages.length}`,
+      { level: 'info' },
+    )
 
-    // Wrap canUseTool to track permission denials
+    // 包装 canUseTool 以追踪权限拒绝
     const wrappedCanUseTool: CanUseToolFn = async (
       tool,
       input,
@@ -305,7 +304,7 @@ export class QueryEngine {
         forceDecision,
       )
 
-      // Track denials for SDK reporting
+      // 追踪拒绝情况以供 SDK 报告
       if (result.behavior !== 'allow') {
         this.permissionDenials.push({
           type: 'permission_denial',
@@ -330,7 +329,7 @@ export class QueryEngine {
         : { type: 'disabled' }
 
     headlessProfilerCheckpoint('before_getSystemPrompt')
-    // Narrow once so TS tracks the type through the conditionals below.
+    // 统一收窄一次，让 TS 在下方的条件分支中持续追踪类型。
     const customPrompt =
       typeof customSystemPrompt === 'string' ? customSystemPrompt : undefined
     const {
@@ -347,6 +346,7 @@ export class QueryEngine {
       customSystemPrompt: customPrompt,
     })
     headlessProfilerCheckpoint('after_getSystemPrompt')
+    logForDebugging(`[QueryEngine] system prompt 构建完成`, { level: 'info' })
     const userContext = {
       ...baseUserContext,
       ...getCoordinatorUserContext(
@@ -355,12 +355,12 @@ export class QueryEngine {
       ),
     }
 
-    // When an SDK caller provides a custom system prompt AND has set
-    // CLAUDE_COWORK_MEMORY_PATH_OVERRIDE, inject the memory-mechanics prompt.
-    // The env var is an explicit opt-in signal — the caller has wired up
-    // a memory directory and needs Claude to know how to use it (which
-    // Write/Edit tools to call, MEMORY.md filename, loading semantics).
-    // The caller can layer their own policy text via appendSystemPrompt.
+    // 当 SDK 调用方提供自定义系统 prompt 并且设置了
+    // CLAUDE_COWORK_MEMORY_PATH_OVERRIDE 时，注入记忆机制的 prompt。
+    // 该环境变量是显式的 opt-in 信号 —— 调用方已经接好了记忆目录，
+    // 需要让 Claude 知道如何使用它（调用哪些 Write/Edit 工具、
+    // MEMORY.md 文件名、加载语义等）。
+    // 调用方可以通过 appendSystemPrompt 叠加自己的策略文本。
     const memoryMechanicsPrompt =
       customPrompt !== undefined && hasAutoMemPathOverride()
         ? await loadMemoryPrompt()
@@ -372,7 +372,7 @@ export class QueryEngine {
       ...(appendSystemPrompt ? [appendSystemPrompt] : []),
     ])
 
-    // Register function hook for structured output enforcement
+    // 为结构化输出强制执行注册 function hook
     const hasStructuredOutputTool = tools.some(t =>
       toolMatchesName(t, SYNTHETIC_OUTPUT_TOOL_NAME),
     )
@@ -382,13 +382,12 @@ export class QueryEngine {
 
     let processUserInputContext: ProcessUserInputContext = {
       messages: this.mutableMessages,
-      // Slash commands that mutate the message array (e.g. /force-snip)
-      // call setMessages(fn).  In interactive mode this writes back to
-      // AppState; in print mode we write back to mutableMessages so the
-      // rest of the query loop (push at :389, snapshot at :392) sees
-      // the result.  The second processUserInputContext below (after
-      // slash-command processing) keeps the no-op — nothing else calls
-      // setMessages past that point.
+      // 会修改消息数组的 slash 命令（例如 /force-snip）会调用
+      // setMessages(fn)。在交互模式下写回 AppState；在 print 模式下
+      // 写回 mutableMessages，让查询循环的后续部分（:389 的 push、
+      // :392 的快照）能看到结果。下面的第二个 processUserInputContext
+      //（slash 命令处理之后）保持 no-op —— 在那之后没有其他地方调用
+      // setMessages。
       setMessages: fn => {
         this.mutableMessages = fn(this.mutableMessages)
       },
@@ -396,7 +395,7 @@ export class QueryEngine {
       handleElicitation: this.config.handleElicitation,
       options: {
         commands,
-        debug: false, // we use stdout, so don't want to clobber it
+        debug: false, // 我们使用 stdout，不希望被覆盖
         tools,
         verbose,
         mainLoopModel: initialMainLoopModel,
@@ -442,7 +441,7 @@ export class QueryEngine {
       setSDKStatus,
     }
 
-    // Handle orphaned permission (only once per engine lifetime)
+    // 处理孤立的权限请求（每个 engine 生命周期只处理一次）
     if (orphanedPermission && !this.hasHandledOrphanedPermission) {
       this.hasHandledOrphanedPermission = true
       for await (const message of handleOrphanedPermission(
@@ -474,27 +473,30 @@ export class QueryEngine {
       isMeta: options?.isMeta,
       querySource: 'sdk',
     })
+    logForDebugging(
+      `[QueryEngine] processUserInput 完成, shouldQuery=${shouldQuery}, messages=${messagesFromUserInput.length}条${modelFromUserInput ? `, model=${modelFromUserInput}` : ''}`,
+      { level: 'info' },
+    )
 
-    // Push new messages, including user input and any attachments
+    // 推入新消息，包括用户输入和任何附件
     this.mutableMessages.push(...messagesFromUserInput)
 
-    // Update params to reflect updates from processing /slash commands
+    // 更新参数以反映处理 /slash 命令后的变更
     const messages = [...this.mutableMessages]
 
-    // Persist the user's message(s) to transcript BEFORE entering the query
-    // loop. The for-await below only calls recordTranscript when ask() yields
-    // an assistant/user/compact_boundary message — which doesn't happen until
-    // the API responds. If the process is killed before that (e.g. user clicks
-    // Stop in cowork seconds after send), the transcript is left with only
-    // queue-operation entries; getLastSessionLog filters those out, returns
-    // null, and --resume fails with "No conversation found". Writing now makes
-    // the transcript resumable from the point the user message was accepted,
-    // even if no API response ever arrives.
+    // 在进入 query 循环之前把用户消息持久化到 transcript。
+    // 下面的 for-await 只在 ask() yield 出 assistant/user/compact_boundary
+    // 消息时才调用 recordTranscript —— 而 API 响应之前不会发生。
+    // 如果进程在此之前被杀（例如 cowork 中用户点 Stop），transcript
+    // 只剩下队列操作条目；getLastSessionLog 会把这些过滤掉返回 null，
+    // 导致 --resume 失败并报 "No conversation found"。现在写入可以
+    // 让 transcript 从用户消息被接受的那一刻起就能恢复，即便 API
+    // 从未响应。
     //
-    // --bare / SIMPLE: fire-and-forget. Scripted calls don't --resume after
-    // kill-mid-request. The await is ~4ms on SSD, ~30ms under disk contention
-    // — the single largest controllable critical-path cost after module eval.
-    // Transcript is still written (for post-hoc debugging); just not blocking.
+    // --bare / SIMPLE：fire-and-forget。脚本化调用不会在中途被杀后
+    // --resume。await 在 SSD 上约 4ms，磁盘竞争时约 30ms ——
+    // 是模块求值之后最大的可控关键路径开销。Transcript 仍会写入
+    //（供事后调试），只是不阻塞。
     if (persistSession && messagesFromUserInput.length > 0) {
       const transcriptPromise = recordTranscript(messages)
       if (isBareMode()) {
@@ -510,19 +512,19 @@ export class QueryEngine {
       }
     }
 
-    // Filter messages that should be acknowledged after transcript
+    // 过滤出在 transcript 之后需要确认的消息
     const _selector = messageSelector()
     const replayableMessages = messagesFromUserInput.filter(
       msg =>
         (msg.type === 'user' &&
-          !msg.isMeta && // Skip synthetic caveat messages
-          !msg.toolUseResult && // Skip tool results (they'll be acked from query)
-          (_selector?.selectableUserMessagesFilter(msg) ?? true)) || // Skip non-user-authored messages (task notifications, etc.)
-        (msg.type === 'system' && msg.subtype === 'compact_boundary'), // Always ack compact boundaries
+          !msg.isMeta && // 跳过合成的 caveat 消息
+          !msg.toolUseResult && // 跳过工具结果（它们会从 query 中被确认）
+          (_selector?.selectableUserMessagesFilter(msg) ?? true)) || // 跳过非用户撰写的消息（任务通知等）
+        (msg.type === 'system' && msg.subtype === 'compact_boundary'), // 总是确认 compact 边界
     )
     const messagesToAck = replayUserMessages ? replayableMessages : []
 
-    // Update the ToolPermissionContext based on user input processing (as necessary)
+    // 根据用户输入处理结果更新 ToolPermissionContext（按需）
     setAppState(prev => ({
       ...prev,
       toolPermissionContext: {
@@ -536,8 +538,8 @@ export class QueryEngine {
 
     const mainLoopModel = modelFromUserInput ?? initialMainLoopModel
 
-    // Recreate after processing the prompt to pick up updated messages and
-    // model (from slash commands).
+    // 处理完 prompt 后重建，以拿到更新后的 messages 和
+    // model（来自 slash 命令）。
     processUserInputContext = {
       messages,
       setMessages: () => {},
@@ -576,10 +578,10 @@ export class QueryEngine {
     }
 
     headlessProfilerCheckpoint('before_skills_plugins')
-    // Cache-only: headless/SDK/CCR startup must not block on network for
-    // ref-tracked plugins. CCR populates the cache via CLAUDE_CODE_SYNC_PLUGIN_INSTALL
-    // (headlessPluginInstall) or CLAUDE_CODE_PLUGIN_SEED_DIR before this runs;
-    // SDK callers that need fresh source can call /reload-plugins.
+    // 仅走缓存：headless/SDK/CCR 启动不能阻塞在引用追踪的插件网络请求上。
+    // CCR 通过 CLAUDE_CODE_SYNC_PLUGIN_INSTALL (headlessPluginInstall) 或
+    // CLAUDE_CODE_PLUGIN_SEED_DIR 在此之前填充缓存；需要新源的 SDK
+    // 调用方可调用 /reload-plugins。
     const [skills, { enabled: enabledPlugins }] = await Promise.all([
       getSlashCommandToolSkills(getCwd()),
       loadAllPluginsCacheOnly(),
@@ -591,7 +593,7 @@ export class QueryEngine {
       mcpClients,
       model: mainLoopModel,
       permissionMode: initialAppState.toolPermissionContext
-        .mode as PermissionMode, // TODO: avoid the cast
+        .mode as PermissionMode, // TODO: 避免强制类型转换
       commands,
       agents,
       skills,
@@ -599,13 +601,13 @@ export class QueryEngine {
       fastMode: initialAppState.fastMode,
     })
 
-    // Record when system message is yielded for headless latency tracking
+    // 记录 yield 系统消息的时间点，用于 headless 延迟追踪
     headlessProfilerCheckpoint('system_message_yielded')
 
     if (!shouldQuery) {
-      // Return the results of local slash commands.
-      // Use messagesFromUserInput (not replayableMessages) for command output
-      // because selectableUserMessagesFilter excludes local-command-stdout tags.
+      // 返回本地 slash 命令的结果。
+      // 对命令输出使用 messagesFromUserInput（不是 replayableMessages），
+      // 因为 selectableUserMessagesFilter 会过滤掉 local-command-stdout 标签。
       for (const msg of messagesFromUserInput) {
         if (
           msg.type === 'user' &&
@@ -629,10 +631,10 @@ export class QueryEngine {
           } as unknown as SDKUserMessageReplay
         }
 
-        // Local command output — yield as a synthetic assistant message so
-        // RC renders it as assistant-style text rather than a user bubble.
-        // Emitted as assistant (not the dedicated SDKLocalCommandOutputMessage
-        // system subtype) so mobile clients + session-ingress can parse it.
+        // 本地命令输出 —— 以合成 assistant 消息 yield，让 RC 把它
+        // 渲染为 assistant 风格的文本，而不是用户气泡。作为 assistant
+        // 发出（不是专用的 SDKLocalCommandOutputMessage 系统子类型），
+        // 这样移动端客户端 + session-ingress 可以解析它。
         if (
           msg.type === 'system' &&
           msg.subtype === 'local_command' &&
@@ -705,24 +707,28 @@ export class QueryEngine {
       })
     }
 
-    // Track current message usage (reset on each message_start)
+    // 追踪当前消息的用量（每次 message_start 时重置）
     let currentMessageUsage: NonNullableUsage = EMPTY_USAGE
     let turnCount = 1
     let hasAcknowledgedInitialMessages = false
-    // Track structured output from StructuredOutput tool calls
+    // 追踪来自 StructuredOutput 工具调用的结构化输出
     let structuredOutputFromTool: unknown
-    // Track the last stop_reason from assistant messages
+    // 追踪 assistant 消息中最近的 stop_reason
     let lastStopReason: string | null = null
-    // Reference-based watermark so error_during_execution's errors[] is
-    // turn-scoped. A length-based index breaks when the 100-entry ring buffer
-    // shift()s during the turn — the index slides. If this entry is rotated
-    // out, lastIndexOf returns -1 and we include everything (safe fallback).
+    // 基于引用的水位线，让 error_during_execution 的 errors[] 按轮次
+    // 作用域化。基于长度的索引在 100 条环形缓冲区 shift() 时会失效 ——
+    // 索引会漂移。如果该条目被轮转出去，lastIndexOf 返回 -1，
+    // 我们就把所有内容都包含进来（安全的兜底）。
     const errorLogWatermark = getInMemoryErrors().at(-1)
-    // Snapshot count before this query for delta-based retry limiting
+    // 在 query 之前快照计数，用于基于增量的重试限制
     const initialStructuredOutputCalls = jsonSchema
       ? countToolCalls(this.mutableMessages, SYNTHETIC_OUTPUT_TOOL_NAME)
       : 0
 
+    logForDebugging(
+      `[QueryEngine] 开始执行 query() 循环, 消息数=${messages.length}`,
+      { level: 'info' },
+    )
     for await (const message of query({
       messages,
       systemPrompt,
@@ -735,20 +741,20 @@ export class QueryEngine {
       maxTurns,
       taskBudget,
     })) {
-      // Record assistant, user, and compact boundary messages
+      // 记录 assistant、user 和 compact 边界消息
       if (
         message.type === 'assistant' ||
         message.type === 'user' ||
         (message.type === 'system' && message.subtype === 'compact_boundary')
       ) {
-        // Before writing a compact boundary, flush any in-memory-only
-        // messages up through the preservedSegment tail. Attachments and
-        // progress are now recorded inline (their switch cases below), but
-        // this flush still matters for the preservedSegment tail walk.
-        // If the SDK subprocess restarts before then (claude-desktop kills
-        // between turns), tailUuid points to a never-written message →
-        // applyPreservedSegmentRelinks fails its tail→head walk → returns
-        // without pruning → resume loads full pre-compact history.
+        // 在写入 compact 边界之前，把直到 preservedSegment 尾部的
+        // 仅内存消息 flush 到磁盘。附件和 progress 现在都内联记录
+        //（见下面各自的 switch 分支），但这次 flush 对 preservedSegment
+        // 的尾部遍历仍然关键。如果 SDK 子进程在此之前重启
+        //（claude-desktop 在轮次之间被杀），tailUuid 会指向一个
+        // 从未写入的消息 → applyPreservedSegmentRelinks 的
+        // tail→head 遍历失败 → 直接返回不裁剪 → 恢复时加载完整的
+        // 压缩前历史。
         if (
           persistSession &&
           message.type === 'system' &&
@@ -768,15 +774,14 @@ export class QueryEngine {
         }
         messages.push(message as Message)
         if (persistSession) {
-          // Fire-and-forget for assistant messages. claude.ts yields one
-          // assistant message per content block, then mutates the last
-          // one's message.usage/stop_reason on message_delta — relying on
-          // the write queue's 100ms lazy jsonStringify. Awaiting here
-          // blocks ask()'s generator, so message_delta can't run until
-          // every block is consumed; the drain timer (started at block 1)
-          // elapses first. Interactive CC doesn't hit this because
-          // useLogMessages.ts fire-and-forgets. enqueueWrite is
-          // order-preserving so fire-and-forget here is safe.
+          // 对 assistant 消息采用 fire-and-forget。claude.ts 每个内容块
+          // yield 一个 assistant 消息，然后在 message_delta 时改写
+          // 最后一个消息的 message.usage/stop_reason —— 依赖写入队列
+          // 100ms 的 lazy jsonStringify。在此处 await 会阻塞 ask()
+          // 的 generator，导致 message_delta 必须等所有块消费完才能
+          // 执行；drain 定时器（从块 1 开始）会先到期。交互式 CC 不受
+          // 影响，因为 useLogMessages.ts 是 fire-and-forget。
+          // enqueueWrite 保持顺序，因此这里 fire-and-forget 是安全的。
           if (message.type === 'assistant') {
             void recordTranscript(messages)
           } else {
@@ -784,7 +789,7 @@ export class QueryEngine {
           }
         }
 
-        // Acknowledge initial user messages after first transcript recording
+        // 在首次 transcript 记录后确认初始用户消息
         if (!hasAcknowledgedInitialMessages && messagesToAck.length > 0) {
           hasAcknowledgedInitialMessages = true
           for (const msgToAck of messagesToAck) {
@@ -809,12 +814,12 @@ export class QueryEngine {
 
       switch (message.type) {
         case 'tombstone':
-          // Tombstone messages are control signals for removing messages, skip them
+          // Tombstone 消息是用于删除消息的控制信号，跳过它们
           break
         case 'assistant': {
-          // Capture stop_reason if already set (synthetic messages). For
-          // streamed responses, this is null at content_block_stop time;
-          // the real value arrives via message_delta (handled below).
+          // 捕获 stop_reason（若已设置，合成消息的情况）。对于流式响应，
+          // 在 content_block_stop 时为 null；真正的值通过 message_delta
+          // 到达（见下方处理）。
           const msg = message as Message
           const stopReason = msg.message?.stop_reason as
             | string
@@ -830,11 +835,11 @@ export class QueryEngine {
         case 'progress': {
           const msg = message as Message
           this.mutableMessages.push(msg)
-          // Record inline so the dedup loop in the next ask() call sees it
-          // as already-recorded. Without this, deferred progress interleaves
-          // with already-recorded tool_results in mutableMessages, and the
-          // dedup walk freezes startingParentUuid at the wrong message —
-          // forking the chain and orphaning the conversation on resume.
+          // 内联记录，这样下一次 ask() 调用里的去重循环就会把它当作
+          // 已记录。没有这一步，延迟的 progress 会和 mutableMessages
+          // 中已记录的 tool_results 交错，导致去重遍历把
+          // startingParentUuid 冻结在错误的消息上 —— 让链分叉，
+          // 在 resume 时把对话变成孤儿。
           if (persistSession) {
             messages.push(msg)
             void recordTranscript(messages)
@@ -853,7 +858,7 @@ export class QueryEngine {
             message as unknown as { event: Record<string, unknown> }
           ).event
           if (event.type === 'message_start') {
-            // Reset current message usage for new message
+            // 为新消息重置当前消息用量
             currentMessageUsage = EMPTY_USAGE
             const eventMessage = event.message as {
               usage: BetaMessageDeltaUsage
@@ -868,17 +873,17 @@ export class QueryEngine {
               currentMessageUsage,
               event.usage as BetaMessageDeltaUsage,
             )
-            // Capture stop_reason from message_delta. The assistant message
-            // is yielded at content_block_stop with stop_reason=null; the
-            // real value only arrives here (see claude.ts message_delta
-            // handler). Without this, result.stop_reason is always null.
+            // 从 message_delta 捕获 stop_reason。assistant 消息在
+            // content_block_stop 时 yield，stop_reason=null；真正的值
+            // 只在这里到达（见 claude.ts 的 message_delta 处理器）。
+            // 没有这一步，result.stop_reason 永远是 null。
             const delta = event.delta as { stop_reason?: string | null }
             if (delta.stop_reason != null) {
               lastStopReason = delta.stop_reason
             }
           }
           if (event.type === 'message_stop') {
-            // Accumulate current message usage into total
+            // 将当前消息用量累计到总量
             this.totalUsage = accumulateUsage(
               this.totalUsage,
               currentMessageUsage,
@@ -900,7 +905,7 @@ export class QueryEngine {
         case 'attachment': {
           const msg = message as Message
           this.mutableMessages.push(msg)
-          // Record inline (same reason as progress above).
+          // 内联记录（原因同上面的 progress）。
           if (persistSession) {
             messages.push(msg)
             void recordTranscript(messages)
@@ -916,11 +921,11 @@ export class QueryEngine {
             [key: string]: unknown
           }
 
-          // Extract structured output from StructuredOutput tool calls
+          // 从 StructuredOutput 工具调用中提取结构化输出
           if (attachment.type === 'structured_output') {
             structuredOutputFromTool = attachment.data
           }
-          // Handle max turns reached signal from query.ts
+          // 处理 query.ts 发来的达到最大轮次的信号
           else if (attachment.type === 'max_turns_reached') {
             if (persistSession) {
               if (
@@ -954,7 +959,7 @@ export class QueryEngine {
             }
             return
           }
-          // Yield queued_command attachments as SDK user message replays
+          // 将 queued_command 附件作为 SDK 用户消息重放 yield 出去
           else if (replayUserMessages && attachment.type === 'queued_command') {
             yield {
               type: 'user',
@@ -972,17 +977,16 @@ export class QueryEngine {
           break
         }
         case 'stream_request_start':
-          // Don't yield stream request start messages
+          // 不 yield 流式请求开始消息
           break
         case 'system': {
           const msg = message as Message
-          // Snip boundary: replay on our store to remove zombie messages and
-          // stale markers. The yielded boundary is a signal, not data to push —
-          // the replay produces its own equivalent boundary. Without this,
-          // markers persist and re-trigger on every turn, and mutableMessages
-          // never shrinks (memory leak in long SDK sessions). The subtype
-          // check lives inside the injected callback so feature-gated strings
-          // stay out of this file (excluded-strings check).
+          // Snip 边界：在我们的存储上重放，移除僵尸消息和过期标记。
+          // yield 出来的边界是信号，不是要 push 的数据 —— 重放会产生
+          // 自己的等价边界。没有这一步，标记会持续存在并在每轮重新
+          // 触发，mutableMessages 永不收缩（在长 SDK 会话中是内存
+          // 泄漏）。子类型判断放在注入的回调里，这样 feature 门控的
+          // 字符串就不会出现在本文件中（excluded-strings 检查）。
           const snipResult = this.config.snipReplay?.(msg, this.mutableMessages)
           if (snipResult !== undefined) {
             if (snipResult.executed) {
@@ -992,13 +996,13 @@ export class QueryEngine {
             break
           }
           this.mutableMessages.push(msg)
-          // Yield compact boundary messages to SDK
+          // 向 SDK yield compact 边界消息
           if (msg.subtype === 'compact_boundary' && msg.compactMetadata) {
             const compactMsg = msg as SystemCompactBoundaryMessage
-            // Release pre-compaction messages for GC. The boundary was just
-            // pushed so it's the last element. query.ts already uses
-            // getMessagesAfterCompactBoundary() internally, so only
-            // post-boundary messages are needed going forward.
+            // 释放压缩前的消息以便 GC。边界刚刚被 push，所以它是
+            // 最后一个元素。query.ts 内部已经使用
+            // getMessagesAfterCompactBoundary()，后续只需要边界之后
+            // 的消息。
             const mutableBoundaryIdx = this.mutableMessages.length - 1
             if (mutableBoundaryIdx > 0) {
               this.mutableMessages.splice(0, mutableBoundaryIdx)
@@ -1037,7 +1041,7 @@ export class QueryEngine {
               uuid: msg.uuid,
             }
           }
-          // Don't yield other system messages in headless mode
+          // 在 headless 模式下不 yield 其他系统消息
           break
         }
         case 'tool_use_summary': {
@@ -1045,7 +1049,7 @@ export class QueryEngine {
             summary: unknown
             precedingToolUseIds: unknown
           }
-          // Yield tool use summary messages to SDK
+          // 向 SDK yield 工具使用摘要消息
           yield {
             type: 'tool_use_summary' as const,
             summary: msg.summary,
@@ -1057,7 +1061,7 @@ export class QueryEngine {
         }
       }
 
-      // Check if USD budget has been exceeded
+      // 检查是否超出 USD 预算
       if (maxBudgetUsd !== undefined && getTotalCost() >= maxBudgetUsd) {
         if (persistSession) {
           if (
@@ -1092,7 +1096,7 @@ export class QueryEngine {
         return
       }
 
-      // Check if structured output retry limit exceeded (only on user messages)
+      // 检查是否超出结构化输出重试上限（仅针对 user 消息）
       if (message.type === 'user' && jsonSchema) {
         const currentCalls = countToolCalls(
           this.mutableMessages,
@@ -1139,19 +1143,24 @@ export class QueryEngine {
       }
     }
 
-    // Stop hooks yield progress/attachment messages AFTER the assistant
-    // response (via yield* handleStopHooks in query.ts). Since #23537 pushes
-    // those to `messages` inline, last(messages) can be a progress/attachment
-    // instead of the assistant — which makes textResult extraction below
-    // return '' and -p mode emit a blank line. Allowlist to assistant|user:
-    // isResultSuccessful handles both (user with all tool_result blocks is a
-    // valid successful terminal state).
+    logForDebugging(
+      `[QueryEngine] query() 循环完成, 总耗时=${Date.now() - startTime}ms, 累计token: input=${this.totalUsage.input_tokens}, output=${this.totalUsage.output_tokens}`,
+      { level: 'info' },
+    )
+
+    // Stop hooks 在 assistant 响应之后 yield progress/attachment 消息
+    //（通过 query.ts 中的 yield* handleStopHooks）。因为 #23537 将
+    // 它们内联 push 到 `messages`，last(messages) 可能是 progress/
+    // attachment 而不是 assistant —— 这会让下面的 textResult 提取
+    // 返回 ''，-p 模式输出空行。允许列表限定为 assistant|user：
+    // isResultSuccessful 两者都能处理（全是 tool_result 块的 user 是
+    // 合法的成功终止状态）。
     const result = messages.findLast(
       m => m.type === 'assistant' || m.type === 'user',
     )
-    // Capture for the error_during_execution diagnostic — isResultSuccessful
-    // is a type predicate (message is Message), so inside the false branch
-    // `result` narrows to never and these accesses don't typecheck.
+    // 为 error_during_execution 诊断捕获信息 —— isResultSuccessful
+    // 是类型谓词（message is Message），所以在 false 分支里
+    // `result` 会被收窄为 never，这些访问无法通过类型检查。
     const edeResultType = result?.type ?? 'undefined'
     const edeLastContentType =
       result?.type === 'assistant'
@@ -1161,9 +1170,9 @@ export class QueryEngine {
           )?.type ?? 'none')
         : 'n/a'
 
-    // Flush buffered transcript writes before yielding result.
-    // The desktop app kills the CLI process immediately after receiving the
-    // result message, so any unflushed writes would be lost.
+    // 在 yield result 之前 flush 缓冲的 transcript 写入。
+    // 桌面应用在收到 result 消息后会立即杀死 CLI 进程，任何未 flush
+    // 的写入都会丢失。
     if (persistSession) {
       if (
         isEnvTruthy(process.env.CLAUDE_CODE_EAGER_FLUSH) ||
@@ -1192,11 +1201,11 @@ export class QueryEngine {
           initialAppState.fastMode,
         ),
         uuid: randomUUID(),
-        // Diagnostic prefix: these are what isResultSuccessful() checks — if
-        // the result type isn't assistant-with-text/thinking or user-with-
-        // tool_result, and stop_reason isn't end_turn, that's why this fired.
-        // errors[] is turn-scoped via the watermark; previously it dumped the
-        // entire process's logError buffer (ripgrep timeouts, ENOENT, etc).
+        // 诊断前缀：这些就是 isResultSuccessful() 检查的内容 —— 如果
+        // result 的类型不是带 text/thinking 的 assistant 或带
+        // tool_result 的 user，并且 stop_reason 不是 end_turn，就是触
+        // 发本次错误的原因。errors[] 通过水位线按轮次作用域；此前它
+        // 会 dump 整个进程的 logError 缓冲（ripgrep 超时、ENOENT 等）。
         errors: (() => {
           const all = getInMemoryErrors()
           const start = errorLogWatermark
@@ -1211,7 +1220,7 @@ export class QueryEngine {
       return
     }
 
-    // Extract the text result based on message type
+    // 根据消息类型提取文本结果
     let textResult = ''
     let isApiError = false
 
@@ -1229,6 +1238,10 @@ export class QueryEngine {
       isApiError = Boolean(result.isApiErrorMessage)
     }
 
+    logForDebugging(
+      `[QueryEngine] submitMessage 完成, 耗时=${Date.now() - startTime}ms, turn数=${turnCount}`,
+      { level: 'info' },
+    )
     yield {
       type: 'result',
       subtype: 'success',
@@ -1256,13 +1269,13 @@ export class QueryEngine {
     this.abortController.abort()
   }
 
-  /** Reset the abort controller so the next submitMessage() call can start
-   *  with a fresh, non-aborted signal. Must be called after interrupt(). */
+  /** 重置 abort controller，让下次 submitMessage() 调用可以拿到
+   *  全新的、未被 abort 的信号。必须在 interrupt() 之后调用。 */
   resetAbortController(): void {
     this.abortController = createAbortController()
   }
 
-  /** Expose the current abort signal for external consumers (e.g. ACP bridge). */
+  /** 对外暴露当前的 abort 信号，供外部消费者（如 ACP bridge）使用。 */
   getAbortSignal(): AbortSignal {
     return this.abortController.signal
   }
@@ -1286,14 +1299,12 @@ export class QueryEngine {
 
 /**
  * 一次性查询便捷函数 —— 发送单个 prompt 并返回响应，不进入交互模式。
- * Sends a single prompt to the Claude API and returns the response.
- * Assumes that claude is being used non-interactively -- will not
- * ask the user for permissions or further input.
+ * 假设 claude 以非交互方式使用 —— 不会向用户请求权限或进一步输入。
  *
  * 适用于：-p / --print 管道模式、SDK 调用、脚本自动化。
  * 内部创建一个临时 QueryEngine 实例，执行一次 submitMessage() 后销毁。
  *
- * Convenience wrapper around QueryEngine for one-shot usage.
+ * QueryEngine 的一次性使用便捷封装。
  */
 export async function* ask({
   commands,

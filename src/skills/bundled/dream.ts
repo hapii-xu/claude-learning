@@ -1,6 +1,6 @@
-// Manual /dream skill — runs the memory consolidation prompt interactively.
-// Extracted from the KAIROS feature gate so it's available unconditionally
-// whenever auto-memory is enabled.
+// 手动 /dream 技能 —— 交互式运行记忆整合提示。
+// 从 KAIROS feature gate 中提取，以便在自动记忆启用时
+// 无条件可用。
 
 import { getAutoMemPath, isAutoMemoryEnabled } from '../../memdir/paths.js'
 import { buildConsolidationPrompt } from '../../services/autoDream/consolidationPrompt.js'
@@ -28,7 +28,7 @@ export function registerDreamSkill(): void {
       const memoryRoot = getAutoMemPath()
       const transcriptDir = getProjectDir(getOriginalCwd())
 
-      // Stamp the consolidation lock optimistically (same as the KAIROS path).
+      // 乐观地标记整合锁（与 KAIROS 路径相同）。
       await recordConsolidation()
 
       const basePrompt = buildConsolidationPrompt(memoryRoot, transcriptDir, '')

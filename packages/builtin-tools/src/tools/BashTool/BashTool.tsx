@@ -28,6 +28,7 @@ import { splitCommand_DEPRECATED, splitCommandWithOperators } from 'src/utils/ba
 import { extractClaudeCodeHints } from 'src/utils/claudeCodeHints.js';
 import { detectCodeIndexingFromCommand } from 'src/utils/codeIndexing.js';
 import { isEnvTruthy } from 'src/utils/envUtils.js';
+import { logForDebugging } from 'src/utils/debug.js';
 import { isENOENT, ShellError } from 'src/utils/errors.js';
 import { detectFileEncoding, detectLineEndings, getFileModificationTime, writeTextContent } from 'src/utils/file.js';
 import { fileHistoryEnabled, fileHistoryTrackEdit } from 'src/utils/fileHistory.js';
@@ -86,27 +87,27 @@ import {
 
 const EOL = '\n';
 
-// Progress display constants
-const PROGRESS_THRESHOLD_MS = 2000; // Show progress after 2 seconds
-// In assistant mode, blocking bash auto-backgrounds after this many ms in the main agent
+// 进度显示常量
+const PROGRESS_THRESHOLD_MS = 2000; // 2 秒后显示进度
+// 在助手模式下，主代理中超过此毫秒数后阻止 bash 自动后台化
 const ASSISTANT_BLOCKING_BUDGET_MS = 15_000;
 
-// Search commands for collapsible display (grep, find, etc.)
+// 可折叠显示用的搜索命令（grep、find 等）
 const BASH_SEARCH_COMMANDS = new Set(['find', 'grep', 'rg', 'ag', 'ack', 'locate', 'which', 'whereis']);
 
-// Read/view commands for collapsible display (cat, head, etc.)
+// 可折叠显示用的读取/查看命令（cat、head 等）
 const BASH_READ_COMMANDS = new Set([
   'cat',
   'head',
   'tail',
   'less',
   'more',
-  // Analysis commands
+  // 分析命令
   'wc',
   'stat',
   'file',
   'strings',
-  // Data processing — commonly used to parse/transform file content in pipes
+  // 数据处理 — 常用于在管道中解析/转换文件内容
   'jq',
   'awk',
   'cut',
@@ -115,23 +116,23 @@ const BASH_READ_COMMANDS = new Set([
   'tr',
 ]);
 
-// Directory-listing commands for collapsible display (ls, tree, du).
-// Split from BASH_READ_COMMANDS so the summary says "Listed N directories"
-// instead of the misleading "Read N files".
+// 可折叠显示用的目录列表命令（ls、tree、du）。
+// 从 BASH_READ_COMMANDS 中分离，以便摘要显示"列出了 N 个目录"
+// 而不是误导性的"读取了 N 个文件"。
 const BASH_LIST_COMMANDS = new Set(['ls', 'tree', 'du']);
 
-// Commands that are semantic-neutral in any position — pure output/status commands
-// that don't change the read/search nature of the overall pipeline.
-// e.g. `ls dir && echo "---" && ls dir2` is still a read-only compound command.
+// 在任何位置都是语义中性的命令 — 纯输出/状态命令
+// 不会改变整体管道的读取/搜索性质。
+// 例如 `ls dir && echo "---" && ls dir2` 仍然是只读的复合命令。
 const BASH_SEMANTIC_NEUTRAL_COMMANDS = new Set([
   'echo',
   'printf',
   'true',
   'false',
-  ':', // bash no-op
+  ':', // bash 空操作
 ]);
 
-// Commands that typically produce no stdout on success
+// 成功时通常不产生 stdout 的命令
 const BASH_SILENT_COMMANDS = new Set([
   'mv',
   'cp',
@@ -170,7 +171,7 @@ export function isSearchOrReadBashCommand(command: string): {
   try {
     partsWithOperators = splitCommandWithOperators(command);
   } catch {
-    // If we can't parse the command due to malformed syntax,
+    // 如果由于语法错误无法解析命令，
     // it's not a search/read command
     return { isSearch: false, isRead: false, isList: false };
   }
@@ -224,7 +225,7 @@ export function isSearchOrReadBashCommand(command: string): {
     if (isPartList) hasList = true;
   }
 
-  // Only neutral commands (e.g., just "echo foo") -- not collapsible
+  // 仅中性命令（例如，只有 "echo foo"）— 不可折叠
   if (!hasNonNeutralCommand) {
     return { isSearch: false, isRead: false, isList: false };
   }
@@ -287,12 +288,12 @@ function isSilentBashCommand(command: string): boolean {
   return hasNonFallbackCommand;
 }
 
-// Commands that should not be auto-backgrounded
+// 不应自动后台化的命令
 const DISALLOWED_AUTO_BACKGROUND_COMMANDS = [
   'sleep', // Sleep should run in foreground unless explicitly backgrounded by user
 ];
 
-// Check if background tasks are disabled at module load time
+// 在模块加载时检查是否禁用了后台任务
 const isBackgroundTasksDisabled =
   // eslint-disable-next-line custom-rules/no-process-env-top-level -- Intentional: schema must be defined at module load
   isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_BACKGROUND_TASKS);
@@ -333,11 +334,11 @@ For commands that are harder to parse at a glance (piped commands, obscure flags
   }),
 );
 
-// Always omit _simulatedSedEdit from the model-facing schema. It is an internal-only
-// field set by SedEditPermissionRequest after the user approves a sed edit preview.
-// Exposing it in the schema would let the model bypass permission checks and the
-// sandbox by pairing an innocuous command with an arbitrary file write.
-// Also conditionally remove run_in_background when background tasks are disabled.
+// 始终从面向模型的 schema 中省略 _simulatedSedEdit。它是内部字段，
+// 由 SedEditPermissionRequest 在用户批准 sed 编辑预览后设置。
+// 在 schema 中暴露它会让模型通过将无害命令与任意文件写入配对来
+// 绕过权限检查和沙箱。
+// 还应在后台任务禁用时有条件地移除 run_in_background。
 const inputSchema = lazySchema(() =>
   isBackgroundTasksDisabled
     ? fullInputSchema().omit({
@@ -348,8 +349,8 @@ const inputSchema = lazySchema(() =>
 );
 type InputSchema = ReturnType<typeof inputSchema>;
 
-// Use fullInputSchema for the type to always include run_in_background
-// (even when it's omitted from the schema, the code needs to handle it)
+// 对类型使用 fullInputSchema 以始终包含 run_in_background
+// （即使它从 schema 中省略，代码也需要处理它）
 export type BashToolInput = z.infer<ReturnType<typeof fullInputSchema>>;
 
 const COMMON_BACKGROUND_COMMANDS = [
@@ -381,7 +382,7 @@ function getCommandTypeForLogging(command: string): AnalyticsMetadata_I_VERIFIED
   const parts = splitCommand_DEPRECATED(command);
   if (parts.length === 0) return 'other' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS;
 
-  // Check each part of the command to see if any match common background commands
+  // 检查命令的每个部分以查看是否有任何匹配常见的后台命令
   for (const part of parts) {
     const baseCommand = part.split(' ')[0] || '';
     if (COMMON_BACKGROUND_COMMANDS.includes(baseCommand as (typeof COMMON_BACKGROUND_COMMANDS)[number])) {
@@ -432,7 +433,7 @@ const outputSchema = lazySchema(() =>
 type OutputSchema = ReturnType<typeof outputSchema>;
 export type Out = z.infer<OutputSchema>;
 
-// Re-export BashProgress from centralized types to break import cycles
+// 从集中类型重新导出 BashProgress 以打破导入循环
 export type { BashProgress } from 'src/types/tools.js';
 
 import type { BashProgress } from 'src/types/tools.js';
@@ -446,7 +447,7 @@ function isAutobackgroundingAllowed(command: string): boolean {
   const parts = splitCommand_DEPRECATED(command);
   if (parts.length === 0) return true;
 
-  // Get the first part which should be the base command
+  // 获取第一部分，应该是基础命令
   const baseCommand = parts[0]?.trim();
   if (!baseCommand) return true;
 
@@ -463,8 +464,8 @@ export function detectBlockedSleepPattern(command: string): string | null {
   if (parts.length === 0) return null;
 
   const first = parts[0]?.trim() ?? '';
-  // Bare `sleep N` or `sleep N.N` as the first subcommand.
-  // Float durations (sleep 0.5) are allowed — those are legit pacing, not polls.
+  // 裸 `sleep N` 或 `sleep N.N` 作为第一个子命令。
+  // 允许浮点持续时间（sleep 0.5）— 这些是合法的节奏控制，不是轮询。
   const m = /^sleep\s+(\d+)\s*$/.exec(first);
   if (!m) return null;
   const secs = parseInt(m[1]!, 10);
@@ -507,7 +508,7 @@ async function applySedEdit(
   const absoluteFilePath = expandPath(filePath);
   const fs = getFsImplementation();
 
-  // Read original content for VS Code notification
+  // 读取原始内容以进行 VS Code 通知
   const encoding = detectFileEncoding(absoluteFilePath);
   let originalContent: string;
   try {
@@ -525,19 +526,19 @@ async function applySedEdit(
     throw e;
   }
 
-  // Track file history before making changes (for undo support)
+  // 在进行更改之前跟踪文件历史记录（用于撤销支持）
   if (fileHistoryEnabled() && parentMessage) {
     await fileHistoryTrackEdit(toolUseContext.updateFileHistoryState, absoluteFilePath, parentMessage.uuid);
   }
 
-  // Detect line endings and write new content
+  // 检测行尾并写入新内容
   const endings = detectLineEndings(absoluteFilePath);
   writeTextContent(absoluteFilePath, newContent, encoding, endings);
 
-  // Notify VS Code about the file change
+  // 通知 VS Code 文件已更改
   notifyVscodeFileUpdated(absoluteFilePath, originalContent, newContent);
 
-  // Update read timestamp to invalidate stale writes
+  // 更新读取时间戳以使过时的写入失效
   toolUseContext.readFileState.set(absoluteFilePath, {
     content: newContent,
     timestamp: getFileModificationTime(absoluteFilePath),
@@ -545,7 +546,7 @@ async function applySedEdit(
     limit: undefined,
   });
 
-  // Return success result matching sed output format (sed produces no output on success)
+  // 返回与 sed 输出格式匹配的成功结果（sed 成功时不产生输出）
   return {
     data: {
       stdout: '',
@@ -579,16 +580,16 @@ export const BashTool = buildTool({
     return input.command;
   },
   async preparePermissionMatcher({ command }) {
-    // Hook `if` filtering is "no match → skip hook" (deny-like semantics), so
-    // compound commands must fire the hook if ANY subcommand matches. Without
-    // splitting, `ls && git push` would bypass a `Bash(git *)` security hook.
+    // Hook 的 `if` 过滤是"不匹配 → 跳过 hook"（类似拒绝的语义），所以
+    // 复合命令必须只要有任何子命令匹配就触发 hook。否则
+    // `ls && git push` 会绕过 `Bash(git *)` 安全 hook。
     const parsed = await parseForSecurity(command);
     if (parsed.kind !== 'simple') {
-      // parse-unavailable / too-complex: fail safe by running the hook.
+      // 解析不可用 / 过于复杂：安全起见运行 hook。
       return () => true;
     }
-    // Match on argv (strips leading VAR=val) so `FOO=bar git push` still
-    // matches `Bash(git *)`.
+    // 在 argv 上匹配（剥离前导的 VAR=val），这样 `FOO=bar git push` 仍能
+    // 匹配 `Bash(git *)`。
     const subcommands = parsed.commands.map(c => c.argv.join(' '));
     return pattern => {
       const prefix = permissionRuleExtractPrefix(pattern);
@@ -615,7 +616,7 @@ export const BashTool = buildTool({
     if (!input) {
       return 'Bash';
     }
-    // Render sed in-place edits as file edits
+    // 将 sed 就地编辑渲染为文件编辑
     if (input.command) {
       const sedInfo = parseSedEditCommand(input.command);
       if (sedInfo) {
@@ -625,10 +626,10 @@ export const BashTool = buildTool({
         });
       }
     }
-    // Env var FIRST: shouldUseSandbox → splitCommand_DEPRECATED → shell-quote's
-    // `new RegExp` per call. userFacingName runs per-render for every bash
-    // message in history; with ~50 msgs + one slow-to-tokenize command, this
-    // exceeds the shimmer tick → transition abort → infinite retry (#21605).
+    // 环境变量优先：shouldUseSandbox → splitCommand_DEPRECATED → shell-quote 的
+    // 每次调用都创建 `new RegExp`。userFacingName 在历史记录中每个 bash
+    // 消息的每次渲染时都会运行；在约 50 条消息 + 一个分词缓慢的命令下，这会
+    // 超过 shimmer 滴答 → 过渡中止 → 无限重试 (#21605)。
     return isEnvTruthy(process.env.CLAUDE_CODE_BASH_SANDBOX_SHOW_INDICATOR) && shouldUseSandbox(input)
       ? 'SandboxedBash'
       : 'Bash';
@@ -670,9 +671,9 @@ export const BashTool = buildTool({
   renderToolUseProgressMessage,
   renderToolUseQueuedMessage,
   renderToolResultMessage,
-  // BashToolResultMessage shows <OutputLine content={stdout}> + stderr.
-  // UI never shows persistedOutputPath wrapper, backgroundInfo — those are
-  // model-facing (mapToolResult... below).
+  // BashToolResultMessage 显示 <OutputLine content={stdout}> + stderr。
+  // UI 从不显示 persistedOutputPath 包装器、backgroundInfo — 这些是
+  // 面向模型的（下方的 mapToolResult...）。
   extractSearchText({ stdout, stderr }) {
     return stderr ? `${stdout}\n${stderr}` : stdout;
   },
@@ -691,7 +692,7 @@ export const BashTool = buildTool({
     },
     toolUseID,
   ): ToolResultBlockParam {
-    // Handle structured content
+    // 处理结构化内容
     if (structuredContent && structuredContent.length > 0) {
       return {
         tool_use_id: toolUseID,
@@ -700,7 +701,7 @@ export const BashTool = buildTool({
       };
     }
 
-    // For image data, format as image content block for Claude
+    // 对于图像数据，格式化为 Claude 的图像内容块
     if (isImage) {
       const block = buildImageToolResult(stdout, toolUseID);
       if (block) return block;
@@ -708,14 +709,14 @@ export const BashTool = buildTool({
 
     let processedStdout = stdout;
     if (stdout) {
-      // Replace any leading newlines or lines with only whitespace
+      // 替换任何前导换行符或仅包含空白的行
       processedStdout = stdout.replace(/^(\s*\n)+/, '');
-      // Still trim the end as before
+      // 仍然像之前一样修剪末尾
       processedStdout = processedStdout.trimEnd();
     }
 
-    // For large output that was persisted to disk, build <persisted-output>
-    // message for the model. The UI never sees this — it uses data.stdout.
+    // 对于持久化到磁盘的大型输出，为模型构建 <persisted-output>
+    // 消息。UI 从不看到这个 — 它使用 data.stdout。
     if (persistedOutputPath) {
       const preview = generatePreview(processedStdout, PREVIEW_SIZE_BYTES);
       processedStdout = buildLargeToolResultMessage({
@@ -759,12 +760,16 @@ export const BashTool = buildTool({
     parentMessage?: AssistantMessage,
     onProgress?: ToolCallProgress<BashProgress>,
   ) {
-    // Handle simulated sed edit - apply directly instead of running sed
-    // This ensures what the user previewed is exactly what gets written
+    // 处理模拟的 sed 编辑 - 直接应用而不是运行 sed
+    // 这确保用户预览的内容与写入的内容完全一致
     if (input._simulatedSedEdit) {
       return applySedEdit(input._simulatedSedEdit, toolUseContext, parentMessage);
     }
 
+    logForDebugging(
+      `[Bash] call() 开始 command="${input.command.slice(0, 80)}" sandbox=${!input.dangerouslyDisableSandbox}`,
+      { level: 'info' },
+    );
     const { abortController, getAppState, setAppState, setToolJSX } = toolUseContext;
 
     const stdoutAccumulator = new EndTruncatingAccumulator();
@@ -779,12 +784,12 @@ export const BashTool = buildTool({
     const preventCwdChanges = !isMainThread;
 
     try {
-      // Use the new async generator version of runShellCommand
+      // 使用 runShellCommand 的新异步生成器版本
       const commandGenerator = runShellCommand({
         input,
         abortController,
-        // Use the always-shared task channel so async agents' background
-        // bash tasks are actually registered (and killable on agent exit).
+        // 使用始终共享的任务通道，以便异步代理的后台
+        // bash 任务实际上被注册（并且在代理退出时可终止）。
         setAppState: toolUseContext.setAppStateForTasks ?? setAppState,
         setToolJSX,
         preventCwdChanges,
@@ -793,7 +798,7 @@ export const BashTool = buildTool({
         agentId: toolUseContext.agentId,
       });
 
-      // Consume the generator and capture the return value
+      // 消耗生成器并捕获返回值
       let generatorResult;
       do {
         generatorResult = await commandGenerator.next();
@@ -815,26 +820,27 @@ export const BashTool = buildTool({
         }
       } while (!generatorResult.done);
 
-      // Get the final result from the generator's return value
+      // 从生成器的返回值获取最终结果
       result = generatorResult.value;
 
+      logForDebugging(`[Bash] 命令执行完成 退出码=${result.code} 中断=${result.interrupted}`, { level: 'info' });
       trackGitOperations(input.command, result.code, result.stdout);
 
       const isInterrupt = result.interrupted && abortController.signal.reason === 'interrupt';
 
-      // stderr is interleaved in stdout (merged fd) — result.stdout has both
+      // stderr 交错在 stdout 中（合并的 fd）— result.stdout 包含两者
       stdoutAccumulator.append((result.stdout || '').trimEnd() + EOL);
 
-      // Interpret the command result using semantic rules
+      // 使用语义规则解释命令结果
       interpretationResult = interpretCommandResult(input.command, result.code, result.stdout || '', '');
 
-      // Check for git index.lock error (stderr is in stdout now)
+      // 检查 git index.lock 错误（stderr 现在在 stdout 中）
       if (result.stdout && result.stdout.includes(".git/index.lock': File exists")) {
         logEvent('tengu_git_index_lock_error', {});
       }
 
       if (interpretationResult.isError && !isInterrupt) {
-        // Only add exit code if it's actually an error
+        // 仅当确实是错误时才添加退出码
         if (result.code !== 0) {
           stdoutAccumulator.append(`Exit code ${result.code}`);
         }
@@ -847,16 +853,16 @@ export const BashTool = buildTool({
         }
       }
 
-      // Annotate output with sandbox violations if any (stderr is in stdout)
+      // 如果存在沙箱违规，用注释标注输出（stderr 在 stdout 中）
       const outputWithSbFailures = SandboxManager.annotateStderrWithSandboxFailures(input.command, result.stdout || '');
 
       if (result.preSpawnError) {
         throw new Error(result.preSpawnError);
       }
       if (interpretationResult.isError && !isInterrupt) {
-        // stderr is merged into stdout (merged fd); outputWithSbFailures
-        // already has the full output. Pass '' for stdout to avoid
-        // duplication in getErrorParts() and processBashCommand.
+        // stderr 被合并到 stdout 中（合并的 fd）；outputWithSbFailures
+        // 已经包含完整输出。为 stdout 传递 '' 以避免
+        // 在 getErrorParts() 和 processBashCommand 中重复。
         throw new ShellError('', outputWithSbFailures, result.code, result.interrupted);
       }
       wasInterrupted = result.interrupted;
@@ -864,13 +870,13 @@ export const BashTool = buildTool({
       if (setToolJSX) setToolJSX(null);
     }
 
-    // Get final string from accumulator
+    // 从累加器获取最终字符串
     const stdout = stdoutAccumulator.toString();
 
-    // Large output: the file on disk has more than getMaxOutputLength() bytes.
-    // stdout already contains the first chunk (from getStdout()). Copy the
-    // output file to the tool-results dir so the model can read it via
-    // FileRead. If > 64 MB, truncate after copying.
+    // 大型输出：磁盘上的文件超过 getMaxOutputLength() 字节。
+    // stdout 已经包含第一个块（来自 getStdout()）。将
+    // 输出文件复制到工具结果目录，以便模型可以通过
+    // FileRead 读取它。如果 > 64 MB，复制后截断。
     const MAX_PERSISTED_SIZE = 64 * 1024 * 1024;
     let persistedOutputPath: string | undefined;
     let persistedOutputSize: number | undefined;
@@ -891,7 +897,7 @@ export const BashTool = buildTool({
         }
         persistedOutputPath = dest;
       } catch {
-        // File may already be gone — stdout preview is sufficient
+        // 文件可能已经消失 — stdout 预览已足够
       }
     }
 
@@ -905,7 +911,7 @@ export const BashTool = buildTool({
       interrupted: wasInterrupted,
     });
 
-    // Log code indexing tool usage
+    // 记录代码索引工具使用情况
     const codeIndexingTool = detectCodeIndexingFromCommand(input.command);
     if (codeIndexingTool) {
       logEvent('tengu_code_indexing_tool_used', {
@@ -917,12 +923,12 @@ export const BashTool = buildTool({
 
     let strippedStdout = stripEmptyLines(stdout);
 
-    // Claude Code hints protocol: CLIs/SDKs gated on CLAUDECODE=1 emit a
-    // `<claude-code-hint />` tag to stderr (merged into stdout here). Scan,
-    // record for useClaudeCodeHintRecommendation to surface, then strip
-    // so the model never sees the tag — a zero-token side channel.
-    // Stripping runs unconditionally (subagent output must stay clean too);
-    // only the dialog recording is main-thread-only.
+    // Claude Code 提示协议：受 CLAUDECODE=1 门控的 CLI/SDK 向 stderr
+    // 发出 `<claude-code-hint />` 标签（此处合并到 stdout）。扫描，
+    // 记录以供 useClaudeCodeHintRecommendation 浮现，然后剥离
+    // 这样模型永远不会看到该标签 — 一个零令牌旁通道。
+    // 剥离无条件运行（子代理输出也必须保持干净）；
+    // 只有对话框记录是主线程专属的。
     const extracted = extractClaudeCodeHints(strippedStdout, input.command);
     strippedStdout = extracted.stripped;
     if (isMainThread && extracted.hints.length > 0) {
@@ -931,19 +937,19 @@ export const BashTool = buildTool({
 
     let isImage = isImageOutput(strippedStdout);
 
-    // Cap image dimensions + size if present (CC-304 — see
-    // resizeShellImageOutput). Scope the decoded buffer so it can be reclaimed
-    // before we build the output Out object.
+    // 限制图像尺寸 + 大小（如果存在）(CC-304 — 参见
+    // resizeShellImageOutput)。限制解码缓冲区的作用域，以便在我们
+    // 构建输出 Out 对象之前可以回收它。
     let compressedStdout = strippedStdout;
     if (isImage) {
       const resized = await resizeShellImageOutput(strippedStdout, result.outputFilePath, persistedOutputSize);
       if (resized) {
         compressedStdout = resized;
       } else {
-        // Parse failed or file too large (e.g. exceeds MAX_IMAGE_FILE_SIZE).
-        // Keep isImage in sync with what we actually send so the UI label stays
-        // accurate — mapToolResultToToolResultBlockParam's defensive
-        // fallthrough will send text, not an image block.
+        // 解析失败或文件太大（例如超过 MAX_IMAGE_FILE_SIZE）。
+        // 保持 isImage 与我们实际发送的内容同步，这样 UI 标签保持
+        // 准确 — mapToolResultToToolResultBlockParam 的防御性
+        // 回退将发送文本，而不是图像块。
         isImage = false;
       }
     }
@@ -1016,8 +1022,8 @@ async function* runShellCommand({
   let backgroundShellId: string | undefined;
   let assistantAutoBackgrounded = false;
 
-  // Progress signal: resolved by onProgress callback from the shared poller,
-  // waking the generator to yield a progress update.
+  // 进度信号：由共享轮询器的 onProgress 回调解析，
+  // 唤醒生成器以产生进度更新。
   let resolveProgress: (() => void) | null = null;
   function createProgressSignal(): Promise<null> {
     return new Promise<null>(resolve => {
@@ -1025,9 +1031,9 @@ async function* runShellCommand({
     });
   }
 
-  // Determine if auto-backgrounding should be enabled
-  // Only enable for commands that are allowed to be auto-backgrounded
-  // and when background tasks are not disabled
+  // 确定是否应启用自动后台运行
+  // 仅对允许自动后台运行的命令启用
+  // 并且在未禁用后台任务时
   const shouldAutoBackground = !isBackgroundTasksDisabled && isAutobackgroundingAllowed(command);
 
   const shellCommand = await exec(command, abortController.signal, 'bash', {
@@ -1037,7 +1043,7 @@ async function* runShellCommand({
       fullOutput = allLines;
       lastTotalLines = totalLines;
       lastTotalBytes = isIncomplete ? totalBytes : 0;
-      // Wake the generator so it yields the new progress data
+      // 唤醒生成器以便产生新的进度数据
       const resolve = resolveProgress;
       if (resolve) {
         resolveProgress = null;
@@ -1049,10 +1055,10 @@ async function* runShellCommand({
     shouldAutoBackground,
   });
 
-  // Start the command execution
+  // 启动命令执行
   const resultPromise = shellCommand.result;
 
-  // Helper to spawn a background task and return its ID
+  // 辅助函数：生成后台任务并返回其 ID
   async function spawnBackgroundTask(): Promise<string> {
     const handle = await spawnShellTask(
       {
@@ -1065,8 +1071,8 @@ async function* runShellCommand({
       {
         abortController,
         getAppState: () => {
-          // We don't have direct access to getAppState here, but spawn doesn't
-          // actually use it during the spawn process
+          // 此处我们没有对 getAppState 的直接访问，但 spawn 在
+          // spawn 过程中实际上并不使用它
           throw new Error('getAppState not available in runShellCommand context');
         },
         setAppState,
@@ -1075,12 +1081,11 @@ async function* runShellCommand({
     return handle.taskId;
   }
 
-  // Helper to start backgrounding with optional logging
+  // 辅助函数：以可选日志记录开始后台运行
   function startBackgrounding(eventName: string, backgroundFn?: (shellId: string) => void): void {
-    // If a foreground task is already registered (via registerForeground in the
-    // progress loop), background it in-place instead of re-spawning. Re-spawning
-    // would overwrite tasks[taskId], emit a duplicate task_started SDK event,
-    // and leak the first cleanup callback.
+    // 如果已经注册了前台任务（通过进度循环中的 registerForeground），
+    // 则就地将其转为后台而不是重新生成。重新生成会覆盖 tasks[taskId]，
+    // 发出重复的 task_started SDK 事件，并泄漏第一个清理回调。
     if (foregroundTaskId) {
       if (
         !backgroundExistingForegroundTask(
@@ -1101,16 +1106,16 @@ async function* runShellCommand({
       return;
     }
 
-    // No foreground task registered — spawn a new background task
-    // Note: spawn is essentially synchronous despite being async
+    // 没有注册前台任务 — 生成新的后台任务
+    // 注意：尽管是异步的，spawn 实际上是同步的
     void spawnBackgroundTask().then(shellId => {
       backgroundShellId = shellId;
 
-      // Wake the generator's Promise.race so it sees backgroundShellId.
-      // Without this, if the poller has stopped ticking for this task
-      // (no output + shared-poller race with sibling stopPolling calls)
-      // and the process is hung on I/O, the race at line ~1357 never
-      // resolves and the generator deadlocks despite being backgrounded.
+      // 唤醒生成器的 Promise.race 以便它看到 backgroundShellId。
+      // 没有这个，如果轮询器已停止为该任务滴答
+      // （无输出 + 共享轮询器与兄弟 stopPolling 调用竞争）
+      // 并且进程挂起在 I/O 上，~1357 行处的竞争永远不会
+      // 解析，生成器会死锁尽管已转为后台运行。
       const resolve = resolveProgress;
       if (resolve) {
         resolveProgress = null;
@@ -1127,17 +1132,17 @@ async function* runShellCommand({
     });
   }
 
-  // Set up auto-backgrounding on timeout if enabled
-  // Only background commands that are allowed to be auto-backgrounded (not sleep, etc.)
+  // 如果启用，在超时时设置自动后台运行
+  // 仅对允许自动后台运行的命令进行后台运行（不包括 sleep 等）
   if (shellCommand.onTimeout && shouldAutoBackground) {
     shellCommand.onTimeout(backgroundFn => {
       startBackgrounding('tengu_bash_command_timeout_backgrounded', backgroundFn);
     });
   }
 
-  // In assistant mode, the main agent should stay responsive. Auto-background
-  // blocking commands after ASSISTANT_BLOCKING_BUDGET_MS so the agent can keep
-  // coordinating instead of waiting. The command keeps running — no state loss.
+  // 在助手模式下，主代理应保持响应。自动将阻塞命令在
+  // ASSISTANT_BLOCKING_BUDGET_MS 后转为后台运行，以便代理可以继续
+  // 协调而不是等待。命令继续运行 — 无状态丢失。
   if (
     feature('KAIROS') &&
     getKairosActive() &&
@@ -1153,10 +1158,10 @@ async function* runShellCommand({
     }, ASSISTANT_BLOCKING_BUDGET_MS).unref();
   }
 
-  // Handle Claude asking to run it in the background explicitly
-  // When explicitly requested via run_in_background, always honor the request
-  // regardless of the command type (isAutobackgroundingAllowed only applies to automatic backgrounding)
-  // Skip if background tasks are disabled - run in foreground instead
+  // 处理 Claude 明确要求在后台运行的情况
+  // 当通过 run_in_background 明确请求时，始终尊重该请求
+  // 而不考虑命令类型（isAutobackgroundingAllowed 仅适用于自动后台运行）
+  // 如果禁用后台任务则跳过 - 改为在前台运行
   if (run_in_background === true && !isBackgroundTasksDisabled) {
     const shellId = await spawnBackgroundTask();
 
@@ -1173,7 +1178,7 @@ async function* runShellCommand({
     };
   }
 
-  // Wait for the initial threshold before showing progress
+  // 等待初始阈值后再显示进度
   const startTime = Date.now();
   let foregroundTaskId: string | undefined;
 
@@ -1203,35 +1208,35 @@ async function* runShellCommand({
     }
   }
 
-  // Start polling the output file for progress. The poller's #tick calls
-  // onProgress every second, which resolves progressSignal below.
+  // 开始轮询输出文件以获取进度。轮询器的 #tick 每秒调用
+  // onProgress，这会解析下方的 progressSignal。
   TaskOutput.startPolling(shellCommand.taskOutput.taskId);
 
-  // Progress loop: wake is driven by the shared poller calling onProgress,
-  // which resolves the progressSignal.
+  // 进度循环：唤醒由共享轮询器调用 onProgress 驱动，
+  // 这会解析 progressSignal。
   try {
     while (true) {
       const progressSignal = createProgressSignal();
       const result = await Promise.race([resultPromise, progressSignal]);
 
       if (result !== null) {
-        // Race: backgrounding fired (15s timer / onTimeout / Ctrl+B) but the
-        // command completed before the next poll tick. #handleExit sets
-        // backgroundTaskId but skips outputFilePath (it assumes the background
-        // message or <task_notification> will carry the path). Strip
-        // backgroundTaskId so the model sees a clean completed command,
-        // reconstruct outputFilePath for large outputs, and suppress the
-        // redundant <task_notification> from the .then() handler.
-        // Check result.backgroundTaskId (not the closure var) to also cover
-        // Ctrl+B, which calls shellCommand.background() directly.
+        // 竞争：后台运行已触发（15秒定时器 / onTimeout / Ctrl+B）但是
+        // 命令在下一次轮询滴答之前已完成。#handleExit 设置
+        // backgroundTaskId 但跳过 outputFilePath（它假设后台
+        // 消息或 <task_notification> 会携带路径）。剥离
+        // backgroundTaskId 以便模型看到一个干净的已完成命令，
+        // 重建大型输出的 outputFilePath，并抑制冗余的
+        // <task_notification> 来自 .then() 处理程序。
+        // 检查 result.backgroundTaskId（而不是闭包变量）以也覆盖
+        // Ctrl+B，它直接调用 shellCommand.background()。
         if (result.backgroundTaskId !== undefined) {
           markTaskNotified(result.backgroundTaskId, setAppState);
           const fixedResult: ExecResult = {
             ...result,
             backgroundTaskId: undefined,
           };
-          // Mirror ShellCommand.#handleExit's large-output branch that was
-          // skipped because #backgroundTaskId was set.
+          // 镜像 ShellCommand.#handleExit 的大型输出分支，由于
+          // #backgroundTaskId 已设置而被跳过。
           const { taskOutput } = shellCommand;
           if (taskOutput.stdoutToFile && !taskOutput.outputFileRedundant) {
             fixedResult.outputFilePath = taskOutput.path;
@@ -1241,18 +1246,18 @@ async function* runShellCommand({
           shellCommand.cleanup();
           return fixedResult;
         }
-        // Command has completed - return the actual result
-        // If we registered as a foreground task, unregister it
+        // 命令已完成 - 返回实际结果
+        // 如果我们注册为前台任务，取消注册它
         if (foregroundTaskId) {
           unregisterForeground(foregroundTaskId, setAppState);
         }
-        // Clean up stream resources for foreground commands
-        // (backgrounded commands are cleaned up by LocalShellTask)
+        // 清理前台命令的流资源
+        // （后台命令由 LocalShellTask 清理）
         shellCommand.cleanup();
         return result;
       }
 
-      // Check if command was backgrounded (either via old mechanism or new backgroundAll)
+      // 检查命令是否已转为后台运行（通过旧机制或新的 backgroundAll）
       if (backgroundShellId) {
         return {
           stdout: '',
@@ -1264,9 +1269,9 @@ async function* runShellCommand({
         };
       }
 
-      // Check if this foreground task was backgrounded via backgroundAll()
+      // 检查此前台任务是否通过 backgroundAll() 转为后台
       if (foregroundTaskId) {
-        // shellCommand.status becomes 'backgrounded' when background() is called
+        // shellCommand.status 在调用 background() 时变为 'backgrounded'
         if (shellCommand.status === 'backgrounded') {
           return {
             stdout: '',
@@ -1279,19 +1284,19 @@ async function* runShellCommand({
         }
       }
 
-      // Time for a progress update
+      // 进行进度更新的时间
       const elapsed = Date.now() - startTime;
       const elapsedSeconds = Math.floor(elapsed / 1000);
 
-      // Show minimal backgrounding UI if available
-      // Skip if background tasks are disabled
+      // 显示最小化的后台 UI（如果可用）
+      // 如果禁用后台任务则跳过
       if (
         !isBackgroundTasksDisabled &&
         backgroundShellId === undefined &&
         elapsedSeconds >= PROGRESS_THRESHOLD_MS / 1000 &&
         setToolJSX
       ) {
-        // Register this command as a foreground task so it can be backgrounded via Ctrl+B
+        // 将此命令注册为前台任务，以便可以通过 Ctrl+B 将其转为后台
         if (!foregroundTaskId) {
           foregroundTaskId = registerForeground(
             {

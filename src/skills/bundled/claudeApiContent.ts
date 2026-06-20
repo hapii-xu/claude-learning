@@ -1,5 +1,5 @@
-// Content for the claude-api bundled skill.
-// Each .md file is inlined as a string at build time via Bun's text loader.
+// claude-api 捆绑技能的内容。
+// 每个 .md 文件在构建时通过 Bun 的文本加载器内联为字符串。
 
 import csharpClaudeApi from './claude-api/csharp/claude-api.md'
 import curlExamples from './claude-api/curl/examples.md'
@@ -28,11 +28,11 @@ import typescriptClaudeApiReadme from './claude-api/typescript/claude-api/README
 import typescriptClaudeApiStreaming from './claude-api/typescript/claude-api/streaming.md'
 import typescriptClaudeApiToolUse from './claude-api/typescript/claude-api/tool-use.md'
 
-// @[MODEL LAUNCH]: Update the model IDs/names below. These are substituted into {{VAR}}
-// placeholders in the .md files at runtime before the skill prompt is sent.
-// After updating these constants, manually update the two files that still hardcode models:
-//   - claude-api/SKILL.md (Current Models pricing table)
-//   - claude-api/shared/models.md (full model catalog with legacy versions and alias mappings)
+// @[MODEL LAUNCH]: 更新下方的模型 ID/名称。这些值在技能提示发送之前
+// 运行时替换到 .md 文件中的 {{VAR}} 占位符。
+// 更新这些常量后，还需手动更新仍然硬编码模型的两个文件：
+//   - claude-api/SKILL.md（Current Models 定价表）
+//   - claude-api/shared/models.md（完整模型目录，包含旧版本和别名映射）
 export const SKILL_MODEL_VARS = {
   OPUS_ID: 'claude-opus-4-7',
   OPUS_NAME: 'Claude Opus 4.7',
@@ -40,7 +40,7 @@ export const SKILL_MODEL_VARS = {
   SONNET_NAME: 'Claude Sonnet 4.6',
   HAIKU_ID: 'claude-haiku-4-5',
   HAIKU_NAME: 'Claude Haiku 4.5',
-  // Previous Sonnet ID — used in "do not append date suffixes" example in SKILL.md.
+  // 上一个 Sonnet ID —— 用于 SKILL.md 中"不要追加日期后缀"示例。
   PREV_SONNET_ID: 'claude-sonnet-4-5',
 } satisfies Record<string, string>
 

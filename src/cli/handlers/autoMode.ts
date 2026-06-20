@@ -1,6 +1,6 @@
 /**
- * Auto mode subcommand handlers — dump default/merged classifier rules and
- * critique user-written rules. Dynamically imported when `claude auto-mode ...` runs.
+ * Auto mode 子命令处理器 — 输出默认/合并后的分类器规则，
+ * 并对用户编写的规则进行评审。在执行 `claude auto-mode ...` 时动态加载。
  */
 
 import { errorMessage } from '../../utils/errors.js'
@@ -28,11 +28,9 @@ export function autoModeDefaultsHandler(): void {
 }
 
 /**
- * Dump the effective auto mode config: user settings where provided, external
- * defaults otherwise. Per-section REPLACE semantics — matches how
- * buildYoloSystemPrompt resolves the external template (a non-empty user
- * section replaces that section's defaults entirely; an empty/absent section
- * falls through to defaults).
+ * 输出实际生效的 auto mode 配置：有用户设置就用用户设置，否则用外部默认值。
+ * 采用逐段 REPLACE 语义 — 与 buildYoloSystemPrompt 解析外部模板的方式一致
+ * （非空的用户段会完整替换该段的默认值；空段或缺省段回退到默认值）。
  */
 export function autoModeConfigHandler(): void {
   const config = getAutoModeConfig()

@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import type { Command } from '../../commands.js'
 
-// Mock bun:bundle before any imports that use feature()
+// 在任何使用 feature() 的 import 之前 mock bun:bundle
 mock.module('bun:bundle', () => ({
   feature: (_name: string) => false,
 }))
 
-// Mock dependencies to avoid side effects
+// mock 依赖以避免副作用
 mock.module('src/utils/attribution.ts', () => ({
   getAttributionTexts: () => ({ commit: '', pr: '' }),
   getEnhancedPRAttribution: async () => undefined,
@@ -151,7 +151,7 @@ describe('commit command getPromptForCommand', () => {
       }),
     }
 
-    // Wrap executeShellCommandsInPrompt to capture context
+    // 包装 executeShellCommandsInPrompt 以捕获 context
     mock.module('src/utils/promptShellExecution.ts', () => ({
       executeShellCommandsInPrompt: async (content: string, ctx: any) => {
         capturedAppState = ctx.getAppState()
@@ -163,7 +163,7 @@ describe('commit command getPromptForCommand', () => {
     const freshCommit = mod.default as any
 
     await freshCommit.getPromptForCommand('', mockContext)
-    // The override should include alwaysAllowRules with command tools
+    // 该覆盖应包含带 command 工具的 alwaysAllowRules
     if (capturedAppState) {
       expect(
         capturedAppState.toolPermissionContext.alwaysAllowRules.command,
@@ -186,7 +186,7 @@ describe('commit command getPromptForCommand', () => {
 
   test('getPromptForCommand with ant user_type and undercover', async () => {
     process.env.USER_TYPE = 'ant'
-    // isUndercover is mocked to return false, so prefix stays empty
+    // isUndercover 被 mock 为返回 false，因此 prefix 保持为空
     const mockContext = {
       getAppState: () => ({
         toolPermissionContext: {

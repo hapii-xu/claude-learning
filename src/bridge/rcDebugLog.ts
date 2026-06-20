@@ -1,7 +1,7 @@
 /**
- * File-based debug logger for Remote Control bridge diagnostics.
- * Writes [RC-DEBUG] lines to ~/.claude/rc-debug.log so they survive
- * Ink's stdout capture in the REPL / bridge UI.
+ * Remote Control bridge 诊断的基于文件的调试日志器。
+ * 将 [RC-DEBUG] 行写入 ~/.claude/rc-debug.log，使其能在
+ * REPL / bridge UI 中 Ink 的 stdout 捕获后留存。
  */
 import { appendFileSync, mkdirSync, existsSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -29,11 +29,11 @@ export function rcLog(msg: string): void {
     const ts = new Date().toISOString().slice(11, 23) // HH:mm:ss.SSS
     appendFileSync(LOG_PATH, `[${ts}] ${msg}\n`)
   } catch {
-    // best-effort — never crash the bridge
+    // 尽力而为 —— 绝不让 bridge 崩溃
   }
 }
 
-/** Clear the log file at session start. */
+/** 在会话开始时清空日志文件。 */
 export function rcLogClear(): void {
   try {
     ensureLogDir()

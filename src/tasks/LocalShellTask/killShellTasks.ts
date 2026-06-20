@@ -1,6 +1,6 @@
-// Pure (non-React) kill helpers for LocalShellTask.
-// Extracted so runAgent.ts can kill agent-scoped bash tasks without pulling
-// React/Ink into its module graph (same rationale as guards.ts).
+// LocalShellTask 的纯函数（非 React）kill 辅助。
+// 抽取出来是为了让 runAgent.ts 在终止 agent 作用域下的 bash 任务时，
+// 不必把 React/Ink 拉进它的模块图（原因与 guards.ts 相同）。
 
 import type { AppState } from '../../state/AppState.js'
 import type { AgentId } from '../../types/ids.js'
@@ -46,9 +46,9 @@ export function killTask(taskId: string, setAppState: SetAppStateFn): void {
 }
 
 /**
- * Kill all running bash tasks spawned by a given agent.
- * Called from runAgent.ts finally block so background processes don't outlive
- * the agent that started them (prevents 10-day fake-logs.sh zombies).
+ * 终止由某个 agent spawn 的所有 running bash 任务。
+ * 由 runAgent.ts 的 finally 块调用，确保后台进程不会比
+ * 启动它的 agent 存活更久（避免出现跑 10 天的 fake-logs.sh 僵尸进程）。
  */
 export function killShellTasksForAgent(
   agentId: AgentId,
@@ -68,9 +68,9 @@ export function killShellTasksForAgent(
       killTask(taskId, setAppState)
     }
   }
-  // Purge any queued notifications addressed to this agent — its query loop
-  // has exited and won't drain them. killTask fires 'killed' notifications
-  // asynchronously; drop the ones already queued and any that land later sit
-  // harmlessly (no consumer matches a dead agentId).
+  // 清除所有发往此 agent 的排队通知 —— 它的 query 循环已经退出，
+  // 不会再消费这些通知。killTask 会异步触发 'killed' 通知；
+  // 这里丢弃已经入队的，后续再进入的也会被无害地闲置
+  // （没有消费者会匹配一个已死的 agentId）。
   dequeueAllMatching(cmd => cmd.agentId === agentId)
 }

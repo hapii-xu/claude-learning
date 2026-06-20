@@ -1,6 +1,6 @@
 /**
- * Session cache clearing utilities.
- * This module is imported at startup by main.tsx, so keep imports minimal.
+ * 会话缓存清理工具。
+ * 此模块在启动时由 main.tsx 导入，因此请保持 import 最小化。
  */
 import { feature } from 'bun:bundle'
 import {
@@ -33,65 +33,64 @@ import { clearStoredImagePaths } from '../../utils/imageStore.js'
 import { clearSessionEnvVars } from '../../utils/sessionEnvVars.js'
 
 /**
- * Clear all session-related caches.
- * Call this when resuming a session to ensure fresh file/skill discovery.
- * This is a subset of what clearConversation does - it only clears caches
- * without affecting messages, session ID, or triggering hooks.
+ * 清理所有与会话相关的缓存。
+ * 在恢复会话时调用以确保重新发现文件/skill。
+ * 这是 clearConversation 所做工作的一个子集 —— 仅清理缓存，
+ * 不影响消息、会话 ID，也不会触发 hooks。
  *
- * @param preservedAgentIds - Agent IDs whose per-agent state should survive
- *   the clear (e.g., background tasks preserved across /clear). When non-empty,
- *   agentId-keyed state (invoked skills) is selectively cleared and requestId-keyed
- *   state (pending permission callbacks, dump state, cache-break tracking) is left
- *   intact since it cannot be safely scoped to the main session.
+ * @param preservedAgentIds - 其 per-agent 状态应在清理后保留的 agent ID
+ *  （例如跨 /clear 保留的后台任务）。当非空时，
+ *   以 agentId 为 key 的状态（已调用的 skills）会被选择性清理，而以 requestId 为 key 的
+ *   状态（待处理的权限回调、dump 状态、cache-break 跟踪）会被完整保留，
+ *   因为它无法安全地限定到主会话。
  */
 export function clearSessionCaches(
   preservedAgentIds: ReadonlySet<string> = new Set(),
 ): void {
   const hasPreserved = preservedAgentIds.size > 0
-  // Clear context caches
+  // 清理 context 缓存
   getUserContext.cache.clear?.()
   getSystemContext.cache.clear?.()
   getGitStatus.cache.clear?.()
   getSessionStartDate.cache.clear?.()
-  // Clear file suggestion caches (for @ mentions)
+  // 清理文件建议缓存（用于 @ 提及）
   clearFileSuggestionCaches()
 
-  // Clear commands/skills cache
+  // 清理 commands/skills 缓存
   clearCommandsCache()
 
-  // Clear prompt cache break detection state
+  // 清理 prompt cache break 检测状态
   if (!hasPreserved) resetPromptCacheBreakDetection()
 
-  // Clear system prompt injection (cache breaker)
+  // 清理 system prompt 注入（cache breaker）
   setSystemPromptInjection(null)
 
-  // Clear last emitted date so it's re-detected on next turn
+  // 清理 last emitted date，以便下一轮重新检测
   setLastEmittedDate(null)
 
-  // Run post-compaction cleanup (clears system prompt sections, microcompact tracking,
-  // classifier approvals, speculative checks, and — for main-thread compacts — memory
-  // files cache with load_reason 'compact').
+  // 执行 post-compaction 清理（清理 system prompt 各段、microcompact 跟踪、
+  // classifier 审批、speculative 检查，以及 —— 对于主线程 compact —— 以
+  // load_reason 'compact' 清理 memory 文件缓存）。
   runPostCompactCleanup()
-  // Reset sent skill names so the skill listing is re-sent after /clear.
-  // runPostCompactCleanup intentionally does NOT reset this (post-compact
-  // re-injection costs ~4K tokens), but /clear wipes messages entirely so
-  // the model needs the full listing again.
+  // 重置已发送的 skill 名称，以便 /clear 后重新发送 skill 列表。
+  // runPostCompactCleanup 有意不重置此项（post-compact 重新注入约消耗
+  // 4K tokens），但 /clear 会彻底清除消息，因此模型需要完整的列表。
   resetSentSkillNames()
-  // Override the memory cache reset with 'session_start': clearSessionCaches is called
-  // from /clear and --resume/--continue, which are NOT compaction events. Without this,
-  // the InstructionsLoaded hook would fire with load_reason 'compact' instead of
-  // 'session_start' on the next getMemoryFiles() call.
+  // 用 'session_start' 覆盖 memory 缓存重置：clearSessionCaches 会从
+  // /clear 和 --resume/--continue 调用，它们不是 compaction 事件。如果不这样做，
+  // InstructionsLoaded hook 在下一次 getMemoryFiles() 调用时会以
+  // load_reason 'compact' 而非 'session_start' 触发。
   resetGetMemoryFilesCache('session_start')
 
-  // Clear stored image paths cache
+  // 清理已存储的图片路径缓存
   clearStoredImagePaths()
 
-  // Clear all session ingress caches (lastUuidMap, sequentialAppendBySession)
+  // 清理所有 session ingress 缓存（lastUuidMap、sequentialAppendBySession）
   clearAllSessions()
-  // Clear swarm permission pending callbacks
+  // 清理 swarm 权限待处理回调
   if (!hasPreserved) clearAllPendingCallbacks()
 
-  // Clear tungsten session usage tracking
+  // 清理 tungsten 会话用量跟踪
   if (process.env.USER_TYPE === 'ant') {
     void import(
       '@claude-code-best/builtin-tools/tools/TungstenTool/TungstenTool.js'
@@ -100,46 +99,46 @@ export function clearSessionCaches(
       resetInitializationState()
     })
   }
-  // Clear attribution caches (file content cache, pending bash states)
-  // Dynamic import to preserve dead code elimination for COMMIT_ATTRIBUTION feature flag
+  // 清理 attribution 缓存（文件内容缓存、待处理 bash 状态）
+  // 动态 import 以保留 COMMIT_ATTRIBUTION feature flag 的死代码消除
   if (feature('COMMIT_ATTRIBUTION')) {
     void import('../../utils/attributionHooks.js').then(
       ({ clearAttributionCaches }) => clearAttributionCaches(),
     )
   }
-  // Clear repository detection caches
+  // 清理仓库检测缓存
   clearRepositoryCaches()
-  // Clear bash command prefix caches (Haiku-extracted prefixes)
+  // 清理 bash 命令前缀缓存（Haiku 提取的前缀）
   clearCommandPrefixCaches()
-  // Clear dump prompts state
+  // 清理 dump prompts 状态
   if (!hasPreserved) clearAllDumpState()
-  // Clear invoked skills cache (each entry holds full skill file content)
+  // 清理已调用的 skills 缓存（每个条目保存完整的 skill 文件内容）
   clearInvokedSkills(preservedAgentIds)
-  // Clear git dir resolution cache
+  // 清理 git 目录解析缓存
   clearResolveGitDirCache()
-  // Clear dynamic skills (loaded from skill directories)
+  // 清理动态 skills（从 skill 目录加载）
   clearDynamicSkills()
-  // Clear LSP diagnostic tracking state
+  // 清理 LSP 诊断跟踪状态
   resetAllLSPDiagnosticState()
-  // Clear tracked magic docs
+  // 清理已跟踪的 magic docs
   clearTrackedMagicDocs()
-  // Clear session environment variables
+  // 清理会话环境变量
   clearSessionEnvVars()
-  // Clear WebFetch URL cache (up to 50MB of cached page content)
+  // 清理 WebFetch URL 缓存（最多 50MB 的缓存页面内容）
   void import(
     '@claude-code-best/builtin-tools/tools/WebFetchTool/utils.js'
   ).then(({ clearWebFetchCache }) => clearWebFetchCache())
-  // Clear SearchExtraTools description cache (full tool prompts, ~500KB for 50 MCP tools)
+  // 清理 SearchExtraTools 描述缓存（完整工具 prompts，50 个 MCP 工具约 500KB）
   void import(
     '@claude-code-best/builtin-tools/tools/SearchExtraToolsTool/SearchExtraToolsTool.js'
   ).then(({ clearSearchExtraToolsDescriptionCache }) =>
     clearSearchExtraToolsDescriptionCache(),
   )
-  // Clear agent definitions cache (accumulates per-cwd via EnterWorktreeTool)
+  // 清理 agent 定义缓存（通过 EnterWorktreeTool 按 cwd 累积）
   void import(
     '@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js'
   ).then(({ clearAgentDefinitionsCache }) => clearAgentDefinitionsCache())
-  // Clear SkillTool prompt cache (accumulates per project root)
+  // 清理 SkillTool prompt 缓存（按项目根目录累积）
   void import('@claude-code-best/builtin-tools/tools/SkillTool/prompt.js').then(
     ({ clearPromptCache }) => clearPromptCache(),
   )

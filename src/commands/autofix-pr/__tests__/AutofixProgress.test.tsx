@@ -1,7 +1,7 @@
 /**
- * Tests for AutofixProgress.tsx
- * Uses src/utils/staticRender to render Ink components to strings.
- * Covers: all AutofixPhase values + sessionUrl + errorMessage branches.
+ * 针对 AutofixProgress.tsx 的测试
+ * 使用 src/utils/staticRender 将 Ink 组件渲染为字符串。
+ * 覆盖：所有 AutofixPhase 取值 + sessionUrl + errorMessage 分支。
  */
 import { describe, expect, test } from 'bun:test';
 import * as React from 'react';
@@ -17,7 +17,7 @@ describe.skipIf(!!process.env.CI)('AutofixProgress', () => {
 
   test('detecting phase shows arrow on detecting step', async () => {
     const out = await renderToString(<AutofixProgress phase="detecting" target="owner/repo#1" />);
-    // detecting step should be active (→) and later steps pending (·)
+    // detecting 步骤应当是 active (→)，后续步骤是 pending (·)
     expect(out).toContain('Detecting repository');
   });
 

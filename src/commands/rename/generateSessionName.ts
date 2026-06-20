@@ -58,9 +58,9 @@ export async function generateSessionName(
     }
     return null
   } catch (error) {
-    // Haiku timeout/rate-limit/network are expected operational failures —
-    // logForDebugging, not logError. Called automatically on every 3rd bridge
-    // message (initReplBridge.ts), so errors here would flood the error file.
+    // Haiku 的超时/限流/网络错误属于预期的运行时失败 —
+    // 使用 logForDebugging 而非 logError。该函数在每 3 条 bridge
+    // 消息时自动调用（initReplBridge.ts），因此这里的错误会刷爆错误日志文件。
     logForDebugging(`generateSessionName failed: ${errorMessage(error)}`, {
       level: 'error',
     })

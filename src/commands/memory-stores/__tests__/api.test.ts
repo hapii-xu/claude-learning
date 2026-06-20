@@ -1,13 +1,13 @@
 /**
- * Regression tests for memoryStoresApi.ts
+ * memoryStoresApi.ts 的回归测试
  *
- * Key invariants under test:
- *   - updateMemory MUST use PATCH, not POST (spec: PATCH /v1/memory_stores/{id}/memories)
- *   - archiveStore uses POST /v1/memory_stores/{id}/archive (not DELETE)
- *   - redactVersion uses POST /v1/memory_stores/{id}/memory_versions/{vid}/redact
- *   - All endpoints hit /v1/memory_stores (not /v1/code/triggers or /v1/agents)
- *   - 401/403/404/429/5xx classified correctly
- *   - withRetry retries only 5xx, not 4xx
+ * 测试的关键不变式：
+ *   - updateMemory 必须使用 PATCH，而非 POST（spec：PATCH /v1/memory_stores/{id}/memories）
+ *   - archiveStore 使用 POST /v1/memory_stores/{id}/archive（而非 DELETE）
+ *   - redactVersion 使用 POST /v1/memory_stores/{id}/memory_versions/{vid}/redact
+ *   - 所有端点都打到 /v1/memory_stores（而非 /v1/code/triggers 或 /v1/agents）
+ *   - 401/403/404/429/5xx 被正确分类
+ *   - withRetry 只重试 5xx，不重试 4xx
  */
 
 import {
@@ -27,7 +27,7 @@ import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
 
-// ── Workspace API key mock ──────────────────────────────────────────────────
+// ── Workspace API key mock ──────────────────────────────────────────────────（Workspace API key mock）
 const mockApiKey = 'sk-ant-api03-test-memory-stores-key'
 
 mock.module('src/constants/oauth.js', () => ({
@@ -42,12 +42,12 @@ mock.module('src/utils/teleport/api.js', () => ({
   prepareWorkspaceApiRequest: prepareWorkspaceApiRequestMock,
 }))
 
-// Note: we do NOT mock src/services/auth/hostGuard.js here.
-// The real assertWorkspaceHost() is called with the URL from getOauthConfig()
-// (mocked to https://api.anthropic.com), which passes the host guard.
-// Mocking hostGuard would pollute hostGuard's own test file via Bun process-level cache.
+// 注意：我们在这里没有 mock src/services/auth/hostGuard.js。
+// 真正的 assertWorkspaceHost() 会以 getOauthConfig()（被 mock 为
+// https://api.anthropic.com）返回的 URL 调用，可通过 host 校验。
+// mock hostGuard 会通过 Bun 进程级缓存污染 hostGuard 自己的测试文件。
 
-// ── Axios mock ──────────────────────────────────────────────────────────────
+// ── Axios mock ──────────────────────────────────────────────────────────────（Axios mock）
 const axiosGetMock = mock(async () => ({}))
 const axiosPostMock = mock(async () => ({}))
 const axiosPatchMock = mock(async () => ({}))
@@ -69,7 +69,7 @@ axiosHandle.stubs.patch = axiosPatchMock
 axiosHandle.stubs.delete = axiosDeleteMock
 axiosHandle.stubs.isAxiosError = axiosIsAxiosError
 
-// ── Lazy import after mocks ─────────────────────────────────────────────────
+// ── mock 设置后再懒加载 import ─────────────────────────────────────────────────
 let listStores: typeof import('../memoryStoresApi.js').listStores
 let getStore: typeof import('../memoryStoresApi.js').getStore
 let createStore: typeof import('../memoryStoresApi.js').createStore
@@ -115,7 +115,7 @@ afterEach(() => {
   delete process.env['ANTHROPIC_API_KEY']
 })
 
-// ── REGRESSION: updateMemory MUST use PATCH not POST ─────────────────────
+// ── 回归：updateMemory 必须使用 PATCH 而非 POST ─────────────────────
 describe('updateMemory regression: must use PATCH not POST', () => {
   test('updateMemory calls PATCH /v1/memory_stores/{id}/memories/{mid} (not POST)', async () => {
     const updated = {
@@ -127,11 +127,11 @@ describe('updateMemory regression: must use PATCH not POST', () => {
 
     await updateMemory('ms_1', 'mem_upd', 'Updated content')
 
-    // PATCH must have been called
+    // PATCH 必须被调用过
     expect(axiosPatchMock).toHaveBeenCalledTimes(1)
-    // POST must NOT have been called for update
+    // update 时绝不能调用 POST
     expect(axiosPostMock).not.toHaveBeenCalled()
-    // The URL must contain the store id, memories path, and memory id
+    // URL 必须包含 store id、memories 路径以及 memory id
     const calls = axiosPatchMock.mock.calls as unknown as [
       string,
       unknown,
@@ -316,9 +316,9 @@ describe('archiveStore', () => {
 
     const result = await archiveStore('ms_arc')
     expect(result.memory_store_id).toBe('ms_arc')
-    // POST must be called for archive
+    // archive 必须调用 POST
     expect(axiosPostMock).toHaveBeenCalledTimes(1)
-    // DELETE must NOT be called
+    // DELETE 绝不能被调用
     expect(axiosDeleteMock).not.toHaveBeenCalled()
     const calls = axiosPostMock.mock.calls as unknown as [
       string,
@@ -479,9 +479,9 @@ describe('redactVersion', () => {
 
     const result = await redactVersion('ms_1', 'ver_red')
     expect(result.version_id).toBe('ver_red')
-    // POST must be called for redact
+    // redact 必须调用 POST
     expect(axiosPostMock).toHaveBeenCalledTimes(1)
-    // DELETE must NOT be called
+    // DELETE 绝不能被调用
     expect(axiosDeleteMock).not.toHaveBeenCalled()
     const calls = axiosPostMock.mock.calls as unknown as [
       string,
@@ -530,12 +530,12 @@ describe('429 rate-limit: not retried (non-5xx)', () => {
         (e as { isAxiosError: boolean }).isAxiosError === true,
     )
     await expect(listStores()).rejects.toThrow()
-    // Must NOT have retried — 429 is not a 5xx
+    // 绝不能重试 —— 429 不是 5xx
     expect(axiosGetMock).toHaveBeenCalledTimes(1)
   })
 })
 
-// ── Invariant: buildHeaders must return x-api-key, not Authorization ─────────
+// ── 不变式：buildHeaders 必须返回 x-api-key，而非 Authorization ─────────
 describe('invariant: x-api-key present, no Authorization, no x-organization-uuid', () => {
   test('buildHeaders returns x-api-key header (workspace key)', async () => {
     axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })

@@ -125,24 +125,24 @@ function ResumeCommand({
       return;
     }
 
-    // Load full messages for lite logs
+    // 为 lite logs 加载完整消息
     const fullLog = isLiteLog(log) ? await loadFullLog(log) : log;
 
-    // Check if this conversation is from a different directory
+    // 检查该会话是否来自不同的目录
     const crossProjectCheck = checkCrossProjectResume(fullLog, showAllProjects, worktreePaths);
     if (crossProjectCheck.isCrossProject) {
       if (crossProjectCheck.isSameRepoWorktree) {
-        // Same repo worktree - can resume directly
+        // 同一 repo 的 worktree - 可直接恢复
         setResuming(true);
         void onResume(sessionId, fullLog, 'slash_command_picker');
         return;
       }
 
-      // Different project - show command instead of resuming
+      // 不同 project - 显示命令而不是直接恢复
       const raw = await setClipboard((crossProjectCheck as { command: string }).command);
       if (raw) process.stdout.write(raw);
 
-      // Format the output message
+      // 格式化输出消息
       const message = [
         '',
         'This conversation is from a different directory.',
@@ -158,7 +158,7 @@ function ResumeCommand({
       return;
     }
 
-    // Same directory - proceed with resume
+    // 同一目录 - 继续恢复
     setResuming(true);
     void onResume(sessionId, fullLog, 'slash_command_picker');
   }
@@ -216,12 +216,12 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
 
   const arg = args?.trim();
 
-  // No argument provided - show picker
+  // 未提供参数 - 显示选择器
   if (!arg) {
     return <ResumeCommand key={Date.now()} onDone={onDone} onResume={onResume} />;
   }
 
-  // Load logs to search (includes same-repo worktrees)
+  // 加载要搜索的 logs（包含同 repo 的 worktree）
   const worktreePaths = await getWorktreePaths(getOriginalCwd());
   const logs = await loadSameRepoMessageLogs(worktreePaths);
   if (logs.length === 0) {
@@ -229,7 +229,7 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
     return <ResumeError message={message} args={arg} onDone={() => onDone(message)} />;
   }
 
-  // First, check if arg is a valid UUID
+  // 首先，检查 arg 是否为有效的 UUID
   const maybeSessionId = validateUuid(arg);
   if (maybeSessionId) {
     const matchingLogs = logs
@@ -243,9 +243,9 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
       return null;
     }
 
-    // Enriched logs didn't find it — try direct file lookup. This handles
-    // sessions filtered out by enrichLogs (e.g., first message >16KB makes
-    // firstPrompt extraction fail, causing the session to be dropped).
+    // 富集后的 logs 未找到 — 尝试直接文件查找。这用于处理
+    // 被 enrichLogs 过滤掉的 session（例如首条消息 >16KB 会导致
+    // firstPrompt 提取失败，从而使该 session 被丢弃）。
     const directLog = await getLastSessionLog(maybeSessionId);
     if (directLog) {
       void onResume(maybeSessionId, directLog, 'slash_command_session_id');
@@ -253,7 +253,7 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
     }
   }
 
-  // Next, try exact custom title match (only if feature is enabled)
+  // 接着，尝试精确匹配自定义标题（仅在 feature 启用时）
   if (isCustomTitleEnabled()) {
     const titleMatches = await searchSessionsByCustomTitle(arg, {
       exact: true,
@@ -268,7 +268,7 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
       }
     }
 
-    // Multiple matches - show error
+    // 多个匹配项 - 显示错误
     if (titleMatches.length > 1) {
       const message = resumeHelpMessage({
         resultType: 'multipleMatches',
@@ -279,7 +279,7 @@ export const call: LocalJSXCommandCall = async (onDone, context, args) => {
     }
   }
 
-  // No match found - show error
+  // 未找到匹配 - 显示错误
   const message = resumeHelpMessage({ resultType: 'sessionNotFound', arg });
   return <ResumeError message={message} args={arg} onDone={() => onDone(message)} />;
 };

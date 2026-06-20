@@ -4,7 +4,7 @@ import { Text } from '@anthropic/ink';
 import { refreshGrowthBookAfterAuthChange } from '../../services/analytics/growthbook.js';
 import { getGroveNoticeConfig, getGroveSettings } from '../../services/api/grove.js';
 import { clearPolicyLimitsCache } from '../../services/policyLimits/index.js';
-// flushTelemetry is loaded lazily to avoid pulling in ~1.1MB of OpenTelemetry at startup
+// flushTelemetry 采用懒加载，避免启动时引入约 1.1MB 的 OpenTelemetry
 import { clearRemoteManagedSettingsCache } from '../../services/remoteManagedSettings/index.js';
 import { removeChatGPTAuth } from '../../services/api/openai/chatgptAuth.js';
 import { getClaudeAIOAuthTokens, removeApiKey } from '../../utils/auth.js';
@@ -17,7 +17,7 @@ import { clearToolSchemaCache } from '../../utils/toolSchemaCache.js';
 import { resetUserCache } from '../../utils/user.js';
 
 export async function performLogout({ clearOnboarding = false }): Promise<void> {
-  // Flush telemetry BEFORE clearing credentials to prevent org data leakage
+  // 在清除凭证之前刷新 telemetry，以防止组织数据泄露
   const { flushTelemetry } = await import('../../utils/telemetry/instrumentation.js');
   await flushTelemetry();
 
@@ -25,7 +25,7 @@ export async function performLogout({ clearOnboarding = false }): Promise<void> 
   await removeChatGPTAuth();
   clearChatGPTSettingsAuthMode();
 
-  // Wipe all secure storage data on logout
+  // 登出时清除所有安全存储数据
   const secureStorage = getSecureStorage();
   secureStorage.delete();
 
@@ -64,26 +64,26 @@ function clearChatGPTSettingsAuthMode(): void {
   updateSettingsForSource('userSettings', settingsUpdate);
 }
 
-// clearing anything memoized that must be invalidated when user/session/auth changes
+// 清除当 user/session/auth 变更时必须失效的所有 memoized 内容
 export async function clearAuthRelatedCaches(): Promise<void> {
-  // Clear the OAuth token cache
+  // 清除 OAuth token 缓存
   getClaudeAIOAuthTokens.cache?.clear?.();
   clearTrustedDeviceTokenCache();
   clearBetasCaches();
   clearToolSchemaCache();
 
-  // Clear user data cache BEFORE GrowthBook refresh so it picks up fresh credentials
+  // 在 GrowthBook 刷新前清除用户数据缓存，使其能拿到最新凭证
   resetUserCache();
   refreshGrowthBookAfterAuthChange();
 
-  // Clear Grove config cache
+  // 清除 Grove config 缓存
   getGroveNoticeConfig.cache?.clear?.();
   getGroveSettings.cache?.clear?.();
 
-  // Clear remotely managed settings cache
+  // 清除远程托管的设置缓存
   await clearRemoteManagedSettingsCache();
 
-  // Clear policy limits cache
+  // 清除策略限制缓存
   await clearPolicyLimitsCache();
 }
 

@@ -53,7 +53,7 @@ describe('parseScheduleArgs', () => {
     expect(parseScheduleArgs('  list  ')).toEqual({ action: 'list' })
   })
 
-  // ── get ───────────────────────────────────────────────────────────────────
+  // ── get ───────────────────────────────────────────────────────────
   test('get <id> → get action', () => {
     expect(parseScheduleArgs('get trg_123')).toEqual({
       action: 'get',
@@ -69,7 +69,7 @@ describe('parseScheduleArgs', () => {
     }
   })
 
-  // ── create ────────────────────────────────────────────────────────────────
+  // ── create ────────────────────────────────────────────────────────────
   test('create with cron + prompt → create action', () => {
     const result = parseScheduleArgs('create 0 9 * * 1 Run daily standup')
     expect(result).toEqual({
@@ -89,7 +89,7 @@ describe('parseScheduleArgs', () => {
     expect(result.action).toBe('invalid')
   })
 
-  // ── update ────────────────────────────────────────────────────────────────
+  // ── update ────────────────────────────────────────────────────────────
   test('update <id> enabled false → update action', () => {
     const result = parseScheduleArgs('update trg_123 enabled false')
     expect(result).toEqual({
@@ -122,7 +122,7 @@ describe('parseScheduleArgs', () => {
     expect(result.action).toBe('invalid')
   })
 
-  // ── delete ────────────────────────────────────────────────────────────────
+  // ── delete ────────────────────────────────────────────────────────────
   test('delete <id> → delete action', () => {
     expect(parseScheduleArgs('delete trg_del')).toEqual({
       action: 'delete',
@@ -135,7 +135,7 @@ describe('parseScheduleArgs', () => {
     expect(result.action).toBe('invalid')
   })
 
-  // ── run ───────────────────────────────────────────────────────────────────
+  // ── run ───────────────────────────────────────────────────────────
   test('run <id> → run action', () => {
     expect(parseScheduleArgs('run trg_run')).toEqual({
       action: 'run',
@@ -148,7 +148,7 @@ describe('parseScheduleArgs', () => {
     expect(result.action).toBe('invalid')
   })
 
-  // ── enable / disable ──────────────────────────────────────────────────────
+  // ── enable / disable ──────────────────────────────────────────────────
   test('enable <id> → enable action', () => {
     expect(parseScheduleArgs('enable trg_en')).toEqual({
       action: 'enable',
@@ -173,7 +173,7 @@ describe('parseScheduleArgs', () => {
     expect(result.action).toBe('invalid')
   })
 
-  // ── unknown subcommand ────────────────────────────────────────────────────
+  // ── 未知子命令 ────────────────────────────────────────────────────
   test('unknown subcommand → invalid', () => {
     const result = parseScheduleArgs('foobar trg_123')
     expect(result.action).toBe('invalid')

@@ -1,14 +1,14 @@
 import { registerBundledSkill } from '../bundledSkills.js'
 
 /**
- * /ultracode — multi-agent workflow orchestration playbook (knowledge-only prompt skill).
+ * /ultracode —— 多代理工作流编排手册（纯知识型提示技能）。
  *
- * Injects the Workflow orchestration manual into context with zero runtime side
- * effects: it doesn't change the main loop or toggle any behavior switch. The
- * user/model uses it to decide when to call the Workflow tool, how to script
- * fan-out and verification, and how to keep runs deterministic and resumable.
+ * 将工作流编排手册注入上下文，零运行时副作用：
+ * 它不改变主循环，也不切换任何行为开关。
+ * 用户/模型使用它来决定何时调用 Workflow 工具、如何编排
+ * 扇出和验证，以及如何保持运行的确定性和可恢复性。
  *
- * General-purpose skill (not ant-only); available to all users.
+ * 通用技能（非仅限 Anthropic 员工）；对所有用户可用。
  */
 const ULTRACODE_PROMPT = `# /ultracode — Workflow Orchestration Playbook
 

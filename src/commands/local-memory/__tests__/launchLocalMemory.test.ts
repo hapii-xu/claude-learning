@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-// multiStore.ts has no log/debug/bun:bundle side effects — no mocks needed.
+// multiStore.ts 没有 log/debug/bun:bundle 副作用 —— 不需要 mock。
 
 let callLocalMemory: typeof import('../launchLocalMemory.js').callLocalMemory
 
@@ -204,7 +204,7 @@ describe('callLocalMemory', () => {
   })
 
   test('store in nonexistent store auto-creates directory', async () => {
-    // No explicit create — setEntry should auto-create dir
+    // 没有显式 create —— setEntry 应当自动创建目录
     await callLocalMemory(
       onDone as Parameters<typeof callLocalMemory>[0],
       {} as Parameters<typeof callLocalMemory>[1],

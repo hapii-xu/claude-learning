@@ -3,11 +3,11 @@ import type { Command } from '../../types/command.js'
 const teleport: Command = {
   type: 'local-jsx',
   name: 'teleport',
-  // Official v2.1.123 advertises alias `tp` (reverse-engineered from
-  // claude.exe: `name:"teleport",aliases:["tp"]`). Keeping it for parity.
+  // 官方 v2.1.123 声明了别名 `tp`（从 claude.exe 逆向而来：
+  // `name:"teleport",aliases:["tp"]`）。为保持一致而保留。
   aliases: ['tp'],
   description: 'Resume a Claude Code session from claude.ai',
-  // REPL markdown renderer strips `<...>` as HTML tags — use uppercase.
+  // REPL 的 markdown 渲染器会把 `<...>` 当作 HTML 标签剥离 —— 使用大写形式。
   argumentHint: 'SESSION_ID',
   isHidden: false,
   isEnabled: () => true,

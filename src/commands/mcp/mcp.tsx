@@ -6,8 +6,8 @@ import { useAppState } from '../../state/AppState.js';
 import type { LocalJSXCommandOnDone } from '../../types/command.js';
 import { PluginSettings } from '../plugin/PluginSettings.js';
 
-// TODO: This is a hack to get the context value from toggleMcpServer (useContext only works in a component)
-// Ideally, all MCP state and functions would be in global state.
+// TODO：这是个 hack，用于从 toggleMcpServer 拿到 context 值（useContext 只能在组件中使用）
+// 理想情况下，所有 MCP 状态和函数都应放在全局 state 中。
 function MCPToggle({
   action,
   target,
@@ -59,7 +59,7 @@ export async function call(onDone: LocalJSXCommandOnDone, _context: unknown, arg
   if (args) {
     const parts = args.trim().split(/\s+/);
 
-    // Allow /mcp no-redirect to bypass the redirect for testing
+    // 允许 /mcp no-redirect 绕过重定向以便测试
     if (parts[0] === 'no-redirect') {
       return <MCPSettings onComplete={onDone} />;
     }
@@ -75,7 +75,7 @@ export async function call(onDone: LocalJSXCommandOnDone, _context: unknown, arg
     }
   }
 
-  // Redirect base /mcp command to /plugins installed tab for ant users
+  // 对 ant 用户，将基础 /mcp 命令重定向到 /plugins 的 installed 标签页
   if (process.env.USER_TYPE === 'ant') {
     return <PluginSettings onComplete={onDone} args="manage" showMcpRedirectMessage />;
   }

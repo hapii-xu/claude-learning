@@ -45,20 +45,20 @@ import type { ImageDimensions } from './imageResizer.js'
 import type { ModelOption } from './model/modelOptions.js'
 import { jsonParse, jsonStringify } from './slowOperations.js'
 
-// Re-entrancy guard: prevents getConfig → logEvent → getGlobalConfig → getConfig
-// infinite recursion when the config file is corrupted. logEvent's sampling check
-// reads GrowthBook features from the global config, which calls getConfig again.
+// 重入保护：防止 getConfig → logEvent → getGlobalConfig → getConfig
+// 在配置文件损坏时出现无限递归。logEvent 的采样检查会从全局 config 读取
+// GrowthBook feature，这会再次调用 getConfig。
 let insideGetConfig = false
 
-// Image dimension info for coordinate mapping (only set when image was resized)
+// 用于坐标映射的图片尺寸信息（仅在图片被缩放时设置）
 export type PastedContent = {
-  id: number // Sequential numeric ID
+  id: number // 顺序数字 ID
   type: 'text' | 'image'
   content: string
-  mediaType?: string // e.g., 'image/png', 'image/jpeg'
-  filename?: string // Display name for images in attachment slot
+  mediaType?: string // 例如 'image/png'、'image/jpeg'
+  filename?: string // 图片在附件槽中的显示名
   dimensions?: ImageDimensions
-  sourcePath?: string // Original file path for images dragged onto the terminal
+  sourcePath?: string // 拖入终端的图片的原始文件路径
 }
 
 export interface SerializedStructuredHistoryEntry {
@@ -107,22 +107,22 @@ export type ProjectConfig = {
   exampleFiles?: string[]
   exampleFilesGeneratedAt?: number
 
-  // Trust dialog settings
+  // Trust dialog 设置
   hasTrustDialogAccepted?: boolean
 
   hasCompletedProjectOnboarding?: boolean
   projectOnboardingSeenCount: number
   hasClaudeMdExternalIncludesApproved?: boolean
   hasClaudeMdExternalIncludesWarningShown?: boolean
-  // MCP server approval fields - migrated to settings but kept for backward compatibility
+  // MCP 服务器审批字段 —— 已迁移到 settings，仅为向后兼容保留
   enabledMcpjsonServers?: string[]
   disabledMcpjsonServers?: string[]
   enableAllProjectMcpServers?: boolean
-  // List of disabled MCP servers (all scopes) - used for enable/disable toggle
+  // 被禁用的 MCP 服务器列表（所有 scope） —— 用于启用/禁用切换
   disabledMcpServers?: string[]
-  // Opt-in list for built-in MCP servers that default to disabled
+  // 默认禁用的内置 MCP 服务器的 opt-in 列表
   enabledMcpServers?: string[]
-  // Worktree session management
+  // Worktree 会话管理
   activeWorktreeSession?: {
     originalCwd: string
     worktreePath: string
@@ -131,7 +131,7 @@ export type ProjectConfig = {
     sessionId: string
     hookBased?: boolean
   }
-  /** Spawn mode for `claude remote-control` multi-session. Set by first-run dialog or `w` toggle. */
+  /** `claude remote-control` 多会话的派生模式。由首次运行对话框或 `w` 切换设置。 */
   remoteControlSpawnMode?: 'same-dir' | 'worktree'
 }
 
@@ -165,7 +165,7 @@ export type AccountInfo = {
   organizationName?: string | null // added 4/23/2025, not populated for existing users
   organizationRole?: string | null
   workspaceRole?: string | null
-  // Populated by /api/oauth/profile
+  // 由 /api/oauth/profile 填充
   displayName?: string
   hasExtraUsageEnabled?: boolean
   billingType?: BillingType | null
@@ -173,7 +173,7 @@ export type AccountInfo = {
   subscriptionCreatedAt?: string
 }
 
-// TODO: 'emacs' is kept for backward compatibility - remove after a few releases
+// TODO：'emacs' 仅为向后兼容保留 —— 几个版本后移除
 export type EditorMode = 'emacs' | (typeof EDITOR_MODES)[number]
 
 export type DiffTool = 'terminal' | 'auto'
@@ -189,31 +189,30 @@ export type GlobalConfig = {
   numStartups: number
   installMethod?: InstallMethod
   autoUpdates?: boolean
-  // Flag to distinguish protection-based disabling from user preference
+  // 用于区分"因保护被禁"与"用户偏好禁"的标记
   autoUpdatesProtectedForNative?: boolean
-  // Session count when Doctor was last shown
+  // Doctor 上次显示时的会话数
   doctorShownAtSession?: number
   userID?: string
   theme: ThemeSetting
   hasCompletedOnboarding?: boolean
-  // Tracks the last version that reset onboarding, used with MIN_VERSION_REQUIRING_ONBOARDING_RESET
+  // 记录上一次重置 onboarding 的版本，与 MIN_VERSION_REQUIRING_ONBOARDING_RESET 配合使用
   lastOnboardingVersion?: string
-  // Tracks the last version for which release notes were seen, used for managing release notes
+  // 记录用户已看过其 release notes 的最近版本，用于管理 release notes
   lastReleaseNotesSeen?: string
-  // Timestamp when changelog was last fetched (content stored in ~/.claude/cache/changelog.md)
+  // changelog 最近一次抓取的时间戳（内容存放在 ~/.claude/cache/changelog.md）
   changelogLastFetched?: number
-  // @deprecated - Migrated to ~/.claude/cache/changelog.md. Keep for migration support.
+  // @deprecated —— 已迁移到 ~/.claude/cache/changelog.md。仅为迁移支持保留。
   cachedChangelog?: string
   mcpServers?: Record<string, McpServerConfig>
-  // claude.ai MCP connectors that have successfully connected at least once.
-  // Used to gate "connector unavailable" / "needs auth" startup notifications:
-  // a connector the user has actually used is worth flagging when it breaks,
-  // but an org-configured connector that's been needs-auth since day one is
-  // something the user has demonstrably ignored and shouldn't nag about.
+  // 至少成功连接过一次的 claude.ai MCP connector。
+  // 用于在启动时筛选"connector 不可用 / 需要认证"的提醒：
+  // 用户真正使用过的 connector 坏掉时值得提示，但如果某个 org 配置的
+  // connector 从第一天起就 needs-auth，用户显然已忽略它，便不应再反复提醒。
   claudeAiMcpEverConnected?: string[]
   preferredNotifChannel: NotificationChannel
   /**
-   * @deprecated. Use the Notification hook instead (docs/hooks.md).
+   * @deprecated。请改用 Notification hook（docs/hooks.md）。
    */
   customNotifyCommand?: string
   verbose: boolean
@@ -221,109 +220,107 @@ export type GlobalConfig = {
     approved?: string[]
     rejected?: string[]
   }
-  primaryApiKey?: string // Primary API key for the user when no environment variable is set, set via oauth (TODO: rename)
+  primaryApiKey?: string // 当没有环境变量时用户使用的首选 API key，通过 oauth 设置（TODO：重命名）
   /**
-   * Workspace API key saved via /login UI (sk-ant-api03-*).
-   * Stored in plaintext — file should be gitignored and chmod 600.
-   * ANTHROPIC_API_KEY env var takes precedence when both are present.
+   * 通过 /login UI 保存的 workspace API key（sk-ant-api03-*）。
+   * 以明文存储 —— 文件应被 gitignore 并设置 chmod 600。
+   * 当两者同时存在时，以 ANTHROPIC_API_KEY 环境变量优先。
    */
   workspaceApiKey?: string
   hasAcknowledgedCostThreshold?: boolean
-  hasSeenUndercoverAutoNotice?: boolean // ant-only: whether the one-time auto-undercover explainer has been shown
-  hasSeenUltraplanTerms?: boolean // ant-only: whether the one-time CCR terms notice has been shown in the ultraplan launch dialog
-  hasResetAutoModeOptInForDefaultOffer?: boolean // ant-only: one-shot migration guard, re-prompts churned auto-mode users
+  hasSeenUndercoverAutoNotice?: boolean // 仅 ant：是否已展示一次性的 auto-undercover 说明
+  hasSeenUltraplanTerms?: boolean // 仅 ant：是否已在 ultraplan 启动对话框中展示一次性 CCR 条款提示
+  hasResetAutoModeOptInForDefaultOffer?: boolean // 仅 ant：一次性迁移保护，对曾流失的 auto-mode 用户重新提示
   oauthAccount?: AccountInfo
-  iterm2KeyBindingInstalled?: boolean // Legacy - keeping for backward compatibility
+  iterm2KeyBindingInstalled?: boolean // 遗留 —— 为向后兼容保留
   editorMode?: EditorMode
   bypassPermissionsModeAccepted?: boolean
   hasUsedBackslashReturn?: boolean
-  autoCompactEnabled: boolean // Controls whether auto-compact is enabled
-  showTurnDuration: boolean // Controls whether to show turn duration message (e.g., "Cooked for 1m 6s")
+  autoCompactEnabled: boolean // 控制 auto-compact 是否启用
+  showTurnDuration: boolean // 控制是否显示轮次耗时消息（例如 "Cooked for 1m 6s"）
   /**
-   * @deprecated Use settings.env instead.
+   * @deprecated 请改用 settings.env。
    */
-  env: { [key: string]: string } // Environment variables to set for the CLI
-  hasSeenTasksHint?: boolean // Whether the user has seen the tasks hint
-  hasUsedStash?: boolean // Whether the user has used the stash feature (Ctrl+S)
-  hasUsedBackgroundTask?: boolean // Whether the user has backgrounded a task (Ctrl+B)
-  queuedCommandUpHintCount?: number // Counter for how many times the user has seen the queued command up hint
-  diffTool?: DiffTool // Which tool to use for displaying diffs (terminal or vscode)
+  env: { [key: string]: string } // 为 CLI 设置的环境变量
+  hasSeenTasksHint?: boolean // 用户是否已看过 tasks 提示
+  hasUsedStash?: boolean // 用户是否使用过 stash 功能（Ctrl+S）
+  hasUsedBackgroundTask?: boolean // 用户是否将任务转入后台过（Ctrl+B）
+  queuedCommandUpHintCount?: number // 用户已看到"queued command up"提示的次数计数
+  diffTool?: DiffTool // 显示 diff 时使用的工具（terminal 或 vscode）
 
-  // Terminal setup state tracking
+  // 终端配置状态追踪
   iterm2SetupInProgress?: boolean
-  iterm2BackupPath?: string // Path to the backup file for iTerm2 preferences
-  appleTerminalBackupPath?: string // Path to the backup file for Terminal.app preferences
-  appleTerminalSetupInProgress?: boolean // Whether Terminal.app setup is currently in progress
+  iterm2BackupPath?: string // iTerm2 偏好设置备份文件路径
+  appleTerminalBackupPath?: string // Terminal.app 偏好设置备份文件路径
+  appleTerminalSetupInProgress?: boolean // Terminal.app 配置是否正在进行
 
-  // Key binding setup tracking
-  shiftEnterKeyBindingInstalled?: boolean // Whether Shift+Enter key binding is installed (for iTerm2 or VSCode)
-  optionAsMetaKeyInstalled?: boolean // Whether Option as Meta key is installed (for Terminal.app)
+  // 按键绑定配置追踪
+  shiftEnterKeyBindingInstalled?: boolean // 是否已安装 Shift+Enter 按键绑定（iTerm2 或 VSCode）
+  optionAsMetaKeyInstalled?: boolean // 是否已安装 Option as Meta key（Terminal.app）
 
-  // IDE configurations
-  autoConnectIde?: boolean // Whether to automatically connect to IDE on startup if exactly one valid IDE is available
-  autoInstallIdeExtension?: boolean // Whether to automatically install IDE extensions when running from within an IDE
+  // IDE 配置
+  autoConnectIde?: boolean // 若启动时恰好有一个可用 IDE，是否自动连接
+  autoInstallIdeExtension?: boolean // 从 IDE 内运行时是否自动安装 IDE 扩展
 
-  // IDE dialogs
-  hasIdeOnboardingBeenShown?: Record<string, boolean> // Map of terminal name to whether IDE onboarding has been shown
-  ideHintShownCount?: number // Number of times the /ide command hint has been shown
-  hasIdeAutoConnectDialogBeenShown?: boolean // Whether the auto-connect IDE dialog has been shown
+  // IDE 对话框
+  hasIdeOnboardingBeenShown?: Record<string, boolean> // 终端名 → 是否已展示 IDE onboarding 的映射
+  ideHintShownCount?: number // /ide 命令提示已展示的次数
+  hasIdeAutoConnectDialogBeenShown?: boolean // 是否已展示 auto-connect IDE 对话框
 
   tipsHistory: {
-    [tipId: string]: number // Key is tipId, value is the numStartups when tip was last shown
+    [tipId: string]: number // key 为 tipId，value 为该 tip 上次展示时的 numStartups
   }
 
-  // /buddy companion soul — bones regenerated from userId on read. See src/buddy/.
+  // /buddy 伙伴灵魂 —— 读取时从 userId 重新生成。见 src/buddy/。
   companion?: import('../buddy/types.js').StoredCompanion
   companionMuted?: boolean
 
-  // Feedback survey tracking
+  // 反馈问卷追踪
   feedbackSurveyState?: {
     lastShownTime?: number
   }
 
-  // Transcript share prompt tracking ("Don't ask again")
+  // 对话分享提示追踪（"不再询问"）
   transcriptShareDismissed?: boolean
 
-  // Memory usage tracking
-  memoryUsageCount: number // Number of times user has added to memory
+  // 内存使用追踪
+  memoryUsageCount: number // 用户添加到 memory 的次数
 
-  // Sonnet-1M configs
-  hasShownS1MWelcomeV2?: Record<string, boolean> // Whether the Sonnet-1M v2 welcome message has been shown per org
-  // Cache of Sonnet-1M subscriber access per org - key is org ID
-  // hasAccess means "hasAccessAsDefault" but the old name is kept for backward
-  // compatibility.
+  // Sonnet-1M 配置
+  hasShownS1MWelcomeV2?: Record<string, boolean> // 是否已按 org 展示 Sonnet-1M v2 欢迎消息
+  // 每个 org 的 Sonnet-1M 订阅者访问缓存 —— key 为 org ID
+  // hasAccess 表示 "hasAccessAsDefault"，但为了向后兼容保留旧名。
   s1mAccessCache?: Record<
     string,
     { hasAccess: boolean; hasAccessNotAsDefault?: boolean; timestamp: number }
   >
-  // Cache of Sonnet-1M PayG access per org - key is org ID
-  // hasAccess means "hasAccessAsDefault" but the old name is kept for backward
-  // compatibility.
+  // 每个 org 的 Sonnet-1M PayG 访问缓存 —— key 为 org ID
+  // hasAccess 表示 "hasAccessAsDefault"，但为了向后兼容保留旧名。
   s1mNonSubscriberAccessCache?: Record<
     string,
     { hasAccess: boolean; hasAccessNotAsDefault?: boolean; timestamp: number }
   >
 
-  // Guest passes eligibility cache per org - key is org ID
+  // 每个 org 的 guest pass 资格缓存 —— key 为 org ID
   passesEligibilityCache?: Record<
     string,
     ReferralEligibilityResponse & { timestamp: number }
   >
 
-  // Grove config cache per account - key is account UUID
+  // 每个 account 的 Grove 配置缓存 —— key 为 account UUID
   groveConfigCache?: Record<
     string,
     { grove_enabled: boolean; timestamp: number }
   >
 
-  // Guest passes upsell tracking
-  passesUpsellSeenCount?: number // Number of times the guest passes upsell has been shown
-  hasVisitedPasses?: boolean // Whether the user has visited /passes command
-  passesLastSeenRemaining?: number // Last seen remaining_passes count — reset upsell when it increases
+  // Guest pass 向上销售追踪
+  passesUpsellSeenCount?: number // guest pass 向上销售已展示次数
+  hasVisitedPasses?: boolean // 用户是否访问过 /passes 命令
+  passesLastSeenRemaining?: number // 上次看到的 remaining_passes 数量 —— 当它增加时重置销售
 
-  // Overage credit grant upsell tracking (keyed by org UUID — multi-org users).
-  // Inlined shape (not import()) because config.ts is in the SDK build surface
-  // and the SDK bundler can't resolve CLI service modules.
+  // Overage credit grant 向上销售追踪（按 org UUID 索引 —— 多 org 用户）。
+  // 采用内联结构（而非 import()）因为 config.ts 处于 SDK build surface 中，
+  // SDK bundler 无法解析 CLI service 模块。
   overageCreditGrantCache?: Record<
     string,
     {
@@ -337,258 +334,253 @@ export type GlobalConfig = {
       timestamp: number
     }
   >
-  overageCreditUpsellSeenCount?: number // Number of times the overage credit upsell has been shown
-  hasVisitedExtraUsage?: boolean // Whether the user has visited /extra-usage — hides credit upsells
+  overageCreditUpsellSeenCount?: number // overage credit 向上销售已展示次数
+  hasVisitedExtraUsage?: boolean // 用户是否访问过 /extra-usage —— 隐藏 credit 向上销售
 
-  // Display language preference
-  preferredLanguage?: 'auto' | 'en' | 'zh' // auto = follow system locale, en = English, zh = 中文
+  // 显示语言偏好
+  preferredLanguage?: 'auto' | 'en' | 'zh' // auto = 跟随系统语言，en = 英文，zh = 中文
 
-  // Voice mode notice tracking
-  voiceNoticeSeenCount?: number // Number of times the voice-mode-available notice has been shown
-  voiceLangHintShownCount?: number // Number of times the /voice dictation-language hint has been shown
-  voiceLangHintLastLanguage?: string // Resolved STT language code when the hint was last shown — reset count when it changes
-  voiceFooterHintSeenCount?: number // Number of sessions the "hold X to speak" footer hint has been shown
+  // 语音模式提示追踪
+  voiceNoticeSeenCount?: number // 语音模式可用提示已展示次数
+  voiceLangHintShownCount?: number // /voice dictation-language 提示已展示次数
+  voiceLangHintLastLanguage?: string // 提示上次展示时解析到的 STT 语言代码 —— 切换语言时重置计数
+  voiceFooterHintSeenCount?: number // "长按 X 说话" 页脚提示已展示的会话数
 
-  // Opus 1M merge notice tracking
-  opus1mMergeNoticeSeenCount?: number // Number of times the opus-1m-merge notice has been shown
+  // Opus 1M 合并通知追踪
+  opus1mMergeNoticeSeenCount?: number // opus-1m-merge 通知已展示次数
 
-  // Experiment enrollment notice tracking (keyed by experiment id)
+  // 实验入组通知追踪（按 experiment id 索引）
   experimentNoticesSeenCount?: Record<string, number>
 
-  // OpusPlan experiment config
-  hasShownOpusPlanWelcome?: Record<string, boolean> // Whether the OpusPlan welcome message has been shown per org
+  // OpusPlan 实验配置
+  hasShownOpusPlanWelcome?: Record<string, boolean> // 是否已按 org 展示 OpusPlan 欢迎消息
 
-  // Queue usage tracking
-  promptQueueUseCount: number // Number of times use has used the prompt queue
+  // 队列使用追踪
+  promptQueueUseCount: number // 用户使用 prompt 队列的次数
 
-  // Btw usage tracking
-  btwUseCount: number // Number of times user has used /btw
+  // /btw 使用追踪
+  btwUseCount: number // 用户使用 /btw 的次数
 
-  // Plan mode usage tracking
-  lastPlanModeUse?: number // Timestamp of last plan mode usage
+  // Plan 模式使用追踪
+  lastPlanModeUse?: number // 上次使用 plan 模式的时间戳
 
-  // Subscription notice tracking
-  subscriptionNoticeCount?: number // Number of times the subscription notice has been shown
-  hasAvailableSubscription?: boolean // Cached result of whether user has a subscription available
-  subscriptionUpsellShownCount?: number // Number of times the subscription upsell has been shown (deprecated)
-  recommendedSubscription?: string // Cached config value from Statsig (deprecated)
+  // 订阅通知追踪
+  subscriptionNoticeCount?: number // 订阅通知已展示次数
+  hasAvailableSubscription?: boolean // 用户是否有可用订阅的缓存结果
+  subscriptionUpsellShownCount?: number // 订阅向上销售展示次数（已废弃）
+  recommendedSubscription?: string // 来自 Statsig 的缓存配置值（已废弃）
 
-  // Todo feature configuration
-  todoFeatureEnabled: boolean // Whether the todo feature is enabled
-  showExpandedTodos?: boolean // Whether to show todos expanded, even when empty
-  showSpinnerTree?: boolean // Whether to show the teammate spinner tree instead of pills
+  // Todo feature 配置
+  todoFeatureEnabled: boolean // 是否启用 todo 功能
+  showExpandedTodos?: boolean // 即使为空是否也展开显示 todos
+  showSpinnerTree?: boolean // 是否展示 teammate spinner 树而非 pill
 
-  // First start time tracking
-  firstStartTime?: string // ISO timestamp when Claude Code was first started on this machine
+  // 首次启动时间追踪
+  firstStartTime?: string // 本机首次启动 Claude Code 的 ISO 时间戳
 
-  messageIdleNotifThresholdMs: number // How long the user has to have been idle to get a notification that Claude is done generating
+  messageIdleNotifThresholdMs: number // 用户空闲多久后才发送"Claude 已生成完毕"通知
 
-  githubActionSetupCount?: number // Number of times the user has set up the GitHub Action
-  slackAppInstallCount?: number // Number of times the user has clicked to install the Slack app
+  githubActionSetupCount?: number // 用户配置 GitHub Action 的次数
+  slackAppInstallCount?: number // 用户点击安装 Slack app 的次数
 
-  // File checkpointing configuration
+  // 文件 checkpointing 配置
   fileCheckpointingEnabled: boolean
 
-  // Terminal progress bar configuration (OSC 9;4)
+  // 终端进度条配置（OSC 9;4）
   terminalProgressBarEnabled: boolean
 
-  // Terminal tab status indicator (OSC 21337). When on, emits a colored
-  // dot + status text to the tab sidebar and drops the spinner prefix
-  // from the title (the dot makes it redundant).
+  // 终端 tab 状态指示器（OSC 21337）。开启时会向 tab 侧边栏输出彩色
+  // 圆点 + 状态文字，并从标题中去掉 spinner 前缀（圆点已经够用）。
   showStatusInTerminalTab?: boolean
 
-  // Push-notification toggles (set via /config). Default off — explicit opt-in required.
+  // 推送通知开关（通过 /config 设置）。默认关闭 —— 需显式 opt-in。
   taskCompleteNotifEnabled?: boolean
   inputNeededNotifEnabled?: boolean
   agentPushNotifEnabled?: boolean
 
-  // Claude Code usage tracking
-  claudeCodeFirstTokenDate?: string // ISO timestamp of the user's first Claude Code OAuth token
+  // Claude Code 使用情况追踪
+  claudeCodeFirstTokenDate?: string // 用户首个 Claude Code OAuth token 的 ISO 时间戳
 
-  // Model switch callout tracking (ant-only)
-  modelSwitchCalloutDismissed?: boolean // Whether user chose "Don't show again"
-  modelSwitchCalloutLastShown?: number // Timestamp of last shown (don't show for 24h)
+  // 模型切换提示追踪（仅 ant）
+  modelSwitchCalloutDismissed?: boolean // 用户是否选择了"不再提示"
+  modelSwitchCalloutLastShown?: number // 上次展示时间戳（24h 内不再展示）
   modelSwitchCalloutVersion?: string
 
-  // Effort callout tracking - shown once for Opus 4.6 users
-  effortCalloutDismissed?: boolean // v1 - legacy, read to suppress v2 for Pro users who already saw it
+  // Effort 提示追踪 —— 为 Opus 4.6 用户展示一次
+  effortCalloutDismissed?: boolean // v1 —— 遗留字段，读取以抑制 v2（针对已看过 v1 的 Pro 用户）
   effortCalloutV2Dismissed?: boolean
 
-  // Remote callout tracking - shown once before first bridge enable
+  // Remote 提示追踪 —— 首次启用 bridge 前展示一次
   remoteDialogSeen?: boolean
 
-  // Cross-process backoff for initReplBridge's oauth_expired_unrefreshable skip.
-  // `expiresAt` is the dedup key — content-addressed, self-clears when /login
-  // replaces the token. `failCount` caps false positives: transient refresh
-  // failures (auth server 5xx, lock errors) get 3 retries before backoff kicks
-  // in, mirroring useReplBridge's MAX_CONSECUTIVE_INIT_FAILURES. Dead-token
-  // accounts cap at 3 config writes; healthy+transient-blip self-heals in ~210s.
+  // 跨进程退避：用于 initReplBridge 的 oauth_expired_unrefreshable 跳过。
+  // `expiresAt` 是去重 key —— 内容寻址，当 /login 替换 token 时自动清除。
+  // `failCount` 限制误报：瞬态刷新失败（auth server 5xx、锁错误）在退避
+  // 生效前有 3 次重试，与 useReplBridge 的 MAX_CONSECUTIVE_INIT_FAILURES 对齐。
+  // 死 token 账户最多 3 次配置写入；健康 + 瞬态小故障约 210s 自愈。
   bridgeOauthDeadExpiresAt?: number
   bridgeOauthDeadFailCount?: number
 
-  // Desktop upsell startup dialog tracking
-  desktopUpsellSeenCount?: number // Total showings (max 3)
-  desktopUpsellDismissed?: boolean // "Don't ask again" picked
+  // Desktop 向上销售启动对话框追踪
+  desktopUpsellSeenCount?: number // 总展示次数（最多 3 次）
+  desktopUpsellDismissed?: boolean // 用户选择了"不再询问"
 
-  // Idle-return dialog tracking
-  idleReturnDismissed?: boolean // "Don't ask again" picked
+  // 空闲返回对话框追踪
+  idleReturnDismissed?: boolean // 用户选择了"不再询问"
 
-  // Opus 4.5 Pro migration tracking
+  // Opus 4.5 Pro 迁移追踪
   opusProMigrationComplete?: boolean
   opusProMigrationTimestamp?: number
 
-  // Sonnet 4.5 1m migration tracking
+  // Sonnet 4.5 1m 迁移追踪
   sonnet1m45MigrationComplete?: boolean
 
-  // Opus 4.0/4.1 → current Opus migration (shows one-time notif)
+  // Opus 4.0/4.1 → 当前 Opus 迁移（展示一次性通知）
   legacyOpusMigrationTimestamp?: number
 
-  // Sonnet 4.5 → 4.6 migration (pro/max/team premium)
+  // Sonnet 4.5 → 4.6 迁移（pro/max/team premium）
   sonnet45To46MigrationTimestamp?: number
 
-  // Cached statsig gate values
+  // 缓存的 statsig gate 值
   cachedStatsigGates: {
     [gateName: string]: boolean
   }
 
-  // Cached statsig dynamic configs
+  // 缓存的 statsig 动态配置
   cachedDynamicConfigs?: { [configName: string]: unknown }
 
-  // Cached GrowthBook feature values
+  // 缓存的 GrowthBook feature 值
   cachedGrowthBookFeatures?: { [featureName: string]: unknown }
 
-  // Local GrowthBook overrides (ant-only, set via /config Gates tab).
-  // Checked after env-var overrides but before the real resolved value.
+  // 本地 GrowthBook 覆盖（仅 ant，通过 /config Gates 标签页设置）。
+  // 在 env-var 覆盖之后、真实解析值之前检查。
   growthBookOverrides?: { [featureName: string]: unknown }
 
-  // Emergency tip tracking - stores the last shown tip to prevent re-showing
+  // 紧急提示追踪 —— 存储上次展示的 tip 以防重复展示
   lastShownEmergencyTip?: string
 
-  // File picker gitignore behavior
-  respectGitignore: boolean // Whether file picker should respect .gitignore files (default: true). Note: .ignore files are always respected
+  // File picker gitignore 行为
+  respectGitignore: boolean // file picker 是否应遵循 .gitignore 文件（默认：true）。注意：.ignore 文件始终会被遵循
 
-  // Copy command behavior
-  copyFullResponse: boolean // Whether /copy always copies the full response instead of showing the picker
+  // 复制命令行为
+  copyFullResponse: boolean // /copy 是否总是复制完整回复，而不是显示选择器
 
-  // Fullscreen in-app text selection behavior
-  copyOnSelect?: boolean // Auto-copy to clipboard on mouse-up (undefined → true; lets cmd+c "work" via no-op)
+  // 全屏应用内文本选择行为
+  copyOnSelect?: boolean // 鼠标松开时自动复制到剪贴板（undefined → true；让 cmd+c 通过 no-op "生效"）
 
-  // GitHub repo path mapping for teleport directory switching
-  // Key: "owner/repo" (lowercase), Value: array of absolute paths where repo is cloned
+  // 用于 teleport 目录切换的 GitHub 仓库路径映射
+  // key："owner/repo"（小写），value：仓库被 clone 的绝对路径数组
   githubRepoPaths?: Record<string, string[]>
 
-  // Terminal emulator to launch for claude-cli:// deep links. Captured from
-  // TERM_PROGRAM during interactive sessions since the deep link handler runs
-  // headless (LaunchServices/xdg) with no TERM_PROGRAM set.
+  // 启动 claude-cli:// deep link 时拉起的终端模拟器。从交互式会话中的
+  // TERM_PROGRAM 读取，因为 deep link handler 以 headless 方式运行
+  //（LaunchServices/xdg），没有 TERM_PROGRAM。
   deepLinkTerminal?: string
 
-  // iTerm2 it2 CLI setup
-  iterm2It2SetupComplete?: boolean // Whether it2 setup has been verified
-  preferTmuxOverIterm2?: boolean // User preference to always use tmux over iTerm2 split panes
+  // iTerm2 it2 CLI 配置
+  iterm2It2SetupComplete?: boolean // it2 配置是否已验证
+  preferTmuxOverIterm2?: boolean // 用户偏好：总是使用 tmux 而非 iTerm2 分屏
 
-  // Skill usage tracking for autocomplete ranking
+  // 用于自动补全排序的 skill 使用追踪
   skillUsage?: Record<string, { usageCount: number; lastUsedAt: number }>
-  // Official marketplace auto-install tracking
-  officialMarketplaceAutoInstallAttempted?: boolean // Whether auto-install was attempted
-  officialMarketplaceAutoInstalled?: boolean // Whether auto-install succeeded
+  // 官方 marketplace 自动安装追踪
+  officialMarketplaceAutoInstallAttempted?: boolean // 是否已尝试自动安装
+  officialMarketplaceAutoInstalled?: boolean // 自动安装是否成功
   officialMarketplaceAutoInstallFailReason?:
     | 'policy_blocked'
     | 'git_unavailable'
     | 'gcs_unavailable'
-    | 'unknown' // Reason for failure if applicable
-  officialMarketplaceAutoInstallRetryCount?: number // Number of retry attempts
-  officialMarketplaceAutoInstallLastAttemptTime?: number // Timestamp of last attempt
-  officialMarketplaceAutoInstallNextRetryTime?: number // Earliest time to retry again
+    | 'unknown' // 失败原因（若适用）
+  officialMarketplaceAutoInstallRetryCount?: number // 重试次数
+  officialMarketplaceAutoInstallLastAttemptTime?: number // 上次尝试的时间戳
+  officialMarketplaceAutoInstallNextRetryTime?: number // 下次可重试的最早时间
 
-  // Claude in Chrome settings
-  hasCompletedClaudeInChromeOnboarding?: boolean // Whether Claude in Chrome onboarding has been shown
-  claudeInChromeDefaultEnabled?: boolean // Whether Claude in Chrome is enabled by default (undefined means platform default)
-  cachedChromeExtensionInstalled?: boolean // Cached result of whether Chrome extension is installed
+  // Claude in Chrome 设置
+  hasCompletedClaudeInChromeOnboarding?: boolean // 是否已展示 Claude in Chrome onboarding
+  claudeInChromeDefaultEnabled?: boolean // Claude in Chrome 是否默认启用（undefined 表示平台默认）
+  cachedChromeExtensionInstalled?: boolean // Chrome 扩展是否已安装的缓存结果
 
-  // Chrome extension pairing state (persisted across sessions)
+  // Chrome 扩展配对状态（跨会话持久化）
   chromeExtension?: {
     pairedDeviceId?: string
     pairedDeviceName?: string
   }
 
-  // LSP plugin recommendation preferences
-  lspRecommendationDisabled?: boolean // Disable all LSP plugin recommendations
-  lspRecommendationNeverPlugins?: string[] // Plugin IDs to never suggest
-  lspRecommendationIgnoredCount?: number // Track ignored recommendations (stops after 5)
+  // LSP 插件推荐偏好
+  lspRecommendationDisabled?: boolean // 禁用所有 LSP 插件推荐
+  lspRecommendationNeverPlugins?: string[] // 永不推荐的 plugin ID 列表
+  lspRecommendationIgnoredCount?: number // 追踪被忽略的推荐次数（5 次后停止）
 
-  // Claude Code hint protocol state (<claude-code-hint /> tags from CLIs/SDKs).
-  // Nested by hint type so future types (docs, mcp, ...) slot in without new
-  // top-level keys.
+  // Claude Code hint 协议状态（来自 CLI/SDK 的 <claude-code-hint /> 标签）。
+  // 按 hint 类型嵌套，方便未来新增类型（docs、mcp 等）时无需新增顶层 key。
   claudeCodeHints?: {
-    // Plugin IDs the user has already been prompted for. Show-once semantics:
-    // recorded regardless of yes/no response, never re-prompted. Capped at
-    // 100 entries to bound config growth — past that, hints stop entirely.
+    // 已提示过用户的 plugin ID。一次一问语义：
+    // 无论 yes/no 响应都会记录，永不再问。上限 100 条以约束 config 增长 ——
+    // 超过后完全停止 hint。
     plugin?: string[]
-    // User chose "don't show plugin installation hints again" from the dialog.
+    // 用户从对话框选择了"不再显示 plugin 安装提示"
     disabled?: boolean
   }
 
-  // Permission explainer configuration
-  permissionExplainerEnabled?: boolean // Enable Haiku-generated explanations for permission requests (default: true)
+  // 权限解释器配置
+  permissionExplainerEnabled?: boolean // 启用由 Haiku 生成的权限请求解释（默认：true）
 
-  // Teammate spawn mode: 'auto' | 'tmux' | 'windows-terminal' | 'in-process'
-  teammateMode?: 'auto' | 'tmux' | 'windows-terminal' | 'in-process' // How to spawn teammates (default: 'auto')
-  // Model for new teammates when the tool call doesn't pass one.
-  // undefined = hardcoded Opus (backward-compat); null = leader's model; string = model alias/ID.
+  // Teammate 派生模式：'auto' | 'tmux' | 'windows-terminal' | 'in-process'
+  teammateMode?: 'auto' | 'tmux' | 'windows-terminal' | 'in-process' // 如何派生 teammate（默认：'auto'）
+  // 当工具调用未传 model 时新 teammate 使用的模型。
+  // undefined = 硬编码 Opus（向后兼容）；null = leader 的模型；string = model alias/ID。
   teammateDefaultModel?: string | null
 
-  // PR status footer configuration (feature-flagged via GrowthBook)
-  prStatusFooterEnabled?: boolean // Show PR review status in footer (default: true)
+  // PR 状态页脚配置（通过 GrowthBook 的 feature flag）
+  prStatusFooterEnabled?: boolean // 是否在页脚显示 PR review 状态（默认：true）
 
-  // Tmux live panel visibility (ant-only, toggled via Enter on tmux pill)
+  // Tmux 实时面板可见性（仅 ant，在 tmux pill 上按 Enter 切换）
   tungstenPanelVisible?: boolean
 
-  // Cached org-level fast mode status from the API.
-  // Used to detect cross-session changes and notify users.
+  // 来自 API 的 org 级 fast mode 状态缓存。
+  // 用于检测跨会话变化并通知用户。
   penguinModeOrgEnabled?: boolean
 
-  // Epoch ms when background refreshes last ran (fast mode, quota, passes, client data).
-  // Used with tengu_cicada_nap_ms to throttle API calls
+  // 后台刷新上次运行的 epoch ms（fast mode、配额、passes、client data）。
+  // 配合 tengu_cicada_nap_ms 节流 API 调用
   startupPrefetchedAt?: number
 
-  // Run Remote Control at startup (requires BRIDGE_MODE)
-  // undefined = use default (see getRemoteControlAtStartup() for precedence)
+  // 启动时运行 Remote Control（需 BRIDGE_MODE）
+  // undefined = 使用默认（优先级见 getRemoteControlAtStartup()）
   remoteControlAtStartup?: boolean
 
-  // Cached extra usage disabled reason from the last API response
-  // undefined = no cache, null = extra usage enabled, string = disabled reason.
+  // 来自上次 API 响应的 extra usage 禁用原因缓存
+  // undefined = 无缓存，null = extra usage 已启用，string = 禁用原因。
   cachedExtraUsageDisabledReason?: string | null
 
-  // Auto permissions notification tracking (ant-only)
-  autoPermissionsNotificationCount?: number // Number of times the auto permissions notification has been shown
+  // 自动权限通知追踪（仅 ant）
+  autoPermissionsNotificationCount?: number // 自动权限通知已展示次数
 
-  // Speculation configuration (ant-only)
-  speculationEnabled?: boolean // Whether speculation is enabled (default: true)
+  // Speculation 配置（仅 ant）
+  speculationEnabled?: boolean // 是否启用 speculation（默认：true）
 
-  // Client data for server-side experiments (fetched during bootstrap).
+  // 用于服务端实验的 client data（bootstrap 期间抓取）。
   clientDataCache?: Record<string, unknown> | null
 
-  // Additional model options for the model picker (fetched during bootstrap).
+  // model picker 的额外 model 选项（bootstrap 期间抓取）。
   additionalModelOptionsCache?: ModelOption[]
 
-  // Disk cache for /api/claude_code/organizations/metrics_enabled.
-  // Org-level settings change rarely; persisting across processes avoids a
-  // cold API call on every `claude -p` invocation.
+  // /api/claude_code/organizations/metrics_enabled 的磁盘缓存。
+  // org 级设置很少变化；跨进程持久化可避免每次 `claude -p` 调用都发起冷启动 API。
   metricsStatusCache?: {
     enabled: boolean
     timestamp: number
   }
 
-  // Version of the last-applied migration set. When equal to
-  // CURRENT_MIGRATION_VERSION, runMigrations() skips all sync migrations
-  // (avoiding 11× saveGlobalConfig lock+re-read on every startup).
+  // 上一次应用的 migration 集合版本。当其等于
+  // CURRENT_MIGRATION_VERSION 时，runMigrations() 跳过所有同步 migration
+  //（避免每次启动都执行 11× saveGlobalConfig 的 lock + re-read）。
   migrationVersion?: number
 }
 
 /**
- * Factory for a fresh default GlobalConfig. Used instead of deep-cloning a
- * shared constant — the nested containers (arrays, records) are all empty, so
- * a factory gives fresh refs at zero clone cost.
+ * 创建一个全新默认 GlobalConfig 的工厂函数。用它而非深拷贝共享常量 ——
+ * 嵌套容器（数组、record）都是空的，因此工厂函数以零拷贝成本提供全新引用。
  */
 function createDefaultGlobalConfig(): GlobalConfig {
   return {
@@ -688,13 +680,12 @@ export const PROJECT_CONFIG_KEYS = [
 export type ProjectConfigKey = (typeof PROJECT_CONFIG_KEYS)[number]
 
 /**
- * Check if the user has already accepted the trust dialog for the cwd.
+ * 检查用户是否已对当前 cwd 接受 trust dialog。
  *
- * This function traverses parent directories to check if a parent directory
- * had approval. Accepting trust for a directory implies trust for child
- * directories.
+ * 本函数会向上遍历父目录，检查是否有某个父目录已被批准。接受某个目录的 trust
+ * 意味着对其子目录也信任。
  *
- * @returns Whether the trust dialog has been accepted (i.e. "should not be shown")
+ * @returns trust dialog 是否已被接受（即"不应再展示"）
  */
 let _trustAccepted = false
 
@@ -703,36 +694,36 @@ export function resetTrustDialogAcceptedCacheForTesting(): void {
 }
 
 export function checkHasTrustDialogAccepted(): boolean {
-  // Trust only transitions false→true during a session (never the reverse),
-  // so once true we can latch it. false is not cached — it gets re-checked
-  // on every call so that trust dialog acceptance is picked up mid-session.
-  // (lodash memoize doesn't fit here because it would also cache false.)
+  // trust 在会话中只会从 false→true 转变（绝不会反向），
+  // 因此一旦为 true 就可以锁存。false 不缓存 —— 每次调用都重新检查，
+  // 以便会话中途接受的 trust dialog 能被感知。
+  //（lodash memoize 在这里不合适，因为它会同时缓存 false。）
   return (_trustAccepted ||= computeTrustDialogAccepted())
 }
 
 function computeTrustDialogAccepted(): boolean {
-  // Check session-level trust (for home directory case where trust is not persisted)
-  // When running from home dir, trust dialog is shown but acceptance is stored
-  // in memory only. This allows hooks and other features to work during the session.
+  // 检查会话级别的 trust（对应 home 目录场景 —— trust 不持久化）
+  // 从 home 目录运行时，trust dialog 会显示，但接受状态仅存于内存。
+  // 这样 hooks 等功能在会话内仍可工作。
   if (getSessionTrustAccepted()) {
     return true
   }
 
   const config = getGlobalConfig()
 
-  // Always check where trust would be saved (git root or original cwd)
-  // This is the primary location where trust is persisted by saveCurrentProjectConfig
+  // 总是检查 trust 将被保存到的位置（git root 或原始 cwd）
+  // 这是 saveCurrentProjectConfig 持久化 trust 的主要位置
   const projectPath = getProjectPathForConfig()
   const projectConfig = config.projects?.[projectPath]
   if (projectConfig?.hasTrustDialogAccepted) {
     return true
   }
 
-  // Now check from current working directory and its parents
-  // Normalize paths for consistent JSON key lookup
+  // 现在从当前工作目录及其父目录开始检查
+  // 规范化路径以保证一致的 JSON key 查询
   let currentPath = normalizePathForConfigKey(getCwd())
 
-  // Traverse all parent directories
+  // 遍历所有父目录
   while (true) {
     const pathConfig = config.projects?.[currentPath]
     if (pathConfig?.hasTrustDialogAccepted) {
@@ -740,7 +731,7 @@ function computeTrustDialogAccepted(): boolean {
     }
 
     const parentPath = normalizePathForConfigKey(resolve(currentPath, '..'))
-    // Stop if we've reached the root (when parent is same as current)
+    // 到达根目录（父目录等于当前目录）时停止
     if (parentPath === currentPath) {
       break
     }
@@ -751,11 +742,11 @@ function computeTrustDialogAccepted(): boolean {
 }
 
 /**
- * Check trust for an arbitrary directory (not the session cwd).
- * Walks up from `dir`, returning true if any ancestor has trust persisted.
- * Unlike checkHasTrustDialogAccepted, this does NOT consult session trust or
- * the memoized project path — use when the target dir differs from cwd (e.g.
- * /assistant installing into a user-typed path).
+ * 检查任意目录（非会话 cwd）的 trust 状态。
+ * 从 `dir` 向上遍历，任一祖先目录已持久化 trust 则返回 true。
+ * 与 checkHasTrustDialogAccepted 不同，此函数不会查询会话 trust 或
+ * 记忆化的工程路径 —— 适用于目标目录不同于 cwd 的场景
+ *（例如 /assistant 安装到用户输入的路径）。
  */
 export function isPathTrusted(dir: string): boolean {
   const config = getGlobalConfig()
@@ -768,7 +759,7 @@ export function isPathTrusted(dir: string): boolean {
   }
 }
 
-// We have to put this test code here because Jest doesn't support mocking ES modules :O
+// 必须把这段测试代码放在这里，因为 Jest 不支持 mock ES 模块 :O
 const TEST_GLOBAL_CONFIG_FOR_TESTING: GlobalConfig = {
   ...DEFAULT_GLOBAL_CONFIG,
   autoUpdates: false,
@@ -782,11 +773,10 @@ export function isProjectConfigKey(key: string): key is ProjectConfigKey {
 }
 
 /**
- * Detect whether writing `fresh` would lose auth/onboarding state that the
- * in-memory cache still has. This happens when `getConfig` hits a corrupted
- * or truncated file mid-write (from another process or a non-atomic fallback)
- * and returns DEFAULT_GLOBAL_CONFIG. Writing that back would permanently
- * wipe auth. See GH #3117.
+ * 检测写入 `fresh` 是否会丢失内存缓存中仍持有的 auth/onboarding 状态。
+ * 当 `getConfig` 命中正在被另一进程写入或非原子 fallback 所导致的损坏/截断
+ * 文件，并返回 DEFAULT_GLOBAL_CONFIG 时，就会发生这种情况。把这样的默认
+ * 配置写回会永久抹除 auth。参见 GH #3117。
  */
 function wouldLoseAuthState(fresh: {
   oauthAccount?: unknown
@@ -807,7 +797,7 @@ export function saveGlobalConfig(
 ): void {
   if (process.env.NODE_ENV === 'test') {
     const config = updater(TEST_GLOBAL_CONFIG_FOR_TESTING)
-    // Skip if no changes (same reference returned)
+    // 若无变化（返回相同引用）则跳过
     if (config === TEST_GLOBAL_CONFIG_FOR_TESTING) {
       return
     }
@@ -822,7 +812,7 @@ export function saveGlobalConfig(
       createDefaultGlobalConfig,
       current => {
         const config = updater(current)
-        // Skip if no changes (same reference returned)
+        // 若无变化（返回相同引用）则跳过
         if (config === current) {
           return current
         }
@@ -833,34 +823,33 @@ export function saveGlobalConfig(
         return written
       },
     )
-    // Only write-through if we actually wrote. If the auth-loss guard
-    // tripped (or the updater made no changes), the file is untouched and
-    // the cache is still valid -- touching it would corrupt the guard.
+    // 仅在确实写入后才做 write-through。若 auth-loss 保护被触发
+    //（或 updater 未做任何改动），文件未被触碰，缓存仍有效 —— 再去动它
+    // 反而会破坏保护机制。
     if (didWrite && written) {
       writeThroughGlobalConfigCache(written)
     }
   } catch (error) {
-    logForDebugging(`Failed to save config with lock: ${error}`, {
+    logForDebugging(`加锁保存配置失败：${error}`, {
       level: 'error',
     })
-    // Fall back to non-locked version on error. This fallback is a race
-    // window: if another process is mid-write (or the file got truncated),
-    // getConfig returns defaults. Refuse to write those over a good cached
-    // config to avoid wiping auth. See GH #3117.
+    // 出错时 fallback 到无锁版本。该 fallback 存在竞态窗口：若另一进程
+    // 正在写入（或文件被截断），getConfig 会返回默认值。拒绝将默认值
+    // 覆盖到完好的缓存配置上，以防抹除 auth。参见 GH #3117。
     const currentConfig = getConfig(
       getGlobalClaudeFile(),
       createDefaultGlobalConfig,
     )
     if (wouldLoseAuthState(currentConfig)) {
       logForDebugging(
-        'saveGlobalConfig fallback: re-read config is missing auth that cache has; refusing to write. See GH #3117.',
+        'saveGlobalConfig fallback：重新读取的配置缺失了缓存中的 auth；拒绝写入。参见 GH #3117。',
         { level: 'error' },
       )
       logEvent('tengu_config_auth_loss_prevented', {})
       return
     }
     const config = updater(currentConfig)
-    // Skip if no changes (same reference returned)
+    // 若无变化（返回相同引用）则跳过
     if (config === currentConfig) {
       return
     }
@@ -873,19 +862,19 @@ export function saveGlobalConfig(
   }
 }
 
-// Cache for global config
+// 全局配置缓存
 let globalConfigCache: { config: GlobalConfig | null; mtime: number } = {
   config: null,
   mtime: 0,
 }
 
-// Tracking for config file operations (telemetry)
+// 配置文件操作的追踪（遥测）
 let lastReadFileStats: { mtime: number; size: number } | null = null
 let configCacheHits = 0
 let configCacheMisses = 0
-// Session-total count of actual disk writes to the global config file.
-// Exposed for ant-only dev diagnostics (see inc-4552) so anomalous write
-// rates surface in the UI before they corrupt ~/.claude.json.
+// 会话内向全局配置文件实际发起磁盘写入的总次数。
+// 仅供 ant 内部开发诊断使用（见 inc-4552），让异常写入速率在破坏
+// ~/.claude.json 之前就能在 UI 上暴露。
 let globalConfigWriteCount = 0
 
 export function getGlobalConfigWriteCount(): number {
@@ -907,23 +896,23 @@ function reportConfigCacheStats(): void {
   configCacheMisses = 0
 }
 
-// Register cleanup to report cache stats at session end
+// 注册清理回调，在会话结束时上报缓存统计
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
 registerCleanup(async () => {
   reportConfigCacheStats()
 })
 
 /**
- * Migrates old autoUpdaterStatus to new installMethod and autoUpdates fields
+ * 将旧的 autoUpdaterStatus 迁移到新的 installMethod 与 autoUpdates 字段
  * @internal
  */
 function migrateConfigFields(config: GlobalConfig): GlobalConfig {
-  // Already migrated
+  // 已迁移过
   if (config.installMethod !== undefined) {
     return config
   }
 
-  // autoUpdaterStatus is removed from the type but may exist in old configs
+  // autoUpdaterStatus 已从类型中移除，但可能仍存在于旧配置中
   const legacy = config as GlobalConfig & {
     autoUpdaterStatus?:
       | 'migrated'
@@ -934,9 +923,9 @@ function migrateConfigFields(config: GlobalConfig): GlobalConfig {
       | 'not_configured'
   }
 
-  // Determine install method and auto-update preference from old field
+  // 根据旧字段推断安装方式与自动更新偏好
   let installMethod: InstallMethod = 'unknown'
-  let autoUpdates = config.autoUpdates ?? true // Default to enabled unless explicitly disabled
+  let autoUpdates = config.autoUpdates ?? true // 默认启用，除非显式禁用
 
   switch (legacy.autoUpdaterStatus) {
     case 'migrated':
@@ -946,17 +935,17 @@ function migrateConfigFields(config: GlobalConfig): GlobalConfig {
       installMethod = 'native'
       break
     case 'disabled':
-      // When disabled, we don't know the install method
+      // 被禁用时无法得知安装方式
       autoUpdates = false
       break
     case 'enabled':
     case 'no_permissions':
     case 'not_configured':
-      // These imply global installation
+      // 这些都意味着是全局安装
       installMethod = 'global'
       break
     case undefined:
-      // No old status, keep defaults
+      // 无旧状态，保留默认值
       break
   }
 
@@ -968,7 +957,7 @@ function migrateConfigFields(config: GlobalConfig): GlobalConfig {
 }
 
 /**
- * Removes history field from projects (migrated to history.jsonl)
+ * 移除 projects 中的 history 字段（已迁移到 history.jsonl）
  * @internal
  */
 function removeProjectHistory(
@@ -982,7 +971,7 @@ function removeProjectHistory(
   let needsCleaning = false
 
   for (const [path, projectConfig] of Object.entries(projects)) {
-    // history is removed from the type but may exist in old configs
+    // history 已从类型中移除，但可能仍存在于旧配置中
     const legacy = projectConfig as ProjectConfig & { history?: unknown }
     if (legacy.history !== undefined) {
       needsCleaning = true
@@ -996,12 +985,12 @@ function removeProjectHistory(
   return needsCleaning ? cleanedProjects : projects
 }
 
-// fs.watchFile poll interval for detecting writes from other instances (ms)
+// 用于检测其他实例写入的 fs.watchFile 轮询间隔（毫秒）
 const CONFIG_FRESHNESS_POLL_MS = 1000
 let freshnessWatcherStarted = false
 
-// fs.watchFile polls stat on the libuv threadpool and only calls us when mtime
-// changed — a stalled stat never blocks the main thread.
+// fs.watchFile 在 libuv 线程池上轮询 stat，仅当 mtime 变化时才回调 ——
+// 卡住的 stat 永远不会阻塞主线程。
 function startGlobalConfigFreshnessWatcher(): void {
   if (freshnessWatcherStarted || process.env.NODE_ENV === 'test') return
   freshnessWatcherStarted = true
@@ -1010,16 +999,16 @@ function startGlobalConfigFreshnessWatcher(): void {
     file,
     { interval: CONFIG_FRESHNESS_POLL_MS, persistent: false },
     curr => {
-      // Our own writes fire this too — the write-through's Date.now()
-      // overshoot makes cache.mtime > file mtime, so we skip the re-read.
-      // Bun/Node also fire with curr.mtimeMs=0 when the file doesn't exist
-      // (initial callback or deletion) — the <= handles that too.
+      // 我们自己的写入也会触发该回调 —— write-through 的 Date.now()
+      // 会超出文件 mtime，使 cache.mtime > 文件 mtime，因此跳过重新读取。
+      // Bun/Node 在文件不存在时（初始回调或被删除）也会以 curr.mtimeMs=0 触发
+      // —— <= 也能处理这种情况。
       if (curr.mtimeMs <= globalConfigCache.mtime) return
       void getFsImplementation()
         .readFile(file, { encoding: 'utf-8' })
         .then(content => {
-          // A write-through may have advanced the cache while we were reading;
-          // don't regress to the stale snapshot watchFile stat'd.
+          // 读取期间某个 write-through 可能已经推进了缓存；
+          // 不要退回到 watchFile 统计的过期快照。
           if (curr.mtimeMs <= globalConfigCache.mtime) return
           const parsed = safeParseJSON(stripBOM(content))
           if (parsed === null || typeof parsed !== 'object') return
@@ -1041,9 +1030,9 @@ function startGlobalConfigFreshnessWatcher(): void {
   })
 }
 
-// Write-through: what we just wrote IS the new config. cache.mtime overshoots
-// the file's real mtime (Date.now() is recorded after the write) so the
-// freshness watcher skips re-reading our own write on its next tick.
+// Write-through：我们刚刚写入的内容就是新的 config。cache.mtime 会超出
+// 文件真实 mtime（Date.now() 在写入之后才记录），因此 freshness watcher
+// 下一轮会跳过对我们自己写入的重复读取。
 function writeThroughGlobalConfigCache(config: GlobalConfig): void {
   globalConfigCache = { config, mtime: Date.now() }
   lastReadFileStats = null
@@ -1054,24 +1043,24 @@ export function getGlobalConfig(): GlobalConfig {
     return TEST_GLOBAL_CONFIG_FOR_TESTING
   }
 
-  // Fast path: pure memory read. After startup, this always hits — our own
-  // writes go write-through and other instances' writes are picked up by the
-  // background freshness watcher (never blocks this path).
+  // 快速路径：纯内存读取。启动后总是命中 —— 我们自己的写入走
+  // write-through，其他实例的写入由后台 freshness watcher 接管
+  //（永远不会阻塞这条路径）。
   if (globalConfigCache.config) {
     configCacheHits++
     return globalConfigCache.config
   }
 
-  // Slow path: startup load. Sync I/O here is acceptable because it runs
-  // exactly once, before any UI is rendered. Stat before read so any race
-  // self-corrects (old mtime + new content → watcher re-reads next tick).
+  // 慢速路径：启动加载。这里的同步 I/O 可以接受，因为它只运行一次，
+  // 且早于任何 UI 渲染。读取前先 stat，这样任何竞态都能自我修正
+  //（旧 mtime + 新内容 → watcher 下一轮重新读取）。
   configCacheMisses++
   try {
     let stats: { mtimeMs: number; size: number } | null = null
     try {
       stats = getFsImplementation().statSync(getGlobalClaudeFile())
     } catch {
-      // File doesn't exist
+      // 文件不存在
     }
     const config = migrateConfigFields(
       getConfig(getGlobalClaudeFile(), createDefaultGlobalConfig),
@@ -1086,7 +1075,7 @@ export function getGlobalConfig(): GlobalConfig {
     startGlobalConfigFreshnessWatcher()
     return config
   } catch {
-    // If anything goes wrong, fall back to uncached behavior
+    // 任何异常都 fallback 到无缓存行为
     return migrateConfigFields(
       getConfig(getGlobalClaudeFile(), createDefaultGlobalConfig),
     )
@@ -1094,10 +1083,10 @@ export function getGlobalConfig(): GlobalConfig {
 }
 
 /**
- * Returns the effective value of remoteControlAtStartup. Precedence:
- *   1. User's explicit config value (always wins — honors opt-out)
- *   2. CCR auto-connect default (ant-only build, GrowthBook-gated)
- *   3. false (Remote Control must be explicitly opted into)
+ * 返回 remoteControlAtStartup 的有效值。优先级：
+ *   1. 用户显式设置的 config 值（总是胜出 —— 尊重 opt-out）
+ *   2. CCR auto-connect 默认值（仅 ant 构建，由 GrowthBook 门控）
+ *   3. false（Remote Control 必须显式 opt-in）
  */
 export function getRemoteControlAtStartup(): boolean {
   const explicit = getGlobalConfig().remoteControlAtStartup
@@ -1126,19 +1115,19 @@ function saveConfig<A extends object>(
   config: A,
   defaultConfig: A,
 ): void {
-  // Ensure the directory exists before writing the config file
+  // 写入配置文件前确保目录存在
   const dir = dirname(file)
   const fs = getFsImplementation()
-  // mkdirSync is already recursive in FsOperations implementation
+  // mkdirSync 在 FsOperations 实现中已是递归的
   fs.mkdirSync(dir)
 
-  // Filter out any values that match the defaults
+  // 过滤掉与默认值相同的字段
   const filteredConfig = pickBy(
     config,
     (value, key) =>
       jsonStringify(value) !== jsonStringify(defaultConfig[key as keyof A]),
   )
-  // Write config file with secure permissions - mode only applies to new files
+  // 以安全权限写入配置文件 —— mode 仅对新文件生效
   writeFileSyncAndFlush_DEPRECATED(
     file,
     jsonStringify(filteredConfig, null, 2),
@@ -1153,10 +1142,9 @@ function saveConfig<A extends object>(
 }
 
 /**
- * Returns true if a write was performed; false if the write was skipped
- * (no changes, or auth-loss guard tripped). Callers use this to decide
- * whether to invalidate the cache -- invalidating after a skipped write
- * destroys the good cached state the auth-loss guard depends on.
+ * 执行了写入返回 true；跳过写入（无改动或 auth-loss 保护被触发）返回 false。
+ * 调用方据此判断是否需要失效缓存 —— 跳过的写入之后再失效缓存会破坏
+ * auth-loss 保护所依赖的完好缓存状态。
  */
 function saveConfigWithLock<A extends object>(
   file: string,
@@ -1167,7 +1155,7 @@ function saveConfigWithLock<A extends object>(
   const dir = dirname(file)
   const fs = getFsImplementation()
 
-  // Ensure directory exists (mkdirSync is already recursive in FsOperations)
+  // 确保目录存在（mkdirSync 在 FsOperations 中已是递归的）
   fs.mkdirSync(dir)
 
   let release
@@ -1177,24 +1165,21 @@ function saveConfigWithLock<A extends object>(
     release = lockfile.lockSync(file, {
       lockfilePath: lockFilePath,
       onCompromised: err => {
-        // Default onCompromised throws from a setTimeout callback, which
-        // becomes an unhandled exception. Log instead -- the lock being
-        // stolen (e.g. after a 10s event-loop stall) is recoverable.
-        logForDebugging(`Config lock compromised: ${err}`, { level: 'error' })
+        // 默认 onCompromised 在 setTimeout 回调中抛错，会变成未处理异常。
+        // 这里改为仅打日志 —— 锁被偷走（例如 event-loop 卡顿 10s 后）是可以恢复的。
+        logForDebugging(`配置锁被破坏：${err}`, { level: 'error' })
       },
     })
     const lockTime = Date.now() - startTime
     if (lockTime > 100) {
-      logForDebugging(
-        'Lock acquisition took longer than expected - another Claude instance may be running',
-      )
+      logForDebugging('获取锁耗时超过预期 —— 可能有另一个 Claude 实例正在运行')
       logEvent('tengu_config_lock_contention', {
         lock_time_ms: lockTime,
       })
     }
 
-    // Check for stale write - file changed since we last read it
-    // Only check for global config file since lastReadFileStats tracks that specific file
+    // 检测 stale 写入 —— 文件自上次读取后已被改动
+    // 仅对全局配置文件检查，因为 lastReadFileStats 只跟踪该文件
     if (lastReadFileStats && file === getGlobalClaudeFile()) {
       try {
         const currentStats = fs.statSync(file)
@@ -1214,47 +1199,45 @@ function saveConfigWithLock<A extends object>(
         if (code !== 'ENOENT') {
           throw e
         }
-        // File doesn't exist yet, no stale check needed
+        // 文件尚不存在，无需做 stale 检测
       }
     }
 
-    // Re-read the current config to get latest state. If the file is
-    // momentarily corrupted (concurrent writes, kill-during-write), this
-    // returns defaults -- we must not write those back over good config.
+    // 重新读取当前配置以拿到最新状态。若文件瞬时损坏（并发写入、写入时被 kill），
+    // 这里会返回默认值 —— 我们绝不能把默认值覆盖回完好的配置上。
     const currentConfig = getConfig(file, createDefault)
     if (file === getGlobalClaudeFile() && wouldLoseAuthState(currentConfig)) {
       logForDebugging(
-        'saveConfigWithLock: re-read config is missing auth that cache has; refusing to write to avoid wiping ~/.claude.json. See GH #3117.',
+        'saveConfigWithLock：重新读取的配置缺失了缓存中的 auth；为避免抹除 ~/.claude.json 拒绝写入。参见 GH #3117。',
         { level: 'error' },
       )
       logEvent('tengu_config_auth_loss_prevented', {})
       return false
     }
 
-    // Apply the merge function to get the updated config
+    // 应用 merge 函数得到更新后的配置
     const mergedConfig = mergeFn(currentConfig)
 
-    // Skip write if no changes (same reference returned)
+    // 无变化（返回相同引用）则跳过写入
     if (mergedConfig === currentConfig) {
       return false
     }
 
-    // Filter out any values that match the defaults
+    // 过滤掉与默认值相同的字段
     const filteredConfig = pickBy(
       mergedConfig,
       (value, key) =>
         jsonStringify(value) !== jsonStringify(defaultConfig[key as keyof A]),
     )
 
-    // Create timestamped backup of existing config before writing
-    // We keep multiple backups to prevent data loss if a reset/corrupted config
-    // overwrites a good backup. Backups are stored in ~/.claude/backups/ to
-    // keep the home directory clean.
+    // 写入前为现有配置创建带时间戳的备份
+    // 保留多份备份，以防 reset/损坏的配置覆盖掉完好的备份。
+    // 备份存放在 ~/.claude/backups/ 下，保持 home 目录整洁。
     try {
       const fileBase = basename(file)
       const backupDir = getConfigBackupDir()
 
-      // Ensure backup directory exists
+      // 确保备份目录存在
       try {
         fs.mkdirSync(backupDir)
       } catch (mkdirErr) {
@@ -1264,16 +1247,15 @@ function saveConfigWithLock<A extends object>(
         }
       }
 
-      // Check existing backups first -- skip creating a new one if a recent
-      // backup already exists. During startup, many saveGlobalConfig calls fire
-      // within milliseconds of each other; without this check, each call
-      // creates a new backup file that accumulates on disk.
+      // 先检查已有备份 —— 若最近已有一份备份则跳过新建。
+      // 启动期间许多 saveGlobalConfig 调用会在毫秒级间隔内连续触发；
+      // 不加该检查，每次调用都会新建一个备份文件，堆积在磁盘上。
       const MIN_BACKUP_INTERVAL_MS = 60_000
       const existingBackups = fs
         .readdirStringSync(backupDir)
         .filter(f => f.startsWith(`${fileBase}.backup.`))
         .sort()
-        .reverse() // Most recent first (timestamps sort lexicographically)
+        .reverse() // 最近在前（时间戳按字典序排序）
 
       const mostRecentBackup = existingBackups[0]
       const mostRecentTimestamp = mostRecentBackup
@@ -1288,9 +1270,9 @@ function saveConfigWithLock<A extends object>(
         fs.copyFileSync(file, backupPath)
       }
 
-      // Clean up old backups, keeping only the 5 most recent
+      // 清理旧备份，只保留最近 5 份
       const MAX_BACKUPS = 5
-      // Re-read if we just created one; otherwise reuse the list
+      // 若刚创建了一份新备份就重新读取；否则复用已有列表
       const backupsForCleanup = shouldCreateBackup
         ? fs
             .readdirStringSync(backupDir)
@@ -1303,20 +1285,20 @@ function saveConfigWithLock<A extends object>(
         try {
           fs.unlinkSync(join(backupDir, oldBackup))
         } catch {
-          // Ignore cleanup errors
+          // 忽略清理错误
         }
       }
     } catch (e) {
       const code = getErrnoCode(e)
       if (code !== 'ENOENT') {
-        logForDebugging(`Failed to backup config: ${e}`, {
+        logForDebugging(`备份配置失败：${e}`, {
           level: 'error',
         })
       }
-      // No file to backup or backup failed, continue with write
+      // 无文件可备份或备份失败，继续写入
     }
 
-    // Write config file with secure permissions - mode only applies to new files
+    // 以安全权限写入配置文件 —— mode 仅对新文件生效
     writeFileSyncAndFlush_DEPRECATED(
       file,
       jsonStringify(filteredConfig, null, 2),
@@ -1336,26 +1318,26 @@ function saveConfigWithLock<A extends object>(
   }
 }
 
-// Flag to track if config reading is allowed
+// 标记：是否允许读取配置
 let configReadingAllowed = false
 
 export function enableConfigs(): void {
   if (configReadingAllowed) {
-    // Ensure this is idempotent
+    // 保持幂等
     return
   }
 
   const startTime = Date.now()
   logForDiagnosticsNoPII('info', 'enable_configs_started')
 
-  // Any reads to configuration before this flag is set show an console warning
-  // to prevent us from adding config reading during module initialization
+  // 在该 flag 被设置前对配置的任何读取都会在控制台报警，
+  // 防止我们在模块初始化期间加入配置读取
   configReadingAllowed = true
-  // We only check the global config because currently all the configs share a file
+  // 仅检查全局配置，因为目前所有配置共用一个文件
   getConfig(
     getGlobalClaudeFile(),
     createDefaultGlobalConfig,
-    true /* throw on invalid */,
+    true /* 无效时抛错 */,
   )
 
   logForDiagnosticsNoPII('info', 'enable_configs_completed', {
@@ -1364,40 +1346,40 @@ export function enableConfigs(): void {
 }
 
 /**
- * Returns the directory where config backup files are stored.
- * Uses ~/.claude/backups/ to keep the home directory clean.
+ * 返回配置备份文件的存放目录。
+ * 使用 ~/.claude/backups/，保持 home 目录整洁。
  */
 function getConfigBackupDir(): string {
   return join(getClaudeConfigHomeDir(), 'backups')
 }
 
 /**
- * Find the most recent backup file for a given config file.
- * Checks ~/.claude/backups/ first, then falls back to the legacy location
- * (next to the config file) for backwards compatibility.
- * Returns the full path to the most recent backup, or null if none exist.
+ * 为给定配置文件查找最近的备份。
+ * 先检查 ~/.claude/backups/，若不存在则 fallback 到遗留位置
+ *（配置文件旁边）以保持向后兼容。
+ * 返回最近备份的完整路径，若不存在则返回 null。
  */
 function findMostRecentBackup(file: string): string | null {
   const fs = getFsImplementation()
   const fileBase = basename(file)
   const backupDir = getConfigBackupDir()
 
-  // Check the new backup directory first
+  // 先检查新的备份目录
   try {
     const backups = fs
       .readdirStringSync(backupDir)
       .filter(f => f.startsWith(`${fileBase}.backup.`))
       .sort()
 
-    const mostRecent = backups.at(-1) // Timestamps sort lexicographically
+    const mostRecent = backups.at(-1) // 时间戳按字典序排序
     if (mostRecent) {
       return join(backupDir, mostRecent)
     }
   } catch {
-    // Backup dir doesn't exist yet
+    // 备份目录尚不存在
   }
 
-  // Fall back to legacy location (next to the config file)
+  // Fallback 到遗留位置（配置文件旁边）
   const fileDir = dirname(file)
 
   try {
@@ -1406,21 +1388,21 @@ function findMostRecentBackup(file: string): string | null {
       .filter(f => f.startsWith(`${fileBase}.backup.`))
       .sort()
 
-    const mostRecent = backups.at(-1) // Timestamps sort lexicographically
+    const mostRecent = backups.at(-1) // 时间戳按字典序排序
     if (mostRecent) {
       return join(fileDir, mostRecent)
     }
 
-    // Check for legacy backup file (no timestamp)
+    // 检查遗留备份文件（无时间戳）
     const legacyBackup = `${file}.backup`
     try {
       fs.statSync(legacyBackup)
       return legacyBackup
     } catch {
-      // Legacy backup doesn't exist
+      // 遗留备份不存在
     }
   } catch {
-    // Ignore errors reading directory
+    // 忽略读取目录的错误
   }
 
   return null
@@ -1431,7 +1413,7 @@ function getConfig<A>(
   createDefault: () => A,
   throwOnInvalid?: boolean,
 ): A {
-  // Log a warning if config is accessed before it's allowed
+  // 配置在允许访问前被读取时打一条警告
   if (!configReadingAllowed && process.env.NODE_ENV !== 'test') {
     throw new Error('Config accessed before allowed.')
   }
@@ -1443,62 +1425,60 @@ function getConfig<A>(
       encoding: 'utf-8',
     })
     try {
-      // Strip BOM before parsing - PowerShell 5.x adds BOM to UTF-8 files
+      // 解析前去掉 BOM —— PowerShell 5.x 会为 UTF-8 文件加 BOM
       const parsedConfig = jsonParse(stripBOM(fileContent))
       return {
         ...createDefault(),
         ...parsedConfig,
       }
     } catch (error) {
-      // Throw a ConfigParseError with the file path and default config
+      // 抛出 ConfigParseError，携带文件路径与默认配置
       const errorMessage =
         error instanceof Error ? error.message : String(error)
       throw new ConfigParseError(errorMessage, file, createDefault())
     }
   } catch (error) {
-    // Handle file not found - check for backup and return default
+    // 处理文件不存在 —— 检查备份并返回默认值
     const errCode = getErrnoCode(error)
     if (errCode === 'ENOENT') {
       const backupPath = findMostRecentBackup(file)
       if (backupPath) {
         process.stderr.write(
-          `\nClaude configuration file not found at: ${file}\n` +
-            `A backup file exists at: ${backupPath}\n` +
-            `You can manually restore it by running: cp "${backupPath}" "${file}"\n\n`,
+          `\n未找到 Claude 配置文件：${file}\n` +
+            `在以下路径存在备份：${backupPath}\n` +
+            `可手动恢复：cp "${backupPath}" "${file}"\n\n`,
         )
       }
       return createDefault()
     }
 
-    // Re-throw ConfigParseError if throwOnInvalid is true
+    // 若 throwOnInvalid 为 true，则重新抛出 ConfigParseError
     if (error instanceof ConfigParseError && throwOnInvalid) {
       throw error
     }
 
-    // Log config parse errors so users know what happened
+    // 记录配置解析错误日志，让用户知道发生了什么
     if (error instanceof ConfigParseError) {
-      logForDebugging(
-        `Config file corrupted, resetting to defaults: ${error.message}`,
-        { level: 'error' },
-      )
+      logForDebugging(`配置文件已损坏，重置为默认值：${error.message}`, {
+        level: 'error',
+      })
 
-      // Guard: logEvent → shouldSampleEvent → getGlobalConfig → getConfig
-      // causes infinite recursion when the config file is corrupted, because
-      // the sampling check reads a GrowthBook feature from global config.
-      // Only log analytics on the outermost call.
+      // 保护：logEvent → shouldSampleEvent → getGlobalConfig → getConfig
+      // 在配置文件损坏时会无限递归，因为采样检查会从全局 config 读取
+      // GrowthBook feature。仅在最外层调用记录 analytics。
       if (!insideGetConfig) {
         insideGetConfig = true
         try {
-          // Log the error for monitoring
+          // 记录错误用于监控
           logError(error)
 
-          // Log analytics event for config corruption
+          // 为配置损坏上报 analytics 事件
           let hasBackup = false
           try {
             fs.statSync(`${file}.backup`)
             hasBackup = true
           } catch {
-            // No backup
+            // 无备份
           }
           logEvent('tengu_config_parse_error', {
             has_backup: hasBackup,
@@ -1509,14 +1489,14 @@ function getConfig<A>(
       }
 
       process.stderr.write(
-        `\nClaude configuration file at ${file} is corrupted: ${error.message}\n`,
+        `\n位于 ${file} 的 Claude 配置文件已损坏：${error.message}\n`,
       )
 
-      // Try to backup the corrupted config file (only if not already backed up)
+      // 尝试备份损坏的配置文件（仅在尚未备份的情况下）
       const fileBase = basename(file)
       const corruptedBackupDir = getConfigBackupDir()
 
-      // Ensure backup directory exists
+      // 确保备份目录存在
       try {
         fs.mkdirSync(corruptedBackupDir)
       } catch (mkdirErr) {
@@ -1533,7 +1513,7 @@ function getConfig<A>(
       let corruptedBackupPath: string | undefined
       let alreadyBackedUp = false
 
-      // Check if current corrupted content matches any existing backup
+      // 检查当前损坏内容是否已与某份现存备份一致
       const currentContent = fs.readFileSync(file, { encoding: 'utf-8' })
       for (const backup of existingCorruptedBackups) {
         try {
@@ -1546,7 +1526,7 @@ function getConfig<A>(
             break
           }
         } catch {
-          // Ignore read errors on backups
+          // 忽略备份读取错误
         }
       }
 
@@ -1557,31 +1537,26 @@ function getConfig<A>(
         )
         try {
           fs.copyFileSync(file, corruptedBackupPath)
-          logForDebugging(
-            `Corrupted config backed up to: ${corruptedBackupPath}`,
-            {
-              level: 'error',
-            },
-          )
+          logForDebugging(`损坏的配置已备份至：${corruptedBackupPath}`, {
+            level: 'error',
+          })
         } catch {
-          // Ignore backup errors
+          // 忽略备份错误
         }
       }
 
-      // Notify user about corrupted config and available backup
+      // 通知用户配置已损坏以及可用的备份
       const backupPath = findMostRecentBackup(file)
       if (corruptedBackupPath) {
-        process.stderr.write(
-          `The corrupted file has been backed up to: ${corruptedBackupPath}\n`,
-        )
+        process.stderr.write(`损坏的文件已备份至：${corruptedBackupPath}\n`)
       } else if (alreadyBackedUp) {
-        process.stderr.write(`The corrupted file has already been backed up.\n`)
+        process.stderr.write(`该损坏文件此前已备份。\n`)
       }
 
       if (backupPath) {
         process.stderr.write(
-          `A backup file exists at: ${backupPath}\n` +
-            `You can manually restore it by running: cp "${backupPath}" "${file}"\n\n`,
+          `在以下路径存在备份：${backupPath}\n` +
+            `可手动恢复：cp "${backupPath}" "${file}"\n\n`,
         )
       } else {
         process.stderr.write(`\n`)
@@ -1592,18 +1567,18 @@ function getConfig<A>(
   }
 }
 
-// Memoized function to get the project path for config lookup
+// 记忆化：获取用于配置查询的工程路径
 export const getProjectPathForConfig = memoize((): string => {
   const originalCwd = getOriginalCwd()
   const gitRoot = findCanonicalGitRoot(originalCwd)
 
   if (gitRoot) {
-    // Normalize for consistent JSON keys (forward slashes on all platforms)
-    // This ensures paths like C:\Users\... and C:/Users/... map to the same key
+    // 规范化以保证一致的 JSON key（所有平台都用正斜杠）
+    // 让 C:\Users\... 与 C:/Users/... 映射到同一个 key
     return normalizePathForConfigKey(gitRoot)
   }
 
-  // Not in a git repo
+  // 不在 git 仓库中
   return normalizePathForConfigKey(resolve(originalCwd))
 })
 
@@ -1620,8 +1595,8 @@ export function getCurrentProjectConfig(): ProjectConfig {
   }
 
   const projectConfig = config.projects[absolutePath] ?? DEFAULT_PROJECT_CONFIG
-  // Not sure how this became a string
-  // TODO: Fix upstream
+  // 不清楚它怎么变成 string 的
+  // TODO：在上游修复
   if (typeof projectConfig.allowedTools === 'string') {
     projectConfig.allowedTools =
       (safeParseJSON(projectConfig.allowedTools) as string[]) ?? []
@@ -1635,7 +1610,7 @@ export function saveCurrentProjectConfig(
 ): void {
   if (process.env.NODE_ENV === 'test') {
     const config = updater(TEST_PROJECT_CONFIG_FOR_TESTING)
-    // Skip if no changes (same reference returned)
+    // 若无变化（返回相同引用）则跳过
     if (config === TEST_PROJECT_CONFIG_FOR_TESTING) {
       return
     }
@@ -1653,7 +1628,7 @@ export function saveCurrentProjectConfig(
         const currentProjectConfig =
           current.projects?.[absolutePath] ?? DEFAULT_PROJECT_CONFIG
         const newProjectConfig = updater(currentProjectConfig)
-        // Skip if no changes (same reference returned)
+        // 若无变化（返回相同引用）则跳过
         if (newProjectConfig === currentProjectConfig) {
           return current
         }
@@ -1671,16 +1646,16 @@ export function saveCurrentProjectConfig(
       writeThroughGlobalConfigCache(written)
     }
   } catch (error) {
-    logForDebugging(`Failed to save config with lock: ${error}`, {
+    logForDebugging(`加锁保存配置失败：${error}`, {
       level: 'error',
     })
 
-    // Same race window as saveGlobalConfig's fallback -- refuse to write
-    // defaults over good cached config. See GH #3117.
+    // 与 saveGlobalConfig 的 fallback 同样的竞态窗口 —— 拒绝把默认值
+    // 覆盖到完好的缓存配置上。参见 GH #3117。
     const config = getConfig(getGlobalClaudeFile(), createDefaultGlobalConfig)
     if (wouldLoseAuthState(config)) {
       logForDebugging(
-        'saveCurrentProjectConfig fallback: re-read config is missing auth that cache has; refusing to write. See GH #3117.',
+        'saveCurrentProjectConfig fallback：重新读取的配置缺失了缓存中的 auth；拒绝写入。参见 GH #3117。',
         { level: 'error' },
       )
       logEvent('tengu_config_auth_loss_prevented', {})
@@ -1689,7 +1664,7 @@ export function saveCurrentProjectConfig(
     const currentProjectConfig =
       config.projects?.[absolutePath] ?? DEFAULT_PROJECT_CONFIG
     const newProjectConfig = updater(currentProjectConfig)
-    // Skip if no changes (same reference returned)
+    // 若无变化（返回相同引用）则跳过
     if (newProjectConfig === currentProjectConfig) {
       return
     }
@@ -1710,10 +1685,9 @@ export function isAutoUpdaterDisabled(): boolean {
 }
 
 /**
- * Returns true if plugin autoupdate should be skipped.
- * This checks if the auto-updater is disabled AND the FORCE_AUTOUPDATE_PLUGINS
- * env var is not set to 'true'. The env var allows forcing plugin autoupdate
- * even when the auto-updater is otherwise disabled.
+ * 返回 true 表示应跳过 plugin 自动更新。
+ * 检查 auto-updater 是否被禁用，且 FORCE_AUTOUPDATE_PLUGINS 环境变量
+ * 未设为 'true'。该环境变量允许在 auto-updater 被禁用的情况下强制更新插件。
  */
 export function shouldSkipPluginAutoupdate(): boolean {
   return (
@@ -1732,11 +1706,11 @@ export function formatAutoUpdaterDisabledReason(
 ): string {
   switch (reason.type) {
     case 'development':
-      return 'development build'
+      return 'development 构建'
     case 'env':
-      return `${reason.envVar} set`
+      return `${reason.envVar} 已设置`
     case 'config':
-      return 'config'
+      return '配置'
   }
 }
 
@@ -1803,11 +1777,11 @@ export function getMemoryPath(memoryType: MemoryType): string {
     case 'AutoMem':
       return getAutoMemEntrypoint()
   }
-  // TeamMem is only a valid MemoryType when feature('TEAMMEM') is true
+  // TeamMem 仅在 feature('TEAMMEM') 为 true 时才是合法的 MemoryType
   if (feature('TEAMMEM')) {
     return teamMemPaths!.getTeamMemEntrypoint()
   }
-  return '' // unreachable in external builds where TeamMem is not in MemoryType
+  return '' // 在 TeamMem 不在 MemoryType 中的外部构建中不可达
 }
 
 export function getManagedClaudeRulesDir(): string {
@@ -1818,7 +1792,7 @@ export function getUserClaudeRulesDir(): string {
   return join(getClaudeConfigHomeDir(), 'rules')
 }
 
-// Exported for testing only
+// 仅为测试导出
 export const _getConfigForTesting = getConfig
 export const _wouldLoseAuthStateForTesting = wouldLoseAuthState
 export function _setGlobalConfigCacheForTesting(

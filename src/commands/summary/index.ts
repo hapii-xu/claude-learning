@@ -1,24 +1,23 @@
 /**
- * /summary — Generate and display a session summary.
+ * /summary — 生成并展示会话摘要。
  *
- * Triggers a manual Session Memory extraction (bypassing automatic thresholds),
- * then reads and displays the updated summary.md file.
+ * 触发一次手动的 Session Memory 抽取（绕过自动阈值），
+ * 然后读取并展示更新后的 summary.md 文件。
  */
 import type { Command, LocalCommandCall } from '../../types/command.js'
 import type { Message } from '../../types/message.js'
 
-/** Only user/assistant/system messages are valid for API calls. */
+/** 只有 user/assistant/system 消息对 API 调用是合法的。 */
 const API_SAFE_TYPES = new Set(['user', 'assistant', 'system'])
 
 const call: LocalCommandCall = async (_args, context) => {
   const { messages } = context
 
-  // Filter to API-safe message types only.
-  // context.messages includes progress/attachment/etc. that crash the API
-  // call chain (normalizeMessagesForAPI → addCacheBreakpoints expects
-  // only user/assistant). The automatic extraction path uses
-  // createCacheSafeParams(REPLHookContext) which already has clean
-  // messages; the manual path via /summary does not.
+  // 仅过滤出对 API 安全的消息类型。
+  // context.messages 包含 progress/attachment 等会让 API 调用链
+  // 崩溃的消息（normalizeMessagesForAPI → addCacheBreakpoints 只接受
+  // user/assistant）。自动抽取路径使用 createCacheSafeParams(REPLHookContext)，
+  // 其 messages 已经是干净的；而通过 /summary 的手动路径并非如此。
   const safeMessages = (messages ?? []).filter(
     (m): m is Message => m != null && API_SAFE_TYPES.has(m.type),
   )

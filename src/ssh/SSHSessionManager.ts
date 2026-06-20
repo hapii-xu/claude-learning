@@ -337,13 +337,13 @@ export class SSHSessionManagerImpl implements SSHSessionManager {
         ;(stdin as unknown as { end?(): void }).end?.()
       }
     } catch {
-      // stdin may already be closed
+      // stdin 可能已经关闭
     }
 
     try {
       this.proc.kill()
     } catch {
-      // process may already be dead
+      // 进程可能已经死了
     }
   }
 

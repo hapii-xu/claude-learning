@@ -129,7 +129,7 @@ export async function checkGithubAppInstalled(
         )
         return installed
       }
-      // status is null - app is not installed on this repo
+      // status 为 null - 此仓库未安装该应用
       logForDebugging(
         `GitHub app is not installed on ${owner}/${repo} (status is null)`,
       )

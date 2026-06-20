@@ -15,9 +15,9 @@ function getRandomGoodbyeMessage(): string {
 }
 
 export async function call(onDone: LocalJSXCommandOnDone): Promise<React.ReactNode> {
-  // Inside a `claude --bg` tmux session: detach instead of kill. The REPL
-  // keeps running; `claude attach` can reconnect. Covers /exit, /quit,
-  // ctrl+c, ctrl+d — all funnel through here via REPL's handleExit.
+  // 在 `claude --bg` tmux 会话中：分离而非杀死进程。REPL 继续运行；
+  // `claude attach` 可重新连接。覆盖 /exit、/quit、ctrl+c、ctrl+d —
+  // 全部通过 REPL 的 handleExit 汇聚到此。
   if (feature('BG_SESSIONS') && isBgSession()) {
     onDone();
     spawnSync('tmux', ['detach-client'], { stdio: 'ignore' });

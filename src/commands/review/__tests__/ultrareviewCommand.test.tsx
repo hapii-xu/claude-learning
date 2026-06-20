@@ -1,33 +1,33 @@
 /**
- * Regression tests for `ultrareviewCommand.call` (src/commands/review/
- * ultrareviewCommand.tsx). The previous version of `call` made an axios
- * preflight POST and branched on `action: proceed | blocked | confirm`;
- * that integration was removed and `call` now branches on `checkOverageGate()`'s
- * four `kind` values: `not-enabled`, `low-balance`, `needs-confirm`, `proceed`.
+ * `ultrareviewCommand.call`（src/commands/review/
+ * ultrareviewCommand.tsx）的回归测试。旧版本的 `call` 会发起一次 axios
+ * preflight POST 并基于 `action: proceed | blocked | confirm` 分支；
+ * 该集成已被移除，`call` 现在基于 `checkOverageGate()` 的四个
+ * `kind` 值分支：`not-enabled`、`low-balance`、`needs-confirm`、`proceed`。
  *
- * These tests verify each branch:
- *   - `proceed` → forwards billingNote and args to `launchRemoteReview`,
- *     calls `onDone(text)`, returns null
- *   - `not-enabled` → onDone with paywall message + `display: 'system'`,
- *     returns null, does NOT launch
- *   - `low-balance` → onDone with balance-too-low message including the
- *     available amount, returns null, does NOT launch
- *   - `needs-confirm` → returns the React `UltrareviewOverageDialog` element,
- *     does NOT call onDone, does NOT launch
- *   - `proceed` + null launch result → onDone with "failed to launch" message
- *   - `proceed` + arg pass-through → args (e.g. PR number) reach launchRemoteReview
- *     verbatim (call doesn't parse them itself)
+ * 这些测试覆盖每个分支：
+ *   - `proceed` → 将 billingNote 和 args 透传给 `launchRemoteReview`，
+ *     调用 `onDone(text)`，返回 null
+ *   - `not-enabled` → onDone 携带付费墙消息 + `display: 'system'`，
+ *     返回 null，不启动
+ *   - `low-balance` → onDone 携带余额不足消息（包含可用余额），
+ *     返回 null，不启动
+ *   - `needs-confirm` → 返回 React `UltrareviewOverageDialog` 元素，
+ *     不调用 onDone，不启动
+ *   - `proceed` + null 启动结果 → onDone 携带 "failed to launch" 消息
+ *   - `proceed` + 参数透传 → args（如 PR 号）原样到达 launchRemoteReview
+ *     （call 本身不解析它们）
  */
 import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { debugMock } from '../../../../tests/mocks/debug.js';
 import { logMock } from '../../../../tests/mocks/log.js';
 import { setupAxiosMock } from '../../../../tests/mocks/axios.js';
 
-// Pre-import the real react and ink modules so we can delegate after this
-// suite. Bun's mock.module is process-global / last-write-wins; without
-// delegation the stub createElement / stub ink components leak into other
-// test files (e.g. SnapshotUpdateDialog.test.tsx, AgentsPlatformView.test.tsx)
-// that need real React.createElement and real Box/Text components.
+// 在本 suite 之前预先 import 真实的 react 和 ink 模块，以便之后可以委托。
+// Bun 的 mock.module 是进程级 / last-write-wins；不委托的话，
+// stub 的 createElement / stub 的 ink 组件会泄漏到其他
+// 测试文件（例如 SnapshotUpdateDialog.test.tsx、AgentsPlatformView.test.tsx），
+// 而这些文件需要真实的 React.createElement 和真实的 Box/Text 组件。
 const _realReactMod = (await import('react')) as Record<string, unknown> & {
   default?: Record<string, unknown>;
 };
@@ -37,13 +37,13 @@ let _useStubInkForUltrareview = true;
 afterAll(() => {
   _useStubReactForUltrareview = false;
   _useStubInkForUltrareview = false;
-  // The handle reference exists by the time afterAll runs (TDZ resolves via
-  // closure). Flip useStubs off so the spread-real fall-through kicks in for
-  // any test file that runs after this one in the same process.
+  // 在 afterAll 运行时 handle 引用已经存在（TDZ 通过闭包解析）。
+  // 将 useStubs 关闭，这样对于同一进程中之后运行的任何测试文件，
+  // spread-real 的兜底分支就会生效。
   _ultrareviewAxiosHandle.useStubs = false;
 });
 
-// Mock dependency chain before any subject import
+// 在任何被测 import 之前 mock 依赖链
 mock.module('src/utils/debug.ts', debugMock);
 mock.module('src/utils/log.ts', logMock);
 mock.module('src/services/analytics/index.js', () => ({
@@ -53,18 +53,17 @@ mock.module('src/services/analytics/growthbook.js', () => ({
   getFeatureValue_CACHED_MAY_BE_STALE: () => null,
 }));
 
-// Mock auth utilities
+// Mock auth 工具
 mock.module('src/utils/auth.js', () => ({
   isClaudeAISubscriber: () => true,
   isTeamSubscriber: () => false,
   isEnterpriseSubscriber: () => false,
 }));
 
-// Mock checkOverageGate with a mutable gate result so each test can drive
-// the four branches in ultrareviewCommand.call (not-enabled, low-balance,
-// needs-confirm, proceed). launchRemoteReview captures args for the
-// args-forwarding test, and its return value is mutable too — `null` triggers
-// the "failed to launch" onDone branch.
+// Mock checkOverageGate 并使用可变的 gate 结果，使每个测试可以驱动
+// ultrareviewCommand.call 的四个分支（not-enabled、low-balance、
+// needs-confirm、proceed）。launchRemoteReview 会捕获 args 用于参数
+// 透传测试，其返回值也可变 — `null` 会触发 "failed to launch" onDone 分支。
 type GateResult =
   | { kind: 'proceed'; billingNote: string }
   | { kind: 'not-enabled' }
@@ -82,12 +81,12 @@ mock.module('src/commands/review/reviewRemote.js', () => ({
   },
 }));
 
-// Mock OAuth config so real fetchUltrareviewPreflight can run
+// Mock OAuth 配置，使真实的 fetchUltrareviewPreflight 可以运行
 mock.module('src/constants/oauth.js', () => ({
   getOauthConfig: () => ({ BASE_API_URL: 'https://api.anthropic.com' }),
 }));
 
-// Mock prepareApiRequest so real fetchUltrareviewPreflight skips auth
+// Mock prepareApiRequest，使真实的 fetchUltrareviewPreflight 跳过鉴权
 mock.module('src/utils/teleport/api.js', () => ({
   prepareApiRequest: async () => ({
     accessToken: 'test-token',
@@ -100,7 +99,7 @@ mock.module('src/utils/teleport/api.js', () => ({
   }),
 }));
 
-// Mock axios — per-test responses set via mockAxiosPost.mockImplementationOnce
+// Mock axios — 单测响应通过 mockAxiosPost.mockImplementationOnce 设置
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockAxiosPost = mock(
   async (..._args: any[]): Promise<any> => ({
@@ -109,17 +108,17 @@ const mockAxiosPost = mock(
   }),
 );
 
-// Spread real axios + flag-gate stubs so the per-test mockAxiosPost stops
-// leaking into later test files (mock.module is process-global). Default ON
-// for this suite; afterAll above flips _useStubReactForUltrareview, but here
-// we tie axios cleanup to the helper's own flag — see suite-level afterAll.
+// Spread 真实 axios + 基于 flag 门控的 stub，使单测的 mockAxiosPost 不再
+// 泄漏到后续测试文件（mock.module 是进程级）。本 suite 默认开启；
+// 上方 afterAll 会翻转 _useStubReactForUltrareview，而这里我们将
+// axios 的清理绑定到 helper 自身的 flag — 见 suite 级 afterAll。
 const _ultrareviewAxiosHandle = setupAxiosMock();
 _ultrareviewAxiosHandle.useStubs = true;
 _ultrareviewAxiosHandle.stubs.post = mockAxiosPost;
 _ultrareviewAxiosHandle.stubs.isAxiosError = (e: unknown) =>
   typeof e === 'object' && e !== null && (e as { isAxiosError?: boolean }).isAxiosError === true;
 
-// Mock detectCurrentRepositoryWithHost
+// Mock detectCurrentRepositoryWithHost 模块
 mock.module('src/utils/detectRepository.js', () => ({
   detectCurrentRepositoryWithHost: async () => ({
     host: 'github.com',
@@ -128,13 +127,13 @@ mock.module('src/utils/detectRepository.js', () => ({
   }),
 }));
 
-// Minimal mock for React/Ink so we don't need a full renderer.
-// Preserve any explicit `children` prop when no varargs children are passed
-// — otherwise consumers who pass `children` via the props object (e.g.
-// SnapshotUpdateDialog.ts uses `React.createElement(Dialog, { ..., children })`)
-// see their array overwritten with `[]`. mock.module is process-global so this
-// mock survives into other test files in the same run; afterAll flips the flag
-// so we delegate to real React thereafter.
+// 对 React/Ink 做最小化 mock，避免依赖完整渲染器。
+// 当没有传入可变参数 children 时，保留显式的 `children` prop
+// — 否则通过 props 对象传入 `children` 的调用方（例如
+// SnapshotUpdateDialog.ts 使用 `React.createElement(Dialog, { ..., children })`）
+// 会看到自己的数组被覆盖为 `[]`。mock.module 是进程级的，因此该 mock
+// 在同一次运行的其他测试文件中依然生效；afterAll 会翻转 flag，
+// 此后委托给真实的 React。
 mock.module('react', () => {
   const stubCreateElement = (type: unknown, props: unknown, ...children: unknown[]) => {
     const propsObj = (props ?? {}) as Record<string, unknown>;
@@ -159,10 +158,10 @@ mock.module('react', () => {
   };
 });
 
-// Spread real ink + flag-gate the stub components. Without spread, the bare
-// { Box: 'Box', Dialog: 'Dialog', Text: 'Text' } leaks into every later test
-// file (e.g. AgentsPlatformView.test.tsx) that imports @anthropic/ink — those
-// consumers receive strings instead of real components and rendering breaks.
+// Spread 真实 ink + 对 stub 组件做 flag 门控。如果不 spread，光秃秃的
+// { Box: 'Box', Dialog: 'Dialog', Text: 'Text' } 会泄漏到之后每一个
+// import @anthropic/ink 的测试文件（例如 AgentsPlatformView.test.tsx）— 这些
+// 调用方会拿到字符串而不是真实组件，渲染就会出错。
 mock.module('@anthropic/ink', () => {
   if (_useStubInkForUltrareview) {
     return {
@@ -179,7 +178,7 @@ mock.module('src/components/CustomSelect/select.js', () => ({
   Select: 'Select',
 }));
 
-// UltrareviewOverageDialog and PreflightDialog — return a simple marker
+// UltrareviewOverageDialog 和 PreflightDialog — 返回一个简单标记
 mock.module('src/commands/review/UltrareviewOverageDialog.js', () => ({
   UltrareviewOverageDialog: () => ({ type: 'UltrareviewOverageDialog' }),
 }));
@@ -195,8 +194,8 @@ const makeContext = () =>
   }) as Parameters<typeof call>[1];
 
 describe('ultrareviewCommand.call: gate branches', () => {
-  // Reset gate + launch state between tests so a previous test's mutation
-  // doesn't leak into the next.
+  // 在测试之间重置 gate + launch 状态，避免上一个测试的修改
+  // 泄漏到下一个测试。
   beforeEach(() => {
     _gateResult = { kind: 'proceed', billingNote: '' };
     _launchResult = [{ type: 'text', text: 'Launched successfully.' }];
@@ -214,7 +213,7 @@ describe('ultrareviewCommand.call: gate branches', () => {
     expect(result).toBeNull();
     expect(messages.length).toBe(1);
     expect(messages[0]).toContain('Launched successfully');
-    // launchRemoteReview was invoked exactly once with the empty args.
+    // launchRemoteReview 恰好以空 args 被调用一次。
     expect(_capturedLaunchArgs).toEqual(['']);
   });
 
@@ -235,7 +234,7 @@ describe('ultrareviewCommand.call: gate branches', () => {
     expect(messages[0]).toContain('Free ultrareviews used');
     expect(messages[0]).toContain('claude.ai/settings/billing');
     expect((opts[0] as { display: string }).display).toBe('system');
-    // launchRemoteReview must NOT be called when paywalled.
+    // 付费墙情况下绝对不能调用 launchRemoteReview。
     expect(_capturedLaunchArgs).toEqual([]);
   });
 
@@ -268,19 +267,19 @@ describe('ultrareviewCommand.call: gate branches', () => {
 
     const result = await call(onDone as Parameters<typeof call>[0], makeContext(), '');
 
-    // Returns a React element rather than null.
+    // 返回 React 元素而不是 null。
     expect(result).not.toBeNull();
     expect(typeof result).toBe('object');
     const element = result as { type: unknown };
     expect(element.type).toBeDefined();
-    // No onDone call until the user interacts with the dialog.
+    // 在用户与对话框交互之前不会调用 onDone。
     expect(messages).toEqual([]);
     expect(_capturedLaunchArgs).toEqual([]);
   });
 
   test('proceed gate + launchRemoteReview returns null: onDone with failure message', async () => {
     _gateResult = { kind: 'proceed', billingNote: '' };
-    _launchResult = null; // teleport / non-github failure path
+    _launchResult = null; // teleport / 非 github 失败路径
 
     const messages: string[] = [];
     const opts: Array<unknown> = [];
@@ -305,8 +304,8 @@ describe('ultrareviewCommand.call: gate branches', () => {
 
     await call(onDone as Parameters<typeof call>[0], makeContext(), '42');
 
-    // ultrareviewCommand.call doesn't parse args itself — launchRemoteReview
-    // is responsible for PR-number detection. So we only assert pass-through.
+    // ultrareviewCommand.call 本身不解析 args — PR 号检测由
+    // launchRemoteReview 负责。因此这里只断言透传。
     expect(_capturedLaunchArgs).toEqual(['42']);
   });
 });

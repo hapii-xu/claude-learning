@@ -7,7 +7,7 @@ import { useIsInsideModal } from '../../context/modalContext.js';
 import { getSettings_DEPRECATED, updateSettingsForSource } from '../../utils/settings/settings.js';
 import type { LocalJSXCommandCall, LocalJSXCommandContext } from '../../types/command.js';
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// ── 类型定义 ──
 
 type SearchAdapterKey = 'tavily' | 'api' | 'bing' | 'brave' | 'exa';
 type FetchAdapterKey = 'tavily' | 'http';
@@ -31,7 +31,7 @@ type SettingsJson = Record<string, unknown> & {
 
 type ViewState = { kind: 'main' } | { kind: 'config'; adapter: AdapterMeta };
 
-// ── Data ───────────────────────────────────────────────────────────────────
+// ── 数据 ──
 
 const SEARCH_ADAPTERS: AdapterMeta[] = [
   { key: 'tavily', label: 'Tavily', description: 'Tavily Search API (default)', hasConfig: true },
@@ -46,7 +46,7 @@ const FETCH_ADAPTERS: AdapterMeta[] = [
   { key: 'http', label: 'HTTP Direct', description: 'Fetch URL directly via HTTP', hasConfig: true },
 ];
 
-// ── Config field definitions ───────────────────────────────────────────────
+// ── 配置字段定义 ──
 
 type ConfigField = {
   key: string;
@@ -57,7 +57,7 @@ type ConfigField = {
   setValue: (s: SettingsJson, v: string) => SettingsJson;
 };
 
-// ── Main View ──────────────────────────────────────────────────────────────
+// ── 主视图 ──
 
 function MainView({
   tab,
@@ -106,7 +106,7 @@ function MainView({
         onConfigure(adapter);
       }
     }
-    // Space toggles selection without entering config
+    // 空格键在不进入配置的情况下切换选择
     else if (input === ' ') {
       const adapter = adapters[cursor];
       if (adapter) {
@@ -151,7 +151,7 @@ function MainView({
   );
 }
 
-// ── Config View ────────────────────────────────────────────────────────────
+// ── 配置视图 ──
 
 function getConfigFields(adapter: AdapterMeta): ConfigField[] {
   const fields: ConfigField[] = [];
@@ -311,14 +311,14 @@ function ConfigFieldsEditor({
   const [editValue, setEditValue] = useState('');
   const [editCursor, setEditCursor] = useState(0);
 
-  // Reset edit state when field cursor changes
+  // 字段光标变化时重置编辑状态
   const resetEdit = useCallback(() => {
     setEditing(false);
     setEditValue('');
     setEditCursor(0);
   }, []);
 
-  // Row count: fields + "Save" button + "Back" button
+  // 行数：字段 + 「Save」按钮 + 「Back」按钮
   const fieldRowStart = 0;
   const fieldRowEnd = fields.length - 1;
   const saveRow = fields.length;
@@ -347,14 +347,14 @@ function ConfigFieldsEditor({
     const field = fields[cursor];
     if (!field) return;
     const updated = field.setValue({ ...settings } as SettingsJson, editValue);
-    // Store locally for preview, actual save on "Save"
+    // 仅在本地暂存以便预览，真正的保存在点击「Save」时发生
     Object.assign(settings, updated);
     setEditing(false);
   }, [cursor, fields, settings, editValue]);
 
   useInput((input, key) => {
     if (editing) {
-      // In edit mode, all typing goes to the field value
+      // 编辑模式下，所有按键都输入到字段值中
       if (key.escape) {
         resetEdit();
       } else if (key.return) {
@@ -380,7 +380,7 @@ function ConfigFieldsEditor({
         });
       }
     } else {
-      // Not editing — navigate fields
+      // 非编辑模式 —— 在字段之间导航
       if (key.upArrow) {
         setCursor(c => Math.max(0, c - 1));
       } else if (key.downArrow) {
@@ -464,7 +464,7 @@ function ConfigFieldsEditor({
   );
 }
 
-// ── Top-level panel ────────────────────────────────────────────────────────
+// ── 顶层面板 ──
 
 function WebToolsPanel({
   onClose,
@@ -515,7 +515,7 @@ function WebToolsPanel({
 
   const handleSelectFromConfig = useCallback(
     (msg: string) => {
-      // Also save the adapter selection when coming from config detail
+      // 从配置详情返回时，同时也保存 adapter 的选择
       const adapter = (view as Extract<ViewState, { kind: 'config' }>).adapter;
       const tab =
         view.kind === 'config' ? (SEARCH_ADAPTERS.some(a => a.key === adapter.key) ? 'search' : 'fetch') : currentTab;
@@ -537,7 +537,7 @@ function WebToolsPanel({
     );
   }
 
-  // Main view with tabs
+  // 带 tabs 的主视图
   const adapters = currentTab === 'search' ? SEARCH_ADAPTERS : FETCH_ADAPTERS;
   const current = currentTab === 'search' ? currentSearch : currentFetch;
 

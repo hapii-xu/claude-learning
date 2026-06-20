@@ -12,7 +12,7 @@ export function getSpinnerVerbs(): string[] {
   return [...SPINNER_VERBS, ...config.verbs]
 }
 
-// Spinner verbs for loading messages
+// 加载消息中使用的 spinner 动词
 export const SPINNER_VERBS = [
   'Accomplishing',
   'Actioning',

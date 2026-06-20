@@ -1,4 +1,4 @@
-// biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+// biome-ignore-all assist/source/organizeImports: ANT-ONLY 的 import 标记不可重新排序
 import { feature } from 'bun:bundle'
 import { readFile, stat } from 'fs/promises'
 import { dirname } from 'path'
@@ -362,7 +362,7 @@ import { errorMessage, toError } from '../utils/errors.js'
 import { sleep } from '../utils/sleep.js'
 import { isExtractModeActive } from '../memdir/paths.js'
 
-// Dead code elimination: conditional imports
+// 死代码消除：条件导入
 /* eslint-disable @typescript-eslint/no-require-imports */
 const coordinatorModeModule = feature('COORDINATOR_MODE')
   ? (require('../coordinator/coordinatorMode.js') as typeof import('../coordinator/coordinatorMode.js'))
@@ -393,18 +393,18 @@ The user cannot receive your response until the team is completely shut down.
 
 Shut down your team and prepare your final response for the user.`
 
-// Track message UUIDs received during the current session runtime
+// 跟踪当前会话运行期间收到的消息 UUID
 const MAX_RECEIVED_UUIDS = 10_000
 const receivedMessageUuids = new Set<UUID>()
 const receivedMessageUuidsOrder: UUID[] = []
 
 function trackReceivedMessageUuid(uuid: UUID): boolean {
   if (receivedMessageUuids.has(uuid)) {
-    return false // duplicate
+    return false // 重复
   }
   receivedMessageUuids.add(uuid)
   receivedMessageUuidsOrder.push(uuid)
-  // Evict oldest entries when at capacity
+  // 容量满时淘汰最早的条目
   if (receivedMessageUuidsOrder.length > MAX_RECEIVED_UUIDS) {
     const toEvict = receivedMessageUuidsOrder.splice(
       0,
@@ -414,7 +414,7 @@ function trackReceivedMessageUuid(uuid: UUID): boolean {
       receivedMessageUuids.delete(old)
     }
   }
-  return true // new UUID
+  return true // 新 UUID
 }
 
 type PromptValue = string | ContentBlockParam[]
@@ -424,9 +424,8 @@ function toBlocks(v: PromptValue): ContentBlockParam[] {
 }
 
 /**
- * Join prompt values from multiple queued commands into one. Strings are
- * newline-joined; if any value is a block array, all values are normalized
- * to blocks and concatenated.
+ * 将多个排队命令的 prompt 值合并为一个。字符串会以换行符拼接；
+ * 若任一值为 block 数组，则所有值都会归一化为 block 并拼接。
  */
 export function joinPromptValues(values: PromptValue[]): PromptValue {
   if (values.length === 1) return values[0]!
@@ -437,11 +436,10 @@ export function joinPromptValues(values: PromptValue[]): PromptValue {
 }
 
 /**
- * Whether `next` can be batched into the same ask() call as `head`. Only
- * prompt-mode commands batch, and only when the workload tag matches (so the
- * combined turn is attributed correctly) and the isMeta flag matches (so a
- * proactive tick can't merge into a user prompt and lose its hidden-in-
- * transcript marking when the head is spread over the merged command).
+ * `next` 是否可以与 `head` 合并到同一次 ask() 调用中。只有 prompt 模式的
+ * 命令才会合并，并且仅当 workload 标签匹配（以确保合并后的回合被正确归因）
+ * 以及 isMeta 标志匹配（防止主动触发 tick 合并到用户 prompt 中，从而在 head
+ * 被铺开到合并后的命令上时丢失其在 transcript 中的隐藏标记）时才会合并。
  */
 export function canBatchWith(
   head: QueuedCommand,
@@ -505,11 +503,10 @@ export async function runHeadless(
     process.exit(0)
   }
 
-  // Fire user settings download now so it overlaps with the MCP/tool setup
-  // below. Managed settings already started in main.tsx preAction; this gives
-  // user settings a similar head start. The cached promise is joined in
-  // installPluginsAndApplyMcpInBackground before plugin install reads
-  // enabledPlugins.
+  // 现在触发用户设置下载，使其与下面的 MCP/工具设置并行进行。
+  // 托管设置已经在 main.tsx 的 preAction 中启动；此处让用户设置也能获得类似的
+  // 提前启动机会。缓存的 promise 会在 installPluginsAndApplyMcpInBackground
+  // 读取 enabledPlugins 进行插件安装之前被 join。
   if (
     feature('DOWNLOAD_USER_SETTINGS') &&
     (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) || getIsRemoteMode())
@@ -517,14 +514,13 @@ export async function runHeadless(
     void downloadUserSettings()
   }
 
-  // In headless mode there is no React tree, so the useSettingsChange hook
-  // never runs. Subscribe directly so that settings changes (including
-  // managed-settings / policy updates) are fully applied.
+  // 在 headless 模式下没有 React 树，因此 useSettingsChange hook 永远不会
+  // 执行。直接订阅，确保设置变更（包括 managed-settings / 策略更新）被完整应用。
   settingsChangeDetector.subscribe(source => {
     applySettingsChange(source, setAppState)
 
-    // In headless mode, also sync the denormalized fastMode field from
-    // settings. The TUI manages fastMode via the UI so it skips this.
+    // 在 headless 模式下，还需从设置同步反规范化的 fastMode 字段。
+    // TUI 通过 UI 管理 fastMode，因此会跳过此步骤。
     if (isFastModeEnabled()) {
       setAppState(prev => {
         const s = prev.settings as Record<string, unknown>
@@ -534,10 +530,9 @@ export async function runHeadless(
     }
   })
 
-  // Proactive activation is now handled in main.tsx before getTools() so
-  // SleepTool passes isEnabled() filtering. This fallback covers the case
-  // where CLAUDE_CODE_PROACTIVE is set but main.tsx's check didn't fire
-  // (e.g. env was injected by the SDK transport after argv parsing).
+  // 主动激活现在已在 main.tsx 的 getTools() 之前处理，以便 SleepTool 能通过
+  // isEnabled() 过滤。此回退逻辑用于处理 CLAUDE_CODE_PROACTIVE 已设置但
+  // main.tsx 的检查未触发的情况（例如：argv 解析之后环境变量由 SDK transport 注入）。
   if (
     (feature('PROACTIVE') || feature('KAIROS')) &&
     proactiveModule &&
@@ -547,10 +542,9 @@ export async function runHeadless(
     proactiveModule.activateProactive('command')
   }
 
-  // Periodically run GC to keep memory usage in check.
-  // Uses a memory threshold to trigger a forced (major) GC when RSS grows
-  // beyond 350MB — the incremental GC may not reclaim enough during peaks
-  // (compact, long sessions with many mounted DOM nodes).
+  // 定期运行 GC 以控制内存使用。
+  // 当 RSS 超过 350MB 时通过内存阈值触发一次强制（major）GC —— 增量 GC
+  // 在峰值期间（大量 DOM 节点挂载的紧凑长会话）可能回收不够。
   if (typeof Bun !== 'undefined') {
     const gcTimer = setInterval(() => {
       const rss = process.memoryUsage.rss()
@@ -563,18 +557,18 @@ export async function runHeadless(
     gcTimer.unref()
   }
 
-  // Start headless profiler for first turn
+  // 为第一个回合启动 headless profiler
   headlessProfilerStartTurn()
   headlessProfilerCheckpoint('runHeadless_entry')
 
-  // Check Grove requirements for non-interactive consumer subscribers
+  // 检查非交互式消费者订阅方的 Grove 要求
   if (await isQualifiedForGrove()) {
     await checkGroveForNonInteractive()
   }
   headlessProfilerCheckpoint('after_grove_check')
 
-  // Initialize GrowthBook so feature flags take effect in headless mode.
-  // Without this, the disk cache is empty and all flags fall back to defaults.
+  // 初始化 GrowthBook，使 feature flag 在 headless 模式下生效。
+  // 否则磁盘缓存为空，所有 flag 都会回退到默认值。
   void initializeGrowthBook()
 
   if (options.resumeSessionAt && !options.resume) {
@@ -599,18 +593,17 @@ export async function runHeadless(
 
   const structuredIO = getStructuredIO(inputPrompt, options)
 
-  // When emitting NDJSON for SDK clients, any stray write to stdout (debug
-  // prints, dependency console.log, library banners) breaks the client's
-  // line-by-line JSON parser. Install a guard that diverts non-JSON lines to
-  // stderr so the stream stays clean. Must run before the first
-  // structuredIO.write below.
+  // 在为 SDK 客户端输出 NDJSON 时，任何对 stdout 的杂散写入（调试打印、
+  // 依赖的 console.log、库的横幅）都会破坏客户端逐行解析 JSON 的逻辑。
+  // 安装一个守卫，将非 JSON 行重定向到 stderr，以保持输出流干净。必须在
+  // 下面第一次 structuredIO.write 之前执行。
   if (options.outputFormat === 'stream-json') {
     installStreamJsonStdoutGuard()
   }
 
-  // #34044: if user explicitly set sandbox.enabled=true but deps are missing,
-  // isSandboxingEnabled() returns false silently. Surface the reason so users
-  // know their security config isn't being enforced.
+  // #34044: 如果用户显式设置了 sandbox.enabled=true 但依赖缺失，
+  // isSandboxingEnabled() 会静默返回 false。此处显式暴露原因，让用户知道
+  // 他们的安全配置没有被强制执行。
   const sandboxUnavailableReason = SandboxManager.getSandboxUnavailableReason()
   if (sandboxUnavailableReason) {
     if (SandboxManager.isSandboxRequired()) {
@@ -626,9 +619,9 @@ export async function runHeadless(
         `  Commands will run WITHOUT sandboxing. Network and filesystem restrictions will NOT be enforced.\n\n`,
     )
   } else if (SandboxManager.isSandboxingEnabled()) {
-    // Initialize sandbox with a callback that forwards network permission
-    // requests to the SDK host via the can_use_tool control_request protocol.
-    // This must happen after structuredIO is created so we can send requests.
+    // 用一个回调初始化 sandbox，该回调通过 can_use_tool control_request
+    // 协议将网络权限请求转发给 SDK 宿主。必须发生在 structuredIO 创建之后，
+    // 以便我们能够发送请求。
     try {
       await SandboxManager.initialize(structuredIO.createSandboxAskCallback())
     } catch (err) {
@@ -707,18 +700,17 @@ export async function runHeadless(
     restoredWorkerState: structuredIO.restoredWorkerState,
   })
 
-  // SessionStart hooks can emit initialUserMessage — the first user turn for
-  // headless orchestrator sessions where stdin is empty and additionalContext
-  // alone (an attachment, not a turn) would leave the REPL with nothing to
-  // respond to. The hook promise is awaited inside loadInitialMessages, so the
-  // module-level pending value is set by the time we get here.
+  // SessionStart hook 可能输出 initialUserMessage —— 即 headless 编排会话的
+  // 第一个用户回合。在 stdin 为空的情况下，仅靠 additionalContext（是一个附件，
+  // 不是回合）会让 REPL 无内容可响应。该 hook 的 promise 在 loadInitialMessages
+  // 内部被 await，因此到达此处时模块级的 pending 值已被设置。
   const hookInitialUserMessage = takeInitialUserMessage()
   if (hookInitialUserMessage) {
     structuredIO.prependUserMessage(hookInitialUserMessage)
   }
 
-  // Restore agent setting from the resumed session (if not overridden by current --agent flag
-  // or settings-based agent, which would already have set mainThreadAgentType in main.tsx)
+  // 从已恢复的会话中还原 agent 设置（除非当前 --agent 标志或基于设置的 agent
+  // 已覆盖，这两者都会在 main.tsx 中设置 mainThreadAgentType）
   if (!options.agent && !getMainThreadAgentType() && resumedAgentSetting) {
     const { agentDefinition: restoredAgent } = restoreAgentFromSession(
       resumedAgentSetting,
@@ -727,29 +719,29 @@ export async function runHeadless(
     )
     if (restoredAgent) {
       setAppState(prev => ({ ...prev, agent: restoredAgent.agentType }))
-      // Apply the agent's system prompt for non-built-in agents (mirrors main.tsx initial --agent path)
+      // 对非内置 agent 应用其 system prompt（与 main.tsx 初始 --agent 路径一致）
       if (!options.systemPrompt && !isBuiltInAgent(restoredAgent)) {
         const agentSystemPrompt = restoredAgent.getSystemPrompt()
         if (agentSystemPrompt) {
           options.systemPrompt = agentSystemPrompt
         }
       }
-      // Re-persist agent setting so future resumes maintain the agent
+      // 重新持久化 agent 设置，以便未来 resume 仍能保留该 agent
       saveAgentSetting(restoredAgent.agentType)
     }
   }
 
-  // gracefulShutdownSync schedules an async shutdown and sets process.exitCode.
-  // If a loadInitialMessages error path triggered it, bail early to avoid
-  // unnecessary work while the process winds down.
+  // gracefulShutdownSync 会调度一个异步关闭流程并设置 process.exitCode。
+  // 如果 loadInitialMessages 的错误路径已经触发了它，提前退出以避免进程
+  // 收尾期间进行不必要的工作。
   if (initialMessages.length === 0 && process.exitCode !== undefined) {
     return
   }
 
-  // Handle --rewind-files: restore filesystem and exit immediately
+  // 处理 --rewind-files：还原文件系统并立即退出
   if (options.rewindFiles) {
-    // File history snapshots are only created for user messages,
-    // so we require the target to be a user message
+    // 文件历史快照仅针对用户消息创建，
+    // 因此要求目标必须是用户消息
     const targetMessage = initialMessages.find(
       m => m.uuid === options.rewindFiles,
     )
@@ -775,7 +767,7 @@ export async function runHeadless(
       return
     }
 
-    // Rewind complete - exit successfully
+    // Rewind 完成 - 成功退出
     process.stdout.write(
       `Files rewound to state at message ${options.rewindFiles}\n`,
     )
@@ -783,7 +775,7 @@ export async function runHeadless(
     return
   }
 
-  // Check if we need input prompt - skip if we're resuming with a valid session ID/JSONL file or using SDK URL
+  // 检查是否需要输入 prompt —— 当通过有效的 session ID/JSONL 文件 resume 或使用 SDK URL 时跳过
   const hasValidResumeSessionId =
     typeof options.resume === 'string' &&
     (Boolean(validateUuid(options.resume)) || options.resume.endsWith('.jsonl'))
@@ -805,19 +797,19 @@ export async function runHeadless(
     return
   }
 
-  // Filter out MCP tools that are in the deny list
+  // 过滤掉位于拒绝列表中的 MCP 工具
   const allowedMcpTools = filterToolsByDenyRules(
     appState.mcp.tools,
     appState.toolPermissionContext,
   )
   let filteredTools = [...tools, ...allowedMcpTools]
 
-  // When using SDK URL, always use stdio permission prompting to delegate to the SDK
+  // 使用 SDK URL 时，始终使用 stdio 权限提示，将其委托给 SDK
   const effectivePermissionPromptToolName = options.sdkUrl
     ? 'stdio'
     : options.permissionPromptToolName
 
-  // Callback for when a permission prompt is shown
+  // 权限提示展示时的回调
   const onPermissionPrompt = (details: RequiresActionDetails) => {
     if (feature('COMMIT_ATTRIBUTION')) {
       setAppState(prev => ({
@@ -838,34 +830,33 @@ export async function runHeadless(
     onPermissionPrompt,
   )
   if (options.permissionPromptToolName) {
-    // Remove the permission prompt tool from the list of available tools.
+    // 从可用工具列表中移除权限提示工具。
     filteredTools = filteredTools.filter(
       tool => !toolMatchesName(tool, options.permissionPromptToolName!),
     )
   }
 
-  // Install errors handlers to gracefully handle broken pipes (e.g., when parent process dies)
+  // 安装错误处理器以优雅处理 broken pipe（例如：父进程死亡时）
   registerProcessOutputErrorHandlers()
 
   headlessProfilerCheckpoint('after_loadInitialMessages')
 
-  // Ensure model strings are initialized before generating model options.
-  // For Bedrock users, this waits for the profile fetch to get correct region strings.
+  // 确保在生成模型选项前完成 model 字符串初始化。
+  // 对 Bedrock 用户，这会等待 profile 拉取以获得正确的 region 字符串。
   await ensureModelStringsInitialized()
   headlessProfilerCheckpoint('after_modelStrings')
 
-  // UDS inbox store registration is deferred until after `run` is defined
-  // so we can pass `run` as the onEnqueue callback (see below).
+  // UDS inbox store 的注册被推迟到 `run` 定义完成之后，
+  // 以便把 `run` 作为 onEnqueue 回调传入（见下文）。
 
-  // Only `json` + `verbose` needs the full array (jsonStringify(messages) below).
-  // For stream-json (SDK/CCR) and default text output, only the last message is
-  // read for the exit code / final result. Avoid accumulating every message in
-  // memory for the entire session.
+  // 只有 `json` + `verbose` 需要完整数组（见下方 jsonStringify(messages)）。
+  // 对于 stream-json（SDK/CCR）和默认文本输出，只会读取最后一条消息用于
+  // 退出码/最终结果。避免在整个会话期间把每条消息都累积到内存中。
   const needsFullArray = options.outputFormat === 'json' && options.verbose
   const messages: SDKMessage[] = []
   let lastMessage: SDKMessage | undefined
-  // Streamlined mode transforms messages when CLAUDE_CODE_STREAMLINED_OUTPUT=true and using stream-json
-  // Build flag gates this out of external builds; env var is the runtime opt-in for ant builds
+  // 简化模式会在 CLAUDE_CODE_STREAMLINED_OUTPUT=true 且使用 stream-json 时转换消息
+  // Build flag 将其排除在外部构建之外；环境变量是 ant 构建的运行时开关
   const transformToStreamlined =
     feature('STREAMLINED_OUTPUT') &&
     isEnvTruthy(process.env.CLAUDE_CODE_STREAMLINED_OUTPUT) &&
@@ -889,7 +880,7 @@ export async function runHeadless(
     turnInterruptionState,
   )) {
     if (transformToStreamlined) {
-      // Streamlined mode: transform messages and stream immediately
+      // 简化模式：转换消息并立即流式输出
       const transformed = transformToStreamlined(message)
       if (transformed) {
         await structuredIO.write(transformed)
@@ -897,11 +888,11 @@ export async function runHeadless(
     } else if (options.outputFormat === 'stream-json' && options.verbose) {
       await structuredIO.write(message)
     }
-    // Should not be getting control messages or stream events in non-stream mode.
-    // Also filter out streamlined types since they're only produced by the transformer.
-    // SDK-only system events are excluded so lastMessage stays at the result
-    // (session_state_changed(idle) and any late task_notification drain after
-    // result in the finally block).
+    // 非流式模式下不应收到 control 消息或 stream 事件。
+    // 同时过滤掉 streamlined 类型，因为它们只由 transformer 产生。
+    // SDK 专属的系统事件被排除，使 lastMessage 停留在 result
+    // （即 session_state_changed(idle) 以及在 finally 块中 result 之后排空的
+    // 任何延迟 task_notification）。
     if (
       message.type !== 'control_response' &&
       message.type !== 'control_request' &&
@@ -939,7 +930,7 @@ export async function runHeadless(
       writeToStdout(jsonStringify(lastMessage) + '\n')
       break
     case 'stream-json':
-      // already logged above
+      // 已在上方输出
       break
     default:
       if (!lastMessage || lastMessage.type !== 'result') {
@@ -973,14 +964,13 @@ export async function runHeadless(
       }
   }
 
-  // Log headless latency metrics for the final turn
+  // 记录最后一个回合的 headless 延迟指标
   logHeadlessProfilerTurn()
 
-  // Drain any in-flight memory extraction before shutdown. The response is
-  // already flushed above, so this adds no user-visible latency — it just
-  // delays process exit so gracefulShutdownSync's 5s failsafe doesn't kill
-  // the forked agent mid-flight. Gated by isExtractModeActive so the
-  // tengu_slate_thimble flag controls non-interactive extraction end-to-end.
+  // 在关闭之前排空仍在进行的 memory 提取。响应已经在上方刷出，因此不会
+  // 增加用户可见的延迟 —— 只会延迟进程退出，避免 gracefulShutdownSync 的 5 秒
+  // 兜底机制在 fork 出的 agent 进行中将其杀死。通过 isExtractModeActive 进行门控，
+  // 使 tengu_slate_thimble flag 能端到端控制非交互式提取。
   if (feature('EXTRACT_MEMORIES') && isExtractModeActive()) {
     try {
       const { drainPendingExtraction } = await import(
@@ -988,7 +978,7 @@ export async function runHeadless(
       )
       await drainPendingExtraction()
     } catch {
-      // Module load failure — non-critical at shutdown
+      // 模块加载失败 —— 在关闭阶段属于非关键错误
     }
   }
 
@@ -1042,12 +1032,12 @@ function runHeadlessStreaming(
   let shutdownPromptInjected = false
   let heldBackResult: StdoutMessage | null = null
   let abortController: AbortController | undefined
-  // Same queue sendRequest() enqueues to — one FIFO for everything.
+  // 与 sendRequest() 入队时使用的同一个队列 —— 所有内容共用一个 FIFO。
   const output = structuredIO.outbound
 
-  // Ctrl+C in -p mode: abort the in-flight query, then shut down gracefully.
-  // gracefulShutdown persists session state and flushes analytics, with a
-  // failsafe timer that force-exits if cleanup hangs.
+  // -p 模式下的 Ctrl+C：中止进行中的 query，然后优雅关闭。
+  // gracefulShutdown 会持久化会话状态并刷出分析数据，并带有兜底定时器，
+  // 在清理卡住时强制退出。
   const sigintHandler = () => {
     logForDiagnosticsNoPII('info', 'shutdown_signal', { signal: 'SIGINT' })
     if (abortController && !abortController.signal.aborted) {
@@ -1057,8 +1047,8 @@ function runHeadlessStreaming(
   }
   process.on('SIGINT', sigintHandler)
 
-  // Dump run()'s state at SIGTERM so a stuck session's healthsweep can name
-  // the do/while(waitingForAgents) poll without reading the transcript.
+  // 在 SIGTERM 时导出 run() 的状态，以便卡住会话的 healthsweep 能在
+  // 不读取 transcript 的情况下指出 do/while(waitingForAgents) 轮询。
   registerCleanup(async () => {
     const bg: Record<string, number> = {}
     for (const t of getRunningTasks(getAppState())) {
@@ -1073,16 +1063,16 @@ function runHeadlessStreaming(
     })
   })
 
-  // Wire the central onChangeAppState mode-diff hook to the SDK output stream.
-  // This fires whenever ANY code path mutates toolPermissionContext.mode —
-  // Shift+Tab, ExitPlanMode dialog, /plan slash command, rewind, bridge
-  // set_permission_mode, the query loop, stop_task — rather than the two
-  // paths that previously went through a bespoke wrapper.
-  // The wrapper's body was fully redundant (it enqueued here AND called
-  // notifySessionMetadataChanged, both of which onChangeAppState now covers);
-  // keeping it would double-emit status messages.
+  // 将核心的 onChangeAppState 模式 diff hook 连接到 SDK 输出流。
+  // 它会在任意代码路径修改 toolPermissionContext.mode 时触发 ——
+  // Shift+Tab、ExitPlanMode 对话框、/plan 斜杠命令、rewind、bridge
+  // set_permission_mode、query 循环、stop_task —— 而不像以前只有两条
+  // 路径通过自定义 wrapper。
+  // wrapper 的逻辑完全冗余（它在此处入队，并调用
+  // notifySessionMetadataChanged，二者现在都由 onChangeAppState 处理）；
+  // 保留它会导致状态消息被重复发送。
   setPermissionModeChangedListener(newMode => {
-    // Only emit for SDK-exposed modes.
+    // 仅针对 SDK 暴露的模式发送。
     if (
       newMode === 'default' ||
       newMode === 'acceptEdits' ||
@@ -1102,7 +1092,7 @@ function runHeadlessStreaming(
     }
   })
 
-  // Prompt suggestion tracking (push model)
+  // Prompt 建议追踪（push 模型）
   const suggestionState: {
     abortController: AbortController | null
     inflightPromise: Promise<void> | null
@@ -1131,7 +1121,7 @@ function runHeadlessStreaming(
     pendingLastEmittedEntry: null,
   }
 
-  // Set up AWS auth status listener if enabled
+  // 在启用时设置 AWS 认证状态监听器
   let unsubscribeAuthStatus: (() => void) | undefined
   if (options.enableAuthStatus) {
     const authStatusManager = AwsAuthStatusManager.getInstance()
@@ -1147,9 +1137,9 @@ function runHeadlessStreaming(
     })
   }
 
-  // Set up rate limit status listener to emit SDKRateLimitEvent for all status changes.
-  // Emitting for all statuses (including 'allowed') ensures consumers can clear warnings
-  // when rate limits reset. The upstream emitStatusChange already deduplicates via isEqual.
+  // 设置 rate limit 状态监听器，对所有状态变更发送 SDKRateLimitEvent。
+  // 为所有状态（包括 'allowed'）发送事件，可确保消费方在 rate limit 重置时能清除
+  // 告警。上游的 emitStatusChange 已经通过 isEqual 去重。
   const rateLimitListener = (limits: ClaudeAILimits) => {
     const rateLimitInfo = toSDKRateLimitInfo(limits)
     if (rateLimitInfo) {
@@ -1163,35 +1153,33 @@ function runHeadlessStreaming(
   }
   statusListeners.add(rateLimitListener)
 
-  // Messages for internal tracking, directly mutated by ask(). These messages
-  // include Assistant, User, Attachment, and Progress messages.
-  // TODO: Clean up this code to avoid passing around a mutable array.
+  // 内部追踪用的消息，直接由 ask() 修改。这些消息包括 Assistant、User、
+  // Attachment 和 Progress 消息。
+  // TODO: 清理这段代码，避免到处传递可变数组。
   const mutableMessages: Message[] = initialMessages
 
-  // Seed the readFileState cache from the transcript (content the model saw,
-  // with message timestamps) so getChangedFiles can detect external edits.
-  // This cache instance must persist across ask() calls, since the edit tool
-  // relies on this as a global state.
+  // 用 transcript（模型所见的内容，带消息时间戳）初始化 readFileState 缓存，
+  // 以便 getChangedFiles 能检测到外部修改。
+  // 该缓存实例必须在多次 ask() 调用之间持久存在，因为编辑工具依赖其作为
+  // 全局状态。
   let readFileState = extractReadFilesFromMessages(
     initialMessages,
     cwd(),
     READ_FILE_STATE_CACHE_SIZE,
   )
 
-  // Client-supplied readFileState seeds (via seed_read_state control request).
-  // The stdin IIFE runs concurrently with ask() — a seed arriving mid-turn
-  // would be lost to ask()'s clone-then-replace (QueryEngine.ts finally block)
-  // if written directly into readFileState. Instead, seeds land here, merge
-  // into getReadFileCache's view (readFileState-wins-ties: seeds fill gaps),
-  // and are re-applied then CLEARED in setReadFileCache. One-shot: each seed
-  // survives exactly one clone-replace cycle, then becomes a regular
-  // readFileState entry subject to compact's clear like everything else.
+  // 客户端提供的 readFileState 种子（通过 seed_read_state control 请求）。
+  // stdin IIFE 与 ask() 并发执行 —— 如果直接写入 readFileState，回合中途到达
+  // 的种子会因 ask() 的 clone-then-replace（QueryEngine.ts 的 finally 块）而
+  // 丢失。因此种子先落在此处，再合并进 getReadFileCache 的视图（平局时 readFileState
+  // 优先：种子用于填补空缺），并在 setReadFileCache 中被重新应用随后清空。
+  // 一次性：每个种子仅存活一次 clone-replace 周期，随后变成普通的
+  // readFileState 条目，和其他条目一样会被 compact 清空。
   const pendingSeeds = createFileStateCacheWithSizeLimit(
     READ_FILE_STATE_CACHE_SIZE,
   )
 
-  // Auto-resume interrupted turns on restart so CC continues from where it
-  // left off without requiring the SDK to re-send the prompt.
+  // 重启时自动 resume 被中断的回合，让 CC 从中断处继续，而不需要 SDK 重新发送 prompt。
   const resumeInterruptedTurnEnv =
     process.env.CLAUDE_CODE_RESUME_INTERRUPTED_TURN
   if (
@@ -1203,10 +1191,9 @@ function runHeadlessStreaming(
       `[print.ts] Auto-resuming interrupted turn (kind: ${turnInterruptionState.kind})`,
     )
 
-    // Remove the interrupted message and its sentinel, then re-enqueue so
-    // the model sees it exactly once. For mid-turn interruptions, the
-    // deserialization layer transforms them into interrupted_prompt by
-    // appending a synthetic "Continue from where you left off." message.
+    // 移除被中断的消息及其哨兵值，然后重新入队，确保模型只看到它一次。
+    // 对于回合中途的中断，反序列化层会通过追加一条合成的 "Continue from
+    // where you left off." 消息将其转换为 interrupted_prompt。
     removeInterruptedMessage(mutableMessages, turnInterruptionState.message)
     enqueue({
       mode: 'prompt',
@@ -1274,19 +1261,18 @@ function runHeadlessStreaming(
     }
   }
 
-  // Cache SDK MCP clients to avoid reconnecting on each run
+  // 缓存 SDK MCP 客户端，避免每次 run 都重新连接
   let sdkClients: MCPServerConnection[] = []
   let sdkTools: Tools = []
 
-  // Track which MCP clients have had elicitation handlers registered
+  // 跟踪已注册过 elicitation handler 的 MCP 客户端
   const elicitationRegistered = new Set<string>()
 
   /**
-   * Register elicitation request/completion handlers on connected MCP clients
-   * that haven't been registered yet. SDK MCP servers are excluded because they
-   * route through SdkControlClientTransport. Hooks run first (matching REPL
-   * behavior); if no hook responds, the request is forwarded to the SDK
-   * consumer via the control protocol.
+   * 在尚未注册的已连接 MCP 客户端上注册 elicitation 请求/完成 handler。
+   * SDK MCP server 被排除在外，因为它们通过 SdkControlClientTransport 路由。
+   * Hook 会先执行（与 REPL 行为一致）；若没有 hook 响应，则通过 control
+   * 协议将请求转发给 SDK 消费方。
    */
   function registerElicitationHandlers(clients: MCPServerConnection[]): void {
     for (const connection of clients) {
@@ -1296,14 +1282,14 @@ function runHeadlessStreaming(
       ) {
         continue
       }
-      // Skip SDK MCP servers — elicitation flows through SdkControlClientTransport
+      // 跳过 SDK MCP server —— elicitation 通过 SdkControlClientTransport 流转
       if (connection.config.type === 'sdk') {
         continue
       }
       const serverName = connection.name
 
-      // Wrapped in try/catch because setRequestHandler throws if the client wasn't
-      // created with elicitation capability declared (e.g., SDK-created clients).
+      // 用 try/catch 包裹，因为如果客户端创建时未声明 elicitation 能力
+      // （例如 SDK 创建的客户端），setRequestHandler 会抛错。
       try {
         connection.client.setRequestHandler(
           ElicitRequestSchema,
@@ -1319,7 +1305,7 @@ function runHeadlessStreaming(
               mode: mode as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
             })
 
-            // Run elicitation hooks first — they can provide a response programmatically
+            // 先运行 elicitation hook —— 它们可以以编程方式提供响应
             const hookResponse = await runElicitationHooks(
               serverName,
               request.params,
@@ -1338,7 +1324,7 @@ function runHeadlessStreaming(
               return hookResponse
             }
 
-            // Delegate to SDK consumer via control protocol
+            // 通过 control 协议委托给 SDK 消费方
             const url =
               'url' in request.params
                 ? (request.params.url as string)
@@ -1382,7 +1368,7 @@ function runHeadlessStreaming(
           },
         )
 
-        // Surface completion notifications to SDK consumers (URL mode)
+        // 将完成通知暴露给 SDK 消费方（URL 模式）
         connection.client.setNotificationHandler(
           ElicitationCompleteNotificationSchema,
           notification => {
@@ -1408,30 +1394,28 @@ function runHeadlessStreaming(
 
         elicitationRegistered.add(serverName)
       } catch {
-        // setRequestHandler throws if the client wasn't created with
-        // elicitation capability — skip silently
+        // 若客户端创建时未声明 elicitation 能力，setRequestHandler 会抛错 —— 静默跳过
       }
     }
   }
 
   async function updateSdkMcp() {
-    // Check if SDK MCP servers need to be updated (new servers added or removed)
+    // 检查 SDK MCP server 是否需要更新（新增或移除了 server）
     const currentServerNames = new Set(Object.keys(sdkMcpConfigs))
     const connectedServerNames = new Set(sdkClients.map(c => c.name))
 
-    // Check if there are any differences (additions or removals)
+    // 检查是否存在差异（新增或移除）
     const hasNewServers = Array.from(currentServerNames).some(
       name => !connectedServerNames.has(name),
     )
     const hasRemovedServers = Array.from(connectedServerNames).some(
       name => !currentServerNames.has(name),
     )
-    // Check if any SDK clients are pending and need to be upgraded
+    // 检查是否有处于 pending 状态、需要升级的 SDK 客户端
     const hasPendingSdkClients = sdkClients.some(c => c.type === 'pending')
-    // Check if any SDK clients failed their handshake and need to be retried.
-    // Without this, a client that lands in 'failed' (e.g. handshake timeout on
-    // a WS reconnect race) stays failed forever — its name satisfies the
-    // connectedServerNames diff but it contributes zero tools.
+    // 检查是否有握手失败、需要重试的 SDK 客户端。
+    // 否则进入 'failed' 状态的客户端（例如 WS 重连竞争中的握手超时）会永远停留
+    // 在 failed —— 其名字满足 connectedServerNames 的 diff，但它贡献的工具数为零。
     const hasFailedSdkClients = sdkClients.some(c => c.type === 'failed')
 
     const haveServersChanged =
@@ -1441,7 +1425,7 @@ function runHeadlessStreaming(
       hasFailedSdkClients
 
     if (haveServersChanged) {
-      // Clean up removed servers
+      // 清理已移除的 server
       for (const client of sdkClients) {
         if (!currentServerNames.has(client.name)) {
           if (client.type === 'connected') {
@@ -1450,7 +1434,7 @@ function runHeadlessStreaming(
         }
       }
 
-      // Re-initialize all SDK MCP servers with current config
+      // 使用当前配置重新初始化所有 SDK MCP server
       const sdkSetup = await setupSdkMcpClients(
         sdkMcpConfigs,
         (serverName, message) =>
@@ -1459,11 +1443,11 @@ function runHeadlessStreaming(
       sdkClients = sdkSetup.clients
       sdkTools = sdkSetup.tools
 
-      // Store SDK MCP tools in appState so subagents can access them via
-      // assembleToolPool. Only tools are stored here — SDK clients are already
-      // merged separately in the query loop (allMcpClients) and mcp_status handler.
-      // Use both old (connectedServerNames) and new (currentServerNames) to remove
-      // stale SDK tools when servers are added or removed.
+      // 将 SDK MCP 工具存入 appState，使 subagent 可通过 assembleToolPool
+      // 访问。这里只存储工具 —— SDK 客户端已在 query 循环（allMcpClients）和
+      // mcp_status handler 中单独合并。
+      // 同时使用旧的（connectedServerNames）和新的（currentServerNames）名字，
+      // 以便在新增或移除 server 时清除过期的 SDK 工具。
       const allSdkNames = uniq([...connectedServerNames, ...currentServerNames])
       setAppState(prev => ({
         ...prev,
@@ -1481,24 +1465,24 @@ function runHeadlessStreaming(
         },
       }))
 
-      // Set up the special internal VSCode MCP server if necessary.
+      // 如有必要，设置特殊的内部 VSCode MCP server。
       setupVscodeSdkMcp(sdkClients)
     }
   }
 
   void updateSdkMcp()
 
-  // State for dynamically added MCP servers (via mcp_set_servers control message)
-  // These are separate from SDK MCP servers and support all transport types
+  // 动态添加的 MCP server 的状态（通过 mcp_set_servers control 消息）
+  // 它们独立于 SDK MCP server，并支持所有 transport 类型
   let dynamicMcpState: DynamicMcpState = {
     clients: [],
     tools: [],
     configs: {},
   }
 
-  // Shared tool assembly for ask() and the get_context_usage control request.
-  // Closes over the mutable sdkTools/dynamicMcpState bindings so both call
-  // sites see late-connecting servers.
+  // ask() 与 get_context_usage control 请求共享的工具装配。
+  // 闭包捕获可变的 sdkTools/dynamicMcpState 绑定，使两个调用点都能看到
+  // 延迟连接的 server。
   const buildAllTools = (appState: AppState): Tools => {
     const assembledTools = assembleToolPool(
       appState.toolPermissionContext,
@@ -1527,24 +1511,24 @@ function runHeadlessStreaming(
     return allTools
   }
 
-  // Bridge handle for remote-control (SDK control message).
-  // Mirrors the REPL's useReplBridge hook: the handle is created when
-  // `remote_control` is enabled and torn down when disabled.
+  // Bridge handle（用于 remote-control，SDK control 消息）。
+  // 与 REPL 的 useReplBridge hook 行为一致：`remote_control` 启用时创建 handle，
+  // 禁用时销毁。
   let bridgeHandle: ReplBridgeHandle | null = null
-  // Cursor into mutableMessages — tracks how far we've forwarded.
-  // Same index-based diff as useReplBridge's lastWrittenIndexRef.
+  // mutableMessages 的游标 —— 记录我们已经转发到哪了。
+  // 与 useReplBridge 的 lastWrittenIndexRef 一样基于 index diff。
   let bridgeLastForwardedIndex = 0
 
-  // Forward new messages from mutableMessages to the bridge.
-  // Called incrementally during each turn (so claude.ai sees progress
-  // and stays alive during permission waits) and again after the turn.
+  // 将 mutableMessages 中的新消息转发给 bridge。
+  // 每个回合期间增量调用（让 claude.ai 能看到进度并在权限等待期间保持存活），
+  // 并在回合结束后再次调用。
   //
-  // writeMessages has its own UUID-based dedup (initialMessageUUIDs,
-  // recentPostedUUIDs) — the index cursor here is a pre-filter to avoid
-  // O(n) re-scanning of already-sent messages on every call.
+  // writeMessages 自带基于 UUID 的去重（initialMessageUUIDs、
+  // recentPostedUUIDs）—— 此处的 index 游标只是前置过滤器，避免每次调用都
+  // O(n) 重新扫描已发送的消息。
   function forwardMessagesToBridge(): void {
     if (!bridgeHandle) return
-    // Guard against mutableMessages shrinking (compaction truncates it).
+    // 防护 mutableMessages 缩短（compaction 会截断它）。
     const startIndex = Math.min(
       bridgeLastForwardedIndex,
       mutableMessages.length,
@@ -1558,9 +1542,9 @@ function runHeadlessStreaming(
     }
   }
 
-  // Helper to apply MCP server changes - used by both mcp_set_servers control message
-  // and background plugin installation.
-  // NOTE: Nested function required - mutates closure state (sdkMcpConfigs, sdkClients, etc.)
+  // 应用 MCP server 变更的辅助函数 —— mcp_set_servers control 消息和后台
+  // 插件安装都使用它。
+  // NOTE：必须是嵌套函数 —— 会修改闭包状态（sdkMcpConfigs、sdkClients 等）
   let mcpChangesPromise: Promise<{
     response: SDKControlMcpSetServersResponse
     sdkServersChanged: boolean
@@ -1579,8 +1563,8 @@ function runHeadlessStreaming(
     response: SDKControlMcpSetServersResponse
     sdkServersChanged: boolean
   }> {
-    // Serialize calls to prevent race conditions between concurrent callers
-    // (background plugin install and mcp_set_servers control messages)
+    // 串行化调用，防止并发调用方之间的竞争
+    // （后台插件安装与 mcp_set_servers control 消息）
     const doWork = async (): Promise<{
       response: SDKControlMcpSetServersResponse
       sdkServersChanged: boolean
@@ -1594,7 +1578,7 @@ function runHeadlessStreaming(
         setAppState,
       )
 
-      // Update SDK state (need to mutate sdkMcpConfigs since it's shared)
+      // 更新 SDK 状态（需要原地修改 sdkMcpConfigs，因为它是共享的）
       for (const key of Object.keys(sdkMcpConfigs)) {
         delete sdkMcpConfigs[key]
       }
@@ -1603,8 +1587,8 @@ function runHeadlessStreaming(
       sdkTools = result.newSdkState.tools
       dynamicMcpState = result.newDynamicState
 
-      // Keep appState.mcp.tools in sync so subagents can see SDK MCP tools.
-      // Use both old and new SDK client names to remove stale tools.
+      // 保持 appState.mcp.tools 同步，使 subagent 能看到 SDK MCP 工具。
+      // 同时使用旧的和新的 SDK 客户端名字，以移除过期工具。
       if (result.sdkServersChanged) {
         const newSdkClientNames = new Set(sdkClients.map(c => c.name))
         const allSdkNames = uniq([...oldSdkClientNames, ...newSdkClientNames])
@@ -1635,8 +1619,8 @@ function runHeadlessStreaming(
     return mcpChangesPromise
   }
 
-  // Build McpServerStatus[] for control responses. Shared by mcp_status and
-  // reload_plugins handlers. Reads closure state: sdkClients, dynamicMcpState.
+  // 构建 control 响应所用的 McpServerStatus[]。由 mcp_status 和 reload_plugins
+  // handler 共享。读取闭包状态：sdkClients、dynamicMcpState。
   function buildMcpServerStatuses(): McpServerStatus[] {
     const currentAppState = getAppState()
     const currentMcpClients = currentAppState.mcp.clients
@@ -1695,11 +1679,10 @@ function runHeadlessStreaming(
               },
             }))
           : undefined
-      // Capabilities passthrough with allowlist pre-filter. The IDE reads
-      // experimental['claude/channel'] to decide whether to show the
-      // Enable-channel prompt — only echo it if channel_enable would
-      // actually pass the allowlist. Not a security boundary (the
-      // handler re-runs the full gate); just avoids dead buttons.
+      // Capabilities 透传，并带 allowlist 前置过滤。IDE 通过读取
+      // experimental['claude/channel'] 决定是否显示 Enable-channel 提示 —— 只有在
+      // channel_enable 确实会通过 allowlist 时才回传它。这不是安全边界
+      // （handler 会重新运行完整的 gate）；只是为了避免出现"死按钮"。
       let capabilities: { experimental?: Record<string, unknown> } | undefined
       if (
         (feature('KAIROS') || feature('KAIROS_CHANNELS')) &&
@@ -1732,12 +1715,12 @@ function runHeadlessStreaming(
     }) as McpServerStatus[]
   }
 
-  // NOTE: Nested function required - needs closure access to applyMcpServerChanges and updateSdkMcp
+  // NOTE：必须是嵌套函数 —— 需要闭包访问 applyMcpServerChanges 和 updateSdkMcp
   async function installPluginsAndApplyMcpInBackground(): Promise<void> {
     try {
-      // Join point for user settings (fired at runHeadless entry) and managed
-      // settings (fired in main.tsx preAction). downloadUserSettings() caches
-      // its promise so this awaits the same in-flight request.
+      // 用户设置（在 runHeadless 入口触发）与托管设置（在 main.tsx preAction
+      // 中触发）的 join 点。downloadUserSettings() 会缓存其 promise，因此这里
+      // await 的是同一个进行中的请求。
       await Promise.all([
         feature('DOWNLOAD_USER_SETTINGS') &&
         (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) || getIsRemoteMode())
@@ -1760,13 +1743,13 @@ function runHeadlessStreaming(
     }
   }
 
-  // Background plugin installation for all headless users
-  // Installs marketplaces from extraKnownMarketplaces and missing enabled plugins
-  // CLAUDE_CODE_SYNC_PLUGIN_INSTALL=true: resolved in run() before the first
-  // query so plugins are guaranteed available on the first ask().
+  // 为所有 headless 用户在后台安装插件
+  // 安装 extraKnownMarketplaces 中的 marketplace 以及缺失的已启用插件
+  // CLAUDE_CODE_SYNC_PLUGIN_INSTALL=true：在首次 query 之前于 run() 中解析完成，
+  // 保证首次 ask() 时插件可用。
   let pluginInstallPromise: Promise<void> | null = null
-  // --bare / SIMPLE: skip plugin install. Scripted calls don't add plugins
-  // mid-session; the next interactive run reconciles.
+  // --bare / SIMPLE：跳过插件安装。脚本化调用不会在会话中途新增插件；
+  // 下一次交互式 run 会进行对账。
   if (!isBareMode()) {
     if (isEnvTruthy(process.env.CLAUDE_CODE_SYNC_PLUGIN_INSTALL)) {
       pluginInstallPromise = installPluginsAndApplyMcpInBackground()
@@ -1775,52 +1758,49 @@ function runHeadlessStreaming(
     }
   }
 
-  // Idle timeout management
+  // 空闲超时管理
   const idleTimeout = createIdleTimeoutManager(() => !running)
 
-  // Mutable commands and agents for hot reloading
+  // 用于热重载的可变 commands 和 agents
   let currentCommands = commands
   let currentAgents = agents
 
-  // Clear all plugin-related caches, reload commands/agents/hooks.
-  // Called after CLAUDE_CODE_SYNC_PLUGIN_INSTALL completes (before first query)
-  // and after non-sync background install finishes.
-  // refreshActivePlugins calls clearAllCaches() which is required because
-  // loadAllPlugins() may have run during main.tsx startup BEFORE managed
-  // settings were fetched. Without clearing, getCommands() would rebuild
-  // from a stale plugin list.
+  // 清除所有与插件相关的缓存，并重载 commands/agents/hooks。
+  // 在 CLAUDE_CODE_SYNC_PLUGIN_INSTALL 完成后（首次 query 之前）调用，
+  // 也在非同步后台安装完成后调用。
+  // refreshActivePlugins 会调用 clearAllCaches()，这一步是必须的，因为
+  // loadAllPlugins() 可能已在 main.tsx 启动期间、托管设置拉取之前运行过。
+  // 如果不清除，getCommands() 会基于过期的插件列表重建。
   async function refreshPluginState(): Promise<void> {
-    // refreshActivePlugins handles the full cache sweep (clearAllCaches),
-    // reloads all plugin component loaders, writes AppState.plugins +
-    // AppState.agentDefinitions, registers hooks, and bumps mcp.pluginReconnectKey.
+    // refreshActivePlugins 负责完整的缓存清理（clearAllCaches）、重载所有
+    // 插件 component loader、写入 AppState.plugins + AppState.agentDefinitions、
+    // 注册 hook，并递增 mcp.pluginReconnectKey。
     const { agentDefinitions: freshAgentDefs } =
       await refreshActivePlugins(setAppState)
 
-    // Headless-specific: currentCommands/currentAgents are local mutable refs
-    // captured by the query loop (REPL uses AppState instead). getCommands is
-    // fresh because refreshActivePlugins cleared its cache.
+    // headless 专属：currentCommands/currentAgents 是被 query 循环捕获的局部
+    // 可变引用（REPL 使用 AppState 代替）。getCommands 是最新的，因为
+    // refreshActivePlugins 已清空其缓存。
     currentCommands = await getCommands(cwd())
 
-    // Preserve SDK-provided agents (--agents CLI flag or SDK initialize
-    // control_request) — both inject via parseAgentsFromJson with
-    // source='flagSettings'. loadMarkdownFilesForSubdir never assigns this
-    // source, so it cleanly discriminates "injected, not disk-loadable".
+    // 保留 SDK 提供的 agent（--agents CLI 标志或 SDK initialize
+    // control_request）—— 二者都通过 parseAgentsFromJson 注入，source 为
+    // 'flagSettings'。loadMarkdownFilesForSubdir 永远不会赋这个 source，
+    // 因此能干净地区分"已注入但不可从磁盘加载"。
     //
-    // The previous filter used a negative set-diff (!freshAgentTypes.has(a))
-    // which also matched plugin agents that were in the poisoned initial
-    // currentAgents but correctly excluded from freshAgentDefs after managed
-    // settings applied — leaking policy-blocked agents into the init message.
-    // See gh-23085: isBridgeEnabled() at Commander-definition time poisoned
-    // the settings cache before setEligibility(true) ran.
+    // 之前的过滤器使用负向集合 diff（!freshAgentTypes.has(a)），结果也匹配了
+    // 那些在被污染的初始 currentAgents 中、但在应用托管设置后被正确排除出
+    // freshAgentDefs 的插件 agent —— 把被策略阻止的 agent 泄漏到了 init 消息里。
+    // 见 gh-23085：Commander 定义阶段调用的 isBridgeEnabled() 在
+    // setEligibility(true) 运行之前污染了设置缓存。
     const sdkAgents = currentAgents.filter(a => a.source === 'flagSettings')
     currentAgents = [...freshAgentDefs.allAgents, ...sdkAgents]
   }
 
-  // Re-diff MCP configs after plugin state changes. Filters to
-  // process-transport-supported types and carries SDK-mode servers through
-  // so applyMcpServerChanges' diff doesn't close their transports.
-  // Nested: needs closure access to sdkMcpConfigs, applyMcpServerChanges,
-  // updateSdkMcp.
+  // 在插件状态变化后重新 diff MCP 配置。过滤到 process-transport 支持的
+  // 类型，并让 SDK 模式的 server 透传，避免 applyMcpServerChanges 的 diff
+  // 关闭它们的 transport。
+  // 嵌套函数：需要闭包访问 sdkMcpConfigs、applyMcpServerChanges、updateSdkMcp。
   async function applyPluginMcpDiff(): Promise<void> {
     const { servers: newConfigs } = await getAllMcpConfigs()
     const supportedConfigs: Record<string, McpServerConfigForProcessTransport> =
@@ -1853,7 +1833,7 @@ function runHeadlessStreaming(
     )
   }
 
-  // Subscribe to skill changes for hot reloading
+  // 订阅 skill 变更以实现热重载
   const unsubscribeSkillChanges = skillChangeDetector.subscribe(() => {
     clearCommandsCache()
     void getCommands(cwd()).then(newCommands => {
@@ -1861,9 +1841,9 @@ function runHeadlessStreaming(
     })
   })
 
-  // Proactive mode: schedule a tick to keep the model looping autonomously.
-  // setTimeout(0) yields to the event loop so pending stdin messages
-  // (interrupts, user messages) are processed before the tick fires.
+  // 主动模式：调度一次 tick，让模型持续自主循环。
+  // setTimeout(0) 让出事件循环，使待处理的 stdin 消息（中断、用户消息）在
+  // tick 触发之前先被处理。
   const scheduleProactiveTick =
     feature('PROACTIVE') || feature('KAIROS')
       ? () => {
@@ -1905,7 +1885,7 @@ function runHeadlessStreaming(
         }
       : undefined
 
-  // Abort the current operation when a 'now' priority message arrives.
+  // 当 'now' 优先级的消息到达时中止当前操作。
   subscribeToCommandQueue(() => {
     if (abortController && getCommandsByMaxPriority('now').length > 0) {
       abortController.abort('interrupt')
@@ -1923,16 +1903,16 @@ function runHeadlessStreaming(
     idleTimeout.stop()
 
     headlessProfilerCheckpoint('run_entry')
-    // TODO(custom-tool-refactor): Should move to the init message, like browser
+    // TODO(custom-tool-refactor): 应迁移到 init 消息中，与 browser 一致
 
     await updateSdkMcp()
     headlessProfilerCheckpoint('after_updateSdkMcp')
 
-    // Resolve deferred plugin installation (CLAUDE_CODE_SYNC_PLUGIN_INSTALL).
-    // The promise was started eagerly so installation overlaps with other init.
-    // Awaiting here guarantees plugins are available before the first ask().
-    // If CLAUDE_CODE_SYNC_PLUGIN_INSTALL_TIMEOUT_MS is set, races against that
-    // deadline and proceeds without plugins on timeout (logging an error).
+    // 解析延迟的插件安装（CLAUDE_CODE_SYNC_PLUGIN_INSTALL）。
+    // 该 promise 已经提前启动，使安装与其他初始化并行。
+    // 在此处 await 可保证首次 ask() 之前插件就绪。
+    // 如果设置了 CLAUDE_CODE_SYNC_PLUGIN_INSTALL_TIMEOUT_MS，会与该截止时间
+    // 赛跑，超时则在无插件情况下继续（记录一条错误日志）。
     if (pluginInstallPromise) {
       const timeoutMs = parseInt(
         process.env.CLAUDE_CODE_SYNC_PLUGIN_INSTALL_TIMEOUT_MS || '',
@@ -1956,31 +1936,29 @@ function runHeadlessStreaming(
       }
       pluginInstallPromise = null
 
-      // Refresh commands, agents, and hooks now that plugins are installed
+      // 插件已安装，现在刷新 commands、agents 和 hooks
       await refreshPluginState()
 
-      // Set up hot-reload for plugin hooks now that the initial install is done.
-      // In sync-install mode, setup.ts skips this to avoid racing with the install.
+      // 初始安装已完成，现在为 plugin hooks 设置热重载。
+      // 在 sync-install 模式下，setup.ts 会跳过此步骤以避免与安装竞争。
       const { setupPluginHookHotReload } = await import(
         '../utils/plugins/loadPluginHooks.js'
       )
       setupPluginHookHotReload()
     }
 
-    // Only main-thread commands (agentId===undefined) — subagent
-    // notifications are drained by the subagent's mid-turn gate in query.ts.
-    // Defined outside the try block so it's accessible in the post-finally
-    // queue re-checks at the bottom of run().
+    // 仅处理主线程命令（agentId===undefined）—— subagent 的通知由
+    // query.ts 中 subagent 的回合中途 gate 排空。
+    // 定义在 try 块之外，以便在 run() 末尾 finally 之后的队列重新检查中可访问。
     const isMainThread = (cmd: QueuedCommand) => cmd.agentId === undefined
 
     try {
       let command: QueuedCommand | undefined
       let waitingForAgents = false
 
-      // Extract command processing into a named function for the do-while pattern.
-      // Drains the queue, batching consecutive prompt-mode commands into one
-      // ask() call so messages that queued up during a long turn coalesce
-      // into a single follow-up turn instead of N separate turns.
+      // 将命令处理抽取为具名函数，用于 do-while 模式。
+      // 排空队列，把连续的 prompt 模式命令批处理为一次 ask() 调用，
+      // 使长时间回合期间累积的消息合并为一次后续回合，而不是 N 次独立回合。
       const drainCommandQueue = async () => {
         while ((command = dequeue(isMainThread))) {
           if (
@@ -1993,9 +1971,9 @@ function runHeadlessStreaming(
             )
           }
 
-          // Non-prompt commands (task-notification, orphaned-permission) carry
-          // side effects or orphanedPermission state, so they process singly.
-          // Prompt commands greedily collect followers with matching workload.
+          // 非 prompt 命令（task-notification、orphaned-permission）带有副作用
+          // 或 orphanedPermission 状态，因此按单条处理。
+          // prompt 命令贪心地收集 workload 匹配的后续命令。
           let batch: QueuedCommand[] = [command]
           if (command.mode === 'prompt') {
             while (canBatchWith(command, peek(isMainThread))) {
@@ -2018,11 +1996,10 @@ function runHeadlessStreaming(
           }
           const batchUuids = batch.map(c => c.uuid).filter(u => u !== undefined)
 
-          // QueryEngine will emit a replay for command.uuid (the last uuid in
-          // the batch) via its messagesToAck path. Emit replays here for the
-          // rest so consumers that track per-uuid delivery (clank's
-          // asyncMessages footer, CCR) see an ack for every message they sent,
-          // not just the one that survived the merge.
+          // QueryEngine 会通过其 messagesToAck 路径为 command.uuid（批次中
+          // 最后一个 uuid）发送 replay。此处为其余消息补发 replay，使那些按
+          // uuid 跟踪投递的消费方（clank 的 asyncMessages footer、CCR）能看到
+          // 它们发送的每条消息的 ack，而不只是合并后存活下来的那一条。
           if (options.replayUserMessages && batch.length > 1) {
             for (const c of batch) {
               if (c.uuid && c.uuid !== command.uuid) {
@@ -2039,10 +2016,10 @@ function runHeadlessStreaming(
             }
           }
 
-          // Combine all MCP clients. appState.mcp is populated incrementally
-          // per-server by main.tsx (mirrors useManageMCPConnections). Reading
-          // fresh per-command means late-connecting servers are visible on the
-          // next turn. registerElicitationHandlers is idempotent (tracking set).
+          // 合并所有 MCP 客户端。appState.mcp 由 main.tsx 按 server 增量填充
+          // （与 useManageMCPConnections 行为一致）。按命令读取最新值，意味着
+          // 延迟连接的 server 在下一个回合可见。registerElicitationHandlers
+          // 是幂等的（基于追踪集合）。
           const appState = getAppState()
           const allMcpClients = [
             ...appState.mcp.clients,
@@ -2050,11 +2027,11 @@ function runHeadlessStreaming(
             ...dynamicMcpState.clients,
           ]
           registerElicitationHandlers(allMcpClients)
-          // Channel handlers for servers allowlisted via --channels at
-          // construction time (or enableChannel() mid-session). Runs every
-          // turn like registerElicitationHandlers — idempotent per-client
-          // (setNotificationHandler replaces, not stacks) and no-ops for
-          // non-allowlisted servers (one feature-flag check).
+          // 为构造时通过 --channels 加入 allowlist 的 server（或在会话中调用
+          // enableChannel()）注册 channel handler。每个回合都会运行，就像
+          // registerElicitationHandlers 一样 —— 对每个客户端幂等
+          // （setNotificationHandler 是替换而非叠加），对非 allowlist 的 server
+          // 直接 no-op（一次 feature-flag 检查）。
           for (const client of allMcpClients) {
             reregisterChannelHandlerAfterReconnect(client)
           }
@@ -2065,15 +2042,15 @@ function runHeadlessStreaming(
             notifyCommandLifecycle(uuid, 'started')
           }
 
-          // Task notifications arrive when background agents complete.
-          // Emit an SDK system event for SDK consumers, then fall through
-          // to ask() so the model sees the agent result and can act on it.
-          // This matches TUI behavior where useQueueProcessor always feeds
-          // notifications to the model regardless of coordinator mode.
+          // 后台 agent 完成时会到达 task 通知。
+          // 为 SDK 消费方发送一个 SDK 系统事件，然后继续落入 ask()，让模型看到
+          // agent 的结果并据此行动。
+          // 这与 TUI 行为一致 —— 无论是否处于 coordinator 模式，useQueueProcessor
+          // 都会把通知喂给模型。
           if (command.mode === 'task-notification') {
             const notificationText =
               typeof command.value === 'string' ? command.value : ''
-            // Parse the XML-formatted notification
+            // 解析 XML 格式的通知
             const taskIdMatch = notificationText.match(
               /<task-id>([^<]+)<\/task-id>/,
             )
@@ -2118,13 +2095,12 @@ function runHeadlessStreaming(
               /<duration_ms>(\d+)<\/duration_ms>/,
             )
 
-            // Only emit a task_notification SDK event when a <status> tag is
-            // present — that means this is a terminal notification (completed/
-            // failed/stopped). Stream events from enqueueStreamEvent carry no
-            // <status> (they're progress pings); emitting them here would
-            // default to 'completed' and falsely close the task for SDK
-            // consumers. Terminal bookends are now emitted directly via
-            // emitTaskTerminatedSdk, so skipping statusless events is safe.
+            // 只有当存在 <status> 标签时才发送 task_notification SDK 事件 ——
+            // 这表示这是一个终止性通知（completed/failed/stopped）。来自
+            // enqueueStreamEvent 的流事件不携带 <status>（它们只是进度心跳）；
+            // 在这里发送会被默认为 'completed'，从而为 SDK 消费方错误地关闭任务。
+            // 终止性事件现在通过 emitTaskTerminatedSdk 直接发送，因此跳过无状态
+            // 事件是安全的。
             if (statusMatch) {
               output.enqueue({
                 type: 'system',
@@ -2148,7 +2124,7 @@ function runHeadlessStreaming(
                 uuid: randomUUID(),
               })
             }
-            // No continue -- fall through to ask() so the model processes the result
+            // 不 continue —— 直接落入 ask()，让模型处理结果
           }
 
           const input = command.value
@@ -2160,14 +2136,14 @@ function runHeadlessStreaming(
             })
           }
 
-          // Abort any in-flight suggestion generation and track acceptance
+          // 中止任何进行中的建议生成，并记录采纳情况
           suggestionState.abortController?.abort()
           suggestionState.abortController = null
           suggestionState.pendingSuggestion = null
           suggestionState.pendingLastEmittedEntry = null
           if (suggestionState.lastEmitted) {
             if (command.mode === 'prompt') {
-              // SDK user messages enqueue ContentBlockParam[], not a plain string
+              // SDK 用户消息入队的是 ContentBlockParam[]，而不是纯字符串
               const inputText =
                 typeof input === 'string'
                   ? input
@@ -2196,11 +2172,11 @@ function runHeadlessStreaming(
 
           headlessProfilerCheckpoint('before_ask')
           startQueryProfile()
-          // Per-iteration ALS context so bg agents spawned inside ask()
-          // inherit workload across their detached awaits. In-process cron
-          // stamps cmd.workload; the SDK --workload flag is options.workload.
-          // const-capture: TS loses `while ((command = dequeue()))` narrowing
-          // inside the closure.
+          // 每次迭代的 ALS 上下文，使 ask() 内部生成的后台 agent 在其分离的
+          // await 之间继承 workload。进程内 cron 会打上 cmd.workload；
+          // SDK 的 --workload 标志对应 options.workload。
+          // const 捕获：TS 在闭包内会丢失 `while ((command = dequeue()))`
+          // 的类型收窄。
           const cmd = command
           let lastResultIsError = false
           try {
@@ -2273,20 +2249,19 @@ function runHeadlessStreaming(
                     })
                   },
                 })) {
-                  // Forward messages to bridge incrementally (mid-turn) so
-                  // claude.ai sees progress and the connection stays alive
-                  // while blocked on permission requests.
+                  // 增量地把消息转发给 bridge（回合进行中），让 claude.ai 能看到
+                  // 进度，并在权限请求阻塞期间保持连接存活。
                   forwardMessagesToBridge()
 
                   if (message.type === 'result') {
                     lastResultIsError = !!(message as Record<string, unknown>)
                       .is_error
-                    // Flush pending SDK events so they appear before result on the stream.
+                    // 刷出待处理的 SDK 事件，使其在流上位于 result 之前。
                     for (const event of drainSdkEvents()) {
                       output.enqueue(event)
                     }
 
-                    // Hold-back: don't emit result while background agents are running
+                    // 暂缓：后台 agent 仍在运行时不发送 result
                     const currentState = getAppState()
                     if (
                       getRunningTasks(currentState).some(
@@ -2302,8 +2277,8 @@ function runHeadlessStreaming(
                       output.enqueue(message as StdoutMessage)
                     }
                   } else {
-                    // Flush SDK events (task_started, task_progress) so background
-                    // agent progress is streamed in real-time, not batched until result.
+                    // 刷出 SDK 事件（task_started、task_progress），使后台 agent
+                    // 进度实时流式输出，而不是积压到 result 才一起发送。
                     for (const event of drainSdkEvents()) {
                       output.enqueue(event)
                     }
@@ -2353,7 +2328,7 @@ function runHeadlessStreaming(
             notifyCommandLifecycle(uuid, 'completed')
           }
 
-          // Forward messages to bridge after each turn
+          // 每个回合结束后将消息转发给 bridge
           forwardMessagesToBridge()
           bridgeHandle?.sendResult()
 
@@ -2381,13 +2356,13 @@ function runHeadlessStreaming(
             )
           }
 
-          // Generate and emit prompt suggestion for SDK consumers
+          // 为 SDK 消费方生成并发送 prompt 建议
           if (
             options.promptSuggestions &&
             !isEnvDefinedFalsy(process.env.CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION)
           ) {
-            // TS narrows suggestionState to never in the while loop body;
-            // cast via unknown to reset narrowing.
+            // TS 在 while 循环体内会把 suggestionState 收窄为 never；
+            // 通过 unknown 断言重置收窄。
             const state = suggestionState as unknown as typeof suggestionState
             state.abortController?.abort()
             const localAbort = new AbortController()
@@ -2402,8 +2377,8 @@ function runHeadlessStreaming(
                 'sdk',
               )
             } else {
-              // Use a ref object so the IIFE's finally can compare against its own
-              // promise without a self-reference (which upsets TypeScript's flow analysis).
+              // 使用 ref 对象，使 IIFE 的 finally 可以与自身的 promise 比较，
+              // 而不需要自引用（自引用会扰乱 TypeScript 的流分析）。
               const ref: { promise: Promise<void> | null } = { promise: null }
               ref.promise = (async () => {
                 try {
@@ -2427,11 +2402,10 @@ function runHeadlessStreaming(
                     promptId: result.promptId,
                     generationRequestId: result.generationRequestId,
                   }
-                  // Defer emission if the result is being held for background agents,
-                  // so that prompt_suggestion always arrives after result.
-                  // Only set lastEmitted when the suggestion is actually delivered
-                  // to the consumer; deferred suggestions may be discarded before
-                  // delivery if a new command arrives first.
+                  // 如果 result 正在为后台 agent 暂缓，则推迟发送，确保
+                  // prompt_suggestion 始终在 result 之后到达。
+                  // 只有当建议真正投递给消费方时才设置 lastEmitted；被推迟的
+                  // 建议若在新命令先到达之前未投递，可能会被丢弃。
                   if (heldBackResult) {
                     suggestionState.pendingSuggestion = suggestionMsg
                     suggestionState.pendingLastEmittedEntry = {
@@ -2468,19 +2442,18 @@ function runHeadlessStreaming(
             }
           }
 
-          // Log headless profiler metrics for this turn and start next turn
+          // 记录本回合的 headless profiler 指标，并开始下一个回合
           logHeadlessProfilerTurn()
           logQueryProfileReport()
           headlessProfilerStartTurn()
         }
       }
 
-      // Use a do-while loop to drain commands and then wait for any
-      // background agents that are still running. When agents complete,
-      // their notifications are enqueued and the loop re-drains.
+      // 使用 do-while 循环排空命令，然后等待仍在运行的后台 agent。
+      // 当 agent 完成时，其通知会被入队，循环再次排空。
       do {
-        // Drain SDK events (task_started, task_progress) before command queue
-        // so progress events precede task_notification on the stream.
+        // 在命令队列之前排空 SDK 事件（task_started、task_progress），
+        // 使进度事件在流上位于 task_notification 之前。
         for (const event of drainSdkEvents()) {
           output.enqueue(event)
         }
@@ -2488,14 +2461,12 @@ function runHeadlessStreaming(
         runPhase = 'draining_commands'
         await drainCommandQueue()
 
-        // Check for running background tasks before exiting.
-        // Exclude in_process_teammate — teammates are long-lived by design
-        // (status: 'running' for their whole lifetime, cleaned up by the
-        // shutdown protocol, not by transitioning to 'completed'). Waiting
-        // on them here loops forever (gh-30008). Same exclusion already
-        // exists at useBackgroundTaskNavigation.ts:55 for the same reason;
-        // L1839 above is already narrower (type === 'local_agent') so it
-        // doesn't hit this.
+        // 退出前检查仍在运行的后台任务。
+        // 排除 in_process_teammate —— teammate 按设计是长生命周期的
+        // （整个生命周期 status 都是 'running'，由关闭协议清理，而不是通过
+        // 转为 'completed' 清理）。在此处等待它们会陷入死循环（gh-30008）。
+        // useBackgroundTaskNavigation.ts:55 出于同样原因已存在相同排除逻辑；
+        // 上方 L1839 的范围更窄（type === 'local_agent'），因此不会触发此问题。
         waitingForAgents = false
         {
           const state = getAppState()
@@ -2507,10 +2478,10 @@ function runHeadlessStreaming(
             waitingForAgents = true
             if (!hasMainThreadQueued) {
               runPhase = 'waiting_for_agents'
-              // No commands ready yet, wait for tasks to complete
+              // 暂时没有命令就绪，等待任务完成
               await sleep(100)
             }
-            // Loop back to drain any newly queued commands
+            // 回到循环开头，排空新入队的命令
           }
         }
       } while (waitingForAgents)
@@ -2520,7 +2491,7 @@ function runHeadlessStreaming(
         heldBackResult = null
         if (suggestionState.pendingSuggestion) {
           output.enqueue(suggestionState.pendingSuggestion)
-          // Now that the suggestion is actually delivered, record it for acceptance tracking
+          // 建议已真正投递，现在记录到采纳追踪
           if (suggestionState.pendingLastEmittedEntry) {
             suggestionState.lastEmitted = {
               ...suggestionState.pendingLastEmittedEntry,
@@ -2532,8 +2503,8 @@ function runHeadlessStreaming(
         }
       }
     } catch (error) {
-      // Emit error result message before shutting down
-      // Write directly to structuredIO to ensure immediate delivery
+      // 关闭前发送错误 result 消息
+      // 直接写入 structuredIO 以确保立即投递
       try {
         await structuredIO.write({
           type: 'result',
@@ -2555,34 +2526,33 @@ function runHeadlessStreaming(
           ],
         })
       } catch {
-        // If we can't emit the error result, continue with shutdown anyway
+        // 如果无法发送错误 result，仍然继续关闭流程
       }
       suggestionState.abortController?.abort()
       gracefulShutdownSync(1)
       return
     } finally {
       runPhase = 'finally_flush'
-      // Flush pending internal events before going idle
+      // 进入空闲前刷出待处理的内部事件
       await structuredIO.flushInternalEvents()
       runPhase = 'finally_post_flush'
       if (!isShuttingDown()) {
         notifySessionStateChanged('idle')
-        // Drain so the idle session_state_changed SDK event (plus any
-        // terminal task_notification bookends emitted during bg-agent
-        // teardown) reach the output stream before we block on the next
-        // command. The do-while drain above only runs while
-        // waitingForAgents; once we're here the next drain would be the
-        // top of the next run(), which won't come if input is idle.
+        // 排空事件，使空闲的 session_state_changed SDK 事件（以及后台 agent
+        // 拆除期间发送的任何终止性 task_notification 收尾事件）在我们阻塞等待
+        // 下一条命令之前到达输出流。上方的 do-while 排空只在
+        // waitingForAgents 时运行；到达此处后，下一次排空要等到下一次 run()
+        // 的开头才会发生，而输入空闲时不会再有下一次 run()。
         for (const event of drainSdkEvents()) {
           output.enqueue(event)
         }
       }
       running = false
-      // Start idle timer when we finish processing and are waiting for input
+      // 处理完成并等待输入时启动空闲计时器
       idleTimeout.start()
     }
 
-    // Proactive tick: if proactive is active and queue is empty, inject a tick
+    // 主动 tick：如果主动模式处于激活状态且队列为空，注入一次 tick
     if (
       (feature('PROACTIVE') || feature('KAIROS')) &&
       proactiveModule?.isProactiveActive() &&
@@ -2594,19 +2564,17 @@ function runHeadlessStreaming(
       }
     }
 
-    // Re-check the queue after releasing the mutex. A message may have
-    // arrived (and called run()) between the last dequeue() returning
-    // undefined and `running = false` above. In that case the caller
-    // saw `running === true` and returned immediately, leaving the
-    // message stranded in the queue with no one to process it.
+    // 释放互斥锁后重新检查队列。在上一次 dequeue() 返回 undefined 与上方
+    // `running = false` 之间，可能有消息到达（并调用了 run()）。此时调用方
+    // 看到 `running === true` 就立即返回，使消息滞留在队列中无人处理。
     if (peek(isMainThread) !== undefined) {
       void run()
       return
     }
 
-    // Check for unread teammate messages and process them
-    // This mirrors what useInboxPoller does in interactive REPL mode
-    // Poll until no more messages (teammates may still be working)
+    // 检查未读的 teammate 消息并处理它们
+    // 这与交互式 REPL 模式下 useInboxPoller 的行为一致
+    // 持续轮询直到没有更多消息（teammate 可能仍在工作）
     {
       const currentAppState = getAppState()
       const teamContext = currentAppState.teamContext
@@ -2614,13 +2582,13 @@ function runHeadlessStreaming(
       if (teamContext && isTeamLead(teamContext)) {
         const agentName = 'team-lead'
 
-        // Poll for messages while teammates are active
-        // This is needed because teammates may send messages while we're waiting
-        // Keep polling until the team is shut down
+        // 当 teammate 仍处于活跃状态时轮询消息
+        // 这是必要的，因为 teammate 可能会在我们等待期间发送消息
+        // 持续轮询，直到整个 team 被关闭
         const POLL_INTERVAL_MS = 500
 
         while (true) {
-          // Check if teammates are still active
+          // 检查 teammate 是否仍处于活跃状态
           const refreshedState = getAppState()
           const hasActiveTeammates =
             hasActiveInProcessTeammates(refreshedState) ||
@@ -2644,14 +2612,14 @@ function runHeadlessStreaming(
               `[print.ts] Team-lead found ${unread.length} unread messages`,
             )
 
-            // Mark as read immediately to avoid duplicate processing
+            // 立即标记为已读，避免重复处理
             await markMessagesAsRead(
               agentName,
               refreshedState.teamContext?.teamName,
             )
 
-            // Process shutdown_approved messages - remove teammates from team file
-            // This mirrors what useInboxPoller does in interactive mode (lines 546-606)
+            // 处理 shutdown_approved 消息 —— 从 team 文件中移除 teammate
+            // 这与交互式模式下 useInboxPoller 的行为一致（第 546-606 行）
             const teamName = refreshedState.teamContext?.teamName
             for (const m of unread) {
               const shutdownApproval = isShutdownApproved(m.text)
@@ -2661,7 +2629,7 @@ function runHeadlessStreaming(
                   `[print.ts] Processing shutdown_approved from ${teammateToRemove}`,
                 )
 
-                // Find the teammate ID by name
+                // 根据名字查找 teammate ID
                 const teammateId = refreshedState.teamContext?.teammates
                   ? Object.entries(refreshedState.teamContext.teammates).find(
                       ([, t]) => t.name === teammateToRemove,
@@ -2669,7 +2637,7 @@ function runHeadlessStreaming(
                   : undefined
 
                 if (teammateId) {
-                  // Remove from team file
+                  // 从 team 文件中移除
                   removeTeammateFromTeamFile(teamName, {
                     agentId: teammateId,
                     name: teammateToRemove,
@@ -2678,7 +2646,7 @@ function runHeadlessStreaming(
                     `[print.ts] Removed ${teammateToRemove} from team file`,
                   )
 
-                  // Unassign tasks owned by this teammate
+                  // 取消分配给该 teammate 的任务
                   await unassignTeammateTasks(
                     teamName,
                     teammateId,
@@ -2686,7 +2654,7 @@ function runHeadlessStreaming(
                     'shutdown',
                   )
 
-                  // Remove from teamContext in AppState
+                  // 从 AppState 的 teamContext 中移除
                   setAppState(prev => {
                     if (!prev.teamContext?.teammates) return prev
                     if (!(teammateId in prev.teamContext.teammates)) return prev
@@ -2704,7 +2672,7 @@ function runHeadlessStreaming(
               }
             }
 
-            // Format messages same as useInboxPoller
+            // 格式化消息，与 useInboxPoller 的方式一致
             const formatted = unread
               .map(
                 (m: { from: string; text: string; color?: string }) =>
@@ -2712,18 +2680,18 @@ function runHeadlessStreaming(
               )
               .join('\n\n')
 
-            // Enqueue and process
+            // 入队并处理
             enqueue({
               mode: 'prompt',
               value: formatted,
               uuid: randomUUID(),
             })
             void run()
-            return // run() will come back here after processing
+            return // run() 在处理完毕后会回到这里
           }
 
-          // No messages - check if we need to prompt for shutdown
-          // If input is closed and teammates are active, inject shutdown prompt once
+          // 没有消息 —— 检查是否需要发起关闭提示
+          // 如果输入已关闭且仍有活跃的 teammate，注入一次关闭提示
           if (inputClosed && !shutdownPromptInjected) {
             shutdownPromptInjected = true
             logForDebugging(
@@ -2735,25 +2703,25 @@ function runHeadlessStreaming(
               uuid: randomUUID(),
             })
             void run()
-            return // run() will come back here after processing
+            return // run() 在处理完毕后会回到这里
           }
 
-          // Wait and check again
+          // 等待后再次检查
           await sleep(POLL_INTERVAL_MS)
         }
       }
     }
 
     if (inputClosed) {
-      // Check for active swarm that needs shutdown
+      // 检查是否有活跃的 swarm 需要关闭
       const hasActiveSwarm = await (async () => {
-        // Wait for any working in-process team members to finish
+        // 等待任何正在工作的进程内 team member 完成
         const currentAppState = getAppState()
         if (hasWorkingInProcessTeammates(currentAppState)) {
           await waitForTeammatesToBecomeIdle(setAppState, currentAppState)
         }
 
-        // Re-fetch state after potential wait
+        // 在可能的等待之后重新获取状态
         const refreshedAppState = getAppState()
         const refreshedTeamContext = refreshedAppState.teamContext
         const hasTeamMembersNotCleanedUp =
@@ -2767,7 +2735,7 @@ function runHeadlessStreaming(
       })()
 
       if (hasActiveSwarm) {
-        // Team members are idle or pane-based - inject prompt to shut down team
+        // Team member 处于空闲状态或基于 pane —— 注入提示以关闭 team
         enqueue({
           mode: 'prompt',
           value: SHUTDOWN_TEAM_PROMPT,
@@ -2775,7 +2743,7 @@ function runHeadlessStreaming(
         })
         void run()
       } else {
-        // Wait for any in-flight push suggestion before closing the output stream.
+        // 在关闭输出流之前，等待任何进行中的 push suggestion。
         if (suggestionState.inflightPromise) {
           await Promise.race([suggestionState.inflightPromise, sleep(5000)])
         }
@@ -2790,8 +2758,8 @@ function runHeadlessStreaming(
     }
   }
 
-  // Set up UDS inbox callback so the query loop is kicked off
-  // when a message arrives via the UDS socket in headless mode.
+  // 设置 UDS inbox 回调，使 headless 模式下当消息通过 UDS socket 到达时
+  // 能触发 query 循环。
   if (feature('UDS_INBOX')) {
     /* eslint-disable @typescript-eslint/no-require-imports */
     const { drainInbox, setOnEnqueue } =
@@ -2827,21 +2795,19 @@ function runHeadlessStreaming(
     }
   }
 
-  // Cron scheduler: runs scheduled_tasks.json tasks in SDK/-p mode.
-  // Mirrors REPL's useScheduledTasks hook. Fired prompts enqueue + kick
-  // off run() directly — unlike REPL, there's no queue subscriber here
-  // that drains on enqueue while idle. The run() mutex makes this safe
-  // during an active turn: the call no-ops and the post-run recheck at
-  // the end of run() picks up the queued command.
+  // Cron 调度器：在 SDK/-p 模式下运行 scheduled_tasks.json 中的任务。
+  // 镜像 REPL 的 useScheduledTasks hook。触发的 prompt 直接入队并启动
+  // run() —— 与 REPL 不同，这里没有会在空闲时按 enqueue 排空的队列订阅方。
+  // run() 的互斥锁确保在活跃回合期间是安全的：调用会直接 no-op，
+  // 而 run() 末尾的回合后复查会捡起已入队的命令。
   let cronScheduler: import('../utils/cronScheduler.js').CronScheduler | null =
     null
   if (cronGate.isKairosCronEnabled()) {
-    // Shared dedup-claim → input-close-recheck → onSuccess pipeline for the
-    // three cron entry points (legacy onFire, onFireTask agent, onFireTask
-    // non-agent). Centralizing the cancel-on-late-shutdown contract here keeps
-    // the three branches from drifting on what happens between claim and
-    // dispatch. onSuccess receives the claimed QueuedCommand and decides
-    // whether to enqueue it (normal path) or mark the run failed (agent path).
+    // 三个 cron 入口（legacy onFire、onFireTask agent、onFireTask non-agent）
+    // 共享的"去重认领 → 输入关闭复查 → onSuccess"管道。把延迟关闭时取消的契约
+    // 集中在此处，可避免三个分支在 claim 与 dispatch 之间的行为出现漂移。
+    // onSuccess 接收已认领的 QueuedCommand，并决定是将其入队（正常路径）还是
+    // 将此次 run 标记为失败（agent 路径）。
     const dispatchHeadlessCronCommand = (params: {
       basePrompt: string
       sourceId: string
@@ -2885,9 +2851,8 @@ function runHeadlessStreaming(
 
     cronScheduler = cronSchedulerModule.createCronScheduler({
       onFire: prompt => {
-        // Legacy KAIROS-style entries: the prompt text is what uniquely
-        // identifies the cron entry, so it doubles as both source id and
-        // source label for dedup.
+        // Legacy KAIROS 风格的条目：prompt 文本本身就是唯一标识 cron 条目
+        // 的内容，因此在去重时同时作为 source id 与 source label 使用。
         dispatchHeadlessCronCommand({
           basePrompt: prompt,
           sourceId: prompt,
@@ -2956,8 +2921,7 @@ function runHeadlessStreaming(
     })
   }
 
-  // Handle unexpected permission responses by looking up the unresolved tool
-  // call in the transcript and executing it
+  // 处理意外的权限响应：在 transcript 中查找未解析的工具调用并执行它
   const handledOrphanedToolUseIds = new Set<string>()
   structuredIO.setUnexpectedResponseCallback(async message => {
     await handleOrphanedPermissionResponse({
@@ -2965,54 +2929,51 @@ function runHeadlessStreaming(
       setAppState,
       handledToolUseIds: handledOrphanedToolUseIds,
       onEnqueued: () => {
-        // The first message of a session might be the orphaned permission
-        // check rather than a user prompt, so kick off the loop.
+        // 一个会话的第一条消息可能是孤儿权限检查，而不是用户 prompt，
+        // 因此需要在此启动循环。
         void run()
       },
     })
   })
 
-  // Track active OAuth flows per server so we can abort a previous flow
-  // when a new mcp_authenticate request arrives for the same server.
+  // 按 server 跟踪活跃的 OAuth 流程，使同一 server 新的 mcp_authenticate
+  // 请求到达时可以中止前一个流程。
   const activeOAuthFlows = new Map<string, AbortController>()
-  // Track manual callback URL submit functions for active OAuth flows.
-  // Used when localhost is not reachable (e.g., browser-based IDEs).
+  // 跟踪活跃 OAuth 流程的手动 callback URL 提交函数。
+  // 用于 localhost 不可达的场景（例如基于浏览器的 IDE）。
   const oauthCallbackSubmitters = new Map<
     string,
     (callbackUrl: string) => void
   >()
-  // Track servers where the manual callback was actually invoked (so the
-  // automatic reconnect path knows to skip — the extension will reconnect).
+  // 跟踪实际调用过手动 callback 的 server（让自动重连路径知道需要跳过 ——
+  // 扩展会负责重连）。
   const oauthManualCallbackUsed = new Set<string>()
-  // Track OAuth auth-only promises so mcp_oauth_callback_url can await
-  // token exchange completion. Reconnect is handled separately by the
-  // extension via handleAuthDone → mcp_reconnect.
+  // 跟踪 OAuth 仅认证的 promise，使 mcp_oauth_callback_url 可以等待
+  // token 交换完成。重连由扩展通过 handleAuthDone → mcp_reconnect 单独处理。
   const oauthAuthPromises = new Map<string, Promise<void>>()
 
-  // In-flight Anthropic OAuth flow (claude_authenticate). Single-slot: a
-  // second authenticate request cleans up the first. The service holds the
-  // PKCE verifier + localhost listener; the promise settles after
-  // installOAuthTokens — after it resolves, the in-process memoized token
-  // cache is already cleared and the next API call picks up the new creds.
+  // 进行中的 Anthropic OAuth 流程（claude_authenticate）。单槽位：第二次
+  // authenticate 请求会清理第一次的流程。service 持有 PKCE verifier 和
+  // localhost 监听器；promise 在 installOAuthTokens 之后 settle —— resolve
+  // 之后，进程内 memoized 的 token 缓存已被清除，下一次 API 调用会拿到
+  // 新的凭据。
   let claudeOAuth: {
     service: OAuthService
     flow: Promise<void>
   } | null = null
 
-  // This is essentially spawning a parallel async task- we have two
-  // running in parallel- one reading from stdin and adding to the
-  // queue to be processed and another reading from the queue,
-  // processing and returning the result of the generation.
-  // The process is complete when the input stream completes and
-  // the last generation of the queue has complete.
+  // 这本质上是启动一个并行异步任务 —— 我们有两个并行运行：
+  // 一个从 stdin 读取并加入待处理队列，另一个从队列中读取、处理并
+  // 返回生成结果。
+  // 当输入流结束且队列中最后一次生成完成时，整个流程结束。
   void (async () => {
     let initialized = false
     logForDiagnosticsNoPII('info', 'cli_message_loop_started')
     for await (const message of structuredIO.structuredInput) {
-      // Non-user events are handled inline (no queue). started→completed in
-      // the same tick carries no information, so only fire completed.
-      // control_response is reported by StructuredIO.processLine (which also
-      // sees orphans that never yield here).
+      // 非用户事件会在原地处理（不进入队列）。同一 tick 内的 started→completed
+      // 不携带任何信息，因此只触发 completed。
+      // control_response 由 StructuredIO.processLine 上报（它也会看到
+      // 永远不会 yield 到这里的 orphan）。
       const eventId = 'uuid' in message ? message.uuid : undefined
       if (
         eventId &&
@@ -3023,18 +2984,18 @@ function runHeadlessStreaming(
       }
 
       if (message.type === 'control_request') {
-        // Type assertion: structuredInput yields StdinMessage | SDKMessage, but
-        // when type === 'control_request' the object has request_id and request.
-        // The union with SDKMessage (typed as `any`) causes request to be `unknown`.
-        // Cast to SDKControlRequest (via unknown) for type safety on known subtypes,
-        // and use Record<string, unknown> for subtypes not in the zod schema union.
+        // 类型断言：structuredInput 产出 StdinMessage | SDKMessage，但当
+        // type === 'control_request' 时该对象有 request_id 和 request。
+        // 与 SDKMessage（类型为 `any`）的联合会让 request 变成 `unknown`。
+        // 通过 unknown 转为 SDKControlRequest，以便在已知的 subtype 上获得类型安全，
+        // 对于不在 zod schema 联合中的 subtype 使用 Record<string, unknown>。
         const msg = message as unknown as SDKControlRequest
-        // Wider-typed alias for request properties on subtypes not in the zod schema.
-        // The schema union doesn't include end_session, channel_enable, mcp_authenticate,
-        // claude_authenticate, etc. so accessing their properties narrows to `never`.
+        // 为不在 zod schema 中的 subtype 的 request 属性提供一个更宽泛的类型别名。
+        // schema 联合并不包含 end_session、channel_enable、mcp_authenticate、
+        // claude_authenticate 等，因此访问它们的属性会被收窄为 `never`。
         const req = msg.request as Record<string, unknown>
         if (msg.request.subtype === 'interrupt') {
-          // Track escapes for attribution (ant-only feature)
+          // 追踪 escape 次数用于归因（ant 专属 feature）
           if (feature('COMMIT_ATTRIBUTION')) {
             setAppState(prev => ({
               ...prev,
@@ -3064,17 +3025,17 @@ function runHeadlessStreaming(
           suggestionState.lastEmitted = null
           suggestionState.pendingSuggestion = null
           sendControlResponseSuccess(msg)
-          break // exits for-await → falls through to inputClosed=true drain below
+          break // 退出 for-await → 进入下方 inputClosed=true 的排空分支
         } else if (msg.request.subtype === 'initialize') {
-          // SDK MCP server names from the initialize message
-          // Populated by both browser and ProcessTransport sessions
+          // 来自 initialize 消息的 SDK MCP server 名称
+          // 由 browser 和 ProcessTransport 会话两端共同填充
           if (
             msg.request.sdkMcpServers &&
             msg.request.sdkMcpServers.length > 0
           ) {
             for (const serverName of msg.request.sdkMcpServers) {
-              // Create placeholder config for SDK MCP servers
-              // The actual server connection is managed by the SDK Query class
+              // 为 SDK MCP server 创建占位 config
+              // 实际的 server 连接由 SDK Query 类管理
               sdkMcpConfigs[serverName] = {
                 type: 'sdk',
                 name: serverName,
@@ -3096,9 +3057,9 @@ function runHeadlessStreaming(
             getAppState,
           )
 
-          // Enable prompt suggestions in AppState when SDK consumer opts in.
-          // shouldEnablePromptSuggestion() returns false for non-interactive
-          // sessions, but the SDK consumer explicitly requested suggestions.
+          // 当 SDK 消费方主动开启时，在 AppState 中启用 prompt 建议。
+          // shouldEnablePromptSuggestion() 对非交互式会话会返回 false，
+          // 但这里 SDK 消费方明确请求了 suggestions。
           if (msg.request.promptSuggestions) {
             setAppState(prev => {
               if (prev.promptSuggestionEnabled) return prev
@@ -3115,13 +3076,13 @@ function runHeadlessStreaming(
 
           initialized = true
 
-          // If the auto-resume logic pre-enqueued a command, drain it now
-          // that initialize has set up systemPrompt, agents, hooks, etc.
+          // 如果自动恢复逻辑预先入队了命令，在 initialize 设置完
+          // systemPrompt、agents、hooks 等之后立即排空它。
           if (hasCommandsInQueue()) {
             void run()
           }
         } else if (msg.request.subtype === 'set_permission_mode') {
-          const m = msg.request // for typescript (TODO: use readonly types to avoid this)
+          const m = msg.request // 为 TypeScript 准备（TODO: 改用 readonly 类型以避免此举）
           setAppState(prev => ({
             ...prev,
             toolPermissionContext: handleSetPermissionMode(
@@ -3132,9 +3093,9 @@ function runHeadlessStreaming(
             ),
             isUltraplanMode: m.ultraplan ?? prev.isUltraplanMode,
           }))
-          // handleSetPermissionMode sends the control_response; the
-          // notifySessionMetadataChanged that used to follow here is
-          // now fired by onChangeAppState (with externalized mode name).
+          // handleSetPermissionMode 会发送 control_response；此处过去跟随的
+          // notifySessionMetadataChanged 现已由 onChangeAppState 触发（带外部化的
+          // mode 名称）。
         } else if (msg.request.subtype === 'set_model') {
           const requestedModel = msg.request.model ?? 'default'
           const model =
@@ -3182,13 +3143,13 @@ function runHeadlessStreaming(
             sendControlResponseError(msg, errorMessage(error))
           }
         } else if (msg.request.subtype === 'mcp_message') {
-          // Handle MCP notifications from SDK servers
+          // 处理来自 SDK server 的 MCP notification
           const mcpRequest = msg.request as Record<string, unknown>
           const sdkClient = sdkClients.find(
             client => client.name === mcpRequest.server_name,
           )
-          // Check client exists - dynamically added SDK servers may have
-          // placeholder clients with null client until updateSdkMcp() runs
+          // 检查 client 是否存在 —— 动态加入的 SDK server 在 updateSdkMcp()
+          // 运行之前可能持有 null client 的占位 client
           if (
             sdkClient &&
             sdkClient.type === 'connected' &&
@@ -3222,29 +3183,28 @@ function runHeadlessStreaming(
             cancelled: removed.length > 0,
           })
         } else if (msg.request.subtype === 'seed_read_state') {
-          // Client observed a Read that was later removed from context (e.g.
-          // by snip), so transcript-based seeding missed it. Queued into
-          // pendingSeeds; applied at the next clone-replace boundary.
+          // 客户端观测到一次 Read，但该 Read 随后被从上下文中移除（例如被 snip
+          // 移除），因此基于 transcript 的 seeding 错过了它。将其加入
+          // pendingSeeds；在下一次 clone-replace 边界处应用。
           try {
-            // expandPath: all other readFileState writers normalize (~, relative,
-            // session cwd vs process cwd). FileEditTool looks up by expandPath'd
-            // key — a verbatim client path would miss.
+            // expandPath：所有其他的 readFileState 写入方都会进行归一化（~、
+            // 相对路径、session cwd 与 process cwd 的差异）。FileEditTool 按
+            // expandPath 后的 key 查找 —— 客户端字面路径会查不到。
             const normalizedPath = expandPath(msg.request.path)
-            // Check disk mtime before reading content. If the file changed
-            // since the client's observation, readFile would return C_current
-            // but we'd store it with the client's M_observed — getChangedFiles
-            // then sees disk > cache.timestamp, re-reads, diffs C_current vs
-            // C_current = empty, emits no attachment, and the model is never
-            // told about the C_observed → C_current change. Skipping the seed
-            // makes Edit fail "file not read yet" → forces a fresh Read.
-            // Math.floor matches FileReadTool and getFileModificationTime.
+            // 读取内容之前先检查磁盘 mtime。如果文件自客户端观测以来发生了
+            // 变化，readFile 会返回 C_current，但我们仍会以客户端的 M_observed
+            // 存储 —— getChangedFiles 随后会看到 disk > cache.timestamp，重新
+            // 读取，对比 C_current 与 C_current = 空，不发出任何 attachment，
+            // 模型永远不知道 C_observed → C_current 的变化。跳过 seeding
+            // 会让 Edit 失败并报 "file not read yet" → 强制进行一次新的 Read。
+            // Math.floor 与 FileReadTool 和 getFileModificationTime 保持一致。
             const diskMtime = Math.floor((await stat(normalizedPath)).mtimeMs)
             if (diskMtime <= msg.request.mtime) {
               const raw = await readFile(normalizedPath, 'utf-8')
-              // Strip BOM + normalize CRLF→LF to match readFileInRange and
-              // readFileSyncWithMetadata. FileEditTool's content-compare
-              // fallback (for Windows mtime bumps without content change)
-              // compares against LF-normalized disk reads.
+              // 去除 BOM 并将 CRLF 归一化为 LF，与 readFileInRange 和
+              // readFileSyncWithMetadata 保持一致。FileEditTool 的内容比较
+              // 回退逻辑（针对 Windows 上 mtime 变化但内容未变的情况）会与
+              // LF 归一化后的磁盘读取结果进行对比。
               const content = (
                 raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw
               ).replaceAll('\r\n', '\n')
@@ -3256,7 +3216,7 @@ function runHeadlessStreaming(
               })
             }
           } catch {
-            // ENOENT etc — skip seeding but still succeed
+            // ENOENT 等 —— 跳过 seeding，但仍返回成功
           }
           sendControlResponseSuccess(msg)
         } else if (msg.request.subtype === 'mcp_set_servers') {
@@ -3268,7 +3228,7 @@ function runHeadlessStreaming(
           )
           sendControlResponseSuccess(msg, response)
 
-          // Connect SDK servers AFTER response to avoid deadlock
+          // 在响应之后才连接 SDK server，避免死锁
           if (sdkServersChanged) {
             void updateSdkMcp()
           }
@@ -3278,8 +3238,8 @@ function runHeadlessStreaming(
               feature('DOWNLOAD_USER_SETTINGS') &&
               (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) || getIsRemoteMode())
             ) {
-              // Re-pull user settings so enabledPlugins pushed from the
-              // user's local CLI take effect before the cache sweep.
+              // 重新拉取用户设置，使从用户本地 CLI 推送过来的 enabledPlugins
+              // 在缓存清理之前生效。
               const applied = await redownloadUserSettings()
               if (applied) {
                 settingsChangeDetector.notifyChange('userSettings')
@@ -3293,9 +3253,8 @@ function runHeadlessStreaming(
             )
             currentAgents = [...r.agentDefinitions.allAgents, ...sdkAgents]
 
-            // Reload succeeded — gather response data best-effort so a
-            // read failure doesn't mask the successful state change.
-            // allSettled so one failure doesn't discard the others.
+            // 重载成功 —— 尽力收集响应数据，避免一次读取失败掩盖成功的状态变更。
+            // 使用 allSettled 使一个失败不会丢弃其他结果。
             let plugins: SDKControlReloadPluginsResponse['plugins'] = []
             const [cmdsR, mcpR, pluginsR] = await Promise.allSettled([
               getCommands(cwd()),
@@ -3345,11 +3304,10 @@ function runHeadlessStreaming(
           const currentAppState = getAppState()
           const { serverName } = msg.request
           elicitationRegistered.delete(serverName)
-          // Config-existence gate must cover the SAME sources as the
-          // operations below. SDK-injected servers (query({mcpServers:{...}}))
-          // and dynamically-added servers were missing here, so
-          // toggleMcpServer/reconnect returned "Server not found" even though
-          // the disconnect/reconnect would have worked (gh-31339 / CC-314).
+          // config 存在性检查必须覆盖与下方操作相同的来源。SDK 注入的 server
+          // （query({mcpServers:{...}})）和动态添加的 server 之前在此缺失，因此
+          // toggleMcpServer/reconnect 即使断开/重连本可以工作，也返回了
+          // "Server not found"（gh-31339 / CC-314）。
           const config =
             getMcpConfigByName(serverName) ??
             mcpClients.find(c => c.name === serverName)?.config ??
@@ -3362,7 +3320,7 @@ function runHeadlessStreaming(
             sendControlResponseError(msg, `Server not found: ${serverName}`)
           } else {
             const result = await reconnectMcpServerImpl(serverName, config)
-            // Update appState.mcp with the new client, tools, commands, and resources
+            // 用新的 client、tools、commands 和 resources 更新 appState.mcp
             const prefix = getMcpPrefix(serverName)
             setAppState(prev => ({
               ...prev,
@@ -3387,8 +3345,8 @@ function runHeadlessStreaming(
                     : omit(prev.mcp.resources, serverName),
               },
             }))
-            // Also update dynamicMcpState so run() picks up the new tools
-            // on the next turn (run() reads dynamicMcpState, not appState)
+            // 同时更新 dynamicMcpState，使 run() 在下一个回合能拿到新的 tools
+            // （run() 读的是 dynamicMcpState，而不是 appState）
             dynamicMcpState = {
               ...dynamicMcpState,
               clients: [
@@ -3418,9 +3376,9 @@ function runHeadlessStreaming(
           const currentAppState = getAppState()
           const { serverName, enabled } = msg.request
           elicitationRegistered.delete(serverName)
-          // Gate must match the client-lookup spread below (which
-          // includes sdkClients and dynamicMcpState.clients). Same fix as
-          // mcp_reconnect above (gh-31339 / CC-314).
+          // 检查必须与下方 client 查找的展开范围一致（其中包含 sdkClients
+          // 和 dynamicMcpState.clients）。与上方 mcp_reconnect 是同一个修复
+          // （gh-31339 / CC-314）。
           const config =
             getMcpConfigByName(serverName) ??
             mcpClients.find(c => c.name === serverName)?.config ??
@@ -3433,7 +3391,7 @@ function runHeadlessStreaming(
           if (!config) {
             sendControlResponseError(msg, `Server not found: ${serverName}`)
           } else if (!enabled) {
-            // Disabling: persist + disconnect (matches TUI toggleMcpServer behavior)
+            // 禁用：持久化 + 断开连接（与 TUI 的 toggleMcpServer 行为一致）
             setMcpServerEnabled(serverName, false)
             const client = [
               ...mcpClients,
@@ -3444,7 +3402,7 @@ function runHeadlessStreaming(
             if (client && client.type === 'connected') {
               await clearServerCache(serverName, config)
             }
-            // Update appState.mcp to reflect disabled status and remove tools/commands/resources
+            // 更新 appState.mcp 以反映禁用状态，并移除相应的 tools/commands/resources
             const prefix = getMcpPrefix(serverName)
             setAppState(prev => ({
               ...prev,
@@ -3464,11 +3422,11 @@ function runHeadlessStreaming(
             }))
             sendControlResponseSuccess(msg)
           } else {
-            // Enabling: persist + reconnect
+            // 启用：持久化 + 重连
             setMcpServerEnabled(serverName, true)
             const result = await reconnectMcpServerImpl(serverName, config)
-            // Update appState.mcp with the new client, tools, commands, and resources
-            // This ensures the LLM sees updated tools after enabling the server
+            // 用新的 client、tools、commands 和 resources 更新 appState.mcp
+            // 以确保启用 server 后 LLM 能看到更新后的 tools
             const prefix = getMcpPrefix(serverName)
             setAppState(prev => ({
               ...prev,
@@ -3510,7 +3468,7 @@ function runHeadlessStreaming(
           handleChannelEnable(
             msg.request_id,
             req.serverName as string,
-            // Pool spread matches mcp_status — all three client sources.
+            // client 池的展开与 mcp_status 保持一致 —— 包含全部三个 client 来源。
             [
               ...currentAppState.mcp.clients,
               ...sdkClients,
@@ -3536,18 +3494,18 @@ function runHeadlessStreaming(
             )
           } else {
             try {
-              // Abort any previous in-flight OAuth flow for this server
+              // 中止该 server 之前进行中的 OAuth 流程
               activeOAuthFlows.get(serverName as string)?.abort()
               const controller = new AbortController()
               activeOAuthFlows.set(serverName as string, controller)
 
-              // Capture the auth URL from the callback
+              // 从回调中捕获 auth URL
               let resolveAuthUrl: (url: string) => void
               const authUrlPromise = new Promise<string>(resolve => {
                 resolveAuthUrl = resolve
               })
 
-              // Start the OAuth flow in the background
+              // 在后台启动 OAuth 流程
               const oauthPromise = performMCPOAuthFlow(
                 serverName as string,
                 config,
@@ -3561,7 +3519,7 @@ function runHeadlessStreaming(
                 },
               )
 
-              // Wait for the auth URL (or the flow to complete without needing redirect)
+              // 等待 auth URL（或流程在没有重定向需求的情况下直接完成）
               const authUrl = await Promise.race([
                 authUrlPromise,
                 oauthPromise.then(() => null as string | null),
@@ -3578,28 +3536,27 @@ function runHeadlessStreaming(
                 })
               }
 
-              // Store auth-only promise for mcp_oauth_callback_url handler.
-              // Don't swallow errors — the callback handler needs to detect
-              // auth failures and report them to the caller.
+              // 为 mcp_oauth_callback_url handler 存储仅认证的 promise。
+              // 不要吞掉错误 —— callback handler 需要检测认证失败并上报给调用方。
               oauthAuthPromises.set(serverName, oauthPromise)
 
-              // Handle background completion — reconnect after auth.
-              // When manual callback is used, skip the reconnect here;
-              // the extension's handleAuthDone → mcp_reconnect handles it
-              // (which also updates dynamicMcpState for tool registration).
+              // 处理后台完成 —— 在认证之后进行重连。
+              // 当使用手动 callback 时，这里跳过重连；
+              // 扩展的 handleAuthDone → mcp_reconnect 会负责处理
+              // （它也会更新 dynamicMcpState 以完成工具注册）。
               const fullFlowPromise = oauthPromise
                 .then(async () => {
-                  // Don't reconnect if the server was disabled during the OAuth flow
+                  // 如果 server 在 OAuth 流程期间被禁用，则不重连
                   if (isMcpServerDisabled(serverName as string)) {
                     return
                   }
-                  // Skip reconnect if the manual callback path was used —
-                  // handleAuthDone will do it via mcp_reconnect (which
-                  // updates dynamicMcpState for tool registration).
+                  // 如果使用了手动 callback 路径则跳过重连 ——
+                  // handleAuthDone 会通过 mcp_reconnect 完成
+                  // （它也会更新 dynamicMcpState 以完成工具注册）。
                   if (oauthManualCallbackUsed.has(serverName as string)) {
                     return
                   }
-                  // Reconnect the server after successful auth
+                  // 认证成功后重连 server
                   const result = await reconnectMcpServerImpl(
                     serverName as string,
                     config,
@@ -3633,8 +3590,8 @@ function runHeadlessStreaming(
                           : omit(prev.mcp.resources, serverName as string),
                     },
                   }))
-                  // Also update dynamicMcpState so run() picks up the new tools
-                  // on the next turn (run() reads dynamicMcpState, not appState)
+                  // 同时更新 dynamicMcpState，使 run() 在下一个回合能拿到新的 tools
+                  // （run() 读的是 dynamicMcpState，而不是 appState）
                   dynamicMcpState = {
                     ...dynamicMcpState,
                     clients: [
@@ -3658,7 +3615,7 @@ function runHeadlessStreaming(
                   )
                 })
                 .finally(() => {
-                  // Clean up only if this is still the active flow
+                  // 仅当这仍是当前活跃的流程时才清理
                   if (
                     activeOAuthFlows.get(serverName as string) === controller
                   ) {
@@ -3678,10 +3635,9 @@ function runHeadlessStreaming(
           const callbackUrl = req.callbackUrl as string
           const submit = oauthCallbackSubmitters.get(serverName)
           if (submit) {
-            // Validate the callback URL before submitting. The submit
-            // callback in auth.ts silently ignores URLs missing a code
-            // param, which would leave the auth promise unresolved and
-            // block the control message loop until timeout.
+            // 提交前先校验 callback URL。auth.ts 中的 submit callback 会
+            // 静默忽略缺少 code 参数的 URL，这会让 auth promise 永远得不到
+            // resolve，并把 control 消息循环阻塞到超时。
             let hasCodeOrError = false
             try {
               const parsed = new URL(callbackUrl as string | URL)
@@ -3689,7 +3645,7 @@ function runHeadlessStreaming(
                 parsed.searchParams.has('code') ||
                 parsed.searchParams.has('error')
             } catch {
-              // Invalid URL
+              // 无效 URL
             }
             if (!hasCodeOrError) {
               sendControlResponseError(
@@ -3699,9 +3655,9 @@ function runHeadlessStreaming(
             } else {
               oauthManualCallbackUsed.add(serverName)
               submit(callbackUrl as string)
-              // Wait for auth (token exchange) to complete before responding.
-              // Reconnect is handled by the extension via handleAuthDone →
-              // mcp_reconnect (which updates dynamicMcpState for tools).
+              // 在响应之前等待认证（token 交换）完成。
+              // 重连由扩展通过 handleAuthDone → mcp_reconnect 处理
+              // （它会更新 dynamicMcpState 以注册 tools）。
               const authPromise = oauthAuthPromises.get(serverName)
               if (authPromise) {
                 try {
@@ -3726,18 +3682,17 @@ function runHeadlessStreaming(
             )
           }
         } else if (req.subtype === 'claude_authenticate') {
-          // Anthropic OAuth over the control channel. The SDK client owns
-          // the user's browser (we're headless in -p mode); we hand back
-          // both URLs and wait. Automatic URL → localhost listener catches
-          // the redirect if the browser is on this host; manual URL → the
-          // success page shows "code#state" for claude_oauth_callback.
+          // 通过 control 通道进行的 Anthropic OAuth。SDK client 拥有用户的
+          // 浏览器（我们在 -p 模式下是 headless 的）；我们把两个 URL 都回传
+          // 并等待。automatic URL → localhost listener 会在浏览器与当前主机
+          // 相同时捕获到重定向；manual URL → 成功页会展示 "code#state" 用于
+          // claude_oauth_callback。
           const loginWithClaudeAi = req.loginWithClaudeAi as boolean | undefined
 
-          // Clean up any prior flow. cleanup() closes the localhost listener
-          // and nulls the manual resolver. The prior `flow` promise is left
-          // pending (AuthCodeListener.close() does not reject) but its object
-          // graph becomes unreachable once the server handle is released and
-          // is GC'd — no fd or port is held.
+          // 清理之前可能存在的流程。cleanup() 会关闭 localhost listener 并
+          // 清空 manual resolver。之前的 `flow` promise 会保持 pending
+          // （AuthCodeListener.close() 不会 reject），但其对象图在 server
+          // handle 释放后就会变得不可达，随后被 GC —— 不会占用任何 fd 或端口。
           claudeOAuth?.service.cleanup()
 
           logEvent('tengu_oauth_flow_start', {
@@ -3759,8 +3714,8 @@ function runHeadlessStreaming(
           const flow = service
             .startOAuthFlow(
               async (manualUrl, automaticUrl) => {
-                // automaticUrl is always defined when skipBrowserOpen is set;
-                // the signature is optional only for the existing single-arg callers.
+                // 当设置了 skipBrowserOpen 时，automaticUrl 一定有定义；
+                // 该参数之所以可选，只是为了兼容已有的单参数调用方。
                 urlResolver({ manualUrl, automaticUrl: automaticUrl! })
               },
               {
@@ -3769,11 +3724,11 @@ function runHeadlessStreaming(
               },
             )
             .then(async tokens => {
-              // installOAuthTokens: performLogout (clear stale state) →
+              // installOAuthTokens：performLogout（清理过期状态）→
               // store profile → saveOAuthTokensIfNeeded → clearOAuthTokenCache
-              // → clearAuthRelatedCaches. After this resolves, the memoized
-              // getClaudeAIOAuthTokens in this process is invalidated; the
-              // next API call re-reads keychain/file and works. No respawn.
+              // → clearAuthRelatedCaches。resolve 之后，本进程中 memoized 的
+              // getClaudeAIOAuthTokens 即被作废；下一次 API 调用会重新读取
+              // keychain/file 并正常工作。无需重启进程。
               await installOAuthTokens(tokens)
               logEvent('tengu_oauth_success', {
                 loginWithClaudeAi: (loginWithClaudeAi ?? true) as
@@ -3790,10 +3745,9 @@ function runHeadlessStreaming(
 
           claudeOAuth = { service, flow }
 
-          // Attach the rejection handler before awaiting so a synchronous
-          // startOAuthFlow failure doesn't surface as an unhandled rejection.
-          // The claude_oauth_callback handler re-awaits flow for the manual
-          // path and surfaces the real error to the client.
+          // 在 await 之前挂上 rejection handler，避免同步的 startOAuthFlow
+          // 失败被上报为 unhandled rejection。claude_oauth_callback handler
+          // 会在手动路径上重新 await flow，并把真实错误暴露给客户端。
           void flow.catch(err =>
             logForDebugging(`claude_authenticate flow ended: ${err}`, {
               level: 'info',
@@ -3801,11 +3755,10 @@ function runHeadlessStreaming(
           )
 
           try {
-            // Race against flow: if startOAuthFlow rejects before calling
-            // the authURLHandler (e.g. AuthCodeListener.start() fails with
-            // EACCES or fd exhaustion), urlPromise would pend forever and
-            // wedge the stdin loop. flow resolving first is unreachable in
-            // practice (it's suspended on the same urls we're waiting for).
+            // 与 flow 竞速：如果 startOAuthFlow 在调用 authURLHandler 之前就
+            // reject（例如 AuthCodeListener.start() 因 EACCES 或 fd 耗尽而失败），
+            // urlPromise 会永远 pending 并卡住 stdin 循环。实践中 flow 不可能
+            // 先 resolve（它正挂起等待的就是我们正在等待的那些 url）。
             const { manualUrl, automaticUrl } = await Promise.race([
               urlPromise,
               flow.then(() => {
@@ -3828,20 +3781,19 @@ function runHeadlessStreaming(
           if (!claudeOAuth) {
             sendControlResponseError(msg, 'No active claude_authenticate flow')
           } else {
-            // Inject the manual code synchronously — must happen in stdin
-            // message order so a subsequent claude_authenticate doesn't
-            // replace the service before this code lands.
+            // 同步注入手动 code —— 必须按 stdin 消息顺序执行，确保后续的
+            // claude_authenticate 不会在 code 到位之前替换掉 service。
             if (req.subtype === 'claude_oauth_callback') {
               claudeOAuth.service.handleManualAuthCodeInput({
                 authorizationCode: req.authorizationCode as string,
                 state: req.state as string,
               })
             }
-            // Detach the await — the stdin reader is serial and blocking
-            // here deadlocks claude_oauth_wait_for_completion: flow may
-            // only resolve via a future claude_oauth_callback on stdin,
-            // which can't be read while we're parked. Capture the binding;
-            // claudeOAuth is nulled in flow's own .finally.
+            // 将 await 解耦 —— stdin 读取是串行的，阻塞在此会让
+            // claude_oauth_wait_for_completion 死锁：flow 可能只能通过
+            // 未来的 stdin 上的 claude_oauth_callback 才会 resolve，
+            // 而我们停在原地时根本读不到。捕获绑定；claudeOAuth 会在
+            // flow 自己的 .finally 中被置为 null。
             const { flow } = claudeOAuth
             void flow.then(
               () => {
@@ -3910,19 +3862,19 @@ function runHeadlessStreaming(
             sendControlResponseSuccess(msg, {})
           }
         } else if (msg.request.subtype === 'apply_flag_settings') {
-          // Snapshot the current model before applying — we need to detect
-          // model switches so we can inject breadcrumbs and notify listeners.
+          // 应用之前先快照当前 model —— 我们需要检测 model 切换，
+          // 以便注入 breadcrumb 并通知 listener。
           const prevModel = getMainLoopModel()
 
-          // Merge the provided settings into the in-memory flag settings
+          // 将传入的设置合并到内存中的 flag 设置
           const existing = getFlagSettingsInline() ?? {}
           const incoming = msg.request.settings
-          // Shallow-merge top-level keys; getSettingsForSource handles
-          // the deep merge with file-based flag settings via mergeWith.
-          // JSON serialization drops `undefined`, so callers use `null`
-          // to signal "clear this key". Convert nulls to deletions so
-          // SettingsSchema().safeParse() doesn't reject the whole object
-          // (z.string().optional() accepts string | undefined, not null).
+          // 对顶层 key 进行浅合并；getSettingsForSource 通过 mergeWith 负责与
+          // 基于文件的 flag 设置的深度合并。
+          // JSON 序列化会丢弃 `undefined`，所以调用方使用 `null` 表示
+          // "清除该 key"。把 null 转为删除，这样 SettingsSchema().safeParse()
+          // 才不会因为整个对象被拒（z.string().optional() 接受 string | undefined，
+          // 而不是 null）。
           const merged = { ...existing, ...incoming }
           for (const key of Object.keys(merged)) {
             if (merged[key as keyof typeof merged] === null) {
@@ -3930,23 +3882,19 @@ function runHeadlessStreaming(
             }
           }
           setFlagSettingsInline(merged)
-          // Route through notifyChange so fanOut() resets the settings cache
-          // before listeners run. The subscriber at :392 calls
-          // applySettingsChange for us. Pre-#20625 this was a direct
-          // applySettingsChange() call that relied on its own internal reset —
-          // now that the reset is centralized in fanOut, a direct call here
-          // would read stale cached settings and silently drop the update.
-          // Bonus: going through notifyChange also tells the other subscribers
-          // (loadPluginHooks, sandbox-adapter) about the change, which the
-          // previous direct call skipped.
+          // 走 notifyChange 路径，让 fanOut() 在 listener 运行之前重置设置缓存。
+          // :392 处的订阅方会为我们调用 applySettingsChange。#20625 之前这里是
+          // 直接调用 applySettingsChange()，依赖其内部的重置 —— 现在重置集中在
+          // fanOut 中，若直接调用则会读到过期的缓存设置，从而静默丢弃更新。
+          // 附带好处：走 notifyChange 还能让其他订阅方（loadPluginHooks、
+          // sandbox-adapter）知道这次变更，而这正是之前的直接调用所跳过的。
           settingsChangeDetector.notifyChange('flagSettings')
 
-          // If the incoming settings include a model change, update the
-          // override so getMainLoopModel() reflects it. The override has
-          // higher priority than the settings cascade in
-          // getUserSpecifiedModelSetting(), so without this update,
-          // getMainLoopModel() returns the stale override and the model
-          // change is silently ignored (matching set_model at :2811).
+          // 如果传入的设置中包含 model 变更，则更新 override，使
+          // getMainLoopModel() 能反映该变更。override 在
+          // getUserSpecifiedModelSetting() 中优先级高于设置级联，
+          // 若不更新，getMainLoopModel() 会返回过期的 override，model 变更
+          // 会被静默忽略（与 :2811 的 set_model 行为一致）。
           if ('model' in incoming) {
             if (incoming.model != null) {
               setMainLoopModelOverride(String(incoming.model))
@@ -3955,8 +3903,8 @@ function runHeadlessStreaming(
             }
           }
 
-          // If the model changed, inject breadcrumbs so the model sees the
-          // mid-conversation switch, and notify metadata listeners (CCR).
+          // 如果 model 发生了变化，注入 breadcrumb 让模型看到这次会话中途的切换，
+          // 并通知 metadata listener（CCR）。
           const newModel = getMainLoopModel()
           if (newModel !== prevModel) {
             activeUserSpecifiedModel = newModel
@@ -3969,8 +3917,8 @@ function runHeadlessStreaming(
         } else if (msg.request.subtype === 'get_settings') {
           const currentAppState = getAppState()
           const model = getMainLoopModel()
-          // modelSupportsEffort gate matches claude.ts — applied.effort must
-          // mirror what actually goes to the API, not just what's configured.
+          // modelSupportsEffort 的门控与 claude.ts 保持一致 —— applied.effort 必须
+          // 反映真正发往 API 的内容，而不仅仅是配置的内容。
           const effort = modelSupportsEffort(model)
             ? resolveAppliedEffort(model, currentAppState.effortValue)
             : undefined
@@ -3978,7 +3926,7 @@ function runHeadlessStreaming(
             ...getSettingsWithSources(),
             applied: {
               model,
-              // Numeric effort (ant-only) → null; SDK schema is string-level only.
+              // 数值型 effort（ant 专属）→ null；SDK schema 只接受字符串级别。
               effort: typeof effort === 'string' ? effort : null,
             },
           })
@@ -3994,14 +3942,13 @@ function runHeadlessStreaming(
             sendControlResponseError(msg, errorMessage(error))
           }
         } else if (req.subtype === 'generate_session_title') {
-          // Fire-and-forget so the Haiku call does not block the stdin loop
-          // (which would delay processing of subsequent user messages /
-          // interrupts for the duration of the API roundtrip).
+          // 触发即忘（fire-and-forget），避免 Haiku 调用阻塞 stdin 循环
+          // （否则会延迟后续用户消息 / 中断的处理，延迟时长即该次 API 往返时间）。
           const description = req.description as string
           const persist = req.persist as boolean
-          // Reuse the live controller only if it has not already been aborted
-          // (e.g. by interrupt()); an aborted signal would cause queryHaiku to
-          // immediately throw APIUserAbortError → {title: null}.
+          // 仅当当前 controller 尚未被 abort（例如被 interrupt() 中止）时才复用它；
+          // 已 abort 的 signal 会让 queryHaiku 立即抛出 APIUserAbortError
+          // → {title: null}。
           const titleSignal = (
             abortController && !abortController.signal.aborted
               ? abortController
@@ -4019,29 +3966,27 @@ function runHeadlessStreaming(
               }
               sendControlResponseSuccess(msg, { title })
             } catch (e) {
-              // Unreachable in practice — generateSessionTitle wraps its
-              // own body and returns null, saveAiGeneratedTitle is wrapped
-              // above. Propagate (not swallow) so unexpected failures are
-              // visible to the SDK caller (hostComms.ts catches and logs).
+              // 实践中不可达 —— generateSessionTitle 内部已包裹并返回 null，
+              // saveAiGeneratedTitle 也已在上方包裹。此处继续向上抛出
+              // （而不是吞掉），使意外失败能被 SDK 调用方看到
+              // （hostComms.ts 会捕获并记录日志）。
               sendControlResponseError(msg, errorMessage(e))
             }
           })()
         } else if (req.subtype === 'side_question') {
-          // Same fire-and-forget pattern as generate_session_title above —
-          // the forked agent's API roundtrip must not block the stdin loop.
+          // 与上方 generate_session_title 相同的 fire-and-forget 模式 ——
+          // fork 出的 agent 的 API 往返不能阻塞 stdin 循环。
           //
-          // The snapshot captured by stopHooks (for querySource === 'sdk')
-          // holds the exact systemPrompt/userContext/systemContext/messages
-          // sent on the last main-thread turn. Reusing them gives a byte-
-          // identical prefix → prompt cache hit.
+          // stopHooks（当 querySource === 'sdk' 时）捕获的快照保存了上一次
+          // 主线程回合所发送的精确 systemPrompt/userContext/systemContext/
+          // messages。复用它们可以得到字节级一致的前缀 → 命中 prompt 缓存。
           //
-          // Fallback (resume before first turn completes — no snapshot yet):
-          // rebuild from scratch. buildSideQuestionFallbackParams mirrors
-          // QueryEngine.ts:ask()'s system prompt assembly (including
-          // --system-prompt / --append-system-prompt) so the rebuilt prefix
-          // matches in the common case. May still miss the cache for
-          // coordinator mode or memory-mechanics extras — acceptable, the
-          // alternative is the side question failing entirely.
+          // 回退路径（第一次回合完成之前 resume —— 还没有快照）：
+          // 从零重建。buildSideQuestionFallbackParams 镜像了
+          // QueryEngine.ts:ask() 的 system prompt 组装逻辑（包含
+          // --system-prompt / --append-system-prompt），使重建出的前缀
+          // 在常见情况下能匹配上。在 coordinator 模式或 memory-mechanics 额外
+          // 内容下仍可能错失缓存 —— 可接受，另一种选择是 side question 直接失败。
           const question = req.question as string
           void (async () => {
             try {
@@ -4049,12 +3994,11 @@ function runHeadlessStreaming(
               const cacheSafeParams = saved
                 ? {
                     ...saved,
-                    // If the last turn was interrupted, the snapshot holds an
-                    // already-aborted controller; createChildAbortController in
-                    // createSubagentContext would propagate it and the fork
-                    // would die before sending a request. The controller is
-                    // not part of the cache key — swapping in a fresh one is
-                    // safe. Same guard as generate_session_title above.
+                    // 如果上一回合被中断，快照中持有的就是一个已经 abort 的
+                    // controller；否则 createSubagentContext 会把它传递下去，导致 fork
+                    // 在发请求之前就死掉。该 controller 并不属于 cache key ——
+                    // 替换成一个全新的 controller 是安全的。与上方
+                    // generate_session_title 的保护逻辑一致。
                     toolUseContext: {
                       ...saved.toolUseContext,
                       abortController: createAbortController(),
@@ -4106,7 +4050,7 @@ function runHeadlessStreaming(
         } else if (req.subtype === 'remote_control') {
           if (req.enabled as boolean) {
             if (bridgeHandle) {
-              // Already connected
+              // 已连接
               sendControlResponseSuccess(msg, {
                 session_url: getRemoteSessionUrl(
                   bridgeHandle.bridgeSessionId,
@@ -4119,11 +4063,10 @@ function runHeadlessStreaming(
                 environment_id: bridgeHandle.environmentId,
               })
             } else {
-              // initReplBridge surfaces gate-failure reasons via
-              // onStateChange('failed', detail) before returning null.
-              // Capture so the control-response error is actionable
-              // ("/login", "disabled by your organization's policy", etc.)
-              // instead of a generic "initialization failed".
+              // initReplBridge 会通过 onStateChange('failed', detail) 在返回 null
+              // 之前暴露门控失败的原因。捕获该详情，使 control-response 的错误
+              // 是可操作的（"/login"、"disabled by your organization's policy" 等），
+              // 而不是一条泛泛的 "initialization failed"。
               let bridgeFailureDetail: string | undefined
               try {
                 const { initReplBridge } = await import(
@@ -4143,9 +4086,8 @@ function runHeadlessStreaming(
                     void run()
                   },
                   onPermissionResponse(response) {
-                    // Forward bridge permission responses into the
-                    // stdin processing loop so they resolve pending
-                    // permission requests from the SDK consumer.
+                    // 把 bridge 的权限响应转发到 stdin 处理循环，
+                    // 以便解析来自 SDK 消费方的待处理权限请求。
                     structuredIO.injectControlResponse(response)
                   },
                   onInterrupt() {
@@ -4197,12 +4139,12 @@ function runHeadlessStreaming(
                 } else {
                   bridgeHandle = handle
                   bridgeLastForwardedIndex = mutableMessages.length
-                  // Forward permission requests to the bridge
+                  // 将权限请求转发给 bridge
                   structuredIO.setOnControlRequestSent(request => {
                     handle.sendControlRequest(request)
                   })
-                  // Cancel stale bridge permission prompts when the SDK
-                  // consumer resolves a can_use_tool request first.
+                  // 当 SDK 消费方先解析了 can_use_tool 请求时，
+                  // 取消过期的 bridge 权限提示。
                   structuredIO.setOnControlRequestResolved(requestId => {
                     handle.sendControlCancelRequest(requestId)
                   })
@@ -4223,7 +4165,7 @@ function runHeadlessStreaming(
               }
             }
           } else {
-            // Disable
+            // 禁用
             if (bridgeHandle) {
               structuredIO.setOnControlRequestSent(undefined)
               structuredIO.setOnControlRequestResolved(undefined)
@@ -4233,8 +4175,8 @@ function runHeadlessStreaming(
             sendControlResponseSuccess(msg)
           }
         } else {
-          // Unknown control request subtype — send an error response so
-          // the caller doesn't hang waiting for a reply that never comes.
+          // 未知的 control request subtype —— 发送错误响应，避免调用方一直
+          // 等待一个永远不会到来的回复而挂起。
           sendControlResponseError(
             msg,
             `Unsupported control request subtype: ${(msg.request as { subtype: string }).subtype}`,
@@ -4242,41 +4184,41 @@ function runHeadlessStreaming(
         }
         continue
       } else if (message.type === 'control_response') {
-        // Replay control_response messages when replay mode is enabled
+        // 当 replay 模式启用时，重放 control_response 消息
         if (options.replayUserMessages) {
           output.enqueue(message as StdoutMessage)
         }
         continue
       } else if (message.type === 'keep_alive') {
-        // Silently ignore keep-alive messages
+        // 静默忽略 keep-alive 消息
         continue
       } else if (message.type === 'update_environment_variables') {
-        // Handled in structuredIO.ts, but TypeScript needs the type guard
+        // 在 structuredIO.ts 中已处理，此处仅为 TypeScript 的类型守卫
         continue
       } else if (message.type === 'assistant' || message.type === 'system') {
-        // History replay from bridge: inject into mutableMessages as
-        // conversation context so the model sees prior turns.
+        // 来自 bridge 的历史重放：作为会话上下文注入到 mutableMessages，
+        // 让模型能看到之前的回合。
         const internalMsgs = toInternalMessages([message as SDKMessage])
         mutableMessages.push(...internalMsgs)
-        // Echo assistant messages back so CCR displays them
+        // 把 assistant 消息回显，以便 CCR 能显示
         if (message.type === 'assistant' && options.replayUserMessages) {
           output.enqueue(message as StdoutMessage)
         }
         continue
       }
-      // After handling control, keep-alive, env-var, assistant, and system
-      // messages above, only user messages should remain.
+      // 上方处理完 control、keep-alive、env-var、assistant、system 消息之后，
+      // 只应剩下 user 消息。
       if (message.type !== 'user') {
         continue
       }
-      // Type assertion: after the type guard, message is a user message.
-      // The union with SDKMessage (any) prevents proper narrowing.
+      // 类型断言：经过类型守卫之后，message 是一条 user 消息。
+      // 与 SDKMessage（any）的联合会阻止正确的类型收窄。
       const userMsg = message as SDKUserMessage
 
-      // First prompt message implicitly initializes if not already done.
+      // 第一条 prompt 消息若尚未初始化，则隐式初始化。
       initialized = true
 
-      // Check for duplicate user message - skip if already processed
+      // 检查是否为重复的 user 消息 —— 若已处理过则跳过
       if (userMsg.uuid) {
         const sessionId = getSessionId() as UUID
         const existsInSession = await doesMessageExistInSession(
@@ -4284,10 +4226,10 @@ function runHeadlessStreaming(
           userMsg.uuid as UUID,
         )
 
-        // Check both historical duplicates (from file) and runtime duplicates (this session)
+        // 同时检查历史重复（来自文件）和运行时重复（本次会话内）
         if (existsInSession || receivedMessageUuids.has(userMsg.uuid as UUID)) {
           logForDebugging(`Skipping duplicate user message: ${userMsg.uuid}`)
-          // Send acknowledgment for duplicate message if replay mode is enabled
+          // 当 replay 模式启用时，为重复消息发送回执
           if (options.replayUserMessages) {
             logForDebugging(
               `Sending acknowledgment for duplicate user message: ${userMsg.uuid}`,
@@ -4303,24 +4245,24 @@ function runHeadlessStreaming(
               isReplay: true,
             } as unknown as StdoutMessage)
           }
-          // Historical dup = transcript already has this turn's output, so it
-          // ran but its lifecycle was never closed (interrupted before ack).
-          // Runtime dups don't need this — the original enqueue path closes them.
+          // 历史重复 = transcript 中已经有这一回合的输出，说明它跑过了，
+          // 但其生命周期从未被关闭（在 ack 之前被中断）。
+          // 运行时重复不需要这样做 —— 原始的入队路径会关闭它们。
           if (existsInSession) {
             notifyCommandLifecycle(userMsg.uuid as string, 'completed')
           }
-          // Don't enqueue duplicate messages for execution
+          // 不对重复消息进行入队执行
           continue
         }
 
-        // Track this UUID to prevent runtime duplicates
+        // 记录此 UUID，防止运行时重复
         trackReceivedMessageUuid(userMsg.uuid as UUID)
       }
 
       enqueue({
         mode: 'prompt' as const,
-        // file_attachments rides the protobuf catchall from the web composer.
-        // Same-ref no-op when absent (no 'file_attachments' key).
+        // file_attachments 搭乘 web composer protobuf 的 catchall。
+        // 缺失时是同引用的 no-op（没有 'file_attachments' key）。
         value: await resolveAndPrepend(
           userMsg,
           (userMsg.message as { content: ContentBlockParam[] }).content,
@@ -4329,8 +4271,8 @@ function runHeadlessStreaming(
         priority: (userMsg as { priority?: string })
           .priority as import('src/types/textInputTypes.js').QueuePriority,
       })
-      // Increment prompt count for attribution tracking and save snapshot
-      // The snapshot persists promptCount so it survives compaction
+      // 自增 prompt 计数用于归因追踪，并保存快照
+      // 快照会持久化 promptCount，使其能挺过 compaction
       if (feature('COMMIT_ATTRIBUTION')) {
         setAppState(prev => ({
           ...prev,
@@ -4346,8 +4288,8 @@ function runHeadlessStreaming(
     inputClosed = true
     cronScheduler?.stop()
     if (!running) {
-      // If a push-suggestion is in-flight, wait for it to emit before closing
-      // the output stream (5 s safety timeout to prevent hanging).
+      // 如果有进行中的 push-suggestion，等待它发出后再关闭输出流
+      // （5 秒安全超时，防止卡死）。
       if (suggestionState.inflightPromise) {
         await Promise.race([suggestionState.inflightPromise, sleep(5000)])
       }
@@ -4365,8 +4307,8 @@ function runHeadlessStreaming(
 }
 
 /**
- * Creates a CanUseToolFn that incorporates a custom permission prompt tool.
- * This function converts the permissionPromptTool into a CanUseToolFn that can be used in ask.tsx
+ * 创建一个整合了自定义权限提示工具的 CanUseToolFn。
+ * 该函数把 permissionPromptTool 转换成一个可在 ask.tsx 中使用的 CanUseToolFn
  */
 export function createCanUseToolWithPermissionPrompt(
   permissionPromptTool: PermissionPromptTool,
@@ -4389,7 +4331,7 @@ export function createCanUseToolWithPermissionPrompt(
         toolUseId,
       ))
 
-    // If the tool is allowed or denied, return the result
+    // 如果工具被允许或拒绝，直接返回结果
     if (
       mainPermissionResult.behavior === 'allow' ||
       mainPermissionResult.behavior === 'deny'
@@ -4397,20 +4339,19 @@ export function createCanUseToolWithPermissionPrompt(
       return mainPermissionResult
     }
 
-    // Race the permission prompt tool against the abort signal.
+    // 让权限提示工具与 abort signal 竞速。
     //
-    // Why we need this: The permission prompt tool may block indefinitely waiting
-    // for user input (e.g., via stdin or a UI dialog). If the user triggers an
-    // interrupt (Ctrl+C), we need to detect it even while the tool is blocked.
-    // Without this race, the abort check would only run AFTER the tool completes,
-    // which may never happen if the tool is waiting for input that will never come.
+    // 为什么要这样做：权限提示工具可能会在等待用户输入（例如通过 stdin 或
+    // UI 对话框）时无限期阻塞。如果用户触发了中断（Ctrl+C），我们需要即使
+    // 在工具阻塞期间也能检测到。如果不竞速，abort 检查只有在工具完成后才会
+    // 运行，而工具可能永远等不到永远不会到来的输入，也就永远不会完成。
     //
-    // The second check (combinedSignal.aborted) handles a race condition where
-    // abort fires after Promise.race resolves but before we reach this check.
+    // 第二个检查（combinedSignal.aborted）用于处理竞态：abort 在
+    // Promise.race resolve 之后、但还没到达本检查之前触发的情况。
     const { signal: combinedSignal, cleanup: cleanupAbortListener } =
       createCombinedAbortSignal(toolUseContext.abortController.signal)
 
-    // Check if already aborted before starting the race
+    // 在开始竞速之前检查是否已 abort
     if (combinedSignal.aborted) {
       cleanupAbortListener()
       return {
@@ -4456,7 +4397,7 @@ export function createCanUseToolWithPermissionPrompt(
       }
     }
 
-    // TypeScript narrowing: after the abort check, raceResult must be ToolResult
+    // TypeScript 类型收窄：经过 abort 检查之后，raceResult 必定是 ToolResult
     const result = raceResult as Awaited<typeof toolCallPromise>
 
     const permissionToolResultBlockParam =
@@ -4484,8 +4425,8 @@ export function createCanUseToolWithPermissionPrompt(
   return canUseTool
 }
 
-// Exported for testing — regression: this used to crash at construction when
-// getMcpTools() was empty (before per-server connects populated appState).
+// 为测试而导出 —— 回归说明：以前当 getMcpTools() 为空时（per-server 连接填充
+// appState 之前），此处会在构造时崩溃。
 export function getCanUseToolFn(
   permissionPromptToolName: string | undefined,
   structuredIO: StructuredIO,
@@ -4513,9 +4454,9 @@ export function getCanUseToolFn(
         toolUseId,
       ))
   }
-  // Lazy lookup: MCP connects are per-server incremental in print mode, so
-  // the tool may not be in appState yet at init time. Resolve on first call
-  // (first permission prompt), by which point connects have had time to finish.
+  // 延迟查找：print 模式下 MCP 连接是按 server 增量的，因此工具在 init 时
+  // 可能尚未出现在 appState 中。在第一次调用（第一次权限提示）时再解析，
+  // 那时各连接已有时间完成。
   let resolved: CanUseToolFn | null = null
   return async (
     tool,
@@ -4588,7 +4529,7 @@ async function handleInitializeRequest(
     return
   }
 
-  // Apply systemPrompt/appendSystemPrompt from stdin to avoid ARG_MAX limits
+  // 从 stdin 应用 systemPrompt/appendSystemPrompt，避免触及 ARG_MAX 限制
   if (request.systemPrompt !== undefined) {
     options.systemPrompt = request.systemPrompt
   }
@@ -4599,25 +4540,25 @@ async function handleInitializeRequest(
     options.promptSuggestions = request.promptSuggestions
   }
 
-  // Merge agents from stdin to avoid ARG_MAX limits
+  // 从 stdin 合并 agents，避免触及 ARG_MAX 限制
   if (request.agents) {
     const stdinAgents = parseAgentsFromJson(request.agents, 'flagSettings')
     agents.push(...stdinAgents)
   }
 
-  // Re-evaluate main thread agent after SDK agents are merged
-  // This allows --agent to reference agents defined via SDK
+  // 在 SDK agents 合并之后重新评估主线程 agent
+  // 这使得 --agent 可以引用通过 SDK 定义的 agent
   if (options.agent) {
-    // If main.tsx already found this agent (filesystem-defined), it already
-    // applied systemPrompt/model/initialPrompt. Skip to avoid double-apply.
+    // 如果 main.tsx 已经找到该 agent（基于文件系统定义），它已经应用过
+    // systemPrompt/model/initialPrompt。跳过避免重复应用。
     const alreadyResolved = getMainThreadAgentType() === options.agent
     const mainThreadAgent = agents.find(a => a.agentType === options.agent)
     if (mainThreadAgent && !alreadyResolved) {
-      // Update the main thread agent type in bootstrap state
+      // 更新 bootstrap state 中的主线程 agent 类型
       setMainThreadAgentType(mainThreadAgent.agentType)
 
-      // Apply the agent's system prompt if user hasn't specified a custom one
-      // SDK agents are always custom agents (not built-in), so getSystemPrompt() takes no args
+      // 如果用户没有指定自定义 system prompt，则应用 agent 的 system prompt
+      // SDK agents 始终是自定义 agent（非内置），所以 getSystemPrompt() 不接受参数
       if (!options.systemPrompt && !isBuiltInAgent(mainThreadAgent)) {
         const agentSystemPrompt = mainThreadAgent.getSystemPrompt()
         if (agentSystemPrompt) {
@@ -4625,7 +4566,7 @@ async function handleInitializeRequest(
         }
       }
 
-      // Apply the agent's model if user didn't specify one and agent has a model
+      // 如果用户未指定 model 且 agent 有 model，则应用 agent 的 model
       if (
         !options.userSpecifiedModel &&
         mainThreadAgent.model &&
@@ -4635,15 +4576,15 @@ async function handleInitializeRequest(
         setMainLoopModelOverride(agentModel)
       }
 
-      // SDK-defined agents arrive via init, so main.tsx's lookup missed them.
+      // SDK 定义的 agent 是通过 init 到达的，所以 main.tsx 的查找错过了它们。
       if (mainThreadAgent.initialPrompt) {
         structuredIO.prependUserMessage(mainThreadAgent.initialPrompt)
       }
     } else if (mainThreadAgent?.initialPrompt) {
-      // Filesystem-defined agent (alreadyResolved by main.tsx). main.tsx
-      // handles initialPrompt for the string inputPrompt case, but when
-      // inputPrompt is an AsyncIterable (SDK stream-json), it can't
-      // concatenate — fall back to prependUserMessage here.
+      // 基于文件系统定义的 agent（已被 main.tsx 解析）。main.tsx 会为字符串
+      // inputPrompt 的情况处理 initialPrompt，但当 inputPrompt 是
+      // AsyncIterable（SDK stream-json）时，它无法进行拼接 ——
+      // 在此回退到 prependUserMessage。
       structuredIO.prependUserMessage(mainThreadAgent.initialPrompt)
     }
   }
@@ -4652,7 +4593,7 @@ async function handleInitializeRequest(
   const outputStyle = settings?.outputStyle || DEFAULT_OUTPUT_STYLE_NAME
   const availableOutputStyles = await getAllOutputStyles(getCwd())
 
-  // Get account information
+  // 获取账户信息
   const accountInfo = getAccountInformation()
   if (request.hooks) {
     const hooks: Partial<Record<HookEvent, HookCallbackMatcher[]>> = {}
@@ -4686,7 +4627,7 @@ async function handleInitializeRequest(
     agents: agents.map(agent => ({
       name: agent.agentType,
       description: agent.whenToUse,
-      // 'inherit' is an internal sentinel; normalize to undefined for the public API
+      // 'inherit' 是内部哨兵值；在公开 API 中归一化为 undefined
       model: agent.model === 'inherit' ? undefined : agent.model,
     })),
     output_style: outputStyle,
@@ -4698,9 +4639,9 @@ async function handleInitializeRequest(
       subscriptionType: accountInfo?.subscription,
       tokenSource: accountInfo?.tokenSource,
       apiKeySource: accountInfo?.apiKeySource,
-      // getAccountInformation() returns undefined under 3P providers, so the
-      // other fields are all absent. apiProvider disambiguates "not logged
-      // in" (firstParty + tokenSource:none) from "3P, login not applicable".
+      // 在第三方 provider 下 getAccountInformation() 返回 undefined，因此
+      // 其他字段都缺失。apiProvider 用于区分"未登录"（firstParty +
+      // tokenSource:none）与"第三方 provider，登录不适用"两种情况。
       apiProvider: getAPIProvider() as
         | 'firstParty'
         | 'bedrock'
@@ -4727,9 +4668,8 @@ async function handleInitializeRequest(
     },
   })
 
-  // After the initialize message, check the auth status-
-  // This will get notified of changes, but we also want to send the
-  // initial state.
+  // initialize 消息之后检查认证状态 ——
+  // 后续变更会被通知，但我们也希望主动发送初始状态。
   if (enableAuthStatus) {
     const authStatusManager = AwsAuthStatusManager.getInstance()
     const status = authStatusManager.getStatus()
@@ -4806,7 +4746,7 @@ function handleSetPermissionMode(
   toolPermissionContext: ToolPermissionContext,
   output: Stream<StdoutMessage>,
 ): ToolPermissionContext {
-  // Check if trying to switch to bypassPermissions mode
+  // 检查是否尝试切换到 bypassPermissions 模式
   if (request.mode === 'bypassPermissions') {
     if (isBypassPermissionsModeDisabled()) {
       output.enqueue({
@@ -4834,7 +4774,7 @@ function handleSetPermissionMode(
     }
   }
 
-  // Check if trying to switch to auto mode without the classifier gate
+  // 检查是否在未通过 classifier gate 的情况下尝试切换到 auto 模式
   if (
     feature('TRANSCRIPT_CLASSIFIER') &&
     request.mode === 'auto' &&
@@ -4854,7 +4794,7 @@ function handleSetPermissionMode(
     return toolPermissionContext
   }
 
-  // Allow the mode switch
+  // 允许 mode 切换
   output.enqueue({
     type: 'control_response',
     response: {
@@ -4877,22 +4817,20 @@ function handleSetPermissionMode(
 }
 
 /**
- * IDE-triggered channel enable. Derives the ChannelEntry from the connection's
- * pluginSource (IDE can't spoof kind/marketplace — we only take the server
- * name), appends it to session allowedChannels, and runs the full gate. On
- * gate failure, rolls back the append. On success, registers a notification
- * handler that enqueues channel messages at priority:'next' — drainCommandQueue
- * picks them up between turns.
+ * 由 IDE 触发的 channel 启用。从连接的 pluginSource 推导出 ChannelEntry
+ * （IDE 无法伪造 kind/marketplace —— 我们只接收 server 名），把它追加到
+ * 会话的 allowedChannels，并运行完整的 gate。gate 失败时回滚这次追加；
+ * 成功时注册一个 notification handler，将 channel 消息以 priority:'next'
+ * 入队 —— drainCommandQueue 会在回合之间把它们取走。
  *
- * Intentionally does NOT register the claude/channel/permission handler that
- * useManageMCPConnections sets up for interactive mode. That handler resolves
- * a pending dialog inside handleInteractivePermission — but print.ts never
- * calls handleInteractivePermission. When SDK permission lands on 'ask', it
- * goes to the consumer's canUseTool callback over stdio; there is no CLI-side
- * dialog for a remote "yes tbxkq" to resolve. If an IDE wants channel-relayed
- * tool approval, that's IDE-side plumbing against its own pending-map. (Also
- * gated separately by tengu_harbor_permissions — not yet shipping on
- * interactive either.)
+ * 故意不注册 useManageMCPConnections 为交互模式设置的 claude/channel/permission
+ * handler。该 handler 用于在 handleInteractivePermission 内部解析一个待处理
+ * 对话框 —— 但 print.ts 从不调用 handleInteractivePermission。当 SDK 权限
+ * 判定为 'ask' 时，会通过 stdio 走到消费方的 canUseTool 回调；远端的
+ * "yes tbxkq" 没有客户端侧的对话框可以去 resolve。如果 IDE 希望对 channel
+ * 转发的工具审批进行处理，那属于 IDE 侧的管道，要针对它自己的 pending-map
+ * 实现。（此外该项还由 tengu_harbor_permissions 单独门控 —— 交互模式也尚未
+ * 发布。）
  */
 function handleChannelEnable(
   requestId: string,
@@ -4910,8 +4848,8 @@ function handleChannelEnable(
     return respondError('channels feature not available in this build')
   }
 
-  // Only a 'connected' client has .capabilities and .client to register the
-  // handler on. The pool spread at the call site matches mcp_status.
+  // 只有 'connected' 状态的 client 才有 .capabilities 和 .client 可用于注册
+  // handler。调用点处的 pool 展开与 mcp_status 保持一致。
   const connection = connectionPool.find(
     c => c.name === serverName && c.type === 'connected',
   )
@@ -4922,9 +4860,8 @@ function handleChannelEnable(
   const pluginSource = connection.config.pluginSource
   const parsed = pluginSource ? parsePluginIdentifier(pluginSource) : undefined
   if (!parsed?.marketplace) {
-    // No pluginSource or @-less source — can never pass the {plugin,
-    // marketplace}-keyed allowlist. Short-circuit with the same reason the
-    // gate would produce.
+    // 没有 pluginSource 或 source 不含 @ —— 永远无法通过以 {plugin, marketplace}
+    // 为 key 的 allowlist。直接短路，返回与 gate 相同的失败原因。
     return respondError(
       `server ${serverName} is not plugin-sourced; channel_enable requires a marketplace plugin`,
     )
@@ -4935,7 +4872,7 @@ function handleChannelEnable(
     name: parsed.name,
     marketplace: parsed.marketplace,
   }
-  // Idempotency: don't double-append on repeat enable.
+  // 幂等：重复启用时不要重复追加。
   const prior = getAllowedChannels()
   const already = prior.some(
     e =>
@@ -4951,7 +4888,7 @@ function handleChannelEnable(
     pluginSource,
   )
   if (gate.action === 'skip') {
-    // Rollback — only remove the entry we appended.
+    // 回滚 —— 只移除我们刚追加的那条 entry。
     if (!already) setAllowedChannels(prior)
     return respondError(gate.reason)
   }
@@ -4961,10 +4898,9 @@ function handleChannelEnable(
   logMCPDebug(serverName, 'Channel notifications registered')
   logEvent('tengu_mcp_channel_enable', { plugin: pluginId })
 
-  // Identical enqueue shape to the interactive register block in
-  // useManageMCPConnections. drainCommandQueue processes it between turns —
-  // channel messages queue at priority 'next' and are seen by the model on
-  // the turn after they arrive.
+  // 与 useManageMCPConnections 中交互式 register 块的入队形状完全一致。
+  // drainCommandQueue 在回合之间处理它 —— channel 消息以 priority 'next'
+  // 入队，模型会在其到达后的下一个回合看到。
   connection.client.setNotificationHandler(
     ChannelMessageNotificationSchema() as any,
     async notification => {
@@ -5003,25 +4939,23 @@ function handleChannelEnable(
 }
 
 /**
- * Re-register the channel notification handler after mcp_reconnect /
- * mcp_toggle creates a new client. handleChannelEnable bound the handler to
- * the OLD client object; allowedChannels survives the reconnect but the
- * handler binding does not. Without this, channel messages silently drop
- * after a reconnect while the IDE still believes the channel is live.
+ * 在 mcp_reconnect / mcp_toggle 创建了新 client 之后重新注册 channel
+ * notification handler。handleChannelEnable 把 handler 绑定到了旧的 client
+ * 对象上；allowedChannels 能在重连中存活，但 handler 的绑定不能。若不重新
+ * 注册，重连后 channel 消息会被静默丢弃，而 IDE 仍以为 channel 是活跃的。
  *
- * Mirrors the interactive CLI's onConnectionAttempt in
- * useManageMCPConnections, which re-gates on every new connection. Paired
- * with registerElicitationHandlers at the same call sites.
+ * 镜像交互式 CLI 中 useManageMCPConnections 的 onConnectionAttempt，后者对
+ * 每次新连接都重新进行 gate。与 registerElicitationHandlers 在相同的调用点
+ * 配对使用。
  *
- * No-op if the server was never channel-enabled: gateChannelServer calls
- * findChannelEntry internally and returns skip/session for an unlisted
- * server, so reconnecting a non-channel MCP server costs one feature-flag
- * check.
+ * 若 server 从未被 channel-enabled 则为 no-op：gateChannelServer 内部会调用
+ * findChannelEntry，对未列入的 server 返回 skip/session，因此重连一个非
+ * channel 的 MCP server 只多花一次 feature-flag 检查。
  */
 function reregisterChannelHandlerAfterReconnect(
   connection: MCPServerConnection,
 ): void {
-  // Channels always available — feature flag guard removed
+  // Channels 始终可用 —— feature flag 守卫已移除
   if (connection.type !== 'connected') return
 
   const gate = gateChannelServer(
@@ -5073,8 +5007,8 @@ function reregisterChannelHandlerAfterReconnect(
 }
 
 /**
- * Emits an error message in the correct format based on outputFormat.
- * When using stream-json, writes JSON to stdout; otherwise writes plain text to stderr.
+ * 根据 outputFormat 以正确的格式输出错误消息。
+ * 使用 stream-json 时将 JSON 写到 stdout；否则把纯文本写到 stderr。
  */
 function emitLoadError(
   message: string,
@@ -5104,11 +5038,10 @@ function emitLoadError(
 }
 
 /**
- * Removes an interrupted user message and its synthetic assistant sentinel
- * from the message array. Used during gateway-triggered restarts to clean up
- * the message history before re-enqueuing the interrupted prompt.
+ * 从消息数组中移除被中断的 user 消息及其合成的 assistant 哨兵值。
+ * 用于 gateway 触发的重启场景：在重新入队被中断的 prompt 之前清理消息历史。
  *
- * @internal Exported for testing
+ * @internal 为测试而导出
  */
 export function removeInterruptedMessage(
   messages: Message[],
@@ -5116,8 +5049,8 @@ export function removeInterruptedMessage(
 ): void {
   const idx = messages.findIndex(m => m.uuid === interruptedUserMessage.uuid)
   if (idx !== -1) {
-    // Remove the user message and the sentinel that immediately follows it.
-    // splice safely handles the case where idx is the last element.
+    // 移除该 user 消息以及紧随其后的哨兵值。
+    // 即使 idx 是最后一个元素，splice 也能安全处理。
     messages.splice(idx, 2)
   }
 }
@@ -5142,7 +5075,7 @@ async function loadInitialMessages(
   },
 ): Promise<LoadInitialMessagesResult> {
   const persistSession = !isSessionPersistenceDisabled()
-  // Handle continue in print mode
+  // 在 print 模式下处理 continue
   if (options.continue) {
     try {
       logEvent('tengu_continue_print', {})
@@ -5152,12 +5085,12 @@ async function loadInitialMessages(
         undefined /* file path */,
       )
       if (result) {
-        // Match coordinator mode to the resumed session's mode
+        // 把 coordinator 模式与所恢复会话的 mode 对齐
         if (feature('COORDINATOR_MODE') && coordinatorModeModule) {
           const warning = coordinatorModeModule.matchSessionMode(result.mode)
           if (warning) {
             process.stderr.write(warning + '\n')
-            // Refresh agent definitions to reflect the mode switch
+            // 刷新 agent 定义以反映 mode 切换
             const {
               getAgentDefinitionsWithOverrides,
               getActiveAgentsFromList,
@@ -5180,7 +5113,7 @@ async function loadInitialMessages(
           }
         }
 
-        // Reuse the resumed session's ID
+        // 复用所恢复会话的 ID
         if (!options.forkSession) {
           if (result.sessionId) {
             switchSession(
@@ -5194,14 +5127,14 @@ async function loadInitialMessages(
         }
         restoreSessionStateFromLog(result, setAppState)
 
-        // Restore session metadata so it's re-appended on exit via reAppendSessionMetadata
+        // 恢复会话元数据，使其在退出时通过 reAppendSessionMetadata 被重新追加
         restoreSessionMetadata(
           options.forkSession
             ? { ...result, worktreeSession: undefined }
             : result,
         )
 
-        // Write mode entry for the resumed session
+        // 为所恢复的会话写入 mode 条目
         if (feature('COORDINATOR_MODE') && coordinatorModeModule) {
           saveMode(
             coordinatorModeModule.isCoordinatorMode()
@@ -5223,7 +5156,7 @@ async function loadInitialMessages(
     }
   }
 
-  // Handle teleport in print mode
+  // 在 print 模式下处理 teleport
   if (options.teleport) {
     try {
       if (!isPolicyAllowed('allow_remote_sessions')) {
@@ -5262,13 +5195,13 @@ async function loadInitialMessages(
     }
   }
 
-  // Handle resume in print mode (accepts session ID or URL)
-  // URLs are [ANT-ONLY]
+  // 在 print 模式下处理 resume（接受 session ID 或 URL）
+  // URL 是 [ANT-ONLY] 的
   if (options.resume) {
     try {
       logEvent('tengu_resume_print', {})
 
-      // In print mode - we require a valid session ID, JSONL file or URL
+      // 在 print 模式下 —— 我们要求一个有效的 session ID、JSONL 文件或 URL
       const parsedSessionId = parseSessionIdentifier(
         typeof options.resume === 'string' ? options.resume : '',
       )
@@ -5283,10 +5216,10 @@ async function loadInitialMessages(
         return { messages: [] }
       }
 
-      // Hydrate local transcript from remote before loading
+      // 在加载之前从远端 hydrate 本地 transcript
       if (isEnvTruthy(process.env.CLAUDE_CODE_USE_CCR_V2)) {
-        // Await restore alongside hydration so SSE catchup lands on
-        // restored state, not a fresh default.
+        // 在 hydrate 的同时 await restore，使 SSE catchup 落到已恢复的状态上，
+        // 而不是一份全新的默认状态。
         const [, metadata] = await Promise.all([
           hydrateFromCCRv2InternalEvents(parsedSessionId.sessionId),
           options.restoredWorkerState,
@@ -5302,30 +5235,31 @@ async function loadInitialMessages(
         parsedSessionId.ingressUrl &&
         isEnvTruthy(process.env.ENABLE_SESSION_PERSISTENCE)
       ) {
-        // v1: fetch session logs from Session Ingress
+        // v1：从 Session Ingress 拉取会话日志
         await hydrateRemoteSession(
           parsedSessionId.sessionId,
           parsedSessionId.ingressUrl,
         )
       }
 
-      // Load the conversation with the specified session ID
+      // 用指定 session ID 加载会话
       const result = await loadConversationForResume(
         parsedSessionId.sessionId,
         parsedSessionId.jsonlFile || undefined,
       )
 
-      // hydrateFromCCRv2InternalEvents writes an empty transcript file for
-      // fresh sessions (writeFile(sessionFile, '') with zero events), so
-      // loadConversationForResume returns {messages: []} not null. Treat
-      // empty the same as null so SessionStart still fires.
+      // hydrateFromCCRv2InternalEvents 对全新会话会写一个空的 transcript 文件
+      // （writeFile(sessionFile, '')，没有任何事件），因此 loadConversationForResume
+      // 返回的是 {messages: []} 而不是 null。把空视为 null，这样 SessionStart
+      // 仍然会触发。
       if (!result || result.messages.length === 0) {
-        // For URL-based or CCR v2 resume, start with empty session (it was hydrated but empty)
+        // 对基于 URL 的 resume 或 CCR v2 resume，以空会话启动
+        // （已被 hydrate 但内容为空）
         if (
           parsedSessionId.isUrl ||
           isEnvTruthy(process.env.CLAUDE_CODE_USE_CCR_V2)
         ) {
-          // Execute SessionStart hooks for startup since we're starting a new session
+          // 因为是新会话，执行 startup 的 SessionStart hooks
           return {
             messages: await (options.sessionStartHooksPromise ??
               processSessionStartHooks('startup')),
@@ -5340,7 +5274,7 @@ async function loadInitialMessages(
         }
       }
 
-      // Handle resumeSessionAt feature
+      // 处理 resumeSessionAt 特性
       if (options.resumeSessionAt) {
         const index = result.messages.findIndex(
           m => m.uuid === options.resumeSessionAt,
@@ -5357,12 +5291,12 @@ async function loadInitialMessages(
         result.messages = index >= 0 ? result.messages.slice(0, index + 1) : []
       }
 
-      // Match coordinator mode to the resumed session's mode
+      // 把 coordinator 模式与所恢复会话的 mode 对齐
       if (feature('COORDINATOR_MODE') && coordinatorModeModule) {
         const warning = coordinatorModeModule.matchSessionMode(result.mode)
         if (warning) {
           process.stderr.write(warning + '\n')
-          // Refresh agent definitions to reflect the mode switch
+          // 刷新 agent 定义以反映 mode 切换
           const { getAgentDefinitionsWithOverrides, getActiveAgentsFromList } =
             // eslint-disable-next-line @typescript-eslint/no-require-imports
             require('@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js') as typeof import('@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js')
@@ -5382,7 +5316,7 @@ async function loadInitialMessages(
         }
       }
 
-      // Reuse the resumed session's ID
+      // 复用所恢复会话的 ID
       if (!options.forkSession && result.sessionId) {
         switchSession(
           asSessionId(result.sessionId),
@@ -5394,14 +5328,14 @@ async function loadInitialMessages(
       }
       restoreSessionStateFromLog(result, setAppState)
 
-      // Restore session metadata so it's re-appended on exit via reAppendSessionMetadata
+      // 恢复会话元数据，使其在退出时通过 reAppendSessionMetadata 被重新追加
       restoreSessionMetadata(
         options.forkSession
           ? { ...result, worktreeSession: undefined }
           : result,
       )
 
-      // Write mode entry for the resumed session
+      // 为所恢复的会话写入 mode 条目
       if (feature('COORDINATOR_MODE') && coordinatorModeModule) {
         saveMode(
           coordinatorModeModule.isCoordinatorMode() ? 'coordinator' : 'normal',
@@ -5425,9 +5359,9 @@ async function loadInitialMessages(
     }
   }
 
-  // Join the SessionStart hooks promise kicked in main.tsx (or run fresh if
-  // it wasn't kicked — e.g. --continue with no prior session falls through
-  // here with sessionStartHooksPromise undefined because main.tsx guards on continue)
+  // 等待在 main.tsx 中启动的 SessionStart hooks promise（若未启动则重新运行；
+  // 例如：--continue 在没有前置会话时会落到此处，且 sessionStartHooksPromise 为
+  // undefined，因为 main.tsx 针对 continue 做了守卫）
   return {
     messages: await (options.sessionStartHooksPromise ??
       processSessionStartHooks('startup')),
@@ -5444,7 +5378,7 @@ function getStructuredIO(
   let inputStream: AsyncIterable<string>
   if (typeof inputPrompt === 'string') {
     if (inputPrompt.trim() !== '') {
-      // Normalize to a streaming input.
+      // 归一化为流式输入。
       inputStream = fromArray([
         jsonStringify({
           type: 'user',
@@ -5459,24 +5393,23 @@ function getStructuredIO(
         } satisfies SDKUserMessage),
       ])
     } else {
-      // Empty string - create empty stream
+      // 空字符串 —— 创建一个空流
       inputStream = fromArray([])
     }
   } else {
     inputStream = inputPrompt
   }
 
-  // Use RemoteIO if sdkUrl is provided, otherwise use regular StructuredIO
+  // 如果提供了 sdkUrl 则使用 RemoteIO，否则使用普通的 StructuredIO
   return options.sdkUrl
     ? new RemoteIO(options.sdkUrl, inputStream, options.replayUserMessages)
     : new StructuredIO(inputStream, options.replayUserMessages)
 }
 
 /**
- * Handles unexpected permission responses by looking up the unresolved tool
- * call in the transcript and enqueuing it for execution.
+ * 处理意外的权限响应：在 transcript 中查找未解析的工具调用并将其入队执行。
  *
- * Returns true if a permission was enqueued, false otherwise.
+ * 如果已入队一个权限则返回 true，否则返回 false。
  */
 export async function handleOrphanedPermissionResponse({
   message,
@@ -5513,11 +5446,10 @@ export async function handleOrphanedPermissionResponse({
       `handleOrphanedPermissionResponse: received orphaned control_response for toolUseID=${toolUseID} request_id=${responseInner.request_id}`,
     )
 
-    // Prevent re-processing the same orphaned tool_use. Without this guard,
-    // duplicate control_response deliveries (e.g. from WebSocket reconnect)
-    // cause the same tool to be executed multiple times, producing duplicate
-    // tool_use IDs in the messages array and a 400 error from the API.
-    // Once corrupted, every retry accumulates more duplicates.
+    // 防止对同一个孤儿 tool_use 重复处理。如果没有这道防护，重复投递的
+    // control_response（例如来自 WebSocket 重连）会导致同一个工具被执行多次，
+    // 在 messages 数组中产生重复的 tool_use ID，进而触发 API 的 400 错误。
+    // 一旦损坏，每次重试都会累积更多重复项。
     if (handledToolUseIds.has(toolUseID)) {
       logForDebugging(
         `handleOrphanedPermissionResponse: skipping duplicate orphaned permission for toolUseID=${toolUseID} (already handled)`,
@@ -5559,20 +5491,20 @@ export type DynamicMcpState = {
 }
 
 /**
- * Converts a process transport config to a scoped config.
- * The types are structurally compatible, so we just add the scope.
+ * 将一个 process transport config 转换为 scoped config。
+ * 两者的类型在结构上是兼容的，因此只需补上 scope。
  */
 function toScopedConfig(
   config: McpServerConfigForProcessTransport,
 ): ScopedMcpServerConfig {
-  // McpServerConfigForProcessTransport is a subset of McpServerConfig
-  // (it excludes IDE-specific types like sse-ide and ws-ide)
-  // Adding scope makes it a valid ScopedMcpServerConfig
+  // McpServerConfigForProcessTransport 是 McpServerConfig 的子集
+  // （它排除了 IDE 专属类型，例如 sse-ide 和 ws-ide）
+  // 补上 scope 即可成为一个合法的 ScopedMcpServerConfig
   return { ...config, scope: 'dynamic' } as ScopedMcpServerConfig
 }
 
 /**
- * State for SDK MCP servers that run in the SDK process.
+ * 运行在 SDK 进程内的 SDK MCP server 的状态。
  */
 export type SdkMcpState = {
   configs: Record<string, McpSdkServerConfig>
@@ -5581,7 +5513,7 @@ export type SdkMcpState = {
 }
 
 /**
- * Result of handleMcpSetServers - contains new state and response data.
+ * handleMcpSetServers 的返回结果 —— 包含新的状态与响应数据。
  */
 export type McpSetServersResult = {
   response: SDKControlMcpSetServersResponse
@@ -5591,13 +5523,13 @@ export type McpSetServersResult = {
 }
 
 /**
- * Handles mcp_set_servers requests by processing both SDK and process-based servers.
- * SDK servers run in the SDK process; process-based servers are spawned by the CLI.
+ * 处理 mcp_set_servers 请求：同时处理 SDK server 和基于进程的 server。
+ * SDK server 运行在 SDK 进程内；基于进程的 server 由 CLI 拉起。
  *
- * Applies enterprise allowedMcpServers/deniedMcpServers policy — same filter as
- * --mcp-config (see filterMcpServersByPolicy call in main.tsx). Without this,
- * SDK V2 Query.setMcpServers() was a second policy bypass vector. Blocked servers
- * are reported in response.errors so the SDK consumer knows why they weren't added.
+ * 应用企业的 allowedMcpServers/deniedMcpServers 策略 —— 与 --mcp-config 的过滤
+ * 相同（见 main.tsx 中的 filterMcpServersByPolicy 调用）。否则 SDK V2
+ * Query.setMcpServers() 会成为第二条绕过策略的路径。被阻止的 server 会写到
+ * response.errors 中，让 SDK 消费方知道它们未被添加的原因。
  */
 export async function handleMcpSetServers(
   servers: Record<string, McpServerConfigForProcessTransport>,
@@ -5605,11 +5537,11 @@ export async function handleMcpSetServers(
   dynamicState: DynamicMcpState,
   setAppState: (f: (prev: AppState) => AppState) => void,
 ): Promise<McpSetServersResult> {
-  // Enforce enterprise MCP policy on process-based servers (stdio/http/sse).
-  // Mirrors the --mcp-config filter in main.tsx — both user-controlled injection
-  // paths must have the same gate. type:'sdk' servers are exempt (SDK-managed,
-  // CLI never spawns/connects for them — see filterMcpServersByPolicy jsdoc).
-  // Blocked servers go into response.errors so the SDK caller sees why.
+  // 对基于进程的 server（stdio/http/sse）强制执行企业 MCP 策略。
+  // 与 main.tsx 中的 --mcp-config 过滤镜像 —— 两条用户可控的注入路径必须有
+  // 相同的门控。type:'sdk' 的 server 被豁免（由 SDK 管理，CLI 从不为其
+  // spawn/连接 —— 见 filterMcpServersByPolicy 的 jsdoc）。被阻止的 server 会
+  // 写入 response.errors，让 SDK 调用方看到原因。
   const { allowed: allowedServers, blocked } = filterMcpServersByPolicy(servers)
   const policyErrors: Record<string, string> = {}
   for (const name of blocked) {
@@ -5617,7 +5549,7 @@ export async function handleMcpSetServers(
       'Blocked by enterprise policy (allowedMcpServers/deniedMcpServers)'
   }
 
-  // Separate SDK servers from process-based servers
+  // 将 SDK server 与基于进程的 server 分开
   const sdkServers: Record<string, McpSdkServerConfig> = {}
   const processServers: Record<string, McpServerConfigForProcessTransport> = {}
 
@@ -5629,7 +5561,7 @@ export async function handleMcpSetServers(
     }
   }
 
-  // Handle SDK servers
+  // 处理 SDK server
   const currentSdkNames = new Set(Object.keys(sdkState.configs))
   const newSdkNames = new Set(Object.keys(sdkServers))
   const sdkAdded: string[] = []
@@ -5639,7 +5571,7 @@ export async function handleMcpSetServers(
   let newSdkClients = [...sdkState.clients]
   let newSdkTools = [...sdkState.tools]
 
-  // Remove SDK servers no longer in desired state
+  // 移除不再出现在目标状态中的 SDK server
   for (const name of currentSdkNames) {
     if (!newSdkNames.has(name)) {
       const client = newSdkClients.find(c => c.name === name)
@@ -5654,8 +5586,8 @@ export async function handleMcpSetServers(
     }
   }
 
-  // Add new SDK servers as pending - they'll be upgraded to connected
-  // when updateSdkMcp() runs on the next query
+  // 把新的 SDK server 以 pending 状态加入 —— 它们会在下一次 query 运行
+  // updateSdkMcp() 时被升级为 connected
   for (const [name, config] of Object.entries(sdkServers)) {
     if (!currentSdkNames.has(name)) {
       newSdkConfigs[name] = config
@@ -5669,7 +5601,7 @@ export async function handleMcpSetServers(
     }
   }
 
-  // Handle process-based servers
+  // 处理基于进程的 server
   const processResult = await reconcileMcpServers(
     processServers,
     dynamicState,
@@ -5693,8 +5625,8 @@ export async function handleMcpSetServers(
 }
 
 /**
- * Reconciles the current set of dynamic MCP servers with a new desired state.
- * Handles additions, removals, and config changes.
+ * 将当前的动态 MCP server 集合与新的目标状态进行对账。
+ * 负责处理新增、移除以及 config 变更。
  */
 export async function reconcileMcpServers(
   desiredConfigs: Record<string, McpServerConfigForProcessTransport>,
@@ -5710,7 +5642,7 @@ export async function reconcileMcpServers(
   const toRemove = [...currentNames].filter(n => !desiredNames.has(n))
   const toAdd = [...desiredNames].filter(n => !currentNames.has(n))
 
-  // Check for config changes (same name, different config)
+  // 检查 config 是否变化（同名但 config 不同）
   const toCheck = [...currentNames].filter(n => desiredNames.has(n))
   const toReplace = toCheck.filter(name => {
     const currentConfig = currentState.configs[name]
@@ -5727,7 +5659,7 @@ export async function reconcileMcpServers(
   let newClients = [...currentState.clients]
   let newTools = [...currentState.tools]
 
-  // Remove old servers (including ones being replaced)
+  // 移除旧的 server（包括正在被替换的）
   for (const name of [...toRemove, ...toReplace]) {
     const client = newClients.find(c => c.name === name)
     const config = currentState.configs[name]
@@ -5739,31 +5671,31 @@ export async function reconcileMcpServers(
           logError(e)
         }
       }
-      // Clear the memoization cache
+      // 清空 memoization 缓存
       await clearServerCache(name, config)
     }
 
-    // Remove tools from this server
+    // 移除该 server 对应的 tools
     const prefix = `mcp__${name}__`
     newTools = newTools.filter(t => !t.name.startsWith(prefix))
 
-    // Remove from clients list
+    // 从 clients 列表中移除
     newClients = newClients.filter(c => c.name !== name)
 
-    // Track removal (only for actually removed, not replaced)
+    // 记录移除（只针对真正被移除的，不包含被替换的）
     if (toRemove.includes(name)) {
       removed.push(name)
     }
   }
 
-  // Add new servers (including replacements)
+  // 新增 server（包括被替换的）
   for (const name of [...toAdd, ...toReplace]) {
     const config = desiredConfigs[name]
     if (!config) continue
     const scopedConfig = toScopedConfig(config)
 
-    // SDK servers are managed by the SDK process, not the CLI.
-    // Just track them without trying to connect.
+    // SDK server 由 SDK 进程管理，不由 CLI 管理。
+    // 只跟踪它们，不尝试连接。
     if ((config.type as string) === 'sdk') {
       added.push(name)
       continue
@@ -5788,7 +5720,7 @@ export async function reconcileMcpServers(
     }
   }
 
-  // Build new configs
+  // 构建新的 configs
   const newConfigs: Record<string, ScopedMcpServerConfig> = {}
   for (const name of desiredNames) {
     const config = desiredConfigs[name]
@@ -5803,15 +5735,15 @@ export async function reconcileMcpServers(
     configs: newConfigs,
   }
 
-  // Update AppState with the new tools
+  // 用新的 tools 更新 AppState
   setAppState(prev => {
-    // Get all dynamic server names (current + new)
+    // 收集所有动态 server 名（当前 + 新增）
     const allDynamicServerNames = new Set([
       ...Object.keys(currentState.configs),
       ...Object.keys(newConfigs),
     ])
 
-    // Remove old dynamic tools
+    // 移除旧的动态 tools
     const nonDynamicTools = prev.mcp.tools.filter(t => {
       for (const serverName of allDynamicServerNames) {
         if (t.name.startsWith(`mcp__${serverName}__`)) {
@@ -5821,7 +5753,7 @@ export async function reconcileMcpServers(
       return true
     })
 
-    // Remove old dynamic clients
+    // 移除旧的动态 clients
     const nonDynamicClients = prev.mcp.clients.filter(c => {
       return !allDynamicServerNames.has(c.name)
     })

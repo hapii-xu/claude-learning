@@ -1,8 +1,8 @@
 /**
- * Tests for teleport/index.ts — command metadata + load() body.
- * We do NOT mock launchTeleport to avoid polluting launchTeleport.test.ts
- * via Bun's process-level mock.module cache.
- * load() is tested by verifying it resolves to an object with a call function.
+ * teleport/index.ts 的测试 —— 命令元数据 + load() 函数体。
+ * 我们不 mock launchTeleport，以免通过 Bun 进程级 mock.module 缓存
+ * 污染 launchTeleport.test.ts。
+ * load() 通过断言其解析为带 call 函数的对象来测试。
  */
 import { beforeAll, describe, expect, mock, test } from 'bun:test'
 

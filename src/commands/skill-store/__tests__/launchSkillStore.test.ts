@@ -1,11 +1,11 @@
 /**
- * Tests for launchSkillStore.tsx
+ * launchSkillStore.tsx 的测试
  *
- * Strategy per feedback_mock_dependency_not_subject:
- * - DO NOT mock skillsApi.ts itself (would pollute api.test.ts)
- * - Mock axios (the underlying HTTP layer) to control API responses
- * - Mock fs/promises for install filesystem operations
- * - Let real skillsApi functions run real code paths
+ * 遵循 feedback_mock_dependency_not_subject 策略：
+ * - 不要 mock skillsApi.ts 本身（会污染 api.test.ts）
+ * - 通过 mock axios（底层 HTTP 层）来控制 API 响应
+ * - mock fs/promises 以处理 install 相关的文件系统操作
+ * - 让真实的 skillsApi 函数运行真实代码路径
  */
 
 import {
@@ -25,7 +25,7 @@ import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
 
-// ── Analytics mock ──────────────────────────────────────────────────────────
+// ── Analytics mock ──────────────────────────────────────────────────
 const realAnalytics = await import('src/services/analytics/index.js')
 const logEventMock = mock(() => {})
 mock.module('src/services/analytics/index.js', () => ({
@@ -33,7 +33,7 @@ mock.module('src/services/analytics/index.js', () => ({
   logEvent: logEventMock,
 }))
 
-// ── Auth / OAuth mocks ──────────────────────────────────────────────────────
+// ── Auth / OAuth mocks ──────────────────────────────────────────────────
 const realAuth = await import('src/utils/auth.js')
 mock.module('src/utils/auth.js', () => ({
   ...realAuth,
@@ -45,9 +45,9 @@ mock.module('src/services/oauth/client.js', () => ({
 mock.module('src/constants/oauth.js', () => ({
   getOauthConfig: () => ({ BASE_API_URL: 'https://api.anthropic.com' }),
 }))
-// Spread real teleport/api so any export not explicitly stubbed (like
-// prepareWorkspaceApiRequest, axiosGetWithRetry, type guards, schemas)
-// remains available to transitive importers.
+// 展开真实的 teleport/api，这样未显式 stub 的导出（例如
+// prepareWorkspaceApiRequest、axiosGetWithRetry、类型守卫、schemas）
+// 对传递性导入方仍然可用。
 const realTeleportApi = await import('src/utils/teleport/api.js')
 mock.module('src/utils/teleport/api.js', () => ({
   ...realTeleportApi,
@@ -57,14 +57,14 @@ mock.module('src/utils/teleport/api.js', () => ({
   }),
 }))
 
-// ── envUtils config dir injection ────────────────────────────────────────────
-// Don't mock the envUtils module — that's process-level and leaks to other
-// tests' getClaudeConfigHomeDir consumers (see feedback_mock_dependency_not_subject).
-// Instead inject CLAUDE_CONFIG_DIR via process.env and clear the lodash memoize
-// cache around each test so the real getClaudeConfigHomeDir reads our value.
+// ── envUtils 配置目录注入 ────────────────────────────────────────────
+// 不要 mock envUtils 模块 — 它是进程级的，会泄漏到其他测试的
+// getClaudeConfigHomeDir 消费方（见 feedback_mock_dependency_not_subject）。
+// 改为通过 process.env 注入 CLAUDE_CONFIG_DIR，并在每个测试前后清理 lodash
+// memoize 缓存，这样真实的 getClaudeConfigHomeDir 才能读取到我们设置的值。
 const mockConfigDir = '/tmp/test-claude-config'
 
-// ── Axios mock ──────────────────────────────────────────────────────────────
+// ── Axios mock ──────────────────────────────────────────────────────────
 const axiosGetMock = mock(async () => ({}))
 const axiosPostMock = mock(async () => ({}))
 const axiosDeleteMock = mock(async () => ({}))
@@ -83,16 +83,15 @@ axiosHandle.stubs.post = axiosPostMock
 axiosHandle.stubs.delete = axiosDeleteMock
 axiosHandle.stubs.isAxiosError = axiosIsAxiosError
 
-// ── fs/promises mock ─────────────────────────────────────────────────────────
-// Bun's mock.module is global per-process and last-write-wins. Replacing
-// node:fs/promises with only mkdir + writeFile breaks every other test in
-// the same `bun test` run that imports readFile / readdir / unlink / chmod /
-// etc. (notably src/services/localVault/__tests__/store.test.ts).
+// ── fs/promises mock ─────────────────────────────────────────────────────
+// Bun 的 mock.module 在进程范围内全局生效，且遵循 last-write-wins。若用
+// 仅包含 mkdir + writeFile 的版本替换 node:fs/promises，会破坏同一次
+// `bun test` 运行中其他导入 readFile / readdir / unlink / chmod 等的测试
+// （尤其是 src/services/localVault/__tests__/store.test.ts）。
 //
-// Use require() INSIDE the factory (same trick as SessionMemory/prompts.test)
-// so we get the truly-real module bypassing the mock registry. Gate our two
-// stubs behind useSkillStoreFsStubs (default off; beforeAll flips on; afterAll
-// flips off).
+// 在工厂内部使用 require()（与 SessionMemory/prompts.test 相同的技巧），
+// 这样我们获得绕过 mock 注册表的真正真实模块。将两个 stub 通过
+// useSkillStoreFsStubs 控制（默认关闭；beforeAll 打开；afterAll 关闭）。
 const mkdirMock = mock(async (..._args: unknown[]) => undefined)
 const writeFileMock = mock(async (..._args: unknown[]) => undefined)
 let useSkillStoreFsStubs = false
@@ -113,7 +112,7 @@ mock.module('node:fs/promises', () => {
   }
 })
 
-// ── Lazy imports ─────────────────────────────────────────────────────────────
+// ── 懒加载 imports ─────────────────────────────────────────────────────
 let callSkillStore: typeof import('../launchSkillStore.js').callSkillStore
 let getClaudeConfigHomeDir: typeof import('../../../utils/envUtils.js').getClaudeConfigHomeDir
 let origConfigDir: string | undefined
@@ -128,8 +127,8 @@ beforeAll(async () => {
   useSkillStoreFsStubs = true
 })
 
-// Flip the stub flag off after this suite so localVault/store and other
-// fs-dependent tests in the same process see real readFile/readdir/etc.
+// 在本套件之后关闭 stub flag，使同一进程中的 localVault/store 及其他依赖 fs 的
+// 测试能看到真实的 readFile/readdir 等。
 afterAll(() => {
   axiosHandle.useStubs = false
   useSkillStoreFsStubs = false
@@ -142,14 +141,14 @@ beforeEach(() => {
   mkdirMock.mockClear()
   writeFileMock.mockClear()
   logEventMock.mockClear()
-  // Inject our mock config dir + bust lodash memoize so real
-  // getClaudeConfigHomeDir reads the freshly-set env var.
+  // 注入我们的 mock 配置目录 + 清除 lodash memoize 缓存，这样真实的
+  // getClaudeConfigHomeDir 才能读取到刚设置的 env 变量。
   process.env.CLAUDE_CONFIG_DIR = mockConfigDir
   getClaudeConfigHomeDir.cache?.clear?.()
 })
 
 afterEach(() => {
-  // Restore env so we don't leak mockConfigDir into other test files.
+  // 恢复 env，避免将 mockConfigDir 泄漏到其他测试文件。
   if (origConfigDir === undefined) {
     delete process.env.CLAUDE_CONFIG_DIR
   } else {
@@ -158,14 +157,14 @@ afterEach(() => {
   getClaudeConfigHomeDir.cache?.clear?.()
 })
 
-// ── Helper ────────────────────────────────────────────────────────────────────
+// ── 辅助函数 ────────────────────────────────────────────────────────────
 function makeOnDone() {
   const calls: [string | undefined, unknown][] = []
   const onDone = (msg?: string, opts?: unknown) => calls.push([msg, opts])
   return { onDone, calls }
 }
 
-// ── list ──────────────────────────────────────────────────────────────────────
+// ── list ──────────────────────────────────────────────────────────────
 describe('list action', () => {
   test('calls listSkills and returns element on success', async () => {
     const skills = [
@@ -197,7 +196,7 @@ describe('list action', () => {
   })
 })
 
-// ── get ───────────────────────────────────────────────────────────────────────
+// ── get ───────────────────────────────────────────────────────────────
 describe('get action', () => {
   test('fetches and returns skill detail', async () => {
     const skill = {
@@ -225,7 +224,7 @@ describe('get action', () => {
   })
 })
 
-// ── versions ──────────────────────────────────────────────────────────────────
+// ── versions ──────────────────────────────────────────────────────────
 describe('versions action', () => {
   test('fetches and returns versions', async () => {
     const versions = [
@@ -246,7 +245,7 @@ describe('versions action', () => {
   })
 })
 
-// ── version ───────────────────────────────────────────────────────────────────
+// ── version ───────────────────────────────────────────────────────────
 describe('version action', () => {
   test('fetches specific version', async () => {
     const ver = {
@@ -263,7 +262,7 @@ describe('version action', () => {
   })
 })
 
-// ── create ────────────────────────────────────────────────────────────────────
+// ── create ────────────────────────────────────────────────────────────
 describe('create action', () => {
   test('creates skill and returns result', async () => {
     const skill = {
@@ -284,7 +283,7 @@ describe('create action', () => {
   })
 })
 
-// ── delete ────────────────────────────────────────────────────────────────────
+// ── delete ────────────────────────────────────────────────────────────
 describe('delete action', () => {
   test('deletes skill and confirms', async () => {
     axiosDeleteMock.mockResolvedValueOnce({ data: {}, status: 204 })
@@ -295,7 +294,7 @@ describe('delete action', () => {
   })
 })
 
-// ── install ───────────────────────────────────────────────────────────────────
+// ── install ───────────────────────────────────────────────────────────
 describe('install action', () => {
   test('install <id> fetches skill + versions, writes SKILL.md', async () => {
     const skill = {
@@ -312,7 +311,7 @@ describe('install action', () => {
         created_at: '2024-01-01',
       },
     ]
-    // First call: getSkill, Second call: getSkillVersions
+    // 第一次调用：getSkill，第二次调用：getSkillVersions
     axiosGetMock
       .mockResolvedValueOnce({ data: skill, status: 200 })
       .mockResolvedValueOnce({ data: { data: versions }, status: 200 })
@@ -411,7 +410,7 @@ describe('install action', () => {
   })
 })
 
-// ── invalid args ──────────────────────────────────────────────────────────────
+// ── 无效参数 ──────────────────────────────────────────────────────────────
 describe('invalid args', () => {
   test('invalid subcommand returns null and calls onDone with usage', async () => {
     const { onDone, calls } = makeOnDone()

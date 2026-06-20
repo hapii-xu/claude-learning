@@ -5,38 +5,38 @@ import { getPlatform } from '../utils/platform.js'
 import type { KeybindingBlock } from './types.js'
 
 /**
- * Default keybindings that match current Claude Code behavior.
- * These are loaded first, then user keybindings.json overrides them.
+ * 与当前 Claude Code 行为匹配的默认快捷键。
+ * 这些首先加载，然后用户 keybindings.json 覆盖它们。
  */
 
-// Platform-specific image paste shortcut:
-// - Windows: alt+v (ctrl+v is system paste)
-// - Other platforms: ctrl+v
+// 平台特定的图片粘贴快捷键：
+// - Windows：alt+v（ctrl+v 是系统粘贴）
+// - 其他平台：ctrl+v
 const IMAGE_PASTE_KEY = getPlatform() === 'windows' ? 'alt+v' : 'ctrl+v'
 
-// Modifier-only chords (like shift+tab) may fail on Windows Terminal without VT mode
-// See: https://github.com/microsoft/terminal/issues/879#issuecomment-618801651
-// Node enabled VT mode in 24.2.0 / 22.17.0: https://github.com/nodejs/node/pull/58358
-// Bun enabled VT mode in 1.2.23: https://github.com/oven-sh/bun/pull/21161
+// 仅修饰符的和弦（如 shift+tab）在没有 VT 模式的 Windows Terminal 上可能失败
+// 参见：https://github.com/microsoft/terminal/issues/879#issuecomment-618801651
+// Node 在 24.2.0 / 22.17.0 中启用了 VT 模式：https://github.com/nodejs/node/pull/58358
+// Bun 在 1.2.23 中启用了 VT 模式：https://github.com/oven-sh/bun/pull/21161
 const SUPPORTS_TERMINAL_VT_MODE =
   getPlatform() !== 'windows' ||
   (isRunningWithBun()
     ? satisfies(process.versions.bun, '>=1.2.23')
     : satisfies(process.versions.node, '>=22.17.0 <23.0.0 || >=24.2.0'))
 
-// Platform-specific mode cycle shortcut:
-// - Windows without VT mode: meta+m (shift+tab doesn't work reliably)
-// - Other platforms: shift+tab
+// 平台特定的模式循环快捷键：
+// - 无 VT 模式的 Windows：meta+m（shift+tab 不可靠）
+// - 其他平台：shift+tab
 const MODE_CYCLE_KEY = SUPPORTS_TERMINAL_VT_MODE ? 'shift+tab' : 'meta+m'
 
 export const DEFAULT_BINDINGS: KeybindingBlock[] = [
   {
     context: 'Global',
     bindings: {
-      // ctrl+c and ctrl+d use special time-based double-press handling.
-      // They ARE defined here so the resolver can find them, but they
-      // CANNOT be rebound by users - validation in reservedShortcuts.ts
-      // will show an error if users try to override these keys.
+      // ctrl+c 和 ctrl+d 使用特殊的基于时间的双击处理。
+      // 它们确实在此定义，以便解析器可以找到它们，但
+      // 用户无法重新绑定它们 - reservedShortcuts.ts 中的
+      // 验证会在用户尝试覆盖这些键时显示错误。
       'ctrl+c': 'app:interrupt',
       'ctrl+d': 'app:exit',
       'ctrl+l': 'app:redraw',
@@ -47,8 +47,8 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
         : {}),
       'ctrl+shift+o': 'app:toggleTeammatePreview',
       'ctrl+r': 'history:search',
-      // File navigation. cmd+ bindings only fire on kitty-protocol terminals;
-      // ctrl+shift is the portable fallback.
+      // 文件导航。cmd+ 绑定仅在 kitty 协议终端上触发；
+      // ctrl+shift 是可移植的备选方案。
       ...(feature('QUICK_SEARCH')
         ? {
             'ctrl+shift+f': 'app:globalSearch' as const,
@@ -64,7 +64,7 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
     context: 'Chat',
     bindings: {
       escape: 'chat:cancel',
-      // ctrl+x chord prefix avoids shadowing readline editing keys (ctrl+a/b/e/f/...).
+      // ctrl+x 和弦前缀避免遮蔽 readline 编辑键（ctrl+a/b/e/f/...）。
       'ctrl+x ctrl+k': 'chat:killAgents',
       [MODE_CYCLE_KEY]: 'chat:cycleMode',
       'meta+p': 'chat:modelPicker',
@@ -73,26 +73,26 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       enter: 'chat:submit',
       up: 'history:previous',
       down: 'history:next',
-      // Editing shortcuts (defined here, migration in progress)
-      // Undo has two bindings to support different terminal behaviors:
-      // - ctrl+_ for legacy terminals (send \x1f control char)
-      // - ctrl+shift+- for Kitty protocol (sends physical key with modifiers)
+      // 编辑快捷键（在此定义，迁移进行中）
+      // 撤销有两个绑定以支持不同的终端行为：
+      // - ctrl+_ 用于旧终端（发送 \x1f 控制字符）
+      // - ctrl+shift+- 用于 Kitty 协议（发送带修饰符的物理键）
       'ctrl+_': 'chat:undo',
       'ctrl+shift+-': 'chat:undo',
-      // ctrl+x ctrl+e is the readline-native edit-and-execute-command binding.
+      // ctrl+x ctrl+e 是 readline 原生的 edit-and-execute-command 绑定。
       'ctrl+x ctrl+e': 'chat:externalEditor',
       'ctrl+g': 'chat:externalEditor',
       'ctrl+s': 'chat:stash',
-      // Image paste shortcut (platform-specific key defined above)
+      // 图片粘贴快捷键（平台特定的键在上方定义）
       [IMAGE_PASTE_KEY]: 'chat:imagePaste',
       ...(feature('MESSAGE_ACTIONS')
         ? { 'shift+up': 'chat:messageActions' as const }
         : {}),
-      // Voice activation (hold-to-talk). Registered so getShortcutDisplay
-      // finds it without hitting the fallback analytics log. To rebind,
-      // add a voice:pushToTalk entry (last wins); to disable, use /voice
-      // — null-unbinding space hits a pre-existing useKeybinding.ts trap
-      // where 'unbound' swallows the event (space dead for typing).
+      // 语音激活（按住说话）。注册以便 getShortcutDisplay
+      // 可以找到它而不命中备选的分析日志。要重新绑定，
+      // 添加 voice:pushToTalk 条目（后者优先）；要禁用，使用 /voice
+      // —— 将 space 设为 null 会命中 useKeybinding.ts 中预先存在的陷阱，
+      // 其中 'unbound' 会吞掉事件（space 在输入时无效）。
       ...(feature('VOICE_MODE') ? { space: 'voice:pushToTalk' } : {}),
     },
   },
@@ -108,25 +108,25 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
   {
     context: 'Settings',
     bindings: {
-      // Settings menu uses escape only (not 'n') to dismiss
+      // 设置菜单仅使用 escape（而非 'n'）关闭
       escape: 'confirm:no',
-      // Config panel list navigation (reuses Select actions)
+      // 配置面板列表导航（复用 Select 操作）
       up: 'select:previous',
       down: 'select:next',
       k: 'select:previous',
       j: 'select:next',
       'ctrl+p': 'select:previous',
       'ctrl+n': 'select:next',
-      // Cycle enum values left/right (same as left/right arrow in handleKeyDown)
+      // 左右循环枚举值（与 handleKeyDown 中的左右箭头相同）
       left: 'select:previousValue',
       right: 'select:nextValue',
-      // Toggle/activate the selected setting (space only — enter saves & closes)
+      // 切换/激活所选设置（仅 space —— enter 保存并关闭）
       space: 'select:accept',
-      // Save and close the config panel
+      // 保存并关闭配置面板
       enter: 'settings:close',
-      // Enter search mode
+      // 进入搜索模式
       '/': 'settings:search',
-      // Retry loading usage data (only active on error)
+      // 重试加载用量数据（仅在错误时激活）
       r: 'settings:retry',
     },
   },
@@ -135,23 +135,23 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
     bindings: {
       enter: 'confirm:yes',
       escape: 'confirm:no',
-      // Navigation for dialogs with lists
+      // 带列表的对话框导航
       up: 'confirm:previous',
       down: 'confirm:next',
       tab: 'confirm:nextField',
       space: 'confirm:toggle',
-      // Cycle modes (used in file permission dialogs and teams dialog)
+      // 切换模式（用于文件权限对话框和团队对话框）
       'shift+tab': 'confirm:cycleMode',
-      // Toggle permission explanation in permission dialogs
+      // 在权限对话框中切换权限说明
       'ctrl+e': 'confirm:toggleExplanation',
-      // Toggle permission debug info
+      // 切换权限调试信息
       'ctrl+d': 'permission:toggleDebug',
     },
   },
   {
     context: 'FormField',
     bindings: {
-      // Form field vertical navigation (login/setup panels)
+      // 表单字段垂直导航（登录/设置面板）
       tab: 'tabs:next',
       'shift+tab': 'tabs:previous',
       up: 'tabs:previous',
@@ -161,7 +161,7 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
   {
     context: 'Tabs',
     bindings: {
-      // Tab cycling navigation
+      // 标签页循环导航
       tab: 'tabs:next',
       'shift+tab': 'tabs:previous',
       right: 'tabs:next',
@@ -174,8 +174,8 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       'ctrl+e': 'transcript:toggleShowAll',
       'ctrl+c': 'transcript:exit',
       escape: 'transcript:exit',
-      // q — pager convention (less, tmux copy-mode). Transcript is a modal
-      // reading view with no prompt, so q-as-literal-char has no owner.
+      // q —— 分页器惯例（less、tmux 复制模式）。转录是
+      // 没有提示的模态阅读视图，所以 q 作为字面字符没有拥有者。
       q: 'transcript:exit',
     },
   },
@@ -192,8 +192,8 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
   {
     context: 'Task',
     bindings: {
-      // Background running foreground tasks (bash commands, agents)
-      // In tmux, users must press ctrl+b twice (tmux prefix escape)
+      // 后台运行前台任务（bash 命令、代理）
+      // 在 tmux 中，用户必须按 ctrl+b 两次（tmux 前缀转义）
       'ctrl+b': 'task:background',
     },
   },
@@ -212,12 +212,12 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       wheeldown: 'scroll:lineDown',
       'ctrl+home': 'scroll:top',
       'ctrl+end': 'scroll:bottom',
-      // Selection copy. ctrl+shift+c is standard terminal copy.
-      // cmd+c only fires on terminals using the kitty keyboard
-      // protocol (kitty/WezTerm/ghostty/iTerm2) where the super
-      // modifier actually reaches the pty — inert elsewhere.
-      // Esc-to-clear and contextual ctrl+c are handled via raw
-      // useInput so they can conditionally propagate.
+      // 选择复制。ctrl+shift+c 是标准终端复制。
+      // cmd+c 仅在使用 kitty 键盘协议
+      // （kitty/WezTerm/ghostty/iTerm2）的终端上触发，
+      // 其中 super 修饰符实际到达 pty —— 在其他地方无效。
+      // Esc 清除和上下文 ctrl+c 通过原始 useInput 处理，
+      // 以便它们可以有条件地传播。
       'ctrl+shift+c': 'selection:copy',
       'cmd+c': 'selection:copy',
     },
@@ -228,7 +228,7 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       escape: 'help:dismiss',
     },
   },
-  // Attachment navigation (select dialog image attachments)
+  // 附件导航（选择对话框图片附件）
   {
     context: 'Attachments',
     bindings: {
@@ -240,7 +240,7 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       escape: 'attachments:exit',
     },
   },
-  // Footer indicator navigation (tasks, teams, diff, loop)
+  // 页脚指示器导航（任务、团队、差异、循环）
   {
     context: 'Footer',
     bindings: {
@@ -254,7 +254,7 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       escape: 'footer:clearSelection',
     },
   },
-  // Message selector (rewind dialog) navigation
+  // 消息选择器（回退对话框）导航
   {
     context: 'MessageSelector',
     bindings: {
@@ -275,7 +275,7 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       enter: 'messageSelector:select',
     },
   },
-  // PromptInput unmounts while cursor active — no key conflict.
+  // PromptInput 在光标活动时卸载 —— 无键冲突。
   ...(feature('MESSAGE_ACTIONS')
     ? [
         {
@@ -285,18 +285,19 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
             down: 'messageActions:next' as const,
             k: 'messageActions:prev' as const,
             j: 'messageActions:next' as const,
-            // meta = cmd on macOS; super for kitty keyboard-protocol — bind both.
+            // meta = cmd 在 macOS 上；super 用于 kitty 键盘协议 —— 两者都绑定。
             'meta+up': 'messageActions:top' as const,
             'meta+down': 'messageActions:bottom' as const,
             'super+up': 'messageActions:top' as const,
             'super+down': 'messageActions:bottom' as const,
-            // Mouse selection extends on shift+arrow (ScrollKeybindingHandler:573) when present —
-            // correct layered UX: esc clears selection, then shift+↑ jumps.
+            // 鼠标选择在存在 shift+箭头 时扩展
+            // （ScrollKeybindingHandler:573）—— 正确的分层 UX：
+            // esc 清除选择，然后 shift+↑ 跳转。
             'shift+up': 'messageActions:prevUser' as const,
             'shift+down': 'messageActions:nextUser' as const,
             escape: 'messageActions:escape' as const,
             'ctrl+c': 'messageActions:ctrlc' as const,
-            // Mirror MESSAGE_ACTIONS. Not imported — would pull React/ink into this config module.
+            // 镜像 MESSAGE_ACTIONS。不导入 —— 会将 React/ink 拉入此配置模块。
             enter: 'messageActions:enter' as const,
             c: 'messageActions:c' as const,
             p: 'messageActions:p' as const,
@@ -304,7 +305,7 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
         },
       ]
     : []),
-  // Diff dialog navigation
+  // 差异对话框导航
   {
     context: 'DiffDialog',
     bindings: {
@@ -314,10 +315,10 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       up: 'diff:previousFile',
       down: 'diff:nextFile',
       enter: 'diff:viewDetails',
-      // Note: diff:back is handled by left arrow in detail mode
+      // 注意：diff:back 在详情模式中由左箭头处理
     },
   },
-  // Model picker effort cycling (ant-only)
+  // 模型选择器努力程度循环（仅限 Anthropic 员工）
   {
     context: 'ModelPicker',
     bindings: {
@@ -326,7 +327,7 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       space: 'modelPicker:toggle1M',
     },
   },
-  // Effort panel (slash /effort without args)
+  // 努力程度面板（无参数的 /effort 斜杠命令）
   {
     context: 'EffortPanel',
     bindings: {
@@ -342,7 +343,7 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       'ctrl+c': 'effortPanel:cancel',
     },
   },
-  // Select component navigation (used by /model, /resume, permission prompts, etc.)
+  // 选择组件导航（用于 /model、/resume、权限提示等）
   {
     context: 'Select',
     bindings: {
@@ -356,8 +357,8 @@ export const DEFAULT_BINDINGS: KeybindingBlock[] = [
       escape: 'select:cancel',
     },
   },
-  // Plugin dialog actions (manage, browse, discover plugins)
-  // Navigation (select:*) uses the Select context above
+  // 插件对话框操作（管理、浏览、发现插件）
+  // 导航（select:*）使用上方的 Select 上下文
   {
     context: 'Plugin',
     bindings: {

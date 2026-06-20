@@ -1,9 +1,9 @@
 /**
- * `claude mcp xaa` — manage the XAA (SEP-990) IdP connection.
+ * `claude mcp xaa` —— 管理 XAA (SEP-990) IdP 连接。
  *
- * The IdP connection is user-level: configure once, all XAA-enabled MCP
- * servers reuse it. Lives in settings.xaaIdp (non-secret) + a keychain slot
- * keyed by issuer (secret). Separate trust domain from per-server AS secrets.
+ * 该 IdP 连接是用户级的：配置一次，所有启用 XAA 的 MCP 服务器都复用它。
+ * 存放于 settings.xaaIdp（非机密）+ 以 issuer 为键的 keychain 槽位（机密）。
+ * 与各服务器的 AS 密钥是独立的信任域。
  */
 import type { Command } from '@commander-js/extra-typings'
 import { cliError, cliOk } from '../../cli/exit.js'
@@ -42,12 +42,12 @@ export function registerMcpXaaIdpCommand(mcp: Command): void {
       'Fixed loopback callback port (only if IdP does not honor RFC 8252 port-any matching)',
     )
     .action(options => {
-      // Validate everything BEFORE any writes. An exit(1) mid-write leaves
-      // settings configured but keychain missing — confusing state.
-      // updateSettingsForSource doesn't schema-check on write; a non-URL
-      // issuer lands on disk and then poisons the whole userSettings source
-      // on next launch (SettingsSchema .url() fails → parseSettingsFile
-      // returns { settings: null }, dropping everything, not just xaaIdp).
+      // 在任何写入之前校验全部内容。写入过程中 exit(1) 会留下
+      // "settings 已配置但 keychain 缺失"这种令人困惑的状态。
+      // updateSettingsForSource 在写入时不会做 schema 校验；一个非 URL 的
+      // issuer 会落到磁盘上，然后在下次启动时污染整个 userSettings 源
+      // (SettingsSchema .url() 失败 → parseSettingsFile 返回
+      // { settings: null }，会丢掉所有内容，而不只是 xaaIdp)。
       let issuerUrl: URL
       try {
         issuerUrl = new URL(options.issuer)
@@ -56,9 +56,9 @@ export function registerMcpXaaIdpCommand(mcp: Command): void {
           `Error: --issuer must be a valid URL (got "${options.issuer}")`,
         )
       }
-      // OIDC discovery + token exchange run against this host. Allow http://
-      // only for loopback (conformance harness mock IdP); anything else leaks
-      // the client secret and authorization code over plaintext.
+      // OIDC 发现 + token 交换都打到这个 host。仅对 loopback
+      // (conformance 测试夹具的 mock IdP) 允许 http://；其他情况下使用 http://
+      // 会在明文信道中泄露 client secret 和 authorization code。
       if (
         issuerUrl.protocol !== 'https:' &&
         !(
@@ -75,8 +75,8 @@ export function registerMcpXaaIdpCommand(mcp: Command): void {
       const callbackPort = options.callbackPort
         ? parseInt(options.callbackPort, 10)
         : undefined
-      // callbackPort <= 0 fails Zod's .positive() on next launch — same
-      // settings-poisoning failure mode as the issuer check above.
+      // callbackPort <= 0 在下次启动时会因 Zod 的 .positive() 失败 —— 与上面
+      // issuer 校验相同的"污染设置"失败模式。
       if (
         callbackPort !== undefined &&
         (!Number.isInteger(callbackPort) || callbackPort <= 0)
@@ -92,17 +92,16 @@ export function registerMcpXaaIdpCommand(mcp: Command): void {
         )
       }
 
-      // Read old config now (before settings overwrite) so we can clear stale
-      // keychain slots after a successful write. `clear` can't do this after
-      // the fact — it reads the *current* settings.xaaIdp, which by then is
-      // the new one.
+      // 现就读取旧配置（在 settings 被覆写之前），以便在写入成功后清理过期的
+      // keychain 槽位。`clear` 无法在事后做这件事 —— 它读取的是 *当前* 的
+      // settings.xaaIdp，而那时已经是新的了。
       const old = getXaaIdpSettings()
       const oldIssuer = old?.issuer
       const oldClientId = old?.clientId
 
-      // callbackPort MUST be present (even as undefined) — mergeWith deep-merges
-      // and only deletes on explicit `undefined`, not on absent key. A conditional
-      // spread would leak a prior fixed port into a new IdP's config.
+      // callbackPort 必须存在（即使是 undefined）—— mergeWith 进行深合并，
+      // 只有显式 `undefined` 才会删除，缺键不会。条件展开会让上次的固定端口
+      // 泄漏到新 IdP 的配置中。
       const { error } = updateSettingsForSource('userSettings', {
         xaaIdp: {
           issuer: options.issuer,
@@ -114,21 +113,19 @@ export function registerMcpXaaIdpCommand(mcp: Command): void {
         return cliError(`Error writing settings: ${error.message}`)
       }
 
-      // Clear stale keychain slots only after settings write succeeded —
-      // otherwise a write failure leaves settings pointing at oldIssuer with
-      // its secret already gone. Compare via issuerKey(): trailing-slash or
-      // host-case differences normalize to the same keychain slot.
+      // 仅在 settings 写入成功后才清理过期的 keychain 槽位 ——
+      // 否则写入失败会让 settings 指向 oldIssuer，但其 secret 已被删除。
+      // 通过 issuerKey() 比较：末尾斜杠或 host 大小写差异会归一化到同一个 keychain 槽位。
       if (oldIssuer) {
         if (issuerKey(oldIssuer) !== issuerKey(options.issuer)) {
           clearIdpIdToken(oldIssuer)
           clearIdpClientSecret(oldIssuer)
         } else if (oldClientId !== options.clientId) {
-          // Same issuer slot but different OAuth client registration — the
-          // cached id_token's aud claim and the stored secret are both for the
-          // old client. `xaa login` would send {new clientId, old secret} and
-          // fail with opaque `invalid_client`; downstream SEP-990 exchange
-          // would fail aud validation. Keep both when clientId is unchanged:
-          // re-setup without --client-secret means "tweak port, keep secret".
+          // 同一 issuer 槽位但不同的 OAuth 客户端注册 —— 缓存的 id_token 的
+          // aud 声明以及存储的 secret 都属于旧 client。`xaa login` 会发送
+          // {new clientId, old secret} 并以含糊的 `invalid_client` 失败；
+          // 下游 SEP-990 交换也会在 aud 校验时失败。当 clientId 不变时两者都保留：
+          // 不带 --client-secret 的 re-setup 意为"微调端口，保留 secret"。
           clearIdpIdToken(oldIssuer)
           clearIdpClientSecret(oldIssuer)
         }
@@ -159,9 +156,9 @@ export function registerMcpXaaIdpCommand(mcp: Command): void {
       '--force',
       'Ignore any cached id_token and re-login (useful after IdP-side revocation)',
     )
-    // TODO(paulc): read the JWT from stdin instead of argv to keep it out of
-    // shell history. Fine for conformance (docker exec uses argv directly,
-    // no shell parser), but a real user would want `echo $TOKEN | ... --stdin`.
+    // TODO(paulc): 从 stdin 读取 JWT 而非 argv，避免它进入 shell 历史。
+    // 对 conformance 没问题（docker exec 直接用 argv，没有 shell 解析器），
+    // 但真实用户会希望用 `echo $TOKEN | ... --stdin`。
     .option(
       '--id-token <jwt>',
       'Write this pre-obtained id_token directly to cache, skipping the OIDC browser login',
@@ -174,9 +171,8 @@ export function registerMcpXaaIdpCommand(mcp: Command): void {
         )
       }
 
-      // Direct-inject path: skip cache check, skip OIDC. Writing IS the
-      // operation. Issuer comes from settings (single source of truth), not
-      // a separate flag — one less thing to desync.
+      // 直接注入路径：跳过缓存检查，跳过 OIDC。写入即是操作本身。
+      // issuer 来自 settings（单一权威源），而非单独的 flag —— 少一个会失同步的东西。
       if (options.idToken) {
         const expiresAt = saveIdpIdTokenFromJwt(idp.issuer, options.idToken)
         return cliOk(
@@ -244,19 +240,19 @@ export function registerMcpXaaIdpCommand(mcp: Command): void {
     .command('clear')
     .description('Clear the IdP connection config and cached id_token')
     .action(() => {
-      // Read issuer first so we can clear the right keychain slots.
+      // 先读 issuer，以便清理正确的 keychain 槽位。
       const idp = getXaaIdpSettings()
-      // updateSettingsForSource uses mergeWith: set to undefined (not delete)
-      // to signal key removal.
+      // updateSettingsForSource 使用 mergeWith：设置为 undefined（而不是 delete）
+      // 来表示要移除该键。
       const { error } = updateSettingsForSource('userSettings', {
         xaaIdp: undefined,
       })
       if (error) {
         return cliError(`Error writing settings: ${error.message}`)
       }
-      // Clear keychain only after settings write succeeded — otherwise a
-      // write failure leaves settings pointing at the IdP with its secrets
-      // already gone (same pattern as `setup`'s old-issuer cleanup).
+      // 仅在 settings 写入成功后才清理 keychain —— 否则写入失败会让
+      // settings 仍指向该 IdP 但其 secret 已被删除
+      // (与 `setup` 中旧 issuer 的清理模式相同)。
       if (idp) {
         clearIdpIdToken(idp.issuer)
         clearIdpClientSecret(idp.issuer)

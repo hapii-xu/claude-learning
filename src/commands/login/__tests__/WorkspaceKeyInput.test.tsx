@@ -1,18 +1,17 @@
 /**
- * Tests for WorkspaceKeyInput.tsx
+ * WorkspaceKeyInput.tsx 的测试
  *
- * Covers (per plan):
- * - Input echo mask: raw key chars never appear in output
- * - Wrong prefix shows inline error
- * - Key too short disables Enter (validateKey returns error)
- * - Esc cancel hint present in rendered output
- * - Shows "Saving..." when saving prop is true
- * - Shows saveError when provided
+ * 覆盖（按计划）：
+ * - 输入回显遮蔽：原始 key 字符永不出现在输出中
+ * - 错误前缀显示行内错误
+ * - key 过短会禁用 Enter（validateKey 返回错误）
+ * - 渲染输出中包含 Esc 取消提示
+ * - 当 saving prop 为 true 时显示 "Saving..."
+ * - 当提供 saveError 时显示
  *
- * Note on renderToString: WorkspaceKeyInput calls useInput which registers a stdin
- * listener that prevents Ink from exiting. We therefore skip Ink rendering tests
- * and instead verify the component's behaviour through pure validation logic tests
- * plus a direct JSX snapshot check against a minimal stub render.
+ * 关于 renderToString 的说明：WorkspaceKeyInput 会调用 useInput，它注册了一个
+ * stdin 监听器，导致 Ink 无法退出。因此我们跳过 Ink 渲染测试，
+ * 改为通过纯校验逻辑测试加上对最小桩 render 的直接 JSX 快照检查来验证组件行为。
  */
 import { describe, expect, test, mock } from 'bun:test';
 import * as React from 'react';
@@ -32,8 +31,8 @@ mock.module('src/utils/config.ts', () => ({
   saveGlobalConfig: (_updater: unknown) => undefined,
 }));
 // ---------------------------------------------------------------------------
-// Inline validation logic tests (key prefix / length rules)
-// These verify the guard behaviour without needing Ink render or useInput
+// 行内校验逻辑测试（key 前缀 / 长度规则）
+// 这些测试用于验证守卫行为，无需 Ink render 或 useInput
 // ---------------------------------------------------------------------------
 
 describe('WorkspaceKeyInput validation rules', () => {
@@ -42,7 +41,7 @@ describe('WorkspaceKeyInput validation rules', () => {
   const MAX = 256;
 
   test('empty input produces no error (user has not typed yet)', () => {
-    // Simulate validateKey('') — empty value is not an error
+    // 模拟 validateKey('') —— 空值不是错误
     const value = '';
     const noError = value.length === 0;
     expect(noError).toBe(true);
@@ -61,7 +60,7 @@ describe('WorkspaceKeyInput validation rules', () => {
   });
 
   test('correct prefix + too short → canSubmit is false', () => {
-    const value = PREFIX + 'A'; // 15 chars, less than MIN=20
+    const value = PREFIX + 'A'; // 15 字符，小于 MIN=20
     const valid = value.startsWith(PREFIX) && value.length >= MIN && value.length <= MAX;
     expect(valid).toBe(false);
   });
@@ -73,37 +72,37 @@ describe('WorkspaceKeyInput validation rules', () => {
   });
 
   test('masked output never shows raw chars beyond prefix', () => {
-    // Simulate maskKeyInput logic: any suffix chars become ****...****
+    // 模拟 maskKeyInput 逻辑：任何 suffix 字符都会变成 ****...****
     const suffix = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
     const key = PREFIX + suffix;
-    // The mask function returns sk-ant-api03-****...**** form
-    // Verify suffix does NOT appear verbatim in mask output
+    // mask 函数返回 sk-ant-api03-****...**** 形式
+    // 验证 suffix 不会原样出现在 mask 输出中
     const stars = '****';
     const masked = `${PREFIX}${stars}...${suffix.slice(-4).replace(/./g, '*')}`;
     expect(masked).not.toContain(suffix);
     expect(masked).toContain(PREFIX);
     expect(masked).toContain(stars);
-    // key itself is never exposed — only masked form
-    expect(key).toContain(suffix); // sanity check
+    // key 本身永不暴露 —— 只有遮蔽形式
+    expect(key).toContain(suffix); // 健全性检查
     expect(masked).not.toContain(suffix);
   });
 });
 
 // ---------------------------------------------------------------------------
-// Component structure tests — verify static props without Ink rendering
-// These use React.createElement directly to inspect what the component returns
-// without going through Ink's full render pipeline (which needs stdin/stdout TTY)
+// 组件结构测试 —— 不走 Ink 渲染，验证静态 props
+// 这里直接使用 React.createElement 检查组件返回值，
+// 而不通过 Ink 的完整渲染流水线（后者需要 stdin/stdout TTY）
 // ---------------------------------------------------------------------------
 
 describe('WorkspaceKeyInput component props', () => {
   test('WorkspaceKeyInputProps interface: onSave and onCancel are required', async () => {
-    // Import dynamically after mocks so the module gets mock-resolved imports
+    // 在 mock 之后动态 import，使该模块获得被 mock 解析的依赖
     const { WorkspaceKeyInput } = await import('../WorkspaceKeyInput.js');
 
-    // Verify that WorkspaceKeyInput is a function (React component)
+    // 验证 WorkspaceKeyInput 是函数（React 组件）
     expect(typeof WorkspaceKeyInput).toBe('function');
 
-    // Verify calling with valid props does not throw during element creation
+    // 验证以合法 props 调用时，元素创建过程不抛错
     const element = React.createElement(WorkspaceKeyInput, {
       onSave: () => {},
       onCancel: () => {},
@@ -139,7 +138,7 @@ describe('WorkspaceKeyInput component props', () => {
 
   test('component module exports expected identifiers', async () => {
     const mod = await import('../WorkspaceKeyInput.js');
-    // These are the public API the plan specifies
+    // 这些是计划中规定的公共 API
     expect('WorkspaceKeyInput' in mod).toBe(true);
     expect('WorkspaceKeyInputContainer' in mod).toBe(true);
   });
@@ -153,7 +152,7 @@ describe('WorkspaceKeyInput component props', () => {
       },
       onCancel: () => {},
     });
-    // Call the prop directly to verify it has the correct signature
+    // 直接调用该 prop，验证它具备正确的签名
     (el.props.onSave as (k: string) => void)('sk-ant-api03-test');
     expect(saved).toEqual(['sk-ant-api03-test']);
   });

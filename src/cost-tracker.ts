@@ -81,21 +81,21 @@ type StoredCostState = {
 }
 
 /**
- * Gets stored cost state from project config for a specific session.
- * Returns the cost data if the session ID matches, or undefined otherwise.
- * Use this to read costs BEFORE overwriting the config with saveCurrentSessionCosts().
+ * 从 project config 中读取指定会话存储的成本状态。
+ * 若 session ID 匹配则返回成本数据，否则返回 undefined。
+ * 用于在 saveCurrentSessionCosts() 覆盖配置之前读取成本。
  */
 export function getStoredSessionCosts(
   sessionId: string,
 ): StoredCostState | undefined {
   const projectConfig = getCurrentProjectConfig()
 
-  // Only return costs if this is the same session that was last saved
+  // 仅当 session ID 与上次保存的一致时才返回成本
   if (projectConfig.lastSessionId !== sessionId) {
     return undefined
   }
 
-  // Build model usage with context windows
+  // 构造带 context window 的 model 用量
   let modelUsage: { [modelName: string]: ModelUsage } | undefined
   if (projectConfig.lastModelUsage) {
     modelUsage = Object.fromEntries(
@@ -124,9 +124,9 @@ export function getStoredSessionCosts(
 }
 
 /**
- * Restores cost state from project config when resuming a session.
- * Only restores if the session ID matches the last saved session.
- * @returns true if cost state was restored, false otherwise
+ * 恢复会话时从 project config 还原成本状态。
+ * 仅当 session ID 与上次保存的会话一致时才还原。
+ * @returns 若成本状态已还原则返回 true，否则返回 false
  */
 export function restoreCostStateForSession(sessionId: string): boolean {
   const data = getStoredSessionCosts(sessionId)
@@ -138,8 +138,8 @@ export function restoreCostStateForSession(sessionId: string): boolean {
 }
 
 /**
- * Saves the current session's costs to project config.
- * Call this before switching sessions to avoid losing accumulated costs.
+ * 将当前会话的成本保存到 project config。
+ * 切换会话之前调用此函数，以免丢失已累计的成本。
  */
 export function saveCurrentSessionCosts(fpsMetrics?: FpsMetrics): void {
   saveCurrentProjectConfig(current => ({
@@ -185,7 +185,7 @@ function formatModelUsage(): string {
     return 'Usage:                 0 input, 0 output, 0 cache read, 0 cache write'
   }
 
-  // Accumulate usage by short name
+  // 按短名称累计用量
   const usageByShortName: { [shortName: string]: ModelUsage } = {}
   for (const [model, usage] of Object.entries(modelUsageMap)) {
     const shortName = getCanonicalName(model)

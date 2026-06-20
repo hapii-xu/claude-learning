@@ -24,16 +24,16 @@ import { loadAllPlugins } from '../utils/plugins/pluginLoader.js'
 import type { PluginLoadResult } from '../types/plugin.js'
 
 /**
- * Hook to manage plugin state and synchronize with AppState.
+ * 管理插件状态并与 AppState 同步的 Hook。
  *
- * On mount: loads all plugins, runs delisting enforcement, surfaces flagged-
- * plugin notifications, populates AppState.plugins. This is the initial
- * Layer-3 load — subsequent refresh goes through /reload-plugins.
+ * 挂载时：加载所有插件，运行除名执行，弹出已标记
+ * 插件通知，填充 AppState.plugins。这是初始的
+ * Layer-3 加载 —— 后续刷新通过 /reload-plugins。
  *
- * On needsRefresh: shows a notification directing the user to /reload-plugins.
- * Does NOT auto-refresh. All Layer-3 swap (commands, agents, hooks, MCP)
- * goes through refreshActivePlugins() via /reload-plugins for one consistent
- * mental model. See Outline: declarative-settings-hXHBMDIf4b PR 5c.
+ * needsRefresh 时：显示通知指导用户运行 /reload-plugins。
+ * 不会自动刷新。所有 Layer-3 交换（命令、agent、hook、MCP）
+ * 通过 refreshActivePlugins() 经 /reload-plugins 以实现一个一致的心智模型。
+ * 参见 Outline: declarative-settings-hXHBMDIf4b PR 5c。
  */
 export function useManagePlugins({
   enabled = true,
@@ -44,21 +44,21 @@ export function useManagePlugins({
   const needsRefresh = useAppState(s => s.plugins.needsRefresh)
   const { addNotification } = useNotifications()
 
-  // Initial plugin load. Runs once on mount. NOT used for refresh — all
-  // post-mount refresh goes through /reload-plugins → refreshActivePlugins().
-  // Unlike refreshActivePlugins, this also runs delisting enforcement and
-  // flagged-plugin notifications (session-start concerns), and does NOT bump
-  // mcp.pluginReconnectKey (MCP effects fire on their own mount).
+  // 初始插件加载。挂载时运行一次。不用于刷新 —— 所有
+  // 挂载后刷新通过 /reload-plugins → refreshActivePlugins()。
+  // 与 refreshActivePlugins 不同，这也运行除名执行和
+  // 已标记插件通知（会话启动关注点），并且不会提升
+  // mcp.pluginReconnectKey（MCP 效果在自己的挂载时触发）。
   const initialPluginLoad = useCallback(async () => {
     try {
-      // Load all plugins - capture errors array
+      // 加载所有插件 - 捕获错误数组
       const { enabled, disabled, errors }: PluginLoadResult =
         await loadAllPlugins()
 
-      // Detect delisted plugins, auto-uninstall them, and record as flagged.
+      // 检测已除名的插件，自动卸载它们，并记录为已标记。
       await detectAndUninstallDelistedPlugins()
 
-      // Notify if there are flagged plugins pending dismissal
+      // 如果有待关闭的已标记插件则通知
       const flagged = getFlaggedPlugins()
       if (Object.keys(flagged).length > 0) {
         addNotification({
@@ -69,8 +69,8 @@ export function useManagePlugins({
         })
       }
 
-      // Load commands, agents, and hooks with individual error handling
-      // Errors are added to the errors array for user visibility in Doctor UI
+      // 加载命令、agent 和 hook，带单独错误处理
+      // 错误被添加到 errors 数组以便用户在 Doctor UI 中可见
       let commands: Command[] = []
       let agents: AgentDefinition[] = []
 
@@ -110,15 +110,14 @@ export function useManagePlugins({
         })
       }
 
-      // Load MCP server configs per plugin to get an accurate count.
-      // LoadedPlugin.mcpServers is not populated by loadAllPlugins — it's a
-      // cache slot that extractMcpServersFromPlugins fills later, which races
-      // with this metric. Calling loadPluginMcpServers directly (as
-      // cli/handlers/plugins.ts does) gives the correct count and also
-      // warms the cache for the MCP connection manager.
+      // 按插件加载 MCP 服务器配置以获得准确计数。
+      // LoadedPlugin.mcpServers 不由 loadAllPlugins 填充 —— 它是
+      // extractMcpServersFromPlugins 稍后填充的缓存槽，与此指标竞争。
+      // 直接调用 loadPluginMcpServers（如 cli/handlers/plugins.ts 所做）
+      // 给出正确计数并且也为 MCP 连接管理器预热缓存。
       //
-      // Runs BEFORE setAppState so any errors pushed by these loaders make it
-      // into AppState.plugins.errors (Doctor UI), not just telemetry.
+      // 在 setAppState 之前运行，以便这些加载器推送的任何错误
+      // 进入 AppState.plugins.errors（Doctor UI），而不仅仅是遥测。
       const mcpServerCounts = await Promise.all(
         enabled.map(async p => {
           if (p.mcpServers) return Object.keys(p.mcpServers).length
@@ -129,12 +128,12 @@ export function useManagePlugins({
       )
       const mcp_count = mcpServerCounts.reduce((sum, n) => sum + n, 0)
 
-      // LSP: the primary fix for issue #15521 is in refresh.ts (via
-      // performBackgroundPluginInstallations → refreshActivePlugins, which
-      // clears caches first). This reinit is defensive — it reads the same
-      // memoized loadAllPlugins() result as the original init unless a cache
-      // invalidation happened between main.tsx:3203 and REPL mount (e.g.
-      // seed marketplace registration or policySettings hot-reload).
+      // LSP：问题 #15521 的主要修复在 refresh.ts 中（通过
+      // performBackgroundPluginInstallations → refreshActivePlugins，它
+      // 首先清除缓存）。此重新初始化是防御性的 —— 它读取与原始
+      // 初始化相同的记忆化 loadAllPlugins() 结果，除非在
+      // main.tsx:3203 和 REPL 挂载之间发生缓存失效（例如
+      // 种子 marketplace 注册或 policySettings 热重载）。
       const lspServerCounts = await Promise.all(
         enabled.map(async p => {
           if (p.lspServers) return Object.keys(p.lspServers).length
@@ -146,13 +145,13 @@ export function useManagePlugins({
       const lsp_count = lspServerCounts.reduce((sum, n) => sum + n, 0)
       reinitializeLspServerManager()
 
-      // Update AppState - merge errors to preserve LSP errors
+      // 更新 AppState - 合并错误以保留 LSP 错误
       setAppState(prevState => {
-        // Keep existing LSP/non-plugin-loading errors (source 'lsp-manager' or 'plugin:*')
+        // 保留现有 LSP/非插件加载错误（源为 'lsp-manager' 或 'plugin:*'）
         const existingLspErrors = prevState.plugins.errors.filter(
           e => e.source === 'lsp-manager' || e.source.startsWith('plugin:'),
         )
-        // Deduplicate: remove existing LSP errors that are also in new errors
+        // 去重：移除也在新错误中的现有 LSP 错误
         const newErrorKeys = new Set(
           errors.map(e =>
             e.type === 'generic-error'
@@ -185,7 +184,7 @@ export function useManagePlugins({
         `Loaded plugins - Enabled: ${enabled.length}, Disabled: ${disabled.length}, Commands: ${commands.length}, Agents: ${agents.length}, Errors: ${errors.length}`,
       )
 
-      // Count component types across enabled plugins
+      // 跨启用插件计数组件类型
       const hook_count = enabled.reduce((sum, p) => {
         if (!p.hooksConfig) return sum
         return (
@@ -217,9 +216,9 @@ export function useManagePlugins({
         hook_count,
         mcp_count,
         lsp_count,
-        // Ant-only: which plugins are enabled, to correlate with RSS/FPS.
-        // Kept separate from base metrics so it doesn't flow into
-        // logForDiagnosticsNoPII.
+        // 仅 Ant：哪些插件已启用，用于与 RSS/FPS 关联。
+        // 与基础指标分开保存，这样不会流入
+        // logForDiagnosticsNoPII。
         ant_enabled_names:
           process.env.USER_TYPE === 'ant' && enabled.length > 0
             ? (enabled
@@ -231,13 +230,13 @@ export function useManagePlugins({
             : undefined,
       }
     } catch (error) {
-      // Only plugin loading errors should reach here - log for monitoring
+      // 仅插件加载错误应到达这里 - 记录以监控
       const errorObj = toError(error)
       logError(errorObj)
       logForDebugging(`Error loading plugins: ${error}`)
-      // Set empty state on error, but preserve LSP errors and add the new error
+      // 错误时设置空状态，但保留 LSP 错误并添加新错误
       setAppState(prevState => {
-        // Keep existing LSP/non-plugin-loading errors
+        // 保留现有 LSP/非插件加载错误
         const existingLspErrors = prevState.plugins.errors.filter(
           e => e.source === 'lsp-manager' || e.source.startsWith('plugin:'),
         )
@@ -275,7 +274,7 @@ export function useManagePlugins({
     }
   }, [setAppState, addNotification])
 
-  // Load plugins on mount and emit telemetry
+  // 挂载时加载插件并发出遥测
   useEffect(() => {
     if (!enabled) return
     void initialPluginLoad().then(metrics => {
@@ -294,12 +293,12 @@ export function useManagePlugins({
     })
   }, [initialPluginLoad, enabled])
 
-  // Plugin state changed on disk (background reconcile, /plugin menu,
-  // external settings edit). Show a notification; user runs /reload-plugins
-  // to apply. The previous auto-refresh here had a stale-cache bug (only
-  // cleared loadAllPlugins, downstream memoized loaders returned old data)
-  // and was incomplete (no MCP, no agentDefinitions). /reload-plugins
-  // handles all of that correctly via refreshActivePlugins().
+  // 插件状态在磁盘上已更改（后台协调、/plugin 菜单、
+  // 外部设置编辑）。显示通知；用户运行 /reload-plugins
+  // 应用。之前此处的自动刷新有一个过时缓存 bug（仅
+  // 清除 loadAllPlugins，下游记忆化加载器返回旧数据）
+  // 并且不完整（无 MCP，无 agentDefinitions）。/reload-plugins
+  // 通过 refreshActivePlugins() 正确处理所有这些。
   useEffect(() => {
     if (!enabled || !needsRefresh) return
     addNotification({
@@ -308,7 +307,7 @@ export function useManagePlugins({
       color: 'suggestion',
       priority: 'low',
     })
-    // Do NOT auto-refresh. Do NOT reset needsRefresh — /reload-plugins
-    // consumes it via refreshActivePlugins().
+    // 不要自动刷新。不要重置 needsRefresh —— /reload-plugins
+    // 通过 refreshActivePlugins() 消费它。
   }, [enabled, needsRefresh, addNotification])
 }

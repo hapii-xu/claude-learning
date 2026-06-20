@@ -7,11 +7,11 @@ import { getOAuthHeaders, prepareApiRequest } from '../utils/teleport/api.js'
 export const HISTORY_PAGE_SIZE = 100
 
 export type HistoryPage = {
-  /** Chronological order within the page. */
+  /** 页内按时间顺序排列。 */
   events: SDKMessage[]
-  /** Oldest event ID in this page → before_id cursor for next-older page. */
+  /** 本页最旧的事件 ID → 作为拉取更旧一页的 before_id 游标。 */
   firstId: string | null
-  /** true = older events exist. */
+  /** true = 还存在更旧的事件。 */
   hasMore: boolean
 }
 
@@ -27,7 +27,7 @@ export type HistoryAuthCtx = {
   headers: Record<string, string>
 }
 
-/** Prepare auth + headers + base URL once, reuse across pages. */
+/** 一次性准备好 auth、headers 和 base URL，跨页复用。 */
 export async function createHistoryAuthCtx(
   sessionId: string,
 ): Promise<HistoryAuthCtx> {
@@ -67,8 +67,8 @@ async function fetchPage(
 }
 
 /**
- * Newest page: last `limit` events, chronological, via anchor_to_latest.
- * has_more=true means older events exist.
+ * 最新一页：通过 anchor_to_latest 获取按时间排序的最后 `limit` 条事件。
+ * has_more=true 表示还存在更旧的事件。
  */
 export async function fetchLatestEvents(
   ctx: HistoryAuthCtx,
@@ -77,7 +77,7 @@ export async function fetchLatestEvents(
   return fetchPage(ctx, { limit, anchor_to_latest: true }, 'fetchLatestEvents')
 }
 
-/** Older page: events immediately before `beforeId` cursor. */
+/** 更旧的一页：紧邻 `beforeId` 游标之前的事件。 */
 export async function fetchOlderEvents(
   ctx: HistoryAuthCtx,
   beforeId: string,

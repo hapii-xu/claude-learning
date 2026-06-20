@@ -11,29 +11,29 @@ import { sanitizePath } from '../../utils/path.js'
 import type { Command, LocalCommandResult } from '../../types/command.js'
 
 /**
- * Cost rates in USD per 1M tokens, keyed by model ID prefix.
- * Rates sourced from Anthropic pricing page (2026-04).
- * Unrecognized models produce a '~$ unknown' label instead of a stale estimate.
+ * 以每 100 万 token 多少美元计价的费率，按模型 ID 前缀索引。
+ * 费率来源于 Anthropic 定价页面（2026-04）。
+ * 未识别的模型会得到一个 '~$ unknown' 标签，而不是一个过时的估算。
  */
 const MODEL_COST_RATES: Record<
   string,
   { input: number; output: number; cache_creation: number; cache_read: number }
 > = {
-  // Claude Sonnet 4.6 / claude-sonnet-4 series
+  // Claude Sonnet 4.6 / claude-sonnet-4 系列
   'claude-sonnet-4': {
     input: 3.0,
     output: 15.0,
     cache_creation: 3.75,
     cache_read: 0.3,
   },
-  // Claude Opus 4.5 / claude-opus-4 series
+  // Claude Opus 4.5 / claude-opus-4 系列
   'claude-opus-4': {
     input: 15.0,
     output: 75.0,
     cache_creation: 18.75,
     cache_read: 1.5,
   },
-  // Claude Haiku 4.5 / claude-haiku-4 series
+  // Claude Haiku 4.5 / claude-haiku-4 系列
   'claude-haiku-4': {
     input: 0.8,
     output: 4.0,
@@ -86,9 +86,9 @@ function lookupCostRates(model: string | null | undefined): CostRates | null {
 }
 
 /**
- * Sanitizes an error message before surfacing it to the user:
- * - Replaces the home directory path with "~" to avoid leaking absolute paths.
- * - Truncates to 200 characters to avoid leaking large stack traces or token fragments.
+ * 在向用户展示之前对错误信息进行净化：
+ * - 将家目录路径替换为 "~"，避免泄露绝对路径。
+ * - 截断到 200 个字符，避免泄露大段堆栈跟踪或 token 片段。
  */
 function sanitizeErrorMessage(msg: string): string {
   const home = homedir()
@@ -145,7 +145,7 @@ interface ToolResultBlock {
 
 interface ToolTiming {
   name: string
-  /** Timestamp from the log entry (ms). null means no timestamp was present. */
+  /** 来自日志条目的时间戳（毫秒）。null 表示未出现时间戳。 */
   logTimestampMs: number | null
   durationMs?: number
 }
@@ -153,14 +153,14 @@ interface ToolTiming {
 interface AnalyzedLog {
   usage: UsageTotals
   toolCounts: Record<string, number>
-  /** Durations in ms computed from log timestamps. Only present when both
-   *  tool_use and tool_result entries carry a timestamp. */
+  /** 从日志时间戳计算出的毫秒耗时。仅当 tool_use 和 tool_result
+   *  条目都带有时间戳时存在。 */
   toolDurations: Record<string, number[]>
   turnCount: number
   messageCount: number
   cacheHitRate: number
   estimatedCostUsd: number | null
-  /** Model detected from log (first assistant message with a model field). */
+  /** 从日志中检测到的模型（第一条带 model 字段的 assistant 消息）。 */
   detectedModel: string | null
   firstTimestampMs: number | null
   lastTimestampMs: number | null
@@ -180,9 +180,9 @@ function parseTimestampMs(tsRaw: string | number | undefined): number | null {
 }
 
 /**
- * Default maximum number of JSONL lines to read from the log file.
- * Prevents OOM when session transcripts grow beyond hundreds of MB.
- * The last MAX_LOG_LINES lines are used so recent activity is always reflected.
+ * 从日志文件读取的 JSONL 行数默认上限。
+ * 防止会话转录超过几百 MB 时发生 OOM。
+ * 使用最后 MAX_LOG_LINES 行，这样最近的活动总能被反映出来。
  */
 const MAX_LOG_LINES = 20_000
 
@@ -206,7 +206,7 @@ function analyzeLog(logPath: string, maxLines = MAX_LOG_LINES): AnalyzedLog {
     .trim()
     .split('\n')
     .filter(Boolean)
-  // Apply line cap: use the last maxLines entries so recent turns are always included.
+  // 应用行数上限：使用最后 maxLines 条记录，这样最近的对话轮次总会被包含。
   const lines =
     allLines.length > maxLines ? allLines.slice(-maxLines) : allLines
 
@@ -217,12 +217,12 @@ function analyzeLog(logPath: string, maxLines = MAX_LOG_LINES): AnalyzedLog {
 
       if (entry.role === 'user') turnCount++
 
-      // Capture first observed model name from any entry
+      // 从任意条目捕获第一个观察到的模型名
       if (entry.model && detectedModel === null) {
         detectedModel = entry.model
       }
 
-      // Track wall-clock window from log entry timestamps
+      // 从日志条目时间戳追踪真实时间窗口
       const entryTsMs = parseTimestampMs(entry.timestamp)
       if (entryTsMs !== null) {
         if (firstTimestampMs === null) firstTimestampMs = entryTsMs
@@ -243,7 +243,7 @@ function analyzeLog(logPath: string, maxLines = MAX_LOG_LINES): AnalyzedLog {
             const name = b.name ?? 'unknown'
             toolCounts[name] = (toolCounts[name] ?? 0) + 1
             if (b.id) {
-              // Record the log-entry timestamp for this tool_use; null if absent.
+              // 记录此 tool_use 的日志条目时间戳；不存在则为 null。
               pendingToolUses.set(b.id, { name, logTimestampMs: entryTsMs })
             }
           } else if (block.type === 'tool_result') {
@@ -251,7 +251,7 @@ function analyzeLog(logPath: string, maxLines = MAX_LOG_LINES): AnalyzedLog {
             if (b.tool_use_id) {
               const pending = pendingToolUses.get(b.tool_use_id)
               if (pending) {
-                // Only record duration when both endpoints have a real timestamp.
+                // 仅当两端都有真实时间戳时才记录耗时。
                 if (pending.logTimestampMs !== null && entryTsMs !== null) {
                   const durationMs = entryTsMs - pending.logTimestampMs
                   toolDurations[pending.name] =
@@ -265,17 +265,17 @@ function analyzeLog(logPath: string, maxLines = MAX_LOG_LINES): AnalyzedLog {
         }
       }
     } catch {
-      // skip malformed
+      // 跳过格式错误的行
     }
   }
 
-  // Cache hit rate: fraction of cache-related tokens that were hits (not creation)
+  // 缓存命中率：命中的缓存相关 token 占比（非创建）
   const cacheTotal =
     usage.cache_creation_input_tokens + usage.cache_read_input_tokens
   const cacheHitRate =
     cacheTotal > 0 ? usage.cache_read_input_tokens / cacheTotal : 0
 
-  // Cost estimate — only if we can look up rates for the detected model.
+  // 成本估算 —— 仅当我们能查到检测到的模型的费率时才计算。
   const rates = lookupCostRates(detectedModel)
   const estimatedCostUsd = rates
     ? (usage.input_tokens / 1_000_000) * rates.input +
@@ -486,13 +486,13 @@ const perfIssue: Command = {
   load: async () => ({
     call: async (args: string): Promise<LocalCommandResult> => {
       try {
-        // Parse --format flag
+        // 解析 --format 标志
         const formatMatch = args.match(/--format[= ](json|csv|md)/)
         const format: 'md' | 'json' | 'csv' = formatMatch
           ? (formatMatch[1] as 'md' | 'json' | 'csv')
           : 'md'
 
-        // Parse --limit N (max JSONL lines to read; guards against OOM on large logs)
+        // 解析 --limit N（读取的最大 JSONL 行数；防止大日志导致 OOM）
         const limitMatch = args.match(/--limit[= ](\d+)/)
         const lineLimit = limitMatch
           ? Math.max(1, parseInt(limitMatch[1], 10))
@@ -520,7 +520,7 @@ const perfIssue: Command = {
           }
         }
 
-        // Build empty analyzed stats when log is unavailable
+        // 当日志不可用时构造空的 analyzed 统计
         const safeAnalyzed: AnalyzedLog = analyzed ?? {
           usage: {
             input_tokens: 0,

@@ -1,13 +1,107 @@
 {
+	// ╔══════════════════════════════════════════════════════════════════╗
+	// ║  推荐断点速查（在源码左侧行号槽点一下即可，与配置无关）            ║
+	// ║  入口 & 状态:  src/entrypoints/cli.tsx:91                           ║
+	// ║                src/entrypoints/init.ts (init 函数)                  ║
+	// ║                src/bootstrap/state.ts                               ║
+	// ║                src/state/AppState.tsx                               ║
+	// ║  核心循环:     src/QueryEngine.ts:239                               ║
+	// ║                src/query.ts:418                                     ║
+	// ║                src/services/api/claude.ts (createMessageStream)     ║
+	// ║                src/context.ts / queryContext.ts                     ║
+	// ║  工具 & 权限:  toolOrchestration.ts (runTools)                      ║
+	// ║                useCanUseTool.tsx:37                                 ║
+	// ║                permissions.ts:473                                   ║
+	// ╚══════════════════════════════════════════════════════════════════╝
 	"version": "0.2.0",
+	"inputs": [
+		{
+			"type": "promptString",
+			"id": "promptText",
+			"description": "Claude 的 prompt 内容（通过 stdin 传入，避免 shell 引号问题）",
+			"default": "hello"
+		}
+	],
 	"configurations": [
 		{
+			"name": "🚀 快速 Attach (dev:inspect 已在跑)",
 			"type": "bun",
 			"request": "attach",
-			"name": "Attach to Claude Code",
 			"url": "ws://localhost:8888/2dc3gzl5xot",
 			"stopOnEntry": false,
-			"internalConsoleOptions": "neverOpen"
+			"internalConsoleOptions": "neverOpen",
+			"presentation": {
+				"group": "1-quick",
+				"order": 1
+			}
+		},
+		{
+			"name": "🚀 Interactive REPL (启动 + 调试)",
+			"type": "bun",
+			"request": "attach",
+			"url": "ws://localhost:8888/2dc3gzl5xot",
+			"stopOnEntry": false,
+			"internalConsoleOptions": "neverOpen",
+			"preLaunchTask": "Debug: 启动 dev (Interactive)",
+			"presentation": {
+				"group": "1-quick",
+				"order": 2
+			}
+		},
+		{
+			"name": "🚀 Headless + 自定义 Prompt (启动 + 调试)",
+			"type": "bun",
+			"request": "attach",
+			"url": "ws://localhost:8888/2dc3gzl5xot",
+			"stopOnEntry": false,
+			"internalConsoleOptions": "neverOpen",
+			"preLaunchTask": "Debug: 启动 dev (Headless + Prompt)",
+			"presentation": {
+				"group": "1-quick",
+				"order": 3
+			}
+		},
+		{
+			"name": "🧪 Debug 当前打开的 Test 文件",
+			"type": "bun",
+			"request": "launch",
+			"runtime": "bun",
+			"runtimeArgs": ["test"],
+			"args": ["${relativeFile}"],
+			"cwd": "${workspaceFolder}",
+			"stopOnEntry": false,
+			"internalConsoleOptions": "openOnSessionStart",
+			"presentation": {
+				"group": "2-tests",
+				"order": 1
+			}
+		},
+		{
+			"name": "🧪 Debug 全部 Tests",
+			"type": "bun",
+			"request": "launch",
+			"runtime": "bun",
+			"runtimeArgs": ["test"],
+			"cwd": "${workspaceFolder}",
+			"stopOnEntry": false,
+			"internalConsoleOptions": "openOnSessionStart",
+			"presentation": {
+				"group": "2-tests",
+				"order": 2
+			}
+		},
+		{
+			"name": "🌐 Debug RCS Web UI (Chrome)",
+			"type": "chrome",
+			"request": "launch",
+			"url": "http://localhost:5173",
+			"webRoot": "${workspaceFolder}/packages/remote-control-server/web/src",
+			"sourceMaps": true,
+			"userDataDir": "${workspaceFolder}/.vscode/.chrome-debug-profile",
+			"presentation": {
+				"group": "3-webui",
+				"order": 1
+			}
 		}
 	]
 }

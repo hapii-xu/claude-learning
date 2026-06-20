@@ -39,7 +39,7 @@ function BtwSideQuestion({ question, context, onDone }: BtwComponentProps): Reac
   const scrollRef = useRef<ScrollBoxHandle>(null);
   const { rows } = useModalOrTerminalSize(useTerminalSize());
 
-  // Animate spinner while loading
+  // 加载时为 spinner 添加动画
   useInterval(() => setFrame(f => f + 1), response || error ? null : 80);
 
   function handleKeyDown(e: KeyboardEvent): void {
@@ -123,19 +123,18 @@ function BtwSideQuestion({ question, context, onDone }: BtwComponentProps): Reac
 }
 
 /**
- * Build CacheSafeParams for the side question fork.
+ * 为 side question fork 构建 CacheSafeParams。
  *
- * The preferred source is getLastCacheSafeParams — the exact
- * systemPrompt/userContext/systemContext bytes the main thread sent on its
- * last request (captured in stopHooks). Reusing them guarantees a byte-
- * identical prefix and thus a prompt cache hit. We pair these with the
- * current toolUseContext (for thinkingConfig/tools) and current messages
- * (for up-to-date context).
+ * 首选来源是 getLastCacheSafeParams —— 主线程在其上一次请求中
+ * 发送的确切 systemPrompt/userContext/systemContext 字节
+ *（在 stopHooks 中捕获）。复用它们可保证字节完全一致的前缀，
+ * 从而命中 prompt cache。我们将这些与当前的 toolUseContext
+ *（用于 thinkingConfig/tools）和当前消息（用于最新上下文）配对使用。
  *
- * Fallback (first turn before stop hooks fire, or prompt-suggestion
- * disabled): rebuild from scratch. This may miss the cache if the main loop
- * applied buildEffectiveSystemPrompt extras (--agent, --system-prompt,
- * --append-system-prompt, coordinator mode).
+ * 回退方案（stop hooks 触发前的首轮，或 prompt-suggestion 被禁用时）：
+ * 从零重建。如果主循环应用了 buildEffectiveSystemPrompt 的附加项
+ *（--agent、--system-prompt、--append-system-prompt、coordinator 模式），
+ * 这可能无法命中缓存。
  */
 function stripInProgressAssistantMessage(messages: Message[]): Message[] {
   const last = messages.at(-1);

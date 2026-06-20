@@ -20,7 +20,7 @@ export function getJobDir(jobId: string): string {
 }
 
 /**
- * Create a new job directory with initial state.
+ * 创建带有初始状态的新任务目录。
  */
 export function createJob(
   jobId: string,
@@ -54,7 +54,7 @@ export function createJob(
 }
 
 /**
- * Read job state from disk.
+ * 从磁盘读取任务状态。
  */
 export function readJobState(jobId: string): JobState | null {
   try {
@@ -72,7 +72,7 @@ export function readJobState(jobId: string): JobState | null {
 }
 
 /**
- * Append a reply to a job.
+ * 向任务追加回复。
  */
 export function appendJobReply(jobId: string, text: string): boolean {
   const dir = getJobDir(jobId)

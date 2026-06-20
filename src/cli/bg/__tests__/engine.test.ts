@@ -21,7 +21,7 @@ describe('selectEngine', () => {
 
 describe('SessionEntry type', () => {
   test('engine field accepts tmux or detached', async () => {
-    // Verify the module loads and exports the expected interface shape
+    // 验证模块可以正常加载并导出预期的接口结构
     const mod = await import('../engine.js')
     expect(mod).toBeDefined()
     const entry = {

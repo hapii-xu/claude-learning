@@ -111,7 +111,7 @@ function parseToolCallsFromLog(
         }
       }
     } catch {
-      // skip malformed lines
+      // 跳过格式错误的行
     }
   }
 

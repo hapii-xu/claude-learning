@@ -87,7 +87,7 @@ export function AgentsPlatformView(props: Props): React.ReactNode {
     );
   }
 
-  // error mode
+  // error 模式
   return (
     <Box>
       <Text color={'error' as keyof Theme}>{props.message}</Text>

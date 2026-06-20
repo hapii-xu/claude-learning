@@ -1,12 +1,12 @@
 /**
- * `claude rollback [target]` — roll back to a previous Claude Code version.
+ * `claude rollback [target]` — 回滚到之前的 Claude Code 版本。
  *
- * ANT-only command (USER_TYPE === "ant").
+ * 仅 ANT 可用的命令（USER_TYPE === "ant"）。
  *
- * Options:
- *   --list      List recent published versions
- *   --dry-run   Show what would be installed without installing
- *   --safe      Roll back to the server-pinned safe version
+ * 选项：
+ *   --list      列出最近发布的版本
+ *   --dry-run   只显示将要安装的内容，不实际安装
+ *   --safe      回滚到服务器端固定的安全版本
  */
 export async function rollback(
   target?: string,
@@ -53,7 +53,7 @@ export async function rollback(
     return
   }
 
-  // Version rollback via npm/bun
+  // 通过 npm/bun 进行版本回滚
   const { spawnSync } = await import('child_process')
   const result = spawnSync(
     'npm',

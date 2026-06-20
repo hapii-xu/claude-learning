@@ -30,7 +30,7 @@ import { ripGrep } from '../utils/ripgrep.js'
 import { getInitialSettings } from '../utils/settings/settings.js'
 import { createSignal } from '../utils/signal.js'
 
-// Lazily constructed singleton
+// 延迟构造的单例
 let fileIndex: FileIndex | null = null
 
 function getFileIndex(): FileIndex {
@@ -41,45 +41,45 @@ function getFileIndex(): FileIndex {
 }
 
 let fileListRefreshPromise: Promise<FileIndex> | null = null
-// Signal fired when an in-progress index build completes. Lets the
-// typeahead UI re-run its last search so partial results upgrade to full.
+// 当正在进行的索引构建完成时触发的信号。让
+// 即时补全 UI 重新运行其上次搜索，以便部分结果升级为完整结果。
 const indexBuildComplete = createSignal()
 export const onIndexBuildComplete = indexBuildComplete.subscribe
 let cacheGeneration = 0
 
-// Background fetch for untracked files
+// 后台获取未跟踪文件
 let untrackedFetchPromise: Promise<void> | null = null
 
-// Store tracked files so we can rebuild index with untracked
+// 存储已跟踪文件，以便我们可以用未跟踪文件重建索引
 let cachedTrackedFiles: string[] = []
-// Store config files so mergeUntrackedIntoNormalizedCache preserves them
+// 存储配置文件，以便 mergeUntrackedIntoNormalizedCache 保留它们
 let cachedConfigFiles: string[] = []
-// Store tracked directories so mergeUntrackedIntoNormalizedCache doesn't
-// recompute ~270k path.dirname() calls on each merge
+// 存储已跟踪目录，以便 mergeUntrackedIntoNormalizedCache 不会
+// 在每次合并时重新计算约 270k 次 path.dirname() 调用
 let cachedTrackedDirs: string[] = []
 
-// Cache for .ignore/.rgignore patterns (keyed by repoRoot:cwd)
+// .ignore/.rgignore 模式的缓存（以 repoRoot:cwd 为键）
 let ignorePatternsCache: ReturnType<typeof ignore> | null = null
 let ignorePatternsCacheKey: string | null = null
 
-// Throttle state for background refresh. .git/index mtime triggers an
-// immediate refresh when tracked files change (add/checkout/commit/rm).
-// The time floor still refreshes every 5s to pick up untracked files,
-// which don't bump the index.
+// 后台刷新的节流状态。.git/index 的 mtime 在已跟踪文件
+// 变化时触发立即刷新（add/checkout/commit/rm）。
+// 时间下限仍然每 5 秒刷新以获取未跟踪文件，
+// 它们不会触碰索引。
 let lastRefreshMs = 0
 let lastGitIndexMtime: number | null = null
 
-// Signatures of the path lists loaded into the Rust index. Two separate
-// signatures because the two loadFromFileList call sites use differently
-// structured arrays — a shared signature would ping-pong and never match.
-// Skips nucleo.restart() when git ls-files returns an unchanged list
-// (e.g. `git add` of an already-tracked file bumps index mtime but not the list).
+// 加载到 Rust 索引中的路径列表的签名。两个独立的
+// 签名是因为两个 loadFromFileList 调用站点使用不同结构的
+// 数组 —— 共享签名会导致乒乓效应且永远不匹配。
+// 当 git ls-files 返回未更改的列表时跳过 nucleo.restart()
+// （例如，对已跟踪文件的 `git add` 会触碰索引 mtime 但不会改变列表）。
 let loadedTrackedSignature: string | null = null
 let loadedMergedSignature: string | null = null
 
 /**
- * Clear all file suggestion caches.
- * Call this when resuming a session to ensure fresh file discovery.
+ * 清除所有文件建议缓存。
+ * 在恢复会话时调用此函数以确保新鲜的文件发现。
  */
 export function clearFileSuggestionCaches(): void {
   fileIndex = null
@@ -99,14 +99,13 @@ export function clearFileSuggestionCaches(): void {
 }
 
 /**
- * Content hash of a path list. A length|first|last sample misses renames of
- * middle files (same length, same endpoints → stale entry stuck in nucleo).
+ * 路径列表的内容哈希。length|first|last 采样会遗漏中间文件的
+ * 重命名（相同长度、相同端点 → 陈旧条目卡在 nucleo 中）。
  *
- * Samples every Nth path (plus length). On a 346k-path list this hashes ~700
- * paths instead of 14MB — enough to catch git operations (checkout, rebase,
- * add/rm) while running in <1ms. A single mid-list rename that happens to
- * fall between samples will miss the rebuild, but the 5s refresh floor picks
- * it up on the next cycle.
+ * 每隔 N 个路径采样（加上长度）。在 346k 路径列表上，这会哈希约 700 个
+ * 路径而不是 14MB —— 足以捕获 git 操作（checkout、rebase、add/rm），
+ * 同时在 <1ms 内运行。单个中间列表重命名如果恰好落在采样之间
+ * 会错过重建，但 5 秒刷新下限会在下一个周期捕获它。
  */
 export function pathListSignature(paths: string[]): string {
   const n = paths.length
@@ -119,8 +118,8 @@ export function pathListSignature(paths: string[]): string {
     }
     h = (h * 0x01000193) | 0
   }
-  // Stride starts at 0 (first path always hashed); explicitly include last
-  // so single-file add/rm at the tail is caught
+  // 步长从 0 开始（第一个路径总是被哈希）；显式包含最后
+  // 以便尾部单文件添加/移除被捕获
   if (n > 0) {
     const last = paths[n - 1]!
     for (let j = 0; j < last.length; j++) {
@@ -131,9 +130,9 @@ export function pathListSignature(paths: string[]): string {
 }
 
 /**
- * Stat .git/index to detect git state changes without spawning git ls-files.
- * Returns null for worktrees (.git is a file → ENOTDIR), fresh repos with no
- * index yet (ENOENT), and non-git dirs — caller falls back to time throttle.
+ * Stat .git/index 以检测 git 状态变化而无需生成 git ls-files。
+ * 对于 worktree（.git 是文件 → ENOTDIR）、尚无索引的新仓库
+ * （ENOENT）和非 git 目录返回 null —— 调用方回退到时间节流。
  */
 function getGitIndexMtime(): number | null {
   const repoRoot = findGitRoot(getCwd())
@@ -147,7 +146,7 @@ function getGitIndexMtime(): number | null {
 }
 
 /**
- * Normalize git paths relative to originalCwd
+ * 相对于 originalCwd 规范化 git 路径
  */
 function normalizeGitPaths(
   files: string[],
@@ -164,7 +163,7 @@ function normalizeGitPaths(
 }
 
 /**
- * Merge already-normalized untracked files into the cache
+ * 将已规范化的未跟踪文件合并到缓存中
  */
 async function mergeUntrackedIntoNormalizedCache(
   normalizedUntracked: string[],
@@ -195,9 +194,9 @@ async function mergeUntrackedIntoNormalizedCache(
 }
 
 /**
- * Load ripgrep-specific ignore patterns from .ignore or .rgignore files
- * Returns an ignore instance if patterns were found, null otherwise
- * Results are cached per repoRoot:cwd combination
+ * 从 .ignore 或 .rgignore 文件加载 ripgrep 特定的忽略模式
+ * 如果找到模式则返回 ignore 实例，否则返回 null
+ * 结果按 repoRoot:cwd 组合缓存
  */
 async function loadRipgrepIgnorePatterns(
   repoRoot: string,
@@ -205,7 +204,7 @@ async function loadRipgrepIgnorePatterns(
 ): Promise<ReturnType<typeof ignore> | null> {
   const cacheKey = `${repoRoot}:${cwd}`
 
-  // Return cached result if available
+  // 如果有缓存结果则返回
   if (ignorePatternsCacheKey === cacheKey) {
     return ignorePatternsCache
   }
@@ -238,12 +237,12 @@ async function loadRipgrepIgnorePatterns(
 }
 
 /**
- * Get files using git ls-files (much faster than ripgrep for git repos)
- * Returns tracked files immediately, fetches untracked in background
- * @param respectGitignore If true, excludes gitignored files from untracked results
+ * 使用 git ls-files 获取文件（对于 git 仓库比 ripgrep 快得多）
+ * 立即返回已跟踪文件，在后台获取未跟踪文件
+ * @param respectGitignore 如果为真，则从未跟踪结果中排除 gitignore 的文件
  *
- * Note: Unlike ripgrep --follow, git ls-files doesn't follow symlinks.
- * This is intentional as git tracks symlinks as symlinks.
+ * 注意：与 ripgrep --follow 不同，git ls-files 不跟随符号链接。
+ * 这是有意为之，因为 git 将符号链接跟踪为符号链接。
  */
 async function getFilesUsingGit(
   abortSignal: AbortSignal,
@@ -252,7 +251,7 @@ async function getFilesUsingGit(
   const startTime = Date.now()
   logForDebugging(`[FileIndex] getFilesUsingGit called`)
 
-  // Check if we're in a git repo. findGitRoot is LRU-memoized per path.
+  // 检查是否在 git 仓库中。findGitRoot 按路径进行 LRU 记忆化。
   const cwd = getCwd()
   const repoRoot = findGitRoot(cwd)
   if (!repoRoot) {
@@ -261,8 +260,8 @@ async function getFilesUsingGit(
   }
 
   try {
-    // Get tracked files (fast - reads from git index)
-    // Run from repoRoot so paths are relative to repo root, not CWD
+    // 获取已跟踪文件（快 - 从 git 索引读取）
+    // 从 repoRoot 运行，以便路径相对于仓库根而不是 CWD
     const lsFilesStart = Date.now()
     const trackedResult = await execFileNoThrowWithCwd(
       gitExe(),
@@ -282,10 +281,10 @@ async function getFilesUsingGit(
 
     const trackedFiles = trackedResult.stdout.trim().split('\n').filter(Boolean)
 
-    // Normalize paths relative to the current working directory
+    // 相对于当前工作目录规范化路径
     let normalizedTracked = normalizeGitPaths(trackedFiles, repoRoot, cwd)
 
-    // Apply .ignore/.rgignore patterns if present (faster than falling back to ripgrep)
+    // 如果存在则应用 .ignore/.rgignore 模式（比回退到 ripgrep 快）
     const ignorePatterns = await loadRipgrepIgnorePatterns(repoRoot, cwd)
     if (ignorePatterns) {
       const beforeCount = normalizedTracked.length
@@ -295,7 +294,7 @@ async function getFilesUsingGit(
       )
     }
 
-    // Cache tracked files for later merge with untracked
+    // 缓存已跟踪文件以便稍后与未跟踪文件合并
     cachedTrackedFiles = normalizedTracked
 
     const duration = Date.now() - startTime
@@ -310,7 +309,7 @@ async function getFilesUsingGit(
       duration_ms: duration,
     })
 
-    // Start background fetch for untracked files (don't await)
+    // 启动后台获取未跟踪文件（不等待）
     if (!untrackedFetchPromise) {
       const untrackedArgs = respectGitignore
         ? [
@@ -337,14 +336,14 @@ async function getFilesUsingGit(
               .split('\n')
               .filter(Boolean)
 
-            // Normalize paths BEFORE applying ignore patterns (consistent with tracked files)
+            // 在应用忽略模式之前规范化路径（与已跟踪文件一致）
             let normalizedUntracked = normalizeGitPaths(
               rawUntrackedFiles,
               repoRoot,
               cwd,
             )
 
-            // Apply .ignore/.rgignore patterns to normalized untracked files
+            // 将 .ignore/.rgignore 模式应用于已规范化的未跟踪文件
             const ignorePatterns = await loadRipgrepIgnorePatterns(
               repoRoot,
               cwd,
@@ -360,7 +359,7 @@ async function getFilesUsingGit(
             logForDebugging(
               `[FileIndex] background untracked fetch: ${normalizedUntracked.length} files`,
             )
-            // Pass already-normalized files directly to merge function
+            // 将已规范化的文件直接传递给合并函数
             void mergeUntrackedIntoNormalizedCache(normalizedUntracked)
           }
         })
@@ -382,23 +381,23 @@ async function getFilesUsingGit(
 }
 
 /**
- * This function collects all parent directories for each file path
- * and returns a list of unique directory names with a trailing separator.
- * For example, if the input is ['src/index.js', 'src/utils/helpers.js'],
- * the output will be ['src/', 'src/utils/'].
- * @param files An array of file paths
+ * 此函数收集每个文件路径的所有父目录
+ * 并返回带尾部分隔符的唯一目录名列表。
+ * 例如，如果输入是 ['src/index.js', 'src/utils/helpers.js']，
+ * 输出将是 ['src/', 'src/utils/']。
+ * @param files 文件路径数组
  */
 
 /**
- * Async variant: yields every ~10k files so 270k+ file lists don't block
- * the main thread for >10ms at a time.
+ * 异步变体：每约 10k 个文件让出一次，以便 270k+ 文件列表不会
+ * 阻塞主线程超过 10ms。
  */
 export async function getDirectoryNamesAsync(
   files: string[],
 ): Promise<string[]> {
   const directoryNames = new Set<string>()
-  // Time-based chunking: yield after CHUNK_MS of work so slow machines get
-  // smaller chunks and stay responsive.
+  // 基于时间的分块：在 CHUNK_MS 工作量后让出，以便慢机器获得
+  // 更小的块并保持响应。
   let chunkStart = performance.now()
   for (let i = 0; i < files.length; i++) {
     collectDirectoryNames(files, i, i + 1, directoryNames)
@@ -418,11 +417,11 @@ function collectDirectoryNames(
 ): void {
   for (let i = start; i < end; i++) {
     let currentDir = path.dirname(files[i]!)
-    // Early exit if we've already processed this directory and all its parents.
-    // Root detection: path.dirname returns its input at the root (fixed point),
-    // so we stop when dirname stops changing. Checking this before add() keeps
-    // the root out of the result set (matching the old path.parse().root guard).
-    // This avoids path.parse() which allocates a 5-field object per file.
+    // 如果我们已经处理过此目录及其所有父目录则提前退出。
+    // 根检测：path.dirname 在根处返回其输入（不动点），
+    // 所以当 dirname 停止变化时我们停止。在 add() 之前检查这一点
+    // 使根不在结果集中（匹配旧的 path.parse().root 守卫）。
+    // 这避免了 path.parse()，它为每个文件分配一个 5 字段的对象。
     while (currentDir !== '.' && !out.has(currentDir)) {
       const parent = path.dirname(currentDir)
       if (parent === currentDir) break
@@ -433,7 +432,7 @@ function collectDirectoryNames(
 }
 
 /**
- * Gets additional files from Claude config directories
+ * 从 Claude 配置目录获取额外文件
  */
 async function getClaudeConfigFiles(cwd: string): Promise<string[]> {
   const markdownFileArrays = await Promise.all(
@@ -447,7 +446,7 @@ async function getClaudeConfigFiles(cwd: string): Promise<string[]> {
 }
 
 /**
- * Gets project files using git ls-files (fast) or ripgrep (fallback)
+ * 使用 git ls-files（快）或 ripgrep（回退）获取项目文件
  */
 async function getProjectFiles(
   abortSignal: AbortSignal,
@@ -457,7 +456,7 @@ async function getProjectFiles(
     `[FileIndex] getProjectFiles called, respectGitignore=${respectGitignore}`,
   )
 
-  // Try git ls-files first (much faster for git repos)
+  // 首先尝试 git ls-files（对于 git 仓库快得多）
   const gitFiles = await getFilesUsingGit(abortSignal, respectGitignore)
   if (gitFiles !== null) {
     logForDebugging(
@@ -466,7 +465,7 @@ async function getProjectFiles(
     return gitFiles
   }
 
-  // Fall back to ripgrep
+  // 回退到 ripgrep
   logForDebugging(
     `[FileIndex] git ls-files returned null, falling back to ripgrep`,
   )
@@ -509,16 +508,16 @@ async function getProjectFiles(
 }
 
 /**
- * Gets both files and their directory paths for providing path suggestions
- * Uses git ls-files for git repos (fast) or ripgrep as fallback
- * Returns a FileIndex populated for fast fuzzy search
+ * 获取文件及其目录路径以提供路径建议
+ * 对 git 仓库使用 git ls-files（快）或回退到 ripgrep
+ * 返回为快速模糊搜索填充的 FileIndex
  */
 export async function getPathsForSuggestions(): Promise<FileIndex> {
   const signal = AbortSignal.timeout(10_000)
   const index = getFileIndex()
 
   try {
-    // Check project settings first, then fall back to global config
+    // 首先检查项目设置，然后回退到全局配置
     const projectSettings = getInitialSettings()
     const globalConfig = getGlobalConfig()
     const respectGitignore =
@@ -530,7 +529,7 @@ export async function getPathsForSuggestions(): Promise<FileIndex> {
       getClaudeConfigFiles(cwd),
     ])
 
-    // Cache for mergeUntrackedIntoNormalizedCache
+    // mergeUntrackedIntoNormalizedCache 的缓存
     cachedConfigFiles = configFiles
 
     const allFiles = [...projectFiles, ...configFiles]
@@ -538,17 +537,17 @@ export async function getPathsForSuggestions(): Promise<FileIndex> {
     cachedTrackedDirs = directories
     const allPathsList = [...directories, ...allFiles]
 
-    // Skip rebuild when the list is unchanged. This is the common case
-    // during a typing session — git ls-files returns the same output.
+    // 当列表未更改时跳过重建。这在打字会话期间
+    // 是常见情况 —— git ls-files 返回相同输出。
     const sig = pathListSignature(allPathsList)
     if (sig !== loadedTrackedSignature) {
-      // Await the full build so cold-start returns complete results. The
-      // build yields every ~4ms so the UI stays responsive — user can keep
-      // typing during the ~120ms wait without input lag.
+      // 等待完整构建，以便冷启动返回完整结果。
+      // 构建每约 4ms 让出一次，以便 UI 保持响应 —— 用户可以在
+      // 约 120ms 等待期间继续打字而没有输入延迟。
       await index.loadFromFileListAsync(allPathsList).done
       loadedTrackedSignature = sig
-      // We just replaced the merged index with tracked-only data. Force
-      // the next untracked merge to rebuild even if its own sig matches.
+      // 我们刚刚用仅已跟踪数据替换了合并索引。强制
+      // 下一次未跟踪合并重建，即使其自己的签名匹配。
       loadedMergedSignature = null
     } else {
       logForDebugging(
@@ -563,7 +562,7 @@ export async function getPathsForSuggestions(): Promise<FileIndex> {
 }
 
 /**
- * Finds the common prefix between two strings
+ * 查找两个字符串之间的公共前缀
  */
 function findCommonPrefix(a: string, b: string): string {
   const minLength = Math.min(a.length, b.length)
@@ -575,7 +574,7 @@ function findCommonPrefix(a: string, b: string): string {
 }
 
 /**
- * Finds the longest common prefix among an array of suggestion items
+ * 查找建议项数组中最长的公共前缀
  */
 export function findLongestCommonPrefix(suggestions: SuggestionItem[]): string {
   if (suggestions.length === 0) return ''
@@ -591,7 +590,7 @@ export function findLongestCommonPrefix(suggestions: SuggestionItem[]): string {
 }
 
 /**
- * Creates a file suggestion item
+ * 创建文件建议项
  */
 function createFileSuggestionItem(
   filePath: string,
@@ -605,7 +604,7 @@ function createFileSuggestionItem(
 }
 
 /**
- * Find matching files and folders for a given query using the TS file index
+ * 使用 TS 文件索引查找与给定查询匹配的文件和文件夹
  */
 const MAX_SUGGESTIONS = 15
 function findMatchingFiles(
@@ -619,11 +618,11 @@ function findMatchingFiles(
 }
 
 /**
- * Starts a background refresh of the file index cache if not already in progress.
+ * 如果尚未进行中，则启动文件索引缓存的后台刷新。
  *
- * Throttled: when a cache already exists, we skip the refresh unless git state
- * has actually changed. This prevents every keystroke from spawning git ls-files
- * and rebuilding the nucleo index.
+ * 节流：当缓存已存在时，我们跳过刷新，除非 git 状态
+ * 实际已更改。这防止每次按键都生成 git ls-files
+ * 并重建 nucleo 索引。
  */
 const REFRESH_THROTTLE_MS = 5_000
 export function startBackgroundCacheRefresh(): void {
@@ -631,11 +630,11 @@ export function startBackgroundCacheRefresh(): void {
     return
   }
 
-  // Throttle only when a cache exists — cold start must always populate.
-  // Refresh immediately when .git/index mtime changed (tracked files).
-  // Otherwise refresh at most once per 5s — this floor picks up new UNTRACKED
-  // files, which don't bump .git/index. The signature checks downstream skip
-  // the rebuild when the 5s refresh finds nothing actually changed.
+  // 仅在缓存存在时节流 —— 冷启动必须始终填充。
+  // 当 .git/index mtime 更改时立即刷新（已跟踪文件）。
+  // 否则最多每 5 秒刷新一次 —— 此下限获取新的未跟踪
+  // 文件，它们不会触碰 .git/index。下游的签名检查跳过
+  // 重建，当 5 秒刷新没有发现实际更改时。
   const indexMtime = getGitIndexMtime()
   if (fileIndex) {
     const gitStateChanged =
@@ -647,9 +646,9 @@ export function startBackgroundCacheRefresh(): void {
 
   const generation = cacheGeneration
   const refreshStart = Date.now()
-  // Ensure the FileIndex singleton exists — it's progressively queryable
-  // via readyCount while the build runs. Callers searching early get partial
-  // results; indexBuildComplete fires after .done so they can re-search.
+  // 确保 FileIndex 单例存在 —— 它在构建运行时通过
+  // readyCount 渐进可查询。早期搜索的调用方获得部分
+  // 结果；indexBuildComplete 在 .done 后触发，以便他们可以重新搜索。
   getFileIndex()
   fileListRefreshPromise = getPathsForSuggestions()
     .then(result => {
@@ -658,9 +657,9 @@ export function startBackgroundCacheRefresh(): void {
       }
       fileListRefreshPromise = null
       indexBuildComplete.emit()
-      // Commit the start-time mtime observation on success. If git state
-      // changed mid-refresh, the next call will see the newer mtime and
-      // correctly refresh again.
+      // 成功时提交开始时间的 mtime 观察。如果 git 状态
+      // 在刷新期间更改，下一次调用将看到更新的 mtime 并
+      // 正确地再次刷新。
       lastGitIndexMtime = indexMtime
       lastRefreshMs = Date.now()
       logForDebugging(
@@ -681,8 +680,8 @@ export function startBackgroundCacheRefresh(): void {
 }
 
 /**
- * Gets the top-level files and directories in the current working directory
- * @returns Array of file/directory paths in the current directory
+ * 获取当前工作目录中的顶级文件和目录
+ * @returns 当前目录中的文件/目录路径数组
  */
 async function getTopLevelPaths(): Promise<string[]> {
   const fs = getFsImplementation()
@@ -693,7 +692,7 @@ async function getTopLevelPaths(): Promise<string[]> {
     return entries.map(entry => {
       const fullPath = path.join(cwd, entry.name)
       const relativePath = path.relative(cwd, fullPath)
-      // Add trailing separator for directories
+      // 为目录添加尾部分隔符
       return entry.isDirectory() ? relativePath + path.sep : relativePath
     })
   } catch (error) {
@@ -703,21 +702,21 @@ async function getTopLevelPaths(): Promise<string[]> {
 }
 
 /**
- * Generate file suggestions for the current input and cursor position
- * @param partialPath The partial file path to match
- * @param showOnEmpty Whether to show suggestions even if partialPath is empty (used for @ symbol)
+ * 为当前输入和光标位置生成文件建议
+ * @param partialPath 要匹配的部分文件路径
+ * @param showOnEmpty 即使 partialPath 为空时也显示建议（用于 @ 符号）
  */
 export async function generateFileSuggestions(
   partialPath: string,
   showOnEmpty = false,
 ): Promise<SuggestionItem[]> {
-  // If input is empty and we don't want to show suggestions on empty, return nothing
+  // 如果输入为空且我们不想在空时显示建议，则返回空
   if (!partialPath && !showOnEmpty) {
     return []
   }
 
-  // Use custom command directly if configured. We don't mix in our config files
-  // because the command returns pre-ranked results using its own search logic.
+  // 如果配置了则直接使用自定义命令。我们不混入我们的配置文件
+  // 因为命令使用其自己的搜索逻辑返回预排序结果。
   if (getInitialSettings().fileSuggestion?.type === 'command') {
     const input: FileSuggestionCommandInput = {
       ...createBaseHookInput(),
@@ -727,7 +726,7 @@ export async function generateFileSuggestions(
     return results.slice(0, MAX_SUGGESTIONS).map(createFileSuggestionItem)
   }
 
-  // If the partial path is empty or just a dot, return current directory suggestions
+  // 如果部分路径为空或只是点，则返回当前目录建议
   if (partialPath === '' || partialPath === '.' || partialPath === './') {
     const topLevelPaths = await getTopLevelPaths()
     startBackgroundCacheRefresh()
@@ -737,21 +736,21 @@ export async function generateFileSuggestions(
   const startTime = Date.now()
 
   try {
-    // Kick a background refresh. The index is progressively queryable —
-    // searches during build return partial results from ready chunks, and
-    // the typeahead callback (setOnIndexBuildComplete) re-fires the search
-    // when the build finishes to upgrade partial → full.
+    // 启动后台刷新。索引渐进可查询 ——
+    // 构建期间的搜索从就绪块返回部分结果，
+    // 且即时补全回调（setOnIndexBuildComplete）在构建完成时重新触发搜索
+    // 以将部分升级为完整。
     const wasBuilding = fileListRefreshPromise !== null
     startBackgroundCacheRefresh()
 
-    // Handle both './' and '.\'
+    // 同时处理 './' 和 '.\'
     let normalizedPath = partialPath
     const currentDirPrefix = '.' + path.sep
     if (partialPath.startsWith(currentDirPrefix)) {
       normalizedPath = partialPath.substring(2)
     }
 
-    // Handle tilde expansion for home directory
+    // 处理主目录的波浪号展开
     if (normalizedPath.startsWith('~')) {
       normalizedPath = expandPath(normalizedPath)
     }
@@ -779,7 +778,7 @@ export async function generateFileSuggestions(
 }
 
 /**
- * Apply a file suggestion to the input
+ * 将文件建议应用于输入
  */
 export function applyFileSuggestion(
   suggestion: string | SuggestionItem,
@@ -789,18 +788,18 @@ export function applyFileSuggestion(
   onInputChange: (value: string) => void,
   setCursorOffset: (offset: number) => void,
 ): void {
-  // Extract suggestion text from string or SuggestionItem
+  // 从字符串或 SuggestionItem 中提取建议文本
   const suggestionText =
     typeof suggestion === 'string' ? suggestion : suggestion.displayText
 
-  // Replace the partial path with the selected file path
+  // 用所选文件路径替换部分路径
   const newInput =
     input.substring(0, startPos) +
     suggestionText +
     input.substring(startPos + partialPath.length)
   onInputChange(newInput)
 
-  // Move cursor to end of the file path
+  // 将光标移动到文件路径末尾
   const newCursorPos = startPos + suggestionText.length
   setCursorOffset(newCursorPos)
 }

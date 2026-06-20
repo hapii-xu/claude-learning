@@ -14,11 +14,11 @@ interface Props {
 }
 
 /**
- * Interactive session chooser for `claude assistant` when multiple
- * CCR sessions are discovered. Renders a Dialog with up/down navigation.
+ * `claude assistant` 在发现多个 CCR 会话时使用的交互式会话选择器。
+ * 渲染一个支持上下方向键导航的 Dialog。
  *
- * Session IDs are in `session_*` compat format — passed directly to
- * createRemoteSessionConfig() for viewer attach.
+ * 会话 ID 使用 `session_*` 兼容格式 — 直接传给 createRemoteSessionConfig()
+ * 供 viewer 挂载。
  */
 export function AssistantSessionChooser({ sessions, onSelect, onCancel }: Props): React.ReactNode {
   useRegisterOverlay('assistant-session-chooser');

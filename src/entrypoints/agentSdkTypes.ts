@@ -1,12 +1,11 @@
 /**
- * Main entrypoint for Claude Code Agent SDK types.
+ * Claude Code Agent SDK 类型的主入口。
  *
- * This file re-exports the public SDK API from:
- * - sdk/coreTypes.ts - Common serializable types (messages, configs)
- * - sdk/runtimeTypes.ts - Non-serializable types (callbacks, interfaces)
+ * 本文件从以下模块再导出公共 SDK API：
+ * - sdk/coreTypes.ts —— 常见的可序列化类型（消息、配置）
+ * - sdk/runtimeTypes.ts —— 不可序列化的类型（回调、接口）
  *
- * SDK builders who need control protocol types should import from
- * sdk/controlTypes.ts directly.
+ * 需要 control protocol 类型的 SDK 构建方应直接从 sdk/controlTypes.ts import。
  */
 
 import type {
@@ -14,24 +13,24 @@ import type {
   ToolAnnotations,
 } from '@modelcontextprotocol/sdk/types.js'
 
-// Control protocol types for SDK builders (bridge subpath consumers)
+// 面向 SDK 构建方的 control protocol 类型（bridge 子路径消费者）
 /** @alpha */
 export type {
   SDKControlRequest,
   SDKControlResponse,
 } from './sdk/controlTypes.js'
-// Re-export core types (common serializable types)
+// 再导出核心类型（常见可序列化类型）
 export * from './sdk/coreTypes.js'
-// Re-export runtime types (callbacks, interfaces with methods)
+// 再导出运行时类型（回调、带方法的接口）
 export * from './sdk/runtimeTypes.js'
 
-// Re-export settings types (generated from settings JSON schema)
+// 再导出设置类型（由 settings JSON schema 生成）
 export type { Settings } from './sdk/settingsTypes.generated.js'
-// Re-export tool types (all marked @internal until SDK API stabilizes)
+// 再导出工具类型（在 SDK API 稳定前全部标记 @internal）
 export * from './sdk/toolTypes.js'
 
 // ============================================================================
-// Functions
+// 函数
 // ============================================================================
 
 import type {
@@ -40,7 +39,7 @@ import type {
   SDKSessionInfo,
   SDKUserMessage,
 } from './sdk/coreTypes.js'
-// Import types needed for function signatures
+// 导入函数签名所需的类型
 import type {
   AnyZodRawShape,
   ForkSessionOptions,
@@ -97,10 +96,10 @@ type CreateSdkMcpServerOptions = {
 }
 
 /**
- * Creates an MCP server instance that can be used with the SDK transport.
- * This allows SDK users to define custom tools that run in the same process.
+ * 创建一个可配合 SDK transport 使用的 MCP 服务器实例。
+ * 让 SDK 用户可以定义在同一进程内运行的自定义工具。
  *
- * If your SDK MCP calls will run longer than 60s, override CLAUDE_CODE_STREAM_CLOSE_TIMEOUT
+ * 若你的 SDK MCP 调用运行时间会超过 60 秒，请覆盖 CLAUDE_CODE_STREAM_CLOSE_TIMEOUT
  */
 export function createSdkMcpServer(
   _options: CreateSdkMcpServerOptions,
@@ -124,8 +123,8 @@ export function query(): Query {
 }
 
 /**
- * V2 API - UNSTABLE
- * Create a persistent session for multi-turn conversations.
+ * V2 API —— 不稳定
+ * 创建一个持久化会话用于多轮对话。
  * @alpha
  */
 export function unstable_v2_createSession(
@@ -135,8 +134,8 @@ export function unstable_v2_createSession(
 }
 
 /**
- * V2 API - UNSTABLE
- * Resume an existing session by ID.
+ * V2 API —— 不稳定
+ * 按 ID 恢复已存在的会话。
  * @alpha
  */
 export function unstable_v2_resumeSession(
@@ -146,10 +145,10 @@ export function unstable_v2_resumeSession(
   throw new Error('unstable_v2_resumeSession is not implemented in the SDK')
 }
 
-// @[MODEL LAUNCH]: Update the example model ID in this docstring.
+// @[MODEL LAUNCH]：更新此 docstring 中的示例 model ID。
 /**
- * V2 API - UNSTABLE
- * One-shot convenience function for single prompts.
+ * V2 API —— 不稳定
+ * 面向单次 prompt 的便捷一次性函数。
  * @alpha
  *
  * @example
@@ -167,15 +166,15 @@ export async function unstable_v2_prompt(
 }
 
 /**
- * Reads a session's conversation messages from its JSONL transcript file.
+ * 从会话的 JSONL transcript 文件读取对话消息。
  *
- * Parses the transcript, builds the conversation chain via parentUuid links,
- * and returns user/assistant messages in chronological order. Set
- * `includeSystemMessages: true` in options to also include system messages.
+ * 解析 transcript，通过 parentUuid 链接构建对话链，
+ * 按时间顺序返回 user/assistant 消息。在 options 中设置
+ * `includeSystemMessages: true` 可同时返回 system 消息。
  *
- * @param sessionId - UUID of the session to read
- * @param options - Optional dir, limit, offset, and includeSystemMessages
- * @returns Array of messages, or empty array if session not found
+ * @param sessionId - 要读取的会话 UUID
+ * @param options - 可选的 dir、limit、offset、includeSystemMessages
+ * @returns 消息数组；若会话不存在则返回空数组
  */
 export async function getSessionMessages(
   _sessionId: string,
@@ -185,20 +184,19 @@ export async function getSessionMessages(
 }
 
 /**
- * List sessions with metadata.
+ * 列出带元数据的会话。
  *
- * When `dir` is provided, returns sessions for that project directory
- * and its git worktrees. When omitted, returns sessions across all
- * projects.
+ * 若提供 `dir`，则返回该工程目录及其 git worktree 的会话。
+ * 若省略，则返回所有工程下的会话。
  *
- * Use `limit` and `offset` for pagination.
+ * 使用 `limit` 与 `offset` 做分页。
  *
  * @example
  * ```typescript
- * // List sessions for a specific project
+ * // 列出某个工程下的会话
  * const sessions = await listSessions({ dir: '/path/to/project' })
  *
- * // Paginate
+ * // 分页
  * const page1 = await listSessions({ limit: 50 })
  * const page2 = await listSessions({ limit: 50, offset: 50 })
  * ```
@@ -210,13 +208,12 @@ export async function listSessions(
 }
 
 /**
- * Reads metadata for a single session by ID. Unlike `listSessions`, this only
- * reads the single session file rather than every session in the project.
- * Returns undefined if the session file is not found, is a sidechain session,
- * or has no extractable summary.
+ * 按 ID 读取单个会话的元数据。与 `listSessions` 不同，此函数只读取
+ * 目标会话文件，而非工程内每一个会话。
+ * 若会话文件不存在、是 sidechain 会话，或无可提取的摘要，则返回 undefined。
  *
- * @param sessionId - UUID of the session
- * @param options - `{ dir?: string }` project path; omit to search all project directories
+ * @param sessionId - 会话 UUID
+ * @param options - `{ dir?: string }` 工程路径；省略则在所有工程目录中搜索
  */
 export async function getSessionInfo(
   _sessionId: string,
@@ -226,10 +223,10 @@ export async function getSessionInfo(
 }
 
 /**
- * Rename a session. Appends a custom-title entry to the session's JSONL file.
- * @param sessionId - UUID of the session
- * @param title - New title
- * @param options - `{ dir?: string }` project path; omit to search all projects
+ * 重命名会话。向会话的 JSONL 文件追加一条 custom-title 条目。
+ * @param sessionId - 会话 UUID
+ * @param title - 新标题
+ * @param options - `{ dir?: string }` 工程路径；省略则在所有工程中搜索
  */
 export async function renameSession(
   _sessionId: string,
@@ -240,10 +237,10 @@ export async function renameSession(
 }
 
 /**
- * Tag a session. Pass null to clear the tag.
- * @param sessionId - UUID of the session
- * @param tag - Tag string, or null to clear
- * @param options - `{ dir?: string }` project path; omit to search all projects
+ * 为会话打标签。传入 null 可清除标签。
+ * @param sessionId - 会话 UUID
+ * @param tag - 标签字符串，或传入 null 清除
+ * @param options - `{ dir?: string }` 工程路径；省略则在所有工程中搜索
  */
 export async function tagSession(
   _sessionId: string,
@@ -254,18 +251,17 @@ export async function tagSession(
 }
 
 /**
- * Fork a session into a new branch with fresh UUIDs.
+ * 将一个会话 fork 成新分支，生成全新的 UUID。
  *
- * Copies transcript messages from the source session into a new session file,
- * remapping every message UUID and preserving the parentUuid chain. Supports
- * `upToMessageId` for branching from a specific point in the conversation.
+ * 将源会话的 transcript 消息复制到新会话文件中，
+ * 重映射每条消息的 UUID，并保留 parentUuid 链。支持通过
+ * `upToMessageId` 从对话中的某个特定点开始分支。
  *
- * Forked sessions start without undo history (file-history snapshots are not
- * copied).
+ * fork 出的会话不保留 undo 历史（file-history 快照不会被复制）。
  *
- * @param sessionId - UUID of the source session
+ * @param sessionId - 源会话 UUID
  * @param options - `{ dir?, upToMessageId?, title? }`
- * @returns `{ sessionId }` — UUID of the new forked session
+ * @returns `{ sessionId }` —— 新 fork 会话的 UUID
  */
 export async function forkSession(
   _sessionId: string,
@@ -275,11 +271,11 @@ export async function forkSession(
 }
 
 // ============================================================================
-// Assistant daemon primitives (internal)
+// Assistant daemon 基础类型（内部）
 // ============================================================================
 
 /**
- * A scheduled task from `<dir>/.claude/scheduled_tasks.json`.
+ * 来自 `<dir>/.claude/scheduled_tasks.json` 的定时任务。
  * @internal
  */
 export type CronTask = {
@@ -291,10 +287,9 @@ export type CronTask = {
 }
 
 /**
- * Cron scheduler tuning knobs (jitter + expiry). Sourced at runtime from the
- * `tengu_kairos_cron_config` GrowthBook config in CLI sessions; daemon hosts
- * pass this through `watchScheduledTasks({ getJitterConfig })` to get the
- * same tuning.
+ * Cron 调度器的调优参数（jitter + 过期）。运行时取自 CLI 会话中的
+ * `tengu_kairos_cron_config` GrowthBook 配置；daemon 宿主通过
+ * `watchScheduledTasks({ getJitterConfig })` 传入以获得同样的调优。
  * @internal
  */
 export type CronJitterConfig = {
@@ -307,7 +302,7 @@ export type CronJitterConfig = {
 }
 
 /**
- * Event yielded by `watchScheduledTasks()`.
+ * `watchScheduledTasks()` yield 的事件。
  * @internal
  */
 export type ScheduledTaskEvent =
@@ -315,37 +310,33 @@ export type ScheduledTaskEvent =
   | { type: 'missed'; tasks: CronTask[] }
 
 /**
- * Handle returned by `watchScheduledTasks()`.
+ * `watchScheduledTasks()` 返回的 handle。
  * @internal
  */
 export type ScheduledTasksHandle = {
-  /** Async stream of fire/missed events. Drain with `for await`. */
+  /** fire/missed 事件的异步流。用 `for await` 消费。 */
   events(): AsyncGenerator<ScheduledTaskEvent>
   /**
-   * Epoch ms of the soonest scheduled fire across all loaded tasks, or null
-   * if nothing is scheduled. Useful for deciding whether to tear down an
-   * idle agent subprocess or keep it warm for an imminent fire.
+   * 所有已加载任务中最近一次将要触发的 epoch 毫秒时间戳；
+   * 若无调度则返回 null。可用于决定是拆除空闲的 agent 子进程，
+   * 还是为即将到来的触发保持热启动。
    */
   getNextFireTime(): number | null
 }
 
 /**
- * Watch `<dir>/.claude/scheduled_tasks.json` and yield events as tasks fire.
+ * 监听 `<dir>/.claude/scheduled_tasks.json`，在任务触发时 yield 事件。
  *
- * Acquires the per-directory scheduler lock (PID-based liveness) so a REPL
- * session in the same dir won't double-fire. Releases the lock and closes
- * the file watcher when the signal aborts.
+ * 获取该目录级别的调度器锁（基于 PID 的存活检测），这样同一目录下的
+ * REPL 会话不会重复触发。当 signal 中断时释放锁并关闭文件 watcher。
  *
- * - `fire` — a task whose cron schedule was met. One-shot tasks are already
- *   deleted from the file when this yields; recurring tasks are rescheduled
- *   (or deleted if aged out).
- * - `missed` — one-shot tasks whose window passed while the daemon was down.
- *   Yielded once on initial load; a background delete removes them from the
- *   file shortly after.
+ * - `fire` —— cron 调度已满足的任务。一次性任务在 yield 时已从文件中
+ *   删除；周期性任务会被重新调度（若超龄则删除）。
+ * - `missed` —— daemon 宕机期间错过时间窗口的一次性任务。
+ *   在初始加载时 yield 一次；后台删除任务会稍后从文件中移除它们。
  *
- * Intended for daemon architectures that own the scheduler externally and
- * spawn the agent via `query()`; the agent subprocess (`-p` mode) does not
- * run its own scheduler.
+ * 面向外部拥有调度器、通过 `query()` 派生 agent 的 daemon 架构；
+ * agent 子进程（`-p` 模式）本身不运行调度器。
  *
  * @internal
  */
@@ -358,8 +349,8 @@ export function watchScheduledTasks(_opts: {
 }
 
 /**
- * Format missed one-shot tasks into a prompt that asks the model to confirm
- * with the user (via AskUserQuestion) before executing.
+ * 将错过的一次性任务格式化为 prompt，要求模型在执行前通过
+ * AskUserQuestion 向用户确认。
  * @internal
  */
 export function buildMissedTaskNotification(_missed: CronTask[]): string {
@@ -367,7 +358,7 @@ export function buildMissedTaskNotification(_missed: CronTask[]): string {
 }
 
 /**
- * A user message typed on claude.ai, extracted from the bridge WS.
+ * 用户在 claude.ai 上输入的消息，从 bridge WS 中提取。
  * @internal
  */
 export type InboundPrompt = {
@@ -376,7 +367,7 @@ export type InboundPrompt = {
 }
 
 /**
- * Options for connectRemoteControl.
+ * connectRemoteControl 的选项。
  * @internal
  */
 export type ConnectRemoteControlOptions = {
@@ -392,9 +383,8 @@ export type ConnectRemoteControlOptions = {
 }
 
 /**
- * Handle returned by connectRemoteControl. Write query() yields in,
- * read inbound prompts out. See src/assistant/daemonBridge.ts for full
- * field documentation.
+ * connectRemoteControl 返回的 handle。向其中 write query() 的 yield，
+ * 从中读取 inbound prompt。完整字段说明见 src/assistant/daemonBridge.ts。
  * @internal
  */
 export type RemoteControlHandle = {
@@ -419,22 +409,21 @@ export type RemoteControlHandle = {
 }
 
 /**
- * Hold a claude.ai remote-control bridge connection from a daemon process.
+ * 从 daemon 进程持有的 claude.ai remote-control bridge 连接。
  *
- * The daemon owns the WebSocket in the PARENT process — if the agent
- * subprocess (spawned via `query()`) crashes, the daemon respawns it while
- * claude.ai keeps the same session. Contrast with `query.enableRemoteControl`
- * which puts the WS in the CHILD process (dies with the agent).
+ * daemon 在父进程中持有 WebSocket —— 若 agent 子进程（通过 `query()`
+ * 派生）崩溃，daemon 会重启它，而 claude.ai 保持同一会话。与之对照，
+ * `query.enableRemoteControl` 把 WS 放在子进程中（随 agent 一起消亡）。
  *
- * Pipe `query()` yields through `write()` + `sendResult()`. Read
- * `inboundPrompts()` (user typed on claude.ai) into `query()`'s input
- * stream. Handle `controlRequests()` locally (interrupt → abort, set_model
- * → reconfigure).
+ * 通过 `write()` + `sendResult()` 注入 `query()` 的 yield。
+ * 从 `inboundPrompts()`（用户在 claude.ai 输入）读取并喂给 `query()`
+ * 的输入流。本地处理 `controlRequests()`（interrupt → abort、set_model
+ * → 重配置）。
  *
- * Skips the `tengu_ccr_bridge` gate and policy-limits check — @internal
- * caller is pre-entitled. OAuth is still required (env var or keychain).
+ * 跳过 `tengu_ccr_bridge` gate 与 policy-limits 检查 —— @internal
+ * 调用方已预先获得授权。仍需 OAuth（环境变量或 keychain）。
  *
- * Returns null on no-OAuth or registration failure.
+ * 若未 OAuth 或注册失败则返回 null。
  *
  * @internal
  */

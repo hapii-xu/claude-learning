@@ -19,7 +19,7 @@ import { getInitialSettings, updateSettingsForSource } from '../utils/settings/s
 interface InstallProps {
   onDone: (result: string, options?: { display?: CommandResultDisplay }) => void;
   force?: boolean;
-  target?: string; // 'latest', 'stable', or version like '1.0.34'
+  target?: string; // 'latest'、'stable' 或版本号（如 '1.0.34'）
 }
 
 type InstallState =
@@ -36,9 +36,9 @@ function getInstallationPath(): string {
   const homeDir = homedir();
 
   if (isWindows) {
-    // Convert to Windows-style path
+    // 转换为 Windows 风格路径
     const windowsPath = join(homeDir, '.local', 'bin', 'claude.exe');
-    // Replace forward slashes with backslashes for Windows display
+    // 把正斜杠替换为反斜杠，便于 Windows 下展示
     return windowsPath.replace(/\//g, '\\');
   }
 
@@ -73,11 +73,11 @@ function Install({ onDone, force, target }: InstallProps): React.ReactNode {
       try {
         logForDebugging(`Install: Starting installation process (force=${force}, target=${target})`);
 
-        // Install native build first
+        // 先安装 native 构建
         const channelOrVersion = target || getInitialSettings()?.autoUpdatesChannel || 'latest';
         setState({ type: 'installing', version: channelOrVersion });
 
-        // Pass force flag to trigger reinstall even if up to date
+        // 传入 force 标志，即使已是最新版也强制重新安装
         logForDebugging(
           `Install: Calling installLatest(channelOrVersion=${channelOrVersion}, forceReinstall=${force})`,
         );
@@ -86,14 +86,14 @@ function Install({ onDone, force, target }: InstallProps): React.ReactNode {
           `Install: installLatest returned version=${result.latestVersion}, wasUpdated=${result.wasUpdated}, lockFailed=${result.lockFailed}`,
         );
 
-        // Check specifically for lock failure
+        // 专门检查是否出现锁失败
         if (result.lockFailed) {
           throw new Error(
             'Could not install - another process is currently installing Claude. Please try again in a moment.',
           );
         }
 
-        // If we couldn't get the version, there might be an issue
+        // 如果拿不到版本号，可能存在某种问题
         if (!result.latestVersion) {
           logForDebugging('Install: Failed to retrieve version information during install', { level: 'error' });
         }
@@ -102,7 +102,7 @@ function Install({ onDone, force, target }: InstallProps): React.ReactNode {
           logForDebugging('Install: Already up to date');
         }
 
-        // Set up launcher and shell integration
+        // 设置启动器和 shell 集成
         setState({ type: 'setting-up' });
         const setupMessages = await checkInstall(true);
 
@@ -111,7 +111,7 @@ function Install({ onDone, force, target }: InstallProps): React.ReactNode {
           setupMessages.forEach(msg => logForDebugging(`Install: Setup message: ${msg.message}`));
         }
 
-        // Now that native installation succeeded, clean up old npm installations
+        // native 安装成功后，清理旧的 npm 安装
         logForDebugging('Install: Cleaning up npm installations after successful install');
         const { removed, errors, warnings } = await cleanupNpmInstallations();
 
@@ -121,22 +121,22 @@ function Install({ onDone, force, target }: InstallProps): React.ReactNode {
 
         if (errors.length > 0) {
           logForDebugging(`Cleanup errors: ${errors.join(', ')}`);
-          // Continue despite cleanup errors - native install already succeeded
+          // 即便清理出错也继续 —— native 安装已成功
         }
 
-        // Clean up old shell aliases
+        // 清理旧的 shell alias
         const aliasMessages = await cleanupShellAliases();
         if (aliasMessages.length > 0) {
           logForDebugging(`Shell alias cleanup: ${aliasMessages.map(m => m.message).join('; ')}`);
         }
 
-        // Log success event
+        // 记录成功事件
         logEvent('tengu_claude_install_command', {
           has_version: result.latestVersion ? 1 : 0,
           forced: force ? 1 : 0,
         });
 
-        // If user explicitly specified a channel, save it to settings
+        // 如果用户显式指定了渠道，将其保存到设置
         if (target === 'latest' || target === 'stable') {
           updateSettingsForSource('userSettings', {
             autoUpdatesChannel: target,
@@ -144,23 +144,23 @@ function Install({ onDone, force, target }: InstallProps): React.ReactNode {
           logForDebugging(`Install: Saved autoUpdatesChannel=${target} to user settings`);
         }
 
-        // Combine all warning/info messages (convert SetupMessage to string)
+        // 汇总所有警告/提示信息（将 SetupMessage 转为字符串）
         const allWarnings = [...warnings, ...aliasMessages.map(m => m.message)];
 
-        // Check if there were any setup errors or notes
+        // 检查是否存在任何 setup 错误或提示
         if (setupMessages.length > 0) {
           setState({
             type: 'set-up',
             messages: setupMessages.map(m => m.message),
           });
-          // Still mark as success but show both setup messages and cleanup warnings
+          // 仍标记为成功，但同时展示 setup 消息和清理告警
           setTimeout(setState, 2000, {
             type: 'success' as const,
             version: result.latestVersion || 'current',
             setupMessages: [...setupMessages.map(m => m.message), ...allWarnings],
           });
         } else {
-          // No setup messages, go straight to success (but still show cleanup warnings if any)
+          // 无 setup 消息，直接进入成功状态（但若有清理告警仍会展示）
           logForDebugging('Install: Shell PATH already configured');
           setState({
             type: 'success',
@@ -184,12 +184,12 @@ function Install({ onDone, force, target }: InstallProps): React.ReactNode {
 
   useEffect(() => {
     if (state.type === 'success') {
-      // Give success message time to render before exiting
+      // 给成功消息留出渲染时间再退出
       setTimeout(onDone, 2000, 'Claude Code installation completed successfully', {
         display: 'system' as const,
       });
     } else if (state.type === 'error') {
-      // Give error message time to render before exiting
+      // 给错误消息留出渲染时间再退出
       setTimeout(onDone, 3000, 'Claude Code installation failed', {
         display: 'system' as const,
       });
@@ -259,7 +259,7 @@ function Install({ onDone, force, target }: InstallProps): React.ReactNode {
   );
 }
 
-// This is only used from cli.tsx, not as a slash command
+// 该命令只在 cli.tsx 中使用，不作为斜杠命令
 export const install = {
   type: 'local-jsx' as const,
   name: 'install',
@@ -270,10 +270,10 @@ export const install = {
     _context: unknown,
     args: string[],
   ) {
-    // Parse arguments
+    // 解析参数
     const force = args.includes('--force');
     const nonFlagArgs = args.filter(arg => !arg.startsWith('--'));
-    const target = nonFlagArgs[0]; // 'latest', 'stable', or version like '1.0.34'
+    const target = nonFlagArgs[0]; // 'latest'、'stable' 或版本号（如 '1.0.34'）
 
     const { unmount } = await render(
       <Install

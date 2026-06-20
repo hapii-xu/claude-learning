@@ -1,10 +1,10 @@
 /**
- * Tests for src/jobs/classifier.ts
+ * src/jobs/classifier.ts 的测试
  *
- * Uses real temp directories instead of mocking fs to avoid
- * cross-test mock pollution in bun test.
+ * 使用真实的临时目录而不是 mock fs，以避免 bun test 中的
+ * 跨测试 mock 污染。
  *
- * classifier.ts takes jobDir as a parameter, so no envUtils mock needed.
+ * classifier.ts 将 jobDir 作为参数接受，因此不需要 envUtils mock。
  */
 import { describe, expect, test, beforeEach, afterAll } from 'bun:test'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'fs'
@@ -13,7 +13,7 @@ import { tmpdir } from 'os'
 import type { AssistantMessage } from '../../types/message.js'
 import { classifyAndWriteState } from '../classifier.js'
 
-// ─── setup: real temp dir ──────────────────────────────────────────────────
+// ─── 设置：真实临时目录 ──────────────────────────────────────────────────
 
 let tempBase: string
 let jobDir: string
@@ -26,7 +26,7 @@ function freshJobDir(): void {
   stateFile = join(jobDir, 'state.json')
 }
 
-// ─── helpers ────────────────────────────────────────────────────────────────
+// ─── 辅助函数 ────────────────────────────────────────────────────────────────
 
 function makeAssistantMessage(
   content: any[],
@@ -43,7 +43,7 @@ function makeAssistantMessage(
   } as any
 }
 
-// ─── lifecycle ─────────────────────────────────────────────────────────────
+// ─── 生命周期 ─────────────────────────────────────────────────────────────
 
 beforeEach(() => {
   freshJobDir()
@@ -53,22 +53,22 @@ afterAll(() => {
   try {
     rmSync(tempBase, { recursive: true, force: true })
   } catch {
-    // best-effort cleanup
+    // 尽力清理
   }
 })
 
-// ─── tests ──────────────────────────────────────────────────────────────────
+// ─── 测试 ──────────────────────────────────────────────────────────────────
 
 describe('classifyAndWriteState', () => {
   test('does nothing when state.json is missing', async () => {
     await classifyAndWriteState(jobDir, [])
-    // stateFile should still not exist
+    // stateFile 应该仍然不存在
     let exists = false
     try {
       readFileSync(stateFile, 'utf-8')
       exists = true
     } catch {
-      // expected
+      // 预期的
     }
     expect(exists).toBe(false)
   })

@@ -52,7 +52,7 @@ export class DirectConnectSessionManager {
     if (this.config.authToken) {
       headers['authorization'] = `Bearer ${this.config.authToken}`
     }
-    // Bun's WebSocket supports headers option but the DOM typings don't
+    // Bun 的 WebSocket 支持 headers 选项，但 DOM 类型定义不支持
     this.ws = new WebSocket(this.config.wsUrl, {
       headers,
     } as unknown as string[])
@@ -78,7 +78,7 @@ export class DirectConnectSessionManager {
         }
         const parsed = raw
 
-        // Handle control requests (permission requests)
+        // 处理控制请求（权限请求）
         if (parsed.type === 'control_request') {
           if (parsed.request.subtype === 'can_use_tool') {
             this.callbacks.onPermissionRequest(
@@ -86,8 +86,8 @@ export class DirectConnectSessionManager {
               parsed.request_id,
             )
           } else {
-            // Send an error response for unrecognized subtypes so the
-            // server doesn't hang waiting for a reply that never comes.
+            // 为未识别的子类型发送错误响应，以便服务器
+            // 不会挂起等待永远不会到来的回复。
             logForDebugging(
               `[DirectConnect] Unsupported control request subtype: ${parsed.request.subtype}`,
             )
@@ -99,7 +99,7 @@ export class DirectConnectSessionManager {
           continue
         }
 
-        // Forward SDK messages (assistant, result, system, etc.)
+        // 转发 SDK 消息（assistant、result、system 等）
         if (
           parsed.type !== 'control_response' &&
           parsed.type !== 'keep_alive' &&
@@ -127,7 +127,7 @@ export class DirectConnectSessionManager {
       return false
     }
 
-    // Must match SDKUserMessage format expected by `--input-format stream-json`
+    // 必须匹配 `--input-format stream-json` 期望的 SDKUserMessage 格式
     const message = jsonStringify({
       type: 'user',
       message: {
@@ -149,7 +149,7 @@ export class DirectConnectSessionManager {
       return
     }
 
-    // Must match SDKControlResponse format expected by StructuredIO
+    // 必须匹配 StructuredIO 期望的 SDKControlResponse 格式
     const response = jsonStringify({
       type: 'control_response',
       response: {
@@ -167,14 +167,14 @@ export class DirectConnectSessionManager {
   }
 
   /**
-   * Send an interrupt signal to cancel the current request
+   * 发送中断信号以取消当前请求
    */
   sendInterrupt(): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return
     }
 
-    // Must match SDKControlRequest format expected by StructuredIO
+    // 必须匹配 StructuredIO 期望的 SDKControlRequest 格式
     const request = jsonStringify({
       type: 'control_request',
       request_id: crypto.randomUUID(),

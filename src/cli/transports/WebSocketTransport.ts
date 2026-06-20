@@ -26,35 +26,33 @@ const DEFAULT_MAX_RECONNECT_DELAY = 30000
 /** Time budget for reconnection attempts before giving up (10 minutes). */
 const DEFAULT_RECONNECT_GIVE_UP_MS = 600_000
 const DEFAULT_PING_INTERVAL = 10000
-const DEFAULT_KEEPALIVE_INTERVAL = 120_000 // 2 minutes — must be under Bun's 255s idleTimeout
+const DEFAULT_KEEPALIVE_INTERVAL = 120_000 // 2 分钟 —— 必须小于 Bun 的 255s idleTimeout
 
 /**
- * Threshold for detecting system sleep/wake. If the gap between consecutive
- * reconnection attempts exceeds this, the machine likely slept. We reset
- * the reconnection budget and retry — the server will reject with permanent
- * close codes (4001/1002) if the session was reaped during sleep.
+ * 用于检测系统休眠/唤醒的阈值。若两次连续重连尝试之间的间隔超过此值，
+ * 机器很可能进入了休眠。我们重置重连预算并重试 —— 若会话在休眠期间
+ * 被回收，服务端会以永久关闭码（4001/1002）拒绝。
  */
 const SLEEP_DETECTION_THRESHOLD_MS = DEFAULT_MAX_RECONNECT_DELAY * 2 // 60s
 
 /**
- * WebSocket close codes that indicate a permanent server-side rejection.
- * The transport transitions to 'closed' immediately without retrying.
+ * 表示服务端永久性拒绝的 WebSocket 关闭码。
+ * 传输层会立即转为 'closed' 状态，不再重试。
  */
 const PERMANENT_CLOSE_CODES = new Set([
-  1002, // protocol error — server rejected handshake (e.g. session reaped)
-  4001, // session expired / not found
-  4003, // unauthorized
+  1002, // 协议错误 —— 服务端拒绝了握手（例如会话被回收）
+  4001, // 会话过期 / 未找到
+  4003, // 未授权
 ])
 
 export type WebSocketTransportOptions = {
-  /** When false, the transport does not attempt automatic reconnection on
-   *  disconnect. Use this when the caller has its own recovery mechanism
-   *  (e.g. the REPL bridge poll loop). Defaults to true. */
+  /** 为 false 时，传输层在断开后不尝试自动重连。
+   *  当调用方有自己的恢复机制（例如 REPL bridge 轮询循环）时使用。
+   *  默认为 true。 */
   autoReconnect?: boolean
-  /** Gates the tengu_ws_transport_* telemetry events. Set true at the
-   *  REPL-bridge construction site so only Remote Control sessions (the
-   *  Cloudflare-idle-timeout population) emit; print-mode workers stay
-   *  silent. Defaults to false. */
+  /** 控制 tengu_ws_transport_* 遥测事件是否发送。在 REPL bridge 构造处
+   *  设为 true，使只有 Remote Control 会话（Cloudflare 空闲超时那一批）
+   *  会发送；print 模式的 worker 保持静默。默认为 false。 */
   isBridge?: boolean
 }
 
@@ -65,11 +63,11 @@ type WebSocketTransportState =
   | 'closing'
   | 'closed'
 
-// Common interface between globalThis.WebSocket and ws.WebSocket
+// globalThis.WebSocket 与 ws.WebSocket 之间的公共接口
 type WebSocketLike = {
   close(): void
   send(data: string): void
-  ping?(): void // Bun & ws both support this
+  ping?(): void // Bun 和 ws 都支持此方法
 }
 
 export class WebSocketTransport implements Transport {
@@ -85,34 +83,32 @@ export class WebSocketTransport implements Transport {
   private autoReconnect: boolean
   private isBridge: boolean
 
-  // Reconnection state
+  // 重连状态
   private reconnectAttempts = 0
   private reconnectStartTime: number | null = null
   private reconnectTimer: NodeJS.Timeout | null = null
   private lastReconnectAttemptTime: number | null = null
-  // Wall-clock of last WS data-frame activity (inbound message or outbound
-  // ws.send). Used to compute idle time at close — the signal for diagnosing
-  // proxy idle-timeout RSTs (e.g. Cloudflare 5-min). Excludes ping/pong
-  // control frames (proxies don't count those).
+  // 最近一次 WS 数据帧活动的墙上时间（入站消息或出站 ws.send）。用于在
+  // 关闭时计算空闲时长 —— 这是诊断代理空闲超时 RST（例如 Cloudflare
+  // 5 分钟）的信号。不包括 ping/pong 控制帧（代理不会计入这些）。
   private lastActivityTime = 0
 
-  // Ping interval for connection health checks
+  // 用于连接健康检查的 ping 间隔
   private pingInterval: NodeJS.Timeout | null = null
   private pongReceived = true
 
-  // Periodic keep_alive data frames to reset proxy idle timers
+  // 周期性 keep_alive 数据帧，用于重置代理的空闲定时器
   private keepAliveInterval: NodeJS.Timeout | null = null
 
-  // Message buffering for replay on reconnection
+  // 用于重连时回放的消息缓冲
   private messageBuffer: CircularBuffer<StdoutMessage>
-  // Track which runtime's WS we're using so we can detach listeners
-  // with the matching API (removeEventListener vs. off).
+  // 追踪当前使用的是哪个运行时的 WS，以便用匹配的 API 卸载监听器
+  //（removeEventListener 还是 off）。
   private isBunWs = false
 
-  // Captured at connect() time for handleOpenEvent timing. Stored as an
-  // instance field so the onOpen handler can be a stable class-property
-  // arrow function (removable in doDisconnect) instead of a closure over
-  // a local variable.
+  // 在 connect() 时捕获，用于 handleOpenEvent 的计时。存为实例字段，
+  // 使 onOpen 处理器可以是一个稳定的类属性箭头函数（可在 doDisconnect
+  // 中移除），而不是一个对局部变量求闭包的闭包。
   private connectStartTime = 0
 
   private refreshHeaders?: () => Record<string, string>
@@ -148,7 +144,7 @@ export class WebSocketTransport implements Transport {
     logForDebugging(`WebSocketTransport: Opening ${this.url.href}`)
     logForDiagnosticsNoPII('info', 'cli_websocket_connect_opening')
 
-    // Start with provided headers and add runtime headers
+    // 以传入的 headers 为起点，再加入运行时 headers
     const headers = { ...this.headers }
     if (this.lastSentId) {
       headers['X-Last-Request-Id'] = this.lastSentId
@@ -158,7 +154,7 @@ export class WebSocketTransport implements Transport {
     }
 
     if (typeof Bun !== 'undefined') {
-      // Bun's WebSocket supports headers/proxy options but the DOM typings don't
+      // Bun 的 WebSocket 支持 headers/proxy 选项，但 DOM 类型定义里没有
       // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
       const ws = new globalThis.WebSocket(this.url.href, {
         headers,
@@ -173,7 +169,7 @@ export class WebSocketTransport implements Transport {
       ws.addEventListener('error', this.onBunError)
       // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
       ws.addEventListener('close', this.onBunClose)
-      // 'pong' is Bun-specific — not in DOM typings.
+      // 'pong' 是 Bun 特有的 —— DOM 类型定义里没有。
       ws.addEventListener('pong', this.onPong)
     } else {
       const { default: WS } = await import('ws')
@@ -193,16 +189,15 @@ export class WebSocketTransport implements Transport {
     }
   }
 
-  // --- Bun (native WebSocket) event handlers ---
-  // Stored as class-property arrow functions so they can be removed in
-  // doDisconnect(). Without removal, each reconnect orphans the old WS
-  // object + its 5 closures until GC, which accumulates under network
-  // instability. Mirrors the pattern in src/utils/mcpWebSocketTransport.ts.
+  // --- Bun（原生 WebSocket）事件处理器 ---
+  // 以类属性箭头函数形式存储，便于在 doDisconnect() 中移除。若不移除，
+  // 每次重连都会让旧的 WS 对象及其 5 个闭包成为孤儿，直到 GC，这在
+  // 网络不稳定时会累积。沿用 src/utils/mcpWebSocketTransport.ts 的模式。
 
   private onBunOpen = () => {
     this.handleOpenEvent()
-    // Bun's WebSocket doesn't expose upgrade response headers,
-    // so replay all buffered messages. The server deduplicates by UUID.
+    // Bun 的 WebSocket 不暴露 upgrade 响应头，
+    // 因此回放所有缓冲消息。服务端会按 UUID 去重。
     if (this.lastSentId) {
       this.replayBufferedMessages('')
     }
@@ -225,7 +220,7 @@ export class WebSocketTransport implements Transport {
       level: 'error',
     })
     logForDiagnosticsNoPII('error', 'cli_websocket_connect_error')
-    // close event fires after error — let it call handleConnectionError
+    // close 事件会在 error 之后触发 —— 让它去调用 handleConnectionError
   }
 
   // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
@@ -239,16 +234,16 @@ export class WebSocketTransport implements Transport {
     this.handleConnectionError(event.code)
   }
 
-  // --- Node (ws package) event handlers ---
+  // --- Node（ws 包）事件处理器 ---
 
   private onNodeOpen = () => {
-    // Capture ws before handleOpenEvent() invokes onConnectCallback — if the
-    // callback synchronously closes the transport, this.ws becomes null.
-    // The old inline-closure code had this safety implicitly via closure capture.
+    // 在 handleOpenEvent() 调用 onConnectCallback 之前捕获 ws —— 若回调同步
+    // 关闭了传输层，this.ws 会变为 null。旧的内联闭包代码通过闭包捕获隐式
+    // 具备了这种安全性。
     const ws = this.ws
     this.handleOpenEvent()
     if (!ws) return
-    // Check for last-id in upgrade response headers (ws package only)
+    // 在 upgrade 响应头中查找 last-id（仅 ws 包支持）
     const nws = ws as unknown as WsWebSocket & {
       upgradeReq?: { headers?: Record<string, string> }
     }
@@ -275,7 +270,7 @@ export class WebSocketTransport implements Transport {
       level: 'error',
     })
     logForDiagnosticsNoPII('error', 'cli_websocket_connect_error')
-    // close event fires after error — let it call handleConnectionError
+    // close 事件会在 error 之后触发 —— 让它去调用 handleConnectionError
   }
 
   private onNodeClose = (code: number, _reason: Buffer) => {
@@ -288,7 +283,7 @@ export class WebSocketTransport implements Transport {
     this.handleConnectionError(code)
   }
 
-  // --- Shared handlers ---
+  // --- 共享处理器 ---
 
   private onPong = () => {
     this.pongReceived = true
@@ -301,8 +296,8 @@ export class WebSocketTransport implements Transport {
       duration_ms: connectDuration,
     })
 
-    // Reconnect success — capture attempt count + downtime before resetting.
-    // reconnectStartTime is null on first connect, non-null on reopen.
+    // 重连成功 —— 在重置之前捕获尝试次数和停机时长。
+    // reconnectStartTime 在首次连接时为 null，在重开时非 null。
     if (this.isBridge && this.reconnectStartTime !== null) {
       logEvent('tengu_ws_transport_reconnected', {
         attempts: this.reconnectAttempts,
@@ -317,13 +312,13 @@ export class WebSocketTransport implements Transport {
     this.state = 'connected'
     this.onConnectCallback?.()
 
-    // Start periodic pings to detect dead connections
+    // 启动周期性 ping 以检测死连接
     this.startPingInterval()
 
-    // Start periodic keep_alive data frames to reset proxy idle timers
+    // 启动周期性 keep_alive 数据帧以重置代理空闲定时器
     this.startKeepaliveInterval()
 
-    // Register callback for session activity signals
+    // 注册 session 活动信号回调
     registerSessionActivityCallback(() => {
       void this.write({ type: 'keep_alive' })
     })
@@ -345,18 +340,17 @@ export class WebSocketTransport implements Transport {
         level: 'error',
       })
       logForDiagnosticsNoPII('error', 'cli_websocket_send_error')
-      // Don't null this.ws here — let doDisconnect() (via handleConnectionError)
-      // handle cleanup so listeners are removed before the WS is released.
+      // 不要在此处置空 this.ws —— 让 doDisconnect()（经由
+      // handleConnectionError）来处理清理，以便在 WS 被释放前先移除监听器。
       this.handleConnectionError()
       return false
     }
   }
 
   /**
-   * Remove all listeners attached in connect() for the given WebSocket.
-   * Without this, each reconnect orphans the old WS object + its closures
-   * until GC — these accumulate under network instability. Mirrors the
-   * pattern in src/utils/mcpWebSocketTransport.ts.
+   * 移除在 connect() 中为给定 WebSocket 附加的所有监听器。若不移除，
+   * 每次重连都会让旧的 WS 对象及其闭包成为孤儿，直到 GC —— 在网络
+   * 不稳定时会累积。沿用 src/utils/mcpWebSocketTransport.ts 的模式。
    */
   private removeWsListeners(ws: WebSocketLike): void {
     if (this.isBunWs) {
@@ -366,7 +360,7 @@ export class WebSocketTransport implements Transport {
       nws.removeEventListener('error', this.onBunError)
       // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
       nws.removeEventListener('close', this.onBunClose)
-      // 'pong' is Bun-specific — not in DOM typings
+      // 'pong' 是 Bun 特有的 —— DOM 类型定义里没有
       nws.removeEventListener('pong' as 'message', this.onPong)
     } else {
       const nws = ws as unknown as WsWebSocket
@@ -379,16 +373,16 @@ export class WebSocketTransport implements Transport {
   }
 
   protected doDisconnect(): void {
-    // Stop pinging and keepalive when disconnecting
+    // 断开时停止 ping 和 keepalive
     this.stopPingInterval()
     this.stopKeepaliveInterval()
 
-    // Unregister session activity callback
+    // 注销 session 活动回调
     unregisterSessionActivityCallback()
 
     if (this.ws) {
-      // Remove listeners BEFORE close() so the old WS + closures can be
-      // GC'd promptly instead of lingering until the next mark-and-sweep.
+      // 在 close() 之前移除监听器，使旧的 WS 及其闭包可以及时被 GC，
+      // 而不是拖延到下一轮 mark-and-sweep。
       this.removeWsListeners(this.ws)
       this.ws.close()
       this.ws = null
@@ -409,17 +403,17 @@ export class WebSocketTransport implements Transport {
     )
     logForDiagnosticsNoPII('info', 'cli_websocket_disconnected')
     if (this.isBridge) {
-      // Fire on every close — including intermediate ones during a reconnect
-      // storm (those never surface to the onCloseCallback consumer). For the
-      // Cloudflare-5min-idle hypothesis: cluster msSinceLastActivity; if the
-      // peak sits at ~300s with closeCode 1006, that's the proxy RST.
+      // 每次关闭都触发 —— 包括重连风暴中间的那些（这些从不暴露给
+      // onCloseCallback 消费方）。对于 Cloudflare 5 分钟空闲假设：对
+      // msSinceLastActivity 做聚类；若峰值集中在 ~300s 且 closeCode 为
+      // 1006，那就是代理 RST。
       logEvent('tengu_ws_transport_closed', {
         closeCode,
         msSinceLastActivity:
           this.lastActivityTime > 0 ? Date.now() - this.lastActivityTime : -1,
-        // 'connected' = healthy drop (the Cloudflare case); 'reconnecting' =
-        // connect-rejection mid-storm. State isn't mutated until the branches
-        // below, so this reads the pre-close value.
+        // 'connected' = 健康断开（Cloudflare 那种情况）；'reconnecting' =
+        // 风暴中途的连接被拒。下面的分支才会改变 state，因此此处读到的是
+        // 关闭前的值。
         wasConnected: this.state === 'connected',
         reconnectAttempts: this.reconnectAttempts,
       })
@@ -428,10 +422,9 @@ export class WebSocketTransport implements Transport {
 
     if (this.state === 'closing' || this.state === 'closed') return
 
-    // Permanent codes: don't retry — server has definitively ended the session.
-    // Exception: 4003 (unauthorized) can be retried when refreshHeaders is
-    // available and returns a new token (e.g. after the parent process mints
-    // a fresh session ingress token during reconnection).
+    // 永久关闭码：不重试 —— 服务端已明确结束了会话。
+    // 例外：4003（未授权）在 refreshHeaders 可用且返回新 token 时可以重试
+    //（例如父进程在重连期间签发了新的 session ingress token）。
     let headersRefreshed = false
     if (closeCode === 4003 && this.refreshHeaders) {
       const freshHeaders = this.refreshHeaders()
@@ -462,25 +455,23 @@ export class WebSocketTransport implements Transport {
       return
     }
 
-    // When autoReconnect is disabled, go straight to closed state.
-    // The caller (e.g. REPL bridge poll loop) handles recovery.
+    // 当 autoReconnect 被禁用时，直接进入 closed 状态。
+    // 由调用方（例如 REPL bridge 轮询循环）处理恢复。
     if (!this.autoReconnect) {
       this.state = 'closed'
       this.onCloseCallback?.(closeCode)
       return
     }
 
-    // Schedule reconnection with exponential backoff and time budget
+    // 以指数退避和时间预算调度重连
     const now = Date.now()
     if (!this.reconnectStartTime) {
       this.reconnectStartTime = now
     }
 
-    // Detect system sleep/wake: if the gap since our last reconnection
-    // attempt greatly exceeds the max delay, the machine likely slept
-    // (e.g. laptop lid closed). Reset the budget and retry from scratch —
-    // the server will reject with permanent close codes (4001/1002) if
-    // the session was reaped while we were asleep.
+    // 检测系统休眠/唤醒：若距离上一次重连尝试的间隔远超过最大延迟，
+    // 机器很可能休眠了（例如笔记本合盖）。重置预算并从头重试 —— 若
+    // 会话在休眠期间被回收，服务端会以永久关闭码（4001/1002）拒绝。
     if (
       this.lastReconnectAttemptTime !== null &&
       now - this.lastReconnectAttemptTime > SLEEP_DETECTION_THRESHOLD_MS
@@ -498,14 +489,14 @@ export class WebSocketTransport implements Transport {
 
     const elapsed = now - this.reconnectStartTime
     if (elapsed < DEFAULT_RECONNECT_GIVE_UP_MS) {
-      // Clear any existing reconnection timer to avoid duplicates
+      // 清除任何已存在的重连定时器以避免重复
       if (this.reconnectTimer) {
         clearTimeout(this.reconnectTimer)
         this.reconnectTimer = null
       }
 
-      // Refresh headers before reconnecting (e.g. to pick up a new session token).
-      // Skip if already refreshed by the 4003 path above.
+      // 重连前刷新 headers（例如获取新的 session token）。
+      // 若已由上方 4003 路径刷新过则跳过。
       if (!headersRefreshed && this.refreshHeaders) {
         const freshHeaders = this.refreshHeaders()
         Object.assign(this.headers, freshHeaders)
@@ -519,7 +510,7 @@ export class WebSocketTransport implements Transport {
         DEFAULT_BASE_RECONNECT_DELAY * 2 ** (this.reconnectAttempts - 1),
         DEFAULT_MAX_RECONNECT_DELAY,
       )
-      // Add ±25% jitter to avoid thundering herd
+      // 加 ±25% 抖动以避免惊群
       const delay = Math.max(
         0,
         baseDelay + baseDelay * 0.25 * (2 * Math.random() - 1),
@@ -554,7 +545,7 @@ export class WebSocketTransport implements Transport {
       })
       this.state = 'closed'
 
-      // Notify close callback
+      // 通知 close 回调
       if (this.onCloseCallback) {
         this.onCloseCallback(closeCode)
       }
@@ -562,17 +553,17 @@ export class WebSocketTransport implements Transport {
   }
 
   close(): void {
-    // Clear any pending reconnection timer
+    // 清除任何挂起的重连定时器
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null
     }
 
-    // Clear ping and keepalive intervals
+    // 清除 ping 和 keepalive 间隔
     this.stopPingInterval()
     this.stopKeepaliveInterval()
 
-    // Unregister session activity callback
+    // 注销 session 活动回调
     unregisterSessionActivityCallback()
 
     this.state = 'closing'
@@ -583,16 +574,16 @@ export class WebSocketTransport implements Transport {
     const messages = this.messageBuffer.toArray()
     if (messages.length === 0) return
 
-    // Find where to start replay based on server's last received message
+    // 根据服务端最后收到的消息，找到回放的起点
     let startIndex = 0
     if (lastId) {
       const lastConfirmedIndex = messages.findIndex(
         message => 'uuid' in message && message.uuid === lastId,
       )
       if (lastConfirmedIndex >= 0) {
-        // Server confirmed messages up to lastConfirmedIndex — evict them
+        // 服务端确认了直到 lastConfirmedIndex 的消息 —— 将它们逐出
         startIndex = lastConfirmedIndex + 1
-        // Rebuild the buffer with only unconfirmed messages
+        // 仅用未确认的消息重建缓冲区
         const remaining = messages.slice(startIndex)
         this.messageBuffer.clear()
         this.messageBuffer.addAll(remaining)
@@ -635,10 +626,9 @@ export class WebSocketTransport implements Transport {
         break
       }
     }
-    // Do NOT clear the buffer after replay — messages remain buffered until
-    // the server confirms receipt on the next reconnection. This prevents
-    // message loss if the connection drops after replay but before the server
-    // processes the messages.
+    // 回放后不要清空缓冲区 —— 消息会一直留在缓冲区中，直到服务端在下一次
+    // 重连时确认收到。这样可避免连接在回放之后、服务端处理之前断开而导致
+    // 消息丢失。
   }
 
   isConnectedStatus(): boolean {
@@ -674,7 +664,7 @@ export class WebSocketTransport implements Transport {
     const line = jsonStringify(message) + '\n'
 
     if (this.state !== 'connected') {
-      // Message buffered for replay when connected (if it has a UUID)
+      // 消息已缓冲，待连接后回放（若含有 UUID）
       return
     }
 
@@ -703,32 +693,28 @@ export class WebSocketTransport implements Transport {
   }
 
   private startPingInterval(): void {
-    // Clear any existing interval
+    // 清除任何已存在的 interval
     this.stopPingInterval()
 
     this.pongReceived = true
     let lastTickTime = Date.now()
 
-    // Send ping periodically to detect dead connections.
-    // If the previous ping got no pong, treat the connection as dead.
+    // 周期性发送 ping 以检测死连接。
+    // 若上一次 ping 没有收到 pong，则视为连接已死。
     this.pingInterval = setInterval(() => {
       if (this.state === 'connected' && this.ws) {
         const now = Date.now()
         const gap = now - lastTickTime
         lastTickTime = now
 
-        // Process-suspension detector. If the wall-clock gap between ticks
-        // greatly exceeds the 10s interval, the process was suspended
-        // (laptop lid, SIGSTOP, VM pause). setInterval does not queue
-        // missed ticks — it coalesces — so on wake this callback fires
-        // once with a huge gap. The socket is almost certainly dead:
-        // NAT mappings drop in 30s–5min, and the server has been
-        // retransmitting into the void. Don't wait for a ping/pong
-        // round-trip to confirm (ws.ping() on a dead socket returns
-        // immediately with no error — bytes go into the kernel send
-        // buffer). Assume dead and reconnect now. A spurious reconnect
-        // after a short sleep is cheap — replayBufferedMessages() handles
-        // it and the server dedups by UUID.
+        // 进程挂起检测器。若两次 tick 之间的墙上时间间隔远超过 10s 间隔，
+        // 说明进程被挂起了（笔记本合盖、SIGSTOP、VM 暂停）。setInterval 不会
+        // 把错过的 tick 排队 —— 它会合并 —— 因此唤醒后此回调只会触发一次，
+        // 带着一个巨大的 gap。此时 socket 几乎肯定已死：NAT 映射在 30s–5min
+        // 内就会失效，服务端也一直在向空中重传。不要等待一次 ping/pong
+        // 往返来确认（ws.ping() 在死 socket 上会立即返回且无错 —— 字节进入
+        // 内核发送缓冲区）。假定已死并立即重连。短时间休眠后的误判重连代价
+        // 很小 —— replayBufferedMessages() 会处理，服务端也会按 UUID 去重。
         if (gap > SLEEP_DETECTION_THRESHOLD_MS) {
           logForDebugging(
             `WebSocketTransport: ${Math.round(gap / 1000)}s tick gap detected — process was suspended, forcing reconnect`,
@@ -775,7 +761,7 @@ export class WebSocketTransport implements Transport {
   private startKeepaliveInterval(): void {
     this.stopKeepaliveInterval()
 
-    // In CCR sessions, session activity heartbeats handle keep-alives
+    // 在 CCR 会话中，由 session 活动心跳处理 keep-alive
     if (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE)) {
       return
     }

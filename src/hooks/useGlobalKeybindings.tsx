@@ -1,8 +1,8 @@
 /**
- * Component that registers global keybinding handlers.
+ * 注册全局快捷键处理程序的组件。
  *
- * Must be rendered inside KeybindingSetup to have access to the keybinding context.
- * This component renders nothing - it just registers the keybinding handlers.
+ * 必须在 KeybindingSetup 内部渲染以访问快捷键上下文。
+ * 此组件不渲染任何内容 - 仅注册快捷键处理程序。
  */
 import { feature } from 'bun:bundle';
 import { useCallback } from 'react';
@@ -31,11 +31,11 @@ type Props = {
 };
 
 /**
- * Registers global keybinding handlers for:
- * - ctrl+t: Toggle todo list
- * - ctrl+o: Toggle transcript mode
- * - ctrl+e: Toggle showing all messages in transcript
- * - ctrl+c/escape: Exit transcript mode
+ * 注册全局快捷键处理程序：
+ * - ctrl+t：切换待办列表
+ * - ctrl+o：切换 transcript 模式
+ * - ctrl+e：切换在 transcript 中显示所有消息
+ * - ctrl+c/escape：退出 transcript 模式
  */
 export function GlobalKeybindingHandlers({
   screen,
@@ -51,7 +51,7 @@ export function GlobalKeybindingHandlers({
   const expandedView = useAppState(s => s.expandedView);
   const setAppState = useSetAppState();
 
-  // Toggle todo list (ctrl+t) - cycles through views
+  // 切换待办列表 (ctrl+t) - 在视图间循环
   const handleToggleTodos = useCallback(() => {
     logEvent('tengu_toggle_todos', {
       is_expanded: expandedView === 'tasks',
@@ -63,7 +63,7 @@ export function GlobalKeybindingHandlers({
       const hasTeammates = count(getAllInProcessTeammateTasks(prev.tasks), t => t.status === 'running') > 0;
 
       if (hasTeammates) {
-        // Both exist: none → tasks → teammates → none
+        // 两者都存在：none → tasks → teammates → none
         switch (prev.expandedView) {
           case 'none':
             return { ...prev, expandedView: 'tasks' as const };
@@ -73,7 +73,7 @@ export function GlobalKeybindingHandlers({
             return { ...prev, expandedView: 'none' as const };
         }
       }
-      // Only tasks: none ↔ tasks
+      // 只有 tasks：none ↔ tasks
       return {
         ...prev,
         expandedView: prev.expandedView === 'tasks' ? ('none' as const) : ('tasks' as const),
@@ -81,16 +81,16 @@ export function GlobalKeybindingHandlers({
     });
   }, [expandedView, setAppState]);
 
-  // Toggle transcript mode (ctrl+o). Two-way prompt ↔ transcript.
-  // Brief view has its own dedicated toggle on ctrl+shift+b.
+  // 切换 transcript 模式 (ctrl+o)。双向 prompt ↔ transcript。
+  // Brief 视图有自己在 ctrl+shift+b 上的专用切换。
   const isBriefOnlyState = useAppState(s => s.isBriefOnly);
   const handleToggleTranscript = useCallback(() => {
     if (feature('KAIROS') || feature('KAIROS_BRIEF')) {
-      // Escape hatch: GB kill-switch while defaultView=chat was persisted
-      // can leave isBriefOnly stuck on, showing a blank filterForBriefTool
-      // view. Users will reach for ctrl+o — clear the stuck state first.
-      // Only needed in the prompt screen — transcript mode already ignores
-      // isBriefOnly (Messages.tsx filter is gated on !isTranscriptMode).
+      // 逃生舱：GB kill-switch 在 defaultView=chat 被持久化时
+      // 可能让 isBriefOnly 卡在开启状态，显示空白的 filterForBriefTool
+      // 视图。用户会去按 ctrl+o —— 先清除卡住的状态。
+      // 仅在 prompt 屏幕需要 —— transcript 模式已经忽略
+      // isBriefOnly（Messages.tsx 过滤器在 !isTranscriptMode 上门控）。
       /* eslint-disable @typescript-eslint/no-require-imports */
       const { isBriefEnabled } =
         require('@claude-code-best/builtin-tools/tools/BriefTool/BriefTool.js') as typeof import('@claude-code-best/builtin-tools/tools/BriefTool/BriefTool.js');
@@ -130,7 +130,7 @@ export function GlobalKeybindingHandlers({
     onExitTranscript,
   ]);
 
-  // Toggle showing all messages in transcript mode (ctrl+e)
+  // 在 transcript 模式下切换显示所有消息 (ctrl+e)
   const handleToggleShowAll = useCallback(() => {
     logEvent('tengu_transcript_toggle_show_all', {
       is_expanding: !showAllInTranscript,
@@ -139,7 +139,7 @@ export function GlobalKeybindingHandlers({
     setShowAllInTranscript(prev => !prev);
   }, [showAllInTranscript, setShowAllInTranscript, messageCount]);
 
-  // Exit transcript mode (ctrl+c or escape)
+  // 退出 transcript 模式 (ctrl+c 或 escape)
   const handleExitTranscript = useCallback(() => {
     logEvent('tengu_transcript_exit', {
       show_all: showAllInTranscript,
@@ -152,10 +152,10 @@ export function GlobalKeybindingHandlers({
     }
   }, [setScreen, showAllInTranscript, setShowAllInTranscript, messageCount, onExitTranscript]);
 
-  // Toggle brief-only view (ctrl+shift+b). Pure display filter toggle —
-  // does not touch opt-in state. Asymmetric gate (mirrors /brief): OFF
-  // transition always allowed so the same key that got you in gets you
-  // out even if the GB kill-switch fires mid-session.
+  // 切换 brief-only 视图 (ctrl+shift+b)。纯显示过滤器切换 ——
+  // 不触及 opt-in 状态。非对称门控（镜像 /brief）：OFF
+  // 转换始终允许，这样让你进入的同一键也能让你出来，
+  // 即使 GB kill-switch 在会话中途触发。
   const handleToggleBrief = useCallback(() => {
     if (feature('KAIROS') || feature('KAIROS_BRIEF')) {
       /* eslint-disable @typescript-eslint/no-require-imports */
@@ -176,7 +176,7 @@ export function GlobalKeybindingHandlers({
     }
   }, [isBriefOnlyState, setAppState]);
 
-  // Register keybinding handlers
+  // 注册快捷键处理程序
   useKeybinding('app:toggleTodos', handleToggleTodos, {
     context: 'Global',
   });
@@ -188,7 +188,7 @@ export function GlobalKeybindingHandlers({
     isActive: feature('KAIROS') ? true : feature('KAIROS_BRIEF') ? true : false,
   });
 
-  // Register teammate keybinding
+  // 注册队友快捷键
   useKeybinding(
     'app:toggleTeammatePreview',
     () => {
@@ -202,8 +202,8 @@ export function GlobalKeybindingHandlers({
     },
   );
 
-  // Toggle built-in terminal panel (meta+j).
-  // toggle() blocks in spawnSync until the user detaches from tmux.
+  // 切换内置终端面板 (meta+j)。
+  // toggle() 在 spawnSync 中阻塞直到用户从 tmux 分离。
   const handleToggleTerminal = useCallback(() => {
     if (feature('TERMINAL_PANEL')) {
       if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_terminal_panel', false)) {
@@ -216,15 +216,15 @@ export function GlobalKeybindingHandlers({
     context: 'Global',
   });
 
-  // Clear screen and force full redraw (ctrl+l). Recovery path when the
-  // terminal was cleared externally (macOS Cmd+K) and Ink's diff engine
-  // thinks unchanged cells don't need repainting.
+  // 清屏并强制全量重绘 (ctrl+l)。当终端被外部清除
+  // （macOS Cmd+K）且 Ink 的 diff 引擎认为未更改的单元格
+  // 无需重绘时的恢复路径。
   const handleRedraw = useCallback(() => {
     instances.get(process.stdout)?.forceRedraw();
   }, []);
   useKeybinding('app:redraw', handleRedraw, { context: 'Global' });
 
-  // Transcript-specific bindings (only active when in transcript mode)
+  // Transcript 特定的绑定（仅在 transcript 模式下活跃）
   const isInTranscript = screen === 'transcript';
   useKeybinding('transcript:toggleShowAll', handleToggleShowAll, {
     context: 'Transcript',
@@ -232,11 +232,11 @@ export function GlobalKeybindingHandlers({
   });
   useKeybinding('transcript:exit', handleExitTranscript, {
     context: 'Transcript',
-    // Bar-open is a mode (owns keystrokes). Navigating (highlights
-    // visible, n/N active, bar closed) is NOT — Esc exits transcript
-    // directly, same as less q. useSearchInput doesn't stopPropagation,
-    // so without this gate its onCancel AND this handler would both
-    // fire on one Esc (child registers first, fires first, bubbles).
+    // Bar-open 是一种模式（拥有按键）。导航中（高亮
+    // 可见，n/N 活跃，bar 关闭）不是 —— Esc 直接退出 transcript，
+    // 与 less q 相同。useSearchInput 不停止传播，
+    // 所以如果没有此门控，其 onCancel 和此处理程序都会
+    // 在一次 Esc 上触发（子级先注册，先触发，冒泡）。
     isActive: isInTranscript && !searchBarOpen,
   });
 

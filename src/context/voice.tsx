@@ -26,8 +26,8 @@ type Props = {
 };
 
 export function VoiceProvider({ children }: Props): React.ReactNode {
-  // Store is created once — stable context value means the provider never
-  // triggers re-renders. Consumers subscribe to slices via useVoiceState.
+  // Store 只创建一次——稳定的上下文值意味着 provider 永远不会
+  // 触发重新渲染。消费者通过 useVoiceState 订阅切片。
   const [store] = useState(() => createStore<VoiceState>(DEFAULT_STATE));
   return <VoiceContext.Provider value={store}>{children}</VoiceContext.Provider>;
 }
@@ -41,8 +41,8 @@ function useVoiceStore(): VoiceStore {
 }
 
 /**
- * Subscribe to a slice of voice state. Only re-renders when the selected
- * value changes (compared via Object.is).
+ * 订阅语音状态的一部分。仅当所选值改变时
+ * 才重新渲染（通过 Object.is 比较）。
  */
 export function useVoiceState<T>(selector: (state: VoiceState) => T): T {
   const store = useVoiceStore();
@@ -51,18 +51,18 @@ export function useVoiceState<T>(selector: (state: VoiceState) => T): T {
 }
 
 /**
- * Get the voice state setter. Stable reference — never causes re-renders.
- * store.setState is synchronous: callers can read getVoiceState() immediately
- * after to observe the new value (VoiceKeybindingHandler relies on this).
+ * 获取语音状态设置器。稳定的引用——永远不会导致重新渲染。
+ * store.setState 是同步的：调用方可以立即读取 getVoiceState()
+ * 以观察新值（VoiceKeybindingHandler 依赖此行为）。
  */
 export function useSetVoiceState(): (updater: (prev: VoiceState) => VoiceState) => void {
   return useVoiceStore().setState;
 }
 
 /**
- * Get a synchronous reader for fresh state inside callbacks. Unlike
- * useVoiceState (which subscribes), this doesn't cause re-renders — use
- * inside event handlers that need to read state set earlier in the same tick.
+ * 获取回调内新鲜状态的同步读取器。与
+ * useVoiceState（会订阅）不同，此函数不会导致重新渲染——
+ * 在需要读取同一 tick 内先前设置的状态的事件处理器中使用。
  */
 export function useGetVoiceState(): () => VoiceState {
   return useVoiceStore().getState;

@@ -13,11 +13,11 @@ export function UnifiedInstalledCell({ item, isSelected }: Props): React.ReactNo
   const [theme] = useTheme();
 
   if (item.type === 'plugin') {
-    // Status icon and text
+    // 状态图标和文字
     let statusIcon: string;
     let statusText: string;
 
-    // Show pending toggle status if set, otherwise show current status
+    // 如果设置了待处理切换则显示该状态，否则显示当前状态
     if (item.pendingToggle) {
       statusIcon = color('suggestion', theme)(figures.arrowRight);
       statusText = item.pendingToggle === 'will-enable' ? 'will enable' : 'will disable';
@@ -84,7 +84,7 @@ export function UnifiedInstalledCell({ item, isSelected }: Props): React.ReactNo
     );
   }
 
-  // MCP server
+  // MCP 服务器
   let statusIcon: string;
   let statusText: string;
 
@@ -105,7 +105,7 @@ export function UnifiedInstalledCell({ item, isSelected }: Props): React.ReactNo
     statusText = 'failed';
   }
 
-  // Indented MCPs (child of a plugin)
+  // 缩进的 MCP（某个插件的子项）
   if (item.indented) {
     return (
       <Box>

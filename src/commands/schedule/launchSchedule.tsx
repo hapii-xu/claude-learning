@@ -17,7 +17,7 @@ export const callSchedule: LocalJSXCommandCall = async (onDone, _context, args) 
 
   const parsed = parseScheduleArgs(args ?? '');
 
-  // ── invalid args ──────────────────────────────────────────────────────────
+  // ── 无效参数 ──────────────────────────────────────────────────────────
   if (parsed.action === 'invalid') {
     logEvent('tengu_schedule_failed', {
       reason: parsed.reason as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -29,7 +29,7 @@ export const callSchedule: LocalJSXCommandCall = async (onDone, _context, args) 
     return null;
   }
 
-  // ── list ──────────────────────────────────────────────────────────────────
+  // ── 列表 ──────────────────────────────────────────────────────────
   if (parsed.action === 'list') {
     logEvent('tengu_schedule_list', {});
     try {
@@ -48,7 +48,7 @@ export const callSchedule: LocalJSXCommandCall = async (onDone, _context, args) 
     }
   }
 
-  // ── get ───────────────────────────────────────────────────────────────────
+  // ── 获取 ───────────────────────────────────────────────────────────
   if (parsed.action === 'get') {
     const { id } = parsed;
     logEvent('tengu_schedule_get', {
@@ -68,7 +68,7 @@ export const callSchedule: LocalJSXCommandCall = async (onDone, _context, args) 
     }
   }
 
-  // ── create ────────────────────────────────────────────────────────────────
+  // ── 创建 ────────────────────────────────────────────────────────────
   if (parsed.action === 'create') {
     const { cron, prompt } = parsed;
 
@@ -99,7 +99,7 @@ export const callSchedule: LocalJSXCommandCall = async (onDone, _context, args) 
     }
   }
 
-  // ── update ────────────────────────────────────────────────────────────────
+  // ── 更新 ────────────────────────────────────────────────────────────
   if (parsed.action === 'update') {
     const { id, field, value } = parsed;
     logEvent('tengu_schedule_update', {
@@ -107,7 +107,7 @@ export const callSchedule: LocalJSXCommandCall = async (onDone, _context, args) 
       field: field as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     });
 
-    // Coerce value to boolean when field is 'enabled'
+    // 当字段为 'enabled' 时将值强制转换为布尔值
     let body: UpdateTriggerBody = {};
     if (field === 'enabled') {
       body = { enabled: value === 'true' || value === '1' };
@@ -143,7 +143,7 @@ export const callSchedule: LocalJSXCommandCall = async (onDone, _context, args) 
     }
   }
 
-  // ── delete ────────────────────────────────────────────────────────────────
+  // ── 删除 ────────────────────────────────────────────────────────────
   if (parsed.action === 'delete') {
     const { id } = parsed;
     logEvent('tengu_schedule_delete', {
@@ -163,7 +163,7 @@ export const callSchedule: LocalJSXCommandCall = async (onDone, _context, args) 
     }
   }
 
-  // ── run ───────────────────────────────────────────────────────────────────
+  // ── 运行 ───────────────────────────────────────────────────────────
   if (parsed.action === 'run') {
     const { id } = parsed;
     logEvent('tengu_schedule_run', {
@@ -189,7 +189,7 @@ export const callSchedule: LocalJSXCommandCall = async (onDone, _context, args) 
     }
   }
 
-  // ── enable ────────────────────────────────────────────────────────────────
+  // ── 启用 ────────────────────────────────────────────────────────────
   if (parsed.action === 'enable') {
     const { id } = parsed;
     logEvent('tengu_schedule_enable', {
@@ -209,7 +209,7 @@ export const callSchedule: LocalJSXCommandCall = async (onDone, _context, args) 
     }
   }
 
-  // ── disable ───────────────────────────────────────────────────────────────
+  // ── 禁用 ───────────────────────────────────────────────────────────
   // parsed.action === 'disable'
   const { id } = parsed;
   logEvent('tengu_schedule_disable', {

@@ -5,7 +5,7 @@ import { AGENT_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/AgentTool
 const statusline = {
   type: 'prompt',
   description: "Set up Claude Code's status line UI",
-  contentLength: 0, // Dynamic content
+  contentLength: 0, // 动态内容
   aliases: [],
   name: 'statusline',
   progressMessage: 'setting up statusLine',

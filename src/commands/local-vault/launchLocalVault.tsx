@@ -28,13 +28,13 @@ function formatKeyList(keys: string[]): string {
   return ['Local Vault Keys', ...keys.map(key => `- ${key}`)].join('\n');
 }
 
-// ── Interactive multi-step panel ───────────────────────────────────────────
-// Vault state machine:
-//   menu               — pick action
-//   collect-key        — KEY name (Set/Get/Delete)
-//   collect-value      — secret VALUE (Set only; masked input)
-//   confirm-overwrite  — Y/N when key exists (Set)
-//   confirm-delete     — Y/N (Delete)
+// ── 交互式多步面板 ───────────────────────────────────────────
+// Vault 状态机：
+//   menu               — 选择操作
+//   collect-key        — KEY 名称（Set/Get/Delete）
+//   collect-value      — secret 的 VALUE（仅 Set；输入已遮蔽）
+//   confirm-overwrite  — key 已存在时的 Y/N（Set）
+//   confirm-delete     — Y/N（Delete）
 
 type VaultActionKind = 'list' | 'set' | 'get' | 'delete' | 'about';
 
@@ -90,7 +90,7 @@ function LocalVaultPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.R
 
   const closeWith = React.useCallback((msg: string) => onDone(msg, { display: 'system' }), [onDone]);
 
-  // ── Menu navigation ────────────────────────────────────────────────────
+  // ── 菜单导航 ────────────────────────────────────────────────────
   useInput(
     (input, key) => {
       if (step.kind !== 'menu' || inFlight) return;
@@ -116,7 +116,7 @@ function LocalVaultPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.R
           });
           return;
         }
-        // Set / Get / Delete — collect key first
+        // Set / Get / Delete —— 先收集 key
         transition({ kind: 'collect-key', action: choice.kind });
         return;
       }
@@ -128,7 +128,7 @@ function LocalVaultPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.R
     { isActive: step.kind === 'menu' && !inFlight },
   );
 
-  // ── Confirmations (overwrite / delete) ─────────────────────────────────
+  // ── 确认（覆盖 / 删除） ─────────────────────────────────
   useInput(
     (input, key) => {
       if (step.kind !== 'confirm-overwrite' && step.kind !== 'confirm-delete') {
@@ -147,7 +147,7 @@ function LocalVaultPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.R
             closeWith(removed ? `Deleted: ${key}` : `Key not found: ${key}`);
           });
         } else {
-          // confirm-overwrite — proceed with setSecret
+          // confirm-overwrite —— 继续执行 setSecret
           setInFlight(true);
           const k = step.key;
           const v = step.value;
@@ -164,7 +164,7 @@ function LocalVaultPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.R
     },
   );
 
-  // Esc back-step in collect-* steps
+  // collect-* 步骤中按 Esc 回退一步
   useInput(
     (_input, key) => {
       if (step.kind !== 'collect-key' && step.kind !== 'collect-value') return;
@@ -181,7 +181,7 @@ function LocalVaultPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.R
     },
   );
 
-  // ── Action handlers ─────────────────────────────────────────────────────
+  // ── 动作处理器 ─────────────────────────────────────────────────────
   const handleKeySubmit = (raw: string) => {
     const key = raw.trim();
     if (!key) {
@@ -221,12 +221,12 @@ function LocalVaultPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.R
       return;
     }
     const k = step.key;
-    // Check overwrite
+    // 检查覆盖
     setInFlight(true);
     void getSecret(k)
       .then(existing => {
         if (existing !== null) {
-          // Need confirmation
+          // 需要确认
           setInFlight(false);
           transition({
             kind: 'confirm-overwrite',
@@ -240,7 +240,7 @@ function LocalVaultPanel({ onDone }: { onDone: LocalJSXCommandOnDone }): React.R
       .catch(e => closeWith(`Failed to store ${k}: ${e instanceof Error ? e.message : String(e)}`));
   };
 
-  // ── Render ──────────────────────────────────────────────────────────────
+  // ── 渲染 ──────────────────────────────────────────────────────────────
   if (step.kind === 'menu') {
     return (
       <Dialog
@@ -362,7 +362,7 @@ async function dispatchLocalVault(
   if (parsed.action === 'set') {
     const { key, value } = parsed;
     await setSecret(key, value);
-    // Never echo the value in onDone — security invariant
+    // 永远不要在 onDone 中回显 value —— 安全不变式
     onDone(`Secret stored: ${key} = [REDACTED]`, { display: 'system' });
     return null;
   }
@@ -375,13 +375,13 @@ async function dispatchLocalVault(
       return null;
     }
     if (reveal) {
-      // Security invariant: only --reveal shows plaintext; warn user
+      // 安全不变式：仅 --reveal 显示明文；向用户发出警告
       onDone([`Secret revealed for: ${key}`, 'Warning: secret revealed in terminal.', `${key} = ${value}`].join('\n'), {
         display: 'system',
       });
       return null;
     }
-    // Default: mask display
+    // 默认：遮蔽显示
     const masked = maskSecret(value);
     onDone(`Key found: ${key} = ${masked}`, { display: 'system' });
     return null;
@@ -398,7 +398,7 @@ async function dispatchLocalVault(
     return null;
   }
 
-  // Exhaustive guard — should not be reached for valid parsed actions
+  // 穷尽性守卫 —— 对合法的解析动作不应到达
   onDone(USAGE, { display: 'system' });
   return null;
 }

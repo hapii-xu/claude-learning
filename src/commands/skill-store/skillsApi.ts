@@ -1,7 +1,7 @@
 /**
- * Thin HTTP client for the /v1/skills endpoint.
+ * /v1/skills 端点的轻量 HTTP 客户端。
  *
- * Key spec facts (from binary reverse-engineering of v2.1.123):
+ * 关键规范事实（来自对 v2.1.123 二进制的逆向工程）：
  *   - list skills:        GET    /v1/skills?beta=true
  *   - get skill:          GET    /v1/skills/{id}?beta=true
  *   - list versions:      GET    /v1/skills/{id}/versions?beta=true
@@ -9,10 +9,10 @@
  *   - create skill:       POST   /v1/skills?beta=true
  *   - delete skill:       DELETE /v1/skills/{id}?beta=true
  *
- * CRITICAL INVARIANT: Every request MUST include ?beta=true query parameter.
- * Binary evidence: `?beta=true` gate on all /v1/skills paths.
+ * 关键不变式：每个请求都必须包含 ?beta=true 查询参数。
+ * 二进制证据：所有 /v1/skills 路径上都有 `?beta=true` 门控。
  *
- * Reuses the same base-URL + auth-header pattern as memoryStoresApi.ts.
+ * 复用与 memoryStoresApi.ts 相同的 base-URL + auth-header 模式。
  */
 
 import axios from 'axios'
@@ -67,9 +67,9 @@ class SkillsApiError extends Error {
 }
 
 async function buildHeaders(): Promise<Record<string, string>> {
-  // /v1/skills requires a workspace-scoped API key (sk-ant-api03-*).
-  // Subscription OAuth bearer tokens 404 here (endpoint not on subscription plane).
-  // Guard the host before sending the key to prevent credential leakage.
+  // /v1/skills 需要一个 workspace 作用域的 API key（sk-ant-api03-*）。
+  // 订阅 OAuth bearer token 在这里会返回 404（该端点不在订阅认证层）。
+  // 在发送 key 前校验 host，以防凭据泄漏。
   let apiKey: string
   try {
     const prepared = await prepareWorkspaceApiRequest()
@@ -87,29 +87,29 @@ async function buildHeaders(): Promise<Record<string, string>> {
 }
 
 /**
- * Returns the base URL for /v1/skills with mandatory ?beta=true query.
- * CRITICAL INVARIANT: always append beta=true.
+ * 返回 /v1/skills 的 base URL，带有强制的 ?beta=true 查询参数。
+ * 关键不变式：始终追加 beta=true。
  */
 function skillsBaseUrl(): string {
   return `${getOauthConfig().BASE_API_URL}/v1/skills?beta=true`
 }
 
 /**
- * Returns the URL for a specific skill with mandatory ?beta=true query.
+ * 返回特定 skill 的 URL，带有强制的 ?beta=true 查询参数。
  */
 function skillUrl(id: string): string {
   return `${getOauthConfig().BASE_API_URL}/v1/skills/${id}?beta=true`
 }
 
 /**
- * Returns the URL for skill versions with mandatory ?beta=true query.
+ * 返回 skill versions 的 URL，带有强制的 ?beta=true 查询参数。
  */
 function skillVersionsUrl(id: string): string {
   return `${getOauthConfig().BASE_API_URL}/v1/skills/${id}/versions?beta=true`
 }
 
 /**
- * Returns the URL for a specific skill version with mandatory ?beta=true query.
+ * 返回特定 skill version 的 URL，带有强制的 ?beta=true 查询参数。
  */
 function skillVersionUrl(id: string, version: string): string {
   return `${getOauthConfig().BASE_API_URL}/v1/skills/${id}/versions/${version}?beta=true`
@@ -151,9 +151,9 @@ function classifyError(err: unknown): SkillsApiError {
 }
 
 /**
- * Parses the Retry-After header value into milliseconds.
- * Accepts both integer-seconds (e.g. "30") and HTTP-date strings.
- * Returns null when the header is absent or unparseable.
+ * 将 Retry-After 头部值解析为毫秒数。
+ * 同时接受整数秒（例如 "30"）和 HTTP-date 字符串。
+ * 当头部缺失或无法解析时返回 null。
  */
 function parseRetryAfterMs(header: string | undefined): number | null {
   if (!header) return null
@@ -171,7 +171,7 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
       return await fn()
     } catch (err: unknown) {
       const classified = classifyError(err)
-      // Only retry 5xx errors
+      // 仅对 5xx 错误进行重试
       if (classified.statusCode >= 500) {
         lastErr = classified
         if (attempt < MAX_RETRIES - 1) {
@@ -192,7 +192,7 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   throw lastErr ?? new SkillsApiError('Request failed after retries', 0)
 }
 
-// ── Skills CRUD ─────────────────────────────────────────────────────────────
+// ── Skills CRUD ─────────────────────────────────────────────────────
 
 export async function listSkills(): Promise<Skill[]> {
   return withRetry(async () => {

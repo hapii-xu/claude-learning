@@ -37,7 +37,7 @@ export function extractFirstPrompt(messages: Message[]): string {
     }
   }
 
-  // Take first line only and limit length
+  // 仅取首行并限制长度
   result = result.split('\n')[0] || '';
   if (result.length > 50) {
     result = result.substring(0, 49) + '…';
@@ -47,13 +47,13 @@ export function extractFirstPrompt(messages: Message[]): string {
 }
 
 export function sanitizeFilename(text: string): string {
-  // Replace special characters with hyphens
+  // 用连字符替换特殊字符
   return text
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single
-    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+    .replace(/[^a-z0-9\s-]/g, '') // 移除特殊字符
+    .replace(/\s+/g, '-') // 用连字符替换空格
+    .replace(/-+/g, '-') // 将多个连续连字符合并为单个
+    .replace(/^-|-$/g, ''); // 移除首尾连字符
 }
 
 async function exportWithReactRenderer(context: ToolUseContext): Promise<string> {
@@ -66,10 +66,10 @@ export async function call(
   context: ToolUseContext,
   args: string,
 ): Promise<React.ReactNode> {
-  // Render the conversation content
+  // 渲染对话内容
   const content = await exportWithReactRenderer(context);
 
-  // If args are provided, write directly to file and skip dialog
+  // 若提供了参数，直接写入文件并跳过对话框
   const filename = args.trim();
   if (filename) {
     const finalFilename = filename.endsWith('.txt') ? filename : filename.replace(/\.[^.]+$/, '') + '.txt';
@@ -88,7 +88,7 @@ export async function call(
     }
   }
 
-  // Generate default filename from first prompt or timestamp
+  // 从首个 prompt 或时间戳生成默认文件名
   const firstPrompt = extractFirstPrompt(context.messages);
   const timestamp = formatTimestamp(new Date());
 
@@ -100,7 +100,7 @@ export async function call(
     defaultFilename = `conversation-${timestamp}.txt`;
   }
 
-  // Return the dialog component when no args provided
+  // 未提供参数时返回对话框组件
   return (
     <ExportDialog
       content={content}

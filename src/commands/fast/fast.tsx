@@ -32,7 +32,7 @@ function applyFastMode(enable: boolean, setAppState: (f: (prev: AppState) => App
   });
   if (enable) {
     setAppState(prev => {
-      // Only switch model if current model doesn't support fast mode
+      // 仅当当前模型不支持 fast mode 时才切换模型
       const needsModelSwitch = !isFastModeSupportedByModel(prev.mainLoopModel);
       return {
         ...prev,
@@ -80,7 +80,7 @@ export function FastModePicker({
 
   function handleCancel(): void {
     if (isUnavailable) {
-      // Ensure fast mode is off if the org has disabled it
+      // 若组织已禁用 fast mode，确保将其关闭
       if (initialFastMode) {
         applyFastMode(false, setAppState);
       }
@@ -205,9 +205,9 @@ export async function call(
     return null;
   }
 
-  // Fetch org fast mode status before showing the picker. We must know
-  // whether the org has disabled fast mode before allowing any toggle.
-  // If a startup prefetch is already in flight, this awaits it.
+  // 在显示选择器之前拉取组织的 fast mode 状态。在允许任何切换之前，
+  // 我们必须知道组织是否已禁用 fast mode。如果启动时的预取正在进行中，
+  // 这里会等待其完成。
   await prefetchFastModeStatus();
 
   const arg = args?.trim().toLowerCase();

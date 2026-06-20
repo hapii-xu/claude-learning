@@ -1,9 +1,9 @@
 /**
- * usePipeRouter — Route user input to selected pipe targets.
+ * usePipeRouter — 将用户输入路由到选定的 pipe 目标。
  *
- * Returns `routeToSelectedPipes(input)` which checks selectedPipes +
- * routeMode and sends the prompt to all connected slave targets.
- * Returns true if routed (caller should skip local execution).
+ * 返回 `routeToSelectedPipes(input)`，检查 selectedPipes +
+ * routeMode 并将提示发送到所有已连接的 slave 目标。
+ * 如果已路由则返回 true（调用者应跳过本地执行）。
  */
 import { feature } from 'bun:bundle'
 import { useCallback } from 'react'
@@ -25,8 +25,8 @@ type Deps = {
 }
 
 /**
- * Attempt to route user input to selected pipes.
- * Returns true if routed to at least one pipe (skip local execution).
+ * 尝试将用户输入路由到选定的 pipes。
+ * 如果路由到至少一个 pipe 则返回 true（跳过本地执行）。
  */
 export function usePipeRouter({ store, setAppState, addNotification }: Deps): {
   routeToSelectedPipes: (input: string) => boolean
@@ -66,7 +66,7 @@ export function usePipeRouter({ store, setAppState, addNotification }: Deps): {
         try {
           client.send({ type: 'prompt', data: input.trim() })
           sentTargetNames.push(name)
-          // Build display label: [role] hostname/ip for LAN, [role] for local
+          // 构建显示标签：LAN 为 [role] hostname/ip，本地为 [role]
           const info = discovered.find((d: any) => d.pipeName === name)
           if (info) {
             const isLan = info.ip && info.ip !== pipeIpcForDisplay.localIp

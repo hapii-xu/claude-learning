@@ -24,7 +24,7 @@ export const call: LocalCommandCall = async (_args, context) => {
     }
   }
 
-  // Master mode
+  // Master 模式
   const slaves = getPipeIpc(currentState).slaves
   const slaveNames = Object.keys(slaves)
   const clients = getAllSlaveClients()

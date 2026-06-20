@@ -234,7 +234,7 @@ const command = {
       ? 'Initialize new CLAUDE.md file(s) and optional skills/hooks with codebase documentation'
       : 'Initialize a new CLAUDE.md file with codebase documentation'
   },
-  contentLength: 0, // Dynamic content
+  contentLength: 0, // 动态内容
   progressMessage: 'analyzing your codebase',
   source: 'builtin',
   async getPromptForCommand() {

@@ -1,8 +1,7 @@
-// gh CLI integration for autofix-pr: fetches PR snapshots and feeds them
-// through the pure decision matrix in prOutcomeCheck.ts. Kept separate so
-// tests of the decision matrix never have to mock node:child_process — and
-// tests of callAutofixPr can mock this module without polluting the pure
-// decision matrix module (Bun mock.module is process-global).
+// autofix-pr 的 gh CLI 集成：抓取 PR 快照并送进 prOutcomeCheck.ts 中的
+// 纯决策矩阵。单独抽出，是为了让决策矩阵的测试不必 mock node:child_process ——
+// 同时让 callAutofixPr 的测试可以只 mock 本模块，而不污染纯决策矩阵模块
+// （Bun 的 mock.module 是进程级生效的）。
 
 import { spawn } from 'node:child_process'
 import {
@@ -16,14 +15,13 @@ export interface AutofixOutcomeProbeInput {
   repo: string
   prNumber: number
   /**
-   * Head commit SHA captured at /autofix-pr launch. When this differs from
-   * the current head, autofix has pushed at least one commit.
+   * /autofix-pr 启动时记录的 head commit SHA。当它与当前 head 不同时，
+   * 说明 autofix 至少 push 了一个 commit。
    */
   initialHeadSha?: string
   /**
-   * Timeout for the gh CLI invocation. Caller is the framework's per-tick
-   * poller, so failures must be bounded — a hung gh process would stall
-   * the entire poll loop.
+   * gh CLI 调用的超时时间。调用方是框架的逐 tick 轮询器，因此失败必须有上界 ——
+   * 挂起的 gh 进程会拖住整个轮询循环。
    */
   timeoutMs?: number
 }
@@ -31,9 +29,9 @@ export interface AutofixOutcomeProbeInput {
 const DEFAULT_TIMEOUT_MS = 5_000
 
 /**
- * Fetch the PR's current head SHA, state, and CI rollup, and decide whether
- * autofix has finished. Returns `{ completed: true, summary }` if so;
- * otherwise `{ completed: false }`. Never throws.
+ * 抓取 PR 当前的 head SHA、state 和 CI rollup，并判定 autofix 是否结束。
+ * 完成则返回 `{ completed: true, summary }`，否则返回 `{ completed: false }`。
+ * 永不抛错。
  */
 export async function checkPrAutofixOutcome(
   input: AutofixOutcomeProbeInput,
@@ -61,11 +59,10 @@ export async function checkPrAutofixOutcome(
 }
 
 /**
- * Resolve the PR's current head commit SHA. Used at /autofix-pr launch to
- * capture a baseline; later compared against the live SHA to detect pushes.
- * Returns null on any failure (network, missing gh, permissions) — the
- * caller treats null as "no baseline" and falls back to terminal-state-only
- * completion detection.
+ * 获取 PR 当前的 head commit SHA。用于 /autofix-pr 启动时抓取 baseline，
+ * 后续会与实时 SHA 对比以检测是否发生 push。任何失败（网络、缺少 gh、
+ * 权限）都返回 null —— 调用方把 null 视作「无 baseline」，回退到只依据
+ * 终态判定完成。
  */
 export async function fetchPrHeadSha(
   owner: string,
@@ -86,8 +83,8 @@ interface SpawnError extends Error {
 }
 
 /**
- * Spawn `gh pr view {n} --repo {owner}/{repo} --json ...` and parse the
- * result. Rejects on non-zero exit, timeout, or JSON parse failure.
+ * 启动 `gh pr view {n} --repo {owner}/{repo} --json ...` 并解析结果。
+ * 非零退出、超时或 JSON 解析失败时 reject。
  */
 function runGhPrView(
   owner: string,

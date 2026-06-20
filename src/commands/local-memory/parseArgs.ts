@@ -1,15 +1,15 @@
 /**
- * Parse the args string for the /local-memory command.
+ * 解析 /local-memory 命令的 args 字符串。
  *
- * Supported sub-commands:
+ * 支持的子命令：
  *   list                           → { action: 'list' }
  *   create <store>                 → { action: 'create', store }
  *   store <store> <key> <value>    → { action: 'store', store, key, value }
  *   fetch <store> <key>            → { action: 'fetch', store, key }
  *   entries <store>                → { action: 'entries', store }
  *   archive <store>                → { action: 'archive', store }
- *   (empty)                        → { action: 'list' }
- *   anything else                  → { action: 'invalid', reason }
+ *   （空）                          → { action: 'list' }
+ *   其他任意值                     → { action: 'invalid', reason }
  */
 
 export type LocalMemoryArgs =
@@ -21,9 +21,9 @@ export type LocalMemoryArgs =
   | { action: 'archive'; store: string }
   | { action: 'invalid'; reason: string }
 
-// Markdown renderer in REPL eats `<store>` / `<key>` / `<value>` as if
-// they were HTML tags. Use uppercase placeholders so users see the
-// full usage line. (Same fix as src/commands/local-vault/parseArgs.ts.)
+// REPL 中的 markdown 渲染器会把 `<store>` / `<key>` / `<value>` 当作 HTML 标签
+// 吞掉。使用大写的占位符，确保用户能看到完整的 usage 行。（与 src/commands/local-vault/parseArgs.ts
+// 的修复方式相同。）
 const USAGE =
   'Usage: /local-memory list | create STORE | store STORE KEY VALUE | fetch STORE KEY | entries STORE | archive STORE'
 
@@ -67,7 +67,7 @@ export function parseLocalMemoryArgs(args: string): LocalMemoryArgs {
     if (!key) {
       return { action: 'invalid', reason: `store requires a key. ${USAGE}` }
     }
-    // D6: value is tokens[3..] joined, not substring math (handles store/key with repeated substrings)
+    // D6：value 是 tokens[3..] 拼接而成，不用 substring 计算（可处理 store/key 含有重复子串的情况）
     const rest = tokens.slice(3).join(' ')
     if (!rest) {
       return { action: 'invalid', reason: `store requires a value. ${USAGE}` }

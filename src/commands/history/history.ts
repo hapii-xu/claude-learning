@@ -15,7 +15,7 @@ export const call: LocalCommandCall = async (args, context) => {
   const targetName = parts[0]
 
   if (!targetName) {
-    // Show list of connected sub sessions
+    // 显示已连接的子会话列表
     const slaveNames = Object.keys(getPipeIpc(currentState).slaves)
     if (slaveNames.length === 0) {
       return { type: 'text', value: 'No sub sessions connected.' }
@@ -34,7 +34,7 @@ export const call: LocalCommandCall = async (args, context) => {
     }
   }
 
-  // Parse --last N
+  // 解析 --last N
   let limit = slave.history.length
   const lastIdx = parts.indexOf('--last')
   if (lastIdx !== -1 && parts[lastIdx + 1]) {

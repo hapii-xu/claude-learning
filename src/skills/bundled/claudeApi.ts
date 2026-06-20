@@ -2,8 +2,8 @@ import { readdir } from 'fs/promises'
 import { getCwd } from '../../utils/cwd.js'
 import { registerBundledSkill } from '../bundledSkills.js'
 
-// claudeApiContent.js bundles 247KB of .md strings. Lazy-load inside
-// getPromptForCommand so they only enter memory when /claude-api is invoked.
+// claudeApiContent.js 打包了 247KB 的 .md 字符串。在 getPromptForCommand
+// 中延迟加载，以便仅在调用 /claude-api 时才进入内存。
 type SkillContent = typeof import('./claudeApiContent.js')
 
 type DetectedLanguage =
@@ -62,7 +62,7 @@ function getFilesForLanguage(
 }
 
 function processContent(md: string, content: SkillContent): string {
-  // Strip HTML comments. Loop to handle nested comments.
+  // 移除 HTML 注释。循环处理以应对嵌套注释。
   let out = md
   let prev
   do {
@@ -134,7 +134,7 @@ function buildPrompt(
   args: string,
   content: SkillContent,
 ): string {
-  // Take the SKILL.md content up to the "Reading Guide" section
+  // 截取 SKILL.md 内容直到 "Reading Guide" 部分
   const cleanPrompt = processContent(content.SKILL_PROMPT, content)
   const readingGuideIdx = cleanPrompt.indexOf('## Reading Guide')
   const basePrompt =
@@ -153,7 +153,7 @@ function buildPrompt(
         buildInlineReference(filePaths, content),
     )
   } else {
-    // No language detected — include all docs and let the model ask
+    // 未检测到语言 —— 包含所有文档，让模型向用户询问
     parts.push(INLINE_READING_GUIDE.replace(/\{lang\}/g, 'unknown'))
     parts.push(
       'No project language was auto-detected. Ask the user which language they are using, then refer to the matching docs below.',
@@ -164,7 +164,7 @@ function buildPrompt(
     )
   }
 
-  // Preserve the "When to Use WebFetch" and "Common Pitfalls" sections
+  // 保留 "When to Use WebFetch" 和 "Common Pitfalls" 部分
   const webFetchIdx = cleanPrompt.indexOf('## When to Use WebFetch')
   if (webFetchIdx !== -1) {
     parts.push(cleanPrompt.slice(webFetchIdx).trimEnd())

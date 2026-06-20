@@ -47,8 +47,8 @@ export function isProjectOnboardingComplete(): boolean {
 }
 
 export function maybeMarkProjectOnboardingComplete(): void {
-  // Short-circuit on cached config — isProjectOnboardingComplete() hits
-  // the filesystem, and REPL.tsx calls this on every prompt submit.
+  // 命中缓存 config 时直接短路 —— isProjectOnboardingComplete() 会访问文件系统，
+  // 且 REPL.tsx 每次提交 prompt 都会调用此函数。
   if (getCurrentProjectConfig().hasCompletedProjectOnboarding) {
     return
   }
@@ -62,8 +62,8 @@ export function maybeMarkProjectOnboardingComplete(): void {
 
 export const shouldShowProjectOnboarding = memoize((): boolean => {
   const projectConfig = getCurrentProjectConfig()
-  // Short-circuit on cached config before isProjectOnboardingComplete()
-  // hits the filesystem — this runs during first render.
+  // 在 isProjectOnboardingComplete() 访问文件系统之前，命中缓存 config 直接短路
+  // —— 此函数在首次渲染期间就会执行。
   if (
     projectConfig.hasCompletedProjectOnboarding ||
     projectConfig.projectOnboardingSeenCount >= 4 ||

@@ -5,6 +5,7 @@ import type { AssistantMessage, Message } from '../../types/message.js'
 import { all } from '../../utils/generators.js'
 import { type MessageUpdateLazy, runToolUse } from './toolExecution.js'
 import { createToolBatchSpan, endToolBatchSpan } from '../langfuse/index.js'
+import { logForDebugging } from '../../utils/debug.js'
 
 function getMaxToolUseConcurrency(): number {
   return (
@@ -23,7 +24,11 @@ export async function* runTools(
   canUseTool: CanUseToolFn,
   toolUseContext: ToolUseContext,
 ): AsyncGenerator<MessageUpdate, void> {
-  // Wrap all tool calls in this turn under a single Langfuse turn span
+  logForDebugging(
+    `[工具编排] runTools 开始，本轮工具调用数 ${toolUseMessages.length}：[${toolUseMessages.map(b => b.name).join(', ')}]`,
+    { level: 'info' },
+  )
+  // 将此轮次中的所有工具调用包装在单个 Langfuse 轮次 span 下
   const turnSpan =
     toolUseMessages.length > 0
       ? createToolBatchSpan(toolUseContext.langfuseTrace ?? null, {
@@ -45,7 +50,7 @@ export async function* runTools(
         string,
         ((context: ToolUseContext) => ToolUseContext)[]
       > = {}
-      // Run read-only batch concurrently
+      // 并发运行只读批处理
       for await (const update of runToolsConcurrently(
         blocks,
         assistantMessages,
@@ -75,7 +80,7 @@ export async function* runTools(
       }
       yield { newContext: currentContext }
     } else {
-      // Run non-read-only batch serially
+      // 串行运行非只读批处理
       for await (const update of runToolsSerially(
         blocks,
         assistantMessages,
@@ -93,15 +98,16 @@ export async function* runTools(
     }
   }
 
+  logForDebugging('[工具编排] runTools 所有工具执行完毕', { level: 'info' })
   endToolBatchSpan(turnSpan)
 }
 
 type Batch = { isConcurrencySafe: boolean; blocks: ToolUseBlock[] }
 
 /**
- * Partition tool calls into batches where each batch is either:
- * 1. A single non-read-only tool, or
- * 2. Multiple consecutive read-only tools
+ * 将工具调用分区为批处理，每个批处理是以下之一：
+ * 1. 单个非只读工具，或
+ * 2. 多个连续的只读工具
  */
 function partitionToolCalls(
   toolUseMessages: ToolUseBlock[],
@@ -115,8 +121,12 @@ function partitionToolCalls(
           try {
             return Boolean(tool?.isConcurrencySafe(parsedInput.data))
           } catch {
-            // If isConcurrencySafe throws (e.g., due to shell-quote parse failure),
-            // treat as not concurrency-safe to be conservative
+            // 如果 isConcurrencySafe 抛出异常（例如，由于 shell-quote 解析失败），
+            // 保守地视为非并发安全
+            logForDebugging(
+              `[工具编排] isConcurrencySafe 检查抛错（${toolUse.name}），按不可并发处理`,
+              { level: 'error' },
+            )
             return false
           }
         })()

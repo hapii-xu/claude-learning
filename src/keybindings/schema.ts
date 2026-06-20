@@ -1,13 +1,13 @@
 /**
- * Zod schema for keybindings.json configuration.
- * Used for validation and JSON schema generation.
+ * keybindings.json 配置的 Zod schema。
+ * 用于验证和 JSON schema 生成。
  */
 
 import { z } from 'zod/v4'
 import { lazySchema } from '../utils/lazySchema.js'
 
 /**
- * Valid context names where keybindings can be applied.
+ * 可应用快捷键的有效上下文名称。
  */
 export const KEYBINDING_CONTEXTS = [
   'Global',
@@ -21,7 +21,7 @@ export const KEYBINDING_CONTEXTS = [
   'ThemePicker',
   'Settings',
   'Tabs',
-  // New contexts for keybindings migration
+  // 快捷键迁移的新上下文
   'Attachments',
   'Footer',
   'MessageSelector',
@@ -32,7 +32,7 @@ export const KEYBINDING_CONTEXTS = [
 ] as const
 
 /**
- * Human-readable descriptions for each keybinding context.
+ * 每个快捷键上下文的易读描述。
  */
 export const KEYBINDING_CONTEXT_DESCRIPTIONS: Record<
   (typeof KEYBINDING_CONTEXTS)[number],
@@ -59,10 +59,10 @@ export const KEYBINDING_CONTEXT_DESCRIPTIONS: Record<
 }
 
 /**
- * All valid keybinding action identifiers.
+ * 所有有效的快捷键操作标识符。
  */
 export const KEYBINDING_ACTIONS = [
-  // App-level actions (Global context)
+  // 应用级操作（Global 上下文）
   'app:interrupt',
   'app:exit',
   'app:toggleTodos',
@@ -73,11 +73,11 @@ export const KEYBINDING_ACTIONS = [
   'app:redraw',
   'app:globalSearch',
   'app:quickOpen',
-  // History navigation
+  // 历史导航
   'history:search',
   'history:previous',
   'history:next',
-  // Chat input actions
+  // 聊天输入操作
   'chat:cancel',
   'chat:killAgents',
   'chat:cycleMode',
@@ -91,12 +91,12 @@ export const KEYBINDING_ACTIONS = [
   'chat:stash',
   'chat:imagePaste',
   'chat:messageActions',
-  // Autocomplete menu actions
+  // 自动补全菜单操作
   'autocomplete:accept',
   'autocomplete:dismiss',
   'autocomplete:previous',
   'autocomplete:next',
-  // Confirmation dialog actions
+  // 确认对话框操作
   'confirm:yes',
   'confirm:no',
   'confirm:previous',
@@ -106,29 +106,29 @@ export const KEYBINDING_ACTIONS = [
   'confirm:cycleMode',
   'confirm:toggle',
   'confirm:toggleExplanation',
-  // Tabs navigation actions
+  // 标签页导航操作
   'tabs:next',
   'tabs:previous',
-  // Transcript viewer actions
+  // 转录查看器操作
   'transcript:toggleShowAll',
   'transcript:exit',
-  // History search actions
+  // 历史搜索操作
   'historySearch:next',
   'historySearch:accept',
   'historySearch:cancel',
   'historySearch:execute',
-  // Task/agent actions
+  // 任务/代理操作
   'task:background',
-  // Theme picker actions
+  // 主题选择器操作
   'theme:toggleSyntaxHighlighting',
-  // Help menu actions
+  // 帮助菜单操作
   'help:dismiss',
-  // Attachment navigation (select dialog image attachments)
+  // 附件导航（选择对话框中的图片附件）
   'attachments:next',
   'attachments:previous',
   'attachments:remove',
   'attachments:exit',
-  // Footer indicator actions
+  // 页脚指示器操作
   'footer:up',
   'footer:down',
   'footer:next',
@@ -136,13 +136,13 @@ export const KEYBINDING_ACTIONS = [
   'footer:openSelected',
   'footer:clearSelection',
   'footer:close',
-  // Message selector (rewind) actions
+  // 消息选择器（回退）操作
   'messageSelector:up',
   'messageSelector:down',
   'messageSelector:top',
   'messageSelector:bottom',
   'messageSelector:select',
-  // Diff dialog actions
+  // 差异对话框操作
   'diff:dismiss',
   'diff:previousSource',
   'diff:nextSource',
@@ -150,39 +150,39 @@ export const KEYBINDING_ACTIONS = [
   'diff:viewDetails',
   'diff:previousFile',
   'diff:nextFile',
-  // Model picker actions (ant-only)
+  // 模型选择器操作（仅限 Anthropic 员工）
   'modelPicker:decreaseEffort',
   'modelPicker:increaseEffort',
   'modelPicker:toggle1M',
-  // Effort panel actions (slash /effort without args)
+  // 努力程度面板操作（无参数的 /effort 斜杠命令）
   'effortPanel:decrease',
   'effortPanel:increase',
   'effortPanel:home',
   'effortPanel:end',
   'effortPanel:confirm',
   'effortPanel:cancel',
-  // Select component actions (distinct from confirm: to avoid collisions)
+  // 选择组件操作（与 confirm: 区分以避免冲突）
   'select:next',
   'select:previous',
   'select:accept',
   'select:cancel',
-  // Plugin dialog actions
+  // 插件对话框操作
   'plugin:toggle',
   'plugin:install',
-  // Permission dialog actions
+  // 权限对话框操作
   'permission:toggleDebug',
-  // Settings config panel actions
+  // 设置配置面板操作
   'settings:search',
   'settings:retry',
   'settings:close',
   'select:previousValue',
   'select:nextValue',
-  // Voice actions
+  // 语音操作
   'voice:pushToTalk',
 ] as const
 
 /**
- * Schema for a single keybinding block.
+ * 单个快捷键块的 schema。
  */
 export const KeybindingBlockSchema = lazySchema(() =>
   z
@@ -218,8 +218,8 @@ export const KeybindingBlockSchema = lazySchema(() =>
 )
 
 /**
- * Schema for the entire keybindings.json file.
- * Uses object wrapper format with optional $schema and $docs metadata.
+ * 整个 keybindings.json 文件的 schema。
+ * 使用带可选 $schema 和 $docs 元数据的对象包装格式。
  */
 export const KeybindingsSchema = lazySchema(() =>
   z
@@ -239,7 +239,7 @@ export const KeybindingsSchema = lazySchema(() =>
 )
 
 /**
- * TypeScript types derived from the schema.
+ * 从 schema 派生的 TypeScript 类型。
  */
 export type KeybindingsSchemaType = z.infer<
   ReturnType<typeof KeybindingsSchema>

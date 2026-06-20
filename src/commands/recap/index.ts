@@ -1,21 +1,21 @@
 /**
- * /recap — Generate a one-line session recap now.
+ * /recap — 立即生成一行会话回顾。
  *
- * Aliases: /away, /catchup
+ * 别名：/away, /catchup
  *
- * Mirrors the official v2.1.123 implementation:
- *   - Gated by AWAY_SUMMARY feature flag (must be set at runtime) AND
- *     the 'tengu_sedge_lantern' GrowthBook flag (default: true)
- *   - Calls generateRecap() which shares the main loop's prompt-cache prefix
- *   - Returns a short (≤40 word) plain-text sentence describing the current
- *     goal, active task, and next action — no markdown, no status reports
+ * 对应官方 v2.1.123 实现：
+ *   - 受 AWAY_SUMMARY feature flag（必须在运行时设置）AND
+ *     'tengu_sedge_lantern' GrowthBook flag（默认：true）双重门控
+ *   - 调用 generateRecap()，该函数复用主循环的 prompt-cache 前缀
+ *   - 返回一句简短（≤40 词）的纯文本，描述当前目标、进行中的任务和下一步行动
+ *     — 不含 markdown，不含状态报告
  *
- * When the user has been away and comes back, they can type /recap (or /away /
- * /catchup) to get an instant orientation without scrolling back through history.
+ * 当用户离开一段时间后回来时，可以输入 /recap（或 /away /
+ * /catchup）立即获得上下文，而无需翻阅历史记录。
  *
- * isEnabled guard: the automatic "while you were away" card in REPL.tsx already
- * checks feature('AWAY_SUMMARY'). For the manual /recap command we check the
- * same GrowthBook flag so the two surfaces stay in sync.
+ * isEnabled 守卫：REPL.tsx 中自动化的"离开期间"卡片已经
+ * 检查了 feature('AWAY_SUMMARY')。对于手动的 /recap 命令，我们检查
+ * 同一个 GrowthBook flag，使两处保持同步。
  */
 import { feature } from 'bun:bundle'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js'
@@ -25,10 +25,10 @@ import type {
   LocalCommandResult,
 } from '../../types/command.js'
 
-// ── Call implementation ───────────────────────────────────────────────────────
+// ── Call 实现 ───────────────────────────────────────────────────────
 
 const call: LocalCommandCall = async (_args, context) => {
-  // Dynamic import keeps the heavy forkedAgent dependency out of module load
+  // 动态 import 避免将体积庞大的 forkedAgent 依赖纳入模块加载
   const { generateRecap } = await import('./generateRecap.js')
 
   const signal = context.abortController?.signal ?? new AbortController().signal
@@ -59,7 +59,7 @@ const call: LocalCommandCall = async (_args, context) => {
   }
 }
 
-// ── Command declaration ───────────────────────────────────────────────────────
+// ── Command 声明 ───────────────────────────────────────────────────────
 
 const recap = {
   type: 'local',
@@ -67,12 +67,12 @@ const recap = {
   description: 'Generate a one-line session recap now',
   aliases: ['away', 'catchup'],
   /**
-   * Enabled when:
-   *  1. The AWAY_SUMMARY feature flag is on (build/env), AND
-   *  2. The 'tengu_sedge_lantern' GrowthBook flag is true (default: true)
+   * 启用条件：
+   *  1. AWAY_SUMMARY feature flag 打开（build/env），AND
+   *  2. 'tengu_sedge_lantern' GrowthBook flag 为 true（默认：true）
    *
-   * This matches the isEnabled() predicate used in the official binary and
-   * keeps this command in sync with the automatic away-summary card in REPL.
+   * 这与官方二进制中使用的 isEnabled() 谓词一致，
+   * 并使本命令与 REPL 中自动化的离开-summary 卡片保持同步。
    */
   isEnabled: (): boolean => {
     if (!feature('AWAY_SUMMARY')) return false

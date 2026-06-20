@@ -14,8 +14,8 @@ const version = {
   name: 'version',
   description:
     'Print the version this session is running (not what autoupdate downloaded)',
-  // Was Ant-only upstream; for fork subscribers we want this universally
-  // available — version info is harmless and useful for bug reports.
+  // 上游原本仅 Ant 可用；对 fork 用户我们希望通用开放 ——
+  // 版本信息无害且对提 bug 报告有帮助。
   isEnabled: () => true,
   supportsNonInteractive: true,
   load: () => Promise.resolve({ call }),

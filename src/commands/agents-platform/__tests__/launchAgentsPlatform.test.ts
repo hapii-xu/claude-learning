@@ -1,10 +1,10 @@
 /**
- * Tests for launchAgentsPlatform.tsx
+ * 针对 launchAgentsPlatform.tsx 的测试
  *
- * Strategy per feedback_mock_dependency_not_subject:
- * - DO NOT mock agentsApi.ts itself (would pollute api.test.ts)
- * - Mock axios (the underlying HTTP layer) to control API responses
- * - Let real agentsApi functions run real code paths
+ * 策略参见 feedback_mock_dependency_not_subject：
+ * - 不要 mock agentsApi.ts 本身（会污染 api.test.ts）
+ * - mock axios（底层 HTTP 层）以控制 API 响应
+ * - 让真正的 agentsApi 函数跑真正的代码路径
  */
 
 import {
@@ -190,14 +190,14 @@ describe('callAgentsPlatform', () => {
   })
 
   test('create with INVALID cron does not call API', async () => {
-    // parseCronExpression returns null for expressions containing 'INVALID'
+    // parseCronExpression 对包含 'INVALID' 的表达式返回 null
     const onDone = mock(() => {})
     await callAgentsPlatform(
       onDone,
       makeContext(),
       'create INVALID INVALID * * * my prompt',
     )
-    // cron = 'INVALID INVALID * * *', mock returns null → no API call
+    // cron = 'INVALID INVALID * * *'，mock 返回 null → 不发起 API 调用
     expect(axiosPostMock).not.toHaveBeenCalled()
     expect(logEventMock).toHaveBeenCalledWith(
       'tengu_agents_platform_failed',
@@ -287,7 +287,7 @@ describe('callAgentsPlatform', () => {
     )
   })
 
-  // ── Error-path branches ──────────────────────────────────────────────────
+  // ── 错误路径分支 ──────────────────────────────────────────────────
 
   test('createAgent API error → error view returned', async () => {
     axiosPostMock.mockRejectedValueOnce(new Error('subscription required'))
@@ -348,7 +348,7 @@ describe('callAgentsPlatform', () => {
 
   test('create with no prompt part → invalid action', async () => {
     const onDone = mock(() => {})
-    // Only 4 cron fields — parseArgs returns invalid
+    // 只有 4 个 cron 字段 —— parseArgs 返回 invalid
     await callAgentsPlatform(onDone, makeContext(), 'create 0 9 * *')
     expect(axiosPostMock).not.toHaveBeenCalled()
     expect(logEventMock).toHaveBeenCalledWith(

@@ -5,20 +5,19 @@ import { getSessionEnvVars } from '../sessionEnvVars.js'
 import type { ShellProvider } from './shellProvider.js'
 
 /**
- * PowerShell invocation flags + command. Shared by the provider's getSpawnArgs
- * and the hook spawn path in hooks.ts so the flag set stays in one place.
+ * PowerShell 调用 flag + 命令。被 provider 的 getSpawnArgs 与
+ * hooks.ts 中的 hook spawn 路径共享，保证 flag 集中维护。
  */
 export function buildPowerShellArgs(cmd: string): string[] {
   return ['-NoProfile', '-NonInteractive', '-Command', cmd]
 }
 
 /**
- * Base64-encode a string as UTF-16LE for PowerShell's -EncodedCommand.
- * Same encoding the parser uses (parser.ts toUtf16LeBase64). The output
- * is [A-Za-z0-9+/=] only — survives ANY shell-quoting layer, including
- * @anthropic-ai/sandbox-runtime's shellquote.quote() which would otherwise
- * corrupt !$? to \!$? when re-wrapping a single-quoted string in double
- * quotes. Review 2964609818.
+ * 以 UTF-16LE 编码 base64 化字符串，供 PowerShell 的 -EncodedCommand 使用。
+ * 与 parser 使用的编码一致（parser.ts 的 toUtf16LeBase64）。输出只包含
+ * [A-Za-z0-9+/=] — 能穿过任何 shell 引用层，包括
+ * @anthropic-ai/sandbox-runtime 的 shellquote.quote()，否则在把单引号字符串
+ * 再次用双引号包裹时，会把 !$? 错改成 \!$?。Review 2964609818。
  */
 function encodePowerShellCommand(psCommand: string): string {
   return Buffer.from(psCommand, 'utf16le').toString('base64')
@@ -40,49 +39,46 @@ export function createPowerShellProvider(shellPath: string): ShellProvider {
         useSandbox: boolean
       },
     ): Promise<{ commandString: string; cwdFilePath: string }> {
-      // Stash sandboxTmpDir for getEnvironmentOverrides (mirrors bashProvider)
+      // 暂存 sandboxTmpDir，供 getEnvironmentOverrides 使用（与 bashProvider 对称）
       currentSandboxTmpDir = opts.useSandbox ? opts.sandboxTmpDir : undefined
 
-      // When sandboxed, tmpdir() is not writable — the sandbox only allows
-      // writes to sandboxTmpDir. Put the cwd tracking file there so the
-      // inner pwsh can actually write it. Only applies on Linux/macOS/WSL2;
-      // on Windows native, sandbox is never enabled so this branch is dead.
+      // sandbox 下 tmpdir() 不可写 — sandbox 只允许写入 sandboxTmpDir。
+      // 把 cwd 跟踪文件放到那里，内部的 pwsh 才能真正写入。仅适用于
+      // Linux/macOS/WSL2；原生 Windows 从不启用 sandbox，因此该分支是死代码。
       const cwdFilePath =
         opts.useSandbox && opts.sandboxTmpDir
           ? posixJoin(opts.sandboxTmpDir, `claude-pwd-ps-${opts.id}`)
           : join(tmpdir(), `claude-pwd-ps-${opts.id}`)
       const escapedCwdFilePath = cwdFilePath.replace(/'/g, "''")
-      // Exit-code capture: prefer $LASTEXITCODE when a native exe ran.
-      // On PS 5.1, a native command that writes to stderr while the stream
-      // is PS-redirected (e.g. `git push 2>&1`) sets $? = $false even when
-      // the exe returned exit 0 — so `if (!$?)` reports a false positive.
-      // $LASTEXITCODE is $null only when no native exe has run in the
-      // session; in that case fall back to $? for cmdlet-only pipelines.
-      // Tradeoff: `native-ok; cmdlet-fail` now returns 0 (was 1). Reverse
-      // is also true: `native-fail; cmdlet-ok` now returns the native
-      // exit code (was 0 — old logic only looked at $? which the trailing
-      // cmdlet set true). Both rarer than the git/npm/curl stderr case.
+      // 退出码捕获：如果有原生 exe 运行过，优先使用 $LASTEXITCODE。
+      // 在 PS 5.1 上，原生命令在 stderr 被 PS 重定向时（例如
+      // `git push 2>&1`），即使 exe 返回 exit 0 也会把 $? 置为 $false —
+      // 因此 `if (!$?)` 会误报失败。$LASTEXITCODE 只有在当前 session 中
+      // 未运行任何原生 exe 时才为 $null；此时回退到 $? 以处理纯 cmdlet
+      // 管道。代价：`native-ok; cmdlet-fail` 现在返回 0（原来是 1）；
+      // 反过来也一样：`native-fail; cmdlet-ok` 现在返回 native 退出码
+      // （原来是 0 — 旧逻辑只看 $?，而尾部 cmdlet 把它设成了 true）。
+      // 这两种组合都比 git/npm/curl 的 stderr 场景少见。
       const cwdTracking = `\n; $_ec = if ($null -ne $LASTEXITCODE) { $LASTEXITCODE } elseif ($?) { 0 } else { 1 }\n; (Get-Location).Path | Out-File -FilePath '${escapedCwdFilePath}' -Encoding utf8 -NoNewline\n; exit $_ec`
       const psCommand = command + cwdTracking
 
-      // Sandbox wraps the returned commandString as `<binShell> -c '<cmd>'` —
-      // hardcoded `-c`, no way to inject -NoProfile -NonInteractive. So for
-      // the sandbox path, build a command that itself invokes pwsh with the
-      // full flag set. Shell.ts passes /bin/sh as the sandbox binShell,
-      // producing: bwrap ... sh -c 'pwsh -NoProfile ... -EncodedCommand ...'.
-      // The non-sandbox path returns the bare PS command; getSpawnArgs() adds
-      // the flags via buildPowerShellArgs().
+      // sandbox 把返回的 commandString 包装成 `<binShell> -c '<cmd>'` —
+      // `-c` 是硬编码的，无法注入 -NoProfile -NonInteractive。因此 sandbox
+      // 路径下要构建一个自身就调用 pwsh 并带上完整 flag 的命令。Shell.ts
+      // 把 /bin/sh 作为 sandbox 的 binShell，最终效果是：
+      // bwrap ... sh -c 'pwsh -NoProfile ... -EncodedCommand ...'。
+      // 非 sandbox 路径直接返回纯 PS 命令；getSpawnArgs() 通过
+      // buildPowerShellArgs() 补上 flag。
       //
-      // -EncodedCommand (base64 UTF-16LE), not -Command: the sandbox runtime
-      // applies its OWN shellquote.quote() on top of whatever we build. Any
-      // string containing ' triggers double-quote mode which escapes ! as \! —
-      // POSIX sh preserves that literally, pwsh parse error. Base64 is
-      // [A-Za-z0-9+/=] — no chars that any quoting layer can corrupt.
-      // Review 2964609818.
+      // 使用 -EncodedCommand（base64 UTF-16LE）而不是 -Command：sandbox
+      // runtime 会在我们构建的命令之上再套一层自己的 shellquote.quote()。
+      // 任何包含 ' 的字符串都会触发双引号模式，把 ! 转义为 \! — POSIX sh
+      // 会原样保留，pwsh 解析报错。base64 只包含 [A-Za-z0-9+/=] —
+      // 没有任何字符能被引用层破坏。Review 2964609818。
       //
-      // shellPath is POSIX-single-quoted so a space-containing install path
-      // (e.g. /opt/my tools/pwsh) survives the inner `/bin/sh -c` word-split.
-      // Flags and base64 are [A-Za-z0-9+/=-] only — no quoting needed.
+      // shellPath 用 POSIX 单引号包裹，这样包含空格的安装路径（例如
+      // /opt/my tools/pwsh）才能穿过内部 `/bin/sh -c` 的分词。
+      // flag 和 base64 只包含 [A-Za-z0-9+/=-] — 无需引用。
       const commandString = opts.useSandbox
         ? [
             `'${shellPath.replace(/'/g, `'\\''`)}'`,
@@ -102,18 +98,17 @@ export function createPowerShellProvider(shellPath: string): ShellProvider {
 
     async getEnvironmentOverrides(): Promise<Record<string, string>> {
       const env: Record<string, string> = {}
-      // Apply session env vars set via /env (child processes only, not
-      // the REPL). Without this, `/env PATH=...` affects Bash tool
-      // commands but not PowerShell — so PyCharm users with a stripped
-      // PATH can't self-rescue.
-      // Ordering: session vars FIRST so the sandbox TMPDIR below can't be
-      // overridden by `/env TMPDIR=...`. bashProvider.ts has these in the
-      // opposite order (pre-existing), but sandbox isolation should win.
+      // 应用通过 /env 设置的 session 环境变量（仅作用于子进程，不影响
+      // REPL）。如果不这样做，`/env PATH=...` 会影响 Bash 工具命令，
+      // 但不会影响 PowerShell — 导致 PATH 被精简的 PyCharm 用户无法自救。
+      // 顺序：先设置 session 变量，这样下面的 sandbox TMPDIR 才不会被
+      // `/env TMPDIR=...` 覆盖。bashProvider.ts 中的顺序相反（历史遗留），
+      // 但 sandbox 隔离应当优先。
       for (const [key, value] of getSessionEnvVars()) {
         env[key] = value
       }
       if (currentSandboxTmpDir) {
-        // PowerShell on Linux/macOS honors TMPDIR for [System.IO.Path]::GetTempPath()
+        // Linux/macOS 上的 PowerShell 会读取 TMPDIR 作为 [System.IO.Path]::GetTempPath() 的结果
         env.TMPDIR = currentSandboxTmpDir
         env.CLAUDE_CODE_TMPDIR = currentSandboxTmpDir
       }

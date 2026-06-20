@@ -1,11 +1,11 @@
 /**
- * Tests for share/index.ts
+ * share/index.ts 的测试
  *
- * share/index.ts now uses `import * as childProcess from 'node:child_process'`
- * with lazy promisify, so mock.module('node:child_process') is effective.
- * This file sets up a default mock where gh succeeds (so tests that exercise
- * the log-exists paths can proceed past the gh check). The share-gh.test.ts
- * file tests specific gh upload paths in detail.
+ * share/index.ts 现在使用 `import * as childProcess from 'node:child_process'`
+ * 配合懒加载 promisify，因此 mock.module('node:child_process') 能生效。
+ * 本文件设置了一个 gh 成功的默认 mock（这样测试 log 存在路径的用例
+ * 可以通过 gh 检查继续执行）。share-gh.test.ts 文件详细测试了
+ * 具体的 gh 上传路径。
  */
 import {
   afterAll,
@@ -22,8 +22,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-// Default: gh --version succeeds, gist create fails (upload error is acceptable
-// for tests that only need to reach the content-preparation stage).
+// 默认：gh --version 成功，gist create 失败（对于只需到达内容准备阶段的
+// 测试来说，上传错误是可以接受的）。
 let _execFileImplBase: (
   cmd: string,
   args: string[],
@@ -52,10 +52,10 @@ const execFileMockBase = (
     }),
   )
 
-// Spread real child_process + flag-gated stub (see share-gh.test.ts for the
-// promisify.custom rationale). Default OFF; suite's beforeAll flips on,
-// afterAll flips off so projectContext.test and other child_process consumers
-// see the real impl outside this suite.
+// 展开真实的 child_process + 通过 flag 控制的 stub（关于 promisify.custom 的
+// 原因见 share-gh.test.ts）。默认关闭；测试套件的 beforeAll 打开，
+// afterAll 关闭，使得 projectContext.test 等其他 child_process 消费方
+// 在本套件之外看到真实实现。
 let useShareCpStubs = false
 const wrappedShareExecFile = ((...args: unknown[]) =>
   useShareCpStubs
@@ -109,11 +109,11 @@ mock.module('src/services/analytics/index.js', () => ({
   stripProtoFields: (v: unknown) => v,
 }))
 
-// NOTE: We do NOT mock src/bootstrap/state.js here to avoid interfering with
-// other test files (particularly launchAutofixPr.test.ts). We dynamically
-// import state to get the real session ID for log file path construction.
+// 注意：我们在此不 mock src/bootstrap/state.js，以避免干扰其他测试文件
+// （尤其是 launchAutofixPr.test.ts）。我们动态 import state 以获取真实的
+// session ID，用于构造日志文件路径。
 
-// ── State ──
+// ── 状态 ──
 let tmpDir: string
 let claudeDir: string
 
@@ -122,9 +122,9 @@ beforeEach(() => {
   claudeDir = join(tmpDir, '.claude')
   mkdirSync(claudeDir, { recursive: true })
   process.env.CLAUDE_CONFIG_DIR = claudeDir
-  // Reset to gh-succeeds default (execFile returns empty stdout — gh check passes,
-  // gist create will fail with "Unexpected gh gist output" which is acceptable for
-  // tests that only exercise content-preparation paths).
+  // 重置为 gh 成功的默认值（execFile 返回空 stdout — gh 检查通过，
+  // gist create 会以 "Unexpected gh gist output" 失败，对于仅测试内容准备
+  // 路径的用例来说这是可接受的）。
   _execFileImplBase = (_cmd, _args, _opts, cb) => cb(null, '', '')
 })
 
@@ -133,7 +133,7 @@ afterEach(() => {
   delete process.env.CLAUDE_CONFIG_DIR
 })
 
-// ── Helpers ──
+// ── 辅助函数 ──
 type CallFn = (
   args: string,
   ctx?: never,
@@ -148,8 +148,8 @@ async function getCallFn(): Promise<CallFn> {
 }
 
 async function writeSessionLog(entries?: string[]): Promise<void> {
-  // Write the session log at the path share/index.ts will compute at runtime.
-  // We use the real state values (no mock) to match the actual path.
+  // 将 session log 写入 share/index.ts 在运行时会计算的路径。
+  // 我们使用真实的 state 值（不 mock）以匹配实际路径。
   const { sanitizePath } = await import('../../../utils/path.js')
   const { getSessionId, getOriginalCwd } = await import(
     '../../../bootstrap/state.js'
@@ -169,7 +169,7 @@ async function writeSessionLog(entries?: string[]): Promise<void> {
   writeFileSync(join(dir, `${sessionId}.jsonl`), content.join('\n') + '\n')
 }
 
-// Activate child_process stubs only for this suite.
+// 仅在本测试套件中启用 child_process stub。
 beforeAll(() => {
   useShareCpStubs = true
 })
@@ -275,7 +275,7 @@ describe('share command — log exists', () => {
     const call = await getCallFn()
     const result = await call('--summary-only')
     expect(result.type).toBe('text')
-    // Either succeeds (if gh available) or fails (if not) — but passes the log check
+    // 成功（若 gh 可用）或失败（若不可用）皆可 — 但通过了 log 检查
     expect(typeof result.value).toBe('string')
     expect(result.value.length).toBeGreaterThan(0)
   })
@@ -307,11 +307,11 @@ describe('share command — log exists', () => {
   test('log exists + no fallback + gh not available → shows manual instructions OR fails if gh is installed', async () => {
     await writeSessionLog()
     const call = await getCallFn()
-    // Without controlling child_process, behavior depends on environment
+    // 在不控制 child_process 的情况下，行为取决于运行环境
     const result = await call('--private')
     expect(result.type).toBe('text')
     expect(typeof result.value).toBe('string')
-    // Accept any outcome — the log exists path is exercised
+    // 接受任意结果 — log 存在的路径已被执行
     expect(result.value.length).toBeGreaterThan(0)
   })
 
@@ -343,19 +343,19 @@ describe('share command — log exists', () => {
     expect(typeof result.value).toBe('string')
   })
 
-  // ── M2 regression: maskSecrets must NOT redact git SHAs but MUST redact Anthropic keys ──
+  // ── M2 回归：maskSecrets 不得脱敏 git SHA，但必须脱敏 Anthropic 密钥 ──
   test('M2: maskSecrets redacts sk-ant-* keys but leaves 40-char hex git SHAs intact', async () => {
     const { maskSecrets } = await import('../index.js')
 
-    const gitSha = 'a' + '1'.repeat(39) // 40 hex chars — a git SHA
+    const gitSha = 'a' + '1'.repeat(39) // 40 位十六进制字符 — 一个 git SHA
     const apiKey = 'sk-ant-api03-verylongapikey1234567890abcdef'
     const input = `commit ${gitSha}\nAPI key: ${apiKey}`
 
     const result = maskSecrets(input)
 
-    // Git SHA must NOT be redacted
+    // Git SHA 不得被脱敏
     expect(result).toContain(gitSha)
-    // API key MUST be redacted
+    // API 密钥必须被脱敏
     expect(result).not.toContain(apiKey)
     expect(result).toContain('[REDACTED')
   })

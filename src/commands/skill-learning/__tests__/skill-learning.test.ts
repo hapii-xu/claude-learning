@@ -100,7 +100,7 @@ describe('skill-learning command', () => {
   })
 
   test('projects lists known project scopes', async () => {
-    // Resolving once registers the current project in the registry.
+    // 解析一次即可将当前项目注册到 registry 中。
     resolveProjectContext(root)
 
     const result = await call('projects', {} as any)
@@ -136,8 +136,8 @@ describe('skill-learning command', () => {
       }) + '\n',
     )
 
-    // Pass --min-session-length=0 so the 1-line test transcript is not skipped
-    // by the ECC-parity gate (default threshold: 10 observations).
+    // 传入 --min-session-length=0，这样只有 1 行的测试 transcript 就不会被
+    // ECC-parity 门槛跳过（默认阈值：10 条 observation）。
     const result = await call(
       `ingest ${transcript} --min-session-length=0`,
       {} as any,

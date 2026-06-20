@@ -1,6 +1,6 @@
-// Centralized analytics/telemetry logging for tool permission decisions.
-// All permission approve/reject events flow through logPermissionDecision(),
-// which fans out to Statsig analytics, OTel telemetry, and code-edit metrics.
+// 工具权限决策的集中分析/遥测日志。
+// 所有权限批准/拒绝事件都流经 logPermissionDecision()，
+// 它扇出到 Statsig 分析、OTel 遥测和代码编辑指标。
 import { feature } from 'bun:bundle'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -25,7 +25,7 @@ type PermissionLogContext = {
   toolUseID: string
 }
 
-// Discriminated union: 'accept' pairs with approval sources, 'reject' with rejection sources
+// 判别联合：'accept' 与批准源配对，'reject' 与拒绝源配对
 type PermissionDecisionArgs =
   | { decision: 'accept'; source: PermissionApprovalSource | 'config' }
   | { decision: 'reject'; source: PermissionRejectionSource | 'config' }
@@ -36,15 +36,15 @@ function isCodeEditingTool(toolName: string): boolean {
   return CODE_EDITING_TOOLS.includes(toolName)
 }
 
-// Builds OTel counter attributes for code editing tools, enriching with
-// language when the tool's target file path can be extracted from input
+// 为代码编辑工具构建 OTel 计数器属性，当可以从输入中提取
+// 工具的目标文件路径时使用语言丰富
 async function buildCodeEditToolAttributes(
   tool: ToolType,
   input: unknown,
   decision: 'accept' | 'reject',
   source: string,
 ): Promise<Record<string, string>> {
-  // Derive language from file path if the tool exposes one (e.g., Edit, Write)
+  // 如果工具公开文件路径则从中派生语言（例如，Edit、Write）
   let language: string | undefined
   if (tool.getPath && input) {
     const parseResult = tool.inputSchema.safeParse(input)
@@ -64,7 +64,7 @@ async function buildCodeEditToolAttributes(
   }
 }
 
-// Flattens structured source into a string label for analytics/OTel events
+// 将结构化源扁平化为分析/OTel 事件的字符串标签
 function sourceToString(
   source: PermissionApprovalSource | PermissionRejectionSource,
 ): string {
@@ -98,12 +98,12 @@ function baseMetadata(
       messageId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     toolName: sanitizeToolNameForAnalytics(toolName),
     sandboxEnabled: SandboxManager.isSandboxingEnabled(),
-    // Only include wait time when the user was actually prompted (not auto-approved)
+    // 仅当用户实际被提示时包含等待时间（不是自动批准）
     ...(waitMs !== undefined && { waiting_for_user_permission_ms: waitMs }),
   }
 }
 
-// Emits a distinct analytics event name per approval source for funnel analysis
+// 为每个批准源发出不同的分析事件名称以进行漏斗分析
 function logApprovalEvent(
   tool: ToolType,
   messageId: string,
@@ -111,7 +111,7 @@ function logApprovalEvent(
   waitMs: number | undefined,
 ): void {
   if (source === 'config') {
-    // Auto-approved by allowlist in settings -- no user wait time
+    // 被设置中的允许列表自动批准 —— 无用户等待时间
     logEvent(
       'tengu_tool_use_granted_in_config',
       baseMetadata(messageId, tool.name, undefined),
@@ -148,7 +148,7 @@ function logApprovalEvent(
   }
 }
 
-// Rejections share a single event name, differentiated by metadata fields
+// 拒绝共享单个事件名称，通过元数据字段区分
 function logRejectionEvent(
   tool: ToolType,
   messageId: string,
@@ -156,7 +156,7 @@ function logRejectionEvent(
   waitMs: number | undefined,
 ): void {
   if (source === 'config') {
-    // Denied by denylist in settings
+    // 被设置中的拒绝列表拒绝
     logEvent(
       'tengu_tool_use_denied_in_config',
       baseMetadata(messageId, tool.name, undefined),
@@ -165,7 +165,7 @@ function logRejectionEvent(
   }
   logEvent('tengu_tool_use_rejected_in_prompt', {
     ...baseMetadata(messageId, tool.name, waitMs),
-    // Distinguish hook rejections from user rejections via separate fields
+    // 通过单独的字段区分 hook 拒绝和用户拒绝
     ...(source.type === 'hook'
       ? { isHook: true }
       : {
@@ -175,9 +175,9 @@ function logRejectionEvent(
   })
 }
 
-// Single entry point for all permission decision logging. Called by permission
-// handlers after every approve/reject. Fans out to: analytics events, OTel
-// telemetry, code-edit OTel counters, and toolUseContext decision storage.
+// 所有权限决策日志的单入口点。由权限处理器在每次
+// 批准/拒绝后调用。扇出到：分析事件、OTel 遥测、
+// 代码编辑 OTel 计数器和 toolUseContext 决策存储。
 function logPermissionDecision(
   ctx: PermissionLogContext,
   args: PermissionDecisionArgs,
@@ -191,7 +191,7 @@ function logPermissionDecision(
       ? Date.now() - permissionPromptStartTimeMs
       : undefined
 
-  // Log the analytics event
+  // 记录分析事件
   if (args.decision === 'accept') {
     logApprovalEvent(
       tool,
@@ -210,14 +210,14 @@ function logPermissionDecision(
 
   const sourceString = source === 'config' ? 'config' : sourceToString(source)
 
-  // Track code editing tool metrics
+  // 跟踪代码编辑工具指标
   if (isCodeEditingTool(tool.name)) {
     void buildCodeEditToolAttributes(tool, input, decision, sourceString).then(
       attributes => getCodeEditToolDecisionCounter()?.add(1, attributes),
     )
   }
 
-  // Persist decision on the context so downstream code can inspect what happened
+  // 将决策持久化到上下文，以便下游代码可以检查发生了什么
   if (!toolUseContext.toolDecisions) {
     toolUseContext.toolDecisions = new Map()
   }

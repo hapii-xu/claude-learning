@@ -1,9 +1,9 @@
 /**
- * Companion reaction system — aligns with official ZUK + Dc8 pattern.
+ * Companion 反应系统 — 对齐官方 ZUK + Dc8 模式。
  *
- * Called from REPL.tsx after each query turn. Checks mute state, frequency
- * limits, and @-mention detection, then calls the buddy_react API to
- * generate a reaction shown in the CompanionSprite speech bubble.
+ * 由 REPL.tsx 在每轮查询结束后调用。检查静音状态、频率限制和
+ * @-提及检测，然后调用 buddy_react API 生成反应文本，
+ * 展示在 CompanionSprite 的对话气泡中。
  */
 import { getCompanion } from './companion.js'
 import { getGlobalConfig } from '../utils/config.js'
@@ -12,28 +12,28 @@ import { getOauthConfig } from '../constants/oauth.js'
 import { getUserAgent } from '../utils/http.js'
 import type { Message } from '../types/message.js'
 
-// ─── Rate limiting ──────────────────────────────────
+// ─── 频率限制 ──────────────────────────────────
 
 let lastReactTime = 0
-const MIN_INTERVAL_MS = 45_000 // official is roughly 30-60s
+const MIN_INTERVAL_MS = 45_000 // 官方大约是 30-60 秒
 
-// ─── Recent reactions (avoid repetition) ────────────
+// ─── 最近反应记录（避免重复）────────────────────
 
 const recentReactions: string[] = []
 const MAX_RECENT = 8
 
-// ─── Public API ─────────────────────────────────────
+// ─── 对外 API ─────────────────────────────────────
 
 /**
- * Trigger a companion reaction after a query turn.
+ * 在一轮查询结束后触发 companion 反应。
  *
- * Mirrors official `ZUK()`:
- *  1. Check companion exists and is not muted
- *  2. Detect if user @-mentioned companion by name
- *  3. Apply rate limiting (skip if not addressed and too soon)
- *  4. Build conversation transcript
- *  5. Call buddy_react API
- *  6. Pass reaction text to setReaction callback
+ * 对齐官方的 `ZUK()`：
+ *  1. 检查 companion 是否存在且未静音
+ *  2. 检测用户是否按名字 @-提及了 companion
+ *  3. 应用频率限制（未被提及时若间隔太短则跳过）
+ *  4. 构建对话 transcript
+ *  5. 调用 buddy_react API
+ *  6. 将反应文本传给 setReaction 回调
  */
 export function triggerCompanionReaction(
   messages: Message[],
@@ -62,7 +62,7 @@ export function triggerCompanionReaction(
     .catch(() => {})
 }
 
-// ─── Helpers ────────────────────────────────────────
+// ─── 辅助函数 ────────────────────────────────────────
 
 function isAddressed(messages: Message[], name: string): boolean {
   const pattern = new RegExp(`\\b${escapeRegex(name)}\\b`, 'i')
@@ -106,7 +106,7 @@ function buildTranscript(messages: Message[]): string {
     .slice(0, 5000)
 }
 
-// ─── API call ───────────────────────────────────────
+// ─── API 调用 ───────────────────────────────────────
 
 async function callBuddyReactAPI(
   companion: {

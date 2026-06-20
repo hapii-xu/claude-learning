@@ -1,13 +1,13 @@
 /**
- * Hook for LSP plugin recommendations
+ * LSP 插件推荐的 Hook
  *
- * Detects file edits and recommends LSP plugins when:
- * - File extension matches an LSP plugin
- * - LSP binary is already installed on the system
- * - Plugin is not already installed
- * - User hasn't disabled recommendations
+ * 检测文件编辑并在以下情况推荐 LSP 插件：
+ * - 文件扩展名匹配 LSP 插件
+ * - LSP 二进制文件已安装在系统上
+ * - 插件尚未安装
+ * - 用户未禁用推荐
  *
- * Only shows one recommendation per session.
+ * 每次会话仅显示一次推荐。
  */
 
 import { extname, join } from 'path';
@@ -23,8 +23,8 @@ import { cacheAndRegisterPlugin } from '../utils/plugins/pluginInstallationHelpe
 import { getSettingsForSource, updateSettingsForSource } from '../utils/settings/settings.js';
 import { installPluginAndNotify, usePluginRecommendationBase } from './usePluginRecommendationBase.js';
 
-// Threshold for detecting timeout vs explicit dismiss (ms)
-// Menu auto-dismisses at 30s, so anything over 28s is likely timeout
+// 检测超时 vs 显式关闭的阈值（毫秒）
+// 菜单在 30 秒自动关闭，所以超过 28 秒可能是超时
 const TIMEOUT_THRESHOLD_MS = 28_000;
 
 export type LspRecommendationState = {
@@ -32,7 +32,7 @@ export type LspRecommendationState = {
   pluginName: string;
   pluginDescription?: string;
   fileExtension: string;
-  shownAt: number; // Timestamp for timeout detection
+  shownAt: number; // 用于超时检测的时间戳
 } | null;
 
 type UseLspPluginRecommendationResult = {
@@ -62,7 +62,7 @@ export function useLspPluginRecommendation(): UseLspPluginRecommendationResult {
       for (const filePath of newFiles) {
         try {
           const matches = await getMatchingLspPlugins(filePath);
-          const match = matches[0]; // official plugins prioritized
+          const match = matches[0]; // 官方插件优先
           if (match) {
             logForDebugging(`[useLspPluginRecommendation] Found match: ${match.pluginName} for ${filePath}`);
             setLspRecommendationShownThisSession(true);
@@ -102,10 +102,10 @@ export function useLspPluginRecommendation(): UseLspPluginRecommendationResult {
               pluginId,
               pluginData.entry,
               'user',
-              undefined, // projectPath - not needed for user scope
+              undefined, // projectPath - 用户作用域不需要
               localSourcePath,
             );
-            // Enable in user settings so it loads on restart
+            // 在用户设置中启用以便重启时加载
             const settings = getSettingsForSource('userSettings');
             updateSettingsForSource('userSettings', {
               enabledPlugins: {

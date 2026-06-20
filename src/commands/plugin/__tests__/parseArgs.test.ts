@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { parsePluginArgs } from '../parseArgs'
 
 describe('parsePluginArgs', () => {
-  // No args
+  // 无参数
   test("returns { type: 'menu' } for undefined", () => {
     expect(parsePluginArgs(undefined)).toEqual({ type: 'menu' })
   })
@@ -15,7 +15,7 @@ describe('parsePluginArgs', () => {
     expect(parsePluginArgs('   ')).toEqual({ type: 'menu' })
   })
 
-  // Help
+  // Help（帮助）
   test("returns { type: 'help' } for 'help'", () => {
     expect(parsePluginArgs('help')).toEqual({ type: 'help' })
   })
@@ -28,7 +28,7 @@ describe('parsePluginArgs', () => {
     expect(parsePluginArgs('-h')).toEqual({ type: 'help' })
   })
 
-  // Install
+  // Install（安装）
   test("parses 'install my-plugin' -> { type: 'install', plugin: 'my-plugin' }", () => {
     expect(parsePluginArgs('install my-plugin')).toEqual({
       type: 'install',
@@ -64,7 +64,7 @@ describe('parsePluginArgs', () => {
     expect(parsePluginArgs('install')).toEqual({ type: 'install' })
   })
 
-  // Uninstall
+  // Uninstall（卸载）
   test("returns { type: 'uninstall', plugin: '...' }", () => {
     expect(parsePluginArgs('uninstall my-plugin')).toEqual({
       type: 'uninstall',
@@ -72,7 +72,7 @@ describe('parsePluginArgs', () => {
     })
   })
 
-  // Enable/disable
+  // Enable/disable（启用/禁用）
   test("returns { type: 'enable', plugin: '...' }", () => {
     expect(parsePluginArgs('enable my-plugin')).toEqual({
       type: 'enable',
@@ -87,7 +87,7 @@ describe('parsePluginArgs', () => {
     })
   })
 
-  // Validate
+  // Validate（校验）
   test("returns { type: 'validate', path: '...' }", () => {
     expect(parsePluginArgs('validate /path/to/plugin')).toEqual({
       type: 'validate',
@@ -95,12 +95,12 @@ describe('parsePluginArgs', () => {
     })
   })
 
-  // Manage
+  // Manage（管理）
   test("returns { type: 'manage' }", () => {
     expect(parsePluginArgs('manage')).toEqual({ type: 'manage' })
   })
 
-  // Marketplace
+  // Marketplace（市场）
   test("parses 'marketplace add ...'", () => {
     expect(parsePluginArgs('marketplace add https://example.com')).toEqual({
       type: 'marketplace',
@@ -131,7 +131,7 @@ describe('parsePluginArgs', () => {
     })
   })
 
-  // Boundary
+  // 边界情况
   test('handles extra whitespace', () => {
     expect(parsePluginArgs('  install   my-plugin  ')).toEqual({
       type: 'install',

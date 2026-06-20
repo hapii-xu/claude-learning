@@ -23,7 +23,7 @@ export async function call(
   context: ToolUseContext & LocalJSXCommandContext,
   args: string,
 ): Promise<null> {
-  // Prevent teammates from renaming - their names are set by team leader
+  // 阻止 teammate 重命名 - 它们的名字由 team leader 设置
   if (isTeammate()) {
     onDone(
       'Cannot rename: This session is a swarm teammate. Teammate names are set by the team leader.',
@@ -53,12 +53,12 @@ export async function call(
   const sessionId = getSessionId() as UUID
   const fullPath = getTranscriptPath()
 
-  // Always save the custom title (session name)
+  // 始终保存自定义标题（session name）
   await saveCustomTitle(sessionId, newName, fullPath)
 
-  // Sync title to bridge session on claude.ai/code (best-effort, non-blocking).
-  // v2 env-less bridge stores cse_* in replBridgeSessionId —
-  // updateBridgeSessionTitle retags internally for the compat endpoint.
+  // 将标题同步到 claude.ai/code 的 bridge session（尽力而为，非阻塞）。
+  // v2 无环境 bridge 将 cse_* 存储在 replBridgeSessionId 中 —
+  // updateBridgeSessionTitle 内部会为兼容端点重新打标签。
   const appState = context.getAppState()
   const bridgeSessionId = appState.replBridgeSessionId
   if (bridgeSessionId) {
@@ -72,7 +72,7 @@ export async function call(
     )
   }
 
-  // Also persist as the session's agent name for prompt-bar display
+  // 同时持久化为 session 的 agent name，用于 prompt-bar 显示
   await saveAgentName(sessionId, newName, fullPath)
   context.setAppState(prev => ({
     ...prev,

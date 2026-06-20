@@ -1,10 +1,9 @@
-// Pure decision matrix for autofix-pr completion detection.
+// autofix-pr 完成判定的纯决策矩阵。
 //
-// Given a snapshot of the PR (state, head SHA, CI rollup) and a baseline
-// head SHA captured at /autofix-pr launch, decide whether autofix has
-// finished. No side effects — extracted from the gh CLI invocation in
-// prFetch.ts so unit tests can exercise every branch without spawning
-// subprocesses.
+// 给定 PR 的一组快照（state、head SHA、CI rollup）以及 /autofix-pr
+// 启动时记录的 baseline head SHA，判定 autofix 是否结束。没有副作用 ——
+// 从 prFetch.ts 中 gh CLI 调用里抽离出来，方便单元测试不 spawn 子进程
+// 就能覆盖每条分支。
 
 export type AutofixOutcomeProbeResult =
   | { completed: true; summary: string }
@@ -25,23 +24,23 @@ export interface AutofixOutcomeIdentity {
   repo: string
   prNumber: number
   /**
-   * Head commit SHA captured at /autofix-pr launch. When this differs from
-   * the current head, autofix has pushed at least one commit. Optional —
-   * absence means we can only finish on terminal PR states (merged/closed).
+   * /autofix-pr 启动时记录的 head commit SHA。当它与当前 head 不同时，
+   * 说明 autofix 至少 push 了一个 commit。可选 —— 缺省时只能依据 PR 终态
+   * （merged/closed）判定完成。
    */
   initialHeadSha?: string
 }
 
 /**
- * Pure judgement of whether autofix has finished, given a PR snapshot and
- * the baseline head SHA. Decision matrix:
- *   - MERGED                         → done (merged)
- *   - CLOSED (not merged)            → done (closed without fix)
- *   - OPEN, no baseline              → keep polling
- *   - OPEN, head unchanged           → keep polling (agent hasn't pushed)
- *   - OPEN, head changed, CI pending → keep polling (wait for CI)
- *   - OPEN, head changed, CI failure → done (surface red so user can retry)
- *   - OPEN, head changed, CI success → done (clean fix)
+ * 给定 PR 快照与 baseline head SHA，纯逻辑地判定 autofix 是否结束。
+ * 决策矩阵：
+ *   - MERGED                         → 完成（已合并）
+ *   - CLOSED（未合并）               → 完成（关闭但未修复）
+ *   - OPEN、无 baseline              → 继续轮询
+ *   - OPEN、head 未变                → 继续轮询（agent 还没 push）
+ *   - OPEN、head 变化、CI pending    → 继续轮询（等 CI）
+ *   - OPEN、head 变化、CI failure    → 完成（暴露 red，用户可重试）
+ *   - OPEN、head 变化、CI success    → 完成（干净的修复）
  */
 export function summariseAutofixOutcome(
   payload: PrViewPayload,
@@ -88,8 +87,8 @@ function summariseCiRollup(
   rollup: PrViewPayload['statusCheckRollup'],
 ): CiSummary {
   if (!rollup || rollup.length === 0) {
-    // No checks configured on this repo — treat as success so completion
-    // can fire on push alone. PRs without CI are perfectly valid.
+    // 该仓库没有配置 checks —— 视作成功，只要 push 就能触发完成。
+    // 没有 CI 的 PR 是完全合法的。
     return { state: 'success', detail: 'no checks configured' }
   }
   let pending = 0

@@ -1,12 +1,11 @@
 /**
- * useMasterMonitor — master-side slave registry helpers plus an optional hook
+ * useMasterMonitor — master 侧的 slave 注册表辅助函数加一个可选 hook
  *
- * The module-level registry helpers are the live integration point used by
- * attach/send/status flows. The hook remains available for history syncing if
- * a caller wants AppState to mirror slave session events.
+ * 模块级注册表辅助函数是 attach/send/status 流使用的活跃集成点。
+ * 如果调用者希望 AppState 镜像 slave 会话事件，该 hook 仍可用于历史同步。
  *
- * The master CLI itself remains fully functional — this hook only collects
- * data from slaves for review via /history and /status commands.
+ * master CLI 本身保持完全功能 —— 此 hook 仅为通过 /history 和 /status
+ * 命令审查而从 slave 收集数据。
  */
 
 import { useEffect, useSyncExternalStore } from 'react'
@@ -24,7 +23,7 @@ import {
   removeSendOverride,
 } from '../utils/pipeMuteState.js'
 
-/** Session history entry for pipe IPC monitoring. */
+/** pipe IPC 监控的会话历史条目。 */
 export type SessionEntry = {
   type: string
   content: string
@@ -91,8 +90,8 @@ export function applyPipeEntryToSlaveState(
 }
 
 /**
- * Module-level registry of connected slave PipeClients.
- * Keyed by slave pipe name. Managed by /attach and /detach commands.
+ * 已连接 slave PipeClient 的模块级注册表。
+ * 以 slave pipe 名称为键。由 /attach 和 /detach 命令管理。
  */
 const _slaveClients = new Map<string, PipeClient>()
 const _slaveClientRegistryListeners = new Set<() => void>()
@@ -118,7 +117,7 @@ function isMonitoredPipeEntryType(type: string): boolean {
   return MONITORED_PIPE_ENTRY_TYPES.includes(type)
 }
 
-/** Business message types that should be dropped when a slave is muted. */
+/** slave 被静音时应丢弃的业务消息类型。 */
 const MUTED_DROPPABLE_TYPES = new Set([
   'prompt_ack',
   'stream',
@@ -131,8 +130,8 @@ const MUTED_DROPPABLE_TYPES = new Set([
 ])
 
 /**
- * Centralized mute check used by both attachPipeEntryEmitter and
- * useMasterMonitor's inline handler — keeps the two gates in sync.
+ * 集中式静音检查，被 attachPipeEntryEmitter 和
+ * useMasterMonitor 的内联处理程序使用 —— 保持两个门控同步。
  */
 export function shouldDropMutedMessage(
   slaveName: string,
@@ -184,9 +183,9 @@ function attachPipeEntryEmitter(name: string, client: PipeClient): void {
   const handler = (msg: PipeMessage) => {
     if (!isMonitoredPipeEntryType(msg.type)) return
 
-    // Mute gate: drop business messages from muted slaves
+    // 静音门控：丢弃来自已静音 slave 的业务消息
     if (shouldDropMutedMessage(name, msg.type)) {
-      // Auto-deny permission_request to prevent slave deadlock
+      // 自动拒绝 permission_request 以防止 slave 死锁
       if (msg.type === 'permission_request') {
         try {
           const payload = JSON.parse(msg.data ?? '{}')
@@ -202,13 +201,13 @@ function attachPipeEntryEmitter(name: string, client: PipeClient): void {
             })
           }
         } catch {
-          // Malformed payload — safe to ignore
+          // 畸形载荷 —— 可安全忽略
         }
       }
       return
     }
 
-    // Clear /send override when slave turn completes
+    // 当 slave 回合完成时清除 /send 覆盖
     if (
       (msg.type === 'done' || msg.type === 'error') &&
       hasSendOverride(name)
@@ -270,10 +269,10 @@ export type ConnectedSlaveTarget = {
 }
 
 /**
- * Resolve a selection list to currently connected slave clients.
+ * 将选择列表解析为当前已连接的 slave 客户端。
  *
- * The pipe selector can include discovered-but-not-attached names. Routing
- * should only treat attached, connected clients as broadcast targets.
+ * pipe 选择器可以包含已发现但未附加的名称。路由
+ * 应仅将已附加、已连接的客户端视为广播目标。
  */
 export function getConnectedSlaveTargets(
   selectedNames: string[],
@@ -308,22 +307,22 @@ export function useMasterMonitor(): void {
   useEffect(() => {
     if (role !== 'master' && _slaveClients.size === 0) return
 
-    // Set up listeners for each connected slave client
+    // 为每个已连接的 slave 客户端设置监听器
     const cleanups: (() => void)[] = []
 
     for (const [slaveName, client] of _slaveClients.entries()) {
       const handler = (msg: PipeMessage) => {
-        // Only record relevant message types
+        // 仅记录相关的消息类型
         if (!isMonitoredPipeEntryType(msg.type)) {
           return
         }
 
-        // Mute gate (second gate, same helper as attachPipeEntryEmitter)
+        // 静音门控（第二个门控，与 attachPipeEntryEmitter 相同的辅助函数）
         if (shouldDropMutedMessage(slaveName, msg.type)) {
           return
         }
 
-        // Clear /send override when slave turn completes
+        // 当 slave 回合完成时清除 /send 覆盖
         if (
           (msg.type === 'done' || msg.type === 'error') &&
           hasSendOverride(slaveName)
@@ -369,10 +368,10 @@ export function useMasterMonitor(): void {
 
       client.on('message', handler)
 
-      // Handle slave disconnect
+      // 处理 slave 断开连接
       const onDisconnect = () => {
         logForDebugging(`[MasterMonitor] Slave "${slaveName}" disconnected`)
-        // Clear any lingering /send override before removing client
+        // 在移除客户端之前清除任何残留的 /send 覆盖
         removeSendOverride(slaveName)
         removeSlaveClient(slaveName)
         setAppState(prev => {

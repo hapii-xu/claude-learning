@@ -97,6 +97,10 @@ export async function buildToolIndex(tools: Tools): Promise<ToolIndexEntry[]> {
         agents: [],
       })
     } catch {
+      logForDebugging(
+        `[延迟工具索引] 工具 ${tool.name} 的 prompt() 抛错，跳过该工具`,
+        { level: 'error' },
+      )
       description = ''
     }
 
@@ -153,6 +157,10 @@ export function searchTools(
   index: ToolIndexEntry[],
   limit = 5,
 ): SearchExtraToolsResult[] {
+  logForDebugging(
+    `[延迟工具索引] searchTools 开始 query="${query.slice(0, 50)}" 候选工具数=${index.length}`,
+    { level: 'info' },
+  )
   if (index.length === 0 || !query.trim()) return []
 
   const queryTokens = tokenizeAndStem(query)
@@ -205,6 +213,13 @@ export function searchTools(
   }
 
   results.sort((a, b) => b.score - a.score)
+  logForDebugging(
+    `[延迟工具索引] searchTools 结果 Top-${Math.min(results.length, limit)}：[${results
+      .slice(0, limit)
+      .map(r => r.name)
+      .join(', ')}]`,
+    { level: 'info' },
+  )
   return results.slice(0, limit)
 }
 
@@ -221,6 +236,9 @@ export async function getToolIndex(tools: Tools): Promise<ToolIndexEntry[]> {
     return cachedIndex
   }
 
+  logForDebugging('[延迟工具索引] getToolIndex 缓存未命中，重新构建索引', {
+    level: 'info',
+  })
   cachedIndex = await buildToolIndex(tools)
   cachedToolNames = currentKey
   return cachedIndex

@@ -1,22 +1,22 @@
 /**
- * CCR upstreamproxy — container-side wiring.
+ * CCR upstreamproxy — 容器端接线。
  *
- * When running inside a CCR session container with upstreamproxy configured,
- * this module:
- *   1. Reads the session token from /run/ccr/session_token
- *   2. Sets prctl(PR_SET_DUMPABLE, 0) to block same-UID ptrace of the heap
- *   3. Downloads the upstreamproxy CA cert and concatenates it with the
- *      system bundle so curl/gh/python trust the MITM proxy
- *   4. Starts a local CONNECT→WebSocket relay (see relay.ts)
- *   5. Unlinks the token file (token stays heap-only; file is gone before
- *      the agent loop can see it, but only after the relay is confirmed up
- *      so a supervisor restart can retry)
- *   6. Exposes HTTPS_PROXY / SSL_CERT_FILE env vars for all agent subprocesses
+ * 当在配置了 upstreamproxy 的 CCR 会话容器中运行时，
+ * 此模块：
+ *   1. 从 /run/ccr/session_token 读取会话令牌
+ *   2. 设置 prctl(PR_SET_DUMPABLE, 0) 以阻止同 UID 的 ptrace 堆内存攻击
+ *   3. 下载 upstreamproxy CA 证书并将其与系统证书包合并，
+ *      使 curl/gh/python 信任该 MITM 代理
+ *   4. 启动本地 CONNECT→WebSocket 中继（见 relay.ts）
+ *   5. 删除令牌文件（令牌仅保留在堆内存中；文件在代理循环
+ *      能看到之前就已消失，但需在中继确认启动后才删除，
+ *      以便 supervisor 重启时可以重试）
+ *   6. 为所有代理子进程暴露 HTTPS_PROXY / SSL_CERT_FILE 环境变量
  *
- * Every step fails open: any error logs a warning and disables the proxy.
- * A broken proxy setup must never break an otherwise-working session.
+ * 每一步都是"失败即开放"的：任何错误只会记录警告并禁用代理。
+ * 损坏的代理设置绝不能破坏一个本来正常的会话。
  *
- * Design doc: api-go/ccr/docs/plans/CCR_AUTH_DESIGN.md § "Week-1 pilot scope".
+ * 设计文档：api-go/ccr/docs/plans/CCR_AUTH_DESIGN.md § "Week-1 pilot scope".
  */
 
 import { mkdir, readFile, unlink, writeFile } from 'fs/promises'
@@ -31,9 +31,9 @@ import { startUpstreamProxyRelay } from './relay.js'
 export const SESSION_TOKEN_PATH = '/run/ccr/session_token'
 const SYSTEM_CA_BUNDLE = '/etc/ssl/certs/ca-certificates.crt'
 
-// Hosts the proxy must NOT intercept. Covers loopback, RFC1918, the IMDS
-// range, and the package registries + GitHub that CCR containers already
-// reach directly. Mirrors airlock/scripts/sandbox-shell-ccr.sh.
+// 代理不得拦截的主机列表。涵盖环回地址、RFC1918 私有地址段、IMDS
+// 地址范围，以及 CCR 容器已直接访问的包注册表和 GitHub。
+// 与 airlock/scripts/sandbox-shell-ccr.sh 保持一致。
 const NO_PROXY_LIST = [
   'localhost',
   '127.0.0.1',
@@ -42,12 +42,12 @@ const NO_PROXY_LIST = [
   '10.0.0.0/8',
   '172.16.0.0/12',
   '192.168.0.0/16',
-  // Anthropic API: no upstream route will ever match, and the MITM breaks
-  // non-Bun runtimes (Python httpx/certifi doesn't trust the forged CA).
-  // Three forms because NO_PROXY parsing differs across runtimes:
-  //   *.anthropic.com  — Bun, curl, Go (glob match)
-  //   .anthropic.com   — Python urllib/httpx (suffix match, strips leading dot)
-  //   anthropic.com    — apex domain fallback
+  // Anthropic API：不会有上游路由匹配，且 MITM 会破坏
+  // 非 Bun 运行时（Python httpx/certifi 不信任伪造的 CA）。
+  // 三种形式是因为不同运行时的 NO_PROXY 解析方式不同：
+  //   *.anthropic.com  — Bun、curl、Go（通配符匹配）
+  //   .anthropic.com   — Python urllib/httpx（后缀匹配，去除前导点）
+  //   anthropic.com    — 根域后备
   'anthropic.com',
   '.anthropic.com',
   '*.anthropic.com',
@@ -71,10 +71,10 @@ type UpstreamProxyState = {
 let state: UpstreamProxyState = { enabled: false }
 
 /**
- * Initialize upstreamproxy. Called once from init.ts. Safe to call when the
- * feature is off or the token file is absent — returns {enabled: false}.
+ * 初始化 upstreamproxy。从 init.ts 调用一次。
+ * 当功能关闭或令牌文件不存在时安全调用 — 返回 {enabled: false}。
  *
- * Overridable paths are for tests; production uses the defaults.
+ * 可覆盖的路径用于测试；生产环境使用默认值。
  */
 export async function initUpstreamProxy(opts?: {
   tokenPath?: string
@@ -85,10 +85,10 @@ export async function initUpstreamProxy(opts?: {
   if (!isEnvTruthy(process.env.CLAUDE_CODE_REMOTE)) {
     return state
   }
-  // CCR evaluates ccr_upstream_proxy_enabled server-side (where GrowthBook is
-  // warm) and injects this env var via StartupContext.EnvironmentVariables.
-  // Every CCR session is a fresh container with no GB cache, so a client-side
-  // GB check here always returned the default (false).
+  // CCR 在服务端（GrowthBook 已预热）评估 ccr_upstream_proxy_enabled，
+  // 并通过 StartupContext.EnvironmentVariables 注入此环境变量。
+  // 每个 CCR 会话都是全新的容器，没有 GB 缓存，因此客户端
+  // GB 检查始终返回默认值（false）。
   if (!isEnvTruthy(process.env.CCR_UPSTREAM_PROXY_ENABLED)) {
     return state
   }
@@ -111,10 +111,10 @@ export async function initUpstreamProxy(opts?: {
 
   setNonDumpable()
 
-  // CCR injects ANTHROPIC_BASE_URL via StartupContext (sessionExecutor.ts /
-  // sessionHandler.ts). getOauthConfig() is wrong here: it keys off
-  // USER_TYPE + USE_{LOCAL,STAGING}_OAUTH, none of which the container sets,
-  // so it always returned the prod URL and the CA fetch 404'd.
+  // CCR 通过 StartupContext（sessionExecutor.ts /
+  // sessionHandler.ts）注入 ANTHROPIC_BASE_URL。此处的 getOauthConfig()
+  // 是错误的：它依赖 USER_TYPE + USE_{LOCAL,STAGING}_OAUTH，而容器
+  // 都不设置这些变量，所以始终返回生产 URL，导致 CA 获取 404。
   const baseUrl =
     opts?.ccrBaseUrl ??
     process.env.ANTHROPIC_BASE_URL ??
@@ -135,8 +135,8 @@ export async function initUpstreamProxy(opts?: {
     registerCleanup(async () => relay.stop())
     state = { enabled: true, port: relay.port, caBundlePath }
     logForDebugging(`[upstreamproxy] enabled on 127.0.0.1:${relay.port}`)
-    // Only unlink after the listener is up: if CA download or listen()
-    // fails, a supervisor restart can retry with the token still on disk.
+    // 仅在监听器启动后才删除：如果 CA 下载或 listen()
+    // 失败，supervisor 重启时仍可从磁盘上的令牌重试。
     await unlink(tokenPath).catch(() => {
       logForDebugging('[upstreamproxy] token file unlink failed', {
         level: 'warn',
@@ -153,17 +153,15 @@ export async function initUpstreamProxy(opts?: {
 }
 
 /**
- * Env vars to merge into every agent subprocess. Empty when the proxy is
- * disabled. Called from subprocessEnv() so Bash/MCP/LSP/hooks all inherit
- * the same recipe.
+ * 获取要合并到每个代理子进程的环境变量。代理禁用时返回空对象。
+ * 从 subprocessEnv() 调用，使 Bash/MCP/LSP/hooks 都继承相同的配置。
  */
 export function getUpstreamProxyEnv(): Record<string, string> {
   if (!state.enabled || !state.port || !state.caBundlePath) {
-    // Child CLI processes can't re-initialize the relay (token file was
-    // unlinked by the parent), but the parent's relay is still running and
-    // reachable at 127.0.0.1:<port>. If we inherited proxy vars from the
-    // parent (HTTPS_PROXY + SSL_CERT_FILE both set), pass them through so
-    // our subprocesses also route through the parent's relay.
+    // 子 CLI 进程无法重新初始化中继（令牌文件已被父进程删除），
+    // 但父进程的中继仍在运行，可通过 127.0.0.1:<port> 访问。
+    // 如果从父进程继承了代理变量（HTTPS_PROXY + SSL_CERT_FILE 均已设置），
+    // 则透传这些变量，使我们的子进程也通过父进程的中继路由。
     if (process.env.HTTPS_PROXY && process.env.SSL_CERT_FILE) {
       const inherited: Record<string, string> = {}
       for (const key of [
@@ -183,9 +181,8 @@ export function getUpstreamProxyEnv(): Record<string, string> {
     return {}
   }
   const proxyUrl = `http://127.0.0.1:${state.port}`
-  // HTTPS only: the relay handles CONNECT and nothing else. Plain HTTP has
-  // no credentials to inject, so routing it through the relay would just
-  // break the request with a 405.
+  // 仅 HTTPS：中继只处理 CONNECT，其他不处理。纯 HTTP 没有
+  // 需要注入的凭据，通过中继路由只会导致 405 错误。
   return {
     HTTPS_PROXY: proxyUrl,
     https_proxy: proxyUrl,
@@ -198,7 +195,7 @@ export function getUpstreamProxyEnv(): Record<string, string> {
   }
 }
 
-/** Test-only: reset module state between test cases. */
+/** 仅测试用：在测试用例之间重置模块状态。 */
 export function resetUpstreamProxyForTests(): void {
   state = { enabled: false }
 }
@@ -218,9 +215,9 @@ async function readToken(path: string): Promise<string | null> {
 }
 
 /**
- * prctl(PR_SET_DUMPABLE, 0) via libc FFI. Blocks same-UID ptrace of this
- * process, so a prompt-injected `gdb -p $PPID` can't scrape the token from
- * the heap. Linux-only; silently no-ops elsewhere.
+ * 通过 libc FFI 调用 prctl(PR_SET_DUMPABLE, 0)。阻止同 UID 的 ptrace
+ * 攻击本进程，防止被提示注入的 `gdb -p $PPID` 从堆内存中窃取令牌。
+ * 仅限 Linux；其他平台静默跳过。
  */
 function setNonDumpable(): void {
   if (process.platform !== 'linux' || typeof Bun === 'undefined') return
@@ -259,8 +256,8 @@ async function downloadCaBundle(
   try {
     // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
     const resp = await fetch(`${baseUrl}/v1/code/upstreamproxy/ca-cert`, {
-      // Bun has no default fetch timeout — a hung endpoint would block CLI
-      // startup forever. 5s is generous for a small PEM.
+      // Bun 的 fetch 没有默认超时 — 挂起的端点会无限期阻塞 CLI
+      // 启动。对于小型 PEM 文件，5 秒已足够宽裕。
       signal: AbortSignal.timeout(5000),
     })
     if (!resp.ok) {

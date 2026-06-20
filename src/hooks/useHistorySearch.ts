@@ -6,7 +6,7 @@ import {
 } from '../components/PromptInput/inputModes.js'
 import { makeHistoryReader } from '../history.js'
 import { KeyboardEvent, useInput } from '@anthropic/ink'
-// backward-compat bridge until consumers wire handleKeyDown to <Box onKeyDown>
+// 向后兼容桥接，直到使用者将 handleKeyDown 连接到 <Box onKeyDown>
 import { useKeybinding, useKeybindings } from '../keybindings/useKeybinding.js'
 import type { PromptInputMode } from '../types/textInputTypes.js'
 import type { HistoryEntry } from '../utils/config.js'
@@ -49,8 +49,8 @@ export function useHistorySearch(
 
   const closeHistoryReader = useCallback((): void => {
     if (historyReader.current) {
-      // Must explicitly call .return() to trigger the finally block in readLinesReverse,
-      // which closes the file handle. Without this, file descriptors leak.
+      // 必须显式调用 .return() 以触发 readLinesReverse 中的 finally 块，
+      // 它关闭文件句柄。没有这个，文件描述符会泄漏。
       void historyReader.current.return(undefined)
       historyReader.current = undefined
     }
@@ -104,7 +104,7 @@ export function useHistorySearch(
 
         const item = await historyReader.current.next()
         if (item.done) {
-          // No match found - keep last match but mark as failed
+          // 未找到匹配 —— 保留上次匹配但标记为失败
           setHistoryFailedMatch(true)
           return
         }
@@ -121,7 +121,7 @@ export function useHistorySearch(
           onInputChange(display)
           setPastedContents(item.value.pastedContents)
 
-          // Position cursor relative to the clean value, not the display
+          // 相对于干净值定位光标，而不是显示
           const value = getValueFromInput(display)
           const cleanMatchPosition = value.lastIndexOf(historyQuery)
           onCursorChange(
@@ -146,7 +146,7 @@ export function useHistorySearch(
     ],
   )
 
-  // Handler: Start history search (when not searching)
+  // 处理器：开始历史搜索（未搜索时）
   const handleStartSearch = useCallback(() => {
     setIsSearching(true)
     setOriginalInput(currentInput)
@@ -163,12 +163,12 @@ export function useHistorySearch(
     currentPastedContents,
   ])
 
-  // Handler: Find next match (when searching)
+  // 处理器：查找下一个匹配（搜索时）
   const handleNextMatch = useCallback(() => {
     void searchHistory(true)
   }, [searchHistory])
 
-  // Handler: Accept current match and exit search
+  // 处理器：接受当前匹配并退出搜索
   const handleAccept = useCallback(() => {
     if (historyMatch) {
       const mode = getModeFromInput(historyMatch.display)
@@ -177,7 +177,7 @@ export function useHistorySearch(
       onModeChange(mode)
       setPastedContents(historyMatch.pastedContents)
     } else {
-      // No match - restore original pasted contents
+      // 无匹配 —— 恢复原始粘贴内容
       setPastedContents(originalPastedContents)
     }
     reset()
@@ -190,7 +190,7 @@ export function useHistorySearch(
     reset,
   ])
 
-  // Handler: Cancel search and restore original input
+  // 处理器：取消搜索并恢复原始输入
   const handleCancel = useCallback(() => {
     onInputChange(originalInput)
     onCursorChange(originalCursorOffset)
@@ -206,7 +206,7 @@ export function useHistorySearch(
     reset,
   ])
 
-  // Handler: Execute (accept and submit)
+  // 处理器：执行（接受并提交）
   const handleExecute = useCallback(() => {
     if (historyQuery.length === 0) {
       onAcceptHistory({
@@ -233,13 +233,13 @@ export function useHistorySearch(
     reset,
   ])
 
-  // Gated off under HISTORY_PICKER — the modal dialog owns ctrl+r there.
+  // 在 HISTORY_PICKER 下被门控关闭 —— 模态对话框在那里拥有 ctrl+r。
   useKeybinding('history:search', handleStartSearch, {
     context: 'Global',
     isActive: feature('HISTORY_PICKER') ? false : !isSearching,
   })
 
-  // History search context keybindings (only active when searching)
+  // 历史搜索上下文快捷键（仅在搜索时活动）
   const historySearchHandlers = useMemo(
     () => ({
       'historySearch:next': handleNextMatch,
@@ -255,9 +255,9 @@ export function useHistorySearch(
     isActive: isSearching,
   })
 
-  // Handle backspace when query is empty (cancels search)
-  // This is a conditional behavior that doesn't fit the keybinding model
-  // well (backspace only cancels when query is empty)
+  // 当查询为空时处理退格（取消搜索）
+  // 这是不适合快捷键模型的条件行为
+  // （退格仅在查询为空时取消）
   const handleKeyDown = (e: KeyboardEvent): void => {
     if (!isSearching) return
     if (e.key === 'backspace' && historyQuery === '') {
@@ -266,10 +266,10 @@ export function useHistorySearch(
     }
   }
 
-  // Backward-compat bridge: PromptInput doesn't yet wire handleKeyDown to
-  // <Box onKeyDown>. Subscribe via useInput and adapt InputEvent →
-  // KeyboardEvent until the consumer is migrated (separate PR).
-  // TODO(onKeyDown-migration): remove once PromptInput passes handleKeyDown.
+  // 向后兼容桥接：PromptInput 尚未将 handleKeyDown 连接到
+  // <Box onKeyDown>。通过 useInput 订阅并适配 InputEvent →
+  // KeyboardEvent 直到使用者迁移（单独的 PR）。
+  // TODO(onKeyDown-migration)：一旦 PromptInput 传递 handleKeyDown 则移除。
   useInput(
     (_input, _key, event) => {
       handleKeyDown(new KeyboardEvent(event.keypress))
@@ -277,11 +277,11 @@ export function useHistorySearch(
     { isActive: isSearching },
   )
 
-  // Keep a ref to searchHistory to avoid it being a dependency of useEffect
+  // 保留对 searchHistory 的 ref 以避免它成为 useEffect 的依赖
   const searchHistoryRef = useRef(searchHistory)
   searchHistoryRef.current = searchHistory
 
-  // Reset history search when query changes
+  // 当查询更改时重置历史搜索
   useEffect(() => {
     searchAbortController.current?.abort()
     const controller = new AbortController()

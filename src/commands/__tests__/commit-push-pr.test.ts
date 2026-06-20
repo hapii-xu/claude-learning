@@ -21,15 +21,14 @@ mock.module('src/utils/promptShellExecution.ts', () => ({
   executeShellCommandsInPrompt: async (content: string) => content,
 }))
 
-// IMPORTANT: mock.module is process-global. findGitRoot/findCanonicalGitRoot
-// are SYNC in the real impl (returning string | null) — using async stubs
-// here pollutes downstream callers (e.g. jobs/templates.ts) that consume the
-// return value as a string. Match the real signatures (sync, string | null)
-// so other test files in the same process keep working.
+// 重要：mock.module 是进程级全局的。findGitRoot/findCanonicalGitRoot
+// 在真实实现中是同步的（返回 string | null）—— 此处若用异步 stub，
+// 会污染下游消费方（如 jobs/templates.ts）—— 它们会把返回值当字符串使用。
+// 需匹配真实签名（同步，返回 string | null），这样同进程内其他测试文件才能正常工作。
 //
-// Pure functions (normalizeGitRemoteUrl) are inlined with real semantics so
-// git.test.ts and other consumers of this mock don't see null returns when
-// the test runs in the full suite.
+// 纯函数（normalizeGitRemoteUrl）按真实语义内联实现，
+// 这样 git.test.ts 和其他使用该 mock 的消费方在完整测试套件中运行时
+// 不会看到 null 返回值。
 const isLocalHostForMock = (host: string): boolean => {
   const lower = host.toLowerCase().split(':')[0] ?? ''
   return lower === 'localhost' || lower === '127.0.0.1' || lower === '::1'
@@ -73,9 +72,8 @@ mock.module('src/utils/git.ts', () => ({
   dirIsInGitRepo: async () => true,
   getHead: async () => 'abc123',
   getBranch: async () => 'main',
-  // The following exports are referenced by markdownConfigLoader (and other
-  // transitive consumers) — provide minimal stubs so the mock surface covers
-  // every real export and downstream callers don't see undefined.
+  // 以下导出被 markdownConfigLoader（以及其他传递性消费方）引用 ——
+  // 提供最小 stub，使 mock 表面覆盖每个真实导出，避免下游调用方看到 undefined。
   getRemoteUrl: async () => null,
   normalizeGitRemoteUrl: realNormalizeGitRemoteUrl,
   getRepoRemoteHash: async () => null,
@@ -241,7 +239,7 @@ describe('commit-push-pr getPromptForCommand', () => {
 
   test('with ant user type and undercover, strips reviewer args', async () => {
     process.env.USER_TYPE = 'ant'
-    // isUndercover is mocked as false, so no prefix should be added
+    // isUndercover 被 mock 为 false，因此不会添加前缀
     const result = await (commitPushPr as any).getPromptForCommand(
       '',
       makeContext(),
@@ -262,7 +260,7 @@ describe('commit-push-pr getPromptForCommand', () => {
   test('getAppState override in context includes ALLOWED_TOOLS', async () => {
     let capturedGetAppState: (() => any) | undefined
 
-    // Re-mock executeShellCommandsInPrompt to capture the context argument
+    // 重新 mock executeShellCommandsInPrompt 以捕获 context 参数
     mock.module('src/utils/promptShellExecution.ts', () => ({
       executeShellCommandsInPrompt: async (content: string, ctx: any) => {
         capturedGetAppState = ctx.getAppState.bind(ctx)
@@ -270,7 +268,7 @@ describe('commit-push-pr getPromptForCommand', () => {
       },
     }))
 
-    // Re-import to pick up the new mock
+    // 重新 import 以让新的 mock 生效
     const { default: freshCmd } = await import('../commit-push-pr.js')
 
     await (freshCmd as any).getPromptForCommand('', {
@@ -288,7 +286,7 @@ describe('commit-push-pr getPromptForCommand', () => {
     expect(
       Array.isArray(resultState.toolPermissionContext.alwaysAllowRules.command),
     ).toBe(true)
-    // Should have replaced with ALLOWED_TOOLS
+    // 应当已被替换为 ALLOWED_TOOLS
     expect(
       resultState.toolPermissionContext.alwaysAllowRules.command.length,
     ).toBeGreaterThan(0)
@@ -298,14 +296,14 @@ describe('commit-push-pr getPromptForCommand', () => {
   test('ant undercover path strips reviewer/slack/changelog sections', async () => {
     process.env.USER_TYPE = 'ant'
 
-    // Re-mock undercover to return true for this test
+    // 为该测试重新 mock undercover 使其返回 true
     mock.module('src/utils/undercover.ts', () => ({
       isUndercover: () => true,
       getUndercoverInstructions: () => 'UNDERCOVER_INSTRUCTIONS',
       shouldShowUndercoverAutoNotice: () => false,
     }))
 
-    // Also re-mock attribution to return commit text
+    // 同时重新 mock attribution 以返回 commit 文本
     mock.module('src/utils/attribution.ts', () => ({
       getAttributionTexts: () => ({
         commit: 'Attribution text',
@@ -322,8 +320,8 @@ describe('commit-push-pr getPromptForCommand', () => {
       makeContext(),
     )
     expect(Array.isArray(result)).toBe(true)
-    // The undercover path removes slackStep, changelogSection, and reviewer args
-    // The prompt should not contain those sections
+    // undercover 路径会移除 slackStep、changelogSection 和 reviewer 参数
+    // prompt 中不应出现这些段落
     expect(result[0].text).not.toContain('CHANGELOG:START')
     expect(result[0].text).not.toContain('Slack')
   })

@@ -1,14 +1,14 @@
 /**
- * Regression tests for vaultsApi.ts
+ * vaultsApi.ts 的回归测试
  *
- * Key invariants under test:
- *   - archiveVault uses POST /v1/vaults/{id}/archive (not DELETE)
- *   - archiveCredential uses POST /v1/vaults/{id}/credentials/{cid}/archive
- *   - addCredential uses POST /v1/vaults/{id}/credentials
- *   - credential value must NEVER appear in URL or request body metadata
- *   - error messages sanitize IDs (only first 8 chars exposed)
- *   - 401/403/404/429/5xx classified correctly
- *   - withRetry retries only 5xx, not 4xx
+ * 被测的关键不变式：
+ *   - archiveVault 使用 POST /v1/vaults/{id}/archive（而非 DELETE）
+ *   - archiveCredential 使用 POST /v1/vaults/{id}/credentials/{cid}/archive
+ *   - addCredential 使用 POST /v1/vaults/{id}/credentials
+ *   - credential 的值绝不出现在 URL 或请求体的元数据中
+ *   - 错误消息会对 ID 做脱敏处理（只暴露前 8 个字符）
+ *   - 401/403/404/429/5xx 被正确分类
+ *   - withRetry 仅重试 5xx，不重试 4xx
  */
 
 import {
@@ -28,7 +28,7 @@ import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
 
-// ── Workspace API key mock ──────────────────────────────────────────────────
+// ── Workspace API key mock（工作区 API key mock）──
 const mockApiKey = 'sk-ant-api03-test-vaults-key'
 
 mock.module('src/constants/oauth.js', () => ({
@@ -43,10 +43,10 @@ mock.module('src/utils/teleport/api.js', () => ({
   prepareWorkspaceApiRequest: prepareWorkspaceApiRequestMock,
 }))
 
-// Note: we do NOT mock src/services/auth/hostGuard.js here.
-// The real assertWorkspaceHost() is called with the URL from getOauthConfig()
-// (mocked to https://api.anthropic.com), which passes the host guard.
-// Mocking hostGuard would pollute hostGuard's own test file via Bun process-level cache.
+// 注意：这里我们不 mock src/services/auth/hostGuard.js。
+// 真正的 assertWorkspaceHost() 会用 getOauthConfig()（被 mock 成
+// https://api.anthropic.com）返回的 URL 进行调用，该 URL 能通过 host 校验。
+// 若 mock hostGuard，会通过 Bun 进程级缓存污染 hostGuard 自己的测试文件。
 
 // ── Axios mock ──────────────────────────────────────────────────────────────
 const axiosGetMock = mock(async () => ({}))
@@ -68,7 +68,7 @@ axiosHandle.stubs.post = axiosPostMock
 axiosHandle.stubs.delete = axiosDeleteMock
 axiosHandle.stubs.isAxiosError = axiosIsAxiosError
 
-// ── Lazy import after mocks ─────────────────────────────────────────────────
+// ── 在 mock 完成后再延迟导入被测代码 ──
 let listVaults: typeof import('../vaultsApi.js').listVaults
 let createVault: typeof import('../vaultsApi.js').createVault
 let getVault: typeof import('../vaultsApi.js').getVault
@@ -105,7 +105,7 @@ afterEach(() => {
   delete process.env['ANTHROPIC_API_KEY']
 })
 
-// ── SECURITY: credential value must not leak into URL ─────────────────────
+// ── 安全：credential 的值不得泄漏到 URL 中 ──
 describe('addCredential: credential value security', () => {
   test('credential value is never placed in the URL', async () => {
     const cred = {
@@ -123,9 +123,9 @@ describe('addCredential: credential value security', () => {
       unknown,
     ][]
     const url = calls[0]?.[0] as string
-    // Credential VALUE must NOT appear in the URL
+    // credential 的「值」绝不能出现在 URL 中
     expect(url).not.toContain('super-secret-value-xyz')
-    // Credential KEY (name) is OK in URL path
+    // credential 的「键名」（name）可以出现在 URL 路径里
     expect(url).toContain('vault_abc12345')
   })
 
@@ -145,16 +145,16 @@ describe('addCredential: credential value security', () => {
       unknown,
     ][]
     const body = calls[0]?.[1] as Record<string, unknown>
-    // Body should contain the secret value (it needs to be sent somewhere)
+    // 请求体应该包含 secret 值（它总要通过某种方式发送）
     expect(body).toHaveProperty('secret')
     expect(body.secret).toBe('the-secret-value')
-    // But URL must NOT contain it
+    // 但 URL 中绝不能包含它
     const url = calls[0]?.[0] as string
     expect(url).not.toContain('the-secret-value')
   })
 })
 
-// ── REGRESSION: archiveVault must use POST not DELETE ────────────────────
+// ── 回归：archiveVault 必须使用 POST 而非 DELETE ──
 describe('archiveVault regression: must use POST not DELETE', () => {
   test('archiveVault calls POST /v1/vaults/{id}/archive (not DELETE)', async () => {
     const vault = {
@@ -180,7 +180,7 @@ describe('archiveVault regression: must use POST not DELETE', () => {
   })
 })
 
-// ── REGRESSION: archiveCredential must use POST not DELETE ────────────────
+// ── 回归：archiveCredential 必须使用 POST 而非 DELETE ──
 describe('archiveCredential regression: must use POST not DELETE', () => {
   test('archiveCredential calls POST .../credentials/{cid}/archive (not DELETE)', async () => {
     const cred = {
@@ -207,7 +207,7 @@ describe('archiveCredential regression: must use POST not DELETE', () => {
   })
 })
 
-// ── listVaults ────────────────────────────────────────────────────────────
+// ── listVaults（列出 vault）──
 describe('listVaults', () => {
   test('returns vaults on 200', async () => {
     const vaults = [
@@ -310,7 +310,7 @@ describe('listVaults', () => {
   })
 })
 
-// ── getVault ──────────────────────────────────────────────────────────────
+// ── getVault（查询单个 vault）──
 describe('getVault', () => {
   test('calls GET /v1/vaults/{id}', async () => {
     const vault = { vault_id: 'vault_get', name: 'Work Vault' }
@@ -352,19 +352,19 @@ describe('getVault', () => {
         'isAxiosError' in e &&
         (e as { isAxiosError: boolean }).isAxiosError === true,
     )
-    // ID is longer than 8 chars — full ID must not appear in error message
+    // ID 长度超过 8 个字符 —— 完整 ID 不得出现在错误消息中
     const longId = 'vault_verylongidentifier_12345'
     try {
       await getVault(longId)
     } catch (err2: unknown) {
       const msg = err2 instanceof Error ? err2.message : String(err2)
-      // Full ID must NOT appear in message
+      // 完整 ID 绝不能出现在消息中
       expect(msg).not.toContain(longId)
     }
   })
 })
 
-// ── createVault ───────────────────────────────────────────────────────────
+// ── createVault（创建 vault）──
 describe('createVault', () => {
   test('sends POST /v1/vaults with name', async () => {
     const vault = { vault_id: 'vault_new', name: 'My New Vault' }
@@ -385,7 +385,7 @@ describe('createVault', () => {
   })
 })
 
-// ── listCredentials ───────────────────────────────────────────────────────
+// ── listCredentials（列出凭据）──
 describe('listCredentials', () => {
   test('calls GET /v1/vaults/{id}/credentials', async () => {
     const creds = [
@@ -407,7 +407,7 @@ describe('listCredentials', () => {
         credential_id: 'cred_safe',
         vault_id: 'vault_1',
         kind: 'api_key',
-        // NOTE: no 'secret' field — server never returns secret in list
+        // 注意：没有 'secret' 字段 —— 服务器在列表中绝不返回 secret
       },
     ]
     axiosGetMock.mockResolvedValueOnce({ data: { data: creds }, status: 200 })
@@ -433,7 +433,7 @@ describe('listCredentials', () => {
   })
 })
 
-// ── 429 rate-limit ────────────────────────────────────────────────────────
+// ── 429 限流 ──
 describe('429 rate-limit: not retried (non-5xx)', () => {
   test('throws immediately on 429 without retry', async () => {
     const err = Object.assign(new Error('Too Many Requests'), {
@@ -453,7 +453,7 @@ describe('429 rate-limit: not retried (non-5xx)', () => {
   })
 })
 
-// ── Invariant: buildHeaders must return x-api-key, not Authorization ─────────
+// ── 不变式：buildHeaders 必须返回 x-api-key，不返回 Authorization ──
 describe('invariant: x-api-key present, no Authorization, no x-organization-uuid', () => {
   test('buildHeaders returns x-api-key header (workspace key)', async () => {
     axiosGetMock.mockResolvedValueOnce({ data: { data: [] }, status: 200 })

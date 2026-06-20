@@ -1,5 +1,13 @@
 {
 	"version": "2.0.0",
+	"inputs": [
+		{
+			"type": "promptString",
+			"id": "promptText",
+			"description": "Claude 的 prompt 内容（通过 stdin 传入，避免 shell 引号问题）",
+			"default": "hello"
+		}
+	],
 	"tasks": [
 		{
 			"label": "Start Claude Code TUI",
@@ -11,6 +19,52 @@
 				"focus": true,
 				"panel": "dedicated",
 				"clear": true
+			},
+			"problemMatcher": {
+				"pattern": {
+					"regexp": "^$"
+				},
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": ".*Bun Inspector.*",
+					"endsPattern": ".*Listening:.*"
+				}
+			}
+		},
+		{
+			"label": "Debug: 启动 dev (Interactive)",
+			"type": "shell",
+			"command": "bun run dev:inspect",
+			"isBackground": true,
+			"presentation": {
+				"reveal": "always",
+				"focus": false,
+				"panel": "dedicated",
+				"clear": true,
+				"group": "debug-study"
+			},
+			"problemMatcher": {
+				"pattern": {
+					"regexp": "^$"
+				},
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": ".*Bun Inspector.*",
+					"endsPattern": ".*Listening:.*"
+				}
+			}
+		},
+		{
+			"label": "Debug: 启动 dev (Headless + Prompt)",
+			"type": "shell",
+			"command": "echo ${input:promptText} | bun run dev:inspect -- -p",
+			"isBackground": true,
+			"presentation": {
+				"reveal": "always",
+				"focus": false,
+				"panel": "dedicated",
+				"clear": true,
+				"group": "debug-study"
 			},
 			"problemMatcher": {
 				"pattern": {

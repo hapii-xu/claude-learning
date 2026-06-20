@@ -1,10 +1,10 @@
 /**
- * Tests for src/commands/env/index.ts
- * Covers: isSecretKey, maskValue, ENV_PREFIX_ALLOWLIST branches, formatRuntime, full call()
+ * src/commands/env/index.ts 的测试
+ * 覆盖：isSecretKey、maskValue、ENV_PREFIX_ALLOWLIST 分支、formatRuntime 以及完整 call()
  *
- * Note: We do NOT mock src/bootstrap/state.js here to avoid the incomplete-mock
- * cross-test pollution described in tests/mocks/README. The real state module
- * is safe to import (getSessionId() returns a stable UUID per process).
+ * 注意：此处我们 NOT mock src/bootstrap/state.js，以避免 tests/mocks/README 中
+ * 所述的不完整 mock 跨测试污染。真实的 state 模块可安全导入
+ *（getSessionId() 在每个进程中返回稳定的 UUID）。
  */
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test'
 
@@ -44,7 +44,7 @@ describe('env command output', () => {
   const savedEnvVars: Record<string, string | undefined> = {}
 
   afterEach(() => {
-    // Restore env vars set during tests
+    // 恢复测试期间设置的环境变量
     for (const [k, v] of Object.entries(savedEnvVars)) {
       if (v === undefined) {
         delete process.env[k]
@@ -164,7 +164,7 @@ describe('env command output', () => {
     expect(result.value).toContain('(no recognized env vars set)')
   })
 
-  // ── M1 regression: KAIROS_ prefix must include underscore ──
+  // ── M1 回归测试：KAIROS_ 前缀必须包含下划线 ──
   test('M1: KAIROS_ var (with underscore) appears in output', async () => {
     setEnv('KAIROS_MY_VAR', 'kairos_value')
     const loaded = await envCmd.load!()
@@ -173,7 +173,7 @@ describe('env command output', () => {
   })
 
   test('M1: KAIROSE_ (wrong prefix, no match) does NOT appear in output', async () => {
-    // KAIROSE_ should NOT be shown — only exact KAIROS_ prefix is allowed
+    // KAIROSE_ 不应被显示 — 仅允许精确的 KAIROS_ 前缀
     setEnv('KAIROSE_INTERNAL', 'should_not_appear')
     const loaded = await envCmd.load!()
     const result = await loaded.call()

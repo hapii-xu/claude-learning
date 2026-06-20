@@ -20,25 +20,25 @@ import type { Message, SystemInformationalMessage } from '../types/message.js'
 import { logForDebugging } from '../utils/debug.js'
 
 type Props = {
-  /** Gated on viewerOnly — non-viewer sessions have no remote history to page. */
+  /** 受限于 viewerOnly —— 非查看器会话没有远程历史可翻页。 */
   config: RemoteSessionConfig | undefined
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>
   scrollRef: RefObject<ScrollBoxHandle | null>
-  /** Called after prepend from the layout effect with message count + height
-   *  delta. Lets useUnseenDivider shift dividerIndex + dividerYRef. */
+  /** 在布局效果的预置后调用，带有消息数量 + 高度
+   *  增量。让 useUnseenDivider 移动 dividerIndex + dividerYRef。 */
   onPrepend?: (indexDelta: number, heightDelta: number) => void
 }
 
 type Result = {
-  /** Trigger for ScrollKeybindingHandler's onScroll composition. */
+  /** 触发 ScrollKeybindingHandler 的 onScroll 组合。 */
   maybeLoadOlder: (handle: ScrollBoxHandle) => void
 }
 
-/** Fire loadOlder when scrolled within this many rows of the top. */
+/** 当滚动到距离顶部此行数内时触发 loadOlder。 */
 const PREFETCH_THRESHOLD_ROWS = 40
 
-/** Max chained page loads to fill the viewport on mount. Bounds the loop if
- *  events convert to zero visible messages (everything filtered). */
+/** 挂载时填充视口的最大链式页面加载数。限制当事件转换为
+ *  零可见消息（全部被过滤）时的循环。 */
 const MAX_FILL_PAGES = 10
 
 const SENTINEL_LOADING = 'loading older messages…'
@@ -46,7 +46,7 @@ const SENTINEL_LOADING_FAILED =
   'failed to load older messages — scroll up to retry'
 const SENTINEL_START = 'start of session'
 
-/** Convert a HistoryPage to REPL Message[] using the same opts as viewer mode. */
+/** 使用与查看器模式相同的选项将 HistoryPage 转换为 REPL Message[]。 */
 function pageToMessages(page: HistoryPage): Message[] {
   const out: Message[] = []
   for (const ev of page.events) {
@@ -60,14 +60,14 @@ function pageToMessages(page: HistoryPage): Message[] {
 }
 
 /**
- * Lazy-load `claude assistant` history on scroll-up.
+ * 在向上滚动时延迟加载 `claude assistant` 历史。
  *
- * On mount: fetch newest page via anchor_to_latest, prepend to messages.
- * On scroll-up near top: fetch next-older page via before_id, prepend with
- * scroll anchoring (viewport stays put).
+ * 挂载时：通过 anchor_to_latest 获取最新页面，预置到消息。
+ * 在接近顶部向上滚动时：通过 before_id 获取下一页更旧的内容，
+ * 使用滚动锚定预置（视口保持不变）。
  *
- * No-op unless config.viewerOnly. REPL only calls this hook inside a
- * feature('KAIROS') gate, so build-time elimination is handled there.
+ * 除非 config.viewerOnly 否则为无操作。REPL 仅在
+ * feature('KAIROS') 门控内调用此 hook，因此构建时消除在那里处理。
  */
 export function useAssistantHistory({
   config,
@@ -77,25 +77,25 @@ export function useAssistantHistory({
 }: Props): Result {
   const enabled = config?.viewerOnly === true
 
-  // Cursor state: ref-only (no re-render on cursor change). `null` = no
-  // older pages. `undefined` = initial page not fetched yet.
+  // 游标状态：仅 ref（游标变化时不重新渲染）。`null` = 没有
+  // 更旧的页面。`undefined` = 初始页面尚未获取。
   const cursorRef = useRef<string | null | undefined>(undefined)
   const ctxRef = useRef<HistoryAuthCtx | null>(null)
   const inflightRef = useRef(false)
 
-  // Scroll-anchor: snapshot height + prepended count before setMessages;
-  // compensate in useLayoutEffect after React commits. getFreshScrollHeight
-  // reads Yoga directly so the value is correct post-commit.
+  // 滚动锚：在 setMessages 之前快照高度 + 预置数量；
+  // 在 React 提交后在 useLayoutEffect 中补偿。getFreshScrollHeight
+  // 直接读取 Yoga，因此提交后的值是正确的。
   const anchorRef = useRef<{ beforeHeight: number; count: number } | null>(null)
 
-  // Fill-viewport chaining: after the initial page commits, if content doesn't
-  // fill the viewport yet, load another page. Self-chains via the layout effect
-  // until filled or the budget runs out. Budget set once on initial load; user
-  // scroll-ups don't need it (maybeLoadOlder re-fires on next wheel event).
+  // 填充视口链：初始页面提交后，如果内容尚未
+  // 填充视口，加载另一页。通过布局效果自链
+  // 直到填充或预算用完。预算在初始加载时设置一次；用户
+  // 向上滚动不需要它（maybeLoadOlder 在下一个滚轮事件重新触发）。
   const fillBudgetRef = useRef(0)
 
-  // Stable sentinel UUID — reused across swaps so virtual-scroll treats it
-  // as one item (text-only mutation, not remove+insert).
+  // 稳定的哨兵 UUID —— 在交换时重用，以便虚拟滚动将其视为
+  // 一个项目（仅文本变化，而不是移除+插入）。
   const sentinelUuidRef = useRef(randomUUID())
 
   function mkSentinel(text: string): SystemInformationalMessage {
@@ -110,8 +110,8 @@ export function useAssistantHistory({
     }
   }
 
-  /** Prepend a page at the front, with scroll-anchor snapshot for non-initial.
-   *  Replaces the sentinel (always at index 0 when present) in-place. */
+  /** 在前方预置一页，非初始时带有滚动锚快照。
+   *  就地替换哨兵（存在时始终在索引 0）。 */
   const prepend = useCallback(
     (page: HistoryPage, isInitial: boolean) => {
       const msgs = pageToMessages(page)
@@ -126,7 +126,7 @@ export function useAssistantHistory({
 
       const sentinel = page.hasMore ? null : mkSentinel(SENTINEL_START)
       setMessages(prev => {
-        // Drop existing sentinel (index 0, known stable UUID — O(1)).
+        // 丢弃现有哨兵（索引 0，已知稳定 UUID —— O(1)）。
         const base =
           prev[0]?.uuid === sentinelUuidRef.current ? prev.slice(1) : prev
         return sentinel ? [sentinel, ...msgs, ...base] : [...msgs, ...base]
@@ -140,7 +140,7 @@ export function useAssistantHistory({
     [setMessages],
   )
 
-  // Initial fetch on mount — best-effort.
+  // 挂载时的初始获取 —— 尽力而为。
   useEffect(() => {
     if (!enabled || !config) return
     let cancelled = false
@@ -166,7 +166,7 @@ export function useAssistantHistory({
     const ctx = ctxRef.current
     if (!cursor || !ctx) return // null=exhausted, undefined=initial pending
     inflightRef.current = true
-    // Swap sentinel to "loading…" — O(1) slice since sentinel is at index 0.
+    // 将哨兵交换为"加载中…" —— O(1) 切片因为哨兵在索引 0。
     setMessages(prev => {
       const base =
         prev[0]?.uuid === sentinelUuidRef.current ? prev.slice(1) : prev
@@ -175,8 +175,8 @@ export function useAssistantHistory({
     try {
       const page = await fetchOlderEvents(ctx, cursor)
       if (!page) {
-        // Fetch failed — revert sentinel back to "start" placeholder so the user
-        // can retry on next scroll-up. Cursor is preserved (not nulled out).
+        // 获取失败 —— 将哨兵恢复到"开始"占位符，以便用户
+        // 可以在下次向上滚动时重试。游标被保留（未被清空）。
         setMessages(prev => {
           const base =
             prev[0]?.uuid === sentinelUuidRef.current ? prev.slice(1) : prev
@@ -191,11 +191,11 @@ export function useAssistantHistory({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mkSentinel reads refs only
   }, [enabled, prepend, setMessages])
 
-  // Scroll-anchor compensation — after React commits the prepended items,
-  // shift scrollTop by the height delta so the viewport stays put. Also
-  // fire onPrepend here (not in prepend()) so dividerIndex + baseline ref
-  // are shifted with the ACTUAL height delta, not an estimate.
-  // No deps: runs every render; cheap no-op when anchorRef is null.
+  // 滚动锚补偿 —— 在 React 提交预置项之后，
+  // 将 scrollTop 移动高度增量以保持视口位置不变。同时
+  // 在这里触发 onPrepend（而不是在 prepend() 中），以便 dividerIndex + 基线 ref
+  // 使用实际高度增量移动，而不是估计值。
+  // 无依赖：每次渲染都运行；当 anchorRef 为 null 时是无操作。
   useLayoutEffect(() => {
     const anchor = anchorRef.current
     if (anchor === null) return
@@ -207,14 +207,14 @@ export function useAssistantHistory({
     onPrepend?.(anchor.count, delta)
   })
 
-  // Fill-viewport chain: after paint, if content doesn't exceed the viewport,
-  // load another page. Runs as useEffect (not layout effect) so Ink has
-  // painted and scrollViewportHeight is populated. Self-chains via next
-  // render's effect; budget caps the chain.
+  // 填充视口链：绘制后，如果内容未超出视口，
+  // 加载另一页。作为 useEffect 运行（而非布局效果），以便 Ink 已
+  // 绘制且 scrollViewportHeight 已填充。通过下一渲染的效果自链；
+  // 预算限制链。
   //
-  // The ScrollBox content wrapper has flexGrow:1 flexShrink:0 — it's clamped
-  // to ≥ viewport. So `content < viewport` is never true; `<=` detects "no
-  // overflow yet" correctly. Stops once there's at least something to scroll.
+  // ScrollBox 内容包装器具有 flexGrow:1 flexShrink:0 —— 它被限制
+  // 为 ≥ 视口。所以 `content < viewport` 永远不为真；`<=` 正确检测
+  // "尚未溢出"。一旦有可滚动的内容就停止。
   useEffect(() => {
     if (
       fillBudgetRef.current <= 0 ||
@@ -238,7 +238,7 @@ export function useAssistantHistory({
     }
   })
 
-  // Trigger wrapper for onScroll composition in REPL.
+  // REPL 中 onScroll 组合的触发包装器。
   const maybeLoadOlder = useCallback(
     (handle: ScrollBoxHandle) => {
       if (handle.getScrollTop() < PREFETCH_THRESHOLD_ROWS) void loadOlder()

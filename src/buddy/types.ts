@@ -7,12 +7,12 @@ export const RARITIES = [
 ] as const
 export type Rarity = (typeof RARITIES)[number]
 
-// One species name collides with a model-codename canary in excluded-strings.txt.
-// The check greps build output (not source), so runtime-constructing the value keeps
-// the literal out of the bundle while the check stays armed for the actual codename.
-// All species encoded uniformly; `as` casts are type-position only (erased pre-bundle).
+// 有一个物种名与 excluded-strings.txt 中的 model 代号 canary 冲突。
+// 该检查是对构建产物（而非源码）进行 grep，因此在运行时构造该值可以
+// 让字面量不进入 bundle，同时检查仍然对真实的代号保持生效。
+// 所有物种统一编码；`as` 断言仅用于类型位置（在 bundle 前会被擦除）。
 const c = String.fromCharCode
-// biome-ignore format: keep the species list compact
+// biome-ignore format: 保持物种列表紧凑
 
 export const duck = c(0x64,0x75,0x63,0x6b) as 'duck'
 export const goose = c(0x67, 0x6f, 0x6f, 0x73, 0x65) as 'goose'
@@ -71,7 +71,7 @@ export const SPECIES = [
   mushroom,
   chonk,
 ] as const
-export type Species = (typeof SPECIES)[number] // biome-ignore format: keep compact
+export type Species = (typeof SPECIES)[number] // biome-ignore format: 保持紧凑
 
 export const EYES = ['·', '✦', '×', '◉', '@', '°'] as const
 export type Eye = (typeof EYES)[number]
@@ -97,7 +97,7 @@ export const STAT_NAMES = [
 ] as const
 export type StatName = (typeof STAT_NAMES)[number]
 
-// Deterministic parts — derived from hash(userId)
+// 确定性部分 — 由 hash(userId) 推导
 export type CompanionBones = {
   rarity: Rarity
   species: Species
@@ -107,7 +107,7 @@ export type CompanionBones = {
   stats: Record<StatName, number>
 }
 
-// Model-generated soul — stored in config after first hatch
+// 模型生成的灵魂 — 首次孵化后存储到 config 中
 export type CompanionSoul = {
   name: string
   personality: string
@@ -119,9 +119,9 @@ export type Companion = CompanionBones &
     hatchedAt: number
   }
 
-// What actually persists in config. Bones are regenerated from hash(userId)
-// on every read so species renames don't break stored companions and users
-// can't edit their way to a legendary.
+// 实际持久化到 config 中的内容。Bones 在每次读取时由 hash(userId)
+// 重新生成，这样即便 species 改名也不会破坏已存储的 companion，
+// 同时用户也无法通过手改配置把 rarity 提升到 legendary。
 export type StoredCompanion = CompanionSoul & { hatchedAt: number }
 
 export const RARITY_WEIGHTS = {

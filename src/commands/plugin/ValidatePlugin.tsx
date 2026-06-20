@@ -15,7 +15,7 @@ type Props = {
 export function ValidatePlugin({ onComplete, path }: Props): React.ReactNode {
   useEffect(() => {
     async function runValidation() {
-      // If no path provided, show usage
+      // 如果未提供路径，显示用法
       if (!path) {
         onComplete(
           'Usage: /plugin validate <path>\n\n' +
@@ -37,10 +37,10 @@ export function ValidatePlugin({ onComplete, path }: Props): React.ReactNode {
 
         let output = '';
 
-        // Add header
+        // 添加头部
         output += `Validating ${result.fileType} manifest: ${result.filePath}\n\n`;
 
-        // Show errors
+        // 显示错误
         if (result.errors.length > 0) {
           output += `${figures.cross} Found ${result.errors.length} ${plural(result.errors.length, 'error')}:\n\n`;
 
@@ -51,7 +51,7 @@ export function ValidatePlugin({ onComplete, path }: Props): React.ReactNode {
           output += '\n';
         }
 
-        // Show warnings
+        // 显示警告
         if (result.warnings.length > 0) {
           output += `${figures.warning} Found ${result.warnings.length} ${plural(result.warnings.length, 'warning')}:\n\n`;
 
@@ -62,7 +62,7 @@ export function ValidatePlugin({ onComplete, path }: Props): React.ReactNode {
           output += '\n';
         }
 
-        // Show success or failure
+        // 显示成功或失败
         if (result.success) {
           if (result.warnings.length > 0) {
             output += `${figures.tick} Validation passed with warnings\n`;
@@ -70,18 +70,18 @@ export function ValidatePlugin({ onComplete, path }: Props): React.ReactNode {
             output += `${figures.tick} Validation passed\n`;
           }
 
-          // Exit with code 0 (success)
+          // 以退出码 0 退出（成功）
           process.exitCode = 0;
         } else {
           output += `${figures.cross} Validation failed\n`;
 
-          // Exit with code 1 (validation failure)
+          // 以退出码 1 退出（校验失败）
           process.exitCode = 1;
         }
 
         onComplete(output);
       } catch (error) {
-        // Exit with code 2 (unexpected error)
+        // 以退出码 2 退出（意外错误）
         process.exitCode = 2;
 
         logError(error);

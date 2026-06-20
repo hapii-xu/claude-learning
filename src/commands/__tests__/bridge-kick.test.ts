@@ -4,7 +4,7 @@ mock.module('bun:bundle', () => ({
   feature: (_name: string) => false,
 }))
 
-// Capture injected faults and handle calls for assertions
+// 捕获注入的故障和 handle 调用，用于断言
 let mockHandle: any = null
 let lastFault: any = null
 let fireCloseCalled: number | null = null
@@ -240,7 +240,7 @@ describe('bridge-kick call - with handle', () => {
   test('empty args returns usage info', async () => {
     const result = await callFn!('')
     expect(result.type).toBe('text')
-    // empty trim → undefined sub → default case
+    // 空 trim → undefined sub → 走 default 分支
     expect(result.value).toBeTruthy()
   })
 })

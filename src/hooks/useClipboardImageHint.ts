@@ -4,17 +4,16 @@ import { getShortcutDisplay } from '../keybindings/shortcutFormat.js'
 import { hasImageInClipboard } from '../utils/imagePaste.js'
 
 const NOTIFICATION_KEY = 'clipboard-image-hint'
-// Small debounce to batch rapid focus changes
+// 小延迟以批量处理快速焦点变化
 const FOCUS_CHECK_DEBOUNCE_MS = 1000
-// Don't show the hint more than once per this interval
+// 不要在此间隔内多次显示提示
 const HINT_COOLDOWN_MS = 30000
 
 /**
- * Hook that shows a notification when the terminal regains focus
- * and the clipboard contains an image.
+ * 当终端重新获得焦点且剪贴板包含图像时显示通知的 Hook。
  *
- * @param isFocused - Whether the terminal is currently focused
- * @param enabled - Whether image paste is enabled (onImagePaste is defined)
+ * @param isFocused - 终端当前是否获得焦点
+ * @param enabled - 是否启用图像粘贴（onImagePaste 已定义）
  */
 export function useClipboardImageHint(
   isFocused: boolean,
@@ -26,7 +25,7 @@ export function useClipboardImageHint(
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    // Only trigger on focus regain (was unfocused, now focused)
+    // 仅在重新获得焦点时触发（从未聚焦变为已聚焦）
     const wasFocused = lastFocusedRef.current
     lastFocusedRef.current = isFocused
 
@@ -34,23 +33,23 @@ export function useClipboardImageHint(
       return
     }
 
-    // Clear any pending check
+    // 清除任何待处理的检查
     if (checkTimeoutRef.current) {
       clearTimeout(checkTimeoutRef.current)
     }
 
-    // Small debounce to batch rapid focus changes
+    // 小延迟以批量处理快速焦点变化
     checkTimeoutRef.current = setTimeout(
       async (checkTimeoutRef, lastHintTimeRef, addNotification) => {
         checkTimeoutRef.current = null
 
-        // Check cooldown to avoid spamming the user
+        // 检查冷却时间以避免打扰用户
         const now = Date.now()
         if (now - lastHintTimeRef.current < HINT_COOLDOWN_MS) {
           return
         }
 
-        // Check if clipboard has an image (async osascript call)
+        // 检查剪贴板是否有图像（异步 osascript 调用）
         if (await hasImageInClipboard()) {
           lastHintTimeRef.current = now
           addNotification({

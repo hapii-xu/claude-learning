@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 
-// init-verifiers.ts has no external dependencies that need mocking
-// It's a simple prompt-type command that returns a static text prompt
+// init-verifiers.ts 没有需要 mock 的外部依赖
+// 它是一个简单的 prompt 类型命令，返回静态文本 prompt
 
 let initVerifiers: any
 
-// Import once - no async deps
+// 只导入一次 —— 无异步依赖
 const mod = await import('../init-verifiers.js')
 initVerifiers = mod.default
 
@@ -105,7 +105,7 @@ describe('init-verifiers getPromptForCommand', () => {
   })
 
   test('works with no arguments (no args parameter)', async () => {
-    // getPromptForCommand takes no required params
+    // getPromptForCommand 没有必填参数
     const result = await initVerifiers.getPromptForCommand(undefined, undefined)
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBeGreaterThan(0)

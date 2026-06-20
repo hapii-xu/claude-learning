@@ -98,8 +98,8 @@ type ErrorRow = {
 };
 
 /**
- * Determine which settings sources define an extraKnownMarketplace entry.
- * Returns the editable sources (user/project/local) and whether policy also has it.
+ * 判断哪些 settings source 定义了一个 extraKnownMarketplace 条目。
+ * 返回可编辑的 source（user/project/local）以及策略中是否也包含它。
  */
 function getExtraMarketplaceSourceInfo(name: string): {
   editableSources: Array<{ source: EditableSettingSource; scope: string }>;
@@ -144,8 +144,8 @@ function buildMarketplaceAction(name: string): ErrorRowAction {
     return { kind: 'managed-only', name };
   }
 
-  // Marketplace is in known_marketplaces.json but not in extraKnownMarketplaces
-  // (e.g. previously installed manually) — route to ManageMarketplaces
+  // 市场位于 known_marketplaces.json 中但不在 extraKnownMarketplaces 里
+  // （例如之前手动安装过）—— 路由到 ManageMarketplaces
   return {
     kind: 'navigate',
     tab: 'marketplaces',
@@ -176,13 +176,13 @@ function isTransientError(error: PluginError): boolean {
 }
 
 /**
- * Extract the plugin name from a PluginError, checking explicit fields first,
- * then falling back to the source field (format: "pluginName@marketplace").
+ * 从 PluginError 中提取插件名，先检查显式字段，
+ * 再回退到 source 字段（格式为 "pluginName@marketplace"）。
  */
 function getPluginNameFromError(error: PluginError): string | undefined {
   if ('pluginId' in error && error.pluginId) return error.pluginId;
   if ('plugin' in error && error.plugin) return error.plugin;
-  // Fallback: source often contains "pluginName@marketplace"
+  // 回退：source 通常包含 "pluginName@marketplace"
   if (error.source.includes('@')) return error.source.split('@')[0];
   return undefined;
 }
@@ -198,7 +198,7 @@ function buildErrorRows(
 ): ErrorRow[] {
   const rows: ErrorRow[] = [];
 
-  // --- Transient errors at the top (restart to retry) ---
+  // --- 临时性错误置于顶部（重启后重试） ---
   for (const error of transientErrors) {
     const pluginName = 'pluginId' in error ? error.pluginId : 'plugin' in error ? error.plugin : undefined;
     rows.push({
@@ -209,8 +209,8 @@ function buildErrorRows(
     });
   }
 
-  // --- Marketplace errors ---
-  // Track shown marketplace names to avoid duplicates across sources
+  // --- 市场错误 ---
+  // 跟踪已展示的市场名，避免跨 source 重复
   const shownMarketplaceNames = new Set<string>();
 
   for (const m of failedMarketplaces) {
@@ -244,7 +244,7 @@ function buildErrorRows(
     });
   }
 
-  // Installed marketplaces that fail to load data (from known_marketplaces.json)
+  // 已安装但加载其数据失败的市场（来自 known_marketplaces.json）
   for (const m of brokenInstalledMarketplaces) {
     if (shownMarketplaceNames.has(m.name)) continue;
     shownMarketplaceNames.add(m.name);
@@ -255,7 +255,7 @@ function buildErrorRows(
     });
   }
 
-  // --- Plugin errors ---
+  // --- 插件错误 ---
   const shownPluginNames = new Set<string>();
   for (const error of pluginLoadingErrors) {
     const pluginName = getPluginNameFromError(error);
@@ -263,7 +263,7 @@ function buildErrorRows(
     if (pluginName) shownPluginNames.add(pluginName);
 
     const marketplace = 'marketplace' in error ? error.marketplace : undefined;
-    // Try pluginId@marketplace format first, then just pluginName
+    // 先尝试 pluginId@marketplace 格式，再退回到仅 pluginName
     const scope = pluginName ? (pluginScopes.get(error.source) ?? pluginScopes.get(pluginName)) : undefined;
     rows.push({
       label: pluginName ? (marketplace ? `${pluginName} @ ${marketplace}` : pluginName) : error.source,
@@ -274,7 +274,7 @@ function buildErrorRows(
     });
   }
 
-  // --- Other errors (non-marketplace, non-plugin-specific) ---
+  // --- 其他错误（非市场、非特定插件） ---
   for (const error of otherErrors) {
     rows.push({
       label: error.source,
@@ -288,8 +288,8 @@ function buildErrorRows(
 }
 
 /**
- * Remove a marketplace from extraKnownMarketplaces in the given settings sources,
- * and also remove any associated enabled plugins.
+ * 从给定 settings source 的 extraKnownMarketplaces 中移除一个市场，
+ * 同时移除任何关联的已启用插件。
  */
 function removeExtraMarketplace(name: string, sources: Array<{ source: EditableSettingSource }>): void {
   for (const { source } of sources) {
@@ -298,7 +298,7 @@ function removeExtraMarketplace(name: string, sources: Array<{ source: EditableS
 
     const updates: Record<string, unknown> = {};
 
-    // Remove from extraKnownMarketplaces
+    // 从 extraKnownMarketplaces 中移除
     if (settings.extraKnownMarketplaces?.[name]) {
       updates.extraKnownMarketplaces = {
         ...settings.extraKnownMarketplaces,
@@ -306,7 +306,7 @@ function removeExtraMarketplace(name: string, sources: Array<{ source: EditableS
       };
     }
 
-    // Remove associated enabled plugins (format: "plugin@marketplace")
+    // 移除关联的已启用插件（格式："plugin@marketplace"）
     if (settings.enabledPlugins) {
       const suffix = `@${name}`;
       let removedPlugins = false;
@@ -344,7 +344,7 @@ function ErrorsTabContent({
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [marketplaceLoadFailures, setMarketplaceLoadFailures] = useState<Array<{ name: string; error: string }>>([]);
 
-  // Detect marketplaces that are installed but fail to load their data
+  // 检测已安装但加载其数据失败的市场
   useEffect(() => {
     void (async () => {
       try {
@@ -352,7 +352,7 @@ function ErrorsTabContent({
         const { failures } = await loadMarketplacesWithGracefulDegradation(config);
         setMarketplaceLoadFailures(failures);
       } catch {
-        // Ignore — if we can't load config, other tabs handle it
+        // 忽略 —— 如果无法加载配置，其他标签页会处理
       }
     })();
   }, []);
@@ -360,10 +360,10 @@ function ErrorsTabContent({
   const failedMarketplaces = installationStatus.marketplaces.filter(m => m.status === 'failed');
   const failedMarketplaceNames = new Set(failedMarketplaces.map(m => m.name));
 
-  // Transient errors (git/network) — show at top with "restart to retry"
+  // 临时性错误（git/网络）—— 置于顶部并显示 "restart to retry"
   const transientErrors = errors.filter(isTransientError);
 
-  // Marketplace-related loading errors not already covered by install failures
+  // 与市场相关、但未被安装失败覆盖的加载错误
   const extraMarketplaceErrors = errors.filter(
     e =>
       (e.type === 'marketplace-not-found' ||
@@ -372,7 +372,7 @@ function ErrorsTabContent({
       !failedMarketplaceNames.has(e.marketplace),
   );
 
-  // Plugin-specific loading errors
+  // 特定插件的加载错误
   const pluginLoadingErrors = errors.filter(e => {
     if (isTransientError(e)) return false;
     if (
@@ -385,7 +385,7 @@ function ErrorsTabContent({
     return getPluginNameFromError(e) !== undefined;
   });
 
-  // Remaining errors with no plugin association
+  // 没有关联插件的剩余错误
   const otherErrors = errors.filter(e => {
     if (isTransientError(e)) return false;
     if (
@@ -409,7 +409,7 @@ function ErrorsTabContent({
     pluginScopes,
   );
 
-  // Handle escape to exit the plugin menu
+  // 处理 Esc 退出插件菜单
   useKeybinding(
     'confirm:no',
     () => {
@@ -431,10 +431,10 @@ function ErrorsTabContent({
         const scopes = action.sources.map(s => s.scope).join(', ');
         removeExtraMarketplace(action.name, action.sources);
         clearAllCaches();
-        // Synchronously clear all stale state for this marketplace so the UI
-        // updates glitch-free. markPluginsChanged only sets needsRefresh —
-        // it does not refresh plugins.errors, so this is the authoritative
-        // cleanup until the user runs /reload-plugins.
+        // 同步清除此市场的所有过期状态，让 UI 更新无卡顿。
+        // markPluginsChanged 只设置 needsRefresh —— 它不会刷新
+        // plugins.errors，因此在用户运行 /reload-plugins 之前，这是
+        // 权威性的清理。
         setAppState(prev => ({
           ...prev,
           plugins: {
@@ -465,7 +465,7 @@ function ErrorsTabContent({
         break;
       }
       case 'managed-only':
-        // No action available — guidance text already shown
+        // 无可用操作 —— 指引文本已显示
         break;
       case 'none':
         break;
@@ -481,7 +481,7 @@ function ErrorsTabContent({
     { context: 'Select', isActive: rows.length > 0 },
   );
 
-  // Clamp selectedIndex when rows shrink (e.g. after removal)
+  // 当行数收缩（例如移除后）时夹取 selectedIndex
   const clampedIndex = Math.min(selectedIndex, Math.max(0, rows.length - 1));
   if (clampedIndex !== selectedIndex) {
     setSelectedIndex(clampedIndex);
@@ -624,7 +624,7 @@ function getInitialViewState(parsedCommand: ParsedCommand): ViewState {
       return { type: 'marketplace-menu' };
     case 'menu':
     default:
-      // Default to discover view showing all plugins
+      // 默认进入展示所有插件的发现视图
       return { type: 'discover-plugins' };
   }
 }
@@ -649,11 +649,10 @@ export function PluginSettings({ onComplete, args, showMcpRedirectMessage }: Plu
   const [childSearchActive, setChildSearchActive] = useState(false);
   const setAppState = useSetAppState();
 
-  // Error count for the Errors tab badge — counts loader errors + background
-  // marketplace install failures. Does NOT count marketplace-on-disk load
-  // failures (those require I/O and are discovered lazily when the tab opens).
-  // May slightly overcount vs. displayed rows when a marketplace has both a
-  // loader error and a failed install status (buildErrorRows deduplicates).
+  // Errors 标签徽标的错误计数 —— 统计 loader 错误 + 后台市场安装失败。
+  // 不统计磁盘上市场加载失败（那些需要 I/O，会在标签打开时惰性发现）。
+  // 当一个市场既有 loader 错误又有失败的安装状态时，可能比显示的行数
+  // 略多（buildErrorRows 会去重）。
   const pluginErrorCount = useAppState(s => {
     let count = s.plugins.errors.length;
     for (const m of s.plugins.installationStatus.marketplaces) {
@@ -666,27 +665,26 @@ export function PluginSettings({ onComplete, args, showMcpRedirectMessage }: Plu
   const exitState = useExitOnCtrlCDWithKeybindings();
 
   /**
-   * CLI mode is active when the user provides a complete command with all required arguments.
-   * In this mode, the operation executes immediately without interactive prompts.
-   * Interactive mode is used when arguments are missing, allowing the user to input them.
+   * 当用户提供完整命令并包含所有必填参数时，CLI 模式启用。
+   * 在此模式下，操作立即执行，无需交互式提示。
+   * 当参数缺失时使用交互模式，允许用户输入参数。
    */
   const cliMode =
     parsedCommand.type === 'marketplace' && parsedCommand.action === 'add' && parsedCommand.target !== undefined;
 
-  // Signal that plugin state has changed on disk (Layer 2) and active
-  // components (Layer 3) are stale. User runs /reload-plugins to apply.
-  // Previously this was updatePluginState() which did a partial refresh
-  // (commands only — agents/hooks/MCP were silently skipped). Now all
-  // Layer-3 refresh flows through the unified refreshActivePlugins()
-  // primitive via /reload-plugins, giving one consistent mental model:
-  // plugin changes require /reload-plugins.
+  // 标记磁盘上的插件状态已变更（Layer 2），且活跃组件（Layer 3）
+  // 已过期。用户运行 /reload-plugins 来应用变更。
+  // 以前这是 updatePluginState()，它只做了部分刷新（仅 commands ——
+  // agents/hooks/MCP 被默默跳过）。现在所有 Layer-3 刷新都通过
+  // 统一的 refreshActivePlugins() 原语经由 /reload-plugins 进行，
+  // 给出一致的心智模型：插件变更需要 /reload-plugins。
   const markPluginsChanged = useCallback(() => {
     setAppState(prev =>
       prev.plugins.needsRefresh ? prev : { ...prev, plugins: { ...prev.plugins, needsRefresh: true } },
     );
   }, [setAppState]);
 
-  // Handle tab switching (called by Tabs component)
+  // 处理标签切换（由 Tabs 组件调用）
   const handleTabChange = useCallback((tabId: string) => {
     const tab = tabId as TabId;
     setActiveTab(tab);
@@ -702,32 +700,32 @@ export function PluginSettings({ onComplete, args, showMcpRedirectMessage }: Plu
         setViewState({ type: 'manage-marketplaces' });
         break;
       case 'errors':
-        // No viewState change needed — ErrorsTabContent renders inside <Tab id="errors">
+        // 无需 viewState 变更 —— ErrorsTabContent 渲染在 <Tab id="errors"> 内部
         break;
     }
   }, []);
 
-  // Handle exiting when child components set viewState to 'menu'.
-  // Child components typically set BOTH setResult(msg) and setParentViewState
-  // ({type:'menu'}) — both effects fire on the same render. Only close via this
-  // path when there's no result, otherwise the result effect (below) handles
-  // the close AND delivers the message to the transcript.
+  // 当子组件把 viewState 设为 'menu' 时处理退出。
+  // 子组件通常会同时调用 setResult(msg) 和 setParentViewState
+  // ({type:'menu'}) —— 两个 effect 在同一次渲染中触发。仅在没有
+  // result 时通过此路径关闭，否则下方的 result effect 会处理关闭，
+  // 并将消息投递到 transcript。
   useEffect(() => {
     if (viewState.type === 'menu' && !result) {
       onComplete();
     }
   }, [viewState.type, result, onComplete]);
 
-  // Sync activeTab when viewState changes to a different tab's content
-  // This handles cases like AddMarketplace navigating to browse-marketplace
+  // 当 viewState 变为另一个标签的内容时同步 activeTab
+  // 这处理了诸如 AddMarketplace 导航到 browse-marketplace 的情况
   useEffect(() => {
     if (viewState.type === 'browse-marketplace' && activeTab !== 'discover') {
       setActiveTab('discover');
     }
   }, [viewState.type, activeTab]);
 
-  // Handle escape key for add-marketplace mode only
-  // Other tabbed views handle escape in their own components
+  // 仅在 add-marketplace 模式下处理 Esc 键
+  // 其他标签视图在自己的组件中处理 Esc
   const handleAddMarketplaceEscape = useCallback(() => {
     setActiveTab('marketplaces');
     setViewState({ type: 'manage-marketplaces' });
@@ -746,14 +744,14 @@ export function PluginSettings({ onComplete, args, showMcpRedirectMessage }: Plu
     }
   }, [result, onComplete]);
 
-  // Handle help view completion
+  // 处理 help 视图完成
   useEffect(() => {
     if (viewState.type === 'help') {
       onComplete();
     }
   }, [viewState.type, onComplete]);
 
-  // Render different views based on state
+  // 根据状态渲染不同视图
   if (viewState.type === 'help') {
     return (
       <Box flexDirection="column">
@@ -797,7 +795,7 @@ export function PluginSettings({ onComplete, args, showMcpRedirectMessage }: Plu
   }
 
   if (viewState.type === 'marketplace-menu') {
-    // Show a simple menu for marketplace operations
+    // 显示一个简单的市场操作菜单
     setViewState({ type: 'menu' });
     return null;
   }
@@ -823,7 +821,7 @@ export function PluginSettings({ onComplete, args, showMcpRedirectMessage }: Plu
       />
     );
   }
-  // Render tabbed interface using the design system Tabs component
+  // 使用设计系统的 Tabs 组件渲染带标签的界面
   return (
     <Pane color="suggestion">
       <Tabs

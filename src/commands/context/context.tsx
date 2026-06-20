@@ -10,10 +10,10 @@ import { getMessagesAfterCompactBoundary } from '../../utils/messages.js';
 import { renderToAnsiString } from '../../utils/staticRender.js';
 
 /**
- * Apply the same context transforms query.ts does before the API call, so
- * /context shows what the model actually sees rather than the REPL's raw
- * history. Without projectView the token count overcounts by however much
- * was collapsed — user sees "180k, 3 spans collapsed" when the API sees 120k.
+ * 应用与 query.ts 在 API 调用前所做的相同 context 转换，以便
+ * /context 展示模型实际看到的内容，而不是 REPL 的原始历史。
+ * 如果不做 projectView，token 计数会多计入被折叠的部分 ——
+ * 用户会看到 "180k, 3 spans collapsed"，而 API 实际看到的是 120k。
  */
 function toApiView(messages: Message[]): Message[] {
   let view = getMessagesAfterCompactBoundary(messages);
@@ -36,16 +36,16 @@ export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXComma
 
   const apiView = toApiView(messages);
 
-  // Apply microcompact to get accurate representation of messages sent to API
+  // 应用 microcompact 以获得发送到 API 的消息的准确表示
   const { messages: compactedMessages } = await microcompactMessages(apiView);
 
-  // Get terminal width for responsive sizing
+  // 获取终端宽度以实现响应式尺寸调整
   const terminalWidth = process.stdout.columns || 80;
 
   const appState = getAppState();
 
-  // Analyze context with compacted messages
-  // Pass original messages as last parameter for accurate API usage extraction
+  // 用 compacted 后的消息分析上下文
+  // 将原始消息作为最后一个参数传入，以便准确提取 API 用量
   const data = await analyzeContextUsage(
     compactedMessages,
     mainLoopModel,
@@ -53,12 +53,12 @@ export async function call(onDone: LocalJSXCommandOnDone, context: LocalJSXComma
     tools,
     appState.agentDefinitions,
     terminalWidth,
-    context, // Pass full context for system prompt calculation
+    context, // 传入完整 context 以计算 system prompt
     undefined, // mainThreadAgentDefinition
-    apiView, // Original messages for API usage extraction
+    apiView, // 用于 API 用量提取的原始消息
   );
 
-  // Render to ANSI string to preserve colors and pass to onDone like local commands do
+  // 渲染为 ANSI 字符串以保留颜色，并像 local 命令那样传给 onDone
   const output = await renderToAnsiString(<ContextVisualization data={data} />);
   onDone(output);
   return null;

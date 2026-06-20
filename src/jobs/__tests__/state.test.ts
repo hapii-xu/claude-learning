@@ -1,20 +1,20 @@
 /**
- * Tests for src/jobs/state.ts
+ * src/jobs/state.ts 的测试
  *
- * Uses real temp directories and CLAUDE_CONFIG_DIR env var
- * instead of mocking fs, to avoid cross-test mock pollution.
+ * 使用真实的临时目录和 CLAUDE_CONFIG_DIR 环境变量，
+ * 而不是 mock fs，以避免跨测试 mock 污染。
  */
 import { describe, expect, test, beforeEach, afterAll } from 'bun:test'
 import { mkdtempSync, rmSync, readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
-// ─── setup: real temp dir via env var ──────────────────────────────────────
+// ─── 设置：通过环境变量使用真实临时目录 ──────────────────────────────────────
 
 const tempBase = mkdtempSync(join(tmpdir(), 'jobs-state-test-'))
 
 beforeEach(() => {
-  // Each test gets a fresh config dir
+  // 每个测试获得一个新的配置目录
   const tempHome = mkdtempSync(join(tempBase, 'home-'))
   process.env.CLAUDE_CONFIG_DIR = tempHome
 })
@@ -24,17 +24,17 @@ afterAll(() => {
   try {
     rmSync(tempBase, { recursive: true, force: true })
   } catch {
-    // best-effort cleanup
+    // 尽力清理
   }
 })
 
-// ─── import ─────────────────────────────────────────────────────────────────
+// ─── 导入 ─────────────────────────────────────────────────────────────────
 
 const { createJob, readJobState, appendJobReply, getJobDir } = await import(
   '../state.js'
 )
 
-// ─── tests ──────────────────────────────────────────────────────────────────
+// ─── 测试 ──────────────────────────────────────────────────────────────────
 
 describe('createJob', () => {
   test('creates job directory and writes state, template, and input files', () => {

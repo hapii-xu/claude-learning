@@ -22,9 +22,9 @@ function AddDirError({
   onDone: () => void;
 }): React.ReactNode {
   useEffect(() => {
-    // We need to defer calling onDone to avoid the "return null" bug where
-    // the component unmounts before React can render the error message.
-    // Using setTimeout ensures the error displays before the command exits.
+    // 需要延迟调用 onDone，以避免「return null」导致的 bug ——
+    // 组件在 React 渲染错误消息之前就被卸载。
+    // 使用 setTimeout 保证错误先显示再退出命令。
     const timer = setTimeout(onDone, 0);
     return () => clearTimeout(timer);
   }, [onDone]);
@@ -49,7 +49,7 @@ export async function call(
   const directoryPath = (args ?? '').trim();
   const appState = context.getAppState();
 
-  // Helper to handle adding a directory (shared by both with-path and no-path cases)
+  // 处理添加目录的辅助函数（带路径与不带路径两种情况共用）
   const handleAddDirectory = async (path: string, remember = false) => {
     const destination: PermissionUpdateDestination = remember ? 'localSettings' : 'session';
 
@@ -59,7 +59,7 @@ export async function call(
       destination,
     };
 
-    // Apply to session context
+    // 应用到会话上下文
     const latestAppState = context.getAppState();
     const updatedContext = applyPermissionUpdate(latestAppState.toolPermissionContext, permissionUpdate);
     context.setAppState(prev => ({
@@ -67,10 +67,9 @@ export async function call(
       toolPermissionContext: updatedContext,
     }));
 
-    // Update sandbox config so Bash commands can access the new directory.
-    // Bootstrap state is the source of truth for session-only dirs; persisted
-    // dirs are picked up via the settings subscription, but we refresh
-    // eagerly here to avoid a race when the user acts immediately.
+    // 更新 sandbox 配置，使 Bash 命令能够访问新目录。
+    // bootstrap state 是仅会话级目录的事实来源；持久化的目录会通过 settings 订阅被感知，
+    // 但这里主动刷新一次，避免用户立即操作时出现竞态。
     const currentDirs = getAdditionalDirectoriesForClaudeMd();
     if (!currentDirs.includes(path)) {
       setAdditionalDirectoriesForClaudeMd([...currentDirs, path]);
@@ -94,8 +93,8 @@ export async function call(
     onDone(messageWithHint);
   };
 
-  // When no path is provided, show AddWorkspaceDirectory input form directly
-  // and return to REPL after confirmation
+  // 未提供路径时，直接展示 AddWorkspaceDirectory 输入表单，
+  // 并在确认后返回 REPL
   if (!directoryPath) {
     return (
       <AddWorkspaceDirectory

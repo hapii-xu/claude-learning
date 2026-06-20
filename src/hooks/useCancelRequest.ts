@@ -1,8 +1,8 @@
 /**
- * CancelRequestHandler component for handling cancel/escape keybinding.
+ * CancelRequestHandler 组件，用于处理取消/Escape 快捷键。
  *
- * Must be rendered inside KeybindingSetup to have access to the keybinding context.
- * This component renders nothing - it just registers the cancel keybinding handler.
+ * 必须在 KeybindingSetup 内部渲染以访问快捷键上下文。
+ * 此组件不渲染任何内容 - 仅注册取消快捷键处理程序。
  */
 import { useCallback, useRef } from 'react'
 import { logEvent } from 'src/services/analytics/index.js'
@@ -34,7 +34,7 @@ import {
 } from '../utils/messageQueueManager.js'
 import { emitTaskTerminatedSdk } from '../utils/sdkEventQueue.js'
 
-/** Time window in ms during which a second press kills all background agents. */
+/** 第二次按键在此时间窗口内将杀死所有后台 agent 的确认窗口（毫秒）。 */
 const KILL_AGENTS_CONFIRM_WINDOW_MS = 3000
 
 type CancelRequestHandlerProps = {
@@ -57,8 +57,8 @@ type CancelRequestHandlerProps = {
 }
 
 /**
- * Component that handles cancel requests via keybinding.
- * Renders null but registers the 'chat:cancel' keybinding handler.
+ * 处理取消请求的组件。
+ * 渲染为 null 但注册 'chat:cancel' 快捷键处理程序。
  */
 export function CancelRequestHandler(props: CancelRequestHandlerProps): null {
   const {
@@ -92,8 +92,8 @@ export function CancelRequestHandler(props: CancelRequestHandlerProps): null {
         streamMode as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     }
 
-    // Priority 1: If there's an active task running, cancel it first
-    // This takes precedence over queue management so users can always interrupt Claude
+    // 优先级 1：如果有活跃任务正在运行，先取消它
+    // 这优先于队列管理，以便用户始终可以中断 Claude
     if (abortSignal !== undefined && !abortSignal.aborted) {
       logEvent('tengu_cancel', cancelProps)
       setToolUseConfirmQueue(() => [])
@@ -101,7 +101,7 @@ export function CancelRequestHandler(props: CancelRequestHandlerProps): null {
       return
     }
 
-    // Priority 2: Pop queue when Claude is idle (no running task to cancel)
+    // 优先级 2：当 Claude 空闲时（没有运行中的任务可取消），弹出队列
     if (hasCommandsInQueue()) {
       if (popCommandFromQueue) {
         popCommandFromQueue()
@@ -109,7 +109,7 @@ export function CancelRequestHandler(props: CancelRequestHandlerProps): null {
       }
     }
 
-    // Fallback: nothing to cancel or pop (shouldn't reach here if isActive is correct)
+    // 回退：没有可取消或弹出的内容（如果 isActive 正确则不应到达这里）
     logEvent('tengu_cancel', cancelProps)
     setToolUseConfirmQueue(() => [])
     onCancel()
@@ -121,21 +121,21 @@ export function CancelRequestHandler(props: CancelRequestHandlerProps): null {
     streamMode,
   ])
 
-  // Determine if this handler should be active
-  // Other contexts (Transcript, HistorySearch, Help) have their own escape handlers
-  // Overlays (ModelPicker, ThinkingToggle, etc.) register themselves via useRegisterOverlay
-  // Local JSX commands (like /model, /btw) handle their own input
+  // 判断此处理程序是否应处于活动状态
+  // 其他上下文（Transcript、HistorySearch、Help）有自己的 escape 处理程序
+  // 覆盖层（ModelPicker、ThinkingToggle 等）通过 useRegisterOverlay 注册自己
+  // 本地 JSX 命令（如 /model、/btw）处理自己的输入
   const isOverlayActive = useIsOverlayActive()
   const canCancelRunningTask = abortSignal !== undefined && !abortSignal.aborted
   const hasQueuedCommands = queuedCommandsLength > 0
-  // When in bash/background mode with empty input, escape should exit the mode
-  // rather than cancel the request. Let PromptInput handle mode exit.
-  // This only applies to Escape, not Ctrl+C which should always cancel.
+  // 在 bash/background 模式下且输入为空时，escape 应该退出模式
+  // 而不是取消请求。让 PromptInput 处理模式退出。
+  // 这仅适用于 Escape，不适用于应始终取消的 Ctrl+C。
   const isInSpecialModeWithEmptyInput =
     inputMode !== undefined && inputMode !== 'prompt' && !inputValue
-  // When viewing a teammate's transcript, let useBackgroundTaskNavigation handle Escape
+  // 查看队友的 transcript 时，让 useBackgroundTaskNavigation 处理 Escape
   const isViewingTeammate = viewSelectionMode === 'viewing-agent'
-  // Context guards: other screens/overlays handle their own cancel
+  // 上下文守卫：其他屏幕/覆盖层处理自己的取消
   const isContextActive =
     screen !== 'transcript' &&
     !isSearchingHistory &&
@@ -145,18 +145,18 @@ export function CancelRequestHandler(props: CancelRequestHandlerProps): null {
     !isOverlayActive &&
     !(isVimModeEnabled() && vimMode === 'INSERT')
 
-  // Escape (chat:cancel) defers to mode-exit when in special mode with empty
-  // input, and to useBackgroundTaskNavigation when viewing a teammate
+  // Escape (chat:cancel) 在特殊模式下输入为空时让位于模式退出，
+  // 查看队友时让位于 useBackgroundTaskNavigation
   const isEscapeActive =
     isContextActive &&
     (canCancelRunningTask || hasQueuedCommands) &&
     !isInSpecialModeWithEmptyInput &&
     !isViewingTeammate
 
-  // Ctrl+C (app:interrupt): when viewing a teammate, stops everything and
-  // returns to main thread. Otherwise just handleCancel. Must NOT claim
-  // ctrl+c when main is idle at the prompt — that blocks the copy-selection
-  // handler and double-press-to-exit from ever seeing the keypress.
+  // Ctrl+C (app:interrupt)：查看队友时，停止所有内容并
+  // 返回主线程。否则只执行 handleCancel。在主线空闲于提示符时
+  // 绝不能占用 ctrl+c —— 那会阻止复制选择
+  // 处理程序和双击退出永远看不到该按键。
   const isCtrlCActive =
     isContextActive &&
     (canCancelRunningTask || hasQueuedCommands || isViewingTeammate)
@@ -166,9 +166,9 @@ export function CancelRequestHandler(props: CancelRequestHandlerProps): null {
     isActive: isEscapeActive,
   })
 
-  // Shared kill path: stop all agents, suppress per-agent notifications,
-  // emit SDK events, enqueue a single aggregate model-facing notification.
-  // Returns true if anything was killed.
+  // 共享的杀死路径：停止所有 agent，抑制逐 agent 通知，
+  // 发出 SDK 事件，入队单个聚合的面向模型的通知。
+  // 如果有东西被杀死则返回 true。
   const killAllAgentsAndNotify = useCallback((): boolean => {
     const tasks = store.getState().tasks
     const running = Object.entries(tasks).filter(
@@ -194,9 +194,9 @@ export function CancelRequestHandler(props: CancelRequestHandlerProps): null {
     return true
   }, [store, setAppState, onAgentsKilled])
 
-  // Ctrl+C (app:interrupt). Scoped to teammate-view: killing agents from the
-  // main prompt stays a deliberate gesture (chat:killAgents), not a
-  // side-effect of cancelling a turn.
+  // Ctrl+C (app:interrupt)。作用域限于队友视图：从
+  // 主提示符杀死 agent 保持为刻意手势 (chat:killAgents)，
+  // 而不是取消回合的副作用。
   const handleInterrupt = useCallback(() => {
     if (isViewingTeammate) {
       killAllAgentsAndNotify()
@@ -219,9 +219,9 @@ export function CancelRequestHandler(props: CancelRequestHandlerProps): null {
     isActive: isCtrlCActive,
   })
 
-  // chat:killAgents uses a two-press pattern: first press shows a
-  // confirmation hint, second press within the window actually kills all
-  // agents. Reads tasks from the store directly to avoid stale closures.
+  // chat:killAgents 使用两次按键模式：第一次按下显示
+  // 确认提示，窗口内的第二次按下实际杀死所有
+  // agent。直接从 store 读取 tasks 以避免过时闭包。
   const handleKillAgents = useCallback(() => {
     const tasks = store.getState().tasks
     const hasRunningAgents = Object.values(tasks).some(
@@ -239,7 +239,7 @@ export function CancelRequestHandler(props: CancelRequestHandlerProps): null {
     const now = Date.now()
     const elapsed = now - lastKillAgentsPressRef.current
     if (elapsed <= KILL_AGENTS_CONFIRM_WINDOW_MS) {
-      // Second press within window -- kill all background agents
+      // 窗口内的第二次按下 —— 杀死所有后台 agent
       lastKillAgentsPressRef.current = 0
       removeNotification('kill-agents-confirm')
       logEvent('tengu_cancel', {
@@ -250,7 +250,7 @@ export function CancelRequestHandler(props: CancelRequestHandlerProps): null {
       killAllAgentsAndNotify()
       return
     }
-    // First press -- show confirmation hint in status bar
+    // 第一次按下 —— 在状态栏显示确认提示
     lastKillAgentsPressRef.current = now
     const shortcut = getShortcutDisplay(
       'chat:killAgents',
@@ -265,9 +265,9 @@ export function CancelRequestHandler(props: CancelRequestHandlerProps): null {
     })
   }, [store, addNotification, removeNotification, killAllAgentsAndNotify])
 
-  // Must stay always-active: ctrl+x is consumed as a chord prefix regardless
-  // of isActive (because ctrl+x ctrl+e is always live), so an inactive handler
-  // here would leak ctrl+k to readline kill-line. Handler gates internally.
+  // 必须保持 always-active：ctrl+x 作为和弦前缀被消耗，无论
+  // isActive 如何（因为 ctrl+x ctrl+e 始终活跃），所以此处非活跃的处理程序
+  // 会将 ctrl+k 泄漏给 readline 的行终止。处理程序内部进行门控。
   useKeybinding('chat:killAgents', handleKillAgents, {
     context: 'Chat',
   })

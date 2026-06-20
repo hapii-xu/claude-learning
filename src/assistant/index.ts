@@ -23,16 +23,16 @@ import {
 let _assistantForced = false
 
 /**
- * Whether the current session is in assistant (KAIROS) daemon mode.
- * Wraps the bootstrap kairosActive state set by main.tsx after gate check.
+ * 当前会话是否处于 assistant（KAIROS）daemon 模式。
+ * 封装 bootstrap 中的 kairosActive 状态，该状态由 main.tsx 在门控检查后设置。
  */
 export function isAssistantMode(): boolean {
   return getKairosActive()
 }
 
 /**
- * Mark this session as forced assistant mode (--assistant flag).
- * Skips the GrowthBook gate check — daemon is pre-entitled.
+ * 将当前会话标记为强制 assistant 模式（--assistant flag）。
+ * 跳过 GrowthBook 门控检查 — daemon 已预先授权。
  */
 export function markAssistantForced(): void {
   _assistantForced = true
@@ -43,11 +43,10 @@ export function isAssistantForced(): boolean {
 }
 
 /**
- * Pre-create an in-process team so Agent(name) can spawn teammates
- * without TeamCreate.
+ * 预创建一个进程内 team，使 Agent(name) 无需 TeamCreate 即可派生 teammates。
  *
- * Creates a session-scoped assistant team file and returns a full team
- * context object matching AppState.teamContext.
+ * 创建一个会话级 assistant team 文件，并返回一个与 AppState.teamContext
+ * 匹配的完整 team context 对象。
  */
 export async function initializeAssistantTeam(): Promise<
   AppState['teamContext']
@@ -110,8 +109,8 @@ export async function initializeAssistantTeam(): Promise<
 }
 
 /**
- * Assistant-specific system prompt addendum loaded from ~/.claude/agents/assistant.md.
- * Returns empty string if the file doesn't exist.
+ * 从 ~/.claude/agents/assistant.md 加载的 assistant 专属 system prompt 补充内容。
+ * 文件不存在时返回空字符串。
  */
 export function getAssistantSystemPromptAddendum(): string {
   try {
@@ -125,9 +124,9 @@ export function getAssistantSystemPromptAddendum(): string {
 }
 
 /**
- * How assistant mode was activated. Used for diagnostics/analytics.
- * - 'daemon': via --assistant flag (Agent SDK daemon)
- * - 'gate': via GrowthBook gate check
+ * assistant 模式的激活方式。用于诊断/分析。
+ * - 'daemon'：通过 --assistant flag（Agent SDK daemon）
+ * - 'gate'：通过 GrowthBook 门控检查
  */
 export function getAssistantActivationPath(): string | undefined {
   if (!isAssistantMode()) return undefined

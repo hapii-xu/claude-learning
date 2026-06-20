@@ -20,17 +20,17 @@ import {
 } from '../../utils/teleport/environments.js'
 import { registerBundledSkill } from '../bundledSkills.js'
 
-// Base58 alphabet (Bitcoin-style) used by the tagged ID system
+// Base58 字母表（比特币风格），用于标签 ID 系统
 const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 /**
- * Decode a mcpsrv_ tagged ID to a UUID string.
- * Tagged IDs have format: mcpsrv_01{base58(uuid.int)}
- * where 01 is the version prefix.
+ * 将 mcpsrv_ 标签 ID 解码为 UUID 字符串。
+ * 标签 ID 格式：mcpsrv_01{base58(uuid.int)}
+ * 其中 01 是版本前缀。
  *
- * TODO(public-ship): Before shipping publicly, the /v1/mcp_servers endpoint
- * should return the raw UUID directly so we don't need this client-side decoding.
- * The tagged ID format is an internal implementation detail that could change.
+ * TODO(public-ship): 在公开发布之前，/v1/mcp_servers 端点
+ * 应直接返回原始 UUID，这样我们就不需要这种客户端解码。
+ * 标签 ID 格式是一种内部实现细节，可能会变更。
  */
 function taggedIdToUUID(taggedId: string): string | null {
   const prefix = 'mcpsrv_'
@@ -38,10 +38,10 @@ function taggedIdToUUID(taggedId: string): string | null {
     return null
   }
   const rest = taggedId.slice(prefix.length)
-  // Skip version prefix (2 chars, always "01")
+  // 跳过版本前缀（2 个字符，始终为 "01"）
   const base58Data = rest.slice(2)
 
-  // Decode base58 to bigint
+  // 将 base58 解码为大整数
   let n = 0n
   for (const c of base58Data) {
     const idx = BASE58.indexOf(c)
@@ -51,7 +51,7 @@ function taggedIdToUUID(taggedId: string): string | null {
     n = n * 58n + BigInt(idx)
   }
 
-  // Convert to UUID hex string
+  // 转换为 UUID 十六进制字符串
   const hex = n.toString(16).padStart(32, '0')
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`
 }
@@ -111,9 +111,9 @@ function formatConnectorsInfo(connectors: ConnectorInfo[]): string {
 const BASE_QUESTION = 'What would you like to do with scheduled remote agents?'
 
 /**
- * Formats setup notes as a bulleted Heads-up block. Shared between the
- * initial AskUserQuestion dialog text (no-args path) and the prompt-body
- * section (args path) so notes are never silently dropped.
+ * 将设置说明格式化为项目符号的提示块。在初始 AskUserQuestion
+ * 对话框文本（无参数路径）和提示正文部分（有参数路径）之间共享，
+ * 以确保说明不会被悄悄丢弃。
  */
 function formatSetupNotes(notes: string[]): string {
   const items = notes.map(n => `- ${n}`).join('\n')
@@ -152,9 +152,9 @@ function buildPrompt(opts: {
     needsGitHubAccessReminder,
     userArgs,
   } = opts
-  // When the user passes args, the initial AskUserQuestion dialog is skipped.
-  // Setup notes must surface in the prompt body instead, otherwise they're
-  // computed and silently discarded (regression vs. the old hard-block).
+  // 当用户传入参数时，跳过初始的 AskUserQuestion 对话框。
+  // 设置说明必须在提示正文中呈现，否则它们会被计算后悄悄丢弃
+  // （相对于旧的硬阻塞是一种回归）。
   const setupNotesSection =
     userArgs && setupNotes.length > 0
       ? `\n## Setup Notes\n\n${formatSetupNotes(setupNotes)}\n`
@@ -378,10 +378,10 @@ export function registerScheduleRemoteAgentsSkill(): void {
         }
       }
 
-      // Soft setup checks — collected as upfront notes embedded in the initial
-      // AskUserQuestion dialog. Never block — triggers don't require a git
-      // source (e.g., Slack-only polls), and the trigger's sources may point
-      // at a different repo than cwd anyway.
+      // 软性设置检查 —— 作为初始 AskUserQuestion 对话框中
+      // 嵌入的提示收集。绝不阻塞 —— 触发器不需要 git 源
+      // （例如，仅 Slack 轮询），且触发器的源可能指向
+      // 与 cwd 不同的仓库。
       const setupNotes: string[] = []
       let needsGitHubAccessReminder = false
 
@@ -407,10 +407,10 @@ export function registerScheduleRemoteAgentsSkill(): void {
           setupNotes.push(msg)
         }
       }
-      // Non-github.com hosts (GHE/GitLab/etc.): silently skip. The GitHub
-      // App check is github.com-specific, and the "not in a git repo" note
-      // would be factually wrong — getCurrentRepoHttpsUrl() below will
-      // still populate gitRepoUrl with the GHE URL.
+      // 非 github.com 主机（GHE/GitLab 等）：静默跳过。
+      // GitHub App 检查仅针对 github.com，而"不在 git 仓库中"
+      // 的说明在事实上是错误的 —— 下方的 getCurrentRepoHttpsUrl()
+      // 仍会用 GHE URL 填充 gitRepoUrl。
 
       const connectors = getConnectedClaudeAIConnectors(
         context.options.mcpClients,

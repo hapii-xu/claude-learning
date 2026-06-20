@@ -7,13 +7,13 @@ export const call: LocalCommandCall = async (_, context) => {
   setPoorMode(newState)
 
   if (newState) {
-    // Disable prompt suggestion in AppState
+    // 在 AppState 中禁用 prompt 建议
     context.setAppState(prev => ({
       ...prev,
       promptSuggestionEnabled: false,
     }))
   } else {
-    // Re-enable prompt suggestion
+    // 重新启用 prompt 建议
     context.setAppState(prev => ({
       ...prev,
       promptSuggestionEnabled: true,

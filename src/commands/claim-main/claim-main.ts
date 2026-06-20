@@ -23,7 +23,7 @@ export const call: LocalCommandCall = async (_args, context) => {
   const machineId = await getMachineId()
   const registry = await readRegistry()
 
-  // Already main machine?
+  // 已经是 main 机器？
   if (registry.mainMachineId === machineId && registry.main?.id === myName) {
     return {
       type: 'text',
@@ -46,7 +46,7 @@ export const call: LocalCommandCall = async (_args, context) => {
 
   await claimMain(machineId, entry)
 
-  // Update local state
+  // 更新本地状态
   context.setAppState(prev => ({
     ...prev,
     pipeIpc: {

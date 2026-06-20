@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
 /**
- * Verify that user-facing error messages include actionable guidance.
- * These are pure string-formatting tests — no side effects.
+ * 验证面向用户的错误消息是否包含可操作的指引。
+ * 这些都是纯字符串格式化测试 — 没有副作用。
  */
 
 describe('User-facing error messages', () => {

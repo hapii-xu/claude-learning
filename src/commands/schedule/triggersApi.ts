@@ -1,15 +1,15 @@
 /**
- * Thin HTTP client for the /v1/code/triggers endpoint.
+ * /v1/code/triggers 端点的轻量 HTTP 客户端。
  *
- * Key spec facts (from binary reverse-engineering of v2.1.123):
+ * 关键规范事实（来自对 v2.1.123 二进制的逆向工程）：
  *   - list:   GET  /v1/code/triggers
  *   - get:    GET  /v1/code/triggers/{trigger_id}
  *   - create: POST /v1/code/triggers
- *   - update: POST /v1/code/triggers/{trigger_id}  ← POST not PATCH
+ *   - update: POST /v1/code/triggers/{trigger_id}  ← 是 POST 而非 PATCH
  *   - run:    POST /v1/code/triggers/{trigger_id}/run
  *   - delete: DELETE /v1/code/triggers/{trigger_id}
  *
- * Reuses the same base-URL + auth-header pattern as agentsApi.ts.
+ * 复用与 agentsApi.ts 相同的 base-URL + auth-header 模式。
  */
 
 import axios from 'axios'
@@ -50,11 +50,10 @@ type TriggerRunResponse = {
   run_id: string
 }
 
-// Reverse-engineered from claude.exe v2.1.123: the only beta value the
-// triggers endpoint actually accepts on the subscription auth plane is
-// `ccr-triggers-2026-01-30`. The earlier umbrella value
-// `managed-agents-2026-04-01` only appears in documentation strings, never
-// in actual request construction.
+// 逆向自 claude.exe v2.1.123：在订阅认证层面，triggers 端点唯一接受的
+// beta 值是 `ccr-triggers-2026-01-30`。更早的统一值
+// `managed-agents-2026-04-01` 仅出现在文档字符串中，从未在实际请求
+// 构造中使用。
 const TRIGGERS_BETA_HEADER = 'ccr-triggers-2026-01-30'
 const MAX_RETRIES = 3
 
@@ -86,7 +85,7 @@ async function buildHeaders(): Promise<Record<string, string>> {
       401,
     )
   }
-  // Guard the host before sending OAuth credentials to prevent token leakage.
+  // 在发送 OAuth 凭据前校验 host，以防 token 泄漏。
   assertSubscriptionBaseUrl(triggersBaseUrl())
   return {
     ...getOAuthHeaders(accessToken),
@@ -138,9 +137,9 @@ function classifyError(err: unknown): TriggersApiError {
 }
 
 /**
- * Parses the Retry-After header value into milliseconds.
- * Accepts both integer-seconds (e.g. "30") and HTTP-date strings.
- * Returns null when the header is absent or unparseable.
+ * 将 Retry-After 头部值解析为毫秒数。
+ * 同时接受整数秒（例如 "30"）和 HTTP-date 字符串。
+ * 当头部缺失或无法解析时返回 null。
  */
 function parseRetryAfterMs(header: string | undefined): number | null {
   if (!header) return null
@@ -158,7 +157,7 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
       return await fn()
     } catch (err: unknown) {
       const classified = classifyError(err)
-      // Only retry 5xx errors
+      // 仅对 5xx 错误进行重试
       if (classified.statusCode >= 500) {
         lastErr = classified
         if (attempt < MAX_RETRIES - 1) {
@@ -210,10 +209,10 @@ export async function createTrigger(body: CreateTriggerBody): Promise<Trigger> {
 }
 
 /**
- * Update a trigger.
+ * 更新一个 trigger。
  *
- * IMPORTANT: The upstream API uses POST (not PATCH/PUT) for updates.
- * Binary literal evidence: "update: POST /v1/code/triggers/{trigger_id}"
+ * 重要：上游 API 使用 POST（而非 PATCH/PUT）进行更新。
+ * 二进制字面量证据："update: POST /v1/code/triggers/{trigger_id}"
  */
 export async function updateTrigger(
   id: string,

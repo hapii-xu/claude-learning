@@ -1,14 +1,14 @@
 /**
- * usePipeIpc — Pipe IPC lifecycle hook.
+ * usePipeIpc — Pipe IPC 生命周期 hook。
  *
- * Extracted from REPL.tsx's 575-line inline useEffect. Manages:
- * 1. Server creation (UDS + optional TCP for LAN)
- * 2. LAN beacon startup
- * 3. Message handlers (ping, attach, prompt, permission, detach)
- * 4. Heartbeat loop (main: auto-attach + cleanup; sub: detect main alive)
- * 5. Cleanup on unmount
+ * 从 REPL.tsx 的 575 行内联 useEffect 中提取。管理：
+ * 1. 服务器创建（UDS + 可选 TCP 用于 LAN）
+ * 2. LAN 信标启动
+ * 3. 消息处理程序（ping、attach、prompt、permission、detach）
+ * 4. 心跳循环（main：自动附加 + 清理；sub：检测 main 存活）
+ * 5. 卸载时清理
  *
- * Feature-gated by UDS_INBOX. LAN extensions gated by LAN_PIPES.
+ * 由 UDS_INBOX 功能门控。LAN 扩展由 LAN_PIPES 门控。
  */
 import { feature } from 'bun:bundle'
 import { useEffect } from 'react'
@@ -26,7 +26,7 @@ import type {
 } from '../utils/pipeTransport.js'
 
 // ---------------------------------------------------------------------------
-// Types
+// 类型
 // ---------------------------------------------------------------------------
 
 type StoreApi = {
@@ -40,7 +40,7 @@ export type UsePipeIpcOptions = {
 }
 
 // ---------------------------------------------------------------------------
-// Helper: remove a dead slave from registry + state
+// 辅助函数：从注册表 + 状态中移除死亡的 slave
 // ---------------------------------------------------------------------------
 
 function removeDeadSlave(slaveName: string, store: StoreApi): void {
@@ -68,7 +68,7 @@ function removeDeadSlave(slaveName: string, store: StoreApi): void {
 }
 
 // ---------------------------------------------------------------------------
-// Helper: refresh discovered pipes (local subs + LAN peers)
+// 辅助函数：刷新已发现的 pipes（本地订阅 + LAN 对等方）
 // ---------------------------------------------------------------------------
 
 function refreshDiscoveredPipes(
@@ -95,7 +95,7 @@ function refreshDiscoveredPipes(
       alive: true,
     }))
 
-  // Include LAN beacon peers so they aren't wiped out by heartbeat
+  // 包含 LAN 信标对等方，这样它们不会被心跳清除
   let lanDiscovered: typeof freshDiscovered = []
   if (feature('LAN_PIPES')) {
     const beacon = lb.getLanBeacon()
@@ -120,7 +120,7 @@ function refreshDiscoveredPipes(
 
   const allDiscovered = [...freshDiscovered, ...lanDiscovered]
 
-  // Only update state if the list actually changed
+  // 仅在列表实际变化时更新状态
   const prev = pt.getPipeIpc(store.getState())
   const prevNames = (prev.discoveredPipes ?? [])
     .map((p: any) => p.pipeName)
@@ -145,7 +145,7 @@ function refreshDiscoveredPipes(
 }
 
 // ---------------------------------------------------------------------------
-// Phase: Register message handlers on server
+// 阶段：在服务器上注册消息处理程序
 // ---------------------------------------------------------------------------
 
 function registerMessageHandlers(
@@ -155,12 +155,12 @@ function registerMessageHandlers(
   store: StoreApi,
   handleIncomingPrompt: (content: string) => boolean,
 ): void {
-  // Auto-reply pings for health checks
+  // 自动回复 ping 用于健康检查
   server.onMessage((msg: PipeMessage, reply) => {
     if (msg.type === 'ping') reply({ type: 'pong' })
   })
 
-  // Handle attach requests
+  // 处理 attach 请求
   server.onMessage((msg: PipeMessage, reply) => {
     if (msg.type !== 'attach_request') return
     const state = store.getState()
@@ -169,7 +169,7 @@ function registerMessageHandlers(
       reply({ type: 'attach_reject', data: 'Already controlled' })
       return
     }
-    // Allow LAN peers (different machineId) to attach regardless of role.
+    // 允许 LAN 对等方（不同 machineId）附加，无论角色如何。
     const isLanPeer = msg.meta?.machineId && msg.meta.machineId !== machineId
     if (!isLanPeer && currentPipeState.role !== 'sub') {
       reply({
@@ -201,7 +201,7 @@ function registerMessageHandlers(
     }))
   })
 
-  // Handle prompts from master
+  // 处理来自 master 的提示
   server.onMessage((msg: PipeMessage, reply) => {
     if (msg.type === 'prompt' && msg.data) {
       const accepted = handleIncomingPrompt(msg.data)
@@ -216,7 +216,7 @@ function registerMessageHandlers(
     }
   })
 
-  // Handle permission decisions from master
+  // 处理来自 master 的权限决定
   server.onMessage((msg: PipeMessage, _reply) => {
     if (msg.type !== 'permission_response' && msg.type !== 'permission_cancel')
       return
@@ -231,11 +231,11 @@ function registerMessageHandlers(
         cancelPipePermissionRequest(payload.requestId, payload.reason)
       }
     } catch {
-      // Malformed — ignore
+      // 畸形 —— 忽略
     }
   })
 
-  // Handle relay mute/unmute from master
+  // 处理来自 master 的中继静音/取消静音
   server.onMessage((msg: PipeMessage, _reply) => {
     if (msg.type === 'relay_mute') {
       pp.setRelayMuted(true)
@@ -244,7 +244,7 @@ function registerMessageHandlers(
     }
   })
 
-  // Handle detach
+  // 处理 detach
   server.onMessage((msg: PipeMessage, _reply) => {
     if (msg.type !== 'detach') return
     const { clearPendingPipePermissions } = pp
@@ -266,7 +266,7 @@ function registerMessageHandlers(
 }
 
 // ---------------------------------------------------------------------------
-// Phase: Heartbeat
+// 阶段：心跳
 // ---------------------------------------------------------------------------
 
 function runMainHeartbeat(
@@ -284,7 +284,7 @@ function runMainHeartbeat(
       const connectedSlaves = mm.getAllSlaveClients()
       const aliveSubNames = new Set(aliveSubs.map(sub => sub.pipeName))
 
-      // Build unified attach target list: local subs + LAN peers
+      // 构建统一的附加目标列表：本地 subs + LAN 对等方
       type AttachTarget = {
         pipeName: string
         tcpEndpoint?: { host: string; port: number }
@@ -293,7 +293,7 @@ function runMainHeartbeat(
         pipeName: sub.pipeName,
       }))
 
-      // Add LAN peers as attach targets
+      // 添加 LAN 对等方作为附加目标
       if (feature('LAN_PIPES')) {
         const beacon = lb.getLanBeacon()
         if (beacon) {
@@ -376,11 +376,11 @@ function runMainHeartbeat(
             }))
           }
         } catch {
-          // Connection failed — skip this cycle
+          // 连接失败 —— 跳过此周期
         }
       }
 
-      // Clean up slaves that are no longer alive
+      // 清理不再存活的 slaves
       let lanPeerNames: Set<string> | null = null
       if (feature('LAN_PIPES')) {
         const beacon = lb.getLanBeacon()
@@ -396,7 +396,7 @@ function runMainHeartbeat(
         }
       }
     } catch {
-      // Heartbeat cycle error — non-fatal
+      // 心跳周期错误 —— 非致命
     }
   })()
 }
@@ -434,13 +434,13 @@ function runSubHeartbeat(
         pp.setPipeRelay(null)
       }
     } catch {
-      // Heartbeat check error — non-fatal
+      // 心跳检查错误 —— 非致命
     }
   })()
 }
 
 // ---------------------------------------------------------------------------
-// Main hook
+// 主 hook
 // ---------------------------------------------------------------------------
 
 export function usePipeIpc({
@@ -460,7 +460,7 @@ export function usePipeIpc({
 
     void (async () => {
       try {
-        // --- Phase 1: Role determination ---
+        // --- 阶段 1：角色确定 ---
         const machId = await pr.getMachineId()
         const mac = pr.getMacAddress()
         const localIp = pt.getLocalIp()
@@ -491,7 +491,7 @@ export function usePipeIpc({
           displayRole = `sub-${subIndex}`
         }
 
-        // --- Phase 2: Server creation ---
+        // --- 阶段 2：服务器创建 ---
         const server = await pt.createPipeServer(
           pipeName,
           feature('LAN_PIPES') ? { enableTcp: true, tcpPort: 0 } : undefined,
@@ -503,7 +503,7 @@ export function usePipeIpc({
           return
         }
 
-        // --- Phase 3: LAN beacon ---
+        // --- 阶段 3：LAN 信标 ---
         if (feature('LAN_PIPES') && server.tcpAddress) {
           const beacon = new lb.LanBeacon({
             pipeName,
@@ -528,7 +528,7 @@ export function usePipeIpc({
           }
         }
 
-        // Update store
+        // 更新 store
         store.setState((prev: any) => ({
           ...prev,
           pipeIpc: {
@@ -544,7 +544,7 @@ export function usePipeIpc({
           },
         }))
 
-        // --- Phase 4: Message handlers ---
+        // --- 阶段 4：消息处理程序 ---
         registerMessageHandlers(
           server,
           pipeName,
@@ -553,7 +553,7 @@ export function usePipeIpc({
           handleIncomingPrompt,
         )
 
-        // --- Phase 5: Heartbeat ---
+        // --- 阶段 5：心跳 ---
         const HEARTBEAT_INTERVAL_MS = 5000
 
         heartbeatTimer = setInterval(() => {
@@ -571,17 +571,17 @@ export function usePipeIpc({
             runSubHeartbeat(pipeName, machId, entry, store, disposed)
           }
 
-          // Reset busy flag after a short delay to allow the async work to settle
+          // 在短暂延迟后重置忙碌标志，以允许异步工作完成
           setTimeout(() => {
             heartbeatBusy = false
           }, 4000)
         }, HEARTBEAT_INTERVAL_MS)
       } catch {
-        // PipeServer creation failed — non-fatal
+        // PipeServer 创建失败 —— 非致命
       }
     })()
 
-    // --- Phase 6: Cleanup ---
+    // --- 阶段 6：清理 ---
     return () => {
       disposed.current = true
       if (heartbeatTimer) {
@@ -589,7 +589,7 @@ export function usePipeIpc({
         heartbeatTimer = null
       }
 
-      // Send detach to all slaves
+      // 向所有 slaves 发送 detach
       const allClients = mm.getAllSlaveClients()
       for (const [name, client] of allClients.entries()) {
         try {
@@ -599,7 +599,7 @@ export function usePipeIpc({
         removeDeadSlave(name, store)
       }
 
-      // Stop LAN beacon
+      // 停止 LAN 信标
       const beacon = lb.getLanBeacon()
       if (beacon) {
         try {
@@ -608,7 +608,7 @@ export function usePipeIpc({
         lb.setLanBeacon(null)
       }
 
-      // Unregister + close server
+      // 注销 + 关闭服务器
       pr.unregister(pipeName).catch(() => {})
       if (pipeServer) {
         void pipeServer.close().catch(() => {})

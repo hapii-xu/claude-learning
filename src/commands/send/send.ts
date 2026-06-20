@@ -17,7 +17,7 @@ export const call: LocalCommandCall = async (args, context) => {
     }
   }
 
-  // Parse: first word is pipe name, rest is the message
+  // 解析：第一个词是 pipe 名称，其余为消息内容
   const trimmed = args.trim()
   const spaceIdx = trimmed.indexOf(' ')
   if (spaceIdx === -1) {
@@ -53,9 +53,9 @@ export const call: LocalCommandCall = async (args, context) => {
   }
 
   try {
-    // Temporarily override mute for this slave so its response is visible.
-    // Override lasts until the slave emits 'done' or 'error' (cleared by
-    // useMasterMonitor's attachPipeEntryEmitter handler).
+    // 临时为该 slave 取消静音，使其响应可见。
+    // 该 override 持续生效，直到 slave 发出 'done' 或 'error'（由
+    // useMasterMonitor 的 attachPipeEntryEmitter 处理器清除）。
     addSendOverride(targetName)
     removeMasterPipeMute(targetName)
     client.send({ type: 'relay_unmute' })
@@ -64,7 +64,7 @@ export const call: LocalCommandCall = async (args, context) => {
       data: message,
     })
 
-    // Record the sent prompt in history
+    // 将已发送的 prompt 记录到历史中
     context.setAppState(prev => {
       const slave = getPipeIpc(prev).slaves[targetName]
       if (!slave) return prev
@@ -100,7 +100,7 @@ export const call: LocalCommandCall = async (args, context) => {
       value: `Sent to "${targetName}": ${message.slice(0, 100)}${message.length > 100 ? '...' : ''}`,
     }
   } catch (err) {
-    // Roll back override on send failure to prevent permanent unmute
+    // 发送失败时回滚 override，避免永久取消静音
     removeSendOverride(targetName)
     return {
       type: 'text',

@@ -5,7 +5,7 @@ import {
 } from '../bootstrap/state.js'
 import { useTerminalNotification } from '@anthropic/ink'
 import { sendNotification } from '../services/notifier.js'
-// The time threshold in milliseconds for considering an interaction "recent" (6 seconds)
+// 将交互视为 "最近" 的时间阈值（毫秒）（6 秒）
 export const DEFAULT_INTERACTION_THRESHOLD_MS = 6000
 
 function getTimeSinceLastInteraction(): number {
@@ -20,20 +20,20 @@ function shouldNotify(threshold: number): boolean {
   return process.env.NODE_ENV !== 'test' && !hasRecentInteraction(threshold)
 }
 
-// NOTE: User interaction tracking is now done in App.tsx's processKeysInBatch
-// function, which calls updateLastInteractionTime() when any input is received.
-// This avoids having a separate stdin 'data' listener that would compete with
-// the main 'readable' listener and cause dropped input characters.
+// 注意：用户交互跟踪现在在 App.tsx 的 processKeysInBatch
+// 函数中完成，该函数在收到任何输入时调用 updateLastInteractionTime()。
+// 这避免了会有一个与主 'readable' 监听器竞争并导致
+// 输入字符丢失的单独 stdin 'data' 监听器。
 
 /**
- * Hook that manages desktop notifications after a timeout period.
+ * 在超时时期后管理桌面通知的 Hook。
  *
- * Shows a notification in two cases:
- * 1. Immediately if the app has been idle for longer than the threshold
- * 2. After the specified timeout if the user doesn't interact within that time
+ * 在两种情况下显示通知：
+ * 1. 如果应用程序空闲时间超过阈值则立即显示
+ * 2. 如果用户在该时间内未交互则在指定超时后显示
  *
- * @param message - The notification message to display
- * @param timeout - The timeout in milliseconds (defaults to 6000ms)
+ * @param message - 要显示的通知消息
+ * @param timeout - 超时时间（毫秒）（默认 6000ms）
  */
 export function useNotifyAfterTimeout(
   message: string,
@@ -41,11 +41,11 @@ export function useNotifyAfterTimeout(
 ): void {
   const terminal = useTerminalNotification()
 
-  // Reset interaction time when hook is called to make sure that requests
-  // that took a long time to complete don't pop up a notification right away.
-  // Must be immediate because useEffect runs after Ink's render cycle has
-  // already flushed; without it the timestamp stays stale and a premature
-  // notification fires if the user is idle (no subsequent renders to flush).
+  // 在调用 hook 时重置交互时间，以确保
+  // 花费很长时间完成的请求不会立即弹出通知。
+  // 必须是立即的，因为 useEffect 在 Ink 的渲染周期
+  // 已刷新后运行；否则时间戳保持过时，
+  // 并且如果用户空闲（没有后续渲染刷新）会触发过早通知。
   useEffect(() => {
     updateLastInteractionTime(true)
   }, [])

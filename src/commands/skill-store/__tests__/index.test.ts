@@ -1,5 +1,5 @@
 /**
- * Unit tests for the skill-store command definition (index.tsx)
+ * skill-store 命令定义（index.tsx）的单元测试
  */
 
 import { describe, expect, test } from 'bun:test'

@@ -20,8 +20,8 @@ import {
 } from '../tasks/InProcessTeammateTask/types.js'
 import { isBackgroundTask } from '../tasks/types.js'
 
-// Step teammate selection by delta, wrapping across leader(-1)..teammates(0..n-1)..hide(n).
-// First step from a collapsed tree expands it and parks on leader.
+// 按增量步进队友选择，在 leader(-1)..队友(0..n-1)..隐藏(n) 之间循环。
+// 从折叠树的第一步展开它并停在 leader 上。
 function stepTeammateSelection(
   delta: 1 | -1,
   setAppState: (updater: (prev: AppState) => AppState) => void,
@@ -58,11 +58,11 @@ function stepTeammateSelection(
 }
 
 /**
- * Custom hook that handles Shift+Up/Down keyboard navigation for background tasks.
- * When teammates (swarm) are present, navigates between leader and teammates.
- * When only non-teammate background tasks exist, opens the background tasks dialog.
- * When pipe IPC is active (UDS_INBOX), Shift+Down toggles the pipe selector panel.
- * Also handles Enter to confirm selection, 'f' to view transcript, and 'k' to kill.
+ * 自定义 hook，处理后台任务的 Shift+Up/Down 键盘导航。
+ * 当存在队友（swarm）时，在 leader 和队友之间导航。
+ * 当仅存在非队友后台任务时，打开后台任务对话框。
+ * 当 pipe IPC 处于活动状态（UDS_INBOX）时，Shift+Down 切换 pipe 选择器面板。
+ * 还处理 Enter 确认选择、'f' 查看日志和 'k' 终止。
  */
 export function useBackgroundTaskNavigation(options?: {
   onOpenBackgroundTasks?: () => void
@@ -75,19 +75,19 @@ export function useBackgroundTaskNavigation(options?: {
   const pipeIpc = useAppState(s => s.pipeIpc)
   const setAppState = useSetAppState()
 
-  // Filter to running teammates and sort alphabetically to match TeammateSpinnerTree display
+  // 过滤到运行中的队友并按字母排序以匹配 TeammateSpinnerTree 显示
   const teammateTasks = getRunningTeammatesSorted(tasks)
   const teammateCount = teammateTasks.length
 
-  // Check for non-teammate background tasks (local_agent, local_bash, etc.)
+  // 检查非队友后台任务（local_agent、local_bash 等）
   const hasNonTeammateBackgroundTasks = Object.values(tasks).some(
     t => isBackgroundTask(t) && t.type !== 'in_process_teammate',
   )
 
-  // Track previous teammate count to detect when teammates are removed
+  // 跟踪先前的队友数量以检测队友被移除时
   const prevTeammateCountRef = useRef<number>(teammateCount)
 
-  // Clamp selection index if teammates are removed or reset when count becomes 0
+  // 当队友被移除时钳制选择索引或当数量变为 0 时重置
   useEffect(() => {
     const prevCount = prevTeammateCountRef.current
     prevTeammateCountRef.current = teammateCount
@@ -96,10 +96,10 @@ export function useBackgroundTaskNavigation(options?: {
       const currentTeammates = getRunningTeammatesSorted(prev.tasks)
       const currentCount = currentTeammates.length
 
-      // When teammates are removed (count goes from >0 to 0), reset selection
-      // Only reset if we previously had teammates (not on initial mount with 0)
-      // Don't clobber viewSelectionMode if actively viewing a teammate transcript —
-      // the user may be reviewing a completed teammate and needs escape to exit
+      // 当队友被移除时（数量从 >0 变为 0），重置选择
+      // 仅在之前有队友时重置（不是在初始挂载时为 0）
+      // 如果正在查看队友日志则不要覆盖 viewSelectionMode ——
+      // 用户可能正在查看已完成的队友并需要 escape 退出
       if (
         currentCount === 0 &&
         prevCount > 0 &&
@@ -118,8 +118,8 @@ export function useBackgroundTaskNavigation(options?: {
         }
       }
 
-      // Clamp if index is out of bounds
-      // Max valid index is currentCount (the "hide" row) when spinner tree is shown
+      // 如果索引越界则钳制
+      // 当显示 spinner 树时最大有效索引是 currentCount（"隐藏"行）
       const maxIndex =
         prev.expandedView === 'teammates' ? currentCount : currentCount - 1
       if (currentCount > 0 && prev.selectedIPAgentIndex > maxIndex) {
@@ -133,7 +133,7 @@ export function useBackgroundTaskNavigation(options?: {
     })
   }, [teammateCount, setAppState])
 
-  // Get the selected teammate's task info
+  // 获取所选队友的任务信息
   const getSelectedTeammate = (): {
     taskId: string
     task: InProcessTeammateTaskState
@@ -147,26 +147,26 @@ export function useBackgroundTaskNavigation(options?: {
   }
 
   const handleKeyDown = (e: KeyboardEvent): void => {
-    // Escape in viewing mode:
-    // - If teammate is running: abort current work only (stops current turn, teammate stays alive)
-    // - If teammate is not running (completed/killed/failed): exit the view back to leader
+    // 查看模式下的 Escape：
+    // - 如果队友正在运行：仅中止当前工作（停止当前回合，队友保持活动）
+    // - 如果队友未在运行（已完成/已终止/失败）：退出视图返回 leader
     if (e.key === 'escape' && viewSelectionMode === 'viewing-agent') {
       e.preventDefault()
       const taskId = viewingAgentTaskId
       if (taskId) {
         const task = tasks[taskId]
         if (isInProcessTeammateTask(task) && task.status === 'running') {
-          // Abort currentWorkAbortController (stops current turn) NOT abortController (kills teammate)
+          // 中止 currentWorkAbortController（停止当前回合）而不是 abortController（终止队友）
           task.currentWorkAbortController?.abort()
           return
         }
       }
-      // Teammate is not running or task doesn't exist — exit the view
+      // 队友未在运行或任务不存在 —— 退出视图
       exitTeammateView(setAppState)
       return
     }
 
-    // Escape in selection mode: exit selection without aborting leader
+    // 选择模式下的 Escape：退出选择而不中止 leader
     if (e.key === 'escape' && viewSelectionMode === 'selecting-agent') {
       e.preventDefault()
       setAppState(prev => ({
@@ -177,10 +177,10 @@ export function useBackgroundTaskNavigation(options?: {
       return
     }
 
-    // Shift+Up/Down for teammate transcript switching (with wrapping)
-    // Index -1 represents the leader, 0+ are teammates
-    // When showSpinnerTree is true, index === teammateCount is the "hide" row
-    // Third case: when pipe IPC is active and no teammates/background tasks, toggle pipe selector
+    // Shift+Up/Down 用于队友日志切换（循环）
+    // 索引 -1 代表 leader，0+ 是队友
+    // 当 showSpinnerTree 为真时，索引 === teammateCount 是"隐藏"行
+    // 第三种情况：当 pipe IPC 处于活动状态且没有队友/后台任务时，切换 pipe 选择器
     if (e.shift && (e.key === 'up' || e.key === 'down')) {
       e.preventDefault()
       if (teammateCount > 0) {
@@ -192,13 +192,13 @@ export function useBackgroundTaskNavigation(options?: {
         pipeIpc?.statusVisible &&
         options?.onTogglePipeSelector
       ) {
-        // Shift+Down opens pipe selector when pipe IPC is active and no other navigation targets
+        // 当 pipe IPC 处于活动状态且没有其他导航目标时，Shift+Down 打开 pipe 选择器
         options.onTogglePipeSelector()
       }
       return
     }
 
-    // 'f' to view selected teammate's transcript (only in selecting mode)
+    // 'f' 查看所选队友的日志（仅在选择模式下）
     if (
       e.key === 'f' &&
       viewSelectionMode === 'selecting-agent' &&
@@ -212,7 +212,7 @@ export function useBackgroundTaskNavigation(options?: {
       return
     }
 
-    // Enter to confirm selection (only when in selecting mode)
+    // Enter 确认选择（仅在选择模式下）
     if (e.key === 'return' && viewSelectionMode === 'selecting-agent') {
       e.preventDefault()
       if (selectedIPAgentIndex === -1) {
@@ -234,7 +234,7 @@ export function useBackgroundTaskNavigation(options?: {
       return
     }
 
-    // k to kill selected teammate (only in selecting mode)
+    // k 终止所选队友（仅在选择模式下）
     if (
       e.key === 'k' &&
       viewSelectionMode === 'selecting-agent' &&
@@ -249,10 +249,10 @@ export function useBackgroundTaskNavigation(options?: {
     }
   }
 
-  // Backward-compat bridge: REPL.tsx doesn't yet wire handleKeyDown to
-  // <Box onKeyDown>. Subscribe via useInput and adapt InputEvent →
-  // KeyboardEvent until the consumer is migrated (separate PR).
-  // TODO(onKeyDown-migration): remove once REPL passes handleKeyDown.
+  // 向后兼容桥接：REPL.tsx 尚未将 handleKeyDown 连接到
+  // <Box onKeyDown>。通过 useInput 订阅并适配 InputEvent →
+  // KeyboardEvent 直到使用者迁移（单独的 PR）。
+  // TODO(onKeyDown-migration)：一旦 REPL 传递 handleKeyDown 则移除。
   useInput((_input, _key, event) => {
     handleKeyDown(new KeyboardEvent(event.keypress))
   })

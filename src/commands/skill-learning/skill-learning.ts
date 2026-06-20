@@ -118,7 +118,7 @@ export const call: LocalCommandCall = async (
       const filtered = filter(all)
       if (filtered.length !== all.length) {
         await exportInstincts(output, options)
-        // Re-write with filtered payload to honor filter args.
+        // 用过滤后的 payload 重新写入，以遵守过滤参数。
         const { writeFile } = await import('node:fs/promises')
         await writeFile(output, `${JSON.stringify(filtered, null, 2)}\n`)
       } else {
@@ -149,9 +149,9 @@ export const call: LocalCommandCall = async (
       const minConf = parseFlagNumber(parts, '--min-conf', undefined)
       const domain = parseFlagString(parts, '--domain')
       const dryRun = parts.includes('--dry-run')
-      // Read + filter first so --dry-run can truly skip persistence. The
-      // previous `importInstincts(...)` call wrote to disk before branching
-      // on --dry-run, which defeated the purpose of the flag.
+      // 先读取并过滤，这样 --dry-run 才能真正跳过持久化。此前
+      // `importInstincts(...)` 调用在按 --dry-run 分支前就写入了磁盘，
+      // 违背了该 flag 的初衷。
       const { readFile: readFileFs } = await import('node:fs/promises')
       const parsed = JSON.parse(await readFileFs(input, 'utf8')) as Awaited<
         ReturnType<typeof loadInstincts>

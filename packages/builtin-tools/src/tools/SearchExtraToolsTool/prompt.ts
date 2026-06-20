@@ -1,6 +1,7 @@
 import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js'
 import type { Tool } from 'src/Tool.js'
 import { CORE_TOOLS } from 'src/constants/tools.js'
+import { logForDebugging } from 'src/utils/debug.js'
 
 export { SEARCH_EXTRA_TOOLS_TOOL_NAME } from './constants.js'
 
@@ -10,10 +11,9 @@ const PROMPT_HEAD = `Search for deferred tools by name or keyword. LOW PRIORITY 
 
 `
 
-// Matches isDeferredToolsDeltaEnabled in searchExtraTools.ts (not imported —
-// searchExtraTools.ts imports from this file). When enabled: tools announced
-// via system-reminder attachments. When disabled: prepended
-// <available-deferred-tools> block (pre-gate behavior).
+// 与 searchExtraTools.ts 中的 isDeferredToolsDeltaEnabled 匹配（不直接导入 —
+// searchExtraTools.ts 从此文件导入）。启用时：工具通过 system-reminder
+// 附件宣布。禁用时：前置 <available-deferred-tools> 块（预门控行为）。
 function getToolLocationHint(): string {
   const deltaEnabled =
     process.env.USER_TYPE === 'ant' ||
@@ -60,32 +60,35 @@ If you don't know the exact tool name, use keyword search first:
 If ExecuteExtraTool fails, do NOT re-search for the same tool — it will loop. Stop and tell the user what failed.`
 
 /**
- * Check if a tool should be deferred (requires SearchExtraTools to load).
- * A tool is deferred if it is NOT in CORE_TOOLS and does NOT have alwaysLoad: true.
- * Core tools are always loaded — never deferred.
- * All other tools (non-core built-in + all MCP tools) are deferred
- * and must be discovered via SearchExtraToolsTool / ExecuteExtraTool.
+ * 检查工具是否应被延迟（需要 SearchExtraTools 来加载）。
+ * 如果工具不在 CORE_TOOLS 中且没有 alwaysLoad: true，则被视为延迟。
+ * 核心工具始终加载 — 从不会被延迟。
+ * 所有其他工具（非核心内置 + 所有 MCP 工具）都是延迟的，
+ * 必须通过 SearchExtraToolsTool / ExecuteExtraTool 发现。
  */
 export function isDeferredTool(tool: Tool): boolean {
-  // Explicit opt-out via _meta['anthropic/alwaysLoad']
+  // 通过 _meta['anthropic/alwaysLoad'] 显式退出
   if (tool.alwaysLoad === true) return false
 
-  // Core tools are always loaded — never deferred
+  // 核心工具始终加载 — 从不会被延迟
   if (CORE_TOOLS.has(tool.name)) return false
 
-  // Everything else (non-core built-in + all MCP tools) is deferred
+  // 其他所有工具（非核心内置 + 所有 MCP 工具）都是延迟的
   return true
 }
 
 /**
- * Format one deferred-tool line for the <available-deferred-tools> user
- * message. Search hints (tool.searchHint) are not rendered — the
- * hints A/B (exp_xenhnnmn0smrx4, stopped Mar 21) showed no benefit.
+ * 为 <available-deferred-tools> 用户消息格式化一行延迟工具。
+ * 不渲染搜索提示（tool.searchHint）— A/B 测试
+ * （exp_xenhnnmn0smrx4，3 月 21 日停止）显示没有收益。
  */
 export function formatDeferredToolLine(tool: Tool): string {
   return tool.name
 }
 
 export function getPrompt(): string {
+  logForDebugging('[延迟工具] getPrompt 生成 SearchExtraTools 系统提示', {
+    level: 'info',
+  })
   return PROMPT_HEAD + getToolLocationHint() + PROMPT_TAIL
 }

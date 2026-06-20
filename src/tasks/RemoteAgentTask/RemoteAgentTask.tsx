@@ -44,26 +44,26 @@ import type { UltraplanPhase } from '../../utils/ultraplan/ccrSession.js';
 export type RemoteAgentTaskState = TaskStateBase & {
   type: 'remote_agent';
   remoteTaskType: RemoteTaskType;
-  /** Task-specific metadata (PR number, repo, etc.). */
+  /** 任务特定的元数据（PR 编号、仓库等）。 */
   remoteTaskMetadata?: RemoteTaskMetadata;
-  sessionId: string; // Original session ID for API calls
+  sessionId: string; // 用于 API 调用的原始 session ID
   command: string;
   title: string;
   todoList: TodoList;
   log: SDKMessage[];
   /**
-   * Long-running agent that will not be marked as complete after the first `result`.
+   * 长时运行的 agent：在第一次 `result` 之后不会被标记为完成。
    */
   isLongRunning?: boolean;
   /**
-   * When the local poller started watching this task (at spawn or on restore).
-   * Review timeout clocks from here so a restore doesn't immediately time out
-   * a task spawned >30min ago.
+   * 本地轮询器开始观察此任务的时间（在 spawn 时或在 restore 时）。
+   * review 超时从这里开始计时，避免 restore 一个 >30 分钟前 spawn 的任务
+   * 时立刻触发超时。
    */
   pollStartedAt: number;
-  /** True when this task was created by a teleported /ultrareview command. */
+  /** 当此任务由 teleport 过来的 /ultrareview 命令创建时为 true。 */
   isRemoteReview?: boolean;
-  /** Parsed from the orchestrator's <remote-review-progress> heartbeat echoes. */
+  /** 从 orchestrator 的 <remote-review-progress> 心跳回显中解析得到。 */
   reviewProgress?: {
     stage?: 'finding' | 'verifying' | 'synthesizing';
     bugsFound: number;
@@ -72,10 +72,9 @@ export type RemoteAgentTaskState = TaskStateBase & {
   };
   isUltraplan?: boolean;
   /**
-   * Scanner-derived pill state. Undefined = running. `needs_input` when the
-   * remote asked a clarifying question and is idle; `plan_ready` when
-   * ExitPlanMode is awaiting browser approval. Surfaced in the pill badge
-   * and detail dialog status line.
+   * 由扫描器推导出的 pill 状态。undefined = 运行中；`needs_input` 表示
+   * 远程提出了澄清问题并处于空闲；`plan_ready` 表示 ExitPlanMode
+   * 正在等待浏览器审批。会呈现在 pill 徽章和详情对话框状态行上。
    */
   ultraplanPhase?: Exclude<UltraplanPhase, 'running'>;
 };
@@ -92,11 +91,11 @@ export type AutofixPrRemoteTaskMetadata = {
   repo: string;
   prNumber: number;
   /**
-   * PR head commit SHA captured at /autofix-pr launch. The completionChecker
-   * compares this against the live head to detect when the agent has pushed
-   * new commits. Optional because gh CLI may be unavailable at launch — in
-   * that case the checker falls back to terminal-state-only completion.
-   * Survives --resume via the session sidecar.
+   * 在 /autofix-pr 启动时捕获的 PR head commit SHA。completionChecker
+   * 会将其与实时 head 比较以检测 agent 是否推送了新 commit。
+   * 可选 —— 因为启动时 gh CLI 可能不可用，此时 checker 会退化为
+   * 仅在 terminal 状态下判定完成。
+   * 通过 session sidecar 在 --resume 之间保留。
    */
   initialHeadSha?: string;
 };
@@ -104,9 +103,9 @@ export type AutofixPrRemoteTaskMetadata = {
 export type RemoteTaskMetadata = AutofixPrRemoteTaskMetadata;
 
 /**
- * Called on every poll tick for tasks with a matching remoteTaskType. Return a
- * non-null string to complete the task (string becomes the notification text),
- * or null to keep polling. Checkers that hit external APIs should self-throttle.
+ * 每次轮询会对 remoteTaskType 匹配的任务调用一次。返回非空字符串表示完成任务
+ * （该字符串会作为通知文本），返回 null 表示继续轮询。
+ * 会访问外部 API 的 checker 应当自行限流。
  */
 export type RemoteTaskCompletionChecker = (
   remoteTaskMetadata: RemoteTaskMetadata | undefined,
@@ -115,41 +114,37 @@ export type RemoteTaskCompletionChecker = (
 const completionCheckers = new Map<RemoteTaskType, RemoteTaskCompletionChecker>();
 
 /**
- * Register a completion checker for a remote task type. Invoked on every poll
- * tick; survives --resume via the sidecar's remoteTaskType + remoteTaskMetadata.
+ * 为某种远程任务类型注册完成 checker。每次轮询都会调用；
+ * 通过 sidecar 中的 remoteTaskType + remoteTaskMetadata 在 --resume 之间保留。
  */
 export function registerCompletionChecker(remoteTaskType: RemoteTaskType, checker: RemoteTaskCompletionChecker): void {
   completionCheckers.set(remoteTaskType, checker);
 }
 
 /**
- * Called after the task transitions to a terminal state and the notification
- * has been enqueued. Used by command modules to release singleton locks,
- * clear cached state, or perform other cleanup the framework cannot see.
- * Hooks must be synchronous and best-effort — errors are logged but never
- * propagate.
+ * 在任务转换到 terminal 状态且通知入队之后调用。
+ * 命令模块用它来释放单例锁、清理缓存状态，或执行框架无法感知的其他清理。
+ * hook 必须同步、尽力而为 —— 错误只记录日志，不会向上抛出。
  */
 export type RemoteTaskCompletionHook = (taskId: string, remoteTaskMetadata: RemoteTaskMetadata | undefined) => void;
 
 const completionHooks = new Map<RemoteTaskType, RemoteTaskCompletionHook>();
 
 /**
- * Inspect a completed remote task's accumulated log and return an XML fragment
- * to inject inline into the completion task-notification. Returning null falls
- * back to the framework's generic "task completed" notification (file-path
- * pointer only). Used by command modules whose remote agents emit structured
- * outcome tags the local model should read directly.
+ * 检查已完成远程任务积累的日志，返回一个 XML 片段，内联注入到
+ * 完成时的 task-notification 中。返回 null 表示回退到框架的通用「任务完成」
+ * 通知（仅给出文件路径指针）。用于这样的命令模块：其远程 agent 会发出
+ * 本地模型应当直接阅读的结构化结果标签。
  */
 export type RemoteTaskContentExtractor = (log: SDKMessage[]) => string | null;
 
 const contentExtractors = new Map<RemoteTaskType, RemoteTaskContentExtractor>();
 
 /**
- * Register a content extractor for a remote task type. Called once per
- * completion in the generic completion branches (archived, completionChecker,
- * result-driven). isRemoteReview tasks have their own bespoke path and skip
- * extractors entirely. Errors propagate to the framework which logs and falls
- * back to generic notification.
+ * 为某种远程任务类型注册 content extractor。每个任务在通用的完成分支
+ * （archived、completionChecker、result 驱动）中只会被调用一次。
+ * isRemoteReview 任务走自己的专属路径，完全跳过 extractor。
+ * 错误会向上抛给框架，框架记录日志并回退到通用通知。
  */
 export function registerContentExtractor(remoteTaskType: RemoteTaskType, extractor: RemoteTaskContentExtractor): void {
   contentExtractors.set(remoteTaskType, extractor);
@@ -167,11 +162,10 @@ function tryExtractRichContent(task: RemoteAgentTaskState, log: SDKMessage[]): s
 }
 
 /**
- * Register a completion hook for a remote task type. Invoked once after the
- * task reaches a terminal state in any of the framework's completion branches
- * (archived session, completionChecker, stableIdle, result). Use this to
- * release command-module state (e.g. singleton locks) without forcing the
- * framework to reverse-import from the command package.
+ * 为某种远程任务类型注册完成 hook。在任务到达 terminal 状态后调用一次，
+ * 适用于框架的任意完成分支（archived session、completionChecker、
+ * stableIdle、result）。用它来释放命令模块的状态（例如单例锁），
+ * 而不必让框架反向 import 命令包。
  */
 export function registerCompletionHook(remoteTaskType: RemoteTaskType, hook: RemoteTaskCompletionHook): void {
   completionHooks.set(remoteTaskType, hook);
@@ -188,8 +182,8 @@ function runCompletionHook(taskId: string, task: RemoteAgentTaskState): void {
 }
 
 /**
- * Persist a remote-agent metadata entry to the session sidecar.
- * Fire-and-forget — persistence failures must not block task registration.
+ * 将一个 remote-agent 元数据条目持久化到 session sidecar。
+ * Fire-and-forget —— 持久化失败不应阻塞任务注册。
  */
 async function persistRemoteAgentMetadata(meta: RemoteAgentMetadata): Promise<void> {
   try {
@@ -200,9 +194,8 @@ async function persistRemoteAgentMetadata(meta: RemoteAgentMetadata): Promise<vo
 }
 
 /**
- * Remove a remote-agent metadata entry from the session sidecar.
- * Called on task completion/kill so restored sessions don't resurrect
- * tasks that already finished.
+ * 从 session sidecar 中移除一个 remote-agent 元数据条目。
+ * 在任务完成/终止时调用，确保恢复的会话不会让已经完成的任务复活。
  */
 async function removeRemoteAgentMetadata(taskId: string): Promise<void> {
   try {
@@ -212,7 +205,7 @@ async function removeRemoteAgentMetadata(taskId: string): Promise<void> {
   }
 }
 
-// Precondition error result
+// 前置条件错误结果
 export type RemoteAgentPreconditionResult =
   | {
       eligible: true;
@@ -223,7 +216,7 @@ export type RemoteAgentPreconditionResult =
     };
 
 /**
- * Check eligibility for creating a remote agent session.
+ * 检查是否具备创建远程 agent 会话的条件。
  */
 export async function checkRemoteAgentEligibility({
   skipBundle = false,
@@ -238,7 +231,7 @@ export async function checkRemoteAgentEligibility({
 }
 
 /**
- * Format precondition error for display.
+ * 对前置条件错误进行格式化，便于展示。
  */
 export function formatPreconditionError(error: BackgroundRemoteSessionPrecondition): string {
   switch (error.type) {
@@ -258,7 +251,7 @@ export function formatPreconditionError(error: BackgroundRemoteSessionPreconditi
 }
 
 /**
- * Enqueue a remote task notification to the message queue.
+ * 将一条远程任务通知入队到消息队列。
  */
 function enqueueRemoteNotification(
   taskId: string,
@@ -267,7 +260,7 @@ function enqueueRemoteNotification(
   setAppState: SetAppState,
   toolUseId?: string,
 ): void {
-  // Atomically check and set notified flag to prevent duplicate notifications.
+  // 原子地检查并设置 notified 标志，防止重复通知。
   if (!markTaskNotified(taskId, setAppState)) return;
 
   const statusText = status === 'completed' ? 'completed successfully' : status === 'failed' ? 'failed' : 'was stopped';
@@ -287,11 +280,10 @@ function enqueueRemoteNotification(
 }
 
 /**
- * Same as enqueueRemoteNotification but inlines a structured XML fragment
- * (returned by a registered RemoteTaskContentExtractor) so the local model
- * reads the remote agent's outcome directly instead of having to follow a
- * file-path pointer. Mode is still 'task-notification' — the framing XML is
- * the same, only the body differs.
+ * 与 enqueueRemoteNotification 相同，但内联注入一段结构化 XML 片段
+ * （由已注册的 RemoteTaskContentExtractor 返回），让本地模型直接读到
+ * 远程 agent 的结果，而无需再去跟随文件路径指针。mode 依旧是
+ * 'task-notification' —— 外层 XML 不变，只是 body 不同。
  */
 function enqueueRichRemoteNotification(
   taskId: string,
@@ -322,8 +314,8 @@ ${richContent}`;
 }
 
 /**
- * Atomically mark a task as notified. Returns true if this call flipped the
- * flag (caller should enqueue), false if already notified (caller should skip).
+ * 原子地将任务标记为已通知。如果本次调用翻转了标志，返回 true
+ * （调用方应当入队通知）；如果已经被通知过，返回 false（调用方应当跳过）。
  */
 function markTaskNotified(taskId: string, setAppState: SetAppState): boolean {
   let shouldEnqueue = false;
@@ -338,11 +330,11 @@ function markTaskNotified(taskId: string, setAppState: SetAppState): boolean {
 }
 
 /**
- * Extract the plan content from the remote session log.
- * Searches all assistant messages for <ultraplan>...</ultraplan> tags.
+ * 从远程会话日志中提取 plan 内容。
+ * 在所有 assistant 消息中搜索 <ultraplan>...</ultraplan> 标签。
  */
 export function extractPlanFromLog(log: SDKMessage[]): string | null {
-  // Walk backwards through assistant messages to find <ultraplan> content
+  // 倒序遍历 assistant 消息以查找 <ultraplan> 内容
   for (let i = log.length - 1; i >= 0; i--) {
     const msg = log[i] as SDKAssistantMessage;
     if (msg?.type !== 'assistant') continue;
@@ -359,9 +351,9 @@ export function extractPlanFromLog(log: SDKMessage[]): string | null {
 }
 
 /**
- * Enqueue an ultraplan-specific failure notification. Unlike enqueueRemoteNotification
- * this does NOT instruct the model to read the raw output file (a JSONL dump that is
- * useless for plan extraction).
+ * 入队一条 ultraplan 专用的失败通知。与 enqueueRemoteNotification 不同，
+ * 此通知不会指示模型去读取原始输出文件（那是一份 JSONL dump，
+ * 对 plan 提取毫无用处）。
  */
 export function enqueueUltraplanFailureNotification(
   taskId: string,
@@ -384,24 +376,24 @@ The remote Ultraplan session did not produce a plan (${reason}). Inspect the ses
 }
 
 /**
- * Extract review content from the remote session log.
+ * 从远程会话日志中提取 review 内容。
  *
- * Two producers, two event shapes:
- * - bughunter mode: run_hunt.sh is a SessionStart hook; its echo lands as
- *   {type:'system', subtype:'hook_progress', stdout:'...'}. Claude never
- *   takes a turn so there are zero assistant messages.
- * - prompt mode: a real assistant turn wraps the review in the tag.
+ * 两种生产者，两种事件形态：
+ * - bughunter 模式：run_hunt.sh 是一个 SessionStart hook；它的 echo 落地为
+ *   {type:'system', subtype:'hook_progress', stdout:'...'}。Claude 完全不
+ *   参与对话，因此没有任何 assistant 消息。
+ * - prompt 模式：由真实的 assistant 一轮把 review 包在标签里。
  *
- * Scans hook_progress first since bughunter is the intended production path
- * and prompt mode is the dev/fallback. Newest-first in both cases — the tag
- * appears once at the end of the run so reverse iteration short-circuits.
+ * 先扫 hook_progress，因为 bughunter 是计划中的生产路径，
+ * prompt 模式是开发/兜底方案。两种情况都按最新优先 —— 标签在运行
+ * 结束时只出现一次，所以倒序遍历可以短路返回。
  */
 function extractReviewFromLog(log: SDKMessage[]): string | null {
   for (let i = log.length - 1; i >= 0; i--) {
     const msg = log[i];
-    // The final echo before hook exit may land in either the last
-    // hook_progress or the terminal hook_response depending on buffering;
-    // both have flat stdout.
+    // hook 退出前的最后一次 echo 可能落在最后一条 hook_progress 中，
+    // 也可能落在终止的 hook_response 中（取决于缓冲）；
+    // 两者都是扁平的 stdout。
     if (msg?.type === 'system' && (msg.subtype === 'hook_progress' || msg.subtype === 'hook_response')) {
       const tagged = extractTag(msg.stdout as string, REMOTE_REVIEW_TAG);
       if (tagged?.trim()) return tagged.trim();
@@ -421,9 +413,9 @@ function extractReviewFromLog(log: SDKMessage[]): string | null {
     if (tagged?.trim()) return tagged.trim();
   }
 
-  // Hook-stdout concat fallback: a single echo should land in one event, but
-  // large JSON payloads can flush across two if the pipe buffer fills
-  // mid-write. Per-message scan above misses a tag split across events.
+  // hook stdout 拼接的兜底：单次 echo 应当落在一个事件中，但
+  // 大型 JSON 负载在管道缓冲区写满时可能跨两次刷新。上面的逐消息扫描
+  // 会漏掉跨事件被切开的标签。
   const hookStdout = log
     .filter(msg => msg.type === 'system' && (msg.subtype === 'hook_progress' || msg.subtype === 'hook_response'))
     .map(msg => msg.stdout as string)
@@ -431,7 +423,7 @@ function extractReviewFromLog(log: SDKMessage[]): string | null {
   const hookTagged = extractTag(hookStdout, REMOTE_REVIEW_TAG);
   if (hookTagged?.trim()) return hookTagged.trim();
 
-  // Fallback: concatenate all assistant text in chronological order.
+  // 兜底：按时间顺序拼接所有 assistant 文本。
   const allText = log
     .filter((msg): msg is SDKAssistantMessage => msg.type === 'assistant')
     .map(msg => {
@@ -449,17 +441,17 @@ function extractReviewFromLog(log: SDKMessage[]): string | null {
 }
 
 /**
- * Tag-only variant of extractReviewFromLog for delta scanning.
+ * extractReviewFromLog 的「仅标签」变体，用于增量扫描。
  *
- * Returns non-null ONLY when an explicit <remote-review> tag is found.
- * Unlike extractReviewFromLog, this does NOT fall back to concatenated
- * assistant text. This is critical for the delta scan: in prompt mode,
- * early untagged assistant messages (e.g. "I'm analyzing the diff...")
- * would trigger the fallback and prematurely set cachedReviewContent,
- * completing the review before the actual tagged output arrives.
+ * 只有在找到显式 <remote-review> 标签时才返回非 null。
+ * 与 extractReviewFromLog 不同，此函数不会回退到拼接的 assistant 文本。
+ * 这一点对增量扫描至关重要：在 prompt 模式下，早期未带标签的
+ * assistant 消息（例如 "I'm analyzing the diff..."）会触发回退，
+ * 提前设置 cachedReviewContent，在真正的带标签输出到达之前就
+ * 完成了 review。
  */
 function extractReviewTagFromLog(log: SDKMessage[]): string | null {
-  // hook_progress / hook_response per-message scan (bughunter path)
+  // hook_progress / hook_response 的逐消息扫描（bughunter 路径）
   for (let i = log.length - 1; i >= 0; i--) {
     const msg = log[i];
     if (msg?.type === 'system' && (msg.subtype === 'hook_progress' || msg.subtype === 'hook_response')) {
@@ -468,7 +460,7 @@ function extractReviewTagFromLog(log: SDKMessage[]): string | null {
     }
   }
 
-  // assistant text per-message scan (prompt mode)
+  // assistant 文本的逐消息扫描（prompt 模式）
   for (let i = log.length - 1; i >= 0; i--) {
     const msg = log[i];
     if (msg?.type !== 'assistant') continue;
@@ -482,7 +474,7 @@ function extractReviewTagFromLog(log: SDKMessage[]): string | null {
     if (tagged?.trim()) return tagged.trim();
   }
 
-  // Hook-stdout concat fallback for split tags
+  // 针对被切分标签的 hook stdout 拼接兜底
   const hookStdout = log
     .filter(msg => msg.type === 'system' && (msg.subtype === 'hook_progress' || msg.subtype === 'hook_response'))
     .map(msg => msg.stdout as string)
@@ -494,10 +486,10 @@ function extractReviewTagFromLog(log: SDKMessage[]): string | null {
 }
 
 /**
- * Enqueue a remote-review completion notification. Injects the review text
- * directly into the message queue so the local model receives it on the next
- * turn — no file indirection, no mode change. Session is kept alive so the
- * claude.ai URL stays a durable record the user can revisit; TTL handles cleanup.
+ * 入队一条 remote-review 完成通知。把 review 文本直接注入到消息队列，
+ * 让本地模型在下一轮就能收到 —— 无需文件中转，也不改变模式。
+ * 会话保持存活，claude.ai URL 因此成为用户可随时回看的持久记录；
+ * 清理由 TTL 负责。
  */
 function enqueueRemoteReviewNotification(taskId: string, reviewContent: string, setAppState: SetAppState): void {
   if (!markTaskNotified(taskId, setAppState)) return;
@@ -516,7 +508,7 @@ ${reviewContent}`;
 }
 
 /**
- * Enqueue a remote-review failure notification.
+ * 入队一条 remote-review 失败通知。
  */
 function enqueueRemoteReviewFailureNotification(taskId: string, reason: string, setAppState: SetAppState): void {
   if (!markTaskNotified(taskId, setAppState)) return;
@@ -533,7 +525,7 @@ Remote review did not produce output (${reason}). Tell the user to retry /ultrar
 }
 
 /**
- * Extract todo list from SDK messages (finds last TodoWrite tool use).
+ * 从 SDK 消息中提取 todo 列表（找到最后一次 TodoWrite 工具调用）。
  */
 function extractTodoListFromLog(log: SDKMessage[]): TodoList {
   const todoListMessage = log.findLast(
@@ -569,9 +561,9 @@ function extractTodoListFromLog(log: SDKMessage[]): TodoList {
 }
 
 /**
- * Register a remote agent task in the unified task framework.
- * Bundles task ID generation, output init, state creation, registration, and polling.
- * Callers remain responsible for custom pre-registration logic (git dialogs, transcript upload, teleport options).
+ * 在统一任务框架中注册一个远程 agent 任务。
+ * 封装了任务 ID 生成、输出初始化、状态创建、注册以及轮询。
+ * 调用方仍需自行处理自定义的预注册逻辑（git 对话框、对话记录上传、teleport 选项等）。
  */
 export function registerRemoteAgentTask(options: {
   remoteTaskType: RemoteTaskType;
@@ -601,9 +593,9 @@ export function registerRemoteAgentTask(options: {
   } = options;
   const taskId = generateTaskId('remote_agent');
 
-  // Create the output file before registering the task.
-  // RemoteAgentTask uses appendTaskOutput() (not TaskOutput), so
-  // the file must exist for readers before any output arrives.
+  // 在注册任务之前先创建输出文件。
+  // RemoteAgentTask 使用 appendTaskOutput()（不是 TaskOutput），因此
+  // 在任何输出到来之前文件必须存在，以便读取方使用。
   void initTaskOutput(taskId);
 
   const taskState: RemoteAgentTaskState = {
@@ -625,9 +617,8 @@ export function registerRemoteAgentTask(options: {
 
   registerTask(taskState, context.setAppState);
 
-  // Persist identity to the session sidecar so --resume can reconnect to
-  // still-running remote sessions. Status is not stored — it's fetched
-  // fresh from CCR on restore.
+  // 把身份信息持久化到 session sidecar，这样 --resume 才能重新连上仍在
+  // 运行的远程会话。状态不会被存储 —— 它会在 restore 时从 CCR 现拉。
   void persistRemoteAgentMetadata({
     taskId,
     remoteTaskType,
@@ -642,10 +633,10 @@ export function registerRemoteAgentTask(options: {
     remoteTaskMetadata,
   });
 
-  // Ultraplan lifecycle is owned by startDetachedPoll in ultraplan.tsx. Generic
-  // polling still runs so session.log populates for the detail view's progress
-  // counts; the result-lookup guard below prevents early completion.
-  // TODO(#23985): fold ExitPlanModeScanner into this poller, drop startDetachedPoll.
+  // Ultraplan 的生命周期由 ultraplan.tsx 中的 startDetachedPoll 负责。通用的
+  // 轮询仍然会运行，以便填充 session.log 用于详情视图的进度计数；
+  // 下面的 result 查找守卫可以避免过早完成。
+  // TODO(#23985)：把 ExitPlanModeScanner 合并到这个轮询器中，删除 startDetachedPoll。
   const stopPolling = startRemoteSessionPolling(taskId, context);
 
   return {
@@ -656,13 +647,13 @@ export function registerRemoteAgentTask(options: {
 }
 
 /**
- * Restore remote-agent tasks from the session sidecar on --resume.
+ * 在 --resume 时从 session sidecar 还原 remote-agent 任务。
  *
- * Scans remote-agents/, fetches live CCR status for each, reconstructs
- * RemoteAgentTaskState into AppState.tasks, and restarts polling for sessions
- * still running. Sessions that are archived or 404 have their sidecar file
- * removed. Must run after switchSession() so getSessionId() points at the
- * resumed session's sidecar directory.
+ * 扫描 remote-agents/，为每一个任务拉取最新的 CCR 状态，把
+ * RemoteAgentTaskState 重建成 AppState.tasks，并重启仍在运行的会话的轮询。
+ * 已 archived 或 404 的会话会删除对应的 sidecar 文件。
+ * 必须在 switchSession() 之后执行，这样 getSessionId() 才会指向
+ * 被 resume 的会话的 sidecar 目录。
  */
 export async function restoreRemoteAgentTasks(context: TaskContext): Promise<void> {
   try {
@@ -682,11 +673,11 @@ async function restoreRemoteAgentTasksImpl(context: TaskContext): Promise<void> 
       const session = await fetchSession(meta.sessionId);
       remoteStatus = session.session_status;
     } catch (e) {
-      // Only 404 means the CCR session is truly gone. Auth errors (401,
-      // missing OAuth token) are recoverable via /login — the remote
-      // session is still running. fetchSession throws plain Error for all
-      // 4xx (validateStatus treats <500 as success), so isTransientNetworkError
-      // can't distinguish them; match the 404 message instead.
+      // 只有 404 才表示 CCR 会话真的没了。鉴权错误（401 或缺少
+      // OAuth token）可以通过 /login 恢复 —— 远程会话仍在运行。
+      // fetchSession 对所有 4xx 都抛出普通 Error（validateStatus 把 <500
+      // 视为成功），所以 isTransientNetworkError 无法区分；
+      // 这里通过匹配 404 消息来判别。
       if (e instanceof Error && e.message.startsWith('Session not found:')) {
         logForDebugging(`restoreRemoteAgentTasks: dropping ${meta.taskId} (404: ${String(e)})`);
         void removeRemoteAgentMetadata(meta.taskId);
@@ -697,7 +688,7 @@ async function restoreRemoteAgentTasksImpl(context: TaskContext): Promise<void> 
     }
 
     if (remoteStatus === 'archived') {
-      // Session ended while the local client was offline. Don't resurrect.
+      // 会话在本地客户端离线期间已结束。不要让它复活。
       void removeRemoteAgentMetadata(meta.taskId);
       continue;
     }
@@ -727,22 +718,22 @@ async function restoreRemoteAgentTasksImpl(context: TaskContext): Promise<void> 
 }
 
 /**
- * Start polling for remote session updates.
- * Returns a cleanup function to stop polling.
+ * 开始轮询远程会话的更新。
+ * 返回一个 cleanup 函数用于停止轮询。
  */
 function startRemoteSessionPolling(taskId: string, context: TaskContext): () => void {
   let isRunning = true;
   const POLL_INTERVAL_MS = 1000;
   const REMOTE_REVIEW_TIMEOUT_MS = 30 * 60 * 1000;
-  // Remote sessions flip to 'idle' between tool turns. With 100+ rapid
-  // turns, a 1s poll WILL catch a transient idle mid-run. Require stable
-  // idle (no log growth for N consecutive polls) before believing it.
+  // 远程会话在工具轮次之间会切换到 'idle'。100+ 次快速轮次下，
+  // 1 秒一次的轮询一定会捕获到运行过程中暂时的 idle。需要连续 N 次
+  // 稳定 idle（日志没有增长）才相信它真的 idle 了。
   const STABLE_IDLE_POLLS = 5;
   let consecutiveIdlePolls = 0;
   let lastEventId: string | null = null;
   let accumulatedLog: SDKMessage[] = [];
-  // Cached across ticks so we don't re-scan the full log. Tag appears once
-  // at end of run; scanning only the delta (response.newEvents) is O(new).
+  // 跨 tick 缓存，避免重复扫描完整日志。标签只在运行结束时出现一次；
+  // 只扫描增量（response.newEvents）的复杂度是 O(new)。
   let cachedReviewContent: string | null = null;
 
   const poll = async (): Promise<void> => {
@@ -752,10 +743,10 @@ function startRemoteSessionPolling(taskId: string, context: TaskContext): () => 
       const appState = context.getAppState();
       const task = appState.tasks?.[taskId] as RemoteAgentTaskState | undefined;
       if (!task || task.status !== 'running') {
-        // Task was killed externally (TaskStopTool) or already terminal.
-        // Session left alive so the claude.ai URL stays valid — the run_hunt.sh
-        // post_stage() calls land as assistant events there, and the user may
-        // want to revisit them after closing the terminal. TTL reaps it.
+        // 任务被外部（TaskStopTool）终止，或者已经处于 terminal 状态。
+        // 会话保持存活，使 claude.ai URL 仍然有效 —— run_hunt.sh 的
+        // post_stage() 调用在那里以 assistant 事件落地，用户关闭终端后
+        // 可能还想回看。清理由 TTL 负责。
         return;
       }
 
@@ -832,28 +823,26 @@ function startRemoteSessionPolling(taskId: string, context: TaskContext): () => 
         }
       }
 
-      // Ultraplan: result(success) fires after every CCR turn, so it must not
-      // drive completion — startDetachedPoll owns that via ExitPlanMode scan.
-      // Long-running monitors (autofix-pr) emit result per notification cycle,
-      // so the same skip applies.
+      // Ultraplan：result(success) 在每轮 CCR 之后都会触发，因此不能用于
+      // 判定完成 —— 完成判定由 startDetachedPoll 通过 ExitPlanMode 扫描负责。
+      // 长时运行的 monitor（autofix-pr）在每个通知周期都会发 result，
+      // 因此同样跳过。
       const result =
         task.isUltraplan || task.isLongRunning ? undefined : accumulatedLog.findLast(msg => msg.type === 'result');
 
-      // For remote-review: <remote-review> in hook_progress stdout is the
-      // bughunter path's completion signal. Scan only the delta to stay O(new);
-      // tag appears once at end of run so we won't miss it across ticks.
-      // For the failure signal, debounce idle: remote sessions briefly flip
-      // to 'idle' between every tool turn, so a single idle observation means
-      // nothing. Require STABLE_IDLE_POLLS consecutive idle polls with no log
-      // growth.
+      // 对 remote-review：hook_progress stdout 中的 <remote-review> 是
+      // bughunter 路径的完成信号。只扫描增量以保持 O(new)；
+      // 标签在运行结束时只出现一次，跨 tick 不会漏掉。
+      // 对失败信号：idle 需要去抖 —— 远程会话在每轮工具调用之间会短暂
+      // 翻到 'idle'，单次 idle 观察并不能说明什么。要求连续
+      // STABLE_IDLE_POLLS 次 idle 且日志无增长才认为是真的 idle。
       if (task.isRemoteReview && logGrew && cachedReviewContent === null) {
         cachedReviewContent = extractReviewTagFromLog(response.newEvents);
       }
-      // Parse live progress counts from the orchestrator's heartbeat echoes.
-      // hook_progress stdout is cumulative (every echo since hook start), so
-      // each event contains all progress tags. Grab the LAST occurrence —
-      // extractTag returns the first match which would always be the earliest
-      // value (0/0).
+      // 从 orchestrator 的心跳回显中解析实时进度计数。
+      // hook_progress stdout 是累计的（从 hook 开始以来的每一次 echo），
+      // 因此每个事件都包含所有进度标签。取最后一次出现 ——
+      // extractTag 会返回第一个匹配，那就总是最早的值（0/0）。
       let newProgress: RemoteAgentTaskState['reviewProgress'];
       if (task.isRemoteReview && logGrew) {
         const open = `<${REMOTE_REVIEW_PROGRESS_TAG}>`;
@@ -878,15 +867,15 @@ function startRemoteSessionPolling(taskId: string, context: TaskContext): () => 
                   bugsRefuted: p.bugs_refuted ?? 0,
                 };
               } catch {
-                // ignore malformed progress
+                // 忽略格式错误的进度
               }
             }
           }
         }
       }
-      // Hook events count as output only for remote-review — bughunter's
-      // SessionStart hook produces zero assistant turns so stableIdle would
-      // never arm without this.
+      // 只有对 remote-review 才把 hook 事件算作输出 —— bughunter 的
+      // SessionStart hook 不会产生任何 assistant 轮次，没有这一条
+      // stableIdle 就永远无法进入。
       const hasAnyOutput = accumulatedLog.some(
         msg =>
           msg.type === 'assistant' ||
@@ -900,20 +889,18 @@ function startRemoteSessionPolling(taskId: string, context: TaskContext): () => 
         consecutiveIdlePolls = 0;
       }
       const stableIdle = consecutiveIdlePolls >= STABLE_IDLE_POLLS;
-      // stableIdle is a prompt-mode completion signal (Claude stops writing
-      // → session idles → done). In bughunter mode the session is "idle" the
-      // entire time the SessionStart hook runs; the previous guard checked
-      // hasAssistantEvents as a prompt-mode proxy, but post_stage() now
-      // writes assistant events in bughunter mode too, so that check
-      // misfires between heartbeats. Presence of a SessionStart hook event
-      // is the discriminator — bughunter mode always has one (run_hunt.sh),
-      // prompt mode never does — and it arrives before the kickoff
-      // post_stage so there's no race. When the hook is running, only the
-      // <remote-review> tag or the 30min timeout complete the task.
-      // Filtering on hook_event avoids a (theoretical) non-SessionStart hook
-      // in prompt mode from blocking stableIdle — the code_review container
-      // only registers SessionStart, but the 30min-hang failure mode is
-      // worth defending against.
+      // stableIdle 是 prompt 模式的完成信号（Claude 停止写入 → 会话 idle → 完成）。
+      // 在 bughunter 模式下，SessionStart hook 运行期间会话一直处于「idle」；
+      // 之前的守卫用 hasAssistantEvents 作为 prompt 模式的代理判断，
+      // 但 post_stage() 现在在 bughunter 模式下也会写 assistant 事件，
+      // 于是在两次心跳之间这个判断会误触发。是否存在 SessionStart hook 事件
+      // 才是真正的判别条件 —— bughunter 模式总是有一个（run_hunt.sh），
+      // prompt 模式从不出现 —— 而且它在 kickoff post_stage 之前就到达，
+      // 没有竞态。当 hook 正在运行时，只有 <remote-review> 标签或
+      // 30 分钟超时能让任务完成。
+      // 通过 hook_event 过滤可以避免在 prompt 模式下（理论上的）非 SessionStart
+      // hook 阻塞 stableIdle —— code_review 容器只注册 SessionStart，
+      // 但 30 分钟挂起的失败模式还是值得防御一下。
       const hasSessionStartHook = accumulatedLog.some(
         m =>
           m.type === 'system' &&
@@ -935,21 +922,21 @@ function startRemoteSessionPolling(taskId: string, context: TaskContext): () => 
             ? ('running' as const)
             : ('starting' as const);
 
-      // Update task state. Guard against terminal states — if stopTask raced
-      // while pollRemoteSessionEvents was in-flight (status set to 'killed',
-      // notified set to true), bail without overwriting status or proceeding to
-      // side effects (notification, permission-mode flip).
+      // 更新任务状态。对 terminal 状态做守卫 —— 如果 stopTask 在
+      // pollRemoteSessionEvents 飞行期间发生竞态（status 被设为 'killed'，
+      // notified 被设为 true），直接返回，不覆盖状态，也不继续触发副作用
+      // （通知、权限模式切换）。
       let raceTerminated = false;
       updateTaskState<RemoteAgentTaskState>(taskId, context.setAppState, prevTask => {
         if (prevTask.status !== 'running') {
           raceTerminated = true;
           return prevTask;
         }
-        // No log growth and status unchanged → nothing to report. Return
-        // same ref so updateTaskState skips the spread and 18 s.tasks
-        // subscribers (REPL, Spinner, PromptInput, ...) don't re-render.
-        // newProgress only arrives via log growth (heartbeat echo is a
-        // hook_progress event), so !logGrew already covers no-update.
+        // 日志没有增长且状态未变化 → 没什么可上报的。返回同一个 ref，
+        // 让 updateTaskState 跳过 spread，避免 18 个 s.tasks 订阅者
+        // （REPL、Spinner、PromptInput……）发生重渲染。
+        // newProgress 只会通过日志增长到来（心跳回显是 hook_progress
+        // 事件），因此 !logGrew 已经涵盖了「无需更新」的场景。
         const statusUnchanged = newStatus === 'running' || newStatus === 'starting';
         if (!logGrew && statusUnchanged) {
           return prevTask;
@@ -958,9 +945,9 @@ function startRemoteSessionPolling(taskId: string, context: TaskContext): () => 
           ...prevTask,
           status: newStatus === 'starting' ? 'running' : newStatus,
           log: accumulatedLog,
-          // Only re-scan for TodoWrite when log grew — log is append-only,
-          // so no growth means no new tool_use blocks. Avoids findLast +
-          // some + find + safeParse every second when idle.
+          // 只有当日志增长时才重新扫描 TodoWrite —— 日志只追加，
+          // 不增长就意味着没有新的 tool_use 块。避免在 idle 时每秒都
+          // 执行 findLast + some + find + safeParse。
           todoList: logGrew ? extractTodoListFromLog(accumulatedLog) : prevTask.todoList,
           reviewProgress: newProgress ?? prevTask.reviewProgress,
           endTime: result || sessionDone || reviewTimedOut ? Date.now() : undefined,
@@ -968,30 +955,29 @@ function startRemoteSessionPolling(taskId: string, context: TaskContext): () => 
       });
       if (raceTerminated) return;
 
-      // Send notification if task completed or timed out
+      // 任务完成或超时时发送通知
       if (result || sessionDone || reviewTimedOut) {
         const finalStatus = result && result.subtype !== 'success' ? 'failed' : 'completed';
 
-        // For remote-review tasks: inject the review text directly into the
-        // message queue. No mode change, no file indirection — the local model
-        // just sees the review appear as a task-notification on its next turn.
-        // Session kept alive — run_hunt.sh's post_stage() has already written
-        // the formatted findings as an assistant event, so the claude.ai URL
-        // stays a durable record the user can revisit. TTL handles cleanup.
+        // 对 remote-review 任务：把 review 文本直接注入到消息队列。
+        // 不改模式、不走文件中转 —— 本地模型只是在下一轮看到 review
+        // 作为 task-notification 出现。会话保持存活 —— run_hunt.sh 的
+        // post_stage() 已经把格式化后的发现写为 assistant 事件，因此
+        // claude.ai URL 依旧是用户可回看的持久记录。清理由 TTL 负责。
         if (task.isRemoteReview) {
-          // cachedReviewContent hit the tag in the delta scan. Full-log scan
-          // catches the stableIdle path where the tag arrived in an earlier
-          // tick but the delta scan wasn't wired yet (first poll after resume).
+          // cachedReviewContent 在增量扫描中命中了标签。全量日志扫描
+          // 负责处理 stableIdle 路径：标签可能在较早的 tick 到达，而那时
+          // 增量扫描尚未启用（例如 resume 之后第一次轮询）。
           const reviewContent = cachedReviewContent ?? extractReviewFromLog(accumulatedLog);
           if (reviewContent && finalStatus === 'completed') {
             enqueueRemoteReviewNotification(taskId, reviewContent, context.setAppState);
             void evictTaskOutput(taskId);
             void removeRemoteAgentMetadata(taskId);
             runCompletionHook(taskId, task);
-            return; // Stop polling
+            return; // 停止轮询
           }
 
-          // No output or remote error — mark failed with a review-specific message.
+          // 没有输出或远程报错 —— 标记为 failed，并附上 review 专属的错误信息。
           updateTaskState(taskId, context.setAppState, t => ({
             ...t,
             status: 'failed',
@@ -1006,11 +992,11 @@ function startRemoteSessionPolling(taskId: string, context: TaskContext): () => 
           void evictTaskOutput(taskId);
           void removeRemoteAgentMetadata(taskId);
           runCompletionHook(taskId, task);
-          return; // Stop polling
+          return; // 停止轮询
         }
 
-        // finalStatus is 'completed' | 'failed' on this path — kill is a
-        // separate code path (RemoteAgentTask.kill) and never reaches here.
+        // 此路径上的 finalStatus 只会是 'completed' 或 'failed' ——
+        // kill 走另一条代码路径（RemoteAgentTask.kill），不会走到这里。
         const richContent = tryExtractRichContent(task, accumulatedLog);
         if (richContent) {
           enqueueRichRemoteNotification(
@@ -1027,15 +1013,15 @@ function startRemoteSessionPolling(taskId: string, context: TaskContext): () => 
         void evictTaskOutput(taskId);
         void removeRemoteAgentMetadata(taskId);
         runCompletionHook(taskId, task);
-        return; // Stop polling
+        return; // 停止轮询
       }
     } catch (error) {
       logError(error);
-      // Reset so an API error doesn't let non-consecutive idle polls accumulate.
+      // 重置：避免一次 API 错误让原本不连续的 idle 计数累加。
       consecutiveIdlePolls = 0;
 
-      // Check review timeout even when the API call fails — without this,
-      // persistent API errors skip the timeout check and poll forever.
+      // 即使 API 调用失败也要检查 review 超时 —— 否则持续的 API 错误
+      // 会跳过超时检查，永远轮询下去。
       try {
         const appState = context.getAppState();
         const task = appState.tasks?.[taskId] as RemoteAgentTaskState | undefined;
@@ -1052,34 +1038,34 @@ function startRemoteSessionPolling(taskId: string, context: TaskContext): () => 
           enqueueRemoteReviewFailureNotification(taskId, 'remote session exceeded 30 minutes', context.setAppState);
           void evictTaskOutput(taskId);
           void removeRemoteAgentMetadata(taskId);
-          return; // Stop polling
+          return; // 停止轮询
         }
       } catch {
-        // Best effort — if getAppState fails, continue polling
+        // 尽力而为 —— 如果 getAppState 失败，就继续轮询
       }
     }
 
-    // Continue polling
+    // 继续轮询
     if (isRunning) {
       setTimeout(poll, POLL_INTERVAL_MS);
     }
   };
 
-  // Start polling
+  // 启动轮询
   void poll();
 
-  // Return cleanup function
+  // 返回 cleanup 函数
   return () => {
     isRunning = false;
   };
 }
 
 /**
- * RemoteAgentTask - Handles remote Claude.ai session execution.
+ * RemoteAgentTask —— 处理远程 Claude.ai 会话的执行。
  *
- * Replaces the BackgroundRemoteSession implementation from:
+ * 替代原本的 BackgroundRemoteSession 实现，这些实现位于：
  * - src/utils/background/remote/remoteSession.ts
- * - src/components/tasks/BackgroundTaskStatus.tsx (polling logic)
+ * - src/components/tasks/BackgroundTaskStatus.tsx（轮询逻辑）
  */
 export const RemoteAgentTask: Task = {
   name: 'RemoteAgentTask',
@@ -1105,14 +1091,14 @@ export const RemoteAgentTask: Task = {
       };
     });
 
-    // Close the task_started bookend for SDK consumers. The poll loop's
-    // early-return when status!=='running' won't emit a notification.
+    // 为 SDK 消费者关闭 task_started 这一对儿事件的收尾。轮询循环在
+    // status!=='running' 时提前返回，不会发通知。
     if (killed) {
       emitTaskTerminatedSdk(taskId, 'stopped', {
         toolUseId,
         summary: description,
       });
-      // Archive the remote session so it stops consuming cloud resources.
+      // 归档远程会话，停止占用云资源。
       if (sessionId) {
         void archiveRemoteSession(sessionId).catch(e =>
           logForDebugging(`RemoteAgentTask archive failed: ${String(e)}`),
@@ -1127,7 +1113,7 @@ export const RemoteAgentTask: Task = {
 };
 
 /**
- * Get the session URL for a remote task.
+ * 获取远程任务的会话 URL。
  */
 export function getRemoteTaskSessionUrl(sessionId: string): string {
   return getRemoteSessionUrl(sessionId, process.env.SESSION_INGRESS_URL);

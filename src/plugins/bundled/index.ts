@@ -1,23 +1,23 @@
 /**
- * Built-in Plugin Initialization
+ * 内置插件初始化
  *
- * Initializes built-in plugins that ship with the CLI and appear in the
- * /plugin UI for users to enable/disable.
+ * 初始化随 CLI 一起提供的内置插件，它们会出现在 /plugin UI
+ * 中供用户启用/禁用。
  *
- * Not all bundled features should be built-in plugins — use this for
- * features that users should be able to explicitly enable/disable. For
- * features with complex setup or automatic-enabling logic (e.g.
- * claude-in-chrome), use src/skills/bundled/ instead.
+ * 并非所有捆绑功能都应该是内置插件——仅对用户应该能够
+ * 显式启用/禁用的功能使用此机制。对于具有复杂设置或
+ * 自动启用逻辑的功能（例如 claude-in-chrome），请使用
+ * src/skills/bundled/ 代替。
  *
- * To add a new built-in plugin:
- * 1. Import registerBuiltinPlugin from '../builtinPlugins.js'
- * 2. Call registerBuiltinPlugin() with the plugin definition here
+ * 添加新的内置插件的步骤：
+ * 1. 从 '../builtinPlugins.js' 导入 registerBuiltinPlugin
+ * 2. 在此处使用插件定义调用 registerBuiltinPlugin()
  */
 
 import { registerWeixinBuiltinPlugin } from './weixin.js'
 
 /**
- * Initialize built-in plugins. Called during CLI startup.
+ * 初始化内置插件。在 CLI 启动时调用。
  */
 export function initBuiltinPlugins(): void {
   registerWeixinBuiltinPlugin()

@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
 /**
- * Verify that user-facing guidance in model picker and resume command
- * is concise and actionable. Pure string tests — no side effects.
+ * 验证 model picker 和 resume 命令中面向用户的引导文案
+ * 简洁且具有可操作性。纯字符串测试 — 无副作用。
  */
 
 describe('ModelPicker subtitle', () => {

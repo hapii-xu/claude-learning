@@ -1,7 +1,7 @@
 /**
- * Parse the args string for the /skill-store command.
+ * 解析 /skill-store 命令的 args 字符串。
  *
- * Supported sub-commands:
+ * 支持的子命令：
  *   list                               → { action: 'list' }
  *   get <id>                           → { action: 'get', id }
  *   versions <id>                      → { action: 'versions', id }
@@ -10,8 +10,8 @@
  *   delete <id>                        → { action: 'delete', id }
  *   install <id>                       → { action: 'install', id, version: undefined }
  *   install <id>@<version>             → { action: 'install', id, version }
- *   (empty)                            → { action: 'list' }
- *   anything else                      → { action: 'invalid', reason }
+ *   (空)                               → { action: 'list' }
+ *   其他任何输入                       → { action: 'invalid', reason }
  */
 
 export type SkillStoreArgs =
@@ -38,7 +38,7 @@ export function parseSkillStoreArgs(args: string): SkillStoreArgs {
   const subCmd = spaceIdx === -1 ? trimmed : trimmed.slice(0, spaceIdx)
   const rest = spaceIdx === -1 ? '' : trimmed.slice(spaceIdx + 1).trim()
 
-  // ── get ───────────────────────────────────────────────────────────────────
+  // ── get ───────────────────────────────────────────────────────────
   if (subCmd === 'get') {
     if (!rest) {
       return { action: 'invalid', reason: 'get requires a skill id' }
@@ -50,7 +50,7 @@ export function parseSkillStoreArgs(args: string): SkillStoreArgs {
     return { action: 'get', id }
   }
 
-  // ── versions ──────────────────────────────────────────────────────────────
+  // ── versions ──────────────────────────────────────────────────────────
   if (subCmd === 'versions') {
     if (!rest) {
       return { action: 'invalid', reason: 'versions requires a skill id' }
@@ -62,7 +62,7 @@ export function parseSkillStoreArgs(args: string): SkillStoreArgs {
     return { action: 'versions', id }
   }
 
-  // ── version ───────────────────────────────────────────────────────────────
+  // ── version ───────────────────────────────────────────────────────────
   if (subCmd === 'version') {
     const parts = rest.split(/\s+/)
     if (parts.length < 2 || !parts[0] || !parts[1]) {
@@ -75,7 +75,7 @@ export function parseSkillStoreArgs(args: string): SkillStoreArgs {
     return { action: 'version', id: parts[0], version: parts[1] }
   }
 
-  // ── create ────────────────────────────────────────────────────────────────
+  // ── create ────────────────────────────────────────────────────────────
   if (subCmd === 'create') {
     const spaceInRest = rest.indexOf(' ')
     if (!rest || spaceInRest === -1) {
@@ -102,7 +102,7 @@ export function parseSkillStoreArgs(args: string): SkillStoreArgs {
     return { action: 'create', name, markdown }
   }
 
-  // ── delete ────────────────────────────────────────────────────────────────
+  // ── delete ────────────────────────────────────────────────────────────
   if (subCmd === 'delete') {
     if (!rest) {
       return { action: 'invalid', reason: 'delete requires a skill id' }
@@ -114,7 +114,7 @@ export function parseSkillStoreArgs(args: string): SkillStoreArgs {
     return { action: 'delete', id }
   }
 
-  // ── install ───────────────────────────────────────────────────────────────
+  // ── install ───────────────────────────────────────────────────────────
   if (subCmd === 'install') {
     if (!rest) {
       return {

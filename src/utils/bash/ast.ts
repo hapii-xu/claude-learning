@@ -109,79 +109,76 @@ function containsAnyPlaceholder(value: string): boolean {
  */
 const BARE_VAR_UNSAFE_RE = /[ \t\n*?[]/
 
-// stdbuf flag forms — hoisted from the wrapper-stripping while-loop
+// stdbuf 标志形式 —— 从包装器剥离 while 循环中提取
 const STDBUF_SHORT_SEP_RE = /^-[ioe]$/
 const STDBUF_SHORT_FUSED_RE = /^-[ioe]./
 const STDBUF_LONG_RE = /^--(input|output|error)=/
 
 /**
- * Known-safe environment variables that bash sets automatically. Their values
- * are controlled by the shell/OS, not arbitrary user input. Referencing these
- * via $VAR is safe — the expansion is deterministic and doesn't introduce
- * injection risk. Covers `$HOME`, `$PWD`, `$USER`, `$PATH`, `$SHELL`, etc.
- * Intentionally small: only vars that are always set by bash/login and whose
- * values are paths/names (not arbitrary content).
+ * 已知安全的环境变量，bash 自动设置这些变量。它们的值由 shell/操作系统
+ * 控制，而非任意用户输入。通过 $VAR 引用这些变量是安全的 —— 展开是确定性
+ * 的，不会引入注入风险。覆盖 `$HOME`、`$PWD`、`$USER`、`$PATH`、`$SHELL`
+ * 等。故意保持小巧：只包含总是由 bash/login 设置且值为路径/名称
+ * （非任意内容）的变量。
  */
 const SAFE_ENV_VARS = new Set([
-  'HOME', // user's home directory
-  'PWD', // current working directory (bash maintains)
-  'OLDPWD', // previous directory
-  'USER', // current username
-  'LOGNAME', // login name
-  'SHELL', // user's login shell
-  'PATH', // executable search path
-  'HOSTNAME', // machine hostname
-  'UID', // user id
-  'EUID', // effective user id
-  'PPID', // parent process id
-  'RANDOM', // random number (bash builtin)
-  'SECONDS', // seconds since shell start
-  'LINENO', // current line number
-  'TMPDIR', // temp directory
-  // Special bash variables — always set, values are shell-controlled:
-  'BASH_VERSION', // bash version string
-  'BASHPID', // current bash process id
-  'SHLVL', // shell nesting level
-  'HISTFILE', // history file path
-  'IFS', // field separator (NOTE: only safe INSIDE strings; as bare arg
-  //       $IFS is the classic injection primitive and the insideString
-  //       gate in resolveSimpleExpansion correctly blocks it)
+  'HOME', // 用户主目录
+  'PWD', // 当前工作目录（bash 维护）
+  'OLDPWD', // 上一个目录
+  'USER', // 当前用户名
+  'LOGNAME', // 登录名
+  'SHELL', // 用户的登录 shell
+  'PATH', // 可执行文件搜索路径
+  'HOSTNAME', // 机器主机名
+  'UID', // 用户 id
+  'EUID', // 有效用户 id
+  'PPID', // 父进程 id
+  'RANDOM', // 随机数（bash 内建）
+  'SECONDS', // shell 启动后的秒数
+  'LINENO', // 当前行号
+  'TMPDIR', // 临时目录
+  // 特殊 bash 变量 —— 总是设置，值由 shell 控制：
+  'BASH_VERSION', // bash 版本字符串
+  'BASHPID', // 当前 bash 进程 id
+  'SHLVL', // shell 嵌套层级
+  'HISTFILE', // 历史文件路径
+  'IFS', // 字段分隔符（注意：只在字符串内部安全；作为裸参数
+  //       $IFS 是经典注入原语，resolveSimpleExpansion 中的
+  //       insideString 门控正确地阻止了它）
 ])
 
 /**
- * Special shell variables ($?, $$, $!, $#, $0-$9). tree-sitter uses
- * `special_variable_name` for these (not `variable_name`). Values are
- * shell-controlled: exit status, PIDs, positional args. Safe to resolve
- * ONLY inside strings (same rationale as SAFE_ENV_VARS — as bare args
- * their value IS the argument and might be a path/flag from $1 etc.).
+ * 特殊 shell 变量（$?、$$、$!、$#、$0-$9）。tree-sitter 对这些使用
+ * `special_variable_name`（而非 `variable_name`）。值由 shell 控制：
+ * 退出状态、PID、位置参数。只在字符串内部解析是安全的（与 SAFE_ENV_VARS
+ * 相同的理由 —— 作为裸参数，它们的值就是参数本身，可能是来自 $1 等的
+ * 路径/标志）。
  *
- * SECURITY: '@' and '*' are NOT in this set. Inside "...", they expand to
- * the positional params — which are EMPTY in a fresh BashTool shell (how we
- * always spawn). Returning VAR_PLACEHOLDER would lie: `git "push$*"` gives
- * argv ['git','push__TRACKED_VAR__'] while bash passes ['git','push']. Deny
- * rule Bash(git push:*) fails on both .text (raw `$*`) AND rebuilt argv
- * (placeholder). With them removed, resolveSimpleExpansion falls through to
- * tooComplex for `$*` / `$@`. `echo "args: $*"` becomes too-complex —
- * acceptable (rare in BashTool usage; `"$@"` even rarer).
+ * 安全性：'@' 和 '*' 不在此集合中。在 "..." 内部，它们展开为位置参数 ——
+ * 在全新的 BashTool shell 中（我们的总是这样启动）这些是空的。返回
+ * VAR_PLACEHOLDER 会撒谎：`git "push$*"` 给出 argv ['git','push__TRACKED_VAR__']
+ * 而 bash 传递 ['git','push']。拒绝规则 Bash(git push:*) 在 .text（原始 `$*`）
+ * 和重建的 argv（占位符）上都失败。移除它们后，resolveSimpleExpansion
+ * 对 `$*` / `$@` 会落入 tooComplex。`echo "args: $*"` 变成 too-complex ——
+ * 可接受（在 BashTool 用法中很少见；`"$@"` 更少见）。
  */
 const SPECIAL_VAR_NAMES = new Set([
-  '?', // exit status of last command
-  '$', // current shell PID
-  '!', // last background PID
-  '#', // number of positional params
-  '0', // script name
-  '-', // shell option flags
+  '?', // 上一个命令的退出状态
+  '$', // 当前 shell PID
+  '!', // 上一个后台 PID
+  '#', // 位置参数数量
+  '0', // 脚本名
+  '-', // shell 选项标志
 ])
 
 /**
- * Node types that mean "this command cannot be statically analyzed." These
- * either execute arbitrary code (substitutions, subshells, control flow) or
- * expand to values we can't determine statically (parameter/arithmetic
- * expansion, brace expressions).
+ * 表示"此命令无法静态分析"的节点类型。这些类型要么执行任意代码
+ * （替换、子 shell、控制流），要么展开为我们无法静态确定的值
+ * （参数/算术展开、花括号表达式）。
  *
- * This set is not exhaustive — it documents KNOWN dangerous types. The real
- * safety property is the allowlist in walkArgument/walkCommand: any type NOT
- * explicitly handled there also triggers too-complex.
+ * 此集合并非详尽 —— 它记录已知的危险类型。真正的安全属性是
+ * walkArgument/walkCommand 中的白名单：任何未在那里明确处理的类型
+ * 也会触发 too-complex。
  */
 const DANGEROUS_TYPES = new Set([
   'command_substitution',
@@ -298,40 +295,37 @@ const ZSH_TILDE_BRACKET_RE = /~\[/
 const ZSH_EQUALS_EXPANSION_RE = /(?:^|[\s;&|])=[a-zA-Z_]/
 
 /**
- * Brace character combined with quote characters. Constructions like
- * `{a'}',b}` use quoted braces inside brace expansion context to obfuscate
- * the expansion from regex-based detection. In bash, `{a'}',b}` expands to
- * `a} b` (the quoted `}` becomes literal inside the first alternative).
- * These are hard to analyze correctly and have no legitimate use in
- * commands we'd want to auto-allow.
+ * 花括号字符与引号字符的组合。像 `{a'}',b}` 这样的构造
+ * 在花括号展开上下文中使用引号包围的花括号来混淆
+ * 基于正则表达式的检测。在 bash 中，`{a'}',b}` 展开为
+ * `a} b`（引号内的 `}` 在第一个备选项中变为字面量）。
+ * 这些很难正确分析，且在我们想自动允许的命令中没有合法用途。
  *
- * This check runs on a version of the command with `{` masked out of
- * single-quoted and double-quoted spans, so JSON payloads like
- * `curl -d '{"k":"v"}'` don't trigger a false positive. Brace expansion
- * cannot occur inside quotes, so a `{` there can never start an obfuscation
- * pattern. The quote characters themselves stay visible so `{a'}',b}` and
- * `{@'{'0},...}` still match via the outer unquoted `{`.
+ * 此检查在命令的版本上运行，其中 `{` 从单引号和双引号
+ * 跨度中掩码掉，因此 JSON 载荷如 `curl -d '{"k":"v"}'`
+ * 不会触发误报。花括号展开不能在引号内发生，所以那里的
+ * `{` 永远不能开始混淆模式。引号字符本身保持可见，所以
+ * `{a'}',b}` 和 `{@'{'0},...}` 仍通过外层未引用的 `{` 匹配。
  */
 const BRACE_WITH_QUOTE_RE = /\{[^}]*['"]/
 
 /**
- * Mask `{` characters that appear inside single- or double-quoted contexts.
- * Uses a single-pass bash-aware quote-state scanner instead of a regex.
+ * 掩码出现在单引号或双引号上下文中的 `{` 字符。
+ * 使用单次遍历的 bash 感知引号状态扫描器而非正则表达式。
  *
- * A naive regex (`/'[^']*'/g`) mis-detects spans when a `'` appears inside
- * a double-quoted string: for `echo "it's" {a'}',b}`, it matches from the
- * `'` in `it's` across to the `'` in `{a'}`, masking the unquoted `{` and
- * producing a false negative. The scanner tracks actual bash quote state:
- * `'` toggles single-quote only in unquoted context; `"` toggles
- * double-quote only outside single quotes; `\` escapes the next char in
- * unquoted context and escapes `"` / `\\` inside double quotes.
+ * 天真的正则表达式（`/'[^']*'/g`）在双引号字符串内出现 `'` 时
+ * 会错误检测跨度：对于 `echo "it's" {a'}',b}`，它从 `it's` 中的
+ * `'` 匹配到 `{a'}` 中的 `'`，掩码了未引用的 `{` 并产生假阴性。
+ * 扫描器跟踪实际的 bash 引号状态：`'` 仅在未引用上下文中切换
+ * 单引号；`"` 仅在单引号外切换双引号；`\` 在未引用上下文中
+ * 转义下一个字符，在双引号内转义 `"` / `\\`。
  *
- * Brace expansion is impossible in both quote contexts, so masking `{` in
- * either is safe. Secondary defense: BRACE_EXPANSION_RE in walkArgument.
+ * 在两种引号上下文中花括号展开都不可能，所以在其中掩码 `{`
+ * 是安全的。第二道防线：walkArgument 中的 BRACE_EXPANSION_RE。
  */
 function maskBracesInQuotedContexts(cmd: string): string {
-  // Fast path: no `{` → nothing to mask. Skips the char-by-char scan for
-  // the >90% of commands with no braces (`ls -la`, `git status`, etc).
+  // 快速路径：没有 `{` → 无需掩码。跳过逐字符扫描
+  // 适用于 >90% 没有花括号的命令（`ls -la`、`git status` 等）。
   if (!cmd.includes('{')) return cmd
   const out: string[] = []
   let inSingle = false
@@ -340,13 +334,13 @@ function maskBracesInQuotedContexts(cmd: string): string {
   while (i < cmd.length) {
     const c = cmd[i]!
     if (inSingle) {
-      // Bash single quotes: no escapes, `'` always terminates.
+      // Bash 单引号：无转义，`'` 总是终止。
       if (c === "'") inSingle = false
       out.push(c === '{' ? ' ' : c)
       i++
     } else if (inDouble) {
-      // Bash double quotes: `\` escapes `"` and `\` (also `$`, backtick,
-      // newline — but those don't affect quote state so we let them pass).
+      // Bash 双引号：`\` 转义 `"` 和 `\`（还有 `$`、反引号、
+      // 换行 - 但这些不影响引号状态，所以我们让它们通过）。
       if (c === '\\' && (cmd[i + 1] === '"' || cmd[i + 1] === '\\')) {
         out.push(c, cmd[i + 1]!)
         i += 2
@@ -356,7 +350,7 @@ function maskBracesInQuotedContexts(cmd: string): string {
         i++
       }
     } else {
-      // Unquoted: `\` escapes any next char.
+      // 未引用：`\` 转义下一个字符。
       if (c === '\\' && i + 1 < cmd.length) {
         out.push(c, cmd[i + 1]!)
         i += 2
@@ -374,17 +368,17 @@ function maskBracesInQuotedContexts(cmd: string): string {
 const DOLLAR = String.fromCharCode(0x24)
 
 /**
- * Parse a bash command string and extract a flat list of simple commands.
- * Returns 'too-complex' if the command uses any shell feature we can't
- * statically analyze. Returns 'parse-unavailable' if tree-sitter WASM isn't
- * loaded — caller should fall back to conservative behavior.
+ * 解析 bash 命令字符串并提取简单命令的扁平列表。
+ * 如果命令使用了我们无法静态分析的任何 shell 特性，
+ * 返回 'too-complex'。如果 tree-sitter WASM 未加载，
+ * 返回 'parse-unavailable' - 调用者应回退到保守行为。
  */
 export async function parseForSecurity(
   cmd: string,
 ): Promise<ParseForSecurityResult> {
-  // parseCommandRaw('') returns null (falsy check), so short-circuit here.
-  // Don't use .trim() — it strips Unicode whitespace (\u00a0 etc.) which the
-  // pre-checks in parseForSecurityFromAst need to see and reject.
+  // parseCommandRaw('') 返回 null（假值检查），所以在此短路。
+  // 不要使用 .trim() - 它会剥离 Unicode 空白（\u00a0 等），
+  // 而 parseForSecurityFromAst 中的预检查需要看到并拒绝它们。
   if (cmd === '') return { kind: 'simple', commands: [] }
   const root = await parseCommandRaw(cmd)
   return root === null
@@ -393,47 +387,46 @@ export async function parseForSecurity(
 }
 
 /**
- * Same as parseForSecurity but takes a pre-parsed AST root so callers that
- * need the tree for other purposes can parse once and share. Pre-checks
- * still run on `cmd` — they catch tree-sitter/bash differentials that a
- * successful parse doesn't.
+ * 与 parseForSecurity 相同，但接受预解析的 AST 根，以便
+ * 需要树用于其他目的的调用者可以解析一次并共享。
+ * 预检查仍在 `cmd` 上运行 - 它们捕获 tree-sitter/bash 差异，
+ * 而成功的解析不会捕获这些差异。
  */
 export function parseForSecurityFromAst(
   cmd: string,
   root: Node | typeof PARSE_ABORTED,
 ): ParseForSecurityResult {
-  // Pre-checks: characters that cause tree-sitter and bash to disagree on
-  // word boundaries. These run before tree-sitter because they're the known
-  // tree-sitter/bash differentials. Everything after this point trusts
-  // tree-sitter's tokenization.
+  // 预检查：导致 tree-sitter 和 bash 在单词边界上产生分歧的字符。
+  // 这些在 tree-sitter 之前运行，因为它们是已知的
+  // tree-sitter/bash 差异。此后的所有内容都信任 tree-sitter 的分词。
   if (CONTROL_CHAR_RE.test(cmd)) {
-    return { kind: 'too-complex', reason: 'Contains control characters' }
+    return { kind: 'too-complex', reason: '包含控制字符' }
   }
   if (UNICODE_WHITESPACE_RE.test(cmd)) {
-    return { kind: 'too-complex', reason: 'Contains Unicode whitespace' }
+    return { kind: 'too-complex', reason: '包含 Unicode 空白' }
   }
   if (BACKSLASH_WHITESPACE_RE.test(cmd)) {
     return {
       kind: 'too-complex',
-      reason: 'Contains backslash-escaped whitespace',
+      reason: '包含反斜杠转义的空白',
     }
   }
   if (ZSH_TILDE_BRACKET_RE.test(cmd)) {
     return {
       kind: 'too-complex',
-      reason: 'Contains zsh ~[ dynamic directory syntax',
+      reason: '包含 zsh ~[ 动态目录语法',
     }
   }
   if (ZSH_EQUALS_EXPANSION_RE.test(cmd)) {
     return {
       kind: 'too-complex',
-      reason: 'Contains zsh =cmd equals expansion',
+      reason: '包含 zsh =cmd 等号展开',
     }
   }
   if (BRACE_WITH_QUOTE_RE.test(maskBracesInQuotedContexts(cmd))) {
     return {
       kind: 'too-complex',
-      reason: 'Contains brace with quote character (expansion obfuscation)',
+      reason: '包含带引号字符的花括号（展开混淆）',
     }
   }
 
@@ -443,12 +436,12 @@ export function parseForSecurityFromAst(
   }
 
   if (root === PARSE_ABORTED) {
-    // SECURITY: module loaded but parse aborted (timeout / node budget /
-    // panic). Adversarially triggerable — `(( a[0][0]... ))` with ~2800
-    // subscripts hits PARSE_TIMEOUT_MICROS under the 10K length limit.
-    // Previously indistinguishable from module-not-loaded → routed to
-    // legacy (parse-unavailable), which lacks EVAL_LIKE_BUILTINS — `trap`,
-    // `enable`, `hash` leaked with Bash(*). Fail closed: too-complex → ask.
+    // 安全性：模块已加载但解析中止（超时 / 节点预算 / 恐慌）。
+    // 可被对手触发 - `(( a[0][0]... ))` 约 2800 个下标
+    // 在 10K 长度限制下达到 PARSE_TIMEOUT_MICROS。
+    // 以前与模块未加载无法区分 → 路由到旧版（parse-unavailable），
+    // 后者缺少 EVAL_LIKE_BUILTINS - `trap`、`enable`、`hash` 泄漏
+    // 与 Bash(*)。失败关闭：too-complex → 询问。
     return {
       kind: 'too-complex',
       reason:
@@ -461,15 +454,14 @@ export function parseForSecurityFromAst(
 }
 
 function walkProgram(root: Node): ParseForSecurityResult {
-  // ERROR-node check folded into collectCommands — any unhandled node type
-  // (including ERROR) falls through to tooComplex() in the default branch.
-  // Avoids a separate full-tree walk for error detection.
+  // ERROR 节点检查折叠到 collectCommands 中 - 任何未处理的节点类型
+  // （包括 ERROR）在默认分支中落到 tooComplex()。
+  // 避免为错误检测进行单独的整树遍历。
   const commands: SimpleCommand[] = []
-  // Track variables assigned earlier in the same command. When a
-  // simple_expansion ($VAR) references a tracked var, we can substitute
-  // a placeholder instead of returning too-complex. Enables patterns like
-  // `NOW=$(date) && jq --arg now "$NOW" ...` — $NOW is known to be the
-  // $(date) output (already extracted as inner command).
+  // 跟踪在同一命令中较早赋值的变量。当 simple_expansion ($VAR)
+  // 引用跟踪的变量时，我们可以替换占位符而非返回 too-complex。
+  // 支持像 `NOW=$(date) && jq --arg now "$NOW" ...` 这样的模式 -
+  // $NOW 已知是 $(date) 的输出（已作为内部命令提取）。
   const varScope = new Map<string, string>()
   const err = collectCommands(root, commands, varScope)
   if (err) return err
@@ -477,8 +469,8 @@ function walkProgram(root: Node): ParseForSecurityResult {
 }
 
 /**
- * Recursively collect leaf `command` nodes from a structural wrapper node.
- * Returns an error result on any disallowed node type, or null on success.
+ * 从结构包装节点递归收集叶子 `command` 节点。
+ * 在任何不允许的节点类型上返回错误结果，成功时返回 null。
  */
 function collectCommands(
   node: Node,
@@ -486,8 +478,8 @@ function collectCommands(
   varScope: Map<string, string>,
 ): ParseForSecurityResult | null {
   if (node.type === 'command') {
-    // Pass `commands` as the innerCommands accumulator — any $() extracted
-    // during walkCommand gets appended alongside the outer command.
+    // 传递 `commands` 作为内部命令累加器 - 在 walkCommand 期间
+    // 提取的任何 $() 都会与外部命令一起追加。
     const result = walkCommand(node, [], commands, varScope)
     if (result.kind !== 'simple') return result
     commands.push(...result.commands)
@@ -503,31 +495,31 @@ function collectCommands(
   }
 
   if (STRUCTURAL_TYPES.has(node.type)) {
-    // SECURITY: `||`, `|`, `|&`, `&` must NOT carry varScope linearly. In bash:
-    //   `||` RHS runs conditionally → vars set there MAY not be set
-    //   `|`/`|&` stages run in subshells → vars set there are NEVER visible after
-    //   `&` LHS runs in a background subshell → same as above
-    // Flag-omission attack: `true || FLAG=--dry-run && cmd $FLAG` — bash skips
-    // the `||` RHS (FLAG unset → $FLAG empty), runs `cmd` WITHOUT --dry-run.
-    // With linear scope, our argv has ['cmd','--dry-run'] → looks SAFE → bypass.
+    // 安全性：`||`、`|`、`|&`、`&` 不得线性传递 varScope。在 bash 中：
+    //   `||` 右侧条件运行 → 那里设置的变量可能未设置
+    //   `|`/`|&` 阶段在子 shell 中运行 → 那里设置的变量之后永远不可见
+    //   `&` 左侧在后台子 shell 中运行 → 同上
+    // 标志省略攻击：`true || FLAG=--dry-run && cmd $FLAG` - bash 跳过
+    // `||` 右侧（FLAG 未设置 → $FLAG 为空），运行 `cmd` 时没有 --dry-run。
+    // 使用线性作用域，我们的 argv 有 ['cmd','--dry-run'] → 看似安全 → 绕过。
     //
-    // Fix: snapshot incoming scope at entry. After these separators, reset to
-    // the snapshot — vars set in clauses between separators don't leak. `scope`
-    // for clauses BETWEEN `&&`/`;` chains shares state (common `VAR=x && cmd
-    // $VAR`). `scope` crosses `||`/`|`/`&` as the pre-structure snapshot only.
+    // 修复：在入口快照传入的作用域。在这些分隔符之后，重置为
+    // 快照 - 分隔符之间子句中设置的变量不会泄漏。`scope`
+    // 用于 `&&`/`;` 链之间的子句共享状态（常见的 `VAR=x && cmd $VAR`）。
+    // `scope` 跨越 `||`/`|`/`&` 仅作为预结构快照。
     //
-    // `&&` and `;` DO carry scope: `VAR=x && cmd $VAR` is sequential, VAR is set.
+    // `&&` 和 `;` 确实传递作用域：`VAR=x && cmd $VAR` 是顺序的，VAR 已设置。
     //
-    // NOTE: `scope` and `varScope` diverge after the first `||`/`|`/`&`. The
-    // caller's varScope is only mutated for the `&&`/`;` prefix — this is
-    // conservative (vars set in `A && B | C && D` leak A+B into caller, not
-    // C+D) but safe.
+    // 注意：`scope` 和 `varScope` 在第一个 `||`/`|`/`&` 后分歧。
+    // 调用者的 varScope 仅为 `&&`/`;` 前缀变异 - 这是保守的
+    // （`A && B | C && D` 中设置的变量泄漏 A+B 到调用者，而非 C+D）
+    // 但是安全的。
     //
-    // Efficiency: snapshot is only needed if we hit `||`/`|`/`|&`/`&`. For
-    // the dominant case (`ls`, `git status` — no such separators), skip the
-    // Map alloc via a cheap pre-scan. For `pipeline`, node.type already tells
-    // us stages are subshells — copy once at entry, no snapshot needed (each
-    // reset uses the entry copy pattern via varScope, which is untouched).
+    // 效率：快照仅在我们遇到 `||`/`|`/`|&`/`&` 时需要。对于
+    // 主要情况（`ls`、`git status` - 没有此类分隔符），通过
+    // 廉价预扫描跳过 Map 分配。对于 `pipeline`，node.type 已告诉
+    // 我们阶段是子 shell - 在入口复制一次，无需快照（每次
+    // 重置使用 varScope 的入口副本模式，它未被触及）。
     const isPipeline = node.type === 'pipeline'
     let needsSnapshot = false
     if (!isPipeline) {
@@ -539,9 +531,9 @@ function collectCommands(
       }
     }
     const snapshot = needsSnapshot ? new Map(varScope) : null
-    // For `pipeline`, ALL stages run in subshells — start with a copy so
-    // nothing mutates caller's scope. For `list`/`program`, the `&&`/`;`
-    // chain mutates caller's scope (sequential); fork only on `||`/`&`.
+    // 对于 `pipeline`，所有阶段在子 shell 中运行 - 从副本开始以便
+    // 没有东西变异调用者的作用域。对于 `list`/`program`，`&&`/`;`
+    // 链变异调用者的作用域（顺序）；仅在 `||`/`&` 时分叉。
     let scope = isPipeline ? new Map(varScope) : varScope
     for (const child of node.children) {
       if (!child) continue
@@ -552,9 +544,9 @@ function collectCommands(
           child.type === '|&' ||
           child.type === '&'
         ) {
-          // For pipeline: varScope is untouched (we started with a copy).
-          // For list/program: snapshot is non-null (pre-scan set it).
-          // `|`/`|&` only appear under `pipeline` nodes; `||`/`&` under list.
+          // 对于管道：varScope 未被触及（我们从副本开始）。
+          // 对于列表/程序：快照非空（预扫描设置了它）。
+          // `|`/`|&` 仅出现在 `pipeline` 节点下；`||`/`&` 在列表下。
           scope = new Map(snapshot ?? varScope)
         }
         continue
@@ -566,9 +558,9 @@ function collectCommands(
   }
 
   if (node.type === 'negated_command') {
-    // `! cmd` inverts exit code only — doesn't execute code or affect
-    // argv. Recurse into the wrapped command. Common in CI: `! grep err`,
-    // `! test -f lock`, `! git diff --quiet`.
+    // `! cmd` 仅反转退出码 - 不执行代码或影响 argv。
+    // 递归进入包装的命令。在 CI 中常见：`! grep err`、
+    // `! test -f lock`、`! git diff --quiet`。
     for (const child of node.children) {
       if (!child) continue
       if (child.type === '!') continue
@@ -578,13 +570,13 @@ function collectCommands(
   }
 
   if (node.type === 'declaration_command') {
-    // `export`/`local`/`readonly`/`declare`/`typeset`. tree-sitter emits
-    // these as declaration_command, not command, so they previously fell
-    // through to tooComplex. Values are validated via walkVariableAssignment:
-    // `$()` in the value is recursively extracted (inner command pushed to
-    // commands[], outer argv gets CMDSUB_PLACEHOLDER); other disallowed
-    // expansions still reject via walkArgument. argv[0] is the builtin name so
-    // `Bash(export:*)` rules match.
+    // `export`/`local`/`readonly`/`declare`/`typeset`。tree-sitter 发出
+    // 这些作为 declaration_command，而非 command，所以以前落到
+    // tooComplex。值通过 walkVariableAssignment 验证：值中的 `$()`
+    // 被递归提取（内部命令推送到
+    // commands[]，外部 argv 获得 CMDSUB_PLACEHOLDER）；其他不允许的
+    // 展开仍然通过 walkArgument 拒绝。argv[0] 是内建命令名，所以
+    // `Bash(export:*)` 规则匹配。
     const argv: string[] = []
     for (const child of node.children) {
       if (!child) continue
@@ -601,26 +593,25 @@ function collectCommands(
         case 'raw_string':
         case 'string':
         case 'concatenation': {
-          // Flags (`declare -r`), quoted names (`export "FOO=bar"`), numbers
-          // (`declare -i 42`). Mirrors walkCommand's argv handling — before
-          // this, `export "FOO=bar"` hit tooComplex on the `string` child.
-          // walkArgument validates each (expansions still reject).
+          // 标志（`declare -r`）、引号名称（`export "FOO=bar"`）、数字
+          // （`declare -i 42`）。镜像 walkCommand 的 argv 处理 - 在此之前，
+          // `export "FOO=bar"` 在 `string` 子节点上触发 tooComplex。
+          // walkArgument 验证每一个（展开仍然拒绝）。
           const arg = walkArgument(child, commands, varScope)
           if (typeof arg !== 'string') return arg
-          // SECURITY: declare/typeset/local flags that change assignment
-          // semantics break our static model. -n (nameref): `declare -n X=Y`
-          // then `$X` dereferences to $Y's VALUE — varScope stores 'Y'
-          // (target NAME), argv[0] shows 'Y' while bash runs whatever $Y
-          // holds. -i (integer): `declare -i X='a[$(cmd)]'` arithmetically
-          // evaluates the RHS at assignment time, running $(cmd) even from
-          // a single-quoted raw_string (same primitive walkArithmetic
-          // guards in $((…))). -a/-A (array): subscript arithmetic on
-          // assignment. -r/-x/-g/-p/-f/-F are inert. Check the resolved
-          // arg (not child.text) so `\-n` and quoted `-n` are caught.
-          // Scope to declare/typeset/local only: `export -n` means "remove
-          // export attribute" (not nameref), and export/readonly don't
-          // accept -i; readonly -a/-A rejects subscripted args as invalid
-          // identifiers so subscript-arith doesn't fire.
+          // 安全性：改变赋值语义的 declare/typeset/local 标志
+          // 破坏我们的静态模型。-n（名称引用）：`declare -n X=Y`
+          // 然后 `$X` 解引用为 $Y 的值 - varScope 存储 'Y'
+          // （目标名称），argv[0] 显示 'Y' 而 bash 运行 $Y 持有的任何内容。
+          // -i（整数）：`declare -i X='a[$(cmd)]'` 在赋值时算术
+          // 计算右侧，运行 $(cmd) 即使来自单引号 raw_string
+          // （与 $((…)) 中 walkArithmetic 防护相同的原语）。
+          // -a/-A（数组）：赋值时的下标算术。-r/-x/-g/-p/-f/-F 是惰性的。
+          // 检查已解析的参数（而非 child.text）以便 `\-n` 和引号内的 `-n`
+          // 被捕获。仅限于 declare/typeset/local：`export -n` 表示
+          // "移除导出属性"（非名称引用），且 export/readonly 不接受 -i；
+          // readonly -a/-A 拒绝带下标的参数作为无效标识符，
+          // 所以下标算术不会触发。
           if (
             (argv[0] === 'declare' ||
               argv[0] === 'typeset' ||
@@ -629,17 +620,16 @@ function collectCommands(
           ) {
             return {
               kind: 'too-complex',
-              reason: `declare flag ${arg} changes assignment semantics (nameref/integer/array)`,
+              reason: `declare 标志 ${arg} 改变赋值语义（名称引用/整数/数组）`,
               nodeType: 'declaration_command',
             }
           }
-          // SECURITY: bare positional assignment with a subscript also
-          // evaluates — no -a/-i flag needed. `declare 'x[$(id)]=val'`
-          // implicitly creates an array element, arithmetically evaluating
-          // the subscript and running $(id). tree-sitter delivers the
-          // single-quoted form as a raw_string leaf so walkArgument sees
-          // only the literal text. Scoped to declare/typeset/local:
-          // export/readonly reject `[` in identifiers before eval.
+          // 安全性：带下标的裸位置赋值也会计算 - 不需要 -a/-i 标志。
+          // `declare 'x[$(id)]=val'` 隐式创建数组元素，算术计算
+          // 下标并运行 $(id)。tree-sitter 将单引号形式作为 raw_string
+          // 叶子节点传递，所以 walkArgument 只看到字面文本。
+          // 仅限于 declare/typeset/local：export/readonly 在计算前
+          // 拒绝标识符中的 `[`。
           if (
             (argv[0] === 'declare' ||
               argv[0] === 'typeset' ||
@@ -649,7 +639,7 @@ function collectCommands(
           ) {
             return {
               kind: 'too-complex',
-              reason: `declare positional '${arg}' contains array subscript — bash evaluates $(cmd) in subscripts`,
+              reason: `declare 位置参数 '${arg}' 包含数组下标 —— bash 在下标中计算 $(cmd)`,
               nodeType: 'declaration_command',
             }
           }
@@ -659,13 +649,13 @@ function collectCommands(
         case 'variable_assignment': {
           const ev = walkVariableAssignment(child, commands, varScope)
           if ('kind' in ev) return ev
-          // export/declare assignments populate the scope so later $VAR refs resolve.
+          // export/declare 赋值填充作用域，以便后续的 $VAR 引用可解析。
           applyVarToScope(varScope, ev)
           argv.push(`${ev.name}=${ev.value}`)
           break
         }
         case 'variable_name':
-          // `export FOO` — bare name, no assignment.
+          // `export FOO` - 裸名称，无赋值。
           argv.push(child.text)
           break
         default:
@@ -677,36 +667,35 @@ function collectCommands(
   }
 
   if (node.type === 'variable_assignment') {
-    // Bare `VAR=value` at statement level (not a command env prefix).
-    // Sets a shell variable — no code execution, no filesystem I/O.
-    // The value is validated via walkVariableAssignment → walkArgument,
-    // so `VAR=$(evil)` still recursively extracts/rejects based on the
-    // inner command. Does NOT push to commands — a bare assignment needs
-    // no permission rule (it's inert). Common pattern: `VAR=x && cmd`
-    // where cmd references $VAR. ~35% of too-complex in top-5k ant cmds.
+    // 语句级的裸 `VAR=value`（非命令环境变量前缀）。
+    // 设置 shell 变量 —— 无代码执行，无文件系统 I/O。
+    // 值通过 walkVariableAssignment → walkArgument 验证，
+    // 所以 `VAR=$(evil)` 仍然根据内部命令递归提取/拒绝。
+    // 不推送到 commands —— 裸赋值不需要权限规则（它是惰性的）。
+    // 常见模式：`VAR=x && cmd`，其中 cmd 引用 $VAR。约占前 5k ant
+    // 命令中 too-complex 的 35%。
     const ev = walkVariableAssignment(node, commands, varScope)
     if ('kind' in ev) return ev
-    // Populate scope so later `$VAR` references resolve.
+    // 填充作用域以便后续的 `$VAR` 引用可解析。
     applyVarToScope(varScope, ev)
     return null
   }
 
   if (node.type === 'for_statement') {
-    // `for VAR in WORD...; do BODY; done` — iterate BODY once per word.
-    // Body commands extracted once; every iteration runs the same commands.
+    // `for VAR in WORD...; do BODY; done` —— 对每个单词迭代执行 BODY。
+    // 主体命令提取一次；每次迭代运行相同的命令。
     //
-    // SECURITY: Loop var is ALWAYS treated as unknown-value (VAR_PLACEHOLDER).
-    // Even "static" iteration words can be:
-    //  - Absolute paths: `for i in /etc/passwd; do rm $i; done` — body argv
-    //    would have placeholder, path validation never sees /etc/passwd.
-    //  - Globs: `for i in /etc/*; do rm $i; done` — `/etc/*` is a static word
-    //    at parse time but bash expands it at runtime.
-    //  - Flags: `for i in -rf /; do rm $i; done` — flag smuggling.
+    // 安全性：循环变量总是被视为未知值（VAR_PLACEHOLDER）。
+    // 即使"静态"迭代单词也可能：
+    //  - 绝对路径：`for i in /etc/passwd; do rm $i; done` —— 主体 argv
+    //    会有占位符，路径验证永远看不到 /etc/passwd。
+    //  - 通配符：`for i in /etc/*; do rm $i; done` —— `/etc/*` 在解析时
+    //    是静态单词，但 bash 在运行时展开它。
+    //  - 标志：`for i in -rf /; do rm $i; done` —— 标志走私。
     //
-    // VAR_PLACEHOLDER means bare `$i` in body → too-complex. Only
-    // string-embedding (`echo "item: $i"`) stays simple. This reverts some
-    // of the too-complex→simple rescues in the original PR — each one was a
-    // potential path-validation bypass.
+    // VAR_PLACEHOLDER 意味着主体中的裸 `$i` → too-complex。只有
+    // 字符串嵌入（`echo "item: $i"`）保持简单。这撤销了原始 PR 中
+    // 一些 too-complex→简单 的救援 —— 每一个都是潜在的路径验证绕过。
     let loopVar: string | null = null
     let doGroup: Node | null = null
     for (const child of node.children) {
@@ -722,34 +711,34 @@ function collectCommands(
         child.type === ';'
       ) {
       } else if (child.type === 'command_substitution') {
-        // `for i in $(seq 1 3)` — inner cmd IS extracted and rule-checked.
+        // `for i in $(seq 1 3)` —— 内部命令确实被提取并进行规则检查。
         const err = collectCommandSubstitution(child, commands, varScope)
         if (err) return err
       } else {
-        // Iteration values — validated via walkArgument. Value discarded:
-        // body argv gets VAR_PLACEHOLDER regardless of the iteration words,
-        // and bare `$i` in body → too-complex (see SECURITY comment above).
-        // We still validate to reject e.g. `for i in $(cmd); do ...; done`
-        // where the iteration word itself is a disallowed expansion.
+        // 迭代值 —— 通过 walkArgument 验证。值被丢弃：
+        // 主体 argv 无论迭代单词如何都获得 VAR_PLACEHOLDER，
+        // 主体中的裸 `$i` → too-complex（见上方的安全性注释）。
+        // 我们仍然验证以拒绝例如 `for i in $(cmd); do ...; done`
+        // 其中迭代单词本身就是不允许的展开。
         const arg = walkArgument(child, commands, varScope)
         if (typeof arg !== 'string') return arg
       }
     }
     if (loopVar === null || doGroup === null) return tooComplex(node)
-    // SECURITY: `for PS4 in '$(id)'; do set -x; :; done` sets PS4 directly
-    // via varScope.set below — walkVariableAssignment's PS4/IFS checks never
-    // fire. Trace-time RCE (PS4) or word-split bypass (IFS). No legit use.
+    // 安全性：`for PS4 in '$(id)'; do set -x; :; done` 直接通过下方的
+    // varScope.set 设置 PS4 —— walkVariableAssignment 的 PS4/IFS 检查
+    // 永远不会触发。跟踪时 RCE（PS4）或分词绕过（IFS）。没有合法用途。
     if (loopVar === 'PS4' || loopVar === 'IFS') {
       return {
         kind: 'too-complex',
-        reason: `${loopVar} as loop variable bypasses assignment validation`,
+        reason: `${loopVar} 作为循环变量绕过赋值验证`,
         nodeType: 'for_statement',
       }
     }
-    // SECURITY: Body uses a scope COPY — vars assigned inside the loop
-    // body don't leak to commands after `done`. The loop var itself is
-    // set in the REAL scope (bash semantics: $i still set after loop)
-    // and copied into the body scope. ALWAYS VAR_PLACEHOLDER — see above.
+    // 安全性：主体使用作用域副本 —— 循环主体内赋值的变量不会泄漏到
+    // `done` 之后的命令。循环变量本身设置在真实作用域中
+    // （bash 语义：$i 在循环后仍然设置）并复制到主体作用域。
+    // 总是 VAR_PLACEHOLDER —— 见上方。
     varScope.set(loopVar, VAR_PLACEHOLDER)
     const bodyScope = new Map(varScope)
     for (const c of doGroup.children) {
@@ -764,20 +753,19 @@ function collectCommands(
   if (node.type === 'if_statement' || node.type === 'while_statement') {
     // `if COND; then BODY; [elif...; else...;] fi`
     // `while COND; do BODY; done`
-    // Extract condition command(s) + all branch/body commands. All get
-    // checked against permission rules. `while read VAR` tracks VAR so
-    // body can reference $VAR.
+    // 提取条件命令 + 所有分支/主体命令。所有都针对权限规则检查。
+    // `while read VAR` 跟踪 VAR 以便主体可以引用 $VAR。
     //
-    // SECURITY: Branch bodies use scope COPIES — vars assigned inside a
-    // conditional branch (which may not execute) must not leak to commands
-    // after fi/done. `if false; then T=safe; fi && rm $T` must reject $T.
-    // Condition commands use the REAL varScope (they always run for the
-    // check, so assignments there are unconditional — e.g., `while read V`
-    // tracking must persist to the body copy).
+    // 安全性：分支主体使用作用域副本 - 在条件分支内赋值的变量
+    // （可能不执行）不得泄漏到 fi/done 之后的命令。
+    // `if false; then T=safe; fi && rm $T` 必须拒绝 $T。
+    // 条件命令使用真实的 varScope（它们总是为检查运行，
+    // 所以那里的赋值是无条件的 - 例如，`while read V` 跟踪
+    // 必须持久化到主体副本）。
     //
-    // tree-sitter if_statement children: if, COND..., then, THEN-BODY...,
-    // [elif_clause...], [else_clause], fi. We distinguish condition from
-    // then-body by tracking whether we've seen the `then` token.
+    // tree-sitter if_statement 子节点：if, COND..., then, THEN-BODY...,
+    // [elif_clause...], [else_clause], fi。我们通过跟踪是否已看到
+    // `then` 令牌来区分条件和 then 主体。
     let seenThen = false
     for (const child of node.children) {
       if (!child) continue
@@ -797,9 +785,8 @@ function collectCommands(
         continue
       }
       if (child.type === 'do_group') {
-        // while body: recurse with scope COPY (body assignments don't leak
-        // past done). The COPY contains any `read VAR` tracking from the
-        // condition (already in real varScope at this point).
+        // while 主体：使用作用域副本递归（主体赋值不泄漏过 done）。
+        // 副本包含条件中的任何 `read VAR` 跟踪（此时已在真实 varScope 中）。
         const bodyScope = new Map(varScope)
         for (const c of child.children) {
           if (!c) continue
@@ -810,8 +797,8 @@ function collectCommands(
         continue
       }
       if (child.type === 'elif_clause' || child.type === 'else_clause') {
-        // elif_clause: elif, cond, ;, then, body... / else_clause: else, body...
-        // Scope COPY — elif/else branch assignments don't leak past fi.
+        // elif_clause：elif, cond, ;, then, body... / else_clause：else, body...
+        // 作用域副本 - elif/else 分支赋值不泄漏过 fi。
         const branchScope = new Map(varScope)
         for (const c of child.children) {
           if (!c) continue
@@ -828,36 +815,33 @@ function collectCommands(
         }
         continue
       }
-      // Condition (seenThen=false) or then-body (seenThen=true).
-      // Condition uses REAL varScope (always runs). Then-body uses a COPY.
-      // Special-case `while read VAR`: after condition `read VAR` is
-      // collected, track VAR in the REAL scope so the body COPY inherits it.
+      // 条件（seenThen=false）或 then 主体（seenThen=true）。
+      // 条件使用真实 varScope（总是运行）。then 主体使用副本。
+      // 特殊情况 `while read VAR`：条件 `read VAR` 被收集后，
+      // 在真实作用域中跟踪 VAR 以便主体副本继承它。
       const targetScope = seenThen ? new Map(varScope) : varScope
       const before = commands.length
       const err = collectCommands(child, commands, targetScope)
       if (err) return err
-      // If condition included `read VAR...`, track vars in REAL scope.
-      // read var value is UNKNOWN (stdin input) → use VAR_PLACEHOLDER
-      // (unknown-value sentinel, string-only).
+      // 如果条件包含 `read VAR...`，在真实作用域中跟踪变量。
+      // read 变量值为 UNKNOWN（标准输入输入）→ 使用 VAR_PLACEHOLDER
+      // （未知值标记，仅限字符串）。
       if (!seenThen) {
         for (let i = before; i < commands.length; i++) {
           const c = commands[i]
           if (c?.argv[0] === 'read') {
             for (const a of c.argv.slice(1)) {
-              // Skip flags (-r, -d, etc.); track bare identifier args as var names.
+              // 跳过标志（-r、-d 等）；将裸标识符参数跟踪为变量名。
               if (!a.startsWith('-') && /^[A-Za-z_][A-Za-z0-9_]*$/.test(a)) {
-                // SECURITY: commands[] is a flat accumulator. `true || read
-                // VAR` in the condition: the list handler correctly uses a
-                // scope COPY for the ||-RHS (may not run), but `read VAR`
-                // IS still pushed to commands[] — we can't tell it was
-                // scope-isolated from here. Same for `echo | read VAR`
-                // (pipeline, subshell in bash) and `(read VAR)` (subshell).
-                // Overwriting a tracked literal with VAR_PLACEHOLDER hides
-                // path traversal: `VAR=../../etc/passwd && if true || read
-                // VAR; then cat "/tmp/$VAR"; fi` — parser would see
-                // /tmp/__TRACKED_VAR__, bash reads /etc/passwd. Fail closed
-                // when a tracked literal would be overwritten. Safe case
-                // (no prior value or already a placeholder) → proceed.
+                // 安全性：commands[] 是扁平累加器。条件中的 `true || read VAR`：
+                // 列表处理器正确地为 ||-RHS 使用作用域副本（可能不运行），
+                // 但 `read VAR` 仍被推送到 commands[] - 我们无法从这里判断
+                // 它是作用域隔离的。`echo | read VAR`（管道，bash 中的子 shell）
+                // 和 `(read VAR)`（子 shell）同理。用 VAR_PLACEHOLDER 覆盖
+                // 跟踪的字面量会隐藏路径遍历：`VAR=../../etc/passwd &&
+                // if true || read VAR; then cat "/tmp/$VAR"; fi` - 解析器会看到
+                // /tmp/__TRACKED_VAR__，bash 读取 /etc/passwd。当跟踪的字面量
+                // 将被覆盖时失败关闭。安全情况（无先前值或已是占位符）→ 继续。
                 const existing = varScope.get(a)
                 if (
                   existing !== undefined &&
@@ -865,7 +849,7 @@ function collectCommands(
                 ) {
                   return {
                     kind: 'too-complex',
-                    reason: `'read ${a}' in condition may not execute (||/pipeline/subshell); cannot prove it overwrites tracked literal '${existing}'`,
+                    reason: `条件中的 'read ${a}' 可能不执行（||/管道/子 shell）；无法证明它会覆盖已跟踪的字面量 '${existing}'`,
                     nodeType: 'if_statement',
                   }
                 }
@@ -880,10 +864,10 @@ function collectCommands(
   }
 
   if (node.type === 'subshell') {
-    // `(cmd1; cmd2)` — run commands in a subshell. Inner commands ARE
-    // executed, so extract them for permission checking. Subshell has
-    // isolated scope: vars set inside don't leak out. Use a COPY of
-    // varScope (outer vars visible, inner changes discarded).
+    // `(cmd1; cmd2)` - 在子 shell 中运行命令。内部命令确实
+    // 被执行，所以提取它们进行权限检查。子 shell 具有
+    // 隔离作用域：内部设置的变量不会泄漏出来。使用 varScope
+    // 的副本（外部变量可见，内部更改被丢弃）。
     const innerScope = new Map(varScope)
     for (const child of node.children) {
       if (!child) continue
@@ -895,21 +879,20 @@ function collectCommands(
   }
 
   if (node.type === 'test_command') {
-    // `[[ EXPR ]]` or `[ EXPR ]` — conditional test. Evaluates to true/false
-    // based on file tests (-f, -d), string comparisons (==, !=), etc.
-    // No code execution (no command_substitution inside — that would be a
-    // child and we'd recurse into it via walkArgument and reject it).
-    // Push as a synthetic command with argv[0]='[[' so permission rules
-    // can match — `Bash([[ :*)` would be unusual but legal.
-    // Walk arguments to validate (no cmdsub/expansion inside operands).
+    // `[[ EXPR ]]` 或 `[ EXPR ]` - 条件测试。基于文件测试（-f、-d）、
+    // 字符串比较（==、!=）等计算为真/假。无代码执行（内部无
+    // command_substitution - 那将是一个子节点，我们会通过 walkArgument
+    // 递归进入它并拒绝它）。作为合成命令推送，argv[0]='[[' 以便
+    // 权限规则可以匹配 - `Bash([[ :*)` 会不寻常但合法。
+    // 遍历参数以验证（操作数内无 cmdsub/展开）。
     const argv: string[] = ['[[']
     for (const child of node.children) {
       if (!child) continue
       if (child.type === '[[' || child.type === ']]') continue
       if (child.type === '[' || child.type === ']') continue
-      // Recurse into test expression structure: unary_expression,
-      // binary_expression, parenthesized_expression, negated_expression.
-      // The leaves are test_operator (-f, -d, ==) and operand words.
+      // 递归进入测试表达式结构：unary_expression、binary_expression、
+      // parenthesized_expression、negated_expression。叶子节点是
+      // test_operator（-f、-d、==）和操作数字。
       const err = walkTestExpr(child, argv, commands, varScope)
       if (err) return err
     }
@@ -918,11 +901,10 @@ function collectCommands(
   }
 
   if (node.type === 'unset_command') {
-    // `unset FOO BAR`, `unset -f func`. Safe: only removes shell
-    // variables/functions from the current shell — no code execution, no
-    // filesystem I/O. tree-sitter emits a dedicated node type so it
-    // previously fell through to tooComplex. Children: `unset` keyword,
-    // `variable_name` for each name, `word` for flags like `-f`/`-v`.
+    // `unset FOO BAR`、`unset -f func`。安全：仅从当前 shell 移除
+    // shell 变量/函数 - 无代码执行，无文件系统 I/O。tree-sitter
+    // 发出专用节点类型，所以以前落到 tooComplex。子节点：`unset`
+    // 关键字、每个名称的 `variable_name`、标志如 `-f`/`-v` 的 `word`。
     const argv: string[] = []
     for (const child of node.children) {
       if (!child) continue
@@ -932,9 +914,9 @@ function collectCommands(
           break
         case 'variable_name':
           argv.push(child.text)
-          // SECURITY: unset removes the var from bash's scope. Remove from
-          // varScope so subsequent `$VAR` references correctly reject.
-          // `VAR=safe && unset VAR && rm $VAR` must NOT resolve $VAR.
+          // 安全性：unset 从 bash 作用域中移除变量。从 varScope 中移除
+          // 以便后续的 `$VAR` 引用正确拒绝。
+          // `VAR=safe && unset VAR && rm $VAR` 不得解析 $VAR。
           varScope.delete(child.text)
           break
         case 'word': {
@@ -955,9 +937,9 @@ function collectCommands(
 }
 
 /**
- * Recursively walk a test_command expression tree (unary/binary/negated/
- * parenthesized expressions). Leaves are test_operator tokens and operands
- * (word/string/number/etc). Operands are validated via walkArgument.
+ * 递归遍历 test_command 表达式树（一元/二元/否定/括号表达式）。
+ * 叶子节点是 test_operator 令牌和操作数（word/string/number 等）。
+ * 操作数通过 walkArgument 验证。
  */
 function walkTestExpr(
   node: Node,
@@ -993,13 +975,13 @@ function walkTestExpr(
       return null
     case 'regex':
     case 'extglob_pattern':
-      // RHS of =~ or ==/!= in [[ ]]. Pattern text only — no code execution.
-      // Parser emits these as leaf nodes with no children (any $(...) or ${...}
-      // inside the pattern is a sibling, not a child, and is walked separately).
+      // [[ ]] 中 =~ 或 ==/!= 的右侧。仅模式文本 —— 无代码执行。
+      // 解析器将这些作为无子节点的叶子节点发出（模式内的任何 $(...)
+      // 或 ${...} 是兄弟节点而非子节点，会被单独遍历）。
       argv.push(node.text)
       return null
     default: {
-      // Operand — word, string, number, etc. Validate via walkArgument.
+      // 操作数 —— word、string、number 等。通过 walkArgument 验证。
       const arg = walkArgument(node, innerCommands, varScope)
       if (typeof arg !== 'string') return arg
       argv.push(arg)
@@ -1009,10 +991,9 @@ function walkTestExpr(
 }
 
 /**
- * A `redirected_statement` wraps a command (or pipeline) plus one or more
- * `file_redirect`/`heredoc_redirect` nodes. Extract redirects, walk the
- * inner command, attach redirects to the LAST command (the one whose output
- * is being redirected).
+ * `redirected_statement` 包装一个命令（或管道）加上一个或多个
+ * `file_redirect`/`heredoc_redirect` 节点。提取重定向，遍历内部命令，
+ * 将重定向附加到最后一个命令（输出被重定向的那个）。
  */
 function walkRedirectedStatement(
   node: Node,
@@ -1025,8 +1006,8 @@ function walkRedirectedStatement(
   for (const child of node.children) {
     if (!child) continue
     if (child.type === 'file_redirect') {
-      // Thread `commands` so $() in redirect targets (e.g., `> $(mktemp)`)
-      // extracts the inner command for permission checking.
+      // 传递 `commands` 以便重定向目标中的 $()（例如 `> $(mktemp)`）
+      // 提取内部命令进行权限检查。
       const r = walkFileRedirect(child, commands, varScope)
       if ('kind' in r) return r
       redirects.push(r)
@@ -1048,8 +1029,8 @@ function walkRedirectedStatement(
   }
 
   if (!innerCommand) {
-    // `> file` alone is valid bash (truncates file). Represent as a command
-    // with empty argv so downstream sees the write.
+    // 单独的 `> file` 是有效的 bash（截断文件）。表示为具有空 argv
+    // 的命令，以便下游看到写入。
     commands.push({ argv: [], envVars: [], redirects, text: node.text })
     return null
   }
@@ -1084,20 +1065,19 @@ function walkFileRedirect(
     } else if (child.type in REDIRECT_OPS) {
       op = REDIRECT_OPS[child.type] ?? null
     } else if (child.type === 'word' || child.type === 'number') {
-      // SECURITY: `number` nodes can contain expansion children via the
-      // `NN#<expansion>` arithmetic-base grammar quirk — same issue as
-      // walkArgument's number case. `> 10#$(cmd)` runs cmd at runtime.
-      // Plain word/number nodes have zero children.
+      // 安全性：`number` 节点可以通过 `NN#<expansion>` 算术基语法
+      // 怪癖包含展开子节点 - 与 walkArgument 的数字情况相同的问题。
+      // `> 10#$(cmd)` 在运行时运行 cmd。纯 word/number 节点没有子节点。
       if (child.children.length > 0) return tooComplex(child)
-      // Symmetry with walkArgument (~608): `echo foo > {a,b}` is an
-      // ambiguous redirect in bash. tree-sitter actually emits a
-      // `concatenation` node for brace targets (caught by the default
-      // branch below), but check `word` text too for defense-in-depth.
+      // 与 walkArgument（~608）对称：`echo foo > {a,b}` 在 bash 中
+      // 是模糊重定向。tree-sitter 实际上发出
+      // `concatenation` 节点用于花括号目标（被下方的默认分支捕获），
+      // 但也检查 `word` 文本以做纵深防御。
       if (BRACE_EXPANSION_RE.test(child.text)) return tooComplex(child)
-      // Unescape backslash sequences — same as walkArgument. Bash quote
-      // removal turns `\X` → `X`. Without this, `cat < /proc/self/\environ`
-      // stores target `/proc/self/\environ` which evades PROC_ENVIRON_RE,
-      // but bash reads /proc/self/environ.
+      // 反转义反斜杠序列 - 与 walkArgument 相同。Bash 引号移除
+      // 将 `\X` → `X`。没有这个，`cat < /proc/self/\environ` 存储
+      // 目标 `/proc/self/\environ` 逃避 PROC_ENVIRON_RE，
+      // 但 bash 读取 /proc/self/environ。
       target = child.text.replace(/\\(.)/g, '$1')
     } else if (child.type === 'raw_string') {
       target = stripRawString(child.text)
@@ -1106,9 +1086,8 @@ function walkFileRedirect(
       if (typeof s !== 'string') return s
       target = s
     } else if (child.type === 'concatenation') {
-      // `echo > "foo"bar` — tree-sitter produces a concatenation of string +
-      // word children. walkArgument already validates concatenation (rejects
-      // expansions, checks brace syntax) and returns the joined text.
+      // `echo > "foo"bar` - tree-sitter 生成 string + word 子节点的拼接。
+      // walkArgument 已验证拼接（拒绝展开，检查花括号语法）并返回拼接文本。
       const s = walkArgument(child, innerCommands, varScope)
       if (typeof s !== 'string') return s
       target = s
@@ -1120,7 +1099,7 @@ function walkFileRedirect(
   if (!op || target === null) {
     return {
       kind: 'too-complex',
-      reason: 'Unrecognized redirect shape',
+      reason: '无法识别的重定向形式',
       nodeType: node.type,
     }
   }
@@ -1128,17 +1107,16 @@ function walkFileRedirect(
 }
 
 /**
- * Heredoc redirect. Only quoted-delimiter heredocs (<<'EOF') are safe —
- * their bodies are literal text. Unquoted-delimiter heredocs (<<EOF)
- * undergo full parameter/command/arithmetic expansion in the body.
+ * Heredoc 重定向。仅引号分隔符 heredoc（<<'EOF'）是安全的 -
+ * 它们的主体是字面文本。无引号分隔符 heredoc（<<EOF）
+ * 在主体中进行完整的参数/命令/算术展开。
  *
- * SECURITY: tree-sitter-bash has a grammar gap — backticks (`...`) inside
- * an unquoted heredoc body are NOT parsed as command_substitution nodes
- * (body.children is empty, backticks are in body.text). But bash DOES
- * execute them. We cannot safely relax the quoted-delimiter requirement
- * by checking body children for expansion nodes — we'd miss backtick
- * substitution. Keep rejecting all unquoted heredocs. Users should use
- * <<'EOF' to get a literal body, which the model already prefers.
+ * 安全性：tree-sitter-bash 有一个语法漏洞 - 无引号 heredoc 主体内
+ * 的反引号（`...`）不被解析为 command_substitution 节点
+ * （body.children 为空，反引号在 body.text 中）。但 bash 确实
+ * 执行它们。我们不能通过检查 body 子节点中的展开节点来安全地
+ * 放宽引号分隔符要求 - 我们会漏掉反引号替换。保持拒绝所有
+ * 无引号 heredoc。用户应使用 <<'EOF' 获取字面主体，模型已经偏好此方式。
  */
 function walkHeredocRedirect(node: Node): ParseForSecurityResult | null {
   let startText: string | null = null
@@ -1154,15 +1132,14 @@ function walkHeredocRedirect(node: Node): ParseForSecurityResult | null {
       child.type === 'heredoc_end' ||
       child.type === 'file_descriptor'
     ) {
-      // expected structural tokens — safe to skip. file_descriptor
-      // covers fd-prefixed heredocs (`cat 3<<'EOF'`) — walkFileRedirect
-      // already treats it as a benign structural token.
+      // 预期的结构标记 —— 可安全跳过。file_descriptor
+      // 覆盖带 fd 前缀的 heredoc（`cat 3<<'EOF'`）—— walkFileRedirect
+      // 已将其视为良性结构标记。
     } else {
-      // SECURITY: tree-sitter places pipeline / command / file_redirect /
-      // && / etc. as children of heredoc_redirect when they follow the
-      // delimiter on the same line (e.g. `ls <<'EOF' | rm x`). Previously
-      // these were silently skipped, hiding the piped command from
-      // permission checks. Fail closed like every other walker.
+      // 安全性：tree-sitter 将 pipeline / command / file_redirect /
+      // && / 等作为 heredoc_redirect 的子节点，当它们在同一行
+      // 跟随分隔符时（例如 `ls <<'EOF' | rm x`）。以前这些被静默跳过，
+      // 将管道命令隐藏于权限检查之外。像其他所有遍历器一样失败关闭。
       return tooComplex(child)
     }
   }
@@ -1176,7 +1153,7 @@ function walkHeredocRedirect(node: Node): ParseForSecurityResult | null {
   if (!isQuoted) {
     return {
       kind: 'too-complex',
-      reason: 'Heredoc with unquoted delimiter undergoes shell expansion',
+      reason: '未引用分隔符的 Heredoc 会进行 shell 展开',
       nodeType: 'heredoc_redirect',
     }
   }
@@ -1193,20 +1170,18 @@ function walkHeredocRedirect(node: Node): ParseForSecurityResult | null {
 }
 
 /**
- * Here-string redirect (`<<< content`). The content becomes stdin — not
- * argv, not a path. Safe when content is a literal word, raw_string, or
- * string with no expansions. Reject when content contains $()/${}/$VAR —
- * those execute arbitrary code or inject runtime values.
+ * Here-string 重定向（`<<< content`）。内容成为标准输入 —— 不是 argv，
+ * 不是路径。当内容是字面单词、raw_string 或无展开的 string 时安全。
+ * 当内容包含 $()/${}/$VAR 时拒绝 —— 那些执行任意代码或注入运行时值。
  *
- * Reuses walkArgument for content validation: it already rejects
- * command_substitution, expansion, and (for strings) simple_expansion
- * unless the var is tracked/safe. The result string is discarded — we only
- * care that it's statically resolvable.
+ * 重用 walkArgument 进行内容验证：它已经拒绝 command_substitution、
+ * expansion 和（对于 strings）simple_expansion，除非变量被跟踪/安全。
+ * 结果字符串被丢弃 —— 我们只关心它可以静态解析。
  *
- * NOTE: `VAR=$(cmd) && cat <<< "$VAR"` would be safe in principle (inner
- * cmd is extracted separately, herestring content is stdin) but is
- * currently rejected conservatively — walkString's solo-placeholder guard
- * fires because it has no awareness of herestring vs argv context.
+ * 注意：`VAR=$(cmd) && cat <<< "$VAR"` 原则上是安全的（内部命令被
+ * 单独提取，herestring 内容是标准输入）但目前被保守拒绝 ——
+ * walkString 的单独占位符防护会触发，因为它不知道 herestring 与
+ * argv 上下文的差异。
  */
 function walkHerestringRedirect(
   node: Node,
@@ -1216,23 +1191,23 @@ function walkHerestringRedirect(
   for (const child of node.children) {
     if (!child) continue
     if (child.type === '<<<') continue
-    // Content node: reuse walkArgument. It returns a string on success
-    // (which we discard — content is stdin, irrelevant to permissions) or
-    // a too-complex result on failure (expansion found, unresolvable var).
+    // 内容节点：重用 walkArgument。成功时返回字符串
+    // （我们丢弃它 - 内容是标准输入，与权限无关）或
+    // 失败时返回 too-complex 结果（找到展开，无法解析的变量）。
     const content = walkArgument(child, innerCommands, varScope)
     if (typeof content !== 'string') return content
-    // Herestring content is discarded (not in argv/envVars/redirects) but
-    // remains in .text via raw node.text. Scan it here so checkSemantics's
-    // NEWLINE_HASH invariant (bashPermissions.ts relies on it) still holds.
+    // Herestring 内容被丢弃（不在 argv/envVars/redirects 中）但
+    // 通过原始 node.text 保留在 .text 中。在此扫描它以便
+    // checkSemantics 的 NEWLINE_HASH 不变量（bashPermissions.ts 依赖它）仍成立。
     if (NEWLINE_HASH_RE.test(content)) return tooComplex(child)
   }
   return null
 }
 
 /**
- * Walk a `command` node and extract argv. Children appear in order:
+ * 遍历 `command` 节点并提取 argv。子节点按顺序出现：
  * [variable_assignment...] command_name [argument...] [file_redirect...]
- * Any child type not explicitly handled triggers too-complex.
+ * 任何未明确处理的子节点类型都会触发 too-complex。
  */
 function walkCommand(
   node: Node,
@@ -1251,10 +1226,10 @@ function walkCommand(
       case 'variable_assignment': {
         const ev = walkVariableAssignment(child, innerCommands, varScope)
         if ('kind' in ev) return ev
-        // SECURITY: Env-prefix assignments (`VAR=x cmd`) are command-local in
-        // bash — VAR is only visible to `cmd` as an env var, NOT to
-        // subsequent commands. Do NOT add to global varScope — that would
-        // let `VAR=safe cmd1 && rm $VAR` resolve $VAR when bash has unset it.
+        // 安全性：环境前缀赋值（`VAR=x cmd`）在 bash 中是命令局部的 -
+        // VAR 仅作为环境变量对 `cmd` 可见，对后续命令不可见。
+        // 不要添加到全局 varScope - 那会让 `VAR=safe cmd1 && rm $VAR`
+        // 在 bash 已移除它时解析 $VAR。
         envVars.push({ name: ev.name, value: ev.value })
         break
       }
@@ -1279,17 +1254,16 @@ function walkCommand(
         argv.push(arg)
         break
       }
-      // NOTE: command_substitution as a BARE argument (not inside a string)
-      // is intentionally NOT handled here — the $() output IS the argument,
-      // and for path-sensitive commands (cd, rm, chmod) the placeholder would
-      // hide the real path from downstream checks. `cd $(echo /etc)` must
-      // stay too-complex so the path-check can't be bypassed. $() inside
-      // strings ("Timer: $(date)") is handled in walkString where the output
-      // is embedded in a longer string (safer).
+      // 注意：作为裸参数（不在字符串内）的 command_substitution
+      // 故意不在此处处理 - $() 输出就是参数，对于路径敏感命令
+      // （cd、rm、chmod），占位符会隐藏下游检查的真实路径。
+      // `cd $(echo /etc)` 必须保持 too-complex 以便路径检查无法绕过。
+      // 字符串内的 $()（"Timer: $(date)"）在 walkString 中处理，
+      // 输出嵌入在更长的字符串中（更安全）。
       case 'simple_expansion': {
-        // Bare `$VAR` as an argument. Tracked static vars return the ACTUAL
-        // value (e.g. VAR=/etc → '/etc'). Values with IFS/glob chars or
-        // placeholders reject. See resolveSimpleExpansion.
+        // 裸 `$VAR` 作为参数。跟踪的静态变量返回实际值
+        // （例如 VAR=/etc → '/etc'）。带有 IFS/glob 字符或
+        // 占位符的值拒绝。参见 resolveSimpleExpansion。
         const v = resolveSimpleExpansion(child, varScope, false)
         if (typeof v !== 'string') return v
         argv.push(v)
@@ -1302,8 +1276,8 @@ function walkCommand(
         break
       }
       case 'herestring_redirect': {
-        // `cmd <<< "content"` — content is stdin, not argv. Validate it's
-        // literal (no expansion); discard the content string.
+        // `cmd <<< "content"` - 内容是标准输入，不是 argv。验证它是
+        // 字面量（无展开）；丢弃内容字符串。
         const err = walkHerestringRedirect(child, innerCommands, varScope)
         if (err) return err
         break
@@ -1314,38 +1288,37 @@ function walkCommand(
   }
 
   // .text is the raw source span. Downstream (bashToolCheckPermission →
-  // splitCommand_DEPRECATED) re-tokenizes it via shell-quote. Normally .text
-  // is used unchanged — but if we resolved a $VAR into argv, .text diverges
-  // (has raw `$VAR`) and downstream RULE MATCHING would miss deny rules.
+  // splitCommand_DEPRECATED）通过 shell-quote 重新分词。通常 .text
+  // 不变地使用 - 但如果我们将 $VAR 解析到 argv 中，.text 会分歧
+  // （有原始 `$VAR`），下游规则匹配会错过拒绝规则。
   //
-  // SECURITY: `SUB=push && git $SUB --force` with `Bash(git push:*)` deny:
-  //   argv = ['git', 'push', '--force']  ← correct, path validation sees 'push'
-  //   .text = 'git $SUB --force'         ← deny rule 'git push:*' doesn't match
+  // 安全性：`SUB=push && git $SUB --force` 带有 `Bash(git push:*)` 拒绝：
+  //   argv = ['git', 'push', '--force']  ← 正确，路径验证看到 'push'
+  //   .text = 'git $SUB --force'         ← 拒绝规则 'git push:*' 不匹配
   //
-  // Detection: any `$<identifier>` in node.text means a simple_expansion was
-  // resolved (or we'd have returned too-complex). This catches $VAR at any
-  // position — command_name, word, string interior, concatenation part.
-  // `$(...)` doesn't match (paren, not identifier start). `'$VAR'` in single
-  // quotes: tree-sitter's .text includes the quotes, so a naive check would
-  // FP on `echo '$VAR'`. But single-quoted $ is LITERAL in bash — argv has
-  // the literal `$VAR` string, so rebuilding from argv produces `'$VAR'`
-  // anyway (shell-escape wraps it). Same net .text. No rule-matching error.
+  // 检测：node.text 中的任何 `$<identifier>` 意味着 simple_expansion 被
+  // 解析（否则我们会返回 too-complex）。这在任何位置捕获 $VAR -
+  // command_name、word、字符串内部、拼接部分。`$(...)` 不匹配
+  // （括号，非标识符开头）。单引号中的 `'$VAR'`：tree-sitter 的 .text
+  // 包含引号，所以天真检查会在 `echo '$VAR'` 上误报。但单引号中的
+  // $ 在 bash 中是字面量 - argv 有字面量 `$VAR` 字符串，所以从 argv
+  // 重建产生 `'$VAR'`（shell-escape 包装它）。相同的净 .text。无规则匹配错误。
   //
-  // Rebuild .text from argv. Shell-escape each arg: single-quote wrap with
-  // `'\''` for embedded single quotes. Empty string, metacharacters, and
-  // placeholders all get quoted. Downstream shell-quote re-parse is correct.
+  // 从 argv 重建 .text。Shell-escape 每个参数：单引号包装，
+  // 嵌入的单引号用 `'\''`。空字符串、元字符和占位符都被引号引用。
+  // 下游 shell-quote 重新解析正确。
   //
-  // NOTE: This does NOT include redirects/envVars in the rebuilt .text —
-  // walkFileRedirect rejects simple_expansion, and envVars aren't used for
-  // rule matching. If either changes, this rebuild must include them.
+  // 注意：这不在重建的 .text 中包含 redirects/envVars -
+  // walkFileRedirect 拒绝 simple_expansion，envVars 不用于规则匹配。
+  // 如果任一更改，此重建必须包含它们。
   //
-  // SECURITY: also rebuild when node.text contains a newline. Line
-  // continuations `<space>\<LF>` are invisible to argv (tree-sitter collapses
-  // them) but preserved in node.text. `timeout 5 \<LF>curl evil.com` → argv
-  // is correct, but raw .text → stripSafeWrappers matches `timeout 5 ` (the
-  // space before \), leaving `\<LF>curl evil.com` — Bash(curl:*) deny doesn't
-  // prefix-match. Rebuilt .text joins argv with ' ' → no newlines →
-  // stripSafeWrappers works. Also covers heredoc-body leakage.
+  // 安全性：当 node.text 包含换行时也重建。行续行 `<space>\<LF>`
+  // 对 argv 不可见（tree-sitter 折叠它们）但保留在 node.text 中。
+  // `timeout 5 \<LF>curl evil.com` → argv 正确，但原始 .text →
+  // stripSafeWrappers 匹配 `timeout 5 `（\ 前的空格），留下
+  // `\<LF>curl evil.com` - Bash(curl:*) 拒绝不前缀匹配。
+  // 重建的 .text 用 ' ' 连接 argv → 无换行 → stripSafeWrappers 工作。
+  // 也覆盖 heredoc 主体泄漏。
   const text =
     /\$[A-Za-z_]/.test(node.text) || node.text.includes('\n')
       ? argv
@@ -1363,24 +1336,23 @@ function walkCommand(
 }
 
 /**
- * Recurse into a command_substitution node's inner command(s). If the inner
- * command(s) parse cleanly (simple), add them to the innerCommands
- * accumulator and return null (success). If the inner command is itself
- * too-complex (e.g., nested arith expansion, process sub), return the error.
- * This enables recursive permission checking: `echo $(git rev-parse HEAD)`
- * extracts BOTH `echo $(git rev-parse HEAD)` (outer) AND `git rev-parse HEAD`
- * (inner) — permission rules must match BOTH for the whole command to allow.
+ * 递归进入 command_substitution 节点的内部命令。如果内部命令
+ * 解析干净（简单），将它们添加到内部命令累加器并返回 null（成功）。
+ * 如果内部命令本身是 too-complex（例如，嵌套算术展开、进程替换），
+ * 返回错误。这启用递归权限检查：`echo $(git rev-parse HEAD)`
+ * 提取 `echo $(git rev-parse HEAD)`（外部）和 `git rev-parse HEAD`
+ * （内部）- 权限规则必须匹配两者才能允许整个命令。
  */
 function collectCommandSubstitution(
   csNode: Node,
   innerCommands: SimpleCommand[],
   varScope: Map<string, string>,
 ): ParseForSecurityResult | null {
-  // Vars set BEFORE the $() are visible inside (bash subshell semantics),
-  // but vars set INSIDE don't leak out. Pass a COPY of the outer scope so
-  // inner assignments don't mutate the outer map.
+  // $() 之前设置的变量在内部可见（bash 子 shell 语义），
+  // 但内部设置的变量不会泄漏出来。传递外部作用域的副本，
+  // 以便内部赋值不会改变外部映射。
   const innerScope = new Map(varScope)
-  // command_substitution children: `$(` or `` ` ``, inner statement(s), `)`
+  // command_substitution 子节点：`$(` 或 `` ` ``，内部语句，`)`
   for (const child of csNode.children) {
     if (!child) continue
     if (child.type === '$(' || child.type === '`' || child.type === ')') {
@@ -1393,8 +1365,8 @@ function collectCommandSubstitution(
 }
 
 /**
- * Convert an argument node to its literal string value. Quotes are resolved.
- * This function implements the argument-position allowlist.
+ * 将参数节点转换为其字面字符串值。引号被解析。
+ * 此函数实现参数位置的白名单。
  */
 function walkArgument(
   node: Node | null,
@@ -1402,23 +1374,23 @@ function walkArgument(
   varScope: Map<string, string>,
 ): string | ParseForSecurityResult {
   if (!node) {
-    return { kind: 'too-complex', reason: 'Null argument node' }
+    return { kind: 'too-complex', reason: '空参数节点' }
   }
 
   switch (node.type) {
     case 'word': {
-      // Unescape backslash sequences. In unquoted context, bash's quote
-      // removal turns `\X` → `X` for any character X. tree-sitter preserves
-      // the raw text. Required for checkSemantics: `\eval` must match
-      // EVAL_LIKE_BUILTINS, `\zmodload` must match ZSH_DANGEROUS_BUILTINS.
-      // Also makes argv accurate: `find -exec {} \;` → argv has `;` not
-      // `\;`. (Deny-rule matching on .text already worked via downstream
-      // splitCommand_DEPRECATED unescaping — see walkCommand comment.) `\<whitespace>`
-      // is already rejected by BACKSLASH_WHITESPACE_RE.
+      // 反转义反斜杠序列。在未引用上下文中，bash 的引号移除
+      // 将任何字符 X 的 `\X` → `X`。tree-sitter 保留原始文本。
+      // checkSemantics 需要：`\eval` 必须匹配 EVAL_LIKE_BUILTINS，
+      // `\zmodload` 必须匹配 ZSH_DANGEROUS_BUILTINS。
+      // 也使 argv 准确：`find -exec {} \;` → argv 有 `;` 而非 `\;`。
+      // （.text 上的拒绝规则匹配已通过下游 splitCommand_DEPRECATED
+      // 转义工作 - 参见 walkCommand 注释。）`\<whitespace>` 已被
+      // BACKSLASH_WHITESPACE_RE 拒绝。
       if (BRACE_EXPANSION_RE.test(node.text)) {
         return {
           kind: 'too-complex',
-          reason: 'Word contains brace expansion syntax',
+          reason: '单词包含花括号展开语法',
           nodeType: 'word',
         }
       }
@@ -1426,16 +1398,16 @@ function walkArgument(
     }
 
     case 'number':
-      // SECURITY: tree-sitter-bash parses `NN#<expansion>` (arithmetic base
-      // syntax) as a `number` node with the expansion as a CHILD. `10#$(cmd)`
-      // is a number node whose .text is the full literal but whose child is a
-      // command_substitution — bash runs the substitution. .text on a node
-      // with children would smuggle the expansion past permission checks.
-      // Plain numbers (`10`, `16#ff`) have zero children.
+      // 安全性：tree-sitter-bash 将 `NN#<expansion>`（算术基语法）
+      // 解析为带有展开作为子节点的 `number` 节点。`10#$(cmd)`
+      // 是一个 number 节点，其 .text 是完整字面量但其子节点是
+      // command_substitution - bash 运行替换。带有子节点的节点上的
+      // .text 会将展开偷运过权限检查。纯数字（`10`、`16#ff`）
+      // 没有子节点。
       if (node.children.length > 0) {
         return {
           kind: 'too-complex',
-          reason: 'Number node contains expansion (NN# arithmetic base syntax)',
+          reason: '数字节点包含展开（NN# 算术进制语法）',
           nodeType: node.children[0]?.type,
         }
       }
@@ -1451,7 +1423,7 @@ function walkArgument(
       if (BRACE_EXPANSION_RE.test(node.text)) {
         return {
           kind: 'too-complex',
-          reason: 'Brace expansion',
+          reason: '花括号展开',
           nodeType: 'concatenation',
         }
       }
@@ -1472,18 +1444,17 @@ function walkArgument(
     }
 
     case 'simple_expansion': {
-      // `$VAR` inside a concatenation (e.g., `prefix$VAR`). Same rules
-      // as the bare case in walkCommand: must be tracked or SAFE_ENV_VARS.
-      // inside-concatenation counts as bare arg (the whole concat IS the arg)
+      // 拼接内的 `$VAR`（例如 `prefix$VAR`）。与 walkCommand 中
+      // 裸情况相同的规则：必须是已跟踪的或 SAFE_ENV_VARS。
+      // 拼接内部算作裸参数（整个拼接就是参数）
       return resolveSimpleExpansion(node, varScope, false)
     }
 
-    // NOTE: command_substitution at arg position (bare or inside concatenation)
-    // is intentionally NOT handled — the output is/becomes-part-of a positional
-    // argument which might be a path or flag. `rm $(foo)` or `rm $(foo)bar`
-    // would hide the real path behind the placeholder. Only $() inside a
-    // `string` node (walkString) is extracted, since the output is embedded
-    // in a longer string rather than BEING the argument.
+    // 注意：参数位置的 command_substitution（裸或在拼接内部）故意不处理 ——
+    // 输出是/成为位置参数的一部分，可能是路径或标志。`rm $(foo)` 或
+    // `rm $(foo)bar` 会将真实路径隐藏在占位符之后。只有在 `string` 节点
+    // 内部（walkString）的 $() 才会被提取，因为输出嵌入在更长的字符串中
+    // 而不是成为参数本身。
 
     default:
       return tooComplex(node)
@@ -1491,19 +1462,16 @@ function walkArgument(
 }
 
 /**
- * Extract literal content from a double-quoted string node. A `string` node's
- * children are `"` delimiters, `string_content` literals, and possibly
- * expansion nodes.
+ * 从双引号字符串节点提取字面内容。`string` 节点的子节点是 `"` 分隔符、
+ * `string_content` 字面量和可能的展开节点。
  *
- * tree-sitter quirk: literal newlines inside double quotes are NOT included
- * in `string_content` node text. bash preserves them. For `"a\nb"`,
- * tree-sitter produces two `string_content` children (`"a"`, `"b"`) with the
- * newline in neither. For `"\n#"`, it produces ONE child (`"#"`) with the
- * leading newline eaten. Concatenating children therefore loses newlines.
+ * tree-sitter 怪癖：双引号内的字面换行不包含在 `string_content` 节点文本中。
+ * bash 保留它们。对于 `"a\nb"`，tree-sitter 生成两个 `string_content` 子节点
+ * （`"a"`、`"b"`），换行不在任何一个中。对于 `"\n#"`，它生成一个子节点（`"#"`），
+ * 前导换行被吃掉。因此拼接子节点会丢失换行。
  *
- * Fix: track child `startIndex` and insert one `\n` per index gap. The gap
- * between children IS the dropped newline(s). This makes the argv value
- * match what bash actually sees.
+ * 修复：跟踪子节点的 `startIndex` 并在每个索引间隙插入一个 `\n`。
+ * 子节点之间的间隙就是被丢弃的换行。这使得 argv 值与 bash 实际看到的匹配。
  */
 function walkString(
   node: Node,
@@ -1512,25 +1480,22 @@ function walkString(
 ): string | ParseForSecurityResult {
   let result = ''
   let cursor = -1
-  // SECURITY: Track whether the string contains a runtime-unknown
-  // placeholder ($() output or unknown-value tracked var) vs any literal
-  // content. A string that is ONLY a placeholder (`"$(cmd)"`, `"$VAR"`
-  // where VAR holds an unknown sentinel) produces an argv element that IS
-  // the placeholder — which downstream path validation resolves as a
-  // relative filename within cwd, bypassing the check. `cd "$(echo /etc)"`
-  // would pass validation but runtime-cd into /etc. We reject
-  // solo-placeholder strings; placeholders mixed with literal content
-  // (`"prefix: $(cmd)"`) are safe — runtime value can't equal a bare path.
+  // 安全性：跟踪字符串是否包含运行时未知的占位符（$() 输出或未知值的
+  // 已跟踪变量）与任何字面内容。只有占位符的字符串（`"$(cmd)"`、`"$VAR"`
+  // 其中 VAR 持有未知哨兵）产生的 argv 元素就是占位符 —— 下游路径验证
+  // 将其解析为 cwd 内的相对文件名，绕过检查。`cd "$(echo /etc)"` 会通过
+  // 验证但在运行时 cd 到 /etc。我们拒绝单独的占位符字符串；与字面内容
+  // 混合的占位符（`"prefix: $(cmd)"`）是安全的 —— 运行时值不能等于裸路径。
   let sawDynamicPlaceholder = false
   let sawLiteralContent = false
   for (const child of node.children) {
     if (!child) continue
-    // Index gap between this child and the previous one = dropped newline(s).
-    // Ignore the gap before the first non-delimiter child (cursor === -1).
-    // Skip gap-fill for `"` delimiters: a gap before the closing `"` is the
-    // tree-sitter whitespace-only-string quirk (space/tab, not newline) — let
-    // the Fix C check below catch it as too-complex instead of mis-filling
-    // with `\n` and diverging from bash.
+    // 此子节点与前一个之间的索引间隔 = 丢弃的换行符。
+    // 忽略第一个非分隔符子节点前的间隔（cursor === -1）。
+    // 跳过 `"` 分隔符的间隔填充：闭合 `"` 前的间隔是
+    // tree-sitter 仅空白字符串怪癖（空格/制表符，非换行）-
+    // 让下方的 Fix C 检查将其捕获为 too-complex 而非用 `\n`
+    // 错误填充并与 bash 分歧。
     if (cursor !== -1 && child.startIndex > cursor && child.type !== '"') {
       result += '\n'.repeat(child.startIndex - cursor)
       sawLiteralContent = true
@@ -1538,49 +1503,45 @@ function walkString(
     cursor = child.endIndex
     switch (child.type) {
       case '"':
-        // Reset cursor after opening quote so the gap between `"` and the
-        // first content child is captured.
+        // 在开引号后重置光标，以便捕获 `"` 和第一个内容子节点之间的间隔。
         cursor = child.endIndex
         break
       case 'string_content':
-        // Bash double-quote escape rules (NOT the generic /\\(.)/g used for
-        // unquoted words in walkArgument): inside "...", a backslash only
-        // escapes $ ` " \ — other sequences like \n stay literal. So
-        // `"fix \"bug\""` → `fix "bug"`, but `"a\nb"` → `a\nb` (backslash
-        // kept). tree-sitter preserves the raw escapes in .text; we resolve
-        // them here so argv matches what bash actually passes.
+        // Bash 双引号转义规则（不是 walkArgument 中用于
+        // 未引用单词的通用 /\\(.)/g）：在 "..." 内，反斜杠仅
+        // 转义 $ ` " \ - 其他序列如 \n 保持字面量。所以
+        // `"fix \"bug\""` → `fix "bug"`，但 `"a\nb"` → `a\nb`
+        // （保留反斜杠）。tree-sitter 在 .text 中保留原始转义；
+        // 我们在此解析它们以便 argv 匹配 bash 实际传递的内容。
         result += child.text.replace(/\\([$`"\\])/g, '$1')
         sawLiteralContent = true
         break
       case DOLLAR:
-        // A bare dollar sign before closing quote or a non-name char is
-        // literal in bash. tree-sitter emits it as a standalone node.
+        // 闭合引号前或非名称字符前的裸美元符号在 bash 中是字面量。
+        // tree-sitter 将其作为独立节点发出。
         result += DOLLAR
         sawLiteralContent = true
         break
       case 'command_substitution': {
-        // Carve-out: `$(cat <<'EOF' ... EOF)` is safe. The quoted-delimiter
-        // heredoc body is literal (no expansion), and `cat` just prints it.
-        // The substitution result is therefore a known static string. This
-        // pattern is the idiomatic way to pass multi-line content to tools
-        // like `gh pr create --body`. We replace the substitution with a
-        // placeholder argv value — the actual content doesn't matter for
-        // permission checking, only that it IS static.
+        // 特殊处理：`$(cat <<'EOF' ... EOF)` 是安全的。引号分隔符
+        // heredoc 主体是字面量（无展开），`cat` 只是打印它。
+        // 因此替换结果是已知的静态字符串。这种模式是将多行内容
+        // 传递给工具如 `gh pr create --body` 的习惯用法。我们
+        // 用占位符 argv 值替换替换 - 实际内容对权限检查不重要，
+        // 重要的是它是静态的。
         const heredocBody = extractSafeCatHeredoc(child)
         if (heredocBody === 'DANGEROUS') return tooComplex(child)
         if (heredocBody !== null) {
-          // SECURITY: the body IS the substitution result. Previously we
-          // dropped it → `rm "$(cat <<'EOF'\n/etc/passwd\nEOF)"` produced
-          // argv ['rm',''] while bash runs `rm /etc/passwd`. validatePath('')
-          // resolves to cwd → allowed. Every path-constrained command
-          // bypassed via this. Now: append the body (trailing LF trimmed —
-          // bash $() strips trailing newlines).
+          // 安全性：主体就是替换结果。以前我们丢弃它 →
+          // `rm "$(cat <<'EOF'\n/etc/passwd\nEOF)"` 产生 argv ['rm','']
+          // 而 bash 运行 `rm /etc/passwd`。validatePath('') 解析到 cwd →
+          // 允许。每个路径受限命令都通过此方式绕过。现在：追加主体
+          // （尾部 LF 修剪 - bash $() 修剪尾部换行）。
           //
-          // Tradeoff: bodies with internal newlines are multi-line text
-          // (markdown, scripts) which cannot be valid paths — safe to drop
-          // to avoid NEWLINE_HASH_RE false positives on `## Summary`. A
-          // single-line body (like `/etc/passwd`) MUST go into argv so
-          // downstream path validation sees the real target.
+          // 权衡：内部有换行的主体是多行文本（markdown、脚本），
+          // 不能是有效路径 - 安全地丢弃以避免 NEWLINE_HASH_RE
+          // 在 `## Summary` 上的误报。单行主体（如 `/etc/passwd`）
+          // 必须进入 argv 以便下游路径验证看到真实目标。
           const trimmed = heredocBody.replace(/\n+$/, '')
           if (trimmed.includes('\n')) {
             sawLiteralContent = true
@@ -1590,13 +1551,12 @@ function walkString(
           sawLiteralContent = true
           break
         }
-        // General $() inside "...": recurse into inner command(s). If they
-        // parse cleanly, they become additional subcommands that the
-        // permission system must match rules against. The outer argv gets
-        // the original $() text as placeholder (runtime-determined value).
-        // `echo "SHA: $(git rev-parse HEAD)"` → extracts BOTH
-        // `echo "SHA: $(...)"` AND `git rev-parse HEAD` — both must match
-        // permission rules. ~27% of too-complex in top-5k ant cmds.
+        // "..." 内的一般 $()：递归进入内部命令。如果它们解析干净，
+        // 它们成为权限系统必须匹配规则的额外子命令。外部 argv
+        // 获得原始 $() 文本作为占位符（运行时确定的值）。
+        // `echo "SHA: $(git rev-parse HEAD)"` → 提取两者
+        // `echo "SHA: $(...)"` 和 `git rev-parse HEAD` - 两者都必须
+        // 匹配权限规则。在 top-5k ant 命令中约占 too-complex 的 27%。
         const err = collectCommandSubstitution(child, innerCommands, varScope)
         if (err) return err
         result += CMDSUB_PLACEHOLDER
@@ -1604,12 +1564,12 @@ function walkString(
         break
       }
       case 'simple_expansion': {
-        // `$VAR` inside "...". Tracked/safe vars resolve; untracked reject.
+        // "..." 内的 `$VAR`。跟踪/安全变量解析；未跟踪的拒绝。
         const v = resolveSimpleExpansion(child, varScope, true)
         if (typeof v !== 'string') return v
-        // VAR_PLACEHOLDER = runtime-unknown (loop var, read var, $() output,
-        // SAFE_ENV_VARS, special vars). Any other string = actual literal
-        // value from a tracked static var (e.g. VAR=/tmp → v='/tmp').
+        // VAR_PLACEHOLDER = 运行时未知（循环变量、read 变量、$() 输出、
+        // SAFE_ENV_VARS、特殊变量）。任何其他字符串 = 来自跟踪的
+        // 静态变量的实际字面值（例如 VAR=/tmp → v='/tmp'）。
         if (v === VAR_PLACEHOLDER) sawDynamicPlaceholder = true
         else sawLiteralContent = true
         result += v
@@ -1619,32 +1579,30 @@ function walkString(
         const err = walkArithmetic(child)
         if (err) return err
         result += child.text
-        // Validated to be literal-numeric — static content.
+        // 已验证为字面数字 —— 静态内容。
         sawLiteralContent = true
         break
       }
       default:
-        // expansion (${...}) inside "..."
+        // "..." 内的 expansion（${...}）
         return tooComplex(child)
     }
   }
-  // SECURITY: Reject solo-placeholder strings. `"$(cmd)"` or `"$VAR"` (where
-  // VAR holds an unknown value) would produce an argv element that IS the
-  // placeholder — which bypasses downstream path validation (validatePath
-  // resolves placeholders as relative filenames within cwd). Only allow
-  // placeholders embedded alongside literal content (`"prefix: $(cmd)"`).
+  // 安全性：拒绝单独的占位符字符串。`"$(cmd)"` 或 `"$VAR"`（其中 VAR
+  // 持有未知值）会产生一个就是占位符的 argv 元素 —— 这会绕过下游路径
+  // 验证（validatePath 将占位符解析为 cwd 内的相对文件名）。只允许与字面
+  // 内容一起嵌入的占位符（`"prefix: $(cmd)"`）。
   if (sawDynamicPlaceholder && !sawLiteralContent) {
     return tooComplex(node)
   }
-  // SECURITY: tree-sitter-bash quirk — a double-quoted string containing
-  // ONLY whitespace (` "`, `" "`, `"\t"`) produces NO string_content child;
-  // the whitespace is attributed to the closing `"` node's text. Our loop
-  // only adds to `result` from string_content/expansion children, so we'd
-  // return "" when bash sees " ". Detect: we saw no content children
-  // (both flags false — neither literal nor placeholder added) but the
-  // source span is longer than bare `""`. Genuine `""` has text.length==2.
-  // `"$V"` with V="" doesn't hit this — the simple_expansion child sets
-  // sawLiteralContent via the `else` branch even when v is empty.
+  // 安全性：tree-sitter-bash 怪癖 —— 只包含空白（` "`, `" "`, `"\t"`）的
+  // 双引号字符串不产生 string_content 子节点；空白被归因于闭合 `"` 节点
+  // 的文本。我们的循环只从 string_content/expansion 子节点添加到 `result`，
+  // 所以当 bash 看到 " " 时我们会返回 ""。检测：我们没有看到内容子节点
+  // （两个标志都为 false —— 既没有字面量也没有占位符添加）但源跨度比
+  // 裸 `""` 长。真正的 `""` 有 text.length==2。`"$V"` 且 V="" 不会命中
+  // 这个 —— simple_expansion 子节点通过 `else` 分支设置 sawLiteralContent，
+  // 即使 v 为空。
   if (!sawLiteralContent && !sawDynamicPlaceholder && node.text.length > 2) {
     return tooComplex(node)
   }
@@ -1652,25 +1610,23 @@ function walkString(
 }
 
 /**
- * Safe leaf nodes inside arithmetic expansion: integer literals (decimal,
- * hex, octal, bash base#digits) and operator/paren tokens. Anything else at
- * leaf position (notably variable_name that isn't a numeric literal) rejects.
+ * 算术展开内的安全叶子节点：整数字面量（十进制、十六进制、八进制、
+ * bash base#digits）和操作符/括号标记。叶子位置（不是数字字面量的
+ * variable_name）的任何其他内容都会被拒绝。
  */
 const ARITH_LEAF_RE =
   /^(?:[0-9]+|0[xX][0-9a-fA-F]+|[0-9]+#[0-9a-zA-Z]+|[-+*/%^&|~!<>=?:(),]+|<<|>>|\*\*|&&|\|\||[<>=!]=|\$\(\(|\)\))$/
 
 /**
- * Recursively validate an arithmetic_expansion node. Allows only literal
- * numeric expressions — no variables, no substitutions. Returns null if
- * safe, or a too-complex result if not.
+ * 递归验证 arithmetic_expansion 节点。只允许字面数字表达式 —— 无变量，
+ * 无替换。安全时返回 null，不安全时返回 too-complex 结果。
  *
- * Variables are rejected because bash arithmetic recursively evaluates
- * variable values: if x='a[$(cmd)]' then $((x)) executes cmd. See
- * https://www.vidarholen.net/contents/blog/?p=716 (arithmetic injection).
+ * 变量被拒绝是因为 bash 算术递归计算变量值：如果 x='a[$(cmd)]'
+ * 则 $((x)) 执行 cmd。参见 https://www.vidarholen.net/contents/blog/?p=716
+ * （算术注入）。
  *
- * When safe, the caller puts the full `$((…))` span into argv as a literal
- * string. bash will expand it to an integer at runtime; the static string
- * won't match any sensitive path/deny patterns.
+ * 安全时，调用者将完整的 `$((…))` 跨度作为字面字符串放入 argv。
+ * bash 会在运行时将其展开为整数；静态字符串不会匹配任何敏感路径/拒绝模式。
  */
 function walkArithmetic(node: Node): ParseForSecurityResult | null {
   for (const child of node.children) {
@@ -1679,7 +1635,7 @@ function walkArithmetic(node: Node): ParseForSecurityResult | null {
       if (!ARITH_LEAF_RE.test(child.text)) {
         return {
           kind: 'too-complex',
-          reason: `Arithmetic expansion references variable or non-literal: ${child.text}`,
+          reason: `算术展开引用了变量或非字面量：${child.text}`,
           nodeType: 'arithmetic_expansion',
         }
       }
@@ -1719,7 +1675,7 @@ function walkArithmetic(node: Node): ParseForSecurityResult | null {
  *     )
  */
 function extractSafeCatHeredoc(subNode: Node): string | 'DANGEROUS' | null {
-  // Expect exactly: $( + one redirected_statement + )
+  // 期望恰好：$( + 一个 redirected_statement + )
   let stmt: Node | null = null
   for (const child of subNode.children) {
     if (!child) continue
@@ -1732,13 +1688,13 @@ function extractSafeCatHeredoc(subNode: Node): string | 'DANGEROUS' | null {
   }
   if (!stmt) return null
 
-  // redirected_statement must be: command(cat) + heredoc_redirect (quoted)
+  // redirected_statement 必须是：command(cat) + heredoc_redirect（引号分隔）
   let sawCat = false
   let body: string | null = null
   for (const child of stmt.children) {
     if (!child) continue
     if (child.type === 'command') {
-      // Must be bare `cat` — no args, no env vars
+      // 必须是裸 `cat` - 无参数，无环境变量
       const cmdChildren = child.children.filter(c => c)
       if (cmdChildren.length !== 1) return null
       const nameNode = cmdChildren[0]
@@ -1747,8 +1703,8 @@ function extractSafeCatHeredoc(subNode: Node): string | 'DANGEROUS' | null {
       }
       sawCat = true
     } else if (child.type === 'heredoc_redirect') {
-      // Reuse the existing validator: quoted delimiter, body is pure text.
-      // walkHeredocRedirect returns null on success, non-null on rejection.
+      // 重用现有验证器：引号分隔符，主体是纯文本。
+      // walkHeredocRedirect 成功时返回 null，拒绝时返回非 null。
       if (walkHeredocRedirect(child) !== null) return null
       for (const hc of child.children) {
         if (hc?.type === 'heredoc_body') body = hc.text
@@ -1759,17 +1715,16 @@ function extractSafeCatHeredoc(subNode: Node): string | 'DANGEROUS' | null {
   }
 
   if (!sawCat || body === null) return null
-  // SECURITY: the heredoc body becomes the outer command's argv value via
-  // substitution, so a body like `/proc/self/environ` is semantically
-  // `cat /proc/self/environ`. checkSemantics never sees the body (we drop it
-  // at the walkString call site to avoid newline+# FPs). Returning `null`
-  // here would fall through to collectCommandSubstitution in walkString,
-  // which would extract the inner `cat` via walkHeredocRedirect (body text
-  // not inspected there) — effectively bypassing this check. Return a
-  // distinct sentinel so the caller can reject instead of falling through.
+  // 安全性：heredoc 主体通过替换成为外部命令的 argv 值，
+  // 所以像 `/proc/self/environ` 这样的主体在语义上是
+  // `cat /proc/self/environ`。checkSemantics 从未看到主体
+  // （我们在 walkString 调用站点丢弃它以避免换行+# 误报）。
+  // 在此返回 `null` 会落到 walkString 中的 collectCommandSubstitution，
+  // 它会通过 walkHeredocRedirect 提取内部 `cat`（此处不检查主体文本）-
+  // 有效地绕过此检查。返回不同的标记以便调用者拒绝而非落入。
   if (PROC_ENVIRON_RE.test(body)) return 'DANGEROUS'
-  // Same for jq system(): checkSemantics checks argv but never sees the
-  // heredoc body. Check unconditionally (we don't know the outer command).
+  // jq system() 同理：checkSemantics 检查 argv 但从未看到 heredoc 主体。
+  // 无条件检查（我们不知道外部命令）。
   if (/\bsystem\s*\(/.test(body)) return 'DANGEROUS'
   return body
 }
@@ -1788,30 +1743,28 @@ function walkVariableAssignment(
     if (child.type === 'variable_name') {
       name = child.text
     } else if (child.type === '=' || child.type === '+=') {
-      // `PATH+=":/new"` — tree-sitter emits `+=` as a distinct operator
-      // node. Without this case it falls through to walkArgument below
-      // → tooComplex on unknown type `+=`.
+      // `PATH+=":/new"` - tree-sitter 发出 `+=` 作为不同的操作符节点。
+      // 没有此情况它会落到下方的 walkArgument → 未知类型 `+=` 的 tooComplex。
       isAppend = child.type === '+='
     } else if (child.type === 'command_substitution') {
-      // $() as the variable's value. The output becomes a STRING stored in
-      // the variable — it's NOT a positional argument (no path/flag concern).
-      // `VAR=$(date)` runs `date`, stores output. `VAR=$(rm -rf /)` runs
-      // `rm` — the inner command IS checked against permission rules, so
-      // `rm` must match a rule. The variable just holds whatever `rm` prints.
+      // $() 作为变量的值。输出成为存储在变量中的字符串 —— 它不是
+      // 位置参数（无路径/标志问题）。`VAR=$(date)` 运行 `date`，存储
+      // 输出。`VAR=$(rm -rf /)` 运行 `rm` —— 内部命令确实被检查权限规则，
+      // 所以 `rm` 必须匹配规则。变量只保存 `rm` 打印的任何内容。
       const err = collectCommandSubstitution(child, innerCommands, varScope)
       if (err) return err
       value = CMDSUB_PLACEHOLDER
     } else if (child.type === 'simple_expansion') {
-      // `VAR=$OTHER` — assignment RHS does NOT word-split or glob-expand
-      // in bash (unlike command arguments). So `A="a b"; B=$A` sets B to
-      // the literal "a b". Resolve as if inside a string (insideString=true)
-      // so BARE_VAR_UNSAFE_RE doesn't over-reject. The resulting value may
-      // contain spaces/globs — if B is later used as a bare arg, THAT use
-      // will correctly reject via BARE_VAR_UNSAFE_RE.
+      // `VAR=$OTHER` —— 赋值右侧在 bash 中不进行分词或通配符展开
+      // （与命令参数不同）。所以 `A="a b"; B=$A` 将 B 设置为字面的
+      // "a b"。像在字符串内部一样解析（insideString=true），以便
+      // BARE_VAR_UNSAFE_RE 不会过度拒绝。结果值可能
+      // 包含空格/glob - 如果 B 后来用作裸参数，该使用
+      // 将通过 BARE_VAR_UNSAFE_RE 正确拒绝。
       const v = resolveSimpleExpansion(child, varScope, true)
       if (typeof v !== 'string') return v
-      // If v is VAR_PLACEHOLDER (OTHER holds unknown), store it — combined
-      // with containsAnyPlaceholder in the caller to treat as unknown.
+      // 如果 v 是 VAR_PLACEHOLDER（OTHER 持有未知值），存储它 -
+      // 与调用者中的 containsAnyPlaceholder 结合以视为未知。
       value = v
     } else {
       const v = walkArgument(child, innerCommands, varScope)
@@ -1823,57 +1776,54 @@ function walkVariableAssignment(
   if (name === null) {
     return {
       kind: 'too-complex',
-      reason: 'Variable assignment without name',
+      reason: '变量赋值没有名称',
       nodeType: 'variable_assignment',
     }
   }
-  // SECURITY: tree-sitter-bash accepts invalid var names (e.g. `1VAR=value`)
-  // as variable_assignment. Bash only recognizes [A-Za-z_][A-Za-z0-9_]* —
-  // anything else is run as a COMMAND. `1VAR=value` → bash tries to execute
-  // `1VAR=value` from PATH. We must not treat it as an inert assignment.
+  // 安全性：tree-sitter-bash 接受无效变量名（例如 `1VAR=value`）
+  // 作为 variable_assignment。Bash 仅识别 [A-Za-z_][A-Za-z0-9_]* -
+  // 其他任何内容都作为命令运行。`1VAR=value` → bash 尝试从 PATH
+  // 执行 `1VAR=value`。我们不得将其视为惰性赋值。
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
     return {
       kind: 'too-complex',
-      reason: `Invalid variable name (bash treats as command): ${name}`,
+      reason: `无效变量名（bash 视为命令）：${name}`,
       nodeType: 'variable_assignment',
     }
   }
-  // SECURITY: Setting IFS changes word-splitting behavior for subsequent
-  // unquoted $VAR expansions. `IFS=: && VAR=a:b && rm $VAR` → bash splits
-  // on `:` → `rm a b`. Our BARE_VAR_UNSAFE_RE only checks default IFS
-  // chars (space/tab/NL) — we can't model custom IFS. Reject.
+  // 安全性：设置 IFS 会改变后续未引用 $VAR 展开的分词行为。
+  // `IFS=: && VAR=a:b && rm $VAR` → bash 在 `:` 上分割 → `rm a b`。
+  // 我们的 BARE_VAR_UNSAFE_RE 只检查默认 IFS 字符（空格/制表符/换行）
+  // —— 我们无法建模自定义 IFS。拒绝。
   if (name === 'IFS') {
     return {
       kind: 'too-complex',
-      reason: 'IFS assignment changes word-splitting — cannot model statically',
+      reason: 'IFS 赋值改变分词 —— 无法静态建模',
       nodeType: 'variable_assignment',
     }
   }
-  // SECURITY: PS4 is expanded via promptvars (default on) on every command
-  // traced after `set -x`. A raw_string value containing $(cmd) or `cmd`
-  // executes at trace time: `PS4='$(id)' && set -x && :` runs id, but our
-  // argv is only [["set","-x"],[":"]] — the payload is invisible to
-  // permission checks. PS0-3 and PROMPT_COMMAND are not expanded in
-  // non-interactive shells (BashTool).
+  // 安全性：PS4 在 `set -x` 后跟踪的每个命令上通过 promptvars（默认开启）展开。
+  // 包含 $(cmd) 或 `cmd` 的 raw_string 值在跟踪时执行：
+  // `PS4='$(id)' && set -x && :` 运行 id，但我们的 argv 只有
+  // [["set","-x"],[":"]] —— 有效载荷对权限检查不可见。PS0-3 和
+  // PROMPT_COMMAND 在非交互式 shell（BashTool）中不展开。
   //
-  // ALLOWLIST, not blocklist. 5 rounds of bypass patches taught us that a
-  // value-dependent blocklist is structurally fragile:
-  //   - `+=` effective-value computation diverges from bash in multiple
-  //     scope-model gaps: `||` reset, env-prefix chain (PS4='' && PS4='$'
-  //     PS4+='(id)' cmd reads stale parent value), subshell.
-  //   - bash's decode_prompt_string runs BEFORE promptvars, so `\044(id)`
-  //     (octal for `$`) becomes `$(id)` at trace time — any literal-char
-  //     check must model prompt-escape decoding exactly.
-  //   - assignment paths exist outside walkVariableAssignment (for_statement
-  //     sets loopVar directly, see that handler's PS4 check).
+  // 白名单，而非黑名单。5 轮绕过补丁告诉我们依赖值的黑名单在结构上很脆弱：
+  //   - `+=` 有效值计算在多个作用域模型差距中与 bash 分歧：`||` 重置、
+  //     环境变量前缀链（PS4='' && PS4='$' PS4+='(id)' cmd 读取过时的父值）、
+  //     子 shell。
+  //   - bash 的 decode_prompt_string 在 promptvars 之前运行，所以 `\044(id)`
+  //     （`$` 的八进制）在跟踪时变成 `$(id)` —— 任何字面字符检查都必须
+  //     精确建模 prompt-escape 解码。
+  //   - 赋值路径存在于 walkVariableAssignment 之外（for_statement
+  //     直接设置 loopVar，见该处理器的 PS4 检查）。
   //
-  // Policy: (1) reject += outright — no scope-tracking dependency; user can
-  // combine into one PS4=... (2) reject placeholders — runtime unknowable.
-  // (3) allowlist remaining value: ${identifier} refs (value-read only, safe)
-  // plus [A-Za-z0-9 _+:.\/=[\]-]. No bare `$` (blocks split primitive), no
-  // `\` (blocks octal \044/\140), no backtick, no parens. Covers all known
-  // encoding vectors and future ones — anything off the allowlist fails.
-  // Legit `PS4='+${BASH_SOURCE}:${LINENO}: '` still passes.
+  // 策略：（1）直接拒绝 += —— 无作用域跟踪依赖；用户可以合并为一个
+  // PS4=...（2）拒绝占位符 —— 运行时不可知。（3）白名单剩余值：
+  // ${identifier} 引用（仅值读取，安全）加上 [A-Za-z0-9 _+:.\/=[\]-]。
+  // 无裸 `$`（阻止分割原语），无 `\`（阻止八进制 \044/\140），无反引号，
+  // 无括号。覆盖所有已知编码向量和未来的 —— 白名单外的任何内容都失败。
+  // 合法的 `PS4='+${BASH_SOURCE}:${LINENO}: '` 仍然通过。
   if (name === 'PS4') {
     if (isAppend) {
       return {
@@ -1886,7 +1836,7 @@ function walkVariableAssignment(
     if (containsAnyPlaceholder(value)) {
       return {
         kind: 'too-complex',
-        reason: 'PS4 value derived from cmdsub/variable — runtime unknowable',
+        reason: 'PS4 值派生自命令替换/变量 —— 运行时不可知',
         nodeType: 'variable_assignment',
       }
     }
@@ -1904,17 +1854,16 @@ function walkVariableAssignment(
       }
     }
   }
-  // SECURITY: Tilde expansion in assignment RHS. `VAR=~/x` (unquoted) →
-  // bash expands `~` at ASSIGNMENT time → VAR='/home/user/x'. We see the
-  // literal `~/x`. Later `cd $VAR` → our argv `['cd','~/x']`, bash runs
-  // `cd /home/user/x`. Tilde expansion also happens after `=` and `:` in
-  // assignment values (e.g. PATH=~/bin:~/sbin). We can't model it — reject
-  // any value containing `~` that isn't already quoted-literal (where bash
-  // doesn't expand). Conservative: any `~` in value → reject.
+  // 安全性：赋值右侧的波浪号展开。`VAR=~/x`（未引用）→
+  // bash 在赋值时展开 `~` → VAR='/home/user/x'。我们看到字面的 `~/x`。
+  // 后续 `cd $VAR` → 我们的 argv `['cd','~/x']`，bash 运行 `cd /home/user/x`。
+  // 波浪号展开也发生在赋值值的 `=` 和 `:` 之后（例如 PATH=~/bin:~/sbin）。
+  // 我们无法建模 —— 拒绝任何包含 `~` 的值，除非它已经是引号字面量
+  // （bash 不展开的地方）。保守：值中的任何 `~` → 拒绝。
   if (value.includes('~')) {
     return {
       kind: 'too-complex',
-      reason: 'Tilde in assignment value — bash may expand at assignment time',
+      reason: '赋值值中的波浪号 —— bash 可能在赋值时展开',
       nodeType: 'variable_assignment',
     }
   }
@@ -1922,17 +1871,15 @@ function walkVariableAssignment(
 }
 
 /**
- * Resolve a `simple_expansion` ($VAR) node. Returns VAR_PLACEHOLDER if
- * resolvable, too-complex otherwise.
+ * 解析 `simple_expansion`（$VAR）节点。可解析时返回 VAR_PLACEHOLDER，
+ * 否则返回 too-complex。
  *
- * @param insideString true when $VAR is inside a `string` node ("...$VAR...")
- *   rather than a bare/concatenation argument. SAFE_ENV_VARS and unknown-value
- *   tracked vars are only allowed inside strings — as bare args their runtime
- *   value IS the argument and we don't know it statically.
- *   `cd $HOME/../x` would hide the real path behind the placeholder;
- *   `echo "Home: $HOME"` just embeds text in a string. Tracked vars holding
- *   STATIC strings (VAR=literal) are allowed in both positions since their
- *   value IS known.
+ * @param insideString 当 $VAR 在 `string` 节点（"...$VAR..."）内部时为 true，
+ *   而非裸/拼接参数。SAFE_ENV_VARS 和未知值的已跟踪变量只允许在字符串内部 ——
+ *   作为裸参数，它们的运行时值就是参数本身，我们无法静态知道。
+ *   `cd $HOME/../x` 会将真实路径隐藏在占位符之后；
+ *   `echo "Home: $HOME"` 只是在字符串中嵌入文本。持有静态字符串
+ *   （VAR=字面量）的已跟踪变量在两个位置都允许，因为它们的值是已知的。
  */
 function resolveSimpleExpansion(
   node: Node,
@@ -1953,48 +1900,45 @@ function resolveSimpleExpansion(
     }
   }
   if (varName === null) return tooComplex(node)
-  // Tracked vars: check stored value. Literal strings (VAR=/tmp) are
-  // returned DIRECTLY so downstream path validation sees the real path.
-  // Non-literal values (containing any placeholder — loop vars, $() output,
-  // read vars, composites like `VAR="prefix$(cmd)"`) are ONLY safe inside
-  // strings; as bare args they'd hide the runtime path/flag from validation.
+  // 跟踪的变量：检查存储的值。字面字符串（VAR=/tmp）直接返回
+  // 以便下游路径验证看到真实路径。非字面值（包含任何占位符 -
+  // 循环变量、$() 输出、read 变量、组合值如 `VAR="prefix$(cmd)"`）
+  // 仅在字符串内安全；作为裸参数它们会隐藏运行时路径/标志不被验证。
   //
-  // SECURITY: Returning the actual trackedValue (not a placeholder) is the
-  // critical fix. `VAR=/etc && rm $VAR` → argv ['rm', '/etc'] → validatePath
-  // correctly rejects. Previously returned a placeholder → validatePath saw
-  // '__LOOP_STATIC__', resolved as cwd-relative → PASSED → bypass.
+  // 安全性：返回实际 trackedValue（非占位符）是关键修复。
+  // `VAR=/etc && rm $VAR` → argv ['rm', '/etc'] → validatePath 正确拒绝。
+  // 以前返回占位符 → validatePath 看到 '__LOOP_STATIC__'，解析为
+  // cwd 相对 → 通过 → 绕过。
   const trackedValue = varScope.get(varName)
   if (trackedValue !== undefined) {
     if (containsAnyPlaceholder(trackedValue)) {
-      // Non-literal: bare → reject, inside string → VAR_PLACEHOLDER
-      // (walkString's solo-placeholder gate rejects `"$VAR"` alone).
+      // 非字面量：裸 → 拒绝，字符串内 → VAR_PLACEHOLDER
+      // （walkString 的单独占位符门控拒绝单独的 `"$VAR"`）。
       if (!insideString) return tooComplex(node)
       return VAR_PLACEHOLDER
     }
-    // Pure literal (e.g. '/tmp', 'foo') — return it directly. Downstream
-    // path validation / checkSemantics operate on the REAL value.
+    // 纯字面量（例如 '/tmp'、'foo'）- 直接返回。下游
+    // 路径验证 / checkSemantics 在真实值上操作。
     //
-    // SECURITY: For BARE args (not inside a string), bash word-splits on
-    // $IFS and glob-expands the result. `VAR="-rf /" && rm $VAR` → bash
-    // runs `rm -rf /` (two args); `VAR="/etc/*" && cat $VAR` → expands to
-    // all files. Reject values containing IFS/glob chars unless in "...".
+    // 安全性：对于裸参数（不在字符串内），bash 在 $IFS 上分词
+    // 并 glob 展开结果。`VAR="-rf /" && rm $VAR` → bash 运行
+    // `rm -rf /`（两个参数）；`VAR="/etc/*" && cat $VAR` → 展开为
+    // 所有文件。拒绝包含 IFS/glob 字符的值，除非在 "..." 内。
     //
-    // SECURITY: Empty value as bare arg. Bash word-splitting on "" produces
-    // ZERO fields — the expansion disappears. `V="" && $V eval x` → bash
-    // runs `eval x` (our argv would be ["","eval","x"] with name="" —
-    // every EVAL_LIKE/ZSH/keyword check misses). `V="" && ls $V /etc` →
-    // bash runs `ls /etc`, our argv has a phantom "" shifting positions.
-    // Inside "...": `"$V"` → bash produces one empty-string arg → our ""
-    // is correct, keep allowing.
+    // 安全性：空值作为裸参数。Bash 在 "" 上进行分词产生零个字段 ——
+    // 展开消失。`V="" && $V eval x` → bash 运行 `eval x`（我们的 argv
+    // 将是 ["","eval","x"]，name="" —— 每个 EVAL_LIKE/ZSH/关键字检查
+    // 都错过）。`V="" && ls $V /etc` → bash 运行 `ls /etc`，我们的 argv
+    // 有一个幽灵 "" 移位位置。在 "..." 内部：`"$V"` → bash 产生一个
+    // 空字符串参数 → 我们的 "" 是正确的，继续允许。
     if (!insideString) {
       if (trackedValue === '') return tooComplex(node)
       if (BARE_VAR_UNSAFE_RE.test(trackedValue)) return tooComplex(node)
     }
     return trackedValue
   }
-  // SAFE_ENV_VARS + special vars ($?, $$, $@, $1, etc.): value unknown
-  // (shell-controlled). Only safe when embedded in a string, NOT as a
-  // bare argument to a path-sensitive command.
+  // SAFE_ENV_VARS + 特殊变量（$?、$$、$@、$1 等）：值未知（shell 控制）。
+  // 只在嵌入字符串时安全，不作为路径敏感命令的裸参数。
   if (insideString) {
     if (SAFE_ENV_VARS.has(varName)) return VAR_PLACEHOLDER
     if (
@@ -2008,11 +1952,10 @@ function resolveSimpleExpansion(
 }
 
 /**
- * Apply a variable assignment to the scope, handling `+=` append semantics.
- * SECURITY: If EITHER side (existing value or appended value) contains a
- * placeholder, the result is non-literal — store VAR_PLACEHOLDER so later
- * $VAR correctly rejects as bare arg.
- * `VAR=/etc && VAR+=$(cmd)` must not leave VAR looking static.
+ * 将变量赋值应用到作用域，处理 `+=` 追加语义。
+ * 安全性：如果任一侧（现有值或追加值）包含占位符，结果是非字面的 ——
+ * 存储 VAR_PLACEHOLDER 以便后续的 $VAR 作为裸参数时正确拒绝。
+ * `VAR=/etc && VAR+=$(cmd)` 不得使 VAR 看起来是静态的。
  */
 function applyVarToScope(
   varScope: Map<string, string>,
@@ -2041,21 +1984,20 @@ function tooComplex(node: Node): ParseForSecurityResult {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Post-argv semantic checks
+// Post-argv 语义检查
 //
-// Everything above answers "can we tokenize?". Everything below answers
-// "is the resulting argv dangerous in ways that don't involve parsing?".
-// These are checks on argv[0] or argv content that the old bashSecurity.ts
-// validators performed but which have nothing to do with parser
-// differentials. They're here (not in bashSecurity.ts) because they operate
-// on SimpleCommand and need to run for every extracted command.
+// 上面的所有内容回答"我们能分词吗？"。下面的所有内容回答
+// "结果 argv 是否以不涉及解析的方式危险？"。这些是对 argv[0]
+// 或 argv 内容的检查，旧的 bashSecurity.ts 验证器执行了这些检查，
+// 但它们与解析器差异无关。它们在这里（不在 bashSecurity.ts 中）
+// 是因为它们在 SimpleCommand 上操作并且需要为每个提取的命令运行。
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
- * Zsh module builtins. These are not binaries on PATH — they're zsh
- * internals loaded via zmodload. Since BashTool runs via the user's default
- * shell (often zsh), and these parse as plain `command` nodes with no
- * distinguishing syntax, we can only catch them by name.
+ * Zsh 模块内建命令。这些不是 PATH 上的二进制文件 - 它们是通过
+ * zmodload 加载的 zsh 内部命令。由于 BashTool 通过用户的默认
+ * shell（通常是 zsh）运行，且这些解析为普通的 `command` 节点，
+ * 没有区分语法，我们只能通过名称捕获它们。
  */
 const ZSH_DANGEROUS_BUILTINS = new Set([
   'zmodload',
@@ -2078,10 +2020,9 @@ const ZSH_DANGEROUS_BUILTINS = new Set([
 ])
 
 /**
- * Shell builtins that evaluate their arguments as code or otherwise escape
- * the argv abstraction. A command like `eval "rm -rf /"` has argv
- * ['eval', 'rm -rf /'] which looks inert to flag validation but executes
- * the string. Treat these the same as command substitution.
+ * 将其参数作为代码计算或以其他方式逃避 argv 抽象的 shell 内建命令。
+ * 像 `eval "rm -rf /"` 这样的命令有 argv ['eval', 'rm -rf /']，
+ * 对标志验证看起来是惰性的但执行该字符串。将这些与命令替换同等对待。
  */
 const EVAL_LIKE_BUILTINS = new Set([
   'eval',
@@ -2091,54 +2032,52 @@ const EVAL_LIKE_BUILTINS = new Set([
   'command',
   'builtin',
   'fc',
-  // `coproc rm -rf /` spawns rm as a coprocess. tree-sitter parses it as
-  // a plain command with argv[0]='coproc', so permission rules and path
-  // validation would check 'coproc' not 'rm'.
+  // `coproc rm -rf /` 将 rm 作为协同进程生成。tree-sitter 将其解析为
+  // 带有 argv[0]='coproc' 的普通命令，所以权限规则和路径验证
+  // 会检查 'coproc' 而非 'rm'。
   'coproc',
-  // Zsh precommand modifiers: `noglob cmd args` runs cmd with globbing off.
-  // They parse as ordinary commands (noglob is argv[0], the real command is
-  // argv[1]) so permission matching against argv[0] would see 'noglob', not
-  // the wrapped command.
+  // Zsh 预命令修饰符：`noglob cmd args` 在关闭 globbing 的情况下运行 cmd。
+  // 它们解析为普通命令（noglob 是 argv[0]，真正的命令是 argv[1]）
+  // 所以针对 argv[0] 的权限匹配会看到 'noglob'，而非包装的命令。
   'noglob',
   'nocorrect',
-  // `trap 'cmd' SIGNAL` — cmd runs as shell code on signal/exit. EXIT fires
-  // at end of every BashTool invocation, so this is guaranteed execution.
+  // `trap 'cmd' SIGNAL` - cmd 在信号/退出时作为 shell 代码运行。
+  // EXIT 在每次 BashTool 调用结束时触发，所以这保证执行。
   'trap',
-  // `enable -f /path/lib.so name` — dlopen arbitrary .so as a builtin.
-  // Native code execution.
+  // `enable -f /path/lib.so name` - 将任意 .so 作为内建命令 dlopen。
+  // 原生代码执行。
   'enable',
   // `mapfile -C callback -c N` / `readarray -C callback` — callback runs as
-  // shell code every N input lines.
+  // 每 N 行输入执行 shell 代码。
   'mapfile',
   'readarray',
-  // `hash -p /path cmd` — poisons bash's command-lookup cache. Subsequent
-  // `cmd` in the same command resolves to /path instead of PATH lookup.
+  // `hash -p /path cmd` - 污染 bash 的命令查找缓存。同一命令中
+  // 后续的 `cmd` 解析为 /path 而非 PATH 查找。
   'hash',
-  // `bind -x '"key":cmd'` / `complete -C cmd` — interactive-only callbacks
-  // but still code-string arguments. Low impact in non-interactive BashTool
-  // shells, blocked for consistency. `compgen -C cmd` is NOT interactive-only:
-  // it immediately executes the -C argument to generate completions.
+  // `bind -x '"key":cmd'` / `complete -C cmd` - 仅交互式的回调
+  // 但仍然是代码字符串参数。在非交互式 BashTool shell 中影响较低，
+  // 为一致性阻止。`compgen -C cmd` 不是仅交互式的：它立即执行
+  // -C 参数以生成补全。
   'bind',
   'complete',
   'compgen',
-  // `alias name='cmd'` — aliases not expanded in non-interactive bash by
-  // default, but `shopt -s expand_aliases` enables them. Also blocked as
-  // defense-in-depth (alias followed by name use in same command).
+  // `alias name='cmd'` - 默认情况下非交互式 bash 不展开别名，
+  // 但 `shopt -s expand_aliases` 启用它们。也作为纵深防御阻止
+  // （别名后跟同一命令中的名称使用）。
   'alias',
-  // `let EXPR` arithmetically evaluates EXPR — identical to $(( EXPR )).
-  // Array subscripts in the expression expand $(cmd) at eval time even when
-  // the argument arrived single-quoted: `let 'x=a[$(id)]'` executes id.
-  // tree-sitter sees the raw_string as an opaque leaf. Same primitive
-  // walkArithmetic guards, but `let` is a plain command node.
+  // `let EXPR` 算术计算 EXPR - 与 $(( EXPR )) 相同。
+  // 表达式中的数组下标在计算时展开 $(cmd)，即使
+  // 参数是单引号到达：`let 'x=a[$(id)]'` 执行 id。
+  // tree-sitter 将 raw_string 视为不透明叶子。与
+  // walkArithmetic 相同的原语防护，但 `let` 是普通命令节点。
   'let',
 ])
 
 /**
- * Builtins that re-parse a NAME operand internally and arithmetically
- * evaluate `arr[EXPR]` subscripts — including $(cmd) in the subscript —
- * even when the argv element arrived from a single-quoted raw_string.
- * `test -v 'a[$(id)]'` → tree-sitter sees an opaque leaf, bash runs id.
- * Maps: builtin name → set of flags whose next argument is a NAME.
+ * 内部重新解析 NAME 操作数并算术计算 `arr[EXPR]` 下标的内建命令 -
+ * 包括下标中的 $(cmd) - 即使 argv 元素来自单引号 raw_string。
+ * `test -v 'a[$(id)]'` → tree-sitter 看到不透明叶子，bash 运行 id。
+ * 映射：内建命令名 → 下一个参数是 NAME 的标志集合。
  */
 const SUBSCRIPT_EVAL_FLAGS: Record<string, Set<string>> = {
   test: new Set(['-v', '-R']),
@@ -2147,90 +2086,83 @@ const SUBSCRIPT_EVAL_FLAGS: Record<string, Set<string>> = {
   printf: new Set(['-v']),
   read: new Set(['-a']),
   unset: new Set(['-v']),
-  // bash 5.1+: `wait -p VAR [id...]` stores the waited PID into VAR. When VAR
-  // is `arr[EXPR]`, bash arithmetically evaluates the subscript — running
-  // $(cmd) even from a single-quoted raw_string. Verified bash 5.3.9:
-  // `: & wait -p 'a[$(id)]' %1` executes id.
+  // bash 5.1+：`wait -p VAR [id...]` 将等待的 PID 存储到 VAR 中。当 VAR
+  // 是 `arr[EXPR]`，bash 算术计算下标 —— 即使来自单引号 raw_string 也
+  // 运行 $(cmd)。已验证 bash 5.3.9：`: & wait -p 'a[$(id)]' %1` 执行 id。
   wait: new Set(['-p']),
 }
 
 /**
- * `[[ ARG1 OP ARG2 ]]` where OP is an arithmetic comparison. bash manual:
- * "When used with [[, Arg1 and Arg2 are evaluated as arithmetic
- * expressions." Arithmetic evaluation recursively expands array subscripts,
- * so `[[ 'a[$(id)]' -eq 0 ]]` executes `id` even though tree-sitter sees
- * the operand as an opaque raw_string leaf. Unlike -v/-R (unary, NAME after
- * flag), these are binary — the subscript can appear on EITHER side, so
- * SUBSCRIPT_EVAL_FLAGS's "next arg" logic is insufficient.
- * `[` / `test` are not vulnerable (bash errors with "integer expression
- * expected"), but the test_command handler normalizes argv[0]='[[' for
- * both forms, so they get this check too — mild over-blocking, safe side.
+ * `[[ ARG1 OP ARG2 ]]`，其中 OP 是算术比较。bash 手册："当与 [[ 一起使用
+ * 时，Arg1 和 Arg2 作为算术表达式计算。"算术计算递归展开数组下标，
+ * 所以 `[[ 'a[$(id)]' -eq 0 ]]` 执行 `id`，即使 tree-sitter 将操作数视为
+ * 不透明的 raw_string 叶子节点。与 -v/-R（一元，标志后是 NAME）不同，
+ * 这些是二元的 —— 下标可以出现在任一侧，所以 SUBSCRIPT_EVAL_FLAGS 的
+ * "下一个参数"逻辑不够。`[` / `test` 不受影响（bash 报错"期望整数表达式"），
+ * 但 test_command 处理器为两种形式规范化 argv[0]='[['，所以它们也获得
+ * 此检查 —— 轻微过度阻止，安全侧。
  */
 const TEST_ARITH_CMP_OPS = new Set(['-eq', '-ne', '-lt', '-le', '-gt', '-ge'])
 
 /**
- * Builtins where EVERY non-flag positional argument is a NAME that bash
- * re-parses and arithmetically evaluates subscripts on — no flag required.
- * `read 'a[$(id)]'` executes id: each positional is a variable name to
- * assign into, and `arr[EXPR]` is valid syntax there. `unset NAME...` is
- * the same (though tree-sitter's unset_command handler currently rejects
- * raw_string children before reaching here — this is defense-in-depth).
- * NOT printf (positional args are FORMAT/data), NOT test/[ (operands are
- * values, only -v/-R take a NAME). declare/typeset/local handled in
- * declaration_command since they never reach here as plain commands.
+ * 内建命令，其中每个非标志位置参数都是 NAME，bash 重新解析并算术计算
+ * 下标 —— 不需要标志。`read 'a[$(id)]'` 执行 id：每个位置参数是要赋值
+ * 的变量名，`arr[EXPR]` 在那里是有效语法。`unset NAME...` 相同（虽然
+ * tree-sitter 的 unset_command 处理器在到达这里之前拒绝 raw_string 子节点
+ * —— 这是纵深防御）。不是 printf（位置参数是 FORMAT/data），不是 test/[
+ * （操作数是值，只有 -v/-R 接受 NAME）。declare/typeset/local 在
+ * declaration_command 中处理，因为它们作为普通命令永远不到达这里。
  */
 const BARE_SUBSCRIPT_NAME_BUILTINS = new Set(['read', 'unset'])
 
 /**
- * `read` flags whose NEXT argument is data (prompt/delimiter/count/fd),
- * not a NAME. `read -p '[foo] ' var` must not trip on the `[` in the
- * prompt string. `-a` is intentionally absent — its operand IS a NAME.
+ * `read` 标志，其下一个参数是数据（提示/分隔符/计数/fd），而非 NAME。
+ * `read -p '[foo] ' var` 不得在提示字符串中的 `[` 上触发。`-a` 故意缺失
+ * —— 它的操作数是 NAME。
  */
 const READ_DATA_FLAGS = new Set(['-p', '-d', '-n', '-N', '-t', '-u', '-i'])
 
-// SHELL_KEYWORDS imported from bashParser.ts — shell reserved words can never
-// be legitimate argv[0]; if they appear, the parser mis-parsed a compound
-// command. Reject to avoid nonsense argv reaching downstream.
+// SHELL_KEYWORDS 从 bashParser.ts 导入 —— shell 保留字永远不能是合法的
+// argv[0]；如果它们出现，解析器错误解析了复合命令。拒绝以避免无意义的
+// argv 到达下游。
 
-// Use `.*` not `[^/]*` — Linux resolves `..` in procfs, so
-// `/proc/self/../self/environ` works and must be caught.
+// 使用 `.*` 而非 `[^/]*` - Linux 在 procfs 中解析 `..`，所以
+// `/proc/self/../self/environ` 有效且必须被捕获。
 const PROC_ENVIRON_RE = /\/proc\/.*\/environ/
 
 /**
- * Newline followed by `#` in an argv element, env var value, or redirect target.
- * Downstream stripSafeWrappers re-tokenizes .text line-by-line and treats `#`
- * after a newline as a comment, hiding arguments that follow.
+ * argv 元素、环境变量值或重定向目标中的换行后跟 `#`。
+ * 下游 stripSafeWrappers 逐行重新分词 .text 并将换行后的 `#`
+ * 视为注释，隐藏后续的参数。
  */
 const NEWLINE_HASH_RE = /\n[ \t]*#/
 
 export type SemanticCheckResult = { ok: true } | { ok: false; reason: string }
 
 /**
- * Post-argv semantic checks. Run after parseForSecurity returns 'simple' to
- * catch commands that tokenize fine but are dangerous by name or argument
- * content. Returns the first failure or {ok: true}.
+ * Post-argv 语义检查。在 parseForSecurity 返回 'simple' 后运行，
+ * 以捕获分词正常但按名称或参数内容危险的命令。返回第一个失败
+ * 或 {ok: true}。
  */
 export function checkSemantics(commands: SimpleCommand[]): SemanticCheckResult {
   for (const cmd of commands) {
-    // Strip safe wrapper commands (nohup, time, timeout N, nice -n N) so
-    // `nohup eval "..."` and `timeout 5 jq 'system(...)'` are checked
-    // against the wrapped command, not the wrapper. Inlined here to avoid
-    // circular import with bashPermissions.ts.
+    // 剥离安全包装命令（nohup、time、timeout N、nice -n N）以便
+    // `nohup eval "..."` 和 `timeout 5 jq 'system(...)'` 针对
+    // 包装的命令检查，而非包装器。在此内联以避免与 bashPermissions.ts
+    // 的循环导入。
     let a = cmd.argv
     for (;;) {
       if (a[0] === 'time' || a[0] === 'nohup') {
         a = a.slice(1)
       } else if (a[0] === 'timeout') {
-        // `timeout 5`, `timeout 5s`, `timeout 5.5`, plus optional GNU flags
-        // preceding the duration. Long: --foreground, --kill-after=N,
-        // --signal=SIG, --preserve-status. Short: -k DUR, -s SIG, -v (also
-        // fused: -k5, -sTERM).
-        // SECURITY (SAST Mar 2026): the previous loop only skipped `--long`
-        // flags, so `timeout -k 5 10 eval ...` broke out with name='timeout'
-        // and the wrapped eval was never checked. Now handle known short
-        // flags AND fail closed on any unrecognized flag — an unknown flag
-        // means we can't locate the wrapped command, so we must not silently
-        // fall through to name='timeout'.
+        // `timeout 5`、`timeout 5s`、`timeout 5.5`，加上持续时间前的可选 GNU 标志。
+        // 长标志：--foreground、--kill-after=N、--signal=SIG、--preserve-status。
+        // 短标志：-k DUR、-s SIG、-v（也可融合：-k5、-sTERM）。
+        // 安全性（SAST 2026 年 3 月）：先前的循环仅跳过 `--long` 标志，
+        // 所以 `timeout -k 5 10 eval ...` 以 name='timeout' 跳出，
+        // 包装的 eval 从未被检查。现在处理已知的短标志并在任何
+        // 未识别的标志上失败关闭 - 未知标志意味着我们无法定位
+        // 包装的命令，所以我们不得静默落到 name='timeout'。
         let i = 1
         while (i < a.length) {
           const arg = a[i]!
@@ -2249,77 +2181,77 @@ export function checkSemantics(commands: SimpleCommand[]): SemanticCheckResult {
           ) {
             i += 2 // --kill-after 5, --signal TERM (space-separated)
           } else if (arg.startsWith('--')) {
-            // Unknown long flag, OR --kill-after/--signal with non-allowlisted
-            // value (e.g. placeholder from $() substitution). Fail closed.
+            // 未知的长标志，或 --kill-after/--signal 带有不在允许列表中的值
+            // （例如来自 $() 替换的占位符）。失败关闭。
             return {
               ok: false,
-              reason: `timeout with ${arg} flag cannot be statically analyzed`,
+              reason: `timeout 带 ${arg} 标志无法静态分析`,
             }
           } else if (arg === '-v') {
-            i++ // --verbose, no argument
+            i++ // --verbose，无参数
           } else if (
             (arg === '-k' || arg === '-s') &&
             a[i + 1] &&
             /^[A-Za-z0-9_.+-]+$/.test(a[i + 1]!)
           ) {
-            i += 2 // -k DURATION / -s SIGNAL — separate value
+            i += 2 // -k DURATION / -s SIGNAL - 分离的值
           } else if (/^-[ks][A-Za-z0-9_.+-]+$/.test(arg)) {
-            i++ // fused: -k5, -sTERM
+            i++ // 融合：-k5、-sTERM
           } else if (arg.startsWith('-')) {
-            // Unknown flag OR -k/-s with non-allowlisted value — can't locate
-            // wrapped cmd. Reject, don't fall through to name='timeout'.
+            // 未知标志或 -k/-s 带有不在允许列表中的值 - 无法定位
+            // 包装的命令。拒绝，不要落到 name='timeout'。
             return {
               ok: false,
-              reason: `timeout with ${arg} flag cannot be statically analyzed`,
+              reason: `timeout 带 ${arg} 标志无法静态分析`,
             }
           } else {
-            break // non-flag — should be the duration
+            break // 非标志 - 应该是持续时间
           }
         }
         if (a[i] && /^\d+(?:\.\d+)?[smhd]?$/.test(a[i]!)) {
           a = a.slice(i + 1)
         } else if (a[i]) {
-          // SECURITY (PR #21503 round 3): a[i] exists but doesn't match our
-          // duration regex. GNU timeout parses via xstrtod() (libc strtod) and
-          // accepts `.5`, `+5`, `5e-1`, `inf`, `infinity`, hex floats — none
-          // of which match `/^\d+(\.\d+)?[smhd]?$/`. Empirically verified:
-          // `timeout .5 echo ok` works. Previously this branch `break`ed
-          // (fail-OPEN) so `timeout .5 eval "id"` with `Bash(timeout:*)` left
-          // name='timeout' and eval was never checked. Now fail CLOSED —
-          // consistent with the unknown-FLAG handling above (lines ~1895,1912).
+          // 安全性（PR #21503 第 3 轮）：a[i] 存在但不匹配我们的
+          // 持续时间正则表达式。GNU timeout 通过 xstrtod()（libc strtod）
+          // 解析并接受 `.5`、`+5`、`5e-1`、`inf`、`infinity`、十六进制浮点数 -
+          // 都不匹配 `/^\d+(\.\d+)?[smhd]?$/`。经验证：
+          // `timeout .5 echo ok` 有效。以前此分支 `break`（失败开放）所以
+          // `timeout .5 eval "id"` 带有 `Bash(timeout:*)` 留下 name='timeout'
+          // 且 eval 从未被检查。现在失败关闭 - 与上方的未知标志处理一致
+          // （行 ~1895,1912）。
           return {
             ok: false,
-            reason: `timeout duration '${a[i]}' cannot be statically analyzed`,
+            reason: `timeout 持续时间 '${a[i]}' 无法静态分析`,
           }
         } else {
-          break // no more args — `timeout` alone, inert
+          break // 没有更多参数 - 单独的 `timeout`，惰性
         }
       } else if (a[0] === 'nice') {
-        // `nice cmd`, `nice -n N cmd`, `nice -N cmd` (legacy). All run cmd
-        // at a lower priority. argv[0] check must see the wrapped cmd.
+        // `nice cmd`、`nice -n N cmd`、`nice -N cmd`（旧版）。都以较低优先级运行 cmd。
+        // argv[0] 检查必须看到包装的命令。
         if (a[1] === '-n' && a[2] && /^-?\d+$/.test(a[2])) {
           a = a.slice(3)
         } else if (a[1] && /^-\d+$/.test(a[1])) {
           a = a.slice(2) // `nice -10 cmd`
         } else if (a[1] && /[$(`]/.test(a[1])) {
-          // SECURITY: walkArgument returns node.text for arithmetic_expansion,
-          // so `nice $((0-5)) jq ...` has a[1]='$((0-5))'. Bash expands it to
-          // '-5' (legacy nice syntax) and execs jq; we'd slice(1) here and
-          // set name='$((0-5))' which skips the jq system() check entirely.
-          // Fail closed — mirrors the timeout-duration fail-closed above.
+          // 安全性：walkArgument 对 arithmetic_expansion 返回 node.text，
+          // 所以 `nice $((0-5)) jq ...` 有 a[1]='$((0-5))'。Bash 将其展开为
+          // '-5'（legacy nice 语法）并 exec jq；我们会在这里 slice(1) 并
+          // 设置 name='$((0-5))'，这完全跳过了 jq system() 检查。
+          // 失败关闭 —— 镜像上方的 timeout-duration 失败关闭。
           return {
             ok: false,
-            reason: `nice argument '${a[1]}' contains expansion — cannot statically determine wrapped command`,
+            reason: `nice 参数 '${a[1]}' 包含展开 —— 无法静态确定包装的命令`,
           }
         } else {
           a = a.slice(1) // bare `nice cmd`
         }
       } else if (a[0] === 'env') {
-        // `env [VAR=val...] [-i] [-0] [-v] [-u NAME...] cmd args` runs cmd.
-        // argv[0] check must see cmd, not env. Skip known-safe forms only.
-        // SECURITY: -S splits a string into argv (mini-shell) — must reject.
-        // -C/-P change cwd/PATH — wrapped cmd runs elsewhere, reject.
-        // Any OTHER flag → reject (fail-closed, not fail-open to name='env').
+        // `env [VAR=val...] [-i] [-0] [-v] [-u NAME...] cmd args` 运行 cmd。
+        // argv[0] 检查必须看到 cmd，而非 env。只跳过已知安全的形式。
+        // 安全性：-S 将字符串分割为 argv（迷你 shell）—— 必须拒绝。
+        // -C/-P 改变 cwd/PATH —— 包装的命令在其他地方运行，拒绝。
+        // 任何其他标志 → 拒绝（失败关闭，而非失败开放到 name='env'）。
         let i = 1
         while (i < a.length) {
           const arg = a[i]!
@@ -2330,11 +2262,11 @@ export function checkSemantics(commands: SimpleCommand[]): SemanticCheckResult {
           } else if (arg === '-u' && a[i + 1]) {
             i += 2 // -u NAME unsets; takes one arg
           } else if (arg.startsWith('-')) {
-            // -S (argv splitter), -C (altwd), -P (altpath), --anything,
-            // or unknown flag. Can't model — reject the whole command.
+            // -S（argv 分割器）、-C（替代 cwd）、-P（替代 path）、--anything、
+            // 或未知标志。无法建模 —— 拒绝整个命令。
             return {
               ok: false,
-              reason: `env with ${arg} flag cannot be statically analyzed`,
+              reason: `env 带 ${arg} 标志无法静态分析`,
             }
           } else {
             break // the wrapped command
@@ -2346,12 +2278,11 @@ export function checkSemantics(commands: SimpleCommand[]): SemanticCheckResult {
           break // `env` alone (no wrapped cmd) — inert, name='env'
         }
       } else if (a[0] === 'stdbuf') {
-        // `stdbuf -o0 cmd` (fused), `stdbuf -o 0 cmd` (space-separated),
-        // multiple flags (`stdbuf -o0 -eL cmd`), long forms (`--output=0`).
-        // SECURITY: previous handling only stripped ONE flag and fell through
-        // to slice(2) for anything unrecognized, so `stdbuf --output 0 eval`
-        // → ['0','eval',...] → name='0' hid eval. Now iterate all known flag
-        // forms and fail closed on any unknown flag.
+        // `stdbuf -o0 cmd`（融合）、`stdbuf -o 0 cmd`（空格分隔）、
+        // 多个标志（`stdbuf -o0 -eL cmd`）、长形式（`--output=0`）。
+        // 安全性：之前的处理只剥离一个标志并对任何未识别的内容落到
+        // slice(2)，所以 `stdbuf --output 0 eval` → ['0','eval',...] →
+        // name='0' 隐藏了 eval。现在迭代所有已知标志形式并在任何未知标志上失败关闭。
         let i = 1
         while (i < a.length) {
           const arg = a[i]!
@@ -2362,12 +2293,12 @@ export function checkSemantics(commands: SimpleCommand[]): SemanticCheckResult {
           } else if (STDBUF_LONG_RE.test(arg)) {
             i++ // --output=MODE (fused long)
           } else if (arg.startsWith('-')) {
-            // --output MODE (space-separated long) or unknown flag. GNU
-            // stdbuf long options use `=` syntax, but getopt_long also
-            // accepts space-separated — we can't enumerate safely, reject.
+            // --output MODE（空格分隔长选项）或未知标志。GNU stdbuf
+            // 长选项使用 `=` 语法，但 getopt_long 也接受空格分隔 ——
+            // 我们无法安全枚举，拒绝。
             return {
               ok: false,
-              reason: `stdbuf with ${arg} flag cannot be statically analyzed`,
+              reason: `stdbuf 带 ${arg} 标志无法静态分析`,
             }
           } else {
             break // the wrapped command
@@ -2385,60 +2316,56 @@ export function checkSemantics(commands: SimpleCommand[]): SemanticCheckResult {
     const name = a[0]
     if (name === undefined) continue
 
-    // SECURITY: Empty command name. Quoted empty (`"" cmd`) is harmless —
-    // bash tries to exec "" and fails with "command not found". But an
-    // UNQUOTED empty expansion at command position (`V="" && $V cmd`) is a
-    // bypass: bash drops the empty field and runs `cmd` as argv[0], while
-    // our name="" skips every builtin check below. resolveSimpleExpansion
-    // rejects the $V case; this catches any other path to empty argv[0]
-    // (concatenation of empties, walkString whitespace-quirk, future bugs).
+    // 安全性：空命令名。引号空（`"" cmd`）是无害的 —— bash 尝试 exec ""
+    // 并失败并显示"command not found"。但命令位置的未引用空展开
+    // （`V="" && $V cmd`）是绕过：bash 丢弃空字段并运行 `cmd` 作为 argv[0]，
+    // 而我们的 name="" 跳过下面的每个内建检查。resolveSimpleExpansion
+    // 拒绝 $V 情况；这捕获任何其他到达空 argv[0] 的路径（空拼接、
+    // walkString 空白怪癖、未来 bug）。
     if (name === '') {
       return {
         ok: false,
-        reason: 'Empty command name — argv[0] may not reflect what bash runs',
+        reason: '空命令名 —— argv[0] 可能不反映 bash 运行的内容',
       }
     }
 
-    // Defense-in-depth: argv[0] should never be a placeholder after the
-    // var-tracking fix (static vars return real value, unknown vars reject).
-    // But if a bug upstream ever lets one through, catch it here — a
-    // placeholder-as-command-name means runtime-determined command → unsafe.
+    // 纵深防御：var-tracking 修复后 argv[0] 不应该是占位符（静态变量
+    // 返回真实值，未知变量拒绝）。但如果上游有 bug 漏过一个，在此捕获 ——
+    // 占位符作为命令名意味着运行时确定的命令 → 不安全。
     if (name.includes(CMDSUB_PLACEHOLDER) || name.includes(VAR_PLACEHOLDER)) {
       return {
         ok: false,
-        reason: 'Command name is runtime-determined (placeholder argv[0])',
+        reason: '命令名是运行时确定的（占位符 argv[0]）',
       }
     }
 
-    // argv[0] starts with an operator/flag: this is a fragment, not a
-    // command. Likely a line-continuation leak or a mistake.
+    // argv[0] 以操作符/标志开头：这是一个片段，不是命令。
+    // 可能是行续行泄漏或错误。
     if (name.startsWith('-') || name.startsWith('|') || name.startsWith('&')) {
       return {
         ok: false,
-        reason: 'Command appears to be an incomplete fragment',
+        reason: '命令似乎是一个不完整的片段',
       }
     }
 
-    // SECURITY: builtins that re-parse a NAME operand internally. bash
-    // arithmetically evaluates `arr[EXPR]` in NAME position, running $(cmd)
-    // in the subscript even when the argv element arrived from a
-    // single-quoted raw_string (opaque leaf to tree-sitter). Two forms:
-    // separate (`printf -v NAME`) and fused (`printf -vNAME`, getopt-style).
-    // `printf '[%s]' x` stays safe — `[` in format string, not after `-v`.
+    // 安全性：内部重新解析 NAME 操作数的内建命令。bash 算术计算
+    // NAME 位置中的 `arr[EXPR]`，运行下标中的 $(cmd)，即使 argv 元素
+    // 来自单引号 raw_string（对 tree-sitter 是不透明叶子）。两种形式：
+    // 分离（`printf -v NAME`）和融合（`printf -vNAME`，getopt 风格）。
+    // `printf '[%s]' x` 保持安全 —— `[` 在格式字符串中，不在 `-v` 之后。
     const dangerFlags = SUBSCRIPT_EVAL_FLAGS[name]
     if (dangerFlags !== undefined) {
       for (let i = 1; i < a.length; i++) {
         const arg = a[i]!
-        // Separate form: `-v` then NAME in next arg.
+        // 分离形式：`-v` 然后 NAME 在下一个参数中。
         if (dangerFlags.has(arg) && a[i + 1]?.includes('[')) {
           return {
             ok: false,
-            reason: `'${name} ${arg}' operand contains array subscript — bash evaluates $(cmd) in subscripts`,
+            reason: `'${name} ${arg}' 操作数包含数组下标 —— bash 在下标中计算 $(cmd)`,
           }
         }
-        // Combined short flags: `-ra` is bash shorthand for `-r -a`.
-        // Check if any danger flag character appears in a combined flag
-        // string. The danger flag's NAME operand is the next argument.
+        // 组合短标志：`-ra` 是 `-r -a` 的 bash 简写。检查组合标志字符串中
+        // 是否出现任何危险标志字符。危险标志的 NAME 操作数是下一个参数。
         if (
           arg.length > 2 &&
           arg[0] === '-' &&
@@ -2450,14 +2377,14 @@ export function checkSemantics(commands: SimpleCommand[]): SemanticCheckResult {
               if (a[i + 1]?.includes('[')) {
                 return {
                   ok: false,
-                  reason: `'${name} ${flag}' (combined in '${arg}') operand contains array subscript — bash evaluates $(cmd) in subscripts`,
+                  reason: `'${name} ${flag}'（组合在 '${arg}' 中）操作数包含数组下标 —— bash 在下标中计算 $(cmd)`,
                 }
               }
             }
           }
         }
-        // Fused form: `-vNAME` in one arg. Only short-option flags fuse
-        // (getopt), so check -v/-a/-R. `[[` uses test_operator nodes only.
+        // 融合形式：`-vNAME` 在一个参数中。只有短选项标志融合（getopt），
+        // 所以检查 -v/-a/-R。`[[` 只使用 test_operator 节点。
         for (const flag of dangerFlags) {
           if (
             flag.length === 2 &&
@@ -2467,40 +2394,38 @@ export function checkSemantics(commands: SimpleCommand[]): SemanticCheckResult {
           ) {
             return {
               ok: false,
-              reason: `'${name} ${flag}' (fused) operand contains array subscript — bash evaluates $(cmd) in subscripts`,
+              reason: `'${name} ${flag}'（融合）操作数包含数组下标 —— bash 在下标中计算 $(cmd)`,
             }
           }
         }
       }
     }
 
-    // SECURITY: `[[ ARG OP ARG ]]` arithmetic comparison. bash evaluates
-    // BOTH operands as arithmetic expressions, recursively expanding
-    // `arr[$(cmd)]` subscripts even from single-quoted raw_string. Check
-    // the operand adjacent to each arith-cmp operator on BOTH sides —
-    // SUBSCRIPT_EVAL_FLAGS's "flag then next-arg" pattern can't express
-    // "either side of a binary op". String comparisons (==/!=/=~) do NOT
-    // trigger arithmetic eval — `[[ 'a[x]' == y ]]` is a literal string cmp.
+    // 安全性：`[[ ARG OP ARG ]]` 算术比较。bash 将两个操作数都作为
+    // 算术表达式计算，递归展开 `arr[$(cmd)]` 下标，即使来自单引号
+    // raw_string。检查每个算术比较操作符两侧相邻的操作数 ——
+    // SUBSCRIPT_EVAL_FLAGS 的"标志然后下一个参数"模式无法表达
+    // "二元操作符的任一侧"。字符串比较（==/!=/=~）不
+    // 触发算术计算 —— `[[ 'a[x]' == y ]]` 是字面字符串比较。
     if (name === '[[') {
-      // i starts at 2: a[0]='[[' (contains '['), a[1] is the first real
-      // operand. A binary op can't appear before index 2.
+      // i 从 2 开始：a[0]='[['（包含 '['），a[1] 是第一个真实操作数。
+      // 二元操作符不能出现在索引 2 之前。
       for (let i = 2; i < a.length; i++) {
         if (!TEST_ARITH_CMP_OPS.has(a[i]!)) continue
         if (a[i - 1]?.includes('[') || a[i + 1]?.includes('[')) {
           return {
             ok: false,
-            reason: `'[[ ... ${a[i]} ... ]]' operand contains array subscript — bash arithmetically evaluates $(cmd) in subscripts`,
+            reason: `'[[ ... ${a[i]} ... ]]' 操作数包含数组下标 —— bash 算术计算下标中的 $(cmd)`,
           }
         }
       }
     }
 
-    // SECURITY: `read`/`unset` treat EVERY bare positional as a NAME —
-    // no flag needed. `read 'a[$(id)]' <<< data` executes id even though
-    // argv[1] arrived from a single-quoted raw_string and no -a flag is
-    // present. Same primitive as SUBSCRIPT_EVAL_FLAGS but the trigger is
-    // positional, not flag-gated. Skip operands of read's data-taking
-    // flags (-p PROMPT etc.) to avoid blocking `read -p '[foo] ' var`.
+    // 安全性：`read`/`unset` 将每个裸位置参数视为 NAME —— 不需要标志。
+    // `read 'a[$(id)]' <<< data` 执行 id，即使 argv[1] 来自单引号 raw_string
+    // 且没有 -a 标志。与 SUBSCRIPT_EVAL_FLAGS 相同的原语，但触发器是位置
+    // 参数，而非标志门控。跳过 read 的数据接受标志的操作数（-p PROMPT 等）
+    // 以避免阻止 `read -p '[foo] ' var`。
     if (BARE_SUBSCRIPT_NAME_BUILTINS.has(name)) {
       let skipNext = false
       for (let i = 1; i < a.length; i++) {
@@ -2514,12 +2439,11 @@ export function checkSemantics(commands: SimpleCommand[]): SemanticCheckResult {
             if (READ_DATA_FLAGS.has(arg)) {
               skipNext = true
             } else if (arg.length > 2 && arg[1] !== '-') {
-              // Combined short flag like `-rp`. Getopt-style: first
-              // data-flag char consumes rest-of-arg as its operand
-              // (`-p[foo]` → prompt=`[foo]`), or next-arg if last
-              // (`-rp '[foo]'` → prompt=`[foo]`). So skipNext iff a
-              // data-flag char appears at the END after only no-arg
-              // flags like `-r`/`-s`.
+              // 组合短标志如 `-rp`。Getopt 风格：第一个数据标志字符
+              // 消耗剩余参数作为操作数（`-p[foo]` → prompt=`[foo]`），
+              // 或者如果是最后一个字符则消耗下一个参数
+              // （`-rp '[foo]'` → prompt=`[foo]`）。因此仅当数据标志字符
+              // 出现在末尾（在 `-r`/`-s` 等无参数标志之后）时 skipNext 为 true。
               for (let j = 1; j < arg.length; j++) {
                 if (READ_DATA_FLAGS.has('-' + arg[j])) {
                   if (j === arg.length - 1) skipNext = true
@@ -2533,30 +2457,29 @@ export function checkSemantics(commands: SimpleCommand[]): SemanticCheckResult {
         if (arg.includes('[')) {
           return {
             ok: false,
-            reason: `'${name}' positional NAME '${arg}' contains array subscript — bash evaluates $(cmd) in subscripts`,
+            reason: `'${name}' 位置参数 NAME '${arg}' 包含数组下标 —— bash 在下标中计算 $(cmd)`,
           }
         }
       }
     }
 
-    // SECURITY: Shell reserved keywords as argv[0] indicate a tree-sitter
-    // mis-parse. `! for i in a; do :; done` parses as `command "for i in a"`
-    // + `command "do :"` + `command "done"` — tree-sitter fails to recognize
-    // `for` after `!` as a compound command start. Reject: keywords can never
-    // be legitimate command names, and argv like ['do','false'] is nonsense.
+    // 安全性：Shell 保留关键字作为 argv[0] 表示 tree-sitter 解析错误。
+    // `! for i in a; do :; done` 被解析为 `command "for i in a"`
+    // + `command "do :"` + `command "done"` —— tree-sitter 无法识别 `!` 后的
+    // `for` 作为复合命令开头。拒绝：关键字永远不可能是合法的命令名，
+    // 像 ['do','false'] 这样的 argv 是胡说八道。
     if (SHELL_KEYWORDS.has(name)) {
       return {
         ok: false,
-        reason: `Shell keyword '${name}' as command name — tree-sitter mis-parse`,
+        reason: `Shell 关键字 '${name}' 作为命令名 —— tree-sitter 解析错误`,
       }
     }
 
-    // Check argv (not .text) to catch both single-quote (`'\n#'`) and
-    // double-quote (`"\n#"`) variants. Env vars and redirects are also
-    // part of the .text span so the same downstream bug applies.
-    // Heredoc bodies are excluded from argv so markdown `##` headers
-    // don't trigger this.
-    // TODO: remove once downstream path validation operates on argv.
+    // 检查 argv（而非 .text）以同时捕获单引号（`'\n#'`）和
+    // 双引号（`"\n#"`）变体。环境变量和重定向也属于 .text 跨度，
+    // 因此同样的下游 bug 适用。Heredoc 体被排除在 argv 之外，
+    // 所以 markdown 的 `##` 标题不会触发此检查。
+    // TODO: 一旦下游路径验证在 argv 上操作，移除此检查。
     for (const arg of cmd.argv) {
       if (arg.includes('\n') && NEWLINE_HASH_RE.test(arg)) {
         return {
@@ -2585,12 +2508,11 @@ export function checkSemantics(commands: SimpleCommand[]): SemanticCheckResult {
       }
     }
 
-    // jq's system() built-in executes arbitrary shell commands, and flags
-    // like --from-file can read arbitrary files into jq variables. On the
-    // legacy path these are caught by validateJqCommand in bashSecurity.ts,
-    // but that validator is gated behind `astSubcommands === null` and
-    // never runs when the AST parse succeeds. Mirror the checks here so
-    // the AST path has the same defence.
+    // jq 的 system() 内置函数可以执行任意 shell 命令，而像 --from-file
+    // 这样的标志可以将任意文件读入 jq 变量。在旧路径上，这些由
+    // bashSecurity.ts 中的 validateJqCommand 捕获，但该验证器位于
+    // `astSubcommands === null` 门控之后，当 AST 解析成功时从不运行。
+    // 在此镜像这些检查，使 AST 路径具有相同的防御。
     if (name === 'jq') {
       for (const arg of a) {
         if (/\bsystem\s*\(/.test(arg)) {
@@ -2619,50 +2541,48 @@ export function checkSemantics(commands: SimpleCommand[]): SemanticCheckResult {
     if (ZSH_DANGEROUS_BUILTINS.has(name)) {
       return {
         ok: false,
-        reason: `Zsh builtin '${name}' can bypass security checks`,
+        reason: `Zsh 内建命令 '${name}' 可能绕过安全检查`,
       }
     }
 
     if (EVAL_LIKE_BUILTINS.has(name)) {
-      // `command -v foo` / `command -V foo` are POSIX existence checks that
-      // only print paths — they never execute argv[1]. Bare `command foo`
-      // does bypass function/alias lookup (the concern), so keep blocking it.
+      // `command -v foo` / `command -V foo` 是 POSIX 存在性检查，
+      // 只打印路径 —— 它们从不执行 argv[1]。裸的 `command foo`
+      // 确实会绕过函数/别名查找（这是关注点），因此继续阻止它。
       if (name === 'command' && (a[1] === '-v' || a[1] === '-V')) {
-        // fall through to remaining checks
+        // 继续到剩余检查
       } else if (
         name === 'fc' &&
         !a.slice(1).some(arg => /^-[^-]*[es]/.test(arg))
       ) {
-        // `fc -l`, `fc -ln` list history — safe. `fc -e ed` invokes an
-        // editor then executes. `fc -s [pat=rep]` RE-EXECUTES the last
-        // matching command (optionally with substitution) — as dangerous
-        // as eval. Block any short-opt containing `e` or `s`.
-        // to avoid introducing FPs for `fc -l` (list history).
+        // `fc -l`、`fc -ln` 列出历史 —— 安全。`fc -e ed` 调用编辑器
+        // 然后执行。`fc -s [pat=rep]` 重新执行最后匹配的命令（可选地
+        // 带替换）—— 和 eval 一样危险。阻止任何包含 `e` 或 `s` 的短选项。
+        // 以避免为 `fc -l`（列出历史）引入误报。
       } else if (
         name === 'compgen' &&
         !a.slice(1).some(arg => /^-[^-]*[CFW]/.test(arg))
       ) {
-        // `compgen -c/-f/-v` only list completions — safe. `compgen -C cmd`
-        // immediately executes cmd; `-F func` calls a shell function; `-W list`
-        // word-expands its argument (including $(cmd) even from single-quoted
-        // raw_string). Block any short-opt containing C/F/W (case-sensitive:
-        // -c/-f are safe).
+        // `compgen -c/-f/-v` 只列出补全 —— 安全。`compgen -C cmd`
+        // 立即执行 cmd；`-F func` 调用 shell 函数；`-W list`
+        // 对其参数进行单词展开（包括来自单引号 raw_string 的 $(cmd)）。
+        // 阻止任何包含 C/F/W 的短选项（区分大小写：-c/-f 是安全的）。
       } else {
         return {
           ok: false,
-          reason: `'${name}' evaluates arguments as shell code`,
+          reason: `'${name}' 将参数作为 shell 代码计算`,
         }
       }
     }
 
-    // /proc/*/environ exposes env vars (including secrets) of other processes.
-    // Check argv and redirect targets — `cat /proc/self/environ` and
-    // `cat < /proc/self/environ` both read it.
+    // /proc/*/environ 暴露其他进程的环境变量（包括秘密）。
+    // 检查 argv 和重定向目标 —— `cat /proc/self/environ` 和
+    // `cat < /proc/self/environ` 都会读取它。
     for (const arg of cmd.argv) {
       if (arg.includes('/proc/') && PROC_ENVIRON_RE.test(arg)) {
         return {
           ok: false,
-          reason: 'Accesses /proc/*/environ which may expose secrets',
+          reason: '访问 /proc/*/environ 可能暴露秘密',
         }
       }
     }
@@ -2670,7 +2590,7 @@ export function checkSemantics(commands: SimpleCommand[]): SemanticCheckResult {
       if (r.target.includes('/proc/') && PROC_ENVIRON_RE.test(r.target)) {
         return {
           ok: false,
-          reason: 'Accesses /proc/*/environ which may expose secrets',
+          reason: '访问 /proc/*/environ 可能暴露秘密',
         }
       }
     }

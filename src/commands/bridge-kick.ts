@@ -3,38 +3,38 @@ import type { Command } from '../commands.js'
 import type { LocalCommandCall } from '../types/command.js'
 
 /**
- * Ant-only: inject bridge failure states to manually test recovery paths.
+ * 仅 Ant 使用：注入 bridge 故障状态，用于手动测试恢复路径。
  *
- *   /bridge-kick close 1002            — fire ws_closed with code 1002
- *   /bridge-kick close 1006            — fire ws_closed with code 1006
- *   /bridge-kick poll 404              — next poll throws 404/not_found_error
- *   /bridge-kick poll 404 <type>       — next poll throws 404 with error_type
- *   /bridge-kick poll 401              — next poll throws 401 (auth)
- *   /bridge-kick poll transient        — next poll throws axios-style rejection
- *   /bridge-kick register fail         — next register (inside doReconnect) transient-fails
- *   /bridge-kick register fail 3       — next 3 registers transient-fail
- *   /bridge-kick register fatal        — next register 403s (terminal)
- *   /bridge-kick reconnect-session fail — POST /bridge/reconnect fails (→ Strategy 2)
- *   /bridge-kick heartbeat 401         — next heartbeat 401s (JWT expired)
- *   /bridge-kick reconnect             — call doReconnect directly (= SIGUSR2)
- *   /bridge-kick status                — print current bridge state
+ *   /bridge-kick close 1002            — 触发 code 为 1002 的 ws_closed
+ *   /bridge-kick close 1006            — 触发 code 为 1006 的 ws_closed
+ *   /bridge-kick poll 404              — 下一次 poll 抛出 404/not_found_error
+ *   /bridge-kick poll 404 <type>       — 下一次 poll 抛出带 error_type 的 404
+ *   /bridge-kick poll 401              — 下一次 poll 抛出 401（鉴权）
+ *   /bridge-kick poll transient        — 下一次 poll 抛出 axios 风格的拒绝
+ *   /bridge-kick register fail         — 下一次 register（在 doReconnect 内）瞬时失败
+ *   /bridge-kick register fail 3       — 接下来 3 次 register 瞬时失败
+ *   /bridge-kick register fatal        — 下一次 register 返回 403（终止性）
+ *   /bridge-kick reconnect-session fail — POST /bridge/reconnect 失败（→ 策略 2）
+ *   /bridge-kick heartbeat 401         — 下一次 heartbeat 返回 401（JWT 过期）
+ *   /bridge-kick reconnect             — 直接调用 doReconnect（= SIGUSR2）
+ *   /bridge-kick status                — 打印当前 bridge 状态
  *
- * Workflow: connect Remote Control, run a subcommand, `tail -f debug.log`
- * and watch [bridge:repl] / [bridge:debug] lines for the recovery reaction.
+ * 工作流：连接 Remote Control，运行一个子命令，`tail -f debug.log`
+ * 观察 [bridge:repl] / [bridge:debug] 日志行以查看恢复反应。
  *
- * Composite sequences — the failure modes in the BQ data are chains, not
- * single events. Queue faults then fire the trigger:
+ * 组合序列 —— BQ 数据中的故障模式是链式的，而不是单一事件。
+ * 先排队故障，再触发：
  *
- *   # #22148 residual: ws_closed → register transient-blips → teardown?
+ *   # #22148 残留：ws_closed → register 瞬时抖动 → teardown？
  *   /bridge-kick register fail 2
  *   /bridge-kick close 1002
- *   → expect: doReconnect tries register, fails, returns false → teardown
- *     (demonstrates the retry gap that needs fixing)
+ *   → 预期：doReconnect 尝试 register，失败，返回 false → teardown
+ *     （演示了需要修复的重试缺口）
  *
- *   # Dead gate: poll 404/not_found_error → does onEnvironmentLost fire?
+ *   # 死亡闸门：poll 404/not_found_error → onEnvironmentLost 是否触发？
  *   /bridge-kick poll 404
- *   → expect: tengu_bridge_repl_fatal_error (gate is dead — 147K/wk)
- *     after fix: tengu_bridge_repl_env_lost → doReconnect
+ *   → 预期：tengu_bridge_repl_fatal_error（闸门已死 —— 14.7 万/周）
+ *     修复后：tengu_bridge_repl_env_lost → doReconnect
  */
 
 const USAGE = `/bridge-kick <subcommand>
@@ -95,8 +95,8 @@ const call: LocalCommandCall = async args => {
           value: `poll: need 'transient' or a status code\n${USAGE}`,
         }
       }
-      // Default to what the server ACTUALLY sends for 404 (BQ-verified),
-      // so `/bridge-kick poll 404` reproduces the real 147K/week state.
+      // 默认使用服务器对 404 实际返回的值（经 BQ 验证），
+      // 以便 `/bridge-kick poll 404` 能复现真实的 14.7 万/周状态。
       const errorType =
         b ?? (status === 404 ? 'not_found_error' : 'authentication_error')
       h.injectFault({

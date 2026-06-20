@@ -1,10 +1,10 @@
 /**
- * Covers the getTranscriptPath projectDir branch (line 127 in share/index.ts).
+ * 覆盖 getTranscriptPath 的 projectDir 分支（share/index.ts 的第 127 行）。
  *
- * This file mocks src/bootstrap/state.js to return a non-null projectDir,
- * which exercises the if (projectDir) branch of getTranscriptPath.
+ * 本文件 mock src/bootstrap/state.js 使其返回非空的 projectDir，
+ * 从而执行 getTranscriptPath 的 if (projectDir) 分支。
  *
- * It is isolated in a separate file to avoid state mock contamination.
+ * 为避免 state mock 污染，单独放在一个文件中。
  */
 import {
   afterAll,
@@ -21,7 +21,7 @@ import { promisify } from 'node:util'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-// ── child_process mock (gh fails → shows gh not installed) ──
+// ── child_process mock（gh 失败 → 显示 gh 未安装） ──
 let _execFileImplPD: (
   cmd: string,
   args: string[],
@@ -50,11 +50,11 @@ const execFileMockPD = (
     }),
   )
 
-// Spread real child_process + gate stub behind useShareProjectdirCpStubs.
-// Default OFF: only this suite's beforeAll flips on; afterAll flips off.
-// Without spread, every other test in the same `bun test` run that imports
-// child_process (e.g. src/services/skillLearning/projectContext.ts which uses
-// execFileSync for git) gets our stubs and breaks.
+// 展开真实的 child_process + 通过 useShareProjectdirCpStubs 控制 stub。
+// 默认关闭：仅本套件的 beforeAll 打开，afterAll 关闭。
+// 如果不展开，同一次 `bun test` 运行中其他导入 child_process 的测试
+// （例如使用 execFileSync 调用 git 的 src/services/skillLearning/projectContext.ts）
+// 会拿到我们的 stub 并出错。
 let useShareProjectdirCpStubs = false
 mock.module('node:child_process', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -86,7 +86,7 @@ mock.module('src/services/analytics/index.js', () => ({
   stripProtoFields: (v: unknown) => v,
 }))
 
-// ── State mock with non-null projectDir ──
+// ── 带非空 projectDir 的 state mock ──
 let _mockProjectDir: string | null = null
 
 mock.module('src/bootstrap/state.js', () => ({
@@ -147,7 +147,7 @@ mock.module('src/bootstrap/state.js', () => ({
   setCwdState: () => {},
 }))
 
-// ── State ──
+// ── 状态 ──
 let tmpDir: string
 
 beforeEach(() => {
@@ -160,7 +160,7 @@ afterEach(() => {
   _mockProjectDir = null
 })
 
-// ── Helpers ──
+// ── 辅助函数 ──
 type CallFn = (args: string) => Promise<{ type: string; value: string }>
 
 async function getCallFn(): Promise<CallFn> {
@@ -171,7 +171,7 @@ async function getCallFn(): Promise<CallFn> {
   return loaded.call.bind(loaded) as CallFn
 }
 
-// Gate child_process stub on for this suite only.
+// 仅对本测试套件打开 child_process stub。
 beforeAll(() => {
   useShareProjectdirCpStubs = true
 })
@@ -181,18 +181,18 @@ afterAll(() => {
 
 describe('share command — getTranscriptPath projectDir branch', () => {
   test('getSessionProjectDir non-null → uses projectDir path (session log not found)', async () => {
-    // Set projectDir to tmpDir — session file won't exist → "Session log not found"
+    // 将 projectDir 设置为 tmpDir — session 文件不存在 → "Session log not found"
     _mockProjectDir = tmpDir
     const call = await getCallFn()
     const result = await call('--private')
     expect(result.type).toBe('text')
-    // Since log doesn't exist at projectDir/test-session-pd.jsonl → log not found
+    // 由于 projectDir/test-session-pd.jsonl 不存在 → log 未找到
     expect(result.value).toContain('Session log not found')
     expect(result.value).toContain('test-session-pd')
   })
 
   test('getSessionProjectDir non-null + log exists → proceeds past log check', async () => {
-    // Write session log at projectDir/test-session-pd.jsonl
+    // 在 projectDir/test-session-pd.jsonl 写入 session log
     _mockProjectDir = tmpDir
     const logPath = join(tmpDir, 'test-session-pd.jsonl')
     writeFileSync(
@@ -202,7 +202,7 @@ describe('share command — getTranscriptPath projectDir branch', () => {
     const call = await getCallFn()
     const result = await call('--private')
     expect(result.type).toBe('text')
-    // gh fails → shows gh install instructions
+    // gh 失败 → 显示 gh 安装说明
     expect(typeof result.value).toBe('string')
     expect(result.value.length).toBeGreaterThan(0)
   })

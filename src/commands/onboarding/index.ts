@@ -1,16 +1,16 @@
 import type { Command } from '../../types/command.js'
 
-// Subcommands supported by `/onboarding`.
-// - (no args) | full       — re-run the complete first-run flow
-// - theme                  — re-pick the terminal theme
-// - trust                  — re-confirm the workspace trust dialog
-// - model                  — open the model picker (delegates to /model)
-// - mcp                    — show MCP server setup instructions
-// - status                 — print current onboarding state
+// `/onboarding` 支持的子命令。
+// - (无参数) | full       — 重新运行完整的首次启动流程
+// - theme                  — 重新选择终端主题
+// - trust                  — 重新确认工作区信任对话框
+// - model                  — 打开模型选择器（委托给 /model）
+// - mcp                    — 显示 MCP 服务器配置指引
+// - status                 — 打印当前 onboarding 状态
 //
-// `/onboarding` exists in official v2.1.123 (string + telemetry confirmed:
-// `tengu_onboarding_step`, `hasCompletedOnboarding`, `lastOnboardingVersion`).
-// We expose the user-facing entry point so subscribers can re-run any step.
+// `/onboarding` 在官方 v2.1.123 中存在（字符串 + 遥测确认：
+// `tengu_onboarding_step`、`hasCompletedOnboarding`、`lastOnboardingVersion`）。
+// 我们暴露面向用户的入口，订阅者可以重新运行任意步骤。
 const onboarding: Command = {
   type: 'local-jsx',
   name: 'onboarding',

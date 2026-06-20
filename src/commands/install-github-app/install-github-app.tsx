@@ -32,7 +32,7 @@ const INITIAL_STATE: State = {
   step: 'check-gh',
   selectedRepoName: '',
   currentRepo: '',
-  useCurrentRepo: false, // Default to false, will be set to true if repo detected
+  useCurrentRepo: false, // 默认为 false，检测到仓库后会设为 true
   apiKeyOrOAuthToken: '',
   useExistingKey: true,
   currentWorkflowInstallStep: 0,
@@ -65,7 +65,7 @@ function InstallGitHubApp(props: { onDone: (message: string) => void }): React.R
   const checkGitHubCLI = useCallback(async () => {
     const warnings: Warning[] = [];
 
-    // Check if gh is installed
+    // 检查是否安装了 gh
     const ghVersionResult = await execa('gh --version', {
       shell: true,
       reject: false,
@@ -83,7 +83,7 @@ function InstallGitHubApp(props: { onDone: (message: string) => void }): React.R
       });
     }
 
-    // Check auth status
+    // 检查认证状态
     const authResult = await execa('gh auth status -a', {
       shell: true,
       reject: false,
@@ -99,7 +99,7 @@ function InstallGitHubApp(props: { onDone: (message: string) => void }): React.R
         ],
       });
     } else {
-      // Check if required scopes are present in the Token scopes line
+      // 检查 Token scopes 行中是否包含所需的 scope
       const tokenScopesMatch = authResult.stdout.match(/Token scopes:.*$/m);
       if (tokenScopesMatch) {
         const scopes = tokenScopesMatch[0];
@@ -113,7 +113,7 @@ function InstallGitHubApp(props: { onDone: (message: string) => void }): React.R
         }
 
         if (missingScopes.length > 0) {
-          // Missing required scopes - exit immediately
+          // 缺少必需的 scope - 立即退出
           setState(prev => ({
             ...prev,
             step: 'error',
@@ -133,7 +133,7 @@ function InstallGitHubApp(props: { onDone: (message: string) => void }): React.R
       }
     }
 
-    // Check if in a git repo and get remote URL
+    // 检查是否位于 git 仓库中并获取远程 URL
     const currentRepo = (await getGithubRepo()) ?? '';
 
     logEvent('tengu_install_github_app_step_completed', {
@@ -145,7 +145,7 @@ function InstallGitHubApp(props: { onDone: (message: string) => void }): React.R
       warnings,
       currentRepo,
       selectedRepoName: currentRepo,
-      useCurrentRepo: !!currentRepo, // Set to false if no repo detected
+      useCurrentRepo: !!currentRepo, // 若未检测到仓库则为 false
       step: warnings.length > 0 ? 'warnings' : 'choose-repo',
     }));
   }, []);
@@ -295,9 +295,9 @@ function InstallGitHubApp(props: { onDone: (message: string) => void }): React.R
           step: 'check-existing-secret',
         }));
       } else {
-        // No existing secret found
+        // 未找到已有的 secret
         if (existingApiKey) {
-          // User has local key, skip to creating with it
+          // 用户已有本地 key，跳过并直接用它创建
           setState(prev => ({
             ...prev,
             apiKeyOrOAuthToken: existingApiKey,
@@ -305,14 +305,14 @@ function InstallGitHubApp(props: { onDone: (message: string) => void }): React.R
           }));
           await runSetupGitHubActions(existingApiKey, state.secretName);
         } else {
-          // No local key, go to API key step
+          // 无本地 key，跳转到 API key 步骤
           setState(prev => ({ ...prev, step: 'api-key' }));
         }
       }
     } else {
-      // Error checking secrets
+      // 检查 secret 出错
       if (existingApiKey) {
-        // User has local key, skip to creating with it
+        // 用户已有本地 key，跳过并直接用它创建
         setState(prev => ({
           ...prev,
           apiKeyOrOAuthToken: existingApiKey,
@@ -320,7 +320,7 @@ function InstallGitHubApp(props: { onDone: (message: string) => void }): React.R
         }));
         await runSetupGitHubActions(existingApiKey, state.secretName);
       } else {
-        // No local key, go to API key step
+        // 无本地 key，跳转到 API key 步骤
         setState(prev => ({ ...prev, step: 'api-key' }));
       }
     }
@@ -423,7 +423,7 @@ function InstallGitHubApp(props: { onDone: (message: string) => void }): React.R
     } else if (state.step === 'check-existing-workflow') {
       return;
     } else if (state.step === 'select-workflows') {
-      // Handled by the WorkflowMultiselectDialog component
+      // 由 WorkflowMultiselectDialog 组件处理
       return;
     } else if (state.step === 'check-existing-secret') {
       logEvent('tengu_install_github_app_step_completed', {
@@ -432,18 +432,18 @@ function InstallGitHubApp(props: { onDone: (message: string) => void }): React.R
       if (state.useExistingSecret) {
         await runSetupGitHubActions(null, state.secretName);
       } else {
-        // User wants to use a new secret name with their API key
+        // 用户希望用新的 secret 名称搭配他们的 API key
         await runSetupGitHubActions(state.apiKeyOrOAuthToken, state.secretName);
       }
     } else if (state.step === 'api-key') {
-      // In the new flow, api-key step only appears when user has no existing key
-      // They either entered a new key or will create OAuth token
+      // 在新流程中，api-key 步骤仅在用户没有已有 key 时出现
+      // 用户要么输入了新 key，要么会创建 OAuth token
       if (state.selectedApiKeyOption === 'oauth') {
-        // OAuth flow already handled by handleCreateOAuthToken
+        // OAuth 流程已由 handleCreateOAuthToken 处理
         return;
       }
 
-      // If user selected 'existing' option, use the existing API key
+      // 若用户选择了 'existing' 选项，则使用已有的 API key
       const apiKeyToUse = state.selectedApiKeyOption === 'existing' ? existingApiKey : state.apiKeyOrOAuthToken;
 
       if (!apiKeyToUse) {
@@ -458,14 +458,14 @@ function InstallGitHubApp(props: { onDone: (message: string) => void }): React.R
         return;
       }
 
-      // Store the API key being used (either existing or newly entered)
+      // 存储正在使用的 API key（已有的或新输入的）
       setState(prev => ({
         ...prev,
         apiKeyOrOAuthToken: apiKeyToUse,
         useExistingKey: state.selectedApiKeyOption === 'existing',
       }));
 
-      // Check if ANTHROPIC_API_KEY secret already exists
+      // 检查 ANTHROPIC_API_KEY secret 是否已存在
       const checkSecretsResult = await execFileNoThrow('gh', [
         'secret',
         'list',
@@ -494,14 +494,14 @@ function InstallGitHubApp(props: { onDone: (message: string) => void }): React.R
           logEvent('tengu_install_github_app_step_completed', {
             step: 'api-key' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           });
-          // No existing secret, proceed to creating
+          // 无已有 secret，继续创建
           await runSetupGitHubActions(apiKeyToUse, state.secretName);
         }
       } else {
         logEvent('tengu_install_github_app_step_completed', {
           step: 'api-key' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         });
-        // Error checking secrets, proceed anyway
+        // 检查 secret 出错，仍然继续
         await runSetupGitHubActions(apiKeyToUse, state.secretName);
       }
     }
@@ -585,11 +585,11 @@ function InstallGitHubApp(props: { onDone: (message: string) => void }): React.R
     setState(prev => ({ ...prev, workflowAction: action }));
 
     if (action === 'skip' || action === 'update') {
-      // Check if user has existing local API key
+      // 检查用户是否已有本地 API key
       if (existingApiKey) {
         await checkExistingSecret();
       } else {
-        // No local key, go straight to API key step
+        // 无本地 key，直接进入 API key 步骤
         setState(prev => ({ ...prev, step: 'api-key' }));
       }
     }
@@ -693,11 +693,11 @@ function InstallGitHubApp(props: { onDone: (message: string) => void }): React.R
               ...prev,
               selectedWorkflows,
             }));
-            // Check if user has existing local API key
+            // 检查用户是否已有本地 API key
             if (existingApiKey) {
               void checkExistingSecret();
             } else {
-              // No local key, go straight to API key step
+              // 无本地 key，直接进入 API key 步骤
               setState(prev => ({ ...prev, step: 'api-key' }));
             }
           }}

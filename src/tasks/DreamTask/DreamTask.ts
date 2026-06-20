@@ -1,25 +1,24 @@
-// Background task entry for auto-dream (memory consolidation subagent).
-// Makes the otherwise-invisible forked agent visible in the footer pill and
-// Shift+Down dialog. The dream agent itself is unchanged — this is pure UI
-// surfacing via the existing task registry.
+// auto-dream（记忆整合子 agent）的后台任务入口。
+// 让原本不可见的 fork agent 显示在 footer pill 和 Shift+Down 对话框中。
+// dream agent 本身保持不变 —— 这只是通过现有的任务注册表进行的纯 UI 呈现。
 
 import { rollbackConsolidationLock } from '../../services/autoDream/consolidationLock.js'
 import type { SetAppState, Task, TaskStateBase } from '../../Task.js'
 import { createTaskStateBase, generateTaskId } from '../../Task.js'
 import { registerTask, updateTaskState } from '../../utils/task/framework.js'
 
-// Keep only the N most recent turns for live display.
+// 仅保留最近 N 轮用于实时显示。
 const MAX_TURNS = 30
 
-// A single assistant turn from the dream agent, tool uses collapsed to a count.
+// dream agent 的一轮 assistant 输出，工具调用折叠为计数。
 export type DreamTurn = {
   text: string
   toolUseCount: number
 }
 
-// No phase detection — the dream prompt has a 4-stage structure
-// (orient/gather/consolidate/prune) but we don't parse it. Just flip from
-// 'starting' to 'updating' when the first Edit/Write tool_use lands.
+// 不做阶段检测 —— dream prompt 本身有 4 段结构
+// （orient/gather/consolidate/prune），但我们不解析它。只是在第一个
+// Edit/Write tool_use 落地时从 'starting' 翻到 'updating'。
 export type DreamPhase = 'starting' | 'updating'
 
 export type DreamTaskState = TaskStateBase & {
@@ -27,16 +26,16 @@ export type DreamTaskState = TaskStateBase & {
   phase: DreamPhase
   sessionsReviewing: number
   /**
-   * Paths observed in Edit/Write tool_use blocks via onMessage. This is an
-   * INCOMPLETE reflection of what the dream agent actually changed — it misses
-   * any bash-mediated writes and only captures the tool calls we pattern-match.
-   * Treat as "at least these were touched", not "only these were touched".
+   * 通过 onMessage 从 Edit/Write tool_use 块中观察到的路径。这只是 dream
+   * agent 实际改动的一个不完整映射 —— 它漏掉了任何通过 bash 进行的写入，
+   * 只捕获到我们通过模式匹配识别的工具调用。
+   * 应当视作「至少这些文件被改过」，而不是「只有这些文件被改过」。
    */
   filesTouched: string[]
-  /** Assistant text responses, tool uses collapsed. Prompt is NOT included. */
+  /** assistant 文本回复，工具调用已折叠。不包含 prompt。 */
   turns: DreamTurn[]
   abortController?: AbortController
-  /** Stashed so kill can rewind the lock mtime (same path as fork-failure). */
+  /** 暂存起来，便于 kill 时回滚锁的 mtime（与 fork 失败的处理路径一致）。 */
   priorMtime: number
 }
 
@@ -82,8 +81,8 @@ export function addDreamTurn(
   updateTaskState<DreamTaskState>(taskId, setAppState, task => {
     const seen = new Set(task.filesTouched)
     const newTouched = touchedPaths.filter(p => !seen.has(p) && seen.add(p))
-    // Skip the update entirely if the turn is empty AND nothing new was
-    // touched. Avoids re-rendering on pure no-ops.
+    // 如果该轮为空且没有新增任何被改动的文件，则完全跳过更新。
+    // 避免在纯空操作上触发重渲染。
     if (
       turn.text === '' &&
       turn.toolUseCount === 0 &&
@@ -107,9 +106,9 @@ export function completeDreamTask(
   taskId: string,
   setAppState: SetAppState,
 ): void {
-  // notified: true immediately — dream has no model-facing notification path
-  // (it's UI-only), and eviction requires terminal + notified. The inline
-  // appendSystemMessage completion note IS the user surface.
+  // notified: 立即设为 true —— dream 没有面向模型的通知路径
+  // （它是纯 UI 的），而任务驱逐要求处于 terminal 状态且 notified 为 true。
+  // 内联的 appendSystemMessage 完成提示就是用户侧的呈现方式。
   updateTaskState<DreamTaskState>(taskId, setAppState, task => ({
     ...task,
     status: 'completed',
@@ -147,9 +146,9 @@ export const DreamTask: Task = {
         abortController: undefined,
       }
     })
-    // Rewind the lock mtime so the next session can retry. Same path as the
-    // fork-failure catch in autoDream.ts. If updateTaskState was a no-op
-    // (already terminal), priorMtime stays undefined and we skip.
+    // 回滚锁的 mtime，以便下一个会话可以重试。与 autoDream.ts 中
+    // fork 失败的 catch 路径一致。如果 updateTaskState 是无操作
+    // （已经处于 terminal 状态），priorMtime 仍为 undefined，我们直接跳过。
     if (priorMtime !== undefined) {
       await rollbackConsolidationLock(priorMtime)
     }

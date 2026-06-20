@@ -13,21 +13,20 @@ import { getSecureStorage } from '../utils/secureStorage/index.js'
 import { jsonStringify } from '../utils/slowOperations.js'
 
 /**
- * Trusted device token source for bridge (remote-control) sessions.
+ * bridge（remote-control）session 的 trusted device token 来源。
  *
- * Bridge sessions have SecurityTier=ELEVATED on the server (CCR v2).
- * The server gates ConnectBridgeWorker on its own flag
- * (sessions_elevated_auth_enforcement in Anthropic Main); this CLI-side
- * flag controls whether the CLI sends X-Trusted-Device-Token at all.
- * Two flags so rollout can be staged: flip CLI-side first (headers
- * start flowing, server still no-ops), then flip server-side.
+ * bridge session 在服务器侧（CCR v2）SecurityTier=ELEVATED。服务器用自己
+ * 的 flag（Anthropic Main 中的 sessions_elevated_auth_enforcement）来
+ * 守卫 ConnectBridgeWorker；这个 CLI 侧的 flag 控制的是 CLI 是否真的
+ * 发送 X-Trusted-Device-Token。两个 flag 让灰度可以分阶段：先翻 CLI 侧
+ *（header 开始往外发，服务器侧仍是 no-op），再翻服务器侧。
  *
- * Enrollment (POST /auth/trusted_devices) is gated server-side by
- * account_session.created_at < 10min, so it must happen during /login.
- * Token is persistent (90d rolling expiry) and stored in keychain.
+ * Enrollment（POST /auth/trusted_devices）服务器侧用
+ * account_session.created_at < 10min 限制，所以必须在 /login 期间完成。
+ * token 是持久的（90 天滚动过期），存放在 keychain 里。
  *
- * See anthropics/anthropic#274559 (spec), #310375 (B1b tenant RPCs),
- * #295987 (B2 Python routes), #307150 (C1' CCR v2 gate).
+ * 参见 anthropics/anthropic#274559（spec）、#310375（B1b 租户 RPC）、
+ * #295987（B2 Python 路由）、#307150（C1' CCR v2 gate）。
  */
 
 const TRUSTED_DEVICE_GATE = 'tengu_sessions_elevated_auth_enforcement'
@@ -36,14 +35,15 @@ function isGateEnabled(): boolean {
   return getFeatureValue_CACHED_MAY_BE_STALE(TRUSTED_DEVICE_GATE, false)
 }
 
-// Memoized — secureStorage.read() spawns a macOS `security` subprocess (~40ms).
-// bridgeApi.ts calls this from getHeaders() on every poll/heartbeat/ack.
-// Cache cleared after enrollment (below) and on logout (clearAuthRelatedCaches).
+// memoize —— secureStorage.read() 会 spawn 一个 macOS `security` 子进程
+//（约 40ms）。bridgeApi.ts 每次 poll/heartbeat/ack 都会从 getHeaders()
+// 里调到这里。enrollment（下方）后和登出（clearAuthRelatedCaches）时会
+// 清缓存。
 //
-// Only the storage read is memoized — the GrowthBook gate is checked live so
-// that a gate flip after GrowthBook refresh takes effect without a restart.
+// 只有 storage 读取被 memoize —— GrowthBook gate 每次实时检查，保证
+// GrowthBook 刷新后翻转的 gate 不用重启就生效。
 const readStoredToken = memoize((): string | undefined => {
-  // Env var takes precedence for testing/canary.
+  // 测试 / canary 场景下，env 变量优先。
   const envToken = process.env.CLAUDE_TRUSTED_DEVICE_TOKEN
   if (envToken) {
     return envToken
@@ -63,11 +63,11 @@ export function clearTrustedDeviceTokenCache(): void {
 }
 
 /**
- * Clear the stored trusted device token from secure storage and the memo cache.
- * Called before enrollTrustedDevice() during /login so a stale token from the
- * previous account isn't sent as X-Trusted-Device-Token while enrollment is
- * in-flight (enrollTrustedDevice is async — bridge API calls between login and
- * enrollment completion would otherwise still read the old cached token).
+ * 从 secure storage 和 memo 缓存中清掉存储的 trusted device token。
+ * 在 /login 期间、enrollTrustedDevice() 之前调用，避免上一个账号的陈旧
+ * token 在 enrollment 还在飞的期间作为 X-Trusted-Device-Token 发出去
+ *（enrollTrustedDevice 是异步的 —— login 到 enrollment 完成之间发出的
+ * bridge API 调用，否则会读到旧缓存里的 token）。
  */
 export function clearTrustedDeviceToken(): void {
   if (!isGateEnabled()) {
@@ -81,43 +81,43 @@ export function clearTrustedDeviceToken(): void {
       secureStorage.update(data)
     }
   } catch {
-    // Best-effort — don't block login if storage is inaccessible
+    // best-effort —— storage 不可访问时不要阻塞 login
   }
   readStoredToken.cache?.clear?.()
 }
 
 /**
- * Enroll this device via POST /auth/trusted_devices and persist the token
- * to keychain. Best-effort — logs and returns on failure so callers
- * (post-login hooks) don't block the login flow.
+ * 通过 POST /auth/trusted_devices 注册本机并把 token 持久化到 keychain。
+ * best-effort —— 失败时记录日志并返回，让调用方（post-login 钩子）不会
+ * 卡住 login 流程。
  *
- * The server gates enrollment on account_session.created_at < 10min, so
- * this must be called immediately after a fresh /login. Calling it later
- * (e.g. lazy enrollment on /bridge 403) will fail with 403 stale_session.
+ * 服务器用 account_session.created_at < 10min 作为 enrollment 的闸门，
+ * 所以必须在一次全新 /login 之后立刻调用。延后调用（比如在 /bridge 403
+ * 时 lazy enroll）会得到 403 stale_session。
  */
 export async function enrollTrustedDevice(): Promise<void> {
   try {
-    // checkGate_CACHED_OR_BLOCKING awaits any in-flight GrowthBook re-init
-    // (triggered by refreshGrowthBookAfterAuthChange in login.tsx) before
-    // reading the gate, so we get the post-refresh value.
+    // checkGate_CACHED_OR_BLOCKING 会先等任何进行中的 GrowthBook 重新
+    // 初始化（login.tsx 中 refreshGrowthBookAfterAuthChange 触发），再读
+    // gate，所以我们拿到的是刷新后的值。
     if (!(await checkGate_CACHED_OR_BLOCKING(TRUSTED_DEVICE_GATE))) {
       logForDebugging(
         `[trusted-device] Gate ${TRUSTED_DEVICE_GATE} is off, skipping enrollment`,
       )
       return
     }
-    // If CLAUDE_TRUSTED_DEVICE_TOKEN is set (e.g. by an enterprise wrapper),
-    // skip enrollment — the env var takes precedence in readStoredToken() so
-    // any enrolled token would be shadowed and never used.
+    // 如果设置了 CLAUDE_TRUSTED_DEVICE_TOKEN（例如企业包装脚本），跳过
+    // enrollment —— env 变量在 readStoredToken() 里优先级更高，enroll
+    // 出来的 token 会被它遮蔽、永远用不上。
     if (process.env.CLAUDE_TRUSTED_DEVICE_TOKEN) {
       logForDebugging(
         '[trusted-device] CLAUDE_TRUSTED_DEVICE_TOKEN env var is set, skipping enrollment (env var takes precedence)',
       )
       return
     }
-    // Lazy require — utils/auth.ts transitively pulls ~1300 modules
-    // (config → file → permissions → sessionStorage → commands). Daemon callers
-    // of getTrustedDeviceToken() don't need this; only /login does.
+    // 懒加载 require —— utils/auth.ts 会传递性地拉进约 1300 个模块
+    //（config → file → permissions → sessionStorage → commands）。调用
+    // getTrustedDeviceToken() 的 daemon 调用方不需要它，只有 /login 需要。
     /* eslint-disable @typescript-eslint/no-require-imports */
     const { getClaudeAIOAuthTokens } =
       require('../utils/auth.js') as typeof import('../utils/auth.js')
@@ -127,9 +127,9 @@ export async function enrollTrustedDevice(): Promise<void> {
       logForDebugging('[trusted-device] No OAuth token, skipping enrollment')
       return
     }
-    // Always re-enroll on /login — the existing token may belong to a
-    // different account (account-switch without /logout). Skipping enrollment
-    // would send the old account's token on the new account's bridge calls.
+    // /login 时永远重新 enroll —— 现存 token 可能属于另一个账号
+    //（未 /logout 就切换账号）。跳过 enrollment 会在新账号的 bridge 调用
+    // 上发出旧账号的 token。
     const secureStorage = getSecureStorage()
 
     if (isEssentialTrafficOnly()) {

@@ -8,27 +8,26 @@ import { settingsChangeDetector } from '../../utils/settings/changeDetector.js'
 import { plural } from '../../utils/stringUtils.js'
 
 export const call: LocalCommandCall = async (_args, context) => {
-  // CCR: re-pull user settings before the cache sweep so enabledPlugins /
-  // extraKnownMarketplaces pushed from the user's local CLI (settingsSync)
-  // take effect. Non-CCR headless (e.g. vscode SDK subprocess) shares disk
-  // with whoever writes settings — the file watcher delivers changes, no
-  // re-pull needed there.
+  // CCR：在缓存清理之前重新拉取用户设置，使从用户本地 CLI（settingsSync）
+  // 推送过来的 enabledPlugins / extraKnownMarketplaces 生效。非 CCR 的
+  // headless 模式（例如 vscode SDK 子进程）与写入 settings 的进程共享磁盘
+  // — 文件监听器会投递变更，那里不需要重新拉取。
   //
-  // Managed settings intentionally NOT re-fetched: it already polls hourly
-  // (POLLING_INTERVAL_MS), and policy enforcement is eventually-consistent
-  // by design (stale-cache fallback on fetch failure). Interactive
-  // /reload-plugins has never re-fetched it either.
+  // Managed settings 故意不重新拉取：它已经按小时轮询
+  // （POLLING_INTERVAL_MS），并且策略执行在设计上就是最终一致的
+  // （获取失败时使用过期缓存兜底）。交互式
+  // /reload-plugins 也从未重新拉取过它。
   //
-  // No retries: user-initiated command, one attempt + fail-open. The user
-  // can re-run /reload-plugins to retry. Startup path keeps its retries.
+  // 不重试：用户发起的命令，单次尝试 + fail-open。用户可以
+  // 重新运行 /reload-plugins 来重试。启动路径保留其重试逻辑。
   if (
     feature('DOWNLOAD_USER_SETTINGS') &&
     (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) || getIsRemoteMode())
   ) {
     const applied = await redownloadUserSettings()
-    // applyRemoteEntriesToLocal uses markInternalWrite to suppress the
-    // file watcher (correct for startup, nothing listening yet); fire
-    // notifyChange here so mid-session applySettingsChange runs.
+    // applyRemoteEntriesToLocal 使用 markInternalWrite 抑制
+    // 文件监听器（启动阶段是正确的，此时还没有监听者）；这里触发
+    // notifyChange 以便会话进行中的 applySettingsChange 被执行。
     if (applied) {
       settingsChangeDetector.notifyChange('userSettings')
     }
@@ -41,9 +40,9 @@ export const call: LocalCommandCall = async (_args, context) => {
     n(r.command_count, 'skill'),
     n(r.agent_count, 'agent'),
     n(r.hook_count, 'hook'),
-    // "plugin MCP/LSP" disambiguates from user-config/built-in servers,
-    // which /reload-plugins doesn't touch. Commands/hooks are plugin-only;
-    // agent_count is total agents (incl. built-ins). (gh-31321)
+    // "plugin MCP/LSP" 用于与 user-config/built-in 服务器区分，
+    // /reload-plugins 不会触碰后者。Commands/hooks 仅为插件；
+    // agent_count 为 agent 总数（含 built-ins）。（gh-31321）
     n(r.mcp_count, 'plugin MCP server'),
     n(r.lsp_count, 'plugin LSP server'),
   ]

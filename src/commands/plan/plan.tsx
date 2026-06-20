@@ -49,7 +49,7 @@ export async function call(
   const appState = getAppState();
   const currentMode = appState.toolPermissionContext.mode;
 
-  // If not in plan mode, enable it
+  // 如果不在 plan 模式，则启用它
   if (currentMode !== 'plan') {
     handlePlanModeTransition(currentMode, 'plan');
     setAppState(prev => ({
@@ -69,7 +69,7 @@ export async function call(
     return null;
   }
 
-  // Already in plan mode - show the current plan
+  // 已经在 plan 模式中 - 显示当前计划
   const planContent = getPlan();
   const planPath = getPlanFilePath();
 
@@ -78,7 +78,7 @@ export async function call(
     return null;
   }
 
-  // If user typed "/plan open", open in editor
+  // 如果用户输入了 "/plan open"，则在编辑器中打开
   const argList = args.trim().split(/\s+/);
   if (argList[0] === 'open') {
     const result = await editFileInEditor(planPath);
@@ -95,7 +95,7 @@ export async function call(
 
   const display = <PlanDisplay planContent={planContent} planPath={planPath} editorName={editorName} />;
 
-  // Render to string and pass to onDone like local commands do
+  // 像本地命令那样渲染为字符串并传递给 onDone
   const output = await renderToString(display);
   onDone(output);
   return null;

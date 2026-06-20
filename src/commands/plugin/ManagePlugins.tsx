@@ -14,7 +14,7 @@ import type { ClaudeAIServerInfo, HTTPServerInfo, SSEServerInfo, StdioServerInfo
 import { SearchBox } from '../../components/SearchBox.js';
 import { useSearchInput } from '../../hooks/useSearchInput.js';
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
-// eslint-disable-next-line custom-rules/prefer-use-keybindings -- useInput needed for raw search mode text input
+// eslint-disable-next-line custom-rules/prefer-use-keybindings -- 搜索模式需要 useInput 来接收原始文本输入
 import { Box, Text, useInput, useTerminalFocus } from '@anthropic/ink';
 import { useKeybinding, useKeybindings } from '../../keybindings/useKeybinding.js';
 import { getBuiltinPluginDefinition } from '../../plugins/builtinPlugins.js';
@@ -132,18 +132,18 @@ type PluginState = {
   plugin: LoadedPlugin;
   marketplace: string;
   scope?: 'user' | 'project' | 'local' | 'managed' | 'builtin';
-  pendingEnable?: boolean; // Toggle enable/disable
-  pendingUpdate?: boolean; // Marked for update
+  pendingEnable?: boolean; // 切换启用/禁用
+  pendingUpdate?: boolean; // 标记为待更新
 };
 
 /**
- * Get list of base file names (without .md extension) from a directory
- * @param dirPath The directory path to list files from
- * @returns Array of base file names without .md extension
+ * 从目录中获取基本文件名列表（不含 .md 扩展名）
+ * @param dirPath 要列出文件的目录路径
+ * @returns 不含 .md 扩展名的基本文件名数组
  * @example
- * // Given directory contains: agent-sdk-verifier-py.md, agent-sdk-verifier-ts.md, README.txt
+ * // 假设目录包含：agent-sdk-verifier-py.md、agent-sdk-verifier-ts.md、README.txt
  * await getBaseFileNames('/path/to/agents')
- * // Returns: ['agent-sdk-verifier-py', 'agent-sdk-verifier-ts']
+ * // 返回：['agent-sdk-verifier-py', 'agent-sdk-verifier-ts']
  */
 async function getBaseFileNames(dirPath: string): Promise<string[]> {
   try {
@@ -151,7 +151,7 @@ async function getBaseFileNames(dirPath: string): Promise<string[]> {
     return entries
       .filter((entry: Dirent) => entry.isFile() && entry.name.endsWith('.md'))
       .map((entry: Dirent) => {
-        // Remove .md extension specifically
+        // 专门移除 .md 扩展名
         const baseName = path.basename(entry.name, '.md');
         return baseName;
       });
@@ -159,20 +159,20 @@ async function getBaseFileNames(dirPath: string): Promise<string[]> {
     const errorMsg = errorMessage(error);
     logForDebugging(`Failed to read plugin components from ${dirPath}: ${errorMsg}`, { level: 'error' });
     logError(toError(error));
-    // Return empty array to allow graceful degradation - plugin details can still be shown
+    // 返回空数组以允许优雅降级 —— 插件详情仍可展示
     return [];
   }
 }
 
 /**
- * Get list of skill directory names from a skills directory
- * Skills are directories containing a SKILL.md file
- * @param dirPath The skills directory path to scan
- * @returns Array of skill directory names that contain SKILL.md
+ * 从 skills 目录中获取 skill 目录名列表
+ * Skills 是包含 SKILL.md 文件的目录
+ * @param dirPath 要扫描的 skills 目录路径
+ * @returns 含 SKILL.md 的 skill 目录名数组
  * @example
- * // Given directory contains: my-skill/SKILL.md, another-skill/SKILL.md, README.txt
+ * // 假设目录包含：my-skill/SKILL.md、another-skill/SKILL.md、README.txt
  * await getSkillDirNames('/path/to/skills')
- * // Returns: ['my-skill', 'another-skill']
+ * // 返回：['my-skill', 'another-skill']
  */
 async function getSkillDirNames(dirPath: string): Promise<string[]> {
   try {
@@ -180,9 +180,9 @@ async function getSkillDirNames(dirPath: string): Promise<string[]> {
     const skillNames: string[] = [];
 
     for (const entry of entries) {
-      // Check if it's a directory or symlink (symlinks may point to skill directories)
+      // 检查它是否是目录或符号链接（符号链接可能指向 skill 目录）
       if (entry.isDirectory() || entry.isSymbolicLink()) {
-        // Check if this directory contains a SKILL.md file
+        // 检查该目录是否包含 SKILL.md 文件
         const skillFilePath = path.join(dirPath, entry.name, 'SKILL.md');
         try {
           const st = await fs.stat(skillFilePath);
@@ -190,7 +190,7 @@ async function getSkillDirNames(dirPath: string): Promise<string[]> {
             skillNames.push(entry.name);
           }
         } catch {
-          // No SKILL.md file in this directory, skip it
+          // 该目录中没有 SKILL.md 文件，跳过
         }
       }
     }
@@ -200,12 +200,12 @@ async function getSkillDirNames(dirPath: string): Promise<string[]> {
     const errorMsg = errorMessage(error);
     logForDebugging(`Failed to read skill directories from ${dirPath}: ${errorMsg}`, { level: 'error' });
     logError(toError(error));
-    // Return empty array to allow graceful degradation - plugin details can still be shown
+    // 返回空数组以允许优雅降级 —— 插件详情仍可展示
     return [];
   }
 }
 
-// Component to display installed plugin components
+// 展示已安装插件组件的组件
 function PluginComponentsDisplay({
   plugin,
   marketplace,
@@ -226,8 +226,7 @@ function PluginComponentsDisplay({
   useEffect(() => {
     async function loadComponents() {
       try {
-        // Built-in plugins don't have a marketplace entry — read from the
-        // registered definition directly.
+        // 内置插件没有市场条目 —— 直接从注册的定义中读取。
         if (marketplace === 'builtin') {
           const builtinDef = getBuiltinPluginDefinition(plugin.name);
           if (builtinDef) {
@@ -249,10 +248,10 @@ function PluginComponentsDisplay({
         }
 
         const marketplaceData = await getMarketplace(marketplace);
-        // Find the plugin entry in the array
+        // 在数组中查找插件条目
         const pluginEntry = marketplaceData.plugins.find(p => p.name === plugin.name);
         if (pluginEntry) {
-          // Combine commands from both sources
+          // 合并来自两个源的 commands
           const commandPathList = [];
           if (plugin.commandsPath) {
             commandPathList.push(plugin.commandsPath);
@@ -261,17 +260,17 @@ function PluginComponentsDisplay({
             commandPathList.push(...plugin.commandsPaths);
           }
 
-          // Get base file names from all command paths
+          // 从所有 command 路径获取基本文件名
           const commandList: string[] = [];
           for (const commandPath of commandPathList) {
             if (typeof commandPath === 'string') {
-              // commandPath is already a full path
+              // commandPath 已经是完整路径
               const baseNames = await getBaseFileNames(commandPath);
               commandList.push(...baseNames);
             }
           }
 
-          // Combine agents from both sources
+          // 合并来自两个源的 agents
           const agentPathList = [];
           if (plugin.agentsPath) {
             agentPathList.push(plugin.agentsPath);
@@ -280,17 +279,17 @@ function PluginComponentsDisplay({
             agentPathList.push(...plugin.agentsPaths);
           }
 
-          // Get base file names from all agent paths
+          // 从所有 agent 路径获取基本文件名
           const agentList: string[] = [];
           for (const agentPath of agentPathList) {
             if (typeof agentPath === 'string') {
-              // agentPath is already a full path
+              // agentPath 已经是完整路径
               const baseNames = await getBaseFileNames(agentPath);
               agentList.push(...baseNames);
             }
           }
 
-          // Combine skills from both sources
+          // 合并来自两个源的 skills
           const skillPathList = [];
           if (plugin.skillsPath) {
             skillPathList.push(plugin.skillsPath);
@@ -299,18 +298,18 @@ function PluginComponentsDisplay({
             skillPathList.push(...plugin.skillsPaths);
           }
 
-          // Get skill directory names from all skill paths
-          // Skills are directories containing SKILL.md files
+          // 从所有 skill 路径获取 skill 目录名
+          // Skills 是包含 SKILL.md 文件的目录
           const skillList: string[] = [];
           for (const skillPath of skillPathList) {
             if (typeof skillPath === 'string') {
-              // skillPath is already a full path to a skills directory
+              // skillPath 已经是指向 skills 目录的完整路径
               const skillDirNames = await getSkillDirNames(skillPath);
               skillList.push(...skillDirNames);
             }
           }
 
-          // Combine hooks from both sources
+          // 合并来自两个源的 hooks
           const hooksList = [];
           if (plugin.hooksConfig) {
             hooksList.push(Object.keys(plugin.hooksConfig));
@@ -319,7 +318,7 @@ function PluginComponentsDisplay({
             hooksList.push(pluginEntry.hooks);
           }
 
-          // Combine MCP servers from both sources
+          // 合并来自两个源的 MCP 服务器
           const mcpServersList = [];
           if (plugin.mcpServers) {
             mcpServersList.push(Object.keys(plugin.mcpServers));
@@ -359,7 +358,7 @@ function PluginComponentsDisplay({
   ]);
 
   if (loading) {
-    return null; // Don't show loading state for cleaner UI
+    return null; // 不显示加载状态，保持 UI 干净
   }
 
   if (error) {
@@ -372,14 +371,14 @@ function PluginComponentsDisplay({
   }
 
   if (!components) {
-    return null; // No components info available
+    return null; // 无可用的组件信息
   }
 
   const hasComponents =
     components.commands || components.agents || components.skills || components.hooks || components.mcpServers;
 
   if (!hasComponents) {
-    return null; // No components defined
+    return null; // 未定义任何组件
   }
 
   return (
@@ -444,8 +443,8 @@ function PluginComponentsDisplay({
 }
 
 /**
- * Check if a plugin is from a local source and cannot be remotely updated
- * @returns Error message if local, null if remote/updatable
+ * 检查插件是否来自本地源且无法远程更新
+ * @returns 若为本地则返回错误信息，若为远程/可更新则返回 null
  */
 async function checkIfLocalPlugin(pluginName: string, marketplaceName: string): Promise<string | null> {
   const marketplace = await getMarketplace(marketplaceName);
@@ -459,10 +458,10 @@ async function checkIfLocalPlugin(pluginName: string, marketplaceName: string): 
 }
 
 /**
- * Filter out plugins that are force-disabled by org policy (policySettings).
- * These are blocked by the organization and cannot be re-enabled by the user.
- * Checks policySettings directly rather than installation scope, since managed
- * settings don't create installation records with scope 'managed'.
+ * 过滤掉被组织策略（policySettings）强制禁用的插件。
+ * 这些被组织阻止，用户无法重新启用。
+ * 直接检查 policySettings 而非安装作用域，因为 managed 设置
+ * 不会创建 scope 为 'managed' 的安装记录。
  */
 export function filterManagedDisabledPlugins(plugins: LoadedPlugin[]): LoadedPlugin[] {
   return plugins.filter(plugin => {
@@ -480,13 +479,13 @@ export function ManagePlugins({
   targetMarketplace,
   action,
 }: Props): React.ReactNode {
-  // App state for MCP access
+  // 用于访问 MCP 的 app state
   const mcpClients = useAppState(s => s.mcp.clients);
   const mcpTools = useAppState(s => s.mcp.tools);
   const pluginErrors = useAppState(s => s.plugins.errors);
   const flaggedPlugins = getFlaggedPlugins();
 
-  // Search state
+  // 搜索状态
   const [isSearchMode, setIsSearchModeRaw] = useState(false);
   const setIsSearchMode = useCallback(
     (active: boolean) => {
@@ -498,7 +497,7 @@ export function ManagePlugins({
   const isTerminalFocused = useTerminalFocus();
   const { columns: terminalWidth } = useTerminalSize();
 
-  // View state
+  // 视图状态
   const [viewState, setViewState] = useState<ViewState>('plugin-list');
 
   const {
@@ -513,24 +512,24 @@ export function ManagePlugins({
   });
   const [selectedPlugin, setSelectedPlugin] = useState<PluginState | null>(null);
 
-  // Data state
+  // 数据状态
   const [marketplaces, setMarketplaces] = useState<MarketplaceInfo[]>([]);
   const [pluginStates, setPluginStates] = useState<PluginState[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingToggles, setPendingToggles] = useState<Map<string, 'will-enable' | 'will-disable'>>(new Map());
 
-  // Guard to prevent auto-navigation from re-triggering after the user
-  // navigates away (targetPlugin is never cleared by the parent).
+  // 守卫：防止用户离开后自动导航再次触发（父组件从不清理 targetPlugin）。
   const hasAutoNavigated = useRef(false);
-  // Auto-action (enable/disable/uninstall) to fire after auto-navigation lands.
-  // Ref, not state: it's consumed by a one-shot effect that already re-runs on
-  // viewState/selectedPlugin, so a render-triggering state var would be redundant.
+  // 自动导航落点后触发的自动操作（enable/disable/uninstall）。
+  // 用 ref 而非 state：它被一个一次性的 effect 消费，该 effect 本身
+  // 就在 viewState/selectedPlugin 变化时重新运行，因此会触发渲染的
+  // state 变量是多余的。
   const pendingAutoActionRef = useRef<'enable' | 'disable' | 'uninstall' | undefined>(undefined);
 
-  // MCP toggle hook
+  // MCP 切换 hook
   const toggleMcpServer = useMcpToggleEnabled();
 
-  // Handle escape to go back - viewState-dependent navigation
+  // 处理 Esc 返回 —— 取决于 viewState 的导航
   const handleBack = React.useCallback(() => {
     if (viewState === 'plugin-details') {
       setViewState('plugin-list');
@@ -546,8 +545,8 @@ export function ManagePlugins({
       typeof viewState === 'object' &&
       (viewState.type === 'plugin-options' || viewState.type === 'configuring-options')
     ) {
-      // Cancel mid-sequence — plugin is already enabled, just bail to list.
-      // User can configure later via the Configure options menu if they want.
+      // 在序列中途取消 —— 插件已经启用，直接退回到列表。
+      // 用户以后可以通过 "Configure options" 菜单配置。
       setViewState('plugin-list');
       setSelectedPlugin(null);
       setResult('Plugin enabled. Configuration skipped — run /reload-plugins to apply.');
@@ -573,11 +572,11 @@ export function ManagePlugins({
     }
   }, [viewState, setParentViewState, pendingToggles, setResult]);
 
-  // Escape when not in search mode - go back.
-  // Excludes confirm-project-uninstall (has its own confirm:no handler in
-  // Confirmation context — letting this fire would create competing handlers)
-  // and confirm-data-cleanup (uses raw useInput where n and escape are
-  // DIFFERENT actions: keep-data vs cancel).
+  // 非搜索模式下按 Esc —— 返回。
+  // 不包括 confirm-project-uninstall（在 Confirmation 上下文中
+  // 有自己的 confirm:no 处理器 —— 让它也触发会产生冲突的处理器）
+  // 以及 confirm-data-cleanup（使用原始 useInput，其中 n 和 escape
+  // 是不同动作：keep-data 与 cancel）。
   useKeybinding('confirm:no', handleBack, {
     context: 'Confirmation',
     isActive:
@@ -586,7 +585,7 @@ export function ManagePlugins({
       !(typeof viewState === 'object' && viewState.type === 'confirm-data-cleanup'),
   });
 
-  // Helper to get MCP status
+  // 获取 MCP 状态的辅助函数
   const getMcpStatus = (
     client: MCPServerConnection,
   ): 'connected' | 'disabled' | 'pending' | 'needs-auth' | 'failed' => {
@@ -597,12 +596,12 @@ export function ManagePlugins({
     return 'failed';
   };
 
-  // Derive unified items from plugins and MCP servers
+  // 从插件和 MCP 服务器派生统一项
   const unifiedItems = useMemo(() => {
     const mergedSettings = getSettings_DEPRECATED();
 
-    // Build map of plugin name -> child MCPs
-    // Plugin MCPs have names like "plugin:pluginName:serverName"
+    // 构造 插件名 -> 子 MCP 的 map
+    // 插件 MCP 的名字形如 "plugin:pluginName:serverName"
     const pluginMcpMap = new Map<string, Array<{ displayName: string; client: MCPServerConnection }>>();
     for (const client of mcpClients) {
       if (client.name.startsWith('plugin:')) {
@@ -617,7 +616,7 @@ export function ManagePlugins({
       }
     }
 
-    // Build plugin items (unsorted for now)
+    // 构造插件项（暂未排序）
     type PluginWithChildren = {
       item: UnifiedInstalledItem & { type: 'plugin' };
       originalScope: 'user' | 'project' | 'local' | 'managed' | 'builtin';
@@ -635,7 +634,7 @@ export function ManagePlugins({
           e.source.startsWith(`${state.plugin.name}@`),
       );
 
-      // Built-in plugins use 'builtin' scope; others look up from V2 data.
+      // 内置插件使用 'builtin' 作用域；其他从 V2 数据中查找。
       const originalScope = state.plugin.isBuiltin ? 'builtin' : state.scope || 'user';
 
       pluginsWithChildren.push({
@@ -659,7 +658,7 @@ export function ManagePlugins({
       });
     }
 
-    // Find orphan errors (errors for plugins that failed to load entirely)
+    // 查找孤立错误（完全加载失败的插件对应的错误）
     const matchedPluginIds = new Set(pluginsWithChildren.map(({ item }) => item.id));
     const matchedPluginNames = new Set(pluginsWithChildren.map(({ item }) => item.name));
     const orphanErrorsBySource = new Map<string, typeof pluginErrors>();
@@ -677,15 +676,15 @@ export function ManagePlugins({
     const pluginScopes = getPluginEditableScopes();
     const failedPluginItems: UnifiedInstalledItem[] = [];
     for (const [pluginId, errors] of orphanErrorsBySource) {
-      // Skip plugins that are already shown in the flagged section
+      // 跳过已在 flagged 分组中展示的插件
       if (pluginId in flaggedPlugins) continue;
       const parsed = parsePluginIdentifier(pluginId);
       const pluginName = parsed.name || pluginId;
       const marketplace = parsed.marketplace || 'unknown';
       const rawScope = pluginScopes.get(pluginId);
-      // 'flag' is session-only (from --plugin-dir / flagSettings) and undefined
-      // means the plugin isn't in any settings source. Default both to 'user'
-      // since UnifiedInstalledItem doesn't have a 'flag' scope variant.
+      // 'flag' 仅限当前会话（来自 --plugin-dir / flagSettings），undefined
+      // 表示插件不在任何 settings source 中。两者都默认为 'user'，
+      // 因为 UnifiedInstalledItem 没有 'flag' 作用域变体。
       const scope = rawScope === 'flag' || rawScope === undefined ? 'user' : rawScope;
       failedPluginItems.push({
         type: 'failed-plugin',
@@ -698,7 +697,7 @@ export function ManagePlugins({
       });
     }
 
-    // Build standalone MCP items
+    // 构造独立的 MCP 项
     const standaloneMcps: UnifiedInstalledItem[] = [];
     for (const client of mcpClients) {
       if (client.name === 'ide') continue;
@@ -715,7 +714,7 @@ export function ManagePlugins({
       });
     }
 
-    // Define scope order for display
+    // 定义显示时的作用域顺序
     const scopeOrder: Record<string, number> = {
       flagged: -1,
       project: 0,
@@ -727,22 +726,22 @@ export function ManagePlugins({
       builtin: 6,
     };
 
-    // Build final list by merging plugins (with their child MCPs) and standalone MCPs
-    // Group by scope to avoid duplicate scope headers
+    // 通过合并插件（及其子 MCP）与独立 MCP 构造最终列表
+    // 按作用域分组以避免重复的作用域标题
     const unified: UnifiedInstalledItem[] = [];
 
-    // Create a map of scope -> items for proper merging
+    // 创建 作用域 -> 项 的 map 以便正确合并
     const itemsByScope = new Map<string, UnifiedInstalledItem[]>();
 
-    // Add plugins with their child MCPs
+    // 添加插件及其子 MCP
     for (const { item, originalScope, childMcps } of pluginsWithChildren) {
       const scope = item.scope;
       if (!itemsByScope.has(scope)) {
         itemsByScope.set(scope, []);
       }
       itemsByScope.get(scope)!.push(item);
-      // Add child MCPs right after the plugin, indented (use original scope, not 'flagged').
-      // Built-in plugins map to 'user' for display since MCP ConfigScope doesn't include 'builtin'.
+      // 在插件之后添加子 MCP 并缩进（使用原始作用域，不是 'flagged'）。
+      // 内置插件在显示时映射为 'user'，因为 MCP ConfigScope 不包含 'builtin'。
       for (const { displayName, client } of childMcps) {
         const displayScope = originalScope === 'builtin' ? 'user' : originalScope;
         if (!itemsByScope.has(displayScope)) {
@@ -761,7 +760,7 @@ export function ManagePlugins({
       }
     }
 
-    // Add standalone MCPs to their respective scope groups
+    // 将独立 MCP 添加到各自的作用域分组中
     for (const mcp of standaloneMcps) {
       const scope = mcp.scope;
       if (!itemsByScope.has(scope)) {
@@ -770,7 +769,7 @@ export function ManagePlugins({
       itemsByScope.get(scope)!.push(mcp);
     }
 
-    // Add failed plugins to their respective scope groups
+    // 将失败插件添加到各自的作用域分组中
     for (const failedPlugin of failedPluginItems) {
       const scope = failedPlugin.scope;
       if (!itemsByScope.has(scope)) {
@@ -779,8 +778,8 @@ export function ManagePlugins({
       itemsByScope.get(scope)!.push(failedPlugin);
     }
 
-    // Add flagged (delisted) plugins from user settings.
-    // Reason/text are looked up from the cached security messages file.
+    // 从 user settings 中添加被标记（下架）的插件。
+    // Reason/text 从缓存的 security messages 文件中查找。
     for (const [pluginId, entry] of Object.entries(flaggedPlugins)) {
       const parsed = parsePluginIdentifier(pluginId);
       const pluginName = parsed.name || pluginId;
@@ -800,14 +799,14 @@ export function ManagePlugins({
       });
     }
 
-    // Sort scopes and build final list
+    // 对作用域排序并构造最终列表
     const sortedScopes = [...itemsByScope.keys()].sort((a, b) => (scopeOrder[a] ?? 99) - (scopeOrder[b] ?? 99));
 
     for (const scope of sortedScopes) {
       const items = itemsByScope.get(scope)!;
 
-      // Separate items into plugin groups (with their child MCPs) and standalone MCPs
-      // This preserves parent-child relationships that would be broken by naive sorting
+      // 将项拆分为插件分组（含其子 MCP）与独立 MCP
+      // 这保留了朴素排序会破坏的父子关系
       const pluginGroups: UnifiedInstalledItem[][] = [];
       const standaloneMcpsInScope: UnifiedInstalledItem[] = [];
 
@@ -815,10 +814,10 @@ export function ManagePlugins({
       while (i < items.length) {
         const item = items[i]!;
         if (item.type === 'plugin' || item.type === 'failed-plugin' || item.type === 'flagged-plugin') {
-          // Collect the plugin and its child MCPs as a group
+          // 收集插件及其子 MCP 作为一个分组
           const group: UnifiedInstalledItem[] = [item];
           i++;
-          // Look ahead for indented child MCPs
+          // 向前查找缩进的子 MCP
           let nextItem = items[i];
           while (nextItem?.type === 'mcp' && nextItem.indented) {
             group.push(nextItem);
@@ -827,22 +826,22 @@ export function ManagePlugins({
           }
           pluginGroups.push(group);
         } else if (item.type === 'mcp' && !item.indented) {
-          // Standalone MCP (not a child of a plugin)
+          // 独立的 MCP（不是某个插件的子项）
           standaloneMcpsInScope.push(item);
           i++;
         } else {
-          // Skip orphaned indented MCPs (shouldn't happen)
+          // 跳过孤立的缩进 MCP（不应该发生）
           i++;
         }
       }
 
-      // Sort plugin groups by the plugin name (first item in each group)
+      // 按插件名（每个分组的第一项）对插件分组排序
       pluginGroups.sort((a, b) => a[0]!.name.localeCompare(b[0]!.name));
 
-      // Sort standalone MCPs by name
+      // 按名称排序独立 MCP
       standaloneMcpsInScope.sort((a, b) => a.name.localeCompare(b.name));
 
-      // Build final list: plugins (with their children) first, then standalone MCPs
+      // 构造最终列表：插件（含其子项）在前，然后是独立 MCP
       for (const group of pluginGroups) {
         unified.push(...group);
       }
@@ -852,8 +851,8 @@ export function ManagePlugins({
     return unified;
   }, [pluginStates, mcpClients, pluginErrors, pendingToggles, flaggedPlugins]);
 
-  // Mark flagged plugins as seen when the Installed view renders them.
-  // After 48 hours from seenAt, they auto-clear on next load.
+  // 当 Installed 视图渲染被标记的插件时，将它们标记为已查看。
+  // seenAt 之后 48 小时，它们会在下次加载时自动清除。
   const flaggedIds = useMemo(
     () => unifiedItems.filter(item => item.type === 'flagged-plugin').map(item => item.id),
     [unifiedItems],
@@ -864,7 +863,7 @@ export function ManagePlugins({
     }
   }, [flaggedIds]);
 
-  // Filter items based on search query (matches name or description)
+  // 根据搜索查询过滤项（匹配名称或描述）
   const filteredItems = useMemo(() => {
     if (!searchQuery) return unifiedItems;
     const lowerQuery = searchQuery.toLowerCase();
@@ -875,28 +874,28 @@ export function ManagePlugins({
     );
   }, [unifiedItems, searchQuery]);
 
-  // Selection state
+  // 选择状态
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // Pagination for unified list (continuous scrolling)
+  // 统一列表的分页（连续滚动）
   const pagination = usePagination<UnifiedInstalledItem>({
     totalItems: filteredItems.length,
     selectedIndex,
     maxVisible: 8,
   });
 
-  // Details view state
+  // 详情视图状态
   const [detailsMenuIndex, setDetailsMenuIndex] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processError, setProcessError] = useState<string | null>(null);
 
-  // Configuration state
+  // 配置状态
   const [configNeeded, setConfigNeeded] = useState<McpbNeedsConfigResult | null>(null);
   const [_isLoadingConfig, setIsLoadingConfig] = useState(false);
   const [selectedPluginHasMcpb, setSelectedPluginHasMcpb] = useState(false);
 
-  // Detect if selected plugin has MCPB
-  // Reads raw marketplace.json to work with old cached marketplaces
+  // 检测所选插件是否含有 MCPB
+  // 读取原始 marketplace.json 以兼容旧缓存市场
   useEffect(() => {
     if (!selectedPlugin) {
       setSelectedPluginHasMcpb(false);
@@ -904,7 +903,7 @@ export function ManagePlugins({
     }
 
     async function detectMcpb() {
-      // Check plugin manifest first
+      // 先检查插件 manifest
       const mcpServersSpec = selectedPlugin!.plugin.manifest.mcpServers;
       let hasMcpb = false;
 
@@ -914,8 +913,8 @@ export function ManagePlugins({
           (Array.isArray(mcpServersSpec) && mcpServersSpec.some(s => typeof s === 'string' && isMcpbSource(s)));
       }
 
-      // If not in manifest, read raw marketplace.json directly (bypassing schema validation)
-      // This works even with old cached marketplaces from before MCPB support
+      // 如果不在 manifest 中，直接读取原始 marketplace.json（绕过 schema 校验）
+      // 即使是 MCPB 支持之前的旧缓存市场也能工作
       if (!hasMcpb) {
         try {
           const marketplaceDir = path.join(selectedPlugin!.plugin.path, '..');
@@ -943,17 +942,17 @@ export function ManagePlugins({
     void detectMcpb();
   }, [selectedPlugin]);
 
-  // Load installed plugins grouped by marketplace
+  // 按市场分组加载已安装的插件
   useEffect(() => {
     async function loadInstalledPlugins() {
       setLoading(true);
       try {
         const { enabled, disabled } = await loadAllPlugins();
-        const mergedSettings = getSettings_DEPRECATED(); // Use merged settings to respect all layers
+        const mergedSettings = getSettings_DEPRECATED(); // 使用合并后的 settings 以尊重所有层级
 
         const allPlugins = filterManagedDisabledPlugins([...enabled, ...disabled]);
 
-        // Group plugins by marketplace
+        // 按市场对插件分组
         const pluginsByMarketplace: Record<string, LoadedPlugin[]> = {};
         for (const plugin of allPlugins) {
           const marketplace = plugin.source.split('@')[1] || 'local';
@@ -963,7 +962,7 @@ export function ManagePlugins({
           pluginsByMarketplace[marketplace]!.push(plugin);
         }
 
-        // Create marketplace info array with enabled/disabled counts
+        // 创建带启用/禁用计数的市场信息数组
         const marketplaceInfos: MarketplaceInfo[] = [];
         for (const [name, plugins] of Object.entries(pluginsByMarketplace)) {
           const enabledCount = count(plugins, p => {
@@ -980,7 +979,7 @@ export function ManagePlugins({
           });
         }
 
-        // Sort marketplaces: claude-plugin-directory first, then alphabetically
+        // 对市场排序：claude-plugin-directory 优先，再按字母序
         marketplaceInfos.sort((a, b) => {
           if (a.name === 'claude-plugin-directory') return -1;
           if (b.name === 'claude-plugin-directory') return 1;
@@ -989,12 +988,12 @@ export function ManagePlugins({
 
         setMarketplaces(marketplaceInfos);
 
-        // Build flat list of all plugin states
+        // 构造所有插件状态的扁平列表
         const allStates: PluginState[] = [];
         for (const marketplace of marketplaceInfos) {
           for (const plugin of marketplace.installedPlugins) {
             const pluginId = `${plugin.name}@${marketplace.name}`;
-            // Built-in plugins don't have V2 install entries — skip the lookup.
+            // 内置插件没有 V2 安装记录 —— 跳过查找。
             const scope = plugin.isBuiltin ? 'builtin' : getPluginInstallationFromV2(pluginId).scope;
 
             allStates.push({
@@ -1016,25 +1015,25 @@ export function ManagePlugins({
     void loadInstalledPlugins();
   }, []);
 
-  // Auto-navigate to target plugin if specified (once only)
+  // 如果指定了目标插件，则自动导航（仅一次）
   useEffect(() => {
     if (hasAutoNavigated.current) return;
     if (targetPlugin && marketplaces.length > 0 && !loading) {
-      // targetPlugin may be `name` or `name@marketplace` (parseArgs passes the
-      // raw arg through). Parse it so p.name matching works either way.
+      // targetPlugin 可能是 `name` 或 `name@marketplace`（parseArgs 直接
+      // 透传原始参数）。解析它，使 p.name 匹配在两种情况下都能工作。
       const { name: targetName, marketplace: targetMktFromId } = parsePluginIdentifier(targetPlugin);
       const effectiveTargetMarketplace = targetMarketplace ?? targetMktFromId;
 
-      // Use targetMarketplace if provided, otherwise search all
+      // 如果提供了 targetMarketplace 就用它，否则搜索所有市场
       const marketplacesToSearch = effectiveTargetMarketplace
         ? marketplaces.filter(m => m.name === effectiveTargetMarketplace)
         : marketplaces;
 
-      // First check successfully loaded plugins
+      // 先检查成功加载的插件
       for (const marketplace of marketplacesToSearch) {
         const plugin = marketplace.installedPlugins.find(p => p.name === targetName);
         if (plugin) {
-          // Get scope from V2 data for proper operation handling
+          // 从 V2 数据获取作用域以正确处理操作
           const pluginId = `${plugin.name}@${marketplace.name}`;
           const { scope } = getPluginInstallationFromV2(pluginId);
 
@@ -1053,7 +1052,7 @@ export function ManagePlugins({
         }
       }
 
-      // Fall back to failed plugins (those with errors but not loaded)
+      // 回退到失败插件（有错误但未加载的）
       const failedItem = unifiedItems.find(item => item.type === 'failed-plugin' && item.name === targetName);
       if (failedItem && failedItem.type === 'failed-plugin') {
         setViewState({
@@ -1069,10 +1068,10 @@ export function ManagePlugins({
         hasAutoNavigated.current = true;
       }
 
-      // No match in loaded OR failed plugins — close the dialog with a
-      // message rather than silently landing on the plugin list. Only do
-      // this when an action was requested (e.g. /plugin uninstall X);
-      // plain navigation (/plugin manage) should still just show the list.
+      // 在已加载或失败的插件中都没匹配 —— 关闭对话框并给出
+      // 消息，而不是默默停在插件列表上。仅当请求了某个操作
+      // （例如 /plugin uninstall X）时才这样做；纯导航
+      // （/plugin manage）仍应只显示列表。
       if (!hasAutoNavigated.current && action) {
         hasAutoNavigated.current = true;
         setResult(`Plugin "${targetPlugin}" is not installed in this project`);
@@ -1080,20 +1079,20 @@ export function ManagePlugins({
     }
   }, [targetPlugin, targetMarketplace, marketplaces, loading, unifiedItems, action, setResult]);
 
-  // Handle single plugin operations from details view
+  // 从详情视图处理单个插件操作
   const handleSingleOperation = async (operation: 'enable' | 'disable' | 'update' | 'uninstall') => {
     if (!selectedPlugin) return;
 
     const pluginScope = selectedPlugin.scope || 'user';
     const isBuiltin = pluginScope === 'builtin';
 
-    // Built-in plugins can only be enabled/disabled, not updated/uninstalled.
+    // 内置插件只能启用/禁用，不能更新/卸载。
     if (isBuiltin && (operation === 'update' || operation === 'uninstall')) {
       setProcessError('Built-in plugins cannot be updated or uninstalled.');
       return;
     }
 
-    // Managed scope plugins can only be updated, not enabled/disabled/uninstalled
+    // 托管作用域的插件只能更新，不能启用/禁用/卸载
     if (!isBuiltin && !isInstallableScope(pluginScope) && operation !== 'update') {
       setProcessError('This plugin is managed by your organization. Contact your admin to disable it.');
       return;
@@ -1106,10 +1105,10 @@ export function ManagePlugins({
       const pluginId = `${selectedPlugin.plugin.name}@${selectedPlugin.marketplace}`;
       let reverseDependents: string[] | undefined;
 
-      // enable/disable omit scope — pluginScope is the install scope from
-      // installed_plugins.json (where files are cached), which can diverge
-      // from the settings scope (where enablement lives). Passing it trips
-      // the cross-scope guard. Auto-detect finds the right scope. #38084
+      // enable/disable 省略 scope —— pluginScope 是 installed_plugins.json
+      // 中的安装作用域（文件缓存所在地），可能与 settings 中的作用域
+      // （启用状态所在地）不一致。传入它会触发跨作用域守卫。
+      // 自动检测能找到正确的作用域。#38084
       switch (operation) {
         case 'enable': {
           const enableResult = await enablePluginOp(pluginId);
@@ -1127,24 +1126,22 @@ export function ManagePlugins({
           break;
         }
         case 'uninstall': {
-          if (isBuiltin) break; // guarded above; narrows pluginScope
+          if (isBuiltin) break; // 上面已守卫；此处收窄 pluginScope
           if (!isInstallableScope(pluginScope)) break;
-          // If the plugin is enabled in .claude/settings.json (shared with the
-          // team), divert to a confirmation dialog that offers to disable in
-          // settings.local.json instead. Check the settings file directly —
-          // `pluginScope` (from installed_plugins.json) can be 'user' even when
-          // the plugin is ALSO project-enabled, and uninstalling the user-scope
-          // install would leave the project enablement active.
+          // 如果插件在 .claude/settings.json（与团队共享）中启用，
+          // 则转到确认对话框，提供在 settings.local.json 中禁用的选项。
+          // 直接检查 settings 文件 —— `pluginScope`（来自
+          // installed_plugins.json）即使在插件同时被项目启用时也可能为
+          // 'user'，而卸载 user 作用域的安装会让项目启用仍生效。
           if (isPluginEnabledAtProjectScope(pluginId)) {
             setIsProcessing(false);
             setViewState('confirm-project-uninstall');
             return;
           }
-          // If the plugin has persistent data (${CLAUDE_PLUGIN_DATA}) AND this
-          // is the last scope, prompt before deleting it. For multi-scope
-          // installs, the op's isLastScope check won't delete regardless of
-          // the user's y/n — showing the dialog would mislead ("y" → nothing
-          // happens). Length check mirrors pluginOperations.ts:513.
+          // 如果插件有持久化数据（${CLAUDE_PLUGIN_DATA}）且这是最后一个作用域，
+          // 在删除前提示。对多作用域安装，操作的 isLastScope 检查无论用户
+          // 选 y/n 都不会删除 —— 显示对话框会误导（"y" → 什么都没发生）。
+          // 长度检查与 pluginOperations.ts:513 一致。
           const installs = loadInstalledPluginsV2().plugins[pluginId];
           const isLastScope = !installs || installs.length <= 1;
           const dataSize = isLastScope ? await getPluginDataDirSize(pluginId) : null;
@@ -1161,12 +1158,12 @@ export function ManagePlugins({
           break;
         }
         case 'update': {
-          if (isBuiltin) break; // guarded above; narrows pluginScope
+          if (isBuiltin) break; // 上面已守卫；此处收窄 pluginScope
           const result = await updatePluginOp(pluginId, pluginScope);
           if (!result.success) {
             throw new Error(result.message);
           }
-          // If already up to date, show message and exit
+          // 如果已是最新版本，显示信息并退出
           if (result.alreadyUpToDate) {
             setResult(`${selectedPlugin.plugin.name} is already at the latest version (${result.newVersion}).`);
             if (onManageComplete) {
@@ -1175,20 +1172,20 @@ export function ManagePlugins({
             setParentViewState({ type: 'menu' });
             return;
           }
-          // Success - will show standard message below
+          // 成功 —— 将在下面显示标准消息
           break;
         }
       }
 
-      // Operations (enable, disable, uninstall, update) now use centralized functions
-      // that handle their own settings updates, so we only need to clear caches here
+      // 操作（enable、disable、uninstall、update）现在使用集中化的函数，
+      // 它们自己处理 settings 更新，因此这里只需要清理缓存
       clearAllCaches();
 
-      // Prompt for manifest.userConfig + channel userConfig if the plugin ends
-      // up enabled. Re-read settings rather than keying on `operation ===
-      // 'enable'`: install enables on install, so the menu shows "Disable"
-      // first. PluginOptionsFlow itself checks getUnconfiguredOptions — if
-      // nothing needs filling, it calls onDone('skipped') immediately.
+      // 如果插件最终处于启用状态，则提示配置 manifest.userConfig + channel
+      // userConfig。重新读取 settings，而不是依赖 `operation === 'enable'`：
+      // install 在安装时就启用，所以菜单会先显示 "Disable"。
+      // PluginOptionsFlow 自身会检查 getUnconfiguredOptions —— 如果不需要
+      // 填写任何内容，它会立即调用 onDone('skipped')。
       const pluginIdNow = `${selectedPlugin.plugin.name}@${selectedPlugin.marketplace}`;
       const settingsAfter = getSettings_DEPRECATED();
       const enabledAfter = settingsAfter?.enabledPlugins?.[pluginIdNow] !== false;
@@ -1207,8 +1204,8 @@ export function ManagePlugins({
               ? 'Updated'
               : 'Uninstalled';
 
-      // Single-line warning — notification timeout is ~8s, multi-line would scroll off.
-      // The persistent record is in the Errors tab (dependency-unsatisfied after reload).
+      // 单行警告 —— 通知超时约为 8s，多行会滚出屏幕。
+      // 持久记录在 Errors 标签中（重载后的 dependency-unsatisfied）。
       const depWarn =
         reverseDependents && reverseDependents.length > 0 ? ` · required by ${reverseDependents.join(', ')}` : '';
       const message = `✓ ${operationName} ${selectedPlugin.plugin.name}${depWarn}. Run /reload-plugins to apply.`;
@@ -1227,13 +1224,13 @@ export function ManagePlugins({
     }
   };
 
-  // Latest-ref: lets the auto-action effect call the current closure without
-  // adding handleSingleOperation (recreated every render) to its deps.
+  // 最新 ref：让自动操作 effect 调用当前闭包，而无需把
+  // handleSingleOperation（每次渲染都重建）加到依赖里。
   const handleSingleOperationRef = useRef(handleSingleOperation);
   handleSingleOperationRef.current = handleSingleOperation;
 
-  // Auto-execute the action prop (/plugin uninstall X, /plugin enable X, etc.)
-  // once auto-navigation has landed on plugin-details.
+  // 在自动导航落到 plugin-details 后，自动执行 action prop
+  // （/plugin uninstall X、/plugin enable X 等）。
   useEffect(() => {
     if (viewState === 'plugin-details' && selectedPlugin && pendingAutoActionRef.current) {
       const pending = pendingAutoActionRef.current;
@@ -1242,7 +1239,7 @@ export function ManagePlugins({
     }
   }, [viewState, selectedPlugin]);
 
-  // Handle toggle enable/disable
+  // 处理切换启用/禁用
   const handleToggle = React.useCallback(() => {
     if (selectedIndex >= filteredItems.length) return;
     const item = filteredItems[selectedIndex];
@@ -1256,9 +1253,9 @@ export function ManagePlugins({
       const isBuiltin = pluginScope === 'builtin';
       if (isBuiltin || isInstallableScope(pluginScope as PersistablePluginScope)) {
         const newPending = new Map(pendingToggles);
-        // Omit scope — see handleSingleOperation's enable/disable comment.
+        // 省略 scope —— 参见 handleSingleOperation 中 enable/disable 的注释。
         if (currentPending) {
-          // Cancel: reverse the operation back to the original state
+          // 取消：将操作回退到原始状态
           newPending.delete(pluginId);
           void (async () => {
             try {
@@ -1294,7 +1291,7 @@ export function ManagePlugins({
     }
   }, [selectedIndex, filteredItems, pendingToggles, pluginStates, toggleMcpServer]);
 
-  // Handle accept (Enter) in plugin-list
+  // 在 plugin-list 中处理确认（Enter）
   const handleAccept = React.useCallback(() => {
     if (selectedIndex >= filteredItems.length) return;
     const item = filteredItems[selectedIndex];
@@ -1338,7 +1335,7 @@ export function ManagePlugins({
     }
   }, [selectedIndex, filteredItems, pluginStates]);
 
-  // Plugin-list navigation (non-search mode)
+  // 插件列表导航（非搜索模式）
   useKeybindings(
     {
       'select:previous': () => {
@@ -1369,7 +1366,7 @@ export function ManagePlugins({
     },
   );
 
-  // Handle dismiss action in flagged-detail view
+  // 在 flagged-detail 视图中处理 dismiss 动作
   const handleFlaggedDismiss = React.useCallback(() => {
     if (typeof viewState !== 'object' || viewState.type !== 'flagged-detail') return;
     void removeFlaggedPlugin(viewState.plugin.id);
@@ -1384,7 +1381,7 @@ export function ManagePlugins({
     },
   );
 
-  // Build details menu items (needed for navigation)
+  // 构造详情菜单项（导航所需）
   const detailsMenuItems = React.useMemo(() => {
     if (viewState !== 'plugin-details' || !selectedPlugin) return [];
 
@@ -1400,7 +1397,7 @@ export function ManagePlugins({
       action: () => void handleSingleOperation(isEnabled ? 'disable' : 'enable'),
     });
 
-    // Update/Uninstall options — not available for built-in plugins
+    // Update/Uninstall 选项 —— 内置插件不可用
     if (!isBuiltin) {
       menuItems.push({
         label: selectedPlugin.pendingUpdate ? 'Unmark for update' : 'Mark for update',
@@ -1518,9 +1515,9 @@ export function ManagePlugins({
 
     if (selectedPlugin.plugin.manifest.repository) {
       menuItems.push({
-        // Generic label — manifest.repository can be GitLab, Bitbucket,
-        // Azure DevOps, etc. (gh-31598). pluginDetailsHelpers.tsx:74 keeps
-        // 'View on GitHub' because that path has an explicit isGitHub check.
+        // 通用标签 —— manifest.repository 可能是 GitLab、Bitbucket、
+        // Azure DevOps 等（gh-31598）。pluginDetailsHelpers.tsx:74 保留
+        // 'View on GitHub'，因为该路径有显式的 isGitHub 检查。
         label: 'View repository',
         action: () => void openBrowser(selectedPlugin.plugin.manifest.repository!),
       });
@@ -1538,7 +1535,7 @@ export function ManagePlugins({
     return menuItems;
   }, [viewState, selectedPlugin, selectedPluginHasMcpb, pluginStates]);
 
-  // Plugin-details navigation
+  // 插件详情导航
   useKeybindings(
     {
       'select:previous': () => {
@@ -1563,7 +1560,7 @@ export function ManagePlugins({
     },
   );
 
-  // Failed-plugin-details: only "Uninstall" option, handle Enter
+  // failed-plugin-details：只有 "Uninstall" 选项，处理 Enter
   useKeybindings(
     {
       'select:accept': () => {
@@ -1573,20 +1570,19 @@ export function ManagePlugins({
             setProcessError(null);
             const pluginId = viewState.plugin.id;
             const pluginScope = viewState.plugin.scope;
-            // Pass scope to uninstallPluginOp so it can find the correct V2
-            // installation record and clean up on-disk files. Fall back to
-            // default scope if not installable (e.g. 'managed', though that
-            // case is guarded by isActive below). deleteDataDir=false: this
-            // is a recovery path for a plugin that failed to load — it may
-            // be reinstallable, so don't nuke ${CLAUDE_PLUGIN_DATA} silently.
-            // The normal uninstall path prompts; this one preserves.
+            // 把 scope 传给 uninstallPluginOp，让它能找到正确的 V2 安装
+            // 记录并清理磁盘文件。如果不是可安装作用域则回退到默认
+            // 作用域（例如 'managed'，不过那种情况已被下面的 isActive
+            // 守卫）。deleteDataDir=false：这是加载失败插件的恢复路径 ——
+            // 它可能可以重装，因此不要悄悄清除 ${CLAUDE_PLUGIN_DATA}。
+            // 正常卸载路径会提示；这条路径保留数据。
             const result = isInstallableScope(pluginScope as PersistablePluginScope)
               ? await uninstallPluginOp(pluginId, pluginScope as InstallableScope, false)
               : await uninstallPluginOp(pluginId, 'user', false);
             let success = result.success;
             if (!success) {
-              // Plugin was never installed (only in enabledPlugins settings).
-              // Remove directly from all editable settings sources.
+              // 插件从未安装（只在 enabledPlugins 设置中）。
+              // 直接从所有可编辑 settings source 中移除。
               const editableSources = ['userSettings' as const, 'projectSettings' as const, 'localSettings' as const];
               for (const source of editableSources) {
                 const settings = getSettingsForSource(source);
@@ -1600,7 +1596,7 @@ export function ManagePlugins({
                   success = true;
                 }
               }
-              // Clear memoized caches so next loadAllPlugins() picks up settings changes
+              // 清除 memoized 缓存，使下次 loadAllPlugins() 能感知 settings 变更
               clearAllCaches();
             }
             if (success) {
@@ -1608,7 +1604,7 @@ export function ManagePlugins({
                 await onManageComplete();
               }
               setIsProcessing(false);
-              // Return to list (don't setResult — that closes the whole dialog)
+              // 返回列表（不要 setResult —— 那会关闭整个对话框）
               setViewState('plugin-list');
             } else {
               setIsProcessing(false);
@@ -1627,7 +1623,7 @@ export function ManagePlugins({
     },
   );
 
-  // Confirm-project-uninstall: y/enter disables in settings.local.json, n/escape cancels
+  // confirm-project-uninstall：y/enter 在 settings.local.json 中禁用，n/escape 取消
   useKeybindings(
     {
       'confirm:yes': () => {
@@ -1635,9 +1631,8 @@ export function ManagePlugins({
         setIsProcessing(true);
         setProcessError(null);
         const pluginId = `${selectedPlugin.plugin.name}@${selectedPlugin.marketplace}`;
-        // Write `false` directly — disablePluginOp's cross-scope guard would
-        // reject this (plugin isn't in localSettings yet; the override IS the
-        // point).
+        // 直接写入 `false` —— disablePluginOp 的跨作用域守卫会拒绝
+        // 此操作（插件尚未在 localSettings 中；覆盖就是目的本身）。
         const { error } = updateSettingsForSource('localSettings', {
           enabledPlugins: {
             ...getSettingsForSource('localSettings')?.enabledPlugins,
@@ -1667,21 +1662,21 @@ export function ManagePlugins({
     },
   );
 
-  // Confirm-data-cleanup: y uninstalls + deletes data dir, n uninstalls + keeps,
-  // esc cancels. Raw useInput because: (1) the Confirmation context maps
-  // enter→confirm:yes, which would make Enter delete the data directory — a
-  // destructive default the UI text ("y to delete · n to keep") doesn't
-  // advertise; (2) unlike confirm-project-uninstall (which uses useKeybindings
-  // where n and escape both map to confirm:no), here n and escape are DIFFERENT
-  // actions (keep-data vs cancel), so this deliberately stays on raw useInput.
-  // eslint-disable-next-line custom-rules/prefer-use-keybindings -- raw y/n/esc; Enter must not trigger destructive delete
+  // confirm-data-cleanup：y 卸载并删除数据目录，n 卸载并保留，esc 取消。
+  // 使用原始 useInput 的原因：(1) Confirmation 上下文将 enter 映射为
+  // confirm:yes，这会让 Enter 删除数据目录 —— 这是一个 UI 文本
+  // （"y to delete · n to keep"）未声明的破坏性默认；(2) 与
+  // confirm-project-uninstall（使用 useKeybindings，其中 n 和 escape
+  // 都映射到 confirm:no）不同，这里 n 和 escape 是不同动作
+  // （keep-data 与 cancel），所以这里刻意保留在原始 useInput 上。
+  // eslint-disable-next-line custom-rules/prefer-use-keybindings —— 原始 y/n/esc；Enter 不能触发破坏性删除
   useInput(
     (input, key) => {
       if (!selectedPlugin) return;
       const pluginId = `${selectedPlugin.plugin.name}@${selectedPlugin.marketplace}`;
       const pluginScope = selectedPlugin.scope;
-      // Dialog is only reachable from the uninstall case (which guards on
-      // isBuiltin), but TS can't track that across viewState transitions.
+      // 该对话框只能从 uninstall 分支进入（已对 isBuiltin 做了守卫），
+      // 但 TS 无法跨 viewState 转换跟踪这一点。
       if (!pluginScope || pluginScope === 'builtin' || !isInstallableScope(pluginScope)) return;
       const doUninstall = async (deleteDataDir: boolean) => {
         setIsProcessing(true);
@@ -1714,22 +1709,22 @@ export function ManagePlugins({
     },
   );
 
-  // Reset selection when search query changes
+  // 当搜索查询变化时重置选择
   React.useEffect(() => {
     setSelectedIndex(0);
   }, [searchQuery]);
 
-  // Handle input for entering search mode (text input handled by useSearchInput hook)
-  // eslint-disable-next-line custom-rules/prefer-use-keybindings -- useInput needed for raw search mode text input
+  // 处理用于进入搜索模式的输入（文本输入由 useSearchInput hook 处理）
+  // eslint-disable-next-line custom-rules/prefer-use-keybindings —— 搜索模式需要 useInput 来接收原始文本输入
   useInput(
     (input, key) => {
       const keyIsNotCtrlOrMeta = !key.ctrl && !key.meta;
       if (isSearchMode) {
-        // Text input is handled by useSearchInput hook
+        // 文本输入由 useSearchInput hook 处理
         return;
       }
 
-      // Enter search mode with '/' or any printable character (except navigation keys)
+      // 通过 '/' 或任意可打印字符（导航键除外）进入搜索模式
       if (input === '/' && keyIsNotCtrlOrMeta) {
         setIsSearchMode(true);
         setSearchQuery('');
@@ -1750,12 +1745,12 @@ export function ManagePlugins({
     { isActive: viewState === 'plugin-list' },
   );
 
-  // Loading state
+  // 加载状态
   if (loading) {
     return <Text>Loading installed plugins…</Text>;
   }
 
-  // No plugins or MCPs installed
+  // 未安装任何插件或 MCP
   if (unifiedItems.length === 0) {
     return (
       <Box flexDirection="column">
@@ -1774,9 +1769,8 @@ export function ManagePlugins({
     const pluginId = `${selectedPlugin.plugin.name}@${selectedPlugin.marketplace}`;
     function finish(msg: string): void {
       setResult(msg);
-      // Plugin is enabled regardless of whether config was saved or
-      // skipped — onManageComplete → markPluginsChanged → the
-      // persistent "run /reload-plugins" notice.
+      // 无论配置保存还是跳过，插件都已经启用 —— onManageComplete →
+      // markPluginsChanged → 持久的 "run /reload-plugins" 提示。
       if (onManageComplete) {
         void onManageComplete();
       }
@@ -1803,7 +1797,7 @@ export function ManagePlugins({
     );
   }
 
-  // Configure options (from the Manage menu)
+  // 配置选项（来自 Manage 菜单）
   if (typeof viewState === 'object' && viewState.type === 'configuring-options' && selectedPlugin) {
     const pluginId = `${selectedPlugin.plugin.name}@${selectedPlugin.marketplace}`;
     return (
@@ -1827,7 +1821,7 @@ export function ManagePlugins({
     );
   }
 
-  // Configuration view
+  // 配置视图
   if (viewState === 'configuring' && configNeeded && selectedPlugin) {
     const pluginId = `${selectedPlugin.plugin.name}@${selectedPlugin.marketplace}`;
 
@@ -1835,7 +1829,7 @@ export function ManagePlugins({
       if (!configNeeded || !selectedPlugin) return;
 
       try {
-        // Find MCPB path again
+        // 再次查找 MCPB 路径
         const mcpServersSpec = selectedPlugin.plugin.manifest.mcpServers;
         let mcpbPath: string | null = null;
 
@@ -1856,10 +1850,10 @@ export function ManagePlugins({
           return;
         }
 
-        // Reload with provided config
+        // 使用提供的配置重新加载
         await loadMcpbFile(mcpbPath, selectedPlugin.plugin.path, pluginId, undefined, config);
 
-        // Success - go back to details
+        // 成功 —— 返回详情
         setProcessError(null);
         setConfigNeeded(null);
         setViewState('plugin-details');
@@ -1888,7 +1882,7 @@ export function ManagePlugins({
     );
   }
 
-  // Flagged plugin detail view
+  // 被标记插件的详情视图
   if (typeof viewState === 'object' && viewState.type === 'flagged-detail') {
     const fp = viewState.plugin;
     return (
@@ -1925,8 +1919,8 @@ export function ManagePlugins({
     );
   }
 
-  // Confirm-project-uninstall: warn about shared .claude/settings.json,
-  // offer to disable in settings.local.json instead.
+  // confirm-project-uninstall：警告共享的 .claude/settings.json，
+  // 提供改为在 settings.local.json 中禁用的选项。
   if (viewState === 'confirm-project-uninstall' && selectedPlugin) {
     return (
       <Box flexDirection="column">
@@ -1966,7 +1960,7 @@ export function ManagePlugins({
     );
   }
 
-  // Confirm-data-cleanup: prompt before deleting ${CLAUDE_PLUGIN_DATA} dir
+  // confirm-data-cleanup：删除 ${CLAUDE_PLUGIN_DATA} 目录前提示
   if (typeof viewState === 'object' && viewState.type === 'confirm-data-cleanup' && selectedPlugin) {
     return (
       <Box flexDirection="column">
@@ -1995,13 +1989,13 @@ export function ManagePlugins({
     );
   }
 
-  // Plugin details view
+  // 插件详情视图
   if (viewState === 'plugin-details' && selectedPlugin) {
-    const mergedSettings = getSettings_DEPRECATED(); // Use merged settings to respect all layers
+    const mergedSettings = getSettings_DEPRECATED(); // 使用合并后的 settings 以尊重所有层级
     const pluginId = `${selectedPlugin.plugin.name}@${selectedPlugin.marketplace}`;
     const isEnabled = mergedSettings?.enabledPlugins?.[pluginId] !== false;
 
-    // Compute plugin errors section
+    // 计算插件错误段
     const filteredPluginErrors = pluginErrors.filter(
       e =>
         ('plugin' in e && e.plugin === selectedPlugin.plugin.name) ||
@@ -2038,13 +2032,13 @@ export function ManagePlugins({
           </Text>
         </Box>
 
-        {/* Scope */}
+        {/* 作用域 */}
         <Box>
           <Text dimColor>Scope: </Text>
           <Text>{selectedPlugin.scope || 'user'}</Text>
         </Box>
 
-        {/* Plugin details */}
+        {/* 插件详情 */}
         {selectedPlugin.plugin.manifest.version && (
           <Box>
             <Text dimColor>Version: </Text>
@@ -2065,20 +2059,20 @@ export function ManagePlugins({
           </Box>
         )}
 
-        {/* Current status */}
+        {/* 当前状态 */}
         <Box marginBottom={1}>
           <Text dimColor>Status: </Text>
           <Text color={isEnabled ? 'success' : 'warning'}>{isEnabled ? 'Enabled' : 'Disabled'}</Text>
           {selectedPlugin.pendingUpdate && <Text color="suggestion"> · Marked for update</Text>}
         </Box>
 
-        {/* Installed components */}
+        {/* 已安装组件 */}
         <PluginComponentsDisplay plugin={selectedPlugin.plugin} marketplace={selectedPlugin.marketplace} />
 
-        {/* Plugin errors */}
+        {/* 插件错误 */}
         {pluginErrorsSection}
 
-        {/* Menu */}
+        {/* 菜单 */}
         <Box marginTop={1} flexDirection="column">
           {detailsMenuItems.map((item, index) => {
             const isSelected = index === detailsMenuIndex;
@@ -2104,14 +2098,14 @@ export function ManagePlugins({
           })}
         </Box>
 
-        {/* Processing state */}
+        {/* 处理状态 */}
         {isProcessing && (
           <Box marginTop={1}>
             <Text>Processing…</Text>
           </Box>
         )}
 
-        {/* Error message */}
+        {/* 错误信息 */}
         {processError && (
           <Box marginTop={1}>
             <Text color="error">{processError}</Text>
@@ -2131,7 +2125,7 @@ export function ManagePlugins({
     );
   }
 
-  // Failed plugin detail view
+  // 失败插件的详情视图
   if (typeof viewState === 'object' && viewState.type === 'failed-plugin-details') {
     const failedPlugin = viewState.plugin;
 
@@ -2180,12 +2174,12 @@ export function ManagePlugins({
     );
   }
 
-  // MCP detail view
+  // MCP 详情视图
   if (typeof viewState === 'object' && viewState.type === 'mcp-detail') {
     const client = viewState.client;
     const serverToolsCount = filterToolsByServer(mcpTools, client.name).length;
 
-    // Common handlers for MCP menus
+    // MCP 菜单的通用处理器
     const handleMcpViewTools = () => {
       setViewState({ type: 'mcp-tools', client });
     };
@@ -2201,7 +2195,7 @@ export function ManagePlugins({
       setViewState('plugin-list');
     };
 
-    // Transform MCPServerConnection to appropriate ServerInfo type
+    // 将 MCPServerConnection 转换为合适的 ServerInfo 类型
     const scope = client.config.scope;
     const configType = client.config.type;
 
@@ -2282,18 +2276,18 @@ export function ManagePlugins({
       );
     }
 
-    // Fallback - shouldn't happen but handle gracefully
+    // 兜底 —— 不应发生，但优雅处理
     setViewState('plugin-list');
     return null;
   }
 
-  // MCP tools view
+  // MCP 工具视图
   if (typeof viewState === 'object' && viewState.type === 'mcp-tools') {
     const client = viewState.client;
     const scope = client.config.scope;
     const configType = client.config.type;
 
-    // Build ServerInfo for MCPToolListView
+    // 为 MCPToolListView 构造 ServerInfo
     let server: StdioServerInfo | SSEServerInfo | HTTPServerInfo | ClaudeAIServerInfo;
     if (configType === 'stdio') {
       server = {
@@ -2343,13 +2337,13 @@ export function ManagePlugins({
     );
   }
 
-  // MCP tool detail view
+  // MCP 工具详情视图
   if (typeof viewState === 'object' && viewState.type === 'mcp-tool-detail') {
     const { client, tool } = viewState;
     const scope = client.config.scope;
     const configType = client.config.type;
 
-    // Build ServerInfo for MCPToolDetailView
+    // 为 MCPToolDetailView 构造 ServerInfo
     let server: StdioServerInfo | SSEServerInfo | HTTPServerInfo | ClaudeAIServerInfo;
     if (configType === 'stdio') {
       server = {
@@ -2391,12 +2385,12 @@ export function ManagePlugins({
     return <MCPToolDetailView tool={tool} server={server} onBack={() => setViewState({ type: 'mcp-tools', client })} />;
   }
 
-  // Plugin list view (main management interface)
+  // 插件列表视图（主管理界面）
   const visibleItems = pagination.getVisibleItems(filteredItems);
 
   return (
     <Box flexDirection="column">
-      {/* Search box */}
+      {/* 搜索框 */}
       <Box marginBottom={1}>
         <SearchBox
           query={searchQuery}
@@ -2407,30 +2401,30 @@ export function ManagePlugins({
         />
       </Box>
 
-      {/* No search results */}
+      {/* 无搜索结果 */}
       {filteredItems.length === 0 && searchQuery && (
         <Box marginBottom={1}>
           <Text dimColor>No items match &quot;{searchQuery}&quot;</Text>
         </Box>
       )}
 
-      {/* Scroll up indicator */}
+      {/* 向上滚动指示器 */}
       {pagination.scrollPosition.canScrollUp && (
         <Box>
           <Text dimColor> {figures.arrowUp} more above</Text>
         </Box>
       )}
 
-      {/* Unified list of plugins and MCPs grouped by scope */}
+      {/* 按作用域分组的插件和 MCP 统一列表 */}
       {visibleItems.map((item, visibleIndex) => {
         const actualIndex = pagination.toActualIndex(visibleIndex);
         const isSelected = actualIndex === selectedIndex && !isSearchMode;
 
-        // Check if we need to show a scope header
+        // 检查是否需要显示作用域标题
         const prevItem = visibleIndex > 0 ? visibleItems[visibleIndex - 1] : null;
         const showScopeHeader = !prevItem || prevItem.scope !== item.scope;
 
-        // Get scope label
+        // 获取作用域标签
         const getScopeLabel = (scope: string): string => {
           switch (scope) {
             case 'flagged':
@@ -2472,14 +2466,14 @@ export function ManagePlugins({
         );
       })}
 
-      {/* Scroll down indicator */}
+      {/* 向下滚动指示器 */}
       {pagination.scrollPosition.canScrollDown && (
         <Box>
           <Text dimColor> {figures.arrowDown} more below</Text>
         </Box>
       )}
 
-      {/* Help text */}
+      {/* 帮助文本 */}
       <Box marginTop={1} marginLeft={1}>
         <Text dimColor italic>
           <Byline>
@@ -2491,7 +2485,7 @@ export function ManagePlugins({
         </Text>
       </Box>
 
-      {/* Reload disclaimer for plugin changes */}
+      {/* 插件变更的重载声明 */}
       {pendingToggles.size > 0 && (
         <Box marginLeft={1}>
           <Text dimColor italic>

@@ -5,29 +5,26 @@ import { getClaudeConfigHomeDir } from '../../utils/envUtils.js'
 import type { Command, LocalCommandResult } from '../../types/command.js'
 
 /**
- * Path to the TUI-mode marker file.
+ * TUI 模式标记文件的路径。
  *
- * When this file exists, the user has opted in to flicker-free TUI mode
- * (alternate screen buffer via CLAUDE_CODE_NO_FLICKER=1). The marker is
- * session-independent: it persists across restarts so the user only needs to
- * run `/tui on` once.
+ * 当此文件存在时，表示用户已启用无闪烁 TUI 模式
+ * （通过 CLAUDE_CODE_NO_FLICKER=1 进入备用屏幕缓冲）。该标记与会话无关：
+ * 它在多次重启之间持久存在，因此用户只需运行一次 `/tui on` 即可。
  *
- * Shell-profile integration: add the following to ~/.bashrc / ~/.zshrc to
- * auto-enable TUI mode when the marker is present:
+ * Shell profile 集成：将以下内容添加到 ~/.bashrc / ~/.zshrc，
+ * 即可在标记存在时自动启用 TUI 模式：
  *
  *   [ -f "$HOME/.claude/.tui-mode" ] && export CLAUDE_CODE_NO_FLICKER=1
  *
- * Note: setting CLAUDE_CODE_NO_FLICKER at runtime cannot retroactively enter
- * the alternate screen buffer — the Ink render tree is already mounted. The
- * change takes effect on the NEXT session start.
+ * 注意：运行时设置 CLAUDE_CODE_NO_FLICKER 无法追溯进入备用屏幕缓冲 ——
+ * Ink 渲染树已经挂载完毕。该改动要到「下一次会话启动」时才会生效。
  */
 export function getTuiMarkerPath(): string {
   return join(getClaudeConfigHomeDir(), '.tui-mode')
 }
 
 /**
- * Returns true when the TUI-mode marker file is present, meaning the user has
- * opted in to flicker-free alternate-screen rendering.
+ * 当 TUI 模式标记文件存在时返回 true，表示用户已启用无闪烁的备用屏幕渲染。
  */
 export function isTuiModeEnabled(): boolean {
   return existsSync(getTuiMarkerPath())
@@ -102,7 +99,7 @@ function disableTui(): LocalCommandResult {
 export async function callTui(args: string): Promise<LocalCommandResult> {
   const sub = args.trim().toLowerCase()
 
-  // ── status ──────────────────────────────────────────────────────────
+  // ── 状态查询 ──────────────────────────────────────────────────────────
   if (sub === 'status') {
     const enabled = isTuiModeEnabled()
     const markerPath = getTuiMarkerPath()
@@ -129,22 +126,22 @@ export async function callTui(args: string): Promise<LocalCommandResult> {
     }
   }
 
-  // ── on ───────────────────────────────────────────────────────────────
+  // ── on（启用）──
   if (sub === 'on') {
     return enableTui()
   }
 
-  // ── off ──────────────────────────────────────────────────────────────
+  // ── off（禁用）──
   if (sub === 'off') {
     return disableTui()
   }
 
-  // ── toggle (legacy default) ──────────────────────────────────────────
+  // ── toggle（历史默认行为）──
   if (sub === '' || sub === 'toggle') {
     return isTuiModeEnabled() ? disableTui() : enableTui()
   }
 
-  // ── unknown subcommand ───────────────────────────────────────────────
+  // ── 未知子命令 ──
   return {
     type: 'text',
     value: [`Unknown subcommand: "${sub}"`, '', USAGE_TEXT].join('\n'),

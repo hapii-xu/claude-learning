@@ -1,15 +1,15 @@
 /**
- * Tests for src/jobs/templates.ts
+ * src/jobs/templates.ts 的测试
  *
- * Uses real temp directories and CLAUDE_CONFIG_DIR env var
- * instead of mocking fs, to avoid cross-test mock pollution.
+ * 使用真实的临时目录和 CLAUDE_CONFIG_DIR 环境变量，
+ * 而不是 mock fs，以避免跨测试 mock 污染。
  */
 import { describe, expect, test, beforeEach, afterAll } from 'bun:test'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
-// ─── setup: real temp dir via env var ──────────────────────────────────────
+// ─── 设置：通过环境变量使用真实临时目录 ──────────────────────────────────────
 
 const tempBase = mkdtempSync(join(tmpdir(), 'jobs-templates-test-'))
 
@@ -23,15 +23,15 @@ afterAll(() => {
   try {
     rmSync(tempBase, { recursive: true, force: true })
   } catch {
-    // best-effort cleanup
+    // 尽力清理
   }
 })
 
-// ─── import ─────────────────────────────────────────────────────────────────
+// ─── 导入 ─────────────────────────────────────────────────────────────────
 
 const { listTemplates, loadTemplate } = await import('../templates.js')
 
-// ─── tests ──────────────────────────────────────────────────────────────────
+// ─── 测试 ──────────────────────────────────────────────────────────────────
 
 describe('listTemplates', () => {
   test('returns empty array when no template dirs exist', () => {

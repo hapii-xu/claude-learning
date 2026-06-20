@@ -15,21 +15,20 @@ type GitOutcome = {
   git_info: { type: 'github'; repo: string; branches: string[] }
 }
 
-// Events must be wrapped in { type: 'event', data: <sdk_message> } for the
-// POST /v1/sessions endpoint (discriminated union format).
+// 对 POST /v1/sessions 端点来说，事件必须包在 { type: 'event', data: <sdk_message> }
+// 里（discriminated union 格式）。
 type SessionEvent = {
   type: 'event'
   data: SDKMessage
 }
 
 /**
- * Create a session on a bridge environment via POST /v1/sessions.
+ * 通过 POST /v1/sessions 在某个 bridge environment 上创建 session。
  *
- * Used by both `claude remote-control` (empty session so the user has somewhere to
- * type immediately) and `/remote-control` (session pre-populated with conversation
- * history).
+ * 同时供 `claude remote-control`（建一个空 session，让用户立刻有地方可
+ * 输入）和 `/remote-control`（session 预填了对话历史）使用。
  *
- * Returns the session ID on success, or null if creation fails (non-fatal).
+ * 成功返回 session ID，失败返回 null（非致命）。
  */
 export async function createBridgeSession({
   environmentId,
@@ -69,8 +68,8 @@ export async function createBridgeSession({
     return null
   }
 
-  // Self-hosted bridges don't require a claude.ai org UUID — the local server
-  // doesn't validate it. Use a placeholder to avoid blocking session creation.
+  // 自托管 bridge 不需要 claude.ai org UUID —— 本地 server 不校验。用
+  // 占位符避免阻塞 session 创建。
   const orgUUID = isSelfHostedBridge()
     ? 'self-hosted'
     : await getOrganizationUUID()
@@ -79,7 +78,7 @@ export async function createBridgeSession({
     return null
   }
 
-  // Build git source and outcome context
+  // 构造 git source 和 outcome 上下文
   let gitSource: GitSource | null = null
   let gitOutcome: GitOutcome | null = null
 
@@ -103,7 +102,7 @@ export async function createBridgeSession({
         },
       }
     } else {
-      // Fallback: try parseGitHubRepository for owner/repo format
+      // 回退：用 parseGitHubRepository 尝试 owner/repo 格式
       const ownerRepo = parseGitHubRepository(gitRepoUrl)
       if (ownerRepo) {
         const [owner, name] = ownerRepo.split('/')
@@ -185,12 +184,12 @@ export async function createBridgeSession({
 }
 
 /**
- * Fetch a bridge session via GET /v1/sessions/{id}.
+ * 通过 GET /v1/sessions/{id} 获取某个 bridge session。
  *
- * Returns the session's environment_id (for `--session-id` resume) and title.
- * Uses the same org-scoped headers as create/archive — the environments-level
- * client in bridgeApi.ts uses a different beta header and no org UUID, which
- * makes the Sessions API return 404.
+ * 返回该 session 的 environment_id（供 `--session-id` resume 使用）和
+ * 标题。用的是和 create/archive 相同的 org 作用域 header —— bridgeApi.ts
+ * 中的 environment 级 client 用的是另一个 beta header 且不带 org UUID，
+ * 会让 Sessions API 返回 404。
  */
 export async function getBridgeSession(
   sessionId: string,
@@ -252,21 +251,19 @@ export async function getBridgeSession(
 }
 
 /**
- * Archive a bridge session via POST /v1/sessions/{id}/archive.
+ * 通过 POST /v1/sessions/{id}/archive 归档某个 bridge session。
  *
- * The CCR server never auto-archives sessions — archival is always an
- * explicit client action. Both `claude remote-control` (standalone bridge) and the
- * always-on `/remote-control` REPL bridge call this during shutdown to archive any
- * sessions that are still alive.
+ * CCR server 永远不会自动归档 session —— 归档始终是客户端的显式动作。
+ * `claude remote-control`（standalone bridge）和常驻的 `/remote-control`
+ * REPL bridge 在关闭期间都会调它，把仍然存活的 session 归档。
  *
- * The archive endpoint accepts sessions in any status (running, idle,
- * requires_action, pending) and returns 409 if already archived, making
- * it safe to call even if the server-side runner already archived the
- * session.
+ * archive 端点接受任何状态的 session（running、idle、requires_action、
+ * pending），已归档则返回 409，所以即使服务器侧 runner 已经把 session
+ * 归档了，调用也是安全的。
  *
- * Callers must handle errors — this function has no try/catch; 5xx,
- * timeouts, and network errors throw. Archival is best-effort during
- * cleanup; call sites wrap with .catch().
+ * 调用方必须自己处理错误 —— 这个函数没有 try/catch；5xx、超时、网络
+ * 错误都会抛。归档在 cleanup 流程里是 best-effort，调用点应在外层包
+ * .catch()。
  */
 export async function archiveBridgeSession(
   sessionId: string,
@@ -328,12 +325,12 @@ export async function archiveBridgeSession(
 }
 
 /**
- * Update the title of a bridge session via PATCH /v1/sessions/{id}.
+ * 通过 PATCH /v1/sessions/{id} 更新某个 bridge session 的标题。
  *
- * Called when the user renames a session via /rename while a bridge
- * connection is active, so the title stays in sync on claude.ai/code.
+ * 在 bridge 连接活跃期间，用户通过 /rename 重命名 session 时调用，让
+ * claude.ai/code 上的标题保持同步。
  *
- * Errors are swallowed — title sync is best-effort.
+ * 错误被吞掉 —— 标题同步是 best-effort。
  */
 export async function updateBridgeSessionTitle(
   sessionId: string,
@@ -368,9 +365,10 @@ export async function updateBridgeSessionTitle(
     'x-organization-uuid': orgUUID,
   }
 
-  // Compat gateway only accepts session_* (compat/convert.go:27). v2 callers
-  // pass raw cse_*; retag here so all callers can pass whatever they hold.
-  // Idempotent for v1's session_* and bridgeMain's pre-converted compatSessionId.
+  // compat gateway 只接受 session_*（compat/convert.go:27）。v2 调用方
+  // 传的是原始 cse_*；这里统一 retag，让所有调用方都能传自己手里的任意
+  // 形式。对 v1 的 session_* 和 bridgeMain 已转过的 compatSessionId 都是
+  // 幂等的。
   const compatId = toCompatSessionId(sessionId)
   const url = `${opts?.baseUrl ?? getOauthConfig().BASE_API_URL}/v1/sessions/${compatId}`
   logForDebugging(`[bridge] Updating session title: ${compatId} → ${title}`)

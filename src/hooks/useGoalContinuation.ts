@@ -1,28 +1,28 @@
 /**
- * useGoalContinuation — React hook that drives the auto-continuation
- * loop for the `/goal` feature.
+ * useGoalContinuation — React hook，驱动 `/goal` 功能的
+ * 自动继续循环。
  *
- * Mounted inside REPL.tsx when feature('GOAL') is enabled. After each
- * turn completes (queryGuard transitions to idle), checks whether the
- * active goal should trigger another turn:
+ * 在 feature('GOAL') 启用时挂载在 REPL.tsx 内部。每次
+ * 回合完成（queryGuard 转换为空闲）后，检查活跃
+ * 目标是否应触发另一个回合：
  *
- *   1. GOAL feature flag enabled
- *   2. Goal exists and status === 'active'
- *   3. Query just finished (isLoading transitioned false)
- *   4. No active local-JSX UI (modal dialog)
- *   5. Not in plan mode
+ *   1. GOAL 功能标志启用
+ *   2. 目标存在且 status === 'active'
+ *   3. 查询刚刚完成（isLoading 转换为 false）
+ *   4. 无活跃的 local-JSX UI（模态对话框）
+ *   5. 不在规划模式
  *   6. turnsExecuted < MAX_GOAL_TURNS
- *   7. No user messages in the queue (user input always takes priority)
+ *   7. 队列中没有用户消息（用户输入始终优先）
  *
- * When user messages are queued during a goal turn, the hook always
- * yields to let them process first. After the user messages are
- * handled, the next idle will fire the hook again to continue.
- * This ensures commands like `/goal pause` are never starved by
- * auto-continuation.
+ * 当用户在目标回合期间排队消息时，hook 始终
+ * 让位以让它们先处理。在用户消息被
+ * 处理后，下一次空闲将再次触发 hook 继续。
+ * 这确保像 `/goal pause` 这样的命令永远不会被
+ * 自动继续饥饿。
  *
- * The hook is intentionally simple: a single useEffect that fires
- * when `isLoading` flips to false. No timers, no intervals — the
- * idle→enqueue→process→query→idle cycle is self-sustaining.
+ * hook 有意保持简单：单个 useEffect 在
+ * `isLoading` 翻转为 false 时触发。没有计时器，没有间隔 ——
+ * 空闲→入队→处理→查询→空闲 循环是自维持的。
  */
 import { useLayoutEffect, useRef } from 'react'
 
@@ -65,10 +65,10 @@ export function useGoalContinuation(opts: UseGoalContinuationOpts): void {
   const optsRef = useRef(opts)
   optsRef.current = opts
 
-  // Track whether we already enqueued for the current idle window.
-  // Reset to false every time isLoading becomes true (new turn starts).
+  // 跟踪我们是否已为当前空闲窗口入队。
+  // 每次 isLoading 变为 true（新回合开始）时重置为 false。
   const enqueuedRef = useRef(false)
-  // Fire budget_limit prompt exactly once per budget transition.
+  // 每次 budget 转换时精确触发一次 budget_limit 提示。
   const budgetLimitFiredRef = useRef(false)
 
   useLayoutEffect(() => {
@@ -77,27 +77,27 @@ export function useGoalContinuation(opts: UseGoalContinuationOpts): void {
       return
     }
 
-    // Avoid stale-render races: queue processing can reserve QueryGuard in an
-    // earlier effect during the same commit. Read live state before deciding.
+    // 避免过时渲染竞争：队列处理可能在同一提交的
+    // 较早 effect 中预留 QueryGuard。决定前读取实时状态。
     if (opts.isQueryActiveNow?.()) {
       hookLog('skip: queryActiveNow=true')
       return
     }
 
-    // Codex parity: continuation only after normal completion.
-    // Aborted turns (Ctrl+C / Escape) must not trigger a new turn.
+    // Codex 对等：仅在正常完成后继续。
+    // 中止的回合（Ctrl+C / Escape）不得触发新回合。
     if (opts.wasAborted) {
       hookLog('skip: wasAborted=true')
       return
     }
 
-    // Already enqueued for this idle window
+    // 已为此空闲窗口入队
     if (enqueuedRef.current) return
 
-    // User messages always take priority over auto-continuation.
-    // If the user typed something (e.g. `/goal pause`) while a turn was
-    // running, let their message process first. After it finishes, the
-    // next idle cycle will re-evaluate whether to continue.
+    // 用户消息始终优先于自动继续。
+    // 如果用户在回合运行时输入了某些内容（例如 `/goal pause`），
+    // 让他们的消息先处理。完成后，
+    // 下一个空闲周期将重新评估是否继续。
     const liveQueueLength = getCommandQueueSnapshot().length
     if (liveQueueLength > 0) {
       hookLog('skip: yielding to queued user messages')
@@ -121,8 +121,8 @@ export function useGoalContinuation(opts: UseGoalContinuationOpts): void {
       budgetLimitFiredRef.current = false
     }
 
-    // Budget-limited: inject one final steering prompt so the model
-    // knows to stop substantive work and summarise progress.
+    // 预算受限：注入一个最终引导提示，让模型
+    // 知道停止实质性工作并总结进度。
     if (goal.status === 'budget_limited' && !budgetLimitFiredRef.current) {
       budgetLimitFiredRef.current = true
       enqueuedRef.current = true
@@ -141,7 +141,7 @@ export function useGoalContinuation(opts: UseGoalContinuationOpts): void {
       return
     }
 
-    // Only continue for active goals
+    // 仅对活跃目标继续
     if (goal.status !== 'active') {
       hookLog(`skip: status="${goal.status}" (not active)`)
       return
@@ -159,7 +159,7 @@ export function useGoalContinuation(opts: UseGoalContinuationOpts): void {
       return
     }
 
-    // All conditions met — enqueue a continuation turn
+    // 所有条件满足 —— 入队一个继续回合
     enqueuedRef.current = true
 
     const turns = incrementGoalTurns()

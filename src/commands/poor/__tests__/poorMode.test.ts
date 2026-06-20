@@ -1,14 +1,14 @@
 /**
- * Tests for fix: 修复穷鬼模式的写入问题
+ * 针对 fix 的测试：修复穷鬼模式的写入问题
  *
- * Before the fix, poorMode was an in-memory boolean that reset on restart.
- * After the fix, it reads from / writes to settings.json via
- * getInitialSettings() and updateSettingsForSource().
+ * 修复前，poorMode 是内存中的布尔值，重启时会重置。
+ * 修复后，通过 getInitialSettings() 和 updateSettingsForSource()
+ * 从 settings.json 读取 / 写入。
  */
 import { afterAll, describe, expect, test, beforeEach, mock } from 'bun:test'
 import * as settingsModule from '../../../utils/settings/settings.js'
 
-// ── Mocks must be declared before the module under test is imported ──────────
+// ── Mock 必须在被测模块导入之前声明 ──────────
 
 let mockSettings: Record<string, unknown> = {}
 let lastUpdate: { source: string; patch: Record<string, unknown> } | null = null
@@ -31,8 +31,8 @@ mock.module('src/utils/settings/settings.js', () => ({
   getSettings_DEPRECATED: () => mockSettings,
   settingsMergeCustomizer: () => undefined,
   getManagedSettingsKeysForLogging: () => [],
-  // Keep unrelated exports aligned with the real settings module so this
-  // full-surface mock cannot change later test files if Bun keeps it alive.
+  // 保持未使用的导出与真实 settings 模块对齐，这样这个全量 mock 就
+  // 不会在 Bun 将其保留存活时影响后续的测试文件。
   hasAutoModeOptIn: () => true,
   hasSkipDangerousModePermissionPrompt: () => false,
   getAutoModeConfig: () => undefined,
@@ -49,15 +49,15 @@ afterAll(() => {
   mock.module('src/utils/settings/settings.js', () => settingsModule)
 })
 
-// Import AFTER mocks are registered. The query suffix gives this file its own
-// module instance so cross-file poorMode.js mocks cannot replace the subject
-// under test during Bun's shared coverage run.
+// 在 mock 注册之后再导入。查询后缀让此文件拥有自己的模块实例，
+// 因此跨文件的 poorMode.js mock 在 Bun 的共享覆盖率运行中
+// 无法替换被测对象。
 const poorModeModulePath = '../poorMode.js?poorModeTest'
 const { isPoorModeActive, setPoorMode } = (await import(
   poorModeModulePath
 )) as typeof import('../poorMode.js')
 
-// ── Tests ────────────────────────────────────────────────────────────────────
+// ── 测试 ────────────────────────────────────────────────────────────────────
 
 describe('isPoorModeActive — reads from settings on first call', () => {
   beforeEach(() => {
@@ -66,7 +66,7 @@ describe('isPoorModeActive — reads from settings on first call', () => {
 
   test('returns false when settings has no poorMode key', () => {
     mockSettings = {}
-    // Force re-read by setting internal state via setPoorMode then checking
+    // 通过 setPoorMode 设置内部状态后再检查，强制重新读取
     setPoorMode(false)
     expect(isPoorModeActive()).toBe(false)
   })
@@ -94,7 +94,7 @@ describe('setPoorMode — persists to settings', () => {
     setPoorMode(false)
     expect(lastUpdate).not.toBeNull()
     expect(lastUpdate!.source).toBe('userSettings')
-    // false || undefined === undefined — key should be removed to keep settings clean
+    // false || undefined === undefined —— 应该移除该 key 以保持 settings 干净
     expect(lastUpdate!.patch.poorMode).toBeUndefined()
   })
 

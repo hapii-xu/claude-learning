@@ -28,7 +28,7 @@ import { pathExists } from './file.js'
 import { logError } from './log.js'
 import { recordFileHistorySnapshot } from './sessionStorage.js'
 
-type BackupFileName = string | null // The null value means the file does not exist in this version
+type BackupFileName = string | null // null 值表示该文件在此版本中不存在
 
 export type FileHistoryBackup = {
   backupFileName: BackupFileName
@@ -37,22 +37,22 @@ export type FileHistoryBackup = {
 }
 
 export type FileHistorySnapshot = {
-  messageId: UUID // The associated message ID for this snapshot
-  trackedFileBackups: Record<string, FileHistoryBackup> // Map of file paths to backup versions
+  messageId: UUID // 该快照关联的消息 ID
+  trackedFileBackups: Record<string, FileHistoryBackup> // 文件路径到备份版本的映射
   timestamp: Date
 }
 
 export type FileHistoryState = {
   snapshots: FileHistorySnapshot[]
   trackedFiles: Set<string>
-  // Monotonically-increasing counter incremented on every snapshot, even when
-  // old snapshots are evicted.  Used by useGitDiffStats as an activity signal
-  // (snapshots.length plateaus once the cap is reached).
+  // 单调递增计数器，每次快照都递增（即使旧快照被淘汰）。
+  // 被 useGitDiffStats 用作活跃度信号（一旦达到上限，
+  // snapshots.length 就会停止增长）。
   snapshotSequence: number
 }
 
-// Disabled: file checkpointing causes unbounded memory growth (100 snapshots × full file backups).
-// See heap snapshot analysis — re-enable only after switching to incremental diffs.
+// 已禁用：文件检查点会导致无限制的内存增长（100 个快照 × 完整文件备份）。
+// 参见堆快照分析——切换到增量 diff 之后才可重新启用。
 const MAX_SNAPSHOTS = 20
 export type DiffStats =
   | {
@@ -80,10 +80,9 @@ function fileHistoryEnabledSdk(): boolean {
 }
 
 /**
- * Tracks a file edit (and add) by creating a backup of its current contents (if necessary).
+ * 跟踪文件编辑（以及新增），通过备份其当前内容（必要时）实现。
  *
- * This must be called before the file is actually added or edited, so we can save
- * its contents before the edit.
+ * 必须在文件真正被新增或编辑之前调用，以便我们保存编辑前的内容。
  */
 export async function fileHistoryTrackEdit(
   updateFileHistoryState: (
@@ -98,9 +97,9 @@ export async function fileHistoryTrackEdit(
 
   const trackingPath = maybeShortenFilePath(filePath)
 
-  // Phase 1: check if backup is needed. Speculative writes would overwrite
-  // the deterministic {hash}@v1 backup on every repeat call — a second
-  // trackEdit after an edit would corrupt v1 with post-edit content.
+  // 第一阶段：检查是否需要备份。推测性的写入会在每次重复调用时覆盖
+  // 确定性的 {hash}@v1 备份——编辑后再次调用 trackEdit 会用编辑后的
+  // 内容损坏 v1。
   let captured: FileHistoryState | undefined
   updateFileHistoryState(state => {
     captured = state
@@ -114,12 +113,12 @@ export async function fileHistoryTrackEdit(
     return
   }
   if (mostRecent.trackedFileBackups[trackingPath]) {
-    // Already tracked in the most recent snapshot; next makeSnapshot will
-    // re-check mtime and re-backup if changed. Do not touch v1 backup.
+    // 已在最近快照中被跟踪；下一次 makeSnapshot 会重新检查 mtime，
+    // 若已变更则重新备份。不要触碰 v1 备份。
     return
   }
 
-  // Phase 2: async backup.
+  // 第二阶段：异步备份。
   let backup: FileHistoryBackup
   try {
     backup = await createBackup(filePath, 1)
@@ -130,7 +129,7 @@ export async function fileHistoryTrackEdit(
   }
   const isAddingFile = backup.backupFileName === null
 
-  // Phase 3: commit. Re-check tracked (another trackEdit may have raced).
+  // 第三阶段：提交。重新检查 tracked（可能有另一个 trackEdit 抢先执行）。
   updateFileHistoryState((state: FileHistoryState) => {
     try {
       const mostRecentSnapshot = state.snapshots.at(-1)
@@ -141,16 +140,16 @@ export async function fileHistoryTrackEdit(
         return state
       }
 
-      // This file has not already been tracked in the most recent snapshot, so we
-      // need to retroactively track a backup there.
+      // 该文件尚未在最近快照中被跟踪，因此我们需要在最近快照里
+      // 追溯性地登记一个备份。
       const updatedTrackedFiles = state.trackedFiles.has(trackingPath)
         ? state.trackedFiles
         : new Set(state.trackedFiles).add(trackingPath)
 
-      // Shallow-spread is sufficient: backup values are never mutated after
-      // insertion, so we only need fresh top-level + trackedFileBackups refs
-      // for React change detection. A deep clone would copy every existing
-      // backup's Date/string fields — O(n) cost to add one entry.
+      // 浅拷贝足够了：备份的值在插入后永远不会被修改，所以我们只需要
+      // 新的顶层 + trackedFileBackups 引用，以触发 React 变更检测。深拷贝
+      // 会复制每个已存在备份的 Date/string 字段——为新增一个条目付出 O(n)
+      // 的代价。
       const updatedMostRecentSnapshot = {
         ...mostRecentSnapshot,
         trackedFileBackups: {
@@ -170,7 +169,7 @@ export async function fileHistoryTrackEdit(
       }
       maybeDumpStateForDebug(updatedState)
 
-      // Record a snapshot update since it has changed.
+      // 快照已发生变化，记录一次快照更新。
       void recordFileHistorySnapshot(
         messageId,
         updatedMostRecentSnapshot,
@@ -195,7 +194,7 @@ export async function fileHistoryTrackEdit(
 }
 
 /**
- * Adds a snapshot in the file history and backs up any modified tracked files.
+ * 在文件历史中添加一个快照，并备份任何被修改的被跟踪文件。
  */
 export async function fileHistoryMakeSnapshot(
   updateFileHistoryState: (
@@ -207,19 +206,18 @@ export async function fileHistoryMakeSnapshot(
     return undefined
   }
 
-  // Phase 1: capture current state with a no-op updater so we know which
-  // files to back up. Returning the same reference keeps this a true no-op
-  // for any wrapper that honors same-ref returns (src/CLAUDE.md wrapper
-  // rule). Wrappers that unconditionally spread will trigger one extra
-  // re-render; acceptable for a once-per-turn call.
+  // 第一阶段：用 no-op updater 捕获当前状态，以便知道需要备份哪些文件。
+  // 返回相同的引用使其对任何尊重同引用返回的 wrapper 而言都是真正的
+  // no-op（见 src/CLAUDE.md 的 wrapper 规则）。无条件展开的 wrapper 会
+  // 触发一次额外的重渲染；对每轮一次的调用来说可以接受。
   let captured: FileHistoryState | undefined
   updateFileHistoryState(state => {
     captured = state
     return state
   })
-  if (!captured) return // updateFileHistoryState was a no-op stub (e.g. mcp.ts)
+  if (!captured) return // updateFileHistoryState 是 no-op 占位（例如 mcp.ts）
 
-  // Phase 2: do all IO async, outside the updater.
+  // 第二阶段：所有 IO 异步进行，放在 updater 之外。
   const trackedFileBackups: Record<string, FileHistoryBackup> = {}
   const mostRecentSnapshot = captured.snapshots.at(-1)
   if (mostRecentSnapshot) {
@@ -232,7 +230,7 @@ export async function fileHistoryMakeSnapshot(
             mostRecentSnapshot.trackedFileBackups[trackingPath]
           const nextVersion = latestBackup ? latestBackup.version + 1 : 1
 
-          // Stat the file once; ENOENT means the tracked file was deleted.
+          // stat 一次文件；ENOENT 表示被跟踪的文件已删除。
           let fileStats: Stats | undefined
           try {
             fileStats = await stat(filePath)
@@ -242,7 +240,7 @@ export async function fileHistoryMakeSnapshot(
 
           if (!fileStats) {
             trackedFileBackups[trackingPath] = {
-              backupFileName: null, // Use null to denote missing tracked file
+              backupFileName: null, // 用 null 表示被跟踪的文件缺失
               version: nextVersion,
               backupTime: new Date(),
             }
@@ -255,7 +253,7 @@ export async function fileHistoryMakeSnapshot(
             return
           }
 
-          // File exists - check if it needs to be backed up
+          // 文件存在 —— 检查是否需要备份
           if (
             latestBackup &&
             latestBackup.backupFileName !== null &&
@@ -265,12 +263,12 @@ export async function fileHistoryMakeSnapshot(
               fileStats,
             ))
           ) {
-            // File hasn't been modified since the latest version, reuse it
+            // 文件自上次版本以来未被修改，复用原备份
             trackedFileBackups[trackingPath] = latestBackup
             return
           }
 
-          // File is newer than the latest backup, create a new backup
+          // 文件比最近备份更新，创建新备份
           trackedFileBackups[trackingPath] = await createBackup(
             filePath,
             nextVersion,
@@ -283,10 +281,10 @@ export async function fileHistoryMakeSnapshot(
     )
   }
 
-  // Phase 3: commit the new snapshot to state. Read state.trackedFiles FRESH
-  // — if fileHistoryTrackEdit added a file during phase 2's async window, it
-  // wrote the backup to state.snapshots[-1].trackedFileBackups. Inherit those
-  // so the new snapshot covers every currently-tracked file.
+  // 第三阶段：把新快照提交到 state。读取 state.trackedFiles 时取最新值——
+  // 如果 fileHistoryTrackEdit 在第二阶段的异步窗口里新增了文件，它会把
+  // 备份写入 state.snapshots[-1].trackedFileBackups。这里继承这些备份，
+  // 使新快照覆盖所有当前被跟踪的文件。
   updateFileHistoryState((state: FileHistoryState) => {
     try {
       const lastSnapshot = state.snapshots.at(-1)
@@ -317,7 +315,7 @@ export async function fileHistoryMakeSnapshot(
 
       void notifyVscodeSnapshotFilesUpdated(state, updatedState).catch(logError)
 
-      // Record the file history snapshot to session storage for resume support
+      // 将文件历史快照记录到 session 存储，以便支持恢复
       void recordFileHistorySnapshot(
         messageId,
         newSnapshot,
@@ -344,7 +342,7 @@ export async function fileHistoryMakeSnapshot(
 }
 
 /**
- * Rewinds the file system to a previous snapshot.
+ * 将文件系统回滚到之前的某个快照。
  */
 export async function fileHistoryRewind(
   updateFileHistoryState: (
@@ -356,8 +354,8 @@ export async function fileHistoryRewind(
     return
   }
 
-  // Rewind is a pure filesystem side-effect and does not mutate
-  // FileHistoryState. Capture state with a no-op updater, then do IO async.
+  // Rewind 是纯粹的文件系统副作用，不会修改 FileHistoryState。
+  // 用 no-op updater 捕获 state，然后异步进行 IO。
   let captured: FileHistoryState | undefined
   updateFileHistoryState(state => {
     captured = state
@@ -410,8 +408,8 @@ export function fileHistoryCanRestore(
 }
 
 /**
- * Computes diff stats for a file snapshot by counting the number of files that would be changed
- * if reverting to that snapshot.
+ * 计算某个文件快照的 diff 统计信息——即如果回滚到该快照会有多少文件
+ * 发生变化。
  */
 export async function fileHistoryGetDiffStats(
   state: FileHistoryState,
@@ -440,7 +438,7 @@ export async function fileHistoryGetDiffStats(
           : getBackupFileNameFirstVersion(trackingPath, state)
 
         if (backupFileName === undefined) {
-          // Error resolving the backup, so don't touch the file
+          // 解析备份时出错，因此不要触碰该文件
           logError(
             new Error('FileHistory: Error finding the backup file to apply'),
           )
@@ -458,8 +456,8 @@ export async function fileHistoryGetDiffStats(
           return { filePath, stats }
         }
         if (backupFileName === null && (await pathExists(filePath))) {
-          // Zero-byte file created after snapshot: counts as changed even
-          // though diffLines reports 0/0.
+          // 快照之后创建的 0 字节文件：即使 diffLines 报告 0/0，
+          // 也算作有变化。
           return { filePath, stats }
         }
         return null
@@ -486,12 +484,11 @@ export async function fileHistoryGetDiffStats(
 }
 
 /**
- * Lightweight boolean-only check: would rewinding to this message change any
- * file on disk? Uses the same stat/content comparison as the non-dry-run path
- * of applySnapshot (checkOriginFileChanged) instead of computeDiffStatsForFile,
- * so it never calls diffLines. Early-exits on the first changed file. Use when
- * the caller only needs a yes/no answer; fileHistoryGetDiffStats remains for
- * callers that display insertions/deletions.
+ * 轻量级的布尔检查：回滚到此消息是否会改变磁盘上的任何文件？使用与
+ * applySnapshot 非 dry-run 路径相同的 stat/内容比较（checkOriginFileChanged），
+ * 而不是 computeDiffStatsForFile，因此永远不会调用 diffLines。遇到第一个
+ * 变更文件即提前返回。当调用方只需要是/否答案时使用；
+ * fileHistoryGetDiffStats 仍然供需要展示插入/删除行数的调用方使用。
  */
 export async function fileHistoryHasAnyChanges(
   state: FileHistoryState,
@@ -520,7 +517,7 @@ export async function fileHistoryHasAnyChanges(
         continue
       }
       if (backupFileName === null) {
-        // Backup says file did not exist; probe via stat (operate-then-catch).
+        // 备份记录显示文件不存在；用 stat 探测（先操作后捕获）。
         if (await pathExists(filePath)) return true
         continue
       }
@@ -533,8 +530,8 @@ export async function fileHistoryHasAnyChanges(
 }
 
 /**
- * Applies the given file snapshot state to the tracked files (writes/deletes
- * on disk), returning the list of changed file paths. Async IO only.
+ * 将给定的文件快照状态应用到被跟踪的文件上（在磁盘上写入/删除），
+ * 返回变更文件路径列表。仅异步 IO。
  */
 async function applySnapshot(
   state: FileHistoryState,
@@ -551,7 +548,7 @@ async function applySnapshot(
         : getBackupFileNameFirstVersion(trackingPath, state)
 
       if (backupFileName === undefined) {
-        // Error resolving the backup, so don't touch the file
+        // 解析备份时出错，因此不要触碰该文件
         logError(
           new Error('FileHistory: Error finding the backup file to apply'),
         )
@@ -562,19 +559,19 @@ async function applySnapshot(
       }
 
       if (backupFileName === null) {
-        // File did not exist at the target version; delete it if present.
+        // 目标版本中文件不存在；若当前存在则删除它。
         try {
           await unlink(filePath)
           logForDebugging(`FileHistory: [Rewind] Deleted ${filePath}`)
           filesChanged.push(filePath)
         } catch (e: unknown) {
           if (!isENOENT(e)) throw e
-          // Already absent; nothing to do.
+          // 已不存在；无需处理。
         }
         continue
       }
 
-      // File should exist at a specific version. Restore only if it differs.
+      // 文件应存在于某个特定版本。仅在内容不同时才恢复。
       if (await checkOriginFileChanged(filePath, backupFileName)) {
         await restoreBackup(filePath, backupFileName)
         logForDebugging(
@@ -593,11 +590,11 @@ async function applySnapshot(
 }
 
 /**
- * Checks if the original file has been changed compared to the backup file.
- * Optionally reuses a pre-fetched stat for the original file (when the caller
- * already stat'd it to check existence, we avoid a second syscall).
+ * 检查原始文件相较备份文件是否已发生改变。
+ * 可选地复用调用方预先获取的原始文件 stat（当调用方已经 stat 过以检查
+ * 存在性时，避免第二次系统调用）。
  *
- * Exported for testing.
+ * 导出用于测试。
  */
 export async function checkOriginFileChanged(
   originalFile: string,
@@ -629,31 +626,31 @@ export async function checkOriginFileChanged(
       ])
       return originalContent !== backupContent
     } catch {
-      // File deleted between stat and read -> treat as changed.
+      // stat 与 read 之间文件被删除 —— 视作已变更。
       return true
     }
   })
 }
 
 /**
- * Shared stat/content comparison logic for sync and async change checks.
- * Returns true if the file has changed relative to the backup.
+ * 同步和异步变更检查共用的 stat/内容比较逻辑。
+ * 如果文件相对备份已变更，返回 true。
  */
 function compareStatsAndContent<T extends boolean | Promise<boolean>>(
   originalStats: Stats | null,
   backupStats: Stats | null,
   compareContent: () => T,
 ): T | boolean {
-  // One exists, one missing -> changed
+  // 一个存在一个缺失 —— 视作已变更
   if ((originalStats === null) !== (backupStats === null)) {
     return true
   }
-  // Both missing -> no change
+  // 都缺失 —— 无变化
   if (originalStats === null || backupStats === null) {
     return false
   }
 
-  // Check file stats like permission and file size
+  // 检查权限和文件大小等 stat 字段
   if (
     originalStats.mode !== backupStats.mode ||
     originalStats.size !== backupStats.size
@@ -661,20 +658,19 @@ function compareStatsAndContent<T extends boolean | Promise<boolean>>(
     return true
   }
 
-  // This is an optimization that depends on the correct setting of the modified
-  // time. If the original file's modified time was before the backup time, then
-  // we can skip the file content comparison.
+  // 这是一项依赖修改时间正确设置的优化。如果原始文件的修改时间早于
+  // 备份时间，我们可以跳过文件内容比较。
   if (originalStats.mtimeMs < backupStats.mtimeMs) {
     return false
   }
 
-  // Use the more expensive file content comparison. The callback handles its
-  // own read errors — a try/catch here is dead for async callbacks anyway.
+  // 使用更昂贵的文件内容比较。回调自行处理读取错误——这里的
+  // try/catch 对异步回调来说其实是死代码。
   return compareContent()
 }
 
 /**
- * Computes the number of lines changed in the diff.
+ * 计算 diff 中变更的行数。
  */
 async function computeDiffStatsForFile(
   originalFile: string,
@@ -703,7 +699,7 @@ async function computeDiffStatsForFile(
 
     filesChanged.push(originalFile)
 
-    // Compute the diff
+    // 计算 diff
     const changes = diffLines(originalContent ?? '', backupContent ?? '')
     changes.forEach(c => {
       if (c.added) {
@@ -743,9 +739,9 @@ function resolveBackupPath(backupFileName: string, sessionId?: string): string {
 }
 
 /**
- * Creates a backup of the file at filePath. If the file does not exist
- * (ENOENT), records a null backup (file-did-not-exist marker). All IO is
- * async. Lazy mkdir: tries copyFile first, creates the directory on ENOENT.
+ * 为 filePath 处的文件创建备份。如果文件不存在（ENOENT），则记录一个
+ * null 备份（表示文件当时不存在的标记）。所有 IO 都是异步的。懒 mkdir：
+ * 先尝试 copyFile，ENOENT 时再创建目录。
  */
 async function createBackup(
   filePath: string | null,
@@ -758,10 +754,10 @@ async function createBackup(
   const backupFileName = getBackupFileName(filePath, version)
   const backupPath = resolveBackupPath(backupFileName)
 
-  // Stat first: if the source is missing, record a null backup and skip the
-  // copy. Separates "source missing" from "backup dir missing" cleanly —
-  // sharing a catch for both meant a file deleted between copyFile-success
-  // and stat would leave an orphaned backup with a null state record.
+  // 先 stat：如果源文件不存在，记录一个 null 备份并跳过拷贝。
+  // 这样可以干净地区分"源文件缺失"和"备份目录缺失"——如果共用一个
+  // catch，那么 copyFile 成功与 stat 之间被删除的文件会留下一个孤儿
+  // 备份，而 state 里却记录为 null。
   let srcStats: Stats
   try {
     srcStats = await stat(filePath)
@@ -772,10 +768,10 @@ async function createBackup(
     throw e
   }
 
-  // copyFile preserves content and avoids reading the whole file into the JS
-  // heap (which the previous readFileSync+writeFileSync pipeline did, OOMing
-  // on large tracked files). Lazy mkdir: 99% of calls hit the fast path
-  // (directory already exists); on ENOENT, mkdir then retry.
+  // copyFile 保留内容并避免把整个文件读进 JS 堆（之前的
+  // readFileSync+writeFileSync 流水线会这么做，并在大体积被跟踪文件上
+  // OOM）。懒 mkdir：99% 的调用命中快速路径（目录已存在）；遇到 ENOENT
+  // 时再 mkdir 并重试。
   try {
     await copyFile(filePath, backupPath)
   } catch (e: unknown) {
@@ -784,7 +780,7 @@ async function createBackup(
     await copyFile(filePath, backupPath)
   }
 
-  // Preserve file permissions on the backup.
+  // 在备份上保留文件权限。
   await chmod(backupPath, srcStats.mode)
 
   logEvent('tengu_file_history_backup_file_created', {
@@ -800,8 +796,8 @@ async function createBackup(
 }
 
 /**
- * Restores a file from its backup path with proper directory creation and permissions.
- * Lazy mkdir: tries copyFile first, creates the directory on ENOENT.
+ * 从备份路径恢复文件，会创建必要的目录并保留权限。
+ * 懒 mkdir：先尝试 copyFile，ENOENT 时创建目录。
  */
 async function restoreBackup(
   filePath: string,
@@ -809,8 +805,8 @@ async function restoreBackup(
 ): Promise<void> {
   const backupPath = resolveBackupPath(backupFileName)
 
-  // Stat first: if the backup is missing, log and bail before attempting
-  // the copy. Separates "backup missing" from "destination dir missing".
+  // 先 stat：如果备份不存在，记录日志并在尝试拷贝前退出。
+  // 干净地区分"备份缺失"和"目标目录缺失"。
   let backupStats: Stats
   try {
     backupStats = await stat(backupPath)
@@ -825,7 +821,7 @@ async function restoreBackup(
     throw e
   }
 
-  // Lazy mkdir: 99% of calls hit the fast path (destination dir exists).
+  // 懒 mkdir：99% 的调用命中快速路径（目标目录已存在）。
   try {
     await copyFile(backupPath, filePath)
   } catch (e: unknown) {
@@ -834,17 +830,16 @@ async function restoreBackup(
     await copyFile(backupPath, filePath)
   }
 
-  // Restore the file permissions
+  // 恢复文件权限
   await chmod(filePath, backupStats.mode)
 }
 
 /**
- * Gets the first (earliest) backup version for a file, used when rewinding
- * to a target backup point where the file has not been tracked yet.
+ * 获取某个文件最早（第一个）的备份版本，用于回滚到某个目标备份点、
+ * 但该文件当时还未被跟踪的场景。
  *
- * @returns The backup file name for the first version, or null if the file
- * did not exist in the first version, or undefined if we cannot find a
- * first version at all
+ * @returns 返回第一个版本的备份文件名；如果文件在第一个版本中不存在，
+ * 返回 null；如果找不到任何第一个版本，返回 undefined
  */
 function getBackupFileNameFirstVersion(
   trackingPath: string,
@@ -853,18 +848,17 @@ function getBackupFileNameFirstVersion(
   for (const snapshot of state.snapshots) {
     const backup = snapshot.trackedFileBackups[trackingPath]
     if (backup !== undefined && backup.version === 1) {
-      // This can be either a file name or null, with null meaning the file
-      // did not exist in the first version.
+      // 可能是文件名也可能是 null，null 表示文件在第一个版本中不存在。
       return backup.backupFileName
     }
   }
 
-  // The undefined means there was an error resolving the first version.
+  // undefined 表示解析第一个版本时出错。
   return undefined
 }
 
 /**
- * Use the relative path as the key to reduce session storage space for tracking.
+ * 使用相对路径作为键，以减少跟踪所需的 session 存储空间。
  */
 function maybeShortenFilePath(filePath: string): string {
   if (!isAbsolute(filePath)) {
@@ -885,7 +879,7 @@ function maybeExpandFilePath(filePath: string): string {
 }
 
 /**
- * Restores file history snapshot state for a given log option.
+ * 为给定的 log 选项恢复文件历史快照状态。
  */
 export function fileHistoryRestoreStateFromLog(
   fileHistorySnapshots: FileHistorySnapshot[],
@@ -894,10 +888,9 @@ export function fileHistoryRestoreStateFromLog(
   if (!fileHistoryEnabled()) {
     return
   }
-  // Make a copy of the snapshots as we migrate from absolute path to
-  // shortened relative tracking path.
+  // 从绝对路径迁移到缩短后的相对跟踪路径时，复制一份快照。
   const snapshots: FileHistorySnapshot[] = []
-  // Rebuild the tracked files from the snapshots
+  // 从快照重建被跟踪文件集合
   const trackedFiles = new Set<string>()
   for (const snapshot of fileHistorySnapshots) {
     const trackedFileBackups: Record<string, FileHistoryBackup> = {}
@@ -919,7 +912,7 @@ export function fileHistoryRestoreStateFromLog(
 }
 
 /**
- * Copy file history snapshots for a given log option.
+ * 为给定的 log 选项拷贝文件历史快照。
  */
 export async function copyFileHistoryForResume(log: LogOption): Promise<void> {
   if (!fileHistoryEnabled()) {
@@ -950,8 +943,8 @@ export async function copyFileHistoryForResume(log: LogOption): Promise<void> {
   }
 
   try {
-    // All backups share the same directory: {configDir}/file-history/{sessionId}/
-    // Create it once upfront instead of once per backup file
+    // 所有备份共享同一个目录：{configDir}/file-history/{sessionId}/
+    // 预先创建一次，而不是每个备份文件创建一次
     const newBackupDir = join(
       getClaudeConfigHomeDir(),
       'file-history',
@@ -959,8 +952,8 @@ export async function copyFileHistoryForResume(log: LogOption): Promise<void> {
     )
     await mkdir(newBackupDir, { recursive: true })
 
-    // Migrate all backup files from the previous session to current session.
-    // Process all snapshots in parallel; within each snapshot, links also run in parallel.
+    // 将所有备份文件从上一个 session 迁移到当前 session。
+    // 并行处理所有快照；每个快照内部 link 也是并行执行。
     let failedSnapshots = 0
     await Promise.allSettled(
       fileHistorySnapshots.map(async snapshot => {
@@ -982,7 +975,7 @@ export async function copyFileHistoryForResume(log: LogOption): Promise<void> {
             } catch (e: unknown) {
               const code = getErrnoCode(e)
               if (code === 'EEXIST') {
-                // Already migrated, skip
+                // 已迁移过，跳过
                 return
               }
               if (code === 'ENOENT') {
@@ -998,7 +991,7 @@ export async function copyFileHistoryForResume(log: LogOption): Promise<void> {
                   `FileHistory: Error hard linking backup file from previous session`,
                 ),
               )
-              // Fallback to copy if hard link fails
+              // 硬链接失败时回退到拷贝
               try {
                 await copyFile(oldBackupPath, newBackupPath)
               } catch (copyErr) {
@@ -1019,7 +1012,7 @@ export async function copyFileHistoryForResume(log: LogOption): Promise<void> {
 
         const copyFailed = results.some(r => r.status === 'rejected')
 
-        // Record the snapshot only if we have successfully migrated the backup files
+        // 只有成功迁移了备份文件，才记录该快照
         if (!copyFailed) {
           void recordFileHistorySnapshot(
             snapshot.messageId,
@@ -1048,10 +1041,10 @@ export async function copyFileHistoryForResume(log: LogOption): Promise<void> {
 }
 
 /**
- * Notifies VSCode about files that have changed between snapshots.
- * Compares the previous snapshot with the new snapshot and sends file_updated
- * notifications for any files whose content has changed.
- * Fire-and-forget (void-dispatched from fileHistoryMakeSnapshot).
+ * 在快照之间发生变化的文件，通知 VSCode。
+ * 将上一个快照与新快照对比，对任何内容发生变化的文件发送
+ * file_updated 通知。
+ * 触发即忘（由 fileHistoryMakeSnapshot 通过 void 方式派发）。
  */
 async function notifyVscodeSnapshotFilesUpdated(
   oldState: FileHistoryState,
@@ -1069,7 +1062,7 @@ async function notifyVscodeSnapshotFilesUpdated(
     const oldBackup = oldSnapshot?.trackedFileBackups[trackingPath]
     const newBackup = newSnapshot.trackedFileBackups[trackingPath]
 
-    // Skip if both backups reference the same version (no change)
+    // 两个备份指向同一版本时跳过（无变化）
     if (
       oldBackup?.backupFileName === newBackup?.backupFileName &&
       oldBackup?.version === newBackup?.version
@@ -1077,29 +1070,29 @@ async function notifyVscodeSnapshotFilesUpdated(
       continue
     }
 
-    // Get old content from the previous backup
+    // 从上一个备份获取旧内容
     let oldContent: string | null = null
     if (oldBackup?.backupFileName) {
       const backupPath = resolveBackupPath(oldBackup.backupFileName)
       oldContent = await readFileAsyncOrNull(backupPath)
     }
 
-    // Get new content from the new backup or current file
+    // 从新备份或当前文件获取新内容
     let newContent: string | null = null
     if (newBackup?.backupFileName) {
       const backupPath = resolveBackupPath(newBackup.backupFileName)
       newContent = await readFileAsyncOrNull(backupPath)
     }
-    // If newBackup?.backupFileName === null, the file was deleted; newContent stays null.
+    // 如果 newBackup?.backupFileName === null，说明文件被删除；newContent 保持为 null。
 
-    // Only notify if content actually changed
+    // 仅当内容确实变化时才通知
     if (oldContent !== newContent) {
       notifyVscodeFileUpdated(filePath, oldContent, newContent)
     }
   }
 }
 
-/** Async read that swallows all errors and returns null (best-effort). */
+/** 吞掉所有错误并返回 null 的异步读取（尽力而为）。 */
 async function readFileAsyncOrNull(path: string): Promise<string | null> {
   try {
     return await readFile(path, 'utf-8')

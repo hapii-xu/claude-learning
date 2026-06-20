@@ -1,13 +1,13 @@
 /**
- * Coverage tests for share/index.ts gh-CLI paths.
+ * 针对 share/index.ts 中 gh-CLI 路径的覆盖测试。
  *
- * share/index.ts uses `import * as childProcess from 'node:child_process'` and
- * calls `promisify(childProcess.execFile)(...)` at call time. This means
- * mock.module('node:child_process') replaces the namespace properties before
- * each invocation, allowing us to control execFile behavior.
+ * share/index.ts 使用 `import * as childProcess from 'node:child_process'` 并在调用时
+ * 执行 `promisify(childProcess.execFile)(...)`。这意味着
+ * mock.module('node:child_process') 会在每次调用前替换 namespace 属性，
+ * 让我们能够控制 execFile 的行为。
  *
- * We attach util.promisify.custom to the mock execFile so that promisify
- * returns { stdout, stderr } (matching the real execFile contract).
+ * 我们将 util.promisify.custom 附加到 mock 的 execFile 上，使 promisify
+ * 返回 { stdout, stderr }（与真实 execFile 的契约一致）。
  */
 import {
   afterAll,
@@ -24,8 +24,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-// ── Mock control state ──
-// We use a single shared callback variable that each test can replace.
+// ── Mock 控制状态 ──
+// 我们使用一个共享的回调变量，每个测试可以替换它。
 let _execFileImpl: (
   cmd: string,
   args: string[],
@@ -36,7 +36,7 @@ let _execFileImpl: (
 let _execFileSyncImpl: (cmd: string, args: string[], opts?: unknown) => Buffer =
   () => Buffer.from('')
 
-// The actual mock function objects (must stay the same reference in mock.module)
+// 实际的 mock 函数对象（在 mock.module 中必须保持同一引用）
 const execFileMockCore = (
   cmd: string,
   args: string[],
@@ -44,7 +44,7 @@ const execFileMockCore = (
   cb: (err: Error | null, stdout: string, stderr: string) => void,
 ) => _execFileImpl(cmd, args, opts, cb)
 
-// Attach promisify.custom so promisify returns { stdout, stderr }
+// 附加 promisify.custom，使 promisify 返回 { stdout, stderr }
 ;(execFileMockCore as unknown as Record<symbol, unknown>)[
   promisify.custom as symbol
 ] = (
@@ -66,15 +66,15 @@ const execFileSyncMockCore = (
   opts?: unknown,
 ): Buffer => _execFileSyncImpl(cmd, args, opts)
 
-// Spread real child_process + flag-gated stub. Default OFF; suite's
-// beforeAll flips on, afterAll flips off so projectContext.test and other
-// child_process consumers see the real impl outside this suite.
+// 展开真实的 child_process + 通过 flag 控制的 stub。默认关闭；测试套件的
+// beforeAll 打开，afterAll 关闭，使得 projectContext.test 等其他
+// child_process 消费方在本套件之外看到真实实现。
 //
-// CRITICAL: util.promisify(execFile) reads `[util.promisify.custom]` from the
-// callee. Our wrapper must forward that symbol so promisify returns the
-// proper { stdout, stderr } shape. If we just return a plain arrow, the
-// wrapper has no custom symbol and promisify falls back to the cb adapter,
-// which our test stub doesn't support.
+// 关键：util.promisify(execFile) 会从被调用方读取 `[util.promisify.custom]`。
+// 我们的包装器必须转发该 symbol，以便 promisify 返回
+// 正确的 { stdout, stderr } 结构。如果只返回一个普通箭头函数，
+// 包装器就没有 custom symbol，promisify 会回退到 cb 适配器，
+// 而我们的测试 stub 不支持该适配器。
 let useShareGhCpStubs = false
 const wrappedExecFile = ((...args: unknown[]) =>
   useShareGhCpStubs
@@ -139,7 +139,7 @@ mock.module('src/services/analytics/index.js', () => ({
   stripProtoFields: (v: unknown) => v,
 }))
 
-// ── State ──
+// ── 状态 ──
 let tmpDir: string
 let claudeDir: string
 
@@ -148,8 +148,8 @@ beforeEach(() => {
   claudeDir = join(tmpDir, '.claude')
   mkdirSync(claudeDir, { recursive: true })
   process.env.CLAUDE_CONFIG_DIR = claudeDir
-  // Reset to a neutral default (succeeds with empty output) so adjacent test files
-  // that don't explicitly set up this mock see a passable gh check.
+  // 重置为中性的默认值（成功且输出为空），使得未显式设置此 mock 的相邻测试文件
+  // 能看到一个可通过的 gh 检查。
   _execFileImpl = (_cmd, _args, _opts, cb) => cb(null, '', '')
   _execFileSyncImpl = () => Buffer.from('')
 })
@@ -159,7 +159,7 @@ afterEach(() => {
   delete process.env.CLAUDE_CONFIG_DIR
 })
 
-// ── Helpers ──
+// ── 辅助函数 ──
 type CallFn = (args: string) => Promise<{ type: string; value: string }>
 
 async function getCallFn(): Promise<CallFn> {
@@ -190,7 +190,7 @@ async function writeSessionLog(entries?: string[]): Promise<void> {
   writeFileSync(join(dir, `${sessionId}.jsonl`), content.join('\n') + '\n')
 }
 
-// Helper: make execFile always succeed with given stdout
+// 辅助函数：让 execFile 始终成功并返回给定的 stdout
 function setExecFileSuccess(getStdout: (callCount: number) => string): void {
   let n = 0
   _execFileImpl = (_cmd, _args, _opts, cb) => {
@@ -199,12 +199,12 @@ function setExecFileSuccess(getStdout: (callCount: number) => string): void {
   }
 }
 
-// Helper: make execFile always fail with given error
+// 辅助函数：让 execFile 始终失败并返回给定错误
 function setExecFileFail(msg: string): void {
   _execFileImpl = (_cmd, _args, _opts, cb) => cb(new Error(msg), '', msg)
 }
 
-// Helper: sequence of behaviors per call index
+// 辅助函数：按调用索引顺序执行一系列行为
 function setExecFileSequence(
   behaviors: Array<{ ok: true; stdout: string } | { ok: false; msg: string }>,
 ): void {
@@ -217,7 +217,7 @@ function setExecFileSequence(
   }
 }
 
-// Activate child_process stubs only for this suite.
+// 仅在本测试套件中启用 child_process stub。
 beforeAll(() => {
   useShareGhCpStubs = true
   console.error('[share-gh beforeAll] stubs ON')
@@ -235,14 +235,14 @@ describe('share command — gh not available paths', () => {
     const result = await call('--private')
     expect(result.type).toBe('text')
     expect(result.value).toContain('gh')
-    // Must mention install or auth
+    // 必须提及安装或认证
     expect(result.value).toMatch(/cli\.github\.com|gh auth login/)
   })
 
   test('gh not available + allowPublicFallback + curl succeeds → 0x0 success', async () => {
     setExecFileSequence([
-      { ok: false, msg: 'ENOENT: gh not found' }, // gh --version → fail
-      { ok: true, stdout: 'https://0x0.st/abc123' }, // curl → success
+      { ok: false, msg: 'ENOENT: gh not found' }, // gh --version → 失败
+      { ok: true, stdout: 'https://0x0.st/abc123' }, // curl → 成功
     ])
     await writeSessionLog()
     const call = await getCallFn()
@@ -255,8 +255,8 @@ describe('share command — gh not available paths', () => {
 
   test('gh not available + allowPublicFallback + curl returns bad URL → error', async () => {
     setExecFileSequence([
-      { ok: false, msg: 'ENOENT' }, // gh --version → fail
-      { ok: true, stdout: 'error: connection refused' }, // curl → bad output
+      { ok: false, msg: 'ENOENT' }, // gh --version → 失败
+      { ok: true, stdout: 'error: connection refused' }, // curl → 错误输出
     ])
     await writeSessionLog()
     const call = await getCallFn()
@@ -299,7 +299,7 @@ describe('share command — gh available paths', () => {
   test('gh available + gist returns non-URL stdout → throws, no fallback → upload error', async () => {
     setExecFileSequence([
       { ok: true, stdout: 'gh version 2.0.0' },
-      { ok: true, stdout: 'Error: authentication required' }, // bad URL
+      { ok: true, stdout: 'Error: authentication required' }, // 错误的 URL
     ])
     await writeSessionLog()
     const call = await getCallFn()
@@ -312,8 +312,8 @@ describe('share command — gh available paths', () => {
   test('gh available + gist fails + allowPublicFallback + curl succeeds → 0x0 fallback', async () => {
     setExecFileSequence([
       { ok: true, stdout: 'gh version 2.0.0' }, // gh --version
-      { ok: false, msg: 'gist create failed: auth error' }, // gist create fails
-      { ok: true, stdout: 'https://0x0.st/def456' }, // curl fallback
+      { ok: false, msg: 'gist create failed: auth error' }, // gist create 失败
+      { ok: true, stdout: 'https://0x0.st/def456' }, // curl 回退
     ])
     await writeSessionLog()
     const call = await getCallFn()
@@ -360,14 +360,14 @@ describe('share command — gh available paths', () => {
 
 describe('share command — getTranscriptPath projectDir branch', () => {
   test('getSessionProjectDir returns non-null → uses projectDir path', async () => {
-    // To exercise the projectDir branch of getTranscriptPath,
-    // we need getSessionProjectDir() to return a non-null path.
-    // We use a fresh state mock only in this describe block.
-    // However, since we can't re-mock state per test without interference,
-    // we test the fallback path (null projectDir) which is already covered.
-    // The projectDir=true branch (line 126) is covered via state that provides a non-null dir.
-    // This test documents the limitation: state mock would interfere with other tests.
-    // Coverage note: line 126 covered when CLAUDE_HOME / state is set to return projectDir.
+    // 为了执行 getTranscriptPath 的 projectDir 分支，
+    // 我们需要 getSessionProjectDir() 返回一个非空路径。
+    // 我们仅在此 describe 块中使用全新的 state mock。
+    // 然而由于无法在不产生干扰的情况下按测试重新 mock state，
+    // 我们测试了已覆盖的回退路径（projectDir 为 null）。
+    // projectDir=true 分支（第 126 行）通过提供非空 dir 的 state 被覆盖。
+    // 该测试记录了这一限制：state mock 会干扰其他测试。
+    // 覆盖说明：当 CLAUDE_HOME / state 被设置为返回 projectDir 时，第 126 行被覆盖。
     setExecFileFail('ENOENT')
     const call = await getCallFn()
     const result = await call('--summary-only')
@@ -378,16 +378,16 @@ describe('share command — getTranscriptPath projectDir branch', () => {
 
 describe('share command — buildSummaryContent outer catch', () => {
   test('buildSummaryContent when readFileSync throws (defensive TOCTOU catch)', async () => {
-    // Lines 117-118: outer catch in buildSummaryContent (file disappears after existsSync)
-    // This is a TOCTOU race — not reachable via normal test flow.
-    // Covered by: the function returns '' when readFileSync throws.
-    // We verify the command handles empty summary by testing no-session-log path.
+    // 第 117-118 行：buildSummaryContent 的外层 catch（文件在 existsSync 后消失）
+    // 这是一个 TOCTOU 竞态 — 无法通过正常测试流程触发。
+    // 覆盖方式：当 readFileSync 抛错时该函数返回 ''。
+    // 我们通过测试 no-session-log 路径来验证命令能处理空摘要。
     setExecFileFail('ENOENT')
-    // Don't write session log → existsSync returns false → log_not_found (not buildSummaryContent)
+    // 不写入 session log → existsSync 返回 false → log_not_found（而非 buildSummaryContent）
     const call = await getCallFn()
     const result = await call('--summary-only')
     expect(result.type).toBe('text')
-    // When no log → shows Session log not found
+    // 当没有 log 时 → 显示 Session log not found
     expect(result.value).toContain('Session log not found')
   })
 })

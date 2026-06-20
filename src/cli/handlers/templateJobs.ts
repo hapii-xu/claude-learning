@@ -8,8 +8,8 @@ import {
 } from '../../jobs/state.js'
 
 /**
- * Entry point for template job commands: `new`, `list`, `reply`.
- * Called from cli.tsx fast-path.
+ * template job 命令的入口：`new`、`list`、`reply`。
+ * 由 cli.tsx 快速路径调用。
  */
 export async function templatesMain(args: string[]): Promise<void> {
   const subcommand = args[0]

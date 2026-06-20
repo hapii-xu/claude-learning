@@ -56,7 +56,7 @@ export async function createSSHSession(
     onProgress?.('Using custom remote binary, skipping probe/deploy…')
     remoteBinaryPath = remoteBin
     logForDebugging(`[SSH] custom remoteBin: ${remoteBin}`)
-    // Quick SSH to get remote home directory for default CWD
+    // 快速 SSH 一下，获取远程 home 目录用作默认 CWD
     try {
       const pwdProc = Bun.spawn(
         ['ssh', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5', host, 'pwd'],
@@ -70,15 +70,15 @@ export async function createSSHSession(
       const pwd = (await new Response(pwdProc.stdout).text()).trim()
       if (pwd.startsWith('/')) defaultCwd = pwd
     } catch {
-      /* use fallback */
+      /* 使用 fallback */
     }
   } else {
-    // 1. Probe remote host
+    // 1. 探测远程主机
     const probe = await probeRemote(host, onProgress)
     logForDebugging(`[SSH] probe result: ${JSON.stringify(probe)}`)
     defaultCwd = probe.defaultCwd
 
-    // 2. Deploy if binary missing or version mismatch
+    // 2. 二进制缺失或版本不匹配时进行部署
     remoteBinaryPath = probe.binaryPath ?? '~/.local/bin/claude'
     if (!probe.hasBinary || probe.remoteVersion !== localVersion) {
       onProgress?.(
@@ -96,11 +96,11 @@ export async function createSSHSession(
     }
   }
 
-  // 3. Start local auth proxy
+  // 3. 启动本地认证代理
   const { proxy, localAddress, authEnv } = await createAuthProxy()
   logForDebugging(`[SSH] auth proxy listening on ${localAddress}`)
 
-  // 4. Build SSH command with -R reverse forward and remote CLI
+  // 4. 构造带 -R 反向转发和远程 CLI 的 SSH 命令
   const remoteSocketId = randomUUID().slice(0, 8)
   const isWindows = process.platform === 'win32'
 
@@ -130,7 +130,7 @@ export async function createSSHSession(
     const remoteSocket = `/tmp/claude-ssh-auth-${remoteSocketId}.sock`
     sshArgs.push('-R', `${remoteSocket}:${localAddress}`)
     sshArgs.push('-o', 'StreamLocalBindUnlink=yes')
-    // Override auth env to use the remote socket path
+    // 覆盖 auth 环境变量，使用远程 socket 路径
     const idx = remoteCli.indexOf(
       `ANTHROPIC_AUTH_SOCKET=${authEnv.ANTHROPIC_AUTH_SOCKET}`,
     )
@@ -138,11 +138,11 @@ export async function createSSHSession(
       remoteCli[idx] = `ANTHROPIC_AUTH_SOCKET=${remoteSocket}`
     }
   } else {
-    // Windows: TCP reverse forward
+    // Windows：TCP 反向转发
     const localPort = localAddress.split(':')[1]
     const remotePort = 10000 + Math.floor(Math.random() * 50000)
     sshArgs.push('-R', `${remotePort}:127.0.0.1:${localPort}`)
-    // Override auth env to use remote TCP address
+    // 覆盖 auth 环境变量，使用远程 TCP 地址
     const baseIdx = remoteCli.findIndex(s =>
       s.startsWith('ANTHROPIC_BASE_URL='),
     )
@@ -175,10 +175,10 @@ export async function createSSHSession(
 
   let remoteCwd: string
   if (remoteBin) {
-    // Custom binary mode: the remote CLI in print+stream-json mode emits
-    // init only after receiving the first user message (QueryEngine yield).
-    // Waiting for init here would deadlock. Instead, verify the process
-    // is alive and use the configured or probed CWD.
+    // 自定义二进制模式：在 print+stream-json 模式下，远程 CLI 只有
+    // 收到第一条 user 消息（QueryEngine yield）之后才会发送 init。
+    // 在这里等待 init 会死锁。因此改为：校验进程存活，并使用
+    // 配置或探测得到的 CWD。
     const earlyExit = await Promise.race([
       proc.exited.then(code => code),
       new Promise<null>(r => setTimeout(() => r(null), 3_000)),
@@ -407,7 +407,7 @@ async function waitForInit(
             return (msg.cwd as string) || fallbackCwd || process.cwd()
           }
         } catch {
-          // not valid JSON — skip
+          // 不是合法 JSON —— 跳过
         }
       }
     }
@@ -444,7 +444,7 @@ function collectStderr(proc: Subprocess, chunks: string[]): void {
         }
       }
     } catch {
-      // stderr closed — expected on process exit
+      // stderr 已关闭 —— 进程退出时的预期行为
     }
   })()
 }

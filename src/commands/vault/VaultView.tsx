@@ -135,7 +135,7 @@ export function VaultView(props: Props): React.ReactNode {
                   </>
                 ) : null}
               </Box>
-              {/* SECURITY: credential value is never displayed */}
+              {/* 安全：credential 的值永远不会被显示 */}
               <Text dimColor>Value: ***mask***</Text>
             </Box>
           );
@@ -155,7 +155,7 @@ export function VaultView(props: Props): React.ReactNode {
         </Box>
         <Text>ID: {credentialId}</Text>
         <Text>Vault: {vaultId}</Text>
-        {/* SECURITY: credential value is never echoed back */}
+        {/* 安全：credential 的值永远不会回显 */}
         <Text dimColor>Value: ***mask***</Text>
       </Box>
     );
@@ -176,7 +176,7 @@ export function VaultView(props: Props): React.ReactNode {
     );
   }
 
-  // error mode
+  // 错误模式
   return (
     <Box>
       <Text color={'error' as keyof Theme}>{props.message}</Text>

@@ -20,11 +20,11 @@ export const call: LocalCommandCall = async (args, context) => {
     }
   }
 
-  // Master mode
+  // 主控模式
   const targetName = args.trim()
 
   if (targetName) {
-    // Detach from a specific slave
+    // 从特定的从属会话分离
     const client = removeSlaveClient(targetName)
     if (!client) {
       return {
@@ -36,11 +36,11 @@ export const call: LocalCommandCall = async (args, context) => {
     try {
       client.send({ type: 'detach' })
     } catch {
-      // Socket may already be closed
+      // Socket 可能已关闭
     }
     client.disconnect()
 
-    // Remove slave from state
+    // 从状态中移除从属会话
     context.setAppState(prev => {
       const { [targetName]: _removed, ...remainingSlaves } =
         getPipeIpc(prev).slaves
@@ -62,7 +62,7 @@ export const call: LocalCommandCall = async (args, context) => {
     }
   }
 
-  // No target specified — detach from ALL slaves
+  // 未指定目标 — 从所有从属会话分离
   const allClients = getAllSlaveClients()
   const slaveNames = Array.from(allClients.keys())
 
@@ -72,7 +72,7 @@ export const call: LocalCommandCall = async (args, context) => {
       try {
         client.send({ type: 'detach' })
       } catch {
-        // Ignore
+        // 忽略
       }
       client.disconnect()
     }

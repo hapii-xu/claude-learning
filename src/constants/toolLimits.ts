@@ -1,56 +1,55 @@
 /**
- * Constants related to tool result size limits
+ * 与工具结果大小限制相关的常量
  */
 
 /**
- * Default maximum size in characters for tool results before they get persisted
- * to disk. When exceeded, the result is saved to a file and the model receives
- * a preview with the file path instead of the full content.
+ * 工具结果在持久化到磁盘之前的默认最大字符数。
+ * 超过此值时，结果会保存到文件中，模型会收到一个
+ * 包含文件路径的预览，而非完整内容。
  *
- * Individual tools may declare a lower maxResultSizeChars, but this constant
- * acts as a system-wide cap regardless of what tools declare.
+ * 单个工具可以声明更小的 maxResultSizeChars，但无论工具声明什么，
+ * 此常量都作为全系统上限。
  */
 export const DEFAULT_MAX_RESULT_SIZE_CHARS = 50_000
 
 /**
- * Maximum size for tool results in tokens.
- * Based on analysis of tool result sizes, we set this to a reasonable upper bound
- * to prevent excessively large tool results from consuming too much context.
+ * 工具结果的最大 token 数。
+ * 基于对工具结果大小的分析，我们将其设为一个合理的上界，
+ * 以防止过大的工具结果占用过多上下文。
  *
- * This is approximately 400KB of text (assuming ~4 bytes per token).
+ * 约合 400KB 文本（按每 token 约 4 字节估算）。
  */
 export const MAX_TOOL_RESULT_TOKENS = 100_000
 
 /**
- * Bytes per token estimate for calculating token count from byte size.
- * This is a conservative estimate - actual token count may vary.
+ * 用于从字节数推算 token 数的「每 token 字节数」估算值。
+ * 这是一个保守估计，实际 token 数可能不同。
  */
 export const BYTES_PER_TOKEN = 4
 
 /**
- * Maximum size for tool results in bytes (derived from token limit).
+ * 工具结果的最大字节数（由 token 上限推导得出）。
  */
 export const MAX_TOOL_RESULT_BYTES = MAX_TOOL_RESULT_TOKENS * BYTES_PER_TOKEN
 
 /**
- * Default maximum aggregate size in characters for tool_result blocks within
- * a SINGLE user message (one turn's batch of parallel tool results). When a
- * message's blocks together exceed this, the largest blocks in that message
- * are persisted to disk and replaced with previews until under budget.
- * Messages are evaluated independently — a 150K result in one turn and a
- * 150K result in the next are both untouched.
+ * 单条用户消息内（一个回合中的一批并行工具结果）tool_result 块的
+ * 默认最大聚合字符数。当一条消息内所有块加起来超过此值时，
+ * 会将该消息中最大的块持久化到磁盘并用预览替换，直到低于预算。
+ * 各消息独立评估 —— 一个回合中的 150K 结果与下一回合的
+ * 150K 结果互不影响。
  *
- * This prevents N parallel tools from each hitting the per-tool max and
- * collectively producing e.g. 10 × 40K = 400K in one turn's user message.
+ * 此限制用于防止 N 个并行工具各自达到单工具上限，
+ * 从而在一个回合的用户消息中累计产生例如 10 × 40K = 400K 的内容。
  *
- * Overridable at runtime via GrowthBook flag tengu_hawthorn_window — see
- * getPerMessageBudgetLimit() in toolResultStorage.ts.
+ * 可在运行时通过 GrowthBook 开关 tengu_hawthorn_window 覆盖 —— 参见
+ * toolResultStorage.ts 中的 getPerMessageBudgetLimit()。
  */
 export const MAX_TOOL_RESULTS_PER_MESSAGE_CHARS = 200_000
 
 /**
- * Maximum character length for tool summary strings in compact views.
- * Used by getToolUseSummary() implementations to truncate long inputs
- * for display in grouped agent rendering.
+ * 紧凑视图下工具摘要字符串的最大字符长度。
+ * 由各 getToolUseSummary() 实现用于截断过长的输入，
+ * 以便在分组的 agent 渲染中展示。
  */
 export const TOOL_SUMMARY_MAX_LENGTH = 50

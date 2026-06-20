@@ -1,4 +1,4 @@
-/* eslint-disable custom-rules/no-process-exit -- CLI subcommand handler intentionally exits */
+/* eslint-disable custom-rules/no-process-exit -- CLI 子命令处理器需要主动退出 */
 
 import {
   clearAuthRelatedCaches,
@@ -44,14 +44,14 @@ import {
 } from '../../utils/status.js'
 
 /**
- * Shared post-token-acquisition logic. Saves tokens, fetches profile/roles,
- * and sets up the local auth state.
+ * 获取 token 后的共享逻辑。保存 token、拉取 profile/roles，
+ * 并设置本地认证状态。
  */
 export async function installOAuthTokens(tokens: OAuthTokens): Promise<void> {
-  // Clear old state before saving new credentials
+  // 保存新凭据前清除旧状态
   await performLogout({ clearOnboarding: false })
 
-  // Reuse pre-fetched profile if available, otherwise fetch fresh
+  // 如果已有预取的 profile 就复用，否则重新拉取
   const profile =
     tokens.profile ?? (await getOauthProfileFromOauthToken(tokens.accessToken))
   if (profile) {
@@ -68,7 +68,7 @@ export async function installOAuthTokens(tokens: OAuthTokens): Promise<void> {
       accountCreatedAt: profile.account.created_at,
     })
   } else if (tokens.tokenAccount) {
-    // Fallback to token exchange account data when profile endpoint fails
+    // 当 profile 端点失败时，回退使用 token 交换返回的账号数据
     storeOAuthAccountInfo({
       accountUuid: tokens.tokenAccount.uuid,
       emailAddress: tokens.tokenAccount.emailAddress,
@@ -86,8 +86,8 @@ export async function installOAuthTokens(tokens: OAuthTokens): Promise<void> {
     })
   }
 
-  // Roles and first-token-date may fail for limited-scope tokens (e.g.
-  // inference-only from setup-token). They're not required for core auth.
+  // 对于 scope 受限的 token（例如来自 setup-token 的仅推理 token），
+  // 拉取 roles 和首次 token 日期可能会失败。这些对核心认证不是必需的。
   await fetchAndStoreUserRoles(tokens.accessToken).catch(err =>
     logForDebugging(String(err), { level: 'error' }),
   )
@@ -97,7 +97,7 @@ export async function installOAuthTokens(tokens: OAuthTokens): Promise<void> {
       logForDebugging(String(err), { level: 'error' }),
     )
   } else {
-    // API key creation is critical for Console users — let it throw.
+    // 对 Console 用户而言，创建 API key 至关重要 — 让它抛出异常。
     const apiKey = await createAndStoreApiKey(tokens.accessToken)
     if (!apiKey) {
       throw new Error(
@@ -128,15 +128,15 @@ export async function authLogin({
   }
 
   const settings = getInitialSettings()
-  // forceLoginMethod is a hard constraint (enterprise setting) — matches ConsoleOAuthFlow behavior.
-  // Without it, --console selects Console; --claudeai (or no flag) selects claude.ai.
+  // forceLoginMethod 是硬约束（企业设置） — 与 ConsoleOAuthFlow 行为一致。
+  // 若未设置：--console 选择 Console；--claudeai（或无 flag）选择 claude.ai。
   const loginWithClaudeAi = settings.forceLoginMethod
     ? settings.forceLoginMethod === 'claudeai'
     : !useConsole
   const orgUUID = settings.forceLoginOrgUUID
 
-  // Fast path: if a refresh token is provided via env var, skip the browser
-  // OAuth flow and exchange it directly for tokens.
+  // 快速路径：如果通过环境变量提供了 refresh token，则跳过浏览器
+  // OAuth 流程，直接用该 token 换取 access token。
   const envRefreshToken = process.env.CLAUDE_CODE_OAUTH_REFRESH_TOKEN
   if (envRefreshToken) {
     const envScopes = process.env.CLAUDE_CODE_OAUTH_SCOPES
@@ -165,8 +165,8 @@ export async function authLogin({
         process.exit(1)
       }
 
-      // Mark onboarding complete — interactive paths handle this via
-      // the Onboarding component, but the env var path skips it.
+      // 标记 onboarding 完成 — 交互式路径通过 Onboarding 组件处理，
+      // 但环境变量路径会跳过该步骤。
       saveGlobalConfig(current => {
         if (current.hasCompletedOnboarding) return current
         return { ...current, hasCompletedOnboarding: true }
@@ -247,7 +247,7 @@ export async function authStatus(opts: {
   const loggedIn =
     hasToken || apiKeySource !== 'none' || hasApiKeyEnvVar || using3P
 
-  // Determine auth method
+  // 判断认证方式
   let authMethod: string = 'none'
   if (using3P) {
     authMethod = 'third_party'

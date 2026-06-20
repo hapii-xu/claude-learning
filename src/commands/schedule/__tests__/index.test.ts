@@ -1,5 +1,5 @@
 /**
- * Tests for schedule/index.ts — command metadata only.
+ * schedule/index.ts 的测试 — 仅针对命令元数据。
  */
 import { beforeAll, describe, expect, mock, test } from 'bun:test'
 
@@ -38,8 +38,8 @@ describe('scheduleCommand metadata', () => {
 
   test('aliases include cron (triggers is now the primary name)', () => {
     expect(cmd.aliases).toContain('cron')
-    // 'triggers' moved to primary `name`; the bundled skill /schedule
-    // owns the 'schedule' slot upstream so we don't alias to it either.
+    // 'triggers' 已迁移为主 `name`；上游内置 skill /schedule 占用了
+    // 'schedule' 这个槽位，因此我们也不将其作为别名。
     expect(cmd.aliases).not.toContain('schedule')
   })
 

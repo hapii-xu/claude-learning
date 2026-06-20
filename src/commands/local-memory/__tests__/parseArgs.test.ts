@@ -83,8 +83,7 @@ describe('parseLocalMemoryArgs', () => {
   })
 
   test('"list" with trailing args still returns list action', () => {
-    // 'list extra' bypasses the short-circuit on line 33 and hits the
-    // tokens-based branch on line 41-43.
+    // 'list extra' 绕过第 33 行的短路逻辑，进入第 41-43 行基于 tokens 的分支。
     expect(parseLocalMemoryArgs('list extra-arg')).toEqual({ action: 'list' })
   })
 

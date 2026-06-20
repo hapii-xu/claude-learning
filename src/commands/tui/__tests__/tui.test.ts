@@ -28,11 +28,11 @@ beforeEach(() => {
   claudeDir = join(tmpDir, '.claude')
   mkdirSync(claudeDir, { recursive: true })
   process.env.CLAUDE_CONFIG_DIR = claudeDir
-  // getClaudeConfigHomeDir is `memoize(...)` — clear its cache so this
-  // suite's CLAUDE_CONFIG_DIR overrides any value cached by an earlier
-  // test file in the same process.
+  // getClaudeConfigHomeDir 是 `memoize(...)` —— 清理它的缓存，
+  // 这样本测试套件的 CLAUDE_CONFIG_DIR 才能覆盖同一进程中更早的
+  // 测试文件可能已缓存的值。
   getClaudeConfigHomeDir.cache?.clear?.()
-  // Save env vars we may mutate
+  // 保存可能被修改的环境变量
   origEnv.CLAUDE_CODE_NO_FLICKER = process.env.CLAUDE_CODE_NO_FLICKER
   delete process.env.CLAUDE_CODE_NO_FLICKER
 })
@@ -40,7 +40,7 @@ beforeEach(() => {
 afterEach(() => {
   rmSync(tmpDir, { recursive: true, force: true })
   delete process.env.CLAUDE_CONFIG_DIR
-  // Restore env vars
+  // 恢复环境变量
   if (origEnv.CLAUDE_CODE_NO_FLICKER === undefined) {
     delete process.env.CLAUDE_CODE_NO_FLICKER
   } else {
@@ -48,7 +48,7 @@ afterEach(() => {
   }
 })
 
-// Helper: invoke the command's call function
+// 辅助函数：调用命令的 call 函数
 async function invokeCmd(
   args: string,
 ): Promise<{ type: string; value: string }> {
@@ -127,7 +127,7 @@ describe('tui status subcommand', () => {
   test('reports enabled when marker file exists', async () => {
     const { getTuiMarkerPath } = await import('../index.js')
     const markerPath = getTuiMarkerPath()
-    // Write the marker
+    // 写入标记文件
     const { writeFileSync } = await import('node:fs')
     writeFileSync(markerPath, '1', 'utf8')
 
@@ -153,7 +153,7 @@ describe('tui on subcommand', () => {
     await invokeCmd('on')
     const result = await invokeCmd('on')
     expect(result.type).toBe('text')
-    // Second call still returns a success message
+    // 第二次调用仍然返回成功消息
     expect(result.value).toContain('enabled')
   })
 })

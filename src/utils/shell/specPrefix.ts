@@ -1,27 +1,27 @@
 /**
- * Fig-spec-driven command prefix extraction.
+ * 基于 Fig spec 的命令前缀抽取。
  *
- * Given a command name + args array + its @withfig/autocomplete spec, walks
- * the spec to find how deep into the args a meaningful prefix extends.
- * `git -C /repo status --short` → `git status` (spec says -C takes a value,
- * skip it, find `status` as a known subcommand).
+ * 给定命令名 + 参数数组 + 对应的 @withfig/autocomplete spec，遍历 spec
+ * 以确定有意义的前缀延伸到参数的哪一层。
+ * 例如 `git -C /repo status --short` → `git status`（spec 标明 -C 接一个
+ * 参数，跳过它，找到 `status` 作为已知子命令）。
  *
- * Pure over (string, string[], CommandSpec) — no parser dependency. Extracted
- * from src/utils/bash/prefix.ts so PowerShell's extractor can reuse it;
- * external CLIs (git, npm, kubectl) are shell-agnostic.
+ * 纯函数 (string, string[], CommandSpec) → ...，不依赖 parser。从
+ * src/utils/bash/prefix.ts 中抽出，便于 PowerShell 的抽取器复用；
+ * 外部 CLI（git、npm、kubectl）本身是 shell 无关的。
  */
 
 import type { CommandSpec } from '../bash/registry.js'
 
 const URL_PROTOCOLS = ['http://', 'https://', 'ftp://']
 
-// Overrides for commands whose fig specs aren't available at runtime
-// (dynamic imports don't work in native/node builds). Without these,
-// calculateDepth falls back to 2, producing overly broad prefixes.
+// 针对运行时拿不到 fig spec 的命令做覆盖（dynamic import 在
+// native/node 构建里无法工作）。如果没有这些覆盖，calculateDepth 会
+// 回退到 2，产生过宽的前缀。
 export const DEPTH_RULES: Record<string, number> = {
-  rg: 2, // pattern argument is required despite variadic paths
+  rg: 2, // 尽管路径是可变参数，pattern 参数仍是必需的
   'pre-commit': 2,
-  // CLI tools with deep subcommand trees (e.g. gcloud scheduler jobs list)
+  // 拥有深层子命令树的 CLI 工具（如 gcloud scheduler jobs list）
   gcloud: 4,
   'gcloud compute': 6,
   'gcloud beta': 6,
@@ -35,8 +35,8 @@ export const DEPTH_RULES: Record<string, number> = {
 
 const toArray = <T>(val: T | T[]): T[] => (Array.isArray(val) ? val : [val])
 
-// Check if an argument matches a known subcommand (case-insensitive: PS
-// callers pass original-cased args; fig spec names are lowercase)
+// 判断某个参数是否匹配已知子命令（大小写不敏感：PS 调用方传入原始大小写
+// 的参数；fig spec 中的名字是小写）
 function isKnownSubcommand(arg: string, spec: CommandSpec | null): boolean {
   if (!spec?.subcommands?.length) return false
   const argLower = arg.toLowerCase()
@@ -47,27 +47,27 @@ function isKnownSubcommand(arg: string, spec: CommandSpec | null): boolean {
   )
 }
 
-// Check if a flag takes an argument based on spec, or use heuristic
+// 根据 spec 判断某个 flag 是否接受参数，否则使用启发式判断
 function flagTakesArg(
   flag: string,
   nextArg: string | undefined,
   spec: CommandSpec | null,
 ): boolean {
-  // Check if flag is in spec.options
+  // 检查 flag 是否在 spec.options 中
   if (spec?.options) {
     const option = spec.options.find(opt =>
       Array.isArray(opt.name) ? opt.name.includes(flag) : opt.name === flag,
     )
     if (option) return !!option.args
   }
-  // Heuristic: if next arg isn't a flag and isn't a known subcommand, assume it's a flag value
+  // 启发式：如果下一个参数不是 flag，也不是已知子命令，就假定它是 flag 的值
   if (spec?.subcommands?.length && nextArg && !nextArg.startsWith('-')) {
     return !isKnownSubcommand(nextArg, spec)
   }
   return false
 }
 
-// Find the first subcommand by skipping flags and their values
+// 跳过 flag 及其对应的值，找到第一个子命令
 function findFirstSubcommand(
   args: string[],
   spec: CommandSpec | null,
@@ -100,11 +100,11 @@ export async function buildPrefix(
     if (!arg || parts.length >= maxDepth) break
 
     if (arg.startsWith('-')) {
-      // Special case: python -c should stop after -c
+      // 特例：python -c 需要在 -c 之后立即停止
       if (arg === '-c' && ['python', 'python3'].includes(command.toLowerCase()))
         break
 
-      // Check for isCommand/isModule flags that should be included in prefix
+      // 检查应当纳入前缀的 isCommand/isModule flag
       if (spec?.options) {
         const option = spec.options.find(opt =>
           Array.isArray(opt.name) ? opt.name.includes(arg) : opt.name === arg,
@@ -118,12 +118,12 @@ export async function buildPrefix(
         }
       }
 
-      // For commands with subcommands, skip global flags to find the subcommand
+      // 对于带子命令的命令，跳过全局 flag 以定位到子命令
       if (hasSubcommands && !foundSubcommand) {
         if (flagTakesArg(arg, args[i + 1], spec)) i++
         continue
       }
-      break // Stop at flags (original behavior)
+      break // 遇到 flag 即停止（原有行为）
     }
 
     if (await shouldStopAtArg(arg, args.slice(0, i), spec)) break
@@ -141,7 +141,7 @@ async function calculateDepth(
   args: string[],
   spec: CommandSpec | null,
 ): Promise<number> {
-  // Find first subcommand by skipping flags and their values
+  // 跳过 flag 及其对应的值，找到第一个子命令
   const firstSubcommand = findFirstSubcommand(args, spec)
   const commandLower = command.toLowerCase()
   const key = firstSubcommand
@@ -165,7 +165,7 @@ async function calculateDepth(
     }
   }
 
-  // Find subcommand spec using the already-found firstSubcommand
+  // 使用已找到的 firstSubcommand 查找子命令 spec
   if (firstSubcommand && spec.subcommands?.length) {
     const firstSubLower = firstSubcommand.toLowerCase()
     const subcommand = spec.subcommands.find(sub =>
@@ -180,11 +180,12 @@ async function calculateDepth(
         if (subArgs.some(arg => arg?.isVariadic)) return 2
       }
       if (subcommand.subcommands?.length) return 4
-      // Leaf subcommand with NO args declared (git show, git log, git tag):
-      // the 3rd word is transient (SHA, ref, tag name) → dead over-specific
-      // rule like PowerShell(git show 81210f8:*). NOT the isOptional case —
-      // `git fetch` declares optional remote/branch and `git fetch origin`
-      // is tested (bash/prefix.test.ts:912) as intentional remote scoping.
+      // 没有声明 args 的叶子子命令（git show、git log、git tag）：
+      // 第 3 个词是临时性的（SHA、ref、tag 名）→ 会产生类似
+      // PowerShell(git show 81210f8:*) 这样毫无价值的过细规则。
+      // 与 isOptional 的情况不同 — `git fetch` 声明了可选的 remote/branch，
+      // 而 `git fetch origin` 在 bash/prefix.test.ts:912 中被测为有意的
+      // remote 限定。
       if (!subcommand.args) return 2
       return 3
     }
@@ -226,16 +227,16 @@ async function shouldStopAtArg(
 
   if (!hasFile && !hasUrl) return false
 
-  // Check if we're after a -m flag for python modules
+  // 检查是否处于 python -m flag 之后（用于 module）
   if (spec?.options && args.length > 0 && args[args.length - 1] === '-m') {
     const option = spec.options.find(opt =>
       Array.isArray(opt.name) ? opt.name.includes('-m') : opt.name === '-m',
     )
     if (option?.args && toArray(option.args).some(arg => arg?.isModule)) {
-      return false // Don't stop at module names
+      return false // 不要在 module 名处停止
     }
   }
 
-  // For actual files/URLs, always stop regardless of context
+  // 对于真实的文件/URL，无论上下文都一律停止
   return true
 }

@@ -1,6 +1,6 @@
 /**
- * Copy command - minimal metadata only.
- * Implementation is lazy-loaded from copy.tsx to reduce startup time.
+ * Copy 命令 - 仅包含最小元数据。
+ * 实现从 copy.tsx 懒加载以减少启动时间。
  */
 import type { Command } from '../../commands.js'
 

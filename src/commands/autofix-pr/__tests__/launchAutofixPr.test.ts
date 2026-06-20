@@ -11,14 +11,14 @@ import type { LocalJSXCommandCall } from '../../../types/command.js'
 import { debugMock } from '../../../../tests/mocks/debug.js'
 import { logMock } from '../../../../tests/mocks/log.js'
 
-// ── Mock module-level side effects before any imports ──
+// ── 在任何 import 之前先 mock 模块级副作用 ──
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
 mock.module('bun:bundle', () => ({
   feature: (_name: string) => true,
 }))
 
-// ── Core dependencies ──
+// ── 核心依赖 ──
 type TeleportResult = { id: string; title: string } | null
 const teleportMock = mock(
   (): Promise<TeleportResult> =>
@@ -26,10 +26,10 @@ const teleportMock = mock(
 )
 mock.module('src/utils/teleport.js', () => ({
   teleportToRemote: teleportMock,
-  // Stubs for other exports — Bun mock-module is process-level, so when
-  // run combined with teleport-command tests these would otherwise leak as
-  // undefined and crash. Keep here in sync with utils/teleport.tsx exports
-  // that any other test in this process might import transitively.
+  // 其他导出的 stub —— Bun mock-module 是进程级的，与 teleport-command
+  // 测试合并跑时，这些导出若未提供会泄漏成 undefined 然后崩溃。
+  // 需与 utils/teleport.tsx 的导出保持同步，以覆盖本进程里其他测试可能
+  // 间接 import 的内容。
   teleportResumeCodeSession: mock(() =>
     Promise.resolve({ branch: null, messages: [], error: null }),
   ),
@@ -83,9 +83,8 @@ const fetchPrHeadShaMock = mock<
   (owner: string, repo: string, prNumber: number) => Promise<string | null>
 >(() => Promise.resolve('sha-baseline-abc123'))
 
-// Mock prFetch.ts (gh CLI spawn layer) — keeping the pure decision matrix
-// in prOutcomeCheck.ts unmocked so its tests are unaffected by this file's
-// process-global mock.module pollution.
+// mock prFetch.ts（gh CLI spawn 层）—— 保持 prOutcomeCheck.ts 中的纯决策矩阵
+// 不被 mock，这样该模块的测试不受本文件进程级 mock.module 污染的影响。
 mock.module('src/commands/autofix-pr/prFetch.js', () => ({
   fetchPrHeadSha: fetchPrHeadShaMock,
   checkPrAutofixOutcome: mock(() => Promise.resolve({ completed: false })),
@@ -111,7 +110,7 @@ const noop = () => {}
 mock.module('src/bootstrap/state.js', () => ({
   getSessionId: () => 'parent-session-id',
   getParentSessionId: () => undefined,
-  // Additional exports needed by transitive imports (e.g. cwd.ts, sandbox-adapter.ts)
+  // 间接 import（如 cwd.ts、sandbox-adapter.ts）需要的额外导出
   getCwdState: () => '/mock/cwd',
   getOriginalCwd: () => '/mock/cwd',
   getSessionProjectDir: () => null,
@@ -123,14 +122,14 @@ mock.module('src/bootstrap/state.js', () => ({
   addSlowOperation: noop,
 }))
 
-// Mock skillDetect so initialMessage is deterministic across CI environments
-// (real existsSync would depend on .claude/skills/* in the working dir).
+// mock skillDetect，让 initialMessage 在各 CI 环境下是确定的
+// （真实的 existsSync 会依赖工作目录下的 .claude/skills/*）。
 mock.module('src/commands/autofix-pr/skillDetect.js', () => ({
   detectAutofixSkills: () => [] as string[],
   formatSkillsHint: () => '',
 }))
 
-// ── Import SUT after mocks ──
+// ── 在 mock 之后 import 被测对象 ──
 let callAutofixPr: LocalJSXCommandCall
 let clearActiveMonitor: () => void
 let getActiveMonitor: () => unknown
@@ -143,7 +142,7 @@ beforeAll(async () => {
   getActiveMonitor = state.getActiveMonitor
 })
 
-// Helper context
+// 辅助 context
 function makeContext() {
   return { abortController: new AbortController() } as Parameters<
     typeof callAutofixPr
@@ -199,8 +198,8 @@ describe('callAutofixPr', () => {
   })
 
   test('cross-repo syntax matching cwd repo is accepted', async () => {
-    // detectRepo mock returns acme/myrepo by default — pass a matching
-    // cross-repo arg and verify teleport is called normally.
+    // detectRepo mock 默认返回 acme/myrepo —— 这里传入匹配的 cross-repo
+    // 参数，验证 teleport 被正常调用。
     await callAutofixPr(onDone, makeContext(), 'acme/myrepo#999')
     expect(teleportMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -210,7 +209,7 @@ describe('callAutofixPr', () => {
   })
 
   test('cross-repo syntax NOT matching cwd repo is rejected with repo_mismatch', async () => {
-    // detectRepo mock returns acme/myrepo; pass a mismatching cross-repo arg.
+    // detectRepo mock 返回 acme/myrepo；传入不匹配的 cross-repo 参数。
     await callAutofixPr(onDone, makeContext(), 'anthropics/claude-code#999')
     expect(teleportMock).not.toHaveBeenCalled()
     const firstArg = onDone.mock.calls[0]?.[0] as string
@@ -292,7 +291,7 @@ describe('callAutofixPr', () => {
   })
 
   test('invalid args → invalid action message (lines 72-78)', async () => {
-    // parseAutofixArgs('') returns { action: 'invalid', reason: 'empty' }
+    // parseAutofixArgs('') 返回 { action: 'invalid', reason: 'empty' }
     await callAutofixPr(onDone, makeContext(), '')
     const firstArg = onDone.mock.calls[0]?.[0] as string
     expect(firstArg).toMatch(/Invalid args/)
@@ -300,7 +299,7 @@ describe('callAutofixPr', () => {
   })
 
   test('cross-repo with pr_number_out_of_range → invalid action (lines 72-78)', async () => {
-    // parsePrNumber('0') returns null → invalid action
+    // parsePrNumber('0') 返回 null → invalid action
     await callAutofixPr(onDone, makeContext(), 'acme/myrepo#0')
     const firstArg = onDone.mock.calls[0]?.[0] as string
     expect(firstArg).toMatch(/Invalid args/)
@@ -337,7 +336,7 @@ describe('callAutofixPr', () => {
     const firstArg = onDone.mock.calls[0]?.[0] as string
     expect(firstArg).toMatch(/Autofix PR failed/)
     expect(firstArg).toMatch(/teleport failed/)
-    // Lock must be released
+    // 锁必须被释放
     const { getActiveMonitor } = await import('../monitorState.js')
     expect(getActiveMonitor()).toBeNull()
   })
@@ -350,14 +349,14 @@ describe('callAutofixPr', () => {
     const firstArg = onDone.mock.calls[0]?.[0] as string
     expect(firstArg).toMatch(/Autofix PR failed/)
     expect(firstArg).toMatch(/task registration failed/)
-    // Lock must be released
+    // 锁必须被释放
     const { getActiveMonitor } = await import('../monitorState.js')
     expect(getActiveMonitor()).toBeNull()
   })
 
   test('outer catch: checkRemoteAgentEligibility throws → outer catch (lines 315-323)', async () => {
-    // checkRemoteAgentEligibility is awaited without an inner try/catch.
-    // If it throws, the error bubbles to the outermost catch at lines 315-323.
+    // checkRemoteAgentEligibility 被 await 时没有内层 try/catch。
+    // 它一旦抛错，错误会冒泡到第 315-323 行的最外层 catch。
     checkEligibilityMock.mockImplementationOnce(() =>
       Promise.reject(new Error('unexpected eligibility check error')),
     )
@@ -371,8 +370,8 @@ describe('callAutofixPr', () => {
   })
 
   test('captureFailMsg called via onBundleFail when teleport returns null (line 237)', async () => {
-    // When teleportToRemote calls onBundleFail before returning null,
-    // captureFailMsg captures the message and it's used in the !session branch.
+    // 当 teleportToRemote 在返回 null 之前先调用 onBundleFail 时，
+    // captureFailMsg 会捕获到消息，并在 !session 分支中使用。
     teleportMock.mockImplementationOnce(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ((opts: any) => {
@@ -385,7 +384,7 @@ describe('callAutofixPr', () => {
     await callAutofixPr(onDone, makeContext(), '42')
     const firstArg = onDone.mock.calls[0]?.[0] as string
     expect(firstArg).toMatch(/Autofix PR failed/)
-    // The captured message should appear in the error
+    // 错误消息里应包含被捕获的文本
     expect(firstArg).toMatch(/bundle creation failed/)
   })
 
@@ -397,25 +396,23 @@ describe('callAutofixPr', () => {
       } as unknown as { eligible: true }),
     )
     await callAutofixPr(onDone, makeContext(), '42')
-    // Should still proceed — no_remote_environment is tolerated
+    // 应当继续往下走 —— no_remote_environment 是被容忍的
     expect(teleportMock).toHaveBeenCalled()
   })
 })
 
-// Regression suite for the taskId-mismatch latent bug + completion hook wiring.
-// Before this fix, createAutofixTeammate generated a teammate UUID, that UUID
-// was used to acquire the singleton monitor lock, and registerRemoteAgentTask
-// generated a *different* framework taskId. When the framework eventually
-// called clearActiveMonitor(frameworkTaskId) on natural completion, the guard
-// failed (active.taskId !== frameworkTaskId) and the lock stayed acquired,
-// blocking any subsequent /autofix-pr invocations in the same process.
+// taskId 不一致潜在 bug 的回归测试套件 + completion hook 接入验证。
+// 修复之前：createAutofixTeammate 会生成一个 teammate UUID，用这个 UUID 去获取
+// 单例 monitor 锁；而 registerRemoteAgentTask 又会生成一个「不同的」框架 taskId。
+// 当框架最终在自然完成时调用 clearActiveMonitor(frameworkTaskId) 时，
+// 守卫判断失败（active.taskId !== frameworkTaskId），锁一直挂着，
+// 阻塞了同一进程内后续的任何 /autofix-pr 调用。
 describe('callAutofixPr · completion hook wiring (taskId mismatch regression)', () => {
   test('updateActiveMonitor swaps lock taskId to framework-assigned id after register', async () => {
     await callAutofixPr(onDone, makeContext(), '42')
     const monitor = getActiveMonitor() as { taskId: string } | null
     expect(monitor).not.toBeNull()
-    // registerMock returns 'framework-task-id'; before the fix this would be
-    // a teammate-generated random UUID instead.
+    // registerMock 返回 'framework-task-id'；修复之前这里会是 teammate 生成的随机 UUID。
     expect(monitor?.taskId).toBe('framework-task-id')
   })
 
@@ -423,9 +420,8 @@ describe('callAutofixPr · completion hook wiring (taskId mismatch regression)',
     await callAutofixPr(onDone, makeContext(), '42')
     expect(getActiveMonitor()).not.toBeNull()
 
-    // Find the hook the module registered at import time. We grab the last
-    // call so re-imports across tests don't break this — only the most recent
-    // registration is what the framework would invoke now.
+    // 找到模块在 import 时注册的 hook。我们取最后一次调用 ——
+    // 跨测试重复 import 不会破坏断言，因为框架实际调用的是最近一次注册的 hook。
     const calls = registerCompletionHookMock.mock.calls
     expect(calls.length).toBeGreaterThan(0)
     const lastCall = calls[calls.length - 1]
@@ -433,16 +429,15 @@ describe('callAutofixPr · completion hook wiring (taskId mismatch regression)',
     const hook = lastCall?.[1] as (id: string, metadata?: unknown) => void
     expect(typeof hook).toBe('function')
 
-    // Simulate the framework invoking the hook with the framework taskId
-    // after a terminal transition. Before the fix this would no-op against
-    // a lock keyed by the teammate UUID.
+    // 模拟框架在终态切换后用框架 taskId 调用 hook。
+    // 修复之前，这一步对以 teammate UUID 为 key 的锁来说是无操作。
     hook('framework-task-id', { owner: 'acme', repo: 'myrepo', prNumber: 42 })
     expect(getActiveMonitor()).toBeNull()
   })
 
   test('subsequent /autofix-pr succeeds after framework hook clears the lock', async () => {
     await callAutofixPr(onDone, makeContext(), '42')
-    // Simulate natural completion via the registered hook
+    // 通过已注册的 hook 模拟自然完成
     const calls = registerCompletionHookMock.mock.calls
     const hook = calls[calls.length - 1]?.[1] as (
       id: string,
@@ -453,18 +448,17 @@ describe('callAutofixPr · completion hook wiring (taskId mismatch regression)',
     onDone.mockClear()
     await callAutofixPr(onDone, makeContext(), '99')
     const firstArg = onDone.mock.calls[0]?.[0] as string
-    // Should be the success path, not "already monitoring"
+    // 应当走成功路径，而不是「already monitoring」
     expect(firstArg).not.toMatch(/already monitoring/i)
     expect(firstArg).toMatch(/Autofix launched/)
   })
 })
 
-// Phase 2: completionChecker wiring + initialHeadSha capture
+// Phase 2：completionChecker 接入 + initialHeadSha 抓取
 describe('callAutofixPr · Phase 2 completionChecker integration', () => {
   test('completionChecker is registered at module load with autofix-pr type', () => {
-    // The registration happens during the beforeAll dynamic import; just
-    // verify the mock recorded a call. Filter by task type so any future
-    // additional registrations elsewhere don't break this assertion.
+    // 注册发生在 beforeAll 的动态 import 期间；这里只验证 mock 记录到了调用。
+    // 按任务类型过滤，未来其他地方的额外注册不会破坏此断言。
     const calls = registerCompletionCheckerMock.mock.calls.filter(
       c => c[0] === 'autofix-pr',
     )
@@ -511,7 +505,7 @@ describe('callAutofixPr · Phase 2 completionChecker integration', () => {
         }),
       }),
     )
-    // Launch must NOT fail just because SHA capture failed
+    // 启动绝不能仅因为 SHA 抓取失败就失败
     const firstArg = onDone.mock.calls[0]?.[0] as string
     expect(firstArg).toMatch(/Autofix launched/)
   })
@@ -529,13 +523,12 @@ describe('callAutofixPr · Phase 2 completionChecker integration', () => {
   })
 })
 
-// Phase 2 (cont.): exercise the registered completionChecker arrow body
-// directly. The earlier suite verifies it was registered but never invokes
-// the arrow itself, leaving the throttle / metadata-guard / gh-CLI dispatch
-// branches uncovered.
+// Phase 2（续）：直接执行已注册的 completionChecker 箭头函数体。
+// 前面的套件只验证它被注册，并不真正调用箭头函数本身，
+// 导致 throttle / metadata 守卫 / gh CLI 分发等分支覆盖不到。
 describe('callAutofixPr · Phase 2 completionChecker arrow body', () => {
-  // Pull the most recent registered checker — beforeAll registers once at
-  // module load; nothing else re-registers across this file's tests.
+  // 取最近一次注册的 checker —— beforeAll 在模块加载时注册一次；
+  // 本文件其他测试不会再触发注册。
   function getChecker(): (metadata?: unknown) => Promise<string | null> {
     const calls = registerCompletionCheckerMock.mock.calls.filter(
       c => c[0] === 'autofix-pr',
@@ -558,8 +551,7 @@ describe('callAutofixPr · Phase 2 completionChecker arrow body', () => {
       () => Promise.resolve({ completed: false }),
     )
     const checker = getChecker()
-    // Distinct PR number to dodge the in-process throttle map carried over
-    // from earlier tests.
+    // 使用不同的 PR 编号，避开前面测试遗留的进程内 throttle map。
     const result = await checker({
       owner: 'acme',
       repo: 'myrepo',
@@ -616,8 +608,8 @@ describe('callAutofixPr · Phase 2 completionChecker arrow body', () => {
     const checker = getChecker()
     const meta = { owner: 'acme', repo: 'myrepo', prNumber: 1004 }
     await checker(meta)
-    // Second call within the 5s throttle window must short-circuit to null
-    // without invoking the gh CLI layer again.
+    // 在 5s throttle 窗口内的第二次调用必须短路返回 null，
+    // 不再触发 gh CLI 层。
     const callCountAfterFirst = checkMock.mock.calls.length
     const result = await checker(meta)
     expect(result).toBeNull()
@@ -633,9 +625,8 @@ describe('callAutofixPr · Phase 2 completionChecker arrow body', () => {
     const meta = { owner: 'acme', repo: 'myrepo', prNumber: 1005 }
     await checker(meta) // populate throttle map
 
-    // Invoke the registered completion hook with the same metadata so the
-    // throttle entry is wiped, then verify the next checker call dispatches
-    // gh CLI again instead of short-circuiting.
+    // 用同样的 metadata 调用已注册的 completion hook，从而清掉 throttle 条目，
+    // 然后验证下一次 checker 调用会再次分发 gh CLI 而不是短路返回。
     const hookCalls = registerCompletionHookMock.mock.calls.filter(
       c => c[0] === 'autofix-pr',
     )
@@ -651,9 +642,8 @@ describe('callAutofixPr · Phase 2 completionChecker arrow body', () => {
   })
 
   test('completionHook without metadata still clears the active monitor lock', async () => {
-    // Lock is set via callAutofixPr; hook then invoked with undefined metadata
-    // to exercise the `if (meta)` short-circuit branch (the lock-clear half
-    // still has to run regardless of metadata presence).
+    // 锁由 callAutofixPr 设置；随后用 undefined 的 metadata 调用 hook，
+    // 以覆盖 `if (meta)` 短路分支（清锁那一半无论是否有 metadata 都必须执行）。
     await callAutofixPr(onDone, makeContext(), '42')
     expect(getActiveMonitor()).not.toBeNull()
     const hookCalls = registerCompletionHookMock.mock.calls.filter(
@@ -668,7 +658,7 @@ describe('callAutofixPr · Phase 2 completionChecker arrow body', () => {
   })
 })
 
-// Phase 3: content extractor wiring + initialMessage tag instruction
+// Phase 3：content extractor 接入 + initialMessage 中的标签指令
 describe('callAutofixPr · Phase 3 content extractor integration', () => {
   test('registerContentExtractor is called at module load with autofix-pr type', () => {
     const calls = registerContentExtractorMock.mock.calls.filter(
@@ -681,9 +671,9 @@ describe('callAutofixPr · Phase 3 content extractor integration', () => {
 
   test('initialMessage instructs the remote agent to emit an <autofix-result> tag', async () => {
     await callAutofixPr(onDone, makeContext(), '42')
-    // teleportMock's typed signature has no args, so calls[0] is a
-    // zero-length tuple. We know teleportToRemote is invoked with one
-    // options object, so double-cast through unknown to read the args.
+    // teleportMock 的类型签名没有参数，calls[0] 是长度为零的 tuple。
+    // 我们知道 teleportToRemote 实际上只接收一个 options 对象，
+    // 因此通过 unknown 双重断言来读取参数。
     const calls = teleportMock.mock.calls as unknown as Array<
       [{ initialMessage?: string }]
     >
@@ -702,9 +692,9 @@ describe('callAutofixPr · Phase 3 content extractor integration', () => {
       | ((log: unknown[]) => string | null)
       | undefined
     expect(extractor).toBeDefined()
-    // Empty log → null
+    // 空 log → null
     expect(extractor?.([])).toBeNull()
-    // Log with assistant text containing tag → returns it
+    // 含标签的 assistant 文本 → 返回该标签
     const logWithTag = [
       {
         type: 'assistant',
@@ -722,11 +712,11 @@ describe('callAutofixPr · Phase 3 content extractor integration', () => {
   })
 })
 
-// Cover ../index.ts load() — placed in this test file so all the heavy mocks
-// (teleport / detectRepository / RemoteAgentTask / bootstrap-state / analytics /
-// skillDetect) are already registered when load() dynamically imports
-// launchAutofixPr.js. Doing this in autofix-pr/__tests__/index.test.ts would
-// pollute this file's mocks via cross-file ESM symbol binding.
+// 覆盖 ../index.ts 的 load() —— 放在本测试文件里，这样 load() 动态
+// import launchAutofixPr.js 时所有重型 mock（teleport / detectRepository /
+// RemoteAgentTask / bootstrap-state / analytics / skillDetect）都已经注册好。
+// 若在 autofix-pr/__tests__/index.test.ts 里做，会通过跨文件 ESM 符号绑定
+// 污染本文件的 mock。
 describe('autofix-pr/index.ts load()', () => {
   test('load() resolves and exposes call function', async () => {
     const { default: cmd } = await import('../index.js')

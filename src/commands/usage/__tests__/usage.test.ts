@@ -1,15 +1,15 @@
 /**
- * Regression tests for /usage command — v2.1.118 upstream alignment.
- * Verifies:
- *   - /usage is primary command with aliases ["cost", "stats"]
- *   - description covers cost + stats
- *   - availability restriction removed (not claude-ai only)
- *   - cost/stats index files emit commands with matching name
+ * /usage 命令的回归测试 —— 对齐上游 v2.1.118。
+ * 验证项：
+ *   - /usage 为主命令，别名为 ["cost", "stats"]
+ *   - description 涵盖 cost 与 stats
+ *   - availability 限制已移除（不再仅限 claude-ai）
+ *   - cost/stats 的 index 文件会发出与名称匹配的命令
  */
 
 import { mock, describe, test, expect } from 'bun:test'
 
-// Must mock before importing anything that pulls in bootstrap/state
+// 必须在任何引入 bootstrap/state 的代码之前进行 mock
 import { logMock } from '../../../../tests/mocks/log.js'
 mock.module('src/utils/log.ts', logMock)
 
@@ -37,14 +37,14 @@ mock.module('src/utils/config.ts', () => ({
   getGlobalConfig: () => ({}),
 }))
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── 辅助函数 ──────────────────────────────────────────────────────────────────
 
 async function loadUsageCommand() {
   const mod = await import('../index.js')
   return mod.default
 }
 
-// ── tests ─────────────────────────────────────────────────────────────────────
+// ── 测试用例 ──────────────────────────────────────────────────────────────────
 
 describe('usage command — metadata', () => {
   test('name is "usage"', async () => {
@@ -101,8 +101,8 @@ describe('usage command — cost index is no longer standalone', () => {
   test('cost/index default name is "usage" (delegated) OR it has aliases', async () => {
     const mod = await import('../../cost/index.js')
     const cmd = mod.default
-    // After the fix: cost/index either exports name='usage' with aliases,
-    // or the cost command has aliases set (it's been demoted to alias)
+    // 修复之后：cost/index 要么以 name='usage' 加 aliases 导出，
+    // 要么 cost 命令本身设置了 aliases（它已被降级为别名）
     const isUnifiedOrAliased =
       cmd.name === 'usage' || (cmd.aliases?.includes('cost') ?? false)
     expect(isUnifiedOrAliased).toBe(true)

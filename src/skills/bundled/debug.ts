@@ -18,20 +18,20 @@ export function registerDebugSkill(): void {
         : 'Enable debug logging for this session and help diagnose issues',
     allowedTools: ['Read', 'Grep', 'Glob'],
     argumentHint: '[issue description]',
-    // disableModelInvocation so that the user has to explicitly request it in
-    // interactive mode and so the description does not take up context.
+    // 禁用模型调用，以便用户必须在交互模式下显式请求，
+    // 同时描述也不会占用上下文。
     disableModelInvocation: true,
     userInvocable: true,
     async getPromptForCommand(args) {
-      // Non-ants don't write debug logs by default — turn logging on now so
-      // subsequent activity in this session is captured.
+      // 非 Anthropic 员工默认不写调试日志 —— 现在开启日志记录，
+      // 以便捕获此会话中的后续活动。
       const wasAlreadyLogging = enableDebugLogging()
       const debugLogPath = getDebugLogPath()
 
       let logInfo: string
       try {
-        // Tail the log without reading the whole thing - debug logs grow
-        // unbounded in long sessions and reading them in full spikes RSS.
+        // 尾部读取日志，而非读取整个文件 —— 调试日志在长会话中
+        // 会无限增长，完整读取会导致 RSS 飙升。
         const stats = await stat(debugLogPath)
         const readSize = Math.min(stats.size, TAIL_READ_BYTES)
         const startOffset = stats.size - readSize

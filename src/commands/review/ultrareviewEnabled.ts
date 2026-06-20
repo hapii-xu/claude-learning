@@ -1,9 +1,9 @@
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js'
 
 /**
- * Runtime gate for /ultrareview. GB config's `enabled` field controls
- * visibility — isEnabled() on the command filters it from getCommands()
- * when false, so ungated users don't see the command at all.
+ * /ultrareview 的运行时门控。GB 配置中的 `enabled` 字段控制
+ * 可见性 — 命令上的 isEnabled() 在其为 false 时会通过 getCommands()
+ * 将其过滤掉，因此未获得门控权限的用户根本看不到该命令。
  */
 export function isUltrareviewEnabled(): boolean {
   const cfg = getFeatureValue_CACHED_MAY_BE_STALE<Record<

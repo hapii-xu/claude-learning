@@ -19,9 +19,9 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
   if (!getGlobalConfig().hasVisitedExtraUsage) {
     saveGlobalConfig(prev => ({ ...prev, hasVisitedExtraUsage: true }))
   }
-  // Invalidate only the current org's entry so a follow-up read refetches
-  // the granted state. Separate from the visited flag since users may run
-  // /extra-usage more than once while iterating on the claim flow.
+  // 仅使当前组织条目失效，以便后续读取时重新拉取授予状态。
+  // 这与 visited 标志是分开的，因为用户在迭代领取流程时可能会多次
+  // 运行 /extra-usage。
   invalidateOverageCreditGrantCache()
 
   const subscriptionType = getSubscriptionType()
@@ -30,9 +30,9 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
   const hasBillingAccess = hasClaudeAiBillingAccess()
 
   if (!hasBillingAccess && isTeamOrEnterprise) {
-    // Mirror apps/claude-ai useHasUnlimitedOverage(): if overage is enabled
-    // with no monthly cap, there is nothing to request. On fetch error, fall
-    // through and let the user ask (matching web's "err toward show" behavior).
+    // 镜像 apps/claude-ai 的 useHasUnlimitedOverage()：如果 overage 已启用
+    // 且无月度上限，则无需请求。拉取出错时则继续向下，让用户发起请求
+    //（与 web 端"宁可展示"的行为一致）。
     let extraUsage: ExtraUsage | null | undefined
     try {
       const utilization = await fetchUtilization()
@@ -59,7 +59,7 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
       }
     } catch (error) {
       logError(error as Error)
-      // If eligibility check fails, continue — the create endpoint will enforce if necessary
+      // 若资格检查失败则继续 — 必要时由 create 端点强制校验
     }
 
     try {
@@ -76,7 +76,7 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
       }
     } catch (error) {
       logError(error as Error)
-      // Fall through to creating a new request below
+      // 继续向下走，创建新的请求
     }
 
     try {
@@ -92,7 +92,7 @@ export async function runExtraUsage(): Promise<ExtraUsageResult> {
       }
     } catch (error) {
       logError(error as Error)
-      // Fall through to generic message below
+      // 继续向下走，展示通用提示信息
     }
 
     return {

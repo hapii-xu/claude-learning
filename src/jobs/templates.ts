@@ -18,8 +18,8 @@ export interface TemplateInfo {
 }
 
 /**
- * Discover .claude/templates directories from CWD up to git root,
- * plus the user-level ~/.claude/templates.
+ * 从 CWD 向上到 git 根目录发现 .claude/templates 目录，
+ * 以及用户级别的 ~/.claude/templates。
  */
 function getTemplatesDirs(): string[] {
   const projectDirs = getProjectDirsUpToHome(
@@ -27,7 +27,7 @@ function getTemplatesDirs(): string[] {
     process.cwd(),
   )
 
-  // User-level dir (getProjectDirsUpToHome stops before home)
+  // 用户级别目录（getProjectDirsUpToHome 在主目录之前停止）
   const userDir = join(getClaudeConfigHomeDir(), 'templates')
   try {
     readdirSync(userDir)
@@ -38,7 +38,7 @@ function getTemplatesDirs(): string[] {
 }
 
 /**
- * List all available templates.
+ * 列出所有可用的模板。
  */
 export function listTemplates(): TemplateInfo[] {
   const templates: TemplateInfo[] = []
@@ -69,7 +69,7 @@ export function listTemplates(): TemplateInfo[] {
 
         templates.push({ name, description, filePath, frontmatter, content })
       } catch {
-        // Skip unreadable files
+        // 跳过无法读取的文件
       }
     }
   }
@@ -78,7 +78,7 @@ export function listTemplates(): TemplateInfo[] {
 }
 
 /**
- * Load a specific template by name.
+ * 按名称加载特定模板。
  */
 export function loadTemplate(name: string): TemplateInfo | null {
   const all = listTemplates()

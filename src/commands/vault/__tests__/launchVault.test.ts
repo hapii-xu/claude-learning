@@ -1,10 +1,10 @@
 /**
- * Tests for launchVault.tsx
+ * launchVault.tsx 的测试
  *
- * IMPORTANT: Per feedback_mock_dependency_not_subject.md, we mock axios (lower dep),
- * NOT the vaultsApi module itself, to avoid Bun mock.module process-level pollution.
+ * 重要：依据 feedback_mock_dependency_not_subject.md，我们 mock axios（更底层的依赖），
+ * 而不是 vaultsApi 模块本身，以避免 Bun mock.module 在进程级缓存上造成污染。
  *
- * SECURITY: Tests verify credential value never appears in onDone message text.
+ * 安全：测试会验证 credential 的值绝不会出现在 onDone 消息文本中。
  */
 
 import {
@@ -24,7 +24,7 @@ import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
 
-// ── Auth / OAuth mocks ──────────────────────────────────────────────────────
+// ── Auth / OAuth 相关 mock ──
 mock.module('src/utils/auth.js', () => ({
   getClaudeAIOAuthTokens: () => ({ accessToken: 'test-token' }),
 }))
@@ -43,7 +43,7 @@ mock.module('src/utils/teleport/api.js', () => ({
   }),
 }))
 
-// ── Axios mock ──────────────────────────────────────────────────────────────
+// ── Axios mock ──
 const axiosGetMock = mock(async () => ({}))
 const axiosPostMock = mock(async () => ({}))
 
@@ -64,7 +64,7 @@ axiosHandle.stubs.post = axiosPostMock
 axiosHandle.stubs.delete = axiosDeleteMock
 axiosHandle.stubs.isAxiosError = axiosIsAxiosError
 
-// ── Lazy import after mocks ─────────────────────────────────────────────────
+// ── 在 mock 完成后再延迟导入被测代码 ──
 let callVault: typeof import('../launchVault.js').callVault
 
 beforeAll(async () => {
@@ -84,7 +84,7 @@ beforeEach(() => {
 
 afterEach(() => {})
 
-// ── list ──────────────────────────────────────────────────────────────────
+// ── list（列出）──
 describe('callVault list', () => {
   test('calls listVaults and returns vault count in onDone', async () => {
     const vaults = [{ vault_id: 'v1', name: 'Test Vault' }]
@@ -140,7 +140,7 @@ describe('callVault list', () => {
   })
 })
 
-// ── create ────────────────────────────────────────────────────────────────
+// ── create（创建）──
 describe('callVault create', () => {
   test('creates vault and returns vault_id in onDone', async () => {
     axiosPostMock.mockResolvedValueOnce({
@@ -174,7 +174,7 @@ describe('callVault create', () => {
   })
 })
 
-// ── get ───────────────────────────────────────────────────────────────────
+// ── get（查询）──
 describe('callVault get', () => {
   test('fetches vault and displays detail', async () => {
     axiosGetMock.mockResolvedValueOnce({
@@ -208,7 +208,7 @@ describe('callVault get', () => {
   })
 })
 
-// ── archive vault ─────────────────────────────────────────────────────────
+// ── archive vault（归档 vault）──
 describe('callVault archive', () => {
   test('archives vault and confirms in onDone', async () => {
     axiosPostMock.mockResolvedValueOnce({
@@ -232,7 +232,7 @@ describe('callVault archive', () => {
   })
 })
 
-// ── add-credential ────────────────────────────────────────────────────────
+// ── add-credential（添加凭据）──
 describe('callVault add-credential', () => {
   test('adds credential and confirms without leaking secret value in onDone', async () => {
     axiosPostMock.mockResolvedValueOnce({
@@ -248,9 +248,9 @@ describe('callVault add-credential', () => {
       {} as Parameters<typeof callVault>[1],
       'add-credential vault_1 MY_SECRET the-actual-secret-value-xyz',
     )
-    // onDone message must confirm credential added
+    // onDone 消息必须确认 credential 已添加
     expect(onDoneMsg).toMatch(/added|created/i)
-    // SECURITY: the actual secret value must NOT appear in onDone message
+    // 安全：真实的 secret 值绝不能出现在 onDone 消息中
     expect(onDoneMsg).not.toContain('the-actual-secret-value-xyz')
   })
 
@@ -281,14 +281,14 @@ describe('callVault add-credential', () => {
       {} as Parameters<typeof callVault>[1],
       'add-credential v1 KEY super-secret-do-not-leak',
     )
-    // grep: none of the captured messages must contain the secret
+    // grep 检查：捕获到的消息中都不能包含 secret
     for (const msg of messages) {
       expect(msg).not.toContain('super-secret-do-not-leak')
     }
   })
 })
 
-// ── archive-credential ────────────────────────────────────────────────────
+// ── archive-credential（归档凭据）──
 describe('callVault archive-credential', () => {
   test('archives credential and confirms in onDone', async () => {
     axiosPostMock.mockResolvedValueOnce({
@@ -325,7 +325,7 @@ describe('callVault archive-credential', () => {
   })
 })
 
-// ── invalid subcommand ────────────────────────────────────────────────────
+// ── 无效子命令 ──
 describe('callVault invalid subcommand', () => {
   test('unknown subcommand → usage message in onDone', async () => {
     let onDoneMsg = ''

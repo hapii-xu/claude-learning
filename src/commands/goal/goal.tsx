@@ -1,18 +1,17 @@
 /**
- * `/goal` slash command — set, view, or control the persistent thread
- * goal that drives auto-continuation across turns.
+ * `/goal` 斜杠命令 — 设置、查看或控制驱动跨轮自动续跑的持久线程目标。
  *
- * Subcommands
+ * 子命令
  * -----------
- * `/goal`              -> show current status
- * `/goal status`       -> alias of bare `/goal`
- * `/goal clear`        -> remove the active goal (persists tombstone)
- * `/goal pause`        -> pause auto-continuation
- * `/goal resume`       -> resume from paused state
- * `/goal continue`     -> reset turn counter after max-turns and continue
- * `/goal complete`     -> mark complete (manual override; tools usually do this)
- * `/goal <objective>`  -> set a new goal; if one is already active and not
- *                         complete, a confirmation dialog appears first.
+ * `/goal`              -> 显示当前状态
+ * `/goal status`       -> 等同于裸 `/goal`
+ * `/goal clear`        -> 移除当前活动目标（持久化 tombstone）
+ * `/goal pause`        -> 暂停自动续跑
+ * `/goal resume`       -> 从暂停状态恢复
+ * `/goal continue`     -> 达到 max-turns 后重置轮次计数并继续
+ * `/goal complete`     -> 标记完成（手动覆盖；通常由工具完成）
+ * `/goal <objective>`  -> 设置新目标；若已有未完成的活动目标，
+ *                         会先弹出确认对话框。
  */
 import * as React from 'react';
 

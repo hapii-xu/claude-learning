@@ -22,7 +22,7 @@ function getEnvVarForProvider(provider: string): string {
   }
 }
 
-// Get merged env: process.env + settings.env (from userSettings)
+// 获取合并后的 env：process.env + settings.env（来自 userSettings）
 function getMergedEnv(): Record<string, string> {
   const settings = getSettings_DEPRECATED()
   const merged: Record<string, string> = Object.fromEntries(
@@ -39,16 +39,16 @@ function getMergedEnv(): Record<string, string> {
 const call: LocalCommandCall = async (args, _context) => {
   const arg = args.trim().toLowerCase()
 
-  // No argument: show current provider
+  // 无参数：显示当前 provider
   if (!arg) {
     const current = getAPIProvider()
     return { type: 'text', value: `Current API provider: ${current}` }
   }
 
-  // unset - clear settings, fallback to env vars
+  // unset：清除设置，回退到环境变量
   if (arg === 'unset') {
     updateSettingsForSource('userSettings', { modelType: undefined })
-    // Also clear all provider-specific env vars to prevent conflicts
+    // 同时清除所有 provider 专属的环境变量，避免冲突
     delete process.env.CLAUDE_CODE_USE_BEDROCK
     delete process.env.CLAUDE_CODE_USE_VERTEX
     delete process.env.CLAUDE_CODE_USE_FOUNDRY
@@ -61,7 +61,7 @@ const call: LocalCommandCall = async (args, _context) => {
     }
   }
 
-  // Validate provider
+  // 校验 provider
   const validProviders = [
     'anthropic',
     'openai',
@@ -78,7 +78,7 @@ const call: LocalCommandCall = async (args, _context) => {
     }
   }
 
-  // Check env vars when switching to openai (including settings.env)
+  // 切换到 openai 时检查环境变量（包括 settings.env）
   if (arg === 'openai') {
     const mergedEnv = getMergedEnv()
     const hasChatGPTAuth = mergedEnv.OPENAI_AUTH_MODE === 'chatgpt'
@@ -96,7 +96,7 @@ const call: LocalCommandCall = async (args, _context) => {
     }
   }
 
-  // Check env vars when switching to grok (including settings.env)
+  // 切换到 grok 时检查环境变量（包括 settings.env）
   if (arg === 'grok') {
     const mergedEnv = getMergedEnv()
     const hasKey = !!(mergedEnv.GROK_API_KEY || mergedEnv.XAI_API_KEY)
@@ -109,11 +109,11 @@ const call: LocalCommandCall = async (args, _context) => {
     }
   }
 
-  // Check env vars when switching to gemini (including settings.env)
+  // 切换到 gemini 时检查环境变量（包括 settings.env）
   if (arg === 'gemini') {
     const mergedEnv = getMergedEnv()
     const hasKey = !!mergedEnv.GEMINI_API_KEY
-    // GEMINI_BASE_URL is optional (has default)
+    // GEMINI_BASE_URL 可选（有默认值）
     if (!hasKey) {
       updateSettingsForSource('userSettings', { modelType: 'gemini' })
       return {
@@ -123,36 +123,36 @@ const call: LocalCommandCall = async (args, _context) => {
     }
   }
 
-  // Handle different provider types
-  // - 'anthropic', 'openai', 'gemini' are stored in settings.json (persistent)
-  // - 'bedrock', 'vertex', 'foundry' are env-only (do NOT touch settings.json)
+  // 处理不同类型的 provider
+  // - 'anthropic'、'openai'、'gemini' 存储在 settings.json 中（持久化）
+  // - 'bedrock'、'vertex'、'foundry' 仅通过环境变量控制（不要动 settings.json）
   if (
     arg === 'anthropic' ||
     arg === 'openai' ||
     arg === 'gemini' ||
     arg === 'grok'
   ) {
-    // Clear any cloud provider env vars to avoid conflicts
+    // 清除可能存在的云 provider 环境变量以避免冲突
     delete process.env.CLAUDE_CODE_USE_BEDROCK
     delete process.env.CLAUDE_CODE_USE_VERTEX
     delete process.env.CLAUDE_CODE_USE_FOUNDRY
     delete process.env.CLAUDE_CODE_USE_OPENAI
     delete process.env.CLAUDE_CODE_USE_GEMINI
     delete process.env.CLAUDE_CODE_USE_GROK
-    // Update settings.json
+    // 更新 settings.json
     updateSettingsForSource('userSettings', { modelType: arg })
-    // Ensure settings.env gets applied to process.env
+    // 确保 settings.env 被应用到 process.env
     applyConfigEnvironmentVariables()
     return { type: 'text', value: `API provider set to ${arg}.` }
   } else {
-    // Cloud providers: set env vars only, do NOT touch settings.json
+    // 云 provider：仅设置环境变量，不要动 settings.json
     delete process.env.CLAUDE_CODE_USE_OPENAI
     delete process.env.OPENAI_API_KEY
     delete process.env.OPENAI_BASE_URL
     delete process.env.CLAUDE_CODE_USE_GEMINI
     delete process.env.CLAUDE_CODE_USE_GROK
     process.env[getEnvVarForProvider(arg)] = '1'
-    // Do not modify settings.json - cloud providers controlled solely by env vars
+    // 不要修改 settings.json —— 云 provider 完全由环境变量控制
     applyConfigEnvironmentVariables()
     return {
       type: 'text',

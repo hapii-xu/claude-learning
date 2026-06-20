@@ -1,21 +1,21 @@
 /**
- * Thin HTTP client for the /v1/vaults endpoint.
+ * /v1/vaults 接口的轻量 HTTP 客户端。
  *
- * Key spec facts (from binary reverse-engineering of v2.1.123):
- *   - list vaults:         GET    /v1/vaults
- *   - create vault:        POST   /v1/vaults
- *   - get vault:           GET    /v1/vaults/{id}
- *   - archive vault:       POST   /v1/vaults/{id}/archive      ← POST not DELETE
- *   - list credentials:    GET    /v1/vaults/{id}/credentials
- *   - add credential:      POST   /v1/vaults/{id}/credentials  (inferred)
- *   - archive credential:  POST   /v1/vaults/{id}/credentials/{cid}/archive  ← POST not DELETE
+ * 关键规约要点（来自对 v2.1.123 二进制的逆向）：
+ *   - 列出 vault：         GET    /v1/vaults
+ *   - 创建 vault：         POST   /v1/vaults
+ *   - 查询 vault：         GET    /v1/vaults/{id}
+ *   - 归档 vault：         POST   /v1/vaults/{id}/archive      ← 是 POST，不是 DELETE
+ *   - 列出凭据：           GET    /v1/vaults/{id}/credentials
+ *   - 添加凭据：           POST   /v1/vaults/{id}/credentials  （推断）
+ *   - 归档凭据：           POST   /v1/vaults/{id}/credentials/{cid}/archive  ← 是 POST，不是 DELETE
  *
- * SECURITY INVARIANTS:
- *   - Credential `secret` value is NEVER logged or included in URLs
- *   - Error messages expose only the first 8 chars of any vault/credential ID
- *   - Zero tengu_vault_* telemetry (matches upstream: security-sensitive path)
+ * 安全不变式：
+ *   - credential 的 `secret` 值绝不记录日志，也绝不出现在 URL 中
+ *   - 错误消息只暴露 vault/credential ID 的前 8 个字符
+ *   - 不打任何 tengu_vault_* 遥测（与上游一致：敏感路径）
  *
- * Reuses the same base-URL + auth-header pattern as memoryStoresApi.ts / triggersApi.ts.
+ * 复用与 memoryStoresApi.ts / triggersApi.ts 相同的 base-URL + auth-header 模式。
  */
 
 import axios from 'axios'
@@ -37,7 +37,7 @@ export type Credential = {
   kind?: string
   archived_at?: string | null
   created_at?: string
-  // NOTE: 'secret' field intentionally absent — server never returns secret in responses
+  // 注意：故意不定义 'secret' 字段 —— 服务器从不在响应中返回 secret
 }
 
 export type CreateVaultBody = {
@@ -58,11 +58,11 @@ type ListCredentialsResponse = {
   data: Credential[]
 }
 
-// Vaults share the managed-agents umbrella beta header.
+// Vault 共用 managed-agents 这把统一的 beta header。
 const VAULTS_BETA_HEADER = 'managed-agents-2026-04-01'
 const MAX_RETRIES = 3
 
-// sanitizeId imported from ../../utils/sanitizeId.js (H3: single source of truth)
+// sanitizeId 从 ../../utils/sanitizeId.js 导入（H3：单一可信源）
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -79,9 +79,9 @@ class VaultsApiError extends Error {
 }
 
 async function buildHeaders(): Promise<Record<string, string>> {
-  // /v1/vaults requires a workspace-scoped API key (sk-ant-api03-*).
-  // Subscription OAuth bearer tokens always 401 here (server-enforced plane separation).
-  // Guard the host before sending the key to prevent credential leakage.
+  // /v1/vaults 需要一个 workspace 作用域的 API key（sk-ant-api03-*）。
+  // 订阅型 OAuth bearer token 在这里必然 401（服务端强制隔离不同平面）。
+  // 在发送 key 之前先校验 host，以防止凭据泄漏。
   let apiKey: string
   try {
     const prepared = await prepareWorkspaceApiRequest()
@@ -140,9 +140,9 @@ function classifyError(err: unknown, id?: string): VaultsApiError {
 }
 
 /**
- * Parses the Retry-After header value into milliseconds.
- * Accepts both integer-seconds (e.g. "30") and HTTP-date strings.
- * Returns null when the header is absent or unparseable.
+ * 将 Retry-After 头的值解析为毫秒。
+ * 同时接受整数秒（例如 "30"）和 HTTP 日期字符串。
+ * 当头缺失或无法解析时返回 null。
  */
 function parseRetryAfterMs(header: string | undefined): number | null {
   if (!header) return null
@@ -160,7 +160,7 @@ async function withRetry<T>(fn: () => Promise<T>, id?: string): Promise<T> {
       return await fn()
     } catch (err: unknown) {
       const classified = classifyError(err, id)
-      // Only retry 5xx errors
+      // 仅对 5xx 错误进行重试
       if (classified.statusCode >= 500) {
         lastErr = classified
         if (attempt < MAX_RETRIES - 1) {
@@ -181,7 +181,7 @@ async function withRetry<T>(fn: () => Promise<T>, id?: string): Promise<T> {
   throw lastErr ?? new VaultsApiError('Request failed after retries', 0)
 }
 
-// ── Vault CRUD ─────────────────────────────────────────────────────────────
+// ── Vault 增删改查 ───────────────────────────────────────────────────────────
 
 export async function listVaults(): Promise<Vault[]> {
   return withRetry(async () => {
@@ -215,10 +215,10 @@ export async function getVault(id: string): Promise<Vault> {
 }
 
 /**
- * Archive a vault (soft delete).
+ * 归档一个 vault（软删除）。
  *
- * IMPORTANT: The upstream API uses POST (not DELETE) for archiving.
- * Binary literal evidence: "POST /v1/vaults/{vault_id}/archive"
+ * 重要：上游 API 使用 POST（而非 DELETE）进行归档。
+ * 二进制字面量证据："POST /v1/vaults/{vault_id}/archive"
  */
 export async function archiveVault(id: string): Promise<Vault> {
   return withRetry(async () => {
@@ -232,7 +232,7 @@ export async function archiveVault(id: string): Promise<Vault> {
   }, id)
 }
 
-// ── Credential CRUD ────────────────────────────────────────────────────────
+// ── Credential 增删改查 ──────────────────────────────────────────────────────
 
 export async function listCredentials(vaultId: string): Promise<Credential[]> {
   return withRetry(async () => {
@@ -246,10 +246,10 @@ export async function listCredentials(vaultId: string): Promise<Credential[]> {
 }
 
 /**
- * Add a credential to a vault.
+ * 向某个 vault 添加一个 credential。
  *
- * SECURITY: The `secret` value is passed in the request body only.
- * It is NEVER included in URL parameters or logged.
+ * 安全：`secret` 值仅出现在请求体中，
+ * 绝不放入 URL 参数，也绝不记录日志。
  */
 export async function addCredential(
   vaultId: string,
@@ -269,10 +269,10 @@ export async function addCredential(
 }
 
 /**
- * Archive a credential (soft delete).
+ * 归档一个 credential（软删除）。
  *
- * IMPORTANT: Uses POST (not DELETE) for archiving.
- * Binary literal evidence: "POST /v1/vaults/{vault_id}/credentials/{credential_id}/archive"
+ * 重要：归档使用 POST（而非 DELETE）。
+ * 二进制字面量证据："POST /v1/vaults/{vault_id}/credentials/{credential_id}/archive"
  */
 export async function archiveCredential(
   vaultId: string,

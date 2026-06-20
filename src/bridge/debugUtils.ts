@@ -33,7 +33,7 @@ export function redactSecrets(s: string): string {
   })
 }
 
-/** Truncate a string for debug logging, collapsing newlines. */
+/** 为调试日志截断字符串，并把换行折叠掉。 */
 export function debugTruncate(s: string): string {
   const flat = s.replace(/\n/g, '\\n')
   if (flat.length <= DEBUG_MSG_LIMIT) {
@@ -42,7 +42,7 @@ export function debugTruncate(s: string): string {
   return flat.slice(0, DEBUG_MSG_LIMIT) + `... (${flat.length} chars)`
 }
 
-/** Truncate a JSON-serializable value for debug logging. */
+/** 为调试日志截断可 JSON 序列化的值。 */
 export function debugBody(data: unknown): string {
   const raw = typeof data === 'string' ? data : jsonStringify(data)
   const s = redactSecrets(raw)
@@ -53,9 +53,9 @@ export function debugBody(data: unknown): string {
 }
 
 /**
- * Extract a descriptive error message from an axios error (or any error).
- * For HTTP errors, appends the server's response body message if available,
- * since axios's default message only includes the status code.
+ * 从 axios 错误（或任何错误）中抽取描述性的错误信息。对于 HTTP 错误，
+ * 会附加服务器响应体里的 message（如果有的话）—— 因为 axios 默认的
+ * 错误消息只包含状态码。
  */
 export function describeAxiosError(err: unknown): string {
   const msg = errorMessage(err)
@@ -82,8 +82,8 @@ export function describeAxiosError(err: unknown): string {
 }
 
 /**
- * Extract the HTTP status code from an axios error, if present.
- * Returns undefined for non-HTTP errors (e.g. network failures).
+ * 从 axios 错误中抽取 HTTP 状态码（如果存在）。非 HTTP 错误（如网络
+ * 故障）返回 undefined。
  */
 export function extractHttpStatus(err: unknown): number | undefined {
   if (
@@ -100,8 +100,8 @@ export function extractHttpStatus(err: unknown): number | undefined {
 }
 
 /**
- * Pull a human-readable message out of an API error response body.
- * Checks `data.message` first, then `data.error.message`.
+ * 从 API 错误响应体中提取人类可读的消息。先检查 `data.message`，
+ * 再检查 `data.error.message`。
  */
 export function extractErrorDetail(data: unknown): string | undefined {
   if (!data || typeof data !== 'object') return undefined
@@ -121,9 +121,9 @@ export function extractErrorDetail(data: unknown): string | undefined {
 }
 
 /**
- * Log a bridge init skip — debug message + `tengu_bridge_repl_skipped`
- * analytics event. Centralizes the event name and the AnalyticsMetadata
- * cast so call sites don't each repeat the 5-line boilerplate.
+ * 记录一次 bridge init 跳过 —— 调试日志 + `tengu_bridge_repl_skipped`
+ * 埋点事件。集中维护事件名和 AnalyticsMetadata 类型转换，让各调用点
+ * 不必各自重复这 5 行样板代码。
  */
 export function logBridgeSkip(
   reason: string,

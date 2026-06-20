@@ -40,9 +40,9 @@ function setEffortValue(effortValue: EffortValue): EffortCommandResult {
     effort: effortValue as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   });
 
-  // Env var wins at resolveAppliedEffort time. Only flag it when it actually
-  // conflicts — if env matches what the user just asked for, the outcome is
-  // the same, so "Set effort to X" is true and the note is noise.
+  // 环境变量在 resolveAppliedEffort 时优先。仅当真正冲突时才提示 —
+  // 如果环境变量与用户刚请求的值一致，结果相同，因此"Set effort to X" 为真，
+  // 提示信息反而是噪音。
   const envOverride = getEffortEnvOverride();
   if (envOverride !== undefined && envOverride !== effortValue) {
     const envRaw = process.env.CLAUDE_CODE_EFFORT_LEVEL;
@@ -91,8 +91,8 @@ function unsetEffortLevel(): EffortCommandResult {
   logEvent('tengu_effort_command', {
     effort: 'auto' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   });
-  // env=auto/unset (null) matches what /effort auto asks for, so only warn
-  // when env is pinning a specific level that will keep overriding.
+  // env=auto/unset（null）符合 /effort auto 的请求，因此仅当 env 锁定了
+  // 一个会持续覆盖的特定级别时才告警。
   const envOverride = getEffortEnvOverride();
   if (envOverride !== undefined && envOverride !== null) {
     const envRaw = process.env.CLAUDE_CODE_EFFORT_LEVEL;

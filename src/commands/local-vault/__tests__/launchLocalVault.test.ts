@@ -7,10 +7,9 @@ import { logMock } from '../../../../tests/mocks/log.js'
 mock.module('src/utils/log.ts', logMock)
 mock.module('bun:bundle', () => ({ feature: () => false }))
 
-// Re-register ../keychain.js to override pollution from store.test.ts (which
-// mocks keychain as always-throwing) and keychain.test.ts (which mocks it with
-// an in-memory MockEntry). Force KeychainUnavailableError so the store always
-// uses the encrypted-file fallback path.
+// 重新注册 ../keychain.js，覆盖来自 store.test.ts（把 keychain mock 成总是抛错）
+// 和 keychain.test.ts（用内存中的 MockEntry mock 它）的污染。强制抛出
+// KeychainUnavailableError，使 store 始终走加密文件回退路径。
 class KeychainUnavailableError extends Error {
   override name = 'KeychainUnavailableError'
 }
@@ -86,7 +85,7 @@ describe('callLocalVault', () => {
       {} as Parameters<typeof callLocalVault>[1],
       `set MY_API_KEY ${secretValue}`,
     )
-    // Security invariant: value must NOT appear in any message
+    // 安全不变式：value 不得出现在任何 message 中
     for (const msg of messages) {
       expect(msg).not.toContain(secretValue)
     }
@@ -106,10 +105,10 @@ describe('callLocalVault', () => {
       {} as Parameters<typeof callLocalVault>[1],
       'get KEY_MASK',
     )
-    // Masked: should contain "..." but NOT the full value
+    // 遮蔽显示：应当包含 "..."，但不包含完整值
     const allMessages = messages.join('\n')
     expect(allMessages).toContain('...')
-    // Security invariant: full secret should NOT appear in masked messages
+    // 安全不变式：完整 secret 不应出现在遮蔽后的 message 中
     expect(allMessages).not.toContain(secretValue)
   })
 
@@ -200,7 +199,7 @@ describe('callLocalVault', () => {
       `set INV_KEY ${secret}`,
     )
     messages.length = 0
-    // Without --reveal
+    // 不带 --reveal
     await callLocalVault(
       onDone as Parameters<typeof callLocalVault>[0],
       {} as Parameters<typeof callLocalVault>[1],

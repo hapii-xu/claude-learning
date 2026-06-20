@@ -15,7 +15,7 @@ import { jsonStringify } from '../../utils/slowOperations.js'
 import { registerBundledSkill } from '../bundledSkills.js'
 
 /**
- * Build a markdown table of all contexts.
+ * 构建所有上下文的 markdown 表格。
  */
 function generateContextsTable(): string {
   return markdownTable(
@@ -28,10 +28,10 @@ function generateContextsTable(): string {
 }
 
 /**
- * Build a markdown table of all actions with their default bindings and context.
+ * 构建所有操作及其默认绑定和上下文的 markdown 表格。
  */
 function generateActionsTable(): string {
-  // Build a lookup: action -> { keys, context }
+  // 构建查找表：action -> { keys, context }
   const actionInfo: Record<string, { keys: string[]; context: string }> = {}
   for (const block of DEFAULT_BINDINGS) {
     for (const [key, action] of Object.entries(block.bindings)) {
@@ -56,7 +56,7 @@ function generateActionsTable(): string {
 }
 
 /**
- * Infer context from action prefix when not in DEFAULT_BINDINGS.
+ * 当操作不在 DEFAULT_BINDINGS 中时，从操作前缀推断上下文。
  */
 function inferContextFromAction(action: string): string {
   const prefix = action.split(':')[0]
@@ -84,7 +84,7 @@ function inferContextFromAction(action: string): string {
 }
 
 /**
- * Build a list of reserved shortcuts.
+ * 构建保留快捷键列表。
  */
 function generateReservedShortcuts(): string {
   const lines: string[] = []
@@ -298,7 +298,7 @@ export function registerKeybindingsSkill(): void {
     userInvocable: false,
     isEnabled: isKeybindingCustomizationEnabled,
     async getPromptForCommand(args) {
-      // Generate reference tables dynamically from source-of-truth arrays
+      // 从真实数据源数组动态生成参考表
       const contextsTable = generateContextsTable()
       const actionsTable = generateActionsTable()
       const reservedShortcuts = generateReservedShortcuts()
@@ -327,7 +327,7 @@ export function registerKeybindingsSkill(): void {
 }
 
 /**
- * Build a markdown table from headers and rows.
+ * 从表头和行数据构建 markdown 表格。
  */
 function markdownTable(headers: string[], rows: string[][]): string {
   const separator = headers.map(() => '---')

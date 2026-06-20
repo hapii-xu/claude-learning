@@ -1,7 +1,7 @@
 /**
- * Parse the args string for the /schedule command.
+ * 解析 /schedule 命令的 args 字符串。
  *
- * Supported sub-commands:
+ * 支持的子命令：
  *   list                                    → { action: 'list' }
  *   get <id>                                → { action: 'get', id }
  *   create <cron-expr> <prompt>             → { action: 'create', cron, prompt }
@@ -10,8 +10,8 @@
  *   run <id>                                → { action: 'run', id }
  *   enable <id>                             → { action: 'enable', id }
  *   disable <id>                            → { action: 'disable', id }
- *   (empty)                                 → { action: 'list' }
- *   anything else                           → { action: 'invalid', reason }
+ *   (空)                                    → { action: 'list' }
+ *   其他任何输入                            → { action: 'invalid', reason }
  */
 
 export type ScheduleArgs =
@@ -29,8 +29,8 @@ const USAGE =
   'Usage: /schedule list | get ID | create CRON PROMPT | update ID FIELD VALUE | delete ID | run ID | enable ID | disable ID'
 
 /**
- * Extract the first 5 whitespace-separated tokens as a cron expression;
- * the remainder is the prompt. Returns null if fewer than 6 tokens are present.
+ * 将前 5 个以空白分隔的 token 作为 cron 表达式提取；
+ * 剩余部分作为 prompt。当 token 少于 6 个时返回 null。
  */
 export function splitCronAndPrompt(
   rest: string,
@@ -43,9 +43,9 @@ export function splitCronAndPrompt(
 }
 
 /**
- * Validate a 5-field cron expression (minute hour day month weekday).
- * Returns true if the expression has exactly 5 fields; false otherwise.
- * This is a lightweight structural check — the server validates semantics.
+ * 校验 5 字段 cron 表达式（minute hour day month weekday）。
+ * 当表达式恰好包含 5 个字段时返回 true，否则返回 false。
+ * 这是一个轻量的结构化校验 — 语义校验由服务端完成。
  */
 export function isValidCronExpression(cron: string): boolean {
   const fields = cron.trim().split(/\s+/)
@@ -63,7 +63,7 @@ export function parseScheduleArgs(args: string): ScheduleArgs {
   const subCmd = spaceIdx === -1 ? trimmed : trimmed.slice(0, spaceIdx)
   const rest = spaceIdx === -1 ? '' : trimmed.slice(spaceIdx + 1).trim()
 
-  // ── get ───────────────────────────────────────────────────────────────────
+  // ── get ───────────────────────────────────────────────────────────
   if (subCmd === 'get') {
     if (!rest) {
       return { action: 'invalid', reason: 'get requires a trigger id' }
@@ -76,7 +76,7 @@ export function parseScheduleArgs(args: string): ScheduleArgs {
     return { action: 'get', id }
   }
 
-  // ── create ────────────────────────────────────────────────────────────────
+  // ── create ────────────────────────────────────────────────────────────
   if (subCmd === 'create') {
     if (!rest) {
       return {
@@ -100,14 +100,14 @@ export function parseScheduleArgs(args: string): ScheduleArgs {
         reason: `Invalid cron expression: "${cron}". Expected 5 fields (minute hour day month weekday).`,
       }
     }
-    /* istanbul ignore next -- prompt is non-empty by construction from splitCronAndPrompt */
+    /* istanbul ignore next -- 由于 splitCronAndPrompt 的构造方式，prompt 必非空 */
     if (!prompt.trim()) {
       return { action: 'invalid', reason: 'prompt cannot be empty' }
     }
     return { action: 'create', cron, prompt: prompt.trim() }
   }
 
-  // ── update ────────────────────────────────────────────────────────────────
+  // ── update ────────────────────────────────────────────────────────────
   if (subCmd === 'update') {
     const parts = rest.split(/\s+/)
     if (parts.length < 3 || !parts[0]) {
@@ -129,7 +129,7 @@ export function parseScheduleArgs(args: string): ScheduleArgs {
     return { action: 'update', id, field, value }
   }
 
-  // ── delete ────────────────────────────────────────────────────────────────
+  // ── delete ────────────────────────────────────────────────────────────
   if (subCmd === 'delete') {
     if (!rest) {
       return { action: 'invalid', reason: 'delete requires a trigger id' }
@@ -142,7 +142,7 @@ export function parseScheduleArgs(args: string): ScheduleArgs {
     return { action: 'delete', id }
   }
 
-  // ── run ───────────────────────────────────────────────────────────────────
+  // ── run ───────────────────────────────────────────────────────────
   if (subCmd === 'run') {
     if (!rest) {
       return { action: 'invalid', reason: 'run requires a trigger id' }
@@ -155,7 +155,7 @@ export function parseScheduleArgs(args: string): ScheduleArgs {
     return { action: 'run', id }
   }
 
-  // ── enable / disable ──────────────────────────────────────────────────────
+  // ── enable / disable ──────────────────────────────────────────────────
   if (subCmd === 'enable' || subCmd === 'disable') {
     if (!rest) {
       return {

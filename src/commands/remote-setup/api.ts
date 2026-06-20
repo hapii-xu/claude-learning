@@ -7,11 +7,10 @@ import { fetchEnvironments } from '../../utils/teleport/environments.js'
 const CCR_BYOC_BETA_HEADER = 'ccr-byoc-2025-07-29'
 
 /**
- * Wraps a raw GitHub token so that its string representation is redacted.
- * `String(token)`, template literals, `JSON.stringify(token)`, and any
- * attached error messages will show `[REDACTED:gh-token]` instead of the
- * token value. Call `.reveal()` only at the single point where the raw
- * value is placed into an HTTP body.
+ * 包装原始 GitHub token，使其字符串表示被脱敏。
+ * `String(token)`、模板字符串、`JSON.stringify(token)` 以及任何
+ * 附带的错误消息都会显示 `[REDACTED:gh-token]` 而不是 token 的
+ * 实际值。仅在将原始值放入 HTTP body 的那个唯一点调用 `.reveal()`。
  */
 export class RedactedGithubToken {
   readonly #value: string
@@ -43,10 +42,10 @@ export type ImportTokenError =
   | { kind: 'network' }
 
 /**
- * POSTs a GitHub token to the CCR backend, which validates it against
- * GitHub's /user endpoint and stores it Fernet-encrypted in sync_user_tokens.
- * The stored token satisfies the same read paths as an OAuth token, so
- * clone/push in claude.ai/code works immediately after this succeeds.
+ * 将 GitHub token POST 到 CCR 后端，后者会通过 GitHub 的 /user 端点
+ * 校验该 token，并以 Fernet 加密方式存储到 sync_user_tokens 中。
+ * 存储后的 token 与 OAuth token 共享相同的读取路径，因此
+ * 成功后 claude.ai/code 中的 clone/push 立即可用。
  */
 export async function importGithubToken(
   token: RedactedGithubToken,
@@ -89,8 +88,8 @@ export async function importGithubToken(
     return { ok: false, error: { kind: 'server', status: response.status } }
   } catch (err) {
     if (axios.isAxiosError(err)) {
-      // err.config.data would contain the POST body with the raw token.
-      // Do not include it in any log. The error code alone is enough.
+      // err.config.data 中会包含带有原始 token 的 POST body。
+      // 不要将其写入任何日志。仅记录错误码即可。
       logForDebugging(`import-token network error: ${err.code ?? 'unknown'}`, {
         level: 'error',
       })
@@ -109,12 +108,12 @@ async function hasExistingEnvironment(): Promise<boolean> {
 }
 
 /**
- * Best-effort default environment creation. Mirrors the web onboarding's
- * DEFAULT_CLOUD_ENVIRONMENT_REQUEST so a first-time user lands on the
- * composer instead of env-setup. Checks for existing environments first
- * so re-running /web-setup doesn't pile up duplicates. Failures are
- * non-fatal — the token import already succeeded, and the web state
- * machine falls back to env-setup on next load.
+ * 尽力而为的默认环境创建。镜像 web onboarding 的
+ * DEFAULT_CLOUD_ENVIRONMENT_REQUEST，使首次使用的用户直接落到
+ * composer 而不是 env-setup。先检查是否已存在环境，
+ * 这样重复运行 /web-setup 不会堆积重复环境。失败是
+ * 非致命的 — token 导入已经成功，web 状态机
+ * 下次加载时会回退到 env-setup。
  */
 export async function createDefaultEnvironment(): Promise<boolean> {
   let accessToken: string, orgUUID: string
@@ -128,9 +127,9 @@ export async function createDefaultEnvironment(): Promise<boolean> {
     return true
   }
 
-  // The /private/organizations/{org}/ path rejects CLI OAuth tokens (wrong
-  // auth dep). The public path uses build_flexible_auth — same path
-  // fetchEnvironments() uses. Org is passed via x-organization-uuid header.
+  // /private/organizations/{org}/ 路径会拒绝 CLI OAuth token（认证依赖
+  // 不匹配）。公共路径使用 build_flexible_auth — 与 fetchEnvironments()
+  // 使用的路径相同。Org 通过 x-organization-uuid header 传递。
   const url = `${getOauthConfig().BASE_API_URL}/v1/environment_providers/cloud/create`
   const headers = {
     ...getOAuthHeaders(accessToken),
@@ -167,7 +166,7 @@ export async function createDefaultEnvironment(): Promise<boolean> {
   }
 }
 
-/** Returns true when the user has valid Claude OAuth credentials. */
+/** 当用户拥有有效的 Claude OAuth 凭证时返回 true。 */
 export async function isSignedIn(): Promise<boolean> {
   try {
     await prepareApiRequest()

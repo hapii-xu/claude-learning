@@ -1,11 +1,11 @@
 /**
- * Hook Zod schemas extracted to break import cycles.
+ * 提取出来的 Hook Zod schema，用于打破 import 循环。
  *
- * This file contains hook-related schema definitions that were originally
- * in src/utils/settings/types.ts. By extracting them here, we break the
- * circular dependency between settings/types.ts and plugins/schemas.ts.
+ * 本文件包含原本位于 src/utils/settings/types.ts 中的
+ * hook 相关 schema 定义。将其提取到此处后，可以打破
+ * settings/types.ts 与 plugins/schemas.ts 之间的循环依赖。
  *
- * Both files now import from this shared location instead of each other.
+ * 现在这两个文件都从此共享位置导入，而不是互相导入。
  */
 
 import { HOOK_EVENTS, type HookEvent } from 'src/entrypoints/agentSdkTypes.js'
@@ -13,9 +13,9 @@ import { z } from 'zod/v4'
 import { lazySchema } from '../utils/lazySchema.js'
 import { SHELL_TYPES } from '../utils/shell/shellProvider.js'
 
-// Shared schema for the `if` condition field.
-// Uses permission rule syntax (e.g., "Bash(git *)", "Read(*.ts)") to filter hooks
-// before spawning. Evaluated against the hook input's tool_name and tool_input.
+// `if` 条件字段的共享 schema。
+// 使用权限规则语法（例如 "Bash(git *)"、"Read(*.ts)"）在 spawn 之前过滤 hook。
+// 会针对 hook 输入的 tool_name 和 tool_input 进行求值。
 const IfConditionSchema = lazySchema(() =>
   z
     .string()
@@ -26,8 +26,8 @@ const IfConditionSchema = lazySchema(() =>
     ),
 )
 
-// Internal factory for individual hook schemas (shared between exported
-// discriminated union members and the HookCommandSchema factory)
+// 内部工厂，用于构造各个 hook schema（在导出的可辨识联合类型成员
+// 和 HookCommandSchema 工厂之间共享）
 function buildHookSchemas() {
   const BashCommandHookSchema = z.object({
     type: z.literal('command').describe('Shell command hook type'),
@@ -77,7 +77,7 @@ function buildHookSchemas() {
       .positive()
       .optional()
       .describe('Timeout in seconds for this specific prompt evaluation'),
-    // @[MODEL LAUNCH]: Update the example model ID in the .describe() strings below (prompt + agent hooks).
+    // @[模型发布]：更新下方 .describe() 字符串中的示例模型 ID（prompt + agent hooks）。
     model: z
       .string()
       .optional()
@@ -104,7 +104,7 @@ function buildHookSchemas() {
       .optional()
       .describe('Timeout in seconds for this specific request'),
     headers: z.record(z.string(), z.string()).optional().describe(
-      // biome-ignore lint/suspicious/noTemplateCurlyInString: ${VAR_NAME} is documentation for the config syntax, not a JS template literal
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: ${VAR_NAME} 是配置语法的文档说明，不是 JS 模板字面量
       'Additional headers to include in the request. Values may reference environment variables using $VAR_NAME or ${VAR_NAME} syntax (e.g., "Authorization": "Bearer $MY_TOKEN"). Only variables listed in allowedEnvVars will be interpolated.',
     ),
     allowedEnvVars: z
@@ -125,14 +125,13 @@ function buildHookSchemas() {
 
   const AgentHookSchema = z.object({
     type: z.literal('agent').describe('Agentic verifier hook type'),
-    // DO NOT add .transform() here. This schema is used by parseSettingsFile,
-    // and updateSettingsForSource round-trips the parsed result through
-    // JSON.stringify — a transformed function value is silently dropped,
-    // deleting the user's prompt from settings.json (gh-24920, CC-79). The
-    // transform (from #10594) wrapped the string in `(_msgs) => prompt`
-    // for a programmatic-construction use case in ExitPlanModeV2Tool that
-    // has since been refactored into VerifyPlanExecutionTool, which no
-    // longer constructs AgentHook objects at all.
+    // 不要在此处添加 .transform()。此 schema 被 parseSettingsFile 使用，
+    // 并且 updateSettingsForSource 会把解析结果通过 JSON.stringify 往返一次 ——
+    // 被转换过的函数值会被静默丢弃，从而删除用户在 settings.json 中的 prompt
+    // （gh-24920、CC-79）。#10594 引入的 transform 把字符串包装成
+    // `(_msgs) => prompt`，用于 ExitPlanModeV2Tool 中一种以编程方式构造对象的
+    // 场景；该场景后来被重构进 VerifyPlanExecutionTool，而后者已经完全
+    // 不再构造 AgentHook 对象。
     prompt: z
       .string()
       .describe(
@@ -169,7 +168,7 @@ function buildHookSchemas() {
 }
 
 /**
- * Schema for hook command (excludes function hooks - they can't be persisted)
+ * hook command 的 schema（不含 function hook —— 它们无法被持久化）
  */
 export const HookCommandSchema = lazySchema(() => {
   const {
@@ -187,14 +186,14 @@ export const HookCommandSchema = lazySchema(() => {
 })
 
 /**
- * Schema for matcher configuration with multiple hooks
+ * 包含多个 hook 的 matcher 配置 schema
  */
 export const HookMatcherSchema = lazySchema(() =>
   z.object({
     matcher: z
       .string()
       .optional()
-      .describe('String pattern to match (e.g. tool names like "Write")'), // String (e.g. Write) to match values related to the hook event, e.g. tool names
+      .describe('String pattern to match (e.g. tool names like "Write")'), // 字符串（例如 Write），用于匹配与 hook 事件相关的值，例如工具名
     hooks: z
       .array(HookCommandSchema())
       .describe('List of hooks to execute when the matcher matches'),
@@ -202,15 +201,15 @@ export const HookMatcherSchema = lazySchema(() =>
 )
 
 /**
- * Schema for hooks configuration
- * The key is the hook event. The value is an array of matcher configurations.
- * Uses partialRecord since not all hook events need to be defined.
+ * hooks 配置的 schema
+ * key 是 hook 事件，value 是一个 matcher 配置数组。
+ * 使用 partialRecord，因为并非所有 hook 事件都需要被定义。
  */
 export const HooksSchema = lazySchema(() =>
   z.partialRecord(z.enum(HOOK_EVENTS), z.array(HookMatcherSchema())),
 )
 
-// Inferred types from schemas
+// 从 schema 推断出的类型
 export type HookCommand = z.infer<ReturnType<typeof HookCommandSchema>>
 export type BashCommandHook = Extract<HookCommand, { type: 'command' }>
 export type PromptHook = Extract<HookCommand, { type: 'prompt' }>

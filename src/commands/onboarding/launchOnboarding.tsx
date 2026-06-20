@@ -10,26 +10,25 @@ import { getGlobalConfig, saveCurrentProjectConfig, saveGlobalConfig } from '../
 import type { ThemeSetting } from '../../utils/theme.js';
 
 /**
- * /onboarding [subcommand]
+ * /onboarding [子命令]
  *
- * User-facing slash command that re-runs the first-run setup flow. The
- * official v2.1.123 binary advertises `/onboarding` and emits
- * `tengu_onboarding_step` telemetry; this command exposes a clean entry
- * point for re-running individual steps after initial setup.
+ * 面向用户的 slash 命令，用于重新运行首次启动配置流程。官方
+ * v2.1.123 二进制文件会广播 `/onboarding` 并发送
+ * `tengu_onboarding_step` 遥测事件；此命令提供了一个干净的入口，
+ * 方便在初始配置完成后重新运行单个步骤。
  *
- * Subcommands:
- *   (none) | full | reset  — clear `hasCompletedOnboarding` so the next
- *                            REPL launch re-runs the full flow, then exit
- *                            with instructions.
- *   theme                  — render the theme picker inline.
- *   trust                  — clear the workspace trust acceptance and
- *                            instruct the user to restart.
- *   model                  — defer to /model (cannot mid-call suspend
- *                            into a separate command's Ink picker; print
- *                            instructions instead).
- *   mcp                    — print MCP setup hints (delegates to /mcp).
- *   status                 — show current onboarding state (theme,
- *                            completion flag, trust, last version).
+ * 子命令：
+ *   (无) | full | reset  — 清除 `hasCompletedOnboarding`，使下次
+ *                            REPL 启动时重新运行完整流程，然后退出
+ *                            并给出指引。
+ *   theme                  — 内联渲染主题选择器。
+ *   trust                  — 清除工作区信任接受状态，
+ *                            并提示用户重启。
+ *   model                  — 委托给 /model（无法在调用过程中挂起进入
+ *                            另一个命令的 Ink 选择器；改为打印指引）。
+ *   mcp                    — 打印 MCP 配置提示（委托给 /mcp）。
+ *   status                 — 显示当前 onboarding 状态（主题、
+ *                            完成标志、信任、最近版本）。
  */
 export type OnboardingSubcommand = 'full' | 'theme' | 'trust' | 'model' | 'mcp' | 'status';
 
@@ -165,11 +164,11 @@ export const callOnboarding: LocalJSXCommandCall = async (onDone, _context, args
   }
 
   // sub === 'full'
-  // Clearing `hasCompletedOnboarding` causes `showSetupScreens()` (in
-  // src/interactiveHelpers.tsx) to render the full Onboarding component
-  // on the next launch. We cannot render <Onboarding /> mid-REPL because
-  // it owns terminal-setup detection, OAuth flow, and final redirect to
-  // the prompt — not safe to mount inside an active REPL session.
+  // 清除 `hasCompletedOnboarding` 会让 `showSetupScreens()`（位于
+  // src/interactiveHelpers.tsx）在下次启动时渲染完整的 Onboarding 组件。
+  // 我们无法在 REPL 运行过程中渲染 <Onboarding />，因为它接管了
+  // 终端配置检测、OAuth 流程以及到提示符的最终跳转——在活跃的 REPL
+  // 会话中挂载并不安全。
   saveGlobalConfig(current => ({
     ...current,
     hasCompletedOnboarding: false,

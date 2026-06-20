@@ -46,7 +46,7 @@ function ToggleTagAndClose({
 }): React.ReactNode {
   const [showConfirm, setShowConfirm] = React.useState(false);
   const [sessionId, setSessionId] = React.useState<UUID | null>(null);
-  // Sanitize unicode to prevent hidden character attacks and normalize
+  // 对 unicode 进行清理以防隐藏字符攻击，并做归一化
   const normalizedTag = recursivelySanitizeUnicode(tagName).trim();
 
   React.useEffect(() => {
@@ -65,12 +65,12 @@ function ToggleTagAndClose({
     setSessionId(id);
     const currentTag = getCurrentSessionTag(id);
 
-    // If same tag exists, show confirmation dialog
+    // 如果存在同名 tag，则显示确认对话框
     if (currentTag === normalizedTag) {
       logEvent('tengu_tag_command_remove_prompt', {});
       setShowConfirm(true);
     } else {
-      // Add the new tag directly
+      // 直接添加新 tag
       const isReplacing = !!currentTag;
       logEvent('tengu_tag_command_add', { is_replacing: isReplacing });
       void (async () => {

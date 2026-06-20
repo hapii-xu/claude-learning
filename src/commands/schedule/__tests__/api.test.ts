@@ -1,11 +1,11 @@
 /**
- * Regression tests for triggersApi.ts
+ * triggersApi.ts 的回归测试
  *
- * Key invariants under test:
- *   - updateTrigger MUST use POST, not PATCH (binary literal: update: POST /v1/code/triggers/{id})
- *   - All CRUD endpoints hit /v1/code/triggers (not /v1/agents)
- *   - 401/403/404/429/5xx classified correctly
- *   - withRetry retries only 5xx, not 4xx
+ * 测试的核心不变式：
+ *   - updateTrigger 必须使用 POST，而非 PATCH（二进制字面量：update: POST /v1/code/triggers/{id}）
+ *   - 所有 CRUD 端点都命中 /v1/code/triggers（而非 /v1/agents）
+ *   - 401/403/404/429/5xx 分类正确
+ *   - withRetry 仅重试 5xx，不重试 4xx
  */
 
 import {
@@ -25,7 +25,7 @@ import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/utils/debug.ts', debugMock)
 
-// ── Auth / OAuth mocks ──────────────────────────────────────────────────────
+// ── Auth / OAuth mocks ──────────────────────────────────────────────────
 const mockAccessToken = 'test-token-triggers'
 const mockOrgUUID = 'org-uuid-triggers'
 
@@ -57,7 +57,7 @@ mock.module('src/services/auth/hostGuard.ts', () => ({
   assertNoAnthropicEnvForOpenAI: () => {},
 }))
 
-// ── Axios mock ──────────────────────────────────────────────────────────────
+// ── Axios mock ──────────────────────────────────────────────────────────
 const axiosGetMock = mock(async () => ({}))
 const axiosPostMock = mock(async () => ({}))
 const axiosDeleteMock = mock(async () => ({}))
@@ -77,7 +77,7 @@ axiosHandle.stubs.post = axiosPostMock
 axiosHandle.stubs.delete = axiosDeleteMock
 axiosHandle.stubs.isAxiosError = axiosIsAxiosError
 
-// ── Lazy import after mocks ─────────────────────────────────────────────────
+// ── 在 mocks 之后的懒加载 import ─────────────────────────────────────
 let listTriggers: typeof import('../triggersApi.js').listTriggers
 let getTrigger: typeof import('../triggersApi.js').getTrigger
 let createTrigger: typeof import('../triggersApi.js').createTrigger
@@ -108,7 +108,7 @@ beforeEach(() => {
 
 afterEach(() => {})
 
-// ── REGRESSION: updateTrigger MUST use POST not PATCH ──────────────────────
+// ── 回归测试：updateTrigger 必须使用 POST 而非 PATCH ──────────────────
 describe('updateTrigger regression: must use POST not PATCH', () => {
   test('updateTrigger calls POST /v1/code/triggers/{id} (not PATCH)', async () => {
     const updated = {
@@ -121,10 +121,10 @@ describe('updateTrigger regression: must use POST not PATCH', () => {
 
     await updateTrigger('trg_upd', { enabled: false })
 
-    // POST must have been called
+    // 必须已调用 POST
     expect(axiosPostMock).toHaveBeenCalledTimes(1)
-    // axiosPatchMock must NOT have been called (no patch mock registered)
-    // The URL must contain the trigger id
+    // 不应调用 axiosPatchMock（未注册 patch mock）
+    // URL 必须包含 trigger id
     const calls = axiosPostMock.mock.calls as unknown as [
       string,
       unknown,
@@ -133,12 +133,12 @@ describe('updateTrigger regression: must use POST not PATCH', () => {
     const url = calls[0]?.[0] as string
     expect(url).toContain('trg_upd')
     expect(url).toContain('/v1/code/triggers/')
-    // Verify the URL does NOT end in /run (which is the runTrigger endpoint)
+    // 验证 URL 不以 /run 结尾（/run 是 runTrigger 的端点）
     expect(url).not.toMatch(/\/run$/)
   })
 })
 
-// ── listTriggers ──────────────────────────────────────────────────────────
+// ── listTriggers ──────────────────────────────────────────────────────
 describe('listTriggers', () => {
   test('returns triggers on 200', async () => {
     const triggers = [
@@ -244,7 +244,7 @@ describe('listTriggers', () => {
   })
 })
 
-// ── getTrigger ──────────────────────────────────────────────────────────
+// ── getTrigger ────────────────────────────────────────────────────────
 describe('getTrigger', () => {
   test('calls GET /v1/code/triggers/{id}', async () => {
     const trigger = {
@@ -278,7 +278,7 @@ describe('getTrigger', () => {
   })
 })
 
-// ── createTrigger ─────────────────────────────────────────────────────────
+// ── createTrigger ─────────────────────────────────────────────────────
 describe('createTrigger', () => {
   test('sends POST /v1/code/triggers with cron_expression and prompt', async () => {
     const trigger = {
@@ -308,7 +308,7 @@ describe('createTrigger', () => {
   })
 })
 
-// ── deleteTrigger ─────────────────────────────────────────────────────────
+// ── deleteTrigger ─────────────────────────────────────────────────────
 describe('deleteTrigger', () => {
   test('calls DELETE /v1/code/triggers/{id}', async () => {
     axiosDeleteMock.mockResolvedValueOnce({ status: 204 })
@@ -321,7 +321,7 @@ describe('deleteTrigger', () => {
   })
 })
 
-// ── runTrigger ───────────────────────────────────────────────────────────
+// ── runTrigger ───────────────────────────────────────────────────────
 describe('runTrigger', () => {
   test('calls POST /v1/code/triggers/{id}/run', async () => {
     axiosPostMock.mockResolvedValueOnce({
@@ -341,7 +341,7 @@ describe('runTrigger', () => {
   })
 })
 
-// ── 429 Retry-After ──────────────────────────────────────────────────────
+// ── 429 Retry-After ───────────────────────────────────────────────────
 describe('429 rate-limit: not retried (non-5xx)', () => {
   test('throws immediately on 429 without retry', async () => {
     const err = Object.assign(new Error('Too Many Requests'), {
@@ -357,7 +357,7 @@ describe('429 rate-limit: not retried (non-5xx)', () => {
         (e as { isAxiosError: boolean }).isAxiosError === true,
     )
     await expect(listTriggers()).rejects.toThrow()
-    // Must NOT have retried — 429 is not a 5xx
+    // 不应进行重试 — 429 不是 5xx
     expect(axiosGetMock).toHaveBeenCalledTimes(1)
   })
 })

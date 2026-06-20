@@ -3,6 +3,7 @@ import { buildTool, type ToolDef } from 'src/Tool.js'
 import { lazySchema } from 'src/utils/lazySchema.js'
 import type { PermissionResult } from 'src/utils/permissions/PermissionResult.js'
 import { isOutputLineTruncated } from 'src/utils/terminal.js'
+import { logForDebugging } from 'src/utils/debug.js'
 import { DESCRIPTION, PROMPT } from './prompt.js'
 import {
   renderToolResultMessage,
@@ -10,7 +11,7 @@ import {
   renderToolUseProgressMessage,
 } from './UI.js'
 
-// Allow any input object since MCP tools define their own schemas
+// 允许任意输入对象，因为 MCP 工具定义自己的 schema
 export const inputSchema = lazySchema(() => z.object({}).passthrough())
 type InputSchema = ReturnType<typeof inputSchema>
 
@@ -21,23 +22,23 @@ type OutputSchema = ReturnType<typeof outputSchema>
 
 export type Output = z.infer<OutputSchema>
 
-// Re-export MCPProgress from centralized types to break import cycles
+// 从集中类型重新导出 MCPProgress 以打破导入循环
 export type { MCPProgress } from 'src/types/tools.js'
 
 export const MCPTool = buildTool({
   isMcp: true,
-  // Overridden in mcpClient.ts with the real MCP tool name + args
+  // 在 mcpClient.ts 中用真实的 MCP 工具名称 + 参数覆盖
   isOpenWorld() {
     return false
   },
-  // Overridden in mcpClient.ts
+  // 在 mcpClient.ts 中覆盖
   name: 'mcp',
   maxResultSizeChars: 100_000,
-  // Overridden in mcpClient.ts
+  // 在 mcpClient.ts 中覆盖
   async description() {
     return DESCRIPTION
   },
-  // Overridden in mcpClient.ts
+  // 在 mcpClient.ts 中覆盖
   async prompt() {
     return PROMPT
   },
@@ -47,8 +48,12 @@ export const MCPTool = buildTool({
   get outputSchema(): OutputSchema {
     return outputSchema()
   },
-  // Overridden in mcpClient.ts
+  // 在 mcpClient.ts 中覆盖
   async call() {
+    logForDebugging(
+      '[MCP Tool] 警告：stub call() 被触发！说明 MCP client 未正确覆盖此工具，请检查 client.ts',
+      { level: 'error' },
+    )
     return {
       data: '',
     }
@@ -60,7 +65,7 @@ export const MCPTool = buildTool({
     }
   },
   renderToolUseMessage,
-  // Overridden in mcpClient.ts
+  // 在 mcpClient.ts 中覆盖
   userFacingName: () => 'mcp',
   renderToolUseProgressMessage,
   renderToolResultMessage,

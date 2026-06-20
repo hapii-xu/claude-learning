@@ -60,6 +60,7 @@ function useCanUseTool(
           createPermissionQueueOps(setToolUseConfirmQueue),
         );
 
+        logForDebugging(`[权限] 请求权限 tool=${tool.name} id=${toolUseID}`, { level: 'info' });
         if (ctx.resolveIfAborted(resolve)) return;
 
         const decisionPromise =
@@ -69,22 +70,22 @@ function useCanUseTool(
 
         return decisionPromise
           .then(async result => {
-            // [ANT-ONLY] Log all tool permission decisions with tool name and args
+            // [ANT-ONLY] 记录所有工具权限决策，包含工具名称和参数
             if (process.env.USER_TYPE === 'ant') {
               logEvent('tengu_internal_tool_permission_decision', {
                 toolName: sanitizeToolNameForAnalytics(tool.name),
                 behavior: result.behavior as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-                // Note: input contains code/filepaths, only log for ants
+                // 注意：input 包含代码/文件路径，仅对 ant 记录
                 input: jsonStringify(input) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                 messageID: ctx.messageId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
                 isMcp: tool.isMcp ?? false,
               });
             }
 
-            // Has permissions to use tool, granted in config
+            // 有使用工具的权限，在配置中授予
             if (result.behavior === 'allow') {
               if (ctx.resolveIfAborted(resolve)) return;
-              // Track auto mode classifier approvals for UI display
+              // 跟踪自动模式分类器批准以便 UI 显示
               if (
                 feature('TRANSCRIPT_CLASSIFIER') &&
                 result.decisionReason?.type === 'classifier' &&
@@ -95,6 +96,7 @@ function useCanUseTool(
 
               ctx.logDecision({ decision: 'accept', source: 'config' });
 
+              logForDebugging(`[权限] ${tool.name} 权限结果=allow`, { level: 'info' });
               resolve(
                 ctx.buildAllow(result.updatedInput ?? input, {
                   decisionReason: result.decisionReason,
@@ -112,9 +114,10 @@ function useCanUseTool(
 
             if (ctx.resolveIfAborted(resolve)) return;
 
-            // Does not have permissions to use tool, check the behavior
+            // 没有使用工具的权限，检查行为
             switch (result.behavior) {
               case 'deny': {
+                logForDebugging(`[权限] ${tool.name} 权限结果=deny`, { level: 'error' });
                 logPermissionDecision(
                   {
                     tool,
@@ -152,8 +155,9 @@ function useCanUseTool(
               }
 
               case 'ask': {
-                // For coordinator workers, await automated checks before showing dialog.
-                // Background workers should only interrupt the user when automated checks can't decide.
+                logForDebugging(`[权限] ${tool.name} 权限结果=ask，等待用户确认`, { level: 'info' });
+                // 对于 coordinator worker，在显示对话框前等待自动检查。
+                // 后台 worker 应仅在自动检查无法决定时才中断用户。
                 if (appState.toolPermissionContext.awaitAutomatedChecksBeforeDialog) {
                   const coordinatorDecision = await handleCoordinatorPermission({
                     ctx,
@@ -170,16 +174,16 @@ function useCanUseTool(
                     resolve(coordinatorDecision);
                     return;
                   }
-                  // null means neither automated check resolved -- fall through to dialog below.
-                  // Hooks already ran, classifier already consumed.
+                  // null 表示两个自动检查都未解决 — 下落到下方的对话框。
+                  // Hooks 已运行，分类器已消费。
                 }
 
-                // After awaiting automated checks, verify the request wasn't aborted
-                // while we were waiting. Without this check, a stale dialog could appear.
+                // 等待自动检查后，验证请求在我们等待时没有被中止。
+                // 如果没有此检查，可能会出现过时的对话框。
                 if (ctx.resolveIfAborted(resolve)) return;
 
-                // For swarm workers, try classifier auto-approval then
-                // forward permission requests to the leader via mailbox.
+                // 对于 swarm worker，先尝试分类器自动批准，然后
+                // 通过邮箱将权限请求转发给 leader。
                 const swarmDecision = await handleSwarmWorkerPermission({
                   ctx,
                   description,
@@ -196,8 +200,8 @@ function useCanUseTool(
                   return;
                 }
 
-                // Grace period: wait up to 2s for speculative classifier
-                // to resolve before showing the dialog (main agent only)
+                // 宽限期：等待最多 2s 让推测性分类器
+                // 在显示对话框前解决（仅主代理）
                 if (
                   feature('BASH_CLASSIFIER') &&
                   result.pendingClassifierCheck &&
@@ -225,7 +229,7 @@ function useCanUseTool(
                       raceResult.result.confidence === 'high' &&
                       feature('BASH_CLASSIFIER')
                     ) {
-                      // Classifier approved within grace period — skip dialog
+                      // 分类器在宽限期内批准 — 跳过对话框
                       void consumeSpeculativeClassifierCheck((input as { command: string }).command);
 
                       const matchedRule = raceResult.result.matchedDescription ?? undefined;
@@ -248,11 +252,11 @@ function useCanUseTool(
                       );
                       return;
                     }
-                    // Timeout or no match — fall through to show dialog
+                    // 超时或无匹配 — 下落以显示对话框
                   }
                 }
 
-                // Show dialog and start hooks/classifier in background
+                // 显示对话框并在后台启动 hooks/分类器
                 handleInteractivePermission(
                   {
                     ctx,

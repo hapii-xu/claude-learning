@@ -1,7 +1,7 @@
 /**
- * Parse the args string for the /memory-stores command.
+ * 解析 /memory-stores 命令的 args 字符串。
  *
- * Supported sub-commands:
+ * 支持的子命令：
  *   list                                         → { action: 'list' }
  *   get <id>                                     → { action: 'get', id }
  *   create <name>                                → { action: 'create', name }
@@ -13,8 +13,8 @@
  *   delete-memory <store_id> <memory_id>         → { action: 'delete-memory', storeId, memoryId }
  *   versions <store_id>                          → { action: 'versions', storeId }
  *   redact <store_id> <version_id>               → { action: 'redact', storeId, versionId }
- *   (empty)                                      → { action: 'list' }
- *   anything else                                → { action: 'invalid', reason }
+ *   （空）                                        → { action: 'list' }
+ *   其他任意值                                   → { action: 'invalid', reason }
  */
 
 export type MemoryStoresArgs =

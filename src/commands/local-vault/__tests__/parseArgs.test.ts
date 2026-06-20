@@ -102,10 +102,9 @@ describe('parseLocalVaultArgs', () => {
     expect(r.action).toBe('invalid')
   })
 
-  // ── M1 (codecov-100 audit #4): hyphen-like Unicode prefix rejection ──
-  // U+2212 MINUS SIGN visually looks like '-' but the shell would not
-  // round-trip it back to ASCII '-'. If we accepted such keys, the user
-  // could store them but never retrieve them via the CLI.
+  // ── M1（codecov-100 审计 #4）：拒绝类似连字符的 Unicode 前缀 ──
+  // U+2212 MINUS SIGN 视觉上像 '-'，但 shell 不会将其往返转回 ASCII '-'。
+  // 如果我们接受这样的 key，用户能存储却永远无法通过 CLI 检索。
   describe('M1: hyphen-like Unicode prefix rejection (audit #4)', () => {
     test('U+2212 MINUS SIGN prefix → invalid', () => {
       const r = parseLocalVaultArgs('set −key value')
@@ -136,8 +135,8 @@ describe('parseLocalVaultArgs', () => {
     })
 
     test('non-hyphen unicode prefix is still allowed (e.g. CJK)', () => {
-      // Defensive: we only reject hyphen-like; legitimate unicode keys
-      // like '日本語' must still be accepted.
+      // 防御性测试：我们只拒绝类似连字符的字符；像 '日本語' 这样合法的
+      // unicode key 仍必须被接受。
       const r = parseLocalVaultArgs('set 日本語key value')
       expect(r.action).toBe('set')
       if (r.action === 'set') {
