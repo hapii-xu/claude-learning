@@ -113,7 +113,7 @@ export function onChangeAppState({
     }
   }
 
-  // verbose
+  // verbose（详细日志模式）
   if (
     newState.verbose !== oldState.verbose &&
     getGlobalConfig().verbose !== newState.verbose
