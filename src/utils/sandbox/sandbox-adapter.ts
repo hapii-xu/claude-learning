@@ -58,8 +58,8 @@ import { getClaudeTempDir } from '../permissions/filesystem.js'
 import type { PermissionRuleValue } from '../permissions/PermissionRule.js'
 import { ripgrepCommand } from '../ripgrep.js'
 
-// Local copies to avoid circular dependency
-// (permissions.ts imports SandboxManager, bashPermissions.ts imports permissions.ts)
+// 本地副本以避免循环依赖
+// （permissions.ts 导入 SandboxManager，bashPermissions.ts 导入 permissions.ts）
 function permissionRuleValueFromString(
   ruleString: string,
 ): PermissionRuleValue {
@@ -109,45 +109,45 @@ export function resolvePathPatternForSandbox(
   // Note: ~/path and relative paths are passed through for sandbox-runtime to handle
   if (pattern.startsWith('/') && !pattern.startsWith('//')) {
     const root = getSettingsRootPathForSource(source)
-    // Pattern like "/foo/**" becomes "${root}/foo/**"
+    // 类似 "/foo/**" 的模式变为 "${root}/foo/**"
     return resolve(root, pattern.slice(1))
   }
 
-  // Other patterns (~/path, ./path, path) pass through as-is
-  // sandbox-runtime's normalizePathForSandbox will handle them
+  // 其他模式（~/path、./path、path）按原样传递
+  // sandbox-runtime 的 normalizePathForSandbox 会处理它们
   return pattern
 }
 
 /**
- * Resolve paths from sandbox.filesystem.* settings (allowWrite, denyWrite, etc).
+ * 从 sandbox.filesystem.* 设置解析路径（allowWrite、denyWrite 等）。
  *
- * Unlike permission rules (Edit/Read), these settings use standard path semantics:
- * - `/path` → absolute path (as written, NOT settings-relative)
- * - `~/path` → expanded to home directory
- * - `./path` or `path` → relative to settings file directory
- * - `//path` → absolute (legacy permission-rule syntax, accepted for compat)
+ * 与权限规则（Edit/Read）不同，这些设置使用标准路径语义：
+ * - `/path` → 绝对路径（按书写方式，非 settings 相对路径）
+ * - `~/path` → 展开为 home 目录
+ * - `./path` 或 `path` → 相对于 settings 文件目录
+ * - `//path` → 绝对路径（旧版权限规则语法，为兼容性接受）
  *
- * Fix for #30067: resolvePathPatternForSandbox treats `/Users/foo/.cargo` as
- * settings-relative (permission-rule convention). Users reasonably expect
- * absolute paths in sandbox.filesystem.allowWrite to work as-is.
+ * 修复 #30067：resolvePathPatternForSandbox 将 `/Users/foo/.cargo` 视为
+ * settings 相对路径（权限规则约定）。用户合理期望
+ * sandbox.filesystem.allowWrite 中的绝对路径能按原样工作。
  *
- * Also expands `~` here rather than relying on sandbox-runtime, because
- * sandbox-runtime's getFsWriteConfig() does not call normalizePathForSandbox
- * on allowWrite paths (it only strips trailing glob suffixes).
+ * 同时在此处展开 `~`，而非依赖 sandbox-runtime，因为
+ * sandbox-runtime 的 getFsWriteConfig() 不对 allowWrite 路径调用
+ * normalizePathForSandbox（它只剥离尾部 glob 后缀）。
  */
 export function resolveSandboxFilesystemPath(
   pattern: string,
   source: SettingSource,
 ): string {
-  // Legacy permission-rule escape: //path → /path. Kept for compat with
-  // users who worked around #30067 by writing //Users/foo/.cargo in config.
+  // 旧版权限规则转义：//path → /path。为使用 //Users/foo/.cargo 配置
+  // 绕过 #30067 的用户保留兼容性。
   if (pattern.startsWith('//')) return pattern.slice(1)
   return expandPath(pattern, getSettingsRootPathForSource(source))
 }
 
 /**
- * Check if only managed sandbox domains should be used.
- * This is true when policySettings has sandbox.network.allowManagedDomainsOnly: true
+ * 检查是否应仅使用托管的 sandbox 域。
+ * 当 policySettings 中 sandbox.network.allowManagedDomainsOnly: true 时为真。
  */
 export function shouldAllowManagedSandboxDomainsOnly(): boolean {
   return (
@@ -174,11 +174,11 @@ export function convertToSandboxRuntimeConfig(
 ): SandboxRuntimeConfig {
   const permissions = settings.permissions || {}
 
-  // Extract network domains from WebFetch rules
+  // 从 WebFetch 规则提取网络域
   const allowedDomains: string[] = []
   const deniedDomains: string[] = []
 
-  // When allowManagedSandboxDomainsOnly is enabled, only use domains from policy settings
+  // 当 allowManagedSandboxDomainsOnly 启用时，仅使用策略设置中的域
   if (shouldAllowManagedSandboxDomainsOnly()) {
     const policySettings = getSettingsForSource('policySettings')
     for (const domain of policySettings?.sandbox?.network?.allowedDomains ||
@@ -219,24 +219,24 @@ export function convertToSandboxRuntimeConfig(
     }
   }
 
-  // Extract filesystem paths from Edit and Read rules
-  // Always include current directory and Claude temp directory as writable
-  // The temp directory is needed for Shell.ts cwd tracking files
+  // 从 Edit 和 Read 规则提取文件系统路径
+  // 始终包含当前目录和 Claude 临时目录作为可写
+  // 临时目录用于 Shell.ts 的 cwd 跟踪文件
   const allowWrite: string[] = ['.', getClaudeTempDir()]
   const denyWrite: string[] = []
   const denyRead: string[] = []
   const allowRead: string[] = []
 
-  // Always deny writes to settings.json files to prevent sandbox escape
-  // This blocks settings in the original working directory (where Claude Code started)
+  // 始终拒绝写入 settings.json 文件以防止 sandbox 逃逸
+  // 这会阻止原始工作目录（Claude Code 启动位置）中的 settings
   const settingsPaths = SETTING_SOURCES.map(source =>
     getSettingsFilePathForSource(source),
   ).filter((p): p is string => p !== undefined)
   denyWrite.push(...settingsPaths)
   denyWrite.push(getManagedSettingsDropInDir())
 
-  // Also block settings files in the current working directory if it differs from original
-  // This handles the case where the user has cd'd to a different directory
+  // 若当前工作目录与原始目录不同，也阻止其中的 settings 文件
+  // 这处理用户 cd 到不同目录的情况
   const cwd = getCwdState()
   const originalCwd = getOriginalCwd()
   if (cwd !== originalCwd) {
@@ -244,26 +244,26 @@ export function convertToSandboxRuntimeConfig(
     denyWrite.push(resolve(cwd, '.claude', 'settings.local.json'))
   }
 
-  // Block writes to .claude/skills in both original and current working directories.
-  // The sandbox-runtime's getDangerousDirectories() protects .claude/commands and
-  // .claude/agents but not .claude/skills. Skills have the same privilege level
-  // (auto-discovered, auto-loaded, full Claude capabilities) so they need the
-  // same OS-level sandbox protection.
+  // 阻止在原始和当前工作目录中写入 .claude/skills。
+  // sandbox-runtime 的 getDangerousDirectories() 保护 .claude/commands 和
+  // .claude/agents，但不包括 .claude/skills。Skills 具有相同的权限级别
+  // （自动发现、自动加载、完整 Claude 能力），因此需要相同的
+  // OS 级 sandbox 保护。
   denyWrite.push(resolve(originalCwd, '.claude', 'skills'))
   if (cwd !== originalCwd) {
     denyWrite.push(resolve(cwd, '.claude', 'skills'))
   }
 
-  // SECURITY: Git's is_git_directory() treats cwd as a bare repo if it has
-  // HEAD + objects/ + refs/. An attacker planting these (plus a config with
-  // core.fsmonitor) escapes the sandbox when Claude's unsandboxed git runs.
+  // 安全性：Git 的 is_git_directory() 若 cwd 包含 HEAD + objects/ + refs/
+  // 则将其视为裸仓库。攻击者植入这些文件（加上含 core.fsmonitor 的 config）
+  // 会在 Claude 的无 sandbox git 运行时逃逸 sandbox。
   //
-  // Unconditionally denying these paths makes sandbox-runtime mount
-  // /dev/null at non-existent ones, which (a) leaves a 0-byte HEAD stub on
-  // the host and (b) breaks `git log HEAD` inside bwrap ("ambiguous argument").
-  // So: if a file exists, denyWrite (ro-bind in place, no stub). If not, scrub
-  // it post-command in scrubBareGitRepoFiles() — planted files are gone before
-  // unsandboxed git runs; inside the command, git is itself sandboxed.
+  // 无条件拒绝这些路径使 sandbox-runtime 在不存在的路径挂载 /dev/null，
+  // 这会 (a) 在主机上留下 0 字节的 HEAD 存根，(b) 在 bwrap 内破坏
+  // `git log HEAD`（"ambiguous argument"）。因此：若文件存在，用 denyWrite
+  // （ro-bind 原位挂载，无存根）。若不存在，在 scrubBareGitRepoFiles()
+  // 中事后清理 —— 植入的文件在无 sandbox git 运行前就被移除；
+  // 在命令内部，git 本身也在 sandbox 中。
   bareGitRepoScrubPaths.length = 0
   const bareGitRepoFiles = ['HEAD', 'objects', 'refs', 'hooks', 'config']
   for (const dir of cwd === originalCwd ? [originalCwd] : [originalCwd, cwd]) {
@@ -279,32 +279,32 @@ export function convertToSandboxRuntimeConfig(
     }
   }
 
-  // If we detected a git worktree during initialize(), the main repo path is
-  // cached in worktreeMainRepoPath. Git operations in a worktree need write
-  // access to the main repo's .git directory for index.lock etc.
-  // This is resolved once at init time (worktree status doesn't change mid-session).
+  // 若在 initialize() 期间检测到 git worktree，主仓库路径
+  // 已缓存在 worktreeMainRepoPath。worktree 中的 Git 操作需要
+  // 对主仓库 .git 目录的写入权限（用于 index.lock 等）。
+  // 这在初始化时解析一次（worktree 状态不会在会话中途改变）。
   if (worktreeMainRepoPath && worktreeMainRepoPath !== cwd) {
     allowWrite.push(worktreeMainRepoPath)
   }
 
-  // Include directories added via --add-dir CLI flag or /add-dir command.
-  // These must be in allowWrite so that Bash commands (which run inside the
-  // sandbox) can access them — not just file tools, which check permissions
-  // at the app level via pathInAllowedWorkingPath().
-  // Two sources: persisted in settings, and session-only in bootstrap state.
+  // 包含通过 --add-dir CLI 标志或 /add-dir 命令添加的目录。
+  // 这些必须在 allowWrite 中，使 Bash 命令（在 sandbox 内运行）
+  // 能访问它们 —— 不仅是文件工具（后者通过 pathInAllowedWorkingPath()
+  // 在应用层检查权限）。两个来源：settings 中持久化的，以及
+  // bootstrap state 中仅会话作用域的。
   const additionalDirs = new Set([
     ...(settings.permissions?.additionalDirectories || []),
     ...getAdditionalDirectoriesForClaudeMd(),
   ])
   allowWrite.push(...additionalDirs)
 
-  // Iterate through each settings source to resolve paths correctly
-  // Path patterns like `/foo` are relative to the settings file directory,
-  // so we need to know which source each rule came from
+  // 遍历每个 settings 来源以正确解析路径
+  // 类似 `/foo` 的路径模式相对于 settings 文件目录，
+  // 因此需要知道每条规则来自哪个来源
   for (const source of SETTING_SOURCES) {
     const sourceSettings = getSettingsForSource(source)
 
-    // Extract filesystem paths from permission rules
+    // 从权限规则提取文件系统路径
     if (sourceSettings?.permissions) {
       for (const ruleString of sourceSettings.permissions.allow || []) {
         const rule = permissionRuleValueFromString(ruleString)
@@ -326,9 +326,9 @@ export function convertToSandboxRuntimeConfig(
       }
     }
 
-    // Extract filesystem paths from sandbox.filesystem settings
-    // sandbox.filesystem.* uses standard path semantics (/path = absolute),
-    // NOT the permission-rule convention (/path = settings-relative). #30067
+    // 从 sandbox.filesystem 设置提取文件系统路径
+    // sandbox.filesystem.* 使用标准路径语义（/path = 绝对路径），
+    // 而非权限规则约定（/path = settings 相对路径）。#30067
     const fs = sourceSettings?.sandbox?.filesystem
     if (fs) {
       for (const p of fs.allowWrite || []) {
@@ -347,8 +347,8 @@ export function convertToSandboxRuntimeConfig(
       }
     }
   }
-  // Ripgrep config for sandbox. User settings take priority; otherwise pass our rg.
-  // In embedded mode (argv0='rg' dispatch), sandbox-runtime spawns with argv0 set.
+  // sandbox 的 Ripgrep 配置。用户设置优先；否则传入我们的 rg。
+  // 在嵌入模式（argv0='rg' 派发）下，sandbox-runtime 启动时设置 argv0。
   const { rgPath, rgArgs, argv0 } = ripgrepCommand()
   const ripgrepConfig = settings.sandbox?.ripgrep ?? {
     command: rgPath,
@@ -387,19 +387,19 @@ export function convertToSandboxRuntimeConfig(
 let initializationPromise: Promise<void> | undefined
 let settingsSubscriptionCleanup: (() => void) | undefined
 
-// Cached main repo path for git worktrees, resolved once during initialize().
-// In a worktree, .git is a file containing "gitdir: /path/to/main/repo/.git/worktrees/name".
-// undefined = not yet resolved; null = not a worktree or detection failed.
+// git worktree 的主仓库路径缓存，在 initialize() 期间解析一次。
+// 在 worktree 中，.git 是一个文件，内容为 "gitdir: /path/to/main/repo/.git/worktrees/name"。
+// undefined = 尚未解析；null = 不是 worktree 或检测失败。
 let worktreeMainRepoPath: string | null | undefined
 
-// Bare-repo files at cwd that didn't exist at config time and should be
-// scrubbed if they appear after a sandboxed command. See anthropics/claude-code#29316.
+// cwd 中在配置时不存在的裸仓库文件，若沙箱命令后出现则应被清理。
+// 参见 anthropics/claude-code#29316。
 const bareGitRepoScrubPaths: string[] = []
 
 /**
- * Delete bare-repo files planted at cwd during a sandboxed command, before
- * Claude's unsandboxed git calls can see them. See the SECURITY block above
- * bareGitRepoFiles. anthropics/claude-code#29316.
+ * 删除在沙箱命令期间植入 cwd 的裸仓库文件，
+ * 在 Claude 的无沙箱 git 调用看到它们之前执行。
+ * 参见上方 bareGitRepoFiles 的 SECURITY 块。anthropics/claude-code#29316。
  */
 function scrubBareGitRepoFiles(): void {
   for (const p of bareGitRepoScrubPaths) {
@@ -408,16 +408,16 @@ function scrubBareGitRepoFiles(): void {
       rmSync(p, { recursive: true })
       logForDebugging(`[Sandbox] scrubbed planted bare-repo file: ${p}`)
     } catch {
-      // ENOENT is the expected common case — nothing was planted
+      // ENOENT 是预期的常见情况 —— 未被植入任何文件
     }
   }
 }
 
 /**
- * Detect if cwd is a git worktree and resolve the main repo path.
- * Called once during initialize() and cached for the session.
- * In a worktree, .git is a file (not a directory) containing "gitdir: ...".
- * If .git is a directory, readFile throws EISDIR and we return null.
+ * 检测 cwd 是否为 git worktree 并解析主仓库路径。
+ * 在 initialize() 期间调用一次并缓存整个会话。
+ * 在 worktree 中，.git 是一个文件（非目录），内容含 "gitdir: ..."。
+ * 若 .git 是目录，readFile 抛出 EISDIR，返回 null。
  */
 async function detectWorktreeMainRepoPath(cwd: string): Promise<string | null> {
   const gitPath = join(cwd, '.git')
@@ -427,11 +427,11 @@ async function detectWorktreeMainRepoPath(cwd: string): Promise<string | null> {
     if (!gitdirMatch?.[1]) {
       return null
     }
-    // gitdir may be relative (rare, but git accepts it) — resolve against cwd
+    // gitdir 可能是相对路径（罕见，但 git 接受）—— 相对于 cwd 解析
     const gitdir = resolve(cwd, gitdirMatch[1].trim())
-    // gitdir format: /path/to/main/repo/.git/worktrees/worktree-name
-    // Match the /.git/worktrees/ segment specifically — indexOf('.git') alone
-    // would false-match paths like /home/user/.github-projects/...
+    // gitdir 格式：/path/to/main/repo/.git/worktrees/worktree-name
+    // 专门匹配 /.git/worktrees/ 段 —— 仅 indexOf('.git') 会
+    // 误匹配类似 /home/user/.github-projects/... 的路径
     const marker = `${sep}.git${sep}worktrees${sep}`
     const markerIndex = gitdir.lastIndexOf(marker)
     if (markerIndex > 0) {
@@ -439,7 +439,7 @@ async function detectWorktreeMainRepoPath(cwd: string): Promise<string | null> {
     }
     return null
   } catch {
-    // Not in a worktree, .git is a directory (EISDIR), or can't read .git file
+    // 不在 worktree 中，或 .git 是目录（EISDIR），或无法读取 .git 文件
     return null
   }
 }
