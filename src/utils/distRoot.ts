@@ -2,12 +2,12 @@ import { fileURLToPath } from 'url'
 import * as path from 'path'
 
 /**
- * Resolve the dist root directory from the current module's location.
+ * 根据当前模块位置解析 dist 根目录。
  *
- * Works across all build layouts:
- * - Single-file: dist/cli.js → dist/
- * - Code-split:  dist/chunks/chunk-xxx.js → dist/
- * - Dev mode:    src/utils/distRoot.ts → <project_root>/
+ * 兼容所有构建产物布局：
+ * - 单文件：dist/cli.js → dist/
+ * - 代码分割：dist/chunks/chunk-xxx.js → dist/
+ * - Dev 模式：src/utils/distRoot.ts → <project_root>/
  */
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -18,7 +18,7 @@ const distRoot = (() => {
   if (distIdx !== -1) {
     return parts.slice(0, distIdx + 1).join(path.sep)
   }
-  // Dev mode: from src/utils/ → project root
+  // Dev 模式：从 src/utils/ 推算到项目根目录
   const srcIdx = parts.lastIndexOf('src')
   if (srcIdx !== -1) {
     return parts.slice(0, srcIdx).join(path.sep)

@@ -1,11 +1,10 @@
 /**
- * Type declarations for internal Anthropic packages that cannot be installed
- * from public npm. All exports are typed as `any` to suppress errors while
- * still allowing IDE navigation for the actual source code.
+ * Anthropic 内部包的类型声明，这些包无法从公共 npm 安装。
+ * 所有导出都标注为 `any` 以抑制报错，同时仍允许 IDE 跳转到实际源码。
  */
 
 // ============================================================================
-// bun:bundle — compile-time macros
+// bun:bundle —— 编译期宏
 // ============================================================================
 declare module 'bun:bundle' {
   export function feature(name: string): boolean
@@ -23,7 +22,7 @@ declare module 'bun:ffi' {
   }
 }
 
-// Third-party modules without @types packages
+// 无 @types 包的第三方模块
 declare module 'bidi-js' {
   function getEmbeddingLevels(
     text: string,

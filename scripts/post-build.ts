@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 /**
- * Post-build processing for Vite build output.
+ * Vite 构建产物的后处理流程。
  *
- * 1. Patch globalThis.Bun destructuring in third-party deps for Node.js compat
- * 2. Copy native addon files
- * 3. Generate dual entry points (cli-bun.js, cli-node.js)
+ * 1. 为 Node.js 兼容性打补丁，替换第三方依赖中的 globalThis.Bun 解构
+ * 2. 复制 native addon 文件
+ * 3. 生成双入口点（cli-bun.js、cli-node.js）
  */
 import { readdir, readFile, writeFile, cp } from 'node:fs/promises'
 import { chmodSync } from 'node:fs'
@@ -13,7 +13,7 @@ import { join } from 'node:path'
 const outdir = 'dist'
 
 async function postBuild() {
-  // Step 1: Patch globalThis.Bun destructuring in ALL output files
+  // 步骤 1：在所有输出文件中打补丁替换 globalThis.Bun 解构
   const BUN_DESTRUCTURE = /var \{([^}]+)\} = globalThis\.Bun;?/g
   const BUN_DESTRUCTURE_SAFE =
     'var {$1} = typeof globalThis.Bun !== "undefined" ? globalThis.Bun : {};'
@@ -35,13 +35,13 @@ async function postBuild() {
     }
   }
 
-  // Also patch chunk files in dist/chunks/
+  // 同时打补丁 dist/chunks/ 下的 chunk 文件
   const chunksDir = join(outdir, 'chunks')
   let chunkFiles: string[] = []
   try {
     chunkFiles = (await readdir(chunksDir)).filter(f => f.endsWith('.js'))
   } catch {
-    // No chunks directory — single-file build fallback
+    // 无 chunks 目录 —— 回退为单文件构建
   }
 
   for (const file of chunkFiles) {
@@ -57,18 +57,18 @@ async function postBuild() {
     }
   }
 
-  // Step 2: Copy native addon files
+  // 步骤 2：复制 native addon 文件
   const audioCaptureDir = join(outdir, 'vendor', 'audio-capture')
   await cp('vendor/audio-capture', audioCaptureDir, {
     recursive: true,
   } as never)
-  console.log(`Copied vendor/audio-capture/ → ${audioCaptureDir}/`)
+  console.log(`已复制 vendor/audio-capture/ → ${audioCaptureDir}/`)
 
   const ripgrepDir = join(outdir, 'vendor', 'ripgrep')
   await cp('src/utils/vendor/ripgrep', ripgrepDir, { recursive: true } as never)
-  console.log(`Copied src/utils/vendor/ripgrep/ → ${ripgrepDir}/`)
+  console.log(`已复制 src/utils/vendor/ripgrep/ → ${ripgrepDir}/`)
 
-  // Step 3: Generate dual entry points
+  // 步骤 3：生成双入口点
   const cliBun = join(outdir, 'cli-bun.js')
   const cliNode = join(outdir, 'cli-node.js')
 
@@ -79,11 +79,11 @@ async function postBuild() {
   chmodSync(cliNode, 0o755)
 
   console.log(
-    `Post-build complete: patched ${bunPatched} Bun destructure across ${jsFiles.length + chunkFiles.length} files, generated entry points`,
+    `后处理完成：在 ${jsFiles.length + chunkFiles.length} 个文件中打了 ${bunPatched} 处 Bun 解构补丁，已生成入口点`,
   )
 }
 
 postBuild().catch(err => {
-  console.error('Post-build failed:', err)
+  console.error('后处理失败：', err)
   process.exit(1)
 })

@@ -1,11 +1,11 @@
 /**
- * Global declarations for compile-time macros and internal-only identifiers
- * that are eliminated via Bun's MACRO/bundle feature system.
+ * 编译期宏与内部专用标识符的全局声明，
+ * 通过 Bun 的 MACRO/bundle feature 系统在打包时消除。
  */
 
 // ============================================================================
-// MACRO — Bun compile-time constants injected via bunfig.toml [define] (dev)
-// and Bun.build({ define }) (production). See bunfig.toml & build.ts.
+// MACRO —— Bun 编译期常量，dev 模式经 bunfig.toml [define] 注入，
+// 生产构建经 Bun.build({ define }) 注入。参见 bunfig.toml 与 build.ts。
 declare namespace MACRO {
   export const VERSION: string
   export const BUILD_TIME: string
@@ -17,10 +17,10 @@ declare namespace MACRO {
 }
 
 // ============================================================================
-// Internal Anthropic-only identifiers (dead-code eliminated in open-source)
-// These are referenced inside `MACRO(() => ...)` or `false && ...` blocks.
+// Anthropic 内部专用标识符（开源版本中已被死代码消除）
+// 这些标识符仅在 `MACRO(() => ...)` 或 `false && ...` 代码块中被引用。
 
-// Model resolution (internal)
+// 模型解析（内部）
 declare function resolveAntModel(
   model: string,
 ): import('../utils/model/antModels.js').AntModel | undefined
@@ -30,9 +30,9 @@ declare function getAntModelOverrideConfig(): {
   [key: string]: unknown
 } | null
 
-// Companion reactions handled by src/buddy/companionReact.ts (direct import)
+// 陪伴角色反应由 src/buddy/companionReact.ts 处理（直接 import）
 
-// Metrics (internal)
+// 指标（内部）
 type ApiMetricEntry = {
   ttftMs: number
   firstTokenTime: number
@@ -43,37 +43,37 @@ type ApiMetricEntry = {
 declare const apiMetricsRef: React.RefObject<ApiMetricEntry[]> | null
 declare function computeTtftText(metrics: ApiMetricEntry[]): string
 
-// Gate/feature system (internal)
+// Gate/feature 系统（内部）
 declare const Gates: Record<string, boolean>
 declare function GateOverridesWarning(): JSX.Element | null
 declare function ExperimentEnrollmentNotice(): JSX.Element | null
 
-// Hook timing threshold (re-exported from services/tools/toolExecution.ts)
+// Hook 时长阈值（从 services/tools/toolExecution.ts 重新导出）
 declare const HOOK_TIMING_DISPLAY_THRESHOLD_MS: number
 
-// Ultraplan (internal)
+// Ultraplan（内部）
 // declare function UltraplanChoiceDialog(props: Record<string, unknown>): JSX.Element | null
 // declare function UltraplanLaunchDialog(props: Record<string, unknown>): JSX.Element | null
 // declare function launchUltraplan(...args: unknown[]): Promise<string>
 
-// T — Generic type parameter leaked from React compiler output
-// (react/compiler-runtime emits compiled JSX that loses generic type params)
+// T —— React 编译器输出中泄漏的泛型类型参数
+//（react/compiler-runtime 生成的已编译 JSX 会丢失泛型类型参数）
 declare type T = unknown
 
-// Tungsten (internal)
+// Tungsten（内部）
 declare function TungstenPill(props?: {
   key?: string
   selected?: boolean
 }): JSX.Element | null
 
 // ============================================================================
-// Build-time constants BUILD_TARGET/BUILD_ENV/INTERFACE_TYPE — removed (zero runtime usage)
+// 构建期常量 BUILD_TARGET/BUILD_ENV/INTERFACE_TYPE —— 已移除（零运行时使用）
 
 // ============================================================================
-// Ink custom JSX intrinsic elements — see src/types/ink-jsx.d.ts
+// Ink 自定义 JSX 内建元素 —— 参见 src/types/ink-jsx.d.ts
 
 // ============================================================================
-// Bun text/file loaders — allow importing non-TS assets as strings
+// Bun text/file loader —— 允许将非 TS 资源以字符串形式导入
 declare module '*.md' {
   const content: string
   export default content

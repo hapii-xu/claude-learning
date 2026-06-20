@@ -1,5 +1,5 @@
-// Re-export core message types from @ant/model-provider
-// This file adds UI-specific types on top of the base types.
+// 从 @ant/model-provider 重新导出核心消息类型。
+// 本文件在基础类型之上补充 UI 专用类型。
 export type {
   MessageType,
   ContentItem,
@@ -44,7 +44,7 @@ export type {
   SystemThinkingMessage,
 } from '@ant/model-provider'
 
-// UI-specific types that depend on main-project internals
+// 依赖主项目内部实现的 UI 专用类型
 import type {
   BranchAction,
   CommitKind,
