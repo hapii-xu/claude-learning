@@ -16,26 +16,26 @@ import { getContentSizeEstimate, type MCPToolResult } from 'src/utils/mcpValidat
 import { jsonParse, jsonStringify } from 'src/utils/slowOperations.js';
 import type { inputSchema } from './MCPTool.js';
 
-// Threshold for displaying warning about large MCP responses
+// 显示大型 MCP 响应警告的阈值
 const MCP_OUTPUT_WARNING_THRESHOLD_TOKENS = 10_000;
 
-// In non-verbose mode, truncate individual input values to keep the header
-// compact. Matches BashTool's philosophy of showing enough to identify the
-// call without dumping the entire payload inline.
+// 非 verbose 模式下截断单个输入值以保持头部紧凑。
+// 与 BashTool 的理念一致：显示足够识别调用的信息，
+// 而不内联转储整个 payload。
 const MAX_INPUT_VALUE_CHARS = 80;
 
-// Max number of top-level keys before we fall back to raw JSON display.
-// Beyond this a flat k:v list is more noise than help.
+// 回退到原始 JSON 显示前的最大顶层键数。
+// 超过此数量，扁平 k:v 列表会弊大于利。
 const MAX_FLAT_JSON_KEYS = 12;
 
-// Don't attempt flat-object parsing for large blobs.
+// 不对大型 blob 尝试扁平对象解析。
 const MAX_FLAT_JSON_CHARS = 5_000;
 
-// Don't attempt to parse JSON blobs larger than this (perf safety).
+// 不尝试解析超过此大小的 JSON blob（性能安全）。
 const MAX_JSON_PARSE_CHARS = 200_000;
 
-// A string value is "dominant text payload" if it has newlines or is
-// long enough that inline display would be worse than unwrapping.
+// 字符串值被视为"主要文本 payload"的条件：含换行或足够长，
+// 使得内联显示不如解包展示。
 const UNWRAP_MIN_STRING_LEN = 200;
 
 export function renderToolUseMessage(
@@ -140,7 +140,7 @@ export function renderToolResultMessage(
           </Box>
         );
       }
-      // For text blocks and any other block types, extract text if available
+      // 对 text 块与任何其他块类型，提取文本（若有）
       const textContent =
         item.type === 'text' && 'text' in item && item.text !== null && item.text !== undefined
           ? String(item.text)
@@ -152,7 +152,7 @@ export function renderToolResultMessage(
       );
     });
 
-    // Wrap array content in a column layout
+    // 将数组内容包裹在列布局中
     contentElement = (
       <Box flexDirection="column" width="100%">
         {contentBlocks}
@@ -296,8 +296,8 @@ export function tryUnwrapTextPayload(content: string): { body: string; extras: [
     maxKeys: 4,
   });
   if (entries === null) return null;
-  // Find the one dominant string payload. Trim first: a trailing \n on a
-  // short sibling (e.g. pagination hints) shouldn't make it "dominant".
+  // 找到唯一的主要字符串 payload。先 trim：尾部 \n
+  // 不应让短兄弟字段（如分页提示）变成"主要"。
   let body: string | null = null;
   const extras: [string, string][] = [];
   for (const [key, value] of entries) {

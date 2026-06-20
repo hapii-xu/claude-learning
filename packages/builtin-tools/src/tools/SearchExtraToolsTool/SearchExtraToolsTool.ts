@@ -64,7 +64,7 @@ type OutputSchema = ReturnType<typeof outputSchema>
 
 export type Output = z.infer<OutputSchema>
 
-// Track deferred tool names to detect when cache should be cleared
+// 追踪延迟工具名以检测缓存何时应被清除
 let cachedDeferredToolNames: string | null = null
 
 /**
@@ -156,7 +156,7 @@ function parseToolName(name: string): {
   full: string
   isMcp: boolean
 } {
-  // Check if it's an MCP tool
+  // 检查是否为 MCP tool
   if (name.startsWith('mcp__')) {
     const withoutPrefix = name.replace(/^mcp__/, '').toLowerCase()
     const parts = withoutPrefix.split('__').flatMap(p => p.split('_'))
@@ -167,7 +167,7 @@ function parseToolName(name: string): {
     }
   }
 
-  // Regular tool - split by CamelCase and underscores
+  // 普通 tool —— 按 CamelCase 与下划线拆分
   const parts = name
     .replace(/([a-z])([A-Z])/g, '$1 $2') // CamelCase to spaces
     .replace(/_/g, ' ')
@@ -213,11 +213,10 @@ async function searchToolsWithKeywords(
 ): Promise<string[]> {
   const queryLower = query.toLowerCase().trim()
 
-  // Fast path: if query matches a tool name exactly, return it directly.
-  // Handles models using a bare tool name instead of select: prefix (seen
-  // from subagents/post-compaction). Checks deferred first, then falls back
-  // to the full tool set — selecting an already-loaded tool is a harmless
-  // no-op that lets the model proceed without retry churn.
+  // 快速路径：若查询精确匹配工具名，直接返回。
+  // 处理模型使用裸工具名而非 select: 前缀的情况（见于
+  // 子代理/压缩后）。先查延迟工具，再回退到完整工具集 ——
+  // 选择已加载的工具是无害的 no-op，让模型无需重试即可继续。
   const exactMatch =
     deferredTools.find(t => t.name.toLowerCase() === queryLower) ??
     tools.find(t => t.name.toLowerCase() === queryLower)
@@ -225,8 +224,8 @@ async function searchToolsWithKeywords(
     return [exactMatch.name]
   }
 
-  // If query looks like an MCP tool prefix (mcp__server), find matching tools.
-  // Handles models searching by server name with mcp__ prefix.
+  // 若查询看起来像 MCP tool 前缀（mcp__server），查找匹配的工具。
+  // 处理模型使用 mcp__ 前缀按服务器名搜索的情况。
   if (queryLower.startsWith('mcp__') && queryLower.length > 5) {
     const prefixMatches = deferredTools
       .filter(t => t.name.toLowerCase().startsWith(queryLower))
@@ -239,7 +238,7 @@ async function searchToolsWithKeywords(
 
   const queryTerms = queryLower.split(/\s+/).filter(term => term.length > 0)
 
-  // Partition into required (+prefixed) and optional terms
+  // 分为必需（+前缀）与可选术语
   const requiredTerms: string[] = []
   const optionalTerms: string[] = []
   for (const term of queryTerms) {
@@ -289,14 +288,14 @@ async function searchToolsWithKeywords(
       for (const term of allScoringTerms) {
         const pattern = termPatterns.get(term)!
 
-        // Exact part match (high weight for MCP server names, tool name parts)
+        // 精确部分匹配（MCP 服务器名、工具名部分的高权重）
         if (parsed.parts.includes(term)) {
           score += parsed.isMcp ? 12 : 10
         } else if (parsed.parts.some(part => part.includes(term))) {
           score += parsed.isMcp ? 6 : 5
         }
 
-        // Full name fallback (for edge cases)
+        // 全名回退（用于边缘情况）
         if (parsed.full.includes(term) && score === 0) {
           score += 3
         }
@@ -306,7 +305,7 @@ async function searchToolsWithKeywords(
           score += 4
         }
 
-        // Description match - use word boundary to avoid false positives
+        // 描述匹配 —— 使用词边界避免误报
         if (pattern.test(descNormalized)) {
           score += 2
         }
@@ -353,14 +352,14 @@ export const SearchExtraToolsTool = buildTool({
     const deferredTools = tools.filter(isDeferredTool)
     maybeInvalidateCache(deferredTools)
 
-    // Check for MCP servers still connecting
+    // 检查仍在连接中的 MCP 服务器
     function getPendingServerNames(): string[] | undefined {
       const appState = getAppState()
       const pending = appState.mcp.clients.filter(c => c.type === 'pending')
       return pending.length > 0 ? pending.map(s => s.name) : undefined
     }
 
-    // Helper to log search outcome
+    // 记录搜索结果的辅助函数
     function logSearchOutcome(
       matches: string[],
       queryType: 'select' | 'keyword',
@@ -377,11 +376,10 @@ export const SearchExtraToolsTool = buildTool({
       })
     }
 
-    // Check for select: prefix — direct tool selection.
-    // Supports comma-separated multi-select: `select:A,B,C`.
-    // If a name isn't in the deferred set but IS in the full tool set,
-    // we still return it — the tool is already loaded, so "selecting" it
-    // is a harmless no-op that lets the model proceed without retry churn.
+    // 检查 select: 前缀 —— 直接工具选择。
+    // 支持逗号分隔的多选：`select:A,B,C`。
+    // 若名称不在延迟集合中但在完整工具集中，仍返回它 ——
+    // 该工具已加载，"选择"它是无害的 no-op，让模型无需重试即可继续。
     const selectMatch = query.match(/^select:(.+)$/i)
     if (selectMatch) {
       const requested = selectMatch[1]!
@@ -438,9 +436,9 @@ export const SearchExtraToolsTool = buildTool({
       )
     }
 
-    // Check for discover: prefix — pure discovery search.
-    // Returns tool info (name + description + schema) as text,
-    // does NOT trigger deferred tool loading.
+    // 检查 discover: 前缀 —— 纯发现搜索。
+    // 返回工具信息（名称 + 描述 + schema）的文本，
+    // 不会触发延迟工具加载。
     const discoverMatch = query.match(/^discover:(.+)$/i)
     if (discoverMatch) {
       const discoverQuery = discoverMatch[1]!.trim()
@@ -468,7 +466,7 @@ export const SearchExtraToolsTool = buildTool({
       )
     }
 
-    // Keyword search + TF-IDF search in parallel
+    // 并行执行关键词搜索 + TF-IDF 搜索
     const deferredToolNames = new Set(deferredTools.map(t => t.name))
     const [keywordMatches, index] = await Promise.all([
       searchToolsWithKeywords(query, deferredTools, tools, max_results),
@@ -476,9 +474,9 @@ export const SearchExtraToolsTool = buildTool({
     ])
     const tfIdfResults = searchTools(query, index, max_results)
 
-    // Merge results: keyword score * 0.4 + TF-IDF score * 0.6
+    // 合并结果：关键词得分 * 0.4 + TF-IDF 得分 * 0.6
     const mergedScores = new Map<string, number>()
-    // Add keyword results (assign scores inversely proportional to rank)
+    // 添加关键词结果（得分与排名成反比）
     keywordMatches.forEach((name, rank) => {
       const score = (keywordMatches.length - rank) / keywordMatches.length
       mergedScores.set(
@@ -486,7 +484,7 @@ export const SearchExtraToolsTool = buildTool({
         (mergedScores.get(name) ?? 0) + score * KEYWORD_WEIGHT,
       )
     })
-    // Add TF-IDF results
+    // 添加 TF-IDF 结果
     tfIdfResults.forEach(result => {
       mergedScores.set(
         result.name,
@@ -494,13 +492,13 @@ export const SearchExtraToolsTool = buildTool({
       )
     })
 
-    // Sort by merged score, take top-N
+    // 按合并得分排序，取前 N 个
     const matches = [...mergedScores.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, max_results)
       .map(([name]) => name)
 
-    // Identify already-loaded (core) tools among matches
+    // 识别匹配中已加载的核心工具
     const alreadyLoaded = matches.filter(name => !deferredToolNames.has(name))
 
     logForDebugging(
@@ -509,7 +507,7 @@ export const SearchExtraToolsTool = buildTool({
 
     logSearchOutcome(matches, 'keyword')
 
-    // Include pending server info when search finds no matches
+    // 搜索无匹配结果时包含待连接服务器信息
     if (matches.length === 0) {
       const pendingServers = getPendingServerNames()
       return buildSearchResult(
@@ -559,7 +557,7 @@ export const SearchExtraToolsTool = buildTool({
       }
     }
 
-    // Separate already-loaded (core) tools from truly deferred tools
+    // 将已加载的核心工具与真正延迟的工具分开
     const alreadyLoadedNames = content.already_loaded ?? []
     const deferredNames = content.matches.filter(
       n => !alreadyLoadedNames.includes(n),
@@ -576,14 +574,14 @@ export const SearchExtraToolsTool = buildTool({
 
     const parts: string[] = []
 
-    // Core tools: clear "call directly" message, NO ExecuteExtraTool hint
+    // 核心工具：清晰的 "直接调用" 消息，不含 ExecuteExtraTool 提示
     if (alreadyLoadedNames.length > 0) {
       parts.push(
         `Already loaded as core tool(s): ${alreadyLoadedNames.join(', ')}. Call these directly using your normal tool interface — do NOT use ExecuteExtraTool for them.`,
       )
     }
 
-    // Deferred tools: guide to ExecuteExtraTool
+    // 延迟工具：引导使用 ExecuteExtraTool
     if (deferredNames.length > 0) {
       parts.push(
         `Found ${deferredNames.length} deferred tool(s): ${deferredNames.join(', ')}.` +

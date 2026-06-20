@@ -63,8 +63,8 @@ export async function* runPostToolUseHooks<Input extends AnyObject, Output>(
       toolUseContext.abortController.signal,
     )) {
       try {
-        // Check if we were aborted during hook execution
-        // IMPORTANT: We emit a cancelled event per hook
+        // 检查在 hook 执行期间是否被中止
+        // 重要：每个 hook 发出一次 cancelled 事件
         if (
           result.message?.type === 'attachment' &&
           result.message.attachment!.type === 'hook_cancelled'
@@ -118,7 +118,7 @@ export async function* runPostToolUseHooks<Input extends AnyObject, Output>(
           }
         }
 
-        // If hook indicated to prevent continuation, yield a stop reason message
+        // 若 hook 指示阻止继续，yield 一个停止原因消息
         if (result.preventContinuation) {
           yield {
             message: createAttachmentMessage({
@@ -133,7 +133,7 @@ export async function* runPostToolUseHooks<Input extends AnyObject, Output>(
           return
         }
 
-        // If hooks provided additional context, add it as a message
+        // 若 hook 提供了额外上下文，将其作为消息添加
         if (result.additionalContexts && result.additionalContexts.length > 0) {
           yield {
             message: createAttachmentMessage({
@@ -146,7 +146,7 @@ export async function* runPostToolUseHooks<Input extends AnyObject, Output>(
           }
         }
 
-        // If hooks provided updatedMCPToolOutput, yield it if this is an MCP tool
+        // 若 hook 提供了 updatedMCPToolOutput，且这是 MCP tool 则 yield
         if (result.updatedMCPToolOutput && isMcpTool(tool)) {
           toolOutput = result.updatedMCPToolOutput as Output
           yield {
@@ -224,7 +224,7 @@ export async function* runPostToolUseFailureHooks<Input extends AnyObject>(
       toolUseContext.abortController.signal,
     )) {
       try {
-        // Check if we were aborted during hook execution
+        // 检查在 hook 执行期间是否被中止
         if (
           result.message?.type === 'attachment' &&
           result.message.attachment!.type === 'hook_cancelled'
@@ -246,8 +246,8 @@ export async function* runPostToolUseFailureHooks<Input extends AnyObject>(
           continue
         }
 
-        // Skip hook_blocking_error in result.message — blockingError path
-        // below creates the same attachment (see #31301 / PostToolUse above).
+        // 跳过 result.message 中的 hook_blocking_error —— 下方 blockingError 路径
+        // 会创建相同的附件（参见 #31301 / PostToolUse 上方）。
         if (
           result.message &&
           !(
@@ -274,7 +274,7 @@ export async function* runPostToolUseFailureHooks<Input extends AnyObject>(
           }
         }
 
-        // If hooks provided additional context, add it as a message
+        // 若 hook 提供了额外上下文，将其作为消息添加
         if (result.additionalContexts && result.additionalContexts.length > 0) {
           yield {
             message: createAttachmentMessage({
@@ -355,9 +355,9 @@ export async function resolveHookPermissionDecision(
   if (hookPermissionResult?.behavior === 'allow') {
     const hookInput = hookPermissionResult.updatedInput ?? input
 
-    // Hook provided updatedInput for an interactive tool — the hook IS the
-    // user interaction (e.g. headless wrapper that collected AskUserQuestion
-    // answers). Treat as non-interactive for the rule-check path.
+    // Hook 为交互式工具提供了 updatedInput —— hook 本身就是
+    // 用户交互（例如收集 AskUserQuestion 答案的无头包装器）。
+    // 在规则检查路径中视为非交互。
     const interactionSatisfied =
       requiresInteraction && hookPermissionResult.updatedInput !== undefined
 
@@ -377,7 +377,7 @@ export async function resolveHookPermissionDecision(
       }
     }
 
-    // Hook allow skips the interactive prompt, but deny/ask rules still apply.
+    // Hook allow 跳过交互提示，但 deny/ask 规则仍然生效。
     const ruleCheck = await checkRuleBasedPermissions(
       tool,
       hookInput,
@@ -418,8 +418,8 @@ export async function resolveHookPermissionDecision(
     return { decision: hookPermissionResult, input }
   }
 
-  // No hook decision or 'ask' — normal permission flow, possibly with
-  // forceDecision so the dialog shows the hook's ask message.
+  // 无 hook 决策或 'ask' —— 正常权限流程，可能带 forceDecision
+  // 使对话框显示 hook 的 ask 消息。
   const forceDecision =
     hookPermissionResult?.behavior === 'ask' ? hookPermissionResult : undefined
   const askInput =
@@ -511,7 +511,7 @@ export async function* runPreToolUseHooks(
             },
           }
         }
-        // Check if hook wants to prevent continuation
+        // 检查 hook 是否希望阻止继续
         if (result.preventContinuation) {
           yield {
             type: 'preventContinuation',
@@ -521,7 +521,7 @@ export async function* runPreToolUseHooks(
             yield { type: 'stopReason', stopReason: result.stopReason }
           }
         }
-        // Check for hook-defined permission behavior
+        // 检查 hook 定义的权限行为
         if (result.permissionBehavior !== undefined) {
           logForDebugging(
             `Hook result has permissionBehavior=${result.permissionBehavior}`,
@@ -568,8 +568,8 @@ export async function* runPreToolUseHooks(
           }
         }
 
-        // Yield updatedInput for passthrough case (no permission decision)
-        // This allows hooks to modify input while letting normal permission flow continue
+        // 对透传情况 yield updatedInput（无权限决策时）
+        // 这允许 hook 修改输入同时让正常权限流程继续
         if (result.updatedInput && result.permissionBehavior === undefined) {
           yield {
             type: 'hookUpdatedInput',
@@ -577,7 +577,7 @@ export async function* runPreToolUseHooks(
           }
         }
 
-        // If hooks provided additional context, add it as a message
+        // 若 hook 提供了额外上下文，将其作为消息添加
         if (result.additionalContexts && result.additionalContexts.length > 0) {
           yield {
             type: 'additionalContext',
@@ -593,7 +593,7 @@ export async function* runPreToolUseHooks(
           }
         }
 
-        // Check if we were aborted during hook execution
+        // 检查在 hook 执行期间是否被中止
         if (toolUseContext.abortController.signal.aborted) {
           logEvent('tengu_pre_tool_hooks_cancelled', {
             toolName: sanitizeToolNameForAnalytics(tool.name),
