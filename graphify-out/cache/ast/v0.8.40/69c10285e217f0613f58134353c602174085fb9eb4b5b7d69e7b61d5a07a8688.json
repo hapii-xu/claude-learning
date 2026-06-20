@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_callgraphs_03_micro_memory_injection_sequence_mmd_md",
+      "label": "memory-injection-sequence.mmd.md",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/03-micro/memory-injection-sequence.mmd.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "03_micro_memory_injection_sequence_mmd_\u5fae\u89c2_memory_\u6ce8\u5165\u94fe\u8def\u65f6\u5e8f\u56fe_mermaid",
+      "label": "\u5fae\u89c2\uff1aMemory \u6ce8\u5165\u94fe\u8def\u65f6\u5e8f\u56fe\uff08Mermaid\uff09",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/03-micro/memory-injection-sequence.mmd.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "03_micro_memory_injection_sequence_mmd_memory_\u56db\u5c42\u4f53\u7cfb\u603b\u7ed3",
+      "label": "Memory \u56db\u5c42\u4f53\u7cfb\u603b\u7ed3",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/03-micro/memory-injection-sequence.mmd.md",
+      "source_location": "L108"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_callgraphs_03_micro_memory_injection_sequence_mmd_md",
+      "target": "03_micro_memory_injection_sequence_mmd_\u5fae\u89c2_memory_\u6ce8\u5165\u94fe\u8def\u65f6\u5e8f\u56fe_mermaid",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/03-micro/memory-injection-sequence.mmd.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "03_micro_memory_injection_sequence_mmd_\u5fae\u89c2_memory_\u6ce8\u5165\u94fe\u8def\u65f6\u5e8f\u56fe_mermaid",
+      "target": "03_micro_memory_injection_sequence_mmd_memory_\u56db\u5c42\u4f53\u7cfb\u603b\u7ed3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/03-micro/memory-injection-sequence.mmd.md",
+      "source_location": "L108",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

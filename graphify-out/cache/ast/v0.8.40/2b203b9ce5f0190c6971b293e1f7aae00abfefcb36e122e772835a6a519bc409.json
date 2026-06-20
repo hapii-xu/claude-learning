@@ -1,0 +1,207 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_workflow_scripts_md",
+      "label": "workflow-scripts.md",
+      "file_type": "document",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_workflow_scripts_workflow_scripts_\u786e\u5b9a\u6027\u591a_agent_\u5de5\u4f5c\u6d41\u7f16\u6392",
+      "label": "WORKFLOW_SCRIPTS \u2014 \u786e\u5b9a\u6027\u591a agent \u5de5\u4f5c\u6d41\u7f16\u6392",
+      "file_type": "document",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_workflow_scripts_\u4e00_\u529f\u80fd\u6982\u8ff0",
+      "label": "\u4e00\u3001\u529f\u80fd\u6982\u8ff0",
+      "file_type": "document",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L7"
+    },
+    {
+      "id": "features_workflow_scripts_\u4e8c_\u5b9e\u73b0\u67b6\u6784",
+      "label": "\u4e8c\u3001\u5b9e\u73b0\u67b6\u6784",
+      "file_type": "document",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L19"
+    },
+    {
+      "id": "features_workflow_scripts_2_1_\u6a21\u5757\u6e05\u5355",
+      "label": "2.1 \u6a21\u5757\u6e05\u5355",
+      "file_type": "document",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L44"
+    },
+    {
+      "id": "features_workflow_scripts_2_2_\u6ce8\u518c\u70b9",
+      "label": "2.2 \u6ce8\u518c\u70b9",
+      "file_type": "document",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L61"
+    },
+    {
+      "id": "features_workflow_scripts_\u4e09_\u7f16\u6392\u539f\u8bed",
+      "label": "\u4e09\u3001\u7f16\u6392\u539f\u8bed",
+      "file_type": "document",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L69"
+    },
+    {
+      "id": "features_workflow_scripts_\u56db_\u7f16\u5199_workflow",
+      "label": "\u56db\u3001\u7f16\u5199 workflow",
+      "file_type": "document",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L84"
+    },
+    {
+      "id": "features_workflow_scripts_\u4e94_workflow_\u5de5\u5177",
+      "label": "\u4e94\u3001Workflow \u5de5\u5177",
+      "file_type": "document",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L126"
+    },
+    {
+      "id": "features_workflow_scripts_\u516d_\u76d1\u63a7\u9762\u677f_workflows",
+      "label": "\u516d\u3001\u76d1\u63a7\u9762\u677f\uff1a`/workflows`",
+      "file_type": "document",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L138"
+    },
+    {
+      "id": "features_workflow_scripts_\u4e03_ultracode_skill",
+      "label": "\u4e03\u3001`/ultracode` skill",
+      "file_type": "document",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L152"
+    },
+    {
+      "id": "features_workflow_scripts_\u516b_resume_journal_budget",
+      "label": "\u516b\u3001resume / journal / budget",
+      "file_type": "document",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L158"
+    },
+    {
+      "id": "features_workflow_scripts_\u4e5d_\u6587\u4ef6\u7d22\u5f15",
+      "label": "\u4e5d\u3001\u6587\u4ef6\u7d22\u5f15",
+      "file_type": "document",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L165"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_workflow_scripts_md",
+      "target": "features_workflow_scripts_workflow_scripts_\u786e\u5b9a\u6027\u591a_agent_\u5de5\u4f5c\u6d41\u7f16\u6392",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "features_workflow_scripts_workflow_scripts_\u786e\u5b9a\u6027\u591a_agent_\u5de5\u4f5c\u6d41\u7f16\u6392",
+      "target": "features_workflow_scripts_\u4e00_\u529f\u80fd\u6982\u8ff0",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "features_workflow_scripts_workflow_scripts_\u786e\u5b9a\u6027\u591a_agent_\u5de5\u4f5c\u6d41\u7f16\u6392",
+      "target": "features_workflow_scripts_\u4e8c_\u5b9e\u73b0\u67b6\u6784",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "features_workflow_scripts_\u4e8c_\u5b9e\u73b0\u67b6\u6784",
+      "target": "features_workflow_scripts_2_1_\u6a21\u5757\u6e05\u5355",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "features_workflow_scripts_\u4e8c_\u5b9e\u73b0\u67b6\u6784",
+      "target": "features_workflow_scripts_2_2_\u6ce8\u518c\u70b9",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L61",
+      "weight": 1.0
+    },
+    {
+      "source": "features_workflow_scripts_workflow_scripts_\u786e\u5b9a\u6027\u591a_agent_\u5de5\u4f5c\u6d41\u7f16\u6392",
+      "target": "features_workflow_scripts_\u4e09_\u7f16\u6392\u539f\u8bed",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L69",
+      "weight": 1.0
+    },
+    {
+      "source": "features_workflow_scripts_workflow_scripts_\u786e\u5b9a\u6027\u591a_agent_\u5de5\u4f5c\u6d41\u7f16\u6392",
+      "target": "features_workflow_scripts_\u56db_\u7f16\u5199_workflow",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L84",
+      "weight": 1.0
+    },
+    {
+      "source": "features_workflow_scripts_workflow_scripts_\u786e\u5b9a\u6027\u591a_agent_\u5de5\u4f5c\u6d41\u7f16\u6392",
+      "target": "features_workflow_scripts_\u4e94_workflow_\u5de5\u5177",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L126",
+      "weight": 1.0
+    },
+    {
+      "source": "features_workflow_scripts_workflow_scripts_\u786e\u5b9a\u6027\u591a_agent_\u5de5\u4f5c\u6d41\u7f16\u6392",
+      "target": "features_workflow_scripts_\u516d_\u76d1\u63a7\u9762\u677f_workflows",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L138",
+      "weight": 1.0
+    },
+    {
+      "source": "features_workflow_scripts_workflow_scripts_\u786e\u5b9a\u6027\u591a_agent_\u5de5\u4f5c\u6d41\u7f16\u6392",
+      "target": "features_workflow_scripts_\u4e03_ultracode_skill",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L152",
+      "weight": 1.0
+    },
+    {
+      "source": "features_workflow_scripts_workflow_scripts_\u786e\u5b9a\u6027\u591a_agent_\u5de5\u4f5c\u6d41\u7f16\u6392",
+      "target": "features_workflow_scripts_\u516b_resume_journal_budget",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L158",
+      "weight": 1.0
+    },
+    {
+      "source": "features_workflow_scripts_workflow_scripts_\u786e\u5b9a\u6027\u591a_agent_\u5de5\u4f5c\u6d41\u7f16\u6392",
+      "target": "features_workflow_scripts_\u4e5d_\u6587\u4ef6\u7d22\u5f15",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/workflow-scripts.md",
+      "source_location": "L165",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

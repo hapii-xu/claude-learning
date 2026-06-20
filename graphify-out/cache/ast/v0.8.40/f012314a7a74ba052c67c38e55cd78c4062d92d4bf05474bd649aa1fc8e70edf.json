@@ -1,0 +1,175 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_impeccable_md",
+      "label": ".impeccable.md",
+      "file_type": "document",
+      "source_file": ".impeccable.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "claude_code_impeccable_impeccable_design_context",
+      "label": "Impeccable Design Context",
+      "file_type": "document",
+      "source_file": ".impeccable.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "claude_code_impeccable_users",
+      "label": "Users",
+      "file_type": "document",
+      "source_file": ".impeccable.md",
+      "source_location": "L3"
+    },
+    {
+      "id": "claude_code_impeccable_brand_personality",
+      "label": "Brand Personality",
+      "file_type": "document",
+      "source_file": ".impeccable.md",
+      "source_location": "L14"
+    },
+    {
+      "id": "claude_code_impeccable_aesthetic_direction",
+      "label": "Aesthetic Direction",
+      "file_type": "document",
+      "source_file": ".impeccable.md",
+      "source_location": "L28"
+    },
+    {
+      "id": "claude_code_impeccable_design_principles",
+      "label": "Design Principles",
+      "file_type": "document",
+      "source_file": ".impeccable.md",
+      "source_location": "L46"
+    },
+    {
+      "id": "claude_code_impeccable_existing_design_assets",
+      "label": "Existing Design Assets",
+      "file_type": "document",
+      "source_file": ".impeccable.md",
+      "source_location": "L54"
+    },
+    {
+      "id": "claude_code_impeccable_brand_colors_from_theme_system",
+      "label": "Brand Colors (from theme system)",
+      "file_type": "document",
+      "source_file": ".impeccable.md",
+      "source_location": "L56"
+    },
+    {
+      "id": "claude_code_impeccable_logo",
+      "label": "Logo",
+      "file_type": "document",
+      "source_file": ".impeccable.md",
+      "source_location": "L66"
+    },
+    {
+      "id": "claude_code_impeccable_mascot",
+      "label": "Mascot",
+      "file_type": "document",
+      "source_file": ".impeccable.md",
+      "source_location": "L71"
+    },
+    {
+      "id": "claude_code_impeccable_theme_system",
+      "label": "Theme System",
+      "file_type": "document",
+      "source_file": ".impeccable.md",
+      "source_location": "L75"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_impeccable_md",
+      "target": "claude_code_impeccable_impeccable_design_context",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".impeccable.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_impeccable_impeccable_design_context",
+      "target": "claude_code_impeccable_users",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".impeccable.md",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_impeccable_impeccable_design_context",
+      "target": "claude_code_impeccable_brand_personality",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".impeccable.md",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_impeccable_impeccable_design_context",
+      "target": "claude_code_impeccable_aesthetic_direction",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".impeccable.md",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_impeccable_impeccable_design_context",
+      "target": "claude_code_impeccable_design_principles",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".impeccable.md",
+      "source_location": "L46",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_impeccable_impeccable_design_context",
+      "target": "claude_code_impeccable_existing_design_assets",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".impeccable.md",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_impeccable_existing_design_assets",
+      "target": "claude_code_impeccable_brand_colors_from_theme_system",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".impeccable.md",
+      "source_location": "L56",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_impeccable_existing_design_assets",
+      "target": "claude_code_impeccable_logo",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".impeccable.md",
+      "source_location": "L66",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_impeccable_existing_design_assets",
+      "target": "claude_code_impeccable_mascot",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".impeccable.md",
+      "source_location": "L71",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_impeccable_existing_design_assets",
+      "target": "claude_code_impeccable_theme_system",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".impeccable.md",
+      "source_location": "L75",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

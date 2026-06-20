@@ -1,0 +1,143 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_08_competitive_comparison_md",
+      "label": "08-competitive-comparison.md",
+      "file_type": "document",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "analysis_08_competitive_comparison_\u7b2c\u5341\u516d\u7ae0_\u540c\u7c7b\u4ea7\u54c1\u5bf9\u6bd4",
+      "label": "\u7b2c\u5341\u516d\u7ae0\uff1a\u540c\u7c7b\u4ea7\u54c1\u5bf9\u6bd4",
+      "file_type": "document",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "analysis_08_competitive_comparison_1_\u672c\u7ae0\u5bfc\u8bfb",
+      "label": "1. \u672c\u7ae0\u5bfc\u8bfb",
+      "file_type": "document",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L5"
+    },
+    {
+      "id": "analysis_08_competitive_comparison_2_\u4e0e_codex_\u7684\u5dee\u5f02",
+      "label": "2. \u4e0e Codex \u7684\u5dee\u5f02",
+      "file_type": "document",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L23"
+    },
+    {
+      "id": "analysis_08_competitive_comparison_3_\u4e0e_gemini_cli_\u7684\u5dee\u5f02",
+      "label": "3. \u4e0e Gemini CLI \u7684\u5dee\u5f02",
+      "file_type": "document",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L49"
+    },
+    {
+      "id": "analysis_08_competitive_comparison_4_\u4e0e_aider_\u7684\u5dee\u5f02",
+      "label": "4. \u4e0e Aider \u7684\u5dee\u5f02",
+      "file_type": "document",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L79"
+    },
+    {
+      "id": "analysis_08_competitive_comparison_5_\u4e0e_cursor_\u7684\u5dee\u5f02",
+      "label": "5. \u4e0e Cursor \u7684\u5dee\u5f02",
+      "file_type": "document",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L106"
+    },
+    {
+      "id": "analysis_08_competitive_comparison_6_\u771f\u6b63\u7684\u5dee\u5f02\u5316\u7ed3\u8bba",
+      "label": "6. \u771f\u6b63\u7684\u5dee\u5f02\u5316\u7ed3\u8bba",
+      "file_type": "document",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L133"
+    },
+    {
+      "id": "analysis_08_competitive_comparison_7_\u672c\u7ae0\u5c0f\u7ed3",
+      "label": "7. \u672c\u7ae0\u5c0f\u7ed3",
+      "file_type": "document",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L143"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_08_competitive_comparison_md",
+      "target": "analysis_08_competitive_comparison_\u7b2c\u5341\u516d\u7ae0_\u540c\u7c7b\u4ea7\u54c1\u5bf9\u6bd4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_08_competitive_comparison_\u7b2c\u5341\u516d\u7ae0_\u540c\u7c7b\u4ea7\u54c1\u5bf9\u6bd4",
+      "target": "analysis_08_competitive_comparison_1_\u672c\u7ae0\u5bfc\u8bfb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_08_competitive_comparison_\u7b2c\u5341\u516d\u7ae0_\u540c\u7c7b\u4ea7\u54c1\u5bf9\u6bd4",
+      "target": "analysis_08_competitive_comparison_2_\u4e0e_codex_\u7684\u5dee\u5f02",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_08_competitive_comparison_\u7b2c\u5341\u516d\u7ae0_\u540c\u7c7b\u4ea7\u54c1\u5bf9\u6bd4",
+      "target": "analysis_08_competitive_comparison_3_\u4e0e_gemini_cli_\u7684\u5dee\u5f02",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_08_competitive_comparison_\u7b2c\u5341\u516d\u7ae0_\u540c\u7c7b\u4ea7\u54c1\u5bf9\u6bd4",
+      "target": "analysis_08_competitive_comparison_4_\u4e0e_aider_\u7684\u5dee\u5f02",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L79",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_08_competitive_comparison_\u7b2c\u5341\u516d\u7ae0_\u540c\u7c7b\u4ea7\u54c1\u5bf9\u6bd4",
+      "target": "analysis_08_competitive_comparison_5_\u4e0e_cursor_\u7684\u5dee\u5f02",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L106",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_08_competitive_comparison_\u7b2c\u5341\u516d\u7ae0_\u540c\u7c7b\u4ea7\u54c1\u5bf9\u6bd4",
+      "target": "analysis_08_competitive_comparison_6_\u771f\u6b63\u7684\u5dee\u5f02\u5316\u7ed3\u8bba",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L133",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_08_competitive_comparison_\u7b2c\u5341\u516d\u7ae0_\u540c\u7c7b\u4ea7\u54c1\u5bf9\u6bd4",
+      "target": "analysis_08_competitive_comparison_7_\u672c\u7ae0\u5c0f\u7ed3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/08-competitive-comparison.md",
+      "source_location": "L143",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

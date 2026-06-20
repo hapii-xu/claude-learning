@@ -1,0 +1,368 @@
+---
+title: 构建与基础设施知识总结
+description: Claude Code 的"工程骨架"——Bun.build() 代码分割（为什么单文件 17MB 会让 Bun 内存爆涨到 1GB）、Vite 替代构建流水线、MACRO defines 集中管理（scripts/defines.ts）、feature() 调用的 4 条编译器限制、bun:test 测试体系（mock 规范 + 跨文件污染防治）、Biome lint/format 配置（42 条规则关闭的原因）、CI 四步流水线、pre-commit husky hooks
+---
+
+# 构建与基础设施知识总结
+
+> 这是"总结学习"栏目的第十四篇。目标：理解 Claude Code 这个项目**如何被构建、如何测试、如何保证代码质量**——从 `build.ts` 里的代码分割原理，到 `bun:bundle` 的 feature flag 编译器限制，再到 `bun:test` 的 mock 污染防治策略。
+
+---
+
+## 一、构建基础设施全貌
+
+```
+开发模式                              生产构建（两套流水线）
+─────────────────────────────         ─────────────────────────────────
+scripts/dev.ts                        build.ts (Bun.build)
+  bun run src/entrypoints/cli.tsx       → dist/cli.js + dist/chunks/*.js
+  bun -d flags 注入 MACRO defines       → 代码分割（600+ chunk 文件）
+
+scripts/dev:inspect                   build:vite (Vite)
+  BUN_INSPECT=9229 调试模式              → vite.config.ts
+                                        → scripts/post-build.ts 后处理
+                                        → dist/chunks/ 下 chunk 文件
+
+质量保证
+─────────────────────────────
+bun run precheck = typecheck + lint fix + test
+Biome (biome.json): lint + format
+husky + lint-staged: pre-commit 自动修复
+GitHub Actions (ci.yml): CI 流水线
+```
+
+---
+
+## 二、必须掌握的 6 个核心概念
+
+### 1. Bun.build() 代码分割——为什么必须拆
+
+> 核心文件：`build.ts`
+
+**单文件 17MB 构建的问题**：
+```
+Node.js (V8 懒解析)：只解析被调用的代码 → RSS ~220MB
+Bun (JSC 全量解析)：启动时解析全部 bytecode + JIT → RSS ~966MB（--version 命令！）
+```
+
+**代码分割后（600+ 小 chunk）**：
+```
+Bun 按需加载各 chunk → RSS 从 966MB → 35MB（--version）
+                          完整加载 ~500MB（正常使用）
+```
+
+`Bun.build()` 调用核心参数：
+```typescript
+await Bun.build({
+  entrypoints: ['src/entrypoints/cli.tsx'],
+  outdir: './dist',
+  splitting: true,           // ← 关键：代码分割
+  minify: true,
+  target: 'bun',
+  define: getMacroDefines(), // ← MACRO 常量注入
+  external: ['bun:bundle', 'bun:ffi', ...],
+})
+```
+
+**构建后处理**：
+- `build.ts` 自动将 `import.meta.require` 替换为 Node.js 兼容版本（产物 bun/node 双可运行）
+- 复制 `vendor/audio-capture/` 和 `src/utils/vendor/ripgrep/` 到 `dist/vendor/`
+
+### 2. Vite 替代构建流水线
+
+> 核心文件：`vite.config.ts`、`scripts/post-build.ts`
+
+Vite 是 Bun.build 的替代方案，输出到 `dist/chunks/`：
+
+**post-build.ts 后处理**（所有 `.js` 文件）：
+```typescript
+// 遍历 dist/ 和 dist/chunks/ 下所有 .js 文件
+// 执行 globalThis.Bun 解构 patch（使 Bun 全局 API 在 Node.js 下可用）
+// 复制 vendor 文件到 dist/vendor/
+```
+
+**vendor 路径解析**（`src/utils/distRoot.ts`）：
+```typescript
+// 通过 import.meta.url 中 lastIndexOf('dist') 或 lastIndexOf('src') 定位根目录
+// 所有 vendor 二进制相对此根目录查找
+// ripgrep.ts, computerUse/setup.ts, claudeInChrome/setup.ts, updateCCB.ts 均使用此函数
+```
+
+### 3. MACRO Defines——编译期常量注入
+
+> 核心文件：`scripts/defines.ts`
+
+所有编译期常量集中在 `scripts/defines.ts`：
+
+```typescript
+export const MACRO_DEFINES = {
+  'MACRO.VERSION': JSON.stringify('2.7.1'),        // CLI 版本号
+  'MACRO.BUILD_DATE': JSON.stringify(new Date().toISOString()),
+  'MACRO.IS_PRODUCTION': JSON.stringify(true),
+  // ... 其他常量
+}
+```
+
+**Dev 模式注入**（`scripts/dev.ts`）：
+```bash
+bun run src/entrypoints/cli.tsx -d MACRO.VERSION='"2.7.1"' ...
+```
+
+**Build 模式注入**（`build.ts`）：
+```typescript
+Bun.build({ define: getMacroDefines() })
+```
+
+**类型声明**（`src/types/global.d.ts`）：
+```typescript
+declare const MACRO: {
+  VERSION: string
+  BUILD_DATE: string
+  IS_PRODUCTION: boolean
+}
+```
+
+**修改版本号**：只需改 `scripts/defines.ts`，不需要改源码其他地方。
+
+### 4. Feature Flag 系统——4 条编译器限制
+
+> 核心：`import { feature } from 'bun:bundle'`
+
+**运行时检测**：
+```typescript
+import { feature } from 'bun:bundle'
+
+if (feature('MY_FEATURE')) {
+  // 编译期 dead code elimination（DCE）
+  // 生产构建时被 feature=false 的分支直接移除
+}
+```
+
+**启用方式**：`FEATURE_MY_FEATURE=1 bun run dev`
+
+**4 条 Bun 编译器限制**（违反会报错或行为异常）：
+
+| ✅ 正确用法 | ❌ 错误用法 |
+|-----------|-----------|
+| `if (feature('X')) { ... }` | `const enabled = feature('X')` |
+| `feature('X') ? a : b` | `feature('X') && doSomething()` |
+| 直接在条件位置使用 | 赋值给变量再使用 |
+| 在 if/三元的条件位置 | 放在箭头函数体里 |
+
+**默认启用列表**（`build.ts` 中 `DEFAULT_BUILD_FEATURES`，65+ 个）：
+```
+BUDDY, TRANSCRIPT_CLASSIFIER, BRIDGE_MODE, AGENT_TRIGGERS_REMOTE,
+CHICAGO_MCP, VOICE_MODE, EXTRACT_MEMORIES, VERIFICATION_AGENT,
+DAEMON, ACP, WORKFLOW_SCRIPTS, HISTORY_SNIP, COORDINATOR_MODE,
+BG_SESSIONS, TEMPLATES, CONNECTOR_TEXT, COMMIT_ATTRIBUTION,
+EXPERIMENTAL_SKILL_SEARCH, EXPERIMENTAL_SEARCH_EXTRA_TOOLS ...
+```
+
+**Dev 模式**（`scripts/dev.ts`）：全部 feature 默认开启。
+
+### 5. bun:test 测试体系——mock 污染防治
+
+> 规范来源：`docs/testing-spec.md` + `CLAUDE.md`
+
+**测试目录结构**：
+```
+src/**/__tests__/          ← 单元测试（紧邻源文件）
+tests/integration/         ← 集成测试（6 个文件）
+tests/mocks/               ← 共享 mock（log.ts, debug.ts, api-responses, fixtures）
+packages/*/                ← 各包独立测试
+```
+
+**必须 mock 的模块**（有副作用）：
+```typescript
+mock.module('src/utils/log.ts', logMock)     // realpathSync 副作用
+mock.module('src/utils/debug.ts', debugMock) // randomUUID 副作用
+mock.module('bun:bundle', featureMock)       // 编译期 define
+mock.module('src/utils/settings/settings.js', settingsMock)
+```
+
+**共享 mock 使用方式**（禁止内联重复定义）：
+```typescript
+import { logMock } from '../../../tests/mocks/log'
+mock.module('src/utils/log.ts', logMock)
+```
+
+**进程全局 mock 污染**（核心陷阱）：
+```
+Bun 的 mock.module 是进程全局的（last-write-wins）
+一个文件的 mock.module 会影响同进程所有其他文件的 require/import
+```
+
+**防污染规则**：
+- 不要 mock 被测模块的上层业务模块
+- 集成测试（`launch*.test.ts`）mock axios 底层，不 mock 业务 API 模块
+- 相关性测试（`api.test.ts`）需要测试真实模块，不能被 mock 污染
+
+**排查步骤**：
+```bash
+# 1. 单独运行确认通过
+bun test path/to/suspect.test.ts
+
+# 2. 与同目录其他文件一起运行，定位污染源
+bun test path/to/__tests__/
+
+# 3. 用 console.error('[file] milestone') 追踪执行顺序
+```
+
+### 6. Biome lint/format——42 条规则关闭的原因
+
+> 核心文件：`biome.json`
+
+**选择 Biome 的原因**：单工具替代 ESLint + Prettier，速度更快，配置更简单。
+
+**42 条规则被关闭**：这个项目是**反编译/反混淆**代码库，原始代码包含：
+- 大量 `_c()` memoization 样板（React Compiler 输出）
+- 未使用的私有类成员（类型系统需要但 Biome 认为"只写不读"）
+- 永假比较（MACRO 替换产生的 `'production' === 'development'`）
+- 强制类型断言（decompiled 代码常见模式）
+
+**配置要点**：
+```jsonc
+{
+  "linter": {
+    "rules": {
+      "recommended": true
+      // 42 条关闭的规则针对 decompiled 代码
+    }
+  },
+  "formatter": {
+    "lineWidth": 120,   // .tsx 文件
+    "indentWidth": 2
+  }
+}
+```
+
+**Biome 覆盖范围**：`src/`、`scripts/`、`packages/`（含 `packages/@ant/`）全项目。
+
+**`@ts-expect-error` 维护规则**：
+- 下方代码确实有类型错误时保留
+- 类型系统更新导致 directive 变为 unused (TS2578)：直接移除
+- MACRO 替换产生的永假比较：保留
+
+---
+
+## 三、应该了解的 3 个重要机制
+
+### A. Pre-commit Hooks（husky + lint-staged）
+
+提交时自动对暂存文件执行：
+```yaml
+# .lintstagedrc.json（概念）
+"*.{ts,tsx}": "bunx biome check --fix"
+"*.json": "bunx biome format --write"
+```
+
+提交失败时**不要用 `--no-verify` 绕过**——应该修复根本问题。
+
+### B. CI 流水线（`.github/workflows/ci.yml`）
+
+四个阶段，顺序执行：
+```
+1. bun install            ← 安装依赖
+2. bunx biome ci .        ← lint + format 检查（零 warning 要求）
+3. bun run typecheck      ← tsc --noEmit（零错误要求）
+4. bun run build          ← 生产构建验证
+5. bun test               ← 全量测试
+```
+
+**其他 workflows**：
+- `release-rcs.yml`：Remote Control Server 发布
+- `update-contributors.yml`：自动更新贡献者列表
+
+### C. `distRoot.ts`——vendor 二进制路径解析
+
+```typescript
+// src/utils/distRoot.ts
+export function distRoot(): string {
+  const url = import.meta.url
+  const distIdx = url.lastIndexOf('dist')
+  const srcIdx = url.lastIndexOf('src')
+  const idx = distIdx > srcIdx ? distIdx : srcIdx
+  return new URL(url.substring(0, idx)).pathname
+}
+```
+
+这是处理"代码分割后 chunk 文件散落在 `dist/chunks/` 下，如何找到 `dist/vendor/` 中的二进制"的核心解法。
+
+---
+
+## 四、关键文件清单
+
+| 文件 | 角色 | 关键内容 |
+|------|------|---------|
+| `build.ts` | core | `Bun.build()` 调用、`DEFAULT_BUILD_FEATURES`（65+ 个）、post-build `import.meta.require` 替换 |
+| `vite.config.ts` | core | Vite 替代构建配置，代码分割到 `dist/chunks/` |
+| `scripts/post-build.ts` | util | `globalThis.Bun` patch、vendor 文件复制 |
+| `scripts/defines.ts` | config | 所有 MACRO 常量集中定义，版本号在此修改 |
+| `scripts/dev.ts` | entry | Dev 模式入口，`-d` flags 注入 MACRO，全 feature 开启 |
+| `src/types/global.d.ts` | config | `MACRO`、`BUILD_TARGET`、`BUILD_ENV` 类型声明 |
+| `src/types/internal-modules.d.ts` | config | `bun:bundle`（feature 函数）、`bun:ffi`、`@anthropic-ai/mcpb` 类型声明 |
+| `src/utils/distRoot.ts` | util | vendor 路径解析，`lastIndexOf('dist')` 定位根目录 |
+| `biome.json` | config | lint（42 条关闭）+ format（120 行宽）配置 |
+| `tests/mocks/log.ts` | util | 共享 log mock，防止副作用污染 |
+| `tests/mocks/debug.ts` | util | 共享 debug mock |
+| `tests/integration/` | test | 6 个集成测试文件 |
+| `.github/workflows/ci.yml` | config | CI 四步流水线（biome→typecheck→build→test） |
+
+---
+
+## 五、学习建议
+
+1. **运行完整 precheck**：`bun run precheck`，观察三步（typecheck + lint fix + test）的输出，理解零错误要求
+
+2. **理解代码分割的 RSS 影响**：修改 `build.ts` 临时去掉 `splitting: true`，对比构建产物大小和 `--version` 的内存占用
+
+3. **追踪 MACRO.VERSION 的流向**：从 `scripts/defines.ts` 出发，看它在哪里被使用（`--version` 快速路径）
+
+4. **实验 feature flag**：在开发模式下用 `FEATURE_X=0 bun run dev` 禁用某个 feature，观察对应的 `if (feature('X'))` 分支是否被跳过
+
+5. **阅读 `tests/mocks/log.ts`**：理解共享 mock 的结构，再对比一个测试文件的 `mock.module('src/utils/log.ts', logMock)` 用法
+
+---
+
+## 六、与前序衔接
+
+| 已学模块 | 与构建基础设施的关联 |
+|---------|-------------------|
+| 入口知识总结 | `src/entrypoints/cli.tsx` 是 Bun.build 的 entrypoint；`--version` 快速路径是 DCE 优化的典范 |
+| 上下文工程 | `SYSTEM_PROMPT_DYNAMIC_BOUNDARY` 是 MACRO 不会用到但类似思路：编译期注入运行期需要的分隔符 |
+| 安全与权限 | `bypassPermissions` 在 sandbox 环境检测时读取环境变量（与 FEATURE_* 模式一致） |
+| MCP 协议 | MCP 工具的 `DANGEROUS_uncachedSystemPromptSection` 机制在 Vite 产物和 Bun 产物中行为一致（因为适配层已处理） |
+
+---
+
+## 七、验证清单
+
+完成本篇学习后，你应该能够：
+
+- [ ] 解释为什么单文件 17MB 产物会让 Bun 内存达到 966MB（JSC 全量解析机制）
+- [ ] 说出 `feature()` 调用的 4 条编译器限制，并给出错误写法的示例
+- [ ] 解释 Biome 中 42 条规则被关闭的根本原因（decompiled 代码模式）
+- [ ] 描述 `mock.module` 跨文件污染的机制，以及如何排查
+- [ ] 在 `scripts/defines.ts` 中找到版本号并修改，运行 `bun run dev --version` 验证
+
+---
+
+## 八、学习完成展望
+
+至此，"总结学习"栏目的 14 篇涵盖了 Claude Code 的核心架构全貌：
+
+```
+基础层：入口 → 核心循环 → API 通信层
+数据层：状态管理 → 上下文工程
+工具层：工具系统 → 安全与权限
+扩展层：MCP → Skills → Hooks → Plugins
+展示层：终端 UI 层
+协作层：多代理与任务系统
+工程层：构建与基础设施
+```
+
+建议后续方向：
+1. **选择感兴趣的模块深入代码**：如 `src/services/api/claude.ts`（全部 3598 行）
+2. **为项目写一个真实插件/Skill**，端到端验证知识
+3. **阅读 `docs/features/` 目录**下的各功能详细文档
+4. **参与代码修改**：找一个小 bug 或改进点，从修改到 `bun run precheck` 通过完整走一遍

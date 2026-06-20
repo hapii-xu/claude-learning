@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_callgraphs_03_micro_query_loop_sequence_mmd_md",
+      "label": "query-loop-sequence.mmd.md",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/03-micro/query-loop-sequence.mmd.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "03_micro_query_loop_sequence_mmd_\u5fae\u89c2_query_\u6267\u884c\u5faa\u73af\u65f6\u5e8f\u56fe_mermaid",
+      "label": "\u5fae\u89c2\uff1aQuery \u6267\u884c\u5faa\u73af\u65f6\u5e8f\u56fe\uff08Mermaid\uff09",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/03-micro/query-loop-sequence.mmd.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "03_micro_query_loop_sequence_mmd_\u5faa\u73af\u7ec8\u6b62\u6761\u4ef6",
+      "label": "\u5faa\u73af\u7ec8\u6b62\u6761\u4ef6",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/03-micro/query-loop-sequence.mmd.md",
+      "source_location": "L108"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_callgraphs_03_micro_query_loop_sequence_mmd_md",
+      "target": "03_micro_query_loop_sequence_mmd_\u5fae\u89c2_query_\u6267\u884c\u5faa\u73af\u65f6\u5e8f\u56fe_mermaid",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/03-micro/query-loop-sequence.mmd.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "03_micro_query_loop_sequence_mmd_\u5fae\u89c2_query_\u6267\u884c\u5faa\u73af\u65f6\u5e8f\u56fe_mermaid",
+      "target": "03_micro_query_loop_sequence_mmd_\u5faa\u73af\u7ec8\u6b62\u6761\u4ef6",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/03-micro/query-loop-sequence.mmd.md",
+      "source_location": "L108",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

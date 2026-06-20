@@ -1,0 +1,319 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_fork_subagent_md",
+      "label": "fork-subagent.md",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_fork_subagent_fork_subagent_\u4e0a\u4e0b\u6587\u7ee7\u627f\u5b50_agent",
+      "label": "FORK_SUBAGENT \u2014 \u4e0a\u4e0b\u6587\u7ee7\u627f\u5b50 Agent",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_fork_subagent_\u4e00_\u529f\u80fd\u6982\u8ff0",
+      "label": "\u4e00\u3001\u529f\u80fd\u6982\u8ff0",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L7"
+    },
+    {
+      "id": "features_fork_subagent_\u6838\u5fc3\u4f18\u52bf",
+      "label": "\u6838\u5fc3\u4f18\u52bf",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L11"
+    },
+    {
+      "id": "features_fork_subagent_\u4e8c_\u7528\u6237\u4ea4\u4e92",
+      "label": "\u4e8c\u3001\u7528\u6237\u4ea4\u4e92",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L18"
+    },
+    {
+      "id": "features_fork_subagent_\u89e6\u53d1\u65b9\u5f0f",
+      "label": "\u89e6\u53d1\u65b9\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L20"
+    },
+    {
+      "id": "features_fork_subagent_fork_\u547d\u4ee4",
+      "label": "/fork \u547d\u4ee4",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L32"
+    },
+    {
+      "id": "features_fork_subagent_\u4e09_\u5b9e\u73b0\u67b6\u6784",
+      "label": "\u4e09\u3001\u5b9e\u73b0\u67b6\u6784",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L36"
+    },
+    {
+      "id": "features_fork_subagent_3_1_\u95e8\u63a7\u4e0e\u4e92\u65a5",
+      "label": "3.1 \u95e8\u63a7\u4e0e\u4e92\u65a5",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L38"
+    },
+    {
+      "id": "features_fork_subagent_3_2_fork_agent_\u5b9a\u4e49",
+      "label": "3.2 FORK_AGENT \u5b9a\u4e49",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L53"
+    },
+    {
+      "id": "features_fork_subagent_3_3_\u6838\u5fc3\u8c03\u7528\u6d41\u7a0b",
+      "label": "3.3 \u6838\u5fc3\u8c03\u7528\u6d41\u7a0b",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L66"
+    },
+    {
+      "id": "features_fork_subagent_3_4_\u6d88\u606f\u6784\u5efa_buildforkedmessages",
+      "label": "3.4 \u6d88\u606f\u6784\u5efa\uff1abuildForkedMessages",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L106"
+    },
+    {
+      "id": "features_fork_subagent_3_5_\u9012\u5f52\u9632\u62a4",
+      "label": "3.5 \u9012\u5f52\u9632\u62a4",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L125"
+    },
+    {
+      "id": "features_fork_subagent_3_6_worktree_\u9694\u79bb\u901a\u77e5",
+      "label": "3.6 Worktree \u9694\u79bb\u901a\u77e5",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L132"
+    },
+    {
+      "id": "features_fork_subagent_3_7_\u5f3a\u5236\u5f02\u6b65",
+      "label": "3.7 \u5f3a\u5236\u5f02\u6b65",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L138"
+    },
+    {
+      "id": "features_fork_subagent_\u56db_prompt_cache_\u4f18\u5316",
+      "label": "\u56db\u3001Prompt Cache \u4f18\u5316",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L142"
+    },
+    {
+      "id": "features_fork_subagent_\u4e94_\u5b50_agent_\u6307\u4ee4",
+      "label": "\u4e94\u3001\u5b50 Agent \u6307\u4ee4",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L154"
+    },
+    {
+      "id": "features_fork_subagent_\u516d_\u5173\u952e\u8bbe\u8ba1\u51b3\u7b56",
+      "label": "\u516d\u3001\u5173\u952e\u8bbe\u8ba1\u51b3\u7b56",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L165"
+    },
+    {
+      "id": "features_fork_subagent_\u4e03_\u4f7f\u7528\u65b9\u5f0f",
+      "label": "\u4e03\u3001\u4f7f\u7528\u65b9\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L173"
+    },
+    {
+      "id": "features_fork_subagent_\u516b_\u6587\u4ef6\u7d22\u5f15",
+      "label": "\u516b\u3001\u6587\u4ef6\u7d22\u5f15",
+      "file_type": "document",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L184"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_fork_subagent_md",
+      "target": "features_fork_subagent_fork_subagent_\u4e0a\u4e0b\u6587\u7ee7\u627f\u5b50_agent",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_fork_subagent_\u4e0a\u4e0b\u6587\u7ee7\u627f\u5b50_agent",
+      "target": "features_fork_subagent_\u4e00_\u529f\u80fd\u6982\u8ff0",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_\u4e00_\u529f\u80fd\u6982\u8ff0",
+      "target": "features_fork_subagent_\u6838\u5fc3\u4f18\u52bf",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_fork_subagent_\u4e0a\u4e0b\u6587\u7ee7\u627f\u5b50_agent",
+      "target": "features_fork_subagent_\u4e8c_\u7528\u6237\u4ea4\u4e92",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_\u4e8c_\u7528\u6237\u4ea4\u4e92",
+      "target": "features_fork_subagent_\u89e6\u53d1\u65b9\u5f0f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_\u4e8c_\u7528\u6237\u4ea4\u4e92",
+      "target": "features_fork_subagent_fork_\u547d\u4ee4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_fork_subagent_\u4e0a\u4e0b\u6587\u7ee7\u627f\u5b50_agent",
+      "target": "features_fork_subagent_\u4e09_\u5b9e\u73b0\u67b6\u6784",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_\u4e09_\u5b9e\u73b0\u67b6\u6784",
+      "target": "features_fork_subagent_3_1_\u95e8\u63a7\u4e0e\u4e92\u65a5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L38",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_\u4e09_\u5b9e\u73b0\u67b6\u6784",
+      "target": "features_fork_subagent_3_2_fork_agent_\u5b9a\u4e49",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L53",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_\u4e09_\u5b9e\u73b0\u67b6\u6784",
+      "target": "features_fork_subagent_3_3_\u6838\u5fc3\u8c03\u7528\u6d41\u7a0b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L66",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_\u4e09_\u5b9e\u73b0\u67b6\u6784",
+      "target": "features_fork_subagent_3_4_\u6d88\u606f\u6784\u5efa_buildforkedmessages",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L106",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_\u4e09_\u5b9e\u73b0\u67b6\u6784",
+      "target": "features_fork_subagent_3_5_\u9012\u5f52\u9632\u62a4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L125",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_\u4e09_\u5b9e\u73b0\u67b6\u6784",
+      "target": "features_fork_subagent_3_6_worktree_\u9694\u79bb\u901a\u77e5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L132",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_\u4e09_\u5b9e\u73b0\u67b6\u6784",
+      "target": "features_fork_subagent_3_7_\u5f3a\u5236\u5f02\u6b65",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L138",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_fork_subagent_\u4e0a\u4e0b\u6587\u7ee7\u627f\u5b50_agent",
+      "target": "features_fork_subagent_\u56db_prompt_cache_\u4f18\u5316",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L142",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_fork_subagent_\u4e0a\u4e0b\u6587\u7ee7\u627f\u5b50_agent",
+      "target": "features_fork_subagent_\u4e94_\u5b50_agent_\u6307\u4ee4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L154",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_fork_subagent_\u4e0a\u4e0b\u6587\u7ee7\u627f\u5b50_agent",
+      "target": "features_fork_subagent_\u516d_\u5173\u952e\u8bbe\u8ba1\u51b3\u7b56",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L165",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_fork_subagent_\u4e0a\u4e0b\u6587\u7ee7\u627f\u5b50_agent",
+      "target": "features_fork_subagent_\u4e03_\u4f7f\u7528\u65b9\u5f0f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L173",
+      "weight": 1.0
+    },
+    {
+      "source": "features_fork_subagent_fork_subagent_\u4e0a\u4e0b\u6587\u7ee7\u627f\u5b50_agent",
+      "target": "features_fork_subagent_\u516b_\u6587\u4ef6\u7d22\u5f15",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/fork-subagent.md",
+      "source_location": "L184",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

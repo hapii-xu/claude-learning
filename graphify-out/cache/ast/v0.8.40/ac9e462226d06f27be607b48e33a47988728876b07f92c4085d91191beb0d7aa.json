@@ -1,0 +1,255 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_packages_remote_control_server_readme_md",
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "remote_control_server_readme_remote_control_server_rcs",
+      "label": "Remote Control Server (RCS)",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "remote_control_server_readme_\u529f\u80fd",
+      "label": "\u529f\u80fd",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L5"
+    },
+    {
+      "id": "remote_control_server_readme_\u5feb\u901f\u5f00\u59cb",
+      "label": "\u5feb\u901f\u5f00\u59cb",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L13"
+    },
+    {
+      "id": "remote_control_server_readme_docker_\u90e8\u7f72_\u63a8\u8350",
+      "label": "Docker \u90e8\u7f72\uff08\u63a8\u8350\uff09",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L15"
+    },
+    {
+      "id": "remote_control_server_readme_\u73af\u5883\u53d8\u91cf",
+      "label": "\u73af\u5883\u53d8\u91cf",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L26"
+    },
+    {
+      "id": "remote_control_server_readme_\u670d\u52a1\u5668\u914d\u7f6e",
+      "label": "\u670d\u52a1\u5668\u914d\u7f6e",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L28"
+    },
+    {
+      "id": "remote_control_server_readme_\u8d85\u65f6\u4e0e\u5fc3\u8df3",
+      "label": "\u8d85\u65f6\u4e0e\u5fc3\u8df3",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L38"
+    },
+    {
+      "id": "remote_control_server_readme_claude_code_\u5ba2\u6237\u7aef\u914d\u7f6e",
+      "label": "Claude Code \u5ba2\u6237\u7aef\u914d\u7f6e",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L47"
+    },
+    {
+      "id": "remote_control_server_readme_\u8fde\u63a5\u5230\u81ea\u6258\u7ba1\u670d\u52a1\u5668",
+      "label": "\u8fde\u63a5\u5230\u81ea\u6258\u7ba1\u670d\u52a1\u5668",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L49"
+    },
+    {
+      "id": "remote_control_server_readme_\u73af\u5883\u53d8\u91cf\u53c2\u8003",
+      "label": "\u73af\u5883\u53d8\u91cf\u53c2\u8003",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L69"
+    },
+    {
+      "id": "remote_control_server_readme_docker_compose_\u793a\u4f8b",
+      "label": "Docker Compose \u793a\u4f8b",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L78"
+    },
+    {
+      "id": "remote_control_server_readme_acp_\u517c\u5bb9\u7684_remote_control",
+      "label": "ACP \u517c\u5bb9\u7684 remote-control",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L102"
+    },
+    {
+      "id": "remote_control_server_readme_\u53cd\u5411\u4ee3\u7406\u914d\u7f6e",
+      "label": "\u53cd\u5411\u4ee3\u7406\u914d\u7f6e",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L109"
+    },
+    {
+      "id": "remote_control_server_readme_\u67b6\u6784\u6982\u89c8",
+      "label": "\u67b6\u6784\u6982\u89c8",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L138"
+    },
+    {
+      "id": "remote_control_server_readme_\u5f00\u53d1",
+      "label": "\u5f00\u53d1",
+      "file_type": "document",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L160"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_remote_control_server_readme_md",
+      "target": "remote_control_server_readme_remote_control_server_rcs",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "remote_control_server_readme_remote_control_server_rcs",
+      "target": "remote_control_server_readme_\u529f\u80fd",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "remote_control_server_readme_remote_control_server_rcs",
+      "target": "remote_control_server_readme_\u5feb\u901f\u5f00\u59cb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "remote_control_server_readme_\u5feb\u901f\u5f00\u59cb",
+      "target": "remote_control_server_readme_docker_\u90e8\u7f72_\u63a8\u8350",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "remote_control_server_readme_remote_control_server_rcs",
+      "target": "remote_control_server_readme_\u73af\u5883\u53d8\u91cf",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "remote_control_server_readme_\u73af\u5883\u53d8\u91cf",
+      "target": "remote_control_server_readme_\u670d\u52a1\u5668\u914d\u7f6e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "remote_control_server_readme_\u73af\u5883\u53d8\u91cf",
+      "target": "remote_control_server_readme_\u8d85\u65f6\u4e0e\u5fc3\u8df3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L38",
+      "weight": 1.0
+    },
+    {
+      "source": "remote_control_server_readme_remote_control_server_rcs",
+      "target": "remote_control_server_readme_claude_code_\u5ba2\u6237\u7aef\u914d\u7f6e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "remote_control_server_readme_claude_code_\u5ba2\u6237\u7aef\u914d\u7f6e",
+      "target": "remote_control_server_readme_\u8fde\u63a5\u5230\u81ea\u6258\u7ba1\u670d\u52a1\u5668",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "remote_control_server_readme_claude_code_\u5ba2\u6237\u7aef\u914d\u7f6e",
+      "target": "remote_control_server_readme_\u73af\u5883\u53d8\u91cf\u53c2\u8003",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L69",
+      "weight": 1.0
+    },
+    {
+      "source": "remote_control_server_readme_remote_control_server_rcs",
+      "target": "remote_control_server_readme_docker_compose_\u793a\u4f8b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L78",
+      "weight": 1.0
+    },
+    {
+      "source": "remote_control_server_readme_remote_control_server_rcs",
+      "target": "remote_control_server_readme_acp_\u517c\u5bb9\u7684_remote_control",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L102",
+      "weight": 1.0
+    },
+    {
+      "source": "remote_control_server_readme_remote_control_server_rcs",
+      "target": "remote_control_server_readme_\u53cd\u5411\u4ee3\u7406\u914d\u7f6e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L109",
+      "weight": 1.0
+    },
+    {
+      "source": "remote_control_server_readme_remote_control_server_rcs",
+      "target": "remote_control_server_readme_\u67b6\u6784\u6982\u89c8",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L138",
+      "weight": 1.0
+    },
+    {
+      "source": "remote_control_server_readme_remote_control_server_rcs",
+      "target": "remote_control_server_readme_\u5f00\u53d1",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/remote-control-server/README.md",
+      "source_location": "L160",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

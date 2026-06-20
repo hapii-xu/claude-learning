@@ -1,0 +1,379 @@
+---
+title: 多代理与任务系统知识总结
+description: Claude Code 的"协作编排层"——AgentTool/runAgent.ts 子代理创建与隔离、AgentDefinition 完整 schema（tools/model/effort/isolation/memory/mcpServers/hooks）、6 个内置 Agent 定义、Task 生命周期（pending→in_progress→completed/failed）+ 后台任务指示器、Plan 模式语义权限、Worktree Git 隔离、后台会话（Ctrl+B + auto-background 120s）
+---
+
+# 多代理与任务系统知识总结
+
+> 这是"总结学习"栏目的第十三篇。目标：理解 Claude Code 的**多代理编排机制**——子代理如何被创建、隔离运行、与父会话通信，Task 工具如何跟踪进度，Plan 模式如何约束权限，以及 Worktree 和后台会话如何实现真正的并行工作。
+
+---
+
+## 一、多代理系统全貌
+
+### 三种"分叉"机制
+
+```
+AgentTool（子代理）                 Worktree（Git 隔离）            Background Session（后台）
+────────────────────────            ─────────────────────────       ─────────────────────────
+父会话调用 AgentTool                 EnterWorktreeTool               Ctrl+B 将前台查询转移后台
+创建独立 token 预算的子查询           创建 git worktree 分支           后台独立运行，前台可继续
+子代理有自己的工具集/权限             子代理/Skill 在隔离目录工作        Background Task Indicator 显示进度
+结果以 tool_result 返回父会话         ExitWorktreeTool 清理合并        可随时 Ctrl+B 切回查看
+```
+
+### AgentTool 的核心思想
+
+子代理 = 一个新的 `queryLoop()` 调用，但带有：
+- 独立的 token 预算（`maxTurns` + `tokenBudget`）
+- 自定义工具集（父集的子集或超集）
+- 可选的隔离环境（worktree / remote）
+- 独立的 MCP server 连接
+- 结果以单条 `tool_result` 消息返回父会话
+
+---
+
+## 二、必须掌握的 6 个核心概念
+
+### 1. AgentDefinition Schema（代理定义格式）
+
+> 解析实现：`packages/builtin-tools/src/tools/AgentTool/loadAgentsDir.ts:106-133`
+
+**AgentJsonSchema**（`.claude/agents/my-agent.json` 或 frontmatter）：
+
+```typescript
+{
+  // 基础
+  description: string           // 代理描述（模型用于决定何时调用）
+  prompt?: string               // 系统提示词扩展
+  whenToUse?: string            // 主动调用时机（模型决策依据）
+
+  // 工具控制
+  tools?: string[]              // 允许的工具白名单（省略=继承父会话工具集）
+  disallowedTools?: string[]    // 工具黑名单
+
+  // 模型与性能
+  model?: string                // 覆盖模型（如 claude-haiku-4-5-20251001）
+  effort?: 'low' | 'medium' | 'high' | number  // 输出质量
+  maxTurns?: number             // 最大执行轮数
+
+  // 权限
+  permissionMode?: PermissionMode  // 覆盖权限模式（如 'acceptEdits'）
+
+  // 隔离
+  isolation?: 'worktree' | 'remote'  // Git 隔离 or 远程执行
+
+  // 扩展能力
+  mcpServers?: Record<string, AgentMcpServerSpec>  // 代理专属 MCP server
+  hooks?: HooksSettings           // 代理内联 Hooks
+  skills?: string[]               // 代理可用的 Skill 列表
+
+  // 记忆
+  memory?: 'user' | 'project' | 'local'  // 记忆作用域
+  omitClaudeMd?: boolean          // true = 跳过 CLAUDE.md 读取（只读代理节省 token）
+
+  // 高级
+  background?: boolean            // true = 始终以后台任务形式运行
+  initialPrompt?: string          // 启动时自动注入的初始提示
+}
+```
+
+**TypeScript 类型** `BaseAgentDefinition`（:106-133）额外包含：
+- `agentType`：内置/自定义/插件
+- `color`：UI 显示颜色（AgentColorName）
+- `filename`/`baseDir`：文件来源路径
+- `criticalSystemReminder_EXPERIMENTAL`：实验性系统提醒
+- `requiredMcpServers`：启动前必须就绪的 MCP server 列表
+- `pendingSnapshotUpdate`：记忆快照更新标记
+
+### 2. 子代理创建与执行（`runAgent.ts`）
+
+> 核心文件：`packages/builtin-tools/src/tools/AgentTool/runAgent.ts`
+
+```
+AgentTool.runTool() 调用
+    ↓
+initializeAgentMcpServers()       ← 创建代理专属 MCP server 连接
+    ├─ 从 agentDefinition.mcpServers 读取 inline 配置
+    ├─ 与父会话 MCP clients 合并
+    ├─ 检查 plugin-only 策略限制
+    └─ 记录新建 client 列表，用于完成后清理
+    ↓
+resolveAgentSystemPrompt()        ← 组合代理系统提示词
+    ↓
+query() / queryLoop()             ← 独立的查询循环
+    ├─ 独立 token 预算（maxTurns 控制）
+    ├─ 自定义工具列表
+    └─ skipCacheWrite=true（不污染父 KV cache）
+    ↓
+cleanupAgentMcpServers()          ← 代理结束时释放专属 MCP 连接
+    ↓
+返回 AgentToolResult → 父 tool_result
+```
+
+**关键常量**（`AgentTool.tsx:114-132`）：
+- `PROGRESS_THRESHOLD_MS = 2000`：2s 后显示"代理正在后台运行"提示
+- `getAutoBackgroundMs() = 120_000`：120s 后自动后台化（需 feature 开启）
+- `isBackgroundTasksDisabled`：`CLAUDE_CODE_DISABLE_BACKGROUND_TASKS` 环境变量
+
+### 3. 6 个内置 Agent 定义
+
+> 位置：`packages/builtin-tools/src/tools/AgentTool/built-in/`
+
+| Agent | 用途 | 特点 |
+|-------|------|------|
+| `generalPurposeAgent` | 通用子代理 | 继承父会话工具集，默认隔离级别 |
+| `exploreAgent` | 代码库探索 | 只读工具（GlobTool/GrepTool/FileReadTool），不修改文件 |
+| `planAgent` | 制定实现计划 | Plan 模式工具集，不执行代码 |
+| `verificationAgent` | 验证测试/审查 | BashTool 用于运行测试，Read/Grep 用于审查 |
+| `claudeCodeGuideAgent` | 回答 Claude Code 使用问题 | WebFetch + Grep，知识库查询 |
+| `statuslineSetup` | 配置状态栏 | Read + Edit 工具，专项配置 |
+
+这些代理通过 `registerBuiltinAgent()` 注册，用户可在 `/agents` 命令中看到并调用。
+
+### 4. Task 工具生命周期
+
+**5 个 Task 工具**：`TaskCreate` / `TaskUpdate` / `TaskList` / `TaskGet` / `TaskStop`
+
+**Task State 联合类型**（`src/tasks/types.ts:1-47`）：
+
+```typescript
+type TaskState =
+  | LocalShellTaskState      // Shell 命令任务
+  | LocalAgentTaskState      // 本地代理任务（最常用）
+  | RemoteAgentTaskState     // 远程代理任务
+  | LocalWorkflowTaskState   // 工作流任务
+  | MonitorMcpTaskState      // MCP Monitor 任务
+  | DreamTaskState           // Dream 模式任务
+
+// 状态字段
+status: 'pending' | 'in_progress' | 'completed' | 'failed'
+isBackgrounded?: boolean     // 是否在后台运行
+```
+
+**后台任务判定**：
+```typescript
+isBackgroundTask(task) = 
+  task.status in ['running', 'pending'] && 
+  task.isBackgrounded !== false
+```
+
+**LocalAgentTaskState 进度追踪**（`src/tasks/LocalAgentTask/LocalAgentTask.tsx:35-150`）：
+
+```typescript
+ProgressTracker = {
+  toolUseCount: number           // 已调用工具次数
+  latestInputTokens: number      // 累计输入 token（含缓存）
+  cumulativeOutputTokens: number // 累计输出 token
+  recentActivities: ToolActivity[5]  // 最近 5 条活动
+}
+
+ToolActivity = {
+  toolName: string
+  input: Record<string, unknown>
+  activityDescription: string    // tool.getActivityDescription() 返回
+  isSearch: boolean
+  isRead: boolean
+}
+```
+
+`updateProgressFromMessage()` 在每条 AssistantMessage 后调用，从 `usage` 提取 token 数，追踪 tool_use 块的活动描述。
+
+### 5. Plan 模式（语义权限）
+
+**两个工具**：`EnterPlanModeTool` / `ExitPlanModeV2Tool`
+
+**进入 Plan 模式**（`EnterPlanModeTool.ts:77-94`）：
+```
+EnterPlanModeTool.runTool()
+    ↓
+handlePlanModeTransition()
+    ↓
+prepareContextForPlanMode()     ← 保存 prePlanMode 快照
+    ├─ 保存当前权限 context（模式、规则）
+    └─ 若来自 auto 模式：剥离危险规则（如 Bash 宽泛 allow）
+    ↓
+更新 PermissionContext.mode = 'plan'
+```
+
+**Plan 模式限制**：
+- 工具调用需用**语义权限请求**（"run tests" / "install dependencies"）替代具体命令
+- 不能执行未在 ExitPlanMode 的 `allowedPrompts[]` 中批准的操作
+
+**退出 Plan 模式**（`ExitPlanModeV2Tool.ts:61-100`）：
+```
+input: {
+  plan: string           // 计划文本（从磁盘读取）
+  allowedPrompts: [      // 语义权限列表（用户审批过的操作）
+    "run npm test",
+    "install dependencies",
+    ...
+  ]
+}
+
+退出后：
+  acceptEdits → 直接恢复 acceptEdits 模式
+  continue    → 恢复 prePlanMode 快照
+              → auto gate 失败时 fallback 到 default
+              → restoreDangerousPermissions 还原剥离的危险规则
+```
+
+### 6. Worktree Git 隔离
+
+**进入 Worktree**（`EnterWorktreeTool.ts:77-100`）：
+
+```
+input: { name?: string }   // 可选的 slug（字母/数字/点/下划线/斜杠，max 64 chars）
+    ↓
+validateNotAlreadyInWorktree()   ← 防止嵌套 worktree
+    ↓
+resolveMainRepoRoot()
+    ↓
+createWorktreeForSession(sessionId, slug)
+    ├─ git worktree add <path> -b <branch>
+    └─ 返回 { path, branch, message }
+    ↓
+process.chdir(worktree.path)     ← 切换工作目录
+    ↓
+saveWorktreeState()              ← 保存 worktree 信息到 bootstrap STATE
+clearSystemPromptSections()      ← 重置缓存（新 CWD 影响 git status 等）
+```
+
+**退出 Worktree**（`ExitWorktreeTool`）：
+- `process.chdir(originalCwd)` 恢复原目录
+- `git worktree remove <path>` 清理 worktree
+- 清除 worktree state
+
+**在 AgentDefinition 中使用**：
+```json
+{
+  "isolation": "worktree",
+  "description": "在独立 git 分支上并行开发功能"
+}
+```
+
+---
+
+## 三、应该了解的 3 个重要机制
+
+### A. 子代理记忆（agentMemory.ts）
+
+代理可以有独立的记忆作用域（`memory: 'user' | 'project' | 'local'`）：
+- `user`：读写 `~/.claude/memory/` — 跨项目保留的用户级记忆
+- `project`：读写 `.claude/memory/` — 项目级记忆
+- `local`：仅当前会话临时记忆
+
+`agentMemorySnapshot.ts` 实现快照机制——避免长运行代理重复读取已处理的上下文。
+
+### B. 后台会话与 auto-background
+
+**手动后台**（Ctrl+B）：
+- `handleBackgroundQuery()` 在 `REPL.tsx:3057` 中处理
+- 终止前台 abortController，将当前查询参数传给 `startBackgroundSession()`
+
+**自动后台**（`getAutoBackgroundMs() = 120s`）：
+- 当代理运行超过 120s 时，通过 `AgentTool.tsx` 的定时器自动后台化
+- 需要 `CLAUDE_AUTO_BACKGROUND_AGENTS` 环境变量或 GrowthBook 开关
+
+**Background Task Indicator**：
+- 显示所有 `isBackgroundTask(task) === true` 的任务
+- 每个任务显示：活动描述、tool 调用次数、token 消耗
+- 点击可切换回前台
+
+### C. `filterIncompleteToolCalls.ts`
+
+代理意外中断（Ctrl+C、超时）时，流中可能有未完成的 `tool_use` 块（输入 JSON 未收全）。`filterIncompleteToolCalls.ts` 在恢复时过滤这些不完整块，防止 JSON 解析错误。
+
+---
+
+## 四、关键文件清单
+
+| 文件 | 角色 | 关键函数/类型 |
+|------|------|-------------|
+| `packages/builtin-tools/src/tools/AgentTool/AgentTool.tsx` | core | AgentTool 主组件，`PROGRESS_THRESHOLD_MS`（:114），`getAutoBackgroundMs()`（:132） |
+| `packages/builtin-tools/src/tools/AgentTool/runAgent.ts` | core | `runAgent()`，`initializeAgentMcpServers()`（:104），子代理执行主流程 |
+| `packages/builtin-tools/src/tools/AgentTool/loadAgentsDir.ts` | core | `AgentJsonSchema`（:70-99），`BaseAgentDefinition`（:106-133），代理目录加载 |
+| `packages/builtin-tools/src/tools/AgentTool/built-in/` | config | 6 个内置 Agent 定义 |
+| `packages/builtin-tools/src/tools/AgentTool/agentMemory.ts` | core | 代理记忆读写，作用域管理 |
+| `packages/builtin-tools/src/tools/AgentTool/agentMemorySnapshot.ts` | core | 记忆快照，避免重复处理 |
+| `src/tasks/types.ts` | config | `TaskState` 联合类型（:1-47），`isBackgroundTask()`（:32） |
+| `src/tasks/LocalAgentTask/LocalAgentTask.tsx` | core | `ProgressTracker`（:56-73），`updateProgressFromMessage()`（:86），`ToolActivity`（:35-44） |
+| `packages/builtin-tools/src/tools/EnterPlanModeTool/EnterPlanModeTool.ts` | core | Plan 模式进入，`prepareContextForPlanMode()`（:77） |
+| `packages/builtin-tools/src/tools/ExitPlanModeTool/ExitPlanModeV2Tool.ts` | core | Plan 模式退出，`allowedPrompts` schema（:77-88），`restoreDangerousPermissions` |
+| `packages/builtin-tools/src/tools/EnterWorktreeTool/EnterWorktreeTool.ts` | core | Worktree 创建（:77-100），`createWorktreeForSession()` |
+| `packages/builtin-tools/src/tools/AgentTool/filterIncompleteToolCalls.ts` | util | 中断恢复时过滤不完整 tool_use 块 |
+| `packages/builtin-tools/src/tools/AgentTool/forkSubagent.ts` | core | Worktree 隔离的代理分叉机制 |
+| `packages/builtin-tools/src/tools/AgentTool/resumeAgent.ts` | core | 代理断点续跑 |
+
+---
+
+## 五、实例：创建一个自定义 Agent
+
+**文件位置**：`.claude/agents/code-reviewer.json`（或 `~/.claude/agents/`）
+
+```json
+{
+  "description": "专业代码审查代理，关注安全性和性能",
+  "whenToUse": "当用户请求审查代码文件或 PR 时",
+  "tools": ["FileReadTool", "GlobTool", "GrepTool"],
+  "model": "claude-opus-4-7",
+  "effort": "high",
+  "maxTurns": 20,
+  "omitClaudeMd": true,
+  "prompt": "你是一个专业的代码审查专家。重点关注：\n1. 安全漏洞（XSS、SQL 注入、路径遍历）\n2. 性能问题（N+1 查询、内存泄漏）\n3. 代码可读性和维护性\n\n审查完成后提供结构化报告。"
+}
+```
+
+**使用方式**：
+```
+/agent code-reviewer
+或
+AgentTool: { agentDefinition: 'code-reviewer', prompt: '请审查 src/api/*.ts' }
+```
+
+---
+
+## 六、学习建议
+
+1. **追踪 AgentTool 的调用链**：从 `AgentTool.runTool()` 入口，追踪到 `runAgent.ts` 中的 `query()` 调用，观察 `skipCacheWrite=true` 是在哪里设置的
+
+2. **理解 Plan 模式的语义权限**：阅读 `ExitPlanModeV2Tool.ts` 中的 `allowedPrompts` schema，理解为什么用语义权限而不是具体命令
+
+3. **创建自定义代理**：按上面的实例创建一个 `.claude/agents/` 文件，重启会话测试 `/agents` 命令
+
+4. **观察后台任务指示器**：运行一个长任务，用 Ctrl+B 切到后台，观察 Background Task Indicator 的实时更新
+
+5. **阅读 `src/tasks/types.ts`**：理解 TaskState 的所有子类型，思考它们分别对应哪种使用场景
+
+---
+
+## 七、与前序衔接
+
+| 已学模块 | 与多代理系统的关联 |
+|---------|-----------------|
+| 工具系统 | AgentTool 是 60+ 内置工具之一；子代理工具集是父工具集的子集或超集 |
+| 上下文工程 | 子代理用 `skipCacheWrite=true` 隔离 KV cache；`omitClaudeMd` 跳过 CLAUDE.md 节省 token |
+| 安全与权限 | Plan 模式与 `PermissionContext.mode='plan'`、`prePlanMode` 快照深度耦合；子代理有独立 `permissionMode` |
+| Skills 系统 | `context: fork` 的 Skill 使用 AgentTool 机制执行 |
+| Hooks 系统 | 代理定义的 `hooks` 字段，在代理执行期间覆盖 session hooks |
+| API 通信层 | 每个子代理是独立的 `queryLoop()`，但共用同一个 API client |
+
+---
+
+## 八、验证清单
+
+完成本篇学习后，你应该能够：
+
+- [ ] 说出 AgentDefinition 中 `isolation: 'worktree'` 的完整执行流程
+- [ ] 解释为什么子代理用 `skipCacheWrite=true`（避免污染父会话 KV cache）
+- [ ] 描述 Task 的 5 种状态和 `isBackgroundTask()` 的判定条件
+- [ ] 解释 Plan 模式中"语义权限"和"具体规则"的区别
+- [ ] 在 `loadAgentsDir.ts` 中找到 `BaseAgentDefinition` 类型并理解每个字段
+
+---
+
+## 九、后续路线
+
+下一篇推荐：**构建与基础设施**
+
+有了对完整功能体系的理解，最后一块是了解这个系统是**如何被构建、测试和发布的**——Bun.build() 为什么需要代码分割、MACRO define 如何在编译期注入版本号、bun:test 的 mock 策略、CI 流水线，以及 Biome 的 linting 配置。

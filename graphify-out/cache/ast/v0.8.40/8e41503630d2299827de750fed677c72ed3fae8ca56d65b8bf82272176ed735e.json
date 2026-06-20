@@ -1,0 +1,255 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_telemetry_remote_config_audit_md",
+      "label": "telemetry-remote-config-audit.md",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "label": "\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1\uff08\u9664 Sentry \u5916\uff09",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_telemetry_remote_config_audit_1_datadog_\u65e5\u5fd7",
+      "label": "1. Datadog \u65e5\u5fd7",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L3"
+    },
+    {
+      "id": "docs_telemetry_remote_config_audit_2_1p_\u4e8b\u4ef6\u65e5\u5fd7_bigquery",
+      "label": "2. 1P \u4e8b\u4ef6\u65e5\u5fd7\uff08BigQuery\uff09",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L15"
+    },
+    {
+      "id": "docs_telemetry_remote_config_audit_3_growthbook_\u8fdc\u7a0b_feature_flags_\u52a8\u6001\u914d\u7f6e",
+      "label": "3. GrowthBook \u8fdc\u7a0b Feature Flags / \u52a8\u6001\u914d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L26"
+    },
+    {
+      "id": "docs_telemetry_remote_config_audit_4_remote_managed_settings_\u4f01\u4e1a\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1",
+      "label": "4. Remote Managed Settings\uff08\u4f01\u4e1a\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\uff09",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L42"
+    },
+    {
+      "id": "docs_telemetry_remote_config_audit_5_settings_sync_\u8bbe\u7f6e\u540c\u6b65",
+      "label": "5. Settings Sync\uff08\u8bbe\u7f6e\u540c\u6b65\uff09",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L52"
+    },
+    {
+      "id": "docs_telemetry_remote_config_audit_6_opentelemetry_\u4e09\u65b9\u9065\u6d4b",
+      "label": "6. OpenTelemetry \u4e09\u65b9\u9065\u6d4b",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L62"
+    },
+    {
+      "id": "docs_telemetry_remote_config_audit_7_bigquery_metrics_exporter_\u5185\u90e8\u6307\u6807",
+      "label": "7. BigQuery Metrics Exporter\uff08\u5185\u90e8\u6307\u6807\uff09",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L72"
+    },
+    {
+      "id": "docs_telemetry_remote_config_audit_8_\u7ec4\u7ec7\u7ea7_metrics_opt_out_\u67e5\u8be2",
+      "label": "8. \u7ec4\u7ec7\u7ea7 Metrics Opt-out \u67e5\u8be2",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L81"
+    },
+    {
+      "id": "docs_telemetry_remote_config_audit_9_startup_profiling",
+      "label": "9. Startup Profiling",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L89"
+    },
+    {
+      "id": "docs_telemetry_remote_config_audit_10_beta_session_tracing",
+      "label": "10. Beta Session Tracing",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L96"
+    },
+    {
+      "id": "docs_telemetry_remote_config_audit_11_bridge_poll_config_\u8fdc\u7a0b\u8f6e\u8be2\u95f4\u9694\u914d\u7f6e",
+      "label": "11. Bridge Poll Config\uff08\u8fdc\u7a0b\u8f6e\u8be2\u95f4\u9694\u914d\u7f6e\uff09",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L104"
+    },
+    {
+      "id": "docs_telemetry_remote_config_audit_12_plugin_mcp_\u9065\u6d4b",
+      "label": "12. Plugin/MCP \u9065\u6d4b",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L111"
+    },
+    {
+      "id": "docs_telemetry_remote_config_audit_\u5168\u5c40\u7981\u7528\u65b9\u5f0f",
+      "label": "\u5168\u5c40\u7981\u7528\u65b9\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L120"
+    },
+    {
+      "id": "docs_telemetry_remote_config_audit_\u6570\u636e\u6d41\u67b6\u6784",
+      "label": "\u6570\u636e\u6d41\u67b6\u6784",
+      "file_type": "document",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L137"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_telemetry_remote_config_audit_md",
+      "target": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "target": "docs_telemetry_remote_config_audit_1_datadog_\u65e5\u5fd7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "target": "docs_telemetry_remote_config_audit_2_1p_\u4e8b\u4ef6\u65e5\u5fd7_bigquery",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "target": "docs_telemetry_remote_config_audit_3_growthbook_\u8fdc\u7a0b_feature_flags_\u52a8\u6001\u914d\u7f6e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "target": "docs_telemetry_remote_config_audit_4_remote_managed_settings_\u4f01\u4e1a\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L42",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "target": "docs_telemetry_remote_config_audit_5_settings_sync_\u8bbe\u7f6e\u540c\u6b65",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L52",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "target": "docs_telemetry_remote_config_audit_6_opentelemetry_\u4e09\u65b9\u9065\u6d4b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L62",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "target": "docs_telemetry_remote_config_audit_7_bigquery_metrics_exporter_\u5185\u90e8\u6307\u6807",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L72",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "target": "docs_telemetry_remote_config_audit_8_\u7ec4\u7ec7\u7ea7_metrics_opt_out_\u67e5\u8be2",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L81",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "target": "docs_telemetry_remote_config_audit_9_startup_profiling",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L89",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "target": "docs_telemetry_remote_config_audit_10_beta_session_tracing",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L96",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "target": "docs_telemetry_remote_config_audit_11_bridge_poll_config_\u8fdc\u7a0b\u8f6e\u8be2\u95f4\u9694\u914d\u7f6e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L104",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "target": "docs_telemetry_remote_config_audit_12_plugin_mcp_\u9065\u6d4b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L111",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "target": "docs_telemetry_remote_config_audit_\u5168\u5c40\u7981\u7528\u65b9\u5f0f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L120",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_telemetry_remote_config_audit_\u9065\u6d4b\u4e0e\u8fdc\u7a0b\u914d\u7f6e\u4e0b\u53d1\u7cfb\u7edf\u5ba1\u8ba1_\u9664_sentry_\u5916",
+      "target": "docs_telemetry_remote_config_audit_\u6570\u636e\u6d41\u67b6\u6784",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/telemetry-remote-config-audit.md",
+      "source_location": "L137",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

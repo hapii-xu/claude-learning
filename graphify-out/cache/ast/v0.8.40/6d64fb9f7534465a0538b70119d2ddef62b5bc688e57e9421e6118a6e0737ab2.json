@@ -1,0 +1,207 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_superpowers_plans_2026_06_13_workflow_panel_redesign_md",
+      "label": "2026-06-13-workflow-panel-redesign.md",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "plans_2026_06_13_workflow_panel_redesign_workflow_panel_redesign_implementation_plan",
+      "label": "Workflow Panel Redesign Implementation Plan",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "plans_2026_06_13_workflow_panel_redesign_\u9879\u76ee\u7ea6\u5b9a_\u8986\u76d6_skill_\u9ed8\u8ba4_\u6267\u884c\u524d\u5fc5\u8bfb",
+      "label": "\u9879\u76ee\u7ea6\u5b9a\uff08\u8986\u76d6 skill \u9ed8\u8ba4\uff0c\u6267\u884c\u524d\u5fc5\u8bfb\uff09",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L13"
+    },
+    {
+      "id": "plans_2026_06_13_workflow_panel_redesign_\u6587\u4ef6\u7ed3\u6784",
+      "label": "\u6587\u4ef6\u7ed3\u6784",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L21"
+    },
+    {
+      "id": "plans_2026_06_13_workflow_panel_redesign_task_1_store_\u843d\u5730_declaredphases_outputshape",
+      "label": "Task 1: store \u843d\u5730 `declaredPhases` + `outputShape`",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L44"
+    },
+    {
+      "id": "plans_2026_06_13_workflow_panel_redesign_task_2_\u65b0\u5efa_status_ts_\u72b6\u6001\u6620\u5c04_agentvisual",
+      "label": "Task 2: \u65b0\u5efa `status.ts`\uff08\u72b6\u6001\u6620\u5c04 + `agentVisual`\uff09",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L212"
+    },
+    {
+      "id": "plans_2026_06_13_workflow_panel_redesign_task_3_\u65b0\u5efa_selectors_ts_mergephases_filteragentsbyphase_tablabel",
+      "label": "Task 3: \u65b0\u5efa `selectors.ts`\uff08`mergePhases` / `filterAgentsByPhase` / `tabLabel`\uff09",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L351"
+    },
+    {
+      "id": "plans_2026_06_13_workflow_panel_redesign_task_4_useworkflowkeyboard_\u6539\u7126\u70b9\u6a21\u578b_\u62bd_routeworkflowkey_\u7eaf\u51fd\u6570",
+      "label": "Task 4: `useWorkflowKeyboard` \u6539\u7126\u70b9\u6a21\u578b\uff08\u62bd `routeWorkflowKey` \u7eaf\u51fd\u6570\uff09",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L510"
+    },
+    {
+      "id": "plans_2026_06_13_workflow_panel_redesign_task_5_\u65b0\u5efa\u4e09\u4e2a\u5c55\u793a\u7ec4\u4ef6_tabsbar_phasesidebar_agentlist",
+      "label": "Task 5: \u65b0\u5efa\u4e09\u4e2a\u5c55\u793a\u7ec4\u4ef6 `TabsBar` / `PhaseSidebar` / `AgentList`",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L682"
+    },
+    {
+      "id": "plans_2026_06_13_workflow_panel_redesign_task_6_\u91cd\u5199_workflowspanel_\u5220\u65e7\u7ec4\u4ef6_\u4fee\u6d4b\u8bd5_import",
+      "label": "Task 6: \u91cd\u5199 `WorkflowsPanel` + \u5220\u65e7\u7ec4\u4ef6 + \u4fee\u6d4b\u8bd5 import",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L844"
+    },
+    {
+      "id": "plans_2026_06_13_workflow_panel_redesign_task_7_\u6587\u6863\u66f4\u65b0_\u5168\u91cf_precheck",
+      "label": "Task 7: \u6587\u6863\u66f4\u65b0 + \u5168\u91cf precheck",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L1099"
+    },
+    {
+      "id": "plans_2026_06_13_workflow_panel_redesign_self_review_\u8ba1\u5212\u4f5c\u8005\u5df2\u5b8c\u6210",
+      "label": "Self-Review\uff08\u8ba1\u5212\u4f5c\u8005\u5df2\u5b8c\u6210\uff09",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L1135"
+    },
+    {
+      "id": "plans_2026_06_13_workflow_panel_redesign_execution_handoff",
+      "label": "Execution Handoff",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L1160"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_superpowers_plans_2026_06_13_workflow_panel_redesign_md",
+      "target": "plans_2026_06_13_workflow_panel_redesign_workflow_panel_redesign_implementation_plan",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "plans_2026_06_13_workflow_panel_redesign_workflow_panel_redesign_implementation_plan",
+      "target": "plans_2026_06_13_workflow_panel_redesign_\u9879\u76ee\u7ea6\u5b9a_\u8986\u76d6_skill_\u9ed8\u8ba4_\u6267\u884c\u524d\u5fc5\u8bfb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "plans_2026_06_13_workflow_panel_redesign_workflow_panel_redesign_implementation_plan",
+      "target": "plans_2026_06_13_workflow_panel_redesign_\u6587\u4ef6\u7ed3\u6784",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "plans_2026_06_13_workflow_panel_redesign_workflow_panel_redesign_implementation_plan",
+      "target": "plans_2026_06_13_workflow_panel_redesign_task_1_store_\u843d\u5730_declaredphases_outputshape",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "plans_2026_06_13_workflow_panel_redesign_workflow_panel_redesign_implementation_plan",
+      "target": "plans_2026_06_13_workflow_panel_redesign_task_2_\u65b0\u5efa_status_ts_\u72b6\u6001\u6620\u5c04_agentvisual",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L212",
+      "weight": 1.0
+    },
+    {
+      "source": "plans_2026_06_13_workflow_panel_redesign_workflow_panel_redesign_implementation_plan",
+      "target": "plans_2026_06_13_workflow_panel_redesign_task_3_\u65b0\u5efa_selectors_ts_mergephases_filteragentsbyphase_tablabel",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L351",
+      "weight": 1.0
+    },
+    {
+      "source": "plans_2026_06_13_workflow_panel_redesign_workflow_panel_redesign_implementation_plan",
+      "target": "plans_2026_06_13_workflow_panel_redesign_task_4_useworkflowkeyboard_\u6539\u7126\u70b9\u6a21\u578b_\u62bd_routeworkflowkey_\u7eaf\u51fd\u6570",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L510",
+      "weight": 1.0
+    },
+    {
+      "source": "plans_2026_06_13_workflow_panel_redesign_workflow_panel_redesign_implementation_plan",
+      "target": "plans_2026_06_13_workflow_panel_redesign_task_5_\u65b0\u5efa\u4e09\u4e2a\u5c55\u793a\u7ec4\u4ef6_tabsbar_phasesidebar_agentlist",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L682",
+      "weight": 1.0
+    },
+    {
+      "source": "plans_2026_06_13_workflow_panel_redesign_workflow_panel_redesign_implementation_plan",
+      "target": "plans_2026_06_13_workflow_panel_redesign_task_6_\u91cd\u5199_workflowspanel_\u5220\u65e7\u7ec4\u4ef6_\u4fee\u6d4b\u8bd5_import",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L844",
+      "weight": 1.0
+    },
+    {
+      "source": "plans_2026_06_13_workflow_panel_redesign_workflow_panel_redesign_implementation_plan",
+      "target": "plans_2026_06_13_workflow_panel_redesign_task_7_\u6587\u6863\u66f4\u65b0_\u5168\u91cf_precheck",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L1099",
+      "weight": 1.0
+    },
+    {
+      "source": "plans_2026_06_13_workflow_panel_redesign_workflow_panel_redesign_implementation_plan",
+      "target": "plans_2026_06_13_workflow_panel_redesign_self_review_\u8ba1\u5212\u4f5c\u8005\u5df2\u5b8c\u6210",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L1135",
+      "weight": 1.0
+    },
+    {
+      "source": "plans_2026_06_13_workflow_panel_redesign_workflow_panel_redesign_implementation_plan",
+      "target": "plans_2026_06_13_workflow_panel_redesign_execution_handoff",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/plans/2026-06-13-workflow-panel-redesign.md",
+      "source_location": "L1160",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

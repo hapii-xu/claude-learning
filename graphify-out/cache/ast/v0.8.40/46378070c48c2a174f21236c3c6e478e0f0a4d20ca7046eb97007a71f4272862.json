@@ -1,0 +1,255 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_acp_zed_md",
+      "label": "acp-zed.md",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_acp_zed_acp_agent_client_protocol_zed_ide_\u96c6\u6210",
+      "label": "ACP (Agent Client Protocol) \u2014 Zed / IDE \u96c6\u6210",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_acp_zed_\u4e00_\u529f\u80fd\u6982\u8ff0",
+      "label": "\u4e00\u3001\u529f\u80fd\u6982\u8ff0",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L7"
+    },
+    {
+      "id": "features_acp_zed_\u6838\u5fc3\u7279\u6027",
+      "label": "\u6838\u5fc3\u7279\u6027",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L11"
+    },
+    {
+      "id": "features_acp_zed_\u4e8c_\u67b6\u6784",
+      "label": "\u4e8c\u3001\u67b6\u6784",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L22"
+    },
+    {
+      "id": "features_acp_zed_\u6587\u4ef6\u804c\u8d23",
+      "label": "\u6587\u4ef6\u804c\u8d23",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L39"
+    },
+    {
+      "id": "features_acp_zed_\u4e09_\u914d\u7f6e_zed_\u7f16\u8f91\u5668",
+      "label": "\u4e09\u3001\u914d\u7f6e Zed \u7f16\u8f91\u5668",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L49"
+    },
+    {
+      "id": "features_acp_zed_3_1_zed_settings_json_\u914d\u7f6e",
+      "label": "3.1 Zed settings.json \u914d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L51"
+    },
+    {
+      "id": "features_acp_zed_3_3_api_\u8ba4\u8bc1\u914d\u7f6e",
+      "label": "3.3 API \u8ba4\u8bc1\u914d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L67"
+    },
+    {
+      "id": "features_acp_zed_3_4_\u5728_zed_\u4e2d\u4f7f\u7528",
+      "label": "3.4 \u5728 Zed \u4e2d\u4f7f\u7528",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L88"
+    },
+    {
+      "id": "features_acp_zed_3_5_\u529f\u80fd\u8bf4\u660e",
+      "label": "3.5 \u529f\u80fd\u8bf4\u660e",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L96"
+    },
+    {
+      "id": "features_acp_zed_\u56db_\u914d\u7f6e\u5176\u4ed6_acp_\u5ba2\u6237\u7aef",
+      "label": "\u56db\u3001\u914d\u7f6e\u5176\u4ed6 ACP \u5ba2\u6237\u7aef",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L107"
+    },
+    {
+      "id": "features_acp_zed_4_1_cursor",
+      "label": "4.1 Cursor",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L118"
+    },
+    {
+      "id": "features_acp_zed_4_2_\u81ea\u5b9a\u4e49\u5ba2\u6237\u7aef",
+      "label": "4.2 \u81ea\u5b9a\u4e49\u5ba2\u6237\u7aef",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L122"
+    },
+    {
+      "id": "features_acp_zed_\u4e94_acp_\u534f\u8bae\u652f\u6301\u77e9\u9635",
+      "label": "\u4e94\u3001ACP \u534f\u8bae\u652f\u6301\u77e9\u9635",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L158"
+    },
+    {
+      "id": "features_acp_zed_sessionupdate_\u7c7b\u578b",
+      "label": "SessionUpdate \u7c7b\u578b",
+      "file_type": "document",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L176"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_acp_zed_md",
+      "target": "features_acp_zed_acp_agent_client_protocol_zed_ide_\u96c6\u6210",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_zed_acp_agent_client_protocol_zed_ide_\u96c6\u6210",
+      "target": "features_acp_zed_\u4e00_\u529f\u80fd\u6982\u8ff0",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_zed_\u4e00_\u529f\u80fd\u6982\u8ff0",
+      "target": "features_acp_zed_\u6838\u5fc3\u7279\u6027",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_zed_acp_agent_client_protocol_zed_ide_\u96c6\u6210",
+      "target": "features_acp_zed_\u4e8c_\u67b6\u6784",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_zed_\u4e8c_\u67b6\u6784",
+      "target": "features_acp_zed_\u6587\u4ef6\u804c\u8d23",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L39",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_zed_acp_agent_client_protocol_zed_ide_\u96c6\u6210",
+      "target": "features_acp_zed_\u4e09_\u914d\u7f6e_zed_\u7f16\u8f91\u5668",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_zed_\u4e09_\u914d\u7f6e_zed_\u7f16\u8f91\u5668",
+      "target": "features_acp_zed_3_1_zed_settings_json_\u914d\u7f6e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L51",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_zed_\u4e09_\u914d\u7f6e_zed_\u7f16\u8f91\u5668",
+      "target": "features_acp_zed_3_3_api_\u8ba4\u8bc1\u914d\u7f6e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L67",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_zed_\u4e09_\u914d\u7f6e_zed_\u7f16\u8f91\u5668",
+      "target": "features_acp_zed_3_4_\u5728_zed_\u4e2d\u4f7f\u7528",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L88",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_zed_\u4e09_\u914d\u7f6e_zed_\u7f16\u8f91\u5668",
+      "target": "features_acp_zed_3_5_\u529f\u80fd\u8bf4\u660e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L96",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_zed_acp_agent_client_protocol_zed_ide_\u96c6\u6210",
+      "target": "features_acp_zed_\u56db_\u914d\u7f6e\u5176\u4ed6_acp_\u5ba2\u6237\u7aef",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L107",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_zed_\u56db_\u914d\u7f6e\u5176\u4ed6_acp_\u5ba2\u6237\u7aef",
+      "target": "features_acp_zed_4_1_cursor",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L118",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_zed_\u56db_\u914d\u7f6e\u5176\u4ed6_acp_\u5ba2\u6237\u7aef",
+      "target": "features_acp_zed_4_2_\u81ea\u5b9a\u4e49\u5ba2\u6237\u7aef",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L122",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_zed_acp_agent_client_protocol_zed_ide_\u96c6\u6210",
+      "target": "features_acp_zed_\u4e94_acp_\u534f\u8bae\u652f\u6301\u77e9\u9635",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L158",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_zed_\u4e94_acp_\u534f\u8bae\u652f\u6301\u77e9\u9635",
+      "target": "features_acp_zed_sessionupdate_\u7c7b\u578b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-zed.md",
+      "source_location": "L176",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

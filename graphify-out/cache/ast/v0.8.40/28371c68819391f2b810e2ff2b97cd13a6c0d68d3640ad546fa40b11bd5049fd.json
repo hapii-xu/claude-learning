@@ -1,0 +1,399 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_ink_docs_11_core_architecture_md",
+      "label": "11-core-architecture.md",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_11_core_architecture_chapter_11_core_architecture",
+      "label": "Chapter 11: Core Architecture",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_11_core_architecture_rendering_pipeline",
+      "label": "Rendering Pipeline",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L5"
+    },
+    {
+      "id": "docs_11_core_architecture_frame_lifecycle",
+      "label": "Frame Lifecycle",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L23"
+    },
+    {
+      "id": "docs_11_core_architecture_frame_timing",
+      "label": "Frame Timing",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L34"
+    },
+    {
+      "id": "docs_11_core_architecture_double_buffering",
+      "label": "Double Buffering",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L42"
+    },
+    {
+      "id": "docs_11_core_architecture_ink_dom",
+      "label": "Ink DOM",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L51"
+    },
+    {
+      "id": "docs_11_core_architecture_node_types",
+      "label": "Node Types",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L53"
+    },
+    {
+      "id": "docs_11_core_architecture_domelement",
+      "label": "DOMElement",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L65"
+    },
+    {
+      "id": "docs_11_core_architecture_textnode",
+      "label": "TextNode",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L97"
+    },
+    {
+      "id": "docs_11_core_architecture_dom_operations",
+      "label": "DOM Operations",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L107"
+    },
+    {
+      "id": "docs_11_core_architecture_screen_buffer",
+      "label": "Screen Buffer",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L129"
+    },
+    {
+      "id": "docs_11_core_architecture_cell_storage",
+      "label": "Cell Storage",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L131"
+    },
+    {
+      "id": "docs_11_core_architecture_cell_width",
+      "label": "Cell Width",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L151"
+    },
+    {
+      "id": "docs_11_core_architecture_style_pool",
+      "label": "Style Pool",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L162"
+    },
+    {
+      "id": "docs_11_core_architecture_diff_algorithm",
+      "label": "Diff Algorithm",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L176"
+    },
+    {
+      "id": "docs_11_core_architecture_screen_operations",
+      "label": "Screen Operations",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L184"
+    },
+    {
+      "id": "docs_11_core_architecture_layout_engine",
+      "label": "Layout Engine",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L195"
+    },
+    {
+      "id": "docs_11_core_architecture_yoga_integration",
+      "label": "Yoga Integration",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L197"
+    },
+    {
+      "id": "docs_11_core_architecture_style_application",
+      "label": "Style Application",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L214"
+    },
+    {
+      "id": "docs_11_core_architecture_output_buffer",
+      "label": "Output Buffer",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L224"
+    },
+    {
+      "id": "docs_11_core_architecture_reconciler",
+      "label": "Reconciler",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L237"
+    },
+    {
+      "id": "docs_11_core_architecture_host_config_methods",
+      "label": "Host Config Methods",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L246"
+    },
+    {
+      "id": "docs_11_core_architecture_performance_optimizations",
+      "label": "Performance Optimizations",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L259"
+    },
+    {
+      "id": "docs_11_core_architecture_frame_events",
+      "label": "Frame Events",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L269"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_ink_docs_11_core_architecture_md",
+      "target": "docs_11_core_architecture_chapter_11_core_architecture",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_chapter_11_core_architecture",
+      "target": "docs_11_core_architecture_rendering_pipeline",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_rendering_pipeline",
+      "target": "docs_11_core_architecture_frame_lifecycle",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_rendering_pipeline",
+      "target": "docs_11_core_architecture_frame_timing",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_rendering_pipeline",
+      "target": "docs_11_core_architecture_double_buffering",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L42",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_chapter_11_core_architecture",
+      "target": "docs_11_core_architecture_ink_dom",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L51",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_ink_dom",
+      "target": "docs_11_core_architecture_node_types",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L53",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_ink_dom",
+      "target": "docs_11_core_architecture_domelement",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_ink_dom",
+      "target": "docs_11_core_architecture_textnode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L97",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_ink_dom",
+      "target": "docs_11_core_architecture_dom_operations",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L107",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_chapter_11_core_architecture",
+      "target": "docs_11_core_architecture_screen_buffer",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L129",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_screen_buffer",
+      "target": "docs_11_core_architecture_cell_storage",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L131",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_screen_buffer",
+      "target": "docs_11_core_architecture_cell_width",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L151",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_screen_buffer",
+      "target": "docs_11_core_architecture_style_pool",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L162",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_screen_buffer",
+      "target": "docs_11_core_architecture_diff_algorithm",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L176",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_screen_buffer",
+      "target": "docs_11_core_architecture_screen_operations",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L184",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_chapter_11_core_architecture",
+      "target": "docs_11_core_architecture_layout_engine",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L195",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_layout_engine",
+      "target": "docs_11_core_architecture_yoga_integration",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L197",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_layout_engine",
+      "target": "docs_11_core_architecture_style_application",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L214",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_chapter_11_core_architecture",
+      "target": "docs_11_core_architecture_output_buffer",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L224",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_chapter_11_core_architecture",
+      "target": "docs_11_core_architecture_reconciler",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L237",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_reconciler",
+      "target": "docs_11_core_architecture_host_config_methods",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L246",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_chapter_11_core_architecture",
+      "target": "docs_11_core_architecture_performance_optimizations",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L259",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_11_core_architecture_chapter_11_core_architecture",
+      "target": "docs_11_core_architecture_frame_events",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/11-core-architecture.md",
+      "source_location": "L269",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

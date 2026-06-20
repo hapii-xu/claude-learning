@@ -1,0 +1,495 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_extensibility_mcp_protocol_mdx",
+      "label": "mcp-protocol.mdx",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L1"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u67b6\u6784\u603b\u89c8_\u4ece\u914d\u7f6e\u5230\u53ef\u7528\u5de5\u5177",
+      "label": "\u67b6\u6784\u603b\u89c8\uff1a\u4ece\u914d\u7f6e\u5230\u53ef\u7528\u5de5\u5177",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L9"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u4e24\u79cd_mcp_\u6a21\u5f0f_\u5185\u7f6e_vs_\u5916\u90e8",
+      "label": "\u4e24\u79cd MCP \u6a21\u5f0f\uff1a\u5185\u7f6e vs \u5916\u90e8",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L40"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u5185\u7f6e_mcp_\u670d\u52a1\u5668",
+      "label": "\u5185\u7f6e MCP \u670d\u52a1\u5668",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L44"
+    },
+    {
+      "id": "extensibility_mcp_protocol_inprocesstransport_\u96f6\u5f00\u9500\u540c\u8fdb\u7a0b\u901a\u4fe1",
+      "label": "InProcessTransport\uff1a\u96f6\u5f00\u9500\u540c\u8fdb\u7a0b\u901a\u4fe1",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L54"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u52a8\u6001\u6ce8\u518c\u6d41\u7a0b",
+      "label": "\u52a8\u6001\u6ce8\u518c\u6d41\u7a0b",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L75"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u8fde\u63a5\u65f6\u62e6\u622a",
+      "label": "\u8fde\u63a5\u65f6\u62e6\u622a",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L105"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u4fdd\u7559\u540d\u79f0\u4fdd\u62a4",
+      "label": "\u4fdd\u7559\u540d\u79f0\u4fdd\u62a4",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L133"
+    },
+    {
+      "id": "extensibility_mcp_protocol_vscode_sdk_mcp",
+      "label": "VSCode SDK MCP",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L149"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u5916\u90e8_mcp_\u670d\u52a1\u5668",
+      "label": "\u5916\u90e8 MCP \u670d\u52a1\u5668",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L170"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u914d\u7f6e\u6765\u6e90",
+      "label": "\u914d\u7f6e\u6765\u6e90",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L174"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u914d\u7f6e\u793a\u4f8b",
+      "label": "\u914d\u7f6e\u793a\u4f8b",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L185"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u914d\u7f6e\u5408\u5e76\u4e0e\u53bb\u91cd",
+      "label": "\u914d\u7f6e\u5408\u5e76\u4e0e\u53bb\u91cd",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L219"
+    },
+    {
+      "id": "extensibility_mcp_protocol_7_\u79cd\u4f20\u8f93\u5c42\u5b9e\u73b0",
+      "label": "7 \u79cd\u4f20\u8f93\u5c42\u5b9e\u73b0",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L228"
+    },
+    {
+      "id": "extensibility_mcp_protocol_stdio_\u4f20\u8f93\u7684\u8fdb\u7a0b\u7ba1\u7406",
+      "label": "stdio \u4f20\u8f93\u7684\u8fdb\u7a0b\u7ba1\u7406",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L243"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u8fdc\u7a0b\u4f20\u8f93\u7684\u8ba4\u8bc1\u72b6\u6001\u673a",
+      "label": "\u8fdc\u7a0b\u4f20\u8f93\u7684\u8ba4\u8bc1\u72b6\u6001\u673a",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L253"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u8fde\u63a5\u7f13\u5b58\u4e0e\u91cd\u8fde\u673a\u5236",
+      "label": "\u8fde\u63a5\u7f13\u5b58\u4e0e\u91cd\u8fde\u673a\u5236",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L266"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u7f13\u5b58\u5931\u6548\u89e6\u53d1",
+      "label": "\u7f13\u5b58\u5931\u6548\u89e6\u53d1",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L270"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u8fde\u63a5\u964d\u7ea7\u68c0\u6d4b",
+      "label": "\u8fde\u63a5\u964d\u7ea7\u68c0\u6d4b",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L284"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u8bf7\u6c42\u7ea7\u8d85\u65f6\u4fdd\u62a4",
+      "label": "\u8bf7\u6c42\u7ea7\u8d85\u65f6\u4fdd\u62a4",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L295"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u5de5\u5177\u53d1\u73b0_\u4ece_mcp_\u5230_tool_\u63a5\u53e3",
+      "label": "\u5de5\u5177\u53d1\u73b0\uff1a\u4ece MCP \u5230 Tool \u63a5\u53e3",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L305"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u5185\u7f6e_mcp_\u7684\u5de5\u5177\u53d1\u73b0",
+      "label": "\u5185\u7f6e MCP \u7684\u5de5\u5177\u53d1\u73b0",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L314"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u5de5\u5177\u63cf\u8ff0\u622a\u65ad",
+      "label": "\u5de5\u5177\u63cf\u8ff0\u622a\u65ad",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L322"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u5de5\u5177\u80fd\u529b\u6807\u6ce8",
+      "label": "\u5de5\u5177\u80fd\u529b\u6807\u6ce8",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L326"
+    },
+    {
+      "id": "extensibility_mcp_protocol_mcp_\u5de5\u5177\u7684\u6743\u9650\u68c0\u67e5",
+      "label": "MCP \u5de5\u5177\u7684\u6743\u9650\u68c0\u67e5",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L337"
+    },
+    {
+      "id": "extensibility_mcp_protocol_mcp_\u5de5\u5177\u7684\u6267\u884c\u94fe\u8def",
+      "label": "MCP \u5de5\u5177\u7684\u6267\u884c\u94fe\u8def",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L343"
+    },
+    {
+      "id": "extensibility_mcp_protocol_session_\u8fc7\u671f\u81ea\u52a8\u91cd\u8bd5",
+      "label": "Session \u8fc7\u671f\u81ea\u52a8\u91cd\u8bd5",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L358"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u5185\u5bb9\u622a\u65ad\u4e0e\u6301\u4e45\u5316",
+      "label": "\u5185\u5bb9\u622a\u65ad\u4e0e\u6301\u4e45\u5316",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L362"
+    },
+    {
+      "id": "extensibility_mcp_protocol_mcp_\u8fde\u63a5\u7684\u5e76\u53d1\u63a7\u5236",
+      "label": "MCP \u8fde\u63a5\u7684\u5e76\u53d1\u63a7\u5236",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L366"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u5185\u7f6e_vs_\u5916\u90e8_mcp_\u5bf9\u6bd4\u603b\u7ed3",
+      "label": "\u5185\u7f6e vs \u5916\u90e8 MCP \u5bf9\u6bd4\u603b\u7ed3",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L378"
+    },
+    {
+      "id": "extensibility_mcp_protocol_\u5173\u952e\u6e90\u6587\u4ef6\u7d22\u5f15",
+      "label": "\u5173\u952e\u6e90\u6587\u4ef6\u7d22\u5f15",
+      "file_type": "document",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L393"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_extensibility_mcp_protocol_mdx",
+      "target": "extensibility_mcp_protocol_\u67b6\u6784\u603b\u89c8_\u4ece\u914d\u7f6e\u5230\u53ef\u7528\u5de5\u5177",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_extensibility_mcp_protocol_mdx",
+      "target": "extensibility_mcp_protocol_\u4e24\u79cd_mcp_\u6a21\u5f0f_\u5185\u7f6e_vs_\u5916\u90e8",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u4e24\u79cd_mcp_\u6a21\u5f0f_\u5185\u7f6e_vs_\u5916\u90e8",
+      "target": "extensibility_mcp_protocol_\u5185\u7f6e_mcp_\u670d\u52a1\u5668",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u5185\u7f6e_mcp_\u670d\u52a1\u5668",
+      "target": "extensibility_mcp_protocol_inprocesstransport_\u96f6\u5f00\u9500\u540c\u8fdb\u7a0b\u901a\u4fe1",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u5185\u7f6e_mcp_\u670d\u52a1\u5668",
+      "target": "extensibility_mcp_protocol_\u52a8\u6001\u6ce8\u518c\u6d41\u7a0b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L75",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u5185\u7f6e_mcp_\u670d\u52a1\u5668",
+      "target": "extensibility_mcp_protocol_\u8fde\u63a5\u65f6\u62e6\u622a",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L105",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u5185\u7f6e_mcp_\u670d\u52a1\u5668",
+      "target": "extensibility_mcp_protocol_\u4fdd\u7559\u540d\u79f0\u4fdd\u62a4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L133",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u5185\u7f6e_mcp_\u670d\u52a1\u5668",
+      "target": "extensibility_mcp_protocol_vscode_sdk_mcp",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L149",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u4e24\u79cd_mcp_\u6a21\u5f0f_\u5185\u7f6e_vs_\u5916\u90e8",
+      "target": "extensibility_mcp_protocol_\u5916\u90e8_mcp_\u670d\u52a1\u5668",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L170",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u5916\u90e8_mcp_\u670d\u52a1\u5668",
+      "target": "extensibility_mcp_protocol_\u914d\u7f6e\u6765\u6e90",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L174",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u5916\u90e8_mcp_\u670d\u52a1\u5668",
+      "target": "extensibility_mcp_protocol_\u914d\u7f6e\u793a\u4f8b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L185",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u5916\u90e8_mcp_\u670d\u52a1\u5668",
+      "target": "extensibility_mcp_protocol_\u914d\u7f6e\u5408\u5e76\u4e0e\u53bb\u91cd",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L219",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_extensibility_mcp_protocol_mdx",
+      "target": "extensibility_mcp_protocol_7_\u79cd\u4f20\u8f93\u5c42\u5b9e\u73b0",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L228",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_7_\u79cd\u4f20\u8f93\u5c42\u5b9e\u73b0",
+      "target": "extensibility_mcp_protocol_stdio_\u4f20\u8f93\u7684\u8fdb\u7a0b\u7ba1\u7406",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L243",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_7_\u79cd\u4f20\u8f93\u5c42\u5b9e\u73b0",
+      "target": "extensibility_mcp_protocol_\u8fdc\u7a0b\u4f20\u8f93\u7684\u8ba4\u8bc1\u72b6\u6001\u673a",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L253",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_extensibility_mcp_protocol_mdx",
+      "target": "extensibility_mcp_protocol_\u8fde\u63a5\u7f13\u5b58\u4e0e\u91cd\u8fde\u673a\u5236",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L266",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u8fde\u63a5\u7f13\u5b58\u4e0e\u91cd\u8fde\u673a\u5236",
+      "target": "extensibility_mcp_protocol_\u7f13\u5b58\u5931\u6548\u89e6\u53d1",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L270",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u8fde\u63a5\u7f13\u5b58\u4e0e\u91cd\u8fde\u673a\u5236",
+      "target": "extensibility_mcp_protocol_\u8fde\u63a5\u964d\u7ea7\u68c0\u6d4b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L284",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u8fde\u63a5\u7f13\u5b58\u4e0e\u91cd\u8fde\u673a\u5236",
+      "target": "extensibility_mcp_protocol_\u8bf7\u6c42\u7ea7\u8d85\u65f6\u4fdd\u62a4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L295",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_extensibility_mcp_protocol_mdx",
+      "target": "extensibility_mcp_protocol_\u5de5\u5177\u53d1\u73b0_\u4ece_mcp_\u5230_tool_\u63a5\u53e3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L305",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u5de5\u5177\u53d1\u73b0_\u4ece_mcp_\u5230_tool_\u63a5\u53e3",
+      "target": "extensibility_mcp_protocol_\u5185\u7f6e_mcp_\u7684\u5de5\u5177\u53d1\u73b0",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L314",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u5de5\u5177\u53d1\u73b0_\u4ece_mcp_\u5230_tool_\u63a5\u53e3",
+      "target": "extensibility_mcp_protocol_\u5de5\u5177\u63cf\u8ff0\u622a\u65ad",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L322",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u5de5\u5177\u53d1\u73b0_\u4ece_mcp_\u5230_tool_\u63a5\u53e3",
+      "target": "extensibility_mcp_protocol_\u5de5\u5177\u80fd\u529b\u6807\u6ce8",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L326",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_\u5de5\u5177\u53d1\u73b0_\u4ece_mcp_\u5230_tool_\u63a5\u53e3",
+      "target": "extensibility_mcp_protocol_mcp_\u5de5\u5177\u7684\u6743\u9650\u68c0\u67e5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L337",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_extensibility_mcp_protocol_mdx",
+      "target": "extensibility_mcp_protocol_mcp_\u5de5\u5177\u7684\u6267\u884c\u94fe\u8def",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L343",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_mcp_\u5de5\u5177\u7684\u6267\u884c\u94fe\u8def",
+      "target": "extensibility_mcp_protocol_session_\u8fc7\u671f\u81ea\u52a8\u91cd\u8bd5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L358",
+      "weight": 1.0
+    },
+    {
+      "source": "extensibility_mcp_protocol_mcp_\u5de5\u5177\u7684\u6267\u884c\u94fe\u8def",
+      "target": "extensibility_mcp_protocol_\u5185\u5bb9\u622a\u65ad\u4e0e\u6301\u4e45\u5316",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L362",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_extensibility_mcp_protocol_mdx",
+      "target": "extensibility_mcp_protocol_mcp_\u8fde\u63a5\u7684\u5e76\u53d1\u63a7\u5236",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L366",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_extensibility_mcp_protocol_mdx",
+      "target": "extensibility_mcp_protocol_\u5185\u7f6e_vs_\u5916\u90e8_mcp_\u5bf9\u6bd4\u603b\u7ed3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L378",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_extensibility_mcp_protocol_mdx",
+      "target": "extensibility_mcp_protocol_\u5173\u952e\u6e90\u6587\u4ef6\u7d22\u5f15",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/extensibility/mcp-protocol.mdx",
+      "source_location": "L393",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

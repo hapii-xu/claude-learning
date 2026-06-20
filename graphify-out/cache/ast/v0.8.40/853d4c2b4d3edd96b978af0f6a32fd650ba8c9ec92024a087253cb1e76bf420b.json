@@ -1,0 +1,559 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_conversation_multi_turn_mdx",
+      "label": "multi-turn.mdx",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L1"
+    },
+    {
+      "id": "conversation_multi_turn_\u6838\u5fc3\u6982\u5ff5\u5bf9\u6bd4",
+      "label": "\ud83c\udd9a \u6838\u5fc3\u6982\u5ff5\u5bf9\u6bd4",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L14"
+    },
+    {
+      "id": "conversation_multi_turn_onqueryimpl_\u65b9\u6cd5\u7684\u8be6\u7ec6\u89e3\u6790",
+      "label": "`onQueryImpl` \u65b9\u6cd5\u7684\u8be6\u7ec6\u89e3\u6790",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L60"
+    },
+    {
+      "id": "conversation_multi_turn_\u4e00_\u51fd\u6570\u7b7e\u540d\u4e0e\u53c2\u6570",
+      "label": "\u4e00\u3001\u51fd\u6570\u7b7e\u540d\u4e0e\u53c2\u6570",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L65"
+    },
+    {
+      "id": "conversation_multi_turn_\u4e8c_\u603b\u4f53\u6267\u884c\u6d41\u7a0b",
+      "label": "\u4e8c\u3001\u603b\u4f53\u6267\u884c\u6d41\u7a0b",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L94"
+    },
+    {
+      "id": "conversation_multi_turn_\u4e09_\u6838\u5fc3\u903b\u8f91\u8be6\u89e3",
+      "label": "\u4e09\u3001\u6838\u5fc3\u903b\u8f91\u8be6\u89e3",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L122"
+    },
+    {
+      "id": "conversation_multi_turn_3_1_ide_\u96c6\u6210\u4e0e\u8bca\u65ad_\u4ec5_shouldquery_true",
+      "label": "3.1 IDE \u96c6\u6210\u4e0e\u8bca\u65ad\uff08\u4ec5 `shouldQuery = true`\uff09",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L124"
+    },
+    {
+      "id": "conversation_multi_turn_3_2_\u4f1a\u8bdd\u6807\u9898\u751f\u6210_\u4ec5\u4e00\u6b21",
+      "label": "3.2 \u4f1a\u8bdd\u6807\u9898\u751f\u6210\uff08\u4ec5\u4e00\u6b21\uff09",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L137"
+    },
+    {
+      "id": "conversation_multi_turn_3_3_\u6743\u9650\u5de5\u5177\u8986\u76d6\u5199\u5165_store",
+      "label": "3.3 \u6743\u9650\u5de5\u5177\u8986\u76d6\u5199\u5165 Store",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L155"
+    },
+    {
+      "id": "conversation_multi_turn_3_4_shouldquery_false_\u5206\u652f",
+      "label": "3.4 `shouldQuery = false` \u5206\u652f",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L170"
+    },
+    {
+      "id": "conversation_multi_turn_3_5_\u67e5\u8be2\u524d\u7f6e\u51c6\u5907_shouldquery_true",
+      "label": "3.5 \u67e5\u8be2\u524d\u7f6e\u51c6\u5907\uff08`shouldQuery = true`\uff09",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L190"
+    },
+    {
+      "id": "conversation_multi_turn_3_5_1_\u83b7\u53d6_toolusecontext",
+      "label": "3.5.1 \u83b7\u53d6 ToolUseContext",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L192"
+    },
+    {
+      "id": "conversation_multi_turn_3_5_2_effort_\u8986\u76d6_\u4e34\u65f6",
+      "label": "3.5.2 Effort \u8986\u76d6\uff08\u4e34\u65f6\uff09",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L201"
+    },
+    {
+      "id": "conversation_multi_turn_3_5_3_\u5e76\u884c\u83b7\u53d6\u63d0\u793a\u4e0e\u4e0a\u4e0b\u6587",
+      "label": "3.5.3 \u5e76\u884c\u83b7\u53d6\u63d0\u793a\u4e0e\u4e0a\u4e0b\u6587",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L213"
+    },
+    {
+      "id": "conversation_multi_turn_3_5_4_\u589e\u5f3a\u7528\u6237\u4e0a\u4e0b\u6587",
+      "label": "3.5.4 \u589e\u5f3a\u7528\u6237\u4e0a\u4e0b\u6587",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L231"
+    },
+    {
+      "id": "conversation_multi_turn_3_5_5_\u6784\u5efa\u6700\u7ec8\u7cfb\u7edf\u63d0\u793a",
+      "label": "3.5.5 \u6784\u5efa\u6700\u7ec8\u7cfb\u7edf\u63d0\u793a",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L245"
+    },
+    {
+      "id": "conversation_multi_turn_3_6_\u6267\u884c\u67e5\u8be2\u4e0e\u6d41\u5f0f\u4e8b\u4ef6\u5904\u7406",
+      "label": "3.6 \u6267\u884c\u67e5\u8be2\u4e0e\u6d41\u5f0f\u4e8b\u4ef6\u5904\u7406",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L259"
+    },
+    {
+      "id": "conversation_multi_turn_3_7_\u540e\u5904\u7406\u4e0e\u6307\u6807\u6536\u96c6",
+      "label": "3.7 \u540e\u5904\u7406\u4e0e\u6307\u6807\u6536\u96c6",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L272"
+    },
+    {
+      "id": "conversation_multi_turn_3_7_1_buddy_\u7279\u6027_companion_\u53cd\u5e94",
+      "label": "3.7.1 BUDDY \u7279\u6027\uff08companion \u53cd\u5e94\uff09",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L274"
+    },
+    {
+      "id": "conversation_multi_turn_3_7_2_uds_inbox_\u4e2d\u65ad\u5904\u7406",
+      "label": "3.7.2 UDS_INBOX \u4e2d\u65ad\u5904\u7406",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L284"
+    },
+    {
+      "id": "conversation_multi_turn_3_7_3_ant_\u5185\u90e8\u7528\u6237\u7684_api_\u6307\u6807\u8bb0\u5f55",
+      "label": "3.7.3 Ant \u5185\u90e8\u7528\u6237\u7684 API \u6307\u6807\u8bb0\u5f55",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L295"
+    },
+    {
+      "id": "conversation_multi_turn_3_7_4_\u91cd\u7f6e\u4e0e\u6e05\u7406",
+      "label": "3.7.4 \u91cd\u7f6e\u4e0e\u6e05\u7406",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L313"
+    },
+    {
+      "id": "conversation_multi_turn_\u5355\u8f6e_vs_\u591a\u8f6e_\u67b6\u6784\u5c42\u9762\u7684\u5dee\u5f02",
+      "label": "\u5355\u8f6e vs \u591a\u8f6e\uff1a\u67b6\u6784\u5c42\u9762\u7684\u5dee\u5f02",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L326"
+    },
+    {
+      "id": "conversation_multi_turn_queryengine_\u7684\u6838\u5fc3\u65b9\u6cd5_submitmessage",
+      "label": "QueryEngine \u7684\u6838\u5fc3\u65b9\u6cd5\uff1asubmitMessage()",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L345"
+    },
+    {
+      "id": "conversation_multi_turn_\u4f1a\u8bdd\u6301\u4e45\u5316_jsonl_transcript",
+      "label": "\u4f1a\u8bdd\u6301\u4e45\u5316\uff1aJSONL Transcript",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L391"
+    },
+    {
+      "id": "conversation_multi_turn_\u5b58\u50a8\u8def\u5f84",
+      "label": "\u5b58\u50a8\u8def\u5f84",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L395"
+    },
+    {
+      "id": "conversation_multi_turn_transcript_\u5199\u5165\u5668",
+      "label": "Transcript \u5199\u5165\u5668",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L405"
+    },
+    {
+      "id": "conversation_multi_turn_\u4f1a\u8bdd\u6062\u590d\u94fe\u8def",
+      "label": "\u4f1a\u8bdd\u6062\u590d\u94fe\u8def",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L432"
+    },
+    {
+      "id": "conversation_multi_turn_\u6210\u672c\u8ffd\u8e2a_\u4ece_api_usage_\u5230\u7f8e\u5143",
+      "label": "\u6210\u672c\u8ffd\u8e2a\uff1a\u4ece API Usage \u5230\u7f8e\u5143",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L456"
+    },
+    {
+      "id": "conversation_multi_turn_\u8bb0\u5f55\u5c42_api_\u54cd\u5e94\u4e2d\u7684_usage",
+      "label": "\u8bb0\u5f55\u5c42\uff1aAPI \u54cd\u5e94\u4e2d\u7684 Usage",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L460"
+    },
+    {
+      "id": "conversation_multi_turn_\u7d2f\u8ba1\u5c42_cost_tracker_ts",
+      "label": "\u7d2f\u8ba1\u5c42\uff1acost-tracker.ts",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L464"
+    },
+    {
+      "id": "conversation_multi_turn_\u6301\u4e45\u5316_\u8de8\u91cd\u542f\u4fdd\u7559",
+      "label": "\u6301\u4e45\u5316\uff1a\u8de8\u91cd\u542f\u4fdd\u7559",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L482"
+    },
+    {
+      "id": "conversation_multi_turn_\u9884\u7b97\u7194\u65ad",
+      "label": "\u9884\u7b97\u7194\u65ad",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L492"
+    },
+    {
+      "id": "conversation_multi_turn_\u6a21\u578b\u70ed\u5207\u6362",
+      "label": "\u6a21\u578b\u70ed\u5207\u6362",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L496"
+    },
+    {
+      "id": "conversation_multi_turn_\u6587\u4ef6\u5feb\u7167\u4e0e\u56de\u6eda",
+      "label": "\u6587\u4ef6\u5feb\u7167\u4e0e\u56de\u6eda",
+      "file_type": "document",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L517"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_conversation_multi_turn_mdx",
+      "target": "conversation_multi_turn_\u6838\u5fc3\u6982\u5ff5\u5bf9\u6bd4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_conversation_multi_turn_mdx",
+      "target": "conversation_multi_turn_onqueryimpl_\u65b9\u6cd5\u7684\u8be6\u7ec6\u89e3\u6790",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L60",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_onqueryimpl_\u65b9\u6cd5\u7684\u8be6\u7ec6\u89e3\u6790",
+      "target": "conversation_multi_turn_\u4e00_\u51fd\u6570\u7b7e\u540d\u4e0e\u53c2\u6570",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_onqueryimpl_\u65b9\u6cd5\u7684\u8be6\u7ec6\u89e3\u6790",
+      "target": "conversation_multi_turn_\u4e8c_\u603b\u4f53\u6267\u884c\u6d41\u7a0b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L94",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_onqueryimpl_\u65b9\u6cd5\u7684\u8be6\u7ec6\u89e3\u6790",
+      "target": "conversation_multi_turn_\u4e09_\u6838\u5fc3\u903b\u8f91\u8be6\u89e3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L122",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_\u4e09_\u6838\u5fc3\u903b\u8f91\u8be6\u89e3",
+      "target": "conversation_multi_turn_3_1_ide_\u96c6\u6210\u4e0e\u8bca\u65ad_\u4ec5_shouldquery_true",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L124",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_\u4e09_\u6838\u5fc3\u903b\u8f91\u8be6\u89e3",
+      "target": "conversation_multi_turn_3_2_\u4f1a\u8bdd\u6807\u9898\u751f\u6210_\u4ec5\u4e00\u6b21",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L137",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_\u4e09_\u6838\u5fc3\u903b\u8f91\u8be6\u89e3",
+      "target": "conversation_multi_turn_3_3_\u6743\u9650\u5de5\u5177\u8986\u76d6\u5199\u5165_store",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L155",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_\u4e09_\u6838\u5fc3\u903b\u8f91\u8be6\u89e3",
+      "target": "conversation_multi_turn_3_4_shouldquery_false_\u5206\u652f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L170",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_\u4e09_\u6838\u5fc3\u903b\u8f91\u8be6\u89e3",
+      "target": "conversation_multi_turn_3_5_\u67e5\u8be2\u524d\u7f6e\u51c6\u5907_shouldquery_true",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L190",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_3_5_\u67e5\u8be2\u524d\u7f6e\u51c6\u5907_shouldquery_true",
+      "target": "conversation_multi_turn_3_5_1_\u83b7\u53d6_toolusecontext",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L192",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_3_5_\u67e5\u8be2\u524d\u7f6e\u51c6\u5907_shouldquery_true",
+      "target": "conversation_multi_turn_3_5_2_effort_\u8986\u76d6_\u4e34\u65f6",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L201",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_3_5_\u67e5\u8be2\u524d\u7f6e\u51c6\u5907_shouldquery_true",
+      "target": "conversation_multi_turn_3_5_3_\u5e76\u884c\u83b7\u53d6\u63d0\u793a\u4e0e\u4e0a\u4e0b\u6587",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L213",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_3_5_\u67e5\u8be2\u524d\u7f6e\u51c6\u5907_shouldquery_true",
+      "target": "conversation_multi_turn_3_5_4_\u589e\u5f3a\u7528\u6237\u4e0a\u4e0b\u6587",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L231",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_3_5_\u67e5\u8be2\u524d\u7f6e\u51c6\u5907_shouldquery_true",
+      "target": "conversation_multi_turn_3_5_5_\u6784\u5efa\u6700\u7ec8\u7cfb\u7edf\u63d0\u793a",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L245",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_\u4e09_\u6838\u5fc3\u903b\u8f91\u8be6\u89e3",
+      "target": "conversation_multi_turn_3_6_\u6267\u884c\u67e5\u8be2\u4e0e\u6d41\u5f0f\u4e8b\u4ef6\u5904\u7406",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L259",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_\u4e09_\u6838\u5fc3\u903b\u8f91\u8be6\u89e3",
+      "target": "conversation_multi_turn_3_7_\u540e\u5904\u7406\u4e0e\u6307\u6807\u6536\u96c6",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L272",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_3_7_\u540e\u5904\u7406\u4e0e\u6307\u6807\u6536\u96c6",
+      "target": "conversation_multi_turn_3_7_1_buddy_\u7279\u6027_companion_\u53cd\u5e94",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L274",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_3_7_\u540e\u5904\u7406\u4e0e\u6307\u6807\u6536\u96c6",
+      "target": "conversation_multi_turn_3_7_2_uds_inbox_\u4e2d\u65ad\u5904\u7406",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L284",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_3_7_\u540e\u5904\u7406\u4e0e\u6307\u6807\u6536\u96c6",
+      "target": "conversation_multi_turn_3_7_3_ant_\u5185\u90e8\u7528\u6237\u7684_api_\u6307\u6807\u8bb0\u5f55",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L295",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_3_7_\u540e\u5904\u7406\u4e0e\u6307\u6807\u6536\u96c6",
+      "target": "conversation_multi_turn_3_7_4_\u91cd\u7f6e\u4e0e\u6e05\u7406",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L313",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_conversation_multi_turn_mdx",
+      "target": "conversation_multi_turn_\u5355\u8f6e_vs_\u591a\u8f6e_\u67b6\u6784\u5c42\u9762\u7684\u5dee\u5f02",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L326",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_conversation_multi_turn_mdx",
+      "target": "conversation_multi_turn_queryengine_\u7684\u6838\u5fc3\u65b9\u6cd5_submitmessage",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L345",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_conversation_multi_turn_mdx",
+      "target": "conversation_multi_turn_\u4f1a\u8bdd\u6301\u4e45\u5316_jsonl_transcript",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L391",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_\u4f1a\u8bdd\u6301\u4e45\u5316_jsonl_transcript",
+      "target": "conversation_multi_turn_\u5b58\u50a8\u8def\u5f84",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L395",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_\u4f1a\u8bdd\u6301\u4e45\u5316_jsonl_transcript",
+      "target": "conversation_multi_turn_transcript_\u5199\u5165\u5668",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L405",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_\u4f1a\u8bdd\u6301\u4e45\u5316_jsonl_transcript",
+      "target": "conversation_multi_turn_\u4f1a\u8bdd\u6062\u590d\u94fe\u8def",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L432",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_conversation_multi_turn_mdx",
+      "target": "conversation_multi_turn_\u6210\u672c\u8ffd\u8e2a_\u4ece_api_usage_\u5230\u7f8e\u5143",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L456",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_\u6210\u672c\u8ffd\u8e2a_\u4ece_api_usage_\u5230\u7f8e\u5143",
+      "target": "conversation_multi_turn_\u8bb0\u5f55\u5c42_api_\u54cd\u5e94\u4e2d\u7684_usage",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L460",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_\u6210\u672c\u8ffd\u8e2a_\u4ece_api_usage_\u5230\u7f8e\u5143",
+      "target": "conversation_multi_turn_\u7d2f\u8ba1\u5c42_cost_tracker_ts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L464",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_\u6210\u672c\u8ffd\u8e2a_\u4ece_api_usage_\u5230\u7f8e\u5143",
+      "target": "conversation_multi_turn_\u6301\u4e45\u5316_\u8de8\u91cd\u542f\u4fdd\u7559",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L482",
+      "weight": 1.0
+    },
+    {
+      "source": "conversation_multi_turn_\u6210\u672c\u8ffd\u8e2a_\u4ece_api_usage_\u5230\u7f8e\u5143",
+      "target": "conversation_multi_turn_\u9884\u7b97\u7194\u65ad",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L492",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_conversation_multi_turn_mdx",
+      "target": "conversation_multi_turn_\u6a21\u578b\u70ed\u5207\u6362",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L496",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_conversation_multi_turn_mdx",
+      "target": "conversation_multi_turn_\u6587\u4ef6\u5feb\u7167\u4e0e\u56de\u6eda",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/conversation/multi-turn.mdx",
+      "source_location": "L517",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

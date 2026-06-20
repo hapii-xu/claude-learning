@@ -1,0 +1,321 @@
+---
+title: API 通信层知识总结
+description: Claude Code 的"神经通路"——query.ts 编排层 + claude.ts 执行层的双层架构、请求参数组装（system/messages/tools/betas/max_tokens）、Beta 标志动态管理（getMergedBetas + 粘性锁存）、7 种 Provider 及选择逻辑、流式事件处理（5 种事件类型）、Tool Use 块的收集与执行、单一 addCacheBreakpoints 策略、以及 usage/cost 双轨追踪
+---
+
+# API 通信层知识总结
+
+> 这是"总结学习"栏目的第十一篇。目标：彻底理解 Claude Code 如何**构造每一轮 API 请求、处理流式响应、驱动工具调用循环**——从 `queryLoop()` 中的一次迭代，到 `claude.ts` 里的 `buildSystemPromptBlocks`，到流式事件的逐条处理，最终回到工具执行结果写入下一轮消息。
+
+---
+
+## 一、API 通信层全貌
+
+### 双层架构
+
+```
+query.ts (编排层)                    src/services/api/claude.ts (执行层)
+──────────────────────────────────    ────────────────────────────────────
+query() → queryLoop()                 queryModel()
+  管理多轮对话状态                       组装请求参数
+  调用 deps.callModel()                 路由到 Provider
+  收集 AssistantMessage                 处理流式事件
+  执行 tool_use 块                      yield StreamEvent
+  auto-compact 检查                     updateUsage / cost 计算
+  token budget 管理
+```
+
+### 一次 API 调用的完整生命周期
+
+```
+queryLoop() 迭代开始
+    ↓
+fetchSystemPromptParts()         ← 三源汇流（已在上下文工程篇学过）
+    ↓
+deps.callModel(messages, ...)    ← 委托给 queryModelWithStreaming()
+    ↓
+queryModel() 组装请求参数
+    ├─ buildSystemPromptBlocks() ← system[] 含 cache_control
+    ├─ addCacheBreakpoints()     ← messages[] 末尾插入缓存断点
+    ├─ getMergedBetas()          ← betas[] 动态收集
+    ├─ allTools[]                ← 内置 + MCP 工具列表
+    └─ max_tokens 解析
+    ↓
+anthropic.beta.messages.create() 流式调用
+    ↓
+stream event loop（5 种事件）
+    ↓
+yield AssistantMessage
+    ↓
+queryLoop() 收集结果
+    ├─ 有 tool_use → runTools() / StreamingToolExecutor
+    └─ 无 tool_use → return { reason: 'completed' }
+```
+
+---
+
+## 二、必须掌握的 6 个核心概念
+
+### 1. 请求参数组装（`buildApiRequestParams`）
+
+> 核心位置：`src/services/api/claude.ts` `paramsFromContext()` 闭包（约 line 1634）
+
+最终发送给 API 的请求参数结构：
+
+```typescript
+{
+  model: normalizeModelStringForAPI(options.model),
+  
+  // 系统提示词（已含 cache_control）
+  system: buildSystemPromptBlocks(systemPrompt, isSkipCacheWrite),
+  
+  // 对话历史（末尾插入缓存断点）
+  messages: addCacheBreakpoints(normalizedMessages, skipCacheWrite),
+  
+  // 工具列表（内置工具在前，MCP 工具追加末尾）
+  tools: allTools,
+  tool_choice: options.toolChoice,
+  
+  // Beta 功能标志
+  betas: filteredBetas,
+  
+  // 输出限制
+  max_tokens: maxOutputTokens,
+  
+  // 思考配置（interleaved thinking 时）
+  thinking: { type: 'enabled', budget_tokens: N },
+  
+  // 温度（仅在 thinking 关闭时）
+  temperature: 1,
+  
+  // 请求元数据
+  metadata: getAPIMetadata(),
+  
+  // 可选：
+  speed: 'fast',           // 快速模式
+  context_management: {},  // 上下文管理 beta
+  output_config: { effort, task_budget, format },  // 输出配置
+  ...extraBodyParams,      // env 注入的额外参数
+}
+```
+
+**关键字段说明**：
+- `system`：`string[]`，每个元素是独立 system block，支持 `cache_control`（静态前缀有 TTL，动态块每轮重算）
+- `messages`：`MessageParam[]`，含 `cache_control` 标记（单一断点策略，见下）
+- `betas`：过滤掉空字符串后的功能标志列表
+- `max_tokens`：首轮 8K（`CAPPED_DEFAULT_MAX_TOKENS`），遇 `max_tokens` 停止时升级到 64K 重试
+
+### 2. Beta 标志动态管理
+
+> 核心文件：`src/utils/betas.ts`（`getMergedBetas`）、`src/constants/betas.ts`
+
+Beta 分三层叠加：
+
+```
+Layer 1: getModelBetas()       ← 模型级固定 beta（按模型版本确定，memoized）
+Layer 2: isAgenticQuery betas  ← 代理查询时追加（claude-code / interleaved-thinking 等）
+Layer 3: 动态粘性锁存（latch）  ← 运行时条件触发，写入 bootstrap state 不可逆
+```
+
+**常用 Beta 常量**（`src/constants/betas.ts`）：
+
+| Beta 名称 | Header 值 | 启用条件 |
+|-----------|-----------|---------|
+| Claude Code | `claude-code-20250219` | 所有代理查询 |
+| Interleaved Thinking | `interleaved-thinking-2025-05-14` | 思考模式 |
+| Context 1M | `context-1m-2025-08-07` | 1M 上下文开关 |
+| Context Management | `context-management-2025-06-27` | 上下文管理策略 |
+| Structured Outputs | `structured-outputs-2025-12-15` | JSON schema 验证 |
+| Fast Mode | `fast-mode-2026-02-01` | 快速模式锁存 |
+| Effort | `effort-2025-11-24` | 输出质量控制 |
+| Task Budgets | `task-budgets-2026-03-13` | Token 预算跟踪 |
+| Advisor | `advisor-tool-2026-03-01` | 服务端 advisor 工具 |
+
+**粘性锁存（latch）**：fast-mode、AFK-mode、cache-editing 等 beta 一旦激活写入 bootstrap state，当前会话不可逆，避免在请求中反复切换导致缓存失效。
+
+### 3. 流式事件处理（5 种事件类型）
+
+> 核心位置：`src/services/api/claude.ts` line 2088-2387
+
+`BetaRawMessageStreamEvent` 事件类型与处理：
+
+| 事件 | 触发时机 | 主要动作 |
+|------|---------|---------|
+| `message_start` | 流开始 | 初始化 `partialMessage`，记录 TTFT，更新初始 usage |
+| `content_block_start` | 新内容块 | 按 `type` 初始化（`tool_use`/`text`/`thinking`），input/text 设为空串 |
+| `content_block_delta` | 增量内容 | 追加 `text_delta`→ text map，`input_json_delta` → tool input，`thinking_delta` → thinking |
+| `content_block_stop` | 块结束 | **join text map**（O(n) 非 O(n²)），归一化 content block，yield `AssistantMessage` |
+| `message_delta` | 流结束 | 更新最终 usage，计算 cost，记录 stop_reason |
+
+**文本累积优化**（line 2243, 2314）：
+```
+delta 阶段：Map<blockIndex, string[]>.push(delta)   ← O(1) 追加
+stop 阶段：map.get(index).join('')                   ← O(n) 一次 join
+```
+避免逐 delta 字符串拼接的 O(n²) 复杂度，在长文本输出时效果显著。
+
+### 4. Tool Use 块的收集与执行
+
+**收集阶段**（`content_block_start` + `content_block_delta`）：
+```
+content_block_start { type: 'tool_use', id, name }
+    → 初始化 contentBlock = { type: 'tool_use', id, name, input: '' }
+content_block_delta { type: 'input_json_delta', partial_json }
+    → contentBlock.input += partial_json
+content_block_stop
+    → JSON.parse(contentBlock.input) → 完整 tool input
+    → yield AssistantMessage（含 tool_use 内容块）
+```
+
+**执行阶段**（回到 `queryLoop()`）：
+- **非流式工具**：`runTools()` 串行执行所有 tool_use 块
+- **流式工具**（StreamingToolExecutor）：边收流边并行执行，减少等待时间
+- 执行结果作为 `tool_result` 用户消息追加，进入下一轮循环
+
+**权限检查**：工具执行前经过 `canUseTool()` → 弹框或自动允许（已在安全与权限篇学过）。
+
+### 5. 单一 addCacheBreakpoints 策略
+
+> 核心位置：`src/services/api/claude.ts` line 3241（同上下文工程篇，此处补充细节）
+
+```
+普通请求：cache_control 插入最后一条消息（messages[last]）
+skipCacheWrite 请求：插入倒数第二条（messages[last-2]）
+    ↑ 用于 fork 子代理：不污染父会话的 KV cache 状态
+```
+
+**系统提示词缓存**（`buildSystemPromptBlocks` line 3392）：
+- 静态前缀块：带 `cache_control`（5min 或 1h TTL，`should1hCacheTTL()` latch 控制避免频繁切换）
+- 动态块（如 mcp_instructions）：无 `cache_control`，每轮重算
+- 当 MCP 工具列表为空且启用 global cache 时，system prompt 使用 `scope: 'global'`（跨会话共享 KV cache）
+
+### 6. 7 种 Provider 及选择逻辑
+
+> 核心位置：`src/utils/model/providers.ts`
+
+**选择优先级**（高→低）：
+```typescript
+1. settings.modelType ('openai'/'gemini'/'grok')    ← UI 持久化设置
+2. CLAUDE_CODE_USE_BEDROCK / VERTEX / FOUNDRY       ← 企业部署环境变量
+3. CLAUDE_CODE_USE_OPENAI / GEMINI / GROK           ← 兼容层开关
+4. 默认：firstParty（Anthropic API 直连）
+```
+
+**各 Provider 差异**：
+
+| Provider | 关键差异 |
+|----------|---------|
+| `firstParty` | Anthropic SDK 直连，全功能（thinking、advisor、cache、betas） |
+| `bedrock` | betas 通过 `extraBodyParams.output_config` 传递（非 header），功能集受限 |
+| `vertex` | Google Cloud，Web Search beta 支持，Structured Outputs 不支持 |
+| `foundry` | 支持 ISP + context management，企业自托管 |
+| `openai` | 适配 OpenAI Chat Completions API（Ollama/DeepSeek/vLLM），消息/工具格式转换 |
+| `gemini` | Google Gemini API，独立模型映射优先级（GEMINI_MODEL > GEMINI_DEFAULT_* > 原样） |
+| `grok` | xAI Grok API，消息格式转换 |
+
+OpenAI/Gemini/Grok 均为**流适配器模式**：将第三方 API 格式转为 Anthropic 内部格式，下游代码零改动。
+
+---
+
+## 三、应该了解的 3 个重要机制
+
+### A. Usage/Cost 双轨追踪
+
+**`updateUsage()` (line 3102)** — 流内更新：
+```
+message_start → 初始 usage（含 cache_read_input_tokens）
+content_block_stop → 中间状态
+message_delta → 最终 usage（stop 后精确值）
+```
+只在新值 > 0 时覆盖旧值，防止 `message_delta` 中的 0 值清除 `message_start` 已记录的缓存命中数。
+
+**成本计算**（line 2377）：
+```typescript
+const costUSD = calculateUSDCost(model, usage)
+addToTotalSessionCost(costUSD, usage, model)
+// → 写入 bootstrap STATE 的 sessionCost
+```
+
+**`accumulateUsage()` (line 3171)**：跨轮次叠加，用于 session 级别的总成本统计。
+
+### B. Max Tokens 的两段式升级
+
+```
+首轮：max_tokens = CAPPED_DEFAULT_MAX_TOKENS (8,000)
+    → 节省 KV cache slot，降低成本
+    ↓
+如果 stop_reason === 'max_tokens'（输出被截断）
+    → 重试，max_tokens = ESCALATED_MAX_TOKENS (64,000)
+    → 最多重试 3 次
+```
+
+### C. 流超时与重试
+
+- 流空闲超时：90s（`CLAUDE_STREAM_IDLE_TIMEOUT_MS` 环境变量可覆盖）
+- API 返回 413（请求过大）→ `reactiveCompact.ts` 事后压缩，重试
+- Fallback 模型：配置后可在主模型失败时切换（一次）
+
+---
+
+## 四、关键文件清单
+
+| 文件 | 角色 | 关键函数/常量 |
+|------|------|-------------|
+| `src/services/api/claude.ts` | core | `queryModel`（:1049）、`queryModelWithStreaming`（:775）、`addCacheBreakpoints`（:3241）、`buildSystemPromptBlocks`（:3392）、`updateUsage`（:3102）、`accumulateUsage`（:3171） |
+| `src/query.ts` | core | `query`（:299）、`queryLoop`（:430），多轮对话编排、工具执行循环 |
+| `src/utils/betas.ts` | core | `getMergedBetas`（:346）、`getModelBetas`（:320，memoized） |
+| `src/constants/betas.ts` | config | 所有 Beta header 常量定义 |
+| `src/utils/model/providers.ts` | core | `getAPIProvider()`，provider 选择逻辑 |
+| `src/utils/context.ts` | util | `getContextWindowForModel`、`MODEL_CONTEXT_WINDOW_DEFAULT=200_000`、`CAPPED_DEFAULT_MAX_TOKENS=8_000` |
+| `src/services/api/openai/index.ts` | util | `queryModelOpenAI()`、消息/工具格式适配 |
+| `src/services/api/gemini/index.ts` | util | `queryModelGemini()`、模型映射逻辑 |
+| `src/services/api/grok/index.ts` | util | `queryModelGrok()` |
+| `src/services/tools/toolOrchestration.ts` | core | `runTools()`，串行工具执行 |
+| `src/services/tools/StreamingToolExecutor.ts` | core | 流式并行工具执行 |
+| `src/services/api/promptCacheBreakDetection.ts` | util | cache miss 遥测，意外缓存断裂上报 |
+
+---
+
+## 五、学习建议
+
+1. **从一个完整请求入手**：在 `queryModel()` 入口（`src/services/api/claude.ts:1049`）加断点，追踪 `paramsFromContext()` 的构建过程，检查最终发出的 `system`/`messages`/`betas` 字段
+
+2. **观察流式事件序列**：在 stream event loop（line 2088）加日志，观察一轮对话中各事件的出现顺序和内容
+
+3. **理解 addCacheBreakpoints 的位置选择**：通过日志打印 `markerIndex`，对比普通请求（末尾）和 fork 子代理（倒数第二）的差异
+
+4. **对比 7 种 Provider 的请求格式**：在 `queryModelOpenAI` 中找到 `buildOpenAIRequestBody`，对比与 firstParty 的 API 参数差异
+
+5. **追踪 cost 流向**：从 `addToTotalSessionCost` 出发，找到 bootstrap STATE 的 sessionCost 字段，再到 UI 上的 token/cost 显示
+
+---
+
+## 六、与前序衔接
+
+| 已学模块 | 与 API 通信层的关联 |
+|---------|-------------------|
+| 上下文工程 | `fetchSystemPromptParts` 三源汇流产物作为 `system` 参数传入 `queryModel` |
+| 工具系统 | `allTools` 参数来自 `useMergedTools`（内置 + MCP），CORE_TOOLS 白名单决定 deferred 工具 |
+| 状态管理 | bootstrap STATE 存储 sessionCost、model overrides；AppState 存储消息历史 |
+| MCP 协议 | MCP 工具追加末尾保护 prompt cache；`DANGEROUS_uncachedSystemPromptSection` 每轮重算 MCP 工具描述 |
+| 安全与权限 | 工具执行前调用 `canUseTool()`；bypassPermissions 直接通过不弹框 |
+
+---
+
+## 七、验证清单
+
+完成本篇学习后，你应该能够：
+
+- [ ] 说出请求组装中 `system`/`messages`/`tools`/`betas` 各字段的来源
+- [ ] 解释为什么 `max_tokens` 首轮是 8K 而不是直接用 64K
+- [ ] 描述 5 种流式事件的处理顺序和各自的关键动作
+- [ ] 解释文本累积为什么用 `Map<index, string[]>` 而不是直接字符串拼接
+- [ ] 说出 7 种 Provider 的选择优先级和各自的主要差异
+
+---
+
+## 八、后续路线
+
+下一篇推荐：**终端 UI 层**
+
+理解了 API 通信层（"数据怎么进出 Claude"），下一步自然是看这些数据如何被渲染到终端——`src/screens/REPL.tsx` 如何把 `AssistantMessage` 流变成可交互的终端界面，以及 `packages/@ant/ink` 这个 forked Ink 框架提供了哪些底层能力。

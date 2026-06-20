@@ -1,0 +1,463 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_spec_feature_20260502_f001_fork_agent_redesign_spec_human_verify_md",
+      "label": "spec-human-verify.md",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_fork_agent_\u663e\u5f0f\u53c2\u6570\u89e6\u53d1\u91cd\u6784_\u4eba\u5de5\u9a8c\u6536\u6e05\u5355",
+      "label": "Fork Agent \u663e\u5f0f\u53c2\u6570\u89e6\u53d1\u91cd\u6784 \u4eba\u5de5\u9a8c\u6536\u6e05\u5355",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u9a8c\u6536\u524d\u51c6\u5907",
+      "label": "\u9a8c\u6536\u524d\u51c6\u5907",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L9"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u73af\u5883\u8981\u6c42",
+      "label": "\u73af\u5883\u8981\u6c42",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L11"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u9a8c\u6536\u9879\u76ee",
+      "label": "\u9a8c\u6536\u9879\u76ee",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L17"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_1_schema_\u4e0e\u7c7b\u578b\u53d8\u66f4",
+      "label": "\u573a\u666f 1\uff1aSchema \u4e0e\u7c7b\u578b\u53d8\u66f4",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L19"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_1_1_fork_\u5b57\u6bb5\u5df2\u6dfb\u52a0\u5230_baseinputschema",
+      "label": "- [x] 1.1 fork \u5b57\u6bb5\u5df2\u6dfb\u52a0\u5230 baseInputSchema",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L21"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_1_2_fork_\u5b57\u6bb5\u5728_flag_\u5173\u95ed\u65f6\u88ab_schema_\u88c1\u526a",
+      "label": "- [x] 1.2 fork \u5b57\u6bb5\u5728 flag \u5173\u95ed\u65f6\u88ab schema \u88c1\u526a",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L27"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_1_3_agenttoolinput_\u7c7b\u578b\u5305\u542b_fork_\u5b57\u6bb5",
+      "label": "- [x] 1.3 AgentToolInput \u7c7b\u578b\u5305\u542b fork \u5b57\u6bb5",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L33"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_2_\u8def\u7531\u903b\u8f91\u91cd\u6784",
+      "label": "\u573a\u666f 2\uff1a\u8def\u7531\u903b\u8f91\u91cd\u6784",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L41"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_2_1_isforkpath_\u4f7f\u7528\u663e\u5f0f_fork_\u53c2\u6570\u5224\u65ad",
+      "label": "- [x] 2.1 isForkPath \u4f7f\u7528\u663e\u5f0f fork \u53c2\u6570\u5224\u65ad",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L43"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_2_2_forceasync_\u5df2\u5b8c\u5168\u79fb\u9664",
+      "label": "- [x] 2.2 forceAsync \u5df2\u5b8c\u5168\u79fb\u9664",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L49"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_2_3_isforksubagentenabled_\u4ec5\u7528\u4e8e_schema_\u88c1\u526a\u548c\u8def\u7531\u5224\u65ad",
+      "label": "- [x] 2.3 isForkSubagentEnabled() \u4ec5\u7528\u4e8e schema \u88c1\u526a\u548c\u8def\u7531\u5224\u65ad",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L55"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_2_4_shouldrunasync_\u7531_run_in_background_\u63a7\u5236",
+      "label": "- [x] 2.4 shouldRunAsync \u7531 run_in_background \u63a7\u5236",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L61"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_2_5_enablesummarization_\u4f7f\u7528_isforkpath_\u800c\u975e_isforksubagentenabled",
+      "label": "- [x] 2.5 enableSummarization \u4f7f\u7528 isForkPath \u800c\u975e isForkSubagentEnabled()",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L67"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_3_prompt_\u6587\u672c\u66f4\u65b0",
+      "label": "\u573a\u666f 3\uff1aPrompt \u6587\u672c\u66f4\u65b0",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L75"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_3_1_\u4e0d\u518d\u5305\u542b_omit_subagent_type_\u5f15\u5bfc\u6587\u672c",
+      "label": "- [x] 3.1 \u4e0d\u518d\u5305\u542b \"omit subagent_type\" \u5f15\u5bfc\u6587\u672c",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L77"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_3_2_\u5305\u542b_fork_true_\u663e\u5f0f\u53c2\u6570\u8bf4\u660e",
+      "label": "- [x] 3.2 \u5305\u542b \"fork: true\" \u663e\u5f0f\u53c2\u6570\u8bf4\u660e",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L83"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_3_3_\u80cc\u666f\u4efb\u52a1\u8bf4\u660e\u6761\u4ef6\u4e0d\u518d\u542b_forkenabled",
+      "label": "- [x] 3.3 \u80cc\u666f\u4efb\u52a1\u8bf4\u660e\u6761\u4ef6\u4e0d\u518d\u542b !forkEnabled",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L89"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_3_4_\u672f\u8bed\u4ece_fresh_agent_\u66f4\u65b0\u4e3a_non_fork",
+      "label": "- [x] 3.4 \u672f\u8bed\u4ece \"fresh agent\" \u66f4\u65b0\u4e3a \"non-fork\"",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L95"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_4_\u8fb9\u754c\u4e0e\u56de\u5f52_\u51b3\u7b56\u8868\u9a8c\u8bc1",
+      "label": "\u573a\u666f 4\uff1a\u8fb9\u754c\u4e0e\u56de\u5f52\uff08\u51b3\u7b56\u8868\u9a8c\u8bc1\uff09",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L103"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_4_1_fork_true_subagent_type_flag_\u5f00_fork_\u8def\u5f84_\u5ffd\u7565_subagent_type",
+      "label": "- [x] 4.1 fork=true + subagent_type + flag \u5f00 \u2192 fork \u8def\u5f84\uff0c\u5ffd\u7565 subagent_type",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L105"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_4_2_fork_true_flag_\u5173\u95ed_\u5ffd\u7565_fork_\u8d70\u666e\u901a_agent_\u8def\u5f84",
+      "label": "- [x] 4.2 fork=true + flag \u5173\u95ed \u2192 \u5ffd\u7565 fork\uff0c\u8d70\u666e\u901a agent \u8def\u5f84",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L111"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_4_3_fork_\u7701\u7565_\u8d70_general_purpose_\u6216\u6307\u5b9a_subagent_type",
+      "label": "- [x] 4.3 fork \u7701\u7565 \u2192 \u8d70 general-purpose \u6216\u6307\u5b9a subagent_type",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L117"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_5_defines_ts_\u6ce8\u91ca\u4e0e\u6784\u5efa\u9a8c\u8bc1",
+      "label": "\u573a\u666f 5\uff1adefines.ts \u6ce8\u91ca\u4e0e\u6784\u5efa\u9a8c\u8bc1",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L125"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_5_1_fork_subagent_\u6ce8\u91ca\u5df2\u66f4\u65b0\u4e3a\u65b0\u884c\u4e3a\u63cf\u8ff0",
+      "label": "- [x] 5.1 FORK_SUBAGENT \u6ce8\u91ca\u5df2\u66f4\u65b0\u4e3a\u65b0\u884c\u4e3a\u63cf\u8ff0",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L127"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_5_2_\u5355\u5143\u6d4b\u8bd5\u5168\u90e8\u901a\u8fc7",
+      "label": "- [x] 5.2 \u5355\u5143\u6d4b\u8bd5\u5168\u90e8\u901a\u8fc7",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L133"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_5_3_precheck_\u96f6\u9519\u8bef\u901a\u8fc7",
+      "label": "- [x] 5.3 precheck \u96f6\u9519\u8bef\u901a\u8fc7",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L139"
+    },
+    {
+      "id": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u9a8c\u6536\u7ed3\u679c\u6c47\u603b",
+      "label": "\u9a8c\u6536\u7ed3\u679c\u6c47\u603b",
+      "file_type": "document",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L147"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_spec_feature_20260502_f001_fork_agent_redesign_spec_human_verify_md",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_fork_agent_\u663e\u5f0f\u53c2\u6570\u89e6\u53d1\u91cd\u6784_\u4eba\u5de5\u9a8c\u6536\u6e05\u5355",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_fork_agent_\u663e\u5f0f\u53c2\u6570\u89e6\u53d1\u91cd\u6784_\u4eba\u5de5\u9a8c\u6536\u6e05\u5355",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u9a8c\u6536\u524d\u51c6\u5907",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u9a8c\u6536\u524d\u51c6\u5907",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u73af\u5883\u8981\u6c42",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_fork_agent_\u663e\u5f0f\u53c2\u6570\u89e6\u53d1\u91cd\u6784_\u4eba\u5de5\u9a8c\u6536\u6e05\u5355",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u9a8c\u6536\u9879\u76ee",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u9a8c\u6536\u9879\u76ee",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_1_schema_\u4e0e\u7c7b\u578b\u53d8\u66f4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_1_schema_\u4e0e\u7c7b\u578b\u53d8\u66f4",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_1_1_fork_\u5b57\u6bb5\u5df2\u6dfb\u52a0\u5230_baseinputschema",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_1_schema_\u4e0e\u7c7b\u578b\u53d8\u66f4",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_1_2_fork_\u5b57\u6bb5\u5728_flag_\u5173\u95ed\u65f6\u88ab_schema_\u88c1\u526a",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_1_schema_\u4e0e\u7c7b\u578b\u53d8\u66f4",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_1_3_agenttoolinput_\u7c7b\u578b\u5305\u542b_fork_\u5b57\u6bb5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L33",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u9a8c\u6536\u9879\u76ee",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_2_\u8def\u7531\u903b\u8f91\u91cd\u6784",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L41",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_2_\u8def\u7531\u903b\u8f91\u91cd\u6784",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_2_1_isforkpath_\u4f7f\u7528\u663e\u5f0f_fork_\u53c2\u6570\u5224\u65ad",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L43",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_2_\u8def\u7531\u903b\u8f91\u91cd\u6784",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_2_2_forceasync_\u5df2\u5b8c\u5168\u79fb\u9664",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_2_\u8def\u7531\u903b\u8f91\u91cd\u6784",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_2_3_isforksubagentenabled_\u4ec5\u7528\u4e8e_schema_\u88c1\u526a\u548c\u8def\u7531\u5224\u65ad",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L55",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_2_\u8def\u7531\u903b\u8f91\u91cd\u6784",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_2_4_shouldrunasync_\u7531_run_in_background_\u63a7\u5236",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L61",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_2_\u8def\u7531\u903b\u8f91\u91cd\u6784",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_2_5_enablesummarization_\u4f7f\u7528_isforkpath_\u800c\u975e_isforksubagentenabled",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L67",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u9a8c\u6536\u9879\u76ee",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_3_prompt_\u6587\u672c\u66f4\u65b0",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L75",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_3_prompt_\u6587\u672c\u66f4\u65b0",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_3_1_\u4e0d\u518d\u5305\u542b_omit_subagent_type_\u5f15\u5bfc\u6587\u672c",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L77",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_3_prompt_\u6587\u672c\u66f4\u65b0",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_3_2_\u5305\u542b_fork_true_\u663e\u5f0f\u53c2\u6570\u8bf4\u660e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L83",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_3_prompt_\u6587\u672c\u66f4\u65b0",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_3_3_\u80cc\u666f\u4efb\u52a1\u8bf4\u660e\u6761\u4ef6\u4e0d\u518d\u542b_forkenabled",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L89",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_3_prompt_\u6587\u672c\u66f4\u65b0",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_3_4_\u672f\u8bed\u4ece_fresh_agent_\u66f4\u65b0\u4e3a_non_fork",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L95",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u9a8c\u6536\u9879\u76ee",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_4_\u8fb9\u754c\u4e0e\u56de\u5f52_\u51b3\u7b56\u8868\u9a8c\u8bc1",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L103",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_4_\u8fb9\u754c\u4e0e\u56de\u5f52_\u51b3\u7b56\u8868\u9a8c\u8bc1",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_4_1_fork_true_subagent_type_flag_\u5f00_fork_\u8def\u5f84_\u5ffd\u7565_subagent_type",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L105",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_4_\u8fb9\u754c\u4e0e\u56de\u5f52_\u51b3\u7b56\u8868\u9a8c\u8bc1",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_4_2_fork_true_flag_\u5173\u95ed_\u5ffd\u7565_fork_\u8d70\u666e\u901a_agent_\u8def\u5f84",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L111",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_4_\u8fb9\u754c\u4e0e\u56de\u5f52_\u51b3\u7b56\u8868\u9a8c\u8bc1",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_4_3_fork_\u7701\u7565_\u8d70_general_purpose_\u6216\u6307\u5b9a_subagent_type",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L117",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u9a8c\u6536\u9879\u76ee",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_5_defines_ts_\u6ce8\u91ca\u4e0e\u6784\u5efa\u9a8c\u8bc1",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L125",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_5_defines_ts_\u6ce8\u91ca\u4e0e\u6784\u5efa\u9a8c\u8bc1",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_5_1_fork_subagent_\u6ce8\u91ca\u5df2\u66f4\u65b0\u4e3a\u65b0\u884c\u4e3a\u63cf\u8ff0",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L127",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_5_defines_ts_\u6ce8\u91ca\u4e0e\u6784\u5efa\u9a8c\u8bc1",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_5_2_\u5355\u5143\u6d4b\u8bd5\u5168\u90e8\u901a\u8fc7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L133",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u573a\u666f_5_defines_ts_\u6ce8\u91ca\u4e0e\u6784\u5efa\u9a8c\u8bc1",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_x_5_3_precheck_\u96f6\u9519\u8bef\u901a\u8fc7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L139",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_fork_agent_\u663e\u5f0f\u53c2\u6570\u89e6\u53d1\u91cd\u6784_\u4eba\u5de5\u9a8c\u6536\u6e05\u5355",
+      "target": "feature_20260502_f001_fork_agent_redesign_spec_human_verify_\u9a8c\u6536\u7ed3\u679c\u6c47\u603b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260502_F001_fork-agent-redesign/spec-human-verify.md",
+      "source_location": "L147",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

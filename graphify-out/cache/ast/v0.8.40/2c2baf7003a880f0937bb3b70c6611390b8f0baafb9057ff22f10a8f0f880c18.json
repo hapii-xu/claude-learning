@@ -1,0 +1,191 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_readme_md",
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "acp_link_readme_acp_link",
+      "label": "acp-link",
+      "file_type": "document",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "acp_link_readme_installation",
+      "label": "Installation",
+      "file_type": "document",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L7"
+    },
+    {
+      "id": "acp_link_readme_from_source",
+      "label": "From source",
+      "file_type": "document",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L9"
+    },
+    {
+      "id": "acp_link_readme_usage",
+      "label": "Usage",
+      "file_type": "document",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L16"
+    },
+    {
+      "id": "acp_link_readme_examples",
+      "label": "Examples",
+      "file_type": "document",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L26"
+    },
+    {
+      "id": "acp_link_readme_cli_reference",
+      "label": "CLI Reference",
+      "file_type": "document",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L51"
+    },
+    {
+      "id": "acp_link_readme_how_it_works",
+      "label": "How It Works",
+      "file_type": "document",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L73"
+    },
+    {
+      "id": "acp_link_readme_authentication",
+      "label": "Authentication",
+      "file_type": "document",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L81"
+    },
+    {
+      "id": "acp_link_readme_rcs_upstream",
+      "label": "RCS Upstream",
+      "file_type": "document",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L95"
+    },
+    {
+      "id": "acp_link_readme_manager_ui",
+      "label": "Manager UI",
+      "file_type": "document",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L107"
+    },
+    {
+      "id": "acp_link_readme_license",
+      "label": "License",
+      "file_type": "document",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L123"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_readme_md",
+      "target": "acp_link_readme_acp_link",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_readme_acp_link",
+      "target": "acp_link_readme_installation",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_readme_installation",
+      "target": "acp_link_readme_from_source",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_readme_acp_link",
+      "target": "acp_link_readme_usage",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_readme_usage",
+      "target": "acp_link_readme_examples",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_readme_acp_link",
+      "target": "acp_link_readme_cli_reference",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L51",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_readme_acp_link",
+      "target": "acp_link_readme_how_it_works",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L73",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_readme_acp_link",
+      "target": "acp_link_readme_authentication",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L81",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_readme_acp_link",
+      "target": "acp_link_readme_rcs_upstream",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L95",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_readme_acp_link",
+      "target": "acp_link_readme_manager_ui",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L107",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_readme_acp_link",
+      "target": "acp_link_readme_license",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/README.md",
+      "source_location": "L123",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

@@ -1,0 +1,319 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_06_extra_findings_md",
+      "label": "06-extra-findings.md",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "analysis_06_extra_findings_\u7b2c\u5341\u4e09\u7ae0_\u6df1\u5ea6\u53d1\u73b0\u4e0e\u8fb9\u754c\u6848\u4f8b\u5206\u6790",
+      "label": "\u7b2c\u5341\u4e09\u7ae0\uff1a\u6df1\u5ea6\u53d1\u73b0\u4e0e\u8fb9\u754c\u6848\u4f8b\u5206\u6790",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "analysis_06_extra_findings_1_\u5bfc\u8bfb",
+      "label": "1. \u5bfc\u8bfb",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L7"
+    },
+    {
+      "id": "analysis_06_extra_findings_2_trust_\u8fb9\u754c\u7684\u7a0b\u5e8f\u5316\u5904\u7406",
+      "label": "2. Trust \u8fb9\u754c\u7684\u7a0b\u5e8f\u5316\u5904\u7406",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L17"
+    },
+    {
+      "id": "analysis_06_extra_findings_2_1_claude_md_\u7684\u5206\u7ea7\u4fe1\u4efb\u6a21\u578b",
+      "label": "2.1 CLAUDE.md \u7684\u5206\u7ea7\u4fe1\u4efb\u6a21\u578b",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L19"
+    },
+    {
+      "id": "analysis_06_extra_findings_2_2_include_\u7684\u6df1\u5ea6\u9650\u5236",
+      "label": "2.2 `@include` \u7684\u6df1\u5ea6\u9650\u5236",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L34"
+    },
+    {
+      "id": "analysis_06_extra_findings_2_3_trust_\u5efa\u7acb\u65f6\u5e8f_\u4e3a\u4ec0\u4e48_telemetry_\u521d\u59cb\u5316\u5728_trust_\u4e4b\u540e",
+      "label": "2.3 Trust \u5efa\u7acb\u65f6\u5e8f\uff1a\u4e3a\u4ec0\u4e48 Telemetry \u521d\u59cb\u5316\u5728 Trust \u4e4b\u540e",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L74"
+    },
+    {
+      "id": "analysis_06_extra_findings_3_unicode_\u9690\u5199\u653b\u51fb\u9632\u5fa1",
+      "label": "3. Unicode \u9690\u5199\u653b\u51fb\u9632\u5fa1",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L109"
+    },
+    {
+      "id": "analysis_06_extra_findings_3_1_\u653b\u51fb\u6a21\u578b",
+      "label": "3.1 \u653b\u51fb\u6a21\u578b",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L111"
+    },
+    {
+      "id": "analysis_06_extra_findings_3_2_\u9632\u5fa1\u5b9e\u73b0_partiallysanitizeunicode",
+      "label": "3.2 \u9632\u5fa1\u5b9e\u73b0\uff1a`partiallySanitizeUnicode()`",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L133"
+    },
+    {
+      "id": "analysis_06_extra_findings_3_3_\u9012\u5f52\u7ed3\u6784\u8131\u654f_recursivelysanitizeunicode",
+      "label": "3.3 \u9012\u5f52\u7ed3\u6784\u8131\u654f\uff1a`recursivelySanitizeUnicode()`",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L175"
+    },
+    {
+      "id": "analysis_06_extra_findings_4_swarm_\u5168\u5c40\u72b6\u6001\u6865",
+      "label": "4. Swarm \u5168\u5c40\u72b6\u6001\u6865",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L199"
+    },
+    {
+      "id": "analysis_06_extra_findings_4_1_\u95ee\u9898\u80cc\u666f",
+      "label": "4.1 \u95ee\u9898\u80cc\u666f",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L201"
+    },
+    {
+      "id": "analysis_06_extra_findings_4_2_\u7236_\u5b50\u7684\u4e0a\u4e0b\u6587\u4f20\u64ad",
+      "label": "4.2 \u7236 \u2192 \u5b50\u7684\u4e0a\u4e0b\u6587\u4f20\u64ad",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L205"
+    },
+    {
+      "id": "analysis_06_extra_findings_4_3_\u5b50_\u7236\u7684\u53cd\u5411\u56de\u6d41",
+      "label": "4.3 \u5b50 \u2192 \u7236\u7684\u53cd\u5411\u56de\u6d41",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L222"
+    },
+    {
+      "id": "analysis_06_extra_findings_5_\u9690\u79c1\u8026\u5408\u7684\u4e3b\u52a8\u5207\u65ad\u8bbe\u8ba1",
+      "label": "5. \u9690\u79c1\u8026\u5408\u7684\u4e3b\u52a8\u5207\u65ad\u8bbe\u8ba1",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L250"
+    },
+    {
+      "id": "analysis_06_extra_findings_5_1_analyticsmetadata_\u7c7b\u578b\u6807\u6ce8\u7cfb\u7edf",
+      "label": "5.1 `AnalyticsMetadata` \u7c7b\u578b\u6807\u6ce8\u7cfb\u7edf",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L252"
+    },
+    {
+      "id": "analysis_06_extra_findings_5_2_\u65e5\u5fd7\u5c42\u7684\u8131\u654f",
+      "label": "5.2 \u65e5\u5fd7\u5c42\u7684\u8131\u654f",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L284"
+    },
+    {
+      "id": "analysis_06_extra_findings_5_3_\u4f1a\u8bdd_id_\u800c\u975e\u7528\u6237_id",
+      "label": "5.3 \u4f1a\u8bdd ID \u800c\u975e\u7528\u6237 ID",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L292"
+    },
+    {
+      "id": "analysis_06_extra_findings_6_\u53d1\u73b0\u603b\u7ed3",
+      "label": "6. \u53d1\u73b0\u603b\u7ed3",
+      "file_type": "document",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L309"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_06_extra_findings_md",
+      "target": "analysis_06_extra_findings_\u7b2c\u5341\u4e09\u7ae0_\u6df1\u5ea6\u53d1\u73b0\u4e0e\u8fb9\u754c\u6848\u4f8b\u5206\u6790",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_\u7b2c\u5341\u4e09\u7ae0_\u6df1\u5ea6\u53d1\u73b0\u4e0e\u8fb9\u754c\u6848\u4f8b\u5206\u6790",
+      "target": "analysis_06_extra_findings_1_\u5bfc\u8bfb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_\u7b2c\u5341\u4e09\u7ae0_\u6df1\u5ea6\u53d1\u73b0\u4e0e\u8fb9\u754c\u6848\u4f8b\u5206\u6790",
+      "target": "analysis_06_extra_findings_2_trust_\u8fb9\u754c\u7684\u7a0b\u5e8f\u5316\u5904\u7406",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_2_trust_\u8fb9\u754c\u7684\u7a0b\u5e8f\u5316\u5904\u7406",
+      "target": "analysis_06_extra_findings_2_1_claude_md_\u7684\u5206\u7ea7\u4fe1\u4efb\u6a21\u578b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_2_trust_\u8fb9\u754c\u7684\u7a0b\u5e8f\u5316\u5904\u7406",
+      "target": "analysis_06_extra_findings_2_2_include_\u7684\u6df1\u5ea6\u9650\u5236",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_2_trust_\u8fb9\u754c\u7684\u7a0b\u5e8f\u5316\u5904\u7406",
+      "target": "analysis_06_extra_findings_2_3_trust_\u5efa\u7acb\u65f6\u5e8f_\u4e3a\u4ec0\u4e48_telemetry_\u521d\u59cb\u5316\u5728_trust_\u4e4b\u540e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L74",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_\u7b2c\u5341\u4e09\u7ae0_\u6df1\u5ea6\u53d1\u73b0\u4e0e\u8fb9\u754c\u6848\u4f8b\u5206\u6790",
+      "target": "analysis_06_extra_findings_3_unicode_\u9690\u5199\u653b\u51fb\u9632\u5fa1",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L109",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_3_unicode_\u9690\u5199\u653b\u51fb\u9632\u5fa1",
+      "target": "analysis_06_extra_findings_3_1_\u653b\u51fb\u6a21\u578b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L111",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_3_unicode_\u9690\u5199\u653b\u51fb\u9632\u5fa1",
+      "target": "analysis_06_extra_findings_3_2_\u9632\u5fa1\u5b9e\u73b0_partiallysanitizeunicode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L133",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_3_unicode_\u9690\u5199\u653b\u51fb\u9632\u5fa1",
+      "target": "analysis_06_extra_findings_3_3_\u9012\u5f52\u7ed3\u6784\u8131\u654f_recursivelysanitizeunicode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L175",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_\u7b2c\u5341\u4e09\u7ae0_\u6df1\u5ea6\u53d1\u73b0\u4e0e\u8fb9\u754c\u6848\u4f8b\u5206\u6790",
+      "target": "analysis_06_extra_findings_4_swarm_\u5168\u5c40\u72b6\u6001\u6865",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L199",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_4_swarm_\u5168\u5c40\u72b6\u6001\u6865",
+      "target": "analysis_06_extra_findings_4_1_\u95ee\u9898\u80cc\u666f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L201",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_4_swarm_\u5168\u5c40\u72b6\u6001\u6865",
+      "target": "analysis_06_extra_findings_4_2_\u7236_\u5b50\u7684\u4e0a\u4e0b\u6587\u4f20\u64ad",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L205",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_4_swarm_\u5168\u5c40\u72b6\u6001\u6865",
+      "target": "analysis_06_extra_findings_4_3_\u5b50_\u7236\u7684\u53cd\u5411\u56de\u6d41",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L222",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_\u7b2c\u5341\u4e09\u7ae0_\u6df1\u5ea6\u53d1\u73b0\u4e0e\u8fb9\u754c\u6848\u4f8b\u5206\u6790",
+      "target": "analysis_06_extra_findings_5_\u9690\u79c1\u8026\u5408\u7684\u4e3b\u52a8\u5207\u65ad\u8bbe\u8ba1",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L250",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_5_\u9690\u79c1\u8026\u5408\u7684\u4e3b\u52a8\u5207\u65ad\u8bbe\u8ba1",
+      "target": "analysis_06_extra_findings_5_1_analyticsmetadata_\u7c7b\u578b\u6807\u6ce8\u7cfb\u7edf",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L252",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_5_\u9690\u79c1\u8026\u5408\u7684\u4e3b\u52a8\u5207\u65ad\u8bbe\u8ba1",
+      "target": "analysis_06_extra_findings_5_2_\u65e5\u5fd7\u5c42\u7684\u8131\u654f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L284",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_5_\u9690\u79c1\u8026\u5408\u7684\u4e3b\u52a8\u5207\u65ad\u8bbe\u8ba1",
+      "target": "analysis_06_extra_findings_5_3_\u4f1a\u8bdd_id_\u800c\u975e\u7528\u6237_id",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L292",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_06_extra_findings_\u7b2c\u5341\u4e09\u7ae0_\u6df1\u5ea6\u53d1\u73b0\u4e0e\u8fb9\u754c\u6848\u4f8b\u5206\u6790",
+      "target": "analysis_06_extra_findings_6_\u53d1\u73b0\u603b\u7ed3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/06-extra-findings.md",
+      "source_location": "L309",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

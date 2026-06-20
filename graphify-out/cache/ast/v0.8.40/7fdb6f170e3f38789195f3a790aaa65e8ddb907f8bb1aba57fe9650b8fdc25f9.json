@@ -1,0 +1,255 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_kairos_md",
+      "label": "kairos.md",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_kairos_kairos_\u5e38\u9a7b\u52a9\u624b\u6a21\u5f0f",
+      "label": "KAIROS \u2014 \u5e38\u9a7b\u52a9\u624b\u6a21\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_kairos_\u4e00_\u529f\u80fd\u6982\u8ff0",
+      "label": "\u4e00\u3001\u529f\u80fd\u6982\u8ff0",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L7"
+    },
+    {
+      "id": "features_kairos_\u5b50_feature_\u4f9d\u8d56\u5173\u7cfb",
+      "label": "\u5b50 Feature \u4f9d\u8d56\u5173\u7cfb",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L18"
+    },
+    {
+      "id": "features_kairos_\u4e8c_\u7cfb\u7edf\u63d0\u793a",
+      "label": "\u4e8c\u3001\u7cfb\u7edf\u63d0\u793a",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L31"
+    },
+    {
+      "id": "features_kairos_2_1_brief_\u6bb5\u843d_getbriefsection",
+      "label": "2.1 Brief \u6bb5\u843d (`getBriefSection`)",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L35"
+    },
+    {
+      "id": "features_kairos_2_2_proactive_autonomous_work_\u6bb5\u843d_getproactivesection",
+      "label": "2.2 Proactive/Autonomous Work \u6bb5\u843d (`getProactiveSection`)",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L41"
+    },
+    {
+      "id": "features_kairos_\u4e09_\u5b9e\u73b0\u67b6\u6784",
+      "label": "\u4e09\u3001\u5b9e\u73b0\u67b6\u6784",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L55"
+    },
+    {
+      "id": "features_kairos_3_1_\u6838\u5fc3\u6a21\u5757",
+      "label": "3.1 \u6838\u5fc3\u6a21\u5757",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L57"
+    },
+    {
+      "id": "features_kairos_3_2_sleeptool_\u4e0e_proactive_\u5171\u4eab",
+      "label": "3.2 SleepTool\uff08\u4e0e Proactive \u5171\u4eab\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L71"
+    },
+    {
+      "id": "features_kairos_3_3_bridge_\u96c6\u6210",
+      "label": "3.3 Bridge \u96c6\u6210",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L81"
+    },
+    {
+      "id": "features_kairos_3_4_\u6570\u636e\u6d41",
+      "label": "3.4 \u6570\u636e\u6d41",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L108"
+    },
+    {
+      "id": "features_kairos_\u56db_\u5173\u952e\u8bbe\u8ba1\u51b3\u7b56",
+      "label": "\u56db\u3001\u5173\u952e\u8bbe\u8ba1\u51b3\u7b56",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L132"
+    },
+    {
+      "id": "features_kairos_\u4e94_\u4f7f\u7528\u65b9\u5f0f",
+      "label": "\u4e94\u3001\u4f7f\u7528\u65b9\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L140"
+    },
+    {
+      "id": "features_kairos_\u516d_\u5916\u90e8\u4f9d\u8d56",
+      "label": "\u516d\u3001\u5916\u90e8\u4f9d\u8d56",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L159"
+    },
+    {
+      "id": "features_kairos_\u4e03_\u6587\u4ef6\u7d22\u5f15",
+      "label": "\u4e03\u3001\u6587\u4ef6\u7d22\u5f15",
+      "file_type": "document",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L165"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_kairos_md",
+      "target": "features_kairos_kairos_\u5e38\u9a7b\u52a9\u624b\u6a21\u5f0f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "features_kairos_kairos_\u5e38\u9a7b\u52a9\u624b\u6a21\u5f0f",
+      "target": "features_kairos_\u4e00_\u529f\u80fd\u6982\u8ff0",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "features_kairos_\u4e00_\u529f\u80fd\u6982\u8ff0",
+      "target": "features_kairos_\u5b50_feature_\u4f9d\u8d56\u5173\u7cfb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "features_kairos_kairos_\u5e38\u9a7b\u52a9\u624b\u6a21\u5f0f",
+      "target": "features_kairos_\u4e8c_\u7cfb\u7edf\u63d0\u793a",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L31",
+      "weight": 1.0
+    },
+    {
+      "source": "features_kairos_\u4e8c_\u7cfb\u7edf\u63d0\u793a",
+      "target": "features_kairos_2_1_brief_\u6bb5\u843d_getbriefsection",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "features_kairos_\u4e8c_\u7cfb\u7edf\u63d0\u793a",
+      "target": "features_kairos_2_2_proactive_autonomous_work_\u6bb5\u843d_getproactivesection",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L41",
+      "weight": 1.0
+    },
+    {
+      "source": "features_kairos_kairos_\u5e38\u9a7b\u52a9\u624b\u6a21\u5f0f",
+      "target": "features_kairos_\u4e09_\u5b9e\u73b0\u67b6\u6784",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L55",
+      "weight": 1.0
+    },
+    {
+      "source": "features_kairos_\u4e09_\u5b9e\u73b0\u67b6\u6784",
+      "target": "features_kairos_3_1_\u6838\u5fc3\u6a21\u5757",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "features_kairos_\u4e09_\u5b9e\u73b0\u67b6\u6784",
+      "target": "features_kairos_3_2_sleeptool_\u4e0e_proactive_\u5171\u4eab",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L71",
+      "weight": 1.0
+    },
+    {
+      "source": "features_kairos_\u4e09_\u5b9e\u73b0\u67b6\u6784",
+      "target": "features_kairos_3_3_bridge_\u96c6\u6210",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L81",
+      "weight": 1.0
+    },
+    {
+      "source": "features_kairos_\u4e09_\u5b9e\u73b0\u67b6\u6784",
+      "target": "features_kairos_3_4_\u6570\u636e\u6d41",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L108",
+      "weight": 1.0
+    },
+    {
+      "source": "features_kairos_kairos_\u5e38\u9a7b\u52a9\u624b\u6a21\u5f0f",
+      "target": "features_kairos_\u56db_\u5173\u952e\u8bbe\u8ba1\u51b3\u7b56",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L132",
+      "weight": 1.0
+    },
+    {
+      "source": "features_kairos_kairos_\u5e38\u9a7b\u52a9\u624b\u6a21\u5f0f",
+      "target": "features_kairos_\u4e94_\u4f7f\u7528\u65b9\u5f0f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L140",
+      "weight": 1.0
+    },
+    {
+      "source": "features_kairos_kairos_\u5e38\u9a7b\u52a9\u624b\u6a21\u5f0f",
+      "target": "features_kairos_\u516d_\u5916\u90e8\u4f9d\u8d56",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L159",
+      "weight": 1.0
+    },
+    {
+      "source": "features_kairos_kairos_\u5e38\u9a7b\u52a9\u624b\u6a21\u5f0f",
+      "target": "features_kairos_\u4e03_\u6587\u4ef6\u7d22\u5f15",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/kairos.md",
+      "source_location": "L165",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

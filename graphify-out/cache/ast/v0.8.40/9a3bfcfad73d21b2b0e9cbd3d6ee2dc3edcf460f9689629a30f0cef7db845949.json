@@ -1,0 +1,799 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_agent_sur_loop_scheduled_oom_md",
+      "label": "sur-loop-scheduled-oom.md",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "label": "System Understanding Report \u2014 Loop / Scheduled Autonomy OOM",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_1_problem",
+      "label": "1. Problem",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L11"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_symptom",
+      "label": "Symptom",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L13"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_expected_behaviour",
+      "label": "Expected behaviour",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L21"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_actual_behaviour_before_fix",
+      "label": "Actual behaviour (before fix)",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L25"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_reproduction_shape",
+      "label": "Reproduction shape",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L32"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_user_impact",
+      "label": "User impact",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L41"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_2_system_boundary",
+      "label": "2. System boundary",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L47"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_in_scope",
+      "label": "In scope",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L49"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_out_of_scope",
+      "label": "Out of scope",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L58"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_assumptions",
+      "label": "Assumptions",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L68"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_3_entry_points",
+      "label": "3. Entry points",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L76"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_4_key_files",
+      "label": "4. Key files",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L88"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_5_call_flow_post_fix",
+      "label": "5. Call flow (post-fix)",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L105"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_6_data_flow",
+      "label": "6. Data flow",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L149"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_runs_json_record_schema_delta",
+      "label": "`runs.json` record schema (delta)",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L151"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_stale_recovery_rule",
+      "label": "Stale-recovery rule",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L170"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_heartbeat_last_run_state_mutation_point",
+      "label": "Heartbeat last-run state mutation point",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L181"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_7_state_model",
+      "label": "7. State model",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L189"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_run_status_lifecycle_unchanged_at_edges_tightened_in_the_middle",
+      "label": "Run status lifecycle (unchanged at edges, tightened in the middle)",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L191"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_new_invariants",
+      "label": "New invariants",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L201"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_concurrency_retry_risks",
+      "label": "Concurrency / retry risks",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L211"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_two_phase_commit_crash_window_acknowledged_limitation",
+      "label": "Two-phase commit crash window (acknowledged limitation)",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L217"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_8_existing_tests",
+      "label": "8. Existing tests",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L249"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_pre_fix",
+      "label": "Pre-fix",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L251"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_added_in_this_branch",
+      "label": "Added in this branch",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L258"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_not_yet_covered_proposed_for_regression_test_step",
+      "label": "Not yet covered (proposed for `regression-test` step)",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L264"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_9_competing_root_cause_hypotheses",
+      "label": "9. Competing root-cause hypotheses",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L271"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_h1_prompt_size_is_the_oom_source",
+      "label": "H1 \u2014 \"Prompt size is the OOM source\"",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L273"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_h2_background_forked_slash_commands_leak_runs",
+      "label": "H2 \u2014 \"Background-forked slash commands leak runs\"",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L283"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_h3_scheduled_task_tick_has_no_dedup_against_prior_run",
+      "label": "H3 \u2014 \"Scheduled-task tick has no dedup against prior run\"",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L293"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_h4_dead_process_runs_poison_dedup_forever",
+      "label": "H4 \u2014 \"Dead-process runs poison dedup forever\"",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L303"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_10_chosen_root_cause",
+      "label": "10. Chosen root cause",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L315"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_11_fix_plan",
+      "label": "11. Fix plan",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L327"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_minimal_fix_surface",
+      "label": "Minimal fix surface",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L329"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_tests_added",
+      "label": "Tests added",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L341"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_compatibility_migration_risk",
+      "label": "Compatibility / migration risk",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L347"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_rollback_plan",
+      "label": "Rollback plan",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L354"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_out_of_scope_intentionally",
+      "label": "Out of scope (intentionally)",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L360"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_12_verification",
+      "label": "12. Verification",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L368"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_commands_binding_per_claude_autonomy_agents_md_4",
+      "label": "Commands (binding per `.claude/autonomy/AGENTS.md` \u00a74)",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L370"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_manual_checks_proposed_for_implement_step",
+      "label": "Manual checks (proposed for `implement` step)",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L382"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_observability_checks",
+      "label": "Observability checks",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L388"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_13_open_questions",
+      "label": "13. Open questions",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L395"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_14_approval_gate",
+      "label": "14. Approval gate",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L405"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_15_reviewer_findings_2026_04_28_agent_reviewed",
+      "label": "15. Reviewer findings (2026-04-28, agent-reviewed)",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L417"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_verification_work_performed",
+      "label": "Verification work performed",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L423"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_concerns_surfaced",
+      "label": "Concerns surfaced",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L435"
+    },
+    {
+      "id": "agent_sur_loop_scheduled_oom_agent_recommendations_on_the_14_checkboxes",
+      "label": "Agent recommendations on the \u00a714 checkboxes",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L474"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_agent_sur_loop_scheduled_oom_md",
+      "target": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "target": "agent_sur_loop_scheduled_oom_1_problem",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_1_problem",
+      "target": "agent_sur_loop_scheduled_oom_symptom",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_1_problem",
+      "target": "agent_sur_loop_scheduled_oom_expected_behaviour",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_1_problem",
+      "target": "agent_sur_loop_scheduled_oom_actual_behaviour_before_fix",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_1_problem",
+      "target": "agent_sur_loop_scheduled_oom_reproduction_shape",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_1_problem",
+      "target": "agent_sur_loop_scheduled_oom_user_impact",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L41",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "target": "agent_sur_loop_scheduled_oom_2_system_boundary",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_2_system_boundary",
+      "target": "agent_sur_loop_scheduled_oom_in_scope",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_2_system_boundary",
+      "target": "agent_sur_loop_scheduled_oom_out_of_scope",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L58",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_2_system_boundary",
+      "target": "agent_sur_loop_scheduled_oom_assumptions",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L68",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "target": "agent_sur_loop_scheduled_oom_3_entry_points",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L76",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "target": "agent_sur_loop_scheduled_oom_4_key_files",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L88",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "target": "agent_sur_loop_scheduled_oom_5_call_flow_post_fix",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L105",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "target": "agent_sur_loop_scheduled_oom_6_data_flow",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L149",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_6_data_flow",
+      "target": "agent_sur_loop_scheduled_oom_runs_json_record_schema_delta",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L151",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_6_data_flow",
+      "target": "agent_sur_loop_scheduled_oom_stale_recovery_rule",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L170",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_6_data_flow",
+      "target": "agent_sur_loop_scheduled_oom_heartbeat_last_run_state_mutation_point",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L181",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "target": "agent_sur_loop_scheduled_oom_7_state_model",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L189",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_7_state_model",
+      "target": "agent_sur_loop_scheduled_oom_run_status_lifecycle_unchanged_at_edges_tightened_in_the_middle",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L191",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_7_state_model",
+      "target": "agent_sur_loop_scheduled_oom_new_invariants",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L201",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_7_state_model",
+      "target": "agent_sur_loop_scheduled_oom_concurrency_retry_risks",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L211",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_7_state_model",
+      "target": "agent_sur_loop_scheduled_oom_two_phase_commit_crash_window_acknowledged_limitation",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L217",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "target": "agent_sur_loop_scheduled_oom_8_existing_tests",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L249",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_8_existing_tests",
+      "target": "agent_sur_loop_scheduled_oom_pre_fix",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L251",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_8_existing_tests",
+      "target": "agent_sur_loop_scheduled_oom_added_in_this_branch",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L258",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_8_existing_tests",
+      "target": "agent_sur_loop_scheduled_oom_not_yet_covered_proposed_for_regression_test_step",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L264",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "target": "agent_sur_loop_scheduled_oom_9_competing_root_cause_hypotheses",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L271",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_9_competing_root_cause_hypotheses",
+      "target": "agent_sur_loop_scheduled_oom_h1_prompt_size_is_the_oom_source",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L273",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_9_competing_root_cause_hypotheses",
+      "target": "agent_sur_loop_scheduled_oom_h2_background_forked_slash_commands_leak_runs",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L283",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_9_competing_root_cause_hypotheses",
+      "target": "agent_sur_loop_scheduled_oom_h3_scheduled_task_tick_has_no_dedup_against_prior_run",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L293",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_9_competing_root_cause_hypotheses",
+      "target": "agent_sur_loop_scheduled_oom_h4_dead_process_runs_poison_dedup_forever",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L303",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "target": "agent_sur_loop_scheduled_oom_10_chosen_root_cause",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L315",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "target": "agent_sur_loop_scheduled_oom_11_fix_plan",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L327",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_11_fix_plan",
+      "target": "agent_sur_loop_scheduled_oom_minimal_fix_surface",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L329",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_11_fix_plan",
+      "target": "agent_sur_loop_scheduled_oom_tests_added",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L341",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_11_fix_plan",
+      "target": "agent_sur_loop_scheduled_oom_compatibility_migration_risk",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L347",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_11_fix_plan",
+      "target": "agent_sur_loop_scheduled_oom_rollback_plan",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L354",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_11_fix_plan",
+      "target": "agent_sur_loop_scheduled_oom_out_of_scope_intentionally",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L360",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "target": "agent_sur_loop_scheduled_oom_12_verification",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L368",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_12_verification",
+      "target": "agent_sur_loop_scheduled_oom_commands_binding_per_claude_autonomy_agents_md_4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L370",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_12_verification",
+      "target": "agent_sur_loop_scheduled_oom_manual_checks_proposed_for_implement_step",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L382",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_12_verification",
+      "target": "agent_sur_loop_scheduled_oom_observability_checks",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L388",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "target": "agent_sur_loop_scheduled_oom_13_open_questions",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L395",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "target": "agent_sur_loop_scheduled_oom_14_approval_gate",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L405",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_system_understanding_report_loop_scheduled_autonomy_oom",
+      "target": "agent_sur_loop_scheduled_oom_15_reviewer_findings_2026_04_28_agent_reviewed",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L417",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_15_reviewer_findings_2026_04_28_agent_reviewed",
+      "target": "agent_sur_loop_scheduled_oom_verification_work_performed",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L423",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_15_reviewer_findings_2026_04_28_agent_reviewed",
+      "target": "agent_sur_loop_scheduled_oom_concerns_surfaced",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L435",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_loop_scheduled_oom_15_reviewer_findings_2026_04_28_agent_reviewed",
+      "target": "agent_sur_loop_scheduled_oom_agent_recommendations_on_the_14_checkboxes",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-loop-scheduled-oom.md",
+      "source_location": "L474",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

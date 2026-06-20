@@ -1,0 +1,559 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_agents_md",
+      "label": "AGENTS.md",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "claude_code_agents_claude_md",
+      "label": "CLAUDE.md",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "claude_code_agents_project_overview",
+      "label": "Project Overview",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L5"
+    },
+    {
+      "id": "claude_code_agents_git_commit_message_convention",
+      "label": "Git Commit Message Convention",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L9"
+    },
+    {
+      "id": "claude_code_agents_commands",
+      "label": "Commands",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L24"
+    },
+    {
+      "id": "claude_code_agents_architecture",
+      "label": "Architecture",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L74"
+    },
+    {
+      "id": "claude_code_agents_runtime_build",
+      "label": "Runtime & Build",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L76"
+    },
+    {
+      "id": "claude_code_agents_entry_bootstrap",
+      "label": "Entry & Bootstrap",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L87"
+    },
+    {
+      "id": "claude_code_agents_core_loop",
+      "label": "Core Loop",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L105"
+    },
+    {
+      "id": "claude_code_agents_api_layer",
+      "label": "API Layer",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L111"
+    },
+    {
+      "id": "claude_code_agents_tool_system",
+      "label": "Tool System",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L117"
+    },
+    {
+      "id": "claude_code_agents_ui_layer_ink",
+      "label": "UI Layer (Ink)",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L131"
+    },
+    {
+      "id": "claude_code_agents_state_management",
+      "label": "State Management",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L143"
+    },
+    {
+      "id": "claude_code_agents_workspace_packages",
+      "label": "Workspace Packages",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L151"
+    },
+    {
+      "id": "claude_code_agents_bridge_remote_control",
+      "label": "Bridge / Remote Control",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L177"
+    },
+    {
+      "id": "claude_code_agents_acp_protocol_agent_client_protocol",
+      "label": "ACP Protocol (Agent Client Protocol)",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L184"
+    },
+    {
+      "id": "claude_code_agents_daemon_mode",
+      "label": "Daemon Mode",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L191"
+    },
+    {
+      "id": "claude_code_agents_context_system_prompt",
+      "label": "Context & System Prompt",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L195"
+    },
+    {
+      "id": "claude_code_agents_feature_flag_system",
+      "label": "Feature Flag System",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L200"
+    },
+    {
+      "id": "claude_code_agents_multi_api_\u517c\u5bb9\u5c42",
+      "label": "Multi-API \u517c\u5bb9\u5c42",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L219"
+    },
+    {
+      "id": "claude_code_agents_openai_\u517c\u5bb9\u5c42",
+      "label": "OpenAI \u517c\u5bb9\u5c42",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L223"
+    },
+    {
+      "id": "claude_code_agents_gemini_\u517c\u5bb9\u5c42",
+      "label": "Gemini \u517c\u5bb9\u5c42",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L230"
+    },
+    {
+      "id": "claude_code_agents_grok_\u517c\u5bb9\u5c42",
+      "label": "Grok \u517c\u5bb9\u5c42",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L238"
+    },
+    {
+      "id": "claude_code_agents_\u7a77\u9b3c\u6a21\u5f0f_budget_mode",
+      "label": "\u7a77\u9b3c\u6a21\u5f0f\uff08Budget Mode\uff09",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L246"
+    },
+    {
+      "id": "claude_code_agents_stubbed_deleted_modules",
+      "label": "Stubbed/Deleted Modules",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L252"
+    },
+    {
+      "id": "claude_code_agents_key_type_files",
+      "label": "Key Type Files",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L266"
+    },
+    {
+      "id": "claude_code_agents_testing",
+      "label": "Testing",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L273"
+    },
+    {
+      "id": "claude_code_agents_mock_\u4f7f\u7528\u89c4\u8303",
+      "label": "Mock \u4f7f\u7528\u89c4\u8303",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L282"
+    },
+    {
+      "id": "claude_code_agents_\u7c7b\u578b\u68c0\u67e5",
+      "label": "\u7c7b\u578b\u68c0\u67e5",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L304"
+    },
+    {
+      "id": "claude_code_agents_working_with_this_codebase",
+      "label": "Working with This Codebase",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L320"
+    },
+    {
+      "id": "claude_code_agents_design_context",
+      "label": "Design Context",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L333"
+    },
+    {
+      "id": "claude_code_agents_\u6838\u5fc3\u8bbe\u8ba1\u539f\u5219",
+      "label": "\u6838\u5fc3\u8bbe\u8ba1\u539f\u5219",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L337"
+    },
+    {
+      "id": "claude_code_agents_\u54c1\u724c\u8272",
+      "label": "\u54c1\u724c\u8272",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L345"
+    },
+    {
+      "id": "claude_code_agents_\u76ee\u6807\u7528\u6237",
+      "label": "\u76ee\u6807\u7528\u6237",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L351"
+    },
+    {
+      "id": "claude_code_agents_\u89c6\u89c9\u53c2\u8003",
+      "label": "\u89c6\u89c9\u53c2\u8003",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": "L355"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_agents_md",
+      "target": "claude_code_agents_claude_md",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_claude_md",
+      "target": "claude_code_agents_project_overview",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_claude_md",
+      "target": "claude_code_agents_git_commit_message_convention",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_claude_md",
+      "target": "claude_code_agents_commands",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_claude_md",
+      "target": "claude_code_agents_architecture",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L74",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_runtime_build",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L76",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_entry_bootstrap",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L87",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_core_loop",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L105",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_api_layer",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L111",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_tool_system",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L117",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_ui_layer_ink",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L131",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_state_management",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L143",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_workspace_packages",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L151",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_bridge_remote_control",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L177",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_acp_protocol_agent_client_protocol",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L184",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_daemon_mode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L191",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_context_system_prompt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L195",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_feature_flag_system",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L200",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_multi_api_\u517c\u5bb9\u5c42",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L219",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_multi_api_\u517c\u5bb9\u5c42",
+      "target": "claude_code_agents_openai_\u517c\u5bb9\u5c42",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L223",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_multi_api_\u517c\u5bb9\u5c42",
+      "target": "claude_code_agents_gemini_\u517c\u5bb9\u5c42",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L230",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_multi_api_\u517c\u5bb9\u5c42",
+      "target": "claude_code_agents_grok_\u517c\u5bb9\u5c42",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L238",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_\u7a77\u9b3c\u6a21\u5f0f_budget_mode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L246",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_stubbed_deleted_modules",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L252",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_architecture",
+      "target": "claude_code_agents_key_type_files",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L266",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_claude_md",
+      "target": "claude_code_agents_testing",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L273",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_testing",
+      "target": "claude_code_agents_mock_\u4f7f\u7528\u89c4\u8303",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L282",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_testing",
+      "target": "claude_code_agents_\u7c7b\u578b\u68c0\u67e5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L304",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_claude_md",
+      "target": "claude_code_agents_working_with_this_codebase",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L320",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_claude_md",
+      "target": "claude_code_agents_design_context",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L333",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_design_context",
+      "target": "claude_code_agents_\u6838\u5fc3\u8bbe\u8ba1\u539f\u5219",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L337",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_design_context",
+      "target": "claude_code_agents_\u54c1\u724c\u8272",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L345",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_design_context",
+      "target": "claude_code_agents_\u76ee\u6807\u7528\u6237",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L351",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_agents_design_context",
+      "target": "claude_code_agents_\u89c6\u89c9\u53c2\u8003",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "AGENTS.md",
+      "source_location": "L355",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

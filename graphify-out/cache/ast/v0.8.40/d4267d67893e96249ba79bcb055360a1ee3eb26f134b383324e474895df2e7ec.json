@@ -1,0 +1,783 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_04h_multi_agent_md",
+      "label": "04h-multi-agent.md",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "label": "\u7b2c\u5341\u7ae0\uff1aMulti-Agent \u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "analysis_04h_multi_agent_1_\u672c\u7ae0\u5bfc\u8bfb",
+      "label": "1. \u672c\u7ae0\u5bfc\u8bfb",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L5"
+    },
+    {
+      "id": "analysis_04h_multi_agent_2_\u603b\u4f53\u7ed3\u6784_\u4e09\u79cd_multi_agent_\u4e0d\u662f\u4e00\u56de\u4e8b",
+      "label": "2. \u603b\u4f53\u7ed3\u6784\uff1a\u4e09\u79cd multi-agent \u4e0d\u662f\u4e00\u56de\u4e8b",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L75"
+    },
+    {
+      "id": "analysis_04h_multi_agent_2_1_\u666e\u901a_subagent",
+      "label": "2.1 \u666e\u901a subagent",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L91"
+    },
+    {
+      "id": "analysis_04h_multi_agent_2_2_coordinator_mode",
+      "label": "2.2 coordinator mode",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L102"
+    },
+    {
+      "id": "analysis_04h_multi_agent_2_3_swarm_teammates",
+      "label": "2.3 swarm teammates",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L121"
+    },
+    {
+      "id": "analysis_04h_multi_agent_3_agenttool_\u662f\u591a_agent_\u7684\u7edf\u4e00\u5165\u53e3",
+      "label": "3. `AgentTool` \u662f\u591a agent \u7684\u7edf\u4e00\u5165\u53e3",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L136"
+    },
+    {
+      "id": "analysis_04h_multi_agent_3_1_\u8f93\u5165_schema_\u76f4\u63a5\u66b4\u9732\u4e86\u591a_agent_\u80fd\u529b",
+      "label": "3.1 \u8f93\u5165 schema \u76f4\u63a5\u66b4\u9732\u4e86\u591a agent \u80fd\u529b",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L142"
+    },
+    {
+      "id": "analysis_04h_multi_agent_3_2_agenttool_\u5982\u4f55\u5224\u65ad\u662f\u4e0d\u662f_teammate",
+      "label": "3.2 `AgentTool` \u5982\u4f55\u5224\u65ad\u662f\u4e0d\u662f teammate",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L170"
+    },
+    {
+      "id": "analysis_04h_multi_agent_3_3_\u5bf9_teammate_\u7684\u9650\u5236\u4e5f\u5199\u5728\u8fd9\u91cc",
+      "label": "3.3 \u5bf9 teammate \u7684\u9650\u5236\u4e5f\u5199\u5728\u8fd9\u91cc",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L197"
+    },
+    {
+      "id": "analysis_04h_multi_agent_4_\u666e\u901a_subagent_\u672c\u8d28\u662f_\u4e3b\u4f1a\u8bdd\u7684\u4fa7\u94fe",
+      "label": "4. \u666e\u901a subagent\uff1a\u672c\u8d28\u662f\u201c\u4e3b\u4f1a\u8bdd\u7684\u4fa7\u94fe\u201d",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L218"
+    },
+    {
+      "id": "analysis_04h_multi_agent_4_1_runagent_\u624d\u662f\u771f\u6b63\u7684_agent_\u6267\u884c\u5668",
+      "label": "4.1 `runAgent()` \u624d\u662f\u771f\u6b63\u7684 agent \u6267\u884c\u5668",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L225"
+    },
+    {
+      "id": "analysis_04h_multi_agent_4_2_fork_subagent_\u662f\u7279\u6b8a\u53d8\u4f53",
+      "label": "4.2 fork subagent \u662f\u7279\u6b8a\u53d8\u4f53",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L252"
+    },
+    {
+      "id": "analysis_04h_multi_agent_4_3_\u4e3a\u4ec0\u4e48_fork_\u8981\u4fdd\u7559\u7236_prompt_\u7684\u539f\u59cb\u5b57\u8282",
+      "label": "4.3 \u4e3a\u4ec0\u4e48 fork \u8981\u4fdd\u7559\u7236 prompt \u7684\u539f\u59cb\u5b57\u8282",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L270"
+    },
+    {
+      "id": "analysis_04h_multi_agent_5_coordinator_mode_\u628a\u4e3b\u7ebf\u7a0b\u53d8\u6210\u8c03\u5ea6\u5668",
+      "label": "5. Coordinator Mode\uff1a\u628a\u4e3b\u7ebf\u7a0b\u53d8\u6210\u8c03\u5ea6\u5668",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L288"
+    },
+    {
+      "id": "analysis_04h_multi_agent_5_1_coordinator_\u6a21\u5f0f\u4e0d\u662f\u5de5\u5177_\u800c\u662f\u6a21\u5f0f\u5207\u6362",
+      "label": "5.1 coordinator \u6a21\u5f0f\u4e0d\u662f\u5de5\u5177\uff0c\u800c\u662f\u6a21\u5f0f\u5207\u6362",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L294"
+    },
+    {
+      "id": "analysis_04h_multi_agent_5_2_coordinator_system_prompt_\u76f4\u63a5\u91cd\u5199\u4e3b\u7ebf\u7a0b\u8eab\u4efd",
+      "label": "5.2 coordinator system prompt \u76f4\u63a5\u91cd\u5199\u4e3b\u7ebf\u7a0b\u8eab\u4efd",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L309"
+    },
+    {
+      "id": "analysis_04h_multi_agent_5_3_worker_\u7ed3\u679c\u4e0d\u662f_assistant_\u6d88\u606f_\u800c\u662f_task_notification",
+      "label": "5.3 worker \u7ed3\u679c\u4e0d\u662f assistant \u6d88\u606f\uff0c\u800c\u662f task notification",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L328"
+    },
+    {
+      "id": "analysis_04h_multi_agent_5_4_coordinator_\u7684\u5de5\u4f5c\u6d41\u662f\u663e\u5f0f\u5206\u76f8\u7684",
+      "label": "5.4 coordinator \u7684\u5de5\u4f5c\u6d41\u662f\u663e\u5f0f\u5206\u76f8\u7684",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L350"
+    },
+    {
+      "id": "analysis_04h_multi_agent_6_swarm_\u6a21\u5f0f_\u771f\u6b63\u7684_team_based_multi_agent",
+      "label": "6. Swarm \u6a21\u5f0f\uff1a\u771f\u6b63\u7684 team-based multi-agent",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L363"
+    },
+    {
+      "id": "analysis_04h_multi_agent_6_1_team_\u662f\u4e00\u4e2a\u663e\u5f0f\u5b9e\u4f53",
+      "label": "6.1 team \u662f\u4e00\u4e2a\u663e\u5f0f\u5b9e\u4f53",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L370"
+    },
+    {
+      "id": "analysis_04h_multi_agent_6_2_spawnteammate_\u662f_teammate_\u751f\u6210\u4e3b\u5165\u53e3",
+      "label": "6.2 `spawnTeammate()` \u662f teammate \u751f\u6210\u4e3b\u5165\u53e3",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L409"
+    },
+    {
+      "id": "analysis_04h_multi_agent_7_in_process_teammate_\u540c\u8fdb\u7a0b\u591a_agent",
+      "label": "7. in-process teammate\uff1a\u540c\u8fdb\u7a0b\u591a agent",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L426"
+    },
+    {
+      "id": "analysis_04h_multi_agent_7_1_\u5b83\u4e0d\u662f\u5f00\u65b0\u8fdb\u7a0b_\u800c\u662f\u7528_asynclocalstorage_\u9694\u79bb\u4e0a\u4e0b\u6587",
+      "label": "7.1 \u5b83\u4e0d\u662f\u5f00\u65b0\u8fdb\u7a0b\uff0c\u800c\u662f\u7528 `AsyncLocalStorage` \u9694\u79bb\u4e0a\u4e0b\u6587",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L434"
+    },
+    {
+      "id": "analysis_04h_multi_agent_7_2_spawn_\u65f6\u6ce8\u518c\u7684\u662f\u4e00\u4e2a\u72ec\u7acb_task_state",
+      "label": "7.2 spawn \u65f6\u6ce8\u518c\u7684\u662f\u4e00\u4e2a\u72ec\u7acb task state",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L454"
+    },
+    {
+      "id": "analysis_04h_multi_agent_7_3_teammate_\u81ea\u5df1\u4e5f\u6709\u751f\u547d\u5468\u671f\u4e0e\u6d88\u606f\u961f\u5217",
+      "label": "7.3 teammate \u81ea\u5df1\u4e5f\u6709\u751f\u547d\u5468\u671f\u4e0e\u6d88\u606f\u961f\u5217",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L491"
+    },
+    {
+      "id": "analysis_04h_multi_agent_8_\u901a\u4fe1\u673a\u5236_mailbox_direct_resume_\u53cc\u8f68\u5236",
+      "label": "8. \u901a\u4fe1\u673a\u5236\uff1amailbox + direct resume \u53cc\u8f68\u5236",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L507"
+    },
+    {
+      "id": "analysis_04h_multi_agent_8_1_mailbox_swarm_\u7684\u6587\u4ef6\u5f0f_inbox",
+      "label": "8.1 mailbox\uff1aswarm \u7684\u6587\u4ef6\u5f0f inbox",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L520"
+    },
+    {
+      "id": "analysis_04h_multi_agent_8_2_sendmessagetool_\u65e2\u80fd\u53d1\u7ed9_teammate_\u4e5f\u80fd\u7ee7\u7eed\u5df2\u6709_subagent",
+      "label": "8.2 `SendMessageTool` \u65e2\u80fd\u53d1\u7ed9 teammate\uff0c\u4e5f\u80fd\u7ee7\u7eed\u5df2\u6709 subagent",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L547"
+    },
+    {
+      "id": "analysis_04h_multi_agent_8_3_useinboxpoller_\u8d1f\u8d23\u628a_unread_mailbox_\u6d88\u606f\u56de\u704c\u5230\u6267\u884c\u6d41",
+      "label": "8.3 `useInboxPoller()` \u8d1f\u8d23\u628a unread mailbox \u6d88\u606f\u56de\u704c\u5230\u6267\u884c\u6d41",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L590"
+    },
+    {
+      "id": "analysis_04h_multi_agent_9_\u6743\u9650\u673a\u5236_leader_\u4e3a_teammate_\u515c\u5e95",
+      "label": "9. \u6743\u9650\u673a\u5236\uff1aleader \u4e3a teammate \u515c\u5e95",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L608"
+    },
+    {
+      "id": "analysis_04h_multi_agent_9_1_in_process_teammate_\u4e0d\u662f\u81ea\u5df1\u5f39\u6743\u9650\u6846",
+      "label": "9.1 in-process teammate \u4e0d\u662f\u81ea\u5df1\u5f39\u6743\u9650\u6846",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L616"
+    },
+    {
+      "id": "analysis_04h_multi_agent_9_2_teammate_\u6743\u9650\u8bf7\u6c42\u4f1a\u4f18\u5148\u501f\u7528_leader_\u7684\u6807\u51c6\u6743\u9650\u5f39\u7a97",
+      "label": "9.2 teammate \u6743\u9650\u8bf7\u6c42\u4f1a\u4f18\u5148\u501f\u7528 leader \u7684\u6807\u51c6\u6743\u9650\u5f39\u7a97",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L629"
+    },
+    {
+      "id": "analysis_04h_multi_agent_9_3_leader_bridge_\u4e0d\u53ef\u7528\u65f6_\u9000\u56de_mailbox_\u6743\u9650\u540c\u6b65",
+      "label": "9.3 leader bridge \u4e0d\u53ef\u7528\u65f6\uff0c\u9000\u56de mailbox \u6743\u9650\u540c\u6b65",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L663"
+    },
+    {
+      "id": "analysis_04h_multi_agent_10_\u4efb\u52a1\u534f\u4f5c\u5e73\u9762_\u4e0d\u662f\u804a\u5929\u534f\u4f5c_\u800c\u662f_task_list_\u534f\u4f5c",
+      "label": "10. \u4efb\u52a1\u534f\u4f5c\u5e73\u9762\uff1a\u4e0d\u662f\u804a\u5929\u534f\u4f5c\uff0c\u800c\u662f task list \u534f\u4f5c",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L673"
+    },
+    {
+      "id": "analysis_04h_multi_agent_10_1_team_\u521b\u5efa\u65f6\u5c31\u4f1a\u7ed1\u5b9a_task_list",
+      "label": "10.1 team \u521b\u5efa\u65f6\u5c31\u4f1a\u7ed1\u5b9a task list",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L681"
+    },
+    {
+      "id": "analysis_04h_multi_agent_10_2_teammate_\u4f1a\u4e3b\u52a8_claim_task",
+      "label": "10.2 teammate \u4f1a\u4e3b\u52a8 claim task",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L694"
+    },
+    {
+      "id": "analysis_04h_multi_agent_10_3_teammate_\u7684\u5de5\u5177\u6c60\u88ab\u5f3a\u5236\u6ce8\u5165_task_\u534f\u4f5c\u5de5\u5177",
+      "label": "10.3 teammate \u7684\u5de5\u5177\u6c60\u88ab\u5f3a\u5236\u6ce8\u5165 task \u534f\u4f5c\u5de5\u5177",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L715"
+    },
+    {
+      "id": "analysis_04h_multi_agent_10_4_\u505c\u6b62\u4efb\u52a1\u4e5f\u662f\u7edf\u4e00\u5e73\u9762",
+      "label": "10.4 \u505c\u6b62\u4efb\u52a1\u4e5f\u662f\u7edf\u4e00\u5e73\u9762",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L740"
+    },
+    {
+      "id": "analysis_04h_multi_agent_11_multi_agent_\u4e3b\u94fe\u8def\u6d41\u7a0b\u56fe",
+      "label": "11. Multi-Agent \u4e3b\u94fe\u8def\u6d41\u7a0b\u56fe",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L750"
+    },
+    {
+      "id": "analysis_04h_multi_agent_12_\u4f2a\u4ee3\u7801_\u6838\u5fc3\u8c03\u5ea6\u903b\u8f91\u53ef\u4ee5\u600e\u4e48\u7406\u89e3",
+      "label": "12. \u4f2a\u4ee3\u7801\uff1a\u6838\u5fc3\u8c03\u5ea6\u903b\u8f91\u53ef\u4ee5\u600e\u4e48\u7406\u89e3",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L808"
+    },
+    {
+      "id": "analysis_04h_multi_agent_12_1_agenttool_\u5206\u6d41\u903b\u8f91",
+      "label": "12.1 `AgentTool` \u5206\u6d41\u903b\u8f91",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L810"
+    },
+    {
+      "id": "analysis_04h_multi_agent_12_2_in_process_teammate_\u6743\u9650\u6865\u63a5\u903b\u8f91",
+      "label": "12.2 in-process teammate \u6743\u9650\u6865\u63a5\u903b\u8f91",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L830"
+    },
+    {
+      "id": "analysis_04h_multi_agent_12_3_swarm_\u4efb\u52a1\u534f\u4f5c\u903b\u8f91",
+      "label": "12.3 swarm \u4efb\u52a1\u534f\u4f5c\u903b\u8f91",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L851"
+    },
+    {
+      "id": "analysis_04h_multi_agent_13_\u8fd9\u5957_multi_agent_\u5b9e\u73b0\u7684\u4f18\u70b9\u4e0e\u4ee3\u4ef7",
+      "label": "13. \u8fd9\u5957 multi-agent \u5b9e\u73b0\u7684\u4f18\u70b9\u4e0e\u4ee3\u4ef7",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L867"
+    },
+    {
+      "id": "analysis_04h_multi_agent_13_1_\u4f18\u70b9",
+      "label": "13.1 \u4f18\u70b9",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L869"
+    },
+    {
+      "id": "analysis_04h_multi_agent_13_2_\u4ee3\u4ef7",
+      "label": "13.2 \u4ee3\u4ef7",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L886"
+    },
+    {
+      "id": "analysis_04h_multi_agent_14_\u672c\u7ae0\u5c0f\u7ed3",
+      "label": "14. \u672c\u7ae0\u5c0f\u7ed3",
+      "file_type": "document",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L900"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_04h_multi_agent_md",
+      "target": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04h_multi_agent_1_\u672c\u7ae0\u5bfc\u8bfb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04h_multi_agent_2_\u603b\u4f53\u7ed3\u6784_\u4e09\u79cd_multi_agent_\u4e0d\u662f\u4e00\u56de\u4e8b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L75",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_2_\u603b\u4f53\u7ed3\u6784_\u4e09\u79cd_multi_agent_\u4e0d\u662f\u4e00\u56de\u4e8b",
+      "target": "analysis_04h_multi_agent_2_1_\u666e\u901a_subagent",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L91",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_2_\u603b\u4f53\u7ed3\u6784_\u4e09\u79cd_multi_agent_\u4e0d\u662f\u4e00\u56de\u4e8b",
+      "target": "analysis_04h_multi_agent_2_2_coordinator_mode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L102",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_2_\u603b\u4f53\u7ed3\u6784_\u4e09\u79cd_multi_agent_\u4e0d\u662f\u4e00\u56de\u4e8b",
+      "target": "analysis_04h_multi_agent_2_3_swarm_teammates",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L121",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04h_multi_agent_3_agenttool_\u662f\u591a_agent_\u7684\u7edf\u4e00\u5165\u53e3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L136",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_3_agenttool_\u662f\u591a_agent_\u7684\u7edf\u4e00\u5165\u53e3",
+      "target": "analysis_04h_multi_agent_3_1_\u8f93\u5165_schema_\u76f4\u63a5\u66b4\u9732\u4e86\u591a_agent_\u80fd\u529b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L142",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_3_agenttool_\u662f\u591a_agent_\u7684\u7edf\u4e00\u5165\u53e3",
+      "target": "analysis_04h_multi_agent_3_2_agenttool_\u5982\u4f55\u5224\u65ad\u662f\u4e0d\u662f_teammate",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L170",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_3_agenttool_\u662f\u591a_agent_\u7684\u7edf\u4e00\u5165\u53e3",
+      "target": "analysis_04h_multi_agent_3_3_\u5bf9_teammate_\u7684\u9650\u5236\u4e5f\u5199\u5728\u8fd9\u91cc",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L197",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04h_multi_agent_4_\u666e\u901a_subagent_\u672c\u8d28\u662f_\u4e3b\u4f1a\u8bdd\u7684\u4fa7\u94fe",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L218",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_4_\u666e\u901a_subagent_\u672c\u8d28\u662f_\u4e3b\u4f1a\u8bdd\u7684\u4fa7\u94fe",
+      "target": "analysis_04h_multi_agent_4_1_runagent_\u624d\u662f\u771f\u6b63\u7684_agent_\u6267\u884c\u5668",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L225",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_4_\u666e\u901a_subagent_\u672c\u8d28\u662f_\u4e3b\u4f1a\u8bdd\u7684\u4fa7\u94fe",
+      "target": "analysis_04h_multi_agent_4_2_fork_subagent_\u662f\u7279\u6b8a\u53d8\u4f53",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L252",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_4_\u666e\u901a_subagent_\u672c\u8d28\u662f_\u4e3b\u4f1a\u8bdd\u7684\u4fa7\u94fe",
+      "target": "analysis_04h_multi_agent_4_3_\u4e3a\u4ec0\u4e48_fork_\u8981\u4fdd\u7559\u7236_prompt_\u7684\u539f\u59cb\u5b57\u8282",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L270",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04h_multi_agent_5_coordinator_mode_\u628a\u4e3b\u7ebf\u7a0b\u53d8\u6210\u8c03\u5ea6\u5668",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L288",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_5_coordinator_mode_\u628a\u4e3b\u7ebf\u7a0b\u53d8\u6210\u8c03\u5ea6\u5668",
+      "target": "analysis_04h_multi_agent_5_1_coordinator_\u6a21\u5f0f\u4e0d\u662f\u5de5\u5177_\u800c\u662f\u6a21\u5f0f\u5207\u6362",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L294",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_5_coordinator_mode_\u628a\u4e3b\u7ebf\u7a0b\u53d8\u6210\u8c03\u5ea6\u5668",
+      "target": "analysis_04h_multi_agent_5_2_coordinator_system_prompt_\u76f4\u63a5\u91cd\u5199\u4e3b\u7ebf\u7a0b\u8eab\u4efd",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L309",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_5_coordinator_mode_\u628a\u4e3b\u7ebf\u7a0b\u53d8\u6210\u8c03\u5ea6\u5668",
+      "target": "analysis_04h_multi_agent_5_3_worker_\u7ed3\u679c\u4e0d\u662f_assistant_\u6d88\u606f_\u800c\u662f_task_notification",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L328",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_5_coordinator_mode_\u628a\u4e3b\u7ebf\u7a0b\u53d8\u6210\u8c03\u5ea6\u5668",
+      "target": "analysis_04h_multi_agent_5_4_coordinator_\u7684\u5de5\u4f5c\u6d41\u662f\u663e\u5f0f\u5206\u76f8\u7684",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L350",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04h_multi_agent_6_swarm_\u6a21\u5f0f_\u771f\u6b63\u7684_team_based_multi_agent",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L363",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_6_swarm_\u6a21\u5f0f_\u771f\u6b63\u7684_team_based_multi_agent",
+      "target": "analysis_04h_multi_agent_6_1_team_\u662f\u4e00\u4e2a\u663e\u5f0f\u5b9e\u4f53",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L370",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_6_swarm_\u6a21\u5f0f_\u771f\u6b63\u7684_team_based_multi_agent",
+      "target": "analysis_04h_multi_agent_6_2_spawnteammate_\u662f_teammate_\u751f\u6210\u4e3b\u5165\u53e3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L409",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04h_multi_agent_7_in_process_teammate_\u540c\u8fdb\u7a0b\u591a_agent",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L426",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_7_in_process_teammate_\u540c\u8fdb\u7a0b\u591a_agent",
+      "target": "analysis_04h_multi_agent_7_1_\u5b83\u4e0d\u662f\u5f00\u65b0\u8fdb\u7a0b_\u800c\u662f\u7528_asynclocalstorage_\u9694\u79bb\u4e0a\u4e0b\u6587",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L434",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_7_in_process_teammate_\u540c\u8fdb\u7a0b\u591a_agent",
+      "target": "analysis_04h_multi_agent_7_2_spawn_\u65f6\u6ce8\u518c\u7684\u662f\u4e00\u4e2a\u72ec\u7acb_task_state",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L454",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_7_in_process_teammate_\u540c\u8fdb\u7a0b\u591a_agent",
+      "target": "analysis_04h_multi_agent_7_3_teammate_\u81ea\u5df1\u4e5f\u6709\u751f\u547d\u5468\u671f\u4e0e\u6d88\u606f\u961f\u5217",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L491",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04h_multi_agent_8_\u901a\u4fe1\u673a\u5236_mailbox_direct_resume_\u53cc\u8f68\u5236",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L507",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_8_\u901a\u4fe1\u673a\u5236_mailbox_direct_resume_\u53cc\u8f68\u5236",
+      "target": "analysis_04h_multi_agent_8_1_mailbox_swarm_\u7684\u6587\u4ef6\u5f0f_inbox",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L520",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_8_\u901a\u4fe1\u673a\u5236_mailbox_direct_resume_\u53cc\u8f68\u5236",
+      "target": "analysis_04h_multi_agent_8_2_sendmessagetool_\u65e2\u80fd\u53d1\u7ed9_teammate_\u4e5f\u80fd\u7ee7\u7eed\u5df2\u6709_subagent",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L547",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_8_\u901a\u4fe1\u673a\u5236_mailbox_direct_resume_\u53cc\u8f68\u5236",
+      "target": "analysis_04h_multi_agent_8_3_useinboxpoller_\u8d1f\u8d23\u628a_unread_mailbox_\u6d88\u606f\u56de\u704c\u5230\u6267\u884c\u6d41",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L590",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04h_multi_agent_9_\u6743\u9650\u673a\u5236_leader_\u4e3a_teammate_\u515c\u5e95",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L608",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_9_\u6743\u9650\u673a\u5236_leader_\u4e3a_teammate_\u515c\u5e95",
+      "target": "analysis_04h_multi_agent_9_1_in_process_teammate_\u4e0d\u662f\u81ea\u5df1\u5f39\u6743\u9650\u6846",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L616",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_9_\u6743\u9650\u673a\u5236_leader_\u4e3a_teammate_\u515c\u5e95",
+      "target": "analysis_04h_multi_agent_9_2_teammate_\u6743\u9650\u8bf7\u6c42\u4f1a\u4f18\u5148\u501f\u7528_leader_\u7684\u6807\u51c6\u6743\u9650\u5f39\u7a97",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L629",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_9_\u6743\u9650\u673a\u5236_leader_\u4e3a_teammate_\u515c\u5e95",
+      "target": "analysis_04h_multi_agent_9_3_leader_bridge_\u4e0d\u53ef\u7528\u65f6_\u9000\u56de_mailbox_\u6743\u9650\u540c\u6b65",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L663",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04h_multi_agent_10_\u4efb\u52a1\u534f\u4f5c\u5e73\u9762_\u4e0d\u662f\u804a\u5929\u534f\u4f5c_\u800c\u662f_task_list_\u534f\u4f5c",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L673",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_10_\u4efb\u52a1\u534f\u4f5c\u5e73\u9762_\u4e0d\u662f\u804a\u5929\u534f\u4f5c_\u800c\u662f_task_list_\u534f\u4f5c",
+      "target": "analysis_04h_multi_agent_10_1_team_\u521b\u5efa\u65f6\u5c31\u4f1a\u7ed1\u5b9a_task_list",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L681",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_10_\u4efb\u52a1\u534f\u4f5c\u5e73\u9762_\u4e0d\u662f\u804a\u5929\u534f\u4f5c_\u800c\u662f_task_list_\u534f\u4f5c",
+      "target": "analysis_04h_multi_agent_10_2_teammate_\u4f1a\u4e3b\u52a8_claim_task",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L694",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_10_\u4efb\u52a1\u534f\u4f5c\u5e73\u9762_\u4e0d\u662f\u804a\u5929\u534f\u4f5c_\u800c\u662f_task_list_\u534f\u4f5c",
+      "target": "analysis_04h_multi_agent_10_3_teammate_\u7684\u5de5\u5177\u6c60\u88ab\u5f3a\u5236\u6ce8\u5165_task_\u534f\u4f5c\u5de5\u5177",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L715",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_10_\u4efb\u52a1\u534f\u4f5c\u5e73\u9762_\u4e0d\u662f\u804a\u5929\u534f\u4f5c_\u800c\u662f_task_list_\u534f\u4f5c",
+      "target": "analysis_04h_multi_agent_10_4_\u505c\u6b62\u4efb\u52a1\u4e5f\u662f\u7edf\u4e00\u5e73\u9762",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L740",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04h_multi_agent_11_multi_agent_\u4e3b\u94fe\u8def\u6d41\u7a0b\u56fe",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L750",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04h_multi_agent_12_\u4f2a\u4ee3\u7801_\u6838\u5fc3\u8c03\u5ea6\u903b\u8f91\u53ef\u4ee5\u600e\u4e48\u7406\u89e3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L808",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_12_\u4f2a\u4ee3\u7801_\u6838\u5fc3\u8c03\u5ea6\u903b\u8f91\u53ef\u4ee5\u600e\u4e48\u7406\u89e3",
+      "target": "analysis_04h_multi_agent_12_1_agenttool_\u5206\u6d41\u903b\u8f91",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L810",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_12_\u4f2a\u4ee3\u7801_\u6838\u5fc3\u8c03\u5ea6\u903b\u8f91\u53ef\u4ee5\u600e\u4e48\u7406\u89e3",
+      "target": "analysis_04h_multi_agent_12_2_in_process_teammate_\u6743\u9650\u6865\u63a5\u903b\u8f91",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L830",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_12_\u4f2a\u4ee3\u7801_\u6838\u5fc3\u8c03\u5ea6\u903b\u8f91\u53ef\u4ee5\u600e\u4e48\u7406\u89e3",
+      "target": "analysis_04h_multi_agent_12_3_swarm_\u4efb\u52a1\u534f\u4f5c\u903b\u8f91",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L851",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04h_multi_agent_13_\u8fd9\u5957_multi_agent_\u5b9e\u73b0\u7684\u4f18\u70b9\u4e0e\u4ee3\u4ef7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L867",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_13_\u8fd9\u5957_multi_agent_\u5b9e\u73b0\u7684\u4f18\u70b9\u4e0e\u4ee3\u4ef7",
+      "target": "analysis_04h_multi_agent_13_1_\u4f18\u70b9",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L869",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_13_\u8fd9\u5957_multi_agent_\u5b9e\u73b0\u7684\u4f18\u70b9\u4e0e\u4ee3\u4ef7",
+      "target": "analysis_04h_multi_agent_13_2_\u4ee3\u4ef7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L886",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04h_multi_agent_\u7b2c\u5341\u7ae0_multi_agent_\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04h_multi_agent_14_\u672c\u7ae0\u5c0f\u7ed3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04h-multi-agent.md",
+      "source_location": "L900",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

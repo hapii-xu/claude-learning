@@ -1,0 +1,223 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_02_user_data_and_usage_md",
+      "label": "02-user-data-and-usage.md",
+      "file_type": "document",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "analysis_02_user_data_and_usage_\u7b2c\u4e8c\u7ae0_\u4ece\u7528\u6237\u89d2\u5ea6\u770b_\u9879\u76ee\u6536\u96c6\u4e86\u54ea\u4e9b\u4fe1\u606f_\u4ee5\u53ca\u5982\u4f55\u4f7f\u7528",
+      "label": "\u7b2c\u4e8c\u7ae0\uff1a\u4ece\u7528\u6237\u89d2\u5ea6\u770b\uff0c\u9879\u76ee\u6536\u96c6\u4e86\u54ea\u4e9b\u4fe1\u606f\uff0c\u4ee5\u53ca\u5982\u4f55\u4f7f\u7528",
+      "file_type": "document",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "analysis_02_user_data_and_usage_1_\u672c\u7ae0\u5bfc\u8bfb",
+      "label": "1. \u672c\u7ae0\u5bfc\u8bfb",
+      "file_type": "document",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L5"
+    },
+    {
+      "id": "analysis_02_user_data_and_usage_2_\u8fdb\u5165\u6a21\u578b_api_\u7684\u4fe1\u606f",
+      "label": "2. \u8fdb\u5165\u6a21\u578b API \u7684\u4fe1\u606f",
+      "file_type": "document",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L14"
+    },
+    {
+      "id": "analysis_02_user_data_and_usage_3_\u672c\u5730\u6301\u4e45\u5316\u7684\u4fe1\u606f",
+      "label": "3. \u672c\u5730\u6301\u4e45\u5316\u7684\u4fe1\u606f",
+      "file_type": "document",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L45"
+    },
+    {
+      "id": "analysis_02_user_data_and_usage_4_memory_\u76f8\u5173\u4fe1\u606f",
+      "label": "4. Memory \u76f8\u5173\u4fe1\u606f",
+      "file_type": "document",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L75"
+    },
+    {
+      "id": "analysis_02_user_data_and_usage_5_analytics_telemetry_\u6536\u96c6\u7684\u4fe1\u606f",
+      "label": "5. Analytics / Telemetry \u6536\u96c6\u7684\u4fe1\u606f",
+      "file_type": "document",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L105"
+    },
+    {
+      "id": "analysis_02_user_data_and_usage_6_\u8d26\u6237\u4e0e\u8eab\u4efd\u4fe1\u606f",
+      "label": "6. \u8d26\u6237\u4e0e\u8eab\u4efd\u4fe1\u606f",
+      "file_type": "document",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L143"
+    },
+    {
+      "id": "analysis_02_user_data_and_usage_7_team_memory_\u540c\u6b65\u4f1a\u63a5\u89e6\u7684\u4fe1\u606f",
+      "label": "7. Team Memory \u540c\u6b65\u4f1a\u63a5\u89e6\u7684\u4fe1\u606f",
+      "file_type": "document",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L168"
+    },
+    {
+      "id": "analysis_02_user_data_and_usage_8_\u7528\u6237\u4e3b\u52a8\u89e6\u53d1\u7684\u9644\u52a0\u4e0a\u4f20",
+      "label": "8. \u7528\u6237\u4e3b\u52a8\u89e6\u53d1\u7684\u9644\u52a0\u4e0a\u4f20",
+      "file_type": "document",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L198"
+    },
+    {
+      "id": "analysis_02_user_data_and_usage_8_1_transcript_\u5206\u4eab",
+      "label": "8.1 Transcript \u5206\u4eab",
+      "file_type": "document",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L200"
+    },
+    {
+      "id": "analysis_02_user_data_and_usage_8_2_grove_help_improve_claude",
+      "label": "8.2 Grove / Help improve Claude",
+      "file_type": "document",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L214"
+    },
+    {
+      "id": "analysis_02_user_data_and_usage_9_remote_bridge_\u573a\u666f\u4e0b\u7684\u4fe1\u606f",
+      "label": "9. Remote / Bridge \u573a\u666f\u4e0b\u7684\u4fe1\u606f",
+      "file_type": "document",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L227"
+    },
+    {
+      "id": "analysis_02_user_data_and_usage_10_\u672c\u7ae0\u5c0f\u7ed3",
+      "label": "10. \u672c\u7ae0\u5c0f\u7ed3",
+      "file_type": "document",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L243"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_02_user_data_and_usage_md",
+      "target": "analysis_02_user_data_and_usage_\u7b2c\u4e8c\u7ae0_\u4ece\u7528\u6237\u89d2\u5ea6\u770b_\u9879\u76ee\u6536\u96c6\u4e86\u54ea\u4e9b\u4fe1\u606f_\u4ee5\u53ca\u5982\u4f55\u4f7f\u7528",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_02_user_data_and_usage_\u7b2c\u4e8c\u7ae0_\u4ece\u7528\u6237\u89d2\u5ea6\u770b_\u9879\u76ee\u6536\u96c6\u4e86\u54ea\u4e9b\u4fe1\u606f_\u4ee5\u53ca\u5982\u4f55\u4f7f\u7528",
+      "target": "analysis_02_user_data_and_usage_1_\u672c\u7ae0\u5bfc\u8bfb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_02_user_data_and_usage_\u7b2c\u4e8c\u7ae0_\u4ece\u7528\u6237\u89d2\u5ea6\u770b_\u9879\u76ee\u6536\u96c6\u4e86\u54ea\u4e9b\u4fe1\u606f_\u4ee5\u53ca\u5982\u4f55\u4f7f\u7528",
+      "target": "analysis_02_user_data_and_usage_2_\u8fdb\u5165\u6a21\u578b_api_\u7684\u4fe1\u606f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_02_user_data_and_usage_\u7b2c\u4e8c\u7ae0_\u4ece\u7528\u6237\u89d2\u5ea6\u770b_\u9879\u76ee\u6536\u96c6\u4e86\u54ea\u4e9b\u4fe1\u606f_\u4ee5\u53ca\u5982\u4f55\u4f7f\u7528",
+      "target": "analysis_02_user_data_and_usage_3_\u672c\u5730\u6301\u4e45\u5316\u7684\u4fe1\u606f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_02_user_data_and_usage_\u7b2c\u4e8c\u7ae0_\u4ece\u7528\u6237\u89d2\u5ea6\u770b_\u9879\u76ee\u6536\u96c6\u4e86\u54ea\u4e9b\u4fe1\u606f_\u4ee5\u53ca\u5982\u4f55\u4f7f\u7528",
+      "target": "analysis_02_user_data_and_usage_4_memory_\u76f8\u5173\u4fe1\u606f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L75",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_02_user_data_and_usage_\u7b2c\u4e8c\u7ae0_\u4ece\u7528\u6237\u89d2\u5ea6\u770b_\u9879\u76ee\u6536\u96c6\u4e86\u54ea\u4e9b\u4fe1\u606f_\u4ee5\u53ca\u5982\u4f55\u4f7f\u7528",
+      "target": "analysis_02_user_data_and_usage_5_analytics_telemetry_\u6536\u96c6\u7684\u4fe1\u606f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L105",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_02_user_data_and_usage_\u7b2c\u4e8c\u7ae0_\u4ece\u7528\u6237\u89d2\u5ea6\u770b_\u9879\u76ee\u6536\u96c6\u4e86\u54ea\u4e9b\u4fe1\u606f_\u4ee5\u53ca\u5982\u4f55\u4f7f\u7528",
+      "target": "analysis_02_user_data_and_usage_6_\u8d26\u6237\u4e0e\u8eab\u4efd\u4fe1\u606f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L143",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_02_user_data_and_usage_\u7b2c\u4e8c\u7ae0_\u4ece\u7528\u6237\u89d2\u5ea6\u770b_\u9879\u76ee\u6536\u96c6\u4e86\u54ea\u4e9b\u4fe1\u606f_\u4ee5\u53ca\u5982\u4f55\u4f7f\u7528",
+      "target": "analysis_02_user_data_and_usage_7_team_memory_\u540c\u6b65\u4f1a\u63a5\u89e6\u7684\u4fe1\u606f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L168",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_02_user_data_and_usage_\u7b2c\u4e8c\u7ae0_\u4ece\u7528\u6237\u89d2\u5ea6\u770b_\u9879\u76ee\u6536\u96c6\u4e86\u54ea\u4e9b\u4fe1\u606f_\u4ee5\u53ca\u5982\u4f55\u4f7f\u7528",
+      "target": "analysis_02_user_data_and_usage_8_\u7528\u6237\u4e3b\u52a8\u89e6\u53d1\u7684\u9644\u52a0\u4e0a\u4f20",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L198",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_02_user_data_and_usage_8_\u7528\u6237\u4e3b\u52a8\u89e6\u53d1\u7684\u9644\u52a0\u4e0a\u4f20",
+      "target": "analysis_02_user_data_and_usage_8_1_transcript_\u5206\u4eab",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L200",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_02_user_data_and_usage_8_\u7528\u6237\u4e3b\u52a8\u89e6\u53d1\u7684\u9644\u52a0\u4e0a\u4f20",
+      "target": "analysis_02_user_data_and_usage_8_2_grove_help_improve_claude",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L214",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_02_user_data_and_usage_\u7b2c\u4e8c\u7ae0_\u4ece\u7528\u6237\u89d2\u5ea6\u770b_\u9879\u76ee\u6536\u96c6\u4e86\u54ea\u4e9b\u4fe1\u606f_\u4ee5\u53ca\u5982\u4f55\u4f7f\u7528",
+      "target": "analysis_02_user_data_and_usage_9_remote_bridge_\u573a\u666f\u4e0b\u7684\u4fe1\u606f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L227",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_02_user_data_and_usage_\u7b2c\u4e8c\u7ae0_\u4ece\u7528\u6237\u89d2\u5ea6\u770b_\u9879\u76ee\u6536\u96c6\u4e86\u54ea\u4e9b\u4fe1\u606f_\u4ee5\u53ca\u5982\u4f55\u4f7f\u7528",
+      "target": "analysis_02_user_data_and_usage_10_\u672c\u7ae0\u5c0f\u7ed3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/02-user-data-and-usage.md",
+      "source_location": "L243",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

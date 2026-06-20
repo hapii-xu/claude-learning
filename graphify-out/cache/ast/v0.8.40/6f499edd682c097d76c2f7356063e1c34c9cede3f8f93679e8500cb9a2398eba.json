@@ -1,0 +1,159 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_introduction_why_this_whitepaper_mdx",
+      "label": "why-this-whitepaper.mdx",
+      "file_type": "document",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L1"
+    },
+    {
+      "id": "introduction_why_this_whitepaper_\u8fd9\u4efd\u767d\u76ae\u4e66\u662f\u4ec0\u4e48",
+      "label": "\u8fd9\u4efd\u767d\u76ae\u4e66\u662f\u4ec0\u4e48",
+      "file_type": "document",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L7"
+    },
+    {
+      "id": "introduction_why_this_whitepaper_\u9006\u5411\u8fc7\u7a0b\u4e2d\u6700\u7cbe\u5999\u7684\u8bbe\u8ba1\u51b3\u7b56",
+      "label": "\u9006\u5411\u8fc7\u7a0b\u4e2d\u6700\u7cbe\u5999\u7684\u8bbe\u8ba1\u51b3\u7b56",
+      "file_type": "document",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L23"
+    },
+    {
+      "id": "introduction_why_this_whitepaper_1_agentic_loop_\u7684\u81ea\u6108\u80fd\u529b",
+      "label": "1. Agentic Loop \u7684\u81ea\u6108\u80fd\u529b",
+      "file_type": "document",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L25"
+    },
+    {
+      "id": "introduction_why_this_whitepaper_2_\u4e0a\u4e0b\u6587\u5de5\u7a0b\u7684\u5206\u5c42\u7b56\u7565",
+      "label": "2. \u4e0a\u4e0b\u6587\u5de5\u7a0b\u7684\u5206\u5c42\u7b56\u7565",
+      "file_type": "document",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L36"
+    },
+    {
+      "id": "introduction_why_this_whitepaper_3_\u5de5\u5177\u7cfb\u7edf\u7684\u6743\u9650\u53cc\u8f68\u5236",
+      "label": "3. \u5de5\u5177\u7cfb\u7edf\u7684\u6743\u9650\u53cc\u8f68\u5236",
+      "file_type": "document",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L50"
+    },
+    {
+      "id": "introduction_why_this_whitepaper_4_feature_flag_\u7684\u5168\u5c40\u5f00\u5173",
+      "label": "4. Feature Flag \u7684\u5168\u5c40\u5f00\u5173",
+      "file_type": "document",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L59"
+    },
+    {
+      "id": "introduction_why_this_whitepaper_5_compaction_\u7684\u5206\u6863\u7b56\u7565",
+      "label": "5. Compaction \u7684\u5206\u6863\u7b56\u7565",
+      "file_type": "document",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L71"
+    },
+    {
+      "id": "introduction_why_this_whitepaper_\u9605\u8bfb\u8def\u7ebf\u56fe",
+      "label": "\u9605\u8bfb\u8def\u7ebf\u56fe",
+      "file_type": "document",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L81"
+    },
+    {
+      "id": "introduction_why_this_whitepaper_\u9002\u5408\u8c01\u8bfb",
+      "label": "\u9002\u5408\u8c01\u8bfb",
+      "file_type": "document",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L116"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_introduction_why_this_whitepaper_mdx",
+      "target": "introduction_why_this_whitepaper_\u8fd9\u4efd\u767d\u76ae\u4e66\u662f\u4ec0\u4e48",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_introduction_why_this_whitepaper_mdx",
+      "target": "introduction_why_this_whitepaper_\u9006\u5411\u8fc7\u7a0b\u4e2d\u6700\u7cbe\u5999\u7684\u8bbe\u8ba1\u51b3\u7b56",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "introduction_why_this_whitepaper_\u9006\u5411\u8fc7\u7a0b\u4e2d\u6700\u7cbe\u5999\u7684\u8bbe\u8ba1\u51b3\u7b56",
+      "target": "introduction_why_this_whitepaper_1_agentic_loop_\u7684\u81ea\u6108\u80fd\u529b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "introduction_why_this_whitepaper_\u9006\u5411\u8fc7\u7a0b\u4e2d\u6700\u7cbe\u5999\u7684\u8bbe\u8ba1\u51b3\u7b56",
+      "target": "introduction_why_this_whitepaper_2_\u4e0a\u4e0b\u6587\u5de5\u7a0b\u7684\u5206\u5c42\u7b56\u7565",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "introduction_why_this_whitepaper_\u9006\u5411\u8fc7\u7a0b\u4e2d\u6700\u7cbe\u5999\u7684\u8bbe\u8ba1\u51b3\u7b56",
+      "target": "introduction_why_this_whitepaper_3_\u5de5\u5177\u7cfb\u7edf\u7684\u6743\u9650\u53cc\u8f68\u5236",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L50",
+      "weight": 1.0
+    },
+    {
+      "source": "introduction_why_this_whitepaper_\u9006\u5411\u8fc7\u7a0b\u4e2d\u6700\u7cbe\u5999\u7684\u8bbe\u8ba1\u51b3\u7b56",
+      "target": "introduction_why_this_whitepaper_4_feature_flag_\u7684\u5168\u5c40\u5f00\u5173",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "introduction_why_this_whitepaper_\u9006\u5411\u8fc7\u7a0b\u4e2d\u6700\u7cbe\u5999\u7684\u8bbe\u8ba1\u51b3\u7b56",
+      "target": "introduction_why_this_whitepaper_5_compaction_\u7684\u5206\u6863\u7b56\u7565",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L71",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_introduction_why_this_whitepaper_mdx",
+      "target": "introduction_why_this_whitepaper_\u9605\u8bfb\u8def\u7ebf\u56fe",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L81",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_introduction_why_this_whitepaper_mdx",
+      "target": "introduction_why_this_whitepaper_\u9002\u5408\u8c01\u8bfb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/introduction/why-this-whitepaper.mdx",
+      "source_location": "L116",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

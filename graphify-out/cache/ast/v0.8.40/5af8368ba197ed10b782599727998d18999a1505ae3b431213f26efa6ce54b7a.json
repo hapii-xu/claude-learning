@@ -1,0 +1,271 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_superpowers_reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_md",
+      "label": "2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_commit_\u5ba1\u67e5\u62a5\u544a_0768d4dc8f69023b55adf2f5c176c766640600cb",
+      "label": "Commit \u5ba1\u67e5\u62a5\u544a\uff1a0768d4dc8f69023b55adf2f5c176c766640600cb",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_tl_dr",
+      "label": "TL;DR",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L13"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u5ba1\u67e5\u65b9\u6cd5",
+      "label": "\u5ba1\u67e5\u65b9\u6cd5",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L26"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u6211\u5b9e\u8bc1\u53d1\u73b0\u7684_bug_judge_report_\u4e4b\u5916",
+      "label": "\u6211\u5b9e\u8bc1\u53d1\u73b0\u7684 bug\uff08judge report \u4e4b\u5916\uff09",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L41"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_high_args_schema_\u56de\u5f52_\u65e7_z_string_\u65b0_z_unknown_prompt_\u672a\u540c\u6b65",
+      "label": "[HIGH] `args` schema \u56de\u5f52\uff1a\u65e7 `z.string()` \u2192 \u65b0 `z.unknown()`\uff0cprompt \u672a\u540c\u6b65",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L45"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_high_workflow_\u72b6\u6001\u53d8\u66f4\u901a\u77e5\u672a\u63a5\u5165_host_\u901a\u77e5\u7cfb\u7edf",
+      "label": "[HIGH] Workflow \u72b6\u6001\u53d8\u66f4\u901a\u77e5\u672a\u63a5\u5165 host \u901a\u77e5\u7cfb\u7edf",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L56"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_medium_failworkflowtask_\u4e22\u5f03_error_message",
+      "label": "[MEDIUM] `failWorkflowTask` \u4e22\u5f03 error message",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L70"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_low_workflowtool_\u7684_run_id_\u63d0\u793a\u4e0e\u5b9e\u9645_run_\u76ee\u5f55\u89e3\u6790\u8def\u5f84\u4e0d\u4e00\u81f4",
+      "label": "[LOW] WorkflowTool \u7684 run_id \u63d0\u793a\u4e0e\u5b9e\u9645 run \u76ee\u5f55\u89e3\u6790\u8def\u5f84\u4e0d\u4e00\u81f4",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L77"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_judge_\u62a5\u544a\u6838\u5fc3_finding",
+      "label": "Judge \u62a5\u544a\u6838\u5fc3 finding",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L86"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_high_\u811a\u672c\u6c99\u7bb1\u53ef\u88ab\u52a8\u6001_import_\u7ed5\u8fc7",
+      "label": "HIGH\uff1a\u811a\u672c\u6c99\u7bb1\u53ef\u88ab\u52a8\u6001 `import()` \u7ed5\u8fc7",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L88"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_medium_7_\u9879_\u6309\u4ef7\u503c\u6392\u5e8f",
+      "label": "MEDIUM\uff087 \u9879\uff0c\u6309\u4ef7\u503c\u6392\u5e8f\uff09",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L95"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_low_info",
+      "label": "LOW / INFO",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L105"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u88ab\u53cd\u9a73\u7684\u53d1\u73b0_refuter_\u7528\u65b0\u8bc1\u636e\u63a8\u7ffb",
+      "label": "\u88ab\u53cd\u9a73\u7684\u53d1\u73b0\uff08refuter \u7528\u65b0\u8bc1\u636e\u63a8\u7ffb\uff09",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L116"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u505a\u5f97\u597d\u7684\u5730\u65b9",
+      "label": "\u505a\u5f97\u597d\u7684\u5730\u65b9",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L124"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u63a8\u8350_merge_\u524d\u4fee\u590d_\u6309\u4f18\u5148\u7ea7",
+      "label": "\u63a8\u8350 merge \u524d\u4fee\u590d\uff08\u6309\u4f18\u5148\u7ea7\uff09",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L135"
+    },
+    {
+      "id": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u5ba1\u67e5\u8fc7\u7a0b\u7684\u5143\u89c2\u5bdf_dogfooding_\u53d1\u73b0",
+      "label": "\u5ba1\u67e5\u8fc7\u7a0b\u7684\u5143\u89c2\u5bdf\uff08dogfooding \u53d1\u73b0\uff09",
+      "file_type": "document",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L150"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_superpowers_reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_md",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_commit_\u5ba1\u67e5\u62a5\u544a_0768d4dc8f69023b55adf2f5c176c766640600cb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_commit_\u5ba1\u67e5\u62a5\u544a_0768d4dc8f69023b55adf2f5c176c766640600cb",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_tl_dr",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_commit_\u5ba1\u67e5\u62a5\u544a_0768d4dc8f69023b55adf2f5c176c766640600cb",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u5ba1\u67e5\u65b9\u6cd5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_commit_\u5ba1\u67e5\u62a5\u544a_0768d4dc8f69023b55adf2f5c176c766640600cb",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u6211\u5b9e\u8bc1\u53d1\u73b0\u7684_bug_judge_report_\u4e4b\u5916",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L41",
+      "weight": 1.0
+    },
+    {
+      "source": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u6211\u5b9e\u8bc1\u53d1\u73b0\u7684_bug_judge_report_\u4e4b\u5916",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_high_args_schema_\u56de\u5f52_\u65e7_z_string_\u65b0_z_unknown_prompt_\u672a\u540c\u6b65",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u6211\u5b9e\u8bc1\u53d1\u73b0\u7684_bug_judge_report_\u4e4b\u5916",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_high_workflow_\u72b6\u6001\u53d8\u66f4\u901a\u77e5\u672a\u63a5\u5165_host_\u901a\u77e5\u7cfb\u7edf",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L56",
+      "weight": 1.0
+    },
+    {
+      "source": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u6211\u5b9e\u8bc1\u53d1\u73b0\u7684_bug_judge_report_\u4e4b\u5916",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_medium_failworkflowtask_\u4e22\u5f03_error_message",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L70",
+      "weight": 1.0
+    },
+    {
+      "source": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u6211\u5b9e\u8bc1\u53d1\u73b0\u7684_bug_judge_report_\u4e4b\u5916",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_low_workflowtool_\u7684_run_id_\u63d0\u793a\u4e0e\u5b9e\u9645_run_\u76ee\u5f55\u89e3\u6790\u8def\u5f84\u4e0d\u4e00\u81f4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L77",
+      "weight": 1.0
+    },
+    {
+      "source": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_commit_\u5ba1\u67e5\u62a5\u544a_0768d4dc8f69023b55adf2f5c176c766640600cb",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_judge_\u62a5\u544a\u6838\u5fc3_finding",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L86",
+      "weight": 1.0
+    },
+    {
+      "source": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_judge_\u62a5\u544a\u6838\u5fc3_finding",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_high_\u811a\u672c\u6c99\u7bb1\u53ef\u88ab\u52a8\u6001_import_\u7ed5\u8fc7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L88",
+      "weight": 1.0
+    },
+    {
+      "source": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_judge_\u62a5\u544a\u6838\u5fc3_finding",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_medium_7_\u9879_\u6309\u4ef7\u503c\u6392\u5e8f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L95",
+      "weight": 1.0
+    },
+    {
+      "source": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_judge_\u62a5\u544a\u6838\u5fc3_finding",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_low_info",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L105",
+      "weight": 1.0
+    },
+    {
+      "source": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_judge_\u62a5\u544a\u6838\u5fc3_finding",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u88ab\u53cd\u9a73\u7684\u53d1\u73b0_refuter_\u7528\u65b0\u8bc1\u636e\u63a8\u7ffb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L116",
+      "weight": 1.0
+    },
+    {
+      "source": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_commit_\u5ba1\u67e5\u62a5\u544a_0768d4dc8f69023b55adf2f5c176c766640600cb",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u505a\u5f97\u597d\u7684\u5730\u65b9",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L124",
+      "weight": 1.0
+    },
+    {
+      "source": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_commit_\u5ba1\u67e5\u62a5\u544a_0768d4dc8f69023b55adf2f5c176c766640600cb",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u63a8\u8350_merge_\u524d\u4fee\u590d_\u6309\u4f18\u5148\u7ea7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L135",
+      "weight": 1.0
+    },
+    {
+      "source": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_commit_\u5ba1\u67e5\u62a5\u544a_0768d4dc8f69023b55adf2f5c176c766640600cb",
+      "target": "reviews_2026_06_13_workflow_engine_commit_0768d4dc_review_\u5ba1\u67e5\u8fc7\u7a0b\u7684\u5143\u89c2\u5bdf_dogfooding_\u53d1\u73b0",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/reviews/2026-06-13-workflow-engine-commit-0768d4dc-review.md",
+      "source_location": "L150",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

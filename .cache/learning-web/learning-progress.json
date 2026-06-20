@@ -1,0 +1,583 @@
+{
+  "entries": {
+    "src/utils/config.ts::resetTrustDialogAcceptedCacheForTesting": {
+      "status": "unstudied",
+      "note": "",
+      "updatedAt": "2026-06-17T07:12:48.610Z",
+      "firstSeenAt": "2026-06-17T07:12:45.043Z"
+    },
+    "packages/builtin-tools/src/tools/BriefTool/attachments.ts::validateAttachmentPaths": {
+      "status": "unstudied",
+      "note": "",
+      "updatedAt": "2026-06-19T02:48:13.813Z",
+      "completed": false,
+      "firstSeenAt": "2026-06-19T02:46:21.587Z"
+    },
+    "src/state/store.ts::createStore": {
+      "status": "studying",
+      "note": "",
+      "updatedAt": "2026-06-19T11:12:51.860Z",
+      "completed": false,
+      "firstSeenAt": "2026-06-19T11:12:50.905Z"
+    },
+    "scripts/check-bundle-integrity.ts::main": {
+      "status": "unstudied",
+      "note": "1111",
+      "updatedAt": "2026-06-19T11:40:52.412Z",
+      "firstSeenAt": "2026-06-19T11:19:03.359Z"
+    }
+  },
+  "annotations": {
+    "c6796e7f-5753-409f-a376-e74ac0bfb01b": {
+      "id": "c6796e7f-5753-409f-a376-e74ac0bfb01b",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 32,
+      "endLine": 44,
+      "color": "yellow",
+      "comment": "",
+      "createdAt": "2026-06-19T15:39:51.273Z",
+      "updatedAt": "2026-06-19T15:39:51.273Z",
+      "startCol": 4,
+      "endCol": 43,
+      "styles": {
+        "bold": true
+      },
+      "selectedText": "om './cost-tracker.js'\nimport type { CanUseToolFn } from './hooks/useCanUseTool.js'\nimport { loadMemoryPrompt } from './memdir/memdir.js'\nimport { hasAutoMemPathOverride } from './memdir/paths.js'\nimport { query } from './query.js'\nimport { categorizeRetryableAPIError } from './services/api/errors.js'\nimport type { MCPServerConnection } from './services/mcp/types.js'\nimport type { AppState } from './state/AppState.js'\nimport { type Tools, type ToolUseContext, toolMatchesName } from './Tool.js'\nimport type { AgentDefinition } from '@claude-code-best/builtin-tools/tools/AgentTool/loadAgentsDir.js'\nimport { SYNTHETIC_OUTPUT_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/SyntheticOutputTool/SyntheticOutputTool.js'\nimport type { APIError } from '@anthropic-ai/sdk'\nimport type { Message, SystemCompactBoundar"
+    },
+    "b4b23536-27fa-444e-b59c-65c87ceaa43b": {
+      "id": "b4b23536-27fa-444e-b59c-65c87ceaa43b",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 6,
+      "endLine": 10,
+      "color": "yellow",
+      "comment": "",
+      "createdAt": "2026-06-19T15:40:52.191Z",
+      "updatedAt": "2026-06-19T15:40:52.191Z",
+      "startCol": 12,
+      "endCol": 17,
+      "selectedText": "Id,\n  isSessionPersistenceDisabled,\n} from 'src/bootstrap/state.js'\nimport type {\n  PermissionMode,"
+    },
+    "1f3f88e8-ec52-4e7d-998f-c56e22f9076a": {
+      "id": "1f3f88e8-ec52-4e7d-998f-c56e22f9076a",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 11,
+      "endLine": 19,
+      "color": "yellow",
+      "comment": "",
+      "createdAt": "2026-06-19T15:41:52.586Z",
+      "updatedAt": "2026-06-19T15:41:52.586Z",
+      "startCol": 3,
+      "endCol": 19,
+      "selectedText": "DKCompactBoundaryMessage,\n  SDKMessage,\n  SDKPermissionDenial,\n  SDKStatus,\n  SDKUserMessageReplay,\n} from 'src/entrypoints/agentSdkTypes.js'\nimport type { BetaMessageDeltaUsage } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'\nimport { accumulateUsage, updateUsage } from 'src/services/api/claude.js'\nimport type { NonNu"
+    },
+    "b9858fb9-e6f6-403a-ab40-86ad5c74cd3c": {
+      "id": "b9858fb9-e6f6-403a-ab40-86ad5c74cd3c",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 21,
+      "endLine": 25,
+      "color": "yellow",
+      "comment": "",
+      "createdAt": "2026-06-19T15:41:56.483Z",
+      "updatedAt": "2026-06-19T15:41:56.483Z",
+      "startCol": 5,
+      "endCol": 21,
+      "selectedText": "t stripAnsi from 'strip-ansi'\nimport type { Command } from './commands.js'\nimport { getSlashCommandToolSkills } from './commands.js'\nimport {\n  LOCAL_COMMAND_STDER"
+    },
+    "7078a7f6-5216-4444-a3f5-e30dc7a861f0": {
+      "id": "7078a7f6-5216-4444-a3f5-e30dc7a861f0",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 50,
+      "endLine": 50,
+      "color": "yellow",
+      "comment": "111",
+      "createdAt": "2026-06-19T15:53:45.174Z",
+      "updatedAt": "2026-06-19T15:53:45.174Z",
+      "startCol": 10,
+      "endCol": 18,
+      "selectedText": "sBareMode, isEnvTruthy } from './utils/envUtils.js'\nimport { getFastModeState } from './utils/fastMode.js'\nimport {\n  type FileHistory"
+    },
+    "2a2ce516-c601-4263-8737-07fb8e86832a": {
+      "id": "2a2ce516-c601-4263-8737-07fb8e86832a",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 59,
+      "endLine": 66,
+      "color": "yellow",
+      "comment": "",
+      "createdAt": "2026-06-19T15:53:58.425Z",
+      "updatedAt": "2026-06-19T15:53:58.425Z",
+      "startCol": 10,
+      "endCol": 8,
+      "selectedText": "eStateCache,\n} from './utils/fileStateCache.js'\nimport { headlessProfilerCheckpoint } from './utils/headlessProfiler.js'\nimport { registerStructuredOutputEnforcement } from './utils/hooks/hookHelpers.js'\nimport { logForDebugging } from './utils/debug.js'\nimport { getInMemoryErrors } from './utils/log.js'\nimport { countToolCalls, SYNTHETIC_MESSAGES } from './utils/messages.js'\nimport {"
+    },
+    "0447b910-e04f-4d95-a58f-22d7d66beda4": {
+      "id": "0447b910-e04f-4d95-a58f-22d7d66beda4",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 51,
+      "endLine": 59,
+      "color": "yellow",
+      "comment": "",
+      "createdAt": "2026-06-19T15:54:01.368Z",
+      "updatedAt": "2026-06-19T15:54:01.368Z",
+      "startCol": 2,
+      "endCol": 22,
+      "selectedText": "port { getFastModeState } from './utils/fastMode.js'\nimport {\n  type FileHistoryState,\n  fileHistoryEnabled,\n  fileHistoryMakeSnapshot,\n} from './utils/fileHistory.js'\nimport {\n  cloneFileStateCache,\n  type FileStateCache,"
+    },
+    "48d70961-e1f9-4f17-9396-358c3a73f1f6": {
+      "id": "48d70961-e1f9-4f17-9396-358c3a73f1f6",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 44,
+      "endLine": 49,
+      "color": "red",
+      "comment": "",
+      "createdAt": "2026-06-19T15:54:04.880Z",
+      "updatedAt": "2026-06-19T15:54:04.880Z",
+      "startCol": 6,
+      "endCol": 22,
+      "selectedText": " type { Message, SystemCompactBoundaryMessage } from './types/message.js'\nimport type { OrphanedPermission } from './types/textInputTypes.js'\nimport { createAbortController } from './utils/abortController.js'\nimport type { AttributionState } from './utils/commitAttribution.js'\nimport { getGlobalConfig } from './utils/config.js'\nimport { getCwd } from"
+    },
+    "615be0cd-7173-4cbd-9d49-ea8a399f6fa7": {
+      "id": "615be0cd-7173-4cbd-9d49-ea8a399f6fa7",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 49,
+      "endLine": 49,
+      "color": "yellow",
+      "comment": "2222",
+      "createdAt": "2026-06-19T15:54:10.620Z",
+      "updatedAt": "2026-06-19T15:54:10.620Z",
+      "startCol": 28,
+      "endCol": 33,
+      "selectedText": "ils/cwd.js'\nimport { isBareMode, isEnvTruthy "
+    },
+    "21b4f33e-9462-4d0e-9a36-a29108e9d40c": {
+      "id": "21b4f33e-9462-4d0e-9a36-a29108e9d40c",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 73,
+      "endLine": 73,
+      "color": "red",
+      "comment": "22222",
+      "createdAt": "2026-06-19T15:54:24.267Z",
+      "updatedAt": "2026-06-19T16:19:52.803Z",
+      "startCol": 4,
+      "endCol": 15,
+      "selectedText": "ocessUserInput,\n} from './utils/processUserInput/processUserInput.js'\nimport { fetchSystemPromptParts } from './utils/queryContext.js'\nimport { setCwd } from './utils/Shell.js'\nimport {\n  flushSessionS"
+    },
+    "c6a3d130-a211-4ac3-b446-92477fe5d568": {
+      "id": "c6a3d130-a211-4ac3-b446-92477fe5d568",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 129,
+      "endLine": 129,
+      "color": "yellow",
+      "comment": "2222",
+      "createdAt": "2026-06-19T15:54:42.894Z",
+      "updatedAt": "2026-06-19T15:54:42.894Z",
+      "startCol": 10,
+      "endCol": 20,
+      "selectedText": "de elimination: conditional import for snip compaction\n/* eslint-disable @typescript-eslint/no-require-imports */\nconst snipModule = feature('HISTORY_SNIP')\n  ? (require('./services/compact/snipCompact.js') as typeof import('./services/compact/snipCompact.js'))\n  : null\nconst snipProjection = feature('HISTORY_SNIP')\n  ? (require('./services/compact/snipProjection.js') as typeof import('./services/compact/snipProjection.js'))\n  : null\n/* eslint-enable @typescript-eslint/no-require-imports */\n\nexport type QueryEng"
+    },
+    "197f2b37-c26a-46f3-ac41-c18f514ab8b8": {
+      "id": "197f2b37-c26a-46f3-ac41-c18f514ab8b8",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 140,
+      "endLine": 140,
+      "color": "yellow",
+      "comment": "11111111",
+      "createdAt": "2026-06-19T15:54:53.226Z",
+      "updatedAt": "2026-06-19T15:54:53.226Z",
+      "startCol": 4,
+      "endCol": 15,
+      "selectedText": "d: string\n  tools: Tools\n  commands: Command[]\n  mcpClients: MCPServerConnection[]\n  agents: AgentDefinition[]\n  canUseTool: CanUseToolFn\n  getAppState: "
+    },
+    "db0b5059-a77b-44e4-8917-f57b549550f9": {
+      "id": "db0b5059-a77b-44e4-8917-f57b549550f9",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 161,
+      "endLine": 165,
+      "color": "yellow",
+      "comment": "",
+      "createdAt": "2026-06-19T15:57:44.076Z",
+      "updatedAt": "2026-06-19T15:57:44.076Z",
+      "startCol": 7,
+      "endCol": 14,
+      "selectedText": "andler for URL elicitations triggered by MCP tool -32042 errors. */\n  handleElicitation?: ToolUseContext['handleElicitation']\n  includePartialMessages?: boolean\n  setSDKStatus?: (status: SDKStatus) => void\n  abortControl"
+    },
+    "f5195f86-c223-48d4-ba23-ef7952ab8416": {
+      "id": "f5195f86-c223-48d4-ba23-ef7952ab8416",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 169,
+      "endLine": 172,
+      "color": "blue",
+      "comment": "",
+      "createdAt": "2026-06-19T15:57:47.379Z",
+      "updatedAt": "2026-06-19T15:57:47.379Z",
+      "startCol": 14,
+      "endCol": 22,
+      "selectedText": "utableMessages store. Returns undefined if the message is not a\n   * snip boundary; otherwise returns the replayed snip result. Injected by\n   * ask() when HISTORY_SNIP is enabled so feature-gated strings stay inside\n   * the gated module "
+    },
+    "616ec002-6454-4571-a72f-35e4fd38065e": {
+      "id": "616ec002-6454-4571-a72f-35e4fd38065e",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 8,
+      "endLine": 8,
+      "color": "blue",
+      "comment": "11111",
+      "createdAt": "2026-06-19T16:28:14.882Z",
+      "updatedAt": "2026-06-19T16:28:14.882Z"
+    },
+    "5b2b928c-1735-4b68-9d19-563403c322e5": {
+      "id": "5b2b928c-1735-4b68-9d19-563403c322e5",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 75,
+      "endLine": 79,
+      "color": "yellow",
+      "comment": "",
+      "createdAt": "2026-06-19T16:33:05.331Z",
+      "updatedAt": "2026-06-19T16:33:05.331Z",
+      "startCol": 8,
+      "endCol": 12,
+      "selectedText": " fetchSystemPromptParts } from './utils/queryContext.js'\nimport { setCwd } from './utils/Shell.js'\nimport {\n  flushSessionStorage,\n  recordTran"
+    },
+    "22ad0652-0991-4e79-8e97-5431e11abed6": {
+      "id": "22ad0652-0991-4e79-8e97-5431e11abed6",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 80,
+      "endLine": 85,
+      "color": "blue",
+      "comment": "",
+      "createdAt": "2026-06-19T16:33:08.103Z",
+      "updatedAt": "2026-06-19T16:33:08.103Z",
+      "startCol": 6,
+      "endCol": 18,
+      "selectedText": " './utils/sessionStorage.js'\nimport { asSystemPrompt } from './utils/systemPromptType.js'\nimport { resolveThemeSetting } from './utils/systemTheme.js'\nimport {\n  shouldEnableThinkingByDefault,\n  type ThinkingCon"
+    },
+    "43ff91f2-9bd5-4bce-b0d3-917abf7f60f7": {
+      "id": "43ff91f2-9bd5-4bce-b0d3-917abf7f60f7",
+      "filePath": "src/QueryEngine.ts",
+      "startLine": 73,
+      "endLine": 73,
+      "color": "yellow",
+      "comment": "",
+      "createdAt": "2026-06-19T16:33:13.868Z",
+      "updatedAt": "2026-06-19T16:33:13.868Z",
+      "startCol": 2,
+      "endCol": 18,
+      "selectedText": "processUserInput"
+    },
+    "70361b6b-5d06-4dfa-9d0b-e2e42ef934e0": {
+      "id": "70361b6b-5d06-4dfa-9d0b-e2e42ef934e0",
+      "filePath": "src/entrypoints/init.ts",
+      "startLine": 1,
+      "endLine": 14,
+      "color": "yellow",
+      "comment": "",
+      "createdAt": "2026-06-19T16:38:52.889Z",
+      "updatedAt": "2026-06-19T16:38:52.889Z",
+      "startCol": 17,
+      "endCol": 33,
+      "selectedText": "heckpoint } from '../utils/startupProfiler.js'\nimport '../bootstrap/state.js'\nimport '../utils/config.js'\nimport type { Attributes, MetricOptions } from '@opentelemetry/api'\nimport memoize from 'lodash-es/memoize.js'\nimport { getIsNonInteractiveSession } from 'src/bootstrap/state.js'\nimport type { AttributedCounter } from '../bootstrap/state.js'\nimport { getSessionCounter, setMeter } from '../bootstrap/state.js'\nimport { shutdownLspServerManager } from '../services/lsp/manager.js'\nimport { populateOAuthAccountInfoIfNeeded } from '../services/oauth/client.js'\nimport {\n  initializePolicyLimitsLoadingPromise,\n  isPolicyLimitsEligible,\n} from '../services/policyLimits/"
+    },
+    "d81cbc4a-10d4-4964-bcb7-c6f619978ebf": {
+      "id": "d81cbc4a-10d4-4964-bcb7-c6f619978ebf",
+      "filePath": "src/entrypoints/init.ts",
+      "startLine": 19,
+      "endLine": 25,
+      "color": "yellow",
+      "comment": "",
+      "createdAt": "2026-06-19T16:38:55.052Z",
+      "updatedAt": "2026-06-19T16:38:55.052Z",
+      "startCol": 8,
+      "endCol": 18,
+      "selectedText": "../services/remoteManagedSettings/index.js'\nimport { preconnectAnthropicApi } from '../utils/apiPreconnect.js'\nimport { applyExtraCACertsFromConfig } from '../utils/caCertsConfig.js'\nimport { registerCleanup } from '../utils/cleanupRegistry.js'\nimport {\n  enableConfigs,\n  getGlobalConfig,"
+    },
+    "628e6b1f-4744-4cbc-9fc3-22e9a3b6c9ec": {
+      "id": "628e6b1f-4744-4cbc-9fc3-22e9a3b6c9ec",
+      "filePath": "src/entrypoints/init.ts",
+      "startLine": 32,
+      "endLine": 32,
+      "color": "yellow",
+      "comment": "33",
+      "createdAt": "2026-06-19T16:39:07.116Z",
+      "updatedAt": "2026-06-19T16:39:07.116Z",
+      "startCol": 16,
+      "endCol": 24,
+      "selectedText": "BrainsDetection } from '../utils/envDynamic.js'\nimport { isEnvTruthy } from '../utils/envUtils.js'\nimport { ConfigParseError, errorMessage } from '../utils/errors.js'\n// showInvalidConfigDialog is dynamically imported in the error path to avoid loading React at init\nimport {\n  gracefulShutdownSync,\n  setupGracefulShutdown,"
+    },
+    "70ff4bf6-334e-4ace-82c5-4582eaef8e37": {
+      "id": "70ff4bf6-334e-4ace-82c5-4582eaef8e37",
+      "filePath": "src/entrypoints/init.ts",
+      "startLine": 45,
+      "endLine": 45,
+      "color": "yellow",
+      "comment": "111111",
+      "createdAt": "2026-06-19T16:39:22.991Z",
+      "updatedAt": "2026-06-19T16:39:22.991Z",
+      "startCol": 0,
+      "endCol": 95,
+      "selectedText": "import {\n  ensureScratchpadDir,\n  isScratchpadEnabled,\n} from '../utils/permissions/filesystem.js'\n// initializeTelemetry is loaded lazily via import() in setMeterState() to defer\n// ~400KB of OpenTelemetry + protobuf modules until telemetry is actually initialized.\n// gRPC exporters (~700KB via @grpc/grpc-js) are further lazy-loaded within instrumentation.ts."
+    },
+    "07d7a345-cf05-4169-9fae-e01b7b23f450": {
+      "id": "07d7a345-cf05-4169-9fae-e01b7b23f450",
+      "filePath": "src/entrypoints/init.ts",
+      "startLine": 59,
+      "endLine": 63,
+      "color": "red",
+      "comment": "",
+      "createdAt": "2026-06-19T16:39:26.923Z",
+      "updatedAt": "2026-06-19T16:39:26.923Z",
+      "startCol": 7,
+      "endCol": 20,
+      "selectedText": "{ setThemeConfigCallbacks } from '@anthropic/ink'\n\n// initialize1PEventLogging is dynamically imported to defer OpenTelemetry sdk-logs/resources\n\n// Track if telemetr"
+    },
+    "49d67e7e-b7ff-426a-8bfd-b33f8fef7a0a": {
+      "id": "49d67e7e-b7ff-426a-8bfd-b33f8fef7a0a",
+      "filePath": "src/entrypoints/init.ts",
+      "startLine": 70,
+      "endLine": 76,
+      "color": "green",
+      "comment": "",
+      "createdAt": "2026-06-19T16:39:29.647Z",
+      "updatedAt": "2026-06-19T16:39:29.647Z",
+      "startCol": 8,
+      "endCol": 23,
+      "selectedText": "在 Commander preAction hook 中，每个命令执行前调用。\n *\n * 初始化内容（按执行顺序）：\n *   1. enableConfigs()        —— 启用配置读取（settings.json、global config）\n *   2. applySafeConfigEnvironmentVariables() —— 应用安全的环境变量（trust 前可执行的部分）\n *   3. applyExtraCACertsFromConfig() —— 加载额外 CA 证书（必须在首次 TLS 握手前）\n *   4. setupGracefulSh"
+    },
+    "e8cc8536-b327-4c0d-a7ac-229bf387dc2e": {
+      "id": "e8cc8536-b327-4c0d-a7ac-229bf387dc2e",
+      "filePath": "src/entrypoints/init.ts",
+      "startLine": 114,
+      "endLine": 114,
+      "color": "green",
+      "comment": "111111",
+      "createdAt": "2026-06-19T16:39:42.143Z",
+      "updatedAt": "2026-06-19T16:39:48.209Z",
+      "startCol": 11,
+      "endCol": 6,
+      "selectedText": "y NODE_EXTRA_CA_CERTS from settings.json to process.env early,\n    // before any TLS connections. Bun caches the TLS cert store at boot\n    // via BoringSSL, so this must happen before the first TLS handshake.\n    applyExtraCACertsFromConfig()\n\n    logForDiagnosticsNoPII('info', 'init_safe_env_vars_applied', {\n      duration_ms: Date.now() - envVarsStart,\n    })"
+    },
+    "573b1ad1-1a4f-4da2-9d8e-f4b8702c66a0": {
+      "id": "573b1ad1-1a4f-4da2-9d8e-f4b8702c66a0",
+      "filePath": "src/screens/REPL.tsx",
+      "startLine": 139,
+      "endLine": 150,
+      "color": "yellow",
+      "comment": "",
+      "createdAt": "2026-06-19T16:47:52.184Z",
+      "updatedAt": "2026-06-19T16:47:52.184Z",
+      "startCol": 4,
+      "endCol": 44,
+      "selectedText": "rt { useAssistantHistory } from '../hooks/useAssistantHistory.js';\nimport type { SSHSession } from '../ssh/createSSHSession.js';\nimport { SkillImprovementSurvey } from '../components/SkillImprovementSurvey.js';\nimport { useSkillImprovementSurvey } from '../hooks/useSkillImprovementSurvey.js';\nimport { useMoreRight } from '../moreright/useMoreRight.js';\nimport { SpinnerWithVerb, BriefIdleStatus, type SpinnerMode } from '../components/Spinner.js';\nimport { getSystemPrompt } from '../constants/prompts.js';\nimport { buildEffectiveSystemPrompt } from '../utils/systemPrompt.js';\nimport { getSystemContext, getUserContext } from '../context.js';\nimport { getMemoryFiles } from '../utils/claudemd.js';\nimport { startBackgroundHousekeeping } from '../utils/backgroundHousekeeping.js';\nimport { getTotalCost, saveCurrentSessionCos"
+    }
+  },
+  "bookmarks": {},
+  "pathProgress": {},
+  "recentActivity": [
+    {
+      "filePath": "src/utils/fileHistory.ts",
+      "visitedAt": "2026-06-19T17:06:14.238Z"
+    },
+    {
+      "filePath": "src/services/compact/autoCompact.ts",
+      "visitedAt": "2026-06-19T17:06:09.315Z"
+    },
+    {
+      "filePath": "src/utils/queryContext.ts",
+      "visitedAt": "2026-06-19T17:06:04.678Z"
+    },
+    {
+      "filePath": "src/utils/processUserInput/processUserInput.ts",
+      "visitedAt": "2026-06-19T17:05:57.525Z"
+    },
+    {
+      "filePath": "src/services/tools/toolOrchestration.ts",
+      "visitedAt": "2026-06-19T17:05:51.843Z"
+    },
+    {
+      "filePath": "src/services/api/claude.ts",
+      "visitedAt": "2026-06-19T17:05:33.043Z"
+    },
+    {
+      "filePath": "src/Tool.ts",
+      "visitedAt": "2026-06-19T16:48:57.072Z"
+    },
+    {
+      "filePath": "src/screens/REPL.tsx",
+      "visitedAt": "2026-06-19T16:48:08.187Z"
+    },
+    {
+      "filePath": "src/QueryEngine.ts",
+      "visitedAt": "2026-06-19T16:45:23.231Z"
+    },
+    {
+      "filePath": "src/entrypoints/init.ts",
+      "visitedAt": "2026-06-19T16:45:23.112Z"
+    },
+    {
+      "filePath": "src/query.ts",
+      "visitedAt": "2026-06-19T16:41:51.602Z"
+    },
+    {
+      "filePath": "src/components/permissions/PermissionDialog.tsx",
+      "visitedAt": "2026-06-19T16:40:22.574Z"
+    },
+    {
+      "filePath": "src/main.tsx",
+      "visitedAt": "2026-06-19T16:35:22.351Z"
+    },
+    {
+      "filePath": "src/entrypoints/cli.tsx",
+      "visitedAt": "2026-06-19T16:34:55.328Z"
+    },
+    {
+      "filePath": "packages/mcp-client/src/index.ts",
+      "visitedAt": "2026-06-19T11:40:44.417Z"
+    },
+    {
+      "filePath": "scripts/check-bundle-integrity.ts",
+      "visitedAt": "2026-06-19T11:20:49.684Z"
+    },
+    {
+      "filePath": "src/state/store.ts",
+      "visitedAt": "2026-06-19T11:12:16.169Z"
+    },
+    {
+      "filePath": "analysis/callgraphs/03-micro/tool-execution-sequence.mmd.md",
+      "visitedAt": "2026-06-19T07:27:20.495Z"
+    },
+    {
+      "filePath": "src/bootstrap/state.ts",
+      "visitedAt": "2026-06-19T07:18:41.637Z"
+    },
+    {
+      "filePath": "src/bridge/bridgeApi.ts",
+      "visitedAt": "2026-06-19T07:09:57.200Z"
+    },
+    {
+      "filePath": "src/modes/personas/claude.ts",
+      "visitedAt": "2026-06-19T06:45:42.589Z"
+    },
+    {
+      "filePath": "packages/builtin-tools/src/tools/BriefTool/attachments.ts",
+      "visitedAt": "2026-06-19T02:47:45.333Z"
+    },
+    {
+      "filePath": "packages/@ant/computer-use-mcp/package.json",
+      "visitedAt": "2026-06-19T02:45:13.922Z"
+    },
+    {
+      "filePath": "src/keybindings/types.ts",
+      "visitedAt": "2026-06-19T02:28:59.577Z"
+    },
+    {
+      "filePath": "src/keybindings/KeybindingProviderSetup.tsx",
+      "visitedAt": "2026-06-19T02:03:51.968Z"
+    },
+    {
+      "filePath": "src/keybindings/KeybindingContext.tsx",
+      "visitedAt": "2026-06-19T02:03:50.005Z"
+    },
+    {
+      "filePath": "src/constants/toolLimits.ts",
+      "visitedAt": "2026-06-19T01:24:07.686Z"
+    },
+    {
+      "filePath": "src/constants/tools.ts",
+      "visitedAt": "2026-06-19T01:24:07.638Z"
+    },
+    {
+      "filePath": "src/constants/github-app.ts",
+      "visitedAt": "2026-06-19T01:24:06.128Z"
+    },
+    {
+      "filePath": "src/constants/outputStyles.ts",
+      "visitedAt": "2026-06-19T01:24:04.920Z"
+    },
+    {
+      "filePath": "src/constants/claudeDirName.ts",
+      "visitedAt": "2026-06-19T01:24:03.199Z"
+    },
+    {
+      "filePath": "src/constants/apiLimits.ts",
+      "visitedAt": "2026-06-19T01:24:01.275Z"
+    },
+    {
+      "filePath": "src/skills/bundled/cronManage.ts",
+      "visitedAt": "2026-06-19T01:21:27.159Z"
+    },
+    {
+      "filePath": "src/assistant/sessionDiscovery.ts",
+      "visitedAt": "2026-06-19T01:20:46.253Z"
+    },
+    {
+      "filePath": "src/skills/bundled/claudeApi.ts",
+      "visitedAt": "2026-06-19T01:18:59.625Z"
+    },
+    {
+      "filePath": "src/utils/model/model.ts",
+      "visitedAt": "2026-06-19T01:18:19.763Z"
+    },
+    {
+      "filePath": "CLAUDE.md",
+      "visitedAt": "2026-06-18T15:14:38.587Z"
+    },
+    {
+      "filePath": "AGENTS.md",
+      "visitedAt": "2026-06-18T15:14:38.540Z"
+    },
+    {
+      "filePath": "src/utils/performanceShim.ts",
+      "visitedAt": "2026-06-18T15:11:47.595Z"
+    },
+    {
+      "filePath": "analysis/callgraphs/03-micro/startup-sequence.mmd.md",
+      "visitedAt": "2026-06-18T15:04:13.524Z"
+    },
+    {
+      "filePath": "analysis/callgraphs/03-micro/query-loop-sequence.mmd.md",
+      "visitedAt": "2026-06-18T15:03:58.103Z"
+    },
+    {
+      "filePath": "src/bridge/bridgeConfig.ts",
+      "visitedAt": "2026-06-18T09:09:54.409Z"
+    },
+    {
+      "filePath": "src/utils/telemetry/instrumentation.ts",
+      "visitedAt": "2026-06-18T09:09:44.736Z"
+    },
+    {
+      "filePath": "src/utils/sentry.ts",
+      "visitedAt": "2026-06-18T09:09:33.226Z"
+    },
+    {
+      "filePath": "src/services/analytics/sink.ts",
+      "visitedAt": "2026-06-18T09:09:25.584Z"
+    },
+    {
+      "filePath": "src/services/analytics/growthbook.ts",
+      "visitedAt": "2026-06-18T09:09:21.295Z"
+    },
+    {
+      "filePath": "src/utils/managedEnvConstants.ts",
+      "visitedAt": "2026-06-18T09:09:10.800Z"
+    },
+    {
+      "filePath": "scripts/defines.ts",
+      "visitedAt": "2026-06-18T09:03:36.117Z"
+    },
+    {
+      "filePath": ".env",
+      "visitedAt": "2026-06-18T09:03:28.031Z"
+    },
+    {
+      "filePath": "src/commands.ts",
+      "visitedAt": "2026-06-18T04:28:53.942Z"
+    }
+  ],
+  "fileNotes": {
+    "packages/builtin-tools/src/tools/BriefTool/attachments.ts": {
+      "filePath": "packages/builtin-tools/src/tools/BriefTool/attachments.ts",
+      "completed": false,
+      "note": "",
+      "updatedAt": "2026-06-19T02:47:14.885Z",
+      "firstSeenAt": "2026-06-19T02:47:13.691Z"
+    }
+  }
+}

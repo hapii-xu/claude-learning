@@ -1,0 +1,571 @@
+---
+title: Hooks 系统知识总结
+description: Claude Code 的"生命周期插桩" —— 20 种 Hook 事件、4 种 Hook 类型（command/prompt/http/agent）、settings.json 配置格式 + matcher 规则、输入/输出协议（exit code 语义）、5 层配置优先级，以及如何从零定义一个可工作的 Hook
+---
+
+# Hooks 系统知识总结
+
+> 这是"总结学习"栏目的第八篇。目标：彻底理解 Claude Code 的 **Hooks 机制** —— Hook 在工具调用生命周期的哪个节点被触发、`settings.json` 里的配置格式是什么、Shell/HTTP/Prompt/Agent 四种类型各有哪些参数、`$ARGUMENTS` 怎么读取输入、exit code 如何控制工具是否继续执行。
+
+---
+
+## 一、Hooks 全貌
+
+### 什么是 Hook
+
+Hook 是一种**生命周期插桩机制**，让用户（或插件）在 Claude Code 的关键执行节点注入额外逻辑：
+
+```
+用户消息提交 → [UserPromptSubmit Hook]
+    ↓
+工具调用前 → [PreToolUse Hook]
+    ↓
+工具执行
+    ↓
+工具调用后 → [PostToolUse Hook]
+    ↓
+工具失败后 → [PostToolUseFailure Hook]
+    ↓
+响应结束前 → [Stop Hook]
+```
+
+### Hook 与权限系统的关系
+
+`PreToolUse` 类型的 Hook 可以返回 `permissionDecision: 'allow' | 'deny' | 'ask'`，直接参与权限决策——这使 Hook 成为"可编程的权限规则"。
+
+### 4 种 Hook 类型一览
+
+| 类型 | 执行者 | 适用场景 |
+|------|-------|---------|
+| `command` | Shell 命令 | 记录日志、运行脚本、通知系统 |
+| `prompt` | LLM 子调用 | AI 辅助决策、内容检查、摘要 |
+| `http` | HTTP POST | 通知 Webhook、外部服务集成 |
+| `agent` | Agent 子代理 | 复杂的 AI 校验（用 Haiku 做快速验证） |
+
+---
+
+## 二、必须掌握的 6 个核心概念
+
+### 1. 完整 Hook 事件列表（20 种）
+
+> 定义来源：`src/entrypoints/agentSdkTypes.ts` + `src/utils/hooks/hooksConfigManager.ts`
+
+| 事件名 | 触发时机 |
+|-------|---------|
+| `SessionStart` | 新会话启动 |
+| `Setup` | 第一次 Claude API 调用前 |
+| `PreToolUse` | 工具执行**前**（可修改输入/阻止执行） |
+| `PostToolUse` | 工具执行**成功**后 |
+| `PostToolUseFailure` | 工具执行**失败**后 |
+| `PermissionDenied` | 权限被拒绝 |
+| `PermissionRequest` | 权限弹框弹出时 |
+| `UserPromptSubmit` | 用户提交消息时 |
+| `Stop` | Claude 即将结束响应前 |
+| `StopFailure` | API 错误导致响应中断 |
+| `SubagentStart` | 子代理启动 |
+| `SubagentStop` | 子代理结束 |
+| `Notification` | 发送通知时 |
+| `PreCompact` | 对话压缩前 |
+| `PostCompact` | 对话压缩后 |
+| `CwdChanged` | 工作目录变更 |
+| `FileChanged` | 工作区文件被修改 |
+| `Elicitation` | 触发用户交互弹框时 |
+| `ElicitationResult` | 用户交互弹框关闭后 |
+| `WorktreeCreate` | Worktree 被创建时 |
+
+### 2. settings.json 配置格式
+
+Hook 在 `settings.json`（用户级 `~/.claude/settings.json` 或项目级 `.claude/settings.json`）的 `hooks` 字段下配置：
+
+```json
+{
+  "hooks": {
+    "<HookEvent>": [
+      {
+        "matcher": "<可选匹配模式>",
+        "hooks": [
+          { /* HookCommand 对象 */ }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**结构说明**：
+- 顶层 key 是事件名（`PreToolUse` / `PostToolUse` 等）
+- 每个事件是一个 `HookMatcher[]` 数组（支持多个匹配组）
+- 每个 `HookMatcher` 有可选的 `matcher` 字段和必填的 `hooks` 数组
+- `hooks` 数组中每项是一个具体的 Hook 命令对象
+
+### 3. matcher 匹配规则
+
+`matcher` 字段是一个**权限规则格式**的模式字符串，格式与 `allow`/`deny` 规则相同：
+
+```
+ToolName(*args*)
+```
+
+| matcher 示例 | 匹配范围 |
+|------------|---------|
+| 省略 / `"*"` | 所有工具调用 |
+| `"Bash(*)"` | 所有 Bash 调用 |
+| `"Bash(git *)"` | Bash 中以 `git` 开头的命令 |
+| `"Bash(npm install)"` | 精确匹配 `npm install` |
+| `"FileWriteTool(*)"` | 所有文件写入 |
+| `"Read(src/**)"` | 读取 src 目录下的文件 |
+
+### 4. 四种 Hook 类型的完整字段
+
+#### `command`（Shell 命令）
+
+> 执行实现：`src/utils/hooks/` 主文件
+
+```typescript
+{
+  type: 'command'
+  command: string           // 必填：Shell 命令字符串，$ARGUMENTS 注入工具输入
+  shell?: 'bash' | 'powershell'  // 默认：bash（Windows 下自动选择）
+  timeout?: number          // 秒，默认 60
+  if?: string               // 二级过滤：额外的权限规则（在 matcher 基础上再过滤）
+  statusMessage?: string    // 执行时显示的状态栏文字
+  once?: boolean            // true = 执行一次后自动从 hooks 列表移除
+  async?: boolean           // true = 后台执行，不阻塞工具调用
+  asyncRewake?: boolean     // true = 后台命令以 exit code 2 退出时，唤起 Claude 处理
+}
+```
+
+#### `prompt`（LLM 子调用）
+
+```typescript
+{
+  type: 'prompt'
+  prompt: string            // 必填：给 LLM 的提示词，$ARGUMENTS 注入工具输入
+  model?: string            // 默认：快速小模型（Haiku）
+  timeout?: number          // 秒，默认 30
+  if?: string
+  statusMessage?: string
+  once?: boolean
+}
+```
+
+#### `http`（HTTP POST）
+
+```typescript
+{
+  type: 'http'
+  url: string               // 必填：接收 POST 的 URL
+  headers?: Record<string, string>  // 请求头，支持 $VAR / ${VAR} 环境变量插值
+  allowedEnvVars?: string[] // 允许在 headers 中引用的环境变量白名单
+  timeout?: number          // 秒，默认 30
+  if?: string
+  statusMessage?: string
+  once?: boolean
+}
+```
+
+#### `agent`（Agent 子代理）
+
+```typescript
+{
+  type: 'agent'
+  prompt: string            // 必填：给 Agent 的指令，$ARGUMENTS 注入工具输入
+  model?: string            // 默认：Haiku（小模型快速验证）
+  timeout?: number          // 秒，默认 60
+  if?: string
+  statusMessage?: string
+  once?: boolean
+}
+```
+
+### 5. Hook 输入：`$ARGUMENTS` 的内容
+
+Hook 命令（`command` 字段 / `prompt` 字段的 `$ARGUMENTS` 占位符）会被替换为以下 JSON 对象的字符串：
+
+```json
+{
+  "tool_name": "Bash",
+  "tool_input": { "command": "npm test" },
+  "tool_use_id": "toolu_abc123",
+  "source": "startup"
+}
+```
+
+对于 `http` 类型，上述 JSON 作为 POST body 发送。
+
+### 6. Hook 输出：exit code + JSON 语义
+
+**Shell 命令 exit code**：
+
+| exit code | 含义 |
+|-----------|------|
+| `0` | 成功，stdout 在 transcript 模式下显示给模型 |
+| `2` | 阻断：stderr 作为错误消息显示给模型，工具调用被阻止 |
+| 其他 | 用户可见的 stderr，不影响工具执行 |
+
+**stdout JSON 输出**（可选，用于精细控制）：
+
+```json
+{
+  "continue": true,
+  "suppressOutput": false,
+  "stopReason": "拒绝原因（当 continue=false 时）",
+  "decision": "approve | block",
+  "reason": "决策原因",
+  "systemMessage": "注入到下一轮 system message 的文字",
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "allow | deny | ask",
+    "updatedInput": { "command": "修改后的工具输入" },
+    "additionalContext": "给模型看的补充上下文"
+  }
+}
+```
+
+---
+
+## 三、应该了解的 3 个重要机制
+
+### A. 5 层配置优先级
+
+优先级从高到低（高优先级覆盖低优先级）：
+1. **Session Hooks**（临时内存，如 SDK 注入）
+2. **Plugin Hooks**（已安装插件提供）
+3. **Built-in Hooks**（CLI 内置）
+4. **Local Settings**（`.claude/settings.local.json`，不进 git）
+5. **Project Settings**（`.claude/settings.json`，进 git）
+6. **User Settings**（`~/.claude/settings.json`）
+7. **Managed/Policy Settings**（企业策略，只读）
+
+**配置合并**：不同来源的同一事件的 `HookMatcher[]` 会**合并追加**，不是覆盖。
+
+### B. `if` 字段：双重过滤
+
+```json
+{
+  "PreToolUse": [
+    {
+      "matcher": "Bash(*)",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "echo 'git operation'",
+          "if": "Bash(git *)"
+        }
+      ]
+    }
+  ]
+}
+```
+
+`matcher` 决定这组 hooks 何时匹配，`if` 是 hook 级别的第二道过滤。上例：只有 `Bash(git *)` 调用才会触发这个 command hook，即使外层 `matcher: "Bash(*)"` 匹配了所有 Bash 调用。
+
+### C. `once` 字段：一次性 Hook
+
+设置 `once: true` 的 Hook 在执行一次后会从运行时 hooks 列表中移除（不修改配置文件）。用于：
+- Session 初始化时的一次性检查
+- 动态注入的临时 Hook
+
+---
+
+## 四、字段字典 + 完整实例示例
+
+### 实例 1：记录所有 Bash 命令
+
+**文件**：`~/.claude/settings.json`
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"[$(date)] Bash: $(echo $ARGUMENTS | python3 -c \"import json,sys; d=json.load(sys.stdin); print(d['tool_input']['command'])\" 2>/dev/null)\" >> ~/.claude/bash-audit.log",
+            "async": true,
+            "statusMessage": "记录操作日志..."
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 实例 2：阻止危险 git 操作
+
+**文件**：`.claude/settings.json`（项目级，所有团队成员共享）
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git push --force*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '❌ 禁止 force push！请使用 --force-with-lease 或联系仓库管理员。' >&2 && exit 2",
+            "statusMessage": "检查 git 操作安全性..."
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 实例 3：通过 LLM 检查代码质量
+
+**文件**：`.claude/settings.json`
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "FileWriteTool(src/**/*.ts)",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "以下工具调用写入了一个 TypeScript 文件。请检查是否有明显的 bug 或安全问题。如果有严重问题，在输出中包含 'ISSUE:' 前缀。工具信息：$ARGUMENTS",
+            "model": "claude-haiku-4-5-20251001",
+            "timeout": 30,
+            "statusMessage": "AI 代码质量检查中..."
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 实例 4：Webhook 通知部署完成
+
+**文件**：`~/.claude/settings.json`
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash(npm run deploy*)",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+            "headers": {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $SLACK_TOKEN"
+            },
+            "allowedEnvVars": ["SLACK_TOKEN"],
+            "timeout": 10,
+            "statusMessage": "发送部署通知..."
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 实例 5：会话开始时的初始化检查
+
+**文件**：`.claude/settings.json`
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node --version | grep -qE 'v(18|20|22)' || (echo '⚠️ 建议使用 Node.js 18/20/22' >&2)",
+            "statusMessage": "检查环境..."
+          },
+          {
+            "type": "command",
+            "command": "if [ ! -f .env ]; then echo '提示：项目根目录缺少 .env 文件，请参考 .env.example 创建' >&2; fi",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 实例 6：Agent Hook 进行安全审查
+
+**文件**：`.claude/settings.json`
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(curl*)",
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "以下是一个即将执行的 curl 命令：$ARGUMENTS。请检查这个 URL 是否可疑（域名是否正常、是否可能是 SSRF 攻击等）。如果有安全风险，在响应中包含 BLOCK 关键字。",
+            "model": "claude-haiku-4-5-20251001",
+            "timeout": 15,
+            "statusMessage": "安全审查中..."
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 实例 7：结合 Skill 的内联 Hooks
+
+**文件**：`.claude/skills/safe-commit/SKILL.md`
+
+```markdown
+---
+description: 带 pre-commit 检查的安全提交技能
+allowed-tools: [BashTool, Read]
+hooks:
+  PreToolUse:
+    - matcher: "Bash(git commit*)"
+      hooks:
+        - type: command
+          command: |
+            echo "📋 Pre-commit 检查："
+            git diff --cached --stat
+            echo "---"
+          statusMessage: "显示暂存文件..."
+  PostToolUse:
+    - matcher: "Bash(git commit*)"
+      hooks:
+        - type: command
+          command: echo "✅ Commit 完成：$(git log --oneline -1)"
+          async: true
+---
+
+请执行以下步骤进行安全提交：
+1. 运行 `git status` 查看当前状态
+2. 运行 `git diff --cached` 确认暂存内容
+3. 如果一切正常，执行 `git commit -m "$ARGUMENTS"`
+```
+
+---
+
+## 五、Hooks 加载机制详解
+
+### 配置聚合流程
+
+```
+启动时（main.tsx → REPL.tsx 初始化）
+    ↓
+hooksSettings.ts: getHooksForEvent(event)
+    ↓
+从 5 个 settings 来源各自读取 hooks
+    ↓
+插件 Hooks（loadPluginHooks.ts）
+    ↓
+内置 Hooks（CLI 内置）
+    ↓
+合并所有来源的 HookMatcher[]（追加，不覆盖）
+    ↓
+返回合并后的 hooks 配置
+```
+
+### 执行时派发流程
+
+```
+工具调用发生
+    ↓
+hookEvents.ts: dispatchHookEvent(event, toolName, input)
+    ↓
+hooksSettings.ts: getHooksForEvent(event)
+    ↓
+过滤：matcher 匹配 toolName
+    ↓
+for each matched HookCommand:
+    ├─ type='command' → execCommandHook()
+    ├─ type='prompt'  → execPromptHook.ts
+    ├─ type='http'    → execHttpHook.ts
+    └─ type='agent'   → execAgentHook.ts
+    ↓
+收集所有 hook 输出
+    ↓
+如果有 continue=false 或 exit code=2 → 阻断工具调用
+```
+
+### SSRF 防护
+
+`src/utils/hooks/ssrfGuard.ts`：对 `http` 类型 Hook 的 URL 进行验证，阻止访问内网 IP（`127.0.0.1`、`10.x.x.x` 等），防止 Hook 被用于服务器端请求伪造攻击。
+
+---
+
+## 六、关键文件清单
+
+| 文件 | 角色 | 关键函数/常量 |
+|------|------|-------------|
+| `src/schemas/hooks.ts` | config | Hook 配置的 Zod schema 验证 |
+| `src/types/hooks.ts` | config | `HookJSONOutput`、`HookEvent`、`HookMatcher` 类型定义 |
+| `src/utils/hooks.ts` | core | Hook 主执行引擎，`runHooks()`、`dispatchHooks()` |
+| `src/utils/hooks/hooksSettings.ts` | core | `getHooksForEvent()`、多源聚合 |
+| `src/utils/hooks/hooksConfigManager.ts` | core | `getHookEventMetadata()`，所有事件的元数据（:26-250） |
+| `src/utils/hooks/hookEvents.ts` | core | Hook 事件广播，`dispatchHookEvent()` |
+| `src/utils/hooks/execPromptHook.ts` | util | LLM 类型 Hook 的执行逻辑 |
+| `src/utils/hooks/execHttpHook.ts` | util | HTTP 类型 Hook 的执行逻辑 |
+| `src/utils/hooks/execAgentHook.ts` | util | Agent 类型 Hook 的执行逻辑 |
+| `src/utils/hooks/ssrfGuard.ts` | util | HTTP Hook URL 安全校验 |
+| `src/utils/hooks/registerFrontmatterHooks.ts` | core | Skill frontmatter 中 Hooks 的注册 |
+| `src/utils/hooks/sessionHooks.ts` | core | Session 级临时 Hook 的注册/清除 |
+| `src/utils/hooks/AsyncHookRegistry.ts` | core | 异步 Hook 注册表 |
+
+---
+
+## 七、学习建议
+
+**实操路线**（推荐按顺序）：
+
+1. **最简 Hook**：在 `~/.claude/settings.json` 加入 `PreToolUse` + `Bash(*)` + `command: "echo 'Tool: $ARGUMENTS'"` ，测试看 stderr 输出
+
+2. **阻断实验**：将 command 改为 `exit 2`，观察工具被阻止的行为
+
+3. **理解 `$ARGUMENTS`**：把 `echo $ARGUMENTS` 的输出贴出来，理解 JSON 结构
+
+4. **读 `src/utils/hooks/hooksConfigManager.ts:26`**：查看所有 Hook 事件的 metadata（matcher 类型、可用变量）
+
+5. **PostToolUse 日志**：写一个简单的文件追加 hook，记录所有工具调用，运行一个会话后分析日志
+
+---
+
+## 八、与前序衔接
+
+| 已学模块 | 与 Hooks 的关联 |
+|---------|--------------|
+| 安全与权限 | `PreToolUse` Hook 可返回 `permissionDecision`，直接参与 7 步决策树 |
+| Skills 系统 | Skill frontmatter 中的 `hooks` 字段，内联定义 Skill 级别 Hooks |
+| MCP 协议 | MCP server 配置变更时触发相关 Hooks（CwdChanged 等） |
+| 上下文工程 | Hook 可通过 `systemMessage` 字段注入内容到下一轮 system prompt |
+
+---
+
+## 九、验证清单
+
+完成本篇学习后，你应该能够：
+
+- [ ] 在 `settings.json` 中写一个 `PreToolUse` Hook 并成功触发
+- [ ] 解释 exit code 0、2 和其他值的不同行为
+- [ ] 说出 `matcher` 和 `if` 字段的区别（双重过滤）
+- [ ] 解释为什么 `http` Hook 有 `allowedEnvVars` 字段（SSRF + 环境变量注入防护）
+- [ ] 在 Skill 的 frontmatter 中定义一个内联 Hook
+
+---
+
+## 十、后续路线
+
+下一篇推荐：**Plugins 系统**
+
+Hooks 定义了"何时执行额外逻辑"，而 Plugins 是将 Skills + Hooks + MCP servers + 自定义命令打包成可复用单元的机制。理解了 Hooks 之后，Plugins 的 `hooks` 字段（既可以内联写，也可以引用 `hooks.json` 文件）会非常容易理解。

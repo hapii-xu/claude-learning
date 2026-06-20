@@ -1,0 +1,127 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_debug_mode_mdx",
+      "label": "debug-mode.mdx",
+      "file_type": "document",
+      "source_file": "docs/features/debug-mode.mdx",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_debug_mode_\u6982\u8ff0",
+      "label": "\u6982\u8ff0",
+      "file_type": "document",
+      "source_file": "docs/features/debug-mode.mdx",
+      "source_location": "L7"
+    },
+    {
+      "id": "features_debug_mode_\u6b65\u9aa4",
+      "label": "\u6b65\u9aa4",
+      "file_type": "document",
+      "source_file": "docs/features/debug-mode.mdx",
+      "source_location": "L11"
+    },
+    {
+      "id": "features_debug_mode_1_\u7ec8\u7aef\u542f\u52a8_inspect_\u670d\u52a1",
+      "label": "1. \u7ec8\u7aef\u542f\u52a8 inspect \u670d\u52a1",
+      "file_type": "document",
+      "source_file": "docs/features/debug-mode.mdx",
+      "source_location": "L13"
+    },
+    {
+      "id": "features_debug_mode_2_vs_code_\u9644\u7740\u8c03\u8bd5\u5668",
+      "label": "2. VS Code \u9644\u7740\u8c03\u8bd5\u5668",
+      "file_type": "document",
+      "source_file": "docs/features/debug-mode.mdx",
+      "source_location": "L21"
+    },
+    {
+      "id": "features_debug_mode_\u539f\u7406",
+      "label": "\u539f\u7406",
+      "file_type": "document",
+      "source_file": "docs/features/debug-mode.mdx",
+      "source_location": "L28"
+    },
+    {
+      "id": "features_debug_mode_jetbrains_ide",
+      "label": "JetBrains IDE",
+      "file_type": "document",
+      "source_file": "docs/features/debug-mode.mdx",
+      "source_location": "L40"
+    },
+    {
+      "id": "features_debug_mode_\u76f8\u5173\u6587\u4ef6",
+      "label": "\u76f8\u5173\u6587\u4ef6",
+      "file_type": "document",
+      "source_file": "docs/features/debug-mode.mdx",
+      "source_location": "L44"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_debug_mode_mdx",
+      "target": "features_debug_mode_\u6982\u8ff0",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/debug-mode.mdx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_debug_mode_mdx",
+      "target": "features_debug_mode_\u6b65\u9aa4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/debug-mode.mdx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "features_debug_mode_\u6b65\u9aa4",
+      "target": "features_debug_mode_1_\u7ec8\u7aef\u542f\u52a8_inspect_\u670d\u52a1",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/debug-mode.mdx",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "features_debug_mode_\u6b65\u9aa4",
+      "target": "features_debug_mode_2_vs_code_\u9644\u7740\u8c03\u8bd5\u5668",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/debug-mode.mdx",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_debug_mode_mdx",
+      "target": "features_debug_mode_\u539f\u7406",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/debug-mode.mdx",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_debug_mode_mdx",
+      "target": "features_debug_mode_jetbrains_ide",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/debug-mode.mdx",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_debug_mode_mdx",
+      "target": "features_debug_mode_\u76f8\u5173\u6587\u4ef6",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/debug-mode.mdx",
+      "source_location": "L44",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

@@ -1,0 +1,79 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_ink_docs_readme_md",
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/README.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_readme_anthropic_ink_documentation",
+      "label": "@anthropic/ink Documentation",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/README.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_readme_architecture_overview",
+      "label": "Architecture Overview",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/README.md",
+      "source_location": "L5"
+    },
+    {
+      "id": "docs_readme_three_layer_architecture",
+      "label": "Three-Layer Architecture",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/README.md",
+      "source_location": "L9"
+    },
+    {
+      "id": "docs_readme_documentation",
+      "label": "Documentation",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/README.md",
+      "source_location": "L31"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_ink_docs_readme_md",
+      "target": "docs_readme_anthropic_ink_documentation",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/README.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_readme_anthropic_ink_documentation",
+      "target": "docs_readme_architecture_overview",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/README.md",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_readme_architecture_overview",
+      "target": "docs_readme_three_layer_architecture",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/README.md",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_readme_architecture_overview",
+      "target": "docs_readme_documentation",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/README.md",
+      "source_location": "L31",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

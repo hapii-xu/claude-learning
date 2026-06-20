@@ -1,0 +1,671 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_package_json",
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L1"
+    },
+    {
+      "id": "acp_link_package_name",
+      "label": "name",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L2"
+    },
+    {
+      "id": "acp_link_package_version",
+      "label": "version",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L3"
+    },
+    {
+      "id": "acp_link_package_description",
+      "label": "description",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L4"
+    },
+    {
+      "id": "acp_link_package_author",
+      "label": "author",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L5"
+    },
+    {
+      "id": "acp_link_package_type",
+      "label": "type",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L6"
+    },
+    {
+      "id": "acp_link_package_main",
+      "label": "main",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L7"
+    },
+    {
+      "id": "acp_link_package_types",
+      "label": "types",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L8"
+    },
+    {
+      "id": "acp_link_package_bin",
+      "label": "bin",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L9"
+    },
+    {
+      "id": "acp_link_package_bin_acp_link",
+      "label": "acp-link",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L10"
+    },
+    {
+      "id": "acp_link_package_files",
+      "label": "files",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L12"
+    },
+    {
+      "id": "acp_link_package_scripts",
+      "label": "scripts",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L15"
+    },
+    {
+      "id": "acp_link_package_scripts_build",
+      "label": "build",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L16"
+    },
+    {
+      "id": "acp_link_package_scripts_dev",
+      "label": "dev",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L17"
+    },
+    {
+      "id": "acp_link_package_scripts_dev_remote",
+      "label": "dev:remote",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L18"
+    },
+    {
+      "id": "acp_link_package_scripts_dev_manager",
+      "label": "dev:manager",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L19"
+    },
+    {
+      "id": "acp_link_package_scripts_prepublishonly",
+      "label": "prepublishOnly",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L20"
+    },
+    {
+      "id": "acp_link_package_devdependencies",
+      "label": "devDependencies",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L22"
+    },
+    {
+      "id": "acp_link_package_devdependencies_types_selfsigned",
+      "label": "@types/selfsigned",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L23"
+    },
+    {
+      "id": "acp_link_package_devdependencies_types_ws",
+      "label": "@types/ws",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L24"
+    },
+    {
+      "id": "acp_link_package_devdependencies_types_bun",
+      "label": "@types/bun",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L25"
+    },
+    {
+      "id": "acp_link_package_dependencies",
+      "label": "dependencies",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L27"
+    },
+    {
+      "id": "acp_link_package_dependencies_agentclientprotocol_sdk",
+      "label": "@agentclientprotocol/sdk",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L28"
+    },
+    {
+      "id": "acp_link_package_dependencies_hono_node_server",
+      "label": "@hono/node-server",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L29"
+    },
+    {
+      "id": "acp_link_package_dependencies_hono_node_ws",
+      "label": "@hono/node-ws",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L30"
+    },
+    {
+      "id": "acp_link_package_dependencies_stricli_auto_complete",
+      "label": "@stricli/auto-complete",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L31"
+    },
+    {
+      "id": "acp_link_package_dependencies_stricli_core",
+      "label": "@stricli/core",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L32"
+    },
+    {
+      "id": "acp_link_package_dependencies_hono",
+      "label": "hono",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L33"
+    },
+    {
+      "id": "acp_link_package_dependencies_pino",
+      "label": "pino",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L34"
+    },
+    {
+      "id": "acp_link_package_dependencies_pino_pretty",
+      "label": "pino-pretty",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L35"
+    },
+    {
+      "id": "acp_link_package_dependencies_selfsigned",
+      "label": "selfsigned",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L36"
+    },
+    {
+      "id": "acp_link_package_engines",
+      "label": "engines",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L38"
+    },
+    {
+      "id": "acp_link_package_engines_node",
+      "label": "node",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L39"
+    },
+    {
+      "id": "acp_link_package_license",
+      "label": "license",
+      "file_type": "code",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L41"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_package_json",
+      "target": "acp_link_package_name",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_package_json",
+      "target": "acp_link_package_version",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_package_json",
+      "target": "acp_link_package_description",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_package_json",
+      "target": "acp_link_package_author",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_package_json",
+      "target": "acp_link_package_type",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_package_json",
+      "target": "acp_link_package_main",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_package_json",
+      "target": "acp_link_package_types",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_package_json",
+      "target": "acp_link_package_bin",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_bin",
+      "target": "acp_link_package_bin_acp_link",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_package_json",
+      "target": "acp_link_package_files",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_files",
+      "target": "ref_dist",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L12",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_package_json",
+      "target": "acp_link_package_scripts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_scripts",
+      "target": "acp_link_package_scripts_build",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_scripts",
+      "target": "acp_link_package_scripts_dev",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_scripts",
+      "target": "acp_link_package_scripts_dev_remote",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_scripts",
+      "target": "acp_link_package_scripts_dev_manager",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_scripts",
+      "target": "acp_link_package_scripts_prepublishonly",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_package_json",
+      "target": "acp_link_package_devdependencies",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_devdependencies",
+      "target": "acp_link_package_devdependencies_types_selfsigned",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_devdependencies_types_selfsigned",
+      "target": "types_selfsigned",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L23",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "acp_link_package_devdependencies",
+      "target": "acp_link_package_devdependencies_types_ws",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_devdependencies_types_ws",
+      "target": "types_ws",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L24",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "acp_link_package_devdependencies",
+      "target": "acp_link_package_devdependencies_types_bun",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_devdependencies_types_bun",
+      "target": "types_bun",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L25",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_package_json",
+      "target": "acp_link_package_dependencies",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_dependencies",
+      "target": "acp_link_package_dependencies_agentclientprotocol_sdk",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_dependencies_agentclientprotocol_sdk",
+      "target": "agentclientprotocol_sdk",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L28",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "acp_link_package_dependencies",
+      "target": "acp_link_package_dependencies_hono_node_server",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_dependencies_hono_node_server",
+      "target": "hono_node_server",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L29",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "acp_link_package_dependencies",
+      "target": "acp_link_package_dependencies_hono_node_ws",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_dependencies_hono_node_ws",
+      "target": "hono_node_ws",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L30",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "acp_link_package_dependencies",
+      "target": "acp_link_package_dependencies_stricli_auto_complete",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L31",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_dependencies_stricli_auto_complete",
+      "target": "stricli_auto_complete",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L31",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "acp_link_package_dependencies",
+      "target": "acp_link_package_dependencies_stricli_core",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_dependencies_stricli_core",
+      "target": "stricli_core",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L32",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "acp_link_package_dependencies",
+      "target": "acp_link_package_dependencies_hono",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L33",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_dependencies_hono",
+      "target": "hono",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L33",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "acp_link_package_dependencies",
+      "target": "acp_link_package_dependencies_pino",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_dependencies_pino",
+      "target": "pino",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L34",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "acp_link_package_dependencies",
+      "target": "acp_link_package_dependencies_pino_pretty",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_dependencies_pino_pretty",
+      "target": "pino_pretty",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L35",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "acp_link_package_dependencies",
+      "target": "acp_link_package_dependencies_selfsigned",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_dependencies_selfsigned",
+      "target": "selfsigned",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L36",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_package_json",
+      "target": "acp_link_package_engines",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L38",
+      "weight": 1.0
+    },
+    {
+      "source": "acp_link_package_engines",
+      "target": "acp_link_package_engines_node",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L39",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_acp_link_package_json",
+      "target": "acp_link_package_license",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/acp-link/package.json",
+      "source_location": "L41",
+      "weight": 1.0
+    }
+  ]
+}

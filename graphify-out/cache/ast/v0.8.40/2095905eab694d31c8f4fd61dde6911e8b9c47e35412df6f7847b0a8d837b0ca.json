@@ -1,0 +1,383 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_ink_docs_05_design_system_md",
+      "label": "05-design-system.md",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_05_design_system_chapter_5_design_system_components",
+      "label": "Chapter 5: Design System Components",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_05_design_system_dialog",
+      "label": "Dialog",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L5"
+    },
+    {
+      "id": "docs_05_design_system_props",
+      "label": "Props",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L22"
+    },
+    {
+      "id": "docs_05_design_system_keyboard_shortcuts",
+      "label": "Keyboard Shortcuts",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L36"
+    },
+    {
+      "id": "docs_05_design_system_custom_input_guide",
+      "label": "Custom Input Guide",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L42"
+    },
+    {
+      "id": "docs_05_design_system_pane",
+      "label": "Pane",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L58"
+    },
+    {
+      "id": "docs_05_design_system_progressbar",
+      "label": "ProgressBar",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L75"
+    },
+    {
+      "id": "docs_05_design_system_spinner",
+      "label": "Spinner",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L97"
+    },
+    {
+      "id": "docs_05_design_system_loadingstate",
+      "label": "LoadingState",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L110"
+    },
+    {
+      "id": "docs_05_design_system_statusicon",
+      "label": "StatusIcon",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L131"
+    },
+    {
+      "id": "docs_05_design_system_fuzzypicker",
+      "label": "FuzzyPicker",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L155"
+    },
+    {
+      "id": "docs_05_design_system_props_173",
+      "label": "Props",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L173"
+    },
+    {
+      "id": "docs_05_design_system_tabs_tab",
+      "label": "Tabs / Tab",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L198"
+    },
+    {
+      "id": "docs_05_design_system_tabs_props",
+      "label": "Tabs Props",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L215"
+    },
+    {
+      "id": "docs_05_design_system_tab_props",
+      "label": "Tab Props",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L233"
+    },
+    {
+      "id": "docs_05_design_system_tab_hooks",
+      "label": "Tab Hooks",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L241"
+    },
+    {
+      "id": "docs_05_design_system_listitem",
+      "label": "ListItem",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L250"
+    },
+    {
+      "id": "docs_05_design_system_searchbox",
+      "label": "SearchBox",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L274"
+    },
+    {
+      "id": "docs_05_design_system_divider",
+      "label": "Divider",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L301"
+    },
+    {
+      "id": "docs_05_design_system_byline",
+      "label": "Byline",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L320"
+    },
+    {
+      "id": "docs_05_design_system_keyboardshortcuthint",
+      "label": "KeyboardShortcutHint",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L333"
+    },
+    {
+      "id": "docs_05_design_system_configurableshortcuthint",
+      "label": "ConfigurableShortcutHint",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L351"
+    },
+    {
+      "id": "docs_05_design_system_ratchet",
+      "label": "Ratchet",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L375"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_ink_docs_05_design_system_md",
+      "target": "docs_05_design_system_chapter_5_design_system_components",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_chapter_5_design_system_components",
+      "target": "docs_05_design_system_dialog",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_dialog",
+      "target": "docs_05_design_system_props",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_dialog",
+      "target": "docs_05_design_system_keyboard_shortcuts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_dialog",
+      "target": "docs_05_design_system_custom_input_guide",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L42",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_chapter_5_design_system_components",
+      "target": "docs_05_design_system_pane",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L58",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_chapter_5_design_system_components",
+      "target": "docs_05_design_system_progressbar",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L75",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_chapter_5_design_system_components",
+      "target": "docs_05_design_system_spinner",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L97",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_chapter_5_design_system_components",
+      "target": "docs_05_design_system_loadingstate",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L110",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_chapter_5_design_system_components",
+      "target": "docs_05_design_system_statusicon",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L131",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_chapter_5_design_system_components",
+      "target": "docs_05_design_system_fuzzypicker",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L155",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_fuzzypicker",
+      "target": "docs_05_design_system_props_173",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L173",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_chapter_5_design_system_components",
+      "target": "docs_05_design_system_tabs_tab",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L198",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_tabs_tab",
+      "target": "docs_05_design_system_tabs_props",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L215",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_tabs_tab",
+      "target": "docs_05_design_system_tab_props",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L233",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_tabs_tab",
+      "target": "docs_05_design_system_tab_hooks",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L241",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_chapter_5_design_system_components",
+      "target": "docs_05_design_system_listitem",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L250",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_chapter_5_design_system_components",
+      "target": "docs_05_design_system_searchbox",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L274",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_chapter_5_design_system_components",
+      "target": "docs_05_design_system_divider",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L301",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_chapter_5_design_system_components",
+      "target": "docs_05_design_system_byline",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L320",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_chapter_5_design_system_components",
+      "target": "docs_05_design_system_keyboardshortcuthint",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L333",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_chapter_5_design_system_components",
+      "target": "docs_05_design_system_configurableshortcuthint",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L351",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_05_design_system_chapter_5_design_system_components",
+      "target": "docs_05_design_system_ratchet",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/05-design-system.md",
+      "source_location": "L375",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

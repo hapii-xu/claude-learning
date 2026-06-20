@@ -1,0 +1,319 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_ink_docs_03_text_and_styling_md",
+      "label": "03-text-and-styling.md",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_03_text_and_styling_chapter_3_text_styling",
+      "label": "Chapter 3: Text & Styling",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_03_text_and_styling_text_component",
+      "label": "Text Component",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L3"
+    },
+    {
+      "id": "docs_03_text_and_styling_text_props",
+      "label": "Text Props",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L13"
+    },
+    {
+      "id": "docs_03_text_and_styling_basetext_vs_themedtext",
+      "label": "BaseText vs ThemedText",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L30"
+    },
+    {
+      "id": "docs_03_text_and_styling_text_wrap_modes",
+      "label": "Text Wrap Modes",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L46"
+    },
+    {
+      "id": "docs_03_text_and_styling_texthovercolorcontext",
+      "label": "TextHoverColorContext",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L59"
+    },
+    {
+      "id": "docs_03_text_and_styling_color_system",
+      "label": "Color System",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L74"
+    },
+    {
+      "id": "docs_03_text_and_styling_raw_color_formats",
+      "label": "Raw Color Formats",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L76"
+    },
+    {
+      "id": "docs_03_text_and_styling_ansi_named_colors",
+      "label": "ANSI Named Colors",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L95"
+    },
+    {
+      "id": "docs_03_text_and_styling_utility_functions",
+      "label": "Utility Functions",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L118"
+    },
+    {
+      "id": "docs_03_text_and_styling_color_colorvalue_themename_type",
+      "label": "`color(colorValue, themeName, type?)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L120"
+    },
+    {
+      "id": "docs_03_text_and_styling_stringwidth_text",
+      "label": "`stringWidth(text)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L139"
+    },
+    {
+      "id": "docs_03_text_and_styling_wraptext_text_width_textwrap",
+      "label": "`wrapText(text, width, textWrap)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L154"
+    },
+    {
+      "id": "docs_03_text_and_styling_wrapansi_text_width",
+      "label": "`wrapAnsi(text, width)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L165"
+    },
+    {
+      "id": "docs_03_text_and_styling_measureelement_node",
+      "label": "`measureElement(node)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L176"
+    },
+    {
+      "id": "docs_03_text_and_styling_link_component",
+      "label": "Link Component",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L186"
+    },
+    {
+      "id": "docs_03_text_and_styling_rawansi_component",
+      "label": "RawAnsi Component",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L203"
+    },
+    {
+      "id": "docs_03_text_and_styling_border_rendering",
+      "label": "Border Rendering",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L220"
+    },
+    {
+      "id": "docs_03_text_and_styling_renderborder_box_output_options",
+      "label": "`renderBorder(box, output, options?)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L222"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_ink_docs_03_text_and_styling_md",
+      "target": "docs_03_text_and_styling_chapter_3_text_styling",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_chapter_3_text_styling",
+      "target": "docs_03_text_and_styling_text_component",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_text_component",
+      "target": "docs_03_text_and_styling_text_props",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_text_component",
+      "target": "docs_03_text_and_styling_basetext_vs_themedtext",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_text_component",
+      "target": "docs_03_text_and_styling_text_wrap_modes",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L46",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_text_component",
+      "target": "docs_03_text_and_styling_texthovercolorcontext",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_chapter_3_text_styling",
+      "target": "docs_03_text_and_styling_color_system",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L74",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_color_system",
+      "target": "docs_03_text_and_styling_raw_color_formats",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L76",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_color_system",
+      "target": "docs_03_text_and_styling_ansi_named_colors",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L95",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_chapter_3_text_styling",
+      "target": "docs_03_text_and_styling_utility_functions",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L118",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_utility_functions",
+      "target": "docs_03_text_and_styling_color_colorvalue_themename_type",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L120",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_utility_functions",
+      "target": "docs_03_text_and_styling_stringwidth_text",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L139",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_utility_functions",
+      "target": "docs_03_text_and_styling_wraptext_text_width_textwrap",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L154",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_utility_functions",
+      "target": "docs_03_text_and_styling_wrapansi_text_width",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L165",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_utility_functions",
+      "target": "docs_03_text_and_styling_measureelement_node",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L176",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_chapter_3_text_styling",
+      "target": "docs_03_text_and_styling_link_component",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L186",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_chapter_3_text_styling",
+      "target": "docs_03_text_and_styling_rawansi_component",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L203",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_chapter_3_text_styling",
+      "target": "docs_03_text_and_styling_border_rendering",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L220",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_03_text_and_styling_border_rendering",
+      "target": "docs_03_text_and_styling_renderborder_box_output_options",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/03-text-and-styling.md",
+      "source_location": "L222",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

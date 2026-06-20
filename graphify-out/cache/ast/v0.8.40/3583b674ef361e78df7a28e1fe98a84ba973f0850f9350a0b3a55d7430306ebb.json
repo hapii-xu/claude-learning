@@ -1,0 +1,1502 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "label": "bridge.py",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "win32_bridge_rect",
+      "label": "RECT",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L60"
+    },
+    {
+      "id": "win32_bridge_point",
+      "label": "POINT",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L64"
+    },
+    {
+      "id": "win32_bridge_screenshot_full",
+      "label": "screenshot_full()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L75"
+    },
+    {
+      "id": "win32_bridge_screenshot_window",
+      "label": "screenshot_window()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L91"
+    },
+    {
+      "id": "win32_bridge_list_windows",
+      "label": "list_windows()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L174"
+    },
+    {
+      "id": "win32_bridge_get_window_rect",
+      "label": "get_window_rect()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L190"
+    },
+    {
+      "id": "win32_bridge_get_client_offset",
+      "label": "get_client_offset()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L198"
+    },
+    {
+      "id": "win32_bridge_manage_window",
+      "label": "manage_window()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L207"
+    },
+    {
+      "id": "win32_bridge_make_lparam",
+      "label": "make_lparam()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L232"
+    },
+    {
+      "id": "win32_bridge_send_click",
+      "label": "send_click()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L235"
+    },
+    {
+      "id": "win32_bridge_send_text",
+      "label": "send_text()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L246"
+    },
+    {
+      "id": "win32_bridge_send_key",
+      "label": "send_key()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L261"
+    },
+    {
+      "id": "win32_bridge_send_keys_combo",
+      "label": "send_keys_combo()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L267"
+    },
+    {
+      "id": "win32_bridge_send_mouse_down",
+      "label": "send_mouse_down()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L301"
+    },
+    {
+      "id": "win32_bridge_send_mouse_up",
+      "label": "send_mouse_up()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L306"
+    },
+    {
+      "id": "win32_bridge_send_mouse_move",
+      "label": "send_mouse_move()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L311"
+    },
+    {
+      "id": "win32_bridge_get_uia",
+      "label": "_get_uia()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L321"
+    },
+    {
+      "id": "win32_bridge_accessibility_snapshot",
+      "label": "accessibility_snapshot()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L334"
+    },
+    {
+      "id": "win32_bridge_find_edit_child",
+      "label": "find_edit_child()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L404"
+    },
+    {
+      "id": "win32_bridge_paste_text",
+      "label": "paste_text()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L428"
+    },
+    {
+      "id": "win32_bridge_send_mouse_wheel",
+      "label": "send_mouse_wheel()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L456"
+    },
+    {
+      "id": "win32_bridge_main",
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L497"
+    },
+    {
+      "id": "win32_bridge_rationale_1",
+      "label": "Python Bridge for Windows Computer Use.  Long-lived subprocess communicating v",
+      "file_type": "rationale",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "win32_bridge_rationale_76",
+      "label": "Full-screen screenshot via mss, returns JPEG base64.",
+      "file_type": "rationale",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L76"
+    },
+    {
+      "id": "win32_bridge_rationale_92",
+      "label": "Window screenshot via PrintWindow, returns JPEG base64.",
+      "file_type": "rationale",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L92"
+    },
+    {
+      "id": "win32_bridge_rationale_175",
+      "label": "Enumerate all visible windows with title.",
+      "file_type": "rationale",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L175"
+    },
+    {
+      "id": "win32_bridge_rationale_199",
+      "label": "Get non-client area offset (title bar height, border width).",
+      "file_type": "rationale",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L199"
+    },
+    {
+      "id": "win32_bridge_rationale_247",
+      "label": "Send text via WM_CHAR (Unicode). Handles surrogate pairs.",
+      "file_type": "rationale",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L247"
+    },
+    {
+      "id": "win32_bridge_rationale_268",
+      "label": "Send a key combination like ['ctrl', 's'].",
+      "file_type": "rationale",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L268"
+    },
+    {
+      "id": "win32_bridge_rationale_335",
+      "label": "Get the accessibility tree using pywinauto (more reliable than raw comtypes).",
+      "file_type": "rationale",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L335"
+    },
+    {
+      "id": "win32_bridge_rationale_405",
+      "label": "Find the best edit control child using UI Automation.",
+      "file_type": "rationale",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L405"
+    },
+    {
+      "id": "win32_bridge_rationale_429",
+      "label": "Set clipboard + send Ctrl+V via SendMessage.",
+      "file_type": "rationale",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L429"
+    },
+    {
+      "id": "win32_bridge_rationale_457",
+      "label": "Send mouse wheel scroll at client coordinates (x, y).     delta: positive = up/",
+      "file_type": "rationale",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L457"
+    },
+    {
+      "id": "win32_bridge_rationale_498",
+      "label": "Main loop: read JSON lines from stdin, dispatch, write JSON lines to stdout.",
+      "file_type": "rationale",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L498"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "sys",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "json",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "base64",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "io",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "ctypes",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "ctypes_wintypes",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "time",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "os",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_rect",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L60",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_point",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L64",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_screenshot_full",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L75",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_screenshot_window",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L91",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_list_windows",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L174",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_get_window_rect",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L190",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_get_client_offset",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L198",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_manage_window",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L207",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_make_lparam",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L232",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_send_click",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L235",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_send_text",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L246",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_send_key",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L261",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_send_keys_combo",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L267",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_send_mouse_down",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L301",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_send_mouse_up",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L306",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_send_mouse_move",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L311",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_get_uia",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L321",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_accessibility_snapshot",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L334",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_find_edit_child",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L404",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_paste_text",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L428",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_send_mouse_wheel",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L456",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "target": "win32_bridge_main",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L497",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_screenshot_window",
+      "target": "win32_bridge_rect",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L99",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_get_window_rect",
+      "target": "win32_bridge_rect",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L192",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_get_client_offset",
+      "target": "win32_bridge_rect",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L201",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_get_client_offset",
+      "target": "win32_bridge_point",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L203",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_send_click",
+      "target": "win32_bridge_make_lparam",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L237",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_send_mouse_down",
+      "target": "win32_bridge_make_lparam",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L303",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_send_mouse_up",
+      "target": "win32_bridge_make_lparam",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L308",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_send_mouse_move",
+      "target": "win32_bridge_make_lparam",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L313",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_paste_text",
+      "target": "win32_bridge_send_keys_combo",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L443",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_send_mouse_wheel",
+      "target": "win32_bridge_point",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L464",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_rationale_1",
+      "target": "c_users_hapii_documents_github_claude_learning_claude_code_src_utils_computeruse_win32_bridge_py",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_rationale_76",
+      "target": "win32_bridge_screenshot_full",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L76",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_rationale_92",
+      "target": "win32_bridge_screenshot_window",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L92",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_rationale_175",
+      "target": "win32_bridge_list_windows",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L175",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_rationale_199",
+      "target": "win32_bridge_get_client_offset",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L199",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_rationale_247",
+      "target": "win32_bridge_send_text",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L247",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_rationale_268",
+      "target": "win32_bridge_send_keys_combo",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L268",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_rationale_335",
+      "target": "win32_bridge_accessibility_snapshot",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L335",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_rationale_405",
+      "target": "win32_bridge_find_edit_child",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L405",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_rationale_429",
+      "target": "win32_bridge_paste_text",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L429",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_rationale_457",
+      "target": "win32_bridge_send_mouse_wheel",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L457",
+      "weight": 1.0
+    },
+    {
+      "source": "win32_bridge_rationale_498",
+      "target": "win32_bridge_main",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/computerUse/win32/bridge.py",
+      "source_location": "L498",
+      "weight": 1.0
+    }
+  ],
+  "raw_calls": [
+    {
+      "caller_nid": "win32_bridge_screenshot_full",
+      "callee": "mss",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L79"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_full",
+      "callee": "grab",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L81"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_full",
+      "callee": "frombytes",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L82"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_full",
+      "callee": "BytesIO",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L83"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_full",
+      "callee": "save",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L84"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_full",
+      "callee": "decode",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L86"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_full",
+      "callee": "b64encode",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L86"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_full",
+      "callee": "getvalue",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L86"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "IsWindow",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L95"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "GetWindowRect",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L100"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "byref",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L100"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "IsIconic",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L107"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "ShowWindow",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L109"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "sleep",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L110"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "GetWindowRect",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L111"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "byref",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L111"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "GetDC",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L116"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "CreateCompatibleDC",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L117"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "CreateCompatibleBitmap",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L118"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "SelectObject",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L119"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "PrintWindow",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L122"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "BitBlt",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L126"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "BITMAPINFOHEADER",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L139"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "sizeof",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L140"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "create_string_buffer",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L148"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "GetDIBits",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L149"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "byref",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L149"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "DeleteObject",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L152"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "DeleteDC",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L153"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "ReleaseDC",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L154"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "ShowWindow",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L157"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "frombuffer",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L160"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "convert",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L161"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "BytesIO",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L162"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "save",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L163"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "decode",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L166"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "b64encode",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L166"
+    },
+    {
+      "caller_nid": "win32_bridge_screenshot_window",
+      "callee": "getvalue",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L166"
+    },
+    {
+      "caller_nid": "win32_bridge_list_windows",
+      "callee": "EnumWindows",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L187"
+    },
+    {
+      "caller_nid": "win32_bridge_list_windows",
+      "callee": "WNDENUMPROC",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L187"
+    },
+    {
+      "caller_nid": "win32_bridge_get_window_rect",
+      "callee": "GetWindowRect",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L193"
+    },
+    {
+      "caller_nid": "win32_bridge_get_window_rect",
+      "callee": "byref",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L193"
+    },
+    {
+      "caller_nid": "win32_bridge_get_client_offset",
+      "callee": "GetWindowRect",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L202"
+    },
+    {
+      "caller_nid": "win32_bridge_get_client_offset",
+      "callee": "byref",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L202"
+    },
+    {
+      "caller_nid": "win32_bridge_get_client_offset",
+      "callee": "ClientToScreen",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L204"
+    },
+    {
+      "caller_nid": "win32_bridge_get_client_offset",
+      "callee": "byref",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L204"
+    },
+    {
+      "caller_nid": "win32_bridge_manage_window",
+      "callee": "ShowWindow",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L210"
+    },
+    {
+      "caller_nid": "win32_bridge_manage_window",
+      "callee": "ShowWindow",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L212"
+    },
+    {
+      "caller_nid": "win32_bridge_manage_window",
+      "callee": "ShowWindow",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L214"
+    },
+    {
+      "caller_nid": "win32_bridge_manage_window",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L216"
+    },
+    {
+      "caller_nid": "win32_bridge_manage_window",
+      "callee": "IsIconic",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L219"
+    },
+    {
+      "caller_nid": "win32_bridge_manage_window",
+      "callee": "ShowWindow",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L220"
+    },
+    {
+      "caller_nid": "win32_bridge_manage_window",
+      "callee": "SetForegroundWindow",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L221"
+    },
+    {
+      "caller_nid": "win32_bridge_manage_window",
+      "callee": "SetWindowPos",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L224"
+    },
+    {
+      "caller_nid": "win32_bridge_send_click",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L239"
+    },
+    {
+      "caller_nid": "win32_bridge_send_click",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L240"
+    },
+    {
+      "caller_nid": "win32_bridge_send_click",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L242"
+    },
+    {
+      "caller_nid": "win32_bridge_send_click",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L243"
+    },
+    {
+      "caller_nid": "win32_bridge_send_text",
+      "callee": "ord",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L250"
+    },
+    {
+      "caller_nid": "win32_bridge_send_text",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L252"
+    },
+    {
+      "caller_nid": "win32_bridge_send_text",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L257"
+    },
+    {
+      "caller_nid": "win32_bridge_send_text",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L258"
+    },
+    {
+      "caller_nid": "win32_bridge_send_key",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L264"
+    },
+    {
+      "caller_nid": "win32_bridge_send_keys_combo",
+      "callee": "lower",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L284"
+    },
+    {
+      "caller_nid": "win32_bridge_send_keys_combo",
+      "callee": "append",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L286"
+    },
+    {
+      "caller_nid": "win32_bridge_send_keys_combo",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L286"
+    },
+    {
+      "caller_nid": "win32_bridge_send_keys_combo",
+      "callee": "ord",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L290"
+    },
+    {
+      "caller_nid": "win32_bridge_send_keys_combo",
+      "callee": "upper",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L290"
+    },
+    {
+      "caller_nid": "win32_bridge_send_keys_combo",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L294"
+    },
+    {
+      "caller_nid": "win32_bridge_send_keys_combo",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L295"
+    },
+    {
+      "caller_nid": "win32_bridge_send_keys_combo",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L296"
+    },
+    {
+      "caller_nid": "win32_bridge_send_keys_combo",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L298"
+    },
+    {
+      "caller_nid": "win32_bridge_send_mouse_down",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L303"
+    },
+    {
+      "caller_nid": "win32_bridge_send_mouse_up",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L308"
+    },
+    {
+      "caller_nid": "win32_bridge_send_mouse_move",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L313"
+    },
+    {
+      "caller_nid": "win32_bridge_get_uia",
+      "callee": "GetModule",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L326"
+    },
+    {
+      "caller_nid": "win32_bridge_get_uia",
+      "callee": "CreateObject",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L328"
+    },
+    {
+      "caller_nid": "win32_bridge_accessibility_snapshot",
+      "callee": "Desktop",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L341"
+    },
+    {
+      "caller_nid": "win32_bridge_accessibility_snapshot",
+      "callee": "windows",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L344"
+    },
+    {
+      "caller_nid": "win32_bridge_accessibility_snapshot",
+      "callee": "walk",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L396"
+    },
+    {
+      "caller_nid": "win32_bridge_find_edit_child",
+      "callee": "Desktop",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L409"
+    },
+    {
+      "caller_nid": "win32_bridge_find_edit_child",
+      "callee": "windows",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L410"
+    },
+    {
+      "caller_nid": "win32_bridge_find_edit_child",
+      "callee": "descendants",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L413"
+    },
+    {
+      "caller_nid": "win32_bridge_paste_text",
+      "callee": "OpenClipboard",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L433"
+    },
+    {
+      "caller_nid": "win32_bridge_paste_text",
+      "callee": "EmptyClipboard",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L434"
+    },
+    {
+      "caller_nid": "win32_bridge_paste_text",
+      "callee": "encode",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L435"
+    },
+    {
+      "caller_nid": "win32_bridge_paste_text",
+      "callee": "GlobalAlloc",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L436"
+    },
+    {
+      "caller_nid": "win32_bridge_paste_text",
+      "callee": "GlobalLock",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L437"
+    },
+    {
+      "caller_nid": "win32_bridge_paste_text",
+      "callee": "memmove",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L438"
+    },
+    {
+      "caller_nid": "win32_bridge_paste_text",
+      "callee": "GlobalUnlock",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L439"
+    },
+    {
+      "caller_nid": "win32_bridge_paste_text",
+      "callee": "SetClipboardData",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L440"
+    },
+    {
+      "caller_nid": "win32_bridge_paste_text",
+      "callee": "CloseClipboard",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L441"
+    },
+    {
+      "caller_nid": "win32_bridge_send_mouse_wheel",
+      "callee": "ClientToScreen",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L465"
+    },
+    {
+      "caller_nid": "win32_bridge_send_mouse_wheel",
+      "callee": "byref",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L465"
+    },
+    {
+      "caller_nid": "win32_bridge_send_mouse_wheel",
+      "callee": "c_void_p",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L467"
+    },
+    {
+      "caller_nid": "win32_bridge_send_mouse_wheel",
+      "callee": "c_void_p",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L469"
+    },
+    {
+      "caller_nid": "win32_bridge_send_mouse_wheel",
+      "callee": "SendMessageW",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L470"
+    },
+    {
+      "caller_nid": "win32_bridge_main",
+      "callee": "strip",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L500"
+    },
+    {
+      "caller_nid": "win32_bridge_main",
+      "callee": "loads",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L504"
+    },
+    {
+      "caller_nid": "win32_bridge_main",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L505"
+    },
+    {
+      "caller_nid": "win32_bridge_main",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L506"
+    },
+    {
+      "caller_nid": "win32_bridge_main",
+      "callee": "get",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L507"
+    },
+    {
+      "caller_nid": "win32_bridge_main",
+      "callee": "METHODS[method]",
+      "is_member_call": false,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L513"
+    },
+    {
+      "caller_nid": "win32_bridge_main",
+      "callee": "write",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L518"
+    },
+    {
+      "caller_nid": "win32_bridge_main",
+      "callee": "dumps",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L518"
+    },
+    {
+      "caller_nid": "win32_bridge_main",
+      "callee": "flush",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L519"
+    },
+    {
+      "caller_nid": "win32_bridge_main",
+      "callee": "write",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L521"
+    },
+    {
+      "caller_nid": "win32_bridge_main",
+      "callee": "dumps",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L521"
+    },
+    {
+      "caller_nid": "win32_bridge_main",
+      "callee": "flush",
+      "is_member_call": true,
+      "source_file": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\claude-code\\src\\utils\\computerUse\\win32\\bridge.py",
+      "source_location": "L522"
+    }
+  ]
+}

@@ -1,0 +1,847 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_memory_leak_audit_md",
+      "label": "memory-leak-audit.md",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "label": "\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_memory_leak_audit_todo",
+      "label": "TODO",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L6"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u603b\u89c8",
+      "label": "\u603b\u89c8",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L23"
+    },
+    {
+      "id": "docs_memory_leak_audit_1_\u56fe\u7247\u5904\u7406\u65e0\u9650\u5185\u5b58\u589e\u957f_v2_1_121",
+      "label": "1. \u56fe\u7247\u5904\u7406\u65e0\u9650\u5185\u5b58\u589e\u957f (v2.1.121)",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L26"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e",
+      "label": "\u5b9e\u73b0\u4f4d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L30"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f",
+      "label": "\u4fee\u590d\u65b9\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L36"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5173\u952e\u4ee3\u7801",
+      "label": "\u5173\u952e\u4ee3\u7801",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L44"
+    },
+    {
+      "id": "docs_memory_leak_audit_2_usage_\u547d\u4ee4\u6cc4\u6f0f\u7ea6_2gb_v2_1_121",
+      "label": "2. /usage \u547d\u4ee4\u6cc4\u6f0f\u7ea6 2GB (v2.1.121)",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L68"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_73",
+      "label": "\u5b9e\u73b0\u4f4d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L73"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f_78",
+      "label": "\u4fee\u590d\u65b9\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L78"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5173\u952e\u4ee3\u7801_85",
+      "label": "\u5173\u952e\u4ee3\u7801",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L85"
+    },
+    {
+      "id": "docs_memory_leak_audit_3_\u957f\u65f6\u95f4\u8fd0\u884c\u5de5\u5177\u8fdb\u5ea6\u4e8b\u4ef6\u6cc4\u6f0f_v2_1_121",
+      "label": "3. \u957f\u65f6\u95f4\u8fd0\u884c\u5de5\u5177\u8fdb\u5ea6\u4e8b\u4ef6\u6cc4\u6f0f (v2.1.121)",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L124"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_129",
+      "label": "\u5b9e\u73b0\u4f4d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L129"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f_134",
+      "label": "\u4fee\u590d\u65b9\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L134"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5173\u952e\u4ee3\u7801_140",
+      "label": "\u5173\u952e\u4ee3\u7801",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L140"
+    },
+    {
+      "id": "docs_memory_leak_audit_4_\u7a7a\u95f2\u91cd\u65b0\u6e32\u67d3\u5faa\u73af_v2_1_117",
+      "label": "4. \u7a7a\u95f2\u91cd\u65b0\u6e32\u67d3\u5faa\u73af (v2.1.117)",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L174"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_180",
+      "label": "\u5b9e\u73b0\u4f4d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L180"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5df2\u5b9e\u73b0\u90e8\u5206",
+      "label": "\u5df2\u5b9e\u73b0\u90e8\u5206",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L184"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u4e0d\u786e\u5b9a\u90e8\u5206",
+      "label": "\u4e0d\u786e\u5b9a\u90e8\u5206",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L220"
+    },
+    {
+      "id": "docs_memory_leak_audit_5_\u865a\u62df\u6eda\u52a8\u5668\u4fdd\u7559\u5386\u53f2\u6d88\u606f\u62f7\u8d1d_v2_1_101",
+      "label": "5. \u865a\u62df\u6eda\u52a8\u5668\u4fdd\u7559\u5386\u53f2\u6d88\u606f\u62f7\u8d1d (v2.1.101)",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L226"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_231",
+      "label": "\u5b9e\u73b0\u4f4d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L231"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f_235",
+      "label": "\u4fee\u590d\u65b9\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L235"
+    },
+    {
+      "id": "docs_memory_leak_audit_6_\u7ba1\u9053\u6a21\u5f0f\u8d85\u5bbd\u884c\u8fc7\u5ea6\u5206\u914d_v2_1_110",
+      "label": "6. \u7ba1\u9053\u6a21\u5f0f\u8d85\u5bbd\u884c\u8fc7\u5ea6\u5206\u914d (v2.1.110)",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L266"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_271",
+      "label": "\u5b9e\u73b0\u4f4d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L271"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f_275",
+      "label": "\u4fee\u590d\u65b9\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L275"
+    },
+    {
+      "id": "docs_memory_leak_audit_7_\u8bed\u8a00\u8bed\u6cd5\u6309\u9700\u52a0\u8f7d_v2_1_108",
+      "label": "7. \u8bed\u8a00\u8bed\u6cd5\u6309\u9700\u52a0\u8f7d (v2.1.108)",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L293"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_299",
+      "label": "\u5b9e\u73b0\u4f4d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L299"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5f53\u524d\u72b6\u6001",
+      "label": "\u5f53\u524d\u72b6\u6001",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L303"
+    },
+    {
+      "id": "docs_memory_leak_audit_8_no_flicker_\u6a21\u5f0f\u6d41\u72b6\u6001\u6cc4\u6f0f_v2_1_105",
+      "label": "8. NO_FLICKER \u6a21\u5f0f\u6d41\u72b6\u6001\u6cc4\u6f0f (v2.1.105)",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L329"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_335",
+      "label": "\u5b9e\u73b0\u4f4d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L335"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5df2\u5b9e\u73b0\u90e8\u5206_340",
+      "label": "\u5df2\u5b9e\u73b0\u90e8\u5206",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L340"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u4e0d\u786e\u5b9a\u90e8\u5206_361",
+      "label": "\u4e0d\u786e\u5b9a\u90e8\u5206",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L361"
+    },
+    {
+      "id": "docs_memory_leak_audit_9_remote_control_\u6743\u9650\u6761\u76ee\u4fdd\u7559_v2_1_98",
+      "label": "9. Remote Control \u6743\u9650\u6761\u76ee\u4fdd\u7559 (v2.1.98)",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L367"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_373",
+      "label": "\u5b9e\u73b0\u4f4d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L373"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5df2\u5b9e\u73b0\u90e8\u5206_378",
+      "label": "\u5df2\u5b9e\u73b0\u90e8\u5206",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L378"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u4e0d\u786e\u5b9a\u90e8\u5206_404",
+      "label": "\u4e0d\u786e\u5b9a\u90e8\u5206",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L404"
+    },
+    {
+      "id": "docs_memory_leak_audit_10_mcp_http_sse_\u7f13\u51b2\u533a\u7d2f\u79ef_v2_1_97",
+      "label": "10. MCP HTTP/SSE \u7f13\u51b2\u533a\u7d2f\u79ef (v2.1.97)",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L410"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_415",
+      "label": "\u5b9e\u73b0\u4f4d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L415"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f_421",
+      "label": "\u4fee\u590d\u65b9\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L421"
+    },
+    {
+      "id": "docs_memory_leak_audit_11_lru_\u7f13\u5b58\u952e\u4fdd\u7559\u5927_json_v2_1_89",
+      "label": "11. LRU \u7f13\u5b58\u952e\u4fdd\u7559\u5927 JSON (v2.1.89)",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L454"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_461",
+      "label": "\u5b9e\u73b0\u4f4d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L461"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f_466",
+      "label": "\u4fee\u590d\u65b9\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L466"
+    },
+    {
+      "id": "docs_memory_leak_audit_12_queryengine_mutablemessages_\u4e0d\u6536\u7f29",
+      "label": "12. QueryEngine.mutableMessages \u4e0d\u6536\u7f29",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L500"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_506",
+      "label": "\u5b9e\u73b0\u4f4d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L506"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u95ee\u9898\u8be6\u60c5",
+      "label": "\u95ee\u9898\u8be6\u60c5",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L511"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u98ce\u9669\u8bc4\u4f30",
+      "label": "\u98ce\u9669\u8bc4\u4f30",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L563"
+    },
+    {
+      "id": "docs_memory_leak_audit_17_lsp_opened_files_map_\u4e0d\u6536\u7f29",
+      "label": "17. LSP Opened Files Map \u4e0d\u6536\u7f29",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L571"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_577",
+      "label": "\u5b9e\u73b0\u4f4d\u7f6e",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L577"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u95ee\u9898\u8be6\u60c5_582",
+      "label": "\u95ee\u9898\u8be6\u60c5",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L582"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f_593",
+      "label": "\u4fee\u590d\u65b9\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L593"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u603b\u7ed3",
+      "label": "\u603b\u7ed3",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L631"
+    },
+    {
+      "id": "docs_memory_leak_audit_\u9700\u8981\u5173\u6ce8\u7684\u4f18\u5148\u7ea7",
+      "label": "\u9700\u8981\u5173\u6ce8\u7684\u4f18\u5148\u7ea7",
+      "file_type": "document",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L652"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_memory_leak_audit_md",
+      "target": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_todo",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_\u603b\u89c8",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_1_\u56fe\u7247\u5904\u7406\u65e0\u9650\u5185\u5b58\u589e\u957f_v2_1_121",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_1_\u56fe\u7247\u5904\u7406\u65e0\u9650\u5185\u5b58\u589e\u957f_v2_1_121",
+      "target": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_1_\u56fe\u7247\u5904\u7406\u65e0\u9650\u5185\u5b58\u589e\u957f_v2_1_121",
+      "target": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_1_\u56fe\u7247\u5904\u7406\u65e0\u9650\u5185\u5b58\u589e\u957f_v2_1_121",
+      "target": "docs_memory_leak_audit_\u5173\u952e\u4ee3\u7801",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_2_usage_\u547d\u4ee4\u6cc4\u6f0f\u7ea6_2gb_v2_1_121",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L68",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_2_usage_\u547d\u4ee4\u6cc4\u6f0f\u7ea6_2gb_v2_1_121",
+      "target": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_73",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L73",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_2_usage_\u547d\u4ee4\u6cc4\u6f0f\u7ea6_2gb_v2_1_121",
+      "target": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f_78",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L78",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_2_usage_\u547d\u4ee4\u6cc4\u6f0f\u7ea6_2gb_v2_1_121",
+      "target": "docs_memory_leak_audit_\u5173\u952e\u4ee3\u7801_85",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L85",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_3_\u957f\u65f6\u95f4\u8fd0\u884c\u5de5\u5177\u8fdb\u5ea6\u4e8b\u4ef6\u6cc4\u6f0f_v2_1_121",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L124",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_3_\u957f\u65f6\u95f4\u8fd0\u884c\u5de5\u5177\u8fdb\u5ea6\u4e8b\u4ef6\u6cc4\u6f0f_v2_1_121",
+      "target": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_129",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L129",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_3_\u957f\u65f6\u95f4\u8fd0\u884c\u5de5\u5177\u8fdb\u5ea6\u4e8b\u4ef6\u6cc4\u6f0f_v2_1_121",
+      "target": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f_134",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L134",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_3_\u957f\u65f6\u95f4\u8fd0\u884c\u5de5\u5177\u8fdb\u5ea6\u4e8b\u4ef6\u6cc4\u6f0f_v2_1_121",
+      "target": "docs_memory_leak_audit_\u5173\u952e\u4ee3\u7801_140",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L140",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_4_\u7a7a\u95f2\u91cd\u65b0\u6e32\u67d3\u5faa\u73af_v2_1_117",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L174",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_4_\u7a7a\u95f2\u91cd\u65b0\u6e32\u67d3\u5faa\u73af_v2_1_117",
+      "target": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_180",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L180",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_4_\u7a7a\u95f2\u91cd\u65b0\u6e32\u67d3\u5faa\u73af_v2_1_117",
+      "target": "docs_memory_leak_audit_\u5df2\u5b9e\u73b0\u90e8\u5206",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L184",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_4_\u7a7a\u95f2\u91cd\u65b0\u6e32\u67d3\u5faa\u73af_v2_1_117",
+      "target": "docs_memory_leak_audit_\u4e0d\u786e\u5b9a\u90e8\u5206",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L220",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_5_\u865a\u62df\u6eda\u52a8\u5668\u4fdd\u7559\u5386\u53f2\u6d88\u606f\u62f7\u8d1d_v2_1_101",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L226",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_5_\u865a\u62df\u6eda\u52a8\u5668\u4fdd\u7559\u5386\u53f2\u6d88\u606f\u62f7\u8d1d_v2_1_101",
+      "target": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_231",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L231",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_5_\u865a\u62df\u6eda\u52a8\u5668\u4fdd\u7559\u5386\u53f2\u6d88\u606f\u62f7\u8d1d_v2_1_101",
+      "target": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f_235",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L235",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_6_\u7ba1\u9053\u6a21\u5f0f\u8d85\u5bbd\u884c\u8fc7\u5ea6\u5206\u914d_v2_1_110",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L266",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_6_\u7ba1\u9053\u6a21\u5f0f\u8d85\u5bbd\u884c\u8fc7\u5ea6\u5206\u914d_v2_1_110",
+      "target": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_271",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L271",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_6_\u7ba1\u9053\u6a21\u5f0f\u8d85\u5bbd\u884c\u8fc7\u5ea6\u5206\u914d_v2_1_110",
+      "target": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f_275",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L275",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_7_\u8bed\u8a00\u8bed\u6cd5\u6309\u9700\u52a0\u8f7d_v2_1_108",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L293",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_7_\u8bed\u8a00\u8bed\u6cd5\u6309\u9700\u52a0\u8f7d_v2_1_108",
+      "target": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_299",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L299",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_7_\u8bed\u8a00\u8bed\u6cd5\u6309\u9700\u52a0\u8f7d_v2_1_108",
+      "target": "docs_memory_leak_audit_\u5f53\u524d\u72b6\u6001",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L303",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_8_no_flicker_\u6a21\u5f0f\u6d41\u72b6\u6001\u6cc4\u6f0f_v2_1_105",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L329",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_8_no_flicker_\u6a21\u5f0f\u6d41\u72b6\u6001\u6cc4\u6f0f_v2_1_105",
+      "target": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_335",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L335",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_8_no_flicker_\u6a21\u5f0f\u6d41\u72b6\u6001\u6cc4\u6f0f_v2_1_105",
+      "target": "docs_memory_leak_audit_\u5df2\u5b9e\u73b0\u90e8\u5206_340",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L340",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_8_no_flicker_\u6a21\u5f0f\u6d41\u72b6\u6001\u6cc4\u6f0f_v2_1_105",
+      "target": "docs_memory_leak_audit_\u4e0d\u786e\u5b9a\u90e8\u5206_361",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L361",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_9_remote_control_\u6743\u9650\u6761\u76ee\u4fdd\u7559_v2_1_98",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L367",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_9_remote_control_\u6743\u9650\u6761\u76ee\u4fdd\u7559_v2_1_98",
+      "target": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_373",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L373",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_9_remote_control_\u6743\u9650\u6761\u76ee\u4fdd\u7559_v2_1_98",
+      "target": "docs_memory_leak_audit_\u5df2\u5b9e\u73b0\u90e8\u5206_378",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L378",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_9_remote_control_\u6743\u9650\u6761\u76ee\u4fdd\u7559_v2_1_98",
+      "target": "docs_memory_leak_audit_\u4e0d\u786e\u5b9a\u90e8\u5206_404",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L404",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_10_mcp_http_sse_\u7f13\u51b2\u533a\u7d2f\u79ef_v2_1_97",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L410",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_10_mcp_http_sse_\u7f13\u51b2\u533a\u7d2f\u79ef_v2_1_97",
+      "target": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_415",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L415",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_10_mcp_http_sse_\u7f13\u51b2\u533a\u7d2f\u79ef_v2_1_97",
+      "target": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f_421",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L421",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_11_lru_\u7f13\u5b58\u952e\u4fdd\u7559\u5927_json_v2_1_89",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L454",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_11_lru_\u7f13\u5b58\u952e\u4fdd\u7559\u5927_json_v2_1_89",
+      "target": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_461",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L461",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_11_lru_\u7f13\u5b58\u952e\u4fdd\u7559\u5927_json_v2_1_89",
+      "target": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f_466",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L466",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_12_queryengine_mutablemessages_\u4e0d\u6536\u7f29",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L500",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_12_queryengine_mutablemessages_\u4e0d\u6536\u7f29",
+      "target": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_506",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L506",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_12_queryengine_mutablemessages_\u4e0d\u6536\u7f29",
+      "target": "docs_memory_leak_audit_\u95ee\u9898\u8be6\u60c5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L511",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_12_queryengine_mutablemessages_\u4e0d\u6536\u7f29",
+      "target": "docs_memory_leak_audit_\u98ce\u9669\u8bc4\u4f30",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L563",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_17_lsp_opened_files_map_\u4e0d\u6536\u7f29",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L571",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_17_lsp_opened_files_map_\u4e0d\u6536\u7f29",
+      "target": "docs_memory_leak_audit_\u5b9e\u73b0\u4f4d\u7f6e_577",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L577",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_17_lsp_opened_files_map_\u4e0d\u6536\u7f29",
+      "target": "docs_memory_leak_audit_\u95ee\u9898\u8be6\u60c5_582",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L582",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_17_lsp_opened_files_map_\u4e0d\u6536\u7f29",
+      "target": "docs_memory_leak_audit_\u4fee\u590d\u65b9\u5f0f_593",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L593",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u5185\u5b58\u6cc4\u6f0f\u6392\u67e5\u62a5\u544a",
+      "target": "docs_memory_leak_audit_\u603b\u7ed3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L631",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_memory_leak_audit_\u603b\u7ed3",
+      "target": "docs_memory_leak_audit_\u9700\u8981\u5173\u6ce8\u7684\u4f18\u5148\u7ea7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/memory-leak-audit.md",
+      "source_location": "L652",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

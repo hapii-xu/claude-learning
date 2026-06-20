@@ -1,0 +1,351 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_progress_md",
+      "label": "progress.md",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "claude_code_progress_code_review_progress",
+      "label": "Code Review Progress",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "claude_code_progress_2026_05_03_\u7b2c\u4e00\u8f6e_crud_\u4e1a\u52a1\u903b\u8f91\u5c42_code_review",
+      "label": "2026-05-03 \u2014 \u7b2c\u4e00\u8f6e CRUD \u4e1a\u52a1\u903b\u8f91\u5c42 Code Review",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L3"
+    },
+    {
+      "id": "claude_code_progress_\u5ba1\u67e5\u8303\u56f4",
+      "label": "\u5ba1\u67e5\u8303\u56f4",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L5"
+    },
+    {
+      "id": "claude_code_progress_\u53d8\u66f4\u5185\u5bb9",
+      "label": "\u53d8\u66f4\u5185\u5bb9",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L8"
+    },
+    {
+      "id": "claude_code_progress_code_review_\u53d1\u73b0",
+      "label": "Code Review \u53d1\u73b0",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L11"
+    },
+    {
+      "id": "claude_code_progress_2026_05_05_\u7b2c\u4e00\u8f6e\u7528\u6237\u601d\u7ef4_design_review",
+      "label": "2026-05-05 \u2014 \u7b2c\u4e00\u8f6e\u7528\u6237\u601d\u7ef4 Design Review",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L17"
+    },
+    {
+      "id": "claude_code_progress_\u5ba1\u67e5\u8303\u56f4_19",
+      "label": "\u5ba1\u67e5\u8303\u56f4",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L19"
+    },
+    {
+      "id": "claude_code_progress_\u53d1\u73b0\u7684\u4e0d\u53cb\u597d\u95ee\u9898",
+      "label": "\u53d1\u73b0\u7684\u4e0d\u53cb\u597d\u95ee\u9898",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L22"
+    },
+    {
+      "id": "claude_code_progress_\u53d8\u66f4\u5185\u5bb9_27",
+      "label": "\u53d8\u66f4\u5185\u5bb9",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L27"
+    },
+    {
+      "id": "claude_code_progress_2026_05_05_\u7b2c\u4e8c\u8f6e\u6743\u9650\u4e0e\u5e2e\u52a9\u7cfb\u7edf_design_review",
+      "label": "2026-05-05 \u2014 \u7b2c\u4e8c\u8f6e\u6743\u9650\u4e0e\u5e2e\u52a9\u7cfb\u7edf Design Review",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L34"
+    },
+    {
+      "id": "claude_code_progress_\u5ba1\u67e5\u8303\u56f4_36",
+      "label": "\u5ba1\u67e5\u8303\u56f4",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L36"
+    },
+    {
+      "id": "claude_code_progress_\u53d1\u73b0\u7684\u4e0d\u53cb\u597d\u95ee\u9898_39",
+      "label": "\u53d1\u73b0\u7684\u4e0d\u53cb\u597d\u95ee\u9898",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L39"
+    },
+    {
+      "id": "claude_code_progress_\u53d8\u66f4\u5185\u5bb9_44",
+      "label": "\u53d8\u66f4\u5185\u5bb9",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L44"
+    },
+    {
+      "id": "claude_code_progress_2026_05_05_\u7b2c\u4e09\u8f6e\u6a21\u578b\u9009\u62e9\u4e0e\u4f1a\u8bdd\u6062\u590d_design_review",
+      "label": "2026-05-05 \u2014 \u7b2c\u4e09\u8f6e\u6a21\u578b\u9009\u62e9\u4e0e\u4f1a\u8bdd\u6062\u590d Design Review",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L51"
+    },
+    {
+      "id": "claude_code_progress_\u5ba1\u67e5\u8303\u56f4_53",
+      "label": "\u5ba1\u67e5\u8303\u56f4",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L53"
+    },
+    {
+      "id": "claude_code_progress_\u53d1\u73b0\u7684\u4e0d\u53cb\u597d\u95ee\u9898_56",
+      "label": "\u53d1\u73b0\u7684\u4e0d\u53cb\u597d\u95ee\u9898",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L56"
+    },
+    {
+      "id": "claude_code_progress_\u53d8\u66f4\u5185\u5bb9_60",
+      "label": "\u53d8\u66f4\u5185\u5bb9",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L60"
+    },
+    {
+      "id": "claude_code_progress_2026_05_05_\u7b2c\u56db\u8f6e\u538b\u7f29\u4e0e\u4e0a\u4e0b\u6587\u7ba1\u7406_design_review",
+      "label": "2026-05-05 \u2014 \u7b2c\u56db\u8f6e\u538b\u7f29\u4e0e\u4e0a\u4e0b\u6587\u7ba1\u7406 Design Review",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L65"
+    },
+    {
+      "id": "claude_code_progress_\u5ba1\u67e5\u8303\u56f4_67",
+      "label": "\u5ba1\u67e5\u8303\u56f4",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L67"
+    },
+    {
+      "id": "claude_code_progress_\u53d1\u73b0\u7684\u4e0d\u53cb\u597d\u95ee\u9898_70",
+      "label": "\u53d1\u73b0\u7684\u4e0d\u53cb\u597d\u95ee\u9898",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L70"
+    },
+    {
+      "id": "claude_code_progress_\u53d8\u66f4\u5185\u5bb9_75",
+      "label": "\u53d8\u66f4\u5185\u5bb9",
+      "file_type": "document",
+      "source_file": "progress.md",
+      "source_location": "L75"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_progress_md",
+      "target": "claude_code_progress_code_review_progress",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_code_review_progress",
+      "target": "claude_code_progress_2026_05_03_\u7b2c\u4e00\u8f6e_crud_\u4e1a\u52a1\u903b\u8f91\u5c42_code_review",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_2026_05_03_\u7b2c\u4e00\u8f6e_crud_\u4e1a\u52a1\u903b\u8f91\u5c42_code_review",
+      "target": "claude_code_progress_\u5ba1\u67e5\u8303\u56f4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_2026_05_03_\u7b2c\u4e00\u8f6e_crud_\u4e1a\u52a1\u903b\u8f91\u5c42_code_review",
+      "target": "claude_code_progress_\u53d8\u66f4\u5185\u5bb9",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_2026_05_03_\u7b2c\u4e00\u8f6e_crud_\u4e1a\u52a1\u903b\u8f91\u5c42_code_review",
+      "target": "claude_code_progress_code_review_\u53d1\u73b0",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_code_review_progress",
+      "target": "claude_code_progress_2026_05_05_\u7b2c\u4e00\u8f6e\u7528\u6237\u601d\u7ef4_design_review",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_2026_05_05_\u7b2c\u4e00\u8f6e\u7528\u6237\u601d\u7ef4_design_review",
+      "target": "claude_code_progress_\u5ba1\u67e5\u8303\u56f4_19",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_2026_05_05_\u7b2c\u4e00\u8f6e\u7528\u6237\u601d\u7ef4_design_review",
+      "target": "claude_code_progress_\u53d1\u73b0\u7684\u4e0d\u53cb\u597d\u95ee\u9898",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_2026_05_05_\u7b2c\u4e00\u8f6e\u7528\u6237\u601d\u7ef4_design_review",
+      "target": "claude_code_progress_\u53d8\u66f4\u5185\u5bb9_27",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_code_review_progress",
+      "target": "claude_code_progress_2026_05_05_\u7b2c\u4e8c\u8f6e\u6743\u9650\u4e0e\u5e2e\u52a9\u7cfb\u7edf_design_review",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_2026_05_05_\u7b2c\u4e8c\u8f6e\u6743\u9650\u4e0e\u5e2e\u52a9\u7cfb\u7edf_design_review",
+      "target": "claude_code_progress_\u5ba1\u67e5\u8303\u56f4_36",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_2026_05_05_\u7b2c\u4e8c\u8f6e\u6743\u9650\u4e0e\u5e2e\u52a9\u7cfb\u7edf_design_review",
+      "target": "claude_code_progress_\u53d1\u73b0\u7684\u4e0d\u53cb\u597d\u95ee\u9898_39",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L39",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_2026_05_05_\u7b2c\u4e8c\u8f6e\u6743\u9650\u4e0e\u5e2e\u52a9\u7cfb\u7edf_design_review",
+      "target": "claude_code_progress_\u53d8\u66f4\u5185\u5bb9_44",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_code_review_progress",
+      "target": "claude_code_progress_2026_05_05_\u7b2c\u4e09\u8f6e\u6a21\u578b\u9009\u62e9\u4e0e\u4f1a\u8bdd\u6062\u590d_design_review",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L51",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_2026_05_05_\u7b2c\u4e09\u8f6e\u6a21\u578b\u9009\u62e9\u4e0e\u4f1a\u8bdd\u6062\u590d_design_review",
+      "target": "claude_code_progress_\u5ba1\u67e5\u8303\u56f4_53",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L53",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_2026_05_05_\u7b2c\u4e09\u8f6e\u6a21\u578b\u9009\u62e9\u4e0e\u4f1a\u8bdd\u6062\u590d_design_review",
+      "target": "claude_code_progress_\u53d1\u73b0\u7684\u4e0d\u53cb\u597d\u95ee\u9898_56",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L56",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_2026_05_05_\u7b2c\u4e09\u8f6e\u6a21\u578b\u9009\u62e9\u4e0e\u4f1a\u8bdd\u6062\u590d_design_review",
+      "target": "claude_code_progress_\u53d8\u66f4\u5185\u5bb9_60",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L60",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_code_review_progress",
+      "target": "claude_code_progress_2026_05_05_\u7b2c\u56db\u8f6e\u538b\u7f29\u4e0e\u4e0a\u4e0b\u6587\u7ba1\u7406_design_review",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_2026_05_05_\u7b2c\u56db\u8f6e\u538b\u7f29\u4e0e\u4e0a\u4e0b\u6587\u7ba1\u7406_design_review",
+      "target": "claude_code_progress_\u5ba1\u67e5\u8303\u56f4_67",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L67",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_2026_05_05_\u7b2c\u56db\u8f6e\u538b\u7f29\u4e0e\u4e0a\u4e0b\u6587\u7ba1\u7406_design_review",
+      "target": "claude_code_progress_\u53d1\u73b0\u7684\u4e0d\u53cb\u597d\u95ee\u9898_70",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L70",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_progress_2026_05_05_\u7b2c\u56db\u8f6e\u538b\u7f29\u4e0e\u4e0a\u4e0b\u6587\u7ba1\u7406_design_review",
+      "target": "claude_code_progress_\u53d8\u66f4\u5185\u5bb9_75",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress.md",
+      "source_location": "L75",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

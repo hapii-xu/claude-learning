@@ -1,0 +1,79 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_tier3_stubs_md",
+      "label": "tier3-stubs.md",
+      "file_type": "document",
+      "source_file": "docs/features/tier3-stubs.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_tier3_stubs_tier_3_\u7eaf_stub_n_a_\u4f4e\u4f18\u5148\u7ea7_feature_\u6982\u89c8",
+      "label": "Tier 3 \u2014 \u7eaf Stub / N/A \u4f4e\u4f18\u5148\u7ea7 Feature \u6982\u89c8",
+      "file_type": "document",
+      "source_file": "docs/features/tier3-stubs.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_tier3_stubs_\u6982\u89c8",
+      "label": "\u6982\u89c8",
+      "file_type": "document",
+      "source_file": "docs/features/tier3-stubs.md",
+      "source_location": "L6"
+    },
+    {
+      "id": "features_tier3_stubs_\u5355\u5f15\u7528_feature_40_\u4e2a",
+      "label": "\u5355\u5f15\u7528 Feature\uff0840+ \u4e2a\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/tier3-stubs.md",
+      "source_location": "L18"
+    },
+    {
+      "id": "features_tier3_stubs_\u4f18\u5148\u7ea7\u8bf4\u660e",
+      "label": "\u4f18\u5148\u7ea7\u8bf4\u660e",
+      "file_type": "document",
+      "source_file": "docs/features/tier3-stubs.md",
+      "source_location": "L28"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_tier3_stubs_md",
+      "target": "features_tier3_stubs_tier_3_\u7eaf_stub_n_a_\u4f4e\u4f18\u5148\u7ea7_feature_\u6982\u89c8",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/tier3-stubs.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "features_tier3_stubs_tier_3_\u7eaf_stub_n_a_\u4f4e\u4f18\u5148\u7ea7_feature_\u6982\u89c8",
+      "target": "features_tier3_stubs_\u6982\u89c8",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/tier3-stubs.md",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "features_tier3_stubs_tier_3_\u7eaf_stub_n_a_\u4f4e\u4f18\u5148\u7ea7_feature_\u6982\u89c8",
+      "target": "features_tier3_stubs_\u5355\u5f15\u7528_feature_40_\u4e2a",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/tier3-stubs.md",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "features_tier3_stubs_tier_3_\u7eaf_stub_n_a_\u4f4e\u4f18\u5148\u7ea7_feature_\u6982\u89c8",
+      "target": "features_tier3_stubs_\u4f18\u5148\u7ea7\u8bf4\u660e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/tier3-stubs.md",
+      "source_location": "L28",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

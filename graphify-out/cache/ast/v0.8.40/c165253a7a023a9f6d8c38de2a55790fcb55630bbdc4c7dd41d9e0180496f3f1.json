@@ -1,0 +1,367 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_acp_link_md",
+      "label": "acp-link.md",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_acp_link_acp_link_acp_\u4ee3\u7406\u670d\u52a1\u5668",
+      "label": "acp-link \u2014 ACP \u4ee3\u7406\u670d\u52a1\u5668",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_acp_link_\u4e00_\u529f\u80fd\u6982\u8ff0",
+      "label": "\u4e00\u3001\u529f\u80fd\u6982\u8ff0",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L7"
+    },
+    {
+      "id": "features_acp_link_\u6838\u5fc3\u7279\u6027",
+      "label": "\u6838\u5fc3\u7279\u6027",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L11"
+    },
+    {
+      "id": "features_acp_link_\u4e8c_\u67b6\u6784",
+      "label": "\u4e8c\u3001\u67b6\u6784",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L20"
+    },
+    {
+      "id": "features_acp_link_\u72ec\u7acb\u6a21\u5f0f",
+      "label": "\u72ec\u7acb\u6a21\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L22"
+    },
+    {
+      "id": "features_acp_link_rcs_\u96c6\u6210\u6a21\u5f0f",
+      "label": "RCS \u96c6\u6210\u6a21\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L31"
+    },
+    {
+      "id": "features_acp_link_\u6587\u4ef6\u7ed3\u6784",
+      "label": "\u6587\u4ef6\u7ed3\u6784",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L40"
+    },
+    {
+      "id": "features_acp_link_\u4e09_\u5b89\u88c5\u4e0e\u4f7f\u7528",
+      "label": "\u4e09\u3001\u5b89\u88c5\u4e0e\u4f7f\u7528",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L60"
+    },
+    {
+      "id": "features_acp_link_\u57fa\u672c\u7528\u6cd5",
+      "label": "\u57fa\u672c\u7528\u6cd5",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L62"
+    },
+    {
+      "id": "features_acp_link_cli_\u53c2\u8003",
+      "label": "CLI \u53c2\u8003",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L79"
+    },
+    {
+      "id": "features_acp_link_\u56db_\u8ba4\u8bc1",
+      "label": "\u56db\u3001\u8ba4\u8bc1",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L100"
+    },
+    {
+      "id": "features_acp_link_\u4e94_rcs_\u96c6\u6210",
+      "label": "\u4e94\u3001RCS \u96c6\u6210",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L123"
+    },
+    {
+      "id": "features_acp_link_\u8fde\u63a5\u65b9\u5f0f",
+      "label": "\u8fde\u63a5\u65b9\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L127"
+    },
+    {
+      "id": "features_acp_link_\u6ce8\u518c\u6d41\u7a0b_\u4e24\u6b65",
+      "label": "\u6ce8\u518c\u6d41\u7a0b\uff08\u4e24\u6b65\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L136"
+    },
+    {
+      "id": "features_acp_link_\u516d_\u6743\u9650\u6a21\u5f0f",
+      "label": "\u516d\u3001\u6743\u9650\u6a21\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L158"
+    },
+    {
+      "id": "features_acp_link_permissionmode_\u4f20\u9012\u94fe",
+      "label": "permissionMode \u4f20\u9012\u94fe",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L160"
+    },
+    {
+      "id": "features_acp_link_fallback_\u94fe",
+      "label": "fallback \u94fe",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L172"
+    },
+    {
+      "id": "features_acp_link_\u4e03_\u6743\u9650\u7ba1\u9053_2026_04_18_\u6539\u8fdb",
+      "label": "\u4e03\u3001\u6743\u9650\u7ba1\u9053\uff082026-04-18 \u6539\u8fdb\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L186"
+    },
+    {
+      "id": "features_acp_link_\u6a21\u5f0f\u540c\u6b65",
+      "label": "\u6a21\u5f0f\u540c\u6b65",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L188"
+    },
+    {
+      "id": "features_acp_link_\u7edf\u4e00\u6743\u9650\u6d41\u6c34\u7ebf",
+      "label": "\u7edf\u4e00\u6743\u9650\u6d41\u6c34\u7ebf",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L192"
+    },
+    {
+      "id": "features_acp_link_bypass_\u68c0\u6d4b",
+      "label": "bypass \u68c0\u6d4b",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L196"
+    },
+    {
+      "id": "features_acp_link_\u516b_\u73af\u5883\u53d8\u91cf",
+      "label": "\u516b\u3001\u73af\u5883\u53d8\u91cf",
+      "file_type": "document",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L200"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_acp_link_md",
+      "target": "features_acp_link_acp_link_acp_\u4ee3\u7406\u670d\u52a1\u5668",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_acp_link_acp_\u4ee3\u7406\u670d\u52a1\u5668",
+      "target": "features_acp_link_\u4e00_\u529f\u80fd\u6982\u8ff0",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_\u4e00_\u529f\u80fd\u6982\u8ff0",
+      "target": "features_acp_link_\u6838\u5fc3\u7279\u6027",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_acp_link_acp_\u4ee3\u7406\u670d\u52a1\u5668",
+      "target": "features_acp_link_\u4e8c_\u67b6\u6784",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_\u4e8c_\u67b6\u6784",
+      "target": "features_acp_link_\u72ec\u7acb\u6a21\u5f0f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_\u4e8c_\u67b6\u6784",
+      "target": "features_acp_link_rcs_\u96c6\u6210\u6a21\u5f0f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L31",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_\u4e8c_\u67b6\u6784",
+      "target": "features_acp_link_\u6587\u4ef6\u7ed3\u6784",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_acp_link_acp_\u4ee3\u7406\u670d\u52a1\u5668",
+      "target": "features_acp_link_\u4e09_\u5b89\u88c5\u4e0e\u4f7f\u7528",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L60",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_\u4e09_\u5b89\u88c5\u4e0e\u4f7f\u7528",
+      "target": "features_acp_link_\u57fa\u672c\u7528\u6cd5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L62",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_\u4e09_\u5b89\u88c5\u4e0e\u4f7f\u7528",
+      "target": "features_acp_link_cli_\u53c2\u8003",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L79",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_acp_link_acp_\u4ee3\u7406\u670d\u52a1\u5668",
+      "target": "features_acp_link_\u56db_\u8ba4\u8bc1",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L100",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_acp_link_acp_\u4ee3\u7406\u670d\u52a1\u5668",
+      "target": "features_acp_link_\u4e94_rcs_\u96c6\u6210",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L123",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_\u4e94_rcs_\u96c6\u6210",
+      "target": "features_acp_link_\u8fde\u63a5\u65b9\u5f0f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L127",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_\u4e94_rcs_\u96c6\u6210",
+      "target": "features_acp_link_\u6ce8\u518c\u6d41\u7a0b_\u4e24\u6b65",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L136",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_acp_link_acp_\u4ee3\u7406\u670d\u52a1\u5668",
+      "target": "features_acp_link_\u516d_\u6743\u9650\u6a21\u5f0f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L158",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_\u516d_\u6743\u9650\u6a21\u5f0f",
+      "target": "features_acp_link_permissionmode_\u4f20\u9012\u94fe",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L160",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_\u516d_\u6743\u9650\u6a21\u5f0f",
+      "target": "features_acp_link_fallback_\u94fe",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L172",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_acp_link_acp_\u4ee3\u7406\u670d\u52a1\u5668",
+      "target": "features_acp_link_\u4e03_\u6743\u9650\u7ba1\u9053_2026_04_18_\u6539\u8fdb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L186",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_\u4e03_\u6743\u9650\u7ba1\u9053_2026_04_18_\u6539\u8fdb",
+      "target": "features_acp_link_\u6a21\u5f0f\u540c\u6b65",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L188",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_\u4e03_\u6743\u9650\u7ba1\u9053_2026_04_18_\u6539\u8fdb",
+      "target": "features_acp_link_\u7edf\u4e00\u6743\u9650\u6d41\u6c34\u7ebf",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L192",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_\u4e03_\u6743\u9650\u7ba1\u9053_2026_04_18_\u6539\u8fdb",
+      "target": "features_acp_link_bypass_\u68c0\u6d4b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L196",
+      "weight": 1.0
+    },
+    {
+      "source": "features_acp_link_acp_link_acp_\u4ee3\u7406\u670d\u52a1\u5668",
+      "target": "features_acp_link_\u516b_\u73af\u5883\u53d8\u91cf",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/acp-link.md",
+      "source_location": "L200",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

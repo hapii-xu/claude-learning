@@ -1,0 +1,751 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_04_agent_memory_md",
+      "label": "04-agent-memory.md",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "analysis_04_agent_memory_\u7b2c\u56db\u7ae0_agent_memory_\u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "label": "\u7b2c\u56db\u7ae0\uff1aAgent Memory \u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "analysis_04_agent_memory_1_\u672c\u7ae0\u5bfc\u8bfb",
+      "label": "1. \u672c\u7ae0\u5bfc\u8bfb",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L5"
+    },
+    {
+      "id": "analysis_04_agent_memory_2_\u603b\u4f53\u8bbe\u8ba1_\u4e3a\u4ec0\u4e48\u5b83\u4e0d\u662f\u4e00\u4e2a\u5355\u5e93",
+      "label": "2. \u603b\u4f53\u8bbe\u8ba1\uff1a\u4e3a\u4ec0\u4e48\u5b83\u4e0d\u662f\u4e00\u4e2a\u5355\u5e93",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L58"
+    },
+    {
+      "id": "analysis_04_agent_memory_3_\u5e95\u5c42\u5b58\u50a8\u6a21\u578b_\u6587\u4ef6\u5939_memory_md_\u7d22\u5f15",
+      "label": "3. \u5e95\u5c42\u5b58\u50a8\u6a21\u578b\uff1a\u6587\u4ef6\u5939 + `MEMORY.md` \u7d22\u5f15",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L86"
+    },
+    {
+      "id": "analysis_04_agent_memory_3_1_\u57fa\u672c\u7ea6\u5b9a",
+      "label": "3.1 \u57fa\u672c\u7ea6\u5b9a",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L92"
+    },
+    {
+      "id": "analysis_04_agent_memory_3_2_buildmemorylines_\u7ed9\u6a21\u578b\u7684\u771f\u5b9e\u7ea6\u675f",
+      "label": "3.2 `buildMemoryLines()` \u7ed9\u6a21\u578b\u7684\u771f\u5b9e\u7ea6\u675f",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L118"
+    },
+    {
+      "id": "analysis_04_agent_memory_3_3_buildmemoryprompt_\u5982\u4f55\u88c5\u914d\u4e0a\u4e0b\u6587",
+      "label": "3.3 `buildMemoryPrompt()` \u5982\u4f55\u88c5\u914d\u4e0a\u4e0b\u6587",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L150"
+    },
+    {
+      "id": "analysis_04_agent_memory_4_auto_memory_\u901a\u7528\u6301\u4e45\u8bb0\u5fc6\u5c42",
+      "label": "4. Auto Memory\uff1a\u901a\u7528\u6301\u4e45\u8bb0\u5fc6\u5c42",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L193"
+    },
+    {
+      "id": "analysis_04_agent_memory_4_1_\u5b58\u50a8\u4f4d\u7f6e",
+      "label": "4.1 \u5b58\u50a8\u4f4d\u7f6e",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L201"
+    },
+    {
+      "id": "analysis_04_agent_memory_4_2_\u5f00\u5173\u63a7\u5236",
+      "label": "4.2 \u5f00\u5173\u63a7\u5236",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L225"
+    },
+    {
+      "id": "analysis_04_agent_memory_4_3_\u5199\u5165\u65b9\u5f0f",
+      "label": "4.3 \u5199\u5165\u65b9\u5f0f",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L237"
+    },
+    {
+      "id": "analysis_04_agent_memory_5_relevant_memory_recall_\u4e0d\u662f\u5168\u585e_prompt_\u800c\u662f\u505a\u9009\u62e9",
+      "label": "5. Relevant Memory Recall\uff1a\u4e0d\u662f\u5168\u585e prompt\uff0c\u800c\u662f\u505a\u9009\u62e9",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L250"
+    },
+    {
+      "id": "analysis_04_agent_memory_6_session_memory_\u5f53\u524d\u4f1a\u8bdd\u6458\u8981\u5c42",
+      "label": "6. Session Memory\uff1a\u5f53\u524d\u4f1a\u8bdd\u6458\u8981\u5c42",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L280"
+    },
+    {
+      "id": "analysis_04_agent_memory_6_1_\u89e6\u53d1\u9608\u503c",
+      "label": "6.1 \u89e6\u53d1\u9608\u503c",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L289"
+    },
+    {
+      "id": "analysis_04_agent_memory_6_2_\u4f55\u65f6\u8ba4\u4e3a_\u503c\u5f97\u63d0\u53d6",
+      "label": "6.2 \u4f55\u65f6\u8ba4\u4e3a\u201c\u503c\u5f97\u63d0\u53d6\u201d",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L303"
+    },
+    {
+      "id": "analysis_04_agent_memory_6_3_\u5b58\u50a8\u4e0e\u6743\u9650",
+      "label": "6.3 \u5b58\u50a8\u4e0e\u6743\u9650",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L336"
+    },
+    {
+      "id": "analysis_04_agent_memory_6_4_\u66f4\u65b0\u65b9\u5f0f_\u540e\u53f0_forked_subagent",
+      "label": "6.4 \u66f4\u65b0\u65b9\u5f0f\uff1a\u540e\u53f0 forked subagent",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L355"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "label": "7. Agent Memory\uff1a\u771f\u6b63\u548c agent \u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L392"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_1_agent_memory_\u7684\u5b9a\u4f4d",
+      "label": "7.1 Agent Memory \u7684\u5b9a\u4f4d",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L403"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_2_\u4e09\u79cd_scope",
+      "label": "7.2 \u4e09\u79cd scope",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L423"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_3_\u771f\u5b9e\u76ee\u5f55\u5e03\u5c40",
+      "label": "7.3 \u771f\u5b9e\u76ee\u5f55\u5e03\u5c40",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L440"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_4_\u4e3a\u4ec0\u4e48\u8981\u505a_isagentmemorypath",
+      "label": "7.4 \u4e3a\u4ec0\u4e48\u8981\u505a `isAgentMemoryPath()`",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L465"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_5_agent_memory_\u7684\u5165\u53e3\u6587\u4ef6",
+      "label": "7.5 Agent Memory \u7684\u5165\u53e3\u6587\u4ef6",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L477"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_6_agent_\u5b9a\u4e49\u91cc\u5982\u4f55\u58f0\u660e_memory",
+      "label": "7.6 agent \u5b9a\u4e49\u91cc\u5982\u4f55\u58f0\u660e memory",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L493"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_7_getsystemprompt_\u5982\u4f55\u62fc\u4e0a_agent_memory",
+      "label": "7.7 `getSystemPrompt()` \u5982\u4f55\u62fc\u4e0a Agent Memory",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L507"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_8_loadagentmemoryprompt_\u505a\u4e86\u4ec0\u4e48",
+      "label": "7.8 `loadAgentMemoryPrompt()` \u505a\u4e86\u4ec0\u4e48",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L529"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_9_\u4e3a\u4ec0\u4e48\u76ee\u5f55\u521b\u5efa\u662f_fire_and_forget",
+      "label": "7.9 \u4e3a\u4ec0\u4e48\u76ee\u5f55\u521b\u5efa\u662f fire-and-forget",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L556"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_10_agent_memory_\u7684\u5199\u5165\u80fd\u529b\u662f\u600e\u4e48\u7ed9\u5230_agent_\u7684",
+      "label": "7.10 Agent Memory \u7684\u5199\u5165\u80fd\u529b\u662f\u600e\u4e48\u7ed9\u5230 agent \u7684",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L571"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_11_agent_memory_\u7684\u5178\u578b\u4f7f\u7528\u6d41\u7a0b",
+      "label": "7.11 Agent Memory \u7684\u5178\u578b\u4f7f\u7528\u6d41\u7a0b",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L596"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_12_agent_memory_snapshot_\u628a\u8bb0\u5fc6\u5f53\u6210\u53ef\u5206\u53d1\u8d44\u4ea7",
+      "label": "7.12 Agent Memory Snapshot\uff1a\u628a\u8bb0\u5fc6\u5f53\u6210\u53ef\u5206\u53d1\u8d44\u4ea7",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L624"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_13_snapshot_\u7684\u4e09\u79cd\u72b6\u6001",
+      "label": "7.13 snapshot \u7684\u4e09\u79cd\u72b6\u6001",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L641"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_14_snapshot_\u5982\u4f55\u521d\u59cb\u5316\u672c\u5730\u8bb0\u5fc6",
+      "label": "7.14 snapshot \u5982\u4f55\u521d\u59cb\u5316\u672c\u5730\u8bb0\u5fc6",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L673"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_15_snapshot_\u4f55\u65f6\u88ab\u68c0\u67e5",
+      "label": "7.15 snapshot \u4f55\u65f6\u88ab\u68c0\u67e5",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L700"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_16_\u4e3a\u4ec0\u4e48_snapshot_\u5f88\u91cd\u8981",
+      "label": "7.16 \u4e3a\u4ec0\u4e48 snapshot \u5f88\u91cd\u8981",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L713"
+    },
+    {
+      "id": "analysis_04_agent_memory_7_17_agent_memory_\u5728_ui_\u91cc\u662f\u53ef\u89c1\u7684",
+      "label": "7.17 Agent Memory \u5728 UI \u91cc\u662f\u53ef\u89c1\u7684",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L725"
+    },
+    {
+      "id": "analysis_04_agent_memory_8_team_memory_\u5171\u4eab\u800c\u4e0d\u662f\u4e2a\u4eba\u79c1\u6709",
+      "label": "8. Team Memory\uff1a\u5171\u4eab\u800c\u4e0d\u662f\u4e2a\u4eba\u79c1\u6709",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L733"
+    },
+    {
+      "id": "analysis_04_agent_memory_9_agent_memory_\u4e0e\u5176\u4ed6_memory_\u7684\u5206\u5de5",
+      "label": "9. Agent Memory \u4e0e\u5176\u4ed6 memory \u7684\u5206\u5de5",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L754"
+    },
+    {
+      "id": "analysis_04_agent_memory_10_\u4e0e_agent_runtime_\u7684\u8026\u5408\u70b9",
+      "label": "10. \u4e0e agent runtime \u7684\u8026\u5408\u70b9",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L780"
+    },
+    {
+      "id": "analysis_04_agent_memory_11_memory_compaction_\u5927\u4e0a\u4e0b\u6587\u7684\u81ea\u52a8\u538b\u7f29\u6253\u8584\u673a\u5236",
+      "label": "11. Memory Compaction\uff1a\u5927\u4e0a\u4e0b\u6587\u7684\u81ea\u52a8\u538b\u7f29\u6253\u8584\u673a\u5236",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L812"
+    },
+    {
+      "id": "analysis_04_agent_memory_11_1_\u9884\u5904\u7406\u4e0e_token_\u6b62\u635f\u4fdd\u62a4",
+      "label": "11.1 \u9884\u5904\u7406\u4e0e Token \u6b62\u635f\u4fdd\u62a4",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L821"
+    },
+    {
+      "id": "analysis_04_agent_memory_11_2_session_memory_sm_\u76f4\u6302\u4e0e\u5de5\u5177\u94fe\u65ad\u70b9\u4fdd\u62a4",
+      "label": "11.2 Session Memory (SM) \u76f4\u6302\u4e0e\u5de5\u5177\u94fe\u65ad\u70b9\u4fdd\u62a4",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L825"
+    },
+    {
+      "id": "analysis_04_agent_memory_11_3_\u72b6\u6001\u4e0e\u80fd\u529b\u590d\u704c_reinjection",
+      "label": "11.3 \u72b6\u6001\u4e0e\u80fd\u529b\u590d\u704c (Reinjection)",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L832"
+    },
+    {
+      "id": "analysis_04_agent_memory_12_\u8fd9\u5957\u5b9e\u73b0\u7684\u4f18\u70b9\u4e0e\u4ee3\u4ef7",
+      "label": "12. \u8fd9\u5957\u5b9e\u73b0\u7684\u4f18\u70b9\u4e0e\u4ee3\u4ef7",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L836"
+    },
+    {
+      "id": "analysis_04_agent_memory_12_1_\u4f18\u70b9",
+      "label": "12.1 \u4f18\u70b9",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L838"
+    },
+    {
+      "id": "analysis_04_agent_memory_12_2_\u4ee3\u4ef7",
+      "label": "12.2 \u4ee3\u4ef7",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L851"
+    },
+    {
+      "id": "analysis_04_agent_memory_13_\u672c\u7ae0\u5c0f\u7ed3",
+      "label": "13. \u672c\u7ae0\u5c0f\u7ed3",
+      "file_type": "document",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L862"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_04_agent_memory_md",
+      "target": "analysis_04_agent_memory_\u7b2c\u56db\u7ae0_agent_memory_\u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_\u7b2c\u56db\u7ae0_agent_memory_\u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "target": "analysis_04_agent_memory_1_\u672c\u7ae0\u5bfc\u8bfb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_\u7b2c\u56db\u7ae0_agent_memory_\u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "target": "analysis_04_agent_memory_2_\u603b\u4f53\u8bbe\u8ba1_\u4e3a\u4ec0\u4e48\u5b83\u4e0d\u662f\u4e00\u4e2a\u5355\u5e93",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L58",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_\u7b2c\u56db\u7ae0_agent_memory_\u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "target": "analysis_04_agent_memory_3_\u5e95\u5c42\u5b58\u50a8\u6a21\u578b_\u6587\u4ef6\u5939_memory_md_\u7d22\u5f15",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L86",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_3_\u5e95\u5c42\u5b58\u50a8\u6a21\u578b_\u6587\u4ef6\u5939_memory_md_\u7d22\u5f15",
+      "target": "analysis_04_agent_memory_3_1_\u57fa\u672c\u7ea6\u5b9a",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L92",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_3_\u5e95\u5c42\u5b58\u50a8\u6a21\u578b_\u6587\u4ef6\u5939_memory_md_\u7d22\u5f15",
+      "target": "analysis_04_agent_memory_3_2_buildmemorylines_\u7ed9\u6a21\u578b\u7684\u771f\u5b9e\u7ea6\u675f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L118",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_3_\u5e95\u5c42\u5b58\u50a8\u6a21\u578b_\u6587\u4ef6\u5939_memory_md_\u7d22\u5f15",
+      "target": "analysis_04_agent_memory_3_3_buildmemoryprompt_\u5982\u4f55\u88c5\u914d\u4e0a\u4e0b\u6587",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L150",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_\u7b2c\u56db\u7ae0_agent_memory_\u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "target": "analysis_04_agent_memory_4_auto_memory_\u901a\u7528\u6301\u4e45\u8bb0\u5fc6\u5c42",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L193",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_4_auto_memory_\u901a\u7528\u6301\u4e45\u8bb0\u5fc6\u5c42",
+      "target": "analysis_04_agent_memory_4_1_\u5b58\u50a8\u4f4d\u7f6e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L201",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_4_auto_memory_\u901a\u7528\u6301\u4e45\u8bb0\u5fc6\u5c42",
+      "target": "analysis_04_agent_memory_4_2_\u5f00\u5173\u63a7\u5236",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L225",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_4_auto_memory_\u901a\u7528\u6301\u4e45\u8bb0\u5fc6\u5c42",
+      "target": "analysis_04_agent_memory_4_3_\u5199\u5165\u65b9\u5f0f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L237",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_\u7b2c\u56db\u7ae0_agent_memory_\u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "target": "analysis_04_agent_memory_5_relevant_memory_recall_\u4e0d\u662f\u5168\u585e_prompt_\u800c\u662f\u505a\u9009\u62e9",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L250",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_\u7b2c\u56db\u7ae0_agent_memory_\u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "target": "analysis_04_agent_memory_6_session_memory_\u5f53\u524d\u4f1a\u8bdd\u6458\u8981\u5c42",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L280",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_6_session_memory_\u5f53\u524d\u4f1a\u8bdd\u6458\u8981\u5c42",
+      "target": "analysis_04_agent_memory_6_1_\u89e6\u53d1\u9608\u503c",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L289",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_6_session_memory_\u5f53\u524d\u4f1a\u8bdd\u6458\u8981\u5c42",
+      "target": "analysis_04_agent_memory_6_2_\u4f55\u65f6\u8ba4\u4e3a_\u503c\u5f97\u63d0\u53d6",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L303",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_6_session_memory_\u5f53\u524d\u4f1a\u8bdd\u6458\u8981\u5c42",
+      "target": "analysis_04_agent_memory_6_3_\u5b58\u50a8\u4e0e\u6743\u9650",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L336",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_6_session_memory_\u5f53\u524d\u4f1a\u8bdd\u6458\u8981\u5c42",
+      "target": "analysis_04_agent_memory_6_4_\u66f4\u65b0\u65b9\u5f0f_\u540e\u53f0_forked_subagent",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L355",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_\u7b2c\u56db\u7ae0_agent_memory_\u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "target": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L392",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_1_agent_memory_\u7684\u5b9a\u4f4d",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L403",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_2_\u4e09\u79cd_scope",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L423",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_3_\u771f\u5b9e\u76ee\u5f55\u5e03\u5c40",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L440",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_4_\u4e3a\u4ec0\u4e48\u8981\u505a_isagentmemorypath",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L465",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_5_agent_memory_\u7684\u5165\u53e3\u6587\u4ef6",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L477",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_6_agent_\u5b9a\u4e49\u91cc\u5982\u4f55\u58f0\u660e_memory",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L493",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_7_getsystemprompt_\u5982\u4f55\u62fc\u4e0a_agent_memory",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L507",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_8_loadagentmemoryprompt_\u505a\u4e86\u4ec0\u4e48",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L529",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_9_\u4e3a\u4ec0\u4e48\u76ee\u5f55\u521b\u5efa\u662f_fire_and_forget",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L556",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_10_agent_memory_\u7684\u5199\u5165\u80fd\u529b\u662f\u600e\u4e48\u7ed9\u5230_agent_\u7684",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L571",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_11_agent_memory_\u7684\u5178\u578b\u4f7f\u7528\u6d41\u7a0b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L596",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_12_agent_memory_snapshot_\u628a\u8bb0\u5fc6\u5f53\u6210\u53ef\u5206\u53d1\u8d44\u4ea7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L624",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_13_snapshot_\u7684\u4e09\u79cd\u72b6\u6001",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L641",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_14_snapshot_\u5982\u4f55\u521d\u59cb\u5316\u672c\u5730\u8bb0\u5fc6",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L673",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_15_snapshot_\u4f55\u65f6\u88ab\u68c0\u67e5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L700",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_16_\u4e3a\u4ec0\u4e48_snapshot_\u5f88\u91cd\u8981",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L713",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_7_agent_memory_\u771f\u6b63\u548c_agent_\u7ed1\u5b9a\u7684\u6301\u4e45\u8bb0\u5fc6",
+      "target": "analysis_04_agent_memory_7_17_agent_memory_\u5728_ui_\u91cc\u662f\u53ef\u89c1\u7684",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L725",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_\u7b2c\u56db\u7ae0_agent_memory_\u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "target": "analysis_04_agent_memory_8_team_memory_\u5171\u4eab\u800c\u4e0d\u662f\u4e2a\u4eba\u79c1\u6709",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L733",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_\u7b2c\u56db\u7ae0_agent_memory_\u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "target": "analysis_04_agent_memory_9_agent_memory_\u4e0e\u5176\u4ed6_memory_\u7684\u5206\u5de5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L754",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_\u7b2c\u56db\u7ae0_agent_memory_\u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "target": "analysis_04_agent_memory_10_\u4e0e_agent_runtime_\u7684\u8026\u5408\u70b9",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L780",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_\u7b2c\u56db\u7ae0_agent_memory_\u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "target": "analysis_04_agent_memory_11_memory_compaction_\u5927\u4e0a\u4e0b\u6587\u7684\u81ea\u52a8\u538b\u7f29\u6253\u8584\u673a\u5236",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L812",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_11_memory_compaction_\u5927\u4e0a\u4e0b\u6587\u7684\u81ea\u52a8\u538b\u7f29\u6253\u8584\u673a\u5236",
+      "target": "analysis_04_agent_memory_11_1_\u9884\u5904\u7406\u4e0e_token_\u6b62\u635f\u4fdd\u62a4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L821",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_11_memory_compaction_\u5927\u4e0a\u4e0b\u6587\u7684\u81ea\u52a8\u538b\u7f29\u6253\u8584\u673a\u5236",
+      "target": "analysis_04_agent_memory_11_2_session_memory_sm_\u76f4\u6302\u4e0e\u5de5\u5177\u94fe\u65ad\u70b9\u4fdd\u62a4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L825",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_11_memory_compaction_\u5927\u4e0a\u4e0b\u6587\u7684\u81ea\u52a8\u538b\u7f29\u6253\u8584\u673a\u5236",
+      "target": "analysis_04_agent_memory_11_3_\u72b6\u6001\u4e0e\u80fd\u529b\u590d\u704c_reinjection",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L832",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_\u7b2c\u56db\u7ae0_agent_memory_\u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "target": "analysis_04_agent_memory_12_\u8fd9\u5957\u5b9e\u73b0\u7684\u4f18\u70b9\u4e0e\u4ee3\u4ef7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L836",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_12_\u8fd9\u5957\u5b9e\u73b0\u7684\u4f18\u70b9\u4e0e\u4ee3\u4ef7",
+      "target": "analysis_04_agent_memory_12_1_\u4f18\u70b9",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L838",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_12_\u8fd9\u5957\u5b9e\u73b0\u7684\u4f18\u70b9\u4e0e\u4ee3\u4ef7",
+      "target": "analysis_04_agent_memory_12_2_\u4ee3\u4ef7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L851",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04_agent_memory_\u7b2c\u56db\u7ae0_agent_memory_\u673a\u5236\u662f\u600e\u4e48\u505a\u7684",
+      "target": "analysis_04_agent_memory_13_\u672c\u7ae0\u5c0f\u7ed3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04-agent-memory.md",
+      "source_location": "L862",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

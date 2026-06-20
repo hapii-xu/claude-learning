@@ -1,0 +1,239 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_task_task_016_backward_compat_tests_md",
+      "label": "task-016-backward-compat-tests.md",
+      "file_type": "document",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "task_task_016_backward_compat_tests_task_016_\u5411\u540e\u517c\u5bb9_\u6d4b\u8bd5",
+      "label": "Task 016: \u5411\u540e\u517c\u5bb9 + \u6d4b\u8bd5",
+      "file_type": "document",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "task_task_016_backward_compat_tests_\u76ee\u6807",
+      "label": "\u76ee\u6807",
+      "file_type": "document",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L7"
+    },
+    {
+      "id": "task_task_016_backward_compat_tests_\u6587\u4ef6\u6e05\u5355",
+      "label": "\u6587\u4ef6\u6e05\u5355",
+      "file_type": "document",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L11"
+    },
+    {
+      "id": "task_task_016_backward_compat_tests_\u65b0\u589e",
+      "label": "\u65b0\u589e",
+      "file_type": "document",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L13"
+    },
+    {
+      "id": "task_task_016_backward_compat_tests_\u4fee\u6539",
+      "label": "\u4fee\u6539",
+      "file_type": "document",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L22"
+    },
+    {
+      "id": "task_task_016_backward_compat_tests_\u5b9e\u73b0\u65b9\u6848",
+      "label": "\u5b9e\u73b0\u65b9\u6848",
+      "file_type": "document",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L28"
+    },
+    {
+      "id": "task_task_016_backward_compat_tests_1_\u5411\u540e\u517c\u5bb9\u77e9\u9635",
+      "label": "1. \u5411\u540e\u517c\u5bb9\u77e9\u9635",
+      "file_type": "document",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L30"
+    },
+    {
+      "id": "task_task_016_backward_compat_tests_2_\u6d4b\u8bd5\u8ba1\u5212",
+      "label": "2. \u6d4b\u8bd5\u8ba1\u5212",
+      "file_type": "document",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L45"
+    },
+    {
+      "id": "task_task_016_backward_compat_tests_2_1_daemonmain_\u8def\u7531\u6d4b\u8bd5",
+      "label": "2.1 daemonMain \u8def\u7531\u6d4b\u8bd5",
+      "file_type": "document",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L47"
+    },
+    {
+      "id": "task_task_016_backward_compat_tests_2_2_\u5f15\u64ce\u9009\u62e9\u6d4b\u8bd5",
+      "label": "2.2 \u5f15\u64ce\u9009\u62e9\u6d4b\u8bd5",
+      "file_type": "document",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L62"
+    },
+    {
+      "id": "task_task_016_backward_compat_tests_2_3_detachedengine_\u6d4b\u8bd5",
+      "label": "2.3 DetachedEngine \u6d4b\u8bd5",
+      "file_type": "document",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L73"
+    },
+    {
+      "id": "task_task_016_backward_compat_tests_2_4_tail_\u6d4b\u8bd5",
+      "label": "2.4 Tail \u6d4b\u8bd5",
+      "file_type": "document",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L83"
+    },
+    {
+      "id": "task_task_016_backward_compat_tests_3_\u96c6\u6210\u9a8c\u8bc1\u811a\u672c",
+      "label": "3. \u96c6\u6210\u9a8c\u8bc1\u811a\u672c",
+      "file_type": "document",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L93"
+    },
+    {
+      "id": "task_task_016_backward_compat_tests_\u9a8c\u8bc1\u6e05\u5355",
+      "label": "\u9a8c\u8bc1\u6e05\u5355",
+      "file_type": "document",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L116"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_task_task_016_backward_compat_tests_md",
+      "target": "task_task_016_backward_compat_tests_task_016_\u5411\u540e\u517c\u5bb9_\u6d4b\u8bd5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "task_task_016_backward_compat_tests_task_016_\u5411\u540e\u517c\u5bb9_\u6d4b\u8bd5",
+      "target": "task_task_016_backward_compat_tests_\u76ee\u6807",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "task_task_016_backward_compat_tests_task_016_\u5411\u540e\u517c\u5bb9_\u6d4b\u8bd5",
+      "target": "task_task_016_backward_compat_tests_\u6587\u4ef6\u6e05\u5355",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "task_task_016_backward_compat_tests_\u6587\u4ef6\u6e05\u5355",
+      "target": "task_task_016_backward_compat_tests_\u65b0\u589e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "task_task_016_backward_compat_tests_\u6587\u4ef6\u6e05\u5355",
+      "target": "task_task_016_backward_compat_tests_\u4fee\u6539",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "task_task_016_backward_compat_tests_task_016_\u5411\u540e\u517c\u5bb9_\u6d4b\u8bd5",
+      "target": "task_task_016_backward_compat_tests_\u5b9e\u73b0\u65b9\u6848",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "task_task_016_backward_compat_tests_\u5b9e\u73b0\u65b9\u6848",
+      "target": "task_task_016_backward_compat_tests_1_\u5411\u540e\u517c\u5bb9\u77e9\u9635",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "task_task_016_backward_compat_tests_\u5b9e\u73b0\u65b9\u6848",
+      "target": "task_task_016_backward_compat_tests_2_\u6d4b\u8bd5\u8ba1\u5212",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "task_task_016_backward_compat_tests_2_\u6d4b\u8bd5\u8ba1\u5212",
+      "target": "task_task_016_backward_compat_tests_2_1_daemonmain_\u8def\u7531\u6d4b\u8bd5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "task_task_016_backward_compat_tests_2_\u6d4b\u8bd5\u8ba1\u5212",
+      "target": "task_task_016_backward_compat_tests_2_2_\u5f15\u64ce\u9009\u62e9\u6d4b\u8bd5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L62",
+      "weight": 1.0
+    },
+    {
+      "source": "task_task_016_backward_compat_tests_2_\u6d4b\u8bd5\u8ba1\u5212",
+      "target": "task_task_016_backward_compat_tests_2_3_detachedengine_\u6d4b\u8bd5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L73",
+      "weight": 1.0
+    },
+    {
+      "source": "task_task_016_backward_compat_tests_2_\u6d4b\u8bd5\u8ba1\u5212",
+      "target": "task_task_016_backward_compat_tests_2_4_tail_\u6d4b\u8bd5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L83",
+      "weight": 1.0
+    },
+    {
+      "source": "task_task_016_backward_compat_tests_\u5b9e\u73b0\u65b9\u6848",
+      "target": "task_task_016_backward_compat_tests_3_\u96c6\u6210\u9a8c\u8bc1\u811a\u672c",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "task_task_016_backward_compat_tests_task_016_\u5411\u540e\u517c\u5bb9_\u6d4b\u8bd5",
+      "target": "task_task_016_backward_compat_tests_\u9a8c\u8bc1\u6e05\u5355",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/task/task-016-backward-compat-tests.md",
+      "source_location": "L116",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

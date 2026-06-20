@@ -1,0 +1,463 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_ink_docs_08_keybindings_md",
+      "label": "08-keybindings.md",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_08_keybindings_chapter_8_keybinding_system",
+      "label": "Chapter 8: Keybinding System",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_08_keybindings_architecture",
+      "label": "Architecture",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L5"
+    },
+    {
+      "id": "docs_08_keybindings_keybindingsetup",
+      "label": "KeybindingSetup",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L16"
+    },
+    {
+      "id": "docs_08_keybindings_props",
+      "label": "Props",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L34"
+    },
+    {
+      "id": "docs_08_keybindings_keybindingsloadresult",
+      "label": "KeybindingsLoadResult",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L45"
+    },
+    {
+      "id": "docs_08_keybindings_keybindingwarning",
+      "label": "KeybindingWarning",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L54"
+    },
+    {
+      "id": "docs_08_keybindings_keybindingprovider",
+      "label": "KeybindingProvider",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L68"
+    },
+    {
+      "id": "docs_08_keybindings_usekeybinding",
+      "label": "useKeybinding",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L72"
+    },
+    {
+      "id": "docs_08_keybindings_signature",
+      "label": "Signature",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L92"
+    },
+    {
+      "id": "docs_08_keybindings_handler_return_values",
+      "label": "Handler Return Values",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L102"
+    },
+    {
+      "id": "docs_08_keybindings_usekeybindings",
+      "label": "useKeybindings",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L110"
+    },
+    {
+      "id": "docs_08_keybindings_keybinding_contexts",
+      "label": "Keybinding Contexts",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L130"
+    },
+    {
+      "id": "docs_08_keybindings_chord_sequences",
+      "label": "Chord Sequences",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L153"
+    },
+    {
+      "id": "docs_08_keybindings_keybindingcontext_hook",
+      "label": "KeybindingContext Hook",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L167"
+    },
+    {
+      "id": "docs_08_keybindings_parser_functions",
+      "label": "Parser Functions",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L185"
+    },
+    {
+      "id": "docs_08_keybindings_parsekeystroke_str",
+      "label": "`parseKeystroke(str)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L201"
+    },
+    {
+      "id": "docs_08_keybindings_parsechord_str",
+      "label": "`parseChord(str)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L210"
+    },
+    {
+      "id": "docs_08_keybindings_keystroketostring_ks_chordtostring_chord",
+      "label": "`keystrokeToString(ks)` / `chordToString(chord)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L219"
+    },
+    {
+      "id": "docs_08_keybindings_keystroketodisplaystring_ks_chordtodisplaystring_chord",
+      "label": "`keystrokeToDisplayString(ks)` / `chordToDisplayString(chord)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L223"
+    },
+    {
+      "id": "docs_08_keybindings_parsebindings_blocks",
+      "label": "`parseBindings(blocks)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L227"
+    },
+    {
+      "id": "docs_08_keybindings_match_functions",
+      "label": "Match Functions",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L244"
+    },
+    {
+      "id": "docs_08_keybindings_getkeyname_input_key",
+      "label": "`getKeyName(input, key)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L250"
+    },
+    {
+      "id": "docs_08_keybindings_matcheskeystroke_input_key_target",
+      "label": "`matchesKeystroke(input, key, target)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L258"
+    },
+    {
+      "id": "docs_08_keybindings_matchesbinding_input_key_binding",
+      "label": "`matchesBinding(input, key, binding)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L266"
+    },
+    {
+      "id": "docs_08_keybindings_resolver_functions",
+      "label": "Resolver Functions",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L270"
+    },
+    {
+      "id": "docs_08_keybindings_resolvekey_input_key_contexts_bindings",
+      "label": "`resolveKey(input, key, contexts, bindings)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L276"
+    },
+    {
+      "id": "docs_08_keybindings_resolvekeywithchordstate_input_key_contexts_bindings_pendingchord",
+      "label": "`resolveKeyWithChordState(input, key, contexts, bindings, pendingChord)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L286"
+    },
+    {
+      "id": "docs_08_keybindings_getbindingdisplaytext_action_context_bindings",
+      "label": "`getBindingDisplayText(action, context, bindings)`",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L296"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_ink_docs_08_keybindings_md",
+      "target": "docs_08_keybindings_chapter_8_keybinding_system",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_chapter_8_keybinding_system",
+      "target": "docs_08_keybindings_architecture",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_chapter_8_keybinding_system",
+      "target": "docs_08_keybindings_keybindingsetup",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_keybindingsetup",
+      "target": "docs_08_keybindings_props",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_keybindingsetup",
+      "target": "docs_08_keybindings_keybindingsloadresult",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_keybindingsetup",
+      "target": "docs_08_keybindings_keybindingwarning",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_chapter_8_keybinding_system",
+      "target": "docs_08_keybindings_keybindingprovider",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L68",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_chapter_8_keybinding_system",
+      "target": "docs_08_keybindings_usekeybinding",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L72",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_usekeybinding",
+      "target": "docs_08_keybindings_signature",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L92",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_usekeybinding",
+      "target": "docs_08_keybindings_handler_return_values",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L102",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_chapter_8_keybinding_system",
+      "target": "docs_08_keybindings_usekeybindings",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L110",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_chapter_8_keybinding_system",
+      "target": "docs_08_keybindings_keybinding_contexts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L130",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_chapter_8_keybinding_system",
+      "target": "docs_08_keybindings_chord_sequences",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L153",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_chapter_8_keybinding_system",
+      "target": "docs_08_keybindings_keybindingcontext_hook",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L167",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_chapter_8_keybinding_system",
+      "target": "docs_08_keybindings_parser_functions",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L185",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_parser_functions",
+      "target": "docs_08_keybindings_parsekeystroke_str",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L201",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_parser_functions",
+      "target": "docs_08_keybindings_parsechord_str",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L210",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_parser_functions",
+      "target": "docs_08_keybindings_keystroketostring_ks_chordtostring_chord",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L219",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_parser_functions",
+      "target": "docs_08_keybindings_keystroketodisplaystring_ks_chordtodisplaystring_chord",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L223",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_parser_functions",
+      "target": "docs_08_keybindings_parsebindings_blocks",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L227",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_chapter_8_keybinding_system",
+      "target": "docs_08_keybindings_match_functions",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L244",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_match_functions",
+      "target": "docs_08_keybindings_getkeyname_input_key",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L250",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_match_functions",
+      "target": "docs_08_keybindings_matcheskeystroke_input_key_target",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L258",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_match_functions",
+      "target": "docs_08_keybindings_matchesbinding_input_key_binding",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L266",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_chapter_8_keybinding_system",
+      "target": "docs_08_keybindings_resolver_functions",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L270",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_resolver_functions",
+      "target": "docs_08_keybindings_resolvekey_input_key_contexts_bindings",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L276",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_resolver_functions",
+      "target": "docs_08_keybindings_resolvekeywithchordstate_input_key_contexts_bindings_pendingchord",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L286",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_08_keybindings_resolver_functions",
+      "target": "docs_08_keybindings_getbindingdisplaytext_action_context_bindings",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/08-keybindings.md",
+      "source_location": "L296",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

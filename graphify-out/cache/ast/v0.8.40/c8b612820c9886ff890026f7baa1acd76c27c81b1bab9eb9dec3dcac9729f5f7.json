@@ -1,0 +1,223 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_internals_autonomy_jira_md",
+      "label": "autonomy-jira.md",
+      "file_type": "document",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "internals_autonomy_jira_autonomy_reliability_jira_drafts",
+      "label": "Autonomy Reliability Jira Drafts",
+      "file_type": "document",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "internals_autonomy_jira_aut_001_preserve_autonomy_lifecycle_when_queued_commands_are_consumed_mid_turn",
+      "label": "AUT-001: Preserve autonomy lifecycle when queued commands are consumed mid-turn",
+      "file_type": "document",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L7"
+    },
+    {
+      "id": "internals_autonomy_jira_aut_002_make_autonomy_run_lifecycle_transitions_terminal_safe",
+      "label": "AUT-002: Make autonomy run lifecycle transitions terminal-safe",
+      "file_type": "document",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L35"
+    },
+    {
+      "id": "internals_autonomy_jira_aut_003_prevent_proactive_and_scheduled_task_async_fire_failures_from_becoming_invisible",
+      "label": "AUT-003: Prevent proactive and scheduled-task async fire failures from becoming invisible",
+      "file_type": "document",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L61"
+    },
+    {
+      "id": "internals_autonomy_jira_aut_004_bound_long_running_daemon_restart_timers_during_shutdown",
+      "label": "AUT-004: Bound long-running daemon restart timers during shutdown",
+      "file_type": "document",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L84"
+    },
+    {
+      "id": "internals_autonomy_jira_aut_005_release_autonomy_persistence_lock_bookkeeping_after_each_chain",
+      "label": "AUT-005: Release autonomy persistence lock bookkeeping after each chain",
+      "file_type": "document",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L107"
+    },
+    {
+      "id": "internals_autonomy_jira_aut_006_add_active_record_protection_before_persistence_truncation",
+      "label": "AUT-006: Add active-record protection before persistence truncation",
+      "file_type": "document",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L130"
+    },
+    {
+      "id": "internals_autonomy_jira_aut_007_treat_provider_api_error_responses_as_failed_autonomy_turns",
+      "label": "AUT-007: Treat provider API-error responses as failed autonomy turns",
+      "file_type": "document",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L152"
+    },
+    {
+      "id": "internals_autonomy_jira_aut_008_finalize_consumed_autonomy_runs_on_async_generator_close",
+      "label": "AUT-008: Finalize consumed autonomy runs on async-generator close",
+      "file_type": "document",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L183"
+    },
+    {
+      "id": "internals_autonomy_jira_aut_009_claim_queued_autonomy_runs_before_attachment_injection",
+      "label": "AUT-009: Claim queued autonomy runs before attachment injection",
+      "file_type": "document",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L212"
+    },
+    {
+      "id": "internals_autonomy_jira_aut_010_cancel_proactive_and_cron_runs_dropped_before_enqueue",
+      "label": "AUT-010: Cancel proactive and cron runs dropped before enqueue",
+      "file_type": "document",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L239"
+    },
+    {
+      "id": "internals_autonomy_jira_aut_011_replace_query_transition_any_stubs_with_typed_contracts",
+      "label": "AUT-011: Replace query transition `any` stubs with typed contracts",
+      "file_type": "document",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L268"
+    },
+    {
+      "id": "internals_autonomy_jira_aut_012_avoid_provider_test_settings_module_mock_pollution",
+      "label": "AUT-012: Avoid provider test settings-module mock pollution",
+      "file_type": "document",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L291"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_internals_autonomy_jira_md",
+      "target": "internals_autonomy_jira_autonomy_reliability_jira_drafts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_autonomy_jira_autonomy_reliability_jira_drafts",
+      "target": "internals_autonomy_jira_aut_001_preserve_autonomy_lifecycle_when_queued_commands_are_consumed_mid_turn",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_autonomy_jira_autonomy_reliability_jira_drafts",
+      "target": "internals_autonomy_jira_aut_002_make_autonomy_run_lifecycle_transitions_terminal_safe",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_autonomy_jira_autonomy_reliability_jira_drafts",
+      "target": "internals_autonomy_jira_aut_003_prevent_proactive_and_scheduled_task_async_fire_failures_from_becoming_invisible",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L61",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_autonomy_jira_autonomy_reliability_jira_drafts",
+      "target": "internals_autonomy_jira_aut_004_bound_long_running_daemon_restart_timers_during_shutdown",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L84",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_autonomy_jira_autonomy_reliability_jira_drafts",
+      "target": "internals_autonomy_jira_aut_005_release_autonomy_persistence_lock_bookkeeping_after_each_chain",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L107",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_autonomy_jira_autonomy_reliability_jira_drafts",
+      "target": "internals_autonomy_jira_aut_006_add_active_record_protection_before_persistence_truncation",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L130",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_autonomy_jira_autonomy_reliability_jira_drafts",
+      "target": "internals_autonomy_jira_aut_007_treat_provider_api_error_responses_as_failed_autonomy_turns",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L152",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_autonomy_jira_autonomy_reliability_jira_drafts",
+      "target": "internals_autonomy_jira_aut_008_finalize_consumed_autonomy_runs_on_async_generator_close",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L183",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_autonomy_jira_autonomy_reliability_jira_drafts",
+      "target": "internals_autonomy_jira_aut_009_claim_queued_autonomy_runs_before_attachment_injection",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L212",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_autonomy_jira_autonomy_reliability_jira_drafts",
+      "target": "internals_autonomy_jira_aut_010_cancel_proactive_and_cron_runs_dropped_before_enqueue",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L239",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_autonomy_jira_autonomy_reliability_jira_drafts",
+      "target": "internals_autonomy_jira_aut_011_replace_query_transition_any_stubs_with_typed_contracts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L268",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_autonomy_jira_autonomy_reliability_jira_drafts",
+      "target": "internals_autonomy_jira_aut_012_avoid_provider_test_settings_module_mock_pollution",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/autonomy-jira.md",
+      "source_location": "L291",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

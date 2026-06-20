@@ -1,0 +1,367 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_ink_docs_07_user_input_md",
+      "label": "07-user-input.md",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_07_user_input_chapter_7_user_input",
+      "label": "Chapter 7: User Input",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "docs_07_user_input_useinput",
+      "label": "useInput",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L3"
+    },
+    {
+      "id": "docs_07_user_input_signature",
+      "label": "Signature",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L33"
+    },
+    {
+      "id": "docs_07_user_input_parameters",
+      "label": "Parameters",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L42"
+    },
+    {
+      "id": "docs_07_user_input_options",
+      "label": "Options",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L48"
+    },
+    {
+      "id": "docs_07_user_input_key_object",
+      "label": "Key Object",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L54"
+    },
+    {
+      "id": "docs_07_user_input_event_propagation",
+      "label": "Event Propagation",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L81"
+    },
+    {
+      "id": "docs_07_user_input_raw_mode",
+      "label": "Raw Mode",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L99"
+    },
+    {
+      "id": "docs_07_user_input_inputevent",
+      "label": "InputEvent",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L108"
+    },
+    {
+      "id": "docs_07_user_input_keyboardevent",
+      "label": "KeyboardEvent",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L118"
+    },
+    {
+      "id": "docs_07_user_input_key_parsing",
+      "label": "Key Parsing",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L144"
+    },
+    {
+      "id": "docs_07_user_input_standard_escape_sequences",
+      "label": "Standard Escape Sequences",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L148"
+    },
+    {
+      "id": "docs_07_user_input_kitty_keyboard_protocol_csi_u",
+      "label": "Kitty Keyboard Protocol (CSI u)",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L153"
+    },
+    {
+      "id": "docs_07_user_input_xterm_modifyotherkeys",
+      "label": "xterm modifyOtherKeys",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L159"
+    },
+    {
+      "id": "docs_07_user_input_application_keypad_mode",
+      "label": "Application Keypad Mode",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L162"
+    },
+    {
+      "id": "docs_07_user_input_paste_detection",
+      "label": "Paste Detection",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L165"
+    },
+    {
+      "id": "docs_07_user_input_mouse_events_alt_screen_only",
+      "label": "Mouse Events (Alt-Screen Only)",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L181"
+    },
+    {
+      "id": "docs_07_user_input_click_events",
+      "label": "Click Events",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L185"
+    },
+    {
+      "id": "docs_07_user_input_hover_events",
+      "label": "Hover Events",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L198"
+    },
+    {
+      "id": "docs_07_user_input_wheel_events",
+      "label": "Wheel Events",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L211"
+    },
+    {
+      "id": "docs_07_user_input_usestdin",
+      "label": "useStdin",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L222"
+    },
+    {
+      "id": "docs_07_user_input_button_component",
+      "label": "Button Component",
+      "file_type": "document",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L241"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_ink_docs_07_user_input_md",
+      "target": "docs_07_user_input_chapter_7_user_input",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_chapter_7_user_input",
+      "target": "docs_07_user_input_useinput",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_useinput",
+      "target": "docs_07_user_input_signature",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L33",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_useinput",
+      "target": "docs_07_user_input_parameters",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L42",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_useinput",
+      "target": "docs_07_user_input_options",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L48",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_useinput",
+      "target": "docs_07_user_input_key_object",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_useinput",
+      "target": "docs_07_user_input_event_propagation",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L81",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_useinput",
+      "target": "docs_07_user_input_raw_mode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L99",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_chapter_7_user_input",
+      "target": "docs_07_user_input_inputevent",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L108",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_chapter_7_user_input",
+      "target": "docs_07_user_input_keyboardevent",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L118",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_chapter_7_user_input",
+      "target": "docs_07_user_input_key_parsing",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L144",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_key_parsing",
+      "target": "docs_07_user_input_standard_escape_sequences",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L148",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_key_parsing",
+      "target": "docs_07_user_input_kitty_keyboard_protocol_csi_u",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L153",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_key_parsing",
+      "target": "docs_07_user_input_xterm_modifyotherkeys",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L159",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_key_parsing",
+      "target": "docs_07_user_input_application_keypad_mode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L162",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_chapter_7_user_input",
+      "target": "docs_07_user_input_paste_detection",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L165",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_chapter_7_user_input",
+      "target": "docs_07_user_input_mouse_events_alt_screen_only",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L181",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_mouse_events_alt_screen_only",
+      "target": "docs_07_user_input_click_events",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L185",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_mouse_events_alt_screen_only",
+      "target": "docs_07_user_input_hover_events",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L198",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_mouse_events_alt_screen_only",
+      "target": "docs_07_user_input_wheel_events",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L211",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_chapter_7_user_input",
+      "target": "docs_07_user_input_usestdin",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L222",
+      "weight": 1.0
+    },
+    {
+      "source": "docs_07_user_input_chapter_7_user_input",
+      "target": "docs_07_user_input_button_component",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/ink/docs/07-user-input.md",
+      "source_location": "L241",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

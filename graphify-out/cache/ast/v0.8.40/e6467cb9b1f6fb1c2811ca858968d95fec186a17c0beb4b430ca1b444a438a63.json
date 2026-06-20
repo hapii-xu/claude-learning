@@ -1,0 +1,251 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_packages_workflow_engine_package_json",
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L1"
+    },
+    {
+      "id": "workflow_engine_package_name",
+      "label": "name",
+      "file_type": "code",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L2"
+    },
+    {
+      "id": "workflow_engine_package_version",
+      "label": "version",
+      "file_type": "code",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L3"
+    },
+    {
+      "id": "workflow_engine_package_private",
+      "label": "private",
+      "file_type": "code",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L4"
+    },
+    {
+      "id": "workflow_engine_package_type",
+      "label": "type",
+      "file_type": "code",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L5"
+    },
+    {
+      "id": "workflow_engine_package_main",
+      "label": "main",
+      "file_type": "code",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L6"
+    },
+    {
+      "id": "workflow_engine_package_types",
+      "label": "types",
+      "file_type": "code",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L7"
+    },
+    {
+      "id": "workflow_engine_package_exports",
+      "label": "exports",
+      "file_type": "code",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L8"
+    },
+    {
+      "id": "workflow_engine_package_exports_package_json",
+      "label": "./package.json",
+      "file_type": "code",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L10"
+    },
+    {
+      "id": "workflow_engine_package_dependencies",
+      "label": "dependencies",
+      "file_type": "code",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L12"
+    },
+    {
+      "id": "workflow_engine_package_dependencies_ajv",
+      "label": "ajv",
+      "file_type": "code",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "workflow_engine_package_dependencies_zod",
+      "label": "zod",
+      "file_type": "code",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L14"
+    },
+    {
+      "id": "workflow_engine_package_devdependencies",
+      "label": "devDependencies",
+      "file_type": "code",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L16"
+    },
+    {
+      "id": "workflow_engine_package_devdependencies_anthropic_ai_sdk",
+      "label": "@anthropic-ai/sdk",
+      "file_type": "code",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L17"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_workflow_engine_package_json",
+      "target": "workflow_engine_package_name",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_workflow_engine_package_json",
+      "target": "workflow_engine_package_version",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_workflow_engine_package_json",
+      "target": "workflow_engine_package_private",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_workflow_engine_package_json",
+      "target": "workflow_engine_package_type",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_workflow_engine_package_json",
+      "target": "workflow_engine_package_main",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_workflow_engine_package_json",
+      "target": "workflow_engine_package_types",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_workflow_engine_package_json",
+      "target": "workflow_engine_package_exports",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "workflow_engine_package_exports",
+      "target": "workflow_engine_package_exports_package_json",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_workflow_engine_package_json",
+      "target": "workflow_engine_package_dependencies",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "workflow_engine_package_dependencies",
+      "target": "workflow_engine_package_dependencies_ajv",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "workflow_engine_package_dependencies_ajv",
+      "target": "ajv",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "workflow_engine_package_dependencies",
+      "target": "workflow_engine_package_dependencies_zod",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "workflow_engine_package_dependencies_zod",
+      "target": "zod",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L14",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_workflow_engine_package_json",
+      "target": "workflow_engine_package_devdependencies",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "workflow_engine_package_devdependencies",
+      "target": "workflow_engine_package_devdependencies_anthropic_ai_sdk",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "workflow_engine_package_devdependencies_anthropic_ai_sdk",
+      "target": "anthropic_ai_sdk",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/workflow-engine/package.json",
+      "source_location": "L17",
+      "weight": 1.0,
+      "context": "import"
+    }
+  ]
+}

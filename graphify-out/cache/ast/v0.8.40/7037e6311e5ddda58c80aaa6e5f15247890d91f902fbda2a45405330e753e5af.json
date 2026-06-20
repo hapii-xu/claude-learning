@@ -1,0 +1,63 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_callgraphs_03_micro_tool_execution_sequence_mmd_md",
+      "label": "tool-execution-sequence.mmd.md",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/03-micro/tool-execution-sequence.mmd.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "03_micro_tool_execution_sequence_mmd_\u5fae\u89c2_tool_\u6267\u884c\u94fe\u8def\u65f6\u5e8f\u56fe_mermaid",
+      "label": "\u5fae\u89c2\uff1aTool \u6267\u884c\u94fe\u8def\u65f6\u5e8f\u56fe\uff08Mermaid\uff09",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/03-micro/tool-execution-sequence.mmd.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "03_micro_tool_execution_sequence_mmd_tool_\u63a5\u53e3\u5173\u952e\u5b57\u6bb5",
+      "label": "Tool \u63a5\u53e3\u5173\u952e\u5b57\u6bb5",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/03-micro/tool-execution-sequence.mmd.md",
+      "source_location": "L110"
+    },
+    {
+      "id": "03_micro_tool_execution_sequence_mmd_\u5e76\u53d1\u5206\u7ec4\u89c4\u5219",
+      "label": "\u5e76\u53d1\u5206\u7ec4\u89c4\u5219",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/03-micro/tool-execution-sequence.mmd.md",
+      "source_location": "L123"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_callgraphs_03_micro_tool_execution_sequence_mmd_md",
+      "target": "03_micro_tool_execution_sequence_mmd_\u5fae\u89c2_tool_\u6267\u884c\u94fe\u8def\u65f6\u5e8f\u56fe_mermaid",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/03-micro/tool-execution-sequence.mmd.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "03_micro_tool_execution_sequence_mmd_\u5fae\u89c2_tool_\u6267\u884c\u94fe\u8def\u65f6\u5e8f\u56fe_mermaid",
+      "target": "03_micro_tool_execution_sequence_mmd_tool_\u63a5\u53e3\u5173\u952e\u5b57\u6bb5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/03-micro/tool-execution-sequence.mmd.md",
+      "source_location": "L110",
+      "weight": 1.0
+    },
+    {
+      "source": "03_micro_tool_execution_sequence_mmd_\u5fae\u89c2_tool_\u6267\u884c\u94fe\u8def\u65f6\u5e8f\u56fe_mermaid",
+      "target": "03_micro_tool_execution_sequence_mmd_\u5e76\u53d1\u5206\u7ec4\u89c4\u5219",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/03-micro/tool-execution-sequence.mmd.md",
+      "source_location": "L123",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

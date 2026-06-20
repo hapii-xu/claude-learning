@@ -1,0 +1,191 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_internals_ant_only_world_mdx",
+      "label": "ant-only-world.mdx",
+      "file_type": "document",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L1"
+    },
+    {
+      "id": "internals_ant_only_world_\u4ec0\u4e48\u662f_ant",
+      "label": "\u4ec0\u4e48\u662f Ant",
+      "file_type": "document",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L9"
+    },
+    {
+      "id": "internals_ant_only_world_ant_only_\u5de5\u5177",
+      "label": "Ant-Only \u5de5\u5177",
+      "file_type": "document",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L22"
+    },
+    {
+      "id": "internals_ant_only_world_ant_only_\u547d\u4ee4",
+      "label": "Ant-Only \u547d\u4ee4",
+      "file_type": "document",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L48"
+    },
+    {
+      "id": "internals_ant_only_world_beta_api_headers",
+      "label": "Beta API Headers",
+      "file_type": "document",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L95"
+    },
+    {
+      "id": "internals_ant_only_world_\u516c\u5f00_headers_\u6240\u6709\u6784\u5efa\u5747\u53d1\u9001",
+      "label": "\u516c\u5f00 Headers\uff08\u6240\u6709\u6784\u5efa\u5747\u53d1\u9001\uff09",
+      "file_type": "document",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L99"
+    },
+    {
+      "id": "internals_ant_only_world_\u6a21\u578b\u80fd\u529b\u76f8\u5173_\u6709\u6761\u4ef6\u53d1\u9001",
+      "label": "\u6a21\u578b\u80fd\u529b\u76f8\u5173\uff08\u6709\u6761\u4ef6\u53d1\u9001\uff09",
+      "file_type": "document",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L111"
+    },
+    {
+      "id": "internals_ant_only_world_ant_only_headers",
+      "label": "Ant-Only Headers",
+      "file_type": "document",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L123"
+    },
+    {
+      "id": "internals_ant_only_world_feature_flag_gated",
+      "label": "Feature Flag Gated",
+      "file_type": "document",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L130"
+    },
+    {
+      "id": "internals_ant_only_world_\u5176\u4ed6\u7279\u6b8a_headers",
+      "label": "\u5176\u4ed6\u7279\u6b8a Headers",
+      "file_type": "document",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L136"
+    },
+    {
+      "id": "internals_ant_only_world_\u5185\u90e8\u4ee3\u53f7\u4f53\u7cfb",
+      "label": "\u5185\u90e8\u4ee3\u53f7\u4f53\u7cfb",
+      "file_type": "document",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L164"
+    },
+    {
+      "id": "internals_ant_only_world_\u73af\u5883\u53d8\u91cf\u5f00\u5173",
+      "label": "\u73af\u5883\u53d8\u91cf\u5f00\u5173",
+      "file_type": "document",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L176"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_internals_ant_only_world_mdx",
+      "target": "internals_ant_only_world_\u4ec0\u4e48\u662f_ant",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_internals_ant_only_world_mdx",
+      "target": "internals_ant_only_world_ant_only_\u5de5\u5177",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_internals_ant_only_world_mdx",
+      "target": "internals_ant_only_world_ant_only_\u547d\u4ee4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L48",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_internals_ant_only_world_mdx",
+      "target": "internals_ant_only_world_beta_api_headers",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L95",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_ant_only_world_beta_api_headers",
+      "target": "internals_ant_only_world_\u516c\u5f00_headers_\u6240\u6709\u6784\u5efa\u5747\u53d1\u9001",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L99",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_ant_only_world_beta_api_headers",
+      "target": "internals_ant_only_world_\u6a21\u578b\u80fd\u529b\u76f8\u5173_\u6709\u6761\u4ef6\u53d1\u9001",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L111",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_ant_only_world_beta_api_headers",
+      "target": "internals_ant_only_world_ant_only_headers",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L123",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_ant_only_world_beta_api_headers",
+      "target": "internals_ant_only_world_feature_flag_gated",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L130",
+      "weight": 1.0
+    },
+    {
+      "source": "internals_ant_only_world_beta_api_headers",
+      "target": "internals_ant_only_world_\u5176\u4ed6\u7279\u6b8a_headers",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L136",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_internals_ant_only_world_mdx",
+      "target": "internals_ant_only_world_\u5185\u90e8\u4ee3\u53f7\u4f53\u7cfb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L164",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_internals_ant_only_world_mdx",
+      "target": "internals_ant_only_world_\u73af\u5883\u53d8\u91cf\u5f00\u5173",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/ant-only-world.mdx",
+      "source_location": "L176",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

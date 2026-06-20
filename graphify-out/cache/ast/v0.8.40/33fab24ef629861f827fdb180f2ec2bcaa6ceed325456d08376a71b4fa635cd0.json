@@ -1,0 +1,143 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_agent_sur_skill_overflow_bugs_md",
+      "label": "sur-skill-overflow-bugs.md",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "agent_sur_skill_overflow_bugs_system_understanding_report_skill_search_skill_learning_overflow_bugs",
+      "label": "System Understanding Report \u2014 Skill Search / Skill Learning Overflow Bugs",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "agent_sur_skill_overflow_bugs_1_problem",
+      "label": "1. Problem",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L9"
+    },
+    {
+      "id": "agent_sur_skill_overflow_bugs_2_module_level_state_audit",
+      "label": "2. Module-level state audit",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L19"
+    },
+    {
+      "id": "agent_sur_skill_overflow_bugs_3_severity_rationale",
+      "label": "3. Severity rationale",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L34"
+    },
+    {
+      "id": "agent_sur_skill_overflow_bugs_4_fix_surface",
+      "label": "4. Fix surface",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L45"
+    },
+    {
+      "id": "agent_sur_skill_overflow_bugs_5_why_default_off_without_removing_from_build",
+      "label": "5. Why default-off (without removing from build)?",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L57"
+    },
+    {
+      "id": "agent_sur_skill_overflow_bugs_6_out_of_scope_filed_for_follow_up",
+      "label": "6. Out of scope (filed for follow-up)",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L72"
+    },
+    {
+      "id": "agent_sur_skill_overflow_bugs_7_verification",
+      "label": "7. Verification",
+      "file_type": "document",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L77"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_agent_sur_skill_overflow_bugs_md",
+      "target": "agent_sur_skill_overflow_bugs_system_understanding_report_skill_search_skill_learning_overflow_bugs",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_skill_overflow_bugs_system_understanding_report_skill_search_skill_learning_overflow_bugs",
+      "target": "agent_sur_skill_overflow_bugs_1_problem",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_skill_overflow_bugs_system_understanding_report_skill_search_skill_learning_overflow_bugs",
+      "target": "agent_sur_skill_overflow_bugs_2_module_level_state_audit",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_skill_overflow_bugs_system_understanding_report_skill_search_skill_learning_overflow_bugs",
+      "target": "agent_sur_skill_overflow_bugs_3_severity_rationale",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_skill_overflow_bugs_system_understanding_report_skill_search_skill_learning_overflow_bugs",
+      "target": "agent_sur_skill_overflow_bugs_4_fix_surface",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_skill_overflow_bugs_system_understanding_report_skill_search_skill_learning_overflow_bugs",
+      "target": "agent_sur_skill_overflow_bugs_5_why_default_off_without_removing_from_build",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_skill_overflow_bugs_system_understanding_report_skill_search_skill_learning_overflow_bugs",
+      "target": "agent_sur_skill_overflow_bugs_6_out_of_scope_filed_for_follow_up",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L72",
+      "weight": 1.0
+    },
+    {
+      "source": "agent_sur_skill_overflow_bugs_system_understanding_report_skill_search_skill_learning_overflow_bugs",
+      "target": "agent_sur_skill_overflow_bugs_7_verification",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/agent/sur-skill-overflow-bugs.md",
+      "source_location": "L77",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

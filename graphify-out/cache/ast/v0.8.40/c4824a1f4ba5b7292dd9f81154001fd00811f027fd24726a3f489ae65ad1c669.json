@@ -1,0 +1,79 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_10_src_file_tree_md",
+      "label": "10-src-file-tree.md",
+      "file_type": "document",
+      "source_file": "analysis/10-src-file-tree.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "analysis_10_src_file_tree_\u9644\u5f55b_src_\u8be6\u7ec6\u6587\u4ef6\u6811_\u542b\u6587\u4ef6\u8bf4\u660e",
+      "label": "\u9644\u5f55B\uff1asrc \u8be6\u7ec6\u6587\u4ef6\u6811\uff08\u542b\u6587\u4ef6\u8bf4\u660e\uff09",
+      "file_type": "document",
+      "source_file": "analysis/10-src-file-tree.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "analysis_10_src_file_tree_1_\u8bf4\u660e",
+      "label": "1. \u8bf4\u660e",
+      "file_type": "document",
+      "source_file": "analysis/10-src-file-tree.md",
+      "source_location": "L5"
+    },
+    {
+      "id": "analysis_10_src_file_tree_2_src_\u6587\u4ef6\u6811",
+      "label": "2. src \u6587\u4ef6\u6811",
+      "file_type": "document",
+      "source_file": "analysis/10-src-file-tree.md",
+      "source_location": "L12"
+    },
+    {
+      "id": "analysis_10_src_file_tree_3_\u4f7f\u7528\u5efa\u8bae",
+      "label": "3. \u4f7f\u7528\u5efa\u8bae",
+      "file_type": "document",
+      "source_file": "analysis/10-src-file-tree.md",
+      "source_location": "L2218"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_10_src_file_tree_md",
+      "target": "analysis_10_src_file_tree_\u9644\u5f55b_src_\u8be6\u7ec6\u6587\u4ef6\u6811_\u542b\u6587\u4ef6\u8bf4\u660e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/10-src-file-tree.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_10_src_file_tree_\u9644\u5f55b_src_\u8be6\u7ec6\u6587\u4ef6\u6811_\u542b\u6587\u4ef6\u8bf4\u660e",
+      "target": "analysis_10_src_file_tree_1_\u8bf4\u660e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/10-src-file-tree.md",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_10_src_file_tree_\u9644\u5f55b_src_\u8be6\u7ec6\u6587\u4ef6\u6811_\u542b\u6587\u4ef6\u8bf4\u660e",
+      "target": "analysis_10_src_file_tree_2_src_\u6587\u4ef6\u6811",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/10-src-file-tree.md",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_10_src_file_tree_\u9644\u5f55b_src_\u8be6\u7ec6\u6587\u4ef6\u6811_\u542b\u6587\u4ef6\u8bf4\u660e",
+      "target": "analysis_10_src_file_tree_3_\u4f7f\u7528\u5efa\u8bae",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/10-src-file-tree.md",
+      "source_location": "L2218",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

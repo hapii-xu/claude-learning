@@ -1,0 +1,559 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_pipes_and_lan_md",
+      "label": "pipes-and-lan.md",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_pipes_and_lan_pipes_lan_pipes_\u5b8c\u6574\u529f\u80fd\u6307\u5357",
+      "label": "Pipes + LAN Pipes \u5b8c\u6574\u529f\u80fd\u6307\u5357",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_pipes_and_lan_\u6982\u8ff0",
+      "label": "\u6982\u8ff0",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L3"
+    },
+    {
+      "id": "features_pipes_and_lan_feature_flags",
+      "label": "Feature Flags",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L12"
+    },
+    {
+      "id": "features_pipes_and_lan_\u5feb\u901f\u4e0a\u624b",
+      "label": "\u5feb\u901f\u4e0a\u624b",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L21"
+    },
+    {
+      "id": "features_pipes_and_lan_\u672c\u673a\u591a\u5b9e\u4f8b",
+      "label": "\u672c\u673a\u591a\u5b9e\u4f8b",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L23"
+    },
+    {
+      "id": "features_pipes_and_lan_\u5c40\u57df\u7f51\u591a\u673a\u5668",
+      "label": "\u5c40\u57df\u7f51\u591a\u673a\u5668",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L37"
+    },
+    {
+      "id": "features_pipes_and_lan_\u9632\u706b\u5899\u914d\u7f6e_\u4e24\u53f0\u673a\u5668\u90fd\u9700\u8981",
+      "label": "\u9632\u706b\u5899\u914d\u7f6e\uff08\u4e24\u53f0\u673a\u5668\u90fd\u9700\u8981\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L49"
+    },
+    {
+      "id": "features_pipes_and_lan_\u4ea4\u4e92\u9762\u677f\u4e0e\u5feb\u6377\u952e",
+      "label": "\u4ea4\u4e92\u9762\u677f\u4e0e\u5feb\u6377\u952e",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L79"
+    },
+    {
+      "id": "features_pipes_and_lan_\u72b6\u6001\u680f",
+      "label": "\u72b6\u6001\u680f",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L81"
+    },
+    {
+      "id": "features_pipes_and_lan_\u5c55\u5f00\u9009\u62e9\u9762\u677f",
+      "label": "\u5c55\u5f00\u9009\u62e9\u9762\u677f",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L91"
+    },
+    {
+      "id": "features_pipes_and_lan_\u9762\u677f\u5185\u5feb\u6377\u952e",
+      "label": "\u9762\u677f\u5185\u5feb\u6377\u952e",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L103"
+    },
+    {
+      "id": "features_pipes_and_lan_m_\u952e_\u8def\u7531\u6a21\u5f0f\u5207\u6362",
+      "label": "M \u952e \u2014 \u8def\u7531\u6a21\u5f0f\u5207\u6362",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L114"
+    },
+    {
+      "id": "features_pipes_and_lan_\u5b8c\u6574\u64cd\u4f5c\u6d41\u7a0b\u793a\u4f8b",
+      "label": "\u5b8c\u6574\u64cd\u4f5c\u6d41\u7a0b\u793a\u4f8b",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L125"
+    },
+    {
+      "id": "features_pipes_and_lan_\u547d\u4ee4\u53c2\u8003",
+      "label": "\u547d\u4ee4\u53c2\u8003",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L140"
+    },
+    {
+      "id": "features_pipes_and_lan_pipes",
+      "label": "/pipes",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L142"
+    },
+    {
+      "id": "features_pipes_and_lan_attach_lt_name_gt",
+      "label": "/attach &lt;name&gt;",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L172"
+    },
+    {
+      "id": "features_pipes_and_lan_detach_lt_name_gt",
+      "label": "/detach &lt;name&gt;",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L182"
+    },
+    {
+      "id": "features_pipes_and_lan_send_lt_name_gt_lt_message_gt",
+      "label": "/send &lt;name&gt; &lt;message&gt;",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L190"
+    },
+    {
+      "id": "features_pipes_and_lan_claim_main",
+      "label": "/claim-main",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L199"
+    },
+    {
+      "id": "features_pipes_and_lan_\u6d88\u606f\u8def\u7531",
+      "label": "\u6d88\u606f\u8def\u7531",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L203"
+    },
+    {
+      "id": "features_pipes_and_lan_\u9009\u4e2d_pipe_\u540e\u7684\u81ea\u52a8\u8def\u7531",
+      "label": "\u9009\u4e2d pipe \u540e\u7684\u81ea\u52a8\u8def\u7531",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L205"
+    },
+    {
+      "id": "features_pipes_and_lan_\u8def\u7531\u6a21\u5f0f",
+      "label": "\u8def\u7531\u6a21\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L212"
+    },
+    {
+      "id": "features_pipes_and_lan_\u67b6\u6784",
+      "label": "\u67b6\u6784",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L219"
+    },
+    {
+      "id": "features_pipes_and_lan_\u901a\u4fe1\u534f\u8bae",
+      "label": "\u901a\u4fe1\u534f\u8bae",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L221"
+    },
+    {
+      "id": "features_pipes_and_lan_\u6d88\u606f\u7c7b\u578b",
+      "label": "\u6d88\u606f\u7c7b\u578b",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L232"
+    },
+    {
+      "id": "features_pipes_and_lan_\u4f20\u8f93\u5c42",
+      "label": "\u4f20\u8f93\u5c42",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L247"
+    },
+    {
+      "id": "features_pipes_and_lan_\u89d2\u8272\u6a21\u578b",
+      "label": "\u89d2\u8272\u6a21\u578b",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L265"
+    },
+    {
+      "id": "features_pipes_and_lan_\u53d1\u73b0\u673a\u5236",
+      "label": "\u53d1\u73b0\u673a\u5236",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L280"
+    },
+    {
+      "id": "features_pipes_and_lan_heartbeat_\u5faa\u73af_5_\u79d2\u95f4\u9694",
+      "label": "Heartbeat \u5faa\u73af\uff085 \u79d2\u95f4\u9694\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L290"
+    },
+    {
+      "id": "features_pipes_and_lan_\u5173\u952e\u6587\u4ef6",
+      "label": "\u5173\u952e\u6587\u4ef6",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L307"
+    },
+    {
+      "id": "features_pipes_and_lan_\u540e\u7eed\u4f18\u5316\u65b9\u5411",
+      "label": "\u540e\u7eed\u4f18\u5316\u65b9\u5411",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L323"
+    },
+    {
+      "id": "features_pipes_and_lan_\u5b89\u5168_p0",
+      "label": "\u5b89\u5168\uff08P0\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L325"
+    },
+    {
+      "id": "features_pipes_and_lan_\u53ef\u9760\u6027_p1",
+      "label": "\u53ef\u9760\u6027\uff08P1\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L331"
+    },
+    {
+      "id": "features_pipes_and_lan_\u529f\u80fd_p2",
+      "label": "\u529f\u80fd\uff08P2\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L337"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_pipes_and_lan_md",
+      "target": "features_pipes_and_lan_pipes_lan_pipes_\u5b8c\u6574\u529f\u80fd\u6307\u5357",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_pipes_lan_pipes_\u5b8c\u6574\u529f\u80fd\u6307\u5357",
+      "target": "features_pipes_and_lan_\u6982\u8ff0",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_pipes_lan_pipes_\u5b8c\u6574\u529f\u80fd\u6307\u5357",
+      "target": "features_pipes_and_lan_feature_flags",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_pipes_lan_pipes_\u5b8c\u6574\u529f\u80fd\u6307\u5357",
+      "target": "features_pipes_and_lan_\u5feb\u901f\u4e0a\u624b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u5feb\u901f\u4e0a\u624b",
+      "target": "features_pipes_and_lan_\u672c\u673a\u591a\u5b9e\u4f8b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u5feb\u901f\u4e0a\u624b",
+      "target": "features_pipes_and_lan_\u5c40\u57df\u7f51\u591a\u673a\u5668",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L37",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u5feb\u901f\u4e0a\u624b",
+      "target": "features_pipes_and_lan_\u9632\u706b\u5899\u914d\u7f6e_\u4e24\u53f0\u673a\u5668\u90fd\u9700\u8981",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_pipes_lan_pipes_\u5b8c\u6574\u529f\u80fd\u6307\u5357",
+      "target": "features_pipes_and_lan_\u4ea4\u4e92\u9762\u677f\u4e0e\u5feb\u6377\u952e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L79",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u4ea4\u4e92\u9762\u677f\u4e0e\u5feb\u6377\u952e",
+      "target": "features_pipes_and_lan_\u72b6\u6001\u680f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L81",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u4ea4\u4e92\u9762\u677f\u4e0e\u5feb\u6377\u952e",
+      "target": "features_pipes_and_lan_\u5c55\u5f00\u9009\u62e9\u9762\u677f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L91",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u4ea4\u4e92\u9762\u677f\u4e0e\u5feb\u6377\u952e",
+      "target": "features_pipes_and_lan_\u9762\u677f\u5185\u5feb\u6377\u952e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L103",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u4ea4\u4e92\u9762\u677f\u4e0e\u5feb\u6377\u952e",
+      "target": "features_pipes_and_lan_m_\u952e_\u8def\u7531\u6a21\u5f0f\u5207\u6362",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L114",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u4ea4\u4e92\u9762\u677f\u4e0e\u5feb\u6377\u952e",
+      "target": "features_pipes_and_lan_\u5b8c\u6574\u64cd\u4f5c\u6d41\u7a0b\u793a\u4f8b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L125",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_pipes_lan_pipes_\u5b8c\u6574\u529f\u80fd\u6307\u5357",
+      "target": "features_pipes_and_lan_\u547d\u4ee4\u53c2\u8003",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L140",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u547d\u4ee4\u53c2\u8003",
+      "target": "features_pipes_and_lan_pipes",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L142",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u547d\u4ee4\u53c2\u8003",
+      "target": "features_pipes_and_lan_attach_lt_name_gt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L172",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u547d\u4ee4\u53c2\u8003",
+      "target": "features_pipes_and_lan_detach_lt_name_gt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L182",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u547d\u4ee4\u53c2\u8003",
+      "target": "features_pipes_and_lan_send_lt_name_gt_lt_message_gt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L190",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u547d\u4ee4\u53c2\u8003",
+      "target": "features_pipes_and_lan_claim_main",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L199",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_pipes_lan_pipes_\u5b8c\u6574\u529f\u80fd\u6307\u5357",
+      "target": "features_pipes_and_lan_\u6d88\u606f\u8def\u7531",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L203",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u6d88\u606f\u8def\u7531",
+      "target": "features_pipes_and_lan_\u9009\u4e2d_pipe_\u540e\u7684\u81ea\u52a8\u8def\u7531",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L205",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u6d88\u606f\u8def\u7531",
+      "target": "features_pipes_and_lan_\u8def\u7531\u6a21\u5f0f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L212",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_pipes_lan_pipes_\u5b8c\u6574\u529f\u80fd\u6307\u5357",
+      "target": "features_pipes_and_lan_\u67b6\u6784",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L219",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u67b6\u6784",
+      "target": "features_pipes_and_lan_\u901a\u4fe1\u534f\u8bae",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L221",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u67b6\u6784",
+      "target": "features_pipes_and_lan_\u6d88\u606f\u7c7b\u578b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L232",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u67b6\u6784",
+      "target": "features_pipes_and_lan_\u4f20\u8f93\u5c42",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L247",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u67b6\u6784",
+      "target": "features_pipes_and_lan_\u89d2\u8272\u6a21\u578b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L265",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u67b6\u6784",
+      "target": "features_pipes_and_lan_\u53d1\u73b0\u673a\u5236",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L280",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u67b6\u6784",
+      "target": "features_pipes_and_lan_heartbeat_\u5faa\u73af_5_\u79d2\u95f4\u9694",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L290",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_pipes_lan_pipes_\u5b8c\u6574\u529f\u80fd\u6307\u5357",
+      "target": "features_pipes_and_lan_\u5173\u952e\u6587\u4ef6",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L307",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_pipes_lan_pipes_\u5b8c\u6574\u529f\u80fd\u6307\u5357",
+      "target": "features_pipes_and_lan_\u540e\u7eed\u4f18\u5316\u65b9\u5411",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L323",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u540e\u7eed\u4f18\u5316\u65b9\u5411",
+      "target": "features_pipes_and_lan_\u5b89\u5168_p0",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L325",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u540e\u7eed\u4f18\u5316\u65b9\u5411",
+      "target": "features_pipes_and_lan_\u53ef\u9760\u6027_p1",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L331",
+      "weight": 1.0
+    },
+    {
+      "source": "features_pipes_and_lan_\u540e\u7eed\u4f18\u5316\u65b9\u5411",
+      "target": "features_pipes_and_lan_\u529f\u80fd_p2",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/pipes-and-lan.md",
+      "source_location": "L337",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

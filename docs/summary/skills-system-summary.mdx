@@ -1,0 +1,405 @@
+---
+title: Skills 系统知识总结
+description: Claude Code 的"可复用提示词单元"—— SKILL.md 格式、7 种 skill 来源、前置字段字典（含完整示例）、加载流水线（memoized 五步收集 + 条件激活 + 动态发现）、内联/分叉执行模式，以及如何从零创建一个 Project Skill
+---
+
+# Skills 系统知识总结
+
+> 这是"总结学习"栏目的第七篇。目标：彻底理解 Claude Code 的 **Skills 机制** —— 一个 `.md` 文件如何成为模型可调用的"技能"、7 种来源如何被收集与去重、frontmatter 字段各自意味着什么、内联与分叉执行有何区别，以及如何定义一个完整的 Skill 实例。
+
+---
+
+## 一、Skills 全貌
+
+### 什么是 Skill
+
+Skill（技能）是存放在 Markdown 文件中的**可复用提示词模板**。模型通过 `SkillTool`（斜杠命令 `/skill-name` 或模型自主调用）来触发它。
+
+与 MCP 工具不同，Skill 不会给模型提供新的**底层能力**，而是提供**预定义的工作流程**——告诉模型应该如何思考、调用哪些工具、以何种顺序执行一系列操作。
+
+### 两种执行模式
+
+```
+内联模式（默认）                       分叉模式（context: fork）
+──────────────────────────────────       ──────────────────────────────────
+Skill 提示词注入当前对话                   创建子代理，独立 token 预算
+模型看到完整历史上下文                     子代理有自己的对话状态
+适合交互式、需要上下文的任务                适合独立自包含任务（如代码审查）
+SkillTool → executeInlineSkill()          SkillTool → executeForkedSkill()
+```
+
+### 7 种 Skill 来源
+
+| 来源 | 路径 | 加载函数 | 说明 |
+|------|------|---------|------|
+| 用户 Skills | `~/.claude/skills/` | `getSkillDirCommands()` | 用户级，跨项目生效 |
+| 项目 Skills | `./.claude/skills/` | `getSkillDirCommands()` | 项目级，git 跟踪 |
+| 管理员 Skills | 策略配置路径 | `getSkillDirCommands()` | 企业策略部署 |
+| Legacy 命令 | `./.claude/commands/` | `loadSkillsDir.ts:566` | 向后兼容，`.md` 格式 |
+| 内置 Skills | 编译进 CLI | `getBundledSkills()` | `src/skills/bundled/` 目录下 18 个 |
+| MCP Skills | `skill://` 资源 | `mcpSkills.ts` | MCP server 动态暴露 |
+| 动态 Skills | 嵌套 `.claude/skills/` | `discoverSkillDirsForPaths()` | 按文件访问懒发现 |
+
+其中**条件 Skills**（有 `paths` 字段）独立存储，只在匹配路径被触碰时激活。
+
+---
+
+## 二、必须掌握的 6 个核心概念
+
+### 1. SKILL.md 文件格式
+
+每个 Skill 对应一个目录下的 `SKILL.md` 文件（或直接一个 `.md` 文件用于 legacy 命令）：
+
+```
+.claude/skills/
+├── my-skill/
+│   └── SKILL.md       ← 必须
+│   └── helper.sh      ← 可选的辅助文件
+└── another-skill/
+    └── SKILL.md
+```
+
+文件结构：
+```markdown
+---
+description: 执行代码审查并提供改进建议
+# ... 其他 frontmatter 字段
+---
+
+# My Skill 的主体内容
+
+你是一个代码审查专家。请按以下步骤审查 $ARGUMENTS 中指定的文件：
+...
+```
+
+### 2. Frontmatter 字段字典（完整）
+
+> 解析实现：`src/skills/loadSkillsDir.ts:185-265`（`parseSkillFrontmatterFields`）
+
+| 字段 | 类型 | 默认值 | 含义 |
+|------|------|-------|------|
+| `description` | `string` | 从正文提取 | **必填**，技能说明，显示在 UI 和模型的工具描述中 |
+| `display-name` | `string` | 目录名 | 覆盖 UI 显示名称（不影响调用名） |
+| `argument-hint` | `string` | `undefined` | UI 输入提示，如 `<file> [options]` |
+| `arguments` | `string[]` | `[]` | 位置参数名列表，注入为 `$ARG1 $ARG2` 等 |
+| `when-to-use` | `string` | `undefined` | 告诉模型何时主动调用此技能 |
+| `allowed-tools` | `string[]` | `[]` | 执行时自动允许的工具（不弹权限确认框） |
+| `model` | `string` | 继承 | 覆盖本次执行用的模型 |
+| `effort` | `string/number` | 继承 | 努力程度：`low` / `medium` / `high` / `2`（数字） |
+| `context` | `'fork'` | `undefined` | `fork` = 分叉执行（子代理），省略 = 内联 |
+| `agent` | `string` | `undefined` | 指定执行此技能的自定义 Agent 名称 |
+| `user-invocable` | `boolean` | `true` | `false` = 从 UI 隐藏，仅供模型主动调用 |
+| `disable-model-invocation` | `boolean` | `false` | `true` = 只注入提示词，不实际调用模型 |
+| `version` | `string` | `undefined` | 语义化版本号，如 `1.0.0` |
+| `paths` | `string` | `undefined` | gitignore 模式，匹配时才激活（条件 Skill） |
+| `hooks` | `HooksSettings` | `undefined` | 技能内联的 Hooks 配置，格式同 settings.json |
+| `shell` | `object` | `undefined` | Shell 执行配置（高级用法） |
+
+### 3. 加载流水线（五步，memoized）
+
+```
+getSkillDirCommands() [memoized]
+│
+├─ Step 1：收集目录
+│   ├─ managed skills path（策略注入）
+│   ├─ ~/.claude/skills/（用户）
+│   ├─ ./.claude/skills/（项目）
+│   └─ --add-dir 额外目录
+│
+├─ Step 2：解析每个 SKILL.md
+│   ├─ parseSkillFrontmatterFields() → 字段提取
+│   ├─ 生成 skillId（目录名 kebab-case）
+│   └─ 与 Legacy 命令合并
+│
+├─ Step 3：去重（realpath 比较）
+│   └─ 嵌套仓库的相同路径只保留一份
+│
+├─ Step 4：分离条件 Skills
+│   └─ 有 `paths` 字段 → 存入 conditionalSkills
+│
+└─ Step 5：返回无条件 Skills
+    ├─ 未激活条件 Skills 不在此列
+    └─ 首次调用后结果被缓存
+```
+
+### 4. 动态 Skills 发现
+
+每当 Claude Code 访问某个文件时，`discoverSkillDirsForPaths()` 检查该文件路径下是否有 `.claude/skills/` 目录，并懒加载新发现的 Skills。这允许 monorepo 中的子目录有自己的技能集。
+
+### 5. 条件 Skill 激活
+
+```yaml
+---
+paths: "src/frontend/** *.tsx"  # gitignore 模式
+description: React 组件最佳实践审查
+---
+```
+
+当用户修改 `src/frontend/Button.tsx` 时，该 Skill 被激活——它会出现在 `/` 命令列表中，直到 session 结束（激活状态不会因 `/clear` 重置）。
+
+### 6. SkillTool 执行路径
+
+```
+用户输入 "/my-skill arg1 arg2"
+    ↓
+SkillTool.runTool()
+    ↓
+getPromptForCommand(skillId, args)   ← 展开 $ARGUMENTS / $ARG1 占位符
+    ↓
+if executionContext === 'fork'
+    executeForkedSkill()             ← AgentTool 子代理调用
+else
+    executeInlineSkill()             ← 注入到当前对话的 system/user message
+```
+
+---
+
+## 三、应该了解的 3 个重要机制
+
+### A. `$ARGUMENTS` 占位符展开
+
+Skill 正文中可使用：
+- `$ARGUMENTS` — 展开为所有参数的完整字符串
+- `$ARG1`, `$ARG2`, `$ARG3` — 展开为对应位置参数（由 `arguments` 字段定义名称）
+
+示例：如果定义 `arguments: [filename, branch]`，调用 `/review src/main.ts feature`：
+- `$ARGUMENTS` = `src/main.ts feature`
+- `$ARG1` = `src/main.ts`（参数名 `filename` 仅作 UI 提示）
+- `$ARG2` = `feature`
+
+### B. 内置 Skills（`src/skills/bundled/`）
+
+18 个编译进 CLI 的内置技能，通过 `registerBundledSkill()` 注册，包括：
+- 代码审查、文档生成、测试编写等通用工作流
+- 不占用文件系统，通过 `getBundledSkills()` 获取
+
+### C. MCP Skills（`skill://` 资源）
+
+如果 MCP server 暴露 `skill://skill-name` 格式的资源，`mcpSkills.ts` 会将其转换为普通 Skill 对象。这允许 MCP server 动态提供工作流定义。
+
+---
+
+## 四、字段字典 + 完整实例示例
+
+### 实例 1：最简单的项目 Skill
+
+**文件位置**：`.claude/skills/hello/SKILL.md`
+
+```markdown
+---
+description: 用友好的方式向用户打招呼
+---
+
+请用中文向用户说一句有创意的问候语，并询问今天有什么可以帮助的。
+```
+
+### 实例 2：带参数的代码审查 Skill
+
+**文件位置**：`.claude/skills/review/SKILL.md`
+
+```markdown
+---
+description: 对指定文件进行代码审查并输出改进建议
+argument-hint: <file-path> [focus-area]
+arguments: [filepath, focus]
+when-to-use: 当用户要求审查某个具体文件时，优先使用此技能
+allowed-tools: [Read, Grep, GlobTool]
+user-invocable: true
+version: 1.2.0
+---
+
+# 代码审查技能
+
+请对以下文件进行全面的代码审查：**$ARG1**
+
+审查重点：$ARG2（如未指定，则进行全面审查）
+
+## 审查维度
+1. **可读性**：命名是否清晰？代码是否易于理解？
+2. **安全性**：是否存在潜在的安全漏洞？
+3. **性能**：是否有明显的性能问题？
+4. **测试覆盖**：是否有对应的测试？
+
+首先使用 Read 工具读取文件内容，然后逐项给出具体建议。
+```
+
+### 实例 3：分叉执行的独立任务 Skill
+
+**文件位置**：`.claude/skills/generate-tests/SKILL.md`
+
+```markdown
+---
+description: 为指定模块自动生成单元测试
+argument-hint: <module-path>
+context: fork
+model: claude-opus-4-7
+effort: high
+allowed-tools: [Read, Grep, GlobTool, FileWriteTool, BashTool]
+user-invocable: true
+---
+
+# 自动生成单元测试
+
+为以下模块生成完整的单元测试：`$ARGUMENTS`
+
+## 执行步骤
+
+1. 读取目标模块的源代码
+2. 分析所有导出的函数/类及其签名
+3. 使用 Grep 查找现有测试（如果有）了解测试风格
+4. 生成覆盖正常路径和边界情况的测试用例
+5. 将测试写入 `<module-path>.test.ts` 文件
+6. 运行 `bun test <test-file>` 验证测试通过
+
+完成后输出测试覆盖率摘要。
+```
+
+### 实例 4：条件 Skill（仅在前端文件触碰时激活）
+
+**文件位置**：`.claude/skills/react-review/SKILL.md`
+
+```markdown
+---
+description: React 组件最佳实践检查（仅在触碰 tsx/jsx 文件时激活）
+paths: "src/**/*.tsx src/**/*.jsx"
+allowed-tools: [Read, GlobTool]
+user-invocable: false
+when-to-use: 当修改了 React 组件文件时，主动进行代码审查
+---
+
+# React 组件审查
+
+你被激活是因为最近修改了 React 组件文件。
+
+请检查 $ARGUMENTS 中指定的组件：
+- Hook 使用是否符合规范（不在条件语句中使用）
+- 是否有不必要的重渲染风险
+- Props 类型定义是否完整
+- 是否需要 memo/useCallback 优化
+```
+
+### 实例 5：带内联 Hooks 的 Skill
+
+**文件位置**：`.claude/skills/safe-deploy/SKILL.md`
+
+```markdown
+---
+description: 带安全检查的代码部署技能
+argument-hint: <environment>
+arguments: [env]
+allowed-tools: [BashTool, Read]
+hooks:
+  PreToolUse:
+    - matcher: "Bash(git push*)"
+      hooks:
+        - type: command
+          command: echo "[Deploy Hook] 正在推送到 $ARG1 环境，确认中..."
+          timeout: 5
+  PostToolUse:
+    - matcher: "Bash(*)"
+      hooks:
+        - type: command
+          command: echo "[Deploy Hook] 命令执行完成"
+---
+
+# 安全部署技能
+
+部署到 **$ARG1** 环境。
+
+执行前，请先运行 `git status` 确认工作区干净，然后执行部署流程。
+```
+
+---
+
+## 五、Skill 加载机制详解
+
+### 启动时加载（memoized）
+
+`getSkillDirCommands()` 在首次被调用时（通常是 REPL 初始化时）执行完整加载，之后的调用直接返回缓存。
+
+**调用链**：
+```
+REPL.tsx 初始化
+    → useGetCommands() hook
+    → getSkillDirCommands() [src/skills/loadSkillsDir.ts:638]
+    → 五步收集流水线（见上方）
+    → 缓存结果
+```
+
+### 缓存清除时机
+
+以下操作会触发 Skill 缓存重置：
+- `/clear` 命令（会话清除）
+- `/compact` 命令（对话压缩）
+- 手动修改了 Skill 目录（通过文件监视）
+
+注意：条件 Skill 的**激活状态**不会因 `/clear` 重置——这是设计决策，避免触碰文件后技能反复出现/消失。
+
+### 优先级与覆盖
+
+同名 Skill（相同 `id`）的优先级（高 → 低）：
+1. `--add-dir` 额外目录（CLI 参数）
+2. 项目级 `./.claude/skills/`
+3. 用户级 `~/.claude/skills/`
+4. 管理员级（企业策略）
+5. 内置 Skills（编译进 CLI）
+
+---
+
+## 六、关键文件清单
+
+| 文件 | 角色 | 关键函数/常量 |
+|------|------|-------------|
+| `src/skills/loadSkillsDir.ts` | core | `getSkillDirCommands`（:638）、`parseSkillFrontmatterFields`（:185）、`discoverSkillDirsForPaths`（:861）、`activateConditionalSkillsForPaths`（:997） |
+| `src/skills/bundledSkills.ts` | core | `registerBundledSkill`、`getBundledSkills` |
+| `src/skills/mcpSkills.ts` | core | `getMcpSkills`（:30）、`buildMcpSkillCommand`（:88） |
+| `src/skills/bundled/index.ts` | entry | 18 个内置 Skill 的初始化入口（:28-73） |
+| `packages/builtin-tools/src/tools/SkillTool/SkillTool.ts` | core | `executeInlineSkill`、`executeForkedSkill` |
+| `packages/builtin-tools/src/tools/SkillTool/hooks.ts` | util | Skill 内联 Hooks 注册 |
+
+---
+
+## 七、学习建议
+
+**实操路线**（推荐按顺序）：
+
+1. **创建最简 Skill**：在项目根创建 `.claude/skills/hello/SKILL.md`，写入 `description: 打招呼` 和正文，重启会话测试 `/hello`
+
+2. **理解参数展开**：修改 SKILL.md 加入 `arguments: [name]`，正文写 `你好，$ARG1`，测试 `/hello Alice`
+
+3. **读 `parseSkillFrontmatterFields`**（`src/skills/loadSkillsDir.ts:185-265`）：理解所有字段如何被解析
+
+4. **对比内联 vs 分叉**：同一个任务分别用内联和 `context: fork` 执行，观察 token 计数的差异
+
+5. **实验条件激活**：给 Skill 加 `paths: "*.ts"`，修改一个 `.ts` 文件，观察 `/` 命令列表变化
+
+---
+
+## 八、与前序衔接
+
+| 已学模块 | 与 Skills 的关联 |
+|---------|----------------|
+| 工具系统 | SkillTool 是 60+ 内置工具之一，通过标准 Tool 接口执行 |
+| 上下文工程 | 内联 Skill 的提示词被注入到 system message 或 user message 中 |
+| 安全与权限 | `allowed-tools` 字段绕过弹框确认；`context: fork` 的子代理有独立权限计数 |
+| MCP 协议 | MCP server 可通过 `skill://` 资源动态提供 Skills |
+
+---
+
+## 九、验证清单
+
+完成本篇学习后，你应该能够：
+
+- [ ] 在项目中创建一个带参数的 Skill，调用成功
+- [ ] 解释 `context: fork` 和内联模式的 token 预算差异
+- [ ] 说出 `allowed-tools` 和权限系统的交互方式
+- [ ] 解释为什么条件 Skill 的激活状态不会被 `/clear` 重置
+- [ ] 在 `src/skills/loadSkillsDir.ts` 中找到 `getSkillDirCommands` 并追踪其缓存机制
+
+---
+
+## 十、后续路线
+
+下一篇推荐：**Hooks 系统**
+
+Skills 定义了"做什么"，Hooks 定义了"什么时候插入额外逻辑"。两者在 Skill 的 frontmatter（`hooks` 字段）中有直接交集——理解 Skills 之后，Hooks 的 `PreToolUse` / `PostToolUse` 语义会更加清晰。

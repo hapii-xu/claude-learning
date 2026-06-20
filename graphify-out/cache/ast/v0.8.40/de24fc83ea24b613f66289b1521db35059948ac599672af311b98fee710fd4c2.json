@@ -1,0 +1,127 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_spec_feature_20260508_f001_tool_search_spec_plan_2_md",
+      "label": "spec-plan-2.md",
+      "file_type": "document",
+      "source_file": "spec/feature_20260508_F001_tool-search/spec-plan-2.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "feature_20260508_f001_tool_search_spec_plan_2_tool_search_\u6267\u884c\u8ba1\u5212_\u4e8c_\u96c6\u6210\u5c42",
+      "label": "Tool Search \u6267\u884c\u8ba1\u5212\uff08\u4e8c\uff09\u2014 \u96c6\u6210\u5c42",
+      "file_type": "document",
+      "source_file": "spec/feature_20260508_F001_tool-search/spec-plan-2.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "feature_20260508_f001_tool_search_spec_plan_2_\u6539\u52a8\u603b\u89c8",
+      "label": "\u6539\u52a8\u603b\u89c8",
+      "file_type": "document",
+      "source_file": "spec/feature_20260508_F001_tool-search/spec-plan-2.md",
+      "source_location": "L11"
+    },
+    {
+      "id": "feature_20260508_f001_tool_search_spec_plan_2_task_0_\u73af\u5883\u51c6\u5907_\u8f7b\u91cf",
+      "label": "Task 0: \u73af\u5883\u51c6\u5907\uff08\u8f7b\u91cf\uff09",
+      "file_type": "document",
+      "source_file": "spec/feature_20260508_F001_tool-search/spec-plan-2.md",
+      "source_location": "L21"
+    },
+    {
+      "id": "feature_20260508_f001_tool_search_spec_plan_2_task_5_\u7cfb\u7edf\u63d0\u793a\u8bcd\u4e0e\u5de5\u5177\u6ce8\u518c",
+      "label": "Task 5: \u7cfb\u7edf\u63d0\u793a\u8bcd\u4e0e\u5de5\u5177\u6ce8\u518c",
+      "file_type": "document",
+      "source_file": "spec/feature_20260508_F001_tool-search/spec-plan-2.md",
+      "source_location": "L40"
+    },
+    {
+      "id": "feature_20260508_f001_tool_search_spec_plan_2_task_6_\u9884\u53d6\u7ba1\u9053",
+      "label": "Task 6: \u9884\u53d6\u7ba1\u9053",
+      "file_type": "document",
+      "source_file": "spec/feature_20260508_F001_tool-search/spec-plan-2.md",
+      "source_location": "L182"
+    },
+    {
+      "id": "feature_20260508_f001_tool_search_spec_plan_2_task_7_\u7528\u6237\u63a8\u8350_ui",
+      "label": "Task 7: \u7528\u6237\u63a8\u8350 UI",
+      "file_type": "document",
+      "source_file": "spec/feature_20260508_F001_tool-search/spec-plan-2.md",
+      "source_location": "L438"
+    },
+    {
+      "id": "feature_20260508_f001_tool_search_spec_plan_2_task_8_\u5168\u529f\u80fd\u9a8c\u6536",
+      "label": "Task 8: \u5168\u529f\u80fd\u9a8c\u6536",
+      "file_type": "document",
+      "source_file": "spec/feature_20260508_F001_tool-search/spec-plan-2.md",
+      "source_location": "L551"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_spec_feature_20260508_f001_tool_search_spec_plan_2_md",
+      "target": "feature_20260508_f001_tool_search_spec_plan_2_tool_search_\u6267\u884c\u8ba1\u5212_\u4e8c_\u96c6\u6210\u5c42",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260508_F001_tool-search/spec-plan-2.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260508_f001_tool_search_spec_plan_2_tool_search_\u6267\u884c\u8ba1\u5212_\u4e8c_\u96c6\u6210\u5c42",
+      "target": "feature_20260508_f001_tool_search_spec_plan_2_\u6539\u52a8\u603b\u89c8",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260508_F001_tool-search/spec-plan-2.md",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260508_f001_tool_search_spec_plan_2_\u6539\u52a8\u603b\u89c8",
+      "target": "feature_20260508_f001_tool_search_spec_plan_2_task_0_\u73af\u5883\u51c6\u5907_\u8f7b\u91cf",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260508_F001_tool-search/spec-plan-2.md",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260508_f001_tool_search_spec_plan_2_\u6539\u52a8\u603b\u89c8",
+      "target": "feature_20260508_f001_tool_search_spec_plan_2_task_5_\u7cfb\u7edf\u63d0\u793a\u8bcd\u4e0e\u5de5\u5177\u6ce8\u518c",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260508_F001_tool-search/spec-plan-2.md",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260508_f001_tool_search_spec_plan_2_\u6539\u52a8\u603b\u89c8",
+      "target": "feature_20260508_f001_tool_search_spec_plan_2_task_6_\u9884\u53d6\u7ba1\u9053",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260508_F001_tool-search/spec-plan-2.md",
+      "source_location": "L182",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260508_f001_tool_search_spec_plan_2_\u6539\u52a8\u603b\u89c8",
+      "target": "feature_20260508_f001_tool_search_spec_plan_2_task_7_\u7528\u6237\u63a8\u8350_ui",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260508_F001_tool-search/spec-plan-2.md",
+      "source_location": "L438",
+      "weight": 1.0
+    },
+    {
+      "source": "feature_20260508_f001_tool_search_spec_plan_2_\u6539\u52a8\u603b\u89c8",
+      "target": "feature_20260508_f001_tool_search_spec_plan_2_task_8_\u5168\u529f\u80fd\u9a8c\u6536",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "spec/feature_20260508_F001_tool-search/spec-plan-2.md",
+      "source_location": "L551",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

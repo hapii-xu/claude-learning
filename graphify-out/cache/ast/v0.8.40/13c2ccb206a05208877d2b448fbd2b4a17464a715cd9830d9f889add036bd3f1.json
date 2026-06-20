@@ -1,0 +1,287 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_computer_use_windows_enhancement_md",
+      "label": "computer-use-windows-enhancement.md",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_computer_use_windows_\u589e\u5f3a\u5b9e\u65bd\u8ba1\u5212",
+      "label": "Computer Use Windows \u589e\u5f3a\u5b9e\u65bd\u8ba1\u5212",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_1_\u76ee\u6807",
+      "label": "1. \u76ee\u6807",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L6"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_2_\u5df2\u9a8c\u8bc1\u7684_windows_api_\u80fd\u529b",
+      "label": "2. \u5df2\u9a8c\u8bc1\u7684 Windows API \u80fd\u529b",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L14"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_3_\u67b6\u6784\u8bbe\u8ba1",
+      "label": "3. \u67b6\u6784\u8bbe\u8ba1",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L31"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_3_1_\u6587\u4ef6\u7ed3\u6784",
+      "label": "3.1 \u6587\u4ef6\u7ed3\u6784",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L33"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_3_2_\u5206\u5c42",
+      "label": "3.2 \u5206\u5c42",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L61"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_4_\u5b9e\u65bd\u8ba1\u5212",
+      "label": "4. \u5b9e\u65bd\u8ba1\u5212",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L82"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_phase_a_\u7a97\u53e3\u7ed1\u5b9a\u622a\u56fe_\u89e3\u51b3\u6838\u5fc3\u95ee\u9898",
+      "label": "Phase A\uff1a\u7a97\u53e3\u7ed1\u5b9a\u622a\u56fe\uff08\u89e3\u51b3\u6838\u5fc3\u95ee\u9898\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L84"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_phase_b_ui_automation_windows_\u4e13\u5c5e\u65b0\u80fd\u529b",
+      "label": "Phase B\uff1aUI Automation\uff08Windows \u4e13\u5c5e\u65b0\u80fd\u529b\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L122"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_phase_c_ocr_\u5c4f\u5e55\u6587\u5b57\u8bc6\u522b",
+      "label": "Phase C\uff1aOCR \u5c4f\u5e55\u6587\u5b57\u8bc6\u522b",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L188"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_phase_d_\u9ad8\u9891\u64cd\u4f5c\u6027\u80fd\u4f18\u5316",
+      "label": "Phase D\uff1a\u9ad8\u9891\u64cd\u4f5c\u6027\u80fd\u4f18\u5316",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L219"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_phase_e_request_access_windows_\u9002\u914d",
+      "label": "Phase E\uff1a`request_access` Windows \u9002\u914d",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L241"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_phase_f_\u5168\u5c40\u70ed\u952e_esc_\u62e6\u622a",
+      "label": "Phase F\uff1a\u5168\u5c40\u70ed\u952e\uff08ESC \u62e6\u622a\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L261"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_5_\u6267\u884c\u4f18\u5148\u7ea7",
+      "label": "5. \u6267\u884c\u4f18\u5148\u7ea7",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L272"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_6_\u6bcf\u4e2a_phase_\u7684\u6539\u52a8\u91cf\u4f30\u7b97",
+      "label": "6. \u6bcf\u4e2a Phase \u7684\u6539\u52a8\u91cf\u4f30\u7b97",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L283"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_7_\u4e0d\u52a8\u7684\u6587\u4ef6",
+      "label": "7. \u4e0d\u52a8\u7684\u6587\u4ef6",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L295"
+    },
+    {
+      "id": "features_computer_use_windows_enhancement_8_\u4e0e_macos_linux_\u65b9\u6848\u7684\u5bf9\u6bd4",
+      "label": "8. \u4e0e macOS/Linux \u65b9\u6848\u7684\u5bf9\u6bd4",
+      "file_type": "document",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L302"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_computer_use_windows_enhancement_md",
+      "target": "features_computer_use_windows_enhancement_computer_use_windows_\u589e\u5f3a\u5b9e\u65bd\u8ba1\u5212",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_computer_use_windows_\u589e\u5f3a\u5b9e\u65bd\u8ba1\u5212",
+      "target": "features_computer_use_windows_enhancement_1_\u76ee\u6807",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_computer_use_windows_\u589e\u5f3a\u5b9e\u65bd\u8ba1\u5212",
+      "target": "features_computer_use_windows_enhancement_2_\u5df2\u9a8c\u8bc1\u7684_windows_api_\u80fd\u529b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_computer_use_windows_\u589e\u5f3a\u5b9e\u65bd\u8ba1\u5212",
+      "target": "features_computer_use_windows_enhancement_3_\u67b6\u6784\u8bbe\u8ba1",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L31",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_3_\u67b6\u6784\u8bbe\u8ba1",
+      "target": "features_computer_use_windows_enhancement_3_1_\u6587\u4ef6\u7ed3\u6784",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L33",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_3_\u67b6\u6784\u8bbe\u8ba1",
+      "target": "features_computer_use_windows_enhancement_3_2_\u5206\u5c42",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L61",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_computer_use_windows_\u589e\u5f3a\u5b9e\u65bd\u8ba1\u5212",
+      "target": "features_computer_use_windows_enhancement_4_\u5b9e\u65bd\u8ba1\u5212",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L82",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_4_\u5b9e\u65bd\u8ba1\u5212",
+      "target": "features_computer_use_windows_enhancement_phase_a_\u7a97\u53e3\u7ed1\u5b9a\u622a\u56fe_\u89e3\u51b3\u6838\u5fc3\u95ee\u9898",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L84",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_4_\u5b9e\u65bd\u8ba1\u5212",
+      "target": "features_computer_use_windows_enhancement_phase_b_ui_automation_windows_\u4e13\u5c5e\u65b0\u80fd\u529b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L122",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_4_\u5b9e\u65bd\u8ba1\u5212",
+      "target": "features_computer_use_windows_enhancement_phase_c_ocr_\u5c4f\u5e55\u6587\u5b57\u8bc6\u522b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L188",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_4_\u5b9e\u65bd\u8ba1\u5212",
+      "target": "features_computer_use_windows_enhancement_phase_d_\u9ad8\u9891\u64cd\u4f5c\u6027\u80fd\u4f18\u5316",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L219",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_4_\u5b9e\u65bd\u8ba1\u5212",
+      "target": "features_computer_use_windows_enhancement_phase_e_request_access_windows_\u9002\u914d",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L241",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_4_\u5b9e\u65bd\u8ba1\u5212",
+      "target": "features_computer_use_windows_enhancement_phase_f_\u5168\u5c40\u70ed\u952e_esc_\u62e6\u622a",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L261",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_computer_use_windows_\u589e\u5f3a\u5b9e\u65bd\u8ba1\u5212",
+      "target": "features_computer_use_windows_enhancement_5_\u6267\u884c\u4f18\u5148\u7ea7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L272",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_computer_use_windows_\u589e\u5f3a\u5b9e\u65bd\u8ba1\u5212",
+      "target": "features_computer_use_windows_enhancement_6_\u6bcf\u4e2a_phase_\u7684\u6539\u52a8\u91cf\u4f30\u7b97",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L283",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_computer_use_windows_\u589e\u5f3a\u5b9e\u65bd\u8ba1\u5212",
+      "target": "features_computer_use_windows_enhancement_7_\u4e0d\u52a8\u7684\u6587\u4ef6",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L295",
+      "weight": 1.0
+    },
+    {
+      "source": "features_computer_use_windows_enhancement_computer_use_windows_\u589e\u5f3a\u5b9e\u65bd\u8ba1\u5212",
+      "target": "features_computer_use_windows_enhancement_8_\u4e0e_macos_linux_\u65b9\u6848\u7684\u5bf9\u6bd4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/computer-use-windows-enhancement.md",
+      "source_location": "L302",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

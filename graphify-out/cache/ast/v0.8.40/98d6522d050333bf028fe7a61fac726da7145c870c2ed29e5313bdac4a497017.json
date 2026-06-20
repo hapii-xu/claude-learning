@@ -1,0 +1,223 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_superpowers_specs_2026_06_15_ripgrep_system_fallback_design_md",
+      "label": "2026-06-15-ripgrep-system-fallback-design.md",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "specs_2026_06_15_ripgrep_system_fallback_design_ripgrep_system_fallback_design",
+      "label": "Ripgrep System Fallback \u2014 Design",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "specs_2026_06_15_ripgrep_system_fallback_design_problem",
+      "label": "Problem",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L7"
+    },
+    {
+      "id": "specs_2026_06_15_ripgrep_system_fallback_design_goals",
+      "label": "Goals",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L25"
+    },
+    {
+      "id": "specs_2026_06_15_ripgrep_system_fallback_design_non_goals",
+      "label": "Non-Goals",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L31"
+    },
+    {
+      "id": "specs_2026_06_15_ripgrep_system_fallback_design_design",
+      "label": "Design",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L38"
+    },
+    {
+      "id": "specs_2026_06_15_ripgrep_system_fallback_design_decision_chain_getripgrepconfig",
+      "label": "Decision chain (`getRipgrepConfig`)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L40"
+    },
+    {
+      "id": "specs_2026_06_15_ripgrep_system_fallback_design_status_api_getripgrepstatus",
+      "label": "Status API (`getRipgrepStatus`)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L58"
+    },
+    {
+      "id": "specs_2026_06_15_ripgrep_system_fallback_design_ui_doctor",
+      "label": "UI \u2014 `/doctor`",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L73"
+    },
+    {
+      "id": "specs_2026_06_15_ripgrep_system_fallback_design_ui_startup_warning",
+      "label": "UI \u2014 startup warning",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L84"
+    },
+    {
+      "id": "specs_2026_06_15_ripgrep_system_fallback_design_testing",
+      "label": "Testing",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L98"
+    },
+    {
+      "id": "specs_2026_06_15_ripgrep_system_fallback_design_risks",
+      "label": "Risks",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L112"
+    },
+    {
+      "id": "specs_2026_06_15_ripgrep_system_fallback_design_out_of_scope_yagni",
+      "label": "Out of Scope (YAGNI)",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L119"
+    },
+    {
+      "id": "specs_2026_06_15_ripgrep_system_fallback_design_acceptance_criteria",
+      "label": "Acceptance Criteria",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L126"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_superpowers_specs_2026_06_15_ripgrep_system_fallback_design_md",
+      "target": "specs_2026_06_15_ripgrep_system_fallback_design_ripgrep_system_fallback_design",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "specs_2026_06_15_ripgrep_system_fallback_design_ripgrep_system_fallback_design",
+      "target": "specs_2026_06_15_ripgrep_system_fallback_design_problem",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "specs_2026_06_15_ripgrep_system_fallback_design_ripgrep_system_fallback_design",
+      "target": "specs_2026_06_15_ripgrep_system_fallback_design_goals",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "specs_2026_06_15_ripgrep_system_fallback_design_ripgrep_system_fallback_design",
+      "target": "specs_2026_06_15_ripgrep_system_fallback_design_non_goals",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L31",
+      "weight": 1.0
+    },
+    {
+      "source": "specs_2026_06_15_ripgrep_system_fallback_design_ripgrep_system_fallback_design",
+      "target": "specs_2026_06_15_ripgrep_system_fallback_design_design",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L38",
+      "weight": 1.0
+    },
+    {
+      "source": "specs_2026_06_15_ripgrep_system_fallback_design_design",
+      "target": "specs_2026_06_15_ripgrep_system_fallback_design_decision_chain_getripgrepconfig",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "specs_2026_06_15_ripgrep_system_fallback_design_design",
+      "target": "specs_2026_06_15_ripgrep_system_fallback_design_status_api_getripgrepstatus",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L58",
+      "weight": 1.0
+    },
+    {
+      "source": "specs_2026_06_15_ripgrep_system_fallback_design_design",
+      "target": "specs_2026_06_15_ripgrep_system_fallback_design_ui_doctor",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L73",
+      "weight": 1.0
+    },
+    {
+      "source": "specs_2026_06_15_ripgrep_system_fallback_design_design",
+      "target": "specs_2026_06_15_ripgrep_system_fallback_design_ui_startup_warning",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L84",
+      "weight": 1.0
+    },
+    {
+      "source": "specs_2026_06_15_ripgrep_system_fallback_design_design",
+      "target": "specs_2026_06_15_ripgrep_system_fallback_design_testing",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L98",
+      "weight": 1.0
+    },
+    {
+      "source": "specs_2026_06_15_ripgrep_system_fallback_design_ripgrep_system_fallback_design",
+      "target": "specs_2026_06_15_ripgrep_system_fallback_design_risks",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L112",
+      "weight": 1.0
+    },
+    {
+      "source": "specs_2026_06_15_ripgrep_system_fallback_design_ripgrep_system_fallback_design",
+      "target": "specs_2026_06_15_ripgrep_system_fallback_design_out_of_scope_yagni",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L119",
+      "weight": 1.0
+    },
+    {
+      "source": "specs_2026_06_15_ripgrep_system_fallback_design_ripgrep_system_fallback_design",
+      "target": "specs_2026_06_15_ripgrep_system_fallback_design_acceptance_criteria",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/superpowers/specs/2026-06-15-ripgrep-system-fallback-design.md",
+      "source_location": "L126",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

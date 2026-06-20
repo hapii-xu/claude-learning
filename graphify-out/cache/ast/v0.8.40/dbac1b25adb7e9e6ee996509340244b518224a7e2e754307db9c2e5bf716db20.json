@@ -1,0 +1,4773 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L1"
+    },
+    {
+      "id": "claude_code_package_name",
+      "label": "name",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L2"
+    },
+    {
+      "id": "claude_code_package_version",
+      "label": "version",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L3"
+    },
+    {
+      "id": "claude_code_package_description",
+      "label": "description",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L4"
+    },
+    {
+      "id": "claude_code_package_type",
+      "label": "type",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L5"
+    },
+    {
+      "id": "claude_code_package_author",
+      "label": "author",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L6"
+    },
+    {
+      "id": "claude_code_package_repository",
+      "label": "repository",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L7"
+    },
+    {
+      "id": "claude_code_package_repository_type",
+      "label": "type",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L8"
+    },
+    {
+      "id": "claude_code_package_repository_url",
+      "label": "url",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L9"
+    },
+    {
+      "id": "claude_code_package_homepage",
+      "label": "homepage",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L11"
+    },
+    {
+      "id": "claude_code_package_bugs",
+      "label": "bugs",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L12"
+    },
+    {
+      "id": "claude_code_package_bugs_url",
+      "label": "url",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "claude_code_package_keywords",
+      "label": "keywords",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L15"
+    },
+    {
+      "id": "claude_code_package_engines",
+      "label": "engines",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L24"
+    },
+    {
+      "id": "claude_code_package_engines_bun",
+      "label": "bun",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L25"
+    },
+    {
+      "id": "claude_code_package_bin",
+      "label": "bin",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L27"
+    },
+    {
+      "id": "claude_code_package_bin_ccb",
+      "label": "ccb",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L28"
+    },
+    {
+      "id": "claude_code_package_bin_ccb_bun",
+      "label": "ccb-bun",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L29"
+    },
+    {
+      "id": "claude_code_package_bin_claude_code_best",
+      "label": "claude-code-best",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L30"
+    },
+    {
+      "id": "claude_code_package_workspaces",
+      "label": "workspaces",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L32"
+    },
+    {
+      "id": "claude_code_package_files",
+      "label": "files",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L37"
+    },
+    {
+      "id": "claude_code_package_scripts",
+      "label": "scripts",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L43"
+    },
+    {
+      "id": "claude_code_package_scripts_build",
+      "label": "build",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L44"
+    },
+    {
+      "id": "claude_code_package_scripts_build_vite",
+      "label": "build:vite",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L45"
+    },
+    {
+      "id": "claude_code_package_scripts_build_vite_only",
+      "label": "build:vite:only",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L46"
+    },
+    {
+      "id": "claude_code_package_scripts_build_bun",
+      "label": "build:bun",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L47"
+    },
+    {
+      "id": "claude_code_package_scripts_dev",
+      "label": "dev",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L48"
+    },
+    {
+      "id": "claude_code_package_scripts_dev_inspect",
+      "label": "dev:inspect",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L49"
+    },
+    {
+      "id": "claude_code_package_scripts_prepublishonly",
+      "label": "prepublishOnly",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L50"
+    },
+    {
+      "id": "claude_code_package_scripts_lint",
+      "label": "lint",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L51"
+    },
+    {
+      "id": "claude_code_package_scripts_lint_fix",
+      "label": "lint:fix",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L52"
+    },
+    {
+      "id": "claude_code_package_scripts_format",
+      "label": "format",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L53"
+    },
+    {
+      "id": "claude_code_package_scripts_check",
+      "label": "check",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L54"
+    },
+    {
+      "id": "claude_code_package_scripts_check_fix",
+      "label": "check:fix",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L55"
+    },
+    {
+      "id": "claude_code_package_scripts_prepare",
+      "label": "prepare",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L56"
+    },
+    {
+      "id": "claude_code_package_scripts_test",
+      "label": "test",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L57"
+    },
+    {
+      "id": "claude_code_package_scripts_test_production",
+      "label": "test:production",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L58"
+    },
+    {
+      "id": "claude_code_package_scripts_test_production_offline",
+      "label": "test:production:offline",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L59"
+    },
+    {
+      "id": "claude_code_package_scripts_test_production_verbose",
+      "label": "test:production:verbose",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L60"
+    },
+    {
+      "id": "claude_code_package_scripts_test_production_bun",
+      "label": "test:production:bun",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L61"
+    },
+    {
+      "id": "claude_code_package_scripts_check_bundle",
+      "label": "check:bundle",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L62"
+    },
+    {
+      "id": "claude_code_package_scripts_check_unused",
+      "label": "check:unused",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L63"
+    },
+    {
+      "id": "claude_code_package_scripts_health",
+      "label": "health",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L64"
+    },
+    {
+      "id": "claude_code_package_scripts_postinstall",
+      "label": "postinstall",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L65"
+    },
+    {
+      "id": "claude_code_package_scripts_docs_dev",
+      "label": "docs:dev",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L66"
+    },
+    {
+      "id": "claude_code_package_scripts_typecheck",
+      "label": "typecheck",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L67"
+    },
+    {
+      "id": "claude_code_package_scripts_precheck",
+      "label": "precheck",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L68"
+    },
+    {
+      "id": "claude_code_package_scripts_rcs",
+      "label": "rcs",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L69"
+    },
+    {
+      "id": "claude_code_package_dependencies",
+      "label": "dependencies",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L71"
+    },
+    {
+      "id": "claude_code_package_dependencies_agentclientprotocol_sdk",
+      "label": "@agentclientprotocol/sdk",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L72"
+    },
+    {
+      "id": "claude_code_package_dependencies_claude_code_best_mcp_chrome_bridge",
+      "label": "@claude-code-best/mcp-chrome-bridge",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L73"
+    },
+    {
+      "id": "claude_code_package_dependencies_highlight_js",
+      "label": "highlight.js",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L74"
+    },
+    {
+      "id": "claude_code_package_dependencies_ws",
+      "label": "ws",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L75"
+    },
+    {
+      "id": "claude_code_package_devdependencies",
+      "label": "devDependencies",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L77"
+    },
+    {
+      "id": "claude_code_package_devdependencies_alcalzone_ansi_tokenize",
+      "label": "@alcalzone/ansi-tokenize",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L78"
+    },
+    {
+      "id": "claude_code_package_devdependencies_ant_claude_for_chrome_mcp",
+      "label": "@ant/claude-for-chrome-mcp",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L79"
+    },
+    {
+      "id": "claude_code_package_devdependencies_ant_computer_use_input",
+      "label": "@ant/computer-use-input",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L80"
+    },
+    {
+      "id": "claude_code_package_devdependencies_ant_computer_use_mcp",
+      "label": "@ant/computer-use-mcp",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L81"
+    },
+    {
+      "id": "claude_code_package_devdependencies_ant_computer_use_swift",
+      "label": "@ant/computer-use-swift",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L82"
+    },
+    {
+      "id": "claude_code_package_devdependencies_ant_model_provider",
+      "label": "@ant/model-provider",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L83"
+    },
+    {
+      "id": "claude_code_package_devdependencies_anthropic_ai_bedrock_sdk",
+      "label": "@anthropic-ai/bedrock-sdk",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L84"
+    },
+    {
+      "id": "claude_code_package_devdependencies_anthropic_ai_claude_agent_sdk",
+      "label": "@anthropic-ai/claude-agent-sdk",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L85"
+    },
+    {
+      "id": "claude_code_package_devdependencies_anthropic_ai_foundry_sdk",
+      "label": "@anthropic-ai/foundry-sdk",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L86"
+    },
+    {
+      "id": "claude_code_package_devdependencies_anthropic_ai_mcpb",
+      "label": "@anthropic-ai/mcpb",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L87"
+    },
+    {
+      "id": "claude_code_package_devdependencies_anthropic_ai_sandbox_runtime",
+      "label": "@anthropic-ai/sandbox-runtime",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L88"
+    },
+    {
+      "id": "claude_code_package_devdependencies_anthropic_ai_sdk",
+      "label": "@anthropic-ai/sdk",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L89"
+    },
+    {
+      "id": "claude_code_package_devdependencies_anthropic_ai_vertex_sdk",
+      "label": "@anthropic-ai/vertex-sdk",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L90"
+    },
+    {
+      "id": "claude_code_package_devdependencies_anthropic_ink",
+      "label": "@anthropic/ink",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L91"
+    },
+    {
+      "id": "claude_code_package_devdependencies_aws_sdk_client_bedrock",
+      "label": "@aws-sdk/client-bedrock",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L92"
+    },
+    {
+      "id": "claude_code_package_devdependencies_aws_sdk_client_bedrock_runtime",
+      "label": "@aws-sdk/client-bedrock-runtime",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L93"
+    },
+    {
+      "id": "claude_code_package_devdependencies_aws_sdk_client_sts",
+      "label": "@aws-sdk/client-sts",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L94"
+    },
+    {
+      "id": "claude_code_package_devdependencies_aws_sdk_credential_provider_node",
+      "label": "@aws-sdk/credential-provider-node",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L95"
+    },
+    {
+      "id": "claude_code_package_devdependencies_aws_sdk_credential_providers",
+      "label": "@aws-sdk/credential-providers",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L96"
+    },
+    {
+      "id": "claude_code_package_devdependencies_azure_identity",
+      "label": "@azure/identity",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L97"
+    },
+    {
+      "id": "claude_code_package_devdependencies_biomejs_biome",
+      "label": "@biomejs/biome",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L98"
+    },
+    {
+      "id": "claude_code_package_devdependencies_claude_code_best_agent_tools",
+      "label": "@claude-code-best/agent-tools",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L99"
+    },
+    {
+      "id": "claude_code_package_devdependencies_claude_code_best_builtin_tools",
+      "label": "@claude-code-best/builtin-tools",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L100"
+    },
+    {
+      "id": "claude_code_package_devdependencies_claude_code_best_mcp_client",
+      "label": "@claude-code-best/mcp-client",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L101"
+    },
+    {
+      "id": "claude_code_package_devdependencies_claude_code_best_weixin",
+      "label": "@claude-code-best/weixin",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L102"
+    },
+    {
+      "id": "claude_code_package_devdependencies_commander_js_extra_typings",
+      "label": "@commander-js/extra-typings",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L103"
+    },
+    {
+      "id": "claude_code_package_devdependencies_growthbook_growthbook",
+      "label": "@growthbook/growthbook",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L104"
+    },
+    {
+      "id": "claude_code_package_devdependencies_langfuse_otel",
+      "label": "@langfuse/otel",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L105"
+    },
+    {
+      "id": "claude_code_package_devdependencies_langfuse_tracing",
+      "label": "@langfuse/tracing",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L106"
+    },
+    {
+      "id": "claude_code_package_devdependencies_modelcontextprotocol_sdk",
+      "label": "@modelcontextprotocol/sdk",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L107"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_api",
+      "label": "@opentelemetry/api",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L108"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_api_logs",
+      "label": "@opentelemetry/api-logs",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L109"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_core",
+      "label": "@opentelemetry/core",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L110"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_exporter_logs_otlp_grpc",
+      "label": "@opentelemetry/exporter-logs-otlp-grpc",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L111"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_exporter_logs_otlp_http",
+      "label": "@opentelemetry/exporter-logs-otlp-http",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L112"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_exporter_logs_otlp_proto",
+      "label": "@opentelemetry/exporter-logs-otlp-proto",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L113"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_exporter_metrics_otlp_grpc",
+      "label": "@opentelemetry/exporter-metrics-otlp-grpc",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L114"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_exporter_metrics_otlp_http",
+      "label": "@opentelemetry/exporter-metrics-otlp-http",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L115"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_exporter_metrics_otlp_proto",
+      "label": "@opentelemetry/exporter-metrics-otlp-proto",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L116"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_exporter_prometheus",
+      "label": "@opentelemetry/exporter-prometheus",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L117"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_exporter_trace_otlp_grpc",
+      "label": "@opentelemetry/exporter-trace-otlp-grpc",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L118"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_exporter_trace_otlp_http",
+      "label": "@opentelemetry/exporter-trace-otlp-http",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L119"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_exporter_trace_otlp_proto",
+      "label": "@opentelemetry/exporter-trace-otlp-proto",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L120"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_resources",
+      "label": "@opentelemetry/resources",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L121"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_sdk_logs",
+      "label": "@opentelemetry/sdk-logs",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L122"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_sdk_metrics",
+      "label": "@opentelemetry/sdk-metrics",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L123"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_sdk_trace_base",
+      "label": "@opentelemetry/sdk-trace-base",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L124"
+    },
+    {
+      "id": "claude_code_package_devdependencies_opentelemetry_semantic_conventions",
+      "label": "@opentelemetry/semantic-conventions",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L125"
+    },
+    {
+      "id": "claude_code_package_devdependencies_sentry_node",
+      "label": "@sentry/node",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L126"
+    },
+    {
+      "id": "claude_code_package_devdependencies_smithy_core",
+      "label": "@smithy/core",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L127"
+    },
+    {
+      "id": "claude_code_package_devdependencies_smithy_node_http_handler",
+      "label": "@smithy/node-http-handler",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L128"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_bun",
+      "label": "@types/bun",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L129"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_cacache",
+      "label": "@types/cacache",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L130"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_he",
+      "label": "@types/he",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L131"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_lodash_es",
+      "label": "@types/lodash-es",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L132"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_node",
+      "label": "@types/node",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L133"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_picomatch",
+      "label": "@types/picomatch",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L134"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_plist",
+      "label": "@types/plist",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L135"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_proper_lockfile",
+      "label": "@types/proper-lockfile",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L136"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_qrcode",
+      "label": "@types/qrcode",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L137"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_react",
+      "label": "@types/react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L138"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_react_reconciler",
+      "label": "@types/react-reconciler",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L139"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_semver",
+      "label": "@types/semver",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L140"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_sharp",
+      "label": "@types/sharp",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L141"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_shell_quote",
+      "label": "@types/shell-quote",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L142"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_stack_utils",
+      "label": "@types/stack-utils",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L143"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_turndown",
+      "label": "@types/turndown",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L144"
+    },
+    {
+      "id": "claude_code_package_devdependencies_types_ws",
+      "label": "@types/ws",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L145"
+    },
+    {
+      "id": "claude_code_package_devdependencies_ajv",
+      "label": "ajv",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L146"
+    },
+    {
+      "id": "claude_code_package_devdependencies_asciichart",
+      "label": "asciichart",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L147"
+    },
+    {
+      "id": "claude_code_package_devdependencies_audio_capture_napi",
+      "label": "audio-capture-napi",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L148"
+    },
+    {
+      "id": "claude_code_package_devdependencies_auto_bind",
+      "label": "auto-bind",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L149"
+    },
+    {
+      "id": "claude_code_package_devdependencies_axios",
+      "label": "axios",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L150"
+    },
+    {
+      "id": "claude_code_package_devdependencies_bidi_js",
+      "label": "bidi-js",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L151"
+    },
+    {
+      "id": "claude_code_package_devdependencies_cacache",
+      "label": "cacache",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L152"
+    },
+    {
+      "id": "claude_code_package_devdependencies_chalk",
+      "label": "chalk",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L153"
+    },
+    {
+      "id": "claude_code_package_devdependencies_chokidar",
+      "label": "chokidar",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L154"
+    },
+    {
+      "id": "claude_code_package_devdependencies_cli_boxes",
+      "label": "cli-boxes",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L155"
+    },
+    {
+      "id": "claude_code_package_devdependencies_cli_highlight",
+      "label": "cli-highlight",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L156"
+    },
+    {
+      "id": "claude_code_package_devdependencies_code_excerpt",
+      "label": "code-excerpt",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L157"
+    },
+    {
+      "id": "claude_code_package_devdependencies_color_diff_napi",
+      "label": "color-diff-napi",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L158"
+    },
+    {
+      "id": "claude_code_package_devdependencies_diff",
+      "label": "diff",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L159"
+    },
+    {
+      "id": "claude_code_package_devdependencies_emoji_regex",
+      "label": "emoji-regex",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L160"
+    },
+    {
+      "id": "claude_code_package_devdependencies_env_paths",
+      "label": "env-paths",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L161"
+    },
+    {
+      "id": "claude_code_package_devdependencies_execa",
+      "label": "execa",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L162"
+    },
+    {
+      "id": "claude_code_package_devdependencies_fflate",
+      "label": "fflate",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L163"
+    },
+    {
+      "id": "claude_code_package_devdependencies_figures",
+      "label": "figures",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L164"
+    },
+    {
+      "id": "claude_code_package_devdependencies_fuse_js",
+      "label": "fuse.js",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L165"
+    },
+    {
+      "id": "claude_code_package_devdependencies_get_east_asian_width",
+      "label": "get-east-asian-width",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L166"
+    },
+    {
+      "id": "claude_code_package_devdependencies_google_auth_library",
+      "label": "google-auth-library",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L167"
+    },
+    {
+      "id": "claude_code_package_devdependencies_he",
+      "label": "he",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L168"
+    },
+    {
+      "id": "claude_code_package_devdependencies_https_proxy_agent",
+      "label": "https-proxy-agent",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L169"
+    },
+    {
+      "id": "claude_code_package_devdependencies_husky",
+      "label": "husky",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L170"
+    },
+    {
+      "id": "claude_code_package_devdependencies_ignore",
+      "label": "ignore",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L171"
+    },
+    {
+      "id": "claude_code_package_devdependencies_image_processor_napi",
+      "label": "image-processor-napi",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L172"
+    },
+    {
+      "id": "claude_code_package_devdependencies_indent_string",
+      "label": "indent-string",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L173"
+    },
+    {
+      "id": "claude_code_package_devdependencies_jsonc_parser",
+      "label": "jsonc-parser",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L174"
+    },
+    {
+      "id": "claude_code_package_devdependencies_knip",
+      "label": "knip",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L175"
+    },
+    {
+      "id": "claude_code_package_devdependencies_lint_staged",
+      "label": "lint-staged",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L176"
+    },
+    {
+      "id": "claude_code_package_devdependencies_lodash_es",
+      "label": "lodash-es",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L177"
+    },
+    {
+      "id": "claude_code_package_devdependencies_lru_cache",
+      "label": "lru-cache",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L178"
+    },
+    {
+      "id": "claude_code_package_devdependencies_marked",
+      "label": "marked",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L179"
+    },
+    {
+      "id": "claude_code_package_devdependencies_modifiers_napi",
+      "label": "modifiers-napi",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L180"
+    },
+    {
+      "id": "claude_code_package_devdependencies_openai",
+      "label": "openai",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L181"
+    },
+    {
+      "id": "claude_code_package_devdependencies_p_map",
+      "label": "p-map",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L182"
+    },
+    {
+      "id": "claude_code_package_devdependencies_picomatch",
+      "label": "picomatch",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L183"
+    },
+    {
+      "id": "claude_code_package_devdependencies_plist",
+      "label": "plist",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L184"
+    },
+    {
+      "id": "claude_code_package_devdependencies_proper_lockfile",
+      "label": "proper-lockfile",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L185"
+    },
+    {
+      "id": "claude_code_package_devdependencies_qrcode",
+      "label": "qrcode",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L186"
+    },
+    {
+      "id": "claude_code_package_devdependencies_react",
+      "label": "react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L187"
+    },
+    {
+      "id": "claude_code_package_devdependencies_react_compiler_runtime",
+      "label": "react-compiler-runtime",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L188"
+    },
+    {
+      "id": "claude_code_package_devdependencies_react_reconciler",
+      "label": "react-reconciler",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L189"
+    },
+    {
+      "id": "claude_code_package_devdependencies_rollup",
+      "label": "rollup",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L190"
+    },
+    {
+      "id": "claude_code_package_devdependencies_semver",
+      "label": "semver",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L191"
+    },
+    {
+      "id": "claude_code_package_devdependencies_sharp",
+      "label": "sharp",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L192"
+    },
+    {
+      "id": "claude_code_package_devdependencies_shell_quote",
+      "label": "shell-quote",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L193"
+    },
+    {
+      "id": "claude_code_package_devdependencies_signal_exit",
+      "label": "signal-exit",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L194"
+    },
+    {
+      "id": "claude_code_package_devdependencies_stack_utils",
+      "label": "stack-utils",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L195"
+    },
+    {
+      "id": "claude_code_package_devdependencies_strip_ansi",
+      "label": "strip-ansi",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L196"
+    },
+    {
+      "id": "claude_code_package_devdependencies_supports_hyperlinks",
+      "label": "supports-hyperlinks",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L197"
+    },
+    {
+      "id": "claude_code_package_devdependencies_tree_kill",
+      "label": "tree-kill",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L198"
+    },
+    {
+      "id": "claude_code_package_devdependencies_turndown",
+      "label": "turndown",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L199"
+    },
+    {
+      "id": "claude_code_package_devdependencies_type_fest",
+      "label": "type-fest",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L200"
+    },
+    {
+      "id": "claude_code_package_devdependencies_typescript",
+      "label": "typescript",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L201"
+    },
+    {
+      "id": "claude_code_package_devdependencies_undici",
+      "label": "undici",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L202"
+    },
+    {
+      "id": "claude_code_package_devdependencies_url_handler_napi",
+      "label": "url-handler-napi",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L203"
+    },
+    {
+      "id": "claude_code_package_devdependencies_usehooks_ts",
+      "label": "usehooks-ts",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L204"
+    },
+    {
+      "id": "claude_code_package_devdependencies_vite",
+      "label": "vite",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L205"
+    },
+    {
+      "id": "claude_code_package_devdependencies_vscode_jsonrpc",
+      "label": "vscode-jsonrpc",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L206"
+    },
+    {
+      "id": "claude_code_package_devdependencies_vscode_languageserver_protocol",
+      "label": "vscode-languageserver-protocol",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L207"
+    },
+    {
+      "id": "claude_code_package_devdependencies_vscode_languageserver_types",
+      "label": "vscode-languageserver-types",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L208"
+    },
+    {
+      "id": "claude_code_package_devdependencies_wrap_ansi",
+      "label": "wrap-ansi",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L209"
+    },
+    {
+      "id": "claude_code_package_devdependencies_xss",
+      "label": "xss",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L210"
+    },
+    {
+      "id": "claude_code_package_devdependencies_yaml",
+      "label": "yaml",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L211"
+    },
+    {
+      "id": "claude_code_package_devdependencies_zod",
+      "label": "zod",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L212"
+    },
+    {
+      "id": "claude_code_package_optionaldependencies",
+      "label": "optionalDependencies",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L214"
+    },
+    {
+      "id": "claude_code_package_optionaldependencies_doubaoime_asr",
+      "label": "doubaoime-asr",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L215"
+    },
+    {
+      "id": "claude_code_package_overrides",
+      "label": "overrides",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L217"
+    },
+    {
+      "id": "claude_code_package_overrides_inquirer_prompts",
+      "label": "@inquirer/prompts",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L218"
+    },
+    {
+      "id": "claude_code_package_overrides_xmldom_xmldom",
+      "label": "@xmldom/xmldom",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L219"
+    },
+    {
+      "id": "claude_code_package_overrides_follow_redirects",
+      "label": "follow-redirects",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L220"
+    },
+    {
+      "id": "claude_code_package_overrides_hono",
+      "label": "hono",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L221"
+    },
+    {
+      "id": "claude_code_package_overrides_postcss",
+      "label": "postcss",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L222"
+    },
+    {
+      "id": "claude_code_package_overrides_uuid",
+      "label": "uuid",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L223"
+    },
+    {
+      "id": "claude_code_package_lint_staged",
+      "label": "lint-staged",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L225"
+    },
+    {
+      "id": "claude_code_package_lint_staged_ts_tsx_js_mjs_jsx",
+      "label": "*.{ts,tsx,js,mjs,jsx}",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L226"
+    },
+    {
+      "id": "claude_code_package_lint_staged_json_jsonc",
+      "label": "*.{json,jsonc}",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L229"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_name",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_version",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_description",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_type",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_author",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_repository",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_repository",
+      "target": "claude_code_package_repository_type",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_repository",
+      "target": "claude_code_package_repository_url",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_homepage",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_bugs",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_bugs",
+      "target": "claude_code_package_bugs_url",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_keywords",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_keywords",
+      "target": "ref_claude",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_keywords",
+      "target": "ref_anthropic",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_keywords",
+      "target": "ref_cli",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_keywords",
+      "target": "ref_ai",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_keywords",
+      "target": "ref_coding_assistant",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_keywords",
+      "target": "ref_terminal",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_keywords",
+      "target": "ref_repl",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_engines",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_engines",
+      "target": "claude_code_package_engines_bun",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_bin",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_bin",
+      "target": "claude_code_package_bin_ccb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_bin",
+      "target": "claude_code_package_bin_ccb_bun",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_bin",
+      "target": "claude_code_package_bin_claude_code_best",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_workspaces",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_workspaces",
+      "target": "ref_packages",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L32",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_workspaces",
+      "target": "ref_packages_ant",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L32",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_workspaces",
+      "target": "ref_packages_anthropic_ai",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L32",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_files",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L37",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_files",
+      "target": "ref_dist",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L37",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_files",
+      "target": "ref_scripts_postinstall_cjs",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L37",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_files",
+      "target": "ref_scripts_run_parallel_mjs",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L37",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_files",
+      "target": "ref_scripts_setup_chrome_mcp_mjs",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L37",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_scripts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L43",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_build",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_build_vite",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_build_vite_only",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L46",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_build_bun",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_dev",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L48",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_dev_inspect",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_prepublishonly",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L50",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_lint",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L51",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_lint_fix",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L52",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_format",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L53",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_check",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_check_fix",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L55",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_prepare",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L56",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_test",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_test_production",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L58",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_test_production_offline",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_test_production_verbose",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L60",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_test_production_bun",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L61",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_check_bundle",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L62",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_check_unused",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L63",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_health",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L64",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_postinstall",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_docs_dev",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L66",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_typecheck",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L67",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_precheck",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L68",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_scripts",
+      "target": "claude_code_package_scripts_rcs",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L69",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_dependencies",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L71",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_dependencies",
+      "target": "claude_code_package_dependencies_agentclientprotocol_sdk",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L72",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_dependencies_agentclientprotocol_sdk",
+      "target": "agentclientprotocol_sdk",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L72",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_dependencies",
+      "target": "claude_code_package_dependencies_claude_code_best_mcp_chrome_bridge",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L73",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_dependencies_claude_code_best_mcp_chrome_bridge",
+      "target": "claude_code_best_mcp_chrome_bridge",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L73",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_dependencies",
+      "target": "claude_code_package_dependencies_highlight_js",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L74",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_dependencies_highlight_js",
+      "target": "highlight_js",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L74",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_dependencies",
+      "target": "claude_code_package_dependencies_ws",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L75",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_dependencies_ws",
+      "target": "ws",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L75",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_devdependencies",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L77",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_alcalzone_ansi_tokenize",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L78",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_alcalzone_ansi_tokenize",
+      "target": "alcalzone_ansi_tokenize",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L78",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_ant_claude_for_chrome_mcp",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L79",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_ant_claude_for_chrome_mcp",
+      "target": "ant_claude_for_chrome_mcp",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L79",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_ant_computer_use_input",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L80",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_ant_computer_use_input",
+      "target": "ant_computer_use_input",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L80",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_ant_computer_use_mcp",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L81",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_ant_computer_use_mcp",
+      "target": "ant_computer_use_mcp",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L81",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_ant_computer_use_swift",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L82",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_ant_computer_use_swift",
+      "target": "ant_computer_use_swift",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L82",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_ant_model_provider",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L83",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_ant_model_provider",
+      "target": "ant_model_provider",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L83",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_anthropic_ai_bedrock_sdk",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L84",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_anthropic_ai_bedrock_sdk",
+      "target": "anthropic_ai_bedrock_sdk",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L84",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_anthropic_ai_claude_agent_sdk",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L85",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_anthropic_ai_claude_agent_sdk",
+      "target": "anthropic_ai_claude_agent_sdk",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L85",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_anthropic_ai_foundry_sdk",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L86",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_anthropic_ai_foundry_sdk",
+      "target": "anthropic_ai_foundry_sdk",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L86",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_anthropic_ai_mcpb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L87",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_anthropic_ai_mcpb",
+      "target": "anthropic_ai_mcpb",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L87",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_anthropic_ai_sandbox_runtime",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L88",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_anthropic_ai_sandbox_runtime",
+      "target": "anthropic_ai_sandbox_runtime",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L88",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_anthropic_ai_sdk",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L89",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_anthropic_ai_sdk",
+      "target": "anthropic_ai_sdk",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L89",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_anthropic_ai_vertex_sdk",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L90",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_anthropic_ai_vertex_sdk",
+      "target": "anthropic_ai_vertex_sdk",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L90",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_anthropic_ink",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L91",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_anthropic_ink",
+      "target": "anthropic_ink",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L91",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_aws_sdk_client_bedrock",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L92",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_aws_sdk_client_bedrock",
+      "target": "aws_sdk_client_bedrock",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L92",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_aws_sdk_client_bedrock_runtime",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_aws_sdk_client_bedrock_runtime",
+      "target": "aws_sdk_client_bedrock_runtime",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L93",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_aws_sdk_client_sts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L94",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_aws_sdk_client_sts",
+      "target": "aws_sdk_client_sts",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L94",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_aws_sdk_credential_provider_node",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L95",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_aws_sdk_credential_provider_node",
+      "target": "aws_sdk_credential_provider_node",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L95",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_aws_sdk_credential_providers",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L96",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_aws_sdk_credential_providers",
+      "target": "aws_sdk_credential_providers",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L96",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_azure_identity",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L97",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_azure_identity",
+      "target": "azure_identity",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L97",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_biomejs_biome",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L98",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_biomejs_biome",
+      "target": "biomejs_biome",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L98",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_claude_code_best_agent_tools",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L99",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_claude_code_best_agent_tools",
+      "target": "claude_code_best_agent_tools",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L99",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_claude_code_best_builtin_tools",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L100",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_claude_code_best_builtin_tools",
+      "target": "claude_code_best_builtin_tools",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L100",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_claude_code_best_mcp_client",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L101",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_claude_code_best_mcp_client",
+      "target": "claude_code_best_mcp_client",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L101",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_claude_code_best_weixin",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L102",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_claude_code_best_weixin",
+      "target": "claude_code_best_weixin",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L102",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_commander_js_extra_typings",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L103",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_commander_js_extra_typings",
+      "target": "commander_js_extra_typings",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L103",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_growthbook_growthbook",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L104",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_growthbook_growthbook",
+      "target": "growthbook_growthbook",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L104",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_langfuse_otel",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L105",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_langfuse_otel",
+      "target": "langfuse_otel",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L105",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_langfuse_tracing",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L106",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_langfuse_tracing",
+      "target": "langfuse_tracing",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L106",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_modelcontextprotocol_sdk",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L107",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_modelcontextprotocol_sdk",
+      "target": "modelcontextprotocol_sdk",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L107",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_api",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L108",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_api",
+      "target": "opentelemetry_api",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L108",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_api_logs",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L109",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_api_logs",
+      "target": "opentelemetry_api_logs",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L109",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_core",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L110",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_core",
+      "target": "opentelemetry_core",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L110",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_exporter_logs_otlp_grpc",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L111",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_exporter_logs_otlp_grpc",
+      "target": "opentelemetry_exporter_logs_otlp_grpc",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L111",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_exporter_logs_otlp_http",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L112",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_exporter_logs_otlp_http",
+      "target": "opentelemetry_exporter_logs_otlp_http",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L112",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_exporter_logs_otlp_proto",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L113",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_exporter_logs_otlp_proto",
+      "target": "opentelemetry_exporter_logs_otlp_proto",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L113",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_exporter_metrics_otlp_grpc",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L114",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_exporter_metrics_otlp_grpc",
+      "target": "opentelemetry_exporter_metrics_otlp_grpc",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L114",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_exporter_metrics_otlp_http",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L115",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_exporter_metrics_otlp_http",
+      "target": "opentelemetry_exporter_metrics_otlp_http",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L115",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_exporter_metrics_otlp_proto",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L116",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_exporter_metrics_otlp_proto",
+      "target": "opentelemetry_exporter_metrics_otlp_proto",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L116",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_exporter_prometheus",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L117",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_exporter_prometheus",
+      "target": "opentelemetry_exporter_prometheus",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L117",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_exporter_trace_otlp_grpc",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L118",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_exporter_trace_otlp_grpc",
+      "target": "opentelemetry_exporter_trace_otlp_grpc",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L118",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_exporter_trace_otlp_http",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L119",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_exporter_trace_otlp_http",
+      "target": "opentelemetry_exporter_trace_otlp_http",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L119",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_exporter_trace_otlp_proto",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L120",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_exporter_trace_otlp_proto",
+      "target": "opentelemetry_exporter_trace_otlp_proto",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L120",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_resources",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L121",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_resources",
+      "target": "opentelemetry_resources",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L121",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_sdk_logs",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L122",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_sdk_logs",
+      "target": "opentelemetry_sdk_logs",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L122",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_sdk_metrics",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L123",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_sdk_metrics",
+      "target": "opentelemetry_sdk_metrics",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L123",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_sdk_trace_base",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L124",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_sdk_trace_base",
+      "target": "opentelemetry_sdk_trace_base",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L124",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_opentelemetry_semantic_conventions",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L125",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_opentelemetry_semantic_conventions",
+      "target": "opentelemetry_semantic_conventions",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L125",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_sentry_node",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L126",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_sentry_node",
+      "target": "sentry_node",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L126",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_smithy_core",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L127",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_smithy_core",
+      "target": "smithy_core",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L127",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_smithy_node_http_handler",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L128",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_smithy_node_http_handler",
+      "target": "smithy_node_http_handler",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L128",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_bun",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L129",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_bun",
+      "target": "types_bun",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L129",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_cacache",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L130",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_cacache",
+      "target": "types_cacache",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L130",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_he",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L131",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_he",
+      "target": "types_he",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L131",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_lodash_es",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L132",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_lodash_es",
+      "target": "types_lodash_es",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L132",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_node",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L133",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_node",
+      "target": "types_node",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L133",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_picomatch",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L134",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_picomatch",
+      "target": "types_picomatch",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L134",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_plist",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L135",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_plist",
+      "target": "types_plist",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L135",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_proper_lockfile",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L136",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_proper_lockfile",
+      "target": "types_proper_lockfile",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L136",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_qrcode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L137",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_qrcode",
+      "target": "types_qrcode",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L137",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_react",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L138",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_react",
+      "target": "types_react",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L138",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_react_reconciler",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L139",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_react_reconciler",
+      "target": "types_react_reconciler",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L139",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_semver",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L140",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_semver",
+      "target": "types_semver",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L140",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_sharp",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L141",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_sharp",
+      "target": "types_sharp",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L141",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_shell_quote",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L142",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_shell_quote",
+      "target": "types_shell_quote",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L142",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_stack_utils",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L143",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_stack_utils",
+      "target": "types_stack_utils",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L143",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_turndown",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L144",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_turndown",
+      "target": "types_turndown",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L144",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_types_ws",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L145",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_types_ws",
+      "target": "types_ws",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L145",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_ajv",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L146",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_ajv",
+      "target": "ajv",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L146",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_asciichart",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L147",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_asciichart",
+      "target": "asciichart",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L147",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_audio_capture_napi",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L148",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_audio_capture_napi",
+      "target": "audio_capture_napi",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L148",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_auto_bind",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L149",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_auto_bind",
+      "target": "auto_bind",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L149",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_axios",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L150",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_axios",
+      "target": "axios",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L150",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_bidi_js",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L151",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_bidi_js",
+      "target": "bidi_js",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L151",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_cacache",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L152",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_cacache",
+      "target": "cacache",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L152",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_chalk",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L153",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_chalk",
+      "target": "chalk",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L153",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_chokidar",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L154",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_chokidar",
+      "target": "chokidar",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L154",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_cli_boxes",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L155",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_cli_boxes",
+      "target": "cli_boxes",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L155",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_cli_highlight",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L156",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_cli_highlight",
+      "target": "cli_highlight",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L156",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_code_excerpt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L157",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_code_excerpt",
+      "target": "code_excerpt",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L157",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_color_diff_napi",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L158",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_color_diff_napi",
+      "target": "color_diff_napi",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L158",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_diff",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L159",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_diff",
+      "target": "diff",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L159",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_emoji_regex",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L160",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_emoji_regex",
+      "target": "emoji_regex",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L160",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_env_paths",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L161",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_env_paths",
+      "target": "env_paths",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L161",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_execa",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L162",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_execa",
+      "target": "execa",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L162",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_fflate",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L163",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_fflate",
+      "target": "fflate",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L163",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_figures",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L164",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_figures",
+      "target": "figures",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L164",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_fuse_js",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L165",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_fuse_js",
+      "target": "fuse_js",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L165",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_get_east_asian_width",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L166",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_get_east_asian_width",
+      "target": "get_east_asian_width",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L166",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_google_auth_library",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L167",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_google_auth_library",
+      "target": "google_auth_library",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L167",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_he",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L168",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_he",
+      "target": "he",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L168",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_https_proxy_agent",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L169",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_https_proxy_agent",
+      "target": "https_proxy_agent",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L169",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_husky",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L170",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_husky",
+      "target": "husky",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L170",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_ignore",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L171",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_ignore",
+      "target": "ignore",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L171",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_image_processor_napi",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L172",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_image_processor_napi",
+      "target": "image_processor_napi",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L172",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_indent_string",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L173",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_indent_string",
+      "target": "indent_string",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L173",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_jsonc_parser",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L174",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_jsonc_parser",
+      "target": "jsonc_parser",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L174",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_knip",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L175",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_knip",
+      "target": "knip",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L175",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_lint_staged",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L176",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_lint_staged",
+      "target": "lint_staged",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L176",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_lodash_es",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L177",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_lodash_es",
+      "target": "lodash_es",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L177",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_lru_cache",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L178",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_lru_cache",
+      "target": "lru_cache",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L178",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_marked",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L179",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_marked",
+      "target": "marked",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L179",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_modifiers_napi",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L180",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_modifiers_napi",
+      "target": "modifiers_napi",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L180",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_openai",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L181",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_openai",
+      "target": "openai",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L181",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_p_map",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L182",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_p_map",
+      "target": "p_map",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L182",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_picomatch",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L183",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_picomatch",
+      "target": "picomatch",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L183",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_plist",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L184",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_plist",
+      "target": "plist",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L184",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_proper_lockfile",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L185",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_proper_lockfile",
+      "target": "proper_lockfile",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L185",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_qrcode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L186",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_qrcode",
+      "target": "qrcode",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L186",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_react",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L187",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_react",
+      "target": "react",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L187",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_react_compiler_runtime",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L188",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_react_compiler_runtime",
+      "target": "react_compiler_runtime",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L188",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_react_reconciler",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L189",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_react_reconciler",
+      "target": "react_reconciler",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L189",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_rollup",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L190",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_rollup",
+      "target": "rollup",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L190",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_semver",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L191",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_semver",
+      "target": "semver",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L191",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_sharp",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L192",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_sharp",
+      "target": "sharp",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L192",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_shell_quote",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L193",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_shell_quote",
+      "target": "shell_quote",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L193",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_signal_exit",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L194",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_signal_exit",
+      "target": "signal_exit",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L194",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_stack_utils",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L195",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_stack_utils",
+      "target": "stack_utils",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L195",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_strip_ansi",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L196",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_strip_ansi",
+      "target": "strip_ansi",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L196",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_supports_hyperlinks",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L197",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_supports_hyperlinks",
+      "target": "supports_hyperlinks",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L197",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_tree_kill",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L198",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_tree_kill",
+      "target": "tree_kill",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L198",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_turndown",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L199",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_turndown",
+      "target": "turndown",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L199",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_type_fest",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L200",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_type_fest",
+      "target": "type_fest",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L200",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_typescript",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L201",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_typescript",
+      "target": "typescript",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L201",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_undici",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L202",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_undici",
+      "target": "undici",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L202",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_url_handler_napi",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L203",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_url_handler_napi",
+      "target": "url_handler_napi",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L203",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_usehooks_ts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L204",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_usehooks_ts",
+      "target": "usehooks_ts",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L204",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_vite",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L205",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_vite",
+      "target": "vite",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L205",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_vscode_jsonrpc",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L206",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_vscode_jsonrpc",
+      "target": "vscode_jsonrpc",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L206",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_vscode_languageserver_protocol",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L207",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_vscode_languageserver_protocol",
+      "target": "vscode_languageserver_protocol",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L207",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_vscode_languageserver_types",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L208",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_vscode_languageserver_types",
+      "target": "vscode_languageserver_types",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L208",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_wrap_ansi",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L209",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_wrap_ansi",
+      "target": "wrap_ansi",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L209",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_xss",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L210",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_xss",
+      "target": "xss",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L210",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_yaml",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L211",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_yaml",
+      "target": "yaml",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L211",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_devdependencies",
+      "target": "claude_code_package_devdependencies_zod",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L212",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_devdependencies_zod",
+      "target": "zod",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L212",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_optionaldependencies",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L214",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_optionaldependencies",
+      "target": "claude_code_package_optionaldependencies_doubaoime_asr",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L215",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_optionaldependencies_doubaoime_asr",
+      "target": "doubaoime_asr",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L215",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_overrides",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L217",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_overrides",
+      "target": "claude_code_package_overrides_inquirer_prompts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L218",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_overrides",
+      "target": "claude_code_package_overrides_xmldom_xmldom",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L219",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_overrides",
+      "target": "claude_code_package_overrides_follow_redirects",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L220",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_overrides",
+      "target": "claude_code_package_overrides_hono",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L221",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_overrides",
+      "target": "claude_code_package_overrides_postcss",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L222",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_overrides",
+      "target": "claude_code_package_overrides_uuid",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L223",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_package_json",
+      "target": "claude_code_package_lint_staged",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L225",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_lint_staged",
+      "target": "claude_code_package_lint_staged_ts_tsx_js_mjs_jsx",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L226",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_lint_staged_ts_tsx_js_mjs_jsx",
+      "target": "ref_biome_check_fix_no_errors_on_unmatched",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L226",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "claude_code_package_lint_staged",
+      "target": "claude_code_package_lint_staged_json_jsonc",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L229",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_package_lint_staged_json_jsonc",
+      "target": "ref_biome_format_write_no_errors_on_unmatched",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L229",
+      "weight": 1.0,
+      "context": "import"
+    }
+  ]
+}

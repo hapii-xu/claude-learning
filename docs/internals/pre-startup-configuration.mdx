@@ -1,0 +1,289 @@
+---
+title: "启动前配置 - cli.tsx 跑起来之前的所有配置面"
+description: "完整梳理 Claude Code 在 cli.tsx 执行之前依赖的所有配置面：.env 文件、五层 Settings 合并、三层 feature 门控、7 个 API provider 切换、以及 GrowthBook/Datadog/Sentry/Langfuse/OTel 等可选第三方服务的接入方式与降级行为。"
+keywords: [".env", "环境变量", "Settings 合并", "GrowthBook", "Provider", "第三方服务", "启动配置", "FEATURE_*"]
+---
+
+{/* 本章目标：建立"启动前有哪些配置面"的完整心智模型，指向各子主题的详细文档 */}
+
+## 概述
+
+在 `src/entrypoints/cli.tsx` 的 `main()` 函数执行第一行有效代码之前，运行时已经有了一套完整的"预加载配置层"：
+
+| 配置面 | 加载时机 | 权威来源 |
+|--------|---------|---------|
+| MACRO defines（版本号、构建时间等） | 构建期替换 | `scripts/defines.ts` |
+| 构建期 FEATURE_* 开关 | 构建期 / dev 启动时 | `scripts/defines.ts::DEFAULT_BUILD_FEATURES` + `FEATURE_*` env |
+| 项目根 `.env` 文件 | 进程启动时（Bun 自动加载） | `.env` |
+| 五层 Settings 合并 | `applySafeConfigEnvironmentVariables()` | `src/utils/settings/settings.ts` |
+| GrowthBook 远程门控 | `initializeGrowthBook()` in `main.tsx` | `src/services/analytics/growthbook.ts` |
+| 第三方可观测服务 | `setupBackend()` in `main.tsx` | Datadog / Sentry / Langfuse / OTel |
+| API provider 路由 | provider 首次调用时 | `src/utils/model/providers.ts` |
+
+## 配置加载顺序
+
+```
+构建时
+  MACRO.VERSION / MACRO.BUILD_TIME          (scripts/defines.ts → 编译期内联)
+  DEFAULT_BUILD_FEATURES                     (scripts/defines.ts → bun:bundle feature())
+  FEATURE_<NAME>=1                          (env → 追加开启额外 flag)
+  ↓
+进程启动
+  .env                                       (Bun 自动加载 → process.env)
+  ↓
+main.tsx setupBackend()
+  applySafeConfigEnvironmentVariables()      (pre-trust: 白名单 env 注入)
+  initializeAnalyticsGates()                 (从磁盘缓存读取 GB gate 快照)
+  initializeGrowthBook()                     (连接远程 / 降级到本地默认)
+  initializeAnalyticsSink()                  (Datadog + 1P logger)
+  initialize1PEventLogging()                 (OTel → /api/event_logging/batch)
+  initializeDatadog()                        (仅当 DATADOG_API_KEY 存在)
+  initSentry()                               (仅当 SENTRY_DSN 存在)
+  initLangfuse()                             (仅当两个 LANGFUSE_* key 存在)
+  applyConfigEnvironmentVariables()          (post-trust: 全量 env 注入)
+  ↓
+cli.tsx main() 快速路径分发
+```
+
+## .env 文件
+
+Bun 在进程启动时自动加载项目根的 `.env`，不需要任何额外代码。以下是所有配置分类：
+
+### GrowthBook 适配器
+
+```bash
+# 两者同时设置时启用 Adapter 模式，否则完全跳过 GrowthBook
+CLAUDE_GB_ADAPTER_URL=https://cdn.growthbook.io
+CLAUDE_GB_ADAPTER_KEY=sdk-xxxxxxxxxxxxxxxx
+```
+
+详见 [GrowthBook 适配器文档](docs/internals/growthbook-adapter.mdx)。
+
+### 用户类型与调试
+
+```bash
+# 'ant' 是 Anthropic 内部工程师标识：
+# 启用 verbose 日志、env-var override、更快的 GB 刷新（20min vs 6h）、staging OAuth
+USER_TYPE=ant
+
+# 启动性能剖析报告（src/utils/startupProfiler.ts）
+# CLAUDE_CODE_PROFILE_STARTUP=1
+```
+
+`USER_TYPE=ant` 是整个可观测链路的"调试总开关"，影响：GrowthBook 日志、Datadog 日志、1P event logging 日志、OAuth 端点选择、`CLAUDE_INTERNAL_FC_OVERRIDES` env-var override 是否生效。
+
+### 构建期 Feature Flags
+
+```bash
+# 启用任意非默认 feature（build.ts 扫描 FEATURE_* 前缀）
+FEATURE_DUMP_SYSTEM_PROMPT=1
+# FEATURE_BRIDGE_MODE=1
+# FEATURE_DAEMON=1
+# FEATURE_ACP=1
+```
+
+完整的默认开启列表在 `scripts/defines.ts::DEFAULT_BUILD_FEATURES`（约 35 个）。详见 [Feature Flags 文档](docs/internals/feature-flags.mdx)。
+
+### GrowthBook 运行时覆盖
+
+```bash
+# JSON 格式，只在 USER_TYPE=ant 时生效，绕过远程求值
+# CLAUDE_INTERNAL_FC_OVERRIDES={"tengu_log_datadog_events": true}
+
+# 禁用 LOCAL_GATE_DEFAULTS（不推荐，可能导致 P0 功能缺失）
+# CLAUDE_CODE_DISABLE_LOCAL_GATES=1
+```
+
+### 隐私与静默
+
+```bash
+# essential-traffic：禁用所有非必要流量（自动更新、telemetry、release notes）
+# CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+
+# no-telemetry：仅禁用 Datadog 和 1P event logging
+# DISABLE_TELEMETRY=1
+```
+
+### 推荐的 .env.example
+
+```bash
+# GrowthBook（可选，不配置则全走代码默认值）
+# CLAUDE_GB_ADAPTER_URL=https://cdn.growthbook.io
+# CLAUDE_GB_ADAPTER_KEY=sdk-your-key-here
+
+# 调试
+# USER_TYPE=ant
+
+# Feature flags（按需打开）
+# FEATURE_DUMP_SYSTEM_PROMPT=1
+# FEATURE_BRIDGE_MODE=1
+
+# 第三方可观测服务（可选，各自独立 no-op）
+# SENTRY_DSN=https://xxx@sentry.io/xxx
+# DATADOG_API_KEY=xxx
+# DATADOG_LOGS_ENDPOINT=https://http-intake.logs.datadoghq.com/api/v2/logs
+# LANGFUSE_PUBLIC_KEY=pk-lf-xxx
+# LANGFUSE_SECRET_KEY=sk-lf-xxx
+# LANGFUSE_BASE_URL=https://cloud.langfuse.com
+
+# 客户 OpenTelemetry（可选）
+# CLAUDE_CODE_ENABLE_TELEMETRY=1
+# OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+# OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer xxx
+```
+
+## 五层 Settings 合并
+
+**文件**：`src/utils/settings/settings.ts`
+
+Settings 按优先级从低到高合并，后者覆盖前者：
+
+```
+userSettings    ~/.claude/settings.json                        (全局用户配置)
+projectSettings <project>/.claude/settings.json               (项目共享，可提交)
+localSettings   <project>/.claude/settings.local.json         (本地覆盖，gitignore)
+flagSettings    --settings CLI flag / SDK inline settings      (运行时注入)
+policySettings  managed-settings.json + managed-settings.d/*  (企业/MDM，最高优先级)
+```
+
+每个 settings 文件可以包含 `env` 字段，其键值对会被注入到 `process.env`。注入分两个阶段：
+
+- **pre-trust**（`applySafeConfigEnvironmentVariables()`）：在 trust dialog 之前。仅接受 `SAFE_ENV_VARS` 白名单（`src/utils/managedEnvConstants.ts`）中的 key，且只有 user、flag、policy 来源。Project settings 的 env 受限于白名单（防止恶意仓库注入危险 env）。
+- **post-trust**（`applyConfigEnvironmentVariables()`）：trust dialog 后。接受所有来源的所有 env。
+
+`DANGEROUS_SHELL_SETTINGS`（`apiKeyHelper`、`awsAuthRefresh`、`gcpAuthRefresh`、`otelHeadersHelper`、`statusLine` 等）只能在 settings 文件中配置，不能通过 env 注入，因为它们会执行任意 shell 命令。
+
+**Provider-managed mode**：当 `CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST` 为 truthy 时，`PROVIDER_MANAGED_ENV_VARS` 集合（~50 个 provider 认证/路由相关 key）会从 settings 来源的 env 中被剥离，防止 `~/.claude/settings.json` 的 provider 配置干扰宿主环境（如 Bedrock 托管环境）。
+
+## 三层门控速览
+
+Claude Code 的功能开关分三层，层层回退：
+
+```
+① 构建期 FEATURE_*
+   scripts/defines.ts + FEATURE_<NAME>=1 env → bun:bundle feature('NAME')
+   → 编译期 DCE，为 false 的分支被彻底删除
+   ↓ 为 true 的功能进入下一层
+② 运行期 GrowthBook
+   initializeGrowthBook() → 远程求值 / 磁盘缓存 / LOCAL_GATE_DEFAULTS
+   → getFeatureValue_CACHED_MAY_BE_STALE('tengu_xxx', default)
+   ↓ 本地 fallback
+③ LOCAL_GATE_DEFAULTS（hardcoded P0 保底）
+   代码内嵌默认值，GrowthBook 不可达时保证核心功能可用
+```
+
+详细机制见 [三层门控文档](docs/internals/three-tier-gating.mdx)、[Feature Flags 文档](docs/internals/feature-flags.mdx)、[GrowthBook 适配器](docs/internals/growthbook-adapter.mdx)。
+
+## 第三方服务接入矩阵
+
+所有第三方服务都遵循同一个模式：**env key 不存在 → 完全 no-op，零网络请求**。
+
+| 服务 | 用途 | 必需 env | no-op 条件 | 初始化函数 |
+|------|------|---------|-----------|-----------|
+| GrowthBook | feature flag / 实验 | `CLAUDE_GB_ADAPTER_URL` + `CLAUDE_GB_ADAPTER_KEY`（Adapter 模式）| 两者任一缺失 → 完全跳过 | `initializeGrowthBook()` |
+| Datadog | 事件日志 sink | `DATADOG_API_KEY` + `DATADOG_LOGS_ENDPOINT` | 任一缺失，或非生产环境 | `initializeDatadog()` |
+| Sentry | 错误追踪 | `SENTRY_DSN` | DSN 未设置 | `initSentry()` |
+| Langfuse | LLM trace 可观测 | `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY` | 两者任一缺失 | `initLangfuse()` |
+| OpenTelemetry | 客户自托管 trace/log/metric | `CLAUDE_CODE_ENABLE_TELEMETRY=1` | 未设置 | `initializeInstrumentation()` |
+| 1P Event Logging | Anthropic 内部事件 | OAuth / API key（GB gate 二次门控）| `is1PEventLoggingEnabled()` 为 false | `initialize1PEventLogging()` |
+
+### GrowthBook 降级链
+
+```
+① 远程拉取成功 → 缓存到 ~/.claude.json（cachedGrowthBookFeatures）
+② 远程不可达 → 读取磁盘缓存（最多 6h 旧）
+③ 无磁盘缓存 → LOCAL_GATE_DEFAULTS（代码内嵌 P0 功能默认值）
+④ 未配置 Adapter 且非 Anthropic 内部 → 所有 getFeatureValue() 直接返回传入的默认值
+```
+
+### Datadog kill-switch
+
+`sink.ts` 读取 GrowthBook 配置 `tengu_frond_boric`（JSON），可以独立关掉 `datadog` 或 `firstParty` sink，无需重启进程。
+
+## 7 个 API Provider 切换
+
+Provider 选择优先级：`modelType` 参数 > 环境变量 > 默认 `firstParty`。
+
+**文件**：`src/utils/model/providers.ts`，权威 env 清单：`src/utils/managedEnvConstants.ts`
+
+| Provider | 启用开关 | Auth env | Base URL | 模型 env |
+|----------|---------|---------|---------|---------|
+| Anthropic（默认）| — | `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` / OAuth | `ANTHROPIC_BASE_URL` | `ANTHROPIC_MODEL`、`ANTHROPIC_DEFAULT_*_MODEL` |
+| AWS Bedrock | `CLAUDE_CODE_USE_BEDROCK=1` | `AWS_BEARER_TOKEN_BEDROCK` / IAM | `ANTHROPIC_BEDROCK_BASE_URL` | `ANTHROPIC_SMALL_FAST_MODEL_AWS_REGION` |
+| Google Vertex | `CLAUDE_CODE_USE_VERTEX=1` | GCP ADC / `CLAUDE_CODE_SKIP_VERTEX_AUTH` | `ANTHROPIC_VERTEX_BASE_URL` + `ANTHROPIC_VERTEX_PROJECT_ID` | `VERTEX_REGION_CLAUDE_*`（前缀匹配） |
+| Azure Foundry | `CLAUDE_CODE_USE_FOUNDRY=1` | `ANTHROPIC_FOUNDRY_API_KEY` | `ANTHROPIC_FOUNDRY_BASE_URL` + `_RESOURCE` | — |
+| OpenAI 兼容 | `CLAUDE_CODE_USE_OPENAI=1` | `OPENAI_API_KEY` | `OPENAI_BASE_URL` | `OPENAI_MODEL`、`OPENAI_DEFAULT_*_MODEL` |
+| Gemini | `CLAUDE_CODE_USE_GEMINI=1` | `GEMINI_API_KEY` | `GEMINI_BASE_URL` | `GEMINI_MODEL`、`GEMINI_DEFAULT_*_MODEL` |
+| Grok / xAI | `CLAUDE_CODE_USE_GROK=1` | `GROK_API_KEY` / `XAI_API_KEY` | `GROK_BASE_URL` | `GROK_MODEL`、`GROK_MODEL_MAP` |
+
+每个 provider 的 `DEFAULT_*_MODEL` 系列（haiku / sonnet / opus）还支持 `_DESCRIPTION`、`_NAME`、`_SUPPORTED_CAPABILITIES` 后缀，用于 UI 展示和能力检测。
+
+## 隐私级联
+
+```
+CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+  → privacy level: essential-traffic
+  → 禁用：自动更新、telemetry、release notes、model capabilities 拉取、grove
+  ↓（优先级更低）
+DISABLE_TELEMETRY=1
+  → privacy level: no-telemetry
+  → 禁用：Datadog sink、1P event logging、反馈调查
+  ↓
+使用 3P provider（Bedrock/Vertex/Foundry）
+  → analytics config.ts 的 isTelemetryDisabled() 检测
+  → Datadog 不发送（不含 Anthropic 内部数据）
+  ↓
+DISABLE_ERROR_REPORTING=1 / DISABLE_AUTOUPDATER=1 等
+  → 单项禁用（src/utils/managedEnvConstants.ts::SAFE_ENV_VARS）
+```
+
+## USER_TYPE=ant 调试总开关
+
+`USER_TYPE=ant` 在整个代码库中触发调试/开发行为，汇总如下：
+
+| 位置 | 行为 |
+|------|------|
+| `growthbook.ts` | verbose 日志；GB 刷新间隔 20min（外部 6h）；`CLAUDE_INTERNAL_FC_OVERRIDES` 生效；staging GB base URL 回退 |
+| `datadog.ts` | 发送 `USER_TYPE=ant` tag；打印 debug 日志 |
+| `firstPartyEventLogger.ts` | 打印 debug 日志 |
+| `src/constants/oauth.ts` | `USE_STAGING_OAUTH` / `USE_LOCAL_OAUTH` 生效；读取 `CLAUDE_LOCAL_OAUTH_*` 覆盖端点 |
+| `src/utils/http.ts` | Bearer token header 构造打印调试 |
+| `src/utils/managedEnvConstants.ts` | `ANT_ONLY_*` env var 系列生效 |
+
+如果你在开发环境中看到超预期的行为（过于频繁的网络请求、staging OAuth、env-var 覆盖生效），先检查是否设置了 `USER_TYPE=ant`。
+
+## 常见故障排查
+
+### GrowthBook 读不到预期值
+
+1. 检查 `.env` 中的 `CLAUDE_GB_ADAPTER_URL` 和 `CLAUDE_GB_ADAPTER_KEY` 是否正确
+2. 运行 `USER_TYPE=ant bun run dev` 查看 GrowthBook verbose 日志
+3. 检查 `~/.claude.json` 中的 `cachedGrowthBookFeatures`（可能是过期缓存）
+4. 在 GrowthBook Dashboard 确认 SDK Key 对应的 Environment 中已创建相应 Feature
+
+### Datadog 不发事件
+
+1. 确认 `DATADOG_API_KEY` 和 `DATADOG_LOGS_ENDPOINT` 同时设置
+2. 确认 `NODE_ENV=production`（非生产环境跳过）
+3. 确认没有设置 `DISABLE_TELEMETRY=1`
+4. 检查 GrowthBook `tengu_frond_boric` 配置的 `datadog` 字段是否为 `false`
+
+### Provider 选错
+
+1. 检查是否设置了多个 `CLAUDE_CODE_USE_*` 开关（只有一个应为 truthy）
+2. 检查 `CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST`（设置后 settings.json 里的 provider env 被剥离）
+3. 查看 `src/utils/model/providers.ts::getAPIProvider()` 的选择逻辑
+
+### Sentry 没上报
+
+1. 确认 `SENTRY_DSN` 格式正确（`https://<key>@<host>/<project>`）
+2. 确认 `NODE_ENV=production`（Sentry 默认在非生产环境不上报）
+
+## 延伸阅读
+
+- [Feature Flags 完整文档](docs/internals/feature-flags.mdx) — 88+ 个构建时 flag 的完整列表和 DCE 机制
+- [三层门控机制](docs/internals/three-tier-gating.mdx) — 构建期 / GrowthBook / LOCAL_GATE_DEFAULTS 协作方式
+- [GrowthBook 适配器](docs/internals/growthbook-adapter.mdx) — 自建 GrowthBook 服务器接入指南与 Feature Key 清单
+- [GrowthBook A/B 测试](docs/internals/growthbook-ab-testing.mdx) — 实验功能和 exposure logging
+- [Sentry 配置](docs/internals/sentry-setup.mdx) — 错误追踪详细配置
+- [Ant-Only World](docs/internals/ant-only-world.mdx) — Anthropic 内部模式专属行为全览

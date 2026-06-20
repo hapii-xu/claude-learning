@@ -1,0 +1,109 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_claude_for_chrome_mcp_package_json",
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "packages/@ant/claude-for-chrome-mcp/package.json",
+      "source_location": "L1"
+    },
+    {
+      "id": "claude_for_chrome_mcp_package_name",
+      "label": "name",
+      "file_type": "code",
+      "source_file": "packages/@ant/claude-for-chrome-mcp/package.json",
+      "source_location": "L2"
+    },
+    {
+      "id": "claude_for_chrome_mcp_package_version",
+      "label": "version",
+      "file_type": "code",
+      "source_file": "packages/@ant/claude-for-chrome-mcp/package.json",
+      "source_location": "L3"
+    },
+    {
+      "id": "claude_for_chrome_mcp_package_private",
+      "label": "private",
+      "file_type": "code",
+      "source_file": "packages/@ant/claude-for-chrome-mcp/package.json",
+      "source_location": "L4"
+    },
+    {
+      "id": "claude_for_chrome_mcp_package_type",
+      "label": "type",
+      "file_type": "code",
+      "source_file": "packages/@ant/claude-for-chrome-mcp/package.json",
+      "source_location": "L5"
+    },
+    {
+      "id": "claude_for_chrome_mcp_package_main",
+      "label": "main",
+      "file_type": "code",
+      "source_file": "packages/@ant/claude-for-chrome-mcp/package.json",
+      "source_location": "L6"
+    },
+    {
+      "id": "claude_for_chrome_mcp_package_types",
+      "label": "types",
+      "file_type": "code",
+      "source_file": "packages/@ant/claude-for-chrome-mcp/package.json",
+      "source_location": "L7"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_claude_for_chrome_mcp_package_json",
+      "target": "claude_for_chrome_mcp_package_name",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/claude-for-chrome-mcp/package.json",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_claude_for_chrome_mcp_package_json",
+      "target": "claude_for_chrome_mcp_package_version",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/claude-for-chrome-mcp/package.json",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_claude_for_chrome_mcp_package_json",
+      "target": "claude_for_chrome_mcp_package_private",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/claude-for-chrome-mcp/package.json",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_claude_for_chrome_mcp_package_json",
+      "target": "claude_for_chrome_mcp_package_type",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/claude-for-chrome-mcp/package.json",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_claude_for_chrome_mcp_package_json",
+      "target": "claude_for_chrome_mcp_package_main",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/claude-for-chrome-mcp/package.json",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_ant_claude_for_chrome_mcp_package_json",
+      "target": "claude_for_chrome_mcp_package_types",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/@ant/claude-for-chrome-mcp/package.json",
+      "source_location": "L7",
+      "weight": 1.0
+    }
+  ]
+}

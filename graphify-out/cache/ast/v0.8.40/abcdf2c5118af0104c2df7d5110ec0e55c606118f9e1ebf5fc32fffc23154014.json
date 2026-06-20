@@ -1,0 +1,79 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_friends_md",
+      "label": "Friends.md",
+      "file_type": "document",
+      "source_file": "Friends.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "claude_code_friends_\u793e\u533a\u9879\u76ee_blog_\u5408\u96c6",
+      "label": "\u793e\u533a\u9879\u76ee & Blog \u5408\u96c6",
+      "file_type": "document",
+      "source_file": "Friends.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "claude_code_friends_\u5de5\u5177_\u5e94\u7528",
+      "label": "\u5de5\u5177 & \u5e94\u7528",
+      "file_type": "document",
+      "source_file": "Friends.md",
+      "source_location": "L5"
+    },
+    {
+      "id": "claude_code_friends_github_\u5f00\u6e90\u9879\u76ee",
+      "label": "GitHub \u5f00\u6e90\u9879\u76ee",
+      "file_type": "document",
+      "source_file": "Friends.md",
+      "source_location": "L17"
+    },
+    {
+      "id": "claude_code_friends_blog",
+      "label": "Blog",
+      "file_type": "document",
+      "source_file": "Friends.md",
+      "source_location": "L34"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_friends_md",
+      "target": "claude_code_friends_\u793e\u533a\u9879\u76ee_blog_\u5408\u96c6",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Friends.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_friends_\u793e\u533a\u9879\u76ee_blog_\u5408\u96c6",
+      "target": "claude_code_friends_\u5de5\u5177_\u5e94\u7528",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Friends.md",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_friends_\u793e\u533a\u9879\u76ee_blog_\u5408\u96c6",
+      "target": "claude_code_friends_github_\u5f00\u6e90\u9879\u76ee",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Friends.md",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_friends_\u793e\u533a\u9879\u76ee_blog_\u5408\u96c6",
+      "target": "claude_code_friends_blog",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Friends.md",
+      "source_location": "L34",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

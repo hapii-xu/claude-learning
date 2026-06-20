@@ -1,0 +1,239 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_callgraphs_readme_md",
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "callgraphs_readme_\u8c03\u7528\u94fe\u56fe\u7d22\u5f15",
+      "label": "\u8c03\u7528\u94fe\u56fe\u7d22\u5f15",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "callgraphs_readme_\u4e09\u5c42\u7ed3\u6784",
+      "label": "\u4e09\u5c42\u7ed3\u6784",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L11"
+    },
+    {
+      "id": "callgraphs_readme_\u4e09\u79cd\u683c\u5f0f",
+      "label": "\u4e09\u79cd\u683c\u5f0f",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L19"
+    },
+    {
+      "id": "callgraphs_readme_\u5b8f\u89c2\u5c42_\u5206\u5c42\u67b6\u6784\u56fe",
+      "label": "\u5b8f\u89c2\u5c42\uff1a\u5206\u5c42\u67b6\u6784\u56fe",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L29"
+    },
+    {
+      "id": "callgraphs_readme_\u4e2d\u89c2\u5c42_\u6a21\u5757\u95f4\u6587\u4ef6\u4f9d\u8d56\u56fe",
+      "label": "\u4e2d\u89c2\u5c42\uff1a\u6a21\u5757\u95f4\u6587\u4ef6\u4f9d\u8d56\u56fe",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L39"
+    },
+    {
+      "id": "callgraphs_readme_\u5fae\u89c2\u5c42_\u5173\u952e\u94fe\u8def\u65f6\u5e8f\u56fe",
+      "label": "\u5fae\u89c2\u5c42\uff1a\u5173\u952e\u94fe\u8def\u65f6\u5e8f\u56fe",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L49"
+    },
+    {
+      "id": "callgraphs_readme_\u94fe\u8def_1_\u542f\u52a8\u94fe\u8def",
+      "label": "\u94fe\u8def 1\uff1a\u542f\u52a8\u94fe\u8def",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L53"
+    },
+    {
+      "id": "callgraphs_readme_\u94fe\u8def_2_query_\u6267\u884c\u5faa\u73af",
+      "label": "\u94fe\u8def 2\uff1aQuery \u6267\u884c\u5faa\u73af",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L61"
+    },
+    {
+      "id": "callgraphs_readme_\u94fe\u8def_3_tool_\u6267\u884c\u94fe\u8def",
+      "label": "\u94fe\u8def 3\uff1aTool \u6267\u884c\u94fe\u8def",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L69"
+    },
+    {
+      "id": "callgraphs_readme_\u94fe\u8def_4_memory_\u6ce8\u5165\u94fe\u8def",
+      "label": "\u94fe\u8def 4\uff1aMemory \u6ce8\u5165\u94fe\u8def",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L77"
+    },
+    {
+      "id": "callgraphs_readme_\u6e32\u67d3\u8bf4\u660e",
+      "label": "\u6e32\u67d3\u8bf4\u660e",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L87"
+    },
+    {
+      "id": "callgraphs_readme_mermaid",
+      "label": "Mermaid",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L89"
+    },
+    {
+      "id": "callgraphs_readme_graphviz",
+      "label": "Graphviz",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L93"
+    },
+    {
+      "id": "callgraphs_readme_\u5b66\u4e60\u5efa\u8bae",
+      "label": "\u5b66\u4e60\u5efa\u8bae",
+      "file_type": "document",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L110"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_callgraphs_readme_md",
+      "target": "callgraphs_readme_\u8c03\u7528\u94fe\u56fe\u7d22\u5f15",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "callgraphs_readme_\u8c03\u7528\u94fe\u56fe\u7d22\u5f15",
+      "target": "callgraphs_readme_\u4e09\u5c42\u7ed3\u6784",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "callgraphs_readme_\u8c03\u7528\u94fe\u56fe\u7d22\u5f15",
+      "target": "callgraphs_readme_\u4e09\u79cd\u683c\u5f0f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "callgraphs_readme_\u8c03\u7528\u94fe\u56fe\u7d22\u5f15",
+      "target": "callgraphs_readme_\u5b8f\u89c2\u5c42_\u5206\u5c42\u67b6\u6784\u56fe",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "callgraphs_readme_\u8c03\u7528\u94fe\u56fe\u7d22\u5f15",
+      "target": "callgraphs_readme_\u4e2d\u89c2\u5c42_\u6a21\u5757\u95f4\u6587\u4ef6\u4f9d\u8d56\u56fe",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L39",
+      "weight": 1.0
+    },
+    {
+      "source": "callgraphs_readme_\u8c03\u7528\u94fe\u56fe\u7d22\u5f15",
+      "target": "callgraphs_readme_\u5fae\u89c2\u5c42_\u5173\u952e\u94fe\u8def\u65f6\u5e8f\u56fe",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "callgraphs_readme_\u5fae\u89c2\u5c42_\u5173\u952e\u94fe\u8def\u65f6\u5e8f\u56fe",
+      "target": "callgraphs_readme_\u94fe\u8def_1_\u542f\u52a8\u94fe\u8def",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L53",
+      "weight": 1.0
+    },
+    {
+      "source": "callgraphs_readme_\u5fae\u89c2\u5c42_\u5173\u952e\u94fe\u8def\u65f6\u5e8f\u56fe",
+      "target": "callgraphs_readme_\u94fe\u8def_2_query_\u6267\u884c\u5faa\u73af",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L61",
+      "weight": 1.0
+    },
+    {
+      "source": "callgraphs_readme_\u5fae\u89c2\u5c42_\u5173\u952e\u94fe\u8def\u65f6\u5e8f\u56fe",
+      "target": "callgraphs_readme_\u94fe\u8def_3_tool_\u6267\u884c\u94fe\u8def",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L69",
+      "weight": 1.0
+    },
+    {
+      "source": "callgraphs_readme_\u5fae\u89c2\u5c42_\u5173\u952e\u94fe\u8def\u65f6\u5e8f\u56fe",
+      "target": "callgraphs_readme_\u94fe\u8def_4_memory_\u6ce8\u5165\u94fe\u8def",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L77",
+      "weight": 1.0
+    },
+    {
+      "source": "callgraphs_readme_\u8c03\u7528\u94fe\u56fe\u7d22\u5f15",
+      "target": "callgraphs_readme_\u6e32\u67d3\u8bf4\u660e",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L87",
+      "weight": 1.0
+    },
+    {
+      "source": "callgraphs_readme_\u6e32\u67d3\u8bf4\u660e",
+      "target": "callgraphs_readme_mermaid",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L89",
+      "weight": 1.0
+    },
+    {
+      "source": "callgraphs_readme_\u6e32\u67d3\u8bf4\u660e",
+      "target": "callgraphs_readme_graphviz",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "callgraphs_readme_\u8c03\u7528\u94fe\u56fe\u7d22\u5f15",
+      "target": "callgraphs_readme_\u5b66\u4e60\u5efa\u8bae",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/callgraphs/README.md",
+      "source_location": "L110",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

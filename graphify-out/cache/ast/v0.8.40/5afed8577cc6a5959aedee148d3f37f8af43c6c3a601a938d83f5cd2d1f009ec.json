@@ -1,0 +1,623 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_04g_prompt_management_md",
+      "label": "04g-prompt-management.md",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "analysis_04g_prompt_management_\u7b2c\u4e5d\u7ae0_prompt_\u7ba1\u7406\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "label": "\u7b2c\u4e5d\u7ae0\uff1aPrompt \u7ba1\u7406\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "analysis_04g_prompt_management_1_\u672c\u7ae0\u5bfc\u8bfb",
+      "label": "1. \u672c\u7ae0\u5bfc\u8bfb",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L5"
+    },
+    {
+      "id": "analysis_04g_prompt_management_2_\u603b\u4f53\u8bbe\u8ba1_\u8fd9\u4e0d\u662f\u5355_prompt_\u800c\u662f_prompt_runtime",
+      "label": "2. \u603b\u4f53\u8bbe\u8ba1\uff1a\u8fd9\u4e0d\u662f\u5355 prompt\uff0c\u800c\u662f prompt runtime",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L81"
+    },
+    {
+      "id": "analysis_04g_prompt_management_3_\u9ed8\u8ba4_system_prompt_\u7684\u6e90\u5934_getsystemprompt",
+      "label": "3. \u9ed8\u8ba4 system prompt \u7684\u6e90\u5934\uff1a`getSystemPrompt()`",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L127"
+    },
+    {
+      "id": "analysis_04g_prompt_management_3_1_\u5b83\u8fd4\u56de\u7684\u4e0d\u662f\u5b57\u7b26\u4e32_\u800c\u662f\u5b57\u7b26\u4e32\u6570\u7ec4",
+      "label": "3.1 \u5b83\u8fd4\u56de\u7684\u4e0d\u662f\u5b57\u7b26\u4e32\uff0c\u800c\u662f\u5b57\u7b26\u4e32\u6570\u7ec4",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L133"
+    },
+    {
+      "id": "analysis_04g_prompt_management_3_2_\u4e3b\u4f53\u7ed3\u6784_\u9759\u6001\u6bb5_\u52a8\u6001\u6bb5",
+      "label": "3.2 \u4e3b\u4f53\u7ed3\u6784\uff1a\u9759\u6001\u6bb5 + \u52a8\u6001\u6bb5",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L152"
+    },
+    {
+      "id": "analysis_04g_prompt_management_3_3_\u9ed8\u8ba4_prompt_\u7684\u9759\u6001\u4e3b\u5e72\u957f\u4ec0\u4e48\u6837",
+      "label": "3.3 \u9ed8\u8ba4 prompt \u7684\u9759\u6001\u4e3b\u5e72\u957f\u4ec0\u4e48\u6837",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L181"
+    },
+    {
+      "id": "analysis_04g_prompt_management_3_4_\u52a8\u6001\u6bb5\u662f\u4ec0\u4e48",
+      "label": "3.4 \u52a8\u6001\u6bb5\u662f\u4ec0\u4e48",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L212"
+    },
+    {
+      "id": "analysis_04g_prompt_management_4_\u6709\u6548_system_prompt_\u7684\u7ec4\u88c5\u5668_buildeffectivesystemprompt",
+      "label": "4. \u6709\u6548 system prompt \u7684\u7ec4\u88c5\u5668\uff1a`buildEffectiveSystemPrompt()`",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L241"
+    },
+    {
+      "id": "analysis_04g_prompt_management_4_1_\u8986\u76d6\u4f18\u5148\u7ea7",
+      "label": "4.1 \u8986\u76d6\u4f18\u5148\u7ea7",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L262"
+    },
+    {
+      "id": "analysis_04g_prompt_management_4_2_\u771f\u5b9e\u51fd\u6570",
+      "label": "4.2 \u771f\u5b9e\u51fd\u6570",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L293"
+    },
+    {
+      "id": "analysis_04g_prompt_management_5_\u4e3b_prompt_\u4e4b\u5916\u7684\u4e0a\u4e0b\u6587\u6ce8\u5165_getusercontext_\u4e0e_getsystemcontext",
+      "label": "5. \u4e3b prompt \u4e4b\u5916\u7684\u4e0a\u4e0b\u6587\u6ce8\u5165\uff1a`getUserContext()` \u4e0e `getSystemContext()`",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L344"
+    },
+    {
+      "id": "analysis_04g_prompt_management_5_1_getusercontext_\u7528\u6237\u7ea7\u4e0a\u4e0b\u6587",
+      "label": "5.1 `getUserContext()`\uff1a\u7528\u6237\u7ea7\u4e0a\u4e0b\u6587",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L355"
+    },
+    {
+      "id": "analysis_04g_prompt_management_5_2_getsystemcontext_\u7cfb\u7edf\u7ea7\u4e0a\u4e0b\u6587",
+      "label": "5.2 `getSystemContext()`\uff1a\u7cfb\u7edf\u7ea7\u4e0a\u4e0b\u6587",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L383"
+    },
+    {
+      "id": "analysis_04g_prompt_management_6_\u8fd0\u884c\u65f6\u5165\u53e3_\u5916\u90e8_prompt_\u662f\u600e\u4e48\u8fdb\u5165\u7cfb\u7edf\u7684",
+      "label": "6. \u8fd0\u884c\u65f6\u5165\u53e3\uff1a\u5916\u90e8 prompt \u662f\u600e\u4e48\u8fdb\u5165\u7cfb\u7edf\u7684",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L405"
+    },
+    {
+      "id": "analysis_04g_prompt_management_6_1_cli_\u663e\u5f0f\u5165\u53e3",
+      "label": "6.1 CLI \u663e\u5f0f\u5165\u53e3",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L413"
+    },
+    {
+      "id": "analysis_04g_prompt_management_6_2_\u542f\u52a8\u671f\u81ea\u52a8_addendum",
+      "label": "6.2 \u542f\u52a8\u671f\u81ea\u52a8 addendum",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L443"
+    },
+    {
+      "id": "analysis_04g_prompt_management_7_prompt_\u7f13\u5b58\u5de5\u7a0b_\u4e3a\u4ec0\u4e48\u8981\u5206_section_\u4e3a\u4ec0\u4e48\u8981\u6709_boundary",
+      "label": "7. Prompt \u7f13\u5b58\u5de5\u7a0b\uff1a\u4e3a\u4ec0\u4e48\u8981\u5206 section\u3001\u4e3a\u4ec0\u4e48\u8981\u6709 boundary",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L471"
+    },
+    {
+      "id": "analysis_04g_prompt_management_7_1_systempromptsection_\u53ef\u7f13\u5b58_section",
+      "label": "7.1 `systemPromptSection()`\uff1a\u53ef\u7f13\u5b58 section",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L480"
+    },
+    {
+      "id": "analysis_04g_prompt_management_7_2_dangerous_uncachedsystempromptsection_\u663e\u5f0f\u58f0\u660e\u4f1a\u6253\u65ad\u7f13\u5b58",
+      "label": "7.2 `DANGEROUS_uncachedSystemPromptSection()`\uff1a\u663e\u5f0f\u58f0\u660e\u4f1a\u6253\u65ad\u7f13\u5b58",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L491"
+    },
+    {
+      "id": "analysis_04g_prompt_management_7_3_\u89e3\u6790\u903b\u8f91",
+      "label": "7.3 \u89e3\u6790\u903b\u8f91",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L510"
+    },
+    {
+      "id": "analysis_04g_prompt_management_7_4_system_prompt_dynamic_boundary",
+      "label": "7.4 `SYSTEM_PROMPT_DYNAMIC_BOUNDARY`",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L533"
+    },
+    {
+      "id": "analysis_04g_prompt_management_7_5_\u4f55\u65f6\u5931\u6548",
+      "label": "7.5 \u4f55\u65f6\u5931\u6548",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L549"
+    },
+    {
+      "id": "analysis_04g_prompt_management_8_\u4e3b\u4f1a\u8bdd\u91cc_prompt_\u662f\u600e\u4e48\u5b9e\u9645\u7ec4\u88c5\u7684",
+      "label": "8. \u4e3b\u4f1a\u8bdd\u91cc prompt \u662f\u600e\u4e48\u5b9e\u9645\u7ec4\u88c5\u7684",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L560"
+    },
+    {
+      "id": "analysis_04g_prompt_management_8_1_repl_\u4e3b\u8def\u5f84",
+      "label": "8.1 REPL \u4e3b\u8def\u5f84",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L568"
+    },
+    {
+      "id": "analysis_04g_prompt_management_8_2_compact_\u8def\u5f84\u4f1a\u91cd\u65b0\u53d6\u4e00\u904d_cache_safe_prompt",
+      "label": "8.2 compact \u8def\u5f84\u4f1a\u91cd\u65b0\u53d6\u4e00\u904d cache-safe prompt",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L596"
+    },
+    {
+      "id": "analysis_04g_prompt_management_8_3_\u975e\u4ea4\u4e92_side_question_\u4e5f\u80fd\u91cd\u5efa_prompt",
+      "label": "8.3 \u975e\u4ea4\u4e92 / side question \u4e5f\u80fd\u91cd\u5efa prompt",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L613"
+    },
+    {
+      "id": "analysis_04g_prompt_management_9_\u4e13\u9879_prompt_\u5bb6\u65cf_\u4e3b_prompt_\u4e4b\u5916\u8fd8\u6709\u54ea\u4e9b_prompt",
+      "label": "9. \u4e13\u9879 prompt \u5bb6\u65cf\uff1a\u4e3b prompt \u4e4b\u5916\u8fd8\u6709\u54ea\u4e9b prompt",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L622"
+    },
+    {
+      "id": "analysis_04g_prompt_management_9_1_compact_prompt_\u5f3a\u7ea6\u675f_\u65e0\u5de5\u5177_\u53ea\u4ea7\u603b\u7ed3",
+      "label": "9.1 compact prompt\uff1a\u5f3a\u7ea6\u675f\u3001\u65e0\u5de5\u5177\u3001\u53ea\u4ea7\u603b\u7ed3",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L632"
+    },
+    {
+      "id": "analysis_04g_prompt_management_9_2_session_memory_prompt_\u8981\u6c42\u53ea\u7528_edit_\u5de5\u5177\u66f4\u65b0_notes",
+      "label": "9.2 session memory prompt\uff1a\u8981\u6c42\u53ea\u7528 Edit \u5de5\u5177\u66f4\u65b0 notes",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L657"
+    },
+    {
+      "id": "analysis_04g_prompt_management_9_3_memory_extraction_prompt_\u9650\u5236\u5de5\u5177\u96c6\u5408\u4e0e\u56de\u5408\u7b56\u7565",
+      "label": "9.3 memory extraction prompt\uff1a\u9650\u5236\u5de5\u5177\u96c6\u5408\u4e0e\u56de\u5408\u7b56\u7565",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L672"
+    },
+    {
+      "id": "analysis_04g_prompt_management_10_\u53ef\u89c2\u6d4b\u6027_\u8fd9\u4e2a\u9879\u76ee\u80fd\u628a_prompt_\u5bfc\u51fa\u6765\u770b",
+      "label": "10. \u53ef\u89c2\u6d4b\u6027\uff1a\u8fd9\u4e2a\u9879\u76ee\u80fd\u628a prompt \u5bfc\u51fa\u6765\u770b",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L684"
+    },
+    {
+      "id": "analysis_04g_prompt_management_10_1_dump_prompts_\u628a_api_\u8bf7\u6c42\u843d\u5230_jsonl",
+      "label": "10.1 `dump-prompts`\uff1a\u628a API \u8bf7\u6c42\u843d\u5230 JSONL",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L692"
+    },
+    {
+      "id": "analysis_04g_prompt_management_10_2_context_\u53ef\u4ee5\u7edf\u8ba1_system_prompt_sections_token",
+      "label": "10.2 `/context` \u53ef\u4ee5\u7edf\u8ba1 system prompt sections token",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L709"
+    },
+    {
+      "id": "analysis_04g_prompt_management_11_\u8fd9\u5957_prompt_\u7ba1\u7406\u5b9e\u73b0\u7684\u4f18\u70b9\u4e0e\u4ee3\u4ef7",
+      "label": "11. \u8fd9\u5957 prompt \u7ba1\u7406\u5b9e\u73b0\u7684\u4f18\u70b9\u4e0e\u4ee3\u4ef7",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L734"
+    },
+    {
+      "id": "analysis_04g_prompt_management_11_1_\u4f18\u70b9",
+      "label": "11.1 \u4f18\u70b9",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L736"
+    },
+    {
+      "id": "analysis_04g_prompt_management_11_2_\u4ee3\u4ef7",
+      "label": "11.2 \u4ee3\u4ef7",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L753"
+    },
+    {
+      "id": "analysis_04g_prompt_management_12_\u672c\u7ae0\u5c0f\u7ed3",
+      "label": "12. \u672c\u7ae0\u5c0f\u7ed3",
+      "file_type": "document",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L767"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_analysis_04g_prompt_management_md",
+      "target": "analysis_04g_prompt_management_\u7b2c\u4e5d\u7ae0_prompt_\u7ba1\u7406\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_\u7b2c\u4e5d\u7ae0_prompt_\u7ba1\u7406\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04g_prompt_management_1_\u672c\u7ae0\u5bfc\u8bfb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_\u7b2c\u4e5d\u7ae0_prompt_\u7ba1\u7406\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04g_prompt_management_2_\u603b\u4f53\u8bbe\u8ba1_\u8fd9\u4e0d\u662f\u5355_prompt_\u800c\u662f_prompt_runtime",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L81",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_\u7b2c\u4e5d\u7ae0_prompt_\u7ba1\u7406\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04g_prompt_management_3_\u9ed8\u8ba4_system_prompt_\u7684\u6e90\u5934_getsystemprompt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L127",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_3_\u9ed8\u8ba4_system_prompt_\u7684\u6e90\u5934_getsystemprompt",
+      "target": "analysis_04g_prompt_management_3_1_\u5b83\u8fd4\u56de\u7684\u4e0d\u662f\u5b57\u7b26\u4e32_\u800c\u662f\u5b57\u7b26\u4e32\u6570\u7ec4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L133",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_3_\u9ed8\u8ba4_system_prompt_\u7684\u6e90\u5934_getsystemprompt",
+      "target": "analysis_04g_prompt_management_3_2_\u4e3b\u4f53\u7ed3\u6784_\u9759\u6001\u6bb5_\u52a8\u6001\u6bb5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L152",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_3_\u9ed8\u8ba4_system_prompt_\u7684\u6e90\u5934_getsystemprompt",
+      "target": "analysis_04g_prompt_management_3_3_\u9ed8\u8ba4_prompt_\u7684\u9759\u6001\u4e3b\u5e72\u957f\u4ec0\u4e48\u6837",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L181",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_3_\u9ed8\u8ba4_system_prompt_\u7684\u6e90\u5934_getsystemprompt",
+      "target": "analysis_04g_prompt_management_3_4_\u52a8\u6001\u6bb5\u662f\u4ec0\u4e48",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L212",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_\u7b2c\u4e5d\u7ae0_prompt_\u7ba1\u7406\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04g_prompt_management_4_\u6709\u6548_system_prompt_\u7684\u7ec4\u88c5\u5668_buildeffectivesystemprompt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L241",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_4_\u6709\u6548_system_prompt_\u7684\u7ec4\u88c5\u5668_buildeffectivesystemprompt",
+      "target": "analysis_04g_prompt_management_4_1_\u8986\u76d6\u4f18\u5148\u7ea7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L262",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_4_\u6709\u6548_system_prompt_\u7684\u7ec4\u88c5\u5668_buildeffectivesystemprompt",
+      "target": "analysis_04g_prompt_management_4_2_\u771f\u5b9e\u51fd\u6570",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L293",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_\u7b2c\u4e5d\u7ae0_prompt_\u7ba1\u7406\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04g_prompt_management_5_\u4e3b_prompt_\u4e4b\u5916\u7684\u4e0a\u4e0b\u6587\u6ce8\u5165_getusercontext_\u4e0e_getsystemcontext",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L344",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_5_\u4e3b_prompt_\u4e4b\u5916\u7684\u4e0a\u4e0b\u6587\u6ce8\u5165_getusercontext_\u4e0e_getsystemcontext",
+      "target": "analysis_04g_prompt_management_5_1_getusercontext_\u7528\u6237\u7ea7\u4e0a\u4e0b\u6587",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L355",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_5_\u4e3b_prompt_\u4e4b\u5916\u7684\u4e0a\u4e0b\u6587\u6ce8\u5165_getusercontext_\u4e0e_getsystemcontext",
+      "target": "analysis_04g_prompt_management_5_2_getsystemcontext_\u7cfb\u7edf\u7ea7\u4e0a\u4e0b\u6587",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L383",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_\u7b2c\u4e5d\u7ae0_prompt_\u7ba1\u7406\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04g_prompt_management_6_\u8fd0\u884c\u65f6\u5165\u53e3_\u5916\u90e8_prompt_\u662f\u600e\u4e48\u8fdb\u5165\u7cfb\u7edf\u7684",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L405",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_6_\u8fd0\u884c\u65f6\u5165\u53e3_\u5916\u90e8_prompt_\u662f\u600e\u4e48\u8fdb\u5165\u7cfb\u7edf\u7684",
+      "target": "analysis_04g_prompt_management_6_1_cli_\u663e\u5f0f\u5165\u53e3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L413",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_6_\u8fd0\u884c\u65f6\u5165\u53e3_\u5916\u90e8_prompt_\u662f\u600e\u4e48\u8fdb\u5165\u7cfb\u7edf\u7684",
+      "target": "analysis_04g_prompt_management_6_2_\u542f\u52a8\u671f\u81ea\u52a8_addendum",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L443",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_\u7b2c\u4e5d\u7ae0_prompt_\u7ba1\u7406\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04g_prompt_management_7_prompt_\u7f13\u5b58\u5de5\u7a0b_\u4e3a\u4ec0\u4e48\u8981\u5206_section_\u4e3a\u4ec0\u4e48\u8981\u6709_boundary",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L471",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_7_prompt_\u7f13\u5b58\u5de5\u7a0b_\u4e3a\u4ec0\u4e48\u8981\u5206_section_\u4e3a\u4ec0\u4e48\u8981\u6709_boundary",
+      "target": "analysis_04g_prompt_management_7_1_systempromptsection_\u53ef\u7f13\u5b58_section",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L480",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_7_prompt_\u7f13\u5b58\u5de5\u7a0b_\u4e3a\u4ec0\u4e48\u8981\u5206_section_\u4e3a\u4ec0\u4e48\u8981\u6709_boundary",
+      "target": "analysis_04g_prompt_management_7_2_dangerous_uncachedsystempromptsection_\u663e\u5f0f\u58f0\u660e\u4f1a\u6253\u65ad\u7f13\u5b58",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L491",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_7_prompt_\u7f13\u5b58\u5de5\u7a0b_\u4e3a\u4ec0\u4e48\u8981\u5206_section_\u4e3a\u4ec0\u4e48\u8981\u6709_boundary",
+      "target": "analysis_04g_prompt_management_7_3_\u89e3\u6790\u903b\u8f91",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L510",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_7_prompt_\u7f13\u5b58\u5de5\u7a0b_\u4e3a\u4ec0\u4e48\u8981\u5206_section_\u4e3a\u4ec0\u4e48\u8981\u6709_boundary",
+      "target": "analysis_04g_prompt_management_7_4_system_prompt_dynamic_boundary",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L533",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_7_prompt_\u7f13\u5b58\u5de5\u7a0b_\u4e3a\u4ec0\u4e48\u8981\u5206_section_\u4e3a\u4ec0\u4e48\u8981\u6709_boundary",
+      "target": "analysis_04g_prompt_management_7_5_\u4f55\u65f6\u5931\u6548",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L549",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_\u7b2c\u4e5d\u7ae0_prompt_\u7ba1\u7406\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04g_prompt_management_8_\u4e3b\u4f1a\u8bdd\u91cc_prompt_\u662f\u600e\u4e48\u5b9e\u9645\u7ec4\u88c5\u7684",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L560",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_8_\u4e3b\u4f1a\u8bdd\u91cc_prompt_\u662f\u600e\u4e48\u5b9e\u9645\u7ec4\u88c5\u7684",
+      "target": "analysis_04g_prompt_management_8_1_repl_\u4e3b\u8def\u5f84",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L568",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_8_\u4e3b\u4f1a\u8bdd\u91cc_prompt_\u662f\u600e\u4e48\u5b9e\u9645\u7ec4\u88c5\u7684",
+      "target": "analysis_04g_prompt_management_8_2_compact_\u8def\u5f84\u4f1a\u91cd\u65b0\u53d6\u4e00\u904d_cache_safe_prompt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L596",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_8_\u4e3b\u4f1a\u8bdd\u91cc_prompt_\u662f\u600e\u4e48\u5b9e\u9645\u7ec4\u88c5\u7684",
+      "target": "analysis_04g_prompt_management_8_3_\u975e\u4ea4\u4e92_side_question_\u4e5f\u80fd\u91cd\u5efa_prompt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L613",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_\u7b2c\u4e5d\u7ae0_prompt_\u7ba1\u7406\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04g_prompt_management_9_\u4e13\u9879_prompt_\u5bb6\u65cf_\u4e3b_prompt_\u4e4b\u5916\u8fd8\u6709\u54ea\u4e9b_prompt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L622",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_9_\u4e13\u9879_prompt_\u5bb6\u65cf_\u4e3b_prompt_\u4e4b\u5916\u8fd8\u6709\u54ea\u4e9b_prompt",
+      "target": "analysis_04g_prompt_management_9_1_compact_prompt_\u5f3a\u7ea6\u675f_\u65e0\u5de5\u5177_\u53ea\u4ea7\u603b\u7ed3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L632",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_9_\u4e13\u9879_prompt_\u5bb6\u65cf_\u4e3b_prompt_\u4e4b\u5916\u8fd8\u6709\u54ea\u4e9b_prompt",
+      "target": "analysis_04g_prompt_management_9_2_session_memory_prompt_\u8981\u6c42\u53ea\u7528_edit_\u5de5\u5177\u66f4\u65b0_notes",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L657",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_9_\u4e13\u9879_prompt_\u5bb6\u65cf_\u4e3b_prompt_\u4e4b\u5916\u8fd8\u6709\u54ea\u4e9b_prompt",
+      "target": "analysis_04g_prompt_management_9_3_memory_extraction_prompt_\u9650\u5236\u5de5\u5177\u96c6\u5408\u4e0e\u56de\u5408\u7b56\u7565",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L672",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_\u7b2c\u4e5d\u7ae0_prompt_\u7ba1\u7406\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04g_prompt_management_10_\u53ef\u89c2\u6d4b\u6027_\u8fd9\u4e2a\u9879\u76ee\u80fd\u628a_prompt_\u5bfc\u51fa\u6765\u770b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L684",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_10_\u53ef\u89c2\u6d4b\u6027_\u8fd9\u4e2a\u9879\u76ee\u80fd\u628a_prompt_\u5bfc\u51fa\u6765\u770b",
+      "target": "analysis_04g_prompt_management_10_1_dump_prompts_\u628a_api_\u8bf7\u6c42\u843d\u5230_jsonl",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L692",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_10_\u53ef\u89c2\u6d4b\u6027_\u8fd9\u4e2a\u9879\u76ee\u80fd\u628a_prompt_\u5bfc\u51fa\u6765\u770b",
+      "target": "analysis_04g_prompt_management_10_2_context_\u53ef\u4ee5\u7edf\u8ba1_system_prompt_sections_token",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L709",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_\u7b2c\u4e5d\u7ae0_prompt_\u7ba1\u7406\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04g_prompt_management_11_\u8fd9\u5957_prompt_\u7ba1\u7406\u5b9e\u73b0\u7684\u4f18\u70b9\u4e0e\u4ee3\u4ef7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L734",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_11_\u8fd9\u5957_prompt_\u7ba1\u7406\u5b9e\u73b0\u7684\u4f18\u70b9\u4e0e\u4ee3\u4ef7",
+      "target": "analysis_04g_prompt_management_11_1_\u4f18\u70b9",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L736",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_11_\u8fd9\u5957_prompt_\u7ba1\u7406\u5b9e\u73b0\u7684\u4f18\u70b9\u4e0e\u4ee3\u4ef7",
+      "target": "analysis_04g_prompt_management_11_2_\u4ee3\u4ef7",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L753",
+      "weight": 1.0
+    },
+    {
+      "source": "analysis_04g_prompt_management_\u7b2c\u4e5d\u7ae0_prompt_\u7ba1\u7406\u673a\u5236\u4e0e\u5b9e\u73b0\u7ec6\u8282",
+      "target": "analysis_04g_prompt_management_12_\u672c\u7ae0\u5c0f\u7ed3",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "analysis/04g-prompt-management.md",
+      "source_location": "L767",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

@@ -1,0 +1,199 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_packages_builtin_tools_package_json",
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L1"
+    },
+    {
+      "id": "builtin_tools_package_name",
+      "label": "name",
+      "file_type": "code",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L2"
+    },
+    {
+      "id": "builtin_tools_package_version",
+      "label": "version",
+      "file_type": "code",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L3"
+    },
+    {
+      "id": "builtin_tools_package_private",
+      "label": "private",
+      "file_type": "code",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L4"
+    },
+    {
+      "id": "builtin_tools_package_type",
+      "label": "type",
+      "file_type": "code",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L5"
+    },
+    {
+      "id": "builtin_tools_package_main",
+      "label": "main",
+      "file_type": "code",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L6"
+    },
+    {
+      "id": "builtin_tools_package_types",
+      "label": "types",
+      "file_type": "code",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L7"
+    },
+    {
+      "id": "builtin_tools_package_exports",
+      "label": "exports",
+      "file_type": "code",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L8"
+    },
+    {
+      "id": "builtin_tools_package_exports_tools",
+      "label": "./tools/*",
+      "file_type": "code",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L10"
+    },
+    {
+      "id": "builtin_tools_package_exports_utils",
+      "label": "./utils",
+      "file_type": "code",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L11"
+    },
+    {
+      "id": "builtin_tools_package_dependencies",
+      "label": "dependencies",
+      "file_type": "code",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "builtin_tools_package_dependencies_claude_code_best_agent_tools",
+      "label": "@claude-code-best/agent-tools",
+      "file_type": "code",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L14"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_builtin_tools_package_json",
+      "target": "builtin_tools_package_name",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_builtin_tools_package_json",
+      "target": "builtin_tools_package_version",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_builtin_tools_package_json",
+      "target": "builtin_tools_package_private",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_builtin_tools_package_json",
+      "target": "builtin_tools_package_type",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_builtin_tools_package_json",
+      "target": "builtin_tools_package_main",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_builtin_tools_package_json",
+      "target": "builtin_tools_package_types",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_builtin_tools_package_json",
+      "target": "builtin_tools_package_exports",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "builtin_tools_package_exports",
+      "target": "builtin_tools_package_exports_tools",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "builtin_tools_package_exports",
+      "target": "builtin_tools_package_exports_utils",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_packages_builtin_tools_package_json",
+      "target": "builtin_tools_package_dependencies",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "builtin_tools_package_dependencies",
+      "target": "builtin_tools_package_dependencies_claude_code_best_agent_tools",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "builtin_tools_package_dependencies_claude_code_best_agent_tools",
+      "target": "claude_code_best_agent_tools",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "packages/builtin-tools/package.json",
+      "source_location": "L14",
+      "weight": 1.0,
+      "context": "import"
+    }
+  ]
+}

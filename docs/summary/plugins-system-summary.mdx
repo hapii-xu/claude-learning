@@ -1,0 +1,640 @@
+---
+title: Plugins 系统知识总结
+description: Claude Code 的"能力扩展包" —— plugin.json 清单字段字典、5 种插件来源、6 种 Scope（user/project/local/managed/flag/inline）、加载流水线（pluginLoader.ts → 组件收集）、内置插件注册机制（registerBuiltinPlugin）、Marketplace 架构，以及如何从零创建一个可工作的本地插件
+---
+
+# Plugins 系统知识总结
+
+> 这是"总结学习"栏目的第九篇。目标：彻底理解 Claude Code 的 **Plugins 机制** —— 一个目录/包如何成为插件、`plugin.json` 各字段的含义、5 种来源如何被加载、插件如何提供 Skills / Hooks / Commands / MCP Servers，以及如何从零创建并安装一个本地插件。
+
+---
+
+## 一、Plugins 全貌
+
+### 什么是 Plugin
+
+Plugin（插件）是将多种扩展能力（Skills、Hooks、Commands、Agents、MCP Servers）打包成**一个可复用、可分发单元**的机制。
+
+```
+Plugin（能力包）
+├── Skills     → 可复用提示词模板
+├── Commands   → 斜杠命令（Legacy 格式）
+├── Agents     → 自定义 Agent 定义
+├── Hooks      → 生命周期插桩配置
+├── MCP Servers → 外部工具连接配置
+└── Output Styles → 自定义输出渲染
+```
+
+### Plugin 与 Skill/Hook 的区别
+
+| 维度 | Skill | Hook | Plugin |
+|-----|-------|------|-------|
+| 最小单位 | 一个 .md 文件 | 一个 JSON 配置块 | 一个目录（含 plugin.json） |
+| 作用域 | 提示词工作流 | 生命周期事件 | **打包所有类型的扩展** |
+| 分发方式 | 目录复制 | settings.json 拷贝 | **Marketplace / git / npm** |
+| 版本管理 | 手动 | 手动 | **语义版本 + 依赖解析** |
+
+### 5 种 Plugin 来源
+
+| 来源 | 说明 | 加载时机 |
+|------|------|---------|
+| **内置插件**（builtin） | 编译进 CLI，`registerBuiltinPlugin()` 注册 | 启动时 |
+| **Marketplace 插件** | 通过 `claude plugin install name@market` 安装 | 启动时从缓存加载 |
+| **Git 插件** | 从 git 仓库安装 | 启动时从缓存加载 |
+| **npm 插件** | 从 npm registry 安装 | 启动时从缓存加载 |
+| **Session 插件**（inline） | `--plugin-dir` CLI 参数 / SDK `plugins` 选项 | 每次启动临时加载 |
+
+---
+
+## 二、必须掌握的 6 个核心概念
+
+### 1. plugin.json 清单文件
+
+`plugin.json` 是插件的清单文件（可选，但推荐），放在插件目录的根部：
+
+```json
+{
+  "name": "my-plugin",
+  "version": "1.0.0",
+  "description": "我的第一个 Claude Code 插件",
+  "author": {
+    "name": "Your Name",
+    "email": "you@example.com",
+    "url": "https://github.com/yourname"
+  },
+  "homepage": "https://github.com/yourname/my-plugin",
+  "repository": "https://github.com/yourname/my-plugin",
+  "license": "MIT",
+  "keywords": ["git", "automation", "code-review"],
+  "dependencies": [
+    { "name": "other-plugin", "version": "^1.0.0" }
+  ],
+
+  "skills": "./skills",
+  "commands": ["./commands", "./extra-commands"],
+  "agents": "./agents",
+  "outputStyles": "./styles",
+
+  "hooks": "./hooks/hooks.json",
+
+  "mcpServers": {
+    "my-server": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "my-mcp-server"]
+    }
+  }
+}
+```
+
+### 2. plugin.json 字段字典（完整）
+
+> Schema 定义：`src/utils/plugins/schemas.ts`（`PluginManifestSchema`）
+
+| 字段 | 类型 | 必填 | 含义 |
+|------|------|-----|------|
+| `name` | `string` | 推荐 | 插件标识符，kebab-case，用于 `name@marketplace` 引用 |
+| `version` | `string` | 否 | 语义版本号，如 `1.0.0`，用于依赖约束 |
+| `description` | `string` | 否 | 简短描述，显示在 Marketplace 和 UI 中 |
+| `author` | `object` | 否 | 作者信息（`name` 必填，`email`/`url` 可选） |
+| `homepage` | `string` | 否 | 文档/官网 URL |
+| `repository` | `string` | 否 | 源码仓库 URL |
+| `license` | `string` | 否 | SPDX 许可证标识符，如 `MIT` |
+| `keywords` | `string[]` | 否 | 搜索/发现标签 |
+| `dependencies` | `Array<{name, version?}>` | 否 | 依赖的其他插件（`name@market` 格式） |
+| `skills` | `string \| string[]` | 否 | Skills 目录路径（相对于插件根目录） |
+| `commands` | `string \| string[]` | 否 | Commands 目录路径（Legacy 斜杠命令） |
+| `agents` | `string \| string[]` | 否 | Agents 定义目录路径 |
+| `outputStyles` | `string \| string[]` | 否 | 输出样式目录路径 |
+| `hooks` | `string \| HooksSettings` | 否 | Hooks 配置：文件路径字符串 或 内联对象 |
+| `mcpServers` | `Record<string, McpConfig>` | 否 | MCP server 配置（与 `.mcp.json` 格式相同） |
+
+### 3. Plugin 目录结构
+
+```
+my-plugin/                          # 插件根目录
+├── plugin.json                     # 清单文件（推荐）
+│
+├── skills/                         # Skills（同 .claude/skills/ 格式）
+│   └── my-skill/
+│       └── SKILL.md
+│
+├── commands/                       # Legacy 命令（.md 文件）
+│   └── my-command.md
+│
+├── agents/                         # 自定义 Agent 定义
+│   └── review-agent.md
+│
+├── hooks/
+│   └── hooks.json                  # Hooks 配置（或内联在 plugin.json）
+│
+├── output-styles/                  # 自定义输出样式
+│   └── compact.css
+│
+└── README.md
+```
+
+### 4. Plugin 加载流水线
+
+> 主加载器：`src/utils/plugins/pluginLoader.ts`
+
+```
+启动时（main.tsx → initPlugins()）
+    ↓
+Step 1: 收集插件来源
+    ├─ 内置插件（getBuiltinPlugins()）
+    ├─ settings.json 中的 enabledPlugins 列表
+    ├─ --plugin-dir 参数（session 插件）
+    └─ 企业策略插件（managedPlugins.ts）
+    ↓
+Step 2: 解析每个插件
+    ├─ getPluginCachePath() → 确定缓存路径
+    ├─ 读取并验证 plugin.json（PluginManifestSchema）
+    ├─ 解析依赖（dependencyResolver.ts）
+    └─ 检查 isAvailable()（feature gate）
+    ↓
+Step 3: 加载各组件
+    ├─ loadPluginCommands.ts → 命令/Skills
+    ├─ loadPluginHooks.ts → Hooks 配置
+    ├─ loadPluginAgents.ts → Agent 定义
+    ├─ loadPluginOutputStyles.ts → 输出样式
+    └─ mcpPluginIntegration.ts → MCP server 配置注入
+    ↓
+Step 4: 状态管理
+    ├─ 读取 settings.enabledPlugins 开关状态
+    └─ 返回 { enabled: LoadedPlugin[], disabled: LoadedPlugin[], errors[] }
+```
+
+### 5. Plugin Scope（安装位置）
+
+Plugin 的安装位置决定它的影响范围：
+
+| Scope | 配置文件 | 影响范围 |
+|-------|---------|---------|
+| `user` | `~/.claude/settings.json` | 当前用户的所有项目 |
+| `project` | `./.claude/settings.json` | 当前项目（git 跟踪，团队共享） |
+| `local` | `./.claude/settings.local.json` | 当前项目（不进 git，个人配置） |
+| `managed` | 企业策略路径 | 组织所有用户（只读） |
+| `flag` | CLI `--plugin-dir` 参数 | 当前会话（不持久化） |
+| `inline` | SDK `plugins` 选项 | 当前会话（不持久化） |
+
+**scope 与 settings source 的映射**（`src/utils/plugins/pluginIdentifier.ts:26-32`）：
+```typescript
+SETTING_SOURCE_TO_SCOPE = {
+  policySettings: 'managed',
+  userSettings: 'user',
+  projectSettings: 'project',
+  localSettings: 'local',
+  flagSettings: 'flag',
+}
+```
+
+### 6. 内置插件注册（`registerBuiltinPlugin`）
+
+内置插件编译进 CLI，通过 `registerBuiltinPlugin()` 在 `src/plugins/builtinPlugins.ts` 中注册：
+
+```typescript
+type BuiltinPluginDefinition = {
+  name: string                         // 插件标识符
+  description: string                  // 描述
+  version?: string                     // 版本
+  skills?: BundledSkillDefinition[]    // 内置 Skills
+  hooks?: HooksSettings                // Hooks 配置
+  mcpServers?: Record<string, McpServerConfig>
+  isAvailable?: () => boolean          // Feature gate（返回 false 则不加载）
+  defaultEnabled?: boolean             // 默认是否启用（默认 true）
+}
+
+registerBuiltinPlugin({
+  name: 'my-builtin-plugin',
+  description: '内置插件示例',
+  defaultEnabled: true,
+  isAvailable: () => feature('MY_FEATURE'),
+  skills: [/* BundledSkillDefinition[] */],
+  hooks: {
+    PreToolUse: [{ hooks: [{ type: 'command', command: 'echo hello' }] }]
+  }
+})
+```
+
+---
+
+## 三、应该了解的 3 个重要机制
+
+### A. Plugin 标识符格式
+
+```
+name@marketplace
+```
+
+- `my-plugin` — 裸名，无 Marketplace
+- `my-plugin@github:user/repo` — 来自 GitHub 仓库
+- `my-plugin@npm:my-plugin-package` — 来自 npm
+- `my-plugin@file:/local/path` — 来自本地文件路径
+
+**解析函数**：`parsePluginIdentifier()` in `src/utils/plugins/pluginIdentifier.ts`
+
+### B. Marketplace 来源类型
+
+`plugin.json` 的 `repository` 字段格式 / 安装时来源类型（`src/utils/plugins/schemas.ts`）：
+
+```typescript
+type MarketplaceSource =
+  | { source: 'github'; repo: string }        // github:owner/repo
+  | { source: 'git';    url: string }         // git:https://...
+  | { source: 'npm';    package: string; registry?: string }
+  | { source: 'file';   path: string }        // 本地路径
+```
+
+**内置保留名称**（不能自定义 marketplace 使用）：
+- `claude-code-marketplace`
+- `claude-plugins-official`
+- `anthropic-marketplace`
+- `agent-skills`
+
+### C. Plugin 的 Hooks 配置两种写法
+
+**写法一：内联 JSON**（直接在 `plugin.json` 的 `hooks` 字段）：
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(*)",
+        "hooks": [{ "type": "command", "command": "echo 'hook ran'" }]
+      }
+    ]
+  }
+}
+```
+
+**写法二：引用文件**（`hooks` 字段为字符串路径）：
+
+```json
+{
+  "hooks": "./hooks/hooks.json"
+}
+```
+
+`./hooks/hooks.json`：
+```json
+{
+  "PreToolUse": [
+    {
+      "matcher": "Bash(*)",
+      "hooks": [{ "type": "command", "command": "echo 'hook ran'" }]
+    }
+  ]
+}
+```
+
+---
+
+## 四、字段字典 + 完整实例示例
+
+### 实例 1：最简单的本地 Session 插件
+
+**创建方式**：`claude --plugin-dir ./my-plugin`
+
+**目录结构**：
+```
+my-plugin/
+└── skills/
+    └── greet/
+        └── SKILL.md
+```
+
+**`my-plugin/skills/greet/SKILL.md`**：
+```markdown
+---
+description: 发出一句友好的问候
+---
+
+请用中文向用户打招呼，并询问今天有什么可以帮助的。
+```
+
+**无需 `plugin.json`**——Claude Code 会自动发现 `skills/` 目录。
+
+---
+
+### 实例 2：完整的项目级插件（带 Skills + Hooks）
+
+**安装命令**：
+```bash
+# 将下面的目录结构放到 ./plugins/dev-tools/
+claude plugin install --scope project --source file:./plugins/dev-tools
+```
+
+**目录结构**：
+```
+plugins/dev-tools/
+├── plugin.json
+├── skills/
+│   └── code-review/
+│       └── SKILL.md
+└── hooks/
+    └── hooks.json
+```
+
+**`plugin.json`**：
+```json
+{
+  "name": "dev-tools",
+  "version": "1.0.0",
+  "description": "团队开发工具集：代码审查 + 操作记录",
+  "author": {
+    "name": "Dev Team",
+    "url": "https://github.com/myteam"
+  },
+  "license": "MIT",
+  "keywords": ["code-review", "logging", "safety"],
+
+  "skills": "./skills",
+  "hooks": "./hooks/hooks.json"
+}
+```
+
+**`skills/code-review/SKILL.md`**：
+```markdown
+---
+description: 对指定文件进行代码审查
+argument-hint: <file-path>
+arguments: [filepath]
+allowed-tools: [Read, Grep, GlobTool]
+when-to-use: 当用户要求审查特定文件时
+---
+
+请对以下文件进行代码审查：**$ARG1**
+
+检查：可读性、潜在 bug、安全漏洞、性能问题。
+首先用 Read 工具读取文件内容，然后逐项给出建议。
+```
+
+**`hooks/hooks.json`**：
+```json
+{
+  "PreToolUse": [
+    {
+      "matcher": "Bash(rm*)",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "echo \"⚠️ 注意：即将执行 rm 命令，请确认操作\" >&2",
+          "statusMessage": "安全检查..."
+        }
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Bash(*)",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "echo \"[$(date '+%H:%M:%S')] $ARGUMENTS\" >> ~/.claude-audit.log",
+          "async": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+### 实例 3：带 MCP Server 的插件
+
+**`plugin.json`**：
+```json
+{
+  "name": "database-tools",
+  "version": "2.0.0",
+  "description": "数据库操作工具集（PostgreSQL + Redis）",
+  "author": { "name": "DBA Team" },
+
+  "skills": "./skills",
+
+  "mcpServers": {
+    "postgres": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}"
+      }
+    },
+    "redis": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-server-redis"],
+      "env": {
+        "REDIS_URL": "${REDIS_URL}"
+      }
+    }
+  }
+}
+```
+
+---
+
+### 实例 4：内联 Hooks 的完整插件
+
+**`plugin.json`**（Hooks 直接内联）：
+```json
+{
+  "name": "safety-guard",
+  "version": "1.0.0",
+  "description": "操作安全守卫插件",
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git push --force*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '❌ 禁止 force push！' >&2 && exit 2"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(DROP TABLE*)",
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "用户即将执行 DROP TABLE 操作。请分析 $ARGUMENTS 中的命令，如果有数据丢失风险，在回复中包含 BLOCK 关键字。",
+            "model": "claude-haiku-4-5-20251001",
+            "timeout": 15,
+            "statusMessage": "AI 安全审查中..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '🔒 safety-guard 插件已激活'",
+            "once": true
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 实例 5：带依赖的插件
+
+**`plugin.json`**（依赖另一个插件提供的 Skill）：
+```json
+{
+  "name": "advanced-review",
+  "version": "1.0.0",
+  "description": "高级代码审查套件（依赖 dev-tools）",
+
+  "dependencies": [
+    { "name": "dev-tools", "version": "^1.0.0" }
+  ],
+
+  "skills": "./skills",
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "FileWriteTool(src/**)",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "即将写入文件：$ARGUMENTS。请快速检查是否有明显错误。",
+            "model": "claude-haiku-4-5-20251001",
+            "timeout": 20,
+            "statusMessage": "快速代码检查..."
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 五、Plugin 安装与管理
+
+### CLI 命令
+
+```bash
+# 安装（默认 user scope）
+claude plugin install my-plugin@marketplace
+
+# 安装到项目（团队共享）
+claude plugin install my-plugin@marketplace --scope project
+
+# 从本地路径安装（开发调试）
+claude plugin install --scope local --source file:./my-plugin
+
+# 从 git 安装
+claude plugin install --source git:https://github.com/user/my-plugin
+
+# Session 临时加载（不持久化）
+claude --plugin-dir ./my-plugin
+
+# 列出已安装插件
+claude plugin list
+
+# 禁用插件（保留缓存）
+claude plugin disable my-plugin
+
+# 启用插件
+claude plugin enable my-plugin
+
+# 卸载插件
+claude plugin uninstall my-plugin
+```
+
+### 插件缓存路径
+
+安装后的插件缓存在：
+```
+~/.claude/plugins/cache/{marketplace}/{plugin-name}/{version}/
+```
+
+Legacy 路径（无版本）：
+```
+~/.claude/plugins/cache/{plugin-name}/
+```
+
+---
+
+## 六、关键文件清单
+
+| 文件 | 角色 | 关键函数/常量 |
+|------|------|-------------|
+| `src/utils/plugins/pluginLoader.ts` | core | 主加载器，`loadPlugin()`、`getPluginLoadResult()` |
+| `src/utils/plugins/schemas.ts` | config | `PluginManifestSchema`、`MarketplaceSourceSchema`、MCP 配置 schema |
+| `src/utils/plugins/pluginIdentifier.ts` | util | `parsePluginIdentifier()`（:1）、`SETTING_SOURCE_TO_SCOPE`（:26） |
+| `src/plugins/builtinPlugins.ts` | core | `registerBuiltinPlugin()`、`getBuiltinPlugins()` |
+| `src/types/plugin.ts` | config | `LoadedPlugin`、`PluginError`、`PluginLoadResult` 类型（:1-364） |
+| `src/utils/plugins/loadPluginCommands.ts` | util | 命令/Skills 路径加载 |
+| `src/utils/plugins/loadPluginHooks.ts` | util | Hooks 配置加载（文件 or 内联） |
+| `src/utils/plugins/loadPluginAgents.ts` | util | Agent 定义加载 |
+| `src/utils/plugins/marketplaceManager.ts` | core | Marketplace 缓存管理 |
+| `src/utils/plugins/dependencyResolver.ts` | core | 插件依赖解析 |
+| `src/utils/plugins/installedPluginsManager.ts` | core | 已安装插件的持久化管理 |
+| `src/utils/plugins/pluginDirectories.ts` | util | 插件路径解析（缓存路径、scope 映射） |
+| `src/utils/plugins/validatePlugin.ts` | util | 插件清单验证 |
+| `src/utils/plugins/mcpPluginIntegration.ts` | core | 插件 MCP server 配置注入到全局 MCP 配置 |
+
+---
+
+## 七、学习建议
+
+**实操路线**（推荐按顺序）：
+
+1. **最简本地插件**：创建 `./my-plugin/skills/hello/SKILL.md`，用 `claude --plugin-dir ./my-plugin` 加载，测试 `/hello` 命令
+
+2. **加入 plugin.json**：为上面的目录加上 `plugin.json`，添加 `name`/`description`/`version`，验证格式正确
+
+3. **加入 Hooks**：在 `plugin.json` 中加入 `hooks` 字段（内联或文件引用），写一个 `PreToolUse` hook
+
+4. **读 `src/utils/plugins/pluginLoader.ts`**：理解完整加载流程，重点看组件收集部分
+
+5. **实验正式安装**：`claude plugin install --scope project --source file:./my-plugin`，验证插件出现在 `claude plugin list` 中
+
+---
+
+## 八、与前序衔接
+
+| 已学模块 | 与 Plugins 的关联 |
+|---------|----------------|
+| Skills 系统 | Plugin 的 `skills` 字段指向同格式的 SKILL.md 目录 |
+| Hooks 系统 | Plugin 的 `hooks` 字段完全兼容 settings.json hooks 格式 |
+| MCP 协议 | Plugin 的 `mcpServers` 字段与 `.mcp.json` 格式相同，注入全局 MCP 配置 |
+| 安全与权限 | Plugin Scope 决定权限范围；managed 插件具有最高优先级，只读 |
+
+---
+
+## 九、验证清单
+
+完成本篇学习后，你应该能够：
+
+- [ ] 创建一个本地目录插件，用 `--plugin-dir` 成功加载
+- [ ] 写出一个完整的 `plugin.json`，包含 `skills`、`hooks`、`mcpServers` 三个字段
+- [ ] 说出 6 种 Plugin Scope 及其对应的配置文件路径
+- [ ] 解释内置插件（builtin）和 Marketplace 插件在加载机制上的差异
+- [ ] 在 `src/utils/plugins/pluginLoader.ts` 中找到组件加载的代码路径
+
+---
+
+## 十、后续路线
+
+至此，可扩展性四件套（MCP + Skills + Hooks + Plugins）已全部覆盖。
+
+下一篇推荐：**API 通信层**
+
+有了对 Skills/Hooks/Plugins 的理解，下一个值得深入的主题是 `src/services/api/claude.ts` —— 每一轮 API 请求是如何被构造的（tools 参数如何组装、betas 如何切换、流式响应如何处理），以及 7 种 provider 切换机制。

@@ -1,0 +1,541 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_json",
+      "label": "docs.json",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L1"
+    },
+    {
+      "id": "claude_code_docs_schema",
+      "label": "$schema",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L2"
+    },
+    {
+      "id": "claude_code_docs_theme",
+      "label": "theme",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L3"
+    },
+    {
+      "id": "claude_code_docs_name",
+      "label": "name",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L4"
+    },
+    {
+      "id": "claude_code_docs_colors",
+      "label": "colors",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L5"
+    },
+    {
+      "id": "claude_code_docs_colors_primary",
+      "label": "primary",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L6"
+    },
+    {
+      "id": "claude_code_docs_colors_light",
+      "label": "light",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L7"
+    },
+    {
+      "id": "claude_code_docs_colors_dark",
+      "label": "dark",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L8"
+    },
+    {
+      "id": "claude_code_docs_favicon",
+      "label": "favicon",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L10"
+    },
+    {
+      "id": "claude_code_docs_navigation",
+      "label": "navigation",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L11"
+    },
+    {
+      "id": "claude_code_docs_navigation_groups",
+      "label": "groups",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L12"
+    },
+    {
+      "id": "claude_code_docs_logo",
+      "label": "logo",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L151"
+    },
+    {
+      "id": "claude_code_docs_logo_light",
+      "label": "light",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L152"
+    },
+    {
+      "id": "claude_code_docs_logo_dark",
+      "label": "dark",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L153"
+    },
+    {
+      "id": "claude_code_docs_background",
+      "label": "background",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L155"
+    },
+    {
+      "id": "claude_code_docs_background_color",
+      "label": "color",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L156"
+    },
+    {
+      "id": "claude_code_docs_color_light",
+      "label": "light",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L157"
+    },
+    {
+      "id": "claude_code_docs_color_dark",
+      "label": "dark",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L158"
+    },
+    {
+      "id": "claude_code_docs_navbar",
+      "label": "navbar",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L161"
+    },
+    {
+      "id": "claude_code_docs_navbar_primary",
+      "label": "primary",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L162"
+    },
+    {
+      "id": "claude_code_docs_primary_type",
+      "label": "type",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L163"
+    },
+    {
+      "id": "claude_code_docs_primary_href",
+      "label": "href",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L164"
+    },
+    {
+      "id": "claude_code_docs_search",
+      "label": "search",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L167"
+    },
+    {
+      "id": "claude_code_docs_search_prompt",
+      "label": "prompt",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L168"
+    },
+    {
+      "id": "claude_code_docs_seo",
+      "label": "seo",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L170"
+    },
+    {
+      "id": "claude_code_docs_seo_metatags",
+      "label": "metatags",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L171"
+    },
+    {
+      "id": "claude_code_docs_metatags_og_image",
+      "label": "og:image",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L172"
+    },
+    {
+      "id": "claude_code_docs_metatags_twitter_image",
+      "label": "twitter:image",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L173"
+    },
+    {
+      "id": "claude_code_docs_metatags_twitter_card",
+      "label": "twitter:card",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L174"
+    },
+    {
+      "id": "claude_code_docs_seo_indexing",
+      "label": "indexing",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L176"
+    },
+    {
+      "id": "claude_code_docs_footer",
+      "label": "footer",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L178"
+    },
+    {
+      "id": "claude_code_docs_footer_socials",
+      "label": "socials",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L179"
+    },
+    {
+      "id": "claude_code_docs_socials_github",
+      "label": "github",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L180"
+    },
+    {
+      "id": "claude_code_docs_redirects",
+      "label": "redirects",
+      "file_type": "code",
+      "source_file": "docs.json",
+      "source_location": "L183"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_json",
+      "target": "claude_code_docs_schema",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_json",
+      "target": "claude_code_docs_theme",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_json",
+      "target": "claude_code_docs_name",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_json",
+      "target": "claude_code_docs_colors",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_colors",
+      "target": "claude_code_docs_colors_primary",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_colors",
+      "target": "claude_code_docs_colors_light",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_colors",
+      "target": "claude_code_docs_colors_dark",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_json",
+      "target": "claude_code_docs_favicon",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_json",
+      "target": "claude_code_docs_navigation",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_navigation",
+      "target": "claude_code_docs_navigation_groups",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_json",
+      "target": "claude_code_docs_logo",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L151",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_logo",
+      "target": "claude_code_docs_logo_light",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L152",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_logo",
+      "target": "claude_code_docs_logo_dark",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L153",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_json",
+      "target": "claude_code_docs_background",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L155",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_background",
+      "target": "claude_code_docs_background_color",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L156",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_background_color",
+      "target": "claude_code_docs_color_light",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L157",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_background_color",
+      "target": "claude_code_docs_color_dark",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L158",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_json",
+      "target": "claude_code_docs_navbar",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L161",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_navbar",
+      "target": "claude_code_docs_navbar_primary",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L162",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_navbar_primary",
+      "target": "claude_code_docs_primary_type",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L163",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_navbar_primary",
+      "target": "claude_code_docs_primary_href",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L164",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_json",
+      "target": "claude_code_docs_search",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L167",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_search",
+      "target": "claude_code_docs_search_prompt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L168",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_json",
+      "target": "claude_code_docs_seo",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L170",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_seo",
+      "target": "claude_code_docs_seo_metatags",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L171",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_seo_metatags",
+      "target": "claude_code_docs_metatags_og_image",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L172",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_seo_metatags",
+      "target": "claude_code_docs_metatags_twitter_image",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L173",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_seo_metatags",
+      "target": "claude_code_docs_metatags_twitter_card",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L174",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_seo",
+      "target": "claude_code_docs_seo_indexing",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L176",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_json",
+      "target": "claude_code_docs_footer",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L178",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_footer",
+      "target": "claude_code_docs_footer_socials",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L179",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_code_docs_footer_socials",
+      "target": "claude_code_docs_socials_github",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L180",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_json",
+      "target": "claude_code_docs_redirects",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs.json",
+      "source_location": "L183",
+      "weight": 1.0
+    }
+  ]
+}

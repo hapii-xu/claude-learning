@@ -1,0 +1,527 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_lan_pipes_implementation_md",
+      "label": "lan-pipes-implementation.md",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_lan_pipes_implementation_lan_pipes_\u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "label": "LAN Pipes \u2014 \u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_lan_pipes_implementation_\u67b6\u6784",
+      "label": "\u67b6\u6784",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L7"
+    },
+    {
+      "id": "features_lan_pipes_implementation_feature_flag",
+      "label": "Feature Flag",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L28"
+    },
+    {
+      "id": "features_lan_pipes_implementation_\u6838\u5fc3\u6587\u4ef6",
+      "label": "\u6838\u5fc3\u6587\u4ef6",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L36"
+    },
+    {
+      "id": "features_lan_pipes_implementation_pipeserver_tcp_\u6269\u5c55",
+      "label": "PipeServer TCP \u6269\u5c55",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L54"
+    },
+    {
+      "id": "features_lan_pipes_implementation_\u7c7b\u578b",
+      "label": "\u7c7b\u578b",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L58"
+    },
+    {
+      "id": "features_lan_pipes_implementation_pipeserver_\u53d8\u66f4",
+      "label": "PipeServer \u53d8\u66f4",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L66"
+    },
+    {
+      "id": "features_lan_pipes_implementation_pipeclient_\u53d8\u66f4",
+      "label": "PipeClient \u53d8\u66f4",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L76"
+    },
+    {
+      "id": "features_lan_pipes_implementation_lan_beacon",
+      "label": "LAN Beacon",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L84"
+    },
+    {
+      "id": "features_lan_pipes_implementation_\u534f\u8bae\u53c2\u6570",
+      "label": "\u534f\u8bae\u53c2\u6570",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L88"
+    },
+    {
+      "id": "features_lan_pipes_implementation_announce_\u5305",
+      "label": "Announce \u5305",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L98"
+    },
+    {
+      "id": "features_lan_pipes_implementation_api",
+      "label": "API",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L113"
+    },
+    {
+      "id": "features_lan_pipes_implementation_\u5b58\u50a8",
+      "label": "\u5b58\u50a8",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L128"
+    },
+    {
+      "id": "features_lan_pipes_implementation_\u7f51\u5361\u7ed1\u5b9a",
+      "label": "\u7f51\u5361\u7ed1\u5b9a",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L132"
+    },
+    {
+      "id": "features_lan_pipes_implementation_hook_\u67b6\u6784",
+      "label": "Hook \u67b6\u6784",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L138"
+    },
+    {
+      "id": "features_lan_pipes_implementation_usepipeipc_\u751f\u547d\u5468\u671f",
+      "label": "usePipeIpc\uff08\u751f\u547d\u5468\u671f\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L142"
+    },
+    {
+      "id": "features_lan_pipes_implementation_\u56db\u4e2a\u9636\u6bb5\u51fd\u6570",
+      "label": "\u56db\u4e2a\u9636\u6bb5\u51fd\u6570",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L168"
+    },
+    {
+      "id": "features_lan_pipes_implementation_usepiperelay_\u6d88\u606f\u56de\u4f20",
+      "label": "usePipeRelay\uff08\u6d88\u606f\u56de\u4f20\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L177"
+    },
+    {
+      "id": "features_lan_pipes_implementation_usepipepermissionforward_\u6743\u9650\u8f6c\u53d1",
+      "label": "usePipePermissionForward\uff08\u6743\u9650\u8f6c\u53d1\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L183"
+    },
+    {
+      "id": "features_lan_pipes_implementation_usepiperouter_\u8f93\u5165\u8def\u7531",
+      "label": "usePipeRouter\uff08\u8f93\u5165\u8def\u7531\uff09",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L192"
+    },
+    {
+      "id": "features_lan_pipes_implementation_registry_\u5e76\u884c\u63a2\u6d4b",
+      "label": "Registry \u5e76\u884c\u63a2\u6d4b",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L200"
+    },
+    {
+      "id": "features_lan_pipes_implementation_getalivesubs",
+      "label": "getAliveSubs()",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L204"
+    },
+    {
+      "id": "features_lan_pipes_implementation_cleanupstaleentries",
+      "label": "cleanupStaleEntries()",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L218"
+    },
+    {
+      "id": "features_lan_pipes_implementation_getmachineid",
+      "label": "getMachineId()",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L226"
+    },
+    {
+      "id": "features_lan_pipes_implementation_ndjson_\u534f\u8bae",
+      "label": "NDJSON \u534f\u8bae",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L232"
+    },
+    {
+      "id": "features_lan_pipes_implementation_\u6d88\u606f\u7c7b\u578b",
+      "label": "\u6d88\u606f\u7c7b\u578b",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L234"
+    },
+    {
+      "id": "features_lan_pipes_implementation_\u5e27\u683c\u5f0f",
+      "label": "\u5e27\u683c\u5f0f",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L251"
+    },
+    {
+      "id": "features_lan_pipes_implementation_\u8de8\u673a\u5668_attach_\u6d41\u7a0b",
+      "label": "\u8de8\u673a\u5668 Attach \u6d41\u7a0b",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L261"
+    },
+    {
+      "id": "features_lan_pipes_implementation_sendmessagetool_tcp_\u652f\u6301",
+      "label": "SendMessageTool TCP \u652f\u6301",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L282"
+    },
+    {
+      "id": "features_lan_pipes_implementation_\u6d4b\u8bd5",
+      "label": "\u6d4b\u8bd5",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L292"
+    },
+    {
+      "id": "features_lan_pipes_implementation_\u5df2\u77e5\u9650\u5236",
+      "label": "\u5df2\u77e5\u9650\u5236",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L306"
+    },
+    {
+      "id": "features_lan_pipes_implementation_\u540e\u7eed\u6539\u8fdb\u65b9\u5411",
+      "label": "\u540e\u7eed\u6539\u8fdb\u65b9\u5411",
+      "file_type": "document",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L314"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_lan_pipes_implementation_md",
+      "target": "features_lan_pipes_implementation_lan_pipes_\u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_pipes_\u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "target": "features_lan_pipes_implementation_\u67b6\u6784",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_pipes_\u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "target": "features_lan_pipes_implementation_feature_flag",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_pipes_\u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "target": "features_lan_pipes_implementation_\u6838\u5fc3\u6587\u4ef6",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_pipes_\u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "target": "features_lan_pipes_implementation_pipeserver_tcp_\u6269\u5c55",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_pipeserver_tcp_\u6269\u5c55",
+      "target": "features_lan_pipes_implementation_\u7c7b\u578b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L58",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_pipeserver_tcp_\u6269\u5c55",
+      "target": "features_lan_pipes_implementation_pipeserver_\u53d8\u66f4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L66",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_pipeserver_tcp_\u6269\u5c55",
+      "target": "features_lan_pipes_implementation_pipeclient_\u53d8\u66f4",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L76",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_pipes_\u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "target": "features_lan_pipes_implementation_lan_beacon",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L84",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_beacon",
+      "target": "features_lan_pipes_implementation_\u534f\u8bae\u53c2\u6570",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L88",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_beacon",
+      "target": "features_lan_pipes_implementation_announce_\u5305",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L98",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_beacon",
+      "target": "features_lan_pipes_implementation_api",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L113",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_beacon",
+      "target": "features_lan_pipes_implementation_\u5b58\u50a8",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L128",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_beacon",
+      "target": "features_lan_pipes_implementation_\u7f51\u5361\u7ed1\u5b9a",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L132",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_pipes_\u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "target": "features_lan_pipes_implementation_hook_\u67b6\u6784",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L138",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_hook_\u67b6\u6784",
+      "target": "features_lan_pipes_implementation_usepipeipc_\u751f\u547d\u5468\u671f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L142",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_hook_\u67b6\u6784",
+      "target": "features_lan_pipes_implementation_\u56db\u4e2a\u9636\u6bb5\u51fd\u6570",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L168",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_hook_\u67b6\u6784",
+      "target": "features_lan_pipes_implementation_usepiperelay_\u6d88\u606f\u56de\u4f20",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L177",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_hook_\u67b6\u6784",
+      "target": "features_lan_pipes_implementation_usepipepermissionforward_\u6743\u9650\u8f6c\u53d1",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L183",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_hook_\u67b6\u6784",
+      "target": "features_lan_pipes_implementation_usepiperouter_\u8f93\u5165\u8def\u7531",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L192",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_pipes_\u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "target": "features_lan_pipes_implementation_registry_\u5e76\u884c\u63a2\u6d4b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L200",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_registry_\u5e76\u884c\u63a2\u6d4b",
+      "target": "features_lan_pipes_implementation_getalivesubs",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L204",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_registry_\u5e76\u884c\u63a2\u6d4b",
+      "target": "features_lan_pipes_implementation_cleanupstaleentries",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L218",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_registry_\u5e76\u884c\u63a2\u6d4b",
+      "target": "features_lan_pipes_implementation_getmachineid",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L226",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_pipes_\u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "target": "features_lan_pipes_implementation_ndjson_\u534f\u8bae",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L232",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_ndjson_\u534f\u8bae",
+      "target": "features_lan_pipes_implementation_\u6d88\u606f\u7c7b\u578b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L234",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_ndjson_\u534f\u8bae",
+      "target": "features_lan_pipes_implementation_\u5e27\u683c\u5f0f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L251",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_pipes_\u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "target": "features_lan_pipes_implementation_\u8de8\u673a\u5668_attach_\u6d41\u7a0b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L261",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_pipes_\u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "target": "features_lan_pipes_implementation_sendmessagetool_tcp_\u652f\u6301",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L282",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_pipes_\u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "target": "features_lan_pipes_implementation_\u6d4b\u8bd5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L292",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_pipes_\u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "target": "features_lan_pipes_implementation_\u5df2\u77e5\u9650\u5236",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L306",
+      "weight": 1.0
+    },
+    {
+      "source": "features_lan_pipes_implementation_lan_pipes_\u6280\u672f\u5b9e\u73b0\u6587\u6863",
+      "target": "features_lan_pipes_implementation_\u540e\u7eed\u6539\u8fdb\u65b9\u5411",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/lan-pipes-implementation.md",
+      "source_location": "L314",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

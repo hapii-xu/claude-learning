@@ -1,0 +1,175 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_channels_md",
+      "label": "channels.md",
+      "file_type": "document",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_channels_channels_\u5916\u90e8\u9891\u9053\u6d88\u606f\u63a5\u5165",
+      "label": "Channels \u2014 \u5916\u90e8\u9891\u9053\u6d88\u606f\u63a5\u5165",
+      "file_type": "document",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L1"
+    },
+    {
+      "id": "features_channels_\u6982\u8ff0",
+      "label": "\u6982\u8ff0",
+      "file_type": "document",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L6"
+    },
+    {
+      "id": "features_channels_\u5feb\u901f\u5f00\u59cb",
+      "label": "\u5feb\u901f\u5f00\u59cb",
+      "file_type": "document",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L15"
+    },
+    {
+      "id": "features_channels_\u652f\u6301\u7684_channel",
+      "label": "\u652f\u6301\u7684 Channel",
+      "file_type": "document",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L35"
+    },
+    {
+      "id": "features_channels_\u5fae\u4fe1\u5185\u7f6e_channel",
+      "label": "\u5fae\u4fe1\u5185\u7f6e Channel",
+      "file_type": "document",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L45"
+    },
+    {
+      "id": "features_channels_\u767b\u5f55",
+      "label": "\u767b\u5f55",
+      "file_type": "document",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L47"
+    },
+    {
+      "id": "features_channels_\u4f1a\u8bdd\u542f\u7528",
+      "label": "\u4f1a\u8bdd\u542f\u7528",
+      "file_type": "document",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L59"
+    },
+    {
+      "id": "features_channels_\u914d\u5bf9\u6388\u6743",
+      "label": "\u914d\u5bf9\u6388\u6743",
+      "file_type": "document",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L65"
+    },
+    {
+      "id": "features_channels_\u76f8\u5173\u6587\u4ef6",
+      "label": "\u76f8\u5173\u6587\u4ef6",
+      "file_type": "document",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L75"
+    },
+    {
+      "id": "features_channels_\u53c2\u8003\u94fe\u63a5",
+      "label": "\u53c2\u8003\u94fe\u63a5",
+      "file_type": "document",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L86"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_features_channels_md",
+      "target": "features_channels_channels_\u5916\u90e8\u9891\u9053\u6d88\u606f\u63a5\u5165",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "features_channels_channels_\u5916\u90e8\u9891\u9053\u6d88\u606f\u63a5\u5165",
+      "target": "features_channels_\u6982\u8ff0",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "features_channels_channels_\u5916\u90e8\u9891\u9053\u6d88\u606f\u63a5\u5165",
+      "target": "features_channels_\u5feb\u901f\u5f00\u59cb",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "features_channels_channels_\u5916\u90e8\u9891\u9053\u6d88\u606f\u63a5\u5165",
+      "target": "features_channels_\u652f\u6301\u7684_channel",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "features_channels_channels_\u5916\u90e8\u9891\u9053\u6d88\u606f\u63a5\u5165",
+      "target": "features_channels_\u5fae\u4fe1\u5185\u7f6e_channel",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "features_channels_\u5fae\u4fe1\u5185\u7f6e_channel",
+      "target": "features_channels_\u767b\u5f55",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "features_channels_\u5fae\u4fe1\u5185\u7f6e_channel",
+      "target": "features_channels_\u4f1a\u8bdd\u542f\u7528",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "features_channels_\u5fae\u4fe1\u5185\u7f6e_channel",
+      "target": "features_channels_\u914d\u5bf9\u6388\u6743",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "features_channels_channels_\u5916\u90e8\u9891\u9053\u6d88\u606f\u63a5\u5165",
+      "target": "features_channels_\u76f8\u5173\u6587\u4ef6",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L75",
+      "weight": 1.0
+    },
+    {
+      "source": "features_channels_channels_\u5916\u90e8\u9891\u9053\u6d88\u606f\u63a5\u5165",
+      "target": "features_channels_\u53c2\u8003\u94fe\u63a5",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/features/channels.md",
+      "source_location": "L86",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

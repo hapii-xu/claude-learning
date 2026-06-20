@@ -1,0 +1,95 @@
+{
+  "nodes": [
+    {
+      "id": "c_users_hapii_documents_github_claude_learning_claude_code_docs_internals_three_tier_gating_mdx",
+      "label": "three-tier-gating.mdx",
+      "file_type": "document",
+      "source_file": "docs/internals/three-tier-gating.mdx",
+      "source_location": "L1"
+    },
+    {
+      "id": "internals_three_tier_gating_\u51b0\u5c71\u4e00\u89d2",
+      "label": "\u51b0\u5c71\u4e00\u89d2",
+      "file_type": "document",
+      "source_file": "docs/internals/three-tier-gating.mdx",
+      "source_location": "L9"
+    },
+    {
+      "id": "internals_three_tier_gating_\u4e09\u5c42\u95e8\u7981\u5168\u666f",
+      "label": "\u4e09\u5c42\u95e8\u7981\u5168\u666f",
+      "file_type": "document",
+      "source_file": "docs/internals/three-tier-gating.mdx",
+      "source_location": "L17"
+    },
+    {
+      "id": "internals_three_tier_gating_\u51b3\u7b56\u6d41\u7a0b",
+      "label": "\u51b3\u7b56\u6d41\u7a0b",
+      "file_type": "document",
+      "source_file": "docs/internals/three-tier-gating.mdx",
+      "source_location": "L27"
+    },
+    {
+      "id": "internals_three_tier_gating_\u9006\u5411\u5de5\u7a0b\u63ed\u793a\u4e86\u4ec0\u4e48",
+      "label": "\u9006\u5411\u5de5\u7a0b\u63ed\u793a\u4e86\u4ec0\u4e48",
+      "file_type": "document",
+      "source_file": "docs/internals/three-tier-gating.mdx",
+      "source_location": "L58"
+    },
+    {
+      "id": "internals_three_tier_gating_\u63a5\u4e0b\u6765",
+      "label": "\u63a5\u4e0b\u6765",
+      "file_type": "document",
+      "source_file": "docs/internals/three-tier-gating.mdx",
+      "source_location": "L70"
+    }
+  ],
+  "edges": [
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_internals_three_tier_gating_mdx",
+      "target": "internals_three_tier_gating_\u51b0\u5c71\u4e00\u89d2",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/three-tier-gating.mdx",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_internals_three_tier_gating_mdx",
+      "target": "internals_three_tier_gating_\u4e09\u5c42\u95e8\u7981\u5168\u666f",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/three-tier-gating.mdx",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_internals_three_tier_gating_mdx",
+      "target": "internals_three_tier_gating_\u51b3\u7b56\u6d41\u7a0b",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/three-tier-gating.mdx",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_internals_three_tier_gating_mdx",
+      "target": "internals_three_tier_gating_\u9006\u5411\u5de5\u7a0b\u63ed\u793a\u4e86\u4ec0\u4e48",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/three-tier-gating.mdx",
+      "source_location": "L58",
+      "weight": 1.0
+    },
+    {
+      "source": "c_users_hapii_documents_github_claude_learning_claude_code_docs_internals_three_tier_gating_mdx",
+      "target": "internals_three_tier_gating_\u63a5\u4e0b\u6765",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/internals/three-tier-gating.mdx",
+      "source_location": "L70",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}
