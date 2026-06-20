@@ -84,9 +84,8 @@ type SlashCommandResult = ProcessUserInputBaseResult & {
   command: Command;
 };
 
-// Poll interval and deadline for MCP settle before launching a background
-// forked subagent. MCP servers typically connect within 1-3s of startup;
-// 10s headroom covers slow SSE handshakes.
+// 启动后台 fork 子代理前等待 MCP 服务器就绪的轮询间隔与截止时间。
+// MCP 服务器通常在启动后 1-3 秒内连接；10 秒余量可覆盖慢速 SSE 握手。
 const MCP_SETTLE_POLL_MS = 200;
 const MCP_SETTLE_TIMEOUT_MS = 10_000;
 
@@ -137,23 +136,22 @@ async function executeForkedSlashCommand(
     context,
   );
 
-  // Merge skill's effort into the agent definition so runAgent applies it
+  // 将 skill 的 effort 合并到 agent 定义中，以便 runAgent 应用它
   const agentDefinition = command.effort !== undefined ? { ...baseAgent, effort: command.effort } : baseAgent;
 
   logForDebugging(`Executing forked slash command /${command.name} with agent ${agentDefinition.agentType}`);
 
-  // Assistant mode: fire-and-forget. Launch subagent in background, return
-  // immediately, re-enqueue the result as an isMeta prompt when done.
-  // Without this, N scheduled tasks on startup = N serial (subagent + main
-  // agent turn) cycles blocking user input. With this, N subagents run in
-  // parallel and results trickle into the queue as they finish.
+  // Assistant 模式：即发即忘。在后台启动子代理并立即返回，
+  // 完成后将结果作为 isMeta prompt 重新入队。
+  // 否则，启动时 N 个计划任务 = N 个串行（子代理 + 主代理轮次）
+  // 周期阻塞用户输入。采用此方式后，N 个子代理并行运行，
+  // 结果在完成时逐步流入队列。
   //
-  // Gated on kairosEnabled (not CLAUDE_CODE_BRIEF) because the closed loop
-  // depends on assistant-mode invariants: scheduled_tasks.json exists,
-  // the main agent knows to pipe results through SendUserMessage, and
-  // isMeta prompts are hidden. Outside assistant mode, context:fork commands
-  // are user-invoked skills (/commit etc.) that should run synchronously
-  // with the progress UI.
+  // 以 kairosEnabled（而非 CLAUDE_CODE_BRIEF）为门控，因为闭环
+  // 依赖 assistant 模式的不变量：scheduled_tasks.json 存在、
+  // 主代理知道通过 SendUserMessage 传递结果、且 isMeta prompt 被隐藏。
+  // 在 assistant 模式之外，context:fork 命令是用户调用的 skill
+  // （/commit 等），应使用进度 UI 同步运行。
   const appState = await context.getAppState();
   const allowBackgroundForkedSlashCommands = context.options.allowBackgroundForkedSlashCommands === true;
   if (allowBackgroundForkedSlashCommands) {
@@ -168,29 +166,26 @@ async function executeForkedSlashCommand(
     }
   }
   if (canRunBackgroundForkedSlashCommand) {
-    // Standalone abortController — background subagents survive main-thread
-    // ESC (same policy as AgentTool's async path). They're cron-driven; if
-    // killed mid-run they just re-fire on the next schedule.
+    // 独立的 abortController —— 后台子代理在主线程 ESC 时继续存活
+    // （与 AgentTool 的异步路径策略相同）。它们由 cron 驱动；
+    // 若中途被终止，只会在下一个调度时重新触发。
     const bgAbortController = createAbortController();
     const commandName = getCommandName(command);
 
-    // Workload: handlePromptSubmit wraps the entire turn in runWithWorkload
-    // (AsyncLocalStorage). ALS context is captured when this `void` fires
-    // and survives every await inside — isolated from the parent's
-    // continuation. The detached closure's runAgent calls see the cron tag
-    // automatically. We still capture the value here ONLY for the
-    // re-enqueued result prompt below: that second turn runs in a fresh
-    // handlePromptSubmit → fresh runWithWorkload boundary (which always
-    // establishes a new context, even for `undefined`) → so it needs its
-    // own QueuedCommand.workload tag to preserve attribution.
+    // 工作负载：handlePromptSubmit 将整个轮次包裹在 runWithWorkload
+    // （AsyncLocalStorage）中。ALS 上下文在此 `void` 触发时捕获，
+    // 并在内部每个 await 中存活 —— 与父级的延续隔离。
+    // 分离的闭包中的 runAgent 调用自动看到 cron 标签。
+    // 我们在此捕获值仅用于下方重新入队的结果 prompt：
+    // 第二个轮次在全新的 handlePromptSubmit → 全新的 runWithWorkload
+    // 边界（即使对 `undefined` 也总会建立新上下文）中运行 →
+    // 因此需要自己的 QueuedCommand.workload 标签以保留归因。
     const spawnTimeWorkload = getWorkload();
 
-    // Re-enter the queue as a hidden prompt. isMeta: hides from queue
-    // preview + placeholder + transcript. skipSlashCommands: prevents
-    // re-parsing if the result text happens to start with '/'. When
-    // drained, this triggers a main-agent turn that sees the result and
-    // decides whether to SendUserMessage. Propagate workload so that
-    // second turn is also tagged.
+    // 以隐藏 prompt 形式重新入队。isMeta：从队列预览 + 占位符 + transcript 中隐藏。
+    // skipSlashCommands：若结果文本恰好以 '/' 开头则防止重新解析。
+    // 当被消费时，这会触发一个主代理轮次，由其查看结果并决定是否
+    // SendUserMessage。传播 workload 使第二个轮次也被标记。
     const enqueueResult = (value: string): void =>
       enqueuePendingNotification({
         value,
@@ -226,12 +221,11 @@ async function executeForkedSlashCommand(
     };
 
     void (async () => {
-      // Wait for MCP servers to settle. Scheduled tasks fire at startup and
-      // all N drain within ~1ms (since we return immediately), capturing
-      // context.options.tools before MCP connects. The sync path
-      // accidentally avoided this — tasks serialized, so task N's drain
-      // happened after task N-1's 30s run, by which time MCP was up.
-      // Poll until no 'pending' clients remain, then refresh.
+      // 等待 MCP 服务器就绪。计划任务在启动时触发，全部 N 个在 ~1ms 内
+      // 消费（因为我们立即返回），在 MCP 连接之前就捕获了
+      // context.options.tools。同步路径意外避免了这点 —— 任务串行化，
+      // 所以任务 N 的消费发生在任务 N-1 的 30 秒运行之后，
+      // 此时 MCP 已就绪。轮询直到没有 'pending' 状态的客户端，然后刷新。
       const deadline = Date.now() + MCP_SETTLE_TIMEOUT_MS;
       while (Date.now() < deadline) {
         const s = context.getAppState();
@@ -260,15 +254,14 @@ async function executeForkedSlashCommand(
       }
       const resultText = extractResultText(agentMessages, 'Command completed');
       logForDebugging(`Background forked command /${commandName} completed (agent ${agentId})`);
-      // Enqueue the worker's result before finalizing the autonomy run so the
-      // <scheduled-task-result> notification is observed before any follow-up
-      // autonomy commands the finalizer enqueues at the same priority. Without
-      // this ordering, both land at `priority: 'later'` and the next autonomy
-      // step can run before the main thread sees this worker's output.
+      // 在结束自治运行之前先入队工作器的结果，这样
+      // <scheduled-task-result> 通知会先于终结器在同一优先级入队的
+      // 任何后续自治命令被观察到。没有这个顺序保证，两者都落在
+      // `priority: 'later'`，下一步自治可能在主线程看到此工作器输出之前运行。
       enqueueResult(`<scheduled-task-result command="/${commandName}">\n${resultText}\n</scheduled-task-result>`);
-      // The slash command itself succeeded; an error from the finalize call
-      // must not surface as a contradictory <scheduled-task-result status="failed">
-      // via the outer catch below. Log it locally and stop.
+      // slash 命令本身成功了；终结调用的错误不能作为矛盾的
+      // <scheduled-task-result status="failed"> 通过下方外层 catch 暴露。
+      // 在此记录并停止。
       try {
         await finalizeDeferredAutonomyRunCompleted();
       } catch (finalizeError) {
@@ -282,8 +275,7 @@ async function executeForkedSlashCommand(
       await finalizeDeferredAutonomyRunFailed(err);
     });
 
-    // Nothing to render, nothing to query — the background runner re-enters
-    // the queue on its own schedule.
+    // 无需渲染、无需查询 —— 后台运行器自行按计划重新入队。
     return {
       messages: [],
       shouldQuery: false,
@@ -292,15 +284,15 @@ async function executeForkedSlashCommand(
     };
   }
 
-  // Collect messages from the forked agent
+  // 从 fork 代理收集消息
   const agentMessages: Message[] = [];
 
-  // Build progress messages for the agent progress UI
+  // 为代理进度 UI 构建进度消息
   const progressMessages: ProgressMessage<AgentProgress>[] = [];
   const parentToolUseID = `forked-command-${command.name}`;
   let toolUseCounter = 0;
 
-  // Helper to create a progress message from an agent message
+  // 将代理消息转换为进度消息的辅助函数
   const createProgressMessage = (message: AssistantMessage | NormalizedUserMessage): ProgressMessage<AgentProgress> => {
     toolUseCounter++;
     return {
@@ -318,7 +310,7 @@ async function executeForkedSlashCommand(
     };
   };
 
-  // Helper to update progress display using agent progress UI
+  // 使用代理进度 UI 更新进度显示的辅助函数
   const updateProgress = (): void => {
     setToolJSX({
       jsx: renderToolUseProgressMessage(progressMessages, {
@@ -331,10 +323,10 @@ async function executeForkedSlashCommand(
     });
   };
 
-  // Show initial "Initializing…" state
+  // 显示初始 "初始化中…" 状态
   updateProgress();
 
-  // Run the sub-agent
+  // 运行子代理
   try {
     for await (const message of runAgent({
       agentDefinition,
@@ -352,9 +344,9 @@ async function executeForkedSlashCommand(
       agentMessages.push(message);
       const normalizedNew = normalizeMessages([message]);
 
-      // Add progress message for assistant messages (which contain tool uses)
+      // 为 assistant 消息（包含 tool use）添加进度消息
       if (message.type === 'assistant') {
-        // Increment token count in spinner for assistant messages
+        // 在 spinner 中递增 assistant 消息的 token 计数
         const contentLength = getAssistantMessageContentLength(message as AssistantMessage);
         if (contentLength > 0) {
           context.setResponseLength(len => len + contentLength);
@@ -367,7 +359,7 @@ async function executeForkedSlashCommand(
         }
       }
 
-      // Add progress message for user messages (which contain tool results)
+      // 为 user 消息（包含 tool results）添加进度消息
       if (message.type === 'user') {
         const normalizedMsg = normalizedNew[0];
         if (normalizedMsg && normalizedMsg.type === 'user') {
@@ -377,7 +369,7 @@ async function executeForkedSlashCommand(
       }
     }
   } finally {
-    // Clear the progress display
+    // 清除进度显示
     setToolJSX(null);
   }
 
@@ -385,12 +377,12 @@ async function executeForkedSlashCommand(
 
   logForDebugging(`Forked slash command /${command.name} completed with agent ${agentId}`);
 
-  // Prepend debug log for ant users so it appears inside the command output
+  // 为 ant 用户前置调试日志，使其出现在命令输出内部
   if (process.env.USER_TYPE === 'ant') {
     resultText = `[ANT-ONLY] API calls: ${getDisplayPath(getDumpPromptsPath(agentId))}\n${resultText}`;
   }
 
-  // Return the result as a user message (simulates the agent's output)
+  // 将结果作为 user 消息返回（模拟代理的输出）
   const messages: UserMessage[] = [
     createUserMessage({
       content: prepareUserContent({
@@ -412,15 +404,15 @@ async function executeForkedSlashCommand(
 }
 
 /**
- * Determines if a string looks like a valid command name.
- * Valid command names only contain letters, numbers, colons, hyphens, and underscores.
+ * 判断字符串是否看起来像有效的命令名。
+ * 有效命令名仅包含字母、数字、冒号、连字符和下划线。
  *
- * @param commandName - The potential command name to check
- * @returns true if it looks like a command name, false if it contains non-command characters
+ * @param commandName - 待检查的潜在命令名
+ * @returns 若看起来像命令名返回 true，若包含非命令字符返回 false
  */
 export function looksLikeCommand(commandName: string): boolean {
-  // Command names should only contain [a-zA-Z0-9:_-]
-  // If it contains other characters, it's probably a file path or other input
+  // 命令名仅允许包含 [a-zA-Z0-9:_-]
+  // 若包含其他字符，可能是文件路径或其他输入
   return !/[^a-zA-Z0-9:\-_]/.test(commandName);
 }
 
@@ -460,16 +452,16 @@ export async function processSlashCommand(
 
   const sanitizedCommandName = isMcp ? 'mcp' : !builtInCommandNames().has(commandName) ? 'custom' : commandName;
 
-  // Check if it's a real command before processing
+  // 处理之前先检查是否为真实命令
   if (!hasCommand(commandName, context.options.commands)) {
-    // Check if this looks like a command name vs a file path or other input
-    // Also check if it's an actual file path that exists
+    // 检查这看起来像命令名还是文件路径或其他输入
+    // 同时检查是否为实际存在的文件路径
     let isFilePath = false;
     try {
       await getFsImplementation().stat(`/${commandName}`);
       isFilePath = true;
     } catch {
-      // Not a file path — treat as command name
+      // 不是文件路径 —— 视为命令名
     }
     if (looksLikeCommand(commandName) && !isFilePath) {
       logEvent('tengu_input_slash_invalid', {

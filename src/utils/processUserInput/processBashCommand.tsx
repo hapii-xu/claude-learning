@@ -30,11 +30,10 @@ export async function processBashCommand(
   messages: (UserMessage | AttachmentMessage | SystemMessage)[];
   shouldQuery: boolean;
 }> {
-  // Shell routing (docs/design/ps-shell-selection.md §5.2): consult
-  // defaultShell, fall back to bash. isPowerShellToolEnabled() applies the
-  // same platform + env-var gate as tools.ts so input-box routing matches
-  // tool-list visibility. Computed up front so telemetry records the
-  // actual shell, not the raw setting.
+  // Shell 路由（docs/design/ps-shell-selection.md §5.2）：查阅
+  // defaultShell，回退到 bash。isPowerShellToolEnabled() 应用与 tools.ts
+  // 相同的平台 + 环境变量门控，使输入框路由与工具列表可见性一致。
+  // 提前计算以便遥测记录实际使用的 shell，而非原始设置。
   const usePowerShell = isPowerShellToolEnabled() && resolveDefaultShell() === 'powershell';
 
   logEvent('tengu_input_bash', { powershell: usePowerShell });
@@ -49,7 +48,7 @@ export async function processBashCommand(
   // ctrl+b to background indicator
   let jsx: React.ReactNode;
 
-  // Just show initial UI
+  // 仅显示初始 UI
   setToolJSX({
     jsx: <BashModeProgress input={inputString} progress={null} verbose={context.options.verbose} />,
     shouldHidePromptInput: false,
@@ -119,15 +118,15 @@ export async function processBashCommand(
     }
 
     const stderr = data.stderr;
-    // Reuse the same formatting pipeline as inline !`cmd` bash (promptShellExecution)
-    // and model-initiated Bash. When BashTool.call() persists large output to disk,
-    // data.persistedOutputPath is set and the formatter wraps in <persisted-output>.
-    // Pass stderr:'' to keep it separate for the <bash-stderr> UI tag.
+    // 复用与内联 !`cmd` bash（promptShellExecution）及模型发起的 Bash
+    // 相同的格式化管线。当 BashTool.call() 将大输出持久化到磁盘时，
+    // data.persistedOutputPath 会被设置，格式化器将其包裹在 <persisted-output> 中。
+    // 传入 stderr:'' 以将其分离给 <bash-stderr> UI 标签。
     const mapped = await processToolResultBlock(shellTool, { ...data, stderr: '' }, randomUUID());
-    // mapped.content may contain our own <persisted-output> wrapper (trusted
-    // XML from buildLargeToolResultMessage). Escaping it would turn structural
-    // tags into &lt;persisted-output&gt;, breaking the model's parse and
-    // UserBashOutputMessage's extractTag. Escape the raw fallback only.
+    // mapped.content 可能包含我们自己的 <persisted-output> 包装器
+    // （来自 buildLargeToolResultMessage 的可信 XML）。转义它会将结构标签
+    // 变成 &lt;persisted-output&gt;，破坏模型解析与
+    // UserBashOutputMessage 的 extractTag。仅对原始回退做转义。
     const stdout = typeof mapped.content === 'string' ? mapped.content : escapeXml(data.stdout);
     return {
       messages: [
