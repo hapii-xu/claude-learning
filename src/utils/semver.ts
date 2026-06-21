@@ -1,9 +1,9 @@
 /**
- * Semver comparison utilities that use Bun.semver when available
- * and fall back to the npm `semver` package in Node.js environments.
+ * Semver 比较工具，优先使用 Bun.semver，
+ * 在 Node.js 环境中回退到 npm `semver` 包。
  *
- * Bun.semver.order() is ~20x faster than npm semver comparisons.
- * The npm semver fallback always uses { loose: true }.
+ * Bun.semver.order() 比 npm semver 比较快约 20 倍。
+ * npm semver 回退始终使用 { loose: true }。
  */
 
 let _npmSemver: typeof import('semver') | undefined
