@@ -15,7 +15,7 @@ function isDevMode(): boolean {
     return true
   }
 
-  // Local builds from build directories are dev mode even with NODE_ENV=production
+  // 从 build 目录本地构建即使 NODE_ENV=production 也视为开发模式
   const pathsToCheck = [process.argv[1] || '', process.execPath || '']
   const buildDirs = [
     '/build-ant/',
@@ -28,9 +28,9 @@ function isDevMode(): boolean {
 }
 
 /**
- * Builds a deep link URL for Claude Desktop to resume a CLI session.
- * Format: claude://resume?session={sessionId}&cwd={cwd}
- * In dev mode: claude-dev://resume?session={sessionId}&cwd={cwd}
+ * 构建 Claude Desktop 用于恢复 CLI 会话的深度链接 URL。
+ * 格式：claude://resume?session={sessionId}&cwd={cwd}
+ * 开发模式：claude-dev://resume?session={sessionId}&cwd={cwd}
  */
 function buildDesktopDeepLink(sessionId: string): string {
   const protocol = isDevMode() ? 'claude-dev' : 'claude'
@@ -41,14 +41,14 @@ function buildDesktopDeepLink(sessionId: string): string {
 }
 
 /**
- * Check if Claude Desktop app is installed.
- * On macOS, checks for /Applications/Claude.app.
- * On Linux, checks if xdg-open can handle claude:// protocol.
- * On Windows, checks if the protocol handler exists.
- * In dev mode, always returns true (assumes dev Desktop is running).
+ * 检查 Claude Desktop 应用是否已安装。
+ * macOS 上检查 /Applications/Claude.app。
+ * Linux 上检查 xdg-open 是否能处理 claude:// 协议。
+ * Windows 上检查协议处理器是否存在。
+ * 开发模式下始终返回 true（假设开发版 Desktop 正在运行）。
  */
 async function isDesktopInstalled(): Promise<boolean> {
-  // In dev mode, assume the dev Desktop app is running
+  // 开发模式下假设开发版 Desktop 应用正在运行
   if (isDevMode()) {
     return true
   }
@@ -56,11 +56,11 @@ async function isDesktopInstalled(): Promise<boolean> {
   const platform = process.platform
 
   if (platform === 'darwin') {
-    // Check for Claude.app in /Applications
+    // 在 /Applications 中检查 Claude.app
     return pathExists('/Applications/Claude.app')
   } else if (platform === 'linux') {
-    // Check if xdg-mime can find a handler for claude://
-    // Note: xdg-mime returns exit code 0 even with no handler, so check stdout too
+    // 检查 xdg-mime 是否能找到 claude:// 的处理器
+    // 注意：xdg-mime 即使没有处理器也返回退出码 0，因此同时检查 stdout
     const { code, stdout } = await execFileNoThrow('xdg-mime', [
       'query',
       'default',
@@ -68,7 +68,7 @@ async function isDesktopInstalled(): Promise<boolean> {
     ])
     return code === 0 && stdout.trim().length > 0
   } else if (platform === 'win32') {
-    // On Windows, try to query the registry for the protocol handler
+    // Windows 上尝试查询注册表以获取协议处理器
     const { code } = await execFileNoThrow('reg', [
       'query',
       'HKEY_CLASSES_ROOT\\claude',
@@ -81,10 +81,10 @@ async function isDesktopInstalled(): Promise<boolean> {
 }
 
 /**
- * Detect the installed Claude Desktop version.
- * On macOS, reads CFBundleShortVersionString from the app plist.
- * On Windows, finds the highest app-X.Y.Z directory in the Squirrel install.
- * Returns null if version cannot be determined.
+ * 检测已安装的 Claude Desktop 版本。
+ * macOS 上从应用 plist 读取 CFBundleShortVersionString。
+ * Windows 上在 Squirrel 安装目录中找到最高的 app-X.Y.Z 目录。
+ * 若无法确定版本则返回 null。
  */
 async function getDesktopVersion(): Promise<string | null> {
   const platform = process.platform
@@ -132,7 +132,7 @@ export type DesktopInstallStatus =
   | { status: 'ready'; version: string }
 
 /**
- * Check Desktop install status including version compatibility.
+ * 检查 Desktop 安装状态，包括版本兼容性。
  */
 export async function getDesktopInstallStatus(): Promise<DesktopInstallStatus> {
   const installed = await isDesktopInstalled()
@@ -144,12 +144,12 @@ export async function getDesktopInstallStatus(): Promise<DesktopInstallStatus> {
   try {
     version = await getDesktopVersion()
   } catch {
-    // Best effort — proceed with handoff if version detection fails
+    // 尽力而为 —— 版本检测失败时仍继续 handoff
     return { status: 'ready', version: 'unknown' }
   }
 
   if (!version) {
-    // Can't determine version — assume it's ready (dev mode or unknown install)
+    // 无法确定版本 —— 假定已就绪（开发模式或未知安装）
     return { status: 'ready', version: 'unknown' }
   }
 
@@ -162,8 +162,8 @@ export async function getDesktopInstallStatus(): Promise<DesktopInstallStatus> {
 }
 
 /**
- * Opens a deep link URL using the platform-specific mechanism.
- * Returns true if the command succeeded, false otherwise.
+ * 使用平台特定机制打开深度链接 URL。
+ * 命令成功返回 true，否则返回 false。
  */
 async function openDeepLink(deepLinkUrl: string): Promise<boolean> {
   const platform = process.platform
@@ -171,9 +171,9 @@ async function openDeepLink(deepLinkUrl: string): Promise<boolean> {
 
   if (platform === 'darwin') {
     if (isDevMode()) {
-      // In dev mode, `open` launches a bare Electron binary (without app code)
-      // because setAsDefaultProtocolClient registers just the Electron executable.
-      // Use AppleScript to route the URL to the already-running Electron app.
+      // 开发模式下，`open` 会启动裸 Electron 二进制（不含应用代码）
+      // 因为 setAsDefaultProtocolClient 仅注册了 Electron 可执行文件。
+      // 使用 AppleScript 将 URL 路由到已运行的 Electron 应用。
       const { code } = await execFileNoThrow('osascript', [
         '-e',
         `tell application "Electron" to open location "${deepLinkUrl}"`,
@@ -186,7 +186,7 @@ async function openDeepLink(deepLinkUrl: string): Promise<boolean> {
     const { code } = await execFileNoThrow('xdg-open', [deepLinkUrl])
     return code === 0
   } else if (platform === 'win32') {
-    // On Windows, use cmd /c start to open URLs
+    // Windows 上使用 cmd /c start 打开 URL
     const { code } = await execFileNoThrow('cmd', [
       '/c',
       'start',
@@ -200,8 +200,8 @@ async function openDeepLink(deepLinkUrl: string): Promise<boolean> {
 }
 
 /**
- * Build and open a deep link to resume the current session in Claude Desktop.
- * Returns an object with success status and any error message.
+ * 构建并打开深度链接以在 Claude Desktop 中恢复当前会话。
+ * 返回包含成功状态和任何错误信息的对象。
  */
 export async function openCurrentSessionInDesktop(): Promise<{
   success: boolean
@@ -210,7 +210,7 @@ export async function openCurrentSessionInDesktop(): Promise<{
 }> {
   const sessionId = getSessionId()
 
-  // Check if Desktop is installed
+  // 检查 Desktop 是否已安装
   const installed = await isDesktopInstalled()
   if (!installed) {
     return {
@@ -220,7 +220,7 @@ export async function openCurrentSessionInDesktop(): Promise<{
     }
   }
 
-  // Build and open the deep link
+  // 构建并打开深度链接
   const deepLinkUrl = buildDesktopDeepLink(sessionId)
   const opened = await openDeepLink(deepLinkUrl)
 

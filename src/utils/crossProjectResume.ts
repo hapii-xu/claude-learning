@@ -21,11 +21,11 @@ export type CrossProjectResumeResult =
     }
 
 /**
- * Check if a log is from a different project directory and determine
- * whether it's a related worktree or a completely different project.
+ * 检查日志是否来自不同的项目目录，并判断它是相关的 worktree
+ * 还是完全独立的项目。
  *
- * For same-repo worktrees, we can resume directly without requiring cd.
- * For different projects, we generate the cd command.
+ * 对于同一仓库的 worktree，可以直接 resume 而无需 cd。
+ * 对于不同的项目，则生成 cd 命令。
  */
 export function checkCrossProjectResume(
   log: LogOption,
@@ -38,7 +38,7 @@ export function checkCrossProjectResume(
     return { isCrossProject: false }
   }
 
-  // Gate worktree detection to ants only for staged rollout
+  // 将 worktree 检测限制在 ant 用户内以便分阶段推出
   if (process.env.USER_TYPE !== 'ant') {
     const sessionId = getSessionIdFromLog(log)
     const command = `cd ${quote([log.projectPath])} && claude --resume ${sessionId}`
@@ -50,7 +50,7 @@ export function checkCrossProjectResume(
     }
   }
 
-  // Check if log.projectPath is under a worktree of the same repo
+  // 检查 log.projectPath 是否在同一仓库的 worktree 下
   const isSameRepo = worktreePaths.some(
     wt => log.projectPath === wt || log.projectPath!.startsWith(wt + sep),
   )
@@ -63,7 +63,7 @@ export function checkCrossProjectResume(
     }
   }
 
-  // Different repo - generate cd command
+  // 不同的仓库 —— 生成 cd 命令
   const sessionId = getSessionIdFromLog(log)
   const command = `cd ${quote([log.projectPath])} && claude --resume ${sessionId}`
   return {
