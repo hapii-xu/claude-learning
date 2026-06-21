@@ -5,8 +5,8 @@ export type PreferredLanguage = 'auto' | 'en' | 'zh'
 export type ResolvedLanguage = 'en' | 'zh'
 
 /**
- * Resolve the effective display language.
- * Priority: GlobalConfig.preferredLanguage → system locale → default 'en'.
+ * 解析有效的显示语言。
+ * 优先级：GlobalConfig.preferredLanguage → 系统 locale → 默认 'en'。
  */
 export function getResolvedLanguage(): ResolvedLanguage {
   const pref = getGlobalConfig().preferredLanguage ?? 'auto'
