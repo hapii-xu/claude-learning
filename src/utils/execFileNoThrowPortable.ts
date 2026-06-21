@@ -13,21 +13,21 @@ type ExecSyncOptions = {
 }
 
 /**
- * @deprecated Use `execa` directly with `{ shell: true, reject: false }` for non-blocking execution.
- * Sync exec calls block the event loop and cause performance issues.
+ * @deprecated 对非阻塞执行请直接使用 `execa` 并配合 `{ shell: true, reject: false }`。
+ * 同步 exec 调用会阻塞事件循环并导致性能问题。
  */
 export function execSyncWithDefaults_DEPRECATED(command: string): string | null
 /**
- * @deprecated Use `execa` directly with `{ shell: true, reject: false }` for non-blocking execution.
- * Sync exec calls block the event loop and cause performance issues.
+ * @deprecated 对非阻塞执行请直接使用 `execa` 并配合 `{ shell: true, reject: false }`。
+ * 同步 exec 调用会阻塞事件循环并导致性能问题。
  */
 export function execSyncWithDefaults_DEPRECATED(
   command: string,
   options: ExecSyncOptions,
 ): string | null
 /**
- * @deprecated Use `execa` directly with `{ shell: true, reject: false }` for non-blocking execution.
- * Sync exec calls block the event loop and cause performance issues.
+ * @deprecated 对非阻塞执行请直接使用 `execa` 并配合 `{ shell: true, reject: false }`。
+ * 同步 exec 调用会阻塞事件循环并导致性能问题。
  */
 export function execSyncWithDefaults_DEPRECATED(
   command: string,
@@ -35,8 +35,8 @@ export function execSyncWithDefaults_DEPRECATED(
   timeout?: number,
 ): string | null
 /**
- * @deprecated Use `execa` directly with `{ shell: true, reject: false }` for non-blocking execution.
- * Sync exec calls block the event loop and cause performance issues.
+ * @deprecated 对非阻塞执行请直接使用 `execa` 并配合 `{ shell: true, reject: false }`。
+ * 同步 exec 调用会阻塞事件循环并导致性能问题。
  */
 export function execSyncWithDefaults_DEPRECATED(
   command: string,
@@ -46,16 +46,16 @@ export function execSyncWithDefaults_DEPRECATED(
   let options: ExecSyncOptions
 
   if (optionsOrAbortSignal === undefined) {
-    // No second argument - use defaults
+    // 无第二个参数 - 使用默认值
     options = {}
   } else if (optionsOrAbortSignal instanceof AbortSignal) {
-    // Old signature - second argument is AbortSignal
+    // 旧签名 - 第二个参数是 AbortSignal
     options = {
       abortSignal: optionsOrAbortSignal,
       timeout,
     }
   } else {
-    // New signature - second argument is options object
+    // 新签名 - 第二个参数是 options 对象
     options = optionsOrAbortSignal
   }
 
@@ -75,8 +75,8 @@ export function execSyncWithDefaults_DEPRECATED(
       timeout: finalTimeout,
       cwd: getCwd(),
       stdio,
-      shell: true, // execSync typically runs shell commands
-      reject: false, // Don't throw on non-zero exit codes
+      shell: true, // execSync 通常运行 shell 命令
+      reject: false, // 非零退出码不抛出
       input,
     })
     if (!result.stdout) {

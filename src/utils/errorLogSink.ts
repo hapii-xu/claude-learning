@@ -1,13 +1,13 @@
 /**
- * Error log sink implementation
+ * 错误日志接收器实现
  *
- * This module contains the heavy implementation for error logging and should be
- * initialized during app startup. It handles file-based error logging to disk.
+ * 本模块包含错误日志的重量级实现，应在应用启动时初始化。
+ * 它处理基于文件的错误日志写入磁盘。
  *
- * Usage: Call initializeErrorLogSink() during app startup to attach the sink.
+ * 用法：在应用启动时调用 initializeErrorLogSink() 以挂载接收器。
  *
- * DESIGN: This module is separate from log.ts to avoid import cycles.
- * log.ts has NO heavy dependencies - events are queued until this sink is attached.
+ * 设计：此模块与 log.ts 分离以避免导入循环。
+ * log.ts 无重量级依赖 —— 事件会排队直到此接收器被挂载。
  */
 
 import axios from 'axios'
@@ -25,14 +25,14 @@ import { captureException } from './sentry.js'
 const DATE = dateToFilename(new Date())
 
 /**
- * Gets the path to the errors log file.
+ * 获取错误日志文件路径。
  */
 export function getErrorsPath(): string {
   return join(CACHE_PATHS.errors(), DATE + '.jsonl')
 }
 
 /**
- * Gets the path to MCP logs for a server.
+ * 获取指定服务器的 MCP 日志路径。
  */
 export function getMCPLogsPath(serverName: string): string {
   return join(CACHE_PATHS.mcpLogs(serverName), DATE + '.jsonl')
@@ -59,11 +59,11 @@ function createJsonlWriter(options: {
   }
 }
 
-// Buffered writers for JSONL log files, keyed by path
+// JSONL 日志文件的缓冲写入器，按路径索引
 const logWriters = new Map<string, JsonlWriter>()
 
 /**
- * Flush all buffered log writers. Used for testing.
+ * 刷新所有缓冲的日志写入器。用于测试。
  * @internal
  */
 export function _flushLogWritersForTesting(): void {
@@ -73,7 +73,7 @@ export function _flushLogWritersForTesting(): void {
 }
 
 /**
- * Clear all buffered log writers. Used for testing.
+ * 清空所有缓冲的日志写入器。用于测试。
  * @internal
  */
 export function _clearLogWritersForTesting(): void {
@@ -88,15 +88,15 @@ function getLogWriter(path: string): JsonlWriter {
   if (!writer) {
     const dir = dirname(path)
     writer = createJsonlWriter({
-      // sync IO: called from sync context
+      // 同步 IO：从同步上下文调用
       writeFn: (content: string) => {
         try {
-          // Happy-path: directory already exists
+          // 正常路径：目录已存在
           getFsImplementation().appendFileSync(path, content)
         } catch {
-          // If any error occurs, assume it was due to missing directory
+          // 若发生任何错误，假定是目录缺失导致
           getFsImplementation().mkdirSync(dir)
-          // Retry appending
+          // 重试追加
           getFsImplementation().appendFileSync(path, content)
         }
       },
@@ -148,12 +148,12 @@ function extractServerMessage(data: unknown): string | undefined {
 }
 
 /**
- * Implementation for logError - writes error to debug log and file.
+ * logError 的实现 - 将错误写入调试日志和文件。
  */
 function logErrorImpl(error: Error): void {
   const errorStr = error.stack || error.message
 
-  // Enrich axios errors with request URL, status, and server message for debugging
+  // 为 axios 错误补充请求 URL、状态码和服务器消息以便调试
   let context = ''
   if (axios.isAxiosError(error) && error.config?.url) {
     const parts = [`url=${error.config.url}`]
@@ -173,15 +173,15 @@ function logErrorImpl(error: Error): void {
     error: `${context}${errorStr}`,
   })
 
-  // Also report to Sentry (no-op if not initialized)
+  // 同时报告给 Sentry（若未初始化则为无操作）
   captureException(error)
 }
 
 /**
- * Implementation for logMCPError - writes MCP error to debug log and file.
+ * logMCPError 的实现 - 将 MCP 错误写入调试日志和文件。
  */
 function logMCPErrorImpl(serverName: string, error: unknown): void {
-  // Not themed, to avoid having to pipe theme all the way down
+  // 未做主题化，以避免需要将主题一路传递下来
   logForDebugging(`MCP server "${serverName}" ${error}`, { level: 'error' })
 
   const logFile = getMCPLogsPath(serverName)
@@ -199,7 +199,7 @@ function logMCPErrorImpl(serverName: string, error: unknown): void {
 }
 
 /**
- * Implementation for logMCPDebug - writes MCP debug message to log file.
+ * logMCPDebug 的实现 - 将 MCP 调试消息写入日志文件。
  */
 function logMCPDebugImpl(serverName: string, message: string): void {
   logForDebugging(`MCP server "${serverName}": ${message}`)
@@ -217,14 +217,14 @@ function logMCPDebugImpl(serverName: string, message: string): void {
 }
 
 /**
- * Initialize the error log sink.
+ * 初始化错误日志接收器。
  *
- * Call this during app startup to attach the error logging backend.
- * Any errors logged before this is called will be queued and drained.
+ * 在应用启动期间调用以挂载错误日志后端。
+ * 在此调用之前记录的任何错误都会被排队并排空。
  *
- * Should be called BEFORE initializeAnalyticsSink() in the startup sequence.
+ * 应在启动序列中 initializeAnalyticsSink() 之前调用。
  *
- * Idempotent: safe to call multiple times (subsequent calls are no-ops).
+ * 幂等：可安全多次调用（后续调用为无操作）。
  */
 export function initializeErrorLogSink(): void {
   attachErrorLogSink({
