@@ -2,9 +2,9 @@ import * as React from 'react';
 import { Text } from '@anthropic/ink';
 
 /**
- * Inverse-highlight every occurrence of `query` in `text` (case-insensitive).
- * Used by search dialogs to show where the query matched in result rows
- * and preview panes.
+ * 对 `text` 中每次出现的 `query` 进行反色高亮（大小写不敏感）。
+ * 被搜索对话框用于在结果行和预览面板中
+ * 显示查询匹配的位置。
  */
 export function highlightMatch(text: string, query: string): React.ReactNode {
   if (!query) return text;

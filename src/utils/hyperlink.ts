@@ -1,9 +1,9 @@
 import chalk from 'chalk'
 import { supportsHyperlinks } from '@anthropic/ink'
 
-// OSC 8 hyperlink escape sequences
-// Format: \e]8;;URL\e\\TEXT\e]8;;\e\\
-// Using \x07 (BEL) as terminator which is more widely supported
+// OSC 8 超链接转义序列
+// 格式：\e]8;;URL\e\\TEXT\e]8;;\e\\
+// 使用 \x07 (BEL) 作为终止符，因其支持更广泛
 export const OSC8_START = '\x1b]8;;'
 export const OSC8_END = '\x07'
 
@@ -12,14 +12,14 @@ type HyperlinkOptions = {
 }
 
 /**
- * Create a clickable hyperlink using OSC 8 escape sequences.
- * Falls back to plain text if the terminal doesn't support hyperlinks.
+ * 使用 OSC 8 转义序列创建可点击的超链接。
+ * 若终端不支持超链接则回退为纯文本。
  *
- * @param url - The URL to link to
- * @param content - Optional content to display as the link text (only when hyperlinks are supported).
- *                  If provided and hyperlinks are supported, this text is shown as a clickable link.
- *                  If hyperlinks are not supported, content is ignored and only the URL is shown.
- * @param options - Optional overrides for testing (supportsHyperlinks)
+ * @param url - 要链接到的 URL
+ * @param content - 可选，显示为链接文本的内容（仅在支持超链接时）。
+ *                  若提供且支持超链接，则此文本显示为可点击链接。
+ *                  若不支持超链接，content 被忽略，仅显示 URL。
+ * @param options - 可选，用于测试的覆盖项（supportsHyperlinks）
  */
 export function createHyperlink(
   url: string,
@@ -31,8 +31,8 @@ export function createHyperlink(
     return url
   }
 
-  // Apply basic ANSI blue color - wrap-ansi preserves this across line breaks
-  // RGB colors (like theme colors) are NOT preserved by wrap-ansi with OSC 8
+  // 应用基础 ANSI 蓝色 - wrap-ansi 会在换行时保留此颜色
+  // RGB 颜色（如主题色）不会被 wrap-ansi 随 OSC 8 一起保留
   const displayText = content ?? url
   const coloredText = chalk.blue(displayText)
   return `${OSC8_START}${url}${OSC8_END}${coloredText}${OSC8_START}${OSC8_END}`
