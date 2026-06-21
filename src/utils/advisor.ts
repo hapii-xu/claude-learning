@@ -4,8 +4,8 @@ import { shouldIncludeFirstPartyOnlyBetas } from './betas.js'
 import { isEnvTruthy } from './envUtils.js'
 import { getInitialSettings } from './settings/settings.js'
 
-// The SDK does not yet have types for advisor blocks.
-// TODO(hackyon): Migrate to the real anthropic SDK types when this feature ships publicly
+// SDK 尚未提供 advisor 块的类型定义。
+// TODO(hackyon): 当此功能公开发布时，迁移到真实的 anthropic SDK 类型
 export type AdvisorServerToolUseBlock = {
   type: 'server_tool_use'
   id: string
@@ -61,7 +61,7 @@ export function isAdvisorEnabled(): boolean {
   if (isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL)) {
     return false
   }
-  // The advisor beta header is first-party only (Bedrock/Vertex 400 on it).
+  // advisor beta 头部仅限第一方（Bedrock/Vertex 会返回 400）。
   if (!shouldIncludeFirstPartyOnlyBetas()) {
     return false
   }
@@ -84,8 +84,8 @@ export function getExperimentAdvisorModels():
     : undefined
 }
 
-// @[MODEL LAUNCH]: Add the new model if it supports the advisor tool.
-// Checks whether the main loop model supports calling the advisor tool.
+// @[MODEL LAUNCH]: 如果新模型支持 advisor 工具，添加到此列表。
+// 检查主循环模型是否支持调用 advisor 工具。
 export function modelSupportsAdvisor(model: string): boolean {
   const m = model.toLowerCase()
   return (
@@ -96,7 +96,7 @@ export function modelSupportsAdvisor(model: string): boolean {
   )
 }
 
-// @[MODEL LAUNCH]: Add the new model if it can serve as an advisor model.
+// @[MODEL LAUNCH]: 如果新模型可以作为 advisor 模型，添加到此列表。
 export function isValidAdvisorModel(model: string): boolean {
   const m = model.toLowerCase()
   return (

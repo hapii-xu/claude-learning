@@ -6,19 +6,18 @@ type ActivityManagerOptions = {
 }
 
 /**
- * ActivityManager handles generic activity tracking for both user and CLI operations.
- * It automatically deduplicates overlapping activities and provides separate metrics
- * for user vs CLI active time.
+ * ActivityManager 处理用户和 CLI 操作的通用活动跟踪。
+ * 它自动去重重叠的活动，并为用户和 CLI 活跃时间提供独立的指标。
  */
 export class ActivityManager {
   private activeOperations = new Set<string>()
 
-  private lastUserActivityTime: number = 0 // Start with 0 to indicate no activity yet
+  private lastUserActivityTime: number = 0 // 以 0 开始表示尚无活动
   private lastCLIRecordedTime: number
 
   private isCLIActive: boolean = false
 
-  private readonly USER_ACTIVITY_TIMEOUT_MS = 5000 // 5 seconds
+  private readonly USER_ACTIVITY_TIMEOUT_MS = 5000 // 5 秒
 
   private readonly getNow: () => number
   private readonly getActiveTimeCounter: typeof getActiveTimeCounterImpl
@@ -40,14 +39,14 @@ export class ActivityManager {
   }
 
   /**
-   * Reset the singleton instance (for testing purposes)
+   * 重置单例实例（用于测试目的）
    */
   static resetInstance(): void {
     ActivityManager.instance = null
   }
 
   /**
-   * Create a new instance with custom options (for testing purposes)
+   * 使用自定义选项创建新实例（用于测试目的）
    */
   static createInstance(options?: ActivityManagerOptions): ActivityManager {
     ActivityManager.instance = new ActivityManager(options)
@@ -55,10 +54,10 @@ export class ActivityManager {
   }
 
   /**
-   * Called when user interacts with the CLI (typing, commands, etc.)
+   * 当用户与 CLI 交互时调用（输入、命令等）
    */
   recordUserActivity(): void {
-    // Don't record user time if CLI is active (CLI takes precedence)
+    // 如果 CLI 处于活动状态，不记录用户时间（CLI 优先）
     if (!this.isCLIActive && this.lastUserActivityTime !== 0) {
       const now = this.getNow()
       const timeSinceLastActivity = (now - this.lastUserActivityTime) / 1000
@@ -68,7 +67,7 @@ export class ActivityManager {
         if (activeTimeCounter) {
           const timeoutSeconds = this.USER_ACTIVITY_TIMEOUT_MS / 1000
 
-          // Only record time if within the timeout window
+          // 仅在超时窗口内记录时间
           if (timeSinceLastActivity < timeoutSeconds) {
             activeTimeCounter.add(timeSinceLastActivity, { type: 'user' })
           }
@@ -76,17 +75,17 @@ export class ActivityManager {
       }
     }
 
-    // Update the last user activity timestamp
+    // 更新最后用户活动时间戳
     this.lastUserActivityTime = this.getNow()
   }
 
   /**
-   * Starts tracking CLI activity (tool execution, AI response, etc.)
+   * 开始跟踪 CLI 活动（工具执行、AI 响应等）
    */
   startCLIActivity(operationId: string): void {
-    // If operation already exists, it likely means the previous one didn't clean up
-    // properly (e.g., component crashed/unmounted without calling end). Force cleanup
-    // to avoid overestimating time - better to underestimate than overestimate.
+    // 如果操作已存在，可能意味着上一个操作没有正确清理
+    // （例如，组件崩溃/卸载时没有调用 end）。强制清理
+    // 以避免高估时间 —— 宁可低估也不要高估。
     if (this.activeOperations.has(operationId)) {
       this.endCLIActivity(operationId)
     }
@@ -101,14 +100,14 @@ export class ActivityManager {
   }
 
   /**
-   * Stops tracking CLI activity
+   * 停止跟踪 CLI 活动
    */
   endCLIActivity(operationId: string): void {
     this.activeOperations.delete(operationId)
 
     if (this.activeOperations.size === 0) {
-      // Last operation ended - CLI becoming inactive
-      // Record the CLI time before switching to inactive
+      // 最后一个操作结束 - CLI 变为非活动状态
+      // 在切换到非活动状态之前记录 CLI 时间
       const now = this.getNow()
       const timeSinceLastRecord = (now - this.lastCLIRecordedTime) / 1000
 
@@ -125,7 +124,7 @@ export class ActivityManager {
   }
 
   /**
-   * Convenience method to track an async operation automatically (mainly for testing/debugging)
+   * 自动跟踪异步操作的便捷方法（主要用于测试/调试）
    */
   async trackOperation<T>(
     operationId: string,
@@ -140,7 +139,7 @@ export class ActivityManager {
   }
 
   /**
-   * Gets current activity states (mainly for testing/debugging)
+   * 获取当前活动状态（主要用于测试/调试）
    */
   getActivityStates(): {
     isUserActive: boolean
@@ -160,5 +159,5 @@ export class ActivityManager {
   }
 }
 
-// Export singleton instance
+// 导出单例实例
 export const activityManager = ActivityManager.getInstance()

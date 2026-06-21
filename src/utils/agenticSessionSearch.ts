@@ -7,10 +7,10 @@ import { isLiteLog, loadFullLog } from './sessionStorage.js'
 import { sideQuery } from './sideQuery.js'
 import { jsonParse } from './slowOperations.js'
 
-// Limits for transcript extraction
-const MAX_TRANSCRIPT_CHARS = 2000 // Max chars of transcript per session
-const MAX_MESSAGES_TO_SCAN = 100 // Max messages to scan from start/end
-const MAX_SESSIONS_TO_SEARCH = 100 // Max sessions to send to the API
+// 转录提取的限制
+const MAX_TRANSCRIPT_CHARS = 2000 // 每个会话的最大转录字符数
+const MAX_MESSAGES_TO_SCAN = 100 // 从开始/结束扫描的最大消息数
+const MAX_SESSIONS_TO_SEARCH = 100 // 发送到 API 的最大会话数
 
 const SESSION_SEARCH_SYSTEM_PROMPT = `Your goal is to find relevant sessions based on a user's search query.
 
@@ -52,7 +52,7 @@ type AgenticSearchResult = {
 }
 
 /**
- * Extracts searchable text content from a message.
+ * 从消息中提取可搜索的文本内容。
  */
 function extractMessageText(message: SerializedMessage): string {
   if (message.type !== 'user' && message.type !== 'assistant') {
@@ -81,12 +81,12 @@ function extractMessageText(message: SerializedMessage): string {
 }
 
 /**
- * Extracts a truncated transcript from session messages.
+ * 从会话消息中提取截断的转录。
  */
 function extractTranscript(messages: SerializedMessage[]): string {
   if (messages.length === 0) return ''
 
-  // Take messages from start and end to get context
+  // 从开始和结束获取消息以获取上下文
   const messagesToScan =
     messages.length <= MAX_MESSAGES_TO_SCAN
       ? messages
@@ -108,29 +108,29 @@ function extractTranscript(messages: SerializedMessage[]): string {
 }
 
 /**
- * Checks if a log contains the query term in any searchable field.
+ * 检查日志是否在任何可搜索字段中包含查询词。
  */
 function logContainsQuery(log: LogOption, queryLower: string): boolean {
-  // Check title
+  // 检查标题
   const title = getLogDisplayTitle(log).toLowerCase()
   if (title.includes(queryLower)) return true
 
-  // Check custom title
+  // 检查自定义标题
   if (log.customTitle?.toLowerCase().includes(queryLower)) return true
 
-  // Check tag
+  // 检查标签
   if (log.tag?.toLowerCase().includes(queryLower)) return true
 
-  // Check branch
+  // 检查分支
   if (log.gitBranch?.toLowerCase().includes(queryLower)) return true
 
-  // Check summary
+  // 检查摘要
   if (log.summary?.toLowerCase().includes(queryLower)) return true
 
-  // Check first prompt
+  // 检查首次提示
   if (log.firstPrompt?.toLowerCase().includes(queryLower)) return true
 
-  // Check transcript (more expensive, do last)
+  // 检查转录（更耗时，最后检查）
   if (log.messages && log.messages.length > 0) {
     const transcript = extractTranscript(log.messages).toLowerCase()
     if (transcript.includes(queryLower)) return true
@@ -140,8 +140,8 @@ function logContainsQuery(log: LogOption, queryLower: string): boolean {
 }
 
 /**
- * Performs an agentic search using Claude to find relevant sessions
- * based on semantic understanding of the query.
+ * 执行代理搜索，使用 Claude 基于对查询的语义理解
+ * 查找相关会话。
  */
 export async function agenticSessionSearch(
   query: string,
@@ -154,12 +154,12 @@ export async function agenticSessionSearch(
 
   const queryLower = query.toLowerCase()
 
-  // Pre-filter: find sessions that contain the query term
-  // This ensures we search relevant sessions, not just recent ones
+  // 预过滤：查找包含查询词的会话
+  // 这确保我们搜索相关会话，而不仅仅是最近的
   const matchingLogs = logs.filter(log => logContainsQuery(log, queryLower))
 
-  // Take up to MAX_SESSIONS_TO_SEARCH matching logs
-  // If fewer matches, fill remaining slots with recent non-matching logs for context
+  // 最多取 MAX_SESSIONS_TO_SEARCH 个匹配的日志
+  // 如果匹配较少，用最近的不匹配日志填充剩余位置以提供上下文
   let logsToSearch: LogOption[]
   if (matchingLogs.length >= MAX_SESSIONS_TO_SEARCH) {
     logsToSearch = matchingLogs.slice(0, MAX_SESSIONS_TO_SEARCH)
@@ -174,20 +174,20 @@ export async function agenticSessionSearch(
     ]
   }
 
-  // Debug: log what data we have
+  // 调试：记录我们拥有的数据
   logForDebugging(
     `Agentic search: ${logsToSearch.length}/${logs.length} logs, query="${query}", ` +
       `matching: ${matchingLogs.length}, with messages: ${count(logsToSearch, l => l.messages?.length > 0)}`,
   )
 
-  // Load full logs for lite logs to get transcript content
+  // 为轻量日志加载完整日志以获取转录内容
   const logsWithTranscriptsPromises = logsToSearch.map(async log => {
     if (isLiteLog(log)) {
       try {
         return await loadFullLog(log)
       } catch (error) {
         logError(error as Error)
-        // If loading fails, use the lite log (no transcript)
+        // 如果加载失败，使用轻量日志（无转录）
         return log
       }
     }
@@ -199,41 +199,41 @@ export async function agenticSessionSearch(
     `Agentic search: loaded ${count(logsWithTranscripts, l => l.messages?.length > 0)}/${logsToSearch.length} logs with transcripts`,
   )
 
-  // Build session list for the prompt with all searchable metadata
+  // 为提示构建包含所有可搜索元数据的会话列表
   const sessionList = logsWithTranscripts
     .map((log, index) => {
       const parts: string[] = [`${index}:`]
 
-      // Title (display title, may be custom or from first prompt)
+      // 标题（显示标题，可能是自定义的或来自首次提示）
       const displayTitle = getLogDisplayTitle(log)
       parts.push(displayTitle)
 
-      // Custom title if different from display title
+      // 如果自定义标题与显示标题不同则添加
       if (log.customTitle && log.customTitle !== displayTitle) {
         parts.push(`[custom title: ${log.customTitle}]`)
       }
 
-      // Tag
+      // 标签
       if (log.tag) {
         parts.push(`[tag: ${log.tag}]`)
       }
 
-      // Git branch
+      // Git 分支
       if (log.gitBranch) {
         parts.push(`[branch: ${log.gitBranch}]`)
       }
 
-      // Summary
+      // 摘要
       if (log.summary) {
         parts.push(`- Summary: ${log.summary}`)
       }
 
-      // First prompt content (truncated)
+      // 首次提示内容（截断）
       if (log.firstPrompt && log.firstPrompt !== 'No prompt') {
         parts.push(`- First message: ${log.firstPrompt.slice(0, 300)}`)
       }
 
-      // Transcript excerpt (if messages are available)
+      // 转录摘录（如果有可用消息）
       if (log.messages && log.messages.length > 0) {
         const transcript = extractTranscript(log.messages)
         if (transcript) {
@@ -252,7 +252,7 @@ Search query: "${query}"
 
 Find the sessions that are most relevant to this query.`
 
-  // Debug: log first part of the session list
+  // 调试：记录会话列表的第一部分
   logForDebugging(
     `Agentic search prompt (first 500 chars): ${userMessage.slice(0, 500)}...`,
   )
@@ -269,17 +269,17 @@ Find the sessions that are most relevant to this query.`
       querySource: 'session_search',
     })
 
-    // Extract the text content from the response
+    // 从响应中提取文本内容
     const textContent = response.content.find(block => block.type === 'text')
     if (!textContent || textContent.type !== 'text') {
       logForDebugging('No text content in agentic search response')
       return []
     }
 
-    // Debug: log the response
+    // 调试：记录响应
     logForDebugging(`Agentic search response: ${textContent.text}`)
 
-    // Parse the JSON response
+    // 解析 JSON 响应
     const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       logForDebugging('Could not find JSON in agentic search response')
@@ -289,7 +289,7 @@ Find the sessions that are most relevant to this query.`
     const result: AgenticSearchResult = jsonParse(jsonMatch[0])
     const relevantIndices = result.relevant_indices || []
 
-    // Map indices back to logs (indices are relative to logsWithTranscripts)
+    // 将索引映射回日志（索引相对于 logsWithTranscripts）
     const relevantLogs = relevantIndices
       .filter(index => index >= 0 && index < logsWithTranscripts.length)
       .map(index => logsWithTranscripts[index]!)
