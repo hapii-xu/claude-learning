@@ -16,10 +16,10 @@ import {
 
 export type { EffortLevel }
 
-// NOTE: 'ultracode' is NOT an effort level. It is a session-scoped multi-agent
-// orchestration opt-in injected by the harness (claude.ai/client) as a
-// system-reminder, orthogonal to the effort parameter. EffortLevel / EffortValue
-// must never include 'ultracode'; /effort only accepts the levels below.
+// 注意：'ultracode' 不是 effort 级别。它是会话作用域的多 agent
+// 编排选项，由 harness（claude.ai/client）作为 system-reminder
+// 注入，与 effort 参数正交。EffortLevel / EffortValue
+// 绝不能包含 'ultracode'；/effort 仅接受下方列出的级别。
 export const EFFORT_LEVELS = [
   'low',
   'medium',
@@ -30,7 +30,7 @@ export const EFFORT_LEVELS = [
 
 export type EffortValue = EffortLevel | number
 
-// @[MODEL LAUNCH]: Add the new model to the allowlist if it supports the effort parameter.
+// @[MODEL LAUNCH]: 若新模型支持 effort 参数，将其加入白名单。
 export function modelSupportsEffort(model: string): boolean {
   const m = model.toLowerCase()
   if (isEnvTruthy(process.env.CLAUDE_CODE_ALWAYS_ENABLE_EFFORT)) {
@@ -47,7 +47,7 @@ export function modelSupportsEffort(model: string): boolean {
   ) {
     return true
   }
-  // Supported by a subset of Claude 4 models
+  // 由 Claude 4 模型的子集支持
   if (
     m.includes('opus-4-7') ||
     m.includes('opus-4-6') ||
@@ -56,23 +56,23 @@ export function modelSupportsEffort(model: string): boolean {
   ) {
     return true
   }
-  // Exclude any other known legacy models (haiku, older opus/sonnet variants)
+  // 排除其他已知的旧模型（haiku、旧版 opus/sonnet 变体）
   if (m.includes('haiku') || m.includes('sonnet') || m.includes('opus')) {
     return false
   }
 
-  // IMPORTANT: Do not change the default effort support without notifying
-  // the model launch DRI and research. This is a sensitive setting that can
-  // greatly affect model quality and bashing.
+  // 重要：更改默认 effort 支持前请通知
+  // 模型发布 DRI 和研发团队。这是一个敏感的
+  // 设置，会极大影响模型质量和评价。
 
-  // Default to true for unknown model strings on 1P.
-  // Do not default to true for 3P as they have different formats for their
-  // model strings (ex. anthropics/claude-code#30795)
+  // 对 1P 上的未知模型字符串默认为 true。
+  // 对 3P 不默认为 true，因为他们的模型字符串格式不同
+  //（如 anthropics/claude-code#30795）
   return getAPIProvider() === 'firstParty'
 }
 
-// Effort max/xhigh restrictions removed — all models that support effort
-// can now use these levels. API errors are the user's responsibility.
+// Effort max/xhigh 限制已移除 —— 所有支持 effort 的模型
+// 现在都可以使用这些级别。API 错误由用户负责。
 export function modelSupportsMaxEffort(_model: string): boolean {
   const supported3P = get3PModelCapabilityOverride(_model, 'max_effort')
   if (supported3P !== undefined) {
@@ -112,10 +112,10 @@ export function parseEffortValue(value: unknown): EffortValue | undefined {
 }
 
 /**
- * Numeric values are model-default only and not persisted.
- * 'max' is session-scoped for external users (ants can persist it).
- * Write sites call this before saving to settings so the Zod schema
- * (which only accepts string levels) never rejects a write.
+ * 数值仅表示模型默认，不被持久化。
+ * 'max' 对外部用户是会话作用域（ant 可持久化）。
+ * 写入点在保存到 settings 前调用此函数，
+ * 以便 Zod schema（仅接受字符串级别）不会拒绝写入。
  */
 export function toPersistableEffort(
   value: EffortValue | undefined,
@@ -135,23 +135,23 @@ export function toPersistableEffort(
 }
 
 export function getInitialEffortSetting(): EffortLevel | undefined {
-  // toPersistableEffort filters 'max' for non-ants on read, so a manually
-  // edited settings.json doesn't leak session-scoped max into a fresh session.
+  // toPersistableEffort 在读取时为非 ant 用户过滤 'max'，
+  // 因此手动编辑的 settings.json 不会将会话作用域的 max
+  // 泄漏到新会话中。
   return toPersistableEffort(getInitialSettings().effortLevel)
 }
 
 /**
- * Decide what effort level (if any) to persist when the user selects a model
- * in ModelPicker. Keeps an explicit prior /effort choice sticky even when it
- * matches the picked model's default, while letting purely-default and
- * session-ephemeral effort (CLI --effort, EffortCallout default) fall through
- * to undefined so it follows future model-default changes.
+ * 决定用户在 ModelPicker 中选择模型时要持久化哪个 effort 级别
+ *（若有）。即使与所选模型的默认值匹配，也保留先前显式的
+ * /effort 选择粘性，而纯默认和会话临时 effort
+ *（CLI --effort、EffortCallout 默认）降级为 undefined，
+ * 以便跟随未来的模型默认变更。
  *
- * priorPersisted must come from userSettings on disk
- * (getSettingsForSource('userSettings')?.effortLevel), NOT merged settings
- * (project/policy layers would leak into the user's global settings.json)
- * and NOT AppState.effortValue (includes session-scoped sources that
- * deliberately do not write to settings.json).
+ * priorPersisted 必须来自磁盘上的 userSettings
+ *（getSettingsForSource('userSettings')?.effortLevel），而非合并后的 settings
+ *（project/policy 层会泄漏到用户的全局 settings.json）
+ * 也非 AppState.effortValue（包含故意不写入 settings.json 的会话作用域来源）。
  */
 export function resolvePickerEffortPersistence(
   picked: EffortLevel | undefined,
@@ -172,12 +172,12 @@ export function getEffortEnvOverride(): EffortValue | null | undefined {
 }
 
 /**
- * Resolve the effort value that will actually be sent to the API for a given
- * model, following the full precedence chain:
- *   env CLAUDE_CODE_EFFORT_LEVEL → appState.effortValue → model default
+ * 解析将实际发送给 API 的 effort 值，遵循给定模型的
+ * 完整优先级链：
+ *   环境变量 CLAUDE_CODE_EFFORT_LEVEL → appState.effortValue → 模型默认
  *
- * Returns undefined when no effort parameter should be sent (env set to
- * 'unset', or no default exists for the model).
+ * 当不应发送 effort 参数时返回 undefined
+ *（env 设置为 'unset'，或模型无默认值）。
  */
 export function resolveAppliedEffort(
   model: string,
@@ -189,8 +189,8 @@ export function resolveAppliedEffort(
   }
   const resolved =
     envOverride ?? appStateEffortValue ?? getDefaultEffortForModel(model)
-  // OpenAI Responses uses xhigh as its highest public reasoning effort.
-  // Keep /effort max usable as a familiar alias in ChatGPT subscription mode.
+  // OpenAI Responses 使用 xhigh 作为其最高的公开推理 effort。
+  // 在 ChatGPT 订阅模式下保留 /effort max 作为熟悉的别名。
   if (
     resolved === 'max' &&
     getAPIProvider() === 'openai' &&
@@ -203,9 +203,9 @@ export function resolveAppliedEffort(
 }
 
 /**
- * Resolve the effort level to show the user. Wraps resolveAppliedEffort
- * with the 'high' fallback (what the API uses when no effort param is sent).
- * Single source of truth for the status bar and /effort output (CC-1088).
+ * 解析要展示给用户的 effort 级别。包装 resolveAppliedEffort
+ * 并使用 'high' 回退（API 在未发送 effort 参数时使用的值）。
+ * 状态栏和 /effort 输出的单一真相来源（CC-1088）。
  */
 export function getDisplayedEffortLevel(
   model: string,
@@ -216,10 +216,10 @@ export function getDisplayedEffortLevel(
 }
 
 /**
- * Build the ` with {level} effort` suffix shown in Logo/Spinner.
- * Returns empty string if the user hasn't explicitly set an effort value.
- * Delegates to resolveAppliedEffort() so the displayed level matches what
- * the API actually receives (including max→high clamp for non-Opus models).
+ * 构建 Logo/Spinner 中显示的 ` with {level} effort` 后缀。
+ * 若用户未显式设置 effort 值则返回空字符串。
+ * 委托给 resolveAppliedEffort() 以便显示级别与
+ * API 实际接收的内容匹配（包括非 Opus 模型的 max→high 限制）。
  */
 export function getEffortSuffix(
   model: string,
@@ -237,9 +237,9 @@ export function isValidNumericEffort(value: number): boolean {
 
 export function convertEffortValueToLevel(value: EffortValue): EffortLevel {
   if (typeof value === 'string') {
-    // Runtime guard: value may come from remote config (GrowthBook) where
-    // TypeScript types can't help us. Coerce unknown strings to 'high'
-    // rather than passing them through unchecked.
+    // 运行时守卫：value 可能来自远程配置（GrowthBook），
+    // TypeScript 类型无法帮助我们。将未知字符串强制为 'high'
+    // 而非不检查直接传递。
     return isEffortLevel(value) ? value : 'high'
   }
   if (process.env.USER_TYPE === 'ant' && typeof value === 'number') {
@@ -252,10 +252,10 @@ export function convertEffortValueToLevel(value: EffortValue): EffortLevel {
 }
 
 /**
- * Get user-facing description for effort levels
+ * 获取 effort 级别的用户可见描述
  *
- * @param level The effort level to describe
- * @returns Human-readable description
+ * @param level 要描述的 effort 级别
+ * @returns 人类可读的描述
  */
 export function getEffortLevelDescription(level: EffortLevel): string {
   switch (level) {
@@ -273,10 +273,10 @@ export function getEffortLevelDescription(level: EffortLevel): string {
 }
 
 /**
- * Get user-facing description for effort values (both string and numeric)
+ * 获取 effort 值的用户可见描述（字符串和数值）
  *
- * @param value The effort value to describe
- * @returns Human-readable description
+ * @param value 要描述的 effort 值
+ * @returns 人类可读的描述
  */
 export function getEffortValueDescription(value: EffortValue): string {
   if (process.env.USER_TYPE === 'ant' && typeof value === 'number') {
@@ -313,7 +313,7 @@ export function getOpusDefaultEffortConfig(): OpusDefaultEffortConfig {
   }
 }
 
-// @[MODEL LAUNCH]: Update the default effort levels for new models
+// @[MODEL LAUNCH]: 更新新模型的默认 effort 级别
 export function getDefaultEffortForModel(
   model: string,
 ): EffortValue | undefined {
@@ -334,13 +334,13 @@ export function getDefaultEffortForModel(
         return antModel.defaultEffortValue
       }
     }
-    // Always default ants to undefined/high
+    // 始终默认为 ant 用户返回 undefined/high
     return undefined
   }
 
-  // IMPORTANT: Do not change the default effort level without notifying
-  // the model launch DRI and research. Default effort is a sensitive setting
-  // that can greatly affect model quality and bashing.
+  // 重要：更改默认 effort 级别前请通知
+  // 模型发布 DRI 和研发团队。默认 effort 是敏感设置，
+  // 会极大影响模型质量和评价。
 
   if (
     getAPIProvider() === 'openai' &&
@@ -350,8 +350,8 @@ export function getDefaultEffortForModel(
     return 'medium'
   }
 
-  // Default effort on Opus 4.6 to medium for Pro.
-  // Max/Team also get medium when the tengu_grey_step2 config is enabled.
+  // Pro 用户的 Opus 4.6 默认 effort 为 medium。
+  // 启用 tengu_grey_step2 配置时，Max/Team 也获得 medium。
   if (
     model.toLowerCase().includes('opus-4-7') ||
     model.toLowerCase().includes('opus-4-6')
@@ -367,12 +367,12 @@ export function getDefaultEffortForModel(
     }
   }
 
-  // When ultrathink feature is on, default effort to medium (ultrathink bumps to high)
+  // 启用 ultrathink 功能时，默认 effort 为 medium（ultrathink 提升到 high）
   if (isUltrathinkEnabled() && modelSupportsEffort(model)) {
     return 'medium'
   }
 
-  // Fallback to undefined, which means we don't set an effort level. This
-  // should resolve to high effort level in the API.
+  // 回退到 undefined，表示我们不设置 effort 级别。这
+  // 在 API 中会解析为 high effort 级别。
   return undefined
 }

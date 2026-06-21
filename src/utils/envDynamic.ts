@@ -6,11 +6,11 @@ import { isEnvTruthy } from './envUtils.js'
 import { execFileNoThrow } from './execFileNoThrow.js'
 import { getAncestorCommandsAsync } from './genericProcessUtils.js'
 
-// Functions that require execFileNoThrow and thus cannot be in env.ts
+// 需要 execFileNoThrow 的函数，因此不能放在 env.ts 中
 
 const getIsDocker = memoize(async (): Promise<boolean> => {
   if (process.platform !== 'linux') return false
-  // Check for .dockerenv file
+  // 检查 .dockerenv 文件
   const { code } = await execFileNoThrow('test', ['-f', '/.dockerenv'])
   return code === 0
 })
@@ -22,15 +22,15 @@ function getIsBubblewrapSandbox(): boolean {
   )
 }
 
-// Cache for the runtime musl detection fallback (node/unbundled only).
-// In native linux builds, feature flags resolve this at compile time, so the
-// cache is only consulted when both IS_LIBC_MUSL and IS_LIBC_GLIBC are false.
+// 运行时 musl 检测回退的缓存（仅限 node/unbundled）。
+// 在原生 linux 构建中，feature flag 在编译时解析此问题，因此
+// 缓存仅在 IS_LIBC_MUSL 和 IS_LIBC_GLIBC 都为 false 时被查询。
 let muslRuntimeCache: boolean | null = null
 
-// Fire-and-forget: populate the musl cache for the node fallback path.
-// Native builds never reach this (feature flags short-circuit), so this only
-// matters for unbundled node on Linux. Installer calls on native builds are
-// unaffected since feature() resolves at compile time.
+// 即发即忘：为 node 回退路径填充 musl 缓存。
+// 原生构建永远不会走到这里（feature flag 短路），因此这只
+// 对 Linux 上的 unbundled node 有影响。原生构建上的 Installer
+// 调用不受影响，因为 feature() 在编译时解析。
 if (process.platform === 'linux') {
   const muslArch = process.arch === 'x64' ? 'x86_64' : 'aarch64'
   void stat(`/lib/libc.musl-${muslArch}.so.1`).then(
@@ -44,21 +44,22 @@ if (process.platform === 'linux') {
 }
 
 /**
- * Checks if the system is using MUSL libc instead of glibc.
- * In native linux builds, this is statically known at compile time via IS_LIBC_MUSL/IS_LIBC_GLIBC flags.
- * In node (unbundled), both flags are false and we fall back to a runtime async stat check
- * whose result is cached at module load. If the cache isn't populated yet, returns false.
+ * 检查系统是否使用 MUSL libc 而非 glibc。
+ * 在原生 linux 构建中，这通过 IS_LIBC_MUSL/IS_LIBC_GLIBC 标志
+ * 在编译时静态已知。
+ * 在 node（unbundled）中，两个标志都为 false，我们回退到运行时
+ * 异步 stat 检查，其结果在模块加载时缓存。若缓存尚未填充，返回 false。
  */
 function isMuslEnvironment(): boolean {
   if (feature('IS_LIBC_MUSL')) return true
   if (feature('IS_LIBC_GLIBC')) return false
 
-  // Fallback for node: runtime detection via pre-populated cache
+  // node 的回退：通过预填充缓存进行运行时检测
   if (process.platform !== 'linux') return false
   return muslRuntimeCache ?? false
 }
 
-// Cache for async JetBrains detection
+// 异步 JetBrains 检测的缓存
 let jetBrainsIDECache: string | null | undefined
 
 async function detectJetBrainsIDEFromParentProcessAsync(): Promise<
@@ -70,16 +71,16 @@ async function detectJetBrainsIDEFromParentProcessAsync(): Promise<
 
   if (process.platform === 'darwin') {
     jetBrainsIDECache = null
-    return null // macOS uses bundle ID detection which is already handled
+    return null // macOS 使用 bundle ID 检测，已处理
   }
 
   try {
-    // Get ancestor commands in a single call (avoids sync bash in loop)
+    // 在单次调用中获取祖先命令（避免循环中的同步 bash）
     const commands = await getAncestorCommandsAsync(process.pid, 10)
 
     for (const command of commands) {
       const lowerCommand = command.toLowerCase()
-      // Check for specific JetBrains IDEs in the command line
+      // 在命令行中检查特定的 JetBrains IDE
       for (const ide of JETBRAINS_IDES) {
         if (lowerCommand.includes(ide)) {
           jetBrainsIDECache = ide
@@ -88,7 +89,7 @@ async function detectJetBrainsIDEFromParentProcessAsync(): Promise<
       }
     }
   } catch {
-    // Silently fail - this is a best-effort detection
+    // 静默失败 - 这是尽力而为的检测
   }
 
   jetBrainsIDECache = null
@@ -98,9 +99,9 @@ async function detectJetBrainsIDEFromParentProcessAsync(): Promise<
 export async function getTerminalWithJetBrainsDetectionAsync(): Promise<
   string | null
 > {
-  // Check for JetBrains terminal on Linux/Windows
+  // 在 Linux/Windows 上检查 JetBrains 终端
   if (process.env.TERMINAL_EMULATOR === 'JetBrains-JediTerm') {
-    // For macOS, bundle ID detection above already handles JetBrains IDEs
+    // macOS 上，上方的 bundle ID 检测已处理 JetBrains IDE
     if (env.platform !== 'darwin') {
       const specificIDE = await detectJetBrainsIDEFromParentProcessAsync()
       return specificIDE || 'pycharm'
@@ -109,19 +110,19 @@ export async function getTerminalWithJetBrainsDetectionAsync(): Promise<
   return env.terminal
 }
 
-// Synchronous version that returns cached result or falls back to env.terminal
-// Used for backward compatibility - callers should migrate to async version
+// 同步版本，返回缓存结果或回退到 env.terminal
+// 用于向后兼容 - 调用方应迁移到异步版本
 export function getTerminalWithJetBrainsDetection(): string | null {
-  // Check for JetBrains terminal on Linux/Windows
+  // 在 Linux/Windows 上检查 JetBrains 终端
   if (process.env.TERMINAL_EMULATOR === 'JetBrains-JediTerm') {
-    // For macOS, bundle ID detection above already handles JetBrains IDEs
+    // macOS 上，上方的 bundle ID 检测已处理 JetBrains IDE
     if (env.platform !== 'darwin') {
-      // Return cached value if available, otherwise fall back to generic detection
-      // The async version should be called early in app initialization to populate cache
+      // 若有缓存值则返回，否则回退到通用检测
+      // 应在应用初始化早期调用异步版本以填充缓存
       if (jetBrainsIDECache !== undefined) {
         return jetBrainsIDECache || 'pycharm'
       }
-      // Fall back to generic 'pycharm' if cache not populated yet
+      // 若缓存尚未填充，回退到通用的 'pycharm'
       return 'pycharm'
     }
   }
@@ -129,9 +130,9 @@ export function getTerminalWithJetBrainsDetection(): string | null {
 }
 
 /**
- * Initialize JetBrains IDE detection asynchronously.
- * Call this early in app initialization to populate the cache.
- * After this resolves, getTerminalWithJetBrainsDetection() will return accurate results.
+ * 异步初始化 JetBrains IDE 检测。
+ * 在应用初始化早期调用以填充缓存。
+ * 此 Promise resolve 后，getTerminalWithJetBrainsDetection() 将返回准确结果。
  */
 export async function initJetBrainsDetection(): Promise<void> {
   if (process.env.TERMINAL_EMULATOR === 'JetBrains-JediTerm') {
@@ -139,9 +140,9 @@ export async function initJetBrainsDetection(): Promise<void> {
   }
 }
 
-// Combined export that includes all env properties plus dynamic functions
+// 组合导出，包含所有 env 属性加动态函数
 export const envDynamic = {
-  ...env, // Include all properties from env
+  ...env, // 包含 env 的所有属性
   terminal: getTerminalWithJetBrainsDetection(),
   getIsDocker,
   getIsBubblewrapSandbox,
