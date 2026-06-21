@@ -1,6 +1,6 @@
 /**
- * Domestic (China) LLM provider presets with URLs, pricing, and model data.
- * All providers are OpenAI-compatible — just swap baseURL + apiKey.
+ * 中国国内 LLM 提供商预设，包含 URL、定价和模型数据。
+ * 所有提供商都是 OpenAI 兼容的 —— 只需替换 baseURL + apiKey。
  */
 
 export type ProviderModel = {

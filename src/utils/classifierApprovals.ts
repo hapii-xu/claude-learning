@@ -1,6 +1,6 @@
 /**
- * Tracks which tool uses were auto-approved by classifiers.
- * Populated from useCanUseTool.ts and permissions.ts, read from UserToolSuccessMessage.tsx.
+ * 追踪哪些工具使用被分类器自动批准。
+ * 在 useCanUseTool.ts 和 permissions.ts 中填充，在 UserToolSuccessMessage.tsx 中读取。
  */
 
 import { feature } from 'bun:bundle'

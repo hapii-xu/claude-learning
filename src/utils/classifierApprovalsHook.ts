@@ -1,7 +1,7 @@
 /**
- * React hook for classifierApprovals store.
- * Split from classifierApprovals.ts so pure-state importers (permissions.ts,
- * toolExecution.ts, postCompactCleanup.ts) do not pull React into print.ts.
+ * classifierApprovals 存储的 React hook。
+ * 从 classifierApprovals.ts 分离，以便纯状态导入者（permissions.ts、
+ * toolExecution.ts、postCompactCleanup.ts）不会将 React 拉入 print.ts。
  */
 
 import { useSyncExternalStore } from 'react'

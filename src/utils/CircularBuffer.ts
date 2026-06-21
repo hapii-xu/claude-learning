@@ -1,6 +1,6 @@
 /**
- * A fixed-size circular buffer that automatically evicts the oldest items
- * when the buffer is full. Useful for maintaining a rolling window of data.
+ * 固定大小的环形缓冲区，缓冲区满时自动逐出最旧的项目。
+ * 适用于维护滚动数据窗口。
  */
 export class CircularBuffer<T> {
   private buffer: T[]
@@ -12,8 +12,8 @@ export class CircularBuffer<T> {
   }
 
   /**
-   * Add an item to the buffer. If the buffer is full,
-   * the oldest item will be evicted.
+   * 向缓冲区添加一个项目。如果缓冲区已满，
+   * 最旧的项目将被逐出。
    */
   add(item: T): void {
     this.buffer[this.head] = item
@@ -24,7 +24,7 @@ export class CircularBuffer<T> {
   }
 
   /**
-   * Add multiple items to the buffer at once.
+   * 一次向缓冲区添加多个项目。
    */
   addAll(items: T[]): void {
     for (const item of items) {
@@ -33,8 +33,8 @@ export class CircularBuffer<T> {
   }
 
   /**
-   * Get the most recent N items from the buffer.
-   * Returns fewer items if the buffer contains less than N items.
+   * 获取缓冲区中最近的 N 个项目。
+   * 如果缓冲区包含的项目少于 N 个，则返回较少的项目。
    */
   getRecent(count: number): T[] {
     const result: T[] = []
@@ -50,7 +50,7 @@ export class CircularBuffer<T> {
   }
 
   /**
-   * Get all items currently in the buffer, in order from oldest to newest.
+   * 获取缓冲区中当前的所有项目，按从旧到新的顺序。
    */
   toArray(): T[] {
     if (this.size === 0) return []
@@ -67,7 +67,7 @@ export class CircularBuffer<T> {
   }
 
   /**
-   * Clear all items from the buffer.
+   * 清除缓冲区中的所有项目。
    */
   clear(): void {
     this.buffer.length = 0
@@ -76,7 +76,7 @@ export class CircularBuffer<T> {
   }
 
   /**
-   * Get the current number of items in the buffer.
+   * 获取缓冲区中当前的项目数量。
    */
   length(): number {
     return this.size
