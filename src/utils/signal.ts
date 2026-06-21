@@ -1,26 +1,26 @@
 /**
- * Tiny listener-set primitive for pure event signals (no stored state).
+ * 轻量级监听器集合原语，用于纯事件信号（无存储状态）。
  *
- * Collapses the ~8-line `const listeners = new Set(); function subscribe(){…};
- * function notify(){for(const l of listeners) l()}` boilerplate that was
- * duplicated ~15× across the codebase into a one-liner.
+ * 将约 8 行的 `const listeners = new Set(); function subscribe(){…};
+ * function notify(){for(const l of listeners) l()}` 样板代码
+ * （在代码库中重复了约 15 次）压缩为一行调用。
  *
- * Distinct from a store (AppState, createStore) — there is no snapshot, no
- * getState. Use this when subscribers only need to know "something happened",
- * optionally with event args, not "what is the current value".
+ * 与 store（AppState、createStore）不同 — 没有快照，没有 getState。
+ * 当订阅者只需知道"发生了某事"（可选携带事件参数），
+ * 而非"当前值是什么"时，使用此原语。
  *
- * Usage:
+ * 用法：
  *   const changed = createSignal<[SettingSource]>()
  *   export const subscribe = changed.subscribe
- *   // later: changed.emit('userSettings')
+ *   // 稍后：changed.emit('userSettings')
  */
 
 export type Signal<Args extends unknown[] = []> = {
-  /** Subscribe a listener. Returns an unsubscribe function. */
+  /** 订阅监听器。返回取消订阅函数。 */
   subscribe: (listener: (...args: Args) => void) => () => void
-  /** Call all subscribed listeners with the given arguments. */
+  /** 使用给定参数调用所有已订阅的监听器。 */
   emit: (...args: Args) => void
-  /** Remove all listeners. Useful in dispose/reset paths. */
+  /** 移除所有监听器。用于 dispose/reset 路径。 */
   clear: () => void
 }
 
