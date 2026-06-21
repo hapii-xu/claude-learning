@@ -1,19 +1,19 @@
 /**
- * Shared infrastructure for profiler modules (startupProfiler, queryProfiler,
- * headlessProfiler).
+ * profiler 模块（startupProfiler、queryProfiler、
+ * headlessProfiler）的共享基础设施。
  *
- * Uses process.hrtime.bigint() for timing instead of perf_hooks.performance
- * to avoid a Bun/JSC memory leak: JSC's Performance object stores marks in a
- * C++ Vector that never shrinks even after clearMarks(). Long-running sessions
- * (daemon, /loop) accumulate hundreds of MB of dead capacity.
+ * 使用 process.hrtime.bigint() 计时而非 perf_hooks.performance，
+ * 以避免 Bun/JSC 内存泄露：JSC 的 Performance 对象将 marks 存储在
+ * 一个 C++ Vector 中，即使调用 clearMarks() 也不会收缩。长时间运行的
+ * 会话（daemon、/loop）会累积数百 MB 的死容量。
  *
- * The LightweightPerf class provides the same interface the profilers need
- * (mark, getEntriesByType, clearMarks, now) backed by a plain JS Map.
+ * LightweightPerf 类提供 profiler 所需的相同接口
+ * （mark、getEntriesByType、clearMarks、now），底层使用普通 JS Map。
  */
 
 import { formatFileSize } from './format.js'
 
-/** Minimal PerformanceEntry-like object used by profilers */
+/** profiler 使用的最小 PerformanceEntry 类似对象 */
 export interface CheckpointEntry {
   readonly name: string
   readonly startTime: number
@@ -21,9 +21,9 @@ export interface CheckpointEntry {
 }
 
 /**
- * Lightweight replacement for perf_hooks.performance that stores marks in a
- * plain JavaScript Map instead of JSC's C++ Vector. This avoids the memory
- * leak where clearMarks() sets the count to 0 but never frees Vector capacity.
+ * perf_hooks.performance 的轻量替代品，将 marks 存储在
+ * 普通 JavaScript Map 中而非 JSC 的 C++ Vector。这避免了
+ * clearMarks() 将计数设为 0 但永不释放 Vector 容量的内存泄露。
  */
 class LightweightPerf {
   private marks = new Map<string, number>()
@@ -59,7 +59,7 @@ class LightweightPerf {
   }
 }
 
-// Singleton — shared across all profilers (same as the old perf_hooks singleton)
+// 单例 — 所有 profiler 共享（与旧的 perf_hooks 单例相同）
 const perf = new LightweightPerf()
 
 export function getPerformance(): LightweightPerf {
@@ -71,11 +71,11 @@ export function formatMs(ms: number): string {
 }
 
 /**
- * Render a single timeline line in the shared profiler report format:
+ * 以共享 profiler 报告格式渲染单行时间线：
  *   [+  total.ms] (+  delta.ms) name [extra] [| RSS: .., Heap: ..]
  *
- * totalPad/deltaPad control the padStart width so callers can align columns
- * based on their expected magnitude (startup uses 8/7, query uses 10/9).
+ * totalPad/deltaPad 控制 padStart 宽度，以便调用方可根据
+ * 预期量级对齐列（startup 使用 8/7，query 使用 10/9）。
  */
 export function formatTimelineLine(
   totalMs: number,

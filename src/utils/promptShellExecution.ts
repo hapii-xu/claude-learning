@@ -8,14 +8,14 @@ import { createAssistantMessage } from './messages.js'
 import { hasPermissionsToUseTool } from './permissions/permissions.js'
 import { processToolResultBlock } from './toolResultStorage.js'
 
-// Narrow structural slice both BashTool and PowerShellTool satisfy. We can't
-// use the base Tool type: it marks call()'s canUseTool/parentMessage as
-// required, but both concrete tools have them optional and the original code
-// called BashTool.call({ command }, ctx) with just 2 args. We can't use
-// `typeof BashTool` either: BashTool's input schema has fields (e.g.
-// _simulatedSedEdit) that PowerShellTool's does not.
-// NOTE: call() is invoked directly here, bypassing validateInput — any
-// load-bearing check must live in call() itself (see PR #23311).
+// BashTool 和 PowerShellTool 均满足的结构性窄切片。不能使用
+// 基础 Tool 类型：它将 call() 的 canUseTool/parentMessage 标记为
+// 必需，但两个具体工具都将它们设为可选，且原始代码
+// 仅以 2 个参数调用 BashTool.call({ command }, ctx)。也不能使用
+// `typeof BashTool`：BashTool 的 input schema 有 PowerShellTool
+// 没有的字段（如 _simulatedSedEdit）。
+// 注意：call() 在此直接调用，绕过 validateInput — 任何关键
+// 校验必须位于 call() 本身（见 PR #23311）。
 type ShellOut = { stdout: string; stderr: string; interrupted: boolean }
 type PromptShellTool = Tool & {
   call(
@@ -26,11 +26,11 @@ type PromptShellTool = Tool & {
 
 import { isPowerShellToolEnabled } from './shell/shellToolUtils.js'
 
-// Lazy: this file is on the startup import chain (main → commands →
-// loadSkillsDir → here). A static import would load PowerShellTool.ts
-// (and transitively parser.ts, validators, etc.) at startup on all
-// platforms, defeating tools.ts's lazy require. Deferred until the
-// first skill with `shell: powershell` actually runs.
+// 惰性：此文件在启动导入链上（main → commands →
+// loadSkillsDir → 此文件）。静态导入会在所有平台的启动时
+// 加载 PowerShellTool.ts（以及传递的 parser.ts、validators 等），
+// 使 tools.ts 的惰性 require 失效。延迟到首个带
+// `shell: powershell` 的 skill 实际运行时。
 /* eslint-disable @typescript-eslint/no-require-imports */
 const getPowerShellTool = (() => {
   let cached: PromptShellTool | undefined
@@ -45,26 +45,26 @@ const getPowerShellTool = (() => {
 })()
 /* eslint-enable @typescript-eslint/no-require-imports */
 
-// Pattern for code blocks: ```! command ```
+// 代码块模式：```! command ```
 const BLOCK_PATTERN = /```!\s*\n?([\s\S]*?)\n?```/g
 
-// Pattern for inline: !`command`
-// Uses a positive lookbehind to require whitespace or start-of-line before !
-// This prevents false matches inside markdown inline code spans like `!!` or
-// adjacent spans like `foo`!`bar`, and shell variables like $!
+// 行内模式：!`command`
+// 使用正向后瞻要求在 ! 前为空白或行首。
+// 这防止在 markdown 行内代码块如 `!!` 或相邻块
+// 如 `foo`!`bar` 以及 shell 变量如 $! 中产生错误匹配。
 // eslint-disable-next-line custom-rules/no-lookbehind-regex -- gated by text.includes('!`') below (PR#22986)
 const INLINE_PATTERN = /(?<=^|\s)!`([^`]+)`/gm
 
 /**
- * Parses prompt text and executes any embedded shell commands.
- * Supports two syntaxes:
- * - Code blocks: ```! command ```
- * - Inline: !`command`
+ * 解析提示文本并执行任何嵌入的 shell 命令。
+ * 支持两种语法：
+ * - 代码块：```! command ```
+ * - 行内：!`command`
  *
- * @param shell - Shell to route commands through. Defaults to bash.
- *   This is *never* read from settings.defaultShell — it comes from .md
- *   frontmatter (author's choice) or is undefined for built-in commands.
- *   See docs/design/ps-shell-selection.md §5.3.
+ * @param shell - 路由命令的 shell。默认为 bash。
+ *   此值*永不*从 settings.defaultShell 读取 — 它来自 .md
+ *   frontmatter（作者选择）或对内置命令为 undefined。
+ *   见 docs/design/ps-shell-selection.md §5.3。
  */
 export async function executeShellCommandsInPrompt(
   text: string,
@@ -74,18 +74,18 @@ export async function executeShellCommandsInPrompt(
 ): Promise<string> {
   let result = text
 
-  // Resolve the tool once. `shell === undefined` and `shell === 'bash'` both
-  // hit BashTool. PowerShell only when the runtime gate allows — a skill
-  // author's frontmatter choice doesn't override the user's opt-in/out.
+  // 一次性解析工具。`shell === undefined` 和 `shell === 'bash'` 都
+  // 使用 BashTool。仅当运行时门控允许时使用 PowerShell —
+  // skill 作者的 frontmatter 选择不覆盖用户的 opt-in/out。
   const shellTool: PromptShellTool =
     shell === 'powershell' && isPowerShellToolEnabled()
       ? getPowerShellTool()
       : BashTool
 
-  // INLINE_PATTERN's lookbehind is ~100x slower than BLOCK_PATTERN on large
-  // skill content (265µs vs 2µs @ 17KB). 93% of skills have no !` at all,
-  // so gate the expensive scan on a cheap substring check. BLOCK_PATTERN
-  // (```!) doesn't require !` in the text, so it's always scanned.
+  // INLINE_PATTERN 的后瞻在大型 skill 内容上比 BLOCK_PATTERN 慢约 100 倍
+  // (265µs vs 2µs @ 17KB)。93% 的 skill 根本没有 !`，因此将昂贵的
+  // 扫描门控在廉价的子串检查上。BLOCK_PATTERN（```!）不需要
+  // 文本中有 !`，因此总是扫描。
   const blockMatches = text.matchAll(BLOCK_PATTERN)
   const inlineMatches = text.includes('!`') ? text.matchAll(INLINE_PATTERN) : []
 
@@ -94,7 +94,7 @@ export async function executeShellCommandsInPrompt(
       const command = match[1]?.trim()
       if (command) {
         try {
-          // Check permissions before executing
+          // 执行前检查权限
           const permissionResult = await hasPermissionsToUseTool(
             shellTool,
             { command },
@@ -113,21 +113,21 @@ export async function executeShellCommandsInPrompt(
           }
 
           const { data } = await shellTool.call({ command }, context)
-          // Reuse the same persistence flow as regular Bash tool calls
+          // 复用与常规 Bash 工具调用相同的持久化流程
           const toolResultBlock = await processToolResultBlock(
             shellTool,
             data,
             randomUUID(),
           )
-          // Extract the string content from the block
+          // 从块中提取字符串内容
           const output =
             typeof toolResultBlock.content === 'string'
               ? toolResultBlock.content
               : formatBashOutput(data.stdout, data.stderr)
-          // Function replacer — String.replace interprets $$, $&, $`, $' in
-          // the replacement string even with a string search pattern. Shell
-          // output (especially PowerShell: $env:PATH, $$, $PSVersionTable)
-          // is arbitrary user data; a bare string arg would corrupt it.
+          // 函数替换器 — String.replace 在替换字符串中即使使用
+          // 字符串搜索模式也会解释 $$、$&、$`、$'。Shell 输出
+          //（尤其是 PowerShell：$env:PATH、$$、$PSVersionTable）
+          // 是任意用户数据；裸字符串参数会损坏它。
           result = result.replace(match[0], () => output)
         } catch (e) {
           if (e instanceof MalformedCommandError) {

@@ -1,23 +1,22 @@
 /**
- * Synchronous state machine for the query lifecycle, compatible with
- * React's `useSyncExternalStore`.
+ * 查询生命周期的同步状态机，兼容 React 的 `useSyncExternalStore`。
  *
- * Three states:
- *   idle        → no query, safe to dequeue and process
- *   dispatching → an item was dequeued, async chain hasn't reached onQuery yet
- *   running     → onQuery called tryStart(), query is executing
+ * 三种状态：
+ *   idle        → 无查询，可安全出队并处理
+ *   dispatching → 某项已出队，异步链尚未到达 onQuery
+ *   running     → onQuery 调用了 tryStart()，查询正在执行
  *
- * Transitions:
+ * 转换：
  *   idle → dispatching  (reserve)
  *   dispatching → running  (tryStart)
- *   idle → running  (tryStart, for direct user submissions)
+ *   idle → running  (tryStart，用于直接用户提交)
  *   running → idle  (end / forceEnd)
- *   dispatching → idle  (cancelReservation, when processQueueIfReady fails)
+ *   dispatching → idle  (cancelReservation，当 processQueueIfReady 无内容处理时)
  *
- * `isActive` returns true for both dispatching and running, preventing
- * re-entry from the queue processor during the async gap.
+ * `isActive` 对 dispatching 和 running 均返回 true，
+ * 防止在异步间隙期间从队列处理器重入。
  *
- * Usage with React:
+ * React 中的用法：
  *   const queryGuard = useRef(new QueryGuard()).current
  *   const isQueryActive = useSyncExternalStore(
  *     queryGuard.subscribe,
@@ -32,8 +31,8 @@ export class QueryGuard {
   private _changed = createSignal()
 
   /**
-   * Reserve the guard for queue processing. Transitions idle → dispatching.
-   * Returns false if not idle (another query or dispatch in progress).
+   * 为队列处理保留 guard。从 idle 转换到 dispatching。
+   * 若非 idle 则返回 false（另一个查询或派发进行中）。
    */
   reserve(): boolean {
     if (this._status !== 'idle') return false
@@ -43,8 +42,8 @@ export class QueryGuard {
   }
 
   /**
-   * Cancel a reservation when processQueueIfReady had nothing to process.
-   * Transitions dispatching → idle.
+   * 当 processQueueIfReady 无内容处理时取消保留。
+   * 从 dispatching 转换到 idle。
    */
   cancelReservation(): void {
     if (this._status !== 'dispatching') return
@@ -53,10 +52,9 @@ export class QueryGuard {
   }
 
   /**
-   * Start a query. Returns the generation number on success,
-   * or null if a query is already running (concurrent guard).
-   * Accepts transitions from both idle (direct user submit)
-   * and dispatching (queue processor path).
+   * 启动查询。成功时返回 generation 号，
+   * 若查询已在运行则返回 null（并发 guard）。
+   * 接受从 idle（直接用户提交）和 dispatching（队列处理器路径）的转换。
    */
   tryStart(): number | null {
     if (this._status === 'running') return null
@@ -67,9 +65,9 @@ export class QueryGuard {
   }
 
   /**
-   * End a query. Returns true if this generation is still current
-   * (meaning the caller should perform cleanup). Returns false if a
-   * newer query has started (stale finally block from a cancelled query).
+   * 结束查询。若此 generation 仍为当前则返回 true
+   * （表示调用方应执行清理）。若已有更新的查询开始则返回 false
+   * （已取消查询的过时 finally 块）。
    */
   end(generation: number): boolean {
     if (this._generation !== generation) return false
@@ -80,10 +78,10 @@ export class QueryGuard {
   }
 
   /**
-   * Force-end the current query regardless of generation.
-   * Used by onCancel where any running query should be terminated.
-   * Increments generation so stale finally blocks from the cancelled
-   * query's promise rejection will see a mismatch and skip cleanup.
+   * 无视 generation 强制结束当前查询。
+   * 被 onCancel 使用，任何运行中的查询都应被终止。
+   * 递增 generation，使已取消查询 promise rejection 中的
+   * 过时 finally 块会看到不匹配并跳过清理。
    */
   forceEnd(): void {
     if (this._status === 'idle') return
@@ -93,8 +91,8 @@ export class QueryGuard {
   }
 
   /**
-   * Is the guard active (dispatching or running)?
-   * Always synchronous — not subject to React state batching delays.
+   * guard 是否处于活动状态（dispatching 或 running）？
+   * 始终同步 — 不受 React 状态批处理延迟影响。
    */
   get isActive(): boolean {
     return this._status !== 'idle'
@@ -105,12 +103,12 @@ export class QueryGuard {
   }
 
   // --
-  // useSyncExternalStore interface
+  // useSyncExternalStore 接口
 
-  /** Subscribe to state changes. Stable reference — safe as useEffect dep. */
+  /** 订阅状态变化。稳定引用 — 可安全用作 useEffect 依赖。 */
   subscribe = this._changed.subscribe
 
-  /** Snapshot for useSyncExternalStore. Returns `isActive`. */
+  /** useSyncExternalStore 的快照。返回 `isActive`。 */
   getSnapshot = (): boolean => {
     return this._status !== 'idle'
   }
