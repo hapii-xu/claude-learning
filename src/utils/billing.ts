@@ -8,22 +8,22 @@ import { getGlobalConfig } from './config.js'
 import { isEnvTruthy } from './envUtils.js'
 
 export function hasConsoleBillingAccess(): boolean {
-  // Check if cost reporting is disabled via environment variable
+  // 检查是否通过环境变量禁用了成本报告
   if (isEnvTruthy(process.env.DISABLE_COST_WARNINGS)) {
     return false
   }
 
   const isSubscriber = isClaudeAISubscriber()
 
-  // This might be wrong if user is signed into Max but also using an API key, but
-  // we already show a warning on launch in that case
+  // 如果用户已登录 Max 但同时使用 API 密钥，这可能不准确，但
+  // 我们已在这种情况下在启动时显示警告
   if (isSubscriber) return false
 
-  // Check if user has any form of authentication
+  // 检查用户是否有任何形式的认证
   const authSource = getAuthTokenSource()
   const hasApiKey = getAnthropicApiKey() !== null
 
-  // If user has no authentication at all (logged out), don't show costs
+  // 如果用户完全没有认证（已登出），不显示成本
   if (!authSource.hasToken && !hasApiKey) {
     return false
   }
@@ -33,17 +33,17 @@ export function hasConsoleBillingAccess(): boolean {
   const workspaceRole = config.oauthAccount?.workspaceRole
 
   if (!orgRole || !workspaceRole) {
-    return false // hide cost for grandfathered users who have not re-authed since we've added roles
+    return false // 隐藏自我们添加角色以来未重新认证的老用户的成本
   }
 
-  // Users have billing access if they are admins or billing roles at either workspace or organization level
+  // 如果用户在工作区或组织级别是管理员或计费角色，则具有计费访问权限
   return (
     ['admin', 'billing'].includes(orgRole) ||
     ['workspace_admin', 'workspace_billing'].includes(workspaceRole)
   )
 }
 
-// Mock billing access for /mock-limits testing (set by mockRateLimits.ts)
+// /mock-limits 测试的模拟计费访问（由 mockRateLimits.ts 设置）
 let mockBillingAccessOverride: boolean | null = null
 
 export function setMockBillingAccessOverride(value: boolean | null): void {
@@ -51,7 +51,7 @@ export function setMockBillingAccessOverride(value: boolean | null): void {
 }
 
 export function hasClaudeAiBillingAccess(): boolean {
-  // Check for mock billing access first (for /mock-limits testing)
+  // 首先检查模拟计费访问（用于 /mock-limits 测试）
   if (mockBillingAccessOverride !== null) {
     return mockBillingAccessOverride
   }
@@ -62,12 +62,12 @@ export function hasClaudeAiBillingAccess(): boolean {
 
   const subscriptionType = getSubscriptionType()
 
-  // Consumer plans (Max/Pro) - individual users always have billing access
+  // 消费者计划（Max/Pro）—— 个人用户始终具有计费访问权限
   if (subscriptionType === 'max' || subscriptionType === 'pro') {
     return true
   }
 
-  // Team/Enterprise - check for admin or billing roles
+  // 团队/企业 —— 检查管理员或计费角色
   const config = getGlobalConfig()
   const orgRole = config.oauthAccount?.organizationRole
 

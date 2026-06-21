@@ -78,9 +78,9 @@ function groupRefsByRootDir(
 }
 
 /**
- * Exclude queued autonomy commands whose persisted run is no longer queued.
- * This prevents stale in-memory commands from reviving flows after cancellation
- * or after another path has already consumed the run.
+ * 排除已持久化的 run 不再处于 queued 状态的已排队自治命令。
+ * 这可以防止过时的内存中命令在取消后或另一个路径已消费该 run 后
+ * 重新激活 flow。
  */
 export async function partitionConsumableQueuedAutonomyCommands(
   commands: QueuedCommand[],
