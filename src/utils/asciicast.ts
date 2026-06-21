@@ -9,17 +9,17 @@ import { getFsImplementation } from './fsOperations.js'
 import { sanitizePath } from './path.js'
 import { jsonStringify } from './slowOperations.js'
 
-// Mutable recording state — filePath is updated when session ID changes (e.g., --resume)
+// 可变录制状态 —— filePath 在会话 ID 变更时更新（例如 --resume）
 const recordingState: { filePath: string | null; timestamp: number } = {
   filePath: null,
   timestamp: 0,
 }
 
 /**
- * Get the asciicast recording file path.
- * For ants with CLAUDE_CODE_TERMINAL_RECORDING=1: returns a path.
- * Otherwise: returns null.
- * The path is computed once and cached in recordingState.
+ * 获取 asciicast 录制文件路径。
+ * 对于设置了 CLAUDE_CODE_TERMINAL_RECORDING=1 的 ant 用户：返回路径。
+ * 否则：返回 null。
+ * 路径只计算一次并缓存在 recordingState 中。
  */
 export function getRecordFilePath(): string | null {
   if (recordingState.filePath !== null) {
@@ -31,8 +31,8 @@ export function getRecordFilePath(): string | null {
   if (!isEnvTruthy(process.env.CLAUDE_CODE_TERMINAL_RECORDING)) {
     return null
   }
-  // Record alongside the transcript.
-  // Each launch gets its own file so --continue produces multiple recordings.
+  // 与转录一起录制。
+  // 每次启动都会生成自己的文件，因此 --continue 会产生多个录制。
   const projectsDir = join(getClaudeConfigHomeDir(), 'projects')
   const projectDir = join(projectsDir, sanitizePath(getOriginalCwd()))
   recordingState.timestamp = Date.now()
@@ -49,10 +49,10 @@ export function _resetRecordingStateForTesting(): void {
 }
 
 /**
- * Rename the recording file to match the current session ID.
- * Called after --resume/--continue changes the session ID via switchSession().
- * The recorder was installed with the initial (random) session ID; this renames
- * the file so getSessionRecordingPaths() can find it by the resumed session ID.
+ * 重命名录制文件以匹配当前会话 ID。
+ * 在 --resume/--continue 通过 switchSession() 更改会话 ID 后调用。
+ * 录制器安装时使用的是初始（随机的）会话 ID；此处重命名文件
+ * 以便 getSessionRecordingPaths() 能通过恢复后的会话 ID 找到它。
  */
 export async function renameRecordingForSession(): Promise<void> {
   const oldPath = recordingState.filePath
@@ -68,7 +68,7 @@ export async function renameRecordingForSession(): Promise<void> {
   if (oldPath === newPath) {
     return
   }
-  // Flush pending writes before renaming
+  // 重命名前刷新待写入的数据
   await recorder?.flush()
   const oldName = basename(oldPath)
   const newName = basename(newPath)
@@ -91,7 +91,7 @@ type AsciicastRecorder = {
 let recorder: AsciicastRecorder | null = null
 
 function getTerminalSize(): { cols: number; rows: number } {
-  // Direct access to stdout dimensions — not in a React component
+  // 直接访问 stdout 尺寸 —— 不在 React 组件中
   // eslint-disable-next-line custom-rules/prefer-use-terminal-size
   const cols = process.stdout.columns || 80
   // eslint-disable-next-line custom-rules/prefer-use-terminal-size
@@ -100,9 +100,9 @@ function getTerminalSize(): { cols: number; rows: number } {
 }
 
 /**
- * Install the asciicast recorder.
- * Wraps process.stdout.write to capture all terminal output with timestamps.
- * Must be called before Ink mounts.
+ * 安装 asciicast 录制器。
+ * 包装 process.stdout.write 以带时间戳捕获所有终端输出。
+ * 必须在 Ink 挂载前调用。
  */
 export function installAsciicastRecorder(): void {
   const filePath = getRecordFilePath()
@@ -113,7 +113,7 @@ export function installAsciicastRecorder(): void {
   const { cols, rows } = getTerminalSize()
   const startTime = performance.now()
 
-  // Write the asciicast v2 header
+  // 写入 asciicast v2 头部
   const header = jsonStringify({
     version: 2,
     width: cols,
@@ -129,7 +129,7 @@ export function installAsciicastRecorder(): void {
     // eslint-disable-next-line custom-rules/no-sync-fs -- one-time init before Ink mounts
     getFsImplementation().mkdirSync(dirname(filePath))
   } catch {
-    // Directory may already exist
+    // 目录可能已存在
   }
   // eslint-disable-next-line custom-rules/no-sync-fs -- one-time init before Ink mounts
   getFsImplementation().appendFileSync(filePath, header + '\n', { mode: 0o600 })
@@ -138,7 +138,7 @@ export function installAsciicastRecorder(): void {
 
   const writer = createBufferedWriter({
     writeFn(content: string) {
-      // Use recordingState.filePath (mutable) so writes follow renames from --resume
+      // 使用可变的 recordingState.filePath 以便写入跟随 --resume 的重命名
       const currentPath = recordingState.filePath
       if (!currentPath) {
         return
@@ -146,7 +146,7 @@ export function installAsciicastRecorder(): void {
       pendingWrite = pendingWrite
         .then(() => appendFile(currentPath, content))
         .catch(() => {
-          // Silently ignore write errors — don't break the session
+          // 静默忽略写入错误 —— 不要中断会话
         })
     },
     flushIntervalMs: 500,
@@ -154,7 +154,7 @@ export function installAsciicastRecorder(): void {
     maxBufferBytes: 10 * 1024 * 1024, // 10MB
   })
 
-  // Wrap process.stdout.write to capture output
+  // 包装 process.stdout.write 以捕获输出
   const originalWrite = process.stdout.write.bind(
     process.stdout,
   ) as typeof process.stdout.write
@@ -163,20 +163,20 @@ export function installAsciicastRecorder(): void {
     encodingOrCb?: BufferEncoding | ((err?: Error | null) => void),
     cb?: (err?: Error | null) => void,
   ): boolean {
-    // Record the output event
+    // 记录输出事件
     const elapsed = (performance.now() - startTime) / 1000
     const text =
       typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf-8')
     writer.write(jsonStringify([elapsed, 'o', text]) + '\n')
 
-    // Pass through to the real stdout
+    // 传递到真实的 stdout
     if (typeof encodingOrCb === 'function') {
       return originalWrite(chunk, encodingOrCb)
     }
     return originalWrite(chunk, encodingOrCb, cb)
   } as typeof process.stdout.write
 
-  // Handle terminal resize events
+  // 处理终端尺寸调整事件
   function onResize(): void {
     const elapsed = (performance.now() - startTime) / 1000
     const { cols: newCols, rows: newRows } = getTerminalSize()

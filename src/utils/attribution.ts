@@ -36,13 +36,13 @@ export type AttributionTexts = {
 }
 
 /**
- * Returns attribution text for commits and PRs based on user settings.
- * Handles:
- * - Dynamic model name via getRealModelName()
- * - Auto email mapping via getAttributionEmail()
- * - Custom attribution settings (settings.attribution.commit/pr)
- * - Backward compatibility with deprecated includeCoAuthoredBy setting
- * - Remote mode: returns session URL for attribution
+ * 根据用户设置返回提交和 PR 的归属文本。
+ * 处理：
+ * - 通过 getRealModelName() 动态获取模型名
+ * - 通过 getAttributionEmail() 自动映射邮箱
+ * - 自定义归属设置（settings.attribution.commit/pr）
+ * - 与已弃用的 includeCoAuthoredBy 设置的向后兼容
+ * - 远程模式：返回会话 URL 作为归属
  */
 export function getAttributionTexts(): AttributionTexts {
   if (process.env.USER_TYPE === 'ant' && isUndercover()) {
@@ -53,7 +53,7 @@ export function getAttributionTexts(): AttributionTexts {
     const remoteSessionId = process.env.CLAUDE_CODE_REMOTE_SESSION_ID
     if (remoteSessionId) {
       const ingressUrl = process.env.SESSION_INGRESS_URL
-      // Skip for local dev - URLs won't persist
+      // 本地开发跳过 —— URL 不会持久化
       if (!isRemoteSessionLocal(remoteSessionId, ingressUrl)) {
         const sessionUrl = getRemoteSessionUrl(remoteSessionId, ingressUrl)
         return { commit: sessionUrl, pr: sessionUrl }
@@ -69,7 +69,7 @@ export function getAttributionTexts(): AttributionTexts {
 
   const settings = getInitialSettings()
 
-  // New attribution setting takes precedence over deprecated includeCoAuthoredBy
+  // 新归属设置优先于已弃用的 includeCoAuthoredBy
   if (settings.attribution) {
     return {
       commit: settings.attribution.commit ?? defaultCommit,
@@ -77,7 +77,7 @@ export function getAttributionTexts(): AttributionTexts {
     }
   }
 
-  // Backward compatibility: deprecated includeCoAuthoredBy setting
+  // 向后兼容：已弃用的 includeCoAuthoredBy 设置
   if (settings.includeCoAuthoredBy === false) {
     return { commit: '', pr: '' }
   }
@@ -86,8 +86,8 @@ export function getAttributionTexts(): AttributionTexts {
 }
 
 /**
- * Check if a message content string is terminal output rather than a user prompt.
- * Terminal output includes bash input/output tags and caveat messages about local commands.
+ * 检查消息内容字符串是否为终端输出而非用户提示。
+ * 终端输出包括 bash 输入/输出标签和关于本地命令的警告消息。
  */
 function isTerminalOutput(content: string): boolean {
   for (const tag of TERMINAL_OUTPUT_TAGS) {
@@ -99,10 +99,10 @@ function isTerminalOutput(content: string): boolean {
 }
 
 /**
- * Count user messages with visible text content in a list of non-sidechain messages.
- * Excludes tool_result blocks, terminal output, and empty messages.
+ * 统计非侧链消息列表中有可见文本内容的用户消息数。
+ * 排除 tool_result 块、终端输出和空消息。
  *
- * Callers should pass messages already filtered to exclude sidechain messages.
+ * 调用者应传入已过滤排除侧链消息的消息。
  */
 export function countUserPromptsInMessages(
   messages: ReadonlyArray<{ type: string; message?: { content?: unknown } }>,
@@ -150,11 +150,11 @@ export function countUserPromptsInMessages(
 }
 
 /**
- * Count non-sidechain user messages in transcript entries.
- * Used to calculate the number of "steers" (user prompts - 1).
+ * 统计转录条目中非侧链的用户消息数。
+ * 用于计算"引导"次数（用户提示数 - 1）。
  *
- * Counts user messages that contain actual user-typed text,
- * excluding tool_result blocks, sidechain messages, and terminal output.
+ * 统计包含实际用户输入文本的用户消息，
+ * 排除 tool_result 块、侧链消息和终端输出。
  */
 function countUserPromptsFromEntries(entries: ReadonlyArray<Entry>): number {
   const nonSidechain = entries.filter(
@@ -165,10 +165,10 @@ function countUserPromptsFromEntries(entries: ReadonlyArray<Entry>): number {
 }
 
 /**
- * Get full attribution data from the provided AppState's attribution state.
- * Uses ALL tracked files from the attribution state (not just staged files)
- * because for PR attribution, files may not be staged yet.
- * Returns null if no attribution data is available.
+ * 从提供的 AppState 的归属状态获取完整的归属数据。
+ * 使用归属状态中的所有跟踪文件（而不仅仅是暂存文件），
+ * 因为对于 PR 归属，文件可能尚未暂存。
+ * 如果没有可用的归属数据则返回 null。
  */
 async function getPRAttributionData(
   appState: AppState,
@@ -179,7 +179,7 @@ async function getPRAttributionData(
     return null
   }
 
-  // Handle both Map and plain object (in case of serialization)
+  // 同时处理 Map 和普通对象（以防序列化）
   const fileStates = attribution.fileStates
   const isMap = fileStates instanceof Map
   const trackedFiles = isMap
@@ -207,8 +207,8 @@ const MEMORY_ACCESS_TOOL_NAMES = new Set([
 ])
 
 /**
- * Count memory file accesses in transcript entries.
- * Uses the same detection conditions as the PostToolUse session file access hooks.
+ * 统计转录条目中的内存文件访问次数。
+ * 使用与 PostToolUse 会话文件访问钩子相同的检测条件。
  */
 function countMemoryFileAccessFromEntries(
   entries: ReadonlyArray<Entry>,
@@ -231,10 +231,9 @@ function countMemoryFileAccessFromEntries(
 }
 
 /**
- * Read session transcript entries and compute prompt count and memory access
- * count. Pre-compact entries are skipped — the N-shot count and memory-access
- * count should reflect only the current conversation arc, not accumulated
- * prompts from before a compaction boundary.
+ * 读取会话转录条目并计算提示计数和内存访问计数。
+ * 跳过压缩前条目 —— N-shot 计数和内存访问计数
+ * 应仅反映当前对话弧，而非压缩边界之前累积的提示。
  */
 async function getTranscriptStats(): Promise<{
   promptCount: number
@@ -243,12 +242,12 @@ async function getTranscriptStats(): Promise<{
   try {
     const filePath = getTranscriptPath()
     const fileSize = (await stat(filePath)).size
-    // Fused reader: attr-snap lines (84% of a long session by bytes) are
-    // skipped at the fd level so peak scales with output, not file size. The
-    // one surviving attr-snap at EOF is a no-op for the count functions
-    // (neither checks type === 'attribution-snapshot'). When the last
-    // boundary has preservedSegment the reader returns full (no truncate);
-    // the findLastIndex below still slices to post-boundary.
+    // 融合读取器：attr-snap 行（长会话中按字节占 84%）
+    // 在 fd 层被跳过，因此峰值随输出而非文件大小缩放。
+    // 文件末尾唯一保留的 attr-snap 对计数函数是空操作
+    //（都不检查 type === 'attribution-snapshot'）。当最后一个
+    // 边界有 preservedSegment 时，读取器返回完整数据（不截断）；
+    // 下方的 findLastIndex 仍会切片到边界之后。
     const scan = await readTranscriptForLoad(filePath, fileSize)
     const buf = scan.postBoundaryBuf
     const entries = parseJSONL<Entry>(buf)
@@ -270,17 +269,17 @@ async function getTranscriptStats(): Promise<{
 }
 
 /**
- * Get enhanced PR attribution text with Claude contribution stats.
+ * 获取带 Claude 贡献统计的增强 PR 归属文本。
  *
- * Format: "🤖 Generated with Claude Code (93% 3-shotted by claude-opus-4-5)"
+ * 格式："🤖 Generated with Claude Code (93% 3-shotted by claude-opus-4-5)"
  *
- * Rules:
- * - Shows Claude contribution percentage from commit attribution
- * - Shows N-shotted where N is the prompt count (1-shotted, 2-shotted, etc.)
- * - Shows short model name (e.g., claude-opus-4-5)
- * - Returns default attribution if stats can't be computed
+ * 规则：
+ * - 显示提交归属中的 Claude 贡献百分比
+ * - 显示 N-shotted，其中 N 为提示数（1-shotted、2-shotted 等）
+ * - 显示简短模型名（例如 claude-opus-4-5）
+ * - 如果无法计算统计则返回默认归属
  *
- * @param getAppState Function to get the current AppState (from command context)
+ * @param getAppState 获取当前 AppState 的函数（来自命令上下文）
  */
 export async function getEnhancedPRAttribution(
   getAppState: () => AppState,
@@ -293,7 +292,7 @@ export async function getEnhancedPRAttribution(
     const remoteSessionId = process.env.CLAUDE_CODE_REMOTE_SESSION_ID
     if (remoteSessionId) {
       const ingressUrl = process.env.SESSION_INGRESS_URL
-      // Skip for local dev - URLs won't persist
+      // 本地开发跳过 —— URL 不会持久化
       if (!isRemoteSessionLocal(remoteSessionId, ingressUrl)) {
         return getRemoteSessionUrl(remoteSessionId, ingressUrl)
       }
@@ -303,19 +302,19 @@ export async function getEnhancedPRAttribution(
 
   const settings = getInitialSettings()
 
-  // If user has custom PR attribution, use that
+  // 如果用户有自定义 PR 归属，使用该值
   if (settings.attribution?.pr) {
     return settings.attribution.pr
   }
 
-  // Backward compatibility: deprecated includeCoAuthoredBy setting
+  // 向后兼容：已弃用的 includeCoAuthoredBy 设置
   if (settings.includeCoAuthoredBy === false) {
     return ''
   }
 
   const defaultAttribution = `🤖 Generated with [Claude Code](${PRODUCT_URL})`
 
-  // Get AppState first
+  // 首先获取 AppState
   const appState = getAppState()
 
   logForDebugging(
@@ -328,7 +327,7 @@ export async function getEnhancedPRAttribution(
     logForDebugging(`PR Attribution: fileStates count: ${fileCount}`)
   }
 
-  // Get attribution stats (transcript is read once for both prompt count and memory access)
+  // 获取归属统计（转录只读取一次，同时用于提示计数和内存访问）
   const [attributionData, { promptCount, memoryAccessCount }, isInternal] =
     await Promise.all([
       getPRAttributionData(appState),
@@ -342,29 +341,29 @@ export async function getEnhancedPRAttribution(
     `PR Attribution: claudePercent: ${claudePercent}, promptCount: ${promptCount}, memoryAccessCount: ${memoryAccessCount}`,
   )
 
-  // Get real model name for attribution
+  // 获取用于归属的真实模型名
   const realModelName = getRealModelName()
 
-  // If no attribution data, return default
+  // 如果没有归属数据，返回默认值
   if (claudePercent === 0 && promptCount === 0 && memoryAccessCount === 0) {
     logForDebugging('PR Attribution: returning default (no data)')
     return defaultAttribution
   }
 
-  // Build the enhanced attribution: "🤖 Generated with Claude Code (93% 3-shotted by claude-opus-4-5, 2 memories recalled)"
+  // 构建增强归属："🤖 Generated with Claude Code (93% 3-shotted by claude-opus-4-5, 2 memories recalled)"
   const memSuffix =
     memoryAccessCount > 0
       ? `, ${memoryAccessCount} ${memoryAccessCount === 1 ? 'memory' : 'memories'} recalled`
       : ''
   const summary = `🤖 Generated with [Claude Code Best](${PRODUCT_URL}) (${claudePercent}% ${promptCount}-shotted by ${realModelName}${memSuffix})`
 
-  // Append trailer lines for squash-merge survival. Only for allowlisted repos
-  // (INTERNAL_MODEL_REPOS) and only in builds with COMMIT_ATTRIBUTION enabled —
-  // attributionTrailer.ts contains excluded strings, so reach it via dynamic
-  // import behind feature(). When the repo is configured with
-  // squash_merge_commit_message=PR_BODY (cli, apps), the PR body becomes the
-  // squash commit body verbatim — trailer lines at the end become proper git
-  // trailers on the squash commit.
+  // 为 squash-merge 存活追加 trailer 行。仅用于白名单仓库
+  //（INTERNAL_MODEL_REPOS），且仅在启用 COMMIT_ATTRIBUTION 的构建中 ——
+  // attributionTrailer.ts 包含排除的字符串，因此通过 feature() 后面的
+  // 动态 import 访问。当仓库配置了
+  // squash_merge_commit_message=PR_BODY（cli、apps）时，PR body 会原样
+  // 成为 squash 提交 body —— 末尾的 trailer 行会成为 squash 提交上的
+  // 正式 git trailer。
   if (feature('COMMIT_ATTRIBUTION') && isInternal && attributionData) {
     const { buildPRTrailers } = await import('./attributionTrailer.js')
     const trailers = buildPRTrailers(attributionData, appState.attribution)

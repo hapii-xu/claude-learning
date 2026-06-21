@@ -11,11 +11,11 @@ import { errorMessage, isENOENT } from './errors.js'
 import { getFsImplementation } from './fsOperations.js'
 
 /**
- * Well-known token file locations in CCR. The Go environment-manager creates
- * /home/claude/.claude/remote/ and will (eventually) write these files too.
- * Until then, this module writes them on successful FD read so subprocesses
- * spawned inside the CCR container can find the token without inheriting
- * the FD — which they can't: pipe FDs don't cross tmux/shell boundaries.
+ * CCR 中已知的 token 文件位置。Go 环境管理器创建
+ * /home/claude/.claude/remote/ 并（最终）也会写入这些文件。
+ * 在此之前，此模块在成功读取 FD 后写入它们，以便 CCR 容器内
+ * 生成的子进程可以找到 token 而无需继承 FD —— 它们无法继承：
+ * 管道 FD 不能跨越 tmux/shell 边界。
  */
 const CCR_TOKEN_DIR = '/home/claude/.claude/remote'
 export const CCR_OAUTH_TOKEN_PATH = `${CCR_TOKEN_DIR}/.oauth_token`
@@ -23,9 +23,9 @@ export const CCR_API_KEY_PATH = `${CCR_TOKEN_DIR}/.api_key`
 export const CCR_SESSION_INGRESS_TOKEN_PATH = `${CCR_TOKEN_DIR}/.session_ingress_token`
 
 /**
- * Best-effort write of the token to a well-known location for subprocess
- * access. CCR-gated: outside CCR there's no /home/claude/ and no reason to
- * put a token on disk that the FD was meant to keep off disk.
+ * 尽最大努力将 token 写入已知位置以供子进程访问。
+ * CCR 限定：在 CCR 外部没有 /home/claude/，也没有理由将
+ * FD 本应保持在磁盘外的 token 放到磁盘上。
  */
 export function maybePersistTokenForSubprocesses(
   path: string,
@@ -50,9 +50,8 @@ export function maybePersistTokenForSubprocesses(
 }
 
 /**
- * Fallback read from a well-known file. The path only exists in CCR (env-manager
- * creates the directory), so file-not-found is the expected outcome everywhere
- * else — treated as "no fallback", not an error.
+ * 从已知文件回退读取。路径仅存在于 CCR 中（env-manager 创建目录），
+ * 因此在其他地方文件未找到是预期结果 —— 视为"无回退"，而非错误。
  */
 export function readTokenFromWellKnownFile(
   path: string,
@@ -68,9 +67,9 @@ export function readTokenFromWellKnownFile(
     logForDebugging(`Read ${tokenName} from well-known file ${path}`)
     return token
   } catch (error) {
-    // ENOENT is the expected outcome outside CCR — stay silent. Anything
-    // else (EACCES from perm misconfig, etc.) is worth surfacing in the
-    // debug log so subprocess auth failures aren't mysterious.
+    // ENOENT 是在 CCR 外部的预期结果 —— 保持沉默。其他任何情况
+    //（EACCES 来自权限配置错误等）都值得在调试日志中显示，
+    // 以便子进程认证失败不会变得神秘。
     if (!isENOENT(error)) {
       logForDebugging(
         `Failed to read ${tokenName} from ${path}: ${errorMessage(error)}`,
@@ -82,17 +81,16 @@ export function readTokenFromWellKnownFile(
 }
 
 /**
- * Shared FD-or-well-known-file credential reader.
+ * 共享的 FD 或已知文件凭证读取器。
  *
- * Priority order:
- *  1. File descriptor (legacy path) — env var points at a pipe FD passed by
- *     the Go env-manager via cmd.ExtraFiles. Pipe is drained on first read
- *     and doesn't cross exec/tmux boundaries.
- *  2. Well-known file — written by this function on successful FD read (and
- *     eventually by the env-manager directly). Covers subprocesses that can't
- *     inherit the FD.
+ * 优先级顺序：
+ *  1. 文件描述符（旧路径）—— 环境变量指向 Go env-manager 通过
+ *     cmd.ExtraFiles 传递的管道 FD。管道在首次读取后排空，
+ *     且不能跨越 exec/tmux 边界。
+ *  2. 已知文件 —— 在成功读取 FD 后由此函数写入（最终由
+ *     env-manager 直接写入）。覆盖无法继承 FD 的子进程。
  *
- * Returns null if neither source has a credential. Cached in global state.
+ * 如果两个来源都没有凭证则返回 null。缓存在全局状态中。
  */
 function getCredentialFromFd({
   envVar,
@@ -114,8 +112,8 @@ function getCredentialFromFd({
 
   const fdEnv = process.env[envVar]
   if (!fdEnv) {
-    // No FD env var — either we're not in CCR, or we're a subprocess whose
-    // parent stripped the (useless) FD env var. Try the well-known file.
+    // 无 FD 环境变量 —— 要么不在 CCR 中，要么是父进程剥离了
+    //（无用的）FD 环境变量的子进程。尝试已知文件。
     const fromFile = readTokenFromWellKnownFile(wellKnownPath, label)
     setCached(fromFile)
     return fromFile
@@ -132,7 +130,7 @@ function getCredentialFromFd({
   }
 
   try {
-    // Use /dev/fd on macOS/BSD, /proc/self/fd on Linux
+    // 在 macOS/BSD 上使用 /dev/fd，在 Linux 上使用 /proc/self/fd
     const fsOps = getFsImplementation()
     const fdPath =
       process.platform === 'darwin' || process.platform === 'freebsd'
@@ -157,8 +155,8 @@ function getCredentialFromFd({
       `Failed to read ${label} from file descriptor ${fd}: ${errorMessage(error)}`,
       { level: 'error' },
     )
-    // FD env var was set but read failed — typically a subprocess that
-    // inherited the env var but not the FD (ENXIO). Try the well-known file.
+    // FD 环境变量已设置但读取失败 —— 通常是继承了环境变量
+    // 但没有继承 FD 的子进程（ENXIO）。尝试已知文件。
     const fromFile = readTokenFromWellKnownFile(wellKnownPath, label)
     setCached(fromFile)
     return fromFile
@@ -166,9 +164,9 @@ function getCredentialFromFd({
 }
 
 /**
- * Get the CCR-injected OAuth token. See getCredentialFromFd for FD-vs-disk
- * rationale. Env var: CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR.
- * Well-known file: /home/claude/.claude/remote/.oauth_token.
+ * 获取 CCR 注入的 OAuth token。FD 与磁盘的选择理由见 getCredentialFromFd。
+ * 环境变量：CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR。
+ * 已知文件：/home/claude/.claude/remote/.oauth_token。
  */
 export function getOAuthTokenFromFileDescriptor(): string | null {
   return getCredentialFromFd({
@@ -181,9 +179,9 @@ export function getOAuthTokenFromFileDescriptor(): string | null {
 }
 
 /**
- * Get the CCR-injected API key. See getCredentialFromFd for FD-vs-disk
- * rationale. Env var: CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR.
- * Well-known file: /home/claude/.claude/remote/.api_key.
+ * 获取 CCR 注入的 API 密钥。FD 与磁盘的选择理由见 getCredentialFromFd。
+ * 环境变量：CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR。
+ * 已知文件：/home/claude/.claude/remote/.api_key。
  */
 export function getApiKeyFromFileDescriptor(): string | null {
   return getCredentialFromFd({
