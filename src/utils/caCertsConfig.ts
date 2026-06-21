@@ -1,16 +1,16 @@
 /**
- * Config/settings-backed NODE_EXTRA_CA_CERTS population for `caCerts.ts`.
+ * `caCerts.ts` 的配置/设置支持的 NODE_EXTRA_CA_CERTS 填充。
  *
- * Split from `caCerts.ts` because `config.ts` → `file.ts` →
- * `permissions/filesystem.ts` → `commands.ts` transitively pulls in ~5300
- * modules (REPL, React, every slash command). `proxy.ts`/`mtls.ts` (and
- * therefore anything using HTTPS through our proxy agent — WebSocketTransport,
- * CCRClient, telemetry) must NOT depend on that graph, or the Agent SDK
- * bundle (`connectRemoteControl` path) bloats from ~0.4 MB to ~10.8 MB.
+ * 从 `caCerts.ts` 分离，因为 `config.ts` → `file.ts` →
+ * `permissions/filesystem.ts` → `commands.ts` 传递性地拉入约 5300 个
+ * 模块（REPL、React、每个斜杠命令）。`proxy.ts`/`mtls.ts`（以及
+ * 因此通过我们的代理 agent 使用 HTTPS 的任何东西 —— WebSocketTransport、
+ * CCRClient、telemetry）不能依赖该图，否则 Agent SDK 包
+ *（`connectRemoteControl` 路径）会从约 0.4 MB 膨胀到约 10.8 MB。
  *
- * `getCACertificates()` only reads `process.env.NODE_EXTRA_CA_CERTS`. This
- * module is the one place allowed to import `config.ts` to *populate* that
- * env var at CLI startup. Only `init.ts` imports this file.
+ * `getCACertificates()` 仅读取 `process.env.NODE_EXTRA_CA_CERTS`。此模块
+ * 是唯一允许导入 `config.ts` 以在 CLI 启动时*填充*该环境变量的地方。
+ * 只有 `init.ts` 导入此文件。
  */
 
 import { getGlobalConfig } from './config.js'
@@ -18,22 +18,22 @@ import { logForDebugging } from './debug.js'
 import { getSettingsForSource } from './settings/settings.js'
 
 /**
- * Apply NODE_EXTRA_CA_CERTS from settings.json to process.env early in init,
- * BEFORE any TLS connections are made.
+ * 在初始化早期、任何 TLS 连接建立之前，将 settings.json 中的
+ * NODE_EXTRA_CA_CERTS 应用到 process.env。
  *
- * Bun caches the TLS certificate store at process boot via BoringSSL.
- * If NODE_EXTRA_CA_CERTS isn't set in the environment at boot, Bun won't
- * include the custom CA cert. By setting it on process.env before any
- * TLS connections, we give Bun a chance to pick it up (if the cert store
- * is lazy-initialized) and ensure Node.js compatibility.
+ * Bun 在进程启动时通过 BoringSSL 缓存 TLS 证书存储。
+ * 如果启动时环境中未设置 NODE_EXTRA_CA_CERTS，Bun 不会
+ * 包含自定义 CA 证书。通过在任何 TLS 连接之前设置到 process.env，
+ * 我们给 Bun 一个获取它的机会（如果证书存储是延迟初始化的），
+ * 并确保 Node.js 兼容性。
  *
- * This is safe to call before the trust dialog because we only read from
- * user-controlled files (~/.claude/settings.json and ~/.claude.json),
- * not from project-level settings.
+ * 在信任对话框之前调用此函数是安全的，因为我们只从
+ * 用户控制的文件（~/.claude/settings.json 和 ~/.claude.json）读取，
+ * 不从项目级设置读取。
  */
 export function applyExtraCACertsFromConfig(): void {
   if (process.env.NODE_EXTRA_CA_CERTS) {
-    return // Already set in environment, nothing to do
+    return // 已在环境中设置，无需操作
   }
   const configPath = getExtraCertsPathFromConfig()
   if (configPath) {
@@ -45,24 +45,23 @@ export function applyExtraCACertsFromConfig(): void {
 }
 
 /**
- * Read NODE_EXTRA_CA_CERTS from settings/config as a fallback.
+ * 从设置/配置中读取 NODE_EXTRA_CA_CERTS 作为回退。
  *
- * NODE_EXTRA_CA_CERTS is categorized as a non-safe env var (it allows
- * trusting attacker-controlled servers), so it's only applied to process.env
- * after the trust dialog. But we need the CA cert early to establish the TLS
- * connection to an HTTPS proxy during init().
+ * NODE_EXTRA_CA_CERTS 被归类为非安全环境变量（它允许
+ * 信任攻击者控制的服务器），因此只在信任对话框之后才应用到 process.env。
+ * 但我们需要尽早获取 CA 证书以在 init() 期间建立到 HTTPS 代理的 TLS 连接。
  *
- * We read from global config (~/.claude.json) and user settings
- * (~/.claude/settings.json). These are user-controlled files that don't
- * require trust approval.
+ * 我们从全局配置（~/.claude.json）和用户设置
+ *（~/.claude/settings.json）读取。这些是用户控制的文件，
+ * 不需要信任批准。
  */
 function getExtraCertsPathFromConfig(): string | undefined {
   try {
     const globalConfig = getGlobalConfig()
     const globalEnv = globalConfig?.env
-    // Only read from user-controlled settings (~/.claude/settings.json),
-    // not project-level settings, to prevent malicious projects from
-    // injecting CA certs before the trust dialog.
+    // 仅从用户控制的设置（~/.claude/settings.json）读取，
+    // 不从项目级设置读取，以防止恶意项目在信任对话框之前
+    // 注入 CA 证书。
     const settings = getSettingsForSource('userSettings')
     const settingsEnv = settings?.env
 
@@ -70,7 +69,7 @@ function getExtraCertsPathFromConfig(): string | undefined {
       `CA certs: Config fallback - globalEnv keys: ${globalEnv ? Object.keys(globalEnv).join(',') : 'none'}, settingsEnv keys: ${settingsEnv ? Object.keys(settingsEnv).join(',') : 'none'}`,
     )
 
-    // Settings override global config (same precedence as applyConfigEnvironmentVariables)
+    // 设置覆盖全局配置（与 applyConfigEnvironmentVariables 相同的优先级）
     const path =
       settingsEnv?.NODE_EXTRA_CA_CERTS || globalEnv?.NODE_EXTRA_CA_CERTS
     if (path) {

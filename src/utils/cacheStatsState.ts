@@ -1,11 +1,11 @@
 /**
- * In-memory singleton that tracks cache hit-rate state for the current session.
+ * 内存单例，追踪当前会话的缓存命中率状态。
  *
- * Call `onResponse(usage)` every time a new API response arrives.
- * The singleton compares the token signature of the new response against the
- * previously seen signature.  When it changes (= a new API call completed),
- * it resets `lastResetAt` to Date.now() and asynchronously persists state so
- * that a future session can show the TTL countdown immediately on startup.
+ * 每当新的 API 响应到达时调用 `onResponse(usage)`。
+ * 单例将新响应的 token 签名与之前看到的签名进行比较。
+ * 当签名变化（= 新的 API 调用完成）时，将 `lastResetAt` 重置为
+ * Date.now() 并异步持久化状态，以便未来会话可以在启动时
+ * 立即显示 TTL 倒计时。
  */
 
 import type { CacheUsage, CacheStatsState } from './cacheStats.js'
@@ -32,14 +32,14 @@ let memState: MemState = {
 let sessionId: string | null = null
 
 /**
- * Must be called once at session start so the singleton knows which state file
- * to persist to and can pre-load the last known state.
+ * 必须在会话启动时调用一次，以便单例知道持久化到哪个状态文件
+ * 并可以预加载上次已知的状态。
  */
 export async function initCacheStatsState(sid: string): Promise<void> {
   sessionId = sid
   const filePath = getStateFilePath(sid)
   const persisted = await readState(filePath)
-  // Pre-load persisted values so the UI can show fallback immediately
+  // 预加载持久化值以便 UI 可以立即显示回退
   memState = {
     signature: persisted.signature,
     lastResetAt: persisted.lastResetAt,
@@ -48,21 +48,21 @@ export async function initCacheStatsState(sid: string): Promise<void> {
 }
 
 /**
- * Called whenever a new assistant response is received with usage data.
- * Returns the updated in-memory state.
+ * 每当收到带有使用数据的新助手响应时调用。
+ * 返回更新后的内存状态。
  */
 export function onResponse(usage: CacheUsage): MemState {
   const sig = tokenSignature(usage)
   const hitRate = computeHitRate(usage)
 
   if (sig !== memState.signature) {
-    // New API response — reset the TTL clock
+    // 新 API 响应 —— 重置 TTL 时钟
     memState = {
       signature: sig,
       lastResetAt: Date.now(),
       lastHitRate: hitRate,
     }
-    // Persist asynchronously; intentionally fire-and-forget
+    // 异步持久化；故意即发即弃
     if (sessionId !== null) {
       const filePath = getStateFilePath(sessionId)
       const toWrite: CacheStatsState = {
@@ -78,13 +78,13 @@ export function onResponse(usage: CacheUsage): MemState {
   return { ...memState }
 }
 
-/** Read current in-memory state without triggering a response update. */
+/** 读取当前内存状态而不触发响应更新。 */
 export function getCacheStatsState(): MemState {
   return { ...memState }
 }
 
 /**
- * Reset singleton — used in tests to isolate test runs.
+ * 重置单例 —— 用于测试中隔离测试运行。
  */
 export function _resetCacheStatsStateForTest(): void {
   memState = { signature: null, lastResetAt: null, lastHitRate: null }

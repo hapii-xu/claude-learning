@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path'
 import { getClaudeConfigHomeDir } from './envUtils.js'
 
 // ---------------------------------------------------------------------------
-// Types
+// 类型
 // ---------------------------------------------------------------------------
 
 export interface CacheUsage {
@@ -21,11 +21,11 @@ export interface CacheStatsState {
 }
 
 // ---------------------------------------------------------------------------
-// Pure functions
+// 纯函数
 // ---------------------------------------------------------------------------
 
 /**
- * Compute integer hit rate (0–100) or null if denominator is zero / input null.
+ * 计算整数命中率（0–100），如果分母为零或输入为 null 则返回 null。
  */
 export function computeHitRate(u: CacheUsage | null): number | null {
   if (!u) return null
@@ -36,21 +36,21 @@ export function computeHitRate(u: CacheUsage | null): number | null {
 }
 
 /**
- * Stable string that uniquely identifies a usage snapshot.
- * A change in signature means a new API response arrived — reset the TTL clock.
+ * 唯一标识使用快照的稳定字符串。
+ * 签名的变化意味着新的 API 响应到达 —— 重置 TTL 时钟。
  */
 export function tokenSignature(u: CacheUsage): string {
   return `${u.input_tokens}|${u.cache_creation_input_tokens}|${u.cache_read_input_tokens}`
 }
 
 // ---------------------------------------------------------------------------
-// State file I/O
+// 状态文件 I/O
 // ---------------------------------------------------------------------------
 
 /**
- * Deterministic, short file name derived from sessionId so that:
- *   - Different sessions never collide.
- *   - The raw session id is never written to disk.
+ * 从 sessionId 派生的确定性短文件名，以便：
+ *   - 不同会话永远不会冲突。
+ *   - 原始会话 id 永远不会写入磁盘。
  */
 export function getStateFilePath(sessionId: string): string {
   const hash = createHash('sha256').update(sessionId).digest('hex').slice(0, 16)
@@ -76,7 +76,7 @@ function isValidState(obj: unknown): obj is CacheStatsState {
 }
 
 /**
- * Read state file. Returns init defaults on any error (corrupt, missing, etc.).
+ * 读取状态文件。任何错误（损坏、缺失等）时返回初始化默认值。
  */
 export async function readState(filePath: string): Promise<CacheStatsState> {
   try {
@@ -90,8 +90,8 @@ export async function readState(filePath: string): Promise<CacheStatsState> {
 }
 
 /**
- * Write state atomically: write to a tmp file then rename — safe against
- * partial-write corruption and concurrent reads.
+ * 原子写入状态：写入临时文件然后重命名 —— 可防止
+ * 部分写入损坏和并发读取。
  */
 export async function writeStateAtomic(
   filePath: string,
@@ -104,6 +104,6 @@ export async function writeStateAtomic(
     await writeFile(tmp, JSON.stringify(state), 'utf8')
     await rename(tmp, filePath)
   } catch {
-    // Best-effort; silently ignore errors so the UI never crashes
+    // 尽最大努力；静默忽略错误以免 UI 崩溃
   }
 }

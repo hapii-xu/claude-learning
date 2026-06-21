@@ -5,10 +5,9 @@ import { djb2Hash } from './hash.js'
 
 const paths = envPaths('claude-cli')
 
-// Local sanitizePath using djb2Hash — NOT the shared version from
-// sessionStoragePortable.ts which uses Bun.hash (wyhash) when available.
-// Cache directory names must remain stable across upgrades so existing cache
-// data (error logs, MCP logs) is not orphaned.
+// 本地 sanitizePath 使用 djb2Hash —— 不是 sessionStoragePortable.ts 中
+// 优先使用 Bun.hash (wyhash) 的共享版本。缓存目录名必须在升级时保持稳定，
+// 以便现有缓存数据（错误日志、MCP 日志）不会被孤立。
 const MAX_SANITIZED_LENGTH = 200
 function sanitizePath(name: string): string {
   const sanitized = name.replace(/[^a-zA-Z0-9]/g, '-')
@@ -32,7 +31,7 @@ export const CACHE_PATHS = {
     join(
       paths.cache,
       getProjectDir(getFsImplementation().cwd()),
-      // Sanitize server name for Windows compatibility (colons are reserved for drive letters)
+      // 为 Windows 兼容性清理服务器名称（冒号保留给驱动器号）
       `mcp-logs-${sanitizePath(serverName)}`,
     ),
 }

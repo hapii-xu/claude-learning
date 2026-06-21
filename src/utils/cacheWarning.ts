@@ -24,10 +24,10 @@ interface CacheWarningState {
 // 模块级状态，每个 querySource 独立跟踪
 const cacheWarningStateBySource = new Map<string, CacheWarningState>()
 
-// Limit the number of tracked sources to prevent unbounded Map growth.
-// querySource strings are effectively unbounded (typed as `any`), so a
-// long-running session that spawns many subagents could leak memory.
-// Evict the oldest entry (by insertion order) when the limit is exceeded.
+// 限制追踪来源的数量以防止 Map 无限增长。
+// querySource 字符串实际上是无限的（类型为 `any`），因此
+// 生成许多子代理的长时间运行会话可能会泄漏内存。
+// 超过限制时逐出最旧的条目（按插入顺序）。
 const MAX_SOURCE_ENTRIES = 50
 
 const DEFAULT_CACHE_THRESHOLD = 80
@@ -95,7 +95,7 @@ export function shouldShowCacheWarning(
   let state = cacheWarningStateBySource.get(querySource)
   if (!state) {
     state = { lastHitRate: null, lastTimestamp: null }
-    // Evict oldest entry when at capacity so the Map stays bounded
+    // 达到容量时逐出最旧条目以保持 Map 有界
     if (cacheWarningStateBySource.size >= MAX_SOURCE_ENTRIES) {
       const oldestKey = cacheWarningStateBySource.keys().next().value
       if (oldestKey !== undefined) {
@@ -155,7 +155,7 @@ export function createCacheWarningMessage(info: CacheHitRateInfo): Message {
 }
 
 /**
- * Reset the per-source tracking state — only used in tests.
+ * 重置每个来源的追踪状态 —— 仅用于测试。
  */
 export function _resetCacheWarningStateForTest(): void {
   cacheWarningStateBySource.clear()
