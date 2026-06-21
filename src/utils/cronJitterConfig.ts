@@ -1,12 +1,12 @@
-// GrowthBook-backed cron jitter configuration.
+// 基于 GrowthBook 的 cron 抖动配置。
 //
-// Separated from cronScheduler.ts so the scheduler can be bundled in the
-// Agent SDK public build without pulling in analytics/growthbook.ts and
-// its large transitive dependency set (settings/hooks/config cycle).
+// 从 cronScheduler.ts 中分离出来，以便调度器可以在 Agent SDK 公开构建中
+// 打包，而不会拉入 analytics/growthbook.ts 及其庞大的传递依赖集
+//（settings/hooks/config 循环）。
 //
-// Usage:
-//   REPL (useScheduledTasks.ts): pass `getJitterConfig: getCronJitterConfig`
-//   Daemon/SDK: omit getJitterConfig → DEFAULT_CRON_JITTER_CONFIG applies.
+// 用法：
+//   REPL（useScheduledTasks.ts）：传递 `getJitterConfig: getCronJitterConfig`
+//   Daemon/SDK：省略 getJitterConfig → 应用 DEFAULT_CRON_JITTER_CONFIG。
 
 import { z } from 'zod/v4'
 import { getFeatureValue_CACHED_WITH_REFRESH } from '../services/analytics/growthbook.js'
@@ -16,22 +16,19 @@ import {
 } from './cronTasks.js'
 import { lazySchema } from './lazySchema.js'
 
-// How often to re-fetch tengu_kairos_cron_config from GrowthBook. Short because
-// this is an incident lever — when we push a config change to shed :00 load,
-// we want the fleet to converge within a minute, not on the next process
-// restart. The underlying call is a synchronous cache read; the refresh just
-// clears the memoized entry so the next read triggers a background fetch.
+// 从 GrowthBook 重新获取 tengu_kairos_cron_config 的频率。时间较短，
+// 因为这是一个事件杠杆 —— 当我们推送配置变更以分担 :00 负载时，
+// 希望集群在一分钟内收敛，而非等到下次进程重启。底层调用是
+// 同步缓存读取；刷新只是清除记忆化的条目，以便下次读取触发后台获取。
 const JITTER_CONFIG_REFRESH_MS = 60 * 1000
 
-// Upper bounds here are defense-in-depth against fat-fingered GrowthBook
-// pushes. Like pollConfig.ts, Zod rejects the whole object on any violation
-// rather than partially trusting it — a config with one bad field falls back
-// to DEFAULT_CRON_JITTER_CONFIG entirely. oneShotFloorMs shares oneShotMaxMs's
-// ceiling (floor > max would invert the jitter range) and is cross-checked in
-// the refine; the shared ceiling keeps the individual bound explicit in the
-// error path. recurringMaxAgeMs uses .default() so a pre-existing GB config
-// without the field doesn't get wholesale-rejected — the other fields were
-// added together at config inception and don't need this.
+// 此处的上限是对 GrowthBook 误操作的纵深防御。与 pollConfig.ts 类似，
+// Zod 在任何违规时拒绝整个对象而非部分信任 —— 一个字段有误的配置会
+// 完全回退到 DEFAULT_CRON_JITTER_CONFIG。oneShotFloorMs 与 oneShotMaxMs
+// 共享上限（floor > max 会反转抖动范围），并在 refine 中交叉检查；
+// 共享上限使单个约束在错误路径中保持明确。recurringMaxAgeMs 使用
+// .default()，这样缺少该字段的现有 GB 配置不会被整体拒绝 ——
+// 其他字段在配置创建时一起添加，不需要此处理。
 const HALF_HOUR_MS = 30 * 60 * 1000
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
 const cronJitterConfigSchema = lazySchema(() =>
@@ -53,16 +50,17 @@ const cronJitterConfigSchema = lazySchema(() =>
 )
 
 /**
- * Read `tengu_kairos_cron_config` from GrowthBook, validate, fall back to
- * defaults on absent/malformed/out-of-bounds config. Called from check()
- * every tick via the `getJitterConfig` callback — cheap (synchronous cache
- * hit). Refresh window: JITTER_CONFIG_REFRESH_MS.
+ * 从 GrowthBook 读取 `tengu_kairos_cron_config`，验证，
+ * 对缺失/格式错误/越界配置回退到默认值。通过 `getJitterConfig`
+ * 回调在每个 tick 从 check() 调用 —— 成本低廉（同步缓存命中）。
+ * 刷新窗口：JITTER_CONFIG_REFRESH_MS。
  *
- * Exported so ops runbooks can point at a single function when documenting
- * the lever, and so tests can spy on it without mocking GrowthBook itself.
+ * 导出以便运维手册可以指向单个函数来记录此杠杆，
+ * 也便于测试在不 mock GrowthBook 的情况下对其进行 spy。
  *
- * Pass this as `getJitterConfig` when calling createCronScheduler in REPL
- * contexts. Daemon/SDK callers omit getJitterConfig and get defaults.
+ * 在 REPL 上下文中调用 createCronScheduler 时将其作为
+ * `getJitterConfig` 传入。Daemon/SDK 调用方省略 getJitterConfig
+ * 并使用默认值。
  */
 export function getCronJitterConfig(): CronJitterConfig {
   const raw = getFeatureValue_CACHED_WITH_REFRESH<unknown>(

@@ -1,11 +1,11 @@
-// Minimal cron expression parsing and next-run calculation.
+// 最小化的 cron 表达式解析和下次运行时间计算。
 //
-// Supports the standard 5-field cron subset:
+// 支持标准 5 字段 cron 子集：
 //   minute hour day-of-month month day-of-week
 //
-// Field syntax: wildcard, N, step (star-slash-N), range (N-M), list (N,M,...).
-// No L, W, ?, or name aliases. All times are interpreted in the process's
-// local timezone — "0 9 * * *" means 9am wherever the CLI is running.
+// 字段语法：通配符、N、步进（star-slash-N）、范围（N-M）、列表（N,M,...）。
+// 不支持 L、W、? 或名称别名。所有时间按进程本地时区解释 ——
+// "0 9 * * *" 表示 CLI 运行所在时区的上午 9 点。
 
 export type CronFields = {
   minute: number[]
@@ -22,18 +22,18 @@ const FIELD_RANGES: FieldRange[] = [
   { min: 0, max: 23 }, // hour
   { min: 1, max: 31 }, // dayOfMonth
   { min: 1, max: 12 }, // month
-  { min: 0, max: 6 }, // dayOfWeek (0=Sunday; 7 accepted as Sunday alias)
+  { min: 0, max: 6 }, // dayOfWeek（0=周日；7 作为周日的别名也可接受）
 ]
 
-// Parse a single cron field into a sorted array of matching values.
-// Supports: wildcard, N, star-slash-N (step), N-M (range), and comma-lists.
-// Returns null if invalid.
+// 将单个 cron 字段解析为排序后的匹配值数组。
+// 支持：通配符、N、star-slash-N（步进）、N-M（范围）和逗号列表。
+// 无效时返回 null。
 function expandField(field: string, range: FieldRange): number[] | null {
   const { min, max } = range
   const out = new Set<number>()
 
   for (const part of field.split(',')) {
-    // wildcard or star-slash-N
+    // 通配符或 star-slash-N
     const stepMatch = part.match(/^\*(?:\/(\d+))?$/)
     if (stepMatch) {
       const step = stepMatch[1] ? parseInt(stepMatch[1], 10) : 1
@@ -42,13 +42,13 @@ function expandField(field: string, range: FieldRange): number[] | null {
       continue
     }
 
-    // N-M or N-M/S
+    // N-M 或 N-M/S
     const rangeMatch = part.match(/^(\d+)-(\d+)(?:\/(\d+))?$/)
     if (rangeMatch) {
       const lo = parseInt(rangeMatch[1]!, 10)
       const hi = parseInt(rangeMatch[2]!, 10)
       const step = rangeMatch[3] ? parseInt(rangeMatch[3], 10) : 1
-      // dayOfWeek: accept 7 as Sunday alias in ranges (e.g. 5-7 = Fri,Sat,Sun → [5,6,0])
+      // dayOfWeek：在范围中接受 7 作为周日别名（如 5-7 = 周五,周六,周日 → [5,6,0]）
       const isDow = min === 0 && max === 6
       const effMax = isDow ? 7 : max
       if (lo > hi || step < 1 || lo < min || hi > effMax) return null
@@ -58,11 +58,11 @@ function expandField(field: string, range: FieldRange): number[] | null {
       continue
     }
 
-    // plain N
+    // 单个 N
     const singleMatch = part.match(/^\d+$/)
     if (singleMatch) {
       let n = parseInt(part, 10)
-      // dayOfWeek: accept 7 as Sunday alias → 0
+      // dayOfWeek：接受 7 作为周日别名 → 0
       if (min === 0 && max === 6 && n === 7) n = 0
       if (n < min || n > max) return null
       out.add(n)
@@ -77,8 +77,8 @@ function expandField(field: string, range: FieldRange): number[] | null {
 }
 
 /**
- * Parse a 5-field cron expression into expanded number arrays.
- * Returns null if invalid or unsupported syntax.
+ * 将 5 字段 cron 表达式解析为展开后的数字数组。
+ * 无效或不支持的语法时返回 null。
  */
 export function parseCronExpression(expr: string): CronFields | null {
   const parts = expr.trim().split(/\s+/)
@@ -101,20 +101,19 @@ export function parseCronExpression(expr: string): CronFields | null {
 }
 
 /**
- * Compute the next Date strictly after `from` that matches the cron fields,
- * using the process's local timezone. Walks forward minute-by-minute. Bounded
- * at 366 days; returns null if no match (impossible for valid cron, but
- * satisfies the type).
+ * 计算严格晚于 `from` 且匹配 cron 字段的下一个 Date，
+ * 使用进程的本地时区。逐分钟向前推进。上限为 366 天；
+ * 无匹配时返回 null（对有效 cron 不可能发生，但可满足类型要求）。
  *
- * Standard cron semantics: when both dayOfMonth and dayOfWeek are constrained
- * (neither is the full range), a date matches if EITHER matches.
+ * 标准 cron 语义：当 dayOfMonth 和 dayOfWeek 都被约束
+ *（两者都不是完整范围）时，任一匹配即可（OR 语义）。
  *
- * DST: fixed-hour crons targeting a spring-forward gap (e.g. `30 2 * * *`
- * in a US timezone) skip the transition day — the gap hour never appears
- * in local time, so the hour-set check fails and the loop moves on.
- * Wildcard-hour crons (`30 * * * *`) fire at the first valid minute after
- * the gap. Fall-back repeats fire once (the step-forward logic jumps past
- * the second occurrence). This matches vixie-cron behavior.
+ * 夏令时：针对前移间隙的固定小时 cron（如美国时区中的
+ * `30 2 * * *`）会跳过转换日 —— 间隙小时在本地时间中
+ * 从不出现，因此小时集检查失败，循环继续。通配符小时 cron
+ *（`30 * * * *`）在间隙后的第一个有效分钟触发。后向重复
+ * 仅触发一次（步进逻辑跳过第二次出现）。这与 vixie-cron
+ * 行为一致。
  */
 export function computeNextCronRun(
   fields: CronFields,
@@ -126,11 +125,11 @@ export function computeNextCronRun(
   const monthSet = new Set(fields.month)
   const dowSet = new Set(fields.dayOfWeek)
 
-  // Is the field wildcarded (full range)?
+  // 字段是否为通配符（完整范围）？
   const domWild = fields.dayOfMonth.length === 31
   const dowWild = fields.dayOfWeek.length === 7
 
-  // Round up to the next whole minute (strictly after `from`)
+  // 向上取整到下一个整分钟（严格晚于 `from`）
   const t = new Date(from.getTime())
   t.setSeconds(0, 0)
   t.setMinutes(t.getMinutes() + 1)
@@ -139,7 +138,7 @@ export function computeNextCronRun(
   for (let i = 0; i < maxIter; i++) {
     const month = t.getMonth() + 1
     if (!monthSet.has(month)) {
-      // Jump to start of next month
+      // 跳到下个月的第一天
       t.setMonth(t.getMonth() + 1, 1)
       t.setHours(0, 0, 0, 0)
       continue
@@ -147,7 +146,7 @@ export function computeNextCronRun(
 
     const dom = t.getDate()
     const dow = t.getDay()
-    // When both dom/dow are constrained, either match is sufficient (OR semantics)
+    // 当 dom/dow 都被约束时，任一匹配即可（OR 语义）
     const dayMatches =
       domWild && dowWild
         ? true
@@ -158,7 +157,7 @@ export function computeNextCronRun(
             : domSet.has(dom) || dowSet.has(dow)
 
     if (!dayMatches) {
-      // Jump to start of next day
+      // 跳到下一天
       t.setDate(t.getDate() + 1)
       t.setHours(0, 0, 0, 0)
       continue
@@ -181,11 +180,10 @@ export function computeNextCronRun(
 }
 
 // --- cronToHuman ------------------------------------------------------------
-// Intentionally narrow: covers common patterns; falls through to the raw cron
-// string for anything else. The `utc` option exists for CCR remote triggers
-// (agents-platform.tsx), which run on servers and always use UTC cron strings
-// — that path translates UTC→local for display and needs midnight-crossing
-// logic for the weekday case. Local scheduled tasks (the default) need neither.
+// 有意缩小范围：覆盖常见模式；其他情况回退到原始 cron 字符串。
+// `utc` 选项用于 CCR 远程触发器（agents-platform.tsx），它们在服务器上运行
+// 并始终使用 UTC cron 字符串 —— 该路径将 UTC→本地时间转换用于显示，
+// 并需要工作日情况的跨午夜逻辑。本地计划任务（默认）两者都不需要。
 
 const DAY_NAMES = [
   'Sunday',
@@ -198,14 +196,14 @@ const DAY_NAMES = [
 ]
 
 function formatLocalTime(minute: number, hour: number): string {
-  // January 1 — no DST gap anywhere. Using `new Date()` (today) would roll
-  // 2am→3am on the one spring-forward day per year.
+  // 1 月 1 日 —— 任何地方都没有夏令时间隙。使用 `new Date()`（今天）
+  // 会在每年一次的前移日将 2am→3am。
   const d = new Date(2000, 0, 1, hour, minute)
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 }
 
 function formatUtcTimeAsLocal(minute: number, hour: number): string {
-  // Create a date in UTC and format in user's local timezone
+  // 以 UTC 创建日期并以用户本地时区格式化
   const d = new Date()
   d.setUTCHours(hour, minute, 0, 0)
   return d.toLocaleTimeString('en-US', {
@@ -228,7 +226,7 @@ export function cronToHuman(cron: string, opts?: { utc?: boolean }): string {
     string,
   ]
 
-  // Every N minutes: step/N * * * *
+  // 每 N 分钟：step/N * * * *
   const everyMinMatch = minute.match(/^\*\/(\d+)$/)
   if (
     everyMinMatch &&
@@ -241,7 +239,7 @@ export function cronToHuman(cron: string, opts?: { utc?: boolean }): string {
     return n === 1 ? 'Every minute' : `Every ${n} minutes`
   }
 
-  // Every hour: 0 * * * *
+  // 每小时：0 * * * *
   if (
     minute.match(/^\d+$/) &&
     hour === '*' &&
@@ -254,7 +252,7 @@ export function cronToHuman(cron: string, opts?: { utc?: boolean }): string {
     return `Every hour at :${m.toString().padStart(2, '0')}`
   }
 
-  // Every N hours: 0 step/N * * *
+  // 每 N 小时：0 step/N * * *
   const everyHourMatch = hour.match(/^\*\/(\d+)$/)
   if (
     minute.match(/^\d+$/) &&
@@ -269,25 +267,25 @@ export function cronToHuman(cron: string, opts?: { utc?: boolean }): string {
     return n === 1 ? `Every hour${suffix}` : `Every ${n} hours${suffix}`
   }
 
-  // --- Remaining cases reference hour+minute: branch on utc ----------------
+  // --- 剩余情况引用小时+分钟：按 utc 分支 ----------------
 
   if (!minute.match(/^\d+$/) || !hour.match(/^\d+$/)) return cron
   const m = parseInt(minute, 10)
   const h = parseInt(hour, 10)
   const fmtTime = utc ? formatUtcTimeAsLocal : formatLocalTime
 
-  // Daily at specific time: M H * * *
+  // 每天特定时间：M H * * *
   if (dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
     return `Every day at ${fmtTime(m, h)}`
   }
 
-  // Specific day of week: M H * * D
+  // 特定星期几：M H * * D
   if (dayOfMonth === '*' && month === '*' && dayOfWeek.match(/^\d$/)) {
-    const dayIndex = parseInt(dayOfWeek, 10) % 7 // normalize 7 (Sunday alias) -> 0
+    const dayIndex = parseInt(dayOfWeek, 10) % 7 // 规范化 7（周日别名）-> 0
     let dayName: string | undefined
     if (utc) {
-      // UTC day+time may land on a different local day (midnight crossing).
-      // Compute the actual local weekday by constructing the UTC instant.
+      // UTC 日期+时间可能落在不同的本地日期（跨午夜）。
+      // 通过构造 UTC 时刻来计算实际的本地星期几。
       const ref = new Date()
       const daysToAdd = (dayIndex - ref.getUTCDay() + 7) % 7
       ref.setUTCDate(ref.getUTCDate() + daysToAdd)
@@ -299,7 +297,7 @@ export function cronToHuman(cron: string, opts?: { utc?: boolean }): string {
     if (dayName) return `Every ${dayName} at ${fmtTime(m, h)}`
   }
 
-  // Weekdays: M H * * 1-5
+  // 工作日：M H * * 1-5
   if (dayOfMonth === '*' && month === '*' && dayOfWeek === '1-5') {
     return `Weekdays at ${fmtTime(m, h)}`
   }
