@@ -95,22 +95,21 @@ function decisionReasonToString(
 }
 
 /**
- * Logs permission request events using analytics and unary logging.
- * Handles both the analytics event and the unary event logging.
+ * 使用 analytics 和 unary 日志记录权限请求事件。
+ * 同时处理 analytics 事件和 unary 事件日志。
  */
 export function usePermissionRequestLogging(
   toolUseConfirm: ToolUseConfirm,
   unaryEvent: UnaryEvent,
 ): void {
   const setAppState = useSetAppState()
-  // Guard against effect re-firing if toolUseConfirm's object reference
-  // changes during a single dialog's lifetime (e.g., parent re-renders with a
-  // fresh object). Without this, the unconditional setAppState below can
-  // cascade into an infinite microtask loop — each re-fire does another
-  // setAppState spread + (ant builds) splitCommand → shell-quote regex,
-  // pegging CPU at 100% and leaking ~500MB/min in JSRopeString/RegExp allocs.
-  // The component is keyed by toolUseID, so this ref resets on remount —
-  // we only need to dedupe re-fires WITHIN one dialog instance.
+  // 防止 effect 在单个对话框生命周期内因 toolUseConfirm 对象引用变化
+  // 而重复触发（例如父组件以新对象重新渲染）。如果不加此保护，下方
+  // 无条件的 setAppState 会级联成无限微任务循环——每次重新触发都会
+  // 再次执行 setAppState 展开 + （ant 构建中）splitCommand → shell-quote
+  // 正则，CPU 占用 100%，并以约 500MB/min 的速度泄漏 JSRopeString/RegExp
+  // 内存分配。组件以 toolUseID 为 key，因此重新挂载时 ref 会重置——
+  // 我们只需在同一对话框实例内对重复触发去重。
   const loggedToolUseID = useRef<string | null>(null)
 
   useEffect(() => {
@@ -119,7 +118,7 @@ export function usePermissionRequestLogging(
     }
     loggedToolUseID.current = toolUseConfirm.toolUseID
 
-    // Increment permission prompt count for attribution tracking
+    // 递增权限提示计数，用于归因追踪
     setAppState(prev => ({
       ...prev,
       attribution: {
@@ -128,7 +127,7 @@ export function usePermissionRequestLogging(
       },
     }))
 
-    // Log analytics event
+    // 记录 analytics 事件
     logEvent('tengu_tool_use_show_permission_request', {
       messageID: toolUseConfirm.assistantMessage.message
         .id as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -146,7 +145,7 @@ export function usePermissionRequestLogging(
         permissionResult.behavior === 'ask' &&
         !hasRules(permissionResult.suggestions)
       ) {
-        // Log if no rule suggestions ("always allow") are provided
+        // 当未提供规则建议（"always allow"）时记录日志
         logEvent('tengu_internal_tool_use_permission_request_no_always_allow', {
           messageID: toolUseConfirm.assistantMessage.message
             .id as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -156,7 +155,7 @@ export function usePermissionRequestLogging(
             'unknown') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           sandboxEnabled: SandboxManager.isSandboxingEnabled(),
 
-          // This DOES contain code/filepaths and should not be logged in the public build!
+          // 此字段包含代码/文件路径，不应记录在公开构建中！
           decisionReasonDetails: decisionReasonToString(
             permissionResult.decisionReason,
           ) as never,
@@ -164,8 +163,8 @@ export function usePermissionRequestLogging(
       }
     }
 
-    // [ANT-ONLY] Log bash tool calls, so we can categorize
-    // & burn down calls that should have been allowed
+    // [仅限 ANT] 记录 bash 工具调用，以便我们分类
+    // 并消除本应被允许的调用
     if (process.env.USER_TYPE === 'ant') {
       const parsedInput = BashTool.inputSchema.safeParse(toolUseConfirm.input)
       if (
@@ -173,12 +172,12 @@ export function usePermissionRequestLogging(
         toolUseConfirm.permissionResult.behavior === 'ask' &&
         parsedInput.success
       ) {
-        // Note: All metadata fields in this event contain code/filepaths
+        // 注意：此事件中的所有元数据字段都包含代码/文件路径
         let split = [parsedInput.data.command]
         try {
           split = splitCommand_DEPRECATED(parsedInput.data.command)
         } catch {
-          // Ignore parse errors here - just log the full command
+          // 此处忽略解析错误——仅记录完整命令
         }
         logEvent('tengu_internal_bash_tool_use_permission_request', {
           parts: jsonStringify(

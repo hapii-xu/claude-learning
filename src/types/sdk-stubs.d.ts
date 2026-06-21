@@ -1,16 +1,16 @@
 /**
- * Stub type declarations for missing SDK modules.
+ * 缺失 SDK 模块的 stub 类型声明。
  *
- * These modules are referenced in the open-source codebase but their source
- * is not yet published. All types are exported as `any` to suppress TS errors
- * while keeping the import/export structure valid.
+ * 这些模块在开源代码库中被引用，但其源码
+ * 尚未发布。所有类型都导出为 `any`，以抑制 TS 错误，
+ * 同时保持 import/export 结构有效。
  */
 
 // ============================================================================
-// coreTypes.generated.js — Generated from coreSchemas.ts Zod schemas
+// coreTypes.generated.js —— 从 coreSchemas.ts 的 Zod schema 生成
 // ============================================================================
 declare module '*/sdk/coreTypes.generated.js' {
-  // Usage & Model
+  // Usage 与 Model
   export type ModelUsage = {
     inputTokens: number
     outputTokens: number
@@ -41,7 +41,7 @@ declare module '*/sdk/coreTypes.generated.js' {
     [key: string]: unknown
   }
 
-  // Permissions
+  // 权限
   export type PermissionMode = string
   export type PermissionResult =
     | { behavior: 'allow' }
@@ -58,7 +58,7 @@ declare module '*/sdk/coreTypes.generated.js' {
     [key: string]: unknown
   }
 
-  // Hook types
+  // Hook 类型
   export type HookInput = { hook_event_name: string; [key: string]: unknown }
   export type HookJSONOutput = { [key: string]: unknown }
   export type AsyncHookJSONOutput = { [key: string]: unknown }
@@ -89,7 +89,7 @@ declare module '*/sdk/coreTypes.generated.js' {
   export type CwdChangedHookInput = HookInput & { cwd: string }
   export type FileChangedHookInput = HookInput & { path: string }
 
-  // SDK Message types
+  // SDK 消息类型
   export type SDKMessage = { type: string; [key: string]: unknown }
   export type SDKUserMessage = {
     type: 'user'

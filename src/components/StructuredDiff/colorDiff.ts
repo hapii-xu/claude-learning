@@ -9,11 +9,11 @@ import { isEnvDefinedFalsy } from '../../utils/envUtils.js'
 export type ColorModuleUnavailableReason = 'env'
 
 /**
- * Returns a static reason why the color-diff module is unavailable, or null if available.
- * 'env' = disabled via CLAUDE_CODE_SYNTAX_HIGHLIGHT
+ * 返回 color-diff 模块不可用的静态原因，若可用则返回 null。
+ * 'env' = 通过 CLAUDE_CODE_SYNTAX_HIGHLIGHT 禁用
  *
- * The TS port of color-diff works in all build modes, so the only way to
- * disable it is via the env var.
+ * color-diff 的 TS 移植版在所有构建模式下都能工作，
+ * 所以禁用它的唯一方式是通过环境变量。
  */
 export function getColorModuleUnavailableReason(): ColorModuleUnavailableReason | null {
   if (isEnvDefinedFalsy(process.env.CLAUDE_CODE_SYNTAX_HIGHLIGHT)) {

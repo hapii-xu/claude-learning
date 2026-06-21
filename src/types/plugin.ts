@@ -11,26 +11,26 @@ import type { HooksSettings } from '../utils/settings/types.js'
 export type { PluginAuthor, PluginManifest, CommandMetadata }
 
 /**
- * Definition for a built-in plugin that ships with the CLI.
- * Built-in plugins appear in the /plugin UI and can be enabled/disabled by
- * users (persisted to user settings).
+ * 随 CLI 一起发布的内置 plugin 定义。
+ * 内置 plugin 会出现在 /plugin UI 中，用户可以启用/禁用
+ *（持久化到用户设置）。
  */
 export type BuiltinPluginDefinition = {
-  /** Plugin name (used in `{name}@builtin` identifier) */
+  /** Plugin 名（用于 `{name}@builtin` 标识符） */
   name: string
-  /** Description shown in the /plugin UI */
+  /** 在 /plugin UI 中展示的描述 */
   description: string
-  /** Optional version string */
+  /** 可选的版本字符串 */
   version?: string
-  /** Skills provided by this plugin */
+  /** 该 plugin 提供的 skills */
   skills?: BundledSkillDefinition[]
-  /** Hooks provided by this plugin */
+  /** 该 plugin 提供的 hooks */
   hooks?: HooksSettings
-  /** MCP servers provided by this plugin */
+  /** 该 plugin 提供的 MCP servers */
   mcpServers?: Record<string, McpServerConfig>
-  /** Whether this plugin is available (e.g. based on system capabilities). Unavailable plugins are hidden entirely. */
+  /** 该 plugin 是否可用（例如根据系统能力判断）。不可用的 plugin 会完全隐藏。 */
   isAvailable?: () => boolean
-  /** Default enabled state before the user sets a preference (defaults to true) */
+  /** 用户设置偏好之前的默认启用状态（默认为 true） */
   defaultEnabled?: boolean
 }
 
@@ -50,19 +50,19 @@ export type LoadedPlugin = {
   manifest: PluginManifest
   path: string
   source: string
-  repository: string // Repository identifier, usually same as source
+  repository: string // 仓库标识，通常与 source 相同
   enabled?: boolean
-  isBuiltin?: boolean // true for built-in plugins that ship with the CLI
-  sha?: string // Git commit SHA for version pinning (from marketplace entry source)
+  isBuiltin?: boolean // 随 CLI 发布的内置 plugin 为 true
+  sha?: string // 用于版本固定的 Git commit SHA（来自 marketplace entry source）
   commandsPath?: string
-  commandsPaths?: string[] // Additional command paths from manifest
-  commandsMetadata?: Record<string, CommandMetadata> // Metadata for named commands from object-mapping format
+  commandsPaths?: string[] // manifest 中额外的 command 路径
+  commandsMetadata?: Record<string, CommandMetadata> // object-mapping 格式的具名 command 元数据
   agentsPath?: string
-  agentsPaths?: string[] // Additional agent paths from manifest
+  agentsPaths?: string[] // manifest 中额外的 agent 路径
   skillsPath?: string
-  skillsPaths?: string[] // Additional skill paths from manifest
+  skillsPaths?: string[] // manifest 中额外的 skill 路径
   outputStylesPath?: string
-  outputStylesPaths?: string[] // Additional output style paths from manifest
+  outputStylesPaths?: string[] // manifest 中额外的 output style 路径
   hooksConfig?: HooksSettings
   mcpServers?: Record<string, McpServerConfig>
   lspServers?: Record<string, LspServerConfig>
@@ -77,26 +77,26 @@ export type PluginComponent =
   | 'output-styles'
 
 /**
- * Discriminated union of plugin error types.
- * Each error type has specific contextual data for better debugging and user guidance.
+ * plugin 错误类型的可辨识联合。
+ * 每种错误类型都带有特定的上下文数据，便于调试和用户引导。
  *
- * This replaces the previous string-based error matching approach with type-safe
- * error handling that can't break when error messages change.
+ * 它取代了过去基于字符串的错误匹配方式，改用类型安全的错误处理，
+ * 不会因为错误消息变更而失效。
  *
- * IMPLEMENTATION STATUS:
- * Currently used in production (2 types):
- * - generic-error: Used for various plugin loading failures
- * - plugin-not-found: Used when plugin not found in marketplace
+ * 实现状态：
+ * 当前生产环境使用（2 种）：
+ * - generic-error：用于各种 plugin 加载失败
+ * - plugin-not-found：在 marketplace 中找不到 plugin 时使用
  *
- * Planned for future use (10 types - see TODOs in pluginLoader.ts):
- * - path-not-found, git-auth-failed, git-timeout, network-error
- * - manifest-parse-error, manifest-validation-error
- * - marketplace-not-found, marketplace-load-failed
- * - mcp-config-invalid, hook-load-failed, component-load-failed
+ * 计划未来使用（10 种 —— 见 pluginLoader.ts 中的 TODO）：
+ * - path-not-found、git-auth-failed、git-timeout、network-error
+ * - manifest-parse-error、manifest-validation-error
+ * - marketplace-not-found、marketplace-load-failed
+ * - mcp-config-invalid、hook-load-failed、component-load-failed
  *
- * These unused types support UI formatting and provide a clear roadmap for
- * improving error specificity. They can be incrementally implemented as
- * error creation sites are refactored.
+ * 这些未使用的类型支持 UI 格式化，为改进错误
+ * 特异性提供了清晰的路线图。随着错误创建点的重构，
+ * 可逐步落地。
  */
 export type PluginError =
   | {
@@ -289,8 +289,8 @@ export type PluginLoadResult = {
 }
 
 /**
- * Helper function to get a display message from any PluginError
- * Useful for logging and simple error displays
+ * 从任意 PluginError 取得展示消息的辅助函数
+ * 用于日志和简单的错误展示
  */
 export function getPluginErrorMessage(error: PluginError): string {
   switch (error.type) {

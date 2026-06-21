@@ -1,5 +1,3 @@
-// These constants are in a separate file to avoid circular dependency issues.
-// Do NOT add imports to this file - it must remain dependency-free.
 // 这些常量放在单独的文件中以避免循环依赖问题。
 // 不要向此文件添加 import —— 必须保持无依赖。
 

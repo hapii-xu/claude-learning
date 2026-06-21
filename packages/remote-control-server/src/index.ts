@@ -27,6 +27,7 @@ import webAuth from './routes/web/auth'
 import webSessions from './routes/web/sessions'
 import webControl from './routes/web/control'
 import webEnvironments from './routes/web/environments'
+import webDebug from './routes/web/debug'
 
 console.log('[RCS] In-memory store ready (no SQLite)')
 
@@ -93,6 +94,7 @@ app.route('/web', webAuth)
 app.route('/web', webSessions)
 app.route('/web', webControl)
 app.route('/web', webEnvironments)
+app.route('/web/debug', webDebug)
 
 // ACP protocol routes
 console.log('[RCS] ACP support enabled')

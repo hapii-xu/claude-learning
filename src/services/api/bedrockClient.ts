@@ -1,27 +1,26 @@
 import { AnthropicBedrock } from '@anthropic-ai/bedrock-sdk'
 
 /**
- * Extends AnthropicBedrock to work around an upstream bug where the SDK
- * re-plants the `anthropic-beta` HTTP header value into the request body
- * as `anthropic_beta`. Bedrock's Opus 4.7 endpoint rejects any request with
- * `anthropic_beta` in the body with a 400 "invalid beta flag" error.
+ * 扩展 AnthropicBedrock 以绕过上游 SDK 的一个 bug：SDK 会把 `anthropic-beta`
+ * HTTP header 的值重新塞进请求 body 作为 `anthropic_beta`。Bedrock 的 Opus 4.7
+ * endpoint 会以 400 "invalid beta flag" 错误拒绝任何 body 中带 `anthropic_beta`
+ * 的请求。
  *
- * Source of the bug (SDK 0.26.4, still present through 0.28.1):
- *   node_modules/@anthropic-ai/bedrock-sdk/client.js lines 122-127
- *   (TS source: packages/bedrock-sdk/src/client.ts lines 193-198)
+ * Bug 来源（SDK 0.26.4，直到 0.28.1 仍然存在）：
+ *   node_modules/@anthropic-ai/bedrock-sdk/client.js 第 122-127 行
+ *   （TS 源码：packages/bedrock-sdk/src/client.ts 第 193-198 行）
  *
- * Related upstream issue: anthropics/claude-code#49238 (opened 2026-04-16).
+ * 相关上游 issue：anthropics/claude-code#49238（2026-04-16 创建）。
  *
- * Fix strategy: let super.buildRequest do its work, then strip
- * `body.anthropic_beta` from the resulting Request before the SDK computes
- * the AWS SigV4 signature (signing happens downstream of buildRequest, so
- * the signature hashes the cleaned body — no 403 risk). The `anthropic-beta`
- * HTTP header remains intact (base SDK placed it there from the `betas:`
- * parameter), so beta flags still reach the API the way Bedrock accepts them.
+ * 修复策略：先让 super.buildRequest 完成其工作，然后在 SDK 计算 AWS SigV4
+ * 签名之前从返回的 Request 中剥除 `body.anthropic_beta`（签名发生在 buildRequest
+ * 下游，因此签名会对清理过的 body 做哈希 —— 没有 403 风险）。`anthropic-beta`
+ * HTTP header 保持原样（基础 SDK 已经根据 `betas:` 参数放到了 header 里），
+ * 这样 beta flag 仍会按 Bedrock 接受的方式到达 API。
  *
- * When upstream ships a fix, verify the probe in scripts/probe-bedrock-beta-fix.ts
- * shows "bug reproduced: false", then delete this class and change
- * `services/api/client.ts` to instantiate `AnthropicBedrock` directly.
+ * 等上游发布修复后，确认 scripts/probe-bedrock-beta-fix.ts 的探测输出
+ * "bug reproduced: false"，然后删除这个类并将 `services/api/client.ts` 改为
+ * 直接实例化 `AnthropicBedrock`。
  */
 type BuildRequestArg = Parameters<AnthropicBedrock['buildRequest']>[0]
 type BuildRequestRet = Awaited<ReturnType<AnthropicBedrock['buildRequest']>>

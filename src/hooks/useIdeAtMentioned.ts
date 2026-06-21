@@ -27,8 +27,7 @@ const AtMentionedSchema = lazySchema(() =>
 )
 
 /**
- * A hook that tracks IDE at-mention notifications by directly registering
- * with MCP client notification handlers,
+ * 通过直接注册 MCP 客户端通知处理器来跟踪 IDE at-mention 通知的 hook。
  */
 export function useIdeAtMentioned(
   mcpClients: MCPServerConnection[],
@@ -37,14 +36,14 @@ export function useIdeAtMentioned(
   const ideClientRef = useRef<ConnectedMCPServer | undefined>(undefined)
 
   useEffect(() => {
-    // Find the IDE client from the MCP clients list
+    // 从 MCP 客户端列表中查找 IDE 客户端
     const ideClient = getConnectedIdeClient(mcpClients)
 
     if (ideClientRef.current !== ideClient) {
       ideClientRef.current = ideClient
     }
 
-    // If we found a connected IDE client, register our handler
+    // 如果找到了已连接的 IDE 客户端，注册我们的处理器
     if (ideClient) {
       ideClient.client.setNotificationHandler(
         AtMentionedSchema() as any,
@@ -54,7 +53,7 @@ export function useIdeAtMentioned(
           }
           try {
             const data = notification.params
-            // Adjust line numbers to be 1-based instead of 0-based
+            // 将行号调整为从 1 开始（而不是从 0 开始）
             const lineStart =
               data.lineStart !== undefined ? data.lineStart + 1 : undefined
             const lineEnd =
@@ -71,6 +70,6 @@ export function useIdeAtMentioned(
       )
     }
 
-    // No cleanup needed as MCP clients manage their own lifecycle
+    // 不需要清理，因为 MCP 客户端管理自己的生命周期
   }, [mcpClients, onAtMentioned])
 }

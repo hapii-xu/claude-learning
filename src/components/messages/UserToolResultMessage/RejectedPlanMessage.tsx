@@ -16,7 +16,7 @@ export function RejectedPlanMessage({ plan }: Props): React.ReactNode {
           borderStyle="round"
           borderColor="planMode"
           paddingX={1}
-          // Necessary for Windows Terminal to render properly
+          // Windows Terminal 正确渲染所必需
           overflow="hidden"
         >
           <Markdown>{plan}</Markdown>

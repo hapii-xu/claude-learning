@@ -4,33 +4,33 @@ import { env } from '../../utils/env.js';
 
 export type ClawdPose =
   | 'default'
-  | 'arms-up' // both arms raised (used during jump)
-  | 'look-left' // both pupils shifted left
-  | 'look-right'; // both pupils shifted right
+  | 'arms-up' // 双臂上举（跳跃时使用）
+  | 'look-left' // 双瞳向左偏移
+  | 'look-right'; // 双瞳向右偏移
 
 type Props = {
   pose?: ClawdPose;
 };
 
-// Standard-terminal pose fragments. Each row is split into segments so we can
-// vary only the parts that change (eyes, arms) while keeping the body/bg spans
-// stable. All poses end up 9 cols wide.
+// 标准终端的 pose 片段。每一行被切成多段，这样我们可以只变化
+// 发生改变的部分（眼睛、手臂），而让 body/bg 区段保持稳定。
+// 所有 pose 最终都是 9 列宽。
 //
-// arms-up: the row-2 arm shapes (▝▜ / ▛▘) move to row 1 as their
-// bottom-heavy mirrors (▗▟ / ▙▖) — same silhouette, one row higher.
+// arms-up：第 2 行的手臂形状（▝▜ / ▛▘）移到第 1 行，作为其
+// 下重上轻的镜像（▗▟ / ▙▖）— 同样的剪影，上移一行。
 //
-// look-* use top-quadrant eye chars (▙/▟) so both eyes change from the
-// default (▛/▜, bottom pupils) — otherwise only one eye would appear to move.
+// look-* 使用上象限的眼部字符（▙/▟），这样双眼都从
+// 默认状态（▛/▜，下瞳孔）变化 — 否则只有一只眼睛看起来在动。
 type Segments = {
-  /** row 1 left (no bg): optional raised arm + side */
+  /** 第 1 行左侧（无背景）：可选上举手臂 + 侧边 */
   r1L: string;
-  /** row 1 eyes (with bg): left-eye, forehead, right-eye */
+  /** 第 1 行眼睛（带背景）：左眼、额头、右眼 */
   r1E: string;
-  /** row 1 right (no bg): side + optional raised arm */
+  /** 第 1 行右侧（无背景）：侧边 + 可选上举手臂 */
   r1R: string;
-  /** row 2 left (no bg): arm + body curve */
+  /** 第 2 行左侧（无背景）：手臂 + 身体曲线 */
   r2L: string;
-  /** row 2 right (no bg): body curve + arm */
+  /** 第 2 行右侧（无背景）：身体曲线 + 手臂 */
   r2R: string;
 };
 
@@ -41,8 +41,8 @@ const POSES: Record<ClawdPose, Segments> = {
   'arms-up': { r1L: '▗▟', r1E: '▛███▜', r1R: '▙▖', r2L: ' ▜', r2R: '▛ ' },
 };
 
-// Apple Terminal uses a bg-fill trick (see below), so only eye poses make
-// sense. Arm poses fall back to default.
+// Apple Terminal 使用背景填充技巧（见下文），所以只有眼部 pose 有意义。
+// 手臂 pose 回退到 default。
 const APPLE_EYES: Record<ClawdPose, string> = {
   default: ' ▗   ▖ ',
   'look-left': ' ▘   ▘ ',
@@ -79,9 +79,9 @@ export function Clawd({ pose = 'default' }: Props = {}): React.ReactNode {
 }
 
 function AppleTerminalClawd({ pose }: { pose: ClawdPose }): React.ReactNode {
-  // Apple's Terminal renders vertical space between chars by default.
-  // It does NOT render vertical space between background colors
-  // so we use background color to draw the main shape.
+  // Apple Terminal 默认会在字符之间渲染垂直空白。
+  // 它不会在背景色之间渲染垂直空白，
+  // 所以我们用背景色来绘制主体形状。
   return (
     <Box flexDirection="column" alignItems="center">
       <Text>

@@ -27,7 +27,7 @@ function commandListDisplay(commands: string[]): ReactNode {
 }
 
 function commandListDisplayTruncated(commands: string[]): ReactNode {
-  // Check if the plain text representation would be too long
+  // 检查纯文本表示是否过长
   const plainText = commands.join(', ');
   if (plainText.length > 50) {
     return 'similar';
@@ -38,7 +38,7 @@ function commandListDisplayTruncated(commands: string[]): ReactNode {
 function formatPathList(paths: string[]): ReactNode {
   if (paths.length === 0) return '';
 
-  // Extract directory names from paths
+  // 从路径中提取目录名
   const names = paths.map(p => basename(p) || p);
 
   if (names.length === 1) {
@@ -59,7 +59,7 @@ function formatPathList(paths: string[]): ReactNode {
     );
   }
 
-  // For 3+, show first two with "and N more"
+  // 3 个及以上，显示前两个并附加 "and N more"
   return (
     <Text>
       <Text bold>{names[0]}</Text>
@@ -70,30 +70,29 @@ function formatPathList(paths: string[]): ReactNode {
 }
 
 /**
- * Generate the label for the "Yes, and apply suggestions" option in shell
- * permission dialogs (Bash, PowerShell). Parametrized by the shell tool name
- * and an optional command transform (e.g., Bash strips output redirections so
- * filenames don't show as commands).
+ * 为 shell 权限对话框（Bash、PowerShell）中的 "Yes, and apply suggestions"
+ * 选项生成标签。通过 shell 工具名和可选的命令转换函数进行参数化
+ * （例如，Bash 会去除输出重定向，使文件名不会显示为命令）。
  */
 export function generateShellSuggestionsLabel(
   suggestions: PermissionUpdate[],
   shellToolName: string,
   commandTransform?: (command: string) => string,
 ): ReactNode | null {
-  // Collect all rules for display
+  // 收集所有用于展示的规则
   const allRules = suggestions.filter(s => s.type === 'addRules').flatMap(s => s.rules || []);
 
-  // Separate Read rules from shell rules
+  // 分离 Read 规则与 shell 规则
   const readRules = allRules.filter(r => r.toolName === 'Read');
   const shellRules = allRules.filter(r => r.toolName === shellToolName);
 
-  // Get directory info
+  // 获取目录信息
   const directories = suggestions.filter(s => s.type === 'addDirectories').flatMap(s => s.directories || []);
 
-  // Extract paths from Read rules (keep separate from directories)
+  // 从 Read 规则中提取路径（与目录分开保持）
   const readPaths = readRules.map(r => r.ruleContent?.replace('/**', '') || '').filter(p => p);
 
-  // Extract shell command prefixes, optionally transforming for display
+  // 提取 shell 命令前缀，可选地转换以便展示
   const shellCommands = [
     ...new Set(
       shellRules.flatMap(rule => {
@@ -104,14 +103,14 @@ export function generateShellSuggestionsLabel(
     ),
   ];
 
-  // Check what we have
+  // 检查我们有哪些内容
   const hasDirectories = directories.length > 0;
   const hasReadPaths = readPaths.length > 0;
   const hasCommands = shellCommands.length > 0;
 
-  // Handle single type cases
+  // 处理单一类型的情况
   if (hasReadPaths && !hasDirectories && !hasCommands) {
-    // Only Read rules - use "reading from" language
+    // 仅 Read 规则 - 使用 "reading from" 措辞
     if (readPaths.length === 1) {
       const firstPath = readPaths[0]!;
       const dirName = basename(firstPath) || firstPath;
@@ -123,12 +122,12 @@ export function generateShellSuggestionsLabel(
       );
     }
 
-    // Multiple read paths
+    // 多个读取路径
     return <Text>Yes, allow reading from {formatPathList(readPaths)} from this project</Text>;
   }
 
   if (hasDirectories && !hasReadPaths && !hasCommands) {
-    // Only directory permissions - use "access to" language
+    // 仅目录权限 - 使用 "access to" 措辞
     if (directories.length === 1) {
       const firstDir = directories[0]!;
       const dirName = basename(firstDir) || firstDir;
@@ -140,12 +139,12 @@ export function generateShellSuggestionsLabel(
       );
     }
 
-    // Multiple directories
+    // 多个目录
     return <Text>Yes, and always allow access to {formatPathList(directories)} from this project</Text>;
   }
 
   if (hasCommands && !hasDirectories && !hasReadPaths) {
-    // Only shell command permissions
+    // 仅 shell 命令权限
     return (
       <Text>
         {"Yes, and don't ask again for "}
@@ -154,21 +153,21 @@ export function generateShellSuggestionsLabel(
     );
   }
 
-  // Handle mixed cases
+  // 处理混合情况
   if ((hasDirectories || hasReadPaths) && !hasCommands) {
-    // Combine directories and read paths since they're both path access
+    // 合并目录和读取路径，因为两者都是路径访问
     const allPaths = [...directories, ...readPaths];
     if (hasDirectories && hasReadPaths) {
-      // Mixed - use generic "access to"
+      // 混合 - 使用通用的 "access to" 措辞
       return <Text>Yes, and always allow access to {formatPathList(allPaths)} from this project</Text>;
     }
   }
 
   if ((hasDirectories || hasReadPaths) && hasCommands) {
-    // Build descriptive message for both types
+    // 为两种类型构建描述性消息
     const allPaths = [...directories, ...readPaths];
 
-    // Keep it concise but informative
+    // 保持简洁但信息完整
     if (allPaths.length === 1 && shellCommands.length === 1) {
       return (
         <Text>

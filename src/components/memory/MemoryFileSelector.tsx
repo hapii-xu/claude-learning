@@ -34,7 +34,7 @@ interface ExtendedMemoryFileInfo extends MemoryFileInfo {
   exists: boolean;
 }
 
-// Remember last selected path
+// 记住上次选择的路径
 let lastSelectedPath: string | undefined;
 
 const OPEN_FOLDER_PREFIX = '__open_folder__';
@@ -47,20 +47,20 @@ type Props = {
 export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNode {
   const existingMemoryFiles = use(getMemoryFiles()) as MemoryFileInfo[];
 
-  // Create entries for User and Project CLAUDE.md even if they don't exist
+  // 即便不存在，也为 User 和 Project CLAUDE.md 创建条目
   const userMemoryPath = join(getClaudeConfigHomeDir(), 'CLAUDE.md');
   const projectMemoryPath = join(getOriginalCwd(), 'CLAUDE.md');
 
-  // Check if these are already in the existing files
+  // 检查这些是否已经在现有文件中
   const hasUserMemory = existingMemoryFiles.some(f => f.path === userMemoryPath);
   const hasProjectMemory = existingMemoryFiles.some(f => f.path === projectMemoryPath);
 
-  // Filter out AutoMem/TeamMem entrypoints: these are MEMORY.md files, and
-  // /memory already surfaces "Open auto-memory folder" / "Open team memory
-  // folder" options below. Listing the entrypoint file separately is redundant.
+  // 过滤掉 AutoMem/TeamMem 入口点：这些是 MEMORY.md 文件，而
+  // /memory 已经在下方提供"打开 auto-memory 文件夹" / "打开 team memory
+  // 文件夹"选项。单独列出入口点文件是冗余的。
   const allMemoryFiles: ExtendedMemoryFileInfo[] = [
     ...existingMemoryFiles.filter(f => f.type !== 'AutoMem' && f.type !== 'TeamMem').map(f => ({ ...f, exists: true })),
-    // Add User memory if it doesn't exist
+    // 如果不存在则添加 User memory
     ...(hasUserMemory
       ? []
       : [
@@ -71,7 +71,7 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
             exists: false,
           },
         ]),
-    // Add Project memory if it doesn't exist
+    // 如果不存在则添加 Project memory
     ...(hasProjectMemory
       ? []
       : [
@@ -86,31 +86,31 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
 
   const depths = new Map<string, number>();
 
-  // Create options for the select component
+  // 为 select 组件创建选项
   const memoryOptions = allMemoryFiles.map(file => {
     const displayPath = getDisplayPath(file.path);
     const existsLabel = file.exists ? '' : ' (new)';
 
-    // Calculate depth based on parent
+    // 根据 parent 计算深度
     const depth = file.parent ? (depths.get(file.parent) ?? 0) + 1 : 0;
     depths.set(file.path, depth);
     const indent = depth > 0 ? '  '.repeat(depth - 1) : '';
 
-    // Format label based on type
+    // 根据类型格式化标签
     let label: string;
     if (file.type === 'User' && !file.isNested && file.path === userMemoryPath) {
       label = `User memory`;
     } else if (file.type === 'Project' && !file.isNested && file.path === projectMemoryPath) {
       label = `Project memory`;
     } else if (depth > 0) {
-      // For child nodes (imported files), show indented with L
+      // 对于子节点（导入的文件），显示带缩进的 L
       label = `${indent}L ${displayPath}${existsLabel}`;
     } else {
-      // For other memory files, just show the path
+      // 对于其他 memory 文件，仅显示路径
       label = `${displayPath}`;
     }
 
-    // Create description based on type - keep the original descriptions for built-in types
+    // 根据类型创建描述 - 保留内置类型的原始描述
     let description: string;
     const isGit = projectIsInGitRepo(getOriginalCwd());
 
@@ -119,10 +119,10 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
     } else if (file.type === 'Project' && !file.isNested && file.path === projectMemoryPath) {
       description = `${isGit ? 'Checked in at' : 'Saved in'} ./CLAUDE.md`;
     } else if (file.parent) {
-      // For imported files (with @-import)
+      // 对于导入的文件（通过 @-import）
       description = '@-imported';
     } else if (file.isNested) {
-      // For nested files (dynamically loaded)
+      // 对于嵌套文件（动态加载）
       description = 'dynamically loaded';
     } else {
       description = '';
@@ -135,7 +135,7 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
     };
   });
 
-  // Add "Open folder" options for auto-memory and agent memory directories
+  // 为 auto-memory 和 agent memory 目录添加"打开文件夹"选项
   const folderOptions: Array<{
     label: string;
     value: string;
@@ -144,14 +144,14 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
 
   const agentDefinitions = useAppState(s => s.agentDefinitions);
   if (isAutoMemoryEnabled()) {
-    // Always show auto-memory folder option
+    // 始终显示 auto-memory 文件夹选项
     folderOptions.push({
       label: 'Open auto-memory folder',
       value: `${OPEN_FOLDER_PREFIX}${getAutoMemPath()}`,
       description: '',
     });
 
-    // Team memory directly below auto-memory (team dir is a subdir of auto dir)
+    // team memory 直接位于 auto-memory 之下（team 目录是 auto 目录的子目录）
     if (feature('TEAMMEM') && teamMemPaths!.isTeamMemoryEnabled()) {
       folderOptions.push({
         label: 'Open team memory folder',
@@ -160,7 +160,7 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
       });
     }
 
-    // Add agent memory folders for agents that have memory configured
+    // 为配置了 memory 的 agent 添加 agent memory 文件夹
     for (const agent of agentDefinitions.activeAgents) {
       if (agent.memory) {
         const agentDir = getAgentMemoryDir(agent.agentType, agent.memory);
@@ -175,23 +175,22 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
 
   memoryOptions.push(...folderOptions);
 
-  // Initialize with last selected path if it's still in the options, otherwise use first option
+  // 如果上次选择的路径仍在选项中则用它初始化，否则使用第一个选项
   const initialPath =
     lastSelectedPath && memoryOptions.some(opt => opt.value === lastSelectedPath)
       ? lastSelectedPath
       : memoryOptions[0]?.value || '';
 
-  // Toggle state (local copy of settings so the UI updates immediately)
+  // 切换状态（设置的本地副本，以便 UI 立即更新）
   const [autoMemoryOn, setAutoMemoryOn] = useState(isAutoMemoryEnabled);
   const [autoDreamOn, setAutoDreamOn] = useState(isAutoDreamEnabled);
 
-  // Dream row is only meaningful when auto-memory is on (dream consolidates
-  // that dir). Snapshot at mount so the row doesn't vanish mid-navigation
-  // if the user toggles auto-memory off.
+  // Dream 行仅在 auto-memory 开启时有意义（dream 会整合该目录）。
+  // 在挂载时快照，以防用户在导航过程中切换 auto-memory 导致行消失。
   const [showDreamRow] = useState(isAutoMemoryEnabled);
 
-  // Dream status: prefer live task state (this session fired it), fall back
-  // to the cross-process lock mtime.
+  // Dream 状态：优先使用实时任务状态（由本会话触发），否则回退到
+  // 跨进程锁的 mtime。
   const isDreamRunning = useAppState(s =>
     Object.values(s.tasks).some(t => t.type === 'dream' && t.status === 'running'),
   );
@@ -204,12 +203,12 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
   const dreamStatus = isDreamRunning
     ? 'running'
     : lastDreamAt === null
-      ? '' // stat in flight
+      ? '' // stat 进行中
       : lastDreamAt === 0
         ? 'never'
         : `last ran ${formatRelativeTimeAgo(new Date(lastDreamAt))}`;
 
-  // null = Select has focus, 0 = auto-memory, 1 = auto-dream (if showDreamRow)
+  // null = Select 拥有焦点，0 = auto-memory，1 = auto-dream（当 showDreamRow 为 true 时）
   const [focusedToggle, setFocusedToggle] = useState<number | null>(null);
   const toggleFocused = focusedToggle !== null;
   const lastToggleIndex = showDreamRow ? 1 : 0;
@@ -279,14 +278,14 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
         onChange={value => {
           if (value.startsWith(OPEN_FOLDER_PREFIX)) {
             const folderPath = value.slice(OPEN_FOLDER_PREFIX.length);
-            // Ensure folder exists before opening (idempotent; swallow
-            // permission errors to match previous behavior)
+            // 在打开之前确保文件夹存在（幂等；吞掉权限错误
+            // 以匹配之前的行为）
             void mkdir(folderPath, { recursive: true })
               .catch(() => {})
               .then(() => openPath(folderPath));
             return;
           }
-          lastSelectedPath = value; // Remember the selection
+          lastSelectedPath = value; // 记住选择
           onSelect(value);
         }}
         onCancel={onCancel}

@@ -43,7 +43,7 @@ type Props = {
 
 export function SystemTextMessage({ message, addMargin, verbose, isTranscriptMode }: Props): React.ReactNode {
   const bg = useSelectedMessageBg();
-  // Turn duration messages are always shown in grey
+  // Turn duration 消息总是以灰色显示
   if (message.subtype === 'turn_duration') {
     return <TurnDurationMessage message={message} addMargin={addMargin} />;
   }
@@ -63,7 +63,7 @@ export function SystemTextMessage({ message, addMargin, verbose, isTranscriptMod
     );
   }
 
-  // Agents killed confirmation
+  // Agents 已终止的确认
   if (message.subtype === 'agents_killed') {
     return (
       <Box flexDirection="row" marginTop={addMargin ? 1 : 0} backgroundColor={bg} width="100%">
@@ -75,7 +75,7 @@ export function SystemTextMessage({ message, addMargin, verbose, isTranscriptMod
     );
   }
 
-  // Thinking messages are subtle, like turn duration (ant-only)
+  // Thinking 消息是细微的，类似于 turn duration（仅 ant）
   if (message.subtype === 'thinking') {
     if (process.env.USER_TYPE === 'ant') {
       return <ThinkingMessage message={message} addMargin={addMargin} />;
@@ -107,7 +107,7 @@ export function SystemTextMessage({ message, addMargin, verbose, isTranscriptMod
     );
   }
 
-  // Stop hook summaries should always be visible
+  // Stop hook 摘要应始终可见
   const isStopHookSummary = message.subtype === 'stop_hook_summary';
 
   if (!isStopHookSummary && !verbose && message.level === 'info') {
@@ -130,8 +130,8 @@ export function SystemTextMessage({ message, addMargin, verbose, isTranscriptMod
   }
 
   const content = message.content;
-  // In case the event doesn't have a content
-  // validation, so content can be undefined at runtime despite the types.
+  // 以防 event 没有 content
+  // 校验，所以尽管类型如此，content 在运行时可能是 undefined。
   if (typeof content !== 'string') {
     return null;
   }
@@ -166,13 +166,13 @@ function StopHookSummaryMessage({
   const stopReason = message.stopReason as string | undefined;
   const { columns } = useTerminalSize();
 
-  // Prefer wall-clock time when available (hooks run in parallel)
+  // 优先使用 wall-clock 时间（hooks 并行运行）
   const totalDurationMs = message.totalDurationMs ?? hookInfos.reduce((sum, h) => sum + (h.durationMs ?? 0), 0);
   const isAnt = process.env.USER_TYPE === 'ant';
 
-  // Only show summary if there are errors or continuation was prevented
-  // For ants: also show when hooks took > 500ms
-  // Non-stop hooks (e.g. PreToolUse) are pre-filtered by the caller
+  // 仅在有错误或 continuation 被阻止时显示摘要
+  // 对于 ant：hooks 耗时 > 500ms 时也显示
+  // 非 stop hooks（例如 PreToolUse）由调用方预过滤
   if (hookErrors.length === 0 && !preventedContinuation && !message.hookLabel) {
     if (!isAnt || totalDurationMs < HOOK_TIMING_DISPLAY_THRESHOLD_MS) {
       return null;
@@ -180,7 +180,7 @@ function StopHookSummaryMessage({
   }
 
   const totalStr = isAnt && totalDurationMs > 0 ? ` (${formatSecondsShort(totalDurationMs)})` : '';
-  // Non-stop hooks (e.g. PreToolUse) render as a child line without bullet
+  // 非 stop hooks（例如 PreToolUse）渲染为没有 bullet 的子行
   if (message.hookLabel) {
     return (
       <Box flexDirection="column" width="100%">

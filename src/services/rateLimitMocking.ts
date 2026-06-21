@@ -1,6 +1,6 @@
 /**
- * Facade for rate limit header processing
- * This isolates mock logic from production code
+ * 速率限制 header 处理的外观模式
+ * 将 mock 逻辑与生产代码隔离
  */
 
 import { APIError } from '@anthropic-ai/sdk'
@@ -14,12 +14,12 @@ import {
 } from './mockRateLimits.js'
 
 /**
- * Process headers, applying mocks if /mock-limits command is active
+ * 处理 header，如果 /mock-limits 命令激活则应用 mock
  */
 export function processRateLimitHeaders(
   headers: globalThis.Headers,
 ): globalThis.Headers {
-  // Only apply mocks for Ant employees using /mock-limits command
+  // 仅为使用 /mock-limits 命令的 Ant 员工应用 mock
   if (shouldProcessMockLimits()) {
     return applyMockHeaders(headers)
   }
@@ -27,17 +27,17 @@ export function processRateLimitHeaders(
 }
 
 /**
- * Check if we should process rate limits (either real subscriber or /mock-limits command)
+ * 检查是否应处理速率限制（真实订阅者或 /mock-limits 命令）
  */
 export function shouldProcessRateLimits(isSubscriber: boolean): boolean {
   return isSubscriber || shouldProcessMockLimits()
 }
 
 /**
- * Check if mock rate limits should throw a 429 error
- * Returns the error to throw, or null if no error should be thrown
- * @param currentModel The model being used for the current request
- * @param isFastModeActive Whether fast mode is currently active (for fast-mode-only mocks)
+ * 检查 mock 速率限制是否应抛出 429 错误
+ * 返回要抛出的错误，如果不应抛出错误则返回 null
+ * @param currentModel 当前请求使用的模型
+ * @param isFastModeActive 快速模式当前是否激活（用于仅快速模式的 mock）
  */
 export function checkMockRateLimitError(
   currentModel: string,
@@ -63,36 +63,36 @@ export function checkMockRateLimitError(
     return null
   }
 
-  // Check if we should throw a 429 error
-  // Only throw if:
-  // 1. Status is rejected AND
-  // 2. Either no overage headers OR overage is also rejected
-  // 3. For Opus-specific limits, only throw if actually using an Opus model
+  // 检查是否应抛出 429 错误
+  // 仅在以下情况抛出：
+  // 1. status 为 rejected 且
+  // 2. 要么没有超额用量 header，要么超额用量也被拒绝
+  // 3. 对于 Opus 特定的限制，仅当实际使用 Opus 模型时才抛出
   const status = mockHeaders['anthropic-ratelimit-unified-status']
   const overageStatus =
     mockHeaders['anthropic-ratelimit-unified-overage-status']
   const rateLimitType =
     mockHeaders['anthropic-ratelimit-unified-representative-claim']
 
-  // Check if this is an Opus-specific rate limit
+  // 检查这是否是 Opus 特定的速率限制
   const isOpusLimit = rateLimitType === 'seven_day_opus'
 
-  // Check if current model is an Opus model (handles all variants including aliases)
+  // 检查当前模型是否为 Opus 模型（处理包括别名在内的所有变体）
   const isUsingOpus = currentModel.includes('opus')
 
-  // For Opus limits, only throw 429 if actually using Opus
-  // This simulates the real API behavior where fallback to Sonnet succeeds
+  // 对于 Opus 限制，仅当实际使用 Opus 时才抛出 429
+  // 这模拟了真实 API 行为，即回退到 Sonnet 会成功
   if (isOpusLimit && !isUsingOpus) {
     return null
   }
 
-  // Check for mock fast mode rate limits (handles expiry, countdown, etc.)
+  // 检查 mock 快速模式速率限制（处理过期、倒计时等）
   if (isMockFastModeRateLimitScenario()) {
     const fastModeHeaders = checkMockFastModeRateLimit(isFastModeActive)
     if (fastModeHeaders === null) {
       return null
     }
-    // Create a mock 429 error with the fast mode headers
+    // 使用快速模式 header 创建 mock 429 错误
     const error = new APIError(
       429,
       { error: { type: 'rate_limit_error', message: 'Rate limit exceeded' } },
@@ -112,7 +112,7 @@ export function checkMockRateLimitError(
     status === 'rejected' && (!overageStatus || overageStatus === 'rejected')
 
   if (shouldThrow429) {
-    // Create a mock 429 error with the appropriate headers
+    // 使用适当的 header 创建 mock 429 错误
     const error = new APIError(
       429,
       { error: { type: 'rate_limit_error', message: 'Rate limit exceeded' } },
@@ -132,13 +132,13 @@ export function checkMockRateLimitError(
 }
 
 /**
- * Check if this is a mock 429 error that shouldn't be retried
+ * 检查这是否是不应重试的 mock 429 错误
  */
 export function isMockRateLimitError(error: APIError): boolean {
   return shouldProcessMockLimits() && error.status === 429
 }
 
 /**
- * Check if /mock-limits command is currently active (for UI purposes)
+ * 检查 /mock-limits 命令当前是否激活（用于 UI 目的）
  */
 export { shouldProcessMockLimits }

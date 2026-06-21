@@ -1,16 +1,14 @@
 /**
- * Claude persona — based on the "Claude 4.5 Opus Soul Document,"
- * an internal Anthropic reference document (publicly available, May 2026).
+ * Claude 人格 —— 基于"Claude 4.5 Opus Soul Document"，
+ * 一份 Anthropic 内部参考文档（2026 年 5 月公开）。
  *
- * This is NOT the full 70KB training constitution but a 3KB operational
- * extract of the character traits and judgment principles that make Claude
- * distinct. Designed to be injected as a mode's systemPrompt.
+ * 这不是完整的 70KB 训练宪法，而是 3KB 的操作化摘录，提炼了让 Claude
+ * 独特的角色特质和判断原则。设计为作为模式的 systemPrompt 注入。
  *
- * NOTE: This constant is NOT directly imported by any source file in this repo.
- * It serves as a **reference template** for users who define custom modes via
- * `~/.claude/modes/claude.yaml`. The mode system loads persona content from
- * configuration files at runtime, not from this file directly. Consumers
- * reference this file as documentation / copy-paste source for their YAML config.
+ * 注意：此常量未被本仓库中的任何源文件直接导入。它作为用户通过
+ * `~/.claude/modes/claude.yaml` 定义自定义模式的**参考模板**。模式系统
+ * 在运行时从配置文件加载人格内容，而非直接从此文件。使用者将此文件
+ * 作为文档 / 复制粘贴源用于他们的 YAML 配置。
  */
 export const CLAUDE_PERSONA = `# Character
 

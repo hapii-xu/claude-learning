@@ -87,7 +87,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
   const [versionLockInfo, setVersionLockInfo] = useState<VersionLockInfo | null>(null);
   const validationErrors = useSettingsErrors();
 
-  // Create promise once for dist-tags fetch (depends on diagnostic)
+  // 为 dist-tags 拉取创建一次 promise（依赖于 diagnostic）
   const distTagsPromise = useMemo(
     () =>
       getDoctorDiagnostic().then(diag => {
@@ -114,7 +114,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
       },
       {
         name: 'CLAUDE_CODE_MAX_OUTPUT_TOKENS',
-        // Check for values against the latest supported model
+        // 对照最新支持的模型检查值
         ...getModelMaxOutputTokens('claude-opus-4-7'),
       },
     ];
@@ -165,7 +165,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
       );
       setContextWarnings(warnings);
 
-      // Fetch version lock info if PID-based locking is enabled
+      // 如果启用了基于 PID 的锁定，则获取版本锁信息
       if (isPidBasedLockingEnabled()) {
         const locksDir = join(getXDGStateHome(), 'claude', 'locks');
         const staleLocksCleaned = cleanupStaleLocks(locksDir);
@@ -191,7 +191,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
     onDone('Claude Code diagnostics dismissed', { display: 'system' });
   }, [onDone]);
 
-  // Handle dismiss via keybindings (Enter, Escape, or Ctrl+C)
+  // 通过快捷键处理取消操作（Enter、Escape 或 Ctrl+C）
   useKeybindings(
     {
       'confirm:yes': handleDismiss,
@@ -200,7 +200,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
     { context: 'Confirmation' },
   );
 
-  // Loading state
+  // 加载状态
   if (!diagnostic) {
     return (
       <Pane>
@@ -209,7 +209,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
     );
   }
 
-  // Format the diagnostic output according to spec
+  // 按规范格式化诊断输出
   return (
     <Pane>
       <Box flexDirection="column">
@@ -232,7 +232,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
         </Text>
         {diagnostic.ripgrepStatus.note && <Text color="warning">└ Note: {diagnostic.ripgrepStatus.note}</Text>}
 
-        {/* Show recommendation if auto-updates are disabled */}
+        {/* 如果自动更新被禁用，显示建议 */}
         {diagnostic.recommendation && (
           <>
             <Text></Text>
@@ -241,7 +241,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
           </>
         )}
 
-        {/* Show multiple installations warning */}
+        {/* 显示多个安装的警告 */}
         {diagnostic.multipleInstallations.length > 1 && (
           <>
             <Text></Text>
@@ -254,7 +254,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
           </>
         )}
 
-        {/* Show configuration warnings */}
+        {/* 显示配置警告 */}
         {diagnostic.warnings.length > 0 && (
           <>
             <Text></Text>
@@ -267,7 +267,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
           </>
         )}
 
-        {/* Show invalid settings errors */}
+        {/* 显示无效设置的错误 */}
         {errorsExcludingMcp.length > 0 && (
           <Box flexDirection="column" marginTop={1} marginBottom={1}>
             <Text bold>Invalid Settings</Text>
@@ -276,7 +276,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
         )}
       </Box>
 
-      {/* Updates section */}
+      {/* 更新部分 */}
       <Box flexDirection="column">
         <Text bold>Updates</Text>
         <Text>└ Auto-updates: {diagnostic.packageManager ? 'Managed by package manager' : diagnostic.autoUpdates}</Text>
@@ -295,7 +295,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
 
       <KeybindingWarnings />
 
-      {/* Environment Variables */}
+      {/* 环境变量 */}
       {envValidationErrors.length > 0 && (
         <Box flexDirection="column">
           <Text bold>Environment Variables</Text>
@@ -308,7 +308,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
         </Box>
       )}
 
-      {/* Version Locks (PID-based locking) */}
+      {/* 版本锁（基于 PID 的锁定） */}
       {versionLockInfo?.enabled && (
         <Box flexDirection="column">
           <Text bold>Version Locks</Text>
@@ -342,7 +342,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
         </Box>
       )}
 
-      {/* Plugin Errors */}
+      {/* 插件错误 */}
       {pluginsErrors.length > 0 && (
         <Box flexDirection="column">
           <Text bold color="error">
@@ -358,7 +358,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
         </Box>
       )}
 
-      {/* Unreachable Permission Rules Warning */}
+      {/* 不可达权限规则警告 */}
       {contextWarnings?.unreachableRulesWarning && (
         <Box flexDirection="column">
           <Text bold color="warning">
@@ -378,7 +378,7 @@ export function Doctor({ onDone }: Props): React.ReactNode {
         </Box>
       )}
 
-      {/* Context Usage Warnings */}
+      {/* 上下文使用量警告 */}
       {contextWarnings &&
         (contextWarnings.claudeMdWarning || contextWarnings.agentWarning || contextWarnings.mcpWarning) && (
           <Box flexDirection="column">

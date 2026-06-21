@@ -31,10 +31,10 @@ export function ShellProgressMessage({
   const lines = strippedOutput.split('\n').filter(line => line);
   const displayLines = verbose ? strippedFullOutput : lines.slice(-5).join('\n');
 
-  // OffscreenFreeze: BashTool yields progress (elapsedTimeSeconds) every second.
-  // If this line scrolls into scrollback, each tick forces a full terminal reset.
-  // A foreground `sleep 600` on a 29-row terminal with 4000 rows of history
-  // produced 507 resets over 10 minutes (go/ccshare/maxk-20260226-190348).
+  // OffscreenFreeze：BashTool 每秒产生一次进度（elapsedTimeSeconds）。
+  // 如果此行滚动到 scrollback 中，每一次 tick 都会强制完整终端重置。
+  // 一个前台 `sleep 600` 在 29 行终端、4000 行历史的场景下，
+  // 10 分钟内产生了 507 次重置（go/ccshare/maxk-20260226-190348）。
   if (!lines.length) {
     return (
       <MessageResponse>
@@ -46,8 +46,8 @@ export function ShellProgressMessage({
     );
   }
 
-  // Not truncated: "+2 lines" (total exceeds displayed 5)
-  // Truncated:     "~2000 lines" (extrapolated estimate from tail sample)
+  // 未截断："+2 lines"（总数超过显示的 5 行）
+  // 截断："~2000 lines"（从尾部样本外推估计）
   const extraLines = totalLines ? Math.max(0, totalLines - 5) : 0;
   let lineStatus = '';
   if (!verbose && totalBytes && totalLines) {

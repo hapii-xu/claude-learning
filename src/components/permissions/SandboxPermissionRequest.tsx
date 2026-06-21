@@ -18,9 +18,9 @@ export function SandboxPermissionRequest({
   onUserResponse,
 }: SandboxPermissionRequestProps): React.ReactNode {
   function onSelect(value: string) {
-    // We may want to better unify this dialog with other permission dialogs
-    // and use their logging, but this is slightly different and we don't have
-    // the tool context here. For now, just use basic logging for basic data.
+    // 我们可能希望将此对话框与其他权限对话框更好地统一，
+    // 并复用它们的日志记录，但这里略有不同——我们没有
+    // 工具上下文。目前只对基础数据使用基础日志记录。
     if (process.env.USER_TYPE === 'ant') {
       logEvent('tengu_sandbox_network_dialog_result', {
         host: host as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,

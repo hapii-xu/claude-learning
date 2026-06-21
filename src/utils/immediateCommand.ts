@@ -4,6 +4,8 @@
  *
  * 对 ants 始终启用；对外部用户由实验门控。
  */
+import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
+
 export function shouldInferenceConfigCommandBeImmediate(): boolean {
   return (
     process.env.USER_TYPE === 'ant' ||

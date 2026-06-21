@@ -1,10 +1,10 @@
 import type { AgentProgress, RunProgress } from '../progress/store.js'
 import type { PhaseStatus } from './status.js'
 
-/** Title of the fixed "no filter" item (first row of the sidebar). */
+/** 固定"不过滤"项的标题（侧栏第一行）。 */
 export const ALL_PHASE = 'All'
 
-/** Merged phase (including pending), with done/total counts of agents under that phase. */
+/** 合并后的 phase（含 pending），以及该 phase 下 agent 的 done/total 计数。 */
 export type MergedPhase = {
   title: string
   status: PhaseStatus
@@ -13,10 +13,10 @@ export type MergedPhase = {
 }
 
 /**
- * Merge declaredPhases (declared by meta) and run.phases (actually running/done):
- * - Declared order takes priority; phases present in actual but not declared are appended at the end.
- * - No actual record -> pending; otherwise take the actual status.
- * - done/total = done under that phase / total agents under that phase.
+ * 合并 declaredPhases（meta 声明）与 run.phases（实际 running/done）：
+ * - 声明顺序优先；实际存在但未声明的 phase 追加到末尾。
+ * - 没有实际记录 -> pending；否则取实际状态。
+ * - done/total = 该 phase 下的 done agent 数 / 该 phase 下 agent 总数。
  */
 export function mergePhases(
   run: Pick<RunProgress, 'declaredPhases' | 'phases' | 'agents'>,
@@ -43,8 +43,8 @@ export function mergePhases(
 }
 
 /**
- * Filter agents by the selected phase.
- * selectedPhase undefined or ALL_PHASE -> all.
+ * 按选中的 phase 过滤 agent。
+ * selectedPhase 为 undefined 或 ALL_PHASE -> 全部。
  */
 export function filterAgentsByPhase(
   agents: AgentProgress[],
@@ -54,12 +54,12 @@ export function filterAgentsByPhase(
   return agents.filter(a => a.phase === selectedPhase)
 }
 
-/** tab label: workflow name + `#` + last 4 chars of runId (disambiguates same-name runs). */
+/** tab 标签：workflow 名 + `#` + runId 末尾 4 字符（用于区分同名 run）。 */
 export function tabLabel(workflowName: string, runId: string): string {
   return `${workflowName}#${runId.slice(-4)}`
 }
 
-/** milliseconds -> compact duration (<60s -> `Ns`; <60m -> `MmSSs`; otherwise `HhMMm`). Used by the panel header. */
+/** 毫秒 -> 紧凑时长（<60s -> `Ns`；<60m -> `MmSSs`；否则 `HhMMm`）。由面板头部使用。 */
 export function formatDuration(ms: number): string {
   const s = Math.floor(ms / 1000)
   if (s < 60) return `${s}s`

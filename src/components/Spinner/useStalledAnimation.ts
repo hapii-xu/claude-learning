@@ -1,8 +1,8 @@
 import { useRef } from 'react'
 
-// Hook to handle the transition to red when tokens stop flowing.
-// Driven by the parent's animation clock time instead of independent intervals,
-// so it slows down when the terminal is blurred.
+// 处理 token 停止流入时过渡到红色的 Hook。
+// 由父组件的动画时钟时间驱动，而非独立的 interval，
+// 因此当终端失去焦点时会变慢。
 export function useStalledAnimation(
   time: number,
   currentResponseLength: number,
@@ -18,7 +18,7 @@ export function useStalledAnimation(
   const stalledIntensityRef = useRef(0)
   const lastSmoothTime = useRef(time)
 
-  // Reset timer when new tokens arrive (check actual length change)
+  // 当新 token 到达时重置计时器（检查实际长度变化）
   if (currentResponseLength > lastResponseLength.current) {
     lastTokenTime.current = time
     lastResponseLength.current = currentResponseLength
@@ -26,7 +26,7 @@ export function useStalledAnimation(
     lastSmoothTime.current = time
   }
 
-  // Derive time since last token from animation clock
+  // 从动画时钟派生距上一个 token 的时间
   let timeSinceLastToken: number
   if (hasActiveTools) {
     timeSinceLastToken = 0
@@ -37,14 +37,14 @@ export function useStalledAnimation(
     timeSinceLastToken = time - mountTime.current
   }
 
-  // Calculate stalled intensity based on time since last token
-  // Start showing red after 3 seconds of no new tokens (only when no tools are active)
+  // 根据距上一个 token 的时间计算停滞强度
+  // 3 秒没有新 token 后开始变红（仅在没有活跃工具时）
   const isStalled = timeSinceLastToken > 3000 && !hasActiveTools
   const intensity = isStalled
-    ? Math.min((timeSinceLastToken - 3000) / 2000, 1) // Fade over 2 seconds
+    ? Math.min((timeSinceLastToken - 3000) / 2000, 1) // 2 秒内淡入
     : 0
 
-  // Smooth intensity transition driven by animation frame ticks
+  // 由动画帧 tick 驱动的平滑强度过渡
   if (!reducedMotion && (intensity > 0 || stalledIntensityRef.current > 0)) {
     const dt = time - lastSmoothTime.current
     if (dt >= 50) {
@@ -66,7 +66,7 @@ export function useStalledAnimation(
     lastSmoothTime.current = time
   }
 
-  // When reducedMotion is enabled, use instant intensity change
+  // 启用 reducedMotion 时使用瞬时强度变化
   const effectiveIntensity = reducedMotion
     ? intensity
     : stalledIntensityRef.current

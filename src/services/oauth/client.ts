@@ -1,4 +1,4 @@
-// OAuth client for handling authentication flows with Claude services
+// 用于处理 Claude 服务认证流程的 OAuth 客户端
 import axios from 'axios'
 import {
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -32,8 +32,8 @@ import type {
 } from './types.js'
 
 /**
- * Check if the user has Claude.ai authentication scope
- * @private Only call this if you're OAuth / auth related code!
+ * 检查用户是否具有 Claude.ai 认证范围
+ * @private 仅在你处于 OAuth/认证相关代码时调用！
  */
 export function shouldUseClaudeAIAuth(scopes: string[] | undefined): boolean {
   return Boolean(scopes?.includes(CLAUDE_AI_INFERENCE_SCOPE))
@@ -69,7 +69,7 @@ export function buildAuthUrl({
     : getOauthConfig().CONSOLE_AUTHORIZE_URL
 
   const authUrl = new URL(authUrlBase)
-  authUrl.searchParams.append('code', 'true') // this tells the login page to show Claude Max upsell
+  authUrl.searchParams.append('code', 'true') // 这告诉登录页面显示 Claude Max 升级推荐
   authUrl.searchParams.append('client_id', getOauthConfig().CLIENT_ID)
   authUrl.searchParams.append('response_type', 'code')
   authUrl.searchParams.append(
@@ -79,24 +79,24 @@ export function buildAuthUrl({
       : `http://localhost:${port}/callback`,
   )
   const scopesToUse = inferenceOnly
-    ? [CLAUDE_AI_INFERENCE_SCOPE] // Long-lived inference-only tokens
+    ? [CLAUDE_AI_INFERENCE_SCOPE] // 长期仅推理令牌
     : ALL_OAUTH_SCOPES
   authUrl.searchParams.append('scope', scopesToUse.join(' '))
   authUrl.searchParams.append('code_challenge', codeChallenge)
   authUrl.searchParams.append('code_challenge_method', 'S256')
   authUrl.searchParams.append('state', state)
 
-  // Add orgUUID as URL param if provided
+  // 如果提供了 orgUUID，将其添加为 URL 参数
   if (orgUUID) {
     authUrl.searchParams.append('orgUUID', orgUUID)
   }
 
-  // Pre-populate email on the login form (standard OIDC parameter)
+  // 在登录表单上预填充邮箱（标准 OIDC 参数）
   if (loginHint) {
     authUrl.searchParams.append('login_hint', loginHint)
   }
 
-  // Request a specific login method (e.g. 'sso', 'magic_link', 'google')
+  // 请求特定的登录方法（例如 'sso'、'magic_link'、'google'）
   if (loginMethod) {
     authUrl.searchParams.append('login_method', loginMethod)
   }
@@ -151,11 +151,10 @@ export async function refreshOAuthToken(
     grant_type: 'refresh_token',
     refresh_token: refreshToken,
     client_id: getOauthConfig().CLIENT_ID,
-    // Request specific scopes, defaulting to the full Claude AI set. The
-    // backend's refresh-token grant allows scope expansion beyond what the
-    // initial authorize granted (see ALLOWED_SCOPE_EXPANSIONS), so this is
-    // safe even for tokens issued before scopes were added to the app's
-    // registered oauth_scope.
+    // 请求特定范围，默认为完整的 Claude AI 集合。
+    // 后端的 refresh-token 授权允许范围扩展超出初始 authorize
+    // 授予的范围（见 ALLOWED_SCOPE_EXPANSIONS），因此即使对于在范围添加到应用
+    // 注册 oauth_scope 之前颁发的令牌也是安全的。
     scope: (requestedScopes?.length
       ? requestedScopes
       : CLAUDE_AI_OAUTH_SCOPES
@@ -184,19 +183,19 @@ export async function refreshOAuthToken(
 
     logEvent('tengu_oauth_token_refresh_success', {})
 
-    // Skip the extra /api/oauth/profile round-trip when we already have both
-    // the global-config profile fields AND the secure-storage subscription data.
-    // Routine refreshes satisfy both, so we cut ~7M req/day fleet-wide.
+    // 当我们同时拥有 global-config 的 profile 字段和安全存储的订阅数据时，
+    // 跳过额外的 /api/oauth/profile 往返。常规刷新满足两者，
+    // 因此我们整个集群每天减少约 7M 次请求。
     //
-    // Checking secure storage (not just config) matters for the
-    // CLAUDE_CODE_OAUTH_REFRESH_TOKEN re-login path: installOAuthTokens runs
-    // performLogout() AFTER we return, wiping secure storage. If we returned
-    // null for subscriptionType here, saveOAuthTokensIfNeeded would persist
-    // null ?? (wiped) ?? null = null, and every future refresh would see the
-    // config guard fields satisfied and skip again, permanently losing the
-    // subscription type for paying users. By passing through existing values,
-    // the re-login path writes cached ?? wiped ?? null = cached; and if secure
-    // storage was already empty we fall through to the fetch.
+    // 检查安全存储（不仅仅是 config）对
+    // CLAUDE_CODE_OAUTH_REFRESH_TOKEN 重新登录路径很重要：installOAuthTokens
+    // 在我们返回后运行 performLogout()，清除安全存储。如果这里
+    // 对 subscriptionType 返回 null，saveOAuthTokensIfNeeded 会持久化
+    // null ?? (已清除) ?? null = null，并且未来每次刷新都会看到
+    // config 守卫字段已满足并再次跳过，永久丢失付费用户的
+    // 订阅类型。通过传递现有值，
+    // 重新登录路径写入 cached ?? 已清除 ?? null = cached；如果安全
+    // 存储已经为空，我们回退到 fetch。
     const config = getGlobalConfig()
     const existing = getClaudeAIOAuthTokens()
     const haveProfileAlready =
@@ -210,7 +209,7 @@ export async function refreshOAuthToken(
       ? null
       : await fetchProfileInfo(accessToken)
 
-    // Update the stored properties if they have changed
+    // 如果存储的属性已更改，则更新
     if (profileInfo && config.oauthAccount) {
       const updates: Partial<AccountInfo> = {}
       if (profileInfo.displayName !== undefined) {
@@ -365,7 +364,7 @@ export async function fetchProfileInfo(accessToken: string): Promise<{
   const profile = await getOauthProfileFromOauthToken(accessToken)
   const orgType = profile?.organization?.organization_type
 
-  // Reuse the logic from fetchSubscriptionType
+  // 复用 fetchSubscriptionType 的逻辑
   let subscriptionType: SubscriptionType | null = null
   switch (orgType) {
     case 'claude_max':
@@ -381,7 +380,7 @@ export async function fetchProfileInfo(accessToken: string): Promise<{
       subscriptionType = 'team'
       break
     default:
-      // Return null for unknown organization types
+      // 对未知组织类型返回 null
       subscriptionType = null
       break
   }
@@ -420,18 +419,18 @@ export async function fetchProfileInfo(accessToken: string): Promise<{
 }
 
 /**
- * Gets the organization UUID from the OAuth access token
- * @returns The organization UUID or null if not authenticated
+ * 从 OAuth 访问令牌获取组织 UUID
+ * @returns 组织 UUID，如果未认证则返回 null
  */
 export async function getOrganizationUUID(): Promise<string | null> {
-  // Check global config first to avoid unnecessary API call
+  // 先检查全局配置以避免不必要的 API 调用
   const globalConfig = getGlobalConfig()
   const orgUUID = globalConfig.oauthAccount?.organizationUuid
   if (orgUUID) {
     return orgUUID
   }
 
-  // Fall back to fetching from profile (requires user:profile scope)
+  // 回退到从 profile 获取（需要 user:profile 范围）
   const accessToken = getClaudeAIOAuthTokens()?.accessToken
   if (accessToken === undefined || !hasProfileScope()) {
     return null
@@ -445,15 +444,15 @@ export async function getOrganizationUUID(): Promise<string | null> {
 }
 
 /**
- * Populate the OAuth account info if it has not already been cached in config.
- * @returns Whether or not the oauth account info was populated.
+ * 如果 OAuth 账户信息尚未缓存到 config，则填充它。
+ * @returns 是否填充了 oauth 账户信息。
  */
 export async function populateOAuthAccountInfoIfNeeded(): Promise<boolean> {
-  // Check env vars first (synchronous, no network call needed).
-  // SDK callers like Cowork can provide account info directly, which also
-  // eliminates the race condition where early telemetry events lack account info.
-  // NB: If/when adding additional SDK-relevant functionality requiring _other_ OAuth account properties,
-  // please reach out to #proj-cowork so the team can add additional env var fallbacks.
+  // 先检查环境变量（同步，无需网络调用）。
+  // 像 Cowork 这样的 SDK 调用者可以直接提供账户信息，这也
+  // 消除了早期遥测事件缺少账户信息的竞态条件。
+  // 注意：如果/当添加需要_其他_ OAuth 账户属性的额外 SDK 相关功能时，
+  // 请联系 #proj-cowork 以便团队可以添加额外的环境变量回退。
   const envAccountUuid = process.env.CLAUDE_CODE_ACCOUNT_UUID
   const envUserEmail = process.env.CLAUDE_CODE_USER_EMAIL
   const envOrganizationUuid = process.env.CLAUDE_CODE_ORGANIZATION_UUID
@@ -470,8 +469,8 @@ export async function populateOAuthAccountInfoIfNeeded(): Promise<boolean> {
     }
   }
 
-  // Wait for any in-flight token refresh to complete first, since
-  // refreshOAuthToken already fetches and stores profile info
+  // 先等待任何进行中的令牌刷新完成，因为
+  // refreshOAuthToken 已经获取并存储了 profile 信息
   await checkAndRefreshOAuthTokenIfNeeded()
 
   const config = getGlobalConfig()
@@ -546,7 +545,7 @@ export function storeOAuthAccountInfo({
     accountInfo.displayName = displayName
   }
   saveGlobalConfig(current => {
-    // For oauthAccount we need to compare content since it's an object
+    // 对于 oauthAccount，我们需要比较内容，因为它是一个对象
     if (
       current.oauthAccount?.accountUuid === accountInfo.accountUuid &&
       current.oauthAccount?.emailAddress === accountInfo.emailAddress &&

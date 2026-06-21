@@ -29,9 +29,9 @@ export function GlimmerMessage({
   const [themeName] = useTheme();
   const theme = getTheme(themeName);
 
-  // This component re-renders at 20fps (glimmerIndex changes every 50ms) but
-  // message is stable within a turn. Precompute grapheme segmentation + widths
-  // once per message instead of per frame. Measured -81% on the shimmer path.
+  // 此组件以 20fps 重新渲染（glimmerIndex 每 50ms 变化一次），
+  // 但 message 在一轮对话内稳定。对每条消息预计算一次字形分段 + 宽度，
+  // 而非每帧计算。实测在微光路径上减少了 81%。
   const { segments, messageWidth } = React.useMemo(() => {
     const segs: { segment: string; width: number }[] = [];
     for (const { segment } of getGraphemeSegmenter().segment(message)) {
@@ -42,7 +42,7 @@ export function GlimmerMessage({
 
   if (!message) return null;
 
-  // When stalled, show text that smoothly transitions to red
+  // 停滞时，显示平滑过渡到红色的文本
   if (stalledIntensity > 0) {
     const baseColorStr = theme[messageColor];
     const baseRGB = baseColorStr ? parseRGB(baseColorStr) : null;
@@ -58,7 +58,7 @@ export function GlimmerMessage({
       );
     }
 
-    // Fallback for ANSI themes: use messageColor until fully stalled, then error
+    // ANSI 主题的后备方案：完全停滞前使用 messageColor，之后使用 error
     const color = stalledIntensity > 0.5 ? 'error' : messageColor;
     return (
       <>
@@ -68,8 +68,8 @@ export function GlimmerMessage({
     );
   }
 
-  // tool-use mode: all chars flash with the same opacity, so render as a
-  // single <Text> instead of N individual FlashingChar components.
+  // tool-use 模式：所有字符以相同透明度闪烁，因此渲染为
+  // 单个 <Text> 而非 N 个独立的 FlashingChar 组件。
   if (mode === 'tool-use') {
     const baseColorStr = theme[messageColor];
     const shimmerColorStr = theme[shimmerColor];
@@ -95,8 +95,8 @@ export function GlimmerMessage({
     );
   }
 
-  // Shimmer mode: only chars within ±1 of glimmerIndex need the shimmer
-  // color. When glimmer is offscreen, render as a single <Text>.
+  // 微光模式：只有 glimmerIndex ±1 范围内的字符需要微光
+  // 颜色。当微光在屏幕外时，渲染为单个 <Text>。
   const shimmerStart = glimmerIndex - 1;
   const shimmerEnd = glimmerIndex + 1;
 
@@ -109,7 +109,7 @@ export function GlimmerMessage({
     );
   }
 
-  // Split into at most 3 segments by visual column position
+  // 按视觉列位置最多切成 3 段
   const clampedStart = Math.max(0, shimmerStart);
   let colPos = 0;
   let before = '';

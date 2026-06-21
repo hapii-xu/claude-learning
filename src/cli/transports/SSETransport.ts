@@ -463,9 +463,21 @@ export class SSETransport implements Transport {
     const payload = ev.payload
     if (payload && typeof payload === 'object' && 'type' in payload) {
       const sessionLabel = this.sessionId ? ` session=${this.sessionId}` : ''
-      logForDebugging(
-        `SSETransport: Event seq=${ev.sequence_num} event_id=${ev.event_id} event_type=${ev.event_type} payload_type=${String(payload.type)}${sessionLabel}`,
-      )
+      // debug 类型事件量大，跳过 logForDebugging 避免触发 sink 无限循环
+      const debugEventTypes = new Set([
+        'debug_log',
+        'sdk_raw',
+        'tool_trace',
+        'usage',
+      ])
+      if (
+        !debugEventTypes.has(ev.event_type) &&
+        !debugEventTypes.has(String(payload.type))
+      ) {
+        logForDebugging(
+          `SSETransport: Event seq=${ev.sequence_num} event_id=${ev.event_id} event_type=${ev.event_type} payload_type=${String(payload.type)}${sessionLabel}`,
+        )
+      }
       logForDiagnosticsNoPII('info', 'cli_sse_message_received')
       // 将解包后的 payload 以换行分隔的 JSON 形式传出，
       // 与 StructuredIO/WebSocketTransport 消费方期望的格式一致

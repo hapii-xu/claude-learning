@@ -28,7 +28,7 @@ export function useTeleportResume(source: TeleportSource) {
       setError(null);
       setSelectedSession(session);
 
-      // Log teleport session selection
+      // 记录 teleport 会话选择
       logEvent('tengu_teleport_resume_session', {
         source: source as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         session_id: session.id as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -36,7 +36,7 @@ export function useTeleportResume(source: TeleportSource) {
 
       try {
         const result = await teleportResumeCodeSession(session.id);
-        // Track teleported session for reliability logging
+        // 跟踪 teleported 会话用于可靠性日志
         setTeleportedSessionInfo({ sessionId: session.id });
         setIsResuming(false);
         return result;

@@ -5,18 +5,18 @@ import { useNotifications } from '../context/notifications.js';
 import { useIsModalOverlayActive } from '../context/overlayContext.js';
 import { useGetVoiceState, useSetVoiceState, useVoiceState } from '../context/voice.js';
 import { KeyboardEvent, useInput } from '@anthropic/ink';
-// backward-compat bridge until REPL wires handleKeyDown to <Box onKeyDown>
+// 向后兼容的桥接，直到 REPL 将 handleKeyDown 连接到 <Box onKeyDown>
 import { useOptionalKeybindingContext } from '../keybindings/KeybindingContext.js';
 import { keystrokesEqual } from '../keybindings/resolver.js';
 import type { ParsedKeystroke } from '../keybindings/types.js';
 import { normalizeFullWidthSpace } from '../utils/stringUtils.js';
 import { useVoiceEnabled } from './useVoiceEnabled.js';
 
-// Dead code elimination: conditional import for voice input hook.
+// 死代码消除：voice input hook 的条件导入。
 /* eslint-disable @typescript-eslint/no-require-imports */
-// Capture the module namespace, not the function: spyOn() mutates the module
-// object, so `voiceNs.useVoice(...)` resolves to the spy even if this module
-// was loaded before the spy was installed (test ordering independence).
+// 捕获模块命名空间，而非函数：spyOn() 会修改模块
+// 对象，所以 `voiceNs.useVoice(...)` 解析到 spy，即使此模块
+// 在 spy 安装之前已加载（测试顺序无关）。
 const voiceNs: { useVoice: typeof import('./useVoice.js').useVoice } = feature('VOICE_MODE')
   ? require('./useVoice.js')
   : {
@@ -27,49 +27,48 @@ const voiceNs: { useVoice: typeof import('./useVoice.js').useVoice } = feature('
     };
 /* eslint-enable @typescript-eslint/no-require-imports */
 
-// Maximum gap (ms) between key presses to count as held (auto-repeat).
-// Terminal auto-repeat fires every 30-80ms; 120ms covers jitter while
-// excluding normal typing speed (100-300ms between keystrokes).
+// 按键之间算作按住（auto-repeat）的最大间隔（ms）。
+// 终端 auto-repeat 每 30-80ms 触发一次；120ms 覆盖抖动，同时
+// 排除正常打字速度（按键之间 100-300ms）。
 const RAPID_KEY_GAP_MS = 120;
 
-// Fallback (ms) for modifier-combo first-press activation. Must match
-// FIRST_PRESS_FALLBACK_MS in useVoice.ts. Covers the max OS initial
-// key-repeat delay (~2s on macOS with slider at "Long") so holding a
-// modifier combo doesn't fragment into two sessions when the first
-// auto-repeat arrives after the default 600ms REPEAT_FALLBACK_MS.
+// 修饰键组合首次按键激活的回退（ms）。必须匹配
+// useVoice.ts 中的 FIRST_PRESS_FALLBACK_MS。覆盖最大 OS 初始
+// 按键重复延迟（macOS 滑块为 "Long" 时约 2s），使按住
+// 修饰键组合不会在第一次 auto-repeat 于默认 600ms
+// REPEAT_FALLBACK_MS 之后到达时分裂成两个会话。
 const MODIFIER_FIRST_PRESS_FALLBACK_MS = 2000;
 
-// Number of rapid consecutive key events required to activate voice.
-// Only applies to bare-char bindings (space, v, etc.) where a single press
-// could be normal typing. Modifier combos activate on the first press.
+// 激活 voice 所需的快速连续按键事件数。
+// 仅适用于 bare-char 绑定（space、v 等），因为单次按键
+// 可能是正常打字。修饰键组合在第一次按键时激活。
 const HOLD_THRESHOLD = 5;
 
-// Number of rapid key events to start showing warmup feedback.
+// 开始显示 warmup 反馈的快速按键事件数。
 const WARMUP_THRESHOLD = 2;
 
-// Match a KeyboardEvent against a ParsedKeystroke. Replaces the legacy
-// matchesKeystroke(input, Key, ...) path which assumed useInput's raw
-// `input` arg — KeyboardEvent.key holds normalized names (e.g. 'space',
-// 'f9') that getKeyName() didn't handle, so modifier combos and f-keys
-// silently failed to match after the onKeyDown migration (#23524).
+// 将 KeyboardEvent 与 ParsedKeystroke 匹配。取代了旧版
+// matchesKeystroke(input, Key, ...) 路径，该路径假设 useInput 的原始
+// `input` 参数 —— KeyboardEvent.key 持有归一化名称（例如 'space'、
+// 'f9'），getKeyName() 不处理这些，所以修饰键组合和 f 键
+// 在 onKeyDown 迁移后（#23524）静默匹配失败。
 function matchesKeyboardEvent(e: KeyboardEvent, target: ParsedKeystroke): boolean {
-  // KeyboardEvent stores key names; ParsedKeystroke stores ' ' for space
-  // and 'enter' for return (see parser.ts case 'space'/'return').
+  // KeyboardEvent 存储键名；ParsedKeystroke 对 space 存 ' '，
+  // 对 return 存 'enter'（见 parser.ts case 'space'/'return'）。
   const key = e.key === 'space' ? ' ' : e.key === 'return' ? 'enter' : e.key.toLowerCase();
   if (key !== target.key) return false;
   if (e.ctrl !== target.ctrl) return false;
   if (e.shift !== target.shift) return false;
-  // KeyboardEvent.meta folds alt|option (terminal limitation — esc-prefix);
-  // ParsedKeystroke has both alt and meta as aliases for the same thing.
+  // KeyboardEvent.meta 折叠了 alt|option（终端限制 —— esc-prefix）；
+  // ParsedKeystroke 将 alt 和 meta 作为同一事物的别名。
   if (e.meta !== (target.alt || target.meta)) return false;
   if (e.superKey !== target.super) return false;
   return true;
 }
 
-// Hardcoded default for when there's no KeybindingProvider at all (e.g.
-// headless/test contexts). NOT used when the provider exists and the
-// lookup returns null — that means the user null-unbound or reassigned
-// space, and falling back to space would pick a dead or conflicting key.
+// 当根本没有 KeybindingProvider 时（例如 headless/test 上下文）的硬编码默认值。
+// 当 provider 存在且查找返回 null 时不使用 —— 那意味着用户 null-unbind 或重新分配了
+// space，回退到 space 会选中一个死键或冲突键。
 const DEFAULT_VOICE_KEYSTROKE: ParsedKeystroke = {
   key: ' ',
   ctrl: false,
@@ -94,19 +93,19 @@ type UseVoiceIntegrationArgs = {
 type InterimRange = { start: number; end: number };
 
 type StripOpts = {
-  // Which char to strip (the configured hold key). Defaults to space.
+  // 要剥离的字符（配置的 hold 键）。默认为 space。
   char?: string;
-  // Capture the voice prefix/suffix anchor at the stripped position.
+  // 在剥离位置捕获 voice prefix/suffix 锚点。
   anchor?: boolean;
-  // Minimum trailing count to leave behind — prevents stripping the
-  // intentional warmup chars when defensively cleaning up leaks.
+  // 保留的最小尾部计数 —— 防止在防御性清理泄漏时剥离
+  // 有意的 warmup 字符。
   floor?: number;
 };
 
 type UseVoiceIntegrationResult = {
-  // Returns the number of trailing chars remaining after stripping.
+  // 返回剥离后剩余的尾部字符数。
   stripTrailing: (maxStrip: number, opts?: StripOpts) => number;
-  // Undo the gap space and reset anchor refs after a failed voice activation.
+  // 在 voice 激活失败后撤销 gap 空格并重置锚点 ref。
   resetAnchor: () => void;
   handleKeyEvent: (fallbackMs?: number) => void;
   interimRange: InterimRange | null;
@@ -119,40 +118,40 @@ export function useVoiceIntegration({
 }: UseVoiceIntegrationArgs): UseVoiceIntegrationResult {
   const { addNotification } = useNotifications();
 
-  // Tracks the input content before/after the cursor when voice starts,
-  // so interim transcripts can be inserted at the cursor position without
-  // clobbering surrounding user text.
+  // 跟踪 voice 启动时光标前/后的输入内容，
+  // 使 interim 转录可以插入到光标位置而不破坏
+  // 周围的用户文本。
   const voicePrefixRef = useRef<string | null>(null);
   const voiceSuffixRef = useRef<string>('');
-  // Tracks the last input value this hook wrote (via anchor, interim effect,
-  // or handleVoiceTranscript). If inputValueRef.current diverges, the user
-  // submitted or edited — both write paths bail to avoid clobbering. This is
-  // the only guard that correctly handles empty-prefix-empty-suffix: a
-  // startsWith('')/endsWith('') check vacuously passes, and a length check
-  // can't distinguish a cleared input from a never-set one.
+  // 跟踪此 hook 最后写入的输入值（通过锚点、interim effect
+  // 或 handleVoiceTranscript）。如果 inputValueRef.current 分叉，用户
+  // 已提交或编辑 —— 两条写入路径都退出以避免破坏。这是
+  // 唯一能正确处理 empty-prefix-empty-suffix 的守卫：
+  // startsWith('')/endsWith('') 检查空洞通过，长度检查
+  // 无法区分已清除的输入和从未设置的输入。
   const lastSetInputRef = useRef<string | null>(null);
 
-  // Strip trailing hold-key chars (and optionally capture the voice
-  // anchor). Called during warmup (to clean up chars that leaked past
-  // stopImmediatePropagation — listener order is not guaranteed) and
-  // on activation (with anchor=true to capture the prefix/suffix around
-  // the cursor for interim transcript placement). The caller passes the
-  // exact count it expects to strip so pre-existing chars at the
-  // boundary are preserved (e.g. the "v" in "hav" when hold-key is "v").
-  // The floor option sets a minimum trailing count to leave behind
-  // (during warmup this is the count we intentionally let through, so
-  // defensive cleanup only removes leaks). Returns the number of
-  // trailing chars remaining after stripping. When nothing changes, no
-  // state update is performed.
+  // 剥离尾部 hold-key 字符（并可选捕获 voice
+  // 锚点）。在 warmup 期间调用（清理越过
+  // stopImmediatePropagation 泄漏的字符 —— 监听器顺序不保证），
+  // 在激活时调用（anchor=true 捕获光标周围的 prefix/suffix
+  // 用于 interim 转录放置）。调用方传入
+  // 预期剥离的精确计数，使边界上的预先存在字符被保留
+  // （例如 hold-key 为 "v" 时 "hav" 中的 "v"）。
+  // floor 选项设置保留的最小尾部计数
+  // （warmup 期间这是我们有意放行的计数，所以
+  // 防御性清理仅移除泄漏）。返回剥离后剩余的
+  // 尾部字符数。无变化时不执行
+  // 状态更新。
   const stripTrailing = useCallback(
     (maxStrip: number, { char = ' ', anchor = false, floor = 0 }: StripOpts = {}) => {
       const prev = inputValueRef.current;
       const offset = insertTextRef.current?.cursorOffset ?? prev.length;
       const beforeCursor = prev.slice(0, offset);
       const afterCursor = prev.slice(offset);
-      // When the hold key is space, also count full-width spaces (U+3000)
-      // that a CJK IME may have inserted for the same physical key.
-      // U+3000 is BMP single-code-unit so indices align with beforeCursor.
+      // 当 hold 键为 space 时，也计数 CJK IME 可能
+      // 为同一物理键插入的全角空格（U+3000）。
+      // U+3000 是 BMP 单代码单元，所以索引与 beforeCursor 对齐。
       const scan = char === ' ' ? normalizeFullWidthSpace(beforeCursor) : beforeCursor;
       let trailing = 0;
       while (trailing < scan.length && scan[scan.length - 1 - trailing] === char) {
@@ -161,15 +160,15 @@ export function useVoiceIntegration({
       const stripCount = Math.max(0, Math.min(trailing - floor, maxStrip));
       const remaining = trailing - stripCount;
       const stripped = beforeCursor.slice(0, beforeCursor.length - stripCount);
-      // When anchoring with a non-space suffix, insert a gap space so the
-      // waveform cursor sits on the gap instead of covering the first
-      // suffix letter. The interim transcript effect maintains this same
-      // structure (prefix + leading + interim + trailing + suffix), so
-      // the gap is seamless once transcript text arrives.
-      // Always overwrite on anchor — if a prior activation failed to start
-      // voice (voiceState stayed 'idle'), the cleanup effect didn't fire and
-      // the old anchor is stale. anchor=true is only passed on the single
-      // activation call, never during recording, so overwrite is safe.
+      // 用非空格 suffix 锚定时，插入一个 gap 空格，使
+      // 波形光标位于 gap 上而非覆盖第一个
+      // suffix 字母。interim 转录 effect 维护此相同
+      // 结构（prefix + leading + interim + trailing + suffix），所以
+      // 转录文本到达后 gap 是无缝的。
+      // 锚点时总是覆盖 —— 如果之前的激活未能启动
+      // voice（voiceState 保持 'idle'），cleanup effect 未触发，
+      // 旧锚点是陈旧的。anchor=true 仅在单次
+      // 激活调用时传入，录音期间从不传入，所以覆盖是安全的。
       let gap = '';
       if (anchor) {
         voicePrefixRef.current = stripped;
@@ -191,12 +190,12 @@ export function useVoiceIntegration({
     [setInputValueRaw, inputValueRef, insertTextRef],
   );
 
-  // Undo the gap space inserted by stripTrailing(..., {anchor:true}) and
-  // reset the voice prefix/suffix refs. Called when voice activation fails
-  // (voiceState stays 'idle' after voiceHandleKeyEvent), so the cleanup
-  // effect (voiceState useEffect below) — which only fires on voiceState transitions — can't
-  // reach the stale anchor. Without this, the gap space and stale refs
-  // persist in the input.
+  // 撤销 stripTrailing(..., {anchor:true}) 插入的 gap 空格并
+  // 重置 voice prefix/suffix ref。在 voice 激活失败
+  // （voiceHandleKeyEvent 后 voiceState 保持 'idle'）时调用，所以
+  // cleanup effect（下方的 voiceState useEffect）—— 仅在 voiceState 转换时触发 —— 无法
+  // 到达陈旧锚点。没有这个，gap 空格和陈旧 ref
+  // 会在输入中持久存在。
   const resetAnchor = useCallback(() => {
     const prefix = voicePrefixRef.current;
     if (prefix === null) return;
@@ -211,9 +210,9 @@ export function useVoiceIntegration({
     }
   }, [setInputValueRaw, insertTextRef]);
 
-  // Voice state selectors. useVoiceEnabled = user intent (settings) +
-  // auth + GB kill-switch, with the auth half memoized on authVersion so
-  // render loops never hit a cold keychain spawn.
+  // Voice state 选择器。useVoiceEnabled = 用户意图（settings）+
+  // auth + GB kill-switch，auth 部分在 authVersion 上 memoize，所以
+  // 渲染循环永远不会命中冷 keychain spawn。
   const voiceEnabledRaw = useVoiceEnabled();
   const voiceEnabled = feature('VOICE_MODE') ? voiceEnabledRaw : false;
   const voiceStateRaw = useVoiceState(s => s.voiceState);
@@ -221,8 +220,8 @@ export function useVoiceIntegration({
   const voiceInterimTranscriptRaw = useVoiceState(s => s.voiceInterimTranscript);
   const voiceInterimTranscript = feature('VOICE_MODE') ? voiceInterimTranscriptRaw : '';
 
-  // Set the voice anchor for focus mode (where recording starts via terminal
-  // focus, not key hold). Key-hold sets the anchor in stripTrailing.
+  // 为 focus mode 设置 voice 锚点（录音通过终端
+  // focus 启动，而非按键保持）。Key-hold 在 stripTrailing 中设置锚点。
   useEffect(() => {
     if (!feature('VOICE_MODE')) return;
     if (voiceState === 'recording' && voicePrefixRef.current === null) {
@@ -239,29 +238,30 @@ export function useVoiceIntegration({
     }
   }, [voiceState, inputValueRef, insertTextRef]);
 
-  // Live-update the prompt input with the interim transcript as voice
-  // transcribes speech. The prefix (user-typed text before the cursor) is
-  // preserved and the transcript is inserted between prefix and suffix.
+  // 随着 voice 转录语音，用 interim 转录实时更新
+  // prompt 输入。prefix（光标前的用户输入文本）被
+  // 保留，转录插入 prefix 和 suffix 之间。
   useEffect(() => {
     if (!feature('VOICE_MODE')) return;
     if (voicePrefixRef.current === null) return;
     const prefix = voicePrefixRef.current;
     const suffix = voiceSuffixRef.current;
-    // Submit race: if the input isn't what this hook last set it to, the
-    // user submitted (clearing it) or edited it. voicePrefixRef is only
-    // cleared on voiceState→idle, so it's still set during the 'processing'
-    // window between CloseStream and WS close — this catches refined
-    // TranscriptText arriving then and re-filling a cleared input.
+    // 提交竞态：如果输入不是此 hook 最后设置的值，
+    // 用户已提交（清除它）或编辑了它。voicePrefixRef 仅
+    // 在 voiceState→idle 时清除，所以在 'processing'
+    // 窗口（CloseStream 和 WS close 之间）仍被设置 —— 这捕获
+    // 那时到达的精炼 TranscriptText 并重新填充已清除的输入。
     if (inputValueRef.current !== lastSetInputRef.current) return;
     const needsSpace = prefix.length > 0 && !/\s$/.test(prefix) && voiceInterimTranscript.length > 0;
-    // Don't gate on voiceInterimTranscript.length -- when interim clears to ''
-    // after handleVoiceTranscript sets the final text, the trailing space
-    // between prefix and suffix must still be preserved.
+    // 不要以 voiceInterimTranscript.length 做门控 —— 当 handleVoiceTranscript
+    // 设置 final 文本后 interim 清除为 ''
+    // 时，prefix 和 suffix 之间的尾部空格
+    // 仍必须保留。
     const needsTrailingSpace = suffix.length > 0 && !/^\s/.test(suffix);
     const leadingSpace = needsSpace ? ' ' : '';
     const trailingSpace = needsTrailingSpace ? ' ' : '';
     const newValue = prefix + leadingSpace + voiceInterimTranscript + trailingSpace + suffix;
-    // Position cursor after the transcribed text (before suffix)
+    // 将光标定位在转录文本之后（suffix 之前）
     const cursorPos = prefix.length + leadingSpace.length + voiceInterimTranscript.length;
     if (insertTextRef.current) {
       insertTextRef.current.setInputWithCursor(newValue, cursorPos);
@@ -275,22 +275,22 @@ export function useVoiceIntegration({
     (text: string) => {
       if (!feature('VOICE_MODE')) return;
       const prefix = voicePrefixRef.current;
-      // No voice anchor — voice was reset (or never started). Nothing to do.
+      // 无 voice 锚点 —— voice 已重置（或从未启动）。无事可做。
       if (prefix === null) return;
       const suffix = voiceSuffixRef.current;
-      // Submit race: finishRecording() → user presses Enter (input cleared)
-      // → WebSocket close → this callback fires with stale prefix/suffix.
-      // If the input isn't what this hook last set (via the interim effect
-      // or anchor), the user submitted or edited — don't re-fill. Comparing
-      // against `text.length` would false-positive when the final is longer
-      // than the interim (ASR routinely adds punctuation/corrections).
+      // 提交竞态：finishRecording() → 用户按 Enter（输入清除）
+      // → WebSocket close → 此回调以陈旧 prefix/suffix 触发。
+      // 如果输入不是此 hook 最后设置的（通过 interim effect
+      // 或锚点），用户已提交或编辑 —— 不要重新填充。与
+      // `text.length` 比较会在 final 比
+      // interim 长（ASR 通常添加标点/修正）时误报。
       if (inputValueRef.current !== lastSetInputRef.current) return;
       const needsSpace = prefix.length > 0 && !/\s$/.test(prefix) && text.length > 0;
       const needsTrailingSpace = suffix.length > 0 && !/^\s/.test(suffix) && text.length > 0;
       const leadingSpace = needsSpace ? ' ' : '';
       const trailingSpace = needsTrailingSpace ? ' ' : '';
       const newInput = prefix + leadingSpace + text + trailingSpace + suffix;
-      // Position cursor after the transcribed text (before suffix)
+      // 将光标定位在转录文本之后（suffix 之前）
       const cursorPos = prefix.length + leadingSpace.length + text.length;
       if (insertTextRef.current) {
         insertTextRef.current.setInputWithCursor(newInput, cursorPos);
@@ -298,8 +298,8 @@ export function useVoiceIntegration({
         setInputValueRaw(newInput);
       }
       lastSetInputRef.current = newInput;
-      // Update the prefix to include this chunk so focus mode can continue
-      // appending subsequent transcripts after it.
+      // 更新 prefix 以包含此块，使 focus mode 可以
+      // 在其后继续追加后续转录。
       voicePrefixRef.current = prefix + leadingSpace + text;
     },
     [setInputValueRaw, inputValueRef, insertTextRef],
@@ -320,8 +320,8 @@ export function useVoiceIntegration({
     focusMode: false,
   });
 
-  // Compute the character range of interim (not-yet-finalized) transcript
-  // text in the input value, so the UI can dim it.
+  // 计算输入值中 interim（尚未 final）转录
+  // 文本的字符范围，以便 UI 可以变暗显示。
   const interimRange = useMemo((): InterimRange | null => {
     if (!feature('VOICE_MODE')) return null;
     if (voicePrefixRef.current === null) return null;
@@ -342,28 +342,28 @@ export function useVoiceIntegration({
 }
 
 /**
- * Component that handles hold-to-talk voice activation.
+ * 处理 hold-to-talk voice 激活的组件。
  *
- * The activation key is configurable via keybindings (voice:pushToTalk,
- * default: space). Hold detection depends on OS auto-repeat delivering a
- * stream of events at 30-80ms intervals. Two binding types work:
+ * 激活键可通过 keybindings 配置（voice:pushToTalk，
+ * 默认：space）。Hold 检测依赖 OS auto-repeat 以 30-80ms 间隔
+ * 投递事件流。两种绑定类型有效：
  *
- * **Modifier + letter (meta+k, ctrl+x, alt+v):** Cleanest. Activates on
- * the first press — a modifier combo is unambiguous intent (can't be
- * typed accidentally), so no hold threshold applies. The letter part
- * auto-repeats while held, feeding release detection in useVoice.ts.
- * No flow-through, no stripping.
+ * **修饰键 + 字母（meta+k、ctrl+x、alt+v）：** 最干净。在
+ * 第一次按键时激活 —— 修饰键组合是明确的意图（不可能
+ * 误打），所以不适用 hold 阈值。字母部分
+ * 按住时 auto-repeat，向 useVoice.ts 中的释放检测喂数据。
+ * 无 flow-through，无剥离。
  *
- * **Bare chars (space, v, x):** Require HOLD_THRESHOLD rapid presses to
- * activate (a single space could be normal typing). The first
- * WARMUP_THRESHOLD presses flow into the input so a single press types
- * normally. Past that, rapid presses are swallowed; on activation the
- * flow-through chars are stripped. Binding "v" doesn't make "v"
- * untypable — normal typing (>120ms between keystrokes) flows through;
- * only rapid auto-repeat from a held key triggers activation.
+ * **Bare 字符（space、v、x）：** 需要 HOLD_THRESHOLD 次快速按键才能
+ * 激活（单次 space 可能是正常打字）。前
+ * WARMUP_THRESHOLD 次按键流入输入，使单次按键正常
+ * 打字。超过后，快速按键被吞掉；激活时
+ * flow-through 字符被剥离。绑定 "v" 不会使 "v"
+ * 不可打 —— 正常打字（按键之间 >120ms）会流过；
+ * 只有按住键的快速 auto-repeat 触发激活。
  *
- * Known broken: modifier+space (NUL → parsed as ctrl+backtick), chords
- * (discrete sequences, no hold). Validation warns on these.
+ * 已知损坏：modifier+space（NUL → 解析为 ctrl+backtick）、chords
+ * （离散序列，无 hold）。验证会对此发出警告。
  */
 export function useVoiceKeybindingHandler({
   voiceHandleKeyEvent,
@@ -385,15 +385,15 @@ export function useVoiceKeybindingHandler({
   const voiceStateRaw = useVoiceState(s => s.voiceState);
   const voiceState = feature('VOICE_MODE') ? voiceStateRaw : 'idle';
 
-  // Find the configured key for voice:pushToTalk from keybinding context.
-  // Forward iteration with last-wins (matching the resolver): if a later
-  // Chat binding overrides the same chord with null or a different
-  // action, the voice binding is discarded and null is returned — the
-  // user explicitly disabled hold-to-talk via binding override, so
-  // don't second-guess them with a fallback. The DEFAULT is only used
-  // when there's no provider at all. Context filter is required — space
-  // is also bound in Settings/Confirmation/Plugin (select:accept etc.);
-  // without the filter those would null out the default.
+  // 从 keybinding context 中查找 voice:pushToTalk 的配置键。
+  // 前向迭代，最后赢（匹配 resolver）：如果后续的
+  // Chat 绑定用 null 或不同的
+  // 动作覆盖同一 chord，voice 绑定被丢弃，返回 null —— 用户
+  // 通过绑定覆盖显式禁用了 hold-to-talk，所以
+  // 不要用回退值替他们做决定。DEFAULT 仅在
+  // 根本没有 provider 时使用。Context 过滤是必需的 —— space
+  // 也绑定在 Settings/Confirmation/Plugin 中（select:accept 等）；
+  // 没有过滤，那些会使默认值变 null。
   const voiceKeystroke = useMemo((): ParsedKeystroke | null => {
     if (!keybindingContext) return DEFAULT_VOICE_KEYSTROKE;
     let result: ParsedKeystroke | null = null;
@@ -405,19 +405,19 @@ export function useVoiceKeybindingHandler({
       if (binding.action === 'voice:pushToTalk') {
         result = ks;
       } else if (result !== null && keystrokesEqual(ks, result)) {
-        // A later binding overrides this chord (null unbind or reassignment)
+        // 后续绑定覆盖此 chord（null unbind 或重新分配）
         result = null;
       }
     }
     return result;
   }, [keybindingContext]);
 
-  // If the binding is a bare (unmodified) single printable char, terminal
-  // auto-repeat may batch N keystrokes into one input event (e.g. "vvv"),
-  // and the char flows into the text input — we need flow-through + strip.
-  // Modifier combos (meta+k, ctrl+x) also auto-repeat (the letter part
-  // repeats) but don't insert text, so they're swallowed from the first
-  // press with no stripping needed. matchesKeyboardEvent handles those.
+  // 如果绑定是 bare（无修饰键）单可打印字符，终端
+  // auto-repeat 可能将 N 次按键批量为一个输入事件（例如 "vvv"），
+  // 字符流入文本输入 —— 我们需要 flow-through + 剥离。
+  // 修饰键组合（meta+k、ctrl+x）也 auto-repeat（字母部分
+  // 重复）但不插入文本，所以它们从第一次
+  // 按键起就被吞掉，无需剥离。matchesKeyboardEvent 处理那些。
   const bareChar =
     voiceKeystroke !== null &&
     voiceKeystroke.key.length === 1 &&
@@ -430,28 +430,27 @@ export function useVoiceKeybindingHandler({
       : null;
 
   const rapidCountRef = useRef(0);
-  // How many rapid chars we intentionally let through to the text
-  // input (the first WARMUP_THRESHOLD). The activation strip removes
-  // up to this many + the activation event's potential leak. For the
-  // default (space) this is precise — pre-existing trailing spaces are
-  // rare. For letter bindings (validation warns) this may over-strip
-  // one pre-existing char if the input already ended in the bound
-  // letter (e.g. "hav" + hold "v" → "ha"). We don't track that
-  // boundary — it's best-effort and the warning says so.
+  // 我们有意放行到文本
+  // 输入的快速字符数（前 WARMUP_THRESHOLD 个）。激活剥离移除
+  // 最多这么多 + 激活事件的潜在泄漏。对于
+  // 默认值（space）这是精确的 —— 预先存在的尾部空格
+  // 罕见。对于字母绑定（验证会警告），如果输入已以绑定
+  // 字母结尾，可能过度剥离
+  // 一个预先存在的字符（例如 "hav" + 按住 "v" → "ha"）。我们不跟踪那个
+  // 边界 —— 这是尽力而为，警告也是这么说的。
   const charsInInputRef = useRef(0);
-  // Trailing-char count remaining after the activation strip — these
-  // belong to the user's anchored prefix and must be preserved during
-  // recording's defensive leak cleanup.
+  // 激活剥离后剩余的尾部字符计数 —— 这些
+  // 属于用户的锚定 prefix，必须在录音的防御性泄漏清理期间保留。
   const recordingFloorRef = useRef(0);
-  // True when the current recording was started by key-hold (not focus).
-  // Used to avoid swallowing keypresses during focus-mode recording.
+  // 当前录音由 key-hold 启动（而非 focus）时为 true。
+  // 用于避免在 focus-mode 录音期间吞掉按键。
   const isHoldActiveRef = useRef(false);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset hold state as soon as we leave 'recording'. The physical hold
-  // ends when key-repeat stops (state → 'processing'); keeping the ref
-  // set through 'processing' swallows new space presses the user types
-  // while the transcript finalizes.
+  // 离开 'recording' 时立即重置 hold 状态。物理 hold
+  // 在 key-repeat 停止时结束（state → 'processing'）；让 ref
+  // 在 'processing' 期间保持设置会吞掉用户在
+  // 转录 finalize 期间打的新 space 按键。
   useEffect(() => {
     if (voiceState !== 'recording') {
       isHoldActiveRef.current = false;
@@ -468,34 +467,34 @@ export function useVoiceKeybindingHandler({
   const handleKeyDown = (e: KeyboardEvent): void => {
     if (!voiceEnabled) return;
 
-    // PromptInput is not a valid transcript target — let the hold key
-    // flow through instead of swallowing it into stale refs (#33556).
-    // Two distinct unmount/unfocus paths (both needed):
-    //   - !isActive: local-jsx command hid PromptInput (shouldHidePromptInput)
-    //     without registering an overlay — e.g. /install-github-app,
-    //     /plugin. Mirrors CommandKeybindingHandlers' isActive gate.
-    //   - isModalOverlayActive: overlay (permission dialog, Select with
-    //     onCancel) has focus; PromptInput is mounted but focus=false.
+    // PromptInput 不是有效的转录目标 —— 让 hold 键
+    // 流过，而不是吞进陈旧 ref（#33556）。
+    // 两种不同的 unmount/unfocus 路径（都需要）：
+    //   - !isActive：local-jsx 命令隐藏了 PromptInput（shouldHidePromptInput）
+    //     而未注册 overlay —— 例如 /install-github-app、
+    //     /plugin。镜像 CommandKeybindingHandlers 的 isActive 门控。
+    //   - isModalOverlayActive：overlay（权限对话框、带
+    //     onCancel 的 Select）有焦点；PromptInput 已挂载但 focus=false。
     if (!isActive || isModalOverlayActive) return;
 
-    // null means the user overrode the default (null-unbind/reassign) —
-    // hold-to-talk is disabled via binding. To toggle the feature
-    // itself, use /voice.
+    // null 意味着用户覆盖了默认值（null-unbind/重新分配）——
+    // hold-to-talk 通过绑定禁用。要切换功能
+    // 本身，使用 /voice。
     if (voiceKeystroke === null) return;
 
-    // Match the configured key. Bare chars match by content (handles
-    // batched auto-repeat like "vvv") with a modifier reject so e.g.
-    // ctrl+v doesn't trip a "v" binding. Modifier combos go through
-    // matchesKeyboardEvent (one event per repeat, no batching).
+    // 匹配配置的键。Bare 字符按内容匹配（处理
+    // 批量 auto-repeat 如 "vvv"），拒绝修饰键，使例如
+    // ctrl+v 不会触发 "v" 绑定。修饰键组合通过
+    // matchesKeyboardEvent 处理（每次重复一个事件，无批量）。
     let repeatCount: number;
     if (bareChar !== null) {
       if (e.ctrl || e.meta || e.shift) return;
-      // When bound to space, also accept U+3000 (full-width space) —
-      // CJK IMEs emit it for the same physical key.
+      // 绑定到 space 时，也接受 U+3000（全角空格）——
+      // CJK IME 为同一物理键发出它。
       const normalized = bareChar === ' ' ? normalizeFullWidthSpace(e.key) : e.key;
-      // Fast-path: normal typing (any char that isn't the bound one)
-      // bails here without allocating. The repeat() check only matters
-      // for batched auto-repeat (input.length > 1) which is rare.
+      // 快速路径：正常打字（任何不是绑定字符的字符）
+      // 在此退出，无需分配。repeat() 检查仅对
+      // 批量 auto-repeat（input.length > 1）重要，这很罕见。
       if (normalized[0] !== bareChar) return;
       if (normalized.length > 1 && normalized !== bareChar.repeat(normalized.length)) return;
       repeatCount = normalized.length;
@@ -504,20 +503,20 @@ export function useVoiceKeybindingHandler({
       repeatCount = 1;
     }
 
-    // Guard: only swallow keypresses when recording was triggered by
-    // key-hold. Focus-mode recording also sets voiceState to 'recording',
-    // but keypresses should flow through normally (voiceHandleKeyEvent
-    // returns early for focus-triggered sessions). We also check voiceState
-    // from the store so that if voiceHandleKeyEvent() fails to transition
-    // state (module not loaded, stream unavailable) we don't permanently
-    // swallow keypresses.
+    // 守卫：仅在录音由 key-hold 触发时吞掉按键。
+    // focus-mode 录音也将 voiceState 设为 'recording'，
+    // 但按键应正常流过（voiceHandleKeyEvent
+    // 对 focus 触发的会话提前返回）。我们也从 store 检查 voiceState，
+    // 这样如果 voiceHandleKeyEvent() 未能转换
+    // state（模块未加载、流不可用），我们不会永久
+    // 吞掉按键。
     const currentVoiceState = getVoiceState().voiceState;
     if (isHoldActiveRef.current && currentVoiceState !== 'idle') {
-      // Already recording — swallow continued keypresses and forward
-      // to voice for release detection. For bare chars, defensively
-      // strip in case the text input handler fired before this one
-      // (listener order is not guaranteed). Modifier combos don't
-      // insert text, so nothing to strip.
+      // 已在录音 —— 吞掉后续按键并转发
+      // 给 voice 做释放检测。对于 bare 字符，防御性地
+      // 剥离，以防文本输入处理程序在此处理程序之前触发
+      // （监听器顺序不保证）。修饰键组合不
+      // 插入文本，所以无需剥离。
       e.stopImmediatePropagation();
       if (bareChar !== null) {
         stripTrailing(repeatCount, {
@@ -529,12 +528,12 @@ export function useVoiceKeybindingHandler({
       return;
     }
 
-    // Non-hold recording (focus-mode) or processing is active.
-    // Modifier combos must not re-activate: stripTrailing(0,{anchor:true})
-    // would overwrite voicePrefixRef with interim text and duplicate the
-    // transcript on the next interim update. Pre-#22144, a single tap
-    // hit the warmup else-branch (swallow only). Bare chars flow through
-    // unconditionally — user may be typing during focus-recording.
+    // 非 hold 录音（focus-mode）或 processing 活跃。
+    // 修饰键组合不能重新激活：stripTrailing(0,{anchor:true})
+    // 会用 interim 文本覆盖 voicePrefixRef 并在下一次
+    // interim 更新时重复转录。#22144 之前，单次点击
+    // 命中 warmup else 分支（仅吞掉）。Bare 字符无条件流过 ——
+    // 用户可能在 focus 录音期间打字。
     if (currentVoiceState !== 'idle') {
       if (bareChar === null) e.stopImmediatePropagation();
       return;
@@ -543,13 +542,13 @@ export function useVoiceKeybindingHandler({
     const countBefore = rapidCountRef.current;
     rapidCountRef.current += repeatCount;
 
-    // ── Activation ────────────────────────────────────────────
-    // Handled first so the warmup branch below does NOT also run
-    // on this event — two strip calls in the same tick would both
-    // read the stale inputValueRef and the second would under-strip.
-    // Modifier combos activate on the first press — they can't be
-    // typed accidentally, so the hold threshold (which exists to
-    // distinguish typing a space from holding space) doesn't apply.
+    // ── 激活 ────────────────────────────────────────────
+    // 先处理，使下方的 warmup 分支不在此事件上运行
+    // —— 同一 tick 中两次 strip 调用都会读取
+    // 陈旧的 inputValueRef，第二次会剥离不足。
+    // 修饰键组合在第一次按键时激活 —— 它们不可能
+    // 被误打，所以 hold 阈值（用于
+    // 区分打 space 和按住 space）不适用。
     if (bareChar === null || rapidCountRef.current >= HOLD_THRESHOLD) {
       e.stopImmediatePropagation();
       if (resetTimerRef.current) {
@@ -563,11 +562,11 @@ export function useVoiceKeybindingHandler({
         return { ...prev, voiceWarmingUp: false };
       });
       if (bareChar !== null) {
-        // Strip the intentional warmup chars plus this event's leak
-        // (if text input fired first). Cap covers both; min(trailing)
-        // handles the no-leak case. Anchor the voice prefix here.
-        // The return value (remaining) becomes the floor for
-        // recording-time leak cleanup.
+        // 剥离有意的 warmup 字符加此事件的泄漏
+        // （如果文本输入先触发）。Cap 覆盖两者；min(trailing)
+        // 处理无泄漏情况。在此锚定 voice prefix。
+        // 返回值（remaining）成为录音时
+        // 泄漏清理的 floor。
         recordingFloorRef.current = stripTrailing(charsInInputRef.current + repeatCount, {
           char: bareChar,
           anchor: true,
@@ -575,20 +574,20 @@ export function useVoiceKeybindingHandler({
         charsInInputRef.current = 0;
         voiceHandleKeyEvent();
       } else {
-        // Modifier combo: nothing inserted, nothing to strip. Just
-        // anchor the voice prefix at the current cursor position.
-        // Longer fallback: this call is at t=0 (before auto-repeat),
-        // so the gap to the next keypress is the OS initial repeat
-        // *delay* (up to ~2s), not the repeat *rate* (~30-80ms).
+        // 修饰键组合：无插入，无剥离。仅
+        // 在当前光标位置锚定 voice prefix。
+        // 更长的回退：此调用在 t=0（auto-repeat 之前），
+        // 所以到下一次按键的间隔是 OS 初始重复
+        // *延迟*（最长 ~2s），而非重复*速率*（~30-80ms）。
         stripTrailing(0, { anchor: true });
         voiceHandleKeyEvent(MODIFIER_FIRST_PRESS_FALLBACK_MS);
       }
-      // If voice failed to transition (module not loaded, stream
-      // unavailable, stale enabled), clear the ref so a later
-      // focus-mode recording doesn't inherit stale hold state
-      // and swallow keypresses. Store is synchronous — the check is
-      // immediate. The anchor set by stripTrailing above will
-      // be overwritten on retry (anchor always overwrites now).
+      // 如果 voice 未能转换（模块未加载、流
+      // 不可用、enabled 陈旧），清除 ref，使后续
+      // focus-mode 录音不会继承陈旧 hold 状态
+      // 并吞掉按键。Store 是同步的 —— 检查
+      // 立即。stripTrailing 上面设置的锚点将
+      // 在重试时被覆盖（锚点现在总是覆盖）。
       if (getVoiceState().voiceState === 'idle') {
         isHoldActiveRef.current = false;
         resetAnchor();
@@ -596,15 +595,15 @@ export function useVoiceKeybindingHandler({
       return;
     }
 
-    // ── Warmup (bare-char only; modifier combos activated above) ──
-    // First WARMUP_THRESHOLD chars flow to the text input so normal
-    // typing has zero latency (a single press types normally).
-    // Subsequent rapid chars are swallowed so the input stays aligned
-    // with the warmup UI. Strip defensively (listener order is not
-    // guaranteed — text input may have already added the char). The
-    // floor preserves the intentional warmup chars; the strip is a
-    // no-op when nothing leaked. Check countBefore so the event that
-    // crosses the threshold still flows through (terminal batching).
+    // ── Warmup（仅 bare-char；修饰键组合已在上方激活） ──
+    // 前 WARMUP_THRESHOLD 个字符流入文本输入，使正常
+    // 打字零延迟（单次按键正常打字）。
+    // 后续快速字符被吞掉，使输入与
+    // warmup UI 对齐。防御性剥离（监听器顺序不
+    // 保证 —— 文本输入可能已添加字符）。
+    // floor 保留有意的 warmup 字符；无泄漏时
+    // 剥离是 no-op。检查 countBefore 使越过
+    // 阈值的事件仍能流过（终端批量）。
     if (countBefore >= WARMUP_THRESHOLD) {
       e.stopImmediatePropagation();
       stripTrailing(repeatCount, {
@@ -615,7 +614,7 @@ export function useVoiceKeybindingHandler({
       charsInInputRef.current += repeatCount;
     }
 
-    // Show warmup feedback once we detect a hold pattern
+    // 一旦检测到 hold 模式就显示 warmup 反馈
     if (rapidCountRef.current >= WARMUP_THRESHOLD) {
       setVoiceState(prev => {
         if (prev.voiceWarmingUp) return prev;
@@ -644,17 +643,17 @@ export function useVoiceKeybindingHandler({
     );
   };
 
-  // Backward-compat bridge: REPL.tsx doesn't yet wire handleKeyDown to
-  // <Box onKeyDown>. Subscribe via useInput and adapt InputEvent →
-  // KeyboardEvent until the consumer is migrated (separate PR).
-  // TODO(onKeyDown-migration): remove once REPL passes handleKeyDown.
+  // 向后兼容桥接：REPL.tsx 尚未将 handleKeyDown 连接到
+  // <Box onKeyDown>。通过 useInput 订阅并适配 InputEvent →
+  // KeyboardEvent，直到消费者迁移（单独 PR）。
+  // TODO(onKeyDown-migration)：REPL 传递 handleKeyDown 后移除。
   useInput(
     (_input, _key, event) => {
       const kbEvent = new KeyboardEvent(event.keypress);
       handleKeyDown(kbEvent);
-      // handleKeyDown stopped the adapter event, not the InputEvent the
-      // emitter actually checks — forward it so the text input's useInput
-      // listener is skipped and held spaces don't leak into the prompt.
+      // handleKeyDown 停止了 adapter 事件，而非 emitter
+      // 实际检查的 InputEvent —— 转发它，使文本输入的 useInput
+      // 监听器被跳过，按住的 space 不会泄漏到 prompt。
       if (kbEvent.didStopImmediatePropagation()) {
         event.stopImmediatePropagation();
       }
@@ -665,9 +664,9 @@ export function useVoiceKeybindingHandler({
   return { handleKeyDown };
 }
 
-// TODO(onKeyDown-migration): temporary shim so existing JSX callers
-// (<VoiceKeybindingHandler .../>) keep compiling. Remove once REPL.tsx
-// wires handleKeyDown directly.
+// TODO(onKeyDown-migration)：临时 shim，使现有 JSX 调用者
+// （<VoiceKeybindingHandler .../>）保持编译。REPL.tsx
+// 直接连接 handleKeyDown 后移除。
 export function VoiceKeybindingHandler(props: {
   voiceHandleKeyEvent: (fallbackMs?: number) => void;
   stripTrailing: (maxStrip: number, opts?: StripOpts) => number;

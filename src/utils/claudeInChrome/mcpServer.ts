@@ -27,8 +27,8 @@ const EXTENSION_DOWNLOAD_URL = 'https://claude.ai/chrome'
 const BUG_REPORT_URL =
   'https://github.com/anthropics/claude-code/issues/new?labels=bug,claude-in-chrome'
 
-// String metadata keys safe to forward to analytics. Keys like error_message
-// are excluded because they could contain page content or user data.
+// 可安全转发到 analytics 的字符串元数据键。像 error_message 这样的键
+// 被排除，因为它们可能包含页面内容或用户数据。
 const SAFE_BRIDGE_STRING_KEYS = new Set([
   'bridge_status',
   'error_type',
@@ -46,9 +46,9 @@ function isPermissionMode(raw: string): raw is PermissionMode {
 }
 
 /**
- * Resolves the Chrome bridge URL based on environment and feature flag.
- * Bridge is used when the feature flag is enabled; ant users always get
- * bridge. API key / 3P users fall back to native messaging.
+ * 根据环境和功能标志解析 Chrome bridge URL。
+ * 功能标志启用时使用 bridge；ant 用户始终使用
+ * bridge。API key / 第三方用户回退到原生消息通信。
  */
 function getChromeBridgeUrl(): string | undefined {
   const bridgeEnabled =
@@ -81,8 +81,8 @@ function isLocalBridge(): boolean {
 }
 
 /**
- * Build the ClaudeForChromeContext used by both the subprocess MCP server
- * and the in-process path in the MCP client.
+ * 构建 ClaudeForChromeContext，子进程 MCP server 和
+ * MCP client 中的进程内路径都使用它。
  */
 export function createChromeContext(
   env?: Record<string, string>,
@@ -151,24 +151,23 @@ export function createChromeContext(
       },
     }),
     ...(initialPermissionMode && { initialPermissionMode }),
-    // Wire inference for the browser_task tool — the chrome-mcp server runs
-    // a lightning-mode agent loop in Node and calls the extension's
-    // lightning_turn tool once per iteration for execution.
+    // 为 browser_task 工具连接 inference — chrome-mcp server 在 Node 中运行
+    // 一个 lightning-mode agent 循环，并在每次迭代中调用扩展的
+    // lightning_turn 工具来执行。
     //
-    // Ant-only: the extension's lightning_turn is build-time-gated via
-    // import.meta.env.ANT_ONLY_BUILD — the whole lightning/ module graph is
-    // tree-shaken from the public extension build (build:prod greps for a
-    // marker to verify). Without this injection, the Node MCP server's
-    // ListTools also filters browser_task + lightning_turn out, so external
-    // users never see the tools advertised. Three independent gates.
+    // 仅限 Ant：扩展的 lightning_turn 通过
+    // import.meta.env.ANT_ONLY_BUILD 在构建时门控 — 整个 lightning/ 模块图
+    // 在公共扩展构建中被 tree-shake 移除（build:prod 会 grep
+    // 标记来验证）。若无此注入，Node MCP server 的
+    // ListTools 也会过滤掉 browser_task + lightning_turn，因此外部
+    // 用户永远不会看到这些工具的广告。三道独立门控。
     //
-    // Types inlined: AnthropicMessagesRequest/Response live in
-    // @ant/claude-for-chrome-mcp@0.4.0 which isn't published yet. CI installs
-    // 0.3.0. The callAnthropicMessages field is also 0.4.0-only, but spreading
-    // an extra property into ClaudeForChromeContext is fine against either
-    // version — 0.3.0 sees an unknown field (allowed in spread), 0.4.0 sees a
-    // structurally-matching one. Once 0.4.0 is published, this can switch to
-    // the package's exported types and the dep can be bumped.
+    // 内联类型：AnthropicMessagesRequest/Response 位于
+    // @ant/claude-for-chrome-mcp@0.4.0 中，尚未发布。CI 安装
+    // 0.3.0。callAnthropicMessages 字段也是 0.4.0 独有，但将
+    // 额外属性展开到 ClaudeForChromeContext 中对两个版本都没问题 —
+    // 0.3.0 看到未知字段（展开允许），0.4.0 看到结构匹配的。
+    // 0.4.0 发布后，可以切换到包导出的类型并升级依赖。
     ...(process.env.USER_TYPE === 'ant' && {
       callAnthropicMessages: async (req: {
         model: string
@@ -182,12 +181,12 @@ export function createChromeContext(
         stop_reason: string | null
         usage?: { input_tokens: number; output_tokens: number }
       }> => {
-        // sideQuery handles OAuth attribution fingerprint, proxy, model betas.
-        // skipSystemPromptPrefix: the lightning prompt is complete on its own;
-        // the CLI prefix would dilute the batching instructions.
-        // tools: [] is load-bearing — without it Sonnet emits
-        // <function_calls> XML before the text commands. Original
-        // lightning-harness.js (apps repo) does the same.
+        // sideQuery 处理 OAuth 归因指纹、代理、模型 betas。
+        // skipSystemPromptPrefix：lightning prompt 本身已完整；
+        // CLI 前缀会稀释批处理指令。
+        // tools: [] 是关键 — 没有它 Sonnet 会在文本命令前输出
+        // <function_calls> XML。原始的
+        // lightning-harness.js（apps 仓库）也这样做。
         const response = await sideQuery({
           model: req.model,
           system: req.system,
@@ -199,8 +198,8 @@ export function createChromeContext(
           tools: [],
           querySource: 'chrome_mcp',
         })
-        // BetaContentBlock is TextBlock | ThinkingBlock | ToolUseBlock | ...
-        // Only text blocks carry the model's command output.
+        // BetaContentBlock 是 TextBlock | ThinkingBlock | ToolUseBlock | ...
+        // 只有 text 块携带模型的命令输出。
         const textBlocks: Array<{ type: 'text'; text: string }> = []
         for (const b of response.content) {
           if (b.type === 'text') {
@@ -227,7 +226,7 @@ export function createChromeContext(
       } = {}
       if (metadata) {
         for (const [key, value] of Object.entries(metadata)) {
-          // Rename 'status' to 'bridge_status' to avoid Datadog's reserved field
+          // 将 'status' 重命名为 'bridge_status' 以避免 Datadog 的保留字段
           const safeKey = key === 'status' ? 'bridge_status' : key
           if (typeof value === 'boolean' || typeof value === 'number') {
             safeMetadata[safeKey] = value
@@ -235,8 +234,8 @@ export function createChromeContext(
             typeof value === 'string' &&
             SAFE_BRIDGE_STRING_KEYS.has(safeKey)
           ) {
-            // Only forward allowlisted string keys — fields like error_message
-            // could contain page content or user data
+            // 仅转发白名单内的字符串键 — 像 error_message 这样的字段
+            // 可能包含页面内容或用户数据
             safeMetadata[safeKey] =
               value as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
           }
@@ -255,8 +254,8 @@ export async function runClaudeInChromeMcpServer(): Promise<void> {
   const server = createClaudeForChromeMcpServer(context)
   const transport = new StdioServerTransport()
 
-  // Exit when parent process dies (stdin pipe closes).
-  // Flush analytics before exiting so final-batch events (e.g. disconnect) aren't lost.
+  // 父进程死亡（stdin 管道关闭）时退出。
+  // 退出前 flush analytics，避免最后批次事件（如 disconnect）丢失。
   let exiting = false
   const shutdownAndExit = async (): Promise<void> => {
     if (exiting) {

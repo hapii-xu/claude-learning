@@ -121,22 +121,22 @@ export function GroveDialog({ showIfAlreadyViewed, location, onDone }: Props): R
     async function checkGroveSettings() {
       const [settingsResult, configResult] = await Promise.all([getGroveSettings(), getGroveNoticeConfig()]);
 
-      // Extract config data if successful, otherwise null
+      // 如果成功则提取 config 数据，否则为 null
       const config = configResult.success ? configResult.data : null;
       setGroveConfig(config);
 
-      // Determine if we should show the dialog (returns false on API failure)
+      // 判断是否应显示对话框（API 失败时返回 false）
       const shouldShow = calculateShouldShowGrove(settingsResult, configResult, showIfAlreadyViewed);
 
       setShouldShowDialog(shouldShow);
-      // If we shouldn't show the dialog, immediately call onDone
+      // 如果不应显示对话框，立即调用 onDone
       if (!shouldShow) {
         onDone('skip_rendering');
         return;
       }
-      // Mark as viewed every time we show the dialog (for reminder frequency tracking)
+      // 每次显示对话框时都标记为已查看（用于提醒频率跟踪）
       void markGroveNoticeViewed();
-      // Log that the Grove policy dialog was shown
+      // 记录 Grove 政策对话框已显示
       logEvent('tengu_grove_policy_viewed', {
         location: location as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         dismissable: config?.notice_is_grace_period as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -146,12 +146,12 @@ export function GroveDialog({ showIfAlreadyViewed, location, onDone }: Props): R
     void checkGroveSettings();
   }, [showIfAlreadyViewed, location, onDone]);
 
-  // Loading state
+  // 加载中状态
   if (shouldShowDialog === null) {
     return null;
   }
 
-  // User has already set preferences, don't show dialog
+  // 用户已经设置过偏好，不显示对话框
   if (!shouldShowDialog) {
     return null;
   }
@@ -249,7 +249,7 @@ export function GroveDialog({ showIfAlreadyViewed, location, onDone }: Props): R
         <Select
           options={[
             ...acceptOptions,
-            // Only show "Not now" if in grace period
+            // 仅在宽限期内显示 "Not now"
             ...(groveConfig?.notice_is_grace_period ? [{ label: 'Not now', value: 'defer' }] : []),
           ]}
           onChange={value => onChange(value as 'accept_opt_in' | 'accept_opt_out' | 'defer')}
@@ -278,7 +278,7 @@ export function PrivacySettingsDialog({
   }, []);
 
   useInput(async (input, key) => {
-    // Toggle the setting when enter/tab/space is pressed
+    // 当按下 enter/tab/space 时切换设置
     if (!domainExcluded && (key.tab || key.return || input === ' ')) {
       const newValue = !groveEnabled;
       setGroveEnabled(newValue);

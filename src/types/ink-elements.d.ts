@@ -1,6 +1,6 @@
-// Type declarations for custom Ink JSX elements
-// Note: The detailed prop types are defined in ink-jsx.d.ts via React module augmentation.
-// This file provides the global JSX namespace fallback declarations.
+// 自定义 Ink JSX 元素的类型声明
+// 注意：详细的 prop 类型在 ink-jsx.d.ts 中通过 React 模块扩展定义。
+// 本文件提供全局 JSX 命名空间的兜底声明。
 import type { ReactNode, Ref } from 'react'
 import type {
   ClickEvent,

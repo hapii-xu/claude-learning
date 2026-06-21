@@ -5,8 +5,8 @@ import { logForDebugging } from '../../utils/debug.js'
 import { getOAuthHeaders, prepareApiRequest } from '../../utils/teleport/api.js'
 
 /**
- * Zod schema for the /v1/ultrareview/preflight response.
- * Based on binary-extracted schema: vq.object({action: vq.enum([...]), billing_note: ...})
+ * /v1/ultrareview/preflight 响应的 Zod schema。
+ * 基于二进制提取出的 schema：vq.object({action: vq.enum([...]), billing_note: ...})
  */
 const UltrareviewPreflightSchema = z.object({
   action: z.enum(['proceed', 'confirm', 'blocked']),
@@ -25,15 +25,14 @@ export type UltrareviewPreflightArgs = {
 }
 
 /**
- * POST /v1/ultrareview/preflight — server-side gate before launch.
+ * POST /v1/ultrareview/preflight —— 启动前的服务端闸门。
  *
- * Returns the preflight result (proceed / confirm / blocked) or null on any
- * failure (network error, auth error, schema mismatch). Callers must treat
- * null as "fallback to direct launch" to preserve existing behavior.
+ * 返回 preflight 结果（proceed / confirm / blocked），任何失败（网络错误、
+ * 鉴权错误、schema 不匹配）时返回 null。调用方必须把 null 当作
+ * "回退到直接启动"处理，以保留既有行为。
  *
- * The `confirm` flag should be set to true when the user has already
- * acknowledged the billing dialog (or passed --confirm on the CLI), which
- * skips the server-side confirm prompt and gets a direct proceed/blocked.
+ * 当用户已在账单对话框中确认（或 CLI 上传入了 --confirm）时，`confirm`
+ * 应设置为 true，这会跳过服务端的 confirm 提示并直接返回 proceed/blocked。
  */
 export async function fetchUltrareviewPreflight(
   args: UltrareviewPreflightArgs,

@@ -1,8 +1,8 @@
 /**
- * SelectMatcherMode shows the configured matchers for a selected hook event.
+ * SelectMatcherMode 显示所选 hook 事件的已配置 matchers。
  *
- * The /hooks menu is read-only: this view no longer offers "add new matcher"
- * and simply lets the user drill into each matcher to see its hooks.
+ * /hooks 菜单是只读的：此视图不再提供"添加新 matcher"，
+ * 仅允许用户下钻每个 matcher 以查看其 hooks。
  */
 import * as React from 'react';
 import type { HookEvent } from 'src/entrypoints/agentSdkTypes.js';
@@ -39,7 +39,7 @@ export function SelectMatcherMode({
   onSelect,
   onCancel,
 }: Props): React.ReactNode {
-  // Group matchers with their sources (already sorted by priority in parent)
+  // 将 matchers 与它们的来源分组（已在父组件中按优先级排序）
   const matchersWithSources: MatcherWithSource[] = React.useMemo(() => {
     return matchersForSelectedEvent.map(matcher => {
       const hooks = hooksByEventAndMatcher[selectedEvent]?.[matcher] || [];

@@ -28,42 +28,41 @@ function getCacheBreakDiffPath(): string {
 type PreviousState = {
   systemHash: number
   toolsHash: number
-  /** Hash of system blocks WITH cache_control intact. Catches scope/TTL flips
-   *  (global↔org, 1h↔5m) that stripCacheControl erases from systemHash. */
+  /** 保留了 cache_control 的 system 块的哈希。用于捕获 stripCacheControl
+   *  从 systemHash 中抹除的 scope/TTL 翻转（global↔org、1h↔5m）。 */
   cacheControlHash: number
   toolNames: string[]
-  /** Per-tool schema hash. Diffed to name which tool's description changed
-   *  when toolSchemasChanged but added=removed=0 (77% of tool breaks per
-   *  BQ 2026-03-22). AgentTool/SkillTool embed dynamic agent/command lists. */
+  /** 每个 tool schema 的哈希。当 toolSchemasChanged 但 added=removed=0
+   *  时（BQ 2026-03-22 显示占 77% 的 tool break），用来定位是哪个 tool
+   *  的描述变了。AgentTool/SkillTool 内嵌动态的 agent/command 列表。 */
   perToolHashes: Record<string, number>
   systemCharCount: number
   model: string
   fastMode: boolean
-  /** 'tool_based' | 'system_prompt' | 'none' — flips when MCP tools are
-   *  discovered/removed. */
+  /** 'tool_based' | 'system_prompt' | 'none' —— 在 MCP 工具被发现/移除时翻转。 */
   globalCacheStrategy: string
-  /** Sorted beta header list. Diffed to show which headers were added/removed. */
+  /** 排过序的 beta header 列表。做 diff 以展示哪些 header 被添加/移除。 */
   betas: string[]
-  /** AFK_MODE_BETA_HEADER presence — should NOT break cache anymore
-   *  (sticky-on latched in claude.ts). Tracked to verify the fix. */
+  /** AFK_MODE_BETA_HEADER 是否存在 —— 不应再打破缓存
+   *  （在 claude.ts 中已做 sticky-on 锁存）。跟踪以验证修复。 */
   autoModeActive: boolean
-  /** Overage state flip — should NOT break cache anymore (eligibility is
-   *  latched session-stable in should1hCacheTTL). Tracked to verify the fix. */
+  /** Overage 状态翻转 —— 不应再打破缓存（资格在 should1hCacheTTL 中
+   *  按 session 稳定地锁存）。跟踪以验证修复。 */
   isUsingOverage: boolean
-  /** Cache-editing beta header presence — should NOT break cache anymore
-   *  (sticky-on latched in claude.ts). Tracked to verify the fix. */
+  /** Cache-editing beta header 是否存在 —— 不应再打破缓存
+   *  （在 claude.ts 中已做 sticky-on 锁存）。跟踪以验证修复。 */
   cachedMCEnabled: boolean
-  /** Resolved effort (env → options → model default). Goes into output_config
-   *  or anthropic_internal.effort_override. */
+  /** 解析后的 effort（env → options → 模型默认值）。会进入 output_config
+   *  或 anthropic_internal.effort_override。 */
   effortValue: string
-  /** Hash of getExtraBodyParams() — catches CLAUDE_CODE_EXTRA_BODY and
-   *  anthropic_internal changes. */
+  /** getExtraBodyParams() 的哈希 —— 捕获 CLAUDE_CODE_EXTRA_BODY 和
+   *  anthropic_internal 的变化。 */
   extraBodyHash: number
   callCount: number
   pendingChanges: PendingChanges | null
   prevCacheReadTokens: number | null
-  /** Set when cached microcompact sends cache_edits deletions. Cache reads
-   *  will legitimately drop — this is expected, not a break. */
+  /** 当 cached microcompact 发送 cache_edits 删除时设置。cache 读取会
+   *  合理下降 —— 这是预期行为，不是 break。 */
   cacheDeletionsPending: boolean
   buildDiffableContent: string
 }
@@ -100,10 +99,10 @@ type PendingChanges = {
 
 const previousStateBySource = new Map<string, PreviousState>()
 
-// Cap the number of tracked sources to prevent unbounded memory growth.
-// Each entry stores a ~300KB+ diffableContent string (serialized system prompt
-// + tool schemas). Without a cap, spawning many subagents (each with a unique
-// agentId key) causes the map to grow indefinitely.
+// 限制被跟踪 source 的数量，防止内存无界增长。
+// 每个条目存储一个约 300KB+ 的 diffableContent 字符串（序列化后的 system
+// prompt + tool schemas）。如果不限制，大量 subagent（每个都有独立的
+// agentId 作为 key）会让 map 无限增长。
 const MAX_TRACKED_SOURCES = 10
 
 const TRACKED_SOURCE_PREFIXES = [
@@ -114,37 +113,34 @@ const TRACKED_SOURCE_PREFIXES = [
   'agent:builtin',
 ]
 
-// Minimum absolute token drop required to trigger a cache break warning.
-// Small drops (e.g., a few thousand tokens) can happen due to normal variation
-// and aren't worth alerting on.
+// 触发 cache break 告警所需的最小绝对 token 下降量。
+// 较小的下降（例如几千 token）可能是正常波动导致，不值得告警。
 const MIN_CACHE_MISS_TOKENS = 2_000
 
-// Anthropic's server-side prompt cache TTL thresholds to test.
-// Cache breaks after these durations are likely due to TTL expiration
-// rather than client-side changes.
+// 用于测试的 Anthropic 服务端 prompt cache TTL 阈值。
+// 超过这些时长的 cache break 更可能是 TTL 过期，
+// 而不是客户端的变化导致的。
 const CACHE_TTL_5MIN_MS = 5 * 60 * 1000
 export const CACHE_TTL_1HOUR_MS = 60 * 60 * 1000
 
-// Models to exclude from cache break detection (e.g., haiku has different caching behavior)
+// 需要从 cache break 检测中排除的模型（例如 haiku 的缓存行为不同）
 function isExcludedModel(model: string): boolean {
   return model.includes('haiku')
 }
 
 /**
- * Returns the tracking key for a querySource, or null if untracked.
- * Compact shares the same server-side cache as repl_main_thread
- * (same cacheSafeParams), so they share tracking state.
+ * 返回某个 querySource 的跟踪 key，若不跟踪则返回 null。
+ * Compact 与 repl_main_thread 共享同一份服务端缓存
+ * （相同的 cacheSafeParams），所以它们共享跟踪状态。
  *
- * For subagents with a tracked querySource, uses the unique agentId to
- * isolate tracking state. This prevents false positive cache break
- * notifications when multiple instances of the same agent type run
- * concurrently.
+ * 对于带被跟踪 querySource 的 subagent，使用唯一的 agentId 来隔离
+ * 跟踪状态。这样可以避免当同一种 agent 类型的多个实例并发运行时
+ * 出现误报的 cache break 通知。
  *
- * Untracked sources (speculation, session_memory, prompt_suggestion, etc.)
- * are short-lived forked agents where cache break detection provides no
- * value — they run 1-3 turns with a fresh agentId each time, so there's
- * nothing meaningful to compare against. Their cache metrics are still
- * logged via tengu_api_success for analytics.
+ * 不跟踪的 source（speculation、session_memory、prompt_suggestion 等）
+ * 是短暂的 fork agent，对它们做 cache break 检测没有价值 —— 它们每次
+ * 运行 1-3 轮且使用全新的 agentId，没有可比较的对象。它们的缓存指标
+ * 仍会通过 tengu_api_success 记录用于分析。
  */
 function getTrackingKey(
   querySource: QuerySource,
@@ -171,15 +167,15 @@ function computeHash(data: unknown): number {
   const str = jsonStringify(data)
   if (typeof Bun !== 'undefined') {
     const hash = Bun.hash(str)
-    // Bun.hash can return bigint for large inputs; convert to number safely
+    // Bun.hash 对大输入可能返回 bigint；安全地转换为 number
     return typeof hash === 'bigint' ? Number(hash & 0xffffffffn) : hash
   }
-  // Fallback for non-Bun runtimes (e.g. Node.js via npm global install)
+  // 非 Bun 运行时（例如通过 npm 全局安装的 Node.js）的兜底
   return djb2Hash(str)
 }
 
-/** MCP tool names are user-controlled (server config) and may leak filepaths.
- *  Collapse them to 'mcp'; built-in names are a fixed vocabulary. */
+/** MCP 工具名由用户控制（server 配置），可能泄露文件路径。
+ *  把它们折叠为 'mcp'；内置名是固定的词汇表。 */
 function sanitizeToolName(name: string): string {
   return name.startsWith('mcp__') ? 'mcp' : name
 }
@@ -221,9 +217,9 @@ function buildDiffableContent(
   return `Model: ${model}\n\n=== System Prompt ===\n\n${systemText}\n\n=== Tools (${tools.length}) ===\n\n${toolDetails}\n`
 }
 
-/** Extended tracking snapshot — everything that could affect the server-side
- *  cache key that we can observe from the client. All fields are optional so
- *  the call site can add incrementally; undefined fields compare as stable. */
+/** 扩展的跟踪快照 —— 我们能从客户端观察到的、所有可能影响服务端缓存
+ *  key 的内容。所有字段都是可选的，调用方可以增量添加；
+ *  undefined 字段视为稳定。 */
 export type PromptStateSnapshot = {
   system: TextBlockParam[]
   toolSchemas: BetaToolUnion[]
@@ -241,8 +237,8 @@ export type PromptStateSnapshot = {
 }
 
 /**
- * Phase 1 (pre-call): Record the current prompt/tool state and detect what changed.
- * Does NOT fire events — just stores pending changes for phase 2 to use.
+ * 阶段 1（调用前）：记录当前 prompt/tool 状态并检测发生了什么变化。
+ * 不触发事件 —— 只把待处理的变化存起来，供阶段 2 使用。
  */
 export function recordPromptState(snapshot: PromptStateSnapshot): void {
   try {
@@ -273,15 +269,15 @@ export function recordPromptState(snapshot: PromptStateSnapshot): void {
 
     const systemHash = computeHash(strippedSystem)
     const toolsHash = computeHash(strippedTools)
-    // Hash the full system array INCLUDING cache_control — this catches
-    // scope flips (global↔org/none) and TTL flips (1h↔5m) that the stripped
-    // hash can't see because the text content is identical.
+    // 对包含 cache_control 的完整 system 数组做哈希 —— 这能捕获
+    // scope 翻转（global↔org/none）和 TTL 翻转（1h↔5m），这些是
+    // 剥离哈希看不到的（因为文本内容完全相同）。
     const cacheControlHash = computeHash(
       system.map(b => ('cache_control' in b ? b.cache_control : null)),
     )
     const toolNames = toolSchemas.map(t => ('name' in t ? t.name : 'unknown'))
-    // Only compute per-tool hashes when the aggregate changed — common case
-    // (tools unchanged) skips N extra jsonStringify calls.
+    // 仅当聚合哈希变化时才计算 per-tool 哈希 —— 常见情况
+    // （工具未变）可跳过 N 次额外的 jsonStringify 调用。
     const computeToolHashes = () =>
       computePerToolHashes(strippedTools, toolNames)
     const systemCharCount = getSystemCharCount(system)
@@ -294,7 +290,7 @@ export function recordPromptState(snapshot: PromptStateSnapshot): void {
     const prev = previousStateBySource.get(key)
 
     if (!prev) {
-      // Evict oldest entries if map is at capacity
+      // 当 map 达到容量上限时，淘汰最旧的条目
       while (previousStateBySource.size >= MAX_TRACKED_SOURCES) {
         const oldest = previousStateBySource.keys().next().value
         if (oldest !== undefined) previousStateBySource.delete(oldest)
@@ -428,9 +424,8 @@ export function recordPromptState(snapshot: PromptStateSnapshot): void {
 }
 
 /**
- * Phase 2 (post-call): Check the API response's cache tokens to determine
- * if a cache break actually occurred. If it did, use the pending changes
- * from phase 1 to explain why.
+ * 阶段 2（调用后）：检查 API 响应中的 cache token，判断是否真的发生了
+ * cache break。若有，使用阶段 1 的待处理变化来解释原因。
  */
 export async function checkResponseForCacheBreak(
   querySource: QuerySource,
@@ -447,40 +442,38 @@ export async function checkResponseForCacheBreak(
     const state = previousStateBySource.get(key)
     if (!state) return
 
-    // Skip excluded models (e.g., haiku has different caching behavior)
+    // 跳过排除的模型（例如 haiku 的缓存行为不同）
     if (isExcludedModel(state.model)) return
 
     const prevCacheRead = state.prevCacheReadTokens
     state.prevCacheReadTokens = cacheReadTokens
 
-    // Calculate time since last call for TTL detection by finding the most recent
-    // assistant message timestamp in the messages array (before the current response)
+    // 通过在 messages 数组中查找最近一条 assistant 消息的时间戳
+    // （当前响应之前）来计算距上次调用的时间，用于 TTL 检测
     const lastAssistantMessage = messages.findLast(m => m.type === 'assistant')
     const timeSinceLastAssistantMsg = lastAssistantMessage
       ? Date.now() -
         new Date(lastAssistantMessage.timestamp as string | number).getTime()
       : null
 
-    // Skip the first call — no previous value to compare against
+    // 跳过第一次调用 —— 没有可比较的上一次值
     if (prevCacheRead === null) return
 
     const changes = state.pendingChanges
 
-    // Cache deletions via cached microcompact intentionally reduce the cached
-    // prefix. The drop in cache read tokens is expected — reset the baseline
-    // so we don't false-positive on the next call.
+    // 通过 cached microcompact 进行的 cache 删除是有意缩小缓存前缀的。
+    // cache read token 的下降是预期行为 —— 重置基线，避免下次调用误报。
     if (state.cacheDeletionsPending) {
       state.cacheDeletionsPending = false
       logForDebugging(
         `[PROMPT CACHE] cache deletion applied, cache read: ${prevCacheRead} → ${cacheReadTokens} (expected drop)`,
       )
-      // Don't flag as a break — the remaining state is still valid
+      // 不标记为 break —— 剩余的状态仍然有效
       state.pendingChanges = null
       return
     }
 
-    // Detect a cache break: cache read dropped >5% from previous AND
-    // the absolute drop exceeds the minimum threshold.
+    // 检测 cache break：cache read 相比上次下降 >5%，且绝对下降量超过最小阈值。
     const tokenDrop = prevCacheRead - cacheReadTokens
     if (
       cacheReadTokens >= prevCacheRead * 0.95 ||
@@ -490,7 +483,7 @@ export async function checkResponseForCacheBreak(
       return
     }
 
-    // Build explanation from pending changes (if any)
+    // 从待处理的变化构建解释（若有）
     const parts: string[] = []
     if (changes) {
       if (changes.modelChanged) {
@@ -528,8 +521,8 @@ export async function checkResponseForCacheBreak(
         !changes.globalCacheStrategyChanged &&
         !changes.systemPromptChanged
       ) {
-        // Only report as standalone cause if nothing else explains it —
-        // otherwise the scope/TTL flip is a consequence, not the root cause.
+        // 仅在没有其他原因解释时才作为独立原因上报 ——
+        // 否则 scope/TTL 翻转是结果，不是根因。
         parts.push('cache_control changed (scope or TTL)')
       }
       if (changes.betasChanged) {
@@ -561,7 +554,7 @@ export async function checkResponseForCacheBreak(
       }
     }
 
-    // Check if time gap suggests TTL expiration
+    // 检查时间间隔是否提示 TTL 过期
     const lastAssistantMsgOver5minAgo =
       timeSinceLastAssistantMsg !== null &&
       timeSinceLastAssistantMsg > CACHE_TTL_5MIN_MS
@@ -569,10 +562,10 @@ export async function checkResponseForCacheBreak(
       timeSinceLastAssistantMsg !== null &&
       timeSinceLastAssistantMsg > CACHE_TTL_1HOUR_MS
 
-    // Post PR #19823 BQ analysis (bq-queries/prompt-caching/cache_break_pr19823_analysis.sql):
-    // when all client-side flags are false and the gap is under TTL, ~90% of breaks
-    // are server-side routing/eviction or billed/inference disagreement. Label
-    // accordingly instead of implying a CC bug hunt.
+    // PR #19823 后的 BQ 分析（bq-queries/prompt-caching/cache_break_pr19823_analysis.sql）：
+    // 当所有客户端 flag 都为 false 且间隔在 TTL 之内时，约 90% 的 break
+    // 都是服务端路由/驱逐或计费/推理不一致导致。按此标记，
+    // 而不是暗示是 CC 的 bug。
     let reason: string
     if (parts.length > 0) {
       reason = parts.join(', ')
@@ -602,8 +595,8 @@ export async function checkResponseForCacheBreak(
       addedToolCount: changes?.addedToolCount ?? 0,
       removedToolCount: changes?.removedToolCount ?? 0,
       systemCharDelta: changes?.systemCharDelta ?? 0,
-      // Tool names are sanitized: built-in names are a fixed vocabulary,
-      // MCP tools collapse to 'mcp' (user-configured, could leak paths).
+      // Tool 名做了脱敏：内置名是固定的词汇表，
+      // MCP 工具折叠为 'mcp'（由用户配置，可能泄露路径）。
       addedTools: (changes?.addedTools ?? [])
         .map(sanitizeToolName)
         .join(
@@ -619,8 +612,8 @@ export async function checkResponseForCacheBreak(
         .join(
           ',',
         ) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-      // Beta header names and cache strategy are fixed enum-like values,
-      // not code or filepaths. requestId is an opaque server-generated ID.
+      // Beta header 名和 cache 策略是固定的类枚举值，
+      // 不是代码或文件路径。requestId 是服务端生成的不透明 ID。
       addedBetas: (changes?.addedBetas ?? []).join(
         ',',
       ) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -642,9 +635,8 @@ export async function checkResponseForCacheBreak(
         '') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
 
-    // Write diff file for ant debugging via --debug. The path is included in
-    // the summary log so ants can find it (DevBar UI removed — event data
-    // flows reliably to BQ for analytics).
+    // 为 ant 通过 --debug 写入 diff 文件。路径包含在 summary 日志中，
+    // 方便 ant 查找（DevBar UI 已移除 —— 事件数据可靠地流向 BQ 用于分析）。
     let diffPath: string | undefined
     if (changes?.prevDiffableContent) {
       diffPath = await writeCacheBreakDiff(
@@ -665,9 +657,9 @@ export async function checkResponseForCacheBreak(
 }
 
 /**
- * Call when cached microcompact sends cache_edits deletions.
- * The next API response will have lower cache read tokens — that's
- * expected, not a cache break.
+ * 当 cached microcompact 发送 cache_edits 删除时调用。
+ * 下一次 API 响应的 cache read token 会降低 —— 这是预期行为，
+ * 不是 cache break。
  */
 export function notifyCacheDeletion(
   querySource: QuerySource,
@@ -681,9 +673,9 @@ export function notifyCacheDeletion(
 }
 
 /**
- * Call after compaction to reset the cache read baseline.
- * Compaction legitimately reduces message count, so cache read tokens
- * will naturally drop on the next call — that's not a break.
+ * 在 compaction 之后调用以重置 cache read 基线。
+ * Compaction 会合理地减少消息数量，因此下次调用时 cache read token
+ * 自然会下降 —— 这不是 break。
  */
 export function notifyCompaction(
   querySource: QuerySource,

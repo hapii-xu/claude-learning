@@ -1,14 +1,13 @@
 /**
- * HooksConfigMenu is a read-only browser for configured hooks.
+ * HooksConfigMenu 是一个只读的已配置 hooks 浏览器。
  *
- * Users can drill into each hook event, see configured matchers and hooks
- * (of any type: command, prompt, agent, http), and view individual hook
- * details. To add or modify hooks, users should edit settings.json directly
- * or ask Claude — the menu directs them there.
+ * 用户可以下钻每个 hook 事件，查看已配置的 matchers 和 hooks
+ * （任意类型：command、prompt、agent、http），以及查看单个 hook 详情。
+ * 要添加或修改 hooks，用户应直接编辑 settings.json 或让 Claude 帮忙 ——
+ * 菜单会引导用户前往。
  *
- * The menu is read-only because the old editing UI only supported
- * command-type hooks and duplicating the settings.json editing surface
- * in-menu for all four types would be a maintenance burden.
+ * 菜单是只读的，因为旧的编辑 UI 只支持 command 类型的 hooks，
+ * 在菜单中为所有四种类型复制 settings.json 的编辑界面会是维护负担。
  */
 import * as React from 'react';
 import { useCallback, useMemo, useState } from 'react';
@@ -49,22 +48,22 @@ export function HooksConfigMenu({ toolNames, onExit }: Props): React.ReactNode {
   const [modeState, setModeState] = useState<ModeState>({
     mode: 'select-event',
   });
-  // Cache whether hooks are disabled by policy settings.
-  // getSettingsForSource() is expensive (file read + JSON parse + validation),
-  // so we compute it once on mount and only re-compute when policy settings change.
-  // Short-circuit evaluation ensures we skip the expensive check when hooks aren't disabled.
+  // 缓存 hooks 是否被 policy 设置禁用。
+  // getSettingsForSource() 开销较大（文件读取 + JSON 解析 + 校验），
+  // 所以我们在挂载时计算一次，仅在 policy 设置变更时重新计算。
+  // 短路求值确保当 hooks 未被禁用时跳过昂贵的检查。
   const [disabledByPolicy, setDisabledByPolicy] = useState(() => {
     const settings = getSettings_DEPRECATED();
     const hooksDisabled = settings?.disableAllHooks === true;
     return hooksDisabled && getSettingsForSource('policySettings')?.disableAllHooks === true;
   });
 
-  // Check if hooks are restricted to managed-only by policy
+  // 检查 hooks 是否被 policy 限制为仅 managed
   const [restrictedByPolicy, setRestrictedByPolicy] = useState(() => {
     return getSettingsForSource('policySettings')?.allowManagedHooksOnly === true;
   });
 
-  // Update cached values when policy settings change
+  // 当 policy 设置变更时更新缓存的值
   useSettingsChange(source => {
     if (source === 'policySettings') {
       const settings = getSettings_DEPRECATED();
@@ -74,7 +73,7 @@ export function HooksConfigMenu({ toolNames, onExit }: Props): React.ReactNode {
     }
   });
 
-  // Extract commonly used values from modeState for convenience
+  // 从 modeState 中提取常用值以便使用
   const mode = modeState.mode;
   const selectedEvent = 'event' in modeState ? modeState.event : 'PreToolUse';
   const selectedMatcher = 'matcher' in modeState ? modeState.matcher : null;
@@ -98,18 +97,18 @@ export function HooksConfigMenu({ toolNames, onExit }: Props): React.ReactNode {
     [hooksByEventAndMatcher, selectedEvent, selectedMatcher],
   );
 
-  // Handler for exiting the dialog
+  // 退出对话框的处理器
   const handleExit = useCallback(() => {
     onExit('Hooks dialog dismissed', { display: 'system' });
   }, [onExit]);
 
-  // Escape handling for select-event mode - exit the menu
+  // select-event 模式下的 Escape 处理 - 退出菜单
   useKeybinding('confirm:no', handleExit, {
     context: 'Confirmation',
     isActive: mode === 'select-event',
   });
 
-  // Escape handling for select-matcher mode - go to select-event
+  // select-matcher 模式下的 Escape 处理 - 跳转到 select-event
   useKeybinding(
     'confirm:no',
     () => {
@@ -121,7 +120,7 @@ export function HooksConfigMenu({ toolNames, onExit }: Props): React.ReactNode {
     },
   );
 
-  // Escape handling for select-hook mode - go to select-matcher or select-event
+  // select-hook 模式下的 Escape 处理 - 跳转到 select-matcher 或 select-event
   useKeybinding(
     'confirm:no',
     () => {
@@ -139,7 +138,7 @@ export function HooksConfigMenu({ toolNames, onExit }: Props): React.ReactNode {
     },
   );
 
-  // Escape handling for view-hook mode - go to select-hook
+  // view-hook 模式下的 Escape 处理 - 跳转到 select-hook
   useKeybinding(
     'confirm:no',
     () => {
@@ -160,11 +159,11 @@ export function HooksConfigMenu({ toolNames, onExit }: Props): React.ReactNode {
 
   const hookEventMetadata = getHookEventMetadata(combinedToolNames);
 
-  // Check if hooks are disabled
+  // 检查 hooks 是否被禁用
   const settings = getSettings_DEPRECATED();
   const hooksDisabled = settings?.disableAllHooks === true;
 
-  // Count hooks per event for the event-selection view, and the total.
+  // 为事件选择视图按事件统计 hooks，并统计总数。
   const { hooksByEvent, totalHooksCount } = useMemo(() => {
     const byEvent: Partial<Record<HookEvent, number>> = {};
     let total = 0;
@@ -176,9 +175,9 @@ export function HooksConfigMenu({ toolNames, onExit }: Props): React.ReactNode {
     return { hooksByEvent: byEvent, totalHooksCount: total };
   }, [hooksByEventAndMatcher]);
 
-  // If hooks are disabled, show an informational screen.
-  // The menu is read-only, so we don't offer a re-enable button —
-  // users can edit settings.json or ask Claude instead.
+  // 如果 hooks 被禁用，显示信息屏幕。
+  // 菜单是只读的，所以我们不提供重新启用按钮 ——
+  // 用户可以编辑 settings.json 或让 Claude 帮忙。
   if (hooksDisabled) {
     return (
       <Dialog title="Hook Configuration - Disabled" onCancel={handleExit} inputGuide={() => <Text>Esc to close</Text>}>
@@ -258,7 +257,7 @@ export function HooksConfigMenu({ toolNames, onExit }: Props): React.ReactNode {
             });
           }}
           onCancel={() => {
-            // Go back to matcher selection or event selection
+            // 返回到 matcher 选择或事件选择
             if (getMatcherMetadata(modeState.event, combinedToolNames) !== undefined) {
               setModeState({
                 mode: 'select-matcher',

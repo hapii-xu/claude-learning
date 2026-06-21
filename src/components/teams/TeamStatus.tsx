@@ -8,13 +8,13 @@ type Props = {
 };
 
 /**
- * Footer status indicator showing teammate count
- * Similar to BackgroundTaskStatus but for teammates
+ * 显示队友数量的底部状态指示器
+ * 类似于 BackgroundTaskStatus，但用于队友
  */
 export function TeamStatus({ teamsSelected, showHint }: Props): React.ReactNode {
   const teamContext = useAppState(s => s.teamContext);
 
-  // Derive teammate count from teamContext (no filesystem I/O needed)
+  // 从 teamContext 派生队友数量（无需文件系统 I/O）
   const totalTeammates = teamContext
     ? Object.values(teamContext.teammates).filter(t => t.name !== 'team-lead').length
     : 0;

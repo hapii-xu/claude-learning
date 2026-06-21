@@ -1,3 +1,10 @@
+// 用于将原始 SDK 事件流式传输至浏览器调试面板的调试接收端
+type ApiRawSink = (event: unknown) => void
+let _apiRawSink: ApiRawSink | null = null
+export function setApiRawSink(sink: ApiRawSink | null): void {
+  _apiRawSink = sink
+}
+
 import type {
   BetaContentBlock,
   BetaContentBlockParam,
@@ -2045,6 +2052,9 @@ async function* queryModel(
 
       for await (const part of stream) {
         resetStreamIdleTimer()
+        try {
+          _apiRawSink?.(part)
+        } catch {}
         const now = Date.now()
 
         // 检测并记录流式停顿（只在第一个事件之后，避免把 TTFB 计入）

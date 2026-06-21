@@ -19,7 +19,7 @@ import {
 import { logError } from '../../utils/log.js'
 import { getClaudeCodeUserAgent } from '../../utils/userAgent.js'
 
-// Cache expiration: 24 hours
+// 缓存过期时间：24 小时
 const GROVE_CACHE_EXPIRATION_MS = 24 * 60 * 60 * 1000
 
 export type AccountSettings = {
@@ -35,23 +35,23 @@ export type GroveConfig = {
 }
 
 /**
- * Result type that distinguishes between API failure and success.
- * - success: true means API call succeeded (data may still contain null fields)
- * - success: false means API call failed after retry
+ * 区分 API 失败与成功的结果类型。
+ * - success: true 表示 API 调用成功（data 中仍可能包含 null 字段）
+ * - success: false 表示 API 调用在重试后失败
  */
 export type ApiResult<T> = { success: true; data: T } | { success: false }
 
 /**
- * Get the current Grove settings for the user account.
- * Returns ApiResult to distinguish between API failure and success.
- * Uses existing OAuth 401 retry, then returns failure if that doesn't help.
+ * 获取用户账户当前的 Grove 设置。
+ * 返回 ApiResult 以区分 API 失败与成功。
+ * 复用现有的 OAuth 401 重试，仍失败则返回失败结果。
  *
- * Memoized for the session to avoid redundant per-render requests.
- * Cache is invalidated in updateGroveSettings() so post-toggle reads are fresh.
+ * 对整个 session 做了 memoize，避免每次渲染都重复请求。
+ * 缓存在 updateGroveSettings() 中会失效，因此切换后的读取是最新值。
  */
 export const getGroveSettings = memoize(
   async (): Promise<ApiResult<AccountSettings>> => {
-    // Grove is a notification feature; during an outage, skipping it is correct.
+    // Grove 是通知类功能；发生故障时跳过它是正确的。
     if (isEssentialTrafficOnly()) {
       return { success: false }
     }
@@ -74,10 +74,9 @@ export const getGroveSettings = memoize(
       return { success: true, data: response.data }
     } catch (err) {
       logError(err)
-      // Don't cache failures — transient network issues would lock the user
-      // out of privacy settings for the entire session (deadlock: dialog needs
-      // success to render the toggle, toggle calls updateGroveSettings which
-      // is the only other place the cache is cleared).
+      // 不缓存失败 —— 瞬时网络问题会让用户在整个 session 内无法访问隐私设置
+      // （死锁：dialog 需要成功才能渲染开关，开关调用 updateGroveSettings，
+      // 这是另一个清空缓存的地方）。
       getGroveSettings.cache.clear?.()
       return { success: false }
     }
@@ -85,7 +84,7 @@ export const getGroveSettings = memoize(
 )
 
 /**
- * Mark that the Grove notice has been viewed by the user
+ * 标记用户已查看过 Grove 通知
  */
 export async function markGroveNoticeViewed(): Promise<void> {
   try {
@@ -105,9 +104,9 @@ export async function markGroveNoticeViewed(): Promise<void> {
         },
       )
     })
-    // This mutates grove_notice_viewed_at server-side — Grove.tsx:87 reads it
-    // to decide whether to show the dialog. Without invalidation a same-session
-    // remount would read stale viewed_at:null and re-show the dialog.
+    // 这会在服务端修改 grove_notice_viewed_at —— Grove.tsx:87 读取它来决定
+    // 是否显示 dialog。若不清空缓存，同一 session 内的重新挂载会读到陈旧的
+    // viewed_at:null 并再次显示 dialog。
     getGroveSettings.cache.clear?.()
   } catch (err) {
     logError(err)
@@ -115,7 +114,7 @@ export async function markGroveNoticeViewed(): Promise<void> {
 }
 
 /**
- * Update Grove settings for the user account
+ * 更新用户账户的 Grove 设置
  */
 export async function updateGroveSettings(
   groveEnabled: boolean,
@@ -139,8 +138,8 @@ export async function updateGroveSettings(
         },
       )
     })
-    // Invalidate memoized settings so the post-toggle confirmation
-    // read in privacy-settings.tsx picks up the new value.
+    // 让 memoize 的设置失效，这样 privacy-settings.tsx 中切换后的确认读取
+    // 能拿到新值。
     getGroveSettings.cache.clear?.()
   } catch (err) {
     logError(err)
@@ -148,11 +147,10 @@ export async function updateGroveSettings(
 }
 
 /**
- * Check if user is qualified for Grove (non-blocking, cache-first).
+ * 检查用户是否符合 Grove 资格（非阻塞、缓存优先）。
  *
- * This function never blocks on network - it returns cached data immediately
- * and fetches in the background if needed. On cold start (no cache), it returns
- * false and the Grove dialog won't show until the next session.
+ * 此函数绝不在网络上阻塞 —— 它立即返回缓存数据，必要时在后台拉取。
+ * 冷启动（无缓存）时返回 false，Grove dialog 在下一次 session 之前不会显示。
  */
 export async function isQualifiedForGrove(): Promise<boolean> {
   if (!isConsumerSubscriber()) {
@@ -168,8 +166,8 @@ export async function isQualifiedForGrove(): Promise<boolean> {
   const cachedEntry = globalConfig.groveConfigCache?.[accountId]
   const now = Date.now()
 
-  // No cache - trigger background fetch and return false (non-blocking)
-  // The Grove dialog won't show this session, but will next time if eligible
+  // 无缓存 —— 触发后台拉取并返回 false（非阻塞）
+  // 本次 session 不显示 Grove dialog，但符合资格时会在下次显示
   if (!cachedEntry) {
     logForDebugging(
       'Grove: No cache, fetching config in background (dialog skipped this session)',
@@ -178,7 +176,7 @@ export async function isQualifiedForGrove(): Promise<boolean> {
     return false
   }
 
-  // Cache exists but is stale - return cached value and refresh in background
+  // 缓存存在但已过期 —— 返回缓存值并在后台刷新
   if (now - cachedEntry.timestamp > GROVE_CACHE_EXPIRATION_MS) {
     logForDebugging(
       'Grove: Cache stale, returning cached data and refreshing in background',
@@ -187,13 +185,13 @@ export async function isQualifiedForGrove(): Promise<boolean> {
     return cachedEntry.grove_enabled
   }
 
-  // Cache is fresh - return it immediately
+  // 缓存是新鲜的 —— 立即返回
   logForDebugging('Grove: Using fresh cached config')
   return cachedEntry.grove_enabled
 }
 
 /**
- * Fetch Grove config from API and store in cache
+ * 从 API 拉取 Grove 配置并存入缓存
  */
 async function fetchAndStoreGroveConfig(accountId: string): Promise<void> {
   try {
@@ -225,13 +223,13 @@ async function fetchAndStoreGroveConfig(accountId: string): Promise<void> {
 }
 
 /**
- * Get Grove Statsig configuration from the API.
- * Returns ApiResult to distinguish between API failure and success.
- * Uses existing OAuth 401 retry, then returns failure if that doesn't help.
+ * 从 API 获取 Grove 的 Statsig 配置。
+ * 返回 ApiResult 以区分 API 失败与成功。
+ * 复用现有的 OAuth 401 重试，仍失败则返回失败结果。
  */
 export const getGroveNoticeConfig = memoize(
   async (): Promise<ApiResult<GroveConfig>> => {
-    // Grove is a notification feature; during an outage, skipping it is correct.
+    // Grove 是通知类功能；发生故障时跳过它是正确的。
     if (isEssentialTrafficOnly()) {
       return { success: false }
     }
@@ -253,7 +251,7 @@ export const getGroveNoticeConfig = memoize(
         )
       })
 
-      // Map the API response to the GroveConfig type
+      // 把 API 响应映射到 GroveConfig 类型
       const {
         grove_enabled,
         domain_excluded,
@@ -278,15 +276,15 @@ export const getGroveNoticeConfig = memoize(
 )
 
 /**
- * Determines whether the Grove dialog should be shown.
- * Returns false if either API call failed (after retry) - we hide the dialog on API failure.
+ * 判断是否应当显示 Grove dialog。
+ * 若两次 API 调用中任意一次（重试后）失败则返回 false —— 我们在 API 失败时隐藏 dialog。
  */
 export function calculateShouldShowGrove(
   settingsResult: ApiResult<AccountSettings>,
   configResult: ApiResult<GroveConfig>,
   showIfAlreadyViewed: boolean,
 ): boolean {
-  // Hide dialog on API failure (after retry)
+  // API 失败（重试后）时隐藏 dialog
   if (!settingsResult.success || !configResult.success) {
     return false
   }
@@ -304,8 +302,7 @@ export function calculateShouldShowGrove(
   if (!config.notice_is_grace_period) {
     return true
   }
-  // Check if we need to remind the user to accept the terms and choose
-  // whether to help improve Claude.
+  // 检查是否需要提醒用户接受条款并选择是否帮助改进 Claude
   const reminderFrequency = config.notice_reminder_frequency
   if (reminderFrequency !== null && settings.grove_notice_viewed_at) {
     const daysSinceViewed = Math.floor(
@@ -314,7 +311,7 @@ export function calculateShouldShowGrove(
     )
     return daysSinceViewed >= reminderFrequency
   } else {
-    // Show if never viewed before
+    // 从未查看过则显示
     const viewedAt = settings.grove_notice_viewed_at
     return viewedAt === null || viewedAt === undefined
   }
@@ -326,7 +323,7 @@ export async function checkGroveForNonInteractive(): Promise<void> {
     getGroveNoticeConfig(),
   ])
 
-  // Check if user hasn't made a choice yet (returns false on API failure)
+  // 检查用户是否尚未做出选择（API 失败时返回 false）
   const shouldShowGrove = calculateShouldShowGrove(
     settingsResult,
     configResult,
@@ -334,20 +331,20 @@ export async function checkGroveForNonInteractive(): Promise<void> {
   )
 
   if (shouldShowGrove) {
-    // shouldShowGrove is only true if both API calls succeeded
+    // shouldShowGrove 为 true 仅在两次 API 调用都成功时
     const config = configResult.success ? configResult.data : null
     logEvent('tengu_grove_print_viewed', {
       dismissable:
         config?.notice_is_grace_period as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
     if (config === null || config.notice_is_grace_period) {
-      // Grace period is still active - show informational message and continue
+      // 宽限期仍在生效 —— 显示信息性消息并继续
       writeToStderr(
         '\nAn update to our Consumer Terms and Privacy Policy will take effect on October 8, 2025. Run `claude` to review the updated terms.\n\n',
       )
       await markGroveNoticeViewed()
     } else {
-      // Grace period has ended - show error message and exit
+      // 宽限期已结束 —— 显示错误消息并退出
       writeToStderr(
         '\n[ACTION REQUIRED] An update to our Consumer Terms and Privacy Policy has taken effect on October 8, 2025. You must run `claude` to review the updated terms.\n\n',
       )

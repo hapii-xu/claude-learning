@@ -1,52 +1,51 @@
 /**
- * Client-side secret scanner for team memory (PSR M22174).
+ * team memory 的客户端密钥扫描器（PSR M22174）。
  *
- * Scans content for credentials before upload so secrets never leave the
- * user's machine. Uses a curated subset of high-confidence rules from
- * gitleaks (https://github.com/gitleaks/gitleaks, MIT license) — only
- * rules with distinctive prefixes that have near-zero false-positive
- * rates are included. Generic keyword-context rules are omitted.
+ * 在上传前扫描内容中的凭证，确保密钥永远不会离开用户的机器。
+ * 使用 gitleaks（https://github.com/gitleaks/gitleaks，MIT 许可证）中
+ * 经精选的高置信度规则子集 —— 仅包含具有独特前缀且误报率接近零的规则。
+ * 通用的关键字-上下文规则被省略。
  *
- * Rule IDs and regexes sourced directly from the public gitleaks config:
+ * 规则 ID 和正则表达式直接取自公开的 gitleaks 配置：
  * https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
  *
- * JS regex notes:
- *   - gitleaks uses Go regex; inline (?i) and mode groups (?-i:...) are
- *     not portable to JS. Affected rules are rewritten with explicit
- *     character classes ([a-zA-Z0-9] instead of (?i)[a-z0-9]).
- *   - Trailing boundary alternations like (?:[\x60'"\s;]|\\[nr]|$) from
- *     Go regex are kept (JS $ matches end-of-string in default mode).
+ * JS 正则注意事项：
+ *   - gitleaks 使用 Go 正则；内联 (?i) 和模式分组 (?-i:...) 无法
+ *     移植到 JS。受影响的规则用显式字符类重写
+ *     （用 [a-zA-Z0-9] 替代 (?i)[a-z0-9]）。
+ *   - 来自 Go 正则的尾部边界交替如 (?:[\x60'"\s;]|\\[nr]|$)
+ *     被保留（JS 的 $ 在默认模式下匹配字符串结尾）。
  */
 
 import { capitalize } from '../../utils/stringUtils.js'
 
 type SecretRule = {
-  /** Gitleaks rule ID (kebab-case), used in labels and analytics */
+  /** Gitleaks 规则 ID（kebab-case），用于标签和分析 */
   id: string
-  /** Regex source, lazily compiled on first scan */
+  /** 正则表达式源码，首次扫描时延迟编译 */
   source: string
-  /** Optional JS regex flags (most rules are case-sensitive by default) */
+  /** 可选的 JS 正则标志（大多数规则默认大小写敏感） */
   flags?: string
 }
 
 export type SecretMatch = {
-  /** Gitleaks rule ID that matched (e.g., "github-pat", "aws-access-token") */
+  /** 匹配的 Gitleaks 规则 ID（例如 "github-pat"、"aws-access-token"） */
   ruleId: string
-  /** Human-readable label derived from the rule ID */
+  /** 从规则 ID 派生的人类可读标签 */
   label: string
 }
 
-// ─── Curated rules ──────────────────────────────────────────────
-// High-confidence patterns from gitleaks with distinctive prefixes.
-// Ordered roughly by likelihood of appearing in dev-team content.
+// ─── 精选规则 ──────────────────────────────────────────────
+// 来自 gitleaks 的具有独特前缀的高置信度模式。
+// 大致按在开发团队内容中出现的可能性排序。
 
-// Anthropic API key prefix, assembled at runtime so the literal byte
-// sequence isn't present in the external bundle (excluded-strings check).
-// join() is not constant-folded by the minifier.
+// Anthropic API 密钥前缀，在运行时组装，以确保字面字节
+// 序列不会出现在外部 bundle 中（excluded-strings 检查）。
+// join() 不会被压缩器常量折叠。
 const ANT_KEY_PFX = ['sk', 'ant', 'api'].join('-')
 
 const SECRET_RULES: SecretRule[] = [
-  // — Cloud providers —
+  // — 云服务商 —
   {
     id: 'aws-access-token',
     source: '\\b((?:A3T[A-Z0-9]|AKIA|ASIA|ABIA|ACCA)[A-Z2-7]{16})\\b',
@@ -69,7 +68,7 @@ const SECRET_RULES: SecretRule[] = [
     source: '\\b(doo_v1_[a-f0-9]{64})(?:[\\x60\'"\\s;]|\\\\[nr]|$)',
   },
 
-  // — AI APIs —
+  // — AI API —
   {
     id: 'anthropic-api-key',
     source: `\\b(${ANT_KEY_PFX}03-[a-zA-Z0-9_\\-]{93}AA)(?:[\\x60'"\\s;]|\\\\[nr]|$)`,
@@ -90,7 +89,7 @@ const SECRET_RULES: SecretRule[] = [
     source: '\\b(hf_[a-zA-Z]{34})(?:[\\x60\'"\\s;]|\\\\[nr]|$)',
   },
 
-  // — Version control —
+  // — 版本控制 —
   {
     id: 'github-pat',
     source: 'ghp_[0-9a-zA-Z]{36}',
@@ -120,7 +119,7 @@ const SECRET_RULES: SecretRule[] = [
     source: 'gldt-[0-9a-zA-Z_\\-]{20}',
   },
 
-  // — Communication —
+  // — 通信 —
   {
     id: 'slack-bot-token',
     source: 'xoxb-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*',
@@ -144,7 +143,7 @@ const SECRET_RULES: SecretRule[] = [
     source: '\\b(SG\\.[a-zA-Z0-9=_\\-.]{66})(?:[\\x60\'"\\s;]|\\\\[nr]|$)',
   },
 
-  // — Dev tooling —
+  // — 开发工具 —
   {
     id: 'npm-access-token',
     source: '\\b(npm_[a-zA-Z0-9]{36})(?:[\\x60\'"\\s;]|\\\\[nr]|$)',
@@ -174,7 +173,7 @@ const SECRET_RULES: SecretRule[] = [
       '\\b(PMAK-[a-fA-F0-9]{24}-[a-fA-F0-9]{34})(?:[\\x60\'"\\s;]|\\\\[nr]|$)',
   },
 
-  // — Observability —
+  // — 可观测性 —
   {
     id: 'grafana-api-key',
     source:
@@ -199,7 +198,7 @@ const SECRET_RULES: SecretRule[] = [
       '\\bsntrys_eyJpYXQiO[a-zA-Z0-9+/]{10,200}(?:LCJyZWdpb25fdXJs|InJlZ2lvbl91cmwi|cmVnaW9uX3VybCI6)[a-zA-Z0-9+/]{10,200}={0,2}_[a-zA-Z0-9+/]{43}',
   },
 
-  // — Payment / commerce —
+  // — 支付 / 商务 —
   {
     id: 'stripe-access-token',
     source:
@@ -214,7 +213,7 @@ const SECRET_RULES: SecretRule[] = [
     source: 'shpss_[a-fA-F0-9]{32}',
   },
 
-  // — Crypto —
+  // — 加密 —
   {
     id: 'private-key',
     source:
@@ -223,7 +222,7 @@ const SECRET_RULES: SecretRule[] = [
   },
 ]
 
-// Lazily compiled pattern cache — compile once on first scan.
+// 延迟编译的模式缓存 —— 首次扫描时编译一次。
 let compiledRules: Array<{ id: string; re: RegExp }> | null = null
 
 function getCompiledRules(): Array<{ id: string; re: RegExp }> {
@@ -237,11 +236,11 @@ function getCompiledRules(): Array<{ id: string; re: RegExp }> {
 }
 
 /**
- * Convert a gitleaks rule ID (kebab-case) to a human-readable label.
- * e.g., "github-pat" → "GitHub PAT", "aws-access-token" → "AWS Access Token"
+ * 将 gitleaks 规则 ID（kebab-case）转换为人类可读的标签。
+ * 例如 "github-pat" → "GitHub PAT"，"aws-access-token" → "AWS Access Token"
  */
 function ruleIdToLabel(ruleId: string): string {
-  // Words where the canonical capitalization differs from title case
+  // 规范大小写与 title case 不同的单词
   const specialCase: Record<string, string> = {
     aws: 'AWS',
     gcp: 'GCP',
@@ -268,11 +267,10 @@ function ruleIdToLabel(ruleId: string): string {
 }
 
 /**
- * Scan a string for potential secrets.
+ * 扫描字符串中潜在的密钥。
  *
- * Returns one match per rule that fired (deduplicated by rule ID). The
- * actual matched text is intentionally NOT returned — we never log or
- * display secret values.
+ * 每个触发的规则返回一个匹配（按规则 ID 去重）。实际匹配的文本
+ * 故意不返回 —— 我们从不记录或显示密钥值。
  */
 export function scanForSecrets(content: string): SecretMatch[] {
   const matches: SecretMatch[] = []
@@ -295,17 +293,17 @@ export function scanForSecrets(content: string): SecretMatch[] {
 }
 
 /**
- * Get a human-readable label for a gitleaks rule ID.
- * Falls back to kebab-to-Title conversion for unknown IDs.
+ * 获取 gitleaks 规则 ID 的人类可读标签。
+ * 对于未知 ID 回退到 kebab-to-Title 转换。
  */
 export function getSecretLabel(ruleId: string): string {
   return ruleIdToLabel(ruleId)
 }
 
 /**
- * Redact any matched secrets in-place with [REDACTED].
- * Unlike scanForSecrets, this returns the content with spans replaced
- * so the surrounding text can still be written to disk safely.
+ * 用 [REDACTED] 原位脱敏所有匹配的密钥。
+ * 与 scanForSecrets 不同，此函数返回替换了片段的内容，
+ * 以便周围文本仍能安全写入磁盘。
  */
 let redactRules: RegExp[] | null = null
 
@@ -314,8 +312,8 @@ export function redactSecrets(content: string): string {
     r => new RegExp(r.source, (r.flags ?? '').replace('g', '') + 'g'),
   )
   for (const re of redactRules) {
-    // Replace only the captured group, not the full match — patterns include
-    // boundary chars (space, quote, ;) outside the group that must survive.
+    // 仅替换捕获组而非整个匹配 —— 模式包含组外的
+    // 边界字符（空格、引号、;），这些必须保留。
     content = content.replace(re, (match, g1) =>
       typeof g1 === 'string' ? match.replace(g1, '[REDACTED]') : '[REDACTED]',
     )

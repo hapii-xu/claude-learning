@@ -22,9 +22,9 @@ type Props = {
 export function HelpV2({ onClose, commands }: Props): React.ReactNode {
   const { rows, columns } = useTerminalSize();
   const maxHeight = Math.floor(rows / 2);
-  // Inside the modal slot, FullscreenLayout already caps height and Pane/Tabs
-  // use flexShrink=0 (see #23592) — our own height= constraint would clip the
-  // footer since Tabs won't shrink to fit. Let the modal slot handle sizing.
+  // 在 modal 插槽内，FullscreenLayout 已经限制高度，而 Pane/Tabs
+  // 使用 flexShrink=0（见 #23592）—— 我们自己的 height= 约束会裁剪
+  // 页脚，因为 Tabs 不会收缩以适配。让 modal 插槽处理尺寸。
   const insideModal = useIsInsideModal();
 
   const close = () => onClose('Help dialog dismissed', { display: 'system' });
@@ -36,7 +36,7 @@ export function HelpV2({ onClose, commands }: Props): React.ReactNode {
   let builtinCommands = commands.filter(cmd => builtinNames.has(cmd.name) && !cmd.isHidden);
   let antOnlyCommands: Command[] = [];
 
-  // We have to do this in an `if` to help treeshaking
+  // 我们必须在 `if` 中执行此操作以帮助 treeshaking
   if (process.env.USER_TYPE === 'ant') {
     const internalOnlyNames = new Set(INTERNAL_ONLY_COMMANDS.map(_ => _.name));
     builtinCommands = builtinCommands.filter(cmd => !internalOnlyNames.has(cmd.name));

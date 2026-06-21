@@ -16,6 +16,7 @@ src/utils/vendor/
 .claude/
 .omx/
 .docs/task/
+.understand-anything/
 # Binary / screenshot files (root only)
 /*.png
 *.bmp

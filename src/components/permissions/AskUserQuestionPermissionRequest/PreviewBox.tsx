@@ -7,16 +7,16 @@ import { applyMarkdown } from '../../../utils/markdown.js';
 import sliceAnsi from '../../../utils/sliceAnsi.js';
 
 type PreviewBoxProps = {
-  /** The preview content to display. Markdown is rendered with syntax highlighting
-   * for code blocks (```ts, ```py, etc.). Also supports plain multi-line text. */
+  /** 要显示的预览内容。Markdown 会为代码块（```ts、```py 等）渲染语法高亮。
+   * 也支持纯多行文本。 */
   content: string;
-  /** Maximum number of lines to display before truncating. @default 20 */
+  /** 截断前显示的最大行数。 @default 20 */
   maxLines?: number;
-  /** Minimum height (in lines) for the preview box. Content will be padded if shorter. */
+  /** 预览框的最小高度（行数）。内容较短时会填充。 */
   minHeight?: number;
-  /** Minimum width for the preview box. @default 40 */
+  /** 预览框的最小宽度。 @default 40 */
   minWidth?: number;
-  /** Maximum width available for this box (e.g., the container width). */
+  /** 此框可用的最大宽度（例如容器宽度）。 */
   maxWidth?: number;
 };
 
@@ -32,9 +32,9 @@ const BOX_CHARS = {
 };
 
 /**
- * A bordered monospace box for displaying preview content.
- * Truncates content that exceeds maxLines with an indicator.
- * The parent component should pass maxLines based on its available height budget.
+ * 带边框的等宽框，用于显示预览内容。
+ * 超过 maxLines 的内容会带指示器截断。
+ * 父组件应根据其可用高度预算传入 maxLines。
  */
 export function PreviewBox(props: PreviewBoxProps): React.ReactNode {
   const settings = useSettings();
@@ -65,38 +65,38 @@ function PreviewBoxBody({
   const [theme] = useTheme();
   const effectiveMaxWidth = maxWidth ?? terminalWidth - 4;
 
-  // Use provided maxLines, or a reasonable default
+  // 使用提供的 maxLines，否则取合理默认值
   const effectiveMaxLines = maxLines ?? 20;
 
-  // Render markdown with syntax highlighting for code blocks. applyMarkdown
-  // returns an ANSI-styled string (bold, colors, etc.) that we split into
-  // lines. stringWidth and sliceAnsi below correctly handle ANSI codes.
+  // 为代码块渲染带语法高亮的 markdown。applyMarkdown 返回带 ANSI 样式
+  // （粗体、颜色等）的字符串，我们按行拆分。下方的 stringWidth 和
+  // sliceAnsi 能正确处理 ANSI 转义码。
   const rendered = useMemo(() => applyMarkdown(content, theme, highlight), [content, theme, highlight]);
   const contentLines = rendered.split('\n');
   const isTruncated = contentLines.length > effectiveMaxLines;
 
-  // Truncate to effectiveMaxLines
+  // 截断到 effectiveMaxLines
   const truncatedLines = isTruncated ? contentLines.slice(0, effectiveMaxLines) : contentLines;
 
-  // Pad content with empty lines if shorter than minHeight, but never exceed
-  // the truncation limit — otherwise padding undoes the truncation
+  // 若短于 minHeight 则用空行填充，但绝不超过截断限制——
+  // 否则填充会抵消截断
   const effectiveMinHeight = Math.min(minHeight ?? 0, effectiveMaxLines);
   const paddingNeeded = Math.max(0, effectiveMinHeight - truncatedLines.length - (isTruncated ? 1 : 0));
   const lines = paddingNeeded > 0 ? [...truncatedLines, ...Array<string>(paddingNeeded).fill('')] : truncatedLines;
 
-  // Calculate content width (max visual line width, handling unicode/emoji/CJK)
+  // 计算内容宽度（最大可视行宽，处理 unicode/emoji/CJK）
   const contentWidth = Math.max(minWidth, ...lines.map(line => stringWidth(line)));
-  // Add 2 for border padding, cap at the container width to prevent line wrapping
+  // 加 2 用于边框填充，上限为容器宽度以防止换行
   const boxWidth = Math.min(contentWidth + 4, effectiveMaxWidth);
-  const innerWidth = boxWidth - 4; // Account for borders and padding
+  const innerWidth = boxWidth - 4; // 计入边框和填充
 
-  // Render top border
+  // 渲染顶部边框
   const topBorder = `${BOX_CHARS.topLeft}${BOX_CHARS.horizontal.repeat(boxWidth - 2)}${BOX_CHARS.topRight}`;
 
-  // Render bottom border
+  // 渲染底部边框
   const bottomBorder = `${BOX_CHARS.bottomLeft}${BOX_CHARS.horizontal.repeat(boxWidth - 2)}${BOX_CHARS.bottomRight}`;
 
-  // Build the truncation separator bar (e.g. ├─── ✂ ─── 42 lines hidden ──────┤)
+  // 构建截断分隔条（例如 ├─── ✂ ─── 42 lines hidden ──────┤）
   const truncationBar = isTruncated
     ? (() => {
         const hiddenCount = contentLines.length - effectiveMaxLines;
@@ -112,8 +112,8 @@ function PreviewBoxBody({
       <Text dimColor>{topBorder}</Text>
 
       {lines.map((line, index) => {
-        // Pad or truncate line to fit inner width (using visual width for unicode/emoji/CJK).
-        // sliceAnsi handles ANSI escape codes correctly; stringWidth strips them before measuring.
+        // 填充或截断行以适应内部宽度（使用 unicode/emoji/CJK 的可视宽度）。
+        // sliceAnsi 正确处理 ANSI 转义码；stringWidth 在测量前去除它们。
         const lineWidth = stringWidth(line);
         const displayLine = lineWidth > innerWidth ? sliceAnsi(line, 0, innerWidth) : line;
         const padding = ' '.repeat(Math.max(0, innerWidth - stringWidth(displayLine)));

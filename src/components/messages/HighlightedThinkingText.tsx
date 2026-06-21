@@ -14,9 +14,9 @@ type Props = {
 };
 
 export function HighlightedThinkingText({ text, useBriefLayout, timestamp }: Props): React.ReactNode {
-  // Brief/assistant mode: chat-style "You" label instead of the ❯ highlight.
-  // Parent drops its backgroundColor when this is true, so no grey shows
-  // through. No manual wrap needed — Ink wraps inside the parent Box.
+  // Brief/assistant 模式：chat 样式的 "You" 标签替代 ❯ 高亮。
+  // 当此值为 true 时父组件丢弃其 backgroundColor，所以不会透出灰色。
+  // 不需要手动 wrap —— Ink 在父 Box 内部自动换行。
   const isQueued = useQueuedMessage()?.isQueued ?? false;
   const isSelected = useContext(MessageActionsSelectedContext);
   const pointerColor = isSelected ? 'suggestion' : 'subtle';
@@ -44,7 +44,7 @@ export function HighlightedThinkingText({ text, useBriefLayout, timestamp }: Pro
     );
   }
 
-  // Static rainbow (no shimmer — transcript messages don't animate)
+  // 静态彩虹（无 shimmer —— transcript 消息不做动画）
   const parts: React.ReactNode[] = [];
   let cursor = 0;
   for (const t of triggers) {

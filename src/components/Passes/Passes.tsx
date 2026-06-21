@@ -57,7 +57,7 @@ export function Passes({ onDone }: Props): React.ReactNode {
   useEffect(() => {
     async function loadPassesData() {
       try {
-        // Check eligibility first (uses cache if available)
+        // 先检查资格（若可用则使用缓存）
         const eligibilityData = await getCachedOrFetchPassesEligibility();
 
         if (!eligibilityData || !eligibilityData.eligible) {
@@ -68,18 +68,18 @@ export function Passes({ onDone }: Props): React.ReactNode {
 
         setIsAvailable(true);
 
-        // Store the referral link if available
+        // 如果可用，存储推荐链接
         if (eligibilityData.referral_code_details?.referral_link) {
           setReferralLink(eligibilityData.referral_code_details.referral_link);
         }
 
-        // Store referrer reward info for v1 campaign messaging
+        // 为 v1 活动消息存储 referrer reward 信息
         setReferrerReward(eligibilityData.referrer_reward);
 
-        // Use the campaign returned from eligibility for redemptions
+        // 使用 eligibility 返回的活动作为 redemptions 活动
         const campaign = eligibilityData.referral_code_details?.campaign ?? 'claude_code_guest_pass';
 
-        // Fetch redemptions data
+        // 获取 redemptions 数据
         let redemptionsData: ReferralRedemptionsResponse;
         try {
           redemptionsData = await fetchReferralRedemptions(campaign);
@@ -90,7 +90,7 @@ export function Passes({ onDone }: Props): React.ReactNode {
           return;
         }
 
-        // Build pass statuses array
+        // 构建 pass 状态数组
         const redemptions = redemptionsData.redemptions || [];
         const maxRedemptions = redemptionsData.limit || 3;
         const statuses: PassStatus[] = [];
@@ -106,7 +106,7 @@ export function Passes({ onDone }: Props): React.ReactNode {
         setPassStatuses(statuses);
         setLoading(false);
       } catch (err) {
-        // For any error, just show passes as not available
+        // 对任何错误，仅显示 passes 为不可用
         logError(err as Error);
         setIsAvailable(false);
         setLoading(false);
@@ -144,15 +144,15 @@ export function Passes({ onDone }: Props): React.ReactNode {
 
   const availableCount = count(passStatuses, p => p.isAvailable);
 
-  // Sort passes: available first, then redeemed
+  // 排序 passes：可用的在前，然后是已兑换的
   const sortedPasses = [...passStatuses].sort((a, b) => +b.isAvailable - +a.isAvailable);
 
-  // ASCII art for tickets
+  // 票据的 ASCII 艺术图
   const renderTicket = (pass: PassStatus) => {
     const isRedeemed = !pass.isAvailable;
 
     if (isRedeemed) {
-      // Grayed out redeemed ticket with slashes
+      // 灰色的已兑换票据，带斜线
       return (
         <Box key={pass.passNumber} flexDirection="column" marginRight={1}>
           <Text dimColor>{'┌─────────╱'}</Text>

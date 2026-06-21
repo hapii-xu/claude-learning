@@ -138,7 +138,7 @@ function getGitIndexMtime(): number | null {
   const repoRoot = findGitRoot(getCwd())
   if (!repoRoot) return null
   try {
-    // eslint-disable-next-line custom-rules/no-sync-fs -- mtimeMs is the operation here, not a pre-check. findGitRoot above already stat-walks synchronously; one more stat is marginal vs spawning git ls-files on every keystroke. Async would force startBackgroundCacheRefresh to become async, breaking the synchronous fileListRefreshPromise contract at the cold-start await site.
+    // eslint-disable-next-line custom-rules/no-sync-fs -- mtimeMs 在这里是操作本身，而不是预检查。上方的 findGitRoot 已经同步执行了 stat-walk；相比每次按键都启动 git ls-files，多一次 stat 影响很小。异步方式会迫使 startBackgroundCacheRefresh 变为异步，破坏冷启动 await 处的同步 fileListRefreshPromise 契约。
     return statSync(path.join(repoRoot, '.git', 'index')).mtimeMs
   } catch {
     return null
@@ -328,7 +328,7 @@ async function getFilesUsingGit(
       })
         .then(async untrackedResult => {
           if (generation !== cacheGeneration) {
-            return // Cache was cleared; don't merge stale untracked files
+            return // 缓存已被清除；不要合并陈旧的未跟踪文件
           }
           if (untrackedResult.code === 0) {
             const rawUntrackedFiles = untrackedResult.stdout
@@ -653,7 +653,7 @@ export function startBackgroundCacheRefresh(): void {
   fileListRefreshPromise = getPathsForSuggestions()
     .then(result => {
       if (generation !== cacheGeneration) {
-        return result // Cache was cleared; don't overwrite with stale data
+        return result // 缓存已被清除；不要用陈旧数据覆盖
       }
       fileListRefreshPromise = null
       indexBuildComplete.emit()
@@ -673,7 +673,7 @@ export function startBackgroundCacheRefresh(): void {
       )
       logError(error)
       if (generation === cacheGeneration) {
-        fileListRefreshPromise = null // Allow retry on next call
+        fileListRefreshPromise = null // 允许下次调用时重试
       }
       return getFileIndex()
     })

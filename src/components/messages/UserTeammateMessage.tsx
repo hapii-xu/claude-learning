@@ -31,19 +31,19 @@ const TEAMMATE_MSG_REGEX = new RegExp(
 );
 
 /**
- * Parse all teammate messages from XML format:
+ * 从 XML 格式解析所有 teammate 消息：
  * <teammate-message teammate_id="alice" color="red" summary="Brief update">message content</teammate-message>
- * Supports multiple messages in a single text block.
+ * 支持在单个 text block 中有多条消息。
  */
 function parseTeammateMessages(text: string): ParsedMessage[] {
   const messages: ParsedMessage[] = [];
-  // Use matchAll to find all matches (this is a RegExp method, not child_process)
+  // 使用 matchAll 查找所有匹配项（这是 RegExp 方法，不是 child_process）
   for (const match of text.matchAll(TEAMMATE_MSG_REGEX)) {
     if (match[1] && match[4]) {
       messages.push({
         teammateId: match[1],
-        color: match[2], // may be undefined
-        summary: match[3], // may be undefined
+        color: match[2], // 可能为 undefined
+        summary: match[3], // 可能为 undefined
         content: match[4].trim(),
       });
     }
@@ -61,8 +61,8 @@ function getDisplayName(teammateId: string): string {
 
 export function UserTeammateMessage({ addMargin, param: { text }, isTranscriptMode }: Props): React.ReactNode {
   const messages = parseTeammateMessages(text).filter(msg => {
-    // Pre-filter shutdown lifecycle messages to avoid empty wrapper
-    // Box elements creating blank lines between model turns
+    // 预过滤 shutdown lifecycle 消息以避免空的 wrapper
+    // Box 元素在 model turn 之间创建空行
     if (isShutdownApproved(msg.content)) {
       return false;
     }
@@ -70,7 +70,7 @@ export function UserTeammateMessage({ addMargin, param: { text }, isTranscriptMo
       const parsed = jsonParse(msg.content);
       if (parsed?.type === 'teammate_terminated') return false;
     } catch {
-      // Not JSON, keep the message
+      // 不是 JSON，保留消息
     }
     return true;
   });
@@ -84,38 +84,38 @@ export function UserTeammateMessage({ addMargin, param: { text }, isTranscriptMo
         const inkColor = toInkColor(msg.color);
         const displayName = getDisplayName(msg.teammateId);
 
-        // Try to render as plan approval message (request or response)
+        // 尝试渲染为 plan approval 消息（请求或响应）
         const planApprovalElement = tryRenderPlanApprovalMessage(msg.content, displayName);
         if (planApprovalElement) {
           return <React.Fragment key={index}>{planApprovalElement}</React.Fragment>;
         }
 
-        // Try to render as shutdown message (request or rejected)
+        // 尝试渲染为 shutdown 消息（请求或被拒绝）
         const shutdownElement = tryRenderShutdownMessage(msg.content);
         if (shutdownElement) {
           return <React.Fragment key={index}>{shutdownElement}</React.Fragment>;
         }
 
-        // Try to render as task assignment message
+        // 尝试渲染为 task assignment 消息
         const taskAssignmentElement = tryRenderTaskAssignmentMessage(msg.content);
         if (taskAssignmentElement) {
           return <React.Fragment key={index}>{taskAssignmentElement}</React.Fragment>;
         }
 
-        // Try to parse as structured JSON message
+        // 尝试解析为结构化 JSON 消息
         let parsedIdleNotification: { type?: string } | null = null;
         try {
           parsedIdleNotification = jsonParse(msg.content);
         } catch {
-          // Not JSON
+          // 不是 JSON
         }
 
-        // Hide idle notifications - they are processed silently
+        // 隐藏 idle 通知 - 它们被静默处理
         if (parsedIdleNotification?.type === 'idle_notification') {
           return null;
         }
 
-        // Task completed notification - show which task was completed
+        // Task 完成通知 - 显示哪个 task 已完成
         if (parsedIdleNotification?.type === 'task_completed') {
           const taskCompleted = parsedIdleNotification as {
             type: string;
@@ -138,7 +138,7 @@ export function UserTeammateMessage({ addMargin, param: { text }, isTranscriptMo
           );
         }
 
-        // Default: plain text message (truncated)
+        // 默认：纯文本消息（截断）
         return (
           <TeammateMessageContent
             key={index}

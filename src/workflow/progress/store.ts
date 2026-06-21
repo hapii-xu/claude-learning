@@ -80,7 +80,7 @@ export function createProgressStoreFromBus(bus: ProgressBus): ProgressStore {
   }
 
   const apply = (event: ProgressEvent): void => {
-    // log produces no visible state change (panel has no log view): early exit to avoid pointless snapshot rebuild and React re-render
+    // log 不产生可见状态变化（面板没有 log 视图）：提前返回，避免无谓的快照重建和 React 重渲染
     if (event.type === 'log') return
     const runId = event.runId
     const p = ensure(
@@ -125,7 +125,7 @@ export function createProgressStoreFromBus(bus: ProgressBus): ProgressStore {
         break
       }
       case 'agent_progress': {
-        // live progress: only update token/tool (high frequency, but once per agent message, frequency is controllable).
+        // 实时进度：只更新 token/tool（高频，但每条 agent 消息一次，频率可控）。
         const ap = p.agents.find(x => x.id === event.agentId)
         if (ap) {
           ap.tokenCount = event.tokenCount

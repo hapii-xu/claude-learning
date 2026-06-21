@@ -940,7 +940,7 @@ export async function addSkillDirectories(dirs: string[]): Promise<void> {
 
   const previousSkillNamesForLogging = new Set(dynamicSkills.keys())
 
-  // Load skills from all directories
+  // 从所有目录加载 skills
   const loadedSkills = await Promise.all(
     dirs.map(dir => loadSkillsFromSkillsDir(dir, 'projectSettings')),
   )

@@ -1,48 +1,48 @@
 /**
- * Team Memory Sync Types
+ * Team Memory Sync 类型定义
  *
- * Zod schemas and types for the repo-scoped team memory sync API.
- * Based on the backend API contract from anthropic/anthropic#250711.
+ * 用于仓库级 team memory 同步 API 的 Zod schema 和类型。
+ * 基于后端 API 契约（anthropic/anthropic#250711）。
  */
 
 import { z } from 'zod/v4'
 import { lazySchema } from '../../utils/lazySchema.js'
 
 /**
- * Content portion of team memory data - flat key-value storage.
- * Keys are file paths relative to the team memory directory (e.g. "MEMORY.md", "patterns.md").
- * Values are UTF-8 string content (typically Markdown).
+ * team memory 数据的内容部分 —— 扁平的键值存储。
+ * 键是相对于 team memory 目录的文件路径（例如 "MEMORY.md"、"patterns.md"）。
+ * 值是 UTF-8 字符串内容（通常是 Markdown）。
  */
 export const TeamMemoryContentSchema = lazySchema(() =>
   z.object({
     entries: z.record(z.string(), z.string()),
-    // Per-key SHA-256 of entry content (`sha256:<hex>`). Added in
-    // anthropic/anthropic#283027. Optional for forward-compat with older
-    // server deployments; empty map when entries is empty.
+    // 每个 entry 内容的 SHA-256（`sha256:<hex>`）。在
+    // anthropic/anthropic#283027 中添加。对于与旧版服务器部署的
+    // 前向兼容是可选的；当 entries 为空时为空映射。
     entryChecksums: z.record(z.string(), z.string()).optional(),
   }),
 )
 
 /**
- * Full response from GET /api/claude_code/team_memory
+ * GET /api/claude_code/team_memory 的完整响应
  */
 export const TeamMemoryDataSchema = lazySchema(() =>
   z.object({
     organizationId: z.string(),
     repo: z.string(),
     version: z.number(),
-    lastModified: z.string(), // ISO 8601 timestamp
-    checksum: z.string(), // SHA256 with 'sha256:' prefix
+    lastModified: z.string(), // ISO 8601 时间戳
+    checksum: z.string(), // 带 'sha256:' 前缀的 SHA256
     content: TeamMemoryContentSchema(),
   }),
 )
 
 /**
- * Structured 413 error body from the server (anthropic/anthropic#293258).
- * The server's RequestTooLargeException serializes error_code and the
- * extra_details dict flattened into error.details. We only model the
- * too-many-entries case; entry-too-large is handled via MAX_FILE_SIZE_BYTES
- * pre-check on the client side and would need a separate schema.
+ * 来自服务器的结构化 413 错误体（anthropic/anthropic#293258）。
+ * 服务器的 RequestTooLargeException 序列化 error_code 和
+ * 展平到 error.details 中的 extra_details 字典。我们仅建模
+ * 条目过多的情况；entry-too-large 通过客户端的
+ * MAX_FILE_SIZE_BYTES 预检查处理，需要单独的 schema。
  */
 export const TeamMemoryTooManyEntriesSchema = lazySchema(() =>
   z.object({
@@ -59,27 +59,27 @@ export const TeamMemoryTooManyEntriesSchema = lazySchema(() =>
 export type TeamMemoryData = z.infer<ReturnType<typeof TeamMemoryDataSchema>>
 
 /**
- * A file skipped during push because it contains a detected secret.
- * The path is relative to the team memory directory. Only the matched
- * gitleaks rule ID is recorded — never the secret value itself.
+ * 在推送过程中因包含检测到的密钥而被跳过的文件。
+ * 路径相对于 team memory 目录。仅记录匹配的 gitleaks 规则 ID，
+ * 绝不记录密钥值本身。
  */
 export type SkippedSecretFile = {
   path: string
-  /** Gitleaks rule ID (e.g., "github-pat", "aws-access-token") */
+  /** Gitleaks 规则 ID（例如 "github-pat"、"aws-access-token"） */
   ruleId: string
-  /** Human-readable label derived from rule ID */
+  /** 从规则 ID 派生的人类可读标签 */
   label: string
 }
 
 /**
- * Result from fetching team memory
+ * 获取 team memory 的结果
  */
 export type TeamMemorySyncFetchResult = {
   success: boolean
   data?: TeamMemoryData
-  isEmpty?: boolean // true if 404 (no data exists)
-  notModified?: boolean // true if 304 (ETag matched, no changes)
-  checksum?: string // ETag from response header
+  isEmpty?: boolean // 如果 404（无数据存在）则为 true
+  notModified?: boolean // 如果 304（ETag 匹配，无更改）则为 true
+  checksum?: string // 来自响应头的 ETag
   error?: string
   skipRetry?: boolean
   errorType?: 'auth' | 'timeout' | 'network' | 'parse' | 'unknown'
@@ -87,9 +87,9 @@ export type TeamMemorySyncFetchResult = {
 }
 
 /**
- * Lightweight metadata-only probe result (GET ?view=hashes).
- * Contains per-key checksums without entry bodies. Used to refresh
- * serverChecksums cheaply during 412 conflict resolution.
+ * 轻量级仅元数据探测结果（GET ?view=hashes）。
+ * 包含每个键的校验和但无 entry 主体。用于在 412 冲突解决期间
+ * 低成本地刷新 serverChecksums。
  */
 export type TeamMemoryHashesResult = {
   success: boolean
@@ -102,15 +102,15 @@ export type TeamMemoryHashesResult = {
 }
 
 /**
- * Result from uploading team memory with conflict info
+ * 上传 team memory 的结果（含冲突信息）
  */
 export type TeamMemorySyncPushResult = {
   success: boolean
   filesUploaded: number
   checksum?: string
-  conflict?: boolean // true if 412 Precondition Failed
+  conflict?: boolean // 如果 412 Precondition Failed 则为 true
   error?: string
-  /** Files skipped because they contain detected secrets (PSR M22174). */
+  /** 因包含检测到的密钥而被跳过的文件（PSR M22174）。 */
   skippedSecrets?: SkippedSecretFile[]
   errorType?:
     | 'auth'
@@ -124,33 +124,33 @@ export type TeamMemorySyncPushResult = {
 }
 
 /**
- * Result from uploading team memory
+ * 上传 team memory 的结果
  */
 export type TeamMemorySyncUploadResult = {
   success: boolean
   checksum?: string
   lastModified?: string
-  conflict?: boolean // true if 412 Precondition Failed
+  conflict?: boolean // 如果 412 Precondition Failed 则为 true
   error?: string
   errorType?: 'auth' | 'timeout' | 'network' | 'unknown'
   httpStatus?: number
   /**
-   * Structured error_code from a parsed 413 body (anthropic/anthropic#293258).
-   * Currently only 'team_memory_too_many_entries' is modelled; if the server
-   * adds more (entry_too_large, total_bytes_exceeded) they'd extend this
-   * union.  Passed straight through to the tengu_team_mem_sync_push event
-   * as a Datadog-filterable facet.
+   * 从解析的 413 体中获取的结构化 error_code（anthropic/anthropic#293258）。
+   * 目前仅建模 'team_memory_too_many_entries'；如果服务器
+   * 添加更多（entry_too_large、total_bytes_exceeded），它们会扩展此
+   * 联合类型。直接透传给 tengu_team_mem_sync_push 事件，
+   * 作为可被 Datadog 过滤的 facet。
    */
   serverErrorCode?: 'team_memory_too_many_entries'
   /**
-   * Server-enforced max_entries, populated when serverErrorCode is
-   * team_memory_too_many_entries. Lets the caller cache the effective
-   * (possibly per-org) limit for subsequent pushes.
+   * 服务器强制执行的 max_entries，当 serverErrorCode 为
+   * team_memory_too_many_entries 时填充。允许调用方缓存有效的
+   * （可能是按组织的）限制，用于后续推送。
    */
   serverMaxEntries?: number
   /**
-   * How many entries the rejected push would have produced after merge.
-   * Populated alongside serverMaxEntries.
+   * 被拒绝的推送在合并后会产生多少个条目。
+   * 与 serverMaxEntries 一起填充。
    */
   serverReceivedEntries?: number
 }

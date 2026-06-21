@@ -1,3 +1,20 @@
+// Debug sink for tool execution traces in the browser debug panel
+export type ToolTraceEvent =
+  | { phase: 'start'; toolName: string; toolUseId: string; input: unknown }
+  | {
+      phase: 'end'
+      toolName: string
+      toolUseId: string
+      durationMs: number
+      isError: boolean
+    }
+
+type ToolTraceSink = (event: ToolTraceEvent) => void
+let _toolTraceSink: ToolTraceSink | null = null
+export function setToolTraceSink(sink: ToolTraceSink | null): void {
+  _toolTraceSink = sink
+}
+
 import { feature } from 'bun:bundle'
 import type {
   ContentBlockParam,
@@ -496,19 +513,44 @@ export async function* runToolUse(
       `[工具执行] 步骤2 中断检查通过，进入权限+执行流程 name=${toolName}`,
       { level: 'info' },
     )
-    for await (const update of streamedCheckPermissionsAndCallTool(
-      tool,
-      toolUse.id,
-      toolInput,
-      toolUseContext,
-      canUseTool,
-      assistantMessage,
-      messageId,
-      requestId,
-      mcpServerType,
-      mcpServerBaseUrl,
-    )) {
-      yield update
+    const _traceStart = Date.now()
+    try {
+      _toolTraceSink?.({
+        phase: 'start',
+        toolName,
+        toolUseId: toolUse.id,
+        input: toolInput,
+      })
+    } catch {}
+    let _traceError = false
+    try {
+      for await (const update of streamedCheckPermissionsAndCallTool(
+        tool,
+        toolUse.id,
+        toolInput,
+        toolUseContext,
+        canUseTool,
+        assistantMessage,
+        messageId,
+        requestId,
+        mcpServerType,
+        mcpServerBaseUrl,
+      )) {
+        yield update
+      }
+    } catch (innerError) {
+      _traceError = true
+      throw innerError
+    } finally {
+      try {
+        _toolTraceSink?.({
+          phase: 'end',
+          toolName,
+          toolUseId: toolUse.id,
+          durationMs: Date.now() - _traceStart,
+          isError: _traceError,
+        })
+      } catch {}
     }
   } catch (error) {
     logError(error)
@@ -736,6 +778,10 @@ async function checkPermissionsAndCallTool(
   }
 
   // 验证输入值。每个工具都有自己的验证逻辑
+  logForDebugging(
+    `[Hapii] ToolExec.checkPermissionsAndCallTool 步骤3 validateInput name=${tool.name}`,
+    { level: 'info' },
+  )
   const isValidCall = await tool.validateInput?.(
     parsedInput.data,
     toolUseContext,
@@ -850,6 +896,10 @@ async function checkPermissionsAndCallTool(
   let shouldPreventContinuation = false
   let stopReason: string | undefined
   let hookPermissionResult: PermissionResult | undefined
+  logForDebugging(
+    `[Hapii] ToolExec.checkPermissionsAndCallTool 步骤5 PreToolUse hooks 开始 name=${tool.name}`,
+    { level: 'info' },
+  )
   const preToolHookInfos: StopHookInfo[] = []
   const preToolHookStart = Date.now()
   for await (const result of runPreToolUseHooks(
@@ -1494,6 +1544,10 @@ async function checkPermissionsAndCallTool(
       ...(mcpServerScope && { mcp_server_scope: mcpServerScope }),
     })
 
+    logForDebugging(
+      `[Hapii] ToolExec.checkPermissionsAndCallTool 步骤7 PostToolUse hooks 开始 name=${tool.name} durationMs=${durationMs}`,
+      { level: 'info' },
+    )
     // 运行 PostToolUse hooks
     let toolOutput = result.data
     const hookResults = []

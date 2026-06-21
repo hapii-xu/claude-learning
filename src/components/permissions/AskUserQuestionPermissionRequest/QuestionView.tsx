@@ -98,7 +98,7 @@ export function QuestionView({
     setIsFooterFocused(false);
   }, []);
 
-  // Handle keyboard input when footer is focused
+  // 当 footer 聚焦时处理键盘输入
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!isFooterFocused) return;
@@ -162,9 +162,9 @@ export function QuestionView({
       const result = await editPromptInEditor(currentValue);
 
       if (result.content !== null && result.content !== currentValue) {
-        // Update the Select's internal state for immediate UI update
+        // 更新 Select 的内部状态以即时更新 UI
         setValue(result.content);
-        // Also update the question state for persistence
+        // 同时更新问题状态以持久化
         onUpdateQuestionState(questionText, { textInputValue: result.content }, question.multiSelect ?? false);
       }
     },
@@ -184,11 +184,11 @@ export function QuestionView({
 
   const options = [...textOptions, otherOption];
 
-  // Check if any option has a preview and it's not multi-select
-  // Previews only supported for single-select questions
+  // 检查是否有任何选项带预览且非多选
+  // 预览仅对单选问题支持
   const hasAnyPreview = !question.multiSelect && question.options.some(opt => opt.preview);
 
-  // Delegate to PreviewQuestionView for carousel-style preview mode
+  // 委托给 PreviewQuestionView 以使用轮播式预览模式
   if (hasAnyPreview) {
     return (
       <PreviewQuestionView
@@ -282,7 +282,7 @@ export function QuestionView({
               />
             )}
           </Box>
-          {/* Footer section - always visible, separate from Select */}
+          {/* Footer 区 - 始终可见，与 Select 分离 */}
           <Box flexDirection="column">
             <Divider color="inactive" />
             <Box flexDirection="row" gap={1}>

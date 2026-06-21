@@ -1,12 +1,12 @@
 /**
- * REPL integration hook for `claude ssh` sessions.
+ * `claude ssh` 会话的 REPL 集成 hook。
  *
- * Sibling to useDirectConnect — same shape (isRemoteMode/sendMessage/
- * cancelRequest/disconnect), same REPL wiring, but drives an SSH child
- * process instead of a WebSocket. Kept separate rather than generalizing
- * useDirectConnect because the lifecycle differs: the ssh process and auth
- * proxy are created BEFORE this hook runs (during startup, in main.tsx) and
- * handed in; useDirectConnect creates its WebSocket inside the effect.
+ * useDirectConnect 的兄弟 —— 相同形状（isRemoteMode/sendMessage/
+ * cancelRequest/disconnect），相同 REPL 接线，但驱动 SSH 子
+ * 进程而非 WebSocket。保持独立而非泛化
+ * useDirectConnect，因为生命周期不同：ssh 进程和 auth
+ * 代理在此 hook 运行之前创建（启动期间，在 main.tsx 中）并
+ * 传入；useDirectConnect 在 effect 内创建其 WebSocket。
  */
 
 import { randomUUID } from 'crypto'
@@ -75,7 +75,7 @@ export function useSSHSession({
           setIsLoading(false)
         }
 
-        // Skip duplicate init messages (one per turn from stream-json mode).
+        // 跳过重复 init 消息（stream-json 模式每轮一条）。
         if (sdkMessage.type === 'system' && sdkMessage.subtype === 'init') {
           if (hasReceivedInitRef.current) return
           hasReceivedInitRef.current = true
@@ -166,10 +166,10 @@ export function useSSHSession({
           `[useSSHSession] ssh dropped, reconnecting (${attempt}/${max})`,
         )
         isConnectedRef.current = false
-        // Surface a transient system message in the transcript so the user
-        // knows what's happening — the next onConnected clears the state.
-        // Any in-flight request is lost; the remote's --continue reloads
-        // history but there's no turn in progress to resume.
+        // 在 transcript 中呈现瞬态系统消息，让用户知道
+        // 正在发生什么 —— 下一个 onConnected 清除状态。
+        // 任何进行中的请求都会丢失；远端的 --continue 重新加载
+        // 历史但无正在进行的回合可恢复。
         setIsLoading(false)
         const msg: MessageType = {
           type: 'system',
@@ -192,8 +192,8 @@ export function useSSHSession({
         let msg = connected
           ? 'Remote session ended.'
           : 'SSH session failed before connecting.'
-        // Surface remote stderr if it looks like an error (pre-connect always,
-        // post-connect only on nonzero exit — normal --verbose noise otherwise).
+        // 如果远端 stderr 看起来像错误则呈现（连接前总是，
+        // 连接后仅在非零退出时 —— 否则是正常 --verbose 噪声）。
         if (stderr && (!connected || exitCode !== 0)) {
           msg += `\nRemote stderr (exit ${exitCode ?? 'signal ' + session.proc.signalCode}):\n${stderr}`
         }

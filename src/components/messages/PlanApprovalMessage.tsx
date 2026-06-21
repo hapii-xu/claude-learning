@@ -18,8 +18,8 @@ type PlanApprovalRequestProps = {
 };
 
 /**
- * Renders a plan approval request with a planMode-colored border,
- * showing the plan content and instructions for approving/rejecting.
+ * 渲染一个带有 planMode 颜色边框的 plan approval 请求，
+ * 显示 plan 内容和批准/拒绝的说明。
  */
 export function PlanApprovalRequestDisplay({ request }: PlanApprovalRequestProps): React.ReactNode {
   return (
@@ -53,7 +53,7 @@ type PlanApprovalResponseProps = {
 };
 
 /**
- * Renders a plan approval response with a success (green) or error (red) border.
+ * 渲染一个带有 success（绿色）或 error（红色）边框的 plan approval 响应。
  */
 export function PlanApprovalResponseDisplay({ response, senderName }: PlanApprovalResponseProps): React.ReactNode {
   if (response.approved) {
@@ -102,8 +102,8 @@ export function PlanApprovalResponseDisplay({ response, senderName }: PlanApprov
 }
 
 /**
- * Try to parse and render a plan approval message from raw content.
- * Returns the rendered component if it's a plan approval message, null otherwise.
+ * 尝试从原始内容解析并渲染 plan approval 消息。
+ * 如果是 plan approval 消息则返回渲染的组件，否则返回 null。
  */
 export function tryRenderPlanApprovalMessage(content: string, senderName: string): React.ReactNode | null {
   const request = isPlanApprovalRequest(content);
@@ -120,9 +120,9 @@ export function tryRenderPlanApprovalMessage(content: string, senderName: string
 }
 
 /**
- * Get a brief summary text for a plan approval message.
- * Used in places like the inbox queue where we want a short description.
- * Returns null if the content is not a plan approval message.
+ * 获取 plan approval 消息的简要摘要文本。
+ * 用于 inbox queue 等需要简短描述的场景。
+ * 如果内容不是 plan approval 消息，则返回 null。
  */
 function getPlanApprovalSummary(content: string): string | null {
   const request = isPlanApprovalRequest(content);
@@ -143,7 +143,7 @@ function getPlanApprovalSummary(content: string): string | null {
 }
 
 /**
- * Get a brief summary text for an idle notification.
+ * 获取 idle notification 的简要摘要文本。
  */
 function getIdleNotificationSummary(msg: IdleNotificationMessage): string {
   const parts: string[] = ['Agent idle'];
@@ -158,9 +158,9 @@ function getIdleNotificationSummary(msg: IdleNotificationMessage): string {
 }
 
 /**
- * Format teammate message content for display.
- * If it's a structured message (plan approval, shutdown, or idle), returns a formatted summary.
- * Otherwise returns the original content.
+ * 格式化 teammate 消息内容以供显示。
+ * 如果是结构化消息（plan approval、shutdown 或 idle），返回格式化的摘要。
+ * 否则返回原始内容。
  */
 export function formatTeammateMessageContent(content: string): string {
   const planSummary = getPlanApprovalSummary(content);
@@ -183,14 +183,14 @@ export function formatTeammateMessageContent(content: string): string {
     return taskAssignmentSummary;
   }
 
-  // Check for teammate_terminated message
+  // 检查 teammate_terminated 消息
   try {
     const parsed = jsonParse(content) as { type?: string; message?: string };
     if (parsed?.type === 'teammate_terminated' && parsed.message) {
       return parsed.message;
     }
   } catch {
-    // Not JSON
+    // 不是 JSON
   }
 
   return content;

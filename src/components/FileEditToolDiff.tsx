@@ -23,9 +23,9 @@ type DiffData = {
 };
 
 export function FileEditToolDiff(props: Props): React.ReactNode {
-  // Snapshot on mount — the diff must stay consistent even if the file changes
-  // while the dialog is open. useMemo on props.edits would re-read the file on
-  // every render because callers pass fresh array literals.
+  // 在挂载时快照 —— 即使文件在对话框打开期间发生变化，diff 也必须保持一致。
+  // 在 props.edits 上使用 useMemo 会在每次渲染时重新读取文件，因为
+  // 调用方传入的是全新的数组字面量。
   const [dataPromise] = useState(() => loadDiffData(props.file_path, props.edits));
   return (
     <Suspense fallback={<DiffFrame placeholder />}>
@@ -65,9 +65,9 @@ async function loadDiffData(file_path: string, edits: FileEdit[]): Promise<DiffD
   const valid = edits.filter(e => e.old_string != null && e.new_string != null);
   const single = valid.length === 1 ? valid[0]! : undefined;
 
-  // SedEditPermissionRequest passes the entire file as old_string. Scanning for
-  // a needle ≥ CHUNK_SIZE allocates O(needle) for the overlap buffer — skip the
-  // file read entirely and diff the inputs we already have.
+  // SedEditPermissionRequest 将整个文件作为 old_string 传入。扫描
+  // 大于等于 CHUNK_SIZE 的 needle 会为 overlap buffer 分配 O(needle) 内存 —— 完全跳过
+  // 文件读取，直接 diff 我们已有的输入。
   if (single && single.old_string.length >= CHUNK_SIZE) {
     return diffToolInputsOnly(file_path, [single]);
   }
@@ -76,10 +76,10 @@ async function loadDiffData(file_path: string, edits: FileEdit[]): Promise<DiffD
     const handle = await openForScan(file_path);
     if (handle === null) return diffToolInputsOnly(file_path, valid);
     try {
-      // Multi-edit and empty old_string genuinely need full-file for sequential
-      // replacements — structuredPatch needs before/after strings. replace_all
-      // routes through the chunked path below (shows first-occurrence window;
-      // matches within the slice still replace via edit.replace_all).
+      // Multi-edit 和空的 old_string 确实需要 full-file 来进行顺序
+      // 替换 —— structuredPatch 需要 before/after 字符串。replace_all
+      // 走下方的分块路径（显示首次出现的窗口；
+      // slice 内的匹配仍然通过 edit.replace_all 替换）。
       if (!single || single.old_string === '') {
         const file = await readCapped(handle);
         if (file === null) return diffToolInputsOnly(file_path, valid);

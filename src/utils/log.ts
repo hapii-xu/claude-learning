@@ -22,22 +22,22 @@ import { isEssentialTrafficOnly } from './privacyLevel.js'
 import { jsonParse } from './slowOperations.js'
 
 /**
- * Gets the display title for a log/session with fallback logic.
- * Skips firstPrompt if it starts with a tick/goal tag (autonomous mode auto-prompt).
- * Strips display-unfriendly tags (like <ide_opened_file>) from the result.
- * Falls back to a truncated session ID when no other title is available.
+ * 获取日志/会话的显示标题，带回退逻辑。
+ * 若 firstPrompt 以 tick/goal 标签开头（自主模式自动提示），则跳过。
+ * 过滤掉不适合显示的标签（如 <ide_opened_file>）。
+ * 无其他可用标题时回退为截断的会话 ID。
  */
 export function getLogDisplayTitle(
   log: LogOption,
   defaultTitle?: string,
 ): string {
-  // Skip firstPrompt if it's a tick/goal message (autonomous mode auto-prompt)
+  // 若为 tick/goal 消息（自主模式自动提示），跳过 firstPrompt
   const isAutonomousPrompt = log.firstPrompt?.startsWith(`<${TICK_TAG}>`)
-  // Strip display-unfriendly tags (command-name, ide_opened_file, etc.) early
-  // so that command-only prompts (e.g. /clear) become empty and fall through
-  // to the next fallback instead of showing raw XML tags.
-  // Note: stripDisplayTags returns the original when stripping yields empty,
-  // so we call stripDisplayTagsAllowEmpty to detect command-only prompts.
+  // 提前过滤不适合显示的标签（command-name、ide_opened_file 等），
+  // 使纯命令提示（如 /clear）变为空字符串并落入下一个回退，
+  // 而非直接展示原始 XML 标签。
+  // 注意：stripDisplayTags 在过滤后为空时返回原值，
+  // 因此使用 stripDisplayTagsAllowEmpty 来检测纯命令提示。
   const strippedFirstPrompt = log.firstPrompt
     ? stripDisplayTagsAllowEmpty(log.firstPrompt)
     : ''
@@ -48,12 +48,12 @@ export function getLogDisplayTitle(
     log.summary ||
     (useFirstPrompt ? strippedFirstPrompt : undefined) ||
     defaultTitle ||
-    // For autonomous sessions without other context, show a meaningful label
-    (isAutonomousPrompt ? 'Autonomous session' : undefined) ||
-    // Fall back to truncated session ID for lite logs with no metadata
+    // 自主会话无其他上下文时，显示有意义的标签
+    (isAutonomousPrompt ? '自主会话' : undefined) ||
+    // 无元数据的精简日志回退到截断的会话 ID
     (log.sessionId ? log.sessionId.slice(0, 8) : '') ||
     ''
-  // Strip display-unfriendly tags (like <ide_opened_file>) for cleaner titles
+  // 过滤不适合显示的标签（如 <ide_opened_file>）以获得更干净的标题
   return stripDisplayTags(title).trim()
 }
 
@@ -61,8 +61,8 @@ export function dateToFilename(date: Date): string {
   return date.toISOString().replace(/[:.]/g, '-')
 }
 
-// In-memory error log for recent errors
-// Moved from bootstrap/state.ts to break import cycle
+// 最近错误的内存日志
+// 从 bootstrap/state.ts 移至此处以打破导入循环
 const MAX_IN_MEMORY_ERRORS = 100
 let inMemoryErrorLog: Array<{ error: string; timestamp: string }> = []
 
@@ -71,13 +71,13 @@ function addToInMemoryErrorLog(errorInfo: {
   timestamp: string
 }): void {
   if (inMemoryErrorLog.length >= MAX_IN_MEMORY_ERRORS) {
-    inMemoryErrorLog.shift() // Remove oldest error
+    inMemoryErrorLog.shift() // 移除最旧的错误
   }
   inMemoryErrorLog.push(errorInfo)
 }
 
 /**
- * Sink interface for the error logging backend
+ * 错误日志后端的 Sink 接口
  */
 export type ErrorLogSink = {
   logError: (error: Error) => void
@@ -87,7 +87,7 @@ export type ErrorLogSink = {
   getMCPLogsPath: (serverName: string) => string
 }
 
-// Queued events for events logged before sink is attached
+// Sink 挂载前记录的事件队列
 type QueuedErrorEvent =
   | { type: 'error'; error: Error }
   | { type: 'mcpError'; serverName: string; error: unknown }
@@ -95,16 +95,15 @@ type QueuedErrorEvent =
 
 const errorQueue: QueuedErrorEvent[] = []
 
-// Sink - initialized during app startup
+// Sink —— 在应用启动时初始化
 let errorLogSink: ErrorLogSink | null = null
 
 /**
- * Attach the error log sink that will receive all error events.
- * Queued events are drained immediately to ensure no errors are lost.
+ * 挂载接收所有错误事件的错误日志 Sink。
+ * 队列中的事件会立即排空，确保不丢失任何错误。
  *
- * Idempotent: if a sink is already attached, this is a no-op. This allows
- * calling from both the preAction hook (for subcommands) and setup() (for
- * the default command) without coordination.
+ * 幂等：若 Sink 已挂载则为空操作，允许从 preAction 钩子（子命令）
+ * 和 setup()（默认命令）同时调用而无需协调。
  */
 export function attachErrorLogSink(newSink: ErrorLogSink): void {
   if (errorLogSink !== null) {
@@ -112,7 +111,7 @@ export function attachErrorLogSink(newSink: ErrorLogSink): void {
   }
   errorLogSink = newSink
 
-  // Drain the queue immediately - errors should not be delayed
+  // 立即排空队列——错误不应被延迟
   if (errorQueue.length > 0) {
     const queuedEvents = [...errorQueue]
     errorQueue.length = 0
@@ -134,22 +133,21 @@ export function attachErrorLogSink(newSink: ErrorLogSink): void {
 }
 
 /**
- * Logs an error to multiple destinations for debugging and monitoring.
+ * 将错误记录到多个目标，用于调试和监控。
  *
- * This function logs errors to:
- * - Debug logs (visible via `claude --debug` or `tail -f ~/.claude/debug/latest`)
- * - In-memory error log (accessible via `getInMemoryErrors()`, useful for including
- *   in bug reports or displaying recent errors to users)
- * - Persistent error log file (only for internal 'ant' users, stored in ~/.claude/errors/)
+ * 错误写入以下位置：
+ * - 调试日志（通过 `claude --debug` 或 `tail -f ~/.hclaude/debug/latest` 查看）
+ * - 内存错误日志（通过 `getInMemoryErrors()` 访问，可用于错误报告或展示给用户）
+ * - 持久化错误日志文件（仅限内部 'ant' 用户，存储于 ~/.hclaude/errors/）
  *
- * Usage:
+ * 用法：
  * ```ts
  * logError(new Error('Failed to connect'))
  * ```
  *
- * To view errors:
- * - Debug: Run `claude --debug` or `tail -f ~/.claude/debug/latest`
- * - In-memory: Call `getInMemoryErrors()` to get recent errors for the current session
+ * 查看错误：
+ * - 调试：运行 `claude --debug` 或 `tail -f ~/.hclaude/debug/latest`
+ * - 内存：调用 `getInMemoryErrors()` 获取当前会话的最近错误
  */
 const isHardFailMode = memoize((): boolean => {
   return process.argv.includes('--hard-fail')
@@ -163,9 +161,9 @@ export function logError(error: unknown): void {
     process.exit(1)
   }
   try {
-    // Check if error reporting should be disabled
+    // 检查是否应禁用错误上报
     if (
-      // Cloud providers (Bedrock/Vertex/Foundry) always disable features
+      // 云服务商（Bedrock/Vertex/Foundry）始终禁用该功能
       isEnvTruthy(process.env.CLAUDE_CODE_USE_BEDROCK) ||
       isEnvTruthy(process.env.CLAUDE_CODE_USE_VERTEX) ||
       isEnvTruthy(process.env.CLAUDE_CODE_USE_FOUNDRY) ||
@@ -182,10 +180,10 @@ export function logError(error: unknown): void {
       timestamp: new Date().toISOString(),
     }
 
-    // Always add to in-memory log (no dependencies needed)
+    // 始终写入内存日志（无依赖）
     addToInMemoryErrorLog(errorInfo)
 
-    // If sink not attached, queue the event
+    // Sink 未挂载时将事件加入队列
     if (errorLogSink === null) {
       errorQueue.push({ type: 'error', error: err })
       return
@@ -202,17 +200,17 @@ export function getInMemoryErrors(): { error: string; timestamp: string }[] {
 }
 
 /**
- * Loads the list of error logs
- * @returns List of error logs sorted by date
+ * 加载错误日志列表
+ * @returns 按日期排序的错误日志列表
  */
 export function loadErrorLogs(): Promise<LogOption[]> {
   return loadLogList(CACHE_PATHS.errors())
 }
 
 /**
- * Gets an error log by its index
- * @param index Index in the sorted list of logs (0-based)
- * @returns Log data or null if not found
+ * 按索引获取错误日志
+ * @param index 排序后日志列表中的索引（从 0 开始）
+ * @returns 日志数据，未找到时返回 null
  */
 export async function getErrorLogByIndex(
   index: number,
@@ -222,9 +220,9 @@ export async function getErrorLogByIndex(
 }
 
 /**
- * Internal function to load and process logs from a specified path
- * @param path Directory containing logs
- * @returns Array of logs sorted by date
+ * 从指定路径加载并处理日志的内部函数
+ * @param path 存放日志的目录
+ * @returns 按日期排序的日志数组
  * @private
  */
 async function loadLogList(path: string): Promise<LogOption[]> {
@@ -248,20 +246,20 @@ async function loadLogList(path: string): Promise<LogOption[]> {
           ? firstMessage?.message?.content
           : 'No prompt'
 
-      // For new random filenames, we'll get stats from the file itself
+      // 对于随机文件名，从文件本身获取统计信息
       const fileStats = await stat(fullPath)
 
-      // Check if it's a sidechain by looking at filename
+      // 通过文件名判断是否为 sidechain
       const isSidechain = fullPath.includes('sidechain')
 
-      // For new files, use the file modified time as date
+      // 新文件使用文件修改时间作为日期
       const date = dateToFilename(fileStats.mtime)
 
       return {
         date,
         fullPath,
         messages,
-        value: i, // hack: overwritten after sorting, right below this
+        value: i, // 临时值：排序后立即覆盖（见下方）
         created: parseISOString(firstMessage?.timestamp || date),
         modified: lastMessage?.timestamp
           ? parseISOString(lastMessage.timestamp)
@@ -298,7 +296,7 @@ function parseISOString(s: string): Date {
 
 export function logMCPError(serverName: string, error: unknown): void {
   try {
-    // If sink not attached, queue the event
+    // Sink 未挂载时将事件加入队列
     if (errorLogSink === null) {
       errorQueue.push({ type: 'mcpError', serverName, error })
       return
@@ -306,13 +304,13 @@ export function logMCPError(serverName: string, error: unknown): void {
 
     errorLogSink.logMCPError(serverName, error)
   } catch {
-    // Silently fail
+    // 静默失败
   }
 }
 
 export function logMCPDebug(serverName: string, message: string): void {
   try {
-    // If sink not attached, queue the event
+    // Sink 未挂载时将事件加入队列
     if (errorLogSink === null) {
       errorQueue.push({ type: 'mcpDebug', serverName, message })
       return
@@ -320,38 +318,36 @@ export function logMCPDebug(serverName: string, message: string): void {
 
     errorLogSink.logMCPDebug(serverName, message)
   } catch {
-    // Silently fail
+    // 静默失败
   }
 }
 
 /**
- * Captures the last API request for inclusion in bug reports.
+ * 捕获最后一次 API 请求，用于错误报告。
  */
 export function captureAPIRequest(
   params: BetaMessageStreamParams,
   querySource?: QuerySource,
 ): void {
-  // startsWith, not exact match — users with non-default output styles get
-  // variants like 'repl_main_thread:outputStyle:Explanatory' (querySource.ts).
+  // 使用 startsWith 而非精确匹配——非默认输出风格的用户会得到
+  // 类似 'repl_main_thread:outputStyle:Explanatory' 的变体（见 querySource.ts）。
   if (!querySource || !querySource.startsWith('repl_main_thread')) {
     return
   }
 
-  // Store params WITHOUT messages to avoid retaining the entire conversation
-  // for all users. Messages are already persisted to the transcript file and
-  // available via React state.
+  // 存储不含 messages 的参数，避免为所有用户保留完整对话。
+  // messages 已持久化到转录文件，并可通过 React state 访问。
   const { messages, ...paramsWithoutMessages } = params
   setLastAPIRequest(paramsWithoutMessages)
-  // For ant users only: also keep a reference to the final messages array so
-  // /share's serialized_conversation.json captures the exact post-compaction,
-  // CLAUDE.md-injected payload the API received. Overwritten each turn;
-  // dumpPrompts.ts already holds 5 full request bodies for ants, so this is
-  // not a new retention class.
+  // 仅限 ant 用户：同时保留最终 messages 数组引用，
+  // 使 /share 的 serialized_conversation.json 能捕获 API 收到的
+  // 压缩后、注入 CLAUDE.md 的精确载荷。每轮覆盖；
+  // dumpPrompts.ts 已为 ant 用户保存 5 份完整请求体，不属于新的保留类别。
   setLastAPIRequestMessages(process.env.USER_TYPE === 'ant' ? messages : null)
 }
 
 /**
- * Reset error log state for testing purposes only.
+ * 仅用于测试：重置错误日志状态。
  * @internal
  */
 export function _resetErrorLogForTesting(): void {

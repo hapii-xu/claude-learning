@@ -15,15 +15,15 @@ import { join } from 'node:path'
 import { parseFrontmatter } from '../../utils/frontmatterParser.js'
 
 /**
- * Per-session memoization to avoid re-emitting the same skill discovery /
- * gap signal twice. Each Set is bounded to keep long-running sessions from
- * monotonically accumulating skill names and signal keys forever (which
- * was the original session-scoped-but-unbounded design).
+ * 会话级记忆化，避免重复发出相同的技能发现/
+ * gap 信号。每个 Set 都有上限，防止长时间运行的会话
+ * 永远单调累积技能名和信号键（这是原始的
+ * 会话级但无上限设计的问题）。
  *
- * FIFO eviction by insertion order — once the cap is hit, the oldest
- * entries roll off and may be re-recorded if rediscovered, which is the
- * correct degraded behaviour: at worst we re-emit a duplicate signal,
- * never silently drop a real one.
+ * 按插入顺序的 FIFO 淘汰 —— 一旦达到上限，最旧的
+ * 条目会滚动出去，如果重新发现可能会被重新记录，这是
+ * 正确的降级行为：最坏情况我们重新发出重复信号，
+ * 永远不会静默丢弃真正的信号。
  */
 const SESSION_TRACKING_MAX = 1000
 const SESSION_TRACKING_TRIM_TO = 750
@@ -59,9 +59,9 @@ export function extractQueryFromMessages(
 
   if (input) parts.push(input)
 
-  // Walk backward. In inter-turn prefetch the most recent 'user' message is
-  // typically a tool_result (no text block), so we must keep walking until we
-  // find a real user utterance with string content or a text block.
+  // 向后遍历。在回合间预取中，最近的 'user' 消息
+  // 通常是 tool_result（无文本块），因此我们必须继续遍历直到
+  // 找到带有字符串内容或文本块的真实用户话语。
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i] as Record<string, unknown>
     if (msg.type !== 'user') continue
@@ -74,8 +74,8 @@ export function extractQueryFromMessages(
       let foundText = false
       for (const block of content) {
         const entry = block as Record<string, unknown>
-        // Skip tool_result and other non-text blocks — they carry no discovery
-        // signal and would return undefined here regardless.
+        // 跳过 tool_result 和其他非文本块 —— 它们不携带发现
+        // 信号，无论如何在这里都会返回 undefined。
         if (entry.type && entry.type !== 'text') continue
         const text = entry.text
         if (typeof text === 'string' && text.trim()) {
@@ -180,7 +180,7 @@ async function loadSkillContent(
         content: parseFrontmatter(raw).content.slice(0, AUTO_LOAD_MAX_CHARS),
       }
     } catch {
-      // Try next candidate.
+      // 尝试下一个候选。
     }
   }
   return null
@@ -196,7 +196,7 @@ async function markAutoLoadedSkill(
     const { addInvokedSkill } = await import('../../bootstrap/state.js')
     addInvokedSkill(name, path, content, context.agentId ?? null)
   } catch {
-    // Best effort only.
+    // 尽力而为。
   }
 }
 
@@ -319,10 +319,10 @@ export async function getTurnZeroSkillDiscovery(
     const cwd =
       ((context as Record<string, unknown>).cwd as string) ?? process.cwd()
     const index = await getSkillIndex(cwd)
-    // Intent normalization (feature-flagged, ASCII-only fast path, graceful
-    // fallback to original). Turn-zero is the one blocking entry — acceptable
-    // to add a Haiku call here since a bad match here pollutes the LLM's
-    // context for the entire session.
+    // 意图归一化（功能标志、ASCII-only 快速路径、
+    // 优雅回退到原始查询）。零回合是唯一的阻塞入口 —— 可以
+    // 接受在这里添加 Haiku 调用，因为这里的错误匹配会污染 LLM
+    // 整个会话的上下文。
     const searchQuery = await normalizeQueryIntent(input)
     const results = searchSkills(searchQuery, index)
     const enriched = await enrichResultsForAutoLoad(results, context)

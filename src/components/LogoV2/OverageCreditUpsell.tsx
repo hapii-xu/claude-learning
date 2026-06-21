@@ -14,19 +14,17 @@ import type { FeedConfig } from './Feed.js';
 const MAX_IMPRESSIONS = 3;
 
 /**
- * Whether to show the overage credit upsell on any surface.
+ * 是否在任何界面上展示 overage credit upsell。
  *
- * Eligibility comes entirely from the backend GET /overage_credit_grant
- * response — the CLI doesn't replicate tier/threshold/role checks. The
- * backend returns available: false for Team members who aren't admins,
- * so they don't see an upsell they can't act on.
+ * 资格完全来自后端 GET /overage_credit_grant 响应 —
+ * CLI 不复制 tier/threshold/role 检查。后端对非 admin 的 Team 成员
+ * 返回 available: false，这样他们就不会看到无法操作的 upsell。
  *
- * isEligibleForOverageCreditGrant — just the backend eligibility. Use for
- *   persistent reference surfaces (/usage) where the info should show
- *   whenever eligible, no impression cap.
- * shouldShowOverageCreditUpsell — adds the 3-impression cap and
- *   hasVisitedExtraUsage dismiss. Use for promotional surfaces
- *   (welcome feed, tips).
+ * isEligibleForOverageCreditGrant — 仅为后端资格。用于持久参考界面
+ *   （/usage），在这些界面上只要符合条件就应展示信息，没有展示次数上限。
+ * shouldShowOverageCreditUpsell — 增加 3 次展示上限和
+ *   hasVisitedExtraUsage 关闭行为。用于推广类界面
+ *   （欢迎 feed、tips）。
  */
 export function isEligibleForOverageCreditGrant(): boolean {
   const info = getCachedOverageCreditGrant();
@@ -45,8 +43,8 @@ export function shouldShowOverageCreditUpsell(): boolean {
 }
 
 /**
- * Kick off a background fetch if the cache is empty. Safe to call
- * unconditionally on mount — it no-ops if cache is fresh.
+ * 如果缓存为空，则发起后台 fetch。可以在挂载时无条件调用 —
+ * 如果缓存是最新的就 no-op。
  */
 export function maybeRefreshOverageCreditCache(): void {
   if (getCachedOverageCreditGrant() !== null) return;
@@ -73,13 +71,13 @@ export function incrementOverageCreditUpsellSeenCount(): void {
   logEvent('tengu_overage_credit_upsell_shown', { seen_count: newCount });
 }
 
-// Copy from "OC & Bulk Overages copy" doc (#6 — CLI /usage)
+// 文案来自 "OC & Bulk Overages copy" 文档（#6 — CLI /usage）
 function getUsageText(amount: string): string {
   return `${amount} in extra usage for third-party apps · /extra-usage`;
 }
 
-// Copy from "OC & Bulk Overages copy" doc (#4 — CLI Welcome screen).
-// Char budgets: title ≤19, subtitle ≤48.
+// 文案来自 "OC & Bulk Overages copy" 文档（#4 — CLI Welcome 屏幕）。
+// 字符预算：title ≤19，subtitle ≤48。
 const FEED_SUBTITLE = 'On us. Works on third-party apps · /extra-usage';
 
 function getFeedTitle(amount: string): string {
@@ -117,11 +115,11 @@ export function OverageCreditUpsell({ maxWidth, twoLine }: Props): React.ReactNo
 }
 
 /**
- * Feed config for the homescreen rotating feed. Mirrors
- * createGuestPassesFeed in feedConfigs.tsx.
+ * 主屏轮播 feed 的 feed 配置。与 feedConfigs.tsx 中的
+ * createGuestPassesFeed 对应。
  *
- * Copy from "OC & Bulk Overages copy" doc (#4 — CLI Welcome screen).
- * Char budgets: title ≤19, subtitle ≤48.
+ * 文案来自 "OC & Bulk Overages copy" 文档（#4 — CLI Welcome 屏幕）。
+ * 字符预算：title ≤19，subtitle ≤48。
  */
 export function createOverageCreditFeed(): FeedConfig {
   const info = getCachedOverageCreditGrant();

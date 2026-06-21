@@ -11,13 +11,13 @@ type Props = {
 };
 
 // <channel source="..." user="..." chat_id="...">content</channel>
-// source is always first (wrapChannelMessage writes it), user is optional.
+// source 总是第一个（wrapChannelMessage 写入它），user 是可选的。
 const CHANNEL_RE = new RegExp(`<${CHANNEL_TAG}\\s+source="([^"]+)"([^>]*)>\\n?([\\s\\S]*?)\\n?</${CHANNEL_TAG}>`);
 const USER_ATTR_RE = /\buser="([^"]+)"/;
 
-// Plugin-provided servers get names like plugin:slack-channel:slack via
-// addPluginScopeToServers — show just the leaf. Matches the suffix-match
-// logic in isServerInChannels.
+// Plugin 提供的服务器通过 addPluginScopeToServers 获得类似
+// plugin:slack-channel:slack 的名称 —— 只显示叶子部分。匹配
+// isServerInChannels 中的 suffix-match 逻辑。
 function displayServerName(name: string): string {
   const i = name.lastIndexOf(':');
   return i === -1 ? name : name.slice(i + 1);

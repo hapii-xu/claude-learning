@@ -11,10 +11,10 @@ import { which } from '../which.js'
 
 export const CLAUDE_IN_CHROME_MCP_SERVER_NAME = 'claude-in-chrome'
 
-// Re-export ChromiumBrowser type for setup.ts
+// 为 setup.ts 重新导出 ChromiumBrowser 类型
 export type { ChromiumBrowser } from './setupPortable.js'
 
-// Import for local use
+// 本地使用的 import
 import type { ChromiumBrowser } from './setupPortable.js'
 
 type BrowserConfig = {
@@ -32,7 +32,7 @@ type BrowserConfig = {
   windows: {
     dataPath: string[]
     registryKey: string
-    useRoaming?: boolean // Opera uses Roaming instead of Local
+    useRoaming?: boolean // Opera 使用 Roaming 而非 Local
   }
 }
 
@@ -108,13 +108,13 @@ export const CHROMIUM_BROWSERS: Record<ChromiumBrowser, BrowserConfig> = {
       ],
     },
     linux: {
-      // Arc is not available on Linux
+      // Arc 在 Linux 上不可用
       binaries: [],
       dataPath: [],
       nativeMessagingPath: [],
     },
     windows: {
-      // Arc Windows is Chromium-based
+      // Arc Windows 基于 Chromium
       dataPath: ['Arc', 'User Data'],
       registryKey: 'HKCU\\Software\\ArcBrowser\\Arc\\NativeMessagingHosts',
     },
@@ -210,12 +210,12 @@ export const CHROMIUM_BROWSERS: Record<ChromiumBrowser, BrowserConfig> = {
       dataPath: ['Opera Software', 'Opera Stable'],
       registryKey:
         'HKCU\\Software\\Opera Software\\Opera Stable\\NativeMessagingHosts',
-      useRoaming: true, // Opera uses Roaming AppData, not Local
+      useRoaming: true, // Opera 使用 Roaming AppData，而非 Local
     },
   },
 }
 
-// Priority order for browser detection (most common first)
+// 浏览器检测的优先级顺序（最常见的优先）
 export const BROWSER_DETECTION_ORDER: ChromiumBrowser[] = [
   'chrome',
   'brave',
@@ -227,7 +227,7 @@ export const BROWSER_DETECTION_ORDER: ChromiumBrowser[] = [
 ]
 
 /**
- * Get all browser data paths to check for extension installation
+ * 获取所有浏览器数据路径以检查扩展安装
  */
 export function getAllBrowserDataPaths(): {
   browser: ChromiumBrowser
@@ -275,7 +275,7 @@ export function getAllBrowserDataPaths(): {
 }
 
 /**
- * Get native messaging host directories for all supported browsers
+ * 获取所有受支持浏览器的原生消息宿主目录
  */
 export function getAllNativeMessagingHostsDirs(): {
   browser: ChromiumBrowser
@@ -307,8 +307,8 @@ export function getAllNativeMessagingHostsDirs(): {
         }
         break
       case 'windows':
-        // Windows uses registry, not file paths for native messaging
-        // We'll use a common location for the manifest file
+        // Windows 使用注册表而非文件路径进行原生消息通信
+        // 我们将为 manifest 文件使用一个通用位置
         break
     }
   }
@@ -317,7 +317,7 @@ export function getAllNativeMessagingHostsDirs(): {
 }
 
 /**
- * Get Windows registry keys for all supported browsers
+ * 获取所有受支持浏览器的 Windows 注册表键
  */
 export function getAllWindowsRegistryKeys(): {
   browser: ChromiumBrowser
@@ -339,8 +339,8 @@ export function getAllWindowsRegistryKeys(): {
 }
 
 /**
- * Detect which browser to use for opening URLs
- * Returns the first available browser, or null if none found
+ * 检测应使用哪个浏览器打开 URL
+ * 返回第一个可用的浏览器，若无则返回 null
  */
 export async function detectAvailableBrowser(): Promise<ChromiumBrowser | null> {
   const platform = getPlatform()
@@ -350,7 +350,7 @@ export async function detectAvailableBrowser(): Promise<ChromiumBrowser | null> 
 
     switch (platform) {
       case 'macos': {
-        // Check if the .app bundle (a directory) exists
+        // 检查 .app bundle（一个目录）是否存在
         const appPath = `/Applications/${config.macos.appName}.app`
         try {
           const stats = await stat(appPath)
@@ -362,13 +362,13 @@ export async function detectAvailableBrowser(): Promise<ChromiumBrowser | null> 
           }
         } catch (e) {
           if (!isFsInaccessible(e)) throw e
-          // App not found, continue checking
+          // 未找到 App，继续检查
         }
         break
       }
       case 'wsl':
       case 'linux': {
-        // Check if any binary exists
+        // 检查是否有任何二进制文件存在
         for (const binary of config.linux.binaries) {
           if (await which(binary).catch(() => null)) {
             logForDebugging(
@@ -380,7 +380,7 @@ export async function detectAvailableBrowser(): Promise<ChromiumBrowser | null> 
         break
       }
       case 'windows': {
-        // Check if data path exists (indicates browser is installed)
+        // 检查数据路径是否存在（表示浏览器已安装）
         const home = homedir()
         if (config.windows.dataPath.length > 0) {
           const appDataBase = config.windows.useRoaming
@@ -397,7 +397,7 @@ export async function detectAvailableBrowser(): Promise<ChromiumBrowser | null> 
             }
           } catch (e) {
             if (!isFsInaccessible(e)) throw e
-            // Browser not found, continue checking
+            // 未找到浏览器，继续检查
           }
         }
         break
@@ -429,7 +429,7 @@ export function isTrackedClaudeInChromeTabId(tabId: number): boolean {
 export async function openInChrome(url: string): Promise<boolean> {
   const currentPlatform = getPlatform()
 
-  // Detect the best available browser
+  // 检测最佳可用浏览器
   const browser = await detectAvailableBrowser()
 
   if (!browser) {
@@ -449,7 +449,7 @@ export async function openInChrome(url: string): Promise<boolean> {
       return code === 0
     }
     case 'windows': {
-      // Use rundll32 to avoid cmd.exe metacharacter issues with URLs containing & | > <
+      // 使用 rundll32 以避免 cmd.exe 元字符问题（URL 中可能包含 & | > <）
       const { code } = await execFileNoThrow('rundll32', ['url,OpenURL', url])
       return code === 0
     }
@@ -469,14 +469,14 @@ export async function openInChrome(url: string): Promise<boolean> {
 }
 
 /**
- * Get the socket directory path (Unix only)
+ * 获取 socket 目录路径（仅 Unix）
  */
 export function getSocketDir(): string {
   return `/tmp/claude-mcp-browser-bridge-${getUsername()}`
 }
 
 /**
- * Get the socket path (Unix) or pipe name (Windows)
+ * 获取 socket 路径（Unix）或管道名（Windows）
  */
 export function getSecureSocketPath(): string {
   if (platform() === 'win32') {
@@ -486,11 +486,11 @@ export function getSecureSocketPath(): string {
 }
 
 /**
- * Get all socket paths including PID-based sockets in the directory
- * and legacy fallback paths
+ * 获取所有 socket 路径，包括目录中基于 PID 的 socket
+ * 和旧版回退路径
  */
 export function getAllSocketPaths(): string[] {
-  // Windows uses named pipes, not Unix sockets
+  // Windows 使用命名管道，而非 Unix socket
   if (platform() === 'win32') {
     return [`\\\\.\\pipe\\${getSocketName()}`]
   }
@@ -498,9 +498,9 @@ export function getAllSocketPaths(): string[] {
   const paths: string[] = []
   const socketDir = getSocketDir()
 
-  // Scan for *.sock files in the socket directory
+  // 扫描 socket 目录下的 *.sock 文件
   try {
-    // eslint-disable-next-line custom-rules/no-sync-fs -- ClaudeForChromeContext.getSocketPaths (external @ant/claude-for-chrome-mcp) requires a sync () => string[] callback
+    // eslint-disable-next-line custom-rules/no-sync-fs -- ClaudeForChromeContext.getSocketPaths（外部 @ant/claude-for-chrome-mcp）需要同步的 () => string[] 回调
     const files = readdirSync(socketDir)
     for (const file of files) {
       if (file.endsWith('.sock')) {
@@ -508,10 +508,10 @@ export function getAllSocketPaths(): string[] {
       }
     }
   } catch {
-    // Directory may not exist yet
+    // 目录可能尚未存在
   }
 
-  // Legacy fallback paths
+  // 旧版回退路径
   const legacyName = `claude-mcp-browser-bridge-${getUsername()}`
   const legacyTmpdir = join(tmpdir(), legacyName)
   const legacyTmp = `/tmp/${legacyName}`
@@ -527,7 +527,7 @@ export function getAllSocketPaths(): string[] {
 }
 
 function getSocketName(): string {
-  // NOTE: This must match the one used in the Claude in Chrome MCP
+  // 注意：此处必须与 Claude in Chrome MCP 中使用的一致
   return `claude-mcp-browser-bridge-${getUsername()}`
 }
 

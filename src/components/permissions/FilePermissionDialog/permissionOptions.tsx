@@ -9,29 +9,28 @@ import { expandPath, getDirectoryForPath } from '../../../utils/path.js';
 import { normalizeCaseForComparison, pathInAllowedWorkingPath } from '../../../utils/permissions/filesystem.js';
 import type { OptionWithDescription } from '../../CustomSelect/select.js';
 /**
- * Check if a path is within the project's .claude/ folder.
- * This is used to determine whether to show the special ".claude folder" permission option.
+ * 检查路径是否位于项目的 .claude/ 文件夹内。
+ * 用于决定是否显示特殊的 ".claude folder" 权限选项。
  */
 export function isInClaudeFolder(filePath: string): boolean {
   const absolutePath = expandPath(filePath);
   const claudeFolderPath = expandPath(`${getOriginalCwd()}/.claude`);
 
-  // Check if the path is within the project's .claude folder
+  // 检查路径是否位于项目的 .claude 文件夹内
   const normalizedAbsolutePath = normalizeCaseForComparison(absolutePath);
   const normalizedClaudeFolderPath = normalizeCaseForComparison(claudeFolderPath);
 
-  // Path must start with the .claude folder path (and be inside it, not just the folder itself)
+  // 路径必须以 .claude 文件夹路径开头（且位于其中，而不仅是文件夹本身）
   return (
     normalizedAbsolutePath.startsWith(normalizedClaudeFolderPath + sep.toLowerCase()) ||
-    // Also match case where sep is / on posix systems
+    // 同时匹配 posix 系统上 sep 为 / 的情况
     normalizedAbsolutePath.startsWith(normalizedClaudeFolderPath + '/')
   );
 }
 
 /**
- * Check if a path is within the global ~/.claude/ folder.
- * This is used to determine whether to show the special ".claude folder" permission option
- * for files in the user's home directory.
+ * 检查路径是否位于全局 ~/.claude/ 文件夹内。
+ * 用于决定是否对用户主目录下的文件显示特殊的 ".claude folder" 权限选项。
  */
 export function isInGlobalClaudeFolder(filePath: string): boolean {
   const absolutePath = expandPath(filePath);
@@ -77,7 +76,7 @@ export function getFilePermissionOptions({
   const options: PermissionOptionWithLabel[] = [];
   const modeCycleShortcut = getShortcutDisplay('chat:cycleMode', 'Chat', 'shift+tab');
 
-  // When in input mode, show input field
+  // 处于输入模式时，显示输入框
   if (yesInputMode && onAcceptFeedbackChange) {
     options.push({
       type: 'input',
@@ -98,14 +97,14 @@ export function getFilePermissionOptions({
 
   const inAllowedPath = pathInAllowedWorkingPath(filePath, toolPermissionContext);
 
-  // Check if this is a .claude/ folder path (project or global)
+  // 检查是否为 .claude/ 文件夹路径（项目或全局）
   const inClaudeFolder = isInClaudeFolder(filePath);
   const inGlobalClaudeFolder = isInGlobalClaudeFolder(filePath);
 
-  // Option 2: For .claude/ folder, show special option instead of generic session option
-  // Note: Session-level options are always shown since they only affect in-memory state,
-  // not persisted settings. The allowManagedPermissionRulesOnly setting only restricts
-  // persisted permission rules.
+  // 选项 2：对于 .claude/ 文件夹，显示特殊选项而非通用 session 选项
+  // 注意：session 级别的选项始终显示，因为它们只影响内存中的状态，
+  // 不持久化到设置。allowManagedPermissionRulesOnly 设置仅限制
+  // 持久化的权限规则。
   if ((inClaudeFolder || inGlobalClaudeFolder) && operationType !== 'read') {
     options.push({
       label: 'Yes, allow edits to .claude/ config for this session',
@@ -116,11 +115,11 @@ export function getFilePermissionOptions({
       },
     });
   } else {
-    // Option 2: Allow all changes/reads during session
+    // 选项 2：允许 session 期间所有更改/读取
     let sessionLabel: ReactNode;
 
     if (inAllowedPath) {
-      // Inside working directory
+      // 工作目录内
       if (operationType === 'read') {
         sessionLabel = 'Yes, during this session';
       } else {
@@ -131,7 +130,7 @@ export function getFilePermissionOptions({
         );
       }
     } else {
-      // Outside working directory - include directory name
+      // 工作目录外 - 包含目录名
       const dirPath = getDirectoryForPath(filePath);
       const dirName = basename(dirPath) || 'this directory';
 
@@ -158,7 +157,7 @@ export function getFilePermissionOptions({
     });
   }
 
-  // When in input mode, show input field for reject
+  // 处于输入模式时，为拒绝显示输入框
   if (noInputMode && onRejectFeedbackChange) {
     options.push({
       type: 'input',
@@ -170,7 +169,7 @@ export function getFilePermissionOptions({
       option: { type: 'reject' },
     });
   } else {
-    // Not in input mode - simple option
+    // 非输入模式 - 普通选项
     options.push({
       label: 'No',
       value: 'no',

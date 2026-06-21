@@ -8,10 +8,10 @@ import {
 } from './analytics/index.js'
 
 /**
- * Get the current Kubernetes namespace:
- * Returns null on laptops/local development,
- * "default" for devboxes in default namespace,
- * "ts" for devboxes in ts namespace,
+ * 获取当前的 Kubernetes 命名空间：
+ * 在笔记本/本地开发环境返回 null，
+ * 默认命名空间中的 devbox 返回 "default"，
+ * ts 命名空间中的 devbox 返回 "ts"，
  * ...
  */
 const getKubernetesNamespace = memoize(async (): Promise<string | null> => {
@@ -30,7 +30,7 @@ const getKubernetesNamespace = memoize(async (): Promise<string | null> => {
 })
 
 /**
- * Get the OCI container ID from within a running container
+ * 从运行中的容器内获取 OCI 容器 ID
  */
 export const getContainerId = memoize(async (): Promise<string | null> => {
   if (process.env.USER_TYPE !== 'ant') {
@@ -44,9 +44,9 @@ export const getContainerId = memoize(async (): Promise<string | null> => {
       await readFile(containerIdPath, { encoding: 'utf8' })
     ).trim()
 
-    // Pattern to match both Docker and containerd/CRI-O container IDs
-    // Docker: /docker/containers/[64-char-hex]
-    // Containerd: /sandboxes/[64-char-hex]
+    // 匹配 Docker 和 containerd/CRI-O 容器 ID 的模式
+    // Docker: /docker/containers/[64位十六进制]
+    // Containerd: /sandboxes/[64位十六进制]
     const containerIdPattern =
       /(?:\/docker\/containers\/|\/sandboxes\/)([0-9a-f]{64})/
 
@@ -66,7 +66,7 @@ export const getContainerId = memoize(async (): Promise<string | null> => {
 })
 
 /**
- * Logs an event with the current namespace and tool permission context
+ * 记录包含当前命名空间和工具权限上下文的事件
  */
 export async function logPermissionContextForAnts(
   toolPermissionContext: ToolPermissionContext | null,

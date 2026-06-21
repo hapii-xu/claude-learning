@@ -8,7 +8,7 @@ import { CCR_TERMS_URL } from '../../commands/ultraplan.js';
 import { getPromptIdentifier, getDialogConfig, type PromptIdentifier } from 'src/utils/ultraplan/prompt.js';
 
 // ---------------------------------------------------------------------------
-// Types
+// 类型
 // ---------------------------------------------------------------------------
 
 type ChoiceValue = 'run' | 'cancel';
@@ -32,30 +32,30 @@ function dispatchPromptIdentifier() {
 }
 
 export function UltraplanLaunchDialog({ onChoice }: UltraplanLaunchDialogProps): React.ReactNode {
-  // Whether the user has never seen the ultraplan terms before
+  // 用户是否从未见过 ultraplan 条款
   const [showTermsLink] = React.useState(dispatchShowTermsLink);
 
-  // Stable prompt identifier for this dialog instance
+  // 此对话框实例的稳定 prompt identifier
   const [promptIdentifier] = React.useState(dispatchPromptIdentifier);
 
-  // Dialog copy derived from the prompt identifier
+  // 从 prompt identifier 派生的对话框文案
   const dialogConfig = React.useMemo(() => {
     return getDialogConfig(promptIdentifier);
   }, [promptIdentifier]);
 
-  // Whether the remote-control bridge is currently active
+  // 远程控制 bridge 是否当前处于激活状态
   const isBridgeEnabled = useAppState(state => state.replBridgeEnabled);
 
   const setAppState = useSetAppState();
 
   // ------------------------------------------------------------------
-  // Choice handler
+  // 选择处理器
   // ------------------------------------------------------------------
 
   const handleChoice = React.useCallback(
     (value: ChoiceValue) => {
-      // If the user chose "run" while the bridge is enabled, disconnect it
-      // first so the ultraplan session doesn't collide with remote control.
+      // 如果用户在 bridge 启用时选择了 "run"，先断开 bridge，
+      // 以免 ultraplan 会话与远程控制冲突。
       const disconnectedBridge = value === 'run' && isBridgeEnabled;
 
       if (disconnectedBridge) {
@@ -72,7 +72,7 @@ export function UltraplanLaunchDialog({ onChoice }: UltraplanLaunchDialogProps):
         });
       }
 
-      // Persist that the user has now seen the ultraplan terms
+      // 持久化用户已经看过 ultraplan 条款
       if (value !== 'cancel' && showTermsLink) {
         saveGlobalConfig(prev => (prev.hasSeenUltraplanTerms ? prev : { ...prev, hasSeenUltraplanTerms: true }));
       }
@@ -112,7 +112,7 @@ export function UltraplanLaunchDialog({ onChoice }: UltraplanLaunchDialogProps):
           ) : null}
         </Box>
 
-        {/* Pipeline description (hidden when bridge will be disconnected) */}
+        {/* Pipeline 描述（当 bridge 将被断开时隐藏） */}
         <Text dimColor>
           {isBridgeEnabled ? 'This will disable Remote Control for this session.' : dialogConfig.dialogPipeline}
         </Text>

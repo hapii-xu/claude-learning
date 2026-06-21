@@ -25,8 +25,8 @@ type TaskOutputResult = {
 };
 
 /**
- * Read the tail of the task output file. Only reads the last few KB,
- * not the entire file.
+ * 读取 task 输出文件的尾部。只读最后几 KB，
+ * 不读整个文件。
  */
 async function getTaskOutput(shell: DeepImmutable<LocalShellTaskState>): Promise<TaskOutputResult> {
   const path = getTaskOutputPath(shell.id);
@@ -41,10 +41,10 @@ async function getTaskOutput(shell: DeepImmutable<LocalShellTaskState>): Promise
 export function ShellDetailDialog({ shell, onDone, onKillShell, onBack }: Props): React.ReactNode {
   const { columns } = useTerminalSize();
 
-  // Promise created in initializer (not during render). For running shells,
-  // the effect timer replaces it periodically to pick up new output.
-  // useDeferredValue keeps showing the previous output while the new promise
-  // resolves, preventing the Suspense fallback from flickering.
+  // Promise 在初始化器中创建（而非渲染期间）。对于运行中的 shell，
+  // effect 定时器会周期性替换它以获取新输出。
+  // useDeferredValue 在新 promise resolve 之前持续显示上一个输出，
+  // 避免 Suspense fallback 闪烁。
   const [outputPromise, setOutputPromise] = useState<Promise<TaskOutputResult>>(() => getTaskOutput(shell));
   const deferredOutputPromise = useDeferredValue(outputPromise);
 
@@ -61,10 +61,10 @@ export function ShellDetailDialog({ shell, onDone, onKillShell, onBack }: Props)
     return () => clearInterval(timer);
   }, [shell.id, shell.status]);
 
-  // Handle standard close action
+  // 处理标准关闭动作
   const handleClose = () => onDone('Shell details dismissed', { display: 'system' });
 
-  // Handle additional close actions beyond Dialog's built-in Esc handler
+  // 处理 Dialog 内置 Esc 处理之外的额外关闭动作
   useKeybindings(
     {
       'confirm:yes': handleClose,
@@ -72,7 +72,7 @@ export function ShellDetailDialog({ shell, onDone, onKillShell, onBack }: Props)
     { context: 'Confirmation' },
   );
 
-  // Handle dialog-specific keys
+  // 处理对话框专属按键
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === ' ') {
       e.preventDefault();
@@ -86,7 +86,7 @@ export function ShellDetailDialog({ shell, onDone, onKillShell, onBack }: Props)
     }
   };
 
-  // Truncate command if too long (for display purposes)
+  // 命令过长时截断（仅用于显示）
   const isMonitor = shell.kind === 'monitor';
   const displayCommand = truncateToWidth(shell.command, 280);
 
@@ -159,7 +159,7 @@ function ShellOutputContent({ outputPromise, columns }: ShellOutputContentProps)
     return <Text dimColor>No output available</Text>;
   }
 
-  // Find last 10 line boundaries via lastIndexOf
+  // 通过 lastIndexOf 找到最后 10 个行边界
   const starts: number[] = [];
   let pos = content.length;
   for (let i = 0; i < 10 && pos > 0; i++) {
@@ -170,7 +170,7 @@ function ShellOutputContent({ outputPromise, columns }: ShellOutputContentProps)
   starts.reverse();
   const isIncomplete = bytesTotal > content.length;
 
-  // Build lines, skip empty trailing/leading segments
+  // 构建行，跳过首尾空段
   const rendered: string[] = [];
   for (let i = 0; i < starts.length; i++) {
     const start = starts[i]!;

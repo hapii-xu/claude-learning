@@ -50,8 +50,8 @@ async function fetchBootstrapAPI(): Promise<BootstrapResponse | null> {
     return null
   }
 
-  // OAuth preferred (requires user:profile scope — service-key OAuth tokens
-  // lack it and would 403). Fall back to API key auth for console users.
+  // 优先使用 OAuth（需要 user:profile scope —— service-key OAuth token 没有
+  // 这个 scope，会返回 403）。console 用户回退到 API key 认证。
   const apiKey = getAnthropicApiKey()
   const hasUsableOAuth =
     getClaudeAIOAuthTokens()?.accessToken && hasProfileScope()
@@ -62,11 +62,11 @@ async function fetchBootstrapAPI(): Promise<BootstrapResponse | null> {
 
   const endpoint = `${getOauthConfig().BASE_API_URL}/api/claude_cli/bootstrap`
 
-  // withOAuth401Retry handles the refresh-and-retry. API key users fail
-  // through on 401 (no refresh mechanism — no OAuth token to pass).
+  // withOAuth401Retry 处理刷新并重试。API key 用户在 401 时直接失败
+  // （没有刷新机制 —— 没有 OAuth token 可用）。
   try {
     return await withOAuth401Retry(async () => {
-      // Re-read OAuth each call so the retry picks up the refreshed token.
+      // 每次调用都重新读取 OAuth，使重试能拿到刷新后的 token。
       const token = getClaudeAIOAuthTokens()?.accessToken
       let authHeaders: Record<string, string>
       if (token && hasProfileScope()) {
@@ -109,7 +109,7 @@ async function fetchBootstrapAPI(): Promise<BootstrapResponse | null> {
 }
 
 /**
- * Fetch bootstrap data from the API and persist to disk cache.
+ * 从 API 获取 bootstrap 数据并持久化到磁盘缓存。
  */
 export async function fetchBootstrapData(): Promise<void> {
   try {
@@ -119,7 +119,7 @@ export async function fetchBootstrapData(): Promise<void> {
     const clientData = response.client_data ?? null
     const additionalModelOptions = response.additional_model_options ?? []
 
-    // Only persist if data actually changed — avoids a config write on every startup.
+    // 只在数据确实变化时持久化 —— 避免每次启动都写一次配置。
     const config = getGlobalConfig()
     if (
       isEqual(config.clientDataCache, clientData) &&

@@ -15,25 +15,25 @@ import { isTeamLead } from '../utils/teammate.js'
 
 const HIDE_DELAY_MS = 5000
 const DEBOUNCE_MS = 50
-const FALLBACK_POLL_MS = 5000 // Fallback in case fs.watch misses events
+const FALLBACK_POLL_MS = 5000 // 以防 fs.watch 漏掉事件的回退
 
 /**
- * Singleton store for the TodoV2 task list. Owns the file watcher, timers,
- * and cached task list. Multiple hook instances (REPL, Spinner,
- * PromptInputFooterLeftSide) subscribe to one shared store instead of each
- * setting up their own fs.watch on the same directory. The Spinner mounts/
- * unmounts every turn — per-hook watchers caused constant watch/unwatch churn.
+ * TodoV2 任务列表的单例 store。拥有文件 watcher、计时器
+ * 和缓存的任务列表。多个 hook 实例（REPL、Spinner、
+ * PromptInputFooterLeftSide）订阅一个共享 store，而不是各自
+ * 在同一目录上设置自己的 fs.watch。Spinner 每轮
+ * 挂载/卸载 —— 每 hook 的 watcher 导致持续的 watch/unwatch 抖动。
  *
- * Implements the useSyncExternalStore contract: subscribe/getSnapshot.
+ * 实现 useSyncExternalStore 契约：subscribe/getSnapshot。
  */
 class TasksV2Store {
-  /** Stable array reference; replaced only on fetch. undefined until started. */
+  /** 稳定的数组引用；仅在 fetch 时替换。启动前为 undefined。 */
   #tasks: Task[] | undefined = undefined
   /**
-   * Set when the hide timer has elapsed (all tasks completed for >5s), or
-   * when the task list is empty. Starts false so the first fetch runs the
-   * "all completed → schedule 5s hide" path (matches original behavior:
-   * resuming a session with completed tasks shows them briefly).
+   * hide 计时器超时（所有任务完成 >5s）或
+   * 任务列表为空时设置。初始为 false，使第一次 fetch 运行
+   * "全部完成 → 调度 5s hide" 路径（匹配原始行为：
+   * 恢复一个有已完成任务的会话时短暂显示它们）。
    */
   #hidden = false
   #watcher: FSWatcher | null = null
@@ -47,25 +47,25 @@ class TasksV2Store {
   #started = false
 
   /**
-   * useSyncExternalStore snapshot. Returns the same Task[] reference between
-   * updates (required for Object.is stability). Returns undefined when hidden.
+   * useSyncExternalStore 快照。在更新之间返回同一 Task[] 引用
+   * （Object.is 稳定性所需）。hidden 时返回 undefined。
    */
   getSnapshot = (): Task[] | undefined => {
     return this.#hidden ? undefined : this.#tasks
   }
 
   subscribe = (fn: () => void): (() => void) => {
-    // Lazy init on first subscriber. useSyncExternalStore calls this
-    // post-commit, so I/O here is safe (no render-phase side effects).
-    // REPL.tsx keeps a subscription alive for the whole session, so
-    // Spinner mount/unmount churn never drives the count to zero.
+    // 第一个订阅者时懒初始化。useSyncExternalStore 在
+    // commit 之后调用此函数，所以此处的 I/O 是安全的（无渲染阶段副作用）。
+    // REPL.tsx 为整个会话保持订阅活跃，所以
+    // Spinner 挂载/卸载抖动永远不会让计数降到零。
     const unsubscribe = this.#changed.subscribe(fn)
     this.#subscriberCount++
     if (!this.#started) {
       this.#started = true
       this.#unsubscribeTasksUpdated = onTasksUpdated(this.#debouncedFetch)
-      // Fire-and-forget: subscribe is called post-commit (not in render),
-      // and the store notifies subscribers when the fetch resolves.
+      // Fire-and-forget：subscribe 在 commit 之后调用（非渲染中），
+      // store 在 fetch 解析时通知订阅者。
       void this.#fetch()
     }
     let unsubscribed = false
@@ -83,13 +83,13 @@ class TasksV2Store {
   }
 
   /**
-   * Point the file watcher at the current tasks directory. Called on start
-   * and whenever #fetch detects the task list ID has changed (e.g. when
-   * TeamCreateTool sets leaderTeamName mid-session).
+   * 将文件 watcher 指向当前任务目录。在启动时和
+   * #fetch 检测到 task list ID 变化时调用（例如
+   * TeamCreateTool 在会话中设置 leaderTeamName）。
    */
   #rewatch(dir: string): void {
-    // Retry even on same dir if the previous watch attempt failed (dir
-    // didn't exist yet). Once the watcher is established, same-dir is a no-op.
+    // 即使是同一目录，如果之前的 watch 尝试失败（目录尚不存在）也重试。
+    // watcher 一旦建立，同目录是 no-op。
     if (dir === this.#watchedDir && this.#watcher !== null) return
     this.#watcher?.close()
     this.#watcher = null
@@ -98,9 +98,9 @@ class TasksV2Store {
       this.#watcher = watch(dir, this.#debouncedFetch)
       this.#watcher.unref()
     } catch {
-      // Directory may not exist yet (ensureTasksDir is called by writers).
-      // Not critical — onTasksUpdated covers in-process updates and the
-      // poll timer covers cross-process updates.
+      // 目录可能尚不存在（ensureTasksDir 由 writer 调用）。
+      // 非关键 —— onTasksUpdated 覆盖进程内更新，
+      // poll 计时器覆盖跨进程更新。
     }
   }
 
@@ -112,8 +112,8 @@ class TasksV2Store {
 
   #fetch = async (): Promise<void> => {
     const taskListId = getTaskListId()
-    // Task list ID can change mid-session (TeamCreateTool sets
-    // leaderTeamName) — point the watcher at the current dir.
+    // Task list ID 可在会话中变化（TeamCreateTool 设置
+    // leaderTeamName）—— 将 watcher 指向当前目录。
     this.#rewatch(getTasksDir(taskListId))
     const current = (await listTasks(taskListId)).filter(
       t => !t.metadata?._internal,
@@ -123,11 +123,11 @@ class TasksV2Store {
     const hasIncomplete = current.some(t => t.status !== 'completed')
 
     if (hasIncomplete || current.length === 0) {
-      // Has unresolved tasks (open/in_progress) or empty — reset hide state
+      // 有未解决任务（open/in_progress）或为空 —— 重置 hide 状态
       this.#hidden = current.length === 0
       this.#clearHideTimer()
     } else if (this.#hideTimer === null && !this.#hidden) {
-      // All tasks just became completed — schedule clear
+      // 所有任务刚变为已完成 —— 调度清除
       this.#hideTimer = setTimeout(
         this.#onHideTimerFired.bind(this, taskListId),
         HIDE_DELAY_MS,
@@ -137,10 +137,10 @@ class TasksV2Store {
 
     this.#notify()
 
-    // Schedule fallback poll only when there are incomplete tasks that
-    // need monitoring. When all tasks are completed (or there are none),
-    // the fs.watch watcher and onTasksUpdated callback are sufficient to
-    // detect new activity — no need to keep polling and re-rendering.
+    // 仅当有需要监控的未完成任务时才调度回退轮询。
+    // 当所有任务已完成（或没有任务）时，
+    // fs.watch watcher 和 onTasksUpdated 回调足以
+    // 检测新活动 —— 无需持续轮询和重新渲染。
     if (this.#pollTimer) {
       clearTimeout(this.#pollTimer)
       this.#pollTimer = null
@@ -153,11 +153,11 @@ class TasksV2Store {
 
   #onHideTimerFired(scheduledForTaskListId: string): void {
     this.#hideTimer = null
-    // Bail if the task list ID changed since scheduling (team created/deleted
-    // during the 5s window) — don't reset the wrong list.
+    // 如果调度以来 task list ID 变化（5s 窗口期间 team 创建/删除）则退出
+    // —— 不要重置错误的列表。
     const currentId = getTaskListId()
     if (currentId !== scheduledForTaskListId) return
-    // Verify all tasks are still completed before clearing
+    // 清除前验证所有任务是否仍已完成
     void listTasks(currentId).then(async tasksToCheck => {
       const allStillCompleted =
         tasksToCheck.length > 0 &&
@@ -179,9 +179,9 @@ class TasksV2Store {
   }
 
   /**
-   * Tear down the watcher, timers, and in-process subscription. Called when
-   * the last subscriber unsubscribes. Preserves #tasks/#hidden cache so a
-   * subsequent re-subscribe renders the last known state immediately.
+   * 拆除 watcher、计时器和进程内订阅。最后一个
+   * 订阅者取消订阅时调用。保留 #tasks/#hidden 缓存，使后续
+   * 重新订阅立即渲染最后已知状态。
    */
   #stop(): void {
     this.#watcher?.close()
@@ -203,17 +203,17 @@ function getStore(): TasksV2Store {
   return (_store ??= new TasksV2Store())
 }
 
-// Stable no-ops for the disabled path so useSyncExternalStore doesn't
-// churn its subscription on every render.
+// 为禁用路径提供的稳定 no-op，使 useSyncExternalStore 不会
+// 在每次渲染时抖动其订阅。
 const NOOP = (): void => {}
 const NOOP_SUBSCRIBE = (): (() => void) => NOOP
 const NOOP_SNAPSHOT = (): undefined => undefined
 
 /**
- * Hook to get the current task list for the persistent UI display.
- * Returns tasks when TodoV2 is enabled, otherwise returns undefined.
- * All hook instances share a single file watcher via TasksV2Store.
- * Hides the list after 5 seconds if there are no open tasks.
+ * 获取持久 UI 显示的当前任务列表的 hook。
+ * TodoV2 启用时返回任务，否则返回 undefined。
+ * 所有 hook 实例通过 TasksV2Store 共享单个文件 watcher。
+ * 如果没有未完成任务，5 秒后隐藏列表。
  */
 export function useTasksV2(): Task[] | undefined {
   const teamContext = useAppState(s => s.teamContext)
@@ -229,9 +229,9 @@ export function useTasksV2(): Task[] | undefined {
 }
 
 /**
- * Same as useTasksV2, plus collapses the expanded task view when the list
- * becomes hidden. Call this from exactly one always-mounted component (REPL)
- * so the collapse effect runs once instead of N× per consumer.
+ * 同 useTasksV2，加上列表变为 hidden 时折叠展开的任务视图。
+ * 从一个始终挂载的组件（REPL）调用，
+ * 使折叠效果运行一次而非每个消费者 N× 次。
  */
 export function useTasksV2WithCollapseEffect(): Task[] | undefined {
   const tasks = useTasksV2()

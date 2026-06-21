@@ -271,9 +271,18 @@ export function handleIngressMessage(
       return
     }
 
-    logForDebugging(
-      `[bridge:repl] Ingress message type=${parsed.type}${uuid ? ` uuid=${uuid}` : ''}`,
-    )
+    // debug 类型事件量大，跳过 logForDebugging 避免触发 sink 无限循环
+    const debugEventTypes = new Set([
+      'debug_log',
+      'sdk_raw',
+      'tool_trace',
+      'usage',
+    ])
+    if (!debugEventTypes.has(parsed.type)) {
+      logForDebugging(
+        `[bridge:repl] Ingress message type=${parsed.type}${uuid ? ` uuid=${uuid}` : ''}`,
+      )
+    }
 
     if (parsed.type === 'user') {
       if (uuid) recentInboundUUIDs.add(uuid)
@@ -282,7 +291,7 @@ export function handleIngressMessage(
       })
       // Fire-and-forget —— handler 可能是 async（附件解析等）。
       void onInboundMessage?.(parsed)
-    } else {
+    } else if (!debugEventTypes.has(parsed.type)) {
       logForDebugging(
         `[bridge:repl] Ignoring non-user inbound message: type=${parsed.type}`,
       )

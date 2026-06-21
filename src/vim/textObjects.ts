@@ -1,7 +1,7 @@
 /**
- * Vim Text Object Finding
+ * Vim 文本对象查找
  *
- * Functions for finding text object boundaries (iw, aw, i", a(, etc.)
+ * 用于查找文本对象边界（iw、aw、i"、a( 等）的函数
  */
 
 import {
@@ -14,7 +14,7 @@ import { getGraphemeSegmenter } from '../utils/intl.js'
 export type TextObjectRange = { start: number; end: number } | null
 
 /**
- * Delimiter pairs for text objects.
+ * 文本对象的分隔符对。
  */
 const PAIRS: Record<string, [string, string]> = {
   '(': ['(', ')'],
@@ -33,7 +33,7 @@ const PAIRS: Record<string, [string, string]> = {
 }
 
 /**
- * Find a text object at the given position.
+ * 在给定位置查找文本对象。
  */
 export function findTextObject(
   text: string,
@@ -63,13 +63,13 @@ function findWordObject(
   isInner: boolean,
   isWordChar: (ch: string) => boolean,
 ): TextObjectRange {
-  // Pre-segment into graphemes for grapheme-safe iteration
+  // 预先分段为字形以进行字形安全迭代
   const graphemes: Array<{ segment: string; index: number }> = []
   for (const { segment, index } of getGraphemeSegmenter().segment(text)) {
     graphemes.push({ segment, index })
   }
 
-  // Find which grapheme index the offset falls in
+  // 查找偏移量落在哪个字形索引内
   let graphemeIdx = graphemes.length - 1
   for (let i = 0; i < graphemes.length; i++) {
     const g = graphemes[i]!
@@ -104,7 +104,7 @@ function findWordObject(
   }
 
   if (!isInner) {
-    // Include surrounding whitespace
+    // 包含周围空白
     if (endIdx < graphemes.length && isWs(endIdx)) {
       while (endIdx < graphemes.length && isWs(endIdx)) endIdx++
     } else if (startIdx > 0 && isWs(startIdx - 1)) {
@@ -132,7 +132,7 @@ function findQuoteObject(
     if (line[i] === quote) positions.push(i)
   }
 
-  // Pair quotes correctly: 0-1, 2-3, 4-5, etc.
+  // 正确配对引号：0-1、2-3、4-5 等。
   for (let i = 0; i < positions.length - 1; i += 2) {
     const qs = positions[i]!
     const qe = positions[i + 1]!

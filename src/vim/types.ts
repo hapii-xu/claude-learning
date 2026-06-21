@@ -1,10 +1,10 @@
 /**
- * Vim Mode State Machine Types
+ * Vim 模式状态机类型
  *
- * This file defines the complete state machine for vim input handling.
- * The types ARE the documentation - reading them tells you how the system works.
+ * 此文件定义了 vim 输入处理的完整状态机。
+ * 这些类型本身就是文档——阅读它们即可了解系统如何工作。
  *
- * State Diagram:
+ * 状态图：
  * ```
  *                              VimState
  *   ┌──────────────────────────────┬──────────────────────────────────────┐
@@ -27,7 +27,7 @@
  */
 
 // ============================================================================
-// Core Types
+// 核心类型
 // ============================================================================
 
 export type Operator = 'delete' | 'change' | 'yank'
@@ -37,24 +37,24 @@ export type FindType = 'f' | 'F' | 't' | 'T'
 export type TextObjScope = 'inner' | 'around'
 
 // ============================================================================
-// State Machine Types
+// 状态机类型
 // ============================================================================
 
 /**
- * Complete vim state. Mode determines what data is tracked.
+ * 完整的 vim 状态。模式决定跟踪哪些数据。
  *
- * INSERT mode: Track text being typed (for dot-repeat)
- * NORMAL mode: Track command being parsed (state machine)
+ * INSERT 模式：跟踪正在输入的文本（用于点号重复）
+ * NORMAL 模式：跟踪正在解析的命令（状态机）
  */
 export type VimState =
   | { mode: 'INSERT'; insertedText: string }
   | { mode: 'NORMAL'; command: CommandState }
 
 /**
- * Command state machine for NORMAL mode.
+ * NORMAL 模式的命令状态机。
  *
- * Each state knows exactly what input it's waiting for.
- * TypeScript ensures exhaustive handling in switches.
+ * 每个状态都确切知道自己在等待什么输入。
+ * TypeScript 确保 switch 中穷尽处理。
  */
 export type CommandState =
   | { type: 'idle' }
@@ -75,8 +75,8 @@ export type CommandState =
   | { type: 'indent'; dir: '>' | '<'; count: number }
 
 /**
- * Persistent state that survives across commands.
- * This is the "memory" of vim - what gets recalled for repeats and pastes.
+ * 跨命令存活的持久状态。
+ * 这是 vim 的"记忆"——为重复和粘贴所回忆的内容。
  */
 export type PersistentState = {
   lastChange: RecordedChange | null
@@ -86,8 +86,8 @@ export type PersistentState = {
 }
 
 /**
- * Recorded change for dot-repeat.
- * Captures everything needed to replay a command.
+ * 为点号重复记录的变更。
+ * 捕获重放命令所需的一切。
  */
 export type RecordedChange =
   | { type: 'insert'; text: string }
@@ -119,7 +119,7 @@ export type RecordedChange =
   | { type: 'join'; count: number }
 
 // ============================================================================
-// Key Groups - Named constants, no magic strings
+// 键位分组 —— 命名常量，避免魔法字符串
 // ============================================================================
 
 export const OPERATORS = {
@@ -136,16 +136,16 @@ export const SIMPLE_MOTIONS = new Set([
   'h',
   'l',
   'j',
-  'k', // Basic movement
+  'k', // 基本移动
   'w',
   'b',
   'e',
   'W',
   'B',
-  'E', // Word motions
+  'E', // 词移动
   '0',
   '^',
-  '$', // Line positions
+  '$', // 行位置
 ])
 
 export const FIND_KEYS = new Set(['f', 'F', 't', 'T'])
@@ -163,26 +163,26 @@ export function isTextObjScopeKey(
 
 export const TEXT_OBJ_TYPES = new Set([
   'w',
-  'W', // Word/WORD
+  'W', // 词/WORD
   '"',
   "'",
-  '`', // Quotes
+  '`', // 引号
   '(',
   ')',
-  'b', // Parens
+  'b', // 圆括号
   '[',
-  ']', // Brackets
+  ']', // 方括号
   '{',
   '}',
-  'B', // Braces
+  'B', // 花括号
   '<',
-  '>', // Angle brackets
+  '>', // 尖括号
 ])
 
 export const MAX_VIM_COUNT = 10000
 
 // ============================================================================
-// State Factories
+// 状态工厂
 // ============================================================================
 
 export function createInitialVimState(): VimState {

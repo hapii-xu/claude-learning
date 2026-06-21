@@ -29,12 +29,12 @@ export function useSkillImprovementSurvey(setMessages: SetMessages): {
   const lastSuggestionRef = useRef(suggestion)
   const loggedAppearanceRef = useRef(false)
 
-  // Track the suggestion for display even after clearing AppState
+  // 即使清除了 AppState，仍跟踪 suggestion 用于显示
   if (suggestion) {
     lastSuggestionRef.current = suggestion
   }
 
-  // Open when a new suggestion arrives
+  // 新 suggestion 到达时打开
   if (suggestion && !isOpen) {
     setIsOpen(true)
     if (!loggedAppearanceRef.current) {
@@ -42,8 +42,8 @@ export function useSkillImprovementSurvey(setMessages: SetMessages): {
       logEvent('tengu_skill_improvement_survey', {
         event_type:
           'appeared' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-        // _PROTO_skill_name routes to the privileged skill_name BQ column.
-        // Unredacted names don't go in additional_metadata.
+        // _PROTO_skill_name 路由到特权 skill_name BQ 列。
+        // 未脱敏的名称不会进入 additional_metadata。
         _PROTO_skill_name: (suggestion.skillName ??
           'unknown') as AnalyticsMetadata_I_VERIFIED_THIS_IS_PII_TAGGED,
       })
@@ -63,8 +63,8 @@ export function useSkillImprovementSurvey(setMessages: SetMessages): {
         response: (applied
           ? 'applied'
           : 'dismissed') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-        // _PROTO_skill_name routes to the privileged skill_name BQ column.
-        // Unredacted names don't go in additional_metadata.
+        // _PROTO_skill_name 路由到特权 skill_name BQ 列。
+        // 未脱敏的名称不会进入 additional_metadata。
         _PROTO_skill_name:
           current.skillName as AnalyticsMetadata_I_VERIFIED_THIS_IS_PII_TAGGED,
       })
@@ -83,7 +83,7 @@ export function useSkillImprovementSurvey(setMessages: SetMessages): {
         )
       }
 
-      // Close and clear
+      // 关闭并清除
       setIsOpen(false)
       loggedAppearanceRef.current = false
       setAppState(prev => {

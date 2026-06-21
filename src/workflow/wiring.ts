@@ -8,15 +8,15 @@ import { buildTool, type Tool } from '../Tool.js'
 import { getWorkflowService } from './service.js'
 
 /**
- * Adapts the engine's self-contained descriptor into a buildTool-compatible Tool.
- * The descriptor routes through the service singleton (sharing ports/registry/store).
+ * 将引擎自包含的 descriptor 适配为 buildTool 兼容的 Tool。
+ * descriptor 通过 service 单例路由（共享 ports/registry/store）。
  *
- * ports resolution is deferred to the first real method call (lazy): tools.ts calls
- * createWorkflowToolCore() during module-load (feature-gated), and resolving ports
- * immediately would trigger service instantiation, which in turn calls module-level
- * side effects like getProjectRoot — yielding wrong paths before bootstrap completes.
- * The Tool object itself is a singleton via createWorkflowToolCore's cached (PermissionRequest
- * matches by reference), and the ports singleton is guaranteed by getWorkflowService.
+ * ports 解析推迟到第一次真实方法调用（懒加载）：tools.ts 在模块加载期间调用
+ * createWorkflowToolCore()（feature-gated），如果立即解析 ports
+ * 会触发 service 实例化，进而调用 getProjectRoot 等
+ * 模块级副作用 —— 在 bootstrap 完成前拿到错误路径。
+ * Tool 对象本身通过 createWorkflowToolCore 的 cached 成为单例（PermissionRequest
+ * 按引用匹配），ports 单例由 getWorkflowService 保证。
  */
 function buildWorkflowTool(): Tool {
   let cachedDescriptor: WorkflowToolDescriptor | null = null
@@ -56,7 +56,7 @@ function buildWorkflowTool(): Tool {
   })
 }
 
-// Singleton: tools.ts registration and PermissionRequest must reference the same instance (switch matches by reference).
+// 单例：tools.ts 注册与 PermissionRequest 必须引用同一实例（switch 按引用匹配）。
 let cached: Tool | null = null
 
 export function createWorkflowToolCore(): Tool {

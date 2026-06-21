@@ -5,9 +5,9 @@ import { isFsInaccessible } from '../errors.js'
 
 export const CHROME_EXTENSION_URL = 'https://claude.ai/chrome'
 
-// Production extension ID
+// 生产环境扩展 ID
 const PROD_EXTENSION_ID = 'fcoeoabgfenejglbffodgkkbkcdhcgfn'
-// Dev extension IDs (for internal use)
+// 开发环境扩展 ID（仅供内部使用）
 const DEV_EXTENSION_ID = 'dihbgbndebgnbjfmelmegjepbnkhlgni'
 const ANT_EXTENSION_ID = 'dngcpimnedloihjnnfngkgjoidhnaolf'
 
@@ -17,7 +17,7 @@ function getExtensionIds(): string[] {
     : [PROD_EXTENSION_ID]
 }
 
-// Must match ChromiumBrowser from common.ts
+// 必须与 common.ts 中的 ChromiumBrowser 一致
 export type ChromiumBrowser =
   | 'chrome'
   | 'brave'
@@ -34,7 +34,7 @@ export type BrowserPath = {
 
 type Logger = (message: string) => void
 
-// Browser detection order - must match BROWSER_DETECTION_ORDER from common.ts
+// 浏览器检测顺序 - 必须与 common.ts 中的 BROWSER_DETECTION_ORDER 一致
 const BROWSER_DETECTION_ORDER: ChromiumBrowser[] = [
   'chrome',
   'brave',
@@ -51,7 +51,7 @@ type BrowserDataConfig = {
   windows: { path: string[]; useRoaming?: boolean }
 }
 
-// Must match CHROMIUM_BROWSERS dataPath from common.ts
+// 必须与 common.ts 中的 CHROMIUM_BROWSERS dataPath 一致
 const CHROMIUM_BROWSERS: Record<ChromiumBrowser, BrowserDataConfig> = {
   chrome: {
     macos: ['Library', 'Application Support', 'Google', 'Chrome'],
@@ -91,8 +91,8 @@ const CHROMIUM_BROWSERS: Record<ChromiumBrowser, BrowserDataConfig> = {
 }
 
 /**
- * Get all browser data paths to check for extension installation.
- * Portable version that uses process.platform directly.
+ * 获取所有浏览器数据路径以检查扩展安装。
+ * 可移植版本，直接使用 process.platform。
  */
 export function getAllBrowserDataPathsPortable(): BrowserPath[] {
   const home = homedir()
@@ -135,14 +135,14 @@ export function getAllBrowserDataPathsPortable(): BrowserPath[] {
 }
 
 /**
- * Detects if the Claude in Chrome extension is installed by checking the Extensions
- * directory across all supported Chromium-based browsers and their profiles.
+ * 通过检查所有受支持的基于 Chromium 的浏览器及其配置文件的
+ * Extensions 目录来检测 Claude in Chrome 扩展是否已安装。
  *
- * This is a portable version that can be used by both TUI and VS Code extension.
+ * 这是一个可移植版本，TUI 和 VS Code 扩展都可使用。
  *
- * @param browserPaths - Array of browser data paths to check (from getAllBrowserDataPaths)
- * @param log - Optional logging callback for debug messages
- * @returns Object with isInstalled boolean and the browser where the extension was found
+ * @param browserPaths - 要检查的浏览器数据路径数组（来自 getAllBrowserDataPaths）
+ * @param log - 可选的调试日志回调
+ * @returns 包含 isInstalled 布尔值和找到扩展的浏览器的对象
  */
 export async function detectExtensionInstallationPortable(
   browserPaths: BrowserPath[],
@@ -158,7 +158,7 @@ export async function detectExtensionInstallationPortable(
 
   const extensionIds = getExtensionIds()
 
-  // Check each browser for the extension
+  // 检查每个浏览器中是否存在该扩展
   for (const { browser, path: browserBasePath } of browserPaths) {
     let browserProfileEntries = []
 
@@ -167,7 +167,7 @@ export async function detectExtensionInstallationPortable(
         withFileTypes: true,
       })
     } catch (e) {
-      // Browser not installed or path doesn't exist, continue to next browser
+      // 浏览器未安装或路径不存在，继续检查下一个浏览器
       if (isFsInaccessible(e)) continue
       throw e
     }
@@ -185,7 +185,7 @@ export async function detectExtensionInstallationPortable(
       )
     }
 
-    // Check each profile for any of the extension IDs
+    // 检查每个配置文件中是否存在任一扩展 ID
     for (const profile of profileDirs) {
       for (const extensionId of extensionIds) {
         const extensionPath = join(
@@ -202,7 +202,7 @@ export async function detectExtensionInstallationPortable(
           )
           return { isInstalled: true, browser }
         } catch {
-          // Extension not found in this profile, continue checking
+          // 此配置文件中未找到扩展，继续检查
         }
       }
     }
@@ -213,7 +213,7 @@ export async function detectExtensionInstallationPortable(
 }
 
 /**
- * Simple wrapper that returns just the boolean result
+ * 简单封装，仅返回布尔结果
  */
 export async function isChromeExtensionInstalledPortable(
   browserPaths: BrowserPath[],
@@ -224,8 +224,8 @@ export async function isChromeExtensionInstalledPortable(
 }
 
 /**
- * Convenience function that gets browser paths automatically.
- * Use this when you don't need to provide custom browser paths.
+ * 便捷函数，自动获取浏览器路径。
+ * 当不需要提供自定义浏览器路径时使用。
  */
 export function isChromeExtensionInstalled(log?: Logger): Promise<boolean> {
   const browserPaths = getAllBrowserDataPathsPortable()

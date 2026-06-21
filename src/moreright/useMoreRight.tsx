@@ -1,8 +1,8 @@
-// Stub for external builds — the real hook is internal only.
+// 外部构建的桩文件——真实的 hook 仅限内部使用。
 //
-// Self-contained: no relative imports. Typecheck sees this file at
-// scripts/external-stubs/src/moreright/ before overlay, where ../types/
-// would resolve to scripts/external-stubs/src/types/ (doesn't exist).
+// 自包含：无相对导入。类型检查在 overlay 之前看到的此文件位于
+// scripts/external-stubs/src/moreright/，其中 ../types/
+// 会解析到 scripts/external-stubs/src/types/（不存在）。
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type M = any;

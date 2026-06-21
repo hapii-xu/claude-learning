@@ -3,20 +3,20 @@ import type { RGBColor as RGBColorType } from './types.js'
 
 export function getDefaultCharacters(): string[] {
   if (process.env.TERM === 'xterm-ghostty') {
-    return ['·', '✢', '✱', '✶', '✻', '*'] // ✱ replaces ✳ (emoji, renders offset in Ghostty); * replaces ✽ (same)
+    return ['·', '✢', '✱', '✶', '✻', '*'] // ✱ 替代 ✳（emoji，在 Ghostty 中渲染偏移）；* 替代 ✽（相同）
   }
-  // ✳ (U+2733) is matched by emoji-regex in Node.js → stringWidth returns 2 instead of 1,
-  // causing layout jitter when the spinner cycles frames. ✱ (U+2731) is visually similar but not emoji.
+  // ✳ (U+2733) 会被 Node.js 中的 emoji-regex 匹配 → stringWidth 返回 2 而非 1，
+  // 导致 spinner 循环帧时出现布局抖动。✱ (U+2731) 视觉上相似但不是 emoji。
   return process.platform === 'darwin'
     ? ['·', '✢', '✱', '✶', '✻', '✽']
     : ['·', '✢', '✱', '✶', '✻', '✽']
 }
 
-// Interpolate between two RGB colors
+// 在两个 RGB 颜色之间插值
 export function interpolateColor(
   color1: RGBColorType,
   color2: RGBColorType,
-  t: number, // 0 to 1
+  t: number, // 0 到 1
 ): RGBColorType {
   return {
     r: Math.round(color1.r + (color2.r - color1.r) * t),
@@ -25,12 +25,12 @@ export function interpolateColor(
   }
 }
 
-// Convert RGB object to rgb() color string for Text component
+// 把 RGB 对象转换为 Text 组件使用的 rgb() 颜色字符串
 export function toRGBColor(color: RGBColorType): RGBColorString {
   return `rgb(${color.r},${color.g},${color.b})`
 }
 
-// HSL hue (0-360) to RGB, using voice-mode waveform parameters (s=0.7, l=0.6).
+// HSL 色相（0-360）转 RGB，使用 voice-mode 波形参数（s=0.7，l=0.6）。
 export function hueToRgb(hue: number): RGBColorType {
   const h = ((hue % 360) + 360) % 360
   const s = 0.7

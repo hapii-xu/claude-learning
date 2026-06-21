@@ -79,6 +79,10 @@ export function parseToolName(name: string): {
 
 export async function buildToolIndex(tools: Tools): Promise<ToolIndexEntry[]> {
   const deferredTools = tools.filter(t => isDeferredTool(t))
+  logForDebugging(
+    `[Hapii] buildToolIndex 开始 totalTools=${tools.length} deferredCount=${deferredTools.length}`,
+    { level: 'info' },
+  )
 
   const entries: ToolIndexEntry[] = []
   for (const tool of deferredTools) {
@@ -158,6 +162,10 @@ export function searchTools(
   limit = 5,
 ): SearchExtraToolsResult[] {
   logForDebugging(
+    `[Hapii] searchTools 开始 query="${query.slice(0, 50)}" indexSize=${index.length} limit=${limit}`,
+    { level: 'info' },
+  )
+  logForDebugging(
     `[延迟工具索引] searchTools 开始 query="${query.slice(0, 50)}" 候选工具数=${index.length}`,
     { level: 'info' },
   )
@@ -213,6 +221,13 @@ export function searchTools(
   }
 
   results.sort((a, b) => b.score - a.score)
+  logForDebugging(
+    `[Hapii] searchTools 结果 found=${results.length} top=${Math.min(results.length, limit)} names=[${results
+      .slice(0, limit)
+      .map(r => r.name)
+      .join(', ')}]`,
+    { level: 'info' },
+  )
   logForDebugging(
     `[延迟工具索引] searchTools 结果 Top-${Math.min(results.length, limit)}：[${results
       .slice(0, limit)

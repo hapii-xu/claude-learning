@@ -1,12 +1,11 @@
 /**
- * Swarm Permission Poller Hook
+ * Swarm 权限轮询 Hook
  *
- * This hook polls for permission responses from the team leader when running
- * as a worker agent in a swarm. When a response is received, it calls the
- * appropriate callback (onAllow/onReject) to continue execution.
+ * 此 hook 在 swarm 中作为 worker agent 运行时轮询 team leader 的权限响应。
+ * 收到响应时，调用相应的回调（onAllow/onReject）继续执行。
  *
- * This hook should be used in conjunction with the worker-side integration
- * in useCanUseTool.ts, which creates pending requests that this hook monitors.
+ * 此 hook 应与 useCanUseTool.ts 中的 worker 端集成一起使用，
+ * 后者创建由此 hook 监控的 pending 请求。
  */
 
 import { useCallback, useEffect, useRef } from 'react'
@@ -28,9 +27,9 @@ import { getAgentName, getTeamName } from '../utils/teammate.js'
 const POLL_INTERVAL_MS = 500
 
 /**
- * Validate permissionUpdates from external sources (mailbox IPC, disk polling).
- * Malformed entries from buggy/old teammate processes are filtered out rather
- * than propagated unchecked into callback.onAllow().
+ * 验证来自外部源（mailbox IPC、磁盘轮询）的 permissionUpdates。
+ * 来自有 bug/旧 teammate 进程的格式错误条目被过滤掉，
+ * 而非未检查地传播到 callback.onAllow()。
  */
 function parsePermissionUpdates(raw: unknown): PermissionUpdate[] {
   if (!Array.isArray(raw)) {
@@ -53,7 +52,7 @@ function parsePermissionUpdates(raw: unknown): PermissionUpdate[] {
 }
 
 /**
- * Callback signature for handling permission responses
+ * 处理权限响应的回调签名
  */
 export type PermissionResponseCallback = {
   requestId: string
@@ -67,17 +66,17 @@ export type PermissionResponseCallback = {
 }
 
 /**
- * Registry for pending permission request callbacks
- * This allows the poller to find and invoke the right callbacks when responses arrive
+ * 待处理权限请求回调的注册表
+ * 这使轮询器能在响应到达时找到并调用正确的回调
  */
 type PendingCallbackRegistry = Map<string, PermissionResponseCallback>
 
-// Module-level registry that persists across renders
+// 跨渲染持久化的模块级注册表
 const pendingCallbacks: PendingCallbackRegistry = new Map()
 
 /**
- * Register a callback for a pending permission request
- * Called by useCanUseTool when a worker submits a permission request
+ * 为待处理权限请求注册回调
+ * 由 useCanUseTool 在 worker 提交权限请求时调用
  */
 export function registerPermissionCallback(
   callback: PermissionResponseCallback,
@@ -89,7 +88,7 @@ export function registerPermissionCallback(
 }
 
 /**
- * Unregister a callback (e.g., when the request is resolved locally or times out)
+ * 注销回调（例如请求在本地解决或超时时）
  */
 export function unregisterPermissionCallback(requestId: string): void {
   pendingCallbacks.delete(requestId)
@@ -99,16 +98,16 @@ export function unregisterPermissionCallback(requestId: string): void {
 }
 
 /**
- * Check if a request has a registered callback
+ * 检查请求是否有已注册的回调
  */
 export function hasPermissionCallback(requestId: string): boolean {
   return pendingCallbacks.has(requestId)
 }
 
 /**
- * Clear all pending callbacks (both permission and sandbox).
- * Called from clearSessionCaches() on /clear to reset stale state,
- * and also used in tests for isolation.
+ * 清除所有待处理回调（权限和 sandbox）。
+ * 在 /clear 时从 clearSessionCaches() 调用以重置陈旧状态，
+ * 也用于测试中的隔离。
  */
 export function clearAllPendingCallbacks(): void {
   pendingCallbacks.clear()
@@ -116,8 +115,8 @@ export function clearAllPendingCallbacks(): void {
 }
 
 /**
- * Process a permission response from a mailbox message.
- * This is called by the inbox poller when it detects a permission_response message.
+ * 处理来自 mailbox 消息的权限响应。
+ * 由 inbox 轮询器在检测到 permission_response 消息时调用。
  *
  * @returns true if the response was processed, false if no callback was registered
  */
@@ -141,7 +140,7 @@ export function processMailboxPermissionResponse(params: {
     `[SwarmPermissionPoller] Processing mailbox response for request ${params.requestId}: ${params.decision}`,
   )
 
-  // Remove from registry before invoking callback
+  // 调用回调前从注册表移除
   pendingCallbacks.delete(params.requestId)
 
   if (params.decision === 'approved') {
@@ -156,11 +155,11 @@ export function processMailboxPermissionResponse(params: {
 }
 
 // ============================================================================
-// Sandbox Permission Callback Registry
+// Sandbox 权限回调注册表
 // ============================================================================
 
 /**
- * Callback signature for handling sandbox permission responses
+ * 处理 sandbox 权限响应的回调签名
  */
 export type SandboxPermissionResponseCallback = {
   requestId: string
@@ -168,13 +167,13 @@ export type SandboxPermissionResponseCallback = {
   resolve: (allow: boolean) => void
 }
 
-// Module-level registry for sandbox permission callbacks
+// sandbox 权限回调的模块级注册表
 const pendingSandboxCallbacks: Map<string, SandboxPermissionResponseCallback> =
   new Map()
 
 /**
- * Register a callback for a pending sandbox permission request
- * Called when a worker sends a sandbox permission request to the leader
+ * 为待处理 sandbox 权限请求注册回调
+ * worker 向 leader 发送 sandbox 权限请求时调用
  */
 export function registerSandboxPermissionCallback(
   callback: SandboxPermissionResponseCallback,
@@ -186,17 +185,17 @@ export function registerSandboxPermissionCallback(
 }
 
 /**
- * Check if a sandbox request has a registered callback
+ * 检查 sandbox 请求是否有已注册的回调
  */
 export function hasSandboxPermissionCallback(requestId: string): boolean {
   return pendingSandboxCallbacks.has(requestId)
 }
 
 /**
- * Process a sandbox permission response from a mailbox message.
- * Called by the inbox poller when it detects a sandbox_permission_response message.
+ * 处理来自 mailbox 消息的 sandbox 权限响应。
+ * 由 inbox 轮询器在检测到 sandbox_permission_response 消息时调用。
  *
- * @returns true if the response was processed, false if no callback was registered
+ * @returns 响应已处理返回 true，无注册回调返回 false
  */
 export function processSandboxPermissionResponse(params: {
   requestId: string
@@ -216,17 +215,17 @@ export function processSandboxPermissionResponse(params: {
     `[SwarmPermissionPoller] Processing sandbox response for request ${params.requestId}: allow=${params.allow}`,
   )
 
-  // Remove from registry before invoking callback
+  // 调用回调前从注册表移除
   pendingSandboxCallbacks.delete(params.requestId)
 
-  // Resolve the promise with the allow decision
+  // 用 allow 决定 resolve promise
   callback.resolve(params.allow)
 
   return true
 }
 
 /**
- * Process a permission response by invoking the registered callback
+ * 通过调用已注册的回调处理权限响应
  */
 function processResponse(response: PermissionResponse): boolean {
   const callback = pendingCallbacks.get(response.requestId)
@@ -242,7 +241,7 @@ function processResponse(response: PermissionResponse): boolean {
     `[SwarmPermissionPoller] Processing response for request ${response.requestId}: ${response.decision}`,
   )
 
-  // Remove from registry before invoking callback
+  // 调用回调前从注册表移除
   pendingCallbacks.delete(response.requestId)
 
   if (response.decision === 'approved') {
@@ -257,29 +256,29 @@ function processResponse(response: PermissionResponse): boolean {
 }
 
 /**
- * Hook that polls for permission responses when running as a swarm worker.
+ * 作为 swarm worker 运行时轮询权限响应的 hook。
  *
- * This hook:
- * 1. Only activates when isSwarmWorker() returns true
- * 2. Polls every 500ms for responses
- * 3. When a response is found, invokes the registered callback
- * 4. Cleans up the response file after processing
+ * 此 hook：
+ * 1. 仅在 isSwarmWorker() 返回 true 时激活
+ * 2. 每 500ms 轮询响应
+ * 3. 找到响应时调用已注册的回调
+ * 4. 处理后清理响应文件
  */
 export function useSwarmPermissionPoller(): void {
   const isProcessingRef = useRef(false)
 
   const poll = useCallback(async () => {
-    // Don't poll if not a swarm worker
+    // 不是 swarm worker 时不轮询
     if (!isSwarmWorker()) {
       return
     }
 
-    // Prevent concurrent polling
+    // 防止并发轮询
     if (isProcessingRef.current) {
       return
     }
 
-    // Don't poll if no callbacks are registered
+    // 无注册回调时不轮询
     if (pendingCallbacks.size === 0) {
       return
     }
@@ -294,16 +293,16 @@ export function useSwarmPermissionPoller(): void {
         return
       }
 
-      // Check each pending request for a response
+      // 检查每个待处理请求是否有响应
       for (const [requestId, _callback] of pendingCallbacks) {
         const response = await pollForResponse(requestId, agentName, teamName)
 
         if (response) {
-          // Process the response
+          // 处理响应
           const processed = processResponse(response)
 
           if (processed) {
-            // Clean up the response from the worker's inbox
+            // 从 worker 的 inbox 清理响应
             await removeWorkerResponse(requestId, agentName, teamName)
           }
         }
@@ -317,11 +316,11 @@ export function useSwarmPermissionPoller(): void {
     }
   }, [])
 
-  // Only poll if we're a swarm worker
+  // 仅在是 swarm worker 时轮询
   const shouldPoll = isSwarmWorker()
   useInterval(() => void poll(), shouldPoll ? POLL_INTERVAL_MS : null)
 
-  // Initial poll on mount
+  // 挂载时初始轮询
   useEffect(() => {
     if (isSwarmWorker()) {
       void poll()

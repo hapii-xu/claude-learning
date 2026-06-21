@@ -84,11 +84,11 @@ import { getProjectRoot } from '../bootstrap/state.js'
 import { formatCommandsWithinBudget } from '@claude-code-best/builtin-tools/tools/SkillTool/prompt.js'
 import { getContextWindowForModel } from './context.js'
 import type { DiscoverySignal } from '../services/skillSearch/signals.js'
-// Conditional require for DCE. All skill-search string literals that would
-// otherwise leak into external builds live inside these modules. The only
-// surfaces in THIS file are: the maybe() call (gated via spread below) and
-// the skill_listing suppression check (uses the same skillSearchModules null
-// check). The type-only DiscoverySignal import above is erased at compile time.
+// 为 DCE 的条件性 require。所有 skill-search 的字符串字面量都
+// 存在于这些模块中，以避免泄漏到外部构建中。本文件中仅有的
+// 使用点是：maybe() 调用（通过下方的展开运算符门控）和
+// skill_listing 抑制检查（使用相同的 skillSearchModules null
+// 检查）。上方仅类型的 DiscoverySignal import 在编译时被擦除。
 /* eslint-disable @typescript-eslint/no-require-imports */
 const skillSearchModules = feature('EXPERIMENTAL_SKILL_SEARCH')
   ? {
@@ -270,24 +270,24 @@ export const AUTO_MODE_ATTACHMENT_CONFIG = {
 } as const
 
 const MAX_MEMORY_LINES = 200
-// Line cap alone doesn't bound size (200 × 500-char lines = 100KB).  The
-// surfacer injects up to 5 files per turn via <system-reminder>, bypassing
-// the per-message tool-result budget, so a tight per-file byte cap keeps
-// aggregate injection bounded (5 × 4KB = 20KB/turn).  Enforced via
-// readFileInRange's truncateOnByteLimit option.  Truncation means the
-// most-relevant memory still surfaces: the frontmatter + opening context
-// is usually what matters.
+// 仅限制行数无法控制大小（200 × 500 字符行 = 100KB）。
+// surfacer 每轮通过 <system-reminder> 注入最多 5 个文件，绕过
+// 单条消息的工具结果预算，因此紧凑的每文件字节上限能确保
+// 总注入量受限（5 × 4KB = 20KB/轮）。通过
+// readFileInRange 的 truncateOnByteLimit 选项强制执行。截断意味着
+// 最相关的记忆仍会浮现：frontmatter + 开头的上下文
+// 通常是最重要的部分。
 const MAX_MEMORY_BYTES = 4096
 
 export const RELEVANT_MEMORIES_CONFIG = {
-  // Per-turn cap (5 × 4KB = 20KB) bounds a single injection, but over a
-  // long session the selector keeps surfacing distinct files — ~26K tokens/
-  // session observed in prod.  Cap the cumulative bytes: once hit, stop
-  // prefetching entirely.  Budget is ~3 full injections; after that the
-  // most-relevant memories are already in context.  Scanning messages
-  // (rather than tracking in toolUseContext) means compact naturally
-  // resets the counter — old attachments are gone from context, so
-  // re-surfacing is valid.
+  // 每轮上限（5 × 4KB = 20KB）仅约束单次注入，但在
+  // 长会话中选择器会持续浮现不同的文件 — 生产环境中观察到
+  // 约 26K tokens/会话。限制累计字节数：达到上限后完全
+  // 停止预取。预算约为 3 次完整注入；之后最相关的
+  // 记忆已进入上下文。扫描消息
+  // （而非在 toolUseContext 中跟踪）意味着 compact 会自然
+  // 重置计数器 — 旧的附件已从上下文中移除，因此
+  // 重新浮现是有效的。
   MAX_SESSION_BYTES: 60 * 1024,
 } as const
 
@@ -720,9 +720,9 @@ export type Attachment =
       addedTypes: string[]
       addedLines: string[]
       removedTypes: string[]
-      /** True when this is the first announcement in the conversation */
+      /** 当本次为会话中的首次公告时为 true */
       isInitial: boolean
-      /** Whether to include the "launch multiple agents concurrently" note (non-pro subscriptions) */
+      /** 是否包含"并发启动多个 agent"提示（非 pro 订阅） */
       showConcurrencyNote: boolean
     }
   | {
@@ -764,8 +764,8 @@ export type TeamContextAttachment = {
 }
 
 /**
- * This is janky
- * TODO: Generate attachments when we create messages
+ * 这里实现比较粗糙
+ * TODO: 在创建消息时生成 attachments
  */
 export async function getAttachments(
   input: string | null,
@@ -780,23 +780,23 @@ export async function getAttachments(
     isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_ATTACHMENTS) ||
     isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)
   ) {
-    // query.ts:removeFromQueue dequeues these unconditionally after
-    // getAttachmentMessages runs — returning [] here silently drops them.
-    // Coworker runs with --bare and depends on task-notification for
-    // mid-tool-call notifications from Local*Task/Remote*Task.
+    // query.ts:removeFromQueue 会在 getAttachmentMessages 运行后
+    // 无条件将这些出队 — 在这里返回 [] 会静默丢弃它们。
+    // Coworker 以 --bare 模式运行，依赖 task-notification 接收
+    // 来自 Local*Task/Remote*Task 的工具调用中期通知。
     return getQueuedCommandAttachments(queuedCommands)
   }
 
-  // This will slow down submissions
-  // TODO: Compute attachments as the user types, not here (though we use this
-  // function for slash command prompts too)
+  // 这会降低提交速度
+  // TODO: 在用户输入时计算 attachments，而不是在这里（虽然我们
+  // 也用此函数处理 slash 命令提示）
   const abortController = createAbortController()
   const timeoutId = setTimeout(ac => ac.abort(), 1000, abortController)
   const context = { ...toolUseContext, abortController }
 
   const isMainThread = !toolUseContext.agentId
 
-  // Attachments which are added in response to on user input
+  // 响应用户输入而添加的 attachments
   const userInputAttachments = input
     ? [
         maybe('at_mentioned_files', () =>
@@ -813,18 +813,18 @@ export async function getAttachments(
             ),
           ),
         ),
-        // Skill discovery on turn 0 (user input as signal). Inter-turn
-        // discovery runs via startSkillDiscoveryPrefetch in query.ts,
-        // gated on write-pivot detection — see skillSearch/prefetch.ts.
-        // feature() here lets DCE drop the 'skill_discovery' string (and the
-        // function it calls) from external builds.
+        // 第 0 轮的 skill 发现（以用户输入为信号）。轮间
+        // 发现通过 query.ts 中的 startSkillDiscoveryPrefetch 运行，
+        // 受写入-转折检测门控 — 参见 skillSearch/prefetch.ts。
+        // 这里的 feature() 让 DCE 能从外部构建中移除 'skill_discovery' 字符串
+        // （及其调用的函数）。
         //
-        // skipSkillDiscovery gates out the SKILL.md-expansion path
-        // (getMessagesForPromptSlashCommand). When a skill is invoked, its
-        // SKILL.md content is passed as `input` here to extract @-mentions —
-        // but that content is NOT user intent and must not trigger discovery.
-        // Without this gate, a 110KB SKILL.md fires ~3.3s of chunked AKI
-        // queries on every skill invocation (session 13a9afae).
+        // skipSkillDiscovery 门控拦截 SKILL.md-expansion 路径
+        // （getMessagesForPromptSlashCommand）。当调用 skill 时，其
+        // SKILL.md 内容作为 `input` 传入此处以提取 @-mentions —
+        // 但该内容并非用户意图，不应触发发现。
+        // 若无此门控，110KB 的 SKILL.md 会在每次 skill 调用时
+        // 触发约 3.3s 的分块 AKI 查询（会话 13a9afae）。
         ...(feature('EXPERIMENTAL_SKILL_SEARCH') &&
         skillSearchModules &&
         !options?.skipSkillDiscovery
@@ -844,8 +844,8 @@ export async function getAttachments(
               }),
             ]
           : []),
-        // Tool discovery on turn 0. Inter-turn discovery runs via
-        // startSearchExtraToolsPrefetch in query.ts.
+        // 第 0 轮的工具发现。轮间发现通过
+        // query.ts 中的 startSearchExtraToolsPrefetch 运行。
         ...(feature('EXPERIMENTAL_SEARCH_EXTRA_TOOLS') &&
         searchExtraToolsModules &&
         !options?.skipSkillDiscovery
@@ -866,18 +866,18 @@ export async function getAttachments(
       ]
     : []
 
-  // Process user input attachments first (includes @mentioned files)
-  // This ensures files are added to nestedMemoryAttachmentTriggers before nested_memory processes them
+  // 先处理用户输入的 attachments（包括 @提及的文件）
+  // 这确保文件在 nested_memory 处理它们之前已被加入 nestedMemoryAttachmentTriggers
   const userAttachmentResults = await Promise.all(userInputAttachments)
 
-  // Thread-safe attachments available in sub-agents
-  // NOTE: These must be created AFTER userInputAttachments completes to ensure
-  // nestedMemoryAttachmentTriggers is populated before getNestedMemoryAttachments runs
+  // 子 agent 中可用的线程安全 attachments
+  // 注意：这些必须在 userInputAttachments 完成后创建，以确保
+  // 在 getNestedMemoryAttachments 运行前 nestedMemoryAttachmentTriggers 已填充
   const allThreadAttachments = [
-    // queuedCommands is already agent-scoped by the drain gate in query.ts —
-    // main thread gets agentId===undefined, subagents get their own agentId.
-    // Must run for all threads or subagent notifications drain into the void
-    // (removed from queue by removeFromQueue but never attached).
+    // queuedCommands 已由 query.ts 中的 drain gate 按 agent 作用域划分 —
+    // 主线程获得 agentId===undefined，子 agent 获得各自的 agentId。
+    // 必须对所有线程运行，否则子 agent 通知会消失到虚空
+    // （被 removeFromQueue 移出队列但从未附加）。
     maybe('queued_commands', () => getQueuedCommandAttachments(queuedCommands)),
     maybe('date_change', () =>
       Promise.resolve(getDateChangeAttachments(messages)),
@@ -922,14 +922,14 @@ export async function getAttachments(
       : []),
     maybe('changed_files', () => getChangedFiles(context)),
     maybe('nested_memory', () => getNestedMemoryAttachments(context)),
-    // relevant_memories moved to async prefetch (startRelevantMemoryPrefetch)
+    // relevant_memories 已迁移到异步预取（startRelevantMemoryPrefetch）
     maybe('dynamic_skill', () => getDynamicSkillAttachments(context)),
     maybe('skill_listing', () => getSkillListingAttachments(context)),
-    // Inter-turn skill discovery now runs via startSkillDiscoveryPrefetch
-    // (query.ts, concurrent with the main turn). The blocking call that
-    // previously lived here was the assistant_turn signal — 97% of those
-    // Haiku calls found nothing in prod. Prefetch + await-at-collection
-    // replaces it; see src/services/skillSearch/prefetch.ts.
+    // 轮间 skill 发现现在通过 startSkillDiscoveryPrefetch 运行
+    // （query.ts，与主轮并发）。此前位于此处的阻塞调用是
+    // assistant_turn 信号 — 生产环境中 97% 的 Haiku 调用
+    // 什么都没找到。预取 + 收集时 await
+    // 替代了它；参见 src/services/skillSearch/prefetch.ts。
     maybe('plan_mode', () => getPlanModeAttachments(messages, toolUseContext)),
     maybe('plan_mode_exit', () => getPlanModeExitAttachment(toolUseContext)),
     ...(feature('TRANSCRIPT_CLASSIFIER')
@@ -949,10 +949,10 @@ export async function getAttachments(
     ),
     ...(isAgentSwarmsEnabled()
       ? [
-          // Skip teammate mailbox for the session_memory forked agent.
-          // It shares AppState.teamContext with the leader, so isTeamLead resolves
-          // true and it reads+marks-as-read the leader's DMs as ephemeral attachments,
-          // silently stealing messages that should be delivered as permanent turns.
+          // 对 session_memory 分叉的 agent 跳过 teammate mailbox。
+          // 它与 leader 共享 AppState.teamContext，因此 isTeamLead 解析为
+          // true，并将 leader 的 DM 作为临时附件读取并标记为已读，
+          // 静默窃取了本应作为永久轮次投递的消息。
           ...(querySource === 'session_memory'
             ? []
             : [
@@ -992,7 +992,7 @@ export async function getAttachments(
       : []),
   ]
 
-  // Attachments which are semantically only for the main conversation or don't have concurrency-safe implementations
+  // 语义上仅用于主会话或没有并发安全实现的 attachments
   const mainThreadAttachments = isMainThread
     ? [
         maybe('ide_selection', async () =>
@@ -1038,7 +1038,7 @@ export async function getAttachments(
       ]
     : []
 
-  // Process thread and main thread attachments in parallel (no dependencies between them)
+  // 并行处理线程和主线程 attachments（它们之间无依赖关系）
   const [threadAttachmentResults, mainThreadAttachmentResults] =
     await Promise.all([
       Promise.all(allThreadAttachments),
@@ -1046,7 +1046,7 @@ export async function getAttachments(
     ])
 
   clearTimeout(timeoutId)
-  // Defensive: a getter leaking [undefined] crashes .map(a => a.type) below.
+  // 防御性编程：若 getter 泄漏了 [undefined]，会导致下方的 .map(a => a.type) 崩溃。
   return (
     [
       ...userAttachmentResults.flat(),
@@ -1061,9 +1061,9 @@ async function maybe<A>(label: string, f: () => Promise<A[]>): Promise<A[]> {
   try {
     const result = await f()
     const duration = Date.now() - startTime
-    // Log only 5% of events to reduce volume
+    // 仅记录 5% 的事件以减少数据量
     if (Math.random() < 0.05) {
-      // jsonStringify(undefined) returns undefined, so .length would throw
+      // jsonStringify(undefined) 返回 undefined，因此 .length 会抛出异常
       const attachmentSizeBytes = result
         .filter(a => a !== undefined && a !== null)
         .reduce((total, attachment) => {
@@ -1079,7 +1079,7 @@ async function maybe<A>(label: string, f: () => Promise<A[]>): Promise<A[]> {
     return result
   } catch (e) {
     const duration = Date.now() - startTime
-    // Log only 5% of events to reduce volume
+    // 仅记录 5% 的事件以减少数据量
     if (Math.random() < 0.05) {
       logEvent('tengu_attachment_compute_duration', {
         label,
@@ -1088,7 +1088,7 @@ async function maybe<A>(label: string, f: () => Promise<A[]>): Promise<A[]> {
       } as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS)
     }
     logError(e)
-    // For Ant users, log the full error to help with debugging
+    // 对 Ant 用户，记录完整错误以帮助调试
     logAntError(`Attachment error in ${label}`, e)
 
     return []
@@ -1103,11 +1103,11 @@ export async function getQueuedCommandAttachments(
   if (!queuedCommands) {
     return []
   }
-  // Include both 'prompt' and 'task-notification' commands as attachments.
-  // During proactive agentic loops, task-notification commands would otherwise
-  // stay in the queue permanently (useQueueProcessor can't run while a query
-  // is active), causing hasPendingNotifications() to return true and Sleep to
-  // wake immediately with 0ms duration in an infinite loop.
+  // 将 'prompt' 和 'task-notification' 命令都作为 attachments 包含进来。
+  // 在主动式 agentic 循环期间，task-notification 命令否则会
+  // 永久停留在队列中（query 激活时 useQueueProcessor 无法运行），
+  // 导致 hasPendingNotifications() 返回 true，使 Sleep
+  // 以 0ms 时长立即唤醒，形成无限循环。
   const filtered = queuedCommands.filter(_ =>
     INLINE_NOTIFICATION_MODES.has(_.mode),
   )
@@ -1116,7 +1116,7 @@ export async function getQueuedCommandAttachments(
       const imageBlocks = await buildImageContentBlocks(_.pastedContents)
       let prompt: string | Array<ContentBlockParam> = _.value
       if (imageBlocks.length > 0) {
-        // Build content block array with text + images so the model sees them
+        // 构建包含文本 + 图片的内容块数组，让模型能看到它们
         const textValue =
           typeof _.value === 'string'
             ? _.value
@@ -1189,11 +1189,11 @@ function getPlanModeAttachmentTurnCount(messages: Message[]): {
   let turnsSinceLastAttachment = 0
   let foundPlanModeAttachment = false
 
-  // Iterate backwards to find most recent plan_mode attachment.
-  // Count HUMAN turns (non-meta, non-tool-result user messages), not assistant
-  // messages — the tool loop in query.ts calls getAttachmentMessages on every
-  // tool round, so counting assistant messages would fire the reminder every
-  // 5 tool calls instead of every 5 human turns.
+  // 向后迭代以找到最近的 plan_mode attachment。
+  // 计数 HUMAN 轮次（非 meta、非工具结果的 user 消息），而不是 assistant
+  // 消息 — query.ts 中的工具循环在每轮
+  // 工具调用时都会调用 getAttachmentMessages，因此若计数 assistant 消息会每
+  // 5 次工具调用触发一次提醒，而不是每 5 个人类轮次。
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i]
 
@@ -1217,17 +1217,17 @@ function getPlanModeAttachmentTurnCount(messages: Message[]): {
 }
 
 /**
- * Count plan_mode attachments since the last plan_mode_exit (or from start if no exit).
- * This ensures the full/sparse cycle resets when re-entering plan mode.
+ * 计数自上次 plan_mode_exit 以来的 plan_mode attachments 数量（若无 exit 则从开头计）。
+ * 这确保了重新进入 plan 模式时 full/sparse 循环会重置。
  */
 function countPlanModeAttachmentsSinceLastExit(messages: Message[]): number {
   let count = 0
-  // Iterate backwards - if we hit a plan_mode_exit, stop counting
+  // 向后迭代 - 若遇到 plan_mode_exit 则停止计数
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i]
     if (message?.type === 'attachment') {
       if (message.attachment!.type === 'plan_mode_exit') {
-        break // Stop counting at the last exit
+        break // 在最后一次 exit 时停止计数
       }
       if (message.attachment!.type === 'plan_mode') {
         count++
@@ -1247,12 +1247,12 @@ async function getPlanModeAttachments(
     return []
   }
 
-  // Check if we should attach based on turn count (except for first turn)
+  // 检查是否应根据轮次计数附加（首轮除外）
   if (messages && messages.length > 0) {
     const { turnCount, foundPlanModeAttachment } =
       getPlanModeAttachmentTurnCount(messages)
-    // Only throttle if we've already sent a plan_mode attachment before
-    // On first turn in plan mode, always attach
+    // 仅在之前已发送过 plan_mode attachment 时进行节流
+    // plan 模式首轮始终附加
     if (
       foundPlanModeAttachment &&
       turnCount < PLAN_MODE_ATTACHMENT_CONFIG.TURNS_BETWEEN_ATTACHMENTS
@@ -1266,14 +1266,14 @@ async function getPlanModeAttachments(
 
   const attachments: Attachment[] = []
 
-  // Check for re-entry: flag is set AND plan file exists
+  // 检查是否为重新进入：标志已设置且计划文件存在
   if (hasExitedPlanModeInSession() && existingPlan !== null) {
     attachments.push({ type: 'plan_mode_reentry', planFilePath })
-    setHasExitedPlanMode(false) // Clear flag - one-time guidance
+    setHasExitedPlanMode(false) // 清除标志 - 一次性指引
   }
 
-  // Determine if this should be a full or sparse reminder
-  // Full reminder on 1st, 6th, 11th... (every Nth attachment)
+  // 判断应该是 full 还是 sparse 提醒
+  // full 提醒出现在第 1、6、11 次...（每 N 次 attachment）
   const attachmentCount =
     countPlanModeAttachmentsSinceLastExit(messages ?? []) + 1
   const reminderType: 'full' | 'sparse' =
@@ -1283,7 +1283,7 @@ async function getPlanModeAttachments(
       ? 'full'
       : 'sparse'
 
-  // Always add the main plan_mode attachment
+  // 始终添加主 plan_mode attachment
   attachments.push({
     type: 'plan_mode',
     reminderType,
@@ -1296,13 +1296,13 @@ async function getPlanModeAttachments(
 }
 
 /**
- * Returns a plan_mode_exit attachment if we just exited plan mode.
- * This is a one-time notification to tell the model it's no longer in plan mode.
+ * 若刚刚退出 plan 模式则返回 plan_mode_exit attachment。
+ * 这是一次性通知，告知模型已不再处于 plan 模式。
  */
 async function getPlanModeExitAttachment(
   toolUseContext: ToolUseContext,
 ): Promise<Attachment[]> {
-  // Only trigger if the flag is set (we just exited plan mode)
+  // 仅在标志已设置时触发（即刚刚退出 plan 模式）
   if (!needsPlanModeExitAttachment()) {
     return []
   }
@@ -1313,16 +1313,16 @@ async function getPlanModeExitAttachment(
     return []
   }
 
-  // Clear the flag - this is a one-time notification
+  // 清除标志 - 这是一次性通知
   setNeedsPlanModeExitAttachment(false)
 
   const planFilePath = getPlanFilePath(toolUseContext.agentId)
   const planExists = getPlan(toolUseContext.agentId) !== null
 
-  // Note: skill discovery does NOT fire on plan exit. By the time the plan is
-  // written, it's too late — the model should have had relevant skills WHILE
-  // planning. The user_message signal already fires on the request that
-  // triggers planning ("plan how to deploy this"), which is the right moment.
+  // 注意：skill discovery 不会在 plan 退出时触发。当计划被
+  // 写入时已经太晚了 — 模型应该在规划期间就拥有相关 skills。
+  // user_message 信号已在触发规划的请求上
+  // （"plan how to deploy this"）时就已触发，那才是正确的时机。
   return [{ type: 'plan_mode_exit', planFilePath, planExists }]
 }
 
@@ -1333,12 +1333,13 @@ function getAutoModeAttachmentTurnCount(messages: Message[]): {
   let turnsSinceLastAttachment = 0
   let foundAutoModeAttachment = false
 
-  // Iterate backwards to find most recent auto_mode attachment.
-  // Count HUMAN turns (non-meta, non-tool-result user messages), not assistant
-  // messages — the tool loop in query.ts calls getAttachmentMessages on every
-  // tool round, so a single human turn with 100 tool calls would fire ~20
-  // reminders if we counted assistant messages. Auto mode's target use case is
-  // long agentic sessions, where this accumulated 60-105× per session.
+  // 向后迭代以找到最近的 auto_mode attachment。
+  // 计数 HUMAN 轮次（非 meta、非工具结果的 user 消息），而不是 assistant
+  // 消息 — query.ts 中的工具循环在每轮
+  // 工具调用时都会调用 getAttachmentMessages，因此如果计数 assistant 消息，
+  // 一个包含 100 次工具调用的人类轮次会触发约 20 次
+  // 提醒。auto 模式的目标使用场景是
+  // 长时 agentic 会话，此前每个会话累计触发 60-105 次。
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i]
 
@@ -1358,7 +1359,7 @@ function getAutoModeAttachmentTurnCount(messages: Message[]): {
       message?.type === 'attachment' &&
       message.attachment!.type === 'auto_mode_exit'
     ) {
-      // Exit resets the throttle — treat as if no prior attachment exists
+      // Exit 会重置节流 — 视为之前不存在 attachment
       break
     }
   }
@@ -1367,8 +1368,8 @@ function getAutoModeAttachmentTurnCount(messages: Message[]): {
 }
 
 /**
- * Count auto_mode attachments since the last auto_mode_exit (or from start if no exit).
- * This ensures the full/sparse cycle resets when re-entering auto mode.
+ * 计数自上次 auto_mode_exit 以来的 auto_mode attachments 数量（若无 exit 则从开头计）。
+ * 这确保了重新进入 auto 模式时 full/sparse 循环会重置。
  */
 function countAutoModeAttachmentsSinceLastExit(messages: Message[]): number {
   let count = 0

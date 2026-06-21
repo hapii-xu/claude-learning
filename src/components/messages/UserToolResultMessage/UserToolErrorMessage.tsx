@@ -19,7 +19,7 @@ import { RejectedToolUseMessage } from './RejectedToolUseMessage.js';
 
 type Props = {
   progressMessagesForMessage: ProgressMessage[];
-  tool?: Tool; // undefined when resuming an old conversation that uses an old tool
+  tool?: Tool; // 恢复使用旧 tool 的旧会话时为 undefined
   tools: Tools;
   param: ToolResultBlockParam;
   verbose: boolean;
@@ -43,7 +43,7 @@ export function UserToolErrorMessage({
   }
 
   if (typeof param.content === 'string' && param.content.startsWith(PLAN_REJECTION_PREFIX)) {
-    // Extract the plan content from the error message
+    // 从错误消息中提取 plan 内容
     const planContent = param.content.substring(PLAN_REJECTION_PREFIX.length);
     return <RejectedPlanMessage plan={planContent} />;
   }

@@ -32,30 +32,29 @@ type Props = {
 export function TrustDialog({ onDone, commands }: Props): React.ReactNode {
   const { servers: projectServers } = getMcpConfigsByScope('project');
 
-  // In all cases, we generally check only the project-level and
-  // project-local-level settings, which we assume that users do not configure
-  // directly compared to user-level settings.
+  // 在所有情况下，我们通常只检查项目级别和项目本地级别的设置，
+  // 因为相比用户级别的设置，我们假设用户不会直接配置这些。
 
-  // Check for MCPs
+  // 检查 MCP
   const hasMcpServers = Object.keys(projectServers).length > 0;
-  // Check for hooks
+  // 检查 hooks
   const hooksSettingSources = getHooksSources();
   const hasHooks = hooksSettingSources.length > 0;
-  // Check whether code execution is allowed in permissions and slash commands
+  // 检查权限和 slash 命令中是否允许代码执行
   const bashSettingSources = getBashPermissionSources();
-  // Check for apiKeyHelper which executes arbitrary commands
+  // 检查会执行任意命令的 apiKeyHelper
   const apiKeyHelperSources = getApiKeyHelperSources();
   const hasApiKeyHelper = apiKeyHelperSources.length > 0;
-  // Check for AWS commands which execute arbitrary commands
+  // 检查会执行任意命令的 AWS 命令
   const awsCommandsSources = getAwsCommandsSources();
   const hasAwsCommands = awsCommandsSources.length > 0;
-  // Check for GCP commands which execute arbitrary commands
+  // 检查会执行任意命令的 GCP 命令
   const gcpCommandsSources = getGcpCommandsSources();
   const hasGcpCommands = gcpCommandsSources.length > 0;
-  // Check for otelHeadersHelper which executes arbitrary commands
+  // 检查会执行任意命令的 otelHeadersHelper
   const otelHeadersHelperSources = getOtelHeadersHelperSources();
   const hasOtelHeadersHelper = otelHeadersHelperSources.length > 0;
-  // Check for dangerous environment variables (not in SAFE_ENV_VARS)
+  // 检查危险的环境变量（不在 SAFE_ENV_VARS 中）
   const dangerousEnvVarsSources = getDangerousEnvVarsSources();
   const hasDangerousEnvVars = dangerousEnvVarsSources.length > 0;
 
@@ -82,12 +81,11 @@ export function TrustDialog({ onDone, commands }: Props): React.ReactNode {
   const hasTrustDialogAccepted = checkHasTrustDialogAccepted();
   const [pendingExitCode, setPendingExitCode] = React.useState<number | null>(null);
 
-  // When a non-null exit code is set, render null (clear screen) first,
-  // then trigger shutdown in the next tick so Ink has time to flush
-  // the empty frame before cleanupTerminalModes() unmounts and exits
-  // the alt screen. Without this deferral, gracefulShutdownSync starts
-  // async cleanup immediately after React commit, racing the reconciler
-  // and leaving residual TrustDialog output on the terminal.
+  // 当设置了非 null 的退出码时，先渲染 null（清空屏幕），
+  // 然后在下一帧触发关闭，以便 Ink 有时间在 cleanupTerminalModes()
+  // 卸载并退出 alt 屏幕之前刷新空帧。如果不做这个延迟，
+  // gracefulShutdownSync 会在 React 提交后立即开始异步清理，
+  // 与 reconciler 发生竞态，导致终端上残留 TrustDialog 的输出。
   React.useEffect(() => {
     if (pendingExitCode !== null) {
       const code = pendingExitCode;
@@ -122,11 +120,10 @@ export function TrustDialog({ onDone, commands }: Props): React.ReactNode {
 
   function onChange(value: 'enable_all' | 'exit') {
     if (value === 'exit') {
-      // Set pendingExitCode to clear the screen before triggering shutdown.
-      // The useEffect above defers gracefulShutdownSync to the next tick
-      // so Ink can flush the empty frame first — otherwise
-      // cleanupTerminalModes races React's re-render and leaves
-      // residual TrustDialog content on the terminal.
+      // 设置 pendingExitCode 以在触发关闭之前清空屏幕。
+      // 上面的 useEffect 将 gracefulShutdownSync 延迟到下一帧执行，
+      // 以便 Ink 先刷新空帧 —— 否则 cleanupTerminalModes 会与 React 的
+      // 重新渲染发生竞态，导致终端上残留 TrustDialog 的内容。
       setPendingExitCode(1);
       return;
     }
@@ -146,9 +143,9 @@ export function TrustDialog({ onDone, commands }: Props): React.ReactNode {
     });
 
     if (isHomeDir) {
-      // For home directory, store trust in session memory only (not persisted to disk)
-      // This allows hooks and other trust-requiring features to work during this session
-      // while preserving the security intent of not permanently trusting home dir
+      // 对于家目录，只在会话内存中存储信任（不持久化到磁盘）
+      // 这样既允许 hooks 和其他需要信任的功能在本次会话中工作，
+      // 又保留了不永久信任家目录的安全意图
       setSessionTrustAccepted(true);
     } else {
       saveCurrentProjectConfig(current => ({
@@ -157,23 +154,22 @@ export function TrustDialog({ onDone, commands }: Props): React.ReactNode {
       }));
     }
 
-    // Do NOT write MCP server settings here. handleMcpjsonServerApprovals in
-    // interactiveHelpers.tsx runs right after this dialog and shows the per-server approval
-    // UI. Writing enabledMcpjsonServers/enableAllProjectMcpServers here would
-    // mark every server 'approved' and silently skip that dialog. See #15558.
+    // 不要在这里写入 MCP server 设置。interactiveHelpers.tsx 中的
+    // handleMcpjsonServerApprovals 在此对话框之后立即运行，并显示逐个 server 的
+    // 审批 UI。如果在此处写入 enabledMcpjsonServers/enableAllProjectMcpServers，
+    // 会把每个 server 都标记为 'approved'，从而静默跳过该对话框。见 #15558。
 
     onDone();
   }
 
-  // Default onExit is useApp().exit() → Ink.unmount(), which tears down the
-  // React tree but never calls onDone(). showSetupScreens() in
-  // interactiveHelpers.tsx awaits a Promise that only resolves via onDone,
-  // so the default would hang the await forever. With keybinding
-  // customization enabled, the chokidar watcher (persistent: true) keeps the
-  // event loop alive and the process freezes. Explicitly exit 1 like "No".
+  // 默认的 onExit 是 useApp().exit() → Ink.unmount()，它会拆除 React 树
+  // 但从不调用 onDone()。interactiveHelpers.tsx 中的 showSetupScreens()
+  // 等待一个只能通过 onDone 解析的 Promise，所以默认行为会让 await 永远
+  // 挂起。在启用键位自定义时，chokidar watcher（persistent: true）保持
+  // 事件循环活跃，进程会冻结。这里像 "No" 一样显式退出码 1。
   const exitState = useExitOnCtrlCDWithKeybindings(() => setPendingExitCode(1));
 
-  // Use configurable keybinding for ESC to cancel/exit
+  // 使用可配置的键位绑定将 ESC 用于取消/退出
   useKeybinding(
     'confirm:no',
     () => {
@@ -182,13 +178,13 @@ export function TrustDialog({ onDone, commands }: Props): React.ReactNode {
     { context: 'Confirmation' },
   );
 
-  // When pendingExitCode is set, render nothing so the screen is cleared
-  // before shutdown cleans up the alt screen.  See the useEffect above.
+  // 当设置了 pendingExitCode 时，不渲染任何内容，以便在关闭清理 alt 屏幕
+  // 之前清空屏幕。参见上面的 useEffect。
   if (pendingExitCode !== null) {
     return null;
   }
 
-  // Automatically resolve the trust dialog if there is nothing to be shown.
+  // 如果没有任何内容需要显示，则自动解决信任对话框。
   if (hasTrustDialogAccepted) {
     setTimeout(onDone);
     return null;

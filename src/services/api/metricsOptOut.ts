@@ -51,9 +51,9 @@ async function _fetchMetricsEnabled(): Promise<MetricsEnabledResponse> {
 }
 
 async function _checkMetricsEnabledAPI(): Promise<MetricsStatus> {
-  // Incident kill switch: skip the network call when nonessential traffic is disabled.
-  // Returning enabled:false sheds load at the consumer (bigqueryExporter skips
-  // export). Matches the non-subscriber early-return shape below.
+  // 事件兜底开关：当禁用非必要流量时跳过网络调用。
+  // 返回 enabled:false 让消费端卸载负载（bigqueryExporter 跳过导出）。
+  // 与下面非订阅用户的早返回结果一致。
   if (isEssentialTrafficOnly()) {
     return { enabled: false, hasError: false }
   }
@@ -80,16 +80,15 @@ async function _checkMetricsEnabledAPI(): Promise<MetricsStatus> {
   }
 }
 
-// Create memoized version with custom error handling
+// 创建带自定义错误处理的 memoize 版本
 const memoizedCheckMetrics = memoizeWithTTLAsync(
   _checkMetricsEnabledAPI,
   CACHE_TTL_MS,
 )
 
 /**
- * Fetch (in-memory memoized) and persist to disk on change.
- * Errors are not persisted — a transient failure should not overwrite a
- * known-good disk value.
+ * 拉取（内存 memoize）并在变化时持久化到磁盘。
+ * 错误不持久化 —— 瞬时失败不应覆盖已知的良好磁盘值。
  */
 async function refreshMetricsStatus(): Promise<MetricsStatus> {
   const result = await memoizedCheckMetrics()
@@ -99,8 +98,8 @@ async function refreshMetricsStatus(): Promise<MetricsStatus> {
 
   const cached = getGlobalConfig().metricsStatusCache
   const unchanged = cached !== undefined && cached.enabled === result.enabled
-  // Skip write when unchanged AND timestamp still fresh — avoids config churn
-  // when concurrent callers race past a stale disk entry and all try to write.
+  // 未变化且时间戳仍然新鲜时跳过写入 —— 避免并发调用方越过陈旧的磁盘条目
+  // 后都尝试写入导致的配置抖动。
   if (unchanged && Date.now() - cached.timestamp < DISK_CACHE_TTL_MS) {
     return result
   }
@@ -116,21 +115,21 @@ async function refreshMetricsStatus(): Promise<MetricsStatus> {
 }
 
 /**
- * Check if metrics are enabled for the current organization.
+ * 检查当前组织是否启用了 metrics。
  *
- * Two-tier cache:
- * - Disk (24h TTL): survives process restarts. Fresh disk cache → zero network.
- * - In-memory (1h TTL): dedupes the background refresh within a process.
+ * 两级缓存：
+ * - 磁盘（24h TTL）：能在进程重启后保留。新鲜磁盘缓存 → 零网络。
+ * - 内存（1h TTL）：在进程内对后台刷新去重。
  *
- * The caller (bigqueryExporter) tolerates stale reads — a missed export or
- * an extra one during the 24h window is acceptable.
+ * 调用方（bigqueryExporter）能容忍陈旧读取 —— 在 24h 窗口内漏掉或
+ * 多出一次导出都是可以接受的。
  */
 export async function checkMetricsEnabled(): Promise<MetricsStatus> {
-  // Service key OAuth sessions lack user:profile scope → would 403.
-  // API key users (non-subscribers) fall through and use x-api-key auth.
-  // This check runs before the disk read so we never persist auth-state-derived
-  // answers — only real API responses go to disk. Otherwise a service-key
-  // session would poison the cache for a later full-OAuth session.
+  // Service key OAuth session 缺少 user:profile scope → 会返回 403。
+  // API key 用户（非订阅）会走下来使用 x-api-key 认证。
+  // 这个检查在磁盘读取之前运行，所以我们从不会持久化基于认证状态的
+  // 结果 —— 只有真实的 API 响应才写入磁盘。否则一个 service-key
+  // session 会污染后续完整 OAuth session 的缓存。
   if (isClaudeAISubscriber() && !hasProfileScope()) {
     return { enabled: false, hasError: false }
   }
@@ -138,9 +137,9 @@ export async function checkMetricsEnabled(): Promise<MetricsStatus> {
   const cached = getGlobalConfig().metricsStatusCache
   if (cached) {
     if (Date.now() - cached.timestamp > DISK_CACHE_TTL_MS) {
-      // saveGlobalConfig's fallback path (config.ts:731) can throw if both
-      // locked and fallback writes fail — catch here so fire-and-forget
-      // doesn't become an unhandled rejection.
+      // saveGlobalConfig 的 fallback 路径（config.ts:731）在 locked 和
+      // fallback 写入都失败时会抛错 —— 在这里 catch，避免触发即忘变成
+      // 未处理的 rejection。
       void refreshMetricsStatus().catch(logError)
     }
     return {
@@ -149,11 +148,11 @@ export async function checkMetricsEnabled(): Promise<MetricsStatus> {
     }
   }
 
-  // First-ever run on this machine: block on the network to populate disk.
+  // 本机首次运行：在网络阻塞，以填充磁盘缓存。
   return refreshMetricsStatus()
 }
 
-// Export for testing purposes only
+// 仅供测试导出
 export const _clearMetricsEnabledCacheForTesting = (): void => {
   memoizedCheckMetrics.cache.clear()
 }

@@ -4,22 +4,22 @@ import { updateProviderBuckets } from 'src/services/providerUsage/store.js'
 import { getProxyFetchOptions } from 'src/utils/proxy.js'
 
 /**
- * Environment variables:
+ * 环境变量：
  *
- * OPENAI_API_KEY: Required. API key for the OpenAI-compatible endpoint.
- * OPENAI_BASE_URL: Recommended. Base URL for the endpoint (e.g. http://localhost:11434/v1).
- * OPENAI_ORG_ID: Optional. Organization ID.
- * OPENAI_PROJECT_ID: Optional. Project ID.
+ * OPENAI_API_KEY：必填。OpenAI 兼容 endpoint 的 API key。
+ * OPENAI_BASE_URL：推荐。endpoint 的 base URL（例如 http://localhost:11434/v1）。
+ * OPENAI_ORG_ID：可选。Organization ID。
+ * OPENAI_PROJECT_ID：可选。Project ID。
  */
 
 let cachedClient: OpenAI | null = null
 
 /**
- * Wrap a fetch so that every response's rate-limit headers are fed into the
- * provider usage store. Errors in parsing must never break the request.
+ * 包装 fetch，使每个响应的 rate-limit header 都被送入 provider usage store。
+ * 解析错误绝不能打断请求。
  *
- * The cast to `typeof fetch` is safe: OpenAI SDK only calls the function form,
- * not the static `preconnect` method that Bun/Node's `fetch` type declares.
+ * 强转为 `typeof fetch` 是安全的：OpenAI SDK 只会以函数形式调用，
+ * 不会调用 Bun/Node 的 `fetch` 类型所声明的静态 `preconnect` 方法。
  */
 function wrapFetchForUsage(base: typeof fetch): typeof fetch {
   const wrapped = async (
@@ -72,7 +72,7 @@ export function getOpenAIClient(options?: {
   return client
 }
 
-/** Clear the cached client (useful when env vars change). */
+/** 清空缓存的 client（在环境变量变化时有用）。 */
 export function clearOpenAIClientCache(): void {
   cachedClient = null
 }

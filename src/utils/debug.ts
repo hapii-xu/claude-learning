@@ -17,6 +17,16 @@ import { jsonStringify } from './slowOperations.js'
 
 export type DebugLogLevel = 'verbose' | 'debug' | 'info' | 'warn' | 'error'
 
+type DebugLogSink = (
+  level: DebugLogLevel,
+  message: string,
+  timestamp: string,
+) => void
+let _debugLogSink: DebugLogSink | null = null
+export function setDebugLogSink(sink: DebugLogSink | null): void {
+  _debugLogSink = sink
+}
+
 const LEVEL_ORDER: Record<DebugLogLevel, number> = {
   verbose: 0,
   debug: 1,
@@ -26,10 +36,10 @@ const LEVEL_ORDER: Record<DebugLogLevel, number> = {
 }
 
 /**
- * Minimum log level to include in debug output. Defaults to 'debug', which
- * filters out 'verbose' messages. Set CLAUDE_CODE_DEBUG_LOG_LEVEL=verbose to
- * include high-volume diagnostics (e.g. full statusLine command, shell, cwd,
- * stdout/stderr) that would otherwise drown out useful debug output.
+ * 调试输出的最低日志级别，默认为 'debug'（过滤掉 'verbose' 消息）。
+ * 设置 CLAUDE_CODE_DEBUG_LOG_LEVEL=verbose 可包含高频诊断信息
+ * （如完整的 statusLine 命令、shell、cwd、stdout/stderr），
+ * 否则这些信息会淹没有用的调试输出。
  */
 export const getMinDebugLogLevel = memoize((): DebugLogLevel => {
   const raw = process.env.CLAUDE_CODE_DEBUG_LOG_LEVEL?.toLowerCase().trim()
@@ -57,9 +67,9 @@ export const isDebugMode = memoize((): boolean => {
 })
 
 /**
- * Enables debug logging mid-session (e.g. via /debug). Non-ants don't write
- * debug logs by default, so this lets them start capturing without restarting
- * with --debug. Returns true if logging was already active.
+ * 在会话中途启用调试日志（如通过 /debug）。非 ant 用户默认不写调试日志，
+ * 此函数允许他们无需重启并加 --debug 即可开始捕获日志。
+ * 若日志已处于活跃状态则返回 true。
  */
 export function enableDebugLogging(): boolean {
   const wasActive = isDebugMode() || process.env.USER_TYPE === 'ant'
@@ -68,8 +78,8 @@ export function enableDebugLogging(): boolean {
   return wasActive
 }
 
-// Extract and parse debug filter from command line arguments
-// Exported for testing purposes
+// 从命令行参数中提取并解析调试过滤器
+// 导出供测试使用
 export const getDebugFilter = memoize((): DebugFilter | null => {
   // Look for --debug=pattern in argv
   const debugArg = process.argv.find(arg => arg.startsWith('--debug='))
@@ -104,8 +114,8 @@ function shouldLogDebugMessage(message: string): boolean {
     return false
   }
 
-  // Non-ants only write debug logs when debug mode is active (via --debug at
-  // startup or /debug mid-session). Ants always log for /share, bug reports.
+  // 非 ant 用户仅在调试模式激活时（启动时加 --debug 或会话中 /debug）写调试日志。
+  // ant 用户始终记录日志，用于 /share 和错误报告。
   if (process.env.USER_TYPE !== 'ant' && !isDebugMode()) {
     return false
   }
@@ -133,8 +143,7 @@ export function getHasFormattedOutput(): boolean {
 let debugWriter: BufferedWriter | null = null
 let pendingWrite: Promise<void> = Promise.resolve()
 
-// Module-level so .bind captures only its explicit args, not the
-// writeFn closure's parent scope (Jarred, #22257).
+// 模块级函数，使 .bind 仅捕获显式参数，而非 writeFn 闭包的父作用域（Jarred, #22257）。
 async function appendAsync(
   needMkdir: boolean,
   dir: string,
@@ -160,23 +169,21 @@ function getDebugWriter(): BufferedWriter {
         const needMkdir = ensuredDir !== dir
         ensuredDir = dir
         if (isDebugMode()) {
-          // immediateMode: must stay sync. Async writes are lost on direct
-          // process.exit() and keep the event loop alive in beforeExit
-          // handlers (infinite loop with Perfetto tracing). See #22257.
+          // immediateMode：必须保持同步。异步写入在 process.exit() 直接退出时会丢失，
+          // 且会在 beforeExit 处理器中保持事件循环存活（Perfetto 追踪无限循环）。见 #22257。
           if (needMkdir) {
             try {
               getFsImplementation().mkdirSync(dir)
             } catch {
-              // Directory already exists
+              // 目录已存在
             }
           }
           getFsImplementation().appendFileSync(path, content)
           void updateLatestDebugLogSymlink()
           return
         }
-        // Buffered path (ants without --debug): flushes ~1/sec so chain
-        // depth stays ~1. .bind over a closure so only the bound args are
-        // retained, not this scope.
+        // 缓冲路径（无 --debug 的 ant 用户）：约 1 秒刷新一次，保持链深度约为 1。
+        // 使用 .bind 替代闭包，确保只保留绑定参数，不持有当前作用域。
         pendingWrite = pendingWrite
           .then(appendAsync.bind(null, needMkdir, dir, path, content))
           .catch(noop)
@@ -207,11 +214,16 @@ export function logForDebugging(
   if (LEVEL_ORDER[level] < LEVEL_ORDER[getMinDebugLogLevel()]) {
     return
   }
+  // 通知 bridge 调试面板 sink（在 shouldLogDebugMessage 之前，确保 bridge
+  // 模式下即使未启用文件日志也能看到日志）。sink 内部不能再调用 logForDebugging。
+  try {
+    _debugLogSink?.(level, message, new Date().toISOString())
+  } catch {}
   if (!shouldLogDebugMessage(message)) {
     return
   }
 
-  // Multiline messages break the jsonl output format, so make any multiline messages JSON.
+  // 多行消息会破坏 jsonl 输出格式，因此将多行消息转为 JSON。
   if (hasFormattedOutput && message.includes('\n')) {
     message = jsonStringify(message)
   }
@@ -222,6 +234,7 @@ export function logForDebugging(
     return
   }
 
+  console.info(output.trim())
   getDebugWriter().write(output)
 }
 
@@ -234,8 +247,8 @@ export function getDebugLogPath(): string {
 }
 
 /**
- * Updates the latest debug log symlink to point to the current debug log file.
- * Creates or updates a symlink at ~/.claude/debug/latest
+ * 更新最新调试日志软链接，使其指向当前调试日志文件。
+ * 在 ~/.hclaude/debug/latest 处创建或更新软链接。
  */
 const updateLatestDebugLogSymlink = memoize(async (): Promise<void> => {
   try {
@@ -246,12 +259,12 @@ const updateLatestDebugLogSymlink = memoize(async (): Promise<void> => {
     await unlink(latestSymlinkPath).catch(() => {})
     await symlink(debugLogPath, latestSymlinkPath)
   } catch {
-    // Silently fail if symlink creation fails
+    // 软链接创建失败时静默忽略
   }
 })
 
 /**
- * Logs errors for Ants only, always visible in production.
+ * 仅限 ant 用户的错误日志，在生产环境中始终可见。
  */
 export function logAntError(context: string, error: unknown): void {
   if (process.env.USER_TYPE !== 'ant') {

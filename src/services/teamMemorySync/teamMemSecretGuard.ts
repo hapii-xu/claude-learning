@@ -1,16 +1,16 @@
 import { feature } from 'bun:bundle'
 
 /**
- * Check if a file write/edit to a team memory path contains secrets.
- * Returns an error message if secrets are detected, or null if safe.
+ * 检查对 team memory 路径的文件写入/编辑是否包含密钥。
+ * 如果检测到密钥则返回错误消息，安全则返回 null。
  *
- * This is called from FileWriteTool and FileEditTool validateInput to
- * prevent the model from writing secrets into team memory files, which
- * would be synced to all repository collaborators.
+ * 此函数由 FileWriteTool 和 FileEditTool 的 validateInput 调用，
+ * 用于阻止模型将密钥写入 team memory 文件，
+ * 否则这些密钥会被同步给所有仓库协作者。
  *
- * Callers can import and call this unconditionally — the internal
- * feature('TEAMMEM') guard keeps it inert when the build flag is off.
- * secretScanner assembles sensitive prefixes at runtime (ANT_KEY_PFX).
+ * 调用方可以无条件导入并调用此函数 —— 内部的
+ * feature('TEAMMEM') 守卫会在构建标志关闭时保持其惰性。
+ * secretScanner 会在运行时组装敏感前缀（ANT_KEY_PFX）。
  */
 export function checkTeamMemSecrets(
   filePath: string,

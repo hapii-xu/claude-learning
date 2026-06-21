@@ -64,15 +64,15 @@ export function AssistantTextMessage({
     return null;
   }
 
-  // Handle all rate limit error messages from getRateLimitErrorMessage
-  // Use the exported function to avoid fragile string coupling
+  // 处理来自 getRateLimitErrorMessage 的所有 rate limit 错误消息
+  // 使用导出的函数以避免脆弱的字符串耦合
   if (isRateLimitErrorMessage(text)) {
     return <RateLimitMessage text={text} onOpenRateLimitOptions={onOpenRateLimitOptions} />;
   }
 
   switch (text) {
-    // Local JSX commands don't need a response, but we still want Claude to see them
-    // Tool results render their own interrupt messages
+    // Local JSX 命令不需要响应，但我们仍希望 Claude 看到它们
+    // Tool 结果渲染它们自己的 interrupt 消息
     case NO_RESPONSE_REQUESTED:
       return null;
 
@@ -145,7 +145,7 @@ export function AssistantTextMessage({
         </MessageResponse>
       );
 
-    // TODO: Move this to a user turn
+    // TODO：将此移至 user turn
     case ERROR_MESSAGE_USER_ABORT:
       return (
         <MessageResponse height={1}>

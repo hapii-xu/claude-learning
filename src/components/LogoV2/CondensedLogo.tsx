@@ -26,7 +26,7 @@ export function CondensedLogo(): ReactNode {
   const modelDisplayName = renderModelSetting(model);
   const { version, cwd, billingType, agentName: agentNameFromSettings } = getLogoDisplayData();
 
-  // Prefer AppState.agent (set from --agent CLI flag) over settings
+  // 优先使用 AppState.agent（由 --agent CLI flag 设置）而非 settings
   const agentName = agent ?? agentNameFromSettings;
   const showGuestPassesUpsell = useShowGuestPassesUpsell();
   const showOverageCreditUpsell = useShowOverageCreditUpsell();
@@ -43,11 +43,11 @@ export function CondensedLogo(): ReactNode {
     }
   }, [showOverageCreditUpsell, showGuestPassesUpsell]);
 
-  // Calculate available width for text content
-  // Account for: condensed clawd width (11 chars) + gap (2) + padding (2) = 15 chars
+  // 计算文本内容的可用宽度
+  // 需要扣除：condensed clawd 宽度（11 字符）+ 间距（2）+ 内边距（2）= 15 字符
   const textWidth = Math.max(columns - 15, 20);
 
-  // Truncate version to fit within available width, accounting for "Claude Code v" prefix
+  // 截断 version 以适配可用宽度，需要考虑 "Claude Code v" 前缀
   const versionPrefix = 'Claude Code v';
   const truncatedVersion = truncate(version, Math.max(textWidth - versionPrefix.length, 6));
 
@@ -58,7 +58,7 @@ export function CondensedLogo(): ReactNode {
     textWidth,
   );
 
-  // Truncate path, accounting for agent name if present
+  // 截断路径，若存在 agent 名则需预留空间
   const separator = ' · ';
   const atPrefix = '@';
   const cwdAvailableWidth = agentName
@@ -66,16 +66,15 @@ export function CondensedLogo(): ReactNode {
     : textWidth;
   const truncatedCwd = truncatePath(cwd, Math.max(cwdAvailableWidth, 10));
 
-  // OffscreenFreeze: the logo sits at the top of the message list and is the
-  // first thing to enter scrollback. useMainLoopModel() subscribes to model
-  // changes and getLogoDisplayData() reads getCwd()/subscription state — any
-  // of which changing while in scrollback would force a full terminal reset.
+  // OffscreenFreeze：logo 位于消息列表顶部，是最先进入 scrollback 的内容。
+  // useMainLoopModel() 订阅了 model 变化，getLogoDisplayData() 会读取
+  // getCwd()/subscription 状态 — 在 scrollback 期间其中任何变化都会强制完全终端重置。
   return (
     <OffscreenFreeze>
       <Box flexDirection="row" gap={2} alignItems="center">
         {isFullscreenEnvEnabled() ? <AnimatedClawd /> : <Clawd />}
 
-        {/* Info */}
+        {/* 信息 */}
         <Box flexDirection="column">
           <Text>
             <Text bold>Claude Code</Text> <Text dimColor>v{truncatedVersion}</Text>

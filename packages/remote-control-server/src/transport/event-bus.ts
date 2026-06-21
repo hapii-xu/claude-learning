@@ -41,10 +41,20 @@ export class EventBus {
     if (this.events.length > MAX_EVENTS_PER_BUS) {
       this.events = this.events.slice(-Math.floor(MAX_EVENTS_PER_BUS / 2))
     }
-    log(
-      `[RC-DEBUG] bus publish: sessionId=${event.sessionId} type=${event.type} dir=${event.direction} seq=${full.seqNum} subscribers=${this.subscribers.size}`,
-      event.type === 'error' ? `payload=${JSON.stringify(event.payload)}` : '',
-    )
+    // debug_log/sdk_raw/tool_trace/usage 事件量大，跳过逐条日志避免刷屏
+    if (
+      event.type !== 'debug_log' &&
+      event.type !== 'sdk_raw' &&
+      event.type !== 'tool_trace' &&
+      event.type !== 'usage'
+    ) {
+      log(
+        `[RC-DEBUG] bus publish: sessionId=${event.sessionId} type=${event.type} dir=${event.direction} seq=${full.seqNum} subscribers=${this.subscribers.size}`,
+        event.type === 'error'
+          ? `payload=${JSON.stringify(event.payload)}`
+          : '',
+      )
+    }
     for (const cb of this.subscribers) {
       try {
         cb(full)

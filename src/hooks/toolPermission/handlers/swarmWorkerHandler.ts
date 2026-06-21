@@ -24,18 +24,18 @@ type SwarmWorkerPermissionParams = {
 }
 
 /**
- * Handles the swarm worker permission flow.
+ * 处理 swarm worker 的权限流程。
  *
- * When running as a swarm worker:
- * 1. Tries classifier auto-approval for bash commands
- * 2. Forwards the permission request to the leader via mailbox
- * 3. Registers callbacks for when the leader responds
- * 4. Sets the pending indicator while waiting
+ * 作为 swarm worker 运行时：
+ * 1. 尝试对 bash 命令进行分类器自动批准
+ * 2. 通过邮箱将权限请求转发给 leader
+ * 3. 注册 leader 响应时的回调
+ * 4. 等待时设置待处理指示器
  *
- * Returns a PermissionDecision if the classifier auto-approves,
- * or a Promise that resolves when the leader responds.
- * Returns null if swarms are not enabled or this is not a swarm worker,
- * so the caller can fall through to interactive handling.
+ * 如果分类器自动批准则返回 PermissionDecision，
+ * 或返回一个在 leader 响应时解决的 Promise。
+ * 如果 swarm 未启用或这不是 swarm worker 则返回 null，
+ * 以便调用方可以回退到交互式处理。
  */
 async function handleSwarmWorkerPermission(
   params: SwarmWorkerPermissionParams,
@@ -46,9 +46,8 @@ async function handleSwarmWorkerPermission(
 
   const { ctx, description, updatedInput, suggestions } = params
 
-  // For bash commands, try classifier auto-approval before forwarding to
-  // the leader. Agents await the classifier result (rather than racing it
-  // against user interaction like the main agent).
+  // 对于 bash 命令，在转发给 leader 之前尝试分类器自动批准。
+  // Agent 等待分类器结果（而不是像主 agent 那样与用户交互竞争）。
   const classifierResult = feature('BASH_CLASSIFIER')
     ? await ctx.tryClassifier?.(params.pendingClassifierCheck, updatedInput)
     : null
@@ -56,7 +55,7 @@ async function handleSwarmWorkerPermission(
     return classifierResult
   }
 
-  // Forward permission request to the leader via mailbox
+  // 通过邮箱将权限请求转发给 leader
   try {
     const clearPendingRequest = (): void =>
       ctx.toolUseContext.setAppState(prev => ({
@@ -67,7 +66,7 @@ async function handleSwarmWorkerPermission(
     const decision = await new Promise<PermissionDecision>(resolve => {
       const { resolve: resolveOnce, claim } = createResolveOnce(resolve)
 
-      // Create the permission request
+      // 创建权限请求
       const request = createPermissionRequest({
         toolName: ctx.tool.name,
         toolUseId: ctx.toolUseID,
@@ -76,8 +75,8 @@ async function handleSwarmWorkerPermission(
         permissionSuggestions: suggestions,
       })
 
-      // Register callback BEFORE sending the request to avoid race condition
-      // where leader responds before callback is registered
+      // 在发送请求之前注册回调以避免竞争条件
+      // （leader 在回调注册之前就响应了）
       registerPermissionCallback({
         requestId: request.id,
         toolUseId: ctx.toolUseID,
@@ -87,10 +86,10 @@ async function handleSwarmWorkerPermission(
           feedback?: string,
           contentBlocks?: ContentBlockParam[],
         ) {
-          if (!claim()) return // atomic check-and-mark before await
+          if (!claim()) return // await 之前的原子检查并标记
           clearPendingRequest()
 
-          // Merge the updated input with the original input
+          // 将更新的输入与原始输入合并
           const finalInput =
             allowedInput && Object.keys(allowedInput).length > 0
               ? allowedInput
@@ -119,10 +118,10 @@ async function handleSwarmWorkerPermission(
         },
       })
 
-      // Now that callback is registered, send the request to the leader
+      // 现在回调已注册，向 leader 发送请求
       void sendPermissionRequestViaMailbox(request)
 
-      // Show visual indicator that we're waiting for leader approval
+      // 显示视觉指示器表示我们正在等待 leader 批准
       ctx.toolUseContext.setAppState(prev => ({
         ...prev,
         pendingWorkerRequest: {
@@ -132,8 +131,8 @@ async function handleSwarmWorkerPermission(
         },
       }))
 
-      // If the abort signal fires while waiting for the leader response,
-      // resolve the promise with a cancel decision so it does not hang.
+      // 如果在等待 leader 响应时 abort 信号触发，
+      // 用取消决定解决 promise 以免其挂起。
       ctx.toolUseContext.abortController.signal.addEventListener(
         'abort',
         () => {
@@ -148,9 +147,9 @@ async function handleSwarmWorkerPermission(
 
     return decision
   } catch (error) {
-    // If swarm permission submission fails, fall back to local handling
+    // 如果 swarm 权限提交失败，回退到本地处理
     logError(toError(error))
-    // Continue to local UI handling below
+    // 继续到下方的本地 UI 处理
     return null
   }
 }

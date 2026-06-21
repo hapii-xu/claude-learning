@@ -48,7 +48,7 @@ export type UseFilePermissionDialogResult<T> = {
 }
 
 /**
- * Hook for handling file permission dialogs with common logic
+ * 用于处理文件权限对话框的通用逻辑 Hook
  */
 export function useFilePermissionDialog<T extends ToolInput>({
   filePath,
@@ -66,11 +66,11 @@ export function useFilePermissionDialog<T extends ToolInput>({
   const [focusedOption, setFocusedOption] = useState('yes')
   const [yesInputMode, setYesInputMode] = useState(false)
   const [noInputMode, setNoInputMode] = useState(false)
-  // Track whether user ever entered feedback mode (persists after collapse)
+  // 追踪用户是否曾经进入过反馈模式（收起后仍保留状态）
   const [yesFeedbackModeEntered, setYesFeedbackModeEntered] = useState(false)
   const [noFeedbackModeEntered, setNoFeedbackModeEntered] = useState(false)
 
-  // Generate options based on context
+  // 基于上下文生成选项
   const options = useMemo(
     () =>
       getFilePermissionOptions({
@@ -85,7 +85,7 @@ export function useFilePermissionDialog<T extends ToolInput>({
     [filePath, toolPermissionContext, operationType, yesInputMode, noInputMode],
   )
 
-  // Handle option selection using shared handlers
+  // 使用共享处理器处理选项选择
   const onChange = useCallback(
     (option: PermissionOption, input: T, feedback?: string) => {
       const params: PermissionHandlerParams = {
@@ -100,7 +100,7 @@ export function useFilePermissionDialog<T extends ToolInput>({
         operationType,
       }
 
-      // Override the input in toolUseConfirm to pass the parsed input
+      // 覆写 toolUseConfirm 中的 input 以传入解析后的 input
       const originalOnAllow = toolUseConfirm.onAllow
       toolUseConfirm.onAllow = (
         _input: unknown,
@@ -135,7 +135,7 @@ export function useFilePermissionDialog<T extends ToolInput>({
     ],
   )
 
-  // Handler for confirm:cycleMode - select accept-session option
+  // confirm:cycleMode 的处理器 - 选择 accept-session 选项
   const handleCycleMode = useCallback(() => {
     const sessionOption = options.find(o => o.option.type === 'accept-session')
     if (sessionOption) {
@@ -144,16 +144,16 @@ export function useFilePermissionDialog<T extends ToolInput>({
     }
   }, [options, parseInput, toolUseConfirm.input, onChange])
 
-  // Register keyboard shortcut handler via keybindings system
+  // 通过快捷键系统注册键盘快捷键处理器
   useKeybindings(
     { 'confirm:cycleMode': handleCycleMode },
     { context: 'Confirmation' },
   )
 
-  // Wrap setFocusedOption and reset input mode when navigating away
+  // 包装 setFocusedOption，并在离开时重置输入模式
   const handleFocusedOptionChange = useCallback(
     (value: string) => {
-      // Reset input mode when navigating away, but only if no text typed
+      // 离开时重置输入模式，但仅当未输入文本时
       if (value !== 'yes' && yesInputMode && !acceptFeedback.trim()) {
         setYesInputMode(false)
       }
@@ -165,7 +165,7 @@ export function useFilePermissionDialog<T extends ToolInput>({
     [yesInputMode, noInputMode, acceptFeedback, rejectFeedback],
   )
 
-  // Handle Tab key toggling input mode for Yes/No options
+  // 处理 Tab 键切换 Yes/No 选项的输入模式
   const handleInputModeToggle = useCallback(
     (value: string) => {
       const analyticsProps = {

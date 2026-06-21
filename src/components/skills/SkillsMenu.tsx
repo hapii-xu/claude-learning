@@ -17,7 +17,7 @@ import { ConfigurableShortcutHint } from '../ConfigurableShortcutHint.js';
 import { Dialog } from '@anthropic/ink';
 import { filterSkills } from './filterSkills.js';
 
-// Skills are always PromptCommands with CommandBase properties
+// Skills 总是带 CommandBase 属性的 PromptCommands
 type SkillCommand = CommandBase & PromptCommand;
 
 type SkillSource = SettingSource | 'plugin' | 'mcp';
@@ -46,7 +46,7 @@ function getSourceLabel(source: SkillSource): string {
 export function SkillsMenu({ onExit, commands }: Props): React.ReactNode {
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter commands for skills and cast to SkillCommand
+  // 过滤出 skills 命令并强制转换为 SkillCommand
   const skills = useMemo(() => {
     return commands.filter(
       (cmd): cmd is SkillCommand =>
@@ -58,7 +58,7 @@ export function SkillsMenu({ onExit, commands }: Props): React.ReactNode {
     );
   }, [commands]);
 
-  // Apply type-to-filter: build SkillItem-shaped projections and filter
+  // 应用输入即过滤：构建 SkillItem 形状的投影并过滤
   const filteredSkills = useMemo(() => {
     return filterSkills(
       skills.map(s => ({
@@ -141,7 +141,7 @@ export function SkillsMenu({ onExit, commands }: Props): React.ReactNode {
     );
   };
 
-  // Flat ordered list of filtered skills preserving source grouping order
+  // 保留 source 分组顺序的扁平有序过滤 skills 列表
   const orderedFilteredSkills = useMemo(() => {
     return ORDERED_SOURCES.flatMap(source => skillsBySource[source]);
   }, [skillsBySource]);
@@ -151,9 +151,8 @@ export function SkillsMenu({ onExit, commands }: Props): React.ReactNode {
       ? `${skills.length} ${plural(skills.length, 'skill')}`
       : `${filteredSkills.length}/${skills.length} ${plural(skills.length, 'skill')}`;
 
-  // Source group headers — rendered as section labels inside the picker list
-  // via renderItem. We annotate each item with its source to detect group
-  // boundary changes.
+  // Source 分组标题 —— 通过 renderItem 在选择器列表内作为分节标签渲染。
+  // 我们为每个项标注其 source，以便检测分组边界变化。
   return (
     <FuzzyPicker
       title="Skills"

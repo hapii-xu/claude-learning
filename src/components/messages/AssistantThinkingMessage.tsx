@@ -5,12 +5,12 @@ import { CtrlOToExpand } from '../CtrlOToExpand.js';
 import { Markdown } from '../Markdown.js';
 
 type Props = {
-  // Accept either full ThinkingBlock/ThinkingBlockParam or a minimal shape with just type and thinking
+  // 接受完整的 ThinkingBlock/ThinkingBlockParam 或仅包含 type 和 thinking 的最小结构
   param: ThinkingBlock | ThinkingBlockParam | { type: 'thinking'; thinking: string };
   addMargin: boolean;
   isTranscriptMode: boolean;
   verbose: boolean;
-  /** When true, hide this thinking block entirely (used for past thinking in transcript mode) */
+  /** 当为 true 时，完全隐藏此 thinking block（用于 transcript 模式中的过往 thinking） */
   hideInTranscript?: boolean;
 };
 

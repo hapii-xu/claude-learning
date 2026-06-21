@@ -38,13 +38,13 @@ type Props = {
 
 export function AttachmentMessage({ attachment, addMargin, verbose, isTranscriptMode }: Props): React.ReactNode {
   const bg = useSelectedMessageBg();
-  // Hoisted to mount-time — per-message component, re-renders on every scroll.
+  // 提升到挂载时 —— 每条消息的组件，每次滚动都会重新渲染。
   const isDemoEnvRaw = useMemo(() => isEnvTruthy(process.env.IS_DEMO), []);
   const isDemoEnv = feature('EXPERIMENTAL_SKILL_SEARCH') ? isDemoEnvRaw : false;
-  // Handle teammate_mailbox BEFORE switch
+  // 在 switch 之前处理 teammate_mailbox
   if (isAgentSwarmsEnabled() && attachment.type === 'teammate_mailbox') {
-    // Filter out idle notifications BEFORE counting - they are hidden in the UI
-    // so showing them in the count would be confusing ("2 messages in mailbox:" with nothing shown)
+    // 在计数之前过滤掉 idle 通知 - 它们在 UI 中是隐藏的，
+    // 所以在计数中显示它们会造成困惑（"mailbox 中有 2 条消息：" 但什么都不显示）
     const visibleMessages = attachment.messages.filter(msg => {
       if (isShutdownApproved(msg.text)) {
         return false;
@@ -63,7 +63,7 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
     return (
       <Box flexDirection="column">
         {visibleMessages.map((msg, idx) => {
-          // Try to parse as JSON for task_assignment messages
+          // 尝试解析为 JSON 以处理 task_assignment 消息
           let parsedMsg: {
             type?: string;
             taskId?: string;
@@ -88,15 +88,15 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
             );
           }
 
-          // Note: idle_notification messages already filtered out above
+          // 注意：idle_notification 消息已在上面过滤掉
 
-          // Try to render as plan approval message (request or response)
+          // 尝试渲染为 plan approval 消息（请求或响应）
           const planApprovalElement = tryRenderPlanApprovalMessage(msg.text, msg.from);
           if (planApprovalElement) {
             return <React.Fragment key={idx}>{planApprovalElement}</React.Fragment>;
           }
 
-          // Plain text message - sender header with chevron, truncated content
+          // 纯文本消息 - 带有 chevron 的发送者标头，内容被截断
           const inkColor = toInkColor(msg.color);
           const formattedContent = formatTeammateMessageContent(msg.text) ?? msg.text;
           return (
@@ -114,15 +114,15 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
     );
   }
 
-  // skill_discovery rendered here (not in the switch) so the 'skill_discovery'
-  // string literal stays inside a feature()-guarded block. A case label can't
-  // be conditionally eliminated; an if-body can.
+  // skill_discovery 在此处渲染（不在 switch 中），这样 'skill_discovery'
+  // 字符串字面量就留在 feature() 守卫的块内。case 标签无法被
+  // 条件性消除；if 语句体可以。
   if (feature('EXPERIMENTAL_SKILL_SEARCH')) {
     if (attachment.type === 'skill_discovery') {
       if (attachment.skills.length === 0) return null;
-      // Ant users get shortIds inline so they can /skill-feedback while the
-      // turn is still fresh. External users (when this un-gates) just see
-      // names — shortId is undefined outside ant builds anyway.
+      // Ant 用户会内联看到 shortIds，这样他们就能在 turn 仍然新鲜时
+      // /skill-feedback。外部用户（当此 gate 打开时）只会看到
+      // names —— shortId 在 ant 构建之外反正也是 undefined。
       const names = attachment.skills.map(s => (s.shortId ? `${s.name} [${s.shortId}]` : s.name)).join(', ');
       const firstId = attachment.skills[0]?.shortId;
       const hint =
@@ -138,8 +138,8 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
     }
   }
 
-  // tool_discovery rendered here (not in the switch) so the 'tool_discovery'
-  // string literal stays inside a feature()-guarded block.
+  // tool_discovery 在此处渲染（不在 switch 中），这样 'tool_discovery'
+  // 字符串字面量就留在 feature() 守卫的块内。
   if (feature('EXPERIMENTAL_SEARCH_EXTRA_TOOLS')) {
     if (attachment.type === 'tool_discovery') {
       if (attachment.tools.length === 0) return null;
@@ -212,10 +212,10 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
         </Line>
       );
     case 'relevant_memories':
-      // Usually absorbed into a CollapsedReadSearchGroup (collapseReadSearch.ts)
-      // so this only renders when the preceding tool was non-collapsible (Edit,
-      // Write) and no group was open. Match CollapsedReadSearchContent's style:
-      // 2-space gutter, dim text, count only — filenames/content in ctrl+o.
+      // 通常被吸收进 CollapsedReadSearchGroup（collapseReadSearch.ts），
+      // 所以只有在前一个 tool 不可折叠（Edit、Write）且没有打开的
+      // group 时才渲染。匹配 CollapsedReadSearchContent 的样式：
+      // 2-space gutter，dim text，仅显示计数 —— 文件名/内容在 ctrl+o 中。
       return (
         <Box flexDirection="column" marginTop={addMargin ? 1 : 0} backgroundColor={bg}>
           <Box flexDirection="row">
@@ -316,15 +316,15 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
         </Line>
       );
     case 'command_permissions':
-      // The skill success message is rendered by SkillTool's renderToolResultMessage,
-      // so we don't render anything here to avoid duplicate messages.
+      // skill 的成功消息由 SkillTool 的 renderToolResultMessage 渲染，
+      // 所以这里不渲染任何内容以避免重复消息。
       return null;
     case 'async_hook_response': {
-      // SessionStart hook completions are only shown in verbose mode
+      // SessionStart hook 完成仅在 verbose 模式下显示
       if (attachment.hookEvent === 'SessionStart' && !verbose) {
         return null;
       }
-      // Generally hide async hook completion messages unless in verbose mode
+      // 一般情况下隐藏 async hook 完成消息，除非在 verbose 模式下
       if (!verbose && !isTranscriptMode) {
         return null;
       }
@@ -335,11 +335,11 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
       );
     }
     case 'hook_blocking_error': {
-      // Stop hooks are rendered as a summary in SystemStopHookSummaryMessage
+      // Stop hooks 作为摘要渲染在 SystemStopHookSummaryMessage 中
       if (attachment.hookEvent === 'Stop' || attachment.hookEvent === 'SubagentStop') {
         return null;
       }
-      // Show stderr to the user so they can understand why the hook blocked
+      // 向用户显示 stderr，以便他们理解 hook 为何被阻塞
       const stderr = attachment.blockingError.blockingError.trim();
       return (
         <>
@@ -349,25 +349,25 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
       );
     }
     case 'hook_non_blocking_error': {
-      // Stop hooks are rendered as a summary in SystemStopHookSummaryMessage
+      // Stop hooks 作为摘要渲染在 SystemStopHookSummaryMessage 中
       if (attachment.hookEvent === 'Stop' || attachment.hookEvent === 'SubagentStop') {
         return null;
       }
-      // Full hook output is logged to debug log via hookEvents.ts
+      // 完整的 hook 输出通过 hookEvents.ts 记录到 debug log
       return <Line color="error">{attachment.hookName} hook error</Line>;
     }
     case 'hook_error_during_execution':
-      // Stop hooks are rendered as a summary in SystemStopHookSummaryMessage
+      // Stop hooks 作为摘要渲染在 SystemStopHookSummaryMessage 中
       if (attachment.hookEvent === 'Stop' || attachment.hookEvent === 'SubagentStop') {
         return null;
       }
-      // Full hook output is logged to debug log via hookEvents.ts
+      // 完整的 hook 输出通过 hookEvents.ts 记录到 debug log
       return <Line>{attachment.hookName} hook warning</Line>;
     case 'hook_success':
-      // Full hook output is logged to debug log via hookEvents.ts
+      // 完整的 hook 输出通过 hookEvents.ts 记录到 debug log
       return null;
     case 'hook_stopped_continuation':
-      // Stop hooks are rendered as a summary in SystemStopHookSummaryMessage
+      // Stop hooks 作为摘要渲染在 SystemStopHookSummaryMessage 中
       if (attachment.hookEvent === 'Stop' || attachment.hookEvent === 'SubagentStop') {
         return null;
       }
@@ -402,15 +402,15 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
         </Box>
       );
     default:
-      // Exhaustiveness: every type reaching here must be in NULL_RENDERING_TYPES.
-      // If TS errors, a new Attachment type was added without a case above AND
-      // without an entry in NULL_RENDERING_TYPES — decide: render something (add
-      // a case) or render nothing (add to the array). Messages.tsx pre-filters
-      // these so this branch is defense-in-depth for other render paths.
+      // 穷尽性检查：到达此处的每个 type 都必须在 NULL_RENDERING_TYPES 中。
+      // 如果 TS 报错，说明新增了一个 Attachment type 但上面既没有对应的 case 也
+      // 没有在 NULL_RENDERING_TYPES 中添加条目 —— 决定：渲染某内容（添加
+      // 一个 case）或什么都不渲染（添加到数组）。Messages.tsx 会预过滤这些，
+      // 所以这个分支是为其他渲染路径提供的深度防御。
       //
-      // skill_discovery and teammate_mailbox are handled BEFORE the switch in
-      // runtime-gated blocks (feature() / isAgentSwarmsEnabled()) that TS can't
-      // narrow through — excluded here via type union (compile-time only, no emit).
+      // skill_discovery 和 teammate_mailbox 在 switch 之前的运行时守卫块中
+      // （feature() / isAgentSwarmsEnabled()）处理，TS 无法通过它们收窄类型 ——
+      // 此处通过 type union 排除（仅编译时，无 emit）。
       attachment.type satisfies
         | NullRenderingAttachmentType
         | 'skill_discovery'
@@ -424,15 +424,15 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
 type TaskStatusAttachment = Extract<Attachment, { type: 'task_status' }>;
 
 function TaskStatusMessage({ attachment }: { attachment: TaskStatusAttachment }): React.ReactNode {
-  // For ants, killed task status is shown in the CoordinatorTaskPanel.
-  // Don't render it again in the chat.
+  // 对于 ant，killed 任务状态显示在 CoordinatorTaskPanel 中。
+  // 不要在 chat 中再次渲染。
   if (process.env.USER_TYPE === 'ant' && attachment.status === 'killed') {
     return null;
   }
 
-  // Only access teammate-specific code when swarms are enabled.
-  // TeammateTaskStatus subscribes to AppState; by gating the mount we
-  // avoid adding a store listener for every non-teammate attachment.
+  // 仅在启用 swarms 时访问 teammate 相关代码。
+  // TeammateTaskStatus 订阅 AppState；通过守卫挂载我们
+  // 避免为每个非 teammate 附件添加 store listener。
   if (isAgentSwarmsEnabled() && attachment.taskType === 'in_process_teammate') {
     return <TeammateTaskStatus attachment={attachment} />;
   }
@@ -462,10 +462,10 @@ function GenericTaskStatus({ attachment }: { attachment: TaskStatusAttachment })
 
 function TeammateTaskStatus({ attachment }: { attachment: TaskStatusAttachment }): React.ReactNode {
   const bg = useSelectedMessageBg();
-  // Narrow selector: only re-render when this specific task changes.
+  // 窄选择器：仅在此特定任务变化时重新渲染。
   const task = useAppState(s => s.tasks[attachment.taskId]);
   if (task?.type !== 'in_process_teammate') {
-    // Fall through to generic rendering (task not yet in store, or wrong type)
+    // 回退到通用渲染（任务尚未在 store 中，或类型错误）
     return <GenericTaskStatus attachment={attachment} />;
   }
   const agentColor = toInkColor(task.identity.color);
@@ -483,7 +483,7 @@ function TeammateTaskStatus({ attachment }: { attachment: TaskStatusAttachment }
     </Box>
   );
 }
-// We allow setting dimColor to false here to help work around the dim-bold bug.
+// 我们允许在此处将 dimColor 设置为 false，以帮助绕过 dim-bold bug。
 // https://github.com/chalk/chalk/issues/290
 function Line({
   dimColor = true,

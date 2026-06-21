@@ -39,10 +39,10 @@ export function useVimInput(props: UseVimInputProps): VimInputState {
     createInitialPersistentState(),
   )
 
-  // inputFilter is applied once at the top of handleVimInput (not here) so
-  // vim-handled paths that return without calling textInput.onInput still
-  // run the filter — otherwise a stateful filter (e.g. lazy-space-after-
-  // pill) stays armed across an Escape → NORMAL → INSERT round-trip.
+  // inputFilter 在 handleVimInput 顶部应用一次（而不是这里），以便
+  // 未调用 textInput.onInput 就返回的 vim 处理路径仍能
+  // 运行过滤器 —— 否则有状态过滤器（例如 lazy-space-after-
+  // pill）会在 Escape → NORMAL → INSERT 往返之间保持武装状态。
   const textInput = useTextInput({ ...props, inputFilter: undefined })
   const { onModeChange, inputFilter } = props
 
@@ -67,8 +67,8 @@ export function useVimInput(props: UseVimInputProps): VimInputState {
       }
     }
 
-    // Vim behavior: move cursor left by 1 when exiting insert mode
-    // (unless at beginning of line or at offset 0)
+    // Vim 行为：退出插入模式时将光标左移 1 位
+    //（除非在行首或 offset 0）
     const offset = textInput.offset
     if (offset > 0 && props.value[offset - 1] !== '\n') {
       textInput.setOffset(offset - 1)
@@ -174,9 +174,9 @@ export function useVimInput(props: UseVimInputProps): VimInputState {
 
   function handleVimInput(rawInput: string, key: Key): void {
     const state = vimStateRef.current
-    // Run inputFilter in all modes so stateful filters disarm on any key,
-    // but only apply the transformed input in INSERT — NORMAL-mode command
-    // lookups expect single chars and a prepended space would break them.
+    // 在所有模式中运行 inputFilter 以便有状态过滤器在任意按键上解除，
+    // 但仅在 INSERT 模式应用转换后的输入 —— NORMAL 模式命令
+    // 查找期望单个字符，前置空格会破坏它们。
     const filtered = inputFilter ? inputFilter(rawInput, key) : rawInput
     const input = state.mode === 'INSERT' ? filtered : rawInput
     const cursor = Cursor.fromText(props.value, props.columns, textInput.offset)
@@ -186,28 +186,28 @@ export function useVimInput(props: UseVimInputProps): VimInputState {
       return
     }
 
-    // NOTE(keybindings): This escape handler is intentionally NOT migrated to the keybindings system.
-    // It's vim's standard INSERT->NORMAL mode switch - a vim-specific behavior that should not be
-    // configurable via keybindings. Vim users expect Esc to always exit INSERT mode.
+    // NOTE(keybindings)：此 escape 处理程序故意不迁移到 keybindings 系统。
+    // 它是 vim 标准的 INSERT->NORMAL 模式切换 —— 一个不应通过
+    // keybindings 配置的 vim 特定行为。Vim 用户期望 Esc 总是退出 INSERT 模式。
     if (key.escape && state.mode === 'INSERT') {
       switchToNormalMode()
       return
     }
 
-    // Escape in NORMAL mode cancels any pending command (replace, operator, etc.)
+    // NORMAL 模式下的 Escape 取消任何待处理命令（replace、operator 等）
     if (key.escape && state.mode === 'NORMAL') {
       vimStateRef.current = { mode: 'NORMAL', command: { type: 'idle' } }
       return
     }
 
-    // Pass Enter to base handler regardless of mode (allows submission from NORMAL)
+    // 无论模式如何，将 Enter 传递给基础处理程序（允许从 NORMAL 提交）
     if (key.return) {
       textInput.onInput(input, key)
       return
     }
 
     if (state.mode === 'INSERT') {
-      // Track inserted text for dot-repeat
+      // 跟踪插入的文本用于 dot-repeat
       if (key.backspace || key.delete) {
         if (state.insertedText.length > 0) {
           vimStateRef.current = {
@@ -232,8 +232,8 @@ export function useVimInput(props: UseVimInputProps): VimInputState {
       return
     }
 
-    // In idle state, delegate arrow keys to base handler for cursor movement
-    // and history fallback (upOrHistoryUp / downOrHistoryDown)
+    // 在空闲状态下，将方向键委托给基础处理程序以进行光标移动
+    // 和历史回退（upOrHistoryUp / downOrHistoryDown）
     if (
       state.command.type === 'idle' &&
       (key.upArrow || key.downArrow || key.leftArrow || key.rightArrow)
@@ -248,19 +248,19 @@ export function useVimInput(props: UseVimInputProps): VimInputState {
       onDotRepeat: replayLastChange,
     }
 
-    // Backspace/Delete are only mapped in motion-expecting states. In
-    // literal-char states (replace, find, operatorFind), mapping would turn
-    // r+Backspace into "replace with h" and df+Delete into "delete to next x".
-    // Delete additionally skips count state: in vim, N<Del> removes a count
-    // digit rather than executing Nx; we don't implement digit removal but
-    // should at least not turn a cancel into a destructive Nx.
+    // Backspace/Delete 仅在期望 motion 的状态中映射。在
+    // 字面字符状态（replace、find、operatorFind）中，映射会将
+    // r+Backspace 变成"替换为 h"，df+Delete 变成"删除到下一个 x"。
+    // Delete 还跳过 count 状态：在 vim 中，N<Del> 移除一个 count
+    // 数字而不是执行 Nx；我们不实现数字移除，但
+    // 至少不应将取消变成破坏性的 Nx。
     const expectsMotion =
       state.command.type === 'idle' ||
       state.command.type === 'count' ||
       state.command.type === 'operator' ||
       state.command.type === 'operatorCount'
 
-    // Map arrow keys to vim motions in NORMAL mode
+    // 在 NORMAL 模式下将方向键映射为 vim motions
     let vimInput = input
     if (key.leftArrow) vimInput = 'h'
     else if (key.rightArrow) vimInput = 'l'
@@ -276,7 +276,7 @@ export function useVimInput(props: UseVimInputProps): VimInputState {
       result.execute()
     }
 
-    // Update command state (only if execute didn't switch to INSERT)
+    // 更新命令状态（仅当 execute 未切换到 INSERT 时）
     if (vimStateRef.current.mode === 'NORMAL') {
       if (result.next) {
         vimStateRef.current = { mode: 'NORMAL', command: result.next }

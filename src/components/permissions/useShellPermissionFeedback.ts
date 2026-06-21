@@ -9,9 +9,8 @@ import type { ToolUseConfirm } from './PermissionRequest.js'
 import { logUnaryPermissionEvent } from './utils.js'
 
 /**
- * Shared feedback-mode state + handlers for shell permission dialogs (Bash,
- * PowerShell). Encapsulates the yes/no input-mode toggle, feedback text state,
- * focus tracking, and reject handling.
+ * Shell 权限对话框（Bash、PowerShell）的共享反馈模式状态 + 处理器。
+ * 封装了 yes/no 输入模式切换、反馈文本状态、焦点追踪和拒绝处理。
  */
 export function useShellPermissionFeedback({
   toolUseConfirm,
@@ -43,13 +42,13 @@ export function useShellPermissionFeedback({
   const [yesInputMode, setYesInputMode] = useState(false)
   const [noInputMode, setNoInputMode] = useState(false)
   const [focusedOption, setFocusedOption] = useState('yes')
-  // Track whether user ever entered feedback mode (persists after collapse)
+  // 追踪用户是否曾经进入过反馈模式（收起后仍保留状态）
   const [yesFeedbackModeEntered, setYesFeedbackModeEntered] = useState(false)
   const [noFeedbackModeEntered, setNoFeedbackModeEntered] = useState(false)
 
-  // Handle Tab key toggling input mode for Yes/No options
+  // 处理 Tab 键切换 Yes/No 选项的输入模式
   function handleInputModeToggle(option: string) {
-    // Notify that user is interacting with the dialog
+    // 通知用户正在与对话框交互
     toolUseConfirm.onUserInteraction()
     const analyticsProps = {
       toolName: sanitizeToolNameForAnalytics(
@@ -83,12 +82,12 @@ export function useShellPermissionFeedback({
     const trimmedFeedback = feedback?.trim()
     const hasFeedback = !!trimmedFeedback
 
-    // Log escape if no feedback was provided (user pressed ESC)
+    // 当未提供反馈时记录 Esc（用户按下了 ESC 键）
     if (!hasFeedback) {
       logEvent('tengu_permission_request_escape', {
         explainer_visible: explainerVisible,
       })
-      // Increment escape count for attribution tracking
+      // 递增 Esc 计数用于归因追踪
       setAppState(prev => ({
         ...prev,
         attribution: {
@@ -116,12 +115,12 @@ export function useShellPermissionFeedback({
   }
 
   function handleFocus(value: string) {
-    // Notify that user is interacting with the dialog (only if focus changed)
-    // This prevents triggering on the initial mount/render
+    // 通知用户正在与对话框交互（仅当焦点发生变化时）
+    // 这样可避免初始挂载/渲染时触发
     if (value !== focusedOption) {
       toolUseConfirm.onUserInteraction()
     }
-    // Reset input mode when navigating away, but only if no text typed
+    // 离开时重置输入模式，但仅当未输入文本时
     if (value !== 'yes' && yesInputMode && !acceptFeedback.trim()) {
       setYesInputMode(false)
     }

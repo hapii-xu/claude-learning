@@ -1,27 +1,27 @@
 /**
- * Team Memory Sync Service
+ * Team Memory Sync 服务
  *
- * Syncs team memory files between the local filesystem and the server API.
- * Team memory is scoped per-repo (identified by git remote hash) and shared
- * across all authenticated org members.
+ * 在本地文件系统和服务器 API 之间同步 team memory 文件。
+ * team memory 按仓库范围限定（通过 git remote hash 标识），
+ * 并在所有已认证的组织成员之间共享。
  *
- * API contract (anthropic/anthropic#250711 + #283027):
- *   GET  /api/claude_code/team_memory?repo={owner/repo}            → TeamMemoryData (includes entryChecksums)
- *   GET  /api/claude_code/team_memory?repo={owner/repo}&view=hashes → metadata + entryChecksums only (no entry bodies)
- *   PUT  /api/claude_code/team_memory?repo={owner/repo}            → upload entries (upsert semantics)
- *   404 = no data exists yet
+ * API 契约（anthropic/anthropic#250711 + #283027）：
+ *   GET  /api/claude_code/team_memory?repo={owner/repo}            → TeamMemoryData（包含 entryChecksums）
+ *   GET  /api/claude_code/team_memory?repo={owner/repo}&view=hashes → 仅元数据 + entryChecksums（无 entry 主体）
+ *   PUT  /api/claude_code/team_memory?repo={owner/repo}            → 上传 entries（upsert 语义）
+ *   404 = 尚无数据
  *
- * Sync semantics:
- *   - Pull overwrites local files with server content (server wins per-key).
- *   - Push uploads only keys whose content hash differs from serverChecksums
- *     (delta upload). Server uses upsert: keys not in the PUT are preserved.
- *   - File deletions do NOT propagate: deleting a local file won't remove it
- *     from the server, and the next pull will restore it locally.
+ * 同步语义：
+ *   - Pull 用服务器内容覆盖本地文件（按 key 服务器优先）。
+ *   - Push 仅上传内容 hash 与 serverChecksums 不同的 key
+ *     （增量上传）。服务器使用 upsert：不在 PUT 中的 key 被保留。
+ *   - 文件删除不会传播：删除本地文件不会从服务器移除它，
+ *     下次 pull 会在本地恢复它。
  *
- * State management:
- *   All mutable state (ETag tracking, watcher suppression) lives in a
- *   SyncState object created by the caller and threaded through every call.
- *   This avoids module-level mutable state and gives tests natural isolation.
+ * 状态管理：
+ *   所有可变状态（ETag 跟踪、watcher 抑制）存在于由调用方创建的
+ *   SyncState 对象中，并贯穿每次调用。
+ *   这避免了模块级可变状态，并为测试提供自然的隔离。
  */
 
 import axios from 'axios'

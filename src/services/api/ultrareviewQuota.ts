@@ -12,9 +12,8 @@ export type UltrareviewQuotaResponse = {
 }
 
 /**
- * Peek the ultrareview quota for display and nudge decisions. Consume
- * happens server-side at session creation. Null when not a subscriber or
- * the endpoint errors.
+ * 偷看 ultrareview 配额，用于展示和提醒决策。配额的扣减在服务端
+ * session 创建时发生。非订阅用户或 endpoint 出错时返回 null。
  */
 export async function fetchUltrareviewQuota(): Promise<UltrareviewQuotaResponse | null> {
   if (!isClaudeAISubscriber()) return null

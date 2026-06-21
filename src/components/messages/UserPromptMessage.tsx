@@ -18,31 +18,30 @@ type Props = {
   timestamp?: string;
 };
 
-// Hard cap on displayed prompt text. Piping large files via stdin
-// (e.g. `cat 11k-line-file | claude`) creates a single user message whose
-// <Text> node the fullscreen Ink renderer must wrap/output on every frame,
-// causing 500ms+ keystroke latency. React.memo skips the React render but
-// the Ink output pass still iterates the full mounted text. Non-fullscreen
-// avoids this via <Static> (print-and-forget to terminal scrollback).
-// Head+tail because `{ cat file; echo prompt; } | claude` puts the user's
-// actual question at the end.
+// 显示 prompt 文本的硬上限。通过 stdin 管道传输大文件
+// （例如 `cat 11k-line-file | claude`）会创建一条用户消息，全屏 Ink
+// 渲染器必须每帧 wrap/output 该消息的 <Text> 节点，导致 500ms+
+// 的按键延迟。React.memo 跳过 React 渲染，但 Ink 输出阶段
+// 仍然会遍历完整挂载的文本。非全屏模式通过 <Static> 避免了
+// 该问题（print-and-forget 到终端 scrollback）。
+// Head+tail 截断是因为 `{ cat file; echo prompt; } | claude` 把用户的
+// 实际问题放在末尾。
 const MAX_DISPLAY_CHARS = 10_000;
 const TRUNCATE_HEAD_CHARS = 2_500;
 const TRUNCATE_TAIL_CHARS = 2_500;
 
 export function UserPromptMessage({ addMargin, param: { text }, isTranscriptMode, timestamp }: Props): React.ReactNode {
-  // REPL.tsx passes isBriefOnly={viewedTeammateTask ? false : isBriefOnly}
-  // but that prop isn't threaded this deep — replicate the override by
-  // reading viewingAgentTaskId directly. Computed here (not in the child)
-  // so the parent Box can drop its backgroundColor: in brief mode the
-  // child renders a label-style layout, and Box backgroundColor paints
-  // behind children unconditionally (they can't opt out).
+  // REPL.tsx 传递 isBriefOnly={viewedTeammateTask ? false : isBriefOnly}
+  // 但该 prop 没有传递到这么深 —— 通过直接读取 viewingAgentTaskId 来
+  // 复刻该 override。在此处计算（不在子组件中），使父 Box 可以
+  // 丢弃其 backgroundColor：在 brief 模式下子组件渲染 label 样式布局，
+  // 而 Box backgroundColor 无条件地绘制在子组件后面（子组件无法 opt out）。
   //
-  // Hooks must always be called unconditionally to satisfy React rules.
-  // The feature gate is applied to the computed value, not the hook call.
+  // Hooks 必须始终无条件调用以满足 React 规则。
+  // feature gate 应用于计算值，而非 hook 调用。
   const isBriefOnlyState = useAppState(s => s.isBriefOnly);
   const viewingAgentTaskIdState = useAppState(s => s.viewingAgentTaskId);
-  // Hoisted to mount-time — per-message component, re-renders on every scroll.
+  // 提升到挂载时 —— 每条消息的组件，每次滚动都会重新渲染。
   const briefEnvEnabledState = useMemo(() => isEnvTruthy(process.env.CLAUDE_CODE_BRIEF), []);
   const useBriefLayout =
     feature('KAIROS') || feature('KAIROS_BRIEF')
@@ -54,7 +53,7 @@ export function UserPromptMessage({ addMargin, param: { text }, isTranscriptMode
         !viewingAgentTaskIdState
       : false;
 
-  // Truncate before the early return so the hook order is stable.
+  // 在 early return 之前截断，使 hook 顺序保持稳定。
   const displayText = useMemo(() => {
     if (text.length <= MAX_DISPLAY_CHARS) return text;
     const head = text.slice(0, TRUNCATE_HEAD_CHARS);

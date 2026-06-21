@@ -19,7 +19,7 @@ export function useChromeExtensionNotification(): void {
     const chromeFlag = getChromeFlag();
     if (!shouldEnableClaudeInChrome(chromeFlag)) return null;
 
-    // Claude in Chrome is only supported for claude.ai subscribers (unless user is ant)
+    // Claude in Chrome 仅支持 claude.ai 订阅者（除非用户是 ant）
     if (process.env.USER_TYPE !== 'ant' && !isClaudeAISubscriber()) {
       return {
         key: 'chrome-requires-subscription',
@@ -31,18 +31,18 @@ export function useChromeExtensionNotification(): void {
 
     const installed = await isChromeExtensionInstalled();
     if (!installed && !isRunningOnHomespace()) {
-      // Skip notification on Homespace since Chrome setup requires different steps (see go/hsproxy)
+      // 在 Homespace 上跳过通知，因为 Chrome 设置需要不同步骤（见 go/hsproxy）
       return {
         key: 'chrome-extension-not-detected',
         jsx: <Text color="warning">Chrome extension not detected · https://claude.ai/chrome to install</Text>,
-        // TODO(hackyon): Lower the priority if the claude-in-chrome integration is no longer opt-in
+        // TODO(hackyon)：如果 claude-in-chrome 集成不再是 opt-in，则降低优先级
         priority: 'immediate',
         timeoutMs: 3000,
       };
     }
     if (chromeFlag === undefined) {
-      // Show low priority notification only when Chrome is enabled by default
-      // (not explicitly enabled with --chrome or disabled with --no-chrome)
+      // 仅当 Chrome 默认启用时显示低优先级通知
+      // （未用 --chrome 显式启用或 --no-chrome 禁用）
       return {
         key: 'claude-in-chrome-default-enabled',
         text: `Claude in Chrome enabled · /chrome`,

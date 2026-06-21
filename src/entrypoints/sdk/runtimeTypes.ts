@@ -1,6 +1,6 @@
 /**
- * Stub: SDK Runtime Types (not yet published in open-source).
- * Non-serializable types: callbacks, interfaces with methods.
+ * Stub：SDK 运行时类型（尚未在开源版本中发布）。
+ * 不可序列化的类型：回调、含方法的接口。
  */
 
 export type AnyZodRawShape = Record<string, unknown>

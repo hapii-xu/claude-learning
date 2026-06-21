@@ -12,11 +12,11 @@ import type {
 } from './types.js'
 
 /**
- * OAuth service that handles the OAuth 2.0 authorization code flow with PKCE.
+ * 处理带 PKCE 的 OAuth 2.0 授权码流程的 OAuth 服务。
  *
- * Supports two ways to get authorization codes:
- * 1. Automatic: Opens browser, redirects to localhost where we capture the code
- * 2. Manual: User manually copies and pastes the code (used in non-browser environments)
+ * 支持两种获取授权码的方式：
+ * 1. 自动：打开浏览器，重定向到 localhost，我们在此捕获代码
+ * 2. 手动：用户手动复制并粘贴代码（用于非浏览器环境）
  */
 export class OAuthService {
   private codeVerifier: string
@@ -39,23 +39,23 @@ export class OAuthService {
       loginHint?: string
       loginMethod?: string
       /**
-       * Don't call openBrowser(). Caller takes both URLs via authURLHandler
-       * and decides how/where to open them. Used by the SDK control protocol
-       * (claude_authenticate) where the SDK client owns the user's display,
-       * not this process.
+       * 不要调用 openBrowser()。调用者通过 authURLHandler 接收两个 URL
+       * 并决定如何/在哪里打开它们。由 SDK 控制协议
+       *（claude_authenticate）使用，其中 SDK 客户端拥有用户的显示，
+       * 而非此进程。
        */
       skipBrowserOpen?: boolean
     },
   ): Promise<OAuthTokens> {
-    // Create OAuth callback listener and start it
+    // 创建 OAuth 回调监听器并启动它
     this.authCodeListener = new AuthCodeListener()
     this.port = await this.authCodeListener.start()
 
-    // Generate PKCE values and state
+    // 生成 PKCE 值和状态
     const codeChallenge = crypto.generateCodeChallenge(this.codeVerifier)
     const state = crypto.generateState()
 
-    // Build auth URLs for both automatic and manual flows
+    // 为自动和手动流程构建认证 URL
     const opts = {
       codeChallenge,
       state,
@@ -69,45 +69,44 @@ export class OAuthService {
     const manualFlowUrl = client.buildAuthUrl({ ...opts, isManual: true })
     const automaticFlowUrl = client.buildAuthUrl({ ...opts, isManual: false })
 
-    // Wait for either automatic or manual auth code
+    // 等待自动或手动授权码
     const authorizationCode = await this.waitForAuthorizationCode(
       state,
       async () => {
         if (options?.skipBrowserOpen) {
-          // Hand both URLs to the caller. The automatic one still works
-          // if the caller opens it on the same host (localhost listener
-          // is running); the manual one works from anywhere.
+          // 将两个 URL 交给调用方。如果调用方在
+          // 同一主机上打开自动 URL 仍然有效（localhost 监听器
+          // 正在运行）；手动 URL 可以从任何地方工作。
           await authURLHandler(manualFlowUrl, automaticFlowUrl)
         } else {
-          await authURLHandler(manualFlowUrl) // Show manual option to user
-          await openBrowser(automaticFlowUrl) // Try automatic flow
+          await authURLHandler(manualFlowUrl) // 向用户显示手动选项
+          await openBrowser(automaticFlowUrl) // 尝试自动流程
         }
       },
     )
 
-    // Check if the automatic flow is still active (has a pending response)
+    // 检查自动流程是否仍然活跃（有待处理响应）
     const isAutomaticFlow = this.authCodeListener?.hasPendingResponse() ?? false
     logEvent('tengu_oauth_auth_code_received', { automatic: isAutomaticFlow })
 
     try {
-      // Exchange authorization code for tokens
+      // 交换授权码获取令牌
       const tokenResponse = await client.exchangeCodeForTokens(
         authorizationCode,
         state,
         this.codeVerifier,
         this.port!,
-        !isAutomaticFlow, // Pass isManual=true if it's NOT automatic flow
+        !isAutomaticFlow, // 如果不是自动流程，传递 isManual=true
         options?.expiresIn,
       )
 
-      // Fetch profile info (subscription type and rate limit tier) for the
-      // returned OAuthTokens. Logout and account storage are handled by the
-      // caller (installOAuthTokens in auth.ts).
+      // 为返回的 OAuthTokens 获取 profile 信息（订阅类型和速率限制层级）。
+      // 登出和账户存储由调用方处理（auth.ts 中的 installOAuthTokens）。
       const profileInfo = await client.fetchProfileInfo(
         tokenResponse.access_token,
       )
 
-      // Handle success redirect for automatic flow
+      // 为自动流程处理成功重定向
       if (isAutomaticFlow) {
         const scopes = client.parseScopes(tokenResponse.scope)
         this.authCodeListener?.handleSuccessRedirect(scopes)
@@ -120,13 +119,13 @@ export class OAuthService {
         profileInfo.rawProfile,
       )
     } catch (error) {
-      // If we have a pending response, send an error redirect before closing
+      // 如果有待处理响应，在关闭前发送错误重定向
       if (isAutomaticFlow) {
         this.authCodeListener?.handleErrorRedirect()
       }
       throw error
     } finally {
-      // Always cleanup
+      // 总是清理
       this.authCodeListener?.close()
     }
   }
@@ -136,10 +135,10 @@ export class OAuthService {
     onReady: () => Promise<void>,
   ): Promise<string> {
     return new Promise((resolve, reject) => {
-      // Set up manual auth code resolver
+      // 设置手动授权码解析器
       this.manualAuthCodeResolver = resolve
 
-      // Start automatic flow
+      // 启动自动流程
       this.authCodeListener
         ?.waitForAuthorization(state, onReady)
         .then(authorizationCode => {
@@ -153,7 +152,7 @@ export class OAuthService {
     })
   }
 
-  // Handle manual flow callback when user pastes the auth code
+  // 处理用户粘贴授权码时的手动流程回调
   handleManualAuthCodeInput(params: {
     authorizationCode: string
     state: string
@@ -161,7 +160,7 @@ export class OAuthService {
     if (this.manualAuthCodeResolver) {
       this.manualAuthCodeResolver(params.authorizationCode)
       this.manualAuthCodeResolver = null
-      // Close the auth code listener since manual input was used
+      // 由于使用了手动输入，关闭授权码监听器
       this.authCodeListener?.close()
     }
   }
@@ -190,7 +189,7 @@ export class OAuthService {
     }
   }
 
-  // Clean up any resources (like the local server)
+  // 清理任何资源（如本地服务器）
   cleanup(): void {
     this.authCodeListener?.close()
     this.manualAuthCodeResolver = null

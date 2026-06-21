@@ -1,8 +1,8 @@
 /**
- * ViewHookMode shows read-only details for a single configured hook.
+ * ViewHookMode 显示单个已配置 hook 的只读详情。
  *
- * The /hooks menu is read-only; this view replaces the former delete-hook
- * confirmation screen and directs users to settings.json or Claude for edits.
+ * /hooks 菜单是只读的；此视图替代了原先的删除 hook 确认界面，
+ * 并引导用户通过 settings.json 或 Claude 进行编辑。
  */
 import * as React from 'react';
 import { Box, Text } from '@anthropic/ink';
@@ -58,8 +58,7 @@ export function ViewHookMode({ selectedHook, eventSupportsMatcher, onCancel }: P
 }
 
 /**
- * Get a human-readable label for the primary content field of a hook
- * based on its type.
+ * 根据 hook 的类型，为其主要内容字段获取人类可读的标签。
  */
 function getContentFieldLabel(config: IndividualHookConfig['config']): string {
   switch (config.type) {
@@ -75,8 +74,8 @@ function getContentFieldLabel(config: IndividualHookConfig['config']): string {
 }
 
 /**
- * Get the actual content value for a hook's primary field, bypassing
- * statusMessage so the detail view always shows the real command/prompt/URL.
+ * 获取 hook 主字段的实际内容值，绕过 statusMessage
+ * 以便详情视图总是显示真实的 command/prompt/URL。
  */
 function getContentFieldValue(config: IndividualHookConfig['config']): string {
   switch (config.type) {

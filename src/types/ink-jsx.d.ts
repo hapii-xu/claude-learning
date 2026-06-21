@@ -1,12 +1,12 @@
 /**
- * Ink custom JSX intrinsic elements.
+ * Ink 自定义 JSX intrinsic elements。
  *
- * With "jsx": "react-jsx", TypeScript resolves JSX types from react/jsx-runtime
- * whose IntrinsicElements extends React.JSX.IntrinsicElements. We augment the
- * 'react' module to inject our custom elements into React.JSX.IntrinsicElements.
+ * 当 "jsx": "react-jsx" 时，TypeScript 从 react/jsx-runtime 解析 JSX 类型，
+ * 其 IntrinsicElements 继承自 React.JSX.IntrinsicElements。我们对
+ * 'react' 模块做扩展，把自定义元素注入到 React.JSX.IntrinsicElements。
  *
- * This file must be a module (have an import/export) for `declare module`
- * augmentation to work correctly.
+ * 该文件必须是一个模块（含有 import/export）才能让 `declare module`
+ * 扩展正确工作。
  */
 import type { ReactNode, Ref } from 'react'
 import type {

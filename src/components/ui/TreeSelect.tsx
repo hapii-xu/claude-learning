@@ -22,91 +22,90 @@ type FlattenedNode<T> = {
 
 export type TreeSelectProps<T> = {
   /**
-   * Tree nodes to display.
+   * 要显示的树节点。
    */
   readonly nodes: TreeNode<T>[];
 
   /**
-   * Callback when a node is selected.
+   * 节点被选中时的回调。
    */
   readonly onSelect: (node: TreeNode<T>) => void;
 
   /**
-   * Callback when cancel is pressed.
+   * 按下取消时的回调。
    */
   readonly onCancel?: () => void;
 
   /**
-   * Callback when focused node changes.
+   * 焦点节点变化时的回调。
    */
   readonly onFocus?: (node: TreeNode<T>) => void;
 
   /**
-   * Node to focus by ID.
+   * 通过 ID 指定焦点节点。
    */
   readonly focusNodeId?: string | number;
 
   /**
-   * Number of visible options.
+   * 可见选项的数量。
    */
   readonly visibleOptionCount?: number;
 
   /**
-   * Layout of the options.
+   * 选项的布局。
    */
   readonly layout?: 'compact' | 'expanded' | 'compact-vertical';
 
   /**
-   * When disabled, user input is ignored.
+   * 当被禁用时，忽略用户输入。
    */
   readonly isDisabled?: boolean;
 
   /**
-   * When true, hides the numeric indexes next to each option.
+   * 当为 true 时，隐藏每个选项旁边的数字索引。
    */
   readonly hideIndexes?: boolean;
 
   /**
-   * Function to determine if a node should be initially expanded.
-   * If not provided, all nodes start collapsed.
+   * 用于判断节点是否初始展开的函数。
+   * 若未提供，则所有节点初始均为折叠状态。
    */
   readonly isNodeExpanded?: (nodeId: string | number) => boolean;
 
   /**
-   * Callback when a node is expanded.
+   * 节点被展开时的回调。
    */
   readonly onExpand?: (nodeId: string | number) => void;
 
   /**
-   * Callback when a node is collapsed.
+   * 节点被折叠时的回调。
    */
   readonly onCollapse?: (nodeId: string | number) => void;
 
   /**
-   * Custom prefix function for parent nodes
-   * @param isExpanded - Whether the parent node is currently expanded
-   * @returns The prefix string to display (default: '▼ ' when expanded, '▶ ' when collapsed)
+   * 父节点的自定义前缀函数
+   * @param isExpanded - 父节点当前是否展开
+   * @returns 要显示的前缀字符串（默认：展开时 '▼ '，折叠时 '▶ '）
    */
   readonly getParentPrefix?: (isExpanded: boolean) => string;
 
   /**
-   * Custom prefix function for child nodes
-   * @param depth - The depth of the child node in the tree (0-indexed from parent)
-   * @returns The prefix string to display (default: '  ▸ ')
+   * 子节点的自定义前缀函数
+   * @param depth - 子节点在树中的深度（从父节点开始 0 索引）
+   * @returns 要显示的前缀字符串（默认：'  ▸ '）
    */
   readonly getChildPrefix?: (depth: number) => string;
 
   /**
-   * Callback when user presses up from the first item.
-   * If provided, navigation will not wrap to the last item.
+   * 用户从第一项向上按下时的回调。
+   * 如果提供，则导航不会回环到最后一项。
    */
   readonly onUpFromFirstItem?: () => void;
 };
 
 /**
- * TreeSelect is a generic component for selecting items from a hierarchical tree structure.
- * It handles expand/collapse state, keyboard navigation, and renders the tree as a flat list
- * using the Select component.
+ * TreeSelect 是一个通用组件，用于从分层树结构中选择项。
+ * 它处理展开/折叠状态、键盘导航，并使用 Select 组件将树渲染为扁平列表。
  */
 export function TreeSelect<T>({
   nodes,
@@ -125,16 +124,16 @@ export function TreeSelect<T>({
   getChildPrefix,
   onUpFromFirstItem,
 }: TreeSelectProps<T>): React.ReactNode {
-  // Track which nodes are expanded (internal state if not controlled externally)
+  // 跟踪哪些节点被展开（当不受外部控制时使用内部状态）
   const [internalExpandedIds, setInternalExpandedIds] = React.useState<Set<string | number>>(new Set());
 
-  // Track if we're programmatically setting focus to avoid infinite loops
+  // 跟踪是否正在以编程方式设置焦点，以避免无限循环
   const isProgrammaticFocusRef = React.useRef(false);
 
-  // Track last focused ID to prevent duplicate focus calls
+  // 跟踪上次聚焦的 ID 以防止重复 focus 调用
   const lastFocusedIdRef = React.useRef<string | number | null>(null);
 
-  // Determine if a node is expanded (use external function if provided, otherwise use internal state)
+  // 判断节点是否展开（如果提供了外部函数则使用它，否则使用内部状态）
   const isExpanded = React.useCallback(
     (nodeId: string | number): boolean => {
       if (isNodeExpanded) {
@@ -145,7 +144,7 @@ export function TreeSelect<T>({
     [isNodeExpanded, internalExpandedIds],
   );
 
-  // Flatten the tree into a linear list for the Select component
+  // 将树扁平化为线性列表以供 Select 组件使用
   const flattenedNodes = React.useMemo((): FlattenedNode<T>[] => {
     const result: FlattenedNode<T>[] = [];
 
@@ -161,7 +160,7 @@ export function TreeSelect<T>({
         parentId,
       });
 
-      // Only traverse children if this node is expanded
+      // 仅当此节点展开时才遍历子节点
       if (hasChildren && nodeIsExpanded && node.children) {
         for (const child of node.children) {
           traverse(child, depth + 1, node.id);
@@ -176,23 +175,23 @@ export function TreeSelect<T>({
     return result;
   }, [nodes, isExpanded]);
 
-  // Default prefix functions
+  // 默认前缀函数
   const defaultGetParentPrefix = React.useCallback((isExpanded: boolean): string => (isExpanded ? '▼ ' : '▶ '), []);
   const defaultGetChildPrefix = React.useCallback((_depth: number): string => '  ▸ ', []);
 
   const parentPrefixFn = getParentPrefix ?? defaultGetParentPrefix;
   const childPrefixFn = getChildPrefix ?? defaultGetChildPrefix;
 
-  // Build the label with appropriate prefixes based on tree position
+  // 根据树位置构建带有相应前缀的标签
   const buildLabel = React.useCallback(
     (flatNode: FlattenedNode<T>): string => {
       let prefix = '';
 
       if (flatNode.hasChildren) {
-        // Parent node with children
+        // 带有子节点的父节点
         prefix = parentPrefixFn(flatNode.isExpanded);
       } else if (flatNode.depth > 0) {
-        // Child node
+        // 子节点
         prefix = childPrefixFn(flatNode.depth);
       }
 
@@ -201,7 +200,7 @@ export function TreeSelect<T>({
     [parentPrefixFn, childPrefixFn],
   );
 
-  // Convert flattened nodes to Select options
+  // 将扁平化节点转换为 Select 选项
   const options = React.useMemo((): OptionWithDescription<string | number>[] => {
     return flattenedNodes.map(flatNode => ({
       label: buildLabel(flatNode),
@@ -211,14 +210,14 @@ export function TreeSelect<T>({
     }));
   }, [flattenedNodes, buildLabel]);
 
-  // Map from node ID to the actual node for quick lookup
+  // 从节点 ID 到实际节点的映射，用于快速查找
   const nodeMap = React.useMemo(() => {
     const map = new Map<string | number, TreeNode<T>>();
     flattenedNodes.forEach(fn => map.set(fn.node.id, fn.node));
     return map;
   }, [flattenedNodes]);
 
-  // Find the flattened node by ID
+  // 通过 ID 查找扁平化节点
   const findFlattenedNode = React.useCallback(
     (nodeId: string | number): FlattenedNode<T> | undefined => {
       return flattenedNodes.find(fn => fn.node.id === nodeId);
@@ -226,7 +225,7 @@ export function TreeSelect<T>({
     [flattenedNodes],
   );
 
-  // Handle expand/collapse
+  // 处理展开/折叠
   const toggleExpand = React.useCallback(
     (nodeId: string | number, shouldExpand: boolean) => {
       const flatNode = findFlattenedNode(nodeId);
@@ -253,7 +252,7 @@ export function TreeSelect<T>({
     [findFlattenedNode, onExpand, onCollapse],
   );
 
-  // Handle left/right arrow keys for expand/collapse
+  // 处理用于展开/折叠的左/右方向键
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!focusNodeId || isDisabled) return;
 
@@ -261,17 +260,17 @@ export function TreeSelect<T>({
     if (!flatNode) return;
 
     if (e.key === 'right' && flatNode.hasChildren) {
-      // Expand the focused node (only if it has children)
+      // 展开焦点节点（仅当其有子节点时）
       e.preventDefault();
       toggleExpand(focusNodeId, true);
     } else if (e.key === 'left') {
       if (flatNode.hasChildren && flatNode.isExpanded) {
-        // Collapse the focused parent node
+        // 折叠焦点父节点
         e.preventDefault();
         toggleExpand(focusNodeId, false);
       } else if (flatNode.parentId !== undefined) {
-        // If this is a child node OR a collapsed parent with a parent,
-        // collapse the parent and focus it
+        // 如果这是一个子节点，或者一个有父节点的折叠父节点，
+        // 折叠其父节点并聚焦它
         e.preventDefault();
         isProgrammaticFocusRef.current = true;
         toggleExpand(flatNode.parentId, false);
@@ -285,28 +284,28 @@ export function TreeSelect<T>({
     }
   };
 
-  // Handle selection
+  // 处理选择
   const handleChange = React.useCallback(
     (nodeId: string | number) => {
       const node = nodeMap.get(nodeId);
       if (!node) return;
 
-      // Always select the node - expand/collapse is handled by arrow keys
+      // 总是选中节点 - 展开/折叠由方向键处理
       onSelect(node);
     },
     [nodeMap, onSelect],
   );
 
-  // Handle focus changes
+  // 处理焦点变化
   const handleFocus = React.useCallback(
     (nodeId: string | number) => {
-      // Skip if this is a programmatic focus change
+      // 如果是编程方式的焦点变化则跳过
       if (isProgrammaticFocusRef.current) {
         isProgrammaticFocusRef.current = false;
         return;
       }
 
-      // Skip if same node already focused
+      // 如果同一节点已经聚焦则跳过
       if (lastFocusedIdRef.current === nodeId) {
         return;
       }

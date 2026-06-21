@@ -27,7 +27,7 @@ export function WizardProvider<T extends Record<string, unknown>>({
 
   useExitOnCtrlCDWithKeybindings();
 
-  // Handle completion in useEffect to avoid updating parent during render
+  // 在 useEffect 中处理完成，以避免在渲染过程中更新父组件
   useEffect(() => {
     if (isCompleted) {
       setNavigationHistory([]);
@@ -37,20 +37,20 @@ export function WizardProvider<T extends Record<string, unknown>>({
 
   const goNext = useCallback(() => {
     if (currentStepIndex < steps.length - 1) {
-      // If we have history (non-linear flow), add current step to it
+      // 如果有历史（非线性流程），将当前步骤加入历史
       if (navigationHistory.length > 0) {
         setNavigationHistory(prev => [...prev, currentStepIndex]);
       }
 
       setCurrentStepIndex(prev => prev + 1);
     } else {
-      // Mark as completed, which will trigger useEffect
+      // 标记为已完成，这将触发 useEffect
       setIsCompleted(true);
     }
   }, [currentStepIndex, steps.length, navigationHistory]);
 
   const goBack = useCallback(() => {
-    // Check if we have navigation history to use
+    // 检查是否有可用的导航历史
     if (navigationHistory.length > 0) {
       const previousStep = navigationHistory[navigationHistory.length - 1];
       if (previousStep !== undefined) {
@@ -58,7 +58,7 @@ export function WizardProvider<T extends Record<string, unknown>>({
         setCurrentStepIndex(previousStep);
       }
     } else if (currentStepIndex > 0) {
-      // Fallback to simple decrement if no history
+      // 没有历史时回退到简单递减
       setCurrentStepIndex(prev => prev - 1);
     } else if (onCancel) {
       onCancel();
@@ -68,7 +68,7 @@ export function WizardProvider<T extends Record<string, unknown>>({
   const goToStep = useCallback(
     (index: number) => {
       if (index >= 0 && index < steps.length) {
-        // Push current step to history before jumping
+        // 跳转前将当前步骤压入历史
         setNavigationHistory(prev => [...prev, currentStepIndex]);
         setCurrentStepIndex(index);
       }

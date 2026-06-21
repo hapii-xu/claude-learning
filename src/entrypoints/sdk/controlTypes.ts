@@ -1,8 +1,8 @@
 /**
- * SDK Control Types — inferred from Zod schemas in controlSchemas.ts / coreSchemas.ts.
+ * SDK 控制类型 —— 从 controlSchemas.ts / coreSchemas.ts 中的 Zod schema 推导。
  *
- * These types define the control protocol between the CLI bridge and the server.
- * Used by bridge/transport layer, remote session manager, and CLI print/IO paths.
+ * 这些类型定义了 CLI bridge 与 server 之间的控制协议。
+ * 被 bridge/transport 层、远程会话管理器以及 CLI print/IO 路径使用。
  */
 import type { z } from 'zod'
 import type {

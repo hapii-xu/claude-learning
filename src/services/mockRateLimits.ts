@@ -1,9 +1,9 @@
-// Mock rate limits for testing [ANT-ONLY]
-// This allows testing various rate limit scenarios without hitting actual limits
+// 用于测试的 Mock 速率限制 [仅限 ANT 内部]
+// 允许在不触碰实际限制的情况下测试各种速率限制场景
 //
-// ⚠️  WARNING: This is for internal testing/demo purposes only!
-// The mock headers may not exactly match the API specification or real-world behavior.
-// Always validate against actual API responses before relying on this for production features.
+// ⚠️  警告：这仅供内部测试/演示目的！
+// Mock header 可能与 API 规范或实际行为不完全一致。
+// 在依赖此功能用于生产特性之前，务必根据实际 API 响应进行验证。
 
 import type { SubscriptionType } from '../services/oauth/types.js'
 import { setMockBillingAccessOverride } from '../utils/billing.js'
@@ -29,7 +29,7 @@ type MockHeaders = {
   'anthropic-ratelimit-unified-fallback'?: 'available'
   'anthropic-ratelimit-unified-fallback-percentage'?: string
   'retry-after'?: string
-  // Early warning utilization headers
+  // 早期警告用量 header
   'anthropic-ratelimit-unified-5h-utilization'?: string
   'anthropic-ratelimit-unified-5h-reset'?: string
   'anthropic-ratelimit-unified-5h-surpassed-threshold'?: string
@@ -85,18 +85,18 @@ let mockHeaderless429Message: string | null = null
 let mockSubscriptionType: SubscriptionType | null = null
 let mockFastModeRateLimitDurationMs: number | null = null
 let mockFastModeRateLimitExpiresAt: number | null = null
-// Default subscription type for mock testing
+// mock 测试的默认订阅类型
 const DEFAULT_MOCK_SUBSCRIPTION: SubscriptionType = 'max'
 
-// Track individual exceeded limits with their reset times
+// 跟踪单个已超出的限制及其重置时间
 type ExceededLimit = {
   type: 'five_hour' | 'seven_day' | 'seven_day_opus' | 'seven_day_sonnet'
-  resetsAt: number // Unix timestamp
+  resetsAt: number // Unix 时间戳
 }
 
 let exceededLimits: ExceededLimit[] = []
 
-// New approach: Toggle individual headers
+// 新方案：切换单个 header
 export function setMockHeader(
   key: MockHeaderKey,
   value: string | undefined,
@@ -107,7 +107,7 @@ export function setMockHeader(
 
   mockEnabled = true
 
-  // Special case for retry-after which doesn't have the prefix
+  // retry-after 没有 prefix 的特殊情况
   const fullKey = (
     key === 'retry-after' ? 'retry-after' : `anthropic-ratelimit-unified-${key}`
   ) as keyof MockHeaders
@@ -117,22 +117,22 @@ export function setMockHeader(
     if (key === 'claim') {
       exceededLimits = []
     }
-    // Update retry-after if status changed
+    // 如果 status 发生变化，更新 retry-after
     if (key === 'status' || key === 'overage-status') {
       updateRetryAfter()
     }
     return
   } else {
-    // Handle special cases for reset times
+    // 处理重置时间的特殊情况
     if (key === 'reset' || key === 'overage-reset') {
-      // If user provides a number, treat it as hours from now
+      // 如果用户提供的是数字，将其视为距离现在的小时数
       const hours = Number(value)
       if (!isNaN(hours)) {
         value = String(Math.floor(Date.now() / 1000) + hours * 3600)
       }
     }
 
-    // Handle claims - add to exceeded limits
+    // 处理声明 —— 添加到已超出限制
     if (key === 'claim') {
       const validClaims = [
         'five_hour',
@@ -141,7 +141,7 @@ export function setMockHeader(
         'seven_day_sonnet',
       ]
       if (validClaims.includes(value)) {
-        // Determine reset time based on claim type
+        // 根据声明类型确定重置时间
         let resetsAt: number
         if (value === 'five_hour') {
           resetsAt = Math.floor(Date.now() / 1000) + 5 * 3600
@@ -155,34 +155,34 @@ export function setMockHeader(
           resetsAt = Math.floor(Date.now() / 1000) + 3600
         }
 
-        // Add to exceeded limits (remove if already exists)
+        // 添加到已超出限制（如已存在则移除）
         exceededLimits = exceededLimits.filter(l => l.type !== value)
         exceededLimits.push({ type: value as ExceededLimit['type'], resetsAt })
 
-        // Set the representative claim (furthest reset time)
+        // 设置代表性声明（重置时间最远的那个）
         updateRepresentativeClaim()
         return
       }
     }
-    // Widen to a string-valued record so dynamic key assignment is allowed.
-    // MockHeaders values are string-literal unions; assigning a raw user-input
-    // string requires widening, but this is mock/test code so it's acceptable.
+    // 扩展为字符串值记录，以允许动态键赋值。
+    // MockHeaders 的值是字符串字面量联合类型；赋值原始用户输入
+    // 字符串需要扩展，但这是 mock/测试代码，可以接受。
     const headers: Partial<Record<keyof MockHeaders, string>> = mockHeaders
     headers[fullKey] = value
 
-    // Update retry-after if status changed
+    // 如果 status 发生变化，更新 retry-after
     if (key === 'status' || key === 'overage-status') {
       updateRetryAfter()
     }
   }
 
-  // If all headers are cleared, disable mocking
+  // 如果所有 header 都已清除，禁用 mock
   if (Object.keys(mockHeaders).length === 0) {
     mockEnabled = false
   }
 }
 
-// Helper to update retry-after based on current state
+// 根据当前状态更新 retry-after 的辅助函数
 function updateRetryAfter(): void {
   const status = mockHeaders['anthropic-ratelimit-unified-status']
   const overageStatus =
@@ -194,7 +194,7 @@ function updateRetryAfter(): void {
     (!overageStatus || overageStatus === 'rejected') &&
     reset
   ) {
-    // Calculate seconds until reset
+    // 计算到重置的剩余秒数
     const resetTimestamp = Number(reset)
     const secondsUntilReset = Math.max(
       0,
@@ -206,7 +206,7 @@ function updateRetryAfter(): void {
   }
 }
 
-// Update the representative claim based on exceeded limits
+// 根据已超出限制更新代表性声明
 function updateRepresentativeClaim(): void {
   if (exceededLimits.length === 0) {
     delete mockHeaders['anthropic-ratelimit-unified-representative-claim']
@@ -215,29 +215,29 @@ function updateRepresentativeClaim(): void {
     return
   }
 
-  // Find the limit with the furthest reset time
+  // 查找重置时间最远的限制
   const furthest = exceededLimits.reduce((prev, curr) =>
     curr.resetsAt > prev.resetsAt ? curr : prev,
   )
 
-  // Set the representative claim (appears for both warning and rejected)
+  // 设置代表性声明（在警告和拒绝时都出现）
   mockHeaders['anthropic-ratelimit-unified-representative-claim'] =
     furthest.type
   mockHeaders['anthropic-ratelimit-unified-reset'] = String(furthest.resetsAt)
 
-  // Add retry-after if rejected and no overage available
+  // 如果状态为 rejected 且无可用超额用量，添加 retry-after
   if (mockHeaders['anthropic-ratelimit-unified-status'] === 'rejected') {
     const overageStatus =
       mockHeaders['anthropic-ratelimit-unified-overage-status']
     if (!overageStatus || overageStatus === 'rejected') {
-      // Calculate seconds until reset
+      // 计算到重置的剩余秒数
       const secondsUntilReset = Math.max(
         0,
         furthest.resetsAt - Math.floor(Date.now() / 1000),
       )
       mockHeaders['retry-after'] = String(secondsUntilReset)
     } else {
-      // Overage is available, no retry-after
+      // 有可用超额用量，无 retry-after
       delete mockHeaders['retry-after']
     }
   } else {
@@ -245,7 +245,7 @@ function updateRepresentativeClaim(): void {
   }
 }
 
-// Add function to add exceeded limit with custom reset time
+// 添加自定义重置时间的已超出限制的函数
 export function addExceededLimit(
   type: 'five_hour' | 'seven_day' | 'seven_day_opus' | 'seven_day_sonnet',
   hoursFromNow: number,
@@ -257,11 +257,11 @@ export function addExceededLimit(
   mockEnabled = true
   const resetsAt = Math.floor(Date.now() / 1000) + hoursFromNow * 3600
 
-  // Remove existing limit of same type
+  // 移除同类型的现有限制
   exceededLimits = exceededLimits.filter(l => l.type !== type)
   exceededLimits.push({ type, resetsAt })
 
-  // Update status to rejected if we have exceeded limits
+  // 如果有已超出的限制，将状态更新为 rejected
   if (exceededLimits.length > 0) {
     mockHeaders['anthropic-ratelimit-unified-status'] = 'rejected'
   }
@@ -269,10 +269,10 @@ export function addExceededLimit(
   updateRepresentativeClaim()
 }
 
-// Set mock early warning utilization for time-relative thresholds
-// claimAbbrev: '5h' or '7d'
-// utilization: 0-1 (e.g., 0.92 for 92% used)
-// hoursFromNow: hours until reset (default: 4 for 5h, 120 for 7d)
+// 为时间相对阈值设置 mock 早期警告用量
+// claimAbbrev: '5h' 或 '7d'
+// utilization: 0-1（例如 0.92 表示已用 92%）
+// hoursFromNow: 距离重置的小时数（默认：5h 为 4 小时，7d 为 120 小时）
 export function setMockEarlyWarning(
   claimAbbrev: '5h' | '7d' | 'overage',
   utilization: number,
@@ -284,11 +284,11 @@ export function setMockEarlyWarning(
 
   mockEnabled = true
 
-  // Clear ALL early warning headers first (5h is checked before 7d, so we need
-  // to clear 5h headers when testing 7d to avoid 5h taking priority)
+  // 首先清除所有早期警告 header（5h 在 7d 之前检查，因此测试 7d 时需要
+  // 清除 5h header 以避免 5h 优先）
   clearMockEarlyWarning()
 
-  // Default hours based on claim type (early in window to trigger warning)
+  // 基于 claim 类型的默认小时数（窗口早期以触发警告）
   const defaultHours = claimAbbrev === '5h' ? 4 : 5 * 24
   const hours = hoursFromNow ?? defaultHours
   const resetsAt = Math.floor(Date.now() / 1000) + hours * 3600
@@ -297,18 +297,18 @@ export function setMockEarlyWarning(
     String(utilization)
   mockHeaders[`anthropic-ratelimit-unified-${claimAbbrev}-reset`] =
     String(resetsAt)
-  // Set the surpassed-threshold header to trigger early warning
+  // 设置 surpassed-threshold header 以触发早期警告
   mockHeaders[
     `anthropic-ratelimit-unified-${claimAbbrev}-surpassed-threshold`
   ] = String(utilization)
 
-  // Set status to allowed so early warning logic can upgrade it
+  // 将 status 设置为 allowed，以便早期警告逻辑可以将其升级
   if (!mockHeaders['anthropic-ratelimit-unified-status']) {
     mockHeaders['anthropic-ratelimit-unified-status'] = 'allowed'
   }
 }
 
-// Clear mock early warning headers
+// 清除 mock 早期警告 header
 export function clearMockEarlyWarning(): void {
   delete mockHeaders['anthropic-ratelimit-unified-5h-utilization']
   delete mockHeaders['anthropic-ratelimit-unified-5h-reset']
@@ -332,16 +332,16 @@ export function setMockRateLimitScenario(scenario: MockScenario): void {
 
   mockEnabled = true
 
-  // Set reset times for demos
+  // 为演示设置重置时间
   const fiveHoursFromNow = Math.floor(Date.now() / 1000) + 5 * 3600
   const sevenDaysFromNow = Math.floor(Date.now() / 1000) + 7 * 24 * 3600
 
-  // Clear existing headers
+  // 清除现有 header
   mockHeaders = {}
   mockHeaderless429Message = null
 
-  // Only clear exceeded limits for scenarios that explicitly set them
-  // Overage scenarios should preserve existing exceeded limits
+  // 仅对显式设置已超出限制的场景清除它们
+  // 超额用量场景应保留现有已超出限制
   const preserveExceededLimits = [
     'overage-active',
     'overage-warning',
@@ -380,14 +380,14 @@ export function setMockRateLimitScenario(scenario: MockScenario): void {
       break
 
     case 'overage-active': {
-      // If no limits have been exceeded yet, default to 5-hour
+      // 如果还没有限制被超出，默认使用 5 小时
       if (exceededLimits.length === 0) {
         exceededLimits = [{ type: 'five_hour', resetsAt: fiveHoursFromNow }]
       }
       updateRepresentativeClaim()
       mockHeaders['anthropic-ratelimit-unified-status'] = 'rejected'
       mockHeaders['anthropic-ratelimit-unified-overage-status'] = 'allowed'
-      // Set overage reset time (monthly)
+      // 设置超额用量重置时间（月度）
       const endOfMonthActive = new Date()
       endOfMonthActive.setMonth(endOfMonthActive.getMonth() + 1, 1)
       endOfMonthActive.setHours(0, 0, 0, 0)
@@ -398,7 +398,7 @@ export function setMockRateLimitScenario(scenario: MockScenario): void {
     }
 
     case 'overage-warning': {
-      // If no limits have been exceeded yet, default to 5-hour
+      // 如果还没有限制被超出，默认使用 5 小时
       if (exceededLimits.length === 0) {
         exceededLimits = [{ type: 'five_hour', resetsAt: fiveHoursFromNow }]
       }
@@ -406,7 +406,7 @@ export function setMockRateLimitScenario(scenario: MockScenario): void {
       mockHeaders['anthropic-ratelimit-unified-status'] = 'rejected'
       mockHeaders['anthropic-ratelimit-unified-overage-status'] =
         'allowed_warning'
-      // Overage typically resets monthly, but for demo let's say end of month
+      // 超额用量通常按月重置，但演示中设为月末
       const endOfMonth = new Date()
       endOfMonth.setMonth(endOfMonth.getMonth() + 1, 1)
       endOfMonth.setHours(0, 0, 0, 0)
@@ -417,15 +417,15 @@ export function setMockRateLimitScenario(scenario: MockScenario): void {
     }
 
     case 'overage-exhausted': {
-      // If no limits have been exceeded yet, default to 5-hour
+      // 如果还没有限制被超出，默认使用 5 小时
       if (exceededLimits.length === 0) {
         exceededLimits = [{ type: 'five_hour', resetsAt: fiveHoursFromNow }]
       }
       updateRepresentativeClaim()
       mockHeaders['anthropic-ratelimit-unified-status'] = 'rejected'
       mockHeaders['anthropic-ratelimit-unified-overage-status'] = 'rejected'
-      // Both subscription and overage are exhausted
-      // Subscription resets based on the exceeded limit, overage resets monthly
+      // 订阅和超额用量均已耗尽
+      // 订阅根据已超出限制重置，超额用量按月重置
       const endOfMonthExhausted = new Date()
       endOfMonthExhausted.setMonth(endOfMonthExhausted.getMonth() + 1, 1)
       endOfMonthExhausted.setHours(0, 0, 0, 0)
@@ -436,8 +436,8 @@ export function setMockRateLimitScenario(scenario: MockScenario): void {
     }
 
     case 'out-of-credits': {
-      // Out of credits - subscription limit hit, overage rejected due to insufficient credits
-      // (wallet is empty)
+      // 额度不足 —— 订阅限制被触发，超额用量因额度不足被拒绝
+      // （钱包为空）
       if (exceededLimits.length === 0) {
         exceededLimits = [{ type: 'five_hour', resetsAt: fiveHoursFromNow }]
       }
@@ -456,8 +456,8 @@ export function setMockRateLimitScenario(scenario: MockScenario): void {
     }
 
     case 'org-zero-credit-limit': {
-      // Org service has zero credit limit - admin set org-level spend cap to $0
-      // Non-admin Team/Enterprise users should not see "Request extra usage" option
+      // 组织服务额度限制为零 —— 管理员将组织级别的消费上限设为 $0
+      // 非管理员 Team/Enterprise 用户不应看到"申请额外用量"选项
       if (exceededLimits.length === 0) {
         exceededLimits = [{ type: 'five_hour', resetsAt: fiveHoursFromNow }]
       }
@@ -476,8 +476,8 @@ export function setMockRateLimitScenario(scenario: MockScenario): void {
     }
 
     case 'org-spend-cap-hit': {
-      // Org spend cap hit for the month - org overages temporarily disabled
-      // Non-admin Team/Enterprise users should not see "Request extra usage" option
+      // 组织月度消费上限被触发 —— 组织超额用量被临时禁用
+      // 非管理员 Team/Enterprise 用户不应看到"申请额外用量"选项
       if (exceededLimits.length === 0) {
         exceededLimits = [{ type: 'five_hour', resetsAt: fiveHoursFromNow }]
       }
@@ -496,8 +496,8 @@ export function setMockRateLimitScenario(scenario: MockScenario): void {
     }
 
     case 'member-zero-credit-limit': {
-      // Member has zero credit limit - admin set this user's individual limit to $0
-      // Non-admin Team/Enterprise users SHOULD see "Request extra usage" (admin can allocate more)
+      // 成员额度限制为零 —— 管理员将此用户的个人限制设为 $0
+      // 非管理员 Team/Enterprise 用户应看到"申请额外用量"（管理员可以分配更多）
       if (exceededLimits.length === 0) {
         exceededLimits = [{ type: 'five_hour', resetsAt: fiveHoursFromNow }]
       }
@@ -516,8 +516,8 @@ export function setMockRateLimitScenario(scenario: MockScenario): void {
     }
 
     case 'seat-tier-zero-credit-limit': {
-      // Seat tier has zero credit limit - admin set this seat tier's limit to $0
-      // Non-admin Team/Enterprise users SHOULD see "Request extra usage" (admin can allocate more)
+      // 席位等级额度限制为零 —— 管理员将此席位等级的限制设为 $0
+      // 非管理员 Team/Enterprise 用户应看到"申请额外用量"（管理员可以分配更多）
       if (exceededLimits.length === 0) {
         exceededLimits = [{ type: 'five_hour', resetsAt: fiveHoursFromNow }]
       }
@@ -538,8 +538,8 @@ export function setMockRateLimitScenario(scenario: MockScenario): void {
     case 'opus-limit': {
       exceededLimits = [{ type: 'seven_day_opus', resetsAt: sevenDaysFromNow }]
       updateRepresentativeClaim()
-      // Always send 429 rejected status - the error handler will decide whether
-      // to show an error or return NO_RESPONSE_REQUESTED based on fallback eligibility
+      // 始终发送 429 rejected 状态 —— 错误处理器会根据回退资格
+      // 决定是显示错误还是返回 NO_RESPONSE_REQUESTED
       mockHeaders['anthropic-ratelimit-unified-status'] = 'rejected'
       break
     }
@@ -574,7 +574,7 @@ export function setMockRateLimitScenario(scenario: MockScenario): void {
     case 'fast-mode-limit': {
       updateRepresentativeClaim()
       mockHeaders['anthropic-ratelimit-unified-status'] = 'rejected'
-      // Duration in ms (> 20s threshold to trigger cooldown)
+      // 持续时间（毫秒）> 20 秒阈值以触发冷却
       mockFastModeRateLimitDurationMs = 10 * 60 * 1000
       break
     }
@@ -582,13 +582,13 @@ export function setMockRateLimitScenario(scenario: MockScenario): void {
     case 'fast-mode-short-limit': {
       updateRepresentativeClaim()
       mockHeaders['anthropic-ratelimit-unified-status'] = 'rejected'
-      // Duration in ms (< 20s threshold, won't trigger cooldown)
+      // 持续时间（毫秒）< 20 秒阈值，不会触发冷却
       mockFastModeRateLimitDurationMs = 10 * 1000
       break
     }
 
     case 'extra-usage-required': {
-      // Headerless 429 — exercises the entitlement-rejection path in errors.ts
+      // 无 header 的 429 —— 测试 errors.ts 中的权益拒绝路径
       mockHeaderless429Message =
         'Extra usage is required for long context requests.'
       break
@@ -603,7 +603,7 @@ export function getMockHeaderless429Message(): string | null {
   if (process.env.USER_TYPE !== 'ant') {
     return null
   }
-  // Env var path for -p / SDK testing where slash commands aren't available
+  // 用于 -p / SDK 测试的环境变量路径（此时斜杠命令不可用）
   if (process.env.CLAUDE_MOCK_HEADERLESS_429) {
     return process.env.CLAUDE_MOCK_HEADERLESS_429
   }
@@ -635,7 +635,7 @@ export function getMockStatus(): string {
   const lines: string[] = []
   lines.push('Active mock headers:')
 
-  // Show subscription type - either explicitly set or default
+  // 显示订阅类型 —— 显式设置或默认
   const effectiveSubscription =
     mockSubscriptionType || DEFAULT_MOCK_SUBSCRIPTION
   if (mockSubscriptionType) {
@@ -646,13 +646,13 @@ export function getMockStatus(): string {
 
   Object.entries(mockHeaders).forEach(([key, value]) => {
     if (value !== undefined) {
-      // Format the header name nicely
+      // 美化格式化 header 名称
       const formattedKey = key
         .replace('anthropic-ratelimit-unified-', '')
         .replace(/-/g, ' ')
         .replace(/\b\w/g, c => c.toUpperCase())
 
-      // Format timestamps as human-readable
+      // 将时间戳格式化为人类可读形式
       if (key.includes('reset') && value) {
         const timestamp = Number(value)
         const date = new Date(timestamp * 1000)
@@ -663,7 +663,7 @@ export function getMockStatus(): string {
     }
   })
 
-  // Show exceeded limits if any
+  // 显示已超出的限制（如果有）
   if (exceededLimits.length > 0) {
     lines.push('\nExceeded limits (contributing to representative claim):')
     exceededLimits.forEach(limit => {
@@ -694,11 +694,11 @@ export function applyMockHeaders(
     return headers
   }
 
-  // Create a new Headers object with original headers
+  // 创建带有原始 header 的新 Headers 对象
   // eslint-disable-next-line eslint-plugin-n/no-unsupported-features/node-builtins
   const newHeaders = new globalThis.Headers(headers)
 
-  // Apply mock headers (overwriting originals)
+  // 应用 mock header（覆盖原始值）
   Object.entries(mock).forEach(([key, value]) => {
     if (value !== undefined) {
       newHeaders.set(key, value)
@@ -708,8 +708,8 @@ export function applyMockHeaders(
   return newHeaders
 }
 
-// Check if we should process rate limits even without subscription
-// This is for Ant employees testing with mocks
+// 检查是否应在无订阅的情况下处理速率限制
+// 供 Ant 员工使用 mock 进行测试
 export function shouldProcessMockLimits(): boolean {
   if (process.env.USER_TYPE !== 'ant') {
     return false
@@ -722,7 +722,7 @@ export function getCurrentMockScenario(): MockScenario | null {
     return null
   }
 
-  // Reverse lookup the scenario from current headers
+  // 从当前 header 反向查找场景
   if (!mockHeaders) return null
 
   const status = mockHeaders['anthropic-ratelimit-unified-status']
@@ -802,7 +802,7 @@ export function getScenarioDescription(scenario: MockScenario): string {
   }
 }
 
-// Mock subscription type management
+// Mock 订阅类型管理
 export function setMockSubscriptionType(
   subscriptionType: SubscriptionType | null,
 ): void {
@@ -817,11 +817,11 @@ export function getMockSubscriptionType(): SubscriptionType | null {
   if (!mockEnabled || process.env.USER_TYPE !== 'ant') {
     return null
   }
-  // Return the explicitly set subscription type, or default to 'max'
+  // 返回显式设置的订阅类型，或默认为 'max'
   return mockSubscriptionType || DEFAULT_MOCK_SUBSCRIPTION
 }
 
-// Export a function that checks if we should use mock subscription
+// 导出检查是否应使用 mock 订阅的函数
 export function shouldUseMockSubscription(): boolean {
   return (
     mockEnabled &&
@@ -830,7 +830,7 @@ export function shouldUseMockSubscription(): boolean {
   )
 }
 
-// Mock billing access (admin vs non-admin)
+// Mock 账单访问权限（管理员 vs 非管理员）
 export function setMockBillingAccess(hasAccess: boolean | null): void {
   if (process.env.USER_TYPE !== 'ant') {
     return
@@ -839,7 +839,7 @@ export function setMockBillingAccess(hasAccess: boolean | null): void {
   setMockBillingAccessOverride(hasAccess)
 }
 
-// Mock fast mode rate limit handling
+// Mock 快速模式速率限制处理
 export function isMockFastModeRateLimitScenario(): boolean {
   return mockFastModeRateLimitDurationMs !== null
 }
@@ -851,12 +851,12 @@ export function checkMockFastModeRateLimit(
     return null
   }
 
-  // Only throw when fast mode is active
+  // 仅在快速模式激活时抛出
   if (!isFastModeActive) {
     return null
   }
 
-  // Check if the rate limit has expired
+  // 检查速率限制是否已过期
   if (
     mockFastModeRateLimitExpiresAt !== null &&
     Date.now() >= mockFastModeRateLimitExpiresAt
@@ -865,13 +865,13 @@ export function checkMockFastModeRateLimit(
     return null
   }
 
-  // Set expiry on first error (not when scenario is configured)
+  // 在首次错误时设置过期时间（配置场景时不设置）
   if (mockFastModeRateLimitExpiresAt === null) {
     mockFastModeRateLimitExpiresAt =
       Date.now() + mockFastModeRateLimitDurationMs
   }
 
-  // Compute dynamic retry-after based on remaining time
+  // 根据剩余时间计算动态 retry-after
   const remainingMs = mockFastModeRateLimitExpiresAt - Date.now()
   const headersToSend = { ...mockHeaders }
   headersToSend['retry-after'] = String(

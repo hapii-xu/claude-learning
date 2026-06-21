@@ -1,5 +1,5 @@
-// Re-export runtime values + type stubs for bundling
-// Types are erased at runtime, but we need the value exports
+// 重新导出运行时值 + 用于打包的类型 stub
+// 类型在运行时被擦除，但需要保留值的导出
 
 export const HOOK_EVENTS = [
   'PreToolUse',

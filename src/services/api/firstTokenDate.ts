@@ -6,8 +6,8 @@ import { logError } from '../../utils/log.js'
 import { getClaudeCodeUserAgent } from '../../utils/userAgent.js'
 
 /**
- * Fetch the user's first Claude Code token date and store in config.
- * This is called after successful login to cache when they started using Claude Code.
+ * 获取用户首个 Claude Code token 的日期并写入配置。
+ * 在登录成功后调用，用于缓存用户开始使用 Claude Code 的时间。
  */
 export async function fetchAndStoreClaudeCodeFirstTokenDate(): Promise<void> {
   try {
@@ -36,7 +36,7 @@ export async function fetchAndStoreClaudeCodeFirstTokenDate(): Promise<void> {
 
     const firstTokenDate = response.data?.first_token_date ?? null
 
-    // Validate the date if it's not null
+    // 若不为 null，则校验日期
     if (firstTokenDate !== null) {
       const dateTime = new Date(firstTokenDate).getTime()
       if (isNaN(dateTime)) {
@@ -45,7 +45,7 @@ export async function fetchAndStoreClaudeCodeFirstTokenDate(): Promise<void> {
             `Received invalid first_token_date from API: ${firstTokenDate}`,
           ),
         )
-        // Don't save invalid dates
+        // 不保存非法日期
         return
       }
     }

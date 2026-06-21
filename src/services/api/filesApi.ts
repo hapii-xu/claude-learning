@@ -1,10 +1,10 @@
 /**
- * Files API client for managing files
+ * 用于管理文件的 Files API 客户端
  *
- * This module provides functionality to download and upload files to Anthropic Public Files API.
- * Used by the Claude Code agent to download file attachments at session startup.
+ * 本模块提供向 Anthropic Public Files API 下载和上传文件的能力。
+ * 由 Claude Code agent 用于在会话启动时下载文件附件。
  *
- * API Reference: https://docs.anthropic.com/en/api/files-content
+ * API 参考：https://docs.anthropic.com/en/api/files-content
  */
 
 import axios from 'axios'
@@ -22,13 +22,13 @@ import {
   logEvent,
 } from '../analytics/index.js'
 
-// Files API is currently in beta. oauth-2025-04-20 enables Bearer OAuth
-// on public-api routes (auth.py: "oauth_auth" not in beta_versions → 404).
+// Files API 目前处于 beta。oauth-2025-04-20 在 public-api 路由上启用 Bearer OAuth
+// （auth.py: "oauth_auth" 不在 beta_versions 中 → 404）。
 const FILES_API_BETA_HEADER = 'files-api-2025-04-14,oauth-2025-04-20'
 const ANTHROPIC_VERSION = '2023-06-01'
 
-// API base URL - uses ANTHROPIC_BASE_URL set by env-manager for the appropriate environment
-// Falls back to public API for standalone usage
+// API base URL —— 使用由 env-manager 按相应环境设置的 ANTHROPIC_BASE_URL，
+// 独立使用时回退到公开 API
 function getDefaultApiBaseUrl(): string {
   return (
     process.env.ANTHROPIC_BASE_URL ||
@@ -46,8 +46,8 @@ function logDebug(message: string): void {
 }
 
 /**
- * File specification parsed from CLI args
- * Format: --file=<file_id>:<relative_path>
+ * 从 CLI 参数解析出的文件规格
+ * 格式：--file=<file_id>:<relative_path>
  */
 export type File = {
   fileId: string
@@ -55,19 +55,19 @@ export type File = {
 }
 
 /**
- * Configuration for the files API client
+ * Files API 客户端配置
  */
 export type FilesApiConfig = {
-  /** OAuth token for authentication (from session JWT) */
+  /** 用于认证的 OAuth token（来自 session JWT） */
   oauthToken: string
-  /** Base URL for the API (default: https://api.anthropic.com) */
+  /** API 的 base URL（默认：https://api.anthropic.com） */
   baseUrl?: string
-  /** Session ID for creating session-specific directories */
+  /** Session ID，用于创建 session 专属目录 */
   sessionId: string
 }
 
 /**
- * Result of a file download operation
+ * 文件下载操作的结果
  */
 export type DownloadResult = {
   fileId: string
@@ -82,17 +82,17 @@ const BASE_DELAY_MS = 500
 const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024 // 500MB
 
 /**
- * Result type for retry operations - signals whether to continue retrying
+ * 重试操作的结果类型 —— 表示是否要继续重试
  */
 type RetryResult<T> = { done: true; value: T } | { done: false; error?: string }
 
 /**
- * Executes an operation with exponential backoff retry logic
+ * 以指数退避的重试逻辑执行一个操作
  *
- * @param operation - Operation name for logging
- * @param attemptFn - Function to execute on each attempt, returns RetryResult
- * @returns The successful result value
- * @throws Error if all retries exhausted
+ * @param operation - 操作名，用于日志
+ * @param attemptFn - 每次尝试执行的函数，返回 RetryResult
+ * @returns 成功的结果值
+ * @throws Error 若所有重试均耗尽
  */
 async function retryWithBackoff<T>(
   operation: string,
@@ -123,11 +123,11 @@ async function retryWithBackoff<T>(
 }
 
 /**
- * Downloads a single file from the Anthropic Public Files API
+ * 从 Anthropic Public Files API 下载单个文件
  *
- * @param fileId - The file ID (e.g., "file_011CNha8iCJcU1wXNR6q4V8w")
- * @param config - Files API configuration
- * @returns The file content as a Buffer
+ * @param fileId - 文件 ID（例如 "file_011CNha8iCJcU1wXNR6q4V8w"）
+ * @param config - Files API 配置
+ * @returns 以 Buffer 形式返回文件内容
  */
 export async function downloadFile(
   fileId: string,
@@ -158,7 +158,7 @@ export async function downloadFile(
         return { done: true, value: Buffer.from(response.data) }
       }
 
-      // Non-retriable errors - throw immediately
+      // 不可重试的错误 —— 立即抛出
       if (response.status === 404) {
         throw new Error(`File not found: ${fileId}`)
       }
@@ -180,9 +180,9 @@ export async function downloadFile(
 }
 
 /**
- * Normalizes a relative path, strips redundant prefixes, and builds the full
- * download path under {basePath}/{session_id}/uploads/.
- * Returns null if the path is invalid (e.g., path traversal).
+ * 归一化相对路径，剥离冗余前缀，并在
+ * {basePath}/{session_id}/uploads/ 下构建完整下载路径。
+ * 路径非法（例如路径穿越）时返回 null。
  */
 export function buildDownloadPath(
   basePath: string,
@@ -210,11 +210,11 @@ export function buildDownloadPath(
 }
 
 /**
- * Downloads a file and saves it to the session-specific workspace directory
+ * 下载文件并保存到 session 专属的工作区目录
  *
- * @param attachment - The file attachment to download
- * @param config - Files API configuration
- * @returns Download result with success/failure status
+ * @param attachment - 要下载的文件附件
+ * @param config - Files API 配置
+ * @returns 下载结果，包含成功/失败状态
  */
 export async function downloadAndSaveFile(
   attachment: File,
@@ -233,14 +233,14 @@ export async function downloadAndSaveFile(
   }
 
   try {
-    // Download the file content
+    // 下载文件内容
     const content = await downloadFile(fileId, config)
 
-    // Ensure the parent directory exists
+    // 确保父目录存在
     const parentDir = path.dirname(fullPath)
     await fs.mkdir(parentDir, { recursive: true })
 
-    // Write the file
+    // 写入文件
     await fs.writeFile(fullPath, content)
 
     logDebug(`Saved file ${fileId} to ${fullPath} (${content.length} bytes)`)
@@ -266,16 +266,16 @@ export async function downloadAndSaveFile(
   }
 }
 
-// Default concurrency limit for parallel downloads
+// 并行下载的默认并发上限
 const DEFAULT_CONCURRENCY = 5
 
 /**
- * Execute promises with limited concurrency
+ * 以受限并发执行 promise
  *
- * @param items - Items to process
- * @param fn - Async function to apply to each item
- * @param concurrency - Maximum concurrent operations
- * @returns Results in the same order as input items
+ * @param items - 待处理的项目
+ * @param fn - 对每个项目应用的异步函数
+ * @param concurrency - 最大并发数
+ * @returns 结果顺序与输入项目一致
  */
 async function parallelWithLimit<T, R>(
   items: T[],
@@ -295,7 +295,7 @@ async function parallelWithLimit<T, R>(
     }
   }
 
-  // Start workers up to the concurrency limit
+  // 启动最多到并发上限数量的 worker
   const workers: Promise<void>[] = []
   const workerCount = Math.min(concurrency, items.length)
   for (let i = 0; i < workerCount; i++) {
@@ -307,12 +307,12 @@ async function parallelWithLimit<T, R>(
 }
 
 /**
- * Downloads all file attachments for a session in parallel
+ * 并行下载一个 session 的所有文件附件
  *
- * @param attachments - List of file attachments to download
- * @param config - Files API configuration
- * @param concurrency - Maximum concurrent downloads (default: 5)
- * @returns Array of download results in the same order as input
+ * @param attachments - 要下载的文件附件列表
+ * @param config - Files API 配置
+ * @param concurrency - 最大并发下载数（默认：5）
+ * @returns 下载结果数组，顺序与输入一致
  */
 export async function downloadSessionFiles(
   files: File[],
@@ -328,7 +328,7 @@ export async function downloadSessionFiles(
   )
   const startTime = Date.now()
 
-  // Download files in parallel with concurrency limit
+  // 并行下载文件，受并发上限限制
   const results = await parallelWithLimit(
     files,
     file => downloadAndSaveFile(file, config),
@@ -345,11 +345,11 @@ export async function downloadSessionFiles(
 }
 
 // ============================================================================
-// Upload Functions (BYOC mode)
+// 上传函数（BYOC 模式）
 // ============================================================================
 
 /**
- * Result of a file upload operation
+ * 文件上传操作的结果
  */
 export type UploadResult =
   | {
@@ -365,15 +365,15 @@ export type UploadResult =
     }
 
 /**
- * Upload a single file to the Files API (BYOC mode)
+ * 向 Files API 上传单个文件（BYOC 模式）
  *
- * Size validation is performed after reading the file to avoid TOCTOU race
- * conditions where the file size could change between initial check and upload.
+ * 大小校验在读取文件之后进行，避免 TOCTOU 竞争 ——
+ * 即文件大小在初次检查和上传之间发生变化的情况。
  *
- * @param filePath - Absolute path to the file to upload
- * @param relativePath - Relative path for the file (used as filename in API)
- * @param config - Files API configuration
- * @returns Upload result with success/failure status
+ * @param filePath - 待上传文件的绝对路径
+ * @param relativePath - 文件的相对路径（作为 API 中的 filename）
+ * @param config - Files API 配置
+ * @returns 上传结果，包含成功/失败状态
  */
 export async function uploadFile(
   filePath: string,
@@ -392,7 +392,7 @@ export async function uploadFile(
 
   logDebug(`Uploading file ${filePath} as ${relativePath}`)
 
-  // Read file content first (outside retry loop since it's not a network operation)
+  // 先读取文件内容（放在重试循环之外，因为它不是网络操作）
   let content: Buffer
   try {
     content = await fs.readFile(filePath)
@@ -422,14 +422,14 @@ export async function uploadFile(
     }
   }
 
-  // Use crypto.randomUUID for boundary to avoid collisions when uploads start same millisecond
+  // 使用 crypto.randomUUID 作为 boundary，避免同一毫秒内多次上传时发生碰撞
   const boundary = `----FormBoundary${randomUUID()}`
   const filename = path.basename(relativePath)
 
-  // Build the multipart body
+  // 构建 multipart body
   const bodyParts: Buffer[] = []
 
-  // File part
+  // 文件部分
   bodyParts.push(
     Buffer.from(
       `--${boundary}\r\n` +
@@ -440,7 +440,7 @@ export async function uploadFile(
   bodyParts.push(content)
   bodyParts.push(Buffer.from('\r\n'))
 
-  // Purpose part
+  // purpose 部分
   bodyParts.push(
     Buffer.from(
       `--${boundary}\r\n` +
@@ -449,7 +449,7 @@ export async function uploadFile(
     ),
   )
 
-  // End boundary
+  // 结束 boundary
   bodyParts.push(Buffer.from(`--${boundary}--\r\n`))
 
   const body = Buffer.concat(bodyParts)
@@ -488,7 +488,7 @@ export async function uploadFile(
           }
         }
 
-        // Non-retriable errors - throw to exit retry loop
+        // 不可重试的错误 —— 抛出以退出重试循环
         if (response.status === 401) {
           logEvent('tengu_file_upload_failed', {
             error_type:
@@ -517,14 +517,14 @@ export async function uploadFile(
 
         return { done: false, error: `status ${response.status}` }
       } catch (error) {
-        // Non-retriable errors propagate up
+        // 不可重试的错误向上传播
         if (error instanceof UploadNonRetriableError) {
           throw error
         }
         if (axios.isCancel(error)) {
           throw new UploadNonRetriableError('Upload canceled')
         }
-        // Network errors are retriable
+        // 网络错误是可重试的
         if (axios.isAxiosError(error)) {
           return { done: false, error: error.message }
         }
@@ -551,7 +551,7 @@ export async function uploadFile(
   }
 }
 
-/** Error class for non-retriable upload failures */
+/** 不可重试的上传失败的错误类 */
 class UploadNonRetriableError extends Error {
   constructor(message: string) {
     super(message)
@@ -560,12 +560,12 @@ class UploadNonRetriableError extends Error {
 }
 
 /**
- * Upload multiple files in parallel with concurrency limit (BYOC mode)
+ * 并行上传多个文件，带并发上限（BYOC 模式）
  *
- * @param files - Array of files to upload (path and relativePath)
- * @param config - Files API configuration
- * @param concurrency - Maximum concurrent uploads (default: 5)
- * @returns Array of upload results in the same order as input
+ * @param files - 待上传文件数组（path 和 relativePath）
+ * @param config - Files API 配置
+ * @param concurrency - 最大并发上传数（默认：5）
+ * @returns 上传结果数组，顺序与输入一致
  */
 export async function uploadSessionFiles(
   files: Array<{ path: string; relativePath: string }>,
@@ -593,11 +593,11 @@ export async function uploadSessionFiles(
 }
 
 // ============================================================================
-// List Files Functions (1P/Cloud mode)
+// 列出文件函数（1P/Cloud 模式）
 // ============================================================================
 
 /**
- * File metadata returned from listFilesCreatedAfter
+ * listFilesCreatedAfter 返回的文件元数据
  */
 export type FileMetadata = {
   filename: string
@@ -606,13 +606,13 @@ export type FileMetadata = {
 }
 
 /**
- * List files created after a given timestamp (1P/Cloud mode).
- * Uses the public GET /v1/files endpoint with after_created_at query param.
- * Handles pagination via after_id cursor when has_more is true.
+ * 列出在指定时间戳之后创建的文件（1P/Cloud 模式）。
+ * 使用公开的 GET /v1/files endpoint 配合 after_created_at 查询参数。
+ * 当 has_more 为 true 时，通过 after_id 游标处理分页。
  *
- * @param afterCreatedAt - ISO 8601 timestamp to filter files created after
- * @param config - Files API configuration
- * @returns Array of file metadata for files created after the timestamp
+ * @param afterCreatedAt - ISO 8601 时间戳，过滤出在此之后创建的文件
+ * @param config - Files API 配置
+ * @returns 在该时间戳之后创建的文件元数据数组
  */
 export async function listFilesCreatedAfter(
   afterCreatedAt: string,
@@ -630,7 +630,7 @@ export async function listFilesCreatedAfter(
   const allFiles: FileMetadata[] = []
   let afterId: string | undefined
 
-  // Paginate through results
+  // 分页遍历结果
   while (true) {
     const params: Record<string, string> = {
       after_created_at: afterCreatedAt,
@@ -696,7 +696,7 @@ export async function listFilesCreatedAfter(
       break
     }
 
-    // Use the last file's ID as cursor for next page
+    // 使用最后一个文件的 ID 作为下一页的游标
     const lastFile = files.at(-1)
     if (!lastFile?.id) {
       break
@@ -709,20 +709,20 @@ export async function listFilesCreatedAfter(
 }
 
 // ============================================================================
-// Parse Functions
+// 解析函数
 // ============================================================================
 
 /**
- * Parse file attachment specs from CLI arguments
- * Format: <file_id>:<relative_path>
+ * 从 CLI 参数解析文件附件规格
+ * 格式：<file_id>:<relative_path>
  *
- * @param fileSpecs - Array of file spec strings
- * @returns Parsed file attachments
+ * @param fileSpecs - 文件规格字符串数组
+ * @returns 解析后的文件附件
  */
 export function parseFileSpecs(fileSpecs: string[]): File[] {
   const files: File[] = []
 
-  // Sandbox-gateway may pass multiple specs as a single space-separated string
+  // Sandbox-gateway 可能以单个空格分隔的字符串传入多个规格
   const expandedSpecs = fileSpecs.flatMap(s => s.split(' ').filter(Boolean))
 
   for (const spec of expandedSpecs) {

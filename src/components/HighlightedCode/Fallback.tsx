@@ -14,9 +14,9 @@ type Props = {
   skipColoring?: boolean;
 };
 
-// Module-level highlight cache — hl.highlight() is the hot cost on virtual-
-// scroll remounts. useMemo doesn't survive unmount→remount. Keyed by hash
-// of code+language to avoid retaining full source strings (#24180 RSS fix).
+// 模块级高亮缓存 —— hl.highlight() 是虚拟滚动 remount 的热点开销。
+// useMemo 不能在 unmount→remount 中存活。按 code+language 的 hash 作为键，
+// 避免保留完整源字符串（#24180 RSS 修复）。
 const hlCache = new LRUCache<string, string>({ max: 500 });
 function cachedHighlight(
   hl: NonNullable<Awaited<ReturnType<typeof getCliHighlightPromise>>>,

@@ -71,8 +71,8 @@ type ExplainerState = {
 };
 
 /**
- * Creates an explanation promise that never rejects.
- * Errors are caught and returned as null.
+ * 创建一个永不 reject 的解释 promise。
+ * 错误会被捕获并以 null 返回。
  */
 function createExplanationPromise(props: PermissionExplanationProps): Promise<PermissionExplanationType | null> {
   return generatePermissionExplanation({
@@ -80,27 +80,27 @@ function createExplanationPromise(props: PermissionExplanationProps): Promise<Pe
     toolInput: props.toolInput,
     toolDescription: props.toolDescription,
     messages: props.messages,
-    signal: new AbortController().signal, // Won't abort - request is fast enough
+    signal: new AbortController().signal, // 不会中止——请求足够快
   }).catch(() => null);
 }
 
 /**
- * Hook that manages the permission explainer state.
- * Creates the fetch promise lazily (only when user hits Ctrl+E)
- * to avoid consuming tokens for explanations users never view.
+ * 管理权限解释器状态的 Hook。
+ * 惰性创建获取 promise（仅在用户按下 Ctrl+E 时），
+ * 避免为用户从未查看的解释消耗 token。
  */
 export function usePermissionExplainerUI(props: PermissionExplanationProps): ExplainerState {
   const enabled = isPermissionExplainerEnabled();
   const [visible, setVisible] = useState(false);
   const [promise, setPromise] = useState<Promise<PermissionExplanationType | null> | null>(null);
 
-  // Use keybinding for ctrl+e toggle (configurable via keybindings.json)
+  // 使用快捷键进行 ctrl+e 切换（可通过 keybindings.json 配置）
   useKeybinding(
     'confirm:toggleExplanation',
     () => {
       if (!visible) {
         logEvent('tengu_permission_explainer_shortcut_used', {});
-        // Only create the promise on first toggle (lazy loading)
+        // 仅在首次切换时创建 promise（惰性加载）
         if (!promise) {
           setPromise(createExplanationPromise(props));
         }
@@ -114,8 +114,8 @@ export function usePermissionExplainerUI(props: PermissionExplanationProps): Exp
 }
 
 /**
- * Inner component that uses React 19's use() to read the promise.
- * Suspends while loading, returns null on error.
+ * 使用 React 19 的 use() 读取 promise 的内部组件。
+ * 加载时挂起，出错时返回 null。
  */
 function ExplanationResult({ promise }: { promise: Promise<PermissionExplanationType | null> }): React.ReactNode {
   const explanation = use(promise);
@@ -145,7 +145,7 @@ function ExplanationResult({ promise }: { promise: Promise<PermissionExplanation
 }
 
 /**
- * Content component - shows loading (via Suspense) or explanation when visible
+ * 内容组件 - 加载时显示（通过 Suspense），可见时显示解释
  */
 export function PermissionExplainerContent({
   visible,

@@ -10,8 +10,8 @@ type Props = {
 };
 
 /**
- * Visual indicator shown on workers while waiting for leader to approve a permission request.
- * Displays the pending tool with a spinner and information about what's being requested.
+ * 在 worker 等待 leader 批准权限请求时显示的视觉指示器。
+ * 显示挂起工具及 spinner，并附带请求内容的说明。
  */
 export function WorkerPendingPermission({ toolName, description }: Props): React.ReactNode {
   const teamName = getTeamName();

@@ -1,4 +1,4 @@
-// Re-export from @ant/model-provider
+// 从 @ant/model-provider 重新导出
 export {
   formatAPIError,
   extractConnectionErrorDetails,

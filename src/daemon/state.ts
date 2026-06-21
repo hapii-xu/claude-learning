@@ -3,8 +3,8 @@ import { join, dirname } from 'path'
 import { getClaudeConfigHomeDir } from '../utils/envUtils.js'
 
 /**
- * Daemon state persisted to disk so that `status` / `stop` can work
- * from a different CLI process than the one that started the daemon.
+ * 持久化到磁盘的 daemon 状态，使 `status` / `stop` 可以在
+ * 与启动 daemon 的 CLI 进程不同的另一个 CLI 进程中工作。
  */
 export interface DaemonStateData {
   pid: number
@@ -17,14 +17,14 @@ export interface DaemonStateData {
 export type DaemonStatus = 'running' | 'stopped' | 'stale'
 
 /**
- * Returns the path to the daemon state file for a given daemon name.
+ * 返回指定 daemon 名称对应的 daemon 状态文件路径。
  */
 export function getDaemonStateFilePath(name = 'remote-control'): string {
   return join(getClaudeConfigHomeDir(), 'daemon', `${name}.json`)
 }
 
 /**
- * Write daemon state to disk. Called by the supervisor on startup.
+ * 将 daemon 状态写入磁盘。由 supervisor 在启动时调用。
  */
 export function writeDaemonState(
   state: DaemonStateData,
@@ -36,7 +36,7 @@ export function writeDaemonState(
 }
 
 /**
- * Read daemon state from disk. Returns null if no state file exists.
+ * 从磁盘读取 daemon 状态。状态文件不存在时返回 null。
  */
 export function readDaemonState(
   name = 'remote-control',
@@ -51,19 +51,19 @@ export function readDaemonState(
 }
 
 /**
- * Remove the daemon state file.
+ * 移除 daemon 状态文件。
  */
 export function removeDaemonState(name = 'remote-control'): void {
   const filePath = getDaemonStateFilePath(name)
   try {
     unlinkSync(filePath)
   } catch {
-    // File may not exist — that's fine
+    // 文件可能不存在——没关系
   }
 }
 
 /**
- * Check if a process with the given PID is alive.
+ * 检查给定 PID 的进程是否存活。
  */
 function isProcessAlive(pid: number): boolean {
   try {
@@ -75,12 +75,12 @@ function isProcessAlive(pid: number): boolean {
 }
 
 /**
- * Query the daemon status by reading the state file and probing the PID.
+ * 通过读取状态文件并探测 PID 来查询 daemon 状态。
  *
- * Returns:
- *  - { status: 'running', state } — PID is alive
- *  - { status: 'stopped' }       — no state file
- *  - { status: 'stale' }         — state file exists but PID is dead (auto-cleaned)
+ * 返回值：
+ *  - { status: 'running', state } —— PID 存活
+ *  - { status: 'stopped' }        —— 无状态文件
+ *  - { status: 'stale' }          —— 状态文件存在但 PID 已死亡（自动清理）
  */
 export function queryDaemonStatus(name = 'remote-control'): {
   status: DaemonStatus
@@ -95,16 +95,16 @@ export function queryDaemonStatus(name = 'remote-control'): {
     return { status: 'running', state }
   }
 
-  // Stale — process is dead but state file remains
+  // 陈旧——进程已死亡但状态文件仍存在
   removeDaemonState(name)
   return { status: 'stale' }
 }
 
 /**
- * Stop a running daemon by sending SIGTERM, waiting, then SIGKILL if needed.
- * Cleans up the state file afterward.
+ * 通过发送 SIGTERM、等待、必要时再发送 SIGKILL 来停止运行中的 daemon。
+ * 之后会清理状态文件。
  *
- * @returns true if the daemon was stopped, false if it wasn't running
+ * @returns daemon 已停止则返回 true，未在运行则返回 false
  */
 export async function stopDaemonByPid(
   name = 'remote-control',
@@ -122,7 +122,7 @@ export async function stopDaemonByPid(
     return false
   }
 
-  // Send SIGTERM
+  // 发送 SIGTERM
   try {
     process.kill(pid, 'SIGTERM')
   } catch {
@@ -130,7 +130,7 @@ export async function stopDaemonByPid(
     return false
   }
 
-  // Wait for exit with timeout
+  // 带超时地等待退出
   const deadline = Date.now() + timeoutMs
   const pollInterval = 200
 
@@ -142,14 +142,14 @@ export async function stopDaemonByPid(
     await new Promise(resolve => setTimeout(resolve, pollInterval))
   }
 
-  // Force kill
+  // 强制 kill
   try {
     process.kill(pid, 'SIGKILL')
   } catch {
-    // Already dead
+    // 已经死亡
   }
 
-  // Brief wait for SIGKILL to take effect
+  // 短暂等待 SIGKILL 生效
   await new Promise(resolve => setTimeout(resolve, 500))
 
   removeDaemonState(name)

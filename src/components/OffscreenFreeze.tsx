@@ -7,30 +7,30 @@ type Props = {
 };
 
 /**
- * Freezes children when they scroll above the terminal viewport (into scrollback).
+ * 当 children 滚动到终端 viewport 之上（进入 scrollback）时冻结它们。
  *
- * Any content change above the viewport forces log-update.ts into a full terminal
- * reset (it cannot partially update rows that have scrolled out). For content that
- * updates on a timer — spinners, elapsed counters — this produces a reset per tick.
+ * viewport 之上的任何内容变化都会强制 log-update.ts 进入 full terminal
+ * reset（它无法部分更新已滚动出去的行）。对于基于 timer 更新的内容
+ * —— spinner、elapsed 计数器 —— 这会产生每次 tick 一次 reset。
  *
- * When offscreen, returns the same ReactElement reference that was cached during
- * the last visible render. React's reconciler bails on identical element refs, so
- * the subtree never re-renders, producing zero diff.
+ * 当 offscreen 时，返回上次可见渲染期间缓存的同一 ReactElement 引用。
+ * React 的 reconciler 在相同 element ref 时会 bail，所以
+ * 子树从不重新渲染，产生零 diff。
  *
- * The cache is one slot deep: the first re-render after scrolling back into view
- * picks up the live children. Content still updates normally while visible.
+ * 缓存只有一个槽位深：滚回 viewport 之后的第一次重新渲染
+ * 会获取 live children。可见时内容仍正常更新。
  */
 export function OffscreenFreeze({ children }: Props): React.ReactNode {
-  // React Compiler: reading cached.current in the return is the entire
-  // freeze mechanism — memoizing this component would defeat it. Opt out.
+  // React Compiler：在 return 中读取 cached.current 是整个
+  // freeze 机制 —— 对此组件进行 memoize 会破坏它。Opt out。
   'use no memo';
   const inVirtualList = useContext(InVirtualListContext);
   const [ref, { isVisible }] = useTerminalViewport();
   const cached = useRef(children);
-  // Virtual list has no terminal scrollback — the ScrollBox clips inside the
-  // viewport, so there's nothing to freeze. Freezing there also blocks
-  // click-to-expand since useTerminalViewport's visibility calc can disagree
-  // with the ScrollBox's virtual scroll position.
+  // Virtual list 没有 terminal scrollback —— ScrollBox 在
+  // viewport 内部裁剪，所以没什么可冻结的。在那里冻结也会阻止
+  // click-to-expand，因为 useTerminalViewport 的 visibility 计算可能与
+  // ScrollBox 的虚拟滚动位置不一致。
   if (isVisible || inVirtualList) {
     cached.current = children;
   }

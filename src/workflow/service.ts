@@ -32,17 +32,17 @@ import type { CanUseToolFn } from '../hooks/useCanUseTool.js'
 import type { ToolUseContext } from '../Tool.js'
 
 /**
- * WorkflowService: the single entry shared by the tool (U7) and panel (U9).
+ * WorkflowService：工具（U7）和面板（U9）共用的单一入口。
  *
- * - `ports`: shared WorkflowPorts; tool descriptors are passed through to the engine.
- * - `launch`: parse script → parseScript quick validation → taskRegistrar.register (gets runId+signal)
- *   → detached runWorkflow → on completion routes to complete/fail/kill.
- * - `kill/listRuns/getRun/subscribe/listNamed`: auxiliary queries for panel and tool.
+ * - `ports`：共享的 WorkflowPorts；工具描述符透传给引擎。
+ * - `launch`：解析 script → parseScript 快速校验 → taskRegistrar.register（拿到 runId+signal）
+ *   → 分离式 runWorkflow → 完成时路由到 complete/fail/kill。
+ * - `kill/listRuns/getRun/subscribe/listNamed`：面板和工具的辅助查询。
  */
 export type WorkflowService = {
-  /** Shared ports (used by tool descriptors). */
+  /** 共享 ports（被工具描述符使用）。 */
   ports: WorkflowPorts
-  /** Panel/tool launches a workflow: parse script → register → detached runWorkflow. */
+  /** 面板/工具启动 workflow：解析 script → 注册 → 分离式 runWorkflow。 */
   launch(
     input: Pick<
       WorkflowInput,
@@ -60,25 +60,25 @@ export type WorkflowService = {
   ): Promise<{ runId: string; scriptPath?: string }>
   kill(runId: string): void
   /**
-   * Aborts a single agent (does not affect other agents in the same run; workflow keeps running).
-   * Returns whether the agent was hit (false = agent already finished/does not exist). An aborted agent returns dead → null.
+   * 中止单个 agent（不影响同一 run 中的其他 agent；workflow 继续运行）。
+   * 返回是否命中（false = agent 已结束/不存在）。被中止的 agent 返回 dead → null。
    */
   killAgent(runId: string, agentId: number): boolean
   /**
-   * Cleanup on process exit / config unload: kill all running runs to avoid orphan tasks.
-   * Completed/failed runs are unaffected. Idempotent — safe to call multiple times.
+   * 进程退出 / 配置卸载时的清理：杀掉所有运行中的 run，避免孤儿任务。
+   * 已完成/失败的 run 不受影响。幂等 —— 可安全多次调用。
    */
   shutdown(): void
   listRuns(): RunProgress[]
   getRun(runId: string): RunProgress | undefined
   /**
-   * Async lookup by runId: return on memory hit; on miss read state.json from disk (not injected into memory).
-   * Used by the "get historical return by runId" scenario; for panel display use loadPersistedRuns + listRuns.
+   * 按 runId 异步查询：内存命中则返回；未命中则从磁盘读取 state.json（不注入到内存）。
+   * 用于"按 runId 获取历史返回"的场景；面板展示请用 loadPersistedRuns + listRuns。
    */
   getRunAsync(runId: string): Promise<RunProgress | undefined>
   /**
-   * Scans the disk and hydrates state.json of all historical runs into the store (skips existing runIds).
-   * The process singleton only scans the disk once (persistedLoaded flag); repeated calls return immediately.
+   * 扫描磁盘，把所有历史 run 的 state.json 补水进 store（跳过已存在的 runId）。
+   * 进程单例仅扫描磁盘一次（persistedLoaded 标志）；重复调用立即返回。
    */
   loadPersistedRuns(): Promise<void>
   subscribe(listener: () => void): () => void
@@ -87,30 +87,30 @@ export type WorkflowService = {
 
 let cached: WorkflowService | null = null
 
-/** Process singleton. Tool and panel share the same ports/registry/store. */
+/** 进程单例。工具和面板共用同一份 ports/registry/store。 */
 export function getWorkflowService(): WorkflowService {
   if (cached) return cached
   const bus = createProgressBus()
   const store = createProgressStoreFromBus(bus)
   const ports = createWorkflowPorts({ bus, store })
   const service = makeService(ports, store)
-  // Subscribe to run_done to write the terminal snapshot to disk (shared entry for completed/failed/killed; shutdown-kill also routes here).
-  // The store registers to the bus before this subscription, so when the listener runs store.get(runId) is already terminal.
+  // 订阅 run_done，把终态快照写盘（completed/failed/killed 共用入口；shutdown-kill 也路由到这里）。
+  // store 比该订阅先注册到 bus，所以 listener 触发时 store.get(runId) 已是终态。
   attachRunStatePersistence(bus, store)
-  // Install the state-change notification bridge (commit 0768d4dc promised "auto-notify on completion" but the old implementation left it unfulfilled)
+  // 安装状态变化通知桥（commit 0768d4dc 承诺"完成时自动通知"，但旧实现没兑现）
   installWorkflowNotifications(service)
   cached = service
   return cached
 }
 
 /**
- * Construct the service (inject ports + store).
+ * 构造 service（注入 ports + store）。
  *
- * Production path uses {@link getWorkflowService}; tests use this function to inject fake ports directly,
- * avoiding touching real getProjectRoot/getCwd/analytics and other module-level side effects.
+ * 生产路径走 {@link getWorkflowService}；测试用本函数直接注入 fake ports，
+ * 避免触碰到真实的 getProjectRoot/getCwd/analytics 等模块级副作用。
  *
- * @param cwdOverride For tests only: inject a temp directory (avoids inline persistence writing to the real project directory).
- * @param runsDirProvider For tests only: inject a tmpdir (Bun ESM module namespace is read-only, cannot monkey-patch getRunsDir).
+ * @param cwdOverride 仅用于测试：注入临时目录（避免 inline persistence 写入真实项目目录）。
+ * @param runsDirProvider 仅用于测试：注入 tmpdir（Bun ESM 模块命名空间只读，无法 monkey-patch getRunsDir）。
  */
 export function makeService(
   ports: WorkflowPorts,
@@ -123,11 +123,11 @@ export function makeService(
     canUseTool: CanUseToolFn,
   ): WorkflowHostContext => ({
     handle: makeHostHandle(buildHostBundle(toolUseContext, canUseTool)),
-    // Use projectRoot to stay in sync with ports.ts hostFactory / journalStore;
-    // entering a worktree/subdirectory will not desync named workflow resolution from journal persistence.
-    // cwdOverride is for tests only: inject a temp directory (avoids inline persistence writing to the real project directory).
+    // 使用 projectRoot 以与 ports.ts 的 hostFactory / journalStore 保持同步；
+    // 进入 worktree/子目录不会让具名 workflow 解析与 journal 持久化失去同步。
+    // cwdOverride 仅用于测试：注入临时目录（避免 inline persistence 写入真实项目目录）。
     cwd: cwdOverride ?? getProjectRoot(),
-    budgetTotal: null, // turn-level budget injection point (in future read from settings)
+    budgetTotal: null, // 回合级预算注入点（未来从 settings 读取）
     toolUseId: toolUseContext.toolUseId,
   })
 
@@ -167,8 +167,8 @@ export function makeService(
     throw new Error('One of script, name, or scriptPath must be provided')
   }
 
-  // Process-singleton flag for loadPersistedRuns: set to true on first call, subsequent calls return immediately.
-  // Reset on scan failure to allow next retry. Each makeService call has its own closure variable (reset when tests build a new service).
+  // loadPersistedRuns 的进程单例标志：首次调用置 true，后续调用立即返回。
+  // 扫描失败时重置以允许下次重试。每次 makeService 调用都有自己的闭包变量（测试构建新 service 时重置）。
   let persistedLoaded = false
 
   return {
@@ -194,8 +194,8 @@ export function makeService(
         host.handle,
       )
 
-      // Inline entry: persist script to the run directory (symmetric with WorkflowTool), return a reusable path.
-      // Degrade on write failure (log), do not block the run (script is already in memory).
+      // inline 入口：把 script 持久化到 run 目录（与 WorkflowTool 对称），返回可复用的路径。
+      // 写入失败降级（记日志），不阻塞 run（script 已在内存中）。
       let persistedScriptPath: string | undefined
       if (!workflowFile && input.script) {
         try {
@@ -211,7 +211,7 @@ export function makeService(
         }
       }
 
-      // detached: do not await, let the caller get runId immediately; on completion route to the registrar.
+      // detached：不要 await，让调用方立即拿到 runId；完成时路由给 registrar。
       void runWorkflow({
         script,
         ...(input.args !== undefined ? { args: input.args } : {}),
@@ -253,10 +253,10 @@ export function makeService(
     },
 
     shutdown() {
-      // Only kill running: for completed/failed runs the taskRegistrar has already reclaimed the binding, kill is a no-op.
-      // taskRegistrar.kill is a safe no-op for unknown runIds, hence idempotent — multiple shutdowns do not throw repeatedly.
-      // Each kill is wrapped in its own try/catch: kill internally routes through setAppState, and process-exit phase triggers a React re-render
-      // which may throw (render already unmounted, etc.); a single failure should not block cleanup of other runs.
+      // 只杀运行中的：已完成/失败的 run taskRegistrar 已回收绑定，kill 是 no-op。
+      // taskRegistrar.kill 对未知 runId 是安全 no-op，因此幂等 —— 多次 shutdown 不会反复抛错。
+      // 每个 kill 都包裹独立的 try/catch：kill 内部会路由到 setAppState，进程退出阶段触发 React 重渲染
+      // 可能抛错（render 已卸载等）；单个失败不应阻塞其他 run 的清理。
       for (const run of store.list()) {
         if (run.status !== 'running') continue
         try {
@@ -283,7 +283,7 @@ export function makeService(
         const runs = await listPersistedRuns(runsDirProvider())
         for (const run of runs) store.hydrate(run)
       } catch (e) {
-        // Scan failure does not block the panel: log + reset flag to allow next retry
+        // 扫描失败不阻塞面板：记日志 + 重置标志以允许下次重试
         logForDebugging(
           `[workflow warn] loadPersistedRuns failed: ${(e as Error).message}`,
         )
@@ -300,14 +300,14 @@ export function makeService(
   }
 }
 
-/** For tests: reset the singleton (avoid cross-case contamination). */
+/** 供测试使用：重置单例（避免用例间互相污染）。 */
 export function __resetWorkflowServiceForTests(): void {
   cached = null
 }
 
 /**
- * Returns the already-instantiated service (does not create one). Used on process exit / config unload to peek;
- * if workflow was never used, cached is still null — avoids side-effecting bus/ports creation in the exit hook.
+ * 返回已实例化的 service（不会创建）。用于进程退出 / 配置卸载时 peek；
+ * 如果 workflow 从未被使用，cached 仍为 null —— 避免在 exit hook 中副作用性地创建 bus/ports。
  */
 export function peekWorkflowService(): WorkflowService | null {
   return cached

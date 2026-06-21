@@ -8,7 +8,7 @@ import type { AssistantMessage } from '../types/message.js'
 import type { AgentId } from '../types/ids.js'
 import type { ToolUseContext } from '../Tool.js'
 
-/** Opaque bundle held inside HostHandle (unpacked on the core side). */
+/** 封装在 HostHandle 内的不透明 bundle（由 core 侧解包）。 */
 export type WorkflowHostBundle = {
   toolUseContext: ToolUseContext
   canUseTool: CanUseToolFn
@@ -17,8 +17,8 @@ export type WorkflowHostBundle = {
 }
 
 /**
- * Shared: builds the host bundle from toolUseContext/canUseTool.
- * parentMessage is optional (absent on the panel launch path — claudeCodeBackend never reads it).
+ * 共用：从 toolUseContext/canUseTool 构建 host bundle。
+ * parentMessage 是可选的（面板启动路径下缺失 —— claudeCodeBackend 从不读取它）。
  */
 export function buildHostBundle(
   toolUseContext: WorkflowHostBundle['toolUseContext'],

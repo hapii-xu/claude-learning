@@ -47,16 +47,16 @@ type DialogLevel =
   | { type: 'teammateDetail'; teamName: string; memberName: string };
 
 /**
- * Dialog for viewing teammates in the current team
+ * 用于查看当前团队中队友的对话框
  */
 export function TeamsDialog({ initialTeams, onDone }: Props): React.ReactNode {
-  // Register as overlay so CancelRequestHandler doesn't intercept escape
+  // 注册为 overlay，以免 CancelRequestHandler 拦截 escape
   useRegisterOverlay('teams-dialog');
 
-  // initialTeams is derived from teamContext in PromptInput (no filesystem I/O)
+  // initialTeams 派生自 PromptInput 中的 teamContext（无文件系统 I/O）
   const setAppState = useSetAppState();
 
-  // Initialize dialogLevel with first team name if available
+  // 如果可用，用第一个团队名称初始化 dialogLevel
   const firstTeamName = initialTeams?.[0]?.name ?? '';
   const [dialogLevel, setDialogLevel] = useState<DialogLevel>({
     type: 'teammateList',
@@ -65,15 +65,15 @@ export function TeamsDialog({ initialTeams, onDone }: Props): React.ReactNode {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // initialTeams is now always provided from PromptInput (derived from teamContext)
-  // No filesystem I/O needed here
+  // initialTeams 现在总是从 PromptInput 提供（派生自 teamContext）
+  // 这里不需要文件系统 I/O
 
   const teammateStatuses = useMemo(() => {
     return getTeammateStatuses(dialogLevel.teamName);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dialogLevel.teamName, refreshKey]);
 
-  // Periodically refresh to pick up mode changes from teammates
+  // 定期刷新以获取队友的模式变更
   useInterval(() => {
     setRefreshKey(k => k + 1);
   }, 1000);
@@ -83,7 +83,7 @@ export function TeamsDialog({ initialTeams, onDone }: Props): React.ReactNode {
     return teammateStatuses.find(t => t.name === dialogLevel.memberName) ?? null;
   }, [dialogLevel, teammateStatuses]);
 
-  // Get isBypassPermissionsModeAvailable from AppState
+  // 从 AppState 获取 isBypassPermissionsModeAvailable
   const isBypassAvailable = useAppState(s => s.toolPermissionContext.isBypassPermissionsModeAvailable);
 
   const goBackToList = (): void => {
@@ -91,24 +91,24 @@ export function TeamsDialog({ initialTeams, onDone }: Props): React.ReactNode {
     setSelectedIndex(0);
   };
 
-  // Handler for confirm:cycleMode - cycle teammate permission modes
+  // confirm:cycleMode 处理器 - 循环队友权限模式
   const handleCycleMode = useCallback(() => {
     if (dialogLevel.type === 'teammateDetail' && currentTeammate) {
-      // Detail view: cycle just this teammate
+      // 详情视图：仅循环此队友
       cycleTeammateMode(currentTeammate, dialogLevel.teamName, isBypassAvailable);
       setRefreshKey(k => k + 1);
     } else if (dialogLevel.type === 'teammateList' && teammateStatuses.length > 0) {
-      // List view: cycle all teammates in tandem
+      // 列表视图：同步循环所有队友
       cycleAllTeammateModes(teammateStatuses, dialogLevel.teamName, isBypassAvailable);
       setRefreshKey(k => k + 1);
     }
   }, [dialogLevel, currentTeammate, teammateStatuses, isBypassAvailable]);
 
-  // Use keybindings for mode cycling
+  // 使用键位绑定进行模式循环
   useKeybindings({ 'confirm:cycleMode': handleCycleMode }, { context: 'Confirmation' });
 
   useInput((input, key) => {
-    // Handle left arrow to go back
+    // 处理左方向键返回
     if (key.leftArrow) {
       if (dialogLevel.type === 'teammateDetail') {
         goBackToList();
@@ -116,7 +116,7 @@ export function TeamsDialog({ initialTeams, onDone }: Props): React.ReactNode {
       return;
     }
 
-    // Handle up/down navigation
+    // 处理上/下导航
     if (key.upArrow || key.downArrow) {
       const maxIndex = getMaxIndex();
       if (key.upArrow) {
@@ -127,7 +127,7 @@ export function TeamsDialog({ initialTeams, onDone }: Props): React.ReactNode {
       return;
     }
 
-    // Handle Enter to drill down or view output
+    // 处理 Enter 以下钻或查看输出
     if (key.return) {
       if (dialogLevel.type === 'teammateList' && teammateStatuses[selectedIndex]) {
         setDialogLevel({
@@ -136,7 +136,7 @@ export function TeamsDialog({ initialTeams, onDone }: Props): React.ReactNode {
           memberName: teammateStatuses[selectedIndex].name,
         });
       } else if (dialogLevel.type === 'teammateDetail' && currentTeammate) {
-        // View output - switch to tmux pane
+        // 查看输出 - 切换到 tmux pane
         void viewTeammateOutput(
           currentTeammate.tmuxPaneId,
           currentTeammate.backendType && isPaneBackend(currentTeammate.backendType)
@@ -148,7 +148,7 @@ export function TeamsDialog({ initialTeams, onDone }: Props): React.ReactNode {
       return;
     }
 
-    // Handle 'k' to kill teammate
+    // 处理 'k' 杀死队友
     if (input === 'k') {
       if (dialogLevel.type === 'teammateList' && teammateStatuses[selectedIndex]) {
         void killTeammate(
@@ -162,7 +162,7 @@ export function TeamsDialog({ initialTeams, onDone }: Props): React.ReactNode {
           setAppState,
         ).then(() => {
           setRefreshKey(k => k + 1);
-          // Adjust selection if needed
+          // 如有需要调整选中索引
           setSelectedIndex(prev => Math.max(0, Math.min(prev, teammateStatuses.length - 2)));
         });
       } else if (dialogLevel.type === 'teammateDetail' && currentTeammate) {
@@ -181,7 +181,7 @@ export function TeamsDialog({ initialTeams, onDone }: Props): React.ReactNode {
       return;
     }
 
-    // Handle 's' for shutdown of selected teammate
+    // 处理 's' 关闭所选队友
     if (input === 's') {
       if (dialogLevel.type === 'teammateList' && teammateStatuses[selectedIndex]) {
         const teammate = teammateStatuses[selectedIndex];
@@ -201,7 +201,7 @@ export function TeamsDialog({ initialTeams, onDone }: Props): React.ReactNode {
       return;
     }
 
-    // Handle 'h' to hide/show individual teammate (only for backends that support it)
+    // 处理 'h' 隐藏/显示单个队友（仅对支持的后端）
     if (input === 'h') {
       const backend = getCachedBackend();
       const teammate =
@@ -213,7 +213,7 @@ export function TeamsDialog({ initialTeams, onDone }: Props): React.ReactNode {
 
       if (teammate && backend?.supportsHideShow) {
         void toggleTeammateVisibility(teammate, dialogLevel.teamName).then(() => {
-          // Force refresh of teammate statuses
+          // 强制刷新队友状态
           setRefreshKey(k => k + 1);
         });
         if (dialogLevel.type === 'teammateDetail') {
@@ -223,25 +223,25 @@ export function TeamsDialog({ initialTeams, onDone }: Props): React.ReactNode {
       return;
     }
 
-    // Handle 'H' to hide/show all teammates (only for backends that support it)
+    // 处理 'H' 隐藏/显示所有队友（仅对支持的后端）
     if (input === 'H' && dialogLevel.type === 'teammateList') {
       const backend = getCachedBackend();
       if (backend?.supportsHideShow && teammateStatuses.length > 0) {
-        // If any are visible, hide all. Otherwise, show all.
+        // 如果有任何一个可见，则隐藏全部。否则显示全部。
         const anyVisible = teammateStatuses.some(t => !t.isHidden);
         void Promise.all(
           teammateStatuses.map(t =>
             anyVisible ? hideTeammate(t, dialogLevel.teamName) : showTeammate(t, dialogLevel.teamName),
           ),
         ).then(() => {
-          // Force refresh of teammate statuses
+          // 强制刷新队友状态
           setRefreshKey(k => k + 1);
         });
       }
       return;
     }
 
-    // Handle 'p' to prune (kill) all idle teammates
+    // 处理 'p' 清理（杀死）所有空闲队友
     if (input === 'p' && dialogLevel.type === 'teammateList') {
       const idleTeammates = teammateStatuses.filter(t => t.status === 'idle');
       if (idleTeammates.length > 0) {
@@ -264,7 +264,7 @@ export function TeamsDialog({ initialTeams, onDone }: Props): React.ReactNode {
       return;
     }
 
-    // Note: Mode cycling (shift+tab) is handled via useKeybindings with confirm:cycleMode action
+    // 注意：模式循环（shift+tab）通过 useKeybindings 的 confirm:cycleMode 动作处理
   });
 
   function getMaxIndex(): number {
@@ -274,7 +274,7 @@ export function TeamsDialog({ initialTeams, onDone }: Props): React.ReactNode {
     return 0;
   }
 
-  // Render based on dialog level
+  // 根据对话框级别渲染
   if (dialogLevel.type === 'teammateList') {
     return (
       <TeamDetailView
@@ -302,9 +302,9 @@ type TeamDetailViewProps = {
 
 function TeamDetailView({ teamName, teammates, selectedIndex, onCancel }: TeamDetailViewProps): React.ReactNode {
   const subtitle = `${teammates.length} ${teammates.length === 1 ? 'teammate' : 'teammates'}`;
-  // Check if the backend supports hide/show
+  // 检查后端是否支持 hide/show
   const supportsHideShow = getCachedBackend()?.supportsHideShow ?? false;
-  // Get the display text for the cycle mode shortcut
+  // 获取循环模式快捷键的显示文本
   const cycleModeShortcut = useShortcutDisplay('confirm:cycleMode', 'Confirmation', 'shift+tab');
 
   return (
@@ -339,10 +339,10 @@ type TeammateListItemProps = {
 
 function TeammateListItem({ teammate, isSelected }: TeammateListItemProps): React.ReactNode {
   const isIdle = teammate.status === 'idle';
-  // Only dim if idle AND not selected - selection highlighting takes precedence
+  // 仅在空闲且未选中时变暗 - 选中高亮优先
   const shouldDim = isIdle && !isSelected;
 
-  // Get mode display
+  // 获取模式显示
   const mode = teammate.mode ? permissionModeFromString(teammate.mode) : 'default';
   const modeSymbol = permissionModeSymbol(mode);
   const modeColor = getModeColor(mode);
@@ -366,19 +366,19 @@ type TeammateDetailViewProps = {
 
 function TeammateDetailView({ teammate, teamName, onCancel }: TeammateDetailViewProps): React.ReactNode {
   const [promptExpanded, setPromptExpanded] = useState(false);
-  // Get the display text for the cycle mode shortcut
+  // 获取循环模式快捷键的显示文本
   const cycleModeShortcut = useShortcutDisplay('confirm:cycleMode', 'Confirmation', 'shift+tab');
   const themeColor = teammate.color
     ? AGENT_COLOR_TO_THEME_COLOR[teammate.color as keyof typeof AGENT_COLOR_TO_THEME_COLOR]
     : undefined;
 
-  // Get tasks assigned to this teammate
+  // 获取分配给此队友的任务
   const [teammateTasks, setTeammateTasks] = useState<Task[]>([]);
   useEffect(() => {
     let cancelled = false;
     void listTasks(teamName).then(allTasks => {
       if (cancelled) return;
-      // Filter tasks owned by this teammate (by agentId or name)
+      // 过滤属于此队友的任务（按 agentId 或 name）
       setTeammateTasks(allTasks.filter(task => task.owner === teammate.agentId || task.owner === teammate.name));
     });
     return () => {
@@ -387,16 +387,16 @@ function TeammateDetailView({ teammate, teamName, onCancel }: TeammateDetailView
   }, [teamName, teammate.agentId, teammate.name]);
 
   useInput(input => {
-    // Handle 'p' to expand/collapse prompt
+    // 处理 'p' 展开/折叠 prompt
     if (input === 'p') {
       setPromptExpanded(prev => !prev);
     }
   });
 
-  // Determine working directory display
+  // 决定工作目录显示
   const workingPath = teammate.worktreePath || teammate.cwd;
 
-  // Build subtitle with metadata
+  // 构建带有元数据的副标题
   const subtitleParts: string[] = [];
   if (teammate.model) subtitleParts.push(teammate.model);
   if (workingPath) {
@@ -404,12 +404,12 @@ function TeammateDetailView({ teammate, teamName, onCancel }: TeammateDetailView
   }
   const subtitle = subtitleParts.join(' · ') || undefined;
 
-  // Get mode display for title
+  // 获取用于标题的模式显示
   const mode = teammate.mode ? permissionModeFromString(teammate.mode) : 'default';
   const modeSymbol = permissionModeSymbol(mode);
   const modeColor = getModeColor(mode);
 
-  // Build title with mode symbol and colored name if applicable
+  // 构建带有模式符号和彩色名称（如适用）的标题
   const title = (
     <>
       {modeSymbol && <Text color={modeColor}>{modeSymbol} </Text>}
@@ -420,7 +420,7 @@ function TeammateDetailView({ teammate, teamName, onCancel }: TeammateDetailView
   return (
     <>
       <Dialog title={title} subtitle={subtitle} onCancel={onCancel} color="background" hideInputGuide>
-        {/* Tasks section */}
+        {/* 任务区域 */}
         {teammateTasks.length > 0 && (
           <Box flexDirection="column">
             <Text bold>Tasks</Text>
@@ -432,7 +432,7 @@ function TeammateDetailView({ teammate, teamName, onCancel }: TeammateDetailView
           </Box>
         )}
 
-        {/* Prompt section */}
+        {/* Prompt 区域 */}
         {teammate.prompt && (
           <Box flexDirection="column">
             <Text bold>Prompt</Text>
@@ -463,32 +463,32 @@ async function killTeammate(
   teammateName: string,
   setAppState: (f: (prev: AppState) => AppState) => void,
 ): Promise<void> {
-  // Kill the pane using the backend that created it (handles -s / -L flags correctly).
-  // Wrapped in try/catch so cleanup (removeMemberFromTeam, unassignTeammateTasks,
-  // setAppState) always runs — matches useInboxPoller.ts error isolation.
+  // 使用创建它的后端杀死 pane（正确处理 -s / -L 标志）。
+  // 包装在 try/catch 中以便清理（removeMemberFromTeam、unassignTeammateTasks、
+  // setAppState）总是运行 —— 与 useInboxPoller.ts 的错误隔离一致。
   if (backendType) {
     try {
-      // Use ensureBackendsRegistered (not detectAndGetBackend) — this process may
-      // be a teammate that never ran detection, but we only need class imports
-      // here, not subprocess probes that could throw in a different environment.
+      // 使用 ensureBackendsRegistered（而非 detectAndGetBackend）—— 此进程可能
+      // 是从未运行检测的队友，但这里只需要类导入，不需要可能在不同环境中
+      // 抛出异常的子进程探测。
       await ensureBackendsRegistered();
       await getBackendByType(backendType).killPane(paneId, !isInsideTmuxSync());
     } catch (error) {
       logForDebugging(`[TeamsDialog] Failed to kill pane ${paneId}: ${error}`);
     }
   } else {
-    // backendType undefined: old team files predating this field, or in-process.
-    // Old tmux-file case is a migration gap — the pane is orphaned. In-process
-    // teammates have no pane to kill, so this is correct for them.
+    // backendType 未定义：早于此字段的旧团队文件，或进程内模式。
+    // 旧的 tmux 文件场景是迁移缺口 —— pane 被孤立。进程内队友没有 pane 可杀，
+    // 所以对它们而言这是正确的。
     logForDebugging(`[TeamsDialog] Skipping pane kill for ${paneId}: no backendType recorded`);
   }
-  // Remove from team config file
+  // 从团队配置文件中移除
   removeMemberFromTeam(teamName, paneId);
 
-  // Unassign tasks and build notification message
+  // 取消分配任务并构建通知消息
   const { notificationMessage } = await unassignTeammateTasks(teamName, teammateId, teammateName, 'terminated');
 
-  // Update AppState to keep status line in sync and notify the lead
+  // 更新 AppState 以保持状态行同步并通知 lead
   setAppState(prev => {
     if (!prev.teamContext?.teammates) return prev;
     if (!(teammateId in prev.teamContext.teammates)) return prev;
@@ -521,17 +521,17 @@ async function killTeammate(
 
 async function viewTeammateOutput(paneId: string, backendType: PaneBackendType | undefined): Promise<void> {
   if (backendType === 'iterm2') {
-    // -s is required to target a specific session (ITermBackend.ts:216-217)
+    // 必须使用 -s 才能针对特定会话（ITermBackend.ts:216-217）
     await execFileNoThrow(IT2_COMMAND, ['session', 'focus', '-s', paneId]);
   } else if (backendType === 'windows-terminal') {
-    // Windows Terminal spawns each teammate as a separate window/tab; wt.exe
-    // does not expose an API to focus a pre-existing tab by name. The user
-    // switches tabs manually (Ctrl+Tab) — dialog closing is enough here.
+    // Windows Terminal 将每个队友作为单独的窗口/标签启动；wt.exe
+    // 没有暴露按名称聚焦预存在标签的 API。用户手动切换标签
+    // （Ctrl+Tab）—— 这里关闭对话框就足够了。
     logForDebugging(`[TeamsDialog] viewTeammateOutput: Windows Terminal pane ${paneId} — manual tab switch required`);
   } else {
-    // External-tmux teammates live on the swarm socket — without -L, this
-    // targets the default server and silently no-ops. Mirrors runTmuxInSwarm
-    // in TmuxBackend.ts:85-89.
+    // 外部 tmux 队友位于 swarm socket 上 —— 如果不带 -L，
+    // 会针对默认服务器并静默无操作。对应 TmuxBackend.ts:85-89 的
+    // runTmuxInSwarm。
     const args = isInsideTmuxSync()
       ? ['select-pane', '-t', paneId]
       : ['-L', getSwarmSocketName(), 'select-pane', '-t', paneId];
@@ -540,7 +540,7 @@ async function viewTeammateOutput(paneId: string, backendType: PaneBackendType |
 }
 
 /**
- * Toggle visibility of a teammate pane (hide if visible, show if hidden)
+ * 切换队友 pane 的可见性（可见时隐藏，隐藏时显示）
  */
 async function toggleTeammateVisibility(teammate: TeammateStatus, teamName: string): Promise<void> {
   if (teammate.isHidden) {
@@ -551,26 +551,26 @@ async function toggleTeammateVisibility(teammate: TeammateStatus, teamName: stri
 }
 
 /**
- * Hide a teammate pane using the backend abstraction.
- * Only available for ant users (gated for dead code elimination in external builds)
+ * 使用后端抽象隐藏队友 pane。
+ * 仅对 ant 用户可用（在外部构建中通过 gating 消除死代码）
  */
 async function hideTeammate(_teammate: TeammateStatus, _teamName: string): Promise<void> {}
 
 /**
- * Show a previously hidden teammate pane using the backend abstraction.
- * Only available for ant users (gated for dead code elimination in external builds)
+ * 使用后端抽象显示之前隐藏的队友 pane。
+ * 仅对 ant 用户可用（在外部构建中通过 gating 消除死代码）
  */
 async function showTeammate(_teammate: TeammateStatus, _teamName: string): Promise<void> {}
 
 /**
- * Send a mode change message to a single teammate
- * Also updates config.json directly so the UI reflects the change immediately
+ * 向单个队友发送模式变更消息
+ * 也会直接更新 config.json，以便 UI 立即反映变更
  */
 function sendModeChangeToTeammate(teammateName: string, teamName: string, targetMode: PermissionMode): void {
-  // Update config.json directly so UI shows the change immediately
+  // 直接更新 config.json，以便 UI 立即显示变更
   setMemberMode(teamName, teammateName, targetMode);
 
-  // Also send message so teammate updates their local permission context
+  // 同时发送消息以便队友更新其本地权限上下文
   const message = createModeSetRequestMessage({
     mode: targetMode,
     from: 'team-lead',
@@ -588,7 +588,7 @@ function sendModeChangeToTeammate(teammateName: string, teamName: string, target
 }
 
 /**
- * Cycle a single teammate's mode
+ * 循环单个队友的模式
  */
 function cycleTeammateMode(teammate: TeammateStatus, teamName: string, isBypassAvailable: boolean): void {
   const currentMode = teammate.mode ? permissionModeFromString(teammate.mode) : 'default';
@@ -602,10 +602,10 @@ function cycleTeammateMode(teammate: TeammateStatus, teamName: string, isBypassA
 }
 
 /**
- * Cycle all teammates' modes in tandem
- * If modes differ, reset all to default first
- * If same, cycle all to next mode
- * Uses batch update to avoid race conditions
+ * 同步循环所有队友的模式
+ * 如果模式不一致，先把全部重置为 default
+ * 如果一致，则将全部循环到下一个模式
+ * 使用批量更新以避免竞态条件
  */
 function cycleAllTeammateModes(teammates: TeammateStatus[], teamName: string, isBypassAvailable: boolean): void {
   if (teammates.length === 0) return;
@@ -613,7 +613,7 @@ function cycleAllTeammateModes(teammates: TeammateStatus[], teamName: string, is
   const modes = teammates.map(t => (t.mode ? permissionModeFromString(t.mode) : 'default'));
   const allSame = modes.every(m => m === modes[0]);
 
-  // Determine target mode for all teammates
+  // 决定所有队友的目标模式
   const targetMode = !allSame
     ? 'default'
     : getNextPermissionMode({
@@ -622,14 +622,14 @@ function cycleAllTeammateModes(teammates: TeammateStatus[], teamName: string, is
         isBypassPermissionsModeAvailable: isBypassAvailable,
       });
 
-  // Batch update config.json in a single atomic operation
+  // 在单个原子操作中批量更新 config.json
   const modeUpdates = teammates.map(t => ({
     memberName: t.name,
     mode: targetMode,
   }));
   setMultipleMemberModes(teamName, modeUpdates);
 
-  // Send mailbox messages to each teammate
+  // 向每个队友发送 mailbox 消息
   for (const teammate of teammates) {
     const message = createModeSetRequestMessage({
       mode: targetMode,

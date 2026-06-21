@@ -55,6 +55,7 @@ import {
   getBridgeTokenOverride,
   isSelfHostedBridge,
 } from './bridgeConfig.js'
+import { installDebugSinks, uninstallDebugSinks } from './debugSinks.js'
 import {
   checkBridgeMinVersion,
   isBridgeEnabledBlocking,
@@ -106,6 +107,27 @@ export type InitBridgeOptions = {
    */
   outboundOnly?: boolean
   tags?: string[]
+}
+
+/**
+ * 自托管 RCS 模式下，给 bridge handle 挂上调试 sink 并在 teardown 时卸载。
+ * 非自托管时直接返回原 handle（无 debug sink，无副作用）。
+ */
+function withDebugSinks(
+  handle: ReplBridgeHandle,
+  baseUrl: string,
+): ReplBridgeHandle {
+  if (!isSelfHostedBridge()) return handle
+  const token = getBridgeAccessToken() ?? ''
+  installDebugSinks(baseUrl, token, handle.bridgeSessionId)
+  const originalTeardown = handle.teardown
+  return {
+    ...handle,
+    teardown: async () => {
+      uninstallDebugSinks()
+      return originalTeardown()
+    },
+  }
 }
 
 export async function initReplBridge(
@@ -421,7 +443,7 @@ export async function initReplBridge(
       '[bridge:repl] Using env-less bridge path (tengu_bridge_repl_v2)',
     )
     const { initEnvLessBridgeCore } = await import('./remoteBridgeCore.js')
-    return initEnvLessBridgeCore({
+    const v2Handle = await initEnvLessBridgeCore({
       baseUrl,
       orgUUID,
       title,
@@ -447,6 +469,7 @@ export async function initReplBridge(
       outboundOnly,
       tags,
     })
+    return v2Handle ? withDebugSinks(v2Handle, baseUrl) : null
   }
 
   // ── v1 路径：基于 env（register/poll/ack/heartbeat）─────────────────
@@ -482,7 +505,7 @@ export async function initReplBridge(
   // 6. 委托。BridgeCoreHandle 是 ReplBridgeHandle 的结构超集（多了
   // REPL 调用方用不上的 writeSdkMessages），所以不需要适配 —— 出去时
   // 用更窄的类型就行。
-  return initBridgeCore({
+  const v1Handle = await initBridgeCore({
     dir: getOriginalCwd(),
     machineName: hostname(),
     branch,
@@ -537,6 +560,7 @@ export async function initReplBridge(
     onStateChange,
     perpetual,
   })
+  return v1Handle ? withDebugSinks(v1Handle, baseUrl) : null
 }
 
 const TITLE_MAX_LEN = 50

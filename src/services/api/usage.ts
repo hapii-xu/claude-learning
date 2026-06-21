@@ -10,8 +10,8 @@ import { getClaudeCodeUserAgent } from '../../utils/userAgent.js'
 import { isOAuthTokenExpired } from '../oauth/client.js'
 
 export type RateLimit = {
-  utilization: number | null // a percentage from 0 to 100
-  resets_at: string | null // ISO 8601 timestamp
+  utilization: number | null // 0 到 100 的百分比
+  resets_at: string | null // ISO 8601 时间戳
 }
 
 export type ExtraUsage = {
@@ -35,7 +35,7 @@ export async function fetchUtilization(): Promise<Utilization | null> {
     return {}
   }
 
-  // Skip API call if OAuth token is expired to avoid 401 errors
+  // OAuth token 过期时跳过 API 调用，避免 401 错误
   const tokens = getClaudeAIOAuthTokens()
   if (tokens && isOAuthTokenExpired(tokens.expiresAt)) {
     return null
@@ -56,7 +56,7 @@ export async function fetchUtilization(): Promise<Utilization | null> {
 
   const response = await axios.get<Utilization>(url, {
     headers,
-    timeout: 5000, // 5 second timeout
+    timeout: 5000, // 5 秒超时
   })
 
   return response.data

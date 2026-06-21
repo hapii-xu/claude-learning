@@ -1,15 +1,14 @@
 /**
- * Proactive mode — tick-driven autonomous agent.
+ * Proactive 模式——基于 tick 的自主代理。
  *
- * State machine: inactive → active (→ paused → active) → inactive
+ * 状态机：inactive → active（→ paused → active）→ inactive
  *
- * When active, the REPL periodically injects <tick> prompts so the model
- * keeps working even when the user is idle.  SleepTool lets the model
- * control its own wake-up cadence.
+ * 当 active 时，REPL 会定期注入 <tick> 提示，使模型即使在用户空闲时
+ * 也能继续工作。SleepTool 让模型控制自己的唤醒节奏。
  */
 
 // ---------------------------------------------------------------------------
-// State
+// 状态
 // ---------------------------------------------------------------------------
 
 let active = false
@@ -25,13 +24,13 @@ function notify(): void {
     try {
       cb()
     } catch {
-      // subscriber errors must not break the notifier
+      // 订阅者错误不得中断通知者
     }
   }
 }
 
 // ---------------------------------------------------------------------------
-// Public API — consumed by REPL.tsx, PromptInputFooterLeftSide, prompts.ts
+// 公共 API——由 REPL.tsx、PromptInputFooterLeftSide、prompts.ts 消费
 // ---------------------------------------------------------------------------
 
 export function isProactiveActive(): boolean {
@@ -75,10 +74,10 @@ export function resumeProactive(): void {
 }
 
 /**
- * Block / unblock tick generation.
+ * 阻塞 / 解除 tick 生成。
  *
- * Set to `true` on API errors to prevent tick → error → tick runaway loops.
- * Cleared on successful response or after compaction.
+ * 在 API 错误时设为 `true`，以防止 tick → 错误 → tick 的失控循环。
+ * 在成功响应或压缩后清除。
  */
 export function setContextBlocked(blocked: boolean): void {
   if (contextBlocked === blocked) return
@@ -94,8 +93,8 @@ export function isContextBlocked(): boolean {
 }
 
 /**
- * Schedule the next tick timestamp (epoch ms).
- * Called by useProactive after submitting a tick.
+ * 安排下一次 tick 的时间戳（epoch 毫秒）。
+ * 由 useProactive 在提交 tick 后调用。
  */
 export function setNextTickAt(ts: number | null): void {
   nextTickAt = ts
@@ -103,8 +102,8 @@ export function setNextTickAt(ts: number | null): void {
 }
 
 /**
- * Returns the epoch-ms timestamp of the next scheduled tick, or null.
- * Used by PromptInputFooterLeftSide to render a countdown.
+ * 返回下一次计划 tick 的 epoch 毫秒时间戳，或 null。
+ * 由 PromptInputFooterLeftSide 用于渲染倒计时。
  */
 export function getNextTickAt(): number | null {
   if (!active || paused || contextBlocked) return null
@@ -116,8 +115,8 @@ export function getActivationSource(): string | undefined {
 }
 
 /**
- * Subscribe to any proactive state change.
- * Returns an unsubscribe function.
+ * 订阅任何 proactive 状态变化。
+ * 返回一个取消订阅函数。
  */
 export function subscribeToProactiveChanges(cb: () => void): () => void {
   listeners.add(cb)
@@ -127,8 +126,8 @@ export function subscribeToProactiveChanges(cb: () => void): () => void {
 }
 
 /**
- * Whether ticks should fire right now.
- * Convenience predicate combining all blocking conditions.
+ * tick 是否应该立即触发。
+ * 组合所有阻塞条件的便捷谓词。
  */
 export function shouldTick(): boolean {
   return active && !paused && !contextBlocked

@@ -27,9 +27,9 @@ function resetIfPassesRefreshed(): void {
 
 function shouldShowGuestPassesUpsell(): boolean {
   const { eligible, hasCache } = checkCachedPassesEligibility();
-  // Only show if eligible and cache exists (don't block on fetch)
+  // 仅在符合条件且缓存存在时展示（不要因 fetch 而阻塞）
   if (!eligible || !hasCache) return false;
-  // Reset upsell counters if passes were refreshed (covers both campaign change and pass refresh)
+  // 如果 passes 已刷新则重置 upsell 计数器（同时覆盖 campaign 变更和 pass 刷新两种情况）
   resetIfPassesRefreshed();
 
   const config = getGlobalConfig();
@@ -58,7 +58,7 @@ export function incrementGuestPassesSeenCount(): void {
   });
 }
 
-// Condensed layout for mini welcome screen
+// 迷你欢迎屏幕的 condensed 布局
 export function GuestPassesUpsell(): React.ReactNode {
   const reward = getCachedReferrerReward();
   return (

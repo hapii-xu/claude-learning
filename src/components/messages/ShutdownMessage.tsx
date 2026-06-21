@@ -13,7 +13,7 @@ type ShutdownRequestProps = {
 };
 
 /**
- * Renders a shutdown request with a warning-colored border.
+ * 渲染一个带有 warning 颜色边框的 shutdown 请求。
  */
 export function ShutdownRequestDisplay({ request }: ShutdownRequestProps): React.ReactNode {
   return (
@@ -39,7 +39,7 @@ type ShutdownRejectedProps = {
 };
 
 /**
- * Renders a shutdown rejected message with a subtle (grey) border.
+ * 渲染一个带有 subtle（灰色）边框的 shutdown rejected 消息。
  */
 export function ShutdownRejectedDisplay({ response }: ShutdownRejectedProps): React.ReactNode {
   return (
@@ -67,8 +67,8 @@ export function ShutdownRejectedDisplay({ response }: ShutdownRejectedProps): Re
 }
 
 /**
- * Try to parse and render a shutdown message from raw content.
- * Returns the rendered component if it's a shutdown message, null otherwise.
+ * 尝试从原始内容解析并渲染 shutdown 消息。
+ * 如果是 shutdown 消息则返回渲染的组件，否则返回 null。
  */
 export function tryRenderShutdownMessage(content: string): React.ReactNode | null {
   const request = isShutdownRequest(content);
@@ -76,7 +76,7 @@ export function tryRenderShutdownMessage(content: string): React.ReactNode | nul
     return <ShutdownRequestDisplay request={request} />;
   }
 
-  // Shutdown approved is handled inline by the caller — skip it here
+  // Shutdown approved 由调用方内联处理 —— 此处跳过
   if (isShutdownApproved(content)) {
     return null;
   }
@@ -90,9 +90,9 @@ export function tryRenderShutdownMessage(content: string): React.ReactNode | nul
 }
 
 /**
- * Get a brief summary text for a shutdown message.
- * Used in places like the inbox queue where we want a short description.
- * Returns null if the content is not a shutdown message.
+ * 获取 shutdown 消息的简要摘要文本。
+ * 用于 inbox queue 等需要简短描述的场景。
+ * 如果内容不是 shutdown 消息，则返回 null。
  */
 export function getShutdownMessageSummary(content: string): string | null {
   const request = isShutdownRequest(content);

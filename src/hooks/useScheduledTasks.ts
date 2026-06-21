@@ -75,8 +75,8 @@ export function useScheduledTasks({
   assistantMode = false,
   setMessages,
 }: Props): void {
-  // Latest-value ref so the scheduler's isLoading() getter doesn't capture
-  // a stale closure. The effect mounts once; isLoading changes every turn.
+  // 最新值 ref，以便调度器的 isLoading() getter 不会捕获
+  // 陈旧的闭包。effect 只挂载一次；isLoading 每轮都会变化。
   const isLoadingRef = useRef(isLoading)
   isLoadingRef.current = isLoading
 
@@ -84,23 +84,23 @@ export function useScheduledTasks({
   const setAppState = useSetAppState()
 
   useEffect(() => {
-    // Runtime gate checked here (not at the hook call site) so the hook
-    // stays unconditionally mounted — rules-of-hooks forbid wrapping the
-    // call in a dynamic condition. getFeatureValue_CACHED_WITH_REFRESH
-    // reads from disk; the 5-min TTL fires a background refetch but the
-    // effect won't re-run on value flip (assistantMode is the only dep),
-    // so this guard alone is launch-grain. The mid-session killswitch is
-    // the isKilled option below — check() polls it every tick.
+    // 在此处检查运行时门控（而不是在 hook 调用点），以便 hook
+    // 保持无条件挂载 —— rules-of-hooks 禁止将调用
+    // 包裹在动态条件中。getFeatureValue_CACHED_WITH_REFRESH
+    // 从磁盘读取；5 分钟 TTL 会触发后台重新获取，但
+    // effect 不会在值翻转时重新运行（assistantMode 是唯一依赖），
+    // 所以此守卫仅是启动粒度。会话中期的 killswitch 是
+    // 下方的 isKilled 选项 —— check() 每 tick 轮询它。
     if (!isKairosCronEnabled()) return
 
-    // System-generated — hidden from queue preview and transcript UI.
-    // In brief mode, executeForkedSlashCommand runs as a background
-    // subagent and returns no visible messages. In normal mode,
-    // isMeta is only propagated for plain-text prompts (via
-    // processTextPrompt); slash commands like /context:fork do not
-    // forward isMeta, so their messages remain visible in the
-    // transcript. This is acceptable since normal mode is not the
-    // primary use case for scheduled tasks.
+    // 系统生成 —— 从队列预览和 transcript UI 中隐藏。
+    // 在 brief 模式下，executeForkedSlashCommand 作为后台
+    // subagent 运行并返回不可见的消息。在普通模式下，
+    // isMeta 仅对纯文本提示传播（通过
+    // processTextPrompt）；像 /context:fork 这样的斜杠命令不会
+    // 转发 isMeta，所以它们的消息在
+    // transcript 中保持可见。这是可接受的，因为普通模式不是
+    // 计划任务的主要用例。
     let disposed = false
     const enqueueForLead = async (prompt: string) => {
       const command = await createAutonomyQueuedPrompt({
@@ -124,10 +124,10 @@ export function useScheduledTasks({
     }
 
     const scheduler = createCronScheduler({
-      // Missed-task surfacing (onFire fallback). Teammate crons are always
-      // session-only (durable:false) so they never appear in the missed list,
-      // which is populated from disk at scheduler startup — this path only
-      // handles team-lead durable crons.
+      // 遗漏任务浮现（onFire 回退）。Teammate cron 总是
+      // 仅会话内（durable:false），所以它们永远不会出现在遗漏列表中，
+      // 该列表在调度器启动时从磁盘填充 —— 此路径只
+      // 处理 team-lead 的持久 cron。
       onFire: prompt => {
         void enqueueForLead(prompt).catch(error =>
           logForDebugging(
@@ -136,7 +136,7 @@ export function useScheduledTasks({
           ),
         )
       },
-      // Normal fires receive the full CronTask so we can route by agentId.
+      // 正常触发接收完整的 CronTask，以便我们可以按 agentId 路由。
       onFireTask: task => {
         void (async () => {
           if (task.agentId) {
@@ -177,9 +177,9 @@ export function useScheduledTasks({
               }
               return
             }
-            // Teammate is gone — clean up the orphaned cron so it doesn't keep
-            // firing into nowhere every tick. One-shots would auto-delete on
-            // fire anyway, but recurring crons would loop until auto-expiry.
+            // Teammate 已消失 —— 清理孤立的 cron，以免它每 tick
+            // 继续向无处触发。一次性任务无论如何都会在触发时自动删除，
+            // 但周期性 cron 会循环直到自动过期。
             logForDebugging(
               `[ScheduledTasks] teammate ${task.agentId} gone, removing orphaned cron ${task.id}`,
             )
@@ -223,8 +223,8 @@ export function useScheduledTasks({
       disposed = true
       scheduler.stop()
     }
-    // assistantMode is stable for the session lifetime; store/setAppState are
-    // stable refs from useSyncExternalStore; setMessages is a stable useCallback.
+    // assistantMode 在会话生命周期内是稳定的；store/setAppState 是
+    // 来自 useSyncExternalStore 的稳定 ref；setMessages 是稳定的 useCallback。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assistantMode])
 }

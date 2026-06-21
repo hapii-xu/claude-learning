@@ -8,6 +8,7 @@ import type { ThreadEntry, PendingPermission } from '../lib/types';
 import { StatusBadge } from '../components/Navbar';
 import { TaskPanel } from '../components/TaskPanel';
 import { PermissionPromptView, AskUserPanelView, PlanPanelView } from '../components/PermissionViews';
+import { DebugDrawer } from '../components/debug/DebugDrawer';
 
 // Unified chat components
 import { ChatView } from '../../components/chat/ChatView';
@@ -32,6 +33,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   const [entries, setEntries] = useState<ThreadEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pendingPermissions, setPendingPermissions] = useState<PendingPermission[]>([]);
+  const [debugDrawerOpen, setDebugDrawerOpen] = useState(false);
   const adapterRef = useRef<RCSChatAdapter | null>(null);
 
   // Create RCSChatAdapter
@@ -266,6 +268,18 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
                 >
                   Tasks
                 </button>
+                <button
+                  onClick={() => setDebugDrawerOpen(!debugDrawerOpen)}
+                  className={cn(
+                    'flex items-center gap-1 rounded-md px-3 py-1.5 text-sm transition-colors',
+                    debugDrawerOpen
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'text-text-secondary hover:bg-surface-2',
+                  )}
+                  title="调试面板"
+                >
+                  🐞 Debug
+                </button>
               </div>
             </div>
             {showMeta && (
@@ -316,6 +330,9 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
 
         {/* Task Panel */}
         {taskPanelOpen && <TaskPanel onClose={() => setTaskPanelOpen(false)} />}
+
+        {/* Debug Drawer */}
+        <DebugDrawer sessionId={sessionId} isOpen={debugDrawerOpen} onClose={() => setDebugDrawerOpen(false)} />
       </div>
     </TooltipProvider>
   );

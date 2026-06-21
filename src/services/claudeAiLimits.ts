@@ -19,7 +19,7 @@ import {
   shouldProcessRateLimits,
 } from './rateLimitMocking.js'
 
-// Re-export message functions from centralized location
+// 从集中位置重新导出消息函数
 export {
   getRateLimitErrorMessage,
   getRateLimitWarning,
@@ -38,8 +38,8 @@ type RateLimitType =
 export type { RateLimitType }
 
 type EarlyWarningThreshold = {
-  utilization: number // 0-1 scale: trigger warning when usage >= this
-  timePct: number // 0-1 scale: trigger warning when time elapsed <= this
+  utilization: number // 0-1 比例：当用量 >= 此值时触发警告
+  timePct: number // 0-1 比例：当已用时间 <= 此值时触发警告
 }
 
 type EarlyWarningConfig = {
@@ -49,9 +49,9 @@ type EarlyWarningConfig = {
   thresholds: EarlyWarningThreshold[]
 }
 
-// Early warning configurations in priority order (checked first to last)
-// Used as fallback when server doesn't send surpassed-threshold header
-// Warns users when they're consuming quota faster than the time window allows
+// 早期警告配置，按优先级顺序（从先到后检查）
+// 当服务器不发送 surpassed-threshold 头时用作回退
+// 当用户消耗配额速度快于时间窗口允许时警告用户
 const EARLY_WARNING_CONFIGS: EarlyWarningConfig[] = [
   {
     rateLimitType: 'five_hour',
@@ -71,7 +71,7 @@ const EARLY_WARNING_CONFIGS: EarlyWarningConfig[] = [
   },
 ]
 
-// Maps claim abbreviations to rate limit types for header-based detection
+// 将声明缩写映射到速率限制类型，用于基于 header 的检测
 const EARLY_WARNING_CLAIM_MAP: Record<string, RateLimitType> = {
   '5h': 'five_hour',
   '7d': 'seven_day',
@@ -91,11 +91,11 @@ export function getRateLimitDisplayName(type: RateLimitType): string {
 }
 
 /**
- * Calculate what fraction of a time window has elapsed.
- * Used for time-relative early warning fallback.
- * @param resetsAt - Unix epoch timestamp in seconds when the limit resets
- * @param windowSeconds - Duration of the window in seconds
- * @returns fraction (0-1) of the window that has elapsed
+ * 计算时间窗口已过去的比例。
+ * 用于时间相对早期警告回退。
+ * @param resetsAt - 限制重置时的 Unix epoch 时间戳（秒）
+ * @param windowSeconds - 窗口持续时间（秒）
+ * @returns 已过去的窗口比例（0-1）
  */
 function computeTimeProgress(resetsAt: number, windowSeconds: number): number {
   const nowSeconds = Date.now() / 1000
@@ -104,28 +104,27 @@ function computeTimeProgress(resetsAt: number, windowSeconds: number): number {
   return Math.max(0, Math.min(1, elapsed / windowSeconds))
 }
 
-// Reason why overage is disabled/rejected
-// These values come from the API's unified limiter
+// 超额用量被禁用/拒绝的原因
+// 这些值来自 API 的统一限制器
 export type OverageDisabledReason =
-  | 'overage_not_provisioned' // Overage is not provisioned for this org or seat tier
-  | 'org_level_disabled' // Organization doesn't have overage enabled
-  | 'org_level_disabled_until' // Organization overage temporarily disabled
-  | 'out_of_credits' // Organization has insufficient credits
-  | 'seat_tier_level_disabled' // Seat tier doesn't have overage enabled
-  | 'member_level_disabled' // Account specifically has overage disabled
-  | 'seat_tier_zero_credit_limit' // Seat tier has a zero credit limit
-  | 'group_zero_credit_limit' // Resolved group limit has a zero credit limit
-  | 'member_zero_credit_limit' // Account has a zero credit limit
-  | 'org_service_level_disabled' // Org service specifically has overage disabled
-  | 'org_service_zero_credit_limit' // Org service has a zero credit limit
-  | 'no_limits_configured' // No overage limits configured for account
-  | 'unknown' // Unknown reason, should not happen
+  | 'overage_not_provisioned' // 此组织或席位等级未配置超额用量
+  | 'org_level_disabled' // 组织未启用超额用量
+  | 'org_level_disabled_until' // 组织超额用量被临时禁用
+  | 'out_of_credits' // 组织额度不足
+  | 'seat_tier_level_disabled' // 席位等级未启用超额用量
+  | 'member_level_disabled' // 此账号专门禁用了超额用量
+  | 'seat_tier_zero_credit_limit' // 席位等级的额度限制为零
+  | 'group_zero_credit_limit' // 解析后的组限制额度为零
+  | 'member_zero_credit_limit' // 账号的额度限制为零
+  | 'org_service_level_disabled' // 组织服务专门禁用了超额用量
+  | 'org_service_zero_credit_limit' // 组织服务的额度限制为零
+  | 'no_limits_configured' // 账号未配置超额用量限制
+  | 'unknown' // 未知原因，不应发生
 
 export type ClaudeAILimits = {
   status: QuotaStatus
-  // unifiedRateLimitFallbackAvailable is currently used to warn users that set
-  // their model to Opus whenever they are about to run out of quota. It does
-  // not change the actual model that is used.
+  // unifiedRateLimitFallbackAvailable 目前用于警告将模型设置为 Opus 的用户
+  // 他们即将耗尽配额。它不会更改实际使用的模型。
   unifiedRateLimitFallbackAvailable: boolean
   resetsAt?: number
   rateLimitType?: RateLimitType
@@ -137,7 +136,7 @@ export type ClaudeAILimits = {
   surpassedThreshold?: number
 }
 
-// Exported for testing only
+// 仅供测试导出
 export let currentLimits: ClaudeAILimits = {
   status: 'allowed',
   unifiedRateLimitFallbackAvailable: false,
@@ -145,13 +144,13 @@ export let currentLimits: ClaudeAILimits = {
 }
 
 /**
- * Raw per-window utilization from response headers, tracked on every API
- * response (unlike currentLimits.utilization which is only set when a warning
- * threshold fires). Exposed to statusline scripts via getRawUtilization().
+ * 来自响应头的每窗口原始用量，在每次 API 响应时跟踪
+ * （不同于 currentLimits.utilization，后者仅在触发警告阈值时设置）。
+ * 通过 getRawUtilization() 暴露给 statusline 脚本使用。
  */
 type RawWindowUtilization = {
-  utilization: number // 0-1 fraction
-  resets_at: number // unix epoch seconds
+  utilization: number // 0-1 比例
+  resets_at: number // Unix epoch 秒
 }
 type RawUtilization = {
   five_hour?: RawWindowUtilization
@@ -219,28 +218,28 @@ async function makeTestQuery() {
 }
 
 export async function checkQuotaStatus(): Promise<void> {
-  // Skip network requests if nonessential traffic is disabled
+  // 如果非必要流量被禁用，跳过网络请求
   if (isEssentialTrafficOnly()) {
     return
   }
 
-  // Check if we should process rate limits (real subscriber or mock testing)
+  // 检查是否应处理速率限制（真实订阅者或 mock 测试）
   if (!shouldProcessRateLimits(isClaudeAISubscriber())) {
     return
   }
 
-  // In non-interactive mode (-p), the real query follows immediately and
-  // extractQuotaStatusFromHeaders() will update limits from its response
-  // headers (claude.ts), so skip this pre-check API call.
+  // 在非交互模式（-p）下，真实查询会立即跟随执行，
+  // extractQuotaStatusFromHeaders() 会从其响应头更新限制
+  // （claude.ts），因此跳过此预检查 API 调用。
   if (getIsNonInteractiveSession()) {
     return
   }
 
   try {
-    // Make a minimal request to check quota
+    // 发起最小请求以检查配额
     const raw = await makeTestQuery()
 
-    // Update limits based on the response
+    // 根据响应更新限制
     extractQuotaStatusFromHeaders(raw.headers)
   } catch (error) {
     if (error instanceof APIError) {
@@ -250,14 +249,14 @@ export async function checkQuotaStatus(): Promise<void> {
 }
 
 /**
- * Check if early warning should be triggered based on surpassed-threshold header.
- * Returns ClaudeAILimits if a threshold was surpassed, null otherwise.
+ * 基于 surpassed-threshold header 检查是否应触发早期警告。
+ * 如果超过阈值，返回 ClaudeAILimits；否则返回 null。
  */
 function getHeaderBasedEarlyWarning(
   headers: globalThis.Headers,
   unifiedRateLimitFallbackAvailable: boolean,
 ): ClaudeAILimits | null {
-  // Check each claim type for surpassed threshold header
+  // 检查每种声明类型的 surpassed threshold header
   for (const [claimAbbrev, rateLimitType] of Object.entries(
     EARLY_WARNING_CLAIM_MAP,
   )) {
@@ -265,7 +264,7 @@ function getHeaderBasedEarlyWarning(
       `anthropic-ratelimit-unified-${claimAbbrev}-surpassed-threshold`,
     )
 
-    // If threshold header is present, user has crossed a warning threshold
+    // 如果存在阈值 header，说明用户已跨越警告阈值
     if (surpassedThreshold !== null) {
       const utilizationHeader = headers.get(
         `anthropic-ratelimit-unified-${claimAbbrev}-utilization`,
@@ -295,9 +294,9 @@ function getHeaderBasedEarlyWarning(
 }
 
 /**
- * Check if time-relative early warning should be triggered for a rate limit type.
- * Fallback when server doesn't send surpassed-threshold header.
- * Returns ClaudeAILimits if thresholds are exceeded, null otherwise.
+ * 检查对某种速率限制类型是否应触发时间相对早期警告。
+ * 当服务器不发送 surpassed-threshold header 时作为回退方案。
+ * 如果超过阈值，返回 ClaudeAILimits；否则返回 null。
  */
 function getTimeRelativeEarlyWarning(
   headers: globalThis.Headers,
@@ -321,7 +320,7 @@ function getTimeRelativeEarlyWarning(
   const resetsAt = Number(resetHeader)
   const timeProgress = computeTimeProgress(resetsAt, windowSeconds)
 
-  // Check if any threshold is exceeded: high usage early in the window
+  // 检查是否超过任何阈值：窗口早期用量高
   const shouldWarn = thresholds.some(
     t => utilization >= t.utilization && timeProgress <= t.timePct,
   )
@@ -341,15 +340,15 @@ function getTimeRelativeEarlyWarning(
 }
 
 /**
- * Get early warning limits using header-based detection with time-relative fallback.
- * 1. First checks for surpassed-threshold header (new server-side approach)
- * 2. Falls back to time-relative thresholds (client-side calculation)
+ * 使用基于 header 的检测加时间相对回退获取早期警告限制。
+ * 1. 首先检查 surpassed-threshold header（新的服务端方案）
+ * 2. 回退到时间相对阈值（客户端计算）
  */
 function getEarlyWarningFromHeaders(
   headers: globalThis.Headers,
   unifiedRateLimitFallbackAvailable: boolean,
 ): ClaudeAILimits | null {
-  // Try header-based detection first (preferred when API sends the header)
+  // 先尝试基于 header 的检测（当 API 发送 header 时优先使用）
   const headerBasedWarning = getHeaderBasedEarlyWarning(
     headers,
     unifiedRateLimitFallbackAvailable,
@@ -358,8 +357,8 @@ function getEarlyWarningFromHeaders(
     return headerBasedWarning
   }
 
-  // Fallback: Use time-relative thresholds (client-side calculation)
-  // This catches users burning quota faster than sustainable
+  // 回退：使用时间相对阈值（客户端计算）
+  // 这可以捕获比可持续速度更快消耗配额的用户
   for (const config of EARLY_WARNING_CONFIGS) {
     const timeRelativeWarning = getTimeRelativeEarlyWarning(
       headers,
@@ -385,7 +384,7 @@ function computeNewLimitsFromHeaders(
   const unifiedRateLimitFallbackAvailable =
     headers.get('anthropic-ratelimit-unified-fallback') === 'available'
 
-  // Headers for rate limit type and overage support
+  // 速率限制类型和超额用量支持的 header
   const rateLimitType = headers.get(
     'anthropic-ratelimit-unified-representative-claim',
   ) as RateLimitType | null
@@ -399,18 +398,18 @@ function computeNewLimitsFromHeaders(
     ? Number(overageResetsAtHeader)
     : undefined
 
-  // Reason why overage is disabled (spending cap or wallet empty)
+  // 超额用量被禁用的原因（消费上限或钱包为空）
   const overageDisabledReason = headers.get(
     'anthropic-ratelimit-unified-overage-disabled-reason',
   ) as OverageDisabledReason | null
 
-  // Determine if we're using overage (standard limits rejected but overage allowed)
+  // 判断是否正在使用超额用量（标准限制被拒绝但超额用量被允许）
   const isUsingOverage =
     status === 'rejected' &&
     (overageStatus === 'allowed' || overageStatus === 'allowed_warning')
 
-  // Check for early warning based on surpassed-threshold header
-  // If status is allowed/allowed_warning and we find a surpassed threshold, show warning
+  // 基于 surpassed-threshold header 检查早期警告
+  // 如果状态是 allowed/allowed_warning 且我们找到超过的阈值，显示警告
   let finalStatus: QuotaStatus = status
   if (status === 'allowed' || status === 'allowed_warning') {
     const earlyWarning = getEarlyWarningFromHeaders(
@@ -420,7 +419,7 @@ function computeNewLimitsFromHeaders(
     if (earlyWarning) {
       return earlyWarning
     }
-    // No early warning threshold surpassed
+    // 没有超过早期警告阈值
     finalStatus = 'allowed'
   }
 
@@ -437,10 +436,10 @@ function computeNewLimitsFromHeaders(
 }
 
 /**
- * Cache the extra usage disabled reason from API headers.
+ * 缓存来自 API header 的额外用量禁用原因。
  */
 function cacheExtraUsageDisabledReason(headers: globalThis.Headers): void {
-  // A null reason means extra usage is enabled (no disabled reason header)
+  // null 原因意味着额外用量已启用（无禁用原因 header）
   const reason =
     headers.get('anthropic-ratelimit-unified-overage-disabled-reason') ?? null
   const cached = getGlobalConfig().cachedExtraUsageDisabledReason
@@ -455,11 +454,11 @@ function cacheExtraUsageDisabledReason(headers: globalThis.Headers): void {
 export function extractQuotaStatusFromHeaders(
   headers: globalThis.Headers,
 ): void {
-  // Check if we need to process rate limits
+  // 检查是否需要处理速率限制
   const isSubscriber = isClaudeAISubscriber()
 
   if (!shouldProcessRateLimits(isSubscriber)) {
-    // If we have any rate limit state, clear it
+    // 如果有任何速率限制状态，清除它
     rawUtilization = {}
     updateProviderBuckets('anthropic', [])
     if (currentLimits.status !== 'allowed' || currentLimits.resetsAt) {
@@ -473,7 +472,7 @@ export function extractQuotaStatusFromHeaders(
     return
   }
 
-  // Process headers (applies mocks from /mock-limits command if active)
+  // 处理 header（如果激活 /mock-limits 命令则应用 mock）
   const headersToUse = processRateLimitHeaders(headers)
   rawUtilization = extractRawUtilization(headersToUse)
   updateProviderBuckets(
@@ -482,7 +481,7 @@ export function extractQuotaStatusFromHeaders(
   )
   const newLimits = computeNewLimitsFromHeaders(headersToUse)
 
-  // Cache extra usage status (persists across sessions)
+  // 缓存额外用量状态（跨会话持久化）
   cacheExtraUsageDisabledReason(headersToUse)
 
   if (!isEqual(currentLimits, newLimits)) {
@@ -501,7 +500,7 @@ export function extractQuotaStatusFromError(error: APIError): void {
   try {
     let newLimits = { ...currentLimits }
     if (error.headers) {
-      // Process headers (applies mocks from /mock-limits command if active)
+      // 处理 header（如果激活 /mock-limits 命令则应用 mock）
       const headersToUse = processRateLimitHeaders(error.headers)
       rawUtilization = extractRawUtilization(headersToUse)
       updateProviderBuckets(
@@ -510,10 +509,10 @@ export function extractQuotaStatusFromError(error: APIError): void {
       )
       newLimits = computeNewLimitsFromHeaders(headersToUse)
 
-      // Cache extra usage status (persists across sessions)
+      // 缓存额外用量状态（跨会话持久化）
       cacheExtraUsageDisabledReason(headersToUse)
     }
-    // For errors, always set status to rejected even if headers are not present.
+    // 对于错误，即使 header 不存在也总是将状态设置为 rejected。
     newLimits.status = 'rejected'
 
     if (!isEqual(currentLimits, newLimits)) {

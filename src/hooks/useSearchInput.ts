@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { KeyboardEvent, useInput } from '@anthropic/ink'
-// backward-compat bridge until consumers wire handleKeyDown to <Box onKeyDown>
+// 向后兼容桥接，直到消费者将 handleKeyDown 连接到 <Box onKeyDown>
 import {
   Cursor,
   getLastKill,
@@ -16,18 +16,18 @@ import { useTerminalSize } from './useTerminalSize.js'
 type UseSearchInputOptions = {
   isActive: boolean
   onExit: () => void
-  /** Esc + Ctrl+C abandon (distinct from onExit = Enter commit). When
-   *  provided: single-Esc calls this directly (no clear-first-then-exit
-   *  two-press). When absent: current behavior — Esc clears non-empty
-   *  query, exits on empty; Ctrl+C silently swallowed (no switch case). */
+  /** Esc + Ctrl+C 放弃（不同于 onExit = Enter 提交）。提供时：
+   *  单次 Esc 直接调用此函数（无先清除再退出的
+   *  双击）。未提供时：当前行为 —— Esc 清除非空
+   *  查询，空时退出；Ctrl+C 静默吞掉（无 switch case）。 */
   onCancel?: () => void
   onExitUp?: () => void
   columns?: number
   passthroughCtrlKeys?: string[]
   initialQuery?: string
-  /** Backspace (and ctrl+h) on empty query calls onCancel ?? onExit — the
-   *  less/vim "delete past the /" convention. Dialogs that want Esc-only
-   *  cancel set this false so a held backspace doesn't eject the user. */
+  /** 空查询上的 Backspace（和 ctrl+h）调用 onCancel ?? onExit ——
+   *  less/vim "delete past the /" 约定。想要仅 Esc
+   *  取消的对话框将此设为 false，使按住的 backspace 不会弹出用户。 */
   backspaceExitsOnEmpty?: boolean
 }
 
@@ -52,13 +52,13 @@ function isYankKey(e: KeyboardEvent): boolean {
   return (e.ctrl || e.meta) && e.key === 'y'
 }
 
-// Special key names that fall through the explicit handlers above the
-// text-input branch (return/escape/arrows/home/end/tab/backspace/delete
-// all early-return). Reject these so e.g. PageUp doesn't leak 'pageup'
-// as literal text. The length>=1 check below is intentionally loose —
-// batched input like stdin.write('abc') arrives as one multi-char e.key,
-// matching the old useInput(input) behavior where cursor.insert(input)
-// inserted the full chunk.
+// 穿过文本输入分支上方显式处理程序的特殊键名
+// （return/escape/arrows/home/end/tab/backspace/delete
+// 都提前返回）。拒绝这些键，使例如 PageUp 不会将 'pageup'
+// 作为字面文本泄漏。下方的 length>=1 检查故意宽松 ——
+// 批量输入如 stdin.write('abc') 作为单个多字符 e.key 到达，
+// 匹配旧的 useInput(input) 行为，其中 cursor.insert(input)
+// 插入完整块。
 const UNHANDLED_SPECIAL_KEYS = new Set([
   'pageup',
   'pagedown',

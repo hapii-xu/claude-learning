@@ -9,27 +9,27 @@ const FRAME_MS = 120;
 const LABEL_MAX = 18;
 
 /**
- * Truncate the label to at most max characters. Preserves the trailing `#number` suffix (the audit workflow
- * `verify:${dim}#${findingIdx}` format) - so verify agent labels with multiple findings under the same dimension
- * stay distinguishable (the prefix is elided with `…`). When there is no suffix, truncates from the right (legacy behavior).
- * Exported for unit test coverage.
+ * 将 label 截断到至多 max 个字符。保留结尾的 `#number` 后缀（audit workflow 的
+ * `verify:${dim}#${findingIdx}` 格式）—— 这样同一维度下多个 finding 的 verify agent label
+ * 仍能区分（前缀用 `…` 省略）。没有后缀时，从右侧截断（旧行为）。
+ * 导出供单元测试覆盖。
  */
 export function truncateLabel(raw: string, max: number): string {
   if (raw.length <= max) return raw;
   const m = raw.match(/#\d+$/);
   if (!m) return raw.slice(0, max);
-  const suffix = m[0]; // includes the # sign
+  const suffix = m[0]; // 含 # 符号
   const prefix = raw.slice(0, raw.length - suffix.length);
-  const available = max - suffix.length - 1; // -1 reserved for …
+  const available = max - suffix.length - 1; // -1 留给 …
   return `${prefix.slice(0, available)}…${suffix}`;
 }
 
 /**
- * Right-side agent list (already filtered by the selected phase).
- * Selected row: only when this column has focus (focused=true) does it paint a selectionBg background (keeps fg, not inverse color);
- * when focus is not on this column it does not paint the background color, to avoid a "fake focus".
- * The status mark of a running agent is driven by useAnimationFrame via a spinner animation (shared clock, globally synchronized);
- * the right side `model · Nk tok · N tool` is refreshed in real time by agent_progress / agent_done.
+ * 右侧 agent 列表（已按选中的 phase 过滤）。
+ * 选中行：只有当该列聚焦（focused=true）时才绘制 selectionBg 背景（保留 fg，不变色）；
+ * 焦点不在本列时不绘制背景色，避免"假聚焦"。
+ * 运行中 agent 的状态标记由 useAnimationFrame 驱动（spinner 动画，共享时钟、全局同步）；
+ * 右侧 `model · Nk tok · N tool` 由 agent_progress / agent_done 实时刷新。
  */
 export function AgentList({
   agents,
@@ -40,7 +40,7 @@ export function AgentList({
   selectedIndex: number;
   focused: boolean;
 }): React.ReactNode {
-  // Subscribe once to the animation frame at the top level: all running agents share the same frame (synchronized animation, avoids a per-row hook).
+  // 顶层订阅一次 animation frame：所有运行中 agent 共享同一帧（同步动画，避免每行一个 hook）。
   const [ref, time] = useAnimationFrame(FRAME_MS);
   const frame = SPINNER_FRAMES[Math.floor(time / FRAME_MS) % SPINNER_FRAMES.length];
 

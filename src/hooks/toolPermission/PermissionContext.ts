@@ -52,8 +52,8 @@ type PermissionRejectionSource =
   | { type: 'user_abort' }
   | { type: 'user_reject'; hasFeedback: boolean }
 
-// Generic interface for permission queue operations, decoupled from React.
-// In the REPL, these are backed by React state.
+// 权限队列操作的通用接口，与 React 解耦。
+// 在 REPL 中，这些操作由 React 状态支持。
 type PermissionQueueOps = {
   push(item: ToolUseConfirm): void
   remove(toolUseID: string): void
@@ -64,10 +64,10 @@ type ResolveOnce<T> = {
   resolve(value: T): void
   isResolved(): boolean
   /**
-   * Atomically check-and-mark as resolved. Returns true if this caller
-   * won the race (nobody else has resolved yet), false otherwise.
-   * Use this in async callbacks BEFORE awaiting, to close the window
-   * between the `isResolved()` check and the actual `resolve()` call.
+   * 原子地检查并标记为已解决。如果此调用方赢得了竞争
+   * （其他调用方尚未解决）则返回 true，否则返回 false。
+   * 在 await 之前的异步回调中使用此方法，以关闭
+   * `isResolved()` 检查与实际 `resolve()` 调用之间的窗口。
    */
   claim(): boolean
 }
@@ -351,9 +351,9 @@ function createPermissionContext(
 type PermissionContext = ReturnType<typeof createPermissionContext>
 
 /**
- * Create a PermissionQueueOps backed by a React state setter.
- * This is the bridge between React's `setToolUseConfirmQueue` and the
- * generic queue interface used by PermissionContext.
+ * 创建一个由 React 状态 setter 支持的 PermissionQueueOps。
+ * 这是 React 的 `setToolUseConfirmQueue` 与 PermissionContext
+ * 使用的通用队列接口之间的桥梁。
  */
 function createPermissionQueueOps(
   setToolUseConfirmQueue: React.Dispatch<

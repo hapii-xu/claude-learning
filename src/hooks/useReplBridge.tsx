@@ -308,7 +308,7 @@ export function useReplBridge(
                     replBridgeError: undefined,
                   };
                 });
-                // Notify model about newly available bridge-dependent tools
+                // 通知模型新可用的 bridge 相关工具
                 if (!wasSessionActive) {
                   setMessages(prev => [
                     ...prev,
@@ -374,7 +374,7 @@ export function useReplBridge(
                 });
                 break;
               case 'failed':
-                // Clear any previous failure dismiss timer
+                // 清除之前的失败 dismiss 计时器
                 clearTimeout(failureTimeoutRef.current);
                 notifyBridgeFailed(detail);
                 setAppState(prev => ({
@@ -384,7 +384,7 @@ export function useReplBridge(
                   replBridgeSessionActive: false,
                   replBridgeConnected: false,
                 }));
-                // Auto-disable after timeout so the hook stops retrying.
+                // 超时后自动禁用，使 hook 停止重试。
                 failureTimeoutRef.current = setTimeout(() => {
                   if (cancelled) return;
                   failureTimeoutRef.current = undefined;

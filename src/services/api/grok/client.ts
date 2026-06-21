@@ -2,10 +2,10 @@ import OpenAI from 'openai'
 import { getProxyFetchOptions } from 'src/utils/proxy.js'
 
 /**
- * Environment variables:
+ * 环境变量：
  *
- * GROK_API_KEY (or XAI_API_KEY): Required. API key for the xAI Grok endpoint.
- * GROK_BASE_URL: Optional. Defaults to https://api.x.ai/v1.
+ * GROK_API_KEY（或 XAI_API_KEY）：必填。xAI Grok endpoint 的 API key。
+ * GROK_BASE_URL：可选。默认为 https://api.x.ai/v1。
  */
 
 const DEFAULT_BASE_URL = 'https://api.x.ai/v1'

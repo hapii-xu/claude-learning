@@ -7,29 +7,27 @@
 /* eslint-disable */
 
 /**
- * A Timestamp represents a point in time independent of any time zone or local
- * calendar, encoded as a count of seconds and fractions of seconds at
- * nanosecond resolution. The count is relative to an epoch at UTC midnight on
- * January 1, 1970, in the proleptic Gregorian calendar which extends the
- * Gregorian calendar backwards to year one.
+ * Timestamp 表示一个独立于任何时区或本地日历的时间点，
+ * 编码为秒数以及纳秒级分辨率的小数秒计数。计数以 UTC 1970 年 1 月 1 日
+ * 午夜为纪元起算，使用 proleptic Gregorian 历（即向前延伸到公元 1 年的
+ * 格里高利历）。
  *
- * All minutes are 60 seconds long. Leap seconds are "smeared" so that no leap
- * second table is needed for interpretation, using a [24-hour linear
- * smear](https://developers.google.com/time/smear).
+ * 所有的分钟都是 60 秒长。闰秒被"涂抹（smear）"，这样解释时无需闰秒表，
+ * 使用 [24 小时线性涂抹](https://developers.google.com/time/smear)。
  *
- * The range is from 0001-01-01T00:00:00Z to 9999-12-31T23:59:59.999999999Z. By
- * restricting to that range, we ensure that we can convert to and from [RFC
- * 3339](https://www.ietf.org/rfc/rfc3339.txt) date strings.
+ * 范围从 0001-01-01T00:00:00Z 到 9999-12-31T23:59:59.999999999Z。通过
+ * 限制到该范围，我们确保可以从 [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt)
+ * 日期字符串往返转换。
  *
- * # Examples
+ * # 示例
  *
- * Example 1: Compute Timestamp from POSIX `time()`.
+ * 示例 1：从 POSIX `time()` 计算 Timestamp。
  *
  *     Timestamp timestamp;
  *     timestamp.set_seconds(time(NULL));
  *     timestamp.set_nanos(0);
  *
- * Example 2: Compute Timestamp from POSIX `gettimeofday()`.
+ * 示例 2：从 POSIX `gettimeofday()` 计算 Timestamp。
  *
  *     struct timeval tv;
  *     gettimeofday(&tv, NULL);
@@ -38,26 +36,26 @@
  *     timestamp.set_seconds(tv.tv_sec);
  *     timestamp.set_nanos(tv.tv_usec * 1000);
  *
- * Example 3: Compute Timestamp from Win32 `GetSystemTimeAsFileTime()`.
+ * 示例 3：从 Win32 `GetSystemTimeAsFileTime()` 计算 Timestamp。
  *
  *     FILETIME ft;
  *     GetSystemTimeAsFileTime(&ft);
  *     UINT64 ticks = (((UINT64)ft.dwHighDateTime) << 32) | ft.dwLowDateTime;
  *
- *     // A Windows tick is 100 nanoseconds. Windows epoch 1601-01-01T00:00:00Z
- *     // is 11644473600 seconds before Unix epoch 1970-01-01T00:00:00Z.
+ *     // 一个 Windows tick 是 100 纳秒。Windows 纪元 1601-01-01T00:00:00Z
+ *     // 比 Unix 纪元 1970-01-01T00:00:00Z 早 11644473600 秒。
  *     Timestamp timestamp;
  *     timestamp.set_seconds((INT64) ((ticks / 10000000) - 11644473600LL));
  *     timestamp.set_nanos((INT32) ((ticks % 10000000) * 100));
  *
- * Example 4: Compute Timestamp from Java `System.currentTimeMillis()`.
+ * 示例 4：从 Java `System.currentTimeMillis()` 计算 Timestamp。
  *
  *     long millis = System.currentTimeMillis();
  *
  *     Timestamp timestamp = Timestamp.newBuilder().setSeconds(millis / 1000)
  *         .setNanos((int) ((millis % 1000) * 1000000)).build();
  *
- * Example 5: Compute Timestamp from Java `Instant.now()`.
+ * 示例 5：从 Java `Instant.now()` 计算 Timestamp。
  *
  *     Instant now = Instant.now();
  *
@@ -65,50 +63,48 @@
  *         Timestamp.newBuilder().setSeconds(now.getEpochSecond())
  *             .setNanos(now.getNano()).build();
  *
- * Example 6: Compute Timestamp from current time in Python.
+ * 示例 6：从 Python 当前时间计算 Timestamp。
  *
  *     timestamp = Timestamp()
  *     timestamp.GetCurrentTime()
  *
- * # JSON Mapping
+ * # JSON 映射
  *
- * In JSON format, the Timestamp type is encoded as a string in the
- * [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) format. That is, the
- * format is "{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z"
- * where {year} is always expressed using four digits while {month}, {day},
- * {hour}, {min}, and {sec} are zero-padded to two digits each. The fractional
- * seconds, which can go up to 9 digits (i.e. up to 1 nanosecond resolution),
- * are optional. The "Z" suffix indicates the timezone ("UTC"); the timezone
- * is required. A proto3 JSON serializer should always use UTC (as indicated by
- * "Z") when printing the Timestamp type and a proto3 JSON parser should be
- * able to accept both UTC and other timezones (as indicated by an offset).
+ * 在 JSON 格式中，Timestamp 类型被编码为
+ * [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) 格式的字符串。即
+ * 格式为 "{year}-{month}-{day}T{hour}:{min}:{sec}[.{frac_sec}]Z"，
+ * 其中 {year} 始终使用四位数字，而 {month}、{day}、
+ * {hour}、{min} 和 {sec} 各自以零填充到两位。小数秒最多可达 9 位
+ * （即最高 1 纳秒分辨率），是可选的。"Z" 后缀表示时区（"UTC"）；时区
+ * 是必需的。proto3 JSON 序列化器在打印 Timestamp 类型时应始终使用 UTC
+ * （由 "Z" 指示），而 proto3 JSON 解析器应能
+ * 同时接受 UTC 和其他时区（由一个偏移量指示）。
  *
- * For example, "2017-01-15T01:30:15.01Z" encodes 15.01 seconds past
- * 01:30 UTC on January 15, 2017.
+ * 例如，"2017-01-15T01:30:15.01Z" 编码了 2017 年 1 月 15 日 UTC
+ * 01:30 之后 15.01 秒。
  *
- * In JavaScript, one can convert a Date object to this format using the
- * standard
+ * 在 JavaScript 中，可以使用标准的
  * [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)
- * method. In Python, a standard `datetime.datetime` object can be converted
- * to this format using
- * [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with
- * the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use
- * the Joda Time's [`ISODateTimeFormat.dateTime()`](
+ * 方法将 Date 对象转换为该格式。在 Python 中，标准的 `datetime.datetime`
+ * 对象可以通过
+ * [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) 配合
+ * 时间格式说明符 '%Y-%m-%dT%H:%M:%S.%fZ' 转换为
+ * 该格式。类似地，在 Java 中可以使用
+ * Joda Time 的 [`ISODateTimeFormat.dateTime()`](
  * http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime()
- * ) to obtain a formatter capable of generating timestamps in this format.
+ * ) 来获得一个能够生成此格式时间戳的 formatter。
  */
 export interface Timestamp {
   /**
-   * Represents seconds of UTC time since Unix epoch
-   * 1970-01-01T00:00:00Z. Must be from 0001-01-01T00:00:00Z to
-   * 9999-12-31T23:59:59Z inclusive.
+   * 表示自 Unix 纪元 1970-01-01T00:00:00Z 以来的 UTC 秒数。
+   * 必须在 0001-01-01T00:00:00Z 到
+   * 9999-12-31T23:59:59Z 之间（含端点）。
    */
   seconds?: number | undefined
   /**
-   * Non-negative fractions of a second at nanosecond resolution. Negative
-   * second values with fractions must still have non-negative nanos values
-   * that count forward in time. Must be from 0 to 999,999,999
-   * inclusive.
+   * 纳秒级分辨率的非负小数秒。带小数的负
+   * 秒值仍必须拥有按时间向前计数的非负 nanos 值。
+   * 必须在 0 到 999,999,999 之间（含端点）。
    */
   nanos?: number | undefined
 }

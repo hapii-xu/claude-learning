@@ -1,6 +1,6 @@
 /**
- * Centralized rate limit message generation
- * Single source of truth for all rate limit-related messages
+ * 集中的速率限制消息生成
+ * 所有速率限制相关消息的唯一真相来源
  */
 
 import {
@@ -15,8 +15,8 @@ import type { ClaudeAILimits } from './claudeAiLimits.js'
 const FEEDBACK_CHANNEL_ANT = '#briarpatch-cc'
 
 /**
- * All possible rate limit error message prefixes
- * Export this to avoid fragile string matching in UI components
+ * 所有可能的速率限制错误消息前缀
+ * 导出以避免在 UI 组件中进行脆弱的字符串匹配
  */
 export const RATE_LIMIT_ERROR_PREFIXES = [
   "You've hit your",
@@ -27,7 +27,7 @@ export const RATE_LIMIT_ERROR_PREFIXES = [
 ] as const
 
 /**
- * Check if a message is a rate limit error
+ * 检查消息是否是速率限制错误
  */
 export function isRateLimitErrorMessage(text: string): boolean {
   return RATE_LIMIT_ERROR_PREFIXES.some(prefix => text.startsWith(prefix))
@@ -39,17 +39,17 @@ export type RateLimitMessage = {
 }
 
 /**
- * Get the appropriate rate limit message based on limit state
- * Returns null if no message should be shown
+ * 根据限制状态获取相应的速率限制消息
+ * 如果不应显示消息则返回 null
  */
 export function getRateLimitMessage(
   limits: ClaudeAILimits,
   model: string,
 ): RateLimitMessage | null {
-  // Check overage scenarios first (when subscription is rejected but overage is available)
-  // getUsingOverageText is rendered separately from warning.
+  // 首先检查超额用量场景（当订阅被拒绝但超额用量可用时）
+  // getUsingOverageText 与警告分开渲染。
   if (limits.isUsingOverage) {
-    // Show warning if approaching overage spending limit
+    // 如果接近超额用量消费限制，显示警告
     if (limits.overageStatus === 'allowed_warning') {
       return {
         message: "You're close to your extra usage spending limit",
@@ -59,16 +59,16 @@ export function getRateLimitMessage(
     return null
   }
 
-  // ERROR STATES - when limits are rejected
+  // 错误状态 —— 当限制被拒绝时
   if (limits.status === 'rejected') {
     return { message: getLimitReachedText(limits, model), severity: 'error' }
   }
 
-  // WARNING STATES - when approaching limits with early warning
+  // 警告状态 —— 当通过早期警告接近限制时
   if (limits.status === 'allowed_warning') {
-    // Only show warnings when utilization is above threshold (70%)
-    // This prevents false warnings after week reset when API may send
-    // allowed_warning with stale data at low usage levels
+    // 仅当用量高于阈值（70%）时显示警告
+    // 这防止了周重置后 API 可能发送
+    // 带有过时数据的 allowed_warning 且用量较低时的误报
     const WARNING_THRESHOLD = 0.7
     if (
       limits.utilization !== undefined &&
@@ -77,8 +77,8 @@ export function getRateLimitMessage(
       return null
     }
 
-    // Don't warn non-billing Team/Enterprise users about approaching plan limits
-    // if overages are enabled - they'll seamlessly roll into overage
+    // 不要警告无账单访问权限的 Team/Enterprise 用户即将达到计划限制
+    // 如果超额用量已启用 —— 他们会无缝切换到超额用量
     const subscriptionType = getSubscriptionType()
     const isTeamOrEnterprise =
       subscriptionType === 'team' || subscriptionType === 'enterprise'
@@ -99,13 +99,13 @@ export function getRateLimitMessage(
     }
   }
 
-  // No message needed
+  // 无需消息
   return null
 }
 
 /**
- * Get error message for API errors (used in errors.ts)
- * Returns the message string or null if no error message should be shown
+ * 获取 API 错误的错误消息（用于 errors.ts）
+ * 返回消息字符串，如果不应显示错误消息则返回 null
  */
 export function getRateLimitErrorMessage(
   limits: ClaudeAILimits,
@@ -113,7 +113,7 @@ export function getRateLimitErrorMessage(
 ): string | null {
   const message = getRateLimitMessage(limits, model)
 
-  // Only return error messages, not warnings
+  // 仅返回错误消息，不包括警告
   if (message && message.severity === 'error') {
     return message.message
   }
@@ -122,8 +122,8 @@ export function getRateLimitErrorMessage(
 }
 
 /**
- * Get warning message for UI footer
- * Returns the warning message string or null if no warning should be shown
+ * 获取 UI 页脚的警告消息
+ * 返回警告消息字符串，如果不应显示警告则返回 null
  */
 export function getRateLimitWarning(
   limits: ClaudeAILimits,
@@ -131,12 +131,12 @@ export function getRateLimitWarning(
 ): string | null {
   const message = getRateLimitMessage(limits, model)
 
-  // Only return warnings for the footer - errors are shown in AssistantTextMessages
+  // 仅为页脚返回警告 —— 错误显示在 AssistantTextMessages 中
   if (message && message.severity === 'warning') {
     return message.message
   }
 
-  // Don't show errors in the footer
+  // 不在页脚显示错误
   return null
 }
 
@@ -148,12 +148,12 @@ function getLimitReachedText(limits: ClaudeAILimits, model: string): string {
     : undefined
   const resetMessage = resetTime ? ` · resets ${resetTime}` : ''
 
-  // if BOTH subscription (checked before this method) and overage are exhausted
+  // 如果订阅（在此方法之前检查）和超额用量都已耗尽
   if (limits.overageStatus === 'rejected') {
-    // Show the earliest reset time to indicate when user can resume
+    // 显示最早的重置时间以指示用户何时可以恢复
     let overageResetMessage = ''
     if (resetsAt && limits.overageResetsAt) {
-      // Both timestamps present - use the earlier one
+      // 两个时间戳都存在 —— 使用较早的那个
       if (resetsAt < limits.overageResetsAt) {
         overageResetMessage = ` · resets ${resetTime}`
       } else {
@@ -176,7 +176,7 @@ function getLimitReachedText(limits: ClaudeAILimits, model: string): string {
     const subscriptionType = getSubscriptionType()
     const isProOrEnterprise =
       subscriptionType === 'pro' || subscriptionType === 'enterprise'
-    // For pro and enterprise, Sonnet limit is the same as weekly
+    // 对于 pro 和 enterprise，Sonnet 限制与周限制相同
     const limit = isProOrEnterprise ? 'weekly limit' : 'Sonnet limit'
     return formatLimitReachedText(limit, resetMessage, model)
   }
@@ -218,7 +218,7 @@ function getEarlyWarningText(limits: ClaudeAILimits): string | null {
       return null
   }
 
-  // utilization and resetsAt should be defined since early warning is calculated with them
+  // utilization 和 resetsAt 应该已定义，因为早期警告是基于它们计算的
   const used = limits.utilization
     ? Math.floor(limits.utilization * 100)
     : undefined
@@ -226,7 +226,7 @@ function getEarlyWarningText(limits: ClaudeAILimits): string | null {
     ? formatResetTime(limits.resetsAt, true)
     : undefined
 
-  // Get upsell command based on subscription type and limit type
+  // 根据订阅类型和限制类型获取追加销售命令
   const upsell = getWarningUpsellText(limits.rateLimitType)
 
   if (used && resetTime) {
@@ -240,7 +240,7 @@ function getEarlyWarningText(limits: ClaudeAILimits): string | null {
   }
 
   if (limits.rateLimitType === 'overage') {
-    // For the "Approaching <x>" verbiage, "extra usage limit" makes more sense than "extra usage"
+    // 对于"Approaching <x>"的措辞，"extra usage limit"比"extra usage"更合理
     limitName += ' limit'
   }
 
@@ -254,9 +254,9 @@ function getEarlyWarningText(limits: ClaudeAILimits): string | null {
 }
 
 /**
- * Get the upsell command text for warning messages based on subscription and limit type.
- * Returns null if no upsell should be shown.
- * Only used for warnings because actual rate limit hits will see an interactive menu of options.
+ * 根据订阅和限制类型获取警告消息的追加销售命令文本。
+ * 如果不应显示追加销售则返回 null。
+ * 仅用于警告，因为实际的速率限制触发会看到交互式选项菜单。
  */
 function getWarningUpsellText(
   rateLimitType: ClaudeAILimits['rateLimitType'],
@@ -265,25 +265,25 @@ function getWarningUpsellText(
   const hasExtraUsageEnabled =
     getOauthAccountInfo()?.hasExtraUsageEnabled === true
 
-  // 5-hour session limit warning
+  // 5 小时会话限制警告
   if (rateLimitType === 'five_hour') {
-    // Teams/Enterprise with overages disabled: prompt to request extra usage
-    // Only show if overage provisioning is allowed for this org type (e.g., not AWS marketplace)
+    // 禁用了超额用量的 Teams/Enterprise：提示申请额外用量
+    // 仅当此组织类型允许超额用量配置时显示（例如，非 AWS marketplace）
     if (subscriptionType === 'team' || subscriptionType === 'enterprise') {
       if (!hasExtraUsageEnabled && isOverageProvisioningAllowed()) {
         return '/extra-usage to request more'
       }
-      // Teams/Enterprise with overages enabled or unsupported billing type don't need upsell
+      // 启用了超额用量或不支持的账单类型的 Teams/Enterprise 不需要追加销售
       return null
     }
 
-    // Pro/Max users: prompt to upgrade
+    // Pro/Max 用户：提示升级
     if (subscriptionType === 'pro' || subscriptionType === 'max') {
       return '/upgrade to keep using Claude Code'
     }
   }
 
-  // Overage warning (approaching spending limit)
+  // 超额用量警告（接近消费限制）
   if (rateLimitType === 'overage') {
     if (subscriptionType === 'team' || subscriptionType === 'enterprise') {
       if (!hasExtraUsageEnabled && isOverageProvisioningAllowed()) {
@@ -292,13 +292,13 @@ function getWarningUpsellText(
     }
   }
 
-  // Weekly limit warnings don't show upsell per spec
+  // 根据规范，周限制警告不显示追加销售
   return null
 }
 
 /**
- * Get notification text for overage mode transitions
- * Used for transient notifications when entering overage mode
+ * 获取超额用量模式转换的通知文本
+ * 用于进入超额用量模式时的瞬时通知
  */
 export function getUsingOverageText(limits: ClaudeAILimits): string {
   const resetTime = limits.resetsAt
@@ -316,7 +316,7 @@ export function getUsingOverageText(limits: ClaudeAILimits): string {
     const subscriptionType = getSubscriptionType()
     const isProOrEnterprise =
       subscriptionType === 'pro' || subscriptionType === 'enterprise'
-    // For pro and enterprise, Sonnet limit is the same as weekly
+    // 对于 pro 和 enterprise，Sonnet 限制与周限制相同
     limitName = isProOrEnterprise ? 'weekly limit' : 'Sonnet limit'
   }
 
@@ -335,7 +335,7 @@ function formatLimitReachedText(
   resetMessage: string,
   _model: string,
 ): string {
-  // Enhanced messaging for Ant users
+  // 为 Ant 用户增强消息
   if (process.env.USER_TYPE === 'ant') {
     return `You've hit your ${limit}${resetMessage}. If you have feedback about this limit, post in ${FEEDBACK_CHANNEL_ANT}. You can reset your limits with /reset-limits`
   }

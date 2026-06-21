@@ -1,9 +1,8 @@
 import * as React from 'react';
 
 /**
- * Internal-only component. Displays a warning when feature-gate overrides
- * (CLAUDE_INTERNAL_FC_OVERRIDES) are active. Stubbed — returns null in
- * non-internal builds.
+ * 仅内部使用的组件。当 feature-gate overrides（CLAUDE_INTERNAL_FC_OVERRIDES）
+ * 处于激活状态时显示警告。已 stub — 在非内部构建中返回 null。
  */
 export function GateOverridesWarning(): React.ReactNode {
   return null;

@@ -45,10 +45,12 @@ export async function* runTools(
     : toolUseContext
 
   let currentContext = contextWithTurn
-  for (const { isConcurrencySafe, blocks } of partitionToolCalls(
-    toolUseMessages,
-    currentContext,
-  )) {
+  const batches = partitionToolCalls(toolUseMessages, currentContext)
+  logForDebugging(
+    `[Hapii] ToolOrch.partitionToolCalls 结果 批次数=${batches.length} 详情=[${batches.map(b => `${b.isConcurrencySafe ? '并发' : '串行'}×${b.blocks.length}`).join(', ')}]`,
+    { level: 'info' },
+  )
+  for (const { isConcurrencySafe, blocks } of batches) {
     if (isConcurrencySafe) {
       const queuedContextModifiers: Record<
         string,

@@ -35,8 +35,8 @@ type Props = {
 };
 
 /**
- * A side-by-side question view for questions with preview content.
- * Displays a vertical option list on the left with a preview panel on the right.
+ * 用于带预览内容的问题的并排视图。
+ * 左侧显示垂直选项列表，右侧显示预览面板。
  */
 export function PreviewQuestionView({
   question,
@@ -68,13 +68,13 @@ export function PreviewQuestionView({
   const questionText = question.question;
   const questionState = questionStates[questionText];
 
-  // Only real options — no "Other" for preview questions
+  // 仅真实选项 —— 预览问题没有 "Other"
   const allOptions = question.options;
 
-  // Track which option is focused (for preview display)
+  // 追踪哪个选项被聚焦（用于预览显示）
   const [focusedIndex, setFocusedIndex] = useState(0);
 
-  // Reset focusedIndex when navigating to a different question
+  // 导航到不同问题时重置 focusedIndex
   const prevQuestionText = useRef(questionText);
   if (prevQuestionText.current !== questionText) {
     prevQuestionText.current = questionText;
@@ -120,7 +120,7 @@ export function PreviewQuestionView({
     [focusedIndex, allOptions.length, isInNotesInput],
   );
 
-  // Handle ctrl+g to open external editor for notes
+  // 处理 ctrl+g 以打开外部编辑器编辑备注
   useKeybinding(
     'chat:externalEditor',
     async () => {
@@ -133,11 +133,10 @@ export function PreviewQuestionView({
     { context: 'Chat', isActive: isInNotesInput && !!editor },
   );
 
-  // Handle left/right arrow and tab for question navigation.
-  // This must be in the child component (not just the parent) because child useInput
-  // handlers register first on the event emitter and fire before parent handlers.
-  // Without this, the parent's useKeybindings may not fire reliably depending on
-  // listener ordering in the event emitter.
+  // 处理左右方向键和 Tab 用于问题导航。
+  // 这必须放在子组件中（而非仅父组件），因为子组件的 useInput 处理器
+  // 会先在事件发射器上注册，并在父组件的处理器之前触发。
+  // 否则父组件的 useKeybindings 可能因事件发射器的监听器顺序而不可靠。
   useKeybindings(
     {
       'tabs:previous': () => onTabPrev?.(),
@@ -146,8 +145,8 @@ export function PreviewQuestionView({
     { context: 'Tabs', isActive: !isInNotesInput && !isFooterFocused },
   );
 
-  // Re-submit the answer (plain label) when exiting notes input.
-  // Notes are stored in questionStates and collected at submit time via annotations.
+  // 退出备注输入时重新提交答案（纯 label）。
+  // 备注存储在 questionStates 中，提交时通过标注收集。
   const handleNotesExit = useCallback(() => {
     setIsInNotesInput(false);
     onTextInputFocus(false);
@@ -164,8 +163,8 @@ export function PreviewQuestionView({
     setIsFooterFocused(false);
   }, []);
 
-  // Handle keyboard input for option/footer/notes navigation.
-  // Always active — the handler routes internally based on isFooterFocused/isInNotesInput.
+  // 处理选项/footer/备注导航的键盘输入。
+  // 始终激活——处理器根据 isFooterFocused/isInNotesInput 内部分发。
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (isFooterFocused) {
@@ -205,7 +204,7 @@ export function PreviewQuestionView({
       }
 
       if (isInNotesInput) {
-        // In notes input mode, handle escape to exit back to option navigation
+        // 在备注输入模式下，处理 escape 以退出回到选项导航
         if (e.key === 'escape') {
           e.preventDefault();
           handleNotesExit();
@@ -213,7 +212,7 @@ export function PreviewQuestionView({
         return;
       }
 
-      // Handle option navigation (vertical)
+      // 处理选项导航（垂直）
       if (e.key === 'up' || (e.ctrl && e.key === 'p')) {
         e.preventDefault();
         if (focusedIndex > 0) {
@@ -222,7 +221,7 @@ export function PreviewQuestionView({
       } else if (e.key === 'down' || (e.ctrl && e.key === 'n')) {
         e.preventDefault();
         if (focusedIndex === allOptions.length - 1) {
-          // At bottom of options, go to footer
+          // 位于选项底部，跳转到 footer
           handleDownFromPreview();
         } else {
           handleNavigate('down');
@@ -231,7 +230,7 @@ export function PreviewQuestionView({
         e.preventDefault();
         handleSelectOption(focusedIndex);
       } else if (e.key === 'n' && !e.ctrl && !e.meta) {
-        // Press 'n' to focus the notes input
+        // 按 'n' 聚焦备注输入
         e.preventDefault();
         setIsInNotesInput(true);
         onTextInputFocus(true);
@@ -267,26 +266,25 @@ export function PreviewQuestionView({
 
   const previewContent = focusedOption?.preview || null;
 
-  // The right panel's available width is terminal minus the left panel and gap.
+  // 右面板的可用宽度为终端宽度减去左面板和间距。
   const LEFT_PANEL_WIDTH = 30;
   const GAP = 4;
   const { columns } = useTerminalSize();
   const previewMaxWidth = columns - LEFT_PANEL_WIDTH - GAP;
 
-  // Lines used within the content area that aren't preview content:
-  // 1: marginTop on side-by-side box
-  // 2: PreviewBox borders (top + bottom)
-  // 2: notes section (marginTop=1 + text)
-  // 2: footer section (marginTop=1 + divider)
-  // 1: "Chat about this" line
-  // 1: plan mode line (may or may not show)
-  // 2: help text (marginTop=1 + text)
+  // 内容区域中非预览内容占用的行数：
+  // 1: 并排框的 marginTop
+  // 2: PreviewBox 边框（上 + 下）
+  // 2: 备注区（marginTop=1 + 文本）
+  // 2: footer 区（marginTop=1 + 分隔线）
+  // 1: "Chat about this" 行
+  // 1: plan 模式行（可能显示也可能不显示）
+  // 2: 帮助文本（marginTop=1 + 文本）
   const PREVIEW_OVERHEAD = 11;
 
-  // Compute the max lines available for preview content from the parent's
-  // height budget to prevent terminal overflow. We do NOT pad shorter options
-  // to match the tallest — the outer box's minHeight handles cross-question
-  // layout consistency, and within-question shifts are acceptable.
+  // 根据父组件的高度预算计算预览内容的最大可用行数，
+  // 防止终端溢出。我们不会将较短的选项填充到与最高项一致——
+  // 外框的 minHeight 处理跨问题布局一致性，问题内的抖动可接受。
   const previewMaxLines = useMemo(() => {
     return minContentHeight ? Math.max(1, minContentHeight - PREVIEW_OVERHEAD) : undefined;
   }, [minContentHeight]);
@@ -304,9 +302,9 @@ export function PreviewQuestionView({
         <PermissionRequestTitle title={question.question} color={'text'} />
 
         <Box flexDirection="column" minHeight={minContentHeight}>
-          {/* Side-by-side layout: options on left, preview on right */}
+          {/* 并排布局：左侧选项，右侧预览 */}
           <Box marginTop={1} flexDirection="row" gap={4}>
-            {/* Left panel: vertical option list */}
+            {/* 左面板：垂直选项列表 */}
             <Box flexDirection="column" width={30}>
               {allOptions.map((option, index) => {
                 const isFocused = focusedIndex === index;
@@ -326,7 +324,7 @@ export function PreviewQuestionView({
               })}
             </Box>
 
-            {/* Right panel: preview + notes */}
+            {/* 右面板：预览 + 备注 */}
             <Box flexDirection="column" flexGrow={1}>
               <PreviewBox
                 content={previewContent || 'No preview available'}
@@ -360,7 +358,7 @@ export function PreviewQuestionView({
             </Box>
           </Box>
 
-          {/* Footer section */}
+          {/* Footer 区 */}
           <Box flexDirection="column" marginTop={1}>
             <Divider color="inactive" />
             <Box flexDirection="row" gap={1}>

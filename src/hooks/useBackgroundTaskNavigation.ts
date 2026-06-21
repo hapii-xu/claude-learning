@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { KeyboardEvent, useInput } from '@anthropic/ink'
-// backward-compat bridge until REPL wires handleKeyDown to <Box onKeyDown>
+// 向后兼容的桥接，直到 REPL 将 handleKeyDown 连接到 <Box onKeyDown>
 import {
   type AppState,
   useAppState,

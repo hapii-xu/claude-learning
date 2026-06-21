@@ -2,12 +2,11 @@ import { logEvent } from '../services/analytics/index.js'
 import { isOpus1mMergeEnabled } from '../utils/model/model.js'
 
 /**
- * Migration disabled: users who manually remove [1m] suffix should not
- * have it automatically re-added. The migration was too aggressive and
- * didn't respect user choice.
+ * 迁移已禁用：手动移除 [1m] 后缀的用户不应自动重新添加。
+ * 该迁移过于激进，未尊重用户选择。
  */
 export function migrateOpusToOpus1m(): void {
-  // No-op - respect user's manual model choice
+  // 空操作 - 尊重用户手动选择的模型
   if (!isOpus1mMergeEnabled()) {
     return
   }

@@ -1,10 +1,10 @@
 /**
- * SDK Control Schemas - Zod schemas for the control protocol.
+ * SDK Control Schemas —— 控制协议的 Zod schema。
  *
- * These schemas define the control protocol between SDK implementations and the CLI.
- * Used by SDK builders (e.g., Python SDK) to communicate with the CLI process.
+ * 这些 schema 定义了 SDK 实现与 CLI 之间的控制协议。
+ * SDK 构建器（例如 Python SDK）用它与 CLI 进程通信。
  *
- * SDK consumers should use coreSchemas.ts instead.
+ * SDK 消费方应使用 coreSchemas.ts。
  */
 
 import { z } from 'zod/v4'
@@ -30,14 +30,14 @@ import {
 } from './coreSchemas.js'
 
 // ============================================================================
-// External Type Placeholders
+// 外部类型占位符
 // ============================================================================
 
-// JSONRPCMessage from @modelcontextprotocol/sdk - treat as unknown
+// 来自 @modelcontextprotocol/sdk 的 JSONRPCMessage —— 视为 unknown
 export const JSONRPCMessagePlaceholder = lazySchema(() => z.unknown())
 
 // ============================================================================
-// Hook Callback Types
+// Hook Callback 类型
 // ============================================================================
 
 export const SDKHookCallbackMatcherSchema = lazySchema(() =>
@@ -51,7 +51,7 @@ export const SDKHookCallbackMatcherSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// Control Request Types
+// Control Request 类型
 // ============================================================================
 
 export const SDKControlInitializeRequestSchema = lazySchema(() =>
@@ -503,8 +503,8 @@ export const SDKControlGetSettingsResponseSchema = lazySchema(() =>
       applied: z
         .object({
           model: z.string(),
-          // String levels only — numeric effort is ant-only and the
-          // Zod→proto generator can't emit enum∪number unions.
+          // 仅字符串级别 —— 数值型 effort 是 ant 专属，并且
+          // Zod→proto 生成器无法生成 enum∪number 的联合。
           effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).nullable(),
         })
         .optional()
@@ -543,7 +543,7 @@ export const SDKControlElicitationResponseSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// Control Request/Response Wrappers
+// Control Request/Response 包装器
 // ============================================================================
 
 export const SDKControlRequestInnerSchema = lazySchema(() =>
@@ -633,7 +633,7 @@ export const SDKUpdateEnvironmentVariablesMessageSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// Aggregate Message Types
+// 汇总消息类型
 // ============================================================================
 
 export const StdoutMessageSchema = lazySchema(() =>

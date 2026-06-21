@@ -121,8 +121,8 @@ export function ResumeConversation({
   } | null>(null);
   const [crossProjectCommand, setCrossProjectCommand] = React.useState<string | null>(null);
   const sessionLogResultRef = React.useRef<SessionLogResult | null>(null);
-  // Mirror of logs.length so loadMoreLogs can compute value indices outside
-  // the setLogs updater (keeping it pure per React's contract).
+  // logs.length 的镜像，使 loadMoreLogs 能在 setLogs updater 之外
+  // 计算值的索引（按照 React 的契约保持其为纯函数）。
   const logCountRef = React.useRef(0);
 
   const filteredLogs = React.useMemo(() => {
@@ -164,8 +164,8 @@ export function ResumeConversation({
     void enrichLogs(ref.allStatLogs, ref.nextIndex, count).then(result => {
       ref.nextIndex = result.nextIndex;
       if (result.logs.length > 0) {
-        // enrichLogs returns fresh unshared objects — safe to mutate in place.
-        // Offset comes from logCountRef so the setLogs updater stays pure.
+        // enrichLogs 返回全新的非共享对象 —— 可以安全地原地修改。
+        // 偏移量来自 logCountRef，使 setLogs updater 保持纯函数。
         const offset = logCountRef.current;
         result.logs.forEach((log, i) => {
           log.value = offset + i;

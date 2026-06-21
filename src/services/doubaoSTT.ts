@@ -1,9 +1,9 @@
-// Doubao (豆包) ASR speech-to-text adapter for voice mode.
+// Doubao（豆包）ASR 语音转文字适配器，用于语音模式。
 //
-// Wraps the doubaoime-asr npm package to expose the same interface as
-// voiceStreamSTT.ts. The doubao backend uses an AsyncGenerator-based
-// streaming protocol internally; this adapter bridges it to the
-// send/finalize/close pattern used by useVoice.ts.
+// 封装 doubaoime-asr npm 包，对外暴露与
+// voiceStreamSTT.ts 相同的接口。doubao 后端内部使用基于 AsyncGenerator 的
+// 流式协议；此适配器将其桥接到
+// useVoice.ts 使用的 send/finalize/close 模式。
 
 import { homedir } from 'node:os'
 import type { ASRResponse } from 'doubaoime-asr'
@@ -15,13 +15,13 @@ import type {
 import { logForDebugging } from '../utils/debug.js'
 import { logError } from '../utils/log.js'
 
-// Re-export FinalizeSource so useVoice can import from either module
+// 重新导出 FinalizeSource，以便 useVoice 可以从任一模块导入
 export type { FinalizeSource } from './voiceStreamSTT.js'
 
-// ─── AsyncIterable audio queue ─────────────────────────────────────────
+// ─── AsyncIterable 音频队列 ─────────────────────────────────────────
 
-// A push-based queue that implements AsyncIterable<Uint8Array>.
-// send() pushes chunks; push(null) signals end-of-stream.
+// 一个实现了 AsyncIterable<Uint8Array> 的推入式队列。
+// send() 推入数据块；push(null) 表示流结束。
 class AudioChunkQueue {
   private chunks: (Uint8Array | null)[] = []
   private waiting: ((result: IteratorResult<Uint8Array>) => void) | null = null
@@ -75,7 +75,7 @@ class AudioChunkQueue {
   }
 }
 
-// ─── Availability ────────────────────────────────────────────────────────
+// ─── 可用性 ────────────────────────────────────────────────────────
 
 let doubaoAvailable: boolean | null = null
 
@@ -90,15 +90,15 @@ export async function isDoubaoAvailable(): Promise<boolean> {
   return doubaoAvailable
 }
 
-// Synchronous check — returns cached result or optimistic true when
-// VOICE_PROVIDER=doubao is set and no cached result exists yet.
-// The actual import happens in connectDoubaoStream which reports errors.
+// 同步检查 —— 返回缓存的结果，或当设置了
+// VOICE_PROVIDER=doubao 且尚无缓存结果时乐观返回 true。
+// 实际导入发生在 connectDoubaoStream 中，由其报告错误。
 export function isDoubaoAvailableSync(): boolean {
   if (doubaoAvailable !== null) return doubaoAvailable
   return true
 }
 
-// ─── Connection ──────────────────────────────────────────────────────────
+// ─── 连接 ──────────────────────────────────────────────────────────
 
 export async function connectDoubaoStream(
   callbacks: VoiceStreamCallbacks,
@@ -124,8 +124,8 @@ export async function connectDoubaoStream(
   const queue = new AudioChunkQueue()
   let finalized = false
 
-  // Resolve handle for finalize() promise — wrapped in an object to avoid
-  // TypeScript closure-scope type narrowing issues (TS2349 "not callable").
+  // 为 finalize() 的 promise 解析句柄 —— 包装在对象中以避免
+  // TypeScript 闭包作用域类型收窄问题（TS2349 "not callable"）。
   const finalizeHandle: { resolve: ((source: FinalizeSource) => void) | null } =
     { resolve: null }
 
@@ -143,11 +143,11 @@ export async function connectDoubaoStream(
     finalize(): Promise<FinalizeSource> {
       if (finalized) return Promise.resolve<FinalizeSource>('ws_already_closed')
       finalized = true
-      queue.push(null) // signal end-of-stream to the generator
-      // Doubao returns FINAL_RESULT during recording — by the time the user
-      // releases the key, all transcripts are already in accumulatedRef.
-      // Resolve immediately so the UI skips the 'processing' state and goes
-      // straight to displaying the result.
+      queue.push(null) // 向 generator 发出流结束信号
+      // Doubao 在录制期间返回 FINAL_RESULT —— 当用户
+      // 松开按键时，所有转录文本已在 accumulatedRef 中。
+      // 立即 resolve，以便 UI 跳过 'processing' 状态并
+      // 直接进入显示结果。
       logForDebugging('[doubao-asr] Finalize — resolving immediately')
       return Promise.resolve<FinalizeSource>('post_closestream_endpoint')
     },
@@ -164,12 +164,12 @@ export async function connectDoubaoStream(
     },
   }
 
-  // Start the ASR session in the background
+  // 在后台启动 ASR 会话
   const config = new ASRConfig({
     credentialPath: `${homedir()}/.claude/tts/doubao/credentials.json`,
   })
 
-  // Ensure credentials are initialized (may auto-generate)
+  // 确保凭证已初始化（可能自动生成）
   try {
     await config.ensureCredentials()
   } catch (err) {
@@ -184,14 +184,14 @@ export async function connectDoubaoStream(
     return null
   }
 
-  // Fire onReady immediately — unlike the Anthropic WebSocket which needs to
-  // wait for a handshake, the doubao backend accepts audio through the queue
-  // and handles connection internally. The caller (useVoice.ts) needs onReady
-  // to fire before it will route audio chunks via connection.send().
+  // 立即触发 onReady —— 与需要等待握手的 Anthropic WebSocket 不同，
+  // doubao 后端通过队列接收音频并
+  // 内部处理连接。调用方（useVoice.ts）需要 onReady 先触发
+  // 才会通过 connection.send() 路由音频块。
   logForDebugging('[doubao-asr] Firing onReady immediately')
   callbacks.onReady(connection)
 
-  // Consume the AsyncGenerator in the background
+  // 在后台消费 AsyncGenerator
   void (async () => {
     try {
       const audioSource: AsyncIterable<Uint8Array> = queue
@@ -239,7 +239,7 @@ export async function connectDoubaoStream(
         }
       }
 
-      // Generator exhausted naturally
+      // Generator 自然耗尽
       const r = finalizeHandle.resolve
       finalizeHandle.resolve = null
       if (r) r('post_closestream_endpoint')

@@ -1,3 +1,18 @@
+// 用于将原始 SDK 事件流式传输至浏览器调试面板的调试接收端
+type UsageSink = (
+  usage: {
+    input_tokens: number
+    output_tokens: number
+    cache_creation_input_tokens?: number
+    cache_read_input_tokens?: number
+  },
+  model: string,
+) => void
+let _usageSink: UsageSink | null = null
+export function setUsageSink(sink: UsageSink | null): void {
+  _usageSink = sink
+}
+
 import { feature } from 'bun:bundle'
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages.mjs'
 import { randomUUID } from 'crypto'
@@ -888,6 +903,10 @@ export class QueryEngine {
               this.totalUsage,
               currentMessageUsage,
             )
+            // 推送累计用量到调试面板 sink
+            try {
+              _usageSink?.(this.totalUsage, mainLoopModel)
+            } catch {}
           }
 
           if (includePartialMessages) {

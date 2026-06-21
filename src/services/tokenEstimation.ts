@@ -34,13 +34,13 @@ import {
 import { getSessionId } from '../bootstrap/state.js'
 import { withTokenCountVCR } from './vcr.js'
 
-// Minimal values for token counting with thinking enabled
-// API constraint: max_tokens must be greater than thinking.budget_tokens
+// 启用 thinking 时用于 token 计数的最小值
+// API 约束：max_tokens 必须大于 thinking.budget_tokens
 const TOKEN_COUNT_THINKING_BUDGET = 1024
 const TOKEN_COUNT_MAX_TOKENS = 2048
 
 /**
- * Check if messages contain thinking blocks
+ * 检查消息是否包含 thinking 块
  */
 function hasThinkingBlocks(
   messages: Anthropic.Beta.Messages.BetaMessageParam[],
@@ -63,12 +63,12 @@ function hasThinkingBlocks(
 }
 
 /**
- * Strip tool search-specific fields from messages before sending for token counting.
- * This removes 'caller' from tool_use blocks and 'tool_reference' from tool_result content.
- * These fields are only valid with the tool search beta and will cause errors otherwise.
+ * 在发送进行 token 计数前从消息中移除工具搜索特有字段。
+ * 这会从 tool_use 块中移除 'caller'，从 tool_result 内容中移除 'tool_reference'。
+ * 这些字段仅在工具搜索 beta 下有效，否则会导致错误。
  *
- * Note: We use 'as unknown as' casts because the SDK types don't include tool search beta fields,
- * but at runtime these fields may exist from API responses when tool search was enabled.
+ * 注意：我们使用 'as unknown as' 转换，因为 SDK 类型不包含工具搜索 beta 字段，
+ * 但在运行时，当工具搜索被启用时，这些字段可能从 API 响应中存在。
  */
 function stripSearchExtraToolsFieldsFromMessages(
   messages: Anthropic.Beta.Messages.BetaMessageParam[],
@@ -79,9 +79,9 @@ function stripSearchExtraToolsFieldsFromMessages(
     }
 
     const normalizedContent = message.content.map(block => {
-      // Strip 'caller' from tool_use blocks (assistant messages)
+      // 从 tool_use 块（assistant 消息）中移除 'caller'
       if (block.type === 'tool_use') {
-        // Destructure to exclude any extra fields like 'caller'
+        // 解构以排除任何额外字段如 'caller'
         const toolUse =
           block as Anthropic.Beta.Messages.BetaToolUseBlockParam & {
             caller?: unknown
@@ -94,7 +94,7 @@ function stripSearchExtraToolsFieldsFromMessages(
         }
       }
 
-      // Strip tool_reference blocks from tool_result content (user messages)
+      // 从 tool_result 内容（user 消息）中移除 tool_reference 块
       if (block.type === 'tool_result') {
         const toolResult =
           block as Anthropic.Beta.Messages.BetaToolResultBlockParam
@@ -131,7 +131,7 @@ function stripSearchExtraToolsFieldsFromMessages(
 export async function countTokensWithAPI(
   content: string,
 ): Promise<number | null> {
-  // Special case for empty content - API doesn't accept empty messages
+  // 空内容的特殊情况 —— API 不接受空消息
   if (!content) {
     return 0
   }
@@ -160,7 +160,7 @@ export async function countMessagesTokensWithAPI(
       const containsThinking = hasThinkingBlocks(messages)
 
       if (provider === 'bedrock') {
-        // @anthropic-sdk/bedrock-sdk doesn't support countTokens currently
+        // @anthropic-sdk/bedrock-sdk 目前不支持 countTokens
         return countTokensWithBedrock({
           model: normalizeModelStringForAPI(model),
           messages,
@@ -199,8 +199,8 @@ export async function countMessagesTokensWithAPI(
       })
 
       if (typeof response.input_tokens !== 'number') {
-        // Vertex client throws
-        // Bedrock client succeeds with { Output: { __type: 'com.amazon.coral.service#UnknownOperationException' }, Version: '1.0' }
+        // Vertex 客户端抛出异常
+        // Bedrock 客户端返回成功但带有 { Output: { __type: 'com.amazon.coral.service#UnknownOperationException' }, Version: '1.0' }
         return null
       }
 
@@ -220,9 +220,9 @@ export function roughTokenCountEstimation(
 }
 
 /**
- * Returns an estimated bytes-per-token ratio for a given file extension.
- * Dense JSON has many single-character tokens (`{`, `}`, `:`, `,`, `"`)
- * which makes the real ratio closer to 2 rather than the default 4.
+ * 返回给定文件扩展名的估计字节/Token 比率。
+ * 密集的 JSON 有许多单字符 token（`{`、`}`、`:`、`,`、`"`），
+ * 这使得实际比率接近 2 而非默认的 4。
  */
 export function bytesPerTokenForFileType(fileExtension: string): number {
   switch (fileExtension) {
@@ -236,12 +236,11 @@ export function bytesPerTokenForFileType(fileExtension: string): number {
 }
 
 /**
- * Like {@link roughTokenCountEstimation} but uses a more accurate
- * bytes-per-token ratio when the file type is known.
+ * 类似于 {@link roughTokenCountEstimation}，但在文件类型已知时使用更准确的
+ * 字节/Token 比率。
  *
- * This matters when the API-based token count is unavailable (e.g. on
- * Bedrock) and we fall back to the rough estimate — an underestimate can
- * let an oversized tool result slip into the conversation.
+ * 这在基于 API 的 token 计数不可用时（例如在 Bedrock 上）很重要，
+ * 我们会回退到粗略估计 —— 低估可能让过大的工具结果混入对话。
  */
 export function roughTokenCountEstimationForFileType(
   content: string,
@@ -254,11 +253,11 @@ export function roughTokenCountEstimationForFileType(
 }
 
 /**
- * Estimates token count for a Message object by extracting and analyzing its text content.
- * This provides a more reliable estimate than getTokenUsage for messages that may have been compacted.
- * Uses Haiku for token counting (Haiku 4.5 supports thinking blocks), except:
- * - Vertex global region: uses Sonnet (Haiku not available)
- * - Bedrock with thinking blocks: uses Sonnet (Haiku 3.5 doesn't support thinking)
+ * 通过提取和分析文本内容来估算 Message 对象的 token 计数。
+ * 对于可能已被压缩的消息，这提供了比 getTokenUsage 更可靠的估计。
+ * 使用 Haiku 进行 token 计数（Haiku 4.5 支持 thinking 块），除了：
+ * - Vertex 全局区域：使用 Sonnet（Haiku 不可用）
+ * - 带 thinking 块的 Bedrock：使用 Sonnet（Haiku 3.5 不支持 thinking）
  */
 export async function countTokensViaHaikuFallback(
   messages: Anthropic.Beta.Messages.BetaMessageParam[],
@@ -269,25 +268,25 @@ export async function countTokensViaHaikuFallback(
     return roughTokenCountEstimationForAPIRequest(messages, tools)
   }
 
-  // Check if messages contain thinking blocks
+  // 检查消息是否包含 thinking 块
   const containsThinking = hasThinkingBlocks(messages)
 
-  // If we're on Vertex and using global region, always use Sonnet since Haiku is not available there.
+  // 如果我们在 Vertex 上使用全局区域，始终使用 Sonnet，因为 Haiku 在那里不可用。
   const isVertexGlobalEndpoint =
     isEnvTruthy(process.env.CLAUDE_CODE_USE_VERTEX) &&
     getVertexRegionForModel(getSmallFastModel()) === 'global'
-  // If we're on Bedrock with thinking blocks, use Sonnet since Haiku 3.5 doesn't support thinking
+  // 如果我们在带 thinking 块的 Bedrock 上，使用 Sonnet，因为 Haiku 3.5 不支持 thinking
   const isBedrockWithThinking =
     isEnvTruthy(process.env.CLAUDE_CODE_USE_BEDROCK) && containsThinking
-  // If we're on Vertex with thinking blocks, use Sonnet since Haiku 3.5 doesn't support thinking
+  // 如果我们在带 thinking 块的 Vertex 上，使用 Sonnet，因为 Haiku 3.5 不支持 thinking
   const isVertexWithThinking =
     isEnvTruthy(process.env.CLAUDE_CODE_USE_VERTEX) && containsThinking
-  // Otherwise always use Haiku - Haiku 4.5 supports thinking blocks.
-  // WARNING: if you change this to use a non-Haiku model, this request will fail in 1P unless it uses getCLISyspromptPrefix.
-  // Note: We don't need Sonnet for tool_reference blocks because we strip them via
-  // stripSearchExtraToolsFieldsFromMessages() before sending.
-  // Use getSmallFastModel() to respect ANTHROPIC_SMALL_FAST_MODEL env var for Bedrock users
-  // with global inference profiles (see issue #10883).
+  // 否则始终使用 Haiku —— Haiku 4.5 支持 thinking 块。
+  // 警告：如果将其更改为使用非 Haiku 模型，此请求在 1P 中会失败，除非使用 getCLISyspromptPrefix。
+  // 注意：我们不需要为 tool_reference 块使用 Sonnet，因为我们在发送前通过
+  // stripSearchExtraToolsFieldsFromMessages() 移除了它们。
+  // 使用 getSmallFastModel() 以尊重 Bedrock 用户的 ANTHROPIC_SMALL_FAST_MODEL 环境变量，
+  // 用于全局推理配置文件（见 issue #10883）。
   const model =
     isVertexGlobalEndpoint || isBedrockWithThinking || isVertexWithThinking
       ? getDefaultSonnetModel()
@@ -298,8 +297,8 @@ export async function countTokensViaHaikuFallback(
     source: 'count_tokens',
   })
 
-  // Strip tool search-specific fields (caller, tool_reference) before sending
-  // These fields are only valid with the tool search beta header
+  // 在发送前移除工具搜索特有字段（caller、tool_reference）
+  // 这些字段仅在工具搜索 beta header 下有效
   const normalizedMessages = stripSearchExtraToolsFieldsFromMessages(messages)
 
   const messagesToSend: MessageParam[] =
@@ -308,8 +307,8 @@ export async function countTokensViaHaikuFallback(
       : [{ role: 'user', content: 'count' }]
 
   const betas = getModelBetas(model)
-  // Filter betas for Vertex - some betas (like web-search) cause 400 errors
-  // on certain Vertex endpoints. See issue #10789.
+  // 为 Vertex 过滤 beta —— 某些 beta（如 web-search）在某些
+  // Vertex 端点上会导致 400 错误。见 issue #10789。
   const filteredBetas =
     getAPIProvider() === 'vertex'
       ? betas.filter(b => VERTEX_COUNT_TOKENS_ALLOWED_BETAS.has(b))
@@ -332,7 +331,7 @@ export async function countTokensViaHaikuFallback(
     ...(filteredBetas.length > 0 && { betas: filteredBetas }),
     metadata: getAPIMetadata(),
     ...getExtraBodyParams(),
-    // Enable thinking if messages contain thinking blocks
+    // 如果消息包含 thinking 块，启用 thinking
     ...(containsThinking && {
       thinking: {
         type: 'enabled',
@@ -466,24 +465,24 @@ function roughTokenCountEstimationForBlock(
   }
   if (block.type === 'image' || block.type === 'document') {
     // https://platform.claude.com/docs/en/build-with-claude/vision#calculate-image-costs
-    // tokens = (width px * height px)/750
-    // Images are resized to max 2000x2000 (5333 tokens). Use a conservative
-    // estimate that matches microCompact's IMAGE_MAX_TOKEN_SIZE to avoid
-    // underestimating and triggering auto-compact too late.
+    // tokens = (宽像素 * 高像素)/750
+    // 图片被调整为最大 2000x2000（5333 tokens）。使用与
+    // microCompact 的 IMAGE_MAX_TOKEN_SIZE 匹配的保守估计，避免
+    // 低估并过晚触发自动压缩。
     //
-    // document: base64 PDF in source.data.  Must NOT reach the
-    // jsonStringify catch-all — a 1MB PDF is ~1.33M base64 chars →
-    // ~325k estimated tokens, vs the ~2000 the API actually charges.
-    // Same constant as microCompact's calculateToolResultTokens.
+    // document: source.data 中的 base64 PDF。绝对不能进入
+    // jsonStringify 的兜底逻辑 —— 1MB 的 PDF 约 1.33M 个 base64 字符 →
+    // 约 325k 估算 tokens，而 API 实际只收取约 2000。
+    // 与 microCompact 的 calculateToolResultTokens 使用相同常量。
     return 2000
   }
   if (block.type === 'tool_result') {
     return roughTokenCountEstimationForContent(block.content as any)
   }
   if (block.type === 'tool_use') {
-    // input is the JSON the model generated — arbitrarily large (bash
-    // commands, Edit diffs, file contents).  Stringify once for the
-    // char count; the API re-serializes anyway so this is what it sees.
+    // input 是模型生成的 JSON —— 任意大小（bash
+    // 命令、Edit diff、文件内容）。为字符计数 stringify 一次；
+    // API 反正会重新序列化，所以这就是它看到的。
     return roughTokenCountEstimation(
       block.name + jsonStringify(block.input ?? {}),
     )
@@ -494,10 +493,10 @@ function roughTokenCountEstimationForBlock(
   if (block.type === 'redacted_thinking') {
     return roughTokenCountEstimation(block.data)
   }
-  // server_tool_use, web_search_tool_result, mcp_tool_use, etc. —
-  // text-like payloads (tool inputs, search results, no base64).
-  // Stringify-length tracks the serialized form the API sees; the
-  // key/bracket overhead is single-digit percent on real blocks.
+  // server_tool_use、web_search_tool_result、mcp_tool_use 等 ——
+  // 类文本载荷（工具输入、搜索结果，无 base64）。
+  // Stringify 长度跟踪 API 看到的序列化形式；
+  // key/括号开销在实际块上是个位数百分比。
   return roughTokenCountEstimation(jsonStringify(block))
 }
 
@@ -516,7 +515,7 @@ async function countTokensWithBedrock({
 }): Promise<number | null> {
   try {
     const client = await createBedrockRuntimeClient()
-    // Bedrock CountTokens requires a model ID, not an inference profile / ARN
+    // Bedrock CountTokens 需要模型 ID，而不是推理配置文件 / ARN
     const modelId = isFoundationModel(model)
       ? model
       : await getInferenceProfileBackingModel(model)
@@ -526,8 +525,8 @@ async function countTokensWithBedrock({
 
     const requestBody = {
       anthropic_version: 'bedrock-2023-05-31',
-      // When we pass tools and no messages, we need to pass a dummy message
-      // to get an accurate tool token count.
+      // 当我们传入工具但没有消息时，需要传入一个 dummy 消息
+      // 以获得准确的工具 token 计数。
       messages:
         messages.length > 0 ? messages : [{ role: 'user', content: 'foo' }],
       max_tokens: containsThinking ? TOKEN_COUNT_MAX_TOKENS : 1,

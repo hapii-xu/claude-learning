@@ -13,9 +13,9 @@ import { PermissionRuleExplanation } from '../PermissionRuleExplanation.js';
 type OptionValue = 'yes' | 'yes-dont-ask-again' | 'no';
 
 /**
- * Permission request UI for the MonitorTool. Asks the user to confirm
- * starting a long-running background monitor process.
- * Follows the FallbackPermissionRequest pattern.
+ * MonitorTool 的权限请求 UI。请求用户确认是否启动
+ * 长时间运行的后台 monitor 进程。
+ * 沿用 FallbackPermissionRequest 的模式。
  */
 export function MonitorPermissionRequest({
   toolUseConfirm,

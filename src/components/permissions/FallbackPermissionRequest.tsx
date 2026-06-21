@@ -22,7 +22,7 @@ export function FallbackPermissionRequest({
   workerBadge,
 }: PermissionRequestProps): React.ReactNode {
   const [theme] = useTheme();
-  // TODO: Avoid these special cases
+  // TODO: 避免这些特殊情况
   const originalUserFacingName = toolUseConfirm.tool.userFacingName(toolUseConfirm.input as never);
   const userFacingName = originalUserFacingName.endsWith(' (MCP)')
     ? originalUserFacingName.slice(0, -6)

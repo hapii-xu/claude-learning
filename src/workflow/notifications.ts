@@ -1,15 +1,14 @@
 /**
- * Bridge for workflow status-change notifications.
+ * workflow 状态变化通知的桥接。
  *
- * The engine emits events via progressEmitter.emit({ type: 'run_done', ... }),
- * and the progress/store reducer records the status into RunProgress. But the
- * old implementation had no code bridging status transitions to the host
- * notification mechanism — the "notifies automatically on completion" promise
- * in WorkflowTool's return text went unfulfilled.
+ * 引擎通过 progressEmitter.emit({ type: 'run_done', ... }) 发出事件，
+ * progress/store reducer 把状态记录到 RunProgress。但旧实现
+ * 没有任何代码把状态转换桥接到 host 的通知机制 ——
+ * WorkflowTool 返回文本里"完成时自动通知"的承诺一直没兑现。
  *
- * This module subscribes to WorkflowService.subscribe, watches status transitions
- * from running → completed/failed/killed, and emits a host notification via the
- * injected notifier callback (defaults to enqueuePendingNotification task-notification mode).
+ * 本模块订阅 WorkflowService.subscribe，监视 running → completed/failed/killed 的
+ * 状态转换，并通过注入的 notifier 回调发出 host 通知
+ *（默认走 enqueuePendingNotification 的 task-notification 模式）。
  */
 import {
   STATUS_TAG,
@@ -24,7 +23,7 @@ import type { WorkflowService } from './service.js'
 
 const WORKFLOW_TASK_TYPE = 'local_workflow'
 
-/** Notifier abstraction (lets tests inject a spy). */
+/** 通知器抽象（让测试可以注入 spy）。 */
 export type WorkflowNotifier = (message: string) => void
 
 const TERMINAL_STATUSES: ReadonlySet<RunProgress['status']> = new Set([
@@ -33,7 +32,7 @@ const TERMINAL_STATUSES: ReadonlySet<RunProgress['status']> = new Set([
   'killed',
 ])
 
-/** Default notifier: uses the host message queue's task-notification mode. */
+/** 默认通知器：使用 host 消息队列的 task-notification 模式。 */
 const defaultNotifier: WorkflowNotifier = message => {
   enqueuePendingNotification({ value: message, mode: 'task-notification' })
 }
@@ -48,13 +47,13 @@ export function installWorkflowNotifications(
     const runs = service.listRuns()
     for (const run of runs) {
       const prev = prevStatus.get(run.runId)
-      // First time seeing this run: just record the current status without notifying
-      // (avoids treating existing historical runs as new notifications on install)
+      // 首次见到该 run：只记录当前状态，不通知
+      //（避免在安装时把已存在的历史 run 当作新通知）
       if (prev === undefined) {
         prevStatus.set(run.runId, run.status)
         continue
       }
-      // Status changed + entered terminal state → emit notification
+      // 状态发生变化 + 进入终态 → 发出通知
       if (prev !== run.status && TERMINAL_STATUSES.has(run.status)) {
         notify(buildMessage(run))
       }

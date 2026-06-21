@@ -22,8 +22,8 @@ export function SystemAPIErrorMessage({
   const _retryInMs = retryInMs as number;
   const _maxRetries = maxRetries as number;
   const _error = error as Parameters<typeof formatAPIError>[0];
-  // Hidden for early retries on external builds to avoid noise. Compute before
-  // useInterval so we never register a timer that just drives a null render.
+  // 在外部构建的早期重试中隐藏以避免噪音。在 useInterval 之前计算，
+  // 这样我们永远不会注册一个仅驱动 null 渲染的 timer。
   const hidden = process.env.USER_TYPE === 'external' && _retryAttempt < 4;
 
   const [countdownMs, setCountdownMs] = useState(0);

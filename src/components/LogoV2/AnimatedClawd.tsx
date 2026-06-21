@@ -6,27 +6,27 @@ import { Clawd, type ClawdPose } from './Clawd.js';
 
 type Frame = { pose: ClawdPose; offset: number };
 
-/** Hold a pose for n frames (60ms each). */
+/** 保持某个 pose n 帧（每帧 60ms）。 */
 function hold(pose: ClawdPose, offset: number, frames: number): Frame[] {
   return Array.from({ length: frames }, () => ({ pose, offset }));
 }
 
-// Offset semantics: marginTop in a fixed-height-3 container. 0 = normal,
-// 1 = crouched. Container height stays 3 so the layout never shifts; during
-// a crouch (offset=1) Clawd's feet row dips below the container and gets
-// clipped — reads as "ducking below the frame" before springing back up.
+// offset 语义：固定高度为 3 的容器中的 marginTop。0 = 正常，
+// 1 = 蹲下。容器高度保持 3，所以布局永不抖动；蹲下时
+// （offset=1）Clawd 的脚部行会下沉到容器下方并被裁剪 —
+// 读起来像"钻到画框下方"，然后弹回来。
 
-// Click animation: crouch, then spring up with both arms raised. Twice.
+// 点击动画：蹲下，然后双臂上举弹起。重复两次。
 const JUMP_WAVE: readonly Frame[] = [
-  ...hold('default', 1, 2), // crouch
-  ...hold('arms-up', 0, 3), // spring!
+  ...hold('default', 1, 2), // 蹲下
+  ...hold('arms-up', 0, 3), // 弹起！
   ...hold('default', 0, 1),
-  ...hold('default', 1, 2), // crouch again
-  ...hold('arms-up', 0, 3), // spring!
+  ...hold('default', 1, 2), // 再次蹲下
+  ...hold('arms-up', 0, 3), // 弹起！
   ...hold('default', 0, 1),
 ];
 
-// Click animation: glance right, then left, then back.
+// 点击动画：向右看，然后向左看，再回到中间。
 const LOOK_AROUND: readonly Frame[] = [
   ...hold('look-right', 0, 5),
   ...hold('look-left', 0, 5),
@@ -41,12 +41,11 @@ const incrementFrame = (i: number) => i + 1;
 const CLAWD_HEIGHT = 3;
 
 /**
- * Clawd with click-triggered animations (crouch-jump with arms up, or
- * look-around). Container height is fixed at CLAWD_HEIGHT — same footprint
- * as a bare `<Clawd />` — so the surrounding layout never shifts. During a
- * crouch only the feet row clips (see comment above). Click only fires when
- * mouse tracking is enabled (i.e. inside `<AlternateScreen>` / fullscreen);
- * elsewhere this renders and behaves identically to plain `<Clawd />`.
+ * 带有点击触发动画的 Clawd（蹲下-双臂上举跳跃，或四处张望）。
+ * 容器高度固定为 CLAWD_HEIGHT — 与纯 `<Clawd />` 占地相同 —
+ * 所以周围布局永不抖动。蹲下时仅脚部行被裁剪（见上方注释）。
+ * 点击仅在启用了鼠标追踪时（即在 `<AlternateScreen>` / 全屏内）才会触发；
+ * 其他场景下其渲染和行为与普通 `<Clawd />` 完全一致。
  */
 export function AnimatedClawd(): React.ReactNode {
   const { pose, bounceOffset, onClick } = useClawdAnimation();
@@ -64,8 +63,7 @@ function useClawdAnimation(): {
   bounceOffset: number;
   onClick: () => void;
 } {
-  // Read once at mount — no useSettings() subscription, since that would
-  // re-render on any settings change.
+  // 挂载时只读一次 — 没有 useSettings() 订阅，否则会在任何设置变化时重新渲染。
   const [reducedMotion] = useState(() => getInitialSettings().prefersReducedMotion ?? false);
   const [frameIndex, setFrameIndex] = useState(-1);
   const sequenceRef = useRef<readonly Frame[]>(JUMP_WAVE);

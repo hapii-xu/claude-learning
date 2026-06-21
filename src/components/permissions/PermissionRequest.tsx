@@ -117,15 +117,14 @@ export type PermissionRequestProps<Input extends AnyObject = AnyObject> = {
   verbose: boolean;
   workerBadge: WorkerBadgeProps | undefined;
   /**
-   * Register JSX to render in a sticky footer below the scrollable area.
-   * Fullscreen mode only (non-fullscreen has no sticky area — terminal
-   * scrollback moves everything together). Call with null to clear.
+   * 注册要在可滚动区域下方吸底 footer 中渲染的 JSX。
+   * 仅全屏模式可用（非全屏模式没有吸底区域——终端回滚会整体移动）。
+   * 传入 null 可清除。
    *
-   * Used by ExitPlanModePermissionRequest to keep response options visible
-   * while the user scrolls through a long plan. The callback is stable —
-   * JSX passed should use refs for callbacks that close over component state
-   * to avoid stale closures (React reconciles the JSX, preserving Select's
-   * internal focus/input state).
+   * 由 ExitPlanModePermissionRequest 使用，用于在用户滚动长计划时
+   * 保持响应选项可见。该回调是稳定的——传入的 JSX 中闭包捕获组件
+   * 状态的回调应使用 ref，以避免闭包过期（React 会协调 JSX，保留
+   * Select 内部的焦点/输入状态）。
    */
   setStickyFooter?: (jsx: React.ReactNode | null) => void;
 };
@@ -140,9 +139,9 @@ export type ToolUseConfirm<Input extends AnyObject = AnyObject> = {
   permissionResult: PermissionDecision;
   permissionPromptStartTimeMs: number;
   /**
-   * Called when user interacts with the permission dialog (e.g., arrow keys, tab, typing).
-   * This prevents async auto-approval mechanisms (like the bash classifier) from
-   * dismissing the dialog while the user is actively engaging with it.
+   * 当用户与权限对话框交互时调用（例如方向键、Tab 键、输入）。
+   * 用于阻止异步自动批准机制（如 bash 分类器）在用户正在交互时
+   * 关闭对话框。
    */
   classifierCheckInProgress?: boolean;
   classifierAutoApproved?: boolean;
@@ -183,7 +182,7 @@ function getNotificationMessage(toolUseConfirm: ToolUseConfirm): string {
   return `Claude needs your permission to use ${toolName}`;
 }
 
-// TODO: Move this to Tool.renderPermissionRequest
+// TODO: 将此逻辑移至 Tool.renderPermissionRequest
 export function PermissionRequest({
   toolUseConfirm,
   toolUseContext,
@@ -193,7 +192,7 @@ export function PermissionRequest({
   workerBadge,
   setStickyFooter,
 }: PermissionRequestProps): React.ReactNode {
-  // Handle Ctrl+C (app:interrupt) to reject
+  // 处理 Ctrl+C（app:interrupt）以拒绝
   useKeybinding(
     'app:interrupt',
     () => {

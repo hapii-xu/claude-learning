@@ -84,8 +84,8 @@ type ResponseValue =
   | 'no';
 
 /**
- * Build permission updates for plan approval, including prompt-based rules if provided.
- * Prompt-based rules are only added when classifier permissions are enabled (Ant-only).
+ * 为计划批准构建权限更新，若提供了基于 prompt 的规则则一并添加。
+ * 基于 prompt 的规则仅在启用了分类器权限时添加（仅限 Ant）。
  */
 export function buildPermissionUpdates(mode: PermissionMode, allowedPrompts?: AllowedPrompt[]): PermissionUpdate[] {
   const updates: PermissionUpdate[] = [
@@ -96,7 +96,7 @@ export function buildPermissionUpdates(mode: PermissionMode, allowedPrompts?: Al
     },
   ];
 
-  // Add prompt-based permission rules if provided (Ant-only feature)
+  // 若提供了基于 prompt 的权限规则则添加（仅限 Ant 的功能）
   if (isClassifierPermissionsEnabled() && allowedPrompts && allowedPrompts.length > 0) {
     updates.push({
       type: 'addRules',
@@ -113,9 +113,9 @@ export function buildPermissionUpdates(mode: PermissionMode, allowedPrompts?: Al
 }
 
 /**
- * Auto-name the session from the plan content when the user accepts a plan,
- * if they haven't already named it via /rename or --name. Fire-and-forget.
- * Mirrors /rename: kebab-case name, updates the prompt-border badge.
+ * 用户接受计划时根据计划内容自动命名会话，
+ * 前提是用户尚未通过 /rename 或 --name 命名。fire-and-forget 模式。
+ * 与 /rename 一致：kebab-case 名称，更新 prompt 边框徽章。
  */
 export function autoNameSessionFromPlan(
   plan: string,
@@ -125,21 +125,21 @@ export function autoNameSessionFromPlan(
   if (isSessionPersistenceDisabled() || getSettings_DEPRECATED()?.cleanupPeriodDays === 0) {
     return;
   }
-  // On clear-context, the current session is about to be abandoned — its
-  // title (which may have been set by a PRIOR auto-name) is irrelevant.
-  // Checking it would make the feature self-defeating after first use.
+  // 在 clear-context 时，当前 session 即将被废弃——其标题（可能由
+  // 之前的 auto-name 设置）已不相关。此时检查会使功能在首次使用后
+  // 自我抵消。
   if (!isClearContext && getCurrentSessionTitle(getSessionId())) return;
   void generateSessionName(
-    // generateSessionName tail-slices to the last 1000 chars (correct for
-    // conversations, where recency matters). Plans front-load the goal and
-    // end with testing steps — head-slice so Haiku sees the summary.
+    // generateSessionName 从尾部截取最后 1000 字符（对会话来说合理，
+    // 因为最新内容更重要）。计划将目标前置、以测试步骤收尾——
+    // 从头部截取，使 Haiku 能看到摘要。
     [createUserMessage({ content: plan.slice(0, 1000) })],
     new AbortController().signal,
   )
     .then(async name => {
-      // On clear-context acceptance, regenerateSessionId() has run by now —
-      // this intentionally names the NEW execution session. Do not "fix" by
-      // capturing sessionId once; that would name the abandoned planning session.
+      // 接受 clear-context 时，此时 regenerateSessionId() 已运行——
+      // 此处有意为新的执行 session 命名。不要通过一次性捕获 sessionId
+      // 来"修复"；那样会为被废弃的规划 session 命名。
       if (!name || getCurrentSessionTitle(getSessionId())) return;
       const sessionId = getSessionId() as UUID;
       const fullPath = getTranscriptPath();
@@ -167,9 +167,9 @@ export function ExitPlanModePermissionRequest({
   const setAppState = useSetAppState();
   const store = useAppStateStore();
   const { addNotification } = useNotifications();
-  // Feedback text from the 'No' option's input. Threaded through onAllow as
-  // acceptFeedback when the user approves — lets users annotate the plan
-  // ("also update the README") without a reject+re-plan round-trip.
+  // 来自 'No' 选项输入的反馈文本。当用户批准时通过 onAllow 作为
+  // acceptFeedback 传入——允许用户为计划添加标注
+  // （"同时更新 README"）而无需拒绝+重新规划的往返。
   const [planFeedback, setPlanFeedback] = useState('');
   const [pastedContents, setPastedContents] = useState<Record<number, PastedContent>>({});
   const nextPasteIdRef = useRef(0);
@@ -177,10 +177,10 @@ export function ExitPlanModePermissionRequest({
   const showClearContext = useAppState(s => s.settings.showClearContextOnPlanAccept) ?? false;
   const ultraplanSessionUrl = useAppState(s => s.ultraplanSessionUrl);
   const ultraplanLaunching = useAppState(s => s.ultraplanLaunching);
-  // Hide the Ultraplan button while a session is active or launching —
-  // selecting it would dismiss the dialog and reject locally before
-  // launchUltraplan can notice the session exists and return "already polling".
-  // feature() must sit directly in an if/ternary (bun:bundle DCE constraint).
+  // 当 session 处于活动或启动中时隐藏 Ultraplan 按钮——
+  // 选择它会关闭对话框并本地拒绝，而此时 launchUltraplan 还没检测到
+  // session 已存在并返回 "already polling"。
+  // feature() 必须直接位于 if/三元表达式中（bun:bundle DCE 约束）。
   const showUltraplan = feature('ULTRAPLAN') ? !ultraplanSessionUrl && !ultraplanLaunching : false;
   const usage = toolUseConfirm.assistantMessage.message.usage;
   const { mode, isAutoModeAvailable, isBypassPermissionsModeAvailable } = toolPermissionContext;
@@ -234,25 +234,24 @@ export function ExitPlanModePermissionRequest({
   const imageAttachments = Object.values(pastedContents).filter(c => c.type === 'image');
   const hasImages = imageAttachments.length > 0;
 
-  // TODO: Delete the branch after moving to V2
-  // Use tool name to detect V2 instead of checking input.plan, because PR #10394
-  // injects plan content into input.plan for hooks/SDK, which broke the old detection
-  // (see issue #10878)
+  // TODO: 迁移到 V2 后删除此分支
+  // 使用工具名检测 V2 而非检查 input.plan，因为 PR #10394 会将计划内容
+  // 注入到 input.plan 中用于 hooks/SDK，这破坏了旧检测逻辑
+  // （见 issue #10878）
   const isV2 = toolUseConfirm.tool.name === EXIT_PLAN_MODE_V2_TOOL_NAME;
   const inputPlan = isV2 ? undefined : (toolUseConfirm.input.plan as string | undefined);
   const planFilePath = isV2 ? getPlanFilePath() : undefined;
 
-  // Extract allowed prompts requested by the plan (Ant-only feature)
+  // 提取计划请求的 allowed prompts（仅限 Ant 的功能）
   const allowedPrompts = toolUseConfirm.input.allowedPrompts as AllowedPrompt[] | undefined;
 
-  // Get the raw plan to check if it's empty
+  // 获取原始计划以检查是否为空
   const rawPlan = inputPlan ?? getPlan();
   const isEmpty = !rawPlan || rawPlan.trim() === '';
 
-  // Capture the variant once on mount. GrowthBook reads from a disk cache
-  // so the value is stable across a single planning session. undefined =
-  // control arm. The variant is a fixed 3-value enum of short literals,
-  // not user input.
+  // 在挂载时一次性捕获变体。GrowthBook 从磁盘缓存读取，
+  // 所以值在一次规划会话中稳定。undefined = 对照组。
+  // 变体是固定 3 值枚举的短字面量，非用户输入。
   const [planStructureVariant] = useState(
     () => (getPewterLedgerVariant() ?? undefined) as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   );
@@ -263,12 +262,12 @@ export function ExitPlanModePermissionRequest({
     return plan ?? 'No plan found. Please write your plan to the plan file first.';
   });
   const [showSaveMessage, setShowSaveMessage] = useState(false);
-  // Track Ctrl+G local edits so updatedInput can include the plan (the tool
-  // only echoes the plan in tool_result when input.plan is set — otherwise
-  // the model already has it in context from writing the plan file).
+  // 追踪 Ctrl+G 的本地编辑，使 updatedInput 可以包含计划（工具仅在
+  // 设置 input.plan 时才在 tool_result 中回显计划——否则模型已从
+  // 写入计划文件时获取了上下文）。
   const [planEditedLocally, setPlanEditedLocally] = useState(false);
 
-  // Auto-hide save message after 5 seconds
+  // 5 秒后自动隐藏保存消息
   useEffect(() => {
     if (showSaveMessage) {
       const timer = setTimeout(setShowSaveMessage, 5000, false);
@@ -276,7 +275,7 @@ export function ExitPlanModePermissionRequest({
     }
   }, [showSaveMessage]);
 
-  // Handle Ctrl+G to edit plan in $EDITOR, Shift+Tab for auto-accept edits
+  // 处理 Ctrl+G 在 $EDITOR 中编辑计划，Shift+Tab 用于 auto-accept edits
   const handleKeyDown = (e: KeyboardEvent): void => {
     if (e.ctrl && e.key === 'g') {
       e.preventDefault();

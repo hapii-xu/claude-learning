@@ -15,7 +15,7 @@ let customModes: CCBMode[] | null = null
 const modeListeners = new Set<() => void>()
 
 /**
- * Converts a human-readable name to a URL-safe slug.
+ * 将人类可读的名称转换为 URL 安全的 slug。
  * @example kebabCase('Claude Persona') → 'claude-persona'
  */
 function kebabCase(name: string): string {
@@ -26,12 +26,12 @@ function kebabCase(name: string): string {
 }
 
 /**
- * Extracts YAML frontmatter and Markdown body from a string.
- * Expects the format used by Claude Code SKILL.md, OpenCode agents,
- * and Cursor rules: `---` delimited YAML followed by Markdown content.
+ * 从字符串中提取 YAML frontmatter 和 Markdown 正文。
+ * 期望的格式与 Claude Code SKILL.md、OpenCode agents 和 Cursor 规则使用的相同：
+ * `---` 分隔的 YAML 后跟 Markdown 内容。
  *
- * @throws {Error} If the string does not contain valid `---` delimiters.
- * @returns The parsed frontmatter object and the body text.
+ * @throws {Error} 字符串不包含有效的 `---` 分隔符时抛出。
+ * @returns 解析后的 frontmatter 对象和正文文本。
  */
 function parseMarkdownFrontmatter(raw: string): {
   frontmatter: Record<string, unknown>
@@ -106,11 +106,11 @@ function loadCustomModes(): CCBMode[] {
           },
         })
       } catch {
-        // skip invalid yaml or markdown files
+        // 跳过无效的 yaml 或 markdown 文件
       }
     }
   } catch {
-    // modes directory may not exist
+    // modes 目录可能不存在
   }
   return customModes
 }
@@ -118,7 +118,7 @@ function loadCustomModes(): CCBMode[] {
 function getAllModes(): CCBMode[] {
   const custom = loadCustomModes()
   if (custom.length === 0) return DEFAULT_MODES
-  // Custom modes override defaults with same slug
+  // 自定义模式覆盖同 slug 的默认模式
   const slugs = new Set(custom.map(m => m.slug))
   return [...custom, ...DEFAULT_MODES.filter(m => !slugs.has(m.slug))]
 }
@@ -158,7 +158,7 @@ function subscribeMode(listener: () => void): () => void {
   return () => modeListeners.delete(listener)
 }
 
-/** Reactive hook — re-renders the component when the mode changes. */
+/** 响应式 hook —— 模式变化时重新渲染组件。 */
 export function useCurrentMode(): CCBMode {
   return useSyncExternalStore(subscribeMode, getCurrentMode)
 }

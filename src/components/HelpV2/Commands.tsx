@@ -20,8 +20,8 @@ export function Commands({ commands, maxHeight, columns, title, onCancel, emptyM
   const visibleCount = Math.max(1, Math.floor((maxHeight - 10) / 2));
 
   const options = useMemo(() => {
-    // Custom commands can appear more than once (e.g. same name at user and
-    // project scope). Dedupe by name to avoid React key collisions in Select.
+    // 自定义命令可能出现多次（例如同名命令位于 user 和 project scope）。
+    // 按 name 去重以避免 Select 中 React key 冲突。
     const seen = new Set<string>();
     return commands
       .filter(cmd => {

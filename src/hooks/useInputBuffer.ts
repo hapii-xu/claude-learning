@@ -41,13 +41,13 @@ export function useInputBuffer({
     ) => {
       const now = Date.now()
 
-      // Clear any pending push
+      // 清除任何待处理的 push
       if (pendingPush.current) {
         clearTimeout(pendingPush.current)
         pendingPush.current = null
       }
 
-      // Debounce rapid changes
+      // 对快速变化进行防抖
       if (now - lastPushTime.current < debounceMs) {
         pendingPush.current = setTimeout(
           pushToBuffer,
@@ -62,23 +62,23 @@ export function useInputBuffer({
       lastPushTime.current = now
 
       setBuffer(prevBuffer => {
-        // If we're not at the end of the buffer, truncate everything after current position
+        // 如果我们不在 buffer 末尾，截断当前位置之后的所有内容
         const newBuffer =
           currentIndex >= 0 ? prevBuffer.slice(0, currentIndex + 1) : prevBuffer
 
-        // Don't add if it's the same as the last entry
+        // 如果与最后一条条目相同则不添加
         const lastEntry = newBuffer[newBuffer.length - 1]
         if (lastEntry && lastEntry.text === text) {
           return newBuffer
         }
 
-        // Add new entry
+        // 添加新条目
         const updatedBuffer = [
           ...newBuffer,
           { text, cursorOffset, pastedContents, timestamp: now },
         ]
 
-        // Limit buffer size
+        // 限制 buffer 大小
         if (updatedBuffer.length > maxBufferSize) {
           return updatedBuffer.slice(-maxBufferSize)
         }
@@ -86,7 +86,7 @@ export function useInputBuffer({
         return updatedBuffer
       })
 
-      // Update current index to point to the new entry
+      // 更新当前索引以指向新条目
       setCurrentIndex(prev => {
         const newIndex = prev >= 0 ? prev + 1 : buffer.length
         return Math.min(newIndex, maxBufferSize - 1)

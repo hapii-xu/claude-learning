@@ -265,7 +265,7 @@ export class HybridTransport extends WebSocketTransport {
 /**
  * 将 WebSocket URL 转换为 HTTP POST 端点 URL。
  * From: wss://api.example.com/v2/session_ingress/ws/<session_id>
- * To: https://api.example.com/v2/session_ingress/session/<session_id>/events
+ * To:   https://api.example.com/v2/session_ingress/session/<session_id>/events
  */
 function convertWsUrlToPostUrl(wsUrl: URL): string {
   const protocol = wsUrl.protocol === 'wss:' ? 'https:' : 'http:'

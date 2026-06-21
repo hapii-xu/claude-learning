@@ -24,7 +24,7 @@ export function GroupedToolUseContent({
     return null;
   }
 
-  // Build a map from tool_use_id to result data
+  // 构建 tool_use_id 到 result data 的映射
   const resultsByToolUseId = new Map<string, { param: ToolResultBlockParam; output: unknown }>();
   for (const resultMsg of message.results) {
     for (const _content of resultMsg.message?.content ?? []) {

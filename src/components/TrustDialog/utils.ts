@@ -52,8 +52,8 @@ function hasBashPermission(rules: PermissionRule[]): boolean {
 }
 
 /**
- * Get which setting sources have bash allow rules.
- * Returns an array of file paths that have bash permissions.
+ * 获取哪些设置来源具有 bash 允许规则。
+ * 返回一个具有 bash 权限的文件路径数组。
  */
 export function getBashPermissionSources(): string[] {
   const sources: string[] = []
@@ -72,17 +72,17 @@ export function getBashPermissionSources(): string[] {
 }
 
 /**
- * Format a list of items with proper "and" conjunction.
- * @param items - Array of items to format
- * @param limit - Optional limit for how many items to show before summarizing (ignored if 0)
+ * 格式化带有正确 "and" 连接符的项列表。
+ * @param items - 要格式化的项数组
+ * @param limit - 可选的限制，控制摘要前显示多少项（为 0 时忽略）
  */
 export function formatListWithAnd(items: string[], limit?: number): string {
   if (items.length === 0) return ''
 
-  // Ignore limit if it's 0
+  // 当 limit 为 0 时忽略限制
   const effectiveLimit = limit === 0 ? undefined : limit
 
-  // If no limit or items are within limit, use normal formatting
+  // 如果没有限制或项数在限制内，使用正常格式化
   if (!effectiveLimit || items.length <= effectiveLimit) {
     if (items.length === 1) return items[0]!
     if (items.length === 2) return `${items[0]} and ${items[1]}`
@@ -92,7 +92,7 @@ export function formatListWithAnd(items: string[], limit?: number): string {
     return `${allButLast.join(', ')}, and ${lastItem}`
   }
 
-  // If we have more items than the limit, show first few and count the rest
+  // 如果项数超过限制，显示前几项并统计剩余项
   const shown = items.slice(0, effectiveLimit)
   const remaining = items.length - effectiveLimit
 
@@ -104,15 +104,15 @@ export function formatListWithAnd(items: string[], limit?: number): string {
 }
 
 /**
- * Check if settings have otelHeadersHelper configured
+ * 检查设置是否配置了 otelHeadersHelper
  */
 function hasOtelHeadersHelper(settings: SettingsJson | null): boolean {
   return !!settings?.otelHeadersHelper
 }
 
 /**
- * Get which setting sources have otelHeadersHelper configured.
- * Returns an array of file paths that have otelHeadersHelper.
+ * 获取哪些设置来源配置了 otelHeadersHelper。
+ * 返回具有 otelHeadersHelper 的文件路径数组。
  */
 export function getOtelHeadersHelperSources(): string[] {
   const sources: string[] = []
@@ -131,15 +131,15 @@ export function getOtelHeadersHelperSources(): string[] {
 }
 
 /**
- * Check if settings have apiKeyHelper configured
+ * 检查设置是否配置了 apiKeyHelper
  */
 function hasApiKeyHelper(settings: SettingsJson | null): boolean {
   return !!settings?.apiKeyHelper
 }
 
 /**
- * Get which setting sources have apiKeyHelper configured.
- * Returns an array of file paths that have apiKeyHelper.
+ * 获取哪些设置来源配置了 apiKeyHelper。
+ * 返回具有 apiKeyHelper 的文件路径数组。
  */
 export function getApiKeyHelperSources(): string[] {
   const sources: string[] = []
@@ -158,15 +158,15 @@ export function getApiKeyHelperSources(): string[] {
 }
 
 /**
- * Check if settings have AWS commands configured
+ * 检查设置是否配置了 AWS 命令
  */
 function hasAwsCommands(settings: SettingsJson | null): boolean {
   return !!(settings?.awsAuthRefresh || settings?.awsCredentialExport)
 }
 
 /**
- * Get which setting sources have AWS commands configured.
- * Returns an array of file paths that have awsAuthRefresh or awsCredentialExport.
+ * 获取哪些设置来源配置了 AWS 命令。
+ * 返回具有 awsAuthRefresh 或 awsCredentialExport 的文件路径数组。
  */
 export function getAwsCommandsSources(): string[] {
   const sources: string[] = []
@@ -185,15 +185,15 @@ export function getAwsCommandsSources(): string[] {
 }
 
 /**
- * Check if settings have GCP commands configured
+ * 检查设置是否配置了 GCP 命令
  */
 function hasGcpCommands(settings: SettingsJson | null): boolean {
   return !!settings?.gcpAuthRefresh
 }
 
 /**
- * Get which setting sources have GCP commands configured.
- * Returns an array of file paths that have gcpAuthRefresh.
+ * 获取哪些设置来源配置了 GCP 命令。
+ * 返回具有 gcpAuthRefresh 的文件路径数组。
  */
 export function getGcpCommandsSources(): string[] {
   const sources: string[] = []
@@ -212,8 +212,8 @@ export function getGcpCommandsSources(): string[] {
 }
 
 /**
- * Check if settings have dangerous environment variables configured.
- * Any env var NOT in SAFE_ENV_VARS is considered dangerous.
+ * 检查设置是否配置了危险的环境变量。
+ * 任何不在 SAFE_ENV_VARS 中的环境变量都被视为危险。
  */
 function hasDangerousEnvVars(settings: SettingsJson | null): boolean {
   if (!settings?.env) {
@@ -225,8 +225,8 @@ function hasDangerousEnvVars(settings: SettingsJson | null): boolean {
 }
 
 /**
- * Get which setting sources have dangerous environment variables configured.
- * Returns an array of file paths that have env vars not in SAFE_ENV_VARS.
+ * 获取哪些设置来源配置了危险的环境变量。
+ * 返回具有不在 SAFE_ENV_VARS 中的环境变量的文件路径数组。
  */
 export function getDangerousEnvVarsSources(): string[] {
   const sources: string[] = []

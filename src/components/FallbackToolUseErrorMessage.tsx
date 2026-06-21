@@ -23,9 +23,9 @@ export function FallbackToolUseErrorMessage({ result, verbose }: Props): React.R
     error = 'Tool execution failed';
   } else {
     const extractedError = extractTag(result, 'tool_use_error') ?? result;
-    // Remove sandbox_violations tags from error display (Claude still sees them in the tool result)
+    // 从错误显示中移除 sandbox_violations 标签（Claude 仍然能在 tool result 中看到它们）
     const withoutSandboxViolations = removeSandboxViolationTags(extractedError);
-    // Strip <error> tags but keep their content (tags are for the model, not the UI)
+    // 剥离 <error> 标签但保留其内容（标签是给模型的，不是给 UI 的）
     const withoutErrorTags = withoutSandboxViolations.replace(/<\/?error>/g, '');
     const trimmed = withoutErrorTags.trim();
     if (!verbose && trimmed.includes('InputValidationError: ')) {
@@ -46,8 +46,8 @@ export function FallbackToolUseErrorMessage({ result, verbose }: Props): React.R
           {stripUnderlineAnsi(verbose ? error : error.split('\n').slice(0, MAX_RENDERED_LINES).join('\n'))}
         </Text>
         {!verbose && plusLines > 0 && (
-          // The careful <Text> layout is a workaround for the dim-bold
-          // rendering bug
+          // 仔细的 <Text> 布局是为了绕过 dim-bold
+          // 渲染 bug
           <Box>
             <Text dimColor>
               … +{plusLines} {plusLines === 1 ? 'line' : 'lines'} (

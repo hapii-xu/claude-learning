@@ -22,9 +22,9 @@ import type { FileStateCache } from '../../utils/fileStateCache.js';
 import { getTranscriptPath } from 'src/utils/sessionStorage.js';
 import { useRegisterOverlay } from 'src/context/overlayContext.js';
 
-/** Maximum visible lines for the plan preview. */
+/** 计划预览的最大可见行数。 */
 const MAX_VISIBLE_LINES = 24;
-/** Lines reserved for chrome around the preview (title bar, options, etc.). */
+/** 预览周围预留的边框行数（标题栏、选项等）。 */
 const CHROME_LINES = 11;
 
 type ChoiceValue = 'here' | 'fresh' | 'cancel';
@@ -61,7 +61,7 @@ export function UltraplanChoiceDialog({
   const setAppState = useSetAppState();
   const { rows, columns } = useTerminalSize();
 
-  // ── Compute visible lines ──────────────────────────────────────────
+  // ── 计算可见行数 ──────────────────────────────────────────
   const visibleHeight = React.useMemo(
     () => Math.min(MAX_VISIBLE_LINES, Math.max(1, Math.floor(rows / 2) - CHROME_LINES)),
     [rows],
@@ -75,14 +75,14 @@ export function UltraplanChoiceDialog({
   const maxOffset = Math.max(0, wrappedLines.length - visibleHeight);
   const [scrollOffset, setScrollOffset] = React.useState(0);
 
-  // Clamp scroll when maxOffset shrinks (e.g. terminal resize).
+  // 当 maxOffset 缩小时（例如终端调整大小）钳制滚动偏移。
   React.useEffect(() => {
     setScrollOffset(prev => Math.min(prev, maxOffset));
   }, [maxOffset]);
 
   const isScrollable = wrappedLines.length > visibleHeight;
 
-  // ── Scroll input handler ───────────────────────────────────────────
+  // ── 滚动输入处理器 ───────────────────────────────────────────
   useInput((input, key) => {
     if (!isScrollable) return;
     const halfPage = Math.max(1, Math.floor(visibleHeight / 2));
@@ -96,13 +96,13 @@ export function UltraplanChoiceDialog({
     }
   });
 
-  // ── Visible slice ──────────────────────────────────────────────────
+  // ── 可见切片 ──────────────────────────────────────────────────
   const visibleText = wrappedLines.slice(scrollOffset, scrollOffset + visibleHeight).join('\n');
 
   const canScrollUp = scrollOffset > 0;
   const canScrollDown = scrollOffset < maxOffset;
 
-  // ── Choice handler ─────────────────────────────────────────────────
+  // ── 选择处理器 ─────────────────────────────────────────────────
   const handleChoice = React.useCallback(
     async (choice: ChoiceValue) => {
       switch (choice) {
@@ -161,25 +161,25 @@ export function UltraplanChoiceDialog({
         }
       }
 
-      // Mark the remote task as completed.
+      // 标记远程任务为已完成。
       updateTaskState(taskId, setAppState, task =>
         task.status !== 'running' ? task : { ...task, status: 'completed', endTime: Date.now() },
       );
 
-      // Clear the pending-choice state so the dialog unmounts.
+      // 清除待选择状态，以便对话框卸载。
       setAppState(prev =>
         prev.ultraplanPendingChoice
           ? { ...prev, ultraplanPendingChoice: undefined, ultraplanSessionUrl: undefined }
           : prev,
       );
 
-      // Archive the remote CCR session.
+      // 归档远程 CCR 会话。
       archiveRemoteSession(sessionId);
     },
     [plan, sessionId, taskId, setMessages, getAppState, setAppState, readFileState, setConversationId],
   );
 
-  // ── Menu options ───────────────────────────────────────────────────
+  // ── 菜单选项 ───────────────────────────────────────────────────
   const options: Array<{ label: string; value: ChoiceValue; description: string }> = React.useMemo(
     () => [
       {
@@ -201,7 +201,7 @@ export function UltraplanChoiceDialog({
     [],
   );
 
-  // ── Render ─────────────────────────────────────────────────────────
+  // ── 渲染 ─────────────────────────────────────────────────────────
   return (
     <Dialog
       title="Ultraplan approved"
@@ -210,7 +210,7 @@ export function UltraplanChoiceDialog({
       hideInputGuide
     >
       <Box flexDirection="column" marginBottom={1}>
-        {/* Plan preview */}
+        {/* 计划预览 */}
         <Box flexDirection="column" marginBottom={1}>
           <Text>{visibleText}</Text>
           {isScrollable && (
@@ -225,7 +225,7 @@ export function UltraplanChoiceDialog({
           )}
         </Box>
 
-        {/* Choice menu */}
+        {/* 选择菜单 */}
         <Select<ChoiceValue> options={options} onChange={value => void handleChoice(value)} />
       </Box>
     </Dialog>

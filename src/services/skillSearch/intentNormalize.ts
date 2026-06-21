@@ -1,23 +1,23 @@
 /**
- * Intent Normalization Layer for Skill Search
+ * 技能搜索的意图归一化层
  *
- * Problem: TF-IDF bag-of-words loses meaning when the user query is in Chinese
- * and most skill descriptions are English. CJK bi-grams get DF=1 (language
- * mismatch, not true rarity), producing IDF values that promote spurious
- * matches like `prompt-optimizer` for `帮我优化代码的性能`.
+ * 问题：当用户查询是中文而大多数技能描述是英文时，
+ * TF-IDF 词袋模型会丢失含义。CJK 二元组的 DF=1（语言
+ * 不匹配，而非真正的稀有性），产生的 IDF 值会促进虚假
+ * 匹配，如对 `帮我优化代码的性能` 返回 `prompt-optimizer`。
  *
- * Fix: Before handing the query to `searchSkills()`, ask Haiku to normalize it
- * into 3-6 English task/object keywords. Concatenate the normalized form with
- * the original so TF-IDF sees both — English keywords carry real matching
- * signal, the original text stays as a fallback.
+ * 修复：在将查询交给 `searchSkills()` 之前，请 Haiku 将其归一化
+ * 为 3-6 个英文任务/对象关键词。将归一化形式与
+ * 原始查询拼接，以便 TF-IDF 能看到两者 —— 英文关键词携带真正的匹配
+ * 信号，原始文本作为回退保留。
  *
- * Design:
- * - Turn-zero only (blocking on user input): one Haiku call per session-unique
- *   query. Not called in inter-turn prefetch (which repeats per tool loop).
- * - Process-level cache: identical queries within a session reuse the result.
- * - Graceful fallback: Haiku failure / timeout / empty → return original query.
- * - ASCII-only fast path: queries without CJK characters skip the LLM entirely.
- * - Feature-flagged: `SKILL_SEARCH_INTENT_ENABLED=1` to opt in.
+ * 设计：
+ * - 仅零回合（阻塞用户输入）：每个会话唯一查询一次 Haiku 调用。
+ *   不在回合间预取中调用（预取按工具循环重复）。
+ * - 进程级缓存：会话中相同查询重用结果。
+ * - 优雅回退：Haiku 失败/超时/空 → 返回原始查询。
+ * - ASCII-only 快速路径：无 CJK 字符的查询完全跳过 LLM。
+ * - 功能标志：设置 `SKILL_SEARCH_INTENT_ENABLED=1` 以启用。
  */
 
 import { queryHaiku } from '../api/claude.js'
@@ -48,21 +48,21 @@ const DEFAULT_TIMEOUT_MS = 6_000
 const MAX_QUERY_CHARS = 500
 const MAX_KEYWORDS_CHARS = 120
 /**
- * Bound on the process-level query→keywords cache. Insertion-order LRU —
- * Map iteration order is insertion order, so we evict from the front when
- * size exceeds the cap. ~200 entries × ~600 bytes (query + keywords) ≈
- * 120 KB worst case. Without this cap the cache grew monotonically with
- * the diversity of Chinese queries in a long session.
+ * 进程级 query→keywords 缓存的上限。插入顺序 LRU ——
+ * Map 迭代顺序是插入顺序，因此当大小超过上限时我们从前面淘汰。
+ * 约 200 个条目 × 约 600 字节（查询 + 关键词）≈
+ * 120 KB 最坏情况。没有这个上限，缓存会随着长会话中
+ * 中文查询的多样性单调增长。
  */
 const CACHE_MAX_ENTRIES = 200
 const CACHE_TRIM_TO = 150
 
-/** Process-level cache. Keyed by the original (trimmed) query. */
+/** 进程级缓存。以原始（修剪后的）查询为键。 */
 const cache = new Map<string, string>()
 
 function setCachedQueryIntent(key: string, value: string): void {
-  // Refresh insertion order on hit-then-write so frequently-used keys
-  // stay alive (delete + set is the canonical Map-LRU idiom).
+  // 在命中后写入时刷新插入顺序，以便常用键
+  // 保持存活（delete + set 是规范的 Map-LRU 习语）。
   if (cache.has(key)) cache.delete(key)
   cache.set(key, value)
   if (cache.size > CACHE_MAX_ENTRIES) {
@@ -80,27 +80,26 @@ export function isIntentNormalizeEnabled(): boolean {
   return process.env.SKILL_SEARCH_INTENT_ENABLED === '1'
 }
 
-/** Only reset between tests. */
+/** 仅在测试之间重置。 */
 export function clearIntentNormalizeCache(): void {
   cache.clear()
 }
 
 /**
- * Normalize a user query so TF-IDF sees English task keywords.
- * Returns `<original> <keywords>` on success, or the original string on any
- * failure path. Never throws.
+ * 归一化用户查询以便 TF-IDF 能看到英文任务关键词。
+ * 成功时返回 `<原始> <关键词>`，任何失败路径返回原始字符串。永不抛出。
  */
 export async function normalizeQueryIntent(query: string): Promise<string> {
   const trimmed = query.trim()
   if (!trimmed) return trimmed
   if (!isIntentNormalizeEnabled()) return trimmed
 
-  // ASCII-only queries are already in the right shape for the index.
+  // 仅 ASCII 查询已经是索引所需的正确形式。
   if (!/[\u4e00-\u9fff]/.test(trimmed)) return trimmed
 
   const cached = cache.get(trimmed)
   if (cached !== undefined) {
-    // Refresh LRU position so frequently-queried strings survive eviction.
+    // 刷新 LRU 位置以便频繁查询的字符串能在淘汰中存活。
     cache.delete(trimmed)
     cache.set(trimmed, cached)
     return cached
@@ -167,8 +166,8 @@ function extractResponseText(content: unknown): string {
 
 function sanitizeKeywords(raw: string): string {
   if (!raw) return ''
-  // Strip anything that's not a keyword character. Keep ascii letters, digits,
-  // hyphens, and spaces. Collapse whitespace.
+  // 去除任何不是关键词字符的内容。保留 ascii 字母、数字、
+  // 连字符和空格。折叠空白。
   const cleaned = raw
     .toLowerCase()
     .replace(/[^a-z0-9\- ]+/g, ' ')

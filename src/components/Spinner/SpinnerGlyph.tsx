@@ -8,7 +8,7 @@ const DEFAULT_CHARACTERS = getDefaultCharacters();
 const SPINNER_FRAMES = [...DEFAULT_CHARACTERS, ...[...DEFAULT_CHARACTERS].reverse()];
 
 const REDUCED_MOTION_DOT = '●';
-const REDUCED_MOTION_CYCLE_MS = 2000; // 2-second cycle: 1s visible, 1s dim
+const REDUCED_MOTION_CYCLE_MS = 2000; // 2 秒周期：1s 可见，1s 变暗
 const ERROR_RED = { r: 171, g: 43, b: 63 };
 
 type Props = {
@@ -29,7 +29,7 @@ export function SpinnerGlyph({
   const [themeName] = useTheme();
   const theme = getTheme(themeName);
 
-  // Reduced motion: slowly flashing orange dot
+  // 减弱动画模式：缓慢闪烁的橙色圆点
   if (reducedMotion) {
     const isDim = Math.floor(time / (REDUCED_MOTION_CYCLE_MS / 2)) % 2 === 1;
     return (
@@ -43,7 +43,7 @@ export function SpinnerGlyph({
 
   const spinnerChar = SPINNER_FRAMES[frame % SPINNER_FRAMES.length];
 
-  // Smoothly interpolate from current color to red when stalled
+  // 停滞时从当前颜色平滑插值到红色
   if (stalledIntensity > 0) {
     const baseColorStr = theme[messageColor];
     const baseRGB = baseColorStr ? parseRGB(baseColorStr) : null;
@@ -57,7 +57,7 @@ export function SpinnerGlyph({
       );
     }
 
-    // Fallback for ANSI themes
+    // ANSI 主题的后备方案
     const color = stalledIntensity > 0.5 ? 'error' : messageColor;
     return (
       <Box flexWrap="wrap" height={1} width={2}>

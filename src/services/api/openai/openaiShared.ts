@@ -1,19 +1,17 @@
 /**
- * Shared utilities for OpenAI-compatible API paths.
+ * OpenAI 兼容 API 路径的共享工具函数。
  *
- * Both the OpenAI path (queryModelOpenAI) and Grok path (queryModelGrok) use
- * the same adapters (openaiStreamAdapter, openaiConvertMessages), so the event
- * processing logic should be shared rather than duplicated.
+ * OpenAI 路径（queryModelOpenAI）和 Grok 路径（queryModelGrok）使用
+ * 相同的适配器（openaiStreamAdapter、openaiConvertMessages），因此事件
+ * 处理逻辑应当共享而不是重复实现。
  */
 
 /**
- * Merge a delta usage into the accumulated usage, preserving cache-related
- * fields from previous values when the delta carries explicit zeroes or
- * undefined values.
+ * 把 delta usage 合并进累积 usage：当 delta 携带显式零值或 undefined 时，
+ * 保留之前值中与 cache 相关的字段。
  *
- * Mirrors updateUsage() in claude.ts: a future adapter change that omits
- * cache fields from certain streaming events should not silently zero the
- * accumulated counters.
+ * 镜像 claude.ts 中的 updateUsage()：未来如果适配器变化导致某些流式
+ * 事件省略 cache 字段，不应静默地将累积计数清零。
  */
 export function updateOpenAIUsage(
   current: {

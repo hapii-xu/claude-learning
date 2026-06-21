@@ -1,8 +1,7 @@
-// Conditionally require()'d in LogoV2.tsx behind feature('KAIROS') ||
-// feature('KAIROS_CHANNELS'). No feature() guard here — the whole file
-// tree-shakes via the require pattern when both flags are false (see
-// docs/feature-gating.md). Do NOT import this module statically from
-// unguarded code.
+// 在 LogoV2.tsx 中通过 feature('KAIROS') || feature('KAIROS_CHANNELS')
+// 条件 require()。此处没有 feature() 守卫 — 当两个 flag 都为 false 时，
+// 整个文件通过 require 模式被 tree-shake（见 docs/feature-gating.md）。
+// 不要从无守卫的代码中静态 import 此模块。
 
 import * as React from 'react';
 import { useState } from 'react';
@@ -13,9 +12,8 @@ import { getMcpConfigsByScope } from '../../services/mcp/config.js';
 import { loadInstalledPluginsV2 } from '../../utils/plugins/installedPluginsManager.js';
 
 export function ChannelsNotice(): React.ReactNode {
-  // Snapshot all reads at mount. This notice enters scrollback immediately
-  // after the logo; any re-render past that point forces a full terminal
-  // reset.
+  // 在挂载时快照所有读取。此通知在 logo 之后立即进入 scrollback；
+  // 之后任何重新渲染都会强制完全终端重置。
   const [{ channels, list, unmatched }] = useState(() => {
     const ch = getAllowedChannels();
     if (ch.length === 0)
@@ -33,8 +31,8 @@ export function ChannelsNotice(): React.ReactNode {
   });
   if (channels.length === 0) return null;
 
-  // When both flags are passed, the list mixes entries and a single flag
-  // name would be wrong for half of it. entry.dev distinguishes origin.
+  // 当两个 flag 都传入时，列表会混合条目，单个 flag 名称对其中一半会是错的。
+  // entry.dev 区分来源。
   const hasNonDev = channels.some(c => !c.dev);
   const flag =
     getHasDevChannels() && hasNonDev
@@ -43,9 +41,9 @@ export function ChannelsNotice(): React.ReactNode {
         ? '--dangerously-load-development-channels'
         : '--channels';
 
-  // "Listening for" not "active" — at this point we only know the allowlist
-  // was set. Server connection, capability declaration, and whether the name
-  // even matches a configured MCP server are all still unknown.
+  // "Listening for" 而非 "active" — 此刻我们只知道 allowlist 已设置。
+  // 服务器连接、capability 声明，以及该名称是否匹配到已配置的 MCP 服务器，
+  // 这些都仍然未知。
   return (
     <Box paddingLeft={2} flexDirection="column">
       <Text color="error">Listening for channel messages from: {list}</Text>
@@ -74,9 +72,9 @@ type FindUnmatchedDeps = {
 };
 
 export function findUnmatched(entries: readonly ChannelEntry[], deps?: FindUnmatchedDeps): Unmatched[] {
-  // Server-kind: build one Set from all scopes up front. getMcpConfigsByScope
-  // is not cached (project scope walks the dir tree); getMcpConfigByName would
-  // redo that walk per entry.
+  // Server 类型：预先从所有 scope 构建一个 Set。getMcpConfigsByScope
+  // 没有缓存（project scope 会遍历目录树）；getMcpConfigByName 会对
+  // 每个条目重复该遍历。
   const configured =
     deps?.configuredServerNames ??
     (() => {
@@ -90,8 +88,8 @@ export function findUnmatched(entries: readonly ChannelEntry[], deps?: FindUnmat
       return names;
     })();
 
-  // Plugin-kind installed check: installed_plugins.json keys are
-  // `name@marketplace`. loadInstalledPluginsV2 is cached.
+  // Plugin 类型的已安装检查：installed_plugins.json 的键是
+  // `name@marketplace`。loadInstalledPluginsV2 已缓存。
   const installedPluginIds =
     deps?.installedPluginIds ??
     (() => {

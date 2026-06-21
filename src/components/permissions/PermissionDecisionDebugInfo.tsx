@@ -116,10 +116,10 @@ function SuggestedRules({ suggestions }: { suggestions: PermissionUpdate[] | und
 
 type Props = {
   permissionResult: PermissionDecision;
-  toolName?: string; // Filter unreachable rules to this tool
+  toolName?: string; // 将不可达规则过滤到此工具
 };
 
-// Helper function to extract directories from permission updates
+// 从权限更新中提取目录的辅助函数
 function extractDirectories(updates: PermissionUpdate[] | undefined): string[] {
   if (!updates) return [];
 
@@ -133,7 +133,7 @@ function extractDirectories(updates: PermissionUpdate[] | undefined): string[] {
   });
 }
 
-// Helper function to extract mode from permission updates
+// 从权限更新中提取模式的辅助函数
 function extractMode(updates: PermissionUpdate[] | undefined): PermissionMode | undefined {
   if (!updates) return undefined;
   const update = updates.findLast(u => u.type === 'setMode');
@@ -162,7 +162,7 @@ function SuggestionDisplay({
   const directories = extractDirectories(suggestions);
   const mode = extractMode(suggestions);
 
-  // If nothing to display, show None
+  // 若无可显示内容，显示 None
   if (rules.length === 0 && directories.length === 0 && !mode) {
     return (
       <Box flexDirection="row">
@@ -183,7 +183,7 @@ function SuggestionDisplay({
         <Text> </Text>
       </Box>
 
-      {/* Display rules */}
+      {/* 显示规则 */}
       {rules.length > 0 && (
         <Box flexDirection="row">
           <Box justifyContent="flex-end" minWidth={width}>
@@ -199,7 +199,7 @@ function SuggestionDisplay({
         </Box>
       )}
 
-      {/* Display directories */}
+      {/* 显示目录 */}
       {directories.length > 0 && (
         <Box flexDirection="row">
           <Box justifyContent="flex-end" minWidth={width}>
@@ -215,7 +215,7 @@ function SuggestionDisplay({
         </Box>
       )}
 
-      {/* Display mode change */}
+      {/* 显示模式变更 */}
       {mode && (
         <Box flexDirection="row">
           <Box justifyContent="flex-end" minWidth={width}>
@@ -240,11 +240,11 @@ export function PermissionDecisionDebugInfo({ permissionResult, toolName }: Prop
       sandboxAutoAllowEnabled,
     });
 
-    // Get the suggested rules from the permission result
+    // 从权限结果中获取建议的规则
     const suggestedRules = extractRules(suggestions);
 
-    // Filter to rules that match any of the suggested rules
-    // A rule matches if it has the same toolName and ruleContent
+    // 过滤出匹配任一建议规则的规则
+    // 当规则的 toolName 和 ruleContent 相同时视为匹配
     if (suggestedRules.length > 0) {
       return all.filter(u =>
         suggestedRules.some(
@@ -254,7 +254,7 @@ export function PermissionDecisionDebugInfo({ permissionResult, toolName }: Prop
       );
     }
 
-    // Fallback: filter by tool name if specified
+    // 后备方案：若指定了工具名则按工具名过滤
     if (toolName) {
       return all.filter(u => u.rule.ruleValue.toolName === toolName);
     }

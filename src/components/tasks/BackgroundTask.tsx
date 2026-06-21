@@ -27,8 +27,8 @@ export function BackgroundTask({ task, maxActivityWidth }: Props): React.ReactNo
         </Text>
       );
     case 'remote_agent': {
-      // Lite-review renders its own rainbow line (title + live counts),
-      // so we don't prefix the title — the rainbow already includes it.
+      // Lite-review 渲染自己的彩虹行（title + 实时计数），
+      // 所以我们不加 title 前缀 — 彩虹里已经包含它。
       if (task.isRemoteReview) {
         return (
           <Text>

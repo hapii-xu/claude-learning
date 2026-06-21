@@ -7,22 +7,22 @@ import { logError } from '../../utils/log.js'
 import { shouldUseClaudeAIAuth } from './client.js'
 
 /**
- * Temporary localhost HTTP server that listens for OAuth authorization code redirects.
+ * 监听 OAuth 授权码重定向的临时本地 HTTP 服务器。
  *
- * When the user authorizes in their browser, the OAuth provider redirects to:
+ * 当用户在浏览器中授权时，OAuth 提供者会重定向到：
  * http://localhost:[port]/callback?code=AUTH_CODE&state=STATE
  *
- * This server captures that redirect and extracts the auth code.
- * Note: This is NOT an OAuth server - it's just a redirect capture mechanism.
+ * 此服务器捕获该重定向并提取授权码。
+ * 注意：这不是 OAuth 服务器 —— 它只是一个重定向捕获机制。
  */
 export class AuthCodeListener {
   private localServer: Server
   private port: number = 0
   private promiseResolver: ((authorizationCode: string) => void) | null = null
   private promiseRejecter: ((error: Error) => void) | null = null
-  private expectedState: string | null = null // State parameter for CSRF protection
-  private pendingResponse: ServerResponse | null = null // Response object for final redirect
-  private callbackPath: string // Configurable callback path
+  private expectedState: string | null = null // 用于 CSRF 保护的状态参数
+  private pendingResponse: ServerResponse | null = null // 用于最终重定向的响应对象
+  private callbackPath: string // 可配置的回调路径
 
   constructor(callbackPath: string = '/callback') {
     this.localServer = createServer()
@@ -30,9 +30,9 @@ export class AuthCodeListener {
   }
 
   /**
-   * Starts listening on an OS-assigned port and returns the port number.
-   * This avoids race conditions by keeping the server open until it's used.
-   * @param port Optional specific port to use. If not provided, uses OS-assigned port.
+   * 在操作系统分配的端口上开始监听并返回端口号。
+   * 通过保持服务器开放直到被使用来避免竞态条件。
+   * @param port 可选的特定端口。如果未提供，使用操作系统分配的端口。
    */
   async start(port?: number): Promise<number> {
     return new Promise((resolve, reject) => {
@@ -42,7 +42,7 @@ export class AuthCodeListener {
         )
       })
 
-      // Listen on specified port or 0 to let the OS assign an available port
+      // 在指定端口或 0 上监听，让操作系统分配可用端口
       this.localServer.listen(port ?? 0, 'localhost', () => {
         const address = this.localServer.address() as AddressInfo
         this.port = address.port
@@ -72,10 +72,10 @@ export class AuthCodeListener {
   }
 
   /**
-   * Completes the OAuth flow by redirecting the user's browser to a success page.
-   * Different success pages are shown based on the granted scopes.
-   * @param scopes The OAuth scopes that were granted
-   * @param customHandler Optional custom handler to serve response instead of redirecting
+   * 通过将用户浏览器重定向到成功页面来完成 OAuth 流程。
+   * 根据授予的范围显示不同的成功页面。
+   * @param scopes 已授予的 OAuth 范围
+   * @param customHandler 可选的自定义处理器，用于提供响应而不是重定向
    */
   handleSuccessRedirect(
     scopes: string[],
@@ -83,7 +83,7 @@ export class AuthCodeListener {
   ): void {
     if (!this.pendingResponse) return
 
-    // If custom handler provided, use it instead of default redirect
+    // 如果提供了自定义处理器，使用它而不是默认重定向
     if (customHandler) {
       customHandler(this.pendingResponse, scopes)
       this.pendingResponse = null
@@ -91,12 +91,12 @@ export class AuthCodeListener {
       return
     }
 
-    // Default behavior: Choose success page based on granted permissions
+    // 默认行为：根据授予的权限选择成功页面
     const successUrl = shouldUseClaudeAIAuth(scopes)
       ? getOauthConfig().CLAUDEAI_SUCCESS_URL
       : getOauthConfig().CONSOLE_SUCCESS_URL
 
-    // Send browser to success page
+    // 将浏览器发送到成功页面
     this.pendingResponse.writeHead(302, { Location: successUrl })
     this.pendingResponse.end()
     this.pendingResponse = null
@@ -105,16 +105,16 @@ export class AuthCodeListener {
   }
 
   /**
-   * Handles error case by sending a redirect to the appropriate success page with an error indicator,
-   * ensuring the browser flow is completed properly.
+   * 通过重定向到适当的成功页面（带错误指示器）来处理错误情况，
+   * 确保浏览器流程正确完成。
    */
   handleErrorRedirect(): void {
     if (!this.pendingResponse) return
 
-    // TODO: swap to a different url once we have an error page
+    // TODO: 当我们有错误页面时替换为不同的 url
     const errorUrl = getOauthConfig().CLAUDEAI_SUCCESS_URL
 
-    // Send browser to error page
+    // 将浏览器发送到错误页面
     this.pendingResponse.writeHead(302, { Location: errorUrl })
     this.pendingResponse.end()
     this.pendingResponse = null
@@ -123,11 +123,11 @@ export class AuthCodeListener {
   }
 
   private startLocalListener(onReady: () => Promise<void>): void {
-    // Server is already created and listening, just set up handlers
+    // 服务器已创建并监听，只需设置处理器
     this.localServer.on('request', this.handleRedirect.bind(this))
     this.localServer.on('error', this.handleError.bind(this))
 
-    // Server is already listening, so we can call onReady immediately
+    // 服务器已经在监听，所以我们可以立即调用 onReady
     void onReady()
   }
 
@@ -168,7 +168,7 @@ export class AuthCodeListener {
       return
     }
 
-    // Store the response for later redirect
+    // 存储响应以供稍后重定向
     this.pendingResponse = res
 
     this.resolve(authCode)
@@ -197,13 +197,13 @@ export class AuthCodeListener {
   }
 
   close(): void {
-    // If we have a pending response, send a redirect before closing
+    // 如果有待处理的响应，在关闭前发送重定向
     if (this.pendingResponse) {
       this.handleErrorRedirect()
     }
 
     if (this.localServer) {
-      // Remove all listeners to prevent memory leaks
+      // 移除所有监听器以防止内存泄漏
       this.localServer.removeAllListeners()
       this.localServer.close()
     }

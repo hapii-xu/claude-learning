@@ -18,58 +18,57 @@ const SEP_WIDTH = stringWidth(' · ');
 const THINKING_BARE_WIDTH = stringWidth('thinking');
 const SHOW_TOKENS_AFTER_MS = 30_000;
 
-// Thinking shimmer constants. Previously lived in a separate ThinkingShimmerText
-// component with its own useAnimationFrame(50) — inlined here to reuse our
-// existing 50ms clock and eliminate the redundant subscriber.
+// 思考微光常量。此前位于独立的 ThinkingShimmerText 组件中，并有自己的
+// useAnimationFrame(50) — 此处内联以复用我们现有的 50ms 时钟，并消除冗余的订阅者。
 const THINKING_INACTIVE = { r: 153, g: 153, b: 153 };
 const THINKING_INACTIVE_SHIMMER = { r: 185, g: 185, b: 185 };
 const THINKING_DELAY_MS = 3000;
 const THINKING_GLOW_PERIOD_S = 2;
 
 export type SpinnerAnimationRowProps = {
-  // Animation inputs
+  // 动画输入
   mode: SpinnerMode;
   reducedMotion: boolean;
   hasActiveTools: boolean;
   responseLengthRef: React.RefObject<number>;
 
-  // Message (stable within a turn)
+  // 消息（在一轮对话内稳定）
   message: string;
   messageColor: keyof Theme;
   shimmerColor: keyof Theme;
   overrideColor?: keyof Theme | null;
 
-  // Timer refs (stable references)
+  // 计时器 ref（稳定引用）
   loadingStartTimeRef: React.RefObject<number>;
   totalPausedMsRef: React.RefObject<number>;
   pauseStartTimeRef: React.RefObject<number | null>;
 
-  // Display flags
+  // 显示标志
   spinnerSuffix?: string | null;
   verbose: boolean;
   columns: number;
 
-  // Teammate-derived (computed by parent from tasks)
+  // Teammate 派生（由父组件从 tasks 计算）
   hasRunningTeammates: boolean;
   teammateTokens: number;
   foregroundedTeammate: InProcessTeammateTaskState | undefined;
-  /** Leader's turn has completed. Suppresses stall-red since responseLengthRef/hasActiveTools track leader state only. */
+  /** Leader 的一轮对话已完成。抑制 stall-red，因为 responseLengthRef/hasActiveTools 仅跟踪 leader 状态。*/
   leaderIsIdle?: boolean;
 
-  // Thinking (state owned by parent, mode-dependent)
+  // 思考（由父组件拥有的状态，取决于 mode）
   thinkingStatus: 'thinking' | number | null;
   effortSuffix: string;
 };
 
 /**
- * The 50ms-animated portion of SpinnerWithVerb. Owns useAnimationFrame(50)
- * and all values derived from the animation clock (frame, glimmer, token
- * counter animation, elapsed-time, stalled intensity, thinking shimmer).
+ * SpinnerWithVerb 中以 50ms 动画驱动的部分。拥有 useAnimationFrame(50)
+ * 以及所有从动画时钟派生的值（帧、微光、token 计数器动画、已耗时、
+ * 停滞强度、思考微光）。
  *
- * The parent SpinnerWithVerb is freed from the 50ms render loop and only
- * re-renders when its props/app state change (~25x/turn instead of ~383x).
- * That keeps the outer Box shells, useAppState selectors, task filtering,
- * and tip/tree subtrees out of the hot animation path.
+ * 父组件 SpinnerWithVerb 从 50ms 渲染循环中解放出来，只在它的
+ * props/app state 变化时重新渲染（每轮约 25 次而非约 383 次）。
+ * 这让外层 Box 壳、useAppState 选择器、task 过滤以及
+ * tip/tree 子树都不再处于热点动画路径上。
  */
 export function SpinnerAnimationRow({
   mode,
@@ -95,31 +94,31 @@ export function SpinnerAnimationRow({
 }: SpinnerAnimationRowProps): React.ReactNode {
   const [viewportRef, time] = useAnimationFrame(reducedMotion ? null : 50);
 
-  // === Elapsed time (wall-clock, derived from refs each frame) ===
+  // === 已耗时（墙上时钟，每帧从 ref 派生） ===
   const now = Date.now();
   const elapsedTimeMs =
     pauseStartTimeRef.current !== null
       ? pauseStartTimeRef.current - loadingStartTimeRef.current - totalPausedMsRef.current
       : now - loadingStartTimeRef.current - totalPausedMsRef.current;
 
-  // Track wall-clock turn start for teammates. While a swarm is running the
-  // leader's elapsedTimeMs may jump around (new API calls reset
-  // loadingStartTimeRef; pauses freeze it), so we anchor to the earliest
-  // derived start seen so far. When no teammates are running this just tracks
-  // derivedStart every frame, effectively resetting for the next swarm.
+  // 为 teammate 跟踪本轮的墙上时钟开始时间。当 swarm 运行时，
+  // leader 的 elapsedTimeMs 可能跳变（新的 API 调用会重置
+  // loadingStartTimeRef；暂停会冻结它），所以我们锚定到目前已见的
+  // 最早派生开始时间。当没有 teammate 在运行时，这里每帧都跟踪
+  // derivedStart，实际上为下一个 swarm 重置。
   const derivedStart = now - elapsedTimeMs;
   const turnStartRef = useRef(derivedStart);
   if (!hasRunningTeammates || derivedStart < turnStartRef.current) {
     turnStartRef.current = derivedStart;
   }
 
-  // === Animation derivations from `time` ===
+  // === 从 `time` 派生的动画值 ===
   const currentResponseLength = responseLengthRef.current;
 
-  // Suppress stall detection when leader is idle — responseLengthRef and
-  // hasActiveTools both track leader state. When viewing an active teammate
-  // while leader is idle, they'd otherwise flag a false stall after 3s.
-  // Treating leaderIsIdle like hasActiveTools resets the stall timer.
+  // 当 leader 空闲时抑制停滞检测 — responseLengthRef 和
+  // hasActiveTools 都只跟踪 leader 状态。当 leader 空闲时查看活跃 teammate，
+  // 否则会在 3 秒后误判为停滞。把 leaderIsIdle 当作
+  // hasActiveTools 处理即可重置停滞计时器。
   const { isStalled, stalledIntensity } = useStalledAnimation(
     time,
     currentResponseLength,
@@ -130,8 +129,8 @@ export function SpinnerAnimationRow({
   const frame = reducedMotion ? 0 : Math.floor(time / 120);
 
   const glimmerSpeed = mode === 'requesting' ? 50 : 200;
-  // message is stable within a turn; stringWidth is expensive enough (Bun native
-  // call per code point) to memoize explicitly across the 50ms loop.
+  // message 在一轮对话内稳定；stringWidth 开销较大（Bun 每个码位
+  // 都要做原生调用），需要在 50ms 循环中显式 memoize。
   const glimmerMessageWidth = useMemo(() => stringWidth(message), [message]);
   const cycleLength = glimmerMessageWidth + 20;
   const cyclePosition = Math.floor(time / glimmerSpeed);
@@ -145,7 +144,7 @@ export function SpinnerAnimationRow({
 
   const flashOpacity = reducedMotion ? 0 : mode === 'tool-use' ? (Math.sin((time / 1000) * Math.PI) + 1) / 2 : 0;
 
-  // === Token counter animation (smooth increment, driven by 50ms clock) ===
+  // === Token 计数器动画（平滑递增，由 50ms 时钟驱动） ===
   const tokenCounterRef = useRef(currentResponseLength);
   if (reducedMotion) {
     tokenCounterRef.current = currentResponseLength;
@@ -170,7 +169,7 @@ export function SpinnerAnimationRow({
   const timerText = formatDuration(effectiveElapsedMs);
   const timerWidth = stringWidth(timerText);
 
-  // === Token count (leader + teammates, or foregrounded teammate) ===
+  // === Token 计数（leader + teammates，或前台 teammate） ===
   const totalTokens =
     foregroundedTeammate && !foregroundedTeammate.isIdle
       ? (foregroundedTeammate.progress?.tokenCount ?? 0)
@@ -179,7 +178,7 @@ export function SpinnerAnimationRow({
   const tokensText = hasRunningTeammates ? `${tokenCount} tokens` : `${figures.arrowDown} ${tokenCount} tokens`;
   const tokensWidth = stringWidth(tokensText);
 
-  // === Thinking text (may shrink to fit) ===
+  // === 思考文本（可能为适应宽度而缩短） ===
   let thinkingText =
     thinkingStatus === 'thinking'
       ? `thinking${effortSuffix}`
@@ -188,7 +187,7 @@ export function SpinnerAnimationRow({
         : null;
   let thinkingWidthValue = thinkingText ? stringWidth(thinkingText) : 0;
 
-  // === Progressive width gating ===
+  // === 渐进式宽度门控 ===
   const messageWidth = glimmerMessageWidth + 2;
   const sep = SEP_WIDTH;
 
@@ -215,9 +214,9 @@ export function SpinnerAnimationRow({
   const thinkingOnly =
     showThinking && thinkingStatus === 'thinking' && !spinnerSuffix && !showTimer && !showTokens && true;
 
-  // === Thinking shimmer color (formerly ThinkingShimmerText's own timer) ===
-  // Same sine-wave opacity, but derived from our shared `time` instead of a
-  // second useAnimationFrame(50) subscription.
+  // === 思考微光颜色（原为 ThinkingShimmerText 自己的计时器） ===
+  // 同样是正弦波透明度，但从我们共享的 `time` 派生，而非第二个
+  // useAnimationFrame(50) 订阅。
   const thinkingElapsedSec = (time - THINKING_DELAY_MS) / 1000;
   const thinkingOpacity =
     time < THINKING_DELAY_MS ? 0 : (Math.sin((thinkingElapsedSec * Math.PI * 2) / THINKING_GLOW_PERIOD_S) + 1) / 2;
@@ -225,7 +224,7 @@ export function SpinnerAnimationRow({
     interpolateColor(THINKING_INACTIVE, THINKING_INACTIVE_SHIMMER, thinkingOpacity),
   );
 
-  // === Build status parts ===
+  // === 构建状态部分 ===
   const parts = [
     ...(spinnerSuffix
       ? [

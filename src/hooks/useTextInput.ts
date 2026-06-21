@@ -360,12 +360,12 @@ export function useTextInput({
         return () => cursor.startOfLine()
       case key.wheelUp:
       case key.wheelDown:
-        // Mouse wheel events only exist when fullscreen mouse tracking is on.
-        // ScrollKeybindingHandler handles them; no-op here to avoid inserting
-        // the raw SGR sequence as text.
+        // 鼠标滚轮事件仅在启用全屏鼠标跟踪时存在。
+        // ScrollKeybindingHandler 处理它们；此处无操作以避免将
+        // 原始 SGR 序列作为文本插入。
         return NOOP_HANDLER
       case key.return:
-        // Must come before key.meta so Option+Return inserts newline
+        // 必须在 key.meta 之前，以便 Option+Return 插入换行符
         return () => handleEnter(key)
       case key.meta:
         return handleMeta
@@ -382,22 +382,22 @@ export function useTextInput({
       default: {
         return function (input: string) {
           switch (true) {
-            // Home key
+            // Home 键
             case input === '\x1b[H' || input === '\x1b[1~':
               return cursor.startOfLine()
-            // End key
+            // End 键
             case input === '\x1b[F' || input === '\x1b[4~':
               return cursor.endOfLine()
             default: {
-              // Trailing \r after text is SSH-coalesced Enter ("o\r") —
-              // strip it so the Enter isn't inserted as content. Lone \r
-              // here is Alt+Enter leaking through (META_KEY_CODE_RE doesn't
-              // match \x1b\r) — leave it for the \r→\n below. Embedded \r
-              // is multi-line paste from a terminal without bracketed
-              // paste — convert to \n. Backslash+\r is a stale VS Code
-              // Shift+Enter binding (pre-#8991 /terminal-setup wrote
-              // args.text "\\\r\n" to keybindings.json); keep the \r so
-              // it becomes \n below (anthropics/claude-code#31316).
+              // 文本后的尾随 \r 是 SSH 合并的 Enter（"o\r"）——
+              // 剥离它以免 Enter 作为内容插入。此处的单独 \r
+              // 是 Alt+Enter 漏过来的（META_KEY_CODE_RE 不匹配
+              // \x1b\r）—— 留给下方的 \r→\n 处理。嵌入的 \r
+              // 是来自没有 bracketed paste 的终端的多行粘贴
+              // —— 转换为 \n。Backslash+\r 是陈旧的 VS Code
+              // Shift+Enter 绑定（pre-#8991 /terminal-setup 向
+              // keybindings.json 写入了 args.text "\\\r\n"）；保留 \r 以便
+              // 在下方变为 \n（anthropics/claude-code#31316）。
               const text = stripAnsi(input)
                 // eslint-disable-next-line custom-rules/no-lookbehind-regex -- .replace(re, str) on 1-2 char keystrokes: no-match returns same string (Object.is), regex never runs
                 .replace(/(?<=[^\\\r\n])\r$/, '')
@@ -413,7 +413,7 @@ export function useTextInput({
     }
   }
 
-  // Check if this is a kill command (Ctrl+K, Ctrl+U, Ctrl+W, or Meta+Backspace/Delete)
+  // 检查这是否是一个 kill 命令（Ctrl+K、Ctrl+U、Ctrl+W 或 Meta+Backspace/Delete）
   function isKillKey(key: Key, input: string): boolean {
     if (key.ctrl && (input === 'k' || input === 'u' || input === 'w')) {
       return true
@@ -424,36 +424,36 @@ export function useTextInput({
     return false
   }
 
-  // Check if this is a yank command (Ctrl+Y or Alt+Y)
+  // 检查这是否是一个 yank 命令（Ctrl+Y 或 Alt+Y）
   function isYankKey(key: Key, input: string): boolean {
     return (key.ctrl || key.meta) && input === 'y'
   }
 
   function onInput(input: string, key: Key): void {
-    // Note: Image paste shortcut (chat:imagePaste) is handled via useKeybindings in PromptInput
+    // 注意：图像粘贴快捷键（chat:imagePaste）通过 PromptInput 中的 useKeybindings 处理
 
-    // Apply filter if provided
+    // 如果提供了过滤器则应用
     const filteredInput = inputFilter ? inputFilter(input, key) : input
 
-    // If the input was filtered out, do nothing
+    // 如果输入被过滤掉，什么都不做
     if (filteredInput === '' && input !== '') {
       return
     }
 
-    // Fix Issue #1853: Filter DEL characters that interfere with backspace in SSH/tmux
-    // In SSH/tmux environments, backspace generates both key events and raw DEL chars
+    // 修复 Issue #1853：过滤在 SSH/tmux 中干扰 backspace 的 DEL 字符
+    // 在 SSH/tmux 环境中，backspace 同时生成按键事件和原始 DEL 字符
     if (!key.backspace && !key.delete && input.includes('\x7f')) {
       const delCount = (input.match(/\x7f/g) || []).length
 
-      // Apply all DEL characters as backspace operations synchronously
-      // Try to delete tokens first, fall back to character backspace
+      // 同步地将所有 DEL 字符应用为 backspace 操作
+      // 首先尝试删除 token，回退到字符 backspace
       let currentCursor = cursor
       for (let i = 0; i < delCount; i++) {
         currentCursor =
           currentCursor.deleteTokenBefore() ?? currentCursor.backspace()
       }
 
-      // Update state once with the final result
+      // 用最终结果更新状态一次
       if (!cursor.equals(currentCursor)) {
         if (cursor.text !== currentCursor.text) {
           onChange(currentCursor.text)
@@ -465,12 +465,12 @@ export function useTextInput({
       return
     }
 
-    // Reset kill accumulation for non-kill keys
+    // 对非 kill 键重置 kill 累积
     if (!isKillKey(key, filteredInput)) {
       resetKillAccumulation()
     }
 
-    // Reset yank state for non-yank keys (breaks yank-pop chain)
+    // 对非 yank 键重置 yank 状态（中断 yank-pop 链）
     if (!isYankKey(key, filteredInput)) {
       resetYankState()
     }
@@ -483,17 +483,17 @@ export function useTextInput({
         }
         setOffset(nextCursor.offset)
       }
-      // SSH-coalesced Enter: on slow links, "o" + Enter can arrive as one
-      // chunk "o\r". parseKeypress only matches s === '\r', so it hit the
-      // default handler above (which stripped the trailing \r). Text with
-      // exactly one trailing \r is coalesced Enter; lone \r is Alt+Enter
-      // (newline); embedded \r is multi-line paste.
+      // SSH 合并的 Enter：在慢速链路上，"o" + Enter 可能作为一个
+      // 块 "o\r" 到达。parseKeypress 只匹配 s === '\r'，所以它走到了
+      // 上方的默认处理程序（剥离了尾随的 \r）。带有
+      // 恰好一个尾随 \r 的文本是合并的 Enter；单独的 \r 是 Alt+Enter
+      //（换行符）；嵌入的 \r 是多行粘贴。
       if (
         filteredInput.length > 1 &&
         filteredInput.endsWith('\r') &&
         !filteredInput.slice(0, -1).includes('\r') &&
-        // Backslash+CR is a stale VS Code Shift+Enter binding, not
-        // coalesced Enter. See default handler above.
+        // Backslash+CR 是陈旧的 VS Code Shift+Enter 绑定，不是
+        // 合并的 Enter。见上方的默认处理程序。
         filteredInput[filteredInput.length - 2] !== '\\'
       ) {
         onSubmit?.(nextCursor.text)
@@ -501,9 +501,9 @@ export function useTextInput({
     }
   }
 
-  // Prepare ghost text for rendering - validate insertPosition matches current
-  // cursor offset to prevent stale ghost text from a previous keystroke causing
-  // a one-frame jitter (ghost text state is updated via useEffect after render)
+  // 为渲染准备 ghost 文本 —— 校验 insertPosition 匹配当前
+  // 光标 offset 以防之前按键导致的陈旧 ghost 文本造成
+  // 一帧抖动（ghost 文本状态在渲染后通过 useEffect 更新）
   const ghostTextForRender =
     inlineGhostText && dim && inlineGhostText.insertPosition === offset
       ? { text: inlineGhostText.text, dim }

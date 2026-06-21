@@ -20,8 +20,8 @@ export function HookProgressMessage({ hookEvent, lookups, toolUseID, isTranscrip
   }
 
   if (hookEvent === 'PreToolUse' || hookEvent === 'PostToolUse') {
-    // In transcript mode, show a static summary since messages never re-render
-    // (so a transient "Running..." would get stuck).
+    // 在 transcript 模式下，显示静态摘要，因为消息从不重新渲染
+    // （所以瞬态的 "Running..." 会卡住）。
     if (isTranscriptMode) {
       return (
         <MessageResponse>
@@ -35,8 +35,8 @@ export function HookProgressMessage({ hookEvent, lookups, toolUseID, isTranscrip
         </MessageResponse>
       );
     }
-    // Outside transcript mode, hide — completion info is shown via
-    // async_hook_response attachments instead.
+    // 在 transcript 模式之外，隐藏 —— completion 信息通过
+    // async_hook_response attachments 显示。
     return null;
   }
 

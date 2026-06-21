@@ -9,7 +9,7 @@ import type { UUID } from 'crypto'
 import type { MessageContent } from '../../types/message.js'
 import type { BetaUsage } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 
-// Usage & Model
+// Usage 与 Model
 export type ModelUsage = {
   inputTokens: number
   outputTokens: number
@@ -43,7 +43,7 @@ export type McpServerStatus = {
   [key: string]: unknown
 }
 
-// Permissions
+// 权限
 export type PermissionMode = string
 
 export type PermissionResult =
@@ -62,7 +62,7 @@ export type RewindFilesResult = {
   [key: string]: unknown
 }
 
-// Account
+// Account（账号）
 export type AccountInfo = Record<string, unknown>
 
 // 钩子输入类型
@@ -345,7 +345,7 @@ export type InstructionsLoadedHookInput = HookInput
 export type CwdChangedHookInput = HookInput & { cwd: string }
 export type FileChangedHookInput = HookInput & { path: string }
 
-// SDK Message types
+// SDK 消息类型
 export type SDKMessage = { type: string; [key: string]: unknown }
 export type SDKUserMessage = {
   type: 'user'
@@ -458,7 +458,7 @@ export type SDKSessionInfo = {
   [key: string]: unknown
 }
 
-// Other referenced types
+// 其他被引用的类型
 export type OutputFormat = {
   type: 'json_schema'
   schema: Record<string, unknown>

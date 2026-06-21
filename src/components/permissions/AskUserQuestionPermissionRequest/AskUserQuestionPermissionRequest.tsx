@@ -27,7 +27,7 @@ import { useMultipleChoiceState } from './use-multiple-choice-state.js';
 
 const MIN_CONTENT_HEIGHT = 12;
 const MIN_CONTENT_WIDTH = 40;
-// Lines used by chrome around the content area (nav bar, title, footer, help text, etc.)
+// 内容区域周围的 chrome 占用行数（导航栏、标题、footer、帮助文本等）
 const CONTENT_CHROME_OVERHEAD = 15;
 
 export function AskUserQuestionPermissionRequest(props: PermissionRequestProps): React.ReactNode {
@@ -55,73 +55,72 @@ function AskUserQuestionPermissionRequestBody({
 }: PermissionRequestProps & {
   highlight: CliHighlight | null;
 }): React.ReactNode {
-  // Memoize parse result: safeParse returns a new object (and new `questions`
-  // array) on every call. Without this, the render-body ref writes below make
-  // React Compiler bail out on this component, so nothing is auto-memoized —
-  // `questions` changes identity every render, and the `globalContentHeight`
-  // useMemo (which runs applyMarkdown over every preview) never hits its cache.
-  // `toolUseConfirm.input` is stable for the dialog's lifetime (this tool
-  // returns `behavior: 'ask'` directly and never goes through the classifier).
+  // memo 化解析结果：safeParse 每次调用都返回新对象（和新 `questions`
+  // 数组）。若不 memo，下方渲染体中的 ref 写入会使 React Compiler 跳过此
+  // 组件，导致没有任何自动 memo 化——`questions` 每次渲染都换标识，
+  // `globalContentHeight` useMemo（对每个预览运行 applyMarkdown）永远
+  // 命中不了缓存。`toolUseConfirm.input` 在对话框生命周期内稳定
+  // （此工具直接返回 `behavior: 'ask'`，从不经过分类器）。
   const result = useMemo(() => AskUserQuestionTool.inputSchema.safeParse(toolUseConfirm.input), [toolUseConfirm.input]);
   const questions = result.success ? result.data.questions || [] : [];
   const { rows: terminalRows } = useTerminalSize();
   const [theme] = useTheme();
 
-  // Calculate consistent content dimensions across all questions to prevent layout shifts.
-  // globalContentHeight represents the total height of the content area below the nav/title,
-  // INCLUDING footer and help text, so all views (questions, previews, submit) match.
+  // 为所有问题计算一致的内容尺寸，防止布局抖动。
+  // globalContentHeight 表示 nav/title 下方内容区域的总高度，
+  // 包含 footer 和帮助文本，使所有视图（问题、预览、提交）保持一致。
   const { globalContentHeight, globalContentWidth } = useMemo(() => {
     let maxHeight = 0;
     let maxWidth = 0;
 
-    // Footer (divider + "Chat about this" + optional plan) + help text ≈ 7 lines
+    // footer（分隔线 + "Chat about this" + 可选 plan）+ 帮助文本 ≈ 7 行
     const FOOTER_HELP_LINES = 7;
 
-    // Cap at terminal height minus chrome overhead, but ensure at least MIN_CONTENT_HEIGHT
+    // 上限为终端高度减去 chrome 开销，但确保至少为 MIN_CONTENT_HEIGHT
     const maxAllowedHeight = Math.max(MIN_CONTENT_HEIGHT, terminalRows - CONTENT_CHROME_OVERHEAD);
 
-    // PREVIEW_OVERHEAD matches the constant in PreviewQuestionView.tsx — lines
-    // used by non-preview elements within the content area (margins, borders,
-    // notes, footer, help text). Used here to cap preview content so that
-    // globalContentHeight reflects the *truncated* height, not the raw height.
+    // PREVIEW_OVERHEAD 与 PreviewQuestionView.tsx 中的常量一致——内容
+    // 区域内非预览元素（外边距、边框、备注、footer、帮助文本）占用的
+    // 行数。此处用于截断预览内容上限，使 globalContentHeight 反映的是
+    // 截断后高度，而非原始高度。
     const PREVIEW_OVERHEAD = 11;
 
     for (const q of questions) {
       const hasPreview = q.options.some(opt => opt.preview);
 
       if (hasPreview) {
-        // Compute the max preview content lines that would actually display
-        // after truncation, matching the logic in PreviewQuestionView.
+        // 计算截断后实际会显示的最大预览内容行数，
+        // 与 PreviewQuestionView 中的逻辑保持一致。
         const maxPreviewContentLines = Math.max(1, maxAllowedHeight - PREVIEW_OVERHEAD);
 
-        // For preview questions, total = side-by-side height + footer/help
-        // Side-by-side = max(left panel, right panel)
-        // Right panel = preview box (content + borders + truncation indicator) + notes
+        // 对于带预览的问题，总高度 = 并排高度 + footer/help
+        // 并排高度 = max(左面板, 右面板)
+        // 右面板 = 预览框（内容 + 边框 + 截断指示器）+ 备注
         let maxPreviewBoxHeight = 0;
         for (const opt of q.options) {
           if (opt.preview) {
-            // Measure the *rendered* markdown (same transform as PreviewBox) so
-            // that line counts and widths match what will actually be displayed.
-            // applyMarkdown removes code fence markers, bold/italic syntax, etc.
+            // 测量渲染后的 markdown（与 PreviewBox 同一转换），使
+            // 行数和宽度与实际显示一致。
+            // applyMarkdown 会移除代码围栏标记、粗体/斜体语法等。
             const rendered = applyMarkdown(opt.preview, theme, highlight);
             const previewLines = rendered.split('\n');
             const isTruncated = previewLines.length > maxPreviewContentLines;
             const displayedLines = isTruncated ? maxPreviewContentLines : previewLines.length;
-            // Preview box: displayed content + truncation indicator + 2 borders
+            // 预览框：显示内容 + 截断指示器 + 2 行边框
             maxPreviewBoxHeight = Math.max(maxPreviewBoxHeight, displayedLines + (isTruncated ? 1 : 0) + 2);
             for (const line of previewLines) {
               maxWidth = Math.max(maxWidth, stringWidth(line));
             }
           }
         }
-        // Right panel: preview box + notes (2 lines with margin)
+        // 右面板：预览框 + 备注（含外边距共 2 行）
         const rightPanelHeight = maxPreviewBoxHeight + 2;
-        // Left panel: options + description
+        // 左面板：选项 + 描述
         const leftPanelHeight = q.options.length + 2;
         const sideByHeight = Math.max(leftPanelHeight, rightPanelHeight);
         maxHeight = Math.max(maxHeight, sideByHeight + FOOTER_HELP_LINES);
       } else {
-        // For regular questions: options + "Other" + footer/help
+        // 对于常规问题：选项 + "Other" + footer/help
         maxHeight = Math.max(maxHeight, q.options.length + 3 + FOOTER_HELP_LINES);
       }
     }
@@ -197,11 +196,11 @@ function AskUserQuestionPermissionRequestBody({
   const isInSubmitView = currentQuestionIndex === (questions?.length || 0);
   const allQuestionsAnswered = questions?.every((q: Question) => q?.question && !!answers[q.question]) ?? false;
 
-  // Hide submit tab when there's only one question and it's single-select (auto-submit scenario)
+  // 当只有一个问题且为单选时隐藏提交标签页（自动提交场景）
   const hideSubmitTab = questions.length === 1 && !questions[0]?.multiSelect;
 
   const handleCancel = useCallback(() => {
-    // Log rejection with metadata source if present
+    // 如有元数据来源，记录拒绝事件
     if (metadataSource) {
       logEvent('tengu_ask_user_question_rejected', {
         source: metadataSource as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -281,7 +280,7 @@ Questions asked and answers provided:\n${questionsWithAnswers}`;
 
   const submitAnswers = useCallback(
     async (answersToSubmit: Record<string, string>) => {
-      // Log acceptance with metadata source if present
+      // 如有元数据来源，记录接受事件
       if (metadataSource) {
         logEvent('tengu_ask_user_question_accepted', {
           source: metadataSource as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -291,12 +290,12 @@ Questions asked and answers provided:\n${questionsWithAnswers}`;
           interviewPhaseEnabled: isInPlanMode && isPlanModeInterviewPhaseEnabled(),
         });
       }
-      // Build annotations from questionStates (e.g., selected preview, user notes)
+      // 从 questionStates 构建标注（例如选中的预览、用户备注）
       const annotations: Record<string, { preview?: string; notes?: string }> = {};
       for (const q of questions) {
         const answer = answersToSubmit[q.question];
         const notes = questionStates[q.question]?.textInputValue;
-        // Find the selected option's preview content
+        // 查找所选选项的预览内容
         const selectedOption = answer ? q.options.find(opt => opt.label === answer) : undefined;
         const preview = selectedOption?.preview;
         if (preview || notes?.trim()) {
@@ -349,7 +348,7 @@ Questions asked and answers provided:\n${questionsWithAnswers}`;
         }
       }
 
-      // For single-select with only one question, auto-submit instead of showing review screen
+      // 单选且只有一个问题时，自动提交而非显示审阅界面
       const isSingleQuestion = questions.length === 1;
       if (!isMultiSelect && isSingleQuestion && shouldAdvance) {
         const updatedAnswers = {
@@ -376,10 +375,10 @@ Questions asked and answers provided:\n${questionsWithAnswers}`;
     }
   }
 
-  // When submit tab is hidden, don't allow navigating past the last question
+  // 当提交标签页被隐藏时，不允许导航超过最后一个问题
   const maxIndex = hideSubmitTab ? (questions?.length || 1) - 1 : questions?.length || 0;
 
-  // Bounded navigation callbacks for question tabs
+  // 问题标签页的有界导航回调
   const handleTabPrev = useCallback(() => {
     if (currentQuestionIndex > 0) {
       prevQuestion();
@@ -392,11 +391,12 @@ Questions asked and answers provided:\n${questionsWithAnswers}`;
     }
   }, [currentQuestionIndex, maxIndex, nextQuestion]);
 
-  // Use keybindings system for question navigation (left/right arrows, tab/shift+tab)
-  // Raw useInput doesn't work because the keybinding system resolves left/right arrows
-  // to tabs:next/tabs:previous and may stopImmediatePropagation before useInput fires.
-  // Child components (e.g., PreviewQuestionView) also register their own tabs:next/tabs:previous
-  // keybindings to ensure reliable handling regardless of listener ordering.
+  // 使用快捷键系统进行问题导航（左右方向键、tab/shift+tab）
+  // 直接使用 useInput 不起作用，因为快捷键系统会将左右方向键解析为
+  // tabs:next/tabs:previous，并在 useInput 触发前可能调用
+  // stopImmediatePropagation。子组件（如 PreviewQuestionView）也会注册
+  // 自己的 tabs:next/tabs:previous 快捷键，以确保无论监听器顺序如何
+  // 都能可靠处理。
   useKeybindings(
     {
       'tabs:previous': handleTabPrev,
@@ -453,7 +453,7 @@ Questions asked and answers provided:\n${questionsWithAnswers}`;
     );
   }
 
-  // This should never be reached
+  // 此处理不应被到达
   return null;
 }
 

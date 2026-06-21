@@ -1,6 +1,6 @@
 import type { AgentProgress, RunProgress } from '../progress/store.js'
 
-/** run status -> dot character (used by top tab). */
+/** run 状态 -> 点字符（用于顶部 tab）。 */
 export const STATUS_DOT: Record<RunProgress['status'], string> = {
   running: '●',
   completed: '✓',
@@ -8,7 +8,7 @@ export const STATUS_DOT: Record<RunProgress['status'], string> = {
   killed: '■',
 }
 
-/** run status -> ink theme color token (follows existing WorkflowList palette). */
+/** run 状态 -> ink theme color token（沿用现有 WorkflowList 配色）。 */
 export const RUN_STATUS_COLOR: Record<RunProgress['status'], string> = {
   running: 'warning',
   completed: 'success',
@@ -16,7 +16,7 @@ export const RUN_STATUS_COLOR: Record<RunProgress['status'], string> = {
   killed: 'subtle',
 }
 
-/** run status -> display text (used by header; aligns with reference image done/running). */
+/** run 状态 -> 展示文本（用于头部；与参考图 done/running 一致）。 */
 export const RUN_STATUS_TEXT: Record<RunProgress['status'], string> = {
   running: 'running',
   completed: 'done',
@@ -24,7 +24,7 @@ export const RUN_STATUS_TEXT: Record<RunProgress['status'], string> = {
   killed: 'killed',
 }
 
-/** merged phase status in the sidebar (includes pending: declared by meta but not started). */
+/** 侧栏中合并 phase 的状态（包含 pending：meta 声明但尚未启动）。 */
 export type PhaseStatus = 'running' | 'done' | 'pending'
 
 export const PHASE_MARK: Record<PhaseStatus, string> = {
@@ -39,12 +39,12 @@ export const PHASE_COLOR: Record<PhaseStatus, string> = {
   pending: 'subtle',
 }
 
-/** visual for an agent row: mark character + color (running has the mark overridden by a spinner animation in UI). */
+/** agent 行的视觉表示：mark 字符 + 颜色（running 的 mark 在 UI 中被 spinner 动画覆盖）。 */
 export type AgentVisual = { mark: string; color: string }
 
 /**
- * agent status -> visual.
- * - running -> ● warning (UI overrides mark with spinner animation)
+ * agent 状态 -> 视觉。
+ * - running -> ● warning（UI 用 spinner 动画覆盖 mark）
  * - done·dead -> ✗ error
  * - done·ok -> ✓ success
  */
@@ -54,15 +54,15 @@ export function agentVisual(a: AgentProgress): AgentVisual {
   return { mark: '✓', color: 'success' }
 }
 
-/** token count -> display string (<1000 keeps the raw value; otherwise keeps 1 decimal + k). */
+/** token 数 -> 展示字符串（<1000 保留原值；否则保留 1 位小数 + k）。 */
 export function formatTokenCount(n: number | undefined): string {
   if (!n) return '0'
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n)
 }
 
 /**
- * right-side stats text for an agent row: `model · Nk tok · N tool`.
- * Omits the prefix when there is no model; token/tool refresh in real time via agent_progress while running.
+ * agent 行右侧的统计文本：`model · Nk tok · N tool`。
+ * 没有 model 时省略前缀；运行时 token/tool 由 agent_progress 实时刷新。
  */
 export function agentMetaText(a: AgentProgress): string {
   const parts: string[] = []

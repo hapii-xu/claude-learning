@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { extraUsage } from 'src/commands/extra-usage/index.js';
 import { Box, Text } from '@anthropic/ink';
 import { useClaudeAiLimits } from 'src/services/claudeAiLimitsHook.js';
-import { shouldProcessMockLimits } from 'src/services/rateLimitMocking.js'; // Used for /mock-limits command
+import { shouldProcessMockLimits } from 'src/services/rateLimitMocking.js'; // 用于 /mock-limits 命令
 import { getRateLimitTier, getSubscriptionType, isClaudeAISubscriber } from 'src/utils/auth.js';
 import { hasClaudeAiBillingAccess } from 'src/utils/billing.js';
 import { MessageResponse } from '../MessageResponse.js';
@@ -64,16 +64,16 @@ export function RateLimitMessage({ text, onOpenRateLimitOptions }: RateLimitMess
   const rateLimitTier = getRateLimitTier();
   const isTeamOrEnterprise = subscriptionType === 'team' || subscriptionType === 'enterprise';
   const isMax20x = rateLimitTier === 'default_claude_max_20x';
-  // Always show upsell when using /mock-limits command, otherwise show for subscribers
+  // 使用 /mock-limits 命令时总是显示 upsell，否则为 subscribers 显示
   const shouldShowUpsell = shouldProcessMockLimits() || isClaudeAISubscriber();
 
   const canSeeRateLimitOptionsUpsell = shouldShowUpsell && !isMax20x;
 
   const [hasOpenedInteractiveMenu, setHasOpenedInteractiveMenu] = useState(false);
 
-  // Check actual rate limit status - only auto-open if user is currently rate limited
-  // AND we've verified this with the API (resetsAt is only set after API response).
-  // This prevents false alerts when resuming sessions with old rate limit messages.
+  // 检查实际的 rate limit 状态 - 仅在用户当前被 rate limited
+  // 并且我们已通过 API 验证（resetsAt 仅在 API 响应后设置）时才自动打开。
+  // 这防止了在恢复带有旧 rate limit 消息的会话时出现误报。
   const claudeAiLimits = useClaudeAiLimits();
   const isCurrentlyRateLimited =
     claudeAiLimits.status === 'rejected' && claudeAiLimits.resetsAt !== undefined && !claudeAiLimits.isUsingOverage;

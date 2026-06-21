@@ -15,9 +15,9 @@ type Props = {
 };
 
 /**
- * Detail dialog for MCP monitor tasks shown in the Shift+Down background
- * tasks overlay. Displays the server name, resource URI, and current status.
- * Follows the DreamDetailDialog/ShellDetailDialog pattern.
+ * Shift+Down 后台 task 叠层中展示的 MCP monitor task 详情对话框。
+ * 展示服务器名称、resource URI 和当前状态。
+ * 沿用 DreamDetailDialog/ShellDetailDialog 模式。
  */
 export function MonitorMcpDetailDialog({ task, onBack, onKill }: Props): React.ReactNode {
   const elapsedTime = useElapsedTime(task.startTime, task.status === 'running', 1000, 0);

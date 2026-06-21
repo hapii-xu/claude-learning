@@ -47,14 +47,14 @@ export function BackgroundTaskStatus({
     [tasks],
   );
 
-  // Check if all tasks are in-process teammates (team mode)
-  // In spinner-tree mode, don't show teammate pills (teammates appear in the spinner tree)
+  // 检查是否所有 task 都是 in-process teammate（team 模式）
+  // 在 spinner-tree 模式下，不显示 teammate pill（teammate 出现在 spinner tree 中）
   const expandedView = useAppState(s => s.expandedView);
   const showSpinnerTree = expandedView === 'teammates';
   const allTeammates =
     !showSpinnerTree && runningTasks.length > 0 && runningTasks.every(t => t.type === 'in_process_teammate');
 
-  // Memoize teammate-related computations at the top level (rules of hooks)
+  // 在顶层 memoize teammate 相关计算（遵循 hooks 规则）
   const teammateEntries = useMemo(
     () =>
       runningTasks
@@ -63,11 +63,11 @@ export function BackgroundTaskStatus({
     [runningTasks],
   );
 
-  // Build array of all pills with their activity state
-  // Each pill is "@{name}" and separator is " " (1 char)
-  // Sort idle agents to the end, but only when not in selection mode
-  // to avoid reordering while user is arrowing through the list
-  // "main" always stays first regardless of idle state
+  // 构建包含所有 pill 及其活动状态的数组
+  // 每个 pill 为 "@{name}"，分隔符为 " "（1 字符）
+  // 把空闲 agent 排到末尾，但仅在非选择模式下执行
+  // 以避免用户在列表中方向键导航时重排
+  // "main" 无论空闲与否始终排在最前
   const allPills = useMemo(() => {
     const mainPill = {
       name: 'main',
@@ -83,28 +83,28 @@ export function BackgroundTaskStatus({
       taskId: t.id,
     }));
 
-    // Only sort teammates when not selecting to avoid reordering during navigation
+    // 仅在非选择时排序 teammate，以避免导航过程中重排
     if (!tasksSelected) {
       teammatePills.sort((a, b) => {
-        // Active agents first, idle agents last
+        // 活跃 agent 优先，空闲 agent 靠后
         if (a.isIdle !== b.isIdle) return a.isIdle ? 1 : -1;
-        return 0; // Keep original order within each group
+        return 0; // 在每组内保持原顺序
       });
     }
 
-    // main always first, then sorted teammates
+    // main 始终在前，然后是已排序的 teammate
     const pills = [mainPill, ...teammatePills];
 
-    // Add idx after sorting
+    // 排序后再加上 idx
     return pills.map((pill, i) => ({ ...pill, idx: i }));
   }, [teammateEntries, isLeaderIdle, tasksSelected]);
 
-  // Calculate pill widths (including separator space, except first)
+  // 计算 pill 宽度（包含分隔符空格，第一个除外）
   const pillWidths = useMemo(
     () =>
       allPills.map((pill, i) => {
         const pillText = `@${pill.name}`;
-        // First pill has no leading space, others have 1 space separator
+        // 第一个 pill 没有前导空格，其他 pill 有 1 个空格作为分隔符
         return stringWidth(pillText) + (i > 0 ? 1 : 0);
       }),
     [allPills],
@@ -112,18 +112,18 @@ export function BackgroundTaskStatus({
 
   if (allTeammates || (!showSpinnerTree && isViewingTeammate)) {
     const selectedIdx = tasksSelected ? teammateFooterIndex : -1;
-    // Which agent is currently foregrounded (bold)
+    // 当前前台 agent 是哪一个（加粗显示）
     const viewedIdx = viewingAgentTaskId ? teammateEntries.findIndex(t => t.id === viewingAgentTaskId) + 1 : 0; // 0 = main/leader
 
-    // Calculate available width for pills
-    // Reserve space for: arrows, hint, and minimal padding
-    // Pills are rendered on their own line when in team mode
-    const ARROW_WIDTH = 2; // arrow char + space
-    const HINT_WIDTH = 20; // shift+↓ to expand
-    const PADDING = 4; // minimal safety margin
+    // 计算 pill 可用宽度
+    // 预留空间：箭头、提示、最小内边距
+    // 在 team 模式下 pill 单独占一行渲染
+    const ARROW_WIDTH = 2; // 箭头字符 + 空格
+    const HINT_WIDTH = 20; // shift+↓ 展开
+    const PADDING = 4; // 最小安全余量
     const availableWidth = Math.max(20, columns - HINT_WIDTH - PADDING);
 
-    // Calculate visible window of pills
+    // 计算 pill 的可见窗口
     const { startIndex, endIndex, showLeftArrow, showRightArrow } = calculateHorizontalScrollWindow(
       pillWidths,
       availableWidth,
@@ -137,8 +137,8 @@ export function BackgroundTaskStatus({
       <>
         {showLeftArrow && <Text dimColor>{figures.arrowLeft} </Text>}
         {visiblePills.map((pill, i) => {
-          // First visible pill has no leading separator
-          // (left arrow already provides spacing if present)
+          // 第一个可见 pill 没有前导分隔符
+          // （若存在左箭头，已提供间距）
           const needsSeparator = i > 0;
           return (
             <React.Fragment key={pill.name}>
@@ -165,8 +165,8 @@ export function BackgroundTaskStatus({
     );
   }
 
-  // In spinner-tree mode, don't show any footer status for teammates
-  // (they appear in the spinner tree above)
+  // 在 spinner-tree 模式下，不显示任何 teammate 的 footer 状态
+  // （它们出现在上方的 spinner tree 中）
   if (shouldHideTasksFooter(tasks ?? {}, showSpinnerTree)) {
     return null;
   }
@@ -196,7 +196,7 @@ type AgentPillProps = {
 
 function AgentPill({ name, color, isSelected, isViewed, isIdle, onClick }: AgentPillProps): React.ReactNode {
   const [hover, setHover] = useState(false);
-  // Hover mirrors the keyboard-selected look so the affordance is familiar.
+  // hover 复刻键盘选中的外观，让交互可预期。
   const highlighted = isSelected || hover;
 
   let label: React.ReactNode;

@@ -39,7 +39,7 @@ export function routeWorkflowKey(
   key: KeyEvent,
   mode: WorkflowKeyboardMode = 'normal',
 ): WorkflowKeyAction | null {
-  // confirm mode: only y/Enter confirms, n/Esc/q cancels, all other keys are swallowed (prevent mis-touch)
+  // 确认模式：只有 y/Enter 确认，n/Esc/q 取消，其他按键一律吞掉（防止误触）
   if (mode === 'confirm') {
     if (input === 'y' || input === 'Y' || key.return) return 'confirmYes'
     if (input === 'n' || input === 'N' || key.escape || input === 'q') {
@@ -47,11 +47,11 @@ export function routeWorkflowKey(
     }
     return null
   }
-  // @anthropic/ink sets key.tab to true for the Tab key; some environments fall back to '\t'
+  // @anthropic/ink 把 Tab 键的 key.tab 设为 true；部分环境回退到 '\t'
   if (key.tab || input === '\t') return key.shift ? 'prevTab' : 'nextTab'
   if (key.escape || input === 'q') return 'quit'
-  // Capital K = kill the entire workflow; lowercase x = kill the currently selected agent (agents column only).
-  // Case distinction avoids x accidentally triggering workflow kill; K explicitly requires Shift, hinting at a "heavy operation".
+  // 大写 K = 杀掉整个 workflow；小写 x = 杀掉当前选中的 agent（仅 agents 列）。
+  // 大小写区分避免 x 意外触发 workflow kill；K 显式要求 Shift，暗示这是"重操作"。
   if (input === 'K') return 'killWorkflow'
   if (input === 'x') return 'killAgent'
   if (input === 'r') return 'resume'
@@ -63,7 +63,7 @@ export function routeWorkflowKey(
   return null
 }
 
-/** Focus model callbacks (injected by WorkflowsPanel). */
+/** 聚焦模型回调（由 WorkflowsPanel 注入）。 */
 export type WorkflowKeyboardHandlers = {
   nextTab: () => void
   prevTab: () => void
@@ -71,16 +71,16 @@ export type WorkflowKeyboardHandlers = {
   focusRight: () => void
   moveUp: () => void
   moveDown: () => void
-  /** Request killing the currently selected agent (panel pops a Dialog for secondary confirmation). */
+  /** 请求杀掉当前选中的 agent（面板弹出 Dialog 二次确认）。 */
   killAgent: () => void
-  /** Request killing the entire workflow (panel pops a Dialog for secondary confirmation). */
+  /** 请求杀掉整个 workflow（面板弹出 Dialog 二次确认）。 */
   killWorkflow: () => void
   resumeFocused: () => void
   newRun: () => void
   quit: () => void
-  /** User confirms in confirm mode (y/Enter). */
+  /** 用户在确认模式下确认（y/Enter）。 */
   confirmYes: () => void
-  /** User cancels in confirm mode (n/Esc/q). */
+  /** 用户在确认模式下取消（n/Esc/q）。 */
   confirmNo: () => void
 }
 

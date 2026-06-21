@@ -3,11 +3,11 @@ import { SentryErrorBoundary } from '../../components/SentryErrorBoundary.js';
 import { WorkflowsPanel } from './WorkflowsPanel.js';
 
 /**
- * local-jsx call for /workflows: builds the panel element and returns it for Ink to render.
+ * /workflows 的 local-jsx call：构建面板元素并返回给 Ink 渲染。
  *
- * Wrapped in SentryErrorBoundary: when useSyncExternalStore / listNamed / child components
- * throw, the exception must not break through to the REPL top level and crash the whole session; the boundary falls back to a local error card.
- * onDone/context are injected by the command runtime; args is unused (the panel has no parameterized behavior).
+ * 包在 SentryErrorBoundary 里：当 useSyncExternalStore / listNamed / 子组件
+ * 抛错时，异常不能穿透到 REPL 顶层导致整个 session 崩溃；boundary 兜底为本地错误卡片。
+ * onDone/context 由 command 运行时注入；args 未使用（面板没有参数化行为）。
  */
 export const call: LocalJSXCommandCall = async (onDone, context, _args) => (
   <SentryErrorBoundary name="WorkflowsPanel">

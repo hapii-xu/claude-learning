@@ -1,9 +1,9 @@
 /**
- * useProactive — React hook that drives tick generation for proactive mode.
+ * useProactive —— 驱动 proactive 模式 tick 生成的 React hook。
  *
- * Mounted inside REPL.tsx when feature('PROACTIVE') || feature('KAIROS').
- * Generates <tick>HH:MM:SS</tick> prompts at a fixed interval while
- * proactive mode is active and not blocked.
+ * 在 feature('PROACTIVE') || feature('KAIROS') 时挂载到 REPL.tsx 中。
+ * 在 proactive 模式激活且未阻塞时，以固定间隔生成
+ * <tick>HH:MM:SS</tick> 提示。
  */
 import { useEffect, useRef } from 'react'
 import type { QueuedCommand } from '../types/textInputTypes.js'
@@ -20,8 +20,8 @@ import {
   shouldTick,
 } from './index.js'
 
-/** Default interval between ticks (ms). Prompt cache TTL is ~5 min so we
- *  stay well under that to keep the cache warm. */
+/** tick 之间的默认间隔（毫秒）。提示缓存 TTL 约为 5 分钟，因此我们
+ *  远低于此值以保持缓存温热。 */
 const TICK_INTERVAL_MS = 30_000
 
 type UseProactiveOpts = {
@@ -50,9 +50,9 @@ export function useProactive(opts: UseProactiveOpts): void {
       timer = setTimeout(() => {
         timer = null
 
-        // Guard: skip tick if any blocking condition is met
+        // 守卫：遇到任何阻塞条件时跳过 tick
         if (!shouldTick()) {
-          // Reschedule — conditions may clear later
+          // 重新安排——条件稍后可能清除
           scheduleTick()
           return
         }
@@ -64,8 +64,8 @@ export function useProactive(opts: UseProactiveOpts): void {
           isInPlanMode,
         } = optsRef.current
 
-        // Don't fire while a query is in-flight, plan mode is active,
-        // a local JSX UI is showing, or commands are queued
+        // 当查询正在进行、计划模式激活、本地 JSX UI 显示中
+        // 或有命令排队时不触发
         if (
           isLoading ||
           isInPlanMode ||
@@ -91,10 +91,9 @@ export function useProactive(opts: UseProactiveOpts): void {
           const queuedCommands: QueuedCommand[] = []
           try {
             for (const command of commands) {
-              // Always queue proactive turns. This avoids races where the prompt
-              // is built asynchronously, a user turn starts meanwhile, and a
-              // direct-submit path would silently drop the autonomy turn after
-              // consuming its heartbeat due-state.
+              // 始终排队 proactive 回合。这避免了以下竞态：提示异步构建中，
+              // 同时开始了用户回合，而直接提交路径会在消费其心跳到期状态后
+              // 静默丢弃自主回合。
               optsRef.current.onQueueTick(command)
               queuedCommands.push(command)
             }
@@ -116,7 +115,7 @@ export function useProactive(opts: UseProactiveOpts): void {
             generating = false
           })
 
-        // Schedule next tick
+        // 安排下一次 tick
         scheduleTick()
       }, TICK_INTERVAL_MS)
     }
@@ -132,7 +131,7 @@ export function useProactive(opts: UseProactiveOpts): void {
       setNextTickAt(null)
     }
   }, [
-    // Re-mount when proactive state changes
+    // proactive 状态变化时重新挂载
     isProactiveActive(),
     isProactivePaused(),
     isContextBlocked(),

@@ -385,6 +385,78 @@ const mergedTools = assembleToolPool(permCtx, mcpTools)
 
 三件套都在 `CORE_TOOLS` 白名单中，但只有前两个对模型可见（`getTools()` 过滤掉 `SyntheticOutput`）。
 
+### 5a. `packages/agent-tools/` vs `packages/builtin-tools/` 分包边界
+
+两个 package 都通过 `@claude-code-best/*` 命名空间导出，但分工不同：
+
+| 维度 | `builtin-tools/` | `agent-tools/` |
+|---|---|---|
+| 定位 | Claude Code 全部内置工具实现（~60 个） | Agent 子系统专用工具集 |
+| 导出方式 | `@claude-code-best/builtin-tools` | `@claude-code-best/agent-tools` |
+| 典型内容 | BashTool、FileEditTool、AgentTool、SearchExtraTools 等 | Agent 协作、swarm、任务分发相关工具 |
+| 依赖关系 | 独立（不依赖 agent-tools） | 可能复用 builtin-tools 中的工具 |
+
+**实际使用**：`src/tools.ts` 的 `getAllBaseTools()` 从 `builtin-tools` 导入；`agent-tools` 包主要在 Agent 模式（`COORDINATOR_MODE`、`FORK_SUBAGENT`）下被加载。修改内置工具时只改 `builtin-tools`；涉及 Agent 协作协议时关注 `agent-tools`。
+
+### 5b. Hook 系统详细机制
+
+PreToolUse / PostToolUse hooks 是工具系统对外暴露的**可编程扩展点**，配置在 `settings.json` 中：
+
+```jsonc
+// ~/.claude/settings.json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",           // 匹配工具名（支持通配符）
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[LOG] bash about to run'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",              // 匹配所有工具
+        "hooks": [{ "type": "command", "command": "/usr/local/bin/audit-tool-use.sh" }]
+      }
+    ]
+  }
+}
+```
+
+**执行时机**（对应 `runToolUse` 流水线）：
+- **PreToolUse**：第 5 步（权限通过后、`tool.call()` 前）
+- **PostToolUse**：第 7 步（`tool.call()` 返回后、结果包装前）
+
+**PostToolUse 的特殊能力**：hook 脚本可以通过 stdout 输出 JSON 来**修改工具结果**：
+```json
+{ "type": "modify_result", "content": "替换后的工具结果文本" }
+```
+
+**Hook 执行上下文**：shell 脚本在用户 shell 中运行，环境变量包含：
+- `CLAUDE_TOOL_NAME` — 当前工具名
+- `CLAUDE_TOOL_INPUT` — 工具输入的 JSON 字符串
+- `CLAUDE_TOOL_RESULT`（PostToolUse）— 工具输出 JSON
+
+### 5c. 工具结果截断与错误类型
+
+**`maxResultSizeChars` 截断**：每个工具可在 `buildTool` 时声明 `maxResultSizeChars`。`toolExecution.ts` 在步骤 7 中检查结果长度，超出则截断并附加 `[...truncated N chars]` 标记。目的是防止单次工具结果撑爆 context window。
+
+**错误类型体系**（`toolExecution.ts` 内部）：
+
+| 错误类型 | 触发位置 | 结果形式 |
+|---|---|---|
+| `ToolValidationError` | 步骤 3 `validateInput()` | `is_error: true` + 错误消息 |
+| `ToolPermissionError` | 步骤 4 `canUseTool()` deny | `type: 'tool_result'` + rejection 文本 |
+| `AbortError` | 步骤 2 中断检查 | `is_error: true` + abort 消息 |
+| `UnknownToolError` | 步骤 1 找不到工具 | `is_error: true` + "未知工具名" |
+| `tool_use_error`（通用） | 步骤 6 `tool.call()` throw | `is_error: true` + 异常堆栈/消息 |
+
+所有错误最终都包装为 `ToolResultBlockParam`（`type: 'tool_result', is_error: true`），模型可读取错误信息并决定重试或修正。
+
 ### 5. 权限系统的接入面（导览）
 
 权限系统的完整机制将在下一篇专题讲解，这里只建立最小认知：

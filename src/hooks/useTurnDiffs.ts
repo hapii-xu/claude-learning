@@ -36,9 +36,9 @@ type TurnDiffCache = {
 function isFileEditResult(result: unknown): result is FileEditResult {
   if (!result || typeof result !== 'object') return false
   const r = result as Record<string, unknown>
-  // FileEditTool: has structuredPatch with content
-  // FileWriteTool (update): has structuredPatch with content
-  // FileWriteTool (create): has type='create' and content (structuredPatch is empty)
+  // FileEditTool：有带内容的 structuredPatch
+  // FileWriteTool（update）：有带内容的 structuredPatch
+  // FileWriteTool（create）：有 type='create' 和 content（structuredPatch 为空）
   const hasFilePath = typeof r.filePath === 'string'
   const hasStructuredPatch =
     Array.isArray(r.structuredPatch) && r.structuredPatch.length > 0
@@ -71,7 +71,7 @@ function getUserPromptPreview(message: Message): string {
   if (message.type !== 'user') return ''
   const content = message.message!.content
   const text = typeof content === 'string' ? content : ''
-  // Truncate to ~30 chars
+  // 截断到约 30 个字符
   if (text.length <= 30) return text
   return text.slice(0, 29) + '…'
 }
@@ -91,11 +91,11 @@ function computeTurnStats(turn: TurnDiff): void {
 }
 
 /**
- * Extract turn-based diffs from messages.
- * A turn is defined as a user prompt followed by assistant responses and tool results.
- * Each turn with file edits is included in the result.
+ * 从消息中提取基于轮次的 diff。
+ * 一个轮次定义为一个用户提示后跟助手响应和工具结果。
+ * 每个有文件编辑的轮次都会包含在结果中。
  *
- * Uses incremental accumulation - only processes new messages since last render.
+ * 使用增量累积 —— 仅处理自上次渲染以来的新消息。
  */
 export function useTurnDiffs(messages: Message[]): TurnDiff[] {
   const cache = useRef<TurnDiffCache>({
@@ -108,7 +108,7 @@ export function useTurnDiffs(messages: Message[]): TurnDiff[] {
   return useMemo(() => {
     const c = cache.current
 
-    // Reset if messages shrunk (user rewound conversation)
+    // 如果消息减少则重置（用户回退了对话）
     if (messages.length < c.lastProcessedIndex) {
       c.completedTurns = []
       c.currentTurn = null
@@ -116,19 +116,19 @@ export function useTurnDiffs(messages: Message[]): TurnDiff[] {
       c.lastTurnIndex = 0
     }
 
-    // Process only new messages
+    // 仅处理新消息
     for (let i = c.lastProcessedIndex; i < messages.length; i++) {
       const message = messages[i]
       if (!message || message.type !== 'user') continue
 
-      // Check if this is a user prompt (not a tool result)
+      // 检查这是否是用户提示（而不是工具结果）
       const isToolResult =
         message.toolUseResult ||
         (Array.isArray(message.message!.content) &&
           message.message!.content[0]?.type === 'tool_result')
 
       if (!isToolResult && !message.isMeta) {
-        // Start a new turn on user prompt
+        // 在用户提示时开始一个新轮次
         if (c.currentTurn && c.currentTurn.files.size > 0) {
           computeTurnStats(c.currentTurn)
           c.completedTurns.push(c.currentTurn)
@@ -143,13 +143,13 @@ export function useTurnDiffs(messages: Message[]): TurnDiff[] {
           stats: { filesChanged: 0, linesAdded: 0, linesRemoved: 0 },
         }
       } else if (c.currentTurn && message.toolUseResult) {
-        // Collect file edits from tool results
+        // 从工具结果收集文件编辑
         const result = message.toolUseResult
         if (isFileEditResult(result)) {
           const { filePath, structuredPatch } = result
           const isNewFile = 'type' in result && result.type === 'create'
 
-          // Get or create file entry
+          // 获取或创建文件条目
           let fileEntry = c.currentTurn.files.get(filePath)
           if (!fileEntry) {
             fileEntry = {
@@ -162,7 +162,7 @@ export function useTurnDiffs(messages: Message[]): TurnDiff[] {
             c.currentTurn.files.set(filePath, fileEntry)
           }
 
-          // For new files, generate synthetic hunk from content
+          // 对于新文件，从内容生成合成 hunk
           if (
             isNewFile &&
             structuredPatch.length === 0 &&
@@ -180,16 +180,16 @@ export function useTurnDiffs(messages: Message[]): TurnDiff[] {
             fileEntry.hunks.push(syntheticHunk)
             fileEntry.linesAdded += lines.length
           } else {
-            // Append hunks (same file may be edited multiple times in a turn)
+            // 追加 hunks（同一文件可能在一个轮次中被多次编辑）
             fileEntry.hunks.push(...structuredPatch)
 
-            // Update line counts
+            // 更新行计数
             const { added, removed } = countHunkLines(structuredPatch)
             fileEntry.linesAdded += added
             fileEntry.linesRemoved += removed
           }
 
-          // If file was created and then edited, it's still a new file
+          // 如果文件先创建后编辑，它仍然是新文件
           if (isNewFile) {
             fileEntry.isNewFile = true
           }
@@ -199,15 +199,15 @@ export function useTurnDiffs(messages: Message[]): TurnDiff[] {
 
     c.lastProcessedIndex = messages.length
 
-    // Build result: completed turns + current turn if it has files
+    // 构建结果：已完成的轮次 + 当前轮次（如果有文件）
     const result = [...c.completedTurns]
     if (c.currentTurn && c.currentTurn.files.size > 0) {
-      // Compute stats for current turn before including
+      // 在包含之前为当前轮次计算统计
       computeTurnStats(c.currentTurn)
       result.push(c.currentTurn)
     }
 
-    // Return in reverse order (most recent first)
+    // 以倒序返回（最近的最先）
     return result.reverse()
   }, [messages])
 }

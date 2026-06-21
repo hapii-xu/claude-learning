@@ -122,18 +122,17 @@ export function getLatestChannelContextHint(
 }
 
 /**
- * Handles the interactive (main-agent) permission flow.
+ * 处理交互式（主 agent）权限流程。
  *
- * Pushes a ToolUseConfirm entry to the confirm queue with callbacks:
- * onAbort, onAllow, onReject, recheckPermission, onUserInteraction.
+ * 将一个 ToolUseConfirm 条目推送到确认队列中，带回调：
+ * onAbort、onAllow、onReject、recheckPermission、onUserInteraction。
  *
- * Runs permission hooks and bash classifier checks asynchronously in the
- * background, racing them against user interaction. Uses a resolve-once
- * guard and `userInteracted` flag to prevent multiple resolutions.
+ * 在后台异步运行权限 hooks 和 bash 分类器检查，
+ * 与用户交互竞争。使用 resolve-once 守卫和 `userInteracted`
+ * 标志以防止多次解决。
  *
- * This function does NOT return a Promise -- it sets up callbacks that
- * eventually call `resolve()` to resolve the outer promise owned by
- * the caller.
+ * 此函数不返回 Promise —— 它设置回调，
+ * 最终调用 `resolve()` 来解决调用方拥有的外部 promise。
  */
 function handleInteractivePermission(
   params: InteractivePermissionParams,
@@ -151,14 +150,14 @@ function handleInteractivePermission(
   const { resolve: resolveOnce, isResolved, claim } = createResolveOnce(resolve)
   let userInteracted = false
   let checkmarkTransitionTimer: ReturnType<typeof setTimeout> | undefined
-  // Hoisted so onDismissCheckmark (Esc during checkmark window) can also
-  // remove the abort listener — not just the timer callback.
+  // 提前声明以便 onDismissCheckmark（checkmark 窗口期间按 Esc）也能
+  // 移除 abort 监听器 —— 而不只是定时器回调。
   let checkmarkAbortHandler: (() => void) | undefined
   const bridgeRequestId = bridgeCallbacks ? randomUUID() : undefined
-  // Hoisted so local/hook/classifier wins can remove the pending channel
-  // entry. No "tell remote to dismiss" equivalent — the text sits in your
-  // phone, and a stale "yes abc123" after local-resolve falls through
-  // tryConsumeReply (entry gone) and gets enqueued as normal chat.
+  // 提前声明以便 local/hook/classifier 获胜时可以移除待处理的 channel
+  // 条目。没有"通知远端取消"的等价物 —— 文本就在你的
+  // 手机上，local-resolve 之后过期的"yes abc123"会穿过
+  // tryConsumeReply（条目已删除）并被作为普通聊天入队。
   let channelUnsubscribe: (() => void) | undefined
 
   const permissionPromptStartTimeMs = Date.now()
@@ -199,12 +198,12 @@ function handleInteractivePermission(
         }
       : {}),
     onUserInteraction() {
-      // Called when user starts interacting with the permission dialog
-      // (e.g., arrow keys, tab, typing feedback)
-      // Hide the classifier indicator since auto-approve is no longer possible
+      // 当用户开始与权限对话框交互时被调用
+      // （例如方向键、Tab、输入反馈）
+      // 隐藏分类器指示器，因为自动批准已不可能
       //
-      // Grace period: ignore interactions in the first 200ms to prevent
-      // accidental keypresses from canceling the classifier prematurely
+      // 宽限期：忽略前 200ms 内的交互以防止
+      // 意外按键过早取消分类器
       const GRACE_PERIOD_MS = 200
       if (Date.now() - permissionPromptStartTimeMs < GRACE_PERIOD_MS) {
         return
@@ -307,14 +306,14 @@ function handleInteractivePermission(
         ctx.toolUseID,
       )
       if (freshResult.behavior === 'allow') {
-        // claim() (atomic check-and-mark), not isResolved() — the async
-        // hasPermissionsToUseTool call above opens a window where CCR
-        // could have responded in flight. Matches onAllow/onReject/hook
-        // paths. cancelRequest tells CCR to dismiss its prompt — without
-        // it, the web UI shows a stale prompt for a tool that's already
-        // executing (particularly visible when recheck is triggered by
-        // a CCR-initiated mode switch, the very case this callback exists
-        // for after useReplBridge started calling it).
+        // claim()（原子检查并标记），不是 isResolved() —— 上方的异步
+        // hasPermissionsToUseTool 调用打开了一个窗口，其中 CCR
+        // 可能已经在飞行中响应。匹配 onAllow/onReject/hook
+        // 路径。cancelRequest 通知 CCR 关闭其提示 —— 没有
+        // 它，web UI 会为已经执行的工具显示陈旧的提示
+        // （在 recheck 由 CCR 发起的模式切换触发时尤其明显，
+        // 这正是 useReplBridge 开始调用它后此回调存在的
+        // 场景）。
         if (!claim()) return
         forgetPipePermission('Permission request was resolved locally in sub.')
         if (bridgeCallbacks && bridgeRequestId) {
@@ -386,16 +385,16 @@ function handleInteractivePermission(
     },
   )
 
-  // Race 4: Bridge permission response from CCR (claude.ai)
-  // When the bridge is connected, send the permission request to CCR and
-  // subscribe for a response. Whichever side (CLI or CCR) responds first
-  // wins via claim().
+  // Race 4：来自 CCR（claude.ai）的 bridge 权限响应
+  // 当 bridge 已连接时，发送权限请求到 CCR 并
+  // 订阅响应。哪一方（CLI 或 CCR）先响应
+  // 就通过 claim() 获胜。
   //
-  // All tools are forwarded — CCR's generic allow/deny modal handles any
-  // tool, and can return `updatedInput` when it has a dedicated renderer
-  // (e.g. plan edit). Tools whose local dialog injects fields (ReviewArtifact
-  // `selected`, AskUserQuestion `answers`) tolerate the field being missing
-  // so generic remote approval degrades gracefully instead of throwing.
+  // 所有工具都被转发 —— CCR 的通用允许/拒绝弹窗处理任何
+  // 工具，并且可以返回 `updatedInput`（当它有专用渲染器时，
+  // 例如 plan edit）。本地对话框注入字段（ReviewArtifact
+  // `selected`、AskUserQuestion `answers`）的工具容忍字段缺失，
+  // 以便通用远端批准优雅降级而不是抛出异常。
   if (bridgeCallbacks && bridgeRequestId) {
     bridgeCallbacks.sendRequest(
       bridgeRequestId,
@@ -455,22 +454,22 @@ function handleInteractivePermission(
     signal.addEventListener('abort', unsubscribe, { once: true })
   }
 
-  // Channel permission relay — races alongside the bridge block above. Send a
-  // permission prompt to every active channel (Telegram, iMessage, etc.) via
-  // its MCP send_message tool, then race the reply against local/bridge/hook/
-  // classifier. The inbound "yes abc123" is intercepted in the notification
-  // handler (useManageMCPConnections.ts) BEFORE enqueue, so it never reaches
-  // Claude as a conversation turn.
+  // Channel 权限中继 —— 与上方的 bridge 块并行竞争。通过每个
+  // 活跃 channel（Telegram、iMessage 等）的 MCP send_message 工具
+  // 发送权限提示，然后将回复与 local/bridge/hook/classifier 竞争。
+  // 入站的"yes abc123"在通知处理程序（useManageMCPConnections.ts）
+  // 中在入队之前被拦截，所以它永远不会作为对话轮次
+  // 到达 Claude。
   //
-  // Unlike the bridge block, this still guards on `requiresUserInteraction` —
-  // channel replies are pure yes/no with no `updatedInput` path. In practice
-  // the guard is dead code today: all three `requiresUserInteraction` tools
-  // (ExitPlanMode, AskUserQuestion, ReviewArtifact) return `isEnabled()===false`
-  // when channels are configured, so they never reach this handler.
+  // 与 bridge 块不同，这仍然守卫 `requiresUserInteraction` ——
+  // channel 回复是纯 yes/no，没有 `updatedInput` 路径。实际上
+  // 今天这个守卫是死代码：所有三个 `requiresUserInteraction` 工具
+  //（ExitPlanMode、AskUserQuestion、ReviewArtifact）在配置了
+  // channel 时返回 `isEnabled()===false`，所以它们永远到达不了此处理程序。
   //
-  // Fire-and-forget send: if callTool fails (channel down, tool missing),
-  // the subscription never fires and another racer wins. Graceful degradation
-  // — the local dialog is always there as the floor.
+  // 即发即弃发送：如果 callTool 失败（channel 宕机、工具缺失），
+  // 订阅永远不会触发，另一个竞争者获胜。优雅降级
+  // —— 本地对话框始终作为底线存在。
   if (
     (feature('KAIROS') || feature('KAIROS_CHANNELS')) &&
     channelCallbacks &&
@@ -484,11 +483,11 @@ function handleInteractivePermission(
     )
 
     if (channelClients.length > 0) {
-      // Outbound is structured too (Kenneth's symmetry ask) — server owns
-      // message formatting for its platform (Telegram markdown, iMessage
-      // rich text, Discord embed). CC sends the RAW parts; server composes.
-      // The old callTool('send_message', {text,content,message}) triple-key
-      // hack is gone — no more guessing which arg name each plugin takes.
+      // 出站也是结构化的（Kenneth 的对称性要求）—— 服务器拥有
+      // 其平台的消息格式化（Telegram markdown、iMessage
+      // 富文本、Discord embed）。CC 发送 RAW 部分；服务器组合。
+      // 旧的 callTool('send_message', {text,content,message}) 三键
+      // hack 已消失 —— 不再需要猜测每个插件接受哪个参数名。
       const params: ChannelPermissionRequestParams = {
         request_id: channelRequestId,
         tool_name: ctx.tool.name,
@@ -523,24 +522,24 @@ function handleInteractivePermission(
       }
 
       const channelSignal = ctx.toolUseContext.abortController.signal
-      // Wrap so BOTH the map delete AND the abort-listener teardown happen
-      // at every call site. The 6 channelUnsubscribe?.() sites after local/
-      // hook/classifier wins previously only deleted the map entry — the
-      // dead closure stayed registered on the session-scoped abort signal
-      // until the session ended. Not a functional bug (Map.delete is
-      // idempotent), but it held the closure alive.
+      // 包装以便 map 删除和 abort 监听器拆除都在
+      // 每个调用点发生。local/hook/classifier 获胜后的 6 个
+      // channelUnsubscribe?.() 调用点之前只删除了 map 条目 ——
+      // 死闭包仍然注册在 session 范围的 abort 信号上，
+      // 直到会话结束。这不是功能性 bug（Map.delete 是
+      // 幂等的），但它让闭包保持存活。
       const mapUnsub = channelCallbacks.onResponse(
         channelRequestId,
         response => {
-          if (!claim()) return // Another racer won
+          if (!claim()) return // 另一个竞争者获胜
           forgetPipePermission(
             'Permission request was resolved by channel before pipe response.',
           )
-          channelUnsubscribe?.() // both: map delete + listener remove
+          channelUnsubscribe?.() // 两者都做：map 删除 + 监听器移除
           clearClassifierChecking(ctx.toolUseID)
           clearClassifierIndicator()
           ctx.removeFromQueue()
-          // Bridge is the other remote — tell it we're done.
+          // Bridge 是另一个远端 —— 通知它我们已完成。
           if (bridgeCallbacks && bridgeRequestId) {
             bridgeCallbacks.cancelRequest(bridgeRequestId)
           }
@@ -579,10 +578,10 @@ function handleInteractivePermission(
     }
   }
 
-  // Skip hooks if they were already awaited in the coordinator branch above
+  // 如果 hooks 已在上方的协调器分支中等待完成则跳过
   if (!awaitAutomatedChecksBeforeDialog) {
-    // Execute PermissionRequest hooks asynchronously
-    // If hook returns a decision before user responds, apply it
+    // 异步执行 PermissionRequest hooks
+    // 如果 hook 在用户响应前返回决定，则应用它
     void (async () => {
       if (isResolved()) return
       const currentAppState = ctx.toolUseContext.getAppState()
@@ -605,16 +604,16 @@ function handleInteractivePermission(
     })()
   }
 
-  // Execute bash classifier check asynchronously (if applicable)
+  // 异步执行 bash 分类器检查（如果适用）
   if (
     feature('BASH_CLASSIFIER') &&
     result.pendingClassifierCheck &&
     ctx.tool.name === BASH_TOOL_NAME &&
     !awaitAutomatedChecksBeforeDialog
   ) {
-    // UI indicator for "classifier running" — set here (not in
-    // toolExecution.ts) so commands that auto-allow via prefix rules
-    // don't flash the indicator for a split second before allow returns.
+    // "分类器运行中"的 UI 指示器 —— 在此处设置（而不是在
+    // toolExecution.ts 中），以便通过前缀规则自动允许的命令
+    // 不会在 allow 返回前闪现指示器一瞬间。
     setClassifierChecking(ctx.toolUseID)
     void executeAsyncClassifierCheck(
       result.pendingClassifierCheck,
@@ -644,7 +643,7 @@ function handleInteractivePermission(
                 )?.[1] ?? decisionReason.reason)
               : undefined
 
-          // Show auto-approved transition with dimmed options
+          // 显示自动批准的过渡效果（选项变暗）
           if (feature('TRANSCRIPT_CLASSIFIER')) {
             ctx.updateQueueItem({
               classifierCheckInProgress: false,
@@ -670,17 +669,17 @@ function handleInteractivePermission(
           )
           resolveOnce(ctx.buildAllow(ctx.input, { decisionReason }))
 
-          // Keep checkmark visible, then remove dialog.
-          // 3s if terminal is focused (user can see it), 1s if not.
-          // User can dismiss early with Esc via onDismissCheckmark.
+          // 保持 checkmark 可见，然后移除对话框。
+          // 如果终端获得焦点为 3s（用户可以看到），否则为 1s。
+          // 用户可以通过 onDismissCheckmark 提前按 Esc 关闭。
           const signal = ctx.toolUseContext.abortController.signal
           checkmarkAbortHandler = () => {
             if (checkmarkTransitionTimer) {
               clearTimeout(checkmarkTransitionTimer)
               checkmarkTransitionTimer = undefined
-              // Sibling Bash error can fire this (StreamingToolExecutor
-              // cascades via siblingAbortController) — must drop the
-              // cosmetic ✓ dialog or it blocks the next queued item.
+              // 兄弟 Bash 错误可以触发这个（StreamingToolExecutor
+              // 通过 siblingAbortController 级联）—— 必须丢弃
+              // 装饰性的 ✓ 对话框，否则它会阻塞下一个排队项。
               ctx.removeFromQueue()
             }
           }
@@ -699,8 +698,8 @@ function handleInteractivePermission(
         },
       },
     ).catch(error => {
-      // Log classifier API errors for debugging but don't propagate them as interruptions
-      // These errors can be network failures, rate limits, or model issues - not user cancellations
+      // 记录分类器 API 错误以便调试，但不要将它们作为中断传播
+      // 这些错误可能是网络故障、速率限制或模型问题 —— 不是用户取消
       logForDebugging(`Async classifier check failed: ${errorMessage(error)}`, {
         level: 'error',
       })

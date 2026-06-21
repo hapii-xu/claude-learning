@@ -15,8 +15,8 @@ import { getSessionId } from '../bootstrap/state.js'
 import { getAPIProvider } from '../utils/model/providers.js'
 import { getSessionMemoryContent } from './SessionMemory/sessionMemoryUtils.js'
 
-// Recap only needs recent context — truncate to avoid "prompt too long" on
-// large sessions. 30 messages ≈ ~15 exchanges, plenty for "where we left off."
+// 回顾只需要最近的上下文 —— 截断以避免大型会话出现"prompt too long"。
+// 30 条消息约 ~15 次对话，足够用于"上次说到哪了"。
 const RECENT_MESSAGE_WINDOW = 30
 
 const PROMPT_EN =
@@ -34,8 +34,8 @@ function buildAwaySummaryPrompt(memory: string | null): string {
 }
 
 /**
- * Generates a short session recap for the "while you were away" card.
- * Returns null on abort, empty transcript, or error.
+ * 为"你离开期间"卡片生成简短的会话回顾。
+ * 在中止、空对话或错误时返回 null。
  */
 export async function generateAwaySummary(
   messages: readonly Message[],

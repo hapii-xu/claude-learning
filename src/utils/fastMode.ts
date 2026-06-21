@@ -60,7 +60,7 @@ function getDisabledReasonMessage(
     case 'preference':
       return 'Fast mode has been disabled by your organization'
     case 'extra_usage_disabled':
-      // Only OAuth users can have extra_usage_disabled; console users don't have this concept
+      // 仅 OAuth 用户会出现 extra_usage_disabled；控制台用户不存在此概念
       return 'Fast mode requires extra usage billing · /extra-usage to enable'
     case 'network_error':
       return 'Fast mode unavailable due to network connectivity issues'
@@ -78,14 +78,14 @@ export function getFastModeUnavailableReason(): string | null {
     'tengu_penguins_off',
     null,
   )
-  // Statsig reason has priority over other reasons.
+  // Statsig 原因优先于其他原因。
   if (statigReason !== null) {
     logForDebugging(`Fast mode unavailable: ${statigReason}`)
     return statigReason
   }
 
-  // Previously, fast mode required the native binary (bun build). This is no
-  // longer necessary, but we keep this option behind a flag just in case.
+  // 此前 fast mode 需要原生二进制（bun build）。现已不再
+  // 需要，但我们仍保留此选项作为标志，以防万一。
   if (
     !isInBundledMode() &&
     getFeatureValue_CACHED_MAY_BE_STALE('tengu_marble_sandcastle', false)
@@ -93,9 +93,9 @@ export function getFastModeUnavailableReason(): string | null {
     return 'Fast mode requires the native binary · Install from: https://claude.com/product/claude-code'
   }
 
-  // Not available in the SDK unless explicitly opted in via --settings.
-  // Assistant daemon mode is exempt — it's first-party orchestration, and
-  // kairosActive is set before this check runs (main.tsx:~1626 vs ~3249).
+  // SDK 中不可用，除非通过 --settings 显式开启。
+  // Assistant daemon 模式例外 — 它是第一方编排，且
+  // kairosActive 在此检查运行前已设置（main.tsx:~1626 vs ~3249）。
   if (
     getIsNonInteractiveSession() &&
     preferThirdPartyAuthentication() &&
@@ -109,7 +109,7 @@ export function getFastModeUnavailableReason(): string | null {
     }
   }
 
-  // Only available for 1P (not Bedrock/Vertex/Foundry)
+  // 仅 1P 可用（不支持 Bedrock/Vertex/Foundry）
   if (getAPIProvider() !== 'firstParty') {
     const reason = 'Fast mode is not available on Bedrock, Vertex, or Foundry'
     logForDebugging(`Fast mode unavailable: ${reason}`)
@@ -121,10 +121,10 @@ export function getFastModeUnavailableReason(): string | null {
       orgStatus.reason === 'network_error' ||
       orgStatus.reason === 'unknown'
     ) {
-      // The org check can fail behind corporate proxies that block the
-      // endpoint. We add CLAUDE_CODE_SKIP_FAST_MODE_NETWORK_ERRORS=1 to
-      // bypass this check in the CC binary. This is OK since we have
-      // another check in the API to error out when disabled by org.
+      // 组织检查在企业代理阻止端点时可能失败。我们添加了
+      // CLAUDE_CODE_SKIP_FAST_MODE_NETWORK_ERRORS=1 以在 CC 二进制中
+      // 绕过此检查。这是可行的，因为当被组织禁用时，
+      // 我们在 API 中有另一个检查会报错。
       if (isEnvTruthy(process.env.CLAUDE_CODE_SKIP_FAST_MODE_NETWORK_ERRORS)) {
         return null
       }
@@ -139,7 +139,7 @@ export function getFastModeUnavailableReason(): string | null {
   return null
 }
 
-// @[MODEL LAUNCH]: Update supported Fast Mode models.
+// @[MODEL LAUNCH]: 更新受支持的 Fast Mode 模型。
 export const FAST_MODE_MODEL_DISPLAY = 'Opus 4.7'
 
 export function getFastModeModel(): string {
@@ -157,7 +157,7 @@ export function getInitialFastModeSetting(model: ModelSetting): boolean {
     return false
   }
   const settings = getInitialSettings()
-  // If per-session opt-in is required, fast mode starts off each session
+  // 若需要每会话开启，fast mode 在每个会话开始时关闭
   if (settings.fastModePerSessionOptIn) {
     return false
   }
@@ -178,10 +178,10 @@ export function isFastModeSupportedByModel(
   )
 }
 
-// --- Fast mode runtime state ---
-// Separate from user preference (settings.fastMode). This tracks the actual
-// operational state: whether we're actively sending fast speed or in cooldown
-// after a rate limit.
+// --- Fast mode 运行时状态 ---
+// 与用户偏好（settings.fastMode）分离。这跟踪实际
+// 操作状态：我们是在积极发送 fast speed 还是在速率限制后
+// 处于冷却中。
 
 export type FastModeRuntimeState =
   | { status: 'active' }
@@ -190,7 +190,7 @@ export type FastModeRuntimeState =
 let runtimeState: FastModeRuntimeState = { status: 'active' }
 let hasLoggedCooldownExpiry = false
 
-// --- Cooldown event listeners ---
+// --- 冷却事件监听器 ---
 export type CooldownReason = 'rate_limit' | 'overloaded'
 
 const cooldownTriggered =
@@ -240,9 +240,9 @@ export function clearFastModeCooldown(): void {
 }
 
 /**
- * Called when the API rejects a fast mode request (e.g., 400 "Fast mode is
- * not enabled for your organization"). Permanently disables fast mode using
- * the same flow as when the prefetch discovers the org has it disabled.
+ * 当 API 拒绝 fast mode 请求时调用（如 400 "Fast mode is
+ * not enabled for your organization"）。使用与 prefetch 发现
+ * 组织已禁用时相同的流程永久禁用 fast mode。
  */
 export function handleFastModeRejectedByAPI(): void {
   if (orgStatus.status === 'disabled') {
@@ -257,9 +257,9 @@ export function handleFastModeRejectedByAPI(): void {
   orgFastModeChange.emit(false)
 }
 
-// --- Overage rejection listeners ---
-// Fired when a 429 indicates fast mode was rejected because extra usage
-// (overage billing) is not available. Distinct from org-level disabling.
+// --- 超额拒绝监听器 ---
+// 当 429 表示 fast mode 因 extra usage
+// （超额计费）不可用而被拒绝时触发。与组织级禁用不同。
 const overageRejection = createSignal<[message: string]>()
 export const onFastModeOverageRejection = overageRejection.subscribe
 
@@ -291,9 +291,8 @@ function isOutOfCreditsReason(reason: string | null): boolean {
 }
 
 /**
- * Called when a 429 indicates fast mode was rejected because extra usage
- * is not available. Permanently disables fast mode (unless the user has
- * ran out of credits) and notifies with a reason-specific message.
+ * 当 429 表示 fast mode 因 extra usage 不可用而被拒绝时调用。
+ * 永久禁用 fast mode（除非用户额度耗尽），并以原因特定的消息通知。
  */
 export function handleFastModeOverageRejection(reason: string | null): void {
   const message = getOverageDisabledMessage(reason)
@@ -304,7 +303,7 @@ export function handleFastModeOverageRejection(reason: string | null): void {
     overage_disabled_reason: (reason ??
       'unknown') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   })
-  // Disable fast mode permanently unless the user has ran out of credits
+  // 除非用户额度耗尽，否则永久禁用 fast mode
   if (!isOutOfCreditsReason(reason)) {
     updateSettingsForSource('userSettings', { fastMode: undefined })
     saveGlobalConfig(current => ({
@@ -337,8 +336,8 @@ export function getFastModeState(
   return 'off'
 }
 
-// Disabled reason returned by the API. The API is the canonical source for why
-// fast mode is disabled (free account, admin preference, extra usage not enabled).
+// API 返回的禁用原因。API 是 fast mode 禁用原因的权威来源
+// （免费账户、管理员偏好、未启用 extra usage）。
 export type FastModeDisabledReason =
   | 'free'
   | 'preference'
@@ -346,11 +345,11 @@ export type FastModeDisabledReason =
   | 'network_error'
   | 'unknown'
 
-// In-memory cache of the fast mode status from the API.
-// Distinct from the user's fastMode app state — this represents
-// whether the org *allows* fast mode and why it may be disabled.
-// Modeled as a discriminated union so the invalid state
-// (disabled without a reason) is unrepresentable.
+// 来自 API 的 fast mode 状态的内存缓存。
+// 与用户的 fastMode app 状态不同 — 这表示
+// 组织是否*允许* fast mode 以及可能被禁用的原因。
+// 建模为可辨识联合，使无效状态
+// （禁用而无原因）无法表示。
 type FastModeOrgStatus =
   | { status: 'pending' }
   | { status: 'enabled' }
@@ -358,7 +357,7 @@ type FastModeOrgStatus =
 
 let orgStatus: FastModeOrgStatus = { status: 'pending' }
 
-// Listeners notified when org-level fast mode status changes
+// 当组织级 fast mode 状态变化时通知的监听器
 const orgFastModeChange = createSignal<[orgEnabled: boolean]>()
 export const onOrgFastModeChanged = orgFastModeChange.subscribe
 
@@ -388,9 +387,9 @@ let lastPrefetchAt = 0
 let inflightPrefetch: Promise<void> | null = null
 
 /**
- * Resolve orgStatus from the persisted cache without making any API calls.
- * Used when startup prefetches are throttled to avoid hitting the network
- * while still making fast mode availability checks work.
+ * 从持久化缓存解析 orgStatus 而不发起任何 API 调用。
+ * 用于启动 prefetch 被限流时，避免访问网络的同时
+ * 让 fast mode 可用性检查正常工作。
  */
 export function resolveFastModeStatusFromCache(): void {
   if (!isFastModeEnabled()) {
@@ -408,7 +407,7 @@ export function resolveFastModeStatusFromCache(): void {
 }
 
 export async function prefetchFastModeStatus(): Promise<void> {
-  // Skip network requests if nonessential traffic is disabled
+  // 若非必要流量已禁用，则跳过网络请求
   if (isEssentialTrafficOnly()) {
     return
   }
@@ -424,9 +423,9 @@ export async function prefetchFastModeStatus(): Promise<void> {
     return inflightPrefetch
   }
 
-  // Service key OAuth sessions lack user:profile scope → endpoint 403s.
-  // Resolve orgStatus from cache and bail before burning the throttle window.
-  // API key auth is unaffected.
+  // Service key OAuth 会话缺少 user:profile scope → 端点返回 403。
+  // 在消耗限流窗口前从缓存解析 orgStatus 并退出。
+  // API key 认证不受影响。
   const apiKey = getAnthropicApiKey()
   const hasUsableOAuth =
     getClaudeAIOAuthTokens()?.accessToken && hasProfileScope()
@@ -497,7 +496,7 @@ export async function prefetchFastModeStatus(): Promise<void> {
             reason: status.disabled_reason ?? 'preference',
           }
       if (previousEnabled !== status.enabled) {
-        // When org disables fast mode, permanently turn off the user's fast mode setting
+        // 当组织禁用 fast mode 时，永久关闭用户的 fast mode 设置
         if (!status.enabled) {
           updateSettingsForSource('userSettings', { fastMode: undefined })
         }
@@ -511,9 +510,9 @@ export async function prefetchFastModeStatus(): Promise<void> {
         `Org fast mode: ${status.enabled ? 'enabled' : `disabled (${status.disabled_reason ?? 'preference'})`}`,
       )
     } catch (err) {
-      // On failure: ants default to enabled (don't block internal users).
-      // External users: fall back to the cached penguinModeOrgEnabled value;
-      // if no positive cache, disable with network_error reason.
+      // 失败时：ant 默认启用（不阻塞内部用户）。
+      // 外部用户：回退到缓存的 penguinModeOrgEnabled 值；
+      // 若无正向缓存，则以 network_error 原因禁用。
       const isAnt = process.env.USER_TYPE === 'ant'
       const cachedEnabled = getGlobalConfig().penguinModeOrgEnabled === true
       orgStatus =

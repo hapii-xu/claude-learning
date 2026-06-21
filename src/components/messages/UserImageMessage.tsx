@@ -10,10 +10,10 @@ type Props = {
 };
 
 /**
- * Renders an image attachment in user messages.
- * Shows as a clickable link if the image is stored and terminal supports hyperlinks.
- * Uses MessageResponse styling to appear connected to the message above,
- * unless addMargin is true (image starts a new user turn without text).
+ * 在用户消息中渲染图片附件。
+ * 如果图片已存储且终端支持超链接，则显示为可点击链接。
+ * 使用 MessageResponse 样式以呈现为与上方消息相连的效果，
+ * 除非 addMargin 为 true（图片在没有文本的情况下开始新的用户 turn）。
  */
 export function UserImageMessage({ imageId, addMargin }: Props): React.ReactNode {
   const label = imageId ? `[Image #${imageId}]` : '[Image]';
@@ -28,8 +28,8 @@ export function UserImageMessage({ imageId, addMargin }: Props): React.ReactNode
       <Text>{label}</Text>
     );
 
-  // When this image starts a new user turn (no text before it),
-  // show with margin instead of the connected line style
+  // 当此图片开始新的用户 turn（其前面没有文本）时，
+  // 显示 margin 而不是相连的 line 样式
   if (addMargin) {
     return <Box marginTop={1}>{content}</Box>;
   }

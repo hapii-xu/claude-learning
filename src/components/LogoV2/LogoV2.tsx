@@ -45,11 +45,11 @@ import { GateOverridesWarning } from './GateOverridesWarning.js';
 import { ExperimentEnrollmentNotice } from './ExperimentEnrollmentNotice.js';
 import { feature } from 'bun:bundle';
 
-// Conditional require so ChannelsNotice.tsx tree-shakes when both flags are
-// false. A module-scope helper component inside a feature() ternary does NOT
-// tree-shake (docs/feature-gating.md); the require pattern eliminates the
-// whole file. VoiceModeNotice uses the unsafe helper pattern but VOICE_MODE
-// is external: true so it's moot there.
+// 条件 require，以便当两个 flag 都为 false 时 ChannelsNotice.tsx 可以被 tree-shake。
+// feature() 三元表达式中的模块级辅助组件不会被 tree-shake
+// （见 docs/feature-gating.md）；require 模式可以消除整个文件。
+// VoiceModeNotice 使用了不安全的辅助组件模式，但 VOICE_MODE
+// 是 external: true，所以那里无所谓。
 /* eslint-disable @typescript-eslint/no-require-imports */
 const ChannelsNoticeModule =
   feature('KAIROS') || feature('KAIROS_CHANNELS')
@@ -91,9 +91,9 @@ export function LogoV2(): React.ReactNode {
     changelog = [];
   }
 
-  // Get company announcements and select one:
-  // - First startup (numStartups === 1): show first announcement
-  // - All other startups: randomly select from announcements
+  // 获取公司公告并选择一条：
+  // - 首次启动（numStartups === 1）：展示第一条公告
+  // - 其他启动：从公告中随机选择一条
   const [announcement] = useState(() => {
     const announcements = getInitialSettings().companyAnnouncements;
     if (!announcements || announcements.length === 0) return undefined;
@@ -117,9 +117,9 @@ export function LogoV2(): React.ReactNode {
     }
   }, [config, showOnboarding]);
 
-  // In condensed mode (early-return below renders <CondensedLogo/>),
-  // CondensedLogo's own useEffect handles the impression count. Skipping
-  // here avoids double-counting since hooks fire before the early return.
+  // 在 condensed 模式下（下面的提前 return 会渲染 <CondensedLogo/>），
+  // CondensedLogo 自己的 useEffect 会处理展示计数。此处跳过可避免
+  // 重复计数，因为 hooks 在提前 return 之前就会触发。
   const isCondensedMode = !hasReleaseNotes && !showOnboarding && !isEnvTruthy(process.env.CLAUDE_CODE_FORCE_FULL_LOGO);
 
   useEffect(() => {
@@ -137,13 +137,13 @@ export function LogoV2(): React.ReactNode {
   const model = useMainLoopModel();
   const fullModelDisplayName = renderModelSetting(model);
   const { version, cwd, billingType, agentName: agentNameFromSettings } = getLogoDisplayData();
-  // Prefer AppState.agent (set from --agent CLI flag) over settings
+  // 优先使用 AppState.agent（由 --agent CLI flag 设置）而非 settings
   const agentName = agent ?? agentNameFromSettings;
-  // -20 to account for the max length of subscription name " · Claude Enterprise".
+  // -20 用于给订阅名 " · Claude Enterprise" 的最大长度留空间。
   const effortSuffix = getEffortSuffix(model, effortValue);
   const modelDisplayName = truncate(fullModelDisplayName + effortSuffix, LEFT_PANEL_MAX_WIDTH - 20);
 
-  // Show condensed logo if no new changelog and not showing onboarding and not forcing full logo
+  // 如果没有新的 changelog 且不展示 onboarding 且未强制完整 logo，则展示 condensed logo
   if (!hasReleaseNotes && !showOnboarding && !isEnvTruthy(process.env.CLAUDE_CODE_FORCE_FULL_LOGO)) {
     return (
       <>
@@ -197,31 +197,31 @@ export function LogoV2(): React.ReactNode {
     );
   }
 
-  // Calculate layout and display values
+  // 计算布局和显示值
   const layoutMode = getLayoutMode(columns);
 
   const userTheme = resolveThemeSetting(getGlobalConfig().theme);
   const borderTitle = ` ${color('claude', userTheme)('Claude Code')} ${color('inactive', userTheme)(`v${version}`)} `;
   const compactBorderTitle = color('claude', userTheme)(' Claude Code ');
 
-  // Early return for compact mode
+  // compact 模式的提前 return
   if (layoutMode === 'compact') {
-    const layoutWidth = 4; // border + padding
+    const layoutWidth = 4; // 边框 + 内边距
     let welcomeMessage = formatWelcomeMessage(username);
     if (stringWidth(welcomeMessage) > columns - layoutWidth) {
       welcomeMessage = formatWelcomeMessage(null);
     }
 
-    // Calculate cwd width accounting for agent name if present
+    // 计算 cwd 宽度，若存在 agent 名则需预留空间
     const separator = ' · ';
     const atPrefix = '@';
     const cwdAvailableWidth = agentName
       ? columns - layoutWidth - atPrefix.length - stringWidth(agentName) - separator.length
       : columns - layoutWidth;
     const truncatedCwd = truncatePath(cwd, Math.max(cwdAvailableWidth, 10));
-    // OffscreenFreeze: logo is the first thing to enter scrollback; useMainLoopModel()
-    // subscribes to model changes and getLogoDisplayData() reads cwd/subscription —
-    // any change while in scrollback forces a full reset.
+    // OffscreenFreeze：logo 是第一个进入 scrollback 的内容；useMainLoopModel()
+    // 订阅了 model 变化，getLogoDisplayData() 会读取 cwd/subscription —
+    // 在 scrollback 期间任何变化都会强制完全重置。
     return (
       <>
         <OffscreenFreeze>
@@ -268,7 +268,7 @@ export function LogoV2(): React.ReactNode {
     !process.env.IS_DEMO && config.oauthAccount?.organizationName
       ? `${modelDisplayName} · ${billingType} · ${config.oauthAccount.organizationName}`
       : `${modelDisplayName} · ${billingType}`;
-  // Calculate cwd width accounting for agent name if present
+  // 计算 cwd 宽度，若存在 agent 名则需预留空间
   const cwdSeparator = ' · ';
   const cwdAtPrefix = '@';
   const cwdAvailableWidth = agentName
@@ -278,7 +278,7 @@ export function LogoV2(): React.ReactNode {
   const cwdLine = agentName ? `@${agentName} · ${truncatedCwd}` : truncatedCwd;
   const optimalLeftWidth = calculateOptimalLeftWidth(welcomeMessage, cwdLine, modelLine);
 
-  // Calculate layout dimensions
+  // 计算布局尺寸
   const { leftWidth, rightWidth } = calculateLayoutDimensions(columns, layoutMode, optimalLeftWidth);
 
   return (
@@ -295,9 +295,9 @@ export function LogoV2(): React.ReactNode {
             offset: 3,
           }}
         >
-          {/* Main content */}
+          {/* 主内容 */}
           <Box flexDirection={layoutMode === 'horizontal' ? 'row' : 'column'} paddingX={1} gap={1}>
-            {/* Left Panel */}
+            {/* 左面板 */}
             <Box
               flexDirection="column"
               width={leftWidth}
@@ -317,7 +317,7 @@ export function LogoV2(): React.ReactNode {
               </Box>
             </Box>
 
-            {/* Vertical divider */}
+            {/* 垂直分隔线 */}
             {layoutMode === 'horizontal' && (
               <Box
                 height="100%"
@@ -330,7 +330,7 @@ export function LogoV2(): React.ReactNode {
               />
             )}
 
-            {/* Right Panel - Project Onboarding or Recent Activity and What's New */}
+            {/* 右面板 — Project Onboarding 或 Recent Activity 和 What's New */}
             {layoutMode === 'horizontal' && (
               <FeedColumn
                 feeds={

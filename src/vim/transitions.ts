@@ -1,8 +1,8 @@
 /**
- * Vim State Transition Table
+ * Vim 状态转换表
  *
- * This is the scannable source of truth for state transitions.
- * To understand what happens in any state, look up that state's transition function.
+ * 这是状态转换的可扫描真理来源。
+ * 要了解任何状态中发生的事情，请查找该状态的转换函数。
  */
 
 import { resolveMotion } from './motions.js'
@@ -38,7 +38,7 @@ import {
 } from './types.js'
 
 /**
- * Context passed to transition functions.
+ * 传递给转换函数的上下文。
  */
 export type TransitionContext = OperatorContext & {
   onUndo?: () => void
@@ -46,7 +46,7 @@ export type TransitionContext = OperatorContext & {
 }
 
 /**
- * Result of a transition.
+ * 转换的结果。
  */
 export type TransitionResult = {
   next?: CommandState
@@ -54,7 +54,7 @@ export type TransitionResult = {
 }
 
 /**
- * Main transition function. Dispatches based on current state type.
+ * 主转换函数。根据当前状态类型分派。
  */
 export function transition(
   state: CommandState,
@@ -88,12 +88,12 @@ export function transition(
 }
 
 // ============================================================================
-// Shared Input Handling
+// 共享输入处理
 // ============================================================================
 
 /**
- * Handle input that's valid in both idle and count states.
- * Returns null if input is not recognized.
+ * 处理在 idle 和 count 状态中都有效的输入。
+ * 如果输入无法识别则返回 null。
  */
 function handleNormalInput(
   input: string,
@@ -146,8 +146,8 @@ function handleNormalInput(
   if (input === 'G') {
     return {
       execute: () => {
-        // count=1 means no count given, go to last line
-        // otherwise go to line N
+        // count=1 表示未提供计数，跳到最后一行
+        // 否则跳到第 N 行
         if (count === 1) {
           ctx.setOffset(ctx.cursor.startOfLastLine().offset)
         } else {
@@ -200,8 +200,8 @@ function handleNormalInput(
 }
 
 /**
- * Handle operator input (motion, find, text object scope).
- * Returns null if input is not recognized.
+ * 处理操作符输入（移动、查找、文本对象范围）。
+ * 如果输入无法识别则返回 null。
  */
 function handleOperatorInput(
   op: Operator,
@@ -242,11 +242,11 @@ function handleOperatorInput(
 }
 
 // ============================================================================
-// Transition Functions - One per state type
+// 转换函数 —— 每种状态类型一个
 // ============================================================================
 
 function fromIdle(input: string, ctx: TransitionContext): TransitionResult {
-  // 0 is line-start motion, not a count prefix
+  // 0 是行首移动，不是计数前缀
   if (/[1-9]/.test(input)) {
     return { next: { type: 'count', digits: input } }
   }
@@ -285,7 +285,7 @@ function fromOperator(
   input: string,
   ctx: TransitionContext,
 ): TransitionResult {
-  // dd, cc, yy = line operation
+  // dd、cc、yy = 行操作
   if (input === state.op[0]) {
     return { execute: () => executeLineOp(state.op, state.count, ctx) }
   }
@@ -396,7 +396,7 @@ function fromG(
     }
   }
   if (input === 'g') {
-    // If count provided (e.g., 5gg), go to that line. Otherwise go to first line.
+    // 如果提供了计数（例如 5gg），跳到该行。否则跳到第一行。
     if (state.count > 1) {
       return {
         execute: () => {
@@ -404,7 +404,7 @@ function fromG(
           const targetLine = Math.min(state.count - 1, lines.length - 1)
           let offset = 0
           for (let i = 0; i < targetLine; i++) {
-            offset += (lines[i]?.length ?? 0) + 1 // +1 for newline
+            offset += (lines[i]?.length ?? 0) + 1 // +1 为换行符
           }
           ctx.setOffset(offset)
         },
@@ -431,7 +431,7 @@ function fromOperatorG(
   if (input === 'g') {
     return { execute: () => executeOperatorGg(state.op, state.count, ctx) }
   }
-  // Any other input cancels the operator
+  // 任何其他输入都会取消操作符
   return { next: { type: 'idle' } }
 }
 
@@ -440,9 +440,9 @@ function fromReplace(
   input: string,
   ctx: TransitionContext,
 ): TransitionResult {
-  // Backspace/Delete arrive as empty input in literal-char states. In vim,
-  // r<BS> cancels the replace; without this guard, executeReplace("") would
-  // delete the character under the cursor instead.
+  // 退格/删除在字面字符状态中以空输入到达。在 vim 中，
+  // r<BS> 会取消替换；没有此守卫，executeReplace("") 会改为
+  // 删除光标下的字符。
   if (input === '') return { next: { type: 'idle' } }
   return { execute: () => executeReplace(input, state.count, ctx) }
 }
@@ -459,7 +459,7 @@ function fromIndent(
 }
 
 // ============================================================================
-// Helper functions for special commands
+// 特殊命令的辅助函数
 // ============================================================================
 
 function executeRepeatFind(
@@ -470,10 +470,10 @@ function executeRepeatFind(
   const lastFind = ctx.getLastFind()
   if (!lastFind) return
 
-  // Determine the effective find type based on reverse
+  // 根据 reverse 确定有效的查找类型
   let findType = lastFind.type
   if (reverse) {
-    // Flip the direction
+    // 翻转方向
     const flipMap: Record<FindType, FindType> = {
       f: 'F',
       F: 'f',

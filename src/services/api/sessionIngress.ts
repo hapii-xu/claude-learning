@@ -19,13 +19,13 @@ interface SessionIngressError {
   }
 }
 
-// Module-level state
+// 模块级状态
 const lastUuidMap: Map<string, UUID> = new Map()
 
 const MAX_RETRIES = 10
 const BASE_DELAY_MS = 500
 
-// Per-session sequential wrappers to prevent concurrent log writes
+// 按 session 的串行 wrapper，防止并发写入日志
 const sequentialAppendBySession: Map<
   string,
   (
@@ -36,8 +36,8 @@ const sequentialAppendBySession: Map<
 > = new Map()
 
 /**
- * Gets or creates a sequential wrapper for a session
- * This ensures that log appends for a session are processed one at a time
+ * 获取或创建一个 session 的串行 wrapper
+ * 确保 session 的日志追加是逐条处理的
  */
 function getOrCreateSequentialAppend(sessionId: string) {
   let sequentialAppend = sequentialAppendBySession.get(sessionId)
@@ -55,10 +55,9 @@ function getOrCreateSequentialAppend(sessionId: string) {
 }
 
 /**
- * Internal implementation of appendSessionLog with retry logic
- * Retries on transient errors (network, 5xx, 429). On 409, adopts the server's
- * last UUID and retries (handles stale state from killed process's in-flight
- * requests). Fails immediately on 401.
+ * appendSessionLog 的内部实现，带重试逻辑
+ * 在瞬时错误（网络、5xx、429）时重试。409 时采用服务端的 last UUID
+ * 并重试（处理被 kill 进程的进行中请求造成的陈旧状态）。401 立即失败。
  */
 async function appendSessionLogImpl(
   sessionId: string,
@@ -88,12 +87,11 @@ async function appendSessionLogImpl(
       }
 
       if (response.status === 409) {
-        // Check if our entry was actually stored (server returned 409 but entry exists)
-        // This handles the scenario where entry was stored but client received an error
-        // response, causing lastUuidMap to be stale
+        // 检查我们的条目是否其实已经被存储（服务端返回 409 但条目已存在）
+        // 这处理了条目已存储但客户端收到错误响应、导致 lastUuidMap 陈旧的场景
         const serverLastUuid = response.headers['x-last-uuid']
         if (serverLastUuid === entry.uuid) {
-          // Our entry IS the last entry on server - it was stored successfully previously
+          // 我们的条目就是服务端的最后一条 —— 此前已成功存储
           lastUuidMap.set(sessionId, entry.uuid)
           logForDebugging(
             `Session entry ${entry.uuid} already present on server, recovering from stale state`,
@@ -102,17 +100,16 @@ async function appendSessionLogImpl(
           return true
         }
 
-        // Another writer (e.g. in-flight request from a killed process)
-        // advanced the server's chain. Try to adopt the server's last UUID
-        // from the response header, or re-fetch the session to discover it.
+        // 另一个写入方（例如被 kill 进程的进行中请求）推进了服务端的链。
+        // 尝试从响应头采用服务端的 last UUID，或重新拉取 session 来发现它。
         if (serverLastUuid) {
           lastUuidMap.set(sessionId, serverLastUuid as UUID)
           logForDebugging(
             `Session 409: adopting server lastUuid=${serverLastUuid} from header, retrying entry ${entry.uuid}`,
           )
         } else {
-          // Server didn't return x-last-uuid (e.g. v1 endpoint). Re-fetch
-          // the session to discover the current head of the append chain.
+          // 服务端没有返回 x-last-uuid（例如 v1 endpoint）。重新拉取
+          // session 以发现追加链的当前 head。
           const logs = await fetchSessionLogsFromUrl(sessionId, url, headers)
           const adoptedUuid = findLastUuid(logs)
           if (adoptedUuid) {
@@ -121,7 +118,7 @@ async function appendSessionLogImpl(
               `Session 409: re-fetched ${logs!.length} entries, adopting lastUuid=${adoptedUuid}, retrying entry ${entry.uuid}`,
             )
           } else {
-            // Can't determine server state — give up
+            // 无法确定服务端状态 —— 放弃
             const errorData = response.data as SessionIngressError
             const errorMessage =
               errorData.error?.message || 'Concurrent modification detected'
@@ -138,16 +135,16 @@ async function appendSessionLogImpl(
           }
         }
         logForDiagnosticsNoPII('info', 'session_persist_409_adopt_server_uuid')
-        continue // retry with updated lastUuid
+        continue // 用更新后的 lastUuid 重试
       }
 
       if (response.status === 401) {
         logForDebugging('Session token expired or invalid')
         logForDiagnosticsNoPII('error', 'session_persist_fail_bad_token')
-        return false // Non-retryable
+        return false // 不可重试
       }
 
-      // Other 4xx (429, etc.) - retryable
+      // 其他 4xx（429 等）—— 可重试
       logForDebugging(
         `Failed to persist session log: ${response.status} ${response.statusText}`,
       )
@@ -156,7 +153,7 @@ async function appendSessionLogImpl(
         attempt,
       })
     } catch (error) {
-      // Network errors, 5xx - retryable
+      // 网络错误、5xx —— 可重试
       const axiosError = error as AxiosError<SessionIngressError>
       logError(new Error(`Error persisting session log: ${axiosError.message}`))
       logForDiagnosticsNoPII('error', 'session_persist_fail_status', {
@@ -186,9 +183,9 @@ async function appendSessionLogImpl(
 }
 
 /**
- * Append a log entry to the session using JWT token
- * Uses optimistic concurrency control with Last-Uuid header
- * Ensures sequential execution per session to prevent race conditions
+ * 使用 JWT token 向 session 追加一条日志条目
+ * 使用 Last-Uuid header 做乐观并发控制
+ * 按 session 串行执行，防止竞态条件
  */
 export async function appendSessionLog(
   sessionId: string,
@@ -212,7 +209,7 @@ export async function appendSessionLog(
 }
 
 /**
- * Get all session logs for hydration
+ * 获取所有 session 日志用于 hydration
  */
 export async function getSessionLogs(
   sessionId: string,
@@ -240,8 +237,8 @@ export async function getSessionLogs(
 }
 
 /**
- * Get all session logs for hydration via OAuth
- * Used for teleporting sessions from the Sessions API
+ * 通过 OAuth 获取所有 session 日志用于 hydration
+ * 用于从 Sessions API teleport 进来的 session
  */
 export async function getSessionLogsViaOAuth(
   sessionId: string,
@@ -259,10 +256,9 @@ export async function getSessionLogsViaOAuth(
 }
 
 /**
- * Response shape from GET /v1/code/sessions/{id}/teleport-events.
- * WorkerEvent.payload IS the Entry (TranscriptMessage struct) — the CLI
- * writes it via AddWorkerEvent, the server stores it opaque, we read it
- * back here.
+ * GET /v1/code/sessions/{id}/teleport-events 的响应结构。
+ * WorkerEvent.payload 就是 Entry（TranscriptMessage 结构）—— CLI 通过
+ * AddWorkerEvent 写入，服务端按不透明存储，我们在这里读出来。
  */
 type TeleportEventsResponse = {
   data: Array<{
@@ -272,21 +268,21 @@ type TeleportEventsResponse = {
     payload: Entry | null
     created_at: string
   }>
-  // Unset when there are no more pages — this IS the end-of-stream
-  // signal (no separate has_more field).
+  // 没有更多页时不设置 —— 这就是流结束的信号
+  // （没有单独的 has_more 字段）。
   next_cursor?: string
 }
 
 /**
- * Get worker events (transcript) via the CCR v2 Sessions API. Replaces
- * getSessionLogsViaOAuth once session-ingress is retired.
+ * 通过 CCR v2 Sessions API 获取 worker 事件（transcript）。在
+ * session-ingress 退役后替换 getSessionLogsViaOAuth。
  *
- * The server dispatches per-session: Spanner for v2-native sessions,
- * threadstore for pre-backfill session_* IDs. The cursor is opaque to us —
- * echo it back until next_cursor is unset.
+ * 服务端按 session 分发：v2 原生 session 走 Spanner，
+ * backfill 之前的 session_* ID 走 threadstore。游标对我们是不透明的 ——
+ * 不断回传，直到 next_cursor 不再设置。
  *
- * Paginated (500/page default, server max 1000). session-ingress's one-shot
- * 50k is gone; we loop.
+ * 分页（默认 500/页，服务端上限 1000）。session-ingress 的一次性 50k
+ * 没有了；我们改为循环。
  */
 export async function getTeleportEvents(
   sessionId: string,
@@ -305,9 +301,9 @@ export async function getTeleportEvents(
   let cursor: string | undefined
   let pages = 0
 
-  // Infinite-loop guard: 1000/page × 100 pages = 100k events. Larger than
-  // session-ingress's 50k one-shot. If we hit this, something's wrong
-  // (server not advancing cursor) — bail rather than hang.
+  // 无限循环保护：1000/页 × 100 页 = 10 万事件。比 session-ingress 的一次性
+  // 5 万要大。如果命中此上限，说明出问题了（服务端没有推进游标）——
+  // 直接退出而不是挂死。
   const maxPages = 100
 
   while (pages < maxPages) {
@@ -332,19 +328,18 @@ export async function getTeleportEvents(
     }
 
     if (response.status === 404) {
-      // 404 on page 0 is ambiguous during the migration window:
-      //   (a) Session genuinely not found (not in Spanner AND not in
-      //       threadstore) — nothing to fetch.
-      //   (b) Route-level 404: endpoint not deployed yet, or session is
-      //       a threadstore session not yet backfilled into Spanner.
-      // We can't tell them apart from the response alone. Returning null
-      // lets the caller fall back to session-ingress, which will correctly
-      // return empty for case (a) and data for case (b). Once the backfill
-      // is complete and session-ingress is gone, the fallback also returns
-      // null → same "Failed to fetch session logs" error as today.
+      // 迁移窗口期，第 0 页的 404 含义不明确：
+      //   (a) session 确实找不到（既不在 Spanner 也不在 threadstore）
+      //       —— 没什么可拉取。
+      //   (b) 路由级 404：endpoint 尚未部署，或 session 是一个尚未
+      //       回填到 Spanner 的 threadstore session。
+      // 仅从响应无法区分两者。返回 null 让调用方回退到 session-ingress，
+      // 它会在 (a) 情况下正确返回空、在 (b) 情况下返回数据。一旦回填完成、
+      // session-ingress 被移除，fallback 也会返回 null → 与今天相同的
+      // "Failed to fetch session logs" 错误。
       //
-      // 404 mid-pagination (pages > 0) means session was deleted between
-      // pages — return what we have.
+      // 分页中途（pages > 0）出现 404 意味着 session 在两页之间被删除 ——
+      // 返回我们已有的内容。
       logForDebugging(
         `[teleport] Session ${sessionId} not found (page ${pages})`,
       )
@@ -380,8 +375,8 @@ export async function getTeleportEvents(
       return null
     }
 
-    // payload IS the Entry. null payload happens for threadstore non-generic
-    // events (server skips them) or encryption failures — skip here too.
+    // payload 就是 Entry。null payload 出现在 threadstore 非 generic 事件
+    // （服务端跳过它们）或加密失败时 —— 这里也跳过。
     for (const ev of data) {
       if (ev.payload !== null) {
         all.push(ev.payload)
@@ -389,10 +384,10 @@ export async function getTeleportEvents(
     }
 
     pages++
-    // == null covers both `null` and `undefined` — the proto omits the
-    // field at end-of-stream, but some serializers emit `null`. Strict
-    // `=== undefined` would loop forever on `null` (cursor=null in query
-    // params stringifies to "null", which the server rejects or echoes).
+    // == null 同时覆盖 `null` 和 `undefined` —— proto 在流结束时省略该字段，
+    // 但有些序列化器会发出 `null`。严格的 `=== undefined` 会在 `null` 上
+    // 死循环（query 参数中的 cursor=null 会被序列化为 "null"，
+    // 服务端会拒绝或回传）。
     if (next_cursor == null) {
       break
     }
@@ -400,8 +395,8 @@ export async function getTeleportEvents(
   }
 
   if (pages >= maxPages) {
-    // Don't fail — return what we have. Better to teleport with a
-    // truncated transcript than not at all.
+    // 不算失败 —— 返回我们已有的。带截断的 transcript 做 teleport，
+    // 比完全不 teleport 要好。
     logError(
       new Error(`Teleport events hit page cap (${maxPages}) for ${sessionId}`),
     )
@@ -415,7 +410,7 @@ export async function getTeleportEvents(
 }
 
 /**
- * Shared implementation for fetching session logs from a URL
+ * 从 URL 拉取 session 日志的共享实现
  */
 async function fetchSessionLogsFromUrl(
   sessionId: string,
@@ -435,7 +430,7 @@ async function fetchSessionLogsFromUrl(
     if (response.status === 200) {
       const data = response.data
 
-      // Validate the response structure
+      // 校验响应结构
       if (!data || typeof data !== 'object' || !Array.isArray(data.loglines)) {
         logError(
           new Error(
@@ -485,8 +480,8 @@ async function fetchSessionLogsFromUrl(
 }
 
 /**
- * Walk backward through entries to find the last one with a uuid.
- * Some entry types (SummaryMessage, TagMessage) don't have one.
+ * 从后往前遍历条目，找到最后一个带 uuid 的。
+ * 某些条目类型（SummaryMessage、TagMessage）没有 uuid。
  */
 function findLastUuid(logs: Entry[] | null): UUID | undefined {
   if (!logs) {
@@ -497,7 +492,7 @@ function findLastUuid(logs: Entry[] | null): UUID | undefined {
 }
 
 /**
- * Clear cached state for a session
+ * 清空某个 session 的缓存状态
  */
 export function clearSession(sessionId: string): void {
   lastUuidMap.delete(sessionId)
@@ -505,8 +500,8 @@ export function clearSession(sessionId: string): void {
 }
 
 /**
- * Clear all cached session state (all sessions).
- * Use this on /clear to free sub-agent session entries.
+ * 清空所有 session 的缓存状态（全部 session）。
+ * 在 /clear 时使用以释放 sub-agent 的 session 条目。
  */
 export function clearAllSessions(): void {
   lastUuidMap.clear()

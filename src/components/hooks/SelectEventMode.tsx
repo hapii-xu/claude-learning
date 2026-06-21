@@ -1,10 +1,8 @@
 /**
- * SelectEventMode is the entrypoint of the Hooks config menu, where the user
- * sees the list of available hook events.
+ * SelectEventMode 是 Hooks 配置菜单的入口，用户在此看到可用的 hook 事件列表。
  *
- * The /hooks menu is read-only: selecting an event lets you browse its
- * configured hooks but not modify them. To add or change hooks, users should
- * edit settings.json directly or ask Claude.
+ * /hooks 菜单是只读的：选择一个事件可浏览其已配置的 hooks，但不能修改。
+ * 要添加或更改 hooks，用户应直接编辑 settings.json 或让 Claude 帮忙。
  */
 
 import figures from 'figures';

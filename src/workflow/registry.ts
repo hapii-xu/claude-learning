@@ -2,9 +2,9 @@ import { AgentAdapterRegistry } from '@claude-code-best/workflow-engine'
 import { claudeCodeBackend } from './backends/claudeCodeBackend.js'
 
 /**
- * Build a multi-backend registry. v1 (depth B) only registers a single
- * claude-code adapter as default, without prefilling routing rules — add
- * .route(...) when extending with a second provider adapter.
+ * 构建多后端 registry。v1（深度 B）只注册一个
+ * claude-code adapter 作为默认，不预填路由规则 —— 在接入
+ * 第二个 provider adapter 时再加 .route(...)。
  */
 export function buildRegistry(): AgentAdapterRegistry {
   const reg = new AgentAdapterRegistry()

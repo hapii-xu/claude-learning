@@ -1,17 +1,17 @@
 /**
- * SDK Core Schemas - Zod schemas for serializable SDK data types.
+ * SDK Core Schemas —— 可序列化 SDK 数据类型的 Zod schema。
  *
- * These schemas are the single source of truth for SDK data types.
- * TypeScript types are generated from these schemas and committed for IDE support.
+ * 这些 schema 是 SDK 数据类型的唯一真相来源。
+ * TypeScript 类型由这些 schema 生成并提交以支持 IDE。
  *
- * @see scripts/generate-sdk-types.ts for type generation
+ * @see scripts/generate-sdk-types.ts 类型生成脚本
  */
 
 import { z } from 'zod/v4'
 import { lazySchema } from '../../utils/lazySchema.js'
 
 // ============================================================================
-// Usage & Model Types
+// Usage 与 Model 类型
 // ============================================================================
 
 export const ModelUsageSchema = lazySchema(() =>
@@ -28,7 +28,7 @@ export const ModelUsageSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// Output Format Types
+// 输出格式类型
 // ============================================================================
 
 export const OutputFormatTypeSchema = lazySchema(() => z.literal('json_schema'))
@@ -51,7 +51,7 @@ export const OutputFormatSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// Config Types
+// 配置类型
 // ============================================================================
 
 export const ApiKeySourceSchema = lazySchema(() =>
@@ -104,7 +104,7 @@ export const ThinkingConfigSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// MCP Server Config Types (serializable only)
+// MCP Server 配置类型（仅可序列化部分）
 // ============================================================================
 
 export const McpStdioServerConfigSchema = lazySchema(() =>
@@ -156,7 +156,7 @@ export const McpClaudeAIProxyServerConfigSchema = lazySchema(() =>
   }),
 )
 
-// Broader config type for status responses (includes claudeai-proxy which is output-only)
+// 用于状态响应的更宽 config 类型（包含 claudeai-proxy —— 仅输出端）
 export const McpServerStatusConfigSchema = lazySchema(() =>
   z.union([
     McpServerConfigForProcessTransportSchema(),
@@ -236,7 +236,7 @@ export const McpSetServersResultSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// Permission Types
+// 权限类型
 // ============================================================================
 
 export const PermissionUpdateDestinationSchema = lazySchema(() =>
@@ -316,7 +316,7 @@ export const PermissionResultSchema = lazySchema(() =>
   z.union([
     z.object({
       behavior: z.literal('allow'),
-      // Optional - may not be provided if hook sets permission without input modification
+      // 可选 —— 若 hook 在不修改 input 的情况下设置权限，则可能不提供
       updatedInput: z.record(z.string(), z.unknown()).optional(),
       updatedPermissions: z.array(PermissionUpdateSchema()).optional(),
       toolUseID: z.string().optional(),
@@ -356,7 +356,7 @@ export const PermissionModeSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// Hook Types
+// Hook 类型
 // ============================================================================
 
 export const HOOK_EVENTS = [
@@ -417,7 +417,7 @@ export const BaseHookInputSchema = lazySchema(() =>
   }),
 )
 
-// Use .and() instead of .extend() to preserve BaseHookInput & {...} in generated types
+// 用 .and() 而非 .extend()，以在生成的类型里保留 BaseHookInput & {...}
 export const PreToolUseHookInputSchema = lazySchema(() =>
   BaseHookInputSchema().and(
     z.object({
@@ -1017,7 +1017,7 @@ export const PromptResponseSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// Skill/Command Types
+// Skill/Command 类型
 // ============================================================================
 
 export const SlashCommandSchema = lazySchema(() =>
@@ -1104,7 +1104,7 @@ export const AccountInfoSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// Agent Definition Types
+// Agent 定义类型
 // ============================================================================
 
 export const AgentMcpServerSpecSchema = lazySchema(() =>
@@ -1193,7 +1193,7 @@ export const AgentDefinitionSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// Settings Types
+// 设置类型
 // ============================================================================
 
 export const SettingSourceSchema = lazySchema(() =>
@@ -1221,7 +1221,7 @@ export const SdkPluginConfigSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// Rewind Types
+// Rewind 类型
 // ============================================================================
 
 export const RewindFilesResultSchema = lazySchema(() =>
@@ -1237,30 +1237,30 @@ export const RewindFilesResultSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// External Type Placeholders
+// 外部类型占位符
 // ============================================================================
 //
-// These schemas use z.unknown() as placeholders for external types.
-// The generation script uses TypeOverrideMap to output the correct TS type references.
-// This allows us to define SDK message types in Zod while maintaining proper typing.
+// 这些 schema 使用 z.unknown() 作为外部类型的占位符。
+// 生成脚本通过 TypeOverrideMap 输出正确的 TS 类型引用。
+// 这让我们能在 Zod 中定义 SDK 消息类型，同时保持正确的类型化。
 
-/** Placeholder for APIUserMessage from @anthropic-ai/sdk */
+/** 来自 @anthropic-ai/sdk 的 APIUserMessage 占位符 */
 export const APIUserMessagePlaceholder = lazySchema(() => z.unknown())
 
-/** Placeholder for APIAssistantMessage from @anthropic-ai/sdk */
+/** 来自 @anthropic-ai/sdk 的 APIAssistantMessage 占位符 */
 export const APIAssistantMessagePlaceholder = lazySchema(() => z.unknown())
 
-/** Placeholder for RawMessageStreamEvent from @anthropic-ai/sdk */
+/** 来自 @anthropic-ai/sdk 的 RawMessageStreamEvent 占位符 */
 export const RawMessageStreamEventPlaceholder = lazySchema(() => z.unknown())
 
-/** Placeholder for UUID from crypto */
+/** 来自 crypto 的 UUID 占位符 */
 export const UUIDPlaceholder = lazySchema(() => z.string())
 
-/** Placeholder for NonNullableUsage (mapped type over Usage) */
+/** NonNullableUsage（Usage 上的 mapped type）占位符 */
 export const NonNullableUsagePlaceholder = lazySchema(() => z.unknown())
 
 // ============================================================================
-// SDK Message Types
+// SDK 消息类型
 // ============================================================================
 
 export const SDKAssistantMessageErrorSchema = lazySchema(() =>
@@ -1279,7 +1279,7 @@ export const SDKStatusSchema = lazySchema(() =>
   z.union([z.literal('compacting'), z.null()]),
 )
 
-// SDKUserMessage content without uuid/session_id
+// SDKUserMessage 内容（不含 uuid/session_id）
 const SDKUserMessageContentSchema = lazySchema(() =>
   z.object({
     type: z.literal('user'),
@@ -1815,7 +1815,7 @@ export const SDKPromptSuggestionMessageSchema = lazySchema(() =>
 )
 
 // ============================================================================
-// Session Listing Types
+// Session 列表类型
 // ============================================================================
 
 export const SDKSessionInfoSchema = lazySchema(() =>

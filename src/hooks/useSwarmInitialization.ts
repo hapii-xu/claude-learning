@@ -1,10 +1,10 @@
 /**
- * Swarm Initialization Hook
+ * Swarm 初始化 Hook
  *
- * Initializes swarm features: teammate hooks and context.
- * Handles both fresh spawns and resumed teammate sessions.
+ * 初始化 swarm 功能：teammate hook 和 context。
+ * 处理新 spawn 和恢复的 teammate 会话。
  *
- * This hook is conditionally loaded to allow dead code elimination when swarms are disabled.
+ * 此 hook 条件加载，以允许在 swarm 禁用时死代码消除。
  */
 
 import { useEffect } from 'react'
@@ -20,12 +20,12 @@ import { getDynamicTeamContext } from '../utils/teammate.js'
 type SetAppState = (f: (prevState: AppState) => AppState) => void
 
 /**
- * Hook that initializes swarm features when ENABLE_AGENT_SWARMS is true.
+ * ENABLE_AGENT_SWARMS 为 true 时初始化 swarm 功能的 hook。
  *
- * Handles both:
- * - Resumed teammate sessions (from --resume or /resume) where teamName/agentName
- *   are stored in transcript messages
- * - Fresh spawns where context is read from environment variables
+ * 处理：
+ * - 恢复的 teammate 会话（来自 --resume 或 /resume），teamName/agentName
+ *   存储在 transcript 消息中
+ * - 新 spawn，context 从环境变量读取
  */
 export function useSwarmInitialization(
   setAppState: SetAppState,
@@ -35,8 +35,8 @@ export function useSwarmInitialization(
   useEffect(() => {
     if (!enabled) return
     if (isAgentSwarmsEnabled()) {
-      // Check if this is a resumed agent session (from --resume or /resume)
-      // Resumed sessions have teamName/agentName stored in transcript messages
+      // 检查这是否是恢复的 agent 会话（来自 --resume 或 /resume）
+      // 恢复的会话在 transcript 消息中存储 teamName/agentName
       const firstMessage = initialMessages?.[0]
       const teamName =
         firstMessage && 'teamName' in firstMessage
@@ -48,10 +48,10 @@ export function useSwarmInitialization(
           : undefined
 
       if (teamName && agentName) {
-        // Resumed agent session - set up team context from stored info
+        // 恢复的 agent 会话 —— 从存储的信息设置 team context
         initializeTeammateContextFromSession(setAppState, teamName, agentName)
 
-        // Get agentId from team file for hook initialization
+        // 从 team 文件获取 agentId 用于 hook 初始化
         const teamFile = readTeamFile(teamName)
         const member = teamFile?.members.find(
           (m: { name: string }) => m.name === agentName,
@@ -64,9 +64,9 @@ export function useSwarmInitialization(
           })
         }
       } else {
-        // Fresh spawn or standalone session
-        // teamContext is already computed in main.tsx via computeInitialTeamContext()
-        // and included in initialState, so we only need to initialize hooks here
+        // 新 spawn 或独立会话
+        // teamContext 已在 main.tsx 中通过 computeInitialTeamContext() 计算
+        // 并包含在 initialState 中，所以我们这里只需初始化 hook
         const context = getDynamicTeamContext?.()
         if (context?.teamName && context?.agentId && context?.agentName) {
           initializeTeammateHooks(setAppState, getSessionId(), {

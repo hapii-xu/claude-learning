@@ -1,9 +1,8 @@
 /**
- * SelectHookMode shows all hooks configured for a given event+matcher pair.
+ * SelectHookMode 显示给定 event+matcher 对的所有已配置 hooks。
  *
- * The /hooks menu is read-only: this view no longer offers "add new hook"
- * and selecting a hook shows its read-only details instead of a delete
- * confirmation.
+ * /hooks 菜单是只读的：此视图不再提供"添加新 hook"，
+ * 选择一个 hook 会显示其只读详情而非删除确认。
  */
 import * as React from 'react';
 import type { HookEvent } from 'src/entrypoints/agentSdkTypes.js';

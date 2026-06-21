@@ -1,5 +1,5 @@
 /**
- * Shared utilities for displaying task status across different task types.
+ * 跨不同 task 类型显示任务状态的共享工具函数。
  */
 
 import figures from 'figures';
@@ -11,14 +11,14 @@ import type { DeepImmutable } from 'src/types/utils.js';
 import { summarizeRecentActivities } from 'src/utils/collapseReadSearch.js';
 
 /**
- * Returns true if the given task status represents a terminal (finished) state.
+ * 如果给定 task 状态表示终态（已结束），则返回 true。
  */
 export function isTerminalStatus(status: TaskStatus): boolean {
   return status === 'completed' || status === 'failed' || status === 'killed';
 }
 
 /**
- * Returns the appropriate icon for a task based on status and state flags.
+ * 根据 status 和 state flag 返回任务对应的图标。
  */
 export function getTaskStatusIcon(
   status: TaskStatus,
@@ -45,7 +45,7 @@ export function getTaskStatusIcon(
 }
 
 /**
- * Returns the appropriate semantic color for a task based on status and state flags.
+ * 根据 status 和 state flag 返回任务对应的语义颜色。
  */
 export function getTaskStatusColor(
   status: TaskStatus,
@@ -70,9 +70,9 @@ export function getTaskStatusColor(
 }
 
 /**
- * Derives a human-readable activity string for an in-process teammate,
- * accounting for shutdown/approval/idle states and falling back through
- * recent-activity summary → last activity description → 'working'.
+ * 为 in-process teammate 派生一个人类可读的活动字符串，
+ * 处理 shutdown/approval/idle 状态，并按以下顺序回退：
+ * 近期活动摘要 → 上一条活动描述 → 'working'。
  */
 export function describeTeammateActivity(t: DeepImmutable<InProcessTeammateTaskState>): string {
   if (t.shutdownRequested) return 'stopping';
@@ -86,13 +86,12 @@ export function describeTeammateActivity(t: DeepImmutable<InProcessTeammateTaskS
 }
 
 /**
- * Returns true when BackgroundTaskStatus would render nothing because the
- * spinner tree is active and every visible background task is an in-process
- * teammate (teammates are shown in the spinner tree instead).
+ * 当 BackgroundTaskStatus 不会渲染任何内容时返回 true：spinner tree 处于激活状态
+ * 且每个可见的后台 task 都是 in-process teammate（teammate 显示在 spinner tree 中）。
  *
- * Uses the same task filtering as BackgroundTaskStatus: `isBackgroundTask()`
- * plus exclusion of panel-managed agent tasks for ants (those are shown
- * by CoordinatorTaskPanel).
+ * 使用与 BackgroundTaskStatus 相同的 task 过滤：`isBackgroundTask()`
+ * 加上对 ant 的 panel 托管 agent task 的排除（那些由
+ * CoordinatorTaskPanel 展示）。
  */
 export function shouldHideTasksFooter(tasks: { [taskId: string]: TaskState }, showSpinnerTree: boolean): boolean {
   if (!showSpinnerTree) return false;

@@ -69,7 +69,7 @@ function handleAcceptOnce(
 
   logPermissionEvent('accept', completionType, languageName, messageId)
 
-  // Log accept submission with feedback context
+  // 记录 accept 提交及反馈上下文
   logEvent('tengu_accept_submitted', {
     toolName: sanitizeToolNameForAnalytics(
       toolUseConfirm.tool.name,
@@ -101,7 +101,7 @@ function handleAcceptSession(
 
   logPermissionEvent('accept', completionType, languageName, messageId)
 
-  // For claude-folder scope, grant session-level access to all .claude/ files
+  // 对于 claude-folder 作用域，授予对全部 .claude/ 文件的 session 级别访问权限
   if (
     options?.scope === 'claude-folder' ||
     options?.scope === 'global-claude-folder'
@@ -128,13 +128,13 @@ function handleAcceptSession(
     return
   }
 
-  // Generate permission updates if path is provided
+  // 若提供了路径则生成权限更新
   const suggestions = path
     ? generateSuggestions(path, operationType, toolPermissionContext)
     : []
 
   onDone()
-  // Pass permission updates directly to onAllow
+  // 直接将权限更新传给 onAllow
   toolUseConfirm.onAllow(toolUseConfirm.input, suggestions)
 }
 
@@ -159,7 +159,7 @@ function handleReject(
     options?.hasFeedback,
   )
 
-  // Log reject submission with feedback context
+  // 记录 reject 提交及反馈上下文
   logEvent('tengu_reject_submitted', {
     toolName: sanitizeToolNameForAnalytics(
       toolUseConfirm.tool.name,

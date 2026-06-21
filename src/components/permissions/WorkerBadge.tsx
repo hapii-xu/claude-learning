@@ -9,8 +9,8 @@ export type WorkerBadgeProps = {
 };
 
 /**
- * Renders a colored badge showing the worker's name for permission prompts.
- * Used to indicate which swarm worker is requesting the permission.
+ * 渲染带颜色的 worker 名称徽章，用于权限提示。
+ * 用于指示哪个 swarm worker 正在请求权限。
  */
 export function WorkerBadge({ name, color }: WorkerBadgeProps): React.ReactNode {
   const inkColor = toInkColor(color);

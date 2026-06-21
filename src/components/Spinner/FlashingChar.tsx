@@ -21,12 +21,12 @@ export function FlashingChar({ char, flashOpacity, messageColor, shimmerColor }:
   const shimmerRGB = shimmerColorStr ? parseRGB(shimmerColorStr) : null;
 
   if (baseRGB && shimmerRGB) {
-    // Smooth interpolation between colors
+    // 颜色之间的平滑插值
     const interpolated = interpolateColor(baseRGB, shimmerRGB, flashOpacity);
     return <Text color={toRGBColor(interpolated)}>{char}</Text>;
   }
 
-  // Fallback for ANSI themes: binary switch
+  // ANSI 主题的后备方案：二值切换
   const shouldUseShimmer = flashOpacity > 0.5;
   return <Text color={shouldUseShimmer ? shimmerColor : messageColor}>{char}</Text>;
 }

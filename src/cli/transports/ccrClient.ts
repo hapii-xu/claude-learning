@@ -334,7 +334,7 @@ export class CCRClient {
       opts?.heartbeatIntervalMs ?? DEFAULT_HEARTBEAT_INTERVAL_MS
     this.heartbeatJitterFraction = opts?.heartbeatJitterFraction ?? 0
     this.getAuthHeaders = opts?.getAuthHeaders ?? getSessionIngressAuthHeaders
-    // Session URL: https://host/v1/code/sessions/{id}
+    // Session URL: https://host/v1/code/sessions/{id}（会话 URL）
     if (sessionUrl.protocol !== 'http:' && sessionUrl.protocol !== 'https:') {
       throw new Error(
         `CCRClient: Expected http(s) URL, got ${sessionUrl.protocol}`,

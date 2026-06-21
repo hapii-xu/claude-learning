@@ -30,10 +30,10 @@ export function getTokenUsage(message: Message): Usage | undefined {
 }
 
 /**
- * Get the API response id for an assistant message with real (non-synthetic) usage.
- * Used to identify split assistant records that came from the same API response —
- * when parallel tool calls are streamed, each content block becomes a separate
- * AssistantMessage record, but they all share the same message.id.
+ * 获取带有真实（非合成）usage 的 assistant 消息的 API response id。
+ * 用于识别来自同一 API response 的拆分 assistant 记录 —
+ * 当并行工具调用被流式传输时，每个内容块成为一条独立的
+ * AssistantMessage 记录，但它们共享同一个 message.id。
  */
 function getAssistantMessageId(message: Message): string | undefined {
   if (
@@ -47,11 +47,11 @@ function getAssistantMessageId(message: Message): string | undefined {
 }
 
 /**
- * Calculate total context window tokens from an API response's usage data.
- * Includes input_tokens + cache tokens + output_tokens.
+ * 根据 API response 的 usage 数据计算总上下文窗口 token 数。
+ * 包含 input_tokens + cache tokens + output_tokens。
  *
- * This represents the full context size at the time of that API call.
- * Use tokenCountWithEstimation() when you need context size from messages.
+ * 这表示该 API 调用时的完整上下文大小。
+ * 需要从 messages 获取上下文大小时请使用 tokenCountWithEstimation()。
  */
 export function getTokenCountFromUsage(usage: Usage): number {
   if (!usage) {
@@ -79,15 +79,15 @@ export function tokenCountFromLastAPIResponse(messages: Message[]): number {
 }
 
 /**
- * Final context window size from the last API response's usage.iterations[-1].
- * Used for task_budget.remaining computation across compaction boundaries —
- * the server's budget countdown is context-based, so remaining decrements by
- * the pre-compact final window, not billing spend. See monorepo
- * api/api/sampling/prompt/renderer.py:292 for the server-side computation.
+ * 从最后一次 API response 的 usage.iterations[-1] 获取最终上下文窗口大小。
+ * 用于跨压缩边界计算 task_budget.remaining —
+ * 服务端的预算倒计时基于上下文，因此 remaining 按压缩前的
+ * 最终窗口递减，而非按计费消耗。服务端计算参见 monorepo
+ * api/api/sampling/prompt/renderer.py:292。
  *
- * Falls back to top-level input_tokens + output_tokens when iterations is
- * absent (no server-side tool loops, so top-level usage IS the final window).
- * Both paths exclude cache tokens to match #304930's formula.
+ * 当 iterations 不存在时回退到顶层 input_tokens + output_tokens
+ * （无服务端工具循环，因此顶层 usage 即最终窗口）。
+ * 两条路径都排除 cache tokens 以匹配 #304930 的公式。
  */
 export function finalContextTokensFromLastResponse(
   messages: Message[],
@@ -97,7 +97,7 @@ export function finalContextTokensFromLastResponse(
     const message = messages[i]
     const usage = message ? getTokenUsage(message) : undefined
     if (usage) {
-      // Stainless types don't include iterations yet — cast like advisor.ts:43
+      // Stainless 类型尚未包含 iterations — 像 advisor.ts:43 那样转换
       const iterations = (
         usage as {
           iterations?: Array<{
@@ -110,13 +110,13 @@ export function finalContextTokensFromLastResponse(
         const last = iterations.at(-1)!
         return last.input_tokens + last.output_tokens
       }
-      // No iterations → no server tool loop → top-level usage IS the final
-      // window. Match the iterations path's formula (input + output, no cache)
-      // rather than getTokenCountFromUsage — #304930 defines final window as
-      // non-cache input + output. Whether the server's budget countdown
-      // (renderer.py:292 calculate_context_tokens) counts cache the same way
-      // is an open question; aligning with the iterations path keeps the two
-      // branches consistent until that's resolved.
+      // 无 iterations → 无服务端工具循环 → 顶层 usage 即最终
+      // 窗口。匹配 iterations 路径的公式（input + output，无 cache）
+      // 而非 getTokenCountFromUsage — #304930 将最终窗口定义为
+      // 非 cache input + output。服务端的预算倒计时
+      // （renderer.py:292 calculate_context_tokens）是否以相同方式
+      // 计算 cache 是一个开放问题；与 iterations 路径对齐以在
+      // 解决该问题前保持两个分支一致。
       return usage.input_tokens + usage.output_tokens
     }
     i--
@@ -125,13 +125,13 @@ export function finalContextTokensFromLastResponse(
 }
 
 /**
- * Get only the output_tokens from the last API response.
- * This excludes input context (system prompt, tools, prior messages).
+ * 仅从最后一次 API response 中获取 output_tokens。
+ * 不包括输入上下文（system prompt、tools、之前的 messages）。
  *
- * WARNING: Do NOT use this for threshold comparisons (autocompact, session memory).
- * Use tokenCountWithEstimation() instead, which measures full context size.
- * This function is only useful for measuring how many tokens Claude generated
- * in a single response, not how full the context window is.
+ * 警告：不要将此用于阈值比较（autocompact、session memory）。
+ * 请改用 tokenCountWithEstimation()，它度量完整上下文大小。
+ * 此函数仅用于度量 Claude 在单次响应中生成了多少 token，
+ * 而非上下文窗口有多满。
  */
 export function messageTokenCountFromLastAPIResponse(
   messages: Message[],
@@ -162,9 +162,9 @@ export function getCurrentUsage(messages: Message[]): {
         (usage.input_tokens ?? 0) +
         (usage.cache_creation_input_tokens ?? 0) +
         (usage.cache_read_input_tokens ?? 0)
-      // Skip placeholder usage (all zeros) — third-party APIs may emit
-      // message_start without real usage data, causing the context counter
-      // to flash to 0. Fall through to the previous message instead.
+      // 跳过占位 usage（全为零）— 第三方 API 可能
+      // 发出 message_start 而无真实 usage 数据，导致上下文计数器
+      // 闪回 0。继续向前回溯到上一条消息。
       if (inputTokens === 0 && (usage.output_tokens ?? 0) === 0) continue
       return {
         input_tokens: usage.input_tokens ?? 0,
@@ -189,17 +189,17 @@ export function doesMostRecentAssistantMessageExceed200k(
 }
 
 /**
- * Calculate the character content length of an assistant message.
- * Used for spinner token estimation (characters / 4 ≈ tokens).
- * This is used when subagent streaming events are filtered out and we
- * need to count content from completed messages instead.
+ * 计算 assistant 消息的字符内容长度。
+ * 用于 spinner token 估算（字符数 / 4 ≈ tokens）。
+ * 当 subagent 流式事件被过滤掉而需要从已完成消息中
+ * 统计内容时使用。
  *
- * Counts the same content that handleMessageFromStream would count via deltas:
- * - text (text_delta)
- * - thinking (thinking_delta)
+ * 统计 handleMessageFromStream 通过 delta 统计的相同内容：
+ * - text（text_delta）
+ * - thinking（thinking_delta）
  * - redacted_thinking data
- * - tool_use input (input_json_delta)
- * Note: signature_delta is excluded from streaming counts (not model output).
+ * - tool_use input（input_json_delta）
+ * 注意：signature_delta 不在流式统计中（非模型输出）。
  */
 export function getAssistantMessageContentLength(
   message: AssistantMessage,
@@ -225,29 +225,26 @@ export function getAssistantMessageContentLength(
 }
 
 /**
- * Get the current context window size in tokens.
+ * 获取当前上下文窗口大小（以 tokens 为单位）。
  *
- * This is the CANONICAL function for measuring context size when checking
- * thresholds (autocompact, session memory init, etc.). Uses the last API
- * response's token count (input + output + cache) plus estimates for any
- * messages added since.
+ * 这是检查阈值（autocompact、session memory 初始化等）时
+ * 度量上下文大小的标准函数。使用最后一次 API response 的 token 计数
+ * （input + output + cache），并估算之后新增的消息。
  *
- * Always use this instead of:
- * - Cumulative token counting (which double-counts as context grows)
- * - messageTokenCountFromLastAPIResponse (which only counts output_tokens)
- * - tokenCountFromLastAPIResponse (which doesn't estimate new messages)
+ * 务必使用此函数，而非：
+ * - 累加 token 计数（随着上下文增长会重复计数）
+ * - messageTokenCountFromLastAPIResponse（仅统计 output_tokens）
+ * - tokenCountFromLastAPIResponse（不估算新消息）
  *
- * Implementation note on parallel tool calls: when the model makes multiple
- * tool calls in one response, the streaming code emits a SEPARATE assistant
- * record per content block (all sharing the same message.id and usage), and
- * the query loop interleaves each tool_result immediately after its tool_use.
- * So the messages array looks like:
+ * 关于并行工具调用的实现说明：当模型在一个响应中发起多个
+ * 工具调用时，流式代码会为每个内容块发出一条独立的 assistant
+ * 记录（全部共享同一 message.id 和 usage），并且查询循环会在每个
+ * tool_use 之后立即穿插对应的 tool_result。因此 messages 数组看起来像：
  *   [..., assistant(id=A), user(result), assistant(id=A), user(result), ...]
- * If we stop at the LAST assistant record, we only estimate the one tool_result
- * after it and miss all the earlier interleaved tool_results — which will ALL
- * be in the next API request. To avoid undercounting, after finding a usage-
- * bearing record we walk back to the FIRST sibling with the same message.id
- * so every interleaved tool_result is included in the rough estimate.
+ * 如果停在最后一条 assistant 记录，我们只会估算其后的那一个 tool_result
+ * 而遗漏所有更早的穿插 tool_result — 而这些都将出现在下一次 API 请求中。
+ * 为避免少计，找到带 usage 的记录后，向前回溯到具有相同 message.id 的
+ * 第一条同级记录，使每个穿插的 tool_result 都纳入粗略估算。
  */
 export function tokenCountWithEstimation(messages: readonly Message[]): number {
   let i = messages.length - 1
@@ -255,9 +252,9 @@ export function tokenCountWithEstimation(messages: readonly Message[]): number {
     const message = messages[i]
     const usage = message ? getTokenUsage(message) : undefined
     if (message && usage) {
-      // Walk back past any earlier sibling records split from the same API
-      // response (same message.id) so interleaved tool_results between them
-      // are included in the estimation slice.
+      // 向前回溯到从同一 API response 拆分出的任何更早同级记录
+      // （相同 message.id），使它们之间穿插的 tool_result
+      // 被包含在估算切片中。
       const responseId = getAssistantMessageId(message)
       if (responseId) {
         let j = i - 1
@@ -265,14 +262,14 @@ export function tokenCountWithEstimation(messages: readonly Message[]): number {
           const prior = messages[j]
           const priorId = prior ? getAssistantMessageId(prior) : undefined
           if (priorId === responseId) {
-            // Earlier split of the same API response — anchor here instead.
+            // 同一 API response 的更早拆分 — 在此处锚定。
             i = j
           } else if (priorId !== undefined) {
-            // Hit a different API response — stop walking.
+            // 遇到不同的 API response — 停止回溯。
             break
           }
-          // priorId === undefined: a user/tool_result/attachment message,
-          // possibly interleaved between splits — keep walking.
+          // priorId === undefined：user/tool_result/attachment 消息，
+          // 可能穿插在拆分之间 — 继续回溯。
           j--
         }
       }

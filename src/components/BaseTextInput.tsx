@@ -17,7 +17,7 @@ type BaseTextInputComponentProps = BaseTextInputProps & {
 };
 
 /**
- * A base component for text inputs that handles rendering and basic input
+ * 文本输入的基础组件，处理渲染和基本输入
  */
 export function BaseTextInput({
   inputState,
@@ -29,13 +29,11 @@ export function BaseTextInput({
 }: BaseTextInputComponentProps): React.ReactNode {
   const { onInput, renderedValue, cursorLine, cursorColumn } = inputState;
 
-  // Park the native terminal cursor at the input caret. Terminal emulators
-  // position IME preedit text at the physical cursor, and screen readers /
-  // screen magnifiers track it — so parking here makes CJK input appear
-  // inline and lets accessibility tools follow the input. The Box ref below
-  // is the yoga layout origin; (cursorLine, cursorColumn) is relative to it.
-  // Only active when the input is focused, showing its cursor, and the
-  // terminal itself has focus.
+  // 将原生终端光标停放在输入插入符处。终端模拟器在物理光标位置
+  // 放置 IME 预编辑文本，屏幕阅读器/放大镜也跟踪它 —— 所以在此处停放
+  // 可让 CJK 输入内联显示，并让辅助工具跟随输入。下方的 Box ref
+  // 是 yoga 布局原点；(cursorLine, cursorColumn) 相对于它。
+  // 仅在输入聚焦、显示其光标且终端本身拥有焦点时激活。
   const cursorRef = useDeclaredCursor({
     line: cursorLine,
     column: cursorColumn,
@@ -45,7 +43,7 @@ export function BaseTextInput({
   const { wrappedOnInput, isPasting } = usePasteHandler({
     onPaste: props.onPaste,
     onInput: (input, key) => {
-      // Prevent Enter key from triggering submission during paste
+      // 粘贴期间阻止 Enter 键触发提交
       if (isPasting && key.return) {
         return;
       }
@@ -54,7 +52,7 @@ export function BaseTextInput({
     onImagePaste: props.onImagePaste,
   });
 
-  // Notify parent when paste state changes
+  // 粘贴状态变化时通知父组件
   const { onIsPastingChange } = props;
   React.useEffect(() => {
     if (onIsPastingChange) {
@@ -74,12 +72,12 @@ export function BaseTextInput({
 
   useInput(wrappedOnInput, { isActive: props.focus });
 
-  // Show argument hint only when we have a value and the hint is provided
-  // Only show the argument hint when:
-  // 1. We have a hint to show
-  // 2. We have a command typed (value is not empty)
-  // 3. The command doesn't have arguments yet (no text after the space)
-  // 4. We're actually typing a command (the value starts with /)
+  // 仅当有值且提供了 hint 时显示参数提示
+  // 仅在以下情况显示参数提示：
+  // 1. 有要显示的 hint
+  // 2. 已输入命令（value 非空）
+  // 3. 命令尚无参数（空格后无文本）
+  // 4. 实际上正在输入命令（value 以 / 开头）
   const commandWithoutArgs =
     (props.value && props.value.trim().indexOf(' ') === -1) || (props.value && props.value.endsWith(' '));
 
@@ -87,14 +85,14 @@ export function BaseTextInput({
     props.argumentHint && props.value && commandWithoutArgs && props.value.startsWith('/'),
   );
 
-  // Filter out highlights that contain the cursor position
+  // 过滤掉包含光标位置的高亮
   const cursorFiltered =
     props.showCursor && props.highlights
       ? props.highlights.filter(h => h.dimColor || props.cursorOffset < h.start || props.cursorOffset >= h.end)
       : props.highlights;
 
-  // Adjust highlights for viewport windowing: highlight positions reference the
-  // full input text, but renderedValue only contains the windowed subset.
+  // 为视口窗口调整高亮：高亮位置引用完整输入文本，
+  // 但 renderedValue 仅包含窗口子集。
   const { viewportCharOffset, viewportCharEnd } = inputState;
   const filteredHighlights =
     cursorFiltered && viewportCharOffset > 0

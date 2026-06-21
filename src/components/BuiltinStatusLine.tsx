@@ -22,8 +22,8 @@ type BuiltinStatusLineProps = {
 };
 
 /**
- * Format a countdown from now until the given epoch time (in seconds).
- * Returns a compact human-readable string like "3h12m", "5d20h", "45m", or "now".
+ * 格式化从当前到给定 epoch 时间（秒）的倒计时。
+ * 返回紧凑的人类可读字符串，如 "3h12m"、"5d20h"、"45m" 或 "now"。
  */
 export function formatCountdown(epochSeconds: number): string {
   const diff = epochSeconds - Date.now() / 1000;
@@ -52,7 +52,7 @@ function BuiltinStatusLineInner({
 }: BuiltinStatusLineProps) {
   const { columns } = useTerminalSize();
 
-  // Force re-render every 60s so countdowns stay current
+  // 每 60 秒强制重新渲染，以保持倒计时时新
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const hasResetTime = (rateLimits.five_hour?.resets_at ?? 0) || (rateLimits.seven_day?.resets_at ?? 0);
@@ -61,10 +61,10 @@ function BuiltinStatusLineInner({
     return () => clearInterval(id);
   }, [rateLimits.five_hour?.resets_at, rateLimits.seven_day?.resets_at]);
 
-  // Suppress unused-variable lint for tick (it exists only to trigger re-renders)
+  // 抑制未使用变量的 lint（tick 仅用于触发重新渲染）
   void tick;
 
-  // Model display: use first two words (e.g. "Opus 4.6") instead of just first word
+  // 模型显示：使用前两个词（例如 "Opus 4.6"）而非仅第一个词
   const modelParts = modelName.split(' ');
   const shortModel = modelParts.length >= 2 ? `${modelParts[0]} ${modelParts[1]}` : modelName;
 
@@ -76,21 +76,21 @@ function BuiltinStatusLineInner({
   const fiveHourPct = hasFiveHour ? Math.round(rateLimits.five_hour!.utilization * 100) : 0;
   const sevenDayPct = hasSevenDay ? Math.round(rateLimits.seven_day!.utilization * 100) : 0;
 
-  // Token display: "50k/1M"
+  // Token 显示："50k/1M"
   const tokenDisplay = `${formatTokens(usedTokens)}/${formatTokens(contextWindowSize)}`;
 
   return (
     <Box>
-      {/* Model name */}
+      {/* 模型名称 */}
       <Text>{shortModel}</Text>
 
-      {/* Context usage with token counts */}
+      {/* 上下文使用率与 token 计数 */}
       <Separator />
       <Text dimColor>Context </Text>
       <Text>{contextUsedPct}%</Text>
       {!narrow && <Text dimColor> ({tokenDisplay})</Text>}
 
-      {/* 5-hour session rate limit */}
+      {/* 5 小时会话速率限制 */}
       {hasFiveHour && (
         <>
           <Separator />
@@ -102,7 +102,7 @@ function BuiltinStatusLineInner({
         </>
       )}
 
-      {/* 7-day weekly rate limit */}
+      {/* 7 天每周速率限制 */}
       {hasSevenDay && (
         <>
           <Separator />
@@ -114,7 +114,7 @@ function BuiltinStatusLineInner({
         </>
       )}
 
-      {/* Cost */}
+      {/* 成本 */}
       {totalCostUsd > 0 && (
         <>
           <Separator />

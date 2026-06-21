@@ -12,9 +12,9 @@ import { PermissionRuleExplanation } from 'src/components/permissions/Permission
 type OptionValue = 'yes' | 'yes-dont-ask-again' | 'no';
 
 /**
- * Permission request UI for the WorkflowTool. Asks the user to confirm
- * executing a workflow script.
- * Follows the MonitorPermissionRequest / FallbackPermissionRequest pattern.
+ * WorkflowTool 的权限请求 UI。请求用户确认
+ * 执行 workflow 脚本。
+ * 遵循 MonitorPermissionRequest / FallbackPermissionRequest 模式。
  */
 export function WorkflowPermissionRequest({
   toolUseConfirm,

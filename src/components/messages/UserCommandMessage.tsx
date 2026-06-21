@@ -19,7 +19,7 @@ export function UserCommandMessage({ addMargin, param: { text } }: Props): React
     return null;
   }
 
-  // Skills use "Skill(name)" format
+  // Skills 使用 "Skill(name)" 格式
   if (isSkillFormat) {
     return (
       <Box
@@ -36,7 +36,7 @@ export function UserCommandMessage({ addMargin, param: { text } }: Props): React
     );
   }
 
-  // Slash command format: show as "❯ /command args"
+  // 斜杠命令格式：显示为 "❯ /command args"
   const content = `/${[commandMessage, args].filter(Boolean).join(' ')}`;
   return (
     <Box flexDirection="column" marginTop={addMargin ? 1 : 0} backgroundColor="userMessageBackground" paddingRight={1}>

@@ -23,10 +23,9 @@ const DENY_ALL_RESPONSE: CuPermissionResponse = {
 };
 
 /**
- * Two-panel dispatcher. When `request.tccState` is present, macOS permissions
- * (Accessibility / Screen Recording) are missing and the app list is
- * irrelevant — show a TCC panel that opens System Settings. Otherwise show the
- * app allowlist + grant-flags panel.
+ * 双面板分发器。当 `request.tccState` 存在时，表示 macOS 权限
+ * （辅助功能 / 屏幕录制）缺失，此时 app 列表不相关——显示一个
+ * 打开"系统设置"的 TCC 面板。否则显示 app allowlist + 授权标志面板。
  */
 export function ComputerUseApproval({ request, onDone }: ComputerUseApprovalProps): React.ReactNode {
   return request.tccState ? (
@@ -82,8 +81,8 @@ function ComputerUseTccPanel({
         );
         return;
       case 'retry':
-        // Resolve with deny-all — the model re-calls request_access, which
-        // re-checks TCC and renders the app list if now granted.
+        // 以全部拒绝收尾——模型会重新调用 request_access，
+        // 重新检查 TCC，若已授权则渲染 app 列表。
         onDone();
         return;
     }
@@ -121,10 +120,10 @@ const SENTINEL_WARNING: Record<NonNullable<ReturnType<typeof getSentinelCategory
 };
 
 function ComputerUseAppListPanel({ request, onDone }: ComputerUseApprovalProps): React.ReactNode {
-  // Pre-check every resolved, not-yet-granted app. Sentinels stay checked
-  // too — the warning text is the signal, not an unchecked box.
-  // Per-item toggles are a follow-up; for now every resolved app is granted
-  // when the user accepts. `setChecked` is unused until then.
+  // 预先勾选所有已解析但尚未授权的 app。Sentinel app 也保持勾选——
+  // 警告文本是信号，而非未勾选的框。
+  // 单项切换是后续功能；目前用户接受时会授权所有已解析的 app。
+  // 在此之前 `setChecked` 未使用。
   const [checked] = useState<ReadonlySet<string>>(
     () => new Set(request.apps.flatMap(a => (a.resolved && !a.alreadyGranted ? [a.resolved.bundleId] : []))),
   );
@@ -177,7 +176,7 @@ function ComputerUseAppListPanel({ request, onDone }: ComputerUseApprovalProps):
         bundleId: a.resolved?.bundleId ?? a.requestedName,
         reason: a.resolved ? ('user_denied' as const) : ('not_installed' as const),
       }));
-    // Grant all requested flags on allow — per-flag toggles are a follow-up.
+    // 接受时授予所有请求的标志——单标志切换是后续功能。
     const flags = {
       ...DEFAULT_GRANT_FLAGS,
       ...Object.fromEntries(requestedFlagKeys.map(k => [k, true] as const)),

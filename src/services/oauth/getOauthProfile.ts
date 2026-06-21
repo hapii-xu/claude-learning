@@ -7,12 +7,12 @@ import { logError } from 'src/utils/log.js'
 export async function getOauthProfileFromApiKey(): Promise<
   OAuthProfileResponse | undefined
 > {
-  // Assumes interactive session
+  // 假设是交互式会话
   const config = getGlobalConfig()
   const accountUuid = config.oauthAccount?.accountUuid
   const apiKey = getAnthropicApiKey()
 
-  // Need both account UUID and API key to check
+  // 需要同时有账户 UUID 和 API 密钥才能检查
   if (!accountUuid || !apiKey) {
     return
   }

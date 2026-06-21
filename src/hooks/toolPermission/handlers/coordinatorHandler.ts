@@ -14,14 +14,13 @@ type CoordinatorPermissionParams = {
 }
 
 /**
- * Handles the coordinator worker permission flow.
+ * 处理协调器 worker 的权限流程。
  *
- * For coordinator workers, automated checks (hooks and classifier) are
- * awaited sequentially before falling through to the interactive dialog.
+ * 对于协调器 worker，自动化检查（hooks 和分类器）会
+ * 按顺序等待完成，然后才回退到交互式对话框。
  *
- * Returns a PermissionDecision if the automated checks resolved the
- * permission, or null if the caller should fall through to the
- * interactive dialog.
+ * 如果自动化检查解决了权限则返回 PermissionDecision，
+ * 如果调用方应回退到交互式对话框则返回 null。
  */
 async function handleCoordinatorPermission(
   params: CoordinatorPermissionParams,
@@ -29,7 +28,7 @@ async function handleCoordinatorPermission(
   const { ctx, updatedInput, suggestions, permissionMode } = params
 
   try {
-    // 1. Try permission hooks first (fast, local)
+    // 1. 首先尝试权限 hooks（快速、本地）
     const hookResult = await ctx.runHooks(
       permissionMode,
       suggestions,
@@ -37,7 +36,7 @@ async function handleCoordinatorPermission(
     )
     if (hookResult) return hookResult
 
-    // 2. Try classifier (slow, inference -- bash only)
+    // 2. 尝试分类器（慢、推理 —— 仅 bash）
     const classifierResult = feature('BASH_CLASSIFIER')
       ? await ctx.tryClassifier?.(params.pendingClassifierCheck, updatedInput)
       : null
@@ -45,10 +44,10 @@ async function handleCoordinatorPermission(
       return classifierResult
     }
   } catch (error) {
-    // If automated checks fail unexpectedly, fall through to show the dialog
-    // so the user can decide manually. Non-Error throws get a context prefix
-    // so the log is traceable — intentionally NOT toError(), which would drop
-    // the prefix.
+    // 如果自动化检查意外失败，回退到显示对话框
+    // 以便用户手动决定。非 Error 抛出会获得一个上下文前缀
+    // 使日志可追踪 —— 故意不使用 toError()，那会丢弃
+    // 前缀。
     if (error instanceof Error) {
       logError(error)
     } else {
@@ -56,8 +55,8 @@ async function handleCoordinatorPermission(
     }
   }
 
-  // 3. Neither resolved (or checks failed) -- fall through to dialog below.
-  // Hooks already ran, classifier already consumed.
+  // 3. 两者都未解决（或检查失败）—— 回退到下方对话框。
+  // Hooks 已运行，分类器已消费。
   return null
 }
 

@@ -1,8 +1,8 @@
 /**
- * App-specific wrapper around ink's KeybindingSetup.
+ * 针对 ink 的 KeybindingSetup 的应用专用包装器。
  *
- * Wires up app-specific dependencies (notification system, binding loading,
- * file watching, debug logging) and re-exports as KeybindingSetup.
+ * 连接应用专用依赖（通知系统、绑定加载、文件监视、调试日志），
+ * 并以 KeybindingSetup 名义重新导出。
  */
 import { useCallback } from 'react';
 import { useNotifications } from '../context/notifications.js';
@@ -22,9 +22,9 @@ type Props = {
 };
 
 /**
- * Keybinding provider with default + user bindings and hot-reload support.
+ * 带有默认 + 用户绑定以及热重载支持的 Keybinding provider。
  *
- * Usage: Wrap your app with this provider to enable keybinding support.
+ * 用法：用此 provider 包裹你的应用以启用键绑定支持。
  *
  * ```tsx
  * <AppStateProvider>
@@ -34,12 +34,12 @@ type Props = {
  * </AppStateProvider>
  * ```
  *
- * Features:
- * - Loads default bindings from code
- * - Merges with user bindings from ~/.claude/keybindings.json
- * - Watches for file changes and reloads automatically (hot-reload)
- * - User bindings override defaults (later entries win)
- * - Chord support with automatic timeout
+ * 特性：
+ * - 从代码加载默认绑定
+ * - 与来自 ~/.claude/keybindings.json 的用户绑定合并
+ * - 监视文件变更并自动重载（热重载）
+ * - 用户绑定覆盖默认值（后出现的条目优先）
+ * - 支持和弦及自动超时
  */
 export function KeybindingSetup({ children }: Props): React.ReactNode {
   const { addNotification, removeNotification } = useNotifications();

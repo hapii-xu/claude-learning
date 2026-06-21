@@ -40,14 +40,14 @@ const DEFAULT_PLACEHOLDERS: Record<FeedbackType, string> = {
 };
 
 /**
- * Shared component for permission prompts with optional feedback input.
+ * 权限提示的共享组件，支持可选的反馈输入。
  *
- * Handles:
- * - "Do you want to proceed?" question with optional Tab hint
- * - Feature flag check for feedback capability
- * - Input mode toggling (Tab to expand feedback input)
- * - Analytics events for feedback interactions
- * - Transforming options to Select-compatible format
+ * 处理：
+ * - "Do you want to proceed?"（是否继续？）问题，可选 Tab 提示
+ * - 反馈能力的 feature flag 检查
+ * - 输入模式切换（Tab 展开/收起反馈输入）
+ * - 反馈交互的分析事件
+ * - 将选项转换为 Select 兼容格式
  */
 export function PermissionPrompt<T extends string>({
   options,
@@ -62,24 +62,24 @@ export function PermissionPrompt<T extends string>({
   const [acceptInputMode, setAcceptInputMode] = useState(false);
   const [rejectInputMode, setRejectInputMode] = useState(false);
   const [focusedValue, setFocusedValue] = useState<T | null>(null);
-  // Track whether user ever entered feedback mode (persists after collapse)
+  // 追踪用户是否曾经进入过反馈模式（收起后仍保留状态）
   const [acceptFeedbackModeEntered, setAcceptFeedbackModeEntered] = useState(false);
   const [rejectFeedbackModeEntered, setRejectFeedbackModeEntered] = useState(false);
 
-  // Find which option is focused and whether it has feedback config
+  // 查找当前聚焦的选项以及它是否有反馈配置
   const focusedOption = options.find(opt => opt.value === focusedValue);
   const focusedFeedbackType = focusedOption?.feedbackConfig?.type;
 
-  // Show Tab hint when focused on a feedback-enabled option that's not already in input mode
+  // 当聚焦在启用了反馈但尚未进入输入模式的选项时，显示 Tab 提示
   const showTabHint =
     (focusedFeedbackType === 'accept' && !acceptInputMode) || (focusedFeedbackType === 'reject' && !rejectInputMode);
 
-  // Transform options to Select-compatible format
+  // 将选项转换为 Select 兼容格式
   const selectOptions = useMemo((): OptionWithDescription<T>[] => {
     return options.map(opt => {
       const { value, label, feedbackConfig } = opt;
 
-      // No feedback config = simple option
+      // 无反馈配置 = 普通选项
       if (!feedbackConfig) {
         return {
           label,
@@ -92,7 +92,7 @@ export function PermissionPrompt<T extends string>({
       const onChange = type === 'accept' ? setAcceptFeedback : setRejectFeedback;
       const defaultPlaceholder = DEFAULT_PLACEHOLDERS[type];
 
-      // When in input mode, show input field
+      // 处于输入模式时，显示输入框
       if (isInputMode) {
         return {
           type: 'input' as const,
@@ -104,7 +104,7 @@ export function PermissionPrompt<T extends string>({
         };
       }
 
-      // Not in input mode - show simple option
+      // 不在输入模式 - 显示普通选项
       return {
         label,
         value,
@@ -112,7 +112,7 @@ export function PermissionPrompt<T extends string>({
     });
   }, [options, acceptInputMode, rejectInputMode]);
 
-  // Handle Tab key to toggle input mode
+  // 处理 Tab 键以切换输入模式
   const handleInputModeToggle = useCallback(
     (value: T) => {
       const option = options.find(opt => opt.value === value);
@@ -147,13 +147,13 @@ export function PermissionPrompt<T extends string>({
     [options, acceptInputMode, rejectInputMode, toolAnalyticsContext],
   );
 
-  // Handle selection
+  // 处理选择
   const handleSelect = useCallback(
     (value: T) => {
       const option = options.find(opt => opt.value === value);
       if (!option) return;
 
-      // Get feedback if applicable
+      // 如适用，获取反馈
       let feedback: string | undefined;
       if (option.feedbackConfig) {
         const rawFeedback = option.feedbackConfig.type === 'accept' ? acceptFeedback : rejectFeedback;
@@ -163,7 +163,7 @@ export function PermissionPrompt<T extends string>({
           feedback = trimmedFeedback;
         }
 
-        // Log accept/reject submission with feedback context
+        // 记录 accept/reject 提交及反馈上下文
         const analyticsProps = {
           toolName: toolAnalyticsContext?.toolName as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           isMcp: toolAnalyticsContext?.isMcp ?? false,
@@ -193,7 +193,7 @@ export function PermissionPrompt<T extends string>({
     ],
   );
 
-  // Register keybinding handlers for options that have a keybinding set
+  // 为配置了快捷键的选项注册快捷键处理器
   const keybindingHandlers = useMemo(() => {
     const handlers: Record<string, () => void> = {};
     for (const opt of options) {
@@ -206,10 +206,10 @@ export function PermissionPrompt<T extends string>({
 
   useKeybindings(keybindingHandlers, { context: 'Confirmation' });
 
-  // Handle cancel (Esc)
+  // 处理取消（Esc）
   const handleCancel = useCallback(() => {
     logEvent('tengu_permission_request_escape', {});
-    // Increment escape count for attribution tracking
+    // 递增 Esc 计数用于归因追踪
     setAppState(prev => ({
       ...prev,
       attribution: {
@@ -229,7 +229,7 @@ export function PermissionPrompt<T extends string>({
         onChange={handleSelect}
         onCancel={handleCancel}
         onFocus={value => {
-          // Reset input mode when navigating away, but only if no text typed
+          // 离开时重置输入模式，但仅当未输入文本时
           const newOption = options.find(opt => opt.value === value);
           if (newOption?.feedbackConfig?.type !== 'accept' && acceptInputMode && !acceptFeedback.trim()) {
             setAcceptInputMode(false);

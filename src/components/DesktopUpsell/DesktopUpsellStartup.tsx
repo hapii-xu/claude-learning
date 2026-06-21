@@ -44,7 +44,7 @@ type Props = {
 export function DesktopUpsellStartup({ onDone }: Props): React.ReactNode {
   const [showHandoff, setShowHandoff] = useState(false);
 
-  // Increment seen count on mount (guard in updater for StrictMode safety)
+  // 在挂载时递增已见计数（在 updater 中加保护以适配 StrictMode）
   useEffect(() => {
     const newCount = (getGlobalConfig().desktopUpsellSeenCount ?? 0) + 1;
     saveGlobalConfig(prev => {

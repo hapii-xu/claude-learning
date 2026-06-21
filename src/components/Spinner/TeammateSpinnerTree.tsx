@@ -11,11 +11,11 @@ type Props = {
   selectedIndex?: number;
   isInSelectionMode?: boolean;
   allIdle?: boolean;
-  /** Leader's active verb (when leader is actively processing) */
+  /** Leader 的活动动词（当 leader 正在处理时） */
   leaderVerb?: string;
-  /** Leader's token count (when leader is actively processing) */
+  /** Leader 的 token 数（当 leader 正在处理时） */
   leaderTokenCount?: number;
-  /** Leader's idle status text (when leader is idle, e.g. "✻ Idle for 3s") */
+  /** Leader 的空闲状态文本（当 leader 空闲时，例如 "✻ Idle for 3s"） */
   leaderIdleText?: string;
 };
 
@@ -33,24 +33,24 @@ export function TeammateSpinnerTree({
 
   const teammateTasks = getRunningTeammatesSorted(tasks);
 
-  // Don't render if no running teammates
+  // 没有运行中的 teammate 时不渲染
   if (teammateTasks.length === 0) {
     return null;
   }
 
-  // Leader highlighting follows same pattern as teammates:
+  // Leader 高亮遵循与 teammate 相同的模式：
   // isHighlighted = isForegrounded || isSelected
   const isLeaderForegrounded = viewingAgentTaskId === undefined;
   const isLeaderSelected = isInSelectionMode && selectedIndex === -1;
   const isLeaderHighlighted = isLeaderForegrounded || isLeaderSelected;
   const leaderColor: TextProps['color'] = 'cyan_FOR_SUBAGENTS_ONLY';
 
-  // Is the "hide" row selected? (index === teammateCount in selection mode)
+  // "hide" 行是否被选中？（在选择模式下 index === teammateCount）
   const isHideSelected = isInSelectionMode === true && selectedIndex === teammateTasks.length;
 
   return (
     <Box flexDirection="column" marginTop={1}>
-      {/* Leader row - always visible, uses ┌─ to enclose the tree */}
+      {/* Leader 行 — 始终可见，使用 ┌─ 包围树形结构 */}
       {
         <Box paddingLeft={3}>
           <Text color={isLeaderSelected ? 'suggestion' : undefined} bold={isLeaderHighlighted}>
@@ -62,15 +62,15 @@ export function TeammateSpinnerTree({
           <Text bold={isLeaderHighlighted} color={isLeaderSelected ? 'suggestion' : leaderColor}>
             team-lead
           </Text>
-          {/* When backgrounded and active: show spinner + verb */}
+          {/* 后台且活跃时：显示 spinner + 动词 */}
           {!isLeaderForegrounded && leaderVerb && <Text dimColor>: {leaderVerb}…</Text>}
-          {/* When backgrounded and idle: show idle text */}
+          {/* 后台且空闲时：显示空闲文本 */}
           {!isLeaderForegrounded && !leaderVerb && leaderIdleText && <Text dimColor>: {leaderIdleText}</Text>}
-          {/* Stats (tokens) - same dimColor logic as teammates */}
+          {/* 统计（tokens）— 与 teammate 相同的 dimColor 逻辑 */}
           {leaderTokenCount !== undefined && leaderTokenCount > 0 && (
             <Text dimColor={!isLeaderHighlighted}> · {formatNumber(leaderTokenCount)} tokens</Text>
           )}
-          {/* Hints - select hint when highlighted, view hint when selected but not foregrounded */}
+          {/* 提示 — 高亮时显示选择提示，选中但未前台时显示查看提示 */}
           {isLeaderHighlighted && <Text dimColor> · {TEAMMATE_SELECT_HINT}</Text>}
           {isLeaderSelected && !isLeaderForegrounded && <Text dimColor> · enter to view</Text>}
         </Box>
@@ -86,7 +86,7 @@ export function TeammateSpinnerTree({
           showPreview={showTeammateMessagePreview}
         />
       ))}
-      {/* Hide row - only visible during selection mode */}
+      {/* Hide 行 — 仅在选择模式下可见 */}
       {isInSelectionMode && <HideRow isSelected={isHideSelected} />}
     </Box>
   );

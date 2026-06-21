@@ -6,7 +6,7 @@ import React, { Suspense, use, useCallback, useEffect, useMemo, useState } from 
 import stripAnsi from 'strip-ansi';
 import type { CommandResultDisplay } from '../commands.js';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
-// eslint-disable-next-line custom-rules/prefer-use-keybindings -- raw j/k/arrow stats navigation
+// eslint-disable-next-line custom-rules/prefer-use-keybindings -- 原生 j/k/方向键统计导航
 import {
   Ansi,
   applyColor,
@@ -64,8 +64,8 @@ function getNextDateRange(current: StatsDateRange): StatsDateRange {
 }
 
 /**
- * Creates a stats loading promise that never rejects.
- * Always loads all-time stats for the heatmap.
+ * 创建一个永不 reject 的统计加载 promise。
+ * 始终加载全时间段的统计数据用于热力图。
  */
 function createAllTimeStatsPromise(): Promise<StatsResult> {
   return aggregateClaudeCodeStatsForRange('all')
@@ -82,7 +82,7 @@ function createAllTimeStatsPromise(): Promise<StatsResult> {
 }
 
 export function Stats({ onClose }: Props): React.ReactNode {
-  // Always load all-time stats first (for heatmap)
+  // 始终先加载全时间段统计（用于热力图）
   const allTimePromise = useMemo(() => createAllTimeStatsPromise(), []);
 
   return (
@@ -105,8 +105,8 @@ type StatsContentProps = {
 };
 
 /**
- * Inner component that uses React 19's use() to read the stats promise.
- * Suspends while loading all-time stats, then handles date range changes without suspending.
+ * 内部组件，使用 React 19 的 use() 读取 stats promise。
+ * 加载全时间段统计时会挂起（suspend），之后处理日期范围切换时不再挂起。
  */
 function StatsContent({ allTimePromise, onClose }: StatsContentProps): React.ReactNode {
   const allTimeResult = use(allTimePromise);
@@ -116,13 +116,13 @@ function StatsContent({ allTimePromise, onClose }: StatsContentProps): React.Rea
   const [activeTab, setActiveTab] = useState<'Overview' | 'Models'>('Overview');
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
-  // Load filtered stats when date range changes (with caching)
+  // 当日期范围变化时加载过滤后的统计（带缓存）
   useEffect(() => {
     if (dateRange === 'all') {
       return;
     }
 
-    // Already cached
+    // 已缓存
     if (statsCache[dateRange]) {
       return;
     }
@@ -148,7 +148,7 @@ function StatsContent({ allTimePromise, onClose }: StatsContentProps): React.Rea
     };
   }, [dateRange, statsCache]);
 
-  // Use cached stats for current range
+  // 使用当前范围的缓存统计
   const displayStats =
     dateRange === 'all'
       ? allTimeResult.type === 'success'
@@ -156,7 +156,7 @@ function StatsContent({ allTimePromise, onClose }: StatsContentProps): React.Rea
         : null
       : (statsCache[dateRange] ?? (allTimeResult.type === 'success' ? allTimeResult.data : null));
 
-  // All-time stats for the heatmap (always use all-time)
+  // 用于热力图的全时间段统计（始终使用全时间段）
   const allTimeStats = allTimeResult.type === 'success' ? allTimeResult.data : null;
 
   const handleClose = useCallback(() => {
@@ -166,19 +166,19 @@ function StatsContent({ allTimePromise, onClose }: StatsContentProps): React.Rea
   useKeybinding('confirm:no', handleClose, { context: 'Confirmation' });
 
   useInput((input, key) => {
-    // Handle ctrl+c and ctrl+d for closing
+    // 处理 ctrl+c 和 ctrl+d 以关闭对话框
     if (key.ctrl && (input === 'c' || input === 'd')) {
       onClose('Stats dialog dismissed', { display: 'system' });
     }
-    // Track tab changes
+    // 追踪 tab 切换
     if (key.tab) {
       setActiveTab(prev => (prev === 'Overview' ? 'Models' : 'Overview'));
     }
-    // r to cycle date range
+    // r 键循环切换日期范围
     if (input === 'r' && !key.ctrl && !key.meta) {
       setDateRange(getNextDateRange(dateRange));
     }
-    // Ctrl+S to copy screenshot to clipboard
+    // Ctrl+S 复制截图到剪贴板
     if (key.ctrl && input === 's' && displayStats) {
       void handleScreenshot(displayStats, activeTab, setCopyStatus);
     }
@@ -277,20 +277,20 @@ function OverviewTab({
 }): React.ReactNode {
   const { columns: terminalWidth } = useTerminalSize();
 
-  // Calculate favorite model and total tokens
+  // 计算最常用模型和总 token 数
   const modelEntries = Object.entries(stats.modelUsage).sort(
     ([, a], [, b]) => b.inputTokens + b.outputTokens - (a.inputTokens + a.outputTokens),
   );
   const favoriteModel = modelEntries[0];
   const totalTokens = modelEntries.reduce((sum, [, usage]) => sum + usage.inputTokens + usage.outputTokens, 0);
 
-  // Memoize the factoid so it doesn't change when switching tabs
+  // 缓存 factoid，使其在切换 tab 时不会变化
   const factoid = useMemo(() => generateFunFactoid(stats, totalTokens), [stats, totalTokens]);
 
-  // Calculate range days based on selected date range
+  // 根据所选日期范围计算天数
   const rangeDays = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : stats.totalDays;
 
-  // Compute shot stats data (ant-only, gated by feature flag)
+  // 计算 shot 统计数据（仅 ant，由 feature flag 控制）
   let shotStatsData: {
     avgShots: string;
     buckets: { label: string; count: number; pct: number }[];
@@ -326,17 +326,17 @@ function OverviewTab({
 
   return (
     <Box flexDirection="column" marginTop={1}>
-      {/* Activity Heatmap - always shows all-time data */}
+      {/* 活动热力图 - 始终显示全时间段数据 */}
       {allTimeStats.dailyActivity.length > 0 && (
         <Box flexDirection="column" marginBottom={1}>
           <Ansi>{generateHeatmap(allTimeStats.dailyActivity, { terminalWidth })}</Ansi>
         </Box>
       )}
 
-      {/* Date range selector */}
+      {/* 日期范围选择器 */}
       <DateRangeSelector dateRange={dateRange} isLoading={isLoading} />
 
-      {/* Section 1: Usage */}
+      {/* 第 1 区：使用情况 */}
       <Box flexDirection="row" gap={4} marginBottom={1}>
         <Box flexDirection="column" width={28}>
           {favoriteModel && (
@@ -355,7 +355,7 @@ function OverviewTab({
         </Box>
       </Box>
 
-      {/* Section 2: Activity - Row 1: Sessions | Longest session */}
+      {/* 第 2 区：活动 - 第 1 行：会话数 | 最长会话 */}
       <Box flexDirection="row" gap={4}>
         <Box flexDirection="column" width={28}>
           <Text wrap="truncate">
@@ -371,7 +371,7 @@ function OverviewTab({
         </Box>
       </Box>
 
-      {/* Row 2: Active days | Longest streak */}
+      {/* 第 2 行：活跃天数 | 最长连续天数 */}
       <Box flexDirection="row" gap={4}>
         <Box flexDirection="column" width={28}>
           <Text wrap="truncate">
@@ -390,7 +390,7 @@ function OverviewTab({
         </Box>
       </Box>
 
-      {/* Row 3: Most active day | Current streak */}
+      {/* 第 3 行：最活跃的一天 | 当前连续天数 */}
       <Box flexDirection="row" gap={4}>
         <Box flexDirection="column" width={28}>
           {stats.peakActivityDay && (
@@ -410,7 +410,7 @@ function OverviewTab({
         </Box>
       </Box>
 
-      {/* Speculation time saved (ant-only) */}
+      {/* Speculation 节省的时间（仅 ant） */}
       {process.env.USER_TYPE === 'ant' && stats.totalSpeculationTimeSavedMs > 0 && (
         <Box flexDirection="row" gap={4}>
           <Box flexDirection="column" width={28}>
@@ -421,7 +421,7 @@ function OverviewTab({
         </Box>
       )}
 
-      {/* Shot stats (ant-only) */}
+      {/* Shot 统计（仅 ant） */}
       {shotStatsData && (
         <>
           <Box marginTop={1}>
@@ -465,7 +465,7 @@ function OverviewTab({
         </>
       )}
 
-      {/* Fun factoid */}
+      {/* 趣味事实 */}
       {factoid && (
         <Box marginTop={1}>
           <Text color="suggestion">{factoid}</Text>
@@ -475,8 +475,8 @@ function OverviewTab({
   );
 }
 
-// Famous books and their approximate token counts (words * ~1.3)
-// Sorted by tokens ascending for comparison logic
+// 著名书籍及其近似 token 数（字数 * ~1.3）
+// 按 token 升序排列以便比较逻辑使用
 const BOOK_COMPARISONS = [
   { name: 'The Little Prince', tokens: 22000 },
   { name: 'The Old Man and the Sea', tokens: 35000 },
@@ -504,7 +504,7 @@ const BOOK_COMPARISONS = [
   { name: 'War and Peace', tokens: 730000 },
 ];
 
-// Time equivalents for session durations
+// 会话时长的等价时间参考
 const TIME_COMPARISONS = [
   { name: 'a TED talk', minutes: 18 },
   { name: 'an episode of The Office', minutes: 22 },
@@ -563,13 +563,13 @@ function ModelsTab({
   const { headerFocused, focusHeader } = useTabHeaderFocus();
   const [scrollOffset, setScrollOffset] = useState(0);
   const { columns: terminalWidth } = useTerminalSize();
-  const VISIBLE_MODELS = 4; // Show 4 models at a time (2 per column)
+  const VISIBLE_MODELS = 4; // 一次显示 4 个模型（每列 2 个）
 
   const modelEntries = Object.entries(stats.modelUsage).sort(
     ([, a], [, b]) => b.inputTokens + b.outputTokens - (a.inputTokens + a.outputTokens),
   );
 
-  // Handle scrolling with arrow keys
+  // 使用方向键处理滚动
   useInput(
     (_input, key) => {
       if (key.downArrow && scrollOffset < modelEntries.length - VISIBLE_MODELS) {
@@ -596,14 +596,14 @@ function ModelsTab({
 
   const totalTokens = modelEntries.reduce((sum, [, usage]) => sum + usage.inputTokens + usage.outputTokens, 0);
 
-  // Generate token usage chart - use terminal width for responsive sizing
+  // 生成 token 使用图表 - 使用终端宽度做响应式 sizing
   const chartOutput = generateTokenChart(
     stats.dailyModelTokens,
     modelEntries.map(([model]) => model),
     terminalWidth,
   );
 
-  // Get visible models and split into two columns
+  // 获取可见模型并拆分为两列
   const visibleModels = modelEntries.slice(scrollOffset, scrollOffset + VISIBLE_MODELS);
   const midpoint = Math.ceil(visibleModels.length / 2);
   const leftModels = visibleModels.slice(0, midpoint);
@@ -615,7 +615,7 @@ function ModelsTab({
 
   return (
     <Box flexDirection="column" marginTop={1}>
-      {/* Token usage chart */}
+      {/* Token 使用图表 */}
       {chartOutput && (
         <Box flexDirection="column" marginBottom={1}>
           <Text bold>Tokens per Day</Text>
@@ -632,10 +632,10 @@ function ModelsTab({
         </Box>
       )}
 
-      {/* Date range selector */}
+      {/* 日期范围选择器 */}
       <DateRangeSelector dateRange={dateRange} isLoading={isLoading} />
 
-      {/* Model breakdown - two columns with fixed width */}
+      {/* 模型明细 - 固定宽度的两列 */}
       <Box flexDirection="row" gap={4}>
         <Box flexDirection="column" width={36}>
           {leftModels.map(([model, usage]) => (
@@ -649,7 +649,7 @@ function ModelsTab({
         </Box>
       </Box>
 
-      {/* Scroll hint */}
+      {/* 滚动提示 */}
       {showScrollHint && (
         <Box marginTop={1}>
           <Text color="subtle">
@@ -691,7 +691,7 @@ function ModelEntry({ model, usage, totalTokens }: ModelEntryProps): React.React
 
 type ChartLegend = {
   model: string;
-  coloredBullet: string; // Pre-colored bullet using chalk
+  coloredBullet: string; // 使用 chalk 预着色的圆点
 };
 
 type ChartOutput = {
@@ -709,19 +709,19 @@ function generateTokenChart(
     return null;
   }
 
-  // Y-axis labels take about 6 characters, plus some padding
-  // Cap at ~52 to align with heatmap width (1 year of data)
+  // Y 轴标签约占 6 个字符，再加一些 padding
+  // 上限 ~52 以与热力图宽度对齐（1 年的数据）
   const yAxisWidth = 7;
   const availableWidth = terminalWidth - yAxisWidth;
   const chartWidth = Math.min(52, Math.max(20, availableWidth));
 
-  // Distribute data across the available chart width
+  // 将数据分配到可用的图表宽度上
   let recentData: DailyModelTokens[];
   if (dailyTokens.length >= chartWidth) {
-    // More data than space: take most recent N days
+    // 数据多于空间：取最近 N 天
     recentData = dailyTokens.slice(-chartWidth);
   } else {
-    // Less data than space: expand by repeating each point
+    // 数据少于空间：通过重复每个点来扩展
     const repeatCount = Math.floor(chartWidth / dailyTokens.length);
     recentData = [];
     for (const day of dailyTokens) {
@@ -731,25 +731,25 @@ function generateTokenChart(
     }
   }
 
-  // Color palette for different models - use theme colors
+  // 不同模型的调色板 - 使用主题颜色
   const theme = getTheme(resolveThemeSetting(getGlobalConfig().theme));
   const colors = [themeColorToAnsi(theme.suggestion), themeColorToAnsi(theme.success), themeColorToAnsi(theme.warning)];
 
-  // Prepare series data for each model
+  // 为每个模型准备 series 数据
   const series: number[][] = [];
   const legend: ChartLegend[] = [];
 
-  // Only show top 3 models to keep chart readable
+  // 只显示前 3 个模型以保持图表可读
   const topModels = models.slice(0, 3);
 
   for (let i = 0; i < topModels.length; i++) {
     const model = topModels[i]!;
     const data = recentData.map(day => day.tokensByModel[model] || 0);
 
-    // Only include if there's actual data
+    // 只在存在实际数据时才纳入
     if (data.some(v => v > 0)) {
       series.push(data);
-      // Use theme colors that match the chart
+      // 使用与图表匹配的主题颜色
       const bulletColors = [theme.suggestion, theme.success, theme.warning];
       legend.push({
         model: renderModelName(model),
@@ -778,7 +778,7 @@ function generateTokenChart(
     },
   });
 
-  // Generate x-axis labels with dates
+  // 生成带日期的 X 轴标签
   const xAxisLabels = generateXAxisLabels(recentData, recentData.length, yAxisWidth);
 
   return { chart, legend, xAxisLabels };
@@ -787,10 +787,10 @@ function generateTokenChart(
 function generateXAxisLabels(data: DailyModelTokens[], _chartWidth: number, yAxisOffset: number): string {
   if (data.length === 0) return '';
 
-  // Show 3-4 date labels evenly spaced, but leave room for last label
+  // 均匀显示 3-4 个日期标签，但要为最后一个标签留出空间
   const numLabels = Math.min(4, Math.max(2, Math.floor(data.length / 8)));
-  // Don't use the very last position - leave room for the label text
-  const usableLength = data.length - 6; // Reserve ~6 chars for last label (e.g., "Dec 7")
+  // 不要使用最后一个位置 - 为标签文本留出空间
+  const usableLength = data.length - 6; // 为最后一个标签预留 ~6 个字符（例如 "Dec 7"）
   const step = Math.floor(usableLength / (numLabels - 1)) || 1;
 
   const labelPositions: { pos: number; label: string }[] = [];
@@ -805,7 +805,7 @@ function generateXAxisLabels(data: DailyModelTokens[], _chartWidth: number, yAxi
     labelPositions.push({ pos: idx, label });
   }
 
-  // Build the label string with proper spacing
+  // 构建带正确间距的标签字符串
   let result = ' '.repeat(yAxisOffset);
   let currentPos = 0;
 
@@ -818,7 +818,7 @@ function generateXAxisLabels(data: DailyModelTokens[], _chartWidth: number, yAxi
   return result;
 }
 
-// Screenshot functionality
+// 截图功能
 async function handleScreenshot(
   stats: ClaudeCodeStats,
   activeTab: 'Overview' | 'Models',
@@ -831,7 +831,7 @@ async function handleScreenshot(
 
   setStatus(result.success ? 'copied!' : 'copy failed');
 
-  // Clear status after 2 seconds
+  // 2 秒后清除状态
   setTimeout(setStatus, 2000, null);
 }
 
@@ -844,18 +844,18 @@ function renderStatsToAnsi(stats: ClaudeCodeStats, activeTab: 'Overview' | 'Mode
     lines.push(...renderModelsToAnsi(stats));
   }
 
-  // Trim trailing empty lines
+  // 去除尾部空行
   while (lines.length > 0 && stripAnsi(lines[lines.length - 1]!).trim() === '') {
     lines.pop();
   }
 
-  // Add "/stats" right-aligned on the last line
+  // 在最后一行右对齐添加 "/stats"
   if (lines.length > 0) {
     const lastLine = lines[lines.length - 1]!;
     const lastLineLen = getStringWidth(lastLine);
-    // Use known content widths based on layout:
-    // Overview: two-column stats = COL2_START(40) + COL2_LABEL_WIDTH(18) + max_value(~12) = 70
-    // Models: chart width = 80
+    // 根据布局使用已知的内容宽度：
+    // Overview：两列统计 = COL2_START(40) + COL2_LABEL_WIDTH(18) + max_value(~12) = 70
+    // Models：图表宽度 = 80
     const contentWidth = activeTab === 'Overview' ? 70 : 80;
     const statsLabel = '/stats';
     const padding = Math.max(2, contentWidth - lastLineLen - statsLabel.length);
@@ -870,35 +870,35 @@ function renderOverviewToAnsi(stats: ClaudeCodeStats): string[] {
   const theme = getTheme(resolveThemeSetting(getGlobalConfig().theme));
   const h = (text: string) => applyColor(text, theme.claude as Color);
 
-  // Two-column helper with fixed spacing
-  // Column 1: label (18 chars) + value + padding to reach col 2
-  // Column 2 starts at character position 40
+  // 带固定间距的双列助手
+  // 列 1：label（18 字符）+ value + padding 到列 2
+  // 列 2 从字符位置 40 开始
   const COL1_LABEL_WIDTH = 18;
   const COL2_START = 40;
   const COL2_LABEL_WIDTH = 18;
 
   const row = (l1: string, v1: string, l2: string, v2: string): string => {
-    // Build column 1: label + value
+    // 构建列 1：label + value
     const label1 = (l1 + ':').padEnd(COL1_LABEL_WIDTH);
     const col1PlainLen = label1.length + v1.length;
 
-    // Calculate spaces needed between col1 value and col2 label
+    // 计算列 1 value 与列 2 label 之间需要的空格数
     const spaceBetween = Math.max(2, COL2_START - col1PlainLen);
 
-    // Build column 2: label + value
+    // 构建列 2：label + value
     const label2 = (l2 + ':').padEnd(COL2_LABEL_WIDTH);
 
-    // Assemble with colors applied to values only
+    // 组装，颜色只应用到 value 上
     return label1 + h(v1) + ' '.repeat(spaceBetween) + label2 + h(v2);
   };
 
-  // Heatmap - use fixed width for screenshot (56 = 52 weeks + 4 for day labels)
+  // 热力图 - 截图使用固定宽度（56 = 52 周 + 4 个日标签）
   if (stats.dailyActivity.length > 0) {
     lines.push(generateHeatmap(stats.dailyActivity, { terminalWidth: 56 }));
     lines.push('');
   }
 
-  // Calculate values
+  // 计算各项数值
   const modelEntries = Object.entries(stats.modelUsage).sort(
     ([, a], [, b]) => b.inputTokens + b.outputTokens - (a.inputTokens + a.outputTokens),
   );

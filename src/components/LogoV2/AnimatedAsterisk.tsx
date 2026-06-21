@@ -11,16 +11,16 @@ const TOTAL_ANIMATION_MS = SWEEP_DURATION_MS * SWEEP_COUNT;
 const SETTLED_GREY = toRGBColor({ r: 153, g: 153, b: 153 });
 
 export function AnimatedAsterisk({ char = TEARDROP_ASTERISK }: { char?: string }): React.ReactNode {
-  // Read prefersReducedMotion once at mount — no useSettings() subscription,
-  // since that would re-render whenever settings change.
+  // 挂载时只读一次 prefersReducedMotion — 没有 useSettings() 订阅，
+  // 否则会在任何设置变化时重新渲染。
   const [reducedMotion] = useState(() => getInitialSettings().prefersReducedMotion ?? false);
   const [done, setDone] = useState(reducedMotion);
-  // useAnimationFrame's clock is shared — capture our start offset so the
-  // sweep always begins at hue 0 regardless of when we mount.
+  // useAnimationFrame 的时钟是共享的 — 捕获我们自己的起始偏移，这样
+  // 无论何时挂载，扫光都始终从 hue 0 开始。
   const startTimeRef = useRef<number | null>(null);
-  // Wire the ref so useAnimationFrame's viewport-pause kicks in: if the
-  // user submits a message before the sweep finishes, the clock stops
-  // automatically once this row enters scrollback (prevents flicker).
+  // 接入 ref，以便 useAnimationFrame 的视口暂停生效：如果用户在
+  // 扫光完成前提交了消息，当时钟此行进入 scrollback 时时钟会自动停止
+  // （防止闪烁）。
   const [ref, time] = useAnimationFrame(done ? null : 50);
 
   useEffect(() => {

@@ -15,8 +15,8 @@ export type BashToolUseOption =
   | 'no';
 
 /**
- * Check if a description already exists in the allow list.
- * Compares lowercase and trailing-whitespace-trimmed versions.
+ * 检查描述是否已存在于 allow 列表中。
+ * 比较时使用小写并去除尾随空白。
  */
 function descriptionAlreadyExists(description: string, existingDescriptions: string[]): boolean {
   const normalized = description.toLowerCase().trimEnd();
@@ -24,11 +24,11 @@ function descriptionAlreadyExists(description: string, existingDescriptions: str
 }
 
 /**
- * Strip output redirections so filenames don't show as commands in the label.
+ * 去除输出重定向，使文件名不会在标签中显示为命令。
  */
 function stripBashRedirections(command: string): string {
   const { commandWithoutRedirections, redirections } = extractOutputRedirections(command);
-  // Only use stripped version if there were actual redirections
+  // 仅当存在实际重定向时才使用去除后的版本
   return redirections.length > 0 ? commandWithoutRedirections : command;
 }
 
@@ -52,14 +52,14 @@ export function bashToolUseOptions({
   onAcceptFeedbackChange: (value: string) => void;
   onClassifierDescriptionChange?: (value: string) => void;
   classifierDescription?: string;
-  /** Whether the initial classifier description was empty. When true, hides the option. */
+  /** 初始分类器描述是否为空。为 true 时隐藏该选项。 */
   initialClassifierDescriptionEmpty?: boolean;
   existingAllowDescriptions?: string[];
   yesInputMode?: boolean;
   noInputMode?: boolean;
-  /** Editable prefix rule content (e.g., "npm run:*"). When set, replaces Haiku-based suggestions. */
+  /** 可编辑前缀规则内容（如 "npm run:*"）。设置后替换基于 Haiku 的建议。 */
   editablePrefix?: string;
-  /** Callback when the user edits the prefix value. */
+  /** 当用户编辑前缀值时的回调。 */
   onEditablePrefixChange?: (value: string) => void;
 }): OptionWithDescription<BashToolUseOption>[] {
   const options: OptionWithDescription<BashToolUseOption>[] = [];
@@ -80,12 +80,11 @@ export function bashToolUseOptions({
     });
   }
 
-  // Only show "always allow" options when not restricted by allowManagedPermissionRulesOnly
+  // 仅在未受 allowManagedPermissionRulesOnly 限制时显示 "always allow" 选项
   if (shouldShowAlwaysAllowOptions()) {
-    // Show an editable input for the prefix rule instead of the
-    // Haiku-generated suggestion label — but only when the suggestions
-    // don't contain non-Bash items (addDirectories, Read rules) that
-    // the editable prefix can't represent.
+    // 为前缀规则显示可编辑输入，替代基于 Haiku 的建议标签——
+    // 但仅当建议中不包含可编辑前缀无法表示的非 Bash 项
+    // （addDirectories、Read 规则）时。
     const hasNonBashSuggestions = suggestions.some(
       s => s.type === 'addDirectories' || (s.type === 'addRules' && s.rules?.some(r => r.toolName !== BASH_TOOL_NAME)),
     );
@@ -113,12 +112,11 @@ export function bashToolUseOptions({
       }
     }
 
-    // Add classifier-reviewed option if enabled, the initial description was
-    // non-empty, the description doesn't already exist in the allow list,
-    // and the decision reason is NOT a server-side classifier block
-    // (prompt-based rules don't help when the server-side classifier triggers first).
-    // Skip when the editable prefix option is already shown — they serve the
-    // same role and having two identical-looking "don't ask again" inputs is confusing.
+    // 添加 classifier-reviewed 选项需满足：已启用、初始描述非空、
+    // 描述不在 allow 列表中、且决策原因不是服务端分类器阻断
+    // （当服务端分类器先触发时，基于 prompt 的规则无帮助）。
+    // 当可编辑前缀选项已显示时跳过——两者作用相同，出现两个相同的
+    // "don't ask again" 输入会令人困惑。
     const editablePrefixShown = options.some(o => o.value === 'yes-prefix-edited');
     if (
       process.env.USER_TYPE === 'ant' &&

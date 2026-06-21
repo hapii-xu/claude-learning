@@ -23,8 +23,8 @@ export function isHookEvent(value: string): value is HookEvent {
   return HOOK_EVENTS.includes(value as HookEvent)
 }
 
-// Prompt elicitation protocol types. The `prompt` key acts as discriminator
-// (mirroring the {async:true} pattern), with the id as its value.
+// Prompt elicitation 协议类型。`prompt` key 作为判别字段
+//（镜像 {async:true} 模式），其值为 id。
 export const promptRequestSchema = lazySchema(() =>
   z.object({
     prompt: z.string(), // request id
@@ -46,7 +46,7 @@ export type PromptResponse = {
   selected: string
 }
 
-// Sync hook response schema
+// 同步 hook 响应 schema
 export const syncHookResponseSchema = lazySchema(() =>
   z.object({
     continue: z
@@ -165,9 +165,9 @@ export const syncHookResponseSchema = lazySchema(() =>
   }),
 )
 
-// Zod schema for hook JSON output validation
+// 用于校验 hook JSON 输出的 Zod schema
 export const hookJSONOutputSchema = lazySchema(() => {
-  // Async hook response schema
+  // 异步 hook 响应 schema
   const asyncHookResponseSchema = z.object({
     async: z.literal(true),
     asyncTimeout: z.number().optional(),
@@ -175,27 +175,27 @@ export const hookJSONOutputSchema = lazySchema(() => {
   return z.union([asyncHookResponseSchema, syncHookResponseSchema()])
 })
 
-// Type guard function to check if response is sync
+// 类型守卫：判断响应是否为同步
 export function isSyncHookJSONOutput(
   json: HookJSONOutput,
 ): json is SyncHookJSONOutput {
   return !('async' in json && json.async === true)
 }
 
-// Type guard function to check if response is async
+// 类型守卫：判断响应是否为异步
 export function isAsyncHookJSONOutput(
   json: HookJSONOutput,
 ): json is AsyncHookJSONOutput {
   return 'async' in json && json.async === true
 }
 
-// Compile-time assertion that SDK and Zod types match
-// Disabled: decompilation type mismatch makes these types non-equal
+// 编译期断言：SDK 类型与 Zod 类型一致
+// 已禁用：反编译时类型不匹配导致这些类型不相等
 // import type { IsEqual } from 'type-fest'
 // type Assert<T extends true> = T
 // type _assertSDKTypesMatch = Assert<IsEqual<SchemaHookJSONOutput, HookJSONOutput>>
 
-/** Context passed to callback hooks for state access */
+/** 传给 callback hook 用于访问状态的上下文 */
 export type HookCallbackContext = {
   getAppState: () => AppState
   updateAttributionState: (
@@ -203,21 +203,21 @@ export type HookCallbackContext = {
   ) => void
 }
 
-/** Hook that is a callback. */
+/** 作为回调的 hook。 */
 export type HookCallback = {
   type: 'callback'
   callback: (
     input: HookInput,
     toolUseID: string | null,
     abort: AbortSignal | undefined,
-    /** Hook index for SessionStart hooks to compute CLAUDE_ENV_FILE path */
+    /** SessionStart hook 用于计算 CLAUDE_ENV_FILE 路径的 hook 索引 */
     hookIndex?: number,
-    /** Optional context for accessing app state */
+    /** 可选的访问 app state 的上下文 */
     context?: HookCallbackContext,
   ) => Promise<HookJSONOutput>
-  /** Timeout in seconds for this hook */
+  /** 该 hook 的超时时间（秒） */
   timeout?: number
-  /** Internal hooks (e.g. session file access analytics) are excluded from tengu_run_hook metrics */
+  /** 内部 hook（例如 session 文件访问分析）不计入 tengu_run_hook 指标 */
   internal?: boolean
 }
 

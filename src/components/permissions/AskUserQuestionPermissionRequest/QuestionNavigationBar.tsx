@@ -20,62 +20,62 @@ export function QuestionNavigationBar({
 }: Props): React.ReactNode {
   const { columns } = useTerminalSize();
 
-  // Calculate the display text for each tab based on available width
+  // 根据可用宽度计算每个标签页的显示文本
   const tabDisplayTexts = useMemo(() => {
-    // Calculate fixed width elements
+    // 计算固定宽度元素
     const leftArrow = '← ';
     const rightArrow = ' →';
     const submitText = hideSubmitTab ? '' : ` ${figures.tick} Submit `;
-    const checkboxWidth = 2; // checkbox + space
-    const paddingPerTab = 2; // space before and after each tab text
+    const checkboxWidth = 2; // 复选框 + 空格
+    const paddingPerTab = 2; // 每个标签页文本前后的空格
 
     const fixedWidth = stringWidth(leftArrow) + stringWidth(rightArrow) + stringWidth(submitText);
 
-    // Available width for all question tabs
+    // 所有问题标签页的可用宽度
     const availableForTabs = columns - fixedWidth;
 
     if (availableForTabs <= 0) {
-      // Terminal too narrow, fallback to minimal display
+      // 终端太窄，回退到最小显示
       return questions.map((q: Question, index: number) => {
         const header = q?.header || `Q${index + 1}`;
         return index === currentQuestionIndex ? header.slice(0, 3) : '';
       });
     }
 
-    // Calculate ideal width for each tab (checkbox + padding + text)
+    // 计算每个标签页的理想宽度（复选框 + 内边距 + 文本）
     const tabHeaders = questions.map((q: Question, index: number) => q?.header || `Q${index + 1}`);
     const idealWidths = tabHeaders.map(header => checkboxWidth + paddingPerTab + stringWidth(header));
 
-    // Calculate total ideal width
+    // 计算总理想宽度
     const totalIdealWidth = idealWidths.reduce((sum, w) => sum + w, 0);
 
-    // If everything fits, use full headers
+    // 若都能容纳，使用完整 header
     if (totalIdealWidth <= availableForTabs) {
       return tabHeaders;
     }
 
-    // Need to truncate - prioritize current tab
+    // 需要截断 - 优先当前标签页
     const currentHeader = tabHeaders[currentQuestionIndex] || '';
     const currentIdealWidth = checkboxWidth + paddingPerTab + stringWidth(currentHeader);
 
-    // Minimum width for other tabs (checkbox + padding + 1 char + ellipsis)
+    // 其他标签页的最小宽度（复选框 + 内边距 + 1 字符 + 省略号）
     const minWidthPerTab = checkboxWidth + paddingPerTab + 2; // "X…"
 
-    // Calculate space for current tab (try to show full text)
+    // 计算当前标签页的空间（尽量显示完整文本）
     const currentTabWidth = Math.min(currentIdealWidth, availableForTabs / 2);
     const remainingWidth = availableForTabs - currentTabWidth;
 
-    // Calculate space for other tabs
+    // 计算其他标签页的空间
     const otherTabCount = questions.length - 1;
     const widthPerOtherTab = Math.max(minWidthPerTab, Math.floor(remainingWidth / Math.max(otherTabCount, 1)));
 
     return tabHeaders.map((header, index) => {
       if (index === currentQuestionIndex) {
-        // Current tab - show as much as possible
+        // 当前标签页 - 尽可能多显示
         const maxTextWidth = currentTabWidth - checkboxWidth - paddingPerTab;
         return truncateToWidth(header, maxTextWidth);
       } else {
-        // Other tabs - truncate to fit
+        // 其他标签页 - 截断以适应
         const maxTextWidth = widthPerOtherTab - checkboxWidth - paddingPerTab;
         return truncateToWidth(header, maxTextWidth);
       }

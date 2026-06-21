@@ -54,21 +54,21 @@ export function AssistantToolUseMessage({
   const pendingWorkerRequest = useAppStateMaybeOutsideOfProvider(state => state.pendingWorkerRequest);
   const isClassifierCheckingRaw = useIsClassifierChecking(param.id);
   const permissionMode = useAppStateMaybeOutsideOfProvider(state => state.toolPermissionContext.mode);
-  // strippedDangerousRules is set by stripDangerousPermissionsForAutoMode
-  // (even to {}) whenever auto is active, and cleared by restoreDangerousPermissions
-  // on deactivation — a reliable proxy for isAutoModeActive() during plan.
-  // prePlanMode would be stale after transitionPlanAutoMode deactivates mid-plan.
+  // strippedDangerousRules 由 stripDangerousPermissionsForAutoMode 设置
+  // （auto 激活时即使为 {} 也会设置），并由 restoreDangerousPermissions 在
+  // 停用时清除 —— 在 plan 期间是 isAutoModeActive() 的可靠代理。
+  // prePlanMode 在 transitionPlanAutoMode 于 plan 中途停用后会过时。
   const hasStrippedRules = useAppStateMaybeOutsideOfProvider(
     state => !!state.toolPermissionContext.strippedDangerousRules,
   );
   const isAutoClassifier = permissionMode === 'auto' || (permissionMode === 'plan' && hasStrippedRules);
   const isClassifierChecking = process.env.USER_TYPE === 'ant' && isClassifierCheckingRaw && permissionMode !== 'auto';
 
-  // Memoize on param identity (stable — from the persisted message object).
-  // Zod safeParse allocates per call, and some tools' userFacingName()
-  // (BashTool → shouldUseSandbox → shell-quote parse) are expensive. Without
-  // this, ~50 bash messages × shell-quote-per-render pushed transition
-  // render past the shimmer tick → abort → infinite retry (#21605).
+  // 基于 param identity 进行 memoize（稳定 —— 来自持久化的 message 对象）。
+  // Zod safeParse 每次调用都会分配内存，并且一些 tool 的 userFacingName()
+  // （BashTool → shouldUseSandbox → shell-quote parse）开销较大。没有
+  // 这个优化，约 50 条 bash 消息 × 每次渲染都做 shell-quote，会将
+  // transition render 推过 shimmer tick → abort → 无限重试（#21605）。
   const parsed = useMemo(() => {
     if (!tools) return null;
     const tool = findToolByName(tools, param.name);
@@ -85,7 +85,7 @@ export function AssistantToolUseMessage({
   }, [tools, param]);
 
   if (!parsed) {
-    // Guard against undefined tools (required prop) or unknown tool name
+    // 防御 undefined tools（必需 prop）或未知的 tool name
     logError(new Error(tools ? `Tool ${param.name} not found` : `Tools array is undefined for tool ${param.name}`));
     return null;
   }
@@ -140,9 +140,8 @@ export function AssistantToolUseMessage({
                 <Text dimColor={isQueued}>{BLACK_CIRCLE}</Text>
               </Box>
             ) : (
-              // WARNING: The code here and in ToolUseLoader is particularly
-              // sensitive to what *should* just be trivial refactorings. See
-              // the comment in ToolUseLoader for more details.
+              // 警告：此处以及 ToolUseLoader 中的代码对那些*应该*只是
+              // 琐碎重构的内容特别敏感。详见 ToolUseLoader 中的注释。
               <ToolUseLoader
                 shouldAnimate={shouldAnimate}
                 isUnresolved={!isResolved}
@@ -164,7 +163,7 @@ export function AssistantToolUseMessage({
               <Text>({renderedToolUseMessage})</Text>
             </Box>
           )}
-          {/* Render tool-specific tags (timeout, model, resume ID, etc.) */}
+          {/* 渲染 tool 特定的标签（timeout、model、resume ID 等） */}
           {input.success && tool.renderToolUseTag && tool.renderToolUseTag(input.data)}
         </Box>
         {!isResolved &&

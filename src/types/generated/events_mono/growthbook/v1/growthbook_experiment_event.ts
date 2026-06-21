@@ -9,34 +9,34 @@ import { Timestamp } from '../../../google/protobuf/timestamp.js'
 import { PublicApiAuth } from '../../common/v1/auth.js'
 
 /**
- * GrowthBook experiment assignment event
- * This event tracks when a user is exposed to an experiment variant
- * See: https://docs.growthbook.io/guide/bigquery
+ * GrowthBook 实验分配事件
+ * 该事件跟踪用户被曝光到某个实验变体的时机
+ * 参见：https://docs.growthbook.io/guide/bigquery
  */
 export interface GrowthbookExperimentEvent {
-  /** Unique event identifier (for deduplication) */
+  /** 唯一事件标识（用于去重） */
   event_id?: string | undefined
-  /** When user was exposed to experiment (maps to GrowthBook's timestamp column) */
+  /** 用户被曝光到实验的时间（对应 GrowthBook 的 timestamp 列） */
   timestamp?: Date | undefined
-  /** Experiment tracking key (maps to GrowthBook's experiment_id column) */
+  /** 实验跟踪 key（对应 GrowthBook 的 experiment_id 列） */
   experiment_id?: string | undefined
-  /** Variation index: 0=control, 1+=variants (maps to GrowthBook's variation_id column) */
+  /** 变体索引：0=control，1+=variants（对应 GrowthBook 的 variation_id 列） */
   variation_id?: number | undefined
-  /** Environment where assignment occurred */
+  /** 发生分配时所在的环境 */
   environment?: string | undefined
-  /** User attributes at time of assignment */
+  /** 分配时的用户属性 */
   user_attributes?: string | undefined
-  /** Experiment metadata */
+  /** 实验 metadata */
   experiment_metadata?: string | undefined
-  /** Device identifier for the client */
+  /** 客户端的设备标识 */
   device_id?: string | undefined
-  /** Authentication context automatically injected by the API */
+  /** 由 API 自动注入的认证上下文 */
   auth?: PublicApiAuth | undefined
-  /** Session identifier for tracking user sessions */
+  /** 用于跟踪用户会话的 session 标识 */
   session_id?: string | undefined
-  /** Anonymous identifier for unauthenticated users */
+  /** 未认证用户的匿名标识 */
   anonymous_id?: string | undefined
-  /** Event metadata variables (automatically populated by internal-tools-common event_logging library) */
+  /** 事件 metadata 变量（由 internal-tools-common 的 event_logging 库自动填充） */
   event_metadata_vars?: string | undefined
 }
 

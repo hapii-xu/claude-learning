@@ -448,7 +448,7 @@ export function useInboxPoller({
           },
         }))
 
-        // Send desktop notification for the first new request
+        // 为第一个新请求发送桌面通知
         const firstRequest = newSandboxRequests[0]
         if (firstRequest && !isLoading && !focusedInputDialog) {
           void sendNotification(
