@@ -1,17 +1,17 @@
 /**
- * Format an ISO timestamp for the brief/chat message label line.
+ * 为 brief/chat 消息标签行格式化 ISO 时间戳。
  *
- * Display scales with age (like a messaging app):
- *   - same day:      "1:30 PM" or "13:30" (locale-dependent)
- *   - within 6 days: "Sunday, 4:15 PM" (locale-dependent)
- *   - older:         "Sunday, Feb 20, 4:30 PM" (locale-dependent)
+ * 显示随年龄缩放（类似聊天应用）：
+ *   - 同一天：      "1:30 PM" 或 "13:30"（依赖 locale）
+ *   - 6 天内：       "Sunday, 4:15 PM"（依赖 locale）
+ *   - 更早：         "Sunday, Feb 20, 4:30 PM"（依赖 locale）
  *
- * Respects POSIX locale env vars (LC_ALL > LC_TIME > LANG) for time format
- * (12h/24h), weekday names, month names, and overall structure.
- * Bun/V8's `toLocaleString(undefined)` ignores these on macOS, so we
- * convert them to BCP 47 tags ourselves.
+ * 遵循 POSIX locale 环境变量（LC_ALL > LC_TIME > LANG）以决定时间格式
+ * （12/24 小时制）、工作日名、月份名和整体结构。
+ * Bun/V8 的 `toLocaleString(undefined)` 在 macOS 上会忽略这些，
+ * 因此我们自行将它们转换为 BCP 47 标签。
  *
- * `now` is injectable for tests.
+ * `now` 可注入以便测试。
  */
 export function formatBriefTimestamp(
   isoString: string,
@@ -51,9 +51,9 @@ export function formatBriefTimestamp(
 }
 
 /**
- * Derive a BCP 47 locale tag from POSIX env vars.
- * LC_ALL > LC_TIME > LANG, falls back to undefined (system default).
- * Converts POSIX format (en_GB.UTF-8) to BCP 47 (en-GB).
+ * 从 POSIX 环境变量派生 BCP 47 locale 标签。
+ * LC_ALL > LC_TIME > LANG，回退到 undefined（系统默认）。
+ * 将 POSIX 格式（en_GB.UTF-8）转换为 BCP 47（en-GB）。
  */
 function getLocale(): string | undefined {
   const raw =
@@ -61,13 +61,13 @@ function getLocale(): string | undefined {
   if (!raw || raw === 'C' || raw === 'POSIX') {
     return undefined
   }
-  // Strip codeset (.UTF-8) and modifier (@euro), replace _ with -
+  // 剥离 codeset（.UTF-8）和 modifier（@euro），将 _ 替换为 -
   const base = raw.split('.')[0]!.split('@')[0]!
   if (!base) {
     return undefined
   }
   const tag = base.replaceAll('_', '-')
-  // Validate by trying to construct an Intl locale — invalid tags throw
+  // 通过构造 Intl locale 进行校验 - 无效标签会抛出
   try {
     new Intl.DateTimeFormat(tag)
     return tag
@@ -76,7 +76,7 @@ function getLocale(): string | undefined {
   }
 }
 
-/** Return the epoch-ms of the start of the local calendar day for `d`. */
+/** 返回 `d` 的本地日历日起点的 epoch 毫秒值。 */
 function startOfDay(d: Date): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
 }
