@@ -12,8 +12,8 @@ function isTeammateShutdownAttachment(
 }
 
 /**
- * Collapses consecutive in-process teammate shutdown task_status attachments
- * into a single `teammate_shutdown_batch` attachment with a count.
+ * 将连续的 in-process teammate shutdown task_status 附件
+ * 折叠为单个带计数的 `teammate_shutdown_batch` 附件。
  */
 export function collapseTeammateShutdowns(
   messages: RenderableMessage[],

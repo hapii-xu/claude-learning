@@ -1,16 +1,15 @@
 import { createAbortController } from './abortController.js'
 
 /**
- * Creates a combined AbortSignal that aborts when the input signal aborts,
- * an optional second signal aborts, or an optional timeout elapses.
- * Returns both the signal and a cleanup function that removes event listeners
- * and clears the internal timeout timer.
+ * 创建一个组合的 AbortSignal，当输入 signal 中止、
+ * 可选的第二个 signal 中止或可选的超时时间到达时触发中止。
+ * 同时返回 signal 和一个清理函数，用于移除事件监听器
+ * 并清除内部的超时计时器。
  *
- * Use `timeoutMs` instead of passing `AbortSignal.timeout(ms)` as a signal —
- * under Bun, `AbortSignal.timeout` timers are finalized lazily and accumulate
- * in native memory until they fire (measured ~2.4KB/call held for the full
- * timeout duration). This implementation uses `setTimeout` + `clearTimeout`
- * so the timer is freed immediately on cleanup.
+ * 请使用 `timeoutMs` 而非传递 `AbortSignal.timeout(ms)` 作为 signal ——
+ * 在 Bun 下，`AbortSignal.timeout` 的定时器被延迟 finalize 并会在原生内存中累积，
+ * 直到它们触发（测量约 2.4KB/次，在整个超时期间持有）。
+ * 本实现使用 `setTimeout` + `clearTimeout`，以便在清理时立即释放计时器。
  */
 export function createCombinedAbortSignal(
   signal: AbortSignal | undefined,
