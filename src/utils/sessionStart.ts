@@ -17,12 +17,12 @@ type SessionStartHooksOptions = {
   forceSyncExecution?: boolean
 }
 
-// Set by processSessionStartHooks when a hook emits initialUserMessage;
-// consumed once by takeInitialUserMessage. This side channel avoids changing
-// the Promise<HookResultMessage[]> return type that main.tsx and print.ts
-// both already await on (sessionStartHooksPromise is kicked in main.tsx and
-// joined later — rippling a structural return-type change through that
-// handoff would touch five callsites for what is a print-mode-only value).
+// 由 processSessionStartHooks 在 hook 发出 initialUserMessage 时设置；
+// 由 takeInitialUserMessage 消费一次。此副作用通道避免了更改
+// Promise<HookResultMessage[]> 返回类型，而 main.tsx 和 print.ts
+// 都已等待该类型（sessionStartHooksPromise 在 main.tsx 中启动，
+// 稍后加入 — 将结构性返回类型更改通过该_handoff_传播会触及
+// 五个调用点，而该值仅用于 print 模式）。
 let pendingInitialUserMessage: string | undefined
 
 export function takeInitialUserMessage(): string | undefined {
@@ -31,7 +31,8 @@ export function takeInitialUserMessage(): string | undefined {
   return v
 }
 
-// Note to CLAUDE: do not add ANY "warmup" logic. It is **CRITICAL** that you do not add extra work on startup.
+// 给 CLAUDE 的说明：不要添加任何"预热"逻辑。**关键**是不要
+// 在启动时添加额外工作。
 export async function processSessionStartHooks(
   source: 'startup' | 'resume' | 'clear' | 'compact',
   {
@@ -41,9 +42,9 @@ export async function processSessionStartHooks(
     forceSyncExecution,
   }: SessionStartHooksOptions = {},
 ): Promise<HookResultMessage[]> {
-  // --bare skips all hooks. executeHooks already early-returns under --bare
-  // (hooks.ts:1861), but this skips the loadPluginHooks() await below too —
-  // no point loading plugin hooks that'll never run.
+  // --bare 跳过所有 hook。executeHooks 在 --bare 下已提前返回
+  //（hooks.ts:1861），但这也会跳过下面的 loadPluginHooks() await —
+  // 加载永远不会运行的插件 hook 没有意义。
   if (isBareMode()) {
     return []
   }
@@ -51,21 +52,21 @@ export async function processSessionStartHooks(
   const additionalContexts: string[] = []
   const allWatchPaths: string[] = []
 
-  // Skip loading plugin hooks if restricted to managed hooks only
-  // Plugin hooks are untrusted external code that should be blocked by policy
+  // 如果限制为仅托管 hook，则跳过加载插件 hook
+  // 插件 hook 是不受信的外部代码，应被策略阻止
   if (shouldAllowManagedHooksOnly()) {
     logForDebugging('Skipping plugin hooks - allowManagedHooksOnly is enabled')
   } else {
-    // Ensure plugin hooks are loaded before executing SessionStart hooks.
-    // loadPluginHooks() may be called early during startup (fire-and-forget, non-blocking)
-    // to pre-load hooks, but we must guarantee hooks are registered before executing them.
-    // This function is memoized, so if hooks are already loaded, this returns immediately
-    // with negligible overhead (just a cache lookup).
+    // 确保在执行 SessionStart hook 之前加载插件 hook。
+    // loadPluginHooks() 可能在启动期间被提前调用（即发即忘，非阻塞）
+    // 以预加载 hook，但我们必须保证在执行前已注册 hook。
+    // 此函数已记忆化，因此如果 hook 已加载，则立即返回，
+    // 开销可忽略不计（仅一次缓存查找）。
     try {
       await withDiagnosticsTiming('load_plugin_hooks', () => loadPluginHooks())
     } catch (error) {
-      // Log error but don't crash - continue with session start without plugin hooks
-      /* eslint-disable no-restricted-syntax -- both branches wrap with context, not a toError case */
+      // 记录错误但不崩溃 — 在没有插件 hook 的情况下继续会话启动
+      /* eslint-disable no-restricted-syntax -- 两个分支都用上下文包装，非 toError 情况 */
       const enhancedError =
         error instanceof Error
           ? new Error(
@@ -82,7 +83,7 @@ export async function processSessionStartHooks(
 
       logError(enhancedError)
 
-      // Provide specific guidance based on error type
+      // 根据错误类型提供具体指导
       const errorMessage =
         error instanceof Error ? error.message : String(error)
       let userGuidance = ''
@@ -121,13 +122,13 @@ export async function processSessionStartHooks(
         { level: 'warn' },
       )
 
-      // Continue execution - plugin hooks won't be available, but project-level hooks
-      // from .claude/settings.json (loaded via captureHooksConfigSnapshot) will still work
+      // 继续执行 — 插件 hook 将不可用，但来自 .claude/settings.json
+      // 的项目级 hook（通过 captureHooksConfigSnapshot 加载）仍可工作
     }
   }
 
-  // Execute SessionStart hooks, ignoring blocking errors
-  // Use the provided agentType or fall back to the one stored in bootstrap state
+  // 执行 SessionStart hook，忽略阻塞错误
+  // 使用提供的 agentType 或回退到存储在 bootstrap 状态中的值
   const resolvedAgentType = agentType ?? getMainThreadAgentType()
   for await (const hookResult of executeSessionStartHooks(
     source,
@@ -159,7 +160,7 @@ export async function processSessionStartHooks(
     updateWatchPaths(allWatchPaths)
   }
 
-  // If hooks provided additional context, add it as a message
+  // 如果 hook 提供了额外上下文，则将其作为消息添加
   if (additionalContexts.length > 0) {
     const contextMessage = createAttachmentMessage({
       type: 'hook_additional_context',
@@ -178,7 +179,7 @@ export async function processSetupHooks(
   trigger: 'init' | 'maintenance',
   { forceSyncExecution }: { forceSyncExecution?: boolean } = {},
 ): Promise<HookResultMessage[]> {
-  // Same rationale as processSessionStartHooks above.
+  // 与上面的 processSessionStartHooks 相同的理由。
   if (isBareMode()) {
     return []
   }

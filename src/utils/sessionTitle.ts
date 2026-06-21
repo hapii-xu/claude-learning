@@ -1,15 +1,14 @@
 /**
- * Session title generation via Haiku.
+ * 会话标题生成，通过 Haiku 模型。
  *
- * Standalone module with minimal dependencies so it can be imported from
- * print.ts (SDK control request handler) without pulling in the React/chalk/
- * git dependency chain that teleport.tsx carries.
+ * 独立模块，依赖最小化，以便可从 print.ts（SDK 控制请求处理器）
+ * 导入而不会拉入 teleport.tsx 携带的 React/chalk/git 依赖链。
  *
- * This is the single source of truth for AI-generated session titles across
- * all surfaces. Previously there were separate Haiku title generators:
- * - teleport.tsx generateTitleAndBranch (6-word title + branch for CCR)
- * - rename/generateSessionName.ts (kebab-case name for /rename)
- * Each remains for backwards compat; new callers should use this module.
+ * 这是跨所有界面的 AI 生成会话标题的唯一真相源。
+ * 之前存在独立的 Haiku 标题生成器：
+ * - teleport.tsx generateTitleAndBranch（6 字标题 + CCR 分支）
+ * - rename/generateSessionName.ts（/rename 的 kebab-case 名称）
+ * 每个仍保留以向后兼容；新调用方应使用此模块。
  */
 
 import { z } from 'zod/v4'
@@ -26,9 +25,9 @@ import { asSystemPrompt } from './systemPromptType.js'
 const MAX_CONVERSATION_TEXT = 1000
 
 /**
- * Flatten a message array into a single text string for Haiku title input.
- * Skips meta/non-human messages. Tail-slices to the last 1000 chars so
- * recent context wins when the conversation is long.
+ * 将消息数组展平为单个文本字符串，作为 Haiku 标题输入。
+ * 跳过元/非人类消息。截取尾部 1000 字符，以便在对话较长时
+ * 优先使用最近的上下文。
  */
 export function extractConversationText(messages: Message[]): string {
   const parts: string[] = []
@@ -75,11 +74,11 @@ Bad (wrong case): {"title": "Fix Login Button On Mobile"}`
 const titleSchema = lazySchema(() => z.object({ title: z.string() }))
 
 /**
- * Generate a sentence-case session title from a description or first message.
- * Returns null on error or if Haiku returns an unparseable response.
+ * 从描述或第一条消息生成句子大小写的会话标题。
+ * 出错或 Haiku 返回不可解析的响应时返回 null。
  *
- * @param description - The user's first message or a description of the session
- * @param signal - Abort signal for cancellation
+ * @param description - 用户的第一条消息或会话描述
+ * @param signal - 用于取消的 Abort signal
  */
 export async function generateSessionTitle(
   description: string,
@@ -107,9 +106,9 @@ export async function generateSessionTitle(
       options: {
         querySource: 'generate_session_title',
         agents: [],
-        // Reflect the actual session mode — this module is called from
-        // both the SDK print path (non-interactive) and the CCR remote
-        // session path via useRemoteSession (interactive).
+        // 反映实际会话模式 — 此模块可从 SDK print 路径
+        //（非交互式）和通过 useRemoteSession 的 CCR 远程
+        // 会话路径（交互式）调用。
         isNonInteractiveSession: getIsNonInteractiveSession(),
         hasAppendSystemPrompt: false,
         mcpTools: [],
