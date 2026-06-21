@@ -8,7 +8,7 @@ function handleEPIPE(
   }
 }
 
-// Prevents memory leak when pipe is broken (e.g., `claude -p | head -1`)
+// 防止管道断开时的内存泄露（如 `claude -p | head -1`）
 export function registerProcessOutputErrorHandlers(): void {
   process.stdout.on('error', handleEPIPE(process.stdout))
   process.stderr.on('error', handleEPIPE(process.stderr))
@@ -19,9 +19,9 @@ function writeOut(stream: NodeJS.WriteStream, data: string): void {
     return
   }
 
-  // Note: we don't handle backpressure (write() returning false).
+  // 注意：我们不处理背压（write() 返回 false）。
   //
-  // We should consider handling the callback to ensure we wait for data to flush.
+  // 我们应该考虑处理回调以确保等待数据刷新。
   stream.write(data /* callback to handle here */)
 }
 
@@ -33,19 +33,18 @@ export function writeToStderr(data: string): void {
   writeOut(process.stderr, data)
 }
 
-// Write error to stderr and exit with code 1. Consolidates the
-// console.error + process.exit(1) pattern used in entrypoint fast-paths.
+// 将错误写入 stderr 并以代码 1 退出。合并入口快速路径中使用的
+// console.error + process.exit(1) 模式。
 export function exitWithError(message: string): never {
   console.error(message)
   // eslint-disable-next-line custom-rules/no-process-exit
   process.exit(1)
 }
 
-// Wait for a stdin-like stream to close, but give up after ms if no data ever
-// arrives. First data chunk cancels the timeout — after that, wait for end
-// unconditionally (caller's accumulator needs all chunks, not just the first).
-// Returns true on timeout, false on end. Used by -p mode to distinguish a
-// real pipe producer from an inherited-but-idle parent stdin.
+// 等待一个类似 stdin 的流关闭，但若一直没有数据到达则在 ms 后放弃。
+// 首个数据块会取消超时 — 之后无条件等待结束（调用方的累加器需要所有
+// 数据块，而不仅仅是第一个）。超时返回 true，结束返回 false。
+// 被 -p 模式用于区分真实的管道生产者和继承但空闲的父进程 stdin。
 export function peekForStdinData(
   stream: NodeJS.EventEmitter,
   ms: number,

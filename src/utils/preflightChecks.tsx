@@ -10,8 +10,8 @@ export interface PreflightCheckResult {
 }
 
 async function checkEndpoints(): Promise<PreflightCheckResult> {
-  // Skip connectivity check — users may use third-party API providers
-  // (OpenAI, Gemini, Grok, etc.) or be behind restricted networks.
+  // 跳过连接检查 — 用户可能使用第三方 API provider
+  // (OpenAI、Gemini、Grok 等) 或处于受限网络后。
   return { success: true };
 }
 
@@ -23,8 +23,8 @@ export function PreflightStep({ onSuccess }: PreflightStepProps): React.ReactNod
   const [result, setResult] = useState<PreflightCheckResult | null>(null);
   const [isChecking, setIsChecking] = useState(true);
 
-  // delay showing the check since it's so fast that we normally
-  // want to just immediately show the next step without a flash
+  // 延迟显示检查，因为通常非常快
+  // 我们希望直接立即显示下一步，避免闪烁
   const showSpinner = useTimeout(1000) && isChecking;
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export function PreflightStep({ onSuccess }: PreflightStepProps): React.ReactNod
     if (result?.success) {
       onSuccess();
     }
-    // Failure branch removed — preflight check always succeeds
+    // 失败分支已移除 — 预检始终成功
   }, [result, onSuccess]);
 
   return (
