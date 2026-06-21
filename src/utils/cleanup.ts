@@ -64,11 +64,11 @@ async function cleanupOldFilesInDirectory(
 
     for (const file of files) {
       try {
-        // Convert filename format where all ':.' were replaced with '-'
+        // 将文件名格式中所有 ':.' 替换为 '-' 后转换回时间戳
         const timestamp = convertFileNameToDate(file.name)
         if (timestamp < cutoffDate) {
           await getFsImplementation().unlink(join(dirPath, file.name))
-          // Increment the appropriate counter
+          // 累加相应计数器
           if (isMessagePath) {
             result.messages++
           } else {
@@ -76,12 +76,12 @@ async function cleanupOldFilesInDirectory(
           }
         }
       } catch (error) {
-        // Log but continue processing other files
+        // 记录错误但继续处理其他文件
         logError(error as Error)
       }
     }
   } catch (error: unknown) {
-    // Ignore if directory doesn't exist
+    // 若目录不存在则忽略
     if (error instanceof Error && 'code' in error && error.code !== 'ENOENT') {
       logError(error)
     }
@@ -96,10 +96,10 @@ export async function cleanupOldMessageFiles(): Promise<CleanupResult> {
   const errorPath = CACHE_PATHS.errors()
   const baseCachePath = CACHE_PATHS.baseLogs()
 
-  // Clean up message and error logs
+  // 清理消息和错误日志
   let result = await cleanupOldFilesInDirectory(errorPath, cutoffDate, false)
 
-  // Clean up MCP logs
+  // 清理 MCP 日志
   try {
     let dirents
     try {
@@ -115,7 +115,7 @@ export async function cleanupOldMessageFiles(): Promise<CleanupResult> {
       .map(dirent => join(baseCachePath, dirent.name))
 
     for (const mcpLogDir of mcpLogDirs) {
-      // Clean up files in MCP log directory
+      // 清理 MCP 日志目录中的文件
       result = addCleanupResults(
         result,
         await cleanupOldFilesInDirectory(mcpLogDir, cutoffDate, true),
@@ -148,7 +148,7 @@ async function tryRmdir(dirPath: string, fsImpl: FsOperations): Promise<void> {
   try {
     await fsImpl.rmdir(dirPath)
   } catch {
-    // not empty / doesn't exist
+    // 目录非空或不存在
   }
 }
 
@@ -169,7 +169,7 @@ export async function cleanupOldSessionFiles(): Promise<CleanupResult> {
     if (!projectDirent.isDirectory()) continue
     const projectDir = join(projectsDir, projectDirent.name)
 
-    // Single readdir per project directory — partition into files and session dirs
+    // 每个项目目录只读取一次——区分文件和会话目录
     let entries
     try {
       entries = await fsImpl.readdir(projectDir)
@@ -193,14 +193,14 @@ export async function cleanupOldSessionFiles(): Promise<CleanupResult> {
           result.errors++
         }
       } else if (entry.isDirectory()) {
-        // Session directory — clean up tool-results/<toolDir>/* beneath it
+        // 会话目录——清理其下的 tool-results/<toolDir>/* 文件
         const sessionDir = join(projectDir, entry.name)
         const toolResultsDir = join(sessionDir, TOOL_RESULTS_SUBDIR)
         let toolDirs
         try {
           toolDirs = await fsImpl.readdir(toolResultsDir)
         } catch {
-          // No tool-results dir — still try to remove an empty session dir
+          // 无 tool-results 目录——仍尝试删除空的会话目录
           await tryRmdir(sessionDir, fsImpl)
           continue
         }
@@ -258,10 +258,10 @@ export async function cleanupOldSessionFiles(): Promise<CleanupResult> {
 }
 
 /**
- * Generic helper for cleaning up old files in a single directory
- * @param dirPath Path to the directory to clean
- * @param extension File extension to filter (e.g., '.md', '.jsonl')
- * @param removeEmptyDir Whether to remove the directory if empty after cleanup
+ * 清理单个目录中旧文件的通用辅助函数
+ * @param dirPath 要清理的目录路径
+ * @param extension 过滤的文件扩展名（如 '.md'、'.jsonl'）
+ * @param removeEmptyDir 清理后若目录为空是否删除该目录
  */
 async function cleanupSingleDirectory(
   dirPath: string,
@@ -388,10 +388,10 @@ export async function cleanupOldSessionEnvDirs(): Promise<CleanupResult> {
 }
 
 /**
- * Cleans up old debug log files from ~/.claude/debug/
- * Preserves the 'latest' symlink which points to the current session's log.
- * Debug logs can grow very large (especially with the infinite logging loop bug)
- * and accumulate indefinitely without this cleanup.
+ * 清理 ~/.hclaude/debug/ 中的旧调试日志文件。
+ * 保留指向当前会话日志的 'latest' 软链接。
+ * 调试日志可能变得很大（尤其在日志无限循环 bug 存在时），
+ * 若不清理会无限累积。
  */
 export async function cleanupOldDebugLogs(): Promise<CleanupResult> {
   const cutoffDate = getCutoffDate()
@@ -407,7 +407,7 @@ export async function cleanupOldDebugLogs(): Promise<CleanupResult> {
   }
 
   for (const dirent of dirents) {
-    // Preserve the 'latest' symlink
+    // 保留 'latest' 软链接
     if (
       !dirent.isFile() ||
       !dirent.name.endsWith('.txt') ||
@@ -424,16 +424,16 @@ export async function cleanupOldDebugLogs(): Promise<CleanupResult> {
     }
   }
 
-  // Intentionally do NOT remove debugDir even if empty — needed for future logs
+  // 即使为空也不删除 debugDir——后续日志仍需使用该目录
   return result
 }
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
 /**
- * Clean up old npm cache entries for Anthropic packages.
- * This helps reduce disk usage since we publish many dev versions per day.
- * Only runs once per day for Ant users.
+ * 清理 Anthropic 包的旧 npm 缓存条目。
+ * 由于每天发布大量开发版本，此操作有助于减少磁盘占用。
+ * 仅对 ant 用户每天运行一次。
  */
 export async function cleanupNpmCacheForAnthropicPackages(): Promise<void> {
   const markerPath = join(getClaudeConfigHomeDir(), '.npm-cache-cleanup')
@@ -441,21 +441,21 @@ export async function cleanupNpmCacheForAnthropicPackages(): Promise<void> {
   try {
     const stat = await fs.stat(markerPath)
     if (Date.now() - stat.mtimeMs < ONE_DAY_MS) {
-      logForDebugging('npm cache cleanup: skipping, ran recently')
+      logForDebugging('npm 缓存清理：跳过，近期已运行')
       return
     }
   } catch {
-    // File doesn't exist, proceed with cleanup
+    // 文件不存在，继续执行清理
   }
 
   try {
     await lockfile.lock(markerPath, { retries: 0, realpath: false })
   } catch {
-    logForDebugging('npm cache cleanup: skipping, lock held')
+    logForDebugging('npm 缓存清理：跳过，锁已被持有')
     return
   }
 
-  logForDebugging('npm cache cleanup: starting')
+  logForDebugging('npm 缓存清理：开始')
 
   const npmCachePath = join(homedir(), '.npm', '_cacache')
 
@@ -466,10 +466,9 @@ export async function cleanupNpmCacheForAnthropicPackages(): Promise<void> {
     const cacache = await import('cacache')
     const cutoff = startTime - ONE_DAY_MS
 
-    // Stream index entries and collect all Anthropic package entries.
-    // Previous implementation used cacache.verify() which does a full
-    // integrity check + GC of the ENTIRE cache — O(all content blobs).
-    // On large caches this took 60+ seconds and blocked the event loop.
+    // 流式读取索引条目，收集所有 Anthropic 包的条目。
+    // 之前的实现使用 cacache.verify()，会对整个缓存执行完整性校验 + GC，
+    // 复杂度为 O(所有内容块)，大缓存下耗时 60+ 秒并阻塞事件循环。
     const stream = cacache.ls.stream(npmCachePath)
     const anthropicEntries: { key: string; time: number }[] = []
     for await (const entry of stream as AsyncIterable<{
@@ -481,7 +480,7 @@ export async function cleanupNpmCacheForAnthropicPackages(): Promise<void> {
       }
     }
 
-    // Group by package name (everything before the last @version separator)
+    // 按包名分组（最后一个 @version 分隔符之前的部分）
     const byPackage = new Map<string, { key: string; time: number }[]>()
     for (const entry of anthropicEntries) {
       const atVersionIdx = entry.key.lastIndexOf('@')
@@ -492,10 +491,10 @@ export async function cleanupNpmCacheForAnthropicPackages(): Promise<void> {
       byPackage.set(pkgName, existing)
     }
 
-    // Remove entries older than 1 day OR beyond the top N most recent per package
+    // 删除超过 1 天或超出每包保留数量（前 N 个最新）的条目
     const keysToRemove: string[] = []
     for (const [, entries] of byPackage) {
-      entries.sort((a, b) => b.time - a.time) // newest first
+      entries.sort((a, b) => b.time - a.time) // 最新的排在前面
       for (let i = 0; i < entries.length; i++) {
         const entry = entries[i]!
         if (entry.time < cutoff || i >= NPM_CACHE_RETENTION_COUNT) {
@@ -513,10 +512,10 @@ export async function cleanupNpmCacheForAnthropicPackages(): Promise<void> {
     const durationMs = Date.now() - startTime
     if (keysToRemove.length > 0) {
       logForDebugging(
-        `npm cache cleanup: Removed ${keysToRemove.length} old @anthropic-ai entries in ${durationMs}ms`,
+        `npm 缓存清理：已删除 ${keysToRemove.length} 条旧 @anthropic-ai 条目，耗时 ${durationMs}ms`,
       )
     } else {
-      logForDebugging(`npm cache cleanup: completed in ${durationMs}ms`)
+      logForDebugging(`npm 缓存清理：完成，耗时 ${durationMs}ms`)
     }
     logEvent('tengu_npm_cache_cleanup', {
       success: true,
@@ -535,10 +534,10 @@ export async function cleanupNpmCacheForAnthropicPackages(): Promise<void> {
 }
 
 /**
- * Throttled wrapper around cleanupOldVersions for recurring cleanup in long-running sessions.
- * Uses a marker file and lock to ensure it runs at most once per 24 hours,
- * and does not block if another process is already running cleanup.
- * The regular cleanupOldVersions() should still be used for installer flows.
+ * cleanupOldVersions 的节流包装器，用于长时间运行会话中的周期性清理。
+ * 使用标记文件和锁确保每 24 小时最多运行一次，
+ * 若其他进程正在执行清理则不阻塞。
+ * 安装器流程仍应直接使用 cleanupOldVersions()。
  */
 export async function cleanupOldVersionsThrottled(): Promise<void> {
   const markerPath = join(getClaudeConfigHomeDir(), '.version-cleanup')
@@ -546,21 +545,21 @@ export async function cleanupOldVersionsThrottled(): Promise<void> {
   try {
     const stat = await fs.stat(markerPath)
     if (Date.now() - stat.mtimeMs < ONE_DAY_MS) {
-      logForDebugging('version cleanup: skipping, ran recently')
+      logForDebugging('版本清理：跳过，近期已运行')
       return
     }
   } catch {
-    // File doesn't exist, proceed with cleanup
+    // 文件不存在，继续执行清理
   }
 
   try {
     await lockfile.lock(markerPath, { retries: 0, realpath: false })
   } catch {
-    logForDebugging('version cleanup: skipping, lock held')
+    logForDebugging('版本清理：跳过，锁已被持有')
     return
   }
 
-  logForDebugging('version cleanup: starting (throttled)')
+  logForDebugging('版本清理：开始（节流模式）')
 
   try {
     await cleanupOldVersions()
@@ -573,13 +572,13 @@ export async function cleanupOldVersionsThrottled(): Promise<void> {
 }
 
 export async function cleanupOldMessageFilesInBackground(): Promise<void> {
-  // If settings have validation errors but the user explicitly set cleanupPeriodDays,
-  // skip cleanup entirely rather than falling back to the default (30 days).
-  // This prevents accidentally deleting files when the user intended a different retention period.
+  // 若设置存在验证错误但用户显式设置了 cleanupPeriodDays，
+  // 则完全跳过清理，而非回退到默认值（30 天）。
+  // 这可防止在用户打算使用不同保留期时意外删除文件。
   const { errors } = getSettingsWithAllErrors()
   if (errors.length > 0 && rawSettingsContainsKey('cleanupPeriodDays')) {
     logForDebugging(
-      'Skipping cleanup: settings have validation errors but cleanupPeriodDays was explicitly set. Fix settings errors to enable cleanup.',
+      '跳过清理：设置存在验证错误但已显式设置 cleanupPeriodDays。请修复设置错误以启用清理。',
     )
     return
   }

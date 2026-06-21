@@ -29,34 +29,34 @@ export async function getClaudeDesktopConfigPath(): Promise<string> {
     )
   }
 
-  // First, try using USERPROFILE environment variable if available
+  // 首先，尝试使用 USERPROFILE 环境变量（若可用）
   const windowsHome = process.env.USERPROFILE
-    ? process.env.USERPROFILE.replace(/\\/g, '/') // Convert Windows backslashes to forward slashes
+    ? process.env.USERPROFILE.replace(/\\/g, '/') // 将 Windows 反斜杠转换为正斜杠
     : null
 
   if (windowsHome) {
-    // Remove drive letter and convert to WSL path format
+    // 移除盘符并转换为 WSL 路径格式
     const wslPath = windowsHome.replace(/^[A-Z]:/, '')
     const configPath = `/mnt/c${wslPath}/AppData/Roaming/Claude/claude_desktop_config.json`
 
-    // Check if the file exists
+    // 检查文件是否存在
     try {
       await stat(configPath)
       return configPath
     } catch {
-      // File doesn't exist, continue
+      // 文件不存在，继续
     }
   }
 
-  // Alternative approach - try to construct path based on typical Windows user location
+  // 替代方案 —— 尝试基于典型 Windows 用户位置构造路径
   try {
-    // List the /mnt/c/Users directory to find potential user directories
+    // 列出 /mnt/c/Users 目录以查找潜在的用户目录
     const usersDir = '/mnt/c/Users'
 
     try {
       const userDirs = await readdir(usersDir, { withFileTypes: true })
 
-      // Look for Claude Desktop config in each user directory
+      // 在每个用户目录中查找 Claude Desktop 配置
       for (const user of userDirs) {
         if (
           user.name === 'Public' ||
@@ -64,7 +64,7 @@ export async function getClaudeDesktopConfigPath(): Promise<string> {
           user.name === 'Default User' ||
           user.name === 'All Users'
         ) {
-          continue // Skip system directories
+          continue // 跳过系统目录
         }
 
         const potentialConfigPath = join(
@@ -80,11 +80,11 @@ export async function getClaudeDesktopConfigPath(): Promise<string> {
           await stat(potentialConfigPath)
           return potentialConfigPath
         } catch {
-          // File doesn't exist, continue
+          // 文件不存在，继续
         }
       }
     } catch {
-      // usersDir doesn't exist or can't be read
+      // usersDir 不存在或无法读取
     }
   } catch (dirError) {
     logError(dirError)
