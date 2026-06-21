@@ -30,7 +30,7 @@ type QueuedGenerator<A> = {
   promise: Promise<QueuedGenerator<A>>
 }
 
-// Run all generators concurrently up to a concurrency cap, yielding values as they come in
+// 并发运行所有生成器直至并发上限，值到达时立即 yield
 export async function* all<A>(
   generators: AsyncGenerator<A, void>[],
   concurrencyCap = Infinity,
@@ -49,7 +49,7 @@ export async function* all<A>(
   const waiting = [...generators]
   const promises = new Set<Promise<QueuedGenerator<A>>>()
 
-  // Start initial batch up to concurrency cap
+  // 启动初始批次直到并发上限
   while (promises.size < concurrencyCap && waiting.length > 0) {
     const gen = waiting.shift()!
     promises.add(next(gen))
@@ -61,12 +61,12 @@ export async function* all<A>(
 
     if (!done) {
       promises.add(next(generator))
-      // TODO: Clean this up
+      // TODO: 清理此处
       if (value !== undefined) {
         yield value as Awaited<A>
       }
     } else if (waiting.length > 0) {
-      // Start a new generator when one finishes
+      // 当一个生成器完成时启动新的生成器
       const nextGen = waiting.shift()!
       promises.add(next(nextGen))
     }

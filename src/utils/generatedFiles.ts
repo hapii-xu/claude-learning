@@ -1,11 +1,11 @@
 import { basename, extname, posix, sep } from 'path'
 
 /**
- * File patterns that should be excluded from attribution.
- * Based on GitHub Linguist vendored patterns and common generated file patterns.
+ * 应从归属统计中排除的文件模式。
+ * 基于 GitHub Linguist 的 vendored 模式与常见生成文件模式。
  */
 
-// Exact file name matches (case-insensitive)
+// 精确文件名匹配（大小写不敏感）
 const EXCLUDED_FILENAMES = new Set([
   'package-lock.json',
   'yarn.lock',
@@ -21,7 +21,7 @@ const EXCLUDED_FILENAMES = new Set([
   'npm-shrinkwrap.json',
 ])
 
-// File extension patterns (case-insensitive)
+// 文件扩展名模式（大小写不敏感）
 const EXCLUDED_EXTENSIONS = new Set([
   '.lock',
   '.min.js',
@@ -31,10 +31,10 @@ const EXCLUDED_EXTENSIONS = new Set([
   '.bundle.css',
   '.generated.ts',
   '.generated.js',
-  '.d.ts', // TypeScript declaration files
+  '.d.ts', // TypeScript 声明文件
 ])
 
-// Directory patterns that indicate generated/vendored content
+// 表示生成/vendored 内容的目录模式
 const EXCLUDED_DIRECTORIES = [
   '/dist/',
   '/build/',
@@ -58,7 +58,7 @@ const EXCLUDED_DIRECTORIES = [
   '/target/debug/',
 ]
 
-// Filename patterns using regex for more complex matching
+// 使用正则表达式进行更复杂匹配的文件名模式
 const EXCLUDED_FILENAME_PATTERNS = [
   /^.*\.min\.[a-z]+$/i, // *.min.*
   /^.*-min\.[a-z]+$/i, // *-min.*
@@ -68,38 +68,38 @@ const EXCLUDED_FILENAME_PATTERNS = [
   /^.*\.auto\.[a-z]+$/i, // *.auto.*
   /^.*_generated\.[a-z]+$/i, // *_generated.*
   /^.*_gen\.[a-z]+$/i, // *_gen.*
-  /^.*\.pb\.(go|js|ts|py|rb)$/i, // Protocol buffer generated files
-  /^.*_pb2?\.py$/i, // Python protobuf files
-  /^.*\.pb\.h$/i, // C++ protobuf headers
-  /^.*\.grpc\.[a-z]+$/i, // gRPC generated files
-  /^.*\.swagger\.[a-z]+$/i, // Swagger generated files
-  /^.*\.openapi\.[a-z]+$/i, // OpenAPI generated files
+  /^.*\.pb\.(go|js|ts|py|rb)$/i, // Protocol buffer 生成的文件
+  /^.*_pb2?\.py$/i, // Python protobuf 文件
+  /^.*\.pb\.h$/i, // C++ protobuf 头文件
+  /^.*\.grpc\.[a-z]+$/i, // gRPC 生成的文件
+  /^.*\.swagger\.[a-z]+$/i, // Swagger 生成的文件
+  /^.*\.openapi\.[a-z]+$/i, // OpenAPI 生成的文件
 ]
 
 /**
- * Check if a file should be excluded from attribution based on Linguist-style rules.
+ * 检查文件是否应基于 Linguist 风格的规则从归属统计中排除。
  *
- * @param filePath - Relative file path from repository root
- * @returns true if the file should be excluded from attribution
+ * @param filePath - 从仓库根目录起的相对文件路径
+ * @returns 若文件应从归属统计中排除则为 true
  */
 export function isGeneratedFile(filePath: string): boolean {
-  // Normalize path separators for consistent pattern matching (patterns use posix-style /)
+  // 规范化路径分隔符以进行一致的模式匹配（模式使用 posix 风格的 /）
   const normalizedPath =
     posix.sep + filePath.split(sep).join(posix.sep).replace(/^\/+/, '')
   const fileName = basename(filePath).toLowerCase()
   const ext = extname(filePath).toLowerCase()
 
-  // Check exact filename matches
+  // 检查精确文件名匹配
   if (EXCLUDED_FILENAMES.has(fileName)) {
     return true
   }
 
-  // Check extension matches
+  // 检查扩展名匹配
   if (EXCLUDED_EXTENSIONS.has(ext)) {
     return true
   }
 
-  // Check for compound extensions like .min.js
+  // 检查复合扩展名如 .min.js
   const parts = fileName.split('.')
   if (parts.length > 2) {
     const compoundExt = '.' + parts.slice(-2).join('.')
@@ -108,14 +108,14 @@ export function isGeneratedFile(filePath: string): boolean {
     }
   }
 
-  // Check directory patterns
+  // 检查目录模式
   for (const dir of EXCLUDED_DIRECTORIES) {
     if (normalizedPath.includes(dir)) {
       return true
     }
   }
 
-  // Check filename patterns
+  // 检查文件名模式
   for (const pattern of EXCLUDED_FILENAME_PATTERNS) {
     if (pattern.test(fileName)) {
       return true
@@ -126,10 +126,10 @@ export function isGeneratedFile(filePath: string): boolean {
 }
 
 /**
- * Filter a list of files to exclude generated files.
+ * 过滤文件列表以排除生成文件。
  *
- * @param files - Array of file paths
- * @returns Array of files that are not generated
+ * @param files - 文件路径数组
+ * @returns 非生成文件的数组
  */
 export function filterGeneratedFiles(files: string[]): string[] {
   return files.filter(file => !isGeneratedFile(file))

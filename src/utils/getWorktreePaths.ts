@@ -4,16 +4,16 @@ import { execFileNoThrowWithCwd } from './execFileNoThrow.js'
 import { gitExe } from './git.js'
 
 /**
- * Returns the paths of all worktrees for the current git repository.
- * If git is not available, not in a git repo, or only has one worktree,
- * returns an empty array.
+ * 返回当前 git 仓库所有 worktree 的路径。
+ * 若 git 不可用、不在 git 仓库中或仅有一个 worktree，
+ * 则返回空数组。
  *
- * This version includes analytics tracking and uses the CLI's gitExe()
- * resolver. For a portable version without CLI deps, use
- * getWorktreePathsPortable().
+ * 此版本包含分析跟踪并使用 CLI 的 gitExe()
+ * 解析器。如需无 CLI 依赖的可移植版本，请使用
+ * getWorktreePathsPortable()。
  *
- * @param cwd Directory to run the command from
- * @returns Array of absolute worktree paths
+ * @param cwd 执行命令的目录
+ * @returns 绝对 worktree 路径的数组
  */
 export async function getWorktreePaths(cwd: string): Promise<string[]> {
   const startTime = Date.now()
@@ -38,8 +38,8 @@ export async function getWorktreePaths(cwd: string): Promise<string[]> {
     return []
   }
 
-  // Parse porcelain output - lines starting with "worktree " contain paths
-  // Example:
+  // 解析 porcelain 输出 - 以 "worktree " 开头的行包含路径
+  // 示例：
   // worktree /Users/foo/repo
   // HEAD abc123
   // branch refs/heads/main
@@ -58,7 +58,7 @@ export async function getWorktreePaths(cwd: string): Promise<string[]> {
     success: true,
   })
 
-  // Sort worktrees: current worktree first, then alphabetically
+  // 排序 worktree：当前 worktree 优先，其余按字母顺序
   const currentWorktree = worktreePaths.find(
     path => cwd === path || cwd.startsWith(path + sep),
   )
