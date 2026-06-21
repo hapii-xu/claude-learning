@@ -22,9 +22,9 @@ export function createBufferedWriter({
   let buffer: string[] = []
   let bufferBytes = 0
   let flushTimer: NodeJS.Timeout | null = null
-  // Batch detached by overflow that hasn't been written yet. Tracked so
-  // flush()/dispose() can drain it synchronously if the process exits
-  // before the setImmediate fires.
+  // 因溢出而分离但尚未写入的批次。跟踪它以便
+  // flush()/dispose() 可以在进程在 setImmediate 触发前退出时
+  // 同步排空它。
   let pendingOverflow: string[] | null = null
 
   function clearTimer(): void {
@@ -52,15 +52,14 @@ export function createBufferedWriter({
     }
   }
 
-  // Detach the buffer synchronously so the caller never waits on writeFn.
-  // writeFn may block (e.g. errorLogSink.ts appendFileSync) — if overflow fires
-  // mid-render or mid-keystroke, deferring the write keeps the current tick
-  // short. Timer-based flushes already run outside user code paths so they
-  // stay synchronous.
+  // 同步分离缓冲区，使调用者永远不会等待 writeFn。
+  // writeFn 可能会阻塞（例如 errorLogSink.ts 的 appendFileSync）——
+  // 如果溢出在渲染中或按键时发生，延迟写入可保持当前 tick 短。
+  // 基于定时器的刷新已在用户代码路径之外运行，因此保持同步。
   function flushDeferred(): void {
     if (pendingOverflow) {
-      // A previous overflow write is still queued. Coalesce into it to
-      // preserve ordering — writes land in a single setImmediate-ordered batch.
+      // 之前的溢出写入仍在排队中。合并到其中以保持
+      // 顺序 —— 写入落入单个 setImmediate 排序的批次。
       pendingOverflow.push(...buffer)
       buffer = []
       bufferBytes = 0

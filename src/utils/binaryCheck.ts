@@ -1,27 +1,27 @@
 import { logForDebugging } from './debug.js'
 import { which } from './which.js'
 
-// Session cache to avoid repeated checks
+// 会话缓存，避免重复检查
 const binaryCache = new Map<string, boolean>()
 
 /**
- * Check if a binary/command is installed and available on the system.
- * Uses 'which' on Unix systems (macOS, Linux, WSL) and 'where' on Windows.
+ * 检查二进制文件/命令是否已安装且在系统上可用。
+ * 在 Unix 系统（macOS、Linux、WSL）上使用 'which'，在 Windows 上使用 'where'。
  *
- * @param command - The command name to check (e.g., 'gopls', 'rust-analyzer')
- * @returns Promise<boolean> - true if the command exists, false otherwise
+ * @param command - 要检查的命令名（例如 'gopls'、'rust-analyzer'）
+ * @returns Promise<boolean> - 命令存在返回 true，否则返回 false
  */
 export async function isBinaryInstalled(command: string): Promise<boolean> {
-  // Edge case: empty or whitespace-only command
+  // 边界情况：空或纯空白的命令
   if (!command || !command.trim()) {
     logForDebugging('[binaryCheck] Empty command provided, returning false')
     return false
   }
 
-  // Trim the command to handle whitespace
+  // 去除命令两端的空白
   const trimmedCommand = command.trim()
 
-  // Check cache first
+  // 优先检查缓存
   const cached = binaryCache.get(trimmedCommand)
   if (cached !== undefined) {
     logForDebugging(
@@ -35,7 +35,7 @@ export async function isBinaryInstalled(command: string): Promise<boolean> {
     exists = true
   }
 
-  // Cache the result
+  // 缓存结果
   binaryCache.set(trimmedCommand, exists)
 
   logForDebugging(
@@ -46,7 +46,7 @@ export async function isBinaryInstalled(command: string): Promise<boolean> {
 }
 
 /**
- * Clear the binary check cache (useful for testing)
+ * 清除二进制文件检查缓存（用于测试）
  */
 export function clearBinaryCache(): void {
   binaryCache.clear()

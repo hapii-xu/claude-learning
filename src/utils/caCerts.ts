@@ -4,26 +4,25 @@ import { hasNodeOption } from './envUtils.js'
 import { getFsImplementation } from './fsOperations.js'
 
 /**
- * Load CA certificates for TLS connections.
+ * 加载 TLS 连接的 CA 证书。
  *
- * Since setting `ca` on an HTTPS agent replaces the default certificate store,
- * we must always include base CAs (either system or bundled Mozilla) when returning.
+ * 由于在 HTTPS agent 上设置 `ca` 会替换默认证书存储，
+ * 返回时必须始终包含基础 CA（系统或捆绑的 Mozilla）。
  *
- * Returns undefined when no custom CA configuration is needed, allowing the
- * runtime's default certificate handling to apply.
+ * 不需要自定义 CA 配置时返回 undefined，允许运行时的默认证书处理生效。
  *
- * Behavior:
- * - Neither NODE_EXTRA_CA_CERTS nor --use-system-ca/--use-openssl-ca set: undefined (runtime defaults)
- * - NODE_EXTRA_CA_CERTS only: bundled Mozilla CAs + extra cert file contents
- * - --use-system-ca or --use-openssl-ca only: system CAs
- * - --use-system-ca + NODE_EXTRA_CA_CERTS: system CAs + extra cert file contents
+ * 行为：
+ * - 未设置 NODE_EXTRA_CA_CERTS 和 --use-system-ca/--use-openssl-ca：undefined（运行时默认）
+ * - 仅 NODE_EXTRA_CA_CERTS：捆绑的 Mozilla CA + 额外证书文件内容
+ * - 仅 --use-system-ca 或 --use-openssl-ca：系统 CA
+ * - --use-system-ca + NODE_EXTRA_CA_CERTS：系统 CA + 额外证书文件内容
  *
- * Memoized for performance. Call clearCACertsCache() to invalidate after
- * environment variable changes (e.g., after trust dialog applies settings.json).
+ * 为性能而记忆。在环境变量更改后调用 clearCACertsCache() 以失效
+ *（例如，信任对话框应用 settings.json 之后）。
  *
- * Reads ONLY `process.env.NODE_EXTRA_CA_CERTS`. `caCertsConfig.ts` populates
- * that env var from settings.json at CLI init; this module stays config-free
- * so `proxy.ts`/`mtls.ts` don't transitively pull in the command registry.
+ * 仅读取 `process.env.NODE_EXTRA_CA_CERTS`。`caCertsConfig.ts` 在 CLI 初始化时
+ * 从 settings.json 填充该环境变量；此模块保持无配置，
+ * 以便 `proxy.ts`/`mtls.ts` 不会传递性地拉入命令注册表。
  */
 export const getCACertificates = memoize((): string[] | undefined => {
   const useSystemCA =
@@ -35,15 +34,15 @@ export const getCACertificates = memoize((): string[] | undefined => {
     `CA certs: useSystemCA=${useSystemCA}, extraCertsPath=${extraCertsPath}`,
   )
 
-  // If neither is set, return undefined (use runtime defaults, no override)
+  // 如果都未设置，返回 undefined（使用运行时默认值，无覆盖）
   if (!useSystemCA && !extraCertsPath) {
     return undefined
   }
 
-  // Deferred load: Bun's node:tls module eagerly materializes ~150 Mozilla
-  // root certificates (~750KB heap) on import, even if tls.rootCertificates
-  // is never accessed. Most users hit the early return above, so we only
-  // pay this cost when custom CA handling is actually needed.
+  // 延迟加载：Bun 的 node:tls 模块在导入时会急切地物化约 150 个 Mozilla
+  // 根证书（约 750KB 堆），即使 tls.rootCertificates 从未被访问。
+  // 大多数用户会命中上面的提前返回，因此我们只在实际需要自定义 CA 处理时
+  // 才承担此开销。
   /* eslint-disable @typescript-eslint/no-require-imports */
   const tls = require('tls') as typeof import('tls')
   /* eslint-enable @typescript-eslint/no-require-imports */
@@ -51,7 +50,7 @@ export const getCACertificates = memoize((): string[] | undefined => {
   const certs: string[] = []
 
   if (useSystemCA) {
-    // Load system CA store (Bun API)
+    // 加载系统 CA 存储（Bun API）
     const getCACerts = (
       tls as typeof tls & { getCACertificates?: (type: string) => string[] }
     ).getCACertificates
@@ -62,28 +61,28 @@ export const getCACertificates = memoize((): string[] | undefined => {
         `CA certs: Loaded ${certs.length} system CA certificates (--use-system-ca)`,
       )
     } else if (!getCACerts && !extraCertsPath) {
-      // Under Node.js where getCACertificates doesn't exist and no extra certs,
-      // return undefined to let Node.js handle --use-system-ca natively.
+      // 在不支持 getCACertificates 且无额外证书的 Node.js 下，
+      // 返回 undefined 让 Node.js 原生处理 --use-system-ca。
       logForDebugging(
         'CA certs: --use-system-ca set but system CA API unavailable, deferring to runtime',
       )
       return undefined
     } else {
-      // System CA API returned empty or unavailable; fall back to bundled root certs
+      // 系统 CA API 返回空或不可用；回退到捆绑的根证书
       certs.push(...tls.rootCertificates)
       logForDebugging(
         `CA certs: Loaded ${certs.length} bundled root certificates as base (--use-system-ca fallback)`,
       )
     }
   } else {
-    // Must include bundled Mozilla CAs as base since ca replaces defaults
+    // 必须包含捆绑的 Mozilla CA 作为基础，因为 ca 会替换默认值
     certs.push(...tls.rootCertificates)
     logForDebugging(
       `CA certs: Loaded ${certs.length} bundled root certificates as base`,
     )
   }
 
-  // Append extra certs from file
+  // 从文件追加额外证书
   if (extraCertsPath) {
     try {
       const extraCert = getFsImplementation().readFileSync(extraCertsPath, {
@@ -105,9 +104,9 @@ export const getCACertificates = memoize((): string[] | undefined => {
 })
 
 /**
- * Clear the CA certificates cache.
- * Call this when environment variables that affect CA certs may have changed
- * (e.g., NODE_EXTRA_CA_CERTS, NODE_OPTIONS).
+ * 清除 CA 证书缓存。
+ * 当影响 CA 证书的环境变量可能已更改时调用
+ *（例如 NODE_EXTRA_CA_CERTS、NODE_OPTIONS）。
  */
 export function clearCACertsCache(): void {
   getCACertificates.cache.clear?.()
