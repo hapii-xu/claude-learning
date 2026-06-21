@@ -1,6 +1,6 @@
 /**
- * Converts ANSI-escaped terminal text to SVG format
- * Supports basic ANSI color codes (foreground colors)
+ * 将 ANSI 转义的终端文本转换为 SVG 格式
+ * 支持基本的 ANSI 颜色代码（前景色）
  */
 
 import { escapeXml } from './xml.js'
@@ -11,7 +11,7 @@ export type AnsiColor = {
   b: number
 }
 
-// Default terminal color palette (similar to most terminals)
+// 默认终端调色板（类似于大多数终端）
 const ANSI_COLORS: Record<number, AnsiColor> = {
   30: { r: 0, g: 0, b: 0 }, // black
   31: { r: 205, g: 49, b: 49 }, // red
@@ -21,7 +21,7 @@ const ANSI_COLORS: Record<number, AnsiColor> = {
   35: { r: 188, g: 63, b: 188 }, // magenta
   36: { r: 17, g: 168, b: 205 }, // cyan
   37: { r: 229, g: 229, b: 229 }, // white
-  // Bright colors
+  // 亮色
   90: { r: 102, g: 102, b: 102 }, // bright black (gray)
   91: { r: 241, g: 76, b: 76 }, // bright red
   92: { r: 35, g: 209, b: 139 }, // bright green
@@ -44,11 +44,11 @@ export type TextSpan = {
 export type ParsedLine = TextSpan[]
 
 /**
- * Parse ANSI escape sequences from text
- * Supports:
- * - Basic colors (30-37, 90-97)
- * - 256-color mode (38;5;n)
- * - 24-bit true color (38;2;r;g;b)
+ * 从文本中解析 ANSI 转义序列
+ * 支持：
+ * - 基本颜色（30-37、90-97）
+ * - 256 色模式（38;5;n）
+ * - 24 位真彩色（38;2;r;g;b）
  */
 export function parseAnsi(text: string): ParsedLine[] {
   const lines: ParsedLine[] = []
@@ -61,16 +61,16 @@ export function parseAnsi(text: string): ParsedLine[] {
     let i = 0
 
     while (i < line.length) {
-      // Check for ANSI escape sequence
+      // 检查 ANSI 转义序列
       if (line[i] === '\x1b' && line[i + 1] === '[') {
-        // Find the end of the escape sequence
+        // 查找转义序列的结尾
         let j = i + 2
         while (j < line.length && !/[A-Za-z]/.test(line[j]!)) {
           j++
         }
 
         if (line[j] === 'm') {
-          // Color/style code
+          // 颜色/样式代码
           const codes = line
             .slice(i + 2, j)
             .split(';')
@@ -80,7 +80,7 @@ export function parseAnsi(text: string): ParsedLine[] {
           while (k < codes.length) {
             const code = codes[k]!
             if (code === 0) {
-              // Reset
+              // 重置
               currentColor = DEFAULT_FG
               bold = false
             } else if (code === 1) {
@@ -92,7 +92,7 @@ export function parseAnsi(text: string): ParsedLine[] {
             } else if (code === 39) {
               currentColor = DEFAULT_FG
             } else if (code === 38) {
-              // Extended color - check next code
+              // 扩展颜色 - 检查下一个代码
               if (codes[k + 1] === 5 && codes[k + 2] !== undefined) {
                 // 256-color mode: 38;5;n
                 const colorIndex = codes[k + 2]!
@@ -121,7 +121,7 @@ export function parseAnsi(text: string): ParsedLine[] {
         continue
       }
 
-      // Regular character - find extent of same-styled text
+      // 普通字符 - 查找相同样式文本的范围
       const textStart = i
       while (i < line.length && line[i] !== '\x1b') {
         i++
@@ -133,7 +133,7 @@ export function parseAnsi(text: string): ParsedLine[] {
       }
     }
 
-    // Add empty span if line is empty (to preserve line)
+    // 如果行为空则添加空 span（以保留行）
     if (spans.length === 0) {
       spans.push({ text: '', color: DEFAULT_FG, bold: false })
     }
@@ -145,10 +145,10 @@ export function parseAnsi(text: string): ParsedLine[] {
 }
 
 /**
- * Get color from 256-color palette
+ * 从 256 色调色板中获取颜色
  */
 function get256Color(index: number): AnsiColor {
-  // Standard colors (0-15)
+  // 标准颜色（0-15）
   if (index < 16) {
     const standardColors: AnsiColor[] = [
       { r: 0, g: 0, b: 0 }, // 0 black
@@ -184,7 +184,7 @@ function get256Color(index: number): AnsiColor {
     }
   }
 
-  // Grayscale (232-255)
+  // 灰度（232-255）
   const gray = (index - 232) * 10 + 8
   return { r: gray, g: gray, b: gray }
 }
@@ -200,9 +200,9 @@ export type AnsiToSvgOptions = {
 }
 
 /**
- * Convert ANSI text to SVG
- * Uses <tspan> elements within a single <text> per line so the renderer
- * handles character spacing natively (no manual charWidth calculation)
+ * 将 ANSI 文本转换为 SVG
+ * 在每行内使用单个 <text> 中的 <tspan> 元素，以便渲染器
+ * 原生处理字符间距（无需手动计算 charWidth）
  */
 export function ansiToSvg(
   ansiText: string,
@@ -220,7 +220,7 @@ export function ansiToSvg(
 
   const lines = parseAnsi(ansiText)
 
-  // Trim trailing empty lines
+  // 去除尾随空行
   while (
     lines.length > 0 &&
     lines[lines.length - 1]!.every(span => span.text.trim() === '')
@@ -228,8 +228,8 @@ export function ansiToSvg(
     lines.pop()
   }
 
-  // Estimate width based on max line length (for SVG dimensions only)
-  // For monospace fonts, character width is roughly 0.6 * fontSize
+  // 基于最大行长估算宽度（仅用于 SVG 尺寸）
+  // 对于等宽字体，字符宽度约为 0.6 * fontSize
   const charWidthEstimate = fontSize * 0.6
   const maxLineLength = Math.max(
     ...lines.map(spans => spans.reduce((acc, s) => acc + s.text.length, 0)),
@@ -237,7 +237,7 @@ export function ansiToSvg(
   const width = Math.ceil(maxLineLength * charWidthEstimate + paddingX * 2)
   const height = lines.length * lineHeight + paddingY * 2
 
-  // Build SVG - use tspan elements so renderer handles character positioning
+  // 构建 SVG - 使用 tspan 元素以便渲染器处理字符定位
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">\n`
   svg += `  <rect width="100%" height="100%" fill="${backgroundColor}" rx="${borderRadius}" ry="${borderRadius}"/>\n`
   svg += `  <style>\n`
@@ -250,8 +250,8 @@ export function ansiToSvg(
     const y =
       paddingY + (lineIndex + 1) * lineHeight - (lineHeight - fontSize) / 2
 
-    // Build a single <text> element with <tspan> children for each colored segment
-    // xml:space="preserve" prevents SVG from collapsing whitespace
+    // 为每个彩色段构建一个带有 <tspan> 子元素的单个 <text> 元素
+    // xml:space="preserve" 防止 SVG 折叠空白
     svg += `  <text x="${paddingX}" y="${y}" xml:space="preserve">`
 
     for (const span of spans) {

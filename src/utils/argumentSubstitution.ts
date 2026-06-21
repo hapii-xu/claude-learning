@@ -1,22 +1,22 @@
 /**
- * Utility for substituting $ARGUMENTS placeholders in skill/command prompts.
+ * 用于替换技能/命令提示中的 $ARGUMENTS 占位符的工具。
  *
- * Supports:
- * - $ARGUMENTS - replaced with the full arguments string
- * - $ARGUMENTS[0], $ARGUMENTS[1], etc. - replaced with individual indexed arguments
- * - $0, $1, etc. - shorthand for $ARGUMENTS[0], $ARGUMENTS[1]
- * - Named arguments (e.g., $foo, $bar) - when argument names are defined in frontmatter
+ * 支持：
+ * - $ARGUMENTS - 替换为完整的参数字符串
+ * - $ARGUMENTS[0]、$ARGUMENTS[1] 等 - 替换为单个索引参数
+ * - $0、$1 等 - $ARGUMENTS[0]、$ARGUMENTS[1] 的简写
+ * - 命名参数（例如，$foo、$bar）- 当在前言中定义了参数名称时
  *
- * Arguments are parsed using shell-quote for proper shell argument handling.
+ * 参数使用 shell-quote 解析以正确处理 shell 参数。
  */
 
 import { tryParseShellCommand } from './bash/shellQuote.js'
 
 /**
- * Parse an arguments string into an array of individual arguments.
- * Uses shell-quote for proper shell argument parsing including quoted strings.
+ * 将参数字符串解析为单个参数的数组。
+ * 使用 shell-quote 进行正确的 shell 参数解析，包括引号字符串。
  *
- * Examples:
+ * 示例：
  * - "foo bar baz" => ["foo", "bar", "baz"]
  * - 'foo "hello world" baz' => ["foo", "hello world", "baz"]
  * - "foo 'hello world' baz" => ["foo", "hello world", "baz"]
@@ -26,24 +26,24 @@ export function parseArguments(args: string): string[] {
     return []
   }
 
-  // Return $KEY to preserve variable syntax literally (don't expand variables)
+  // 返回 $KEY 以保留变量字面量语法（不展开变量）
   const result = tryParseShellCommand(args, key => `$${key}`)
   if (!result.success) {
-    // Fall back to simple whitespace split if parsing fails
+    // 如果解析失败则回退到简单的空白分割
     return args.split(/\s+/).filter(Boolean)
   }
 
-  // Filter to only string tokens (ignore shell operators, etc.)
+  // 仅过滤字符串 token（忽略 shell 运算符等）
   return result.tokens.filter(
     (token): token is string => typeof token === 'string',
   )
 }
 
 /**
- * Parse argument names from the frontmatter 'arguments' field.
- * Accepts either a space-separated string or an array of strings.
+ * 从前言的 'arguments' 字段解析参数名称。
+ * 接受空格分隔的字符串或字符串数组。
  *
- * Examples:
+ * 示例：
  * - "foo bar baz" => ["foo", "bar", "baz"]
  * - ["foo", "bar", "baz"] => ["foo", "bar", "baz"]
  */
@@ -54,7 +54,7 @@ export function parseArgumentNames(
     return []
   }
 
-  // Filter out empty strings and numeric-only names (which conflict with $0, $1 shorthand)
+  // 过滤掉空字符串和纯数字名称（与 $0、$1 简写冲突）
   const isValidName = (name: string): boolean =>
     typeof name === 'string' && name.trim() !== '' && !/^\d+$/.test(name)
 
@@ -68,10 +68,10 @@ export function parseArgumentNames(
 }
 
 /**
- * Generate argument hint showing remaining unfilled args.
- * @param argNames - Array of argument names from frontmatter
- * @param typedArgs - Arguments the user has typed so far
- * @returns Hint string like "[arg2] [arg3]" or undefined if all filled
+ * 生成显示剩余未填充参数的提示。
+ * @param argNames - 来自前言的参数名称数组
+ * @param typedArgs - 用户到目前为止输入的参数
+ * @returns 提示字符串如 "[arg2] [arg3]"，如果全部填充则返回 undefined
  */
 export function generateProgressiveArgumentHint(
   argNames: string[],
@@ -83,13 +83,13 @@ export function generateProgressiveArgumentHint(
 }
 
 /**
- * Substitute $ARGUMENTS placeholders in content with actual argument values.
+ * 将内容中的 $ARGUMENTS 占位符替换为实际的参数值。
  *
- * @param content - The content containing placeholders
- * @param args - The raw arguments string (may be undefined/null)
- * @param appendIfNoPlaceholder - If true and no placeholders are found, appends "ARGUMENTS: {args}" to content
- * @param argumentNames - Optional array of named arguments (e.g., ["foo", "bar"]) that map to indexed positions
- * @returns The content with placeholders substituted
+ * @param content - 包含占位符的内容
+ * @param args - 原始参数字符串（可能为 undefined/null）
+ * @param appendIfNoPlaceholder - 如果为 true 且未找到占位符，则将 "ARGUMENTS: {args}" 附加到内容
+ * @param argumentNames - 可选的命名参数数组（例如，["foo", "bar"]），映射到索引位置
+ * @returns 替换占位符后的内容
  */
 export function substituteArguments(
   content: string,
@@ -97,8 +97,8 @@ export function substituteArguments(
   appendIfNoPlaceholder = true,
   argumentNames: string[] = [],
 ): string {
-  // undefined/null means no args provided - return content unchanged
-  // empty string is a valid input that should replace placeholders with empty
+  // undefined/null 表示未提供参数 - 返回内容不变
+  // 空字符串是有效输入，应该将占位符替换为空
   if (args === undefined || args === null) {
     return content
   }
@@ -106,37 +106,37 @@ export function substituteArguments(
   const parsedArgs = parseArguments(args)
   const originalContent = content
 
-  // Replace named arguments (e.g., $foo, $bar) with their values
-  // Named arguments map to positions: argumentNames[0] -> parsedArgs[0], etc.
+  // 用值替换命名参数（例如，$foo、$bar）
+  // 命名参数映射到位置：argumentNames[0] -> parsedArgs[0]，等等。
   for (let i = 0; i < argumentNames.length; i++) {
     const name = argumentNames[i]
     if (!name) continue
 
-    // Match $name but not $name[...] or $nameXxx (word chars)
-    // Also ensure we match word boundaries to avoid partial matches
+    // 匹配 $name 但不匹配 $name[...] 或 $nameXxx（单词字符）
+    // 同时确保我们匹配单词边界以避免部分匹配
     content = content.replace(
       new RegExp(`\\$${name}(?![\\[\\w])`, 'g'),
       parsedArgs[i] ?? '',
     )
   }
 
-  // Replace indexed arguments ($ARGUMENTS[0], $ARGUMENTS[1], etc.)
+  // 替换索引参数（$ARGUMENTS[0]、$ARGUMENTS[1] 等）
   content = content.replace(/\$ARGUMENTS\[(\d+)\]/g, (_, indexStr: string) => {
     const index = parseInt(indexStr, 10)
     return parsedArgs[index] ?? ''
   })
 
-  // Replace shorthand indexed arguments ($0, $1, etc.)
+  // 替换简写索引参数（$0、$1 等）
   content = content.replace(/\$(\d+)(?!\w)/g, (_, indexStr: string) => {
     const index = parseInt(indexStr, 10)
     return parsedArgs[index] ?? ''
   })
 
-  // Replace $ARGUMENTS with the full arguments string
+  // 用完整的参数字符串替换 $ARGUMENTS
   content = content.replaceAll('$ARGUMENTS', args)
 
-  // If no placeholders were found and appendIfNoPlaceholder is true, append
-  // But only if args is non-empty (empty string means command invoked with no args)
+  // 如果未找到占位符且 appendIfNoPlaceholder 为 true，则附加
+  // 但仅当 args 非空时（空字符串表示调用命令时没有参数）
   if (content === originalContent && appendIfNoPlaceholder && args) {
     content = content + `\n\nARGUMENTS: ${args}`
   }
