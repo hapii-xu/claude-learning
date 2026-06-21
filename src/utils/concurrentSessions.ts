@@ -23,10 +23,10 @@ function getSessionsDir(): string {
 }
 
 /**
- * Kind override from env. Set by the spawner (`claude --bg`, daemon
- * supervisor) so the child can register without the parent having to
- * write the file for it — cleanup-on-exit wiring then works for free.
- * Gated so the env-var string is DCE'd from external builds.
+ * 来自 env 的 kind 覆盖。由生成器（`claude --bg`、daemon supervisor）
+ * 设置，以便子进程可以自行注册而无需父进程为其写入文件 ——
+ * 退出时清理的接线因此自动生效。
+ * 受 gate 保护，因此 env-var 字符串会从外部构建中被 DCE 移除。
  */
 function envSessionKind(): SessionKind | undefined {
   if (feature('BG_SESSIONS')) {
@@ -37,24 +37,25 @@ function envSessionKind(): SessionKind | undefined {
 }
 
 /**
- * True when this REPL is running inside a `claude --bg` tmux session.
- * Exit paths (/exit, ctrl+c, ctrl+d) should detach the attached client
- * instead of killing the process.
+ * 当此 REPL 运行在 `claude --bg` tmux 会话中时为 true。
+ * 退出路径（/exit、ctrl+c、ctrl+d）应分离已附加的客户端
+ * 而非杀死进程。
  */
 export function isBgSession(): boolean {
   return envSessionKind() === 'bg'
 }
 
 /**
- * Write a PID file for this session and register cleanup.
+ * 为此会话写入 PID 文件并注册清理。
  *
- * Registers all top-level sessions — interactive CLI, SDK (vscode, desktop,
- * typescript, python, -p), bg/daemon spawns — so `claude ps` sees everything
- * the user might be running. Skips only teammates/subagents, which would
- * conflate swarm usage with genuine concurrency and pollute ps with noise.
+ * 注册所有顶级会话 —— 交互式 CLI、SDK（vscode、desktop、
+ * typescript、python、-p）、bg/daemon 生成 —— 以便 `claude ps`
+ * 能看到用户可能在运行的所有内容。仅跳过 teammate/subagent，
+ * 因为它们会混淆 swarm 使用与真正的并发，
+ * 并用噪音污染 ps 输出。
  *
- * Returns true if registered, false if skipped.
- * Errors logged to debug, never thrown.
+ * 若注册成功返回 true，若跳过返回 false。
+ * 错误记录到 debug，永不抛出。
  */
 export async function registerSession(): Promise<boolean> {
   if (getAgentId() != null) return false
@@ -67,7 +68,7 @@ export async function registerSession(): Promise<boolean> {
     try {
       await unlink(pidFile)
     } catch {
-      // ENOENT is fine (already deleted or never written)
+      // ENOENT 是正常的（已删除或从未写入）
     }
   })
 
@@ -95,9 +96,9 @@ export async function registerSession(): Promise<boolean> {
           : {}),
       }),
     )
-    // --resume / /resume mutates getSessionId() via switchSession. Without
-    // this, the PID file's sessionId goes stale and `claude ps` sparkline
-    // reads the wrong transcript.
+    // --resume / /resume 通过 switchSession 修改 getSessionId()。
+    // 否则 PID 文件中的 sessionId 将过时，`claude ps` 的 sparkline
+    // 会读取错误的会话记录。
     onSessionSwitch(id => {
       void updatePidFile({ sessionId: id })
     })
@@ -109,9 +110,9 @@ export async function registerSession(): Promise<boolean> {
 }
 
 /**
- * Update this session's name in its PID registry file so ListPeers
- * can surface it. Best-effort: silently no-op if name is falsy, the
- * file doesn't exist (session not registered), or read/write fails.
+ * 在此会话的 PID 注册文件中更新会话名称，
+ * 以便 ListPeers 可以展示它。尽力而为：若 name 为假值、
+ * 文件不存在（会话未注册）或读写失败则静默无操作。
  */
 async function updatePidFile(patch: Record<string, unknown>): Promise<void> {
   const pidFile = join(getSessionsDir(), `${process.pid}.json`)
@@ -136,10 +137,10 @@ export async function updateSessionName(
 }
 
 /**
- * Record this session's Remote Control session ID so peer enumeration can
- * dedup: a session reachable over both UDS and bridge should only appear
- * once (local wins). Cleared on bridge teardown so stale IDs don't
- * suppress a legitimately-remote session after reconnect.
+ * 记录此会话的 Remote Control 会话 ID，以便对等枚举
+ * 去重：一个可通过 UDS 和 bridge 同时访问的会话应只显示一次
+ *（本地优先）。在 bridge 拆除时清除，以免过时的 ID 在重连后
+ * 抑制合法的远程会话。
  */
 export async function updateSessionBridgeId(
   bridgeSessionId: string | null,
@@ -148,9 +149,9 @@ export async function updateSessionBridgeId(
 }
 
 /**
- * Push live activity state for `claude ps`. Fire-and-forget from REPL's
- * status-change effect — a dropped write just means ps falls back to
- * transcript-tail derivation for one refresh.
+ * 推送 `claude ps` 的实时活动状态。从 REPL 的状态变更
+ * effect 中即发即忘 —— 写入丢失仅意味着 ps 在一次刷新中
+ * 回退到会话记录尾部推导。
  */
 export async function updateSessionActivity(patch: {
   status?: SessionStatus
@@ -161,9 +162,9 @@ export async function updateSessionActivity(patch: {
 }
 
 /**
- * Count live concurrent CLI sessions (including this one).
- * Filters out stale PID files (crashed sessions) and deletes them.
- * Returns 0 on any error (conservative).
+ * 统计存活的并发 CLI 会话数（包括当前会话）。
+ * 过滤掉过时的 PID 文件（崩溃的会话）并删除它们。
+ * 出错时返回 0（保守策略）。
  */
 export async function countConcurrentSessions(): Promise<number> {
   const dir = getSessionsDir()
@@ -179,10 +180,10 @@ export async function countConcurrentSessions(): Promise<number> {
 
   let count = 0
   for (const file of files) {
-    // Strict filename guard: only `<pid>.json` is a candidate. parseInt's
-    // lenient prefix-parsing means `2026-03-14_notes.md` would otherwise
-    // parse as PID 2026 and get swept as stale — silent user data loss.
-    // See anthropics/claude-code#34210.
+    // 严格的文件名守卫：仅 `<pid>.json` 是候选项。parseInt 的
+    // 宽松前缀解析意味着 `2026-03-14_notes.md` 会被解析为
+    // PID 2026 并作为过时文件被清除 —— 导致静默的用户数据丢失。
+    // 见 anthropics/claude-code#34210。
     if (!/^\d+\.json$/.test(file)) continue
     const pid = parseInt(file.slice(0, -5), 10)
     if (pid === process.pid) {
@@ -192,11 +193,11 @@ export async function countConcurrentSessions(): Promise<number> {
     if (isProcessRunning(pid)) {
       count++
     } else if (getPlatform() !== 'wsl') {
-      // Stale file from a crashed session — sweep it. Skip on WSL: if
-      // ~/.claude/sessions/ is shared with Windows-native Claude (symlink
-      // or CLAUDE_CONFIG_DIR), a Windows PID won't be probeable from WSL
-      // and we'd falsely delete a live session's file. This is just
-      // telemetry so conservative undercount is acceptable.
+      // 来自崩溃会话的过时文件 —— 清除它。在 WSL 上跳过：
+      // 如果 ~/.claude/sessions/ 与 Windows 原生 Claude 共享
+      //（通过符号链接或 CLAUDE_CONFIG_DIR），Windows PID 无法
+      // 从 WSL 探测，我们会错误地删除存活会话的文件。
+      // 这只是遥测，因此保守的欠计数是可接受的。
       void unlink(join(dir, file)).catch(() => {})
     }
   }

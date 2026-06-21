@@ -14,14 +14,14 @@ export type ContextSuggestion = {
   severity: SuggestionSeverity
   title: string
   detail: string
-  /** Estimated tokens that could be saved */
+  /** 估计可节省的 tokens 数 */
   savingsTokens?: number
 }
 
-// Thresholds for triggering suggestions
-const LARGE_TOOL_RESULT_PERCENT = 15 // tool results > 15% of context
+// 触发建议的阈值
+const LARGE_TOOL_RESULT_PERCENT = 15 // 工具结果 > 上下文的 15%
 const LARGE_TOOL_RESULT_TOKENS = 10_000
-const READ_BLOAT_PERCENT = 5 // Read results > 5% of context
+const READ_BLOAT_PERCENT = 5 // 读取结果 > 上下文的 5%
 const NEAR_CAPACITY_PERCENT = 80
 const MEMORY_HIGH_PERCENT = 5
 const MEMORY_HIGH_TOKENS = 5_000
@@ -39,7 +39,7 @@ export function generateContextSuggestions(
   checkMemoryBloat(data, suggestions)
   checkAutoCompactDisabled(data, suggestions)
 
-  // Sort: warnings first, then by savings descending
+  // 排序：警告优先，然后按节省量降序
   suggestions.sort((a, b) => {
     if (a.severity !== b.severity) {
       return a.severity === 'warning' ? -1 : 1
@@ -162,7 +162,7 @@ function checkReadResultBloat(
   const totalReadPercent = (totalReadTokens / data.rawMaxTokens) * 100
   const readPercent = (readTool.resultTokens / data.rawMaxTokens) * 100
 
-  // Skip if already covered by checkLargeToolResults (>= 15% band)
+  // 若已被 checkLargeToolResults 覆盖（>= 15% 区间），则跳过
   if (
     totalReadPercent >= LARGE_TOOL_RESULT_PERCENT &&
     totalReadTokens >= LARGE_TOOL_RESULT_TOKENS

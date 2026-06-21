@@ -55,11 +55,11 @@ export function analyzeContext(messages: Message[]): TokenStats {
   normalizedMessages.forEach(msg => {
     const { content } = msg.message!
 
-    // Not sure if this path is still used, but adding as a fallback
+    // 不确定此路径是否仍在使用，但作为回退添加
     if (typeof content === 'string') {
       const tokens = countTokens(content)
       stats.total += tokens
-      // Check if this is a local command output
+      // 检查是否为本地命令输出
       if (msg.type === 'user' && content.includes('local-command-stdout')) {
         stats.localCommandOutputs += tokens
       } else {
@@ -80,7 +80,7 @@ export function analyzeContext(messages: Message[]): TokenStats {
     }
   })
 
-  // Calculate duplicate file reads
+  // 计算重复文件读取
   fileReadStats.forEach((data, path) => {
     if (data.count > 1) {
       const averageTokensPerRead = Math.floor(data.totalTokens / data.count)
@@ -109,7 +109,7 @@ function processBlock(
 
   switch (block.type) {
     case 'text':
-      // Check if this is a local command output
+      // 检查是否为本地命令输出
       if (
         message.type === 'user' &&
         'text' in block &&
@@ -129,7 +129,7 @@ function processBlock(
         increment(stats.toolRequests, toolName, tokens)
         toolIds.set(block.id, toolName)
 
-        // Track Read tool file paths
+        // 跟踪 Read 工具的文件路径
         if (
           toolName === 'Read' &&
           'input' in block &&
@@ -151,7 +151,7 @@ function processBlock(
         const toolName = toolIds.get(block.tool_use_id) || 'unknown'
         increment(stats.toolResults, toolName, tokens)
 
-        // Track file read tokens
+        // 跟踪文件读取 tokens
         if (toolName === 'Read') {
           const path = readToolPaths.get(block.tool_use_id)
           if (path) {
@@ -182,7 +182,7 @@ function processBlock(
     case 'text_editor_code_execution_tool_result':
     case 'tool_search_tool_result':
     case 'compaction':
-      // Don't care about these for now..
+      // 暂时不关注这些..
       stats['other'] += tokens
       break
   }
@@ -253,14 +253,14 @@ export function tokenStatsToStatsigMetrics(
       (toolResultTotal / stats.total) * 100,
     )
 
-    // Add individual tool request percentages
+    // 添加各工具请求百分比
     stats.toolRequests.forEach((tokens, tool) => {
       metrics[`tool_request_${tool}_percent`] = Math.round(
         (tokens / stats.total) * 100,
       )
     })
 
-    // Add individual tool result percentages
+    // 添加各工具结果百分比
     stats.toolResults.forEach((tokens, tool) => {
       metrics[`tool_result_${tool}_percent`] = Math.round(
         (tokens / stats.total) * 100,
