@@ -17,7 +17,7 @@ import {
 } from './statusNoticeHelpers.js'
 import { plural } from './stringUtils.js'
 
-// Thresholds (matching status notices and existing patterns)
+// 阈值（匹配状态通知和现有模式）
 const MCP_TOOLS_THRESHOLD = 25_000 // 15k tokens
 
 export type ContextWarning = {
@@ -43,7 +43,7 @@ export type ContextWarnings = {
 async function checkClaudeMdFiles(): Promise<ContextWarning | null> {
   const largeFiles = getLargeMemoryFiles(await getMemoryFiles())
 
-  // This already filters for files > 40k chars each
+  // 此处已过滤出每个大于 40k 字符的文件
   if (largeFiles.length === 0) {
     return null
   }
@@ -62,13 +62,13 @@ async function checkClaudeMdFiles(): Promise<ContextWarning | null> {
     severity: 'warning',
     message,
     details,
-    currentValue: largeFiles.length, // Number of files exceeding threshold
+    currentValue: largeFiles.length, // 超过阈值的文件数
     threshold: MAX_MEMORY_CHARACTER_COUNT,
   }
 }
 
 /**
- * Check agent descriptions token count
+ * 检查 agent 描述的 token 数
  */
 async function checkAgentDescriptions(
   agentInfo: AgentDefinitionsResult | null,
@@ -83,7 +83,7 @@ async function checkAgentDescriptions(
     return null
   }
 
-  // Calculate tokens for each agent
+  // 计算每个 agent 的 token 数
   const agentTokens = agentInfo.activeAgents
     .filter(a => a.source !== 'built-in')
     .map(agent => {
@@ -114,7 +114,7 @@ async function checkAgentDescriptions(
 }
 
 /**
- * Check MCP tools token count
+ * 检查 MCP 工具的 token 数
  */
 async function checkMcpTools(
   tools: Tool[],
@@ -123,14 +123,14 @@ async function checkMcpTools(
 ): Promise<ContextWarning | null> {
   const mcpTools = tools.filter(tool => tool.isMcp)
 
-  // Note: MCP tools are loaded asynchronously and may not be available
-  // when doctor command runs, as it executes before MCP connections are established
+  // 注意：MCP 工具是异步加载的，doctor 命令运行时可能还不可用，
+  // 因为它在 MCP 连接建立之前就执行了
   if (mcpTools.length === 0) {
     return null
   }
 
   try {
-    // Use the existing countMcpToolTokens function from analyzeContext
+    // 使用 analyzeContext 中已有的 countMcpToolTokens 函数
     const model = getMainLoopModel()
     const { mcpToolTokens, mcpToolDetails } = await countMcpToolTokens(
       tools,
@@ -143,11 +143,11 @@ async function checkMcpTools(
       return null
     }
 
-    // Group tools by server
+    // 按服务器分组工具
     const toolsByServer = new Map<string, { count: number; tokens: number }>()
 
     for (const tool of mcpToolDetails) {
-      // Extract server name from tool name (format: mcp__servername__toolname)
+      // 从工具名中提取服务器名（格式：mcp__servername__toolname）
       const parts = tool.name.split('__')
       const serverName = parts[1] || 'unknown'
 
@@ -158,7 +158,7 @@ async function checkMcpTools(
       })
     }
 
-    // Sort servers by token count
+    // 按 token 数排序服务器
     const sortedServers = Array.from(toolsByServer.entries()).sort(
       (a, b) => b[1].tokens - a[1].tokens,
     )
@@ -183,7 +183,7 @@ async function checkMcpTools(
       threshold: MCP_TOOLS_THRESHOLD,
     }
   } catch (_error) {
-    // If token counting fails, fall back to character-based estimation
+    // 若 token 计数失败，回退到基于字符的估算
     const estimatedTokens = mcpTools.reduce((total, tool) => {
       const chars = (tool.name?.length || 0) + tool.description.length
       return total + roughTokenCountEstimation(chars.toString())
@@ -207,7 +207,7 @@ async function checkMcpTools(
 }
 
 /**
- * Check for unreachable permission rules (e.g., specific allow rules shadowed by tool-wide ask rules)
+ * 检查不可达的权限规则（如特定允许规则被工具级询问规则覆盖）
  */
 async function checkUnreachableRules(
   getToolPermissionContext: () => Promise<ToolPermissionContext>,
@@ -241,7 +241,7 @@ async function checkUnreachableRules(
 }
 
 /**
- * Check all context warnings for the doctor command
+ * 检查 doctor 命令的所有上下文警告
  */
 export async function checkContextWarnings(
   tools: Tool[],
