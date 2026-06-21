@@ -1,8 +1,8 @@
 /**
- * Sentry integration module
+ * Sentry 集成模块
  *
- * Initializes Sentry SDK when SENTRY_DSN environment variable is set.
- * When DSN is not configured, all exports are no-ops.
+ * 当 SENTRY_DSN 环境变量被设置时初始化 Sentry SDK。
+ * 当 DSN 未配置时，所有导出均为空操作。
  */
 
 import * as Sentry from '@sentry/node'
@@ -13,8 +13,8 @@ declare const BUILD_ENV: string | undefined
 let initialized = false
 
 /**
- * Initialize Sentry SDK. Safe to call multiple times — subsequent calls are no-ops.
- * Only activates when SENTRY_DSN environment variable is set.
+ * 初始化 Sentry SDK。可安全地多次调用 — 后续调用为空操作。
+ * 仅在 SENTRY_DSN 环境变量被设置时激活。
  */
 export function initSentry(): void {
   if (initialized) {
@@ -35,15 +35,15 @@ export function initSentry(): void {
         ? (BUILD_ENV as string)
         : process.env.NODE_ENV || 'development',
 
-    // Limit breadcrumbs and attachments to control payload size
+    // 限制面包屑和附件数量以控制负载大小
     maxBreadcrumbs: 20,
 
-    // Sample rate for error events (1.0 = capture all)
+    // 错误事件的采样率（1.0 = 捕获全部）
     sampleRate: 1.0,
 
-    // Filter sensitive information before sending
+    // 发送前过滤敏感信息
     beforeSend(event) {
-      // Strip auth headers from request data
+      // 从请求数据中剥离认证头
       const request = event.request
       if (request?.headers) {
         const sensitiveHeaders = [
@@ -62,22 +62,22 @@ export function initSentry(): void {
       return event
     },
 
-    // Ignore specific error patterns
+    // 忽略特定的错误模式
     ignoreErrors: [
-      // Network errors from unreachable hosts — not actionable
+      // 来自主机不可达的网络错误 — 不可操作
       'ECONNREFUSED',
       'ECONNRESET',
       'ENOTFOUND',
       'ETIMEDOUT',
-      // User-initiated aborts
+      // 用户发起的中止
       'AbortError',
       'The user aborted a request',
-      // Interactive cancellation signals
+      // 交互式取消信号
       'CancelError',
     ],
 
     beforeSendTransaction(_event) {
-      // Don't send performance transactions for now — errors only
+      // 暂时不发送性能事务 — 仅发送错误
       return null
     },
   })
@@ -87,8 +87,8 @@ export function initSentry(): void {
 }
 
 /**
- * Capture an exception and send it to Sentry.
- * No-op if Sentry has not been initialized.
+ * 捕获异常并发送到 Sentry。
+ * 如果 Sentry 尚未初始化，则为空操作。
  */
 export function captureException(
   error: unknown,
@@ -106,13 +106,13 @@ export function captureException(
       Sentry.captureException(error)
     })
   } catch {
-    // Sentry itself failed — don't let it crash the app
+    // Sentry 自身失败 — 不应导致应用崩溃
   }
 }
 
 /**
- * Set a tag on the current scope for grouping/filtering in Sentry.
- * No-op if Sentry has not been initialized.
+ * 在当前作用域上设置标签，用于 Sentry 中的分组/过滤。
+ * 如果 Sentry 尚未初始化，则为空操作。
  */
 export function setTag(key: string, value: string): void {
   if (!initialized) {
@@ -122,13 +122,13 @@ export function setTag(key: string, value: string): void {
   try {
     Sentry.setTag(key, value)
   } catch {
-    // Ignore
+    // 忽略
   }
 }
 
 /**
- * Set user context in Sentry for error attribution.
- * No-op if Sentry has not been initialized.
+ * 在 Sentry 中设置用户上下文，用于错误归属。
+ * 如果 Sentry 尚未初始化，则为空操作。
  */
 export function setUser(user: {
   id?: string
@@ -142,13 +142,13 @@ export function setUser(user: {
   try {
     Sentry.setUser(user)
   } catch {
-    // Ignore
+    // 忽略
   }
 }
 
 /**
- * Flush pending Sentry events and close the client.
- * Call during graceful shutdown to ensure events are sent.
+ * 刷新待发送的 Sentry 事件并关闭客户端。
+ * 在优雅关闭期间调用以确保事件被发送。
  */
 export async function closeSentry(timeoutMs = 2000): Promise<void> {
   if (!initialized) {
@@ -159,12 +159,12 @@ export async function closeSentry(timeoutMs = 2000): Promise<void> {
     await Sentry.close(timeoutMs)
     logForDebugging('[sentry] Closed successfully')
   } catch {
-    // Ignore — we're shutting down anyway
+    // 忽略 — 无论如何都在关闭中
   }
 }
 
 /**
- * Check if Sentry is initialized. Useful for conditional UI rendering.
+ * 检查 Sentry 是否已初始化。用于条件性 UI 渲染。
  */
 export function isSentryInitialized(): boolean {
   return initialized

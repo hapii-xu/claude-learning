@@ -12,11 +12,11 @@ import { errorMessage } from './errors.js'
 import { getFsImplementation } from './fsOperations.js'
 
 /**
- * Read token via file descriptor, falling back to well-known file.
- * Uses global state to cache the result since file descriptors can only be read once.
+ * 通过文件描述符读取令牌，失败时回退到知名文件。
+ * 使用全局状态缓存结果，因为文件描述符只能读取一次。
  */
 function getTokenFromFileDescriptor(): string | null {
-  // Check if we've already attempted to read the token
+  // 检查是否已尝试读取过令牌
   const cachedToken = getSessionIngressToken()
   if (cachedToken !== undefined) {
     return cachedToken
@@ -24,8 +24,8 @@ function getTokenFromFileDescriptor(): string | null {
 
   const fdEnv = process.env.CLAUDE_CODE_WEBSOCKET_AUTH_FILE_DESCRIPTOR
   if (!fdEnv) {
-    // No FD env var — either we're not in CCR, or we're a subprocess whose
-    // parent stripped the (useless) FD env var. Try the well-known file.
+    // 无 FD 环境变量 — 要么不在 CCR 中，要么我们是父进程已剥离
+    // （无用的）FD 环境变量的子进程。尝试知名文件。
     const path =
       process.env.CLAUDE_SESSION_INGRESS_TOKEN_FILE ??
       CCR_SESSION_INGRESS_TOKEN_PATH
@@ -45,8 +45,8 @@ function getTokenFromFileDescriptor(): string | null {
   }
 
   try {
-    // Read from the file descriptor
-    // Use /dev/fd on macOS/BSD, /proc/self/fd on Linux
+    // 从文件描述符读取
+    // macOS/BSD 使用 /dev/fd，Linux 使用 /proc/self/fd
     const fsOps = getFsImplementation()
     const fdPath =
       process.platform === 'darwin' || process.platform === 'freebsd'
@@ -74,8 +74,8 @@ function getTokenFromFileDescriptor(): string | null {
       `Failed to read token from file descriptor ${fd}: ${errorMessage(error)}`,
       { level: 'error' },
     )
-    // FD env var was set but read failed — typically a subprocess that
-    // inherited the env var but not the FD (ENXIO). Try the well-known file.
+    // FD 环境变量已设置但读取失败 — 通常是继承了环境变量
+    // 但未继承 FD 的子进程（ENXIO）。尝试知名文件。
     const path =
       process.env.CLAUDE_SESSION_INGRESS_TOKEN_FILE ??
       CCR_SESSION_INGRESS_TOKEN_PATH
@@ -86,33 +86,33 @@ function getTokenFromFileDescriptor(): string | null {
 }
 
 /**
- * Get session ingress authentication token.
+ * 获取会话入口认证令牌。
  *
- * Priority order:
- *  1. Environment variable (CLAUDE_CODE_SESSION_ACCESS_TOKEN) — set at spawn time,
- *     updated in-process via updateSessionIngressAuthToken or
- *     update_environment_variables stdin message from the parent bridge process.
- *  2. File descriptor (legacy path) — CLAUDE_CODE_WEBSOCKET_AUTH_FILE_DESCRIPTOR,
- *     read once and cached.
- *  3. Well-known file — CLAUDE_SESSION_INGRESS_TOKEN_FILE env var path, or
- *     /home/claude/.claude/remote/.session_ingress_token. Covers subprocesses
- *     that can't inherit the FD.
+ * 优先级顺序：
+ *  1. 环境变量（CLAUDE_CODE_SESSION_ACCESS_TOKEN）— 在生成时设置，
+ *     通过 updateSessionIngressAuthToken 或来自父 bridge 进程的
+ *     update_environment_variables stdin 消息在进程内更新。
+ *  2. 文件描述符（传统路径）— CLAUDE_CODE_WEBSOCKET_AUTH_FILE_DESCRIPTOR，
+ *     读取一次并缓存。
+ *  3. 知名文件 — CLAUDE_SESSION_INGRESS_TOKEN_FILE 环境变量路径，或
+ *     /home/claude/.claude/remote/.session_ingress_token。覆盖无法
+ *     继承 FD 的子进程。
  */
 export function getSessionIngressAuthToken(): string | null {
-  // 1. Check environment variable
+  // 1. 检查环境变量
   const envToken = process.env.CLAUDE_CODE_SESSION_ACCESS_TOKEN
   if (envToken) {
     return envToken
   }
 
-  // 2. Check file descriptor (legacy path), with file fallback
+  // 2. 检查文件描述符（传统路径），带文件回退
   return getTokenFromFileDescriptor()
 }
 
 /**
- * Build auth headers for the current session token.
- * Session keys (sk-ant-sid) use Cookie auth + X-Organization-Uuid;
- * JWTs use Bearer auth.
+ * 为当前会话令牌构建认证头。
+ * 会话密钥（sk-ant-sid）使用 Cookie 认证 + X-Organization-Uuid；
+ * JWT 使用 Bearer 认证。
  */
 export function getSessionIngressAuthHeaders(): Record<string, string> {
   const token = getSessionIngressAuthToken()
@@ -131,9 +131,8 @@ export function getSessionIngressAuthHeaders(): Record<string, string> {
 }
 
 /**
- * Update the session ingress auth token in-process by setting the env var.
- * Used by the REPL bridge to inject a fresh token after reconnection
- * without restarting the process.
+ * 通过设置环境变量在进程内更新会话入口认证令牌。
+ * 由 REPL bridge 在重连后注入新令牌而无需重启进程。
  */
 export function updateSessionIngressAuthToken(token: string): void {
   process.env.CLAUDE_CODE_SESSION_ACCESS_TOKEN = token
