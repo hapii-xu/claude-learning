@@ -1,17 +1,17 @@
 import { getMainLoopModel } from './model/model.js'
 
-// Document extensions that are handled specially
+// 特殊处理的文档扩展名
 export const DOCUMENT_EXTENSIONS = new Set(['pdf'])
 
 /**
- * Parse a page range string into firstPage/lastPage numbers.
- * Supported formats:
+ * 将页码范围字符串解析为 firstPage/lastPage 数字。
+ * 支持的格式：
  * - "5" → { firstPage: 5, lastPage: 5 }
  * - "1-10" → { firstPage: 1, lastPage: 10 }
  * - "3-" → { firstPage: 3, lastPage: Infinity }
  *
- * Returns null on invalid input (non-numeric, zero, inverted range).
- * Pages are 1-indexed.
+ * 在无效输入时返回 null（非数字、零、反向范围）。
+ * 页码从 1 开始。
  */
 export function parsePDFPageRange(
   pages: string,
@@ -21,7 +21,7 @@ export function parsePDFPageRange(
     return null
   }
 
-  // "N-" open-ended range
+  // "N-" 开放式范围
   if (trimmed.endsWith('-')) {
     const first = parseInt(trimmed.slice(0, -1), 10)
     if (isNaN(first) || first < 1) {
@@ -32,7 +32,7 @@ export function parsePDFPageRange(
 
   const dashIndex = trimmed.indexOf('-')
   if (dashIndex === -1) {
-    // Single page: "5"
+    // 单页："5"
     const page = parseInt(trimmed, 10)
     if (isNaN(page) || page < 1) {
       return null
@@ -40,7 +40,7 @@ export function parsePDFPageRange(
     return { firstPage: page, lastPage: page }
   }
 
-  // Range: "1-10"
+  // 范围："1-10"
   const first = parseInt(trimmed.slice(0, dashIndex), 10)
   const last = parseInt(trimmed.slice(dashIndex + 1), 10)
   if (isNaN(first) || isNaN(last) || first < 1 || last < 1 || last < first) {
@@ -50,19 +50,19 @@ export function parsePDFPageRange(
 }
 
 /**
- * Check if PDF reading is supported with the current model.
- * PDF document blocks work on all providers (1P, Vertex, Bedrock, Foundry).
- * Haiku 3 is the only remaining model that predates PDF support; users on
- * it fall back to the page-extraction path (poppler-utils). Substring match
- * covers all provider ID formats (Bedrock prefixes, Vertex @-dates).
+ * 检查当前模型是否支持 PDF 阅读。
+ * PDF 文档块在所有 provider（1P、Vertex、Bedrock、Foundry）上均可工作。
+ * Haiku 3 是唯一一个早于 PDF 支持的模型；使用它的用户
+ * 会回退到页面提取路径（poppler-utils）。子串匹配
+ * 覆盖所有 provider ID 格式（Bedrock 前缀、Vertex @-日期）。
  */
 export function isPDFSupported(): boolean {
   return !getMainLoopModel().toLowerCase().includes('claude-3-haiku')
 }
 
 /**
- * Check if a file extension is a PDF document.
- * @param ext File extension (with or without leading dot)
+ * 检查文件扩展名是否为 PDF 文档。
+ * @param ext 文件扩展名（带或不带前导点）
  */
 export function isPDFExtension(ext: string): boolean {
   const normalized = ext.startsWith('.') ? ext.slice(1) : ext

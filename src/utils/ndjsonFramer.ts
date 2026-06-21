@@ -1,9 +1,9 @@
 /**
- * Shared NDJSON (Newline-Delimited JSON) socket framing.
+ * 共享 NDJSON（Newline-Delimited JSON）socket 分帧。
  *
- * Accumulates incoming data chunks, splits on newlines, and emits
- * parsed JSON objects. Used by both pipeTransport (UDS+TCP) and
- * udsMessaging to avoid duplicating the same buffer logic.
+ * 累积传入数据块，按换行分割，并发出
+ * 解析后的 JSON 对象。被 pipeTransport（UDS+TCP）和
+ * udsMessaging 使用，以避免重复相同的缓冲逻辑。
  */
 import type { Socket } from 'net'
 
@@ -16,13 +16,13 @@ export type NdjsonFramerOptions = {
 }
 
 /**
- * Attach an NDJSON framer to a socket. Calls `onMessage` for each
- * complete JSON line received. Malformed lines are skipped by default;
- * callers may opt into error callbacks or socket destruction.
+ * 将 NDJSON 分帧器附加到 socket。每接收到一条
+ * 完整的 JSON 行时调用 `onMessage`。默认跳过格式错误的行；
+ * 调用方可选择启用错误回调或 socket 销毁。
  *
- * @param parse - Optional custom JSON parser (defaults to JSON.parse).
- *                Useful when the caller uses a wrapped parser like jsonParse
- *                from slowOperations.
+ * @param parse - 可选的自定义 JSON 解析器（默认为 JSON.parse）。
+ *                当调用方使用包装解析器（如 slowOperations 的
+ *                jsonParse）时很有用。
  */
 export function attachNdjsonFramer<T = unknown>(
   socket: Socket,

@@ -1,14 +1,14 @@
 /**
- * pipeMuteState — Master-side logical disconnect state.
+ * pipeMuteState — Master 侧的逻辑断开状态。
  *
- * Tracks which slave pipes are currently "muted" (logically disconnected)
- * and which have a temporary `/send` override active.
+ * 跟踪哪些 slave 管道当前"已静音"（逻辑断开）
+ * 以及哪些具有临时的 `/send` 覆盖生效。
  *
- * This is local master state only — not part of the socket protocol.
+ * 这仅是本地 master 状态 — 不属于 socket 协议。
  */
 
 // ---------------------------------------------------------------------------
-// Muted set: slaves whose business messages should be dropped by master
+// 静音集合：master 应丢弃其业务消息的 slave
 // ---------------------------------------------------------------------------
 
 const _mutedPipes = new Set<string>()
@@ -31,8 +31,8 @@ export function clearMasterMutedPipes(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Send override set: slaves temporarily unmuted by explicit `/send` command.
-// Override lasts until the slave emits `done` or `error`.
+// 发送覆盖集合：通过显式 `/send` 命令临时取消静音的 slave。
+// 覆盖持续到 slave 发出 `done` 或 `error`。
 // ---------------------------------------------------------------------------
 
 const _sendOverrides = new Set<string>()
