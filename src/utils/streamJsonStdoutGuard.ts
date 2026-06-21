@@ -2,8 +2,8 @@ import { registerCleanup } from './cleanupRegistry.js'
 import { logForDebugging } from './debug.js'
 
 /**
- * Sentinel written to stderr ahead of any diverted non-JSON line, so that
- * log scrapers and tests can grep for guard activity.
+ * 在任何转移的非 JSON 行之前写入 stderr 的哨兵值，以便日志
+ * 抓取器和测试可以通过 grep 查找守护活动。
  */
 export const STDOUT_GUARD_MARKER = '[stdout-guard]'
 
@@ -12,8 +12,8 @@ let buffer = ''
 let originalWrite: typeof process.stdout.write | null = null
 
 function isJsonLine(line: string): boolean {
-  // Empty lines are tolerated in NDJSON streams — treat them as valid so a
-  // trailing newline or a blank separator doesn't trip the guard.
+  // 空行在 NDJSON 流中被容忍 — 将它们视为有效，以便尾部
+  // 换行或空分隔符不会触发守护。
   if (line.length === 0) {
     return true
   }
@@ -26,25 +26,23 @@ function isJsonLine(line: string): boolean {
 }
 
 /**
- * Install a runtime guard on process.stdout.write for --output-format=stream-json.
+ * 为 --output-format=stream-json 安装 process.stdout.write 的运行时守护。
  *
- * SDK clients consuming stream-json parse stdout line-by-line as NDJSON. Any
- * stray write — a console.log from a dependency, a debug print that slipped
- * past review, a library banner — breaks the client's parser mid-stream with
- * no recovery path.
+ * 消费 stream-json 的 SDK 客户端逐行将 stdout 解析为 NDJSON。任何
+ * 杂乱的写入 — 来自依赖的 console.log、逃逸审查的调试打印、库横幅 —
+ * 都会在流中途破坏客户端的解析器且无法恢复。
  *
- * This guard wraps process.stdout.write at the same layer the asciicast
- * recorder does (see asciicast.ts). Writes are buffered until a newline
- * arrives, then each complete line is JSON-parsed. Lines that parse are
- * forwarded to the real stdout; lines that don't are diverted to stderr
- * tagged with STDOUT_GUARD_MARKER so they remain visible without corrupting
- * the JSON stream.
+ * 此守护在与 asciicast 记录器相同的层级包装 process.stdout.write
+ *（见 asciicast.ts）。写入被缓冲直到换行到达，然后每行完整行
+ * 被 JSON 解析。可解析的行被转发到真实 stdout；不可解析的行
+ * 被转移到 stderr 并带有 STDOUT_GUARD_MARKER 标记，以便它们保持
+ * 可见而不破坏 JSON 流。
  *
- * The blessed JSON path (structuredIO.write → writeToStdout → stdout.write)
- * always emits `ndjsonSafeStringify(msg) + '\n'`, so it passes straight
- * through. Only out-of-band writes are diverted.
+ * 受祝福的 JSON 路径（structuredIO.write → writeToStdout → stdout.write）
+ * 始终发射 `ndjsonSafeStringify(msg) + '\n'`，因此直接通过。
+ * 只有带外写入被转移。
  *
- * Installing twice is a no-op. Call before any stream-json output is emitted.
+ * 安装两次是空操作。在任何 stream-json 输出发射之前调用。
  */
 export function installStreamJsonStdoutGuard(): void {
   if (installed) {
@@ -80,9 +78,8 @@ export function installStreamJsonStdoutGuard(): void {
       }
     }
 
-    // Fire the callback once buffering is done. We report success even when
-    // a line was diverted — the caller's intent (emit text) was honored,
-    // just on a different fd.
+    // 在缓冲完成后触发回调。即使一行被转移我们也报告成功 —
+    // 调用方的意图（发射文本）已被遵守，只是在不同的 fd 上。
     const callback = typeof encodingOrCb === 'function' ? encodingOrCb : cb
     if (callback) {
       queueMicrotask(() => callback())
@@ -91,8 +88,8 @@ export function installStreamJsonStdoutGuard(): void {
   } as typeof process.stdout.write
 
   registerCleanup(async () => {
-    // Flush any partial line left in the buffer at shutdown. If it's a JSON
-    // fragment it won't parse — divert it rather than drop it silently.
+    // 在关闭时刷新缓冲区中剩余的任何不完整行。如果它是 JSON
+    // 片段则不会解析 — 转移它而非悄悄丢弃。
     if (buffer.length > 0) {
       if (originalWrite && isJsonLine(buffer)) {
         originalWrite(buffer + '\n')
@@ -110,8 +107,8 @@ export function installStreamJsonStdoutGuard(): void {
 }
 
 /**
- * Testing-only reset. Restores the real stdout.write and clears the line
- * buffer so subsequent tests start from a clean slate.
+ * 仅测试用重置。恢复真实 stdout.write 并清除行缓冲区，
+ * 以便后续测试从干净状态开始。
  */
 export function _resetStreamJsonStdoutGuardForTesting(): void {
   if (originalWrite) {

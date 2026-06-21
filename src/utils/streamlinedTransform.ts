@@ -1,11 +1,11 @@
 /**
- * Transforms SDK messages for streamlined output mode.
+ * 为精简输出模式转换 SDK 消息。
  *
- * Streamlined mode is a compact output format that:
- * - Keeps text messages intact
- * - Summarizes tool calls with cumulative counts (resets when text appears)
- * - Omits thinking content
- * - Strips tool list and model info from init messages
+ * 精简模式是一种紧凑的输出格式：
+ * - 保持文本消息不变
+ * - 用累积计数摘要工具调用（文本出现时重置）
+ * - 省略思考内容
+ * - 从 init 消息中剥离工具列表和模型信息
  */
 
 import type { SDKAssistantMessage } from 'src/entrypoints/agentSdkTypes.js'
@@ -33,7 +33,7 @@ type ToolCounts = {
 }
 
 /**
- * Tool categories for summarization.
+ * 用于摘要的工具分类。
  */
 const SEARCH_TOOLS = [
   GREP_TOOL_NAME,
@@ -68,12 +68,12 @@ function createEmptyToolCounts(): ToolCounts {
 }
 
 /**
- * Generate a summary text for tool counts.
+ * 为工具计数生成摘要文本。
  */
 function getToolSummaryText(counts: ToolCounts): string | undefined {
   const parts: string[] = []
 
-  // Use similar phrasing to collapseReadSearch.ts
+  // 使用与 collapseReadSearch.ts 类似的措辞
   if (counts.searches > 0) {
     parts.push(
       `searched ${counts.searches} ${counts.searches === 1 ? 'pattern' : 'patterns'}`,
@@ -104,7 +104,7 @@ function getToolSummaryText(counts: ToolCounts): string | undefined {
 }
 
 /**
- * Count tool uses in an assistant message and add to existing counts.
+ * 统计 assistant 消息中的工具使用并添加到现有计数。
  */
 function accumulateToolUses(
   message: SDKAssistantMessage,
@@ -124,8 +124,8 @@ function accumulateToolUses(
 }
 
 /**
- * Create a stateful transformer that accumulates tool counts between text messages.
- * Tool counts reset when a message with text content is encountered.
+ * 创建一个有状态的转换器，在文本消息之间累积工具计数。
+ * 当遇到包含文本内容的消息时，工具计数重置。
  */
 export function createStreamlinedTransformer(): (
   message: StdoutMessage,
@@ -144,14 +144,14 @@ export function createStreamlinedTransformer(): (
           ? extractTextContent(content, '\n').trim()
           : ''
 
-        // Accumulate tool counts from this message
+        // 从此消息累积工具计数
         accumulateToolUses(
           message as unknown as SDKAssistantMessage,
           cumulativeCounts,
         )
 
         if (text.length > 0) {
-          // Text message: emit text only, reset counts
+          // 文本消息：仅发射文本，重置计数
           cumulativeCounts = createEmptyToolCounts()
           return {
             type: 'streamlined_text',
@@ -161,7 +161,7 @@ export function createStreamlinedTransformer(): (
           }
         }
 
-        // Tool-only message: emit cumulative tool summary
+        // 仅工具消息：发射累积工具摘要
         const toolSummary = getToolSummaryText(cumulativeCounts)
         if (!toolSummary) {
           return null
@@ -176,7 +176,7 @@ export function createStreamlinedTransformer(): (
       }
 
       case 'result':
-        // Keep result messages as-is (they have structured_output, permission_denials)
+        // 保持 result 消息原样（它们有 structured_output、permission_denials）
         return message
 
       case 'system':
@@ -198,8 +198,8 @@ export function createStreamlinedTransformer(): (
 }
 
 /**
- * Check if a message should be included in streamlined output.
- * Useful for filtering before transformation.
+ * 检查消息是否应包含在精简输出中。
+ * 用于转换前的过滤。
  */
 export function shouldIncludeInStreamlined(message: StdoutMessage): boolean {
   return message.type === 'assistant' || message.type === 'result'

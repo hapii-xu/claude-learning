@@ -8,7 +8,7 @@ export type SystemDirectories = {
   DESKTOP: string
   DOCUMENTS: string
   DOWNLOADS: string
-  [key: string]: string // Index signature for compatibility with Record<string, string>
+  [key: string]: string // 索引签名以与 Record<string, string> 兼容
 }
 
 type EnvLike = Record<string, string | undefined>
@@ -20,9 +20,9 @@ type SystemDirectoriesOptions = {
 }
 
 /**
- * Get cross-platform system directories
- * Handles differences between Windows, macOS, Linux, and WSL
- * @param options Optional overrides for testing (env, homedir, platform)
+ * 获取跨平台系统目录
+ * 处理 Windows、macOS、Linux 和 WSL 之间的差异
+ * @param options 可选的测试覆盖（env、homedir、platform）
  */
 export function getSystemDirectories(
   options?: SystemDirectoriesOptions,
@@ -31,7 +31,7 @@ export function getSystemDirectories(
   const homeDir = options?.homedir ?? homedir()
   const env = options?.env ?? process.env
 
-  // Default paths used by most platforms
+  // 大多数平台使用的默认路径
   const defaults: SystemDirectories = {
     HOME: homeDir,
     DESKTOP: join(homeDir, 'Desktop'),
@@ -41,7 +41,7 @@ export function getSystemDirectories(
 
   switch (platform) {
     case 'windows': {
-      // Windows: Use USERPROFILE if available (handles localized folder names)
+      // Windows：如果可用则使用 USERPROFILE（处理本地化的文件夹名称）
       const userProfile = env.USERPROFILE || homeDir
       return {
         HOME: homeDir,
@@ -53,7 +53,7 @@ export function getSystemDirectories(
 
     case 'linux':
     case 'wsl': {
-      // Linux/WSL: Check XDG Base Directory specification first
+      // Linux/WSL：首先检查 XDG 基础目录规范
       return {
         HOME: homeDir,
         DESKTOP: env.XDG_DESKTOP_DIR || defaults.DESKTOP,
@@ -64,7 +64,7 @@ export function getSystemDirectories(
 
     case 'macos':
     default: {
-      // macOS and unknown platforms use standard paths
+      // macOS 和未知平台使用标准路径
       if (platform === 'unknown') {
         logForDebugging(`Unknown platform detected, using default paths`)
       }
