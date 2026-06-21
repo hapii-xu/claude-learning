@@ -17,15 +17,15 @@ export type ExecResult = {
   interrupted: boolean
   backgroundTaskId?: string
   backgroundedByUser?: boolean
-  /** Set when assistant-mode auto-backgrounded a long-running blocking command. */
+  /** 当 assistant 模式自动后台化长时间运行的阻塞命令时设置。 */
   assistantAutoBackgrounded?: boolean
-  /** Set when stdout was too large to fit inline — points to the output file on disk. */
+  /** 当 stdout 太大无法内联时设置 — 指向磁盘上的输出文件。 */
   outputFilePath?: string
-  /** Total size of the output file in bytes (set when outputFilePath is set). */
+  /** 输出文件的总字节大小（当 outputFilePath 设置时设置）。 */
   outputFileSize?: number
-  /** The task ID for the output file (set when outputFilePath is set). */
+  /** 输出文件的任务 ID（当 outputFilePath 设置时设置）。 */
   outputTaskId?: string
-  /** Error message when the command failed before spawning (e.g., deleted cwd). */
+  /** 当命令在生成前失败时的错误消息（例如，已删除的 cwd）。 */
   preSpawnError?: string
 }
 
@@ -35,22 +35,22 @@ export type ShellCommand = {
   kill: () => void
   status: 'running' | 'backgrounded' | 'completed' | 'killed'
   /**
-   * Cleans up stream resources (event listeners).
-   * Should be called after the command completes or is killed to prevent memory leaks.
+   * 清理流资源（事件监听器）。
+   * 应在命令完成或被杀死后调用以防止内存泄漏。
    */
   cleanup: () => void
   onTimeout?: (
     callback: (backgroundFn: (taskId: string) => boolean) => void,
   ) => void
-  /** The TaskOutput instance that owns all stdout/stderr data and progress. */
+  /** 拥有所有 stdout/stderr 数据和进度的 TaskOutput 实例。 */
   taskOutput: TaskOutput
 }
 
 const SIGKILL = 137
 const SIGTERM = 143
 
-// Background tasks write stdout/stderr directly to a file fd (no JS involvement),
-// so a stuck append loop can fill the disk. Poll file size and kill when exceeded.
+// 后台任务将 stdout/stderr 直接写入文件 fd（无 JS 介入），
+// 因此卡住的追加循环可能填满磁盘。轮询文件大小，超过时杀死。
 const SIZE_WATCHDOG_INTERVAL_MS = 5_000
 
 function prependStderr(prefix: string, stderr: string): string {
@@ -58,10 +58,10 @@ function prependStderr(prefix: string, stderr: string): string {
 }
 
 /**
- * Thin pipe from a child process stream into TaskOutput.
- * Used in pipe mode (hooks) for stdout and stderr.
- * In file mode (bash commands), both fds go to the output file —
- * the child process streams are null and no wrappers are created.
+ * 从子进程流到 TaskOutput 的精简管道。
+ * 在管道模式（hooks）中用于 stdout 和 stderr。
+ * 在文件模式（bash 命令）中，两个 fd 都进入输出文件 —
+  子进程流为 null，不创建包装器。
  */
 class StreamWrapper {
   #stream: Readable | null
@@ -74,7 +74,7 @@ class StreamWrapper {
     this.#stream = stream
     this.#taskOutput = taskOutput
     this.#isStderr = isStderr
-    // Emit strings instead of Buffers - avoids repeated .toString() calls
+    // 发射字符串而非 Buffer - 避免重复 .toString() 调用
     stream.setEncoding('utf-8')
     stream.on('data', this.#onData)
   }
@@ -95,8 +95,8 @@ class StreamWrapper {
     }
     this.#isCleanedUp = true
     this.#stream!.removeListener('data', this.#onData)
-    // Release references so the stream, its StringDecoder, and
-    // the TaskOutput can be GC'd independently of this wrapper.
+    // 释放引用，使流、其 StringDecoder 和
+    // TaskOutput 可以独立于此包装器被 GC。
     this.#stream = null
     this.#taskOutput = null
     this.#onData = () => {}
@@ -104,12 +104,12 @@ class StreamWrapper {
 }
 
 /**
- * Implementation of ShellCommand that wraps a child process.
+ * 包装子进程的 ShellCommand 实现。
  *
- * For bash commands: both stdout and stderr go to a file fd via
- * stdio[1] and stdio[2] — no JS involvement. Progress is extracted
- * by polling the file tail.
- * For hooks: pipe mode with StreamWrappers for real-time detection.
+ * 对于 bash 命令：stdout 和 stderr 都通过
+ * stdio[1] 和 stdio[2] 进入文件 fd — 无 JS 介入。
+ * 进度通过轮询文件尾部提取。
+ * 对于 hooks：管道模式，带 StreamWrapper 用于实时检测。
  */
 class ShellCommandImpl implements ShellCommand {
   #status: 'running' | 'backgrounded' | 'completed' | 'killed' = 'running'
@@ -160,9 +160,9 @@ class ShellCommandImpl implements ShellCommand {
     this.#maxOutputBytes = maxOutputBytes
     this.taskOutput = taskOutput
 
-    // In file mode (bash commands), both stdout and stderr go to the
-    // output file fd — childProcess.stdout/.stderr are both null.
-    // In pipe mode (hooks), wrap streams to funnel data into TaskOutput.
+    // 在文件模式（bash 命令）中，stdout 和 stderr 都进入
+    // 输出文件 fd — childProcess.stdout/.stderr 都为 null。
+    // 在管道模式（hooks）中，包装流以将数据汇入 TaskOutput。
     this.#stderrWrapper = childProcess.stderr
       ? new StreamWrapper(childProcess.stderr, taskOutput, true)
       : null
@@ -184,8 +184,8 @@ class ShellCommandImpl implements ShellCommand {
   }
 
   #abortHandler(): void {
-    // On 'interrupt' (user submitted a new message), don't kill — let the
-    // caller background the process so the model can see partial output.
+    // 在 'interrupt'（用户提交了新消息）时，不要杀死 — 让调用方
+    // 后台化进程，使模型可以看到部分输出。
     if (this.#abortSignal.reason === 'interrupt') {
       return
     }
@@ -213,8 +213,8 @@ class ShellCommandImpl implements ShellCommand {
     }
   }
 
-  // Note: exit/error listeners are NOT removed here — they're needed for
-  // the result promise to resolve. They clean up when the child process exits.
+  // 注意：exit/error 监听器不在此处移除 — 它们需要用于
+  // result promise 解析。它们在子进程退出时清理。
   #cleanupListeners(): void {
     this.#clearSizeWatchdog()
     const timeoutId = this.#timeoutId
@@ -240,8 +240,8 @@ class ShellCommandImpl implements ShellCommand {
     this.#sizeWatchdog = setInterval(() => {
       void stat(this.taskOutput.path).then(
         s => {
-          // Bail if the watchdog was cleared while this stat was in flight
-          // (process exited on its own) — otherwise we'd mislabel stderr.
+          // 如果看门狗在此 stat 进行中已被清除（进程自行退出），
+          // 则退出 — 否则我们会错误标记 stderr。
           if (
             s.size > this.#maxOutputBytes &&
             this.#status === 'backgrounded' &&
@@ -253,7 +253,7 @@ class ShellCommandImpl implements ShellCommand {
           }
         },
         () => {
-          // ENOENT before first write, or unlinked mid-run — skip this tick
+          // 第一次写入前的 ENOENT，或运行中取消链接 — 跳过此次轮询
         },
       )
     }, SIZE_WATCHDOG_INTERVAL_MS)
@@ -266,9 +266,9 @@ class ShellCommandImpl implements ShellCommand {
       once: true,
     })
 
-    // Use 'exit' not 'close': 'close' waits for stdio to close, which includes
-    // grandchild processes that inherit file descriptors (e.g. `sleep 30 &`).
-    // 'exit' fires when the shell itself exits, returning control immediately.
+    // 使用 'exit' 而非 'close'：'close' 等待 stdio 关闭，这包括
+    // 继承文件描述符的孙子进程（例如 `sleep 30 &`）。
+    // 'exit' 在 shell 本身退出时触发，立即返回控制。
     this.#childProcess.once('exit', this.#exitHandler.bind(this))
     this.#childProcess.once('error', this.#errorHandler.bind(this))
 
@@ -305,10 +305,10 @@ class ShellCommandImpl implements ShellCommand {
 
     if (this.taskOutput.stdoutToFile && !this.#backgroundTaskId) {
       if (this.taskOutput.outputFileRedundant) {
-        // Small file — full content is in result.stdout, delete the file
+        // 小文件 — 完整内容在 result.stdout 中，删除文件
         void this.taskOutput.deleteOutputFile()
       } else {
-        // Large file — tell the caller where the full output lives
+        // 大文件 — 告诉调用方完整输出所在位置
         result.outputFilePath = this.taskOutput.path
         result.outputFileSize = this.taskOutput.outputFileSize
         result.outputTaskId = this.taskOutput.taskId
@@ -352,12 +352,12 @@ class ShellCommandImpl implements ShellCommand {
       this.#status = 'backgrounded'
       this.#cleanupListeners()
       if (this.taskOutput.stdoutToFile) {
-        // File mode: child writes directly to the fd with no JS involvement.
-        // The foreground timeout is gone, so watch file size to prevent
-        // a stuck append loop from filling the disk (768GB incident).
+        // 文件模式：子进程直接写入 fd，无 JS 介入。
+        // 前台超时已消失，因此监视文件大小以防止
+        // 卡住的追加循环填满磁盘（768GB 事件）。
         this.#startSizeWatchdog()
       } else {
-        // Pipe mode: spill the in-memory buffer so readers can find it on disk.
+        // 管道模式：将内存缓冲区溢出到磁盘，以便读取器可以在磁盘上找到它。
         this.taskOutput.spillToDisk()
       }
       return true
@@ -369,12 +369,12 @@ class ShellCommandImpl implements ShellCommand {
     this.#stdoutWrapper?.cleanup()
     this.#stderrWrapper?.cleanup()
     this.taskOutput.clear()
-    // Must run before nulling #abortSignal — #cleanupListeners() calls
-    // removeEventListener on it. Without this, a kill()+cleanup() sequence
-    // crashes: kill() queues #handleExit as a microtask, cleanup() nulls
-    // #abortSignal, then #handleExit runs #cleanupListeners() on the null ref.
+    // 必须在置空 #abortSignal 之前运行 — #cleanupListeners() 在其上
+    // 调用 removeEventListener。没有此操作，kill()+cleanup() 序列
+    // 会崩溃：kill() 将 #handleExit 排入微任务，cleanup() 置空
+    // #abortSignal，然后 #handleExit 在空引用上运行 #cleanupListeners()。
     this.#cleanupListeners()
-    // Release references to allow GC of ChildProcess internals and AbortController chain
+    // 释放引用以允许 GC 回收 ChildProcess 内部和 AbortController 链
     this.#childProcess = null!
     this.#abortSignal = null!
     this.#onTimeoutCallback = undefined
@@ -382,7 +382,7 @@ class ShellCommandImpl implements ShellCommand {
 }
 
 /**
- * Wraps a child process to enable flexible handling of shell command execution.
+ * 包装子进程以实现灵活的 shell 命令执行处理。
  */
 export function wrapSpawn(
   childProcess: ChildProcess,
@@ -403,7 +403,7 @@ export function wrapSpawn(
 }
 
 /**
- * Static ShellCommand implementation for commands that were aborted before execution.
+ * 用于在执行前被中止的命令的静态 ShellCommand 实现。
  */
 class AbortedShellCommand implements ShellCommand {
   readonly status = 'killed' as const

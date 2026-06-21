@@ -10,20 +10,20 @@ import lodashCloneDeep from 'lodash-es/cloneDeep.js'
 import { addSlowOperation } from '../bootstrap/state.js'
 import { logForDebugging } from './debug.js'
 
-// Extended WriteFileOptions to include 'flush' which is available in Node.js 20.1.0+
-// but not yet in @types/node
+// 扩展的 WriteFileOptions，包含在 Node.js 20.1.0+ 中可用
+// 但尚未在 @types/node 中的 'flush'
 type WriteFileOptionsWithFlush =
   | WriteFileOptions
   | (WriteFileOptions & { flush?: boolean })
 
-// --- Slow operation logging infrastructure ---
+// --- 慢操作日志基础设施 ---
 
 /**
- * Threshold in milliseconds for logging slow JSON/clone operations.
- * Operations taking longer than this will be logged for debugging.
- * - Override: set CLAUDE_CODE_SLOW_OPERATION_THRESHOLD_MS to a number
- * - Dev builds: 20ms (lower threshold for development)
- * - Ants: 300ms (enabled for all internal users)
+ * 记录慢 JSON/clone 操作的阈值（毫秒）。
+ * 超过此阈值的操作将被记录以便调试。
+ * - 覆盖：设置 CLAUDE_CODE_SLOW_OPERATION_THRESHOLD_MS 为数字
+ * - Dev 构建：20ms（较低的开发阈值）
+ * - Ant 用户：300ms（为所有内部用户启用）
  */
 const SLOW_OPERATION_THRESHOLD_MS = (() => {
   const envValue = process.env.CLAUDE_CODE_SLOW_OPERATION_THRESHOLD_MS
@@ -42,18 +42,18 @@ const SLOW_OPERATION_THRESHOLD_MS = (() => {
   return Infinity
 })()
 
-// Re-export for callers that still need the threshold value directly
+// 为仍需要直接访问阈值值的调用方再导出
 export { SLOW_OPERATION_THRESHOLD_MS }
 
-// Module-level re-entrancy guard. logForDebugging writes to a debug file via
-// appendFileSync, which goes through slowLogging again. Without this guard,
-// a slow appendFileSync → dispose → logForDebugging → appendFileSync → dispose → ...
+// 模块级重入保护。logForDebugging 通过 appendFileSync 写入调试文件，
+// 该调用再次经过 slowLogging。没有此保护，慢 appendFileSync → dispose →
+// logForDebugging → appendFileSync → dispose → ... 会无限循环。
 let isLogging = false
 
 /**
- * Extract the first stack frame outside this file, so the DevBar warning
- * points at the actual caller instead of a useless `Object{N keys}`.
- * Only called when an operation was actually slow — never on the fast path.
+ * 提取此文件之外的第一个栈帧，使 DevBar 警告指向实际调用方
+ * 而非无用的 `Object{N keys}`。
+ * 仅在操作确实很慢时调用 — 不在快速路径上。
  */
 export function callerFrame(stack: string | undefined): string {
   if (!stack) return ''
@@ -66,10 +66,10 @@ export function callerFrame(stack: string | undefined): string {
 }
 
 /**
- * Builds a human-readable description from tagged template arguments.
- * Only called when an operation was actually slow — never on the fast path.
+ * 从带标签的模板参数构建人类可读的描述。
+ * 仅在操作确实很慢时调用 — 不在快速路径上。
  *
- * args[0] = TemplateStringsArray, args[1..n] = interpolated values
+ * args[0] = TemplateStringsArray，args[1..n] = 插值值
  */
 function buildDescription(args: IArguments): string {
   const strings = args[0] as TemplateStringsArray
@@ -100,8 +100,8 @@ class AntSlowLogger {
   constructor(args: IArguments) {
     this.startTime = performance.now()
     this.args = args
-    // V8/JSC capture the stack at construction but defer the expensive string
-    // formatting until .stack is read — so this stays off the fast path.
+    // V8/JSC 在构造时捕获栈但延迟昂贵的字符串格式化
+    // 直到读取 .stack — 因此这保持在快速路径之外。
     this.err = new Error()
   }
 
@@ -125,13 +125,13 @@ class AntSlowLogger {
 
 const NOOP_LOGGER: Disposable = { [Symbol.dispose]() {} }
 
-// Must be regular functions (not arrows) to access `arguments`
+// 必须是普通函数（非箭头函数）以访问 `arguments`
 function slowLoggingAnt(
   _strings: TemplateStringsArray,
   ..._values: unknown[]
 ): AntSlowLogger {
   // eslint-disable-next-line prefer-rest-params
-  // biome-ignore lint/complexity/noArguments: intentional use of arguments object for AntSlowLogger
+  // biome-ignore lint/complexity/noArguments: 有意使用 arguments 对象传给 AntSlowLogger
   return new AntSlowLogger(arguments)
 }
 
@@ -140,13 +140,13 @@ function slowLoggingExternal(): Disposable {
 }
 
 /**
- * Tagged template for slow operation logging.
+ * 慢操作日志的带标签模板。
  *
- * In ANT builds: creates an AntSlowLogger that times the operation and logs
- * if it exceeds the threshold. Description is built lazily only when slow.
+ * 在 ANT 构建中：创建 AntSlowLogger，计时操作，超过阈值时记录。
+ * 描述仅在操作确实很慢时延迟构建。
  *
- * In external builds: returns a singleton no-op disposable. Zero allocations,
- * zero timing. AntSlowLogger and buildDescription are dead-code-eliminated.
+ * 在外部构建中：返回单例空操作 disposable。零分配，零计时。
+ * AntSlowLogger 和 buildDescription 被死代码消除。
  *
  * @example
  * using _ = slowLogging`structuredClone(${value})`
@@ -159,11 +159,11 @@ export const slowLogging: (
   ? slowLoggingAnt
   : slowLoggingExternal
 
-// --- Wrapped operations ---
+// --- 包装的操作 ---
 
 /**
- * Wrapped JSON.stringify with slow operation logging.
- * Use this instead of JSON.stringify directly to detect performance issues.
+ * 带慢操作日志的包装 JSON.stringify。
+ * 使用此函数而非直接使用 JSON.stringify 以检测性能问题。
  *
  * @example
  * import { jsonStringify } from './slowOperations.js'
@@ -197,8 +197,8 @@ export function jsonStringify(
 }
 
 /**
- * Wrapped JSON.parse with slow operation logging.
- * Use this instead of JSON.parse directly to detect performance issues.
+ * 带慢操作日志的包装 JSON.parse。
+ * 使用此函数而非直接使用 JSON.parse 以检测性能问题。
  *
  * @example
  * import { jsonParse } from './slowOperations.js'
@@ -206,16 +206,16 @@ export function jsonStringify(
  */
 export const jsonParse: typeof JSON.parse = (text, reviver) => {
   using _ = slowLogging`JSON.parse(${text})`
-  // V8 de-opts JSON.parse when a second argument is passed, even if undefined.
-  // Branch explicitly so the common (no-reviver) path stays on the fast path.
+  // V8 在传递第二个参数时会对 JSON.parse 进行去优化，即使它是 undefined。
+  // 显式分支以使常见（无 reviver）路径保持在快速路径上。
   return typeof reviver === 'undefined'
     ? JSON.parse(text)
     : JSON.parse(text, reviver)
 }
 
 /**
- * Wrapped structuredClone with slow operation logging.
- * Use this instead of structuredClone directly to detect performance issues.
+ * 带慢操作日志的包装 structuredClone。
+ * 使用此函数而非直接使用 structuredClone 以检测性能问题。
  *
  * @example
  * import { clone } from './slowOperations.js'
@@ -227,8 +227,8 @@ export function clone<T>(value: T, options?: StructuredSerializeOptions): T {
 }
 
 /**
- * Wrapped cloneDeep with slow operation logging.
- * Use this instead of lodash cloneDeep directly to detect performance issues.
+ * 带慢操作日志的包装 cloneDeep。
+ * 使用此函数而非直接使用 lodash cloneDeep 以检测性能问题。
  *
  * @example
  * import { cloneDeep } from './slowOperations.js'
@@ -240,13 +240,13 @@ export function cloneDeep<T>(value: T): T {
 }
 
 /**
- * Wrapper around fs.writeFileSync with slow operation logging.
- * Supports flush option to ensure data is written to disk before returning.
- * @param filePath The path to the file to write to
- * @param data The data to write (string or Buffer)
- * @param options Optional write options (encoding, mode, flag, flush)
- * @deprecated Use `fs.promises.writeFile` instead for non-blocking writes.
- * Sync file writes block the event loop and cause performance issues.
+ * 带慢操作日志的 fs.writeFileSync 包装。
+ * 支持 flush 选项以确保数据在返回前写入磁盘。
+ * @param filePath 要写入的文件路径
+ * @param data 要写入的数据（字符串或 Buffer）
+ * @param options 可选的写入选项（encoding、mode、flag、flush）
+ * @deprecated 使用 `fs.promises.writeFile` 代替以实现非阻塞写入。
+ * 同步文件写入会阻塞事件循环并导致性能问题。
  */
 export function writeFileSync_DEPRECATED(
   filePath: string,
@@ -255,7 +255,7 @@ export function writeFileSync_DEPRECATED(
 ): void {
   using _ = slowLogging`fs.writeFileSync(${filePath}, ${data})`
 
-  // Check if flush is requested (for object-style options)
+  // 检查是否请求了 flush（对于对象样式选项）
   const needsFlush =
     options !== null &&
     typeof options === 'object' &&
@@ -263,7 +263,7 @@ export function writeFileSync_DEPRECATED(
     options.flush === true
 
   if (needsFlush) {
-    // Manual flush: open file, write, fsync, close
+    // 手动 flush：打开文件、写入、fsync、关闭
     const encoding =
       typeof options === 'object' && 'encoding' in options
         ? options.encoding
@@ -283,7 +283,7 @@ export function writeFileSync_DEPRECATED(
       }
     }
   } else {
-    // No flush needed, use standard writeFileSync
+    // 无需 flush，使用标准 writeFileSync
     fsWriteFileSync(filePath, data, options as WriteFileOptions)
   }
 }

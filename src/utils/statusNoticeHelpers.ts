@@ -4,7 +4,7 @@ import type { AgentDefinitionsResult } from '@claude-code-best/builtin-tools/too
 export const AGENT_DESCRIPTIONS_THRESHOLD = 15_000
 
 /**
- * Calculate cumulative token estimate for agent descriptions
+ * 计算 agent 描述的累积 token 估计
  */
 export function getAgentDescriptionsTotalTokens(
   agentDefinitions?: AgentDefinitionsResult,
