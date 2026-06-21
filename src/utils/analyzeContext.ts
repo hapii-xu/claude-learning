@@ -66,11 +66,11 @@ const RESERVED_CATEGORY_NAME = 'Autocompact buffer'
 const MANUAL_COMPACT_BUFFER_NAME = 'Compact buffer'
 
 /**
- * Fixed token overhead added by the API when tools are present.
- * The API adds a tool prompt preamble (~500 tokens) once per API call when tools are present.
- * When we count tools individually via the token counting API, each call includes this overhead,
- * leading to N × overhead instead of 1 × overhead for N tools.
- * We subtract this overhead from per-tool counts to show accurate tool content sizes.
+ * 当存在工具时 API 添加的固定 token 开销。
+ * 当存在工具时，API 会在每次 API 调用时添加一个工具提示前言（约 500 tokens）。
+ * 当我们通过 token 计数 API 单独计算工具时，每次调用都包含此开销，
+ * 导致 N 个工具的 N × 开销而不是 1 × 开销。
+ * 我们从每个工具的计数中减去此开销以显示准确的工具内容大小。
  */
 export const TOOL_TOKEN_COUNT_OVERHEAD = 500
 
@@ -112,7 +112,7 @@ interface ContextCategory {
   name: string
   tokens: number
   color: keyof Theme
-  /** When true, these tokens are deferred and don't count toward context usage */
+  /** 当为 true 时，这些 tokens 是延迟的，不计入上下文使用 */
   isDeferred?: boolean
 }
 
@@ -122,7 +122,7 @@ interface GridSquare {
   categoryName: string
   tokens: number
   percentage: number
-  squareFullness: number // 0-1 representing how full this individual square is
+  squareFullness: number // 0-1 表示单个方格的填充程度
 }
 
 interface MemoryFile {
@@ -166,7 +166,7 @@ interface SlashCommandInfo {
   readonly tokens: number
 }
 
-/** Individual skill detail for context display */
+/** 上下文显示的单个技能详情 */
 interface SkillFrontmatter {
   name: string
   source: SettingSource | 'plugin'
@@ -174,16 +174,16 @@ interface SkillFrontmatter {
 }
 
 /**
- * Information about skills included in the context window.
+ * 关于包含在上下文窗口中的技能的信息。
  */
 interface SkillInfo {
-  /** Total number of available skills */
+  /** 可用技能总数 */
   readonly totalSkills: number
-  /** Number of skills included within token budget */
+  /** token 预算内包含的技能数量 */
   readonly includedSkills: number
-  /** Total tokens consumed by skills */
+  /** 技能消耗的总 tokens */
   readonly tokens: number
-  /** Individual skill details */
+  /** 单个技能详情 */
   readonly skillFrontmatter: SkillFrontmatter[]
 }
 
@@ -197,15 +197,15 @@ export interface ContextData {
   readonly model: string
   readonly memoryFiles: MemoryFile[]
   readonly mcpTools: McpTool[]
-  /** Ant-only: per-tool breakdown of deferred built-in tools */
+  /** Ant 专属：延迟内置工具的每个工具细分 */
   readonly deferredBuiltinTools?: DeferredBuiltinTool[]
-  /** Ant-only: per-tool breakdown of always-loaded built-in tools */
+  /** Ant 专属：始终加载的内置工具的每个工具细分 */
   readonly systemTools?: SystemToolDetail[]
-  /** Ant-only: per-section breakdown of system prompt */
+  /** Ant 专属：系统提示的每个部分细分 */
   readonly systemPromptSections?: SystemPromptSectionDetail[]
   readonly agents: Agent[]
   readonly slashCommands?: SlashCommandInfo
-  /** Skill statistics */
+  /** 技能统计 */
   readonly skills?: SkillInfo
   readonly autoCompactThreshold?: number
   readonly isAutoCompactEnabled: boolean
@@ -261,14 +261,14 @@ export async function countToolDefinitionTokens(
   return result ?? 0
 }
 
-/** Extract a human-readable name from a system prompt section's content */
+/** 从系统提示部分的内容中提取人类可读的名称 */
 function extractSectionName(content: string): string {
-  // Try to find first markdown heading
+  // 尝试查找第一个 markdown 标题
   const headingMatch = content.match(/^#+\s+(.+)$/m)
   if (headingMatch) {
     return headingMatch[1]!.trim()
   }
-  // Fall back to a truncated preview of the first non-empty line
+  // 回退到第一个非空行的截断预览
   const firstLine = content.split('\n').find(l => l.trim().length > 0) ?? ''
   return firstLine.length > 40 ? firstLine.slice(0, 40) + '…' : firstLine
 }
@@ -279,11 +279,11 @@ async function countSystemTokens(
   systemPromptTokens: number
   systemPromptSections: SystemPromptSectionDetail[]
 }> {
-  // Get system context (gitStatus, etc.) which is always included
+  // 获取始终包含的系统上下文（gitStatus 等）
   const systemContext = await getSystemContext()
 
-  // Build named entries: system prompt parts + system context values
-  // Skip empty strings and the global-cache boundary marker
+  // 构建命名条目：系统提示部分 + 系统上下文值
+  // 跳过空字符串和全局缓存边界标记
   const namedEntries: Array<{ name: string; content: string }> = [
     ...effectiveSystemPrompt
       .filter(
@@ -325,7 +325,7 @@ async function countMemoryFileTokens(): Promise<{
   memoryFileDetails: MemoryFile[]
   claudeMdTokens: number
 }> {
-  // Simple mode disables CLAUDE.md loading, so don't report tokens for them
+  // 简单模式禁用 CLAUDE.md 加载，因此不报告它们的 tokens
   if (isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)) {
     return { memoryFileDetails: [], claudeMdTokens: 0 }
   }
@@ -386,7 +386,7 @@ async function countBuiltInToolTokens(
     }
   }
 
-  // Check if tool search is enabled
+  // 检查工具搜索是否启用
   const { isSearchExtraToolsEnabled } = await import('./searchExtraTools.js')
   const { isDeferredTool } = await import(
     '@claude-code-best/builtin-tools/tools/SearchExtraToolsTool/prompt.js'
@@ -399,11 +399,11 @@ async function countBuiltInToolTokens(
     'analyzeBuiltIn',
   )
 
-  // Separate always-loaded and deferred builtin tools using dynamic isDeferredTool check
+  // 使用动态 isDeferredTool 检查分离始终加载和延迟的内置工具
   const alwaysLoadedTools = builtInTools.filter(t => !isDeferredTool(t))
   const deferredBuiltinTools = builtInTools.filter(t => isDeferredTool(t))
 
-  // Count always-loaded tools
+  // 计算始终加载的工具
   const alwaysLoadedTokens =
     alwaysLoadedTools.length > 0
       ? await countToolDefinitionTokens(
@@ -414,9 +414,9 @@ async function countBuiltInToolTokens(
         )
       : 0
 
-  // Build per-tool breakdown for always-loaded tools (ant-only, proportional
-  // split of the bulk count based on rough schema size estimation). Excludes
-  // SkillTool since its tokens are shown in the separate Skills category.
+  // 为始终加载的工具构建每个工具的细分（Ant 专属，基于
+  // 粗略模式大小估计的比例分割批量计数）。排除
+  // SkillTool，因为其 tokens 显示在单独的技能类别中。
   let systemToolDetails: SystemToolDetail[] = []
   if (process.env.USER_TYPE === 'ant') {
     const toolsForBreakdown = alwaysLoadedTools.filter(
@@ -440,13 +440,13 @@ async function countBuiltInToolTokens(
     }
   }
 
-  // Count deferred builtin tools individually for details
+  // 单独计算延迟的内置工具以获取详情
   const deferredBuiltinDetails: DeferredBuiltinTool[] = []
   let loadedDeferredTokens = 0
   let totalDeferredTokens = 0
 
   if (deferredBuiltinTools.length > 0 && isDeferred) {
-    // Find which deferred tools have been used in messages
+    // 查找消息中已使用的延迟工具
     const loadedToolNames = new Set<string>()
     if (messages) {
       const deferredToolNameSet = new Set(deferredBuiltinTools.map(t => t.name))
@@ -468,7 +468,7 @@ async function countBuiltInToolTokens(
       }
     }
 
-    // Count each deferred tool
+    // 计算每个延迟工具
     const tokensByTool = await Promise.all(
       deferredBuiltinTools.map(t =>
         countToolDefinitionTokens(
@@ -497,7 +497,7 @@ async function countBuiltInToolTokens(
       }
     }
   } else if (deferredBuiltinTools.length > 0) {
-    // Tool search not enabled - count deferred tools as regular
+    // 工具搜索未启用 - 将延迟工具计为常规工具
     const deferredTokens = await countToolDefinitionTokens(
       deferredBuiltinTools,
       getToolPermissionContext,
@@ -513,7 +513,7 @@ async function countBuiltInToolTokens(
   }
 
   return {
-    // When deferred, only count always-loaded tools + any loaded deferred tools
+    // 延迟时，只计算始终加载的工具 + 任何已加载的延迟工具
     builtInToolTokens: alwaysLoadedTokens + loadedDeferredTokens,
     deferredBuiltinDetails,
     deferredBuiltinTokens: totalDeferredTokens - loadedDeferredTokens,
@@ -581,18 +581,18 @@ async function countSkillTokens(
       }
     }
 
-    // NOTE: This counts the entire SlashCommandTool (which includes both commands AND skills).
-    // This is the same tool counted by countSlashCommandTokens(), but we track it separately
-    // here for display purposes. These tokens should NOT be added to context categories
-    // to avoid double-counting.
+    // 注意：这会计算整个 SlashCommandTool（包括命令和技能）。
+    // 这与 countSlashCommandTokens() 计算的工具相同，但我们在此单独跟踪
+    // 以用于显示目的。这些 tokens 不应添加到上下文类别
+    // 以避免重复计算。
     const skillTokens = await countToolDefinitionTokens(
       [slashCommandTool],
       getToolPermissionContext,
       agentInfo,
     )
 
-    // Calculate per-skill token estimates based on frontmatter only
-    // (name, description, whenToUse) since full content is only loaded on invocation
+    // 基于仅前言计算每个技能的 token 估计
+    // （name、description、whenToUse），因为完整内容只在调用时加载
     const skillFrontmatter: SkillFrontmatter[] = skills.map(skill => ({
       name: getCommandName(skill),
       source: (skill.type === 'prompt' ? skill.source : 'plugin') as
@@ -612,7 +612,7 @@ async function countSkillTokens(
   } catch (error) {
     logError(toError(error))
 
-    // Return zero values rather than failing the entire context analysis
+    // 返回零值而不是使整个上下文分析失败
     return {
       skillTokens: 0,
       skillInfo: { totalSkills: 0, includedSkills: 0, skillFrontmatter: [] },
@@ -634,23 +634,23 @@ export async function countMcpToolTokens(
 }> {
   const mcpTools = tools.filter(tool => tool.isMcp)
   const mcpToolDetails: McpTool[] = []
-  // Single bulk API call for all MCP tools (instead of N individual calls)
+  // 对所有 MCP 工具进行一次批量 API 调用（而不是 N 次单独调用）
   const totalTokensRaw = await countToolDefinitionTokens(
     mcpTools,
     getToolPermissionContext,
     agentInfo,
     model,
   )
-  // Subtract the single overhead since we made one bulk call
+  // 减去单次开销，因为我们进行了一次批量调用
   const totalTokens = Math.max(
     0,
     (totalTokensRaw || 0) - TOOL_TOKEN_COUNT_OVERHEAD,
   )
 
-  // Estimate per-tool proportions for display using local estimation.
-  // Include name + description + input schema to match what toolToAPISchema
-  // sends — otherwise tools with similar schemas but different descriptions
-  // get identical counts (MCP tools share the same base Zod inputSchema).
+  // 使用本地估计估算每个工具的比例以用于显示。
+  // 包括 name + description + input schema 以匹配 toolToAPISchema
+  // 发送的内容 —— 否则具有相似模式但不同描述的工具
+  // 会获得相同的计数（MCP 工具共享相同的基础 Zod inputSchema）。
   const estimates = await Promise.all(
     mcpTools.map(async t =>
       roughTokenCountEstimation(
@@ -671,8 +671,8 @@ export async function countMcpToolTokens(
     Math.round((e / estimateTotal) * totalTokens),
   )
 
-  // Check if tool search is enabled - if so, MCP tools are deferred
-  // isSearchExtraToolsEnabled handles threshold calculation internally for TstAuto mode
+  // 检查工具搜索是否启用 - 如果启用，MCP 工具是延迟的
+  // isSearchExtraToolsEnabled 在内部处理 TstAuto 模式的阈值计算
   const { isSearchExtraToolsEnabled } = await import('./searchExtraTools.js')
   const { isDeferredTool } = await import(
     '@claude-code-best/builtin-tools/tools/SearchExtraToolsTool/prompt.js'
@@ -686,7 +686,7 @@ export async function countMcpToolTokens(
     'analyzeMcp',
   )
 
-  // Find MCP tools that have been used in messages (loaded via SearchExtraToolsTool)
+  // 查找消息中已使用的 MCP 工具（通过 SearchExtraToolsTool 加载）
   const loadedMcpToolNames = new Set<string>()
   if (isDeferred && messages) {
     const mcpToolNameSet = new Set(mcpTools.map(t => t.name))
@@ -708,7 +708,7 @@ export async function countMcpToolTokens(
     }
   }
 
-  // Build tool details with isLoaded flag
+  // 使用 isLoaded 标志构建工具详情
   for (const [i, tool] of mcpTools.entries()) {
     mcpToolDetails.push({
       name: tool.name,
@@ -718,7 +718,7 @@ export async function countMcpToolTokens(
     })
   }
 
-  // Calculate loaded vs deferred tokens
+  // 计算已加载与延迟的 tokens
   let loadedTokens = 0
   let deferredTokens = 0
   for (const detail of mcpToolDetails) {
@@ -730,10 +730,10 @@ export async function countMcpToolTokens(
   }
 
   return {
-    // When deferred but some tools are loaded, count loaded tokens
+    // 延迟但某些工具已加载时，计算已加载的 tokens
     mcpToolTokens: isDeferred ? loadedTokens : totalTokens,
     mcpToolDetails,
-    // Track deferred tokens separately for display
+    // 单独跟踪延迟的 tokens 以用于显示
     deferredToolTokens: deferredTokens,
     loadedMcpToolNames,
   }
@@ -793,7 +793,7 @@ function processAssistantMessage(
   msg: AssistantMessage | NormalizedAssistantMessage,
   breakdown: MessageBreakdown,
 ): void {
-  // Process each content block individually
+  // 单独处理每个内容块
   const contentBlocks = Array.isArray(msg.message!.content)
     ? msg.message!.content
     : []
@@ -813,7 +813,7 @@ function processAssistantMessage(
         (breakdown.toolCallsByType.get(toolName) || 0) + blockTokens,
       )
     } else {
-      // Text blocks or other non-tool content
+      // 文本块或其他非工具内容
       breakdown.assistantMessageTokens += blockTokens
     }
   }
@@ -824,15 +824,15 @@ function processUserMessage(
   breakdown: MessageBreakdown,
   toolUseIdToName: Map<string, string>,
 ): void {
-  // Handle both string and array content
+  // 处理字符串和数组内容
   if (typeof msg.message!.content === 'string') {
-    // Simple string content
+    // 简单的字符串内容
     const tokens = roughTokenCountEstimation(msg.message!.content)
     breakdown.userMessageTokens += tokens
     return
   }
 
-  // Process each content block individually
+  // 单独处理每个内容块
   for (const block of msg.message!.content ?? []) {
     const blockStr = jsonStringify(block)
     const blockTokens = roughTokenCountEstimation(blockStr)
@@ -846,7 +846,7 @@ function processUserMessage(
         (breakdown.toolResultsByType.get(toolName) || 0) + blockTokens,
       )
     } else {
-      // Text blocks or other non-tool content
+      // 文本块或其他非工具内容
       breakdown.userMessageTokens += blockTokens
     }
   }
@@ -871,7 +871,7 @@ async function approximateMessageTokens(
 ): Promise<MessageBreakdown> {
   const microcompactResult = await microcompactMessages(messages)
 
-  // Initialize tracking
+  // 初始化跟踪
   const breakdown: MessageBreakdown = {
     totalTokens: 0,
     toolCallTokens: 0,
@@ -884,7 +884,7 @@ async function approximateMessageTokens(
     attachmentsByType: new Map<string, number>(),
   }
 
-  // Build a map of tool_use_id to tool_name for easier lookup
+  // 构建 tool_use_id 到 tool_name 的映射以便查找
   const toolUseIdToName = new Map<string, string>()
   for (const msg of microcompactResult.messages) {
     if (msg.type === 'assistant' && Array.isArray(msg.message!.content)) {
@@ -907,7 +907,7 @@ async function approximateMessageTokens(
     }
   }
 
-  // Process each message for detailed breakdown
+  // 处理每条消息以获取详细细分
   for (const msg of microcompactResult.messages) {
     if (msg.type === 'assistant') {
       processAssistantMessage(msg as AssistantMessage, breakdown)
@@ -918,12 +918,12 @@ async function approximateMessageTokens(
     }
   }
 
-  // Calculate total tokens using the API for accuracy
+  // 使用 API 计算总 tokens 以提高准确性
   const approximateMessageTokens = await countTokensWithFallback(
     normalizeMessagesForAPI(microcompactResult.messages).map(_ => {
       if (_.type === 'assistant') {
         return {
-          // Important: strip out fields like id, etc. -- the counting API errors if they're present
+          // 重要：去除 id 等字段 —— 如果存在，计数 API 会报错
           role: 'assistant' as const,
           content: _.message.content,
         }
@@ -946,17 +946,17 @@ export async function analyzeContextUsage(
   terminalWidth?: number,
   toolUseContext?: Pick<ToolUseContext, 'options'>,
   mainThreadAgentDefinition?: AgentDefinition,
-  /** Original messages before microcompact, used to extract API usage */
+  /** microcompact 之前的原始消息，用于提取 API 使用量 */
   originalMessages?: Message[],
 ): Promise<ContextData> {
   const runtimeModel = getRuntimeMainLoopModel({
     permissionMode: (await getToolPermissionContext()).mode,
     mainLoopModel: model,
   })
-  // Get context window size
+  // 获取上下文窗口大小
   const contextWindow = getContextWindowForModel(runtimeModel, getSdkBetas())
 
-  // Build the effective system prompt using the shared utility
+  // 使用共享工具函数构建有效的系统提示
   const defaultSystemPrompt = await getSystemPrompt(tools, runtimeModel)
   const effectiveSystemPrompt = buildEffectiveSystemPrompt({
     mainThreadAgentDefinition,
@@ -968,7 +968,7 @@ export async function analyzeContextUsage(
     appendSystemPrompt: toolUseContext?.options.appendSystemPrompt,
   })
 
-  // Critical operations that should not fail due to skills
+  // 不应因技能而失败的关键操作
   const [
     { systemPromptTokens, systemPromptSections },
     { claudeMdTokens, memoryFileDetails },
@@ -1004,15 +1004,15 @@ export async function analyzeContextUsage(
     approximateMessageTokens(messages),
   ])
 
-  // Count skills separately with error isolation
+  // 单独计算技能，具有错误隔离
   const skillResult = await countSkillTokens(
     tools,
     getToolPermissionContext,
     agentDefinitions,
   )
   const skillInfo = skillResult.skillInfo
-  // Use sum of individual skill token estimates (matches what's shown in details)
-  // rather than skillResult.skillTokens which includes tool schema overhead
+  // 使用单个技能 token 估计的总和（与详情中显示的匹配）
+  // 而不是包含工具模式开销的 skillResult.skillTokens
   const skillFrontmatterTokens = skillInfo.skillFrontmatter.reduce(
     (sum, skill) => sum + skill.tokens,
     0,
@@ -1020,16 +1020,16 @@ export async function analyzeContextUsage(
 
   const messageTokens = messageBreakdown.totalTokens
 
-  // Check if autocompact is enabled and calculate threshold
+  // 检查自动压缩是否启用并计算阈值
   const isAutoCompact = isAutoCompactEnabled()
   const autoCompactThreshold = isAutoCompact
     ? getEffectiveContextWindowSize(model) - AUTOCOMPACT_BUFFER_TOKENS
     : undefined
 
-  // Create categories
+  // 创建类别
   const cats: ContextCategory[] = []
 
-  // System prompt is always shown first (fixed overhead)
+  // 系统提示始终首先显示（固定开销）
   if (systemPromptTokens > 0) {
     cats.push({
       name: 'System prompt',
@@ -1038,8 +1038,8 @@ export async function analyzeContextUsage(
     })
   }
 
-  // Built-in tools right after system prompt (skills shown separately below)
-  // Ant users get a per-tool breakdown via systemToolDetails
+  // 内置工具紧跟系统提示（技能在下方单独显示）
+  // Ant 用户通过 systemToolDetails 获得每个工具的细分
   const systemToolsTokens = builtInToolTokens - skillFrontmatterTokens
   if (systemToolsTokens > 0) {
     cats.push({
@@ -1052,7 +1052,7 @@ export async function analyzeContextUsage(
     })
   }
 
-  // MCP tools after system tools
+  // MCP 工具在系统工具之后
   if (mcpToolTokens > 0) {
     cats.push({
       name: 'MCP tools',
@@ -1061,8 +1061,8 @@ export async function analyzeContextUsage(
     })
   }
 
-  // Show deferred MCP tools (when tool search is enabled)
-  // These don't count toward context usage but we show them for visibility
+  // 显示延迟的 MCP 工具（当工具搜索启用时）
+  // 这些不计入上下文使用，但我们显示它们以提高可见性
   if (deferredToolTokens > 0) {
     cats.push({
       name: 'MCP tools (deferred)',
@@ -1072,7 +1072,7 @@ export async function analyzeContextUsage(
     })
   }
 
-  // Show deferred builtin tools (when tool search is enabled)
+  // 显示延迟的内置工具（当工具搜索启用时）
   if (deferredBuiltinTokens > 0) {
     cats.push({
       name: 'System tools (deferred)',
@@ -1082,7 +1082,7 @@ export async function analyzeContextUsage(
     })
   }
 
-  // Custom agents after MCP tools
+  // 自定义 agent 在 MCP 工具之后
   if (agentTokens > 0) {
     cats.push({
       name: 'Custom agents',
@@ -1091,7 +1091,7 @@ export async function analyzeContextUsage(
     })
   }
 
-  // Memory files after custom agents
+  // 内存文件在自定义 agent 之后
   if (claudeMdTokens > 0) {
     cats.push({
       name: 'Memory files',
@@ -1100,7 +1100,7 @@ export async function analyzeContextUsage(
     })
   }
 
-  // Skills after memory files
+  // 技能在内存文件之后
   if (skillFrontmatterTokens > 0) {
     cats.push({
       name: 'Skills',
@@ -1117,20 +1117,20 @@ export async function analyzeContextUsage(
     })
   }
 
-  // Calculate actual content usage (before adding reserved buffers)
-  // Exclude deferred categories from the usage calculation
+  // 计算实际内容使用量（在添加保留缓冲区之前）
+  // 从使用量计算中排除延迟类别
   const actualUsage = cats.reduce(
     (sum, cat) => sum + (cat.isDeferred ? 0 : cat.tokens),
     0,
   )
 
-  // Reserved space after messages (not counted in actualUsage shown to user).
-  // Under reactive-only mode (cobalt_raccoon), proactive autocompact never
-  // fires and the reserved buffer is a lie — skip it entirely and let Free
-  // space fill the grid. feature() guard keeps the flag string out of
-  // external builds. Same for context-collapse (marble_origami) — collapse
-  // owns the threshold ladder and autocompact is suppressed in
-  // shouldAutoCompact, so the 33k buffer shown here would be a lie too.
+  // 消息后的保留空间（不计入向用户显示的 actualUsage）。
+  // 在仅反应模式（cobalt_raccoon）下，主动自动压缩永远不会
+  // 触发，保留缓冲区是假的 —— 完全跳过它，让 Free
+  // 空间填充网格。feature() 守卫将标志字符串排除在
+  // 外部构建之外。context-collapse（marble_origami）也是如此 —— collapse
+  // 拥有阈值阶梯，自动压缩在
+  // shouldAutoCompact 中被抑制，因此此处显示的 33k 缓冲区也是假的。
   let reservedTokens = 0
   let skipReservedBuffer = false
   if (feature('REACTIVE_COMPACT')) {
@@ -1148,10 +1148,10 @@ export async function analyzeContextUsage(
     }
   }
   if (skipReservedBuffer) {
-    // No buffer category pushed — reactive compaction is transparent and
-    // doesn't need a visible reservation in the grid.
+    // 没有缓冲区类别被推送 —— 反应式压缩是透明的，
+    // 不需要在网格中显示保留。
   } else if (isAutoCompact && autoCompactThreshold !== undefined) {
-    // Autocompact buffer (from effective context)
+    // 自动压缩缓冲区（来自有效上下文）
     reservedTokens = contextWindow - autoCompactThreshold
     cats.push({
       name: RESERVED_CATEGORY_NAME,
@@ -1159,7 +1159,7 @@ export async function analyzeContextUsage(
       color: 'inactive',
     })
   } else if (!isAutoCompact) {
-    // Compact buffer reserve (3k from actual context limit)
+    // 紧凑缓冲区保留（来自实际上下文限制的 3k）
     reservedTokens = MANUAL_COMPACT_BUFFER_TOKENS
     cats.push({
       name: MANUAL_COMPACT_BUFFER_NAME,
@@ -1168,7 +1168,7 @@ export async function analyzeContextUsage(
     })
   }
 
-  // Calculate free space (subtract both actual usage and reserved buffer)
+  // 计算空闲空间（减去实际使用量和保留缓冲区）
   const freeTokens = Math.max(0, contextWindow - actualUsage - reservedTokens)
 
   cats.push({
@@ -1177,27 +1177,27 @@ export async function analyzeContextUsage(
     color: 'promptBorder',
   })
 
-  // Total for display (everything except free space)
+  // 显示的总计（除空闲空间外的所有内容）
   const totalIncludingReserved = actualUsage
 
-  // Extract API usage from original messages (if provided) to match status line
-  // This uses the same source of truth as the status line for consistency
+  // 从原始消息中提取 API 使用量（如果提供）以匹配状态行
+  // 这与状态行使用相同的事实来源以保持一致
   const apiUsage = getCurrentUsage(originalMessages ?? messages)
 
-  // When API usage is available, use it for total to match status line calculation
-  // Status line uses: input_tokens + cache_creation_input_tokens + cache_read_input_tokens
+  // 当 API 使用量可用时，使用它以匹配状态行计算
+  // 状态行使用：input_tokens + cache_creation_input_tokens + cache_read_input_tokens
   const totalFromAPI = apiUsage
     ? apiUsage.input_tokens +
       apiUsage.cache_creation_input_tokens +
       apiUsage.cache_read_input_tokens
     : null
 
-  // Use API total if available, otherwise fall back to estimated total
+  // 如果可用则使用 API 总计，否则回退到估计总计
   const finalTotalTokens = totalFromAPI ?? totalIncludingReserved
 
-  // Pre-calculate grid based on model context window and terminal width
-  // For narrow screens (< 80 cols), use 5x5 for 200k models, 5x10 for 1M+ models
-  // For normal screens, use 10x10 for 200k models, 20x10 for 1M+ models
+  // 基于模型上下文窗口和终端宽度预计算网格
+  // 对于窄屏幕（< 80 列），200k 模型使用 5x5，1M+ 模型使用 5x10
+  // 对于普通屏幕，200k 模型使用 10x10，1M+ 模型使用 20x10
   const isNarrowScreen = terminalWidth && terminalWidth < 80
   const GRID_WIDTH =
     contextWindow >= 1000000
@@ -1210,11 +1210,11 @@ export async function analyzeContextUsage(
   const GRID_HEIGHT = contextWindow >= 1000000 ? 10 : isNarrowScreen ? 5 : 10
   const TOTAL_SQUARES = GRID_WIDTH * GRID_HEIGHT
 
-  // Filter out deferred categories - they don't take up actual context space
-  // (e.g., MCP tools when tool search is enabled)
+  // 过滤掉延迟类别 - 它们不占用实际上下文空间
+  // （例如，工具搜索启用时的 MCP 工具）
   const nonDeferredCats = cats.filter(cat => !cat.isDeferred)
 
-  // Calculate squares per category (use rawEffectiveMax for visualization to show full context)
+  // 计算每个类别的方格数（使用 rawEffectiveMax 进行可视化以显示完整上下文）
   const categorySquares = nonDeferredCats.map(cat => ({
     ...cat,
     squares:
@@ -1224,7 +1224,7 @@ export async function analyzeContextUsage(
     percentageOfTotal: Math.round((cat.tokens / contextWindow) * 100),
   }))
 
-  // Helper function to create grid squares for a category
+  // 为类别创建网格方格的辅助函数
   function createCategorySquares(
     category: (typeof categorySquares)[0],
   ): GridSquare[] {
@@ -1234,10 +1234,10 @@ export async function analyzeContextUsage(
     const fractionalPart = exactSquares - wholeSquares
 
     for (let i = 0; i < category.squares; i++) {
-      // Determine fullness: full squares get 1.0, partial square gets fractional amount
+      // 确定填充度：完整方格为 1.0，部分方格为小数部分
       let squareFullness = 1.0
       if (i === wholeSquares && fractionalPart > 0) {
-        // This is the partial square
+        // 这是部分方格
         squareFullness = fractionalPart
       }
 
@@ -1254,10 +1254,10 @@ export async function analyzeContextUsage(
     return squares
   }
 
-  // Build the grid as an array of squares with full metadata
+  // 将网格构建为具有完整元数据的方格数组
   const gridSquares: GridSquare[] = []
 
-  // Separate reserved category for end placement (either autocompact or manual compact buffer)
+  // 为末尾放置分离保留类别（自动压缩或手动紧凑缓冲区）
   const reservedCategory = categorySquares.find(
     cat =>
       cat.name === RESERVED_CATEGORY_NAME ||
@@ -1270,7 +1270,7 @@ export async function analyzeContextUsage(
       cat.name !== 'Free space',
   )
 
-  // Add all non-reserved, non-free-space squares first
+  // 首先添加所有非保留、非空闲空间的方格
   for (const cat of nonReservedCategories) {
     const squares = createCategorySquares(cat)
     for (const square of squares) {
@@ -1280,10 +1280,10 @@ export async function analyzeContextUsage(
     }
   }
 
-  // Calculate how many squares are needed for reserved
+  // 计算保留需要多少方格
   const reservedSquareCount = reservedCategory ? reservedCategory.squares : 0
 
-  // Fill with free space, leaving room for reserved at the end
+  // 用空闲空间填充，为末尾的保留留出空间
   const freeSpaceCat = cats.find(c => c.name === 'Free space')
   const freeSpaceTarget = TOTAL_SQUARES - reservedSquareCount
 
@@ -1296,11 +1296,11 @@ export async function analyzeContextUsage(
       percentage: freeSpaceCat
         ? Math.round((freeSpaceCat.tokens / contextWindow) * 100)
         : 0,
-      squareFullness: 1.0, // Free space is always "full"
+      squareFullness: 1.0, // 空闲空间始终为"满"
     })
   }
 
-  // Add reserved squares at the end
+  // 在末尾添加保留方格
   if (reservedCategory) {
     const squares = createCategorySquares(reservedCategory)
     for (const square of squares) {
@@ -1310,32 +1310,32 @@ export async function analyzeContextUsage(
     }
   }
 
-  // Convert to rows for rendering
+  // 转换为行以进行渲染
   const gridRows: GridSquare[][] = []
   for (let i = 0; i < GRID_HEIGHT; i++) {
     gridRows.push(gridSquares.slice(i * GRID_WIDTH, (i + 1) * GRID_WIDTH))
   }
 
-  // Format message breakdown (used by context suggestions for all users)
-  // Combine tool calls and results, then get top 5
+  // 格式化消息细分（用于所有用户的上下文建议）
+  // 合并工具调用和结果，然后获取前 5 名
   const toolsMap = new Map<
     string,
     { callTokens: number; resultTokens: number }
   >()
 
-  // Add call tokens
+  // 添加调用 tokens
   for (const [name, tokens] of messageBreakdown.toolCallsByType.entries()) {
     const existing = toolsMap.get(name) || { callTokens: 0, resultTokens: 0 }
     toolsMap.set(name, { ...existing, callTokens: tokens })
   }
 
-  // Add result tokens
+  // 添加结果 tokens
   for (const [name, tokens] of messageBreakdown.toolResultsByType.entries()) {
     const existing = toolsMap.get(name) || { callTokens: 0, resultTokens: 0 }
     toolsMap.set(name, { ...existing, resultTokens: tokens })
   }
 
-  // Convert to array and sort by total tokens (calls + results)
+  // 转换为数组并按总 tokens（调用 + 结果）排序
   const toolsByTypeArray = Array.from(toolsMap.entries())
     .map(([name, { callTokens, resultTokens }]) => ({
       name,
