@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
-// findChannelEntry extracted from ../channelNotification.ts (line 161)
-// Copied to avoid heavy import chain
+// findChannelEntry 提取自 ../channelNotification.ts (第 161 行)
+// 复制此处是为了避免引入过重的导入链
 
 type ChannelEntry = {
   kind: 'server' | 'plugin'

@@ -1,7 +1,7 @@
-// Host dependency injection interfaces
-// The MCP client package uses these interfaces to decouple from host infrastructure.
+// 宿主依赖注入接口
+// MCP 客户端包使用这些接口与宿主基础设施解耦。
 
-/** Logging interface */
+/** 日志接口 */
 export interface Logger {
   debug(message: string, ...args: unknown[]): void
   info(message: string, ...args: unknown[]): void
@@ -9,24 +9,24 @@ export interface Logger {
   error(message: string, ...args: unknown[]): void
 }
 
-/** Analytics/telemetry callback */
+/** 分析/遥测回调 */
 export interface AnalyticsSink {
   trackEvent(event: string, metadata: Record<string, unknown>): void
 }
 
-/** Feature flag check */
+/** 特性标志检查 */
 export interface FeatureGate {
   isEnabled(flag: string): boolean
 }
 
-/** OAuth token provider */
+/** OAuth 令牌提供者 */
 export interface AuthProvider {
   getTokens(): Promise<{ accessToken: string } | null>
   refreshTokens(): Promise<void>
   handleOAuthError?(error: unknown): Promise<void>
 }
 
-/** HTTP/WebSocket proxy configuration */
+/** HTTP/WebSocket 代理配置 */
 export interface ProxyConfig {
   getFetchOptions?(): Record<string, unknown>
   getWebSocketAgent?(url: string): unknown
@@ -34,32 +34,32 @@ export interface ProxyConfig {
   getTLSOptions?(): Record<string, unknown> | undefined
 }
 
-/** Binary/image content persistence */
+/** 二进制/图片内容持久化 */
 export interface ContentStorage {
   persistBinaryContent(data: Buffer, ext: string): Promise<string>
   persistToolResult?(toolUseId: string, content: unknown): Promise<void>
 }
 
-/** Image processing (resize, downsample) */
+/** 图片处理（调整大小、降采样） */
 export interface ImageProcessor {
   resizeAndDownsample?(buffer: Buffer): Promise<Buffer>
 }
 
-/** HTTP configuration (user agent, session ID) */
+/** HTTP 配置（用户代理、会话 ID） */
 export interface HttpConfig {
   getUserAgent(): string
   getSessionId?(): string
 }
 
-/** Subprocess environment variable provider */
+/** 子进程环境变量提供者 */
 export interface SubprocessEnvProvider {
   getEnv(additional?: Record<string, string>): Record<string, string>
 }
 
 /**
- * Complete set of host dependencies required by the MCP client.
- * All fields except `logger` and `httpConfig` are optional —
- * the client degrades gracefully when they're not provided.
+ * MCP 客户端所需的完整宿主依赖集合。
+ * 除 `logger` 和 `httpConfig` 外所有字段均为可选 —
+ * 客户端在缺少它们时能优雅降级。
  */
 export interface McpClientDependencies {
   logger: Logger

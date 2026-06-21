@@ -1,3 +1,4 @@
+import { logForDebugging } from '../utils/debug.js'
 import { logEvent } from '../services/analytics/index.js'
 import { isTerminalTaskStatus } from '../Task.js'
 import type { LocalAgentTaskState } from '../tasks/LocalAgentTask/LocalAgentTask.js'
@@ -47,8 +48,16 @@ export function enterTeammateView(
   taskId: string,
   setAppState: (updater: (prev: AppState) => AppState) => void,
 ): void {
+  logForDebugging(
+    `[Hapii] teammateViewHelpers.enterTeammateView taskId=${taskId}`,
+    { level: 'info' },
+  )
   logEvent('tengu_transcript_view_enter', {})
   setAppState(prev => {
+    logForDebugging(
+      `[Hapii] teammateViewHelpers.enterTeammateView updater prevViewingId=${prev.viewingAgentTaskId} → ${taskId}`,
+      { level: 'info' },
+    )
     const task = prev.tasks[taskId]
     const prevId = prev.viewingAgentTaskId
     const prevTask = prevId !== undefined ? prev.tasks[prevId] : undefined
@@ -88,6 +97,9 @@ export function enterTeammateView(
 export function exitTeammateView(
   setAppState: (updater: (prev: AppState) => AppState) => void,
 ): void {
+  logForDebugging('[Hapii] teammateViewHelpers.exitTeammateView 退出队友视图', {
+    level: 'info',
+  })
   logEvent('tengu_transcript_view_exit', {})
   setAppState(prev => {
     const id = prev.viewingAgentTaskId
@@ -117,6 +129,10 @@ export function stopOrDismissAgent(
   taskId: string,
   setAppState: (updater: (prev: AppState) => AppState) => void,
 ): void {
+  logForDebugging(
+    `[Hapii] teammateViewHelpers.stopOrDismissAgent taskId=${taskId}`,
+    { level: 'info' },
+  )
   setAppState(prev => {
     const task = prev.tasks[taskId]
     if (!isLocalAgent(task)) return prev

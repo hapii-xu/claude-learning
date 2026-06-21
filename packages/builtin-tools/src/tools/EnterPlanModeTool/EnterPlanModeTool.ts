@@ -20,7 +20,7 @@ import {
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    // No parameters needed
+    // 不需要参数
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -54,9 +54,9 @@ export const EnterPlanModeTool: Tool<InputSchema, Output> = buildTool({
   },
   shouldDefer: true,
   isEnabled() {
-    // When --channels is active, ExitPlanMode is disabled (its approval
-    // dialog needs the terminal). Disable entry too so plan mode isn't a
-    // trap the model can enter but never leave.
+    // 当 --channels 处于活动状态时，ExitPlanMode 被禁用（其审批
+    // 对话框需要终端）。也禁用进入，这样计划模式就不会成为模型
+    // 可以进入但永远无法离开的陷阱。
     if (
       (feature('KAIROS') || feature('KAIROS_CHANNELS')) &&
       getAllowedChannels().length > 0
@@ -75,6 +75,8 @@ export const EnterPlanModeTool: Tool<InputSchema, Output> = buildTool({
   renderToolResultMessage,
   renderToolUseRejectedMessage,
   async call(_input, context) {
+    const { logForDebugging } = await import('src/utils/debug.js')
+    logForDebugging('[Hapii] EnterPlanMode 进入计划模式', { level: 'info' })
     if (context.agentId) {
       throw new Error('EnterPlanMode tool cannot be used in agent contexts')
     }
@@ -82,9 +84,9 @@ export const EnterPlanModeTool: Tool<InputSchema, Output> = buildTool({
     const appState = context.getAppState()
     handlePlanModeTransition(appState.toolPermissionContext.mode, 'plan')
 
-    // Update the permission mode to 'plan'. prepareContextForPlanMode runs
-    // the classifier activation side effects when the user's defaultMode is
-    // 'auto' — see permissionSetup.ts for the full lifecycle.
+    // 将权限模式更新为 'plan'。当用户的 defaultMode 为
+    // 'auto' 时，prepareContextForPlanMode 会运行分类器激活副作用——
+    // 有关完整生命周期，请参阅 permissionSetup.ts。
     context.setAppState(prev => ({
       ...prev,
       toolPermissionContext: applyPermissionUpdate(

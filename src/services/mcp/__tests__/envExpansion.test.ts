@@ -6,7 +6,7 @@ const ENV_CLOSE = '}'
 const envExpr = (value: string): string => `${ENV_OPEN}${value}${ENV_CLOSE}`
 
 describe('expandEnvVarsInString', () => {
-  // Save and restore env vars touched by tests
+  // 保存并恢复测试中涉及的环境变量
   const savedEnv: Record<string, string | undefined> = {}
   const trackedKeys = [
     'TEST_HOME',
@@ -97,24 +97,24 @@ describe('expandEnvVarsInString', () => {
   })
 
   test('handles default value containing colons', () => {
-    // split(':-', 2) means only the first :- is the delimiter
+    // split(':-', 2) 表示只有第一个 :- 是分隔符
     delete process.env.TEST_X
     const result = expandEnvVarsInString(envExpr('TEST_X:-value:-with:-colons'))
-    // The default is "value" because split(':-', 2) gives ["TEST_X", "value"]
-    // Wait -- actually split(':-', 2) on "TEST_X:-value:-with:-colons" gives:
-    //   ["TEST_X", "value"] because limit=2 stops at 2 pieces
+    // 默认值是 "value"，因为 split(':-', 2) 返回 ["TEST_X", "value"]
+    // 等等 — 实际上对 "TEST_X:-value:-with:-colons" 执行 split(':-', 2) 返回：
+    //   ["TEST_X", "value"]，因为 limit=2 在达到 2 个片段时停止
     expect(result.expanded).toBe('value')
     expect(result.missingVars).toEqual([])
   })
 
   test('handles nested-looking syntax as literal (not supported)', () => {
-    // ${${VAR}} - the regex [^}]+ matches "${VAR" (up to first })
-    // so varName would be "${VAR" which won't be found in env
+    // ${${VAR}} — 正则 [^}]+ 匹配 "${VAR"（直到第一个 }）
+    // 所以 varName 会是 "${VAR"，在环境中找不到
     delete process.env.VAR
     const nestedExpr = `${ENV_OPEN}${envExpr('VAR')}${ENV_CLOSE}`
     const result = expandEnvVarsInString(nestedExpr)
-    // The regex \$\{([^}]+)\} matches "${${VAR}" with capture "${VAR"
-    // That env var won't exist, so it stays as "${${VAR}" + remaining "}"
+    // 正则 \$\{([^}]+)\} 匹配 "${${VAR}" 并捕获 "${VAR"
+    // 该环境变量不存在，所以保持为 "${${VAR}" + 剩余的 "}"
     expect(result.missingVars).toEqual([`${ENV_OPEN}VAR`])
     expect(result.expanded).toBe(nestedExpr)
   })

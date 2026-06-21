@@ -18,31 +18,31 @@ import {
   logEvent,
 } from '../analytics/index.js'
 
-/** Configuration for the waiting state shown after the user opens a URL. */
+/** 用户打开 URL 后显示的等待状态配置 */
 export type ElicitationWaitingState = {
-  /** Button label, e.g. "Retry now" or "Skip confirmation" */
+  /** 按钮标签，例如 "Retry now" 或 "Skip confirmation" */
   actionLabel: string
-  /** Whether to show a visible Cancel button (e.g. for error-based retry flow) */
+  /** 是否显示可见的取消按钮（例如用于基于错误的重试流程） */
   showCancel?: boolean
 }
 
 export type ElicitationRequestEvent = {
   serverName: string
-  /** The JSON-RPC request ID, unique per server connection. */
+  /** JSON-RPC 请求 ID，每个服务器连接唯一 */
   requestId: string | number
   params: ElicitRequestParams
   signal: AbortSignal
   /**
-   * Resolves the elicitation. For explicit elicitations, all actions are
-   * meaningful. For error-based retry (-32042), 'accept' is a no-op —
-   * the retry is driven by onWaitingDismiss instead.
+   * 解析 elicitation。对于显式 elicitation，所有操作都有意义。
+   * 对于基于错误的重试（-32042），'accept' 是空操作 ——
+   * 重试由 onWaitingDismiss 驱动。
    */
   respond: (response: ElicitResult) => void
-  /** For URL elicitations: shown after user opens the browser. */
+  /** 对于 URL elicitation：在用户打开浏览器后显示 */
   waitingState?: ElicitationWaitingState
-  /** Called when phase 2 (waiting) is dismissed by user action or completion. */
+  /** 当阶段 2（等待）被用户操作或完成关闭时调用 */
   onWaitingDismiss?: (action: 'dismiss' | 'retry' | 'cancel') => void
-  /** Set to true by the completion notification handler when the server confirms completion. */
+  /** 当服务器确认完成时，由完成通知处理器设置为 true */
   completed?: boolean
 }
 
@@ -50,7 +50,7 @@ function getElicitationMode(params: ElicitRequestParams): 'form' | 'url' {
   return params.mode === 'url' ? 'url' : 'form'
 }
 
-/** Find a queued elicitation event by server name and elicitationId. */
+/** 通过服务器名称和 elicitationId 查找队列中的 elicitation 事件 */
 function findElicitationInQueue(
   queue: ElicitationRequestEvent[],
   serverName: string,
@@ -70,9 +70,8 @@ export function registerElicitationHandler(
   serverName: string,
   setAppState: (f: (prevState: AppState) => AppState) => void,
 ): void {
-  // Register the elicitation request handler.
-  // Wrapped in try/catch because setRequestHandler throws if the client wasn't
-  // created with elicitation capability declared.
+  // 注册 elicitation 请求处理器
+  // 使用 try/catch 包装，因为如果客户端未声明 elicitation 能力，setRequestHandler 会抛出异常
   try {
     client.setRequestHandler(ElicitRequestSchema, async (request, extra) => {
       logMCPDebug(
@@ -87,7 +86,7 @@ export function registerElicitationHandler(
       })
 
       try {
-        // Run elicitation hooks first - they can provide a response programmatically
+        // 首先运行 elicitation 钩子 —— 它们可以以编程方式提供响应
         const hookResponse = await runElicitationHooks(
           serverName,
           request.params,
@@ -170,8 +169,8 @@ export function registerElicitationHandler(
       }
     })
 
-    // Register handler for elicitation completion notifications (URL mode).
-    // Sets `completed: true` on the matching queue event; the dialog reacts to this flag.
+    // 注册 elicitation 完成通知的处理器（URL 模式）
+    // 在匹配的队列事件上设置 `completed: true`；对话框会响应此标志
     client.setNotificationHandler(
       ElicitationCompleteNotificationSchema,
       notification => {
@@ -206,7 +205,7 @@ export function registerElicitationHandler(
       },
     )
   } catch {
-    // Client wasn't created with elicitation capability - nothing to register
+    // 客户端未使用 elicitation 能力创建 —— 无需注册
     return
   }
 }
@@ -257,9 +256,9 @@ export async function runElicitationHooks(
 }
 
 /**
- * Run ElicitationResult hooks after the user has responded, then fire a
- * `elicitation_response` notification. Returns a (potentially modified)
- * ElicitResult — hooks may override the action/content or block the response.
+ * 在用户响应后运行 ElicitationResult 钩子，然后触发
+ * `elicitation_response` 通知。返回（可能被修改的）
+ * ElicitResult —— 钩子可以覆盖操作/内容或阻止响应。
  */
 export async function runElicitationResultHooks(
   serverName: string,
@@ -294,7 +293,7 @@ export async function runElicitationResultHooks(
         }
       : result
 
-    // Fire a notification for observability
+    // 触发通知以便观测
     void executeNotificationHooks({
       message: `Elicitation response for server "${serverName}": ${finalResult.action}`,
       notificationType: 'elicitation_response',
@@ -303,7 +302,7 @@ export async function runElicitationResultHooks(
     return finalResult
   } catch (error) {
     logMCPError(serverName, `ElicitationResult hook error: ${error}`)
-    // Fire notification even on error
+    // 即使出错也触发通知
     void executeNotificationHooks({
       message: `Elicitation response for server "${serverName}": ${result.action}`,
       notificationType: 'elicitation_response',

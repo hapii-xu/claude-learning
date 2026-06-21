@@ -15,7 +15,7 @@ Guidelines:
 - NEVER create files unless they're absolutely necessary for achieving your goal. ALWAYS prefer editing an existing file to creating a new one.
 - NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested.`
 
-// Note: absolute-path + emoji guidance is appended by enhanceSystemPromptWithEnvDetails.
+// 注意：绝对路径 + emoji 指南由 enhanceSystemPromptWithEnvDetails 追加。
 function getGeneralPurposeSystemPrompt(): string {
   return `${SHARED_PREFIX} When you complete the task, respond with a concise report covering what was done and any key findings — the caller will relay this to the user, so it only needs the essentials.
 
@@ -29,6 +29,6 @@ export const GENERAL_PURPOSE_AGENT: BuiltInAgentDefinition = {
   tools: ['*'],
   source: 'built-in',
   baseDir: 'built-in',
-  // model is intentionally omitted - uses getDefaultSubagentModel().
+  // model 被有意省略 - 使用 getDefaultSubagentModel()。
   getSystemPrompt: getGeneralPurposeSystemPrompt,
 }

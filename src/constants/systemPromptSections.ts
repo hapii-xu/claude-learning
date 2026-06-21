@@ -4,6 +4,7 @@ import {
   getSystemPromptSectionCache,
   setSystemPromptSectionCacheEntry,
 } from '../bootstrap/state.js'
+import { logForDebugging } from '../utils/debug.js'
 
 type ComputeFn = () => string | null | Promise<string | null>
 
@@ -44,17 +45,36 @@ export async function resolveSystemPromptSections(
   sections: SystemPromptSection[],
 ): Promise<(string | null)[]> {
   const cache = getSystemPromptSectionCache()
+  logForDebugging(
+    `[Hapii] SystemPromptSections.resolve 开始 sectionCount=${sections.length} names=[${sections.map(s => s.name).join(', ')}]`,
+    { level: 'info' },
+  )
 
-  return Promise.all(
+  const results = await Promise.all(
     sections.map(async s => {
-      if (!s.cacheBreak && cache.has(s.name)) {
+      const cached = !s.cacheBreak && cache.has(s.name)
+      if (cached) {
+        logForDebugging(
+          `[Hapii] SystemPromptSections section="${s.name}" 命中缓存`,
+          { level: 'info' },
+        )
         return cache.get(s.name) ?? null
       }
+      logForDebugging(
+        `[Hapii] SystemPromptSections section="${s.name}" ${s.cacheBreak ? '强制重算(cacheBreak)' : '首次计算'}`,
+        { level: 'info' },
+      )
       const value = await s.compute()
       setSystemPromptSectionCacheEntry(s.name, value)
       return value
     }),
   )
+
+  logForDebugging(
+    `[Hapii] SystemPromptSections.resolve 完成 nullCount=${results.filter(r => r === null).length}`,
+    { level: 'info' },
+  )
+  return results
 }
 
 /**
@@ -63,6 +83,10 @@ export async function resolveSystemPromptSections(
  * 评估 AFK/fast-mode/cache-editing 等 header。
  */
 export function clearSystemPromptSections(): void {
+  logForDebugging(
+    '[Hapii] SystemPromptSections.clear 清除所有 section 缓存 + beta header 锁存器',
+    { level: 'info' },
+  )
   clearSystemPromptSectionState()
   clearBetaHeaderLatches()
 }

@@ -37,6 +37,7 @@ import { getInitialSettings } from '../utils/settings/settings.js'
 import type { SettingsJson } from '../utils/settings/types.js'
 import { shouldEnableThinkingByDefault } from '../utils/thinking.js'
 import type { PipeIpcState } from '../utils/pipeTransport.js'
+import { logForDebugging } from '../utils/debug.js'
 import type { Store } from './store.js'
 
 export type CompletionBoundary =
@@ -455,6 +456,10 @@ export type AppState = DeepImmutable<{
 export type AppStateStore = Store<AppState>
 
 export function getDefaultAppState(): AppState {
+  logForDebugging(
+    '[Hapii] AppStateStore.getDefaultAppState 开始构建默认 AppState',
+    { level: 'info' },
+  )
   // 为使用 plan_mode_required 生成的队友确定初始权限模式
   // 使用延迟 require 以避免与 teammate.ts 的循环依赖
   /* eslint-disable @typescript-eslint/no-require-imports */
@@ -465,6 +470,10 @@ export function getDefaultAppState(): AppState {
     teammateUtils.isTeammate() && teammateUtils.isPlanModeRequired()
       ? 'plan'
       : 'default'
+  logForDebugging(
+    `[Hapii] AppStateStore.getDefaultAppState initialMode=${initialMode}`,
+    { level: 'info' },
+  )
 
   return {
     settings: getInitialSettings(),

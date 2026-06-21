@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { classifyMcpToolForCollapse } from '../classifyForCollapse'
 
 describe('classifyMcpToolForCollapse', () => {
-  // Search tools
+  // 搜索工具
   test('classifies Slack slack_search_public as search', () => {
     expect(classifyMcpToolForCollapse('slack', 'slack_search_public')).toEqual({
       isSearch: true,
@@ -47,7 +47,7 @@ describe('classifyMcpToolForCollapse', () => {
     })
   })
 
-  // Read tools
+  // 读取工具
   test('classifies Slack slack_read_channel as read', () => {
     expect(classifyMcpToolForCollapse('slack', 'slack_read_channel')).toEqual({
       isSearch: false,
@@ -90,7 +90,7 @@ describe('classifyMcpToolForCollapse', () => {
     })
   })
 
-  // Unknown tools
+  // 未知工具
   test('unknown tool returns { isSearch: false, isRead: false }', () => {
     expect(classifyMcpToolForCollapse('unknown', 'do_something')).toEqual({
       isSearch: false,
@@ -98,7 +98,7 @@ describe('classifyMcpToolForCollapse', () => {
     })
   })
 
-  // normalize: camelCase -> snake_case
+  // normalize: 驼峰命名 -> 蛇形命名
   test('tool name with camelCase variant still matches after normalize', () => {
     // searchCode -> search_code
     expect(classifyMcpToolForCollapse('github', 'searchCode')).toEqual({
@@ -107,7 +107,7 @@ describe('classifyMcpToolForCollapse', () => {
     })
   })
 
-  // normalize: kebab-case -> snake_case
+  // normalize: 短横线命名 -> 蛇形命名
   test('tool name with kebab-case variant still matches after normalize', () => {
     // search-code -> search_code
     expect(classifyMcpToolForCollapse('github', 'search-code')).toEqual({
@@ -116,14 +116,14 @@ describe('classifyMcpToolForCollapse', () => {
     })
   })
 
-  // Server name doesn't affect classification
+  // 服务器名称不影响分类
   test('server name parameter does not affect classification', () => {
     const r1 = classifyMcpToolForCollapse('server-a', 'search_code')
     const r2 = classifyMcpToolForCollapse('server-b', 'search_code')
     expect(r1).toEqual(r2)
   })
 
-  // Edge cases
+  // 边界情况
   test('empty tool name returns false/false', () => {
     expect(classifyMcpToolForCollapse('server', '')).toEqual({
       isSearch: false,
@@ -131,7 +131,7 @@ describe('classifyMcpToolForCollapse', () => {
     })
   })
 
-  // normalize lowercases, so SEARCH_CODE -> search_code -> matches
+  // normalize 会转小写，所以 SEARCH_CODE -> search_code -> 匹配
   test('uppercase input normalizes to match', () => {
     expect(classifyMcpToolForCollapse('github', 'SEARCH_CODE')).toEqual({
       isSearch: true,

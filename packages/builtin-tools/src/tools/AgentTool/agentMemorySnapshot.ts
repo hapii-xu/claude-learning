@@ -169,7 +169,7 @@ export async function replaceFromSnapshot(
   logForDebugging(
     `Replacing agent memory for ${agentType} with project snapshot`,
   )
-  // Remove existing .md files before copying to avoid orphans
+  // 复制前删除现有的 .md 文件，以避免孤立文件
   const localMemDir = getAgentMemoryDir(agentType, scope)
   try {
     const existing = await readdir(localMemDir, { withFileTypes: true })
@@ -179,7 +179,7 @@ export async function replaceFromSnapshot(
       }
     }
   } catch {
-    // Directory may not exist yet
+    // 目录可能尚不存在
   }
   await copySnapshotToLocal(agentType, scope)
   await saveSyncedMeta(agentType, scope, snapshotTimestamp)

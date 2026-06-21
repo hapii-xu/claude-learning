@@ -1,19 +1,19 @@
 /**
- * Channel notifications — lets an MCP server push user messages into the
- * conversation. A "channel" (Discord, Slack, SMS, etc.) is just an MCP server
- * that:
- *   - exposes tools for outbound messages (e.g. `send_message`) — standard MCP
- *   - sends `notifications/claude/channel` notifications for inbound — this file
+ * 频道通知 — 允许 MCP 服务器将用户消息推送到
+ * 对话中。"频道"（Discord、Slack、SMS 等）就是一个 MCP 服务器，
+ * 它：
+ *   - 暴露用于出站消息的工具（例如 `send_message`） — 标准 MCP
+ *   - 为入站消息发送 `notifications/claude/channel` 通知 — 本文件
  *
- * The notification handler wraps the content in a <channel> tag and
- * enqueues it. SleepTool polls hasCommandsInQueue() and wakes within 1s.
- * The model sees where the message came from and decides which tool to reply
- * with (the channel's MCP tool, SendUserMessage, or both).
+ * 通知处理程序将内容包装在 <channel> 标签中并
+ * 入队。SleepTool 轮询 hasCommandsInQueue() 并在 1 秒内唤醒。
+ * 模型看到消息来自哪里，并决定用哪个工具回复
+ * （频道的 MCP 工具、SendUserMessage 或两者都用）。
  *
- * feature('KAIROS') || feature('KAIROS_CHANNELS'). Runtime gate tengu_harbor.
- * Requires claude.ai OAuth auth — API key users are blocked until
- * console gets a channelsEnabled admin surface. Teams/Enterprise orgs
- * must explicitly opt in via channelsEnabled: true in managed settings.
+ * feature('KAIROS') || feature('KAIROS_CHANNELS')。运行时开关 tengu_harbor。
+ * 需要 claude.ai OAuth 认证 — API 密钥用户被阻止，直到
+ * console 获得 channelsEnabled 管理界面。团队/企业组织
+ * 必须在托管设置中通过 channelsEnabled: true 显式选择加入。
  */
 
 import type { ServerCapabilities } from '@modelcontextprotocol/sdk/types.js'
@@ -35,25 +35,25 @@ export const ChannelMessageNotificationSchema = lazySchema(() =>
     method: z.literal('notifications/claude/channel'),
     params: z.object({
       content: z.string(),
-      // Opaque passthrough — thread_id, user, whatever the channel wants the
-      // model to see. Rendered as attributes on the <channel> tag.
+      // 透传不透明字段 — thread_id、user，或频道希望模型
+      // 看到的任何内容。渲染为 <channel> 标签的属性。
       meta: z.record(z.string(), z.string()).optional(),
     }),
   }),
 )
 
 /**
- * Structured permission reply from a channel server. Servers that support
- * this declare `capabilities.experimental['claude/channel/permission']` and
- * emit this event INSTEAD of relaying "yes tbxkq" as text via
- * notifications/claude/channel. Explicit opt-in per server — a channel that
- * just wants to relay text never becomes a permission surface by accident.
+ * 来自频道服务器的结构化权限回复。支持此功能的服务器
+ * 声明 `capabilities.experimental['claude/channel/permission']` 并
+ * 发出此事件来替代通过 notifications/claude/channel 中继
+ * "yes tbxkq" 文本。每个服务器显式选择加入 — 只想
+ * 中继文本的频道永远不会意外成为权限界面。
  *
- * The server parses the user's reply (spec: /^\s*(y|yes|n|no)\s+([a-km-z]{5})\s*$/i)
- * and emits {request_id, behavior}. CC matches request_id against its
- * pending map. Unlike the regex-intercept approach, text in the general
- * channel can never accidentally match — approval requires the server
- * to deliberately emit this specific event.
+ * 服务器解析用户的回复（规范：/^\s*(y|yes|n|no)\s+([a-km-z]{5})\s*$/i）
+ * 并发出 {request_id, behavior}。CC 将 request_id 与其
+ * 待处理映射进行匹配。与正则拦截方法不同，通用
+ * 频道中的文本永远不会意外匹配 — 批准需要服务器
+ * 故意发出此特定事件。
  */
 export const CHANNEL_PERMISSION_METHOD =
   'notifications/claude/channel/permission'
@@ -68,15 +68,14 @@ export const ChannelPermissionNotificationSchema = lazySchema(() =>
 )
 
 /**
- * Outbound: CC → server. Fired from interactiveHandler.ts when a
- * permission dialog opens and the server has declared the permission
- * capability. Server formats the message for its platform (Telegram
- * markdown, iMessage rich text, Discord embed) and sends it to the
- * human. When the human replies "yes tbxkq", the server parses that
- * against PERMISSION_REPLY_RE and emits the inbound schema above.
+ * 出站：CC → 服务器。在 interactiveHandler.ts 中当权限对话框
+ * 打开且服务器已声明权限能力时触发。服务器为其平台
+ * 格式化消息（Telegram markdown、iMessage 富文本、Discord embed）
+ * 并发送给人类。当人类回复 "yes tbxkq" 时，服务器根据
+ * PERMISSION_REPLY_RE 解析并发出上述入站模式。
  *
- * Not a zod schema — CC SENDS this, doesn't validate it. A type here
- * keeps both halves of the protocol documented side by side.
+ * 不是 zod 模式 — CC 发送此内容，不验证它。这里的类型
+ * 使协议的两半可以并排记录。
  */
 export const CHANNEL_PERMISSION_REQUEST_METHOD =
   'notifications/claude/channel/permission_request'
@@ -84,13 +83,13 @@ export type ChannelPermissionRequestParams = {
   request_id: string
   tool_name: string
   description: string
-  /** JSON-stringified tool input, truncated to 200 chars with …. Full
-   *  input is in the local terminal dialog; this is a phone-sized
-   *  preview. Server decides whether/how to show it. */
+  /** JSON 序列化的工具输入，截断到 200 个字符并以 … 结尾。完整
+   *  输入在本地终端对话框中；这是手机尺寸的
+   *  预览。服务器决定是否以及如何显示它。 */
   input_preview: string
-  /** Optional source-channel routing hint for servers that support
-   *  multi-chat routing. Backwards compatible: servers that don't care can
-   *  ignore it and keep their existing fallback behavior. */
+  /** 支持多聊天路由的服务器的可选源频道路由提示。
+   *  向后兼容：不关心的服务器可以忽略它并保留
+   *  其现有的回退行为。 */
   channel_context?: {
     source_server?: string
     chat_id?: string
@@ -117,11 +116,11 @@ export const ChannelPermissionRequestNotificationSchema: () => AnyObjectSchema =
   )
 
 /**
- * Meta keys become XML attribute NAMES — a crafted key like
- * `x="" injected="y` would break out of the attribute structure. Only
- * accept keys that look like plain identifiers. This is stricter than
- * the XML spec (which allows `:`, `.`, `-`) but channel servers only
- * send `chat_id`, `user`, `thread_ts`, `message_id` in practice.
+ * Meta 键变为 XML 属性名称 — 精心构造的键如
+ * `x="" injected="y` 会破坏属性结构。只接受
+ * 看起来像普通标识符的键。这比 XML 规范更严格
+ * （XML 规范允许 `:`、`.`、`-`），但实际上频道服务器只
+ * 发送 `chat_id`、`user`、`thread_ts`、`message_id`。
  */
 const SAFE_META_KEY = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 
@@ -138,13 +137,13 @@ export function wrapChannelMessage(
 }
 
 /**
- * Effective allowlist for the current session. Team/enterprise orgs can set
- * allowedChannelPlugins in managed settings — when set, it REPLACES the
- * GrowthBook ledger (admin owns the trust decision). Undefined falls back
- * to the ledger. Unmanaged users always get the ledger.
+ * 当前会话的有效允许列表。团队/企业组织可以在
+ * 托管设置中设置 allowedChannelPlugins — 设置后，它会替换
+ * GrowthBook 台账（管理员拥有信任决策）。未定义则回退
+ * 到台账。非托管用户始终使用台账。
  *
- * Callers already read sub/policy for the policy gate — pass them in to
- * avoid double-reading getSettingsForSource (uncached).
+ * 调用者已经为策略门读取了 sub/policy — 传入它们以
+ * 避免重复读取 getSettingsForSource（未缓存）。
  */
 export function getEffectiveChannelAllowlist(
   sub: ReturnType<typeof getSubscriptionType>,
@@ -175,17 +174,17 @@ export type ChannelGateResult =
     }
 
 /**
- * Match a connected MCP server against the user's parsed --channels entries.
- * server-kind is exact match on bare name; plugin-kind matches on the second
- * segment of plugin:X:Y. Returns the matching entry so callers can read its
- * kind — that's the user's trust declaration, not inferred from runtime shape.
+ * 将已连接的 MCP 服务器与用户解析的 --channels 条目进行匹配。
+ * server-kind 精确匹配裸名称；plugin-kind 匹配 plugin:X:Y 的第二个
+ * 段。返回匹配的条目，以便调用者可以读取其
+ * kind — 这是用户的信任声明，而非从运行时形状推断。
  */
 export function findChannelEntry(
   serverName: string,
   channels: readonly ChannelEntry[],
 ): ChannelEntry | undefined {
-  // split unconditionally — for a bare name like 'slack', parts is ['slack']
-  // and the plugin-kind branch correctly never matches (parts[0] !== 'plugin').
+  // 无条件分割 — 对于像 'slack' 这样的裸名称，parts 是 ['slack']，
+  // plugin-kind 分支正确地永远不会匹配（parts[0] !== 'plugin'）。
   const parts = serverName.split(':')
   return channels.find(c =>
     c.kind === 'server'
@@ -195,30 +194,30 @@ export function findChannelEntry(
 }
 
 /**
- * Gate an MCP server's channel-notification path. Caller checks
- * feature('KAIROS') || feature('KAIROS_CHANNELS') first (build-time
- * elimination). Gate order: capability → runtime gate (tengu_harbor) →
- * auth (OAuth only) → org policy → session --channels → allowlist.
- * API key users are blocked at the auth layer — channels requires
- * claude.ai auth; console orgs have no admin opt-in surface yet.
+ * 对 MCP 服务器的频道通知路径进行门控。调用者先检查
+ * feature('KAIROS') || feature('KAIROS_CHANNELS')（构建时
+ * 消除）。门控顺序：能力 → 运行时开关（tengu_harbor）→
+ * 认证（仅 OAuth）→ 组织策略 → 会话 --channels → 允许列表。
+ * API 密钥用户在认证层被阻止 — 频道需要
+ * claude.ai 认证；console 组织尚无管理员选择加入界面。
  *
- *   skip      Not a channel server, or managed org hasn't opted in, or
- *             not in session --channels. Connection stays up; handler
- *             not registered.
- *   register  Subscribe to notifications/claude/channel.
+ *   skip      不是频道服务器，或托管组织未选择加入，或
+ *             不在会话 --channels 中。连接保持；处理程序
+ *             不注册。
+ *   register  订阅 notifications/claude/channel。
  *
- * Which servers can connect at all is governed by allowedMcpServers —
- * this gate only decides whether the notification handler registers.
+ * 哪些服务器可以连接由 allowedMcpServers 管理 —
+ * 此门控只决定通知处理程序是否注册。
  */
 export function gateChannelServer(
   serverName: string,
   capabilities: ServerCapabilities | undefined,
   pluginSource: string | undefined,
 ): ChannelGateResult {
-  // Channel servers declare `experimental['claude/channel']: {}` (MCP's
-  // presence-signal idiom — same as `tools: {}`). Truthy covers `{}` and
-  // `true`; absent/undefined/explicit-`false` all fail. Key matches the
-  // notification method namespace (notifications/claude/channel).
+  // 频道服务器声明 `experimental['claude/channel']: {}`（MCP 的
+  // 存在信号惯用法 — 与 `tools: {}` 相同）。真值覆盖 `{}` 和
+  // `true`；缺失/undefined/显式 `false` 都会失败。键匹配
+  // 通知方法命名空间（notifications/claude/channel）。
   if (!capabilities?.experimental?.['claude/channel']) {
     return {
       action: 'skip',
@@ -227,9 +226,9 @@ export function gateChannelServer(
     }
   }
 
-  // User-level session opt-in. A server must be explicitly listed in
-  // --channels to push inbound this session — protects against a trusted
-  // server surprise-adding the capability.
+  // 用户级会话选择加入。服务器必须被显式列在
+  // --channels 中才能在此会话推送入站消息 — 防止受信任的
+  // 服务器意外添加能力。
   const entry = findChannelEntry(serverName, getAllowedChannels())
   if (!entry) {
     return {
@@ -240,13 +239,13 @@ export function gateChannelServer(
   }
 
   if (entry.kind === 'plugin') {
-    // Marketplace verification: the tag is intent (plugin:slack@anthropic),
-    // the runtime name is just plugin:slack:X — could be slack@anthropic or
-    // slack@evil depending on what's installed. Verify they match before
-    // trusting the tag for the allowlist check below. Source is stashed on
-    // the config at addPluginScopeToServers — undefined (non-plugin server,
-    // shouldn't happen for plugin-kind entry) or @-less (builtin/inline)
-    // both fail the comparison.
+    // Marketplace 验证：标签是意图（plugin:slack@anthropic），
+    // 运行时名称只是 plugin:slack:X — 可能是 slack@anthropic 或
+    // slack@evil，取决于安装了什么。在信任标签进行下面的
+    // 允许列表检查之前验证它们匹配。来源在
+    // addPluginScopeToServers 时存储在配置上 — undefined（非插件服务器，
+    // 对于 plugin-kind 条目不应该发生）或无 @（内置/内联）
+    // 都会使比较失败。
     const actual = pluginSource
       ? parsePluginIdentifier(pluginSource).marketplace
       : undefined

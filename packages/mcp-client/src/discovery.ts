@@ -1,5 +1,5 @@
-// MCP tool discovery — fetch and process tools from connected MCP servers
-// Extracted from src/services/mcp/client.ts (fetchToolsForClient)
+// MCP 工具发现 — 从已连接的 MCP 服务器获取并处理工具
+// 提取自 src/services/mcp/client.ts (fetchToolsForClient)
 
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import {
@@ -14,35 +14,35 @@ import { memoizeWithLRU } from './cache.js'
 import { recursivelySanitizeUnicode } from './sanitization.js'
 
 // ============================================================================
-// Constants
+// 常量
 // ============================================================================
 
-/** Default max cache size for tool discovery (keyed by server name) */
+/** 工具发现的默认最大缓存大小（以服务器名称为键） */
 export const MCP_FETCH_CACHE_SIZE = 20
 
-/** Maximum description length before truncation */
+/** 截断前的最大描述长度 */
 const MAX_MCP_DESCRIPTION_LENGTH = 2048
 
 // ============================================================================
-// Tool discovery
+// 工具发现
 // ============================================================================
 
 export interface DiscoveryOptions {
-  /** Server name for logging and tool naming */
+  /** 用于日志记录和工具命名的服务器名称 */
   serverName: string
-  /** Connected MCP server client */
+  /** 已连接的 MCP 服务器客户端 */
   client: Client
-  /** Server capabilities (checked before fetching) */
+  /** 服务器能力（在获取前检查） */
   capabilities: Record<string, unknown>
-  /** Whether to skip the mcp__ prefix for tool names */
+  /** 是否跳过工具名称的 mcp__ 前缀 */
   skipPrefix?: boolean
-  /** Host dependencies for logging */
+  /** 用于日志记录的宿主依赖 */
   deps: McpClientDependencies
 }
 
 /**
- * Fetches tools from a connected MCP server and converts them to CoreTool format.
- * Returns empty array if the server doesn't support tools or if fetching fails.
+ * 从已连接的 MCP 服务器获取工具并将其转换为 CoreTool 格式。
+ * 如果服务器不支持工具或获取失败，返回空数组。
  */
 export async function discoverTools(
   options: DiscoveryOptions,
@@ -59,7 +59,7 @@ export async function discoverTools(
       ListToolsResultSchema,
     )) as ListToolsResult
 
-    // Sanitize tool data from MCP server
+    // 清理来自 MCP 服务器的工具数据
     const toolsToProcess = recursivelySanitizeUnicode(result.tools)
 
     return toolsToProcess.map((tool): CoreTool => {
@@ -112,12 +112,12 @@ export async function discoverTools(
 }
 
 // ============================================================================
-// Cached tool discovery (LRU by server name)
+// 缓存的工具发现（按服务器名称 LRU）
 // ============================================================================
 
 /**
- * Creates a memoized tool discovery function with LRU caching.
- * Cache is keyed by server name (stable across reconnects).
+ * 创建一个带 LRU 缓存的记忆化工具发现函数。
+ * 缓存以服务器名称为键（在重连时保持稳定）。
  */
 export function createCachedToolDiscovery(
   deps: McpClientDependencies,

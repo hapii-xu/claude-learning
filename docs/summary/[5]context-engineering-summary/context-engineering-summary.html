@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>上下文工程知识总结 [第五篇] — Claude Code 模型视野全貌</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --red:       #e05252;
+      --red-lt:    #fde8e8;
+      --yellow:    #c07c0a;
+      --yellow-lt: #fef3d5;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── Diagram Box ──────────────────────────────────────── */
+    .diagram-box {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+      margin-bottom: 24px;
+    }
+
+    .diagram-title {
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 16px;
+    }
+
+    /* ── Flow Diagram (HTML/CSS) ──────────────────────────── */
+    .flow-diagram {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      font-size: .82rem;
+    }
+
+    .flow-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .flow-node {
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: .75rem;
+      max-width: 200px;
+    }
+
+    .flow-node.primary {
+      background: var(--orange-lt);
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      font-weight: 700;
+    }
+
+    .flow-node.secondary {
+      background: var(--blue-lt);
+      border-color: var(--blue);
+      color: var(--blue-dk);
+    }
+
+    .flow-node.green {
+      background: var(--green-lt);
+      border-color: var(--green);
+      color: #1a7a4e;
+    }
+
+    .flow-node .node-title {
+      font-weight: 700;
+      font-size: .8rem;
+      margin-bottom: 2px;
+    }
+
+    .flow-node .node-sub {
+      font-size: .7rem;
+      opacity: .75;
+      font-family: var(--font-mono);
+    }
+
+    .flow-arrow {
+      color: var(--text-3);
+      font-size: 1.2rem;
+      line-height: 1;
+      padding: 4px 0;
+    }
+
+    .flow-arrow.right { padding: 0 4px; }
+
+    /* ── Three-source diagram ─────────────────────────────── */
+    .three-source {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .source-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── Card Grid ────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 14px;
+    }
+
+    .info-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+      transition: box-shadow .15s, border-color .15s;
+    }
+
+    .info-card:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--orange-lt);
+    }
+
+    .info-card h3 {
+      font-size: .92rem;
+      margin-bottom: 8px;
+      color: var(--orange-dk);
+    }
+
+    /* ── Collapsible knowledge cards ─────────────────────── */
+    .knowledge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    details.know-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    details.know-card[open] {
+      border-color: var(--orange-lt);
+    }
+
+    details.know-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      outline: none;
+    }
+
+    details.know-card > summary::-webkit-details-marker { display: none; }
+    details.know-card > summary:hover { background: var(--bg); }
+
+    .know-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    details.know-card[open] .know-num {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .know-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: .97rem;
+    }
+
+    .know-tag {
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 10px;
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    .know-tag.blue { background: var(--blue-lt); color: var(--blue-dk); }
+    .know-tag.green { background: var(--green-lt); color: #1a7a4e; }
+
+    .know-arrow {
+      color: var(--text-3);
+      font-size: .85rem;
+      transition: transform .2s;
+    }
+
+    details.know-card[open] .know-arrow { transform: rotate(90deg); }
+
+    .know-body {
+      padding: 0 20px 20px 64px;
+      border-top: 1px solid var(--bg2);
+    }
+
+    .know-body p { margin-top: 12px; }
+
+    /* ── Table ────────────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .84rem;
+    }
+
+    thead th {
+      background: var(--bg2);
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 700;
+      color: var(--text);
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--bg2);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--bg); }
+
+    /* ── Code ─────────────────────────────────────────────── */
+    code {
+      font-family: var(--font-mono);
+      font-size: .82em;
+      background: var(--bg2);
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre {
+      background: #1e1c19;
+      color: #e8e4de;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.6;
+      margin: 12px 0;
+    }
+
+    pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+      font-size: inherit;
+    }
+
+    /* ── Highlights ───────────────────────────────────────── */
+    .callout {
+      border-left: 4px solid var(--orange);
+      background: var(--orange-lt);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      color: var(--text-2);
+      font-size: .88rem;
+    }
+
+    .callout.blue {
+      border-color: var(--blue);
+      background: var(--blue-lt);
+    }
+
+    .callout.green {
+      border-color: var(--green);
+      background: var(--green-lt);
+    }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Mini-stat box ────────────────────────────────────── */
+    .stat-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 12px 0;
+    }
+
+    .stat-box {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 18px;
+      text-align: center;
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .stat-box .val {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--orange);
+      display: block;
+      line-height: 1.2;
+    }
+
+    .stat-box .lbl {
+      font-size: .72rem;
+      color: var(--text-3);
+      font-weight: 600;
+    }
+
+    /* ── Badge ────────────────────────────────────────────── */
+    .badge {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 4px;
+    }
+    .badge-orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .badge-blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .badge-green  { background: var(--green-lt);  color: #1a7a4e; }
+    .badge-red    { background: var(--red-lt);    color: var(--red); }
+    .badge-yellow { background: var(--yellow-lt); color: var(--yellow); }
+
+    /* ── Checklist ────────────────────────────────────────── */
+    .checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: .88rem;
+      color: var(--text-2);
+    }
+
+    .checklist li::before {
+      content: '□';
+      font-size: 1rem;
+      color: var(--orange);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── Next articles ────────────────────────────────────── */
+    .next-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .next-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .next-card .ep-num {
+      font-size: .7rem;
+      font-weight: 700;
+      color: var(--orange);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .next-card h3 {
+      font-size: .95rem;
+      margin-bottom: 6px;
+    }
+
+    .next-card p {
+      font-size: .82rem;
+      color: var(--text-3);
+      margin: 0;
+    }
+
+    /* ── Threshold math block ─────────────────────────────── */
+    .math-box {
+      background: #1e1c19;
+      color: #e8e4de;
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.8;
+      margin: 12px 0;
+    }
+
+    .math-box .hl { color: #f0a46a; }
+    .math-box .dim { color: #7a756e; }
+    .math-box .result { color: #6ed4a0; font-weight: 700; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 1.8rem; }
+      .three-source { grid-template-columns: 1fr; }
+      .stat-box .val { font-size: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ HERO -->
+<header class="hero">
+  <div class="hero-badge">第五篇 · Context Engineering</div>
+  <h1>上下文工程<span>知识总结</span></h1>
+  <p>Claude Code 的"模型视野"全貌：System Prompt 装配 · CLAUDE.md 四级层叠 · memdir 类型化记忆 · Auto-Compact 算法 · Prompt Cache 单一断点策略</p>
+  <ul class="nav-links">
+    <li><a href="#overview">一、全貌</a></li>
+    <li><a href="#core">二、核心六点</a></li>
+    <li><a href="#secondary">三、次要三点</a></li>
+    <li><a href="#skip">四、可跳过</a></li>
+    <li><a href="#files">五、关键文件</a></li>
+    <li><a href="#guide">六、学习建议</a></li>
+    <li><a href="#prior">七、知识衔接</a></li>
+    <li><a href="#checklist">八、验证清单</a></li>
+    <li><a href="#next">九、后续路线</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <!-- ═══════════════════════════════════════════════════════ 一、全貌 -->
+  <section id="overview">
+    <h2>一、上下文工程全貌</h2>
+
+    <p>每次 API 调用前，<code>QueryEngine.ts:74</code> 并发拉取<strong>三个互不相干的源</strong>，最终合流为发往 Anthropic API 的 <code>BetaCreateParams</code>。</p>
+
+    <!-- 三源汇流示意图 -->
+    <div class="diagram-box">
+      <div class="diagram-title">三源汇流 — fetchSystemPromptParts()</div>
+
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0;font-size:.82rem;">
+
+        <!-- QueryEngine -->
+        <div class="flow-node primary" style="margin-bottom:0;">
+          <div class="node-title">QueryEngine.ts:74</div>
+          <div class="node-sub">每轮调 fetchSystemPromptParts()</div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <!-- fetchSystemPromptParts -->
+        <div class="flow-node secondary" style="max-width:340px;margin-bottom:0;">
+          <div class="node-title">fetchSystemPromptParts()</div>
+          <div class="node-sub">utils/queryContext.ts:44-74 · Promise.all 三路并行</div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <!-- 三路 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;width:100%;max-width:800px;margin-bottom:0;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <div class="flow-node primary" style="max-width:100%;width:100%;">
+              <div class="node-title">getSystemPrompt()</div>
+              <div class="node-sub">constants/prompts.ts:416-538<br/>返回 string[]</div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-node" style="max-width:100%;width:100%;background:var(--orange-lt);border-color:var(--orange);">
+              <div class="node-title" style="color:var(--orange-dk);">静态前缀（可缓存）</div>
+              <div class="node-sub" style="color:var(--orange-dk);">intro+system+tools<br/>+actions+outputEfficiency</div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-node" style="max-width:100%;width:100%;background:var(--blue-lt);border-color:var(--blue);">
+              <div class="node-title" style="color:var(--blue-dk);">动态部分</div>
+              <div class="node-sub" style="color:var(--blue-dk);">memory/env_info<br/>mcp_instructions</div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <div class="flow-node secondary" style="max-width:100%;width:100%;">
+              <div class="node-title">getUserContext()</div>
+              <div class="node-sub">context.ts:155-189<br/>claudeMd + currentDate</div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-node green" style="max-width:100%;width:100%;">
+              <div class="node-title">CLAUDE.md 合并</div>
+              <div class="node-sub">4种类型层叠<br/>→ 首条 user 消息前缀</div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-node" style="max-width:100%;width:100%;background:var(--green-lt);border-color:var(--green);color:#1a7a4e;">
+              <div class="node-title">cachedClaudeMdContent</div>
+              <div class="node-sub">bootstrap/state.ts:123<br/>会话级缓存</div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <div class="flow-node" style="max-width:100%;width:100%;background:var(--bg2);border-color:var(--border);">
+              <div class="node-title">getSystemContext()</div>
+              <div class="node-sub">context.ts:116-150<br/>git status 快照</div>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-node" style="max-width:100%;width:100%;background:var(--bg2);">
+              <div class="node-title">cacheBreaker 标记</div>
+              <div class="node-sub">memoized，会话只算一次<br/>截断上限 1000 字符</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-arrow">↓</div>
+        <div class="flow-node primary" style="max-width:360px;">
+          <div class="node-title">claude.ts — addCacheBreakpoints()</div>
+          <div class="node-sub">每请求恰好 1 个 cache_control → 发往 Anthropic API</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auto-compact 时序图 -->
+    <div class="diagram-box">
+      <div class="diagram-title">Auto-Compact 决策时序</div>
+
+      <div style="overflow-x:auto;">
+        <table style="min-width:620px;font-size:.82rem;">
+          <thead>
+            <tr>
+              <th style="width:18%">参与者</th>
+              <th>动作序列</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>QueryEngine</code></td>
+              <td>→ <code>autoCompactIfNeeded(messages, model, ...)</code></td>
+            </tr>
+            <tr>
+              <td><code>autoCompact.ts</code></td>
+              <td>① 熔断器检查（连续失败 &lt; 3）<br/>② 调 <code>shouldAutoCompact(messages, model, ...)</code></td>
+            </tr>
+            <tr>
+              <td>阈值计算</td>
+              <td><code>tokenCountWithEstimation − snipFreed</code><br/>vs <code>getAutoCompactThreshold(model)</code> → 返回 bool</td>
+            </tr>
+            <tr>
+              <td colspan="2" style="background:var(--yellow-lt);color:var(--yellow);">
+                <strong>触发压缩路径</strong>
+              </td>
+            </tr>
+            <tr>
+              <td><code>trySessionMemoryCompaction</code></td>
+              <td>优先尝试（forked agent 产出的摘要）→ 成功则注入 memory 摘要消息</td>
+            </tr>
+            <tr>
+              <td><code>compactConversation</code></td>
+              <td>回退路径：调 Sonnet 生成总结 → 摘要消息替换全部历史</td>
+            </tr>
+            <tr>
+              <td>清理</td>
+              <td><code>setLastSummarizedMessageId(undefined)</code> + <code>runPostCompactCleanup()</code> + <code>notifyCompaction()</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ 二、核心 -->
+  <section id="core">
+    <h2>二、必须掌握（核心 6 点）</h2>
+
+    <div class="knowledge-grid">
+
+      <!-- 1. 三源汇流 -->
+      <details class="know-card" open>
+        <summary>
+          <span class="know-num">1</span>
+          <span class="know-title">上下文的"三源汇流"模型</span>
+          <span class="know-tag">fetchSystemPromptParts</span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <p>每次 API 调用前，<code>QueryEngine.ts:74</code> 都会调 <code>fetchSystemPromptParts()</code>（<code>src/utils/queryContext.ts:44-74</code>），并发拉取三个互不相干的源：</p>
+
+          <div class="table-wrap" style="margin-top:12px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>源</th><th>函数</th><th>内容</th><th>注入位置</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>System Prompt</strong></td>
+                  <td><code>getSystemPrompt()</code><br/><code>prompts.ts:416-538</code></td>
+                  <td>持久化"角色 + 规则 + 工具"指令</td>
+                  <td><code>system: string[]</code>（API 字段）</td>
+                </tr>
+                <tr>
+                  <td><strong>User Context</strong></td>
+                  <td><code>getUserContext()</code><br/><code>context.ts:155-189</code></td>
+                  <td>CLAUDE.md 合并内容 + 当前日期</td>
+                  <td>拼到首条 user 消息前缀</td>
+                </tr>
+                <tr>
+                  <td><strong>System Context</strong></td>
+                  <td><code>getSystemContext()</code><br/><code>context.ts:116-150</code></td>
+                  <td>git status 快照</td>
+                  <td>拼到首条 user 消息前缀</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout" style="margin-top:14px;">
+            <strong>关键洞察：</strong>CLAUDE.md 与 git status <strong>不进 system prompt</strong>，而是作为首条 user 消息的前缀。原因：它们与会话特定的工作目录强相关，无法跨会话复用 prompt cache，放在 user 消息里更便于按需替换。
+          </div>
+
+          <p style="margin-top:10px;">当传 <code>customSystemPrompt</code> 时（如 <code>claude -p "..."</code> 模式），default prompt + system context 都被跳过（L62-71），只保留 user context。</p>
+        </div>
+      </details>
+
+      <!-- 2. System Prompt 两段式 -->
+      <details class="know-card">
+        <summary>
+          <span class="know-num">2</span>
+          <span class="know-title">System Prompt 的两段式结构</span>
+          <span class="know-tag">prompts.ts:416-538</span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <p><code>getSystemPrompt(tools, model, additionalDirs, mcpClients)</code> 返回 <code>string[]</code>，每项独立成一个 system block（Anthropic API 多块 system 用法）。</p>
+
+          <h3 style="margin-top:14px;">静态前缀（L522-532，可缓存）</h3>
+          <ol style="margin-left:20px;color:var(--text-2);font-size:.88rem;line-height:1.8;">
+            <li><code>getSimpleIntroSection()</code> — persona（"You are Claude Code..."）</li>
+            <li><code>getSimpleSystemSection()</code> — 环境 / 策略基础</li>
+            <li><code>getSimpleDoingTasksSection()</code>（条件启用）</li>
+            <li><code>getActionsSection()</code></li>
+            <li><code>getUsingYourToolsSection(enabledTools)</code> — 工具使用规则（CORE_TOOLS schema 文本）</li>
+            <li><code>getOutputEfficiencySection()</code></li>
+          </ol>
+
+          <div class="callout blue" style="margin-top:12px;">
+            <strong><code>SYSTEM_PROMPT_DYNAMIC_BOUNDARY</code>（L534）</strong> — 一道"水线"，标记静态/动态分界。静态前缀同一进程内只算一次（走 bootstrap STATE 的 <code>systemPromptSectionCache</code>），动态部分按 <code>cacheBreak</code> 标记决定是否复用。
+          </div>
+
+          <h3 style="margin-top:14px;">动态部分（systemPromptSection 注册表）</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Section</th><th>说明</th><th>类型</th></tr></thead>
+              <tbody>
+                <tr><td><code>memory</code>（L468）</td><td>memdir 注入点</td><td><span class="badge badge-orange">可缓存</span></td></tr>
+                <tr><td><code>env_info_simple</code>（L472）</td><td>cwd / OS / model / date / additional dirs</td><td><span class="badge badge-orange">可缓存</span></td></tr>
+                <tr><td><code>mcp_instructions</code>（L486）</td><td>MCP 工具列表（每轮重算）</td><td><span class="badge badge-red">DANGEROUS_uncached</span></td></tr>
+                <tr><td><code>mode_persona</code> / <code>output_style</code></td><td>模式与输出风格</td><td><span class="badge badge-orange">可缓存</span></td></tr>
+                <tr><td><code>token_budget</code></td><td>feature gate 控制</td><td><span class="badge badge-blue">条件启用</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
+      <!-- 3. CLAUDE.md 四级层叠 -->
+      <details class="know-card">
+        <summary>
+          <span class="know-num">3</span>
+          <span class="know-title">CLAUDE.md 四级层叠</span>
+          <span class="know-tag">claudemd.ts</span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <p><code>getMemoryFiles()</code>（<code>claudemd.ts:789</code>，memoized）按 4 种类型收集 <code>.md</code> 文件：</p>
+
+          <div class="stat-row" style="margin-top:12px;">
+            <div class="stat-box">
+              <span class="val">1</span>
+              <span class="lbl">Managed<br/>全局规则</span>
+            </div>
+            <div class="stat-box">
+              <span class="val">2</span>
+              <span class="lbl">User<br/>~/.claude</span>
+            </div>
+            <div class="stat-box">
+              <span class="val">3</span>
+              <span class="lbl">Project<br/>cwd 向上</span>
+            </div>
+            <div class="stat-box">
+              <span class="val">4</span>
+              <span class="lbl">Local<br/>git ignore</span>
+            </div>
+          </div>
+
+          <div class="table-wrap" style="margin-top:14px;">
+            <table>
+              <thead><tr><th>机制</th><th>实现</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>单文件上限</td>
+                  <td><code>MAX_MEMORY_CHARACTER_COUNT = 40_000</code>（L91）</td>
+                  <td>超出截断</td>
+                </tr>
+                <tr>
+                  <td>worktree dedup</td>
+                  <td>L867-874</td>
+                  <td>嵌套 worktree 时跳过父仓库 Project 文件，避免重复</td>
+                </tr>
+                <tr>
+                  <td>@include 引用</td>
+                  <td><code>processConditionedMdRules()</code>（L1353）</td>
+                  <td>支持 <code>@include path/to/file.md</code></td>
+                </tr>
+                <tr>
+                  <td>glob-conditional</td>
+                  <td><code>processMdRules()</code>（L696）</td>
+                  <td>"当编辑 *.test.ts 时才加载这条规则"</td>
+                </tr>
+                <tr>
+                  <td>feature flag</td>
+                  <td><code>tengu_paper_halyard</code></td>
+                  <td>可跳过 project-level（A/B 测试）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout" style="margin-top:12px;">
+            合并结果写入 bootstrap STATE 的 <code>cachedClaudeMdContent</code>（<code>bootstrap/state.ts:123</code>）。<code>yoloClassifier.ts</code> 通过 getter 读取，避免循环 import。
+          </div>
+        </div>
+      </details>
+
+      <!-- 4. memdir 类型化记忆 -->
+      <details class="know-card">
+        <summary>
+          <span class="know-num">4</span>
+          <span class="know-title">memdir 类型化记忆系统</span>
+          <span class="know-tag">src/memdir/</span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <p>memdir 是 Claude Code 的持久化、类型化、按需召回的记忆体系。与 CLAUDE.md 的区别：</p>
+
+          <div class="table-wrap" style="margin-top:10px;">
+            <table>
+              <thead><tr><th>对比维度</th><th>CLAUDE.md</th><th>memdir</th></tr></thead>
+              <tbody>
+                <tr><td>作者</td><td>用户手写</td><td>Claude 自动产生</td></tr>
+                <tr><td>内容</td><td>项目指令</td><td>结构化记忆</td></tr>
+                <tr><td>注入方式</td><td>每轮全量注入</td><td>按需召回（最多 5 条）</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 style="margin-top:14px;">4 种记忆类型（<code>memoryTypes.ts:14</code>）</h3>
+          <div class="card-grid" style="margin-top:8px;">
+            <div class="info-card" style="padding:12px 14px;">
+              <h3 style="color:var(--orange-dk);">user</h3>
+              <p style="font-size:.82rem;margin:0;">关于用户的事实（角色、偏好、知识背景）</p>
+            </div>
+            <div class="info-card" style="padding:12px 14px;">
+              <h3 style="color:var(--blue-dk);">feedback</h3>
+              <p style="font-size:.82rem;margin:0;">用户给的反馈（"别再这样做" / "这种方式不错"）</p>
+            </div>
+            <div class="info-card" style="padding:12px 14px;">
+              <h3 style="color:#1a7a4e;">project</h3>
+              <p style="font-size:.82rem;margin:0;">项目状态（正在做的事、决策、deadline）</p>
+            </div>
+            <div class="info-card" style="padding:12px 14px;">
+              <h3 style="color:var(--text-2);">reference</h3>
+              <p style="font-size:.82rem;margin:0;">外部资源指针（Slack 频道、Grafana 看板 URL）</p>
+            </div>
+          </div>
+
+          <h3 style="margin-top:16px;">目录结构</h3>
+          <pre><code>${CLAUDE_HOME}/projects/{sanitized-cwd}/memory/
+├── MEMORY.md              ← 索引文件（≤200行 / ≤25KB，超出截断+警告footer）
+├── user_role.md           ← 单条记忆（frontmatter: name/description/type）
+├── feedback_testing.md
+└── project_xxx.md</code></pre>
+
+          <h3 style="margin-top:14px;">注入方式（<code>memdir.ts:415</code>）</h3>
+          <p>通过 <code>systemPromptSection('memory', ...)</code> 注册到动态部分（L468）。内容 = 类型化记忆指令文本 + MEMORY.md 索引。<strong>不全量加载单条记忆，只加载索引。</strong></p>
+
+          <h3 style="margin-top:14px;">按需召回（<code>findRelevantMemories.ts:40</code>）</h3>
+          <ol style="margin-left:20px;color:var(--text-2);font-size:.88rem;line-height:1.9;">
+            <li>用户输入触发时，扫描记忆文件的 frontmatter（<code>scanMemoryFiles</code>）</li>
+            <li>调 Sonnet 做 sideQuery 选择，最多挑 5 条</li>
+            <li>通过 <code>SELECT_MEMORIES_SYSTEM_PROMPT</code>（L19）约束 LLM 只返回相关路径</li>
+            <li>已用过的记忆 + 不匹配当前工具的记忆会被排除</li>
+          </ol>
+
+          <div class="callout green" style="margin-top:12px;">
+            <strong>安全防护（<code>teamMemPaths.ts:22</code> <code>sanitizePathKey</code>）：</strong>拒绝 null bytes / URL-encoded / NFKC 归一化绕过 / 反斜杠 / 绝对路径键 — 防止 path traversal。
+          </div>
+        </div>
+      </details>
+
+      <!-- 5. Auto-Compact 算法 -->
+      <details class="know-card">
+        <summary>
+          <span class="know-num">5</span>
+          <span class="know-title">Auto-Compact 算法</span>
+          <span class="know-tag">autoCompact.ts</span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+
+          <h3 style="margin-top:14px;">核心数学（L29-101）</h3>
+          <div class="math-box">
+            <span class="hl">effectiveContextWindow</span> = contextWindow − reservedTokensForSummary<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span class="hl">200K</span> − <span class="hl">20K</span> = <span class="hl">180K</span> <span class="dim">（默认模型）</span><br/>
+            <br/>
+            <span class="hl">bufferTokens</span> <span class="dim">（按窗口大小分级）</span>：<br/>
+            &nbsp;&nbsp;≥ 800K window  →  <span class="hl">50K</span><br/>
+            &nbsp;&nbsp;≥ 400K window  →  <span class="hl">30K</span><br/>
+            &nbsp;&nbsp;otherwise      →  <span class="hl">13K</span><br/>
+            <br/>
+            <span class="hl">autoCompactThreshold</span> = effectiveContextWindow − bufferTokens<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 180K − 13K = <span class="result">167K（默认触发点）</span>
+          </div>
+
+          <h3 style="margin-top:14px;">环境变量旁路</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>变量</th><th>作用</th></tr></thead>
+              <tbody>
+                <tr><td><code>CLAUDE_CODE_AUTO_COMPACT_WINDOW</code></td><td>直接覆盖 effective window</td></tr>
+                <tr><td><code>CLAUDE_AUTOCOMPACT_PCT_OVERRIDE</code></td><td>按百分比调整阈值</td></tr>
+                <tr><td><code>DISABLE_COMPACT</code> / <code>DISABLE_AUTO_COMPACT</code></td><td>完全禁用</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 style="margin-top:14px;">4 级告警状态（<code>calculateTokenWarningState()</code> L122）</h3>
+          <div class="stat-row">
+            <div class="stat-box" style="background:var(--bg2);">
+              <span class="val" style="font-size:1rem;color:var(--text-2);">余量警告</span>
+              <span class="lbl">isAboveWarningThreshold<br/>黄色提示</span>
+            </div>
+            <div class="stat-box" style="background:var(--red-lt);">
+              <span class="val" style="font-size:1rem;color:var(--red);">红色警告</span>
+              <span class="lbl">isAboveErrorThreshold<br/>红色 UI</span>
+            </div>
+            <div class="stat-box" style="background:var(--orange-lt);">
+              <span class="val" style="font-size:.9rem;color:var(--orange);">★ 触发压缩</span>
+              <span class="lbl">isAboveAutoCompactThreshold<br/>167K</span>
+            </div>
+            <div class="stat-box" style="background:var(--yellow-lt);">
+              <span class="val" style="font-size:.9rem;color:var(--yellow);">阻止调用</span>
+              <span class="lbl">isAtBlockingLimit<br/>拒绝下次请求</span>
+            </div>
+          </div>
+
+          <h3 style="margin-top:14px;">触发流程（<code>autoCompactIfNeeded()</code> L270）</h3>
+          <ol style="margin-left:20px;color:var(--text-2);font-size:.88rem;line-height:1.9;">
+            <li>熔断器：连续失败 ≥ 3 次则放弃（<code>MAX_CONSECUTIVE_AUTOCOMPACT_FAILURES</code>）</li>
+            <li>递归守卫：在 <code>session_memory</code> / <code>compact</code> / <code>marble_origami</code> 等 sideQuery 中跳过</li>
+            <li><strong>优先</strong>调 <code>trySessionMemoryCompaction()</code>（L317）— 利用 forked agent 产出的 session memory 摘要</li>
+            <li>失败回退 <code>compactConversation()</code>（L342）— 标准对话摘要（调 Sonnet）</li>
+            <li>成功后：<code>setLastSummarizedMessageId(undefined)</code> + <code>runPostCompactCleanup()</code> + <code>notifyCompaction()</code></li>
+          </ol>
+
+          <h3 style="margin-top:14px;">多种压缩策略并存</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>策略</th><th>场景</th></tr></thead>
+              <tbody>
+                <tr><td><code>autoCompact.ts</code></td><td>主路径，token 超阈值自动触发</td></tr>
+                <tr><td><code>microCompact.ts</code> / <code>apiMicrocompact.ts</code></td><td>单工具结果级别微压缩（截图 / 大段文本）</td></tr>
+                <tr><td><code>snipCompact.ts</code></td><td>截掉中间消息保留首尾</td></tr>
+                <tr><td><code>reactiveCompact.ts</code></td><td>API 返回 413 时的事后修复</td></tr>
+                <tr><td><code>sessionMemoryCompact.ts</code></td><td>子代理压缩入口</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
+      <!-- 6. Prompt Cache 单一断点 -->
+      <details class="know-card">
+        <summary>
+          <span class="know-num">6</span>
+          <span class="know-title">Prompt Cache 的"单一断点"策略</span>
+          <span class="know-tag">claude.ts:3223</span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <p><code>addCacheBreakpoints()</code> 的核心规则：<strong>每个请求恰好一个 message-level <code>cache_control</code> 标记</strong>（L3238-3249）。</p>
+
+          <div class="callout blue" style="margin-top:12px;">
+            <strong>为什么不能多个？</strong>注释（L3238-3248）解释了 KV cache 的本地注意力驱逐机制——多个断点会让 cache 命中率反而下降。
+          </div>
+
+          <h3 style="margin-top:14px;">断点位置规则</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>模式</th><th>断点位置</th><th>目的</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>默认</td>
+                  <td>最后一条消息</td>
+                  <td>这条之前的所有内容都参与下次请求的 cache 比对</td>
+                </tr>
+                <tr>
+                  <td><code>skipCacheWrite</code>（fire-and-forget 子任务）</td>
+                  <td>倒数第二条</td>
+                  <td>让主路径继续延伸 cache，子分叉不污染</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 style="margin-top:14px;">TTL 策略</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>类型</th><th>有效期</th><th>触发条件</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><code>{ type: 'ephemeral' }</code></td>
+                  <td>5 分钟</td>
+                  <td>默认</td>
+                </tr>
+                <tr>
+                  <td><code>{ type: 'ephemeral', ttl: '1h' }</code></td>
+                  <td>1 小时</td>
+                  <td><code>getPromptCache1hEligible()</code> latch 控制，避免每次切换 TTL 破坏 cache</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 style="margin-top:14px;">System prompt 的隐式缓存</h3>
+          <ul style="margin-left:20px;color:var(--text-2);font-size:.88rem;line-height:1.8;">
+            <li>静态前缀（<code>SYSTEM_PROMPT_DYNAMIC_BOUNDARY</code> 之上）+ 所有<strong>非 <code>cacheBreak</code></strong> 的 <code>systemPromptSection</code> 形成 cacheable 前缀</li>
+            <li>当前只有 <code>mcp_instructions</code> 是 <code>DANGEROUS_uncached</code>——这是 cache miss 的主要来源之一</li>
+          </ul>
+
+          <div class="callout" style="margin-top:12px;">
+            <strong>其他 cache_control 使用点：</strong><code>sideQuery.ts</code> / <code>api.ts</code> / <code>promptCacheBreakDetection.ts</code>（telemetry：意外 cache break 上报）/ <code>PromptSuggestion/</code>
+          </div>
+        </div>
+      </details>
+
+    </div><!-- /knowledge-grid -->
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ 三、次要 -->
+  <section id="secondary">
+    <h2>三、应该了解（次要 3 点）</h2>
+
+    <div class="knowledge-grid">
+
+      <details class="know-card">
+        <summary>
+          <span class="know-num">A</span>
+          <span class="know-title">systemPromptSection 注册表机制</span>
+          <span class="know-tag blue">systemPromptSections.ts</span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <p>两个工厂函数 + 一个 resolver：</p>
+          <pre><code><span style="color:#6ed4a0;">// 默认：缓存（cacheBreak: false）</span>
+systemPromptSection('memory', () =&gt; loadMemoryPrompt())
+
+<span style="color:#f0a46a;">// 危险：每轮重算（cacheBreak: true）</span>
+DANGEROUS_uncachedSystemPromptSection('mcp_instructions', () =&gt; ..., 'MCP 工具列表会变化')</code></pre>
+
+          <p><code>resolveSystemPromptSections(sections)</code>（L43）按名字查 <code>getSystemPromptSectionCache()</code>（bootstrap STATE）：</p>
+          <ul style="margin-left:20px;color:var(--text-2);font-size:.88rem;line-height:1.8;">
+            <li>非 cacheBreak → 命中缓存直接返回</li>
+            <li>cacheBreak → 强制重算</li>
+          </ul>
+
+          <div class="callout" style="margin-top:10px;">
+            <code>clearSystemPromptSections()</code>（L65）在 <code>/clear</code> 和 <code>/compact</code> 时调用，同时<strong>重置 beta-header latch</strong>（<code>afkModeHeaderLatched</code> / <code>fastModeHeaderLatched</code> / <code>cacheEditingHeaderLatched</code>）—— 这些 latch 是为了避免 beta 头波动破坏 cache，重置后下一轮才能重新协商。
+          </div>
+        </div>
+      </details>
+
+      <details class="know-card">
+        <summary>
+          <span class="know-num">B</span>
+          <span class="know-title">getGitStatus 的并发与截断</span>
+          <span class="know-tag blue">context.ts:36-111</span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <div class="table-wrap" style="margin-top:12px;">
+            <table>
+              <thead><tr><th>机制</th><th>细节</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>5 个 git 命令并行</td>
+                  <td><code>getBranch / getDefaultBranch / status --short / log --oneline -n 5 / config user.name</code>（L61-77）</td>
+                </tr>
+                <tr>
+                  <td>memoized</td>
+                  <td>同一会话只跑一次（注释 L97 明确说"will not update during the conversation"）</td>
+                </tr>
+                <tr>
+                  <td>1000 字符截断</td>
+                  <td><code>MAX_STATUS_CHARS</code>（L20）超出时追加提示，让模型主动调 BashTool 拿完整状态</td>
+                </tr>
+                <tr>
+                  <td>跳过条件</td>
+                  <td><code>CLAUDE_CODE_REMOTE</code> / <code>shouldIncludeGitInstructions() === false</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
+      <details class="know-card">
+        <summary>
+          <span class="know-num">C</span>
+          <span class="know-title">Token 计数的双轨估算</span>
+          <span class="know-tag blue">tokens.ts:251</span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <p><code>tokenCountWithEstimation(messages)</code> 同时使用：</p>
+          <div class="table-wrap" style="margin-top:10px;">
+            <table>
+              <thead><tr><th>轨道</th><th>精度</th><th>时效</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>API 已报告的 usage</td>
+                  <td>精确</td>
+                  <td>只反映上一轮的实际值</td>
+                </tr>
+                <tr>
+                  <td>本地 tokenizer 估算</td>
+                  <td>粗糙</td>
+                  <td>能预测下一轮</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top:10px;">二者相加 → 在请求<strong>发出去之前</strong>就能判断会不会超 context window，触发 auto-compact 而不是让 API 返回 413。</p>
+
+          <div class="callout green" style="margin-top:10px;">
+            <strong>context window 解析（<code>src/utils/context.ts:56</code>）：</strong>默认 <code>MODEL_CONTEXT_WINDOW_DEFAULT = 200_000</code>，按 model + betas 查能力表（如 1M context beta），钳制超出广告值。
+          </div>
+        </div>
+      </details>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ 四、可跳过 -->
+  <section id="skip">
+    <h2>四、可暂时跳过</h2>
+    <div class="card-grid">
+      <div class="info-card" style="opacity:.7;">
+        <h3>compact.ts 的 prompt 措辞</h3>
+        <p style="font-size:.82rem;margin:0;">看效果即可，不必逐字读</p>
+      </div>
+      <div class="info-card" style="opacity:.7;">
+        <h3>microCompact 三层缓存协作</h3>
+        <p style="font-size:.82rem;margin:0;"><code>microCompact</code> / <code>cachedMicrocompact</code> / <code>apiMicrocompact</code> 协作细节</p>
+      </div>
+      <div class="info-card" style="opacity:.7;">
+        <h3>snipProjection.ts 中段截取算法</h3>
+        <p style="font-size:.82rem;margin:0;">截取算法数学细节</p>
+      </div>
+      <div class="info-card" style="opacity:.7;">
+        <h3>teamMemPaths / teamMemPrompts</h3>
+        <p style="font-size:.82rem;margin:0;">feature-gated <code>TEAMMEM</code>，未启用时无意义</p>
+      </div>
+      <div class="info-card" style="opacity:.7;">
+        <h3>KAIROS daily log</h3>
+        <p style="font-size:.82rem;margin:0;"><code>buildAssistantDailyLogPrompt</code> <code>memdir.ts:325</code>，KAIROS feature 专用</p>
+      </div>
+      <div class="info-card" style="opacity:.7;">
+        <h3>findRelevantMemories sideQuery prompt 措辞</h3>
+        <p style="font-size:.82rem;margin:0;">理解机制即可</p>
+      </div>
+      <div class="info-card" style="opacity:.7;">
+        <h3>compactWarningHook / compactWarningState UI 触发</h3>
+        <p style="font-size:.82rem;margin:0;">UI 细节</p>
+      </div>
+      <div class="info-card" style="opacity:.7;">
+        <h3>feature flag A/B 实验内容</h3>
+        <p style="font-size:.82rem;margin:0;"><code>tengu_paper_halyard</code> / <code>tengu_moth_copse</code> / <code>marble_origami</code> 的具体实验内容</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ 五、关键文件 -->
+  <section id="files">
+    <h2>五、关键文件清单（必备书签）</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>文件</th>
+            <th>角色</th>
+            <th>必看行号</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>src/context.ts</code></td>
+            <td>三源汇流的 user/system context</td>
+            <td><code>getSystemContext():116-150</code>、<code>getUserContext():155-189</code>、<code>getGitStatus():36-111</code>、<code>MAX_STATUS_CHARS:20</code></td>
+          </tr>
+          <tr>
+            <td><code>src/utils/queryContext.ts</code></td>
+            <td>System prompt 装配入口</td>
+            <td><code>fetchSystemPromptParts():44-74</code>、<code>buildSideQuestionFallbackParams():88-179</code></td>
+          </tr>
+          <tr>
+            <td><code>src/constants/prompts.ts</code></td>
+            <td>System prompt 全文模板</td>
+            <td><code>getSystemPrompt():416-538</code>、静态前缀 <code>:522-532</code>、<code>SYSTEM_PROMPT_DYNAMIC_BOUNDARY:534</code>、动态注册块 <code>:463-517</code></td>
+          </tr>
+          <tr>
+            <td><code>src/constants/systemPromptSections.ts</code></td>
+            <td>section 注册表</td>
+            <td><code>systemPromptSection():20</code>、<code>DANGEROUS_uncachedSystemPromptSection():32</code>、<code>resolveSystemPromptSections():43</code>、<code>clearSystemPromptSections():65</code></td>
+          </tr>
+          <tr>
+            <td><code>src/utils/claudemd.ts</code></td>
+            <td>CLAUDE.md 发现 + 合并</td>
+            <td><code>MAX_MEMORY_CHARACTER_COUNT:91</code>、<code>getMemoryFiles():789</code>、<code>getClaudeMds():1152-1194</code>、<code>worktree dedup:867-874</code>、<code>@include 处理:1353</code></td>
+          </tr>
+          <tr>
+            <td><code>src/memdir/memdir.ts</code></td>
+            <td>memdir 主接口</td>
+            <td><code>ENTRYPOINT_NAME:34</code>、<code>MAX_ENTRYPOINT_LINES:36</code>、<code>MAX_ENTRYPOINT_BYTES:38</code>、<code>buildMemoryPrompt():271</code>、<code>loadMemoryPrompt():415</code></td>
+          </tr>
+          <tr>
+            <td><code>src/memdir/memoryTypes.ts</code></td>
+            <td>4 种记忆类型</td>
+            <td><code>MEMORY_TYPES:14</code>、<code>parseMemoryType():28</code></td>
+          </tr>
+          <tr>
+            <td><code>src/memdir/paths.ts</code></td>
+            <td>路径解析与安全</td>
+            <td><code>isAutoMemoryEnabled():30</code>、<code>getMemoryBaseDir():85</code>、<code>validateMemoryPath():109</code>、<code>getAutoMemPath():222</code></td>
+          </tr>
+          <tr>
+            <td><code>src/memdir/findRelevantMemories.ts</code></td>
+            <td>LLM 按需召回</td>
+            <td><code>SELECT_MEMORIES_SYSTEM_PROMPT:19</code>、<code>findRelevantMemories():40</code></td>
+          </tr>
+          <tr>
+            <td><code>src/services/compact/autoCompact.ts</code></td>
+            <td>自动压缩主路径</td>
+            <td>阈值常量 <code>:29-70</code>、<code>getEffectiveContextWindowSize():33</code>、<code>getAutocompactBufferTokens():77</code>、<code>getAutoCompactThreshold():101</code>、<code>calculateTokenWarningState():122</code>、<code>shouldAutoCompact():189</code>、<code>autoCompactIfNeeded():270</code></td>
+          </tr>
+          <tr>
+            <td><code>src/services/compact/compact.ts</code></td>
+            <td>摘要生成主体</td>
+            <td><code>compactConversation()</code> 入口</td>
+          </tr>
+          <tr>
+            <td><code>src/utils/tokens.ts</code></td>
+            <td>token 计数 + 估算</td>
+            <td><code>tokenCountWithEstimation():251</code></td>
+          </tr>
+          <tr>
+            <td><code>src/utils/context.ts</code></td>
+            <td>context window 解析</td>
+            <td><code>MODEL_CONTEXT_WINDOW_DEFAULT:10</code>、<code>getContextWindowForModel():56</code></td>
+          </tr>
+          <tr>
+            <td><code>src/services/api/claude.ts</code></td>
+            <td>cache 断点策略</td>
+            <td><code>addCacheBreakpoints():3223</code>、规则注释 <code>:3238-3248</code>、<code>cache_reference 位置:3326-3344</code></td>
+          </tr>
+          <tr>
+            <td><code>src/services/api/promptCacheBreakDetection.ts</code></td>
+            <td>cache miss 遥测</td>
+            <td>整文件</td>
+          </tr>
+          <tr>
+            <td><code>src/bootstrap/state.ts</code></td>
+            <td>section/CLAUDE.md 缓存</td>
+            <td><code>cachedClaudeMdContent:123/1201/1206</code>、<code>systemPromptSectionCache</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ 六、学习建议 -->
+  <section id="guide">
+    <h2>六、学习建议</h2>
+
+    <h3 style="margin-bottom:12px;">读代码顺序</h3>
+    <div class="knowledge-grid">
+      <details class="know-card">
+        <summary>
+          <span class="know-num" style="font-size:.7rem;">Step 1</span>
+          <span class="know-title"><code>src/utils/queryContext.ts:44-74</code>（30 行）</span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <p style="margin-top:10px;">看清"三源汇流"的入口模型。整个上下文工程的起点。</p>
+        </div>
+      </details>
+      <details class="know-card">
+        <summary>
+          <span class="know-num" style="font-size:.7rem;">Step 2</span>
+          <span class="know-title"><code>src/constants/prompts.ts:416-538</code></span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <p style="margin-top:10px;">重点理解静态 / <code>SYSTEM_PROMPT_DYNAMIC_BOUNDARY</code> / 动态三段式。</p>
+        </div>
+      </details>
+      <details class="know-card">
+        <summary>
+          <span class="know-num" style="font-size:.7rem;">Step 3</span>
+          <span class="know-title"><code>src/constants/systemPromptSections.ts</code> 全文（69 行）</span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <p style="margin-top:10px;">注册表机制。理解 <code>systemPromptSection</code> vs <code>DANGEROUS_uncached*</code> 的区别。</p>
+        </div>
+      </details>
+      <details class="know-card">
+        <summary>
+          <span class="know-num" style="font-size:.7rem;">Step 4</span>
+          <span class="know-title"><code>src/context.ts</code> 全文（190 行）</span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <p style="margin-top:10px;">user/system context 的产出。理解 git status 的并发 + memoize + 截断三件套。</p>
+        </div>
+      </details>
+      <details class="know-card">
+        <summary>
+          <span class="know-num" style="font-size:.7rem;">Step 5</span>
+          <span class="know-title"><code>src/utils/claudemd.ts</code> getMemoryFiles() + getClaudeMds()</span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <p style="margin-top:10px;"><code>:789</code> <code>getMemoryFiles()</code> + <code>:1152-1194</code> <code>getClaudeMds()</code> — 4 级合并全过程。</p>
+        </div>
+      </details>
+      <details class="know-card">
+        <summary>
+          <span class="know-num" style="font-size:.7rem;">Step 6</span>
+          <span class="know-title"><code>src/services/compact/autoCompact.ts:29-101</code></span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <p style="margin-top:10px;">把阈值数学推一遍：200K − 20K − 13K = 167K。验证你对分级 buffer 的理解。</p>
+        </div>
+      </details>
+      <details class="know-card">
+        <summary>
+          <span class="know-num" style="font-size:.7rem;">Step 7</span>
+          <span class="know-title"><code>src/services/api/claude.ts:3223</code> addCacheBreakpoints()</span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <p style="margin-top:10px;">+ 上方 10 行注释 — 理解"为什么只能一个断点"的 KV cache 驱逐原理。</p>
+        </div>
+      </details>
+      <details class="know-card">
+        <summary>
+          <span class="know-num" style="font-size:.7rem;">Step 8</span>
+          <span class="know-title"><code>src/memdir/memdir.ts:415</code> loadMemoryPrompt()</span>
+          <span class="know-arrow">▶</span>
+        </summary>
+        <div class="know-body">
+          <p style="margin-top:10px;">看 memdir 如何注入到 system prompt 动态部分。</p>
+        </div>
+      </details>
+    </div>
+
+    <h3 style="margin:24px 0 12px;">实验动作</h3>
+    <div class="knowledge-grid">
+      <div class="info-card" style="display:flex;gap:12px;align-items:flex-start;">
+        <span style="font-size:1.2rem;flex-shrink:0;">🔬</span>
+        <p style="margin:0;font-size:.88rem;">在 <code>fetchSystemPromptParts</code> 内 <code>Promise.all</code> 后 <code>console.error</code> 三路返回值的大小（字符数）— 看真实占比</p>
+      </div>
+      <div class="info-card" style="display:flex;gap:12px;align-items:flex-start;">
+        <span style="font-size:1.2rem;flex-shrink:0;">🔬</span>
+        <p style="margin:0;font-size:.88rem;">临时把 <code>MAX_STATUS_CHARS</code> 改成 100，触发 git status 截断，观察消息中的"truncated"提示如何出现</p>
+      </div>
+      <div class="info-card" style="display:flex;gap:12px;align-items:flex-start;">
+        <span style="font-size:1.2rem;flex-shrink:0;">🔬</span>
+        <p style="margin:0;font-size:.88rem;">在 <code>~/.claude/CLAUDE.md</code> 加一条"始终用中文回复"，然后 <code>console.error(getCachedClaudeMdContent())</code> 验证它被加载</p>
+      </div>
+      <div class="info-card" style="display:flex;gap:12px;align-items:flex-start;">
+        <span style="font-size:1.2rem;flex-shrink:0;">🔬</span>
+        <p style="margin:0;font-size:.88rem;">跑一个会话灌入大量 tool_result，盯 <code>calculateTokenWarningState</code> 的 4 个 bool 何时翻 true，验证 <code>autoCompactIfNeeded</code> 的触发时机</p>
+      </div>
+      <div class="info-card" style="display:flex;gap:12px;align-items:flex-start;">
+        <span style="font-size:1.2rem;flex-shrink:0;">🔬</span>
+        <p style="margin:0;font-size:.88rem;">在 <code>addCacheBreakpoints</code> 入口加 log，输出每次的 <code>cache_control</code> 落点 index，观察 fire-and-forget 子任务的"倒数第二条"行为</p>
+      </div>
+      <div class="info-card" style="display:flex;gap:12px;align-items:flex-start;">
+        <span style="font-size:1.2rem;flex-shrink:0;">🔬</span>
+        <p style="margin:0;font-size:.88rem;">通过 <code>CLAUDE_CODE_AUTO_COMPACT_WINDOW=50000</code> 启动，强制制造一个低阈值，看压缩流程跑通</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ 七、知识衔接 -->
+  <section id="prior">
+    <h2>七、与前序知识的衔接</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>前序知识</th>
+            <th>上下文工程的对应</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>entry-summary</code> 的 <code>enableConfigs()</code> 闸门</td>
+            <td>必须在它之后才能调 <code>getClaudeMds()</code>（依赖 <code>getConfig()</code> 的 settings）</td>
+          </tr>
+          <tr>
+            <td><code>entry-summary</code> 的 bootstrap STATE 单例</td>
+            <td><code>cachedClaudeMdContent</code> + <code>systemPromptSectionCache</code> 都存在这里</td>
+          </tr>
+          <tr>
+            <td><code>core-loop</code> 中 <code>QueryEngine.runQuery()</code> 每轮调 <code>fetchSystemPromptParts()</code></td>
+            <td>本篇是这一调用的"展开图"</td>
+          </tr>
+          <tr>
+            <td><code>core-loop</code> 中 auto-compact 一笔带过</td>
+            <td>本篇展开完整的阈值数学 + 多策略回退（session memory → conversation summary → reactive）</td>
+          </tr>
+          <tr>
+            <td><code>core-loop</code> 中 <code>claude.ts</code> 构建 <code>BetaCreateParams</code></td>
+            <td>本篇补充 <code>system: string[]</code> 字段的来源（<code>getSystemPrompt</code> 返回值）+ <code>addCacheBreakpoints</code> 的断点策略</td>
+          </tr>
+          <tr>
+            <td><code>tool-system</code> 中 CORE_TOOLS 38 个工具完整 schema 进 system prompt</td>
+            <td>在 <code>getUsingYourToolsSection(enabledTools)</code>（<code>prompts.ts:528</code>）写入静态前缀，参与 prompt cache</td>
+          </tr>
+          <tr>
+            <td><code>tool-system</code> 中 MCP 工具动态注入</td>
+            <td><code>mcp_instructions</code> 必须 <code>DANGEROUS_uncached</code> —— 这是动态部分的"破坏 cache"原因</td>
+          </tr>
+          <tr>
+            <td><code>state-management</code> 中 <code>AppState.settings</code></td>
+            <td>settings 控制 <code>shouldIncludeGitInstructions()</code>、CLAUDE.md 路径、memdir 启用</td>
+          </tr>
+          <tr>
+            <td><code>state-management</code> 中 <code>onChangeAppState</code> 清缓存</td>
+            <td>settings 变化时 <code>clearMemoryFileCaches()</code> + <code>clearSystemPromptSections()</code> 必须连带调</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout blue" style="margin-top:16px;">
+      <strong>关键理解：</strong>core-loop 讲"循环的形状"，tool-system 讲"工具的执行"，state-management 讲"状态的容器"。本篇讲<strong>"模型在每一轮 API 调用前到底看到了什么 token"</strong>——是从 context 三源、CLAUDE.md 四级、memdir 索引、auto-compact 摘要、prompt cache 断点合力塑造出来的最终输入。
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ 八、验证清单 -->
+  <section id="checklist">
+    <h2>八、验证清单（学完后自测）</h2>
+
+    <ul class="checklist">
+      <li>能说出 <code>fetchSystemPromptParts</code> 并发拉取的<strong>三个源</strong>（System Prompt / User Context / System Context）以及各自的注入位置</li>
+      <li>能解释为什么 CLAUDE.md 不放在 system prompt 而放在首条 user 消息（答：与工作目录强相关，无法跨会话复用 cache）</li>
+      <li>能画出 system prompt 的两段式结构（静态前缀 → <code>SYSTEM_PROMPT_DYNAMIC_BOUNDARY</code> → 动态部分）</li>
+      <li>能说出 <code>DANGEROUS_uncachedSystemPromptSection</code> 当前唯一的用户是谁（答：<code>mcp_instructions</code>），以及为什么</li>
+      <li>能列出 CLAUDE.md 的 <strong>4 种类型</strong>（Managed / User / Project / Local）和层叠顺序</li>
+      <li>能解释 worktree dedup 的作用（答：嵌套 worktree 时跳过父仓库的 Project 文件，避免重复）</li>
+      <li>能说出 memdir 的 <strong>4 种记忆类型</strong>（user / feedback / project / reference）和 MEMORY.md 的作用（索引文件）</li>
+      <li>能推算出默认模型的 auto-compact 阈值（答：200K − 20K − 13K = 167K）</li>
+      <li>能说出 auto-compact 触发后<strong>优先</strong>尝试哪种策略（答：sessionMemoryCompact，失败才回退 conversation summary）</li>
+      <li>能解释为什么每个请求只能有<strong>一个</strong> <code>cache_control</code> 标记（答：KV cache 本地注意力驱逐机制；多断点反而降命中率）</li>
+      <li>能说出 <code>skipCacheWrite</code> 时断点落在哪条（答：倒数第二条，让主路径继续延伸 cache）</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ 九、后续路线 -->
+  <section id="next">
+    <h2>九、后续学习路线</h2>
+
+    <div class="next-grid">
+      <div class="next-card">
+        <div class="ep-num">第六篇</div>
+        <h3>API 通信层</h3>
+        <p>已理解"模型看到什么"，下一步看"请求怎么发出去 + 流式响应怎么解析"。7 个 provider 的流适配器模式。</p>
+      </div>
+      <div class="next-card">
+        <div class="ep-num">第七篇</div>
+        <h3>构建与运行时</h3>
+        <p><code>feature()</code> + DCE、MACRO 注入、<code>Bun.build</code> 代码分割。理解整个栈最底层的编译时魔法。</p>
+      </div>
+      <div class="next-card">
+        <div class="ep-num">第八篇</div>
+        <h3>权限系统</h3>
+        <p>三层门控 + <code>bashClassifier</code> + <code>PermissionMode</code> + 3 种 ask handler。算法 + 安全双重底层。</p>
+      </div>
+      <div class="next-card">
+        <div class="ep-num">第九篇</div>
+        <h3>MCP 协议</h3>
+        <p>客户端 + OAuth + In-Process Transport。理解扩展点的协议层，与本篇 <code>mcp_instructions</code> 动态注入形成闭环。</p>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /page-wrap -->
+
+</body>
+</html>

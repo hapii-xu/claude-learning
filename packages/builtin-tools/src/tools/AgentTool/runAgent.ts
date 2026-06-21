@@ -330,6 +330,10 @@ export async function* runAgent({
    * 检测活跃性，此时超过 60 秒没有 assistant 消息产生。 */
   onQueryProgress?: () => void
 }): AsyncGenerator<Message, void> {
+  logForDebugging(
+    `[Hapii] AgentTool.runAgent 开始 type=${agentDefinition.agentType} promptMsgs=${promptMessages.length} isAsync=${isAsync}`,
+    { level: 'info' },
+  )
   // 跟踪子代理的使用情况以进行功能发现
 
   const appState = toolUseContext.getAppState()
@@ -648,6 +652,10 @@ export async function* runAgent({
   }
 
   // 初始化代理特定的 MCP 服务器（添加到父代理的服务器）
+  logForDebugging(
+    `[Hapii] AgentTool.initMcp 开始 type=${agentDefinition.agentType}`,
+    { level: 'info' },
+  )
   const {
     clients: mergedMcpClients,
     tools: agentMcpTools,

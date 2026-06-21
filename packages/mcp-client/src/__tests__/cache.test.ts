@@ -74,9 +74,9 @@ describe('memoizeWithLRU', () => {
 
     fn(1)
     fn(2)
-    // key-1 is LRU, but get() should not promote it
+    // key-1 是 LRU，但 get() 不应该提升它
     expect(fn.cache.get('key-1')).toBe(10)
-    // Adding key-3 should still evict key-1 (not promoted by get)
+    // 添加 key-3 应该仍然淘汰 key-1（未被 get 提升）
     fn(3)
     expect(fn.cache.has('key-1')).toBe(false)
   })

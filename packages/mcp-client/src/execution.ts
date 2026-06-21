@@ -1,5 +1,5 @@
-// MCP tool execution — call tools on connected MCP servers
-// Extracted from src/services/mcp/client.ts (callMCPTool)
+// MCP 工具执行 — 在已连接的 MCP 服务器上调用工具
+// 提取自 src/services/mcp/client.ts (callMCPTool)
 
 import { CallToolResultSchema } from '@modelcontextprotocol/sdk/types.js'
 import type { ConnectedMCPServer } from './types.js'
@@ -7,34 +7,34 @@ import type { McpClientDependencies } from './interfaces.js'
 import { McpToolCallError, McpAuthError } from './errors.js'
 
 // ============================================================================
-// Constants
+// 常量
 // ============================================================================
 
-/** Default timeout for MCP tool calls (~27.8 hours — effectively infinite) */
+/** MCP 工具调用的默认超时时间（约 27.8 小时 — 实际为无限） */
 const DEFAULT_MCP_TOOL_TIMEOUT_MS = 100_000_000
 
 // ============================================================================
-// Tool execution
+// 工具执行
 // ============================================================================
 
 export interface CallToolOptions {
-  /** The connected MCP server to call */
+  /** 要调用的已连接 MCP 服务器 */
   client: ConnectedMCPServer
-  /** Tool name (as registered on the server, not the fully qualified name) */
+  /** 工具名称（服务器上注册的名称，非完全限定名） */
   tool: string
-  /** Tool arguments */
+  /** 工具参数 */
   args: Record<string, unknown>
-  /** Optional metadata to send with the call */
+  /** 随调用发送的可选元数据 */
   meta?: Record<string, unknown>
-  /** Abort signal for cancellation */
+  /** 用于取消的 AbortSignal */
   signal: AbortSignal
-  /** Progress callback */
+  /** 进度回调 */
   onProgress?: (data: {
     progress?: number
     total?: number
     message?: string
   }) => void
-  /** Tool call timeout in ms (defaults to ~27.8 hours) */
+  /** 工具调用超时时间（毫秒），默认约 27.8 小时 */
   timeoutMs?: number
 }
 
@@ -46,12 +46,12 @@ export interface CallToolResult {
 }
 
 /**
- * Call a tool on a connected MCP server with timeout and progress handling.
+ * 在已连接的 MCP 服务器上调用工具，带超时和进度处理。
  *
- * This is the protocol-level tool execution function. The host is responsible for:
- * - Session management (reconnection on expiry)
- * - Result transformation (content processing, truncation, persistence)
- * - Error wrapping for telemetry
+ * 这是协议层的工具执行函数。宿主负责：
+ * - 会话管理（过期时重连）
+ * - 结果转换（内容处理、截断、持久化）
+ * - 错误包装以用于遥测
  */
 export async function callMcpTool(
   options: CallToolOptions,
@@ -66,7 +66,7 @@ export async function callMcpTool(
   try {
     deps.logger.debug(`[${serverName}] Calling MCP tool: ${tool}`)
 
-    // Progress logging for long-running tools (every 30 seconds)
+    // 长时间运行工具的进度日志（每 30 秒）
     progressInterval = setInterval(() => {
       deps.logger.debug(`[${serverName}] Tool '${tool}' still running`)
     }, 30_000)
@@ -88,7 +88,7 @@ export async function callMcpTool(
       createTimeoutPromise(serverName, tool, effectiveTimeout),
     ])
 
-    // Handle isError in result
+    // 处理结果中的 isError 标志
     if ('isError' in result && result.isError) {
       let errorDetails = 'Unknown error'
       if (
@@ -125,7 +125,7 @@ export async function callMcpTool(
       deps.logger.debug(`[${serverName}] Tool '${tool}' failed: ${e.message}`)
     }
 
-    // Check for 401 errors
+    // 检查 401 错误
     if (e instanceof Error) {
       const errorCode = 'code' in e ? (e.code as number | undefined) : undefined
       if (errorCode === 401) {
@@ -145,7 +145,7 @@ export async function callMcpTool(
 }
 
 // ============================================================================
-// Helpers
+// 辅助函数
 // ============================================================================
 
 function getMcpToolTimeoutMs(): number {

@@ -27,22 +27,22 @@ describe('normalizeNameForMCP', () => {
   })
 
   test('handles claude.ai prefix: collapses consecutive underscores and strips edges', () => {
-    // "claude.ai My Server" -> replace invalid -> "claude_ai_My_Server"
-    // starts with "claude.ai " so collapse + strip -> "claude_ai_My_Server"
+    // "claude.ai My Server" -> 替换无效字符 -> "claude_ai_My_Server"
+    // 以 "claude.ai " 开头，所以折叠 + 去除边缘 -> "claude_ai_My_Server"
     expect(normalizeNameForMCP('claude.ai My Server')).toBe(
       'claude_ai_My_Server',
     )
   })
 
   test('handles claude.ai prefix with consecutive invalid chars', () => {
-    // "claude.ai ...test..." -> replace invalid -> "claude_ai____test___"
-    // collapse consecutive _ -> "claude_ai_test_"
-    // strip leading/trailing _ -> "claude_ai_test"
+    // "claude.ai ...test..." -> 替换无效字符 -> "claude_ai____test___"
+    // 折叠连续的 _ -> "claude_ai_test_"
+    // 去除首尾的 _ -> "claude_ai_test"
     expect(normalizeNameForMCP('claude.ai ...test...')).toBe('claude_ai_test')
   })
 
   test('non-claude.ai name preserves consecutive underscores', () => {
-    // "a..b" -> "a__b", no claude.ai prefix so no collapse
+    // "a..b" -> "a__b"，没有 claude.ai 前缀所以不会折叠
     expect(normalizeNameForMCP('a..b')).toBe('a__b')
   })
 
@@ -51,9 +51,9 @@ describe('normalizeNameForMCP', () => {
   })
 
   test('handles claude.ai prefix that results in only underscores', () => {
-    // "claude.ai ..." -> replace invalid -> "claude_ai____"
-    // collapse -> "claude_ai_"
-    // strip trailing -> "claude_ai"
+    // "claude.ai ..." -> 替换无效字符 -> "claude_ai____"
+    // 折叠 -> "claude_ai_"
+    // 去除尾部 -> "claude_ai"
     expect(normalizeNameForMCP('claude.ai ...')).toBe('claude_ai')
   })
 })

@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API 通信层知识总结 [第四篇] — Claude Code 神经通路</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --red:       #e05252;
+      --red-lt:    #fde8e8;
+      --purple:    #8b5cf6;
+      --purple-lt: #ede9fe;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── Diagram wrap ─────────────────────────────────────── */
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    /* ── Architecture Split ───────────────────────────────── */
+    .arch-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 720px) { .arch-split { grid-template-columns: 1fr; } }
+
+    .arch-box {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .arch-box.orange { border-top: 3px solid var(--orange); }
+    .arch-box.blue   { border-top: 3px solid var(--blue); }
+
+    .arch-box h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .arch-tag {
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .arch-tag.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .arch-tag.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+
+    /* ── Flow Steps ───────────────────────────────────────── */
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .flow-step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      position: relative;
+    }
+
+    .flow-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 32px;
+      width: 2px;
+      height: calc(100% - 16px);
+      background: var(--border);
+    }
+
+    .flow-dot {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--orange);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      margin-top: 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .flow-dot.blue { background: var(--blue); }
+
+    .flow-content {
+      flex: 1;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-content strong { color: var(--text); font-size: .92rem; }
+    .flow-content .sub   { font-size: .8rem; color: var(--text-3); font-family: var(--font-mono); margin-top: 4px; }
+
+    /* ── Collapsible Cards ────────────────────────────────── */
+    .knowledge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    details.know-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    details.know-card[open] { border-color: var(--orange-lt); }
+
+    details.know-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      outline: none;
+    }
+
+    details.know-card > summary::-webkit-details-marker { display: none; }
+    details.know-card > summary:hover { background: var(--bg); }
+
+    .know-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    details.know-card[open] .know-num { background: var(--orange); color: #fff; }
+
+    .know-title { flex: 1; font-weight: 700; font-size: .97rem; }
+
+    .know-arrow {
+      width: 20px;
+      height: 20px;
+      color: var(--text-3);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    details.know-card[open] .know-arrow { transform: rotate(90deg); color: var(--orange); }
+
+    .know-body { padding: 0 20px 20px 64px; }
+    .know-body p { margin-bottom: 8px; }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    .kw  { color: #7c9bff; font-weight: 600; }
+    .str { color: #6cc77a; }
+    .fn  { color: #f0906a; }
+    .cmt { color: #6e6a62; font-style: italic; }
+    .type{ color: #e0a020; }
+    .num { color: #c792ea; }
+    .op  { color: #d4cfc8; }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Tags ─────────────────────────────────────────────── */
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .tag-green  { background: var(--green-lt);  color: #1a7a4e; }
+    .tag-purple { background: var(--purple-lt); color: #5b21b6; }
+    .tag-red    { background: var(--red-lt);    color: #b91c1c; }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    ul.key-list {
+      padding-left: 20px;
+      color: var(--text-2);
+    }
+    ul.key-list li { margin-bottom: 4px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Callout ──────────────────────────────────────────── */
+    .callout {
+      display: flex;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      margin: 16px 0;
+      font-size: .88rem;
+      color: var(--text-2);
+    }
+    .callout.orange { background: var(--orange-lt); border-left: 3px solid var(--orange); }
+    .callout.blue   { background: var(--blue-lt);   border-left: 3px solid var(--blue); }
+    .callout.green  { background: var(--green-lt);  border-left: 3px solid var(--green); }
+    .callout.purple { background: var(--purple-lt); border-left: 3px solid var(--purple); }
+    .callout-icon   { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Two-col grid ─────────────────────────────────────── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+
+    .info-box {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+    }
+
+    /* ── Provider Cards ───────────────────────────────────── */
+    .provider-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+
+    .provider-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      transition: box-shadow .15s, border-color .15s;
+    }
+
+    .provider-card:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--orange-lt);
+    }
+
+    .provider-card h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .provider-num {
+      width: 22px;
+      height: 22px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .68rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* ── Checklist ────────────────────────────────────────── */
+    .checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .check-item {
+      display: flex;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      box-shadow: var(--shadow);
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .check-box {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── File list ────────────────────────────────────────── */
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--blue-dk);
+    }
+
+    /* ── Event Badge ──────────────────────────────────────── */
+    .ev-badge {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-family: var(--font-mono);
+    }
+
+    .ev-start   { background: #d2f0e3; color: #1a7a4e; }
+    .ev-cbs     { background: var(--blue-lt); color: var(--blue-dk); }
+    .ev-cbd     { background: var(--orange-lt); color: var(--orange-dk); }
+    .ev-cbstop  { background: var(--purple-lt); color: #5b21b6; }
+    .ev-delta   { background: #fde8e8; color: #b91c1c; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════════════════════ -->
+<header class="hero">
+  <div class="hero-badge">第四篇 · API 通信层</div>
+  <h1>Claude Code <span>神经通路</span></h1>
+  <p>query.ts 编排层 + claude.ts 执行层的双层架构——请求如何构造、流式事件如何处理、工具调用如何驱动循环，以及 7 种 Provider 背后的选择逻辑。</p>
+  <ul class="nav-links">
+    <li><a href="#architecture">双层架构</a></li>
+    <li><a href="#lifecycle">请求生命周期</a></li>
+    <li><a href="#core">六大核心概念</a></li>
+    <li><a href="#events">流式事件</a></li>
+    <li><a href="#providers">七种 Provider</a></li>
+    <li><a href="#mechanisms">辅助机制</a></li>
+    <li><a href="#files">关键文件</a></li>
+    <li><a href="#connections">模块关联</a></li>
+    <li><a href="#checklist">验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 1 — 双层架构
+════════════════════════════════════════════════════════════ -->
+<section id="architecture">
+  <h2>一、双层架构全貌</h2>
+  <p class="section-desc">API 通信层被拆成两层：<strong>编排层</strong>管理多轮对话状态与工具执行，<strong>执行层</strong>负责单次 API 调用的参数组装与流事件处理。</p>
+
+  <div class="arch-split">
+    <div class="arch-box orange">
+      <h3><span class="arch-tag orange">编排层</span> src/query.ts</h3>
+      <ul class="key-list">
+        <li><code>query()</code> — 对外入口，初始化上下文</li>
+        <li><code>queryLoop()</code> — 多轮循环驱动核心</li>
+        <li>管理对话历史 <code>messages[]</code></li>
+        <li>调用 <code>deps.callModel()</code> 委托执行层</li>
+        <li>收集并解析 <code>AssistantMessage</code></li>
+        <li>执行 <code>tool_use</code> 块 → 追加 <code>tool_result</code></li>
+        <li>auto-compact 检查（413 / token 阈值）</li>
+        <li>Token Budget 管理</li>
+      </ul>
+    </div>
+    <div class="arch-box blue">
+      <h3><span class="arch-tag blue">执行层</span> src/services/api/claude.ts</h3>
+      <ul class="key-list">
+        <li><code>queryModel()</code> — 单次请求入口（:1049）</li>
+        <li><code>queryModelWithStreaming()</code> — 流式调用（:775）</li>
+        <li>组装完整请求参数（system/messages/tools/betas）</li>
+        <li>路由到目标 Provider</li>
+        <li>处理 5 种流式事件</li>
+        <li>yield <code>StreamEvent</code> 回编排层</li>
+        <li>计算 usage / cost 写入 bootstrap state</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout orange" style="margin-top:20px;">
+    <span class="callout-icon">💡</span>
+    <div><strong>依赖注入设计</strong>：<code>queryLoop()</code> 通过 <code>deps.callModel</code> 间接调用执行层，使测试时可注入 mock 实现。真实路径是 <code>deps.callModel → queryModelWithStreaming → queryModel</code>。</div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 2 — 完整生命周期
+════════════════════════════════════════════════════════════ -->
+<section id="lifecycle">
+  <h2>二、一次 API 调用的完整生命周期</h2>
+  <p class="section-desc">从 <code>queryLoop()</code> 的一次迭代开始，到工具结果写入下一轮消息。</p>
+
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="flow-dot">1</div>
+      <div class="flow-content">
+        <strong>queryLoop() 迭代开始</strong>
+        <div class="sub">src/query.ts :430 — 调用 fetchSystemPromptParts() 获取三源汇流的 system prompt</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-dot">2</div>
+      <div class="flow-content">
+        <strong>deps.callModel(messages, systemPrompt, tools, …)</strong>
+        <div class="sub">委托给 queryModelWithStreaming()，传入当前轮次消息、系统提示、工具列表</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-dot blue">3</div>
+      <div class="flow-content">
+        <strong>queryModel() 组装请求参数</strong>
+        <div class="sub">buildSystemPromptBlocks() · addCacheBreakpoints() · getMergedBetas() · allTools[] · max_tokens 解析</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-dot blue">4</div>
+      <div class="flow-content">
+        <strong>anthropic.beta.messages.create() 流式调用</strong>
+        <div class="sub">Anthropic SDK 发起 HTTP stream，开始接收 BetaRawMessageStreamEvent</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-dot blue">5</div>
+      <div class="flow-content">
+        <strong>stream event loop（5 种事件循环处理）</strong>
+        <div class="sub">message_start → content_block_start → content_block_delta → content_block_stop → message_delta</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-dot blue">6</div>
+      <div class="flow-content">
+        <strong>yield AssistantMessage（含所有 content blocks）</strong>
+        <div class="sub">文本/思考/tool_use 块全部归一化，回传 queryLoop()</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-dot">7</div>
+      <div class="flow-content">
+        <strong>queryLoop() 判断分支</strong>
+        <div class="sub">有 tool_use → runTools() 或 StreamingToolExecutor 执行工具 → 追加 tool_result → 下一轮<br/>无 tool_use → 返回 { reason: 'completed' }</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 3 — 六大核心概念（可折叠）
+════════════════════════════════════════════════════════════ -->
+<section id="core">
+  <h2>三、必须掌握的六大核心概念</h2>
+
+  <div class="knowledge-grid">
+
+    <!-- 概念 1 -->
+    <details class="know-card" open>
+      <summary>
+        <div class="know-num">1</div>
+        <span class="know-title">请求参数组装（buildApiRequestParams）</span>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+      </summary>
+      <div class="know-body">
+        <p>核心位置：<code>src/services/api/claude.ts</code> <code>paramsFromContext()</code> 闭包（约 line 1634）</p>
+        <pre><span class="cmt">// 最终发送给 API 的请求参数结构</span>
+{
+  model: <span class="fn">normalizeModelStringForAPI</span>(options.model),
+  system: <span class="fn">buildSystemPromptBlocks</span>(systemPrompt, isSkipCacheWrite),  <span class="cmt">// 含 cache_control</span>
+  messages: <span class="fn">addCacheBreakpoints</span>(normalizedMessages, skipCacheWrite),  <span class="cmt">// 末尾插断点</span>
+  tools: allTools,        <span class="cmt">// 内置工具在前，MCP 工具追加末尾</span>
+  tool_choice: options.toolChoice,
+  betas: filteredBetas,   <span class="cmt">// 过滤空字符串后的功能标志</span>
+  max_tokens: maxOutputTokens,         <span class="cmt">// 首轮 8K，截断后升 64K</span>
+  thinking: { type: <span class="str">'enabled'</span>, budget_tokens: N },  <span class="cmt">// interleaved thinking 时</span>
+  temperature: <span class="num">1</span>,       <span class="cmt">// 仅在 thinking 关闭时</span>
+  metadata: <span class="fn">getAPIMetadata</span>(),
+  speed: <span class="str">'fast'</span>,         <span class="cmt">// 快速模式</span>
+  context_management: {},  <span class="cmt">// 上下文管理 beta</span>
+  output_config: { effort, task_budget, format },
+  ...extraBodyParams,      <span class="cmt">// env 注入的额外参数</span>
+}</pre>
+        <div class="callout blue">
+          <span class="callout-icon">📌</span>
+          <div><strong>system 字段</strong>是 <code>string[]</code>，每个元素是独立 system block，支持 <code>cache_control</code>。静态前缀块有 5min 或 1h TTL，动态块（如 mcp_instructions）每轮重算。</div>
+        </div>
+      </div>
+    </details>
+
+    <!-- 概念 2 -->
+    <details class="know-card">
+      <summary>
+        <div class="know-num">2</div>
+        <span class="know-title">Beta 标志动态管理（getMergedBetas + 粘性锁存）</span>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+      </summary>
+      <div class="know-body">
+        <p>核心文件：<code>src/utils/betas.ts</code>（<code>getMergedBetas</code>）、<code>src/constants/betas.ts</code></p>
+        <p>Beta 分三层叠加：</p>
+        <pre><span class="type">Layer 1</span>: <span class="fn">getModelBetas</span>()       <span class="cmt">← 模型级固定 beta（按模型版本确定，memoized）</span>
+<span class="type">Layer 2</span>: isAgenticQuery betas  <span class="cmt">← 代理查询时追加（claude-code / interleaved-thinking 等）</span>
+<span class="type">Layer 3</span>: 动态粘性锁存 (latch)  <span class="cmt">← 运行时条件触发，写入 bootstrap state 不可逆</span></pre>
+
+        <div class="table-wrap" style="margin-top:12px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Beta 名称</th>
+                <th>Header 值</th>
+                <th>启用条件</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Claude Code</td><td><code>claude-code-20250219</code></td><td>所有代理查询</td></tr>
+              <tr><td>Interleaved Thinking</td><td><code>interleaved-thinking-2025-05-14</code></td><td>思考模式</td></tr>
+              <tr><td>Context 1M</td><td><code>context-1m-2025-08-07</code></td><td>1M 上下文开关</td></tr>
+              <tr><td>Context Management</td><td><code>context-management-2025-06-27</code></td><td>上下文管理策略</td></tr>
+              <tr><td>Structured Outputs</td><td><code>structured-outputs-2025-12-15</code></td><td>JSON schema 验证</td></tr>
+              <tr><td>Fast Mode</td><td><code>fast-mode-2026-02-01</code></td><td>快速模式锁存</td></tr>
+              <tr><td>Effort</td><td><code>effort-2025-11-24</code></td><td>输出质量控制</td></tr>
+              <tr><td>Task Budgets</td><td><code>task-budgets-2026-03-13</code></td><td>Token 预算跟踪</td></tr>
+              <tr><td>Advisor</td><td><code>advisor-tool-2026-03-01</code></td><td>服务端 advisor 工具</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout orange" style="margin-top:12px;">
+          <span class="callout-icon">🔒</span>
+          <div><strong>粘性锁存（latch）</strong>：fast-mode、AFK-mode、cache-editing 等 beta 一旦激活写入 bootstrap state，当前会话不可逆，避免请求间反复切换导致缓存失效。</div>
+        </div>
+      </div>
+    </details>
+
+    <!-- 概念 3 -->
+    <details class="know-card">
+      <summary>
+        <div class="know-num">3</div>
+        <span class="know-title">流式事件处理（5 种事件类型）</span>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+      </summary>
+      <div class="know-body">
+        <p>核心位置：<code>src/services/api/claude.ts</code> line 2088–2387</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>事件</th>
+                <th>触发时机</th>
+                <th>主要动作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="ev-badge ev-start">message_start</span></td>
+                <td>流开始</td>
+                <td>初始化 <code>partialMessage</code>，记录 TTFT，更新初始 usage（含 cache_read_input_tokens）</td>
+              </tr>
+              <tr>
+                <td><span class="ev-badge ev-cbs">content_block_start</span></td>
+                <td>新内容块</td>
+                <td>按 <code>type</code> 初始化（<code>tool_use</code>/<code>text</code>/<code>thinking</code>），input/text 设为空串</td>
+              </tr>
+              <tr>
+                <td><span class="ev-badge ev-cbd">content_block_delta</span></td>
+                <td>增量内容</td>
+                <td>追加 <code>text_delta→ text map</code>，<code>input_json_delta→ tool input</code>，<code>thinking_delta→ thinking</code></td>
+              </tr>
+              <tr>
+                <td><span class="ev-badge ev-cbstop">content_block_stop</span></td>
+                <td>块结束</td>
+                <td><strong>join text map</strong>（O(n) 非 O(n²)），归一化 content block，yield <code>AssistantMessage</code></td>
+              </tr>
+              <tr>
+                <td><span class="ev-badge ev-delta">message_delta</span></td>
+                <td>流结束</td>
+                <td>更新最终 usage，计算 cost，记录 stop_reason</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p style="margin-top:12px;"><strong>文本累积优化</strong>（line 2243, 2314）—— 避免 O(n²) 字符串拼接：</p>
+        <pre><span class="cmt">// delta 阶段：O(1) 追加到 Map</span>
+Map&lt;<span class="type">blockIndex</span>, <span class="type">string</span>[]&gt;.<span class="fn">push</span>(delta)
+<span class="cmt">// stop 阶段：O(n) 一次 join</span>
+map.<span class="fn">get</span>(index).<span class="fn">join</span>(<span class="str">''</span>)</pre>
+
+        <div class="callout green">
+          <span class="callout-icon">⚡</span>
+          <div>在长文本输出时，这个优化效果显著——逐 delta 字符串拼接的 O(n²) 在几千个 delta 时会导致明显卡顿。</div>
+        </div>
+      </div>
+    </details>
+
+    <!-- 概念 4 -->
+    <details class="know-card">
+      <summary>
+        <div class="know-num">4</div>
+        <span class="know-title">Tool Use 块的收集与执行流程</span>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+      </summary>
+      <div class="know-body">
+        <p><strong>收集阶段</strong>（执行层，流内拼装）：</p>
+        <pre><span class="cmt">// 1. content_block_start</span>
+{ <span class="kw">type</span>: <span class="str">'tool_use'</span>, id, name }  → contentBlock = { type, id, name, input: <span class="str">''</span> }
+
+<span class="cmt">// 2. content_block_delta（逐片追加 JSON 字符串）</span>
+{ <span class="kw">type</span>: <span class="str">'input_json_delta'</span>, partial_json }  → contentBlock.input += partial_json
+
+<span class="cmt">// 3. content_block_stop（解析完整 JSON）</span>
+<span class="type">JSON</span>.<span class="fn">parse</span>(contentBlock.input)  → 完整 tool input
+yield <span class="type">AssistantMessage</span>（含 tool_use 内容块）</pre>
+
+        <p style="margin-top:12px;"><strong>执行阶段</strong>（编排层，queryLoop 处理）：</p>
+        <div class="two-col">
+          <div class="info-box">
+            <h3 style="font-size:.9rem;margin-bottom:8px;">非流式工具 — runTools()</h3>
+            <p style="font-size:.85rem;">串行执行所有 tool_use 块，适用于大多数内置工具。执行结果汇总后批量追加。</p>
+            <div class="sub" style="font-family:var(--font-mono);font-size:.75rem;color:var(--text-3);margin-top:8px;">src/services/tools/toolOrchestration.ts</div>
+          </div>
+          <div class="info-box">
+            <h3 style="font-size:.9rem;margin-bottom:8px;">流式工具 — StreamingToolExecutor</h3>
+            <p style="font-size:.85rem;">边收流边并行执行，减少等待时间。适用于支持实时输出的工具（如 BashTool）。</p>
+            <div class="sub" style="font-family:var(--font-mono);font-size:.75rem;color:var(--text-3);margin-top:8px;">src/services/tools/StreamingToolExecutor.ts</div>
+          </div>
+        </div>
+        <div class="callout orange" style="margin-top:12px;">
+          <span class="callout-icon">🔐</span>
+          <div>执行前经过 <code>canUseTool()</code> 权限检查 → 弹框确认或 bypassPermissions 自动通过。</div>
+        </div>
+      </div>
+    </details>
+
+    <!-- 概念 5 -->
+    <details class="know-card">
+      <summary>
+        <div class="know-num">5</div>
+        <span class="know-title">单一 addCacheBreakpoints 策略</span>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+      </summary>
+      <div class="know-body">
+        <p>核心位置：<code>src/services/api/claude.ts</code> line 3241</p>
+        <pre><span class="cmt">// 普通请求：cache_control 插入最后一条消息</span>
+messages[last]
+
+<span class="cmt">// skipCacheWrite 请求（fork 子代理）：插入倒数第二条</span>
+<span class="cmt">// 避免污染父会话的 KV cache 状态</span>
+messages[last<span class="num">-2</span>]</pre>
+
+        <p style="margin-top:12px;"><strong>系统提示词缓存策略</strong>（<code>buildSystemPromptBlocks</code> line 3392）：</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>块类型</th><th>cache_control</th><th>TTL</th><th>说明</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>静态前缀块</td>
+                <td><span class="tag-green tag">有</span></td>
+                <td>5min 或 1h</td>
+                <td><code>should1hCacheTTL()</code> latch 控制避免频繁切换</td>
+              </tr>
+              <tr>
+                <td>动态块（mcp_instructions 等）</td>
+                <td><span class="tag tag" style="background:var(--bg3);color:var(--text-3);">无</span></td>
+                <td>—</td>
+                <td>每轮重算，不缓存</td>
+              </tr>
+              <tr>
+                <td>MCP 工具列表为空 + global cache</td>
+                <td><span class="tag-green tag">scope: global</span></td>
+                <td>跨会话</td>
+                <td>system prompt 跨会话共享 KV cache</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
+    <!-- 概念 6 -->
+    <details class="know-card">
+      <summary>
+        <div class="know-num">6</div>
+        <span class="know-title">7 种 Provider 及选择逻辑</span>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+      </summary>
+      <div class="know-body">
+        <p>核心位置：<code>src/utils/model/providers.ts</code> → <code>getAPIProvider()</code></p>
+        <p><strong>选择优先级</strong>（高→低）：</p>
+        <pre><span class="num">1</span>. settings.modelType (<span class="str">'openai'</span>/<span class="str">'gemini'</span>/<span class="str">'grok'</span>)    <span class="cmt">← UI 持久化设置</span>
+<span class="num">2</span>. CLAUDE_CODE_USE_BEDROCK / VERTEX / FOUNDRY       <span class="cmt">← 企业部署环境变量</span>
+<span class="num">3</span>. CLAUDE_CODE_USE_OPENAI / GEMINI / GROK           <span class="cmt">← 兼容层开关</span>
+<span class="num">4</span>. 默认：firstParty（Anthropic API 直连）</pre>
+        <p style="margin-top:4px;">详见 <a href="#providers">七种 Provider</a> 节。</p>
+      </div>
+    </details>
+
+  </div><!-- /knowledge-grid -->
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 4 — 七种 Provider
+════════════════════════════════════════════════════════════ -->
+<section id="providers">
+  <h2>四、七种 Provider 详解</h2>
+  <p class="section-desc">所有非 firstParty 的 Provider 均采用<strong>流适配器模式</strong>：将第三方 API 格式转为 Anthropic 内部格式，下游代码零改动。</p>
+
+  <div class="provider-grid">
+    <div class="provider-card">
+      <h3>
+        <div class="provider-num">1</div>
+        firstParty
+        <span class="tag-green tag">默认</span>
+      </h3>
+      <p style="font-size:.85rem;">Anthropic SDK 直连，全功能：thinking、advisor、cache、betas、context management 完整支持。</p>
+      <div class="sub" style="font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);margin-top:8px;">src/services/api/claude.ts</div>
+    </div>
+
+    <div class="provider-card">
+      <h3>
+        <div class="provider-num">2</div>
+        bedrock
+        <span class="tag tag">AWS</span>
+      </h3>
+      <p style="font-size:.85rem;">betas 通过 <code>extraBodyParams.output_config</code> 传递（非 header）。功能集受限，部分 beta 不可用。</p>
+      <div class="sub" style="font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);margin-top:8px;">需配置 AWS 凭证环境变量</div>
+    </div>
+
+    <div class="provider-card">
+      <h3>
+        <div class="provider-num">3</div>
+        vertex
+        <span class="tag tag">GCP</span>
+      </h3>
+      <p style="font-size:.85rem;">Google Cloud。支持 Web Search beta，不支持 Structured Outputs。需配置 GCP 服务账户。</p>
+      <div class="sub" style="font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);margin-top:8px;">CLAUDE_CODE_USE_VERTEX=1</div>
+    </div>
+
+    <div class="provider-card">
+      <h3>
+        <div class="provider-num">4</div>
+        foundry
+        <span class="tag-purple tag">企业</span>
+      </h3>
+      <p style="font-size:.85rem;">企业自托管。支持 ISP（Integrated System Prompt）+ context management。</p>
+      <div class="sub" style="font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);margin-top:8px;">CLAUDE_CODE_USE_FOUNDRY=1</div>
+    </div>
+
+    <div class="provider-card">
+      <h3>
+        <div class="provider-num">5</div>
+        openai
+        <span class="tag-orange tag">兼容层</span>
+      </h3>
+      <p style="font-size:.85rem;">适配 OpenAI Chat Completions API（Ollama / DeepSeek / vLLM）。含消息/工具格式转换 + DeepSeek thinking 支持。</p>
+      <div class="sub" style="font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);margin-top:8px;">src/services/api/openai/index.ts</div>
+    </div>
+
+    <div class="provider-card">
+      <h3>
+        <div class="provider-num">6</div>
+        gemini
+        <span class="tag-orange tag">兼容层</span>
+      </h3>
+      <p style="font-size:.85rem;">Google Gemini API。独立模型映射优先级：<code>GEMINI_MODEL</code> &gt; <code>GEMINI_DEFAULT_*</code> &gt; 原样返回。</p>
+      <div class="sub" style="font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);margin-top:8px;">src/services/api/gemini/index.ts</div>
+    </div>
+
+    <div class="provider-card">
+      <h3>
+        <div class="provider-num">7</div>
+        grok
+        <span class="tag-orange tag">兼容层</span>
+      </h3>
+      <p style="font-size:.85rem;">xAI Grok API。消息格式转换，自定义模型映射。</p>
+      <div class="sub" style="font-family:var(--font-mono);font-size:.72rem;color:var(--text-3);margin-top:8px;">src/services/api/grok/index.ts</div>
+    </div>
+  </div>
+
+  <div class="callout blue" style="margin-top:20px;">
+    <span class="callout-icon">🔌</span>
+    <div><strong>流适配器模式</strong>：OpenAI / Gemini / Grok 均在内部将各自格式转为 <code>BetaRawMessageStreamEvent</code>，<code>queryModelWithStreaming()</code> 及以上层看不到任何差异——这就是为什么添加新 Provider 只需实现适配器，核心循环一行代码都不用改。</div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 5 — 辅助机制
+════════════════════════════════════════════════════════════ -->
+<section id="mechanisms">
+  <h2>五、应该了解的辅助机制</h2>
+
+  <div class="two-col">
+    <!-- Usage/Cost 双轨 -->
+    <div class="info-box">
+      <h3>A. Usage / Cost 双轨追踪</h3>
+      <p style="font-size:.85rem;margin-top:8px;"><strong>updateUsage()</strong>（line 3102）— 流内更新，防止 0 值覆盖缓存命中数：</p>
+      <pre style="font-size:.75rem;">message_start  → 初始 usage（含 cache_read）
+content_block_stop → 中间状态
+message_delta  → 最终 usage（stop 后精确值）</pre>
+      <p style="font-size:.85rem;"><strong>成本计算</strong>（line 2377）：</p>
+      <pre style="font-size:.75rem;"><span class="kw">const</span> costUSD = <span class="fn">calculateUSDCost</span>(model, usage)
+<span class="fn">addToTotalSessionCost</span>(costUSD, usage, model)
+<span class="cmt">// → 写入 bootstrap STATE 的 sessionCost</span></pre>
+      <p style="font-size:.85rem;"><strong>accumulateUsage()</strong>（line 3171）跨轮次叠加，用于 session 级别总成本统计。</p>
+    </div>
+
+    <!-- Max Tokens 两段式 -->
+    <div class="info-box">
+      <h3>B. Max Tokens 两段式升级</h3>
+      <pre style="font-size:.75rem;margin-top:8px;">首轮：max_tokens = CAPPED_DEFAULT_MAX_TOKENS
+      = <span class="num">8,000</span>  <span class="cmt">← 节省 KV cache slot</span>
+  ↓
+stop_reason === <span class="str">'max_tokens'</span>（输出被截断）
+  ↓
+重试：max_tokens = ESCALATED_MAX_TOKENS
+         = <span class="num">64,000</span>
+最多重试 <span class="num">3</span> 次</pre>
+      <div class="callout orange">
+        <span class="callout-icon">💡</span>
+        <div style="font-size:.82rem;">90% 的请求不会触发截断，首轮 8K 极大降低了平均 KV cache 占用和成本。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col" style="margin-top:16px;">
+    <!-- 流超时与重试 -->
+    <div class="info-box">
+      <h3>C. 流超时与重试</h3>
+      <ul class="key-list" style="margin-top:8px;">
+        <li>流空闲超时：<strong>90s</strong>（<code>CLAUDE_STREAM_IDLE_TIMEOUT_MS</code> 可覆盖）</li>
+        <li>API 返回 <strong>413</strong>（请求过大）→ <code>reactiveCompact.ts</code> 事后压缩，重试</li>
+        <li><strong>Fallback 模型</strong>：配置后可在主模型失败时切换（一次）</li>
+        <li>流式错误（网络中断）→ 重建连接，最多 N 次</li>
+      </ul>
+    </div>
+
+    <!-- Prompt Cache Break Detection -->
+    <div class="info-box">
+      <h3>D. 缓存断裂检测</h3>
+      <p style="font-size:.85rem;margin-top:8px;">
+        <code>src/services/api/promptCacheBreakDetection.ts</code>
+      </p>
+      <p style="font-size:.85rem;">监测预期应命中 cache 但实际发生 cache miss 的情况，上报遥测。帮助识别：</p>
+      <ul class="key-list" style="font-size:.85rem;">
+        <li>系统提示词意外变化</li>
+        <li>消息格式不稳定导致断点偏移</li>
+        <li>MCP 工具描述频繁更新</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- QueryEngine 编排层补充 -->
+  <div class="info-box" style="margin-top:16px;">
+    <h3>E. QueryEngine — 高层编排器</h3>
+    <p style="font-size:.85rem;margin-top:8px;">
+      <code>src/QueryEngine.ts</code> 是包裹 <code>query()</code> 的高层编排器，被 REPL screen 直接使用：
+    </p>
+    <div class="two-col" style="margin-top:12px;">
+      <ul class="key-list" style="font-size:.85rem;">
+        <li>管理会话级对话状态</li>
+        <li>触发 <strong>自动压缩</strong>（compaction）</li>
+        <li>文件历史快照（file history snapshot）</li>
+      </ul>
+      <ul class="key-list" style="font-size:.85rem;">
+        <li>Attribution 归因标记</li>
+        <li>Turn-level 记账（每轮 token/cost 统计）</li>
+        <li>向 REPL 推送 StreamEvent 更新 UI</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 6 — 关键文件清单
+════════════════════════════════════════════════════════════ -->
+<section id="files">
+  <h2>六、关键文件清单</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>文件</th>
+          <th>角色</th>
+          <th>关键函数 / 常量</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="file-path">src/services/api/claude.ts</span></td>
+          <td><span class="tag-orange tag">core</span></td>
+          <td><code>queryModel</code>(:1049)、<code>queryModelWithStreaming</code>(:775)、<code>addCacheBreakpoints</code>(:3241)、<code>buildSystemPromptBlocks</code>(:3392)、<code>updateUsage</code>(:3102)、<code>accumulateUsage</code>(:3171)</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">src/query.ts</span></td>
+          <td><span class="tag-orange tag">core</span></td>
+          <td><code>query</code>(:299)、<code>queryLoop</code>(:430) — 多轮对话编排、工具执行循环</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">src/QueryEngine.ts</span></td>
+          <td><span class="tag-orange tag">core</span></td>
+          <td>高层编排器，compaction、file history snapshot、REPL 对接</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">src/utils/betas.ts</span></td>
+          <td><span class="tag-orange tag">core</span></td>
+          <td><code>getMergedBetas</code>(:346)、<code>getModelBetas</code>(:320，memoized)</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">src/constants/betas.ts</span></td>
+          <td><span class="tag tag">config</span></td>
+          <td>所有 Beta header 常量定义</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">src/utils/model/providers.ts</span></td>
+          <td><span class="tag-orange tag">core</span></td>
+          <td><code>getAPIProvider()</code> — provider 选择逻辑</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">src/utils/context.ts</span></td>
+          <td><span class="tag tag">util</span></td>
+          <td><code>getContextWindowForModel</code>、<code>MODEL_CONTEXT_WINDOW_DEFAULT=200_000</code>、<code>CAPPED_DEFAULT_MAX_TOKENS=8_000</code></td>
+        </tr>
+        <tr>
+          <td><span class="file-path">src/services/api/openai/index.ts</span></td>
+          <td><span class="tag tag">adapter</span></td>
+          <td><code>queryModelOpenAI()</code>、消息/工具格式适配</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">src/services/api/gemini/index.ts</span></td>
+          <td><span class="tag tag">adapter</span></td>
+          <td><code>queryModelGemini()</code>、模型映射逻辑</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">src/services/api/grok/index.ts</span></td>
+          <td><span class="tag tag">adapter</span></td>
+          <td><code>queryModelGrok()</code></td>
+        </tr>
+        <tr>
+          <td><span class="file-path">src/services/tools/toolOrchestration.ts</span></td>
+          <td><span class="tag-orange tag">core</span></td>
+          <td><code>runTools()</code> — 串行工具执行</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">src/services/tools/StreamingToolExecutor.ts</span></td>
+          <td><span class="tag-orange tag">core</span></td>
+          <td>流式并行工具执行</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">src/services/api/promptCacheBreakDetection.ts</span></td>
+          <td><span class="tag tag">util</span></td>
+          <td>cache miss 遥测，意外缓存断裂上报</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">src/services/api/reactiveCompact.ts</span></td>
+          <td><span class="tag tag">util</span></td>
+          <td>413 事后压缩，触发 compaction 重试</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 7 — 模块关联图
+════════════════════════════════════════════════════════════ -->
+<section id="connections">
+  <h2>七、与其他模块的关联</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>已学模块</th>
+          <th>与 API 通信层的关联点</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>上下文工程</strong></td>
+          <td><code>fetchSystemPromptParts</code> 三源汇流的产物作为 <code>system</code> 参数传入 <code>queryModel</code></td>
+        </tr>
+        <tr>
+          <td><strong>工具系统</strong></td>
+          <td><code>allTools</code> 参数来自 <code>useMergedTools</code>（内置 + MCP），<code>CORE_TOOLS</code> 白名单决定 deferred 工具</td>
+        </tr>
+        <tr>
+          <td><strong>状态管理</strong></td>
+          <td>bootstrap STATE 存储 sessionCost、model overrides；AppState 存储消息历史</td>
+        </tr>
+        <tr>
+          <td><strong>MCP 协议</strong></td>
+          <td>MCP 工具追加末尾保护 prompt cache；<code>DANGEROUS_uncachedSystemPromptSection</code> 每轮重算 MCP 工具描述</td>
+        </tr>
+        <tr>
+          <td><strong>安全与权限</strong></td>
+          <td>工具执行前调用 <code>canUseTool()</code>；bypassPermissions 直接通过不弹框</td>
+        </tr>
+        <tr>
+          <td><strong>核心循环</strong></td>
+          <td><code>queryLoop</code> 是核心循环的数据源，<code>QueryEngine</code> 封装多轮状态供 REPL screen 消费</td>
+        </tr>
+        <tr>
+          <td><strong>入口 / Bootstrap</strong></td>
+          <td>Bootstrap state 的 sessionCost、fastMode latch、model overrides 均由 API 层写入</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECTION 8 — 验证清单
+════════════════════════════════════════════════════════════ -->
+<section id="checklist">
+  <h2>八、验证清单</h2>
+  <p class="section-desc">完成本篇学习后，你应该能够回答以下问题：</p>
+
+  <div class="checklist">
+    <div class="check-item">
+      <div class="check-box"></div>
+      <div>说出请求组装中 <code>system</code> / <code>messages</code> / <code>tools</code> / <code>betas</code> 各字段的来源（三源汇流 → buildSystemPromptBlocks / addCacheBreakpoints / useMergedTools / getMergedBetas）</div>
+    </div>
+    <div class="check-item">
+      <div class="check-box"></div>
+      <div>解释为什么 <code>max_tokens</code> 首轮是 8K 而不是直接用 64K（节省 KV cache slot，90% 请求不被截断）</div>
+    </div>
+    <div class="check-item">
+      <div class="check-box"></div>
+      <div>描述 5 种流式事件的处理顺序和各自的关键动作（message_start → content_block_start → delta → stop → message_delta）</div>
+    </div>
+    <div class="check-item">
+      <div class="check-box"></div>
+      <div>解释文本累积为什么用 <code>Map&lt;index, string[]&gt;</code> 而不是直接字符串拼接（避免 O(n²) 的拼接开销）</div>
+    </div>
+    <div class="check-item">
+      <div class="check-box"></div>
+      <div>说出 7 种 Provider 的选择优先级和各自的主要差异（settings.modelType → 环境变量企业级 → 兼容层开关 → firstParty）</div>
+    </div>
+    <div class="check-item">
+      <div class="check-box"></div>
+      <div>解释 Beta 粘性锁存（latch）的作用——为什么 fast-mode 等 beta 一旦激活就不可逆（防止会话内反复切换破坏 KV cache）</div>
+    </div>
+    <div class="check-item">
+      <div class="check-box"></div>
+      <div>描述 <code>skipCacheWrite</code> 模式下 cache breakpoint 插入位置的变化（从最后一条改为倒数第二条，避免污染父会话 cache）</div>
+    </div>
+  </div>
+
+  <!-- 学习建议 -->
+  <div style="margin-top:32px;">
+    <h3>学习建议</h3>
+    <div class="two-col" style="margin-top:12px;">
+      <div class="callout orange">
+        <span class="callout-icon">🔍</span>
+        <div><strong>追踪一次完整请求</strong>：在 <code>queryModel()</code> 入口（:1049）加断点，检查最终发出的 system / messages / betas 字段。</div>
+      </div>
+      <div class="callout blue">
+        <span class="callout-icon">📡</span>
+        <div><strong>观察流式事件序列</strong>：在 stream event loop（line 2088）加日志，观察一轮对话各事件的出现顺序。</div>
+      </div>
+      <div class="callout green">
+        <span class="callout-icon">💰</span>
+        <div><strong>追踪 cost 流向</strong>：从 <code>addToTotalSessionCost</code> 出发，找到 bootstrap STATE 的 sessionCost，再到 UI 上的 token/cost 显示。</div>
+      </div>
+      <div class="callout purple">
+        <span class="callout-icon">🔄</span>
+        <div><strong>对比 Provider 差异</strong>：在 <code>queryModelOpenAI</code> 中找 <code>buildOpenAIRequestBody</code>，对比与 firstParty 的 API 参数差异。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════════════ -->
+<hr class="divider" />
+<footer style="text-align:center;color:var(--text-3);font-size:.82rem;padding-bottom:24px;">
+  <p>Claude Code 逆向学习系列 · 第四篇 API 通信层</p>
+  <p style="margin-top:4px;">下一篇推荐：<strong>终端 UI 层</strong>——REPL.tsx 如何把 AssistantMessage 流渲染为可交互的终端界面</p>
+</footer>
+
+</div><!-- /page-wrap -->
+</body>
+</html>

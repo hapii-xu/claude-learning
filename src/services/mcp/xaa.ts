@@ -1,19 +1,19 @@
 /**
- * Cross-App Access (XAA) / Enterprise Managed Authorization (SEP-990)
+ * 跨应用访问（XAA）/ 企业托管授权（SEP-990）
  *
- * Obtains an MCP access token WITHOUT a browser consent screen by chaining:
- *   1. RFC 8693 Token Exchange at the IdP: id_token → ID-JAG
- *   2. RFC 7523 JWT Bearer Grant at the AS: ID-JAG → access_token
+ * 通过链接以下步骤获取 MCP 访问令牌，无需浏览器同意页面：
+ *   1. 在 IdP 处进行 RFC 8693 令牌交换：id_token → ID-JAG
+ *   2. 在 AS 处进行 RFC 7523 JWT Bearer 授权：ID-JAG → access_token
  *
- * Spec refs:
- *   - ID-JAG (IETF draft): https://datatracker.ietf.org/doc/draft-ietf-oauth-identity-assertion-authz-grant/
- *   - MCP ext-auth (SEP-990): https://github.com/modelcontextprotocol/ext-auth
- *   - RFC 8693 (Token Exchange), RFC 7523 (JWT Bearer), RFC 9728 (PRM)
+ * 规范参考：
+ *   - ID-JAG（IETF 草案）：https://datatracker.ietf.org/doc/draft-ietf-oauth-identity-assertion-authz-grant/
+ *   - MCP ext-auth（SEP-990）：https://github.com/modelcontextprotocol/ext-auth
+ *   - RFC 8693（令牌交换）、RFC 7523（JWT Bearer）、RFC 9728（PRM）
  *
- * Reference impl: ~/code/mcp/conformance/examples/clients/typescript/everything-client.ts:375-522
+ * 参考实现：~/code/mcp/conformance/examples/clients/typescript/everything-client.ts:375-522
  *
- * Structure: four Layer-2 ops (aligned with TS SDK PR #1593's Layer-2 shapes so
- * a future SDK swap is mechanical) + one Layer-3 orchestrator that composes them.
+ * 结构：四个 Layer-2 操作（与 TS SDK PR #1593 的 Layer-2 形状对齐，
+ * 以便未来 SDK 替换是机械性的）+ 一个 Layer-3 编排器组合它们。
  */
 
 import {
@@ -34,10 +34,10 @@ const ID_JAG_TOKEN_TYPE = 'urn:ietf:params:oauth:token-type:id-jag'
 const ID_TOKEN_TYPE = 'urn:ietf:params:oauth:token-type:id_token'
 
 /**
- * Creates a fetch wrapper that enforces the XAA request timeout and optionally
- * composes a caller-provided abort signal. Using AbortSignal.any ensures the
- * user's cancel (e.g. Esc in the auth menu) actually aborts in-flight requests
- * rather than being clobbered by the timeout signal.
+ * 创建一个 fetch 包装器，强制执行 XAA 请求超时，并可选地
+ * 组合调用方提供的 abort 信号。使用 AbortSignal.any 确保
+ * 用户的取消（例如在认证菜单中按 Esc）能够真正中止正在进行的请求，
+ * 而不是被超时信号覆盖。
  */
 function makeXaaFetch(abortSignal?: AbortSignal): FetchLike {
   return (url, init) => {
@@ -54,9 +54,9 @@ function makeXaaFetch(abortSignal?: AbortSignal): FetchLike {
 const defaultFetch = makeXaaFetch()
 
 /**
- * RFC 8414 §3.3 / RFC 9728 §3.3 identifier comparison. Roundtrip through URL
- * to apply RFC 3986 §6.2.2 syntax-based normalization (lowercases scheme+host,
- * drops default port), then strip trailing slash.
+ * RFC 8414 §3.3 / RFC 9728 §3.3 标识符比较。通过 URL 往返
+ * 以应用 RFC 3986 §6.2.2 基于语法的规范化（小写化 scheme+host，
+ * 移除默认端口），然后去除尾部斜杠。
  */
 function normalizeUrl(url: string): string {
   try {
@@ -67,12 +67,12 @@ function normalizeUrl(url: string): string {
 }
 
 /**
- * Thrown by requestJwtAuthorizationGrant when the IdP token-exchange leg
- * fails. Carries `shouldClearIdToken` so callers can decide whether to drop
- * the cached id_token based on OAuth error semantics (not substring matching):
- *   - 4xx / invalid_grant / invalid_token → id_token is bad, clear it
- *   - 5xx → IdP is down, id_token may still be valid, keep it
- *   - 200 with structurally-invalid body → protocol violation, clear it
+ * 当 IdP 令牌交换步骤失败时，由 requestJwtAuthorizationGrant 抛出。
+ * 携带 `shouldClearIdToken` 以便调用者可以根据 OAuth 错误语义（而非子串匹配）
+ * 决定是否删除缓存的 id_token：
+ *   - 4xx / invalid_grant / invalid_token → id_token 有问题，清除它
+ *   - 5xx → IdP 宕机，id_token 可能仍然有效，保留它
+ *   - 200 但响应体结构无效 → 协议违规，清除它
  */
 export class XaaTokenExchangeError extends Error {
   readonly shouldClearIdToken: boolean
@@ -83,11 +83,10 @@ export class XaaTokenExchangeError extends Error {
   }
 }
 
-// Matches quoted values for known token-bearing keys regardless of nesting
-// depth. Works on both parsed-then-stringified bodies AND raw text() error
-// bodies from !res.ok paths — a misbehaving AS that echoes the request's
-// subject_token/assertion/client_secret in a 4xx error envelope must not leak
-// into debug logs.
+// 匹配已知承载令牌的键的引号值，无论嵌套深度如何。
+// 适用于已解析再字符串化的 body 和来自 !res.ok 路径的原始 text() 错误体 ——
+// 行为不当的 AS 在 4xx 错误信封中回显请求的 subject_token/assertion/client_secret
+// 不能泄漏到调试日志中。
 const SENSITIVE_TOKEN_RE =
   /"(access_token|refresh_token|id_token|assertion|subject_token|client_secret)"\s*:\s*"[^"]*"/g
 
@@ -96,14 +95,14 @@ function redactTokens(raw: unknown): string {
   return s.replace(SENSITIVE_TOKEN_RE, (_, k) => `"${k}":"[REDACTED]"`)
 }
 
-// ─── Zod Schemas ────────────────────────────────────────────────────────────
+// ─── Zod Schema ────────────────────────────────────────────────────────────
 
 const TokenExchangeResponseSchema = lazySchema(() =>
   z.object({
     access_token: z.string().optional(),
     issued_token_type: z.string().optional(),
-    // z.coerce tolerates IdPs that send expires_in as a string (common in
-    // PHP-backed IdPs) — technically non-conformant JSON but widespread.
+    // z.coerce 容忍将 expires_in 作为字符串发送的 IdP（在 PHP 后端
+    // IdP 中很常见）—— 技术上不符合 JSON 规范但广泛存在。
     expires_in: z.coerce.number().optional(),
     scope: z.string().optional(),
   }),
@@ -112,8 +111,8 @@ const TokenExchangeResponseSchema = lazySchema(() =>
 const JwtBearerResponseSchema = lazySchema(() =>
   z.object({
     access_token: z.string().min(1),
-    // Many ASes omit token_type since Bearer is the only value anyone uses
-    // (RFC 6750). Don't reject a valid access_token over a missing label.
+    // 许多 AS 省略 token_type，因为 Bearer 是唯一被使用的值
+    //（RFC 6750）。不要因为缺少标签而拒绝有效的 access_token。
     token_type: z.string().default('Bearer'),
     expires_in: z.coerce.number().optional(),
     scope: z.string().optional(),
@@ -121,7 +120,7 @@ const JwtBearerResponseSchema = lazySchema(() =>
   }),
 )
 
-// ─── Layer 2: Discovery ─────────────────────────────────────────────────────
+// ─── Layer 2：发现 ──────────────────────────────────────────────────────────
 
 export type ProtectedResourceMetadata = {
   resource: string
@@ -129,8 +128,8 @@ export type ProtectedResourceMetadata = {
 }
 
 /**
- * RFC 9728 PRM discovery via SDK, plus RFC 9728 §3.3 resource-mismatch
- * validation (mix-up protection — TODO: upstream to SDK).
+ * 通过 SDK 进行 RFC 9728 PRM 发现，以及 RFC 9728 §3.3 资源不匹配
+ * 验证（混淆保护 —— TODO：上游到 SDK）。
  */
 export async function discoverProtectedResource(
   serverUrl: string,
@@ -172,8 +171,8 @@ export type AuthorizationServerMetadata = {
 }
 
 /**
- * AS metadata discovery via SDK (RFC 8414 + OIDC fallback), plus RFC 8414
- * §3.3 issuer-mismatch validation (mix-up protection — TODO: upstream to SDK).
+ * 通过 SDK 进行 AS 元数据发现（RFC 8414 + OIDC 回退），以及 RFC 8414
+ * §3.3 发行者不匹配验证（混淆保护 —— TODO：上游到 SDK）。
  */
 export async function discoverAuthorizationServer(
   asUrl: string,
@@ -192,9 +191,9 @@ export async function discoverAuthorizationServer(
       `XAA: AS metadata discovery failed: issuer mismatch: expected ${asUrl}, got ${meta.issuer}`,
     )
   }
-  // RFC 8414 §3.3 / RFC 9728 §3 require HTTPS. A PRM-advertised http:// AS
-  // that self-consistently reports an http:// issuer would pass the mismatch
-  // check above, then we'd POST id_token + client_secret over plaintext.
+  // RFC 8414 §3.3 / RFC 9728 §3 要求 HTTPS。一个 PRM 宣传的 http:// AS
+  // 如果自洽地报告 http:// 发行者，将通过上面的不匹配检查，
+  // 然后我们会通过明文 POST id_token + client_secret。
   if (new URL(meta.token_endpoint).protocol !== 'https:') {
     throw new Error(
       `XAA: refusing non-HTTPS token endpoint: ${meta.token_endpoint}`,
@@ -209,26 +208,26 @@ export async function discoverAuthorizationServer(
   }
 }
 
-// ─── Layer 2: Exchange ──────────────────────────────────────────────────────
+// ─── Layer 2：交换 ──────────────────────────────────────────────────────────
 
 export type JwtAuthGrantResult = {
-  /** The ID-JAG (Identity Assertion Authorization Grant) */
+  /** ID-JAG（身份断言授权授予） */
   jwtAuthGrant: string
   expiresIn?: number
   scope?: string
 }
 
 /**
- * RFC 8693 Token Exchange at the IdP: id_token → ID-JAG.
- * Validates `issued_token_type` is `urn:ietf:params:oauth:token-type:id-jag`.
+ * 在 IdP 处进行 RFC 8693 令牌交换：id_token → ID-JAG。
+ * 验证 `issued_token_type` 为 `urn:ietf:params:oauth:token-type:id-jag`。
  *
- * `clientSecret` is optional — sent via `client_secret_post` if present.
- * Some IdPs register the client as confidential even when they advertise
- * `token_endpoint_auth_method: "none"`.
+ * `clientSecret` 是可选的 —— 如果存在则通过 `client_secret_post` 发送。
+ * 某些 IdP 将客户端注册为机密的，即使它们宣传
+ * `token_endpoint_auth_method: "none"`。
  *
- * TODO(xaa-ga): consult `token_endpoint_auth_methods_supported` from IdP
- * OIDC metadata and support `client_secret_basic`, mirroring the AS-side
- * selection in `performCrossAppAccess`. All major IdPs accept POST today.
+ * TODO(xaa-ga)：从 IdP OIDC 元数据中查询 `token_endpoint_auth_methods_supported`
+ * 并支持 `client_secret_basic`，镜像 `performCrossAppAccess` 中 AS 端的
+ * 选择。目前所有主要 IdP 都接受 POST。
  */
 export async function requestJwtAuthorizationGrant(opts: {
   tokenEndpoint: string
@@ -264,8 +263,8 @@ export async function requestJwtAuthorizationGrant(opts: {
   })
   if (!res.ok) {
     const body = redactTokens(await res.text()).slice(0, 200)
-    // 4xx → id_token rejected (invalid_grant etc.), clear cache.
-    // 5xx → IdP outage, id_token may still be valid, preserve it.
+    // 4xx → id_token 被拒绝（invalid_grant 等），清除缓存。
+    // 5xx → IdP 故障，id_token 可能仍然有效，保留它。
     const shouldClear = res.status < 500
     throw new XaaTokenExchangeError(
       `XAA: token exchange failed: HTTP ${res.status}: ${body}`,
@@ -276,7 +275,7 @@ export async function requestJwtAuthorizationGrant(opts: {
   try {
     rawExchange = await res.json()
   } catch {
-    // Transient network condition (captive portal, proxy) — don't clear id_token.
+    // 临时网络状况（强制门户、代理）—— 不要清除 id_token。
     throw new XaaTokenExchangeError(
       `XAA: token exchange returned non-JSON (captive portal?) at ${opts.tokenEndpoint}`,
       false,
@@ -319,20 +318,20 @@ export type XaaTokenResult = {
 
 export type XaaResult = XaaTokenResult & {
   /**
-   * The AS issuer URL discovered via PRM. Callers must persist this as
-   * `discoveryState.authorizationServerUrl` so that refresh (auth.ts _doRefresh)
-   * and revocation (revokeServerTokens) can locate the token/revocation
-   * endpoints — the MCP URL is not the AS URL in typical XAA setups.
+   * 通过 PRM 发现的 AS 发行者 URL。调用者必须将其持久化为
+   * `discoveryState.authorizationServerUrl`，以便刷新（auth.ts _doRefresh）
+   * 和撤销（revokeServerTokens）能够定位令牌/撤销
+   * 端点 —— 在典型的 XAA 设置中，MCP URL 不是 AS URL。
    */
   authorizationServerUrl: string
 }
 
 /**
- * RFC 7523 JWT Bearer Grant at the AS: ID-JAG → access_token.
+ * 在 AS 处进行 RFC 7523 JWT Bearer 授权：ID-JAG → access_token。
  *
- * `authMethod` defaults to `client_secret_basic` (Base64 header, not body
- * params) — the SEP-990 conformance test requires this. Only set
- * `client_secret_post` if the AS explicitly requires it.
+ * `authMethod` 默认为 `client_secret_basic`（Base64 头部，而非 body
+ * 参数）—— SEP-990 一致性测试要求这样。只有当 AS 明确要求时才设置
+ * `client_secret_post`。
  */
 export async function exchangeJwtAuthGrant(opts: {
   tokenEndpoint: string
@@ -393,35 +392,35 @@ export async function exchangeJwtAuthGrant(opts: {
   return tokensParsed.data
 }
 
-// ─── Layer 3: Orchestrator ──────────────────────────────────────────────────
+// ─── Layer 3：编排器 ────────────────────────────────────────────────────────
 
 /**
- * Config needed to run the full XAA orchestrator.
- * Mirrors the conformance test context shape (see ClientConformanceContextSchema).
+ * 运行完整 XAA 编排器所需的配置。
+ * 镜像一致性测试上下文形状（参见 ClientConformanceContextSchema）。
  */
 export type XaaConfig = {
-  /** Client ID registered at the MCP server's authorization server */
+  /** 在 MCP 服务器的授权服务器上注册的客户端 ID */
   clientId: string
-  /** Client secret for the MCP server's authorization server */
+  /** MCP 服务器授权服务器的客户端密钥 */
   clientSecret: string
-  /** Client ID registered at the IdP (for the token-exchange request) */
+  /** 在 IdP 注册的客户端 ID（用于令牌交换请求） */
   idpClientId: string
-  /** Optional IdP client secret (client_secret_post) — some IdPs require it */
+  /** 可选的 IdP 客户端密钥（client_secret_post）—— 某些 IdP 要求提供 */
   idpClientSecret?: string
-  /** The user's OIDC id_token from the IdP login */
+  /** 用户在 IdP 登录时获得的 OIDC id_token */
   idpIdToken: string
-  /** IdP token endpoint (where to send the RFC 8693 token-exchange) */
+  /** IdP 令牌端点（发送 RFC 8693 令牌交换的目标地址） */
   idpTokenEndpoint: string
 }
 
 /**
- * Full XAA flow: PRM → AS metadata → token-exchange → jwt-bearer → access_token.
- * Thin composition of the four Layer-2 ops. Used by performMCPXaaAuth,
- * ClaudeAuthProvider.xaaRefresh, and the try-xaa*.ts debug scripts.
+ * 完整 XAA 流程：PRM → AS 元数据 → 令牌交换 → jwt-bearer → access_token。
+ * 四个 Layer-2 操作的简单组合。由 performMCPXaaAuth、
+ * ClaudeAuthProvider.xaaRefresh 和 try-xaa*.ts 调试脚本使用。
  *
- * @param serverUrl The MCP server URL (e.g. `https://mcp.example.com/mcp`)
- * @param config IdP + AS credentials
- * @param serverName Server name for debug logging
+ * @param serverUrl MCP 服务器 URL（例如 `https://mcp.example.com/mcp`）
+ * @param config IdP + AS 凭据
+ * @param serverName 用于调试日志的服务器名称
  */
 export async function performCrossAppAccess(
   serverUrl: string,
@@ -438,9 +437,9 @@ export async function performCrossAppAccess(
     `XAA: discovered resource=${prm.resource} ASes=[${prm.authorization_servers.join(', ')}]`,
   )
 
-  // Try each advertised AS in order. grant_types_supported is OPTIONAL per
-  // RFC 8414 §2 — only skip if the AS explicitly advertises a list that omits
-  // jwt-bearer. If absent, let the token endpoint decide.
+  // 按顺序尝试每个宣传的 AS。grant_types_supported 在 RFC 8414 §2 中是可选的
+  // —— 只有当 AS 明确宣传了一个不包含 jwt-bearer 的列表时才跳过。
+  // 如果缺失，让令牌端点自行决定。
   let asMeta: AuthorizationServerMetadata | undefined
   const asErrors: string[] = []
   for (const asUrl of prm.authorization_servers) {
@@ -469,9 +468,9 @@ export async function performCrossAppAccess(
       `XAA: no authorization server supports jwt-bearer. Tried: ${asErrors.join('; ')}`,
     )
   }
-  // Pick auth method from what the AS advertises. We handle
-  // client_secret_basic and client_secret_post; if the AS only supports post,
-  // honor that, else default to basic (SEP-990 conformance expectation).
+  // 根据 AS 宣传的内容选择认证方法。我们处理
+  // client_secret_basic 和 client_secret_post；如果 AS 只支持 post，
+  // 遵从它，否则默认为 basic（SEP-990 一致性期望）。
   const authMethods = asMeta.token_endpoint_auth_methods_supported
   const authMethod: 'client_secret_basic' | 'client_secret_post' =
     authMethods &&

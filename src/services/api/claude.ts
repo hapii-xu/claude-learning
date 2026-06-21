@@ -787,6 +787,10 @@ export async function* queryModelWithStreaming({
   StreamEvent | AssistantMessage | SystemAPIErrorMessage,
   void
 > {
+  logForDebugging(
+    `[Hapii] claude.queryModelWithStreaming 调用 model=${options.model} messages=${messages.length} tools=${tools.length}`,
+    { level: 'info' },
+  )
   return yield* withStreamingVCR(messages, async function* () {
     yield* queryModel(
       messages,
@@ -857,6 +861,10 @@ export async function* executeNonStreamingRequest(
    */
   originatingRequestId?: string | null,
 ): AsyncGenerator<SystemAPIErrorMessage, BetaMessage> {
+  logForDebugging(
+    `[Hapii] claude.executeNonStreamingRequest 非流式降级 model=${retryOptions.model} source=${clientOptions.source}`,
+    { level: 'warn' },
+  )
   const fallbackTimeoutMs = getNonstreamingFallbackTimeoutMs()
   const generator = withRetry(
     () =>
@@ -1049,6 +1057,10 @@ async function* queryModel(
   StreamEvent | AssistantMessage | SystemAPIErrorMessage,
   void
 > {
+  logForDebugging(
+    `[Hapii] ClaudeApi.queryModel 发起请求 model=${options.model} messages=${messages.length} tools=${tools.length} source=${options.querySource}`,
+    { level: 'info' },
+  )
   logForDebugging(
     `[API] queryModel 开始, model=${options.model}, 消息数=${messages.length}, 工具数=${tools.length}, querySource=${options.querySource}`,
     { level: 'info' },
@@ -2025,6 +2037,10 @@ async function* queryModel(
       let totalStallTime = 0
       let stallCount = 0
 
+      logForDebugging(
+        `[Hapii] ClaudeApi.queryModel 流式请求已发送，等待首个事件...`,
+        { level: 'info' },
+      )
       logForDebugging(`[API] 流式请求已发送, 等待响应...`, { level: 'info' })
 
       for await (const part of stream) {
@@ -2267,6 +2283,10 @@ async function* queryModel(
           }
           case 'content_block_stop': {
             const contentBlock = contentBlocks[part.index]
+            logForDebugging(
+              `[Hapii] ClaudeApi 流事件 content_block_stop index=${part.index} blockType=${contentBlock?.type ?? 'unknown'}`,
+              { level: 'info' },
+            )
             if (!contentBlock) {
               logEvent('tengu_streaming_error', {
                 error_type:
@@ -2315,6 +2335,10 @@ async function* queryModel(
             break
           }
           case 'message_delta': {
+            logForDebugging(
+              `[Hapii] ClaudeApi 流事件 message_delta stopReason=${part.delta.stop_reason} outputTokens=${part.usage?.output_tokens ?? 0}`,
+              { level: 'info' },
+            )
             usage = updateUsage(usage, part.usage)
             // 从 message_delta 捕获 research（仅内部）。始终用最新值覆盖。
             // 同时写回到已经 yield 出去的消息上，因为 message_delta 在
@@ -2395,6 +2419,10 @@ async function* queryModel(
             break
           }
           case 'message_stop':
+            logForDebugging(
+              `[Hapii] ClaudeApi.queryModel 流结束 耗时=${Date.now() - start}ms inputTokens=${usage.input_tokens} outputTokens=${usage.output_tokens} cacheRead=${usage.cache_read_input_tokens ?? 0}`,
+              { level: 'info' },
+            )
             logForDebugging(
               `[API] 消息完成, 总耗时=${Date.now() - start}ms, usage: input=${usage.input_tokens}, output=${usage.output_tokens}, cache_read=${usage.cache_read_input_tokens ?? 0}`,
               { level: 'info' },
@@ -3216,6 +3244,10 @@ export function addCacheBreakpoints(
     cachingEnabled: enablePromptCaching,
     skipCacheWrite,
   })
+  logForDebugging(
+    `[Hapii] ClaudeApi.addCacheBreakpoints msgCount=${messages.length} enableCaching=${enablePromptCaching} skipCacheWrite=${skipCacheWrite} markerIndex=${skipCacheWrite ? messages.length - 2 : messages.length - 1}`,
+    { level: 'info' },
+  )
 
   // 每次请求只能有一个消息级的 cache_control 标记。Mycro 的轮次间驱逐
   // （page_manager/index.rs: Index::insert）会释放在任何未出现在
@@ -3359,6 +3391,10 @@ export function buildSystemPromptBlocks(
     querySource?: QuerySource
   },
 ): TextBlockParam[] {
+  logForDebugging(
+    `[Hapii] ClaudeApi.buildSystemPromptBlocks promptLen=${systemPrompt.reduce((a, s) => a + s.length, 0)} enableCaching=${enablePromptCaching} skipGlobalCache=${options?.skipGlobalCacheForSystemPrompt ?? false}`,
+    { level: 'info' },
+  )
   // 重要：不要为缓存再加任何块，否则会返回 400
   return splitSysPromptPrefix(systemPrompt, {
     skipGlobalCacheForSystemPrompt: options?.skipGlobalCacheForSystemPrompt,

@@ -1,0 +1,2750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>入口知识总结 [第一篇] — Claude Code 启动链全貌</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── SVG Diagram ──────────────────────────────────────── */
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      margin: 0 auto;
+      font-family: var(--font-sans);
+    }
+
+    /* SVG tooltip via CSS title */
+    .node-group { cursor: default; }
+    .node-group:hover rect.node-rect { filter: brightness(.93); }
+
+    /* ── Card Grid ────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .path-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: box-shadow .15s, border-color .15s;
+    }
+
+    .path-card:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--orange-lt);
+    }
+
+    .badge-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .card-body { flex: 1; min-width: 0; }
+
+    .card-trigger {
+      font-weight: 700;
+      font-size: .9rem;
+      color: var(--text);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    .card-module {
+      font-family: var(--font-mono);
+      font-size: .76rem;
+      color: var(--text-2);
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .card-flag {
+      font-size: .72rem;
+      color: var(--blue);
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .badge-enable {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    /* ── Collapsible knowledge cards ─────────────────────── */
+    .knowledge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    details.know-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    details.know-card[open] {
+      border-color: var(--orange-lt);
+    }
+
+    details.know-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      outline: none;
+    }
+
+    details.know-card > summary::-webkit-details-marker { display: none; }
+
+    details.know-card > summary:hover { background: var(--bg); }
+
+    .know-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    details.know-card[open] .know-num {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .know-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: .97rem;
+    }
+
+    .know-arrow {
+      width: 20px;
+      height: 20px;
+      color: var(--text-3);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    details.know-card[open] .know-arrow {
+      transform: rotate(90deg);
+      color: var(--orange);
+    }
+
+    .know-body {
+      padding: 0 20px 20px 64px;
+    }
+
+    .know-body p { margin-bottom: 8px; }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    /* CSS-only syntax highlighting */
+    .kw  { color: #7c9bff; font-weight: 600; }  /* keywords */
+    .str { color: #6cc77a; }                      /* strings */
+    .fn  { color: #f0906a; }                      /* function calls */
+    .cmt { color: #6e6a62; font-style: italic; } /* comments */
+    .type{ color: #e0a020; }                      /* TypeScript types */
+    .num { color: #c792ea; }                      /* numbers */
+
+    /* inline code */
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Comparison Table ─────────────────────────────────── */
+    .compare-table th:first-child { width: 130px; }
+    .compare-table th:nth-child(2) { color: var(--orange-dk); }
+    .compare-table th:nth-child(3) { color: var(--blue-dk); }
+
+    /* ── Key files ────────────────────────────────────────── */
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--blue-dk);
+      cursor: default;
+      position: relative;
+    }
+
+    .file-path:hover::after {
+      content: attr(data-full);
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+      background: #1e1b16;
+      color: #d4cfc8;
+      font-size: .75rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+      pointer-events: none;
+    }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    ul.key-list {
+      padding-left: 20px;
+      color: var(--text-2);
+    }
+
+    ul.key-list li { margin-bottom: 4px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .know-body { padding-left: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- HERO                                                        -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<header class="hero">
+  <div class="hero-badge">入口知识总结 · 第一篇</div>
+  <h1>Claude Code <span>启动链全貌</span></h1>
+  <p>cli.tsx 分流器 + main.tsx Commander 程序 + init.ts 全步骤初始化 + replLauncher.tsx 桥接 + REPL.tsx 交互界面 + print.ts 无头模式 — 理解从 claude 命令敲下到交互界面出现的全链路</p>
+  <ul class="nav-links">
+    <li><a href="#funnel">启动链路漏斗</a></li>
+    <li><a href="#startup-chain">cli.tsx 分流器图</a></li>
+    <li><a href="#quick-paths">14 条快速路径</a></li>
+    <li><a href="#main-layers">main.tsx 三层结构</a></li>
+    <li><a href="#init-timeline">init.ts 初始化时间线</a></li>
+    <li><a href="#launcher-tree">replLauncher 组件树</a></li>
+    <li><a href="#repl-tree">REPL.tsx 子树</a></li>
+    <li><a href="#headless-flow">print.ts 无头模式</a></li>
+    <li><a href="#support-modules">支撑模块详解</a></li>
+    <li><a href="#main-details">main.tsx 详解</a></li>
+    <li><a href="#init-details">init.ts 详解</a></li>
+    <li><a href="#repl-details">REPL.tsx 详解</a></li>
+    <li><a href="#print-details">print.ts 详解</a></li>
+    <li><a href="#knowledge">核心知识点</a></li>
+    <li><a href="#state-compare">双状态系统</a></li>
+    <li><a href="#key-files">关键文件</a></li>
+    <li><a href="#learning-path">学习路径</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 0: OVERALL STARTUP FUNNEL                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="funnel">
+  <h2>整体启动链路漏斗图</h2>
+  <p class="section-desc">从用户敲下 <code>claude</code> 到进入 REPL 或无头模式的全过程，纵向为时间轴，每条泳道对应一个核心文件，横向检查点名称对应 <code>startupProfiler.ts</code> 中的 checkpoint。</p>
+
+  <div class="diagram-wrap">
+    <svg width="940" height="520" viewBox="0 0 940 520" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="fa" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#8a8480" />
+        </marker>
+        <marker id="fa-blue" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#5769F7" />
+        </marker>
+        <marker id="fa-orange" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#D77757" />
+        </marker>
+      </defs>
+
+      <!-- Swim lane headers -->
+      <rect x="10" y="10" width="130" height="34" rx="6" fill="#5769F7" />
+      <text x="75" y="32" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">cli.tsx</text>
+
+      <rect x="155" y="10" width="130" height="34" rx="6" fill="#5769F7" />
+      <text x="220" y="32" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">main.tsx</text>
+
+      <rect x="300" y="10" width="130" height="34" rx="6" fill="#D77757" />
+      <text x="365" y="32" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">init.ts</text>
+
+      <rect x="445" y="10" width="130" height="34" rx="6" fill="#22a766" />
+      <text x="510" y="32" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">replLauncher.tsx</text>
+
+      <rect x="590" y="10" width="130" height="34" rx="6" fill="#22a766" />
+      <text x="655" y="32" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">REPL.tsx</text>
+
+      <rect x="735" y="10" width="130" height="34" rx="6" fill="#8a8480" />
+      <text x="800" y="32" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">print.ts</text>
+
+      <!-- Vertical lane separators -->
+      <line x1="145" y1="44" x2="145" y2="490" stroke="#ddd8d0" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="290" y1="44" x2="290" y2="490" stroke="#ddd8d0" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="435" y1="44" x2="435" y2="490" stroke="#ddd8d0" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="580" y1="44" x2="580" y2="490" stroke="#ddd8d0" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="725" y1="44" x2="725" y2="490" stroke="#ddd8d0" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- Checkpoint lines with labels -->
+      <!-- CP1: cli_entry -->
+      <g class="node-group">
+        <title>checkpoint: cli_entry — cli.tsx:88 附近，进程启动后第一个 profileCheckpoint</title>
+        <line x1="10" y1="72" x2="870" y2="72" stroke="#D77757" stroke-width="1" stroke-dasharray="6,3" opacity="0.5"/>
+        <text x="878" y="76" fill="#D77757" font-size="9.5" font-weight="600">cli_entry</text>
+      </g>
+
+      <!-- CLI node -->
+      <g class="node-group">
+        <title>src/entrypoints/cli.tsx — performanceShim import → MACRO fallback → env hacks → 14 条快速路径扫描</title>
+        <rect class="node-rect" x="14" y="52" width="122" height="36" rx="5" fill="#eef0ff" stroke="#5769F7" stroke-width="1.5"/>
+        <text x="75" y="69" text-anchor="middle" fill="#3a4ed4" font-size="10" font-weight="600">performanceShim</text>
+        <text x="75" y="81" text-anchor="middle" fill="#3a4ed4" font-size="9.5">+ MACRO 回退</text>
+      </g>
+
+      <!-- CP2: cli_before_main_import -->
+      <g class="node-group">
+        <title>checkpoint: cli_before_main_import — startCapturingEarlyInput() 后，import('../main.jsx') 前</title>
+        <line x1="10" y1="120" x2="870" y2="120" stroke="#D77757" stroke-width="1" stroke-dasharray="6,3" opacity="0.5"/>
+        <text x="878" y="124" fill="#D77757" font-size="9.5" font-weight="600">before_main_import</text>
+      </g>
+
+      <g class="node-group">
+        <title>cli.tsx:398-399 — startCapturingEarlyInput() 在 main.tsx 加载前缓冲键盘输入</title>
+        <rect class="node-rect" x="14" y="96" width="122" height="28" rx="5" fill="#eef0ff" stroke="#5769F7" stroke-width="1.5"/>
+        <text x="75" y="114" text-anchor="middle" fill="#3a4ed4" font-size="9.5" font-weight="600">earlyInput 开始捕获</text>
+      </g>
+
+      <!-- Arrow: cli → main -->
+      <line x1="136" y1="106" x2="159" y2="120" stroke="#5769F7" stroke-width="1.5" marker-end="url(#fa-blue)"/>
+
+      <!-- CP3: main_tsx_entry -->
+      <g class="node-group">
+        <title>checkpoint: main_tsx_entry — main.tsx 顶层副作用执行，startMdmRawRead() + startKeychainPrefetch()</title>
+        <line x1="10" y1="164" x2="870" y2="164" stroke="#D77757" stroke-width="1" stroke-dasharray="6,3" opacity="0.5"/>
+        <text x="878" y="168" fill="#D77757" font-size="9.5" font-weight="600">main_tsx_entry</text>
+      </g>
+
+      <g class="node-group">
+        <title>src/main.tsx:1-22 顶层副作用 — profileCheckpoint('main_tsx_entry') + startMdmRawRead() + startKeychainPrefetch()</title>
+        <rect class="node-rect" x="159" y="126" width="122" height="42" rx="5" fill="#eef0ff" stroke="#5769F7" stroke-width="1.5"/>
+        <text x="220" y="143" text-anchor="middle" fill="#3a4ed4" font-size="9.5" font-weight="600">MDM raw read</text>
+        <text x="220" y="155" text-anchor="middle" fill="#3a4ed4" font-size="9.5">+ keychain 预热</text>
+      </g>
+
+      <!-- CP4: main_function_start -->
+      <g class="node-group">
+        <title>checkpoint: main_function_start — main() 函数体开始，argv 重写 + isNonInteractive 判定</title>
+        <line x1="10" y1="210" x2="870" y2="210" stroke="#D77757" stroke-width="1" stroke-dasharray="6,3" opacity="0.5"/>
+        <text x="878" y="214" fill="#D77757" font-size="9.5" font-weight="600">main_function_start</text>
+      </g>
+
+      <g class="node-group">
+        <title>src/main.tsx:777-1110 main() — initializeWarningHandler + argv 重写(cc:// / ssh / assistant) + isNonInteractive 判定 + setIsInteractive()</title>
+        <rect class="node-rect" x="159" y="170" width="122" height="44" rx="5" fill="#eef0ff" stroke="#5769F7" stroke-width="1.5"/>
+        <text x="220" y="188" text-anchor="middle" fill="#3a4ed4" font-size="9.5" font-weight="600">main() argv 重写</text>
+        <text x="220" y="200" text-anchor="middle" fill="#3a4ed4" font-size="9.5">isNonInteractive 判定</text>
+      </g>
+
+      <!-- CP5: init_function_start -->
+      <g class="node-group">
+        <title>checkpoint: init_function_start — preAction hook 触发 init()，enableConfigs() 开始</title>
+        <line x1="10" y1="262" x2="870" y2="262" stroke="#D77757" stroke-width="1" stroke-dasharray="6,3" opacity="0.5"/>
+        <text x="878" y="266" fill="#D77757" font-size="9.5" font-weight="600">init_function_start</text>
+      </g>
+
+      <g class="node-group">
+        <title>src/main.tsx:1136 preAction → init() — run() 注册 Commander → preAction → init() memoized</title>
+        <rect class="node-rect" x="159" y="218" width="122" height="48" rx="5" fill="#eef0ff" stroke="#5769F7" stroke-width="1.5"/>
+        <text x="220" y="236" text-anchor="middle" fill="#3a4ed4" font-size="9.5" font-weight="600">run() Commander</text>
+        <text x="220" y="248" text-anchor="middle" fill="#3a4ed4" font-size="9.5">preAction → init()</text>
+      </g>
+
+      <!-- Arrow: main → init -->
+      <line x1="281" y1="238" x2="304" y2="262" stroke="#D77757" stroke-width="1.5" marker-end="url(#fa-orange)"/>
+
+      <!-- Init node -->
+      <g class="node-group">
+        <title>src/entrypoints/init.ts:89-306 — 26 步初始化：enableConfigs → CA证书 → gracefulShutdown → 1P events → OAuth → mTLS → proxy → Sentry → initUser → Langfuse → preconnect → setShellIfWindows → registerCleanup → ripgrep</title>
+        <rect class="node-rect" x="304" y="218" width="122" height="100" rx="5" fill="#fff3ee" stroke="#D77757" stroke-width="1.5"/>
+        <text x="365" y="238" text-anchor="middle" fill="#b55e3a" font-size="9.5" font-weight="600">enableConfigs</text>
+        <text x="365" y="251" text-anchor="middle" fill="#b55e3a" font-size="9">CA证书 (TLS前!)</text>
+        <text x="365" y="263" text-anchor="middle" fill="#b55e3a" font-size="9">mTLS + proxy</text>
+        <text x="365" y="275" text-anchor="middle" fill="#b55e3a" font-size="9">Sentry + Langfuse</text>
+        <text x="365" y="287" text-anchor="middle" fill="#b55e3a" font-size="9">preconnectApi</text>
+        <text x="365" y="299" text-anchor="middle" fill="#b55e3a" font-size="9">ripgrep 探测</text>
+      </g>
+
+      <!-- CP6: init_function_end -->
+      <g class="node-group">
+        <title>checkpoint: init_function_end — init() 整体完成，返回 preAction</title>
+        <line x1="10" y1="348" x2="870" y2="348" stroke="#D77757" stroke-width="1" stroke-dasharray="6,3" opacity="0.5"/>
+        <text x="878" y="352" fill="#D77757" font-size="9.5" font-weight="600">init_function_end</text>
+      </g>
+
+      <!-- Arrow: init → main action -->
+      <line x1="365" y1="318" x2="220" y2="354" stroke="#5769F7" stroke-width="1.5" marker-end="url(#fa-blue)"/>
+
+      <!-- Main action -->
+      <g class="node-group">
+        <title>src/main.tsx:~1513 主 .action() — trust dialog → MCP → 工具池 → 会话分发 → 模式分发</title>
+        <rect class="node-rect" x="159" y="350" width="122" height="40" rx="5" fill="#eef0ff" stroke="#5769F7" stroke-width="1.5"/>
+        <text x="220" y="368" text-anchor="middle" fill="#3a4ed4" font-size="9.5" font-weight="600">主 .action()</text>
+        <text x="220" y="380" text-anchor="middle" fill="#3a4ed4" font-size="9">trust → MCP → 会话分发</text>
+      </g>
+
+      <!-- Fork: interactive vs headless -->
+      <line x1="220" y1="390" x2="220" y2="420" stroke="#5769F7" stroke-width="1.5"/>
+      <line x1="220" y1="420" x2="510" y2="420" stroke="#5769F7" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="220" y1="420" x2="800" y2="420" stroke="#8a8480" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- Interactive path -->
+      <line x1="510" y1="420" x2="510" y2="432" stroke="#5769F7" stroke-width="1.5" marker-end="url(#fa-blue)"/>
+      <g class="node-group">
+        <title>src/replLauncher.tsx — launchRepl(root, appProps, replProps) → SentryErrorBoundary → App → REPL</title>
+        <rect class="node-rect" x="449" y="432" width="122" height="28" rx="5" fill="#d2f0e3" stroke="#22a766" stroke-width="1.5"/>
+        <text x="510" y="450" text-anchor="middle" fill="#1a5c39" font-size="9.5" font-weight="600">launchRepl()</text>
+      </g>
+
+      <line x1="510" y1="460" x2="655" y2="460" stroke="#22a766" stroke-width="1.5" marker-end="url(#fa)"/>
+      <g class="node-group">
+        <title>src/screens/REPL.tsx — 交互式 REPL：Messages / PromptInput / PermissionDialog / StatusBar</title>
+        <rect class="node-rect" x="594" y="448" width="122" height="28" rx="5" fill="#d2f0e3" stroke="#22a766" stroke-width="1.5"/>
+        <text x="655" y="466" text-anchor="middle" fill="#1a5c39" font-size="9.5" font-weight="600">REPL 交互界面</text>
+      </g>
+
+      <!-- Headless path -->
+      <line x1="800" y1="420" x2="800" y2="432" stroke="#8a8480" stroke-width="1.5" marker-end="url(#fa)"/>
+      <g class="node-group">
+        <title>src/cli/print.ts:456 — runHeadless(inputPrompt, getAppState, ...) → query() 循环 → StructuredIO stdout / RemoteIO WebSocket</title>
+        <rect class="node-rect" x="739" y="432" width="122" height="28" rx="5" fill="#ebe7e0" stroke="#8a8480" stroke-width="1.5"/>
+        <text x="800" y="450" text-anchor="middle" fill="#2d2a26" font-size="9.5" font-weight="600">runHeadless()</text>
+      </g>
+
+      <!-- Mode labels -->
+      <text x="510" y="415" text-anchor="middle" fill="#22a766" font-size="9" font-weight="700">交互模式 (isTTY)</text>
+      <text x="800" y="415" text-anchor="middle" fill="#8a8480" font-size="9" font-weight="700">无头模式 (-p/非TTY)</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 1: CLI.TSX DISTRIBUTOR DIAGRAM                     -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="startup-chain">
+  <h2>cli.tsx 分流器架构图</h2>
+  <p class="section-desc">cli.tsx 按优先级扫描 argv，匹配到任一快速路径（橙色）立即动态 import 目标模块并 return；全部未命中则进入默认路径（蓝色）加载完整 main.tsx。</p>
+
+  <div class="diagram-wrap">
+    <svg width="960" height="820" viewBox="0 0 960 820" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#8a8480" />
+        </marker>
+        <marker id="arrow-orange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#D77757" />
+        </marker>
+        <marker id="arrow-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#5769F7" />
+        </marker>
+      </defs>
+
+      <!-- ── User argv ── -->
+      <g class="node-group">
+        <title>用户在终端执行：claude [args]  →  process.argv.slice(2)</title>
+        <rect class="node-rect" x="400" y="10" width="160" height="36" rx="18" fill="#2d2a26" />
+        <text x="480" y="33" text-anchor="middle" fill="#faf8f5" font-size="13" font-weight="600">用户 argv</text>
+      </g>
+
+      <!-- arrow down to cli.tsx -->
+      <line x1="480" y1="46" x2="480" y2="72" stroke="#8a8480" stroke-width="1.5" marker-end="url(#arrow)" />
+
+      <!-- ── cli.tsx main box ── -->
+      <g class="node-group">
+        <title>src/entrypoints/cli.tsx — async function main():83  •  首先 import performanceShim  •  MACRO 运行时回退 :11-21  •  env hacks: COREPACK/NODE_OPTIONS :40-48</title>
+        <rect class="node-rect" x="310" y="72" width="340" height="56" rx="8" fill="#fff7f4" stroke="#D77757" stroke-width="2" />
+        <text x="480" y="95" text-anchor="middle" fill="#b55e3a" font-size="13" font-weight="700">cli.tsx</text>
+        <text x="480" y="113" text-anchor="middle" fill="#8a8480" font-size="10.5">src/entrypoints/cli.tsx · async main():83</text>
+      </g>
+
+      <!-- ── Bootstrap side notes ── -->
+      <g class="node-group">
+        <title>src/utils/performanceShim.ts:165  —  installPerformanceShim()  —  必须第一个 import，解决 JSC C++ Vector 内存泄漏</title>
+        <rect class="node-rect" x="8" y="76" width="192" height="28" rx="6" fill="#ebe7e0" stroke="#ddd8d0" />
+        <text x="104" y="95" text-anchor="middle" fill="#5a5650" font-size="10.5">① performanceShim.ts (import line 5)</text>
+      </g>
+      <line x1="310" y1="92" x2="200" y2="92" stroke="#ddd8d0" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow)" />
+
+      <g class="node-group">
+        <title>cli.tsx:11-21  —  if (typeof globalThis.MACRO === 'undefined') { ... }  —  兜底：直接运行 cli.tsx 时（非 dev/build）提供 VERSION 等常量</title>
+        <rect class="node-rect" x="8" y="112" width="192" height="28" rx="6" fill="#ebe7e0" stroke="#ddd8d0" />
+        <text x="104" y="131" text-anchor="middle" fill="#5a5650" font-size="10.5">② MACRO 运行时回退 (:11-21)</text>
+      </g>
+      <line x1="310" y1="105" x2="200" y2="126" stroke="#ddd8d0" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow)" />
+
+      <!-- ── Quick paths label ── -->
+      <text x="480" y="157" text-anchor="middle" fill="#D77757" font-size="11" font-weight="700" letter-spacing=".05em">快速路径（按优先级匹配，命中即 return）</text>
+
+      <!-- ── Vertical spine line ── -->
+      <line x1="480" y1="128" x2="480" y2="162" stroke="#D77757" stroke-width="1.5" />
+      <line x1="480" y1="162" x2="480" y2="620" stroke="#D77757" stroke-width="1.5" stroke-dasharray="3,2" />
+
+      <!-- Quick path nodes: each at y = 170 + n*48 -->
+
+      <!-- QP1 -->
+      <g class="node-group">
+        <title>cli.tsx:88  —  内联打印 MACRO.VERSION，零模块加载，最快启动</title>
+        <rect class="node-rect" x="510" y="166" width="240" height="28" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="1" />
+        <text x="630" y="184" text-anchor="middle" fill="#b55e3a" font-size="10.5" font-weight="600">① --version/-v/-V → console.log</text>
+      </g>
+      <line x1="480" y1="172" x2="510" y2="180" stroke="#D77757" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+
+      <!-- QP2 -->
+      <g class="node-group">
+        <title>cli.tsx:102  —  feature('DUMP_SYSTEM_PROMPT')  —  enableConfigs() → constants/prompts.js → getSystemPrompt()</title>
+        <rect class="node-rect" x="510" y="202" width="240" height="28" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="1" />
+        <text x="630" y="220" text-anchor="middle" fill="#b55e3a" font-size="10.5" font-weight="600">② --dump-system-prompt → prompts.js</text>
+      </g>
+      <line x1="480" y1="210" x2="510" y2="216" stroke="#D77757" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+
+      <!-- QP3 -->
+      <g class="node-group">
+        <title>cli.tsx:118-133  —  --claude-in-chrome-mcp / --chrome-native-host / --computer-use-mcp (CHICAGO_MCP)</title>
+        <rect class="node-rect" x="510" y="238" width="240" height="28" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="1" />
+        <text x="630" y="256" text-anchor="middle" fill="#b55e3a" font-size="10.5" font-weight="600">③ --chrome-mcp / --computer-use-mcp</text>
+      </g>
+      <line x1="480" y1="248" x2="510" y2="252" stroke="#D77757" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+
+      <!-- QP4 -->
+      <g class="node-group">
+        <title>cli.tsx:138  —  feature('ACP') && --acp  —  services/acp/entry.js → runAcpAgent()</title>
+        <rect class="node-rect" x="510" y="274" width="240" height="28" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="1" />
+        <text x="630" y="292" text-anchor="middle" fill="#b55e3a" font-size="10.5" font-weight="600">④ --acp (ACP) → acp/entry.js</text>
+      </g>
+      <line x1="480" y1="284" x2="510" y2="288" stroke="#D77757" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+
+      <!-- QP5 -->
+      <g class="node-group">
+        <title>cli.tsx:146  —  args[0] === 'weixin'  —  enableConfigs() → @claude-code-best/weixin → handleWeixinCli()</title>
+        <rect class="node-rect" x="510" y="310" width="240" height="28" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="1" />
+        <text x="630" y="328" text-anchor="middle" fill="#b55e3a" font-size="10.5" font-weight="600">⑤ weixin → @claude-code-best/weixin</text>
+      </g>
+      <line x1="480" y1="320" x2="510" y2="324" stroke="#D77757" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+
+      <!-- QP6 -->
+      <g class="node-group">
+        <title>cli.tsx:180  —  feature('DAEMON') && --daemon-worker[=kind]  —  daemon/workerRegistry.js → runDaemonWorker(kind)</title>
+        <rect class="node-rect" x="510" y="346" width="240" height="28" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="1" />
+        <text x="630" y="364" text-anchor="middle" fill="#b55e3a" font-size="10.5" font-weight="600">⑥ --daemon-worker=kind → workerRegistry</text>
+      </g>
+      <line x1="480" y1="356" x2="510" y2="360" stroke="#D77757" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+
+      <!-- QP7 -->
+      <g class="node-group">
+        <title>cli.tsx:199  —  feature('BRIDGE_MODE') && remote-control|rc|remote|sync|bridge  —  enableConfigs() → bridge/bridgeMain.js</title>
+        <rect class="node-rect" x="510" y="382" width="240" height="28" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="1" />
+        <text x="630" y="400" text-anchor="middle" fill="#b55e3a" font-size="10.5" font-weight="600">⑦ rc/remote/bridge → bridgeMain.js</text>
+      </g>
+      <line x1="480" y1="392" x2="510" y2="396" stroke="#D77757" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+
+      <!-- QP8 -->
+      <g class="node-group">
+        <title>cli.tsx:249  —  (DAEMON|BG_SESSIONS) && args[0]==='daemon'  —  enableConfigs() → daemon/main.js → daemonMain()</title>
+        <rect class="node-rect" x="510" y="418" width="240" height="28" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="1" />
+        <text x="630" y="436" text-anchor="middle" fill="#b55e3a" font-size="10.5" font-weight="600">⑧ daemon → daemon/main.js</text>
+      </g>
+      <line x1="480" y1="428" x2="510" y2="432" stroke="#D77757" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+
+      <!-- QP9 -->
+      <g class="node-group">
+        <title>cli.tsx:267  —  args[0]==='autonomy'  —  cli/handlers/autonomy.js → getAutonomyCommandText()</title>
+        <rect class="node-rect" x="510" y="454" width="240" height="28" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="1" />
+        <text x="630" y="472" text-anchor="middle" fill="#b55e3a" font-size="10.5" font-weight="600">⑨ autonomy → handlers/autonomy.js</text>
+      </g>
+      <line x1="480" y1="464" x2="510" y2="468" stroke="#D77757" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+
+      <!-- QP10 -->
+      <g class="node-group">
+        <title>cli.tsx:285  —  feature('BG_SESSIONS') && --bg/--background  —  enableConfigs() → cli/bg.js → handleBgStart()</title>
+        <rect class="node-rect" x="510" y="490" width="240" height="28" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="1" />
+        <text x="630" y="508" text-anchor="middle" fill="#b55e3a" font-size="10.5" font-weight="600">⑩ --bg/--background → cli/bg.js</text>
+      </g>
+      <line x1="480" y1="500" x2="510" y2="504" stroke="#D77757" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+
+      <!-- QP11 -->
+      <g class="node-group">
+        <title>cli.tsx:318  —  feature('TEMPLATES') && job/new/list/reply  —  cli/handlers/templateJobs.js → templatesMain()</title>
+        <rect class="node-rect" x="510" y="526" width="240" height="28" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="1" />
+        <text x="630" y="544" text-anchor="middle" fill="#b55e3a" font-size="10.5" font-weight="600">⑪ job/new/list → templateJobs.js</text>
+      </g>
+      <line x1="480" y1="536" x2="510" y2="540" stroke="#D77757" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+
+      <!-- QP12 -->
+      <g class="node-group">
+        <title>cli.tsx:341  —  feature('BYOC_ENVIRONMENT_RUNNER') && environment-runner  —  environment-runner/main.js</title>
+        <rect class="node-rect" x="510" y="562" width="240" height="28" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="1" />
+        <text x="630" y="580" text-anchor="middle" fill="#b55e3a" font-size="10.5" font-weight="600">⑫ environment-runner → runner/main.js</text>
+      </g>
+      <line x1="480" y1="572" x2="510" y2="576" stroke="#D77757" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+
+      <!-- QP13 -->
+      <g class="node-group">
+        <title>cli.tsx:352  —  feature('SELF_HOSTED_RUNNER') && self-hosted-runner  —  self-hosted-runner/main.js</title>
+        <rect class="node-rect" x="510" y="598" width="240" height="28" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="1" />
+        <text x="630" y="616" text-anchor="middle" fill="#b55e3a" font-size="10.5" font-weight="600">⑬ self-hosted-runner → shrunner/main.js</text>
+      </g>
+      <line x1="480" y1="608" x2="510" y2="612" stroke="#D77757" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+
+      <!-- QP14 -->
+      <g class="node-group">
+        <title>cli.tsx:361  —  --tmux + --worktree/-w  —  enableConfigs() → isWorktreeModeEnabled() → utils/worktree.js → execIntoTmuxWorktree()</title>
+        <rect class="node-rect" x="510" y="634" width="240" height="28" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="1" />
+        <text x="630" y="652" text-anchor="middle" fill="#b55e3a" font-size="10.5" font-weight="600">⑭ --tmux + --worktree → worktree.js</text>
+      </g>
+      <line x1="480" y1="620" x2="510" y2="648" stroke="#D77757" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+
+      <!-- ── Default path label ── -->
+      <text x="220" y="657" text-anchor="middle" fill="#5769F7" font-size="11" font-weight="700" letter-spacing=".05em">默认路径</text>
+
+      <!-- default path arrow from spine bottom -->
+      <line x1="480" y1="660" x2="330" y2="680" stroke="#5769F7" stroke-width="2" marker-end="url(#arrow-blue)" />
+
+      <!-- startCapturingEarlyInput -->
+      <g class="node-group">
+        <title>cli.tsx:398  —  startCapturingEarlyInput()  —  在 main.tsx 加载期间捕获用户早期输入，避免丢失按键</title>
+        <rect class="node-rect" x="100" y="676" width="260" height="28" rx="6" fill="#eef0ff" stroke="#5769F7" stroke-width="1" />
+        <text x="230" y="694" text-anchor="middle" fill="#3a4ed4" font-size="10.5" font-weight="600">startCapturingEarlyInput() :398</text>
+      </g>
+
+      <!-- arrow to main.tsx -->
+      <line x1="230" y1="704" x2="230" y2="724" stroke="#5769F7" stroke-width="1.5" marker-end="url(#arrow-blue)" />
+
+      <!-- main.tsx -->
+      <g class="node-group">
+        <title>src/main.tsx — import('../main.jsx') :401  —  Commander.js CLI 定义  •  ~5674 行  •  注册所有子命令</title>
+        <rect class="node-rect" x="100" y="724" width="260" height="40" rx="8" fill="#5769F7" />
+        <text x="230" y="742" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">import('../main.jsx') → cliMain()</text>
+        <text x="230" y="757" text-anchor="middle" fill="#c5cafd" font-size="10">src/main.tsx — Commander.js 程序体</text>
+      </g>
+
+      <!-- arrow to run() -->
+      <line x1="230" y1="764" x2="230" y2="784" stroke="#5769F7" stroke-width="1.5" marker-end="url(#arrow-blue)" />
+
+      <!-- run() box -->
+      <g class="node-group">
+        <title>main.tsx:1142  —  run()  — 注册 Commander program、preAction 钩子（init()）、.action() 处理器（REPL 或 Headless）</title>
+        <rect class="node-rect" x="60" y="784" width="340" height="28" rx="6" fill="#eef0ff" stroke="#5769F7" stroke-width="1" />
+        <text x="230" y="802" text-anchor="middle" fill="#3a4ed4" font-size="10.5" font-weight="600">run() :1142  →  preAction: init() [memoized]  →  .action()</text>
+      </g>
+
+      <!-- branching arrows at bottom -->
+      <line x1="160" y1="812" x2="100" y2="812" stroke="#5769F7" stroke-width="1.2" />
+      <line x1="100" y1="784" x2="100" y2="820" stroke="#5769F7" stroke-width="1.2" />
+      <line x1="300" y1="812" x2="360" y2="812" stroke="#5769F7" stroke-width="1.2" />
+      <line x1="360" y1="784" x2="360" y2="820" stroke="#5769F7" stroke-width="1.2" />
+
+      <!-- legend -->
+      <rect x="760" y="160" width="180" height="100" rx="8" fill="#fff" stroke="#ddd8d0" />
+      <text x="850" y="180" text-anchor="middle" fill="#5a5650" font-size="11" font-weight="700">图例</text>
+      <rect x="776" y="192" width="14" height="10" rx="2" fill="#fff3ee" stroke="#D77757" />
+      <text x="798" y="202" fill="#5a5650" font-size="10.5">快速路径（命中即 return）</text>
+      <rect x="776" y="214" width="14" height="10" rx="2" fill="#eef0ff" stroke="#5769F7" />
+      <text x="798" y="224" fill="#5a5650" font-size="10.5">默认路径（加载完整 CLI）</text>
+      <rect x="776" y="236" width="14" height="10" rx="2" fill="#ebe7e0" stroke="#ddd8d0" />
+      <text x="798" y="246" fill="#5a5650" font-size="10.5">辅助引导步骤</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 2: 14 QUICK PATHS CARDS                            -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="quick-paths">
+  <h2>14 条快速路径参考</h2>
+  <p class="section-desc">每条路径命中后立即动态导入目标模块并 <code>return</code>，不继续加载 main.tsx。<span class="tag tag-orange">enableConfigs</span> 表示该路径是否需要读取配置文件（打开配置闸门）。</p>
+
+  <div class="card-grid">
+
+    <!-- 1 -->
+    <div class="path-card">
+      <div class="badge-num">1</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>--version</code> / <code>-v</code> / <code>-V</code></div>
+        <div class="card-module">内联打印 MACRO.VERSION，零模块加载</div>
+        <span class="badge-enable badge-no">✗ enableConfigs 否</span>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="path-card">
+      <div class="badge-num">2</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>--dump-system-prompt</code></div>
+        <div class="card-flag">feature: DUMP_SYSTEM_PROMPT</div>
+        <div class="card-module">constants/prompts.js → getSystemPrompt()</div>
+        <span class="badge-enable badge-yes">✓ enableConfigs 是</span>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="path-card">
+      <div class="badge-num">3</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>--claude-in-chrome-mcp</code></div>
+        <div class="card-module">claudeInChrome/mcpServer.js</div>
+        <span class="badge-enable badge-no">✗ enableConfigs 否</span>
+      </div>
+    </div>
+
+    <!-- 3b -->
+    <div class="path-card">
+      <div class="badge-num">3b</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>--chrome-native-host</code></div>
+        <div class="card-module">claudeInChrome/chromeNativeHost.js</div>
+        <span class="badge-enable badge-no">✗ enableConfigs 否</span>
+      </div>
+    </div>
+
+    <!-- 3c -->
+    <div class="path-card">
+      <div class="badge-num">3c</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>--computer-use-mcp</code></div>
+        <div class="card-flag">feature: CHICAGO_MCP</div>
+        <div class="card-module">computerUse/mcpServer.js</div>
+        <span class="badge-enable badge-no">✗ enableConfigs 否</span>
+      </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="path-card">
+      <div class="badge-num">4</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>--acp</code></div>
+        <div class="card-flag">feature: ACP</div>
+        <div class="card-module">services/acp/entry.js</div>
+        <span class="badge-enable badge-no">✗ enableConfigs 否</span>
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="path-card">
+      <div class="badge-num">5</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>weixin</code></div>
+        <div class="card-module">@claude-code-best/weixin</div>
+        <span class="badge-enable badge-yes">✓ enableConfigs 是</span>
+      </div>
+    </div>
+
+    <!-- 6 -->
+    <div class="path-card">
+      <div class="badge-num">6</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>--daemon-worker[=kind]</code></div>
+        <div class="card-flag">feature: DAEMON</div>
+        <div class="card-module">daemon/workerRegistry.js</div>
+        <span class="badge-enable badge-no">✗ enableConfigs 否（worker 内部自决）</span>
+      </div>
+    </div>
+
+    <!-- 7 -->
+    <div class="path-card">
+      <div class="badge-num">7</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>remote-control</code> / <code>rc</code> / <code>remote</code> / <code>sync</code> / <code>bridge</code></div>
+        <div class="card-flag">feature: BRIDGE_MODE</div>
+        <div class="card-module">bridge/bridgeMain.js</div>
+        <span class="badge-enable badge-yes">✓ enableConfigs 是</span>
+      </div>
+    </div>
+
+    <!-- 8 -->
+    <div class="path-card">
+      <div class="badge-num">8</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>daemon</code></div>
+        <div class="card-flag">feature: DAEMON | BG_SESSIONS</div>
+        <div class="card-module">daemon/main.js</div>
+        <span class="badge-enable badge-yes">✓ enableConfigs 是</span>
+      </div>
+    </div>
+
+    <!-- 9 -->
+    <div class="path-card">
+      <div class="badge-num">9</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>autonomy</code></div>
+        <div class="card-module">cli/handlers/autonomy.js</div>
+        <span class="badge-enable badge-no">✗ enableConfigs 否</span>
+      </div>
+    </div>
+
+    <!-- 10 -->
+    <div class="path-card">
+      <div class="badge-num">10</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>--bg</code> / <code>--background</code></div>
+        <div class="card-flag">feature: BG_SESSIONS</div>
+        <div class="card-module">cli/bg.js → handleBgStart()</div>
+        <span class="badge-enable badge-yes">✓ enableConfigs 是</span>
+      </div>
+    </div>
+
+    <!-- 11 -->
+    <div class="path-card">
+      <div class="badge-num">11</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>job</code> / <code>new</code> / <code>list</code> / <code>reply</code></div>
+        <div class="card-flag">feature: TEMPLATES</div>
+        <div class="card-module">cli/handlers/templateJobs.js</div>
+        <span class="badge-enable badge-no">✗ enableConfigs 否</span>
+      </div>
+    </div>
+
+    <!-- 12 -->
+    <div class="path-card">
+      <div class="badge-num">12</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>environment-runner</code></div>
+        <div class="card-flag">feature: BYOC_ENVIRONMENT_RUNNER</div>
+        <div class="card-module">environment-runner/main.js</div>
+        <span class="badge-enable badge-no">✗ enableConfigs 否</span>
+      </div>
+    </div>
+
+    <!-- 13 -->
+    <div class="path-card">
+      <div class="badge-num">13</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>self-hosted-runner</code></div>
+        <div class="card-flag">feature: SELF_HOSTED_RUNNER</div>
+        <div class="card-module">self-hosted-runner/main.js</div>
+        <span class="badge-enable badge-no">✗ enableConfigs 否</span>
+      </div>
+    </div>
+
+    <!-- 14 -->
+    <div class="path-card">
+      <div class="badge-num">14</div>
+      <div class="card-body">
+        <div class="card-trigger"><code>--tmux</code> + <code>--worktree</code></div>
+        <div class="card-module">utils/worktree.js → execIntoTmuxWorktree()</div>
+        <span class="badge-enable badge-yes">✓ enableConfigs 是</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION: main.tsx THREE-LAYER STRUCTURE                    -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="main-layers">
+  <h2>main.tsx 三层结构图</h2>
+  <p class="section-desc">main.tsx 约 5700 行，分为三个垂直层：顶层副作用（模块求值时立即执行）、main() argv 重写层、run() Commander 程序层。</p>
+
+  <div class="diagram-wrap">
+    <svg width="880" height="480" viewBox="0 0 880 480" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ml-arr" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#5769F7" />
+        </marker>
+        <marker id="ml-arr-g" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#8a8480" />
+        </marker>
+      </defs>
+
+      <!-- Band A: Top-level side effects -->
+      <g class="node-group">
+        <title>main.tsx 顶层副作用 (行 1-22) — 模块级副作用，在 dynamic import 完成时立即执行，与 main() 调用前并行</title>
+        <rect class="node-rect" x="10" y="10" width="860" height="80" rx="8" fill="#f3f0eb" stroke="#ddd8d0" stroke-width="1.5"/>
+        <text x="20" y="32" fill="#5a5650" font-size="11" font-weight="700">顶层副作用（行 1–22）</text>
+      </g>
+      <!-- Three parallel arrows in band A -->
+      <g class="node-group">
+        <title>main.tsx:1 profileCheckpoint('main_tsx_entry') — 在所有重量级模块求值前记录时间戳</title>
+        <rect class="node-rect" x="22" y="40" width="220" height="40" rx="6" fill="#dde0fe" stroke="#5769F7" stroke-width="1"/>
+        <text x="132" y="57" text-anchor="middle" fill="#3a4ed4" font-size="10" font-weight="600">profileCheckpoint</text>
+        <text x="132" y="71" text-anchor="middle" fill="#3a4ed4" font-size="9">('main_tsx_entry')</text>
+      </g>
+      <g class="node-group">
+        <title>main.tsx:~8 startMdmRawRead() — 触发 plutil/reg query 子进程读取企业 MDM 策略，与后续 JS 并行</title>
+        <rect class="node-rect" x="260" y="40" width="220" height="40" rx="6" fill="#dde0fe" stroke="#5769F7" stroke-width="1"/>
+        <text x="370" y="57" text-anchor="middle" fill="#3a4ed4" font-size="10" font-weight="600">startMdmRawRead()</text>
+        <text x="370" y="71" text-anchor="middle" fill="#3a4ed4" font-size="9">并行读 MDM 企业策略</text>
+      </g>
+      <g class="node-group">
+        <title>main.tsx:~15 startKeychainPrefetch() — 并行触发两次 macOS keychain 读取（OAuth + 旧版 API key），避免 init 中同步阻塞 ~65ms×2</title>
+        <rect class="node-rect" x="498" y="40" width="220" height="40" rx="6" fill="#dde0fe" stroke="#5769F7" stroke-width="1"/>
+        <text x="608" y="57" text-anchor="middle" fill="#3a4ed4" font-size="10" font-weight="600">startKeychainPrefetch()</text>
+        <text x="608" y="71" text-anchor="middle" fill="#3a4ed4" font-size="9">并行读 keychain 凭证</text>
+      </g>
+
+      <!-- Band B: main() -->
+      <g class="node-group">
+        <title>main.tsx main() 函数 (行 777-1110) — Commander 解析 argv 之前的早期处理：argv 重写、全局变量暂存、isNonInteractive 判定</title>
+        <rect class="node-rect" x="10" y="108" width="860" height="148" rx="8" fill="#f3f0eb" stroke="#ddd8d0" stroke-width="1.5"/>
+        <text x="20" y="130" fill="#5a5650" font-size="11" font-weight="700">main()（行 777–1110）</text>
+      </g>
+      <!-- 5 argv-rewrite branches -->
+      <g class="node-group">
+        <title>main.tsx:~786 initializeWarningHandler() + resetCursor exit hook + SIGINT handler — 进程级钩子，最早注册</title>
+        <rect class="node-rect" x="22" y="136" width="158" height="44" rx="6" fill="#eef0ff" stroke="#5769F7" stroke-width="1"/>
+        <text x="101" y="153" text-anchor="middle" fill="#3a4ed4" font-size="9.5" font-weight="600">早期进程钩子</text>
+        <text x="101" y="165" text-anchor="middle" fill="#3a4ed4" font-size="9">warningHandler / SIGINT</text>
+      </g>
+      <g class="node-group">
+        <title>main.tsx cc:// URL 重写 — DIRECT_CONNECT feature：剥离 cc:// / cc+unix:// URL，存入 _pendingConnect 全局变量</title>
+        <rect class="node-rect" x="192" y="136" width="140" height="44" rx="6" fill="#eef0ff" stroke="#5769F7" stroke-width="1"/>
+        <text x="262" y="153" text-anchor="middle" fill="#3a4ed4" font-size="9.5" font-weight="600">cc:// URL 重写</text>
+        <text x="262" y="165" text-anchor="middle" fill="#3a4ed4" font-size="9">→ _pendingConnect</text>
+      </g>
+      <g class="node-group">
+        <title>main.tsx --handle-uri — LODESTONE feature：解析深度链接 URI → handleDeepLinkUri() → process.exit()</title>
+        <rect class="node-rect" x="344" y="136" width="140" height="44" rx="6" fill="#eef0ff" stroke="#5769F7" stroke-width="1"/>
+        <text x="414" y="153" text-anchor="middle" fill="#3a4ed4" font-size="9.5" font-weight="600">--handle-uri</text>
+        <text x="414" y="165" text-anchor="middle" fill="#3a4ed4" font-size="9">→ handleDeepLinkUri()</text>
+      </g>
+      <g class="node-group">
+        <title>main.tsx assistant / ssh 暂存 — KAIROS/SSH_REMOTE feature：剥离参数存入 _pendingAssistantChat / _pendingSSH</title>
+        <rect class="node-rect" x="496" y="136" width="160" height="44" rx="6" fill="#eef0ff" stroke="#5769F7" stroke-width="1"/>
+        <text x="576" y="153" text-anchor="middle" fill="#3a4ed4" font-size="9.5" font-weight="600">assistant/ssh 暂存</text>
+        <text x="576" y="165" text-anchor="middle" fill="#3a4ed4" font-size="9">_pendingSSH / _pendingAssistantChat</text>
+      </g>
+      <g class="node-group">
+        <title>main.tsx:1008 setIsInteractive() + initializeEntrypoint() — isNonInteractive 判定后写入 bootstrap/state.ts</title>
+        <rect class="node-rect" x="668" y="136" width="190" height="44" rx="6" fill="#eef0ff" stroke="#5769F7" stroke-width="1"/>
+        <text x="763" y="153" text-anchor="middle" fill="#3a4ed4" font-size="9.5" font-weight="600">isNonInteractive 判定</text>
+        <text x="763" y="165" text-anchor="middle" fill="#3a4ed4" font-size="9">setIsInteractive() + initializeEntrypoint()</text>
+      </g>
+      <!-- 3 _pending* global variable boxes -->
+      <g class="node-group">
+        <title>_pendingConnect: { url, authToken, dangerouslySkipPermissions } — main action 中检查此变量决定 Direct Connect 流程</title>
+        <rect class="node-rect" x="192" y="196" width="140" height="48" rx="6" fill="#fff9f6" stroke="#D77757" stroke-width="1" stroke-dasharray="4,2"/>
+        <text x="262" y="215" text-anchor="middle" fill="#b55e3a" font-size="9" font-weight="600">_pendingConnect</text>
+        <text x="262" y="228" text-anchor="middle" fill="#b55e3a" font-size="8.5">{ url, authToken, ... }</text>
+      </g>
+      <g class="node-group">
+        <title>_pendingAssistantChat: { sessionId, discover } — Kairos assistant 只读客户端模式</title>
+        <rect class="node-rect" x="344" y="196" width="140" height="48" rx="6" fill="#fff9f6" stroke="#D77757" stroke-width="1" stroke-dasharray="4,2"/>
+        <text x="414" y="215" text-anchor="middle" fill="#b55e3a" font-size="9" font-weight="600">_pendingAssistantChat</text>
+        <text x="414" y="228" text-anchor="middle" fill="#b55e3a" font-size="8.5">{ sessionId, discover }</text>
+      </g>
+      <g class="node-group">
+        <title>_pendingSSH: { host, local, ... } — SSH 远端会话，main action 中检查后创建 SSHSession</title>
+        <rect class="node-rect" x="496" y="196" width="160" height="48" rx="6" fill="#fff9f6" stroke="#D77757" stroke-width="1" stroke-dasharray="4,2"/>
+        <text x="576" y="215" text-anchor="middle" fill="#b55e3a" font-size="9" font-weight="600">_pendingSSH</text>
+        <text x="576" y="228" text-anchor="middle" fill="#b55e3a" font-size="8.5">{ host, local, ... }</text>
+      </g>
+
+      <!-- Band C: run() -->
+      <g class="node-group">
+        <title>main.tsx run() 函数 (行 1112-5721) — 完整 Commander 程序体：注册 program → preAction hook → 主 .action() 处理器 → 子命令注册 → parseAsync()</title>
+        <rect class="node-rect" x="10" y="274" width="860" height="196" rx="8" fill="#f3f0eb" stroke="#ddd8d0" stroke-width="1.5"/>
+        <text x="20" y="296" fill="#5a5650" font-size="11" font-weight="700">run()（行 1112–5721）</text>
+      </g>
+      <!-- run() flow nodes -->
+      <g class="node-group">
+        <title>main.tsx:1136 Commander preAction hook — 每个子命令执行前统一触发：MDM wait → keychain wait → init() → process.title → initSinks() → runMigrations()</title>
+        <rect class="node-rect" x="22" y="306" width="180" height="48" rx="6" fill="#eef0ff" stroke="#5769F7" stroke-width="1.5"/>
+        <text x="112" y="325" text-anchor="middle" fill="#3a4ed4" font-size="10" font-weight="600">preAction hook</text>
+        <text x="112" y="339" text-anchor="middle" fill="#3a4ed4" font-size="9">init() + sinks + migrations</text>
+      </g>
+      <line x1="202" y1="330" x2="230" y2="330" stroke="#5769F7" stroke-width="1.5" marker-end="url(#ml-arr)"/>
+      <g class="node-group">
+        <title>init.ts — 26 步一次性全局初始化（memoized）</title>
+        <rect class="node-rect" x="230" y="306" width="140" height="48" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="1.5"/>
+        <text x="300" y="325" text-anchor="middle" fill="#b55e3a" font-size="10" font-weight="600">init()（26 步）</text>
+        <text x="300" y="339" text-anchor="middle" fill="#b55e3a" font-size="9">memoized，只跑一次</text>
+      </g>
+      <line x1="370" y1="330" x2="398" y2="330" stroke="#5769F7" stroke-width="1.5" marker-end="url(#ml-arr)"/>
+      <g class="node-group">
+        <title>main.tsx:~1513 主 .action() 处理器 — trust dialog → showSetupScreens → 工具池 → MCP → 会话分支(cc://,ssh,assistant,resume) → 模式分发</title>
+        <rect class="node-rect" x="398" y="306" width="200" height="48" rx="6" fill="#eef0ff" stroke="#5769F7" stroke-width="1.5"/>
+        <text x="498" y="325" text-anchor="middle" fill="#3a4ed4" font-size="10" font-weight="600">主 .action() 处理器</text>
+        <text x="498" y="339" text-anchor="middle" fill="#3a4ed4" font-size="9">trust → MCP → 会话分发 → 模式分发</text>
+      </g>
+      <line x1="598" y1="330" x2="626" y2="330" stroke="#5769F7" stroke-width="1.5" marker-end="url(#ml-arr)"/>
+      <g class="node-group">
+        <title>子命令注册 — mcp / server / ssh / open / auth / plugin / agents / doctor / update 等约 15 个子命令</title>
+        <rect class="node-rect" x="626" y="306" width="220" height="48" rx="6" fill="#eef0ff" stroke="#5769F7" stroke-width="1.5"/>
+        <text x="736" y="325" text-anchor="middle" fill="#3a4ed4" font-size="10" font-weight="600">子命令注册（~15 个）</text>
+        <text x="736" y="339" text-anchor="middle" fill="#3a4ed4" font-size="9">mcp / auth / plugin / doctor / update …</text>
+      </g>
+      <!-- parseAsync -->
+      <g class="node-group">
+        <title>program.parseAsync(process.argv) — 解析 argv，分发到对应 action，启动整个 Commander 生命周期</title>
+        <rect class="node-rect" x="300" y="398" width="280" height="36" rx="6" fill="#2d2a26"/>
+        <text x="440" y="421" text-anchor="middle" fill="#faf8f5" font-size="11" font-weight="700">program.parseAsync(process.argv)</text>
+      </g>
+      <line x1="440" y1="354" x2="440" y2="398" stroke="#5769F7" stroke-width="1.5" marker-end="url(#ml-arr)"/>
+    </svg>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION: init.ts INITIALIZATION TIMELINE                   -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="init-timeline">
+  <h2>init.ts 初始化时间线</h2>
+  <p class="section-desc">init() 被 memoize 包裹，整个进程只执行一次。下表按执行顺序列出所有步骤，颜色分组表示功能类别。虚色条表示 fire-and-forget 异步步骤（不阻塞后续步骤）。</p>
+
+  <div class="diagram-wrap">
+    <div style="overflow-x:auto;">
+      <table style="min-width:700px; border-collapse:collapse; font-size:.83rem;">
+        <thead>
+          <tr>
+            <th style="width:28px; padding:8px 10px; background:var(--bg2); border-bottom:2px solid var(--border);">#</th>
+            <th style="width:260px; padding:8px 10px; background:var(--bg2); border-bottom:2px solid var(--border);">函数</th>
+            <th style="width:200px; padding:8px 10px; background:var(--bg2); border-bottom:2px solid var(--border);">目的</th>
+            <th style="padding:8px 10px; background:var(--bg2); border-bottom:2px solid var(--border);">时序条</th>
+            <th style="width:80px; padding:8px 10px; background:var(--bg2); border-bottom:2px solid var(--border); white-space:nowrap;">同步/异步</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Config phase (blue-lt) -->
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">1</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>enableConfigs()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">开启配置读取闸门</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:60%; height:10px; background:var(--blue-lt); border-radius:3px; border:1px solid var(--blue);"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);">同步</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">2</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>setThemeConfigCallbacks()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">主题加载/保存回调</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:30%; height:10px; background:var(--blue-lt); border-radius:3px; border:1px solid var(--blue);"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);">同步</td>
+          </tr>
+          <!-- Env phase (orange-lt) -->
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">3</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>applySafeConfigEnvironmentVariables()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">trust 前安全 env vars</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:40%; height:10px; background:var(--orange-lt); border-radius:3px; border:1px solid var(--orange);"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);">同步</td>
+          </tr>
+          <tr style="background:#fff9f6;">
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">4</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>applyExtraCACertsFromConfig()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);"><strong>必须在首次 TLS 握手前</strong></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:50%; height:10px; background:var(--orange); border-radius:3px; opacity:.8;"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);">同步 ⚠</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">5</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>setupGracefulShutdown()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">进程退出清理钩子</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:30%; height:10px; background:var(--orange-lt); border-radius:3px; border:1px solid var(--orange);"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);">同步</td>
+          </tr>
+          <!-- Async batch (green-lt) -->
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">6</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>initialize1PEventLogging()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">1P events（推迟加载 OTel）</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:90%; height:10px; background:var(--green-lt); border-radius:3px; border:1px solid var(--green); opacity:.6; border-style:dashed;"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--green);">异步 🔥</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">7</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>startBalancePolling()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">余额轮询（非原生模式）</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:80%; height:10px; background:var(--green-lt); border-radius:3px; border:1px solid var(--green); opacity:.6; border-style:dashed;"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--green);">异步 🔥</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">8</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>populateOAuthAccountInfoIfNeeded()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">VSCode 扩展登录补充信息</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:70%; height:10px; background:var(--green-lt); border-radius:3px; border:1px solid var(--green); opacity:.6; border-style:dashed;"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--green);">异步 🔥</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">9</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>initJetBrainsDetection()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">JetBrains IDE 环境检测</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:60%; height:10px; background:var(--green-lt); border-radius:3px; border:1px solid var(--green); opacity:.6; border-style:dashed;"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--green);">异步 🔥</td>
+          </tr>
+          <!-- Repository & remote phase (purple-lt) -->
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">10</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>detectCurrentRepository()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">检测 GitHub 仓库（供 gitDiff PR 链接用）</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:60%; height:10px; background:#e8e0fe; border-radius:3px; border:1px solid #a479e2; opacity:.6; border-style:dashed;"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--green);">异步 🔥</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">11</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>initializeRemoteManagedSettingsLoadingPromise()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">远程管理设置 loading promise</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:35%; height:10px; background:#e8e0fe; border-radius:3px; border:1px solid #a479e2;"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);">同步</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">12</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>initializePolicyLimitsLoadingPromise()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">策略限制 loading promise</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:35%; height:10px; background:#e8e0fe; border-radius:3px; border:1px solid #a479e2;"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);">同步</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">13</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>recordFirstStartTime()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">记录首次启动时间</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:20%; height:10px; background:#e8e0fe; border-radius:3px; border:1px solid #a479e2;"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);">同步</td>
+          </tr>
+          <!-- Network phase (blue) -->
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">14</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>configureGlobalMTLS()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">全局 mTLS 配置</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:45%; height:10px; background:var(--blue-lt); border-radius:3px; border:1px solid var(--blue);"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);">同步</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">15</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>configureGlobalAgents()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">HTTP proxy agents 配置</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:45%; height:10px; background:var(--blue-lt); border-radius:3px; border:1px solid var(--blue);"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);">同步</td>
+          </tr>
+          <!-- Observability phase (grey) -->
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">16</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>initSentry()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">初始化 Sentry 错误上报</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:35%; height:10px; background:var(--bg3); border-radius:3px; border:1px solid var(--text-3);"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);">同步</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">17</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>initUser()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">预热用户 email 缓存（供 Langfuse trace userId）</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:45%; height:10px; background:var(--bg3); border-radius:3px; border:1px solid var(--text-3);"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);"><strong>await</strong></td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">18</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>initLangfuse()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">初始化 Langfuse 链路追踪</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:35%; height:10px; background:var(--bg3); border-radius:3px; border:1px solid var(--text-3);"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);">同步</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">19</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>registerCleanup(shutdownLangfuse)</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">注册 Langfuse 退出清理</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:25%; height:10px; background:var(--bg3); border-radius:3px; border:1px solid var(--text-3);"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);">同步</td>
+          </tr>
+          <tr style="background:#fff9f6;">
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">20</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>preconnectAnthropicApi()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">TCP+TLS 预连接，节省 ~100-200ms</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);">
+              <div style="display:flex; gap:4px; align-items:center;">
+                <div style="width:35%; height:10px; background:var(--orange-lt); border-radius:3px; border:1px solid var(--orange);"></div>
+                <div style="width:55%; height:10px; background:var(--orange-lt); border-radius:3px; border:1px solid var(--orange); opacity:.4; border-style:dashed;"></div>
+              </div>
+            </td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--green);">异步 ⚡</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">21</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>initUpstreamProxy()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">CCR 上游代理中继（<code>CLAUDE_CODE_REMOTE=1</code> 时）</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:40%; height:10px; background:var(--green-lt); border-radius:3px; border:1px solid var(--green); opacity:.6; border-style:dashed;"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);"><strong>await</strong>（条件）</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">22</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>setShellIfWindows()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">Windows git-bash shell 设置</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:25%; height:10px; background:var(--bg3); border-radius:3px; border:1px solid var(--text-3);"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);">同步</td>
+          </tr>
+          <!-- Cleanup registration phase -->
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">23</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>registerCleanup(shutdownLspServerManager)</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">注册 LSP manager 退出清理</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:25%; height:10px; background:var(--bg3); border-radius:3px; border:1px solid var(--text-3);"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);">同步</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">24</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>registerCleanup(cleanupSessionTeams)</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">注册 swarm team 退出清理（懒导入）</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:30%; height:10px; background:var(--bg3); border-radius:3px; border:1px solid var(--text-3); opacity:.6; border-style:dashed;"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--green);">同步注册/异步执行</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">25</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>ensureScratchpadDir()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">创建临时工作目录（<code>isScratchpadEnabled()</code> 时）</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:35%; height:10px; background:var(--bg3); border-radius:3px; border:1px solid var(--text-3); opacity:.6; border-style:dashed;"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-3);"><strong>await</strong>（条件）</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">26</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><code>getRipgrepStatus()</code></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--text-2);">ripgrep fallback 探测（Termux 等）</td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border);"><div style="width:40%; height:10px; background:var(--bg3); border-radius:3px; border:1px solid var(--text-3); opacity:.6; border-style:dashed;"></div></td>
+            <td style="padding:6px 10px; border-bottom:1px solid var(--border); color:var(--green);">await</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:12px; font-size:.8rem; color:var(--text-3);">🔥 = fire-and-forget（不阻塞后续步骤）&nbsp;&nbsp;⚡ = 与后续工作并行执行&nbsp;&nbsp;⚠ = 有严格时序约束</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION: init.ts DESIGN DETAILS                            -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="init-details">
+  <h2>init.ts 关键设计细节</h2>
+  <p class="section-desc">init() 中有几个步骤存在严格的时序要求或特殊设计考量，此处展开说明。遥测初始化推迟到 trust dialog 之后。</p>
+
+  <div class="diagram-wrap" style="padding:20px 24px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">步骤 4 的时序要求</h3>
+    <p><code>applyExtraCACertsFromConfig()</code> 必须在首次 TLS 握手前完成。Bun 在启动时通过 BoringSSL 缓存 TLS 证书存储，后续修改 <code>NODE_EXTRA_CA_CERTS</code> 不会生效。因此此步骤在 init() 中排在最前面（步骤 4），早于所有网络操作。</p>
+
+    <h3 style="color:var(--orange-dk); margin:16px 0 10px;">步骤 6 的推迟策略</h3>
+    <p><code>initialize1PEventLogging()</code> 异步执行，避免在启动时加载 OpenTelemetry sdk-logs 模块（~400KB）。growthbook.js 此时已在模块缓存中，第二次 import 不增加成本。</p>
+
+    <h3 style="color:var(--orange-dk); margin:16px 0 10px;">步骤 20 的性能收益</h3>
+    <p><code>preconnectAnthropicApi()</code> 异步建立 TCP+TLS 连接，用户首次 query 时可节省 ~100–200ms 握手时间。代理 / mTLS / unix / cloud-provider 场景跳过（SDK dispatcher 不复用全局连接池）。</p>
+
+    <h3 style="color:var(--orange-dk); margin:16px 0 10px;">配置解析失败处理</h3>
+    <p>如果 <code>getConfig()</code> 抛出 <code>ConfigParseError</code>，init() 会捕获并弹出交互式错误对话框（<code>InvalidConfigDialog</code>）。非交互模式下写 stderr 后 <code>gracefulShutdownSync(1)</code> 退出。</p>
+
+    <h3 style="color:var(--blue-dk); margin:24px 0 10px; border-bottom:1px solid var(--blue-lt); padding-bottom:6px;"><code>initializeTelemetryAfterTrust()</code> 与 <code>setMeterState()</code></h3>
+    <p>这两个函数不在 <code>init()</code> 内部，而是在 trust dialog 确认之后由 <code>main.tsx</code> 调用。</p>
+    <pre><span class="cmt">// src/entrypoints/init.ts:321</span>
+<span class="kw">export function</span> <span class="fn">initializeTelemetryAfterTrust</span>(): <span class="type">void</span> {
+  <span class="cmt">// 对符合远程管理设置资格的用户：等设置加载完 → 重新应用 env vars → doInitializeTelemetry()</span>
+  <span class="cmt">// 其他用户：直接 doInitializeTelemetry()</span>
+}
+
+<span class="cmt">// src/entrypoints/init.ts:391</span>
+<span class="kw">async function</span> <span class="fn">setMeterState</span>(): <span class="type">Promise</span>&lt;<span class="type">void</span>&gt; {
+  <span class="cmt">// 懒加载 ~400KB OTel + protobuf，初始化 OTLP metrics/logs/traces</span>
+  <span class="cmt">// 成功后调用 setMeter(meter, createAttributedCounter) 注册全局 Meter</span>
+  <span class="cmt">// 递增 session counter</span>
+}</pre>
+    <p><strong>为什么推迟到 trust 之后：</strong>遥测需要读取用户配置（远程管理设置可能通过环境变量影响端点），而读取配置必须先通过 trust dialog 确认项目可信。</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION: replLauncher COMPONENT TREE                       -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="launcher-tree">
+  <h2>replLauncher.tsx 组件树</h2>
+  <p class="section-desc"><code>launchRepl()</code> 是 main.tsx 和 REPL.tsx 之间的桥梁，构建 React 组件树后调用 <code>renderAndRun()</code> 启动 Ink 渲染。</p>
+
+  <div class="diagram-wrap">
+    <svg width="700" height="320" viewBox="0 0 700 320" xmlns="http://www.w3.org/2000/svg">
+      <!-- Outer: SentryErrorBoundary -->
+      <g class="node-group">
+        <title>src/components/SentryErrorBoundary.tsx — name="RootREPLBoundary" — 捕获 React 树中的未处理异常并上报 Sentry（若已配置 DSN）</title>
+        <rect class="node-rect" x="10" y="10" width="490" height="290" rx="10" fill="#f3f0eb" stroke="#8a8480" stroke-width="1.5"/>
+        <text x="22" y="32" fill="#5a5650" font-size="10.5" font-weight="700">&lt;SentryErrorBoundary name="RootREPLBoundary"&gt;</text>
+      </g>
+
+      <!-- Middle: App -->
+      <g class="node-group">
+        <title>src/components/App.tsx — AppStateProvider：提供全局 AppState React Context；Props: initialState / getFpsMetrics / stats</title>
+        <rect class="node-rect" x="30" y="46" width="450" height="230" rx="8" fill="#eef0ff" stroke="#5769F7" stroke-width="1.5"/>
+        <text x="42" y="66" fill="#3a4ed4" font-size="10.5" font-weight="700">&lt;App initialState getFpsMetrics stats&gt;</text>
+      </g>
+
+      <!-- Inner: REPL -->
+      <g class="node-group">
+        <title>src/screens/REPL.tsx — 主交互界面：消息列表 + 输入框 + 权限弹窗 + 状态栏。接受 30+ 个 replProps 参数。</title>
+        <rect class="node-rect" x="50" y="82" width="410" height="172" rx="6" fill="#fff" stroke="#5769F7" stroke-width="1.5"/>
+        <text x="62" y="102" fill="#3a4ed4" font-size="10.5" font-weight="700">&lt;REPL {...replProps} /&gt;</text>
+        <text x="62" y="118" fill="#8a8480" font-size="9">commands / debug / initialTools / initialMessages</text>
+        <text x="62" y="132" fill="#8a8480" font-size="9">mcpClients / systemPrompt / thinkingConfig</text>
+        <text x="62" y="146" fill="#8a8480" font-size="9">mainThreadAgentDefinition / taskListId</text>
+        <text x="62" y="160" fill="#8a8480" font-size="9">remoteSessionConfig / directConnectConfig / sshSession</text>
+        <text x="62" y="174" fill="#8a8480" font-size="9">pendingHookMessages / onBeforeQuery / onTurnComplete</text>
+        <text x="62" y="188" fill="#8a8480" font-size="9">initialFileHistorySnapshots / initialContentReplacements</text>
+        <text x="62" y="202" fill="#8a8480" font-size="9">initialAgentName / initialAgentColor / disableSlashCommands</text>
+        <text x="62" y="220" fill="#5a5650" font-size="9" font-style="italic">... 30+ 字段，7 处调用点各有不同</text>
+      </g>
+
+      <!-- Side callout: AppWrapperProps -->
+      <g class="node-group">
+        <title>AppWrapperProps — 传给 &lt;App&gt; 的 3 个字段：initialState（从 bootstrap/state + main.tsx 构建）/ getFpsMetrics（FPS 追踪器）/ stats（StatsStore token 用量统计）</title>
+        <rect class="node-rect" x="530" y="40" width="160" height="80" rx="6" fill="#fff9f6" stroke="#D77757" stroke-width="1"/>
+        <text x="610" y="60" text-anchor="middle" fill="#b55e3a" font-size="10" font-weight="700">AppWrapperProps</text>
+        <text x="610" y="76" text-anchor="middle" fill="#8a8480" font-size="9">initialState</text>
+        <text x="610" y="89" text-anchor="middle" fill="#8a8480" font-size="9">getFpsMetrics</text>
+        <text x="610" y="102" text-anchor="middle" fill="#8a8480" font-size="9">stats</text>
+      </g>
+      <line x1="480" y1="66" x2="530" y2="75" stroke="#D77757" stroke-width="1" stroke-dasharray="4,2"/>
+
+      <!-- Side callout: renderAndRun -->
+      <g class="node-group">
+        <title>renderAndRun(root, element) — Ink 渲染函数，由 main.tsx 传入。内部调用 ink.render() 启动终端 React 渲染循环，await 直到 REPL unmount（会话结束）。</title>
+        <rect class="node-rect" x="530" y="200" width="160" height="56" rx="6" fill="#d2f0e3" stroke="#22a766" stroke-width="1"/>
+        <text x="610" y="222" text-anchor="middle" fill="#1a5c39" font-size="10" font-weight="700">renderAndRun()</text>
+        <text x="610" y="238" text-anchor="middle" fill="#5a5650" font-size="9">Ink render 循环</text>
+        <text x="610" y="250" text-anchor="middle" fill="#5a5650" font-size="9">await 直到 unmount</text>
+      </g>
+      <line x1="460" y1="255" x2="530" y2="235" stroke="#22a766" stroke-width="1" stroke-dasharray="4,2"/>
+    </svg>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION: REPL.tsx SUBTREE + STATE                         -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="repl-tree">
+  <h2>REPL.tsx 子树与状态流</h2>
+  <p class="section-desc">左图为 REPL 内部子组件树；右图为状态流向，AppState store 通过 <code>useAppState(selector)</code> 向外推送只读快照，通过 <code>useSetAppState()</code> 接收写入。</p>
+
+  <div class="diagram-wrap">
+    <svg width="900" height="400" viewBox="0 0 900 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="rt-arr" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#5769F7" />
+        </marker>
+        <marker id="rt-arr-g" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#22a766" />
+        </marker>
+        <marker id="rt-arr-o" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#D77757" />
+        </marker>
+      </defs>
+
+      <!-- LEFT: Component tree -->
+      <text x="10" y="22" fill="#5a5650" font-size="11" font-weight="700">组件树（左）</text>
+
+      <!-- REPL root -->
+      <g class="node-group">
+        <title>src/screens/REPL.tsx — 主 REPL 组件，约 6578 行，消费 AppState + QueryEngine</title>
+        <rect class="node-rect" x="10" y="34" width="380" height="32" rx="6" fill="#5769F7"/>
+        <text x="200" y="55" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">&lt;REPL&gt;</text>
+      </g>
+
+      <!-- Children -->
+      <line x1="50" y1="66" x2="50" y2="350" stroke="#ddd8d0" stroke-width="1.2"/>
+
+      <line x1="50" y1="90" x2="80" y2="90" stroke="#ddd8d0" stroke-width="1.2"/>
+      <g class="node-group">
+        <title>src/components/AnimatedTerminalTitle.tsx — 在 API 请求进行时动态更新终端标题（spinner + 状态文字）</title>
+        <rect class="node-rect" x="80" y="76" width="300" height="28" rx="5" fill="#eef0ff" stroke="#5769F7" stroke-width="1"/>
+        <text x="230" y="94" text-anchor="middle" fill="#3a4ed4" font-size="10">&lt;AnimatedTerminalTitle /&gt;</text>
+      </g>
+
+      <line x1="50" y1="124" x2="80" y2="124" stroke="#ddd8d0" stroke-width="1.2"/>
+      <g class="node-group">
+        <title>src/components/TranscriptSearchBar.tsx — transcript 模式下的全文搜索栏，支持关键词高亮</title>
+        <rect class="node-rect" x="80" y="110" width="300" height="28" rx="5" fill="#eef0ff" stroke="#5769F7" stroke-width="1"/>
+        <text x="230" y="128" text-anchor="middle" fill="#3a4ed4" font-size="10">&lt;TranscriptSearchBar /&gt;</text>
+      </g>
+
+      <line x1="50" y1="158" x2="80" y2="158" stroke="#ddd8d0" stroke-width="1.2"/>
+      <g class="node-group">
+        <title>src/components/Messages.tsx — 核心渲染组件，列出所有 user/assistant/tool 消息，虚拟滚动</title>
+        <rect class="node-rect" x="80" y="144" width="300" height="28" rx="5" fill="#5769F7"/>
+        <text x="230" y="162" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">&lt;Messages /&gt; ← 核心</text>
+      </g>
+
+      <line x1="50" y1="192" x2="80" y2="192" stroke="#ddd8d0" stroke-width="1.2"/>
+      <g class="node-group">
+        <title>src/components/PromptInput/ — 用户输入框：处理文本输入、slash 命令自动补全、paste、attachments</title>
+        <rect class="node-rect" x="80" y="178" width="300" height="28" rx="5" fill="#5769F7"/>
+        <text x="230" y="196" text-anchor="middle" fill="#fff" font-size="10" font-weight="600">&lt;PromptInput /&gt; ← 输入</text>
+      </g>
+
+      <line x1="50" y1="226" x2="80" y2="226" stroke="#ddd8d0" stroke-width="1.2"/>
+      <g class="node-group">
+        <title>src/components/permissions/PermissionDialog/ — 工具权限弹窗：展示工具调用详情，等待用户审批（allow/deny/always）</title>
+        <rect class="node-rect" x="80" y="212" width="300" height="28" rx="5" fill="#fff3ee" stroke="#D77757" stroke-width="1"/>
+        <text x="230" y="230" text-anchor="middle" fill="#b55e3a" font-size="10">&lt;PermissionDialog /&gt;</text>
+      </g>
+
+      <line x1="50" y1="260" x2="80" y2="260" stroke="#ddd8d0" stroke-width="1.2"/>
+      <g class="node-group">
+        <title>src/components/StatusBar/ — 底部状态栏：token 用量、模型名、permissionMode、remote session URL</title>
+        <rect class="node-rect" x="80" y="246" width="300" height="28" rx="5" fill="#eef0ff" stroke="#5769F7" stroke-width="1"/>
+        <text x="230" y="264" text-anchor="middle" fill="#3a4ed4" font-size="10">&lt;StatusBar /&gt;</text>
+      </g>
+
+      <!-- RIGHT: State flow -->
+      <text x="460" y="22" fill="#5a5650" font-size="11" font-weight="700">状态流（右）</text>
+
+      <!-- AppState store central box -->
+      <g class="node-group">
+        <title>src/state/AppState.tsx + src/state/store.ts — React Context + Zustand-like store。提供 useAppState(selector) 只读 hook 和 useSetAppState() 写入 hook。</title>
+        <rect class="node-rect" x="590" y="130" width="160" height="60" rx="8" fill="#5769F7"/>
+        <text x="670" y="156" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">AppState store</text>
+        <text x="670" y="172" text-anchor="middle" fill="#c5cafd" font-size="9">useAppState(selector)</text>
+      </g>
+
+      <!-- Read arrows: store → components -->
+      <line x1="590" y1="148" x2="460" y2="100" stroke="#5769F7" stroke-width="1.2" marker-end="url(#rt-arr)"/>
+      <text x="480" y="120" fill="#5769F7" font-size="8.5">messages →</text>
+
+      <line x1="590" y1="155" x2="460" y2="165" stroke="#5769F7" stroke-width="1.2" marker-end="url(#rt-arr)"/>
+      <text x="480" y="158" fill="#5769F7" font-size="8.5">tools →</text>
+
+      <line x1="590" y1="162" x2="460" y2="220" stroke="#5769F7" stroke-width="1.2" marker-end="url(#rt-arr)"/>
+      <text x="476" y="205" fill="#5769F7" font-size="8.5">permissionPrompts →</text>
+
+      <!-- Write arrows: components → store -->
+      <line x1="460" y1="80" x2="590" y2="140" stroke="#22a766" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#rt-arr-g)"/>
+      <text x="488" y="102" fill="#22a766" font-size="8.5">← setMessages</text>
+
+      <line x1="460" y1="260" x2="590" y2="178" stroke="#22a766" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#rt-arr-g)"/>
+      <text x="486" y="238" fill="#22a766" font-size="8.5">← setPermission</text>
+
+      <!-- QueryEngine box -->
+      <g class="node-group">
+        <title>src/QueryEngine.ts — 高层编排器，管理对话状态 / compaction / 文件快照 / turn-level bookkeeping。通过 setAppState 写入消息和工具结果。</title>
+        <rect class="node-rect" x="460" y="310" width="260" height="48" rx="6" fill="#d2f0e3" stroke="#22a766" stroke-width="1.5"/>
+        <text x="590" y="330" text-anchor="middle" fill="#1a5c39" font-size="10.5" font-weight="700">QueryEngine</text>
+        <text x="590" y="346" text-anchor="middle" fill="#5a5650" font-size="9">submitMessage → query() → setAppState</text>
+      </g>
+      <line x1="590" y1="310" x2="670" y2="190" stroke="#D77757" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#rt-arr-o)"/>
+      <text x="644" y="262" fill="#D77757" font-size="8.5">← addMessage</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION: main.tsx DETAILED                                 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="main-details">
+  <h2>main.tsx 详细补充</h2>
+  <p class="section-desc">补充进程钩子代码、preAction 完整 8 步、initializeEntrypoint() 实现、7 处 launchRepl() 调用点差异，以及子命令注册表。</p>
+
+  <!-- 3.3.5 早期进程钩子 -->
+  <div class="diagram-wrap" style="padding:20px 24px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">3.3.5 早期进程钩子（786–808 行）</h3>
+    <p>在 Commander 开始解析 argv 之前，<code>main()</code> 注册了 3 个进程级钩子：</p>
+    <ol style="color:var(--text-2); padding-left:20px; margin:8px 0 12px;">
+      <li><strong>initializeWarningHandler()</strong>（<code>:786</code>）：拦截 Node.js <code>process.on('warning')</code> 事件，将警告格式化后写入 debug 日志而非直接打印到 stderr，避免污染交互界面。</li>
+      <li><strong>resetCursor</strong>（<code>:788</code> exit 钩子）：确保即使异常退出也能恢复终端光标状态。同时尝试调用 <code>peekWorkflowService()?.shutdown()</code> 杀掉所有运行中的 workflow。</li>
+      <li><strong>SIGINT 处理</strong>（<code>:800</code>）：非 print 模式下 Ctrl+C 直接 <code>process.exit(0)</code>；print 模式下跳过（<code>print.ts</code> 有自己的 SIGINT handler）。</li>
+    </ol>
+    <pre><span class="cmt">// main.tsx:785-808（精简）</span>
+<span class="fn">initializeWarningHandler</span>();
+
+process.<span class="fn">on</span>(<span class="str">'exit'</span>, () => {
+  <span class="fn">resetCursor</span>();
+  <span class="kw">try</span> {
+    <span class="fn">peekWorkflowService</span>()?.<span class="fn">shutdown</span>();
+  } <span class="kw">catch</span> { <span class="cmt">/* workflow 未启用或已卸载——忽略 */</span> }
+});
+
+process.<span class="fn">on</span>(<span class="str">'SIGINT'</span>, () => {
+  <span class="kw">if</span> (process.argv.<span class="fn">includes</span>(<span class="str">'-p'</span>) || process.argv.<span class="fn">includes</span>(<span class="str">'--print'</span>)) <span class="kw">return</span>;
+  process.<span class="fn">exit</span>(<span class="num">0</span>);
+});</pre>
+  </div>
+
+  <!-- 3.4.1 preAction hook -->
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">3.4.1 preAction hook 完整 8 步（1136–1197 行）</h3>
+    <p>在每个子命令执行前统一运行。<strong><code>--help</code> 不触发 preAction</strong>，所以显示帮助时不做重型初始化。</p>
+    <pre><span class="cmt">// main.tsx:1136 preAction hook</span>
+program.<span class="fn">hook</span>(<span class="str">'preAction'</span>, <span class="kw">async</span> thisCommand => {
+  <span class="cmt">// 1. 等待 MDM settings 和 keychain 预取完成</span>
+  <span class="kw">await</span> <span class="type">Promise</span>.<span class="fn">all</span>([<span class="fn">ensureMdmSettingsLoaded</span>(), <span class="fn">ensureKeychainPrefetchCompleted</span>()]);
+
+  <span class="cmt">// 2. 全步骤全局初始化（memoized）</span>
+  <span class="kw">await</span> <span class="fn">init</span>();
+
+  <span class="cmt">// 3. 设置 process.title = 'claude'（除非禁用）</span>
+  <span class="kw">if</span> (!<span class="fn">isEnvTruthy</span>(process.env.<span class="type">CLAUDE_CODE_DISABLE_TERMINAL_TITLE</span>)) {
+    process.title = <span class="str">'claude'</span>;
+  }
+
+  <span class="cmt">// 4. 挂载日志 sink</span>
+  <span class="kw">const</span> { initSinks } = <span class="kw">await</span> <span class="kw">import</span>(<span class="str">'./utils/sinks.js'</span>);
+  <span class="fn">initSinks</span>();
+
+  <span class="cmt">// 5. --plugin-dir 顶层 option 传播给 getInlinePlugins()</span>
+  <span class="kw">const</span> pluginDir = thisCommand.<span class="fn">getOptionValue</span>(<span class="str">'pluginDir'</span>);
+  <span class="kw">if</span> (<span class="type">Array</span>.<span class="fn">isArray</span>(pluginDir) && pluginDir.length > <span class="num">0</span>) {
+    <span class="fn">setInlinePlugins</span>(pluginDir);
+    <span class="fn">clearPluginCache</span>(<span class="str">'preAction: --plugin-dir inline plugins'</span>);
+  }
+
+  <span class="cmt">// 6. 运行 config migration</span>
+  <span class="fn">runMigrations</span>();
+
+  <span class="cmt">// 7. 异步加载远程托管设置 / 策略限制（fail-open）</span>
+  <span class="kw">void</span> <span class="fn">loadRemoteManagedSettings</span>();
+  <span class="kw">void</span> <span class="fn">loadPolicyLimits</span>();
+
+  <span class="cmt">// 8. 异步上传本地设置到远程（CCR 模式）</span>
+  <span class="kw">if</span> (<span class="fn">feature</span>(<span class="str">'UPLOAD_USER_SETTINGS'</span>)) {
+    <span class="kw">void</span> <span class="kw">import</span>(<span class="str">'./services/settingsSync/index.js'</span>)
+      .<span class="fn">then</span>(m => m.<span class="fn">uploadUserSettingsInBackground</span>());
+  }
+});</pre>
+  </div>
+
+  <!-- 3.5 initializeEntrypoint -->
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">3.5 <code>initializeEntrypoint()</code> 详解（692–717 行）</h3>
+    <p>设置 <code>CLAUDE_CODE_ENTRYPOINT</code> 环境变量，供下游模块判断来源：</p>
+    <pre><span class="kw">function</span> <span class="fn">initializeEntrypoint</span>(isNonInteractive: <span class="type">boolean</span>): <span class="type">void</span> {
+  <span class="kw">if</span> (process.env.<span class="type">CLAUDE_CODE_ENTRYPOINT</span>) <span class="kw">return</span>; <span class="cmt">// 已被外部设置</span>
+
+  <span class="kw">const</span> cliArgs = process.argv.<span class="fn">slice</span>(<span class="num">2</span>);
+
+  <span class="cmt">// mcp serve 命令</span>
+  <span class="kw">const</span> mcpIndex = cliArgs.<span class="fn">indexOf</span>(<span class="str">'mcp'</span>);
+  <span class="kw">if</span> (mcpIndex !== -<span class="num">1</span> && cliArgs[mcpIndex + <span class="num">1</span>] === <span class="str">'serve'</span>) {
+    process.env.<span class="type">CLAUDE_CODE_ENTRYPOINT</span> = <span class="str">'mcp'</span>;
+    <span class="kw">return</span>;
+  }
+
+  <span class="cmt">// GitHub Action 环境</span>
+  <span class="kw">if</span> (<span class="fn">isEnvTruthy</span>(process.env.<span class="type">CLAUDE_CODE_ACTION</span>)) {
+    process.env.<span class="type">CLAUDE_CODE_ENTRYPOINT</span> = <span class="str">'claude-code-github-action'</span>;
+    <span class="kw">return</span>;
+  }
+
+  <span class="cmt">// 根据交互状态设置</span>
+  process.env.<span class="type">CLAUDE_CODE_ENTRYPOINT</span> = isNonInteractive ? <span class="str">'sdk-cli'</span> : <span class="str">'cli'</span>;
+}</pre>
+    <p style="margin-top:8px;"><code>CLAUDE_CODE_ENTRYPOINT</code> 取值：<code>'mcp'</code> | <code>'claude-code-github-action'</code> | <code>'sdk-cli'</code> | <code>'cli'</code></p>
+  </div>
+
+  <!-- 3.4.4 7 处 launchRepl() 调用点 -->
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">3.4.4 7 处 <code>launchRepl()</code> 调用点</h3>
+    <p class="section-desc" style="margin-bottom:12px;"><code>launchRepl()</code> 在主 <code>.action()</code> 处理器中共 7 处调用，针对不同场景传入不同的 <code>replProps</code>：</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>行号</th><th>场景</th><th>replProps 关键差异</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td><code>~3751</code></td><td><code>--continue</code> 会话恢复</td><td><code>initialMessages</code>、<code>initialFileHistorySnapshots</code>、<code>initialContentReplacements</code>、<code>initialAgentName/Color</code>、<code>mainThreadAgentDefinition</code></td></tr>
+          <tr><td>2</td><td><code>~3805</code></td><td><code>cc://</code> Direct Connect</td><td><code>initialTools: []</code>、<code>directConnectConfig</code>、<code>disableSlashCommands</code></td></tr>
+          <tr><td>3</td><td><code>~3883</code></td><td>SSH 远端会话</td><td><code>initialTools: []</code>、<code>sshSession</code>、<code>disableSlashCommands</code></td></tr>
+          <tr><td>4</td><td><code>~4005</code></td><td>Kairos assistant（只读）</td><td><code>initialState: { isBriefOnly: true }</code>、<code>remoteSessionConfig</code></td></tr>
+          <tr><td>5</td><td><code>~4176</code></td><td>Remote Control 模式</td><td><code>initialState: { remoteSessionUrl }</code>、<code>remoteCommands</code></td></tr>
+          <tr><td>6</td><td><code>~4456</code></td><td><code>--resume</code> / teleport 恢复</td><td><code>initialMessages: resumeData.messages</code>、<code>initialFileHistorySnapshots</code></td></tr>
+          <tr style="background:#fff9f6;"><td><strong>7</strong></td><td><code>~4533</code></td><td><strong>默认新会话（最常见）</strong></td><td><code>initialMessages</code>（可选 deepLinkBanner）、<code>pendingHookMessages</code>（延迟 hook 注入）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:8px; font-size:.85rem; color:var(--text-3);">所有 7 处都传入相同的前两个参数：<code>root</code>（Ink root）和 <code>{ getFpsMetrics, stats, initialState }</code>（AppWrapperProps）。</p>
+  </div>
+
+  <!-- 3.4.3 子命令注册表 -->
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">3.4.3 子命令注册表（~4700+ 行）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>子命令</th><th>作用</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>mcp serve/add/remove/list/get</code></td><td>MCP 服务器生命周期管理</td></tr>
+          <tr><td><code>server</code></td><td>Direct Connect HTTP/Unix server（feature-gated）</td></tr>
+          <tr><td><code>ssh &lt;host&gt;</code></td><td>SSH 远端运行（argv 重写到默认 action）</td></tr>
+          <tr><td><code>open &lt;cc-url&gt;</code></td><td>Direct Connect headless 入口</td></tr>
+          <tr><td><code>auth login/status/logout</code></td><td>认证管理</td></tr>
+          <tr><td><code>plugin install/marketplace</code></td><td>插件生命周期 + Marketplace</td></tr>
+          <tr><td><code>agents</code></td><td>列出已配置 agent</td></tr>
+          <tr><td><code>auto-mode</code></td><td>Transcript classifier 规则查看</td></tr>
+          <tr><td><code>autonomy</code></td><td>自动化任务状态管理</td></tr>
+          <tr><td><code>doctor</code></td><td>安装健康检查</td></tr>
+          <tr><td><code>update</code></td><td>更新 ccb</td></tr>
+          <tr><td><code>install</code></td><td>安装 native build</td></tr>
+          <tr><td><code>task</code></td><td>任务管理（ant-only）</td></tr>
+          <tr><td><code>completion</code></td><td>shell 补全脚本生成</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION: print.ts HEADLESS MODE FLOW                      -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="headless-flow">
+  <h2>print.ts 无头模式流程</h2>
+  <p class="section-desc">当 <code>isNonInteractive</code> 为 true（<code>-p</code> / 非 TTY / SDK），main.tsx 调用 <code>runHeadless()</code> 而非 <code>launchRepl()</code>。无 UI 渲染，直接输出到 stdout 或转发到远程。</p>
+
+  <div class="diagram-wrap">
+    <!-- Top: sequence flow -->
+    <svg width="880" height="220" viewBox="0 0 880 220" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="hf-arr" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#5769F7" />
+        </marker>
+        <marker id="hf-arr-g" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#22a766" />
+        </marker>
+        <marker id="hf-arr-o" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#D77757" />
+        </marker>
+      </defs>
+
+      <!-- argv node -->
+      <g class="node-group">
+        <title>用户执行 claude -p "prompt" 或 SDK 调用（非 TTY）</title>
+        <rect class="node-rect" x="10" y="80" width="100" height="36" rx="6" fill="#2d2a26"/>
+        <text x="60" y="102" text-anchor="middle" fill="#faf8f5" font-size="10" font-weight="600">argv / SDK</text>
+      </g>
+      <line x1="110" y1="98" x2="138" y2="98" stroke="#5769F7" stroke-width="1.5" marker-end="url(#hf-arr)"/>
+
+      <!-- main.tsx action -->
+      <g class="node-group">
+        <title>main.tsx 主 .action() — isNonInteractive=true 分支：直接调用 runHeadless() 传入展开的参数</title>
+        <rect class="node-rect" x="138" y="68" width="140" height="58" rx="6" fill="#eef0ff" stroke="#5769F7" stroke-width="1.5"/>
+        <text x="208" y="92" text-anchor="middle" fill="#3a4ed4" font-size="10" font-weight="600">main.tsx .action()</text>
+        <text x="208" y="107" text-anchor="middle" fill="#3a4ed4" font-size="9">isNonInteractive=true</text>
+        <text x="208" y="119" text-anchor="middle" fill="#3a4ed4" font-size="9">→ runHeadless(…)</text>
+      </g>
+      <line x1="278" y1="98" x2="306" y2="98" stroke="#5769F7" stroke-width="1.5" marker-end="url(#hf-arr)"/>
+
+      <!-- runHeadless -->
+      <g class="node-group">
+        <title>src/cli/print.ts:456 runHeadless(inputPrompt, getAppState, setAppState, commands, tools, sdkMcpConfigs, agents, options) — 13+ 参数展开调用</title>
+        <rect class="node-rect" x="306" y="58" width="160" height="78" rx="6" fill="#fff3ee" stroke="#D77757" stroke-width="2"/>
+        <text x="386" y="82" text-anchor="middle" fill="#b55e3a" font-size="10.5" font-weight="700">runHeadless()</text>
+        <text x="386" y="97" text-anchor="middle" fill="#b55e3a" font-size="9">print.ts:456</text>
+        <text x="386" y="110" text-anchor="middle" fill="#b55e3a" font-size="9">13+ 参数，无 Root</text>
+        <text x="386" y="123" text-anchor="middle" fill="#b55e3a" font-size="9">assembleToolPool()</text>
+      </g>
+      <line x1="466" y1="98" x2="494" y2="98" stroke="#5769F7" stroke-width="1.5" marker-end="url(#hf-arr)"/>
+
+      <!-- query() loop -->
+      <g class="node-group">
+        <title>src/query.ts — query() 循环：发送消息到 Anthropic API，处理流式响应，执行工具调用，管理对话轮次</title>
+        <rect class="node-rect" x="494" y="68" width="130" height="58" rx="6" fill="#eef0ff" stroke="#5769F7" stroke-width="1.5"/>
+        <text x="559" y="90" text-anchor="middle" fill="#3a4ed4" font-size="10" font-weight="600">query() 循环</text>
+        <text x="559" y="104" text-anchor="middle" fill="#3a4ed4" font-size="9">流式响应处理</text>
+        <text x="559" y="118" text-anchor="middle" fill="#3a4ed4" font-size="9">工具调用执行</text>
+      </g>
+
+      <!-- Branch: StructuredIO vs RemoteIO -->
+      <line x1="624" y1="98" x2="660" y2="98" stroke="#5769F7" stroke-width="1.5"/>
+      <line x1="660" y1="98" x2="660" y2="52" stroke="#5769F7" stroke-width="1.2"/>
+      <line x1="660" y1="98" x2="660" y2="150" stroke="#8a8480" stroke-width="1.2"/>
+
+      <line x1="660" y1="52" x2="698" y2="52" stroke="#5769F7" stroke-width="1.5" marker-end="url(#hf-arr)"/>
+      <g class="node-group">
+        <title>StructuredIO — 本地管道模式（-p），将 assistant/tool_use/tool_result 事件序列化为 JSON lines 输出到 stdout</title>
+        <rect class="node-rect" x="698" y="28" width="170" height="48" rx="6" fill="#d2f0e3" stroke="#22a766" stroke-width="1.5"/>
+        <text x="783" y="50" text-anchor="middle" fill="#1a5c39" font-size="10" font-weight="600">StructuredIO</text>
+        <text x="783" y="65" text-anchor="middle" fill="#5a5650" font-size="9">JSON lines → stdout</text>
+      </g>
+
+      <line x1="660" y1="150" x2="698" y2="150" stroke="#8a8480" stroke-width="1.5" marker-end="url(#hf-arr)"/>
+      <g class="node-group">
+        <title>RemoteIO — 远程会话模式（remoteSessionConfig 不为 null），将事件转发到 CCR（Cloud Control Room）via WebSocket</title>
+        <rect class="node-rect" x="698" y="126" width="170" height="48" rx="6" fill="#ebe7e0" stroke="#8a8480" stroke-width="1.5"/>
+        <text x="783" y="148" text-anchor="middle" fill="#2d2a26" font-size="10" font-weight="600">RemoteIO</text>
+        <text x="783" y="163" text-anchor="middle" fill="#5a5650" font-size="9">事件 → CCR WebSocket</text>
+      </g>
+
+      <!-- Labels -->
+      <text x="700" y="22" fill="#22a766" font-size="8.5" font-weight="700">本地 -p 模式</text>
+      <text x="700" y="120" fill="#8a8480" font-size="8.5" font-weight="700">远程 CCR 模式</text>
+    </svg>
+
+    <!-- Bottom: REPL vs print comparison table -->
+    <h3 style="margin:20px 0 10px; font-size:1rem; color:var(--text);">REPL（交互模式）vs print.ts（无头模式）对比</h3>
+    <div class="table-wrap">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th style="color:var(--orange-dk);">REPL（交互模式）</th>
+            <th style="color:var(--blue-dk);">print.ts（无头模式）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>UI</strong></td>
+            <td>Ink 终端 React 界面</td>
+            <td>无 UI，直接输出 JSON/文本</td>
+          </tr>
+          <tr>
+            <td><strong>输入</strong></td>
+            <td>用户键盘交互</td>
+            <td>stdin / -p 参数 / SDK inputPrompt</td>
+          </tr>
+          <tr>
+            <td><strong>工具权限</strong></td>
+            <td>弹窗等待用户审批</td>
+            <td>自动审批 / --allowed-tools / deny 规则</td>
+          </tr>
+          <tr>
+            <td><strong>会话恢复</strong></td>
+            <td>--continue / --resume 支持</td>
+            <td>--continue / --resume 参数支持（有限）</td>
+          </tr>
+          <tr>
+            <td><strong>MCP 连接</strong></td>
+            <td>自动连接配置的 MCP servers</td>
+            <td>跳过（除非 --mcp-config 或 sdkMcpConfigs 指定）</td>
+          </tr>
+          <tr>
+            <td><strong>Trust dialog</strong></td>
+            <td>显示并等待确认</td>
+            <td>跳过（非交互环境无法显示）</td>
+          </tr>
+          <tr>
+            <td><strong>退出时机</strong></td>
+            <td>用户主动 /exit 或 Ctrl+C</td>
+            <td>maxTurns 用尽 / 任务完成后自动退出</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION: REPL.tsx DETAILED                                 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="repl-details">
+  <h2>REPL.tsx 详细补充</h2>
+  <p class="section-desc">补充完整的 Props 类型定义（30+ 字段）、屏幕模式切换、核心状态管理代码和交互流程。</p>
+
+  <div class="diagram-wrap" style="padding:20px 24px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">6.2 Props 类型定义（762–806 行）</h3>
+    <pre><span class="kw">export type</span> <span class="type">Props</span> = {
+  commands: <span class="type">Command[]</span>;                    <span class="cmt">// 可用的 slash 命令列表</span>
+  debug: <span class="type">boolean</span>;                         <span class="cmt">// 是否开启 debug 模式</span>
+  initialTools: <span class="type">Tool[]</span>;                   <span class="cmt">// 初始工具列表</span>
+  initialMessages?: <span class="type">MessageType[]</span>;        <span class="cmt">// 初始消息（会话恢复）</span>
+  pendingHookMessages?: <span class="type">Promise&lt;HookResultMessage[]&gt;</span>;  <span class="cmt">// 延迟注入的 hook 消息</span>
+  initialFileHistorySnapshots?: <span class="type">FileHistorySnapshot[]</span>;  <span class="cmt">// 文件快照</span>
+  initialContentReplacements?: <span class="type">ContentReplacementRecord[]</span>;  <span class="cmt">// 内容替换记录</span>
+  initialAgentName?: <span class="type">string</span>;              <span class="cmt">// agent 名称（/rename 设置）</span>
+  initialAgentColor?: <span class="type">AgentColorName</span>;     <span class="cmt">// agent 颜色</span>
+  mcpClients?: <span class="type">MCPServerConnection[]</span>;     <span class="cmt">// MCP 连接列表</span>
+  dynamicMcpConfig?: <span class="type">Record&lt;string, ScopedMcpServerConfig&gt;</span>;  <span class="cmt">// 动态 MCP 配置</span>
+  autoConnectIdeFlag?: <span class="type">boolean</span>;           <span class="cmt">// 自动连接 IDE</span>
+  strictMcpConfig?: <span class="type">boolean</span>;              <span class="cmt">// 严格 MCP 模式</span>
+  systemPrompt?: <span class="type">string</span>;                  <span class="cmt">// 自定义 system prompt</span>
+  appendSystemPrompt?: <span class="type">string</span>;            <span class="cmt">// 追加 system prompt</span>
+  onBeforeQuery?: (input, messages) => <span class="type">Promise&lt;boolean&gt;</span>;  <span class="cmt">// 查询前回调</span>
+  onTurnComplete?: (messages) => <span class="type">void</span> | <span class="type">Promise&lt;void&gt;</span>;    <span class="cmt">// 回合完成回调</span>
+  disabled?: <span class="type">boolean</span>;                     <span class="cmt">// 禁用输入</span>
+  mainThreadAgentDefinition?: <span class="type">AgentDefinition</span>;  <span class="cmt">// 主线程 agent 定义</span>
+  disableSlashCommands?: <span class="type">boolean</span>;         <span class="cmt">// 禁用 slash 命令</span>
+  taskListId?: <span class="type">string</span>;                    <span class="cmt">// 任务列表 ID（tasks 模式）</span>
+  remoteSessionConfig?: <span class="type">RemoteSessionConfig</span>;  <span class="cmt">// 远程会话配置</span>
+  directConnectConfig?: <span class="type">DirectConnectConfig</span>;  <span class="cmt">// Direct Connect 配置</span>
+  sshSession?: <span class="type">SSHSession</span>;                <span class="cmt">// SSH 会话</span>
+  thinkingConfig: <span class="type">ThinkingConfig</span>;         <span class="cmt">// thinking 配置</span>
+};</pre>
+  </div>
+
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">6.4 屏幕模式</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>模式</th><th>用途</th><th>切换方式</th></tr></thead>
+        <tbody>
+          <tr><td><code>'prompt'</code></td><td>显示输入框 + 消息列表</td><td>默认模式</td></tr>
+          <tr><td><code>'transcript'</code></td><td>全屏消息列表（无输入框）</td><td><code>/transcript</code> 命令或快捷键</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">6.3 核心状态管理</h3>
+    <p>REPL 通过 <code>useAppState</code> / <code>useSetAppState</code> 消费和修改全局状态：</p>
+    <pre><span class="cmt">// 只读状态</span>
+<span class="kw">const</span> toolPermissionContext = <span class="fn">useAppState</span>(s => s.toolPermissionContext);
+<span class="kw">const</span> verbose = <span class="fn">useAppState</span>(s => s.verbose);
+<span class="kw">const</span> mcp = <span class="fn">useAppState</span>(s => s.mcp);
+<span class="kw">const</span> plugins = <span class="fn">useAppState</span>(s => s.plugins);
+<span class="kw">const</span> agentDefinitions = <span class="fn">useAppState</span>(s => s.agentDefinitions);
+<span class="kw">const</span> fileHistory = <span class="fn">useAppState</span>(s => s.fileHistory);
+<span class="kw">const</span> tasks = <span class="fn">useAppState</span>(s => s.tasks);
+<span class="cmt">// ... 更多</span>
+
+<span class="cmt">// 可写状态</span>
+<span class="kw">const</span> setAppState = <span class="fn">useSetAppState</span>();</pre>
+  </div>
+
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">6.6 核心交互流程</h3>
+    <pre>用户输入 → <span class="fn">onBeforeQuery</span>() 回调 → QueryEngine.<span class="fn">submitMessage</span>()
+  → API 调用 → 流式响应 → 消息列表更新
+  → 工具调用 → 权限检查 → 工具执行 → 结果写回消息
+  → <span class="fn">onTurnComplete</span>() 回调</pre>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION: print.ts DETAILED                                 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="print-details">
+  <h2>print.ts 详细补充</h2>
+  <p class="section-desc">补充完整的 runHeadless() 签名和 setIsInteractive() 桥接机制。</p>
+
+  <div class="diagram-wrap" style="padding:20px 24px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">7.2 <code>runHeadless()</code> 完整签名（456 行）</h3>
+    <pre><span class="kw">export async function</span> <span class="fn">runHeadless</span>(
+  inputPrompt: <span class="type">string</span> | <span class="type">AsyncIterable&lt;string&gt;</span>,  <span class="cmt">// 输入提示（字符串或流）</span>
+  getAppState: () => <span class="type">AppState</span>,                   <span class="cmt">// 读取 AppState 的 getter</span>
+  setAppState: (f: (prev: <span class="type">AppState</span>) => <span class="type">AppState</span>) => <span class="type">void</span>,  <span class="cmt">// 更新 AppState</span>
+  commands: <span class="type">Command[]</span>,                           <span class="cmt">// 可用 slash 命令列表</span>
+  tools: <span class="type">Tools</span>,                                  <span class="cmt">// 工具池（已过滤）</span>
+  sdkMcpConfigs: <span class="type">Record&lt;string, McpSdkServerConfig&gt;</span>,  <span class="cmt">// SDK MCP 配置</span>
+  agents: <span class="type">AgentDefinition[]</span>,                     <span class="cmt">// Agent 定义列表</span>
+  options: {
+    continue: <span class="type">boolean</span> | <span class="type">undefined</span>
+    resume: <span class="type">string</span> | <span class="type">boolean</span> | <span class="type">undefined</span>
+    resumeSessionAt: <span class="type">string</span> | <span class="type">undefined</span>
+    verbose: <span class="type">boolean</span> | <span class="type">undefined</span>
+    outputFormat: <span class="type">string</span> | <span class="type">undefined</span>
+    jsonSchema: <span class="type">Record&lt;string, unknown&gt;</span> | <span class="type">undefined</span>
+    permissionPromptToolName: <span class="type">string</span> | <span class="type">undefined</span>
+    allowedTools: <span class="type">string[]</span> | <span class="type">undefined</span>
+    thinkingConfig: <span class="type">ThinkingConfig</span> | <span class="type">undefined</span>
+    maxTurns: <span class="type">number</span> | <span class="type">undefined</span>
+    maxBudgetUsd: <span class="type">number</span> | <span class="type">undefined</span>
+    taskBudget: { total: <span class="type">number</span> } | <span class="type">undefined</span>
+    systemPrompt: <span class="type">string</span> | <span class="type">undefined</span>
+    appendSystemPrompt: <span class="type">string</span> | <span class="type">undefined</span>
+    userSpecifiedModel: <span class="type">string</span> | <span class="type">undefined</span>
+    fallbackModel: <span class="type">string</span> | <span class="type">undefined</span>
+    teleport: <span class="type">string</span> | <span class="type">true</span> | <span class="type">null</span> | <span class="type">undefined</span>
+    sdkUrl: <span class="type">string</span> | <span class="type">undefined</span>
+    replayUserMessages: <span class="type">boolean</span> | <span class="type">undefined</span>
+    includePartialMessages: <span class="type">boolean</span> | <span class="type">undefined</span>
+    forkSession: <span class="type">boolean</span> | <span class="type">undefined</span>
+    rewindFiles: <span class="type">string</span> | <span class="type">undefined</span>
+    enableAuthStatus: <span class="type">boolean</span> | <span class="type">undefined</span>
+    agent: <span class="type">string</span> | <span class="type">undefined</span>
+    workload: <span class="type">string</span> | <span class="type">undefined</span>
+    setupTrigger?: <span class="str">'init'</span> | <span class="str">'maintenance'</span> | <span class="type">undefined</span>
+    sessionStartHooksPromise?: <span class="type">ReturnType&lt;typeof processSessionStartHooks&gt;</span>
+    setSDKStatus?: (status: <span class="type">SDKStatus</span>) => <span class="type">void</span>
+  },
+): <span class="type">Promise&lt;void&gt;</span></pre>
+    <p style="margin-top:8px;">注意：与 MDX 原版本不同，<code>runHeadless</code> <strong>不接受</strong> <code>Root</code> / <code>initialState</code> / <code>sessionConfig</code> 三参数形式。它接受拆解后的 13+ 个参数，由 <code>main.tsx</code> 的 <code>.action()</code> 处理器直接传入已展开的参数。</p>
+  </div>
+
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">7.5 <code>setIsInteractive()</code> / <code>getIsNonInteractiveSession()</code> 桥接</h3>
+    <p><code>main.tsx</code> 的 argv 解析结果通过 <code>bootstrap/state.ts</code> 的 STATE 单例在整个进程中共享：</p>
+    <pre><span class="cmt">// main.tsx:999（判定）</span>
+<span class="kw">const</span> isNonInteractive =
+  hasPrintFlag || hasInitOnlyFlag || hasSdkUrl ||
+  (!forceInteractive && !process.stdout.isTTY);
+
+<span class="cmt">// main.tsx:1008（写入 bootstrap/state）</span>
+<span class="fn">setIsInteractive</span>(!isNonInteractive);
+
+<span class="cmt">// main.tsx:1002-1003（副作用：非交互模式立即停止 earlyInput 捕获）</span>
+<span class="kw">if</span> (isNonInteractive) <span class="fn">stopCapturingEarlyInput</span>();</pre>
+    <h4 style="color:var(--text); margin:12px 0 6px; font-size:.95rem;">读取侧</h4>
+    <div class="table-wrap">
+      <table>
+        <tr><th>读取方</th><th>使用场景</th></tr>
+        <tr><td><code>init.ts:288</code></td><td><code>ConfigParseError</code> 时判断是否安全渲染 Ink 对话框</td></tr>
+        <tr><td><code>init.ts:326</code></td><td>无头模式 + beta tracing 时提前紧急初始化遥测</td></tr>
+        <tr><td><code>tools</code> / <code>BashTool</code></td><td>判断是否自动审批权限（非交互模式跳过弹窗）</td></tr>
+        <tr><td><code>services/api/claude.ts</code></td><td>决定是否显示连接等待 spinner</td></tr>
+      </table>
+    </div>
+    <p style="margin-top:8px;"><code>setIsInteractive()</code> 的调用早于 <code>init()</code> 执行（发生在 <code>main():1008</code>，而 <code>init()</code> 在 preAction 即 <code>~run():1136</code> 之后），因此 init 内部读取到的值是正确的。</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION: SUPPORT MODULES (earlyInput, perfShim, profiler)  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="support-modules">
+  <h2>支撑模块详解</h2>
+  <p class="section-desc">三个在启动链中扮演关键角色的支撑文件：earlyInput.ts 解决键盘输入缓冲问题，performanceShim.ts 修复 JSC 内存泄漏，startupProfiler.ts 提供启动性能埋点。</p>
+
+  <!-- earlyInput.ts -->
+  <div class="diagram-wrap" style="padding:20px 24px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">2.5 <code>earlyInput.ts</code> — 键盘输入缓冲</h3>
+    <p><strong>文件路径：</strong><code>src/utils/earlyInput.ts</code></p>
+
+    <h4 style="color:var(--text); margin:12px 0 6px; font-size:.95rem;">问题背景</h4>
+    <p>从用户敲下 <code>claude</code> 到 main.tsx 的 Ink REPL 准备好接收输入，中间有约 <strong>135ms</strong> 的模块加载窗口。在此期间用户如果已经开始输入，这些按键在普通 TTY 下会被操作系统缓冲，但一旦 Ink 接管 stdin 进入 raw mode，操作系统缓冲就会被清空，导致内容丢失。</p>
+
+    <h4 style="color:var(--text); margin:12px 0 6px; font-size:.95rem;">解决方案</h4>
+    <p><code>startCapturingEarlyInput()</code> 在 <code>cli.tsx</code> 默认路径中（<code>:398</code>）被立即调用：</p>
+    <ul style="color:var(--text-2); padding-left:20px; margin:6px 0 12px;">
+      <li>将 stdin 置为 raw mode 并注册 <code>readable</code> 事件监听</li>
+      <li>所有按键存入模块级 <code>earlyInputBuffer</code> 字符串</li>
+      <li>同时正确处理 Ctrl+C（exit 130）、Ctrl+D（停止捕获）、退格、转义序列等</li>
+    </ul>
+    <pre><span class="cmt">// src/utils/earlyInput.ts — 核心导出</span>
+<span class="kw">export function</span> <span class="fn">startCapturingEarlyInput</span>(): <span class="type">void</span>  <span class="cmt">// 开始捕获（仅 TTY 且非 -p 模式）</span>
+<span class="kw">export function</span> <span class="fn">stopCapturingEarlyInput</span>(): <span class="type">void</span>   <span class="cmt">// 停止并解除 stdin ref</span>
+<span class="kw">export function</span> <span class="fn">consumeEarlyInput</span>(): <span class="type">string</span>       <span class="cmt">// 取出缓冲并停止</span>
+<span class="kw">export function</span> <span class="fn">hasEarlyInput</span>(): <span class="type">boolean</span>          <span class="cmt">// 是否有缓冲内容（不消费）</span>
+<span class="kw">export function</span> <span class="fn">seedEarlyInput</span>(text: <span class="type">string</span>): <span class="type">void</span> <span class="cmt">// 预填文本（不自动提交）</span></pre>
+
+    <h4 style="color:var(--text); margin:12px 0 6px; font-size:.95rem;">停止时机</h4>
+    <div class="table-wrap">
+      <table>
+        <tr><th>模式</th><th>停止方式</th></tr>
+        <tr><td><strong>交互模式</strong></td><td>Ink App 挂载时 <code>handleSetRawMode(true)</code> 内部调用 <code>consumeEarlyInput()</code>，内容自动注入 PromptInput 预填区</td></tr>
+        <tr><td><strong>非交互模式</strong>（<code>-p</code> / 非 TTY）</td><td><code>main.tsx:1003</code> 在 <code>isNonInteractive</code> 判定为 true 后立即调用 <code>stopCapturingEarlyInput()</code></td></tr>
+        <tr><td><strong>安全阀</strong></td><td>10 秒超时后自动停止（防止 Ink 因错误未能挂载导致 stdin.ref() 永久泄漏）</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- performanceShim.ts -->
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">2.6 <code>performanceShim.ts</code> — JSC 性能泄漏修复</h3>
+    <p><strong>文件路径：</strong><code>src/utils/performanceShim.ts</code></p>
+
+    <h4 style="color:var(--text); margin:12px 0 6px; font-size:.95rem;">问题背景</h4>
+    <p>Bun 使用 JSC（JavaScriptCore）作为 JS 引擎。JSC 原生的 <code>globalThis.performance</code> 在 C++ 层使用一个 Vector 存储所有 mark/measure/resource timing 条目。这个 Vector <strong>永不收缩</strong>，即使调用 <code>clearMarks()</code> 也只清空逻辑内容，C++ 容量不变。对于长期运行的会话（<code>/loop</code> 模式、daemon），数百次 API 调用累积的 OTel/React mark 会导致数百 MB 的 C++ 死容量。</p>
+
+    <h4 style="color:var(--text); margin:12px 0 6px; font-size:.95rem;">修复方式</h4>
+    <p>将 <code>globalThis.performance</code> 替换为纯 JS <code>Map</code> 实现的 shim：</p>
+    <ul style="color:var(--text-2); padding-left:20px; margin:6px 0 12px;">
+      <li><code>performance.now()</code> 委托给原生对象（快速、无内存成本）</li>
+      <li><code>mark()</code> / <code>measure()</code> / <code>getEntries*()</code> / <code>clearMarks()</code> 全部使用 JS <code>Map</code>，GC 可正常回收</li>
+      <li>保留 <code>timeOrigin</code>、<code>toJSON()</code> 等只读属性委托给原生（防止 JSC 内部 <code>this</code> 类型检查报错）</li>
+    </ul>
+
+    <h4 style="color:var(--text); margin:12px 0 6px; font-size:.95rem;">为什么必须第一个 import</h4>
+    <p>React reconciler 和 OpenTelemetry 在模块初始化时会<strong>捕获</strong> <code>globalThis.performance</code> 引用。若 shim 在它们之后安装，它们持有的是原生对象引用，shim 无效。</p>
+    <pre><span class="cmt">// src/entrypoints/cli.tsx — 第 5 行，第一个 import</span>
+<span class="kw">import</span> <span class="str">'../utils/performanceShim.js'</span>;
+<span class="cmt">// ↑ 此行之后 globalThis.performance === shim（JS Map 实现）</span>
+
+<span class="cmt">// src/utils/performanceShim.ts:164-165</span>
+<span class="kw">export function</span> <span class="fn">installPerformanceShim</span>(): <span class="type">void</span> { <span class="cmt">/* ... */</span> }
+<span class="fn">installPerformanceShim</span>()  <span class="cmt">// import 时自动执行</span></pre>
+  </div>
+
+  <!-- startupProfiler.ts -->
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">2.7 <code>startupProfiler.ts</code> — 启动埋点</h3>
+    <p><strong>文件路径：</strong><code>src/utils/startupProfiler.ts</code></p>
+
+    <h4 style="color:var(--text); margin:12px 0 6px; font-size:.95rem;">核心函数</h4>
+    <pre><span class="kw">export function</span> <span class="fn">profileCheckpoint</span>(name: <span class="type">string</span>): <span class="type">void</span>
+<span class="cmt">// 记录 performance.mark(name) + 可选内存快照（DETAILED_PROFILING 时）</span>
+
+<span class="kw">export function</span> <span class="fn">profileReport</span>(): <span class="type">void</span>
+<span class="cmt">// 上报 Statsig + 写入文件（DETAILED_PROFILING 时），然后清理所有 startup marks</span>
+
+<span class="kw">export function</span> <span class="fn">isDetailedProfilingEnabled</span>(): <span class="type">boolean</span>
+
+<span class="kw">export function</span> <span class="fn">getStartupPerfLogPath</span>(): <span class="type">string</span>
+<span class="cmt">// → ~/.claude/startup-perf/&lt;sessionId&gt;.txt</span></pre>
+
+    <h4 style="color:var(--text); margin:12px 0 6px; font-size:.95rem;">启用方式</h4>
+    <div class="table-wrap">
+      <table>
+        <tr><th>模式</th><th>条件</th><th>效果</th></tr>
+        <tr><td><strong>详细 profiling</strong></td><td><code>CLAUDE_CODE_PROFILE_STARTUP=1</code></td><td>输出全量报告（含内存快照）到 <code>~/.claude/startup-perf/&lt;sessionId&gt;.txt</code></td></tr>
+        <tr><td><strong>Statsig 采样</strong></td><td><code>USER_TYPE=ant</code> 或 0.5% 随机</td><td>将各阶段时长上报到 <code>tengu_startup_perf</code> 事件</td></tr>
+        <tr><td><strong>不采样</strong></td><td>其他</td><td><code>profileCheckpoint()</code> 变 no-op，零开销</td></tr>
+      </table>
+    </div>
+
+    <h4 style="color:var(--text); margin:16px 0 6px; font-size:.95rem;">跨文件 checkpoint 完整清单</h4>
+    <div class="table-wrap">
+      <table style="font-size:.83rem;">
+        <thead><tr><th>checkpoint 名</th><th>所在文件</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>cli_entry</code></td><td>cli.tsx</td><td>进程启动，第一个 checkpoint</td></tr>
+          <tr><td><code>cli_before_main_import</code></td><td>cli.tsx</td><td>开始 <code>import('../main.jsx')</code> 前</td></tr>
+          <tr><td><code>cli_after_main_import</code></td><td>cli.tsx</td><td><code>import</code> 完成后</td></tr>
+          <tr><td><code>cli_after_main_complete</code></td><td>cli.tsx</td><td><code>cliMain()</code> 执行完毕</td></tr>
+          <tr><td><code>main_tsx_entry</code></td><td>main.tsx</td><td>main.tsx 顶层副作用执行时</td></tr>
+          <tr><td><code>main_tsx_imports_loaded</code></td><td>main.tsx</td><td>顶层 import 全部完成</td></tr>
+          <tr><td><code>main_function_start</code></td><td>main.tsx</td><td><code>main()</code> 函数体开始</td></tr>
+          <tr><td><code>main_warning_handler_initialized</code></td><td>main.tsx</td><td>warning handler 注册完毕</td></tr>
+          <tr><td><code>run_function_start</code></td><td>main.tsx</td><td><code>run()</code> 函数体开始</td></tr>
+          <tr><td><code>preAction_after_init</code></td><td>main.tsx</td><td><code>init()</code> 在 preAction 中完成</td></tr>
+          <tr><td><code>action_after_hooks</code></td><td>main.tsx</td><td>hooks promise 解析完毕，进入主 action</td></tr>
+          <tr><td><code>init_function_start</code></td><td>init.ts</td><td><code>init()</code> 闭包体开始</td></tr>
+          <tr><td><code>init_configs_enabled</code></td><td>init.ts</td><td><code>enableConfigs()</code> 完成</td></tr>
+          <tr><td><code>init_safe_env_vars_applied</code></td><td>init.ts</td><td>安全 env vars 已应用</td></tr>
+          <tr><td><code>init_after_graceful_shutdown</code></td><td>init.ts</td><td><code>setupGracefulShutdown()</code> 完成</td></tr>
+          <tr><td><code>init_after_1p_event_logging</code></td><td>init.ts</td><td>1P event logging 异步触发</td></tr>
+          <tr><td><code>init_after_balance_polling</code></td><td>init.ts</td><td>balance polling 异步触发</td></tr>
+          <tr><td><code>init_after_oauth_populate</code></td><td>init.ts</td><td>OAuth 账户填充异步触发</td></tr>
+          <tr><td><code>init_after_jetbrains_detection</code></td><td>init.ts</td><td>JetBrains 检测异步触发</td></tr>
+          <tr><td><code>init_after_remote_settings_check</code></td><td>init.ts</td><td>远程设置 loading promise 初始化</td></tr>
+          <tr><td><code>init_network_configured</code></td><td>init.ts</td><td>mTLS + proxy agents 配置完成</td></tr>
+          <tr><td><code>init_function_end</code></td><td>init.ts</td><td><code>init()</code> 整体完成</td></tr>
+          <tr><td><code>before_print_import</code> / <code>launchRepl</code></td><td>main.tsx</td><td>进入无头或 REPL 路径</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:8px; font-size:.85rem; color:var(--text-3);"><code>profileReport()</code> 在主 <code>.action()</code> 执行完毕（会话结束前）被调用，上报后清理所有 marks 防止长期进程累积。</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 3: CORE KNOWLEDGE POINTS                           -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="knowledge">
+  <h2>核心知识点（共 8 条）</h2>
+  <p class="section-desc">点击展开每条知识点查看详细说明和代码示例。</p>
+
+  <div class="knowledge-grid">
+
+    <!-- K1 -->
+    <details class="know-card">
+      <summary>
+        <div class="know-num">1</div>
+        <div class="know-title">cli.tsx 是"分流器"，不是完整 CLI</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <p><code>cli.tsx</code> 的唯一职责是"按优先级检查 argv，命中快速路径就动态 import 目标模块并 return，否则 fall through 到默认路径加载 main.tsx"。它自身几乎不含业务逻辑。</p>
+        <p>快速路径全部使用 <strong>动态 import</strong>，避免提前加载不需要的模块。<code>--version</code> 完全不 import 任何模块，是最极端的优化。</p>
+        <pre><span class="cmt">// cli.tsx:88 — 快速路径 1（零模块加载）</span>
+<span class="kw">if</span> (args.length === 1 && (args[0] === <span class="str">'--version'</span> || args[0] === <span class="str">'-v'</span>)) {
+  <span class="fn">console.log</span>(<span class="str">`${MACRO.VERSION} (Claude Code)`</span>);
+  <span class="kw">return</span>;
+}
+
+<span class="cmt">// cli.tsx:401 — 默认路径（加载完整 CLI）</span>
+<span class="kw">const</span> { main: cliMain } = <span class="kw">await</span> <span class="kw">import</span>(<span class="str">'../main.jsx'</span>);
+<span class="kw">await</span> <span class="fn">cliMain</span>();</pre>
+      </div>
+    </details>
+
+    <!-- K2 -->
+    <details class="know-card">
+      <summary>
+        <div class="know-num">2</div>
+        <div class="know-title">main.tsx 三层结构：顶层副作用 / main() / run()</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <p><code>main.tsx</code> 约 5674 行，是完整 CLI 的核心。三层结构如下：</p>
+        <div class="table-wrap">
+          <table>
+            <tr><th>层级</th><th>行号范围</th><th>职责</th></tr>
+            <tr><td>顶层副作用</td><td>1 — 46</td><td>模块级常量、类型定义、全局 import（在 dynamic import 时立即执行）</td></tr>
+            <tr><td><code>main()</code></td><td>805 — 1126</td><td>Commander.js 程序配置入口，调用 <code>run()</code> 并处理顶层错误</td></tr>
+            <tr><td><code>run()</code></td><td>1142 — 5579</td><td>注册所有子命令（mcp/server/ssh/auth/plugin…），绑定 preAction 钩子和 .action() 处理器</td></tr>
+          </table>
+        </div>
+        <p>注意：<code>--help</code> 由 Commander 在 <code>preAction</code> 之前处理并退出，因此 <code>--help</code> 不会触发 <code>init()</code>。</p>
+      </div>
+    </details>
+
+    <!-- K3 -->
+    <details class="know-card">
+      <summary>
+        <div class="know-num">3</div>
+        <div class="know-title">init() 用 lodash-es/memoize 保证幂等</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <p><code>init()</code> 注册在每个 Commander 命令的 <code>preAction</code> 钩子中，理论上每次 parse 都会触发一次。但实际上通过 <code>lodash-es/memoize</code> 包装后，无论触发多少次只执行一次初始化逻辑（遥测、配置读取、信任对话框等）。</p>
+        <p><code>--help</code> 是例外：Commander 会在 preAction 之前打印帮助并 <code>process.exit(0)</code>，因此 <code>init()</code> 完全不执行。</p>
+        <pre><span class="kw">import</span> memoize <span class="kw">from</span> <span class="str">'lodash-es/memoize'</span>;
+
+<span class="kw">const</span> init = <span class="fn">memoize</span>(<span class="kw">async</span> () => {
+  <span class="kw">await</span> <span class="fn">enableConfigs</span>();
+  <span class="cmt">// 遥测、信任对话框、认证检查…</span>
+});
+
+program.<span class="fn">hook</span>(<span class="str">'preAction'</span>, <span class="kw">async</span> () => {
+  <span class="kw">await</span> <span class="fn">init</span>(); <span class="cmt">// 多次调用只执行一次</span>
+});</pre>
+      </div>
+    </details>
+
+    <!-- K4 -->
+    <details class="know-card">
+      <summary>
+        <div class="know-num">4</div>
+        <div class="know-title">enableConfigs() — 配置读取闸门</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <p><code>utils/config.ts</code> 中维护一个模块级 <code>configReadingAllowed</code> flag。所有配置读取函数在此 flag 为 false 时返回默认值（或抛错），直到 <code>enableConfigs()</code> 被调用后才开启真正读取。</p>
+        <p>这个设计让快速路径（如 <code>--version</code>）可以绕过配置文件 I/O，加速启动。需要配置的快速路径（如 bridge、weixin）会在进入实际逻辑前手动调用 <code>enableConfigs()</code>。</p>
+        <pre><span class="cmt">// src/utils/config.ts (简化)</span>
+<span class="kw">let</span> configReadingAllowed = <span class="kw">false</span>;  <span class="cmt">// :1322 — 默认关闭</span>
+
+<span class="kw">export function</span> <span class="fn">enableConfigs</span>() {
+  configReadingAllowed = <span class="kw">true</span>;    <span class="cmt">// :1324 — 打开闸门</span>
+}
+
+<span class="kw">export function</span> <span class="fn">getConfig</span>(key: <span class="type">string</span>) {
+  <span class="kw">if</span> (!configReadingAllowed) <span class="kw">return</span> undefined;
+  <span class="cmt">// 实际读取文件…</span>
+}</pre>
+      </div>
+    </details>
+
+    <!-- K5 -->
+    <details class="know-card">
+      <summary>
+        <div class="know-num">5</div>
+        <div class="know-title">performanceShim.ts 必须第一个 import</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <p>JSC（JavaScriptCore，Bun 的 JS 引擎）会在 C++ 层使用一个 Vector 来存储 Performance API 的条目。如果 React 或 OpenTelemetry 先获取了原生 <code>globalThis.performance</code> 的引用，这个 Vector 会在长时间运行的会话中<strong>无限增长</strong>，导致内存泄漏。</p>
+        <p><code>performanceShim.ts</code> 在 <code>installPerformanceShim()</code>（:165）中将 <code>globalThis.performance</code> 替换为纯 JS 实现，绕过 C++ Vector。必须在任何其他 import 之前执行，因此放在 <code>cli.tsx</code> 的第 5 行（第一个 import）。</p>
+        <pre><span class="cmt">// cli.tsx:5 — 性能 shim 必须作为第一个 import</span>
+<span class="cmt">// 在 React/OTel 捕获原生引用之前替换 globalThis.performance</span>
+<span class="kw">import</span> <span class="str">'../utils/performanceShim.js'</span>;</pre>
+      </div>
+    </details>
+
+    <!-- K6 -->
+    <details class="know-card">
+      <summary>
+        <div class="know-num">6</div>
+        <div class="know-title">MACRO.* 三种注入方式与运行时回退</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <div class="table-wrap">
+          <table>
+            <tr><th>环境</th><th>注入方式</th><th>来源</th></tr>
+            <tr><td>Dev (<code>bun run dev</code>)</td><td><code>bun -d MACRO.VERSION=...</code></td><td><code>scripts/defines.ts</code></td></tr>
+            <tr><td>Build (<code>bun run build</code>)</td><td><code>Bun.build({ define: {...} })</code></td><td><code>build.ts</code></td></tr>
+            <tr><td>Vite Build</td><td><code>vite.config.ts define:{}</code></td><td><code>scripts/defines.ts</code></td></tr>
+            <tr><td>直接运行 cli.tsx</td><td>运行时回退 (:11-21)</td><td>env <code>CLAUDE_CODE_VERSION</code> / 硬编码</td></tr>
+          </table>
+        </div>
+        <pre><span class="cmt">// cli.tsx:11-21 — 运行时回退（直接运行 cli.tsx 时）</span>
+<span class="kw">if</span> (<span class="kw">typeof</span> globalThis.<span class="type">MACRO</span> === <span class="str">'undefined'</span>) {
+  (globalThis <span class="kw">as</span> <span class="kw">any</span>).<span class="type">MACRO</span> = {
+    <span class="type">VERSION</span>: process.env.<span class="type">CLAUDE_CODE_VERSION</span> || <span class="str">'2.1.888'</span>,
+    <span class="type">BUILD_TIME</span>: <span class="kw">new</span> <span class="fn">Date</span>().<span class="fn">toISOString</span>(),
+    <span class="type">FEEDBACK_CHANNEL</span>: <span class="str">''</span>,
+    <span class="type">ISSUES_EXPLAINER</span>: <span class="str">''</span>,
+    <span class="type">NATIVE_PACKAGE_URL</span>: <span class="str">''</span>,
+    <span class="type">PACKAGE_URL</span>: <span class="str">''</span>,
+    <span class="type">VERSION_CHANGELOG</span>: <span class="str">''</span>,
+  };
+}</pre>
+      </div>
+    </details>
+
+    <!-- K7 -->
+    <details class="know-card">
+      <summary>
+        <div class="know-num">7</div>
+        <div class="know-title">feature() 的 DCE 限制 — 只能用在条件位置</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <p><code>feature()</code> 来自 <code>bun:bundle</code>，Bun 编译器在构建时会将 feature flag 替换为 <code>true</code>/<code>false</code> 字面量，然后由 Tree Shaking 消除永远不会执行的分支（DCE）。</p>
+        <p><strong>限制：</strong><code>feature()</code> 只能直接用在 <code>if</code> 语句条件或三元表达式中，不能赋值给变量，不能放在箭头函数体里，不能作为 <code>&&</code> 链的一部分（这些情况 Bun 无法静态分析，DCE 失效）。</p>
+        <pre><span class="cmt">// ✅ 正确 — Bun 可静态分析，DCE 有效</span>
+<span class="kw">if</span> (<span class="fn">feature</span>(<span class="str">'VOICE_MODE'</span>)) {
+  <span class="kw">const</span> { startVoice } = <span class="kw">await</span> <span class="kw">import</span>(<span class="str">'../voice/index.js'</span>);
+  <span class="kw">await</span> <span class="fn">startVoice</span>();
+  <span class="kw">return</span>;
+}
+
+<span class="cmt">// ❌ 错误 — 赋值后 DCE 失效，dead code 不会被消除</span>
+<span class="kw">const</span> hasVoice = <span class="fn">feature</span>(<span class="str">'VOICE_MODE'</span>);
+<span class="kw">if</span> (hasVoice) { ... }
+
+<span class="cmt">// ❌ 错误 — && 链中 DCE 失效</span>
+<span class="fn">feature</span>(<span class="str">'VOICE_MODE'</span>) && <span class="fn">doSomething</span>();</pre>
+      </div>
+    </details>
+
+    <!-- K8 -->
+    <details class="know-card">
+      <summary>
+        <div class="know-num">8</div>
+        <div class="know-title">两套状态系统 — bootstrap/state.ts vs AppState.tsx</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <p>Claude Code 中共存两套状态系统，职责互补，不要混用。</p>
+        <div class="table-wrap">
+          <table class="compare-table">
+            <tr>
+              <th>维度</th>
+              <th>bootstrap/state.ts</th>
+              <th>AppState.tsx</th>
+            </tr>
+            <tr>
+              <td>载体</td>
+              <td>模块级变量（JS 单例）</td>
+              <td>React Context + Zustand Store</td>
+            </tr>
+            <tr>
+              <td>生命周期</td>
+              <td>进程全局，随进程启动创建</td>
+              <td>随 React 组件树挂载/卸载</td>
+            </tr>
+            <tr>
+              <td>何时可用</td>
+              <td>任何时刻（包括 CLI 初始化阶段）</td>
+              <td>仅在 React Ink 渲染树挂载后</td>
+            </tr>
+            <tr>
+              <td>典型字段</td>
+              <td>sessionId, cwd, projectRoot, tokenCounts, permissionMode</td>
+              <td>messages, tools, mcpConnections, permissions UI state</td>
+            </tr>
+            <tr>
+              <td>谁会读</td>
+              <td>query.ts, context.ts, Tool 实现、非 React 代码</td>
+              <td>REPL.tsx, 所有 UI 组件、Ink hooks</td>
+            </tr>
+            <tr>
+              <td>修改方式</td>
+              <td>直接赋值（export let + setter）</td>
+              <td>dispatch action / setState（触发 React 重渲染）</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 4: STATE SYSTEMS COMPARISON (standalone)           -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="state-compare">
+  <h2>双状态系统完整对比</h2>
+  <p class="section-desc">展开后的完整对比表，方便在开发时快速判断"这个状态应该放在哪里"。</p>
+  <div class="table-wrap">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>维度</th>
+          <th>bootstrap/state.ts</th>
+          <th>AppState.tsx</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>载体</strong></td>
+          <td>模块级 <code>let</code> 变量（JS 单例）</td>
+          <td>React Context + Zustand Store</td>
+        </tr>
+        <tr>
+          <td><strong>生命周期</strong></td>
+          <td>进程全局，随进程启动创建，从不销毁</td>
+          <td>随 Ink React 树挂载/卸载（交互会话内）</td>
+        </tr>
+        <tr>
+          <td><strong>何时可用</strong></td>
+          <td>任何时刻（CLI 初始化阶段即可用）</td>
+          <td>仅在 <code>AppStateProvider</code> 挂载后</td>
+        </tr>
+        <tr>
+          <td><strong>典型字段</strong></td>
+          <td><code>sessionId</code>, <code>cwd</code>, <code>projectRoot</code>, <code>tokenCounts</code>, <code>permissionMode</code>, <code>clientType</code>, <code>modelOverrides</code></td>
+          <td><code>messages</code>, <code>tools</code>, <code>mcpConnections</code>, <code>permissionPrompts</code>, <code>isLoading</code>, <code>inputMode</code></td>
+        </tr>
+        <tr>
+          <td><strong>谁会读</strong></td>
+          <td><code>query.ts</code>, <code>context.ts</code>, Tool 实现、Headless 模式、非 React 代码</td>
+          <td><code>REPL.tsx</code>, <code>Messages.tsx</code>, <code>PromptInput/</code>, 所有 Ink UI 组件</td>
+        </tr>
+        <tr>
+          <td><strong>修改方式</strong></td>
+          <td>直接赋值（<code>export let</code> + 对应 setter 函数）</td>
+          <td><code>dispatch(action)</code> / <code>setState()</code>（触发 React 重渲染）</td>
+        </tr>
+        <tr>
+          <td><strong>线程安全</strong></td>
+          <td>单线程 JS，无并发问题；但需注意异步间竞态</td>
+          <td>React 批量更新保证一致性</td>
+        </tr>
+        <tr>
+          <td><strong>序列化</strong></td>
+          <td>不序列化（内存态）</td>
+          <td>消息历史可持久化为 transcript JSON</td>
+        </tr>
+        <tr>
+          <td><strong>文件位置</strong></td>
+          <td><code>src/bootstrap/state.ts</code></td>
+          <td><code>src/state/AppState.tsx</code> + <code>src/state/store.ts</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 5: KEY FILES CHECKLIST                             -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="key-files">
+  <h2>关键文件速查表</h2>
+  <p class="section-desc">入口模块体系中最重要的文件，鼠标悬停文件路径查看完整路径提示。</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>文件</th>
+          <th>职责</th>
+          <th>关键行号</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="file-path" data-full="src/entrypoints/cli.tsx"><code>cli.tsx</code></span></td>
+          <td>分流器入口 — 检查 argv，按优先级分发到 14 条快速路径或默认路径</td>
+          <td>:83 main(), :88 QP1, :401 默认路径</td>
+        </tr>
+        <tr>
+          <td><span class="file-path" data-full="src/main.tsx"><code>main.tsx</code></span></td>
+          <td>完整 CLI 程序体 — Commander.js 定义、所有子命令注册、preAction/action 处理器</td>
+          <td>:805 main(), :1142 run(), :1322 configFlag</td>
+        </tr>
+        <tr>
+          <td><span class="file-path" data-full="src/entrypoints/init.ts"><code>init.ts</code></span></td>
+          <td>一次性初始化 — 遥测、配置、信任对话框（被 memoize 后在 preAction 中调用）</td>
+          <td>exported <code>init()</code></td>
+        </tr>
+        <tr>
+          <td><span class="file-path" data-full="src/utils/performanceShim.ts"><code>performanceShim.ts</code></span></td>
+          <td>JSC 性能修复 — 替换 globalThis.performance 为 JS 实现，解决 C++ Vector 泄漏</td>
+          <td>:165 installPerformanceShim()</td>
+        </tr>
+        <tr>
+          <td><span class="file-path" data-full="src/utils/config.ts"><code>config.ts</code></span></td>
+          <td>配置读取闸门 — <code>configReadingAllowed</code> flag + <code>enableConfigs()</code></td>
+          <td>:1322 flag, :1324 enableConfigs</td>
+        </tr>
+        <tr>
+          <td><span class="file-path" data-full="src/bootstrap/state.ts"><code>bootstrap/state.ts</code></span></td>
+          <td>进程全局状态单例 — sessionId, cwd, projectRoot, tokenCounts, permissionMode</td>
+          <td>模块顶层（进程启动即初始化）</td>
+        </tr>
+        <tr>
+          <td><span class="file-path" data-full="src/state/AppState.tsx"><code>state/AppState.tsx</code></span></td>
+          <td>React 状态 Context — messages, tools, mcpConnections, UI 状态（React 树挂载后才可用）</td>
+          <td>AppStateProvider, useAppState()</td>
+        </tr>
+        <tr>
+          <td><span class="file-path" data-full="src/screens/REPL.tsx"><code>screens/REPL.tsx</code></span></td>
+          <td>交互式 REPL 屏幕 — 用户输入、消息显示、工具权限弹窗、键盘快捷键</td>
+          <td>默认路径终点，launchRepl() 的渲染目标</td>
+        </tr>
+        <tr>
+          <td><span class="file-path" data-full="src/query.ts"><code>query.ts</code></span></td>
+          <td>主 API 查询函数 — 发送消息、处理流式响应、处理工具调用、管理对话轮次循环</td>
+          <td>export async function query()</td>
+        </tr>
+        <tr>
+          <td><span class="file-path" data-full="scripts/defines.ts"><code>scripts/defines.ts</code></span></td>
+          <td>MACRO 常量集中管理 — VERSION 等在 dev/build/vite 三种模式下统一注入</td>
+          <td>export const defines = {...}</td>
+        </tr>
+        <tr>
+          <td><span class="file-path" data-full="src/utils/startupProfiler.ts"><code>startupProfiler.ts</code></span></td>
+          <td>启动性能分析 — profileCheckpoint() 记录各阶段时间戳（仅 --version 路径跳过）</td>
+          <td>export function profileCheckpoint()</td>
+        </tr>
+        <tr>
+          <td><span class="file-path" data-full="src/bridge/bridgeMain.ts"><code>bridge/bridgeMain.ts</code></span></td>
+          <td>远程控制 / Bridge 模式入口 — 快速路径 7 的目标（BRIDGE_MODE feature）</td>
+          <td>export async function bridgeMain()</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION: STATE SYSTEM HANDOFF                              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="state-handoff">
+  <h2>两套状态系统的交接点</h2>
+  <p class="section-desc"><code>launchRepl</code> 是两套状态系统的交接点：它从 <code>bootstrap/state.ts</code> 读出已写好的 CLI 参数，作为 <code>initialState</code> 传给 <code>&lt;AppStateProvider&gt;</code>，React 层接管之后 UI 字段走 context，但 telemetry / cost 这类整个生命周期都只在 <code>bootstrap/state.ts</code>。</p>
+  <div class="diagram-wrap" style="padding:20px 24px;">
+    <svg width="780" height="200" viewBox="0 0 780 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="sh-arr" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#D77757" />
+        </marker>
+      </defs>
+      <!-- bootstrap/state.ts -->
+      <g class="node-group">
+        <title>src/bootstrap/state.ts — 进程级 STATE 单例，在 init 期间就可用</title>
+        <rect class="node-rect" x="10" y="50" width="200" height="80" rx="8" fill="#eef0ff" stroke="#5769F7" stroke-width="1.5"/>
+        <text x="110" y="76" text-anchor="middle" fill="#3a4ed4" font-size="11" font-weight="700">bootstrap/state.ts</text>
+        <text x="110" y="93" text-anchor="middle" fill="#3a4ed4" font-size="9">sessionId, cwd, projectRoot</text>
+        <text x="110" y="107" text-anchor="middle" fill="#3a4ed4" font-size="9">tokenCounts, permissionMode</text>
+        <text x="110" y="121" text-anchor="middle" fill="#3a4ed4" font-size="9">modelUsage, totalCostUSD</text>
+      </g>
+      <!-- launchRepl -->
+      <g class="node-group">
+        <title>src/replLauncher.tsx — launchRepl() 交接点：读取 bootstrap STATE，构建 initialState 传给 React</title>
+        <rect class="node-rect" x="290" y="64" width="140" height="52" rx="8" fill="#fff3ee" stroke="#D77757" stroke-width="2"/>
+        <text x="360" y="86" text-anchor="middle" fill="#b55e3a" font-size="11" font-weight="700">launchRepl()</text>
+        <text x="360" y="102" text-anchor="middle" fill="#b55e3a" font-size="9">STATE → initialState</text>
+      </g>
+      <!-- AppState -->
+      <g class="node-group">
+        <title>src/state/AppState.tsx — React Context，只在 AppStateProvider 子树内可用</title>
+        <rect class="node-rect" x="510" y="50" width="200" height="80" rx="8" fill="#d2f0e3" stroke="#22a766" stroke-width="1.5"/>
+        <text x="610" y="76" text-anchor="middle" fill="#1a5c39" font-size="11" font-weight="700">AppState (React)</text>
+        <text x="610" y="93" text-anchor="middle" fill="#1a5c39" font-size="9">messages, tools, mcp</text>
+        <text x="610" y="107" text-anchor="middle" fill="#1a5c39" font-size="9">permissionContext</text>
+        <text x="610" y="121" text-anchor="middle" fill="#1a5c39" font-size="9">UI state, inputMode</text>
+      </g>
+      <!-- Arrows -->
+      <line x1="210" y1="90" x2="290" y2="90" stroke="#D77757" stroke-width="1.5" marker-end="url(#sh-arr)"/>
+      <line x1="430" y1="90" x2="510" y2="90" stroke="#D77757" stroke-width="1.5" marker-end="url(#sh-arr)"/>
+      <!-- Labels -->
+      <text x="250" y="84" text-anchor="middle" fill="#D77757" font-size="8.5" font-weight="600">读取</text>
+      <text x="470" y="84" text-anchor="middle" fill="#D77757" font-size="8.5" font-weight="600">initialState</text>
+      <!-- Bottom note -->
+      <text x="390" y="165" text-anchor="middle" fill="#5a5650" font-size="9.5">交接后：UI 字段走 React Context，telemetry / cost 仍留在 bootstrap/state.ts（整个进程生命周期）</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION: LEARNING PATH                                     -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="learning-path">
+  <h2>学习路径建议</h2>
+  <p class="section-desc">完成本篇入口知识后，建议按以下顺序深入学习各个子系统。</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>下一步</th><th>主题</th><th>关键文件</th></tr>
+      </thead>
+      <tbody>
+        <tr style="background:#fff9f6;">
+          <td><strong>第二篇</strong></td>
+          <td>核心循环（REPL + QueryEngine + query）</td>
+          <td><code>src/query.ts</code>、<code>src/QueryEngine.ts</code>、<code>src/screens/REPL.tsx</code></td>
+        </tr>
+        <tr>
+          <td><strong>第三篇</strong></td>
+          <td>工具系统</td>
+          <td><code>src/Tool.ts</code>、<code>src/tools.ts</code>、<code>packages/builtin-tools/</code></td>
+        </tr>
+        <tr>
+          <td><strong>第四篇</strong></td>
+          <td>状态管理</td>
+          <td><code>src/bootstrap/state.ts</code>、<code>src/state/AppState.tsx</code>、<code>src/state/onChangeAppState.ts</code></td>
+        </tr>
+        <tr>
+          <td><strong>第五篇</strong></td>
+          <td>安全与权限</td>
+          <td><code>src/utils/permissions/</code>、<code>src/components/permissions/</code></td>
+        </tr>
+        <tr>
+          <td><strong>第六篇</strong></td>
+          <td>MCP 协议</td>
+          <td><code>src/services/mcp/</code>、<code>packages/mcp-client/</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<footer style="text-align:center; color: var(--text-3); font-size: .82rem; padding-bottom: 24px;">
+  入口知识总结 [第一篇] — Claude Code 逆向工程学习文档 &nbsp;·&nbsp; 基于 <code>src/entrypoints/cli.tsx</code>、<code>src/main.tsx</code>、<code>src/entrypoints/init.ts</code>、<code>src/replLauncher.tsx</code>、<code>src/screens/REPL.tsx</code>、<code>src/cli/print.ts</code>
+</footer>
+
+</div><!-- .page-wrap -->
+
+<script>
+  // Native <details> already handles collapsible behavior.
+  // This script adds smooth open animation for know-card details.
+  document.querySelectorAll('details.know-card').forEach(detail => {
+    detail.addEventListener('toggle', () => {
+      if (detail.open) {
+        const body = detail.querySelector('.know-body');
+        if (body) {
+          body.style.animation = 'none';
+          body.offsetHeight; // reflow
+          body.style.animation = 'fadeSlideIn .18s ease';
+        }
+      }
+    });
+  });
+</script>
+
+<style>
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
+</body>
+</html>

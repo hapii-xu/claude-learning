@@ -1,3 +1,4 @@
+import { logForDebugging } from '../utils/debug.js'
 import { setMainLoopModelOverride } from '../bootstrap/state.js'
 import {
   clearApiKeyHelperCache,
@@ -46,6 +47,7 @@ export function onChangeAppState({
   newState: AppState
   oldState: AppState
 }) {
+  logForDebugging('[Hapii] OnChange.appState 触发', { level: 'info' })
   // toolPermissionContext.mode — CCR/SDK 模式同步的唯一汇合点。
   //
   // 在此块之前，模式变更仅由 8+ 个变异路径中的 2 个转发到 CCR：
@@ -63,6 +65,10 @@ export function onChangeAppState({
   const prevMode = oldState.toolPermissionContext.mode
   const newMode = newState.toolPermissionContext.mode
   if (prevMode !== newMode) {
+    logForDebugging(
+      `[Hapii] OnChange.appState diff=permissionMode ${prevMode} → ${newMode}`,
+      { level: 'info' },
+    )
     // CCR external_metadata 不能接收仅内部使用的模式名称
     // （bubble、ungated auto）。先外部化 - 如果外部模式未更改
     // （例如 default→bubble→default 从 CCR 角度看是噪音，因为两者
@@ -94,11 +100,19 @@ export function onChangeAppState({
   // （anthropics/claude-code#37596）。每个进程通过
   // setMainLoopModelOverride 在内存中保留自己的模型覆盖。
   if (newState.mainLoopModel !== oldState.mainLoopModel) {
+    logForDebugging(
+      `[Hapii] OnChange.appState diff=mainLoopModel ${oldState.mainLoopModel} → ${newState.mainLoopModel}`,
+      { level: 'info' },
+    )
     setMainLoopModelOverride(newState.mainLoopModel)
   }
 
   // expandedView → 持久化为 showExpandedTodos + showSpinnerTree 以向后兼容
   if (newState.expandedView !== oldState.expandedView) {
+    logForDebugging(
+      `[Hapii] OnChange.appState diff=expandedView ${oldState.expandedView} → ${newState.expandedView}`,
+      { level: 'info' },
+    )
     const showExpandedTodos = newState.expandedView === 'tasks'
     const showSpinnerTree = newState.expandedView === 'teammates'
     if (
@@ -118,6 +132,10 @@ export function onChangeAppState({
     newState.verbose !== oldState.verbose &&
     getGlobalConfig().verbose !== newState.verbose
   ) {
+    logForDebugging(
+      `[Hapii] OnChange.appState diff=verbose ${oldState.verbose} → ${newState.verbose}`,
+      { level: 'info' },
+    )
     const verbose = newState.verbose
     saveGlobalConfig(current => ({
       ...current,
@@ -140,6 +158,9 @@ export function onChangeAppState({
   // 设置：当设置更改时清除认证相关的缓存
   // 这确保 apiKeyHelper 和 AWS/GCP 凭据更改立即生效
   if (newState.settings !== oldState.settings) {
+    logForDebugging('[Hapii] OnChange.appState diff=settings 设置变更', {
+      level: 'info',
+    })
     try {
       clearApiKeyHelperCache()
       clearAwsCredentialsCache()

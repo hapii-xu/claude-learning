@@ -1,5 +1,5 @@
-// McpManager — imperative API for MCP protocol client
-// Factory function that creates a manager instance with event-based notifications
+// McpManager — MCP 协议客户端的命令式 API
+// 工厂函数：创建基于事件通知的管理器实例
 
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import type { ListToolsResult } from '@modelcontextprotocol/sdk/types.js'
@@ -21,7 +21,7 @@ import { discoverTools } from './discovery.js'
 import { callMcpTool } from './execution.js'
 
 // ============================================================================
-// Event types
+// 事件类型
 // ============================================================================
 
 export type McpManagerEvents = {
@@ -35,7 +35,7 @@ export type McpManagerEvents = {
 type EventHandler = (...args: any[]) => void
 
 // ============================================================================
-// Manager interface
+// 管理器接口
 // ============================================================================
 
 export interface McpManager {
@@ -58,14 +58,14 @@ export interface McpManager {
 }
 
 // ============================================================================
-// Default timeout
+// 默认超时
 // ============================================================================
 
 const MCP_TIMEOUT_MS = 30_000
 const MCP_REQUEST_TIMEOUT_MS = 60_000
 
 // ============================================================================
-// Manager implementation
+// 管理器实现
 // ============================================================================
 
 class McpManagerImpl implements McpManager {
@@ -84,7 +84,7 @@ class McpManagerImpl implements McpManager {
     this.deps = deps
   }
 
-  /** Set the connect function — the host provides this with all transport logic */
+  /** 设置连接函数 — 宿主提供此函数并包含所有传输逻辑 */
   setConnectFn(
     fn: (
       name: string,
@@ -112,7 +112,7 @@ class McpManagerImpl implements McpManager {
 
       if (connection.type === 'connected') {
         this.emit('connected', name)
-        // Fetch tools for this server
+        // 获取此服务器的工具列表
         await this.refreshTools(name, connection)
       } else if (connection.type === 'needs-auth') {
         this.emit('authRequired', name)
@@ -202,7 +202,7 @@ class McpManagerImpl implements McpManager {
     this.listeners.get(event)?.delete(handler)
   }
 
-  // ── Private ──
+  // ── 私有方法 ──
 
   private emit(event: string, ...args: unknown[]): void {
     this.listeners.get(event)?.forEach(handler => {
@@ -235,17 +235,17 @@ class McpManagerImpl implements McpManager {
 }
 
 // ============================================================================
-// Factory function
+// 工厂函数
 // ============================================================================
 
 /**
- * Creates a new MCP manager instance.
+ * 创建一个新的 MCP 管理器实例。
  *
- * The manager handles connection lifecycle, tool discovery, and event notification.
- * The host must call `setConnectFn()` to provide the transport-level connection logic.
+ * 管理器负责处理连接生命周期、工具发现和事件通知。
+ * 宿主必须调用 `setConnectFn()` 来提供传输层的连接逻辑。
  *
- * @param deps Host dependency injections (logger, auth, proxy, etc.)
- * @returns McpManager instance
+ * @param deps 宿主依赖注入（日志、认证、代理等）
+ * @returns McpManager 实例
  *
  * @example
  * ```typescript
@@ -255,11 +255,11 @@ class McpManagerImpl implements McpManager {
  * })
  *
  * manager.setConnectFn(async (name, config) => {
- *   // Transport-level connection logic here
+ *   // 此处为传输层的连接逻辑
  * })
  *
- * manager.on('connected', (name) => console.log(`Connected to ${name}`))
- * manager.on('toolsChanged', (name, tools) => console.log(`${name}: ${tools.length} tools`))
+ * manager.on('connected', (name) => console.log(`已连接到 ${name}`))
+ * manager.on('toolsChanged', (name, tools) => console.log(`${name}: ${tools.length} 个工具`))
  *
  * await manager.connect('my-server', { command: 'npx', args: ['my-mcp-server'] })
  * const tools = manager.getAllTools()

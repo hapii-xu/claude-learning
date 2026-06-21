@@ -1,7 +1,7 @@
-// MCP typed error hierarchy
+// MCP 类型化错误层级
 
 /**
- * Base error class for all MCP-related errors.
+ * 所有 MCP 相关错误的基类。
  */
 export class McpError extends Error {
   constructor(
@@ -15,7 +15,7 @@ export class McpError extends Error {
 }
 
 /**
- * Error thrown when connection to an MCP server fails.
+ * 当连接到 MCP 服务器失败时抛出的错误。
  */
 export class McpConnectionError extends McpError {
   constructor(
@@ -29,7 +29,7 @@ export class McpConnectionError extends McpError {
 }
 
 /**
- * Error thrown when authentication is required but not available.
+ * 当需要认证但不可用时抛出的错误。
  */
 export class McpAuthError extends McpError {
   constructor(serverName: string, message: string) {
@@ -39,7 +39,7 @@ export class McpAuthError extends McpError {
 }
 
 /**
- * Error thrown when a connection or request times out.
+ * 当连接或请求超时时抛出的错误。
  */
 export class McpTimeoutError extends McpError {
   constructor(
@@ -56,7 +56,7 @@ export class McpTimeoutError extends McpError {
 }
 
 /**
- * Error thrown when an MCP tool call fails.
+ * 当 MCP 工具调用失败时抛出的错误。
  */
 export class McpToolCallError extends McpError {
   constructor(
@@ -70,7 +70,7 @@ export class McpToolCallError extends McpError {
 }
 
 /**
- * Error thrown when an MCP session has expired.
+ * 当 MCP 会话已过期时抛出的错误。
  */
 export class McpSessionExpiredError extends McpError {
   constructor(serverName: string) {

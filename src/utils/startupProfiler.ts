@@ -69,6 +69,7 @@ export function profileCheckpoint(name: string): void {
   // 仅在启用详细 profiling（环境变量）时捕获内存
   if (DETAILED_PROFILING) {
     memorySnapshots.push(process.memoryUsage())
+    logForDebugging(`[Hapii] profileCheckpoint: ${name}`, { level: 'info' })
   }
 }
 

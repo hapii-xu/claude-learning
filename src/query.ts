@@ -313,6 +313,10 @@ export async function* query(
   // 复用它而不是创建独立的 trace。
   const ownsTrace = !params.toolUseContext.langfuseTrace
   logForDebugging(
+    `[Hapii] Query.query 启动 messages=${params.messages.length} tools=${params.toolUseContext.options.tools.length} source=${params.querySource}`,
+    { level: 'info' },
+  )
+  logForDebugging(
     `[query] ownsTrace=${ownsTrace} incoming langfuseTrace=${params.toolUseContext.langfuseTrace ? 'present' : 'null/undefined'} isLangfuseEnabled=${isLangfuseEnabled()}`,
   )
   const langfuseTrace =
@@ -438,6 +442,10 @@ async function* queryLoop(
   Terminal
 > {
   logForDebugging(
+    `[Hapii] Query.queryLoop 开始 initMsgs=${params.messages.length} maxTurns=${params.maxTurns ?? '∞'}`,
+    { level: 'info' },
+  )
+  logForDebugging(
     `[query] queryLoop 开始, 初始消息数=${params.messages.length}, maxTurns=${params.maxTurns ?? '无限制'}`,
     { level: 'info' },
   )
@@ -511,6 +519,10 @@ async function* queryLoop(
     } = state
 
     logForDebugging(
+      `[Hapii] Query.queryLoop 第${turnCount}轮 messages=${messages.length}`,
+      { level: 'info' },
+    )
+    logForDebugging(
       `[query] === 第${turnCount}轮循环 ===, 消息数=${messages.length}`,
       { level: 'info' },
     )
@@ -561,7 +573,15 @@ async function* queryLoop(
       queryTracking,
     }
 
+    logForDebugging(
+      `[Hapii] Query.queryLoop 第${turnCount + 1}轮开始 — 历史裁边前 messages=${messages.length}`,
+      { level: 'info' },
+    )
     let messagesForQuery = getMessagesAfterCompactBoundary(messages)
+    logForDebugging(
+      `[Hapii] Query.getMessagesAfterCompactBoundary 裁边后 messagesForQuery=${messagesForQuery.length}（原 ${messages.length}）`,
+      { level: 'info' },
+    )
 
     // 释放前序轮次的 toolUseResult 负载。此时 UI 已渲染完那些结果，
     // 下一次 API 调用只需要 message.message.content（tool_result 块），
@@ -1394,6 +1414,10 @@ async function* queryLoop(
         mediaRecoveryEnabled &&
         reactiveCompact?.isWithheldMediaSizeError(lastMessage as Message)
       if (isWithheld413) {
+        logForDebugging(
+          `[Hapii] Query PTL恢复 — 收到 413/prompt_too_long，开始尝试 collapse_drain_retry，上次 transition=${state.transition?.reason ?? 'none'}`,
+          { level: 'warn' },
+        )
         // 首先：排空所有已分阶段的 context-collapse。门控条件是上一次
         // transition 不是 collapse_drain_retry —— 若已排空且重试仍 413，
         // 落到 reactive compact。
@@ -1428,6 +1452,10 @@ async function* queryLoop(
         }
       }
       if ((isWithheld413 || isWithheldMedia) && reactiveCompact) {
+        logForDebugging(
+          `[Hapii] Query PTL恢复 — 进入 reactive_compact_retry 阶段 isWithheld413=${isWithheld413} isWithheldMedia=${isWithheldMedia} hasAttempted=${hasAttemptedReactiveCompact}`,
+          { level: 'warn' },
+        )
         const compacted = await reactiveCompact.tryReactiveCompact({
           hasAttempted: hasAttemptedReactiveCompact,
           querySource,
@@ -1519,6 +1547,10 @@ async function* queryLoop(
           logEvent('tengu_max_tokens_escalate', {
             escalatedTo: ESCALATED_MAX_TOKENS,
           })
+          logForDebugging(
+            `[Hapii] Query max_output_tokens_escalate — 8k→${ESCALATED_MAX_TOKENS}，重试本轮`,
+            { level: 'warn' },
+          )
           const next: State = {
             messages: messagesForQuery,
             toolUseContext,
@@ -1536,6 +1568,10 @@ async function* queryLoop(
         }
 
         if (maxOutputTokensRecoveryCount < MAX_OUTPUT_TOKENS_RECOVERY_LIMIT) {
+          logForDebugging(
+            `[Hapii] Query max_output_tokens_recovery — 第${maxOutputTokensRecoveryCount + 1}次注入续写 prompt（上限 ${MAX_OUTPUT_TOKENS_RECOVERY_LIMIT}）`,
+            { level: 'warn' },
+          )
           const recoveryMessage = createUserMessage({
             content:
               `Output token limit hit. Resume directly — no apology, no recap of what you were doing. ` +
@@ -1581,6 +1617,10 @@ async function* queryLoop(
         }
       }
 
+      logForDebugging(
+        `[Hapii] Query.handleStopHooks 调用 — assistantMsgs=${assistantMessages.length} querySource=${querySource} stopHookActive=${state.stopHookActive}`,
+        { level: 'info' },
+      )
       const stopHookResult = yield* handleStopHooks(
         messagesForQuery,
         assistantMessages,
@@ -1673,6 +1713,9 @@ async function* queryLoop(
         }
       }
 
+      logForDebugging('[Hapii] Query.queryLoop 终止 reason=completed', {
+        level: 'info',
+      })
       logForDebugging('[query] 循环终止: completed（正常完成，无工具调用）', {
         level: 'info',
       })
@@ -2083,6 +2126,10 @@ async function* queryLoop(
     }
 
     queryCheckpoint('query_recursive_call')
+    logForDebugging(
+      `[Hapii] Query next_turn 继续 — 第${nextTurnCount}轮完成，追加 assistantMsgs=${assistantMessages.length} toolResults=${toolResults.length}，新 messages=${messagesForQuery.length + assistantMessages.length + toolResults.length}`,
+      { level: 'info' },
+    )
     const next: State = {
       messages: messagesForQuery.concat(assistantMessages, toolResults),
       toolUseContext: toolUseContextWithQueryTracking,

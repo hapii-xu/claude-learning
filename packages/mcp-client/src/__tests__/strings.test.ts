@@ -87,7 +87,7 @@ describe('getToolNameForPermissionCheck', () => {
 
 describe('getMcpDisplayName', () => {
   test('strips MCP prefix', () => {
-    // getMcpDisplayName normalizes server name before building prefix
+    // getMcpDisplayName 在构建前缀前会规范化服务器名称
     expect(getMcpDisplayName('mcp__my_server__query', 'my.server')).toBe(
       'query',
     )

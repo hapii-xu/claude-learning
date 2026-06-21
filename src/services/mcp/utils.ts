@@ -30,11 +30,11 @@ import {
 } from './types.js'
 
 /**
- * Filters tools by MCP server name
+ * 按 MCP 服务器名称过滤工具
  *
- * @param tools Array of tools to filter
- * @param serverName Name of the MCP server
- * @returns Tools belonging to the specified server
+ * @param tools 要过滤的工具数组
+ * @param serverName MCP 服务器名称
+ * @returns 属于指定服务器的工具
  */
 export function filterToolsByServer(tools: Tool[], serverName: string): Tool[] {
   const prefix = `mcp__${normalizeNameForMCP(serverName)}__`
@@ -42,12 +42,12 @@ export function filterToolsByServer(tools: Tool[], serverName: string): Tool[] {
 }
 
 /**
- * True when a command belongs to the given MCP server.
+ * 当一个命令属于指定的 MCP 服务器时返回 true。
  *
- * MCP **prompts** are named `mcp__<server>__<prompt>` (wire-format constraint);
- * MCP **skills** are named `<server>:<skill>` (matching plugin/nested-dir skill
- * naming). Both live in `mcp.commands`, so cleanup and filtering must match
- * either shape.
+ * MCP **prompts** 的命名格式为 `mcp__<server>__<prompt>`（协议格式约束）；
+ * MCP **skills** 的命名格式为 `<server>:<skill>`（与 plugin/嵌套目录 skill
+ * 命名一致）。两者都在 `mcp.commands` 中，因此清理和过滤必须匹配
+ * 这两种格式。
  */
 export function commandBelongsToServer(
   command: Command,
@@ -62,10 +62,10 @@ export function commandBelongsToServer(
 }
 
 /**
- * Filters commands by MCP server name
- * @param commands Array of commands to filter
- * @param serverName Name of the MCP server
- * @returns Commands belonging to the specified server
+ * 按 MCP 服务器名称过滤命令
+ * @param commands 要过滤的命令数组
+ * @param serverName MCP 服务器名称
+ * @returns 属于指定服务器的命令
  */
 export function filterCommandsByServer(
   commands: Command[],
@@ -75,12 +75,12 @@ export function filterCommandsByServer(
 }
 
 /**
- * Filters MCP **prompts** (not skills) by server. Used by the `/mcp` menu
- * capabilities display — skills are a separate feature shown in `/skills`,
- * so they mustn't inflate the "prompts" capability badge.
+ * 按服务器过滤 MCP **prompts**（不含 skills）。用于 `/mcp` 菜单的
+ * 能力展示——skills 是单独的功能，在 `/skills` 中显示，
+ * 因此不应计入 "prompts" 能力徽章。
  *
- * The distinguisher is `loadedFrom === 'mcp'`: MCP skills set it, MCP
- * prompts don't (they use `isMcp: true` instead).
+ * 区分依据是 `loadedFrom === 'mcp'`：MCP skills 会设置此字段，
+ * 而 MCP prompts 不会（它们使用 `isMcp: true`）。
  */
 export function filterMcpPromptsByServer(
   commands: Command[],
@@ -94,10 +94,10 @@ export function filterMcpPromptsByServer(
 }
 
 /**
- * Filters resources by MCP server name
- * @param resources Array of resources to filter
- * @param serverName Name of the MCP server
- * @returns Resources belonging to the specified server
+ * 按 MCP 服务器名称过滤资源
+ * @param resources 要过滤的资源数组
+ * @param serverName MCP 服务器名称
+ * @returns 属于指定服务器的资源
  */
 export function filterResourcesByServer(
   resources: ServerResource[],
@@ -107,10 +107,10 @@ export function filterResourcesByServer(
 }
 
 /**
- * Removes tools belonging to a specific MCP server
- * @param tools Array of tools
- * @param serverName Name of the MCP server to exclude
- * @returns Tools not belonging to the specified server
+ * 移除属于特定 MCP 服务器的工具
+ * @param tools 工具数组
+ * @param serverName 要排除的 MCP 服务器名称
+ * @returns 不属于指定服务器的工具
  */
 export function excludeToolsByServer(
   tools: Tool[],
@@ -121,10 +121,10 @@ export function excludeToolsByServer(
 }
 
 /**
- * Removes commands belonging to a specific MCP server
- * @param commands Array of commands
- * @param serverName Name of the MCP server to exclude
- * @returns Commands not belonging to the specified server
+ * 移除属于特定 MCP 服务器的命令
+ * @param commands 命令数组
+ * @param serverName 要排除的 MCP 服务器名称
+ * @returns 不属于指定服务器的命令
  */
 export function excludeCommandsByServer(
   commands: Command[],
@@ -134,10 +134,10 @@ export function excludeCommandsByServer(
 }
 
 /**
- * Removes resources belonging to a specific MCP server
- * @param resources Map of server resources
- * @param serverName Name of the MCP server to exclude
- * @returns Resources map without the specified server
+ * 移除属于特定 MCP 服务器的资源
+ * @param resources 服务器资源的 Map
+ * @param serverName 要排除的 MCP 服务器名称
+ * @returns 移除指定服务器后的资源 Map
  */
 export function excludeResourcesByServer(
   resources: Record<string, ServerResource[]>,
@@ -149,10 +149,10 @@ export function excludeResourcesByServer(
 }
 
 /**
- * Stable hash of an MCP server config for change detection on /reload-plugins.
- * Excludes `scope` (provenance, not content — moving a server from .mcp.json
- * to settings.json shouldn't reconnect it). Keys sorted so `{a:1,b:2}` and
- * `{b:2,a:1}` hash the same.
+ * MCP 服务器配置的稳定哈希值，用于 /reload-plugins 时的变更检测。
+ * 排除 `scope`（是来源信息，不是内容——将服务器从 .mcp.json
+ * 移到 settings.json 不应触发重连）。键名排序确保 `{a:1,b:2}` 和
+ * `{b:2,a:1}` 产生相同的哈希。
  */
 export function hashMcpConfig(config: ScopedMcpServerConfig): string {
   const { scope: _scope, ...rest } = config
@@ -169,18 +169,16 @@ export function hashMcpConfig(config: ScopedMcpServerConfig): string {
 }
 
 /**
- * Remove stale MCP clients and their tools/commands/resources. A client is
- * stale if:
- *   - scope 'dynamic' and name no longer in configs (plugin disabled), or
- *   - config hash changed (args/url/env edited in .mcp.json) — any scope
+ * 移除过期的 MCP 客户端及其工具/命令/资源。客户端被视为过期，如果：
+ *   - scope 为 'dynamic' 且名称不再在 configs 中（插件已禁用），或
+ *   - 配置哈希值已变更（在 .mcp.json 中编辑了 args/url/env）—— 任何 scope
  *
- * The removal case is scoped to 'dynamic' so /reload-plugins can't
- * accidentally disconnect a user-configured server that's just temporarily
- * absent from the in-memory config (e.g. during a partial reload). The
- * config-changed case applies to all scopes — if the config actually changed
- * on disk, reconnecting is what you want.
+ * 移除场景限定于 'dynamic'，这样 /reload-plugins 不会意外断开
+ * 用户配置的、只是暂时不在内存配置中的服务器（例如在部分重载期间）。
+ * 配置变更场景适用于所有 scope——如果磁盘上的配置确实发生了变更，
+ * 重连正是你期望的行为。
  *
- * Returns the stale clients so the caller can disconnect them (clearServerCache).
+ * 返回过期的客户端，以便调用方断开它们（clearServerCache）。
  */
 export function excludeStalePluginClients(
   mcp: {
@@ -224,10 +222,10 @@ export function excludeStalePluginClients(
 }
 
 /**
- * Checks if a tool name belongs to a specific MCP server
- * @param toolName The tool name to check
- * @param serverName The server name to match against
- * @returns True if the tool belongs to the specified server
+ * 检查工具名称是否属于特定的 MCP 服务器
+ * @param toolName 要检查的工具名称
+ * @param serverName 要匹配的服务器名称
+ * @returns 如果工具属于指定服务器则返回 true
  */
 export function isToolFromMcpServer(
   toolName: string,
@@ -238,27 +236,27 @@ export function isToolFromMcpServer(
 }
 
 /**
- * Checks if a tool belongs to any MCP server
- * @param tool The tool to check
- * @returns True if the tool is from an MCP server
+ * 检查工具是否属于任意 MCP 服务器
+ * @param tool 要检查的工具
+ * @returns 如果工具来自 MCP 服务器则返回 true
  */
 export function isMcpTool(tool: Tool): boolean {
   return tool.name?.startsWith('mcp__') || tool.isMcp === true
 }
 
 /**
- * Checks if a command belongs to any MCP server
- * @param command The command to check
- * @returns True if the command is from an MCP server
+ * 检查命令是否属于任意 MCP 服务器
+ * @param command 要检查的命令
+ * @returns 如果命令来自 MCP 服务器则返回 true
  */
 export function isMcpCommand(command: Command): boolean {
   return command.name?.startsWith('mcp__') || command.isMcp === true
 }
 
 /**
- * Describe the file path for a given MCP config scope.
- * @param scope The config scope ('user', 'project', 'local', or 'dynamic')
- * @returns A description of where the config is stored
+ * 描述给定 MCP 配置作用域的文件路径。
+ * @param scope 配置作用域（'user'、'project'、'local' 或 'dynamic'）
+ * @returns 配置存储位置的描述
  */
 export function describeMcpConfigFilePath(scope: ConfigScope): string {
   switch (scope) {
@@ -354,8 +352,8 @@ export function getProjectMcpServerStatus(
   const settings = getSettings_DEPRECATED()
   const normalizedName = normalizeNameForMCP(serverName)
 
-  // TODO: This fails an e2e test if the ?. is not present. This is likely a bug in the e2e test.
-  // Will fix this in a follow-up PR.
+  // TODO: 如果去掉 ?. 会导致端到端测试失败。这可能是端到端测试本身的 bug。
+  // 将在后续 PR 中修复。
   if (
     settings?.disabledMcpjsonServers?.some(
       name => normalizeNameForMCP(name) === normalizedName,
@@ -373,16 +371,16 @@ export function getProjectMcpServerStatus(
     return 'approved'
   }
 
-  // In bypass permissions mode (--dangerously-skip-permissions), there's no way
-  // to show an approval popup. Auto-approve if projectSettings is enabled since
-  // the user has explicitly chosen to bypass all permission checks.
-  // SECURITY: We intentionally only check skipDangerousModePermissionPrompt via
-  // hasSkipDangerousModePermissionPrompt(), which reads from userSettings/localSettings/
-  // flagSettings/policySettings but NOT projectSettings (repo-level .claude/settings.json).
-  // This is intentional: a repo should not be able to accept the bypass dialog on behalf of
-  // users. We also do NOT check getSessionBypassPermissionsMode() here because
-  // sessionBypassPermissionsMode can be set from project settings before the dialog is shown,
-  // which would allow RCE attacks via malicious project settings.
+  // 在绕过权限模式（--dangerously-skip-permissions）下，无法显示
+  // 审批弹窗。如果 projectSettings 已启用则自动批准，因为
+  // 用户已明确选择绕过所有权限检查。
+  // 安全性：我们特意仅通过 hasSkipDangerousModePermissionPrompt() 来检查
+  // skipDangerousModePermissionPrompt，该函数从 userSettings/localSettings/
+  // flagSettings/policySettings 中读取，但不从 projectSettings（仓库级
+  // .claude/settings.json）中读取。这是有意为之：仓库不应能代表用户
+  // 接受绕过对话框。我们也不在这里检查 getSessionBypassPermissionsMode()，
+  // 因为 sessionBypassPermissionsMode 可能在对话框显示之前就从项目设置中被设置，
+  // 这将允许通过恶意项目设置进行 RCE 攻击。
   if (
     hasSkipDangerousModePermissionPrompt() &&
     isSettingSourceEnabled('projectSettings')
@@ -390,11 +388,11 @@ export function getProjectMcpServerStatus(
     return 'approved'
   }
 
-  // In non-interactive mode (SDK, claude -p, piped input), there's no way to
-  // show an approval popup. Auto-approve if projectSettings is enabled since:
-  // 1. The user/developer explicitly chose to run in this mode
-  // 2. For SDK, projectSettings is off by default - they must explicitly enable it
-  // 3. For -p mode, the help text warns to only use in trusted directories
+  // 在非交互模式（SDK、claude -p、管道输入）下，无法显示
+  // 审批弹窗。如果 projectSettings 已启用则自动批准，因为：
+  // 1. 用户/开发者明确选择了在此模式下运行
+  // 2. 对于 SDK，projectSettings 默认关闭——必须显式启用
+  // 3. 对于 -p 模式，帮助文本警告仅在受信任目录中使用
   if (
     getIsNonInteractiveSession() &&
     isSettingSourceEnabled('projectSettings')
@@ -406,9 +404,9 @@ export function getProjectMcpServerStatus(
 }
 
 /**
- * Get the scope/settings source for an MCP server from a tool name
- * @param toolName MCP tool name (format: mcp__serverName__toolName)
- * @returns ConfigScope or null if not an MCP tool or server not found
+ * 从工具名称获取 MCP 服务器的作用域/设置来源
+ * @param toolName MCP 工具名称（格式：mcp__serverName__toolName）
+ * @returns ConfigScope，如果不是 MCP 工具或服务器未找到则返回 null
  */
 export function getMcpServerScopeFromToolName(
   toolName: string,
@@ -417,17 +415,17 @@ export function getMcpServerScopeFromToolName(
     return null
   }
 
-  // Extract server name from tool name (format: mcp__serverName__toolName)
+  // 从工具名称中提取服务器名称（格式：mcp__serverName__toolName）
   const mcpInfo = mcpInfoFromString(toolName)
   if (!mcpInfo) {
     return null
   }
 
-  // Look up server config
+  // 查找服务器配置
   const serverConfig = getMcpConfigByName(mcpInfo.serverName)
 
-  // Fallback: claude.ai servers have normalized names starting with "claude_ai_"
-  // but aren't in getMcpConfigByName (they're fetched async separately)
+  // 回退：claude.ai 服务器的规范化名称以 "claude_ai_" 开头
+  // 但不在 getMcpConfigByName 中（它们是单独异步获取的）
   if (!serverConfig && mcpInfo.serverName.startsWith('claude_ai_')) {
     return 'claudeai'
   }
@@ -435,7 +433,7 @@ export function getMcpServerScopeFromToolName(
   return serverConfig?.scope ?? null
 }
 
-// Type guards for MCP server config types
+// MCP 服务器配置类型的类型守卫
 function isStdioConfig(
   config: McpServerConfig,
 ): config is McpStdioServerConfig {
@@ -457,16 +455,16 @@ function isWebSocketConfig(
 }
 
 /**
- * Extracts MCP server definitions from agent frontmatter and groups them by server name.
- * This is used to show agent-specific MCP servers in the /mcp command.
+ * 从 agent frontmatter 中提取 MCP 服务器定义并按服务器名称分组。
+ * 用于在 /mcp 命令中显示 agent 特定的 MCP 服务器。
  *
- * @param agents Array of agent definitions
- * @returns Array of AgentMcpServerInfo, grouped by server name with list of source agents
+ * @param agents agent 定义数组
+ * @returns AgentMcpServerInfo 数组，按服务器名称分组并包含来源 agent 列表
  */
 export function extractAgentMcpServers(
   agents: AgentDefinition[],
 ): AgentMcpServerInfo[] {
-  // Map: server name -> { config, sourceAgents }
+  // 映射：服务器名称 -> { config, sourceAgents }
   const serverMap = new Map<
     string,
     {
@@ -479,10 +477,10 @@ export function extractAgentMcpServers(
     if (!agent.mcpServers?.length) continue
 
     for (const spec of agent.mcpServers) {
-      // Skip string references - these refer to servers already in global config
+      // 跳过字符串引用——这些引用的是已在全局配置中的服务器
       if (typeof spec === 'string') continue
 
-      // Inline definition as { [name]: config }
+      // 内联定义为 { [name]: config }
       const entries = Object.entries(spec)
       if (entries.length !== 1) continue
 
@@ -490,12 +488,12 @@ export function extractAgentMcpServers(
       const existing = serverMap.get(serverName)
 
       if (existing) {
-        // Add this agent as another source
+        // 将此 agent 添加为另一个来源
         if (!existing.sourceAgents.includes(agent.agentType)) {
           existing.sourceAgents.push(agent.agentType)
         }
       } else {
-        // New server
+        // 新服务器
         serverMap.set(serverName, {
           config: { ...serverConfig, name: serverName } as McpServerConfig & {
             name: string
@@ -506,12 +504,12 @@ export function extractAgentMcpServers(
     }
   }
 
-  // Convert map to array of AgentMcpServerInfo
-  // Only include transport types supported by AgentMcpServerInfo
+  // 将 map 转换为 AgentMcpServerInfo 数组
+  // 仅包含 AgentMcpServerInfo 支持的传输类型
   const result: AgentMcpServerInfo[] = []
   for (const [name, { config, sourceAgents }] of serverMap) {
-    // Use type guards to properly narrow the discriminated union type
-    // Only include transport types that are supported by AgentMcpServerInfo
+    // 使用类型守卫正确收窄判别联合类型
+    // 仅包含 AgentMcpServerInfo 支持的传输类型
     if (isStdioConfig(config)) {
       result.push({
         name,
@@ -545,18 +543,18 @@ export function extractAgentMcpServers(
         needsAuth: false,
       })
     }
-    // Skip unsupported transport types (sdk, claudeai-proxy, sse-ide, ws-ide)
-    // These are internal types not meant for agent MCP server display
+    // 跳过不支持的传输类型（sdk、claudeai-proxy、sse-ide、ws-ide）
+    // 这些是内部类型，不用于 agent MCP 服务器显示
   }
 
   return result.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 /**
- * Extracts the MCP server base URL (without query string) for analytics logging.
- * Query strings are stripped because they can contain access tokens.
- * Trailing slashes are also removed for normalization.
- * Returns undefined for stdio/sdk servers or if URL parsing fails.
+ * 提取 MCP 服务器基础 URL（不含查询字符串），用于分析日志记录。
+ * 查询字符串会被移除，因为它们可能包含访问令牌。
+ * 尾部斜杠也会被移除以实现规范化。
+ * 对于 stdio/sdk 服务器或 URL 解析失败时返回 undefined。
  */
 export function getLoggingSafeMcpBaseUrl(
   config: McpServerConfig,

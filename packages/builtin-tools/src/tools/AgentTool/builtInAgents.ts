@@ -18,8 +18,8 @@ export function areExplorePlanAgentsEnabled(): boolean {
 }
 
 export function getBuiltInAgents(): AgentDefinition[] {
-  // Allow disabling all built-in agents via env var (useful for SDK users who want a blank slate)
-  // Only applies in noninteractive mode (SDK/API usage)
+  // 允许通过环境变量禁用所有内置代理（对需要空白起点的 SDK 用户有用）
+  // 仅在非交互模式下生效（SDK/API 使用）
   if (
     isEnvTruthy(process.env.CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS) &&
     getIsNonInteractiveSession()
@@ -27,9 +27,9 @@ export function getBuiltInAgents(): AgentDefinition[] {
     return []
   }
 
-  // Use lazy require inside the function body to avoid circular dependency
-  // issues at module init time. The coordinatorMode module depends on tools
-  // which depend on AgentTool which imports this file.
+  // 在函数体内使用延迟 require 以避免模块初始化时的循环依赖
+  // 问题。coordinatorMode 模块依赖于 tools，而 tools 依赖于
+  // AgentTool，后者导入了此文件。
   if (feature('COORDINATOR_MODE')) {
     if (isEnvTruthy(process.env.CLAUDE_CODE_COORDINATOR_MODE)) {
       /* eslint-disable @typescript-eslint/no-require-imports */
@@ -49,7 +49,7 @@ export function getBuiltInAgents(): AgentDefinition[] {
     agents.push(EXPLORE_AGENT, PLAN_AGENT)
   }
 
-  // Include Code Guide agent for non-SDK entrypoints
+  // 为非 SDK 入口点包含 Code Guide 代理
   const isNonSdkEntrypoint =
     process.env.CLAUDE_CODE_ENTRYPOINT !== 'sdk-ts' &&
     process.env.CLAUDE_CODE_ENTRYPOINT !== 'sdk-py' &&

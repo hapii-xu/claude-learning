@@ -14,6 +14,9 @@ const envFeatures = Object.keys(process.env)
   .filter(k => k.startsWith('FEATURE_'))
   .map(k => k.replace('FEATURE_', ''))
 const features = [...new Set([...DEFAULT_BUILD_FEATURES, ...envFeatures])]
+console.log(
+  `[Hapii] build: features 收集完成 total=${features.length} default=${DEFAULT_BUILD_FEATURES.length} env=[${envFeatures.join(', ')}]`,
+)
 
 // 步骤 2：带 splitting 的打包
 const result = await Bun.build({
@@ -42,6 +45,7 @@ if (!result.success) {
 
 // 步骤 3：后处理 —— 将 Bun 专用的 `import.meta.require` 替换为 Node.js 兼容版本
 const files = await readdir(outdir)
+console.log(`[Hapii] build: 开始后处理 dist/ 文件数=${files.length}`)
 const IMPORT_META_REQUIRE = 'var __require = import.meta.require;'
 const COMPAT_REQUIRE = `var __require = typeof import.meta.require === "function" ? import.meta.require : (await import("module")).createRequire(import.meta.url);`
 

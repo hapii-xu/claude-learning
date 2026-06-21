@@ -11,8 +11,8 @@ import { AGENT_TOOL_NAME } from '../constants.js'
 import type { BuiltInAgentDefinition } from '../loadAgentsDir.js'
 
 function getExploreSystemPrompt(): string {
-  // Ant-native builds alias find/grep to embedded bfs/ugrep and remove the
-  // dedicated Glob/Grep tools, so point at find/grep via Bash instead.
+  // Ant 原生构建将 find/grep 别名为嵌入式 bfs/ugrep 并移除
+  // 专用的 Glob/Grep 工具，因此改为通过 Bash 指向 find/grep。
   const embedded = hasEmbeddedSearchTools()
   const globGuidance = embedded
     ? `- Use \`find\` via ${BASH_TOOL_NAME} for broad file pattern matching`
@@ -73,11 +73,11 @@ export const EXPLORE_AGENT: BuiltInAgentDefinition = {
   ],
   source: 'built-in',
   baseDir: 'built-in',
-  // Ants get inherit to use the main agent's model; external users get haiku for speed
-  // Note: For ants, getAgentModel() checks tengu_explore_agent GrowthBook flag at runtime
+  // Ant 用户继承主代理的模型；外部用户获得 haiku 以提高速度
+  // 注意：对于 Ant 用户，getAgentModel() 在运行时检查 tengu_explore_agent GrowthBook 标志
   model: process.env.USER_TYPE === 'ant' ? 'inherit' : 'haiku',
-  // Explore is a fast read-only search agent — it doesn't need commit/PR/lint
-  // rules from CLAUDE.md. The main agent has full context and interprets results.
+  // Explore 是一个快速的只读搜索代理——它不需要 CLAUDE.md 中的
+  // commit/PR/lint 规则。主代理拥有完整上下文并解释结果。
   omitClaudeMd: true,
   getSystemPrompt: () => getExploreSystemPrompt(),
 }

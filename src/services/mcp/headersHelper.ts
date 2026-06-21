@@ -14,8 +14,8 @@ import type {
 } from './types.js'
 
 /**
- * Check if the MCP server config comes from project settings (projectSettings or localSettings)
- * This is important for security checks
+ * 检查 MCP 服务端配置是否来自项目设置（projectSettings 或 localSettings）
+ * 这对安全检查很重要
  */
 function isMcpServerFromProjectOrLocalSettings(
   config: ScopedMcpServerConfig,
@@ -24,10 +24,10 @@ function isMcpServerFromProjectOrLocalSettings(
 }
 
 /**
- * Get dynamic headers for an MCP server using the headersHelper script
- * @param serverName The name of the MCP server
- * @param config The MCP server configuration
- * @returns Headers object or null if not configured or failed
+ * 使用 headersHelper 脚本获取 MCP 服务端的动态请求头
+ * @param serverName MCP 服务端的名称
+ * @param config MCP 服务端配置
+ * @returns 请求头对象；未配置或获取失败时返回 null
  */
 export async function getMcpHeadersFromHelper(
   serverName: string,
@@ -37,14 +37,14 @@ export async function getMcpHeadersFromHelper(
     return null
   }
 
-  // Security check for project/local settings
-  // Skip trust check in non-interactive mode (e.g., CI/CD, automation)
+  // 项目/本地设置的安全检查
+  // 在非交互模式下跳过信任检查（例如 CI/CD、自动化）
   if (
     'scope' in config &&
     isMcpServerFromProjectOrLocalSettings(config as ScopedMcpServerConfig) &&
     !getIsNonInteractiveSession()
   ) {
-    // Check if trust has been established for this project
+    // 检查此项目是否已建立信任
     const hasTrust = checkHasTrustDialogAccepted()
     if (!hasTrust) {
       const error = new Error(
@@ -61,8 +61,8 @@ export async function getMcpHeadersFromHelper(
     const execResult = await execFileNoThrowWithCwd(config.headersHelper, [], {
       shell: true,
       timeout: 10000,
-      // Pass server context so one helper script can serve multiple MCP servers
-      // (git credential-helper style). See deshaw/anthropic-issues#28.
+      // 传递服务端上下文，使一个 helper 脚本可服务于多个 MCP 服务端
+      // （类似 git credential-helper 风格）。参见 deshaw/anthropic-issues#28。
       env: {
         ...process.env,
         CLAUDE_CODE_MCP_SERVER_NAME: serverName,
@@ -87,7 +87,7 @@ export async function getMcpHeadersFromHelper(
       )
     }
 
-    // Validate all values are strings
+    // 校验所有值都是字符串
     for (const [key, value] of Object.entries(headers)) {
       if (typeof value !== 'string') {
         throw new Error(
@@ -111,16 +111,16 @@ export async function getMcpHeadersFromHelper(
         `Error getting MCP headers from headersHelper for server '${serverName}': ${errorMessage(error)}`,
       ),
     )
-    // Return null instead of throwing to avoid blocking the connection
+    // 返回 null 而不是抛出异常，以避免阻塞连接
     return null
   }
 }
 
 /**
- * Get combined headers for an MCP server (static + dynamic)
- * @param serverName The name of the MCP server
- * @param config The MCP server configuration
- * @returns Combined headers object
+ * 获取 MCP 服务端的合并请求头（静态 + 动态）
+ * @param serverName MCP 服务端的名称
+ * @param config MCP 服务端配置
+ * @returns 合并后的请求头对象
  */
 export async function getMcpServerHeaders(
   serverName: string,
@@ -130,7 +130,7 @@ export async function getMcpServerHeaders(
   const dynamicHeaders =
     (await getMcpHeadersFromHelper(serverName, config)) || {}
 
-  // Dynamic headers override static headers if both are present
+  // 当两者都存在时，动态请求头覆盖静态请求头
   return {
     ...staticHeaders,
     ...dynamicHeaders,

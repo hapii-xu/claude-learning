@@ -1,3 +1,5 @@
+import { logForDebugging } from '../utils/debug.js'
+
 type Listener = () => void
 type OnChange<T> = (args: { newState: T; oldState: T }) => void
 
@@ -21,6 +23,7 @@ export function createStore<T>(
       const prev = state
       const next = updater(prev)
       if (Object.is(next, prev)) return
+      logForDebugging('[Hapii] Store.setState 状态变更', { level: 'info' })
       state = next
       onChange?.({ newState: next, oldState: prev })
       for (const listener of listeners) listener()

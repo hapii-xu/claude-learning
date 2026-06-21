@@ -1,5 +1,5 @@
-// MCP configuration types, schemas, and connection state types
-// Adapted from src/services/mcp/types.ts — uses zod directly instead of lazySchema
+// MCP 配置类型、Schema 以及连接状态类型
+// 改编自 src/services/mcp/types.ts — 直接使用 zod 而非 lazySchema
 
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import type {
@@ -9,7 +9,7 @@ import type {
 import { z } from 'zod/v4'
 
 // ============================================================================
-// Configuration scope
+// 配置作用域
 // ============================================================================
 
 export const ConfigScope = z.enum([
@@ -24,7 +24,7 @@ export const ConfigScope = z.enum([
 export type ConfigScope = z.infer<typeof ConfigScope>
 
 // ============================================================================
-// Transport type
+// 传输类型
 // ============================================================================
 
 export const TransportType = z.enum([
@@ -39,7 +39,7 @@ export const TransportType = z.enum([
 export type Transport = z.infer<typeof TransportType>
 
 // ============================================================================
-// Server configuration schemas
+// 服务器配置 Schema
 // ============================================================================
 
 export const McpStdioServerConfigSchema = z.object({
@@ -123,7 +123,7 @@ export const McpServerConfigSchema = z.union([
 ])
 
 // ============================================================================
-// Inferred config types
+// 推断的配置类型
 // ============================================================================
 
 export type McpStdioServerConfig = z.infer<typeof McpStdioServerConfigSchema>
@@ -154,7 +154,7 @@ export const McpJsonConfigSchema = z.object({
 export type McpJsonConfig = z.infer<typeof McpJsonConfigSchema>
 
 // ============================================================================
-// Server connection state types
+// 服务器连接状态类型
 // ============================================================================
 
 export type ConnectedMCPServer = {
@@ -206,7 +206,7 @@ export type MCPServerConnection =
   | DisabledMCPServer
 
 // ============================================================================
-// Resource and serialization types
+// 资源与序列化类型
 // ============================================================================
 
 export type ServerResource = Resource & { server: string }

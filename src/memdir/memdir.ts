@@ -412,6 +412,9 @@ export function buildSearchingPastContextSection(autoMemDir: string): string[] {
  * 当自动内存禁用时返回 null。
  */
 export async function loadMemoryPrompt(): Promise<string | null> {
+  logForDebugging('[Hapii] Memdir.loadMemoryPrompt 开始加载记忆提示', {
+    level: 'info',
+  })
   const autoEnabled = isAutoMemoryEnabled()
 
   const skipIndex = getFeatureValue_CACHED_MAY_BE_STALE(
@@ -475,12 +478,17 @@ export async function loadMemoryPrompt(): Promise<string | null> {
       memory_type:
         'auto' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
-    return buildMemoryLines(
+    const result = buildMemoryLines(
       'auto memory',
       autoDir,
       extraGuidelines,
       skipIndex,
     ).join('\n')
+    logForDebugging(
+      `[Hapii] Memdir.loadMemoryPrompt 完成 mode=auto dir=${autoDir} chars=${result.length}`,
+      { level: 'info' },
+    )
+    return result
   }
 
   logEvent('tengu_memdir_disabled', {
@@ -497,5 +505,9 @@ export async function loadMemoryPrompt(): Promise<string | null> {
   if (getFeatureValue_CACHED_MAY_BE_STALE('tengu_herring_clock', false)) {
     logEvent('tengu_team_memdir_disabled', {})
   }
+  logForDebugging(
+    '[Hapii] Memdir.loadMemoryPrompt autoMemory 未启用，返回 null',
+    { level: 'info' },
+  )
   return null
 }

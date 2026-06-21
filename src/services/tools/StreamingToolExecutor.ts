@@ -60,7 +60,7 @@ export class StreamingToolExecutor {
       toolUseContext.abortController,
     )
     logForDebugging(
-      `[流式执行] StreamingToolExecutor 初始化，已知工具数 ${toolDefinitions.length}`,
+      `[Hapii] StreamingToolExecutor 初始化 toolCount=${toolDefinitions.length}`,
       { level: 'info' },
     )
   }
@@ -77,7 +77,7 @@ export class StreamingToolExecutor {
    */
   discard(): void {
     logForDebugging(
-      `[流式执行] discard() 被调用，丢弃 ${this.tools.length} 个进行中的工具（API 流式重试）`,
+      `[Hapii] StreamingToolExecutor.discard 丢弃 ${this.tools.length} 个进行中工具（流式降级重试）`,
       { level: 'info' },
     )
     this.discarded = true
@@ -98,7 +98,7 @@ export class StreamingToolExecutor {
    */
   addTool(block: ToolUseBlock, assistantMessage: AssistantMessage): void {
     logForDebugging(
-      `[流式执行] addTool 收到 tool_use block name=${block.name} id=${block.id}`,
+      `[Hapii] StreamingToolExecutor.addTool name=${block.name} id=${block.id} queueLen=${this.tools.length}`,
       { level: 'info' },
     )
     // 在第一个工具上创建 turn span — 将在 getRemainingResults 中结束
@@ -116,9 +116,12 @@ export class StreamingToolExecutor {
     }
     const toolDefinition = findToolByName(this.toolDefinitions, block.name)
     if (!toolDefinition) {
-      logForDebugging(`[流式执行] addTool 未找到工具定义 name=${block.name}`, {
-        level: 'error',
-      })
+      logForDebugging(
+        `[Hapii] StreamingToolExecutor.addTool 未找到工具定义 name=${block.name}`,
+        {
+          level: 'error',
+        },
+      )
       this.tools.push({
         id: block.id,
         block,

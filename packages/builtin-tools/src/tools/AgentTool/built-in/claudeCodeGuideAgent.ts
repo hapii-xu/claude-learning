@@ -21,8 +21,8 @@ const CDP_DOCS_MAP_URL = 'https://platform.claude.com/llms.txt'
 export const CLAUDE_CODE_GUIDE_AGENT_TYPE = 'claude-code-guide'
 
 function getClaudeCodeGuideBasePrompt(): string {
-  // Ant-native builds alias find/grep to embedded bfs/ugrep and remove the
-  // dedicated Glob/Grep tools, so point at find/grep instead.
+  // Ant 原生构建将 find/grep 别名为嵌入式 bfs/ugrep 并移除
+  // 专用的 Glob/Grep 工具，因此指向 find/grep。
   const localSearchHint = hasEmbeddedSearchTools()
     ? `${FILE_READ_TOOL_NAME}, \`find\`, and \`grep\``
     : `${FILE_READ_TOOL_NAME}, ${GLOB_TOOL_NAME}, and ${GREP_TOOL_NAME}`
@@ -87,8 +87,8 @@ Complete the user's request by providing accurate, documentation-based guidance.
 }
 
 function getFeedbackGuideline(): string {
-  // For 3P services (Bedrock/Vertex/Foundry), /feedback command is disabled
-  // Direct users to the appropriate feedback channel instead
+  // 对于第三方服务（Bedrock/Vertex/Foundry），/feedback 命令被禁用
+  // 改为引导用户使用适当的反馈渠道
   if (isUsing3PServices()) {
     return `- When you cannot find an answer or the feature doesn't exist, direct the user to ${MACRO.ISSUES_EXPLAINER}`
   }
@@ -98,8 +98,8 @@ function getFeedbackGuideline(): string {
 export const CLAUDE_CODE_GUIDE_AGENT: BuiltInAgentDefinition = {
   agentType: CLAUDE_CODE_GUIDE_AGENT_TYPE,
   whenToUse: `Use this agent when the user asks questions ("Can Claude...", "Does Claude...", "How do I...") about: (1) Claude Code (the CLI tool) - features, hooks, slash commands, MCP servers, settings, IDE integrations, keyboard shortcuts; (2) Claude Agent SDK - building custom agents; (3) Claude API (formerly Anthropic API) - API usage, tool use, Anthropic SDK usage. **IMPORTANT:** Before spawning a new agent, check if there is already a running or recently completed claude-code-guide agent that you can continue via ${SEND_MESSAGE_TOOL_NAME}.`,
-  // Ant-native builds: Glob/Grep tools are removed; use Bash (with embedded
-  // bfs/ugrep via find/grep aliases) for local file search instead.
+  // Ant 原生构建：Glob/Grep 工具被移除；改用 Bash（通过 find/grep 别名
+  // 使用嵌入式 bfs/ugrep）进行本地文件搜索。
   tools: hasEmbeddedSearchTools()
     ? [
         BASH_TOOL_NAME,
@@ -121,10 +121,10 @@ export const CLAUDE_CODE_GUIDE_AGENT: BuiltInAgentDefinition = {
   getSystemPrompt({ toolUseContext }) {
     const commands = toolUseContext.options.commands
 
-    // Build context sections
+    // 构建上下文部分
     const contextSections: string[] = []
 
-    // 1. Custom skills
+    // 1. 自定义技能
     const customCommands = commands.filter(cmd => cmd.type === 'prompt')
     if (customCommands.length > 0) {
       const commandList = customCommands
@@ -135,7 +135,7 @@ export const CLAUDE_CODE_GUIDE_AGENT: BuiltInAgentDefinition = {
       )
     }
 
-    // 2. Custom agents from .claude/agents/
+    // 2. 来自 .claude/agents/ 的自定义代理
     const customAgents =
       toolUseContext.options.agentDefinitions.activeAgents.filter(
         (a: AgentDefinition) => a.source !== 'built-in',
@@ -179,12 +179,12 @@ export const CLAUDE_CODE_GUIDE_AGENT: BuiltInAgentDefinition = {
       )
     }
 
-    // Add the feedback guideline (conditional based on whether user is using 3P services)
+    // 添加反馈指南（根据用户是否使用第三方服务有条件地添加）
     const feedbackGuideline = getFeedbackGuideline()
     const basePromptWithFeedback = `${getClaudeCodeGuideBasePrompt()}
 ${feedbackGuideline}`
 
-    // If we have any context to add, append it to the base system prompt
+    // 如果有任何上下文要添加，将其追加到基础系统提示
     if (contextSections.length > 0) {
       return `${basePromptWithFeedback}
 
@@ -199,7 +199,7 @@ ${contextSections.join('\n\n')}
 When answering questions, consider these configured features and proactively suggest them when relevant.`
     }
 
-    // Return the base prompt if no context to add
+    // 如果没有上下文要添加，返回基础提示
     return basePromptWithFeedback
   },
 }

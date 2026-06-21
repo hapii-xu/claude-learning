@@ -640,6 +640,9 @@ export const getSkillDirCommands = memoize(
     const managedSkillsDir = join(getManagedFilePath(), '.claude', 'skills')
     const projectSkillsDirs = getProjectDirsUpToHome('skills', cwd)
 
+    logForDebugging(`[Hapii] Skills.getSkillDirCommands 开始加载 cwd=${cwd}`, {
+      level: 'info',
+    })
     logForDebugging(
       `Loading skills from: managed=${managedSkillsDir}, user=${userSkillsDir}, project=[${projectSkillsDirs.join(', ')}]`,
     )
@@ -793,6 +796,10 @@ export const getSkillDirCommands = memoize(
       )
     }
 
+    logForDebugging(
+      `[Hapii] Skills.getSkillDirCommands 完成 total=${unconditionalSkills.length} skills`,
+      { level: 'info' },
+    )
     logForDebugging(
       `Loaded ${deduplicatedSkills.length} unique skills (${unconditionalSkills.length} unconditional, ${newConditionalSkills.length} conditional, managed: ${managedSkills.length}, user: ${userSkills.length}, project: ${projectSkillsNested.flat().length}, additional: ${additionalSkillsNested.flat().length}, legacy commands: ${legacyCommands.length})`,
     )

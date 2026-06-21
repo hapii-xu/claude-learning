@@ -789,6 +789,9 @@ export async function processMdRules({
 export const getMemoryFiles = memoize(
   async (forceIncludeExternal: boolean = false): Promise<MemoryFileInfo[]> => {
     const startTime = Date.now()
+    logForDebugging('[Hapii] ClaudeMd.getMemoryFiles 开始加载内存文件', {
+      level: 'info',
+    })
     logForDiagnosticsNoPII('info', 'memory_files_started')
 
     const result: MemoryFileInfo[] = []
@@ -1010,6 +1013,10 @@ export const getMemoryFiles = memoize(
       0,
     )
 
+    logForDebugging(
+      `[Hapii] ClaudeMd.getMemoryFiles 完成 count=${result.length} 耗时=${Date.now() - startTime}ms`,
+      { level: 'info' },
+    )
     logForDiagnosticsNoPII('info', 'memory_files_completed', {
       duration_ms: Date.now() - startTime,
       file_count: result.length,
@@ -1153,6 +1160,10 @@ export const getClaudeMds = (
   memoryFiles: MemoryFileInfo[],
   filter?: (type: MemoryType) => boolean,
 ): string => {
+  logForDebugging(
+    `[Hapii] ClaudeMd.getClaudeMds 开始合并 fileCount=${memoryFiles.length} types=[${[...new Set(memoryFiles.map(f => f.type))].join(', ')}]`,
+    { level: 'info' },
+  )
   const memories: string[] = []
   const skipProjectLevel = getFeatureValue_CACHED_MAY_BE_STALE(
     'tengu_paper_halyard',
@@ -1187,10 +1198,19 @@ export const getClaudeMds = (
   }
 
   if (memories.length === 0) {
+    logForDebugging(
+      '[Hapii] ClaudeMd.getClaudeMds 无有效 CLAUDE.md 内容，返回空串',
+      { level: 'info' },
+    )
     return ''
   }
 
-  return `${MEMORY_INSTRUCTION_PROMPT}\n\n${memories.join('\n\n')}`
+  const result = `${MEMORY_INSTRUCTION_PROMPT}\n\n${memories.join('\n\n')}`
+  logForDebugging(
+    `[Hapii] ClaudeMd.getClaudeMds 完成 blocksCount=${memories.length} totalChars=${result.length}`,
+    { level: 'info' },
+  )
+  return result
 }
 
 /**

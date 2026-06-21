@@ -6,7 +6,7 @@ import type {
 import { z } from 'zod/v4'
 import { lazySchema } from '../../utils/lazySchema.js'
 
-// Configuration schemas and types
+// 配置 schema 与类型
 export const ConfigScopeSchema = lazySchema(() =>
   z.enum([
     'local',
@@ -27,17 +27,17 @@ export type Transport = z.infer<ReturnType<typeof TransportSchema>>
 
 export const McpStdioServerConfigSchema = lazySchema(() =>
   z.object({
-    type: z.literal('stdio').optional(), // Optional for backwards compatibility
+    type: z.literal('stdio').optional(), // 可选，为了向后兼容
     command: z.string().min(1, 'Command cannot be empty'),
     args: z.array(z.string()).default([]),
     env: z.record(z.string(), z.string()).optional(),
   }),
 )
 
-// Cross-App Access (XAA / SEP-990): just a per-server flag. IdP connection
-// details (issuer, clientId, callbackPort) come from settings.xaaIdp — configured
-// once, shared across all XAA-enabled servers. clientId/clientSecret (parent
-// oauth config + keychain slot) are for the MCP server's AS.
+// 跨应用访问（XAA / SEP-990）：仅为每服务一个开关。IdP 连接细节
+// （issuer、clientId、callbackPort）来自 settings.xaaIdp — 一次配置，
+// 所有启用 XAA 的服务共享。clientId/clientSecret（父级 oauth 配置 +
+// keychain 槽位）用于 MCP 服务端的 AS。
 const McpXaaConfigSchema = lazySchema(() => z.boolean())
 
 const McpOAuthConfigSchema = lazySchema(() =>
@@ -65,7 +65,7 @@ export const McpSSEServerConfigSchema = lazySchema(() =>
   }),
 )
 
-// Internal-only server type for IDE extensions
+// 仅供 IDE 扩展使用的内部服务端类型
 export const McpSSEIDEServerConfigSchema = lazySchema(() =>
   z.object({
     type: z.literal('sse-ide'),
@@ -75,7 +75,7 @@ export const McpSSEIDEServerConfigSchema = lazySchema(() =>
   }),
 )
 
-// Internal-only server type for IDE extensions
+// 仅供 IDE 扩展使用的内部服务端类型
 export const McpWebSocketIDEServerConfigSchema = lazySchema(() =>
   z.object({
     type: z.literal('ws-ide'),
@@ -112,7 +112,7 @@ export const McpSdkServerConfigSchema = lazySchema(() =>
   }),
 )
 
-// Config type for Claude.ai proxy servers
+// Claude.ai 代理服务的配置类型
 export const McpClaudeAIProxyServerConfigSchema = lazySchema(() =>
   z.object({
     type: z.literal('claudeai-proxy'),
@@ -162,9 +162,9 @@ export type McpServerConfig = z.infer<ReturnType<typeof McpServerConfigSchema>>
 
 export type ScopedMcpServerConfig = McpServerConfig & {
   scope: ConfigScope
-  // For plugin-provided servers: the providing plugin's LoadedPlugin.source
-  // (e.g. 'slack@anthropic'). Stashed at config-build time so the channel
-  // gate doesn't have to race AppState.plugins.enabled hydration.
+  // 对于插件提供的服务端：提供插件的 LoadedPlugin.source
+  // （例如 'slack@anthropic'）。在配置构建时暂存，这样 channel
+  // gate 就不必与 AppState.plugins.enabled 的 hydrate 竞争。
   pluginSource?: string
 }
 
@@ -176,7 +176,7 @@ export const McpJsonConfigSchema = lazySchema(() =>
 
 export type McpJsonConfig = z.infer<ReturnType<typeof McpJsonConfigSchema>>
 
-// Server connection types
+// 服务端连接类型
 export type ConnectedMCPServer = {
   client: Client
   name: string
@@ -225,10 +225,10 @@ export type MCPServerConnection =
   | PendingMCPServer
   | DisabledMCPServer
 
-// Resource types
+// 资源类型
 export type ServerResource = Resource & { server: string }
 
-// MCP CLI State types
+// MCP CLI 状态类型
 export interface SerializedTool {
   name: string
   description: string
@@ -240,7 +240,7 @@ export interface SerializedTool {
     }
   }
   isMcp?: boolean
-  originalToolName?: string // Original unnormalized tool name from MCP server
+  originalToolName?: string // 来自 MCP 服务端的原始（未规范化）工具名
 }
 
 export interface SerializedClient {
@@ -254,5 +254,5 @@ export interface MCPCliState {
   configs: Record<string, ScopedMcpServerConfig>
   tools: SerializedTool[]
   resources: Record<string, ServerResource[]>
-  normalizedNames?: Record<string, string> // Maps normalized names to original names
+  normalizedNames?: Record<string, string> // 规范化名称到原始名称的映射
 }

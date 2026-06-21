@@ -88,6 +88,7 @@ let telemetryInitialized = false
  */
 export const init = memoize(async (): Promise<void> => {
   const initStartTime = Date.now()
+  logForDebugging('[Hapii] Init.initOnce 首次初始化开始', { level: 'info' })
   logForDiagnosticsNoPII('info', 'init_started')
   profileCheckpoint('init_function_start')
 
@@ -123,11 +124,17 @@ export const init = memoize(async (): Promise<void> => {
     // 确保退出时刷缓存
     setupGracefulShutdown()
     profileCheckpoint('init_after_graceful_shutdown')
+    logForDebugging('[Hapii] Init: graceful shutdown hooks 已注册', {
+      level: 'info',
+    })
 
     // 初始化 1P event logging（无安全问题，但推迟以避免
     // 在启动时加载 OpenTelemetry sdk-logs）。growthbook.js 此时已经在
     // 模块缓存中（firstPartyEventLogger 导入了它），因此第二次
     // 动态导入不会增加加载成本。
+    logForDebugging('[Hapii] Init: 启动 1P event logging 初始化', {
+      level: 'info',
+    })
     void Promise.all([
       import('../services/analytics/firstPartyEventLogger.js'),
       import('../services/analytics/growthbook.js'),
@@ -142,6 +149,7 @@ export const init = memoize(async (): Promise<void> => {
     profileCheckpoint('init_after_1p_event_logging')
 
     // 启动余额轮询（除非通过环境变量配置了 provider，否则为 no-op）。
+    logForDebugging('[Hapii] Init: 启动余额轮询', { level: 'info' })
     void import('../services/providerUsage/balance/poller.js').then(m =>
       m.startBalancePolling(),
     )
@@ -149,10 +157,12 @@ export const init = memoize(async (): Promise<void> => {
 
     // 如果 OAuth 账户信息尚未缓存到 config 中，则补充填充。这很必要，因为
     // 通过 VSCode 扩展登录时 OAuth 账户信息可能未被填充。
+    logForDebugging('[Hapii] Init: 填充 OAuth 账户信息', { level: 'info' })
     void populateOAuthAccountInfoIfNeeded()
     profileCheckpoint('init_after_oauth_populate')
 
     // 异步初始化 JetBrains IDE 检测（填充缓存以供后续同步访问）
+    logForDebugging('[Hapii] Init: 启动 JetBrains IDE 检测', { level: 'info' })
     void initJetBrainsDetection()
     profileCheckpoint('init_after_jetbrains_detection')
 
@@ -168,6 +178,10 @@ export const init = memoize(async (): Promise<void> => {
     if (isPolicyLimitsEligible()) {
       initializePolicyLimitsLoadingPromise()
     }
+    logForDebugging(
+      `[Hapii] Init: 远程设置资格 remoteManaged=${isEligibleForRemoteManagedSettings()} policyLimits=${isPolicyLimitsEligible()}`,
+      { level: 'info' },
+    )
     profileCheckpoint('init_after_remote_settings_check')
 
     // 记录首次启动时间
@@ -193,10 +207,12 @@ export const init = memoize(async (): Promise<void> => {
     profileCheckpoint('init_network_configured')
 
     // 初始化 Sentry 错误上报（若未设置 SENTRY_DSN 则为 no-op）
+    logForDebugging('[Hapii] Init: 初始化 Sentry', { level: 'info' })
     initSentry()
 
     // 初始化 Langfuse 链路追踪（若未配置 keys 则为 no-op）
     // 预热用户 email 缓存，以便 Langfuse traces 包含 userId
+    logForDebugging('[Hapii] Init: 初始化 user + Langfuse', { level: 'info' })
     await initUser()
     initLangfuse()
     registerCleanup(shutdownLangfuse)
@@ -207,6 +223,7 @@ export const init = memoize(async (): Promise<void> => {
     // 连接使用正确的传输。Fire-and-forget；对于
     // 代理/mTLS/unix/cloud-provider 场景会跳过，因为 SDK 的 dispatcher 不会
     // 复用全局连接池。
+    logForDebugging('[Hapii] Init: 预连接 Anthropic API', { level: 'info' })
     preconnectAnthropicApi()
 
     // CCR upstreamproxy：启动本地 CONNECT 中继，以便 agent 子进程
@@ -234,6 +251,7 @@ export const init = memoize(async (): Promise<void> => {
     }
 
     // 如相关则设置 git-bash
+    logForDebugging('[Hapii] Init: setShellIfWindows', { level: 'info' })
     setShellIfWindows()
 
     // 注册 LSP manager 清理（初始化在 main.tsx 中处理完 --plugin-dir 后进行）
@@ -271,6 +289,10 @@ export const init = memoize(async (): Promise<void> => {
       logForDebugging('[init] 已跳过 ripgrep 状态检查')
     }
 
+    logForDebugging(
+      `[Hapii] Init.initOnce 完成 耗时=${Date.now() - initStartTime}ms`,
+      { level: 'info' },
+    )
     logForDiagnosticsNoPII('info', 'init_completed', {
       duration_ms: Date.now() - initStartTime,
     })

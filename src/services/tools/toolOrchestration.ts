@@ -25,6 +25,10 @@ export async function* runTools(
   toolUseContext: ToolUseContext,
 ): AsyncGenerator<MessageUpdate, void> {
   logForDebugging(
+    `[Hapii] ToolOrch.runTools 开始 count=${toolUseMessages.length} tools=[${toolUseMessages.map(b => b.name).join(', ')}]`,
+    { level: 'info' },
+  )
+  logForDebugging(
     `[工具编排] runTools 开始，本轮工具调用数 ${toolUseMessages.length}：[${toolUseMessages.map(b => b.name).join(', ')}]`,
     { level: 'info' },
   )

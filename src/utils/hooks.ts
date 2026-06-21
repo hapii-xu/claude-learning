@@ -3549,6 +3549,10 @@ export async function* executePreToolHooks<ToolInput>(
   ) => (request: PromptRequest) => Promise<PromptResponse>,
   toolInputSummary?: string | null,
 ): AsyncGenerator<AggregatedHookResult> {
+  logForDebugging(
+    `[Hapii] Hooks.executePreToolHooks 事件=PreToolUse tool=${toolName}`,
+    { level: 'info' },
+  )
   const appState = toolUseContext.getAppState()
   const sessionId = toolUseContext.agentId ?? getSessionId()
   if (!hasHookForEvent('PreToolUse', appState, sessionId)) {
@@ -3991,6 +3995,10 @@ export async function* executeUserPromptSubmitHooks(
     toolInputSummary?: string | null,
   ) => (request: PromptRequest) => Promise<PromptResponse>,
 ): AsyncGenerator<AggregatedHookResult> {
+  logForDebugging(
+    `[Hapii] Hooks.executeUserPromptSubmitHooks 事件=UserPromptSubmit promptLen=${prompt.length}`,
+    { level: 'info' },
+  )
   const appState = toolUseContext.getAppState()
   const sessionId = toolUseContext.agentId ?? getSessionId()
   if (!hasHookForEvent('UserPromptSubmit', appState, sessionId)) {

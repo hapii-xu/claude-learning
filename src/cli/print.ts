@@ -492,6 +492,14 @@ export async function runHeadless(
     setSDKStatus?: (status: SDKStatus) => void
   },
 ): Promise<void> {
+  const promptDesc =
+    typeof inputPrompt === 'string'
+      ? `string(len=${inputPrompt.length})`
+      : 'AsyncIterable'
+  logForDebugging(
+    `[Hapii] runHeadless 入口 prompt=${promptDesc} outputFormat=${options.outputFormat} tools=${tools.length}`,
+    { level: 'info' },
+  )
   if (
     process.env.USER_TYPE === 'ant' &&
     isEnvTruthy(process.env.CLAUDE_CODE_EXIT_AFTER_FIRST_RENDER)
@@ -865,6 +873,10 @@ export async function runHeadless(
       : null
 
   headlessProfilerCheckpoint('before_runHeadlessStreaming')
+  logForDebugging(
+    `[Hapii] runHeadless 开始流式处理 filteredTools=${filteredTools.length} initialMessages=${initialMessages.length}`,
+    { level: 'info' },
+  )
   for await (const message of runHeadlessStreaming(
     structuredIO,
     appState.mcp.clients,
@@ -918,6 +930,10 @@ export async function runHeadless(
     }
   }
 
+  logForDebugging(
+    `[Hapii] runHeadless 输出格式决策 outputFormat=${options.outputFormat}`,
+    { level: 'info' },
+  )
   switch (options.outputFormat) {
     case 'json':
       if (!lastMessage || lastMessage.type !== 'result') {

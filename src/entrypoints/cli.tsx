@@ -82,10 +82,12 @@ if (feature('ABLATION_BASELINE') && process.env.CLAUDE_CODE_ABLATION_BASELINE) {
  */
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
+  console.debug('[Hapii] CLI.main 入口 argv=', JSON.stringify(args));
 
   // ── 快速路径 1：打印版本号，零模块加载 ──────────────────────────────────────
   // --version/-v 快速路径：无需加载任何模块
   if (args.length === 1 && (args[0] === '--version' || args[0] === '-v' || args[0] === '-V')) {
+    console.debug('[Hapii] CLI 快速路径: --version');
     // MACRO.VERSION 在构建时被内联
     console.log(`${MACRO.VERSION} (Claude Code)`);
     return;
@@ -93,6 +95,7 @@ async function main(): Promise<void> {
 
   // 其他所有路径：加载启动性能分析器
   const { profileCheckpoint } = await import('../utils/startupProfiler.js');
+  const { logForDebugging } = await import('../utils/debug.js');
   profileCheckpoint('cli_entry');
 
   // ── 快速路径 2：输出系统 prompt 后退出（仅用于 prompt 敏感度评估，Anthropic 内部功能）──
@@ -100,6 +103,7 @@ async function main(): Promise<void> {
   // 用于 prompt 敏感度评估，在特定 commit 处提取系统 prompt。
   // 仅限 Ant 内部：通过 feature flag 从外部构建中移除。
   if (feature('DUMP_SYSTEM_PROMPT') && args[0] === '--dump-system-prompt') {
+    logForDebugging('[Hapii] CLI 快速路径: --dump-system-prompt', { level: 'info' });
     profileCheckpoint('cli_dump_system_prompt_path');
     const { enableConfigs } = await import('../utils/config.js');
     enableConfigs();
@@ -116,17 +120,20 @@ async function main(): Promise<void> {
   // --claude-in-chrome-mcp: 启动 Claude-in-Chrome MCP 服务器
   // --chrome-native-host: 启动 Chrome Native Messaging Host（浏览器扩展通信）
   if (process.argv[2] === '--claude-in-chrome-mcp') {
+    logForDebugging('[Hapii] CLI 快速路径: --claude-in-chrome-mcp', { level: 'info' });
     profileCheckpoint('cli_claude_in_chrome_mcp_path');
     const { runClaudeInChromeMcpServer } = await import('../utils/claudeInChrome/mcpServer.js');
     await runClaudeInChromeMcpServer();
     return;
   } else if (process.argv[2] === '--chrome-native-host') {
+    logForDebugging('[Hapii] CLI 快速路径: --chrome-native-host', { level: 'info' });
     profileCheckpoint('cli_chrome_native_host_path');
     const { runChromeNativeHost } = await import('../utils/claudeInChrome/chromeNativeHost.js');
     await runChromeNativeHost();
     return;
     // --computer-use-mcp: 启动 Computer Use MCP 服务器（截图/键鼠控制，需 CHICAGO_MCP feature）
   } else if (feature('CHICAGO_MCP') && process.argv[2] === '--computer-use-mcp') {
+    logForDebugging('[Hapii] CLI 快速路径: --computer-use-mcp', { level: 'info' });
     profileCheckpoint('cli_computer_use_mcp_path');
     const { runComputerUseMcpServer } = await import('../utils/computerUse/mcpServer.js');
     await runComputerUseMcpServer();
@@ -136,6 +143,7 @@ async function main(): Promise<void> {
   // ── 快速路径 4：ACP（Agent Client Protocol）模式，通过 stdio 通信 ──────────
   // `--acp` 快速路径 —— 通过 stdio 通信的 ACP（Agent Client Protocol）agent 模式。
   if (feature('ACP') && process.argv[2] === '--acp') {
+    logForDebugging('[Hapii] CLI 快速路径: --acp', { level: 'info' });
     profileCheckpoint('cli_acp_path');
     const { runAcpAgent } = await import('../services/acp/entry.js');
     await runAcpAgent();
@@ -144,13 +152,13 @@ async function main(): Promise<void> {
 
   // ── 快速路径 5：微信集成（weixin CLI 子命令）─────────────────────────────────
   if (args[0] === 'weixin') {
+    logForDebugging('[Hapii] CLI 快速路径: weixin', { level: 'info' });
     profileCheckpoint('cli_weixin_path');
     const { handleWeixinCli } = await import('@claude-code-best/weixin');
     const { enableConfigs } = await import('../utils/config.js');
     const { initializeAnalyticsSink } = await import('../services/analytics/sink.js');
     const { shutdownDatadog } = await import('../services/analytics/datadog.js');
     const { shutdown1PEventLogging } = await import('../services/analytics/firstPartyEventLogger.js');
-    const { logForDebugging } = await import('../utils/debug.js');
     const { ChannelPermissionRequestNotificationSchema } = await import('../services/mcp/channelNotification.js');
     await handleWeixinCli(
       args.slice(1),
@@ -186,6 +194,7 @@ async function main(): Promise<void> {
       return;
     }
     const kind = args[0] === '--daemon-worker' ? args[1] : args[0].split('=')[1];
+    logForDebugging(`[Hapii] CLI 快速路径: --daemon-worker kind=${kind}`, { level: 'info' });
     const { runDaemonWorker } = await import('../daemon/workerRegistry.js');
     await runDaemonWorker(kind);
     return;
@@ -204,6 +213,7 @@ async function main(): Promise<void> {
       args[0] === 'sync' ||
       args[0] === 'bridge')
   ) {
+    logForDebugging(`[Hapii] CLI 快速路径: bridge subcommand=${args[0]}`, { level: 'info' });
     profileCheckpoint('cli_bridge_path');
     const { enableConfigs } = await import('../utils/config.js');
     enableConfigs();
@@ -247,6 +257,7 @@ async function main(): Promise<void> {
   // 在同一命名空间下处理 supervisor（start/stop）和后台会话（bg/attach/logs/kill）
   // 子命令。
   if ((feature('DAEMON') || feature('BG_SESSIONS')) && args[0] === 'daemon') {
+    logForDebugging(`[Hapii] CLI 快速路径: daemon subArgs=${JSON.stringify(args.slice(1))}`, { level: 'info' });
     profileCheckpoint('cli_daemon_path');
     const { enableConfigs } = await import('../utils/config.js');
     enableConfigs();
@@ -265,6 +276,7 @@ async function main(): Promise<void> {
   // 导入 main.tsx 并在 autonomy action 之前运行根 preAction 初始化；
   // 在覆盖率/CI 环境下，这会在简单的仅状态子进程调用周围留下无关的句柄。
   if (args[0] === 'autonomy') {
+    logForDebugging(`[Hapii] CLI 快速路径: autonomy args=${JSON.stringify(args.slice(1))}`, { level: 'info' });
     profileCheckpoint('cli_autonomy_path');
     const { getAutonomyCommandText } = await import('../cli/handlers/autonomy.js');
     const text = await getAutonomyCommandText(args.slice(1).join(' '));
@@ -283,6 +295,7 @@ async function main(): Promise<void> {
   // ── 快速路径 10：--bg / --background 快捷方式（启动后台会话）────────────────
   // `--bg`/`--background` 快捷方式快速路径 → daemon bg。
   if (feature('BG_SESSIONS') && (args.includes('--bg') || args.includes('--background'))) {
+    logForDebugging('[Hapii] CLI 快速路径: --bg/--background', { level: 'info' });
     profileCheckpoint('cli_daemon_path');
     const { enableConfigs } = await import('../utils/config.js');
     enableConfigs();
@@ -300,6 +313,7 @@ async function main(): Promise<void> {
     (args[0] === 'ps' || args[0] === 'logs' || args[0] === 'attach' || args[0] === 'kill')
   ) {
     const mapped = args[0] === 'ps' ? 'status' : args[0];
+    logForDebugging(`[Hapii] CLI 快速路径: 向后兼容 ${args[0]} → daemon ${mapped}`, { level: 'info' });
     console.error(`[已废弃] 请使用：claude daemon ${mapped}${args[1] ? ' ' + args[1] : ''}`);
     profileCheckpoint('cli_daemon_path');
     const { enableConfigs } = await import('../utils/config.js');
@@ -316,6 +330,7 @@ async function main(): Promise<void> {
   // ── 快速路径 11：模板任务命令（claude job new/list/reply）─────────────────
   // `claude job <subcommand>` 快速路径：模板任务。
   if (feature('TEMPLATES') && args[0] === 'job') {
+    logForDebugging(`[Hapii] CLI 快速路径: job subArgs=${JSON.stringify(args.slice(1))}`, { level: 'info' });
     profileCheckpoint('cli_templates_path');
     const { templatesMain } = await import('../cli/handlers/templateJobs.js');
     await templatesMain(args.slice(1));
@@ -327,6 +342,7 @@ async function main(): Promise<void> {
 
   // 向后兼容：new/list/reply → job <sub>（已废弃）
   if (feature('TEMPLATES') && (args[0] === 'new' || args[0] === 'list' || args[0] === 'reply')) {
+    logForDebugging(`[Hapii] CLI 快速路径: 向后兼容 ${args[0]} → job`, { level: 'info' });
     console.error(`[已废弃] 请使用：claude job ${args[0]} ${args.slice(1).join(' ')}`.trim());
     profileCheckpoint('cli_templates_path');
     const { templatesMain } = await import('../cli/handlers/templateJobs.js');
@@ -339,6 +355,7 @@ async function main(): Promise<void> {
   // `claude environment-runner` 快速路径：无头 BYOC 运行器。
   // feature() 必须保持内联以支持构建时的死代码消除（DCE）。
   if (feature('BYOC_ENVIRONMENT_RUNNER') && args[0] === 'environment-runner') {
+    logForDebugging('[Hapii] CLI 快速路径: environment-runner', { level: 'info' });
     profileCheckpoint('cli_environment_runner_path');
     const { environmentRunnerMain } = await import('../environment-runner/main.js');
     await environmentRunnerMain(args.slice(1));
@@ -350,6 +367,7 @@ async function main(): Promise<void> {
   // 对接 SelfHostedRunnerWorkerService API（注册 + 轮询；轮询即心跳）。
   // feature() 必须保持内联以支持构建时的死代码消除（DCE）。
   if (feature('SELF_HOSTED_RUNNER') && args[0] === 'self-hosted-runner') {
+    logForDebugging('[Hapii] CLI 快速路径: self-hosted-runner', { level: 'info' });
     profileCheckpoint('cli_self_hosted_runner_path');
     const { selfHostedRunnerMain } = await import('../self-hosted-runner/main.js');
     await selfHostedRunnerMain(args.slice(1));
@@ -363,6 +381,7 @@ async function main(): Promise<void> {
     hasTmuxFlag &&
     (args.includes('-w') || args.includes('--worktree') || args.some(a => a.startsWith('--worktree=')))
   ) {
+    logForDebugging('[Hapii] CLI 快速路径: --tmux + --worktree', { level: 'info' });
     profileCheckpoint('cli_tmux_worktree_fast_path');
     const { enableConfigs } = await import('../utils/config.js');
     enableConfigs();
@@ -398,6 +417,7 @@ async function main(): Promise<void> {
   const { startCapturingEarlyInput } = await import('../utils/earlyInput.js');
   startCapturingEarlyInput();
   profileCheckpoint('cli_before_main_import');
+  logForDebugging('[Hapii] CLI.main 走默认路径，加载 main.tsx', { level: 'info' });
   const { main: cliMain } = await import('../main.jsx');
   profileCheckpoint('cli_after_main_import');
   await cliMain();

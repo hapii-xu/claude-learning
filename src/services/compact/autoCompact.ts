@@ -163,6 +163,10 @@ export function calculateTokenWarningState(
 
   const isAtBlockingLimit = tokenUsage >= blockingLimit
 
+  logForDebugging(
+    `[Hapii] AutoCompact.calculateTokenWarningState tokens=${tokenUsage} percentLeft=${percentLeft}% warn=${isAboveWarningThreshold} error=${isAboveErrorThreshold} compact=${isAboveAutoCompactThreshold} blocking=${isAtBlockingLimit}`,
+    { level: 'info' },
+  )
   return {
     percentLeft,
     isAboveWarningThreshold,
@@ -255,6 +259,10 @@ export async function shouldAutoCompact(
 
   logForDebugging(
     `autocompact: tokens=${tokenCount} threshold=${threshold} effectiveWindow=${effectiveWindow}${snipTokensFreed > 0 ? ` snipFreed=${snipTokensFreed}` : ''}`,
+  )
+  logForDebugging(
+    `[Hapii] AutoCompact.shouldAutoCompact tokens=${tokenCount} threshold=${threshold} effectiveWindow=${effectiveWindow} msgCount=${messages.length}`,
+    { level: 'info' },
   )
 
   const { isAboveAutoCompactThreshold } = calculateTokenWarningState(

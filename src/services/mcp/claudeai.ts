@@ -31,10 +31,10 @@ const FETCH_TIMEOUT_MS = 5000
 const MCP_SERVERS_BETA_HEADER = 'mcp-servers-2025-12-04'
 
 /**
- * Fetches MCP server configurations from Claude.ai org configs.
- * These servers are managed by the organization via Claude.ai.
+ * 从 Claude.ai 组织配置中获取 MCP 服务器配置。
+ * 这些服务器由组织通过 Claude.ai 管理。
  *
- * Results are memoized for the session lifetime (fetch once per CLI session).
+ * 结果在会话生命周期内被记忆化（每个 CLI 会话获取一次）。
  */
 export const fetchClaudeAIMcpConfigsIfEligible = memoize(
   async (): Promise<Record<string, ScopedMcpServerConfig>> => {
@@ -58,11 +58,11 @@ export const fetchClaudeAIMcpConfigsIfEligible = memoize(
         return {}
       }
 
-      // Check for user:mcp_servers scope directly instead of isClaudeAISubscriber().
-      // In non-interactive mode, isClaudeAISubscriber() returns false when ANTHROPIC_API_KEY
-      // is set (even with valid OAuth tokens) because preferThirdPartyAuthentication() causes
-      // isAnthropicAuthEnabled() to return false. Checking the scope directly allows users
-      // with both API keys and OAuth tokens to access claude.ai MCPs in print mode.
+      // 直接检查 user:mcp_servers 作用域而非 isClaudeAISubscriber()。
+      // 在非交互模式下，当设置了 ANTHROPIC_API_KEY 时（即使有有效的 OAuth 令牌），
+      // isClaudeAISubscriber() 返回 false，因为 preferThirdPartyAuthentication() 导致
+      // isAnthropicAuthEnabled() 返回 false。直接检查作用域允许同时拥有 API 密钥
+      // 和 OAuth 令牌的用户在打印模式下访问 claude.ai MCP。
       if (!tokens.scopes?.includes('user:mcp_servers')) {
         logForDebugging(
           `[claudeai-mcp] Missing user:mcp_servers scope (scopes=${tokens.scopes?.join(',') || 'none'})`,
@@ -90,16 +90,17 @@ export const fetchClaudeAIMcpConfigsIfEligible = memoize(
       })
 
       const configs: Record<string, ScopedMcpServerConfig> = {}
-      // Track used normalized names to detect collisions and assign (2), (3), etc. suffixes.
-      // We check the final normalized name (including suffix) to handle edge cases where
-      // a suffixed name collides with another server's base name (e.g., "Example Server 2"
-      // colliding with "Example Server! (2)" which both normalize to claude_ai_Example_Server_2).
+      // 跟踪已使用的规范化名称以检测冲突并分配 (2)、(3) 等后缀。
+      // 我们检查最终的规范化名称（包括后缀）以处理边缘情况，
+      // 即带后缀的名称与另一个服务器的基础名称冲突
+      // （例如，"Example Server 2" 与 "Example Server! (2)" 冲突，
+      // 两者都规范化为 claude_ai_Example_Server_2）。
       const usedNormalizedNames = new Set<string>()
 
       for (const server of response.data.data) {
         const baseName = `claude.ai ${server.display_name}`
 
-        // Try without suffix first, then increment until we find an unused normalized name
+        // 先尝试不带后缀，然后递增直到找到未使用的规范化名称
         let finalName = baseName
         let finalNormalized = normalizeNameForMCP(finalName)
         let count = 1
@@ -134,22 +135,22 @@ export const fetchClaudeAIMcpConfigsIfEligible = memoize(
 )
 
 /**
- * Clears the memoized cache for fetchClaudeAIMcpConfigsIfEligible.
- * Call this after login so the next fetch will use the new auth tokens.
+ * 清除 fetchClaudeAIMcpConfigsIfEligible 的记忆化缓存。
+ * 在登录后调用此函数，以便下次获取时使用新的认证令牌。
  */
 export function clearClaudeAIMcpConfigsCache(): void {
   fetchClaudeAIMcpConfigsIfEligible.cache.clear?.()
-  // Also clear the auth cache so freshly-authorized servers get re-connected
+  // 同时清除认证缓存，以便新授权的服务器能够重新连接
   clearMcpAuthCache()
 }
 
 /**
- * Record that a claude.ai connector successfully connected. Idempotent.
+ * 记录 claude.ai 连接器已成功连接。幂等操作。
  *
- * Gates the "N connectors unavailable/need auth" startup notifications: a
- * connector that was working yesterday and is now failed is a state change
- * worth surfacing; an org-configured connector that's been needs-auth since
- * it showed up is one the user has demonstrably ignored.
+ * 门控"N 个连接器不可用/需要认证"的启动通知：
+ * 昨天还在工作但现在失败的连接器是一个值得展示的状态变化；
+ * 而一个从出现起就需要认证的组织配置连接器，
+ * 是用户已经明确忽略的。
  */
 export function markClaudeAiMcpConnected(name: string): void {
   saveGlobalConfig(current => {

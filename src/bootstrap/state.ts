@@ -421,6 +421,9 @@ function getInitialState(): State {
 
 // 尤其是在这里——更要三思
 const STATE: State = getInitialState()
+console.debug(
+  `[Hapii] bootstrap/state: 全局 STATE 初始化完成 cwd=${STATE.originalCwd} sessionId=${STATE.sessionId}`,
+)
 
 export function getSessionId(): SessionId {
   return STATE.sessionId
@@ -429,6 +432,7 @@ export function getSessionId(): SessionId {
 export function regenerateSessionId(
   options: { setCurrentAsParent?: boolean } = {},
 ): SessionId {
+  const oldId = STATE.sessionId
   if (options.setCurrentAsParent) {
     STATE.parentSessionId = STATE.sessionId
   }
@@ -440,6 +444,9 @@ export function regenerateSessionId(
   // null，这样 getTranscriptPath() 会从 originalCwd 派生。
   STATE.sessionId = randomUUID() as SessionId
   STATE.sessionProjectDir = null
+  console.debug(
+    `[Hapii] bootstrap/state: regenerateSessionId old=${oldId} new=${STATE.sessionId}`,
+  )
   return STATE.sessionId
 }
 
@@ -461,12 +468,16 @@ export function switchSession(
   sessionId: SessionId,
   projectDir: string | null = null,
 ): void {
+  const oldId = STATE.sessionId
   // 移除即将退出会话的计划 slug 条目，以保持 Map 在重复
   // /resume 调用间的大小有限。只有当前会话的 slug 会被读取
   // （plans.ts 的 getPlanSlug 默认使用 getSessionId()）。
   STATE.planSlugCache.delete(STATE.sessionId)
   STATE.sessionId = sessionId
   STATE.sessionProjectDir = projectDir
+  console.debug(
+    `[Hapii] bootstrap/state: switchSession old=${oldId} new=${sessionId} projectDir=${projectDir}`,
+  )
   sessionSwitched.emit(sessionId)
 }
 

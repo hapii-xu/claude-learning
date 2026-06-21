@@ -3,6 +3,7 @@
  * 保持选择器纯粹且简单 - 仅数据提取，无副作用。
  */
 
+import { logForDebugging } from '../utils/debug.js'
 import type { InProcessTeammateTaskState } from '../tasks/InProcessTeammateTask/types.js'
 import { isInProcessTeammateTask } from '../tasks/InProcessTeammateTask/types.js'
 import type { LocalAgentTaskState } from '../tasks/LocalAgentTask/LocalAgentTask.js'
@@ -28,14 +29,26 @@ export function getViewedTeammateTask(
   // 查找任务
   const task = tasks[viewingAgentTaskId]
   if (!task) {
+    logForDebugging(
+      `[Hapii] selectors.getViewedTeammateTask taskId=${viewingAgentTaskId} 不存在`,
+      { level: 'info' },
+    )
     return undefined
   }
 
   // 验证是否为进程内队友任务
   if (!isInProcessTeammateTask(task)) {
+    logForDebugging(
+      `[Hapii] selectors.getViewedTeammateTask taskId=${viewingAgentTaskId} 不是 InProcessTeammateTask`,
+      { level: 'info' },
+    )
     return undefined
   }
 
+  logForDebugging(
+    `[Hapii] selectors.getViewedTeammateTask → 找到队友任务 taskId=${viewingAgentTaskId}`,
+    { level: 'info' },
+  )
   return task
 }
 
@@ -61,6 +74,9 @@ export function getActiveAgentForInput(
 ): ActiveAgentForInput {
   const viewedTask = getViewedTeammateTask(appState)
   if (viewedTask) {
+    logForDebugging('[Hapii] selectors.getActiveAgentForInput → type=viewed', {
+      level: 'info',
+    })
     return { type: 'viewed', task: viewedTask }
   }
 
@@ -68,9 +84,16 @@ export function getActiveAgentForInput(
   if (viewingAgentTaskId) {
     const task = tasks[viewingAgentTaskId]
     if (task?.type === 'local_agent') {
+      logForDebugging(
+        `[Hapii] selectors.getActiveAgentForInput → type=named_agent taskId=${viewingAgentTaskId}`,
+        { level: 'info' },
+      )
       return { type: 'named_agent', task }
     }
   }
 
+  logForDebugging('[Hapii] selectors.getActiveAgentForInput → type=leader', {
+    level: 'info',
+  })
   return { type: 'leader' }
 }

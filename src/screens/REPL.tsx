@@ -850,6 +850,10 @@ export function REPL({
   thinkingConfig,
 }: Props): React.ReactNode {
   const isRemoteSession = !!remoteSessionConfig;
+  logForDebugging(
+    `[Hapii] REPL 组件渲染 isRemoteSession=${isRemoteSession} debug=${debug} initialTools=${initialTools.length} initialMessages=${initialMessages?.length ?? 0} hasAgentDef=${!!initialMainThreadAgentDefinition}`,
+    { level: 'info' },
+  );
 
   // 环境变量门控提升到挂载时 — isEnvTruthy 会做 toLowerCase+trim+includes，
   // 而这些原来在渲染路径上（PageUp 连按时是热点）。
@@ -900,6 +904,11 @@ export function REPL({
   // （无延迟）；bootstrap 填充前缀。先写盘再返回意味着 live 始终是 disk 的后缀。
   const viewedLocalAgent = viewingAgentTaskId ? tasks[viewingAgentTaskId] : undefined;
   const needsBootstrap = isLocalAgentTask(viewedLocalAgent) && viewedLocalAgent.retain && !viewedLocalAgent.diskLoaded;
+  if (needsBootstrap) {
+    logForDebugging(`[Hapii] REPL.bootstrap local_agent 需要从磁盘加载 taskId=${viewingAgentTaskId}`, {
+      level: 'info',
+    });
+  }
   useEffect(() => {
     if (!viewingAgentTaskId || !needsBootstrap) return;
     const taskId = viewingAgentTaskId;
@@ -1054,6 +1063,7 @@ export function REPL({
   // 这确保来自仓库和用户设置的插件安装只在用户明确同意信任当前工作目录后进行。
   useEffect(() => {
     if (isRemoteSession) return;
+    logForDebugging('[Hapii] REPL: 执行 startupChecks（插件/安全检测）', { level: 'info' });
     void performStartupChecks(setAppState);
   }, [setAppState, isRemoteSession]);
 
@@ -3909,6 +3919,9 @@ export function REPL({
       },
       options?: { fromKeybinding?: boolean },
     ) => {
+      logForDebugging(`[Hapii] REPL.onSubmit 收到用户输入 len=${typeof input === 'string' ? input.length : '?'}`, {
+        level: 'info',
+      });
       // 提交时重新固定滚动到底部，使用户始终看到新交流
       // （匹配 OpenCode 的自动滚动行为）。
       repinScroll();

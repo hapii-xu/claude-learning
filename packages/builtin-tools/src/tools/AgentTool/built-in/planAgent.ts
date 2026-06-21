@@ -12,8 +12,8 @@ import type { BuiltInAgentDefinition } from '../loadAgentsDir.js'
 import { EXPLORE_AGENT } from './exploreAgent.js'
 
 function getPlanV2SystemPrompt(): string {
-  // Ant-native builds alias find/grep to embedded bfs/ugrep and remove the
-  // dedicated Glob/Grep tools, so point at find/grep instead.
+  // Ant 原生构建将 find/grep 别名为嵌入式 bfs/ugrep 并移除
+  // 专用的 Glob/Grep 工具，因此指向 find/grep。
   const searchToolsHint = hasEmbeddedSearchTools()
     ? `\`find\`, \`grep\`, and ${FILE_READ_TOOL_NAME}`
     : `${GLOB_TOOL_NAME}, ${GREP_TOOL_NAME}, and ${FILE_READ_TOOL_NAME}`
@@ -85,8 +85,8 @@ export const PLAN_AGENT: BuiltInAgentDefinition = {
   tools: EXPLORE_AGENT.tools,
   baseDir: 'built-in',
   model: 'inherit',
-  // Plan is read-only and can Read CLAUDE.md directly if it needs conventions.
-  // Dropping it from context saves tokens without blocking access.
+  // Plan 是只读的，如果需要约定可以直接读取 CLAUDE.md。
+  // 从上下文中移除它可以节省 token 而不会阻止访问。
   omitClaudeMd: true,
   getSystemPrompt: () => getPlanV2SystemPrompt(),
 }

@@ -12,8 +12,8 @@ type RegistryResponse = {
   servers: RegistryServer[]
 }
 
-// URLs stripped of query string and trailing slash — matches the normalization
-// done by getLoggingSafeMcpBaseUrl so direct Set.has() lookup works.
+// 去除查询字符串和尾部斜杠的 URL — 与 getLoggingSafeMcpBaseUrl 的
+// 规范化逻辑一致，因此可以直接用 Set.has() 查找。
 let officialUrls: Set<string> | undefined
 
 function normalizeUrl(url: string): string | undefined {
@@ -27,8 +27,8 @@ function normalizeUrl(url: string): string | undefined {
 }
 
 /**
- * Fire-and-forget fetch of the official MCP registry.
- * Populates officialUrls for isOfficialMcpUrl lookups.
+ * 即发即忘地获取官方 MCP 注册表。
+ * 填充 officialUrls 供 isOfficialMcpUrl 查询使用。
  */
 export async function prefetchOfficialMcpUrls(): Promise<void> {
   if (process.env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC) {
@@ -60,8 +60,8 @@ export async function prefetchOfficialMcpUrls(): Promise<void> {
 }
 
 /**
- * Returns true iff the given (already-normalized via getLoggingSafeMcpBaseUrl)
- * URL is in the official MCP registry. Undefined registry → false (fail-closed).
+ * 当给定的（已通过 getLoggingSafeMcpBaseUrl 规范化的）URL
+ * 在官方 MCP 注册表中时返回 true。注册表未定义时返回 false（失败关闭）。
  */
 export function isOfficialMcpUrl(normalizedUrl: string): boolean {
   return officialUrls?.has(normalizedUrl) ?? false

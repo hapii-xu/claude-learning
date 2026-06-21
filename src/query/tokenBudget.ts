@@ -1,3 +1,4 @@
+import { logForDebugging } from '../utils/debug.js'
 import { getBudgetContinuationMessage } from '../utils/tokenBudget.js'
 
 const COMPLETION_THRESHOLD = 0.9
@@ -51,6 +52,10 @@ export function checkTokenBudget(
   if (agentId || budget === null || budget <= 0) {
     return { action: 'stop', completionEvent: null }
   }
+  logForDebugging(
+    `[Hapii] TokenBudget.checkTokenBudget budget=${budget} globalTurnTokens=${globalTurnTokens} pct=${Math.round((globalTurnTokens / budget) * 100)}% continuationCount=${tracker.continuationCount}`,
+    { level: 'info' },
+  )
 
   const turnTokens = globalTurnTokens
   const pct = Math.round((turnTokens / budget) * 100)

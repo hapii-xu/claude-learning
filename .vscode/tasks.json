@@ -6,6 +6,12 @@
 			"id": "promptText",
 			"description": "Claude 的 prompt 内容（通过 stdin 传入，避免 shell 引号问题）",
 			"default": "hello"
+		},
+		{
+			"type": "promptString",
+			"id": "cliArgs",
+			"description": "传给 cli.tsx 的参数（如 --version、mcp list、-p 等，留空则启动交互 REPL）",
+			"default": ""
 		}
 	],
 	"tasks": [
@@ -58,6 +64,29 @@
 			"label": "Debug: 启动 dev (Headless + Prompt)",
 			"type": "shell",
 			"command": "echo ${input:promptText} | bun run dev:inspect -- -p",
+			"isBackground": true,
+			"presentation": {
+				"reveal": "always",
+				"focus": false,
+				"panel": "dedicated",
+				"clear": true,
+				"group": "debug-study"
+			},
+			"problemMatcher": {
+				"pattern": {
+					"regexp": "^$"
+				},
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": ".*Bun Inspector.*",
+					"endsPattern": ".*Listening:.*"
+				}
+			}
+		},
+		{
+			"label": "Debug: 启动 dev (自定义参数)",
+			"type": "shell",
+			"command": "bun run dev:inspect -- ${input:cliArgs}",
 			"isBackground": true,
 			"presentation": {
 				"reveal": "always",

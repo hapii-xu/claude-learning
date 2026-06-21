@@ -156,9 +156,15 @@ const shim = {
  * 必须在 React 和 OTel import 之前运行，防止它们捕获原生 Performance 引用。
  */
 export function installPerformanceShim(): void {
-  if ((globalThis as Record<string, unknown>).__performanceShimInstalled) return
+  if ((globalThis as Record<string, unknown>).__performanceShimInstalled) {
+    console.debug('[Hapii] performanceShim: 已安装（幂等跳过）')
+    return
+  }
   ;(globalThis as Record<string, unknown>).__performanceShimInstalled = true
   globalThis.performance = shim
+  console.debug(
+    '[Hapii] performanceShim: 已安装到 globalThis.performance（修复 JSC Vector 内存泄漏）',
+  )
 }
 
 // import 时自动安装

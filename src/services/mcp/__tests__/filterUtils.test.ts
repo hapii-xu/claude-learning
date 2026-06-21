@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
-// parseHeaders is a pure function from ../utils.ts (line 325)
-// Copied here to avoid triggering the heavy import chain of utils.ts
+// parseHeaders 是来自 ../utils.ts (第 325 行) 的纯函数
+// 复制此处是为了避免触发 utils.ts 的重型导入链
 function parseHeaders(headerArray: string[]): Record<string, string> {
   const headers: Record<string, string> = {}
   for (const header of headerArray) {

@@ -1,5 +1,5 @@
-// MCP connection utilities — protocol-level helpers for establishing and managing connections
-// These are building blocks used by the host's connectToServer implementation.
+// MCP 连接工具 —— 用于建立和管理连接的协议级辅助函数。
+// 这些是宿主 connectToServer 实现使用的构建块。
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { ListRootsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
@@ -9,40 +9,40 @@ import type { McpClientDependencies } from './interfaces.js'
 import type { ConnectedMCPServer, ScopedMcpServerConfig } from './types.js'
 
 // ============================================================================
-// Constants
+// 常量
 // ============================================================================
 
-/** Default connection timeout in milliseconds */
+/** 默认连接超时时间（毫秒） */
 export const DEFAULT_CONNECTION_TIMEOUT_MS = 30_000
 
-/** Maximum length for MCP descriptions/instructions */
+/** MCP 描述/说明的最大长度 */
 export const MAX_MCP_DESCRIPTION_LENGTH = 2048
 
-/** Maximum consecutive terminal errors before triggering reconnection */
+/** 触发重连前的最大连续终端错误数 */
 export const MAX_ERRORS_BEFORE_RECONNECT = 3
 
 // ============================================================================
-// Client creation
+// 客户端创建
 // ============================================================================
 
 export interface CreateClientOptions {
-  /** Client name (e.g., "claude-code") */
+  /** 客户端名称（例如 "claude-code"） */
   name: string
-  /** Client title */
+  /** 客户端标题 */
   title?: string
-  /** Client version */
+  /** 客户端版本 */
   version: string
-  /** Client description */
+  /** 客户端描述 */
   description?: string
-  /** Client website URL */
+  /** 客户端网站 URL */
   websiteUrl?: string
-  /** Root URI for ListRoots requests (defaults to current working directory) */
+  /** ListRoots 请求的根 URI（默认为当前工作目录） */
   rootUri?: string
 }
 
 /**
- * Creates a configured MCP Client instance with standard capabilities and handlers.
- * The host can further customize the client before connecting.
+ * 创建带有标准能力和处理器的配置好的 MCP Client 实例。
+ * 宿主可以在连接前进一步自定义客户端。
  */
 export function createMcpClient(options: CreateClientOptions): Client {
   const client = new Client(
@@ -61,7 +61,7 @@ export function createMcpClient(options: CreateClientOptions): Client {
     },
   )
 
-  // Register default ListRoots handler
+  // 注册默认的 ListRoots 处理器
   client.setRequestHandler(ListRootsRequestSchema, async () => ({
     roots: [
       {
@@ -74,12 +74,12 @@ export function createMcpClient(options: CreateClientOptions): Client {
 }
 
 // ============================================================================
-// Connection timeout
+// 连接超时
 // ============================================================================
 
 /**
- * Wraps a connection promise with a timeout.
- * Returns the result of connectPromise or rejects with a timeout error.
+ * 用超时包装连接 Promise。
+ * 返回 connectPromise 的结果，或在超时时以超时错误拒绝。
  */
 export async function withConnectionTimeout<T>(
   connectPromise: Promise<T>,
@@ -94,7 +94,7 @@ export async function withConnectionTimeout<T>(
       reject(new Error(`MCP connection timed out after ${timeoutMs}ms`))
     }, timeoutMs)
 
-    // Clean up timeout if connect resolves or rejects
+    // 如果连接成功解析或拒绝，清理超时
     connectPromise.then(
       () => clearTimeout(timeoutId),
       () => clearTimeout(timeoutId),
@@ -105,12 +105,12 @@ export async function withConnectionTimeout<T>(
 }
 
 // ============================================================================
-// Stderr capture
+// Stderr 捕获
 // ============================================================================
 
 /**
- * Sets up stderr capture for stdio transports.
- * Returns the stderr output accumulator and cleanup function.
+ * 为 stdio 传输设置 stderr 捕获。
+ * 返回 stderr 输出累加器和清理函数。
  */
 export function captureStderr(
   transport: StdioClientTransport,
@@ -127,7 +127,7 @@ export function captureStderr(
       try {
         stderrOutput += data.toString()
       } catch {
-        // Ignore errors from exceeding max string length
+        // 忽略超过最大字符串长度的错误
       }
     }
   }
@@ -146,11 +146,11 @@ export function captureStderr(
 }
 
 // ============================================================================
-// Error/close handlers
+// 错误/关闭处理器
 // ============================================================================
 
 /**
- * Terminal connection error patterns that indicate the connection is broken.
+ * 指示连接已断开的终端连接错误模式。
  */
 export function isTerminalConnectionError(msg: string): boolean {
   return (
@@ -167,7 +167,7 @@ export function isTerminalConnectionError(msg: string): boolean {
 }
 
 /**
- * Detects MCP "Session not found" errors (HTTP 404 + JSON-RPC code -32001).
+ * 检测 MCP "Session not found" 错误（HTTP 404 + JSON-RPC 代码 -32001）。
  */
 export function isMcpSessionExpiredError(error: Error): boolean {
   const httpStatus =
@@ -185,17 +185,17 @@ export interface ConnectionMonitorOptions {
   serverName: string
   transportType: string
   logger: McpClientDependencies['logger']
-  /** Called when the transport should be closed to trigger reconnection */
+  /** 当应关闭传输以触发重连时调用 */
   closeTransport: () => void
-  /** Called to clear connection caches on close */
+  /** 关闭时调用以清除连接缓存 */
   onConnectionClosed?: () => void
 }
 
 /**
- * Installs enhanced error and close handlers on an MCP Client for
- * connection drop detection and automatic reconnection.
+ * 在 MCP Client 上安装增强的错误和关闭处理器，
+ * 用于连接断开检测和自动重连。
  *
- * Returns the cleanup function to remove handlers.
+ * 返回用于移除处理器的清理函数。
  */
 export function installConnectionMonitor(
   client: Client,
@@ -225,7 +225,7 @@ export function installConnectionMonitor(
     })
   }
 
-  // Error handler
+  // 错误处理器
   client.onerror = (error: Error) => {
     const uptime = Date.now() - connectionStartTime
     hasErrorOccurred = true
@@ -234,7 +234,7 @@ export function installConnectionMonitor(
       `[${serverName}] ${transportType.toUpperCase()} connection dropped after ${Math.floor(uptime / 1000)}s uptime`,
     )
 
-    // Session expiry for HTTP transports
+    // HTTP 传输的会话过期
     if (
       (transportType === 'http' || transportType === 'claudeai-proxy') &&
       isMcpSessionExpiredError(error)
@@ -247,7 +247,7 @@ export function installConnectionMonitor(
       return
     }
 
-    // Terminal error tracking for remote transports
+    // 远程传输的终端错误跟踪
     if (
       transportType === 'sse' ||
       transportType === 'http' ||
@@ -277,7 +277,7 @@ export function installConnectionMonitor(
     originalOnerror?.(error)
   }
 
-  // Close handler
+  // 关闭处理器
   client.onclose = () => {
     const uptime = Date.now() - connectionStartTime
     logger.debug(
@@ -288,7 +288,7 @@ export function installConnectionMonitor(
     originalOnclose?.()
   }
 
-  // Return cleanup function
+  // 返回清理函数
   return () => {
     client.onerror = originalOnerror
     client.onclose = originalOnclose
@@ -296,14 +296,14 @@ export function installConnectionMonitor(
 }
 
 // ============================================================================
-// Signal escalation for stdio cleanup
+// stdio 清理的信号升级
 // ============================================================================
 
 /**
- * Terminates a stdio child process with escalating signals:
+ * 使用升级信号终止 stdio 子进程：
  * SIGINT (100ms) → SIGTERM (400ms) → SIGKILL
  *
- * Total maximum cleanup time: ~500ms
+ * 总最大清理时间：约 500ms
  */
 export async function terminateWithSignalEscalation(
   childPid: number,
@@ -350,13 +350,13 @@ export async function terminateWithSignalEscalation(
       }, 600)
 
       try {
-        // Wait 100ms for SIGINT to work
+        // 等待 100ms 让 SIGINT 生效
         await sleep(100)
 
         if (!resolved) {
           try {
             process.kill(childPid, 0)
-            // Process still exists, try SIGTERM
+            // 进程仍存在，尝试 SIGTERM
             logger.debug(`[${serverName}] SIGINT failed, sending SIGTERM`)
             try {
               process.kill(childPid, 'SIGTERM')
@@ -378,7 +378,7 @@ export async function terminateWithSignalEscalation(
             return
           }
 
-          // Wait 400ms for SIGTERM
+          // 等待 400ms 让 SIGTERM 生效
           await sleep(400)
 
           if (!resolved) {
@@ -421,13 +421,13 @@ export async function terminateWithSignalEscalation(
   }
 }
 
-/** Simple sleep utility (avoids importing from host) */
+/** 简单的 sleep 工具函数（避免从宿主导入） */
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 // ============================================================================
-// Cleanup factory
+// 清理工厂函数
 // ============================================================================
 
 export interface CleanupOptions {
@@ -442,8 +442,8 @@ export interface CleanupOptions {
 }
 
 /**
- * Creates a cleanup function for an MCP connection.
- * Handles in-process servers, stderr listener removal, signal escalation, and client close.
+ * 为 MCP 连接创建清理函数。
+ * 处理进程内服务器、stderr 监听器移除、信号升级和客户端关闭。
  */
 export function createCleanup(options: CleanupOptions): () => Promise<void> {
   const {
@@ -458,7 +458,7 @@ export function createCleanup(options: CleanupOptions): () => Promise<void> {
   } = options
 
   return async () => {
-    // In-process servers
+    // 进程内服务器
     if (inProcessServer) {
       try {
         await inProcessServer.close()
@@ -475,15 +475,15 @@ export function createCleanup(options: CleanupOptions): () => Promise<void> {
       return
     }
 
-    // Remove stderr listener
+    // 移除 stderr 监听器
     stderrCleanup?.removeHandler()
 
-    // Signal escalation for stdio
+    // stdio 的信号升级
     if (transportType === 'stdio' && childPid) {
       await terminateWithSignalEscalation(childPid, logger, serverName)
     }
 
-    // Close the client connection (which also closes the transport)
+    // 关闭客户端连接（同时也会关闭传输）
     try {
       await client.close()
     } catch (error) {
@@ -493,7 +493,7 @@ export function createCleanup(options: CleanupOptions): () => Promise<void> {
 }
 
 // ============================================================================
-// Connected server result builder
+// 已连接服务器结果构建器
 // ============================================================================
 
 export interface BuildConnectedServerOptions {
@@ -504,8 +504,8 @@ export interface BuildConnectedServerOptions {
 }
 
 /**
- * Builds a ConnectedMCPServer result from a connected client.
- * Truncates server instructions if they exceed MAX_MCP_DESCRIPTION_LENGTH.
+ * 从已连接的客户端构建 ConnectedMCPServer 结果。
+ * 如果服务器说明超过 MAX_MCP_DESCRIPTION_LENGTH，则截断。
  */
 export function buildConnectedServer(
   options: BuildConnectedServerOptions,

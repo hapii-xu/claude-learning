@@ -23,7 +23,7 @@ describe('recursivelySanitizeUnicode', () => {
   })
 
   test('normalizes to NFC', () => {
-    // é can be composed (U+00E9) or decomposed (U+0065 + U+0301)
+    // é 可以是组合形式 (U+00E9) 或分解形式 (U+0065 + U+0301)
     const decomposed = 'e\u0301'
     const result = recursivelySanitizeUnicode(decomposed)
     expect(result).toBe('é')

@@ -282,7 +282,7 @@ export class QueryEngine {
     const persistSession = !isSessionPersistenceDisabled()
     const startTime = Date.now()
     logForDebugging(
-      `[QueryEngine] submitMessage 开始, prompt长度=${typeof prompt === 'string' ? prompt.length : prompt.length}, 当前消息数=${this.mutableMessages.length}`,
+      `[Hapii] QueryEngine.submitMessage 开始 promptLen=${typeof prompt === 'string' ? prompt.length : prompt.length} msgCount=${this.mutableMessages.length}`,
       { level: 'info' },
     )
 
@@ -1239,7 +1239,7 @@ export class QueryEngine {
     }
 
     logForDebugging(
-      `[QueryEngine] submitMessage 完成, 耗时=${Date.now() - startTime}ms, turn数=${turnCount}`,
+      `[Hapii] QueryEngine.submitMessage 完成 耗时=${Date.now() - startTime}ms turns=${turnCount} finalMsgCount=${this.mutableMessages.length}`,
       { level: 'info' },
     )
     yield {
@@ -1407,6 +1407,10 @@ export async function* ask({
       : {}),
   })
 
+  logForDebugging(
+    `[Hapii] QueryEngine.ask 创建临时引擎，开始 submitMessage promptLen=${typeof prompt === 'string' ? prompt.length : prompt.length} existingMsgs=${mutableMessages.length}`,
+    { level: 'info' },
+  )
   try {
     yield* engine.submitMessage(prompt, {
       uuid: promptUuid,

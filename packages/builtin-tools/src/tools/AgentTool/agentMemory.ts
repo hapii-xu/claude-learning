@@ -6,7 +6,7 @@ import { getCwd } from 'src/utils/cwd.js'
 import { findCanonicalGitRoot } from 'src/utils/git.js'
 import { sanitizePath } from 'src/utils/path.js'
 
-// Persistent agent memory scope: 'user' (~/.claude/agent-memory/), 'project' (.claude/agent-memory/), or 'local' (.claude/agent-memory-local/)
+// 持久化代理记忆作用域：'user' (~/.claude/agent-memory/)、'project' (.claude/agent-memory/) 或 'local' (.claude/agent-memory-local/)
 export type AgentMemoryScope = 'user' | 'project' | 'local'
 
 /**
@@ -61,25 +61,25 @@ export function getAgentMemoryDir(
   }
 }
 
-// Check if file is within an agent memory directory (any scope).
+// 检查文件是否在代理记忆目录内（任意作用域）。
 export function isAgentMemoryPath(absolutePath: string): boolean {
-  // SECURITY: Normalize to prevent path traversal bypasses via .. segments
+  // 安全性：规范化以防止通过 .. 段绕过路径遍历
   const normalizedPath = normalize(absolutePath)
   const memoryBase = getMemoryBaseDir()
 
-  // User scope: check memory base (may be custom dir or config home)
+  // 用户作用域：检查 memory base（可能是自定义目录或配置主目录）
   if (normalizedPath.startsWith(join(memoryBase, 'agent-memory') + sep)) {
     return true
   }
 
-  // Project scope: always cwd-based (not redirected)
+  // 项目作用域：始终基于 cwd（不会被重定向）
   if (
     normalizedPath.startsWith(join(getCwd(), '.claude', 'agent-memory') + sep)
   ) {
     return true
   }
 
-  // Local scope: persisted to mount when CLAUDE_CODE_REMOTE_MEMORY_DIR is set, otherwise cwd-based
+  // 本地作用域：当设置 CLAUDE_CODE_REMOTE_MEMORY_DIR 时持久化到挂载点，否则基于 cwd
   if (process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR) {
     if (
       normalizedPath.includes(sep + 'agent-memory-local' + sep) &&
@@ -154,11 +154,11 @@ export function loadAgentMemoryPrompt(
 
   const memoryDir = getAgentMemoryDir(agentType, scope)
 
-  // Fire-and-forget: this runs at agent-spawn time inside a sync
-  // getSystemPrompt() callback (called from React render in AgentDetail.tsx,
-  // so it cannot be async). The spawned agent won't try to Write until after
-  // a full API round-trip, by which time mkdir will have completed. Even if
-  // it hasn't, FileWriteTool does its own mkdir of the parent directory.
+  // 即发即弃：这在代理生成时运行于同步
+  // getSystemPrompt() 回调内（从 AgentDetail.tsx 的 React 渲染中调用，
+  // 因此不能是异步的）。生成的代理在完整的 API 往返之前
+  // 不会尝试写入，到那时 mkdir 将已完成。即使
+  // 尚未完成，FileWriteTool 也会自己对父目录执行 mkdir。
   void ensureMemoryDirExists(memoryDir)
 
   const coworkExtraGuidelines =

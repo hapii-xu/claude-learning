@@ -77,6 +77,10 @@ export async function* handleStopHooks(
   StopHookResult
 > {
   const hookStartTime = Date.now()
+  logForDebugging(
+    `[Hapii] StopHooks.handleStopHooks 开始 querySource=${querySource} assistantMsgs=${assistantMessages.length} stopHookActive=${stopHookActive ?? false}`,
+    { level: 'info' },
+  )
 
   const stopHookContext: REPLHookContext = {
     messages: [...messagesForQuery, ...assistantMessages],
@@ -335,11 +339,19 @@ export async function* handleStopHooks(
     }
 
     if (preventedContinuation) {
+      logForDebugging(
+        `[Hapii] StopHooks.handleStopHooks 结果 preventContinuation=true reason="${stopReason}"`,
+        { level: 'warn' },
+      )
       return { blockingErrors: [], preventContinuation: true }
     }
 
     // Collect blocking errors from stop hooks
     if (blockingErrors.length > 0) {
+      logForDebugging(
+        `[Hapii] StopHooks.handleStopHooks 结果 blockingErrors=${blockingErrors.length}，将注入错误重试`,
+        { level: 'warn' },
+      )
       return { blockingErrors, preventContinuation: false }
     }
 

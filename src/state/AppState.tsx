@@ -66,7 +66,14 @@ export function AppStateProvider({ children, initialState, onChangeAppState }: P
   // Store 创建一次且永不改变 —— 稳定的上下文值意味着
   // 提供者永不触发重新渲染。消费者通过 useSyncExternalStore
   // 在 useAppState(selector) 中订阅切片。
-  const [store] = useState(() => createStore<AppState>(initialState ?? getDefaultAppState(), onChangeAppState));
+  const [store] = useState(() => {
+    const initial = initialState ?? getDefaultAppState();
+    const s = createStore<AppState>(initial, onChangeAppState);
+    logForDebugging(`[Hapii] AppStateProvider: store 创建完成 permissionMode=${initial.toolPermissionContext.mode}`, {
+      level: 'info',
+    });
+    return s;
+  });
 
   // 在挂载时检查是否应禁用绕过模式
   // 这处理了远程设置在组件挂载前加载的竞争条件，

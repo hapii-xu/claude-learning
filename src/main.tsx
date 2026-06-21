@@ -776,6 +776,9 @@ const _pendingSSH: PendingSSH | undefined = feature('SSH_REMOTE')
  */
 export async function main() {
   profileCheckpoint('main_function_start');
+  logForDebugging(`[Hapii] Main.main 入口 argv=${JSON.stringify(process.argv.slice(2).slice(0, 5))}...`, {
+    level: 'info',
+  });
 
   // 安全：阻止 Windows 从当前目录执行命令
   // 这必须在任何命令执行之前设置，以防 PATH 劫持攻击
@@ -998,6 +1001,11 @@ export async function main() {
   const forceInteractive = isEnvTruthy(process.env.CLAUDE_CODE_FORCE_INTERACTIVE);
   const isNonInteractive = hasPrintFlag || hasInitOnlyFlag || hasSdkUrl || (!forceInteractive && !process.stdout.isTTY);
 
+  logForDebugging(
+    `[Hapii] Main.main 交互性判定 isNonInteractive=${isNonInteractive} hasPrintFlag=${hasPrintFlag} hasInitOnlyFlag=${hasInitOnlyFlag} hasSdkUrl=${hasSdkUrl} isTTY=${process.stdout.isTTY}`,
+    { level: 'info' },
+  );
+
   // 为非交互模式停止捕获早期输入
   if (isNonInteractive) {
     stopCapturingEarlyInput();
@@ -1030,6 +1038,7 @@ export async function main() {
     return 'cli';
   })();
   setClientType(clientType);
+  logForDebugging(`[Hapii] Main.main clientType=${clientType}`, { level: 'info' });
 
   const previewFormat = process.env.CLAUDE_CODE_QUESTION_PREVIEW_FORMAT;
   if (previewFormat === 'markdown' || previewFormat === 'html') {
@@ -1057,6 +1066,7 @@ export async function main() {
 
   profileCheckpoint('main_before_run');
 
+  logForDebugging('[Hapii] Main.main 即将调用 run() 启动 Commander 分发', { level: 'info' });
   await run();
   profileCheckpoint('main_after_run');
 }
@@ -1135,6 +1145,7 @@ async function run(): Promise<CommanderCommand> {
   // 而不是在显示帮助时运行。这避免了使用环境变量信号的需要。
   program.hook('preAction', async thisCommand => {
     profileCheckpoint('preAction_start');
+    logForDebugging(`[Hapii] Main.preAction 触发 command=${thisCommand.name()}`, { level: 'info' });
     // await 模块求值时启动的异步子进程加载（12-20 行）。
     // 基本免费 —— 子进程在上面约 ~135ms 的 import 期间就完成了。
     // 必须在 init() 之前 resolve，因为 init() 会触发首次 settings 读取
@@ -1144,6 +1155,7 @@ async function run(): Promise<CommanderCommand> {
     profileCheckpoint('preAction_after_mdm');
     await init();
     profileCheckpoint('preAction_after_init');
+    logForDebugging('[Hapii] Main.preAction init() 完成', { level: 'info' });
 
     // process.title 在 Windows 上直接设置控制台标题；在 POSIX 上，
     // 终端 shell 集成可能会把进程名镜像到标签页。
@@ -1482,6 +1494,10 @@ async function run(): Promise<CommanderCommand> {
     )
     .action(async (prompt, options) => {
       profileCheckpoint('action_handler_start');
+      logForDebugging(
+        `[Hapii] Main.action 启动 hasPrompt=${!!prompt} options=${JSON.stringify(Object.keys(options as object))}`,
+        { level: 'info' },
+      );
 
       // --bare = 一键切换的最小模式。设置 SIMPLE，让所有现有的
       // gate 触发（CLAUDE.md、skills、executeHooks 内的 hooks、agent
@@ -3168,6 +3184,7 @@ async function run(): Promise<CommanderCommand> {
 
       // --print 模式
       if (isNonInteractiveSession) {
+        logForDebugging(`[Hapii] Main.action 进入非交互模式 outputFormat=${outputFormat}`, { level: 'info' });
         if (outputFormat === 'stream-json' || outputFormat === 'json') {
           setHasFormattedOutput(true);
         }
@@ -3772,6 +3789,7 @@ async function run(): Promise<CommanderCommand> {
           process.exit(1);
         }
       } else if (feature('DIRECT_CONNECT') && _pendingConnect?.url) {
+        logForDebugging(`[Hapii] Main.action 进入 direct-connect 模式 url=${_pendingConnect.url}`, { level: 'info' });
         // `claude connect <url>` —— 连接到远程 server 的完整交互式 TUI
         let directConnectConfig;
         try {
@@ -3817,6 +3835,9 @@ async function run(): Promise<CommanderCommand> {
         );
         return;
       } else if (feature('SSH_REMOTE') && _pendingSSH?.host) {
+        logForDebugging(`[Hapii] Main.action 进入 SSH 模式 host=${_pendingSSH.host} local=${!!_pendingSSH.local}`, {
+          level: 'info',
+        });
         // `claude ssh <host> [dir]` —— 探测远端、必要时部署二进制、
         // 启动 ssh 并通过 unix-socket -R 转发到本地 auth proxy，
         // 把 SSHSession 交给 REPL。工具在远端运行，UI 在本地渲染。
@@ -4021,6 +4042,10 @@ async function run(): Promise<CommanderCommand> {
         );
         return;
       } else if (options.resume || options.fromPr || teleport || remote !== null) {
+        logForDebugging(
+          `[Hapii] Main.action 进入 resume 模式 resume=${options.resume} fromPr=${options.fromPr} teleport=${!!teleport} remote=${remote}`,
+          { level: 'info' },
+        );
         // 处理 resume 流程 —— 来自文件（仅 ant）、session ID 或交互式选择器
 
         // resume 之前清理过期缓存，确保文件/skill 发现是新鲜的
@@ -4431,6 +4456,7 @@ async function run(): Promise<CommanderCommand> {
         }
 
         // 若已有处理过的 resume 或 teleport 消息，渲染 REPL
+        logForDebugging('[Hapii] Main.action 即将挂载 REPL', { level: 'info' });
         const resumeData =
           processedResume ??
           (Array.isArray(messages)
@@ -4477,6 +4503,7 @@ async function run(): Promise<CommanderCommand> {
           });
         }
       } else {
+        logForDebugging('[Hapii] Main.action 进入全新会话模式（非 resume/connect/SSH）', { level: 'info' });
         // 把未解析的 hooks promise 传给 REPL，让它能立即渲染，
         // 而不是阻塞 ~500ms 等 SessionStart hooks 跑完。
         // REPL 会在 hooks resolve 后注入 hook 消息，并在首次 API 调用前

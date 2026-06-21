@@ -1,12 +1,12 @@
-// MCP string utility functions — pure, no dependencies
-// Extracted from src/services/mcp/mcpStringUtils.ts and normalization.ts
+// MCP 字符串工具函数 — 纯函数，无依赖
+// 提取自 src/services/mcp/mcpStringUtils.ts 和 normalization.ts
 
-// Claude.ai server names are prefixed with this string
+// Claude.ai 服务器名称此前缀开头
 const CLAUDEAI_SERVER_PREFIX = 'claude.ai '
 
 /**
- * Normalize server names to be compatible with the API pattern ^[a-zA-Z0-9_-]{1,64}$
- * Replaces any invalid characters (including dots and spaces) with underscores.
+ * 规范化服务器名称以符合 API 模式 ^[a-zA-Z0-9_-]{1,64}$
+ * 将任何无效字符（包括点和空格）替换为下划线。
  */
 export function normalizeNameForMCP(name: string): string {
   let normalized = name.replace(/[^a-zA-Z0-9_-]/g, '_')
@@ -17,23 +17,23 @@ export function normalizeNameForMCP(name: string): string {
 }
 
 /**
- * Generates the MCP tool/command name prefix for a given server
+ * 生成给定服务器的 MCP 工具/命令名称前缀
  */
 export function getMcpPrefix(serverName: string): string {
   return `mcp__${normalizeNameForMCP(serverName)}__`
 }
 
 /**
- * Builds a fully qualified MCP tool name from server and tool names.
- * Inverse of mcpInfoFromString().
+ * 从服务器名称和工具名称构建完全限定的 MCP 工具名称。
+ * mcpInfoFromString() 的逆操作。
  */
 export function buildMcpToolName(serverName: string, toolName: string): string {
   return `${getMcpPrefix(serverName)}${normalizeNameForMCP(toolName)}`
 }
 
 /**
- * Extracts MCP server information from a tool name string.
- * @param toolString Expected format: "mcp__serverName__toolName"
+ * 从工具名称字符串中提取 MCP 服务器信息。
+ * @param toolString 预期格式："mcp__serverName__toolName"
  */
 export function mcpInfoFromString(toolString: string): {
   serverName: string
@@ -50,7 +50,7 @@ export function mcpInfoFromString(toolString: string): {
 }
 
 /**
- * Returns the name to use for permission rule matching.
+ * 返回用于权限规则匹配的名称。
  */
 export function getToolNameForPermissionCheck(tool: {
   name: string
@@ -62,7 +62,7 @@ export function getToolNameForPermissionCheck(tool: {
 }
 
 /**
- * Extracts the display name from an MCP tool/command name
+ * 从 MCP 工具/命令名称中提取显示名称
  */
 export function getMcpDisplayName(
   fullName: string,
@@ -73,7 +73,7 @@ export function getMcpDisplayName(
 }
 
 /**
- * Extracts just the tool/command display name from a userFacingName
+ * 从 userFacingName 中仅提取工具/命令的显示名称
  */
 export function extractMcpToolDisplayName(userFacingName: string): string {
   let withoutSuffix = userFacingName.replace(/\s*\(MCP\)\s*$/, '')

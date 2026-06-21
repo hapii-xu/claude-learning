@@ -151,18 +151,18 @@ describe('createCachedToolDiscovery', () => {
       capabilities: { tools: {} },
     } as unknown as ConnectedMCPServer
 
-    // First call — should fetch
+    // 第一次调用 — 应该获取
     const result1 = await discover(mockConn)
     expect(result1).toHaveLength(1)
 
-    // Second call — should use cache
+    // 第二次调用 — 应该使用缓存
     const result2 = await discover(mockConn)
     expect(result2).toHaveLength(1)
 
-    // Request was called only once
+    // 请求应该只被调用一次
     expect(mockConn.client.request).toHaveBeenCalledTimes(1)
 
-    // Cache delete works
+    // 缓存删除应该生效
     cache.delete('cached-server')
     const result3 = await discover(mockConn)
     expect(result3).toHaveLength(1)

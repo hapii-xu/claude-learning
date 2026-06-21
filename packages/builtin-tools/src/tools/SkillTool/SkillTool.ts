@@ -588,6 +588,9 @@ export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
     parentMessage,
     onProgress?,
   ): Promise<ToolResult<Output>> {
+    logForDebugging(`[Hapii] SkillTool.call 执行 skill=${skill}`, {
+      level: 'info',
+    })
     // At this point, validateInput has already confirmed:
     // - Skill format is valid
     // - Skill exists

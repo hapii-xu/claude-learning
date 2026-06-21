@@ -150,6 +150,10 @@ export async function processUserInput({
       ? input.slice(0, 80).replace(/\n/g, '\\n')
       : `ContentBlock[${input.length}]`
   logForDebugging(
+    `[Hapii] ProcessUserInput 开始 type=${typeof input === 'string' ? '文本' : 'ContentBlock'} mode=${mode} isMeta=${!!isMeta}`,
+    { level: 'info' },
+  )
+  logForDebugging(
     `[输入处理] processUserInput 开始, 类型=${typeof input === 'string' ? '文本' : 'ContentBlock'}, 内容预览="${inputPreview}${typeof input === 'string' && input.length > 80 ? '...' : ''}"`,
     { level: 'info' },
   )

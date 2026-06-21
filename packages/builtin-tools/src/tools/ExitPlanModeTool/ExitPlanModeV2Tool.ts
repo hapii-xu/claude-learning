@@ -77,12 +77,12 @@ export type AllowedPrompt = z.infer<ReturnType<typeof allowedPromptSchema>>
 const inputSchema = lazySchema(() =>
   z
     .strictObject({
-      // Prompt-based permissions requested by the plan
+      // 计划请求的基于提示词的权限
       allowedPrompts: z
         .array(allowedPromptSchema())
         .optional()
         .describe(
-          'Prompt-based permissions needed to implement the plan. These describe categories of actions rather than specific commands.',
+          '实现计划所需的基于提示词的权限。这些描述的是操作类别而不是特定命令。',
         ),
     })
     .passthrough(),
@@ -90,20 +90,20 @@ const inputSchema = lazySchema(() =>
 type InputSchema = ReturnType<typeof inputSchema>
 
 /**
- * SDK-facing input schema - includes fields injected by normalizeToolInput.
- * The internal inputSchema doesn't have these fields because plan is read from disk,
- * but the SDK/hooks see the normalized version with plan and file path included.
+ * SDK 面向的输入 schema - 包含由 normalizeToolInput 注入的字段。
+ * 内部 inputSchema 没有这些字段，因为计划是从磁盘读取的，
+ * 但 SDK/hooks 看到的是包含计划和文件路径的标准化版本。
  */
 export const _sdkInputSchema = lazySchema(() =>
   inputSchema().extend({
     plan: z
       .string()
       .optional()
-      .describe('The plan content (injected by normalizeToolInput from disk)'),
+      .describe('计划内容（由 normalizeToolInput 从磁盘注入）'),
     planFilePath: z
       .string()
       .optional()
-      .describe('The plan file path (injected by normalizeToolInput)'),
+      .describe('计划文件路径（由 normalizeToolInput 注入）'),
   }),
 )
 
@@ -165,9 +165,9 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
   },
   shouldDefer: true,
   isEnabled() {
-    // When --channels is active the user is likely on Telegram/Discord, not
-    // watching the TUI. The plan-approval dialog would hang. Paired with the
-    // same gate on EnterPlanMode so plan mode isn't a trap.
+    // 当 --channels 处于活动状态时，用户可能在 Telegram/Discord 上，
+    // 而不是在观看 TUI。计划审批对话框会挂起。与 EnterPlanMode 上的
+    // 相同门控配对，这样计划模式就不会成为陷阱。
     if (
       (feature('KAIROS') || feature('KAIROS_CHANNELS')) &&
       getAllowedChannels().length > 0
@@ -180,27 +180,28 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
     return true
   },
   isReadOnly() {
-    return false // Now writes to disk
+    return false // 现在写入磁盘
   },
   requiresUserInteraction() {
-    // For ALL teammates, no local user interaction needed:
-    // - If isPlanModeRequired(): team lead approves via mailbox
-    // - Otherwise: exits locally without approval (voluntary plan mode)
+    // 对于所有队友，不需要本地用户交互：
+    // - 如果 isPlanModeRequired()：团队负责人通过邮箱审批
+    // - 否则：无需审批在本地退出（自愿计划模式）
     if (isTeammate()) {
       return false
     }
-    // For non-teammates, require user confirmation to exit plan mode
+    // 对于非队友，需要用户确认才能退出计划模式
     return true
   },
   async validateInput(_input, { getAppState, options }) {
-    // Teammate AppState may show leader's mode (runAgent.ts skips override in
-    // acceptEdits/bypassPermissions/auto); isPlanModeRequired() is the real source
+    // 队友 AppState 可能显示负责人的模式（runAgent.ts 在
+    // acceptEdits/bypassPermissions/auto 中跳过覆盖）；
+    // isPlanModeRequired() 是真正的来源
     if (isTeammate()) {
       return { result: true }
     }
-    // The deferred-tool list announces this tool regardless of mode, so the
-    // model can call it after plan approval (fresh delta on compact/clear).
-    // Reject before checkPermissions to avoid showing the approval dialog.
+    // 延迟工具列表无论模式如何都会宣布此工具，这样模型
+    // 可以在计划审批后调用它（压缩/清除后的新增量）。
+    // 在 checkPermissions 之前拒绝以避免显示审批对话框。
     const mode = getAppState().toolPermissionContext.mode
     if (mode !== 'plan') {
       logEvent('tengu_exit_plan_mode_called_outside_plan', {
@@ -219,10 +220,10 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
     return { result: true }
   },
   async checkPermissions(input, context) {
-    // For ALL teammates, bypass the permission UI to avoid sending permission_request
-    // The call() method handles the appropriate behavior:
-    // - If isPlanModeRequired(): sends plan_approval_request to leader
-    // - Otherwise: exits plan mode locally (voluntary plan mode)
+    // 对于所有队友，绕过权限 UI 以避免发送 permission_request
+    // call() 方法处理适当的行为：
+    // - 如果 isPlanModeRequired()：向负责人发送 plan_approval_request
+    // - 否则：在本地退出计划模式（自愿计划模式）
     if (isTeammate()) {
       return {
         behavior: 'allow' as const,
@@ -230,7 +231,7 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
       }
     }
 
-    // For non-teammates, require user confirmation to exit plan mode
+    // 对于非队友，需要用户确认才能退出计划模式
     return {
       behavior: 'ask' as const,
       message: 'Exit plan mode?',
@@ -241,28 +242,33 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
   renderToolResultMessage,
   renderToolUseRejectedMessage,
   async call(input, context) {
+    const { logForDebugging } = await import('src/utils/debug.js')
+    logForDebugging(
+      `[Hapii] ExitPlanMode 退出计划模式 isAgent=${!!context.agentId}`,
+      { level: 'info' },
+    )
     const isAgent = !!context.agentId
 
     const filePath = getPlanFilePath(context.agentId)
-    // CCR web UI may send an edited plan via permissionResult.updatedInput.
-    // queryHelpers.ts full-replaces finalInput, so when CCR sends {} (no edit)
-    // input.plan is undefined -> disk fallback. The internal inputSchema omits
-    // `plan` (normally injected by normalizeToolInput), hence the narrowing.
+    // CCR web UI 可能通过 permissionResult.updatedInput 发送编辑后的计划。
+    // queryHelpers.ts 完全替换 finalInput，因此当 CCR 发送 {}（无编辑）时
+    // input.plan 是 undefined -> 磁盘回退。内部 inputSchema 省略了
+    // `plan`（通常由 normalizeToolInput 注入），因此需要类型收窄。
     const inputPlan =
       'plan' in input && typeof input.plan === 'string' ? input.plan : undefined
     const plan = inputPlan ?? getPlan(context.agentId)
 
-    // Sync disk so VerifyPlanExecution / Read see the edit. Re-snapshot
-    // after: the only other persistFileSnapshotIfRemote call (api.ts) runs
-    // in normalizeToolInput, pre-permission — it captured the old plan.
+    // 同步磁盘以便 VerifyPlanExecution / Read 看到编辑。之后重新快照：
+    // 唯一其他的 persistFileSnapshotIfRemote 调用（api.ts）在
+    // normalizeToolInput 中运行，权限之前——它捕获了旧计划。
     if (inputPlan !== undefined && filePath) {
       await writeFile(filePath, inputPlan, 'utf-8').catch(e => logError(e))
       void persistFileSnapshotIfRemote()
     }
 
-    // Check if this is a teammate that requires leader approval
+    // 检查这是否是需要同伴审批的队友
     if (isTeammate() && isPlanModeRequired()) {
-      // Plan is required for plan_mode_required teammates
+      // 对于 plan_mode_required 的队友，计划是必需的
       if (!plan) {
         throw new Error(
           `No plan file found at ${filePath}. Please write your plan to this file before calling ExitPlanMode.`,
@@ -294,7 +300,7 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
         teamName,
       )
 
-      // Update task state to show awaiting approval (for in-process teammates)
+      // 更新任务状态以显示等待审批（对于进程内队友）
       const appState = context.getAppState()
       const agentTaskId = findInProcessTeammateTaskId(agentName, appState)
       if (agentTaskId) {
@@ -312,10 +318,10 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
       }
     }
 
-    // Note: Background verification hook is registered in REPL.tsx AFTER context clear
-    // via registerPlanVerificationHook(). Registering here would be cleared during context clear.
+    // 注意：后台验证 hook 在 REPL.tsx 中上下文清除之后通过
+    // registerPlanVerificationHook() 注册。在此处注册会在上下文清除期间被清除。
 
-    // Ensure mode is changed when exiting plan mode.
+    // 确保退出计划模式时模式已更改。
     // This handles cases where permission flow didn't set the mode
     // (e.g., when PermissionRequest hook auto-approves without providing updatedPermissions).
     const appState = context.getAppState()

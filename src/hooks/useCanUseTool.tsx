@@ -60,6 +60,7 @@ function useCanUseTool(
           createPermissionQueueOps(setToolUseConfirmQueue),
         );
 
+        logForDebugging(`[Hapii] CanUseTool 入口 tool=${tool.name} id=${toolUseID}`, { level: 'info' });
         logForDebugging(`[权限] 请求权限 tool=${tool.name} id=${toolUseID}`, { level: 'info' });
         if (ctx.resolveIfAborted(resolve)) return;
 
@@ -96,6 +97,7 @@ function useCanUseTool(
 
               ctx.logDecision({ decision: 'accept', source: 'config' });
 
+              logForDebugging(`[Hapii] CanUseTool 结果=allow tool=${tool.name}`, { level: 'info' });
               logForDebugging(`[权限] ${tool.name} 权限结果=allow`, { level: 'info' });
               resolve(
                 ctx.buildAllow(result.updatedInput ?? input, {

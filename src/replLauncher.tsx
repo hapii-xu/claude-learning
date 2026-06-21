@@ -4,6 +4,7 @@ import type { Root } from '@anthropic/ink';
 import type { Props as REPLProps } from './screens/REPL.js';
 import type { AppState } from './state/AppStateStore.js';
 import type { FpsMetrics } from './utils/fpsTracker.js';
+import { logForDebugging } from './utils/debug.js';
 
 type AppWrapperProps = {
   getFpsMetrics: () => FpsMetrics | undefined;
@@ -31,9 +32,14 @@ export async function launchRepl(
   replProps: REPLProps,
   renderAndRun: (root: Root, element: React.ReactNode) => Promise<void>,
 ): Promise<void> {
+  logForDebugging(
+    `[Hapii] REPL.launchRepl 入口 initialMessages=${replProps.initialMessages?.length ?? 0} hasAgent=${!!replProps.mainThreadAgentDefinition} isRemote=${!!replProps.remoteSessionConfig}`,
+    { level: 'info' },
+  );
   const { App } = await import('./components/App.js');
   const { SentryErrorBoundary } = await import('./components/SentryErrorBoundary.js');
   const { REPL } = await import('./screens/REPL.js');
+  logForDebugging('[Hapii] REPL.launchRepl 组件加载完成，即将挂载组件树', { level: 'info' });
   await renderAndRun(
     root,
     <SentryErrorBoundary name="RootREPLBoundary">

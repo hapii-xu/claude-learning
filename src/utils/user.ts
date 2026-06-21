@@ -11,12 +11,12 @@ import { getCwd } from './cwd.js'
 import { type env, getHostPlatformForAnalytics } from './env.js'
 import { isEnvTruthy } from './envUtils.js'
 
-// Cache for email fetched asynchronously at startup
-let cachedEmail: string | undefined | null = null // null means not fetched yet
+// 启动时异步获取的 email 缓存
+let cachedEmail: string | undefined | null = null // null 表示尚未获取
 let emailFetchPromise: Promise<string | undefined> | null = null
 
 /**
- * GitHub Actions metadata when running in CI
+ * 在 CI 中运行时的 GitHub Actions 元数据
  */
 export type GitHubActionsMetadata = {
   actor?: string
@@ -28,8 +28,8 @@ export type GitHubActionsMetadata = {
 }
 
 /**
- * Core user data used as base for all analytics providers.
- * This is also the format used by GrowthBook.
+ * 核心用户数据，作为所有分析提供者的基础。
+ * 这也是 GrowthBook 使用的格式。
  */
 export type CoreUserData = {
   deviceId: string
@@ -47,22 +47,22 @@ export type CoreUserData = {
 }
 
 /**
- * Initialize user data asynchronously. Should be called early in startup.
- * This pre-fetches the email so getUser() can remain synchronous.
+ * 异步初始化用户数据。应在启动早期调用。
+ * 这会预获取 email 以便 getUser() 保持同步。
  */
 export async function initUser(): Promise<void> {
   if (cachedEmail === null && !emailFetchPromise) {
     emailFetchPromise = getEmailAsync()
     cachedEmail = await emailFetchPromise
     emailFetchPromise = null
-    // Clear memoization cache so next call picks up the email
+    // 清除记忆化缓存，以便下次调用时获取 email
     getCoreUserData.cache.clear?.()
   }
 }
 
 /**
- * Reset all user data caches. Call on auth changes (login/logout/account switch)
- * so the next getCoreUserData() call picks up fresh credentials and email.
+ * 重置所有用户数据缓存。在认证变更（登录/登出/账户切换）时调用，
+ * 以便下次 getCoreUserData() 调用时获取新的凭证和 email。
  */
 export function resetUserCache(): void {
   cachedEmail = null
@@ -72,8 +72,8 @@ export function resetUserCache(): void {
 }
 
 /**
- * Get core user data.
- * This is the base representation that gets transformed for different analytics providers.
+ * 获取核心用户数据。
+ * 这是基础表示，会被转换为不同分析提供者所需的格式。
  */
 export const getCoreUserData = memoize(
   (includeAnalyticsMetadata?: boolean): CoreUserData => {
@@ -96,7 +96,7 @@ export const getCoreUserData = memoize(
       }
     }
 
-    // Only include OAuth account data when actively using OAuth authentication
+    // 仅在使用 OAuth 认证时包含 OAuth 账户数据
     const oauthAccount = getOauthAccountInfo()
     const organizationUuid = oauthAccount?.organizationUuid
     const accountUuid = oauthAccount?.accountUuid
@@ -128,25 +128,25 @@ export const getCoreUserData = memoize(
 )
 
 /**
- * Get user data for GrowthBook (same as core data with analytics metadata).
+ * 获取 GrowthBook 使用的用户数据（与带分析元数据的核心数据相同）。
  */
 export function getUserForGrowthBook(): CoreUserData {
   return getCoreUserData(true)
 }
 
 function getEmail(): string | undefined {
-  // Return cached email if available (from async initialization)
+  // 如果缓存可用则返回（来自异步初始化）
   if (cachedEmail !== null) {
     return cachedEmail
   }
 
-  // Only include OAuth email when actively using OAuth authentication
+  // 仅在使用 OAuth 认证时包含 OAuth email
   const oauthAccount = getOauthAccountInfo()
   if (oauthAccount?.emailAddress) {
     return oauthAccount.emailAddress
   }
 
-  // Ant-only fallbacks below (no execSync)
+  // 以下是 Ant 专属的回退逻辑（不使用 execSync）
   if (process.env.USER_TYPE !== 'ant') {
     return undefined
   }
@@ -155,18 +155,18 @@ function getEmail(): string | undefined {
     return `${process.env.COO_CREATOR}@anthropic.com`
   }
 
-  // If initUser() wasn't called, we return undefined instead of blocking
+  // 如果 initUser() 未被调用，返回 undefined 而非阻塞
   return undefined
 }
 
 async function getEmailAsync(): Promise<string | undefined> {
-  // Only include OAuth email when actively using OAuth authentication
+  // 仅在使用 OAuth 认证时包含 OAuth email
   const oauthAccount = getOauthAccountInfo()
   if (oauthAccount?.emailAddress) {
     return oauthAccount.emailAddress
   }
 
-  // Ant-only fallbacks below
+  // 以下是 Ant 专属的回退逻辑
   if (process.env.USER_TYPE !== 'ant') {
     return undefined
   }
@@ -179,8 +179,8 @@ async function getEmailAsync(): Promise<string | undefined> {
 }
 
 /**
- * Get the user's git email from `git config user.email`.
- * Memoized so the subprocess only spawns once per process.
+ * 从 `git config user.email` 获取用户的 git email。
+ * 使用记忆化，因此子进程在每个进程中只启动一次。
  */
 export const getGitEmail = memoize(async (): Promise<string | undefined> => {
   const result = await execa('git config --get user.email', {

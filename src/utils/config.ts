@@ -1324,6 +1324,9 @@ let configReadingAllowed = false
 export function enableConfigs(): void {
   if (configReadingAllowed) {
     // 保持幂等
+    logForDebugging('[Hapii] enableConfigs: 已允许（幂等跳过）', {
+      level: 'info',
+    })
     return
   }
 
@@ -1333,6 +1336,10 @@ export function enableConfigs(): void {
   // 在该 flag 被设置前对配置的任何读取都会在控制台报警，
   // 防止我们在模块初始化期间加入配置读取
   configReadingAllowed = true
+  logForDebugging(
+    '[Hapii] enableConfigs: configReadingAllowed=true，正在校验全局配置',
+    { level: 'info' },
+  )
   // 仅检查全局配置，因为目前所有配置共用一个文件
   getConfig(
     getGlobalClaudeFile(),

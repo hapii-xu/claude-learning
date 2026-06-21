@@ -1,37 +1,37 @@
 /**
- * Early Input Capture
+ * 早期输入捕获
  *
- * This module captures terminal input that is typed before the REPL is fully
- * initialized. Users often type `claude` and immediately start typing their
- * prompt, but those early keystrokes would otherwise be lost during startup.
+ * 本模块在 REPL 尚未完成初始化时，捕获用户在终端中提前键入的内容。
+ * 用户往往在输入 `claude` 后就立刻开始输入提示词，但这些早期按键
+ * 在启动过程中本会被丢弃。
  *
- * Usage:
- * 1. Call startCapturingEarlyInput() as early as possible in cli.tsx
- * 2. When REPL is ready, call consumeEarlyInput() to get any buffered text
- * 3. stopCapturingEarlyInput() is called automatically when input is consumed
+ * 用法：
+ * 1. 在 cli.tsx 启动时尽早调用 startCapturingEarlyInput()
+ * 2. REPL 就绪后，调用 consumeEarlyInput() 获取缓冲区中的文本
+ * 3. stopCapturingEarlyInput() 会在输入被消费时自动调用
  */
 
 import { lastGrapheme } from './intl.js'
 
-// Buffer for early input characters
+// 早期输入字符缓冲区
 let earlyInputBuffer = ''
-// Flag to track if we're currently capturing
+// 是否正在捕获的标志
 let isCapturing = false
-// Reference to the readable handler so we can remove it later
+// readable 事件处理函数引用，以便后续移除
 let readableHandler: (() => void) | null = null
-// Safety valve: auto-cleanup after timeout so stdin.ref() never leaks
+// 安全阀：超时后自动清理，防止 stdin.ref() 泄漏
 let safetyTimer: ReturnType<typeof setTimeout> | null = null
 
 /**
- * Start capturing stdin data early, before the REPL is initialized.
- * Should be called as early as possible in the startup sequence.
+ * 尽早开始捕获 stdin 数据，在 REPL 初始化之前。
+ * 应在启动序列中尽早调用。
  *
- * Only captures if stdin is a TTY (interactive terminal).
+ * 仅当 stdin 为 TTY（交互式终端）时才进行捕获。
  */
 export function startCapturingEarlyInput(): void {
-  // Only capture in interactive mode: stdin must be a TTY, and we must not
-  // be in print mode. Raw mode disables ISIG (terminal Ctrl+C → SIGINT),
-  // which would make -p uninterruptible.
+  // 仅在交互模式下捕获：stdin 必须是 TTY，且不能处于
+  // print 模式。Raw 模式会禁用 ISIG（终端 Ctrl+C → SIGINT），
+  // 这会导致 -p 模式无法被中断。
   if (
     !process.stdin.isTTY ||
     isCapturing ||
@@ -44,8 +44,8 @@ export function startCapturingEarlyInput(): void {
   isCapturing = true
   earlyInputBuffer = ''
 
-  // Set stdin to raw mode and use 'readable' event like Ink does
-  // This ensures compatibility with how the REPL will handle stdin later
+  // 将 stdin 设为 raw 模式，并使用 'readable' 事件（与 Ink 一致）
+  // 这确保与 REPL 后续处理 stdin 的方式兼容
   try {
     process.stdin.setEncoding('utf8')
     process.stdin.setRawMode(true)
@@ -63,16 +63,17 @@ export function startCapturingEarlyInput(): void {
 
     process.stdin.on('readable', readableHandler)
 
-    // Safety valve: if Ink never takes over within 10s (e.g. setup dialog
-    // stalls, or an error prevents Ink mount on Windows), unref stdin so
-    // the process doesn't hang forever. The REPL's Ink App normally calls
-    // consumeEarlyInput() → stopCapturingEarlyInput() long before this.
+    // 安全阀：如果 Ink 在 10 秒内未接管（例如设置对话框
+    // 卡住，或 Windows 上出错导致 Ink 无法挂载），
+    // 则 unref stdin 以避免进程永久挂起。
+    // REPL 的 Ink App 通常会在此之前调用
+    // consumeEarlyInput() → stopCapturingEarlyInput()。
     safetyTimer = setTimeout(() => {
       if (isCapturing) {
         stopCapturingEarlyInput()
       }
     }, 10_000)
-    // Don't let the timer itself keep the event loop alive
+    // 不要让定时器本身保持事件循环活跃
     if (
       safetyTimer &&
       typeof safetyTimer === 'object' &&
@@ -81,13 +82,13 @@ export function startCapturingEarlyInput(): void {
       safetyTimer.unref()
     }
   } catch {
-    // If we can't set raw mode, just silently continue without early capture
+    // 如果无法设置 raw 模式，静默继续，不进行早期捕获
     isCapturing = false
   }
 }
 
 /**
- * Process a chunk of input data
+ * 处理一块输入数据
  */
 function processChunk(str: string): void {
   let i = 0
@@ -95,23 +96,23 @@ function processChunk(str: string): void {
     const char = str[i]!
     const code = char.charCodeAt(0)
 
-    // Ctrl+C (code 3) - stop capturing and exit immediately.
-    // We use process.exit here instead of gracefulShutdown because at this
-    // early stage of startup, the shutdown machinery isn't initialized yet.
+    // Ctrl+C（code 3）- 停止捕获并立即退出。
+    // 此处使用 process.exit 而非 gracefulShutdown，因为在启动的
+    // 早期阶段，关闭机制尚未初始化。
     if (code === 3) {
       stopCapturingEarlyInput()
       // eslint-disable-next-line custom-rules/no-process-exit
-      process.exit(130) // Standard exit code for Ctrl+C
+      process.exit(130) // Ctrl+C 的标准退出码
       return
     }
 
-    // Ctrl+D (code 4) - EOF, stop capturing
+    // Ctrl+D（code 4）- EOF，停止捕获
     if (code === 4) {
       stopCapturingEarlyInput()
       return
     }
 
-    // Backspace (code 127 or 8) - remove last grapheme cluster
+    // 退格键（code 127 或 8）- 删除最后一个字形簇
     if (code === 127 || code === 8) {
       if (earlyInputBuffer.length > 0) {
         const last = lastGrapheme(earlyInputBuffer)
@@ -121,19 +122,19 @@ function processChunk(str: string): void {
       continue
     }
 
-    // Skip escape sequences (arrow keys, function keys, focus events, etc.)
-    // All escape sequences start with ESC (0x1B).
+    // 跳过转义序列（方向键、功能键、焦点事件等）
+    // 所有转义序列以 ESC（0x1B）开头。
     if (code === 27) {
-      i++ // Skip the ESC character
+      i++ // 跳过 ESC 字符
       if (i >= str.length) continue
 
       const next = str.charCodeAt(i)!
 
-      // CSI sequences: ESC [ ... <final_byte 0x40-0x7E>
-      // e.g. \x1b[?64;1;2;4;6;17;18;21;22c (DA1 response)
+      // CSI 序列：ESC [ ... <终止字节 0x40-0x7E>
+      // 例如 \x1b[?64;1;2;4;6;17;18;21;22c（DA1 响应）
       if (next === 0x5b /* [ */) {
-        i++ // skip '['
-        // Skip parameter bytes (0x30-0x3F) and intermediate bytes (0x20-0x2F)
+        i++ // 跳过 '['
+        // 跳过参数字节（0x30-0x3F）和中间字节（0x20-0x2F）
         while (
           i < str.length &&
           str.charCodeAt(i)! >= 0x20 &&
@@ -141,7 +142,7 @@ function processChunk(str: string): void {
         ) {
           i++
         }
-        // Skip the final byte (0x40-0x7E)
+        // 跳过终止字节（0x40-0x7E）
         if (
           i < str.length &&
           str.charCodeAt(i)! >= 0x40 &&
@@ -151,61 +152,61 @@ function processChunk(str: string): void {
         continue
       }
 
-      // String sequences: DCS (P), OSC (]), SOS (X), PM (^)
-      // These end with BEL (0x07) or ST (ESC \)
+      // 字符串序列：DCS (P)、OSC (])、SOS (X)、PM (^)
+      // 以 BEL (0x07) 或 ST (ESC \) 终止
       if (
         next === 0x50 /* P */ ||
         next === 0x5d /* ] */ ||
         next === 0x58 /* X */ ||
         next === 0x5e /* ^ */
       ) {
-        i++ // skip the introducer
+        i++ // 跳过引入符
         while (i < str.length) {
           if (str.charCodeAt(i) === 0x07) {
             i++
             break
-          } // BEL terminates
+          } // BEL 终止
           if (
             str.charCodeAt(i) === 0x1b &&
             i + 1 < str.length &&
             str.charCodeAt(i + 1)! === 0x5c
           ) {
             i += 2
-            break // ESC \ (ST) terminates
+            break // ESC \ (ST) 终止
           }
           i++
         }
         continue
       }
 
-      // SS2 (N), SS3 (O) — 2-byte sequences, just skip both
-      // Other simple escape sequences: ESC <byte 0x40-0x7E> — just skip the one byte
+      // SS2 (N)、SS3 (O) — 2 字节序列，跳过两个字节
+      // 其他简单转义序列：ESC <字节 0x40-0x7E> — 跳过一个字节
       if (i < str.length) i++
       continue
     }
 
-    // Skip other control characters (except tab and newline)
+    // 跳过其他控制字符（制表符和换行符除外）
     if (code < 32 && code !== 9 && code !== 10 && code !== 13) {
       i++
       continue
     }
 
-    // Convert carriage return to newline
+    // 将回车符转换为换行符
     if (code === 13) {
       earlyInputBuffer += '\n'
       i++
       continue
     }
 
-    // Add printable characters and allowed control chars to buffer
+    // 将可打印字符和允许的控制字符加入缓冲区
     earlyInputBuffer += char
     i++
   }
 }
 
 /**
- * Stop capturing early input.
- * Called automatically when input is consumed, or can be called manually.
+ * 停止捕获早期输入。
+ * 在输入被消费时自动调用，也可手动调用。
  */
 export function stopCapturingEarlyInput(): void {
   if (!isCapturing) {
@@ -214,7 +215,7 @@ export function stopCapturingEarlyInput(): void {
 
   isCapturing = false
 
-  // Clear safety timer
+  // 清除安全定时器
   if (safetyTimer) {
     clearTimeout(safetyTimer)
     safetyTimer = null
@@ -225,29 +226,28 @@ export function stopCapturingEarlyInput(): void {
     readableHandler = null
   }
 
-  // Undo the ref() from startCapturingEarlyInput so the event loop isn't
-  // kept alive if Ink never takes over (e.g. raw mode unsupported on
-  // Windows Node.js, or an error during setup). Ink's own
-  // handleSetRawMode(true) calls stdin.ref() again, and its
-  // handleSetRawMode(false) / unmount path calls stdin.unref(), so this
-  // unref is safe even when Ink does take over — the two ref/unref calls
-  // balance out.
+  // 撤销 startCapturingEarlyInput 中的 ref()，防止 Ink 未接管时
+  // 事件循环被保持（例如 Windows Node.js 不支持 raw 模式，
+  // 或设置过程中出错）。Ink 的 handleSetRawMode(true) 会再次
+  // 调用 stdin.ref()，其 handleSetRawMode(false) / 卸载路径会
+  // 调用 stdin.unref()，因此即使 Ink 接管了，这里的 unref 也是
+  // 安全的 —— 两次 ref/unref 调用相互抵消。
   try {
     process.stdin.unref()
   } catch {
-    // stdin may already be destroyed
+    // stdin 可能已被销毁
   }
 
-  // Don't reset setRawMode here — Ink's App.handleSetRawMode(true)
-  // calls stopCapturingEarlyInput() synchronously and then immediately
-  // calls setRawMode(true) + ref() on the same stdin, so toggling it
-  // off here would add a visible flicker on Windows.
+  // 不要在此重置 setRawMode —— Ink 的 App.handleSetRawMode(true)
+  // 会同步调用 stopCapturingEarlyInput()，然后立即在同一 stdin 上
+  // 调用 setRawMode(true) + ref()，如果在此处关闭它会在 Windows 上
+  // 产生明显的闪烁。
 }
 
 /**
- * Consume any early input that was captured.
- * Returns the captured input and clears the buffer.
- * Automatically stops capturing when called.
+ * 消费已捕获的早期输入。
+ * 返回捕获的输入并清空缓冲区。
+ * 调用时会自动停止捕获。
  */
 export function consumeEarlyInput(): string {
   stopCapturingEarlyInput()
@@ -257,22 +257,22 @@ export function consumeEarlyInput(): string {
 }
 
 /**
- * Check if there is any early input available without consuming it.
+ * 检查是否有可用的早期输入（不消费）。
  */
 export function hasEarlyInput(): boolean {
   return earlyInputBuffer.trim().length > 0
 }
 
 /**
- * Seed the early input buffer with text that will appear pre-filled
- * in the prompt input when the REPL renders. Does not auto-submit.
+ * 用文本预设早期输入缓冲区，REPL 渲染时这些文本将
+ * 预填在提示输入框中。不会自动提交。
  */
 export function seedEarlyInput(text: string): void {
   earlyInputBuffer = text
 }
 
 /**
- * Check if early input capture is currently active.
+ * 检查当前是否正在捕获早期输入。
  */
 export function isCapturingEarlyInput(): boolean {
   return isCapturing

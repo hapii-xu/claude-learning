@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>核心循环知识总结 [第二篇] — 思考-行动-思考双路径循环</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── SVG Diagram ──────────────────────────────────────── */
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      margin: 0 auto;
+      font-family: var(--font-sans);
+    }
+
+    .node-group { cursor: default; }
+    .node-group:hover rect.node-rect { filter: brightness(.93); }
+
+    /* ── Collapsible knowledge cards ─────────────────────── */
+    .knowledge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    details.know-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    details.know-card[open] {
+      border-color: var(--orange-lt);
+    }
+
+    details.know-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      outline: none;
+    }
+
+    details.know-card > summary::-webkit-details-marker { display: none; }
+
+    details.know-card > summary:hover { background: var(--bg); }
+
+    .know-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    details.know-card[open] .know-num {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .know-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: .97rem;
+    }
+
+    .know-arrow {
+      width: 20px;
+      height: 20px;
+      color: var(--text-3);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    details.know-card[open] .know-arrow {
+      transform: rotate(90deg);
+      color: var(--orange);
+    }
+
+    .know-body {
+      padding: 0 20px 20px 64px;
+    }
+
+    .know-body p { margin-bottom: 8px; }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    .kw  { color: #7c9bff; font-weight: 600; }
+    .str { color: #6cc77a; }
+    .fn  { color: #f0906a; }
+    .cmt { color: #6e6a62; font-style: italic; }
+    .type{ color: #e0a020; }
+    .num { color: #c792ea; }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    .compare-table th:first-child { width: 130px; }
+    .compare-table th:nth-child(2) { color: var(--orange-dk); }
+    .compare-table th:nth-child(3) { color: var(--blue-dk); }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    .tag-green {
+      background: var(--green-lt);
+      color: #1a7a4e;
+    }
+
+    ul.key-list {
+      padding-left: 20px;
+      color: var(--text-2);
+    }
+
+    ul.key-list li { margin-bottom: 4px; }
+
+    .callout {
+      background: var(--bg2);
+      border-left: 3px solid var(--orange);
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 12px 0;
+      font-size: .92rem;
+    }
+
+    .callout.info {
+      border-left-color: var(--blue);
+      background: var(--blue-lt);
+    }
+
+    .callout.warn {
+      border-left-color: #e5a64a;
+      background: #fef3df;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .know-body { padding-left: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- HERO                                                        -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<header class="hero">
+  <div class="hero-badge">核心循环知识总结 · 第二篇</div>
+  <h1>Claude Code <span>思考-行动-思考</span> 循环</h1>
+  <p>双消费路径架构、query() 底层引擎、QueryEngine 会话编排、REPL 直接消费、claude.ts API 层全链路精确解析</p>
+  <ul class="nav-links">
+    <li><a href="#dual-path">双路径时序图</a></li>
+    <li><a href="#three-layers">三层执行模型</a></li>
+    <li><a href="#query-loop">query.ts 底层循环</a></li>
+    <li><a href="#query-subs">query/ 子文件</a></li>
+    <li><a href="#query-engine">QueryEngine 编排</a></li>
+    <li><a href="#claude-ts">claude.ts API 层</a></li>
+    <li><a href="#repl">REPL.tsx 视角</a></li>
+    <li><a href="#types">关键类型速查</a></li>
+    <li><a href="#patterns">设计模式</a></li>
+    <li><a href="#bookmarks">文件书签 + 学习路径</a></li>
+    <li><a href="#series">系列导航</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 1: DUAL-PATH OVERVIEW                              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="dual-path">
+  <h2>一、核心循环全貌：双消费路径</h2>
+  <p class="section-desc">Claude Code 的核心循环由 <strong>两条平行的消费路径</strong> 共享同一个底层 async generator <code>query()</code>。REPL 路径直接 <code>for await of query()</code>，SDK/headless 路径通过 <code>QueryEngine</code> 间接消费。两条路径在 <code>query.ts</code> 层汇合。</p>
+
+  <div class="diagram-wrap">
+    <svg width="1000" height="540" viewBox="0 0 1000 540" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="fa" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#8a8480" />
+        </marker>
+        <marker id="fa-blue" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#5769F7" />
+        </marker>
+        <marker id="fa-orange" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#D77757" />
+        </marker>
+      </defs>
+
+      <!-- Lifeline headers -->
+      <g class="node-group">
+        <title>用户输入 — onSubmit() 触发整个循环</title>
+        <rect class="node-rect" x="10" y="10" width="100" height="34" rx="6" fill="#2d2a26"/>
+        <text x="60" y="32" text-anchor="middle" fill="#faf8f5" font-size="11" font-weight="700">用户输入</text>
+      </g>
+      <g class="node-group">
+        <title>src/screens/REPL.tsx — 交互 REPL，直接消费 query()</title>
+        <rect class="node-rect" x="130" y="10" width="110" height="34" rx="6" fill="#22a766"/>
+        <text x="185" y="32" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">REPL.tsx</text>
+      </g>
+      <g class="node-group">
+        <title>src/QueryEngine.ts — SDK/headless 路径的编排层</title>
+        <rect class="node-rect" x="260" y="10" width="160" height="34" rx="6" fill="#5769F7"/>
+        <text x="340" y="32" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">ask() / QueryEngine</text>
+      </g>
+      <g class="node-group">
+        <title>src/query.ts — 核心 async generator，两条路径的汇合点</title>
+        <rect class="node-rect" x="440" y="10" width="110" height="34" rx="6" fill="#D77757"/>
+        <text x="495" y="32" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">query.ts</text>
+      </g>
+      <g class="node-group">
+        <title>src/services/api/claude.ts — 实际调用 Anthropic SDK</title>
+        <rect class="node-rect" x="570" y="10" width="110" height="34" rx="6" fill="#D77757"/>
+        <text x="625" y="32" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">claude.ts</text>
+      </g>
+      <g class="node-group">
+        <title>工具执行 — runTools() / StreamingToolExecutor</title>
+        <rect class="node-rect" x="700" y="10" width="140" height="34" rx="6" fill="#8a8480"/>
+        <text x="770" y="32" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">runTools / 工具</text>
+      </g>
+      <g class="node-group">
+        <title>Anthropic SDK — 真实的 HTTP 流</title>
+        <rect class="node-rect" x="860" y="10" width="130" height="34" rx="6" fill="#8a8480"/>
+        <text x="925" y="32" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">Anthropic SDK</text>
+      </g>
+
+      <!-- Lifelines -->
+      <line x1="60"  y1="44" x2="60"  y2="520" stroke="#ddd8d0" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="185" y1="44" x2="185" y2="520" stroke="#ddd8d0" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="340" y1="44" x2="340" y2="520" stroke="#ddd8d0" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="495" y1="44" x2="495" y2="520" stroke="#ddd8d0" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="625" y1="44" x2="625" y2="520" stroke="#ddd8d0" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="770" y1="44" x2="770" y2="520" stroke="#ddd8d0" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="925" y1="44" x2="925" y2="520" stroke="#ddd8d0" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- PATH 1 banner -->
+      <rect x="10" y="58" width="430" height="20" rx="4" fill="#22a766" opacity="0.12"/>
+      <text x="20" y="73" fill="#1a7a4e" font-size="10" font-weight="700">路径 1 — 交互 REPL（主路径）</text>
+
+      <!-- user → REPL -->
+      <g class="node-group">
+        <title>REPL.tsx:3901 onSubmit() 触发用户提交</title>
+        <line x1="60" y1="90" x2="179" y2="90" stroke="#22a766" stroke-width="1.5" marker-end="url(#fa)"/>
+        <text x="120" y="84" text-anchor="middle" fill="#5a5650" font-size="9">onSubmit()</text>
+        <rect class="node-rect" x="179" y="82" width="12" height="16" rx="2" fill="#22a766"/>
+      </g>
+
+      <!-- REPL self -->
+      <g class="node-group">
+        <title>REPL.tsx:3268 onQueryImpl() — 准备 systemPrompt、tools、messages</title>
+        <line x1="191" y1="110" x2="240" y2="110" stroke="#22a766" stroke-width="1.5"/>
+        <line x1="240" y1="110" x2="240" y2="130" stroke="#22a766" stroke-width="1.5"/>
+        <line x1="240" y1="130" x2="191" y2="130" stroke="#22a766" stroke-width="1.5" marker-end="url(#fa)"/>
+        <text x="300" y="123" fill="#5a5650" font-size="9">onQueryImpl() 准备参数</text>
+      </g>
+
+      <!-- REPL → query -->
+      <g class="node-group">
+        <title>REPL.tsx:3450 for await (const event of query({...})) — 直接消费 query()，不经过 QueryEngine</title>
+        <line x1="185" y1="150" x2="489" y2="150" stroke="#22a766" stroke-width="1.8" marker-end="url(#fa-orange)"/>
+        <text x="337" y="144" text-anchor="middle" fill="#1a7a4e" font-size="10" font-weight="600">for await of query()</text>
+      </g>
+
+      <!-- PATH 2 banner -->
+      <rect x="260" y="174" width="280" height="20" rx="4" fill="#5769F7" opacity="0.12"/>
+      <text x="270" y="189" fill="#3a4ed4" font-size="10" font-weight="700">路径 2 — SDK / headless / print.ts</text>
+
+      <!-- user → ask -->
+      <g class="node-group">
+        <title>SDK 调用方或 print.ts 调用 ask()</title>
+        <line x1="60" y1="210" x2="334" y2="210" stroke="#5769F7" stroke-width="1.5" marker-end="url(#fa-blue)"/>
+        <text x="200" y="204" text-anchor="middle" fill="#5a5650" font-size="9">ask() / headless</text>
+      </g>
+
+      <!-- ask self -->
+      <g class="node-group">
+        <title>QueryEngine.ts:1309 ask() 创建 QueryEngine 实例</title>
+        <line x1="346" y1="230" x2="395" y2="230" stroke="#5769F7" stroke-width="1.5"/>
+        <line x1="395" y1="230" x2="395" y2="250" stroke="#5769F7" stroke-width="1.5"/>
+        <line x1="395" y1="250" x2="346" y2="250" stroke="#5769F7" stroke-width="1.5" marker-end="url(#fa)"/>
+        <text x="415" y="243" fill="#5a5650" font-size="9">new QueryEngine() + submitMessage()</text>
+      </g>
+
+      <!-- ask → query -->
+      <g class="node-group">
+        <title>QueryEngine.ts:732 for await of query() — 间接消费</title>
+        <line x1="340" y1="270" x2="489" y2="270" stroke="#5769F7" stroke-width="1.8" marker-end="url(#fa-orange)"/>
+        <text x="414" y="264" text-anchor="middle" fill="#3a4ed4" font-size="10" font-weight="600">for await of query()</text>
+      </g>
+
+      <!-- SHARED banner -->
+      <rect x="440" y="294" width="550" height="20" rx="4" fill="#D77757" opacity="0.12"/>
+      <text x="450" y="309" fill="#b55e3a" font-size="10" font-weight="700">共同底层 — query.ts 循环（queryLoop while true）</text>
+
+      <!-- query self: config + trace -->
+      <g class="node-group">
+        <title>query.ts:308-346 — buildQueryConfig() + createTrace() 初始化</title>
+        <line x1="501" y1="330" x2="550" y2="330" stroke="#D77757" stroke-width="1.5"/>
+        <line x1="550" y1="330" x2="550" y2="350" stroke="#D77757" stroke-width="1.5"/>
+        <line x1="550" y1="350" x2="501" y2="350" stroke="#D77757" stroke-width="1.5" marker-end="url(#fa)"/>
+        <text x="570" y="343" fill="#5a5650" font-size="9">buildQueryConfig + createTrace</text>
+      </g>
+
+      <!-- query → claude → SDK loop -->
+      <g class="node-group">
+        <title>query.ts:935 deps.callModel() → queryModelWithStreaming() — 每次 API 调用</title>
+        <line x1="495" y1="370" x2="619" y2="370" stroke="#D77757" stroke-width="1.5" marker-end="url(#fa-orange)"/>
+        <text x="557" y="364" text-anchor="middle" fill="#5a5650" font-size="9">callModel()</text>
+      </g>
+      <g class="node-group">
+        <title>claude.ts:772 queryModelWithStreaming → client.beta.messages.stream()</title>
+        <line x1="625" y1="390" x2="919" y2="390" stroke="#8a8480" stroke-width="1.5" marker-end="url(#fa)"/>
+        <text x="772" y="384" text-anchor="middle" fill="#5a5650" font-size="9">beta.messages.stream()</text>
+      </g>
+      <g class="node-group">
+        <title>SDK 返回 BetaRawMessageStreamEvent 事件流</title>
+        <line x1="925" y1="410" x2="631" y2="410" stroke="#8a8480" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#fa)"/>
+        <text x="778" y="404" text-anchor="middle" fill="#5a5650" font-size="9">BetaRawMessageStreamEvent 流</text>
+      </g>
+      <g class="node-group">
+        <title>claude.ts → query.ts — yield StreamEvent / AssistantMessage</title>
+        <line x1="625" y1="430" x2="501" y2="430" stroke="#D77757" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#fa)"/>
+        <text x="563" y="424" text-anchor="middle" fill="#5a5650" font-size="9">yield StreamEvent</text>
+      </g>
+
+      <!-- alt: tool_use vs no tools -->
+      <rect x="440" y="450" width="340" height="64" rx="6" fill="#fff" stroke="#D77757" stroke-width="1.2" stroke-dasharray="4,3"/>
+      <text x="448" y="464" fill="#b55e3a" font-size="9" font-weight="700">[alt]</text>
+
+      <g class="node-group">
+        <title>query.ts:1700 — 有 tool_use block，进入工具执行</title>
+        <line x1="495" y1="478" x2="764" y2="478" stroke="#8a8480" stroke-width="1.5" marker-end="url(#fa)"/>
+        <text x="630" y="472" text-anchor="middle" fill="#5a5650" font-size="9">tool_use → runTools() → toolResults → 下一轮</text>
+      </g>
+      <g class="node-group">
+        <title>query.ts — 无工具调用，handleStopHooks 后返回 Terminal</title>
+        <line x1="495" y1="500" x2="560" y2="500" stroke="#22a766" stroke-width="1.5"/>
+        <line x1="560" y1="500" x2="560" y2="520" stroke="#22a766" stroke-width="1.5"/>
+        <line x1="560" y1="520" x2="191" y2="520" stroke="#22a766" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#fa)"/>
+        <text x="370" y="514" text-anchor="middle" fill="#1a7a4e" font-size="9">无工具 → Terminal { reason: 'completed' }</text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="callout info" style="margin-top:20px;">
+    <strong>关键架构事实：</strong> REPL 不经过 QueryEngine。<code>REPL.tsx:3450</code> 直接 <code>for await (const event of query({...}))</code> 消费，REPL 自己维护 <code>messages</code> state（React useState）。QueryEngine 只在 SDK/headless（<code>ask()</code> 函数）路径使用。
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 2: THREE LAYERS                                    -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="three-layers">
+  <h2>二、三层执行模型</h2>
+  <p class="section-desc">Claude Code 的核心循环是严格分层的三层架构。理解每层的"拥有什么 / 接收什么 / 返回什么"是读懂代码的钥匙。</p>
+
+  <div class="table-wrap">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>层</th>
+          <th>文件</th>
+          <th>拥有什么</th>
+          <th>接收什么</th>
+          <th>返回 / yield</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>QueryEngine</strong><br><span class="tag tag-orange">可选编排层</span></td>
+          <td><code>src/QueryEngine.ts</code></td>
+          <td><code>mutableMessages</code>（完整历史）、<code>totalUsage</code>、<code>permissionDenials</code></td>
+          <td><code>prompt</code> 字符串 或 <code>ContentBlockParam[]</code></td>
+          <td><code>SDKMessage</code> 流（assistant / user / result / system 等）</td>
+        </tr>
+        <tr>
+          <td><strong>query()</strong><br><span class="tag">底层 async generator</span></td>
+          <td><code>src/query.ts</code></td>
+          <td>内部 <code>State</code> 可变对象（含 <code>messages</code> 快照副本）</td>
+          <td>不可变 <code>QueryParams</code>（messages 快照、systemPrompt、canUseTool 等）</td>
+          <td><code>StreamEvent / AssistantMessage / Message / Terminal</code></td>
+        </tr>
+        <tr>
+          <td><strong>claude.ts</strong><br><span class="tag tag-green">API 执行层</span></td>
+          <td><code>src/services/api/claude.ts</code></td>
+          <td>无持久状态</td>
+          <td>messages、systemPrompt、tools、options</td>
+          <td><code>StreamEvent / AssistantMessage / SystemAPIErrorMessage</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="knowledge-grid" style="margin-top:20px;">
+    <details class="know-card">
+      <summary>
+        <div class="know-num">1</div>
+        <div class="know-title">REPL 不经过 QueryEngine</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <p><code>REPL.tsx:3450</code> 直接 <code>for await (const event of query({...}))</code> 消费，REPL 自己维护 <code>messages</code> state（React useState）。QueryEngine 只在 SDK/headless（<code>ask()</code> 函数）路径使用。</p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary>
+        <div class="know-num">2</div>
+        <div class="know-title">QueryEngine 的 mutableMessages 守恒</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <ul class="key-list">
+          <li><code>QueryEngine.ts:482</code> — <code>this.mutableMessages.push(...messagesFromUserInput)</code> 添加用户消息</li>
+          <li><code>QueryEngine.ts:831</code> — <code>this.mutableMessages.push(msg)</code> 回流 assistant 消息</li>
+          <li><code>QueryEngine.ts:485</code> — <code>query()</code> 接收的是 <code>[...this.mutableMessages]</code> 快照，不是引用</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary>
+        <div class="know-num">3</div>
+        <div class="know-title">State vs mutableMessages</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <p><code>query.ts</code> 内部的 <code>State.messages</code>（<code>query.ts:262</code>）是循环迭代间的可变对象，每个继续点用 <code>state = { messages: [...], ... }</code> 整体替换，与 QE 的 <code>mutableMessages</code> 完全独立。</p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 3: query.ts DEEP DIVE                              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="query-loop">
+  <h2>三、<code>src/query.ts</code> 底层循环（核心引擎）</h2>
+  <p class="section-desc"><code>query()</code> 是两条消费路径的汇合点，是 Claude Code 的"心脏"。</p>
+
+  <!-- 3.1 Entry -->
+  <div class="diagram-wrap" style="padding:20px 24px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">3.1 <code>query()</code> 入口（<code>query.ts:298</code>）</h3>
+    <pre><span class="kw">export async function*</span> <span class="fn">query</span>(
+  params: <span class="type">QueryParams</span>,
+): <span class="type">AsyncGenerator</span>&lt;
+  | <span class="type">StreamEvent</span>
+  | <span class="type">RequestStartEvent</span>
+  | <span class="type">Message</span>
+  | <span class="type">TombstoneMessage</span>
+  | <span class="type">ToolUseSummaryMessage</span>,
+  <span class="type">Terminal</span>
+&gt;</pre>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>行号段</th><th>作用</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>query.ts:308</code></td><td>初始化 <code>consumedCommandUuids: string[]</code> — 排队命令生命周期追踪</td></tr>
+          <tr><td><code>query.ts:314</code></td><td><code>ownsTrace</code> 判断：子 agent 复用父 trace，主调用创建新 trace</td></tr>
+          <tr><td><code>query.ts:322–332</code></td><td><code>createTrace(sessionId, model, provider, input, querySource)</code> — Langfuse trace 创建</td></tr>
+          <tr><td><code>query.ts:346</code></td><td><code>terminal = yield* queryLoop(...)</code> — 委托给内部循环</td></tr>
+          <tr><td><code>query.ts:355–416</code></td><td><code>finally</code> 块：<code>endTrace</code> / <code>flushLangfuse</code> / <code>gPerf.clearMarks()</code> / <code>clearMeasures</code> / <code>clearResourceTimings</code></td></tr>
+          <tr><td><code>query.ts:413–416</code></td><td><code>for (uuid of consumedCommandUuids) notifyCommandLifecycle(uuid, 'completed')</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout">
+      <strong>关键设计：</strong><code>finally</code> 块是三重清理链。<code>flushLangfuse</code> 释放 SpanImpl 持有的序列化对话历史（防止长会话内存泄漏）；<code>gPerf.clearMarks()</code> 斩断 OTel 引用的 C++ Vector（防止 571MB Performance 对象累积）。
+    </div>
+  </div>
+
+  <!-- 3.2 State -->
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">3.2 <code>State</code> 可变状态体（<code>query.ts:261–274</code>）</h3>
+    <pre><span class="kw">type</span> <span class="type">State</span> = {
+  messages: <span class="type">Message</span>[]                                    <span class="cmt">// 当前迭代的消息列表</span>
+  toolUseContext: <span class="type">ToolUseContext</span>                          <span class="cmt">// 工具上下文（含 abortController）</span>
+  autoCompactTracking: <span class="type">AutoCompactTrackingState</span> | undefined  <span class="cmt">// compact 状态追踪</span>
+  maxOutputTokensRecoveryCount: <span class="type">number</span>                   <span class="cmt">// max_output_tokens 恢复次数</span>
+  hasAttemptedReactiveCompact: <span class="type">boolean</span>                   <span class="cmt">// 是否已尝试 reactive compact</span>
+  maxOutputTokensOverride: <span class="type">number</span> | undefined            <span class="cmt">// 动态 token 上限覆盖（escalate 用）</span>
+  pendingToolUseSummary: <span class="type">Promise</span>&lt;<span class="type">ToolUseSummaryMessage</span> | null&gt; | undefined  <span class="cmt">// 异步摘要</span>
+  stopHookActive: <span class="type">boolean</span> | undefined                    <span class="cmt">// stop hook 是否活跃</span>
+  turnCount: <span class="type">number</span>                                      <span class="cmt">// 已执行轮次数</span>
+  transition: <span class="type">Continue</span> | undefined                       <span class="cmt">// 上一次继续的原因</span>
+}</pre>
+    <p><strong>设计要点：</strong><code>State</code> 是循环内部的可变对象，<code>params</code>（QueryParams）是入口处一次性传入的不可变快照。每次迭代开头解构 <code>state</code>，继续点统一用 <code>state = { ... }</code> 整体替换，避免 9 个独立赋值导致的竞态。</p>
+  </div>
+
+  <!-- 3.3 Transitions -->
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">3.3 <code>Continue</code> / <code>Terminal</code> 转移表（<code>query/transitions.ts</code>）</h3>
+    <p style="margin-bottom:14px;"><strong>Terminal</strong>（终止原因，generator 返回值，10 个 reason）：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>reason</th><th>含义</th></tr></thead>
+        <tbody>
+          <tr><td><code>completed</code></td><td>正常完成，无工具调用</td></tr>
+          <tr><td><code>blocking_limit</code></td><td>上下文达到硬阻塞上限</td></tr>
+          <tr><td><code>image_error</code></td><td>图片尺寸 / 调整错误</td></tr>
+          <tr><td><code>model_error</code></td><td>模型 / 运行时错误</td></tr>
+          <tr><td><code>aborted_streaming</code></td><td>流式响应中被用户中断</td></tr>
+          <tr><td><code>aborted_tools</code></td><td>工具执行中被用户中断</td></tr>
+          <tr><td><code>prompt_too_long</code></td><td>上下文过长且无法恢复</td></tr>
+          <tr><td><code>stop_hook_prevented</code></td><td>stop hook 阻止继续</td></tr>
+          <tr><td><code>hook_stopped</code></td><td>hook 在工具执行中阻止继续</td></tr>
+          <tr><td><code>max_turns</code></td><td>达到最大轮次限制</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin:14px 0;"><strong>Continue</strong>（继续原因，记录在 <code>state.transition</code>，7 个 reason）：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>reason</th><th>含义</th></tr></thead>
+        <tbody>
+          <tr><td><code>collapse_drain_retry</code></td><td>context collapse 排空后重试（PTL 恢复第一阶段）</td></tr>
+          <tr><td><code>reactive_compact_retry</code></td><td>reactive compact 成功后重试（PTL 恢复第二阶段）</td></tr>
+          <tr><td><code>max_output_tokens_escalate</code></td><td>8k → 64k 上限升级重试</td></tr>
+          <tr><td><code>max_output_tokens_recovery</code></td><td>注入续写 prompt 后重试（最多 3 次）</td></tr>
+          <tr><td><code>stop_hook_blocking</code></td><td>stop hook 返回 blockingErrors，注入后重试</td></tr>
+          <tr><td><code>token_budget_continuation</code></td><td>token budget 未耗尽，注入 nudge message 续写</td></tr>
+          <tr><td><code>next_turn</code></td><td>正常下一轮（有工具调用，追加结果后继续）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3.4 11-step pipeline -->
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">3.4 <code>queryLoop</code> 单轮 11 步流水线（<code>query.ts:432</code>）</h3>
+    <pre><span class="kw">while</span> (true) {
+  step1  → <span class="fn">getMessagesAfterCompactBoundary</span>()  历史裁边
+  step2  → <span class="fn">snipCompact</span>（HISTORY_SNIP 门控）   toolUseResult payload 丢弃
+  step3  → <span class="fn">applyToolResultBudget</span>()            按消息预算限制聚合工具结果大小
+  step4  → <span class="fn">microcompact</span>                        缓存式微压缩（pendingCacheEdits 延迟 yield）
+  step5  → <span class="fn">contextCollapse</span>（CONTEXT_COLLAPSE 门控）  上下文折叠投影
+  step6  → <span class="fn">autocompact</span>（主动阈值检查）         超过阈值 → buildPostCompactMessages()
+  step7  → <span class="fn">predictive autocompact</span>             估算本轮增长 → 预测式提前 compact
+  step8  → <span class="fn">deps.callModel</span>()                   queryModelWithStreaming，流式事件 yield
+  step9  → PTL / 媒体错误恢复                 collapse_drain → reactive_compact → 暴露错误
+  step10 → max_output_tokens 三档恢复          escalate(8k→64k) → recovery × 3 → 暴露
+  step11 → stop hooks → 工具执行 → state 更新  handleStopHooks → runTools/StreamingToolExecutor
+}</pre>
+    <p style="margin-top:10px;"><strong>关键步骤详解：</strong></p>
+    <ul class="key-list">
+      <li><strong>step1</strong>（<code>query.ts:576</code>）：只看最近一次 compact 之后的消息，防止把已摘要的历史重复发给 API。</li>
+      <li><strong>step2</strong>（<code>query.ts:583–591</code>）：删除 <code>msg.toolUseResult</code> payload — UI 已渲染，API 不需要原始输出对象，释放内存。</li>
+      <li><strong>step4</strong>（<code>query.ts:640</code>）：缓存 MC 靠 <code>tool_use_id</code> 操作，API 响应后才 yield 边界消息。</li>
+      <li><strong>step8</strong>（<code>query.ts:935</code>）：流式事件逐 chunk yield；<code>FallbackTriggeredError</code> 触发 fallback 重试（切换模型）。</li>
+      <li><strong>step9</strong>（<code>query.ts:1395–1513</code>）：PTL 恢复两阶段：① <code>contextCollapse.recoverFromOverflow()</code> ② <code>reactiveCompact.tryReactiveCompact()</code></li>
+      <li><strong>step10</strong>（<code>query.ts:1517–1583</code>）：先 escalate（无 override 且 Statsig gate 开启），再 recovery × 3，最后暴露错误。</li>
+      <li><strong>step11 续写点</strong>（<code>query.ts:2101–2113</code>）：正常下一轮更新 state：messages 追加，transition: <code>{ reason: 'next_turn' }</code>。</li>
+    </ul>
+  </div>
+
+  <!-- 3.5 Error recovery matrix -->
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">3.5 错误恢复矩阵</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>错误类型</th><th>触发条件</th><th>处理逻辑</th><th>结果</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>PTL (PromptTooLong)</td><td>API 返回 413</td><td>① collapse_drain_retry ② reactive_compact_retry</td><td>Terminal <code>prompt_too_long</code> 或继续</td></tr>
+          <tr><td>媒体尺寸错误</td><td>图片 / PDF 超限</td><td><code>reactiveCompact.isWithheldMediaSizeError</code> → strip-retry</td><td>Terminal <code>image_error</code> 或继续</td></tr>
+          <tr><td><code>max_output_tokens</code></td><td>响应截断</td><td>escalate → recovery × 3</td><td>Terminal <code>model_error</code> 或继续</td></tr>
+          <tr><td><code>FallbackTriggeredError</code></td><td>主模型高负载</td><td>切换 <code>currentModel = fallbackModel</code>，重建 StreamingToolExecutor</td><td>继续（同轮次）</td></tr>
+          <tr><td>stop hook blocking</td><td>stop hook 返回 blockingErrors</td><td>追加错误消息，<code>stopHookActive: true</code></td><td><code>stop_hook_blocking</code> 继续</td></tr>
+          <tr><td>stop hook prevent</td><td>stop hook 返回 preventContinuation</td><td>直接返回</td><td>Terminal <code>stop_hook_prevented</code></td></tr>
+          <tr><td>用户中断（流式）</td><td><code>abortController.signal.aborted</code>（流中）</td><td>yield <code>userInterruptionMessage({toolUse: false})</code></td><td>Terminal <code>aborted_streaming</code></td></tr>
+          <tr><td>用户中断（工具中）</td><td><code>abortController.signal.aborted</code>（工具后）</td><td>yield <code>userInterruptionMessage({toolUse: true})</code></td><td>Terminal <code>aborted_tools</code></td></tr>
+          <tr><td><code>ImageSizeError</code></td><td>图片处理失败</td><td>yield errorMessage</td><td>Terminal <code>image_error</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3.6 Two tool execution paths -->
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">3.6 工具执行两条路径（<code>query.ts:1700–1748</code>）</h3>
+    <p><strong>路径 A：<code>runTools()</code></strong>（<code>toolOrchestration.ts:21</code>，默认路径）</p>
+    <p><code>runTools</code> 内部调用 <code>partitionToolCalls()</code> 将工具列表分区为批次：</p>
+    <ul class="key-list">
+      <li><strong>并发批</strong>（<code>isConcurrencySafe = true</code>）：通常是只读工具，上限由 <code>CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY</code>（默认 10）控制</li>
+      <li><strong>串行批</strong>：写操作或 <code>isConcurrencySafe = false</code> 的工具，逐个执行</li>
+    </ul>
+    <p style="margin-top:12px;"><strong>路径 B：<code>StreamingToolExecutor</code></strong>（gate: Statsig <code>tengu_streaming_tool_execution2</code>）</p>
+    <p>在流式响应期间就开始调度工具（<code>streamingToolExecutor.addTool(block, assistantMessage)</code>），而非等整个响应完成。<code>FallbackTriggeredError</code> 发生时调用 <code>streamingToolExecutor.discard()</code> 丢弃孤儿结果。</p>
+  </div>
+
+  <!-- 3.7 Queued command lifecycle -->
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">3.7 排队命令生命周期</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>步骤</th><th>代码位置</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>命令进入队列</td><td><code>messageQueueManager.ts enqueue()</code></td><td>外部触发（用户排队、agent 任务通知）</td></tr>
+          <tr><td>命令快照</td><td><code>query.ts:1922</code></td><td><code>getCommandsByMaxPriority(sleepRan ? 'later' : 'next')</code></td></tr>
+          <tr><td>声明消费</td><td><code>query.ts:1931</code></td><td><code>claimConsumableQueuedAutonomyCommands()</code></td></tr>
+          <tr><td>标记启动</td><td><code>query.ts:1946</code></td><td><code>notifyCommandLifecycle(uuid, 'started')</code></td></tr>
+          <tr><td>追加到 toolResults</td><td><code>query.ts:1952</code></td><td><code>getAttachmentMessages()</code> 转为附件</td></tr>
+          <tr><td>标记完成</td><td><code>query.ts:413</code></td><td><code>notifyCommandLifecycle(uuid, 'completed')</code> — 在 query() 正常返回后</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 4: query/ SUBFILES                                 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="query-subs">
+  <h2>四、<code>src/query/</code> 目录五子文件</h2>
+  <p class="section-desc">主 <code>query.ts</code> 把"转移类型 / DI 接口 / 配置快照 / 预算 / stop hooks"五件事拆到独立子文件，便于测试和文档化。</p>
+
+  <div class="knowledge-grid">
+    <details class="know-card">
+      <summary>
+        <div class="know-num">1</div>
+        <div class="know-title"><code>query/transitions.ts</code>（21 行）— 循环出口契约</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <ul class="key-list">
+          <li><strong>行 1–11</strong> — <code>Terminal</code>：查询循环的终止原因联合类型（10 个 reason）</li>
+          <li><strong>行 13–21</strong> — <code>Continue</code>：继续迭代的原因联合类型（7 个 reason）</li>
+        </ul>
+        <p><strong>为什么存在：</strong>将转移类型抽出到独立文件，让测试可以直接 <code>import type { Terminal }</code> 断言恢复路径而不引入 <code>query.ts</code> 的大模块图。也是文档化"所有可能的循环出口"的契约点。</p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary>
+        <div class="know-num">2</div>
+        <div class="know-title"><code>query/deps.ts</code>（40 行）— DI 接口</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <ul class="key-list">
+          <li><strong>行 21–31</strong> — <code>QueryDeps</code>：4 个可注入依赖（callModel / microcompact / autocompact / uuid）</li>
+          <li><strong>行 33–40</strong> — <code>productionDeps()</code>：生产环境默认实现</li>
+        </ul>
+        <p><strong>为什么存在：</strong><code>callModel</code> 和 <code>autocompact</code> 在 6–8 个测试文件中都需要 mock，<code>deps.ts</code> 把它们聚合为一个 DI 接口，测试只需传 <code>deps: { callModel: mock, ... }</code> 即可。<code>typeof fn</code> 写法确保签名与真实实现自动同步。</p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary>
+        <div class="know-num">3</div>
+        <div class="know-title"><code>query/config.ts</code>（46 行）— 不可变配置快照</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <p><strong>QueryConfig 的 4 个 gates：</strong></p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>gate 字段</th><th>来源</th><th>作用</th></tr></thead>
+            <tbody>
+              <tr><td><code>streamingToolExecution</code></td><td>Statsig <code>tengu_streaming_tool_execution2</code></td><td>是否用 StreamingToolExecutor</td></tr>
+              <tr><td><code>emitToolUseSummaries</code></td><td><code>CLAUDE_CODE_EMIT_TOOL_USE_SUMMARIES</code> env</td><td>是否生成 tool use 摘要</td></tr>
+              <tr><td><code>isAnt</code></td><td><code>USER_TYPE === 'ant'</code> env</td><td>内部员工特性开关</td></tr>
+              <tr><td><code>fastModeEnabled</code></td><td><code>!CLAUDE_CODE_DISABLE_FAST_MODE</code> env</td><td>fast mode 是否可用</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:10px;"><strong>为什么存在：</strong>与 <code>feature()</code> 门控区分——<code>feature()</code> 是构建时 tree-shaking 边界；<code>gates</code> 是运行时 env/Statsig 状态，快照一次避免 5–30s 流期间翻转导致扣留与恢复逻辑不一致。</p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary>
+        <div class="know-num">4</div>
+        <div class="know-title"><code>query/tokenBudget.ts</code>（93 行）— 续写策略</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <ul class="key-list">
+          <li><strong>行 6–11</strong> — <code>BudgetTracker</code>：状态（continuationCount / lastDelta / lastGlobal / startedAt）</li>
+          <li><strong>行 13–19</strong> — <code>createBudgetTracker()</code>：初始化</li>
+          <li><strong>行 43–93</strong> — <code>checkTokenBudget()</code>：检查是否应继续 / 停止</li>
+        </ul>
+        <p style="margin-top:10px;"><strong>taskBudget vs TOKEN_BUDGET 对比：</strong></p>
+        <div class="table-wrap">
+          <table class="compare-table">
+            <tr><th>概念</th><th>taskBudget</th><th>TOKEN_BUDGET</th></tr>
+            <tr><td>来源</td><td><code>QueryParams.taskBudget.total</code></td><td><code>feature('TOKEN_BUDGET')</code> + <code>getCurrentTurnTokenBudget()</code></td></tr>
+            <tr><td>控制位置</td><td><code>query.ts:250–255</code>，传给 <code>claude.ts</code></td><td><code>query.ts:1639–1686</code>，<code>tokenBudget.ts</code></td></tr>
+            <tr><td>机制</td><td>API 服务端 beta 控制每次采样上限</td><td>客户端检查，接近预算时注入 nudge message</td></tr>
+          </table>
+        </div>
+        <p>两者相互独立：<code>taskBudget</code> 是服务端约束，<code>TOKEN_BUDGET</code> 是客户端续写策略。</p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary>
+        <div class="know-num">5</div>
+        <div class="know-title"><code>query/stopHooks.ts</code>（~200 行）— 停止钩子</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <ul class="key-list">
+          <li><strong>行 57–60</strong> — <code>StopHookResult</code> 类型：<code>{ blockingErrors: Message[], preventContinuation: boolean }</code></li>
+          <li><strong>行 62–77</strong> — <code>handleStopHooks()</code> 签名：async generator，接收完整上下文</li>
+          <li><strong>行 79–100</strong> — 构建 <code>stopHookContext</code>，调用 <code>saveCacheSafeParams</code></li>
+        </ul>
+        <p><strong>两种 stop hook 结果：</strong></p>
+        <ul class="key-list">
+          <li><code>preventContinuation = true</code> → Terminal <code>stop_hook_prevented</code>（不再调用 API）</li>
+          <li><code>blockingErrors.length > 0</code> → Continue <code>stop_hook_blocking</code>（注入错误消息，重新调用 API）</li>
+        </ul>
+        <p><strong>为什么存在：</strong>将 stop hook 逻辑从 <code>query.ts</code> 主循环抽出，避免循环主体过于臃肿，同时便于独立测试 hook 行为。</p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 5: QueryEngine                                     -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="query-engine">
+  <h2>五、<code>src/QueryEngine.ts</code> 会话编排</h2>
+  <p class="section-desc">QueryEngine 是 SDK/headless 路径的编排层，负责维护完整对话历史、usage 累计、权限拒绝记录等。</p>
+
+  <div class="diagram-wrap" style="padding:20px 24px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">5.1 类字段（<code>QueryEngine.ts:209–230</code>）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>config</code></td><td><code>QueryEngineConfig</code></td><td>不可变配置（tools / commands / mcpClients 等）</td></tr>
+          <tr><td><code>mutableMessages</code></td><td><code>Message[]</code></td><td>完整对话历史，跨 <code>submitMessage()</code> 调用持久化</td></tr>
+          <tr><td><code>abortController</code></td><td><code>AbortController</code></td><td>可由 <code>interrupt()</code> / <code>resetAbortController()</code> 管理</td></tr>
+          <tr><td><code>permissionDenials</code></td><td><code>SDKPermissionDenial[]</code></td><td>每次 <code>submitMessage()</code> 开头清空</td></tr>
+          <tr><td><code>totalUsage</code></td><td><code>NonNullableUsage</code></td><td>token 累计（input / output / cache 等）</td></tr>
+          <tr><td><code>discoveredSkillNames</code></td><td><code>Set&lt;string&gt;</code></td><td>技能发现追踪，每次 submitMessage 开头清空</td></tr>
+          <tr><td><code>loadedNestedMemoryPaths</code></td><td><code>Set&lt;string&gt;</code></td><td>跨轮次持久化，防止重复加载嵌套 memory</td></tr>
+          <tr><td><code>readFileState</code></td><td><code>FileStateCache</code></td><td>文件读取缓存（用于 undo/diff）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">5.2 <code>submitMessage()</code> 流水线（<code>QueryEngine.ts:250</code>）</h3>
+    <pre><span class="num">1.</span> this.discoveredSkillNames.<span class="fn">clear</span>()           <span class="cmt">// :279</span>
+<span class="num">2.</span> this.permissionDenials = []
+<span class="num">3.</span> <span class="fn">fetchSystemPromptParts</span>()                 <span class="cmt">// :339 构建 system prompt</span>
+<span class="num">4.</span> <span class="fn">loadMemoryPrompt</span>()                       <span class="cmt">// 若有 COWORK_MEMORY_PATH_OVERRIDE</span>
+<span class="num">5.</span> <span class="fn">processUserInput</span>()                        <span class="cmt">// :457 处理 slash 命令 / 普通 prompt</span>
+<span class="num">6.</span> this.mutableMessages.<span class="fn">push</span>(...fromUser)    <span class="cmt">// :482</span>
+<span class="num">7.</span> <span class="fn">recordTranscript</span>(messages)                <span class="cmt">// :501 在 API 调用前持久化</span>
+<span class="num">8.</span> <span class="fn">buildSystemInitMessage</span>() → yield           <span class="cmt">// :591</span>
+<span class="num">9.</span> <span class="kw">for await</span> (msg <span class="kw">of</span> <span class="fn">query</span>())               <span class="cmt">// :732 事件处理循环</span>
+    → assistant/user 消息 push 到 mutableMessages
+    → stream_event → updateUsage / accumulateUsage
+    → compact_boundary → splice 释放旧消息
+<span class="num">10.</span> yield result { type: <span class="str">'result'</span> }           <span class="cmt">// :1245</span></pre>
+  </div>
+
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">5.3 mutableMessages 守恒图</h3>
+    <pre>QueryEngine.mutableMessages（完整历史）
+        │
+        │ push(messagesFromUserInput)  :482
+        ▼
+传给 query() 的不可变快照 messages = [...this.mutableMessages]  :485
+        │
+        │ yield message
+        ▼
+for await (message of query())  :732
+        │
+        │ this.mutableMessages.push(msg)  :831 (assistant)
+        │ this.mutableMessages.push(msg)  :852 (user/tool_result)
+        │ this.mutableMessages.push(msg)  :907 (attachment)
+        ▼
+compact_boundary 触发时释放旧消息:
+  this.mutableMessages.splice(0, mutableBoundaryIdx)  :1008</pre>
+    <p><strong>为什么这样设计：</strong><code>query()</code> 操作的是快照，QE 的 mutableMessages 只在 <code>for await</code> 处理时追加，避免 race condition。compact 后 QE 也同步 splice，防止内存无限增长。</p>
+  </div>
+
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">5.4 <code>ask()</code> 便捷封装（<code>QueryEngine.ts:1309</code>）</h3>
+    <p><code>ask()</code> 是面向 <code>print.ts</code>（headless）和外部 SDK 调用方的便捷函数，内部创建 <code>QueryEngine</code> 实例并调用 <code>submitMessage()</code>，结束时通过 <code>finally</code> 将 <code>readFileState</code> 同步回调用方。</p>
+    <p><strong><code>snipReplay</code> DI 注入原理</strong>（<code>QueryEngine.ts:1399–1407</code>）：仅 <code>HISTORY_SNIP</code> feature 开启时，<code>ask()</code> 注入一个回调函数，当 QE 收到 snip 边界系统消息时调用 <code>snipModule.snipCompactIfNeeded(store, { force: true })</code>。REPL 路径不注入此回调（保留完整历史供 UI 回滚）。</p>
+  </div>
+
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">5.5 SDKMessage result 子类型</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>subtype</th><th>触发条件</th></tr></thead>
+        <tbody>
+          <tr><td><code>success</code></td><td>正常完成</td></tr>
+          <tr><td><code>error_max_turns</code></td><td>达到 <code>maxTurns</code> 限制</td></tr>
+          <tr><td><code>error_max_budget_usd</code></td><td>累计费用超过 <code>maxBudgetUsd</code></td></tr>
+          <tr><td><code>error_max_structured_output_retries</code></td><td>结构化输出重试次数超过 <code>MAX_STRUCTURED_OUTPUT_RETRIES</code>（默认 5）</td></tr>
+          <tr><td><code>error_during_execution</code></td><td><code>isResultSuccessful</code> 返回 false（含 <code>[ede_diagnostic]</code> 诊断前缀）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 6: claude.ts                                       -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="claude-ts">
+  <h2>六、<code>src/services/api/claude.ts</code> 关键导出</h2>
+  <p class="section-desc"><code>claude.ts</code> 是 <code>query.ts</code> 与 Anthropic SDK 之间的唯一接口点。</p>
+
+  <div class="knowledge-grid">
+    <details class="know-card">
+      <summary>
+        <div class="know-num">1</div>
+        <div class="know-title"><code>getExtraBodyParams()</code>（<code>claude.ts:280</code>）— beta headers 入口</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <p>解析 <code>CLAUDE_CODE_EXTRA_BODY</code> 环境变量（JSON 对象），与传入的 <code>betaHeaders</code> 数组合并到 <code>anthropic_beta</code> 字段。为 Bedrock 等 provider 注入额外 beta headers 的入口。</p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary>
+        <div class="know-num">2</div>
+        <div class="know-title"><code>queryModelWithStreaming()</code>（<code>claude.ts:772</code>）— API 调用入口</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <pre><span class="kw">export async function*</span> <span class="fn">queryModelWithStreaming</span>({
+  messages, systemPrompt, thinkingConfig, tools, signal, options,
+}): <span class="type">AsyncGenerator</span>&lt;<span class="type">StreamEvent</span> | <span class="type">AssistantMessage</span> | <span class="type">SystemAPIErrorMessage</span>, void&gt;</pre>
+        <p><code>deps.callModel</code> 的真实实现。内部通过 <code>withStreamingVCR</code> 包装后调用 <code>queryModel()</code>。是 <code>query.ts</code> 与 Anthropic SDK 之间的唯一接口点。</p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary>
+        <div class="know-num">3</div>
+        <div class="know-title"><code>executeNonStreamingRequest()</code>（<code>claude.ts:836</code>）— 非流式降级</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <p>流式请求失败时的非流式降级请求。含 <code>getNonstreamingFallbackTimeoutMs()</code>（远端 session 120s，其他 300s）和 <code>withRetry()</code> 重试包装。</p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary>
+        <div class="know-num">4</div>
+        <div class="know-title"><code>updateUsage()</code> / <code>accumulateUsage()</code> — 用量统计双函数</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <ul class="key-list">
+          <li><strong><code>updateUsage</code></strong>（<code>claude.ts:3078</code>）：将单条 <code>BetaMessageDeltaUsage</code> 合并到当前消息用量（<code>message_start</code> / <code>message_delta</code> 时调用）</li>
+          <li><strong><code>accumulateUsage</code></strong>（<code>claude.ts:3147</code>）：将 <code>currentMessageUsage</code> 累计到 <code>totalUsage</code>（<code>message_stop</code> 时调用，在 <code>QueryEngine.ts:887</code>）</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary>
+        <div class="know-num">5</div>
+        <div class="know-title"><code>FallbackTriggeredError</code>（<code>withRetry.ts:160</code>）— 模型回退信号</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <pre><span class="kw">export class</span> <span class="type">FallbackTriggeredError</span> <span class="kw">extends</span> <span class="type">Error</span> {
+  <span class="kw">constructor</span>(
+    <span class="kw">public readonly</span> originalModel: <span class="type">string</span>,
+    <span class="kw">public readonly</span> fallbackModel: <span class="type">string</span>,
+  )
+}</pre>
+        <p>主模型高负载时由 <code>withRetry</code> 抛出，<code>query.ts:1188</code> 捕获后切换 <code>currentModel = fallbackModel</code>，<code>attemptWithFallback = true</code> 重试同轮次。同时调用 <code>streamingToolExecutor.discard()</code> 丢弃孤儿工具结果。</p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 7: REPL.tsx                                        -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="repl">
+  <h2>七、<code>src/screens/REPL.tsx</code> 核心循环视角</h2>
+
+  <div class="diagram-wrap" style="padding:20px 24px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">7.1 REPL 消费路径</h3>
+    <pre>onSubmit() (REPL.tsx:<span class="num">3901</span>)
+  └→ [processImmediateCommands / queueing logic]
+  └→ onQuery() → onQueryImpl() (REPL.tsx:<span class="num">3268</span>)
+       └→ [buildEffectiveSystemPrompt, fetchSystemPromptParts 等准备]
+       └→ <span class="kw">for await</span> (<span class="kw">const</span> event <span class="kw">of</span> <span class="fn">query</span>({...})) <span class="cmt">// REPL.tsx:3450</span>
+              └→ onQueryEvent(event) — 更新 messages state，触发 React 重渲染</pre>
+    <div class="callout">
+      <strong>关键事实：</strong>REPL 直接消费 <code>query()</code>，不经过 <code>QueryEngine</code>。<code>querySource</code> 由 <code>getQuerySourceForREPL()</code> 决定（非 <code>sdk</code>）。
+    </div>
+  </div>
+
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">7.2 <code>toolUseConfirmQueue</code> 权限弹窗流</h3>
+    <pre>query() 内部 canUseTool 闭包
+  └→ 需要用户批准时：
+       <span class="fn">setToolUseConfirmQueue</span>(prev =&gt; [...prev, { tool, resolve, reject }])
+       <span class="kw">await new</span> <span class="type">Promise</span>(resolve =&gt; ...)  <span class="cmt">← 挂起工具执行</span>
+用户点击允许/拒绝
+  └→ toolUseConfirmQueue[<span class="num">0</span>].<span class="fn">resolve</span>(decision)
+       └→ 工具执行继续</pre>
+    <p><code>toolUseConfirmQueue</code> 定义于 <code>REPL.tsx:1369</code>。<code>REPL.tsx:1406</code> 的 <code>isWaitingForApproval</code> 判断队列非空时禁用 spinner，显示权限弹窗。用户 Ctrl+C 时（<code>REPL.tsx:2564</code>）调用 <code>toolUseConfirmQueue[0]?.onAbort()</code> 并清空队列。</p>
+  </div>
+
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">7.3 <code>abortController</code> 的 4 种 reason</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>reason</th><th>触发源</th><th>效果</th></tr></thead>
+        <tbody>
+          <tr><td><code>'user-cancel'</code></td><td><code>REPL.tsx:2577</code> 用户 Ctrl+C / ESC（非 interrupt 模式）</td><td><code>query.ts</code> 检查后 Terminal <code>aborted_streaming</code> 或 <code>aborted_tools</code>；不 yield 中断消息</td></tr>
+          <tr><td><code>'interrupt'</code></td><td>某些快捷键触发（<code>signal.reason === 'interrupt'</code> 分支）</td><td><code>query.ts:1367</code> 检查 <code>!== 'interrupt'</code> 时跳过 yield <code>userInterruptionMessage</code>，避免重复消息</td></tr>
+          <tr><td><code>undefined</code>（abort() 无参数）</td><td>常规 abort</td><td>会 yield <code>userInterruptionMessage</code></td></tr>
+          <tr><td>内部超时</td><td>部分工具内部 abort</td><td>工具内部处理，通常不到主循环</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:8px;"><code>abortController</code> state 定义于 <code>REPL.tsx:1122</code>，ref 于 <code>REPL.tsx:1125</code>（供 bridge 等异步场景读取）。</p>
+  </div>
+
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">7.4 <code>querySource</code> 语义</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>querySource 值</th><th>路径</th></tr></thead>
+        <tbody>
+          <tr><td><code>'sdk'</code></td><td>QE 路径（<code>QueryEngine.ts:740</code>），也是 <code>ask()</code> / headless 路径</td></tr>
+          <tr><td><code>'repl_main_thread'</code></td><td>REPL 主线程，通过 <code>getQuerySourceForREPL()</code> 返回</td></tr>
+          <tr><td><code>'repl_main_thread_auto_compact'</code></td><td>REPL 中的自动 compact 调用</td></tr>
+          <tr><td><code>'agent:&lt;agentId&gt;'</code></td><td>子 agent 调用（<code>AgentTool</code>）</td></tr>
+          <tr><td><code>'compact'</code></td><td>compact fork agent</td></tr>
+          <tr><td><code>'session_memory'</code></td><td>session memory fork agent</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:8px;"><code>querySource</code> 影响多处行为：stop hook 中的 <code>saveCacheSafeParams</code> 过滤（仅 <code>repl_main_thread</code> / <code>sdk</code>）；排队命令的 <code>isMainThread</code> 判断；<code>blocking_limit</code> 的跳过逻辑等。</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 8: KEY TYPES                                       -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="types">
+  <h2>八、关键类型速查</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>类型名</th><th>文件:行号</th><th>简要说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>Terminal</code></td><td><code>query/transitions.ts:1</code></td><td>query() 返回值，10 个终止 reason</td></tr>
+        <tr><td><code>Continue</code></td><td><code>query/transitions.ts:13</code></td><td>state.transition，7 个继续 reason</td></tr>
+        <tr><td><code>State</code></td><td><code>query.ts:261</code></td><td>queryLoop 跨迭代可变状态体（9 个字段）</td></tr>
+        <tr><td><code>QueryParams</code></td><td><code>query.ts:238</code></td><td>query() 入参，不可变快照</td></tr>
+        <tr><td><code>QueryDeps</code></td><td><code>query/deps.ts:21</code></td><td>DI 接口，4 个可注入依赖</td></tr>
+        <tr><td><code>QueryConfig</code></td><td><code>query/config.ts:15</code></td><td>不可变 env/Statsig 快照，sessionId + 4 gates</td></tr>
+        <tr><td><code>BudgetTracker</code></td><td><code>query/tokenBudget.ts:6</code></td><td>TOKEN_BUDGET 续写状态追踪</td></tr>
+        <tr><td><code>StopHookResult</code></td><td><code>query/stopHooks.ts:57</code></td><td><code>{ blockingErrors, preventContinuation }</code></td></tr>
+        <tr><td><code>QueryEngineConfig</code></td><td><code>QueryEngine.ts:139</code></td><td>QueryEngine 构造配置</td></tr>
+        <tr><td><code>SDKMessage</code></td><td><code>entrypoints/agentSdkTypes.ts</code></td><td>QueryEngine.submitMessage() 的 yield 类型</td></tr>
+        <tr><td><code>FallbackTriggeredError</code></td><td><code>services/api/withRetry.ts:160</code></td><td>模型回退触发信号</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 9: DESIGN PATTERNS                                 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="patterns">
+  <h2>九、设计模式速览</h2>
+
+  <div class="knowledge-grid">
+    <details class="know-card">
+      <summary>
+        <div class="know-num">1</div>
+        <div class="know-title">DI seam（<code>deps.ts</code>）</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <p><code>QueryDeps</code> 的 4 个字段（<code>callModel</code> / <code>microcompact</code> / <code>autocompact</code> / <code>uuid</code>）是最常被 mock 的依赖。通过 <code>params.deps ?? productionDeps()</code> 注入，测试无需 <code>spyOn</code> 整个模块，只需传 <code>deps: { callModel: mockFn }</code> 即可。<code>typeof fn</code> 写法保证 DI 接口与真实签名自动同步。</p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary>
+        <div class="know-num">2</div>
+        <div class="know-title"><code>feature()</code> tree-shaking</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <pre><span class="kw">const</span> contextCollapse = <span class="fn">feature</span>(<span class="str">'CONTEXT_COLLAPSE'</span>)
+  ? (<span class="fn">require</span>(<span class="str">'./services/contextCollapse/index.js'</span>) <span class="kw">as</span> ...)
+  : <span class="kw">null</span></pre>
+        <p><code>feature()</code> 只能用于 <code>if/三元</code> 条件（<code>bun:bundle</code> 编译器限制）。Build 时若 <code>CONTEXT_COLLAPSE</code> 未启用，<code>require(...)</code> 整个分支被 DCE 消除，产物中不包含 contextCollapse 代码。这是 <code>query.ts</code> 顶部大量 <code>const x = feature('X') ? require(...) : null</code> 的原因。</p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary>
+        <div class="know-num">3</div>
+        <div class="know-title">async generator yield-up 流式透传</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <pre>claude.ts → yield <span class="type">StreamEvent</span>
+query.ts  → yield <span class="type">StreamEvent</span>（透传）
+REPL.tsx  → onQueryEvent(event)（消费）</pre>
+        <p>每一层都是 async generator，通过 <code>yield*</code> 或 <code>for await</code> 向上传递事件。这使流式渲染成为可能：用户看到的每个字符增量都是从 SDK 流经这 3 层后直接渲染的。</p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary>
+        <div class="know-num">4</div>
+        <div class="know-title">不可变快照 + 可变 State 分离</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <pre>params.messages（入口处的不可变快照）
+       ↓ 传入 queryLoop
+State.messages（循环内可变，每个继续点整体替换）</pre>
+        <p>防止 race condition：<code>query()</code> 从不修改 <code>params.messages</code>，也从不直接修改外部的 <code>mutableMessages</code>。两套数据在 QueryEngine 层通过事件回流合并。</p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary>
+        <div class="know-num">5</div>
+        <div class="know-title"><code>mutableMessages</code>（QE）vs <code>messages</code>（query 快照）</div>
+        <svg class="know-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+      </summary>
+      <div class="know-body">
+        <div class="table-wrap">
+          <table class="compare-table">
+            <tr><th>维度</th><th>QE.mutableMessages</th><th>State.messages（query 内）</th></tr>
+            <tr><td>归属</td><td>QueryEngine 实例</td><td>queryLoop 的 State 对象</td></tr>
+            <tr><td>生命周期</td><td>跨多次 <code>submitMessage()</code> 调用</td><td>单次 <code>query()</code> 调用内</td></tr>
+            <tr><td>增长方式</td><td>push（消息回流）</td><td><code>state = { messages: [...old, ...new] }</code></td></tr>
+            <tr><td>compact 处理</td><td>splice 释放旧消息</td><td>替换为 postCompactMessages</td></tr>
+          </table>
+        </div>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 10: BOOKMARKS + LEARNING PATH                      -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="bookmarks">
+  <h2>十、文件书签 + 学习路径</h2>
+  <p class="section-desc">精确行号书签，方便直接跳转到源码对应位置阅读。</p>
+
+  <div class="diagram-wrap" style="padding:20px 24px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">精确行号书签表</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>符号</th><th>文件:行号</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>Terminal</code> 类型</td><td><code>src/query/transitions.ts:1</code></td><td>所有终止 reason 一览</td></tr>
+          <tr><td><code>Continue</code> 类型</td><td><code>src/query/transitions.ts:13</code></td><td>所有继续 reason 一览</td></tr>
+          <tr><td><code>QueryDeps</code> 接口</td><td><code>src/query/deps.ts:21</code></td><td>DI 注入点</td></tr>
+          <tr><td><code>QueryConfig</code> 类型</td><td><code>src/query/config.ts:15</code></td><td>不可变配置结构</td></tr>
+          <tr><td><code>checkTokenBudget()</code></td><td><code>src/query/tokenBudget.ts:45</code></td><td>TOKEN_BUDGET 续写决策</td></tr>
+          <tr><td><code>handleStopHooks()</code></td><td><code>src/query/stopHooks.ts:62</code></td><td>stop hook 入口</td></tr>
+          <tr><td><code>QueryParams</code> 类型</td><td><code>src/query.ts:238</code></td><td>query() 入参类型</td></tr>
+          <tr><td><code>State</code> 类型</td><td><code>src/query.ts:261</code></td><td>循环内可变状态体</td></tr>
+          <tr><td><code>query()</code> 入口</td><td><code>src/query.ts:298</code></td><td>底层 async generator 定义</td></tr>
+          <tr><td><code>queryLoop()</code> 入口</td><td><code>src/query.ts:432</code></td><td>内部循环实现</td></tr>
+          <tr><td><code>getMessagesAfterCompactBoundary</code></td><td><code>src/query.ts:576</code></td><td>历史裁边（step1）</td></tr>
+          <tr><td>PTL 恢复 collapse_drain</td><td><code>src/query.ts:1412</code></td><td>PTL 恢复第一阶段</td></tr>
+          <tr><td>PTL 恢复 reactive_compact</td><td><code>src/query.ts:1442</code></td><td>PTL 恢复第二阶段</td></tr>
+          <tr><td><code>max_output_tokens</code> escalate</td><td><code>src/query.ts:1534</code></td><td>8k→64k 升级</td></tr>
+          <tr><td><code>max_output_tokens</code> recovery</td><td><code>src/query.ts:1558</code></td><td>注入续写 prompt</td></tr>
+          <tr><td><code>handleStopHooks</code> 调用</td><td><code>src/query.ts:1596</code></td><td>stop hook 主调用点</td></tr>
+          <tr><td>正常下一轮 state 更新</td><td><code>src/query.ts:2101</code></td><td>next_turn 继续点</td></tr>
+          <tr><td><code>runTools()</code></td><td><code>src/services/tools/toolOrchestration.ts:21</code></td><td>工具执行入口</td></tr>
+          <tr><td><code>partitionToolCalls()</code></td><td><code>src/services/tools/toolOrchestration.ts:116</code></td><td>并发/串行分区</td></tr>
+          <tr><td><code>getExtraBodyParams()</code></td><td><code>src/services/api/claude.ts:280</code></td><td>beta headers 组装</td></tr>
+          <tr><td><code>queryModelWithStreaming()</code></td><td><code>src/services/api/claude.ts:772</code></td><td>API 调用入口</td></tr>
+          <tr><td><code>executeNonStreamingRequest()</code></td><td><code>src/services/api/claude.ts:836</code></td><td>非流式降级入口</td></tr>
+          <tr><td><code>updateUsage()</code></td><td><code>src/services/api/claude.ts:3078</code></td><td>单条消息用量更新</td></tr>
+          <tr><td><code>accumulateUsage()</code></td><td><code>src/services/api/claude.ts:3147</code></td><td>累计总用量</td></tr>
+          <tr><td><code>FallbackTriggeredError</code></td><td><code>src/services/api/withRetry.ts:160</code></td><td>模型回退信号</td></tr>
+          <tr><td><code>QueryEngine</code> 类</td><td><code>src/QueryEngine.ts:208</code></td><td>会话编排器类定义</td></tr>
+          <tr><td><code>submitMessage()</code></td><td><code>src/QueryEngine.ts:250</code></td><td>高层入口</td></tr>
+          <tr><td><code>query()</code> 调用（QE 内）</td><td><code>src/QueryEngine.ts:732</code></td><td>QE 消费 query() 的位置</td></tr>
+          <tr><td><code>ask()</code> 函数</td><td><code>src/QueryEngine.ts:1309</code></td><td>SDK/headless 便捷封装</td></tr>
+          <tr><td><code>snipReplay</code> 注入</td><td><code>src/QueryEngine.ts:1399</code></td><td>HISTORY_SNIP DI 注入</td></tr>
+          <tr><td>REPL Props</td><td><code>src/screens/REPL.tsx:762</code></td><td>REPL 组件入参类型</td></tr>
+          <tr><td><code>abortController</code> state</td><td><code>src/screens/REPL.tsx:1122</code></td><td>abort 控制器 state 定义</td></tr>
+          <tr><td><code>toolUseConfirmQueue</code></td><td><code>src/screens/REPL.tsx:1369</code></td><td>权限弹窗队列 state</td></tr>
+          <tr><td><code>onQueryImpl()</code></td><td><code>src/screens/REPL.tsx:3268</code></td><td>REPL 查询实现</td></tr>
+          <tr><td><code>for await of query()</code></td><td><code>src/screens/REPL.tsx:3450</code></td><td>REPL 直接消费 query()</td></tr>
+          <tr><td><code>onSubmit()</code></td><td><code>src/screens/REPL.tsx:3901</code></td><td>用户提交入口</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="diagram-wrap" style="padding:20px 24px; margin-top:14px;">
+    <h3 style="color:var(--orange-dk); margin-bottom:10px;">读代码建议顺序</h3>
+    <ol class="key-list" style="line-height:1.9;">
+      <li><strong>先读 <code>query/transitions.ts</code></strong>（21 行）：理解所有可能的循环出口，建立"终止条件"的心智模型。</li>
+      <li><strong>再读 <code>query/deps.ts</code> + <code>query/config.ts</code></strong>（40+46 行）：理解 DI 接口和配置快照设计。</li>
+      <li><strong>然后读 <code>query.ts</code> 的 <code>State</code> 类型（261-274 行）和 <code>query()</code> 入口（298-416 行）</strong>：理解状态隔离设计和 finally 清理链。</li>
+      <li><strong>精读 <code>queryLoop</code> 的 11 步流水线（query.ts:504-2114）</strong>：重点看 API 调用（step8）、PTL 恢复（step9）、max_output_tokens 恢复（step10）、工具执行（step11）。</li>
+      <li><strong>然后读 <code>QueryEngine.ts:250-750</code></strong>：理解高层编排和 mutableMessages 守恒。</li>
+      <li><strong>最后读 <code>REPL.tsx:3268-3460</code></strong>：理解 REPL 路径与 QE 路径的分离。</li>
+    </ol>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SERIES NAVIGATION                                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="series">
+  <h2>系列导航</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>篇目</th><th>主题</th><th>关键文件</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>第一篇</strong></td>
+          <td>启动链全貌</td>
+          <td><code>src/entrypoints/cli.tsx</code>、<code>src/main.tsx</code>、<code>src/entrypoints/init.ts</code>、<code>src/replLauncher.tsx</code>、<code>src/screens/REPL.tsx</code>、<code>src/cli/print.ts</code></td>
+        </tr>
+        <tr style="background:#fff9f6;">
+          <td><strong>第二篇（本篇）</strong></td>
+          <td>核心循环</td>
+          <td><code>src/query.ts</code>、<code>src/query/</code>、<code>src/QueryEngine.ts</code>、<code>src/services/api/claude.ts</code>、<code>src/screens/REPL.tsx</code></td>
+        </tr>
+        <tr>
+          <td><strong>第三篇</strong></td>
+          <td>状态管理</td>
+          <td><code>src/bootstrap/state.ts</code>、<code>src/state/AppState.tsx</code>、<code>src/state/onChangeAppState.ts</code></td>
+        </tr>
+        <tr>
+          <td><strong>第四篇</strong></td>
+          <td>API 通信层</td>
+          <td><code>src/services/api/</code>（7 个 provider 兼容层）</td>
+        </tr>
+        <tr>
+          <td><strong>第五篇</strong></td>
+          <td>安全与权限</td>
+          <td><code>src/utils/permissions/</code>、<code>src/components/permissions/</code></td>
+        </tr>
+        <tr>
+          <td><strong>第六篇</strong></td>
+          <td>工具系统</td>
+          <td><code>src/Tool.ts</code>、<code>src/tools.ts</code>、<code>packages/builtin-tools/</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<footer style="text-align:center; color: var(--text-3); font-size: .82rem; padding-bottom: 24px;">
+  核心循环知识总结 [第二篇] — Claude Code 逆向工程学习文档 &nbsp;·&nbsp; 基于 <code>src/query.ts</code>、<code>src/query/</code>、<code>src/QueryEngine.ts</code>、<code>src/services/api/claude.ts</code>、<code>src/screens/REPL.tsx</code>
+</footer>
+
+</div><!-- .page-wrap -->
+
+<script>
+  // Native <details> already handles collapsible behavior.
+  // This script adds smooth open animation for know-card details.
+  document.querySelectorAll('details.know-card').forEach(detail => {
+    detail.addEventListener('toggle', () => {
+      if (detail.open) {
+        const body = detail.querySelector('.know-body');
+        if (body) {
+          body.style.animation = 'none';
+          body.offsetHeight; // reflow
+          body.style.animation = 'fadeSlideIn .18s ease';
+        }
+      }
+    });
+  });
+</script>
+
+<style>
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
+</body>
+</html>

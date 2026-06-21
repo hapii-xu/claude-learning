@@ -55,8 +55,8 @@ export function resolveAgentOverrides(
   const seen = new Set<string>()
   const resolved: ResolvedAgent[] = []
 
-  // Iterate allAgents, annotating each with override info from activeAgents.
-  // Deduplicate by (agentType, source) to handle git worktree duplicates.
+  // 遍历 allAgents，使用 activeAgents 中的覆盖信息标注每个代理。
+  // 按 (agentType, source) 去重，以处理 git worktree 重复。
   for (const agent of allAgents) {
     const key = `${agent.agentType}:${agent.source}`
     if (seen.has(key)) continue

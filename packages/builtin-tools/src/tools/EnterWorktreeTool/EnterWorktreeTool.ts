@@ -75,12 +75,17 @@ export const EnterWorktreeTool: Tool<InputSchema, Output> = buildTool({
   renderToolUseMessage,
   renderToolResultMessage,
   async call(input) {
-    // Validate not already in a worktree created by this session
+    const { logForDebugging } = await import('src/utils/debug.js')
+    logForDebugging(
+      `[Hapii] EnterWorktree 创建 worktree name=${input.name ?? '(auto)'}`,
+      { level: 'info' },
+    )
+    // 验证尚未处于由此会话创建的 worktree 中
     if (getCurrentWorktreeSession()) {
       throw new Error('Already in a worktree session')
     }
 
-    // Resolve to main repo root so worktree creation works from within a worktree
+    // 解析到主仓库根目录，以便从 worktree 内部也能创建 worktree
     const mainRepoRoot = findCanonicalGitRoot(getCwd())
     if (mainRepoRoot && mainRepoRoot !== getCwd()) {
       process.chdir(mainRepoRoot)
@@ -95,9 +100,9 @@ export const EnterWorktreeTool: Tool<InputSchema, Output> = buildTool({
     setCwd(worktreeSession.worktreePath)
     setOriginalCwd(getCwd())
     saveWorktreeState(worktreeSession)
-    // Clear cached system prompt sections so env_info_simple recomputes with worktree context
+    // 清除缓存的系统提示词部分，以便 env_info_simple 使用 worktree 上下文重新计算
     clearSystemPromptSections()
-    // Clear memoized caches that depend on CWD
+    // 清除依赖于 CWD 的记忆化缓存
     clearMemoryFileCaches()
     getPlansDirectory.cache.clear?.()
 

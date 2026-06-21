@@ -26,7 +26,7 @@ describe('InProcessTransport', () => {
 
     await client.send(message)
 
-    // Wait for queueMicrotask to deliver
+    // 等待 queueMicrotask 传递消息
     await new Promise(resolve => setTimeout(resolve, 10))
 
     expect(received).not.toBeNull()

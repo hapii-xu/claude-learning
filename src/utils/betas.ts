@@ -1,5 +1,6 @@
 import { feature } from 'bun:bundle'
 import memoize from 'lodash-es/memoize.js'
+import { logForDebugging } from './debug.js'
 import {
   checkStatsigFeatureGate_CACHED_MAY_BE_STALE,
   getFeatureValue_CACHED_MAY_BE_STALE,
@@ -33,14 +34,14 @@ import {
 import { getInitialSettings } from './settings/settings.js'
 
 /**
- * SDK-provided betas that are allowed for API key users.
- * Only betas in this list can be passed via SDK options.
+ * 允许 API key 用户使用的 SDK 提供 betas。
+ * 仅此列表中的 betas 可通过 SDK 选项传递。
  */
 const ALLOWED_SDK_BETAS = [CONTEXT_1M_BETA_HEADER]
 
 /**
- * Filter betas to only include those in the allowlist.
- * Returns allowed and disallowed betas separately.
+ * 过滤 betas 仅保留白名单中的项。
+ * 分别返回允许与拒绝的 betas。
  */
 function partitionBetasByAllowlist(betas: string[]): {
   allowed: string[]
@@ -59,9 +60,9 @@ function partitionBetasByAllowlist(betas: string[]): {
 }
 
 /**
- * Filter SDK betas to only include allowed ones.
- * Warns about disallowed betas and subscriber restrictions.
- * Returns undefined if no valid betas remain or if user is a subscriber.
+ * 过滤 SDK betas 仅保留允许的项。
+ * 对不允许的 betas 与 subscriber 限制输出警告。
+ * 若无有效 beta 残留或用户是 subscriber，则返回 undefined。
  */
 export function filterAllowedSdkBetas(
   sdkBetas: string[] | undefined,
@@ -72,7 +73,7 @@ export function filterAllowedSdkBetas(
 
   if (isClaudeAISubscriber()) {
     console.warn(
-      'Warning: Custom betas are only available for API key users. Ignoring provided betas.',
+      '警告：自定义 betas 仅对 API key 用户可用，已忽略传入的 betas。',
     )
     return undefined
   }
@@ -80,14 +81,14 @@ export function filterAllowedSdkBetas(
   const { allowed, disallowed } = partitionBetasByAllowlist(sdkBetas)
   for (const beta of disallowed) {
     console.warn(
-      `Warning: Beta header '${beta}' is not allowed. Only the following betas are supported: ${ALLOWED_SDK_BETAS.join(', ')}`,
+      `警告：Beta header '${beta}' 不被允许。仅支持以下 betas：${ALLOWED_SDK_BETAS.join(', ')}`,
     )
   }
   return allowed.length > 0 ? allowed : undefined
 }
 
-// Generally, foundry supports all 1P features;
-// however out of an abundance of caution, we do not enable any which are behind an experiment
+// 一般而言，foundry 支持所有 1P 特性；
+// 但出于谨慎，我们不启用任何仍在实验中的特性
 
 export function modelSupportsISP(model: string): boolean {
   const supported3P = get3PModelCapabilityOverride(
@@ -99,7 +100,7 @@ export function modelSupportsISP(model: string): boolean {
   }
   const canonical = getCanonicalName(model)
   const provider = getAPIProvider()
-  // Foundry supports interleaved thinking for all models
+  // Foundry 对所有模型支持 interleaved thinking
   if (provider === 'foundry') {
     return true
   }
@@ -113,7 +114,7 @@ export function modelSupportsISP(model: string): boolean {
 
 function vertexModelSupportsWebSearch(model: string): boolean {
   const canonical = getCanonicalName(model)
-  // Web search only supported on Claude 4.0+ models on Vertex
+  // Vertex 上仅 Claude 4.0+ 模型支持 web search
   return (
     canonical.includes('claude-opus-4') ||
     canonical.includes('claude-sonnet-4') ||
@@ -121,7 +122,7 @@ function vertexModelSupportsWebSearch(model: string): boolean {
   )
 }
 
-// Context management is supported on Claude 4+ models
+// Claude 4+ 模型支持 context management
 export function modelSupportsContextManagement(model: string): boolean {
   const canonical = getCanonicalName(model)
   const provider = getAPIProvider()
@@ -138,11 +139,11 @@ export function modelSupportsContextManagement(model: string): boolean {
   )
 }
 
-// @[MODEL LAUNCH]: Add the new model ID to this list if it supports structured outputs.
+// @[MODEL LAUNCH]: 若新模型支持 structured outputs，将其 ID 加入此列表。
 export function modelSupportsStructuredOutputs(model: string): boolean {
   const canonical = getCanonicalName(model)
   const provider = getAPIProvider()
-  // Structured outputs only supported on firstParty and Foundry (not Bedrock/Vertex yet)
+  // structured outputs 仅在 firstParty 和 Foundry 上支持（Bedrock/Vertex 暂不支持）
   if (provider !== 'firstParty' && provider !== 'foundry') {
     return false
   }
@@ -162,9 +163,9 @@ export function modelSupportsAutoMode(_model: string): boolean {
 }
 
 /**
- * Get the correct tool search beta header for the current API provider.
- * - Vertex AI / Bedrock: tool-search-tool-2025-10-19
- * - All other providers: advanced-tool-use-2025-11-20
+ * 根据当前 API provider 返回正确的 tool search beta header。
+ * - Vertex AI / Bedrock：tool-search-tool-2025-10-19
+ * - 其他所有 provider：advanced-tool-use-2025-11-20
  */
 export function getSearchExtraToolsBetaHeader(): string {
   const provider = getAPIProvider()
@@ -175,9 +176,8 @@ export function getSearchExtraToolsBetaHeader(): string {
 }
 
 /**
- * Check if experimental betas should be included.
- * These are betas that are only available on firstParty provider
- * and may not be supported by proxies or other providers.
+ * 检查是否应包含实验性 betas。
+ * 这些 betas 仅在 firstParty provider 上可用，代理或其他 provider 可能不支持。
  */
 export function shouldIncludeFirstPartyOnlyBetas(): boolean {
   return (
@@ -188,9 +188,9 @@ export function shouldIncludeFirstPartyOnlyBetas(): boolean {
 }
 
 /**
- * Global-scope prompt caching is firstParty only. Foundry is excluded because
- * GrowthBook never bucketed Foundry users into the rollout experiment — the
- * treatment data is firstParty-only.
+ * Global-scope prompt caching 仅限 firstParty。Foundry 被排除是因为
+ * GrowthBook 从未将 Foundry 用户纳入灰度实验 —— 实验数据仅来自
+ * firstParty。
  */
 export function shouldUseGlobalCacheScope(): boolean {
   return (
@@ -229,12 +229,11 @@ export const getAllModelBetas = memoize((model: string): string[] => {
     betaHeaders.push(INTERLEAVED_THINKING_BETA_HEADER)
   }
 
-  // Skip the API-side Haiku thinking summarizer — the summary is only used
-  // for ctrl+o display, which interactive users rarely open. The API returns
-  // redacted_thinking blocks instead; AssistantRedactedThinkingMessage already
-  // renders those as a stub. SDK / print-mode keep summaries because callers
-  // may iterate over thinking content. Users can opt back in via settings.json
-  // showThinkingSummaries.
+  // 跳过 API 端的 Haiku thinking summarizer —— 其摘要仅用于 ctrl+o 显示，
+  // 交互式用户很少打开该界面。API 会返回 redacted_thinking 块作为替代；
+  // AssistantRedactedThinkingMessage 已将其渲染为占位。SDK / print 模式
+  // 保留摘要，因为调用方可能遍历 thinking 内容。用户可通过 settings.json
+  // 的 showThinkingSummaries 重新开启。
   if (
     includeFirstPartyOnlyBetas &&
     modelSupportsISP(model) &&
@@ -244,9 +243,9 @@ export const getAllModelBetas = memoize((model: string): string[] => {
     betaHeaders.push(REDACT_THINKING_BETA_HEADER)
   }
 
-  // Add context management beta for tool clearing or thinking preservation.
-  // Tool clearing is enabled by default for all users (upstream gates on ant);
-  // thinking preservation activates when the model supports context management.
+  // 为 tool 清理或 thinking 保留添加 context management beta。
+  // tool 清理对所有用户默认启用（上游以 ant 作为门控）；
+  // thinking 保留在模型支持 context management 时激活。
   const toolClearingOptIn =
     isEnvTruthy(process.env.USE_API_CONTEXT_MANAGEMENT) ||
     modelSupportsContextManagement(model)
@@ -259,16 +258,16 @@ export const getAllModelBetas = memoize((model: string): string[] => {
   ) {
     betaHeaders.push(CONTEXT_MANAGEMENT_BETA_HEADER)
   }
-  // Add strict tool use beta if experiment is enabled.
-  // Gate on includeFirstPartyOnlyBetas: CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS
-  // already strips schema.strict from tool bodies at api.ts's choke point, but
-  // this header was escaping that kill switch. Proxy gateways that look like
-  // firstParty but forward to Vertex reject this header with 400.
+  // 若实验开启则添加 strict tool use beta。
+  // 以 includeFirstPartyOnlyBetas 作门控：CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS
+  // 已在 api.ts 的关键节点从 tool body 中剥离 schema.strict，但此 header
+  // 曾绕过了该 kill switch。伪装成 firstParty 但实际转发到 Vertex 的代理网关
+  // 会以 400 拒绝该 header。
   // github.com/deshaw/anthropic-issues/issues/5
   const strictToolsEnabled =
     checkStatsigFeatureGate_CACHED_MAY_BE_STALE('tengu_tool_pear')
-  // 3P default: false. API rejects strict + token-efficient-tools together
-  // (tool_use.py:139), so these are mutually exclusive — strict wins.
+  // 3P 默认：false。API 会同时拒绝 strict + token-efficient-tools
+  //（tool_use.py:139），二者互斥 —— strict 胜出。
   const tokenEfficientToolsEnabled =
     !strictToolsEnabled &&
     getFeatureValue_CACHED_MAY_BE_STALE('tengu_amber_json_tools', false)
@@ -279,10 +278,10 @@ export const getAllModelBetas = memoize((model: string): string[] => {
   ) {
     betaHeaders.push(STRUCTURED_OUTPUTS_BETA_HEADER)
   }
-  // JSON tool_use format (FC v3) — ~4.5% output token reduction vs ANTML.
-  // Sends the v2 header (2026-03-28) added in anthropics/anthropic#337072 to
-  // isolate the CC A/B cohort from ~9.2M/week existing v1 senders. Ant-only
-  // while the restored JsonToolUseOutputParser soaks.
+  // JSON tool_use 格式（FC v3）—— 相较 ANTML 约 4.5% 输出 token 缩减。
+  // 发送 anthropics/anthropic#337072 中新增的 v2 header（2026-03-28），
+  // 以将 CC A/B 实验队列与现有 ~9.2M/周的 v1 调用方隔离。在恢复的
+  // JsonToolUseOutputParser 稳定前仅 ant 内部使用。
   if (
     process.env.USER_TYPE === 'ant' &&
     includeFirstPartyOnlyBetas &&
@@ -291,22 +290,22 @@ export const getAllModelBetas = memoize((model: string): string[] => {
     betaHeaders.push(TOKEN_EFFICIENT_TOOLS_BETA_HEADER)
   }
 
-  // Add web search beta for Vertex Claude 4.0+ models only
+  // 仅对 Vertex 上 Claude 4.0+ 模型添加 web search beta
   if (provider === 'vertex' && vertexModelSupportsWebSearch(model)) {
     betaHeaders.push(WEB_SEARCH_BETA_HEADER)
   }
-  // Foundry only ships models that already support Web Search
+  // Foundry 仅发布已支持 Web Search 的模型
   if (provider === 'foundry') {
     betaHeaders.push(WEB_SEARCH_BETA_HEADER)
   }
 
-  // Always send the beta header for 1P. The header is a no-op without a scope field.
+  // 始终为 1P 发送该 beta header。在没有 scope 字段时该 header 是 no-op。
   if (includeFirstPartyOnlyBetas) {
     betaHeaders.push(PROMPT_CACHING_SCOPE_BETA_HEADER)
   }
 
-  // If ANTHROPIC_BETAS is set, split it by commas and add to betaHeaders.
-  // This is an explicit user opt-in, so honor it regardless of model.
+  // 若设置了 ANTHROPIC_BETAS，按逗号切分并加入 betaHeaders。
+  // 这是显式的用户 opt-in，无视模型情况一律尊重。
   if (process.env.ANTHROPIC_BETAS) {
     betaHeaders.push(
       ...process.env.ANTHROPIC_BETAS.split(',')
@@ -333,25 +332,28 @@ export const getBedrockExtraBodyParamsBetas = memoize(
 )
 
 /**
- * Merge SDK-provided betas with auto-detected model betas.
- * SDK betas are read from global state (set via setSdkBetas in main.tsx).
- * The betas are pre-filtered by filterAllowedSdkBetas which handles
- * subscriber checks and allowlist validation with warnings.
+ * 将 SDK 提供的 betas 与自动检测的模型 betas 合并。
+ * SDK betas 从全局 state 读取（通过 main.tsx 中的 setSdkBetas 写入）。
+ * 这些 betas 已经由 filterAllowedSdkBetas 预过滤，后者负责处理
+ * subscriber 检查与白名单校验并输出警告。
  *
- * @param options.isAgenticQuery - When true, ensures the beta headers needed
- *   for agentic queries are present. For non-Haiku models these are already
- *   included by getAllModelBetas(); for Haiku they're excluded since
- *   non-agentic calls (compaction, classifiers, token estimation) don't need them.
+ * @param options.isAgenticQuery - 为 true 时确保 agentic 查询所需的
+ *   beta header 存在。对非 Haiku 模型这些已由 getAllModelBetas() 包含；
+ *   对 Haiku 则被排除，因为非 agentic 调用（压缩、分类器、token 估算）不需要。
  */
 export function getMergedBetas(
   model: string,
   options?: { isAgenticQuery?: boolean },
 ): string[] {
   const baseBetas = [...getModelBetas(model)]
+  logForDebugging(
+    `[Hapii] Betas.getMergedBetas model=${model} isAgenticQuery=${options?.isAgenticQuery ?? false} baseBetas=[${baseBetas.join(', ')}]`,
+    { level: 'info' },
+  )
 
-  // Agentic queries always need claude-code and cli-internal beta headers.
-  // For non-Haiku models these are already in baseBetas; for Haiku they're
-  // excluded by getAllModelBetas() since non-agentic Haiku calls don't need them.
+  // Agentic 查询始终需要 claude-code 与 cli-internal beta header。
+  // 对非 Haiku 模型这些已在 baseBetas 中；对 Haiku 则被 getAllModelBetas()
+  // 排除，因为非 agentic Haiku 调用不需要它们。
   if (options?.isAgenticQuery) {
     if (!baseBetas.includes(CLAUDE_CODE_20250219_BETA_HEADER)) {
       baseBetas.push(CLAUDE_CODE_20250219_BETA_HEADER)
@@ -372,7 +374,7 @@ export function getMergedBetas(
     return baseBetas
   }
 
-  // Merge SDK betas without duplicates (already filtered by filterAllowedSdkBetas)
+  // 合并 SDK betas 并去重（已由 filterAllowedSdkBetas 过滤）
   return [...baseBetas, ...sdkBetas.filter(b => !baseBetas.includes(b))]
 }
 

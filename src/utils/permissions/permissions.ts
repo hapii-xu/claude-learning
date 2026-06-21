@@ -477,6 +477,10 @@ export const hasPermissionsToUseTool: CanUseToolFn = async (
   assistantMessage,
   toolUseID,
 ): Promise<PermissionDecision> => {
+  logForDebugging(
+    `[Hapii] Permissions.check 进入 tool=${tool.name} mode=${context.getAppState().toolPermissionContext.mode}`,
+    { level: 'info' },
+  )
   const result = await hasPermissionsToUseToolInner(tool, input, context)
 
   // Reset consecutive denials on any allowed tool use in auto mode.
@@ -973,6 +977,10 @@ export const hasPermissionsToUseTool: CanUseToolFn = async (
     }
   }
 
+  logForDebugging(
+    `[Hapii] Permissions.decision tool=${tool.name} result=${result.behavior}`,
+    { level: 'info' },
+  )
   return result
 }
 

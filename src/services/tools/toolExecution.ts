@@ -383,6 +383,10 @@ export async function* runToolUse(
       tool = fallbackTool
     }
   }
+  logForDebugging(
+    `[Hapii] ToolExec.runToolUse 步骤0 开始 tool=${toolName} id=${toolUse.id}`,
+    { level: 'info' },
+  )
   logForDebugging(`[工具执行] 步骤1 查找工具 name=${toolName} 找到=${!!tool}`, {
     level: 'info',
   })
@@ -484,6 +488,10 @@ export async function* runToolUse(
       return
     }
 
+    logForDebugging(
+      `[Hapii] ToolExec.runToolUse 步骤2 中断检查通过 name=${toolName}`,
+      { level: 'info' },
+    )
     logForDebugging(
       `[工具执行] 步骤2 中断检查通过，进入权限+执行流程 name=${toolName}`,
       { level: 'info' },
@@ -981,6 +989,10 @@ async function checkPermissionsAndCallTool(
   // 折叠视图显示"Running…"而没有 (Ns) 刻度，因为 bash_progress
   // 尚未启动。仅限自动模式：在默认模式下，此计时器包括交互式
   // 对话框等待（用户思考时间），这只是噪音。
+  logForDebugging(
+    `[Hapii] ToolExec.runToolUse 步骤4 权限结果 tool=${tool.name} behavior=${permissionDecision.behavior} mode=${permissionMode} 耗时=${permissionDurationMs}ms`,
+    { level: 'info' },
+  )
   if (
     permissionDurationMs >= SLOW_PHASE_LOG_THRESHOLD_MS &&
     permissionMode === 'auto'
@@ -1221,6 +1233,10 @@ async function checkPermissionsAndCallTool(
   )
   startToolExecutionSpan()
 
+  logForDebugging(
+    `[Hapii] ToolExec.runToolUse 步骤6 调用 call() 开始 name=${tool.name}`,
+    { level: 'info' },
+  )
   logForDebugging(`[工具执行] 步骤6 调用 tool.call() 开始 name=${tool.name}`, {
     level: 'info',
   })

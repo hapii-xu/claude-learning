@@ -121,7 +121,7 @@ describe('createMcpManager', () => {
     const handler = mock(() => {})
     manager.on('error', handler)
     manager.off('error', handler)
-    // No crash — just verifying it works
+    // 没有崩溃 — 只是验证它能正常工作
     expect(true).toBe(true)
   })
 

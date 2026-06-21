@@ -45,8 +45,16 @@ export async function findRelevantMemories(
   alreadySurfaced: ReadonlySet<string> = new Set(),
   parentSpan?: LangfuseSpan | null,
 ): Promise<RelevantMemory[]> {
+  logForDebugging(
+    `[Hapii] Memdir.findRelevantMemories 开始 queryLen=${query.length} dir=${memoryDir} alreadySurfaced=${alreadySurfaced.size}`,
+    { level: 'info' },
+  )
   const memories = (await scanMemoryFiles(memoryDir, signal)).filter(
     m => !alreadySurfaced.has(m.filePath),
+  )
+  logForDebugging(
+    `[Hapii] Memdir.findRelevantMemories 扫描完成 candidateCount=${memories.length}`,
+    { level: 'info' },
   )
   if (memories.length === 0) {
     return []
@@ -74,7 +82,12 @@ export async function findRelevantMemories(
     logMemoryRecallShape(memories, selected)
   }
 
-  return selected.map(m => ({ path: m.filePath, mtimeMs: m.mtimeMs }))
+  const result = selected.map(m => ({ path: m.filePath, mtimeMs: m.mtimeMs }))
+  logForDebugging(
+    `[Hapii] Memdir.findRelevantMemories 完成 selectedCount=${result.length} paths=[${result.map(r => r.path).join(', ')}]`,
+    { level: 'info' },
+  )
+  return result
 }
 
 async function selectRelevantMemories(

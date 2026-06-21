@@ -1,9 +1,9 @@
 /**
- * XAA IdP Login — acquires an OIDC id_token from an enterprise IdP via the
- * standard authorization_code + PKCE flow, then caches it by IdP issuer.
+ * XAA IdP 登录 — 通过标准 authorization_code + PKCE 流程从企业 IdP 获取
+ * OIDC id_token，然后按 IdP issuer 缓存。
  *
- * This is the "one browser pop" in the XAA value prop: one IdP login → N silent
- * MCP server auths. The id_token is cached in the keychain and reused until expiry.
+ * 这是 XAA 价值主张中的"一次浏览器弹窗"：一次 IdP 登录 → N 次静默
+ * MCP 服务器认证。id_token 缓存在 keychain 中，在过期前一直复用。
  */
 
 import {
@@ -40,9 +40,9 @@ export type XaaIdpSettings = {
 }
 
 /**
- * Typed accessor for settings.xaaIdp. The field is env-gated in SettingsSchema
- * so it doesn't surface in SDK types/docs — which means the inferred settings
- * type doesn't have it at compile time. This is the one cast.
+ * settings.xaaIdp 的类型化访问器。该字段在 SettingsSchema 中受环境变量控制，
+ * 因此不会出现在 SDK 类型/文档中 — 这意味着推断的 settings 类型在编译时
+ * 没有该字段。这是唯一一处类型断言。
  */
 export function getXaaIdpSettings(): XaaIdpSettings | undefined {
   return (getInitialSettings() as { xaaIdp?: XaaIdpSettings }).xaaIdp
@@ -56,30 +56,30 @@ export type IdpLoginOptions = {
   idpIssuer: string
   idpClientId: string
   /**
-   * Optional IdP client secret for confidential clients. Auth method
-   * (client_secret_post, client_secret_basic, none) is chosen per IdP
-   * metadata. Omit for public clients (PKCE only).
+   * 可选的 IdP 客户端密钥，用于机密客户端。认证方法
+   * （client_secret_post、client_secret_basic、none）根据 IdP
+   * 元数据选择。公共客户端（仅 PKCE）请省略。
    */
   idpClientSecret?: string
   /**
-   * Fixed callback port. If omitted, a random port is chosen.
-   * Use this when the IdP client is pre-registered with a specific loopback
-   * redirect URI (RFC 8252 §7.3 says IdPs SHOULD accept any port for
-   * http://localhost, but many don't).
+   * 固定的回调端口。如果省略，则随机选择一个端口。
+   * 当 IdP 客户端已预注册特定的 loopback 重定向 URI 时使用此选项
+   * （RFC 8252 §7.3 规定 IdP 应该接受 http://localhost 的任意端口，
+   * 但很多 IdP 并不遵守）。
    */
   callbackPort?: number
-  /** Called with the authorization URL before (or instead of) opening the browser */
+  /** 在打开浏览器之前（或代替打开浏览器）使用授权 URL 调用 */
   onAuthorizationUrl?: (url: string) => void
-  /** If true, don't auto-open the browser — just call onAuthorizationUrl */
+  /** 如果为 true，不自动打开浏览器 — 仅调用 onAuthorizationUrl */
   skipBrowserOpen?: boolean
   abortSignal?: AbortSignal
 }
 
 /**
- * Normalize an IdP issuer URL for use as a cache key: strip trailing slashes,
- * lowercase host. Issuers from config and from OIDC discovery may differ
- * cosmetically but should hit the same cache slot. Exported so the setup
- * command can compare issuers using the same normalization as keychain ops.
+ * 规范化 IdP issuer URL 作为缓存键：去除尾部斜杠，
+ * 将主机名转为小写。来自配置和 OIDC 发现的 issuer 可能在
+ * 外观上有所不同，但应该命中同一个缓存槽位。导出此函数以便 setup
+ * 命令可以使用与 keychain 操作相同的规范化方式来比较 issuer。
  */
 export function issuerKey(issuer: string): string {
   try {
@@ -93,8 +93,8 @@ export function issuerKey(issuer: string): string {
 }
 
 /**
- * Read a cached id_token for the given IdP issuer from secure storage.
- * Returns undefined if missing or within ID_TOKEN_EXPIRY_BUFFER_S of expiring.
+ * 从安全存储中读取指定 IdP issuer 的缓存 id_token。
+ * 如果缺失或在 ID_TOKEN_EXPIRY_BUFFER_S 内即将过期则返回 undefined。
  */
 export function getCachedIdpIdToken(idpIssuer: string): string | undefined {
   const storage = getSecureStorage()
@@ -123,12 +123,12 @@ function saveIdpIdToken(
 }
 
 /**
- * Save an externally-obtained id_token into the XAA cache — the exact slot
- * getCachedIdpIdToken/acquireIdpIdToken read from. Used by conformance testing
- * where the mock IdP hands us a pre-signed token but doesn't serve /authorize.
+ * 将外部获取的 id_token 保存到 XAA 缓存 — 即
+ * getCachedIdpIdToken/acquireIdpIdToken 读取的同一个槽位。用于一致性测试，
+ * 其中 mock IdP 提供预签名的 token 但不提供 /authorize 端点。
  *
- * Parses the JWT's exp claim for cache TTL (same as acquireIdpIdToken).
- * Returns the expiresAt it computed so the caller can report it.
+ * 解析 JWT 的 exp claim 确定缓存 TTL（与 acquireIdpIdToken 相同）。
+ * 返回计算出的 expiresAt 以便调用方报告。
  */
 export function saveIdpIdTokenFromJwt(
   idpIssuer: string,
@@ -150,11 +150,11 @@ export function clearIdpIdToken(idpIssuer: string): void {
 }
 
 /**
- * Save an IdP client secret to secure storage, keyed by IdP issuer.
- * Separate from MCP server AS secrets — different trust domain.
- * Returns the storage update result so callers can surface keychain
- * failures (locked keychain, `security` nonzero exit) instead of
- * silently dropping the secret and failing later with invalid_client.
+ * 将 IdP 客户端密钥保存到安全存储，以 IdP issuer 为键。
+ * 与 MCP 服务器 AS 密钥分开 — 不同的信任域。
+ * 返回存储更新结果，以便调用方可以报告 keychain
+ * 失败（keychain 锁定、`security` 非零退出）而不是
+ * 静默丢弃密钥，导致后续因 invalid_client 而失败。
  */
 export function saveIdpClientSecret(
   idpIssuer: string,
@@ -172,7 +172,7 @@ export function saveIdpClientSecret(
 }
 
 /**
- * Read the IdP client secret for the given issuer from secure storage.
+ * 从安全存储中读取指定 issuer 的 IdP 客户端密钥。
  */
 export function getIdpClientSecret(idpIssuer: string): string | undefined {
   const storage = getSecureStorage()
@@ -181,8 +181,8 @@ export function getIdpClientSecret(idpIssuer: string): string | undefined {
 }
 
 /**
- * Remove the IdP client secret for the given issuer from secure storage.
- * Used by `claude mcp xaa clear`.
+ * 从安全存储中移除指定 issuer 的 IdP 客户端密钥。
+ * 由 `claude mcp xaa clear` 命令使用。
  */
 export function clearIdpClientSecret(idpIssuer: string): void {
   const storage = getSecureStorage()
@@ -193,12 +193,12 @@ export function clearIdpClientSecret(idpIssuer: string): void {
   storage.update(existing)
 }
 
-// OIDC Discovery §4.1 says `{issuer}/.well-known/openid-configuration` — path
-// APPEND, not replace. `new URL('/.well-known/...', issuer)` with a leading
-// slash is a WHATWG absolute-path reference and drops the issuer's pathname,
-// breaking Azure AD (`login.microsoftonline.com/{tenant}/v2.0`), Okta custom
-// auth servers, and Keycloak realms. Trailing-slash base + relative path is
-// the fix. Exported because auth.ts needs the same discovery.
+// OIDC Discovery §4.1 规定 `{issuer}/.well-known/openid-configuration` — 是路径
+// 追加，不是替换。`new URL('/.well-known/...', issuer)` 带前导斜杠时
+// 是 WHATWG 绝对路径引用，会丢弃 issuer 的 pathname，
+// 从而破坏 Azure AD（`login.microsoftonline.com/{tenant}/v2.0`）、Okta 自定义
+// 授权服务器和 Keycloak realm。尾部斜杠 base + 相对路径是
+// 修复方案。导出此函数因为 auth.ts 也需要相同的发现逻辑。
 export async function discoverOidc(
   idpIssuer: string,
 ): Promise<OpenIdProviderDiscoveryMetadata> {
@@ -214,8 +214,8 @@ export async function discoverOidc(
       `XAA IdP: OIDC discovery failed: HTTP ${res.status} at ${url}`,
     )
   }
-  // Captive portals and proxy auth pages return 200 with HTML. res.json()
-  // throws a raw SyntaxError before safeParse can give a useful message.
+  // 强制门户和代理认证页面会返回 200 和 HTML。res.json()
+  // 会抛出原始 SyntaxError，而 safeParse 可以提供更有用的错误信息。
   let body: unknown
   try {
     body = await res.json()
@@ -237,17 +237,17 @@ export async function discoverOidc(
 }
 
 /**
- * Decode the exp claim from a JWT without verifying its signature.
- * Returns undefined if parsing fails or exp is absent. Used only to
- * derive a cache TTL.
+ * 在不验证签名的情况下从 JWT 中解码 exp claim。
+ * 如果解析失败或 exp 不存在则返回 undefined。仅用于
+ * 推导缓存 TTL。
  *
- * Why no signature/iss/aud/nonce validation: per SEP-990, this id_token
- * is the RFC 8693 subject_token in a token-exchange at the IdP's own
- * token endpoint. The IdP validates its own token there. An attacker who
- * can mint a token that fools the IdP has no need to fool us first; an
- * attacker who can't, hands us garbage and gets a 401 from the IdP. The
- * --id-token injection seam is likewise safe: bad input → rejected later,
- * no privesc. Client-side verification would add code and no security.
+ * 为什么不进行签名/iss/aud/nonce 验证：根据 SEP-990，此 id_token
+ * 是在 IdP 自身 token 端点进行 token 交换时的 RFC 8693 subject_token。
+ * IdP 在那里会验证自己的 token。能够伪造一个骗过 IdP 的 token 的
+ * 攻击者没有必要先骗我们；不能的攻击者给我们垃圾数据，
+ * 会从 IdP 得到 401。--id-token 注入点同样是安全的：
+ * 错误输入 → 后续被拒绝，不会提权。客户端验证只会增加代码量
+ * 而不会增加安全性。
  */
 function jwtExp(jwt: string): number | undefined {
   const parts = jwt.split('.')
@@ -263,11 +263,11 @@ function jwtExp(jwt: string): number | undefined {
 }
 
 /**
- * Wait for the OAuth authorization code on a local callback server.
- * Returns the code once /callback is hit with a matching state.
+ * 等待本地回调服务器上的 OAuth 授权码。
+ * 当 /callback 被命中且 state 匹配时返回 code。
  *
- * `onListening` fires after the socket is actually bound — use it to defer
- * browser-open so EADDRINUSE surfaces before a spurious tab pops open.
+ * `onListening` 在 socket 实际绑定后触发 — 使用它来延迟
+ * 打开浏览器，这样 EADDRINUSE 错误会在无关标签页弹出之前暴露出来。
  */
 function waitForCallback(
   port: number,
@@ -280,7 +280,7 @@ function waitForCallback(
   let abortHandler: (() => void) | null = null
   const cleanup = () => {
     server?.removeAllListeners()
-    // Defensive: removeAllListeners() strips the error handler, so swallow any late error during close
+    // 防御性编程：removeAllListeners() 会移除 error 处理器，所以吞掉关闭时的任何迟到错误
     server?.on('error', () => {})
     server?.close()
     server = null
@@ -395,8 +395,8 @@ function waitForCallback(
 }
 
 /**
- * Acquire an id_token from the IdP: return cached if valid, otherwise run
- * the full OIDC authorization_code + PKCE flow (one browser pop).
+ * 从 IdP 获取 id_token：如果缓存有效则返回缓存，否则运行
+ * 完整的 OIDC authorization_code + PKCE 流程（一次浏览器弹窗）。
  */
 export async function acquireIdpIdToken(
   opts: IdpLoginOptions,
@@ -431,10 +431,10 @@ export async function acquireIdpIdToken(
     },
   )
 
-  // Open the browser only after the socket is actually bound — listen() is
-  // async, and on the fixed-callbackPort path EADDRINUSE otherwise surfaces
-  // after a spurious tab has already popped. Mirrors the auth.ts pattern of
-  // wrapping sdkAuth inside server.listen's callback.
+  // 仅在 socket 实际绑定后才打开浏览器 — listen() 是
+  // 异步的，在固定 callbackPort 路径上 EADDRINUSE 否则会在
+  // 无关标签页已经弹出后才暴露。与 auth.ts 中将 sdkAuth
+  // 包装在 server.listen 回调内的模式一致。
   const authorizationCode = await waitForCallback(
     port,
     state,
@@ -469,9 +469,9 @@ export async function acquireIdpIdToken(
     )
   }
 
-  // Prefer the id_token's own exp claim; fall back to expires_in.
-  // expires_in is for the access_token and may differ from the id_token
-  // lifetime. If neither is present, default to 1h.
+  // 优先使用 id_token 自身的 exp claim；回退到 expires_in。
+  // expires_in 是针对 access_token 的，可能与 id_token 的
+  // 有效期不同。如果两者都不存在，默认 1 小时。
   const expFromJwt = jwtExp(tokens.id_token)
   const expiresAt = expFromJwt
     ? expFromJwt * 1000

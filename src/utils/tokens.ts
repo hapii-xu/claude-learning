@@ -6,6 +6,7 @@ import type {
   Message,
 } from '../types/message.js'
 import { SYNTHETIC_MESSAGES, SYNTHETIC_MODEL } from './messages.js'
+import { logForDebugging } from './debug.js'
 import { jsonStringify } from './slowOperations.js'
 
 export function getTokenUsage(message: Message): Usage | undefined {
@@ -275,18 +276,27 @@ export function tokenCountWithEstimation(messages: readonly Message[]): number {
           j--
         }
       }
-      return (
+      const total =
         getTokenCountFromUsage(usage) +
         roughTokenCountEstimationForMessages(
           messages.slice(i + 1) as Parameters<
             typeof roughTokenCountEstimationForMessages
           >[0],
         )
+      logForDebugging(
+        `[Hapii] Tokens.tokenCountWithEstimation 精确+估算 apiReported=${getTokenCountFromUsage(usage)} estimatedNew=${total - getTokenCountFromUsage(usage)} total=${total} msgCount=${messages.length}`,
+        { level: 'info' },
       )
+      return total
     }
     i--
   }
-  return roughTokenCountEstimationForMessages(
+  const estimated = roughTokenCountEstimationForMessages(
     messages as Parameters<typeof roughTokenCountEstimationForMessages>[0],
   )
+  logForDebugging(
+    `[Hapii] Tokens.tokenCountWithEstimation 纯估算 total=${estimated} msgCount=${messages.length}`,
+    { level: 'info' },
+  )
+  return estimated
 }

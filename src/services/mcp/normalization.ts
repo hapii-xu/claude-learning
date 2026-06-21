@@ -1,18 +1,18 @@
 /**
- * Pure utility functions for MCP name normalization.
- * This file has no dependencies to avoid circular imports.
+ * MCP 名称规范化的纯工具函数。
+ * 此文件没有任何依赖，以避免循环导入。
  */
 
-// Claude.ai server names are prefixed with this string
+// Claude.ai 服务器名称以此字符串作为前缀
 const CLAUDEAI_SERVER_PREFIX = 'claude.ai '
 
 /**
- * Normalize server names to be compatible with the API pattern ^[a-zA-Z0-9_-]{1,64}$
- * Replaces any invalid characters (including dots and spaces) with underscores.
+ * 将服务器名称规范化，以符合 API 模式 ^[a-zA-Z0-9_-]{1,64}$
+ * 将任何无效字符（包括点和空格）替换为下划线。
  *
- * For claude.ai servers (names starting with "claude.ai "), also collapses
- * consecutive underscores and strips leading/trailing underscores to prevent
- * interference with the __ delimiter used in MCP tool names.
+ * 对于 claude.ai 服务器（名称以 "claude.ai " 开头），还会合并
+ * 连续的下划线并去除首尾下划线，以防止干扰 MCP 工具名称中
+ * 使用的 __ 分隔符。
  */
 export function normalizeNameForMCP(name: string): string {
   let normalized = name.replace(/[^a-zA-Z0-9_-]/g, '_')

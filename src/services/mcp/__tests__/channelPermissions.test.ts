@@ -77,7 +77,7 @@ describe('truncateForPreview', () => {
 
   test('handles undefined input', () => {
     const result = truncateForPreview(undefined)
-    // JSON.stringify(undefined) returns undefined, then .length throws → catch returns '(unserializable)'
+    // JSON.stringify(undefined) 返回 undefined，然后 .length 抛出异常 → catch 返回 '(unserializable)'
     expect(result).toBe('(unserializable)')
   })
 })

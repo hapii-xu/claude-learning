@@ -1,37 +1,36 @@
 /**
- * Permission prompts over channels (Telegram, iMessage, Discord).
+ * 通过频道（Telegram、iMessage、Discord）发送权限提示。
  *
- * Mirrors `BridgePermissionCallbacks` — when CC hits a permission dialog,
- * it ALSO sends the prompt via active channels and races the reply against
- * local UI / bridge / hooks / classifier. First resolver wins via claim().
+ * 镜像 `BridgePermissionCallbacks` — 当 CC 遇到权限对话框时，
+ * 它还会通过活跃频道发送提示，并将回复与本地 UI / bridge / hooks / 分类器
+ * 进行竞速。第一个通过 claim() 解析的获胜。
  *
- * Inbound is a structured event: the server parses the user's "yes tbxkq"
- * reply and emits notifications/claude/channel/permission with
- * {request_id, behavior}. CC never sees the reply as text — approval
- * requires the server to deliberately emit that specific event, not just
- * relay content. Servers opt in by declaring
- * capabilities.experimental['claude/channel/permission'].
+ * 入站是结构化事件：服务器解析用户的 "yes tbxkq" 回复，
+ * 并发出 notifications/claude/channel/permission，携带
+ * {request_id, behavior}。CC 永远不会将回复视为文本 — 批准
+ * 需要服务器故意发出该特定事件，而不仅仅是中继内容。服务器通过声明
+ * capabilities.experimental['claude/channel/permission'] 来选择加入。
  *
- * Kenneth's "would this let Claude self-approve?": the approving party is
- * the human via the channel, not Claude. But the trust boundary isn't the
- * terminal — it's the allowlist (tengu_harbor_ledger). A compromised
- * channel server CAN fabricate "yes <id>" without the human seeing the
- * prompt. Accepted risk: a compromised channel already has unlimited
- * conversation-injection turns (social-engineer over time, wait for
- * acceptEdits, etc.); inject-then-self-approve is faster, not more
- * capable. The dialog slows a compromised channel; it doesn't stop one.
- * See PR discussion 2956440848.
+ * Kenneth 的"这会不会让 Claude 自我批准？"问题：批准方是
+ * 通过频道操作的人类，而非 Claude。但信任边界不在
+ * 终端 — 而是允许列表（tengu_harbor_ledger）。被入侵的
+ * 频道服务器可以在人类看不到提示的情况下伪造 "yes <id>"。
+ * 这是已接受的风险：被入侵的频道已经拥有无限的
+ * 对话注入轮次（可以长期进行社会工程攻击，等待
+ * acceptEdits 等）；注入后自我批准更快，但不会更
+ * 强大。对话框可以拖慢被入侵的频道，但无法阻止它。
+ * 参见 PR 讨论 2956440848。
  */
 
 import { jsonStringify } from '../../utils/slowOperations.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../analytics/growthbook.js'
 
 /**
- * GrowthBook runtime gate — separate from the channels gate (tengu_harbor)
- * so channels can ship without permission-relay riding along (Kenneth: "no
- * bake time if it goes out tomorrow"). Default false; flip without a release.
- * Checked once at useManageMCPConnections mount — mid-session flag changes
- * don't apply until restart.
+ * GrowthBook 运行时开关 — 与频道开关（tengu_harbor）分开，
+ * 这样频道可以在不附带权限中继功能的情况下发布（Kenneth："如果
+ * 明天就发布，就没有预热时间"）。默认 false；可以无需发版即可切换。
+ * 在 useManageMCPConnections 挂载时检查一次 — 会话中途的
+ * 标志变更不会生效，需要重启。
  */
 export function isChannelPermissionRelayEnabled(): boolean {
   return getFeatureValue_CACHED_MAY_BE_STALE('tengu_harbor_permissions', true)
@@ -39,20 +38,20 @@ export function isChannelPermissionRelayEnabled(): boolean {
 
 export type ChannelPermissionResponse = {
   behavior: 'allow' | 'deny'
-  /** Which channel server the reply came from (e.g., "plugin:telegram:tg"). */
+  /** 回复来自哪个频道服务器（例如 "plugin:telegram:tg"）。 */
   fromServer: string
 }
 
 export type ChannelPermissionCallbacks = {
-  /** Register a resolver for a request ID. Returns unsubscribe. */
+  /** 为请求 ID 注册一个解析器。返回取消订阅函数。 */
   onResponse(
     requestId: string,
     handler: (response: ChannelPermissionResponse) => void,
   ): () => void
-  /** Resolve a pending request from a structured channel event
-   *  (notifications/claude/channel/permission). Returns true if the ID
-   *  was pending — the server parsed the user's reply and emitted
-   *  {request_id, behavior}; we just match against the map. */
+  /** 从结构化频道事件解析一个待处理请求
+   *  （notifications/claude/channel/permission）。如果该 ID 处于
+   *  待处理状态则返回 true — 服务器已解析用户的回复并发出
+   *  {request_id, behavior}；我们只需与待处理映射进行匹配。 */
   resolve(
     requestId: string,
     behavior: 'allow' | 'deny',
@@ -61,26 +60,26 @@ export type ChannelPermissionCallbacks = {
 }
 
 /**
- * Reply format spec for channel servers to implement:
+ * 频道服务器的回复格式规范：
  *   /^\s*(y|yes|n|no)\s+([a-km-z]{5})\s*$/i
  *
- * 5 lowercase letters, no 'l' (looks like 1/I). Case-insensitive (phone
- * autocorrect). No bare yes/no (conversational). No prefix/suffix chatter.
+ * 5 个小写字母，不含 'l'（看起来像 1/I）。不区分大小写（手机
+ * 自动纠正）。不支持单独的 yes/no（对话式）。不包含前缀/后缀内容。
  *
- * CC generates the ID and sends the prompt. The SERVER parses the user's
- * reply and emits notifications/claude/channel/permission with {request_id,
- * behavior} — CC doesn't regex-match text anymore. Exported so plugins can
- * import the exact regex rather than hand-copying it.
+ * CC 生成 ID 并发送提示。服务器解析用户的回复并发出
+ * notifications/claude/channel/permission，携带 {request_id,
+ * behavior} — CC 不再对文本进行正则匹配。导出此常量以便插件可以
+ * 导入精确的正则表达式，而不是手动复制。
  */
 export const PERMISSION_REPLY_RE = /^\s*(y|yes|n|no)\s+([a-km-z]{5})\s*$/i
 
-// 25-letter alphabet: a-z minus 'l' (looks like 1/I). 25^5 ≈ 9.8M space.
+// 25 个字母的字母表：a-z 减去 'l'（看起来像 1/I）。25^5 ≈ 980 万组合空间。
 const ID_ALPHABET = 'abcdefghijkmnopqrstuvwxyz'
 
-// Substring blocklist — 5 random letters can spell things (Kenneth, in the
-// launch thread: "this is why i bias to numbers, hard to have anything worse
-// than 80085"). Non-exhaustive, covers the send-to-your-boss-by-accident
-// tier. If a generated ID contains any of these, re-hash with a salt.
+// 子串黑名单 — 5 个随机字母可能拼出敏感词（Kenneth 在发布讨论中说：
+// "这就是我倾向于用数字的原因，很难拼出比 80085 更糟糕的东西"）。
+// 非穷举列表，覆盖了"不小心发给老板"级别的词。如果生成的 ID 包含
+// 其中任何一个，则用盐值重新哈希。
 // prettier-ignore
 const ID_AVOID_SUBSTRINGS = [
   'fuck',
@@ -110,9 +109,9 @@ const ID_AVOID_SUBSTRINGS = [
 ]
 
 function hashToId(input: string): string {
-  // FNV-1a → uint32, then base-25 encode. Not crypto, just a stable
-  // short letters-only ID. 32 bits / log2(25) ≈ 6.9 letters of entropy;
-  // taking 5 wastes a little, plenty for this.
+  // FNV-1a → uint32，然后 25 进制编码。不是加密算法，只是一个稳定的
+  // 短纯字母 ID。32 位 / log2(25) ≈ 6.9 个字母的熵；
+  // 取 5 个稍微浪费一点，但对于这个用途绰绰有余。
   let h = 0x811c9dc5
   for (let i = 0; i < input.length; i++) {
     h ^= input.charCodeAt(i)
@@ -128,19 +127,19 @@ function hashToId(input: string): string {
 }
 
 /**
- * Short ID from a toolUseID. 5 letters from a 25-char alphabet (a-z minus
- * 'l' — looks like 1/I in many fonts). 25^5 ≈ 9.8M space, birthday
- * collision at 50% needs ~3K simultaneous pending prompts, absurd for a
- * single interactive session. Letters-only so phone users don't switch
- * keyboard modes (hex alternates a-f/0-9 → mode toggles). Re-hashes with
- * a salt suffix if the result contains a blocklisted substring — 5 random
- * letters can spell things you don't want in a text message to your phone.
- * toolUseIDs are `toolu_` + base64-ish; we hash rather than slice.
+ * 从 toolUseID 生成短 ID。从 25 个字符的字母表中取 5 个字母（a-z 减去
+ * 'l' — 在许多字体中看起来像 1/I）。25^5 ≈ 980 万组合空间，
+ * 50% 生日碰撞需要约 3K 个同时待处理的提示，对于单个交互会话来说
+ * 荒谬地多。纯字母是为了手机用户不需要切换键盘模式
+ * （十六进制交替使用 a-f/0-9 → 模式切换）。如果结果包含
+ * 被屏蔽的子串，则用盐值后缀重新哈希 — 5 个随机字母可能拼出
+ * 你不想在手机短信中看到的东西。toolUseID 是 `toolu_` +
+ * 类 base64 格式；我们使用哈希而非截取。
  */
 export function shortRequestId(toolUseID: string): string {
-  // 7 length-3 × 3 positions × 25² + 15 length-4 × 2 × 25 + 2 length-5
-  // ≈ 13,877 blocked IDs out of 9.8M — roughly 1 in 700 hits the blocklist.
-  // Cap at 10 retries; (1/700)^10 is negligible.
+  // 7 个长度-3 × 3 个位置 × 25² + 15 个长度-4 × 2 × 25 + 2 个长度-5
+  // ≈ 980 万个中有约 13,877 个被屏蔽 — 大约每 700 个命中一次黑名单。
+  // 最多重试 10 次；(1/700)^10 几乎可以忽略。
   let candidate = hashToId(toolUseID)
   for (let salt = 0; salt < 10; salt++) {
     if (!ID_AVOID_SUBSTRINGS.some(bad => candidate.includes(bad))) {
@@ -152,10 +151,10 @@ export function shortRequestId(toolUseID: string): string {
 }
 
 /**
- * Truncate tool input to a phone-sized JSON preview. 200 chars is
- * roughly 3 lines on a narrow phone screen. Full input is in the local
- * terminal dialog; the channel gets a summary so Write(5KB-file) doesn't
- * flood your texts. Server decides whether/how to show it.
+ * 将工具输入截断为手机尺寸的 JSON 预览。200 个字符大约
+ * 是窄屏手机上 3 行的内容。完整输入在本地终端对话框中；
+ * 频道只收到一个摘要，这样 Write(5KB-file) 就不会刷屏
+ * 你的短信。服务器决定是否显示以及如何显示。
  */
 export function truncateForPreview(input: unknown): string {
   try {
@@ -167,12 +166,12 @@ export function truncateForPreview(input: unknown): string {
 }
 
 /**
- * Filter MCP clients down to those that can relay permission prompts.
- * Three conditions, ALL required: connected + in the session's --channels
- * allowlist + declares BOTH capabilities. The second capability is the
- * server's explicit opt-in — a relay-only channel never becomes a
- * permission surface by accident (Kenneth's "users may be unpleasantly
- * surprised"). Centralized here so a future fourth condition lands once.
+ * 过滤 MCP 客户端，只保留可以中继权限提示的客户端。
+ * 三个条件，必须全部满足：已连接 + 在会话的 --channels
+ * 允许列表中 + 声明了两个能力。第二个能力是
+ * 服务器的明确选择加入 — 纯中继频道永远不会意外成为
+ * 权限界面（Kenneth 的"用户可能会感到不悦的
+ * 惊讶"）。集中在此处，以便未来添加第四个条件时只需改一处。
  */
 export function filterPermissionRelayClients<
   T extends {
@@ -194,17 +193,17 @@ export function filterPermissionRelayClients<
 }
 
 /**
- * Factory for the callbacks object. The pending Map is closed over — NOT
- * module-level (per src/CLAUDE.md), NOT in AppState (functions-in-state
- * causes issues with equality/serialization). Same lifetime pattern as
- * `replBridgePermissionCallbacks`: constructed once per session inside
- * a React hook, stable reference stored in AppState.
+ * 回调对象的工厂函数。pending Map 通过闭包持有 — 不在
+ * 模块级别（参见 src/CLAUDE.md），也不在 AppState 中
+ * （状态中的函数会导致相等性/序列化问题）。与
+ * `replBridgePermissionCallbacks` 相同的生命周期模式：在 React hook 内
+ * 每个会话构建一次，稳定引用存储在 AppState 中。
  *
- * resolve() is called from the dedicated notification handler
- * (notifications/claude/channel/permission) with the structured payload.
- * The server already parsed "yes tbxkq" → {request_id, behavior}; we just
- * match against the pending map. No regex on CC's side — text in the
- * general channel can't accidentally approve anything.
+ * resolve() 从专用通知处理程序
+ * （notifications/claude/channel/permission）调用，携带结构化负载。
+ * 服务器已经将 "yes tbxkq" 解析为 {request_id, behavior}；我们只需
+ * 与待处理映射进行匹配。CC 端不做正则 — 通用频道中的文本
+ * 不会意外批准任何东西。
  */
 export function createChannelPermissionCallbacks(): ChannelPermissionCallbacks {
   const pending = new Map<
@@ -214,10 +213,10 @@ export function createChannelPermissionCallbacks(): ChannelPermissionCallbacks {
 
   return {
     onResponse(requestId, handler) {
-      // Lowercase here too — resolve() already does; asymmetry means a
-      // future caller passing a mixed-case ID would silently never match.
-      // shortRequestId always emits lowercase so this is a noop today,
-      // but the symmetry makes the contract explicit.
+      // 这里也用大写 — resolve() 已经做了；不对称意味着未来的
+      // 调用者传入混合大小写的 ID 会静默地永远匹配不上。
+      // shortRequestId 总是发出小写，所以今天这是空操作，
+      // 但对称性使契约更加明确。
       const key = requestId.toLowerCase()
       pending.set(key, handler)
       return () => {
@@ -229,9 +228,9 @@ export function createChannelPermissionCallbacks(): ChannelPermissionCallbacks {
       const key = requestId.toLowerCase()
       const resolver = pending.get(key)
       if (!resolver) return false
-      // Delete BEFORE calling — if resolver throws or re-enters, the
-      // entry is already gone. Also handles duplicate events (second
-      // emission falls through — server bug or network dup, ignore).
+      // 先删除再调用 — 如果 resolver 抛出异常或重入，
+      // 条目已经不存在了。同时也处理重复事件（第二次
+      // 发出时直接穿透 — 服务器 bug 或网络重复，忽略）。
       pending.delete(key)
       resolver({ behavior, fromServer })
       return true

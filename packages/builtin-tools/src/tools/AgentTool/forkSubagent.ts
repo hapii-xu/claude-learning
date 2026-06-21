@@ -108,8 +108,8 @@ export function buildForkedMessages(
   directive: string,
   assistantMessage: AssistantMessage,
 ): MessageType[] {
-  // Clone the assistant message to avoid mutating the original, keeping all
-  // content blocks (thinking, text, and every tool_use)
+  // 克隆助手消息以避免修改原始消息，保留所有
+  // 内容块（思考、文本和每个 tool_use）
   const fullAssistantMessage: AssistantMessage = {
     ...assistantMessage,
     uuid: randomUUID(),
@@ -123,7 +123,7 @@ export function buildForkedMessages(
     },
   }
 
-  // Collect all tool_use blocks from the assistant message
+  // 从助手消息中收集所有 tool_use 块
   const toolUseBlocks = (
     Array.isArray(assistantMessage.message.content)
       ? assistantMessage.message.content
@@ -144,7 +144,7 @@ export function buildForkedMessages(
     ]
   }
 
-  // Build tool_result blocks for every tool_use, all with identical placeholder text
+  // 为每个 tool_use 构建 tool_result 块，全部使用相同的占位符文本
   const toolResultBlocks = toolUseBlocks.map(block => ({
     type: 'tool_result' as const,
     tool_use_id: block.id,
@@ -156,11 +156,12 @@ export function buildForkedMessages(
     ],
   }))
 
-  // Build a single user message: all placeholder tool_results + the per-child directive
-  // TODO(smoosh): this text sibling creates a [tool_result, text] pattern on the wire
-  // (renders as </function_results>\n\nHuman:<text>). One-off per-child construction,
-  // not a repeated teacher, so low-priority. If we ever care, use smooshIntoToolResult
-  // from src/utils/messages.ts to fold the directive into the last tool_result.content.
+  // 构建单条用户消息：所有占位符 tool_results + 每个子代理的指令
+  // TODO(smoosh): 这里的 text 兄弟在网络上创建了 [tool_result, text] 模式
+  // （渲染为 </function_results>\n\nHuman:<text>）。每个子代理只构建一次，
+  // 不是重复的 teacher，因此优先级较低。如果我们以后关心这个，使用
+  // src/utils/messages.ts 中的 smooshIntoToolResult 将指令折叠到最后一个
+  // tool_result.content 中。
   const toolResultMessage = createUserMessage({
     content: [
       ...toolResultBlocks,

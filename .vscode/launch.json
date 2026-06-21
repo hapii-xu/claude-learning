@@ -20,6 +20,12 @@
 			"id": "promptText",
 			"description": "Claude 的 prompt 内容（通过 stdin 传入，避免 shell 引号问题）",
 			"default": "hello"
+		},
+		{
+			"type": "promptString",
+			"id": "cliArgs",
+			"description": "传给 cli.tsx 的参数（如 --version、mcp list、-p 等，留空则启动交互 REPL）",
+			"default": ""
 		}
 	],
 	"configurations": [
@@ -59,6 +65,19 @@
 			"presentation": {
 				"group": "1-quick",
 				"order": 3
+			}
+		},
+		{
+			"name": "🚀 自定义参数 (启动 + 调试)",
+			"type": "bun",
+			"request": "attach",
+			"url": "ws://localhost:8888/2dc3gzl5xot",
+			"stopOnEntry": false,
+			"internalConsoleOptions": "neverOpen",
+			"preLaunchTask": "Debug: 启动 dev (自定义参数)",
+			"presentation": {
+				"group": "1-quick",
+				"order": 4
 			}
 		},
 		{

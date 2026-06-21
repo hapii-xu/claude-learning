@@ -57,14 +57,14 @@ import {
 import { getProjectMcpServerStatus } from './utils.js'
 
 /**
- * Get the path to the managed MCP configuration file
+ * 获取托管 MCP 配置文件的路径
  */
 export function getEnterpriseMcpFilePath(): string {
   return join(getManagedFilePath(), 'managed-mcp.json')
 }
 
 /**
- * Internal utility: Add scope to server configs
+ * 内部工具：为服务器配置添加作用域
  */
 function addScopeToServers(
   servers: Record<string, McpServerConfig> | undefined,
@@ -81,14 +81,14 @@ function addScopeToServers(
 }
 
 /**
- * Internal utility: Write MCP config to .mcp.json file.
- * Preserves file permissions and flushes to disk before rename.
- * Uses the original path for rename (does not follow symlinks).
+ * 内部工具：将 MCP 配置写入 .mcp.json 文件。
+ * 保留文件权限，在重命名前刷新到磁盘。
+ * 使用原始路径进行重命名（不跟随符号链接）。
  */
 async function writeMcpjsonFile(config: McpJsonConfig): Promise<void> {
   const mcpJsonPath = join(getCwd(), '.mcp.json')
 
-  // Read existing file permissions to preserve them
+  // 读取现有文件权限以保留
   let existingMode: number | undefined
   try {
     const stats = await stat(mcpJsonPath)
@@ -98,10 +98,10 @@ async function writeMcpjsonFile(config: McpJsonConfig): Promise<void> {
     if (code !== 'ENOENT') {
       throw e
     }
-    // File doesn't exist yet -- no permissions to preserve
+    // 文件尚不存在——没有需要保留的权限
   }
 
-  // Write to temp file, flush to disk, then atomic rename
+  // 写入临时文件，刷新到磁盘，然后原子重命名
   const tempPath = `${mcpJsonPath}.tmp.${process.pid}.${Date.now()}`
   const handle = await open(tempPath, 'w', existingMode ?? 0o644)
   try {
@@ -114,28 +114,28 @@ async function writeMcpjsonFile(config: McpJsonConfig): Promise<void> {
   }
 
   try {
-    // Restore original file permissions on the temp file before rename
+    // 在重命名前恢复临时文件的原始权限
     if (existingMode !== undefined) {
       await chmod(tempPath, existingMode)
     }
     await rename(tempPath, mcpJsonPath)
   } catch (e: unknown) {
-    // Clean up temp file on failure
+    // 失败时清理临时文件
     try {
       await unlink(tempPath)
     } catch {
-      // Best-effort cleanup
+      // 尽力清理
     }
     throw e
   }
 }
 
 /**
- * Extract command array from server config (stdio servers only)
- * Returns null for non-stdio servers
+ * 从服务器配置中提取命令数组（仅限 stdio 服务器）
+ * 非 stdio 服务器返回 null
  */
 function getServerCommandArray(config: McpServerConfig): string[] | null {
-  // Non-stdio servers don't have commands
+  // 非 stdio 服务器没有命令
   if (config.type !== undefined && config.type !== 'stdio') {
     return null
   }
@@ -144,7 +144,7 @@ function getServerCommandArray(config: McpServerConfig): string[] | null {
 }
 
 /**
- * Check if two command arrays match exactly
+ * 检查两个命令数组是否完全匹配
  */
 function commandArraysMatch(a: string[], b: string[]): boolean {
   if (a.length !== b.length) {
@@ -154,19 +154,19 @@ function commandArraysMatch(a: string[], b: string[]): boolean {
 }
 
 /**
- * Extract URL from server config (remote servers only)
- * Returns null for stdio/sdk servers
+ * 从服务器配置中提取 URL（仅限远程服务器）
+ * stdio/sdk 服务器返回 null
  */
 function getServerUrl(config: McpServerConfig): string | null {
   return 'url' in config ? config.url : null
 }
 
 /**
- * CCR proxy URL path markers. In remote sessions, claude.ai connectors arrive
- * via --mcp-config with URLs rewritten to route through the CCR/session-ingress
- * SHTTP proxy. The original vendor URL is preserved in the mcp_url query param
- * so the proxy knows where to forward. See api-go/ccr/internal/ccrshared/
- * mcp_url_rewriter.go and api-go/ccr/internal/mcpproxy/proxy.go.
+ * CCR 代理 URL 路径标记。在远程会话中，claude.ai 连接器通过
+ * --mcp-config 传入，其 URL 被重写为通过 CCR/session-ingress
+ * SHTTP 代理路由。原始供应商 URL 保留在 mcp_url 查询参数中，
+ * 以便代理知道转发目标。参见 api-go/ccr/internal/ccrshared/
+ * mcp_url_rewriter.go 和 api-go/ccr/internal/mcpproxy/proxy.go。
  */
 const CCR_PROXY_PATH_MARKERS = [
   '/v2/session_ingress/shttp/mcp/',
@@ -174,10 +174,9 @@ const CCR_PROXY_PATH_MARKERS = [
 ]
 
 /**
- * If the URL is a CCR proxy URL, extract the original vendor URL from the
- * mcp_url query parameter. Otherwise return the URL unchanged. This lets
- * signature-based dedup match a plugin's raw vendor URL against a connector's
- * rewritten proxy URL when both point at the same MCP server.
+ * 如果 URL 是 CCR 代理 URL，从 mcp_url 查询参数中提取原始供应商 URL。
+ * 否则原样返回 URL。这使得基于签名的去重能够在插件的原始供应商 URL
+ * 与连接器的重写代理 URL 之间匹配（当两者指向同一个 MCP 服务器时）。
  */
 export function unwrapCcrProxyUrl(url: string): string {
   if (!CCR_PROXY_PATH_MARKERS.some(m => url.includes(m))) {
@@ -193,11 +192,11 @@ export function unwrapCcrProxyUrl(url: string): string {
 }
 
 /**
- * Compute a dedup signature for an MCP server config.
- * Two configs with the same signature are considered "the same server" for
- * plugin deduplication. Ignores env (plugins always inject CLAUDE_PLUGIN_ROOT)
- * and headers (same URL = same server regardless of auth).
- * Returns null only for configs with neither command nor url (sdk type).
+ * 为 MCP 服务器配置计算去重签名。
+ * 具有相同签名的两个配置在插件去重中被视为"同一服务器"。
+ * 忽略 env（插件始终注入 CLAUDE_PLUGIN_ROOT）和 headers
+ * （相同 URL = 相同服务器，无论认证方式）。
+ * 仅对既没有 command 也没有 url 的配置（sdk 类型）返回 null。
  */
 export function getMcpServerSignature(config: McpServerConfig): string | null {
   const cmd = getServerCommandArray(config)
@@ -212,13 +211,11 @@ export function getMcpServerSignature(config: McpServerConfig): string | null {
 }
 
 /**
- * Filter plugin MCP servers, dropping any whose signature matches a
- * manually-configured server or an earlier-loaded plugin server.
- * Manual wins over plugin; between plugins, first-loaded wins.
+ * 过滤插件 MCP 服务器，丢弃签名与手动配置服务器或更早加载的插件服务器匹配的条目。
+ * 手动配置优先于插件；插件之间先加载者优先。
  *
- * Plugin servers are namespaced `plugin:name:server` so they never key-collide
- * with manual servers in the merge — this content-based check catches the case
- * where both actually launch the same underlying process/connection.
+ * 插件服务器使用 `plugin:name:server` 命名空间，因此在合并时不会与手动服务器
+ * 发生键冲突——此基于内容的检查捕获了两者实际启动相同底层进程/连接的情况。
  */
 export function dedupPluginMcpServers(
   pluginServers: Record<string, ScopedMcpServerConfig>,
@@ -227,7 +224,7 @@ export function dedupPluginMcpServers(
   servers: Record<string, ScopedMcpServerConfig>
   suppressed: Array<{ name: string; duplicateOf: string }>
 } {
-  // Map signature -> server name so we can report which server a dup matches
+  // 映射签名 -> 服务器名称，以便报告重复匹配的是哪个服务器
   const manualSigs = new Map<string, string>()
   for (const [name, config] of Object.entries(manualServers)) {
     const sig = getMcpServerSignature(config)
@@ -266,17 +263,17 @@ export function dedupPluginMcpServers(
 }
 
 /**
- * Filter claude.ai connectors, dropping any whose signature matches an enabled
- * manually-configured server. Manual wins: a user who wrote .mcp.json or ran
- * `claude mcp add` expressed higher intent than a connector toggled in the web UI.
+ * 过滤 claude.ai 连接器，丢弃签名与已启用的手动配置服务器匹配的条目。
+ * 手动配置优先：编写了 .mcp.json 或运行 `claude mcp add` 的用户表达的意图
+ * 高于在 Web UI 中切换的连接器。
  *
- * Connector keys are `claude.ai <DisplayName>` so they never key-collide with
- * manual servers in the merge — this content-based check catches the case where
- * both point at the same underlying URL (e.g. `mcp__slack__*` and
- * `mcp__claude_ai_Slack__*` both hitting mcp.slack.com, ~600 chars/turn wasted).
+ * 连接器键为 `claude.ai <DisplayName>`，因此在合并时不会与手动服务器发生
+ * 键冲突——此基于内容的检查捕获了两者指向相同底层 URL 的情况（例如
+ * `mcp__slack__*` 和 `mcp__claude_ai_Slack__*` 都访问 mcp.slack.com，
+ * 每轮浪费约 600 个字符）。
  *
- * Only enabled manual servers count as dedup targets — a disabled manual server
- * mustn't suppress its connector twin, or neither runs.
+ * 仅已启用的手动服务器计为去重目标——已禁用的手动服务器不应抑制其连接器副本，
+ * 否则两者都不会运行。
  */
 export function dedupClaudeAiMcpServers(
   claudeAiServers: Record<string, ScopedMcpServerConfig>,
@@ -310,23 +307,23 @@ export function dedupClaudeAiMcpServers(
 }
 
 /**
- * Convert a URL pattern with wildcards to a RegExp
- * Supports * as wildcard matching any characters
- * Examples:
- *   "https://example.com/*" matches "https://example.com/api/v1"
- *   "https://*.example.com/*" matches "https://api.example.com/path"
- *   "https://example.com:*\/*" matches any port
+ * 将带通配符的 URL 模式转换为正则表达式
+ * 支持 * 作为通配符匹配任意字符
+ * 示例：
+ *   "https://example.com/*" 匹配 "https://example.com/api/v1"
+ *   "https://*.example.com/*" 匹配 "https://api.example.com/path"
+ *   "https://example.com:*\/*" 匹配任意端口
  */
 function urlPatternToRegex(pattern: string): RegExp {
-  // Escape regex special characters except *
+  // 转义正则特殊字符，* 除外
   const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-  // Replace * with regex equivalent (match any characters)
+  // 将 * 替换为正则等价形式（匹配任意字符）
   const regexStr = escaped.replace(/\*/g, '.*')
   return new RegExp(`^${regexStr}$`)
 }
 
 /**
- * Check if a URL matches a pattern with wildcard support
+ * 检查 URL 是否匹配带通配符支持的模式
  */
 function urlMatchesPattern(url: string, pattern: string): boolean {
   const regex = urlPatternToRegex(pattern)
@@ -334,9 +331,9 @@ function urlMatchesPattern(url: string, pattern: string): boolean {
 }
 
 /**
- * Get the settings to use for MCP server allowlist policy.
- * When allowManagedMcpServersOnly is set in policySettings, only managed settings
- * control which servers are allowed. Otherwise, returns merged settings.
+ * 获取用于 MCP 服务器允许列表策略的设置。
+ * 当 policySettings 中设置了 allowManagedMcpServersOnly 时，仅由托管设置
+ * 控制允许哪些服务器。否则返回合并后的设置。
  */
 function getMcpAllowlistSettings(): SettingsJson {
   if (shouldAllowManagedMcpServersOnly()) {
@@ -346,20 +343,20 @@ function getMcpAllowlistSettings(): SettingsJson {
 }
 
 /**
- * Get the settings to use for MCP server denylist policy.
- * Denylists always merge from all sources — users can always deny servers
- * for themselves, even when allowManagedMcpServersOnly is set.
+ * 获取用于 MCP 服务器拒绝列表策略的设置。
+ * 拒绝列表始终从所有来源合并——即使设置了 allowManagedMcpServersOnly，
+ * 用户也可以为自己拒绝服务器。
  */
 function getMcpDenylistSettings(): SettingsJson {
   return getInitialSettings()
 }
 
 /**
- * Check if an MCP server is denied by enterprise policy
- * Checks name-based, command-based, and URL-based restrictions
- * @param serverName The name of the server to check
- * @param config Optional server config for command/URL-based matching
- * @returns true if denied, false if not on denylist
+ * 检查 MCP 服务器是否被企业策略拒绝
+ * 检查基于名称、命令和 URL 的限制
+ * @param serverName 要检查的服务器名称
+ * @param config 可选的服务器配置，用于命令/URL 匹配
+ * @returns 如果被拒绝返回 true，如果不在拒绝列表中返回 false
  */
 function isMcpServerDenied(
   serverName: string,
@@ -367,17 +364,17 @@ function isMcpServerDenied(
 ): boolean {
   const settings = getMcpDenylistSettings()
   if (!settings.deniedMcpServers) {
-    return false // No restrictions
+    return false // 无限制
   }
 
-  // Check name-based denial
+  // 检查基于名称的拒绝
   for (const entry of settings.deniedMcpServers) {
     if (isMcpServerNameEntry(entry) && entry.serverName === serverName) {
       return true
     }
   }
 
-  // Check command-based denial (stdio servers only) and URL-based denial (remote servers only)
+  // 检查基于命令的拒绝（仅限 stdio 服务器）和基于 URL 的拒绝（仅限远程服务器）
   if (config) {
     const serverCommand = getServerCommandArray(config)
     if (serverCommand) {
@@ -408,32 +405,32 @@ function isMcpServerDenied(
 }
 
 /**
- * Check if an MCP server is allowed by enterprise policy
- * Checks name-based, command-based, and URL-based restrictions
- * @param serverName The name of the server to check
- * @param config Optional server config for command/URL-based matching
- * @returns true if allowed, false if blocked by policy
+ * 检查 MCP 服务器是否被企业策略允许
+ * 检查基于名称、命令和 URL 的限制
+ * @param serverName 要检查的服务器名称
+ * @param config 可选的服务器配置，用于命令/URL 匹配
+ * @returns 如果允许返回 true，如果被策略阻止返回 false
  */
 function isMcpServerAllowedByPolicy(
   serverName: string,
   config?: McpServerConfig,
 ): boolean {
-  // Denylist takes absolute precedence
+  // 拒绝列表具有绝对优先权
   if (isMcpServerDenied(serverName, config)) {
     return false
   }
 
   const settings = getMcpAllowlistSettings()
   if (!settings.allowedMcpServers) {
-    return true // No allowlist restrictions (undefined)
+    return true // 无允许列表限制（未定义）
   }
 
-  // Empty allowlist means block all servers
+  // 空允许列表意味着阻止所有服务器
   if (settings.allowedMcpServers.length === 0) {
     return false
   }
 
-  // Check if allowlist contains any command-based or URL-based entries
+  // 检查允许列表是否包含任何基于命令或基于 URL 的条目
   const hasCommandEntries = settings.allowedMcpServers.some(
     isMcpServerCommandEntry,
   )
@@ -444,9 +441,9 @@ function isMcpServerAllowedByPolicy(
     const serverUrl = getServerUrl(config)
 
     if (serverCommand) {
-      // This is a stdio server
+      // 这是一个 stdio 服务器
       if (hasCommandEntries) {
-        // If ANY serverCommand entries exist, stdio servers MUST match one of them
+        // 如果存在任何 serverCommand 条目，stdio 服务器必须匹配其中之一
         for (const entry of settings.allowedMcpServers) {
           if (
             isMcpServerCommandEntry(entry) &&
@@ -455,9 +452,9 @@ function isMcpServerAllowedByPolicy(
             return true
           }
         }
-        return false // Stdio server doesn't match any command entry
+        return false // stdio 服务器不匹配任何命令条目
       } else {
-        // No command entries, check name-based allowance
+        // 无命令条目，检查基于名称的允许
         for (const entry of settings.allowedMcpServers) {
           if (isMcpServerNameEntry(entry) && entry.serverName === serverName) {
             return true
@@ -466,9 +463,9 @@ function isMcpServerAllowedByPolicy(
         return false
       }
     } else if (serverUrl) {
-      // This is a remote server (sse, http, ws, etc.)
+      // 这是一个远程服务器（sse、http、ws 等）
       if (hasUrlEntries) {
-        // If ANY serverUrl entries exist, remote servers MUST match one of them
+        // 如果存在任何 serverUrl 条目，远程服务器必须匹配其中之一
         for (const entry of settings.allowedMcpServers) {
           if (
             isMcpServerUrlEntry(entry) &&
@@ -477,9 +474,9 @@ function isMcpServerAllowedByPolicy(
             return true
           }
         }
-        return false // Remote server doesn't match any URL entry
+        return false // 远程服务器不匹配任何 URL 条目
       } else {
-        // No URL entries, check name-based allowance
+        // 无 URL 条目，检查基于名称的允许
         for (const entry of settings.allowedMcpServers) {
           if (isMcpServerNameEntry(entry) && entry.serverName === serverName) {
             return true
@@ -488,7 +485,7 @@ function isMcpServerAllowedByPolicy(
         return false
       }
     } else {
-      // Unknown server type - check name-based allowance only
+      // 未知服务器类型——仅检查基于名称的允许
       for (const entry of settings.allowedMcpServers) {
         if (isMcpServerNameEntry(entry) && entry.serverName === serverName) {
           return true
@@ -498,7 +495,7 @@ function isMcpServerAllowedByPolicy(
     }
   }
 
-  // No config provided - check name-based allowance only
+  // 未提供配置——仅检查基于名称的允许
   for (const entry of settings.allowedMcpServers) {
     if (isMcpServerNameEntry(entry) && entry.serverName === serverName) {
       return true
@@ -508,30 +505,24 @@ function isMcpServerAllowedByPolicy(
 }
 
 /**
- * Filter a record of MCP server configs by managed policy (allowedMcpServers /
- * deniedMcpServers). Servers blocked by policy are dropped and their names
- * returned so callers can warn the user.
+ * 按托管策略（allowedMcpServers / deniedMcpServers）过滤 MCP 服务器配置记录。
+ * 被策略阻止的服务器将被丢弃，其名称返回给调用方以便警告用户。
  *
- * Intended for user-controlled config entry points that bypass the policy filter
- * in getClaudeCodeMcpConfigs(): --mcp-config (main.tsx) and the mcp_set_servers
- * control message (print.ts, SDK V2 Query.setMcpServers()).
+ * 适用于绕过 getClaudeCodeMcpConfigs() 中策略过滤器的用户控制配置入口：
+ * --mcp-config（main.tsx）和 mcp_set_servers 控制消息（print.ts，SDK V2 Query.setMcpServers()）。
  *
- * SDK-type servers are exempt — they are SDK-managed transport placeholders,
- * not CLI-managed connections. The CLI never spawns a process or opens a
- * network connection for them; tool calls route back to the SDK via
- * mcp_tool_call. URL/command-based allowlist entries are meaningless for them
- * (no url, no command), and gating by name would silently drop them during
- * installPluginsAndApplyMcpInBackground's sdkMcpConfigs carry-forward.
+ * SDK 类型服务器豁免——它们是 SDK 管理的传输占位符，而非 CLI 管理的连接。
+ * CLI 从不为其生成进程或打开网络连接；工具调用通过 mcp_tool_call 路由回 SDK。
+ * URL/命令基于的允许列表条目对它们无意义（无 url、无 command），按名称过滤会在
+ * installPluginsAndApplyMcpInBackground 的 sdkMcpConfigs 延续时静默丢弃它们。
  *
- * The generic has no type constraint because the two callsites use different
- * config type families: main.tsx uses ScopedMcpServerConfig (service type,
- * args: string[] required), print.ts uses McpServerConfigForProcessTransport
- * (SDK wire type, args?: string[] optional). Both are structurally compatible
- * with what isMcpServerAllowedByPolicy actually reads (type/url/command/args)
- * — the policy check only reads, never requires any field to be present.
- * The `as McpServerConfig` widening is safe for that reason; the downstream
- * checks tolerate missing/undefined fields: `config` is optional, and
- * `getServerCommandArray` defaults `args` to `[]` via `?? []`.
+ * 泛型无类型约束，因为两个调用点使用不同的配置类型族：main.tsx 使用
+ * ScopedMcpServerConfig（服务类型，args: string[] 必需），print.ts 使用
+ * McpServerConfigForProcessTransport（SDK 线路类型，args?: string[] 可选）。
+ * 两者在结构上与 isMcpServerAllowedByPolicy 实际读取的字段（type/url/command/args）
+ * 兼容——策略检查只读取，不要求任何字段必须存在。`as McpServerConfig` 的拓宽
+ * 因此是安全的；下游检查容忍缺失/未定义字段：`config` 是可选的，
+ * `getServerCommandArray` 通过 `?? []` 将 `args` 默认为 `[]`。
  */
 export function filterMcpServersByPolicy<T>(configs: Record<string, T>): {
   allowed: Record<string, T>
@@ -551,7 +542,7 @@ export function filterMcpServersByPolicy<T>(configs: Record<string, T>): {
 }
 
 /**
- * Internal utility: Expands environment variables in an MCP server config
+ * 内部工具：展开 MCP 服务器配置中的环境变量
  */
 function expandEnvVars(config: McpServerConfig): {
   expanded: McpServerConfig
@@ -616,11 +607,11 @@ function expandEnvVars(config: McpServerConfig): {
 }
 
 /**
- * Add a new MCP server configuration
- * @param name The name of the server
- * @param config The server configuration
- * @param scope The configuration scope
- * @throws Error if name is invalid or server already exists, or if the config is invalid
+ * 添加新的 MCP 服务器配置
+ * @param name 服务器名称
+ * @param config 服务器配置
+ * @param scope 配置作用域
+ * @throws Error 如果名称无效或服务器已存在，或配置无效
  */
 export async function addMcpConfig(
   name: string,
@@ -633,7 +624,7 @@ export async function addMcpConfig(
     )
   }
 
-  // Block reserved server name "claude-in-chrome"
+  // 阻止保留的服务器名称 "claude-in-chrome"
   if (isClaudeInChromeMCPServer(name)) {
     throw new Error(`Cannot add MCP server "${name}": this name is reserved.`)
   }
@@ -647,14 +638,14 @@ export async function addMcpConfig(
     }
   }
 
-  // Block adding servers when enterprise MCP config exists (it has exclusive control)
+  // 当企业 MCP 配置存在时阻止添加服务器（它具有独占控制权）
   if (doesEnterpriseMcpConfigExist()) {
     throw new Error(
       `Cannot add MCP server: enterprise MCP configuration is active and has exclusive control over MCP servers`,
     )
   }
 
-  // Validate config first (needed for command-based policy checks)
+  // 首先验证配置（基于命令的策略检查所需）
   const result = McpServerConfigSchema().safeParse(config)
   if (!result.success) {
     const formattedErrors = result.error.issues
@@ -664,21 +655,21 @@ export async function addMcpConfig(
   }
   const validatedConfig = result.data
 
-  // Check denylist (with config for command-based checks)
+  // 检查拒绝列表（使用配置进行基于命令的检查）
   if (isMcpServerDenied(name, validatedConfig)) {
     throw new Error(
       `Cannot add MCP server "${name}": server is explicitly blocked by enterprise policy`,
     )
   }
 
-  // Check allowlist (with config for command-based checks)
+  // 检查允许列表（使用配置进行基于命令的检查）
   if (!isMcpServerAllowedByPolicy(name, validatedConfig)) {
     throw new Error(
       `Cannot add MCP server "${name}": not allowed by enterprise policy`,
     )
   }
 
-  // Check if server already exists in the target scope
+  // 检查服务器是否已存在于目标作用域中
   switch (scope) {
     case 'project': {
       const { servers } = getProjectMcpConfigsFromCwd()
@@ -709,7 +700,7 @@ export async function addMcpConfig(
       throw new Error('Cannot add MCP server to scope: claudeai')
   }
 
-  // Add based on scope
+  // 根据作用域添加
   switch (scope) {
     case 'project': {
       const { servers: existingServers } = getProjectMcpConfigsFromCwd()
@@ -724,7 +715,7 @@ export async function addMcpConfig(
       mcpServers[name] = validatedConfig
       const mcpConfig = { mcpServers }
 
-      // Write back to .mcp.json
+      // 写回 .mcp.json
       try {
         await writeMcpjsonFile(mcpConfig)
       } catch (error) {
@@ -761,10 +752,10 @@ export async function addMcpConfig(
 }
 
 /**
- * Remove an MCP server configuration
- * @param name The name of the server to remove
- * @param scope The configuration scope
- * @throws Error if server not found in specified scope
+ * 移除 MCP 服务器配置
+ * @param name 要移除的服务器名称
+ * @param scope 配置作用域
+ * @throws Error 如果在指定作用域中找不到服务器
  */
 export async function removeMcpConfig(
   name: string,
@@ -778,7 +769,7 @@ export async function removeMcpConfig(
         throw new Error(`No MCP server found with name: ${name} in .mcp.json`)
       }
 
-      // Strip scope information when writing back to .mcp.json
+      // 写回 .mcp.json 时去除作用域信息
       const mcpServers: Record<string, McpServerConfig> = {}
       for (const [serverName, serverConfig] of Object.entries(
         existingServers,
@@ -813,7 +804,7 @@ export async function removeMcpConfig(
     }
 
     case 'local': {
-      // Check if server exists before updating
+      // 更新前检查服务器是否存在
       const config = getCurrentProjectConfig()
       if (!config.mcpServers?.[name]) {
         throw new Error(`No project-local MCP server found with name: ${name}`)
@@ -834,17 +825,17 @@ export async function removeMcpConfig(
 }
 
 /**
- * Get MCP configs from current directory only (no parent traversal).
- * Used by addMcpConfig and removeMcpConfig to modify the local .mcp.json file.
- * Exported for testing purposes.
+ * 仅从当前目录获取 MCP 配置（不向上遍历父目录）。
+ * 由 addMcpConfig 和 removeMcpConfig 使用，用于修改本地 .mcp.json 文件。
+ * 出于测试目的导出。
  *
- * @returns Servers with scope information and any validation errors from current directory's .mcp.json
+ * @returns 当前目录 .mcp.json 中的服务器（带作用域信息）及任何验证错误
  */
 export function getProjectMcpConfigsFromCwd(): {
   servers: Record<string, ScopedMcpServerConfig>
   errors: ValidationError[]
 } {
-  // Check if project source is enabled
+  // 检查 project 源是否已启用
   if (!isSettingSourceEnabled('projectSettings')) {
     return { servers: {}, errors: [] }
   }
@@ -857,7 +848,7 @@ export function getProjectMcpConfigsFromCwd(): {
     scope: 'project',
   })
 
-  // Missing .mcp.json is expected, but malformed files should report errors
+  // 缺少 .mcp.json 是预期情况，但格式错误的文件应报告错误
   if (!config) {
     const nonMissingErrors = errors.filter(
       e => !e.message.startsWith('MCP config file not found'),
@@ -881,9 +872,9 @@ export function getProjectMcpConfigsFromCwd(): {
 }
 
 /**
- * Get all MCP configurations from a specific scope
- * @param scope The configuration scope
- * @returns Servers with scope information and any validation errors
+ * 从特定作用域获取所有 MCP 配置
+ * @param scope 配置作用域
+ * @returns 带作用域信息的服务器及任何验证错误
  */
 export function getMcpConfigsByScope(
   scope: 'project' | 'user' | 'local' | 'enterprise',
@@ -891,7 +882,7 @@ export function getMcpConfigsByScope(
   servers: Record<string, ScopedMcpServerConfig>
   errors: ValidationError[]
 } {
-  // Check if this source is enabled
+  // 检查此源是否已启用
   const sourceMap: Record<
     string,
     'projectSettings' | 'userSettings' | 'localSettings'
@@ -910,7 +901,7 @@ export function getMcpConfigsByScope(
       const allServers: Record<string, ScopedMcpServerConfig> = {}
       const allErrors: ValidationError[] = []
 
-      // Build list of directories to check
+      // 构建要检查的目录列表
       const dirs: string[] = []
       let currentDir = getCwd()
 
@@ -919,7 +910,7 @@ export function getMcpConfigsByScope(
         currentDir = dirname(currentDir)
       }
 
-      // Process from root downward to CWD (so closer files have higher priority)
+      // 从根目录向下处理到 CWD（这样更近的文件具有更高优先级）
       for (const dir of dirs.reverse()) {
         const mcpJsonPath = join(dir, '.mcp.json')
 
@@ -929,7 +920,7 @@ export function getMcpConfigsByScope(
           scope: 'project',
         })
 
-        // Missing .mcp.json in parent directories is expected, but malformed files should report errors
+        // 父目录中缺少 .mcp.json 是预期情况，但格式错误的文件应报告错误
         if (!config) {
           const nonMissingErrors = errors.filter(
             e => !e.message.startsWith('MCP config file not found'),
@@ -945,7 +936,7 @@ export function getMcpConfigsByScope(
         }
 
         if (config.mcpServers) {
-          // Merge servers, with files closer to CWD overriding parent configs
+          // 合并服务器，更靠近 CWD 的文件覆盖父配置
           Object.assign(allServers, addScopeToServers(config.mcpServers, scope))
         }
 
@@ -1002,7 +993,7 @@ export function getMcpConfigsByScope(
         scope: 'enterprise',
       })
 
-      // Missing enterprise config file is expected, but malformed files should report errors
+      // 缺少企业配置文件是预期情况，但格式错误的文件应报告错误
       if (!config) {
         const nonMissingErrors = errors.filter(
           e => !e.message.startsWith('MCP config file not found'),
@@ -1026,15 +1017,15 @@ export function getMcpConfigsByScope(
 }
 
 /**
- * Get an MCP server configuration by name
- * @param name The name of the server
- * @returns The server configuration with scope, or undefined if not found
+ * 按名称获取 MCP 服务器配置
+ * @param name 服务器名称
+ * @returns 带作用域的服务器配置，如果未找到则返回 undefined
  */
 export function getMcpConfigByName(name: string): ScopedMcpServerConfig | null {
   const { servers: enterpriseServers } = getMcpConfigsByScope('enterprise')
 
-  // When MCP is locked to plugin-only, only enterprise servers are reachable
-  // by name. User/project/local servers are blocked — same as getClaudeCodeMcpConfigs().
+  // 当 MCP 被限制为仅限插件时，只有企业服务器可以通过
+  // 名称访问。用户/项目/本地服务器被阻止——与 getClaudeCodeMcpConfigs() 相同。
   if (isRestrictedToPluginOnly('mcp')) {
     return enterpriseServers[name] ?? null
   }
@@ -1060,13 +1051,12 @@ export function getMcpConfigByName(name: string): ScopedMcpServerConfig | null {
 }
 
 /**
- * Get Claude Code MCP configurations (excludes claude.ai servers from the
- * returned set — they're fetched separately and merged by callers).
- * This is fast: only local file reads; no awaited network calls on the
- * critical path. The optional extraDedupTargets promise (e.g. the in-flight
- * claude.ai connector fetch) is awaited only after loadAllPluginsCacheOnly() completes,
- * so the two overlap rather than serialize.
- * @returns Claude Code server configurations with appropriate scopes
+ * 获取 Claude Code MCP 配置（不包含 claude.ai 服务器——它们
+ * 单独获取并由调用方合并）。
+ * 这很快：仅本地文件读取；关键路径上无等待的网络调用。
+ * 可选的 extraDedupTargets promise（例如正在进行的 claude.ai 连接器获取）
+ * 仅在 loadAllPluginsCacheOnly() 完成后才等待，因此两者是重叠而非串行执行。
+ * @returns 带适当作用域的 Claude Code 服务器配置
  */
 export async function getClaudeCodeMcpConfigs(
   dynamicServers: Record<string, ScopedMcpServerConfig> = {},
@@ -1079,10 +1069,10 @@ export async function getClaudeCodeMcpConfigs(
 }> {
   const { servers: enterpriseServers } = getMcpConfigsByScope('enterprise')
 
-  // If an enterprise mcp config exists, do not use any others; this has exclusive control over all MCP servers
-  // (enterprise customers often do not want their users to be able to add their own MCP servers).
+  // 如果存在企业 mcp 配置，则不使用其他配置；这拥有对所有 MCP 服务器的独占控制权
+  //（企业客户通常不希望其用户能够添加自己的 MCP 服务器）。
   if (doesEnterpriseMcpConfigExist()) {
-    // Apply policy filtering to enterprise servers
+    // 对企业服务器应用策略过滤
     const filtered: Record<string, ScopedMcpServerConfig> = {}
 
     for (const [name, serverConfig] of Object.entries(enterpriseServers)) {
@@ -1095,8 +1085,8 @@ export async function getClaudeCodeMcpConfigs(
     return { servers: filtered, errors: [] }
   }
 
-  // Load other scopes — unless the managed policy locks MCP to plugin-only.
-  // Unlike the enterprise-exclusive block above, this keeps plugin servers.
+  // 加载其他作用域——除非托管策略将 MCP 锁定为仅限插件。
+  // 与上面的企业独占块不同，这保留了插件服务器。
   const mcpLocked = isRestrictedToPluginOnly('mcp')
   const noServers: { servers: Record<string, ScopedMcpServerConfig> } = {
     servers: {},
@@ -1111,19 +1101,19 @@ export async function getClaudeCodeMcpConfigs(
     ? noServers
     : getMcpConfigsByScope('local')
 
-  // Load plugin MCP servers
+  // 加载插件 MCP 服务器
   const pluginMcpServers: Record<string, ScopedMcpServerConfig> = {}
 
   const pluginResult = await loadAllPluginsCacheOnly()
 
-  // Collect MCP-specific errors during server loading
+  // 收集服务器加载过程中的 MCP 相关错误
   const mcpErrors: PluginError[] = []
 
-  // Log any plugin loading errors - NEVER silently fail in production
+  // 记录任何插件加载错误——生产环境中绝不静默失败
   if (pluginResult.errors.length > 0) {
     for (const error of pluginResult.errors) {
-      // Only log as MCP error if it's actually MCP-related
-      // Otherwise just log as debug since the plugin might not have MCP servers
+      // 仅当实际与 MCP 相关时才记录为 MCP 错误
+      // 否则仅记录为调试信息，因为插件可能没有 MCP 服务器
       if (
         error.type === 'mcp-config-invalid' ||
         error.type === 'mcpb-download-failed' ||
@@ -1133,8 +1123,8 @@ export async function getClaudeCodeMcpConfigs(
         const errorMessage = `Plugin MCP loading error - ${error.type}: ${getPluginErrorMessage(error)}`
         logError(new Error(errorMessage))
       } else {
-        // Plugin doesn't exist or isn't available - this is common and not necessarily an error
-        // The plugin system will handle installing it if possible
+        // 插件不存在或不可用——这很常见，不一定是错误
+        // 如果可能，插件系统将负责安装它
         const errorType = error.type
         logForDebugging(
           `Plugin not available for MCP: ${error.source} - error type: ${errorType}`,
@@ -1143,7 +1133,7 @@ export async function getClaudeCodeMcpConfigs(
     }
   }
 
-  // Process enabled plugins for MCP servers in parallel
+  // 并行处理已启用插件的 MCP 服务器
   const pluginServerResults = await Promise.all(
     pluginResult.enabled.map(plugin => getPluginMcpServers(plugin, mcpErrors)),
   )
@@ -1153,7 +1143,7 @@ export async function getClaudeCodeMcpConfigs(
     }
   }
 
-  // Add any MCP-specific errors from server loading to plugin errors
+  // 将服务器加载过程中的 MCP 相关错误添加到插件错误中
   if (mcpErrors.length > 0) {
     for (const error of mcpErrors) {
       const errorMessage = `Plugin MCP server error - ${error.type}: ${getPluginErrorMessage(error)}`
@@ -1161,7 +1151,7 @@ export async function getClaudeCodeMcpConfigs(
     }
   }
 
-  // Filter project servers to only include approved ones
+  // 过滤项目服务器，仅包含已批准的
   const approvedProjectServers: Record<string, ScopedMcpServerConfig> = {}
   for (const [name, config] of Object.entries(projectServers)) {
     if (getProjectMcpServerStatus(name) === 'approved') {
@@ -1169,13 +1159,13 @@ export async function getClaudeCodeMcpConfigs(
     }
   }
 
-  // Dedup plugin servers against manually-configured ones (and each other).
-  // Plugin server keys are namespaced `plugin:x:y` so they never collide with
-  // manual keys in the merge below — this content-based filter catches the case
-  // where both would launch the same underlying process/connection.
-  // Only servers that will actually connect are valid dedup targets — a
-  // disabled manual server mustn't suppress a plugin server, or neither runs
-  // (manual is skipped by name at connection time; plugin was removed here).
+  // 针对手动配置的插件服务器（以及彼此之间）去重插件服务器。
+  // 插件服务器键是带命名空间的 `plugin:x:y`，因此它们永远不会与
+  // 下面合并中的手动键冲突——这种基于内容的检查捕获了两者将启动
+  // 相同底层进程/连接的情况。
+  // 只有实际会连接的服务器才是有效的去重目标——禁用的手动服务器
+  // 不能抑制插件服务器，否则两者都不会运行
+  //（手动服务器在连接时按名称跳过；插件服务器在此处被移除）。
   const extraTargets = await extraDedupTargets
   const enabledManualServers: Record<string, ScopedMcpServerConfig> = {}
   for (const [name, config] of Object.entries({
@@ -1192,10 +1182,10 @@ export async function getClaudeCodeMcpConfigs(
       enabledManualServers[name] = config
     }
   }
-  // Split off disabled/policy-blocked plugin servers so they don't win the
-  // first-plugin-wins race against an enabled duplicate — same invariant as
-  // above. They're merged back after dedup so they still appear in /mcp
-  // (policy filtering at the end of this function drops blocked ones).
+  // 分离已禁用/被策略阻止的插件服务器，这样它们就不会在
+  // 先到的插件获胜的竞争中对已启用的副本胜出——与上面相同的不变量。
+  // 它们在去重后被合并回来，因此仍然出现在 /mcp 中
+  //（此函数末尾的策略过滤会丢弃被阻止的）。
   const enabledPluginServers: Record<string, ScopedMcpServerConfig> = {}
   const disabledPluginServers: Record<string, ScopedMcpServerConfig> = {}
   for (const [name, config] of Object.entries(pluginMcpServers)) {
@@ -1213,10 +1203,10 @@ export async function getClaudeCodeMcpConfigs(
     enabledManualServers,
   )
   Object.assign(dedupedPluginServers, disabledPluginServers)
-  // Surface suppressions in /plugin UI. Pushed AFTER the logError loop above
-  // so these don't go to the error log — they're informational, not errors.
+  // 在 /plugin UI 中显示被抑制的项。在上面的 logError 循环之后推送
+  // 这样这些不会进入错误日志——它们是信息性的，不是错误。
   for (const { name, duplicateOf } of suppressed) {
-    // name is "plugin:${pluginName}:${serverName}" from addPluginScopeToServers
+    // name 来自 addPluginScopeToServers 的 "plugin:${pluginName}:${serverName}"
     const parts = name.split(':')
     if (parts[0] !== 'plugin' || parts.length < 3) continue
     mcpErrors.push({
@@ -1228,7 +1218,7 @@ export async function getClaudeCodeMcpConfigs(
     })
   }
 
-  // Merge in order of precedence: plugin < user < project < local
+  // 按优先级顺序合并：plugin < user < project < local
   const configs = Object.assign(
     {},
     dedupedPluginServers,
@@ -1237,7 +1227,7 @@ export async function getClaudeCodeMcpConfigs(
     localServers,
   )
 
-  // Apply policy filtering to merged configs
+  // 对合并后的配置应用策略过滤
   const filtered: Record<string, ScopedMcpServerConfig> = {}
 
   for (const [name, serverConfig] of Object.entries(configs)) {
@@ -1251,21 +1241,21 @@ export async function getClaudeCodeMcpConfigs(
 }
 
 /**
- * Get all MCP configurations across all scopes, including claude.ai servers.
- * This may be slow due to network calls - use getClaudeCodeMcpConfigs() for fast startup.
- * @returns All server configurations with appropriate scopes
+ * 获取所有作用域的所有 MCP 配置，包括 claude.ai 服务器。
+ * 由于网络调用可能较慢——快速启动请使用 getClaudeCodeMcpConfigs()。
+ * @returns 带适当作用域的所有服务器配置
  */
 export async function getAllMcpConfigs(): Promise<{
   servers: Record<string, ScopedMcpServerConfig>
   errors: PluginError[]
 }> {
-  // In enterprise mode, don't load claude.ai servers (enterprise has exclusive control)
+  // 在企业模式下，不加载 claude.ai 服务器（企业拥有独占控制权）
   if (doesEnterpriseMcpConfigExist()) {
     return getClaudeCodeMcpConfigs()
   }
 
-  // Kick off the claude.ai fetch before getClaudeCodeMcpConfigs so it overlaps
-  // with loadAllPluginsCacheOnly() inside. Memoized — the awaited call below is a cache hit.
+  // 在 getClaudeCodeMcpConfigs 之前启动 claude.ai 获取，以便与其中的
+  // loadAllPluginsCacheOnly() 重叠。已记忆化——下面等待的调用是缓存命中。
   const claudeaiPromise = fetchClaudeAIMcpConfigsIfEligible()
   const { servers: claudeCodeServers, errors } = await getClaudeCodeMcpConfigs(
     {},
@@ -1275,24 +1265,24 @@ export async function getAllMcpConfigs(): Promise<{
     await claudeaiPromise,
   )
 
-  // Suppress claude.ai connectors that duplicate an enabled manual server.
-  // Keys never collide (`slack` vs `claude.ai Slack`) so the merge below
-  // won't catch this — need content-based dedup by URL signature.
+  // 抑制与已启用的手动服务器重复的 claude.ai 连接器。
+  // 键永远不会冲突（`slack` 对 `claude.ai Slack`），因此下面的合并
+  // 无法捕获这种情况——需要按 URL 签名进行基于内容的去重。
   const { servers: dedupedClaudeAi } = dedupClaudeAiMcpServers(
     claudeaiMcpServers as Record<string, ScopedMcpServerConfig>,
     claudeCodeServers,
   )
 
-  // Merge with claude.ai having lowest precedence
+  // 合并，claude.ai 优先级最低
   const servers = Object.assign({}, dedupedClaudeAi, claudeCodeServers)
 
   return { servers, errors }
 }
 
 /**
- * Parse and validate an MCP configuration object
- * @param params Parsing parameters
- * @returns Validated configuration with any errors
+ * 解析并验证 MCP 配置对象
+ * @param params 解析参数
+ * @returns 验证后的配置及任何错误
  */
 export function parseMcpConfig(params: {
   configObject: unknown
@@ -1320,7 +1310,7 @@ export function parseMcpConfig(params: {
     }
   }
 
-  // Validate each server and expand variables if requested
+  // 验证每个服务器并在请求时展开变量
   const errors: ValidationError[] = []
   const validatedServers: Record<string, McpServerConfig> = {}
 
@@ -1347,7 +1337,7 @@ export function parseMcpConfig(params: {
       configToCheck = expanded
     }
 
-    // Check for Windows-specific npx usage without cmd wrapper
+    // 检查 Windows 上特定的 npx 使用而没有 cmd 包装器
     if (
       getPlatform() === 'windows' &&
       (!configToCheck.type || configToCheck.type === 'stdio') &&
@@ -1378,9 +1368,9 @@ export function parseMcpConfig(params: {
 }
 
 /**
- * Parse and validate an MCP configuration from a file path
- * @param params Parsing parameters
- * @returns Validated configuration with any errors
+ * 从文件路径解析并验证 MCP 配置
+ * @param params 解析参数
+ * @returns 验证后的配置及任何错误
  */
 export function parseMcpConfigFromFilePath(params: {
   filePath: string
@@ -1478,10 +1468,10 @@ export const doesEnterpriseMcpConfigExist = memoize((): boolean => {
 })
 
 /**
- * Check if MCP allowlist policy should only come from managed settings.
- * This is true when policySettings has allowManagedMcpServersOnly: true.
- * When enabled, allowedMcpServers is read exclusively from managed settings.
- * Users can still add their own MCP servers and deny servers via deniedMcpServers.
+ * 检查 MCP 允许列表策略是否应仅来自托管设置。
+ * 当 policySettings 中设置了 allowManagedMcpServersOnly: true 时为真。
+ * 启用后，allowedMcpServers 仅从托管设置中读取。
+ * 用户仍可以添加自己的 MCP 服务器并通过 deniedMcpServers 拒绝服务器。
  */
 export function shouldAllowManagedMcpServersOnly(): boolean {
   return (
@@ -1490,14 +1480,14 @@ export function shouldAllowManagedMcpServersOnly(): boolean {
 }
 
 /**
- * Check if all MCP servers in a config are allowed with enterprise MCP config.
+ * 检查配置中的所有 MCP 服务器是否都被企业 MCP 配置允许。
  */
 export function areMcpConfigsAllowedWithEnterpriseMcpConfig(
   configs: Record<string, ScopedMcpServerConfig>,
 ): boolean {
-  // NOTE: While all SDK MCP servers should be safe from a security perspective, we are still discussing
-  // what the best way to do this is. In the meantime, we are limiting this to claude-vscode for now to
-  // unbreak the VSCode extension for certain enterprise customers who have enterprise MCP config enabled.
+  // 注意：虽然所有 SDK MCP 服务器从安全角度来看应该是安全的，但我们仍在讨论
+  // 执行此操作的最佳方式。同时，我们暂时将其限制为 claude-vscode，以
+  // 修复某些启用了企业 MCP 配置的企业客户的 VSCode 扩展。
   // https://anthropic.slack.com/archives/C093UA0KLD7/p1764975463670109
   return Object.values(configs).every(
     c => c.type === 'sdk' && c.name === 'claude-vscode',
@@ -1505,9 +1495,9 @@ export function areMcpConfigsAllowedWithEnterpriseMcpConfig(
 }
 
 /**
- * Built-in MCP servers that default to disabled. Unlike user-configured servers
- * (opt-out via disabledMcpServers), these require explicit opt-in via
- * enabledMcpServers. They show up in /mcp as disabled until the user enables them.
+ * 默认禁用的内置 MCP 服务器。与用户配置的服务器
+ *（通过 disabledMcpServers 选择退出）不同，这些需要通过
+ * enabledMcpServers 明确选择加入。它们在 /mcp 中显示为已禁用，直到用户启用它们。
  */
 /* eslint-disable @typescript-eslint/no-require-imports */
 const DEFAULT_DISABLED_BUILTINS: Set<string> = new Set([
@@ -1527,9 +1517,9 @@ function isDefaultDisabledBuiltin(name: string): boolean {
 }
 
 /**
- * Check if an MCP server is disabled
- * @param name The name of the server
- * @returns true if the server is disabled
+ * 检查 MCP 服务器是否已禁用
+ * @param name 服务器名称
+ * @returns 如果服务器已禁用则返回 true
  */
 export function isMcpServerDisabled(name: string): boolean {
   const projectConfig = getCurrentProjectConfig()
@@ -1552,9 +1542,9 @@ function toggleMembership(
 }
 
 /**
- * Enable or disable an MCP server
- * @param name The name of the server
- * @param enabled Whether the server should be enabled
+ * 启用或禁用 MCP 服务器
+ * @param name 服务器名称
+ * @param enabled 服务器是否应该启用
  */
 export function setMcpServerEnabled(name: string, enabled: boolean): void {
   const isBuiltinStateChange =

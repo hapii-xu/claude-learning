@@ -58,6 +58,10 @@ export async function fetchSystemPromptParts({
   systemContext: { [k: string]: string }
 }> {
   logForDebugging(
+    `[Hapii] QueryContext.fetchSystemPromptParts 开始 tools=${tools.length} model=${mainLoopModel}${customSystemPrompt ? ' customPrompt=yes' : ''}`,
+    { level: 'info' },
+  )
+  logForDebugging(
     `[SystemPrompt] 开始构建系统提示词, 工具数=${tools.length}, model=${mainLoopModel}${customSystemPrompt ? ', 自定义prompt' : ''}`,
     { level: 'info' },
   )
@@ -73,6 +77,10 @@ export async function fetchSystemPromptParts({
     getUserContext(),
     customSystemPrompt !== undefined ? Promise.resolve({}) : getSystemContext(),
   ])
+  logForDebugging(
+    `[Hapii] QueryContext.fetchSystemPromptParts 完成 partsCount=${defaultSystemPrompt.length} userCtxKeys=${Object.keys(userContext).length} sysCtxKeys=${Object.keys(systemContext).length}`,
+    { level: 'info' },
+  )
   logForDebugging(
     `[SystemPrompt] 构建完成, userContext键=[${Object.keys(userContext).join(', ')}], systemContext键=[${Object.keys(systemContext).join(', ')}]`,
     { level: 'info' },

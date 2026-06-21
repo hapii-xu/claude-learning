@@ -14,6 +14,7 @@ const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
  * VERSION 从 package.json 读取，避免版本漂移。
  */
 export function getMacroDefines(): Record<string, string> {
+  console.log(`[Hapii] defines: 生成 MACRO 定义 version=${pkg.version}`)
   return {
     'MACRO.VERSION': JSON.stringify(pkg.version),
     'MACRO.BUILD_TIME': JSON.stringify(new Date().toISOString()),

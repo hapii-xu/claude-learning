@@ -10,6 +10,7 @@ import {
   getClaudeMds,
   getMemoryFiles,
 } from './utils/claudemd.js'
+import { logForDebugging } from './utils/debug.js'
 import { logForDiagnosticsNoPII } from './utils/diagLogs.js'
 import { isBareMode, isEnvTruthy } from './utils/envUtils.js'
 import { execFileNoThrow } from './utils/execFileNoThrow.js'
@@ -118,6 +119,9 @@ export const getSystemContext = memoize(
     [k: string]: string
   }> => {
     const startTime = Date.now()
+    logForDebugging('[Hapii] Context.getSystemContext 开始收集系统上下文', {
+      level: 'info',
+    })
     logForDiagnosticsNoPII('info', 'system_context_started')
 
     // 在 CCR 中跳过 git status（恢复时不必要的开销）或在 git 指令被禁用时
@@ -157,6 +161,9 @@ export const getUserContext = memoize(
     [k: string]: string
   }> => {
     const startTime = Date.now()
+    logForDebugging('[Hapii] Context.getUserContext 开始收集用户上下文', {
+      level: 'info',
+    })
     logForDiagnosticsNoPII('info', 'user_context_started')
 
     // CLAUDE_CODE_DISABLE_CLAUDE_MDS：硬性关闭，始终。
