@@ -3,7 +3,7 @@ import { getRateLimitTier, getSubscriptionType } from './auth.js'
 import { isEnvDefinedFalsy, isEnvTruthy } from './envUtils.js'
 
 export function getPlanModeV2AgentCount(): number {
-  // Environment variable override takes precedence
+  // 环境变量覆盖优先
   if (process.env.CLAUDE_CODE_PLAN_V2_AGENT_COUNT) {
     const count = parseInt(process.env.CLAUDE_CODE_PLAN_V2_AGENT_COUNT, 10)
     if (!isNaN(count) && count > 0 && count <= 10) {
@@ -43,12 +43,12 @@ export function getPlanModeV2ExploreAgentCount(): number {
 }
 
 /**
- * Check if plan mode interview phase is enabled.
+ * 检查 plan mode 访谈阶段是否启用。
  *
- * Config: ant=always_on, external=tengu_plan_mode_interview_phase gate, envVar=true
+ * 配置：ant=always_on，external=tengu_plan_mode_interview_phase 门控，envVar=true
  */
 export function isPlanModeInterviewPhaseEnabled(): boolean {
-  // Always on for ants
+  // 对 ants 始终开启
   if (process.env.USER_TYPE === 'ant') return true
 
   const env = process.env.CLAUDE_CODE_PLAN_MODE_INTERVIEW_PHASE
@@ -64,26 +64,25 @@ export function isPlanModeInterviewPhaseEnabled(): boolean {
 export type PewterLedgerVariant = 'trim' | 'cut' | 'cap' | null
 
 /**
- * tengu_pewter_ledger — plan file structure prompt experiment.
+ * tengu_pewter_ledger — plan 文件结构提示实验。
  *
- * Controls the Phase 4 "Final Plan" bullets in the 5-phase plan mode
- * workflow (messages.ts getPlanPhase4Section). 5-phase is 99% of plan
- * traffic; interview-phase (ants) is untouched as a reference population.
+ * 控制 5 阶段 plan mode 工作流中第 4 阶段"最终 Plan"的
+ * 要点（messages.ts 中的 getPlanPhase4Section）。5 阶段占 plan
+ * 流量的 99%；interview-phase（ants）作为参照群体不受影响。
  *
- * Arms: null (control), 'trim', 'cut', 'cap' — progressively stricter
- * guidance on plan file size.
+ * 实验组：null（对照）、'trim'、'cut'、'cap' — 对 plan 文件大小的
+ * 引导逐步更严格。
  *
- * Baseline (control, 14d ending 2026-03-02, N=26.3M):
- *   p50 4,906 chars | p90 11,617 | mean 6,207 | 82% Opus 4.6
- *   Reject rate monotonic with size: 20% at <2K → 50% at 20K+
+ * 基线（对照，14 天至 2026-03-02，N=26.3M）：
+ *   p50 4,906 字符 | p90 11,617 | 均值 6,207 | 82% Opus 4.6
+ *   拒绝率随大小单调递增：<2K 时 20% → 20K+ 时 50%
  *
- * Primary: session-level Avg Cost (fact__201omjcij85f) — Opus output is
- *   5× input price so cost is an output-weighted proxy. planLengthChars
- *   on tengu_plan_exit is the mechanism but NOT the goal — the cap arm
- *   could shrink the plan file while increasing total output via
- *   write→count→edit cycles.
- * Guardrail: feedback-bad rate, requests/session (too-thin plans →
- *   more implementation iterations), tool error rate
+ * 主要指标：会话级平均成本（fact__201omjcij85f）— Opus 输出价格为
+ *   输入的 5 倍，因此成本是输出加权的代理指标。planLengthChars
+ *   在 tengu_plan_exit 上是机制而非目标 — cap 组可能缩小
+ *   plan 文件但因 write→count→edit 循环而增加总输出。
+ * 防护栏：feedback-bad 率、每会话请求数（过于简陋的 plan →
+ *   更多实现迭代）、工具错误率
  */
 export function getPewterLedgerVariant(): PewterLedgerVariant {
   const raw = getFeatureValue_CACHED_MAY_BE_STALE<string | null>(

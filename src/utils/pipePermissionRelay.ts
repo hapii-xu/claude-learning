@@ -14,14 +14,14 @@ type PendingPipePermission = {
 
 const pendingPipePermissions = new Map<string, PendingPipePermission>()
 
-// Module-level singleton for the relay function to master.
-// Replaces the old (globalThis as any).__pipeSendToMaster pattern.
+// 模块级单例，用于向 master 的中继函数。
+// 替代旧的 (globalThis as any).__pipeSendToMaster 模式。
 type PipeRelayFn = (message: PipeMessage) => void
 let _pipeRelay: PipeRelayFn | null = null
 
-// Slave-side mute flag: when true, relayPipeMessage() and permission
-// relay functions will short-circuit. Set by relay_mute / relay_unmute
-// control messages from master.
+// Slave 侧静音标记：为 true 时，relayPipeMessage() 和权限
+// 中继函数会短路。由 master 的 relay_mute / relay_unmute
+// 控制消息设置。
 let _relayMuted = false
 
 export function setRelayMuted(muted: boolean): void {
@@ -34,7 +34,7 @@ export function isRelayMuted(): boolean {
 
 export function setPipeRelay(fn: PipeRelayFn | null): void {
   _pipeRelay = fn
-  if (!fn) _relayMuted = false // reset on disconnect
+  if (!fn) _relayMuted = false // 断开时重置
 }
 
 export function getPipeRelay(): PipeRelayFn | null {
