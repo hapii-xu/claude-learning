@@ -5,14 +5,14 @@ import { lock } from './lockfile.js'
 const persistenceLocks = new Map<string, Promise<void>>()
 
 /**
- * Two-phase persistence retention. Active records (queued/running, etc.) are
- * always kept — capping them risks evicting in-flight work; that responsibility
- * lives in caller-side leak detection. Inactive (terminal) records are ranked
- * by `getTimestamp` desc and capped to fill the remaining budget below `max`.
+ * 两阶段持久化保留策略。活跃记录（queued/running 等）始终保留 ——
+ * 对它们进行上限截断可能会驱逐进行中的工作；该职责由调用方的
+ * 泄漏检测承担。非活跃（终结）记录按 `getTimestamp` 降序排列，
+ * 并截断以填充 `max` 以下的剩余预算。
  *
- * Returned list is sorted by `getTimestamp` desc regardless of activity, so
- * the persisted file is plain reverse-chronological order — listings/UI can
- * consume it directly without re-sorting.
+ * 返回的列表无论活跃与否都按 `getTimestamp` 降序排列，因此
+ * 持久化文件就是简单的逆时间顺序 —— 列表/UI 可以直接消费，
+ * 无需重新排序。
  */
 export function retainActiveFirst<T>(
   records: readonly T[],

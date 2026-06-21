@@ -87,17 +87,15 @@ export type AutonomyFlowRecord = {
   cancelRequestedAt?: number
   lastError?: string
   /**
-   * Repo-relative POSIX glob patterns describing which paths this flow's
-   * `report`-step approval covers. The pre-tool-use hook
-   * `require-plan-for-risky-edit.mjs` consults this list to permit edits
-   * only when the target file matches at least one entry. Absent or empty
-   * means "no boundary declared" — during the pilot window the hook
-   * treats this as broad approval (v1 behaviour). Once all production
-   * flows declare boundaries, the hook will deny absent-boundary flows.
+   * 仓库相对的 POSIX glob 模式，描述此 flow 的 `report` 步骤
+   * 批准覆盖哪些路径。pre-tool-use 钩子
+   * `require-plan-for-risky-edit.mjs` 查阅此列表，仅在目标文件
+   * 匹配至少一个条目时允许编辑。缺失或为空表示"未声明边界"
+   * —— 在试点窗口期间，钩子将其视为广泛批准（v1 行为）。
+   * 一旦所有生产 flow 声明了边界，钩子将拒绝无边界的 flow。
    *
-   * Supported syntax: `*` matches one path segment, `**` matches any
-   * number including zero. Examples: `src/utils/autonomy*`,
-   * `src/services/api/**`, `src/Tool.ts`.
+   * 支持的语法：`*` 匹配一个路径段，`**` 匹配任意数量（包括零个）。
+   * 示例：`src/utils/autonomy*`、`src/services/api/**`、`src/Tool.ts`。
    */
   boundary?: string[]
 }

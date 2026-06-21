@@ -134,11 +134,10 @@ function mergeAgentsAuthority(files: AutonomyAuthorityFile[]): string | null {
 }
 
 /**
- * Replaces fenced code-block content (and the ``` / ~~~ fence delimiters
- * themselves) with empty strings while preserving the index of every
- * other line. Used by the heartbeat parser so that `tasks:` literals
- * appearing inside Markdown code samples in HEARTBEAT.md docs do not
- * collide with the real config block.
+ * 替换围栏代码块内容（以及 ``` / ~~~ 围栏分隔符本身）
+ * 为空字符串，同时保留其他每一行的索引。供心跳解析器使用，
+ * 这样 HEARTBEAT.md 文档中 Markdown 代码示例里出现的 `tasks:` 字面量
+ * 不会与真实的配置块冲突。
  */
 function maskCodeFencedLines(lines: string[]): string[] {
   const masked = lines.slice()
