@@ -16,12 +16,12 @@ export const IMAGE_TOKEN_ESTIMATE = 1600
 const DEFAULT_MAX_MCP_OUTPUT_TOKENS = 25000
 
 /**
- * Resolve the MCP output token cap. Precedence:
- *   1. MAX_MCP_OUTPUT_TOKENS env var (explicit user override)
- *   2. tengu_satin_quoll GrowthBook flag's `mcp_tool` key (tokens, not chars —
- *      unlike the other keys in that map which getPersistenceThreshold reads
- *      as chars; MCP has its own truncation layer upstream of that)
- *   3. Hardcoded default
+ * 解析 MCP 输出 token 上限。优先级：
+ *   1. MAX_MCP_OUTPUT_TOKENS 环境变量（用户显式覆盖）
+ *   2. tengu_satin_quoll GrowthBook 标记的 `mcp_tool` 键（token 数，非字符数 —
+ *      与 getPersistenceThreshold 读取的该 map 中其他键不同，
+ *      后者以字符计；MCP 在其上游有独立的截断层）
+ *   3. 硬编码默认值
  */
 export function getMaxMcpOutputTokens(): number {
   const envValue = process.env.MAX_MCP_OUTPUT_TOKENS
@@ -67,7 +67,7 @@ export function getContentSizeEstimate(content: MCPToolResult): number {
     if (isTextBlock(block)) {
       return total + roughTokenCountEstimation(block.text)
     } else if (isImageBlock(block)) {
-      // Estimate for image tokens
+      // 图片 token 估算
       return total + IMAGE_TOKEN_ESTIMATE
     }
     return total
@@ -111,17 +111,17 @@ async function truncateContentBlocks(
         break
       }
     } else if (isImageBlock(block)) {
-      // Include images but count their estimated size
+      // 包含图片但计算其估算大小
       const imageChars = IMAGE_TOKEN_ESTIMATE * 4
       if (currentChars + imageChars <= maxChars) {
         result.push(block)
         currentChars += imageChars
       } else {
-        // Image exceeds budget - try to compress it to fit remaining space
+        // 图片超出预算 - 尝试压缩以适配剩余空间
         const remainingChars = maxChars - currentChars
         if (remainingChars > 0) {
-          // Convert remaining chars to bytes for compression
-          // base64 uses ~4/3 the original size, so we calculate max bytes
+          // 将剩余字符数转换为字节以进行压缩
+          // base64 使用约 4/3 原始大小，因此我们计算最大字节数
           const remainingBytes = Math.floor(remainingChars * 0.75)
           try {
             const compressedBlock = await compressImageBlock(
@@ -129,14 +129,14 @@ async function truncateContentBlocks(
               remainingBytes,
             )
             result.push(compressedBlock)
-            // Update currentChars based on compressed image size
+            // 根据压缩后图片大小更新 currentChars
             if (compressedBlock.source.type === 'base64') {
               currentChars += compressedBlock.source.data.length
             } else {
               currentChars += imageChars
             }
           } catch {
-            // If compression fails, skip the image
+            // 若压缩失败，跳过该图片
           }
         }
       }
@@ -153,7 +153,7 @@ export async function mcpContentNeedsTruncation(
 ): Promise<boolean> {
   if (!content) return false
 
-  // Use size check as a heuristic to avoid unnecessary token counting API calls
+  // 使用大小检查作为启发式以避免不必要的 token 计数 API 调用
   const contentSizeEstimate = getContentSizeEstimate(content)
   if (
     contentSizeEstimate <=
@@ -172,7 +172,7 @@ export async function mcpContentNeedsTruncation(
     return !!(tokenCount && tokenCount > getMaxMcpOutputTokens())
   } catch (error) {
     logError(error)
-    // Assume no truncation needed on error
+    // 出错时假设无需截断
     return false
   }
 }

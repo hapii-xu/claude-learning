@@ -8,18 +8,18 @@ import type { Message } from '../types/message.js'
 import { isEnvDefinedFalsy, isEnvTruthy } from './envUtils.js'
 
 export type McpInstructionsDelta = {
-  /** Server names — for stateless-scan reconstruction. */
+  /** 服务器名称 — 用于无状态扫描重建。 */
   addedNames: string[]
-  /** Rendered "## {name}\n{instructions}" blocks for addedNames. */
+  /** 为 addedNames 渲染的 "## {name}\n{instructions}" 块。 */
   addedBlocks: string[]
   removedNames: string[]
 }
 
 /**
- * Client-authored instruction block to announce when a server connects,
- * in addition to (or instead of) the server's own `InitializeResult.instructions`.
- * Lets first-party servers (e.g., claude-in-chrome) carry client-side
- * context the server itself doesn't know about.
+ * 客户端编写的指令块，用于在服务器连接时公告，
+ * 补充（或替代）服务器自身的 `InitializeResult.instructions`。
+ * 让第一方服务器（如 claude-in-chrome）能够携带
+ * 服务器自身不知道的客户端上下文。
  */
 export type ClientSideInstruction = {
   serverName: string
@@ -27,12 +27,12 @@ export type ClientSideInstruction = {
 }
 
 /**
- * True → announce MCP server instructions via persisted delta attachments.
- * False → prompts.ts keeps its DANGEROUS_uncachedSystemPromptSection
- * (rebuilt every turn; cache-busts on late connect).
+ * True → 通过持久化的 delta 附件公告 MCP 服务器指令。
+ * False → prompts.ts 保留其 DANGEROUS_uncachedSystemPromptSection
+ * （每轮重建；延迟连接时破坏缓存）。
  *
- * Env override for local testing: CLAUDE_CODE_MCP_INSTR_DELTA=true/false
- * wins over both ant bypass and the GrowthBook gate.
+ * 环境变量覆盖用于本地测试：CLAUDE_CODE_MCP_INSTR_DELTA=true/false
+ * 优先级高于 ant 绕过和 GrowthBook 门控。
  */
 export function isMcpInstructionsDeltaEnabled(): boolean {
   if (isEnvTruthy(process.env.CLAUDE_CODE_MCP_INSTR_DELTA)) return true
@@ -44,13 +44,12 @@ export function isMcpInstructionsDeltaEnabled(): boolean {
 }
 
 /**
- * Diff the current set of connected MCP servers that have instructions
- * (server-authored via InitializeResult, or client-side synthesized)
- * against what's already been announced in this conversation. Null if
- * nothing changed.
+ * 对比当前已连接的 MCP 服务器中带有指令的集合
+ * （服务器通过 InitializeResult 提供的，或客户端合成的）
+ * 与此会话中已公告的内容。若无变化则返回 null。
  *
- * Instructions are immutable for the life of a connection (set once at
- * handshake), so the scan diffs on server NAME, not on content.
+ * 指令在连接生命周期内是不变的（握手时一次设定），
+ * 因此扫描基于服务器 NAME 做 diff，而非内容。
  */
 export function getMcpInstructionsDelta(
   mcpClients: MCPServerConnection[],
@@ -75,8 +74,8 @@ export function getMcpInstructionsDelta(
   )
   const connectedNames = new Set(connected.map(c => c.name))
 
-  // Servers with instructions to announce (either channel). A server can
-  // have both: server-authored instructions + a client-side block appended.
+  // 有指令待公告的服务器（两种渠道皆可）。一个服务器可能
+  // 同时具有两者：服务器提供的指令 + 附加的客户端块。
   const blocks = new Map<string, string>()
   for (const c of connected) {
     if (c.instructions) blocks.set(c.name, `## ${c.name}\n${c.instructions}`)
@@ -97,12 +96,12 @@ export function getMcpInstructionsDelta(
     if (!announced.has(name)) added.push({ name, block })
   }
 
-  // A previously-announced server that is no longer connected → removed.
-  // There is no "announced but now has no instructions" case for a still-
-  // connected server: InitializeResult is immutable, and client-side
-  // instruction gates are session-stable in practice. (/model can flip
-  // the model gate, but deferred_tools_delta has the same property and
-  // we treat history as historical — no retroactive retractions.)
+  // 之前已公告但当前不再连接的服务器 → 移除。
+  // 不存在"已公告但当前无指令"的仍在连接的服务器情况：
+  // InitializeResult 是不变的，客户端指令门控实际上在会话期间
+  // 是稳定的。（/model 可以翻转模型门控，但 deferred_tools_delta
+  // 也有同样的属性，我们将历史视为历史记录 — 不做
+  // 追溯撤回。）
   const removed: string[] = []
   for (const n of announced) {
     if (!connectedNames.has(n)) removed.push(n)
@@ -110,8 +109,8 @@ export function getMcpInstructionsDelta(
 
   if (added.length === 0 && removed.length === 0) return null
 
-  // Same diagnostic fields as tengu_deferred_tools_pool_change — same
-  // scan-fails-in-prod bug, same attachment persistence path.
+  // 与 tengu_deferred_tools_pool_change 使用相同的诊断字段 — 同样的
+  // 扫描在生产环境失败的 bug，同样的附件持久化路径。
   logEvent('tengu_mcp_instructions_pool_change', {
     addedCount: added.length,
     removedCount: removed.length,

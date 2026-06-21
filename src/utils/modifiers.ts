@@ -3,8 +3,8 @@ export type ModifierKey = 'shift' | 'command' | 'control' | 'option'
 let prewarmed = false
 
 /**
- * Pre-warm the native module by loading it in advance.
- * Call this early to avoid delay on first use.
+ * 通过提前加载来预热原生模块。
+ * 尽早调用以避免首次使用的延迟。
  */
 export function prewarmModifiers(): void {
   if (prewarmed || process.platform !== 'darwin') {
@@ -15,7 +15,7 @@ export function prewarmModifiers(): void {
 }
 
 /**
- * Check if a specific modifier key is currently pressed (synchronous).
+ * 检查特定修饰键当前是否被按下（同步）。
  */
 export function isModifierPressed(modifier: ModifierKey): boolean {
   if (process.platform !== 'darwin') {
