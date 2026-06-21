@@ -3,44 +3,44 @@ import { isInBundledMode } from './bundledMode.js'
 import { quote } from './bash/shellQuote.js'
 
 /**
- * CliLaunchSpec — normalized descriptor for spawning a child CLI process.
+ * CliLaunchSpec —— 生成子 CLI 进程的规范化描述符。
  *
- * Every site that re-execs the CLI (daemon workers, bg sessions, bridge
- * sessions, assistant/RCS daemon launchers) should use this instead of
- * manually assembling `[...process.execArgv, process.argv[1]!, ...]`.
+ * 每个重新执行 CLI 的位置（daemon worker、bg session、bridge session、
+ * assistant/RCS daemon 启动器）都应使用此接口，而非手动组装
+ * `[...process.execArgv, process.argv[1]!, ...]`。
  *
- * Centralizing the bootstrap contract prevents the class of bugs where
- * individual spawn sites forget execArgv, windowsHide, or env propagation.
+ * 集中化引导约定可防止一类 bug：各个 spawn 位置忘记传递 execArgv、
+ * windowsHide 或 env 传播。
  */
 export interface CliLaunchSpec {
-  /** Runtime binary path (e.g. bun, node). */
+  /** 运行时二进制路径（如 bun、node）。 */
   execPath: string
-  /** Full argument list including bootstrap args and CLI args. */
+  /** 完整参数列表，包含引导参数和 CLI 参数。 */
   args: string[]
-  /** Environment for the child process. */
+  /** 子进程的环境变量。 */
   env: NodeJS.ProcessEnv
-  /** Whether to hide the console window on Windows. */
+  /** 在 Windows 上是否隐藏控制台窗口。 */
   windowsHide: boolean
 }
 
 // ---------------------------------------------------------------------------
-// Frozen bootstrap snapshot — computed once at module load time.
+// 冻结的引导快照 —— 在模块加载时计算一次。
 //
-// Bun quirk (https://github.com/oven-sh/bun/issues/11673): in single-file
-// executables, app arguments from process.argv can leak into process.execArgv.
-// We snapshot and filter once, so every child gets a clean, stable set of
-// runtime flags regardless of when buildCliLaunch is called.
+// Bun 特性（https://github.com/oven-sh/bun/issues/11673）：在单文件可执行文件中，
+// process.argv 的应用参数可能泄漏到 process.execArgv。
+// 我们快照并过滤一次，因此无论何时调用 buildCliLaunch，
+// 每个子进程都能获得干净、稳定的运行时标志集合。
 // ---------------------------------------------------------------------------
 
 /**
- * Filter out leaked application arguments from process.execArgv.
- * Only keep known runtime flags: -d (defines), --feature, --inspect variants.
+ * 从 process.execArgv 中过滤泄漏的应用参数。
+ * 仅保留已知的运行时标志：-d（定义）、--feature、--inspect 变体。
  */
 function sanitizeExecArgv(raw: readonly string[]): string[] {
   const result: string[] = []
   for (let i = 0; i < raw.length; i++) {
     const arg = raw[i]!
-    // Bun define flags: -d KEY:VALUE or -dKEY:VALUE
+    // Bun 定义标志：-d KEY:VALUE 或 -dKEY:VALUE
     if (arg === '-d' || arg.startsWith('-d ') || arg.startsWith('-d\t')) {
       result.push(arg)
       if (arg === '-d' && i + 1 < raw.length) {
@@ -52,7 +52,7 @@ function sanitizeExecArgv(raw: readonly string[]): string[] {
       result.push(arg)
       continue
     }
-    // Bun feature flags: --feature NAME
+    // Bun 功能标志：--feature NAME
     if (arg === '--feature') {
       result.push(arg)
       if (i + 1 < raw.length) {
@@ -60,14 +60,14 @@ function sanitizeExecArgv(raw: readonly string[]): string[] {
       }
       continue
     }
-    // Node/Bun inspect flags
+    // Node/Bun inspect 标志
     if (/^--inspect(-brk)?(=|$)/.test(arg)) {
       result.push(arg)
       continue
     }
-    // Keep other known runtime flags (e.g. --conditions, --experimental-*)
+    // 保留其他已知的运行时标志（如 --conditions、--experimental-*）
     if (arg.startsWith('--') && !arg.includes('=') && i + 1 < raw.length) {
-      // Unknown two-part flag — skip conservatively in bundled mode only
+      // 未知的两段式标志 —— 仅在打包模式下保守跳过
       if (isInBundledMode()) continue
       result.push(arg)
       result.push(raw[++i]!)
@@ -88,14 +88,14 @@ const EXEC_PATH: string = process.execPath
 const IS_WINDOWS = process.platform === 'win32'
 
 // ---------------------------------------------------------------------------
-// Public API
+// 公共 API
 // ---------------------------------------------------------------------------
 
 /**
- * Build a normalized launch spec for spawning a child CLI process.
+ * 构建规范化的启动描述符，用于生成子 CLI 进程。
  *
- * @param cliArgs  Arguments to pass to the CLI entrypoint (e.g. ['daemon', 'start'])
- * @param opts.env Override environment (defaults to process.env)
+ * @param cliArgs  传递给 CLI 入口的参数（如 ['daemon', 'start']）
+ * @param opts.env 覆盖环境变量（默认使用 process.env）
  */
 export function buildCliLaunch(
   cliArgs: string[],
@@ -103,15 +103,15 @@ export function buildCliLaunch(
 ): CliLaunchSpec {
   const baseEnv = opts?.env ?? process.env
 
-  // In bundled mode the execPath IS the CLI binary — no script path needed.
-  // In script mode (dev / npm) we need the script path between runtime flags
-  // and CLI args so the runtime knows which file to execute.
+  // 在打包模式下，execPath 就是 CLI 二进制文件 —— 无需脚本路径。
+  // 在脚本模式（dev / npm）下，需要在运行时标志和 CLI 参数之间
+  // 放置脚本路径，以便运行时知道要执行哪个文件。
   const args: string[] =
     isInBundledMode() || !SCRIPT_PATH
       ? [...BOOTSTRAP_ARGS, ...cliArgs]
       : [...BOOTSTRAP_ARGS, SCRIPT_PATH, ...cliArgs]
 
-  // Ensure Windows children can discover git-bash without shelling out
+  // 确保 Windows 子进程能发现 git-bash 而无需通过 shell 调用
   const env: NodeJS.ProcessEnv = { ...baseEnv }
   if (IS_WINDOWS) {
     if (
@@ -134,16 +134,16 @@ export function buildCliLaunch(
 }
 
 /**
- * Spawn a child CLI process from a launch spec.
+ * 从启动描述符生成子 CLI 进程。
  *
- * Callers provide transport-level options (stdio, detached, cwd) while the
- * spec handles bootstrap concerns (execPath, args, env, windowsHide).
+ * 调用方提供传输层选项（stdio、detached、cwd），
+ * 描述符处理引导相关（execPath、args、env、windowsHide）。
  *
- * Windows note: `detached: true` on Windows creates a new console window
- * (unlike Unix where it only creates a new process group). Node.js uses
- * `windowsHide` to pass CREATE_NO_WINDOW, but Bun may not implement it.
- * As a fallback, we always set both `windowsHide: true` and keep
- * `detached` as-is — the child needs `detached` to outlive the parent.
+ * Windows 注意：Windows 上的 `detached: true` 会创建新的控制台窗口
+ *（与 Unix 上仅创建新进程组不同）。Node.js 使用 `windowsHide`
+ * 传递 CREATE_NO_WINDOW，但 Bun 可能未实现。
+ * 作为回退，我们总是同时设置 `windowsHide: true` 并保持 `detached`
+ * 不变 —— 子进程需要 `detached` 才能在父进程之后继续存活。
  */
 export function spawnCli(
   spec: CliLaunchSpec,
@@ -157,23 +157,23 @@ export function spawnCli(
 }
 
 /**
- * Quote a launch spec into a single shell command string (for tmux).
+ * 将启动描述符引用为单个 shell 命令字符串（用于 tmux）。
  */
 export function quoteCliLaunch(spec: CliLaunchSpec): string {
   return quote([spec.execPath, ...spec.args])
 }
 
 /**
- * Get the frozen bootstrap args snapshot.
- * Useful for call sites that need the raw args (e.g. bridgeMain deps).
+ * 获取冻结的引导参数快照。
+ * 用于需要原始参数的调用位置（如 bridgeMain 依赖）。
  */
 export function getBootstrapArgs(): readonly string[] {
   return BOOTSTRAP_ARGS
 }
 
 /**
- * Get the script path (process.argv[1] at startup).
- * Returns undefined in bundled mode.
+ * 获取脚本路径（启动时的 process.argv[1]）。
+ * 打包模式下返回 undefined。
  */
 export function getScriptPath(): string | undefined {
   return SCRIPT_PATH

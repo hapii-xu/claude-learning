@@ -1,22 +1,22 @@
 /**
- * Utility functions for detecting code indexing tool usage.
+ * 检测代码索引工具使用情况的工具函数。
  *
- * Tracks usage of common code indexing solutions like Sourcegraph, Cody, etc.
- * both via CLI commands and MCP server integrations.
+ * 追踪常见代码索引解决方案（如 Sourcegraph、Cody 等）的使用情况，
+ * 包括 CLI 命令和 MCP 服务器集成。
  */
 
 /**
- * Known code indexing tool identifiers.
- * These are the normalized names used in analytics events.
+ * 已知的代码索引工具标识符。
+ * 这些是分析事件中使用的规范化名称。
  */
 export type CodeIndexingTool =
-  // Code search engines
+  // 代码搜索引擎
   | 'sourcegraph'
   | 'hound'
   | 'seagoat'
   | 'bloop'
   | 'gitloop'
-  // AI coding assistants with indexing
+  // 带索引的 AI 编程助手
   | 'cody'
   | 'aider'
   | 'continue'
@@ -32,23 +32,23 @@ export type CodeIndexingTool =
   | 'qodo'
   | 'amazon-q'
   | 'gemini'
-  // MCP code indexing servers
+  // MCP 代码索引服务器
   | 'claude-context'
   | 'code-index-mcp'
   | 'local-code-search'
   | 'autodev-codebase'
-  // Context providers
+  // 上下文提供者
   | 'openctx'
 
 /**
- * Mapping of CLI command prefixes to code indexing tools.
- * The key is the command name (first word of the command).
+ * CLI 命令前缀到代码索引工具的映射。
+ * 键为命令名（命令的第一个词）。
  */
 const CLI_COMMAND_MAPPING: Record<string, CodeIndexingTool> = {
-  // Sourcegraph ecosystem
+  // Sourcegraph 生态
   src: 'sourcegraph',
   cody: 'cody',
-  // AI coding assistants
+  // AI 编程助手
   aider: 'aider',
   tabby: 'tabby',
   tabnine: 'tabnine',
@@ -56,29 +56,29 @@ const CLI_COMMAND_MAPPING: Record<string, CodeIndexingTool> = {
   pieces: 'pieces',
   qodo: 'qodo',
   aide: 'aide',
-  // Code search tools
+  // 代码搜索工具
   hound: 'hound',
   seagoat: 'seagoat',
   bloop: 'bloop',
   gitloop: 'gitloop',
-  // Cloud provider AI assistants
+  // 云厂商 AI 助手
   q: 'amazon-q',
   gemini: 'gemini',
 }
 
 /**
- * Mapping of MCP server name patterns to code indexing tools.
- * Patterns are matched case-insensitively against the server name.
+ * MCP 服务器名称模式到代码索引工具的映射。
+ * 模式以不区分大小写的方式匹配服务器名。
  */
 const MCP_SERVER_PATTERNS: Array<{
   pattern: RegExp
   tool: CodeIndexingTool
 }> = [
-  // Sourcegraph ecosystem
+  // Sourcegraph 生态
   { pattern: /^sourcegraph$/i, tool: 'sourcegraph' },
   { pattern: /^cody$/i, tool: 'cody' },
   { pattern: /^openctx$/i, tool: 'openctx' },
-  // AI coding assistants
+  // AI 编程助手
   { pattern: /^aider$/i, tool: 'aider' },
   { pattern: /^continue$/i, tool: 'continue' },
   { pattern: /^github[-_]?copilot$/i, tool: 'github-copilot' },
@@ -97,12 +97,12 @@ const MCP_SERVER_PATTERNS: Array<{
   { pattern: /^amazon[-_]?q$/i, tool: 'amazon-q' },
   { pattern: /^gemini[-_]?code[-_]?assist$/i, tool: 'gemini' },
   { pattern: /^gemini$/i, tool: 'gemini' },
-  // Code search tools
+  // 代码搜索工具
   { pattern: /^hound$/i, tool: 'hound' },
   { pattern: /^seagoat$/i, tool: 'seagoat' },
   { pattern: /^bloop$/i, tool: 'bloop' },
   { pattern: /^gitloop$/i, tool: 'gitloop' },
-  // MCP code indexing servers
+  // MCP 代码索引服务器
   { pattern: /^claude[-_]?context$/i, tool: 'claude-context' },
   { pattern: /^code[-_]?index[-_]?mcp$/i, tool: 'code-index-mcp' },
   { pattern: /^code[-_]?index$/i, tool: 'code-index-mcp' },
@@ -113,20 +113,20 @@ const MCP_SERVER_PATTERNS: Array<{
 ]
 
 /**
- * Detects if a bash command is using a code indexing CLI tool.
+ * 检测 bash 命令是否在使用代码索引 CLI 工具。
  *
- * @param command - The full bash command string
- * @returns The code indexing tool identifier, or undefined if not a code indexing command
+ * @param command - 完整的 bash 命令字符串
+ * @returns 代码索引工具标识符，非代码索引命令则返回 undefined
  *
  * @example
- * detectCodeIndexingFromCommand('src search "pattern"') // returns 'sourcegraph'
- * detectCodeIndexingFromCommand('cody chat --message "help"') // returns 'cody'
- * detectCodeIndexingFromCommand('ls -la') // returns undefined
+ * detectCodeIndexingFromCommand('src search "pattern"') // 返回 'sourcegraph'
+ * detectCodeIndexingFromCommand('cody chat --message "help"') // 返回 'cody'
+ * detectCodeIndexingFromCommand('ls -la') // 返回 undefined
  */
 export function detectCodeIndexingFromCommand(
   command: string,
 ): CodeIndexingTool | undefined {
-  // Extract the first word (command name)
+  // 提取第一个词（命令名）
   const trimmed = command.trim()
   const firstWord = trimmed.split(/\s+/)[0]?.toLowerCase()
 
@@ -134,7 +134,7 @@ export function detectCodeIndexingFromCommand(
     return undefined
   }
 
-  // Check for npx/bunx prefixed commands
+  // 检查 npx/bunx 前缀的命令
   if (firstWord === 'npx' || firstWord === 'bunx') {
     const secondWord = trimmed.split(/\s+/)[1]?.toLowerCase()
     if (secondWord && secondWord in CLI_COMMAND_MAPPING) {
@@ -146,20 +146,20 @@ export function detectCodeIndexingFromCommand(
 }
 
 /**
- * Detects if an MCP tool is from a code indexing server.
+ * 检测 MCP 工具是否来自代码索引服务器。
  *
- * @param toolName - The MCP tool name (format: mcp__serverName__toolName)
- * @returns The code indexing tool identifier, or undefined if not a code indexing tool
+ * @param toolName - MCP 工具名（格式：mcp__serverName__toolName）
+ * @returns 代码索引工具标识符，非代码索引工具则返回 undefined
  *
  * @example
- * detectCodeIndexingFromMcpTool('mcp__sourcegraph__search') // returns 'sourcegraph'
- * detectCodeIndexingFromMcpTool('mcp__cody__chat') // returns 'cody'
- * detectCodeIndexingFromMcpTool('mcp__filesystem__read') // returns undefined
+ * detectCodeIndexingFromMcpTool('mcp__sourcegraph__search') // 返回 'sourcegraph'
+ * detectCodeIndexingFromMcpTool('mcp__cody__chat') // 返回 'cody'
+ * detectCodeIndexingFromMcpTool('mcp__filesystem__read') // 返回 undefined
  */
 export function detectCodeIndexingFromMcpTool(
   toolName: string,
 ): CodeIndexingTool | undefined {
-  // MCP tool names follow the format: mcp__serverName__toolName
+  // MCP 工具名遵循格式：mcp__serverName__toolName
   if (!toolName.startsWith('mcp__')) {
     return undefined
   }
@@ -184,14 +184,14 @@ export function detectCodeIndexingFromMcpTool(
 }
 
 /**
- * Detects if an MCP server name corresponds to a code indexing tool.
+ * 检测 MCP 服务器名是否对应代码索引工具。
  *
- * @param serverName - The MCP server name
- * @returns The code indexing tool identifier, or undefined if not a code indexing server
+ * @param serverName - MCP 服务器名
+ * @returns 代码索引工具标识符，非代码索引服务器则返回 undefined
  *
  * @example
- * detectCodeIndexingFromMcpServerName('sourcegraph') // returns 'sourcegraph'
- * detectCodeIndexingFromMcpServerName('filesystem') // returns undefined
+ * detectCodeIndexingFromMcpServerName('sourcegraph') // 返回 'sourcegraph'
+ * detectCodeIndexingFromMcpServerName('filesystem') // 返回 undefined
  */
 export function detectCodeIndexingFromMcpServerName(
   serverName: string,

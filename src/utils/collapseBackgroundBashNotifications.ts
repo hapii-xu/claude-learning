@@ -21,11 +21,11 @@ function isCompletedBackgroundBash(
   if (!content0 || typeof content0 === 'string' || content0?.type !== 'text')
     return false
   if (!content0.text.includes(`<${TASK_NOTIFICATION_TAG}`)) return false
-  // Only collapse successful completions — failed/killed stay visible individually.
+  // 仅折叠成功完成的 —— 失败/被杀的任务保持单独可见。
   if (extractTag(content0.text, STATUS_TAG) !== 'completed') return false
-  // The prefix constant distinguishes bash-kind LocalShellTask completions from
-  // agent/workflow/monitor notifications. Monitor-kind completions have their
-  // own summary wording and deliberately don't collapse here.
+  // 此前缀常量区分 bash 类型的 LocalShellTask 完成通知与
+  // agent/workflow/monitor 通知。monitor 类型的完成通知有
+  // 自己的摘要措辞，有意不在此折叠。
   return (
     extractTag(content0.text, SUMMARY_TAG)?.startsWith(
       BACKGROUND_BASH_SUMMARY_PREFIX,
@@ -34,12 +34,12 @@ function isCompletedBackgroundBash(
 }
 
 /**
- * Collapses consecutive completed-background-bash task-notifications into a
- * single synthetic "N background commands completed" notification. Failed/killed
- * tasks and agent/workflow notifications are left alone. Monitor stream
- * events (enqueueStreamEvent) have no <status> tag and never match.
+ * 将连续的成功后台 bash 任务通知折叠为单个合成的
+ * "N 个后台命令已完成" 通知。失败/被杀的任务和 agent/workflow 通知
+ * 保持原样。Monitor 流事件（enqueueStreamEvent）没有 <status> 标签，
+ * 永远不会匹配。
  *
- * Pass-through in verbose mode so ctrl+O shows each completion.
+ * 在 verbose 模式下直通，以便 ctrl+O 显示每次完成。
  */
 export function collapseBackgroundBashNotifications(
   messages: RenderableMessage[],
@@ -62,8 +62,8 @@ export function collapseBackgroundBashNotifications(
       if (count === 1) {
         result.push(msg)
       } else {
-        // Synthesize a task-notification that UserAgentNotificationMessage
-        // already knows how to render — no new renderer needed.
+        // 合成一个 UserAgentNotificationMessage 已能渲染的任务通知
+        // —— 无需新的渲染器。
         result.push({
           ...msg,
           message: {

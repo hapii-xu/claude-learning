@@ -1,12 +1,12 @@
-// highlight.js's type defs carry `/// <reference lib="dom" />`. SSETransport,
-// mcp/client, ssh, dumpPrompts use DOM types (TextDecodeOptions, RequestInfo)
-// that only typecheck because the hljs import below pulls lib.dom in.
-// tsconfig has lib: ["ESNext"] only — this ref preserves the status quo.
+// highlight.js 的类型定义包含 `/// <reference lib="dom" />`。SSETransport、
+// mcp/client、ssh、dumpPrompts 使用 DOM 类型（TextDecodeOptions、RequestInfo），
+// 仅因为下方的 hljs import 引入了 lib.dom 才能通过类型检查。
+// tsconfig 仅有 lib: ["ESNext"] —— 此 ref 保留了原有状态。
 /// <reference lib="dom" />
 
 import { extname } from 'path'
-// Static import — dynamic import('highlight.js') fails in Bun --compile mode
-// because module resolution points to the internal bunfs binary path.
+// 静态导入 —— 动态 import('highlight.js') 在 Bun --compile 模式下失败
+// 因为模块解析指向内部的 bunfs 二进制路径。
 import hljs from 'highlight.js'
 
 export type CliHighlight = {
@@ -14,7 +14,7 @@ export type CliHighlight = {
   supportsLanguage: typeof import('cli-highlight').supportsLanguage
 }
 
-// One promise shared by Fallback.tsx, markdown.ts, events.ts, getLanguageName.
+// 一个由 Fallback.tsx、markdown.ts、events.ts、getLanguageName 共享的 promise。
 let cliHighlightPromise: Promise<CliHighlight | null> | undefined
 
 let loadedGetLanguage:
@@ -24,7 +24,7 @@ let loadedGetLanguage:
 async function loadCliHighlight(): Promise<CliHighlight | null> {
   try {
     const cliHighlight = await import('cli-highlight')
-    // highlight.js CJS interop: `export =` wraps in .default under ESM
+    // highlight.js CJS 互操作：`export =` 在 ESM 下包装为 .default
     const hljsMod = hljs as {
       getLanguage?: typeof loadedGetLanguage
       default?: typeof hljs
@@ -45,10 +45,10 @@ export function getCliHighlightPromise(): Promise<CliHighlight | null> {
 }
 
 /**
- * eg. "foo/bar.ts" → "TypeScript". Awaits the shared cli-highlight load,
- * then reads highlight.js's language registry. All callers are telemetry
- * (OTel counter attributes, permission-dialog unary events) — none block
- * on this, they fire-and-forget or the consumer already handles Promise<string>.
+ * 例如 "foo/bar.ts" → "TypeScript"。等待共享的 cli-highlight 加载，
+ * 然后读取 highlight.js 的语言注册表。所有调用方仅用于遥测
+ *（OTel 计数器属性、权限对话框一元事件）—— 都不会阻塞于此，
+ * 它们 fire-and-forget 或消费者已处理 Promise<string>。
  */
 export async function getLanguageName(file_path: string): Promise<string> {
   await getCliHighlightPromise()
