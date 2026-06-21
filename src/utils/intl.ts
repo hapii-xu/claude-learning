@@ -1,12 +1,12 @@
 /**
- * Shared Intl object instances with lazy initialization.
+ * 共享的 Intl 对象实例，延迟初始化。
  *
- * Intl constructors are expensive (~0.05-0.1ms each), so we cache instances
- * for reuse across the codebase instead of creating new ones each time.
- * Lazy initialization ensures we only pay the cost when actually needed.
+ * Intl 构造器开销较大（每个约 0.05-0.1ms），因此我们缓存实例
+ * 以供代码库中复用，而非每次创建新的。
+ * 延迟初始化确保只在真正需要时才付出开销。
  */
 
-// Segmenters for Unicode text processing (lazily initialized)
+// 用于 Unicode 文本处理的切词器（延迟初始化）
 let graphemeSegmenter: Intl.Segmenter | null = null
 let wordSegmenter: Intl.Segmenter | null = null
 
@@ -20,8 +20,8 @@ export function getGraphemeSegmenter(): Intl.Segmenter {
 }
 
 /**
- * Extract the first grapheme cluster from a string.
- * Returns '' for empty strings.
+ * 从字符串中提取第一个字位簇。
+ * 对空字符串返回 ''。
  */
 export function firstGrapheme(text: string): string {
   if (!text) return ''
@@ -31,8 +31,8 @@ export function firstGrapheme(text: string): string {
 }
 
 /**
- * Extract the last grapheme cluster from a string.
- * Returns '' for empty strings.
+ * 从字符串中提取最后一个字位簇。
+ * 对空字符串返回 ''。
  */
 export function lastGrapheme(text: string): string {
   if (!text) return ''
@@ -50,7 +50,7 @@ export function getWordSegmenter(): Intl.Segmenter {
   return wordSegmenter
 }
 
-// RelativeTimeFormat cache (keyed by style:numeric)
+// RelativeTimeFormat 缓存（以 style:numeric 为键）
 const rtfCache = new Map<string, Intl.RelativeTimeFormat>()
 
 export function getRelativeTimeFormat(
@@ -66,7 +66,7 @@ export function getRelativeTimeFormat(
   return rtf
 }
 
-// Timezone is constant for the process lifetime
+// 时区在进程生命周期内为常量
 let cachedTimeZone: string | null = null
 
 export function getTimeZone(): string {
@@ -76,9 +76,9 @@ export function getTimeZone(): string {
   return cachedTimeZone
 }
 
-// System locale language subtag (e.g. 'en', 'ja') is constant for the process
-// lifetime. null = not yet computed; undefined = computed but unavailable (so
-// a stripped-ICU environment fails once instead of retrying on every call).
+// 系统 locale 语言子标签（如 'en'、'ja'）在进程生命周期内为常量。
+// null = 尚未计算；undefined = 已计算但不可用（因此
+// 剥离 ICU 的环境会失败一次，而非每次调用都重试）。
 let cachedSystemLocaleLanguage: string | undefined | null = null
 
 export function getSystemLocaleLanguage(): string | undefined {

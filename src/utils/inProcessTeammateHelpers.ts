@@ -1,12 +1,12 @@
 /**
- * In-Process Teammate Helpers
+ * 进程内队友辅助函数
  *
- * Helper functions for in-process teammate integration.
- * Provides utilities to:
- * - Find task ID by agent name
- * - Handle plan approval responses
- * - Update awaitingPlanApproval state
- * - Detect permission-related messages
+ * 用于进程内队友集成的辅助函数。
+ * 提供以下工具：
+ * - 按 agent 名称查找任务 ID
+ * - 处理 plan 审批响应
+ * - 更新 awaitingPlanApproval 状态
+ * - 检测权限相关消息
  */
 
 import type { AppState } from '../state/AppState.js'
@@ -24,11 +24,11 @@ import {
 type SetAppState = (updater: (prev: AppState) => AppState) => void
 
 /**
- * Find the task ID for an in-process teammate by agent name.
+ * 按 agent 名称查找进程内队友的任务 ID。
  *
- * @param agentName - The agent name (e.g., "researcher")
- * @param appState - Current AppState
- * @returns Task ID if found, undefined otherwise
+ * @param agentName - agent 名称（如 "researcher"）
+ * @param appState - 当前 AppState
+ * @returns 若找到则返回任务 ID，否则返回 undefined
  */
 export function findInProcessTeammateTaskId(
   agentName: string,
@@ -46,11 +46,11 @@ export function findInProcessTeammateTaskId(
 }
 
 /**
- * Set awaitingPlanApproval state for an in-process teammate.
+ * 设置进程内队友的 awaitingPlanApproval 状态。
  *
- * @param taskId - Task ID of the in-process teammate
- * @param setAppState - AppState setter
- * @param awaiting - Whether teammate is awaiting plan approval
+ * @param taskId - 进程内队友的任务 ID
+ * @param setAppState - AppState 设置器
+ * @param awaiting - 队友是否在等待 plan 审批
  */
 export function setAwaitingPlanApproval(
   taskId: string,
@@ -64,15 +64,15 @@ export function setAwaitingPlanApproval(
 }
 
 /**
- * Handle plan approval response for an in-process teammate.
- * Called by the message callback when a plan_approval_response arrives.
+ * 处理进程内队友的 plan 审批响应。
+ * 当消息回调收到 plan_approval_response 时调用。
  *
- * This resets awaitingPlanApproval to false. The permissionMode from the
- * response is handled separately by the agent loop (Task #11).
+ * 这会将 awaitingPlanApproval 重置为 false。响应中的 permissionMode
+ * 由 agent 循环单独处理（Task #11）。
  *
- * @param taskId - Task ID of the in-process teammate
- * @param _response - The plan approval response message (for future use)
- * @param setAppState - AppState setter
+ * @param taskId - 进程内队友的任务 ID
+ * @param _response - plan 审批响应消息（供未来使用）
+ * @param setAppState - AppState 设置器
  */
 export function handlePlanApprovalResponse(
   taskId: string,
@@ -82,17 +82,17 @@ export function handlePlanApprovalResponse(
   setAwaitingPlanApproval(taskId, setAppState, false)
 }
 
-// ============ Permission Delegation Helpers ============
+// ============ 权限委派辅助函数 ============
 
 /**
- * Check if a message is a permission-related response.
- * Used by in-process teammate message handlers to detect and process
- * permission responses from the team leader.
+ * 检查消息是否为权限相关响应。
+ * 被进程内队友消息处理器用于检测并处理
+ * 来自 team leader 的权限响应。
  *
- * Handles both tool permissions and sandbox (network host) permissions.
+ * 同时处理工具权限和沙箱（网络 host）权限。
  *
- * @param messageText - The raw message text to check
- * @returns true if the message is a permission response
+ * @param messageText - 要检查的原始消息文本
+ * @returns 若消息为权限响应则返回 true
  */
 export function isPermissionRelatedResponse(messageText: string): boolean {
   return (
