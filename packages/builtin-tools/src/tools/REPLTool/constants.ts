@@ -11,14 +11,14 @@ import { NOTEBOOK_EDIT_TOOL_NAME } from '../NotebookEditTool/constants.js'
 export const REPL_TOOL_NAME = 'REPL'
 
 /**
- * REPL mode is default-on for ants in the interactive CLI (opt out with
- * CLAUDE_CODE_REPL=0). The legacy CLAUDE_REPL_MODE=1 also forces it on.
+ * REPL 模式在交互式 CLI 中对 ant 用户默认开启（可通过
+ * CLAUDE_CODE_REPL=0 关闭）。旧版的 CLAUDE_REPL_MODE=1 也可强制开启。
  *
- * SDK entrypoints (sdk-ts, sdk-py, sdk-cli) are NOT defaulted on — SDK
- * consumers script direct tool calls (Bash, Read, etc.) and REPL mode
- * hides those tools. USER_TYPE is a build-time --define, so the ant-native
- * binary would otherwise force REPL mode on every SDK subprocess regardless
- * of the env the caller passes.
+ * SDK 入口（sdk-ts、sdk-py、sdk-cli）默认不开启——SDK
+ * 使用者会脚本化直接调用工具（Bash、Read 等），而 REPL 模式
+ * 会隐藏这些工具。USER_TYPE 是构建时的 --define，如果不加判断，
+ * ant 原生二进制会对每个 SDK 子进程强制开启 REPL 模式，
+ * 忽略调用方传入的环境变量。
  */
 export function isReplModeEnabled(): boolean {
   if (isEnvDefinedFalsy(process.env.CLAUDE_CODE_REPL)) return false
@@ -30,9 +30,9 @@ export function isReplModeEnabled(): boolean {
 }
 
 /**
- * Tools that are only accessible via REPL when REPL mode is enabled.
- * When REPL mode is on, these tools are hidden from Claude's direct use,
- * forcing Claude to use REPL for batch operations.
+ * 仅在 REPL 模式启用时可通过 REPL 访问的工具。
+ * 当 REPL 模式开启时，这些工具对 Claude 的直接调用会被隐藏，
+ * 迫使 Claude 使用 REPL 执行批量操作。
  */
 export const REPL_ONLY_TOOLS = new Set([
   FILE_READ_TOOL_NAME,

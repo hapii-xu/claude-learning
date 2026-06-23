@@ -10,7 +10,7 @@ import { truncate } from 'src/utils/format.js';
 import { GrepTool } from '../GrepTool/GrepTool.js';
 
 export function userFacingName(): string {
-  return 'Search';
+  return '搜索';
 }
 
 export function renderToolUseMessage(
@@ -21,9 +21,9 @@ export function renderToolUseMessage(
     return null;
   }
   if (!path) {
-    return `pattern: "${pattern}"`;
+    return `模式："${pattern}"`;
   }
-  return `pattern: "${pattern}", path: "${verbose ? path : getDisplayPath(path)}"`;
+  return `模式："${pattern}"，路径："${verbose ? path : getDisplayPath(path)}"`;
 }
 
 export function renderToolUseErrorMessage(
@@ -35,20 +35,20 @@ export function renderToolUseErrorMessage(
     if (errorMessage?.includes(FILE_NOT_FOUND_CWD_NOTE)) {
       return (
         <MessageResponse>
-          <Text color="error">File not found</Text>
+          <Text color="error">未找到文件</Text>
         </MessageResponse>
       );
     }
     return (
       <MessageResponse>
-        <Text color="error">Error searching files</Text>
+        <Text color="error">搜索文件时出错</Text>
       </MessageResponse>
     );
   }
   return <FallbackToolUseErrorMessage result={result} verbose={verbose} />;
 }
 
-// Note: GlobTool reuses GrepTool's renderToolResultMessage
+// 注意：GlobTool 复用 GrepTool 的 renderToolResultMessage
 export const renderToolResultMessage = GrepTool.renderToolResultMessage;
 
 export function getToolUseSummary(input: Partial<{ pattern: string; path: string }> | undefined): string | null {

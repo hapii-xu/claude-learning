@@ -21,21 +21,21 @@ import BashToolResultMessage from './BashToolResultMessage.js';
 import { extractBashCommentLabel } from './commentLabel.js';
 import { parseSedEditCommand } from './sedEditParser.js';
 
-// Constants for command display
+// 命令展示相关常量
 const MAX_COMMAND_DISPLAY_LINES = 2;
 const MAX_COMMAND_DISPLAY_CHARS = 160;
 
-// Simple component to show background hint and handle ctrl+b
-// When ctrl+b is pressed, backgrounds ALL running foreground commands
+// 用于显示后台提示并处理 ctrl+b 的简单组件
+// 按下 ctrl+b 时，会将所有正在运行的前台命令转入后台
 export function BackgroundHint({ onBackground }: { onBackground?: () => void } = {}): React.ReactElement | null {
   const store = useAppStateStore();
   const setAppState = useSetAppState();
 
-  // Handler for task:background - background all foreground tasks
+  // task:background 的处理函数——将所有前台任务转入后台
   const handleBackground = React.useCallback(() => {
-    // Background ALL foreground bash tasks
+    // 将所有前台 bash 任务转入后台
     backgroundAll(() => store.getState(), setAppState);
-    // Also call the optional callback (used for non-bash tasks like agents)
+    // 同时调用可选回调（用于非 bash 任务，例如 agents）
     onBackground?.();
   }, [store, setAppState, onBackground]);
 
@@ -43,12 +43,12 @@ export function BackgroundHint({ onBackground }: { onBackground?: () => void } =
     context: 'Task',
   });
 
-  // Get the configured shortcut for task:background
+  // 获取 task:background 的已配置快捷键
   const baseShortcut = useShortcutDisplay('task:background', 'Task', 'ctrl+b');
-  // In tmux, ctrl+b is the prefix key, so users need to press it twice to send ctrl+b
+  // 在 tmux 中，ctrl+b 是前缀键，用户需要按两次才能发送 ctrl+b
   const shortcut = env.terminal === 'tmux' && baseShortcut === 'ctrl+b' ? 'ctrl+b ctrl+b (twice)' : baseShortcut;
 
-  // Don't show background hint if background tasks are disabled
+  // 若后台任务被禁用，则不显示后台提示
   if (isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_BACKGROUND_TASKS)) {
     return null;
   }
@@ -56,7 +56,7 @@ export function BackgroundHint({ onBackground }: { onBackground?: () => void } =
   return (
     <Box paddingLeft={5}>
       <Text dimColor>
-        <KeyboardShortcutHint shortcut={shortcut} action="run in background" parens />
+        <KeyboardShortcutHint shortcut={shortcut} action="在后台运行" parens />
       </Text>
     </Box>
   );
@@ -71,7 +71,7 @@ export function renderToolUseMessage(
     return null;
   }
 
-  // Render sed in-place edits like file edits (show file path only)
+  // 将 sed 的就地编辑渲染为文件编辑样式（仅显示文件路径）
   const sedInfo = parseSedEditCommand(command);
   if (sedInfo) {
     return verbose ? sedInfo.filePath : getDisplayPath(sedInfo.filePath);
@@ -93,12 +93,12 @@ export function renderToolUseMessage(
     if (needsLineTruncation || needsCharTruncation) {
       let truncated = command;
 
-      // First truncate by lines if needed
+      // 若需要，先按行截断
       if (needsLineTruncation) {
         truncated = lines.slice(0, MAX_COMMAND_DISPLAY_LINES).join('\n');
       }
 
-      // Then truncate by chars if still too long
+      // 若仍过长，再按字符截断
       if (truncated.length > MAX_COMMAND_DISPLAY_CHARS) {
         truncated = truncated.slice(0, MAX_COMMAND_DISPLAY_CHARS);
       }
@@ -129,7 +129,7 @@ export function renderToolUseProgressMessage(
   if (!lastProgress || !lastProgress.data) {
     return (
       <MessageResponse height={1}>
-        <Text dimColor>Running…</Text>
+        <Text dimColor>运行中…</Text>
       </MessageResponse>
     );
   }
@@ -153,7 +153,7 @@ export function renderToolUseProgressMessage(
 export function renderToolUseQueuedMessage(): React.ReactNode {
   return (
     <MessageResponse height={1}>
-      <Text dimColor>Waiting…</Text>
+      <Text dimColor>等待中…</Text>
     </MessageResponse>
   );
 }

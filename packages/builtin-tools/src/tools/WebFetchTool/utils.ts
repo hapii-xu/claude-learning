@@ -19,21 +19,21 @@ import { makeSecondaryModelPrompt } from './prompt.js'
 
 const DEFAULT_TAVILY_EXTRACT_URL = 'https://tavily.claude-code-best.win/extract'
 
-// Custom error class for egress proxy blocks
+// 用于出口代理封锁的自定义错误类
 class EgressBlockedError extends Error {
   constructor(public readonly domain: string) {
     super(
       JSON.stringify({
         error_type: 'EGRESS_BLOCKED',
         domain,
-        message: `Access to ${domain} is blocked by the network egress proxy.`,
+        message: `对 ${domain} 的访问被网络出口代理封锁。`,
       }),
     )
     this.name = 'EgressBlockedError'
   }
 }
 
-// Cache for storing fetched URL content
+// 用于缓存已获取 URL 内容的缓存
 type CacheEntry = {
   bytes: number
   code: number
@@ -44,9 +44,9 @@ type CacheEntry = {
   persistedSize?: number
 }
 
-// Cache with 15-minute TTL and 50MB size limit
-// LRUCache handles automatic expiration and eviction
-const CACHE_TTL_MS = 15 * 60 * 1000 // 15 minutes
+// 缓存：15 分钟 TTL，50MB 大小上限
+// LRUCache 自动处理过期和驱逐
+const CACHE_TTL_MS = 15 * 60 * 1000 // 15 分钟
 const MAX_CACHE_SIZE_BYTES = 50 * 1024 * 1024 // 50MB
 
 const URL_CACHE = new LRUCache<string, CacheEntry>({
@@ -86,11 +86,11 @@ function getResponseHeader(
   return responseHeaderToString(headers[name.toLowerCase()])
 }
 
-// Lazy singleton — defers the turndown → @mixmark-io/domino import (~1.4MB
-// retained heap) until the first HTML fetch, and reuses one instance across
-// calls (construction builds 15 rule objects; .turndown() is stateless).
-// @types/turndown ships only `export =` (no .d.mts), so TS types the import
-// as the class itself while Bun wraps CJS in { default } — hence the cast.
+// 懒加载单例 — 将 turndown → @mixmark-io/domino 的导入（约 1.4MB
+// 常驻堆内存）延迟到首次 HTML 抓取，并在多次调用间复用同一实例
+// （构造时会构建 15 个规则对象；.turndown() 本身无状态）。
+// @types/turndown 仅提供 `export =`（没有 .d.mts），因此 TS 将导入
+// 类型推断为类本身，而 Bun 用 { default } 包装 CJS — 因此需要此类型转换。
 type TurndownCtor = typeof import('turndown')
 let turndownServicePromise: Promise<InstanceType<TurndownCtor>> | undefined
 function getTurndownService(): Promise<InstanceType<TurndownCtor>> {
@@ -100,24 +100,21 @@ function getTurndownService(): Promise<InstanceType<TurndownCtor>> {
   }))
 }
 
-// PSR requested limiting the length of URLs to 250 to lower the potential
-// for a data exfiltration. However, this is too restrictive for some customers'
-// legitimate use cases, such as JWT-signed URLs (e.g., cloud service signed URLs)
-// that can be much longer. We already require user approval for each domain,
-// which provides a primary security boundary. In addition, Claude Code has
-// other data exfil channels, and this one does not seem relatively high risk,
-// so I'm removing that length restriction. -ab
+// PSR 曾要求将 URL 长度限制为 250 以降低数据渗出风险。然而，这对部分客户
+// 的合法用例过于限制，例如 JWT 签名的 URL（如云服务签名 URL）可能长得
+// 多。我们已经对每个域要求用户授权，这提供了主要的安全边界。此外，Claude
+// Code 还有其他数据渗出通道，而此通道的风险相对较低，因此我移除了该
+// 长度限制。-ab
 const MAX_URL_LENGTH = 2000
 
-// Per PSR:
-// "Implement resource consumption controls because setting limits on CPU,
-// memory, and network usage for the Web Fetch tool can prevent a single
-// request or user from overwhelming the system."
+// 根据 PSR：
+// "实施资源消耗控制，因为为 Web Fetch 工具设置 CPU、内存和网络使用
+// 限制可以防止单个请求或用户压垮系统。"
 const MAX_HTTP_CONTENT_LENGTH = 10 * 1024 * 1024
 
-// Timeout for the main HTTP fetch request (60 seconds).
-// Prevents hanging indefinitely on slow/unresponsive servers.
-// Overridable via settings.webFetchHttpTimeoutMs (set in /web-tools panel).
+// 主 HTTP 抓取请求的超时时间（60 秒）。
+// 防止在缓慢/无响应的服务器上无限期挂起。
+// 可通过 settings.webFetchHttpTimeoutMs 覆盖（在 /web-tools 面板中设置）。
 const DEFAULT_FETCH_TIMEOUT_MS = 60_000
 
 function getFetchTimeoutMs(): number {
@@ -127,14 +124,13 @@ function getFetchTimeoutMs(): number {
   return settings.webFetchHttpTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
 }
 
-// Cap same-host redirect hops. Without this a malicious server can return
-// a redirect loop (/a → /b → /a …) and the per-request timeout
-// (controlled by settings.webFetchHttpTimeoutMs)
-// resets on every hop, hanging the tool until user interrupt. 10 matches
-// common client defaults (axios=5, follow-redirects=21, Chrome=20).
+// 限制同主机重定向跳数。否则恶意服务器可以返回重定向循环
+//（/a → /b → /a …），而每请求超时（由 settings.webFetchHttpTimeoutMs 控制）
+// 在每一跳都会重置，导致工具一直挂起直到用户中断。10 与常见客户端
+// 默认值一致（axios=5、follow-redirects=21、Chrome=20）。
 const MAX_REDIRECTS = 10
 
-// Truncate to not spend too many tokens
+// 截断以避免消耗过多 token
 export const MAX_MARKDOWN_LENGTH = 100_000
 
 export function isPreapprovedUrl(url: string): boolean {
@@ -158,17 +154,16 @@ export function validateURL(url: string): boolean {
     return false
   }
 
-  // We don't need to check protocol here, as we'll upgrade http to https when making the request
+  // 这里不需要检查协议，因为发请求时会把 http 升级为 https
 
-  // As long as we aren't supporting aiming to cookies or internal domains,
-  // we should block URLs with usernames/passwords too, even though these
-  // seem exceedingly unlikely.
+  // 只要我们不打算支持指向 cookies 或内部域名的 URL，
+  // 也应阻止带用户名/密码的 URL，尽管这种情况极其少见。
   if (parsed.username || parsed.password) {
     return false
   }
 
-  // Initial filter that this isn't a privileged, company-internal URL
-  // by checking that the hostname is publicly resolvable
+  // 初步过滤：通过检查主机名是否可公开解析，
+  // 确保这不是一个特权性的公司内部 URL
   const hostname = parsed.hostname
   const parts = hostname.split('.')
   if (parts.length < 2) {
@@ -179,11 +174,11 @@ export function validateURL(url: string): boolean {
 }
 
 /**
- * Check if a redirect is safe to follow
- * Allows redirects that:
- * - Add or remove "www." in the hostname
- * - Keep the origin the same but change path/query params
- * - Or both of the above
+ * 检查一个重定向是否可以安全地跟随
+ * 允许的重定向：
+ * - 在主机名中添加或移除 "www."
+ * - 保持 origin 不变但更改路径/查询参数
+ * - 或上述两者兼有
  */
 export function isPermittedRedirect(
   originalUrl: string,
@@ -205,10 +200,10 @@ export function isPermittedRedirect(
       return false
     }
 
-    // Now check hostname conditions
-    // 1. Adding www. is allowed: example.com -> www.example.com
-    // 2. Removing www. is allowed: www.example.com -> example.com
-    // 3. Same host (with or without www.) is allowed: paths can change
+    // 现在检查主机名条件
+    // 1. 允许添加 www.：example.com -> www.example.com
+    // 2. 允许移除 www.：www.example.com -> example.com
+    // 3. 允许同主机（带或不带 www.）：路径可以变化
     const stripWww = (hostname: string) => hostname.replace(/^www\./, '')
     const originalHostWithoutWww = stripWww(parsedOriginal.hostname)
     const redirectHostWithoutWww = stripWww(parsedRedirect.hostname)
@@ -219,14 +214,12 @@ export function isPermittedRedirect(
 }
 
 /**
- * Helper function to handle fetching URLs with custom redirect handling
- * Recursively follows redirects if they pass the redirectChecker function
+ * 辅助函数：处理带自定义重定向逻辑的 URL 抓取
+ * 如果重定向通过了 redirectChecker 函数的检查，则递归跟随
  *
- * Per PSR:
- * "Do not automatically follow redirects because following redirects could
- * allow for an attacker to exploit an open redirect vulnerability in a
- * trusted domain to force a user to make a request to a malicious domain
- * unknowingly"
+ * 根据 PSR：
+ * "不要自动跟随重定向，因为跟随重定向可能让攻击者利用可信域上的
+ * 开放重定向漏洞，在用户不知情的情况下迫使其向恶意域发起请求"
  */
 type RedirectInfo = {
   type: 'redirect'
@@ -242,7 +235,7 @@ export async function getWithPermittedRedirects(
   depth = 0,
 ): Promise<AxiosResponse<ArrayBuffer> | RedirectInfo> {
   if (depth > MAX_REDIRECTS) {
-    throw new Error(`Too many redirects (exceeded ${MAX_REDIRECTS})`)
+    throw new Error(`重定向次数过多（超过 ${MAX_REDIRECTS}）`)
   }
   try {
     return await axios.get(url, {
@@ -267,14 +260,14 @@ export async function getWithPermittedRedirects(
         'location',
       )
       if (!redirectLocation) {
-        throw new Error('Redirect missing Location header')
+        throw new Error('重定向缺少 Location 头')
       }
 
-      // Resolve relative URLs against the original URL
+      // 相对 URL 以原始 URL 为基准解析
       const redirectUrl = new URL(redirectLocation, url).toString()
 
       if (redirectChecker(url, redirectUrl)) {
-        // Recursively follow the permitted redirect
+        // 递归跟随被允许的重定向
         return getWithPermittedRedirects(
           redirectUrl,
           signal,
@@ -282,7 +275,7 @@ export async function getWithPermittedRedirects(
           depth + 1,
         )
       } else {
-        // Return redirect information to the caller
+        // 将重定向信息返回给调用方
         return {
           type: 'redirect',
           originalUrl: url,
@@ -292,8 +285,8 @@ export async function getWithPermittedRedirects(
       }
     }
 
-    // Detect egress proxy blocks: the proxy returns 403 with
-    // X-Proxy-Error: blocked-by-allowlist when egress is restricted
+    // 检测出口代理封锁：当出口被限制时，代理返回 403 并附带
+    // X-Proxy-Error: blocked-by-allowlist
     if (
       axios.isAxiosError(error) &&
       error.response?.status === 403 &&
@@ -332,7 +325,7 @@ export async function getURLMarkdownContent(
     throw new Error('Invalid URL')
   }
 
-  // Check cache (LRUCache handles TTL automatically)
+  // 检查缓存（LRUCache 会自动处理 TTL）
   const cachedEntry = URL_CACHE.get(url)
   if (cachedEntry) {
     return {
@@ -352,7 +345,7 @@ export async function getURLMarkdownContent(
   try {
     parsedUrl = new URL(url)
 
-    // Upgrade http to https if needed
+    // 如有需要，将 http 升级为 https
     if (parsedUrl.protocol === 'http:') {
       parsedUrl.protocol = 'https:'
       upgradedUrl = parsedUrl.toString()
@@ -376,23 +369,22 @@ export async function getURLMarkdownContent(
     isPermittedRedirect,
   )
 
-  // Check if we got a redirect response
+  // 检查是否收到了重定向响应
   if (isRedirectInfo(response)) {
     return response
   }
 
   const rawBuffer = Buffer.from(response.data)
-  // Release the axios-held ArrayBuffer copy; rawBuffer owns the bytes now.
-  // This lets GC reclaim up to MAX_HTTP_CONTENT_LENGTH (10MB) before Turndown
-  // builds its DOM tree (which can be 3-5x the HTML size).
+  // 释放 axios 持有的 ArrayBuffer 副本；现在由 rawBuffer 拥有这些字节。
+  // 这让 GC 可以在 Turndown 构建 DOM 树（可能为 HTML 大小的 3-5 倍）
+  // 之前回收多达 MAX_HTTP_CONTENT_LENGTH（10MB）的内存。
   ;(response as { data: unknown }).data = null
   const contentType = getResponseHeader(response.headers, 'content-type') ?? ''
 
-  // Binary content: save raw bytes to disk with a proper extension so Claude
-  // can inspect the file later. We still fall through to the utf-8 decode +
-  // Haiku path below — for PDFs in particular the decoded string has enough
-  // ASCII structure (/Title, text streams) that Haiku can summarize it, and
-  // the saved file is a supplement rather than a replacement.
+  // 二进制内容：将原始字节保存到磁盘，使用正确的扩展名，以便 Claude
+  // 之后可以检查该文件。我们仍然会走到下方的 utf-8 解码 + Haiku 路径 —
+  // 对于 PDF，解码后的字符串具有足够的 ASCII 结构（/Title、文本流），
+  // Haiku 能够对其进行摘要，而保存的文件是补充而非替代。
   let persistedPath: string | undefined
   let persistedSize: number | undefined
   if (isBinaryContentType(contentType)) {
@@ -413,16 +405,15 @@ export async function getURLMarkdownContent(
     markdownContent = (await getTurndownService()).turndown(htmlContent)
     contentBytes = Buffer.byteLength(markdownContent)
   } else {
-    // It's not HTML - just use it raw. The decoded string's UTF-8 byte
-    // length equals rawBuffer.length (modulo U+FFFD replacement on invalid
-    // bytes — negligible for cache eviction accounting), so skip the O(n)
-    // Buffer.byteLength scan.
+    // 不是 HTML — 直接使用原始内容。解码后字符串的 UTF-8 字节
+    // 长度等于 rawBuffer.length（对无效字节的 U+FFFD 替换影响可忽略不计，
+    // 对缓存驱逐核算无意义），因此跳过 O(n) 的 Buffer.byteLength 扫描。
     markdownContent = htmlContent
     contentBytes = bytes
   }
 
-  // Store the fetched content in cache. Note that it's stored under
-  // the original URL, not the upgraded or redirected URL.
+  // 将抓取到的内容存入缓存。注意它是按原始 URL 存储的，
+  // 而非升级后或重定向后的 URL。
   const entry: CacheEntry = {
     bytes,
     code: response.status,
@@ -432,15 +423,15 @@ export async function getURLMarkdownContent(
     persistedPath,
     persistedSize,
   }
-  // lru-cache requires positive integers; clamp to 1 for empty responses.
+  // lru-cache 要求正整数；空响应时将其钳制为 1。
   URL_CACHE.set(url, entry, { size: Math.max(1, contentBytes) })
   return entry
 }
 
 /**
- * Fetch URL content via Tavily Extract API, which directly returns Markdown.
- * This skips the HTML→Markdown conversion (turndown) and the secondary
- * model call (queryHaiku) — Tavily already delivers clean Markdown.
+ * 通过 Tavily Extract API 获取 URL 内容，该 API 直接返回 Markdown。
+ * 这会跳过 HTML→Markdown 转换（turndown）和辅助模型调用
+ *（queryHaiku）— Tavily 已经提供干净的 Markdown。
  */
 export async function fetchContentWithTavily(
   url: string,
@@ -450,7 +441,7 @@ export async function fetchContentWithTavily(
     throw new Error('Invalid URL')
   }
 
-  // Check cache (LRUCache handles TTL automatically)
+  // 检查缓存（LRUCache 会自动处理 TTL）
   const cachedEntry = URL_CACHE.get(url)
   if (cachedEntry) {
     return {
@@ -471,7 +462,7 @@ export async function fetchContentWithTavily(
     throw new Error('Invalid URL')
   }
 
-  // Upgrade http to https if needed
+  // 如有需要，将 http 升级为 https
   if (parsedUrl.protocol === 'http:') {
     parsedUrl.protocol = 'https:'
     url = parsedUrl.toString()
@@ -483,7 +474,7 @@ export async function fetchContentWithTavily(
     tavilyEndpointUrl?: string
   }
   const baseUrl = settings.tavilyEndpointUrl || DEFAULT_TAVILY_EXTRACT_URL
-  // Derive extract URL from the base Tavily endpoint
+  // 从 Tavily 基础端点派生 extract URL
   const extractUrl = baseUrl.endsWith('/search')
     ? baseUrl.replace(/\/search$/, '/extract')
     : baseUrl.endsWith('/extract')
@@ -507,11 +498,11 @@ export async function fetchContentWithTavily(
   }
 
   const rawContent = response.data?.raw_content ?? ''
-  // If raw_content is a JSON string (extract may return {url:..., raw_content:...}
-  // per URL), unwrap it.
+  // 如果 raw_content 是 JSON 字符串（extract 可能按 URL 返回
+  // {url:..., raw_content:...}），则进行解包。
   let markdownContent = rawContent
   if (!markdownContent.trim()) {
-    // Try to extract from results array
+    // 尝试从 results 数组中提取
     const resp = response.data as unknown as {
       results?: Array<{ raw_content?: string }>
     }
@@ -523,7 +514,7 @@ export async function fetchContentWithTavily(
 
   if (!markdownContent.trim()) {
     throw new Error(
-      `Tavily Extract returned empty content for ${url}. The page may require authentication or JavaScript rendering.`,
+      `Tavily Extract 对 ${url} 返回了空内容。该页面可能需要认证或 JavaScript 渲染。`,
     )
   }
 
@@ -547,11 +538,11 @@ export async function applyPromptToMarkdown(
   isNonInteractiveSession: boolean,
   isPreapprovedDomain: boolean,
 ): Promise<string> {
-  // Truncate content to avoid "Prompt is too long" errors from the secondary model
+  // 截断内容以避免辅助模型出现 "Prompt is too long" 错误
   const truncatedContent =
     markdownContent.length > MAX_MARKDOWN_LENGTH
       ? markdownContent.slice(0, MAX_MARKDOWN_LENGTH) +
-        '\n\n[Content truncated due to length...]'
+        '\n\n[内容因长度被截断...]'
       : markdownContent
 
   const modelPrompt = makeSecondaryModelPrompt(
@@ -572,8 +563,8 @@ export async function applyPromptToMarkdown(
     },
   })
 
-  // We need to bubble this up, so that the tool call throws, causing us to return
-  // an is_error tool_use block to the server, and render a red dot in the UI.
+  // 我们需要把此异常向上抛出，让工具调用抛错，从而向服务器返回一个
+  // is_error 的 tool_use block，并在 UI 中渲染一个红点。
   if (signal.aborted) {
     throw new AbortError()
   }
@@ -589,5 +580,5 @@ export async function applyPromptToMarkdown(
       return (contentBlock as { text: string }).text
     }
   }
-  return 'No response from model'
+  return '模型未返回响应'
 }

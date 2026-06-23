@@ -22,18 +22,18 @@ const questionOptionSchema = lazySchema(() =>
     label: z
       .string()
       .describe(
-        'The display text for this option that the user will see and select. Should be concise (1-5 words) and clearly describe the choice.',
+        '用户将看到并选择的选项显示文本。应简洁（1-5 个词），并清晰描述该选项。',
       ),
     description: z
       .string()
       .describe(
-        'Explanation of what this option means or what will happen if chosen. Useful for providing context about trade-offs or implications.',
+        '说明该选项的含义或选择后将发生什么。用于提供关于权衡或影响的上下文。',
       ),
     preview: z
       .string()
       .optional()
       .describe(
-        'Optional preview content rendered when this option is focused. Use for mockups, code snippets, or visual comparisons that help users compare options. See the tool description for the expected content format.',
+        '当该选项获得焦点时渲染的可选预览内容。用于帮助用户比较选项的模型、代码片段或视觉对比。参见工具描述了解预期内容格式。',
       ),
   }),
 );
@@ -43,25 +43,25 @@ const questionSchema = lazySchema(() =>
     question: z
       .string()
       .describe(
-        'The complete question to ask the user. Should be clear, specific, and end with a question mark. Example: "Which library should we use for date formatting?" If multiSelect is true, phrase it accordingly, e.g. "Which features do you want to enable?"',
+        '要向用户提出的完整问题。应清晰、具体，并以问号结尾。示例：「我们应该使用哪个库进行日期格式化？」如果 multiSelect 为 true，则需相应措辞，例如：「你希望启用哪些功能？」',
       ),
     header: z
       .string()
       .describe(
-        `Very short label displayed as a chip/tag (max ${ASK_USER_QUESTION_TOOL_CHIP_WIDTH} chars). Examples: "Auth method", "Library", "Approach".`,
+        `显示为 chip/tag 的非常短的标签（最多 ${ASK_USER_QUESTION_TOOL_CHIP_WIDTH} 个字符）。示例：「认证方式」、「库」、「方案」。`,
       ),
     options: z
       .array(questionOptionSchema())
       .min(2)
       .max(4)
       .describe(
-        `The available choices for this question. Must have 2-4 options. Each option should be a distinct, mutually exclusive choice (unless multiSelect is enabled). There should be no 'Other' option, that will be provided automatically.`,
+        `该问题的可用选项。必须为 2-4 个选项。每个选项应是独立、互斥的选择（除非启用了 multiSelect）。不应包含「其他」选项，它会自动提供。`,
       ),
     multiSelect: z
       .boolean()
       .default(false)
       .describe(
-        'Set to true to allow the user to select multiple options instead of just one. Use when choices are not mutually exclusive.',
+        '设为 true 以允许用户选择多个选项而非仅一个。当选项之间不互斥时使用。',
       ),
   }),
 );
@@ -71,15 +71,15 @@ const annotationsSchema = lazySchema(() => {
     preview: z
       .string()
       .optional()
-      .describe('The preview content of the selected option, if the question used previews.'),
-    notes: z.string().optional().describe('Free-text notes the user added to their selection.'),
+      .describe('所选选项的预览内容（如果问题使用了预览）。'),
+    notes: z.string().optional().describe('用户为其选择添加的自由文本备注。'),
   });
 
   return z
     .record(z.string(), annotationSchema)
     .optional()
     .describe(
-      'Optional per-question annotations from the user (e.g., notes on preview selections). Keyed by question text.',
+      '可选的每问题用户注释（例如，关于预览选择的备注）。按问题文本作为键。',
     );
 });
 
@@ -101,7 +101,7 @@ const UNIQUENESS_REFINE = {
 } as const;
 
 const commonFields = lazySchema(() => ({
-  answers: z.record(z.string(), z.string()).optional().describe('User answers collected by the permission component'),
+  answers: z.record(z.string(), z.string()).optional().describe('由权限组件收集的用户回答'),
   annotations: annotationsSchema(),
   metadata: z
     .object({
@@ -109,17 +109,17 @@ const commonFields = lazySchema(() => ({
         .string()
         .optional()
         .describe(
-          'Optional identifier for the source of this question (e.g., "remember" for /remember command). Used for analytics tracking.',
+          '可选的问题来源标识符（例如，「remember」用于 /remember 命令）。用于分析跟踪。',
         ),
     })
     .optional()
-    .describe('Optional metadata for tracking and analytics purposes. Not displayed to user.'),
+    .describe('用于跟踪和分析目的的可选元数据。不显示给用户。'),
 }));
 
 const inputSchema = lazySchema(() =>
   z
     .strictObject({
-      questions: z.array(questionSchema()).min(1).max(4).describe('Questions to ask the user (1-4 questions)'),
+      questions: z.array(questionSchema()).min(1).max(4).describe('要向用户提出的问题（1-4 个问题）'),
       ...commonFields(),
     })
     .refine(UNIQUENESS_REFINE.check, {
@@ -130,19 +130,19 @@ type InputSchema = ReturnType<typeof inputSchema>;
 
 const outputSchema = lazySchema(() =>
   z.object({
-    questions: z.array(questionSchema()).describe('The questions that were asked'),
+    questions: z.array(questionSchema()).describe('已提出的问题'),
     answers: z
       .record(z.string(), z.string())
       .describe(
-        'The answers provided by the user (question text -> answer string; multi-select answers are comma-separated)',
+        '用户提供的回答（问题文本 -> 回答字符串；多选回答以逗号分隔）',
       ),
     annotations: annotationsSchema(),
   }),
 );
 type OutputSchema = ReturnType<typeof outputSchema>;
 
-// SDK schemas are identical to internal schemas now that `preview` and
-// `annotations` are public (configurable via `toolConfig.askUserQuestion`).
+// SDK schema 与内部 schema 相同，因为 `preview` 和
+// `annotations` 现在是公开的（可通过 `toolConfig.askUserQuestion` 配置）。
 export const _sdkInputSchema = inputSchema;
 export const _sdkOutputSchema = outputSchema;
 
@@ -155,7 +155,7 @@ function AskUserQuestionResultMessage({ answers }: { answers: Output['answers'] 
     <Box flexDirection="column" marginTop={1}>
       <Box flexDirection="row">
         <Text color={getModeColor('default')}>{BLACK_CIRCLE}&nbsp;</Text>
-        <Text>User answered Claude&apos;s questions:</Text>
+        <Text>用户已回答 Claude 的问题：</Text>
       </Box>
       <MessageResponse>
         <Box flexDirection="column">
@@ -172,7 +172,7 @@ function AskUserQuestionResultMessage({ answers }: { answers: Output['answers'] 
 
 export const AskUserQuestionTool: Tool<InputSchema, Output> = buildTool({
   name: ASK_USER_QUESTION_TOOL_NAME,
-  searchHint: 'prompt the user with a multiple-choice question',
+  searchHint: '向用户提出多选问题',
   maxResultSizeChars: 100_000,
   shouldDefer: true,
   async description() {
@@ -181,8 +181,8 @@ export const AskUserQuestionTool: Tool<InputSchema, Output> = buildTool({
   async prompt() {
     const format = getQuestionPreviewFormat();
     if (format === undefined) {
-      // SDK consumer that hasn't opted into a preview format — omit preview
-      // guidance (they may not render the field at all).
+      // 未选择预览格式的 SDK 消费者 — 省略预览
+      // 指导（他们可能根本不渲染该字段）。
       return ASK_USER_QUESTION_TOOL_PROMPT;
     }
     return ASK_USER_QUESTION_TOOL_PROMPT + PREVIEW_FEATURE_PROMPT[format];
@@ -197,11 +197,11 @@ export const AskUserQuestionTool: Tool<InputSchema, Output> = buildTool({
     return '';
   },
   isEnabled() {
-    // When --channels is active the user is likely on Telegram/Discord, not
-    // watching the TUI. The multiple-choice dialog would hang with nobody at
-    // the keyboard. Channel permission relay already skips
-    // requiresUserInteraction() tools (interactiveHandler.ts) so there's
-    // no alternate approval path.
+    // 当 --channels 激活时，用户可能在 Telegram/Discord 上，而
+    // 不是在看 TUI。多选对话框会挂起，没有人在
+    // 键盘前。频道权限中继已经跳过
+    // requiresUserInteraction() 工具（interactiveHandler.ts），所以没有
+    // 替代的批准路径。
     if ((feature('KAIROS') || feature('KAIROS_CHANNELS')) && getAllowedChannels().length > 0) {
       return false;
     }
@@ -229,7 +229,7 @@ export const AskUserQuestionTool: Tool<InputSchema, Output> = buildTool({
         if (err) {
           return {
             result: false,
-            message: `Option "${opt.label}" in question "${q.question}": ${err}`,
+            message: `问题 "${q.question}" 中选项 "${opt.label}"：${err}`,
             errorCode: 1,
           };
         }
@@ -240,7 +240,7 @@ export const AskUserQuestionTool: Tool<InputSchema, Output> = buildTool({
   async checkPermissions(input) {
     return {
       behavior: 'ask' as const,
-      message: 'Answer questions?',
+      message: '回答问题？',
       updatedInput: input,
     };
   },
@@ -257,7 +257,7 @@ export const AskUserQuestionTool: Tool<InputSchema, Output> = buildTool({
     return (
       <Box flexDirection="row" marginTop={1}>
         <Text color={getModeColor('default')}>{BLACK_CIRCLE}&nbsp;</Text>
-        <Text>User declined to answer questions</Text>
+        <Text>用户拒绝回答问题</Text>
       </Box>
     );
   },
@@ -286,28 +286,28 @@ export const AskUserQuestionTool: Tool<InputSchema, Output> = buildTool({
 
     return {
       type: 'tool_result',
-      content: `User has answered your questions: ${answersText}. You can now continue with the user's answers in mind.`,
+      content: `用户已回答你的问题：${answersText}。你现在可以根据用户的回答继续工作。`,
       tool_use_id: toolUseID,
     };
   },
 } satisfies ToolDef<InputSchema, Output>);
 
-// Lightweight HTML fragment check. Not a parser — HTML5 parsers are
-// error-recovering by spec and accept anything. We're checking model intent
-// (did it emit HTML?) and catching the specific things we told it not to do.
+// 轻量级 HTML 片段检查。不是解析器 — HTML5 解析器按规范
+// 是错误恢复的，接受任何内容。我们检查的是模型意图
+// （它是否发出了 HTML？）并捕获我们告诉它不要做的特定事情。
 function validateHtmlPreview(preview: string | undefined): string | null {
   if (preview === undefined) return null;
   if (/<\s*(html|body|!doctype)\b/i.test(preview)) {
-    return 'preview must be an HTML fragment, not a full document (no <html>, <body>, or <!DOCTYPE>)';
+    return 'preview 必须是 HTML 片段，而非完整文档（不允许 <html>、<body> 或 <!DOCTYPE>）';
   }
-  // SDK consumers typically set this via innerHTML — disallow executable/style
-  // tags so a preview can't run code or restyle the host page. Inline event
-  // handlers (onclick etc.) are still possible; consumers should sanitize.
+  // SDK 消费者通常通过 innerHTML 设置此项 — 禁止可执行/样式
+  // 标签，以便预览不能运行代码或重新样式化宿主页面。内联事件
+  // 处理程序（onclick 等）仍然可能；消费者应该进行清理。
   if (/<\s*(script|style)\b/i.test(preview)) {
-    return 'preview must not contain <script> or <style> tags. Use inline styles via the style attribute if needed.';
+    return 'preview 不得包含 <script> 或 <style> 标签。如需样式，请通过 style 属性使用内联样式。';
   }
   if (!/<[a-z][^>]*>/i.test(preview)) {
-    return 'preview must contain HTML (previewFormat is set to "html"). Wrap content in a tag like <div> or <pre>.';
+    return 'preview 必须包含 HTML（previewFormat 已设置为 "html"）。请将内容包裹在 <div> 或 <pre> 等标签中。';
   }
   return null;
 }

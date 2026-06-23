@@ -85,8 +85,7 @@ const teamMemPaths = feature('TEAMMEM')
 
 let hasLoggedInitialLoad = false
 
-const MEMORY_INSTRUCTION_PROMPT =
-  'Codebase and user instructions are shown below. Be sure to adhere to these instructions. IMPORTANT: These instructions OVERRIDE any default behavior and you MUST follow them exactly as written.'
+const MEMORY_INSTRUCTION_PROMPT = 'Codebase and user instructions are shown below. Be sure to adhere to these instructions. IMPORTANT: These instructions OVERRIDE any default behavior and you MUST follow them exactly as written.'
 // 内存文件的建议最大字符数
 export const MAX_MEMORY_CHARACTER_COUNT = 40000
 

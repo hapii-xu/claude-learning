@@ -25,8 +25,8 @@ import {
 } from './permissionRuleParser.js'
 
 /**
- * Returns true if allowManagedPermissionRulesOnly is enabled in managed settings (policySettings).
- * When enabled, only permission rules from managed settings are respected.
+ * 如果在托管设置（policySettings）中启用了 allowManagedPermissionRulesOnly，则返回 true。
+ * 启用后，仅尊重来自托管设置的权限规则。
  */
 export function shouldAllowManagedPermissionRulesOnly(): boolean {
   return (
@@ -36,8 +36,8 @@ export function shouldAllowManagedPermissionRulesOnly(): boolean {
 }
 
 /**
- * Returns true if "always allow" options should be shown in permission prompts.
- * When allowManagedPermissionRulesOnly is enabled, these options are hidden.
+ * 如果应在权限提示中显示"始终允许"选项，则返回 true。
+ * 当启用 allowManagedPermissionRulesOnly 时，这些选项会被隐藏。
  */
 export function shouldShowAlwaysAllowOptions(): boolean {
   return !shouldAllowManagedPermissionRulesOnly()
@@ -50,13 +50,13 @@ const SUPPORTED_RULE_BEHAVIORS = [
 ] as const satisfies PermissionBehavior[]
 
 /**
- * Lenient version of getSettingsForSource that doesn't fail on ANY validation errors.
- * Simply parses the JSON and returns it as-is without schema validation.
+ * getSettingsForSource 的宽松版本，不会因任何验证错误而失败。
+ * 仅解析 JSON 并按原样返回，不进行 schema 验证。
  *
- * Used when loading settings to append new rules (avoids losing existing rules
- * due to validation failures in unrelated fields like hooks).
+ * 用于加载设置以追加新规则时使用（避免因 hooks 等不相关字段的
+ * 验证失败而丢失已有规则）。
  *
- * FOR EDITING ONLY - do not use this for reading settings for execution.
+ * 仅供编辑使用 - 不要用于读取执行时的设置。
  */
 function getSettingsForSourceLenient_FOR_EDITING_ONLY_NOT_FOR_READING(
   source: SettingSource,
@@ -74,8 +74,8 @@ function getSettingsForSourceLenient_FOR_EDITING_ONLY_NOT_FOR_READING(
     }
 
     const data = safeParseJSON(content, false)
-    // Return raw parsed JSON without validation to preserve all existing settings
-    // This is safe because we're only using this for reading/appending, not for execution
+    // 返回未经验证的原始解析 JSON 以保留所有现有设置
+    // 这是安全的，因为我们仅将其用于读取/追加，而非执行
     return data && typeof data === 'object' ? (data as SettingsJson) : null
   } catch {
     return null
@@ -83,10 +83,10 @@ function getSettingsForSourceLenient_FOR_EDITING_ONLY_NOT_FOR_READING(
 }
 
 /**
- * Converts permissions JSON to an array of PermissionRule objects
- * @param data The parsed permissions data
- * @param source The source of these rules
- * @returns Array of PermissionRule objects
+ * 将权限 JSON 转换为 PermissionRule 对象数组
+ * @param data 已解析的权限数据
+ * @param source 这些规则的来源
+ * @returns PermissionRule 对象数组
  */
 function settingsJsonToRules(
   data: SettingsJson | null,
@@ -114,16 +114,16 @@ function settingsJsonToRules(
 }
 
 /**
- * Loads all permission rules from all relevant sources (managed and project settings)
- * @returns Array of all permission rules
+ * 从所有相关来源（托管设置和项目设置）加载所有权限规则
+ * @returns 所有权限规则数组
  */
 export function loadAllPermissionRulesFromDisk(): PermissionRule[] {
-  // If allowManagedPermissionRulesOnly is set, only use managed permission rules
+  // 如果设置了 allowManagedPermissionRulesOnly，仅使用托管权限规则
   if (shouldAllowManagedPermissionRulesOnly()) {
     return getPermissionRulesForSource('policySettings')
   }
 
-  // Otherwise, load from all enabled sources (backwards compatible)
+  // 否则，从所有启用的来源加载（向后兼容）
   const rules: PermissionRule[] = []
 
   for (const source of getEnabledSettingSources()) {
@@ -133,9 +133,9 @@ export function loadAllPermissionRulesFromDisk(): PermissionRule[] {
 }
 
 /**
- * Loads permission rules from a specific source
- * @param source The source to load from
- * @returns Array of permission rules from that source
+ * 从指定来源加载权限规则
+ * @param source 要加载的来源
+ * @returns 该来源的权限规则数组
  */
 export function getPermissionRulesForSource(
   source: SettingSource,
@@ -148,7 +148,7 @@ export type PermissionRuleFromEditableSettings = PermissionRule & {
   source: EditableSettingSource
 }
 
-// Editable sources that can be modified (excludes policySettings and flagSettings)
+// 可修改的来源（不包括 policySettings 和 flagSettings）
 const EDITABLE_SOURCES: EditableSettingSource[] = [
   'userSettings',
   'projectSettings',
@@ -156,14 +156,14 @@ const EDITABLE_SOURCES: EditableSettingSource[] = [
 ]
 
 /**
- * Deletes a rule from the project permissions file
- * @param rule The rule to delete
- * @returns Promise resolving to a boolean indicating success
+ * 从项目权限文件中删除一条规则
+ * @param rule 要删除的规则
+ * @returns 解析为布尔值的 Promise，表示是否成功
  */
 export function deletePermissionRuleFromSettings(
   rule: PermissionRuleFromEditableSettings,
 ): boolean {
-  // Runtime check to ensure source is actually editable
+  // 运行时检查以确保来源确实是可编辑的
   if (!EDITABLE_SOURCES.includes(rule.source as EditableSettingSource)) {
     return false
   }
@@ -171,7 +171,7 @@ export function deletePermissionRuleFromSettings(
   const ruleString = permissionRuleValueToString(rule.ruleValue)
   const settingsData = getSettingsForSource(rule.source)
 
-  // If there's no settings data or permissions, nothing to do
+  // 如果没有设置数据或权限配置，则无需操作
   if (!settingsData || !settingsData.permissions) {
     return false
   }
@@ -181,8 +181,8 @@ export function deletePermissionRuleFromSettings(
     return false
   }
 
-  // Normalize raw settings entries via roundtrip parse→serialize so legacy
-  // names (e.g. "KillShell") match their canonical form ("TaskStop").
+  // 通过往返 parse→serialize 规范化原始设置条目，使旧版名称
+  //（如 "KillShell"）与其规范形式（"TaskStop"）匹配。
   const normalizeEntry = (raw: string): string =>
     permissionRuleValueToString(permissionRuleValueFromString(raw))
 
@@ -191,7 +191,7 @@ export function deletePermissionRuleFromSettings(
   }
 
   try {
-    // Keep a copy of the original permissions data to preserve unrecognized keys
+    // 保留原始权限数据的副本以保留未识别的键
     const updatedSettingsData = {
       ...settingsData,
       permissions: {
@@ -204,7 +204,7 @@ export function deletePermissionRuleFromSettings(
 
     const { error } = updateSettingsForSource(rule.source, updatedSettingsData)
     if (error) {
-      // Error already logged inside updateSettingsForSource
+      // 错误已在 updateSettingsForSource 内部记录
       return false
     }
 
@@ -222,9 +222,9 @@ function getEmptyPermissionSettingsJson(): SettingsJson {
 }
 
 /**
- * Adds rules to the project permissions file
- * @param ruleValues The rule values to add
- * @returns Promise resolving to a boolean indicating success
+ * 向项目权限文件添加规则
+ * @param ruleValues 要添加的规则值
+ * @returns 解析为布尔值的 Promise，表示是否成功
  */
 export function addPermissionRulesToSettings(
   {
@@ -236,32 +236,32 @@ export function addPermissionRulesToSettings(
   },
   source: EditableSettingSource,
 ): boolean {
-  // When allowManagedPermissionRulesOnly is enabled, don't persist new permission rules
+  // 当启用 allowManagedPermissionRulesOnly 时，不持久化新的权限规则
   if (shouldAllowManagedPermissionRulesOnly()) {
     return false
   }
 
   if (ruleValues.length < 1) {
-    // No rules to add
+    // 没有要添加的规则
     return true
   }
 
   const ruleStrings = ruleValues.map(permissionRuleValueToString)
-  // First try the normal settings loader which validates the schema
-  // If validation fails, fall back to lenient loading to preserve existing rules
-  // even if some fields (like hooks) have validation errors
+  // 首先尝试正常的设置加载器（会验证 schema）
+  // 如果验证失败，回退到宽松加载以保留现有规则
+  // 即使某些字段（如 hooks）存在验证错误
   const settingsData =
     getSettingsForSource(source) ||
     getSettingsForSourceLenient_FOR_EDITING_ONLY_NOT_FOR_READING(source) ||
     getEmptyPermissionSettingsJson()
 
   try {
-    // Ensure permissions object exists
+    // 确保 permissions 对象存在
     const existingPermissions = settingsData.permissions || {}
     const existingRules = existingPermissions[ruleBehavior] || []
 
-    // Filter out duplicates - normalize existing entries via roundtrip
-    // parse→serialize so legacy names match their canonical form.
+    // 过滤重复项 - 通过往返 parse→serialize 规范化已有条目
+    // 使旧版名称与其规范形式匹配。
     const existingRulesSet = new Set(
       existingRules.map(raw =>
         permissionRuleValueToString(permissionRuleValueFromString(raw)),
@@ -269,12 +269,12 @@ export function addPermissionRulesToSettings(
     )
     const newRules = ruleStrings.filter(rule => !existingRulesSet.has(rule))
 
-    // If no new rules to add, return success
+    // 如果没有新规则要添加，返回成功
     if (newRules.length === 0) {
       return true
     }
 
-    // Keep a copy of the original settings data to preserve unrecognized keys
+    // 保留原始设置数据的副本以保留未识别的键
     const updatedSettingsData = {
       ...settingsData,
       permissions: {

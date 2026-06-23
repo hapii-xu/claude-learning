@@ -13,15 +13,15 @@ import { getTaskOutputDir } from 'src/utils/task/diskOutput.js';
 import type { Input, Output } from './FileReadTool.js';
 
 /**
- * Check if a file path is an agent output file and extract the task ID.
- * Agent output files follow the pattern: {projectTempDir}/tasks/{taskId}.output
+ * 检查文件路径是否为 agent 输出文件，并提取 task ID。
+ * Agent 输出文件遵循以下模式：{projectTempDir}/tasks/{taskId}.output
  */
 function getAgentOutputTaskId(filePath: string): string | null {
   const prefix = `${getTaskOutputDir()}/`;
   const suffix = '.output';
   if (filePath.startsWith(prefix) && filePath.endsWith(suffix)) {
     const taskId = filePath.slice(prefix.length, -suffix.length);
-    // Validate it looks like a task ID (alphanumeric, reasonable length)
+    // 校验它看起来像 task ID（字母数字、长度合理）
     if (taskId.length > 0 && taskId.length <= 20 && /^[a-zA-Z0-9_-]+$/.test(taskId)) {
       return taskId;
     }
@@ -37,8 +37,8 @@ export function renderToolUseMessage(
     return null;
   }
 
-  // For agent output files, return empty string so no parentheses are shown
-  // The task ID is displayed separately by AssistantToolUseMessage
+  // 对于 agent 输出文件，返回空字符串以避免显示括号
+  // task ID 会被 AssistantToolUseMessage 单独展示
   if (getAgentOutputTaskId(file_path)) {
     return '';
   }
@@ -48,13 +48,13 @@ export function renderToolUseMessage(
     return (
       <>
         <FilePathLink filePath={file_path}>{displayPath}</FilePathLink>
-        {` · pages ${pages}`}
+        {` · 第 ${pages} 页`}
       </>
     );
   }
   if (verbose && (offset || limit)) {
     const startLine = offset ?? 1;
-    const lineRange = limit ? `lines ${startLine}-${startLine + limit - 1}` : `from line ${startLine}`;
+    const lineRange = limit ? `第 ${startLine}-${startLine + limit - 1} 行` : `从第 ${startLine} 行起`;
     return (
       <>
         <FilePathLink filePath={file_path}>{displayPath}</FilePathLink>
@@ -68,7 +68,7 @@ export function renderToolUseMessage(
 export function renderToolUseTag({ file_path }: Partial<Input>): React.ReactNode {
   const agentTaskId = file_path ? getAgentOutputTaskId(file_path) : null;
 
-  // Show agent task ID for Read tool when reading agent output
+  // 当 Read 工具读取 agent 输出时，显示 agent task ID
   if (!agentTaskId) {
     return null;
   }
@@ -76,7 +76,7 @@ export function renderToolUseTag({ file_path }: Partial<Input>): React.ReactNode
 }
 
 export function renderToolResultMessage(output: Output): React.ReactNode {
-  // TODO: Render recursively
+  // TODO: 递归渲染
   switch (output.type) {
     case 'image': {
       const { originalSize } = output.file;
@@ -84,19 +84,19 @@ export function renderToolResultMessage(output: Output): React.ReactNode {
 
       return (
         <MessageResponse height={1}>
-          <Text>Read image ({formattedSize})</Text>
+          <Text>读取图片（{formattedSize}）</Text>
         </MessageResponse>
       );
     }
     case 'notebook': {
       const { cells } = output.file;
       if (!cells || cells.length < 1) {
-        return <Text color="error">No cells found in notebook</Text>;
+        return <Text color="error">notebook 中未找到单元格</Text>;
       }
       return (
         <MessageResponse height={1}>
           <Text>
-            Read <Text bold>{cells.length}</Text> cells
+            读取了 <Text bold>{cells.length}</Text> 个单元格
           </Text>
         </MessageResponse>
       );
@@ -107,7 +107,7 @@ export function renderToolResultMessage(output: Output): React.ReactNode {
 
       return (
         <MessageResponse height={1}>
-          <Text>Read PDF ({formattedSize})</Text>
+          <Text>读取 PDF（{formattedSize}）</Text>
         </MessageResponse>
       );
     }
@@ -115,8 +115,8 @@ export function renderToolResultMessage(output: Output): React.ReactNode {
       return (
         <MessageResponse height={1}>
           <Text>
-            Read <Text bold>{output.file.count}</Text> {output.file.count === 1 ? 'page' : 'pages'} (
-            {formatFileSize(output.file.originalSize)})
+            读取了 <Text bold>{output.file.count}</Text>{' '}
+            {output.file.count === 1 ? '页' : '页'}（{formatFileSize(output.file.originalSize)}）
           </Text>
         </MessageResponse>
       );
@@ -127,7 +127,7 @@ export function renderToolResultMessage(output: Output): React.ReactNode {
       return (
         <MessageResponse height={1}>
           <Text>
-            Read <Text bold>{numLines}</Text> {numLines === 1 ? 'line' : 'lines'}
+            读取了 <Text bold>{numLines}</Text> {numLines === 1 ? '行' : '行'}
           </Text>
         </MessageResponse>
       );
@@ -135,7 +135,7 @@ export function renderToolResultMessage(output: Output): React.ReactNode {
     case 'file_unchanged': {
       return (
         <MessageResponse height={1}>
-          <Text dimColor>Unchanged since last read</Text>
+          <Text dimColor>自上次读取以来未变化</Text>
         </MessageResponse>
       );
     }
@@ -147,19 +147,19 @@ export function renderToolUseErrorMessage(
   { verbose }: { verbose: boolean },
 ): React.ReactNode {
   if (!verbose && typeof result === 'string') {
-    // FileReadTool throws from call() so errors lack <tool_use_error> wrapping —
-    // check the raw string directly for the cwd note marker.
+    // FileReadTool 从 call() 中抛出，所以错误缺少 <tool_use_error> 包裹 ——
+    // 直接检查原始字符串中的 cwd 提示标记。
     if (result.includes(FILE_NOT_FOUND_CWD_NOTE)) {
       return (
         <MessageResponse>
-          <Text color="error">File not found</Text>
+          <Text color="error">文件未找到</Text>
         </MessageResponse>
       );
     }
     if (extractTag(result, 'tool_use_error')) {
       return (
         <MessageResponse>
-          <Text color="error">Error reading file</Text>
+          <Text color="error">读取文件时出错</Text>
         </MessageResponse>
       );
     }
@@ -169,10 +169,10 @@ export function renderToolUseErrorMessage(
 
 export function userFacingName(input: Partial<Input> | undefined): string {
   if (input?.file_path?.startsWith(getPlansDirectory())) {
-    return 'Reading Plan';
+    return '读取 Plan';
   }
   if (input?.file_path && getAgentOutputTaskId(input.file_path)) {
-    return 'Read agent output';
+    return '读取 agent 输出';
   }
   return 'Read';
 }
@@ -181,7 +181,7 @@ export function getToolUseSummary(input: Partial<Input> | undefined): string | n
   if (!input?.file_path) {
     return null;
   }
-  // For agent output files, just show the task ID
+  // 对于 agent 输出文件，仅显示 task ID
   const agentTaskId = getAgentOutputTaskId(input.file_path);
   if (agentTaskId) {
     return agentTaskId;

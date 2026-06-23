@@ -10,18 +10,18 @@ import { sanitizePath } from 'src/utils/path.js'
 export type AgentMemoryScope = 'user' | 'project' | 'local'
 
 /**
- * Sanitize an agent type name for use as a directory name.
- * Replaces colons (invalid on Windows, used in plugin-namespaced agent
- * types like "my-plugin:my-agent") with dashes.
+ * 对代理类型名称进行清理以用作目录名。
+ * 将冒号（在 Windows 上非法，用于插件命名空间的代理类型，
+ * 例如 "my-plugin:my-agent"）替换为连字符。
  */
 function sanitizeAgentTypeForPath(agentType: string): string {
   return agentType.replace(/:/g, '-')
 }
 
 /**
- * Returns the local agent memory directory, which is project-specific and not checked into VCS.
- * When CLAUDE_CODE_REMOTE_MEMORY_DIR is set, persists to the mount with project namespacing.
- * Otherwise, uses <cwd>/.claude/agent-memory-local/<agentType>/.
+ * 返回本地代理记忆目录，该目录特定于项目且不提交到版本控制。
+ * 设置 CLAUDE_CODE_REMOTE_MEMORY_DIR 时，持久化到挂载点并以项目命名空间隔离。
+ * 否则，使用 <cwd>/.claude/agent-memory-local/<agentType>/。
  */
 function getLocalAgentMemoryDir(dirName: string): string {
   if (process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR) {
@@ -41,10 +41,10 @@ function getLocalAgentMemoryDir(dirName: string): string {
 }
 
 /**
- * Returns the agent memory directory for a given agent type and scope.
- * - 'user' scope: <memoryBase>/agent-memory/<agentType>/
- * - 'project' scope: <cwd>/.claude/agent-memory/<agentType>/
- * - 'local' scope: see getLocalAgentMemoryDir()
+ * 返回给定代理类型和作用域的代理记忆目录。
+ * - 'user' 作用域：<memoryBase>/agent-memory/<agentType>/
+ * - 'project' 作用域：<cwd>/.claude/agent-memory/<agentType>/
+ * - 'local' 作用域：参见 getLocalAgentMemoryDir()
  */
 export function getAgentMemoryDir(
   agentType: string,
@@ -101,7 +101,7 @@ export function isAgentMemoryPath(absolutePath: string): boolean {
 }
 
 /**
- * Returns the agent memory file path for a given agent type and scope.
+ * 返回给定代理类型和作用域的代理记忆文件路径。
  */
 export function getAgentMemoryEntrypoint(
   agentType: string,
@@ -126,11 +126,11 @@ export function getMemoryScopeDisplay(
 }
 
 /**
- * Load persistent memory for an agent with memory enabled.
- * Creates the memory directory if needed and returns a prompt with memory contents.
+ * 为启用了记忆功能的代理加载持久化记忆。
+ * 如有需要会创建记忆目录，并返回包含记忆内容的提示字符串。
  *
- * @param agentType The agent's type name (used as directory name)
- * @param scope 'user' for ~/.claude/agent-memory/ or 'project' for .claude/agent-memory/
+ * @param agentType 代理类型名称（用作目录名）
+ * @param scope 'user' 对应 ~/.claude/agent-memory/，'project' 对应 .claude/agent-memory/
  */
 export function loadAgentMemoryPrompt(
   agentType: string,
@@ -140,15 +140,15 @@ export function loadAgentMemoryPrompt(
   switch (scope) {
     case 'user':
       scopeNote =
-        '- Since this memory is user-scope, keep learnings general since they apply across all projects'
+        '- 由于此记忆为 user 作用域，请保持学习内容的通用性，因为它适用于所有项目'
       break
     case 'project':
       scopeNote =
-        '- Since this memory is project-scope and shared with your team via version control, tailor your memories to this project'
+        '- 由于此记忆为 project 作用域，并通过版本控制与团队共享，请针对此项目定制你的记忆内容'
       break
     case 'local':
       scopeNote =
-        '- Since this memory is local-scope (not checked into version control), tailor your memories to this project and machine'
+        '- 由于此记忆为 local 作用域（不提交到版本控制），请针对此项目和此机器定制你的记忆内容'
       break
   }
 

@@ -17,7 +17,7 @@ const inputSchema = lazySchema(() =>
       .string()
       .optional()
       .describe(
-        'Optional query to filter context entries. If omitted, returns a summary of all context.',
+        '可选的查询，用于过滤上下文条目。如果省略，返回所有上下文的摘要。',
       ),
   }),
 )
@@ -45,12 +45,12 @@ export const CtxInspectTool = buildTool({
   },
 
   async description() {
-    return 'Inspect the current context window contents and token usage'
+    return '检查当前上下文窗口内容和令牌使用情况'
   },
   async prompt() {
-    return `Inspect the current conversation context. Shows token usage, message count, and a breakdown of what's consuming context space.
+    return `检查当前的对话上下文。显示令牌使用量、消息数量以及占用上下文空间的内容明细。
 
-Use this to understand your context budget before deciding whether to snip old messages or adjust your approach.`
+在决定是否裁剪旧消息或调整你的方法之前，使用此工具了解你的上下文预算。`
   },
 
   isConcurrencySafe() {
@@ -88,9 +88,9 @@ Use this to understand your context budget before deciding whether to snip old m
     const focused = input.query?.trim()
 
     const sessionMemoryEnabled = isSessionMemoryInitialized()
-    // Prompt caching is an API-level feature controlled by the provider, not
-    // a user-facing toggle. Report as enabled only for providers known to
-    // support Anthropic-style prompt caching (first-party, Bedrock, Vertex).
+    // 提示缓存是由提供商控制的 API 级别功能，而不是
+    // 面向用户的开关。仅对已知支持
+    // Anthropic 风格提示缓存的提供商（第一方、Bedrock、Vertex）报告为已启用。
     const promptCachingEnabled =
       !model.startsWith('openai/') &&
       !model.startsWith('grok/') &&

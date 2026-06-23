@@ -27,13 +27,13 @@ export const inputSchema = lazySchema(() =>
 
 export type Input = z.infer<ReturnType<typeof inputSchema>>
 
-// Zod schema for permission results
-// This schema is used to validate the MCP permission prompt tool
-// so we maintain it as a subset of the real PermissionDecision type
+// 权限结果的 Zod schema
+// 此 schema 用于验证 MCP 权限提示工具，
+// 因此我们将其维护为真实 PermissionDecision 类型的子集
 
-// Matches PermissionDecisionClassificationSchema in entrypoints/sdk/coreSchemas.ts.
-// Malformed values fall through to undefined (same pattern as updatedPermissions
-// below) so a bad string from the SDK host doesn't reject the whole decision.
+// 匹配 entrypoints/sdk/coreSchemas.ts 中的 PermissionDecisionClassificationSchema。
+// 格式错误的值会回退到 undefined（与下面的 updatedPermissions
+// 相同的模式），这样来自 SDK 主机的错误字符串不会拒绝整个决策。
 const decisionClassificationField = lazySchema(() =>
   z
     .enum(['user_temporary', 'user_permanent', 'user_reject'])
@@ -45,8 +45,8 @@ const PermissionAllowResultSchema = lazySchema(() =>
   z.object({
     behavior: z.literal('allow'),
     updatedInput: z.record(z.string(), z.unknown()),
-    // SDK hosts may send malformed entries; fall back to undefined rather
-    // than rejecting the entire allow decision (anthropics/claude-code#29440)
+    // SDK 主机可能发送格式错误的条目；回退到 undefined 而非
+    // 拒绝整个允许决策（anthropics/claude-code#29440）
     updatedPermissions: z
       .array(permissionUpdateSchema())
       .optional()
@@ -79,7 +79,7 @@ export const outputSchema = lazySchema(() =>
 export type Output = z.infer<ReturnType<typeof outputSchema>>
 
 /**
- * Normalizes the result of a permission prompt tool to a PermissionDecision.
+ * 将权限提示工具的结果规范化为 PermissionDecision。
  */
 export function permissionPromptToolResultToPermissionDecision(
   result: Output,
@@ -104,9 +104,9 @@ export function permissionPromptToolResultToPermissionDecision(
       }))
       persistPermissionUpdates(updatedPermissions)
     }
-    // Mobile clients responding from a push notification don't have the
-    // original tool input, so they send `{}` to satisfy the schema. Treat an
-    // empty object as "use original" so the tool doesn't run with no args.
+    // 通过推送通知响应的移动客户端没有原始工具输入，
+    // 因此它们发送 `{}` 以满足 schema。将空对象
+    // 视为"使用原始输入"，这样工具不会在没有参数的情况下运行。
     const updatedInput =
       Object.keys(result.updatedInput).length > 0 ? result.updatedInput : input
     return {

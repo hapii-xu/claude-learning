@@ -19,7 +19,7 @@ function getStoragePath(): { storageDir: string; storagePath: string } {
 export const plainTextStorage = {
   name: 'plaintext',
   read(): SecureStorageData | null {
-    // sync IO: called from sync context (SecureStorage interface)
+    // 同步 IO：从同步上下文调用（SecureStorage 接口）
     const { storagePath } = getStoragePath()
     try {
       const data = getFsImplementation().readFileSync(storagePath, {
@@ -42,7 +42,7 @@ export const plainTextStorage = {
     }
   },
   update(data: SecureStorageData): { success: boolean; warning?: string } {
-    // sync IO: called from sync context (SecureStorage interface)
+    // 同步 IO：从同步上下文调用（SecureStorage 接口）
     try {
       const { storageDir, storagePath } = getStoragePath()
       try {
@@ -68,7 +68,7 @@ export const plainTextStorage = {
     }
   },
   delete(): boolean {
-    // sync IO: called from sync context (SecureStorage interface)
+    // 同步 IO：从同步上下文调用（SecureStorage 接口）
     const { storagePath } = getStoragePath()
     try {
       getFsImplementation().unlinkSync(storagePath)

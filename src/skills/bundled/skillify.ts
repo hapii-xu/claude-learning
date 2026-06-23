@@ -22,77 +22,77 @@ function extractUserMessages(messages: Message[]): string[] {
 
 const SKILLIFY_PROMPT = `# Skillify {{userDescriptionBlock}}
 
-You are capturing this session's repeatable process as a reusable skill.
+你正在将本次会话的可复用流程捕获为一个技能。
 
-## Your Session Context
+## 你的会话上下文
 
-Here is the session memory summary:
+以下是会话记忆摘要：
 <session_memory>
 {{sessionMemory}}
 </session_memory>
 
-Here are the user's messages during this session. Pay attention to how they steered the process, to help capture their detailed preferences in the skill:
+以下是用户在本次会话中的消息。请留意用户如何引导流程，以便在技能中捕获他们的详细偏好：
 <user_messages>
 {{userMessages}}
 </user_messages>
 
-## Your Task
+## 你的任务
 
-### Step 1: Analyze the Session
+### 第一步：分析会话
 
-Before asking any questions, analyze the session to identify:
-- What repeatable process was performed
-- What the inputs/parameters were
-- The distinct steps (in order)
-- The success artifacts/criteria (e.g. not just "writing code," but "an open PR with CI fully passing") for each step
-- Where the user corrected or steered you
-- What tools and permissions were needed
-- What agents were used
-- What the goals and success artifacts were
+在提问之前，先分析会话，识别：
+- 执行了哪个可复用的流程
+- 输入/参数是什么
+- 各个步骤（按顺序）
+- 每个步骤的成功产物/标准（例如，不只是"写代码"，而是"一个 CI 全部通过的已开启 PR"）
+- 用户在哪里纠正或引导了你
+- 需要哪些工具和权限
+- 使用了哪些 agent
+- 目标和成功产物是什么
 
-### Step 2: Interview the User
+### 第二步：访谈用户
 
-You will use the AskUserQuestion to understand what the user wants to automate. Important notes:
-- Use AskUserQuestion for ALL questions! Never ask questions via plain text.
-- For each round, iterate as much as needed until the user is happy.
-- The user always has a freeform "Other" option to type edits or feedback -- do NOT add your own "Needs tweaking" or "I'll provide edits" option. Just offer the substantive choices.
+你将使用 AskUserQuestion 来了解用户想自动化的内容。重要提示：
+- 所有问题都使用 AskUserQuestion！不要用纯文本提问。
+- 每轮根据需要反复迭代，直到用户满意为止。
+- 用户始终有自由输入的"其他"选项可供填写意见或反馈——不要自行添加"需要调整"或"我来提供修改"选项，只提供实质性选择。
 
-**Round 1: High level confirmation**
-- Suggest a name and description for the skill based on your analysis. Ask the user to confirm or rename.
-- Suggest high-level goal(s) and specific success criteria for the skill.
+**第一轮：高层确认**
+- 根据你的分析，建议一个技能名称和描述。询问用户是否确认或重命名。
+- 建议技能的高层目标和具体成功标准。
 
-**Round 2: More details**
-- Present the high-level steps you identified as a numbered list. Tell the user you will dig into the detail in the next round.
-- If you think the skill will require arguments, suggest arguments based on what you observed. Make sure you understand what someone would need to provide.
-- If it's not clear, ask if this skill should run inline (in the current conversation) or forked (as a sub-agent with its own context). Forked is better for self-contained tasks that don't need mid-process user input; inline is better when the user wants to steer mid-process.
-- Ask where the skill should be saved. Suggest a default based on context (repo-specific workflows → repo, cross-repo personal workflows → user). Options:
-  - **This repo** (\`.claude/skills/<name>/SKILL.md\`) — for workflows specific to this project
-  - **Personal** (\`~/.claude/skills/<name>/SKILL.md\`) — follows you across all repos
+**第二轮：更多细节**
+- 将你识别出的高层步骤以编号列表的形式呈现。告诉用户你将在下一轮深入细节。
+- 如果你认为该技能需要参数，请根据观察到的内容建议参数。确保你理解使用者需要提供什么。
+- 如果不清楚，询问该技能应内联运行（在当前对话中）还是分叉运行（作为拥有独立上下文的子 agent）。分叉更适合不需要用户中途输入的自包含任务；内联更适合用户希望中途引导流程的情况。
+- 询问技能应保存在哪里。根据上下文建议默认位置（仓库特定工作流 → 仓库，跨仓库个人工作流 → 用户）。选项：
+  - **本仓库** (\`.claude/skills/<name>/SKILL.md\`) — 适用于特定项目的工作流
+  - **个人** (\`~/.claude/skills/<name>/SKILL.md\`) — 跨所有仓库跟随你
 
-**Round 3: Breaking down each step**
-For each major step, if it's not glaringly obvious, ask:
-- What does this step produce that later steps need? (data, artifacts, IDs)
-- What proves that this step succeeded, and that we can move on?
-- Should the user be asked to confirm before proceeding? (especially for irreversible actions like merging, sending messages, or destructive operations)
-- Are any steps independent and could run in parallel? (e.g., posting to Slack and monitoring CI at the same time)
-- How should the skill be executed? (e.g. always use a Task agent to conduct code review, or invoke an agent team for a set of concurrent steps)
-- What are the hard constraints or hard preferences? Things that must or must not happen?
+**第三轮：拆解每个步骤**
+对于每个主要步骤，如果不是显而易见的，请询问：
+- 这个步骤产生了后续步骤需要的什么？（数据、产物、ID）
+- 什么能证明这个步骤成功，可以继续下一步？
+- 是否应该在继续前请用户确认？（尤其是不可逆操作，如合并、发消息或破坏性操作）
+- 哪些步骤是独立的，可以并行运行？（例如，同时发布到 Slack 和监控 CI）
+- 技能应如何执行？（例如，始终使用 Task agent 执行代码审查，或调用 agent 团队并发执行一组步骤）
+- 有哪些硬性约束或强制偏好？哪些事情必须或不能发生？
 
-You may do multiple rounds of AskUserQuestion here, one round per step, especially if there are more than 3 steps or many clarification questions. Iterate as much as needed.
+如果步骤超过 3 个或有很多澄清问题，可以在此处进行多轮 AskUserQuestion，每步一轮。根据需要迭代。
 
-IMPORTANT: Pay special attention to places where the user corrected you during the session, to help inform your design.
+重要：特别注意用户在会话中纠正你的地方，以帮助指导你的设计。
 
-**Round 4: Final questions**
-- Confirm when this skill should be invoked, and suggest/confirm trigger phrases too. (e.g. For a cherrypick workflow you could say: Use when the user wants to cherry-pick a PR to a release branch. Examples: 'cherry-pick to release', 'CP this PR', 'hotfix.')
-- You can also ask for any other gotchas or things to watch out for, if it's still unclear.
+**第四轮：最终问题**
+- 确认何时应调用该技能，并建议/确认触发短语。（例如，对于 cherrypick 工作流，可以说：当用户想将 PR cherry-pick 到发布分支时使用。示例：'cherry-pick to release'、'CP this PR'、'hotfix'。）
+- 如有尚不清楚的注意事项或需要关注的事项，也可以询问。
 
-Stop interviewing once you have enough information. IMPORTANT: Don't over-ask for simple processes!
+获得足够信息后停止访谈。重要：对简单流程不要过度询问！
 
-### Step 3: Write the SKILL.md
+### 第三步：编写 SKILL.md
 
-Create the skill directory and file at the location the user chose in Round 2.
+在用户在第二轮选择的位置创建技能目录和文件。
 
-Use this format:
+使用以下格式：
 
 \`\`\`markdown
 ---
@@ -128,32 +128,32 @@ IMPORTANT: see the next section below for the per-step annotations you can optio
 ...
 \`\`\`
 
-**Per-step annotations**:
-- **Success criteria** is REQUIRED on every step. This helps the model understand what the user expects from their workflow, and when it should have the confidence to move on.
-- **Execution**: \`Direct\` (default), \`Task agent\` (straightforward subagents), \`Teammate\` (agent with true parallelism and inter-agent communication), or \`[human]\` (user does it). Only needs specifying if not Direct.
-- **Artifacts**: Data this step produces that later steps need (e.g., PR number, commit SHA). Only include if later steps depend on it.
-- **Human checkpoint**: When to pause and ask the user before proceeding. Include for irreversible actions (merging, sending messages), error judgment (merge conflicts), or output review.
-- **Rules**: Hard rules for the workflow. User corrections during the reference session can be especially useful here.
+**每步注解说明**：
+- **成功标准（Success criteria）** 每个步骤都必须填写。这帮助模型理解用户对工作流的期望，以及何时可以有把握地继续。
+- **执行方式（Execution）**：\`Direct\`（默认）、\`Task agent\`（直接子 agent）、\`Teammate\`（具有真正并行性和 agent 间通信的 agent），或 \`[human]\`（用户执行）。非 Direct 时才需要指定。
+- **产物（Artifacts）**：此步骤产生的后续步骤需要的数据（例如 PR 编号、commit SHA）。只在后续步骤依赖时填写。
+- **人工检查点（Human checkpoint）**：在继续前暂停并询问用户的时机。适用于不可逆操作（合并、发消息）、错误判断（合并冲突）或输出审查。
+- **规则（Rules）**：工作流的硬性规则。参考会话中用户的纠正往往最有用。
 
-**Step structure tips:**
-- Steps that can run concurrently use sub-numbers: 3a, 3b
-- Steps requiring the user to act get \`[human]\` in the title
-- Keep simple skills simple -- a 2-step skill doesn't need annotations on every step
+**步骤结构提示：**
+- 可并发运行的步骤使用子编号：3a、3b
+- 需要用户操作的步骤在标题中加 \`[human]\`
+- 简单技能保持简洁——2 步技能不需要每步都加注解
 
-**Frontmatter rules:**
-- \`allowed-tools\`: Minimum permissions needed (use patterns like \`Bash(gh:*)\` not \`Bash\`)
-- \`context\`: Only set \`context: fork\` for self-contained skills that don't need mid-process user input.
-- \`when_to_use\` is CRITICAL -- tells the model when to auto-invoke. Start with "Use when..." and include trigger phrases. Example: "Use when the user wants to cherry-pick a PR to a release branch. Examples: 'cherry-pick to release', 'CP this PR', 'hotfix'."
-- \`arguments\` and \`argument-hint\`: Only include if the skill takes parameters. Use \`$name\` in the body for substitution.
+**Frontmatter 规则：**
+- \`allowed-tools\`：所需最小权限（使用模式如 \`Bash(gh:*)\` 而非 \`Bash\`）
+- \`context\`：只对不需要用户中途输入的自包含技能设置 \`context: fork\`。
+- \`when_to_use\` 至关重要——告诉模型何时自动调用。以"Use when..."开头并包含触发短语。示例："Use when the user wants to cherry-pick a PR to a release branch. Examples: 'cherry-pick to release', 'CP this PR', 'hotfix'."
+- \`arguments\` 和 \`argument-hint\`：只在技能接受参数时填写。在正文中使用 \`$name\` 进行替换。
 
-### Step 4: Confirm and Save
+### 第四步：确认并保存
 
-Before writing the file, output the complete SKILL.md content as a yaml code block in your response so the user can review it with proper syntax highlighting. Then ask for confirmation using AskUserQuestion with a simple question like "Does this SKILL.md look good to save?" — do NOT use the body field, keep the question concise.
+在写入文件之前，将完整的 SKILL.md 内容以 yaml 代码块的形式输出到你的回复中，供用户以正确的语法高亮方式查看。然后使用 AskUserQuestion 提出简单的确认问题，如"这个 SKILL.md 看起来可以保存吗？"——不要使用 body 字段，保持问题简洁。
 
-After writing, tell the user:
-- Where the skill was saved
-- How to invoke it: \`/{{skill-name}} [arguments]\`
-- That they can edit the SKILL.md directly to refine it
+写入后，告诉用户：
+- 技能保存在哪里
+- 如何调用：\`/{{skill-name}} [arguments]\`
+- 他们可以直接编辑 SKILL.md 来进一步完善
 `
 
 export function registerSkillifySkill(): void {
@@ -164,7 +164,7 @@ export function registerSkillifySkill(): void {
   registerBundledSkill({
     name: 'skillify',
     description:
-      "Capture this session's repeatable process into a skill. Call at end of the process you want to capture with an optional description.",
+      "将本次会话的可复用流程捕获为一个技能。在想要捕获的流程结束时调用，可附带可选的描述。",
     allowedTools: [
       'Read',
       'Write',
@@ -176,7 +176,7 @@ export function registerSkillifySkill(): void {
     ],
     userInvocable: true,
     disableModelInvocation: true,
-    argumentHint: '[description of the process you want to capture]',
+    argumentHint: '[你想捕获的流程描述]',
     async getPromptForCommand(args, context) {
       const sessionMemory =
         (await getSessionMemoryContent()) ?? 'No session memory available.'

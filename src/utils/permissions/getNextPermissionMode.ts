@@ -3,9 +3,9 @@ import type { PermissionMode } from './PermissionMode.js'
 import { transitionPermissionMode } from './permissionSetup.js'
 
 /**
- * Determines the next permission mode when cycling through modes with Shift+Tab.
+ * 确定使用 Shift+Tab 循环模式时的下一个权限模式。
  *
- * Unified cycle for all users (no USER_TYPE distinction):
+ * 所有用户的统一循环（不区分 USER_TYPE）：
  *   default → acceptEdits → plan → auto → bypassPermissions → default
  */
 export function getNextPermissionMode(
@@ -32,21 +32,21 @@ export function getNextPermissionMode(
       return 'default'
 
     case 'dontAsk':
-      // Not exposed in UI cycle yet, but return default if somehow reached
+      // 尚未在 UI 循环中暴露，但如果以某种方式到达则返回 default
       return 'default'
 
     default:
-      // Covers any future modes — always fall back to default
+      // 涵盖任何未来模式——始终回退到 default
       return 'default'
   }
 }
 
 /**
- * Computes the next permission mode and prepares the context for it.
- * Handles any context cleanup needed for the target mode (e.g., stripping
- * dangerous permissions when entering auto mode).
+ * 计算下一个权限模式并为其准备上下文。
+ * 处理目标模式所需的任何上下文清理（例如，进入 auto 模式时
+ * 剥离危险权限）。
  *
- * @returns The next mode and the context to use (with dangerous permissions stripped if needed)
+ * @returns 下一个模式和要使用的上下文（如果需要则已剥离危险权限）
  */
 export function cyclePermissionMode(
   toolPermissionContext: ToolPermissionContext,

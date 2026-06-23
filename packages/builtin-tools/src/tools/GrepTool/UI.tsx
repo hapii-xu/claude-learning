@@ -11,7 +11,7 @@ import { FILE_NOT_FOUND_CWD_NOTE, getDisplayPath } from 'src/utils/file.js';
 import { truncate } from 'src/utils/format.js';
 import { extractTag } from 'src/utils/messages.js';
 
-// Reusable component for search result summaries
+// 可复用的搜索结果摘要组件
 function SearchResultSummary({
   count,
   countLabel,
@@ -29,7 +29,7 @@ function SearchResultSummary({
 }): React.ReactNode {
   const primaryText = (
     <Text>
-      Found <Text bold>{count} </Text>
+      找到 <Text bold>{count} </Text>
       {count === 0 || count > 1 ? countLabel : countLabel.slice(0, -1)}
     </Text>
   );
@@ -38,7 +38,7 @@ function SearchResultSummary({
     secondaryCount !== undefined && secondaryLabel ? (
       <Text>
         {' '}
-        across <Text bold>{secondaryCount} </Text>
+        跨 <Text bold>{secondaryCount} </Text>
         {secondaryCount === 0 || secondaryCount > 1 ? secondaryLabel : secondaryLabel.slice(0, -1)}
       </Text>
     ) : null;
@@ -75,8 +75,8 @@ type Output = {
   numFiles: number;
   filenames: string[];
   content?: string;
-  numLines?: number; // For content mode
-  numMatches?: number; // For count mode
+  numLines?: number; // 用于 content 模式
+  numMatches?: number; // 用于 count 模式
 };
 
 export function renderToolUseMessage(
@@ -86,10 +86,10 @@ export function renderToolUseMessage(
   if (!pattern) {
     return null;
   }
-  const parts = [`pattern: "${pattern}"`];
+  const parts = [`模式："${pattern}"`];
 
   if (path) {
-    parts.push(`path: "${verbose ? path : getDisplayPath(path)}"`);
+    parts.push(`路径："${verbose ? path : getDisplayPath(path)}"`);
   }
 
   return parts.join(', ');
@@ -104,13 +104,13 @@ export function renderToolUseErrorMessage(
     if (errorMessage?.includes(FILE_NOT_FOUND_CWD_NOTE)) {
       return (
         <MessageResponse>
-          <Text color="error">File not found</Text>
+          <Text color="error">未找到文件</Text>
         </MessageResponse>
       );
     }
     return (
       <MessageResponse>
-        <Text color="error">Error searching files</Text>
+        <Text color="error">搜索文件时出错</Text>
       </MessageResponse>
     );
   }
@@ -123,25 +123,25 @@ export function renderToolResultMessage(
   { verbose }: { verbose: boolean },
 ): React.ReactNode {
   if (mode === 'content') {
-    return <SearchResultSummary count={numLines ?? 0} countLabel="lines" content={content} verbose={verbose} />;
+    return <SearchResultSummary count={numLines ?? 0} countLabel="行" content={content} verbose={verbose} />;
   }
 
   if (mode === 'count') {
     return (
       <SearchResultSummary
         count={numMatches ?? 0}
-        countLabel="matches"
+        countLabel="处匹配"
         secondaryCount={numFiles}
-        secondaryLabel="files"
+        secondaryLabel="个文件"
         content={content}
         verbose={verbose}
       />
     );
   }
 
-  // files_with_matches mode
+  // files_with_matches 模式
   const fileListContent = filenames.map(filename => filename).join('\n');
-  return <SearchResultSummary count={numFiles} countLabel="files" content={fileListContent} verbose={verbose} />;
+  return <SearchResultSummary count={numFiles} countLabel="个文件" content={fileListContent} verbose={verbose} />;
 }
 
 export function getToolUseSummary(

@@ -14,8 +14,8 @@ In plan mode, you'll:
 `
 
 function getEnterPlanModeToolPromptExternal(): string {
-  // When interview phase is enabled, omit the "What Happens" section —
-  // detailed workflow instructions arrive via the plan_mode attachment (messages.ts).
+  // 当 interview phase 启用时，省略 "What Happens" 段落——
+  // 详细的 workflow 说明会通过 plan_mode 附件下发（见 messages.ts）。
   const whatHappens = isPlanModeInterviewPhaseEnabled()
     ? ''
     : WHAT_HAPPENS_SECTION
@@ -51,8 +51,8 @@ ${whatHappens}## Important Notes
 }
 
 function getEnterPlanModeToolPromptAnt(): string {
-  // When interview phase is enabled, omit the "What Happens" section —
-  // detailed workflow instructions arrive via the plan_mode attachment (messages.ts).
+  // 当 interview phase 启用时，省略 "What Happens" 段落——
+  // 详细的 workflow 说明会通过 plan_mode 附件下发（见 messages.ts）。
   const whatHappens = isPlanModeInterviewPhaseEnabled()
     ? ''
     : WHAT_HAPPENS_SECTION

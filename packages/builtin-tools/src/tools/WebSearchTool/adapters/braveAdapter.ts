@@ -1,6 +1,6 @@
 /**
- * Brave-based search adapter — fetches Brave's LLM context API and maps the
- * grounding payload into SearchResult objects.
+ * 基于 Brave 的搜索适配器 — 抓取 Brave 的 LLM context API，并将
+ * grounding 负载映射为 SearchResult 对象。
  */
 
 import axios from 'axios'
@@ -157,7 +157,7 @@ function normalizeSnippet(snippets: string[] | undefined): string | undefined {
 }
 
 function getBraveApiKey(): string {
-  // Priority: settings.braveApiKey (from /web-tools panel) > environment variable
+  // 优先级：settings.braveApiKey（来自 /web-tools 面板）> 环境变量
   const settings = getSettings_DEPRECATED() as Record<string, unknown> & {
     braveApiKey?: string
   }

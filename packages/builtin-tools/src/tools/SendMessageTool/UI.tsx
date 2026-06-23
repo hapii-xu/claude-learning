@@ -9,7 +9,7 @@ export function renderToolUseMessage(input: Partial<Input>): React.ReactNode {
     return null;
   }
   if (input.message.type === 'plan_approval_response') {
-    return input.message.approve ? `approve plan from: ${input.to}` : `reject plan from: ${input.to}`;
+    return input.message.approve ? `批准来自 ${input.to} 的 plan` : `拒绝来自 ${input.to} 的 plan`;
   }
   return null;
 }

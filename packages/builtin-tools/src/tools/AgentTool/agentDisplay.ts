@@ -1,6 +1,6 @@
 /**
- * Shared utilities for displaying agent information.
- * Used by both the CLI `claude agents` handler and the interactive `/agents` command.
+ * 显示代理信息的共享工具函数。
+ * 同时被 CLI `claude agents` 处理器和交互式 `/agents` 命令使用。
  */
 
 import { getDefaultSubagentModel } from 'src/utils/model/agent.js'
@@ -18,8 +18,8 @@ export type AgentSourceGroup = {
 }
 
 /**
- * Ordered list of agent source groups for display.
- * Both the CLI and interactive UI should use this to ensure consistent ordering.
+ * 按显示顺序排列的代理来源分组列表。
+ * CLI 和交互式 UI 都应使用此列表以确保一致的排序。
  */
 export const AGENT_SOURCE_GROUPS: AgentSourceGroup[] = [
   { label: 'User agents', source: 'userSettings' },
@@ -36,12 +36,11 @@ export type ResolvedAgent = AgentDefinition & {
 }
 
 /**
- * Annotate agents with override information by comparing against the active
- * (winning) agent list. An agent is "overridden" when another agent with the
- * same type from a higher-priority source takes precedence.
+ * 通过与活动（优胜）代理列表对比，为代理标注覆盖信息。
+ * 当同类型代理来自更高优先级来源时，该代理被视为"已被覆盖"。
  *
- * Also deduplicates by (agentType, source) to handle git worktree duplicates
- * where the same agent file is loaded from both the worktree and main repo.
+ * 同时按 (agentType, source) 去重，以处理 git worktree 重复加载的情况
+ * （同一代理文件可能从 worktree 和主仓库各加载一次）。
  */
 export function resolveAgentOverrides(
   allAgents: AgentDefinition[],
@@ -72,8 +71,8 @@ export function resolveAgentOverrides(
 }
 
 /**
- * Resolve the display model string for an agent.
- * Returns the model alias or 'inherit' for display purposes.
+ * 解析代理的显示模型字符串。
+ * 返回模型别名或 'inherit'（用于显示）。
  */
 export function resolveAgentModelDisplay(
   agent: AgentDefinition,
@@ -84,15 +83,15 @@ export function resolveAgentModelDisplay(
 }
 
 /**
- * Get a human-readable label for the source that overrides an agent.
- * Returns lowercase, e.g. "user", "project", "managed".
+ * 获取覆盖代理的来源的人类可读标签。
+ * 返回小写字符串，例如 "user"、"project"、"managed"。
  */
 export function getOverrideSourceLabel(source: AgentSource): string {
   return getSourceDisplayName(source).toLowerCase()
 }
 
 /**
- * Compare agents alphabetically by name (case-insensitive).
+ * 按名称字母顺序（不区分大小写）比较代理。
  */
 export function compareAgentsByName(
   a: AgentDefinition,

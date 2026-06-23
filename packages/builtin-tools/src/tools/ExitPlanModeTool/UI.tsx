@@ -26,30 +26,30 @@ export function renderToolResultMessage(
   const displayPath = filePath ? getDisplayPath(filePath) : '';
   const awaitingLeaderApproval = output.awaitingLeaderApproval;
 
-  // Simplified message for empty plans
+  // 空计划的简化消息
   if (isEmpty) {
     return (
       <Box flexDirection="column" marginTop={1}>
         <Box flexDirection="row">
           <Text color={getModeColor('plan')}>{BLACK_CIRCLE}</Text>
-          <Text> Exited plan mode</Text>
+          <Text> 已退出计划模式</Text>
         </Box>
       </Box>
     );
   }
 
-  // When awaiting leader approval, show a different message
+  // 当等待负责人审批时，显示不同的消息
   if (awaitingLeaderApproval) {
     return (
       <Box flexDirection="column" marginTop={1}>
         <Box flexDirection="row">
           <Text color={getModeColor('plan')}>{BLACK_CIRCLE}</Text>
-          <Text> Plan submitted for team lead approval</Text>
+          <Text> 计划已提交给团队负责人审批</Text>
         </Box>
         <MessageResponse>
           <Box flexDirection="column">
-            {filePath && <Text dimColor>Plan file: {displayPath}</Text>}
-            <Text dimColor>Waiting for team lead to review and approve...</Text>
+            {filePath && <Text dimColor>计划文件：{displayPath}</Text>}
+            <Text dimColor>等待团队负责人审阅和批准...</Text>
           </Box>
         </MessageResponse>
       </Box>
@@ -60,11 +60,11 @@ export function renderToolResultMessage(
     <Box flexDirection="column" marginTop={1}>
       <Box flexDirection="row">
         <Text color={getModeColor('plan')}>{BLACK_CIRCLE}</Text>
-        <Text> User approved Claude&apos;s plan</Text>
+        <Text> 用户批准了 Claude 的计划</Text>
       </Box>
       <MessageResponse>
         <Box flexDirection="column">
-          {filePath && <Text dimColor>Plan saved to: {displayPath} · /plan to edit</Text>}
+          {filePath && <Text dimColor>计划已保存到：{displayPath} · /plan 编辑</Text>}
           <Markdown>{plan}</Markdown>
         </Box>
       </MessageResponse>
@@ -76,7 +76,7 @@ export function renderToolUseRejectedMessage(
   { plan }: { plan?: string },
   { theme: _theme }: { theme: ThemeName },
 ): React.ReactNode {
-  const planContent = plan ?? getPlan() ?? 'No plan found';
+  const planContent = plan ?? getPlan() ?? '未找到计划';
 
   return (
     <Box flexDirection="column">

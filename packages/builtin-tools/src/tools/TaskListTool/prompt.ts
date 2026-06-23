@@ -1,6 +1,6 @@
 import { isAgentSwarmsEnabled } from 'src/utils/agentSwarmsEnabled.js'
 
-export const DESCRIPTION = 'List all tasks in the task list'
+export const DESCRIPTION = '列出任务列表中的所有任务'
 
 export function getPrompt(): string {
   const teammateUseCase = isAgentSwarmsEnabled()

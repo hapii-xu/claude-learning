@@ -151,16 +151,16 @@ const BASH_SILENT_COMMANDS = new Set([
 ]);
 
 /**
- * Checks if a bash command is a search or read operation.
- * Used to determine if the command should be collapsed in the UI.
- * Returns an object indicating whether it's a search or read operation.
+ * 检查 bash 命令是否为搜索或读取操作。
+ * 用于确定命令是否应在 UI 中折叠显示。
+ * 返回一个对象，指示是否为搜索或读取操作。
  *
- * For pipelines (e.g., `cat file | bq`), ALL parts must be search/read commands
- * for the whole command to be considered collapsible.
+ * 对于管道（例如 `cat file | bq`），所有部分都必须是搜索/读取命令，
+ * 整个命令才被视为可折叠。
  *
- * Semantic-neutral commands (echo, printf, true, false, :) are skipped in any
- * position, as they're pure output/status commands that don't affect the read/search
- * nature of the pipeline (e.g. `ls dir && echo "---" && ls dir2` is still a read).
+ * 语义中性命令（echo、printf、true、false、:）在任何位置都会被跳过，
+ * 因为它们是纯输出/状态命令，不影响管道的读取/搜索性质
+ * （例如 `ls dir && echo "---" && ls dir2` 仍然是读取操作）。
  */
 export function isSearchOrReadBashCommand(command: string): {
   isSearch: boolean;
@@ -172,7 +172,7 @@ export function isSearchOrReadBashCommand(command: string): {
     partsWithOperators = splitCommandWithOperators(command);
   } catch {
     // 如果由于语法错误无法解析命令，
-    // it's not a search/read command
+    // 它就不是搜索/读取命令
     return { isSearch: false, isRead: false, isList: false };
   }
 
@@ -234,8 +234,8 @@ export function isSearchOrReadBashCommand(command: string): {
 }
 
 /**
- * Checks if a bash command is expected to produce no stdout on success.
- * Used to show "Done" instead of "(No output)" in the UI.
+ * 检查 bash 命令在成功时是否预期不产生 stdout。
+ * 用于在 UI 中显示 "Done" 而不是 "(No output)"。
  */
 function isSilentBashCommand(command: string): boolean {
   let partsWithOperators: string[];
@@ -290,39 +290,39 @@ function isSilentBashCommand(command: string): boolean {
 
 // 不应自动后台化的命令
 const DISALLOWED_AUTO_BACKGROUND_COMMANDS = [
-  'sleep', // Sleep should run in foreground unless explicitly backgrounded by user
+  'sleep', // sleep 应在前台运行，除非用户明确要求后台化
 ];
 
 // 在模块加载时检查是否禁用了后台任务
 const isBackgroundTasksDisabled =
-  // eslint-disable-next-line custom-rules/no-process-env-top-level -- Intentional: schema must be defined at module load
+  // eslint-disable-next-line custom-rules/no-process-env-top-level -- 有意为之：schema 必须在模块加载时定义
   isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_BACKGROUND_TASKS);
 
 const fullInputSchema = lazySchema(() =>
   z.strictObject({
-    command: z.string().describe('The command to execute'),
+    command: z.string().describe('要执行的命令'),
     timeout: semanticNumber(z.number().optional()).describe(
-      `Optional timeout in milliseconds (max ${getMaxTimeoutMs()})`,
+      `可选的超时时间（毫秒，最大 ${getMaxTimeoutMs()}）`,
     ),
     description: z
       .string()
       .optional()
-      .describe(`Clear, concise description of what this command does in active voice. Never use words like "complex" or "risk" in the description - just describe what it does.
+      .describe(`清晰、简洁地描述此命令的作用，使用主动语态。描述中不要使用"complex"或"risk"这样的词 - 只需描述它做什么。
 
-For simple commands (git, npm, standard CLI tools), keep it brief (5-10 words):
-- ls → "List files in current directory"
-- git status → "Show working tree status"
-- npm install → "Install package dependencies"
+对于简单命令（git、npm、标准 CLI 工具），保持简洁（5-10 个词）：
+- ls → "列出当前目录中的文件"
+- git status → "显示工作树状态"
+- npm install → "安装包依赖"
 
-For commands that are harder to parse at a glance (piped commands, obscure flags, etc.), add enough context to clarify what it does:
-- find . -name "*.tmp" -exec rm {} \\; → "Find and delete all .tmp files recursively"
-- git reset --hard origin/main → "Discard all local changes and match remote main"
-- curl -s url | jq '.data[]' → "Fetch JSON from URL and extract data array elements"`),
+对于较难一眼解析的命令（管道命令、冷门 flag 等），添加足够的上下文以说明其作用：
+- find . -name "*.tmp" -exec rm {} \\; → "递归查找并删除所有 .tmp 文件"
+- git reset --hard origin/main → "丢弃所有本地更改并匹配远程 main"
+- curl -s url | jq '.data[]' → "从 URL 获取 JSON 并提取 data 数组元素"`),
     run_in_background: semanticBoolean(z.boolean().optional()).describe(
-      `Set to true to run this command in the background. Use Read to read the output later.`,
+      `设置为 true 以在后台运行此命令。稍后使用 Read 读取输出。`,
     ),
     dangerouslyDisableSandbox: semanticBoolean(z.boolean().optional()).describe(
-      'Set this to true to dangerously override sandbox mode and run commands without sandboxing.',
+      '设置为 true 会危险地覆盖沙箱模式，在没有沙箱的情况下运行命令。',
     ),
     _simulatedSedEdit: z
       .object({
@@ -330,7 +330,7 @@ For commands that are harder to parse at a glance (piped commands, obscure flags
         newContent: z.string(),
       })
       .optional()
-      .describe('Internal: pre-computed sed edit result from preview'),
+      .describe('内部使用：来自预览的预计算 sed 编辑结果'),
   }),
 );
 
@@ -395,38 +395,38 @@ function getCommandTypeForLogging(command: string): AnalyticsMetadata_I_VERIFIED
 
 const outputSchema = lazySchema(() =>
   z.object({
-    stdout: z.string().describe('The standard output of the command'),
-    stderr: z.string().describe('The standard error output of the command'),
-    rawOutputPath: z.string().optional().describe('Path to raw output file for large MCP tool outputs'),
-    interrupted: z.boolean().describe('Whether the command was interrupted'),
-    isImage: z.boolean().optional().describe('Flag to indicate if stdout contains image data'),
-    backgroundTaskId: z.string().optional().describe('ID of the background task if command is running in background'),
+    stdout: z.string().describe('命令的标准输出'),
+    stderr: z.string().describe('命令的标准错误输出'),
+    rawOutputPath: z.string().optional().describe('大型 MCP 工具输出的原始输出文件路径'),
+    interrupted: z.boolean().describe('命令是否被中断'),
+    isImage: z.boolean().optional().describe('标志，指示 stdout 是否包含图像数据'),
+    backgroundTaskId: z.string().optional().describe('如果命令在后台运行，后台任务的 ID'),
     backgroundedByUser: z
       .boolean()
       .optional()
-      .describe('True if the user manually backgrounded the command with Ctrl+B'),
+      .describe('如果用户使用 Ctrl+B 手动将命令转为后台则为 true'),
     assistantAutoBackgrounded: z
       .boolean()
       .optional()
-      .describe('True if assistant-mode auto-backgrounded a long-running blocking command'),
-    dangerouslyDisableSandbox: z.boolean().optional().describe('Flag to indicate if sandbox mode was overridden'),
+      .describe('如果助手模式自动将长时间运行的阻塞命令转为后台则为 true'),
+    dangerouslyDisableSandbox: z.boolean().optional().describe('标志，指示沙箱模式是否被覆盖'),
     returnCodeInterpretation: z
       .string()
       .optional()
-      .describe('Semantic interpretation for non-error exit codes with special meaning'),
+      .describe('对具有特殊含义的非错误退出码的语义解释'),
     noOutputExpected: z
       .boolean()
       .optional()
-      .describe('Whether the command is expected to produce no output on success'),
-    structuredContent: z.array(z.any()).optional().describe('Structured content blocks'),
+      .describe('命令在成功时是否预期不产生输出'),
+    structuredContent: z.array(z.any()).optional().describe('结构化内容块'),
     persistedOutputPath: z
       .string()
       .optional()
-      .describe('Path to the persisted full output in tool-results dir (set when output is too large for inline)'),
+      .describe('持久化在 tool-results 目录中的完整输出路径（当输出过大无法内联时设置）'),
     persistedOutputSize: z
       .number()
       .optional()
-      .describe('Total size of the output in bytes (set when output is too large for inline)'),
+      .describe('输出的总大小（字节）（当输出过大无法内联时设置）'),
   }),
 );
 
@@ -439,9 +439,9 @@ export type { BashProgress } from 'src/types/tools.js';
 import type { BashProgress } from 'src/types/tools.js';
 
 /**
- * Checks if a command is allowed to be automatically backgrounded
- * @param command The command to check
- * @returns false for commands that should not be auto-backgrounded (like sleep)
+ * 检查命令是否允许自动后台化
+ * @param command 要检查的命令
+ * @returns 对于不应自动后台化的命令（如 sleep）返回 false
  */
 function isAutobackgroundingAllowed(command: string): boolean {
   const parts = splitCommand_DEPRECATED(command);
@@ -455,9 +455,9 @@ function isAutobackgroundingAllowed(command: string): boolean {
 }
 
 /**
- * Detect standalone or leading `sleep N` patterns that should use Monitor
- * instead. Catches `sleep 5`, `sleep 5 && check`, `sleep 5; check` — but
- * not sleep inside pipelines, subshells, or scripts (those are fine).
+ * 检测独立的或开头的 `sleep N` 模式，这些应改用 Monitor。
+ * 捕获 `sleep 5`、`sleep 5 && check`、`sleep 5; check` — 但不包括
+ * 管道、子 shell 或脚本中的 sleep（那些是正常的）。
  */
 export function detectBlockedSleepPattern(command: string): string | null {
   const parts = splitCommand_DEPRECATED(command);
@@ -469,23 +469,23 @@ export function detectBlockedSleepPattern(command: string): string | null {
   const m = /^sleep\s+(\d+)\s*$/.exec(first);
   if (!m) return null;
   const secs = parseInt(m[1]!, 10);
-  if (secs < 2) return null; // sub-2s sleeps are fine (rate limiting, pacing)
+  if (secs < 2) return null; // 低于 2 秒的 sleep 是正常的（限流、节奏控制）
 
-  // `sleep N` alone → "what are you waiting for?"
-  // `sleep N && check` → "use Monitor { command: check }"
+  // `sleep N` 单独使用 → "你在等什么？"
+  // `sleep N && check` → "使用 Monitor { command: check }"
   const rest = parts.slice(1).join(' ').trim();
   return rest ? `sleep ${secs} followed by: ${rest}` : `standalone sleep ${secs}`;
 }
 
 /**
- * Checks if a command contains tools that shouldn't run in sandbox
- * This includes:
- * - Dynamic config-based disabled commands and substrings (tengu_sandbox_disabled_commands)
- * - User-configured commands from settings.json (sandbox.excludedCommands)
+ * 检查命令是否包含不应在沙箱中运行的工具
+ * 包括：
+ * - 基于动态配置的禁用命令和子串 (tengu_sandbox_disabled_commands)
+ * - 来自 settings.json 的用户配置命令 (sandbox.excludedCommands)
  *
- * User-configured commands support the same pattern syntax as permission rules:
- * - Exact matches: "npm run lint"
- * - Prefix patterns: "npm run test:*"
+ * 用户配置的命令支持与权限规则相同的模式语法：
+ * - 精确匹配："npm run lint"
+ * - 前缀模式："npm run test:*"
  */
 
 type SimulatedSedEditResult = {
@@ -495,9 +495,8 @@ type SimulatedSedEditResult = {
 type SimulatedSedEditContext = Pick<ToolUseContext, 'readFileState' | 'updateFileHistoryState'>;
 
 /**
- * Applies a simulated sed edit directly instead of running sed.
- * This is used by the permission dialog to ensure what the user previews
- * is exactly what gets written to the file.
+ * 直接应用模拟的 sed 编辑，而不是运行 sed。
+ * 由权限对话框使用，确保用户预览的内容与写入文件的内容完全一致。
  */
 async function applySedEdit(
   simulatedEdit: { filePath: string; newContent: string },
@@ -559,7 +558,7 @@ async function applySedEdit(
 export const BashTool = buildTool({
   name: BASH_TOOL_NAME,
   searchHint: 'execute shell commands',
-  // 30K chars - tool result persistence threshold
+  // 30K 字符 - 工具结果持久化阈值
   maxResultSizeChars: 30_000,
   strict: true,
   async description({ description }) {

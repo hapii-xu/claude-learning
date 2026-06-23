@@ -36,15 +36,14 @@ function getBackgroundUsageNote(): string | null {
   if (isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_BACKGROUND_TASKS)) {
     return null
   }
-  return "You can use the `run_in_background` parameter to run the command in the background. Only use this if you don't need the result immediately and are OK being notified when the command completes later. You do not need to check the output right away - you'll be notified when it finishes. You do not need to use '&' at the end of the command when using this parameter."
+  return "你可以使用 `run_in_background` 参数在后台运行命令。仅当你不需要立即获取结果、且愿意在命令完成后收到通知时才使用此参数。无需立即检查输出——命令完成时你会收到通知。使用此参数时无需在命令末尾加 '&'。"
 }
 
 function getCommitAndPRInstructions(): string {
-  // Defense-in-depth: undercover instructions must survive even if the user
-  // has disabled git instructions entirely. Attribution stripping and model-ID
-  // hiding are mechanical and work regardless, but the explicit "don't blow
-  // your cover" instructions are the last line of defense against the model
-  // volunteering an internal codename in a commit message.
+  // 纵深防御：即使用户完全禁用了 git 相关说明，undercover 指令也必须保留。
+  // 署名剥离与 model-ID 隐藏是机械性的，无论如何都生效；但显式的
+  // "不要暴露身份" 指令是防止模型在 commit 消息中主动泄露内部代号
+  // 的最后一道防线。
   const undercoverSection =
     process.env.USER_TYPE === 'ant' && isUndercover()
       ? getUndercoverInstructions() + '\n'
@@ -52,71 +51,71 @@ function getCommitAndPRInstructions(): string {
 
   if (!shouldIncludeGitInstructions()) return undercoverSection
 
-  // For ant users, use the short version pointing to skills
+  // 对于 ant 用户，使用指向 skills 的简短版本
   if (process.env.USER_TYPE === 'ant') {
     const skillsSection = !isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)
-      ? `For git commits and pull requests, use the \`/commit\` and \`/commit-push-pr\` skills:
-- \`/commit\` - Create a git commit with staged changes
-- \`/commit-push-pr\` - Commit, push, and create a pull request
+      ? `如需进行 git 提交和创建 Pull Request，请使用 \`/commit\` 和 \`/commit-push-pr\` skills：
+- \`/commit\` - 提交已暂存的更改
+- \`/commit-push-pr\` - 提交、推送并创建 Pull Request
 
-These skills handle git safety protocols, proper commit message formatting, and PR creation.
+这些 skills 会处理 git 安全协议、规范化提交消息格式以及 PR 创建。
 
-Before creating a pull request, run \`/simplify\` to review your changes, then test end-to-end (e.g. via \`/tmux\` for interactive features).
+创建 Pull Request 之前，先运行 \`/simplify\` 审查你的更改，然后进行端到端测试（例如通过 \`/tmux\` 测试交互式功能）。
 
 `
       : ''
-    return `${undercoverSection}# Git operations
+    return `${undercoverSection}# Git 操作
 
-${skillsSection}IMPORTANT: NEVER skip hooks (--no-verify, --no-gpg-sign, etc) unless the user explicitly requests it.
+${skillsSection}重要：除非用户明确要求，否则绝不跳过钩子（--no-verify、--no-gpg-sign 等）。
 
-Use the gh command via the Bash tool for other GitHub-related tasks including working with issues, checks, and releases. If given a Github URL use the gh command to get the information needed.
+对于其他 GitHub 相关任务（包括处理 issue、检查和发布），请通过 Bash 工具使用 gh 命令。如果收到 GitHub URL，请使用 gh 命令获取所需信息。
 
-# Other common operations
-- View comments on a Github PR: gh api repos/foo/bar/pulls/123/comments`
+# 其他常用操作
+- 查看 Github PR 的评论：gh api repos/foo/bar/pulls/123/comments`
   }
 
-  // For external users, include full inline instructions
+  // 对于外部用户，包含完整的内联说明
   const { commit: commitAttribution, pr: prAttribution } = getAttributionTexts()
 
-  return `# Committing changes with git
+  return `# 使用 git 提交更改
 
-Only create commits when requested by the user. If unclear, ask first. When the user asks you to create a new git commit, follow these steps carefully:
+仅在用户请求时才创建提交。如不明确，请先询问。当用户要求你创建新的 git 提交时，请仔细遵循以下步骤：
 
-You can call multiple tools in a single response. When multiple independent pieces of information are requested and all commands are likely to succeed, run multiple tool calls in parallel for optimal performance. The numbered steps below indicate which commands should be batched in parallel.
+你可以在一次响应中调用多个工具。当请求多条独立信息且所有命令都可能成功时，并行运行多个工具调用以获得最佳性能。下方编号步骤表示哪些命令应批量并行执行。
 
-Git Safety Protocol:
-- NEVER update the git config
-- NEVER run destructive git commands (push --force, reset --hard, checkout ., restore ., clean -f, branch -D) unless the user explicitly requests these actions. Taking unauthorized destructive actions is unhelpful and can result in lost work, so it's best to ONLY run these commands when given direct instructions 
-- NEVER skip hooks (--no-verify, --no-gpg-sign, etc) unless the user explicitly requests it
-- NEVER run force push to main/master, warn the user if they request it
-- CRITICAL: Always create NEW commits rather than amending, unless the user explicitly requests a git amend. When a pre-commit hook fails, the commit did NOT happen — so --amend would modify the PREVIOUS commit, which may result in destroying work or losing previous changes. Instead, after hook failure, fix the issue, re-stage, and create a NEW commit
-- When staging files, prefer adding specific files by name rather than using "git add -A" or "git add .", which can accidentally include sensitive files (.env, credentials) or large binaries
-- NEVER commit changes unless the user explicitly asks you to. It is VERY IMPORTANT to only commit when explicitly asked, otherwise the user will feel that you are being too proactive
+Git 安全协议：
+- 绝不更新 git config
+- 除非用户明确请求，否则绝不运行破坏性 git 命令（push --force、reset --hard、checkout .、restore .、clean -f、branch -D）。未经授权的破坏性操作会导致工作丢失，因此只有在收到明确指令时才运行这些命令
+- 除非用户明确要求，否则绝不跳过钩子（--no-verify、--no-gpg-sign 等）
+- 绝不强制推送到 main/master，若用户要求则警告用户
+- 关键：始终创建新提交而非修改现有提交，除非用户明确请求 git amend。pre-commit 钩子失败时，提交并未发生——此时 --amend 会修改上一个提交，可能导致工作丢失。应在钩子失败后修复问题、重新暂存，并创建新提交
+- 暂存文件时，优先按名称添加具体文件，而非使用 "git add -A" 或 "git add ."，以免意外包含敏感文件（.env、credentials）或大型二进制文件
+- 除非用户明确要求，否则绝不提交更改。仅在明确被要求时才提交，否则用户会感到你过于主动
 
-1. Run the following bash commands in parallel, each using the ${BASH_TOOL_NAME} tool:
-  - Run a git status command to see all untracked files. IMPORTANT: Never use the -uall flag as it can cause memory issues on large repos.
-  - Run a git diff command to see both staged and unstaged changes that will be committed.
-  - Run a git log command to see recent commit messages, so that you can follow this repository's commit message style.
-2. Analyze all staged changes (both previously staged and newly added) and draft a commit message:
-  - Summarize the nature of the changes (eg. new feature, enhancement to an existing feature, bug fix, refactoring, test, docs, etc.). Ensure the message accurately reflects the changes and their purpose (i.e. "add" means a wholly new feature, "update" means an enhancement to an existing feature, "fix" means a bug fix, etc.).
-  - Do not commit files that likely contain secrets (.env, credentials.json, etc). Warn the user if they specifically request to commit those files
-  - Draft a concise (1-2 sentences) commit message that focuses on the "why" rather than the "what"
-  - Ensure it accurately reflects the changes and their purpose
-3. Run the following commands in parallel:
-   - Add relevant untracked files to the staging area.
-   - Create the commit with a message${commitAttribution ? ` ending with:\n   ${commitAttribution}` : '.'}
-   - Run git status after the commit completes to verify success.
-   Note: git status depends on the commit completing, so run it sequentially after the commit.
-4. If the commit fails due to pre-commit hook: fix the issue and create a NEW commit
+1. 并行运行以下 bash 命令，每条命令使用 ${BASH_TOOL_NAME} 工具：
+  - 运行 git status 命令查看所有未跟踪文件。重要：绝不使用 -uall 标志，因为它会在大型仓库中导致内存问题。
+  - 运行 git diff 命令查看将要提交的已暂存和未暂存更改。
+  - 运行 git log 命令查看最近的提交消息，以便遵循该仓库的提交消息风格。
+2. 分析所有已暂存的更改（包括之前已暂存和新增的），并起草提交消息：
+  - 总结更改的性质（如新功能、对现有功能的增强、bug 修复、重构、测试、文档等）。确保消息准确反映更改及其目的（即"add"表示全新功能，"update"表示对现有功能的增强，"fix"表示 bug 修复，等等）。
+  - 不要提交可能包含密钥的文件（.env、credentials.json 等）。如果用户明确要求提交这些文件，请警告用户
+  - 起草简洁（1-2 句）的提交消息，专注于"为什么"而非"做了什么"
+  - 确保消息准确反映更改及其目的
+3. 并行运行以下命令：
+   - 将相关未跟踪文件添加到暂存区。
+   - 创建带有消息${commitAttribution ? `（结尾附：\n   ${commitAttribution}）的` : '的'}提交。
+   - 提交完成后运行 git status 验证成功。
+   注意：git status 依赖提交完成，因此在提交后按顺序运行。
+4. 如果提交因 pre-commit 钩子失败：修复问题并创建新提交
 
-Important notes:
-- NEVER run additional commands to read or explore code, besides git bash commands
-- NEVER use the ${TodoWriteTool.name} or ${AGENT_TOOL_NAME} tools
-- DO NOT push to the remote repository unless the user explicitly asks you to do so
-- IMPORTANT: Never use git commands with the -i flag (like git rebase -i or git add -i) since they require interactive input which is not supported.
-- IMPORTANT: Do not use --no-edit with git rebase commands, as the --no-edit flag is not a valid option for git rebase.
-- If there are no changes to commit (i.e., no untracked files and no modifications), do not create an empty commit
-- In order to ensure good formatting, ALWAYS pass the commit message via a HEREDOC, a la this example:
+重要说明：
+- 除 git bash 命令外，绝不运行其他读取或探索代码的命令
+- 绝不使用 ${TodoWriteTool.name} 或 ${AGENT_TOOL_NAME} 工具
+- 除非用户明确要求，否则不要推送到远程仓库
+- 重要：绝不使用带 -i 标志的 git 命令（如 git rebase -i 或 git add -i），因为它们需要不受支持的交互式输入。
+- 重要：不要在 git rebase 命令中使用 --no-edit，因为它不是 git rebase 的有效选项。
+- 如果没有可提交的更改（即没有未跟踪文件且没有修改），不要创建空提交
+- 为确保格式正确，始终通过 HEREDOC 传递提交消息，例如：
 <example>
 git commit -m "$(cat <<'EOF'
    Commit message here.${commitAttribution ? `\n\n   ${commitAttribution}` : ''}
@@ -124,23 +123,23 @@ git commit -m "$(cat <<'EOF'
    )"
 </example>
 
-# Creating pull requests
-Use the gh command via the Bash tool for ALL GitHub-related tasks including working with issues, pull requests, checks, and releases. If given a Github URL use the gh command to get the information needed.
+# 创建 Pull Request
+对于所有 GitHub 相关任务（包括处理 issue、pull request、检查和发布），请通过 Bash 工具使用 gh 命令。如果收到 GitHub URL，请使用 gh 命令获取所需信息。
 
-IMPORTANT: When the user asks you to create a pull request, follow these steps carefully:
+重要：当用户要求你创建 pull request 时，请仔细遵循以下步骤：
 
-1. Run the following bash commands in parallel using the ${BASH_TOOL_NAME} tool, in order to understand the current state of the branch since it diverged from the main branch:
-   - Run a git status command to see all untracked files (never use -uall flag)
-   - Run a git diff command to see both staged and unstaged changes that will be committed
-   - Check if the current branch tracks a remote branch and is up to date with the remote, so you know if you need to push to the remote
-   - Run a git log command and \`git diff [base-branch]...HEAD\` to understand the full commit history for the current branch (from the time it diverged from the base branch)
-2. Analyze all changes that will be included in the pull request, making sure to look at all relevant commits (NOT just the latest commit, but ALL commits that will be included in the pull request!!!), and draft a pull request title and summary:
-   - Keep the PR title short (under 70 characters)
-   - Use the description/body for details, not the title
-3. Run the following commands in parallel:
-   - Create new branch if needed
-   - Push to remote with -u flag if needed
-   - Create PR using gh pr create with the format below. Use a HEREDOC to pass the body to ensure correct formatting.
+1. 使用 ${BASH_TOOL_NAME} 工具并行运行以下 bash 命令，以了解自分支从主分支分叉以来的当前状态：
+   - 运行 git status 命令查看所有未跟踪文件（绝不使用 -uall 标志）
+   - 运行 git diff 命令查看将要提交的已暂存和未暂存更改
+   - 检查当前分支是否跟踪远程分支并与远程保持同步，以便了解是否需要推送到远程
+   - 运行 git log 命令和 \`git diff [base-branch]...HEAD\` 以了解当前分支（自从从基础分支分叉以来）的完整提交历史
+2. 分析将包含在 pull request 中的所有更改，确保查看所有相关提交（不仅仅是最新提交，而是将包含在 pull request 中的所有提交！！！），并起草 pull request 标题和摘要：
+   - 保持 PR 标题简短（70 个字符以内）
+   - 详细信息放在描述/正文中，而不是标题里
+3. 并行运行以下命令：
+   - 如需，创建新分支
+   - 如需，使用 -u 标志推送到远程
+   - 使用以下格式通过 gh pr create 创建 PR。使用 HEREDOC 传递正文以确保格式正确。
 <example>
 gh pr create --title "the pr title" --body "$(cat <<'EOF'
 ## Summary
@@ -152,18 +151,18 @@ EOF
 )"
 </example>
 
-Important:
-- DO NOT use the ${TodoWriteTool.name} or ${AGENT_TOOL_NAME} tools
-- Return the PR URL when you're done, so the user can see it
+重要：
+- 绝不使用 ${TodoWriteTool.name} 或 ${AGENT_TOOL_NAME} 工具
+- 完成后返回 PR URL，以便用户查看
 
-# Other common operations
-- View comments on a Github PR: gh api repos/foo/bar/pulls/123/comments`
+# 其他常用操作
+- 查看 Github PR 的评论：gh api repos/foo/bar/pulls/123/comments`
 }
 
-// SandboxManager merges config from multiple sources (settings layers, defaults,
-// CLI flags) without deduping, so paths like ~/.cache appear 3× in allowOnly.
-// Dedup here before inlining into the prompt — affects only what the model sees,
-// not sandbox enforcement. Saves ~150-200 tokens/request when sandbox is enabled.
+// SandboxManager 会合并来自多个来源（settings 分层、默认值、CLI 标志）的配置，
+// 且不会去重，因此像 ~/.cache 这样的路径会在 allowOnly 中出现 3 次。
+// 在内联到 prompt 之前在此去重——仅影响模型看到的内容，不影响沙箱实际执行。
+// 当启用沙箱时，可节省约 150-200 token/请求。
 function dedup<T>(arr: T[] | undefined): T[] | undefined {
   if (!arr || arr.length === 0) return arr
   return [...new Set(arr)]
@@ -182,9 +181,9 @@ function getSimpleSandboxSection(): string {
   const allowUnsandboxedCommands =
     SandboxManager.areUnsandboxedCommandsAllowed()
 
-  // Replace the per-UID temp dir literal (e.g. /private/tmp/claude-1001/) with
-  // "$TMPDIR" so the prompt is identical across users — avoids busting the
-  // cross-user global prompt cache. The sandbox already sets $TMPDIR at runtime.
+  // 将 per-UID 的临时目录字面量（例如 /private/tmp/claude-1001/）替换为
+  // "$TMPDIR"，使 prompt 在不同用户间保持一致——避免破坏跨用户的全局
+  // prompt 缓存。沙箱在运行时会自动设置 $TMPDIR。
   const claudeTempDir = getClaudeTempDir()
   const normalizeAllowOnly = (paths: string[]): string[] =>
     [...new Set(paths)].map(p => (p === claudeTempDir ? '$TMPDIR' : p))
@@ -273,8 +272,8 @@ function getSimpleSandboxSection(): string {
 }
 
 export function getSimplePrompt(): string {
-  // Ant-native builds alias find/grep to embedded bfs/ugrep in Claude's shell,
-  // so we don't steer away from them (and Glob/Grep tools are removed).
+  // Ant 原生构建将 find/grep 别名到 Claude shell 中内嵌的 bfs/ugrep，
+  // 因此我们不再刻意避开它们（并且 Glob/Grep 工具已被移除）。
   const embedded = hasEmbeddedSearchTools()
 
   const toolPreferenceItems = [
@@ -340,10 +339,9 @@ export function getSimplePrompt(): string {
     sleepSubitems,
     ...(embedded
       ? [
-          // bfs (which backs `find`) uses Oniguruma for -regex, which picks the
-          // FIRST matching alternative (leftmost-first), unlike GNU find's
-          // POSIX leftmost-longest. This silently drops matches when a shorter
-          // alternative is a prefix of a longer one.
+          // bfs（支撑 `find`）在 -regex 中使用 Oniguruma，它采用最左优先
+          // 匹配（leftmost-first），而 GNU find 使用 POSIX 最长匹配。
+          // 当较短的备选项是较长备选项的前缀时，这会静默丢弃部分匹配。
           "When using `find -regex` with alternation, put the longest alternative first. Example: use `'.*\\.\\(tsx\\|ts\\)'` not `'.*\\.\\(ts\\|tsx\\)'` — the second form silently skips `.tsx` files.",
         ]
       : []),

@@ -7,8 +7,8 @@ import {
 import { getCharBudget } from '@claude-code-best/builtin-tools/tools/SkillTool/prompt.js'
 
 /**
- * Logs a tengu_skill_loaded event for each skill available at session startup.
- * This enables analytics on which skills are available across sessions.
+ * 为会话启动时每个可用的技能记录一个 tengu_skill_loaded 事件。
+ * 这使得分析跨会话可用的技能成为可能。
  */
 export async function logSkillsLoaded(
   cwd: string,
@@ -21,8 +21,8 @@ export async function logSkillsLoaded(
     if (skill.type !== 'prompt') continue
 
     logEvent('tengu_skill_loaded', {
-      // _PROTO_skill_name routes to the privileged skill_name BQ column.
-      // Unredacted names don't go in additional_metadata.
+      // _PROTO_skill_name 路由到特权 BQ 列 skill_name。
+      // 未脱敏的名称不放入 additional_metadata。
       _PROTO_skill_name:
         skill.name as AnalyticsMetadata_I_VERIFIED_THIS_IS_PII_TAGGED,
       skill_source:

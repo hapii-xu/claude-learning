@@ -93,41 +93,41 @@ function buildInlineReference(
   return sections.join('\n\n')
 }
 
-const INLINE_READING_GUIDE = `## Reference Documentation
+const INLINE_READING_GUIDE = `## 参考文档
 
-The relevant documentation for your detected language is included below in \`<doc>\` tags. Each tag has a \`path\` attribute showing its original file path. Use this to find the right section:
+检测到的语言的相关文档以 \`<doc>\` 标签的形式包含在下方。每个标签有 \`path\` 属性显示其原始文件路径。使用它来找到正确的章节：
 
-### Quick Task Reference
+### 快速任务参考
 
-**Single text classification/summarization/extraction/Q&A:**
-→ Refer to \`{lang}/claude-api/README.md\`
+**单次文本分类/摘要/提取/问答：**
+→ 参考 \`{lang}/claude-api/README.md\`
 
-**Chat UI or real-time response display:**
-→ Refer to \`{lang}/claude-api/README.md\` + \`{lang}/claude-api/streaming.md\`
+**聊天 UI 或实时响应显示：**
+→ 参考 \`{lang}/claude-api/README.md\` + \`{lang}/claude-api/streaming.md\`
 
-**Long-running conversations (may exceed context window):**
-→ Refer to \`{lang}/claude-api/README.md\` — see Compaction section
+**长时间对话（可能超出上下文窗口）：**
+→ 参考 \`{lang}/claude-api/README.md\` — 查看 Compaction 章节
 
-**Prompt caching / optimize caching / "why is my cache hit rate low":**
-→ Refer to \`shared/prompt-caching.md\` + \`{lang}/claude-api/README.md\` (Prompt Caching section)
+**Prompt 缓存 / 优化缓存 / "为什么我的缓存命中率低"：**
+→ 参考 \`shared/prompt-caching.md\` + \`{lang}/claude-api/README.md\`（Prompt Caching 章节）
 
-**Function calling / tool use / agents:**
-→ Refer to \`{lang}/claude-api/README.md\` + \`shared/tool-use-concepts.md\` + \`{lang}/claude-api/tool-use.md\`
+**函数调用 / 工具使用 / agent：**
+→ 参考 \`{lang}/claude-api/README.md\` + \`shared/tool-use-concepts.md\` + \`{lang}/claude-api/tool-use.md\`
 
-**Batch processing (non-latency-sensitive):**
-→ Refer to \`{lang}/claude-api/README.md\` + \`{lang}/claude-api/batches.md\`
+**批量处理（对延迟不敏感）：**
+→ 参考 \`{lang}/claude-api/README.md\` + \`{lang}/claude-api/batches.md\`
 
-**File uploads across multiple requests:**
-→ Refer to \`{lang}/claude-api/README.md\` + \`{lang}/claude-api/files-api.md\`
+**跨多个请求的文件上传：**
+→ 参考 \`{lang}/claude-api/README.md\` + \`{lang}/claude-api/files-api.md\`
 
-**Agent with built-in tools (file/web/terminal) (Python & TypeScript only):**
-→ Refer to \`{lang}/agent-sdk/README.md\` + \`{lang}/agent-sdk/patterns.md\`
+**带内置工具（文件/Web/终端）的 Agent（仅 Python 和 TypeScript）：**
+→ 参考 \`{lang}/agent-sdk/README.md\` + \`{lang}/agent-sdk/patterns.md\`
 
-**Error handling:**
-→ Refer to \`shared/error-codes.md\`
+**错误处理：**
+→ 参考 \`shared/error-codes.md\`
 
-**Latest docs via WebFetch:**
-→ Refer to \`shared/live-sources.md\` for URLs`
+**通过 WebFetch 获取最新文档：**
+→ 参考 \`shared/live-sources.md\` 获取 URL`
 
 function buildPrompt(
   lang: DetectedLanguage | null,
@@ -156,7 +156,7 @@ function buildPrompt(
     // 未检测到语言 —— 包含所有文档，让模型向用户询问
     parts.push(INLINE_READING_GUIDE.replace(/\{lang\}/g, 'unknown'))
     parts.push(
-      'No project language was auto-detected. Ask the user which language they are using, then refer to the matching docs below.',
+      '未能自动检测到项目语言。请询问用户正在使用哪种语言，然后参考下方对应的文档。',
     )
     parts.push(
       '---\n\n## Included Documentation\n\n' +
@@ -181,9 +181,9 @@ export function registerClaudeApiSkill(): void {
   registerBundledSkill({
     name: 'claude-api',
     description:
-      'Build apps with the Claude API or Anthropic SDK.\n' +
-      'TRIGGER when: code imports `anthropic`/`@anthropic-ai/sdk`/`claude_agent_sdk`, or user asks to use Claude API, Anthropic SDKs, or Agent SDK.\n' +
-      'DO NOT TRIGGER when: code imports `openai`/other AI SDK, general programming, or ML/data-science tasks.',
+      '使用 Claude API 或 Anthropic SDK 构建应用。\n' +
+      '触发条件：代码导入了 `anthropic`/`@anthropic-ai/sdk`/`claude_agent_sdk`，或用户要求使用 Claude API、Anthropic SDK 或 Agent SDK。\n' +
+      '不触发条件：代码导入了 `openai` 或其他 AI SDK、通用编程任务，或机器学习/数据科学任务。',
     allowedTools: ['Read', 'Grep', 'Glob', 'WebFetch'],
     userInvocable: true,
     async getPromptForCommand(args) {

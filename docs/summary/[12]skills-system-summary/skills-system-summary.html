@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Skills 系统详解 — Claude Code 可复用提示词单元 · SKILL.md 字段 · 15+ 示例</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #8b5cf6;
+      --purple-lt: #ede9fe;
+      --red:       #dc2626;
+      --red-lt:    #fee2e2;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+
+    .page-wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px 80px; }
+    section { margin-top: 56px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; letter-spacing: .01em; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; margin-top: 20px; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--orange-dk); margin: 14px 0 8px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f0f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.2rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero h1 span { color: var(--orange); }
+    .hero p { font-size: 1rem; color: var(--text-2); max-width: 720px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 5px 14px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .8rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s, box-shadow .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); box-shadow: 0 2px 6px rgba(215,119,87,.15); text-decoration: none; }
+
+    .diagram-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px 16px; box-shadow: var(--shadow); overflow-x: auto; margin-bottom: 16px; }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+    .info-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+
+    .knowledge-grid { display: flex; flex-direction: column; gap: 12px; }
+    details.know-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    details.know-card[open] { border-color: var(--orange-lt); }
+    details.know-card > summary { display: flex; align-items: center; gap: 14px; padding: 16px 20px; cursor: pointer; user-select: none; list-style: none; outline: none; }
+    details.know-card > summary::-webkit-details-marker { display: none; }
+    details.know-card > summary:hover { background: var(--bg); }
+    .know-num { flex-shrink: 0; width: 30px; height: 30px; background: var(--orange-lt); color: var(--orange-dk); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; }
+    details.know-card[open] .know-num { background: var(--orange); color: #fff; }
+    .know-title { flex: 1; font-weight: 700; font-size: .97rem; }
+    .know-sub { font-size: .78rem; color: var(--text-3); font-weight: 400; margin-left: 6px; }
+    .know-arrow { width: 18px; height: 18px; color: var(--text-3); transition: transform .2s; flex-shrink: 0; }
+    details.know-card[open] .know-arrow { transform: rotate(90deg); color: var(--orange); }
+    .know-body { padding: 0 20px 20px 64px; }
+    .know-body p { margin-bottom: 8px; }
+
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .79rem; line-height: 1.75; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); white-space: pre; }
+    code { font-family: var(--font-mono); }
+    .kw  { color: #7c9bff; font-weight: 600; }
+    .str { color: #6cc77a; }
+    .fn  { color: #f0906a; }
+    .cmt { color: #6e6a62; font-style: italic; }
+    .type{ color: #e0a020; }
+    .num { color: #c792ea; }
+    .prop{ color: #f9c869; }
+    p code, li code, td code, h3 code, h4 code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    .pipeline { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .pipe-step { display: flex; align-items: flex-start; gap: 14px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; box-shadow: var(--shadow); }
+    .pipe-step.highlight { border-color: var(--orange); background: #fffaf7; }
+    .pipe-step.highlight .pipe-num { background: var(--orange); color: #fff; }
+    .pipe-num { flex-shrink: 0; width: 26px; height: 26px; background: var(--bg3); color: var(--text); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .78rem; font-weight: 700; margin-top: 1px; }
+    .pipe-content { flex: 1; }
+    .pipe-title { font-weight: 700; font-size: .88rem; color: var(--text); margin-bottom: 3px; }
+    .pipe-desc { font-size: .82rem; color: var(--text-2); }
+
+    .tag { display: inline-block; background: var(--blue-lt); color: var(--blue-dk); font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; letter-spacing: .03em; }
+    .tag-orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .tag-green  { background: var(--green-lt);  color: #1a7a4e; }
+    .tag-purple { background: var(--purple-lt); color: #6d28d9; }
+
+    .file-path { font-family: var(--font-mono); font-size: .78rem; color: var(--blue-dk); }
+    .section-desc { color: var(--text-2); font-size: .92rem; margin-bottom: 20px; }
+    ul.key-list { padding-left: 20px; color: var(--text-2); }
+    ul.key-list li { margin-bottom: 5px; }
+    ol.step-list { padding-left: 20px; color: var(--text-2); }
+    ol.step-list li { margin-bottom: 8px; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    .call-out { background: var(--orange-lt); border-left: 4px solid var(--orange); border-radius: 0 var(--radius) var(--radius) 0; padding: 12px 16px; margin: 12px 0; font-size: .9rem; color: var(--orange-dk); }
+    .call-out-blue { background: var(--blue-lt); border-left: 4px solid var(--blue); border-radius: 0 var(--radius) var(--radius) 0; padding: 12px 16px; margin: 12px 0; font-size: .9rem; color: var(--blue-dk); }
+
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .know-body { padding-left: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">Skills 系统 · 可复用提示词单元</div>
+  <h1>Claude Code <span>Skills 详解</span></h1>
+  <p>SKILL.md 完整 frontmatter 字段字典 · 参数注入语法（$ARGUMENTS / $ARG1 / ${CLAUDE_SKILL_DIR}）· Shell 注入 · 内联/分叉执行模式 · 条件激活机制 · 15+ 真实世界示例 — 让模型复用你定义的工作流程</p>
+  <ul class="nav-links">
+    <li><a href="#concept">概念架构</a></li>
+    <li><a href="#frontmatter">字段字典</a></li>
+    <li><a href="#args">参数注入</a></li>
+    <li><a href="#tools">allowed-tools</a></li>
+    <li><a href="#fork">fork 模式</a></li>
+    <li><a href="#when">when-to-use</a></li>
+    <li><a href="#paths">条件激活</a></li>
+    <li><a href="#hooks">内联 Hooks</a></li>
+    <li><a href="#examples">实战示例</a></li>
+    <li><a href="#pipeline">加载流水线</a></li>
+    <li><a href="#files">源码文件</a></li>
+    <li><a href="#cheatsheet">速查卡</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+<!-- ════ 1. 概念 ════ -->
+<section id="concept">
+  <h2>一、概念与整体架构</h2>
+  <p class="section-desc">Skill 是存放在 Markdown 文件中的<strong>可复用工作流提示词模板</strong>。它告诉模型应该如何思考这类任务、可以调用哪些工具、按什么顺序执行步骤。与工具（Tool）不同，Skill 不给模型新的底层能力，而是提供预定义的工作流程。</p>
+
+  <h3>两种执行模式</h3>
+  <div class="card-grid">
+    <div class="info-card">
+      <h3><span class="tag tag-blue">内联模式</span>（默认）</h3>
+      <ul class="key-list">
+        <li>提示词注入当前对话</li>
+        <li>模型能看到整个对话历史</li>
+        <li>适合交互式、需要上下文的任务</li>
+        <li>示例：<code>/commit</code>（需要看到改了什么）</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3><span class="tag tag-orange">分叉模式</span>（context: fork）</h3>
+      <ul class="key-list">
+        <li>创建独立子代理，独立 token 预算</li>
+        <li>子代理有独立对话状态</li>
+        <li>适合自包含任务（不需要历史上下文）</li>
+        <li>示例：<code>/generate-tests</code>（独立工作）</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>目录结构</h3>
+  <pre>.claude/
+└── skills/
+    ├── my-skill/
+    │   ├── SKILL.md          <span class="cmt">← 必须（技能定义）</span>
+    │   ├── helper.sh         <span class="cmt">← 可选（辅助脚本）</span>
+    │   └── schema.json       <span class="cmt">← 可选（数据结构定义）</span>
+    └── another-skill/
+        └── SKILL.md
+
+~/.claude/
+└── skills/
+    └── global-skill/
+        └── SKILL.md          <span class="cmt">← 用户级全局 Skill</span></pre>
+
+  <h3>调用方式</h3>
+  <pre><span class="cmt"># 用户在 REPL 中直接输入</span>
+/my-skill arg1 arg2
+
+<span class="cmt"># 模型自主调用（通过 SkillTool）</span>
+<span class="cmt"># 模型会根据 when-to-use 字段决定何时调用</span></pre>
+</section>
+
+<!-- ════ 2. frontmatter 字段字典 ════ -->
+<section id="frontmatter">
+  <h2>二、SKILL.md 完整 Frontmatter 字段字典</h2>
+  <p class="section-desc">每个 Skill 的 <code>SKILL.md</code> 文件由 YAML frontmatter（元数据）+ 正文（提示词内容）两部分组成。</p>
+
+  <pre>---
+<span class="cmt"># ← YAML frontmatter（元数据）</span>
+<span class="prop">description</span>: <span class="str">这个 Skill 做什么</span>
+<span class="prop">allowed-tools</span>: [<span class="str">BashTool</span>, <span class="str">Read</span>]
+<span class="cmt"># ...</span>
+---
+
+<span class="cmt"># ← 正文（提示词内容）</span>
+请按以下步骤执行...</pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>字段</th><th>类型</th><th>默认值</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code>description</code></td><td><code>string</code></td><td>从正文第一行提取</td><td><strong>核心字段</strong>，显示在 <code>/</code> 命令列表，也是模型看到的工具描述</td></tr>
+        <tr><td><code>name</code></td><td><code>string</code></td><td>目录名</td><td>覆盖显示名称（不影响调用名，调用名始终是目录名）</td></tr>
+        <tr><td><code>argument-hint</code></td><td><code>string</code></td><td>—</td><td>UI 输入提示，如 <code>&lt;file-path&gt; [options]</code></td></tr>
+        <tr><td><code>arguments</code></td><td><code>string \| string[]</code></td><td><code>[]</code></td><td>命名参数列表，定义后可用 <code>$ARG1</code>、<code>$ARG2</code> 引用</td></tr>
+        <tr><td><code>when-to-use</code></td><td><code>string</code></td><td>—</td><td>告诉模型<strong>何时主动</strong>调用此 Skill（关键！）</td></tr>
+        <tr><td><code>allowed-tools</code></td><td><code>string[]</code></td><td><code>[]</code></td><td>执行时自动允许的工具（不弹权限确认框）</td></tr>
+        <tr><td><code>model</code></td><td><code>string</code></td><td>继承当前模型</td><td>覆盖执行模型，如 <code>claude-opus-4-8</code></td></tr>
+        <tr><td><code>effort</code></td><td><code>string \| number</code></td><td>继承</td><td>努力程度：<code>low</code> / <code>medium</code> / <code>high</code> 或数字</td></tr>
+        <tr><td><code>context</code></td><td><code>"fork"</code></td><td>—（内联）</td><td>设为 <code>fork</code> 使用独立子代理执行</td></tr>
+        <tr><td><code>agent</code></td><td><code>string</code></td><td>—</td><td>指定执行此 Skill 的 Agent 类型名</td></tr>
+        <tr><td><code>user-invocable</code></td><td><code>boolean</code></td><td><code>true</code></td><td><code>false</code> = 从 <code>/</code> 命令列表隐藏（仅供模型调用）</td></tr>
+        <tr><td><code>disable-model-invocation</code></td><td><code>boolean</code></td><td><code>false</code></td><td><code>true</code> = 只注入提示词，不触发模型调用</td></tr>
+        <tr><td><code>version</code></td><td><code>string</code></td><td>—</td><td>语义版本号，如 <code>1.2.0</code></td></tr>
+        <tr><td><code>paths</code></td><td><code>string</code></td><td>—</td><td>gitignore 格式的路径模式，只有触碰匹配文件时才激活</td></tr>
+        <tr><td><code>hooks</code></td><td><code>object</code></td><td>—</td><td>内联 Hook 配置，格式与 <code>settings.json</code> 相同</td></tr>
+        <tr><td><code>shell</code></td><td><code>object</code></td><td>—</td><td>Shell 执行配置（控制 <code>!</code> 命令的执行方式）</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ════ 3. 参数注入 ════ -->
+<section id="args">
+  <h2>三、参数注入语法</h2>
+
+  <div class="knowledge-grid">
+
+    <details class="know-card" open>
+      <summary><div class="know-num">1</div><div class="know-title"><code>$ARGUMENTS</code> — 全量参数字符串</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>---
+<span class="prop">description</span>: <span class="str">提交代码</span>
+---
+
+请用以下 commit message 提交当前暂存的代码：
+
+**$ARGUMENTS**
+
+如果 $ARGUMENTS 为空，请先询问用户想要什么样的 commit message。</pre>
+        <p>调用：<code>/commit fix: 修复登录验证问题</code></p>
+        <p><code>$ARGUMENTS</code> 展开为：<code>fix: 修复登录验证问题</code></p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">2</div><div class="know-title"><code>arguments</code> + <code>$ARG1</code> / <code>$ARG2</code> — 命名位置参数</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>---
+<span class="prop">description</span>: <span class="str">对比两个文件的差异</span>
+<span class="prop">arguments</span>: [<span class="str">file1</span>, <span class="str">file2</span>]
+<span class="prop">argument-hint</span>: <span class="str">"&lt;file1&gt; &lt;file2&gt;"</span>
+<span class="prop">allowed-tools</span>: [<span class="str">Read</span>, <span class="str">BashTool</span>]
+---
+
+请对比以下两个文件的差异：
+
+- 文件 1：$ARG1
+- 文件 2：$ARG2
+
+首先读取两个文件，然后分析差异并给出建议。</pre>
+        <p>调用：<code>/diff src/old.ts src/new.ts</code></p>
+        <ul class="key-list">
+          <li><code>$ARG1</code> = <code>src/old.ts</code></li>
+          <li><code>$ARG2</code> = <code>src/new.ts</code></li>
+          <li><code>$ARGUMENTS</code> = <code>src/old.ts src/new.ts</code>（完整字符串，始终可用）</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">3</div><div class="know-title"><code>${CLAUDE_SKILL_DIR}</code> — Skill 自身的目录路径</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p><strong>用途</strong>：让 Skill 引用自己目录下的辅助文件（脚本、模板、Schema 等）。</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">运行项目特定的检查脚本</span>
+<span class="prop">allowed-tools</span>: [<span class="str">BashTool</span>]
+---
+
+请运行以下检查脚本并报告结果：
+
+<span class="str">`${CLAUDE_SKILL_DIR}/check.sh $ARGUMENTS`</span></pre>
+        <p>如果 Skill 在 <code>.claude/skills/project-check/SKILL.md</code>，则 <code>${CLAUDE_SKILL_DIR}</code> = <code>/absolute/path/to/.claude/skills/project-check</code>。</p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">4</div><div class="know-title"><code>${CLAUDE_SESSION_ID}</code> — 当前会话 ID</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>---
+<span class="prop">description</span>: <span class="str">记录任务进度到会话专属文件</span>
+<span class="prop">allowed-tools</span>: [<span class="str">BashTool</span>, <span class="str">FileWriteTool</span>]
+---
+
+将任务状态记录到会话日志：
+
+任务：$ARGUMENTS
+日志文件：/tmp/claude-session-${CLAUDE_SESSION_ID}.log</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">5</div><div class="know-title">Shell 注入：<code>!</code> 语法（正文中执行命令并内嵌输出）</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p>在 SKILL.md 的<strong>正文</strong>（非 frontmatter）中，用反引号 <code>!`command`</code> 语法嵌入 Shell 命令，Claude Code 会在展示提示词给模型之前<strong>先执行这些命令并将输出内嵌进去</strong>。</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">显示当前 git 状态供模型参考</span>
+<span class="prop">allowed-tools</span>: [<span class="str">BashTool</span>]
+---
+
+当前 git 状态（自动收集）：
+
+<span class="str">```!`command`</span>
+git status --short
+git log --oneline -5
+<span class="str">```</span>
+
+请基于以上状态，帮我生成合适的 commit message。</pre>
+        <div class="call-out">Shell 注入命令中可使用 <code>${CLAUDE_SKILL_DIR}</code> 引用 Skill 自身的脚本文件：<code>!`${CLAUDE_SKILL_DIR}/collect-project-info.sh`</code></div>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<!-- ════ 4. allowed-tools ════ -->
+<section id="tools">
+  <h2>四、<code>allowed-tools</code> 字段详解</h2>
+  <p class="section-desc">设置后，Skill 执行期间这些工具<strong>无需用户确认</strong>即可使用。</p>
+
+  <pre><span class="prop">allowed-tools</span>:
+  - <span class="str">BashTool</span>        <span class="cmt"># Bash 命令执行</span>
+  - <span class="str">Read</span>            <span class="cmt"># 文件读取</span>
+  - <span class="str">FileWriteTool</span>   <span class="cmt"># 文件写入（含 Edit）</span>
+  - <span class="str">GlobTool</span>        <span class="cmt"># 文件模式匹配</span>
+  - <span class="str">GrepTool</span>        <span class="cmt"># 内容搜索</span>
+  - <span class="str">AgentTool</span>       <span class="cmt"># 子代理</span>
+  - <span class="str">SkillTool</span>       <span class="cmt"># 调用其他 Skill</span></pre>
+
+  <h4>允许规则（精细控制）</h4>
+  <pre><span class="prop">allowed-tools</span>:
+  - <span class="str">"BashTool(git *)"</span>           <span class="cmt"># 只允许 git 命令</span>
+  - <span class="str">"BashTool(npm test)"</span>        <span class="cmt"># 精确匹配</span>
+  - <span class="str">"Read(src/**)"</span>             <span class="cmt"># 只允许读 src 目录</span>
+  - <span class="str">"FileWriteTool(*.md)"</span>      <span class="cmt"># 只允许写 md 文件</span></pre>
+</section>
+
+<!-- ════ 5. fork 模式 ════ -->
+<section id="fork">
+  <h2>五、<code>context: fork</code> — 分叉执行模式</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>内联模式（默认）</th><th>分叉模式（fork）</th></tr></thead>
+      <tbody>
+        <tr><td>任务需要看历史上下文</td><td>任务自包含，不需要历史</td></tr>
+        <tr><td>与用户交互式</td><td>后台独立完成</td></tr>
+        <tr><td>轻量级任务</td><td>复杂、耗时的独立任务</td></tr>
+        <tr><td>代码审查（需要看到改了什么）</td><td>生成测试（只需读源码）</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="call-out"><strong>fork 模式下的 token 预算</strong>：Fork 子代理有独立的 token 预算，不影响主对话的上下文窗口。这对需要读取大量文件的任务非常有价值。</div>
+  <pre>---
+<span class="prop">context</span>: <span class="str">fork</span>
+<span class="prop">model</span>: <span class="str">claude-opus-4-8</span>
+<span class="prop">effort</span>: <span class="str">high</span>
+---</pre>
+</section>
+
+<!-- ════ 6. when-to-use ════ -->
+<section id="when">
+  <h2>六、<code>when-to-use</code> — 让模型主动调用</h2>
+  <p class="section-desc">这是让模型<strong>无需用户输入 <code>/</code></strong> 就主动调用 Skill 的关键字段。</p>
+  <pre><span class="prop">when-to-use</span>: <span class="str">|</span>
+<span class="str">  当用户完成了代码修改并提到要"提交"或"commit"时，自动触发此 Skill。</span>
+<span class="str">  当用户说"帮我提交"、"commit 一下"、"推送代码"时使用。</span></pre>
+  <h4>好的 when-to-use 写法</h4>
+  <ul class="key-list">
+    <li>具体描述用户的意图或措辞</li>
+    <li>说明触发条件（用户说了什么、做了什么）</li>
+    <li>说明不该触发的情况（避免过度触发）</li>
+  </ul>
+</section>
+
+<!-- ════ 7. 条件激活 ════ -->
+<section id="paths">
+  <h2>七、条件激活 Skill（<code>paths</code> 字段）</h2>
+  <p class="section-desc">有 <code>paths</code> 字段的 Skill 是<strong>条件 Skill</strong>，只有在会话中<strong>触碰（读/写/搜索）</strong>了匹配路径的文件时，才会被激活并出现在可用 Skill 列表中。</p>
+
+  <pre><span class="prop">paths</span>: <span class="str">"src/frontend/**/*.tsx src/frontend/**/*.jsx"</span></pre>
+
+  <h4>gitignore 风格的模式语法</h4>
+  <pre><span class="cmt"># 匹配特定目录</span>
+<span class="prop">paths</span>: <span class="str">"src/api/**"</span>
+
+<span class="cmt"># 匹配多种文件（空格分隔）</span>
+<span class="prop">paths</span>: <span class="str">"*.go go.mod go.sum"</span>
+
+<span class="cmt"># 匹配特定文件名</span>
+<span class="prop">paths</span>: <span class="str">".env .env.local"</span>
+
+<span class="cmt"># 复杂模式（换行分隔也行）</span>
+<span class="prop">paths</span>: <span class="str">|</span>
+<span class="str">  src/database/**/*.sql</span>
+<span class="str">  migrations/**</span>
+<span class="str">  models/**</span></pre>
+
+  <div class="call-out-blue"><strong>激活后的行为</strong>：条件 Skill 激活后，在<strong>当前 session 内永久激活</strong>（不会因 <code>/clear</code> 重置）。<code>user-invocable: false</code> + <code>paths</code> = 完全自动触发的隐式 Skill。</div>
+</section>
+
+<!-- ════ 8. 内联 Hooks ════ -->
+<section id="hooks">
+  <h2>八、内联 Hooks（<code>hooks</code> 字段）</h2>
+  <p class="section-desc">Skill 的 frontmatter 中可以直接定义 Hooks，这些 Hooks 只在该 Skill <strong>激活期间</strong>有效。格式与 <code>settings.json</code> 中完全相同。</p>
+  <pre><span class="prop">hooks</span>:
+  <span class="prop">PreToolUse</span>:
+    - <span class="prop">matcher</span>: <span class="str">"Bash(git commit*)"</span>
+      <span class="prop">hooks</span>:
+        - <span class="prop">type</span>: <span class="str">command</span>
+          <span class="prop">command</span>: <span class="str">|</span>
+<span class="str">            git diff --cached --stat</span>
+          <span class="prop">statusMessage</span>: <span class="str">显示待提交内容...</span>
+  <span class="prop">PostToolUse</span>:
+    - <span class="prop">matcher</span>: <span class="str">"Bash(*)"</span>
+      <span class="prop">hooks</span>:
+        - <span class="prop">type</span>: <span class="str">command</span>
+          <span class="prop">command</span>: <span class="str">echo "命令执行完成"</span>
+          <span class="prop">async</span>: <span class="str">true</span></pre>
+</section>
+
+<!-- ════ 9. 实战示例 ════ -->
+<section id="examples">
+  <h2>九、15+ 完整实战示例</h2>
+  <p class="section-desc">全部可直接复制到对应目录使用。</p>
+
+  <div class="knowledge-grid">
+
+    <details class="know-card" open>
+      <summary><div class="know-num">1</div><div class="know-title">最简 Skill — 打招呼</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/skills/hello/SKILL.md</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">用创意方式向用户打招呼</span>
+---
+
+请用中文向用户说一句有创意的问候语，并询问今天有什么可以帮助的。
+要求：友好、简洁、不超过两句话。</pre>
+        <p>调用：<code>/hello</code></p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">2</div><div class="know-title">带参数的代码审查 Skill</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/skills/review/SKILL.md</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">对指定文件进行全面代码审查，输出改进建议</span>
+<span class="prop">argument-hint</span>: <span class="str">&lt;file-path&gt; [focus-area]</span>
+<span class="prop">arguments</span>: [<span class="str">filepath</span>, <span class="str">focus</span>]
+<span class="prop">when-to-use</span>: <span class="str">|</span>
+<span class="str">  当用户要求"审查"、"review"、"检查代码"某个具体文件时使用。</span>
+<span class="prop">allowed-tools</span>: [<span class="str">Read</span>, <span class="str">GlobTool</span>, <span class="str">GrepTool</span>]
+<span class="prop">version</span>: <span class="str">1.0.0</span>
+---
+
+<span class="cmt"># 代码审查</span>
+
+请对以下文件进行全面审查：<span class="str">`$ARG1`</span>
+
+审查重点：$ARG2（如为空则全面审查）
+
+<span class="cmt">## 审查维度</span>
+1. <span class="kw">可读性</span>：命名、结构、注释
+2. <span class="kw">安全性</span>：输入验证、SQL 注入、XSS
+3. <span class="kw">性能</span>：瓶颈、循环优化
+4. <span class="kw">测试覆盖</span>：单测、边界情况
+
+<span class="cmt">## 步骤</span>
+1. 用 Read 读取 $ARG1
+2. 用 GrepTool 查找相关测试文件
+3. 逐项分析，每个问题给出具体行号
+4. 按优先级排序（P0/P1/P2）</pre>
+        <p>调用：<code>/review src/utils/auth.ts security</code></p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">3</div><div class="know-title">分叉执行 + 高质量模型做测试生成</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/skills/generate-tests/SKILL.md</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">为指定模块自动生成完整单元测试</span>
+<span class="prop">argument-hint</span>: <span class="str">&lt;module-path&gt;</span>
+<span class="prop">context</span>: <span class="str">fork</span>
+<span class="prop">model</span>: <span class="str">claude-opus-4-8</span>
+<span class="prop">effort</span>: <span class="str">high</span>
+<span class="prop">allowed-tools</span>: [<span class="str">Read</span>, <span class="str">GlobTool</span>, <span class="str">GrepTool</span>, <span class="str">FileWriteTool</span>, <span class="str">BashTool</span>]
+<span class="prop">when-to-use</span>: <span class="str">当用户要求"生成测试"、"写测试"、"添加单元测试"时使用。</span>
+---
+
+<span class="cmt"># 自动生成单元测试</span>
+
+为以下模块生成完整测试：<span class="str">`$ARGUMENTS`</span>
+
+<span class="cmt">## 流程</span>
+1. 读取源代码，识别所有导出函数/类
+2. 用 GlobTool 查找现有测试，了解测试风格
+3. 为每个导出函数生成测试（正常/边界/错误）
+4. 测试文件命名 <span class="str">`&lt;module&gt;.test.ts`</span>，放在 <span class="str">`__tests__/`</span>
+5. 运行 <span class="str">`bun test $ARGUMENTS`</span> 验证
+
+<span class="cmt">## 输出</span>
+- 测试文件路径
+- 测试用例数量
+- 覆盖的函数列表
+- 发现的源码 bug（如有）</pre>
+        <p>调用：<code>/generate-tests src/utils/auth.ts</code></p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">4</div><div class="know-title">条件激活 Skill（前端文件触碰后自动出现）</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/skills/react-review/SKILL.md</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">React 组件最佳实践自动检查</span>
+<span class="prop">paths</span>: <span class="str">"src/**/*.tsx src/**/*.jsx components/**"</span>
+<span class="prop">user-invocable</span>: <span class="str">false</span>
+<span class="prop">when-to-use</span>: <span class="str">当用户正在修改 React 组件时自动使用。</span>
+<span class="prop">allowed-tools</span>: [<span class="str">Read</span>, <span class="str">GlobTool</span>]
+---
+
+<span class="cmt"># React 组件自动审查</span>
+
+需要审查的文件：<span class="str">`$ARGUMENTS`</span>
+
+<span class="cmt">## 检查内容</span>
+- <span class="kw">Hook 规范</span>：不在条件语句中用 Hook，依赖数组完整
+- <span class="kw">性能</span>：是否需要 memo/useCallback
+- <span class="kw">TypeScript</span>：Props 类型完整，无 any
+- <span class="kw">可访问性</span>：图片 alt、按钮语义化
+
+逐项检查，有问题的给出具体改进方案。</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">5</div><div class="know-title">带内联 Hooks 的 Git 提交 Skill</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/skills/safe-commit/SKILL.md</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">带完整安全检查的 git 提交</span>
+<span class="prop">argument-hint</span>: <span class="str">"&lt;commit message&gt;"</span>
+<span class="prop">allowed-tools</span>: [<span class="str">BashTool</span>]
+<span class="prop">hooks</span>:
+  <span class="prop">PreToolUse</span>:
+    - <span class="prop">matcher</span>: <span class="str">"Bash(git commit*)"</span>
+      <span class="prop">hooks</span>:
+        - <span class="prop">type</span>: <span class="str">command</span>
+          <span class="prop">command</span>: <span class="str">|</span>
+<span class="str">            STAGED=$(git diff --cached --name-only 2&gt;/dev/null)</span>
+<span class="str">            if [ -z "$STAGED" ]; then echo "❌ 无暂存文件" &gt;&amp;2; exit 2; fi</span>
+<span class="str">            if git diff --cached | grep -Ei '(password|secret|token)\s*=' -q; then</span>
+<span class="str">              echo "⚠️ 检测到疑似机密信息" &gt;&amp;2</span>
+<span class="str">            fi</span>
+<span class="str">            echo "📋 待提交：$STAGED"</span>
+          <span class="prop">statusMessage</span>: <span class="str">验证提交内容...</span>
+  <span class="prop">PostToolUse</span>:
+    - <span class="prop">matcher</span>: <span class="str">"Bash(git commit*)"</span>
+      <span class="prop">hooks</span>:
+        - <span class="prop">type</span>: <span class="str">command</span>
+          <span class="prop">command</span>: <span class="str">echo "✅ 提交：$(git log --oneline -1)"</span>
+          <span class="prop">async</span>: <span class="str">true</span>
+---
+
+<span class="cmt"># 安全提交</span>
+1. <span class="str">`git status`</span> 查看状态
+2. <span class="str">`git diff --cached`</span> 确认暂存
+3. <span class="str">`git commit -m "$ARGUMENTS"`</span>
+
+如 $ARGUMENTS 为空，生成符合 Conventional Commits 的 message。</pre>
+        <p>调用：<code>/safe-commit feat: 添加用户注册功能</code></p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">6</div><div class="know-title">使用 Shell 注入自动收集上下文（站会报告）</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/skills/daily-standup/SKILL.md</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">基于 git 历史生成每日站会报告</span>
+<span class="prop">allowed-tools</span>: [<span class="str">BashTool</span>]
+---
+
+<span class="cmt"># 每日站会报告生成</span>
+
+以下是今天的工作数据（自动收集）：
+
+<span class="cmt">## Git 活动（今天）</span>
+
+<span class="str">```!</span>
+<span class="str">git log --oneline --since="24 hours ago" --author="$(git config user.name)" | head -20</span>
+<span class="str">```</span>
+
+<span class="cmt">## 待处理 PR</span>
+
+<span class="str">```!</span>
+<span class="str">gh pr list --author="@me" --json number,title,state | python3 -c "</span>
+<span class="str">import json, sys</span>
+<span class="str">for pr in json.load(sys.stdin):</span>
+<span class="str">    print(f\"  #{pr['number']}: {pr['title']} [{pr['state']}]\")</span>
+<span class="str">" 2&gt;/dev/null || echo "  (gh CLI 未配置)"</span>
+<span class="str">```</span>
+
+---
+
+请基于以上数据生成站会报告：
+1. <span class="kw">昨天完成了什么</span>（基于 commits）
+2. <span class="kw">今天计划做什么</span>（基于 PR 和 TODO）
+3. <span class="kw">有什么阻碍</span></pre>
+        <p>调用：<code>/daily-standup</code></p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">7</div><div class="know-title">多文件 Skill（引用辅助脚本）</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/skills/security-audit/</p>
+        <pre>.claude/skills/security-audit/
+├── SKILL.md
+├── check-deps.sh        <span class="cmt">← 检查依赖安全性</span>
+├── check-secrets.sh     <span class="cmt">← 检查机密泄漏</span>
+└── report-template.md  <span class="cmt">← 报告模板</span></pre>
+        <pre>---
+<span class="prop">description</span>: <span class="str">全面项目安全审查</span>
+<span class="prop">argument-hint</span>: <span class="str">"[scope]"</span>
+<span class="prop">context</span>: <span class="str">fork</span>
+<span class="prop">allowed-tools</span>: [<span class="str">BashTool</span>, <span class="str">Read</span>, <span class="str">GlobTool</span>]
+---
+
+<span class="cmt"># 安全审查</span>
+
+审查范围：$ARGUMENTS（为空则审查整个项目）
+
+<span class="cmt">## 第一步：检查依赖漏洞</span>
+
+<span class="str">```!</span>
+<span class="str">bash ${CLAUDE_SKILL_DIR}/check-deps.sh</span>
+<span class="str">```</span>
+
+<span class="cmt">## 第二步：检查机密泄漏</span>
+
+<span class="str">```!</span>
+<span class="str">bash ${CLAUDE_SKILL_DIR}/check-secrets.sh</span>
+<span class="str">```</span>
+
+<span class="cmt">## 第三步：生成报告</span>
+
+读取 <span class="str">`${CLAUDE_SKILL_DIR}/report-template.md`</span>，填入检测结果。
+报告输出到 security-audit-$(date +%Y%m%d).md</pre>
+        <p><strong>check-secrets.sh</strong> 示例：</p>
+        <pre><span class="cmt">#!/bin/bash</span>
+<span class="fn">echo</span> <span class="str">"=== 机密信息检测 ==="</span>
+PATTERNS=(
+  <span class="str">"password\s*=\s*['\"][^'\"]{8,}"</span>
+  <span class="str">"api_key\s*=\s*['\"][^'\"]{16,}"</span>
+  <span class="str">"secret\s*=\s*['\"][^'\"]{8,}"</span>
+)
+<span class="kw">for</span> pattern <span class="kw">in</span> <span class="str">"${PATTERNS[@]}"</span>; <span class="kw">do</span>
+  results=$(<span class="fn">grep</span> -rn -E <span class="str">"$pattern"</span> . 2&gt;/dev/null | <span class="fn">grep</span> -v node_modules)
+  <span class="kw">if</span> [ -n <span class="str">"$results"</span> ]; <span class="kw">then</span>
+    <span class="fn">echo</span> <span class="str">"⚠️ 发现疑似机密:"</span>; <span class="fn">echo</span> <span class="str">"$results"</span> | head -5
+  <span class="kw">fi</span>
+<span class="kw">done</span></pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">8</div><div class="know-title">快速文档生成（带 argument-hint）</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/skills/doc/SKILL.md</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">为函数/类/模块生成 JSDoc 或 Python docstring 文档</span>
+<span class="prop">argument-hint</span>: <span class="str">"&lt;file-path&gt; [format: jsdoc|google|numpy]"</span>
+<span class="prop">arguments</span>: [<span class="str">filepath</span>, <span class="str">format</span>]
+<span class="prop">allowed-tools</span>: [<span class="str">Read</span>, <span class="str">FileWriteTool</span>]
+<span class="prop">when-to-use</span>: <span class="str">当用户要求"生成文档"、"加注释"、"写 docstring"时使用</span>
+---
+
+<span class="cmt"># 文档生成</span>
+
+为 <span class="str">`$ARG1`</span> 生成文档注释。
+格式：$ARG2（默认 JSDoc；Python 文件默认 Google docstring）
+
+<span class="cmt">## 步骤</span>
+1. 读取 $ARG1
+2. 识别所有公开函数、类、接口
+3. 为每个生成注释（功能/参数/返回值/异常）
+4. <span class="kw">直接在文件中插入注释</span>（用 FileWriteTool 修改原文件）
+
+<span class="cmt">## 风格要求</span>
+- 注释简洁，不超过 5 行
+- 只描述"做什么"和"为什么"，不描述"如何实现"
+- 中英文与原文件保持一致</pre>
+        <p>调用：<code>/doc src/utils/auth.ts jsdoc</code></p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">9</div><div class="know-title">自动翻译 Skill（注释/文档翻译）</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/skills/translate/SKILL.md</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">将代码注释或文档翻译成指定语言</span>
+<span class="prop">argument-hint</span>: <span class="str">"&lt;file-path&gt; &lt;target-lang&gt;"</span>
+<span class="prop">arguments</span>: [<span class="str">filepath</span>, <span class="str">lang</span>]
+<span class="prop">allowed-tools</span>: [<span class="str">Read</span>, <span class="str">FileWriteTool</span>]
+---
+
+<span class="cmt"># 注释翻译</span>
+
+请将 <span class="str">`$ARG1`</span> 文件中的所有注释翻译成 <span class="kw">**$ARG2**</span>（为空默认中文）。
+
+<span class="cmt">## 要求</span>
+1. 只翻译注释内容，<span class="kw">不修改任何代码逻辑</span>
+2. 保持注释的原始格式
+3. 专业术语（API、HTTP、JSON 等）保持不变
+4. 翻译后直接修改原文件
+
+文件很大时分批处理，每批 100 行。</pre>
+        <p>调用：<code>/translate src/utils/auth.ts 英文</code></p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">10</div><div class="know-title">数据库迁移助手（条件激活）</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/skills/db-migrate/SKILL.md</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">生成并验证数据库迁移脚本</span>
+<span class="prop">argument-hint</span>: <span class="str">"&lt;description&gt;"</span>
+<span class="prop">context</span>: <span class="str">fork</span>
+<span class="prop">allowed-tools</span>: [<span class="str">Read</span>, <span class="str">GlobTool</span>, <span class="str">FileWriteTool</span>, <span class="str">BashTool</span>]
+<span class="prop">paths</span>: <span class="str">"migrations/** models/** src/db/**"</span>
+<span class="prop">when-to-use</span>: <span class="str">当用户谈到数据库变更、迁移、新增字段、修改 Schema 时使用。</span>
+---
+
+<span class="cmt"># 数据库迁移</span>
+
+迁移描述：$ARGUMENTS
+
+<span class="cmt">## 流程</span>
+1. 读取 migrations/ 最新 5 个迁移文件
+2. 读取相关 model 文件
+3. 生成迁移：<span class="str">`migrations/YYYYMMDD_HHMMSS_&lt;desc&gt;.sql`</span>
+   - 含 <span class="kw">up</span>（正向）和 <span class="kw">down</span>（回滚）
+   - 大表加字段用 DEFAULT NULL 避免锁表
+4. 安全检查：检测 DROP TABLE / 无 WHERE 的 DELETE
+5. 应用迁移：<span class="str">`bun run db:migrate`</span>（用户确认后）</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">11</div><div class="know-title">全局 Skill — PR 描述生成器</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">~/.claude/skills/pr-desc/SKILL.md（全局，所有项目可用）</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">基于 git diff 自动生成 GitHub PR 描述</span>
+<span class="prop">argument-hint</span>: <span class="str">"[base-branch]"</span>
+<span class="prop">allowed-tools</span>: [<span class="str">BashTool</span>]
+<span class="prop">when-to-use</span>: <span class="str">当用户要"开 PR"、"创建 PR"、"写 PR 描述"时使用。</span>
+---
+
+<span class="cmt"># PR 描述生成</span>
+
+基础分支：$ARGUMENTS（默认 main）
+
+<span class="cmt">## 自动收集数据</span>
+1. <span class="str">`git log $ARGUMENTS..HEAD --oneline`</span>（提交历史）
+2. <span class="str">`git diff $ARGUMENTS..HEAD --stat`</span>（变更统计）
+3. <span class="str">`git diff $ARGUMENTS..HEAD --`</span>（完整 diff，超 500 行截断）
+
+<span class="cmt">## 生成 PR 描述</span>
+包含：变更摘要 / 主要修改 / 测试方案 / 影响范围
+
+最后调用 <span class="str">`gh pr create`</span> 创建 PR（用户确认后执行）。</pre>
+        <p>调用：<code>/pr-desc main</code></p>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">12</div><div class="know-title"><code>user-invocable: false</code> 的隐式 Skill</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/skills/detect-lang/SKILL.md</p>
+        <p>不出现在 <code>/</code> 命令列表，但模型会根据 <code>when-to-use</code> 自主决定调用。</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">检测用户消息中的编程语言，设置上下文</span>
+<span class="prop">user-invocable</span>: <span class="str">false</span>
+<span class="prop">when-to-use</span>: <span class="str">|</span>
+<span class="str">  当用户开始讨论代码时，在第一次响应前调用。</span>
+<span class="str">  检测项目主要编程语言，设置适当上下文。</span>
+<span class="prop">allowed-tools</span>: [<span class="str">GlobTool</span>, <span class="str">Read</span>]
+---
+
+<span class="cmt"># 编程语言检测（隐式）</span>
+1. 用 GlobTool 查找 *.ts、*.py、*.go、*.rs、*.java 等
+2. 统计各语言文件数量
+3. 读取 package.json（如存在）了解框架
+4. 输出简短结论（不超过 2 行）</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">13</div><div class="know-title"><code>disable-model-invocation</code> — 纯提示词注入 Skill</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/skills/context-inject/SKILL.md</p>
+        <p>提示词会被注入对话，但不会触发额外的模型调用（模型用注入的信息处理用户的实际问题）。</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">注入项目特定的编码规范上下文</span>
+<span class="prop">disable-model-invocation</span>: <span class="str">true</span>
+---
+
+<span class="cmt">## 本项目编码规范（自动注入）</span>
+- TypeScript strict 模式，禁止 <span class="str">`any`</span>
+- 所有函数必须有返回类型注解
+- 文件名 kebab-case，组件名 PascalCase
+- 提交信息遵循 Conventional Commits
+- 测试放在 <span class="str">`__tests__/`</span>，命名为 <span class="str">`xxx.test.ts`</span>
+- 禁止 console.log（用 logForDebugging）
+
+请在所有代码建议中遵循以上规范。</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">14</div><div class="know-title">深度分析 Skill（opus + high effort）</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/skills/deep-analysis/SKILL.md</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">对代码库进行深度架构分析</span>
+<span class="prop">argument-hint</span>: <span class="str">"&lt;目标模块或问题描述&gt;"</span>
+<span class="prop">context</span>: <span class="str">fork</span>
+<span class="prop">model</span>: <span class="str">claude-opus-4-8</span>
+<span class="prop">effort</span>: <span class="str">high</span>
+<span class="prop">allowed-tools</span>: [<span class="str">Read</span>, <span class="str">GlobTool</span>, <span class="str">GrepTool</span>, <span class="str">BashTool</span>]
+<span class="prop">when-to-use</span>: <span class="str">当用户需要深度分析、架构评审、复杂问题诊断时使用。</span>
+---
+
+<span class="cmt"># 深度代码分析</span>
+
+分析目标：$ARGUMENTS
+
+<span class="cmt">## 流程</span>
+- <span class="kw">Phase 1 信息收集</span>：GlobTool 文件结构 + 核心文件 + GrepTool 相关文件
+- <span class="kw">Phase 2 依赖分析</span>：模块依赖图 + 循环依赖标记
+- <span class="kw">Phase 3 问题诊断</span>：数据流追踪 + 架构缺陷 + 最佳实践对比
+- <span class="kw">Phase 4 改进建议</span>：P0/P1/P2 优先级 + 具体代码示例 + 影响范围估算</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">15</div><div class="know-title">组合 Shell 注入 + 条件激活（测试监控）</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/skills/test-watcher/SKILL.md</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">监控测试结果并给出修复建议</span>
+<span class="prop">paths</span>: <span class="str">"**/__tests__/** **/*.test.ts **/*.spec.ts"</span>
+<span class="prop">user-invocable</span>: <span class="str">true</span>
+<span class="prop">when-to-use</span>: <span class="str">当用户修改了测试文件，或说"测试失败了"、"帮我修复测试"时使用。</span>
+<span class="prop">allowed-tools</span>: [<span class="str">BashTool</span>, <span class="str">Read</span>, <span class="str">FileWriteTool</span>]
+---
+
+<span class="cmt"># 测试监控与修复</span>
+
+当前测试状态（自动获取）：
+
+<span class="cmt">## 失败的测试</span>
+<span class="str">```!</span>
+<span class="str">bun test 2&gt;&amp;1 | grep -A 3 "FAIL\|✗\|×" | head -50 || echo "运行测试失败"</span>
+<span class="str">```</span>
+
+<span class="cmt">## 覆盖率</span>
+<span class="str">```!</span>
+<span class="str">bun test --coverage 2&gt;&amp;1 | tail -20 || echo "覆盖率报告不可用"</span>
+<span class="str">```</span>
+
+---
+
+1. <span class="kw">列出所有失败测试</span>：文件名、用例名、失败原因
+2. <span class="kw">分析根因</span>：测试问题还是被测代码问题？
+3. <span class="kw">逐一修复</strong>：读文件 + 修改 + 再运行验证</pre>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<!-- ════ 10. 加载流水线 ════ -->
+<section id="pipeline">
+  <h2>十、Skill 加载流水线</h2>
+  <p class="section-desc">启动时从多个目录并行加载，去重后分离条件 Skill。</p>
+
+  <div class="pipeline">
+    <div class="pipe-step"><div class="pipe-num">1</div><div class="pipe-content"><div class="pipe-title">并行收集目录</div><div class="pipe-desc">管理员 / 用户 (~/.claude/skills) / 项目 (.claude/skills) / --add-dir 额外目录 / Legacy commands</div></div></div>
+    <div class="pipe-step"><div class="pipe-num">2</div><div class="pipe-content"><div class="pipe-title">去重（realpath 比较）</div><div class="pipe-desc">嵌套仓库的相同路径只保留一份</div></div></div>
+    <div class="pipe-step"><div class="pipe-num">3</div><div class="pipe-content"><div class="pipe-title">分离条件 Skills</div><div class="pipe-desc">有 paths 字段 → 存入 conditionalSkills，先不暴露</div></div></div>
+    <div class="pipe-step highlight"><div class="pipe-num">4</div><div class="pipe-content"><div class="pipe-title">返回无条件 Skills（memoized 缓存）</div><div class="pipe-desc">条件 Skill 在触碰匹配文件后才激活并加入动态列表</div></div></div>
+  </div>
+
+  <h3>同名 Skill 优先级（高 → 低）</h3>
+  <div class="pipeline">
+    <div class="pipe-step"><div class="pipe-num">1</div><div class="pipe-content"><div class="pipe-title"><code>--add-dir</code> 额外目录</div></div></div>
+    <div class="pipe-step"><div class="pipe-num">2</div><div class="pipe-content"><div class="pipe-title">项目级 <code>.claude/skills/</code></div></div></div>
+    <div class="pipe-step"><div class="pipe-num">3</div><div class="pipe-content"><div class="pipe-title">用户级 <code>~/.claude/skills/</code></div></div></div>
+    <div class="pipe-step"><div class="pipe-num">4</div><div class="pipe-content"><div class="pipe-title">管理员级（企业策略）</div></div></div>
+    <div class="pipe-step"><div class="pipe-num">5</div><div class="pipe-content"><div class="pipe-title">内置 Skills（编译进 CLI）</div></div></div>
+  </div>
+
+  <div class="call-out"><strong>缓存与清除</strong>：<code>getSkillDirCommands()</code> 是 memoized 的，<code>/clear</code>、<code>/compact</code> 或文件变化时清除。条件 Skill 的<strong>激活状态</strong>不因 <code>/clear</code> 重置（设计决策）。</div>
+</section>
+
+<!-- ════ 11. 源码文件 ════ -->
+<section id="files">
+  <h2>十一、关键源码文件</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>文件</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code class="file-path">src/skills/loadSkillsDir.ts</code></td><td>核心加载器：<code>getSkillDirCommands</code>、<code>parseSkillFrontmatterFields</code>、<code>discoverSkillDirsForPaths</code>、<code>activateConditionalSkillsForPaths</code></td></tr>
+        <tr><td><code class="file-path">src/skills/bundledSkills.ts</code></td><td>内置 Skill 注册：<code>registerBundledSkill</code>、<code>getBundledSkills</code></td></tr>
+        <tr><td><code class="file-path">src/skills/mcpSkills.ts</code></td><td>MCP Skill 加载：<code>getMcpSkills</code>、<code>buildMcpSkillCommand</code></td></tr>
+        <tr><td><code class="file-path">packages/builtin-tools/src/tools/SkillTool/SkillTool.ts</code></td><td>Skill 执行引擎：<code>executeForkedSkill</code>、内联执行逻辑</td></tr>
+        <tr><td><code class="file-path">packages/builtin-tools/src/tools/SkillTool/prompt.ts</code></td><td>Skill 工具的 prompt 生成（模型看到的工具描述）</td></tr>
+        <tr><td><code class="file-path">src/utils/frontmatterParser.ts</code></td><td>YAML frontmatter 解析工具</td></tr>
+        <tr><td><code class="file-path">src/utils/promptShellExecution.ts</code></td><td><code>!</code> Shell 注入执行逻辑</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ════ 12. 速查卡 ════ -->
+<section id="cheatsheet">
+  <h2>十二、快速参考卡</h2>
+  <p class="section-desc">"我想创建一个什么样的 Skill？"</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>需求</th><th>配置</th></tr></thead>
+      <tbody>
+        <tr><td>用户手动调用</td><td><code>user-invocable: true</code>（默认）</td></tr>
+        <tr><td>模型自动调用</td><td><code>user-invocable: false</code> + <code>when-to-use</code></td></tr>
+        <tr><td>只在特定文件时出现</td><td><code>paths: "src/**/*.tsx"</code></td></tr>
+        <tr><td>需要大量读文件</td><td><code>context: fork</code>（独立 token 预算）</td></tr>
+        <tr><td>需要高质量输出</td><td><code>model: claude-opus-4-8</code> + <code>effort: high</code></td></tr>
+        <tr><td>不弹权限确认框</td><td><code>allowed-tools: [BashTool, Read, ...]</code></td></tr>
+        <tr><td>读 Skill 自身的脚本</td><td><code>${CLAUDE_SKILL_DIR}/script.sh</code></td></tr>
+        <tr><td>自动收集当前状态</td><td>正文中用 <code>!`command`</code> 语法</td></tr>
+        <tr><td>带 Hook 的自动检查</td><td>frontmatter 中的 <code>hooks:</code> 字段</td></tr>
+        <tr><td>参数说明给用户看</td><td><code>argument-hint: "&lt;file&gt; [options]"</code></td></tr>
+        <tr><td>参数在正文中引用</td><td><code>arguments: [file, opts]</code> → <code>$ARG1 $ARG2</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</div>
+
+<footer style="background:var(--bg2);border-top:1px solid var(--border);padding:24px;text-align:center;margin-top:60px;">
+  <p style="color:var(--text-3);font-size:.82rem;">Claude Code 源码学习系列 · Skills 系统详解 · SKILL.md 字段 · 15+ 示例</p>
+</footer>
+
+</body>
+</html>

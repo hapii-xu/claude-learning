@@ -1,24 +1,24 @@
 /**
- * Minimal module for firing macOS keychain reads in parallel with main.tsx
- * module evaluation, same pattern as startMdmRawRead() in settings/mdm/rawRead.ts.
+ * 最小化模块，在 main.tsx 模块求值期间并行触发 macOS 钥匙串读取，
+ * 与 settings/mdm/rawRead.ts 中的 startMdmRawRead() 模式相同。
  *
- * isRemoteManagedSettingsEligible() reads two separate keychain entries
- * SEQUENTIALLY via sync execSync during applySafeConfigEnvironmentVariables():
- *   1. "Claude Code-credentials" (OAuth tokens)  — ~32ms
- *   2. "Claude Code" (legacy API key)            — ~33ms
- * Sequential cost: ~65ms on every macOS startup.
+ * isRemoteManagedSettingsEligible() 在 applySafeConfigEnvironmentVariables()
+ * 期间通过同步 execSync 顺序读取两个独立的钥匙串条目：
+ *   1. "Claude Code-credentials"（OAuth 令牌）  — 约 32ms
+ *   2. "Claude Code"（旧版 API 密钥）           — 约 33ms
+ * 顺序执行总耗时：每次 macOS 启动约 65ms。
  *
- * Firing both here lets the subprocesses run in parallel with the ~65ms of
- * main.tsx imports. ensureKeychainPrefetchCompleted() is awaited alongside
- * ensureMdmSettingsLoaded() in main.tsx preAction — nearly free since the
- * subprocesses finish during import evaluation. Sync read() and
- * getApiKeyFromConfigOrMacOSKeychain() then hit their caches.
+ * 在此处同时触发两者可让子进程与 main.tsx 导入的约 65ms 并行运行。
+ * ensureKeychainPrefetchCompleted() 在 main.tsx preAction 中与
+ * ensureMdmSettingsLoaded() 一同被 await — 几乎无成本，因为子进程
+ * 在导入求值期间就已完成。同步 read() 和
+ * getApiKeyFromConfigOrMacOSKeychain() 随后直接命中缓存。
  *
- * Imports stay minimal: child_process + macOsKeychainHelpers.ts (NOT
- * macOsKeychainStorage.ts — that pulls in execa → human-signals →
- * cross-spawn, ~58ms of synchronous module init). The helpers file's own
- * import chain (envUtils, oauth constants, crypto) is already evaluated by
- * startupProfiler.ts at main.tsx:5, so no new module-init cost lands here.
+ * 导入保持最小化：仅 child_process + macOsKeychainHelpers.ts（而非
+ * macOsKeychainStorage.ts — 后者会引入 execa → human-signals →
+ * cross-spawn，约 58ms 的同步模块初始化开销）。helpers 文件自身的
+ * 导入链（envUtils、oauth 常量、crypto）在 startupProfiler.ts
+ * main.tsx:5 处已完成求值，因此此处无新增模块初始化成本。
  */
 
 import { execFile } from 'child_process'
@@ -32,10 +32,10 @@ import {
 
 const KEYCHAIN_PREFETCH_TIMEOUT_MS = 10_000
 
-// Shared with auth.ts getApiKeyFromConfigOrMacOSKeychain() so it can skip its
-// sync spawn when the prefetch already landed. Distinguishing "not started" (null)
-// from "completed with no key" ({ stdout: null }) lets the sync reader only
-// trust a completed prefetch.
+// 与 auth.ts 中的 getApiKeyFromConfigOrMacOSKeychain() 共享，
+// 使其可在预取已完成时跳过同步 spawn。
+// 区分"未启动"（null）和"已完成但无密钥"（{ stdout: null }），
+// 让同步读取器只信任已完成的预取结果。
 let legacyApiKeyPrefetch: { stdout: string | null } | null = null
 
 let prefetchPromise: Promise<void> | null = null
@@ -49,9 +49,10 @@ function spawnSecurity(serviceName: string): Promise<SpawnResult> {
       ['find-generic-password', '-a', getUsername(), '-w', '-s', serviceName],
       { encoding: 'utf-8', timeout: KEYCHAIN_PREFETCH_TIMEOUT_MS },
       (err, stdout) => {
-        // Exit 44 (entry not found) is a valid "no key" result and safe to
-        // prime as null. But timeout (err.killed) means the keychain MAY have
-        // a key we couldn't fetch — don't prime, let sync spawn retry.
+        // 退出码 44（条目未找到）是有效的"无密钥"结果，
+        // 可安全地以 null 填充缓存。但超时（err.killed）意味着
+        // 钥匙串中可能有密钥但未能获取 — 不填充缓存，
+        // 让同步 spawn 重试。
         resolve({
           stdout: err ? null : stdout?.trim() || null,
           timedOut: Boolean(err && 'killed' in err && err.killed),
@@ -62,15 +63,15 @@ function spawnSecurity(serviceName: string): Promise<SpawnResult> {
 }
 
 /**
- * Fire both keychain reads in parallel. Called at main.tsx top-level
- * immediately after startMdmRawRead(). Non-darwin is a no-op.
+ * 并行触发两个钥匙串读取。在 main.tsx 顶层、
+ * startMdmRawRead() 之后立即调用。非 darwin 平台为空操作。
  */
 export function startKeychainPrefetch(): void {
   if (process.platform !== 'darwin' || prefetchPromise || isBareMode()) return
 
-  // Fire both subprocesses immediately (non-blocking). They run in parallel
-  // with each other AND with main.tsx imports. The await in Promise.all
-  // happens later via ensureKeychainPrefetchCompleted().
+  // 立即触发两个子进程（非阻塞）。它们彼此并行运行，
+  // 同时也与 main.tsx 的导入并行。后续的 await 在
+  // ensureKeychainPrefetchCompleted() 的 Promise.all 中执行。
   const oauthSpawn = spawnSecurity(
     getMacOsKeychainStorageServiceName(CREDENTIALS_SERVICE_SUFFIX),
   )
@@ -78,9 +79,9 @@ export function startKeychainPrefetch(): void {
 
   prefetchPromise = Promise.all([oauthSpawn, legacySpawn]).then(
     ([oauth, legacy]) => {
-      // Timed-out prefetch: don't prime. Sync read/spawn will retry with its
-      // own (longer) timeout. Priming null here would shadow a key that the
-      // sync path might successfully fetch.
+      // 超时的预取：不填充缓存。同步 read/spawn 会以自身
+      // （更长的）超时重试。此处若填充 null 会遮蔽同步路径
+      // 可能成功获取的密钥。
       if (!oauth.timedOut) primeKeychainCacheFromPrefetch(oauth.stdout)
       if (!legacy.timedOut) legacyApiKeyPrefetch = { stdout: legacy.stdout }
     },
@@ -88,17 +89,17 @@ export function startKeychainPrefetch(): void {
 }
 
 /**
- * Await prefetch completion. Called in main.tsx preAction alongside
- * ensureMdmSettingsLoaded() — nearly free since subprocesses finish during
- * the ~65ms of main.tsx imports. Resolves immediately on non-darwin.
+ * 等待预取完成。在 main.tsx preAction 中与
+ * ensureMdmSettingsLoaded() 一同调用 — 几乎无成本，因为子进程
+ * 在 main.tsx 导入的约 65ms 内就已完成。非 darwin 平台立即 resolve。
  */
 export async function ensureKeychainPrefetchCompleted(): Promise<void> {
   if (prefetchPromise) await prefetchPromise
 }
 
 /**
- * Consumed by getApiKeyFromConfigOrMacOSKeychain() in auth.ts before it
- * falls through to sync execSync. Returns null if prefetch hasn't completed.
+ * 由 auth.ts 中的 getApiKeyFromConfigOrMacOSKeychain() 在
+ * 回退到同步 execSync 之前调用。若预取尚未完成则返回 null。
  */
 export function getLegacyApiKeyPrefetchResult(): {
   stdout: string | null
@@ -107,8 +108,8 @@ export function getLegacyApiKeyPrefetchResult(): {
 }
 
 /**
- * Clear prefetch result. Called alongside getApiKeyFromConfigOrMacOSKeychain
- * cache invalidation so a stale prefetch doesn't shadow a fresh write.
+ * 清除预取结果。与 getApiKeyFromConfigOrMacOSKeychain 的
+ * 缓存失效一同调用，避免过时的预取结果遮蔽新写入的值。
  */
 export function clearLegacyApiKeyPrefetch(): void {
   legacyApiKeyPrefetch = null

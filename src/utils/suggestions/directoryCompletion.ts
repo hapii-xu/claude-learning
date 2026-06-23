@@ -5,7 +5,7 @@ import { getCwd } from 'src/utils/cwd.js'
 import { getFsImplementation } from 'src/utils/fsOperations.js'
 import { logError } from 'src/utils/log.js'
 import { expandPath } from 'src/utils/path.js'
-// Types
+// 类型定义
 export type DirectoryEntry = {
   name: string
   path: string
@@ -33,30 +33,30 @@ type ParsedPath = {
   prefix: string
 }
 
-// Cache configuration
+// 缓存配置
 const CACHE_SIZE = 500
-const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+const CACHE_TTL = 5 * 60 * 1000 // 5 分钟
 
-// Initialize LRU cache for directory scans
+// 初始化目录扫描的 LRU 缓存
 const directoryCache = new LRUCache<string, DirectoryEntry[]>({
   max: CACHE_SIZE,
   ttl: CACHE_TTL,
 })
 
-// Initialize LRU cache for path scans (files and directories)
+// 初始化路径扫描的 LRU 缓存（文件和目录）
 const pathCache = new LRUCache<string, PathEntry[]>({
   max: CACHE_SIZE,
   ttl: CACHE_TTL,
 })
 
 /**
- * Parses a partial path into directory and prefix components
+ * 将部分路径解析为目录和前缀两部分
  */
 export function parsePartialPath(
   partialPath: string,
   basePath?: string,
 ): ParsedPath {
-  // Handle empty input
+  // 处理空输入
   if (!partialPath) {
     const directory = basePath || getCwd()
     return { directory, prefix: '' }
@@ -64,13 +64,13 @@ export function parsePartialPath(
 
   const resolved = expandPath(partialPath, basePath)
 
-  // If path ends with separator, treat as directory with no prefix
-  // Handle both forward slash and platform-specific separator
+  // 如果路径以分隔符结尾，视为无文件前缀的目录
+  // 同时处理正斜杠和平台特定分隔符
   if (partialPath.endsWith('/') || partialPath.endsWith(sep)) {
     return { directory: resolved, prefix: '' }
   }
 
-  // Split into directory and prefix
+  // 拆分为目录和前缀
   const directory = dirname(resolved)
   const prefix = basename(partialPath)
 
@@ -78,24 +78,24 @@ export function parsePartialPath(
 }
 
 /**
- * Scans a directory and returns subdirectories
- * Uses LRU cache to avoid repeated filesystem calls
+ * 扫描目录并返回子目录列表
+ * 使用 LRU 缓存避免重复的文件系统调用
  */
 export async function scanDirectory(
   dirPath: string,
 ): Promise<DirectoryEntry[]> {
-  // Check cache first
+  // 优先检查缓存
   const cached = directoryCache.get(dirPath)
   if (cached) {
     return cached
   }
 
   try {
-    // Read directory contents
+    // 读取目录内容
     const fs = getFsImplementation()
     const entries = await fs.readdir(dirPath)
 
-    // Filter for directories only, exclude hidden directories
+    // 只保留目录，排除隐藏目录
     const directories = entries
       .filter(entry => entry.isDirectory() && !entry.name.startsWith('.'))
       .map(entry => ({
@@ -103,9 +103,9 @@ export async function scanDirectory(
         path: join(dirPath, entry.name),
         type: 'directory' as const,
       }))
-      .slice(0, 100) // Limit results for MVP
+      .slice(0, 100) // 限制结果数量（MVP 阶段）
 
-    // Cache the results
+    // 缓存结果
     directoryCache.set(dirPath, directories)
 
     return directories
@@ -116,7 +116,7 @@ export async function scanDirectory(
 }
 
 /**
- * Main function to get directory completion suggestions
+ * 获取目录补全建议的主函数
  */
 export async function getDirectoryCompletions(
   partialPath: string,
@@ -140,14 +140,14 @@ export async function getDirectoryCompletions(
 }
 
 /**
- * Clears the directory cache
+ * 清除目录缓存
  */
 export function clearDirectoryCache(): void {
   directoryCache.clear()
 }
 
 /**
- * Checks if a string looks like a path (starts with path-like prefixes)
+ * 判断字符串是否看起来像路径（以类似路径的前缀开头）
  */
 export function isPathLikeToken(token: string): boolean {
   return (
@@ -162,8 +162,8 @@ export function isPathLikeToken(token: string): boolean {
 }
 
 /**
- * Scans a directory and returns both files and subdirectories
- * Uses LRU cache to avoid repeated filesystem calls
+ * 扫描目录并返回文件和子目录列表
+ * 使用 LRU 缓存避免重复的文件系统调用
  */
 export async function scanDirectoryForPaths(
   dirPath: string,
@@ -187,7 +187,7 @@ export async function scanDirectoryForPaths(
         type: entry.isDirectory() ? ('directory' as const) : ('file' as const),
       }))
       .sort((a, b) => {
-        // Sort directories first, then alphabetically
+        // 目录优先排序，其次按字母顺序
         if (a.type === 'directory' && b.type !== 'directory') return -1
         if (a.type !== 'directory' && b.type === 'directory') return 1
         return a.name.localeCompare(b.name)
@@ -203,7 +203,7 @@ export async function scanDirectoryForPaths(
 }
 
 /**
- * Get path completion suggestions for files and directories
+ * 获取文件和目录的路径补全建议
  */
 export async function getPathCompletions(
   partialPath: string,
@@ -227,14 +227,14 @@ export async function getPathCompletions(
     })
     .slice(0, maxResults)
 
-  // Construct relative path based on original partialPath
-  // e.g., if partialPath is "src/c", directory portion is "src/"
-  // Strip leading "./" since it's just used for cwd search
-  // Handle both forward slash and platform separator for Windows compatibility
+  // 根据原始 partialPath 构造相对路径
+  // 例如，如果 partialPath 为 "src/c"，目录部分为 "src/"
+  // 去掉开头的 "./"，因为它只是用于当前目录搜索
+  // 同时处理正斜杠和平台分隔符，兼容 Windows
   const hasSeparator = partialPath.includes('/') || partialPath.includes(sep)
   let dirPortion = ''
   if (hasSeparator) {
-    // Find the last separator (either / or platform-specific)
+    // 查找最后一个分隔符（/ 或平台特定分隔符）
     const lastSlash = partialPath.lastIndexOf('/')
     const lastSep = partialPath.lastIndexOf(sep)
     const lastSeparatorPos = Math.max(lastSlash, lastSep)
@@ -255,7 +255,7 @@ export async function getPathCompletions(
 }
 
 /**
- * Clears both directory and path caches
+ * 清除目录和路径缓存
  */
 export function clearPathCache(): void {
   directoryCache.clear()

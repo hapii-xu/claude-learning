@@ -75,7 +75,7 @@ export class BigQueryMetricsExporter implements PushMetricExporter {
     const exportPromise = this.doExport(metrics, resultCallback)
     this.pendingExports.push(exportPromise)
 
-    // Clean up completed exports
+    // 清理已完成的导出任务
     void exportPromise.finally(() => {
       const index = this.pendingExports.indexOf(exportPromise)
       if (index > -1) {
@@ -89,8 +89,8 @@ export class BigQueryMetricsExporter implements PushMetricExporter {
     resultCallback: (result: ExportResult) => void,
   ): Promise<void> {
     try {
-      // Skip if trust not established in interactive mode
-      // This prevents triggering apiKeyHelper before trust dialog
+      // 在交互模式下，如果信任尚未建立则跳过
+      // 这可以防止在信任对话框之前触发 apiKeyHelper
       const hasTrust =
         checkHasTrustDialogAccepted() || getIsNonInteractiveSession()
       if (!hasTrust) {
@@ -101,7 +101,7 @@ export class BigQueryMetricsExporter implements PushMetricExporter {
         return
       }
 
-      // Check organization-level metrics opt-out
+      // 检查组织级别的指标退出设置
       const metricsStatus = await checkMetricsEnabled()
       if (!metricsStatus.enabled) {
         logForDebugging('Metrics export disabled by organization setting')
@@ -164,12 +164,12 @@ export class BigQueryMetricsExporter implements PushMetricExporter {
           : 'cumulative',
     }
 
-    // Only add wsl.version if it exists (omit instead of default)
+    // 仅在 wsl.version 存在时添加（省略而非使用默认值）
     if (attrs['wsl.version']) {
       resourceAttributes['wsl.version'] = attrs['wsl.version'] as string
     }
 
-    // Add customer type and subscription type
+    // 添加客户类型和订阅类型
     if (isClaudeAISubscriber()) {
       resourceAttributes['user.customer_type'] = 'claude_ai'
       const subscriptionType = getSubscriptionType()
@@ -244,9 +244,8 @@ export class BigQueryMetricsExporter implements PushMetricExporter {
   }
 
   selectAggregationTemporality(): AggregationTemporality {
-    // DO NOT CHANGE THIS TO CUMULATIVE
-    // It would mess up the aggregation of metrics
-    // for CC Productivity metrics dashboard
+    // 不要将此更改为 CUMULATIVE
+    // 这会破坏 CC 生产力指标仪表板的指标聚合
     return AggregationTemporality.DELTA
   }
 }

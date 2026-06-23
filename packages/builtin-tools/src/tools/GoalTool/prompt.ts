@@ -1,38 +1,38 @@
 export const DESCRIPTION =
-  'Get or update the active goal status. The model may only mark a goal as "complete" or "blocked".'
+  '获取或更新当前目标的状态。模型只能将目标标记为 "complete" 或 "blocked"。'
 
 export function generatePrompt(): string {
-  return `Use this tool to interact with the active thread goal.
+  return `使用此工具与当前线程目标交互。
 
-## Actions
+## 操作
 
 ### get
-Returns the current goal state (objective, status, token usage, elapsed time, turns executed).
-No input required beyond \`action: "get"\`.
+返回当前目标状态（目标、状态、Token 使用量、已用时间、执行轮数）。
+除 \`action: "get"\` 外无需其他输入。
 
 ### update
-Transition the goal to a terminal status. Only two values are accepted:
-- **complete** — All requirements are verified (see Completion Audit below).
-- **blocked** — An insurmountable obstacle has persisted for 3+ consecutive turns (see Blocked Audit below).
+将目标转换到终态。仅接受两个值：
+- **complete** —— 所有需求都已验证（参见下方的完成审计）。
+- **blocked** —— 一个无法克服的障碍已连续持续 3+ 轮（参见下方的受阻审计）。
 
-When marking complete, provide a brief \`reason\` summarising what was achieved.
-When marking blocked, provide a \`reason\` describing the specific blocker.
+标记为 complete 时，请提供简短的 \`reason\` 概述所取得的成果。
+标记为 blocked 时，请提供 \`reason\` 描述具体的阻碍。
 
-## Completion Audit (required before marking complete)
-1. Derive concrete requirements from the objective.
-2. Preserve the original scope — do not redefine success around existing work.
-3. For every requirement, identify authoritative evidence (test output, file content, command result).
-4. Treat tests and manifests as evidence only after confirming they cover the requirement.
-5. Treat uncertain or indirect evidence as "not achieved".
-6. The audit must PROVE completion, not merely fail to find remaining work.
+## 完成审计（标记为 complete 前必做）
+1. 从目标中推导出具体需求。
+2. 保留原始范围 —— 不要围绕已完成的工作重新定义成功标准。
+3. 对每一项需求，识别权威证据（测试输出、文件内容、命令结果）。
+4. 只有在确认测试和清单覆盖了该需求后，才将其视为证据。
+5. 将不确定或间接的证据视为 "未达成"。
+6. 审计必须证明完成，而不仅仅是找不到剩余工作。
 
-## Blocked Audit (required before marking blocked)
-1. The same blocking condition must persist across at least 3 consecutive continuation turns.
-2. "Difficult", "slow", or "partially incomplete" is NOT blocked.
-3. Only genuinely insurmountable obstacles qualify (missing credentials, external service down, etc.).
+## 受阻审计（标记为 blocked 前必做）
+1. 相同的受阻条件必须跨至少 3 个连续的续作轮次持续存在。
+2. "困难"、"缓慢" 或 "部分未完成" 不算受阻。
+3. 只有真正无法克服的障碍才算数（缺少凭据、外部服务宕机等）。
 
-## Important
-- You cannot pause, resume, or clear a goal — only the user can do that via \`/goal\`.
-- If no goal is active, \`get\` returns a message saying so; \`update\` returns an error.
-- On completion, the tool result includes a usage report (tokens, time, turns).`
+## 重要说明
+- 你无法暂停、恢复或清除目标 —— 只有用户可以通过 \`/goal\` 这么做。
+- 如果没有活动目标，\`get\` 会返回相应提示消息；\`update\` 会返回错误。
+- 完成时，工具结果会包含使用报告（Token、时间、轮数）。`
 }

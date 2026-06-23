@@ -20,12 +20,12 @@ const inputSchema = lazySchema(() =>
     command: z
       .string()
       .describe(
-        'The shell command to run as a long-running monitor. Should produce streaming output (e.g., tail -f, watch, polling loops).',
+        '要作为长时间运行监控器执行的 shell 命令。应产生流式输出（如 tail -f、watch、轮询循环等）。',
       ),
     description: z
       .string()
       .describe(
-        'Clear, concise description of what this monitor watches. Used as the label in the background tasks UI.',
+        '对此监控器所监视内容的清晰简洁描述。用作后台任务 UI 中的标签。',
       ),
   }),
 );

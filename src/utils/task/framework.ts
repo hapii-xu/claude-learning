@@ -18,16 +18,16 @@ import { enqueuePendingNotification } from '../messageQueueManager.js'
 import { enqueueSdkEvent } from '../sdkEventQueue.js'
 import { getTaskOutputDelta, getTaskOutputPath } from './diskOutput.js'
 
-// Standard polling interval for all tasks
+// 所有任务的标准轮询间隔
 export const POLL_INTERVAL_MS = 1000
 
-// Duration to display killed tasks before eviction
+// 被终止任务在移除前显示的持续时间
 export const STOPPED_DISPLAY_MS = 3_000
 
-// Grace period for terminal local_agent tasks in the coordinator panel
+// 协调器面板中终端 local_agent 任务的宽限期
 export const PANEL_GRACE_MS = 30_000
 
-// Attachment type for task status updates
+// 任务状态更新的附件类型
 export type TaskAttachment = {
   type: 'task_status'
   taskId: string
@@ -35,15 +35,15 @@ export type TaskAttachment = {
   taskType: TaskType
   status: TaskStatus
   description: string
-  deltaSummary: string | null // New output since last attachment
+  deltaSummary: string | null // 自上次附件以来的新输出
 }
 
 type SetAppState = (updater: (prev: AppState) => AppState) => void
 
 /**
- * Update a task's state in AppState.
- * Helper function for task implementations.
- * Generic to allow type-safe updates for specific task types.
+ * 更新 AppState 中的任务状态。
+ * 任务实现的辅助函数。
+ * 使用泛型以支持特定任务类型的类型安全更新。
  */
 export function updateTaskState<T extends TaskState>(
   taskId: string,
@@ -57,8 +57,8 @@ export function updateTaskState<T extends TaskState>(
     }
     const updated = updater(task)
     if (updated === task) {
-      // Updater returned the same reference (early-return no-op). Skip the
-      // spread so s.tasks subscribers don't re-render on unchanged state.
+      // 更新器返回了相同引用（提前返回的空操作）。跳过展开，
+      // 避免 s.tasks 的订阅者在状态未变化时重新渲染。
       return prev
     }
     return {
@@ -72,18 +72,17 @@ export function updateTaskState<T extends TaskState>(
 }
 
 /**
- * Register a new task in AppState.
+ * 在 AppState 中注册新任务。
  */
 export function registerTask(task: TaskState, setAppState: SetAppState): void {
   let isReplacement = false
   setAppState(prev => {
     const existing = prev.tasks[task.id]
     isReplacement = existing !== undefined
-    // Carry forward UI-held state on re-register (resumeAgentBackground
-    // replaces the task; user's retain shouldn't reset). startTime keeps
-    // the panel sort stable; messages + diskLoaded preserve the viewed
-    // transcript across the replace (the user's just-appended prompt lives
-    // in messages and isn't on disk yet).
+    // 重新注册时保留 UI 持有的状态（resumeAgentBackground
+    // 会替换任务；用户的保留状态不应被重置）。startTime 保持
+    // 面板排序稳定；messages + diskLoaded 在替换时保留已查看的
+    // 转录（用户刚追加的提示在 messages 中，尚未写入磁盘）。
     const merged =
       existing && 'retain' in existing
         ? {
@@ -98,7 +97,7 @@ export function registerTask(task: TaskState, setAppState: SetAppState): void {
     return { ...prev, tasks: { ...prev.tasks, [task.id]: merged } }
   })
 
-  // Replacement (resume) — not a new start. Skip to avoid double-emit.
+  // 替换（恢复）— 不是新的开始。跳过以避免重复发送。
   if (isReplacement) return
 
   enqueueSdkEvent({
@@ -117,10 +116,10 @@ export function registerTask(task: TaskState, setAppState: SetAppState): void {
 }
 
 /**
- * Eagerly evict a terminal task from AppState.
- * The task must be in a terminal state (completed/failed/killed) with notified=true.
- * This allows memory to be freed without waiting for the next query loop iteration.
- * The lazy GC in generateTaskAttachments() remains as a safety net.
+ * 主动从 AppState 中驱逐一个终端任务。
+ * 任务必须处于终端状态（已完成/失败/已终止）且 notified=true。
+ * 这样可以在不等待下一个查询循环迭代的情况下释放内存。
+ * generateTaskAttachments() 中的惰性 GC 仍作为安全网保留。
  */
 export function evictTerminalTask(
   taskId: string,
@@ -131,10 +130,10 @@ export function evictTerminalTask(
     if (!task) return prev
     if (!isTerminalTaskStatus(task.status)) return prev
     if (!task.notified) return prev
-    // Panel grace period — blocks eviction until deadline passes.
-    // 'retain' in task narrows to LocalAgentTaskState (the only type with
-    // that field); evictAfter is optional so 'evictAfter' in task would
-    // miss tasks that haven't had it set yet.
+    // 面板宽限期 — 在截止时间到达前阻止驱逐。
+    // 'retain' in task 收窄为 LocalAgentTaskState（唯一具有
+    // 该字段的类型）；evictAfter 是可选的，所以 'evictAfter' in task 会
+    // 遗漏尚未设置该字段的任务。
     if ('retain' in task && (task.evictAfter ?? Infinity) > Date.now()) {
       return prev
     }
@@ -144,7 +143,7 @@ export function evictTerminalTask(
 }
 
 /**
- * Get all running tasks.
+ * 获取所有正在运行的任务。
  */
 export function getRunningTasks(state: AppState): TaskState[] {
   const tasks = state.tasks ?? {}
@@ -152,14 +151,14 @@ export function getRunningTasks(state: AppState): TaskState[] {
 }
 
 /**
- * Generate attachments for tasks with new output or status changes.
- * Called by the framework to create push notifications.
+ * 为具有新输出或状态变化的任务生成附件。
+ * 由框架调用以创建推送通知。
  */
 export async function generateTaskAttachments(state: AppState): Promise<{
   attachments: TaskAttachment[]
-  // Only the offset patch — NOT the full task. The task may transition to
-  // completed during getTaskOutputDelta's async disk read, and spreading the
-  // full stale snapshot would clobber that transition (zombifying the task).
+  // 仅偏移量补丁 — 而非完整任务。任务可能在 getTaskOutputDelta 的
+  // 异步磁盘读取期间转变为已完成，展开完整的过期快照会覆盖该转变
+  // （导致任务变成僵尸状态）。
   updatedTaskOffsets: Record<string, number>
   evictedTaskIds: string[]
 }> {
@@ -174,14 +173,14 @@ export async function generateTaskAttachments(state: AppState): Promise<{
         case 'completed':
         case 'failed':
         case 'killed':
-          // Evict terminal tasks — they've been consumed and can be GC'd
+          // 驱逐终端任务 — 它们已被消费，可以回收
           evictedTaskIds.push(taskState.id)
           continue
         case 'pending':
-          // Keep in map — hasn't run yet, but parent already knows about it
+          // 保留在映射中 — 尚未运行，但父任务已知晓
           continue
         case 'running':
-          // Fall through to running logic below
+          // 继续执行下方的运行逻辑
           break
       }
     }
@@ -196,19 +195,19 @@ export async function generateTaskAttachments(state: AppState): Promise<{
       }
     }
 
-    // Completed tasks are NOT notified here — each task type handles its own
-    // completion notification via enqueuePendingNotification(). Generating
-    // attachments here would race with those per-type callbacks, causing
-    // dual delivery (one inline attachment + one separate API turn).
+    // 已完成任务不在此处通知 — 每种任务类型通过
+    // enqueuePendingNotification() 处理自己的完成通知。在此处生成
+    // 附件会与那些按类型的回调竞争，导致双重传递（一个内联附件 +
+    // 一个单独的 API 轮次）。
   }
 
   return { attachments, updatedTaskOffsets, evictedTaskIds }
 }
 
 /**
- * Apply the outputOffset patches and evictions from generateTaskAttachments.
- * Merges patches against FRESH prev.tasks (not the stale pre-await snapshot),
- * so concurrent status transitions aren't clobbered.
+ * 应用 generateTaskAttachments 产生的 outputOffset 补丁和驱逐。
+ * 将补丁合并到新鲜的 prev.tasks（而非过期的 await 前快照），
+ * 这样并发的状态转变不会被覆盖。
  */
 export function applyTaskOffsetsAndEvictions(
   setAppState: SetAppState,
@@ -224,8 +223,8 @@ export function applyTaskOffsetsAndEvictions(
     const newTasks = { ...prev.tasks }
     for (const id of offsetIds) {
       const fresh = newTasks[id]
-      // Re-check status on fresh state — task may have completed during the
-      // await. If it's no longer running, the offset update is moot.
+      // 在新鲜状态上重新检查状态 — 任务可能在 await 期间已完成。
+      // 如果它不再运行，偏移量更新就无关紧要了。
       if (fresh?.status === 'running') {
         newTasks[id] = { ...fresh, outputOffset: updatedTaskOffsets[id]! }
         changed = true
@@ -233,8 +232,8 @@ export function applyTaskOffsetsAndEvictions(
     }
     for (const id of evictedTaskIds) {
       const fresh = newTasks[id]
-      // Re-check terminal+notified on fresh state (TOCTOU: resume may have
-      // replaced the task during the generateTaskAttachments await)
+      // 在新鲜状态上重新检查终端+已通知（TOCTOU：恢复可能在
+      // generateTaskAttachments 的 await 期间替换了任务）
       if (!fresh || !isTerminalTaskStatus(fresh.status) || !fresh.notified) {
         continue
       }
@@ -249,8 +248,8 @@ export function applyTaskOffsetsAndEvictions(
 }
 
 /**
- * Poll all running tasks and check for updates.
- * This is the main polling loop called by the framework.
+ * 轮询所有正在运行的任务并检查更新。
+ * 这是框架调用的主轮询循环。
  */
 export async function pollTasks(
   getAppState: () => AppState,
@@ -262,14 +261,14 @@ export async function pollTasks(
 
   applyTaskOffsetsAndEvictions(setAppState, updatedTaskOffsets, evictedTaskIds)
 
-  // Send notifications for completed tasks
+  // 为已完成任务发送通知
   for (const attachment of attachments) {
     enqueueTaskNotification(attachment)
   }
 }
 
 /**
- * Enqueue a task notification to the message queue.
+ * 将任务通知加入消息队列。
  */
 function enqueueTaskNotification(attachment: TaskAttachment): void {
   const statusText = getStatusText(attachment.status)
@@ -290,7 +289,7 @@ function enqueueTaskNotification(attachment: TaskAttachment): void {
 }
 
 /**
- * Get human-readable status text.
+ * 获取人类可读的状态文本。
  */
 function getStatusText(status: TaskStatus): string {
   switch (status) {

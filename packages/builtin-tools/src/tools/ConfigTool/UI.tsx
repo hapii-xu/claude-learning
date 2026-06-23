@@ -7,11 +7,11 @@ import type { Input, Output } from './ConfigTool.js';
 export function renderToolUseMessage(input: Partial<Input>): React.ReactNode {
   if (!input.setting) return null;
   if (input.value === undefined) {
-    return <Text dimColor>Getting {input.setting}</Text>;
+    return <Text dimColor>获取 {input.setting}</Text>;
   }
   return (
     <Text dimColor>
-      Setting {input.setting} to {jsonStringify(input.value)}
+      将 {input.setting} 设置为 {jsonStringify(input.value)}
     </Text>
   );
 }
@@ -20,7 +20,7 @@ export function renderToolResultMessage(content: Output): React.ReactNode {
   if (!content.success) {
     return (
       <MessageResponse>
-        <Text color="error">Failed: {content.error}</Text>
+        <Text color="error">失败：{content.error}</Text>
       </MessageResponse>
     );
   }
@@ -36,12 +36,12 @@ export function renderToolResultMessage(content: Output): React.ReactNode {
   return (
     <MessageResponse>
       <Text>
-        Set <Text bold>{content.setting}</Text> to <Text bold>{jsonStringify(content.newValue)}</Text>
+        已将 <Text bold>{content.setting}</Text> 设置为 <Text bold>{jsonStringify(content.newValue)}</Text>
       </Text>
     </MessageResponse>
   );
 }
 
 export function renderToolUseRejectedMessage(): React.ReactNode {
-  return <Text color="warning">Config change rejected</Text>;
+  return <Text color="warning">配置变更被拒绝</Text>;
 }

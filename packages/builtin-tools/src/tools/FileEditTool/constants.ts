@@ -1,10 +1,10 @@
-// In its own file to avoid circular dependencies
+// 独立文件以避免循环依赖
 export const FILE_EDIT_TOOL_NAME = 'Edit'
 
-// Permission pattern for granting session-level access to the project's .claude/ folder
+// 授予会话级别访问项目 .claude/ 文件夹的权限模式
 export const CLAUDE_FOLDER_PERMISSION_PATTERN = '/.claude/**'
 
-// Permission pattern for granting session-level access to the global ~/.claude/ folder
+// 授予会话级别访问全局 ~/.claude/ 文件夹的权限模式
 export const GLOBAL_CLAUDE_FOLDER_PERMISSION_PATTERN = '~/.claude/**'
 
 export const FILE_UNEXPECTEDLY_MODIFIED_ERROR =

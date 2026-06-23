@@ -1,25 +1,25 @@
 /**
- * Perfetto Tracing for Claude Code (Ant-only)
+ * Claude Code 的 Perfetto 追踪（仅限 Anthropic 内部）
  *
- * This module generates traces in the Chrome Trace Event format that can be
- * viewed in ui.perfetto.dev or Chrome's chrome://tracing.
+ * 本模块生成 Chrome Trace Event 格式的追踪数据，可在
+ * ui.perfetto.dev 或 Chrome 的 chrome://tracing 中查看。
  *
- * NOTE: This feature is ant-only and eliminated from external builds.
+ * 注意：此功能仅限 Anthropic 内部，外部构建中会被消除。
  *
- * The trace file includes:
- * - Agent hierarchy (parent-child relationships in a swarm)
- * - API requests with TTFT, TTLT, prompt length, cache stats, msg ID, speculative flag
- * - Tool executions with name, duration, and token usage
- * - User input waiting time
+ * 追踪文件包括：
+ * - Agent 层级关系（swarm 中的父子关系）
+ * - API 请求（含 TTFT、TTLT、提示长度、缓存统计、消息 ID、推测标记）
+ * - 工具执行（含名称、耗时和 token 使用量）
+ * - 用户输入等待时间
  *
- * Usage:
- * 1. Enable via CLAUDE_CODE_PERFETTO_TRACE=1 or CLAUDE_CODE_PERFETTO_TRACE=<path>
- * 2. Optionally set CLAUDE_CODE_PERFETTO_WRITE_INTERVAL_S=<positive integer> to write the
- *    trace file periodically (default: write only on exit).
- * 3. Run Claude Code normally
- * 4. Trace file is written to ~/.claude/traces/trace-<session-id>.json
- *    or to the specified path
- * 5. Open in ui.perfetto.dev to visualize
+ * 用法：
+ * 1. 通过 CLAUDE_CODE_PERFETTO_TRACE=1 或 CLAUDE_CODE_PERFETTO_TRACE=<路径> 启用
+ * 2. 可选设置 CLAUDE_CODE_PERFETTO_WRITE_INTERVAL_S=<正整数> 以周期性写入
+ *    追踪文件（默认：仅在退出时写入）。
+ * 3. 正常运行 Claude Code
+ * 4. 追踪文件写入 ~/.claude/traces/trace-<session-id>.json
+ *    或指定路径
+ * 5. 在 ui.perfetto.dev 中打开以可视化
  */
 
 import { feature } from 'bun:bundle'
@@ -40,36 +40,36 @@ import { jsonStringify } from '../slowOperations.js'
 import { getAgentId, getAgentName, getParentSessionId } from '../teammate.js'
 
 /**
- * Chrome Trace Event format types
- * See: https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU
+ * Chrome Trace Event 格式类型
+ * 参见：https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU
  */
 
 export type TraceEventPhase =
-  | 'B' // Begin duration event
-  | 'E' // End duration event
-  | 'X' // Complete event (with duration)
-  | 'i' // Instant event
-  | 'C' // Counter event
-  | 'b' // Async begin
-  | 'n' // Async instant
-  | 'e' // Async end
-  | 'M' // Metadata event
+  | 'B' // 开始持续时间事件
+  | 'E' // 结束持续时间事件
+  | 'X' // 完成事件（含持续时间）
+  | 'i' // 即时事件
+  | 'C' // 计数器事件
+  | 'b' // 异步开始
+  | 'n' // 异步即时
+  | 'e' // 异步结束
+  | 'M' // 元数据事件
 
 export type TraceEvent = {
   name: string
   cat: string
   ph: TraceEventPhase
-  ts: number // Timestamp in microseconds
-  pid: number // Process ID (we use 1 for main, agent IDs for subagents)
-  tid: number // Thread ID (we use numeric hash of agent name or 1 for main)
-  dur?: number // Duration in microseconds (for 'X' events)
+  ts: number // 时间戳（微秒）
+  pid: number // 进程 ID（主进程用 1，子 agent 用 agent ID）
+  tid: number // 线程 ID（使用 agent 名称的数字哈希或主进程用 1）
+  dur?: number // 持续时间（微秒，用于 'X' 事件）
   args?: Record<string, unknown>
-  id?: string // For async events
+  id?: string // 用于异步事件
   scope?: string
 }
 
 /**
- * Agent info for tracking hierarchy
+ * 用于追踪层级关系的 Agent 信息
  */
 type AgentInfo = {
   agentId: string
@@ -80,7 +80,7 @@ type AgentInfo = {
 }
 
 /**
- * Pending span for tracking begin/end pairs
+ * 用于追踪开始/结束对的待定 span
  */
 type PendingSpan = {
   name: string
@@ -90,47 +90,46 @@ type PendingSpan = {
   args: Record<string, unknown>
 }
 
-// Global state for the Perfetto tracer
+// Perfetto 追踪器的全局状态
 let isEnabled = false
 let tracePath: string | null = null
-// Metadata events (ph: 'M' — process/thread names, parent links) are kept
-// separate so they survive eviction — Perfetto UI needs them to label
-// tracks. Bounded by agent count (~3 events per agent).
+// 元数据事件（ph: 'M' — 进程/线程名称、父级链接）单独存放，
+// 以便在驱逐后仍能保留 — Perfetto UI 需要它们来标记轨道。
+// 受 agent 数量限制（每个 agent 约 3 个事件）。
 const metadataEvents: TraceEvent[] = []
 const events: TraceEvent[] = []
-// events[] cap. Cron-driven sessions run for days; 22 push sites × many
-// turns would otherwise grow unboundedly (periodicWrite flushes to disk but
-// does not truncate — it writes the full snapshot). At ~300B/event this is
-// ~30MB, enough trace history for any debugging session. Eviction drops the
-// oldest half when hit, amortized O(1).
+// events[] 上限。Cron 驱动的会话可能运行数天；22 个推送点 × 多轮
+// 对话否则会无限增长（periodicWrite 刷新到磁盘但不会截断 —
+// 它写入完整快照）。每个事件约 300B，总计约 30MB，足以覆盖
+// 任何调试会话的追踪历史。驱逐时丢弃最旧的一半，摊还 O(1)。
 const MAX_EVENTS = 100_000
 const pendingSpans = new Map<string, PendingSpan>()
 const agentRegistry = new Map<string, AgentInfo>()
 let totalAgentCount = 0
 let startTimeMs = 0
 let spanIdCounter = 0
-let traceWritten = false // Flag to avoid double writes
+let traceWritten = false // 避免重复写入的标志
 
-// Map agent IDs to numeric process IDs (Perfetto requires numeric IDs)
+// 将 agent ID 映射为数字进程 ID（Perfetto 需要数字 ID）
 let processIdCounter = 1
 const agentIdToProcessId = new Map<string, number>()
 
-// Periodic write interval handle
+// 周期性写入间隔句柄
 let writeIntervalId: ReturnType<typeof setInterval> | null = null
 
-const STALE_SPAN_TTL_MS = 30 * 60 * 1000 // 30 minutes
-const STALE_SPAN_CLEANUP_INTERVAL_MS = 60 * 1000 // 1 minute
+const STALE_SPAN_TTL_MS = 30 * 60 * 1000 // 30 分钟
+const STALE_SPAN_CLEANUP_INTERVAL_MS = 60 * 1000 // 1 分钟
 let staleSpanCleanupId: ReturnType<typeof setInterval> | null = null
 
 /**
- * Convert a string to a numeric hash for use as thread ID
+ * 将字符串转换为数字哈希，用作线程 ID
  */
 function stringToNumericHash(str: string): number {
-  return Math.abs(djb2Hash(str)) || 1 // Ensure non-zero
+  return Math.abs(djb2Hash(str)) || 1 // 确保非零
 }
 
 /**
- * Get or create a numeric process ID for an agent
+ * 获取或创建 agent 的数字进程 ID
  */
 function getProcessIdForAgent(agentId: string): number {
   const existing = agentIdToProcessId.get(agentId)
@@ -142,14 +141,14 @@ function getProcessIdForAgent(agentId: string): number {
 }
 
 /**
- * Get current agent info
+ * 获取当前 agent 信息
  */
 function getCurrentAgentInfo(): AgentInfo {
   const agentId = getAgentId() ?? getSessionId()
   const agentName = getAgentName() ?? 'main'
   const parentSessionId = getParentSessionId()
 
-  // Check if we've already registered this agent
+  // 检查是否已注册此 agent
   const existing = agentRegistry.get(agentId)
   if (existing) return existing
 
@@ -167,29 +166,29 @@ function getCurrentAgentInfo(): AgentInfo {
 }
 
 /**
- * Get timestamp in microseconds relative to trace start
+ * 获取相对于追踪起始时间的微秒级时间戳
  */
 function getTimestamp(): number {
   return (Date.now() - startTimeMs) * 1000
 }
 
 /**
- * Generate a unique span ID
+ * 生成唯一的 span ID
  */
 function generateSpanId(): string {
   return `span_${++spanIdCounter}`
 }
 
 /**
- * Evict pending spans older than STALE_SPAN_TTL_MS.
- * Mirrors the TTL cleanup pattern in sessionTracing.ts.
+ * 驱逐超过 STALE_SPAN_TTL_MS 的待定 span。
+ * 镜像 sessionTracing.ts 中的 TTL 清理模式。
  */
 function evictStaleSpans(): void {
   const now = getTimestamp()
-  const ttlUs = STALE_SPAN_TTL_MS * 1000 // Convert ms to microseconds
+  const ttlUs = STALE_SPAN_TTL_MS * 1000 // 将毫秒转换为微秒
   for (const [spanId, span] of pendingSpans) {
     if (now - span.startTime > ttlUs) {
-      // Emit an end event so the span shows up in the trace as incomplete
+      // 发送结束事件使 span 在追踪中显示为不完整
       events.push({
         name: span.name,
         cat: span.category,
@@ -209,7 +208,7 @@ function evictStaleSpans(): void {
 }
 
 /**
- * Build the full trace document (Chrome Trace JSON format).
+ * 构建完整的追踪文档（Chrome Trace JSON 格式）。
  */
 function buildTraceDocument(): string {
   return jsonStringify({
@@ -224,10 +223,10 @@ function buildTraceDocument(): string {
 }
 
 /**
- * Drop the oldest half of events[] when over MAX_EVENTS. Called from the
- * stale-span cleanup interval (60s). The half-batch splice keeps this
- * amortized O(1) — we don't pay splice cost per-push. A synthetic marker
- * is inserted so the gap is visible in ui.perfetto.dev.
+ * 当 events[] 超过 MAX_EVENTS 时丢弃最旧的一半。
+ * 从 stale-span 清理间隔（60 秒）调用。半批量 splice
+ * 保持摊还 O(1) — 不需要每次 push 都付出 splice 开销。
+ * 插入一个合成标记使间隙在 ui.perfetto.dev 中可见。
  */
 function evictOldestEvents(): void {
   if (events.length < MAX_EVENTS) return
@@ -242,46 +241,44 @@ function evictOldestEvents(): void {
     args: { dropped_events: dropped.length },
   })
   logForDebugging(
-    `[Perfetto] Evicted ${dropped.length} oldest events (cap ${MAX_EVENTS})`,
+    `[Perfetto] 已驱逐 ${dropped.length} 个最旧事件（上限 ${MAX_EVENTS}）`,
   )
 }
 
 /**
- * Initialize Perfetto tracing
- * Call this early in the application lifecycle
+ * 初始化 Perfetto 追踪
+ * 在应用生命周期早期调用
  */
 export function initializePerfettoTracing(): void {
   const envValue = process.env.CLAUDE_CODE_PERFETTO_TRACE
   logForDebugging(
-    `[Perfetto] initializePerfettoTracing called, env value: ${envValue}`,
+    `[Perfetto] initializePerfettoTracing 已调用，环境变量值：${envValue}`,
   )
 
-  // Wrap in feature() for dead code elimination - entire block removed from external builds
+  // 用 feature() 包裹以实现死代码消除 — 整个代码块在外部构建中移除
   if (feature('PERFETTO_TRACING')) {
     if (!envValue || isEnvDefinedFalsy(envValue)) {
-      logForDebugging(
-        '[Perfetto] Tracing disabled (env var not set or disabled)',
-      )
+      logForDebugging('[Perfetto] 追踪已禁用（环境变量未设置或已禁用）')
       return
     }
 
     isEnabled = true
     startTimeMs = Date.now()
 
-    // Determine trace file path
+    // 确定追踪文件路径
     if (isEnvTruthy(envValue)) {
       const tracesDir = join(getClaudeConfigHomeDir(), 'traces')
       tracePath = join(tracesDir, `trace-${getSessionId()}.json`)
     } else {
-      // Use the provided path
+      // 使用提供的路径
       tracePath = envValue
     }
 
     logForDebugging(
-      `[Perfetto] Tracing enabled, will write to: ${tracePath}, isEnabled=${isEnabled}`,
+      `[Perfetto] 追踪已启用，将写入：${tracePath}，isEnabled=${isEnabled}`,
     )
 
-    // Start periodic full-trace write if CLAUDE_CODE_PERFETTO_WRITE_INTERVAL_S is a positive integer
+    // 如果 CLAUDE_CODE_PERFETTO_WRITE_INTERVAL_S 为正整数，启动周期性全量追踪写入
     const intervalSec = parseInt(
       process.env.CLAUDE_CODE_PERFETTO_WRITE_INTERVAL_S ?? '',
       10,
@@ -290,57 +287,53 @@ export function initializePerfettoTracing(): void {
       writeIntervalId = setInterval(() => {
         void periodicWrite()
       }, intervalSec * 1000)
-      // Don't let the interval keep the process alive on its own
+      // 不让间隔定时器单独阻止进程退出
       if (writeIntervalId.unref) writeIntervalId.unref()
-      logForDebugging(
-        `[Perfetto] Periodic write enabled, interval: ${intervalSec}s`,
-      )
+      logForDebugging(`[Perfetto] 周期性写入已启用，间隔：${intervalSec}秒`)
     }
 
-    // Start stale span cleanup interval
+    // 启动过期 span 清理间隔
     staleSpanCleanupId = setInterval(() => {
       evictStaleSpans()
       evictOldestEvents()
     }, STALE_SPAN_CLEANUP_INTERVAL_MS)
     if (staleSpanCleanupId.unref) staleSpanCleanupId.unref()
 
-    // Register cleanup to write final trace on exit
+    // 注册清理回调以在退出时写入最终追踪
     registerCleanup(async () => {
-      logForDebugging('[Perfetto] Cleanup callback invoked')
+      logForDebugging('[Perfetto] 清理回调已触发')
       await writePerfettoTrace()
     })
 
-    // Also register a beforeExit handler as a fallback
-    // This ensures the trace is written even if cleanup registry is not called
+    // 同时注册 beforeExit 处理器作为后备
+    // 确保即使清理注册表未被调用也能写入追踪
     process.on('beforeExit', () => {
-      logForDebugging('[Perfetto] beforeExit handler invoked')
+      logForDebugging('[Perfetto] beforeExit 处理器已触发')
       void writePerfettoTrace()
     })
 
-    // Register a synchronous exit handler as a last resort
-    // This is the final fallback to ensure trace is written before process exits
+    // 注册同步退出处理器作为最后手段
+    // 这是确保在进程退出前写入追踪的最终后备
     process.on('exit', () => {
       if (!traceWritten) {
-        logForDebugging(
-          '[Perfetto] exit handler invoked, writing trace synchronously',
-        )
+        logForDebugging('[Perfetto] exit 处理器已触发，同步写入追踪')
         writePerfettoTraceSync()
       }
     })
 
-    // Emit process metadata events for main process
+    // 为主进程发送元数据事件
     const mainAgent = getCurrentAgentInfo()
     emitProcessMetadata(mainAgent)
   }
 }
 
 /**
- * Emit metadata events for a process/agent
+ * 为进程/agent 发送元数据事件
  */
 function emitProcessMetadata(agentInfo: AgentInfo): void {
   if (!isEnabled) return
 
-  // Process name
+  // 进程名称
   metadataEvents.push({
     name: 'process_name',
     cat: '__metadata',
@@ -351,7 +344,7 @@ function emitProcessMetadata(agentInfo: AgentInfo): void {
     args: { name: agentInfo.agentName },
   })
 
-  // Thread name (same as process for now)
+  // 线程名称（暂时与进程名相同）
   metadataEvents.push({
     name: 'thread_name',
     cat: '__metadata',
@@ -362,7 +355,7 @@ function emitProcessMetadata(agentInfo: AgentInfo): void {
     args: { name: agentInfo.agentName },
   })
 
-  // Add parent info if available
+  // 如果可用，添加父级信息
   if (agentInfo.parentAgentId) {
     metadataEvents.push({
       name: 'parent_agent',
@@ -379,15 +372,15 @@ function emitProcessMetadata(agentInfo: AgentInfo): void {
 }
 
 /**
- * Check if Perfetto tracing is enabled
+ * 检查 Perfetto 追踪是否已启用
  */
 export function isPerfettoTracingEnabled(): boolean {
   return isEnabled
 }
 
 /**
- * Register a new agent in the trace
- * Call this when a subagent/teammate is spawned
+ * 在追踪中注册新 agent
+ * 在子 agent/团队成员被创建时调用
  */
 export function registerAgent(
   agentId: string,
@@ -410,8 +403,8 @@ export function registerAgent(
 }
 
 /**
- * Unregister an agent from the trace.
- * Call this when an agent completes, fails, or is aborted to free memory.
+ * 从追踪中注销 agent。
+ * 在 agent 完成、失败或被中止时调用以释放内存。
  */
 export function unregisterAgent(agentId: string): void {
   if (!isEnabled) return
@@ -420,7 +413,7 @@ export function unregisterAgent(agentId: string): void {
 }
 
 /**
- * Start an API call span
+ * 开始 API 调用 span
  */
 export function startLLMRequestPerfettoSpan(args: {
   model: string
@@ -448,7 +441,7 @@ export function startLLMRequestPerfettoSpan(args: {
     },
   })
 
-  // Emit begin event
+  // 发送开始事件
   events.push({
     name: 'API Call',
     cat: 'api',
@@ -463,7 +456,7 @@ export function startLLMRequestPerfettoSpan(args: {
 }
 
 /**
- * End an API call span with response metadata
+ * 结束 API 调用 span 并附带响应元数据
  */
 export function endLLMRequestPerfettoSpan(
   spanId: string,
@@ -477,9 +470,9 @@ export function endLLMRequestPerfettoSpan(
     messageId?: string
     success?: boolean
     error?: string
-    /** Time spent in pre-request setup (client creation, retries) before the successful attempt */
+    /** 成功请求前的预请求准备耗时（客户端创建、重试） */
     requestSetupMs?: number
-    /** Timestamps (Date.now()) of each attempt start — used to emit retry sub-spans */
+    /** 每次尝试开始的时间戳（Date.now()）— 用于发送重试子 span */
     attemptStartTimes?: number[]
   },
 ): void {
@@ -498,14 +491,14 @@ export function endLLMRequestPerfettoSpan(
   const outputTokens = metadata.outputTokens
   const cacheReadTokens = metadata.cacheReadTokens
 
-  // Compute derived metrics
-  // ITPS: input tokens per second (prompt processing speed)
+  // 计算派生指标
+  // ITPS：每秒输入 token 数（提示处理速度）
   const itps =
     ttftMs !== undefined && promptTokens !== undefined && ttftMs > 0
       ? Math.round((promptTokens / (ttftMs / 1000)) * 100) / 100
       : undefined
 
-  // OTPS: output tokens per second (sampling speed)
+  // OTPS：每秒输出 token 数（采样速度）
   const samplingMs =
     ttltMs !== undefined && ttftMs !== undefined ? ttltMs - ttftMs : undefined
   const otps =
@@ -513,7 +506,7 @@ export function endLLMRequestPerfettoSpan(
       ? Math.round((outputTokens / (samplingMs / 1000)) * 100) / 100
       : undefined
 
-  // Cache hit rate: percentage of prompt tokens from cache
+  // 缓存命中率：提示 token 中来自缓存的百分比
   const cacheHitRate =
     cacheReadTokens !== undefined &&
     promptTokens !== undefined &&
@@ -524,7 +517,7 @@ export function endLLMRequestPerfettoSpan(
   const requestSetupMs = metadata.requestSetupMs
   const attemptStartTimes = metadata.attemptStartTimes
 
-  // Merge metadata with original args
+  // 合并元数据与原始参数
   const args = {
     ...pending.args,
     ttft_ms: ttftMs,
@@ -538,14 +531,14 @@ export function endLLMRequestPerfettoSpan(
     error: metadata.error,
     duration_ms: duration / 1000,
     request_setup_ms: requestSetupMs,
-    // Derived metrics
+    // 派生指标
     itps,
     otps,
     cache_hit_rate_pct: cacheHitRate,
   }
 
-  // Emit Request Setup sub-span when there was measurable setup time
-  // (client creation, param building, retries before the successful attempt)
+  // 当存在可测量的准备时间时发送请求准备子 span
+  // （客户端创建、参数构建、成功尝试前的重试）
   const setupUs =
     requestSetupMs !== undefined && requestSetupMs > 0
       ? requestSetupMs * 1000
@@ -566,11 +559,11 @@ export function endLLMRequestPerfettoSpan(
       },
     })
 
-    // Emit retry attempt sub-spans within Request Setup.
-    // Each failed attempt runs from its start to the next attempt's start.
+    // 在请求准备内发送重试尝试子 span。
+    // 每次失败尝试从其开始运行到下一次尝试的开始。
     if (attemptStartTimes && attemptStartTimes.length > 1) {
-      // attemptStartTimes[0] is the reference point (first attempt).
-      // Convert wall-clock deltas into Perfetto-relative microseconds.
+      // attemptStartTimes[0] 是参考点（第一次尝试）。
+      // 将挂钟时间差转换为 Perfetto 相对微秒。
       const baseWallMs = attemptStartTimes[0]!
       for (let i = 0; i < attemptStartTimes.length - 1; i++) {
         const attemptStartUs =
@@ -608,14 +601,14 @@ export function endLLMRequestPerfettoSpan(
     })
   }
 
-  // Emit sub-spans for First Token and Sampling phases (before API Call end)
-  // Using B/E pairs in proper nesting order for correct Perfetto visualization
+  // 发送首 Token 和采样阶段的子 span（在 API Call 结束之前）
+  // 使用 B/E 对按正确的嵌套顺序以获得正确的 Perfetto 可视化
   if (ttftMs !== undefined) {
-    // First Token starts after request setup (if any)
+    // 首 Token 在请求准备之后开始（如果有）
     const firstTokenStartTs = pending.startTime + setupUs
     const firstTokenEndTs = firstTokenStartTs + ttftMs * 1000
 
-    // First Token phase: from successful attempt start to first token
+    // 首 Token 阶段：从成功尝试开始到首个 token
     events.push({
       name: 'First Token',
       cat: 'api,ttft',
@@ -639,10 +632,10 @@ export function endLLMRequestPerfettoSpan(
       tid: pending.agentInfo.threadId,
     })
 
-    // Sampling phase: from first token to last token
-    // Note: samplingMs = ttltMs - ttftMs still includes setup time in ttltMs,
-    // so we compute the actual sampling duration for the span as the time from
-    // first token to API call end (endTime), not samplingMs directly.
+    // 采样阶段：从首 token 到末 token
+    // 注意：samplingMs = ttltMs - ttftMs 仍包含 ttltMs 中的准备时间，
+    // 因此我们将 span 的实际采样持续时间计算为从首 token 到
+    // API 调用结束（endTime）的时间，而不是直接使用 samplingMs。
     const actualSamplingMs =
       ttltMs !== undefined ? ttltMs - ttftMs - setupUs / 1000 : undefined
     if (actualSamplingMs !== undefined && actualSamplingMs > 0) {
@@ -670,7 +663,7 @@ export function endLLMRequestPerfettoSpan(
     }
   }
 
-  // Emit API Call end event (after sub-spans)
+  // 发送 API Call 结束事件（在子 span 之后）
   events.push({
     name: pending.name,
     cat: pending.category,
@@ -685,7 +678,7 @@ export function endLLMRequestPerfettoSpan(
 }
 
 /**
- * Start a tool execution span
+ * 开始工具执行 span
  */
 export function startToolPerfettoSpan(
   toolName: string,
@@ -707,7 +700,7 @@ export function startToolPerfettoSpan(
     },
   })
 
-  // Emit begin event
+  // 发送开始事件
   events.push({
     name: `Tool: ${toolName}`,
     cat: 'tool',
@@ -722,7 +715,7 @@ export function startToolPerfettoSpan(
 }
 
 /**
- * End a tool execution span
+ * 结束工具执行 span
  */
 export function endToolPerfettoSpan(
   spanId: string,
@@ -748,7 +741,7 @@ export function endToolPerfettoSpan(
     duration_ms: duration / 1000,
   }
 
-  // Emit end event
+  // 发送结束事件
   events.push({
     name: pending.name,
     cat: pending.category,
@@ -763,7 +756,7 @@ export function endToolPerfettoSpan(
 }
 
 /**
- * Start a user input waiting span
+ * 开始用户输入等待 span
  */
 export function startUserInputPerfettoSpan(context?: string): string {
   if (!isEnabled) return ''
@@ -781,7 +774,7 @@ export function startUserInputPerfettoSpan(context?: string): string {
     },
   })
 
-  // Emit begin event
+  // 发送开始事件
   events.push({
     name: 'Waiting for User Input',
     cat: 'user_input',
@@ -796,7 +789,7 @@ export function startUserInputPerfettoSpan(context?: string): string {
 }
 
 /**
- * End a user input waiting span
+ * 结束用户输入等待 span
  */
 export function endUserInputPerfettoSpan(
   spanId: string,
@@ -820,7 +813,7 @@ export function endUserInputPerfettoSpan(
     duration_ms: duration / 1000,
   }
 
-  // Emit end event
+  // 发送结束事件
   events.push({
     name: pending.name,
     cat: pending.category,
@@ -835,7 +828,7 @@ export function endUserInputPerfettoSpan(
 }
 
 /**
- * Emit an instant event (marker)
+ * 发送即时事件（标记）
  */
 export function emitPerfettoInstant(
   name: string,
@@ -858,7 +851,7 @@ export function emitPerfettoInstant(
 }
 
 /**
- * Emit a counter event for tracking metrics over time
+ * 发送计数器事件以跟踪指标随时间的变化
  */
 export function emitPerfettoCounter(
   name: string,
@@ -880,7 +873,7 @@ export function emitPerfettoCounter(
 }
 
 /**
- * Start an interaction span (wraps a full user request cycle)
+ * 开始交互 span（包装完整的用户请求周期）
  */
 export function startInteractionPerfettoSpan(userPrompt?: string): string {
   if (!isEnabled) return ''
@@ -898,7 +891,7 @@ export function startInteractionPerfettoSpan(userPrompt?: string): string {
     },
   })
 
-  // Emit begin event
+  // 发送开始事件
   events.push({
     name: 'Interaction',
     cat: 'interaction',
@@ -913,7 +906,7 @@ export function startInteractionPerfettoSpan(userPrompt?: string): string {
 }
 
 /**
- * End an interaction span
+ * 结束交互 span
  */
 export function endInteractionPerfettoSpan(spanId: string): void {
   if (!isEnabled || !spanId) return
@@ -924,7 +917,7 @@ export function endInteractionPerfettoSpan(spanId: string): void {
   const endTime = getTimestamp()
   const duration = endTime - pending.startTime
 
-  // Emit end event
+  // 发送结束事件
   events.push({
     name: pending.name,
     cat: pending.category,
@@ -942,11 +935,11 @@ export function endInteractionPerfettoSpan(spanId: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// Periodic write helpers
+// 周期性写入辅助函数
 // ---------------------------------------------------------------------------
 
 /**
- * Stop the periodic write timer.
+ * 停止周期性写入定时器。
  */
 function stopWriteInterval(): void {
   if (staleSpanCleanupId) {
@@ -960,7 +953,7 @@ function stopWriteInterval(): void {
 }
 
 /**
- * Force-close any remaining open spans at session end.
+ * 在会话结束时强制关闭所有剩余的未关闭 span。
  */
 function closeOpenSpans(): void {
   for (const [spanId, pending] of pendingSpans) {
@@ -983,9 +976,9 @@ function closeOpenSpans(): void {
 }
 
 /**
- * Write the full trace to disk.  Errors are logged but swallowed so that a
- * transient I/O problem does not crash the session — the next periodic tick
- * (or the final exit write) will retry with a complete snapshot.
+ * 将完整追踪写入磁盘。错误会被记录但吞掉，
+ * 以免临时 I/O 问题导致会话崩溃 — 下一次周期性 tick
+ * （或最终退出写入）会用完整快照重试。
  */
 async function periodicWrite(): Promise<void> {
   if (!isEnabled || !tracePath || traceWritten) return
@@ -994,24 +987,23 @@ async function periodicWrite(): Promise<void> {
     await mkdir(dirname(tracePath), { recursive: true })
     await writeFile(tracePath, buildTraceDocument())
     logForDebugging(
-      `[Perfetto] Periodic write: ${events.length} events to ${tracePath}`,
+      `[Perfetto] 周期性写入：${events.length} 个事件到 ${tracePath}`,
     )
   } catch (error) {
-    logForDebugging(
-      `[Perfetto] Periodic write failed: ${errorMessage(error)}`,
-      { level: 'error' },
-    )
+    logForDebugging(`[Perfetto] 周期性写入失败：${errorMessage(error)}`, {
+      level: 'error',
+    })
   }
 }
 
 /**
- * Final async write: close open spans and write the complete trace.
- * Idempotent — sets `traceWritten` on success so subsequent calls are no-ops.
+ * 最终异步写入：关闭未完成的 span 并写入完整追踪。
+ * 幂等 — 成功时设置 `traceWritten` 使后续调用为空操作。
  */
 async function writePerfettoTrace(): Promise<void> {
   if (!isEnabled || !tracePath || traceWritten) {
     logForDebugging(
-      `[Perfetto] Skipping final write: isEnabled=${isEnabled}, tracePath=${tracePath}, traceWritten=${traceWritten}`,
+      `[Perfetto] 跳过最终写入：isEnabled=${isEnabled}, tracePath=${tracePath}, traceWritten=${traceWritten}`,
     )
     return
   }
@@ -1020,29 +1012,28 @@ async function writePerfettoTrace(): Promise<void> {
   closeOpenSpans()
 
   logForDebugging(
-    `[Perfetto] writePerfettoTrace called: events=${events.length}`,
+    `[Perfetto] writePerfettoTrace 已调用：events=${events.length}`,
   )
 
   try {
     await mkdir(dirname(tracePath), { recursive: true })
     await writeFile(tracePath, buildTraceDocument())
     traceWritten = true
-    logForDebugging(`[Perfetto] Trace finalized at: ${tracePath}`)
+    logForDebugging(`[Perfetto] 追踪已最终化于：${tracePath}`)
   } catch (error) {
-    logForDebugging(
-      `[Perfetto] Failed to write final trace: ${errorMessage(error)}`,
-      { level: 'error' },
-    )
+    logForDebugging(`[Perfetto] 最终追踪写入失败：${errorMessage(error)}`, {
+      level: 'error',
+    })
   }
 }
 
 /**
- * Final synchronous write (fallback for process 'exit' handler where async is forbidden).
+ * 最终同步写入（用于进程 'exit' 处理器的后备，该处理器不允许异步操作）。
  */
 function writePerfettoTraceSync(): void {
   if (!isEnabled || !tracePath || traceWritten) {
     logForDebugging(
-      `[Perfetto] Skipping final sync write: isEnabled=${isEnabled}, tracePath=${tracePath}, traceWritten=${traceWritten}`,
+      `[Perfetto] 跳过最终同步写入：isEnabled=${isEnabled}, tracePath=${tracePath}, traceWritten=${traceWritten}`,
     )
     return
   }
@@ -1051,34 +1042,33 @@ function writePerfettoTraceSync(): void {
   closeOpenSpans()
 
   logForDebugging(
-    `[Perfetto] writePerfettoTraceSync called: events=${events.length}`,
+    `[Perfetto] writePerfettoTraceSync 已调用：events=${events.length}`,
   )
 
   try {
     const dir = dirname(tracePath)
-    // eslint-disable-next-line custom-rules/no-sync-fs -- Only called from process.on('exit') handler
+    // eslint-disable-next-line custom-rules/no-sync-fs -- 仅在 process.on('exit') 处理器中调用
     mkdirSync(dir, { recursive: true })
-    // eslint-disable-next-line custom-rules/no-sync-fs, eslint-plugin-n/no-sync -- Required for process 'exit' handler which doesn't support async
+    // eslint-disable-next-line custom-rules/no-sync-fs, eslint-plugin-n/no-sync -- 进程 'exit' 处理器不支持异步，必须使用同步写入
     writeFileSync(tracePath, buildTraceDocument())
     traceWritten = true
-    logForDebugging(`[Perfetto] Trace finalized synchronously at: ${tracePath}`)
+    logForDebugging(`[Perfetto] 追踪已同步最终化于：${tracePath}`)
   } catch (error) {
-    logForDebugging(
-      `[Perfetto] Failed to write final trace synchronously: ${errorMessage(error)}`,
-      { level: 'error' },
-    )
+    logForDebugging(`[Perfetto] 同步最终追踪写入失败：${errorMessage(error)}`, {
+      level: 'error',
+    })
   }
 }
 
 /**
- * Get all recorded events (for testing)
+ * 获取所有已记录的事件（用于测试）
  */
 export function getPerfettoEvents(): TraceEvent[] {
   return [...metadataEvents, ...events]
 }
 
 /**
- * Reset the tracer state (for testing)
+ * 重置追踪器状态（用于测试）
  */
 export function resetPerfettoTracer(): void {
   if (staleSpanCleanupId) {
@@ -1101,14 +1091,14 @@ export function resetPerfettoTracer(): void {
 }
 
 /**
- * Trigger a periodic write immediately (for testing)
+ * 立即触发周期性写入（用于测试）
  */
 export async function triggerPeriodicWriteForTesting(): Promise<void> {
   await periodicWrite()
 }
 
 /**
- * Evict stale spans immediately (for testing)
+ * 立即驱逐过期 span（用于测试）
  */
 export function evictStaleSpansForTesting(): void {
   evictStaleSpans()

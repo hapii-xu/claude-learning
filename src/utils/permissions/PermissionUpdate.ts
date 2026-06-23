@@ -1,6 +1,6 @@
 import { posix } from 'path'
 import type { ToolPermissionContext } from '../../Tool.js'
-// Types extracted to src/types/permissions.ts to break import cycles
+// 类型已提取到 src/types/permissions.ts 以打破循环导入
 import type {
   AdditionalWorkingDirectory,
   WorkingDirectorySource,
@@ -24,7 +24,7 @@ import {
 } from './permissionRuleParser.js'
 import { addPermissionRulesToSettings } from './permissionsLoader.js'
 
-// Re-export for backwards compatibility
+// 向后兼容的重新导出
 export type { AdditionalWorkingDirectory, WorkingDirectorySource }
 
 export function extractRules(
@@ -47,10 +47,10 @@ export function hasRules(updates: PermissionUpdate[] | undefined): boolean {
 }
 
 /**
- * Applies a single permission update to the context and returns the updated context
- * @param context The current permission context
- * @param update The permission update to apply
- * @returns The updated permission context
+ * 将单个权限更新应用到上下文并返回更新后的上下文
+ * @param context 当前权限上下文
+ * @param update 要应用的权限更新
+ * @returns 更新后的权限上下文
  */
 export function applyPermissionUpdate(
   context: ToolPermissionContext,
@@ -74,7 +74,7 @@ export function applyPermissionUpdate(
         `Applying permission update: Adding ${update.rules.length} ${update.behavior} rule(s) to destination '${update.destination}': ${jsonStringify(ruleStrings)}`,
       )
 
-      // Determine which collection to update based on behavior
+      // 根据行为类型确定要更新的集合
       const ruleKind =
         update.behavior === 'allow'
           ? 'alwaysAllowRules'
@@ -102,7 +102,7 @@ export function applyPermissionUpdate(
         `Replacing all ${update.behavior} rules for destination '${update.destination}' with ${update.rules.length} rule(s): ${jsonStringify(ruleStrings)}`,
       )
 
-      // Determine which collection to update based on behavior
+      // 根据行为类型确定要更新的集合
       const ruleKind =
         update.behavior === 'allow'
           ? 'alwaysAllowRules'
@@ -114,7 +114,7 @@ export function applyPermissionUpdate(
         ...context,
         [ruleKind]: {
           ...context[ruleKind],
-          [update.destination]: ruleStrings, // Replace all rules for this source
+          [update.destination]: ruleStrings, // 替换此来源的所有规则
         },
       }
     }
@@ -144,7 +144,7 @@ export function applyPermissionUpdate(
         `Applying permission update: Removing ${update.rules.length} ${update.behavior} rule(s) from source '${update.destination}': ${jsonStringify(ruleStrings)}`,
       )
 
-      // Determine which collection to update based on behavior
+      // 根据行为类型确定要更新的集合
       const ruleKind =
         update.behavior === 'allow'
           ? 'alwaysAllowRules'
@@ -152,7 +152,7 @@ export function applyPermissionUpdate(
             ? 'alwaysDenyRules'
             : 'alwaysAskRules'
 
-      // Filter out the rules to be removed
+      // 过滤掉要移除的规则
       const existingRules = context[ruleKind][update.destination] || []
       const rulesToRemove = new Set(ruleStrings)
       const filteredRules = existingRules.filter(
@@ -188,10 +188,10 @@ export function applyPermissionUpdate(
 }
 
 /**
- * Applies multiple permission updates to the context and returns the updated context
- * @param context The current permission context
- * @param updates The permission updates to apply
- * @returns The updated permission context
+ * 将多个权限更新应用到上下文并返回更新后的上下文
+ * @param context 当前权限上下文
+ * @param updates 要应用的权限更新
+ * @returns 更新后的权限上下文
  */
 export function applyPermissionUpdates(
   context: ToolPermissionContext,
@@ -216,8 +216,8 @@ export function supportsPersistence(
 }
 
 /**
- * Persists a permission update to the appropriate settings source
- * @param update The permission update to persist
+ * 将权限更新持久化到相应的设置来源
+ * @param update 要持久化的权限更新
  */
 export function persistPermissionUpdate(update: PermissionUpdate): void {
   if (!supportsPersistence(update.destination)) return
@@ -249,7 +249,7 @@ export function persistPermissionUpdate(update: PermissionUpdate): void {
       const existingDirs =
         existingSettings?.permissions?.additionalDirectories || []
 
-      // Add new directories, avoiding duplicates
+      // 添加新目录，避免重复
       const dirsToAdd = update.directories.filter(
         dir => !existingDirs.includes(dir),
       )
@@ -266,7 +266,7 @@ export function persistPermissionUpdate(update: PermissionUpdate): void {
     }
 
     case 'removeRules': {
-      // Handle rule removal
+      // 处理规则移除
       logForDebugging(
         `Removing ${update.rules.length} ${update.behavior} rule(s) from ${update.destination}`,
       )
@@ -274,8 +274,8 @@ export function persistPermissionUpdate(update: PermissionUpdate): void {
       const existingPermissions = existingSettings?.permissions || {}
       const existingRules = existingPermissions[update.behavior] || []
 
-      // Convert rules to normalized strings for comparison
-      // Normalize via parse→serialize roundtrip so "Bash(*)" and "Bash" match
+      // 将规则转换为规范化的字符串以进行比较
+      // 通过 parse→serialize 往返规范化，使 "Bash(*)" 和 "Bash" 能够匹配
       const rulesToRemove = new Set(
         update.rules.map(permissionRuleValueToString),
       )
@@ -302,7 +302,7 @@ export function persistPermissionUpdate(update: PermissionUpdate): void {
       const existingDirs =
         existingSettings?.permissions?.additionalDirectories || []
 
-      // Remove specified directories
+      // 移除指定的目录
       const dirsToRemove = new Set(update.directories)
       const filteredDirs = existingDirs.filter(dir => !dirsToRemove.has(dir))
 
@@ -342,9 +342,9 @@ export function persistPermissionUpdate(update: PermissionUpdate): void {
 }
 
 /**
- * Persists multiple permission updates to the appropriate settings sources
- * Only persists updates with persistable sources
- * @param updates The permission updates to persist
+ * 将多个权限更新持久化到相应的设置来源
+ * 仅持久化具有可持久化来源的更新
+ * @param updates 要持久化的权限更新
  */
 export function persistPermissionUpdates(updates: PermissionUpdate[]): void {
   for (const update of updates) {
@@ -353,24 +353,24 @@ export function persistPermissionUpdates(updates: PermissionUpdate[]): void {
 }
 
 /**
- * Creates a Read rule suggestion for a directory.
- * @param dirPath The directory path to create a rule for
- * @param destination The destination for the permission rule (defaults to 'session')
- * @returns A PermissionUpdate for a Read rule, or undefined for the root directory
+ * 为目录创建 Read 规则建议。
+ * @param dirPath 要创建规则的目录路径
+ * @param destination 权限规则的目标位置（默认为 'session'）
+ * @returns Read 规则的 PermissionUpdate，根目录返回 undefined
  */
 export function createReadRuleSuggestion(
   dirPath: string,
   destination: PermissionUpdateDestination = 'session',
 ): PermissionUpdate | undefined {
-  // Convert to POSIX format for pattern matching (handles Windows internally)
+  // 转换为 POSIX 格式以进行模式匹配（内部处理 Windows 路径）
   const pathForPattern = toPosixPath(dirPath)
 
-  // Root directory is too broad to be a reasonable permission target
+  // 根目录作为权限目标过于宽泛
   if (pathForPattern === '/') {
     return undefined
   }
 
-  // For absolute paths, prepend an extra / to create //path/** pattern
+  // 对于绝对路径，在前面加一个额外的 / 以创建 //path/** 模式
   const ruleContent = posix.isAbsolute(pathForPattern)
     ? `/${pathForPattern}/**`
     : `${pathForPattern}/**`

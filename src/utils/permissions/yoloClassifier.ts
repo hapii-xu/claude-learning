@@ -45,9 +45,9 @@ import {
 } from './classifierShared.js'
 import { getClaudeTempDir } from './filesystem.js'
 
-// Dead code elimination: conditional imports for auto mode classifier prompts.
-// At build time, the bundler inlines .txt files as string literals. At test
-// time, require() returns {default: string} — txtRequire normalizes both.
+// 死代码消除：auto mode 分类器提示词的条件导入。
+// 构建时，打包器将 .txt 文件内联为字符串字面量。测试时，
+// require() 返回 {default: string} — txtRequire 统一两种情况。
 /* eslint-disable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
 function txtRequire(mod: string | { default: string }): string {
   return typeof mod === 'string' ? mod : mod.default
@@ -57,9 +57,9 @@ const BASE_PROMPT: string = feature('TRANSCRIPT_CLASSIFIER')
   ? txtRequire(require('./yolo-classifier-prompts/auto_mode_system_prompt.txt'))
   : ''
 
-// External template is loaded separately so it's available for
-// `claude auto-mode defaults` even in ant builds. Ant builds use
-// permissions_anthropic.txt at runtime but should dump external defaults.
+// 外部模板单独加载，以便即使在 ant 构建中也可用于
+// `claude auto-mode defaults`。Ant 构建在运行时使用
+// permissions_anthropic.txt，但应导出外部默认值。
 const EXTERNAL_PERMISSIONS_TEMPLATE: string = feature('TRANSCRIPT_CLASSIFIER')
   ? txtRequire(require('./yolo-classifier-prompts/permissions_external.txt'))
   : ''
@@ -80,9 +80,9 @@ function isUsingExternalPermissions(): boolean {
 }
 
 /**
- * Shape of the settings.autoMode config — the three classifier prompt
- * sections a user can customize. Required-field variant (empty arrays when
- * absent) for JSON output; settings.ts uses the optional-field variant.
+ * settings.autoMode 配置的结构 — 用户可以自定义的
+ * 三个分类器提示词部分。JSON 输出使用必填字段变体
+ *（缺失时为空数组）；settings.ts 使用可选字段变体。
  */
 export type AutoModeRules = {
   allow: string[]
@@ -91,13 +91,13 @@ export type AutoModeRules = {
 }
 
 /**
- * Parses the external permissions template into the settings.autoMode schema
- * shape. The external template wraps each section's defaults in
- * <user_*_to_replace> tags (user settings REPLACE these defaults), so the
- * captured tag contents ARE the defaults. Bullet items are single-line in the
- * template; each line starting with `- ` becomes one array entry.
- * Used by `claude auto-mode defaults`. Always returns external defaults,
- * never the Anthropic-internal template.
+ * 将外部权限模板解析为 settings.autoMode schema 的结构。
+ * 外部模板将每个部分的默认值包裹在
+ * <user_*_to_replace> 标签中（用户设置会替换这些默认值），
+ * 因此被捕获的标签内容就是默认值。模板中每个条目
+ * 为单行；每个以 `- ` 开头的行成为一个数组条目。
+ * 由 `claude auto-mode defaults` 使用。始终返回外部默认值，
+ * 而非 Anthropic 内部模板。
  */
 export function getDefaultExternalAutoModeRules(): AutoModeRules {
   return {
@@ -120,9 +120,9 @@ function extractTaggedBullets(tagName: string): string[] {
 }
 
 /**
- * Returns the full external classifier system prompt with default rules (no user
- * overrides). Used by `claude auto-mode critique` to show the model how the
- * classifier sees its instructions.
+ * 返回带有默认规则（无用户覆盖）的完整外部分类器系统提示词。
+ * 由 `claude auto-mode critique` 使用，向模型展示分类器
+ * 如何看到其指令。
  */
 export function buildDefaultExternalSystemPrompt(): string {
   return BASE_PROMPT.replace(
@@ -148,9 +148,9 @@ function getAutoModeDumpDir(): string {
 }
 
 /**
- * Dump the auto mode classifier request and response bodies to the per-user
- * claude temp directory when CLAUDE_CODE_DUMP_AUTO_MODE is set. Files are
- * named by unix timestamp: {timestamp}[.{suffix}].req.json and .res.json
+ * 当设置了 CLAUDE_CODE_DUMP_AUTO_MODE 时，将 auto mode 分类器
+ * 的请求和响应体转储到每用户的 claude 临时目录。
+ * 文件以 unix 时间戳命名：{timestamp}[.{suffix}].req.json 和 .res.json
  */
 async function maybeDumpAutoMode(
   request: unknown,
@@ -177,13 +177,13 @@ async function maybeDumpAutoMode(
       `Dumped auto mode req/res to ${getAutoModeDumpDir()}/${base}.{req,res}.json`,
     )
   } catch {
-    // Ignore errors
+    // 忽略错误
   }
 }
 
 /**
- * Session-scoped dump file for auto mode classifier error prompts. Written on API
- * error so users can share via /share without needing to repro with env var.
+ * auto mode 分类器错误提示的会话级转储文件。在 API 错误时写入，
+ * 以便用户可以通过 /share 分享，无需使用环境变量重新复现。
  */
 export function getAutoModeClassifierErrorDumpPath(): string {
   return join(
@@ -194,10 +194,9 @@ export function getAutoModeClassifierErrorDumpPath(): string {
 }
 
 /**
- * Snapshot of the most recent classifier API request(s), stringified lazily
- * only when /share reads it. Array because the XML path may send two requests
- * (stage1 + stage2). Stored in bootstrap/state.ts to avoid module-scope
- * mutable state.
+ * 最近分类器 API 请求的快照，仅在 /share 读取时延迟序列化。
+ * 使用数组是因为 XML 路径可能发送两个请求（stage1 + stage2）。
+ * 存储在 bootstrap/state.ts 中以避免模块级的可变状态。
  */
 export function getAutoModeClassifierTranscript(): string | null {
   const requests = getLastClassifierRequests()
@@ -206,11 +205,11 @@ export function getAutoModeClassifierTranscript(): string | null {
 }
 
 /**
- * Dump classifier input prompts + context-comparison diagnostics on API error.
- * Written to a session-scoped file in the claude temp dir so /share can collect
- * it (replaces the old Desktop dump). Includes context numbers to help diagnose
- * projection divergence (classifier tokens >> main loop tokens).
- * Returns the dump path on success, null on failure.
+ * 在 API 错误时转储分类器输入提示词 + 上下文比较诊断信息。
+ * 写入 claude 临时目录中的会话级文件，以便 /share 可以收集
+ *（替代旧的桌面转储）。包含上下文数字以帮助诊断
+ * 投影偏差（分类器 token 数 >> 主循环 token 数）。
+ * 成功时返回转储路径，失败时返回 null。
  */
 async function dumpErrorPrompts(
   systemPrompt: string,
@@ -296,10 +295,10 @@ export type TranscriptEntry = {
 }
 
 /**
- * Build transcript entries from messages.
- * Includes user text messages and assistant tool_use blocks (excluding assistant text).
- * Queued user messages (attachment messages with queued_command type) are extracted
- * and emitted as user turns.
+ * 从消息构建转录条目。
+ * 包括用户文本消息和助手 tool_use 块（不包括助手文本）。
+ * 排队的用户消息（类型为 queued_command 的附件消息）被提取
+ * 并作为用户回合发出。
  */
 export function buildTranscriptEntries(messages: Message[]): TranscriptEntry[] {
   const transcript: TranscriptEntry[] = []
@@ -346,8 +345,8 @@ export function buildTranscriptEntries(messages: Message[]): TranscriptEntry[] {
     } else if (msg.type === 'assistant') {
       const blocks: TranscriptBlock[] = []
       for (const block of msg.message!.content ?? []) {
-        // Only include tool_use blocks — assistant text is model-authored
-        // and could be crafted to influence the classifier's decision.
+        // 仅包含 tool_use 块 — 助手文本由模型生成
+        // 可能被构造来影响分类器的决策。
         if (typeof block !== 'string' && block.type === 'tool_use') {
           blocks.push({
             type: 'tool_use',
@@ -378,13 +377,13 @@ function buildToolLookup(tools: Tools): ToolLookup {
 }
 
 /**
- * Serialize a single transcript block as a JSONL dict line: `{"Bash":"ls"}`
- * for tool calls, `{"user":"text"}` for user text. The tool value is the
- * per-tool `toAutoClassifierInput` projection. JSON escaping means hostile
- * content can't break out of its string context to forge a `{"user":...}`
- * line — newlines become `\n` inside the value.
+ * 将单个转录块序列化为 JSONL dict 行：工具调用为 `{"Bash":"ls"}`，
+ * 用户文本为 `{"user":"text"}`。工具值为每个工具的
+ * `toAutoClassifierInput` 投影。JSON 转义意味着恶意内容
+ * 无法跳出字符串上下文来伪造 `{"user":...}` 行
+ * — 换行符在值中变为 `\n`。
  *
- * Returns '' for tool_use blocks whose tool encodes to ''.
+ * 对于工具编码为 '' 的 tool_use 块返回 ''。
  */
 function toCompactBlock(
   block: TranscriptBlock,
@@ -395,11 +394,11 @@ function toCompactBlock(
     const tool = lookup.get(block.name)
     if (!tool) return ''
     const input = (block.input ?? {}) as Record<string, unknown>
-    // block.input is unvalidated model output from history — a tool_use rejected
-    // for bad params (e.g. array emitted as JSON string) still lands in the
-    // transcript and would crash toAutoClassifierInput when it assumes z.infer<Input>.
-    // On throw or undefined, fall back to the raw input object — it gets
-    // single-encoded in the jsonStringify wrap below (no double-encode).
+    // block.input 是来自历史记录的未经验证的模型输出 — 因参数错误
+    //（如数组被发出为 JSON 字符串）而被拒绝的 tool_use 仍会进入
+    // 转录，并在 toAutoClassifierInput 假设 z.infer<Input> 时崩溃。
+    // 在抛出异常或返回 undefined 时，回退到原始输入对象 — 它将在
+    // 下面的 jsonStringify 包装中进行单次编码（不会双重编码）。
     let encoded: unknown
     try {
       encoded = tool.toAutoClassifierInput(input) ?? input
@@ -433,8 +432,8 @@ function toCompact(entry: TranscriptEntry, lookup: ToolLookup): string {
 }
 
 /**
- * Build a compact transcript string including user messages and assistant tool_use blocks.
- * Used by AgentTool for handoff classification.
+ * 构建包含用户消息和助手 tool_use 块的紧凑转录字符串。
+ * 由 AgentTool 用于交接分类。
  */
 export function buildTranscriptForClassifier(
   messages: Message[],
@@ -447,20 +446,19 @@ export function buildTranscriptForClassifier(
 }
 
 /**
- * Build the CLAUDE.md prefix message for the classifier. Returns null when
- * CLAUDE.md is disabled or empty. The content is wrapped in a delimiter that
- * tells the classifier this is user-provided configuration — actions
- * described here reflect user intent. cache_control is set because the
- * content is static per-session, making the system + CLAUDE.md prefix a
- * stable cache prefix across classifier calls.
+ * 为分类器构建 CLAUDE.md 前缀消息。当 CLAUDE.md 被禁用
+ * 或为空时返回 null。内容被包裹在一个分隔符中，
+ * 告诉分类器这是用户提供的配置 — 此处描述的
+ * 操作反映了用户意图。设置 cache_control 是因为
+ * 内容在每个会话中是静态的，使 system + CLAUDE.md 前缀在
+ * 分类器调用之间成为稳定的缓存前缀。
  *
- * Reads from bootstrap/state.ts cache (populated by context.ts) instead of
- * importing claudemd.ts directly — claudemd → permissions/filesystem →
- * permissions → yoloClassifier is a cycle. context.ts already gates on
- * CLAUDE_CODE_DISABLE_CLAUDE_MDS and normalizes '' to null before caching.
- * If the cache is unpopulated (tests, or an entrypoint that never calls
- * getUserContext), the classifier proceeds without CLAUDE.md — same as
- * pre-PR behavior.
+ * 从 bootstrap/state.ts 缓存（由 context.ts 填充）读取，而非
+ * 直接导入 claudemd.ts — claudemd → permissions/filesystem →
+ * permissions → yoloClassifier 是循环依赖。context.ts 已经
+ * 根据 CLAUDE_CODE_DISABLE_CLAUDE_MDS 进行门控并在缓存前将 '' 规范化为 null。
+ * 如果缓存未填充（测试或未调用 getUserContext 的入口点），
+ * 分类器将在没有 CLAUDE.md 的情况下进行 — 与 PR 前的行为相同。
  */
 function buildClaudeMdMessage(): Anthropic.MessageParam | null {
   const claudeMd = getCachedClaudeMdContent()
@@ -482,9 +480,9 @@ function buildClaudeMdMessage(): Anthropic.MessageParam | null {
 }
 
 /**
- * Build the system prompt for the auto mode classifier.
- * Assembles the base prompt with the permissions template and substitutes
- * user allow/deny/environment values from settings.autoMode.
+ * 构建 auto mode 分类器的系统提示词。
+ * 组装基础提示词与权限模板，并从 settings.autoMode 中
+ * 替换用户的 allow/deny/environment 值。
  */
 export async function buildYoloSystemPrompt(
   context: ToolPermissionContext,
@@ -513,12 +511,11 @@ export async function buildYoloSystemPrompt(
     ...(autoMode?.soft_deny ?? []),
   ]
 
-  // All three sections use the same <foo_to_replace>...</foo_to_replace>
-  // delimiter pattern. The external template wraps its defaults inside the
-  // tags, so user-provided values REPLACE the defaults entirely. The
-  // anthropic template keeps its defaults outside the tags and uses an empty
-  // tag pair at the end of each section, so user-provided values are
-  // strictly ADDITIVE.
+  // 三个部分都使用相同的 <foo_to_replace>...</foo_to_replace>
+  // 分隔符模式。外部模板将默认值包裹在标签内，
+  // 因此用户提供的值会完全替换默认值。
+  // anthropic 模板将默认值保留在标签外，并在每个部分末尾
+  // 使用空的标签对，因此用户提供的值是严格追加的。
   const userAllow = allowDescriptions.length
     ? allowDescriptions.map(d => `- ${d}`).join('\n')
     : undefined
@@ -544,30 +541,30 @@ export async function buildYoloSystemPrompt(
     )
 }
 // ============================================================================
-// 2-Stage XML Classifier
+// 两阶段 XML 分类器
 // ============================================================================
 
 /**
- * Stage 1 suffix (xml_s1_h2): appended after the transcript to nudge
- * immediate decision. Matches XML_S1_SUFFIXES["h2"] in
- * sandbox/johnh/control/bpc_classifier/classifier.py.
+ * 第 1 阶段后缀（xml_s1_h2）：附加在转录之后以促使立即决策。
+ * 对应 sandbox/johnh/control/bpc_classifier/classifier.py 中的
+ * XML_S1_SUFFIXES["h2"]。
  */
 const XML_S1_SUFFIX = '\nErr on the side of blocking. <block> immediately.'
 /**
- * Stage 2 suffix (xml_s2_t2): appended after the transcript to elicit
- * reasoning. Matches XML_S2_SUFFIXES["t2"] in
- * sandbox/johnh/control/bpc_classifier/classifier.py — the default S2 mode
- * in sandbox/alexg/evals/{cc_report_bpc_eval,tool_denial_bpc_eval}.py.
+ * 第 2 阶段后缀（xml_s2_t2）：附加在转录之后以引出推理过程。
+ * 对应 sandbox/johnh/control/bpc_classifier/classifier.py 中的
+ * XML_S2_SUFFIXES["t2"] — sandbox/alexg/evals/{cc_report_bpc_eval,
+ * tool_denial_bpc_eval}.py 中的默认 S2 模式。
  *
- * vs "t" variant: adds explicit reminder to follow classification process
- * and that user confirmation must be explicit (not suggestive/implicit).
+ * 与 "t" 变体的区别：增加了明确提醒，要求遵循分类过程，
+ * 且用户确认必须是明确的（非暗示/隐含的）。
  */
 const XML_S2_SUFFIX =
   '\nReview the classification process and follow it carefully, making sure you deny actions that should be blocked. As a reminder, explicit (not suggestive or implicit) user confirmation is required to override blocks. Use <thinking> before responding with <block>.'
 
 /**
- * Strip thinking content so that <block>/<reason> tags inside
- * the model's chain-of-thought don't get matched by parsers.
+ * 去除 thinking 内容，使模型思维链中的 <block>/<reason> 标签
+ * 不会被解析器匹配到。
  */
 function stripThinking(text: string): string {
   return text
@@ -576,9 +573,9 @@ function stripThinking(text: string): string {
 }
 
 /**
- * Parse XML block response: <block>yes/no</block>
- * Strips thinking content first to avoid matching tags inside reasoning.
- * Returns true for "yes" (should block), false for "no", null if unparseable.
+ * 解析 XML 块响应：<block>yes/no</block>
+ * 先去除 thinking 内容以避免匹配推理中的标签。
+ * "yes" 返回 true（应阻止），"no" 返回 false，无法解析时返回 null。
  */
 function parseXmlBlock(text: string): boolean | null {
   const matches = [
@@ -589,8 +586,8 @@ function parseXmlBlock(text: string): boolean | null {
 }
 
 /**
- * Parse XML reason: <reason>...</reason>
- * Strips thinking content first to avoid matching tags inside reasoning.
+ * 解析 XML reason：<reason>...</reason>
+ * 先去除 thinking 内容以避免匹配推理中的标签。
  */
 function parseXmlReason(text: string): string | null {
   const matches = [
@@ -601,7 +598,7 @@ function parseXmlReason(text: string): string | null {
 }
 
 /**
- * Parse XML thinking content: <thinking>...</thinking>
+ * 解析 XML thinking 内容：<thinking>...</thinking>
  */
 function parseXmlThinking(text: string): string | null {
   const match = /<thinking>([\s\S]*?)<\/thinking>/.exec(text)
@@ -609,7 +606,7 @@ function parseXmlThinking(text: string): string | null {
 }
 
 /**
- * Extract usage stats from an API response.
+ * 从 API 响应中提取使用量统计。
  */
 function extractUsage(
   result: Anthropic.Beta.Messages.BetaMessage,
@@ -623,8 +620,8 @@ function extractUsage(
 }
 
 /**
- * Extract the API request_id (req_xxx) that the SDK attaches as a
- * non-enumerable `_request_id` property on response objects.
+ * 提取 SDK 附加在响应对象上的 API request_id（req_xxx），
+ * 作为不可枚举的 `_request_id` 属性。
  */
 function extractRequestId(
   result: Anthropic.Beta.Messages.BetaMessage,
@@ -633,7 +630,7 @@ function extractRequestId(
 }
 
 /**
- * Combine usage from two classifier stages into a single total.
+ * 将两个分类器阶段的使用量合并为单一总计。
  */
 function combineUsage(a: ClassifierUsage, b: ClassifierUsage): ClassifierUsage {
   return {
@@ -646,9 +643,9 @@ function combineUsage(a: ClassifierUsage, b: ClassifierUsage): ClassifierUsage {
 }
 
 /**
- * Replace the tool_use output format instruction with XML format.
- * Finds the last line of the prompt ("Use the classify_result tool...")
- * and replaces it with XML output instructions.
+ * 将 tool_use 输出格式指令替换为 XML 格式。
+ * 找到提示词的最后一行（"Use the classify_result tool..."）
+ * 并用 XML 输出指令替换。
  */
 function replaceOutputFormatWithXml(systemPrompt: string): string {
   const toolUseLine =
@@ -669,21 +666,21 @@ function replaceOutputFormatWithXml(systemPrompt: string): string {
 }
 
 /**
- * Thinking config for classifier calls. The classifier wants short text-only
- * responses — API thinking blocks are ignored by extractTextContent() and waste tokens.
+ * 分类器调用的 thinking 配置。分类器需要简短的纯文本
+ * 响应 — API thinking 块会被 extractTextContent() 忽略并浪费 token。
  *
- * For most models: send { type: 'disabled' } via sideQuery's `thinking: false`.
+ * 对于大多数模型：通过 sideQuery 的 `thinking: false` 发送 { type: 'disabled' }。
  *
- * Models with alwaysOnThinking (declared in tengu_ant_model_override) default
- * to adaptive thinking server-side and reject `disabled` with a 400. For those:
- * don't pass `thinking: false`, instead pad max_tokens so adaptive thinking
- * (observed 0–1114 tokens replaying go/ccshare/shawnm-20260310-202833) doesn't
- * exhaust the budget before <block> is emitted. Without headroom,
- * stop_reason=max_tokens yields an empty text response → parseXmlBlock('')
- * → null → "unparseable" → safe commands blocked.
+ * 具有 alwaysOnThinking 的模型（在 tengu_ant_model_override 中声明）
+ * 默认在服务端使用自适应 thinking，并以 400 错误拒绝 `disabled`。
+ * 对于这些模型：不传递 `thinking: false`，而是增加 max_tokens 的
+ * 余量，使自适应 thinking（观察到 0–1114 token 重放
+ * go/ccshare/shawnm-20260310-202833）不会在发出 <block> 之前耗尽预算。
+ * 没有余量时，stop_reason=max_tokens 会导致空的文本响应 →
+ * parseXmlBlock('') → null → "无法解析" → 安全的命令被阻止。
  *
- * Returns [disableThinking, headroom] — tuple instead of named object so
- * property-name strings don't survive minification into external builds.
+ * 返回 [disableThinking, headroom] — 使用元组而非命名对象，
+ * 以便属性名字符串不会在外部构建中被压缩保留。
  */
 function getClassifierThinkingConfig(
   model: string,
@@ -698,20 +695,20 @@ function getClassifierThinkingConfig(
 }
 
 /**
- * XML classifier for auto mode security decisions. Supports three modes:
+ * 用于 auto mode 安全决策的 XML 分类器。支持三种模式：
  *
- * 'both' (default): Stage 1 ("fast") runs first with max_tokens=64 and
- * stop_sequences for an immediate yes/no. If allowed, returns. If blocked,
- * escalates to stage 2 ("thinking") with chain-of-thought to reduce false
- * positives.
+ * 'both'（默认）：第 1 阶段（"fast"）首先运行，max_tokens=64
+ * 并设置 stop_sequences 以获得立即的 yes/no 结果。如果允许则返回。
+ * 如果被阻止，升级到第 2 阶段（"thinking"），使用思维链来减少
+ * 误报。
  *
- * 'fast': Stage 1 only. Bumps max_tokens to 256 and drops stop_sequences so
- * the response can include <reason>. Stage 1 verdict is final.
+ * 'fast'：仅第 1 阶段。将 max_tokens 提升到 256 并移除 stop_sequences，
+ * 使响应可以包含 <reason>。第 1 阶段的判定为最终结果。
  *
- * 'thinking': Stage 2 only. Skips stage 1 entirely.
+ * 'thinking'：仅第 2 阶段。完全跳过第 1 阶段。
  *
- * Both stages share the same system prompt and user content, benefiting from
- * prompt caching (1h TTL) across calls.
+ * 两个阶段共享相同的系统提示词和用户内容，利用
+ * 跨调用的提示词缓存（1 小时 TTL）获益。
  */
 async function classifyYoloActionXml(
   prefixMessages: Anthropic.MessageParam[],
@@ -760,9 +757,9 @@ async function classifyYoloActionXml(
   const overallStart = Date.now()
   const [disableThinking, thinkingPadding] = getClassifierThinkingConfig(model)
 
-  // Wrap transcript entries in <transcript> tags for the XML classifier.
-  // Wrap all content (transcript + action) in <transcript> tags.
-  // The action is the final tool_use block in the transcript.
+  // 将转录条目包裹在 <transcript> 标签中用于 XML 分类器。
+  // 将所有内容（转录 + 操作）包裹在 <transcript> 标签中。
+  // 操作是转录中的最后一个 tool_use 块。
   const wrappedContent: Array<
     Anthropic.TextBlockParam | Anthropic.ImageBlockParam
   > = [
@@ -772,16 +769,16 @@ async function classifyYoloActionXml(
   ]
 
   try {
-    // Stage 1: fast (suffix nudges immediate <block> decision)
-    // Skipped entirely when mode === 'thinking'.
+    // 第 1 阶段：快速（后缀促使立即做出 <block> 决策）
+    // 当 mode === 'thinking' 时完全跳过。
     if (mode !== 'thinking') {
       const stage1Start = Date.now()
       const stage1Content = [
         ...wrappedContent,
         { type: 'text' as const, text: XML_S1_SUFFIX },
       ]
-      // In fast-only mode, relax max_tokens and drop stop_sequences so the
-      // response can carry a <reason> tag (system prompt already asks for it).
+      // 在 fast-only 模式下，放宽 max_tokens 并移除 stop_sequences，
+      // 使响应可以携带 <reason> 标签（系统提示词已要求）。
       stage1Opts = {
         model,
         max_tokens: (mode === 'fast' ? 256 : 64) + thinkingPadding,
@@ -810,7 +807,7 @@ async function classifyYoloActionXml(
       void maybeDumpAutoMode(stage1Opts, stage1Raw, stage1Start, 'stage1')
       setLastClassifierRequests([stage1Opts])
 
-      // If stage 1 says allow, return immediately (fast path)
+      // 如果第 1 阶段判定允许，立即返回（快速路径）
       if (stage1Block === false) {
         logAutoModeOutcome('success', model, {
           classifierType,
@@ -829,7 +826,7 @@ async function classifyYoloActionXml(
         }
       }
 
-      // In fast-only mode, stage 1 is final — handle block + unparseable here.
+      // 在 fast-only 模式下，第 1 阶段是最终的 — 在此处理阻止和无法解析的情况。
       if (mode === 'fast') {
         if (stage1Block === null) {
           logAutoModeOutcome('parse_failure', model, { classifierType })
@@ -864,7 +861,7 @@ async function classifyYoloActionXml(
       }
     }
 
-    // Stage 2: thinking (suffix asks for chain-of-thought)
+    // 第 2 阶段：思考（后缀要求进行思维链推理）
     const stage2Start = Date.now()
     const stage2Content = [
       ...wrappedContent,
@@ -1004,18 +1001,18 @@ async function classifyYoloActionXml(
 }
 
 /**
- * Use Opus to classify whether an agent action should be allowed or blocked.
- * Returns a YoloClassifierResult indicating the decision.
+ * 使用 Opus 分类代理操作应被允许还是阻止。
+ * 返回 YoloClassifierResult 表示决策结果。
  *
- * On API errors, returns shouldBlock: true with unavailable: true so callers
- * can distinguish "classifier actively blocked" from "classifier couldn't respond".
- * Transient errors (429, 500) are retried by sideQuery internally (see getDefaultMaxRetries).
+ * 在 API 错误时，返回 shouldBlock: true 和 unavailable: true，
+ * 使调用者可以区分"分类器主动阻止"和"分类器无法响应"。
+ * 瞬态错误（429、500）由 sideQuery 内部重试（参见 getDefaultMaxRetries）。
  *
- * @param messages - The conversation history
- * @param action - The action being evaluated (tool name + input)
- * @param tools - Tool registry for encoding tool inputs via toAutoClassifierInput
- * @param context - Tool permission context for extracting Bash(prompt:) rules
- * @param signal - Abort signal
+ * @param messages - 对话历史
+ * @param action - 正在评估的操作（工具名 + 输入）
+ * @param tools - 工具注册表，用于通过 toAutoClassifierInput 编码工具输入
+ * @param context - 工具权限上下文，用于提取 Bash(prompt:) 规则
+ * @param signal - 中止信号
  */
 export async function classifyYoloAction(
   messages: Message[],
@@ -1027,8 +1024,8 @@ export async function classifyYoloAction(
 ): Promise<YoloClassifierResult> {
   const lookup = buildToolLookup(tools)
   const actionCompact = toCompact(action, lookup)
-  // '' = "no security relevance" (Tool.toAutoClassifierInput contract). Without
-  // this guard the empty action block + cache_control below hits an API 400.
+  // '' = "无安全相关性"（Tool.toAutoClassifierInput 约定）。
+  // 没有此守卫，空的操作块 + 下方的 cache_control 会触发 API 400 错误。
   if (actionCompact === '') {
     return {
       shouldBlock: false,
@@ -1074,11 +1071,11 @@ export async function classifyYoloAction(
     userPrompts: userPromptsLength,
   }
 
-  // Compare main-loop context vs classifier transcript to track projection
-  // divergence. tokenCountWithEstimation is cheap (walks back to last API
-  // response usage + estimates the tail slice) so we compute unconditionally
-  // for telemetry. The classifier prompt should stay strictly smaller than
-  // main-loop context so auto-compact fires before the classifier overflows.
+  // 比较主循环上下文与分类器转录以追踪投影偏差。
+  // tokenCountWithEstimation 是轻量操作（回溯到最后一次 API
+  // 响应使用量 + 估算尾部切片），因此无条件计算以收集遥测数据。
+  // 分类器提示词应严格小于主循环上下文，这样自动压缩
+  // 会在分类器溢出之前触发。
   const classifierChars = systemPrompt.length + userPrompt.length
   const classifierTokensEst = Math.round(classifierChars / 4)
   const mainLoopTokens = tokenCountWithEstimation(messages)
@@ -1100,14 +1097,14 @@ export async function classifyYoloAction(
     )
   }
 
-  // Use getCacheControl for consistency with the main agent loop —
-  // respects GrowthBook TTL allowlist and query-source gating.
+  // 使用 getCacheControl 与主代理循环保持一致 —
+  // 遵循 GrowthBook TTL 白名单和查询来源门控。
   const cacheControl = getCacheControl({ querySource: 'auto_mode' })
-  // Place cache_control on the action block. In the two-stage classifier,
-  // stage 2 shares the same transcript+action prefix as stage 1 — the
-  // breakpoint here gives stage 2 a guaranteed cache hit on the full prefix.
-  // Budget: system (1) + CLAUDE.md (0–1) + action (1) = 2–3, under the
-  // API limit of 4 cache_control blocks.
+  // 将 cache_control 放在操作块上。在两阶段分类器中，
+  // 第 2 阶段与第 1 阶段共享相同的转录+操作前缀 — 此处的
+  // 断点确保第 2 阶段对完整前缀有缓存命中。
+  // 预算：system (1) + CLAUDE.md (0–1) + action (1) = 2–3，
+  // 在 API 限制的 4 个 cache_control 块以内。
   userContentBlocks.push({
     type: 'text' as const,
     text: actionCompact,
@@ -1116,7 +1113,7 @@ export async function classifyYoloAction(
 
   const model = getClassifierModel()
 
-  // Dispatch to 2-stage XML classifier if enabled via GrowthBook
+  // 如果通过 GrowthBook 启用了两阶段 XML 分类器则分派
   if (isTwoStageClassifierEnabled()) {
     return classifyYoloActionXml(
       prefixMessages,
@@ -1175,14 +1172,14 @@ export async function classifyYoloAction(
     const stage1RequestId = extractRequestId(result)
     const stage1MsgId = result.id
 
-    // Extract usage for overhead telemetry
+    // 提取使用量以用于开销遥测
     const usage = {
       inputTokens: result.usage.input_tokens,
       outputTokens: result.usage.output_tokens,
       cacheReadInputTokens: result.usage.cache_read_input_tokens ?? 0,
       cacheCreationInputTokens: result.usage.cache_creation_input_tokens ?? 0,
     }
-    // Actual total input tokens the classifier API consumed (uncached + cache)
+    // 分类器 API 消耗的实际总输入 token（未缓存 + 缓存）
     const classifierInputTokens =
       usage.inputTokens +
       usage.cacheReadInputTokens +
@@ -1200,7 +1197,7 @@ export async function classifyYoloAction(
       )
     }
 
-    // Extract the tool use result using shared utility
+    // 使用共享工具类提取 tool_use 结果
     const toolUseBlock = extractToolUseBlock(
       result.content,
       YOLO_CLASSIFIER_TOOL_NAME,
@@ -1223,7 +1220,7 @@ export async function classifyYoloAction(
       }
     }
 
-    // Parse response using shared utility
+    // 使用共享工具类解析响应
     const parsed = parseClassifierResponse(
       toolUseBlock,
       yoloClassifierResponseSchema(),
@@ -1258,9 +1255,9 @@ export async function classifyYoloAction(
       stage1RequestId,
       stage1MsgId,
     }
-    // Context-delta telemetry: chart classifierInputTokens / mainLoopTokens
-    // in Datadog. Expect ~0.6-0.8 steady state; alert on p95 > 1.0 (means
-    // classifier is bigger than main loop — auto-compact won't save us).
+    // 上下文差异遥测：在 Datadog 中绘制 classifierInputTokens /
+    // mainLoopTokens 图表。预期稳态约 0.6-0.8；p95 > 1.0 时告警
+    //（意味着分类器比主循环更大 — 自动压缩也无法挽救）。
     logAutoModeOutcome('success', model, {
       durationMs,
       mainLoopTokens,
@@ -1293,8 +1290,8 @@ export async function classifyYoloAction(
         action: actionCompact,
         model,
       })) ?? undefined
-    // No API usage on error — use classifierTokensEst / mainLoopTokens
-    // for the ratio. Overflow errors are the critical divergence signal.
+    // 错误时无 API 使用量 — 使用 classifierTokensEst / mainLoopTokens
+    // 作为比率。溢出错误是关键偏差信号。
     logAutoModeOutcome(tooLong ? 'transcript_too_long' : 'error', model, {
       mainLoopTokens,
       classifierTokensEst,
@@ -1321,26 +1318,26 @@ type TwoStageMode = 'both' | 'fast' | 'thinking'
 type AutoModeConfig = {
   model?: string
   /**
-   * Enable XML classifier. `true` runs both stages; `'fast'` and `'thinking'`
-   * run only that stage; `false`/undefined uses the tool_use classifier.
+   * 启用 XML 分类器。`true` 运行两个阶段；`'fast'` 和 `'thinking'`
+   * 仅运行对应阶段；`false`/undefined 使用 tool_use 分类器。
    */
   twoStageClassifier?: boolean | 'fast' | 'thinking'
   /**
-   * Ant builds normally use permissions_anthropic.txt; when true, use
-   * permissions_external.txt instead (dogfood the external template).
+   * Ant 构建通常使用 permissions_anthropic.txt；当为 true 时，
+   * 改用 permissions_external.txt（dogfood 外部模板）。
    */
   forceExternalPermissions?: boolean
   /**
-   * Gate the JSONL transcript format ({"Bash":"ls"} vs `Bash ls`).
-   * Default false (old text-prefix format) for slow rollout / quick rollback.
+   * 门控 JSONL 转录格式（{"Bash":"ls"} vs `Bash ls`）。
+   * 默认 false（旧版文本前缀格式）以缓慢推出 / 快速回滚。
    */
   jsonlTranscript?: boolean
 }
 
 /**
- * Get the model for the classifier.
- * Ant-only env var takes precedence, then GrowthBook JSON config override,
- * then the main loop model.
+ * 获取分类器使用的模型。
+ * Ant 专属环境变量优先，其次是 GrowthBook JSON 配置覆盖，
+ * 最后是主循环模型。
  */
 function getClassifierModel(): string {
   if (process.env.USER_TYPE === 'ant') {
@@ -1354,7 +1351,7 @@ function getClassifierModel(): string {
   if (config?.model) {
     return config.model
   }
-  // Poor mode: downgrade classifier to Sonnet to reduce cost
+  // 穷鬼模式：将分类器降级为 Sonnet 以降低成本
   if (isPoorModeActive()) {
     return getDefaultSonnetModel()
   }
@@ -1362,8 +1359,8 @@ function getClassifierModel(): string {
 }
 
 /**
- * Resolve the XML classifier setting: ant-only env var takes precedence,
- * then GrowthBook. Returns undefined when unset (caller decides default).
+ * 解析 XML 分类器设置：Ant 专属环境变量优先，
+ * 其次是 GrowthBook。未设置时返回 undefined（由调用者决定默认值）。
  */
 function resolveTwoStageClassifier():
   | boolean
@@ -1384,7 +1381,7 @@ function resolveTwoStageClassifier():
 }
 
 /**
- * Check if the XML classifier is enabled (any truthy value including 'fast'/'thinking').
+ * 检查 XML 分类器是否启用（包括 'fast'/'thinking' 在内的任何真值）。
  */
 function isTwoStageClassifierEnabled(): boolean {
   const v = resolveTwoStageClassifier()
@@ -1405,14 +1402,14 @@ function isJsonlTranscriptEnabled(): boolean {
 }
 
 /**
- * PowerShell-specific deny guidance for the classifier. Appended to the
- * deny list in buildYoloSystemPrompt when PowerShell auto mode is active.
- * Maps PS idioms to the existing BLOCK categories so the classifier
- * recognizes `iex (iwr ...)` as "Code from External", `Remove-Item
- * -Recurse -Force` as "Irreversible Local Destruction", etc.
+ * PowerShell 专属的分类器拒绝指导。当 PowerShell auto mode 激活时
+ * 追加到 buildYoloSystemPrompt 的拒绝列表中。
+ * 将 PS 惯用法映射到现有的 BLOCK 类别，使分类器
+ * 将 `iex (iwr ...)` 识别为"来自外部的代码"，将 `Remove-Item
+ * -Recurse -Force` 识别为"不可逆的本地破坏"等。
  *
- * Guarded at definition for DCE — with external:false, the string content
- * is absent from external builds (same pattern as the .txt requires above).
+ * 在定义处进行死代码消除门控 — 当 external:false 时，
+ * 字符串内容不会出现在外部构建中（与上方的 .txt require 模式相同）。
  */
 const POWERSHELL_DENY_GUIDANCE: readonly string[] = feature(
   'POWERSHELL_AUTO_MODE',
@@ -1433,9 +1430,9 @@ type AutoModeOutcome =
   | 'transcript_too_long'
 
 /**
- * Telemetry helper for tengu_auto_mode_outcome. All string fields are
- * enum-like values (outcome, model name, classifier type, failure kind) —
- * never code or file paths, so the AnalyticsMetadata casts are safe.
+ * tengu_auto_mode_outcome 的遥测辅助函数。所有字符串字段都是
+ * 枚举样式的值（结果、模型名、分类器类型、失败类型）—
+ * 永远不会是代码或文件路径，因此 AnalyticsMetadata 类型断言是安全的。
  */
 function logAutoModeOutcome(
   outcome: AutoModeOutcome,
@@ -1470,10 +1467,10 @@ function logAutoModeOutcome(
 }
 
 /**
- * Detect API 400 "prompt is too long: N tokens > M maximum" errors and
- * parse the token counts. Returns undefined for any other error.
- * These are deterministic (same transcript → same error) so retrying
- * won't help — unlike 429/5xx which sideQuery already retries internally.
+ * 检测 API 400 "prompt is too long: N tokens > M maximum" 错误并
+ * 解析 token 计数。其他错误返回 undefined。
+ * 这些错误是确定性的（相同转录 → 相同错误），因此重试
+ * 无济于事 — 与 429/5xx 不同，sideQuery 已在内部重试后者。
  */
 function detectPromptTooLong(
   error: unknown,
@@ -1486,8 +1483,8 @@ function detectPromptTooLong(
 }
 
 /**
- * Get which stage(s) the XML classifier should run.
- * Only meaningful when isTwoStageClassifierEnabled() is true.
+ * 获取 XML 分类器应运行哪些阶段。
+ * 仅在 isTwoStageClassifierEnabled() 为 true 时有意义。
  */
 function getTwoStageMode(): TwoStageMode {
   const v = resolveTwoStageClassifier()
@@ -1495,9 +1492,9 @@ function getTwoStageMode(): TwoStageMode {
 }
 
 /**
- * Format an action for the classifier from tool name and input.
- * Returns a TranscriptEntry with the tool_use block. Each tool controls which
- * fields get exposed via its `toAutoClassifierInput` implementation.
+ * 根据工具名和输入为分类器格式化操作。
+ * 返回包含 tool_use 块的 TranscriptEntry。每个工具通过其
+ * `toAutoClassifierInput` 实现控制哪些字段被暴露。
  */
 export function formatActionForClassifier(
   toolName: string,

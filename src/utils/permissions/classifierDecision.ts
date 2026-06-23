@@ -21,8 +21,8 @@ import { TODO_WRITE_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/Todo
 import { SEARCH_EXTRA_TOOLS_TOOL_NAME } from '@claude-code-best/builtin-tools/tools/SearchExtraToolsTool/prompt.js'
 import { YOLO_CLASSIFIER_TOOL_NAME } from './yoloClassifier.js'
 
-// Ant-only tool names: conditional require so Bun can DCE these in external builds.
-// Gates mirror tools.ts. Keeps the tool name strings out of cli.js.
+// 仅限内部（Ant-only）的工具名称：条件 require 以便 Bun 可在外部构建中对这些代码进行死代码消除（DCE）。
+// 门控逻辑与 tools.ts 一致。避免将工具名称字符串包含在 cli.js 中。
 /* eslint-disable @typescript-eslint/no-require-imports */
 const TERMINAL_CAPTURE_TOOL_NAME = feature('TERMINAL_PANEL')
   ? (
@@ -48,22 +48,22 @@ const WORKFLOW_TOOL_NAME = feature('WORKFLOW_SCRIPTS')
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 /**
- * Tools that are safe and don't need any classifier checking.
- * Used by the auto mode classifier to skip unnecessary API calls.
- * Does NOT include write/edit tools — those are handled by the
- * acceptEdits fast path (allowed in CWD, classified outside CWD).
+ * 安全且无需任何分类器检查的工具。
+ * 供 auto mode 分类器使用以跳过不必要的 API 调用。
+ * 不包含写/编辑工具 — 这些由 acceptEdits 快速路径处理
+ * （在 CWD 中允许，在 CWD 外部分类）。
  */
 const SAFE_YOLO_ALLOWLISTED_TOOLS = new Set([
-  // Read-only file operations
+  // 只读文件操作
   FILE_READ_TOOL_NAME,
-  // Search / read-only
+  // 搜索 / 只读操作
   GREP_TOOL_NAME,
   GLOB_TOOL_NAME,
   LSP_TOOL_NAME,
   SEARCH_EXTRA_TOOLS_TOOL_NAME,
   LIST_MCP_RESOURCES_TOOL_NAME,
-  'ReadMcpResourceTool', // no exported constant
-  // Task management (metadata only)
+  'ReadMcpResourceTool', // 无导出常量
+  // 任务管理（仅元数据）
   TODO_WRITE_TOOL_NAME,
   TASK_CREATE_TOOL_NAME,
   TASK_GET_TOOL_NAME,
@@ -71,25 +71,25 @@ const SAFE_YOLO_ALLOWLISTED_TOOLS = new Set([
   TASK_LIST_TOOL_NAME,
   TASK_STOP_TOOL_NAME,
   TASK_OUTPUT_TOOL_NAME,
-  // Plan mode / UI
+  // Plan mode / UI 界面
   ASK_USER_QUESTION_TOOL_NAME,
   ENTER_PLAN_MODE_TOOL_NAME,
   EXIT_PLAN_MODE_TOOL_NAME,
-  // Swarm coordination (internal mailbox/team state only — teammates have
-  // their own permission checks, so no actual security bypass).
+  // Swarm 协调（仅内部 mailbox/team 状态 — 协作者有
+  // 各自的权限检查，因此不会实际绕过安全性）。
   TEAM_CREATE_TOOL_NAME,
-  // Agent cleanup
+  // Agent 清理
   TEAM_DELETE_TOOL_NAME,
   SEND_MESSAGE_TOOL_NAME,
-  // Workflow orchestration — subagents go through canUseTool individually
+  // Workflow 编排 — 子 agent 逐个通过 canUseTool 检查
   ...(WORKFLOW_TOOL_NAME ? [WORKFLOW_TOOL_NAME] : []),
-  // Misc safe
+  // 其他安全工具
   SLEEP_TOOL_NAME,
-  // Ant-only safe tools (gates mirror tools.ts)
+  // 仅限内部（Ant-only）的安全工具（门控与 tools.ts 一致）
   ...(TERMINAL_CAPTURE_TOOL_NAME ? [TERMINAL_CAPTURE_TOOL_NAME] : []),
   ...(OVERFLOW_TEST_TOOL_NAME ? [OVERFLOW_TEST_TOOL_NAME] : []),
   ...(VERIFY_PLAN_EXECUTION_TOOL_NAME ? [VERIFY_PLAN_EXECUTION_TOOL_NAME] : []),
-  // Internal classifier tool
+  // 内部使用
   YOLO_CLASSIFIER_TOOL_NAME,
 ])
 

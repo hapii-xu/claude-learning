@@ -1,8 +1,8 @@
 import type { SecureStorage, SecureStorageData } from './types.js'
 
 /**
- * Creates a fallback storage that tries to use the primary storage first,
- * and if that fails, falls back to the secondary storage
+ * 创建一个带回退的存储：优先使用主存储，
+ * 如果失败则回退到备用存储
  */
 export function createFallbackStorage(
   primary: SecureStorage,
@@ -25,15 +25,15 @@ export function createFallbackStorage(
       return (await secondary.readAsync()) || {}
     },
     update(data: SecureStorageData): { success: boolean; warning?: string } {
-      // Capture state before update
+      // 捕获更新前的状态
       const primaryDataBefore = primary.read()
 
       const result = primary.update(data)
 
       if (result.success) {
-        // Delete secondary when migrating to primary for the first time
-        // This preserves credentials when sharing .claude between host and containers
-        // See: https://github.com/anthropics/claude-code/issues/1414
+        // 首次迁移到主存储时删除备用存储
+        // 在宿主机与容器共享 .claude 目录时保留凭据
+        // 参见: https://github.com/anthropics/claude-code/issues/1414
         if (primaryDataBefore === null) {
           secondary.delete()
         }
@@ -43,12 +43,12 @@ export function createFallbackStorage(
       const fallbackResult = secondary.update(data)
 
       if (fallbackResult.success) {
-        // Primary write failed but primary may still hold an *older* valid
-        // entry. read() prefers primary whenever it returns non-null, so that
-        // stale entry would shadow the fresh data we just wrote to secondary —
-        // e.g. a refresh token the server has already rotated away, causing a
-        // /login loop (#30337). Best-effort delete; if this also fails the
-        // user's keychain is in a bad state we can't fix from here.
+        // 主存储写入失败，但其中可能仍保留着一条*较旧的*有效
+        // 条目。read() 只要主存储返回非 null 就优先使用它，因此那条
+        // 过期条目会遮蔽我们刚写入备用存储的新数据——例如服务器
+        // 已经轮换掉的 refresh token，导致陷入 /login 死循环
+        // (#30337)。尽力删除；如果此处也失败，说明用户的密钥串
+        // 处于无法从这里修复的异常状态。
         if (primaryDataBefore !== null) {
           primary.delete()
         }

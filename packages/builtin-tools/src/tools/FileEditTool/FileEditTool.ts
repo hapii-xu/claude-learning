@@ -85,7 +85,7 @@ export const FileEditTool = buildTool({
   maxResultSizeChars: 100_000,
   strict: true,
   async description() {
-    return 'A tool for editing files'
+    return '用于编辑文件的工具'
   },
   async prompt() {
     return getEditToolDescription()
@@ -94,7 +94,7 @@ export const FileEditTool = buildTool({
   getToolUseSummary,
   getActivityDescription(input) {
     const summary = getToolUseSummary(input)
-    return summary ? `Editing ${summary}` : 'Editing file'
+    return summary ? `正在编辑 ${summary}` : '正在编辑文件'
   },
   get inputSchema() {
     return inputSchema()
@@ -538,7 +538,7 @@ export const FileEditTool = buildTool({
       })
     }
 
-    // 8. Yield result
+    // 8. 返回结果
     const data = {
       filePath: file_path,
       oldString: actualOldString,
@@ -556,21 +556,21 @@ export const FileEditTool = buildTool({
   mapToolResultToToolResultBlockParam(data: FileEditOutput, toolUseID) {
     const { filePath, userModified, replaceAll } = data
     const modifiedNote = userModified
-      ? '.  The user modified your proposed changes before accepting them. '
+      ? '。用户在接受前修改了你的建议变更。'
       : ''
 
     if (replaceAll) {
       return {
         tool_use_id: toolUseID,
         type: 'tool_result',
-        content: `The file ${filePath} has been updated${modifiedNote}. All occurrences were successfully replaced.`,
+        content: `文件 ${filePath} 已更新${modifiedNote}所有出现位置均已成功替换。`,
       }
     }
 
     return {
       tool_use_id: toolUseID,
       type: 'tool_result',
-      content: `The file ${filePath} has been updated successfully${modifiedNote}.`,
+      content: `文件 ${filePath} 已成功更新${modifiedNote}`,
     }
   },
 } satisfies ToolDef<ReturnType<typeof inputSchema>, FileEditOutput>)

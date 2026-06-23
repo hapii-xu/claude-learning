@@ -9,11 +9,11 @@ const inputSchema = lazySchema(() =>
   z.strictObject({
     file_path: z
       .string()
-      .describe('Absolute path to the file to send to the user.'),
+      .describe('要发送给用户的文件的绝对路径。'),
     description: z
       .string()
       .optional()
-      .describe('Optional description of the file being sent.'),
+      .describe('要发送文件的可选描述。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -32,15 +32,15 @@ export const SendUserFileTool = buildTool({
   },
 
   async description() {
-    return 'Send a file to the user (KAIROS assistant mode)'
+    return '将文件发送给用户（KAIROS 助手模式）'
   },
   async prompt() {
-    return `Send a file to the user's device. Use this in assistant mode when the user requests a file or when a file is relevant to the conversation.
+    return `将文件发送到用户设备。在助手模式下，当用户请求文件或文件与对话相关时使用此工具。
 
-Guidelines:
-- Use absolute paths
-- The file must exist and be readable
-- Large files may take time to transfer`
+使用指南：
+- 使用绝对路径
+- 文件必须存在且可读
+- 大文件传输可能需要一些时间`
   },
 
   isEnabled() {
@@ -78,7 +78,7 @@ Guidelines:
     const { file_path } = input
     const { stat } = await import('fs/promises')
 
-    // Verify file exists and is readable
+    // 验证文件存在且可读
     let fileSize: number
     try {
       const fileStat = await stat(file_path)
@@ -98,7 +98,7 @@ Guidelines:
       }
     }
 
-    // Attempt bridge upload if available (so web viewers can download)
+    // 尝试通过 bridge 上传（以便 Web 端用户可以下载）
     const appState = context.getAppState()
     let fileUuid: string | undefined
     if (appState.replBridgeEnabled) {
@@ -111,7 +111,7 @@ Guidelines:
           signal: context.abortController.signal,
         })
       } catch {
-        // Best-effort upload — local path is always available
+        // 尽力上传——本地路径始终可用
       }
     }
 

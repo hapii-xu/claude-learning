@@ -13,7 +13,7 @@ export function renderToolResultMessage(output: Output): React.ReactNode {
   return (
     <MessageResponse>
       <Text>
-        HTTP {output.status} <Text dimColor>({lines} lines)</Text>
+        HTTP {output.status} <Text dimColor>({lines} 行)</Text>
       </Text>
     </MessageResponse>
   );

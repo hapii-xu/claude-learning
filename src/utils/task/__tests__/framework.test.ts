@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 import { debugMock } from '../../../../tests/mocks/debug.js'
 
-// ─── Mocks ───
+// ─── Mock 设置 ───
 
 const noop = () => {}
 
@@ -23,7 +23,7 @@ mock.module('src/utils/messageQueueManager.js', () => ({
   enqueuePendingNotification: noop,
 }))
 
-// ─── Import after mocks ───
+// ─── Mock 之后再导入 ───
 
 const {
   updateTaskState,
@@ -33,7 +33,7 @@ const {
   PANEL_GRACE_MS,
 } = await import('../framework.js')
 
-// ─── Helpers ───
+// ─── 辅助函数 ───
 
 function makeTask(overrides: Record<string, any> = {}): any {
   return {
@@ -69,7 +69,7 @@ afterEach(() => {
   sdkEvents.length = 0
 })
 
-// ─── Tests ───
+// ─── 测试用例 ───
 
 describe('updateTaskState', () => {
   test('updates task in AppState', () => {
@@ -93,7 +93,7 @@ describe('updateTaskState', () => {
 
     updateTaskState('task-001', setAppState as any, (t: any) => t)
 
-    // Should be the exact same reference
+    // 应该是完全相同的引用
     expect(getState().tasks['task-001']).toBe(task)
   })
 
@@ -105,7 +105,7 @@ describe('updateTaskState', () => {
       status: 'completed',
     }))
 
-    // No crash, tasks unchanged
+    // 不崩溃，任务不变
     expect(Object.keys(getState().tasks)).toHaveLength(0)
   })
 })
@@ -133,15 +133,15 @@ describe('registerTask', () => {
   test('merges retain on re-register', () => {
     const { setAppState, getState } = createSetAppState()
 
-    // First registration
+    // 首次注册
     registerTask(makeTask({ retain: true }), setAppState as any)
 
-    // Re-register (resume)
+    // 重新注册（恢复）
     registerTask(makeTask({ retain: false }), setAppState as any)
 
-    // retain should be preserved from first registration
+    // retain 应从首次注册时保留
     expect(getState().tasks['task-001'].retain).toBe(true)
-    // Only one SDK event (re-register skips emit)
+    // 仅一个 SDK 事件（重新注册跳过发送）
     expect(sdkEvents).toHaveLength(1)
   })
 })
@@ -189,7 +189,7 @@ describe('evictTerminalTask', () => {
         'task-001': makeTask({
           status: 'completed',
           notified: true,
-          evictAfter: Date.now() + 60000, // 60s in the future
+          evictAfter: Date.now() + 60000, // 未来 60 秒
           retain: false,
         }),
       },
@@ -205,7 +205,7 @@ describe('evictTerminalTask', () => {
 
     evictTerminalTask('nonexistent', setAppState as any)
 
-    // No crash
+    // 不崩溃
     expect(Object.keys(getState().tasks)).toHaveLength(0)
   })
 })

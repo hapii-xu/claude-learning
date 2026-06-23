@@ -136,19 +136,19 @@ function getAutoBackgroundMs(): number {
 // 不带多代理参数的基础输入模式
 const baseInputSchema = lazySchema(() =>
   z.object({
-    description: z.string().describe('A short (3-5 word) description of the task'),
-    prompt: z.string().describe('The task for the agent to perform'),
-    subagent_type: z.string().optional().describe('The type of specialized agent to use for this task'),
+    description: z.string().describe('任务的简短（3-5 个词）描述'),
+    prompt: z.string().describe('要由代理执行的任务'),
+    subagent_type: z.string().optional().describe('用于此任务的专用代理类型'),
     model: z
       .enum(['sonnet', 'opus', 'haiku'])
       .optional()
       .describe(
-        "Optional model override for this agent. Takes precedence over the agent definition's model frontmatter. If omitted, uses the agent definition's model, or inherits from the parent.",
+        '此代理的可选模型覆盖。优先级高于代理定义的 model frontmatter。如果省略，使用代理定义的模型，或继承自父代理。',
       ),
     run_in_background: z
       .boolean()
       .optional()
-      .describe('Set to true to run this agent in the background. You will be notified when it completes.'),
+      .describe('设为 true 以在后台运行此代理。完成时会通知你。'),
   }),
 );
 
@@ -159,11 +159,11 @@ const fullInputSchema = lazySchema(() => {
     name: z
       .string()
       .optional()
-      .describe('Name for the spawned agent. Makes it addressable via SendMessage({to: name}) while running.'),
-    team_name: z.string().optional().describe('Team name for spawning. Uses current team context if omitted.'),
+      .describe('生成的代理的名称。使其在运行时可通过 SendMessage({to: name}) 寻址。'),
+    team_name: z.string().optional().describe('用于生成的团队名称。如果省略，使用当前团队上下文。'),
     mode: permissionModeSchema()
       .optional()
-      .describe('Permission mode for spawned teammate (e.g., "plan" to require plan approval).'),
+      .describe('生成的队友的权限模式（例如，「plan」以要求计划审批）。'),
   });
 
   return baseInputSchema()
@@ -173,14 +173,14 @@ const fullInputSchema = lazySchema(() => {
         .optional()
         .describe(
           process.env.USER_TYPE === 'ant'
-            ? 'Isolation mode. "worktree" creates a temporary git worktree so the agent works on an isolated copy of the repo. "remote" launches the agent in a remote CCR environment (always runs in background).'
-            : 'Isolation mode. "worktree" creates a temporary git worktree so the agent works on an isolated copy of the repo.',
+            ? '隔离模式。「worktree」创建一个临时 git worktree，使代理在仓库的隔离副本上工作。「remote」在远程 CCR 环境中启动代理（始终在后台运行）。'
+            : '隔离模式。「worktree」创建一个临时 git worktree，使代理在仓库的隔离副本上工作。',
         ),
       cwd: z
         .string()
         .optional()
         .describe(
-          'Absolute path to run the agent in. Overrides the working directory for all filesystem and shell operations within this agent. Mutually exclusive with isolation: "worktree".',
+          '运行代理的绝对路径。覆盖此代理内所有文件系统和 shell 操作的工作目录。与 isolation: "worktree" 互斥。',
         ),
     });
 });
@@ -226,14 +226,14 @@ export const outputSchema = lazySchema(() => {
 
   const asyncOutputSchema = z.object({
     status: z.literal('async_launched'),
-    agentId: z.string().describe('The ID of the async agent'),
-    description: z.string().describe('The description of the task'),
-    prompt: z.string().describe('The prompt for the agent'),
-    outputFile: z.string().describe('Path to the output file for checking agent progress'),
+    agentId: z.string().describe('异步代理的 ID'),
+    description: z.string().describe('任务的描述'),
+    prompt: z.string().describe('代理的提示'),
+    outputFile: z.string().describe('用于检查代理进度的输出文件路径'),
     canReadOutputFile: z
       .boolean()
       .optional()
-      .describe('Whether the calling agent has Read/Bash tools to check progress'),
+      .describe('调用代理是否具有 Read/Bash 工具以检查进度'),
   });
 
   return z.union([syncOutputSchema, asyncOutputSchema]);
@@ -311,7 +311,7 @@ export const AgentTool = buildTool({
   aliases: [LEGACY_AGENT_TOOL_NAME],
   maxResultSizeChars: 100_000,
   async description() {
-    return 'Launch a new agent';
+    return '启动一个新代理';
   },
   get inputSchema(): InputSchema {
     return inputSchema();

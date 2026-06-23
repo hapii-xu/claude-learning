@@ -92,22 +92,22 @@ import {
   userFacingName,
 } from './UI.js'
 
-// Device files that would hang the process: infinite output or blocking input.
-// Checked by path only (no I/O). Safe devices like /dev/null are intentionally omitted.
+// 会导致进程挂起的设备文件：无限输出或阻塞输入。
+// 仅通过路径检查（无 I/O）。像 /dev/null 这类安全设备被故意排除。
 const BLOCKED_DEVICE_PATHS = new Set([
-  // Infinite output — never reach EOF
+  // 无限输出 —— 永远到不了 EOF
   '/dev/zero',
   '/dev/random',
   '/dev/urandom',
   '/dev/full',
-  // Blocks waiting for input
+  // 阻塞等待输入
   '/dev/stdin',
   '/dev/tty',
   '/dev/console',
-  // Nonsensical to read
+  // 读取毫无意义
   '/dev/stdout',
   '/dev/stderr',
-  // fd aliases for stdin/stdout/stderr
+  // stdin/stdout/stderr 的 fd 别名
   '/dev/fd/0',
   '/dev/fd/1',
   '/dev/fd/2',
@@ -115,7 +115,7 @@ const BLOCKED_DEVICE_PATHS = new Set([
 
 function isBlockedDevicePath(filePath: string): boolean {
   if (BLOCKED_DEVICE_PATHS.has(filePath)) return true
-  // /proc/self/fd/0-2 and /proc/<pid>/fd/0-2 are Linux aliases for stdio
+  // /proc/self/fd/0-2 和 /proc/<pid>/fd/0-2 是 stdio 在 Linux 上的别名
   if (
     filePath.startsWith('/proc/') &&
     (filePath.endsWith('/fd/0') ||
@@ -126,22 +126,22 @@ function isBlockedDevicePath(filePath: string): boolean {
   return false
 }
 
-// Narrow no-break space (U+202F) used by some macOS versions in screenshot filenames
+// 某些 macOS 版本在截图文件名中使用的窄不换行空格（U+202F）
 const THIN_SPACE = String.fromCharCode(8239)
 
 /**
- * Resolves macOS screenshot paths that may have different space characters.
- * macOS uses either regular space or thin space (U+202F) before AM/PM in screenshot
- * filenames depending on the macOS version. This function tries the alternate space
- * character if the file doesn't exist with the given path.
+ * 解析可能含有不同空格字符的 macOS 截图路径。
+ * 根据不同的 macOS 版本，macOS 在截图文件名中的 AM/PM 之前
+ * 使用普通空格或窄空格（U+202F）。当给定路径的文件不存在时，
+ * 本函数会尝试使用另一种空格字符。
  *
- * @param filePath - The normalized file path to resolve
- * @returns The path to the actual file on disk (may differ in space character)
+ * @param filePath - 要解析的已规范化文件路径
+ * @returns 磁盘上实际文件的路径（空格字符可能不同）
  */
 /**
- * For macOS screenshot paths with AM/PM, the space before AM/PM may be a
- * regular space or a thin space depending on the macOS version.  Returns
- * the alternate path to try if the original doesn't exist, or undefined.
+ * 对于带 AM/PM 的 macOS 截图路径，AM/PM 前的空格根据 macOS 版本
+ * 可能是普通空格或窄空格。如果原路径不存在，返回要尝试的备用路径，
+ * 否则返回 undefined。
  */
 function getAlternateScreenshotPath(filePath: string): string | undefined {
   const filename = path.basename(filePath)
@@ -157,7 +157,7 @@ function getAlternateScreenshotPath(filePath: string): string | undefined {
   )
 }
 
-// File read listeners - allows other services to be notified when files are read
+// 文件读取监听器 —— 允许其他服务在文件被读取时收到通知
 type FileReadListener = (filePath: string, content: string) => void
 const fileReadListeners: FileReadListener[] = []
 
@@ -177,34 +177,34 @@ export class MaxFileReadTokenExceededError extends Error {
     public maxTokens: number,
   ) {
     super(
-      `File content (${tokenCount} tokens) exceeds maximum allowed tokens (${maxTokens}). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.`,
+      `文件内容（${tokenCount} tokens）超过了允许的最大 token 数（${maxTokens}）。请使用 offset 和 limit 参数读取文件的特定部分，或搜索特定内容而不是读取整个文件。`,
     )
     this.name = 'MaxFileReadTokenExceededError'
   }
 }
 
-// Common image extensions
+// 常见图片扩展名
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp'])
 
 /**
- * Detects if a file path is a session-related file for analytics logging.
- * Only matches files within the Claude config directory (e.g., ~/.claude).
- * Returns the type of session file or null if not a session file.
+ * 检测文件路径是否为用于 analytics 日志记录的会话相关文件。
+ * 仅匹配 Claude 配置目录（例如 ~/.claude）内的文件。
+ * 返回会话文件类型，如果不是会话文件则返回 null。
  */
 function detectSessionFileType(
   filePath: string,
 ): 'session_memory' | 'session_transcript' | null {
   const configDir = getClaudeConfigHomeDir()
 
-  // Only match files within the Claude config directory
+  // 仅匹配 Claude 配置目录内的文件
   if (!filePath.startsWith(configDir)) {
     return null
   }
 
-  // Normalize path to use forward slashes for consistent matching across platforms
+  // 将路径规范化为使用正斜杠，以在不同平台上一致匹配
   const normalizedPath = filePath.split(win32.sep).join(posix.sep)
 
-  // Session memory files: ~/.claude/session-memory/*.md (including summary.md)
+  // 会话内存文件：~/.claude/session-memory/*.md（包括 summary.md）
   if (
     normalizedPath.includes('/session-memory/') &&
     normalizedPath.endsWith('.md')
@@ -212,7 +212,7 @@ function detectSessionFileType(
     return 'session_memory'
   }
 
-  // Session JSONL transcript files: ~/.claude/projects/*/*.jsonl
+  // 会话 JSONL 转录文件：~/.claude/projects/*/*.jsonl
   if (
     normalizedPath.includes('/projects/') &&
     normalizedPath.endsWith('.jsonl')
@@ -225,18 +225,18 @@ function detectSessionFileType(
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    file_path: z.string().describe('The absolute path to the file to read'),
+    file_path: z.string().describe('要读取的文件的绝对路径'),
     offset: semanticNumber(z.number().int().nonnegative().optional()).describe(
-      'The line number to start reading from. Only provide if the file is too large to read at once',
+      '开始读取的行号。仅当文件太大无法一次性读取时提供',
     ),
     limit: semanticNumber(z.number().int().positive().optional()).describe(
-      'The number of lines to read. Only provide if the file is too large to read at once.',
+      '要读取的行数。仅当文件太大无法一次性读取时提供。',
     ),
     pages: z
       .string()
       .optional()
       .describe(
-        `Page range for PDF files (e.g., "1-5", "3", "10-20"). Only applicable to PDF files. Maximum ${PDF_MAX_PAGES_PER_READ} pages per request.`,
+        `PDF 文件的页面范围（例如 "1-5"、"3"、"10-20"）。仅适用于 PDF 文件。每次请求最多 ${PDF_MAX_PAGES_PER_READ} 页。`,
       ),
   }),
 )
@@ -245,7 +245,7 @@ type InputSchema = ReturnType<typeof inputSchema>
 export type Input = z.infer<InputSchema>
 
 const outputSchema = lazySchema(() => {
-  // Define the media types supported for images
+  // 定义图片支持的 media 类型
   const imageMediaTypes = z.enum([
     'image/jpeg',
     'image/png',
@@ -257,74 +257,74 @@ const outputSchema = lazySchema(() => {
     z.object({
       type: z.literal('text'),
       file: z.object({
-        filePath: z.string().describe('The path to the file that was read'),
-        content: z.string().describe('The content of the file'),
+        filePath: z.string().describe('被读取文件的路径'),
+        content: z.string().describe('文件内容'),
         numLines: z
           .number()
-          .describe('Number of lines in the returned content'),
-        startLine: z.number().describe('The starting line number'),
-        totalLines: z.number().describe('Total number of lines in the file'),
+          .describe('返回内容中的行数'),
+        startLine: z.number().describe('起始行号'),
+        totalLines: z.number().describe('文件总行数'),
       }),
     }),
     z.object({
       type: z.literal('image'),
       file: z.object({
-        base64: z.string().describe('Base64-encoded image data'),
-        type: imageMediaTypes.describe('The MIME type of the image'),
-        originalSize: z.number().describe('Original file size in bytes'),
+        base64: z.string().describe('Base64 编码的图片数据'),
+        type: imageMediaTypes.describe('图片的 MIME 类型'),
+        originalSize: z.number().describe('原始文件大小（字节）'),
         dimensions: z
           .object({
             originalWidth: z
               .number()
               .optional()
-              .describe('Original image width in pixels'),
+              .describe('原始图片宽度（像素）'),
             originalHeight: z
               .number()
               .optional()
-              .describe('Original image height in pixels'),
+              .describe('原始图片高度（像素）'),
             displayWidth: z
               .number()
               .optional()
-              .describe('Displayed image width in pixels (after resizing)'),
+              .describe('显示的图片宽度（像素，调整大小后）'),
             displayHeight: z
               .number()
               .optional()
-              .describe('Displayed image height in pixels (after resizing)'),
+              .describe('显示的图片高度（像素，调整大小后）'),
           })
           .optional()
-          .describe('Image dimension info for coordinate mapping'),
+          .describe('用于坐标映射的图片尺寸信息'),
       }),
     }),
     z.object({
       type: z.literal('notebook'),
       file: z.object({
-        filePath: z.string().describe('The path to the notebook file'),
-        cells: z.array(z.any()).describe('Array of notebook cells'),
+        filePath: z.string().describe('notebook 文件的路径'),
+        cells: z.array(z.any()).describe('notebook 单元格数组'),
       }),
     }),
     z.object({
       type: z.literal('pdf'),
       file: z.object({
-        filePath: z.string().describe('The path to the PDF file'),
-        base64: z.string().describe('Base64-encoded PDF data'),
-        originalSize: z.number().describe('Original file size in bytes'),
+        filePath: z.string().describe('PDF 文件的路径'),
+        base64: z.string().describe('Base64 编码的 PDF 数据'),
+        originalSize: z.number().describe('原始文件大小（字节）'),
       }),
     }),
     z.object({
       type: z.literal('parts'),
       file: z.object({
-        filePath: z.string().describe('The path to the PDF file'),
-        originalSize: z.number().describe('Original file size in bytes'),
-        count: z.number().describe('Number of pages extracted'),
+        filePath: z.string().describe('PDF 文件的路径'),
+        originalSize: z.number().describe('原始文件大小（字节）'),
+        count: z.number().describe('提取的页数'),
         outputDir: z
           .string()
-          .describe('Directory containing extracted page images'),
+          .describe('包含提取出的页面图片的目录'),
       }),
     }),
     z.object({
       type: z.literal('file_unchanged'),
       file: z.object({
-        filePath: z.string().describe('The path to the file'),
+        filePath: z.string().describe('文件的路径'),
       }),
     }),
   ])
@@ -336,9 +336,8 @@ export type Output = z.infer<OutputSchema>
 export const FileReadTool = buildTool({
   name: FILE_READ_TOOL_NAME,
   searchHint: 'read files, images, PDFs, notebooks',
-  // Output is bounded by maxTokens (validateContentTokens). Results exceeding
-  // 100KB are persisted to disk (reducing memory pressure in long sessions)
-  // rather than kept in the message array indefinitely.
+  // 输出受 maxTokens 约束（validateContentTokens）。超过 100KB 的结果会
+  // 持久化到磁盘（减轻长会话中的内存压力），而不是无限期保留在消息数组中。
   maxResultSizeChars: 100_000,
   strict: true,
   async description() {
@@ -347,7 +346,7 @@ export const FileReadTool = buildTool({
   async prompt() {
     const limits = getDefaultFileReadingLimits()
     const maxSizeInstruction = limits.includeMaxSizeInPrompt
-      ? `. Files larger than ${formatFileSize(limits.maxSizeBytes)} will return an error; use offset and limit for larger files`
+      ? `. 大于 ${formatFileSize(limits.maxSizeBytes)} 的文件将返回错误；对更大的文件请使用 offset 和 limit`
       : ''
     const offsetInstruction = limits.targetedRangeNudge
       ? OFFSET_INSTRUCTION_TARGETED
@@ -368,7 +367,7 @@ export const FileReadTool = buildTool({
   getToolUseSummary,
   getActivityDescription(input) {
     const summary = getToolUseSummary(input)
-    return summary ? `Reading ${summary}` : 'Reading file'
+    return summary ? `正在读取 ${summary}` : '正在读取文件'
   },
   isConcurrencySafe() {
     return true
@@ -386,8 +385,8 @@ export const FileReadTool = buildTool({
     return file_path || getCwd()
   },
   backfillObservableInput(input) {
-    // hooks.mdx documents file_path as absolute; expand so hook allowlists
-    // can't be bypassed via ~ or relative paths.
+    // hooks.mdx 文档说明 file_path 必须是绝对路径；展开它以避免通过 ~ 或
+    // 相对路径绕过 hook allowlist。
     if (typeof input.file_path === 'string') {
       input.file_path = expandPath(input.file_path)
     }
@@ -406,21 +405,21 @@ export const FileReadTool = buildTool({
   renderToolUseMessage,
   renderToolUseTag,
   renderToolResultMessage,
-  // UI.tsx:140 — ALL types render summary chrome only: "Read N lines",
-  // "Read image (42KB)". Never the content itself. The model-facing
-  // serialization (below) sends content + line prefixes; UI shows none of it.
+  // UI.tsx:140 —— 所有类型仅渲染摘要外框："Read N lines"、
+  // "Read image (42KB)"，绝不渲染内容本身。面向模型的序列化（见下方）
+  // 会发送内容 + 行前缀；UI 不会展示这些。
   extractSearchText() {
     return ''
   },
   renderToolUseErrorMessage,
   async validateInput({ file_path, pages }, toolUseContext: ToolUseContext) {
-    // Validate pages parameter (pure string parsing, no I/O)
+    // 校验 pages 参数（纯字符串解析，无 I/O）
     if (pages !== undefined) {
       const parsed = parsePDFPageRange(pages)
       if (!parsed) {
         return {
           result: false,
-          message: `Invalid pages parameter: "${pages}". Use formats like "1-5", "3", or "10-20". Pages are 1-indexed.`,
+          message: `无效的 pages 参数："${pages}"。请使用诸如 "1-5"、"3" 或 "10-20" 的格式。页码从 1 开始。`,
           errorCode: 7,
         }
       }
@@ -431,13 +430,13 @@ export const FileReadTool = buildTool({
       if (rangeSize > PDF_MAX_PAGES_PER_READ) {
         return {
           result: false,
-          message: `Page range "${pages}" exceeds maximum of ${PDF_MAX_PAGES_PER_READ} pages per request. Please use a smaller range.`,
+          message: `页面范围 "${pages}" 超过了每次请求最多 ${PDF_MAX_PAGES_PER_READ} 页的限制。请使用更小的范围。`,
           errorCode: 8,
         }
       }
     }
 
-    // Path expansion + deny rule check (no I/O)
+    // 路径展开 + deny 规则检查（无 I/O）
     const fullFilePath = expandPath(file_path)
 
     const appState = toolUseContext.getAppState()
@@ -450,22 +449,21 @@ export const FileReadTool = buildTool({
     if (denyRule !== null) {
       return {
         result: false,
-        message:
-          'File is in a directory that is denied by your permission settings.',
+        message: '该文件位于被你的权限设置拒绝访问的目录中。',
         errorCode: 1,
       }
     }
 
-    // SECURITY: UNC path check (no I/O) — defer filesystem operations
-    // until after user grants permission to prevent NTLM credential leaks
+    // 安全：UNC 路径检查（无 I/O）—— 在用户授予权限之前推迟文件系统操作，
+    // 以防止 NTLM 凭据泄露
     const isUncPath =
       fullFilePath.startsWith('\\\\') || fullFilePath.startsWith('//')
     if (isUncPath) {
       return { result: true }
     }
 
-    // Binary extension check (string check on extension only, no I/O).
-    // PDF, images, and SVG are excluded - this tool renders them natively.
+    // 二进制扩展名检查（仅对扩展名做字符串检查，无 I/O）。
+    // PDF、图片和 SVG 被排除 —— 本工具会原生渲染它们。
     const ext = path.extname(fullFilePath).toLowerCase()
     if (
       hasBinaryExtension(fullFilePath) &&
@@ -474,17 +472,17 @@ export const FileReadTool = buildTool({
     ) {
       return {
         result: false,
-        message: `This tool cannot read binary files. The file appears to be a binary ${ext} file. Please use appropriate tools for binary file analysis.`,
+        message: `本工具无法读取二进制文件。该文件似乎是二进制 ${ext} 文件。请使用合适的工具进行二进制文件分析。`,
         errorCode: 4,
       }
     }
 
-    // Block specific device files that would hang (infinite output or blocking input).
-    // This is a path-based check with no I/O — safe special files like /dev/null are allowed.
+    // 拦截会导致挂起的特定设备文件（无限输出或阻塞输入）。
+    // 这是基于路径的检查，无 I/O —— 像 /dev/null 这类安全特殊文件是允许的。
     if (isBlockedDevicePath(fullFilePath)) {
       return {
         result: false,
-        message: `Cannot read '${file_path}': this device file would block or produce infinite output.`,
+        message: `无法读取 '${file_path}'：该设备文件会阻塞或产生无限输出。`,
         errorCode: 9,
       }
     }
@@ -514,23 +512,21 @@ export const FileReadTool = buildTool({
     }
 
     const ext = path.extname(file_path).toLowerCase().slice(1)
-    // Use expandPath for consistent path normalization with FileEditTool/FileWriteTool
-    // (especially handles whitespace trimming and Windows path separators)
+    // 使用 expandPath 进行与 FileEditTool/FileWriteTool 一致的路径规范化
+    // （尤其处理空白字符修剪和 Windows 路径分隔符）
     const fullFilePath = expandPath(file_path)
 
-    // Dedup: if we've already read this exact range and the file hasn't
-    // changed on disk, return a stub instead of re-sending the full content.
-    // The earlier Read tool_result is still in context — two full copies
-    // waste cache_creation tokens on every subsequent turn. BQ proxy shows
-    // ~18% of Read calls are same-file collisions (up to 2.64% of fleet
-    // cache_creation). Only applies to text/notebook reads — images/PDFs
-    // aren't cached in readFileState so won't match here.
+    // 去重：如果我们已经读取过这个精确范围且磁盘上的文件未变化，
+    // 则返回一个占位消息而不是重新发送完整内容。之前的 Read tool_result
+    // 仍在上下文中 —— 两份完整副本会在后续每个 turn 浪费 cache_creation
+    // token。BQ 代理显示约 18% 的 Read 调用是同文件冲突（最高占全集群
+    // cache_creation 的 2.64%）。仅适用于 text/notebook 读取 ——
+    // images/PDFs 不在 readFileState 中缓存，所以不会命中。
     //
-    // Ant soak: 1,734 dedup hits in 2h, no Read error regression.
-    // Killswitch pattern: GB can disable if the stub message confuses
-    // the model externally.
-    // 3P default: killswitch off = dedup enabled. Client-side only — no
-    // server support needed, safe for Bedrock/Vertex/Foundry.
+    // Ant soak：2 小时内 1,734 次去重命中，Read 错误无回归。
+    // 熔断模式：如果占位消息在外部让模型产生混淆，GB 可禁用。
+    // 3P 默认：熔断关闭 = 去重启用。仅客户端 —— 无需服务端支持，
+    // 对 Bedrock/Vertex/Foundry 安全。
     const dedupKillswitch = getFeatureValue_CACHED_MAY_BE_STALE(
       'tengu_read_dedup_killswitch',
       false,
@@ -538,10 +534,10 @@ export const FileReadTool = buildTool({
     const existingState = dedupKillswitch
       ? undefined
       : readFileState.get(fullFilePath)
-    // Only dedup entries that came from a prior Read (offset is always set
-    // by Read). Edit/Write store offset=undefined — their readFileState
-    // entry reflects post-edit mtime, so deduping against it would wrongly
-    // point the model at the pre-edit Read content.
+    // 只对来自之前 Read 的条目去重（offset 总是由 Read 设置）。
+    // Edit/Write 存储的 offset=undefined —— 它们的 readFileState 条目
+    // 反映的是编辑后的 mtime，因此基于它去重会错误地把模型指向编辑前的
+    // Read 内容。
     if (
       existingState &&
       !existingState.isPartialView &&
@@ -565,26 +561,26 @@ export const FileReadTool = buildTool({
             }
           }
         } catch {
-          // stat failed — fall through to full read
+          // stat 失败 —— 继续执行完整读取
         }
       }
     }
 
-    // Discover skills from this file's path (fire-and-forget, non-blocking)
-    // Skip in simple mode - no skills available
+    // 从该文件路径发现 skills（fire-and-forget，非阻塞）
+    // 在 simple 模式下跳过 —— 没有 skills 可用
     const cwd = getCwd()
     if (!isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)) {
       const newSkillDirs = await discoverSkillDirsForPaths([fullFilePath], cwd)
       if (newSkillDirs.length > 0) {
-        // Store discovered dirs for attachment display
+        // 存储已发现的目录用于附件展示
         for (const dir of newSkillDirs) {
           context.dynamicSkillDirTriggers?.add(dir)
         }
-        // Don't await - let skill loading happen in the background
+        // 不要 await —— 让 skill 加载在后台进行
         addSkillDirectories(newSkillDirs).catch(() => {})
       }
 
-      // Activate conditional skills whose path patterns match this file
+      // 激活路径模式匹配该文件的条件 skills
       activateConditionalSkillsForPaths([fullFilePath], cwd)
     }
 
@@ -604,11 +600,11 @@ export const FileReadTool = buildTool({
         parentMessage?.message.id,
       )
     } catch (error) {
-      // Handle file-not-found: suggest similar files
+      // 处理文件未找到的情况：建议相似文件
       const code = getErrnoCode(error)
       if (code === 'ENOENT') {
-        // macOS screenshots may use a thin space or regular space before
-        // AM/PM — try the alternate before giving up.
+        // macOS 截图在 AM/PM 之前可能使用窄空格或普通空格 ——
+        // 放弃之前先尝试另一种。
         const altPath = getAlternateScreenshotPath(fullFilePath)
         if (altPath) {
           try {
@@ -630,17 +626,17 @@ export const FileReadTool = buildTool({
             if (!isENOENT(altError)) {
               throw altError
             }
-            // Alt path also missing — fall through to friendly error
+            // 备用路径也不存在 —— 继续走友好错误提示
           }
         }
 
         const similarFilename = findSimilarFile(fullFilePath)
         const cwdSuggestion = await suggestPathUnderCwd(fullFilePath)
-        let message = `File does not exist. ${FILE_NOT_FOUND_CWD_NOTE} ${getCwd()}.`
+        let message = `文件不存在。${FILE_NOT_FOUND_CWD_NOTE} ${getCwd()}。`
         if (cwdSuggestion) {
-          message += ` Did you mean ${cwdSuggestion}?`
+          message += ` 你指的是 ${cwdSuggestion} 吗？`
         } else if (similarFilename) {
-          message += ` Did you mean ${similarFilename}?`
+          message += ` 你指的是 ${similarFilename} 吗？`
         }
         throw new Error(message)
       }
@@ -668,18 +664,18 @@ export const FileReadTool = buildTool({
       case 'notebook':
         return mapNotebookCellsToToolResult(data.file.cells, toolUseID)
       case 'pdf':
-        // Return PDF metadata only - the actual content is sent as a supplemental DocumentBlockParam
+        // 仅返回 PDF 元数据 —— 实际内容作为补充的 DocumentBlockParam 发送
         return {
           tool_use_id: toolUseID,
           type: 'tool_result',
-          content: `PDF file read: ${data.file.filePath} (${formatFileSize(data.file.originalSize)})`,
+          content: `已读取 PDF 文件：${data.file.filePath}（${formatFileSize(data.file.originalSize)}）`,
         }
       case 'parts':
-        // Extracted page images are read and sent as image blocks in mapToolResultToAPIMessage
+        // 提取出的页面图片在 mapToolResultToAPIMessage 中读取并以图片块形式发送
         return {
           tool_use_id: toolUseID,
           type: 'tool_result',
-          content: `PDF pages extracted: ${data.file.count} page(s) from ${data.file.filePath} (${formatFileSize(data.file.originalSize)})`,
+          content: `已提取 PDF 页面：从 ${data.file.filePath} 提取 ${data.file.count} 页（${formatFileSize(data.file.originalSize)}）`,
         }
       case 'file_unchanged':
         return {
@@ -693,11 +689,11 @@ export const FileReadTool = buildTool({
         if (data.file.content) {
           content = memoryFileFreshnessPrefix(data) + formatFileLines(data.file)
         } else {
-          // Determine the appropriate warning message
+          // 确定合适的警告消息
           content =
             data.file.totalLines === 0
-              ? '<system-reminder>Warning: the file exists but the contents are empty.</system-reminder>'
-              : `<system-reminder>Warning: the file exists but is shorter than the provided offset (${data.file.startLine}). The file has ${data.file.totalLines} lines.</system-reminder>`
+              ? '<system-reminder>警告：文件存在但内容为空。</system-reminder>'
+              : `<system-reminder>警告：文件存在但比提供的 offset（${data.file.startLine}）更短。该文件有 ${data.file.totalLines} 行。</system-reminder>`
         }
 
         return {
@@ -714,17 +710,16 @@ function pickLineFormatInstruction(): string {
   return LINE_FORMAT_INSTRUCTION
 }
 
-/** Format file content with line numbers. */
+/** 为文件内容添加行号格式化。 */
 function formatFileLines(file: { content: string; startLine: number }): string {
   return addLineNumbers(file)
 }
 
 /**
- * Side-channel from call() to mapToolResultToToolResultBlockParam: mtime
- * of auto-memory files, keyed by the `data` object identity. Avoids
- * adding a presentation-only field to the output schema (which flows
- * into SDK types) and avoids sync fs in the mapper. WeakMap auto-GCs
- * when the data object becomes unreachable after rendering.
+ * 从 call() 到 mapToolResultToToolResultBlockParam 的侧信道：auto-memory
+ * 文件的 mtime，以 `data` 对象身份为键。避免在输出 schema（会流入 SDK
+ * 类型）中加入仅用于展示的字段，也避免在 mapper 中执行同步 fs。
+ * 当 data 对象在渲染后变得不可达时，WeakMap 会自动 GC。
  */
 const memoryFileMtimes = new WeakMap<object, number>()
 
@@ -742,8 +737,8 @@ async function validateContentTokens(
   const effectiveMaxTokens =
     maxTokens ?? getDefaultFileReadingLimits().maxTokens
 
-  // Fast rejection: if raw byte count exceeds 4x the token limit,
-  // no encoding can possibly fit (worst case is ~4 bytes/token).
+  // 快速拒绝：如果原始字节数超过 token 上限的 4 倍，
+  // 则没有任何编码能够装下（最坏情况约为 4 字节/token）。
   const byteLength = Buffer.byteLength(content)
   if (byteLength > effectiveMaxTokens * 4) {
     throw new MaxFileReadTokenExceededError(
@@ -791,7 +786,7 @@ function createImageResponse(
 }
 
 /**
- * Inner implementation of call, separated to allow ENOENT handling in the outer call.
+ * call 的内部实现，独立出来以便在外层 call 中处理 ENOENT。
  */
 async function callInner(
   file_path: string,
@@ -818,18 +813,18 @@ async function callInner(
     const cellsJsonBytes = Buffer.byteLength(cellsJson)
     if (cellsJsonBytes > maxSizeBytes) {
       throw new Error(
-        `Notebook content (${formatFileSize(cellsJsonBytes)}) exceeds maximum allowed size (${formatFileSize(maxSizeBytes)}). ` +
-          `Use ${BASH_TOOL_NAME} with jq to read specific portions:\n` +
-          `  cat "${file_path}" | jq '.cells[:20]' # First 20 cells\n` +
-          `  cat "${file_path}" | jq '.cells[100:120]' # Cells 100-120\n` +
-          `  cat "${file_path}" | jq '.cells | length' # Count total cells\n` +
-          `  cat "${file_path}" | jq '.cells[] | select(.cell_type=="code") | .source' # All code sources`,
+        `Notebook 内容（${formatFileSize(cellsJsonBytes)}）超过了允许的最大大小（${formatFileSize(maxSizeBytes)}）。` +
+          `请使用 ${BASH_TOOL_NAME} 配合 jq 读取特定部分：\n` +
+          `  cat "${file_path}" | jq '.cells[:20]' # 前 20 个单元格\n` +
+          `  cat "${file_path}" | jq '.cells[100:120]' # 单元格 100-120\n` +
+          `  cat "${file_path}" | jq '.cells | length' # 统计单元格总数\n` +
+          `  cat "${file_path}" | jq '.cells[] | select(.cell_type=="code") | .source' # 所有代码单元格的源码`,
       )
     }
 
     await validateContentTokens(cellsJson, ext, maxTokens)
 
-    // Get mtime via async stat (single call, no prior existence check)
+    // 通过异步 stat 获取 mtime（单次调用，无需预先存在性检查）
     const stats = await getFsImplementation().stat(resolvedFilePath)
     readFileState.set(fullFilePath, {
       content: cellsJson,
@@ -854,10 +849,10 @@ async function callInner(
     return { data }
   }
 
-  // --- Image (single read, no double-read) ---
+  // --- Image（单次读取，不重复读） ---
   if (IMAGE_EXTENSIONS.has(ext)) {
-    // Images have their own size limits (token budget + compression) —
-    // don't apply the text maxSizeBytes cap.
+    // 图片有自己的大小限制（token 预算 + 压缩）——
+    // 不应用文本的 maxSizeBytes 上限。
     const data = await readImageWithTokenBudget(resolvedFilePath, maxTokens)
     context.nestedMemoryAttachmentTriggers?.add(fullFilePath)
 
@@ -940,9 +935,9 @@ async function callInner(
     const pageCount = await getPDFPageCount(resolvedFilePath)
     if (pageCount !== null && pageCount > PDF_AT_MENTION_INLINE_THRESHOLD) {
       throw new Error(
-        `This PDF has ${pageCount} pages, which is too many to read at once. ` +
-          `Use the pages parameter to read specific page ranges (e.g., pages: "1-5"). ` +
-          `Maximum ${PDF_MAX_PAGES_PER_READ} pages per request.`,
+        `此 PDF 有 ${pageCount} 页，数量太多无法一次性读取。` +
+          `请使用 pages 参数读取特定页面范围（例如 pages: "1-5"）。` +
+          `每次请求最多 ${PDF_MAX_PAGES_PER_READ} 页。`,
       )
     }
 
@@ -970,9 +965,9 @@ async function callInner(
 
     if (!isPDFSupported()) {
       throw new Error(
-        'Reading full PDFs is not supported with this model. Use a newer model (Sonnet 3.5 v2 or later), ' +
-          `or use the pages parameter to read specific page ranges (e.g., pages: "1-5", maximum ${PDF_MAX_PAGES_PER_READ} pages per request). ` +
-          'Page extraction requires poppler-utils: install with `brew install poppler` on macOS or `apt-get install poppler-utils` on Debian/Ubuntu.',
+        '当前模型不支持读取完整 PDF。请使用更新的模型（Sonnet 3.5 v2 或更高版本），' +
+          `或使用 pages 参数读取特定页面范围（例如 pages: "1-5"，每次请求最多 ${PDF_MAX_PAGES_PER_READ} 页）。` +
+          '页面提取需要 poppler-utils：macOS 用 `brew install poppler` 安装，Debian/Ubuntu 用 `apt-get install poppler-utils` 安装。',
       )
     }
 
@@ -1008,7 +1003,7 @@ async function callInner(
     }
   }
 
-  // --- Text file (single async read via readFileInRange) ---
+  // --- 文本文件（通过 readFileInRange 单次异步读取） ---
   const lineOffset = offset === 0 ? 0 : offset - 1
   const { content, lineCount, totalLines, totalBytes, readBytes, mtimeMs } =
     await readFileInRange(
@@ -1029,8 +1024,7 @@ async function callInner(
   })
   context.nestedMemoryAttachmentTriggers?.add(fullFilePath)
 
-  // Snapshot before iterating — a listener that unsubscribes mid-callback
-  // would splice the live array and skip the next listener.
+  // 迭代前先做快照 —— 在回调中取消订阅的监听器会切断实时数组并跳过下一个监听器。
   for (const listener of fileReadListeners.slice()) {
     listener(resolvedFilePath, content)
   }
@@ -1078,20 +1072,20 @@ async function callInner(
 }
 
 /**
- * Reads an image file and applies token-based compression if needed.
- * Reads the file ONCE, then applies standard resize. If the result exceeds
- * the token limit, applies aggressive compression from the same buffer.
+ * 读取图片文件，并在需要时应用基于 token 的压缩。
+ * 只读取文件一次，然后应用标准调整大小。如果结果超过 token 上限，
+ * 则基于同一 buffer 应用激进的压缩。
  *
- * @param filePath - Path to the image file
- * @param maxTokens - Maximum token budget for the image
- * @returns Image data with appropriate compression applied
+ * @param filePath - 图片文件路径
+ * @param maxTokens - 图片的最大 token 预算
+ * @returns 应用了适当压缩的图片数据
  */
 export async function readImageWithTokenBudget(
   filePath: string,
   maxTokens: number = getDefaultFileReadingLimits().maxTokens,
   maxBytes?: number,
 ): Promise<ImageResult> {
-  // Read file ONCE — capped to maxBytes to avoid OOM on huge files
+  // 只读取文件一次 —— 上限为 maxBytes 以避免在超大文件上 OOM
   const imageBuffer = await getFsImplementation().readFileBytes(
     filePath,
     maxBytes,
@@ -1099,13 +1093,13 @@ export async function readImageWithTokenBudget(
   const originalSize = imageBuffer.length
 
   if (originalSize === 0) {
-    throw new Error(`Image file is empty: ${filePath}`)
+    throw new Error(`图片文件为空：${filePath}`)
   }
 
   const detectedMediaType = detectImageFormatFromBuffer(imageBuffer)
   const detectedFormat = detectedMediaType.split('/')[1] || 'png'
 
-  // Try standard resize
+  // 尝试标准调整大小
   let result: ImageResult
   try {
     const resized = await maybeResizeAndDownsampleImageBuffer(
@@ -1125,10 +1119,10 @@ export async function readImageWithTokenBudget(
     result = createImageResponse(imageBuffer, detectedFormat, originalSize)
   }
 
-  // Check if it fits in token budget
+  // 检查是否在 token 预算内
   const estimatedTokens = Math.ceil(result.file.base64.length * 0.125)
   if (estimatedTokens > maxTokens) {
-    // Aggressive compression from the SAME buffer (no re-read)
+    // 基于同一 buffer 进行激进压缩（不重新读取）
     try {
       const compressed = await compressImageBufferWithTokenLimit(
         imageBuffer,
@@ -1145,7 +1139,7 @@ export async function readImageWithTokenBudget(
       }
     } catch (e) {
       logError(e)
-      // Fallback: heavily compressed version from the SAME buffer
+      // 兜底：基于同一 buffer 的高度压缩版本
       try {
         const sharpModule = await import('sharp')
         const sharp =

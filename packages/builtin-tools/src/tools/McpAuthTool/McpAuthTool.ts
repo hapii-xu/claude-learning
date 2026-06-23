@@ -35,16 +35,14 @@ function getConfigUrl(config: ScopedMcpServerConfig): string | undefined {
 }
 
 /**
- * Creates a pseudo-tool for an MCP server that is installed but not
- * authenticated. Surfaced in place of the server's real tools so the model
- * knows the server exists and can start the OAuth flow on the user's behalf.
+ * 为已安装但未认证的 MCP server 创建一个伪工具。用它代替该 server 的真实
+ * 工具暴露给模型，让模型知道该 server 存在，并可以代用户启动 OAuth 流程。
  *
- * When called, starts performMCPOAuthFlow with skipBrowserOpen and returns
- * the authorization URL. The OAuth callback completes in the background;
- * once it fires, reconnectMcpServerImpl runs and the server's real tools
- * are swapped into appState.mcp.tools via the existing prefix-based
- * replacement (useManageMCPConnections.updateServer wipes anything matching
- * mcp__<server>__*, so this pseudo-tool is removed automatically).
+ * 被调用时，会以 skipBrowserOpen 启动 performMCPOAuthFlow 并返回授权 URL。
+ * OAuth 回调在后台完成；回调触发后，reconnectMcpServerImpl 会运行，并将
+ * 该 server 的真实工具通过现有的前缀替换机制替换进 appState.mcp.tools
+ * （useManageMCPConnections.updateServer 会清掉所有匹配 mcp__<server>__*
+ * 的内容，因此该伪工具会被自动移除）。
  */
 export function createMcpAuthTool(
   serverName: string,
@@ -55,9 +53,9 @@ export function createMcpAuthTool(
   const location = url ? `${transport} at ${url}` : transport
 
   const description =
-    `The \`${serverName}\` MCP server (${location}) is installed but requires authentication. ` +
-    `Call this tool to start the OAuth flow — you'll receive an authorization URL to share with the user. ` +
-    `Once the user completes authorization in their browser, the server's real tools will become available automatically.`
+    `\`${serverName}\` MCP server（${location}）已安装但需要认证。` +
+    `调用此工具以启动 OAuth 流程 —— 你会收到一个授权 URL，请分享给用户。` +
+    `用户在浏览器中完成认证后，该 server 的真实工具会自动变为可用。`
 
   return {
     name: buildMcpToolName(serverName, 'authenticate'),
@@ -67,9 +65,9 @@ export function createMcpAuthTool(
     isConcurrencySafe: () => false,
     isReadOnly: () => false,
     toAutoClassifierInput: () => serverName,
-    userFacingName: () => `${serverName} - authenticate (MCP)`,
+    userFacingName: () => `${serverName} - 认证 (MCP)`,
     maxResultSizeChars: 10_000,
-    renderToolUseMessage: () => `Authenticate ${serverName} MCP server`,
+    renderToolUseMessage: () => `认证 ${serverName} MCP server`,
     async description() {
       return description
     },
@@ -83,26 +81,25 @@ export function createMcpAuthTool(
       return { behavior: 'allow', updatedInput: input }
     },
     async call(_input, context) {
-      // claude.ai connectors use a separate auth flow (handleClaudeAIAuth in
-      // MCPRemoteServerMenu) that we don't invoke programmatically here —
-      // just point the user at /mcp.
+      // claude.ai connectors 使用独立的认证流程（MCPRemoteServerMenu 中的
+      // handleClaudeAIAuth），我们在此不通过代码触发 —— 只引导用户到 /mcp。
       if (config.type === 'claudeai-proxy') {
         return {
           data: {
             status: 'unsupported' as const,
-            message: `This is a claude.ai MCP connector. Ask the user to run /mcp and select "${serverName}" to authenticate.`,
+            message: `这是一个 claude.ai MCP connector。请让用户运行 /mcp 并选择 "${serverName}" 来认证。`,
           },
         }
       }
 
-      // performMCPOAuthFlow only accepts sse/http. needs-auth state is only
-      // set on HTTP 401 (UnauthorizedError) so other transports shouldn't
-      // reach here, but be defensive.
+      // performMCPOAuthFlow 只接受 sse/http。needs-auth 状态仅在
+      // HTTP 401（UnauthorizedError）时设置，因此其他传输方式不应到达此处，
+      // 但做防御性处理。
       if (config.type !== 'sse' && config.type !== 'http') {
         return {
           data: {
             status: 'unsupported' as const,
-            message: `Server "${serverName}" uses ${transport} transport which does not support OAuth from this tool. Ask the user to run /mcp and authenticate manually.`,
+            message: `服务器 "${serverName}" 使用 ${transport} 传输方式，此工具不支持其 OAuth。请让用户运行 /mcp 并手动认证。`,
           },
         }
       }
@@ -112,9 +109,9 @@ export function createMcpAuthTool(
         | McpHTTPServerConfig
       ) & { scope: ScopedMcpServerConfig['scope'] }
 
-      // Mirror cli/print.ts mcp_authenticate: start the flow, capture the
-      // URL via onAuthorizationUrl, return it immediately. The flow's
-      // Promise resolves later when the browser callback fires.
+      // 镜像 cli/print.ts 的 mcp_authenticate：启动流程，通过
+      // onAuthorizationUrl 捕获 URL，立即返回。该流程的 Promise 在浏览器
+      // 回调触发后才 resolve。
       let resolveAuthUrl: ((url: string) => void) | undefined
       const authUrlPromise = new Promise<string>(resolve => {
         resolveAuthUrl = resolve
@@ -131,9 +128,8 @@ export function createMcpAuthTool(
         { skipBrowserOpen: true },
       )
 
-      // Background continuation: once OAuth completes, reconnect and swap
-      // the real tools into appState. Prefix-based replacement removes this
-      // pseudo-tool since it shares the mcp__<server>__ prefix.
+      // 后台延续：OAuth 完成后重连，并将真实工具替换进 appState。
+      // 前缀替换会移除该伪工具，因为它共享 mcp__<server>__ 前缀。
       void oauthPromise
         .then(async () => {
           clearMcpAuthCache()
@@ -161,19 +157,19 @@ export function createMcpAuthTool(
           }))
           logMCPDebug(
             serverName,
-            `OAuth complete, reconnected with ${result.tools.length} tool(s)`,
+            `OAuth 完成，已重连并获得 ${result.tools.length} 个工具`,
           )
         })
         .catch(err => {
           logMCPError(
             serverName,
-            `OAuth flow failed after tool-triggered start: ${errorMessage(err)}`,
+            `工具触发启动后 OAuth 流程失败：${errorMessage(err)}`,
           )
         })
 
       try {
-        // Race: get the URL, or the flow completes without needing one
-        // (e.g. XAA with cached IdP token — silent auth).
+        // 竞速：获取 URL，或流程不需要 URL 就完成
+        //（例如 XAA 有缓存的 IdP token —— 静默认证）。
         const authUrl = await Promise.race([
           authUrlPromise,
           oauthPromise.then(() => null as string | null),
@@ -184,7 +180,7 @@ export function createMcpAuthTool(
             data: {
               status: 'auth_url' as const,
               authUrl,
-              message: `Ask the user to open this URL in their browser to authorize the ${serverName} MCP server:\n\n${authUrl}\n\nOnce they complete the flow, the server's tools will become available automatically.`,
+              message: `请让用户在浏览器中打开此 URL 以授权 ${serverName} MCP server：\n\n${authUrl}\n\n用户完成流程后，该 server 的工具会自动变为可用。`,
             },
           }
         }
@@ -192,14 +188,14 @@ export function createMcpAuthTool(
         return {
           data: {
             status: 'auth_url' as const,
-            message: `Authentication completed silently for ${serverName}. The server's tools should now be available.`,
+            message: `已为 ${serverName} 静默完成认证。该 server 的工具现在应已可用。`,
           },
         }
       } catch (err) {
         return {
           data: {
             status: 'error' as const,
-            message: `Failed to start OAuth flow for ${serverName}: ${errorMessage(err)}. Ask the user to run /mcp and authenticate manually.`,
+            message: `为 ${serverName} 启动 OAuth 流程失败：${errorMessage(err)}。请让用户运行 /mcp 并手动认证。`,
           },
         }
       }

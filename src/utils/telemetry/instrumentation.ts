@@ -1,8 +1,8 @@
 import { DiagLogLevel, diag, trace } from '@opentelemetry/api'
 import { logs } from '@opentelemetry/api-logs'
-// OTLP/Prometheus exporters are dynamically imported inside the protocol
-// switch statements below. A process uses at most one protocol variant per
-// signal, but static imports would load all 6 (~1.2MB) on every startup.
+// OTLP/Prometheus 导出器在下面的协议 switch 语句中动态导入。
+// 每个进程每个信号最多使用一种协议变体，但静态导入会在每次启动时
+// 加载全部 6 个变体（约 1.2MB）。
 import {
   envDetector,
   hostDetector,
@@ -86,7 +86,7 @@ function telemetryTimeout(ms: number, message: string): Promise<never> {
 
 export function bootstrapTelemetry() {
   if (process.env.USER_TYPE === 'ant') {
-    // Read from ANT_ prefixed variables that are defined at build time
+    // 从构建时定义的 ANT_ 前缀变量中读取
     if (process.env.ANT_OTEL_METRICS_EXPORTER) {
       process.env.OTEL_METRICS_EXPORTER = process.env.ANT_OTEL_METRICS_EXPORTER
     }
@@ -110,13 +110,13 @@ export function bootstrapTelemetry() {
     }
   }
 
-  // Set default tempoality to 'delta' because it's the more sane default
+  // 将默认时间性设置为 'delta'，因为这是更合理的默认值
   if (!process.env.OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE) {
     process.env.OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE = 'delta'
   }
 }
 
-// Per OTEL spec, "none" means "no automatically configured exporter for this signal".
+// 根据 OTEL 规范，"none" 表示"该信号没有自动配置的导出器"。
 // https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/#exporter-selection
 export function parseExporterTypes(value: string | undefined): string[] {
   return (value || '')
@@ -138,14 +138,14 @@ async function getOtlpReaders() {
   const exporters = []
   for (const exporterType of exporterTypes) {
     if (exporterType === 'console') {
-      // Custom console exporter that shows resource attributes
+      // 自定义控制台导出器，显示资源属性
       const consoleExporter = new ConsoleMetricExporter()
       const originalExport = consoleExporter.export.bind(consoleExporter)
 
       consoleExporter.export = (metrics, callback) => {
-        // Log resource attributes once at the start
+        // 在开始时记录一次资源属性
         if (metrics.resource && metrics.resource.attributes) {
-          // The console exporter is for debugging, so console output is intentional here
+          // 控制台导出器用于调试，因此此处的控制台输出是有意的
 
           logForDebugging('\n=== Resource Attributes ===')
           logForDebugging(jsonStringify(metrics.resource.attributes))
@@ -165,8 +165,8 @@ async function getOtlpReaders() {
 
       switch (protocol) {
         case 'grpc': {
-          // Lazy-import to keep @grpc/grpc-js (~700KB) out of the telemetry chunk
-          // when the protocol is http/protobuf (ant default) or http/json.
+          // 延迟导入以避免在协议为 http/protobuf（内部默认）或 http/json 时
+          // 将 @grpc/grpc-js（约 700KB）加载到遥测 chunk 中
           const { OTLPMetricExporter } = await import(
             '@opentelemetry/exporter-metrics-otlp-grpc'
           )
@@ -330,15 +330,15 @@ function getBigQueryExportingReader() {
   const bigqueryExporter = new BigQueryMetricsExporter()
   return new PeriodicExportingMetricReader({
     exporter: bigqueryExporter,
-    exportIntervalMillis: 5 * 60 * 1000, // 5mins for BigQuery metrics exporter to reduce load
+    exportIntervalMillis: 5 * 60 * 1000, // BigQuery 指标导出器的间隔为 5 分钟，以降低负载
   })
 }
 
 function isBigQueryMetricsEnabled() {
-  // BigQuery metrics are enabled for:
-  // 1. API customers (excluding Claude.ai subscribers and Bedrock/Vertex)
-  // 2. Claude for Enterprise (C4E) users
-  // 3. Claude for Teams users
+  // BigQuery 指标对以下用户启用：
+  // 1. API 客户（不包括 Claude.ai 订阅者和 Bedrock/Vertex 用户）
+  // 2. Claude for Enterprise (C4E) 用户
+  // 3. Claude for Teams 用户
   const subscriptionType = getSubscriptionType()
   const isC4EOrTeamUser =
     isClaudeAISubscriber() &&
@@ -348,8 +348,8 @@ function isBigQueryMetricsEnabled() {
 }
 
 /**
- * Initialize beta tracing - a separate code path for detailed debugging.
- * Uses BETA_TRACING_ENDPOINT instead of OTEL_EXPORTER_OTLP_ENDPOINT.
+ * 初始化 Beta 追踪 - 用于详细调试的独立代码路径。
+ * 使用 BETA_TRACING_ENDPOINT 而非 OTEL_EXPORTER_OTLP_ENDPOINT。
  */
 async function initializeBetaTracing(
   resource: ReturnType<typeof resourceFromAttributes>,
@@ -372,7 +372,7 @@ async function initializeBetaTracing(
     url: `${endpoint}/v1/logs`,
   }
 
-  // Initialize trace exporter
+  // 初始化追踪导出器
   const traceExporter = new OTLPTraceExporter(httpConfig)
   const spanProcessor = new BatchSpanProcessor(traceExporter, {
     scheduledDelayMillis: DEFAULT_TRACES_EXPORT_INTERVAL_MS,
@@ -386,7 +386,7 @@ async function initializeBetaTracing(
   trace.setGlobalTracerProvider(tracerProvider)
   setTracerProvider(tracerProvider)
 
-  // Initialize log exporter
+  // 初始化日志导出器
   const logExporter = new OTLPLogExporter(logHttpConfig)
   const loggerProvider = new LoggerProvider({
     resource,
@@ -400,14 +400,14 @@ async function initializeBetaTracing(
   logs.setGlobalLoggerProvider(loggerProvider)
   setLoggerProvider(loggerProvider)
 
-  // Initialize event logger
+  // 初始化事件日志记录器
   const eventLogger = logs.getLogger(
     'com.anthropic.claude_code.events',
     MACRO.VERSION,
   )
   setEventLogger(eventLogger)
 
-  // Setup flush handlers - flush both logs AND traces
+  // 设置刷新处理器 - 同时刷新日志和追踪
   process.on('beforeExit', async () => {
     await loggerProvider?.forceFlush()
     await tracerProvider?.forceFlush()
@@ -423,13 +423,14 @@ export async function initializeTelemetry() {
   profileCheckpoint('telemetry_init_start')
   bootstrapTelemetry()
 
-  // Console exporters call console.dir on a timer (5s logs/traces, 60s
-  // metrics), writing pretty-printed objects to stdout. In stream-json
-  // mode stdout is the SDK message channel; the first line (`{`) breaks
-  // the SDK's line reader. Stripped here (not main.tsx) because init.ts
-  // re-runs applyConfigEnvironmentVariables() inside initializeTelemetry-
-  // AfterTrust for remote-managed-settings users, and bootstrapTelemetry
-  // above copies ANT_OTEL_* for ant users — both would undo an earlier strip.
+  // 控制台导出器通过定时器（日志/追踪 5 秒，指标 60 秒）
+  // 调用 console.dir，将格式化的对象写入 stdout。在 stream-json
+  // 模式下，stdout 是 SDK 的消息通道；第一行（`{`）会破坏
+  // SDK 的行读取器。在此处剥离（而非 main.tsx），因为 init.ts
+  // 会在 initializeTelemetry-AfterTrust 中为远程托管设置用户
+  // 重新运行 applyConfigEnvironmentVariables()，而上面的
+  // bootstrapTelemetry 会为内部用户复制 ANT_OTEL_* — 两者
+  // 都会撤销更早的剥离操作。
   if (getHasFormattedOutput()) {
     for (const key of [
       'OTEL_METRICS_EXPORTER',
@@ -449,13 +450,13 @@ export async function initializeTelemetry() {
 
   diag.setLogger(new ClaudeCodeDiagLogger(), DiagLogLevel.ERROR)
 
-  // Initialize Perfetto tracing (independent of OTEL)
-  // Enable via CLAUDE_CODE_PERFETTO_TRACE=1 or CLAUDE_CODE_PERFETTO_TRACE=<path>
+  // 初始化 Perfetto 追踪（独立于 OTEL）
+  // 通过 CLAUDE_CODE_PERFETTO_TRACE=1 或 CLAUDE_CODE_PERFETTO_TRACE=<path> 启用
   initializePerfettoTracing()
 
   const readers = []
 
-  // Add customer exporters (if enabled)
+  // 添加客户导出器（如果已启用）
   const telemetryEnabled = isTelemetryEnabled()
   logForDebugging(
     `[3P telemetry] isTelemetryEnabled=${telemetryEnabled} (CLAUDE_CODE_ENABLE_TELEMETRY=${process.env.CLAUDE_CODE_ENABLE_TELEMETRY})`,
@@ -464,19 +465,19 @@ export async function initializeTelemetry() {
     readers.push(...(await getOtlpReaders()))
   }
 
-  // Add BigQuery exporter (for API customers, C4E users, and internal users)
+  // 添加 BigQuery 导出器（适用于 API 客户、C4E 用户和内部用户）
   if (isBigQueryMetricsEnabled()) {
     readers.push(getBigQueryExportingReader())
   }
 
-  // Create base resource with service attributes
+  // 创建带有服务属性的基础资源
   const platform = getPlatform()
   const baseAttributes: Record<string, string> = {
     [ATTR_SERVICE_NAME]: 'claude-code',
     [ATTR_SERVICE_VERSION]: MACRO.VERSION,
   }
 
-  // Add WSL-specific attributes if running on WSL
+  // 如果在 WSL 上运行则添加 WSL 特定属性
   if (platform === 'wsl') {
     const wslVersion = getWslVersion()
     if (wslVersion) {
@@ -486,12 +487,12 @@ export async function initializeTelemetry() {
 
   const baseResource = resourceFromAttributes(baseAttributes)
 
-  // Use OpenTelemetry detectors
+  // 使用 OpenTelemetry 检测器
   const osResource = resourceFromAttributes(
     osDetector.detect().attributes || {},
   )
 
-  // Extract only host.arch from hostDetector
+  // 仅从 hostDetector 中提取 host.arch
   const hostDetected = hostDetector.detect()
   const hostArchAttributes = hostDetected.attributes?.[SEMRESATTRS_HOST_ARCH]
     ? {
@@ -504,19 +505,19 @@ export async function initializeTelemetry() {
     envDetector.detect().attributes || {},
   )
 
-  // Merge resources - later resources take precedence
+  // 合并资源 - 后面的资源优先
   const resource = baseResource
     .merge(osResource)
     .merge(hostArchResource)
     .merge(envResource)
 
-  // Check if beta tracing is enabled - this is a separate code path
-  // Available to all users who set ENABLE_BETA_TRACING_DETAILED=1 and BETA_TRACING_ENDPOINT
+  // 检查是否启用了 Beta 追踪 - 这是独立的代码路径
+  // 所有设置了 ENABLE_BETA_TRACING_DETAILED=1 和 BETA_TRACING_ENDPOINT 的用户可用
   if (isBetaTracingEnabled()) {
     void initializeBetaTracing(resource).catch(e =>
       logForDebugging(`Beta tracing init failed: ${e}`, { level: 'error' }),
     )
-    // Still set up meter provider for metrics (but skip regular logs/traces setup)
+    // 仍然设置 meter provider 用于指标（但跳过常规日志/追踪设置）
     const meterProvider = new MeterProvider({
       resource,
       views: [],
@@ -524,7 +525,7 @@ export async function initializeTelemetry() {
     })
     setMeterProvider(meterProvider)
 
-    // Register shutdown for beta tracing
+    // 注册 Beta 追踪的关闭处理
     const shutdownTelemetry = async () => {
       const timeoutMs = parseInt(
         process.env.CLAUDE_CODE_OTEL_SHUTDOWN_TIMEOUT_MS || '2000',
@@ -533,10 +534,10 @@ export async function initializeTelemetry() {
       try {
         endInteractionSpan()
 
-        // Force flush + shutdown together inside the timeout. Previously forceFlush
-        // was awaited unbounded BEFORE the race, blocking exit on slow OTLP endpoints.
-        // Each provider's flush→shutdown is chained independently so a slow logger
-        // flush doesn't delay meterProvider/tracerProvider shutdown (no waterfall).
+        // 在超时时间内一起执行强制刷新和关闭。之前 forceFlush
+        // 在 race 之前被无限制地 await，在 OTLP 端点缓慢时会阻塞退出。
+        // 每个 provider 的 flush→shutdown 独立链接，因此缓慢的 logger
+        // 刷新不会延迟 meterProvider/tracerProvider 的关闭（无级联等待）。
         const loggerProvider = getLoggerProvider()
         const tracerProvider = getTracerProvider()
 
@@ -557,7 +558,7 @@ export async function initializeTelemetry() {
           telemetryTimeout(timeoutMs, 'OpenTelemetry shutdown timeout'),
         ])
       } catch {
-        // Ignore shutdown errors
+        // 忽略关闭错误
       }
     }
     registerCleanup(shutdownTelemetry)
@@ -571,10 +572,10 @@ export async function initializeTelemetry() {
     readers,
   })
 
-  // Store reference in state for flushing
+  // 在状态中保存引用以便刷新
   setMeterProvider(meterProvider)
 
-  // Initialize logs if telemetry is enabled
+  // 如果遥测已启用则初始化日志
   if (telemetryEnabled) {
     const logExporters = await getOtlpLogExporters()
     logForDebugging(
@@ -584,7 +585,7 @@ export async function initializeTelemetry() {
     if (logExporters.length > 0) {
       const loggerProvider = new LoggerProvider({
         resource,
-        // Add batch processors for each exporter
+        // 为每个导出器添加批处理器
         processors: logExporters.map(
           exporter =>
             new BatchLogRecordProcessor(exporter, {
@@ -597,11 +598,11 @@ export async function initializeTelemetry() {
         ),
       })
 
-      // Register the logger provider globally
+      // 全局注册 logger provider
       logs.setGlobalLoggerProvider(loggerProvider)
       setLoggerProvider(loggerProvider)
 
-      // Initialize event logger
+      // 初始化事件日志记录器
       const eventLogger = logs.getLogger(
         'com.anthropic.claude_code.events',
         MACRO.VERSION,
@@ -609,29 +610,29 @@ export async function initializeTelemetry() {
       setEventLogger(eventLogger)
       logForDebugging('[3P telemetry] Event logger set successfully')
 
-      // 'beforeExit' is emitted when Node.js empties its event loop and has no additional work to schedule.
-      // Unlike 'exit', it allows us to perform async operations, so it works well for letting
-      // network requests complete before the process exits naturally.
+      // 当 Node.js 清空事件循环且没有额外工作可调度时，会触发 'beforeExit'。
+      // 与 'exit' 不同，它允许执行异步操作，因此适合在进程自然退出前
+      // 让网络请求完成。
       process.on('beforeExit', async () => {
         await loggerProvider?.forceFlush()
-        // Also flush traces - they use BatchSpanProcessor which needs explicit flush
+        // 同时刷新追踪 - 它们使用 BatchSpanProcessor，需要显式刷新
         const tracerProvider = getTracerProvider()
         await tracerProvider?.forceFlush()
       })
 
       process.on('exit', () => {
-        // Final attempt to flush logs and traces
+        // 最后一次尝试刷新日志和追踪
         void loggerProvider?.forceFlush()
         void getTracerProvider()?.forceFlush()
       })
     }
   }
 
-  // Initialize tracing if enhanced telemetry is enabled (BETA)
+  // 如果增强遥测已启用则初始化追踪（BETA）
   if (telemetryEnabled && isEnhancedTelemetryEnabled()) {
     const traceExporters = await getOtlpTraceExporters()
     if (traceExporters.length > 0) {
-      // Create span processors for each exporter
+      // 为每个导出器创建跨度处理器
       const spanProcessors = traceExporters.map(
         exporter =>
           new BatchSpanProcessor(exporter, {
@@ -648,13 +649,13 @@ export async function initializeTelemetry() {
         spanProcessors,
       })
 
-      // Register the tracer provider globally
+      // 全局注册 tracer provider
       trace.setGlobalTracerProvider(tracerProvider)
       setTracerProvider(tracerProvider)
     }
   }
 
-  // Shutdown metrics and logs on exit (flushes and closes exporters)
+  // 退出时关闭指标和日志（刷新并关闭导出器）
   const shutdownTelemetry = async () => {
     const timeoutMs = parseInt(
       process.env.CLAUDE_CODE_OTEL_SHUTDOWN_TIMEOUT_MS || '2000',
@@ -662,7 +663,7 @@ export async function initializeTelemetry() {
     )
 
     try {
-      // End any active interaction span before shutdown
+      // 在关闭前结束任何活跃的交互跨度
       endInteractionSpan()
 
       const shutdownPromises = [meterProvider.shutdown()]
@@ -699,15 +700,15 @@ Current timeout: ${timeoutMs}ms
     }
   }
 
-  // Always register shutdown (internal metrics are always enabled)
+  // 始终注册关闭处理（内部指标始终启用）
   registerCleanup(shutdownTelemetry)
 
   return meterProvider.getMeter('com.anthropic.claude_code', MACRO.VERSION)
 }
 
 /**
- * Flush all pending telemetry data immediately.
- * This should be called before logout or org switching to prevent data leakage.
+ * 立即刷新所有待处理的遥测数据。
+ * 应在登出或切换组织之前调用，以防止数据泄漏。
  */
 export async function flushTelemetry(): Promise<void> {
   const meterProvider = getMeterProvider()
@@ -748,7 +749,7 @@ export async function flushTelemetry(): Promise<void> {
         level: 'error',
       })
     }
-    // Don't throw - allow logout to continue even if flush fails
+    // 不抛出异常 - 即使刷新失败也允许登出继续
   }
 }
 
@@ -767,23 +768,23 @@ function parseOtelHeadersEnvVar(): Record<string, string> {
 }
 
 /**
- * Get configuration for OTLP exporters including:
- * - HTTP agent options (proxy, mTLS)
- * - Dynamic headers via otelHeadersHelper or static headers from env var
+ * 获取 OTLP 导出器的配置，包括：
+ * - HTTP Agent 选项（代理、mTLS）
+ * - 通过 otelHeadersHelper 的动态头部或来自环境变量的静态头部
  */
 function getOTLPExporterConfig() {
   const proxyUrl = getProxyUrl()
   const mtlsConfig = getMTLSConfig()
   const settings = getSettings_DEPRECATED()
 
-  // Build base config
+  // 构建基础配置
   const config: Record<string, unknown> = {}
 
-  // Parse static headers from env var once (doesn't change at runtime)
+  // 从环境变量中解析静态头部（运行时不会变化）
   const staticHeaders = parseOtelHeadersEnvVar()
 
-  // If otelHeadersHelper is configured, use async headers function for dynamic refresh
-  // Otherwise just return static headers if any exist
+  // 如果配置了 otelHeadersHelper，使用异步头部函数进行动态刷新
+  // 否则仅返回静态头部（如果存在）
   if (settings?.otelHeadersHelper) {
     config.headers = async (): Promise<Record<string, string>> => {
       const dynamicHeaders = getOtelHeadersFromHelper()
@@ -793,10 +794,10 @@ function getOTLPExporterConfig() {
     config.headers = async (): Promise<Record<string, string>> => staticHeaders
   }
 
-  // Check if we should bypass proxy for OTEL endpoint
+  // 检查是否应为 OTEL 端点绕过代理
   const otelEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT
   if (!proxyUrl || (otelEndpoint && shouldBypassProxy(otelEndpoint))) {
-    // No proxy configured or OTEL endpoint should bypass proxy
+    // 未配置代理或 OTEL 端点应绕过代理
     const caCerts = getCACertificates()
     if (mtlsConfig || caCerts) {
       config.httpAgentOptions = {
@@ -807,10 +808,10 @@ function getOTLPExporterConfig() {
     return config
   }
 
-  // Return an HttpAgentFactory function that creates our proxy agent
+  // 返回一个 HttpAgentFactory 函数来创建代理 Agent
   const caCerts = getCACertificates()
   const agentFactory = (_protocol: string) => {
-    // Create and return the proxy agent with mTLS and CA cert config
+    // 创建并返回带有 mTLS 和 CA 证书配置的代理 Agent
     const proxyAgent =
       mtlsConfig || caCerts
         ? new HttpsProxyAgent(proxyUrl, {

@@ -7,48 +7,48 @@ import { Box, Text } from '@anthropic/ink'
 const REVIEW_ARTIFACT_TOOL_NAME = 'ReviewArtifact'
 
 const DESCRIPTION =
-  'Review an artifact (code snippet, document, or other content) with inline annotations and feedback.'
+  '通过内联标注和反馈审阅一个产出物（代码片段、文档或其他内容）。'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
     artifact: z
       .string()
       .describe(
-        'The content of the artifact to review (code snippet, document text, etc.).',
+        '待审阅产出物的内容（代码片段、文档文本等）。',
       ),
     title: z
       .string()
       .optional()
-      .describe('Optional title or file path for the artifact being reviewed.'),
+      .describe('待审阅产出物的可选标题或文件路径。'),
     annotations: z
       .array(
         z.object({
           line: z
             .number()
             .optional()
-            .describe('Line number for the annotation (1-based).'),
-          message: z.string().describe('The annotation or feedback message.'),
+            .describe('标注的行号（从 1 开始）。'),
+          message: z.string().describe('标注或反馈消息。'),
           severity: z
             .enum(['info', 'warning', 'error', 'suggestion'])
             .optional()
-            .describe('Severity level of the annotation.'),
+            .describe('标注的严重级别。'),
         }),
       )
-      .describe('List of annotations/comments on the artifact.'),
+      .describe('产出物上的标注/评论列表。'),
     summary: z
       .string()
       .optional()
-      .describe('An overall summary of the review.'),
+      .describe('审阅的总体总结。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
 
 const outputSchema = lazySchema(() =>
   z.object({
-    artifact: z.string().describe('The reviewed artifact content.'),
-    title: z.string().optional().describe('Title of the reviewed artifact.'),
-    annotationCount: z.number().describe('Number of annotations applied.'),
-    summary: z.string().optional().describe('Summary of the review.'),
+    artifact: z.string().describe('已审阅的产出物内容。'),
+    title: z.string().optional().describe('已审阅产出物的标题。'),
+    annotationCount: z.number().describe('应用的标注数量。'),
+    summary: z.string().optional().describe('审阅总结。'),
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>
@@ -62,8 +62,8 @@ export const ReviewArtifactTool = buildTool({
   async description(input) {
     const { title } = input as { title?: string }
     return title
-      ? `Claude wants to review: ${title}`
-      : 'Claude wants to review an artifact'
+      ? `Claude 想要审阅：${title}`
+      : 'Claude 想要审阅一个产出物'
   },
   userFacingName() {
     return 'ReviewArtifact'
@@ -84,23 +84,23 @@ export const ReviewArtifactTool = buildTool({
     return input.title ?? input.artifact.slice(0, 200)
   },
   async prompt() {
-    return `Use this tool to present a review of a code snippet, document, or other artifact with inline annotations and feedback. Each annotation can target a specific line and include a severity level. ${DESCRIPTION}`
+    return `使用本工具呈现对代码片段、文档或其他产出物的审阅结果，包含内联标注和反馈。每个标注可针对特定行并包含严重级别。${DESCRIPTION}`
   },
   mapToolResultToToolResultBlockParam(output, toolUseID) {
     return {
       tool_use_id: toolUseID,
       type: 'tool_result',
-      content: `Review delivered with ${output.annotationCount} annotation(s).${output.summary ? ` Summary: ${output.summary}` : ''}`,
+      content: `已完成审阅，共 ${output.annotationCount} 条标注。${output.summary ? ` 总结：${output.summary}` : ''}`,
     }
   },
   renderToolUseMessage(
     input: Partial<z.infer<InputSchema>>,
     { verbose }: { theme?: string; verbose: boolean },
   ): React.ReactNode {
-    const title = input.title ?? 'Untitled artifact'
+    const title = input.title ?? '未命名产出物'
     const count = input.annotations?.length ?? 0
     if (verbose) {
-      return `Review: "${title}" (${count} annotation(s))`
+      return `审阅："${title}"（${count} 条标注）`
     }
     return title
   },
@@ -116,7 +116,7 @@ export const ReviewArtifactTool = buildTool({
         React.createElement(
           Text,
           null,
-          `Reviewed artifact: ${output.title ?? 'Untitled'} (${output.annotationCount} annotations)`,
+          `已审阅产出物：${output.title ?? '未命名'}（${output.annotationCount} 条标注）`,
         ),
         output.summary
           ? React.createElement(Text, { dimColor: true }, output.summary)
@@ -126,7 +126,7 @@ export const ReviewArtifactTool = buildTool({
     return React.createElement(
       Text,
       null,
-      `Review complete: ${output.annotationCount} annotation(s)`,
+      `审阅完成：${output.annotationCount} 条标注`,
     )
   },
   async call({ artifact, title, annotations, summary }, _context) {

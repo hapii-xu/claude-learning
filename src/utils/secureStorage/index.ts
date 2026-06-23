@@ -4,14 +4,14 @@ import { plainTextStorage } from './plainTextStorage.js'
 import type { SecureStorage } from './types.js'
 
 /**
- * Get the appropriate secure storage implementation for the current platform
+ * 获取当前平台适用的安全存储实现
  */
 export function getSecureStorage(): SecureStorage {
   if (process.platform === 'darwin') {
     return createFallbackStorage(macOsKeychainStorage, plainTextStorage)
   }
 
-  // TODO: add libsecret support for Linux
+  // TODO: 为 Linux 添加 libsecret 支持
 
   return plainTextStorage
 }

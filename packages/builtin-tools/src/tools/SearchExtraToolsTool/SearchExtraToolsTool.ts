@@ -39,13 +39,13 @@ export const inputSchema = lazySchema(() =>
     query: z
       .string()
       .describe(
-        'Query to find deferred tools. Use "select:<tool_name>" for direct selection, or keywords to search.',
+        '用于查找延迟工具的查询。使用 "select:<tool_name>" 可直接选择，或使用关键词进行搜索。',
       ),
     max_results: z
       .number()
       .optional()
       .default(5)
-      .describe('Maximum number of results to return (default: 5)'),
+      .describe('返回结果的最大数量（默认：5）'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -56,7 +56,7 @@ export const outputSchema = lazySchema(() =>
     query: z.string(),
     total_deferred_tools: z.number(),
     pending_mcp_servers: z.array(z.string()).optional(),
-    /** Matches that are already loaded (core tools) and can be called directly. */
+    /** 已加载（核心工具）且可以直接调用的匹配项。 */
     already_loaded: z.array(z.string()).optional(),
   }),
 )
@@ -68,7 +68,7 @@ export type Output = z.infer<OutputSchema>
 let cachedDeferredToolNames: string | null = null
 
 /**
- * Get a cache key representing the current set of deferred tools.
+ * 获取表示当前延迟工具集合的缓存键。
  */
 function getDeferredToolsCacheKey(deferredTools: Tools): string {
   return deferredTools
@@ -78,8 +78,8 @@ function getDeferredToolsCacheKey(deferredTools: Tools): string {
 }
 
 /**
- * Get tool description, memoized by tool name.
- * Used for keyword search scoring.
+ * 获取工具描述，按工具名做 memoize 缓存。
+ * 用于关键词搜索打分。
  */
 const getToolDescriptionMemoized = memoize(
   async (toolName: string, tools: Tools): Promise<string> => {
@@ -104,7 +104,7 @@ const getToolDescriptionMemoized = memoize(
 )
 
 /**
- * Invalidate the description cache if deferred tools have changed.
+ * 如果延迟工具集合已变化，则使描述缓存失效。
  */
 function maybeInvalidateCache(deferredTools: Tools): void {
   const currentKey = getDeferredToolsCacheKey(deferredTools)
@@ -123,7 +123,7 @@ export function clearSearchExtraToolsDescriptionCache(): void {
 }
 
 /**
- * Build the search result output structure.
+ * 构建搜索结果的输出结构。
  */
 function buildSearchResult(
   matches: string[],
@@ -148,8 +148,8 @@ function buildSearchResult(
 }
 
 /**
- * Parse tool name into searchable parts.
- * Handles both MCP tools (mcp__server__action) and regular tools (CamelCase).
+ * 将工具名解析为可搜索的部分。
+ * 同时处理 MCP 工具（mcp__server__action）和普通工具（CamelCase）。
  */
 function parseToolName(name: string): {
   parts: string[]
@@ -169,7 +169,7 @@ function parseToolName(name: string): {
 
   // 普通 tool —— 按 CamelCase 与下划线拆分
   const parts = name
-    .replace(/([a-z])([A-Z])/g, '$1 $2') // CamelCase to spaces
+    .replace(/([a-z])([A-Z])/g, '$1 $2') // CamelCase 转为空格
     .replace(/_/g, ' ')
     .toLowerCase()
     .split(/\s+/)
@@ -183,8 +183,8 @@ function parseToolName(name: string): {
 }
 
 /**
- * Pre-compile word-boundary regexes for all search terms.
- * Called once per search instead of tools×terms×2 times.
+ * 为所有搜索术语预编译词边界正则。
+ * 每次搜索只调用一次，而不是 tools×terms×2 次。
  */
 function compileTermPatterns(terms: string[]): Map<string, RegExp> {
   const patterns = new Map<string, RegExp>()
@@ -197,13 +197,13 @@ function compileTermPatterns(terms: string[]): Map<string, RegExp> {
 }
 
 /**
- * Keyword-based search over tool names and descriptions.
- * Handles both MCP tools (mcp__server__action) and regular tools (CamelCase).
+ * 基于关键词搜索工具名与描述。
+ * 同时处理 MCP 工具（mcp__server__action）和普通工具（CamelCase）。
  *
- * The model typically queries with:
- * - Server names when it knows the integration (e.g., "slack", "github")
- * - Action words when looking for functionality (e.g., "read", "list", "create")
- * - Tool-specific terms (e.g., "notebook", "shell", "kill")
+ * 模型通常的查询方式：
+ * - 已知集成时使用服务器名（例如："slack"、"github"）
+ * - 寻找功能时使用动词（例如："read"、"list"、"create"）
+ * - 工具特定的术语（例如："notebook"、"shell"、"kill"）
  */
 async function searchToolsWithKeywords(
   query: string,
@@ -253,7 +253,7 @@ async function searchToolsWithKeywords(
     requiredTerms.length > 0 ? [...requiredTerms, ...optionalTerms] : queryTerms
   const termPatterns = compileTermPatterns(allScoringTerms)
 
-  // Pre-filter to tools matching ALL required terms in name or description
+  // 预先过滤出名称或描述中包含所有必需术语的工具
   let candidateTools = deferredTools
   if (requiredTerms.length > 0) {
     const matches = await Promise.all(
@@ -300,7 +300,7 @@ async function searchToolsWithKeywords(
           score += 3
         }
 
-        // searchHint match — curated capability phrase, higher signal than prompt
+        // searchHint 匹配 —— 精选的能力短语，信号强度高于 prompt
         if (hintNormalized && pattern.test(hintNormalized)) {
           score += 4
         }
@@ -453,8 +453,8 @@ export const SearchExtraToolsTool = buildTool({
       })
       const text =
         textResults.length > 0
-          ? `Found ${textResults.length} tools:\n${textResults.join('\n\n')}`
-          : 'No matching deferred tools found'
+          ? `找到 ${textResults.length} 个工具：\n${textResults.join('\n\n')}`
+          : '未找到匹配的延迟工具'
       logSearchOutcome(
         tfIdfResults.map(r => r.name),
         'keyword',
@@ -534,8 +534,8 @@ export const SearchExtraToolsTool = buildTool({
     return 'SearchExtraTools'
   },
   /**
-   * Returns a tool_result with text output guiding the model to use ExecuteExtraTool.
-   * No longer uses tool_reference blocks — unified self-built tool search for all providers.
+   * 返回一个 tool_result，其文本输出引导模型使用 ExecuteExtraTool。
+   * 不再使用 tool_reference 块 —— 对所有 provider 统一使用自建的工具搜索。
    */
   mapToolResultToToolResultBlockParam(
     content: Output,
@@ -543,12 +543,12 @@ export const SearchExtraToolsTool = buildTool({
     _context?: { mainLoopModel?: string },
   ): ToolResultBlockParam {
     if (content.matches.length === 0) {
-      let text = 'No matching deferred tools found'
+      let text = '未找到匹配的延迟工具'
       if (
         content.pending_mcp_servers &&
         content.pending_mcp_servers.length > 0
       ) {
-        text += `. Some MCP servers are still connecting: ${content.pending_mcp_servers.join(', ')}. Their tools will become available shortly — try searching again.`
+        text += `。部分 MCP 服务器仍在连接中：${content.pending_mcp_servers.join(', ')}。它们的工具很快就会可用 —— 请稍后再次搜索。`
       }
       return {
         type: 'tool_result',
@@ -563,12 +563,12 @@ export const SearchExtraToolsTool = buildTool({
       n => !alreadyLoadedNames.includes(n),
     )
 
-    // If ALL results are already-loaded core tools, there's nothing to discover
+    // 如果所有结果都是已加载的核心工具，则无需发现
     if (deferredNames.length === 0 && alreadyLoadedNames.length > 0) {
       return {
         type: 'tool_result',
         tool_use_id: toolUseID,
-        content: `No deferred tools found. ${alreadyLoadedNames.join(', ')} ${alreadyLoadedNames.length === 1 ? 'is' : 'are'} already loaded as core tool(s) — call directly, do NOT search for or wrap in ExecuteExtraTool. SearchExtraTools is only for discovering tools NOT already in your tool list.`,
+        content: `未找到延迟工具。${alreadyLoadedNames.join(', ')} 已作为核心工具加载 —— 请直接调用，不要通过 ExecuteExtraTool 搜索或包装。SearchExtraTools 仅用于发现尚未出现在你工具列表中的工具。`,
       }
     }
 
@@ -577,15 +577,15 @@ export const SearchExtraToolsTool = buildTool({
     // 核心工具：清晰的 "直接调用" 消息，不含 ExecuteExtraTool 提示
     if (alreadyLoadedNames.length > 0) {
       parts.push(
-        `Already loaded as core tool(s): ${alreadyLoadedNames.join(', ')}. Call these directly using your normal tool interface — do NOT use ExecuteExtraTool for them.`,
+        `已作为核心工具加载：${alreadyLoadedNames.join(', ')}。请使用常规工具接口直接调用 —— 不要对它们使用 ExecuteExtraTool。`,
       )
     }
 
     // 延迟工具：引导使用 ExecuteExtraTool
     if (deferredNames.length > 0) {
       parts.push(
-        `Found ${deferredNames.length} deferred tool(s): ${deferredNames.join(', ')}.` +
-          `\nUse ExecuteExtraTool with {"tool_name": "<name>", "params": {...}} to invoke any of these deferred tools.`,
+        `找到 ${deferredNames.length} 个延迟工具：${deferredNames.join(', ')}。` +
+          `\n请使用 ExecuteExtraTool（{"tool_name": "<name>", "params": {...}}）来调用这些延迟工具中的任意一个。`,
       )
     }
 

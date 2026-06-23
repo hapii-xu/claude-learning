@@ -17,7 +17,7 @@ function getToolsDescription(agent: AgentDefinition): string {
   const hasDenylist = disallowedTools && disallowedTools.length > 0
 
   if (hasAllowlist && hasDenylist) {
-    // Both defined: filter allowlist by denylist to match runtime behavior
+    // 两者都定义：用禁用列表过滤允许列表以匹配运行时行为
     const denySet = new Set(disallowedTools)
     const effectiveTools = tools.filter(t => !denySet.has(t))
     if (effectiveTools.length === 0) {
@@ -25,19 +25,19 @@ function getToolsDescription(agent: AgentDefinition): string {
     }
     return effectiveTools.join(', ')
   } else if (hasAllowlist) {
-    // Allowlist only: show the specific tools available
+    // 仅允许列表：显示特定的可用工具
     return tools.join(', ')
   } else if (hasDenylist) {
-    // Denylist only: show "All tools except X, Y, Z"
+    // 仅禁用列表：显示 "All tools except X, Y, Z"
     return `All tools except ${disallowedTools.join(', ')}`
   }
-  // No restrictions
+  // 无限制
   return 'All tools'
 }
 
 /**
- * Format one agent line for the agent_listing_delta attachment message:
- * `- type: whenToUse (Tools: ...)`.
+ * 为 agent_listing_delta 附件消息格式化一行代理信息：
+ * `- type: whenToUse (Tools: ...)`。
  */
 export function formatAgentLine(agent: AgentDefinition): string {
   const toolsDescription = getToolsDescription(agent)
@@ -45,15 +45,14 @@ export function formatAgentLine(agent: AgentDefinition): string {
 }
 
 /**
- * Whether the agent list should be injected as an attachment message instead
- * of embedded in the tool description. When true, getPrompt() returns a static
- * description and attachments.ts emits an agent_listing_delta attachment.
+ * 代理列表是否应作为附件消息注入而不是嵌入在工具描述中。
+ * 为 true 时，getPrompt() 返回静态描述，attachments.ts 发出 agent_listing_delta 附件。
  *
- * The dynamic agent list was ~10.2% of fleet cache_creation tokens: MCP async
- * connect, /reload-plugins, or permission-mode changes mutate the list →
- * description changes → full tool-schema cache bust.
+ * 动态代理列表约占整个集群 cache_creation token 的 10.2%：MCP 异步
+ * 连接、/reload-plugins 或权限模式更改会改变列表 →
+ * 描述变化 → 完整的 tool-schema 缓存失效。
  *
- * Override with CLAUDE_CODE_AGENT_LIST_IN_MESSAGES=true/false for testing.
+ * 使用 CLAUDE_CODE_AGENT_LIST_IN_MESSAGES=true/false 进行覆盖以供测试。
  */
 export function shouldInjectAgentListInMessages(): boolean {
   if (isEnvTruthy(process.env.CLAUDE_CODE_AGENT_LIST_IN_MESSAGES)) return true
@@ -67,132 +66,132 @@ export async function getPrompt(
   isCoordinator?: boolean,
   allowedAgentTypes?: string[],
 ): Promise<string> {
-  // Filter agents by allowed types when Agent(x,y) restricts which agents can be spawned
+  // 当 Agent(x,y) 限制可生成的代理时，按允许的类型过滤代理
   const effectiveAgents = allowedAgentTypes
     ? agentDefinitions.filter(a => allowedAgentTypes.includes(a.agentType))
     : agentDefinitions
 
-  // Fork subagent feature: when enabled, insert the "When to fork" section
-  // (fork semantics, directive-style prompts) and swap in fork-aware examples.
+  // Fork 子代理功能：启用时插入 "When to fork" 部分
+  // （fork 语义、指令式提示）并替换为感知 fork 的示例。
   const forkEnabled = isForkSubagentEnabled()
 
   const whenToForkSection = forkEnabled
     ? `
 
-## When to fork
+## 何时使用 fork
 
-When you need to delegate work that benefits from full conversation context (e.g., continuing a multi-file refactor where the child needs the same system prompt and history), use \`fork: true\`. For most tasks, prefer specialized agent types (Explore, Plan, general-purpose).
+当你需要委托能从完整对话上下文中受益的工作时（例如，继续多文件重构，子代理需要相同的系统提示和历史记录），使用 \`fork: true\`。对于大多数任务，优先选择专用代理类型（Explore、Plan、general-purpose）。
 
-**Don't peek.** The tool result includes an \`output_file\` path — do not Read or tail it unless the user explicitly asks for a progress check. You get a completion notification; trust it.
+**不要偷看。** 工具结果包含一个 \`output_file\` 路径——除非用户明确要求进度检查，否则不要 Read 或 tail 它。你会收到完成通知；信任它。
 
-**Don't race.** After launching, you know nothing about what the fork found. Never fabricate or predict fork results. If the user asks a follow-up before the notification lands, tell them the fork is still running.
+**不要抢先。** 启动后，你对 fork 找到的内容一无所知。永远不要捏造或预测 fork 结果。如果通知到达前用户有后续提问，告诉他们 fork 仍在运行。
 
-**Writing a fork prompt.** Since the fork inherits your context, the prompt is a *directive* — what to do, not what the situation is. Be specific about scope. Don't re-explain background.
+**编写 fork 提示。** 由于 fork 继承了你的上下文，提示是一个*指令*——做什么，而不是情况是什么。明确说明范围。不要重新解释背景。
 `
     : ''
 
   const writingThePromptSection = `
 
-## Writing the prompt
+## 编写提示
 
-${forkEnabled ? 'When spawning an agent without `fork: true`, it starts with zero context. ' : ''}Brief the agent like a smart colleague who just walked into the room — it hasn't seen this conversation, doesn't know what you've tried, doesn't understand why this task matters.
-- Explain what you're trying to accomplish and why, what you've already learned or ruled out, and enough context for the agent to make judgment calls.
-- If you need a short response, say so ("report in under 200 words").
-- Lookups: hand over the exact command. Investigations: hand over the question — prescribed steps become dead weight when the premise is wrong.
+${forkEnabled ? '在不使用 `fork: true` 的情况下生成代理时，它从零上下文开始。' : ''}像对待刚走进房间的聪明同事一样简报代理——它没有看过这次对话，不知道你尝试了什么，不理解为什么这项任务重要。
+- 解释你想要完成什么以及为什么，你已经了解或排除了什么，以及足够的上下文让代理做出判断。
+- 如果你需要简短的回复，请说明（"在 200 字内报告"）。
+- 查找类任务：交出确切的命令。调查类任务：交出问题——当前提错误时规定的步骤只会成为累赘。
 
-${forkEnabled ? 'For non-fork agents, terse' : 'Terse'} command-style prompts produce shallow, generic work.
+${forkEnabled ? '对于非 fork 代理，简短' : '简短'}的命令式提示只会产生浅薄、通用的工作。
 
-**Never delegate understanding.** Don't write "based on your findings, fix the bug" or "based on the research, implement it." Write prompts that prove you understood: include file paths, line numbers, what specifically to change.
+**永远不要委托理解。** 不要写"根据你的发现修复 bug"或"根据研究实现它"。编写证明你理解了的提示：包含文件路径、行号、具体要更改什么。
 `
 
-  // When the gate is on, the agent list lives in an agent_listing_delta
-  // attachment (see attachments.ts) instead of inline here. This keeps the
-  // tool description static across MCP/plugin/permission changes so the
-  // tools-block prompt cache doesn't bust every time an agent loads.
+  // 当开关打开时，代理列表位于 agent_listing_delta
+  // 附件中（参见 attachments.ts）而不是内联在此处。这保持了
+  // 工具描述在 MCP/插件/权限更改时的静态，以便
+  // tools-block 提示缓存不会在每次代理加载时失效。
   const listViaAttachment = shouldInjectAgentListInMessages()
 
   const agentListSection = listViaAttachment
-    ? `Available agent types are listed in <system-reminder> messages in the conversation.`
-    : `Available agent types and the tools they have access to:
+    ? `可用的代理类型已列在对话中的 <system-reminder> 消息里。`
+    : `可用的代理类型及其可访问的工具：
 ${effectiveAgents.map(agent => formatAgentLine(agent)).join('\n')}`
 
-  // Shared core prompt used by both coordinator and non-coordinator modes
-  const shared = `Launch a new agent to handle complex, multi-step tasks autonomously.
+  // 协调器和非协调器模式都使用的共享核心提示
+  const shared = `启动一个新代理来自主处理复杂的多步骤任务。
 
-The ${AGENT_TOOL_NAME} tool launches specialized agents (subprocesses) that autonomously handle complex tasks. Each agent type has specific capabilities and tools available to it.
+${AGENT_TOOL_NAME} 工具会启动专用代理（子进程），自主处理复杂任务。每种代理类型都有其特定的能力和可用工具。
 
 ${agentListSection}
 
-When using the ${AGENT_TOOL_NAME} tool, specify a subagent_type parameter to select which agent type to use. If omitted, the general-purpose agent is used.${forkEnabled ? ` Set \`fork: true\` to fork from the parent conversation context, inheriting full history and model.` : ''}`
+使用 ${AGENT_TOOL_NAME} 工具时，指定 subagent_type 参数来选择要使用的代理类型。如果省略，则使用 general-purpose 代理。${forkEnabled ? ` 设置 \`fork: true\` 可从父代理的对话上下文 fork，继承完整历史和模型。` : ''}`
 
-  // Coordinator mode gets the slim prompt -- the coordinator system prompt
-  // already covers usage notes, examples, and when-not-to-use guidance.
+  // 协调器模式获得精简提示——协调器系统提示
+  // 已经涵盖了使用说明、示例和不使用时的指导。
   if (isCoordinator) {
     return shared
   }
 
-  // Ant-native builds alias find/grep to embedded bfs/ugrep and remove the
-  // dedicated Glob/Grep tools, so point at find via Bash instead.
+  // Ant 原生构建将 find/grep 别名为嵌入式 bfs/ugrep 并移除了
+  // 专用 Glob/Grep 工具，所以改为通过 Bash 指向 find。
   const embedded = hasEmbeddedSearchTools()
   const fileSearchHint = embedded
     ? '`find` via the Bash tool'
     : `the ${GLOB_TOOL_NAME} tool`
-  // The "class Foo" example is about content search. Non-embedded stays Glob
-  // (original intent: find-the-file-containing). Embedded gets grep because
-  // find -name doesn't look at file contents.
+  // "class Foo" 示例是关于内容搜索的。非嵌入式保持 Glob
+  // （原始意图：find-the-file-containing）。嵌入式使用 grep 因为
+  // find -name 不查看文件内容。
   const contentSearchHint = embedded
     ? '`grep` via the Bash tool'
     : `the ${GLOB_TOOL_NAME} tool`
   const whenNotToUseSection = forkEnabled
     ? ''
     : `
-When NOT to use the ${AGENT_TOOL_NAME} tool:
-- If you want to read a specific file path, use the ${FILE_READ_TOOL_NAME} tool or ${fileSearchHint} instead of the ${AGENT_TOOL_NAME} tool, to find the match more quickly
-- If you are searching for a specific class definition like "class Foo", use ${contentSearchHint} instead, to find the match more quickly
-- If you are searching for code within a specific file or set of 2-3 files, use the ${FILE_READ_TOOL_NAME} tool instead of the ${AGENT_TOOL_NAME} tool, to find the match more quickly
-- Other tasks that are not related to the agent descriptions above
+不要使用 ${AGENT_TOOL_NAME} 工具的情况：
+- 如果你想读取特定文件路径，请使用 ${FILE_READ_TOOL_NAME} 工具或 ${fileSearchHint}，而不是 ${AGENT_TOOL_NAME} 工具，以便更快地找到匹配项
+- 如果你正在搜索特定的类定义，如 "class Foo"，请使用 ${contentSearchHint}，以便更快地找到匹配项
+- 如果你正在特定文件或 2-3 个文件集合中搜索代码，请使用 ${FILE_READ_TOOL_NAME} 工具而不是 ${AGENT_TOOL_NAME} 工具，以便更快地找到匹配项
+- 其他与上述代理描述无关的任务
 `
 
-  // When listing via attachment, the "launch multiple agents" note is in the
-  // attachment message (conditioned on subscription there). When inline, keep
-  // the existing per-call getSubscriptionType() check.
+  // 通过附件列出时，"launch multiple agents" 注释在
+  // 附件消息中（在那里以订阅为条件）。内联时，保持
+  // 现有的每次调用 getSubscriptionType() 检查。
   const concurrencyNote =
     !listViaAttachment && getSubscriptionType() !== 'pro'
       ? `
-- Launch multiple agents concurrently whenever possible, to maximize performance; to do that, use a single message with multiple tool uses`
+- 尽可能并发启动多个代理以最大化性能；为此，在单条消息中使用多个工具调用`
       : ''
 
-  // Non-coordinator gets the full prompt with all sections
+  // 非协调器获得包含所有部分的完整提示
   return `${shared}
 ${whenNotToUseSection}
 
-Usage notes:
-- Always include a short description (3-5 words) summarizing what the agent will do${concurrencyNote}
-- When the agent is done, it will return a single message back to you. The result returned by the agent is not visible to the user. To show the user the result, you should send a text message back to the user with a concise summary of the result.${
+使用说明：
+- 始终包含一个简短的描述（3-5 个词）概括代理将要做什么${concurrencyNote}
+- 代理完成后，它会向你返回一条消息。代理返回的结果对用户不可见。要向用户展示结果，你应该向用户发送一条包含结果简洁摘要的文本消息。${
     // eslint-disable-next-line custom-rules/no-process-env-top-level
     !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_BACKGROUND_TASKS) &&
     !isInProcessTeammate()
       ? `
-- You can optionally run agents in the background using the run_in_background parameter. When an agent runs in the background, you will be automatically notified when it completes — do NOT sleep, poll, or proactively check on its progress. Continue with other work or respond to the user instead.
-- **Foreground vs background**: Use foreground (default) when you need the agent's results before you can proceed — e.g., research agents whose findings inform your next steps. Use background when you have genuinely independent work to do in parallel.`
+- 你可以使用 run_in_background 参数选择在后台运行代理。当代理在后台运行时，它完成时会自动通知你——不要 sleep、轮询或主动检查进度。继续做其他工作或回复用户。
+- **前台 vs 后台**：当你需要代理的结果才能继续时使用前台（默认）——例如，其发现将指导你下一步的研究代理。当你有真正独立的并行工作要做时使用后台。`
       : ''
   }
-- To continue a previously spawned agent, use ${SEND_MESSAGE_TOOL_NAME} with the agent's ID or name as the \`to\` field. The agent resumes with its full context preserved. ${forkEnabled ? 'Each non-fork Agent invocation starts without context — provide a complete task description.' : 'Each Agent invocation starts fresh — provide a complete task description.'}
-- The agent's outputs should generally be trusted
-- Clearly tell the agent whether you expect it to write code or just to do research (search, file reads, web fetches, etc.)${forkEnabled ? '' : ", since it is not aware of the user's intent"}
-- If the agent description mentions that it should be used proactively, then you should try your best to use it without the user having to ask for it first. Use your judgement.
-- If the user specifies that they want you to run agents "in parallel", you MUST send a single message with multiple ${AGENT_TOOL_NAME} tool use content blocks. For example, if you need to launch both a build-validator agent and a test-runner agent in parallel, send a single message with both tool calls.
-- You can optionally set \`isolation: "worktree"\` to run the agent in a temporary git worktree, giving it an isolated copy of the repository. The worktree is automatically cleaned up if the agent makes no changes; if changes are made, the worktree path and branch are returned in the result.${
+- 要继续之前生成的代理，使用 ${SEND_MESSAGE_TOOL_NAME}，并将代理的 ID 或名称作为 \`to\` 字段。代理将保留完整上下文恢复运行。${forkEnabled ? '每次非 fork 的 Agent 调用从没有上下文开始——提供完整的任务描述。' : '每次 Agent 调用都是全新开始——提供完整的任务描述。'}
+- 代理的输出通常应该被信任
+- 明确告诉代理你是期望它编写代码还是只做研究（搜索、文件读取、网页抓取等）${forkEnabled ? '' : "，因为它不知道用户的意图"}
+- 如果代理描述中提到它应该被主动使用，那么你应该尽力在用户不需要主动要求的情况下使用它。使用你的判断力。
+- 如果用户指定他们想要你"并行"运行代理，你必须发送一条包含多个 ${AGENT_TOOL_NAME} 工具使用内容块的单条消息。例如，如果你需要并行启动 build-validator 代理和 test-runner 代理，发送一条包含两个工具调用的单条消息。
+- 你可以选择设置 \`isolation: "worktree"\` 在临时 git worktree 中运行代理，给它一个仓库的隔离副本。如果代理没有做任何更改，worktree 会自动清理；如果有更改，worktree 路径和分支会在结果中返回。${
     process.env.USER_TYPE === 'ant'
-      ? `\n- You can set \`isolation: "remote"\` to run the agent in a remote CCR environment. This is always a background task; you'll be notified when it completes. Use for long-running tasks that need a fresh sandbox.`
+      ? `\n- 你可以设置 \`isolation: "remote"\` 在远程 CCR 环境中运行代理。这始终是后台任务；完成时会通知你。用于需要全新沙箱的长时间运行任务。`
       : ''
   }${
     isInProcessTeammate()
       ? `
-- The run_in_background, name, team_name, and mode parameters are not available in this context. Only synchronous subagents are supported.`
+- run_in_background、name、team_name 和 mode 参数在此上下文中不可用。仅支持同步子代理。`
       : isTeammate()
         ? `
-- The name, team_name, and mode parameters are not available in this context — teammates cannot spawn other teammates. Omit them to spawn a subagent.`
+- name、team_name 和 mode 参数在此上下文中不可用——队友不能生成其他队友。省略它们以生成子代理。`
         : ''
   }${whenToForkSection}${writingThePromptSection}`
 }

@@ -4,17 +4,17 @@ import { McpServerConfigSchema } from '../../services/mcp/types.js'
 import { lazySchema } from '../lazySchema.js'
 
 /**
- * First-layer defense against official marketplace impersonation.
+ * 防止官方 marketplace 冒充的第一层防线。
  *
- * This validation blocks direct impersonation attempts like "anthropic-official",
- * "claude-marketplace", etc. Indirect variations (e.g., "my-claude-marketplace")
- * are not blocked intentionally to avoid false positives on legitimate names.
- * Source org verification provides additional protection at registration/install time.
+ * 此校验阻止直接冒充尝试，如 "anthropic-official"、
+ * "claude-marketplace" 等。间接变体（例如 "my-claude-marketplace"）
+ * 不会被故意阻止，以避免对合法名称的误报。
+ * 来源组织验证在注册/安装时提供额外保护。
  */
 
 /**
- * Official marketplace names that are reserved for Anthropic/Claude official use.
- * These names are allowed ONLY for official marketplaces and blocked for third parties.
+ * 保留给 Anthropic/Claude 官方使用的 marketplace 名称。
+ * 这些名称仅允许官方 marketplace 使用，第三方被阻止。
  */
 export const ALLOWED_OFFICIAL_MARKETPLACE_NAMES = new Set([
   'claude-code-marketplace',
@@ -28,22 +28,22 @@ export const ALLOWED_OFFICIAL_MARKETPLACE_NAMES = new Set([
 ])
 
 /**
- * Official marketplaces that should NOT auto-update by default.
- * These are still reserved/allowed names, but opt out of the auto-update
- * default that other official marketplaces receive.
+ * 默认不应自动更新的官方 marketplace。
+ * 这些仍然是保留/允许的名称，但退出其他
+ * 官方 marketplace 接收的自动更新默认值。
  */
 const NO_AUTO_UPDATE_OFFICIAL_MARKETPLACES = new Set(['knowledge-work-plugins'])
 
 /**
- * Check if auto-update is enabled for a marketplace.
- * Uses the stored value if set, otherwise defaults based on whether
- * it's an official Anthropic marketplace (true) or not (false).
- * Official marketplaces in NO_AUTO_UPDATE_OFFICIAL_MARKETPLACES are excluded
- * from the auto-update default.
+ * 检查 marketplace 是否启用了自动更新。
+ * 使用存储的值（如果已设置），否则基于是否为
+ * Anthropic 官方 marketplace（true）或其他（false）进行默认。
+ * NO_AUTO_UPDATE_OFFICIAL_MARKETPLACES 中的官方 marketplace 被排除
+ * 在自动更新默认值之外。
  *
- * @param marketplaceName - The name of the marketplace
- * @param entry - The marketplace entry (may have autoUpdate set)
- * @returns Whether auto-update is enabled for this marketplace
+ * @param marketplaceName - marketplace 名称
+ * @param entry - marketplace 条目（可能已设置 autoUpdate）
+ * @returns 此 marketplace 是否启用了自动更新
  */
 export function isMarketplaceAutoUpdate(
   marketplaceName: string,
@@ -58,63 +58,63 @@ export function isMarketplaceAutoUpdate(
 }
 
 /**
- * Pattern to detect names that impersonate official Anthropic/Claude marketplaces.
+ * 检测冒充官方 Anthropic/Claude marketplace 的名称的模式。
  *
- * Matches names containing variations like:
- * - "official" combined with "anthropic" or "claude" (e.g., "official-claude-plugins")
- * - "anthropic" or "claude" combined with "official" (e.g., "claude-official")
- * - Names starting with "anthropic" or "claude" followed by official-sounding terms
- *   like "marketplace", "plugins" (e.g., "anthropic-marketplace-new", "claude-plugins-v2")
+ * 匹配包含以下变体的名称：
+ * - "official" 与 "anthropic" 或 "claude" 组合（例如 "official-claude-plugins"）
+ * - "anthropic" 或 "claude" 与 "official" 组合（例如 "claude-official"）
+ * - 以 "anthropic" 或 "claude" 开头，后跟听起来像官方的术语
+ *   如 "marketplace"、"plugins"（例如 "anthropic-marketplace-new"、"claude-plugins-v2"）
  *
- * The pattern is case-insensitive.
+ * 模式不区分大小写。
  */
 export const BLOCKED_OFFICIAL_NAME_PATTERN =
   /(?:official[^a-z0-9]*(anthropic|claude)|(?:anthropic|claude)[^a-z0-9]*official|^(?:anthropic|claude)[^a-z0-9]*(marketplace|plugins|official))/i
 
 /**
- * Pattern to detect non-ASCII characters that could be used for homograph attacks.
- * Marketplace names should only contain ASCII characters to prevent impersonation
- * via lookalike Unicode characters (e.g., Cyrillic 'а' instead of Latin 'a').
+ * 检测可用于同形字攻击的非 ASCII 字符的模式。
+ * Marketplace 名称应仅包含 ASCII 字符以防止通过
+ * 外观相似的 Unicode 字符进行冒充（例如西里尔字母 'а' 代替拉丁字母 'a'）。
  */
 const NON_ASCII_PATTERN = /[^\u0020-\u007E]/
 
 /**
- * Check if a marketplace name impersonates an official Anthropic/Claude marketplace.
+ * 检查 marketplace 名称是否冒充官方 Anthropic/Claude marketplace。
  *
- * @param name - The marketplace name to check
- * @returns true if the name is blocked (impersonates official), false if allowed
+ * @param name - 要检查的 marketplace 名称
+ * @returns 如果名称被阻止（冒充官方）则返回 true，如果允许则返回 false
  */
 export function isBlockedOfficialName(name: string): boolean {
-  // If it's in the allowed list, it's not blocked
+  // 如果在允许列表中，则未被阻止
   if (ALLOWED_OFFICIAL_MARKETPLACE_NAMES.has(name.toLowerCase())) {
     return false
   }
 
-  // Block names with non-ASCII characters to prevent homograph attacks
-  // (e.g., using Cyrillic 'а' to impersonate 'anthropic')
+  // 阻止包含非 ASCII 字符的名称以防止同形字攻击
+  // （例如使用西里尔字母 'а' 冒充 'anthropic'）
   if (NON_ASCII_PATTERN.test(name)) {
     return true
   }
 
-  // Check if it matches the blocked pattern
+  // 检查是否匹配阻止模式
   return BLOCKED_OFFICIAL_NAME_PATTERN.test(name)
 }
 
 /**
- * The official GitHub organization for Anthropic marketplaces.
- * Reserved names must come from this org.
+ * Anthropic marketplace 的官方 GitHub 组织。
+ * 保留名称必须来自此组织。
  */
 export const OFFICIAL_GITHUB_ORG = 'anthropics'
 
 /**
- * Validate that a marketplace with a reserved name comes from the official source.
+ * 验证具有保留名称的 marketplace 是否来自官方来源。
  *
- * Reserved names (in ALLOWED_OFFICIAL_MARKETPLACE_NAMES) can only be used by
- * marketplaces from the official Anthropic GitHub organization.
+ * 保留名称（在 ALLOWED_OFFICIAL_MARKETPLACE_NAMES 中）只能由
+ * 来自官方 Anthropic GitHub 组织的 marketplace 使用。
  *
- * @param name - The marketplace name
- * @param source - The marketplace source configuration
- * @returns An error message if validation fails, or null if valid
+ * @param name - marketplace 名称
+ * @param source - marketplace 来源配置
+ * @returns 验证失败时的错误消息，有效时返回 null
  */
 export function validateOfficialNameSource(
   name: string,
@@ -122,53 +122,53 @@ export function validateOfficialNameSource(
 ): string | null {
   const normalizedName = name.toLowerCase()
 
-  // Only validate reserved names
+  // 仅验证保留名称
   if (!ALLOWED_OFFICIAL_MARKETPLACE_NAMES.has(normalizedName)) {
-    return null // Not a reserved name, no source validation needed
+    return null // 不是保留名称，无需来源验证
   }
 
-  // Check for GitHub source type
+  // 检查 GitHub 来源类型
   if (source.source === 'github') {
-    // Verify the repo is from the official org
+    // 验证仓库来自官方组织
     const repo = source.repo || ''
     if (!repo.toLowerCase().startsWith(`${OFFICIAL_GITHUB_ORG}/`)) {
       return `The name '${name}' is reserved for official Anthropic marketplaces. Only repositories from 'github.com/${OFFICIAL_GITHUB_ORG}/' can use this name.`
     }
-    return null // Valid: reserved name from official GitHub source
+    return null // 有效：来自官方 GitHub 来源的保留名称
   }
 
-  // Check for git URL source type
+  // 检查 git URL 来源类型
   if (source.source === 'git' && source.url) {
     const url = source.url.toLowerCase()
-    // Check for HTTPS URL format: https://github.com/anthropics/...
-    // or SSH format: git@github.com:anthropics/...
+    // 检查 HTTPS URL 格式：https://github.com/anthropics/...
+    // 或 SSH 格式：git@github.com:anthropics/...
     const isHttpsAnthropics = url.includes('github.com/anthropics/')
     const isSshAnthropics = url.includes('git@github.com:anthropics/')
 
     if (isHttpsAnthropics || isSshAnthropics) {
-      return null // Valid: reserved name from official git URL
+      return null // 有效：来自官方 git URL 的保留名称
     }
 
     return `The name '${name}' is reserved for official Anthropic marketplaces. Only repositories from 'github.com/${OFFICIAL_GITHUB_ORG}/' can use this name.`
   }
 
-  // Reserved names must come from GitHub (either 'github' or 'git' source)
+  // 保留名称必须来自 GitHub（'github' 或 'git' 来源）
   return `The name '${name}' is reserved for official Anthropic marketplaces and can only be used with GitHub sources from the '${OFFICIAL_GITHUB_ORG}' organization.`
 }
 
 /**
- * Schema for relative file paths that must start with './'
+ * 必须以 './' 开头的相对文件路径的 schema
  */
 const RelativePath = lazySchema(() => z.string().startsWith('./'))
 
 /**
- * Schema for relative paths to JSON files
+ * JSON 文件相对路径的 schema
  */
 const RelativeJSONPath = lazySchema(() => RelativePath().endsWith('.json'))
 
 /**
- * Schema for MCPB (MCP Bundle) file paths
- * Supports both local relative paths and remote URLs
+ * MCPB（MCP Bundle）文件路径的 schema
+ * 支持本地相对路径和远程 URL
  */
 const McpbPath = lazySchema(() =>
   z.union([
@@ -188,12 +188,12 @@ const McpbPath = lazySchema(() =>
 )
 
 /**
- * Schema for relative paths to Markdown files
+ * Markdown 文件相对路径的 schema
  */
 const RelativeMarkdownPath = lazySchema(() => RelativePath().endsWith('.md'))
 
 /**
- * Schema for relative paths to command sources (markdown files or directories containing SKILL.md)
+ * 命令来源相对路径的 schema（markdown 文件或包含 SKILL.md 的目录）
  */
 const RelativeCommandPath = lazySchema(() =>
   z.union([
@@ -203,15 +203,15 @@ const RelativeCommandPath = lazySchema(() =>
 )
 
 /**
- * Shared marketplace-name validation. Used by both PluginMarketplaceSchema
- * (validates fetched marketplace.json) and the settings arm of
- * MarketplaceSourceSchema (validates inline names in settings.json).
+ * 共享的 marketplace 名称验证。由 PluginMarketplaceSchema
+ * （验证获取的 marketplace.json）和 MarketplaceSourceSchema 的
+ * settings 分支（验证 settings.json 中的内联名称）共同使用。
  *
- * The two must stay in sync: loadAndCacheMarketplace's case 'settings' writes
- * to join(cacheDir, source.name) BEFORE the post-write PluginMarketplaceSchema
- * validation runs. Any name that passes the settings arm but fails
- * PluginMarketplaceSchema leaves orphaned files in the cache (cleanupNeeded=false).
- * A single shared schema makes drift impossible.
+ * 两者必须保持同步：loadAndCacheMarketplace 的 case 'settings' 在
+ * 写入后的 PluginMarketplaceSchema 验证运行之前写入
+ * join(cacheDir, source.name)。任何通过 settings 分支但
+ * PluginMarketplaceSchema 失败的名称会在缓存中留下孤立文件
+ * （cleanupNeeded=false）。单个共享 schema 使漂移变得不可能。
  */
 const MarketplaceNameSchema = lazySchema(() =>
   z
@@ -246,7 +246,7 @@ const MarketplaceNameSchema = lazySchema(() =>
 )
 
 /**
- * Schema for plugin author information
+ * 插件作者信息的 schema
  */
 export const PluginAuthorSchema = lazySchema(() =>
   z.object({
@@ -266,10 +266,10 @@ export const PluginAuthorSchema = lazySchema(() =>
 )
 
 /**
- * Metadata part of the plugin manifest file (plugin.json)
+ * 插件清单文件（plugin.json）的元数据部分
  *
- * This schema validates the structure of plugin manifests and provides
- * runtime type checking when loading plugins from disk.
+ * 此 schema 验证插件清单的结构，并在从磁盘加载插件时
+ * 提供运行时类型检查。
  */
 const PluginManifestMetadataSchema = lazySchema(() =>
   z.object({
@@ -320,10 +320,10 @@ const PluginManifestMetadataSchema = lazySchema(() =>
 )
 
 /**
- * Schema for plugin hooks configuration (hooks.json)
+ * 插件 hook 配置（hooks.json）的 schema
  *
- * Defines the hooks that a plugin can provide to intercept and modify
- * Claude Code behavior at various lifecycle events.
+ * 定义插件可以提供的 hook，用于在各种生命周期事件中
+ * 拦截和修改 Claude Code 行为。
  */
 export const PluginHooksSchema = lazySchema(() =>
   z.object({
@@ -340,10 +340,10 @@ export const PluginHooksSchema = lazySchema(() =>
 )
 
 /**
- * Schema for additional hooks configuration in plugin manifest
+ * 插件清单中额外 hook 配置的 schema
  *
- * Allows plugins to specify hooks either inline or via external files,
- * supplementing any hooks defined in the standard hooks/hooks.json location.
+ * 允许插件以内联方式或通过外部文件指定 hook，
+ * 补充标准 hooks/hooks.json 位置定义的任何 hook。
  */
 const PluginManifestHooksSchema = lazySchema(() =>
   z.object({
@@ -373,14 +373,14 @@ const PluginManifestHooksSchema = lazySchema(() =>
 )
 
 /**
- * Schema for command metadata when using object-mapping format
+ * 使用对象映射格式时命令元数据的 schema
  *
- * Allows marketplace entries to provide rich metadata for commands including
- * custom descriptions and frontmatter overrides.
+ * 允许 marketplace 条目为命令提供丰富的元数据，包括
+ * 自定义描述和 frontmatter 覆盖。
  *
- * Commands can be defined with either:
- * - source: Path to a markdown file
- * - content: Inline markdown content
+ * 命令可以通过以下方式定义：
+ * - source：markdown 文件的路径
+ * - content：内联 markdown 内容
  */
 export const CommandMetadataSchema = lazySchema(() =>
   z
@@ -416,20 +416,20 @@ export const CommandMetadataSchema = lazySchema(() =>
 )
 
 /**
- * Schema for additional command definitions in plugin manifest
+ * 插件清单中额外命令定义的 schema
  *
- * Allows plugins to specify extra command files or skill directories beyond those
- * in the standard commands/ directory.
+ * 允许插件指定超出标准 commands/ 目录的额外命令文件或
+ * skill 目录。
  *
- * Supports three formats:
- * 1. Single path: "./README.md"
- * 2. Array of paths: ["./README.md", "./docs/guide.md"]
- * 3. Object mapping: { "about": { "source": "./README.md", "description": "..." } }
+ * 支持三种格式：
+ * 1. 单一路径："./README.md"
+ * 2. 路径数组：["./README.md", "./docs/guide.md"]
+ * 3. 对象映射：{ "about": { "source": "./README.md", "description": "..." } }
  */
 const PluginManifestCommandsSchema = lazySchema(() =>
   z.object({
     commands: z.union([
-      // TODO (future work): allow globs?
+      // TODO（未来工作）：允许通配符？
       RelativeCommandPath().describe(
         'Path to additional command file or skill directory (in addition to those in the commands/ directory, if it exists), relative to the plugin root',
       ),
@@ -452,15 +452,14 @@ const PluginManifestCommandsSchema = lazySchema(() =>
 )
 
 /**
- * Schema for additional agent definitions in plugin manifest
+ * 插件清单中额外 agent 定义的 schema
  *
- * Allows plugins to specify extra agent files beyond those in the
- * standard agents/ directory.
+ * 允许插件指定超出标准 agents/ 目录的额外 agent 文件。
  */
 const PluginManifestAgentsSchema = lazySchema(() =>
   z.object({
     agents: z.union([
-      // TODO (future work): allow globs?
+      // TODO（未来工作）：允许通配符？
       RelativeMarkdownPath().describe(
         'Path to additional agent file (in addition to those in the agents/ directory, if it exists), relative to the plugin root',
       ),
@@ -476,10 +475,9 @@ const PluginManifestAgentsSchema = lazySchema(() =>
 )
 
 /**
- * Schema for additional skill definitions in plugin manifest
+ * 插件清单中额外 skill 定义的 schema
  *
- * Allows plugins to specify extra skill directories beyond those in the
- * standard skills/ directory.
+ * 允许插件指定超出标准 skills/ 目录的额外 skill 目录。
  */
 const PluginManifestSkillsSchema = lazySchema(() =>
   z.object({
@@ -499,10 +497,9 @@ const PluginManifestSkillsSchema = lazySchema(() =>
 )
 
 /**
- * Schema for additional output style definitions in plugin manifest
+ * 插件清单中额外 output style 定义的 schema
  *
- * Allows plugins to specify extra output style files or directories beyond those in the
- * standard output-styles/ directory.
+ * 允许插件指定超出标准 output-styles/ 目录的额外 output style 文件或目录。
  */
 const PluginManifestOutputStylesSchema = lazySchema(() =>
   z.object({
@@ -523,7 +520,7 @@ const PluginManifestOutputStylesSchema = lazySchema(() =>
   }),
 )
 
-// Helper validators for LSP config
+// LSP 配置的辅助验证器
 const nonEmptyString = lazySchema(() => z.string().min(1))
 const fileExtension = lazySchema(() =>
   z
@@ -535,10 +532,10 @@ const fileExtension = lazySchema(() =>
 )
 
 /**
- * Schema for MCP server configurations in plugin manifest
+ * 插件清单中 MCP 服务器配置的 schema
  *
- * Allows plugins to provide MCP servers either inline or via external
- * configuration files, supplementing any servers in .mcp.json.
+ * 允许插件以内联方式或通过外部配置文件提供 MCP 服务器，
+ * 补充 .mcp.json 中的任何服务器。
  */
 const PluginManifestMcpServerSchema = lazySchema(() =>
   z.object({
@@ -572,17 +569,16 @@ const PluginManifestMcpServerSchema = lazySchema(() =>
 )
 
 /**
- * Schema for a single user-configurable option in plugin manifest userConfig.
+ * 插件清单 userConfig 中单个用户可配置选项的 schema。
  *
- * Shape intentionally matches `McpbUserConfigurationOption` from
- * `@anthropic-ai/mcpb` so the parsed result is structurally assignable to
- * `UserConfigSchema` in mcpbHandler.ts — this lets us reuse
- * `validateUserConfig` and the config dialog without modification.
- * `title` and `description` are required (not optional) because the upstream
- * type requires them and the config dialog renders them.
+ * 形状故意与 `@anthropic-ai/mcpb` 中的 `McpbUserConfigurationOption`
+ * 匹配，以便解析结果在结构上可赋值给 mcpbHandler.ts 中的
+ * `UserConfigSchema` — 这让我们可以重用 `validateUserConfig`
+ * 和配置对话框而无需修改。`title` 和 `description` 是必需的
+ * （非可选），因为上游类型需要它们且配置对话框会渲染它们。
  *
- * Used by both the top-level manifest.userConfig and the per-channel
- * channels[].userConfig (assistant-mode channels).
+ * 由顶层 manifest.userConfig 和 per-channel channels[].userConfig
+ * （assistant-mode 通道）共同使用。
  */
 const PluginUserConfigOptionSchema = lazySchema(() =>
   z
@@ -621,13 +617,12 @@ const PluginUserConfigOptionSchema = lazySchema(() =>
 )
 
 /**
- * Schema for the top-level userConfig field in plugin manifest.
+ * 插件清单中顶层 userConfig 字段的 schema。
  *
- * Declares user-configurable values the plugin needs. Users are prompted at
- * enable time. Non-sensitive values go to settings.json
- * pluginConfigs[pluginId].options; sensitive values go to secure storage.
- * Values are available as ${user_config.KEY} in MCP/LSP server config, hook
- * commands, and (non-sensitive only) skill/agent content.
+ * 声明插件需要的用户可配置值。用户在启用时收到提示。
+ * 非敏感值进入 settings.json pluginConfigs[pluginId].options；
+ * 敏感值进入安全存储。值可在 MCP/LSP 服务器配置、hook
+ * 命令以及（仅非敏感）skill/agent 内容中作为 ${user_config.KEY} 使用。
  */
 const PluginManifestUserConfigSchema = lazySchema(() =>
   z.object({
@@ -655,18 +650,17 @@ const PluginManifestUserConfigSchema = lazySchema(() =>
 )
 
 /**
- * Schema for channel declarations in plugin manifest.
+ * 插件清单中 channel 声明的 schema。
  *
- * A channel is an MCP server that emits `notifications/claude/channel` to
- * inject messages into the conversation (Telegram, Slack, Discord, etc.).
- * Declaring it here lets the plugin prompt for user config (bot tokens,
- * owner IDs) at install time via the PluginOptionsFlow prompt,
- * rather than requiring users to hand-edit settings.json.
+ * Channel 是一个 MCP 服务器，用于发出 `notifications/claude/channel`
+ * 以将消息注入对话（Telegram、Slack、Discord 等）。在此声明
+ * 允许插件在安装时通过 PluginOptionsFlow 提示用户配置
+ * （bot token、所有者 ID），而不是要求用户手动编辑 settings.json。
  *
- * The `server` field must match a key in the plugin's `mcpServers` — this is
- * not cross-validated at schema parse time (the mcpServers field can be a
- * path to a JSON file we haven't read yet), so the check happens at load
- * time in mcpPluginIntegration.ts instead.
+ * `server` 字段必须与插件 `mcpServers` 中的键匹配 — 这在
+ * schema 解析时不进行交叉验证（mcpServers 字段可能是
+ * 我们尚未读取的 JSON 文件的路径），因此检查在
+ * mcpPluginIntegration.ts 的加载时进行。
  */
 const PluginManifestChannelsSchema = lazySchema(() =>
   z.object({
@@ -705,7 +699,7 @@ const PluginManifestChannelsSchema = lazySchema(() =>
 )
 
 /**
- * Schema for individual LSP server configuration.
+ * 单个 LSP 服务器配置的 schema。
  */
 export const LspServerConfigSchema = lazySchema(() =>
   z.strictObject({
@@ -714,7 +708,7 @@ export const LspServerConfigSchema = lazySchema(() =>
       .min(1)
       .refine(
         cmd => {
-          // Commands with spaces should use args array instead
+          // 包含空格的命令应使用 args 数组
           if (cmd.includes(' ') && !cmd.startsWith('/')) {
             return false
           }
@@ -790,11 +784,11 @@ export const LspServerConfigSchema = lazySchema(() =>
 )
 
 /**
- * Schema for LSP server declarations in plugin manifest.
- * Supports multiple formats:
- * - String: path to .lsp.json file
- * - Object: inline server configs { "serverName": {...} }
- * - Array: mix of strings and objects
+ * 插件清单中 LSP 服务器声明的 schema。
+ * 支持多种格式：
+ * - 字符串：.lsp.json 文件的路径
+ * - 对象：内联服务器配置 { "serverName": {...} }
+ * - 数组：字符串和对象的混合
  */
 const PluginManifestLspServerSchema = lazySchema(() =>
   z.object({
@@ -822,17 +816,17 @@ const PluginManifestLspServerSchema = lazySchema(() =>
 )
 
 /**
- * Schema for npm package names
+ * npm 包名称的 schema
  *
- * Validates npm package names including scoped packages.
- * Prevents path traversal attacks by disallowing '..' and '//'.
+ * 验证 npm 包名称，包括作用域包。
+ * 通过禁止 '..' 和 '//' 来防止路径遍历攻击。
  *
- * Valid examples:
+ * 有效示例：
  * - "express"
  * - "@babel/core"
  * - "lodash.debounce"
  *
- * Invalid examples:
+ * 无效示例：
  * - "../../../etc/passwd"
  * - "package//name"
  */
@@ -844,7 +838,7 @@ const NpmPackageNameSchema = lazySchema(() =>
       'Package name cannot contain path traversal patterns',
     )
     .refine(name => {
-      // Allow scoped packages (@org/package) and regular packages
+      // 允许作用域包（@org/package）和普通包
       const scopedPackageRegex = /^@[a-z0-9][a-z0-9-._]*\/[a-z0-9][a-z0-9-._]*$/
       const regularPackageRegex = /^[a-z0-9][a-z0-9-._]*$/
       return scopedPackageRegex.test(name) || regularPackageRegex.test(name)
@@ -852,9 +846,9 @@ const NpmPackageNameSchema = lazySchema(() =>
 )
 
 /**
- * Schema for plugin settings that get merged into the settings cascade.
- * Accepts any record here; filtering to allowlisted keys happens at load time
- * in pluginLoader.ts via PluginSettingsSchema (derived from SettingsSchema).
+ * 合并到设置级联中的插件设置的 schema。
+ * 此处接受任何记录；在 pluginLoader.ts 中通过
+ * PluginSettingsSchema（派生自 SettingsSchema）在加载时过滤到白名单键。
  */
 const PluginManifestSettingsSchema = lazySchema(() =>
   z.object({
@@ -869,19 +863,18 @@ const PluginManifestSettingsSchema = lazySchema(() =>
 )
 
 /**
- * Plugin manifest file (plugin.json)
+ * 插件清单文件（plugin.json）
  *
- * This schema validates the structure of plugin manifests and provides
- * runtime type checking when loading plugins from disk.
+ * 此 schema 验证插件清单的结构，并在从磁盘加载插件时
+ * 提供运行时类型检查。
  *
- * Unknown top-level fields are silently stripped (zod default) rather than
- * rejected. This keeps plugin loading resilient to custom/future top-level
- * fields that plugin authors may add. Nested config objects (userConfig
- * options, channels, lspServers) remain strict — unknown keys inside those
- * still fail, since a typo there is more likely to be an author mistake
- * than a vendor extension. Type mismatches and other validation errors
- * still fail at all levels. For developer feedback on unknown top-level
- * fields, use `claude plugin validate`.
+ * 未知的顶层字段会被静默剥离（zod 默认行为）而非拒绝。
+ * 这使插件加载对插件作者可能添加的自定义/未来顶层字段
+ * 具有韧性。嵌套配置对象（userConfig 选项、channels、
+ * lspServers）保持严格 — 其中的未知键仍然失败，因为那里
+ * 的拼写错误更可能是作者的错误而非供应商扩展。类型不匹配
+ * 和其他验证错误在所有层级仍然失败。有关未知顶层字段的
+ * 开发者反馈，请使用 `claude plugin validate`。
  */
 export const PluginManifestSchema = lazySchema(() =>
   z.object({
@@ -900,10 +893,10 @@ export const PluginManifestSchema = lazySchema(() =>
 )
 
 /**
- * Schema for marketplace source locations
+ * marketplace 来源位置的 schema
  *
- * Defines various ways to reference marketplace manifests including
- * direct URLs, GitHub repos, git URLs, npm packages, and local paths.
+ * 定义引用 marketplace 清单的各种方式，包括
+ * 直接 URL、GitHub 仓库、git URL、npm 包和本地路径。
  */
 export const MarketplaceSourceSchema = lazySchema(() =>
   z.discriminatedUnion('source', [
@@ -942,13 +935,14 @@ export const MarketplaceSourceSchema = lazySchema(() =>
     }),
     z.object({
       source: z.literal('git'),
-      // No .endsWith('.git') here — that's a GitHub/GitLab/Bitbucket
-      // convention, not a git requirement. Azure DevOps uses
-      // https://dev.azure.com/{org}/{proj}/_git/{repo} with no suffix, and
-      // appending .git makes ADO look for a repo literally named {repo}.git
-      // (TF401019). AWS CodeCommit also omits the suffix. If the user
-      // explicitly wrote source:'git', they know it's a git repo; a typo'd
-      // URL fails at `git clone` with a clearer error anyway. (gh-31256)
+      // 此处不使用 .endsWith('.git') — 这是 GitHub/GitLab/Bitbucket
+      // 约定，不是 git 要求。Azure DevOps 使用
+      // https://dev.azure.com/{org}/{proj}/_git/{repo}，没有后缀，
+      // 追加 .git 会使 ADO 查找字面名为 {repo}.git 的仓库
+      // （TF401019）。AWS CodeCommit 也省略后缀。如果用户
+      // 明确写了 source:'git'，他们知道这是一个 git 仓库；
+      // 拼写错误的 URL 无论如何都会在 `git clone` 时失败并
+      // 给出更清晰的错误。（gh-31256）
       url: z.string().describe('Full git repository URL'),
       ref: z
         .string()
@@ -1056,10 +1050,10 @@ export const gitSha = lazySchema(() =>
 )
 
 /**
- * Schema for plugin source locations
+ * 插件来源位置的 schema
  *
- * Defines various ways to reference and install plugins including
- * local paths, npm packages, Python packages, git URLs, and GitHub repos.
+ * 定义引用和安装插件的各种方式，包括
+ * 本地路径、npm 包、Python 包、git URL 和 GitHub 仓库。
  */
 export const PluginSourceSchema = lazySchema(() =>
   z.union([
@@ -1070,7 +1064,7 @@ export const PluginSourceSchema = lazySchema(() =>
       .object({
         source: z.literal('npm'),
         package: NpmPackageNameSchema()
-          .or(z.string()) // Allow URLs and local paths as well
+          .or(z.string()) // 同时允许 URL 和本地路径
           .describe(
             'Package name (or url, or local path, or anything else that can be passed to `npm` as a package)',
           ),
@@ -1108,8 +1102,8 @@ export const PluginSourceSchema = lazySchema(() =>
       .describe('Python package as plugin source'),
     z.object({
       source: z.literal('url'),
-      // See note on MarketplaceSourceSchema source:'git' re: .endsWith('.git')
-      // — dropped to support Azure DevOps / CodeCommit URLs (gh-31256).
+      // 关于 MarketplaceSourceSchema source:'git' 中 .endsWith('.git') 的说明
+      // — 已删除以支持 Azure DevOps / CodeCommit URL（gh-31256）。
       url: z.string().describe('Full git repository URL (https:// or git@)'),
       ref: z
         .string()
@@ -1157,29 +1151,29 @@ export const PluginSourceSchema = lazySchema(() =>
         'Plugin located in a subdirectory of a larger repository (monorepo). ' +
           'Only the specified subdirectory is materialized; the rest of the repo is not downloaded.',
       ),
-    // TODO (future work) gist
-    // TODO (future work) single file?
+    // TODO（未来工作）gist
+    // TODO（未来工作）单文件？
   ]),
 )
 
 /**
- * Narrow plugin entry for settings-sourced marketplaces.
+ * 来源于 settings 的 marketplace 的窄插件条目。
  *
- * Settings-sourced marketplaces point at remote plugins that have their own
- * plugin.json — there is no reason to inline commands/agents/hooks/mcp/lsp in
- * settings.json. This schema carries only what loadPluginFromMarketplaceEntry
- * reads (name, source, version, strict) plus description for discoverability.
+ * 来源于 settings 的 marketplace 指向拥有自己 plugin.json 的
+ * 远程插件 — 没有理由在 settings.json 中内联 commands/agents/hooks/mcp/lsp。
+ * 此 schema 仅携带 loadPluginFromMarketplaceEntry 读取的内容
+ * （name、source、version、strict）加上 description 以便发现。
  *
- * The synthetic marketplace.json written by loadAndCacheMarketplace is re-parsed
- * with the full PluginMarketplaceSchema, which widens these entries back to
- * PluginMarketplaceEntry (strict gets its .default(true), everything else stays
- * undefined). So this narrowness is settings-surface-only; downstream code sees
- * the same shape it would from any sparse marketplace.json entry.
+ * loadAndCacheMarketplace 写入的合成 marketplace.json 通过完整的
+ * PluginMarketplaceSchema 重新解析，后者将这些窄条目拓宽回
+ * PluginMarketplaceEntry（strict 获得其 .default(true)，其他保持
+ * undefined）。所以这种窄度仅限 settings 表面；下游代码看到
+ * 的形状与任何稀疏 marketplace.json 条目相同。
  *
- * Keeping this narrow prevents PluginManifestSchema().partial() from expanding
- * inline in settingsTypes.generated.ts — that expansion is ~870 lines per
- * occurrence, and MarketplaceSource appears three times in the settings schema
- * (extraKnownMarketplaces, strictKnownMarketplaces, blockedMarketplaces).
+ * 保持窄度可防止 PluginManifestSchema().partial() 在
+ * settingsTypes.generated.ts 中内联展开 — 该展开每次约 ~870 行，
+ * 而 MarketplaceSource 在 settings schema 中出现三次
+ * （extraKnownMarketplaces、strictKnownMarketplaces、blockedMarketplaces）。
  */
 const SettingsMarketplacePluginSchema = lazySchema(() =>
   z
@@ -1209,31 +1203,31 @@ const SettingsMarketplacePluginSchema = lazySchema(() =>
 )
 
 /**
- * Check if a plugin source is a local path (stored in marketplace directory).
+ * 检查插件来源是否为本地路径（存储在 marketplace 目录中）。
  *
- * Local plugins have their source as a string starting with './' (relative to marketplace).
- * External plugins have their source as an object (npm, pip, git, github, etc.).
+ * 本地插件的来源为以 './' 开头的字符串（相对于 marketplace）。
+ * 外部插件的来源为对象（npm、pip、git、github 等）。
  *
- * This function provides a semantic wrapper around the './' prefix check, making
- * the intent clear and centralizing the logic for determining plugin source type.
+ * 此函数提供 './' 前缀检查的语义包装，使
+ * 意图明确并集中确定插件来源类型的逻辑。
  *
- * @param source The plugin source from PluginMarketplaceEntry
- * @returns true if the source is a local path, false if it's an external source
+ * @param source 来自 PluginMarketplaceEntry 的插件来源
+ * @returns 如果来源是本地路径则返回 true，如果是外部来源则返回 false
  */
 export function isLocalPluginSource(source: PluginSource): source is string {
   return typeof source === 'string' && source.startsWith('./')
 }
 
 /**
- * Whether a marketplace source points at a user-controlled local filesystem path.
+ * marketplace 来源是否指向用户控制的本地文件系统路径。
  *
- * For local sources (`file`/`directory`), `installLocation` IS the user's path —
- * it lives outside the plugins cache dir and marketplace operations on it are
- * read-only. For remote sources (`github`/`git`/`url`/`npm`), `installLocation`
- * is a cache-dir entry managed by Claude Code and subject to rm/re-clone.
+ * 对于本地来源（`file`/`directory`），`installLocation` 就是用户的路径 —
+ * 它位于插件缓存目录之外，对其的 marketplace 操作是只读的。
+ * 对于远程来源（`github`/`git`/`url`/`npm`），`installLocation`
+ * 是由 Claude Code 管理的缓存目录条目，可以被 rm/重新克隆。
  *
- * Contrast with isLocalPluginSource, which operates on PluginSource (the
- * per-plugin source inside a marketplace entry) and checks for `./` prefix.
+ * 与 isLocalPluginSource 对比，后者操作 PluginSource（marketplace 条目内
+ * 的每插件来源）并检查 `./` 前缀。
  */
 export function isLocalMarketplaceSource(
   source: MarketplaceSource,
@@ -1242,16 +1236,16 @@ export function isLocalMarketplaceSource(
 }
 
 /**
- * Schema for individual plugin entries in a marketplace
+ * marketplace 中单个插件条目的 schema
  *
- * When strict=true (default): Plugin.json is required, marketplace fields supplement it
- * When strict=false: Plugin.json is optional, marketplace provides full manifest
+ * 当 strict=true（默认）：需要 Plugin.json，marketplace 字段补充它
+ * 当 strict=false：Plugin.json 可选，marketplace 提供完整清单
  *
- * Unknown fields are silently stripped (zod default) rather than rejected.
- * Marketplace entries are validated as an array — if one entry rejected
- * unknown keys, the whole marketplace.json would fail to parse and ALL
- * plugins from that marketplace would become unavailable. Stripping keeps
- * the blast radius to zero for custom/future fields.
+ * 未知字段会被静默剥离（zod 默认行为）而非拒绝。
+ * Marketplace 条目作为数组验证 — 如果一个条目拒绝
+ * 未知键，整个 marketplace.json 将无法解析，该 marketplace 中的
+ * 所有插件都将不可用。剥离使自定义/未来字段的
+ * 影响范围为零。
  */
 export const PluginMarketplaceEntrySchema = lazySchema(() =>
   PluginManifestSchema()
@@ -1287,10 +1281,9 @@ export const PluginMarketplaceEntrySchema = lazySchema(() =>
 )
 
 /**
- * Schema for plugin marketplace configuration
+ * 插件 marketplace 配置的 schema
  *
- * Defines the structure for curated collections of plugins that can
- * be discovered and installed from a central repository.
+ * 定义可以从中央仓库发现和安装的策划插件集合的结构。
  */
 export const PluginMarketplaceSchema = lazySchema(() =>
   z.object({
@@ -1328,12 +1321,12 @@ export const PluginMarketplaceSchema = lazySchema(() =>
 )
 
 /**
- * Schema for plugin ID format
+ * 插件 ID 格式的 schema
  *
- * Plugin IDs follow the format: "plugin-name@marketplace-name"
- * Both parts allow alphanumeric characters, hyphens, dots, and underscores.
+ * 插件 ID 遵循格式："plugin-name@marketplace-name"
+ * 两部分都允许字母数字、连字符、点和下划线。
  *
- * Examples:
+ * 示例：
  * - "code-formatter@anthropic-tools"
  * - "db_assistant@company-internal"
  * - "my.plugin@personal-marketplace"
@@ -1351,20 +1344,20 @@ const DEP_REF_REGEX =
   /^[a-z0-9][-a-z0-9._]*(@[a-z0-9][-a-z0-9._]*)?(@\^[^@]*)?$/i
 
 /**
- * Schema for entries in a plugin's `dependencies` array.
+ * 插件 `dependencies` 数组中条目的 schema。
  *
- * Accepts three forms, all normalized to a plain "name" or "name@mkt" string
- * by the transform — downstream code (qualifyDependency, resolveDependencyClosure,
- * verifyAndDemote) never sees versions or objects:
+ * 接受三种形式，全部通过 transform 规范化为纯 "name" 或 "name@mkt" 字符串
+ * — 下游代码（qualifyDependency、resolveDependencyClosure、
+ * verifyAndDemote）永远不会看到版本或对象：
  *
- *   "plugin"                → bare, resolved against declaring plugin's marketplace
- *   "plugin@marketplace"    → qualified
- *   "plugin@mkt@^1.2"       → trailing @^version silently stripped (forwards-compat)
- *   {name, marketplace?, …} → object form, version etc. stripped (forwards-compat)
+ *   "plugin"                → 裸名，相对于声明插件的 marketplace 解析
+ *   "plugin@marketplace"    → 限定名
+ *   "plugin@mkt@^1.2"       → 尾部 @^version 被静默剥离（向前兼容）
+ *   {name, marketplace?, …} → 对象形式，version 等被剥离（向前兼容）
  *
- * The latter two are permitted-but-ignored so future clients adding version
- * constraints don't cause old clients to fail schema validation and reject
- * the whole plugin. See CC-993 for the eventual version-range design.
+ * 后两种被允许但被忽略，以便未来添加版本约束的客户端
+ * 不会导致旧客户端 schema 验证失败并拒绝整个插件。
+ * 参见 CC-993 了解最终的版本范围设计。
  */
 export const DependencyRefSchema = lazySchema(() =>
   z.union([
@@ -1393,25 +1386,25 @@ export const DependencyRefSchema = lazySchema(() =>
 )
 
 /**
- * Schema for plugin reference in settings (repo or user level)
+ * settings 中插件引用的 schema（仓库或用户级别）
  *
- * Can be either:
- * - Simple string: "plugin-name@marketplace-name"
- * - Object with additional configuration
+ * 可以是以下两种：
+ * - 简单字符串："plugin-name@marketplace-name"
+ * - 带有额外配置的对象
  *
- * The plugin source (npm, git, local) is defined in the marketplace entry itself,
- * not in the plugin reference.
+ * 插件来源（npm、git、本地）在 marketplace 条目本身中定义，
+ * 而非在插件引用中。
  *
- * Examples:
+ * 示例：
  * - "code-formatter@anthropic-tools"
  * - "db-assistant@company-internal"
  * - { id: "formatter@tools", version: "^2.0.0", required: true }
  */
 export const SettingsPluginEntrySchema = lazySchema(() =>
   z.union([
-    // Simple format: "plugin@marketplace"
+    // 简单格式："plugin@marketplace"
     PluginIdSchema(),
-    // Extended format with configuration
+    // 带有配置的扩展格式
     z.object({
       id: PluginIdSchema().describe(
         'Plugin identifier (e.g., "formatter@tools")',
@@ -1430,14 +1423,13 @@ export const SettingsPluginEntrySchema = lazySchema(() =>
 )
 
 /**
- * Schema for installed plugin metadata (V1 format)
+ * 已安装插件元数据的 schema（V1 格式）
  *
- * Tracks the actual installation state of a plugin. All plugins are
- * installed from marketplaces, which contain the actual source details
- * (npm, git, local, etc.). The plugin ID is the key in the plugins record,
- * so it's not duplicated here.
+ * 跟踪插件的实际安装状态。所有插件都从 marketplace 安装，
+ * marketplace 包含实际的来源详细信息（npm、git、本地等）。
+ * 插件 ID 是 plugins 记录中的键，因此此处不重复。
  *
- * Example entry for key "code-formatter@anthropic-tools":
+ * 键 "code-formatter@anthropic-tools" 的示例条目：
  * {
  *   "version": "1.2.0",
  *   "installedAt": "2024-01-15T10:30:00Z",
@@ -1464,15 +1456,15 @@ export const InstalledPluginSchema = lazySchema(() =>
 )
 
 /**
- * Schema for the installed_plugins.json file (V1 format)
+ * installed_plugins.json 文件的 schema（V1 格式）
  *
- * Contains a version number and maps plugin IDs to their installation metadata.
- * Maintained automatically by Claude Code, not edited by users.
+ * 包含版本号和插件 ID 到其安装元数据的映射。
+ * 由 Claude Code 自动维护，不由用户编辑。
  *
- * The version field tracks schema changes. When the version doesn't match
- * the current schema version, Claude Code will update the file on next startup.
+ * 版本字段跟踪 schema 变更。当版本与当前
+ * schema 版本不匹配时，Claude Code 将在下次启动时更新文件。
  *
- * Example file:
+ * 示例文件：
  * {
  *   "version": 1,
  *   "plugins": {
@@ -1494,27 +1486,27 @@ export const InstalledPluginsFileSchemaV1 = lazySchema(() =>
 )
 
 /**
- * Scope types for plugin installation (V2)
+ * 插件安装的 scope 类型（V2）
  *
- * Plugins can be installed at different scopes:
- * - managed: Enterprise/system-wide (read-only, platform-specific paths)
- * - user: User's global settings (~/.claude/settings.json)
- * - project: Shared project settings ($project/.claude/settings.json)
- * - local: Personal project overrides ($project/.claude/settings.local.json)
+ * 插件可以在不同 scope 安装：
+ * - managed：企业/系统范围（只读，平台特定路径）
+ * - user：用户全局设置（~/.claude/settings.json）
+ * - project：共享项目设置（$project/.claude/settings.json）
+ * - local：个人项目覆盖（$project/.claude/settings.local.json）
  *
- * Note: 'flag' scope plugins (from --settings) are session-only and
- * are NOT persisted to installed_plugins.json.
+ * 注意：'flag' scope 插件（来自 --settings）仅限会话，
+ * 不会持久化到 installed_plugins.json。
  */
 export const PluginScopeSchema = lazySchema(() =>
   z.enum(['managed', 'user', 'project', 'local']),
 )
 
 /**
- * Schema for a single plugin installation entry (V2)
+ * 单个插件安装条目的 schema（V2）
  *
- * Each plugin can have multiple installations at different scopes.
- * For example, the same plugin could be installed at user scope with v1.0
- * and at project scope with v1.1.
+ * 每个插件可以在不同 scope 有多个安装。
+ * 例如，同一插件可以在 user scope 安装 v1.0，
+ * 在 project scope 安装 v1.1。
  */
 export const PluginInstallationEntrySchema = lazySchema(() =>
   z.object({
@@ -1526,7 +1518,7 @@ export const PluginInstallationEntrySchema = lazySchema(() =>
     installPath: z
       .string()
       .describe('Absolute path to the versioned plugin directory'),
-    // Preserved from V1:
+    // 从 V1 保留：
     version: z.string().optional().describe('Currently installed version'),
     installedAt: z
       .string()
@@ -1544,13 +1536,13 @@ export const PluginInstallationEntrySchema = lazySchema(() =>
 )
 
 /**
- * Schema for the installed_plugins.json file (V2 format)
+ * installed_plugins.json 文件的 schema（V2 格式）
  *
- * V2 changes from V1:
- * - Each plugin ID maps to an ARRAY of installations (one per scope)
- * - Supports multi-scope installation (same plugin at different scopes/versions)
+ * V2 从 V1 的变更：
+ * - 每个插件 ID 映射到安装数组（每个 scope 一个）
+ * - 支持多 scope 安装（同一插件在不同 scope/版本）
  *
- * Example file:
+ * 示例文件：
  * {
  *   "version": 2,
  *   "plugins": {
@@ -1571,20 +1563,20 @@ export const InstalledPluginsFileSchemaV2 = lazySchema(() =>
 )
 
 /**
- * Combined schema that accepts both V1 and V2 formats
- * Used for reading existing files before migration
+ * 接受 V1 和 V2 两种格式的组合 schema
+ * 用于迁移前读取现有文件
  */
 export const InstalledPluginsFileSchema = lazySchema(() =>
   z.union([InstalledPluginsFileSchemaV1(), InstalledPluginsFileSchemaV2()]),
 )
 
 /**
- * Schema for a known marketplace entry
+ * 已知 marketplace 条目的 schema
  *
- * Tracks metadata about a registered marketplace in the user's configuration.
- * Each entry contains the source location, cache path, and last update time.
+ * 跟踪用户配置中已注册 marketplace 的元数据。
+ * 每个条目包含来源位置、缓存路径和上次更新时间。
  *
- * Example entry:
+ * 示例条目：
  * {
  *   "source": { "source": "github", "repo": "anthropic/claude-plugins" },
  *   "installLocation": "/home/user/.claude/plugins/cached/marketplaces/anthropic-tools",
@@ -1612,12 +1604,12 @@ export const KnownMarketplaceSchema = lazySchema(() =>
 )
 
 /**
- * Schema for the known_marketplaces.json file
+ * known_marketplaces.json 文件的 schema
  *
- * Maps marketplace names to their source and cache metadata.
- * Used to track which marketplaces are registered and where to find them.
+ * 将 marketplace 名称映射到其来源和缓存元数据。
+ * 用于跟踪哪些 marketplace 已注册以及在哪里找到它们。
  *
- * Example file:
+ * 示例文件：
  * {
  *   "anthropic-tools": { "source": { ... }, "installLocation": "...", "lastUpdated": "..." },
  *   "company-internal": { "source": { ... }, "installLocation": "...", "lastUpdated": "..." }
@@ -1630,21 +1622,21 @@ export const KnownMarketplacesFileSchema = lazySchema(() =>
   ),
 )
 
-// Inferred types from schemas
+// 从 schema 推断的类型
 /**
- * Metadata for plugin command definitions.
+ * 插件命令定义的元数据。
  *
- * Commands can be defined with either:
- * - `source`: Path to a markdown file (e.g., "./README.md")
- * - `content`: Inline markdown content string
+ * 命令可以通过以下方式定义：
+ * - `source`：markdown 文件的路径（例如 "./README.md"）
+ * - `content`：内联 markdown 内容字符串
  *
- * INVARIANT: Exactly one of `source` or `content` must be present.
- * This invariant is enforced at runtime by CommandMetadataSchema validation.
+ * 不变量：`source` 或 `content` 必须恰好存在一个。
+ * 此不变量由 CommandMetadataSchema 验证在运行时强制执行。
  *
- * Validation occurs at plugin manifest parsing. Metadata is assumed valid
- * after passing through createPluginFromPath().
+ * 验证发生在插件清单解析时。通过 createPluginFromPath() 后
+ * 元数据被假定为有效。
  *
- * @see CommandMetadataSchema for runtime validation rules
+ * @see CommandMetadataSchema 了解运行时验证规则
  */
 export type CommandMetadata = z.infer<ReturnType<typeof CommandMetadataSchema>>
 export type MarketplaceSource = z.infer<
@@ -1663,7 +1655,7 @@ export type PluginMarketplace = z.infer<
 export type PluginMarketplaceEntry = z.infer<
   ReturnType<typeof PluginMarketplaceEntrySchema>
 >
-export type PluginId = z.infer<ReturnType<typeof PluginIdSchema>> // string in "plugin@marketplace" format
+export type PluginId = z.infer<ReturnType<typeof PluginIdSchema>> // "plugin@marketplace" 格式的字符串
 export type InstalledPlugin = z.infer<ReturnType<typeof InstalledPluginSchema>>
 export type InstalledPluginsFileV1 = z.infer<
   ReturnType<typeof InstalledPluginsFileSchemaV1>
@@ -1680,4 +1672,4 @@ export type KnownMarketplace = z.infer<
 >
 export type KnownMarketplacesFile = z.infer<
   ReturnType<typeof KnownMarketplacesFileSchema>
-> // Record<string, KnownMarketplace>
+> // Record<string, KnownMarketplace> 的简写

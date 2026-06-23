@@ -7,14 +7,9 @@ const SUGGEST_BACKGROUND_PR_TOOL_NAME = 'SuggestBackgroundPR'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    title: z.string().describe('Suggested title for the background PR.'),
-    description: z
-      .string()
-      .describe('Description of the changes to make in the background PR.'),
-    branch: z
-      .string()
-      .optional()
-      .describe('Branch name for the PR. Auto-generated if omitted.'),
+    title: z.string().describe('建议的后台 PR 标题。'),
+    description: z.string().describe('后台 PR 中要做的改动描述。'),
+    branch: z.string().optional().describe('PR 的分支名。省略时自动生成。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -33,12 +28,12 @@ export const SuggestBackgroundPRTool = buildTool({
   },
 
   async description() {
-    return 'Suggest creating a background PR for follow-up changes'
+    return '建议为后续改动创建后台 PR'
   },
   async prompt() {
-    return `Suggest creating a pull request in the background for follow-up work. Use this when you identify improvements or cleanup that should be done but aren't part of the current task.
+    return `建议在后台创建一个 pull request 以处理后续工作。当你识别出应做但不属于当前任务的改进或清理工作时使用此工具。
 
-The suggestion is presented to the user who can approve or dismiss it. If approved, a background agent creates the PR.`
+建议会呈现给用户，由用户决定批准或忽略。批准后，后台 agent 会创建该 PR。`
   },
 
   isConcurrencySafe() {
@@ -53,7 +48,7 @@ The suggestion is presented to the user who can approve or dismiss it. If approv
   },
 
   renderToolUseMessage(input: Partial<SuggestInput>) {
-    return `Suggest PR: ${input.title ?? '...'}`
+    return `建议 PR：${input.title ?? '...'}`
   },
 
   mapToolResultToToolResultBlockParam(
@@ -64,18 +59,18 @@ The suggestion is presented to the user who can approve or dismiss it. If approv
       tool_use_id: toolUseID,
       type: 'tool_result',
       content: content.suggested
-        ? `PR suggestion recorded (id: ${content.suggestion_id})`
-        : 'Failed to record PR suggestion.',
+        ? `已记录 PR 建议（id：${content.suggestion_id}）`
+        : '记录 PR 建议失败。',
     }
   },
 
   async call(_input: SuggestInput) {
-    // Background PR suggestion requires the KAIROS runtime.
+    // 后台 PR 建议需要 KAIROS runtime。
     return {
       data: {
         suggested: false,
         suggestion_id: '',
-        error: 'SuggestBackgroundPR requires the KAIROS runtime.',
+        error: 'SuggestBackgroundPR 需要 KAIROS runtime。',
       },
     }
   },

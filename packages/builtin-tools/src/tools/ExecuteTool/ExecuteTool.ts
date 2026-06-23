@@ -80,11 +80,10 @@ export const ExecuteTool = buildTool({
       }
     }
 
-    // Guard: block execution of undiscovered deferred tools.
-    // When tool search is active, deferred tools must be discovered via
-    // SearchExtraTools first so the model has seen their schemas and knows
-    // the correct parameters.  Executing an undiscovered tool almost always
-    // fails with parameter validation errors.
+    // 守卫：阻止执行尚未被发现的延迟工具。
+    // 当工具搜索启用时，延迟工具必须先通过 SearchExtraTools 被发现，
+    // 这样模型才能看到它们的 schema 并知道正确的参数。
+    // 执行尚未被发现的工具几乎总会因参数校验错误而失败。
     if (
       isSearchExtraToolsEnabledOptimistic() &&
       isSearchExtraToolsToolAvailable(tools) &&
@@ -106,7 +105,7 @@ export const ExecuteTool = buildTool({
       }
     }
 
-    // Check if the target tool is currently enabled
+    // 检查目标工具当前是否启用
     if (!targetTool.isEnabled()) {
       return {
         data: {
@@ -121,9 +120,9 @@ export const ExecuteTool = buildTool({
       }
     }
 
-    // Validate input before delegating — prevents crashes when the model
-    // omits required params (e.g. TeamCreate without team_name →
-    // sanitizeName(undefined).replace() TypeError).
+    // 在委托执行之前校验输入——避免当模型漏掉必填参数时崩溃
+    //（例如 TeamCreate 缺少 team_name → sanitizeName(undefined).replace()
+    // 抛出 TypeError）。
     if (targetTool.validateInput) {
       const validation = await targetTool.validateInput(
         input.params as Record<string, unknown>,
@@ -144,7 +143,7 @@ export const ExecuteTool = buildTool({
       }
     }
 
-    // Check permissions on the target tool
+    // 检查目标工具的权限
     const permResult = await targetTool.checkPermissions?.(
       input.params as Record<string, unknown>,
       context,
@@ -163,7 +162,7 @@ export const ExecuteTool = buildTool({
       }
     }
 
-    // Delegate execution to the target tool
+    // 将执行委托给目标工具
     const targetResult: ToolResult<unknown> = await targetTool.call(
       input.params as Record<string, unknown>,
       context,

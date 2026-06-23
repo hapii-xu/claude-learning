@@ -14,37 +14,36 @@ import { readFileRange, tailFile } from '../fsOperations.js'
 import { logError } from '../log.js'
 import { getProjectTempDir } from '../permissions/filesystem.js'
 
-// SECURITY: O_NOFOLLOW prevents following symlinks when opening task output files.
-// Without this, an attacker in the sandbox could create symlinks in the tasks directory
-// pointing to arbitrary files, causing Claude Code on the host to write to those files.
-// O_NOFOLLOW is not available on Windows, but the sandbox attack vector is Unix-only.
+// 安全性：O_NOFOLLOW 防止打开任务输出文件时跟随符号链接。
+// 如果没有这个标志，沙箱中的攻击者可以在 tasks 目录中创建指向任意文件的符号链接，
+// 导致宿主机上的 Claude Code 写入这些文件。
+// O_NOFOLLOW 在 Windows 上不可用，但沙箱攻击向量仅限于 Unix 系统。
 const O_NOFOLLOW = fsConstants.O_NOFOLLOW ?? 0
 
-const DEFAULT_MAX_READ_BYTES = 8 * 1024 * 1024 // 8MB
+const DEFAULT_MAX_READ_BYTES = 8 * 1024 * 1024 // 8MB（默认最大读取字节数）
 
 /**
- * Disk cap for task output files. In file mode (bash), a watchdog polls
- * file size and kills the process. In pipe mode (hooks), DiskTaskOutput
- * drops chunks past this limit. Shared so both caps stay in sync.
+ * 任务输出文件的磁盘容量上限。在文件模式（bash）下，看门狗会轮询
+ * 文件大小并终止进程。在管道模式（hooks）下，DiskTaskOutput
+ * 会丢弃超过此限制的数据块。共享此常量以确保两种上限保持一致。
  */
 export const MAX_TASK_OUTPUT_BYTES = 5 * 1024 * 1024 * 1024
 export const MAX_TASK_OUTPUT_BYTES_DISPLAY = '5GB'
 
 /**
- * Get the task output directory for this session.
- * Uses project temp directory so reads are auto-allowed by checkReadableInternalPath.
+ * 获取当前会话的任务输出目录。
+ * 使用项目临时目录，这样 checkReadableInternalPath 会自动允许读取。
  *
- * The session ID is included so concurrent sessions in the same project don't
- * clobber each other's output files. Startup cleanup in one session previously
- * unlinked in-flight output files from other sessions — the writing process's fd
- * keeps the inode alive but reads via path fail ENOENT, and getStdout() returned
- * empty string (inc-4586 / boris-20260309-060423).
+ * 路径中包含会话 ID，这样同一项目中的并发会话不会相互覆盖输出文件。
+ * 之前一个会话的启动清理会删除其他会话正在使用的输出文件——写入进程的
+ * 文件描述符保持 inode 存活，但通过路径读取会返回 ENOENT，getStdout()
+ * 返回空字符串（inc-4586 / boris-20260309-060423）。
  *
- * The session ID is captured at FIRST CALL, not re-read on every invocation.
- * /clear calls regenerateSessionId(), which would otherwise cause
- * ensureOutputDir() to create a new-session path while existing TaskOutput
- * instances still hold old-session paths — open() would ENOENT. Background
- * bash tasks surviving /clear need their output files to stay reachable.
+ * 会话 ID 在首次调用时捕获，而不是每次调用时重新读取。
+ * /clear 会调用 regenerateSessionId()，否则会导致 ensureOutputDir()
+ * 创建新会话路径，而现有的 TaskOutput 实例仍持有旧会话路径——
+ * open() 会返回 ENOENT。在 /clear 后仍需存活的后台 bash 任务
+ * 需要其输出文件保持可访问。
  */
 let _taskOutputDir: string | undefined
 export function getTaskOutputDir(): string {
@@ -54,31 +53,31 @@ export function getTaskOutputDir(): string {
   return _taskOutputDir
 }
 
-/** Test helper — clears the memoized dir. */
+/** 测试辅助函数 — 清除已缓存的目录。 */
 export function _resetTaskOutputDirForTest(): void {
   _taskOutputDir = undefined
 }
 
 /**
- * Ensure the task output directory exists
+ * 确保任务输出目录存在
  */
 async function ensureOutputDir(): Promise<void> {
   await mkdir(getTaskOutputDir(), { recursive: true })
 }
 
 /**
- * Get the output file path for a task
+ * 获取任务的输出文件路径
  */
 export function getTaskOutputPath(taskId: string): string {
   return join(getTaskOutputDir(), `${taskId}.output`)
 }
 
-// Tracks fire-and-forget promises (initTaskOutput, initTaskOutputAsSymlink,
-// evictTaskOutput, #drain) so tests can drain before teardown. Prevents the
-// async-ENOENT-after-teardown flake class (#24957, #25065): a voided async
-// resumes after preload's afterEach nuked the temp dir → ENOENT → unhandled
-// rejection → flaky test failure. allSettled so a rejection doesn't short-
-// circuit the drain and leave other ops racing the rmSync.
+// 追踪即发即忘的 Promise（initTaskOutput、initTaskOutputAsSymlink、
+// evictTaskOutput、#drain），以便测试在 teardown 前排空。防止
+// teardown 后异步 ENOENT 的偶发问题（#24957、#25065）：被 void 的异步
+// 操作在 preload 的 afterEach 删除临时目录后恢复 → ENOENT → 未处理的
+// rejection → 偶发测试失败。使用 allSettled 确保一个 rejection 不会中断
+// 排空流程，导致其他操作与 rmSync 竞争。
 const _pendingOps = new Set<Promise<unknown>>()
 function track<T>(p: Promise<T>): Promise<T> {
   _pendingOps.add(p)
@@ -87,12 +86,12 @@ function track<T>(p: Promise<T>): Promise<T> {
 }
 
 /**
- * Encapsulates async disk writes for a single task's output.
+ * 封装单个任务输出的异步磁盘写入。
  *
- * Uses a flat array as a write queue processed by a single drain loop,
- * so each chunk can be GC'd immediately after its write completes.
- * This avoids the memory retention problem of chained .then() closures
- * where every reaction captures its data until the whole chain resolves.
+ * 使用扁平数组作为写入队列，由单个排空循环处理，
+ * 这样每个数据块在写入完成后可以立即被 GC 回收。
+ * 这避免了链式 .then() 闭包的内存保留问题，
+ * 因为每个反应都会捕获其数据直到整个链完成。
  */
 export class DiskTaskOutput {
   #path: string
@@ -111,8 +110,8 @@ export class DiskTaskOutput {
     if (this.#capped) {
       return
     }
-    // content.length (UTF-16 code units) undercounts UTF-8 bytes by at most ~3×.
-    // Acceptable for a coarse disk-fill guard — avoids re-scanning every chunk.
+    // content.length（UTF-16 码元）最多低估 UTF-8 字节数约 3 倍。
+    // 对于粗略的磁盘填充防护来说可以接受——避免重新扫描每个数据块。
     this.#bytesWritten += content.length
     if (this.#bytesWritten > MAX_TASK_OUTPUT_BYTES) {
       this.#capped = true
@@ -166,7 +165,7 @@ export class DiskTaskOutput {
           await fileHandle.close()
         }
       }
-      // you could have another .append() while we're waiting for the file to close, so we check the queue again before fully exiting
+      // 在等待文件关闭时可能会有另一个 .append()，所以在完全退出前再次检查队列
       if (this.#queue.length) {
         continue
       }
@@ -176,18 +175,18 @@ export class DiskTaskOutput {
   }
 
   #writeAllChunks(): Promise<void> {
-    // This code is extremely precise.
-    // You **must not** add an await here!! That will cause memory to balloon as the queue grows.
-    // It's okay to add an `await` to the caller of this method (e.g. #drainAllChunks) because that won't cause Buffer[] to be kept alive in memory.
+    // 这段代码非常精确。
+    // 你**绝对不能**在这里添加 await！！这会导致内存随着队列增长而膨胀。
+    // 可以在此方法的调用者（例如 #drainAllChunks）中添加 `await`，因为那不会导致 Buffer[] 在内存中保持存活。
     return this.#fileHandle!.appendFile(
-      // This variable needs to get GC'd ASAP.
+      // 这个变量需要尽快被 GC 回收。
       this.#queueToBuffers(),
     )
   }
 
-  /** Keep this in a separate method so that GC doesn't keep it alive for any longer than it should. */
+  /** 将此方法单独分开，这样 GC 不会将其保持存活超过必要的时间。 */
   #queueToBuffers(): Buffer {
-    // Use .splice to in-place mutate the array, informing the GC it can free it.
+    // 使用 .splice 原地修改数组，通知 GC 可以释放它。
     const queue = this.#queue.splice(0, this.#queue.length)
 
     let totalLength = 0
@@ -208,11 +207,11 @@ export class DiskTaskOutput {
     try {
       await this.#drainAllChunks()
     } catch (e) {
-      // Transient fs errors (EMFILE on busy CI, EPERM on Windows pending-
-      // delete) previously rode up through `void this.#drain()` as an
-      // unhandled rejection while the flush promise resolved anyway — callers
-      // saw an empty file with no error. Retry once for the transient case
-      // (queue is intact if open() failed), then log and give up.
+      // 瞬态文件系统错误（繁忙 CI 上的 EMFILE、Windows 待删除时的 EPERM）
+      // 之前会通过 `void this.#drain()` 作为未处理的 rejection 冒泡，
+      // 而 flush promise 仍然会解析——调用者看到空文件而没有错误。
+      // 对于瞬态情况重试一次（如果 open() 失败，队列仍完整），
+      // 然后记录日志并放弃。
       logError(e)
       if (this.#queue.length > 0) {
         try {
@@ -233,14 +232,14 @@ export class DiskTaskOutput {
 const outputs = new Map<string, DiskTaskOutput>()
 
 /**
- * Test helper — cancel pending writes, await in-flight ops, clear the map.
- * backgroundShells.test.ts and other task tests spawn real shells that
- * write through this module without afterEach cleanup; their entries
- * leak into diskOutput.test.ts on the same shard.
+ * 测试辅助函数 — 取消待处理的写入，等待进行中的操作完成，清除映射表。
+ * backgroundShells.test.ts 和其他任务测试会生成真实的 shell，
+ * 它们通过此模块写入而没有 afterEach 清理；它们的条目
+ * 会泄漏到同一分片中的 diskOutput.test.ts。
  *
- * Awaits all tracked promises until the set stabilizes — a settling promise
- * may spawn another (initTaskOutputAsSymlink's catch → initTaskOutput).
- * Call this in afterEach BEFORE rmSync to avoid async-ENOENT-after-teardown.
+ * 等待所有追踪的 Promise 直到集合稳定——正在 settled 的 promise
+ * 可能会产生另一个（initTaskOutputAsSymlink 的 catch → initTaskOutput）。
+ * 在 afterEach 中在 rmSync 之前调用此函数，以避免 teardown 后异步 ENOENT。
  */
 export async function _clearOutputsForTest(): Promise<void> {
   for (const output of outputs.values()) {
@@ -262,16 +261,16 @@ function getOrCreateOutput(taskId: string): DiskTaskOutput {
 }
 
 /**
- * Append output to a task's disk file asynchronously.
- * Creates the file if it doesn't exist.
+ * 异步追加输出到任务的磁盘文件。
+ * 如果文件不存在则创建。
  */
 export function appendTaskOutput(taskId: string, content: string): void {
   getOrCreateOutput(taskId).append(content)
 }
 
 /**
- * Wait for all pending writes for a task to complete.
- * Useful before reading output to ensure all data is flushed.
+ * 等待任务的所有待处理写入完成。
+ * 在读取输出之前使用此函数以确保所有数据已刷新。
  */
 export async function flushTaskOutput(taskId: string): Promise<void> {
   const output = outputs.get(taskId)
@@ -281,9 +280,9 @@ export async function flushTaskOutput(taskId: string): Promise<void> {
 }
 
 /**
- * Evict a task's DiskTaskOutput from the in-memory map after flushing.
- * Unlike cleanupTaskOutput, this does not delete the output file on disk.
- * Call this when a task completes and its output has been consumed.
+ * 在刷新后将任务的 DiskTaskOutput 从内存映射表中逐出。
+ * 与 cleanupTaskOutput 不同，此函数不会删除磁盘上的输出文件。
+ * 当任务完成且其输出已被消费时调用此函数。
  */
 export function evictTaskOutput(taskId: string): Promise<void> {
   return track(
@@ -298,8 +297,8 @@ export function evictTaskOutput(taskId: string): Promise<void> {
 }
 
 /**
- * Get delta (new content) since last read.
- * Reads only from the byte offset, up to maxBytes — never loads the full file.
+ * 获取自上次读取以来的增量（新内容）。
+ * 仅从字节偏移处读取，最多读取 maxBytes——永远不会加载整个文件。
  */
 export async function getTaskOutputDelta(
   taskId: string,
@@ -330,8 +329,8 @@ export async function getTaskOutputDelta(
 }
 
 /**
- * Get output for a task, reading the tail of the file.
- * Caps at maxBytes to avoid loading multi-GB files into memory.
+ * 获取任务的输出，读取文件尾部内容。
+ * 限制为 maxBytes 以避免将多 GB 文件加载到内存中。
  */
 export async function getTaskOutput(
   taskId: string,
@@ -357,7 +356,7 @@ export async function getTaskOutput(
 }
 
 /**
- * Get the current size (offset) of a task's output file.
+ * 获取任务输出文件的当前大小（偏移量）。
  */
 export async function getTaskOutputSize(taskId: string): Promise<number> {
   try {
@@ -373,7 +372,7 @@ export async function getTaskOutputSize(taskId: string): Promise<number> {
 }
 
 /**
- * Clean up a task's output file and write queue.
+ * 清理任务的输出文件和写入队列。
  */
 export async function cleanupTaskOutput(taskId: string): Promise<void> {
   const output = outputs.get(taskId)
@@ -394,17 +393,17 @@ export async function cleanupTaskOutput(taskId: string): Promise<void> {
 }
 
 /**
- * Initialize output file for a new task.
- * Creates an empty file to ensure the path exists.
+ * 初始化新任务的输出文件。
+ * 创建空文件以确保路径存在。
  */
 export function initTaskOutput(taskId: string): Promise<string> {
   return track(
     (async () => {
       await ensureOutputDir()
       const outputPath = getTaskOutputPath(taskId)
-      // SECURITY: O_NOFOLLOW prevents symlink-following attacks from the sandbox.
-      // O_EXCL ensures we create a new file and fail if something already exists at this path.
-      // On Windows, use string flags — numeric O_EXCL can produce EINVAL through libuv.
+      // 安全性：O_NOFOLLOW 防止沙箱中的符号链接跟随攻击。
+      // O_EXCL 确保我们创建新文件，如果此路径已存在文件则失败。
+      // 在 Windows 上，使用字符串标志——数字形式的 O_EXCL 通过 libuv 可能产生 EINVAL。
       const fh = await open(
         outputPath,
         process.platform === 'win32'
@@ -421,8 +420,8 @@ export function initTaskOutput(taskId: string): Promise<string> {
 }
 
 /**
- * Initialize output file as a symlink to another file (e.g., agent transcript).
- * Tries to create the symlink first; if a file already exists, removes it and retries.
+ * 将输出文件初始化为指向另一个文件的符号链接（例如 agent 转录）。
+ * 首先尝试创建符号链接；如果文件已存在，删除后重试。
  */
 export function initTaskOutputAsSymlink(
   taskId: string,

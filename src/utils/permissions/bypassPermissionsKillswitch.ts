@@ -12,7 +12,7 @@ import type { ToolPermissionContext } from '../../Tool.js'
 import { verifyAutoModeGateAccess } from './permissionSetup.js'
 
 /**
- * No-op — bypass permissions is always available.
+ * 空操作 — bypass permissions 始终可用。
  */
 export async function checkAndDisableBypassPermissionsIfNeeded(
   _toolPermissionContext: ToolPermissionContext,
@@ -22,21 +22,21 @@ export async function checkAndDisableBypassPermissionsIfNeeded(
     ) => import('../../state/AppState.js').AppState,
   ) => void,
 ): Promise<void> {
-  // Bypass permissions is always available — no gate check needed
+  // Bypass permissions 始终可用 — 无需门控检查
 }
 
 /**
- * Reset stub — kept for interface compatibility.
+ * 重置桩 — 保留以保持接口兼容。
  */
 export function resetBypassPermissionsCheck(): void {
-  // No-op
+  // 空操作
 }
 
 /**
- * No-op hook — bypass permissions is always available.
+ * 空操作 hook — bypass permissions 始终可用。
  */
 export function useKickOffCheckAndDisableBypassPermissionsIfNeeded(): void {
-  // No-op
+  // 空操作
 }
 
 let autoModeCheckRan = false
@@ -87,8 +87,8 @@ export async function checkAndDisableAutoModeIfNeeded(
 }
 
 /**
- * Reset the run-once flag for checkAndDisableAutoModeIfNeeded.
- * Call this after /login so the gate check re-runs with the new org.
+ * 重置 checkAndDisableAutoModeIfNeeded 的单次运行标志。
+ * 在 /login 之后调用此函数，以便使用新组织重新执行门控检查。
  */
 export function resetAutoModeGateCheck(): void {
   autoModeCheckRan = false
@@ -102,7 +102,7 @@ export function useKickOffCheckAndDisableAutoModeIfNeeded(): void {
   const store = useAppStateStore()
   const isFirstRunRef = useRef(true)
 
-  // Runs on mount (startup check) AND whenever the model or fast mode changes
+  // 在挂载时（启动检查）以及模型或 fast mode 变化时运行
   useEffect(() => {
     if (getIsRemoteMode()) return
     if (isFirstRunRef.current) {

@@ -2,19 +2,19 @@ import { getGlobalConfig, saveGlobalConfig } from '../config.js'
 
 const SKILL_USAGE_DEBOUNCE_MS = 60_000
 
-// Process-lifetime debounce cache — avoids lock + read + parse on debounced
-// calls. Same pattern as lastConfigStatTime / globalConfigWriteCount in config.ts.
+// 进程生命周期内的防抖缓存 — 避免防抖调用时的锁竞争 + 读取 + 解析开销。
+// 与 config.ts 中的 lastConfigStatTime / globalConfigWriteCount 采用相同模式。
 const lastWriteBySkill = new Map<string, number>()
 
 /**
- * Records a skill usage for ranking purposes.
- * Updates both usage count and last used timestamp.
+ * 记录技能使用次数，用于排序。
+ * 同时更新使用次数和最后使用时间。
  */
 export function recordSkillUsage(skillName: string): void {
   const now = Date.now()
   const lastWrite = lastWriteBySkill.get(skillName)
-  // The ranking algorithm uses a 7-day half-life, so sub-minute granularity
-  // is irrelevant. Bail out before saveGlobalConfig to avoid lock + file I/O.
+  // 排序算法采用 7 天半衰期，因此分钟级精度毫无意义。
+  // 在 saveGlobalConfig 之前提前返回，以避免锁竞争 + 文件 I/O。
   if (lastWrite !== undefined && now - lastWrite < SKILL_USAGE_DEBOUNCE_MS) {
     return
   }
@@ -35,21 +35,21 @@ export function recordSkillUsage(skillName: string): void {
 }
 
 /**
- * Calculates a usage score for a skill based on frequency and recency.
- * Higher scores indicate more frequently and recently used skills.
+ * 根据使用频率和最近使用情况，计算技能的得分。
+ * 得分越高，表示该技能使用越频繁、越近期。
  *
- * The score uses exponential decay with a half-life of 7 days,
- * meaning usage from 7 days ago is worth half as much as usage today.
+ * 得分采用指数衰减，半衰期为 7 天，
+ * 即 7 天前的使用量仅相当于今天使用量的一半。
  */
 export function getSkillUsageScore(skillName: string): number {
   const config = getGlobalConfig()
   const usage = config.skillUsage?.[skillName]
   if (!usage) return 0
 
-  // Recency decay: halve score every 7 days
+  // 最近使用衰减：每 7 天得分减半
   const daysSinceUse = (Date.now() - usage.lastUsedAt) / (1000 * 60 * 60 * 24)
   const recencyFactor = 0.5 ** (daysSinceUse / 7)
 
-  // Minimum recency factor of 0.1 to avoid completely dropping old but heavily used skills
+  // 最近使用因子最低为 0.1，避免将旧但高频使用的技能完全淘汰
   return usage.usageCount * Math.max(recencyFactor, 0.1)
 }

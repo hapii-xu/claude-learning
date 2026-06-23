@@ -6,74 +6,74 @@ export function registerRememberSkill(): void {
     return
   }
 
-  const SKILL_PROMPT = `# Memory Review
+  const SKILL_PROMPT = `# 记忆审查
 
-## Goal
-Review the user's memory landscape and produce a clear report of proposed changes, grouped by action type. Do NOT apply changes — present proposals for user approval.
+## 目标
+审查用户的记忆层次，生成按操作类型分组的变更提案报告。请**不要**直接应用变更——将提案呈现给用户审批。
 
-## Steps
+## 步骤
 
-### 1. Gather all memory layers
-Read CLAUDE.md and CLAUDE.local.md from the project root (if they exist). Your auto-memory content is already in your system prompt — review it there. Note which team memory sections exist, if any.
+### 1. 收集所有记忆层
+从项目根目录读取 CLAUDE.md 和 CLAUDE.local.md（如果存在）。你的 auto-memory 内容已在系统提示中——在那里审查。注意存在哪些团队记忆（team memory）章节（如有）。
 
-**Success criteria**: You have the contents of all memory layers and can compare them.
+**完成标准**：已获取所有记忆层的内容，可以进行比较。
 
-### 2. Classify each auto-memory entry
-For each substantive entry in auto-memory, determine the best destination:
+### 2. 分类每条 auto-memory 条目
+对 auto-memory 中的每条实质性条目，确定最佳目标位置：
 
-| Destination | What belongs there | Examples |
+| 目标位置 | 适合放置的内容 | 示例 |
 |---|---|---|
-| **CLAUDE.md** | Project conventions and instructions for Claude that all contributors should follow | "use bun not npm", "API routes use kebab-case", "test command is bun test", "prefer functional style" |
-| **CLAUDE.local.md** | Personal instructions for Claude specific to this user, not applicable to other contributors | "I prefer concise responses", "always explain trade-offs", "don't auto-commit", "run tests before committing" |
-| **Team memory** | Org-wide knowledge that applies across repositories (only if team memory is configured) | "deploy PRs go through #deploy-queue", "staging is at staging.internal", "platform team owns infra" |
-| **Stay in auto-memory** | Working notes, temporary context, or entries that don't clearly fit elsewhere | Session-specific observations, uncertain patterns |
+| **CLAUDE.md** | 所有贡献者都应遵循的项目规范和 Claude 指令 | "使用 bun 而非 npm"、"API 路由使用 kebab-case"、"测试命令为 bun test"、"优先使用函数式风格" |
+| **CLAUDE.local.md** | 特定于当前用户的个人 Claude 指令，不适用于其他贡献者 | "我偏好简洁的回复"、"总是解释权衡取舍"、"不要自动提交"、"提交前运行测试" |
+| **Team memory** | 适用于多个仓库的组织级知识（仅在配置了团队记忆时） | "部署 PR 走 #deploy-queue"、"staging 在 staging.internal"、"平台团队负责基础设施" |
+| **保留在 auto-memory** | 工作笔记、临时上下文或明显不适合其他位置的条目 | 会话特定的观察、不确定的模式 |
 
-**Important distinctions:**
-- CLAUDE.md and CLAUDE.local.md contain instructions for Claude, not user preferences for external tools (editor theme, IDE keybindings, etc. don't belong in either)
-- Workflow practices (PR conventions, merge strategies, branch naming) are ambiguous — ask the user whether they're personal or team-wide
-- When unsure, ask rather than guess
+**重要区分：**
+- CLAUDE.md 和 CLAUDE.local.md 包含对 Claude 的指令，而非用户对外部工具的偏好（编辑器主题、IDE 快捷键等不属于这两个文件）
+- 工作流实践（PR 规范、合并策略、分支命名）存在歧义——询问用户这是个人偏好还是团队规范
+- 不确定时，询问而非猜测
 
-**Success criteria**: Each entry has a proposed destination or is flagged as ambiguous.
+**完成标准**：每条条目都有提议的目标位置，或被标记为存在歧义。
 
-### 3. Identify cleanup opportunities
-Scan across all layers for:
-- **Duplicates**: Auto-memory entries already captured in CLAUDE.md or CLAUDE.local.md → propose removing from auto-memory
-- **Outdated**: CLAUDE.md or CLAUDE.local.md entries contradicted by newer auto-memory entries → propose updating the older layer
-- **Conflicts**: Contradictions between any two layers → propose resolution, noting which is more recent
+### 3. 识别清理机会
+扫描所有层，查找：
+- **重复**：已在 CLAUDE.md 或 CLAUDE.local.md 中捕获的 auto-memory 条目 → 提议从 auto-memory 中删除
+- **过时**：被较新的 auto-memory 条目矛盾的 CLAUDE.md 或 CLAUDE.local.md 条目 → 提议更新较旧的层
+- **冲突**：任意两层之间的矛盾 → 提议解决方案，注明哪个更新
 
-**Success criteria**: All cross-layer issues identified.
+**完成标准**：识别出所有跨层问题。
 
-### 4. Present the report
-Output a structured report grouped by action type:
-1. **Promotions** — entries to move, with destination and rationale
-2. **Cleanup** — duplicates, outdated entries, conflicts to resolve
-3. **Ambiguous** — entries where you need the user's input on destination
-4. **No action needed** — brief note on entries that should stay put
+### 4. 呈现报告
+按操作类型分组输出结构化报告：
+1. **提升（Promotions）** — 需要迁移的条目，包含目标位置和理由
+2. **清理（Cleanup）** — 重复、过时的条目及需要解决的冲突
+3. **存在歧义（Ambiguous）** — 需要用户输入目标位置的条目
+4. **无需操作（No action needed）** — 对应保留原位的条目的简短说明
 
-If auto-memory is empty, say so and offer to review CLAUDE.md for cleanup.
+如果 auto-memory 为空，请说明并提议审查 CLAUDE.md 以进行清理。
 
-**Success criteria**: User can review and approve/reject each proposal individually.
+**完成标准**：用户可以逐一审查并批准/拒绝每项提案。
 
-## Rules
-- Present ALL proposals before making any changes
-- Do NOT modify files without explicit user approval
-- Do NOT create new files unless the target doesn't exist yet
-- Ask about ambiguous entries — don't guess
+## 规则
+- 在做任何变更之前，先呈现**所有**提案
+- 未经用户明确批准，**不得**修改文件
+- 除非目标文件不存在，否则**不得**创建新文件
+- 对有歧义的条目，询问而非猜测
 `
 
   registerBundledSkill({
     name: 'remember',
     description:
-      'Review auto-memory entries and propose promotions to CLAUDE.md, CLAUDE.local.md, or shared memory. Also detects outdated, conflicting, and duplicate entries across memory layers.',
+      '审查 auto-memory 条目，提议将其提升到 CLAUDE.md、CLAUDE.local.md 或共享记忆。同时检测各记忆层之间的过时、冲突和重复条目。',
     whenToUse:
-      'Use when the user wants to review, organize, or promote their auto-memory entries. Also useful for cleaning up outdated or conflicting entries across CLAUDE.md, CLAUDE.local.md, and auto-memory.',
+      '当用户希望审查、整理或提升其 auto-memory 条目时使用。也适用于清理 CLAUDE.md、CLAUDE.local.md 和 auto-memory 之间的过时或冲突条目。',
     userInvocable: true,
     isEnabled: () => isAutoMemoryEnabled(),
     async getPromptForCommand(args) {
       let prompt = SKILL_PROMPT
 
       if (args) {
-        prompt += `\n## Additional context from user\n\n${args}`
+        prompt += `\n## 用户补充说明\n\n${args}`
       }
 
       return [{ type: 'text', text: prompt }]

@@ -27,7 +27,7 @@ type InputSchema = ReturnType<typeof inputSchema>
 
 const outputSchema = lazySchema(() =>
   z.object({
-    message: z.string().describe('Confirmation that plan mode was entered'),
+    message: z.string().describe('确认已进入计划模式'),
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>
@@ -38,7 +38,7 @@ export const EnterPlanModeTool: Tool<InputSchema, Output> = buildTool({
   searchHint: 'switch to plan mode to design an approach before coding',
   maxResultSizeChars: 100_000,
   async description() {
-    return 'Requests permission to enter plan mode for complex tasks requiring exploration and design'
+    return '请求权限以进入计划模式，用于需要探索和设计的复杂任务'
   },
   async prompt() {
     return getEnterPlanModeToolPrompt()
@@ -98,7 +98,7 @@ export const EnterPlanModeTool: Tool<InputSchema, Output> = buildTool({
     return {
       data: {
         message:
-          'Entered plan mode. You should now focus on exploring the codebase and designing an implementation approach.',
+          '已进入计划模式。现在请专注于探索代码库并设计实现方案。',
       },
     }
   },

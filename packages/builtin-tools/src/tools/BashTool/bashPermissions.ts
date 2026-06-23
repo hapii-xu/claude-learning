@@ -78,41 +78,37 @@ import { checkPathConstraints } from './pathValidation.js'
 import { checkSedConstraints } from './sedValidation.js'
 import { shouldUseSandbox } from './shouldUseSandbox.js'
 
-// DCE cliff: Bun's feature() evaluator has a per-function complexity budget.
-// bashToolHasPermission is right at the limit. `import { X as Y }` aliases
-// inside the import block count toward this budget; when they push it over
-// the threshold Bun can no longer prove feature('BASH_CLASSIFIER') is a
-// constant and silently evaluates the ternaries to `false`, dropping every
-// pendingClassifierCheck spread. Keep aliases as top-level const rebindings
-// instead. (See also the comment on checkSemanticsDeny below.)
+// DCE 临界：Bun 的 feature() 求值器对每个函数有复杂度预算。
+// bashToolHasPermission 正好处在限制边界。import 块中的 `import { X as Y }`
+// 别名会占用该预算；当超出阈值时，Bun 无法再证明 feature('BASH_CLASSIFIER')
+// 是常量，会静默地把三元表达式求值为 `false`，丢弃所有 pendingClassifierCheck
+// 展开。请将别名保持为顶层 const 重新绑定。（另见下面 checkSemanticsDeny 的注释。）
 const bashCommandIsSafeAsync = bashCommandIsSafeAsync_DEPRECATED
 const splitCommand = splitCommand_DEPRECATED
 
-// Env-var assignment prefix (VAR=value). Shared across three while-loops that
-// skip safe env vars before extracting the command name.
+// 环境变量赋值 prefix（VAR=value）。三个 while 循环共用此正则，用于
+// 在提取命令名之前跳过安全的环境变量。
 const ENV_VAR_ASSIGN_RE = /^[A-Za-z_]\w*=/
 
-// CC-643: On complex compound commands, splitCommand_DEPRECATED can produce a
-// very large subcommands array (possible exponential growth; #21405's ReDoS fix
-// may have been incomplete). Each subcommand then runs tree-sitter parse +
-// ~20 validators + logEvent (bashSecurity.ts), and with memoized metadata the
-// resulting microtask chain starves the event loop — REPL freeze at 100% CPU,
-// strace showed /proc/self/stat reads at ~127Hz with no epoll_wait. Fifty is
-// generous: legitimate user commands don't split that wide. Above the cap we
-// fall back to 'ask' (safe default — we can't prove safety, so we prompt).
+// CC-643：对于复杂的复合命令，splitCommand_DEPRECATED 可能产生
+// 非常大的子命令数组（可能指数级增长；#21405 的 ReDoS 修复可能不完整）。
+// 每个子命令随后会执行 tree-sitter 解析 + 约 20 个校验器 + logEvent
+// （bashSecurity.ts），在元数据被 memoize 后，产生的微任务链会饿死事件循环——
+// REPL 冻结在 100% CPU，strace 显示 /proc/self/stat 读取频率约为 127Hz 而
+// 没有 epoll_wait。五十这个上限很宽裕：合法的用户命令不会拆分得这么宽。
+// 超过上限时我们回退到 'ask'（安全默认值——我们无法证明安全，所以提示用户）。
 export const MAX_SUBCOMMANDS_FOR_SECURITY_CHECK = 50
 
-// GH#11380: Cap the number of per-subcommand rules suggested for compound
-// commands. Beyond this, the "Yes, and don't ask again for X, Y, Z…" label
-// degrades to "similar commands" anyway, and saving 10+ rules from one prompt
-// is more likely noise than intent. Users chaining this many write commands
-// in one && list are rare; they can always approve once and add rules manually.
+// GH#11380：限制为复合命令建议的 per-subcommand 规则数量。超过此数量后，
+// "Yes, and don't ask again for X, Y, Z…" 标签无论如何都会降级为 "similar commands"，
+// 而从一次提示中保存 10+ 条规则更可能是噪声而非用户意图。在一个 && 列表中
+// 链接这么多写命令的用户很罕见；他们总是可以先批准一次再手动添加规则。
 export const MAX_SUGGESTED_RULES_FOR_COMPOUND = 5
 
 /**
- * [ANT-ONLY] Log classifier evaluation results for analysis.
- * This helps us understand which classifier rules are being evaluated
- * and how the classifier is deciding on commands.
+ * [ANT 专用] 记录分类器评估结果以供分析。
+ * 这帮助我们了解哪些分类器规则正在被评估，
+ * 以及分类器是如何对命令作出决定的。
  */
 function logClassifierResultForAnts(
   command: string,
@@ -137,36 +133,36 @@ function logClassifierResultForAnts(
       result.confidence as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     reason:
       result.reason as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-    // Note: command contains code/filepaths - this is ANT-ONLY so it's OK
+    // 注意：command 包含代码/文件路径 - 这是 ANT 专用，所以可以接受
     command:
       command as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   })
 }
 
 /**
- * Extract a stable command prefix (command + subcommand) from a raw command string.
- * Skips leading env var assignments only if they are in SAFE_ENV_VARS (or
- * ANT_ONLY_SAFE_ENV_VARS for ant users). Returns null if a non-safe env var is
- * encountered (to fall back to exact match), or if the second token doesn't look
- * like a subcommand (lowercase alphanumeric, e.g., "commit", "run").
+ * 从原始命令字符串中提取稳定的命令 prefix（command + subcommand）。
+ * 仅当开头的环境变量赋值属于 SAFE_ENV_VARS（或对 ant 用户属于
+ * ANT_ONLY_SAFE_ENV_VARS）时才跳过。如果遇到非安全的环境变量则返回 null
+ * （以回退到精确匹配），或当第二个 token 看起来不像子命令时返回 null
+ * （小写字母数字，例如 "commit"、"run"）。
  *
- * Examples:
+ * 示例：
  *   'git commit -m "fix typo"' → 'git commit'
- *   'NODE_ENV=prod npm run build' → 'npm run' (NODE_ENV is safe)
- *   'MY_VAR=val npm run build' → null (MY_VAR is not safe)
- *   'ls -la' → null (flag, not a subcommand)
- *   'cat file.txt' → null (filename, not a subcommand)
- *   'chmod 755 file' → null (number, not a subcommand)
+ *   'NODE_ENV=prod npm run build' → 'npm run'（NODE_ENV 是安全的）
+ *   'MY_VAR=val npm run build' → null（MY_VAR 不安全）
+ *   'ls -la' → null（是 flag，不是子命令）
+ *   'cat file.txt' → null（是文件名，不是子命令）
+ *   'chmod 755 file' → null（是数字，不是子命令）
  */
 export function getSimpleCommandPrefix(command: string): string | null {
   const tokens = command.trim().split(/\s+/).filter(Boolean)
   if (tokens.length === 0) return null
 
-  // Skip env var assignments (VAR=value) at the start, but only if they are
-  // in SAFE_ENV_VARS (or ANT_ONLY_SAFE_ENV_VARS for ant users). If a non-safe
-  // env var is encountered, return null to fall back to exact match. This
-  // prevents generating prefix rules like Bash(npm run:*) that can never match
-  // at allow-rule check time, because stripSafeWrappers only strips safe vars.
+  // 跳过开头的环境变量赋值（VAR=value），但仅当它们属于
+  // SAFE_ENV_VARS（或对 ant 用户属于 ANT_ONLY_SAFE_ENV_VARS）时。如果遇到
+  // 非安全的环境变量，返回 null 以回退到精确匹配。这能防止生成诸如
+  // Bash(npm run:*) 之类的 prefix 规则在 allow-rule 检查时永远无法匹配，
+  // 因为 stripSafeWrappers 只剥离安全变量。
   let i = 0
   while (i < tokens.length && ENV_VAR_ASSIGN_RE.test(tokens[i]!)) {
     const varName = tokens[i]!.split('=')[0]!
@@ -181,18 +177,18 @@ export function getSimpleCommandPrefix(command: string): string | null {
   const remaining = tokens.slice(i)
   if (remaining.length < 2) return null
   const subcmd = remaining[1]!
-  // Second token must look like a subcommand (e.g., "commit", "run", "compose"),
-  // not a flag (-rf), filename (file.txt), path (/tmp), URL, or number (755).
+  // 第二个 token 必须看起来像子命令（例如 "commit"、"run"、"compose"），
+  // 不能是 flag（-rf）、文件名（file.txt）、路径（/tmp）、URL 或数字（755）。
   if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(subcmd)) return null
   return remaining.slice(0, 2).join(' ')
 }
 
-// Bare-prefix suggestions like `bash:*` or `sh:*` would allow arbitrary code
-// via `-c`. Wrapper suggestions like `env:*` or `sudo:*` would do the same:
-// `env` is NOT in SAFE_WRAPPER_PATTERNS, so `env bash -c "evil"` survives
-// stripSafeWrappers unchanged and hits the startsWith("env ") check at
-// the prefix-rule matcher. Shell list mirrors DANGEROUS_SHELL_PREFIXES in
-// src/utils/shell/prefix.ts which guarded the old Haiku extractor.
+// 像 `bash:*` 或 `sh:*` 这样的裸 prefix 建议会允许通过 `-c` 执行任意代码。
+// 像 `env:*` 或 `sudo:*` 这样的 wrapper 建议也会造成同样后果：
+// `env` 不在 SAFE_WRAPPER_PATTERNS 中，所以 `env bash -c "evil"` 会原样
+// 通过 stripSafeWrappers，并在 prefix-rule 匹配器命中 startsWith("env ")。
+// shell 列表镜像了 src/utils/shell/prefix.ts 中的 DANGEROUS_SHELL_PREFIXES，
+// 后者保护过旧的 Haiku 提取器。
 const BARE_SHELL_PREFIXES = new Set([
   'sh',
   'bash',
@@ -205,40 +201,39 @@ const BARE_SHELL_PREFIXES = new Set([
   'cmd',
   'powershell',
   'pwsh',
-  // wrappers that exec their args as a command
+  // 将其参数作为命令执行的 wrapper
   'env',
   'xargs',
-  // SECURITY: checkSemantics (ast.ts) strips these wrappers to check the
-  // wrapped command. Suggesting `Bash(nice:*)` would be ≈ `Bash(*)` — users
-  // would add it after a prompt, then `nice rm -rf /` passes semantics while
-  // deny/cd+git gates see 'nice' (SAFE_WRAPPER_PATTERNS below didn't strip
-  // bare `nice` until this fix). Block these from ever being suggested.
+  // 安全：checkSemantics（ast.ts）会剥离这些 wrapper 以检查被包装的命令。
+  // 建议 `Bash(nice:*)` 会等价于 `Bash(*)`——用户在提示后添加它，
+  // 然后 `nice rm -rf /` 会通过语义检查，而 deny/cd+git 闸门只看到 'nice'
+  //（下面的 SAFE_WRAPPER_PATTERNS 在此修复之前不会剥离裸 `nice`）。
+  // 阻止这些命令被建议。
   'nice',
   'stdbuf',
   'nohup',
   'timeout',
   'time',
-  // privilege escalation — sudo:* from `sudo -u foo ...` would auto-approve
-  // any future sudo invocation
+  // 权限提升——来自 `sudo -u foo ...` 的 sudo:* 会自动批准
+  // 任何未来的 sudo 调用
   'sudo',
   'doas',
   'pkexec',
 ])
 
 /**
- * UI-only fallback: extract the first word alone when getSimpleCommandPrefix
- * declines. In external builds TREE_SITTER_BASH is off, so the async
- * tree-sitter refinement in BashPermissionRequest never fires — without this,
- * pipes and compounds (`python3 file.py 2>&1 | tail -20`) dump into the
- * editable field verbatim.
+ * 仅 UI 回退：当 getSimpleCommandPrefix 拒绝时，单独提取第一个单词。
+ * 在外部构建中 TREE_SITTER_BASH 是关闭的，因此 BashPermissionRequest 中的
+ * 异步 tree-sitter 精化永远不会触发——没有这个回退，管道和复合命令
+ *（`python3 file.py 2>&1 | tail -20`）会原样倒入可编辑字段。
  *
- * Deliberately not used by suggestionForExactCommand: a backend-suggested
- * `Bash(rm:*)` is too broad to auto-generate, but as an editable starting
- * point it's what users expect (Slack C07VBSHV7EV/p1772670433193449).
+ * 故意不被 suggestionForExactCommand 使用：后端建议的
+ * `Bash(rm:*)` 太宽泛而不能自动生成，但作为可编辑起点这正是用户期望的
+ *（Slack C07VBSHV7EV/p1772670433193449）。
  *
- * Reuses the same SAFE_ENV_VARS gate as getSimpleCommandPrefix — a rule like
- * `Bash(python3:*)` can never match `RUN=/path python3 ...` at check time
- * because stripSafeWrappers won't strip RUN.
+ * 复用与 getSimpleCommandPrefix 相同的 SAFE_ENV_VARS 闸门——像
+ * `Bash(python3:*)` 这样的规则在检查时永远无法匹配 `RUN=/path python3 ...`，
+ * 因为 stripSafeWrappers 不会剥离 RUN。
  */
 export function getFirstWordPrefix(command: string): string | null {
   const tokens = command.trim().split(/\s+/).filter(Boolean)
@@ -256,26 +251,25 @@ export function getFirstWordPrefix(command: string): string | null {
 
   const cmd = tokens[i]
   if (!cmd) return null
-  // Same shape check as the subcommand regex in getSimpleCommandPrefix:
-  // rejects paths (./script.sh, /usr/bin/python), flags, numbers, filenames.
+  // 与 getSimpleCommandPrefix 中的子命令正则相同的形状检查：
+  // 拒绝路径（./script.sh、/usr/bin/python）、flag、数字、文件名。
   if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(cmd)) return null
   if (BARE_SHELL_PREFIXES.has(cmd)) return null
   return cmd
 }
 
 function suggestionForExactCommand(command: string): PermissionUpdate[] {
-  // Heredoc commands contain multi-line content that changes each invocation,
-  // making exact-match rules useless (they'll never match again). Extract a
-  // stable prefix before the heredoc operator and suggest a prefix rule instead.
+  // Heredoc 命令包含每次调用都会变化的多行内容，
+  // 这使得精确匹配规则毫无用处（它们永远不会再匹配）。提取 heredoc 操作符
+  // 之前的稳定 prefix，改为建议 prefix 规则。
   const heredocPrefix = extractPrefixBeforeHeredoc(command)
   if (heredocPrefix) {
     return sharedSuggestionForPrefix(BashTool.name, heredocPrefix)
   }
 
-  // Multiline commands without heredoc also make poor exact-match rules.
-  // Saving the full multiline text can produce patterns containing `:*` in
-  // the middle, which fails permission validation and corrupts the settings
-  // file. Use the first line as a prefix rule instead.
+  // 不含 heredoc 的多行命令同样不适合作为精确匹配规则。
+  // 保存完整的多行文本可能在中间产生包含 `:*` 的模式，
+  // 这会导致权限校验失败并破坏 settings 文件。改用第一行作为 prefix 规则。
   if (command.includes('\n')) {
     const firstLine = command.split('\n')[0]!.trim()
     if (firstLine) {
@@ -283,9 +277,8 @@ function suggestionForExactCommand(command: string): PermissionUpdate[] {
     }
   }
 
-  // Single-line commands: extract a 2-word prefix for reusable rules.
-  // Without this, exact-match rules are saved that never match future
-  // invocations with different arguments.
+  // 单行命令：提取一个 2 词 prefix 以生成可复用规则。
+  // 否则保存的精确匹配规则永远不会匹配未来带不同参数的调用。
   const prefix = getSimpleCommandPrefix(command)
   if (prefix) {
     return sharedSuggestionForPrefix(BashTool.name, prefix)
@@ -295,14 +288,14 @@ function suggestionForExactCommand(command: string): PermissionUpdate[] {
 }
 
 /**
- * If the command contains a heredoc (<<), extract the command prefix before it.
- * Returns the first word(s) before the heredoc operator as a stable prefix,
- * or null if the command doesn't contain a heredoc.
+ * 如果命令包含 heredoc（<<），提取它之前的命令 prefix。
+ * 返回 heredoc 操作符之前的一个或多个单词作为稳定 prefix，
+ * 若命令不含 heredoc 则返回 null。
  *
- * Examples:
+ * 示例：
  *   'git commit -m "$(cat <<\'EOF\'\n...\nEOF\n)"' → 'git commit'
  *   'cat <<EOF\nhello\nEOF' → 'cat'
- *   'echo hello' → null (no heredoc)
+ *   'echo hello' → null（无 heredoc）
  */
 function extractPrefixBeforeHeredoc(command: string): string | null {
   if (!command.includes('<<')) return null
@@ -316,11 +309,11 @@ function extractPrefixBeforeHeredoc(command: string): string | null {
   const prefix = getSimpleCommandPrefix(before)
   if (prefix) return prefix
 
-  // Fallback: skip safe env var assignments and take up to 2 tokens.
-  // This preserves flag tokens (e.g., "python3 -c" stays "python3 -c",
-  // not just "python3") and skips safe env var prefixes like "NODE_ENV=test".
-  // If a non-safe env var is encountered, return null to avoid generating
-  // prefix rules that can never match (same rationale as getSimpleCommandPrefix).
+  // 回退：跳过安全的环境变量赋值并最多取 2 个 token。
+  // 这保留了 flag token（例如 "python3 -c" 保持 "python3 -c"，
+  // 而不是只取 "python3"），并跳过诸如 "NODE_ENV=test" 之类的安全环境变量前缀。
+  // 如果遇到非安全的环境变量，返回 null 以避免生成永远无法匹配的 prefix 规则
+  //（理由与 getSimpleCommandPrefix 相同）。
   const tokens = before.split(/\s+/).filter(Boolean)
   let i = 0
   while (i < tokens.length && ENV_VAR_ASSIGN_RE.test(tokens[i]!)) {
@@ -341,14 +334,14 @@ function suggestionForPrefix(prefix: string): PermissionUpdate[] {
 }
 
 /**
- * Extract prefix from legacy :* syntax (e.g., "npm:*" -> "npm")
- * Delegates to shared implementation.
+ * 从旧版 :* 语法中提取 prefix（例如 "npm:*" -> "npm"）
+ * 委托给共享实现。
  */
 export const permissionRuleExtractPrefix = sharedPermissionRuleExtractPrefix
 
 /**
- * Match a command against a wildcard pattern (case-sensitive for Bash).
- * Delegates to shared implementation.
+ * 将命令与通配符模式进行匹配（对 Bash 区分大小写）。
+ * 委托给共享实现。
  */
 export function matchWildcardPattern(
   pattern: string,
@@ -358,162 +351,160 @@ export function matchWildcardPattern(
 }
 
 /**
- * Parse a permission rule into a structured rule object.
- * Delegates to shared implementation.
+ * 将权限规则解析为结构化规则对象。
+ * 委托给共享实现。
  */
 export const bashPermissionRule: (
   permissionRule: string,
 ) => ShellPermissionRule = parsePermissionRule
 
 /**
- * Whitelist of environment variables that are safe to strip from commands.
- * These variables CANNOT execute code or load libraries.
+ * 可以安全从命令中剥离的环境变量白名单。
+ * 这些变量不能执行代码或加载库。
  *
- * SECURITY: These must NEVER be added to the whitelist:
- * - PATH, LD_PRELOAD, LD_LIBRARY_PATH, DYLD_* (execution/library loading)
- * - PYTHONPATH, NODE_PATH, CLASSPATH, RUBYLIB (module loading)
- * - GOFLAGS, RUSTFLAGS, NODE_OPTIONS (can contain code execution flags)
- * - HOME, TMPDIR, SHELL, BASH_ENV (affect system behavior)
+ * 安全要求：以下变量绝不能加入白名单：
+ * - PATH、LD_PRELOAD、LD_LIBRARY_PATH、DYLD_*（执行/库加载）
+ * - PYTHONPATH、NODE_PATH、CLASSPATH、RUBYLIB（模块加载）
+ * - GOFLAGS、RUSTFLAGS、NODE_OPTIONS（可能包含代码执行 flag）
+ * - HOME、TMPDIR、SHELL、BASH_ENV（影响系统行为）
  */
 const SAFE_ENV_VARS = new Set([
-  // Go - build/runtime settings only
-  'GOEXPERIMENT', // experimental features
-  'GOOS', // target OS
-  'GOARCH', // target architecture
-  'CGO_ENABLED', // enable/disable CGO
-  'GO111MODULE', // module mode
+  // Go - 仅构建/运行时设置
+  'GOEXPERIMENT', // 实验特性
+  'GOOS', // 目标 OS
+  'GOARCH', // 目标架构
+  'CGO_ENABLED', // 启用/禁用 CGO
+  'GO111MODULE', // 模块模式
 
-  // Rust - logging/debugging only
-  'RUST_BACKTRACE', // backtrace verbosity
-  'RUST_LOG', // logging filter
+  // Rust - 仅日志/调试
+  'RUST_BACKTRACE', // 回溯详细程度
+  'RUST_LOG', // 日志过滤
 
-  // Node - environment name only (not NODE_OPTIONS!)
+  // Node - 仅环境名（不含 NODE_OPTIONS！）
   'NODE_ENV',
 
-  // Python - behavior flags only (not PYTHONPATH!)
-  'PYTHONUNBUFFERED', // disable buffering
-  'PYTHONDONTWRITEBYTECODE', // no .pyc files
+  // Python - 仅行为 flag（不含 PYTHONPATH！）
+  'PYTHONUNBUFFERED', // 禁用缓冲
+  'PYTHONDONTWRITEBYTECODE', // 不生成 .pyc 文件
 
-  // Pytest - test configuration
-  'PYTEST_DISABLE_PLUGIN_AUTOLOAD', // disable plugin loading
-  'PYTEST_DEBUG', // debug output
+  // Pytest - 测试配置
+  'PYTEST_DISABLE_PLUGIN_AUTOLOAD', // 禁用插件加载
+  'PYTEST_DEBUG', // 调试输出
 
-  // API keys and authentication
-  'ANTHROPIC_API_KEY', // API authentication
+  // API key 和认证
+  'ANTHROPIC_API_KEY', // API 认证
 
-  // Locale and character encoding
-  'LANG', // default locale
-  'LANGUAGE', // language preference list
-  'LC_ALL', // override all locale settings
-  'LC_CTYPE', // character classification
-  'LC_TIME', // time format
-  'CHARSET', // character set preference
+  // 区域和字符编码
+  'LANG', // 默认 locale
+  'LANGUAGE', // 语言偏好列表
+  'LC_ALL', // 覆盖所有 locale 设置
+  'LC_CTYPE', // 字符分类
+  'LC_TIME', // 时间格式
+  'CHARSET', // 字符集偏好
 
-  // Terminal and display
-  'TERM', // terminal type
-  'COLORTERM', // color terminal indicator
-  'NO_COLOR', // disable color output (universal standard)
-  'FORCE_COLOR', // force color output
-  'TZ', // timezone
+  // 终端和显示
+  'TERM', // 终端类型
+  'COLORTERM', // 彩色终端指示符
+  'NO_COLOR', // 禁用彩色输出（通用标准）
+  'FORCE_COLOR', // 强制彩色输出
+  'TZ', // 时区
 
-  // Color configuration for various tools
-  'LS_COLORS', // colors for ls (GNU)
-  'LSCOLORS', // colors for ls (BSD/macOS)
-  'GREP_COLOR', // grep match color (deprecated)
-  'GREP_COLORS', // grep color scheme
-  'GCC_COLORS', // GCC diagnostic colors
+  // 各种工具的颜色配置
+  'LS_COLORS', // ls 的颜色（GNU）
+  'LSCOLORS', // ls 的颜色（BSD/macOS）
+  'GREP_COLOR', // grep 匹配颜色（已废弃）
+  'GREP_COLORS', // grep 颜色方案
+  'GCC_COLORS', // GCC 诊断颜色
 
-  // Display formatting
-  'TIME_STYLE', // time display format for ls
-  'BLOCK_SIZE', // block size for du/df
-  'BLOCKSIZE', // alternative block size
+  // 显示格式
+  'TIME_STYLE', // ls 的时间显示格式
+  'BLOCK_SIZE', // du/df 的块大小
+  'BLOCKSIZE', // 备用块大小
 ])
 
 /**
- * ANT-ONLY environment variables that are safe to strip from commands.
- * These are only enabled when USER_TYPE === 'ant'.
+ * ANT 专用、可安全从命令中剥离的环境变量。
+ * 仅当 USER_TYPE === 'ant' 时启用。
  *
- * SECURITY: These env vars are stripped before permission-rule matching, which
- * means `DOCKER_HOST=tcp://evil.com docker ps` matches a `Bash(docker ps:*)`
- * rule after stripping. This is INTENTIONALLY ANT-ONLY (gated at line ~380)
- * and MUST NEVER ship to external users. DOCKER_HOST redirects the Docker
- * daemon endpoint — stripping it defeats prefix-based permission restrictions
- * by hiding the network endpoint from the permission check. KUBECONFIG
- * similarly controls which cluster kubectl talks to. These are convenience
- * strippings for internal power users who accept the risk.
+ * 安全要求：这些环境变量会在权限规则匹配之前被剥离，这意味着
+ * `DOCKER_HOST=tcp://evil.com docker ps` 在剥离后会匹配 `Bash(docker ps:*)`
+ * 规则。这是故意只对 ANT 启用（在第 ~380 行 gating），绝不能发布给外部用户。
+ * DOCKER_HOST 会重定向 Docker 守护进程端点——剥离它会通过向权限检查隐藏
+ * 网络端点来绕过基于 prefix 的权限限制。KUBECONFIG 类似地控制 kubectl
+ * 与哪个集群通信。这些是为接受该风险的内部高级用户提供的便利剥离。
  *
- * Based on analysis of 30 days of tengu_internal_bash_tool_use_permission_request events.
+ * 基于对 tengu_internal_bash_tool_use_permission_request 事件 30 天的分析。
  */
 const ANT_ONLY_SAFE_ENV_VARS = new Set([
-  // Kubernetes and container config (config file pointers, not execution)
-  'KUBECONFIG', // kubectl config file path — controls which cluster kubectl uses
-  'DOCKER_HOST', // Docker daemon socket/endpoint — controls which daemon docker talks to
+  // Kubernetes 和容器配置（配置文件指针，非执行）
+  'KUBECONFIG', // kubectl 配置文件路径——控制 kubectl 使用哪个集群
+  'DOCKER_HOST', // Docker 守护进程 socket/端点——控制 docker 与哪个守护进程通信
 
-  // Cloud provider project/profile selection (just names/identifiers)
-  'AWS_PROFILE', // AWS profile name selection
-  'CLOUDSDK_CORE_PROJECT', // GCP project ID
-  'CLUSTER', // generic cluster name
+  // 云服务商项目/profile 选择（仅名称/标识符）
+  'AWS_PROFILE', // AWS profile 名选择
+  'CLOUDSDK_CORE_PROJECT', // GCP 项目 ID
+  'CLUSTER', // 通用集群名
 
-  // Anthropic internal cluster selection (just names/identifiers)
-  'COO_CLUSTER', // coo cluster name
-  'COO_CLUSTER_NAME', // coo cluster name (alternate)
-  'COO_NAMESPACE', // coo namespace
-  'COO_LAUNCH_YAML_DRY_RUN', // dry run mode
+  // Anthropic 内部集群选择（仅名称/标识符）
+  'COO_CLUSTER', // coo 集群名
+  'COO_CLUSTER_NAME', // coo 集群名（备选）
+  'COO_NAMESPACE', // coo 命名空间
+  'COO_LAUNCH_YAML_DRY_RUN', // dry run 模式
 
-  // Feature flags (boolean/string flags only)
-  'SKIP_NODE_VERSION_CHECK', // skip version check
-  'EXPECTTEST_ACCEPT', // accept test expectations
-  'CI', // CI environment indicator
-  'GIT_LFS_SKIP_SMUDGE', // skip LFS downloads
+  // Feature flag（仅布尔/字符串 flag）
+  'SKIP_NODE_VERSION_CHECK', // 跳过版本检查
+  'EXPECTTEST_ACCEPT', // 接受测试期望
+  'CI', // CI 环境指示符
+  'GIT_LFS_SKIP_SMUDGE', // 跳过 LFS 下载
 
-  // GPU/Device selection (just device IDs)
-  'CUDA_VISIBLE_DEVICES', // GPU device selection
-  'JAX_PLATFORMS', // JAX platform selection
+  // GPU/设备选择（仅设备 ID）
+  'CUDA_VISIBLE_DEVICES', // GPU 设备选择
+  'JAX_PLATFORMS', // JAX 平台选择
 
-  // Display/terminal settings
-  'COLUMNS', // terminal width
-  'TMUX', // TMUX socket info
+  // 显示/终端设置
+  'COLUMNS', // 终端宽度
+  'TMUX', // TMUX socket 信息
 
-  // Test/debug configuration
-  'POSTGRESQL_VERSION', // postgres version string
-  'FIRESTORE_EMULATOR_HOST', // emulator host:port
-  'HARNESS_QUIET', // quiet mode flag
-  'TEST_CROSSCHECK_LISTS_MATCH_UPDATE', // test update flag
-  'DBT_PER_DEVELOPER_ENVIRONMENTS', // DBT config
-  'STATSIG_FORD_DB_CHECKS', // statsig DB check flag
+  // 测试/调试配置
+  'POSTGRESQL_VERSION', // postgres 版本字符串
+  'FIRESTORE_EMULATOR_HOST', // 模拟器 host:port
+  'HARNESS_QUIET', // 静默模式 flag
+  'TEST_CROSSCHECK_LISTS_MATCH_UPDATE', // 测试更新 flag
+  'DBT_PER_DEVELOPER_ENVIRONMENTS', // DBT 配置
+  'STATSIG_FORD_DB_CHECKS', // statsig DB 检查 flag
 
-  // Build configuration
-  'ANT_ENVIRONMENT', // Anthropic environment name
-  'ANT_SERVICE', // Anthropic service name
-  'MONOREPO_ROOT_DIR', // monorepo root path
+  // 构建配置
+  'ANT_ENVIRONMENT', // Anthropic 环境名
+  'ANT_SERVICE', // Anthropic 服务名
+  'MONOREPO_ROOT_DIR', // monorepo 根路径
 
-  // Version selectors
-  'PYENV_VERSION', // Python version selection
+  // 版本选择器
+  'PYENV_VERSION', // Python 版本选择
 
-  // Credentials (approved subset - these don't change exfil risk)
-  'PGPASSWORD', // Postgres password
+  // 凭证（已批准子集——这些不会改变数据外泄风险）
+  'PGPASSWORD', // Postgres 密码
   'GH_TOKEN', // GitHub token
-  'GROWTHBOOK_API_KEY', // self-hosted growthbook
+  'GROWTHBOOK_API_KEY', // 自托管 growthbook
 ])
 
 /**
- * Strips full-line comments from a command.
- * This handles cases where Claude adds comments in bash commands, e.g.:
+ * 从命令中剥离整行注释。
+ * 处理 Claude 在 bash 命令中加入注释的情况，例如：
  *   "# Check the logs directory\nls /home/user/logs"
- * Should be stripped to: "ls /home/user/logs"
+ * 应被剥离为："ls /home/user/logs"
  *
- * Only strips full-line comments (lines where the entire line is a comment),
- * not inline comments that appear after a command on the same line.
+ * 仅剥离整行注释（整行都是注释的行），
+ * 不剥离同一行命令之后的行内注释。
  */
 function stripCommentLines(command: string): string {
   const lines = command.split('\n')
   const nonCommentLines = lines.filter(line => {
     const trimmed = line.trim()
-    // Keep lines that are not empty and don't start with #
+    // 保留非空且不以 # 开头的行
     return trimmed !== '' && !trimmed.startsWith('#')
   })
 
-  // If all lines were comments/empty, return original
+  // 如果所有行都是注释/空行，则返回原始命令
   if (nonCommentLines.length === 0) {
     return command
   }
@@ -522,64 +513,63 @@ function stripCommentLines(command: string): string {
 }
 
 export function stripSafeWrappers(command: string): string {
-  // SECURITY: Use [ \t]+ not \s+ — \s matches \n/\r which are command
-  // separators in bash. Matching across a newline would strip the wrapper from
-  // one line and leave a different command on the next line for bash to execute.
+  // 安全要求：使用 [ \t]+ 而非 \s+——\s 会匹配 \n/\r，它们在 bash 中是
+  // 命令分隔符。跨换行匹配会把一行的 wrapper 剥离掉，却让下一行不同的命令
+  // 被 bash 执行。
   //
-  // SECURITY: `(?:--[ \t]+)?` consumes the wrapper's own `--` so
-  // `nohup -- rm -- -/../foo` strips to `rm -- -/../foo` (not `-- rm ...`
-  // which would skip path validation with `--` as an unknown baseCmd).
+  // 安全要求：`(?:--[ \t]+)?` 消费 wrapper 自身的 `--`，这样
+  // `nohup -- rm -- -/../foo` 会被剥离为 `rm -- -/../foo`（而不是 `-- rm ...`，
+  // 后者会让 `--` 作为未知 baseCmd 跳过路径校验）。
   const SAFE_WRAPPER_PATTERNS = [
-    // timeout: enumerate GNU long flags — no-value (--foreground,
-    // --preserve-status, --verbose), value-taking in both =fused and
-    // space-separated forms (--kill-after=5, --kill-after 5, --signal=TERM,
-    // --signal TERM). Short: -v (no-arg), -k/-s with separate or fused value.
-    // SECURITY: flag VALUES use allowlist [A-Za-z0-9_.+-] (signals are
-    // TERM/KILL/9, durations are 5/5s/10.5). Previously [^ \t]+ matched
-    // $ ( ) ` | ; & — `timeout -k$(id) 10 ls` stripped to `ls`, matched
-    // Bash(ls:*), while bash expanded $(id) during word splitting BEFORE
-    // timeout ran. Contrast ENV_VAR_PATTERN below which already allowlists.
+    // timeout：枚举 GNU 长 flag——无值（--foreground、
+    // --preserve-status、--verbose），带值支持 =融合 和
+    // 空格分隔两种形式（--kill-after=5、--kill-after 5、--signal=TERM、
+    // --signal TERM）。短 flag：-v（无参）、-k/-s 支持单独或融合带值。
+    // 安全要求：flag 的值使用 allowlist [A-Za-z0-9_.+-]（信号为
+    // TERM/KILL/9，时长为 5/5s/10.5）。此前 [^ \t]+ 会匹配
+    // $ ( ) ` | ; &——`timeout -k$(id) 10 ls` 被剥离为 `ls`，匹配
+    // Bash(ls:*)，而 bash 会在 timeout 运行之前就在词分割阶段展开 $(id)。
+    // 与下面已使用 allowlist 的 ENV_VAR_PATTERN 形成对比。
     /^timeout[ \t]+(?:(?:--(?:foreground|preserve-status|verbose)|--(?:kill-after|signal)=[A-Za-z0-9_.+-]+|--(?:kill-after|signal)[ \t]+[A-Za-z0-9_.+-]+|-v|-[ks][ \t]+[A-Za-z0-9_.+-]+|-[ks][A-Za-z0-9_.+-]+)[ \t]+)*(?:--[ \t]+)?\d+(?:\.\d+)?[smhd]?[ \t]+/,
     /^time[ \t]+(?:--[ \t]+)?/,
-    // SECURITY: keep in sync with checkSemantics wrapper-strip (ast.ts
-    // ~:1990-2080) AND stripWrappersFromArgv (pathValidation.ts ~:1260).
-    // Previously this pattern REQUIRED `-n N`; checkSemantics already handled
-    // bare `nice` and legacy `-N`. Asymmetry meant checkSemantics exposed the
-    // wrapped command to semantic checks but deny-rule matching and the cd+git
-    // gate saw the wrapper name. `nice rm -rf /` with Bash(rm:*) deny became
-    // ask instead of deny; `cd evil && nice git status` skipped the bare-repo
-    // RCE gate. PR #21503 fixed stripWrappersFromArgv; this was missed.
-    // Now matches: `nice cmd`, `nice -n N cmd`, `nice -N cmd` (all forms
-    // checkSemantics strips).
+    // 安全要求：与 checkSemantics 的 wrapper 剥离（ast.ts
+    // ~:1990-2080）以及 stripWrappersFromArgv（pathValidation.ts ~:1260）保持同步。
+    // 此前该模式要求 `-n N`；checkSemantics 已处理裸 `nice` 和旧版 `-N`。
+    // 这种不对称意味着 checkSemantics 会把被包装的命令暴露给语义检查，
+    // 但 deny-rule 匹配和 cd+git 闸门看到的却是 wrapper 名。带 Bash(rm:*) deny 的
+    // `nice rm -rf /` 变成 ask 而不是 deny；`cd evil && nice git status` 会跳过
+    // 裸仓库 RCE 闸门。PR #21503 修复了 stripWrappersFromArgv；此处被遗漏。
+    // 现在匹配：`nice cmd`、`nice -n N cmd`、`nice -N cmd`（所有
+    // checkSemantics 会剥离的形式）。
     /^nice(?:[ \t]+-n[ \t]+-?\d+|[ \t]+-\d+)?[ \t]+(?:--[ \t]+)?/,
-    // stdbuf: fused short flags only (-o0, -eL). checkSemantics handles more
-    // (space-separated, long --output=MODE), but we fail-closed on those
-    // above so not over-stripping here is safe. Main need: `stdbuf -o0 cmd`.
+    // stdbuf：仅融合短 flag（-o0、-eL）。checkSemantics 处理更多
+    //（空格分隔、长 --output=MODE），但上面我们对那些情况 fail-closed，
+    // 所以这里不过度剥离是安全的。主要需求：`stdbuf -o0 cmd`。
     /^stdbuf(?:[ \t]+-[ioe][LN0-9]+)+[ \t]+(?:--[ \t]+)?/,
     /^nohup[ \t]+(?:--[ \t]+)?/,
   ] as const
 
-  // Pattern for environment variables:
-  // ^([A-Za-z_][A-Za-z0-9_]*)  - Variable name (standard identifier)
-  // =                           - Equals sign
-  // ([A-Za-z0-9_./:-]+)         - Value: alphanumeric + safe punctuation only
-  // [ \t]+                      - Required HORIZONTAL whitespace after value
+  // 环境变量模式：
+  // ^([A-Za-z_][A-Za-z0-9_]*)  - 变量名（标准标识符）
+  // =                           - 等号
+  // ([A-Za-z0-9_./:-]+)         - 值：仅字母数字 + 安全标点
+  // [ \t]+                      - 值之后必须的水平空白
   //
-  // SECURITY: Only matches unquoted values with safe characters (no $(), `, $var, ;|&).
+  // 安全要求：仅匹配带安全字符的非引号值（不含 $()、`、$var、;|&）。
   //
-  // SECURITY: Trailing whitespace MUST be [ \t]+ (horizontal only), NOT \s+.
-  // \s matches \n/\r. If reconstructCommand emits an unquoted newline between
-  // `TZ=UTC` and `echo`, \s+ would match across it and strip `TZ=UTC<NL>`,
-  // leaving `echo curl evil.com` to match Bash(echo:*). But bash treats the
-  // newline as a command separator. Defense-in-depth with needsQuoting fix.
+  // 安全要求：尾随空白必须是 [ \t]+（仅水平），而不是 \s+。
+  // \s 会匹配 \n/\r。如果 reconstructCommand 在
+  // `TZ=UTC` 和 `echo` 之间输出一个未加引号的换行，\s+ 会跨行匹配并剥离
+  // `TZ=UTC<NL>`，剩下 `echo curl evil.com` 去匹配 Bash(echo:*)。但 bash 会把
+  // 换行视为命令分隔符。与 needsQuoting 修复形成纵深防御。
   const ENV_VAR_PATTERN = /^([A-Za-z_][A-Za-z0-9_]*)=([A-Za-z0-9_./:-]+)[ \t]+/
 
   let stripped = command
   let previousStripped = ''
 
-  // Phase 1: Strip leading env vars and comments only.
-  // In bash, env var assignments before a command (VAR=val cmd) are genuine
-  // shell-level assignments. These are safe to strip for permission matching.
+  // 阶段 1：仅剥离开头的环境变量和注释。
+  // 在 bash 中，命令前的环境变量赋值（VAR=val cmd）是真正的
+  // shell 级别赋值。这些可以安全地剥离以用于权限匹配。
   while (stripped !== previousStripped) {
     previousStripped = stripped
     stripped = stripCommentLines(stripped)
@@ -595,12 +585,11 @@ export function stripSafeWrappers(command: string): string {
     }
   }
 
-  // Phase 2: Strip wrapper commands and comments only. Do NOT strip env vars.
-  // Wrapper commands (timeout, time, nice, nohup) use execvp to run their
-  // arguments, so VAR=val after a wrapper is treated as the COMMAND to execute,
-  // not as an env var assignment. Stripping env vars here would create a
-  // mismatch between what the parser sees and what actually executes.
-  // (HackerOne #3543050)
+  // 阶段 2：仅剥离 wrapper 命令和注释。不要剥离环境变量。
+  // wrapper 命令（timeout、time、nice、nohup）使用 execvp 运行其
+  // 参数，因此 wrapper 之后的 VAR=val 会被当作要执行的命令，
+  // 而不是环境变量赋值。在此剥离环境变量会造成解析器所见与实际执行内容
+  // 不一致。（HackerOne #3543050）
   previousStripped = ''
   while (stripped !== previousStripped) {
     previousStripped = stripped
@@ -614,21 +603,21 @@ export function stripSafeWrappers(command: string): string {
   return stripped.trim()
 }
 
-// SECURITY: allowlist for timeout flag VALUES (signals are TERM/KILL/9,
-// durations are 5/5s/10.5). Rejects $ ( ) ` | ; & and newlines that
-// previously matched via [^ \t]+ — `timeout -k$(id) 10 ls` must NOT strip.
+// 安全要求：timeout flag 值的 allowlist（信号为 TERM/KILL/9，
+// 时长为 5/5s/10.5）。拒绝 $ ( ) ` | ; & 和换行符，
+// 它们此前通过 [^ \t]+ 被匹配——`timeout -k$(id) 10 ls` 绝不能被剥离。
 const TIMEOUT_FLAG_VALUE_RE = /^[A-Za-z0-9_.+-]+$/
 
 /**
- * Parse timeout's GNU flags (long + short, fused + space-separated) and
- * return the argv index of the DURATION token, or -1 if flags are unparseable.
- * Enumerates: --foreground/--preserve-status/--verbose (no value),
- * --kill-after/--signal (value, both =fused and space-separated), -v (no
- * value), -k/-s (value, both fused and space-separated).
+ * 解析 timeout 的 GNU flag（长 + 短、融合 + 空格分隔），并
+ * 返回 DURATION token 的 argv 索引；若 flag 无法解析则返回 -1。
+ * 枚举：--foreground/--preserve-status/--verbose（无值）、
+ * --kill-after/--signal（带值，=融合 与 空格分隔 都支持）、-v（无
+ * 值）、-k/-s（带值，融合 与 空格分隔 都支持）。
  *
- * Extracted from stripWrappersFromArgv to keep bashToolHasPermission under
- * Bun's feature() DCE complexity threshold — inlining this breaks
- * feature('BASH_CLASSIFIER') evaluation in classifier tests.
+ * 从 stripWrappersFromArgv 中抽出，以使 bashToolHasPermission 保持在
+ * Bun 的 feature() DCE 复杂度阈值之下——内联它会破坏
+ * 分类器测试中 feature('BASH_CLASSIFIER') 的求值。
  */
 function skipTimeoutFlags(a: readonly string[]): number {
   let i = 1
@@ -651,7 +640,7 @@ function skipTimeoutFlags(a: readonly string[]): number {
     else if (arg === '--') {
       i++
       break
-    } // end-of-options marker
+    } // 选项结束标记
     else if (arg.startsWith('--')) return -1
     else if (arg === '-v') i++
     else if (
@@ -668,17 +657,17 @@ function skipTimeoutFlags(a: readonly string[]): number {
 }
 
 /**
- * Argv-level counterpart to stripSafeWrappers. Strips the same wrapper
- * commands (timeout, time, nice, nohup) from AST-derived argv. Env vars
- * are already separated into SimpleCommand.envVars so no env-var stripping.
+ * stripSafeWrappers 的 argv 级别对应实现。从 AST 派生的 argv 中剥离相同的
+ * wrapper 命令（timeout、time、nice、nohup）。环境变量已经被分离到
+ * SimpleCommand.envVars 中，因此无需剥离环境变量。
  *
- * KEEP IN SYNC with SAFE_WRAPPER_PATTERNS above — if you add a wrapper
- * there, add it here too.
+ * 与上面的 SAFE_WRAPPER_PATTERNS 保持同步——如果你在那里添加 wrapper，
+ * 也要在这里添加。
  */
 export function stripWrappersFromArgv(argv: string[]): string[] {
-  // SECURITY: Consume optional `--` after wrapper options, matching what the
-  // wrapper does. Otherwise `['nohup','--','rm','--','-/../foo']` yields `--`
-  // as baseCmd and skips path validation. See SAFE_WRAPPER_PATTERNS comment.
+  // 安全要求：消费 wrapper 选项之后可选的 `--`，与 wrapper 自身行为一致。
+  // 否则 `['nohup','--','rm','--','-/../foo']` 会把 `--` 当作 baseCmd 并
+  // 跳过路径校验。参见 SAFE_WRAPPER_PATTERNS 注释。
   let a = argv
   for (;;) {
     if (a[0] === 'time' || a[0] === 'nohup') {
@@ -701,61 +690,59 @@ export function stripWrappersFromArgv(argv: string[]): string[] {
 }
 
 /**
- * Env vars that make a *different binary* run (injection or resolution hijack).
- * Heuristic only — export-&& form bypasses this, and excludedCommands isn't a
- * security boundary anyway.
+ * 会使*不同的二进制*运行的环境变量（注入或解析劫持）。
+ * 仅是启发式判断——export-&& 形式会绕过此检查，且 excludedCommands
+ * 本身也不是安全边界。
  */
 export const BINARY_HIJACK_VARS = /^(LD_|DYLD_|PATH$)/
 
 /**
- * Strip ALL leading env var prefixes from a command, regardless of whether the
- * var name is in the safe-list.
+ * 从命令中剥离所有开头环境变量 prefix，无论变量名是否在安全列表中。
  *
- * Used for deny/ask rule matching: when a user denies `claude` or `rm`, the
- * command should stay blocked even if prefixed with arbitrary env vars like
- * `FOO=bar claude`. The safe-list restriction in stripSafeWrappers is correct
- * for allow rules (prevents `DOCKER_HOST=evil docker ps` from auto-matching
- * `Bash(docker ps:*)`), but deny rules must be harder to circumvent.
+ * 用于 deny/ask 规则匹配：当用户拒绝 `claude` 或 `rm` 时，即使命令带有
+ * 任意环境变量前缀如 `FOO=bar claude`，也应保持阻止。stripSafeWrappers
+ * 中的安全列表限制对 allow 规则是正确的（防止 `DOCKER_HOST=evil docker ps`
+ * 自动匹配 `Bash(docker ps:*)`），但 deny 规则必须更难被绕过。
  *
- * Also used for sandbox.excludedCommands matching (not a security boundary —
- * permission prompts are), with BINARY_HIJACK_VARS as a blocklist.
+ * 也用于 sandbox.excludedCommands 匹配（不是安全边界——
+ * 权限提示才是），并以 BINARY_HIJACK_VARS 作为 blocklist。
  *
- * SECURITY: Uses a broader value pattern than stripSafeWrappers. The value
- * pattern excludes only actual shell injection characters ($, backtick, ;, |,
- * &, parens, redirects, quotes, backslash) and whitespace. Characters like
- * =, +, @, ~, , are harmless in unquoted env var assignment position and must
- * be matched to prevent trivial bypass via e.g. `FOO=a=b denied_command`.
+ * 安全要求：使用比 stripSafeWrappers 更宽的值模式。该值
+ * 模式仅排除真正的 shell 注入字符（$、反引号、;、|
+ * &、括号、重定向、引号、反斜杠）和空白。诸如
+ * =、+、@、~、, 之类的字符在未加引号的环境变量赋值位置是无害的，必须
+ * 被匹配，以防诸如 `FOO=a=b denied_command` 的简单绕过。
  *
- * @param blocklist - optional regex tested against each var name; matching vars
- *   are NOT stripped (and stripping stops there). Omit for deny rules; pass
- *   BINARY_HIJACK_VARS for excludedCommands.
+ * @param blocklist - 可选的 regex，针对每个变量名进行测试；匹配的变量
+ *   不会被剥离（剥离在此停止）。deny 规则请省略；excludedCommands 请传入
+ *   BINARY_HIJACK_VARS。
  */
 export function stripAllLeadingEnvVars(
   command: string,
   blocklist?: RegExp,
 ): string {
-  // Broader value pattern for deny-rule stripping. Handles:
+  // 用于 deny-rule 剥离的更宽值模式。处理：
   //
-  // - Standard assignment (FOO=bar), append (FOO+=bar), array (FOO[0]=bar)
-  // - Single-quoted values: '[^'\n\r]*' — bash suppresses all expansion
-  // - Double-quoted values with backslash escapes: "(?:\\.|[^"$`\\\n\r])*"
-  //   In bash double quotes, only \$, \`, \", \\, and \newline are special.
-  //   Other \x sequences are harmless, so we allow \. inside double quotes.
-  //   We still exclude raw $ and ` (without backslash) to block expansion.
-  // - Unquoted values: excludes shell metacharacters, allows backslash escapes
-  // - Concatenated segments: FOO='x'y"z" — bash concatenates adjacent segments
+  // - 标准赋值（FOO=bar）、追加（FOO+=bar）、数组（FOO[0]=bar）
+  // - 单引号值：'[^'\n\r]*'——bash 抑制所有展开
+  // - 带反斜杠转义的双引号值："(?:\\.|[^"$`\\\n\r])*"
+  //   在 bash 双引号中，只有 \$、\`、\"、\\ 和 \newline 是特殊的。
+  //   其他 \x 序列是无害的，所以我们在双引号内允许 \.。
+  //   我们仍然排除原始 $ 和 `（不带反斜杠）以阻止展开。
+  // - 未加引号的值：排除 shell 元字符，允许反斜杠转义
+  // - 拼接段：FOO='x'y"z"——bash 会拼接相邻段
   //
-  // SECURITY: Trailing whitespace MUST be [ \t]+ (horizontal only), NOT \s+.
+  // 安全要求：尾随空白必须是 [ \t]+（仅水平），而不是 \s+。
   //
-  // The outer * matches one atomic unit per iteration: a complete quoted
-  // string, a backslash-escape pair, or a single unquoted safe character.
-  // The inner double-quote alternation (?:...|...)* is bounded by the
-  // closing ", so it cannot interact with the outer * for backtracking.
+  // 外层 * 每次迭代匹配一个原子单元：一个完整的引号字符串、
+  // 一个反斜杠转义对，或一个未加引号的安全字符。
+  // 内层双引号分支 (?:...|...)* 受结束 " 限制，
+  // 因此它不会与外层 * 产生回溯交互。
   //
-  // Note: $ is excluded from unquoted/double-quoted value classes to block
-  // dangerous forms like $(cmd), ${var}, and $((expr)). This means
-  // FOO=$VAR is not stripped — adding $VAR matching creates ReDoS risk
-  // (CodeQL #671) and $VAR bypasses are low-priority.
+  // 注意：$ 被从未加引号/双引号值字符类中排除，以阻止
+  // 诸如 $(cmd)、${var} 和 $((expr)) 的危险形式。这意味着
+  // FOO=$VAR 不会被剥离——添加 $VAR 匹配会产生 ReDoS 风险
+  //（CodeQL #671），且 $VAR 绕过优先级较低。
   const ENV_VAR_PATTERN =
     /^([A-Za-z_][A-Za-z0-9_]*(?:\[[^\]]*\])?)\+?=(?:'[^'\n\r]*'|"(?:\\.|[^"$`\\\n\r])*"|\\.|[^ \t\n\r$`;|&()<>\\\\'"])*[ \t]+/
 
@@ -786,48 +773,45 @@ function filterRulesByContentsMatchingInput(
 ): PermissionRule[] {
   const command = input.command.trim()
 
-  // Strip output redirections for permission matching
-  // This allows rules like Bash(python:*) to match "python script.py > output.txt"
-  // Security validation of redirection targets happens separately in checkPathConstraints
+  // 为权限匹配剥离输出重定向
+  // 这让 Bash(python:*) 之类的规则能匹配 "python script.py > output.txt"
+  // 重定向目标的安全校验在 checkPathConstraints 中单独进行
   const commandWithoutRedirections =
     extractOutputRedirections(command).commandWithoutRedirections
 
-  // For exact matching, try both the original command (to preserve quotes)
-  // and the command without redirections (to allow rules without redirections to match)
-  // For prefix matching, only use the command without redirections
+  // 精确匹配时同时尝试原始命令（保留引号）和剥离重定向的命令
+  //（让不含重定向的规则也能匹配）；prefix 匹配只用剥离重定向后的命令
   const commandsForMatching =
     matchMode === 'exact'
       ? [command, commandWithoutRedirections]
       : [commandWithoutRedirections]
 
-  // Strip safe wrapper commands (timeout, time, nice, nohup) and env vars for matching
-  // This allows rules like Bash(npm install:*) to match "timeout 10 npm install foo"
-  // or "GOOS=linux go build"
+  // 为匹配剥离安全的 wrapper 命令（timeout、time、nice、nohup）和环境变量
+  // 这让 Bash(npm install:*) 之类的规则能匹配 "timeout 10 npm install foo"
+  // 或 "GOOS=linux go build"
   const commandsToTry = commandsForMatching.flatMap(cmd => {
     const strippedCommand = stripSafeWrappers(cmd)
     return strippedCommand !== cmd ? [cmd, strippedCommand] : [cmd]
   })
 
-  // SECURITY: For deny/ask rules, also try matching after stripping ALL leading
-  // env var prefixes. This prevents bypass via `FOO=bar denied_command` where
-  // FOO is not in the safe-list. The safe-list restriction in stripSafeWrappers
-  // is intentional for allow rules (see HackerOne #3543050), but deny rules
-  // must be harder to circumvent — a denied command should stay denied
-  // regardless of env var prefixes.
+  // 安全要求：对 deny/ask 规则，也尝试在剥离所有开头环境变量 prefix 之后再匹配。
+  // 这能防止通过 `FOO=bar denied_command` 绕过——这里
+  // FOO 不在安全列表中。stripSafeWrappers 中的安全列表限制对 allow 规则是
+  // 有意为之的（见 HackerOne #3543050），但 deny 规则必须更难被绕过——
+  // 被拒绝的命令无论带什么环境变量前缀都应保持拒绝。
   //
-  // We iteratively apply both stripping operations to all candidates until no
-  // new candidates are produced (fixed-point). This handles interleaved patterns
-  // like `nohup FOO=bar timeout 5 claude` where:
-  //   1. stripSafeWrappers strips `nohup` → `FOO=bar timeout 5 claude`
-  //   2. stripAllLeadingEnvVars strips `FOO=bar` → `timeout 5 claude`
-  //   3. stripSafeWrappers strips `timeout 5` → `claude` (deny match)
+  // 我们对所有候选命令迭代地应用两种剥离操作，直到不再产生新候选
+  //（不动点）。这能处理交错模式，例如 `nohup FOO=bar timeout 5 claude`：
+  //   1. stripSafeWrappers 剥离 `nohup` → `FOO=bar timeout 5 claude`
+  //   2. stripAllLeadingEnvVars 剥离 `FOO=bar` → `timeout 5 claude`
+  //   3. stripSafeWrappers 剥离 `timeout 5` → `claude`（deny 命中）
   //
-  // Without iteration, single-pass compositions miss multi-layer interleaving.
+  // 不迭代的话，单遍组合会漏掉多层交错。
   if (stripAllEnvVars) {
     const seen = new Set(commandsToTry)
     let startIdx = 0
 
-    // Iterate until no new candidates are produced (fixed-point)
+    // 迭代直到不再产生新候选（不动点）
     while (startIdx < commandsToTry.length) {
       const endIdx = commandsToTry.length
       for (let i = startIdx; i < endIdx; i++) {
@@ -835,13 +819,13 @@ function filterRulesByContentsMatchingInput(
         if (!cmd) {
           continue
         }
-        // Try stripping env vars
+        // 尝试剥离环境变量
         const envStripped = stripAllLeadingEnvVars(cmd)
         if (!seen.has(envStripped)) {
           commandsToTry.push(envStripped)
           seen.add(envStripped)
         }
-        // Try stripping safe wrappers
+        // 尝试剥离安全 wrapper
         const wrapperStripped = stripSafeWrappers(cmd)
         if (!seen.has(wrapperStripped)) {
           commandsToTry.push(wrapperStripped)
@@ -852,12 +836,10 @@ function filterRulesByContentsMatchingInput(
     }
   }
 
-  // Precompute compound-command status for each candidate to avoid re-parsing
-  // inside the rule filter loop (which would scale splitCommand calls with
-  // rules.length × commandsToTry.length). The compound check only applies to
-  // prefix/wildcard matching in 'prefix' mode, and only for allow rules.
-  // SECURITY: deny/ask rules must match compound commands so they can't be
-  // bypassed by wrapping a denied command in a compound expression.
+  // 为每个候选预计算复合命令状态，避免在规则过滤循环内重复解析
+  //（否则 splitCommand 调用数会随 rules.length × commandsToTry.length 增长）。
+  // 复合检查仅适用于 'prefix' 模式下的 prefix/wildcard 匹配，且只对 allow 规则生效。
+  // 安全要求：deny/ask 规则必须能匹配复合命令，以防通过把被拒命令包进复合表达式来绕过。
   const isCompoundCommand = new Map<string, boolean>()
   if (matchMode === 'prefix' && !skipCompoundCheck) {
     for (const cmd of commandsToTry) {
@@ -877,33 +859,33 @@ function filterRulesByContentsMatchingInput(
             return bashRule.command === cmdToMatch
           case 'prefix':
             switch (matchMode) {
-              // In 'exact' mode, only return true if the command exactly matches the prefix rule
+              // 在 'exact' 模式下，仅当命令与 prefix 规则精确匹配时才返回 true
               case 'exact':
                 return bashRule.prefix === cmdToMatch
               case 'prefix': {
-                // SECURITY: Don't allow prefix rules to match compound commands.
-                // e.g., Bash(cd:*) must NOT match "cd /path && python3 evil.py".
-                // In the normal flow commands are split before reaching here, but
-                // shell escaping can defeat the first splitCommand pass — e.g.,
+                // 安全要求：不允许 prefix 规则匹配复合命令。
+                // 例如 Bash(cd:*) 不能匹配 "cd /path && python3 evil.py"。
+                // 正常流程中命令在到达这里之前已经拆分过，但 shell 转义可能
+                // 让第一遍 splitCommand 失效——例如
                 //   cd src\&\& python3 hello.py  →  splitCommand  →  ["cd src&& python3 hello.py"]
-                // which then looks like a single command that starts with "cd ".
-                // Re-splitting the candidate here catches those cases.
+                // 这看起来像是一个以 "cd " 开头的单条命令。
+                // 在这里重新拆分候选可以捕获这些情况。
                 if (isCompoundCommand.get(cmdToMatch)) {
                   return false
                 }
-                // Ensure word boundary: prefix must be followed by space or end of string
-                // This prevents "ls:*" from matching "lsof" or "lsattr"
+                // 确保词边界：prefix 后必须跟空格或字符串结尾
+                // 这防止 "ls:*" 匹配到 "lsof" 或 "lsattr"
                 if (cmdToMatch === bashRule.prefix) {
                   return true
                 }
                 if (cmdToMatch.startsWith(bashRule.prefix + ' ')) {
                   return true
                 }
-                // Also match "xargs <prefix>" for bare xargs with no flags.
-                // This allows Bash(grep:*) to match "xargs grep pattern",
-                // and deny rules like Bash(rm:*) to block "xargs rm file".
-                // Natural word-boundary: "xargs -n1 grep" does NOT start with
-                // "xargs grep " so flagged xargs invocations are not matched.
+                // 同时匹配不带任何 flag 的裸 "xargs <prefix>"。
+                // 这让 Bash(grep:*) 能匹配 "xargs grep pattern"，
+                // 也让 Bash(rm:*) 之类的 deny 规则能拦截 "xargs rm file"。
+                // 天然词边界："xargs -n1 grep" 不以
+                // "xargs grep " 开头，因此带 flag 的 xargs 调用不会被匹配。
                 const xargsPrefix = 'xargs ' + bashRule.prefix
                 if (cmdToMatch === xargsPrefix) {
                   return true
@@ -913,20 +895,20 @@ function filterRulesByContentsMatchingInput(
             }
             break
           case 'wildcard':
-            // SECURITY FIX: In exact match mode, wildcards must NOT match because we're
-            // checking the full unparsed command. Wildcard matching on unparsed commands
-            // allows "foo *" to match "foo arg && curl evil.com" since .* matches operators.
-            // Wildcards should only match after splitting into individual subcommands.
+            // 安全修复：在精确匹配模式下，通配符绝不能匹配，因为我们
+            // 检查的是未解析的完整命令。对未解析命令进行通配符匹配会让
+            // "foo *" 匹配到 "foo arg && curl evil.com"，因为 .* 能匹配操作符。
+            // 通配符只能在拆分成单个子命令之后匹配。
             if (matchMode === 'exact') {
               return false
             }
-            // SECURITY: Same as for prefix rules, don't allow wildcard rules to match
-            // compound commands in prefix mode. e.g., Bash(cd *) must not match
-            // "cd /path && python3 evil.py" even though "cd *" pattern would match it.
+            // 安全要求：与 prefix 规则相同，不允许 prefix 模式下的通配符规则
+            // 匹配复合命令。例如 Bash(cd *) 绝不能匹配
+            // "cd /path && python3 evil.py"，即使 "cd *" 模式本身能匹配它。
             if (isCompoundCommand.get(cmdToMatch)) {
               return false
             }
-            // In prefix mode (after splitting), wildcards can safely match subcommands
+            // 在 prefix 模式下（拆分之后），通配符可以安全地匹配子命令
             return matchWildcardPattern(bashRule.pattern, cmdToMatch)
         }
       })
@@ -945,8 +927,8 @@ function matchingRulesForInput(
     BashTool,
     'deny',
   )
-  // SECURITY: Deny/ask rules use aggressive env var stripping so that
-  // `FOO=bar denied_command` still matches a deny rule for `denied_command`.
+  // 安全要求：Deny/ask 规则使用激进的环境变量剥离，确保
+  // `FOO=bar denied_command` 仍然能匹配针对 `denied_command` 的 deny 规则。
   const matchingDenyRules = filterRulesByContentsMatchingInput(
     input,
     denyRuleByContents,
@@ -986,7 +968,7 @@ function matchingRulesForInput(
 }
 
 /**
- * Checks if the subcommand is an exact match for a permission rule
+ * 检查子命令是否与某条权限规则精确匹配
  */
 export const bashToolCheckExactMatchPermission = (
   input: z.infer<typeof BashTool.inputSchema>,
@@ -996,7 +978,7 @@ export const bashToolCheckExactMatchPermission = (
   const { matchingDenyRules, matchingAskRules, matchingAllowRules } =
     matchingRulesForInput(input, toolPermissionContext, 'exact')
 
-  // 1. Deny if exact command was denied
+  // 1. 若精确命令被 deny 则拒绝
   if (matchingDenyRules[0] !== undefined) {
     return {
       behavior: 'deny',
@@ -1008,7 +990,7 @@ export const bashToolCheckExactMatchPermission = (
     }
   }
 
-  // 2. Ask if exact command was in ask rules
+  // 2. 若精确命令在 ask 规则中则需询问
   if (matchingAskRules[0] !== undefined) {
     return {
       behavior: 'ask',
@@ -1020,7 +1002,7 @@ export const bashToolCheckExactMatchPermission = (
     }
   }
 
-  // 3. Allow if exact command was allowed
+  // 3. 若精确命令被 allow 则放行
   if (matchingAllowRules[0] !== undefined) {
     return {
       behavior: 'allow',
@@ -1032,7 +1014,7 @@ export const bashToolCheckExactMatchPermission = (
     }
   }
 
-  // 4. Otherwise, passthrough
+  // 4. 否则 passthrough
   const decisionReason = {
     type: 'other' as const,
     reason: 'This command requires approval',
@@ -1041,8 +1023,8 @@ export const bashToolCheckExactMatchPermission = (
     behavior: 'passthrough',
     message: createPermissionRequestMessage(BashTool.name, decisionReason),
     decisionReason,
-    // Suggest exact match rule to user
-    // this may be overridden by prefix suggestions in `checkCommandAndSuggestRules()`
+    // 建议精确匹配规则给用户
+    // 这里可能被 `checkCommandAndSuggestRules()` 中的 prefix 建议覆盖
     suggestions: suggestionForExactCommand(command),
   }
 }
@@ -1055,13 +1037,13 @@ export const bashToolCheckPermission = (
 ): PermissionResult => {
   const command = input.command.trim()
 
-  // 1. Check exact match first
+  // 1. 先检查精确匹配
   const exactMatchResult = bashToolCheckExactMatchPermission(
     input,
     toolPermissionContext,
   )
 
-  // 1a. Deny/ask if exact command has a rule
+  // 1a. 若精确命令有规则则 deny/ask
   if (
     exactMatchResult.behavior === 'deny' ||
     exactMatchResult.behavior === 'ask'
@@ -1069,17 +1051,17 @@ export const bashToolCheckPermission = (
     return exactMatchResult
   }
 
-  // 2. Find all matching rules (prefix or exact)
-  // SECURITY FIX: Check Bash deny/ask rules BEFORE path constraints to prevent bypass
-  // via absolute paths outside the project directory (HackerOne report)
-  // When AST-parsed, the subcommand is already atomic — skip the legacy
-  // splitCommand re-check that misparses mid-word # as compound.
+  // 2. 查找所有匹配的规则（prefix 或精确）
+  // 安全修复：在路径约束之前检查 Bash deny/ask 规则，以防通过项目目录之外的
+  // 绝对路径绕过（HackerOne 报告）
+  // 经 AST 解析后，子命令已是原子单元——跳过旧版 splitCommand 复检，
+  // 后者会把词中 # 误判为复合命令分隔符。
   const { matchingDenyRules, matchingAskRules, matchingAllowRules } =
     matchingRulesForInput(input, toolPermissionContext, 'prefix', {
       skipCompoundCheck: astCommand !== undefined,
     })
 
-  // 2a. Deny if command has a deny rule
+  // 2a. 命令有 deny 规则则拒绝
   if (matchingDenyRules[0] !== undefined) {
     return {
       behavior: 'deny',
@@ -1091,7 +1073,7 @@ export const bashToolCheckPermission = (
     }
   }
 
-  // 2b. Ask if command has an ask rule
+  // 2b. 命令有 ask 规则则需询问
   if (matchingAskRules[0] !== undefined) {
     return {
       behavior: 'ask',
@@ -1103,12 +1085,12 @@ export const bashToolCheckPermission = (
     }
   }
 
-  // 3. Check path constraints
-  // This check comes after deny/ask rules so explicit rules take precedence.
-  // SECURITY: When AST-derived argv is available for this subcommand, pass
-  // it through so checkPathConstraints uses it directly instead of re-parsing
-  // with shell-quote (which has a single-quote backslash bug that causes
-  // parseCommandArguments to return [] and silently skip path validation).
+  // 3. 检查路径约束
+  // 此检查在 deny/ask 规则之后，以便显式规则优先。
+  // 安全要求：当此子命令有 AST 派生的 argv 时，直接透传，
+  // 让 checkPathConstraints 直接使用它而不是再用 shell-quote 解析
+  //（后者存在单引号反斜杠 bug，会导致 parseCommandArguments 返回 []
+  // 并静默跳过路径校验）。
   const pathResult = checkPathConstraints(
     input,
     getCwd(),
@@ -1121,12 +1103,12 @@ export const bashToolCheckPermission = (
     return pathResult
   }
 
-  // 4. Allow if command had an exact match allow
+  // 4. 精确匹配为 allow 时放行
   if (exactMatchResult.behavior === 'allow') {
     return exactMatchResult
   }
 
-  // 5. Allow if command has an allow rule
+  // 5. 命令有 allow 规则则放行
   if (matchingAllowRules[0] !== undefined) {
     return {
       behavior: 'allow',
@@ -1138,19 +1120,19 @@ export const bashToolCheckPermission = (
     }
   }
 
-  // 5b. Check sed constraints (blocks dangerous sed operations before mode auto-allow)
+  // 5b. 检查 sed 约束（在 mode 自动放行前拦截危险的 sed 操作）
   const sedConstraintResult = checkSedConstraints(input, toolPermissionContext)
   if (sedConstraintResult.behavior !== 'passthrough') {
     return sedConstraintResult
   }
 
-  // 6. Check for mode-specific permission handling
+  // 6. 检查 mode 专属权限处理
   const modeResult = checkPermissionMode(input, toolPermissionContext)
   if (modeResult.behavior !== 'passthrough') {
     return modeResult
   }
 
-  // 7. Check read-only rules
+  // 7. 检查只读规则
   if (BashTool.isReadOnly(input)) {
     return {
       behavior: 'allow',
@@ -1162,7 +1144,7 @@ export const bashToolCheckPermission = (
     }
   }
 
-  // 8. Passthrough since no rules match, will trigger permission prompt
+  // 8. 无规则命中则 passthrough，会触发权限提示
   const decisionReason = {
     type: 'other' as const,
     reason: 'This command requires approval',
@@ -1171,14 +1153,14 @@ export const bashToolCheckPermission = (
     behavior: 'passthrough',
     message: createPermissionRequestMessage(BashTool.name, decisionReason),
     decisionReason,
-    // Suggest exact match rule to user
-    // this may be overridden by prefix suggestions in `checkCommandAndSuggestRules()`
+    // 建议精确匹配规则给用户
+    // 这里可能被 `checkCommandAndSuggestRules()` 中的 prefix 建议覆盖
     suggestions: suggestionForExactCommand(command),
   }
 }
 
 /**
- * Processes an individual subcommand and applies prefix checks & suggestions
+ * 处理单个子命令并应用 prefix 检查与建议
  */
 export async function checkCommandAndSuggestRules(
   input: z.infer<typeof BashTool.inputSchema>,
@@ -1187,7 +1169,7 @@ export async function checkCommandAndSuggestRules(
   compoundCommandHasCd?: boolean,
   astParseSucceeded?: boolean,
 ): Promise<PermissionResult> {
-  // 1. Check exact match first
+  // 1. 先检查精确匹配
   const exactMatchResult = bashToolCheckExactMatchPermission(
     input,
     toolPermissionContext,
@@ -1196,13 +1178,13 @@ export async function checkCommandAndSuggestRules(
     return exactMatchResult
   }
 
-  // 2. Check the command prefix
+  // 2. 检查命令 prefix
   const permissionResult = bashToolCheckPermission(
     input,
     toolPermissionContext,
     compoundCommandHasCd,
   )
-  // 2a. Deny/ask if command was explictly denied/asked
+  // 2a. 命令被显式 deny/ask 时返回
   if (
     permissionResult.behavior === 'deny' ||
     permissionResult.behavior === 'ask'
@@ -1210,10 +1192,9 @@ export async function checkCommandAndSuggestRules(
     return permissionResult
   }
 
-  // 3. Ask for permission if command injection is detected. Skip when the
-  // AST parse already succeeded — tree-sitter has verified there are no
-  // hidden substitutions or structural tricks, so the legacy regex-based
-  // validators (backslash-escaped operators, etc.) would only add FPs.
+  // 3. 若检测到命令注入则需询问。当 AST 解析已成功时跳过——
+  // tree-sitter 已验证不存在隐藏替换或结构性把戏，因此旧版基于 regex 的
+  // 校验器（反斜杠转义操作符等）只会增加误报。
   if (
     !astParseSucceeded &&
     !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_COMMAND_INJECTION_CHECK)
@@ -1233,17 +1214,17 @@ export async function checkCommandAndSuggestRules(
         behavior: 'ask',
         message: createPermissionRequestMessage(BashTool.name, decisionReason),
         decisionReason,
-        suggestions: [], // Don't suggest saving a potentially dangerous command
+        suggestions: [], // 不建议保存可能危险的命令
       }
     }
   }
 
-  // 4. Allow if command was allowed
+  // 4. 命令被 allow 时放行
   if (permissionResult.behavior === 'allow') {
     return permissionResult
   }
 
-  // 5. Suggest prefix if available, otherwise exact command
+  // 5. 有 prefix 时建议 prefix，否则建议精确命令
   const suggestedUpdates = commandPrefixResult?.commandPrefix
     ? suggestionForPrefix(commandPrefixResult.commandPrefix)
     : suggestionForExactCommand(input.command)
@@ -1255,17 +1236,17 @@ export async function checkCommandAndSuggestRules(
 }
 
 /**
- * Checks if a command should be auto-allowed when sandboxed.
- * Returns early if there are explicit deny/ask rules that should be respected.
+ * 检查命令在沙箱环境下是否应被自动放行。
+ * 若存在应被尊重的显式 deny/ask 规则，则提前返回。
  *
- * NOTE: This function should only be called when sandboxing and auto-allow are enabled.
+ * 注意：此函数仅在沙箱和 auto-allow 都启用时才应被调用。
  *
- * @param input - The bash tool input
- * @param toolPermissionContext - The permission context
- * @returns PermissionResult with:
- *   - deny/ask if explicit rule exists (exact or prefix)
- *   - allow if no explicit rules (sandbox auto-allow applies)
- *   - passthrough should not occur since we're in auto-allow mode
+ * @param input - bash 工具输入
+ * @param toolPermissionContext - 权限上下文
+ * @returns PermissionResult，取值为：
+ *   - 存在显式规则（精确或 prefix）时返回 deny/ask
+ *   - 无显式规则时返回 allow（沙箱 auto-apply 生效）
+ *   - 由于处于 auto-allow 模式，不应返回 passthrough
  */
 function checkSandboxAutoAllow(
   input: z.infer<typeof BashTool.inputSchema>,
@@ -1273,14 +1254,14 @@ function checkSandboxAutoAllow(
 ): PermissionResult {
   const command = input.command.trim()
 
-  // Check for explicit deny/ask rules on the full command (exact + prefix)
+  // 检查针对完整命令的显式 deny/ask 规则（精确 + prefix）
   const { matchingDenyRules, matchingAskRules } = matchingRulesForInput(
     input,
     toolPermissionContext,
     'prefix',
   )
 
-  // Return immediately if there's an explicit deny rule on the full command
+  // 完整命令存在显式 deny 规则时立即返回
   if (matchingDenyRules[0] !== undefined) {
     return {
       behavior: 'deny',
@@ -1292,14 +1273,13 @@ function checkSandboxAutoAllow(
     }
   }
 
-  // SECURITY: For compound commands, check each subcommand against deny/ask
-  // rules. Prefix rules like Bash(rm:*) won't match the full compound command
-  // (e.g., "echo hello && rm -rf /" doesn't start with "rm"), so we must
-  // check each subcommand individually.
-  // IMPORTANT: Subcommand deny checks must run BEFORE full-command ask returns.
-  // Otherwise a wildcard ask rule matching the full command (e.g., Bash(*echo*))
-  // would return 'ask' before a prefix deny rule on a subcommand (e.g., Bash(rm:*))
-  // gets checked, downgrading a deny to an ask.
+  // 安全要求：对复合命令，逐个检查每个子命令是否命中 deny/ask 规则。
+  // Bash(rm:*) 之类的 prefix 规则不会匹配完整复合命令
+  //（例如 "echo hello && rm -rf /" 不以 "rm" 开头），因此必须逐个检查。
+  // 重要：子命令 deny 检查必须在完整命令 ask 返回之前运行。
+  // 否则匹配完整命令的通配符 ask 规则（例如 Bash(*echo*)）会在子命令
+  //（例如 Bash(rm:*)）的 prefix deny 规则被检查之前返回 'ask'，
+  // 把 deny 降级为 ask。
   const subcommands = splitCommand(command)
   if (subcommands.length > 1) {
     let firstAskRule: PermissionRule | undefined
@@ -1309,7 +1289,7 @@ function checkSandboxAutoAllow(
         toolPermissionContext,
         'prefix',
       )
-      // Deny takes priority — return immediately
+      // Deny 优先——立即返回
       if (subResult.matchingDenyRules[0] !== undefined) {
         return {
           behavior: 'deny',
@@ -1320,7 +1300,7 @@ function checkSandboxAutoAllow(
           },
         }
       }
-      // Stash first ask match; don't return yet (deny across all subs takes priority)
+      // 暂存第一个 ask 命中；先不返回（所有子命令的 deny 优先级更高）
       firstAskRule ??= subResult.matchingAskRules[0]
     }
     if (firstAskRule) {
@@ -1335,7 +1315,7 @@ function checkSandboxAutoAllow(
     }
   }
 
-  // Full-command ask check (after all deny sources have been exhausted)
+  // 完整命令 ask 检查（在所有 deny 来源都已用尽之后）
   if (matchingAskRules[0] !== undefined) {
     return {
       behavior: 'ask',
@@ -1346,7 +1326,7 @@ function checkSandboxAutoAllow(
       },
     }
   }
-  // No explicit rules, so auto-allow with sandbox
+  // 无显式规则，因此沙箱下自动放行
 
   return {
     behavior: 'allow',
@@ -1359,10 +1339,10 @@ function checkSandboxAutoAllow(
 }
 
 /**
- * Filter out `cd ${cwd}` prefix subcommands, keeping astCommands aligned.
- * Extracted to keep bashToolHasPermission under Bun's feature() DCE
- * complexity threshold — inlining this breaks pendingClassifierCheck
- * attachment in ~10 classifier tests.
+ * 过滤掉 `cd ${cwd}` prefix 子命令，保持 astCommands 对齐。
+ * 抽出为独立函数是为了让 bashToolHasPermission 保持在 Bun 的 feature() DCE
+ * 复杂度阈值之下——内联它会破坏约 10 个分类器测试中 pendingClassifierCheck
+ * 的挂载。
  */
 function filterCdCwdSubcommands(
   rawSubcommands: string[],
@@ -1382,11 +1362,11 @@ function filterCdCwdSubcommands(
 }
 
 /**
- * Early-exit deny enforcement for the AST too-complex and checkSemantics
- * paths. Returns the exact-match result if non-passthrough (deny/ask/allow),
- * then checks prefix/wildcard deny rules. Returns null if neither matched,
- * meaning the caller should fall through to ask. Extracted to keep
- * bashToolHasPermission under Bun's feature() DCE complexity threshold.
+ * 用于 AST too-complex 和 checkSemantics 路径的提前退出 deny 执行。
+ * 若精确匹配结果非 passthrough（deny/ask/allow）则直接返回，
+ * 然后检查 prefix/wildcard deny 规则。若两者都未命中则返回 null，
+ * 表示调用方应继续落到 ask。抽出为独立函数是为了让
+ * bashToolHasPermission 保持在 Bun 的 feature() DCE 复杂度阈值之下。
  */
 function checkEarlyExitDeny(
   input: z.infer<typeof BashTool.inputSchema>,
@@ -1415,18 +1395,18 @@ function checkEarlyExitDeny(
 }
 
 /**
- * checkSemantics-path deny enforcement. Calls checkEarlyExitDeny (exact-match
- * + full-command prefix deny), then checks each individual SimpleCommand .text
- * span against prefix deny rules. The per-subcommand check is needed because
- * filterRulesByContentsMatchingInput has a compound-command guard
- * (splitCommand().length > 1 → prefix rules return false) that defeats
- * `Bash(eval:*)` matching against a full pipeline like `echo foo | eval rm`.
- * Each SimpleCommand span is a single command, so the guard doesn't fire.
+ * checkSemantics 路径的 deny 执行。先调用 checkEarlyExitDeny（精确匹配
+ * + 完整命令 prefix deny），再逐个检查每个 SimpleCommand 的 .text 文本段
+ * 是否命中 prefix deny 规则。逐子命令检查是必要的，因为
+ * filterRulesByContentsMatchingInput 有复合命令守卫
+ *（splitCommand().length > 1 → prefix 规则返回 false），会使 `Bash(eval:*)`
+ * 无法匹配 `echo foo | eval rm` 这类完整管道。每个 SimpleCommand 文本段
+ * 是单条命令，因此守卫不会触发。
  *
- * Separate helper (not folded into checkEarlyExitDeny or inlined at the call
- * site) because bashToolHasPermission is tight against Bun's feature() DCE
- * complexity threshold — adding even ~5 lines there breaks
- * feature('BASH_CLASSIFIER') evaluation and drops pendingClassifierCheck.
+ * 独立为辅助函数（不合并进 checkEarlyExitDeny 或内联到调用点）是因为
+ * bashToolHasPermission 已紧贴 Bun 的 feature() DCE 复杂度阈值——
+ * 在那里多加约 5 行就会破坏 feature('BASH_CLASSIFIER') 求值并丢弃
+ * pendingClassifierCheck。
  */
 function checkSemanticsDeny(
   input: z.infer<typeof BashTool.inputSchema>,
@@ -1453,8 +1433,8 @@ function checkSemanticsDeny(
 }
 
 /**
- * Builds the pending classifier check metadata if classifier is enabled and has allow descriptions.
- * Returns undefined if classifier is disabled, in auto mode, or no allow descriptions exist.
+ * 当分类器已启用且存在 allow 描述时，构建待处理的分类器检查元数据。
+ * 若分类器被禁用、处于 auto 模式或无 allow 描述，则返回 undefined。
  */
 function buildPendingClassifierCheck(
   command: string,
@@ -1463,7 +1443,7 @@ function buildPendingClassifierCheck(
   if (!isClassifierPermissionsEnabled()) {
     return undefined
   }
-  // Skip in auto mode - auto mode classifier handles all permission decisions
+  // 在 auto 模式下跳过——auto 模式分类器会处理所有权限决策
   if (feature('TRANSCRIPT_CLASSIFIER') && toolPermissionContext.mode === 'auto')
     return undefined
   if (toolPermissionContext.mode === 'bypassPermissions') return undefined
@@ -1483,10 +1463,10 @@ function buildPendingClassifierCheck(
 const speculativeChecks = new Map<string, Promise<ClassifierResult>>()
 
 /**
- * Start a speculative bash allow classifier check early, so it runs in
- * parallel with pre-tool hooks, deny/ask classifiers, and permission dialog setup.
- * The result can be consumed later by executeAsyncClassifierCheck via
- * consumeSpeculativeClassifierCheck.
+ * 提前启动投机式 bash allow 分类器检查，使其与 pre-tool hooks、
+ * deny/ask 分类器以及权限对话框的初始化并行运行。
+ * 结果随后可通过 executeAsyncClassifierCheck 经
+ * consumeSpeculativeClassifierCheck 消费。
  */
 export function peekSpeculativeClassifierCheck(
   command: string,
@@ -1500,7 +1480,7 @@ export function startSpeculativeClassifierCheck(
   signal: AbortSignal,
   isNonInteractiveSession: boolean,
 ): boolean {
-  // Same guards as buildPendingClassifierCheck
+  // 与 buildPendingClassifierCheck 相同的守卫
   if (!isClassifierPermissionsEnabled()) return false
   if (feature('TRANSCRIPT_CLASSIFIER') && toolPermissionContext.mode === 'auto')
     return false
@@ -1519,16 +1499,16 @@ export function startSpeculativeClassifierCheck(
     signal,
     isNonInteractiveSession,
   )
-  // Prevent unhandled rejection if the signal aborts before this promise is consumed.
-  // The original promise (which may reject) is still stored in the Map for consumers to await.
+  // 防止在 promise 被消费之前 signal 中止时产生未处理拒绝。
+  // 原始 promise（可能 reject）仍保存在 Map 中供消费方 await。
   promise.catch(() => {})
   speculativeChecks.set(command, promise)
   return true
 }
 
 /**
- * Consume a speculative classifier check result for the given command.
- * Returns the promise if one exists (and removes it from the map), or undefined.
+ * 消费给定命令的投机式分类器检查结果。
+ * 若存在则返回对应 promise（并从 map 中移除），否则返回 undefined。
  */
 export function consumeSpeculativeClassifierCheck(
   command: string,
@@ -1545,12 +1525,11 @@ export function clearSpeculativeChecks(): void {
 }
 
 /**
- * Await a pending classifier check and return a PermissionDecisionReason if
- * high-confidence allow, or undefined otherwise.
+ * 等待一个待处理的分类器检查，若为高置信度 allow 则返回
+ * PermissionDecisionReason，否则返回 undefined。
  *
- * Used by swarm agents (both tmux and in-process) to gate permission
- * forwarding: run the classifier first, and only escalate to the leader
- * if the classifier doesn't auto-approve.
+ * 被 swarm agents（tmux 和进程内）用于门控权限转发：
+ * 先运行分类器，仅当分类器未自动批准时才上报给 leader。
  */
 export async function awaitClassifierAutoApproval(
   pendingCheck: PendingClassifierCheck,
@@ -1593,14 +1572,14 @@ type AsyncClassifierCheckCallbacks = {
 }
 
 /**
- * Execute the bash allow classifier check asynchronously.
- * This runs in the background while the permission prompt is shown.
- * If the classifier allows with high confidence and the user hasn't interacted, auto-approves.
+ * 异步执行 bash allow 分类器检查。
+ * 此函数在权限提示显示时于后台运行。
+ * 若分类器以高置信度 allow 且用户尚未交互，则自动批准。
  *
- * @param pendingCheck - Classifier check metadata from bashToolHasPermission
- * @param signal - Abort signal
- * @param isNonInteractiveSession - Whether this is a non-interactive session
- * @param callbacks - Callbacks to check if we should continue and handle approval
+ * @param pendingCheck - 来自 bashToolHasPermission 的分类器检查元数据
+ * @param signal - 中止 signal
+ * @param isNonInteractiveSession - 是否为非交互会话
+ * @param callbacks - 用于检查是否应继续并处理批准的回调
  */
 export async function executeAsyncClassifierCheck(
   pendingCheck: { command: string; cwd: string; descriptions: string[] },
@@ -1624,9 +1603,9 @@ export async function executeAsyncClassifierCheck(
           isNonInteractiveSession,
         )
   } catch (error: unknown) {
-    // When the coordinator session is cancelled, the abort signal fires and the
-    // classifier API call rejects with APIUserAbortError. This is expected and
-    // should not surface as an unhandled promise rejection.
+    // 当 coordinator 会话被取消时，abort signal 触发，
+    // 分类器 API 调用会以 APIUserAbortError reject。这是预期行为，
+    // 不应作为未处理 promise 拒绝冒泡。
     if (error instanceof APIUserAbortError || error instanceof AbortError) {
       callbacks.onComplete?.()
       return
@@ -1637,8 +1616,7 @@ export async function executeAsyncClassifierCheck(
 
   logClassifierResultForAnts(command, 'allow', descriptions, classifierResult)
 
-  // Don't auto-approve if user already made a decision or has interacted
-  // with the permission dialog (e.g., arrow keys, tab, typing)
+  // 若用户已做出决策或已与权限对话框交互（方向键、tab、输入等），则不自动批准
   if (!callbacks.shouldContinue()) return
 
   if (
@@ -1652,13 +1630,13 @@ export async function executeAsyncClassifierCheck(
       reason: `Allowed by prompt rule: "${classifierResult.matchedDescription}"`,
     })
   } else {
-    // No match — notify so the checking indicator is cleared
+    // 无命中——通知调用方清除检查指示器
     callbacks.onComplete?.()
   }
 }
 
 /**
- * The main implementation to check if we need to ask for user permission to call BashTool with a given input
+ * 检查是否需要请求用户许可以用给定输入调用 BashTool 的主实现
  */
 export async function bashToolHasPermission(
   input: z.infer<typeof BashTool.inputSchema>,
@@ -1667,24 +1645,24 @@ export async function bashToolHasPermission(
 ): Promise<PermissionResult> {
   let appState = context.getAppState()
 
-  // 0. AST-based security parse. This replaces both tryParseShellCommand
-  // (the shell-quote pre-check) and the bashCommandIsSafe misparsing gate.
-  // tree-sitter produces either a clean SimpleCommand[] (quotes resolved,
-  // no hidden substitutions) or 'too-complex' — which is exactly the signal
-  // we need to decide whether splitCommand's output can be trusted.
+  // 0. 基于 AST 的安全解析。它同时替代了 tryParseShellCommand
+  //（shell-quote 预检查）和 bashCommandIsSafe 误解析闸门。
+  // tree-sitter 要么产生干净的 SimpleCommand[]（引号已解析、无隐藏替换），
+  // 要么返回 'too-complex'——这正是我们判断 splitCommand 输出是否可信
+  // 所需的信号。
   //
-  // When tree-sitter WASM is unavailable OR the injection check is disabled
-  // via env var, we fall back to the old path (legacy gate at ~1370 runs).
+  // 当 tree-sitter WASM 不可用或通过环境变量禁用注入检查时，
+  // 回退到旧路径（约 1370 行的旧版闸门会运行）。
   const injectionCheckDisabled = isEnvTruthy(
     process.env.CLAUDE_CODE_DISABLE_COMMAND_INJECTION_CHECK,
   )
-  // GrowthBook killswitch for shadow mode — when off, skip the native parse
-  // entirely. Computed once; feature() must stay inline in the ternary below.
+  // GrowthBook 为 shadow 模式提供的 killswitch——关闭时整体跳过原生解析。
+  // 只计算一次；feature() 必须在下面的三元表达式中保持内联。
   const shadowEnabled = feature('TREE_SITTER_BASH_SHADOW')
     ? getFeatureValue_CACHED_MAY_BE_STALE('tengu_birch_trellis', true)
     : false
-  // Parse once here; the resulting AST feeds both parseForSecurityFromAst
-  // and bashToolCheckCommandOperatorPermissions.
+  // 这里只解析一次；得到的 AST 会同时供给 parseForSecurityFromAst
+  // 和 bashToolCheckCommandOperatorPermissions。
   let astRoot = injectionCheckDisabled
     ? null
     : feature('TREE_SITTER_BASH_SHADOW') && !shadowEnabled
@@ -1698,12 +1676,11 @@ export async function bashToolHasPermission(
   let astCommands: SimpleCommand[] | undefined
   let shadowLegacySubs: string[] | undefined
 
-  // Shadow-test tree-sitter: record its verdict, then force parse-unavailable
-  // so the legacy path stays authoritative. parseCommand stays gated on
-  // TREE_SITTER_BASH (not SHADOW) so legacy internals remain pure regex.
-  // One event per bash call captures both divergence AND unavailability
-  // reasons; module-load failures are separately covered by the
-  // session-scoped tengu_tree_sitter_load event.
+  // Shadow-test tree-sitter：记录其判定结果，然后强制设为 parse-unavailable，
+  // 以便旧路径保持权威。parseCommand 仍然以 TREE_SITTER_BASH（而非 SHADOW）
+  // 为 gate，因此旧版内部仍保持纯正则实现。每次 bash 调用记录一个事件，
+  // 同时捕获分歧与不可用原因；模块加载失败由会话级
+  // tengu_tree_sitter_load 事件单独覆盖。
   if (feature('TREE_SITTER_BASH_SHADOW')) {
     const available = astResult.kind !== 'parse-unavailable'
     let tooComplex = false
@@ -1733,16 +1710,16 @@ export async function bashToolHasPermission(
       killswitchOff: !shadowEnabled,
       cmdOverLength: input.command.length > 10000,
     })
-    // Always force legacy — shadow mode is observational only.
+    // 始终强制走旧路径——shadow 模式仅用于观察。
     astResult = { kind: 'parse-unavailable' }
     astRoot = null
   }
 
   if (astResult.kind === 'too-complex') {
-    // Parse succeeded but found structure we can't statically analyze
-    // (command substitution, expansion, control flow, parser differential).
-    // Respect exact-match deny/ask/allow, then prefix/wildcard deny. Only
-    // fall through to ask if no deny matched — don't downgrade deny to ask.
+    // 解析成功，但发现了我们无法静态分析的结构
+    //（命令替换、展开、控制流、解析器差异）。
+    // 尊重精确匹配的 deny/ask/allow，然后检查 prefix/wildcard deny。
+    // 仅当无 deny 命中时才落到 ask——不要把 deny 降级为 ask。
     const earlyExit = checkEarlyExitDeny(input, appState.toolPermissionContext)
     if (earlyExit !== null) return earlyExit
     const decisionReason: PermissionDecisionReason = {
@@ -1769,12 +1746,12 @@ export async function bashToolHasPermission(
   }
 
   if (astResult.kind === 'simple') {
-    // Clean parse: check semantic-level concerns (zsh builtins, eval, etc.)
-    // that tokenize fine but are dangerous by name.
+    // 干净解析：检查语义层面的问题（zsh builtins、eval 等）——
+    // 这些命令能正常 tokenize，但因其名字本身就危险。
     const sem = checkSemantics(astResult.commands)
     if (!sem.ok) {
-      // Same deny-rule enforcement as the too-complex path: a user with
-      // `Bash(eval:*)` deny expects `eval "rm"` blocked, not downgraded.
+      // 与 too-complex 路径相同的 deny 规则执行：设置了
+      // `Bash(eval:*)` deny 的用户期望 `eval "rm"` 被拦截，而不是被降级。
       const earlyExit = checkSemanticsDeny(
         input,
         appState.toolPermissionContext,
@@ -1792,22 +1769,20 @@ export async function bashToolHasPermission(
         suggestions: [],
       }
     }
-    // Stash the tokenized subcommands for use below. Downstream code (rule
-    // matching, path extraction, cd detection) still operates on strings, so
-    // we pass the original source span for each SimpleCommand. Downstream
-    // processing (stripSafeWrappers, parseCommandArguments) re-tokenizes
-    // these spans — that re-tokenization has known bugs (stripCommentLines
-    // mishandles newlines inside quotes), but checkSemantics already caught
-    // any argv element containing a newline, so those bugs can't bite here.
-    // Migrating downstream to operate on argv directly is a later commit.
+    // 把 token 化后的子命令暂存起来供下面使用。下游代码（规则匹配、
+    // 路径提取、cd 检测）仍基于字符串工作，因此我们传入每个 SimpleCommand
+    // 的原始源文本段。下游处理（stripSafeWrappers、parseCommandArguments）
+    // 会对这些文本段重新 tokenize——这种重新 tokenize 存在已知 bug
+    //（stripCommentLines 对引号内换行处理有误），但 checkSemantics 已经
+    // 捕获了任何包含换行的 argv 元素，因此这些 bug 在此不会触发。
+    // 把下游迁移到直接基于 argv 工作是后续提交。
     astSubcommands = astResult.commands.map(c => c.text)
     astRedirects = astResult.commands.flatMap(c => c.redirects)
     astCommands = astResult.commands
   }
 
-  // Legacy shell-quote pre-check. Only reached on 'parse-unavailable'
-  // (tree-sitter not loaded OR TREE_SITTER_BASH feature gated off). Falls
-  // through to the full legacy path below.
+  // 旧版 shell-quote 预检查。仅在 'parse-unavailable'（tree-sitter 未加载
+  // 或 TREE_SITTER_BASH feature 关闭）时才会到达。继续落到下面的完整旧路径。
   if (astResult.kind === 'parse-unavailable') {
     logForDebugging(
       'bashToolHasPermission: tree-sitter unavailable, using legacy shell-quote path',
@@ -1826,8 +1801,8 @@ export async function bashToolHasPermission(
     }
   }
 
-  // Check sandbox auto-allow (which respects explicit deny/ask rules)
-  // Only call this if sandboxing and auto-allow are both enabled
+  // 检查沙箱自动放行（会尊重显式 deny/ask 规则）
+  // 仅当沙箱和 auto-allow 都启用时才调用
   if (
     SandboxManager.isSandboxingEnabled() &&
     SandboxManager.isAutoAllowBashIfSandboxedEnabled() &&
@@ -1842,20 +1817,20 @@ export async function bashToolHasPermission(
     }
   }
 
-  // Check exact match first
+  // 先检查精确匹配
   const exactMatchResult = bashToolCheckExactMatchPermission(
     input,
     appState.toolPermissionContext,
   )
 
-  // Exact command was denied
+  // 精确命令被 deny
   if (exactMatchResult.behavior === 'deny') {
     return exactMatchResult
   }
 
-  // Check Bash prompt deny and ask rules in parallel (both use Haiku).
-  // Deny takes precedence over ask, and both take precedence over allow rules.
-  // Skip when in auto mode - auto mode classifier handles all permission decisions
+  // 并行检查 Bash prompt deny 和 ask 规则（均使用 Haiku）。
+  // Deny 优先于 ask，两者都优先于 allow 规则。
+  // 在 auto 模式下跳过——auto 模式分类器处理所有权限决策
   if (
     isClassifierPermissionsEnabled() &&
     !(
@@ -1917,7 +1892,7 @@ export async function bashToolHasPermission(
         )
       }
 
-      // Deny takes precedence
+      // Deny 优先
       if (denyResult?.matches && denyResult.confidence === 'high') {
         return {
           behavior: 'deny',
@@ -1930,9 +1905,8 @@ export async function bashToolHasPermission(
       }
 
       if (askResult?.matches && askResult.confidence === 'high') {
-        // Skip the Haiku call — the UI computes the prefix locally
-        // and lets the user edit it. Still call the injected function
-        // when tests override it.
+        // 跳过 Haiku 调用——UI 本地计算 prefix 并允许用户编辑。
+        // 当测试注入了自定义函数时仍会调用它。
         let suggestions: PermissionUpdate[]
         if (getCommandSubcommandPrefixFn === getCommandSubcommandPrefix) {
           suggestions = suggestionForExactCommand(input.command)
@@ -1970,9 +1944,9 @@ export async function bashToolHasPermission(
     }
   }
 
-  // Check for non-subcommand Bash operators like `>`, `|`, etc.
-  // This must happen before dangerous path checks so that piped commands
-  // are handled by the operator logic (which generates "multiple operations" messages)
+  // 检查非子命令的 Bash 操作符，如 `>`、`|` 等。
+  // 这必须发生在危险路径检查之前，以便管道命令由操作符逻辑处理
+  //（后者会生成“多个操作”消息）
   const commandOperatorResult = await checkCommandOperatorPermissions(
     input,
     (i: z.infer<typeof BashTool.inputSchema>) =>
@@ -1981,24 +1955,22 @@ export async function bashToolHasPermission(
     astRoot,
   )
   if (commandOperatorResult.behavior !== 'passthrough') {
-    // SECURITY FIX: When pipe segment processing returns 'allow', we must still validate
-    // the ORIGINAL command. The pipe segment processing strips redirections before
-    // checking each segment, so commands like:
+    // 安全修复：当管道段处理返回 'allow' 时，仍必须校验原始命令。
+    // 管道段处理在检查每段之前会剥离重定向，因此如下命令：
     //   echo 'x' | xargs printf '%s' >> /tmp/file
-    // would have both segments allowed (echo and xargs printf) but the >> redirection
-    // would bypass validation. We must check:
-    // 1. Path constraints for output redirections
-    // 2. Command safety for dangerous patterns (backticks, etc.) in redirect targets
+    // 会让两段都通过（echo 与 xargs printf），但 >> 重定向会绕过校验。
+    // 我们必须检查：
+    // 1. 输出重定向的路径约束
+    // 2. 重定向目标中危险模式（反引号等）的命令安全检查
     if (commandOperatorResult.behavior === 'allow') {
-      // Check for dangerous patterns (backticks, $(), etc.) in the original command
-      // This catches cases like: echo x | xargs echo > `pwd`/evil.txt
-      // where the backtick is in the redirect target (stripped from segments)
-      // Gate on AST: when astSubcommands is non-null, tree-sitter already
-      // validated structure (backticks/$() in redirect targets would have
-      // returned too-complex). Matches gating at ~1481, ~1706, ~1755.
-      // Avoids FP: `find -exec {} \; | grep x` tripping on backslash-;.
-      // bashCommandIsSafe runs the full legacy regex battery (~20 patterns) —
-      // only call it when we'll actually use the result.
+      // 检查原始命令中的危险模式（反引号、$() 等）。
+      // 这能捕获如下情况：echo x | xargs echo > `pwd`/evil.txt
+      // 反引号位于重定向目标中（从各段中被剥离）。
+      // 以 AST 为 gate：当 astSubcommands 非 null 时，tree-sitter 已校验结构
+      //（重定向目标中的反引号/$() 会返回 too-complex）。与约 1481、1706、
+      // 1755 行的 gate 一致。避免误报：`find -exec {} \; | grep x` 因
+      // 反斜杠-; 误判。bashCommandIsSafe 运行完整的旧版 regex 集合（约 20 个
+      // 模式）——仅当我们确实要用其结果时才调用。
       const safetyResult =
         astSubcommands === null
           ? await bashCommandIsSafeAsync(input.command)
@@ -2008,7 +1980,7 @@ export async function bashToolHasPermission(
         safetyResult.behavior !== 'passthrough' &&
         safetyResult.behavior !== 'allow'
       ) {
-        // Attach pending classifier check - may auto-approve before user responds
+        // 挂载待处理的分类器检查——可能在用户响应前自动批准
         appState = context.getAppState()
         return {
           behavior: 'ask',
@@ -2036,12 +2008,12 @@ export async function bashToolHasPermission(
       }
 
       appState = context.getAppState()
-      // SECURITY: Compute compoundCommandHasCd from the full command, NOT
-      // hardcode false. The pipe-handling path previously passed `false` here,
-      // disabling the cd+redirect check at pathValidation.ts:821. Appending
-      // `| echo done` to `cd .claude && echo x > settings.json` routed through
-      // this path with compoundCommandHasCd=false, letting the redirect write
-      // to .claude/settings.json without the cd+redirect block firing.
+      // 安全要求：从完整命令计算 compoundCommandHasCd，绝不能硬编码 false。
+      // 管道处理路径此前在此处传入 `false`，禁用了 pathValidation.ts:821
+      // 的 cd+redirect 检查。在 `cd .claude && echo x > settings.json` 后面
+      // 拼接 `| echo done` 会经此路径并以 compoundCommandHasCd=false 处理，
+      // 使重定向在 cd+redirect 拦截未触发的情况下写入
+      // .claude/settings.json。
       const pathResult = checkPathConstraints(
         input,
         getCwd(),
@@ -2055,8 +2027,8 @@ export async function bashToolHasPermission(
       }
     }
 
-    // When pipe segments return 'ask' (individual segments not allowed by rules),
-    // attach pending classifier check - may auto-approve before user responds.
+    // 当管道各段返回 'ask'（单个段未被规则放行）时，
+    // 挂载待处理的分类器检查——可能在用户响应前自动批准。
     if (commandOperatorResult.behavior === 'ask') {
       appState = context.getAppState()
       return {
@@ -2075,13 +2047,12 @@ export async function bashToolHasPermission(
     return commandOperatorResult
   }
 
-  // SECURITY: Legacy misparsing gate. Only runs when the tree-sitter module
-  // is not loaded. Timeout/abort is fail-closed via too-complex (returned
-  // early above), not routed here. When the AST parse succeeded,
-  // astSubcommands is non-null and we've already validated structure; this
-  // block is skipped entirely. The AST's 'too-complex' result subsumes
-  // everything isBashSecurityCheckForMisparsing covered — both answer the
-  // same question: "can splitCommand be trusted on this input?"
+  // 安全要求：旧版误解析闸门。仅在 tree-sitter 模块未加载时运行。
+  // 超时/中止通过 too-complex 失败闭合（已在上面提前返回），不会路由到这里。
+  // 当 AST 解析成功时，astSubcommands 非 null 且我们已校验结构；
+  // 此代码块整体跳过。AST 的 'too-complex' 结果涵盖了
+  // isBashSecurityCheckForMisparsing 所覆盖的全部情况——二者回答的是同一问题：
+  //“splitCommand 对此输入是否可信？”
   if (
     astSubcommands === null &&
     !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_COMMAND_INJECTION_CHECK)
@@ -2093,10 +2064,9 @@ export async function bashToolHasPermission(
       originalCommandSafetyResult.behavior === 'ask' &&
       originalCommandSafetyResult.isBashSecurityCheckForMisparsing
     ) {
-      // Compound commands with safe heredoc patterns ($(cat <<'EOF'...EOF))
-      // trigger the $() check on the unsplit command. Strip the safe heredocs
-      // and re-check the remainder — if other misparsing patterns exist
-      // (e.g. backslash-escaped operators), they must still block.
+      // 含安全 heredoc 模式（$(cat <<'EOF'...EOF)）的复合命令会触发对未拆分命令的
+      // $() 检查。剥离安全 heredoc 后再检查余下部分——若仍存在其他误解析模式
+      //（例如反斜杠转义的操作符），仍必须拦截。
       const remainder = stripSafeHeredocSubstitutions(input.command)
       const remainderResult =
         remainder !== null ? await bashCommandIsSafeAsync(remainder) : null
@@ -2105,8 +2075,8 @@ export async function bashToolHasPermission(
         (remainderResult?.behavior === 'ask' &&
           remainderResult.isBashSecurityCheckForMisparsing)
       ) {
-        // Allow if the exact command has an explicit allow permission — the user
-        // made a conscious choice to permit this specific command.
+        // 若精确命令有显式 allow 权限则放行——
+        // 用户是有意识地选择允许此具体命令。
         appState = context.getAppState()
         const exactMatchResult = bashToolCheckExactMatchPermission(
           input,
@@ -2115,7 +2085,7 @@ export async function bashToolHasPermission(
         if (exactMatchResult.behavior === 'allow') {
           return exactMatchResult
         }
-        // Attach pending classifier check - may auto-approve before user responds
+        // 挂载待处理的分类器检查——可能在用户响应前自动批准
         const decisionReason: PermissionDecisionReason = {
           type: 'other' as const,
           reason: originalCommandSafetyResult.message,
@@ -2127,7 +2097,7 @@ export async function bashToolHasPermission(
             decisionReason,
           ),
           decisionReason,
-          suggestions: [], // Don't suggest saving a potentially dangerous command
+          suggestions: [], // 不建议保存可能危险的命令
           ...(feature('BASH_CLASSIFIER')
             ? {
                 pendingClassifierCheck: buildPendingClassifierCheck(
@@ -2141,9 +2111,8 @@ export async function bashToolHasPermission(
     }
   }
 
-  // Split into subcommands. Prefer the AST-extracted spans; fall back to
-  // splitCommand only when tree-sitter was unavailable. The cd-cwd filter
-  // strips the `cd ${cwd}` prefix that models like to prepend.
+  // 拆分为子命令。优先使用 AST 提取的文本段；仅在 tree-sitter 不可用时
+  // 回退到 splitCommand。cd-cwd 过滤会剥除模型喜欢加的 `cd ${cwd}` 前缀。
   const cwd = getCwd()
   const cwdMingw =
     getPlatform() === 'windows' ? windowsPathToPosixPath(cwd) : cwd
@@ -2156,9 +2125,9 @@ export async function bashToolHasPermission(
     cwdMingw,
   )
 
-  // CC-643: Cap subcommand fanout. Only the legacy splitCommand path can
-  // explode — the AST path returns a bounded list (astSubcommands !== null)
-  // or short-circuits to 'too-complex' for structures it can't represent.
+  // CC-643：限制子命令扇出。只有旧版 splitCommand 路径可能爆炸——
+  // AST 路径返回有界列表（astSubcommands !== null）或对其无法表示的结构
+  // 短路为 'too-complex'。
   if (
     astSubcommands === null &&
     subcommands.length > MAX_SUBCOMMANDS_FOR_SECURITY_CHECK
@@ -2178,7 +2147,7 @@ export async function bashToolHasPermission(
     }
   }
 
-  // Ask if there are multiple `cd` commands
+  // 若存在多个 `cd` 命令则需询问
   const cdCommands = subcommands.filter(subCommand =>
     isNormalizedCdCommand(subCommand),
   )
@@ -2195,17 +2164,17 @@ export async function bashToolHasPermission(
     }
   }
 
-  // Track if compound command contains cd for security validation
-  // This prevents bypassing path checks via: cd .claude/ && mv test.txt settings.json
+  // 跟踪复合命令是否包含 cd，用于安全校验
+  // 这能防止通过 cd .claude/ && mv test.txt settings.json 绕过路径检查
   const compoundCommandHasCd = cdCommands.length > 0
 
-  // SECURITY: Block compound commands that have both cd AND git
-  // This prevents sandbox escape via: cd /malicious/dir && git status
-  // where the malicious directory contains a bare git repo with core.fsmonitor.
-  // This check must happen HERE (before subcommand-level permission checks)
-  // because bashToolCheckPermission checks each subcommand independently via
-  // BashTool.isReadOnly(), which would re-derive compoundCommandHasCd=false
-  // from just "git status" alone, bypassing the readOnlyValidation.ts check.
+  // 安全要求：拦截同时包含 cd 和 git 的复合命令
+  // 这能防止通过 cd /malicious/dir && git status 逃逸沙箱——
+  // 该恶意目录可能包含设置了 core.fsmonitor 的裸 git 仓库。
+  // 此检查必须在此处进行（在子命令级权限检查之前），因为
+  // bashToolCheckPermission 通过 BashTool.isReadOnly() 独立检查每个子命令，
+  // 后者会仅凭 "git status" 重新推导出 compoundCommandHasCd=false，
+  // 绕过 readOnlyValidation.ts 的检查。
   if (compoundCommandHasCd) {
     const hasGitCommand = subcommands.some(cmd =>
       isNormalizedGitCommand(cmd.trim()),
@@ -2224,18 +2193,17 @@ export async function bashToolHasPermission(
     }
   }
 
-  appState = context.getAppState() // re-compute the latest in case the user hit shift+tab
+  appState = context.getAppState() // 重新计算最新值，以防用户按了 shift+tab
 
-  // SECURITY FIX: Check Bash deny/ask rules BEFORE path constraints
-  // This ensures that explicit deny rules like Bash(ls:*) take precedence over
-  // path constraint checks that return 'ask' for paths outside the project.
-  // Without this ordering, absolute paths outside the project (e.g., ls /home)
-  // would bypass deny rules because checkPathConstraints would return 'ask' first.
+  // 安全修复：在路径约束之前检查 Bash deny/ask 规则
+  // 这确保显式 deny 规则（例如 Bash(ls:*)）优先于因路径在项目之外
+  // 而返回 'ask' 的路径约束检查。没有此顺序，项目外的绝对路径
+  //（例如 ls /home）会因 checkPathConstraints 先返回 'ask' 而绕过 deny 规则。
   //
-  // Note: bashToolCheckPermission calls checkPathConstraints internally, which handles
-  // output redirection validation on each subcommand. However, since splitCommand strips
-  // redirections before we get here, we MUST validate output redirections on the ORIGINAL
-  // command AFTER checking deny rules but BEFORE returning results.
+  // 注意：bashToolCheckPermission 内部会调用 checkPathConstraints，
+  // 对每个子命令处理输出重定向校验。但由于 splitCommand 在到达这里之前
+  // 已剥离了重定向，我们必须在检查 deny 规则之后、返回结果之前，
+  // 对原始命令的输出重定向进行校验。
   const subcommandPermissionDecisions = subcommands.map((command, i) =>
     bashToolCheckPermission(
       { command },
@@ -2245,7 +2213,7 @@ export async function bashToolHasPermission(
     ),
   )
 
-  // Deny if any subcommands are denied
+  // 任一子命令被 deny 则拒绝
   const deniedSubresult = subcommandPermissionDecisions.find(
     _ => _.behavior === 'deny',
   )
@@ -2265,14 +2233,14 @@ export async function bashToolHasPermission(
     }
   }
 
-  // Validate output redirections on the ORIGINAL command (before splitCommand stripped them)
-  // This must happen AFTER checking deny rules but BEFORE returning results.
-  // Output redirections like "> /etc/passwd" are stripped by splitCommand, so the per-subcommand
-  // checkPathConstraints calls won't see them. We validate them here on the original input.
-  // SECURITY: When AST data is available, pass AST-derived redirects so
-  // checkPathConstraints uses them directly instead of re-parsing with
-  // shell-quote (which has a known single-quote backslash misparsing bug
-  // that can silently hide redirect operators).
+  // 在原始命令上校验输出重定向（splitCommand 已在之前剥离了它们）
+  // 这必须在检查 deny 规则之后、返回结果之前进行。
+  // 像 "> /etc/passwd" 这样的输出重定向会被 splitCommand 剥离，因此每个
+  // 子命令的 checkPathConstraints 调用看不到它们。我们在此处对原始输入
+  // 进行校验。
+  // 安全要求：当 AST 数据可用时，传入 AST 派生的重定向，以便
+  // checkPathConstraints 直接使用它们，而不是再用 shell-quote 解析
+  //（后者存在已知的单引号反斜杠误解析 bug，可能静默隐藏重定向操作符）。
   const pathResult = checkPathConstraints(
     input,
     getCwd(),
@@ -2293,29 +2261,28 @@ export async function bashToolHasPermission(
     _ => _.behavior !== 'allow',
   )
 
-  // SECURITY (GH#28784): Only short-circuit on a path-constraint 'ask' when no
-  // subcommand independently produced an 'ask'. checkPathConstraints re-runs the
-  // path-command loop on the full input, so `cd <outside-project> && python3 foo.py`
-  // produces an ask with ONLY a Read(<dir>/**) suggestion — the UI renders it as
-  // "Yes, allow reading from <dir>/" and picking that option silently approves
-  // python3. When a subcommand has its own ask (e.g. the cd subcommand's own
-  // path-constraint ask), fall through: either the askSubresult short-circuit
-  // below fires (single non-allow subcommand) or the merge flow collects Bash
-  // rule suggestions for every non-allow subcommand. The per-subcommand
-  // checkPathConstraints call inside bashToolCheckPermission already captures
-  // the Read rule for the cd target in that path.
+  // 安全要求（GH#28784）：仅当没有任何子命令独立产生 'ask' 时，
+  // 才在路径约束 'ask' 上短路。checkPathConstraints 会在完整输入上重跑
+  // 路径-命令循环，因此 `cd <outside-project> && python3 foo.py` 会产生一个
+  // 仅带 Read(<dir>/**) 建议的 ask——UI 把它渲染为“Yes, allow reading from
+  // <dir>/”，选择该项会静默批准 python3。当某个子命令有自己的 ask
+  //（例如 cd 子命令自身的路径约束 ask）时，继续往下走：要么触发下面
+  // askSubresult 的短路（单个非 allow 子命令），要么由合并流程为每个
+  // 非 allow 子命令收集 Bash 规则建议。bashToolCheckPermission 内部的
+  // 每子命令 checkPathConstraints 调用已在那种路径中捕获了 cd 目标的
+  // Read 规则。
   //
-  // When no subcommand asked (all allow, or all passthrough like `printf > file`),
-  // pathResult IS the only ask — return it so redirection checks surface.
+  // 当没有子命令 ask 时（全部 allow，或全部像 `printf > file` 那样
+  // passthrough），pathResult 就是唯一的 ask——返回它以暴露重定向检查。
   if (pathResult.behavior === 'ask' && askSubresult === undefined) {
     return pathResult
   }
 
-  // Ask if any subcommands require approval (e.g., ls/cd outside boundaries).
-  // Only short-circuit when exactly ONE subcommand needs approval — if multiple
-  // do (e.g. cd-outside-project ask + python3 passthrough), fall through to the
-  // merge flow so the prompt surfaces Bash rule suggestions for all of them
-  // instead of only the first ask's Read rule (GH#28784).
+  // 任一子命令需要审批（例如 ls/cd 超出边界）则需询问。
+  // 仅当恰好一个子命令需要审批时才短路——若有多个
+  //（例如 cd-outside-project ask + python3 passthrough），继续落到合并流程，
+  // 让提示为所有这些子命令展示 Bash 规则建议，而不是只显示第一个 ask 的
+  // Read 规则（GH#28784）。
   if (askSubresult !== undefined && nonAllowCount === 1) {
     return {
       ...askSubresult,
@@ -2330,24 +2297,23 @@ export async function bashToolHasPermission(
     }
   }
 
-  // Allow if exact command was allowed
+  // 精确命令被 allow 时放行
   if (exactMatchResult.behavior === 'allow') {
     return exactMatchResult
   }
 
-  // If all subcommands are allowed via exact or prefix match, allow the
-  // command — but only if no command injection is possible. When the AST
-  // parse succeeded, each subcommand is already known-safe (no hidden
-  // substitutions, no structural tricks); the per-subcommand re-check is
-  // redundant. When on the legacy path, re-run bashCommandIsSafeAsync per sub.
+  // 若所有子命令都经精确或 prefix 匹配被 allow，则放行命令——
+  // 但前提是不存在命令注入可能。当 AST 解析成功时，每个子命令都已被确认为
+  // 安全（无隐藏替换、无结构性把戏）；对每个子命令重新检查是冗余的。
+  // 在旧路径上，对每个子命令重新运行 bashCommandIsSafeAsync。
   let hasPossibleCommandInjection = false
   if (
     astSubcommands === null &&
     !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_COMMAND_INJECTION_CHECK)
   ) {
-    // CC-643: Batch divergence telemetry into a single logEvent. The per-sub
-    // logEvent was the hot-path syscall driver (each call → /proc/self/stat
-    // via process.memoryUsage()). Aggregate count preserves the signal.
+    // CC-643：把分歧遥测合并为单个 logEvent。此前的每个子命令一次
+    // logEvent 是热路径 syscall 的主要来源（每次调用经
+    // process.memoryUsage() 读取 /proc/self/stat）。聚合计数保留了信号。
     let divergenceCount = 0
     const onDivergence = () => {
       divergenceCount++
@@ -2384,9 +2350,9 @@ export async function bashToolHasPermission(
     }
   }
 
-  // Query Haiku for command prefixes
-  // Skip the Haiku call — the UI computes the prefix locally and
-  // lets the user edit it. Still call when a custom fn is injected (tests).
+  // 向 Haiku 查询命令 prefix
+  // 跳过 Haiku 调用——UI 本地计算 prefix 并允许用户编辑。
+  // 当注入了自定义函数（测试）时仍会调用。
   let commandSubcommandPrefix: Awaited<
     ReturnType<typeof getCommandSubcommandPrefixFn>
   > = null
@@ -2401,8 +2367,8 @@ export async function bashToolHasPermission(
     }
   }
 
-  // If there is only one command, no need to process subcommands
-  appState = context.getAppState() // re-compute the latest in case the user hit shift+tab
+  // 只有一条命令时无需处理子命令
+  appState = context.getAppState() // 重新计算最新值，以防用户按了 shift+tab
   if (subcommands.length === 1) {
     const result = await checkCommandAndSuggestRules(
       { command: subcommands[0]! },
@@ -2411,10 +2377,10 @@ export async function bashToolHasPermission(
       compoundCommandHasCd,
       astSubcommands !== null,
     )
-    // If command wasn't allowed, attach pending classifier check.
-    // At this point, 'ask' can only come from bashCommandIsSafe (security check inside
-    // checkCommandAndSuggestRules), NOT from explicit ask rules - those were already
-    // filtered out at step 13 (askSubresult check). The classifier can bypass security.
+    // 若命令未被 allow，挂载待处理的分类器检查。
+    // 此时 'ask' 只可能来自 bashCommandIsSafe
+    //（checkCommandAndSuggestRules 内部的安全检查），而非来自显式 ask 规则——
+    // 那些已在第 13 步（askSubresult 检查）被过滤掉。分类器可以绕过安全检查。
     if (result.behavior === 'ask' || result.behavior === 'passthrough') {
       return {
         ...result,
@@ -2431,14 +2397,14 @@ export async function bashToolHasPermission(
     return result
   }
 
-  // Check subcommand permission results
+  // 检查子命令权限结果
   const subcommandResults: Map<string, PermissionResult> = new Map()
   for (const subcommand of subcommands) {
     subcommandResults.set(
       subcommand,
       await checkCommandAndSuggestRules(
         {
-          // Pass through input params like `sandbox`
+          // 透传输入参数，例如 `sandbox`
           ...input,
           command: subcommand,
         },
@@ -2450,15 +2416,15 @@ export async function bashToolHasPermission(
     )
   }
 
-  // Allow if all subcommands are allowed
-  // Note that this is different than 6b because we are checking the command injection results.
+  // 若所有子命令都被 allow 则放行
+  // 注意此处与 6b 不同，因为这里会检查命令注入结果。
   if (
     subcommands.every(subcommand => {
       const permissionResult = subcommandResults.get(subcommand)
       return permissionResult?.behavior === 'allow'
     })
   ) {
-    // Keep subcommandResults as PermissionResult for decisionReason
+    // 保留 subcommandResults 作为 PermissionResult 用于 decisionReason
     return {
       behavior: 'allow',
       updatedInput: input,
@@ -2484,18 +2450,17 @@ export async function bashToolHasPermission(
 
       const rules = extractRules(updates)
       for (const rule of rules) {
-        // Use string representation as key for deduplication
+        // 用字符串表示作为 key 进行去重
         const ruleKey = permissionRuleValueToString(rule)
         collectedRules.set(ruleKey, rule)
       }
 
-      // GH#28784 follow-up: security-check asks (compound-cd+write, process
-      // substitution, etc.) carry no suggestions. In a compound command like
-      // `cd ~/out && rm -rf x`, that means only cd's Read rule gets collected
-      // and the UI labels the prompt "Yes, allow reading from <dir>/" — never
-      // mentioning rm. Synthesize a Bash(exact) rule so the UI shows the
-      // chained command. Skip explicit ask rules (decisionReason.type 'rule')
-      // where the user deliberately wants to review each time.
+      // GH#28784 后续：安全检查类 ask（复合 cd+write、进程替换等）
+      // 不携带建议。在像 `cd ~/out && rm -rf x` 这样的复合命令中，这意味着
+      // 只有 cd 的 Read 规则会被收集，UI 会把提示标为“Yes, allow reading
+      // from <dir>/”——从不提及 rm。这里合成一条 Bash(exact) 规则，让 UI
+      // 展示被链式拼接的命令。跳过显式 ask 规则（decisionReason.type
+      // 为 'rule'）——那种情况下用户是有意识地想每次都审查。
       if (
         permissionResult.behavior === 'ask' &&
         rules.length === 0 &&
@@ -2508,8 +2473,8 @@ export async function bashToolHasPermission(
           collectedRules.set(ruleKey, rule)
         }
       }
-      // Note: We only collect rules, not other update types like mode changes
-      // This is appropriate for bash subcommands which primarily need rule suggestions
+      // 注意：这里只收集规则，不收集其他更新类型（如 mode 切换）
+      // 这对 bash 子命令是合适的，它们主要需要规则建议
     }
   }
 
@@ -2518,8 +2483,8 @@ export async function bashToolHasPermission(
     reasons: subcommandResults,
   }
 
-  // GH#11380: Cap at MAX_SUGGESTED_RULES_FOR_COMPOUND. Map preserves insertion
-  // order (subcommand order), so slicing keeps the leftmost N.
+  // GH#11380：截断到 MAX_SUGGESTED_RULES_FOR_COMPOUND。Map 保留插入顺序
+  //（子命令顺序），因此切片会保留最左的 N 个。
   const cappedRules = Array.from(collectedRules.values()).slice(
     0,
     MAX_SUGGESTED_RULES_FOR_COMPOUND,
@@ -2536,10 +2501,10 @@ export async function bashToolHasPermission(
         ]
       : undefined
 
-  // Attach pending classifier check - may auto-approve before user responds.
-  // Behavior is 'ask' if any subcommand was 'ask' (e.g., path constraint or ask
-  // rule) — before the GH#28784 fix, ask subresults always short-circuited above
-  // so this path only saw 'passthrough' subcommands and hardcoded that.
+  // 挂载待处理的分类器检查——可能在用户响应前自动批准。
+  // 若任一子命令为 'ask'（例如路径约束或 ask 规则），behavior 为 'ask'——
+  // 在 GH#28784 修复之前，ask 子结果总是会在上面短路，因此此路径此前
+  // 只会看到 'passthrough' 子命令并硬编码该值。
   return {
     behavior: askSubresult !== undefined ? 'ask' : 'passthrough',
     message: createPermissionRequestMessage(BashTool.name, decisionReason),
@@ -2557,28 +2522,28 @@ export async function bashToolHasPermission(
 }
 
 /**
- * Checks if a subcommand is a git command after normalizing away safe wrappers
- * (env vars, timeout, etc.) and shell quotes.
+ * 在剥离安全 wrapper（环境变量、timeout 等）和 shell 引号之后，
+ * 检查子命令是否是 git 命令。
  *
- * SECURITY: Must normalize before matching to prevent bypasses like:
- *   'git' status    — shell quotes hide the command from a naive regex
- *   NO_COLOR=1 git status — env var prefix hides the command
+ * 安全要求：匹配前必须先做归一化，以防如下绕过：
+ *   'git' status    — shell 引号把命令藏起来，逃避朴素的 regex
+ *   NO_COLOR=1 git status — 环境变量前缀把命令藏起来
  */
 export function isNormalizedGitCommand(command: string): boolean {
-  // Fast path: catch the most common case before any parsing
+  // 快速路径：在任何解析之前先捕获最常见的情况
   if (command.startsWith('git ') || command === 'git') {
     return true
   }
   const stripped = stripSafeWrappers(command)
   const parsed = tryParseShellCommand(stripped)
   if (parsed.success && parsed.tokens.length > 0) {
-    // Direct git command
+    // 直接的 git 命令
     if (parsed.tokens[0] === 'git') {
       return true
     }
-    // "xargs git ..." — xargs runs git in the current directory,
-    // so it must be treated as a git command for cd+git security checks.
-    // This matches the xargs prefix handling in filterRulesByContentsMatchingInput.
+    // "xargs git ..."——xargs 会在当前目录运行 git，
+    // 因此必须将其视为 git 命令以进行 cd+git 安全校验。
+    // 这与 filterRulesByContentsMatchingInput 中的 xargs prefix 处理一致。
     if (parsed.tokens[0] === 'xargs' && parsed.tokens.includes('git')) {
       return true
     }
@@ -2588,17 +2553,17 @@ export function isNormalizedGitCommand(command: string): boolean {
 }
 
 /**
- * Checks if a subcommand is a cd command after normalizing away safe wrappers
- * (env vars, timeout, etc.) and shell quotes.
+ * 在剥离安全 wrapper（环境变量、timeout 等）和 shell 引号之后，
+ * 检查子命令是否是 cd 命令。
  *
- * SECURITY: Must normalize before matching to prevent bypasses like:
- *   FORCE_COLOR=1 cd sub — env var prefix hides the cd from a naive /^cd / regex
- *   This mirrors isNormalizedGitCommand to ensure symmetric normalization.
+ * 安全要求：匹配前必须先做归一化，以防如下绕过：
+ *   FORCE_COLOR=1 cd sub — 环境变量前缀把 cd 藏起来，逃避朴素的 /^cd / regex
+ *   这与 isNormalizedGitCommand 对称，以确保归一化方式一致。
  *
- * Also matches pushd/popd — they change cwd just like cd, so
+ * 同时匹配 pushd/popd——它们和 cd 一样会改变 cwd，因此
  *   pushd /tmp/bare-repo && git status
- * must trigger the same cd+git guard. Mirrors PowerShell's
- * DIRECTORY_CHANGE_ALIASES (src/utils/powershell/parser.ts).
+ * 必须触发同样的 cd+git 守卫。对应 PowerShell 的
+ * DIRECTORY_CHANGE_ALIASES（src/utils/powershell/parser.ts）。
  */
 export function isNormalizedCdCommand(command: string): boolean {
   const stripped = stripSafeWrappers(command)
@@ -2611,8 +2576,8 @@ export function isNormalizedCdCommand(command: string): boolean {
 }
 
 /**
- * Checks if a compound command contains any cd command,
- * using normalized detection that handles env var prefixes and shell quotes.
+ * 检查复合命令是否包含任意 cd 命令，
+ * 使用能处理环境变量前缀和 shell 引号的归一化检测。
  */
 export function commandHasAnyCd(command: string): boolean {
   return splitCommand(command).some(subcmd =>

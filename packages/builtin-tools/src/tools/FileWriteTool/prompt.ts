@@ -1,18 +1,18 @@
 import { FILE_READ_TOOL_NAME } from '../FileReadTool/prompt.js'
 
 export const FILE_WRITE_TOOL_NAME = 'Write'
-export const DESCRIPTION = 'Write a file to the local filesystem.'
+export const DESCRIPTION = '将文件写入本地文件系统。'
 
 function getPreReadInstruction(): string {
-  return `\n- If this is an existing file, you MUST use the ${FILE_READ_TOOL_NAME} tool first to read the file's contents. This tool will fail if you did not read the file first.`
+  return `\n- 如果这是一个已存在的文件，你必须先使用 ${FILE_READ_TOOL_NAME} 工具读取文件内容。若未先读取文件，此工具将执行失败。`
 }
 
 export function getWriteToolDescription(): string {
-  return `Writes a file to the local filesystem.
+  return `\u5c06\u6587\u4ef6\u5199\u5165\u672c\u5730\u6587\u4ef6\u7cfb\u7edf\u3002
 
-Usage:
-- This tool will overwrite the existing file if there is one at the provided path.${getPreReadInstruction()}
-- Prefer the Edit tool for modifying existing files \u2014 it only sends the diff. Only use this tool to create new files or for complete rewrites.
-- NEVER create documentation files (*.md) or README files unless explicitly requested by the User.
-- Only use emojis if the user explicitly requests it. Avoid writing emojis to files unless asked.`
+\u7528\u6cd5\uff1a
+- \u5982\u679c\u63d0\u4f9b\u8def\u5f84\u4e0b\u5df2\u6709\u6587\u4ef6\uff0c\u672c\u5de5\u5177\u4f1a\u8986\u76d6\u8be5\u6587\u4ef6\u3002${getPreReadInstruction()}
+- \u4fee\u6539\u5df2\u6709\u6587\u4ef6\u65f6\u4f18\u5148\u4f7f\u7528 Edit \u5de5\u5177 \u2014\u2014 \u5b83\u53ea\u53d1\u9001 diff\u3002\u4ec5\u5728\u521b\u5efa\u65b0\u6587\u4ef6\u6216\u5b8c\u5168\u91cd\u5199\u65f6\u4f7f\u7528\u672c\u5de5\u5177\u3002
+- \u9664\u975e\u7528\u6237\u660e\u786e\u8981\u6c42\uff0c\u5426\u5219\u7edd\u4e0d\u521b\u5efa\u6587\u6863\u6587\u4ef6\uff08*.md\uff09\u6216 README \u6587\u4ef6\u3002
+- \u4ec5\u5728\u7528\u6237\u660e\u786e\u8bf7\u6c42\u65f6\u624d\u4f7f\u7528 emoji\u3002\u9664\u975e\u88ab\u8981\u6c42\uff0c\u5426\u5219\u907f\u514d\u5728\u6587\u4ef6\u4e2d\u5199\u5165 emoji\u3002`
 }

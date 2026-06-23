@@ -2067,9 +2067,9 @@ async function readCachedMarketplace(
 }
 
 /**
- * Get a specific marketplace by name from cache only (no network).
- * Returns null if cache is missing or corrupted.
- * Use this for startup paths that should never block on network.
+ * 仅从缓存中获取指定名称的 marketplace（不进行网络请求）。
+ * 如果缓存缺失或已损坏，返回 null。
+ * 适用于启动路径，绝不应因网络而阻塞。
  */
 export async function getMarketplaceCacheOnly(
   name: string,
@@ -2100,17 +2100,17 @@ export async function getMarketplaceCacheOnly(
 }
 
 /**
- * Get a specific marketplace by name
+ * 按名称获取指定 marketplace
  *
- * First attempts to read from cache. Only fetches from source if:
- * - No cached version exists
- * - Cache is invalid/corrupted
+ * 首先尝试从缓存中读取。仅在以下情况下才会从源端获取：
+ * - 不存在缓存版本
+ * - 缓存无效或已损坏
  *
- * This avoids unnecessary network/git operations on every access.
- * Use refreshMarketplace() to explicitly update from source.
+ * 这样可以避免每次访问时执行不必要的网络/git 操作。
+ * 如需显式从源端更新，请使用 refreshMarketplace()。
  *
- * @param name - The marketplace name to fetch
- * @returns The marketplace object or null if not found/failed
+ * @param name - 要获取的 marketplace 名称
+ * @returns marketplace 对象，未找到或失败时返回 null
  */
 export const getMarketplace = memoize(
   async (name: string): Promise<PluginMarketplace> => {
@@ -2123,10 +2123,10 @@ export const getMarketplace = memoize(
       )
     }
 
-    // Legacy entries (pre-#19708) may have relative paths in global config.
-    // These are meaningless outside the project that wrote them — resolving
-    // against process.cwd() produces the wrong path. Give actionable guidance
-    // instead of a misleading ENOENT.
+    // 旧版条目（pre-#19708）可能在全局配置中包含相对路径。
+    // 这些路径在写入它们的项目之外没有意义——相对于
+    // process.cwd() 解析会产生错误的路径。提供可操作的指导
+    // 而非误导性的 ENOENT。
     if (
       isLocalMarketplaceSource(entry.source) &&
       !isAbsolute(entry.source.path)
@@ -2139,11 +2139,11 @@ export const getMarketplace = memoize(
       )
     }
 
-    // Try to read from disk cache
+    // 尝试从磁盘缓存读取
     try {
       return await readCachedMarketplace(entry.installLocation)
     } catch (error) {
-      // Log cache corruption before re-fetching
+      // 在重新获取前记录缓存损坏
       logForDebugging(
         `Cache corrupted or missing for marketplace ${name}, re-fetching from source: ${errorMessage(error)}`,
         {
@@ -2152,7 +2152,7 @@ export const getMarketplace = memoize(
       )
     }
 
-    // Cache doesn't exist or is invalid, fetch from source
+    // 缓存不存在或无效，从来源获取
     let marketplace: PluginMarketplace
     try {
       ;({ marketplace } = await loadAndCacheMarketplace(entry.source))
@@ -2162,7 +2162,7 @@ export const getMarketplace = memoize(
       )
     }
 
-    // Update lastUpdated only when we actually fetch
+    // 仅在实际获取时更新 lastUpdated
     config[name]!.lastUpdated = new Date().toISOString()
     await saveKnownMarketplacesConfig(config)
 
@@ -2171,12 +2171,12 @@ export const getMarketplace = memoize(
 )
 
 /**
- * Get plugin by ID from cache only (no network calls).
- * Returns null if marketplace cache is missing or corrupted.
- * Use this for startup paths that should never block on network.
+ * 仅从缓存中按 ID 获取插件（无网络调用）。
+ * 如果 marketplace 缓存缺失或损坏则返回 null。
+ * 适用于不应在网络请求上阻塞的启动路径。
  *
- * @param pluginId - The plugin ID in format "name@marketplace"
- * @returns The plugin entry or null if not found/cache missing
+ * @param pluginId - 格式为 "name@marketplace" 的插件 ID
+ * @returns 插件条目，未找到或缓存缺失时返回 null
  */
 export async function getPluginByIdCacheOnly(pluginId: string): Promise<{
   entry: PluginMarketplaceEntry
@@ -2220,25 +2220,25 @@ export async function getPluginByIdCacheOnly(pluginId: string): Promise<{
 }
 
 /**
- * Get plugin by ID from a specific marketplace
+ * 从指定 marketplace 中按 ID 获取插件。
  *
- * First tries cache-only lookup. If cache is missing/corrupted,
- * falls back to fetching from source.
+ * 首先尝试仅缓存查找。如果缓存缺失/损坏，
+ * 回退到从来源获取。
  *
- * @param pluginId - The plugin ID in format "name@marketplace"
- * @returns The plugin entry or null if not found
+ * @param pluginId - 格式为 "name@marketplace" 的插件 ID
+ * @returns 插件条目，未找到时返回 null
  */
 export async function getPluginById(pluginId: string): Promise<{
   entry: PluginMarketplaceEntry
   marketplaceInstallLocation: string
 } | null> {
-  // Try cache-only first (fast path)
+  // 首先尝试仅缓存（快速路径）
   const cached = await getPluginByIdCacheOnly(pluginId)
   if (cached) {
     return cached
   }
 
-  // Cache miss - try fetching from source
+  // 缓存未命中 - 尝试从来源获取
   const { name: pluginName, marketplace: marketplaceName } =
     parsePluginIdentifier(pluginId)
   if (!pluginName || !marketplaceName) {
@@ -2273,37 +2273,37 @@ export async function getPluginById(pluginId: string): Promise<{
 }
 
 /**
- * Refresh all marketplace caches
+ * 刷新所有 marketplace 缓存
  *
- * Updates all configured marketplaces from their sources.
- * Continues refreshing even if some marketplaces fail.
- * Updates lastUpdated timestamps for successful refreshes.
+ * 从其来源更新所有已配置的 marketplace。
+ * 即使某些 marketplace 失败也会继续刷新。
+ * 为成功刷新的更新 lastUpdated 时间戳。
  *
- * This is useful for:
- * - Periodic updates to get new plugins
- * - Syncing after network connectivity is restored
- * - Ensuring caches are up-to-date before browsing
+ * 适用于以下场景：
+ * - 定期更新以获取新插件
+ * - 网络连接恢复后同步
+ * - 浏览前确保缓存是最新的
  *
- * @returns Promise that resolves when all refresh attempts complete
+ * @returns 所有刷新尝试完成后解析的 Promise
  */
 export async function refreshAllMarketplaces(): Promise<void> {
   const config = await loadKnownMarketplacesConfig()
 
   for (const [name, entry] of Object.entries(config)) {
-    // Seed-managed marketplaces are controlled by the seed image — refreshing
-    // them is pointless (registerSeedMarketplaces overwrites on next startup).
+    // 由种子镜像管理的 marketplace — 刷新
+    // 它们毫无意义（registerSeedMarketplaces 在下次启动时覆盖）。
     if (seedDirFor(entry.installLocation)) {
       logForDebugging(
         `Skipping seed-managed marketplace '${name}' in bulk refresh`,
       )
       continue
     }
-    // settings-sourced marketplaces have no upstream — see refreshMarketplace.
+    // 来源于 settings 的 marketplace 没有上游 — 详见 refreshMarketplace。
     if (entry.source.source === 'settings') {
       continue
     }
-    // inc-5046: same GCS intercept as refreshMarketplace() — bulk update
-    // hits this path on `claude plugin marketplace update` (no name arg).
+    // inc-5046：与 refreshMarketplace() 相同的 GCS 拦截 — 批量更新
+    // 在 `claude plugin marketplace update`（无 name 参数）时命中此路径。
     if (name === OFFICIAL_MARKETPLACE_NAME) {
       const sha = await fetchOfficialMarketplaceFromGcs(
         entry.installLocation,
@@ -2324,7 +2324,7 @@ export async function refreshAllMarketplaces(): Promise<void> {
         )
         continue
       }
-      // fall through to git
+      // 回退到 git
     }
     try {
       const { cachePath } = await loadAndCacheMarketplace(entry.source)
@@ -2344,16 +2344,16 @@ export async function refreshAllMarketplaces(): Promise<void> {
 }
 
 /**
- * Refresh a single marketplace cache
+ * 刷新单个 marketplace 缓存
  *
- * Updates a specific marketplace from its source by doing an in-place update.
- * For git sources, runs git pull in the existing directory.
- * For URL sources, re-downloads to the existing file.
- * Clears the memoization cache and updates the lastUpdated timestamp.
+ * 通过就地更新从其来源更新指定的 marketplace。
+ * 对于 git 来源，在现有目录中运行 git pull。
+ * 对于 URL 来源，重新下载到现有文件。
+ * 清除记忆化缓存并更新 lastUpdated 时间戳。
  *
- * @param name - The name of the marketplace to refresh
- * @param onProgress - Optional callback to report progress
- * @throws If marketplace not found or refresh fails
+ * @param name - 要刷新的 marketplace 名称
+ * @param onProgress - 可选的进度回调
+ * @throws 如果 marketplace 未找到或刷新失败
  */
 export async function refreshMarketplace(
   name: string,
@@ -2369,12 +2369,12 @@ export async function refreshMarketplace(
     )
   }
 
-  // Clear the memoization cache for this specific marketplace
+  // 清除此 marketplace 的记忆化缓存
   getMarketplace.cache?.delete?.(name)
 
-  // settings-sourced marketplaces have no upstream to pull. Edits to the
-  // inline plugins array surface as sourceChanged in the reconciler, which
-  // re-materializes via addMarketplaceSource — refresh is not the vehicle.
+  // 来源于 settings 的 marketplace 没有上游可拉取。对
+  // 内联 plugins 数组的编辑会作为 sourceChanged 出现在对账器中，
+  // 对账器通过 addMarketplaceSource 重新物化 — refresh 不是此途径。
   if (entry.source.source === 'settings') {
     logForDebugging(
       `Skipping refresh for settings-sourced marketplace '${name}' — no upstream`,
@@ -2383,13 +2383,13 @@ export async function refreshMarketplace(
   }
 
   try {
-    // For updates, use the existing installLocation directly (in-place update)
+    // 对于更新，直接使用现有的 installLocation（就地更新）
     const installLocation = entry.installLocation
     const source = entry.source
 
-    // Seed-managed marketplaces are controlled by the seed image. Refreshing
-    // would be pointless — registerSeedMarketplaces() overwrites installLocation
-    // back to seed on next startup. Error with guidance instead.
+    // 由种子镜像管理的 marketplace 由种子镜像控制。刷新
+    // 毫无意义 — registerSeedMarketplaces() 在下次启动时将 installLocation
+    // 覆盖回种子。改为给出指导的错误信息。
     const seedDir = seedDirFor(installLocation)
     if (seedDir) {
       throw new Error(
@@ -2398,12 +2398,12 @@ export async function refreshMarketplace(
       )
     }
 
-    // For remote sources (github/git/url), installLocation must be inside the
-    // marketplaces cache dir. A corrupted value (gh-32793, gh-32661 — e.g.
-    // Windows path read on WSL, literal tilde, manual edit) can point at the
-    // user's project. cacheMarketplaceFromGit would then run git ops with that
-    // cwd (git walks up to the user's .git) and fs.rm it on pull failure.
-    // Refuse instead of auto-fixing so the user knows their state is corrupted.
+    // 对于远程来源（github/git/url），installLocation 必须在
+    // marketplaces 缓存目录内。损坏的值（gh-32793, gh-32661 — 例如
+    // Windows 路径在 WSL 上读取、字面波浪号、手动编辑）可能指向
+    // 用户的项目。cacheMarketplaceFromGit 随后会在该 cwd 中运行
+    // git 操作（git 向上遍历到用户的 .git）并在 pull 失败时 fs.rm 它。
+    // 拒绝而非自动修复，以便用户知道其状态已损坏。
     if (!isLocalMarketplaceSource(source)) {
       const cacheDir = resolve(getMarketplacesCacheDir())
       const resolvedLoc = resolve(installLocation)
@@ -2418,10 +2418,10 @@ export async function refreshMarketplace(
       }
     }
 
-    // inc-5046: official marketplace fetches from a GCS mirror instead of
-    // git-cloning GitHub. Special-cased by NAME (not a new source type) so
-    // no data migration is needed — existing known_marketplaces.json entries
-    // still say source:'github', which is true (GCS is a mirror).
+    // inc-5046：官方 marketplace 从 GCS 镜像获取而非
+    // git 克隆 GitHub。按名称特殊处理（不是新的来源类型）所以
+    // 不需要数据迁移 — 现有的 known_marketplaces.json 条目
+    // 仍然说 source:'github'，这是正确的（GCS 是镜像）。
     if (name === OFFICIAL_MARKETPLACE_NAME) {
       const sha = await fetchOfficialMarketplaceFromGcs(
         installLocation,
@@ -2432,20 +2432,20 @@ export async function refreshMarketplace(
         await saveKnownMarketplacesConfig(config)
         return
       }
-      // GCS failed — fall through to git ONLY if the kill-switch allows.
-      // Default true (backend write perms are pending as of inc-5046); flip
-      // to false via GrowthBook once the backend is confirmed live so new
-      // clients NEVER hit GitHub for the official marketplace.
+      // GCS 失败 — 仅当 kill-switch 允许时回退到 git。
+      // 默认为 true（截至 inc-5046 后端写权限待处理）；
+      // 一旦后端确认上线，通过 GrowthBook 切换为 false，
+      // 以便新客户端永远不会为官方 marketplace 访问 GitHub。
       if (
         !getFeatureValue_CACHED_MAY_BE_STALE(
           'tengu_plugin_official_mkt_git_fallback',
           true,
         )
       ) {
-        // Throw, don't return — every other failure path in this function
-        // throws, and callers like ManageMarketplaces.tsx:259 increment
-        // updatedCount on any non-throwing return. A silent return would
-        // report "Updated 1 marketplace" when nothing was refreshed.
+        // 抛出，不返回 — 此函数中的每个其他失败路径
+        // 都抛出，而 ManageMarketplaces.tsx:259 等调用者
+        // 在任何非抛出的返回时递增 updatedCount。静默返回会
+        // 报告"已更新 1 个 marketplace"而实际上没有刷新任何内容。
         throw new Error(
           'Official marketplace GCS fetch failed and git fallback is disabled',
         )
@@ -2453,21 +2453,21 @@ export async function refreshMarketplace(
       logForDebugging('Official marketplace GCS failed; falling back to git', {
         level: 'warn',
       })
-      // ...falls through to source.source === 'github' branch below
+      // ...回退到下方 source.source === 'github' 分支
     }
 
-    // Update based on source type
+    // 根据来源类型更新
     if (source.source === 'github' || source.source === 'git') {
-      // Git sources: do in-place git pull
+      // Git 来源：执行就地 git pull
       if (source.source === 'github') {
-        // Same SSH/HTTPS fallback as loadAndCacheMarketplace: if the pull
-        // succeeds the remote URL in .git/config is used, but a re-clone
-        // needs a URL — pick the right protocol up-front and fall back.
+        // 与 loadAndCacheMarketplace 相同的 SSH/HTTPS 回退：如果 pull
+        // 成功，则使用 .git/config 中的远程 URL，但重新克隆
+        // 需要 URL — 预先选择正确的协议并回退。
         const sshUrl = `git@github.com:${source.repo}.git`
         const httpsUrl = `https://github.com/${source.repo}.git`
 
         if (isEnvTruthy(process.env.CLAUDE_CODE_REMOTE)) {
-          // CCR: always HTTPS (no SSH keys available)
+          // CCR：始终使用 HTTPS（无 SSH 密钥可用）
           await cacheMarketplaceFromGit(
             httpsUrl,
             installLocation,
@@ -2506,7 +2506,7 @@ export async function refreshMarketplace(
           }
         }
       } else {
-        // Explicit git URL: use as-is (no fallback available)
+        // 显式 git URL：按原样使用（无回退可用）
         await cacheMarketplaceFromGit(
           source.url,
           installLocation,
@@ -2516,8 +2516,8 @@ export async function refreshMarketplace(
           options,
         )
       }
-      // Validate that marketplace.json still exists after update
-      // The repo may have been restructured or deprecated
+      // 验证更新后 marketplace.json 仍然存在
+      // 仓库可能已被重构或废弃
       try {
         await readCachedMarketplace(installLocation)
       } catch {
@@ -2537,7 +2537,7 @@ export async function refreshMarketplace(
         )
       }
     } else if (source.source === 'url') {
-      // URL sources: re-download to existing file
+      // URL 来源：重新下载到现有文件
       await cacheMarketplaceFromUrl(
         source.url,
         installLocation,
@@ -2545,15 +2545,15 @@ export async function refreshMarketplace(
         onProgress,
       )
     } else if (isLocalMarketplaceSource(source)) {
-      // Local sources: no remote to update from, but validate the file still exists and is valid
+      // 本地来源：没有可更新的远程，但验证文件仍然存在且有效
       safeCallProgress(onProgress, 'Validating local marketplace')
-      // Read and validate to ensure the marketplace file is still valid
+      // 读取并验证以确保 marketplace 文件仍然有效
       await readCachedMarketplace(installLocation)
     } else {
       throw new Error(`Unsupported marketplace source type for refresh`)
     }
 
-    // Update lastUpdated timestamp
+    // 更新 lastUpdated 时间戳
     config[name]!.lastUpdated = new Date().toISOString()
     await saveKnownMarketplacesConfig(config)
 
@@ -2568,14 +2568,14 @@ export async function refreshMarketplace(
 }
 
 /**
- * Set the autoUpdate flag for a marketplace
+ * 设置 marketplace 的 autoUpdate 标志
  *
- * When autoUpdate is enabled, the marketplace and its installed plugins
- * will be automatically updated on startup.
+ * 当启用 autoUpdate 时，marketplace 及其已安装的插件
+ * 将在启动时自动更新。
  *
- * @param name - The name of the marketplace to update
- * @param autoUpdate - Whether to enable auto-update
- * @throws If marketplace not found
+ * @param name - 要更新的 marketplace 名称
+ * @param autoUpdate - 是否启用自动更新
+ * @throws 如果 marketplace 未找到
  */
 export async function setMarketplaceAutoUpdate(
   name: string,
@@ -2590,9 +2590,9 @@ export async function setMarketplaceAutoUpdate(
     )
   }
 
-  // Seed-managed marketplaces always have autoUpdate: false (read-only, git-pull
-  // would fail). Toggle appears to work but registerSeedMarketplaces overwrites
-  // it on next startup. Error with guidance instead of silent revert.
+  // 由种子管理的 marketplace 始终设置 autoUpdate: false（只读，git-pull
+  // 会失败）。切换看似有效，但 registerSeedMarketplaces 在下次启动时覆盖。
+  // 改为给出指导的错误信息而非静默恢复。
   const seedDir = seedDirFor(entry.installLocation)
   if (seedDir) {
     throw new Error(
@@ -2602,7 +2602,7 @@ export async function setMarketplaceAutoUpdate(
     )
   }
 
-  // Only update if the value is actually changing
+  // 仅在值实际变更时更新
   if (entry.autoUpdate === autoUpdate) {
     return
   }
@@ -2613,8 +2613,8 @@ export async function setMarketplaceAutoUpdate(
   }
   await saveKnownMarketplacesConfig(config)
 
-  // Also update intent in settings if declared there — write to the SAME
-  // source that declared it to avoid creating duplicates at wrong scope
+  // 同时更新 settings 中的意图（如果在那里声明）— 写入相同的
+  // 来源以避免在错误的范围创建重复项
   const declaringSource = getMarketplaceDeclaringSource(name)
   if (declaringSource) {
     const declared =

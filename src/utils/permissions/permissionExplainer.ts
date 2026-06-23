@@ -14,14 +14,14 @@ import { jsonStringify } from '../slowOperations.js'
 
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH'
 
-// Map risk levels to numeric values for analytics
+// 将风险级别映射到数值以进行分析
 const RISK_LEVEL_NUMERIC: Record<RiskLevel, number> = {
   LOW: 1,
   MEDIUM: 2,
   HIGH: 3,
 }
 
-// Error type codes for analytics
+// 分析用的错误类型代码
 const ERROR_TYPE_PARSE = 1
 const ERROR_TYPE_NETWORK = 2
 const ERROR_TYPE_UNKNOWN = 3
@@ -43,7 +43,7 @@ type GenerateExplanationParams = {
 
 const SYSTEM_PROMPT = `Analyze shell commands and explain what they do, why you're running them, and potential risks.`
 
-// Tool definition for forced structured output (no beta required)
+// 用于强制结构化输出的工具定义（不需要 beta）
 const EXPLAIN_COMMAND_TOOL = {
   name: 'explain_command',
   description: 'Provide an explanation of a shell command',
@@ -74,7 +74,7 @@ const EXPLAIN_COMMAND_TOOL = {
   },
 }
 
-// Zod schema for parsing and validating the response
+// 用于解析和验证响应的 Zod schema
 const RiskAssessmentSchema = lazySchema(() =>
   z.object({
     riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH']),
@@ -96,24 +96,24 @@ function formatToolInput(input: unknown): string {
 }
 
 /**
- * Extract recent conversation context from messages for the explainer.
- * Returns a summary of recent assistant messages to provide context
- * for "why" this command is being run.
+ * 从消息中提取最近的对话上下文给解释器。
+ * 返回最近助手消息的摘要，以提供
+ * "为什么"运行此命令的上下文。
  */
 function extractConversationContext(
   messages: Message[],
   maxChars = 1000,
 ): string {
-  // Get recent assistant messages (they contain Claude's reasoning)
+  // 获取最近的助手消息（它们包含 Claude 的推理）
   const assistantMessages = messages
     .filter((m): m is AssistantMessage => m.type === 'assistant')
-    .slice(-3) // Last 3 assistant messages
+    .slice(-3) // 最后 3 条助手消息
 
   const contextParts: string[] = []
   let totalChars = 0
 
   for (const msg of assistantMessages.reverse()) {
-    // Extract text content from assistant message
+    // 从助手消息中提取文本内容
     const textBlocks = (
       Array.isArray(msg.message.content) ? msg.message.content : []
     )
@@ -136,16 +136,16 @@ function extractConversationContext(
 }
 
 /**
- * Check if the permission explainer feature is enabled.
- * Enabled by default; users can opt out via config.
+ * 检查权限解释器功能是否启用。
+ * 默认启用；用户可以通过配置选择退出。
  */
 export function isPermissionExplainerEnabled(): boolean {
   return getGlobalConfig().permissionExplainerEnabled !== false
 }
 
 /**
- * Generate a permission explanation using Haiku with structured output.
- * Returns null if the feature is disabled, request is aborted, or an error occurs.
+ * 使用 Haiku 和结构化输出生成权限解释。
+ * 如果功能被禁用、请求被中止或发生错误，则返回 null。
  */
 export async function generatePermissionExplanation({
   toolName,
@@ -154,7 +154,7 @@ export async function generatePermissionExplanation({
   messages,
   signal,
 }: GenerateExplanationParams): Promise<PermissionExplanation | null> {
-  // Check if feature is enabled
+  // 检查功能是否启用
   if (!isPermissionExplainerEnabled()) {
     return null
   }
@@ -177,7 +177,7 @@ Explain this command in context.`
 
     const model = isPoorModeActive() ? getSmallFastModel() : getMainLoopModel()
 
-    // Use sideQuery with forced tool choice for guaranteed structured output
+    // 使用 sideQuery 并强制工具选择以保证结构化输出
     const response = await sideQuery({
       model,
       system: SYSTEM_PROMPT,
@@ -193,7 +193,7 @@ Explain this command in context.`
       `Permission explainer: API returned in ${latencyMs}ms, stop_reason=${response.stop_reason}`,
     )
 
-    // Extract structured data from tool use block
+    // 从工具使用块中提取结构化数据
     const toolUseBlock = response.content.find(c => c.type === 'tool_use')
     if (toolUseBlock && toolUseBlock.type === 'tool_use') {
       logForDebugging(
@@ -221,7 +221,7 @@ Explain this command in context.`
       }
     }
 
-    // No valid JSON in response
+    // 响应中没有有效的 JSON
     logEvent('tengu_permission_explainer_error', {
       tool_name: sanitizeToolNameForAnalytics(toolName),
       error_type: ERROR_TYPE_PARSE,
@@ -232,7 +232,7 @@ Explain this command in context.`
   } catch (error) {
     const latencyMs = Date.now() - startTime
 
-    // Don't log aborted requests as errors
+    // 不要将中止的请求记录为错误
     if (signal.aborted) {
       logForDebugging(`Permission explainer: request aborted for ${toolName}`)
       return null

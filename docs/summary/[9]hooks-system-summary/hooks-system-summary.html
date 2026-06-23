@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hooks 系统详解 — Claude Code 生命周期插桩 · 27 种事件 · 4 种类型 · 15+ 示例</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #8b5cf6;
+      --purple-lt: #ede9fe;
+      --red:       #dc2626;
+      --red-lt:    #fee2e2;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+
+    .page-wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px 80px; }
+    section { margin-top: 56px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; letter-spacing: .01em; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; margin-top: 20px; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--orange-dk); margin: 14px 0 8px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f0f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.2rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero h1 span { color: var(--orange); }
+    .hero p { font-size: 1rem; color: var(--text-2); max-width: 720px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 5px 14px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .8rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s, box-shadow .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); box-shadow: 0 2px 6px rgba(215,119,87,.15); text-decoration: none; }
+
+    .diagram-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px 16px; box-shadow: var(--shadow); overflow-x: auto; margin-bottom: 16px; }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+    .info-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+
+    .knowledge-grid { display: flex; flex-direction: column; gap: 12px; }
+    details.know-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    details.know-card[open] { border-color: var(--orange-lt); }
+    details.know-card > summary { display: flex; align-items: center; gap: 14px; padding: 16px 20px; cursor: pointer; user-select: none; list-style: none; outline: none; }
+    details.know-card > summary::-webkit-details-marker { display: none; }
+    details.know-card > summary:hover { background: var(--bg); }
+    .know-num { flex-shrink: 0; width: 30px; height: 30px; background: var(--orange-lt); color: var(--orange-dk); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; }
+    details.know-card[open] .know-num { background: var(--orange); color: #fff; }
+    .know-title { flex: 1; font-weight: 700; font-size: .97rem; }
+    .know-sub { font-size: .78rem; color: var(--text-3); font-weight: 400; margin-left: 6px; }
+    .know-arrow { width: 18px; height: 18px; color: var(--text-3); transition: transform .2s; flex-shrink: 0; }
+    details.know-card[open] .know-arrow { transform: rotate(90deg); color: var(--orange); }
+    .know-body { padding: 0 20px 20px 64px; }
+    .know-body p { margin-bottom: 8px; }
+
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .79rem; line-height: 1.75; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); white-space: pre; }
+    code { font-family: var(--font-mono); }
+    .kw  { color: #7c9bff; font-weight: 600; }
+    .str { color: #6cc77a; }
+    .fn  { color: #f0906a; }
+    .cmt { color: #6e6a62; font-style: italic; }
+    .type{ color: #e0a020; }
+    .num { color: #c792ea; }
+    .prop{ color: #f9c869; }
+    p code, li code, td code, h3 code, h4 code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    .pipeline { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .pipe-step { display: flex; align-items: flex-start; gap: 14px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; box-shadow: var(--shadow); }
+    .pipe-step.highlight { border-color: var(--orange); background: #fffaf7; }
+    .pipe-step.highlight .pipe-num { background: var(--orange); color: #fff; }
+    .pipe-num { flex-shrink: 0; width: 26px; height: 26px; background: var(--bg3); color: var(--text); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .78rem; font-weight: 700; margin-top: 1px; }
+    .pipe-content { flex: 1; }
+    .pipe-title { font-weight: 700; font-size: .88rem; color: var(--text); margin-bottom: 3px; }
+    .pipe-desc { font-size: .82rem; color: var(--text-2); }
+
+    .tag { display: inline-block; background: var(--blue-lt); color: var(--blue-dk); font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; letter-spacing: .03em; }
+    .tag-orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .tag-green  { background: var(--green-lt);  color: #1a7a4e; }
+    .tag-purple { background: var(--purple-lt); color: #6d28d9; }
+    .tag-red    { background: var(--red-lt);    color: var(--red); }
+
+    .checklist { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+    .check-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); font-size: .88rem; color: var(--text-2); }
+    .check-box { flex-shrink: 0; width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px; margin-top: 1px; }
+
+    .file-path { font-family: var(--font-mono); font-size: .78rem; color: var(--blue-dk); }
+
+    .section-desc { color: var(--text-2); font-size: .92rem; margin-bottom: 20px; }
+    ul.key-list { padding-left: 20px; color: var(--text-2); }
+    ul.key-list li { margin-bottom: 5px; }
+    ol.step-list { padding-left: 20px; color: var(--text-2); }
+    ol.step-list li { margin-bottom: 8px; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    .call-out { background: var(--orange-lt); border-left: 4px solid var(--orange); border-radius: 0 var(--radius) var(--radius) 0; padding: 12px 16px; margin: 12px 0; font-size: .9rem; color: var(--orange-dk); }
+    .call-out-blue { background: var(--blue-lt); border-left: 4px solid var(--blue); border-radius: 0 var(--radius) var(--radius) 0; padding: 12px 16px; margin: 12px 0; font-size: .9rem; color: var(--blue-dk); }
+    .call-out-red { background: var(--red-lt); border-left: 4px solid var(--red); border-radius: 0 var(--radius) var(--radius) 0; padding: 12px 16px; margin: 12px 0; font-size: .9rem; color: var(--red); }
+
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .know-body { padding-left: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">Hooks 系统 · 生命周期插桩</div>
+  <h1>Claude Code <span>Hooks 详解</span></h1>
+  <p>27 种 Hook 事件 · 4 种类型（command / prompt / http / agent）· 完整输入输出协议 · exit code 语义 · hookSpecificOutput 全量参考 · 15+ 真实世界示例 — 让模型在工具调用生命周期的任意节点执行你的自定义逻辑</p>
+  <ul class="nav-links">
+    <li><a href="#concept">概念架构</a></li>
+    <li><a href="#types">4 种类型</a></li>
+    <li><a href="#events">27 种事件</a></li>
+    <li><a href="#generic">通用字段</a></li>
+    <li><a href="#matcher">matcher 规则</a></li>
+    <li><a href="#examples">实战示例</a></li>
+    <li><a href="#timing">时序与合并</a></li>
+    <li><a href="#debug">调试技巧</a></li>
+    <li><a href="#files">源码文件</a></li>
+    <li><a href="#cheatsheet">速查卡</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+<!-- ════ 1. 概念 ════ -->
+<section id="concept">
+  <h2>一、概念与整体架构</h2>
+  <p class="section-desc">Hook 是在 Claude Code 执行过程的关键节点注入自定义逻辑的机制 —— 在工具调用前/后、会话生命周期、权限决策等时机触发用户定义的 Shell 命令、LLM 子调用、HTTP 请求或 Agent 子代理。</p>
+
+  <div class="diagram-wrap">
+    <svg width="700" height="380" viewBox="0 0 700 380" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ha" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#8a8480"/></marker>
+      </defs>
+      <rect x="220" y="10" width="260" height="34" rx="6" fill="#5769F7"/>
+      <text x="350" y="32" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">用户输入 "帮我 npm install"</text>
+
+      <rect x="240" y="64" width="200" height="30" rx="5" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+      <text x="340" y="84" text-anchor="middle" fill="#6d28d9" font-size="10" font-weight="700">[UserPromptSubmit Hook]</text>
+
+      <rect x="240" y="116" width="200" height="30" rx="5" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+      <text x="340" y="136" text-anchor="middle" fill="#6d28d9" font-size="10" font-weight="700">[PermissionRequest Hook]</text>
+
+      <rect x="240" y="168" width="200" height="30" rx="5" fill="#f0e0d8" stroke="#D77757" stroke-width="1.5"/>
+      <text x="340" y="188" text-anchor="middle" fill="#b55e3a" font-size="10" font-weight="700">[PreToolUse Hook]</text>
+
+      <rect x="240" y="220" width="200" height="34" rx="5" fill="#d2f0e3" stroke="#22a766" stroke-width="1.5"/>
+      <text x="340" y="242" text-anchor="middle" fill="#1a7a4e" font-size="11" font-weight="700">Bash 执行 npm install</text>
+
+      <rect x="240" y="272" width="200" height="30" rx="5" fill="#f0e0d8" stroke="#D77757" stroke-width="1.5"/>
+      <text x="340" y="292" text-anchor="middle" fill="#b55e3a" font-size="10" font-weight="700">[PostToolUse Hook]</text>
+
+      <rect x="240" y="324" width="200" height="30" rx="5" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+      <text x="340" y="344" text-anchor="middle" fill="#6d28d9" font-size="10" font-weight="700">[Stop Hook]</text>
+
+      <line x1="350" y1="44" x2="350" y2="62" stroke="#8a8480" stroke-width="1.5" marker-end="url(#ha)"/>
+      <line x1="350" y1="96" x2="350" y2="114" stroke="#8a8480" stroke-width="1.5" marker-end="url(#ha)"/>
+      <line x1="350" y1="148" x2="350" y2="166" stroke="#8a8480" stroke-width="1.5" marker-end="url(#ha)"/>
+      <line x1="350" y1="200" x2="350" y2="218" stroke="#8a8480" stroke-width="1.5" marker-end="url(#ha)"/>
+      <line x1="350" y1="256" x2="350" y2="270" stroke="#8a8480" stroke-width="1.5" marker-end="url(#ha)"/>
+      <line x1="350" y1="304" x2="350" y2="322" stroke="#8a8480" stroke-width="1.5" marker-end="url(#ha)"/>
+
+      <text x="60" y="90" fill="#5a5650" font-size="10" font-weight="700">可注入上下文</text>
+      <text x="60" y="106" fill="#8a8480" font-size="9">或拦截提问</text>
+      <text x="60" y="142" fill="#5a5650" font-size="10" font-weight="700">可自动 allow/deny</text>
+      <text x="60" y="194" fill="#5a5650" font-size="10" font-weight="700">可修改命令</text>
+      <text x="60" y="210" fill="#8a8480" font-size="9">记录日志 / 阻断</text>
+      <text x="60" y="298" fill="#5a5650" font-size="10" font-weight="700">可分析结果</text>
+      <text x="60" y="314" fill="#8a8480" font-size="9">发送通知</text>
+    </svg>
+  </div>
+
+  <h3>在哪里配置</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>配置文件</th><th>范围</th><th>Git 追踪</th></tr></thead>
+      <tbody>
+        <tr><td><code class="file-path">~/.claude/settings.json</code></td><td>全局（所有项目）</td><td>否</td></tr>
+        <tr><td><code class="file-path">.claude/settings.json</code></td><td>项目级（团队共享）</td><td>是</td></tr>
+        <tr><td><code class="file-path">.claude/settings.local.json</code></td><td>项目本地（不提交）</td><td>否</td></tr>
+        <tr><td>Skill 的 SKILL.md frontmatter</td><td>该 Skill 激活时</td><td>视 Skill 位置</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>基础配置结构</h3>
+  <pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"PreToolUse"</span>: [
+      {
+        <span class="prop">"matcher"</span>: <span class="str">"Bash(git *)"</span>,
+        <span class="prop">"hooks"</span>: [
+          { <span class="prop">"type"</span>: <span class="str">"command"</span>, <span class="prop">"command"</span>: <span class="str">"echo \"将要执行 git 命令\""</span> }
+        ]
+      }
+    ],
+    <span class="prop">"PostToolUse"</span>: [
+      {
+        <span class="prop">"hooks"</span>: [
+          {
+            <span class="prop">"type"</span>: <span class="str">"command"</span>,
+            <span class="prop">"command"</span>: <span class="str">"logger -t claude \"工具调用完成\""</span>,
+            <span class="prop">"async"</span>: <span class="kw">true</span>
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+</section>
+
+<!-- ════ 2. 4 种类型 ════ -->
+<section id="types">
+  <h2>二、4 种 Hook 类型完整字段</h2>
+
+  <div class="knowledge-grid">
+
+    <details class="know-card" open>
+      <summary><div class="know-num">1</div><div class="know-title"><code>command</code>（Shell 命令）<span class="know-sub">最常用</span></div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p>通过 Shell 执行任意命令，stdin 接收 <code>$ARGUMENTS</code> JSON。</p>
+        <pre>{
+  <span class="prop">"type"</span>: <span class="str">"command"</span>,
+  <span class="prop">"command"</span>: <span class="str">"python3 /home/user/hooks/check.py"</span>,
+  <span class="prop">"shell"</span>: <span class="str">"bash"</span>,
+  <span class="prop">"timeout"</span>: <span class="num">30</span>,
+  <span class="prop">"if"</span>: <span class="str">"Bash(git push*)"</span>,
+  <span class="prop">"statusMessage"</span>: <span class="str">"安全检查中..."</span>,
+  <span class="prop">"once"</span>: <span class="kw">false</span>,
+  <span class="prop">"async"</span>: <span class="kw">false</span>,
+  <span class="prop">"asyncRewake"</span>: <span class="kw">false</span>
+}</pre>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>字段</th><th>类型</th><th>默认</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>type</code></td><td><code>"command"</code></td><td>—</td><td>固定值</td></tr>
+              <tr><td><code>command</code></td><td><code>string</code></td><td><strong>必填</strong></td><td>要执行的 Shell 命令，可用 <code>$ARGUMENTS</code> 读输入</td></tr>
+              <tr><td><code>shell</code></td><td><code>"bash" \| "powershell"</code></td><td><code>"bash"</code></td><td>Shell 解释器类型</td></tr>
+              <tr><td><code>timeout</code></td><td><code>number</code></td><td><code>60</code></td><td>超时秒数</td></tr>
+              <tr><td><code>if</code></td><td><code>string</code></td><td>—</td><td>二级过滤条件，与 matcher 相同的权限规则格式</td></tr>
+              <tr><td><code>statusMessage</code></td><td><code>string</code></td><td>—</td><td>执行时 spinner 显示的文字</td></tr>
+              <tr><td><code>once</code></td><td><code>boolean</code></td><td><code>false</code></td><td><code>true</code> = 执行一次后从内存中移除（不改文件）</td></tr>
+              <tr><td><code>async</code></td><td><code>boolean</code></td><td><code>false</code></td><td><code>true</code> = 后台执行不阻塞，模型立即继续</td></tr>
+              <tr><td><code>asyncRewake</code></td><td><code>boolean</code></td><td><code>false</code></td><td><code>true</code> = 后台执行，exit 2 时唤起模型（隐含 async）</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h4>读取 $ARGUMENTS 的方法</h4>
+        <pre><span class="cmt"># 方法 1：Python（推荐，处理 JSON 最可靠）</span>
+<span class="fn">echo</span> $ARGUMENTS | python3 -c <span class="str">"
+import json, sys
+data = json.load(sys.stdin)
+print(data.get('tool_name'))
+print(data.get('tool_input', {}).get('command'))
+"</span>
+
+<span class="cmt"># 方法 2：jq（轻量级）</span>
+TOOL=$(<span class="fn">echo</span> $ARGUMENTS | jq -r <span class="str">'.tool_name'</span>)
+CMD=$(<span class="fn">echo</span> $ARGUMENTS | jq -r <span class="str">'.tool_input.command // empty'</span>)
+
+<span class="cmt"># 方法 3：Node.js</span>
+<span class="fn">echo</span> $ARGUMENTS | node -e <span class="str">"const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));console.log(d.tool_name)"</span>
+
+<span class="cmt"># 方法 4：直接透传给脚本</span>
+python3 /path/to/my_hook.py &lt;&lt;&lt; <span class="str">"$ARGUMENTS"</span></pre>
+        <h4>返回结构化 JSON</h4>
+        <pre><span class="cmt"># 通过 stdout 输出 JSON 可精细控制行为</span>
+<span class="fn">echo</span> <span class="str">'{"continue": false, "stopReason": "检测到危险操作，已阻止"}'</span>
+
+<span class="cmt"># 或直接 exit 2 让模型看到 stderr</span>
+<span class="fn">echo</span> <span class="str">"禁止执行此操作！"</span> &gt;&amp;2
+<span class="fn">exit</span> <span class="num">2</span></pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">2</div><div class="know-title"><code>prompt</code>（LLM 子调用）<span class="know-sub">需要语义理解</span></div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p>让 LLM（默认 Haiku）来评估 Hook 输入并做决策。适合需要语义理解的场景。</p>
+        <pre>{
+  <span class="prop">"type"</span>: <span class="str">"prompt"</span>,
+  <span class="prop">"prompt"</span>: <span class="str">"以下工具调用即将执行：$ARGUMENTS\n请判断是否存在安全风险..."</span>,
+  <span class="prop">"model"</span>: <span class="str">"claude-haiku-4-5-20251001"</span>,
+  <span class="prop">"timeout"</span>: <span class="num">30</span>,
+  <span class="prop">"if"</span>: <span class="str">"Bash(curl*)"</span>,
+  <span class="prop">"statusMessage"</span>: <span class="str">"AI 安全审查中..."</span>
+}</pre>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>字段</th><th>类型</th><th>默认</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>type</code></td><td><code>"prompt"</code></td><td>—</td><td>固定值</td></tr>
+              <tr><td><code>prompt</code></td><td><code>string</code></td><td><strong>必填</strong></td><td>给 LLM 的提示词，支持 <code>$ARGUMENTS</code> 占位符</td></tr>
+              <tr><td><code>model</code></td><td><code>string</code></td><td>快速小模型</td><td>如 <code>claude-haiku-4-5-20251001</code></td></tr>
+              <tr><td><code>timeout</code></td><td><code>number</code></td><td><code>30</code></td><td>超时秒数</td></tr>
+              <tr><td><code>if</code></td><td><code>string</code></td><td>—</td><td>二级过滤</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">3</div><div class="know-title"><code>http</code>（HTTP POST）<span class="know-sub">外部服务集成</span></div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p>向外部服务发送 Hook 输入，适合通知、监控、审计系统集成。</p>
+        <pre>{
+  <span class="prop">"type"</span>: <span class="str">"http"</span>,
+  <span class="prop">"url"</span>: <span class="str">"https://your-server.com/hooks/claude-code"</span>,
+  <span class="prop">"headers"</span>: {
+    <span class="prop">"Content-Type"</span>: <span class="str">"application/json"</span>,
+    <span class="prop">"Authorization"</span>: <span class="str">"Bearer $MY_API_TOKEN"</span>,
+    <span class="prop">"X-Project"</span>: <span class="str">"${PROJECT_NAME}"</span>
+  },
+  <span class="prop">"allowedEnvVars"</span>: [<span class="str">"MY_API_TOKEN"</span>, <span class="str">"PROJECT_NAME"</span>],
+  <span class="prop">"timeout"</span>: <span class="num">10</span>,
+  <span class="prop">"if"</span>: <span class="str">"Bash(git push*)"</span>
+}</pre>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>字段</th><th>类型</th><th>默认</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>type</code></td><td><code>"http"</code></td><td>—</td><td>固定值</td></tr>
+              <tr><td><code>url</code></td><td><code>string</code></td><td><strong>必填</strong></td><td>POST 目标 URL，必须 https（本地除外）</td></tr>
+              <tr><td><code>headers</code></td><td><code>Record</code></td><td><code>{}</code></td><td>额外请求头，值中可用 <code>$VAR</code> 或 <code>${VAR}</code> 引用环境变量</td></tr>
+              <tr><td><code>allowedEnvVars</code></td><td><code>string[]</code></td><td><code>[]</code></td><td><strong>必须</strong>显式声明才能在 headers 中使用的环境变量名</td></tr>
+              <tr><td><code>timeout</code></td><td><code>number</code></td><td><code>30</code></td><td>超时秒数</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="call-out-red"><strong>⚠️ SSRF 防护</strong>：<code>http</code> Hook 的 URL 会经过内网地址检测（<code>127.0.0.1</code>、<code>10.x.x.x</code>、<code>192.168.x.x</code> 等），访问内网 IP 会被阻断。</div>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">4</div><div class="know-title"><code>agent</code>（Agent 子代理）<span class="know-sub">最强验证能力</span></div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p>启动一个独立子代理，可执行多步骤验证逻辑，比 <code>prompt</code> 类型功能更强（可调用工具）。</p>
+        <pre>{
+  <span class="prop">"type"</span>: <span class="str">"agent"</span>,
+  <span class="prop">"prompt"</span>: <span class="str">"你是安全审查专家。以下操作即将执行：$ARGUMENTS\n请分析风险，调用 SyntheticOutput 返回 {ok, reason}"</span>,
+  <span class="prop">"model"</span>: <span class="str">"claude-haiku-4-5-20251001"</span>,
+  <span class="prop">"timeout"</span>: <span class="num">60</span>,
+  <span class="prop">"if"</span>: <span class="str">"Bash(rm -rf*)"</span>
+}</pre>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>字段</th><th>类型</th><th>默认</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>type</code></td><td><code>"agent"</code></td><td>—</td><td>固定值</td></tr>
+              <tr><td><code>prompt</code></td><td><code>string</code></td><td><strong>必填</strong></td><td>给 Agent 的指令，支持 <code>$ARGUMENTS</code></td></tr>
+              <tr><td><code>model</code></td><td><code>string</code></td><td>Haiku</td><td>默认使用 Haiku 做快速验证</td></tr>
+              <tr><td><code>timeout</code></td><td><code>number</code></td><td><code>60</code></td><td>超时秒数</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<!-- ════ 3. 27 种事件 ════ -->
+<section id="events">
+  <h2>三、27 种 Hook 事件完整参考</h2>
+  <p class="section-desc">按生命周期分组。每个事件给出触发时机、<code>$ARGUMENTS</code> 输入结构、exit code 行为、hookSpecificOutput 输出。</p>
+
+  <h3>3.1 工具生命周期</h3>
+  <div class="knowledge-grid">
+
+    <details class="know-card" open>
+      <summary><div class="know-num"><span style="font-size:.7rem;">P</span></div><div class="know-title"><code>PreToolUse</code> — 工具执行前</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p><strong>触发时机</strong>：模型决定调用某个工具之后、工具实际执行之前。</p>
+        <pre>{
+  <span class="prop">"tool_name"</span>: <span class="str">"Bash"</span>,
+  <span class="prop">"tool_input"</span>: { <span class="prop">"command"</span>: <span class="str">"npm test"</span> },
+  <span class="prop">"tool_use_id"</span>: <span class="str">"toolu_abc123"</span>
+}</pre>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>exit code</th><th>效果</th></tr></thead>
+            <tbody>
+              <tr><td><span class="tag tag-green">0</span></td><td>成功，stdout/stderr 在 transcript 模式可见</td></tr>
+              <tr><td><span class="tag tag-red">2</span></td><td><strong>阻断工具执行</strong>，stderr 显示给模型（模型收到错误消息）</td></tr>
+              <tr><td><span class="tag">其他</span></td><td>显示 stderr 给用户（不影响工具继续执行）</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h4>hookSpecificOutput 支持</h4>
+        <pre>{
+  <span class="prop">"hookSpecificOutput"</span>: {
+    <span class="prop">"hookEventName"</span>: <span class="str">"PreToolUse"</span>,
+    <span class="prop">"permissionDecision"</span>: <span class="str">"allow"</span>,
+    <span class="prop">"permissionDecisionReason"</span>: <span class="str">"已通过自动化审查"</span>,
+    <span class="prop">"updatedInput"</span>: { <span class="prop">"command"</span>: <span class="str">"npm test -- --coverage"</span> },
+    <span class="prop">"additionalContext"</span>: <span class="str">"注意：此命令可能耗时较长"</span>
+  }
+}</pre>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>字段</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>permissionDecision</code></td><td><code>"allow"</code> / <code>"deny"</code> / <code>"ask"</code> — 覆盖权限系统的决策</td></tr>
+              <tr><td><code>permissionDecisionReason</code></td><td>展示给用户的权限决策原因</td></tr>
+              <tr><td><code>updatedInput</code></td><td><strong>替换工具输入</strong>（如修改命令内容）</td></tr>
+              <tr><td><code>additionalContext</code></td><td>注入到下一轮对话的补充上下文（给模型看）</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num"><span style="font-size:.7rem;">P</span></div><div class="know-title"><code>PostToolUse</code> — 工具执行成功后</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"tool_name"</span>: <span class="str">"Bash"</span>,
+  <span class="prop">"tool_input"</span>: { <span class="prop">"command"</span>: <span class="str">"npm test"</span> },
+  <span class="prop">"tool_use_id"</span>: <span class="str">"toolu_abc123"</span>,
+  <span class="prop">"tool_response"</span>: { <span class="prop">"output"</span>: <span class="str">"All tests passed!"</span>, <span class="prop">"exit_code"</span>: <span class="num">0</span> }
+}</pre>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>exit code</th><th>效果</th></tr></thead>
+            <tbody>
+              <tr><td><span class="tag tag-green">0</span></td><td>成功，stdout 在 transcript 模式显示</td></tr>
+              <tr><td><span class="tag tag-red">2</span></td><td><strong>将 stderr 作为新消息显示给模型</strong>（模型继续对话）</td></tr>
+              <tr><td><span class="tag">其他</span></td><td>显示 stderr 给用户（不影响对话）</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <pre>{
+  <span class="prop">"hookSpecificOutput"</span>: {
+    <span class="prop">"hookEventName"</span>: <span class="str">"PostToolUse"</span>,
+    <span class="prop">"additionalContext"</span>: <span class="str">"测试运行完成，覆盖率: 87%"</span>,
+    <span class="prop">"updatedMCPToolOutput"</span>: { <span class="prop">"enhanced"</span>: <span class="str">"result"</span> }
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num"><span style="font-size:.7rem;">P</span></div><div class="know-title"><code>PostToolUseFailure</code> — 工具执行失败后</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"tool_name"</span>: <span class="str">"Bash"</span>,
+  <span class="prop">"tool_input"</span>: { <span class="prop">"command"</span>: <span class="str">"npm test"</span> },
+  <span class="prop">"tool_use_id"</span>: <span class="str">"toolu_abc123"</span>,
+  <span class="prop">"error"</span>: <span class="str">"Process exited with code 1"</span>,
+  <span class="prop">"error_type"</span>: <span class="str">"execution_error"</span>,
+  <span class="prop">"is_interrupt"</span>: <span class="kw">false</span>,
+  <span class="prop">"is_timeout"</span>: <span class="kw">false</span>
+}</pre>
+        <p>exit code 行为与 PostToolUse 相同：0 显示 stdout，2 立即显示 stderr 给模型，其他显示给用户。</p>
+      </div>
+    </details>
+
+  </div>
+
+  <h3>3.2 权限生命周期</h3>
+  <div class="knowledge-grid">
+
+    <details class="know-card">
+      <summary><div class="know-num"><span style="font-size:.7rem;">P</span></div><div class="know-title"><code>PermissionRequest</code> — 权限弹框弹出时</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"tool_name"</span>: <span class="str">"Bash"</span>,
+  <span class="prop">"tool_input"</span>: { <span class="prop">"command"</span>: <span class="str">"rm -rf dist/"</span> },
+  <span class="prop">"tool_use_id"</span>: <span class="str">"toolu_abc123"</span>
+}</pre>
+        <h4>自动 allow</h4>
+        <pre>{
+  <span class="prop">"hookSpecificOutput"</span>: {
+    <span class="prop">"hookEventName"</span>: <span class="str">"PermissionRequest"</span>,
+    <span class="prop">"decision"</span>: {
+      <span class="prop">"behavior"</span>: <span class="str">"allow"</span>,
+      <span class="prop">"updatedInput"</span>: { <span class="prop">"command"</span>: <span class="str">"rm -rf dist/ build/"</span> }
+    }
+  }
+}</pre>
+        <h4>自动 deny</h4>
+        <pre>{
+  <span class="prop">"hookSpecificOutput"</span>: {
+    <span class="prop">"hookEventName"</span>: <span class="str">"PermissionRequest"</span>,
+    <span class="prop">"decision"</span>: {
+      <span class="prop">"behavior"</span>: <span class="str">"deny"</span>,
+      <span class="prop">"message"</span>: <span class="str">"不允许删除 dist 目录"</span>,
+      <span class="prop">"interrupt"</span>: <span class="kw">true</span>
+    }
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num"><span style="font-size:.7rem;">P</span></div><div class="know-title"><code>PermissionDenied</code> — 权限被拒绝后</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"tool_name"</span>: <span class="str">"Bash"</span>,
+  <span class="prop">"tool_input"</span>: { <span class="prop">"command"</span>: <span class="str">"sudo rm -rf /"</span> },
+  <span class="prop">"tool_use_id"</span>: <span class="str">"toolu_abc123"</span>,
+  <span class="prop">"reason"</span>: <span class="str">"Dangerous system command"</span>
+}</pre>
+        <pre>{
+  <span class="prop">"hookSpecificOutput"</span>: {
+    <span class="prop">"hookEventName"</span>: <span class="str">"PermissionDenied"</span>,
+    <span class="prop">"retry"</span>: <span class="kw">true</span>   <span class="cmt">// 让模型知道可以重试（以不同方式）</span>
+  }
+}</pre>
+      </div>
+    </details>
+
+  </div>
+
+  <h3>3.3 会话生命周期</h3>
+  <div class="knowledge-grid">
+
+    <details class="know-card">
+      <summary><div class="know-num"><span style="font-size:.7rem;">S</span></div><div class="know-title"><code>SessionStart</code> — 会话启动</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"source"</span>: <span class="str">"startup"</span>,   <span class="cmt">// startup | resume | clear | compact</span>
+  <span class="prop">"session_id"</span>: <span class="str">"sess_abc123"</span>
+}</pre>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>exit code</th><th>效果</th></tr></thead>
+            <tbody>
+              <tr><td><span class="tag tag-green">0</span></td><td>stdout 作为上下文发送给 Claude</td></tr>
+              <tr><td><span class="tag">其他</span></td><td>stderr 显示给用户，不影响启动</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <pre>{
+  <span class="prop">"hookSpecificOutput"</span>: {
+    <span class="prop">"hookEventName"</span>: <span class="str">"SessionStart"</span>,
+    <span class="prop">"additionalContext"</span>: <span class="str">"当前项目：5 个未解决 PR，覆盖率 78%"</span>,
+    <span class="prop">"initialUserMessage"</span>: <span class="str">"请先检查 TODO 列表"</span>,
+    <span class="prop">"watchPaths"</span>: [<span class="str">"/path/to/watch1"</span>, <span class="str">"/path/to/watch2"</span>]
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num"><span style="font-size:.7rem;">S</span></div><div class="know-title"><code>Setup</code> · <code>SessionEnd</code> · <code>Stop</code> · <code>StopFailure</code></div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <h4>Setup（仓库初始化）</h4>
+        <pre>{ <span class="prop">"trigger"</span>: <span class="str">"init"</span> }   <span class="cmt">// init | maintenance</span></pre>
+        <h4>SessionEnd（会话结束）</h4>
+        <pre>{ <span class="prop">"reason"</span>: <span class="str">"prompt_input_exit"</span> }   <span class="cmt">// clear | logout | prompt_input_exit | other</span></pre>
+        <h4>Stop（响应结束前）— exit code 2 可强制模型继续</h4>
+        <pre>{ <span class="prop">"session_id"</span>: <span class="str">"sess_abc123"</span> }</pre>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>exit code</th><th>效果</th></tr></thead>
+            <tbody>
+              <tr><td><span class="tag tag-green">0</span></td><td>stdout/stderr 不显示</td></tr>
+              <tr><td><span class="tag tag-red">2</span></td><td><strong>将 stderr 作为新消息显示给模型</strong>（模型被迫继续对话）</td></tr>
+              <tr><td><span class="tag">其他</span></td><td>stderr 只显示给用户</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h4>StopFailure（API 错误中断，不支持阻断）</h4>
+        <pre>{
+  <span class="prop">"error"</span>: <span class="str">"rate_limit"</span>,   <span class="cmt">// rate_limit|authentication_failed|billing_error|invalid_request|server_error|max_output_tokens|unknown</span>
+  <span class="prop">"error_message"</span>: <span class="str">"Too many requests"</span>
+}</pre>
+      </div>
+    </details>
+
+  </div>
+
+  <h3>3.4 子代理 / 压缩 / 用户输入</h3>
+  <div class="knowledge-grid">
+
+    <details class="know-card">
+      <summary><div class="know-num"><span style="font-size:.7rem;">A</span></div><div class="know-title"><code>SubagentStart</code> · <code>SubagentStop</code></div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <h4>SubagentStart（子代理启动）</h4>
+        <pre>{ <span class="prop">"agent_id"</span>: <span class="str">"agent_abc123"</span>, <span class="prop">"agent_type"</span>: <span class="str">"claude"</span> }</pre>
+        <p>stdout 显示给子代理，不支持阻断。</p>
+        <h4>SubagentStop（子代理结束）— exit code 2 让子代理继续工作</h4>
+        <pre>{
+  <span class="prop">"agent_id"</span>: <span class="str">"agent_abc123"</span>,
+  <span class="prop">"agent_type"</span>: <span class="str">"claude"</span>,
+  <span class="prop">"agent_transcript_path"</span>: <span class="str">"/tmp/transcripts/agent_abc123.json"</span>
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num"><span style="font-size:.7rem;">C</span></div><div class="know-title"><code>PreCompact</code> · <code>PostCompact</code></div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <h4>PreCompact（压缩前）</h4>
+        <pre>{
+  <span class="prop">"trigger"</span>: <span class="str">"auto"</span>,   <span class="cmt">// manual | auto</span>
+  <span class="prop">"messages_count"</span>: <span class="num">150</span>,
+  <span class="prop">"estimated_tokens"</span>: <span class="num">180000</span>
+}</pre>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>exit code</th><th>效果</th></tr></thead>
+            <tbody>
+              <tr><td><span class="tag tag-green">0</span></td><td>stdout 作为<strong>自定义压缩指令</strong>追加</td></tr>
+              <tr><td><span class="tag tag-red">2</span></td><td><strong>阻断压缩</strong></td></tr>
+              <tr><td><span class="tag">其他</span></td><td>stderr 显示给用户，继续压缩</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h4>PostCompact（压缩后）</h4>
+        <pre>{
+  <span class="prop">"trigger"</span>: <span class="str">"auto"</span>,
+  <span class="prop">"summary"</span>: <span class="str">"对话摘要内容..."</span>
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num"><span style="font-size:.7rem;">U</span></div><div class="know-title"><code>UserPromptSubmit</code> — 用户提交消息时</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"prompt"</span>: <span class="str">"请帮我审查这段代码"</span>,
+  <span class="prop">"session_id"</span>: <span class="str">"sess_abc123"</span>
+}</pre>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>exit code</th><th>效果</th></tr></thead>
+            <tbody>
+              <tr><td><span class="tag tag-green">0</span></td><td>stdout 作为额外上下文发送给 Claude</td></tr>
+              <tr><td><span class="tag tag-red">2</span></td><td><strong>阻断处理</strong>，清除原始提示词，stderr 只显示给用户</td></tr>
+              <tr><td><span class="tag">其他</span></td><td>stderr 显示给用户，不影响处理</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <pre>{
+  <span class="prop">"hookSpecificOutput"</span>: {
+    <span class="prop">"hookEventName"</span>: <span class="str">"UserPromptSubmit"</span>,
+    <span class="prop">"additionalContext"</span>: <span class="str">"当前 git branch: feature/auth"</span>
+  }
+}</pre>
+      </div>
+    </details>
+
+  </div>
+
+  <h3>3.5 文件/目录/通知/MCP</h3>
+  <div class="knowledge-grid">
+
+    <details class="know-card">
+      <summary><div class="know-num"><span style="font-size:.7rem;">F</span></div><div class="know-title"><code>CwdChanged</code> · <code>FileChanged</code></div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <h4>CwdChanged（工作目录变更）</h4>
+        <pre>{
+  <span class="prop">"old_cwd"</span>: <span class="str">"/home/user/project-a"</span>,
+  <span class="prop">"new_cwd"</span>: <span class="str">"/home/user/project-b"</span>
+}</pre>
+        <div class="call-out-blue"><strong>特殊环境变量</strong>：<code>$CLAUDE_ENV_FILE</code> — 向此文件写入 <code>export VAR=value</code> 格式内容，可为后续 BashTool 命令设置环境变量。</div>
+        <pre>{
+  <span class="prop">"hookSpecificOutput"</span>: {
+    <span class="prop">"hookEventName"</span>: <span class="str">"CwdChanged"</span>,
+    <span class="prop">"watchPaths"</span>: [<span class="str">"/home/user/project-b/.env"</span>]
+  }
+}</pre>
+        <h4>FileChanged（监听的文件变化）</h4>
+        <p><code>matcher</code> 字段指定要监听的文件名模式（如 <code>".envrc|.env"</code>），用 <code>|</code> 分隔。</p>
+        <pre>{
+  <span class="prop">"file_path"</span>: <span class="str">"/home/user/project/.env"</span>,
+  <span class="prop">"event"</span>: <span class="str">"change"</span>   <span class="cmt">// change | add | unlink</span>
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num"><span style="font-size:.7rem;">N</span></div><div class="know-title"><code>Notification</code> — 发送通知时</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"notification_type"</span>: <span class="str">"permission_prompt"</span>,
+  <span class="prop">"message"</span>: <span class="str">"Claude 请求执行 Bash 命令"</span>
+}</pre>
+        <p><code>notification_type</code> 可选值：</p>
+        <ul class="key-list">
+          <li><code>permission_prompt</code> — 权限确认弹框</li>
+          <li><code>idle_prompt</code> — 用户长时间未操作</li>
+          <li><code>auth_success</code> — 认证成功</li>
+          <li><code>elicitation_dialog</code> / <code>elicitation_complete</code> / <code>elicitation_response</code> — MCP 触发的弹框</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num"><span style="font-size:.7rem;">E</span></div><div class="know-title"><code>Elicitation</code> · <code>ElicitationResult</code></div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <h4>Elicitation（MCP 请求用户输入时）</h4>
+        <pre>{
+  <span class="prop">"mcp_server_name"</span>: <span class="str">"my-mcp-server"</span>,
+  <span class="prop">"message"</span>: <span class="str">"请输入数据库连接密码"</span>,
+  <span class="prop">"requested_schema"</span>: { <span class="prop">"type"</span>: <span class="str">"object"</span>, <span class="prop">"properties"</span>: { <span class="prop">"password"</span>: { <span class="prop">"type"</span>: <span class="str">"string"</span> } } },
+  <span class="prop">"elicitation_id"</span>: <span class="str">"elicit_abc123"</span>
+}</pre>
+        <pre>{
+  <span class="prop">"hookSpecificOutput"</span>: {
+    <span class="prop">"hookEventName"</span>: <span class="str">"Elicitation"</span>,
+    <span class="prop">"action"</span>: <span class="str">"accept"</span>,   <span class="cmt">// accept | decline | cancel</span>
+    <span class="prop">"content"</span>: { <span class="prop">"password"</span>: <span class="str">"my-secret-password"</span> }
+  }
+}</pre>
+        <h4>ElicitationResult（用户响应后）</h4>
+        <pre>{
+  <span class="prop">"mcp_server_name"</span>: <span class="str">"my-mcp-server"</span>,
+  <span class="prop">"action"</span>: <span class="str">"accept"</span>,
+  <span class="prop">"content"</span>: { <span class="prop">"password"</span>: <span class="str">"***"</span> },
+  <span class="prop">"mode"</span>: <span class="str">"user"</span>,
+  <span class="prop">"elicitation_id"</span>: <span class="str">"elicit_abc123"</span>
+}</pre>
+      </div>
+    </details>
+
+  </div>
+
+  <h3>3.6 配置 / Worktree / Coordinator</h3>
+  <div class="knowledge-grid">
+
+    <details class="know-card">
+      <summary><div class="know-num"><span style="font-size:.7rem;">W</span></div><div class="know-title"><code>WorktreeCreate</code> · <code>WorktreeRemove</code> — 功能型 Hook</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p>WorktreeCreate 是<strong>特殊功能型 Hook</strong>：stdout 应该输出创建的 worktree 绝对路径。</p>
+        <h4>WorktreeCreate 输入</h4>
+        <pre>{ <span class="prop">"name"</span>: <span class="str">"suggested-worktree-slug"</span> }</pre>
+        <h4>示例 command（用 git worktree 实现）</h4>
+        <pre><span class="cmt">#!/bin/bash</span>
+NAME=$(<span class="fn">echo</span> $ARGUMENTS | python3 -c <span class="str">"import json,sys; print(json.load(sys.stdin)['name'])"</span>)
+WORKTREE_PATH=<span class="str">"/tmp/worktrees/$NAME"</span>
+<span class="fn">git</span> worktree add <span class="str">"$WORKTREE_PATH"</span> HEAD
+<span class="fn">echo</span> <span class="str">"$WORKTREE_PATH"</span>   <span class="cmt"># stdout 必须输出绝对路径</span></pre>
+        <h4>WorktreeRemove 输入</h4>
+        <pre>{ <span class="prop">"worktree_path"</span>: <span class="str">"/tmp/worktrees/suggested-worktree-slug"</span> }</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num"><span style="font-size:.7rem;">C</span></div><div class="know-title"><code>ConfigChange</code> · <code>InstructionsLoaded</code></div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <h4>ConfigChange（配置文件变更）— exit code 2 可阻断变更</h4>
+        <pre>{
+  <span class="prop">"source"</span>: <span class="str">"project_settings"</span>,   <span class="cmt">// user_settings|project_settings|local_settings|policy_settings|skills</span>
+  <span class="prop">"file_path"</span>: <span class="str">"/project/.claude/settings.json"</span>
+}</pre>
+        <h4>InstructionsLoaded（指令文件加载，纯观测不可阻断）</h4>
+        <pre>{
+  <span class="prop">"file_path"</span>: <span class="str">"/project/.claude/CLAUDE.md"</span>,
+  <span class="prop">"memory_type"</span>: <span class="str">"Project"</span>,   <span class="cmt">// User | Project | Local | Managed</span>
+  <span class="prop">"load_reason"</span>: <span class="str">"session_start"</span>,   <span class="cmt">// session_start|nested_traversal|path_glob_match|include|compact</span>
+  <span class="prop">"globs"</span>: [<span class="str">"src/**/*.ts"</span>],
+  <span class="prop">"trigger_file_path"</span>: <span class="str">"/project/src/main.ts"</span>
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num"><span style="font-size:.7rem;">T</span></div><div class="know-title"><code>TeammateIdle</code> · <code>TaskCreated</code> · <code>TaskCompleted</code></div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p>Coordinator 多代理模式（这三类事件 exit code 2 可阻止对应行为）。</p>
+        <h4>TeammateIdle（队友即将空闲）</h4>
+        <pre>{ <span class="prop">"teammate_name"</span>: <span class="str">"agent-1"</span>, <span class="prop">"team_name"</span>: <span class="str">"dev-team"</span> }</pre>
+        <h4>TaskCreated / TaskCompleted（任务创建/完成）</h4>
+        <pre>{
+  <span class="prop">"task_id"</span>: <span class="str">"task_abc123"</span>,
+  <span class="prop">"task_subject"</span>: <span class="str">"实现用户登录功能"</span>,
+  <span class="prop">"task_description"</span>: <span class="str">"需要包含 OAuth2 支持..."</span>,
+  <span class="prop">"teammate_name"</span>: <span class="str">"agent-1"</span>,
+  <span class="prop">"team_name"</span>: <span class="str">"dev-team"</span>
+}</pre>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<!-- ════ 4. 通用字段 ════ -->
+<section id="generic">
+  <h2>四、通用输出字段</h2>
+  <p class="section-desc">所有 Hook 类型的 stdout JSON 都支持以下顶层字段。</p>
+  <pre>{
+  <span class="prop">"continue"</span>: <span class="kw">true</span>,
+  <span class="prop">"suppressOutput"</span>: <span class="kw">false</span>,
+  <span class="prop">"stopReason"</span>: <span class="str">"拒绝原因（continue=false 时展示）"</span>,
+  <span class="prop">"decision"</span>: <span class="str">"approve"</span>,
+  <span class="prop">"reason"</span>: <span class="str">"原因说明"</span>,
+  <span class="prop">"systemMessage"</span>: <span class="str">"注入到下一轮 system prompt 的文字"</span>
+}</pre>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code>continue</code></td><td><code>boolean</code></td><td><code>false</code> = 中止整个对话（等效用户按 Esc），<code>true</code> = 继续（默认）</td></tr>
+        <tr><td><code>suppressOutput</code></td><td><code>boolean</code></td><td><code>true</code> = 隐藏此 Hook 的 stdout，不显示在 transcript 模式</td></tr>
+        <tr><td><code>stopReason</code></td><td><code>string</code></td><td><code>continue: false</code> 时显示给用户的说明</td></tr>
+        <tr><td><code>decision</code></td><td><code>"approve" \| "block"</code></td><td>用于展示决策（不直接控制流程）</td></tr>
+        <tr><td><code>reason</code></td><td><code>string</code></td><td>决策原因说明</td></tr>
+        <tr><td><code>systemMessage</code></td><td><code>string</code></td><td>注入到下一轮 system message 的内容</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ════ 5. matcher ════ -->
+<section id="matcher">
+  <h2>五、matcher 字段详解</h2>
+  <p class="section-desc"><code>matcher</code> 在 HookMatcher 层级定义，决定整组 Hook 何时匹配。格式：<code>ToolName(pattern)</code> 或省略（匹配所有）。</p>
+  <pre>{
+  <span class="prop">"PreToolUse"</span>: [
+    { <span class="prop">"matcher"</span>: <span class="str">"Bash(git *)"</span>, <span class="prop">"hooks"</span>: [...] },
+    { <span class="prop">"matcher"</span>: <span class="str">"FileWriteTool(src/**/*.ts)"</span>, <span class="prop">"hooks"</span>: [...] },
+    { <span class="prop">"hooks"</span>: [...] }   <span class="cmt">// 省略 matcher = 匹配所有工具</span>
+  ]
+}</pre>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>matcher 示例</th><th>匹配范围</th></tr></thead>
+      <tbody>
+        <tr><td>省略</td><td>所有工具</td></tr>
+        <tr><td><code>"Bash(*)"</code></td><td>所有 Bash 调用</td></tr>
+        <tr><td><code>"Bash(git *)"</code></td><td><code>git </code> 开头的 Bash 命令</td></tr>
+        <tr><td><code>"Bash(npm install)"</code></td><td>精确匹配 <code>npm install</code></td></tr>
+        <tr><td><code>"FileWriteTool(src/**)"</code></td><td>写入 src 目录</td></tr>
+        <tr><td><code>"Read(*.ts)"</code></td><td>读取 <code>.ts</code> 文件</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="call-out"><strong><code>if</code> 字段</strong>：Hook 级别的第二道过滤，格式与 <code>matcher</code> 相同。即使外层 matcher 是 <code>Bash(*)</code>，加 <code>"if": "Bash(git push*)"</code> 后只有 push 命令会触发此 hook。</div>
+</section>
+
+<!-- ════ 6. 实战示例 ════ -->
+<section id="examples">
+  <h2>六、15+ 完整实战示例</h2>
+  <p class="section-desc">全部可直接复制到 <code>settings.json</code> 或 <code>.claude/settings.json</code> 使用。</p>
+
+  <div class="knowledge-grid">
+
+    <details class="know-card" open>
+      <summary><div class="know-num">1</div><div class="know-title">记录所有工具调用到日志文件</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">~/.claude/settings.json</p>
+        <pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"PreToolUse"</span>: [
+      {
+        <span class="prop">"hooks"</span>: [
+          {
+            <span class="prop">"type"</span>: <span class="str">"command"</span>,
+            <span class="prop">"command"</span>: <span class="str">"python3 -c \"
+import json, sys, datetime
+data = json.load(sys.stdin)
+tool = data.get('tool_name', '?')
+ts = datetime.datetime.now().isoformat()
+with open('/tmp/claude-audit.log', 'a') as f:
+    f.write(f'{ts} [PRE] {tool}\\n')
+\" &lt;&lt;&lt; \"$ARGUMENTS\""</span>,
+            <span class="prop">"async"</span>: <span class="kw">true</span>,
+            <span class="prop">"statusMessage"</span>: <span class="str">"记录审计日志..."</span>
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">2</div><div class="know-title">阻止危险 git 操作</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/settings.json（项目级，团队共享）</p>
+        <pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"PreToolUse"</span>: [
+      {
+        <span class="prop">"matcher"</span>: <span class="str">"Bash(git push --force*)"</span>,
+        <span class="prop">"hooks"</span>: [
+          {
+            <span class="prop">"type"</span>: <span class="str">"command"</span>,
+            <span class="prop">"command"</span>: <span class="str">"echo '禁止 force push！请使用 --force-with-lease' &gt;&amp;2 &amp;&amp; exit 2"</span>,
+            <span class="prop">"statusMessage"</span>: <span class="str">"检查 git 安全规则..."</span>
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">3</div><div class="know-title">修改工具输入（为 npm test 自动加 --coverage）</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"PreToolUse"</span>: [
+      {
+        <span class="prop">"matcher"</span>: <span class="str">"Bash(npm test)"</span>,
+        <span class="prop">"hooks"</span>: [
+          {
+            <span class="prop">"type"</span>: <span class="str">"command"</span>,
+            <span class="prop">"command"</span>: <span class="str">"echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"updatedInput\":{\"command\":\"npm test -- --coverage\"}}}'"</span>,
+            <span class="prop">"statusMessage"</span>: <span class="str">"自动添加覆盖率参数..."</span>
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">4</div><div class="know-title">HTTP 通知外部安全服务（DeepSeek/Slack）</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"PreToolUse"</span>: [
+      {
+        <span class="prop">"matcher"</span>: <span class="str">"FileWriteTool(*)"</span>,
+        <span class="prop">"hooks"</span>: [
+          {
+            <span class="prop">"type"</span>: <span class="str">"http"</span>,
+            <span class="prop">"url"</span>: <span class="str">"https://your-security-server.com/api/code-review"</span>,
+            <span class="prop">"headers"</span>: {
+              <span class="prop">"Content-Type"</span>: <span class="str">"application/json"</span>,
+              <span class="prop">"Authorization"</span>: <span class="str">"Bearer $SECURITY_API_TOKEN"</span>
+            },
+            <span class="prop">"allowedEnvVars"</span>: [<span class="str">"SECURITY_API_TOKEN"</span>],
+            <span class="prop">"timeout"</span>: <span class="num">15</span>,
+            <span class="prop">"statusMessage"</span>: <span class="str">"安全扫描中..."</span>
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">5</div><div class="know-title">Session 启动时注入项目上下文</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"SessionStart"</span>: [
+      {
+        <span class="prop">"hooks"</span>: [
+          {
+            <span class="prop">"type"</span>: <span class="str">"command"</span>,
+            <span class="prop">"command"</span>: <span class="str">"python3 &lt;&lt; 'EOF'\nimport subprocess, os\nstatus = subprocess.run(['git','status','--short'], capture_output=True, text=True)\nbranch = subprocess.run(['git','branch','--show-current'], capture_output=True, text=True)\nprint(f'Git Branch: {branch.stdout.strip()}')\nprint(f'未提交变更: {\"有\" if status.stdout.strip() else \"无\"}')\nEOF"</span>,
+            <span class="prop">"statusMessage"</span>: <span class="str">"加载项目上下文..."</span>
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">6</div><div class="know-title">自动回复 MCP 用户输入（Elicitation Hook）</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"Elicitation"</span>: [
+      {
+        <span class="prop">"matcher"</span>: <span class="str">"my-database-mcp"</span>,
+        <span class="prop">"hooks"</span>: [
+          {
+            <span class="prop">"type"</span>: <span class="str">"command"</span>,
+            <span class="prop">"command"</span>: <span class="str">"python3 &lt;&lt; 'EOF'\nimport json, sys, os\ndata = json.load(sys.stdin)\nschema = data.get('requested_schema', {}).get('properties', {})\ncontent = {}\nfor key in schema:\n    env_key = f'DB_{key.upper()}'\n    if env_key in os.environ:\n        content[key] = os.environ[env_key]\nif content:\n    print(json.dumps({'hookSpecificOutput':{'hookEventName':'Elicitation','action':'accept','content':content}}))\nEOF\n&lt;&lt;&lt; \"$ARGUMENTS\""</span>,
+            <span class="prop">"statusMessage"</span>: <span class="str">"自动填充凭据..."</span>
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">7</div><div class="know-title">Stop Hook 强制要求写测试</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"Stop"</span>: [
+      {
+        <span class="prop">"hooks"</span>: [
+          {
+            <span class="prop">"type"</span>: <span class="str">"command"</span>,
+            <span class="prop">"command"</span>: <span class="str">"python3 &lt;&lt; 'EOF'\nimport subprocess, sys\nresult = subprocess.run(['git','diff','--name-only','--cached'], capture_output=True, text=True)\nnew_files = [f for f in result.stdout.strip().split('\\n') if f.endswith('.ts') and '__tests__' not in f and f]\ntest_files = [f for f in result.stdout.strip().split('\\n') if '__tests__' in f and f]\nif new_files and not test_files:\n    print(f'⚠️ 新增 {len(new_files)} 个 TS 文件但没有测试，请先写测试！', file=sys.stderr)\n    sys.exit(2)\nEOF"</span>,
+            <span class="prop">"statusMessage"</span>: <span class="str">"检查测试覆盖..."</span>
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">8</div><div class="know-title">异步 Slack 通知（不阻塞执行）</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"PostToolUse"</span>: [
+      {
+        <span class="prop">"matcher"</span>: <span class="str">"Bash(git push*)"</span>,
+        <span class="prop">"hooks"</span>: [
+          {
+            <span class="prop">"type"</span>: <span class="str">"command"</span>,
+            <span class="prop">"command"</span>: <span class="str">"curl -s -X POST $SLACK_WEBHOOK_URL -H 'Content-Type: application/json' -d \"{\\\"text\\\":\\\"git push at $(date)\\\"}\""</span>,
+            <span class="prop">"async"</span>: <span class="kw">true</span>,
+            <span class="prop">"statusMessage"</span>: <span class="str">"发送 Slack 通知..."</span>
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">9</div><div class="know-title">PreCompact 注入自定义压缩指令</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"PreCompact"</span>: [
+      {
+        <span class="prop">"hooks"</span>: [
+          {
+            <span class="prop">"type"</span>: <span class="str">"command"</span>,
+            <span class="prop">"command"</span>: <span class="str">"cat &lt;&lt; 'EOF'\n压缩时必须保留：\n1. 所有架构决策和原因\n2. 当前任务状态\n3. 已知 Bug 和临时方案\n4. TODO/FIXME 注释\nEOF"</span>
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">10</div><div class="know-title">LLM（prompt 类型）分析 curl 请求安全性</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"PreToolUse"</span>: [
+      {
+        <span class="prop">"matcher"</span>: <span class="str">"Bash(curl*)"</span>,
+        <span class="prop">"hooks"</span>: [
+          {
+            <span class="prop">"type"</span>: <span class="str">"prompt"</span>,
+            <span class="prop">"prompt"</span>: <span class="str">"你是安全专家。以下是即将执行的 curl 命令：$ARGUMENTS\n判断：1) URL 是否可疑（IP 地址、非常见域名）2) 是否含敏感信息\n有风险回复 'SECURITY RISK:' 开头，否则回复 'SAFE'"</span>,
+            <span class="prop">"model"</span>: <span class="str">"claude-haiku-4-5-20251001"</span>,
+            <span class="prop">"timeout"</span>: <span class="num">20</span>,
+            <span class="prop">"statusMessage"</span>: <span class="str">"AI 安全分析中..."</span>
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">11</div><div class="know-title">CwdChanged 自动切换 Node 版本</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"CwdChanged"</span>: [
+      {
+        <span class="prop">"hooks"</span>: [
+          {
+            <span class="prop">"type"</span>: <span class="str">"command"</span>,
+            <span class="prop">"command"</span>: <span class="str">"python3 &lt;&lt; 'EOF'\nimport json, sys, os\ndata = json.load(sys.stdin)\nnew_cwd = data.get('new_cwd', '')\nenv_file = os.environ.get('CLAUDE_ENV_FILE', '')\nnvmrc = os.path.join(new_cwd, '.nvmrc')\nif os.path.exists(nvmrc) and env_file:\n    with open(nvmrc) as f: version = f.read().strip()\n    with open(env_file, 'a') as f: f.write(f'export NODE_VERSION={version}\\n')\n    print(f'切换到 Node.js {version}')\nEOF\n&lt;&lt;&lt; \"$ARGUMENTS\""</span>,
+            <span class="prop">"statusMessage"</span>: <span class="str">"检测 Node.js 版本..."</span>
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">12</div><div class="know-title">FileChanged 自动重载 .env</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"SessionStart"</span>: [
+      { <span class="prop">"hooks"</span>: [{
+        <span class="prop">"type"</span>: <span class="str">"command"</span>,
+        <span class="prop">"command"</span>: <span class="str">"echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"watchPaths\":[\"/project/.env\",\"/project/.env.local\"]}}'"</span>
+      }]}
+    ],
+    <span class="prop">"FileChanged"</span>: [
+      {
+        <span class="prop">"matcher"</span>: <span class="str">".env|.env.local"</span>,
+        <span class="prop">"hooks"</span>: [{
+          <span class="prop">"type"</span>: <span class="str">"command"</span>,
+          <span class="prop">"command"</span>: <span class="str">"python3 &lt;&lt; 'EOF'\nimport json, sys, os\ndata = json.load(sys.stdin)\nfile_path = data.get('file_path', '')\nevent = data.get('event', '')\nenv_file = os.environ.get('CLAUDE_ENV_FILE', '')\nif event in ('change','add') and env_file:\n    with open(file_path) as f:\n        for line in f:\n            line = line.strip()\n            if line and not line.startswith('#') and '=' in line:\n                with open(env_file, 'a') as ef: ef.write(f'export {line}\\n')\nEOF\n&lt;&lt;&lt; \"$ARGUMENTS\""</span>,
+          <span class="prop">"statusMessage"</span>: <span class="str">"重载 .env 文件..."</span>
+        }]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">13</div><div class="know-title">Agent Hook 做代码安全审查</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"PreToolUse"</span>: [
+      {
+        <span class="prop">"matcher"</span>: <span class="str">"FileWriteTool(src/**)"</span>,
+        <span class="prop">"hooks"</span>: [
+          {
+            <span class="prop">"type"</span>: <span class="str">"agent"</span>,
+            <span class="prop">"prompt"</span>: <span class="str">"你是代码安全审查专家。即将写入的文件内容：$ARGUMENTS\n检查：1) 硬编码密钥 2) SQL 注入 3) XSS 漏洞\n发现严重问题调用 SyntheticOutput 返回 {ok:false,reason:...}，否则 {ok:true}"</span>,
+            <span class="prop">"model"</span>: <span class="str">"claude-haiku-4-5-20251001"</span>,
+            <span class="prop">"timeout"</span>: <span class="num">45</span>,
+            <span class="prop">"statusMessage"</span>: <span class="str">"Agent 安全审查..."</span>
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">14</div><div class="know-title">一次性 Hook（once: true）做会话初始化检查</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <pre>{
+  <span class="prop">"hooks"</span>: {
+    <span class="prop">"SessionStart"</span>: [
+      {
+        <span class="prop">"hooks"</span>: [
+          {
+            <span class="prop">"type"</span>: <span class="str">"command"</span>,
+            <span class="prop">"command"</span>: <span class="str">"echo \"Node: $(node --version)\"; echo \"Bun: $(bun --version)\""</span>,
+            <span class="prop">"once"</span>: <span class="kw">true</span>,
+            <span class="prop">"statusMessage"</span>: <span class="str">"初始化环境检查（只执行一次）..."</span>
+          }
+        ]
+      }
+    ]
+  }
+}</pre>
+      </div>
+    </details>
+
+    <details class="know-card">
+      <summary><div class="know-num">15</div><div class="know-title">在 SKILL.md 中内联定义 Hooks</div><svg class="know-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,8 10,12 14,8"/></svg></summary>
+      <div class="know-body">
+        <p class="file-path">.claude/skills/safe-commit/SKILL.md</p>
+        <pre>---
+<span class="prop">description</span>: <span class="str">带完整检查流程的安全提交</span>
+<span class="prop">argument-hint</span>: <span class="str">"&lt;commit message&gt;"</span>
+<span class="prop">allowed-tools</span>: [<span class="str">BashTool</span>, <span class="str">Read</span>]
+<span class="prop">hooks</span>:
+  <span class="prop">PreToolUse</span>:
+    - <span class="prop">matcher</span>: <span class="str">"Bash(git commit*)"</span>
+      <span class="prop">hooks</span>:
+        - <span class="prop">type</span>: <span class="str">command</span>
+          <span class="prop">command</span>: <span class="str">|</span>
+<span class="str">            STAGED=$(git diff --cached --name-only 2&gt;/dev/null)</span>
+<span class="str">            if [ -z "$STAGED" ]; then echo "❌ 无暂存文件" &gt;&amp;2; exit 2; fi</span>
+<span class="str">            echo "✅ 暂存：$STAGED"</span>
+          <span class="prop">statusMessage</span>: <span class="str">验证暂存文件...</span>
+  <span class="prop">PostToolUse</span>:
+    - <span class="prop">matcher</span>: <span class="str">"Bash(git commit*)"</span>
+      <span class="prop">hooks</span>:
+        - <span class="prop">type</span>: <span class="str">command</span>
+          <span class="prop">command</span>: <span class="str">echo "✅ 提交完成：$(git log --oneline -1)"</span>
+          <span class="prop">async</span>: <span class="str">true</span>
+---
+
+<span class="cmt"># 安全提交技能</span>
+请按以下步骤：1. git status 2. git diff --cached 3. git commit -m "$ARGUMENTS"</pre>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<!-- ════ 7. 时序与合并 ════ -->
+<section id="timing">
+  <h2>七、Hook 执行时序与多 Hook 合并</h2>
+
+  <h3>同一事件多 Hooks 的执行顺序</h3>
+  <div class="pipeline">
+    <div class="pipe-step"><div class="pipe-num">1</div><div class="pipe-content"><div class="pipe-title">Matcher 1 (Bash(git *)) → Hook A → Hook B</div><div class="pipe-desc">结果 A, 结果 B</div></div></div>
+    <div class="pipe-step"><div class="pipe-num">2</div><div class="pipe-content"><div class="pipe-title">Matcher 2 (Bash(*)) → Hook C</div><div class="pipe-desc">结果 C</div></div></div>
+    <div class="pipe-step"><div class="pipe-num">3</div><div class="pipe-content"><div class="pipe-title">Matcher 3 (无 matcher) → Hook D</div><div class="pipe-desc">结果 D</div></div></div>
+  </div>
+  <ul class="key-list">
+    <li>多个 Hook <strong>串行</strong>执行（一个结束后才执行下一个）</li>
+    <li><strong>任何一个</strong> Hook 返回 exit code 2 或 <code>continue: false</code>，即阻断工具执行</li>
+    <li>多个 <code>additionalContext</code> 按顺序合并</li>
+  </ul>
+
+  <h3>配置来源的优先级（高到低）</h3>
+  <div class="pipeline">
+    <div class="pipe-step highlight"><div class="pipe-num">1</div><div class="pipe-content"><div class="pipe-title">Session Hooks</div><div class="pipe-desc">SDK 注入，临时内存</div></div></div>
+    <div class="pipe-step"><div class="pipe-num">2</div><div class="pipe-content"><div class="pipe-title">Plugin Hooks</div><div class="pipe-desc">已安装插件提供</div></div></div>
+    <div class="pipe-step"><div class="pipe-num">3</div><div class="pipe-content"><div class="pipe-title">Built-in Hooks</div><div class="pipe-desc">CLI 内置</div></div></div>
+    <div class="pipe-step"><div class="pipe-num">4</div><div class="pipe-content"><div class="pipe-title">Local Settings</div><div class="pipe-desc"><code>.claude/settings.local.json</code></div></div></div>
+    <div class="pipe-step"><div class="pipe-num">5</div><div class="pipe-content"><div class="pipe-title">Project Settings</div><div class="pipe-desc"><code>.claude/settings.json</code></div></div></div>
+    <div class="pipe-step"><div class="pipe-num">6</div><div class="pipe-content"><div class="pipe-title">User Settings</div><div class="pipe-desc"><code>~/.claude/settings.json</code></div></div></div>
+    <div class="pipe-step"><div class="pipe-num">7</div><div class="pipe-content"><div class="pipe-title">Policy/Managed Settings</div><div class="pipe-desc">企业策略，只读</div></div></div>
+  </div>
+  <div class="call-out"><strong>注意</strong>：不同来源的 Hook <strong>不会相互覆盖</strong>，而是<strong>叠加追加</strong>（所有匹配的 Hook 都会执行）。</div>
+</section>
+
+<!-- ════ 8. 调试 ════ -->
+<section id="debug">
+  <h2>八、调试技巧</h2>
+  <div class="card-grid">
+    <div class="info-card">
+      <h3>查看 Hook 是否被触发</h3>
+      <pre>{
+  <span class="prop">"type"</span>: <span class="str">"command"</span>,
+  <span class="prop">"command"</span>: <span class="str">"echo \"[DEBUG $(date)] $ARGUMENTS\" &gt;&gt; /tmp/claude-hook-debug.log"</span>,
+  <span class="prop">"async"</span>: <span class="kw">true</span>
+}</pre>
+    </div>
+    <div class="info-card">
+      <h3>手动测试 Hook 脚本</h3>
+      <pre><span class="fn">echo</span> <span class="str">'{"tool_name":"Bash","tool_input":{"command":"npm test"},"tool_use_id":"test-id"}'</span> \
+  | python3 my-hook.py</pre>
+    </div>
+    <div class="info-card">
+      <h3>用 statusMessage 确认执行</h3>
+      <p>为 Hook 设置 <code>statusMessage</code>，运行时会在 UI 显示 spinner，可直观确认 Hook 正在执行。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 9. 源码文件 ════ -->
+<section id="files">
+  <h2>九、关键源码文件</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>文件</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code class="file-path">src/schemas/hooks.ts</code></td><td>Hook 配置的 Zod schema（4 种类型字段定义）</td></tr>
+        <tr><td><code class="file-path">src/types/hooks.ts</code></td><td>Hook 输出类型（<code>SyncHookJSONOutput</code>、<code>HookCallback</code> 等）</td></tr>
+        <tr><td><code class="file-path">src/utils/hooks/hooksConfigManager.ts</code></td><td>27 个事件的 metadata + exit code 行为说明</td></tr>
+        <tr><td><code class="file-path">src/utils/hooks/hooksSettings.ts</code></td><td>多源聚合、<code>getAllHooks()</code>、<code>getHooksForEvent()</code></td></tr>
+        <tr><td><code class="file-path">src/utils/hooks/hookEvents.ts</code></td><td>Hook 事件广播系统</td></tr>
+        <tr><td><code class="file-path">src/utils/hooks/sessionHooks.ts</code></td><td>Session 级临时 Hook 注册</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ════ 10. 速查卡 ════ -->
+<section id="cheatsheet">
+  <h2>十、快速参考卡</h2>
+  <p class="section-desc">哪个 Hook 该用什么 exit code？</p>
+  <div class="card-grid">
+    <div class="info-card">
+      <h3>PreToolUse</h3>
+      <ul class="key-list">
+        <li><span class="tag tag-green">0</span> 记录/不干预</li>
+        <li><span class="tag tag-red">2</span> 阻断工具执行（模型收到错误）</li>
+        <li><span class="tag">其他</span> 记录错误（不影响执行）</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>PostToolUse</h3>
+      <ul class="key-list">
+        <li><span class="tag tag-green">0</span> 记录/不干预</li>
+        <li><span class="tag tag-red">2</span> 给模型发送追加消息（模型继续）</li>
+        <li><span class="tag">其他</span> 记录错误（不影响对话）</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>Stop</h3>
+      <ul class="key-list">
+        <li><span class="tag tag-green">0</span> 不干预</li>
+        <li><span class="tag tag-red">2</span> 强制模型继续工作</li>
+        <li><span class="tag">其他</span> 记录错误</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>UserPromptSubmit</h3>
+      <ul class="key-list">
+        <li><span class="tag tag-green">0</span> stdout 作为额外上下文</li>
+        <li><span class="tag tag-red">2</span> 阻断此次提问</li>
+        <li><span class="tag">其他</span> 记录错误</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>SessionStart</h3>
+      <ul class="key-list">
+        <li><span class="tag tag-green">0</span> stdout 作为上下文发给 Claude</li>
+        <li><span class="tag">其他</span> 记录错误（不影响启动）</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>PreCompact</h3>
+      <ul class="key-list">
+        <li><span class="tag tag-green">0</span> stdout 作为压缩指令</li>
+        <li><span class="tag tag-red">2</span> 阻断压缩</li>
+        <li><span class="tag">其他</span> 继续压缩</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<footer style="background:var(--bg2);border-top:1px solid var(--border);padding:24px;text-align:center;margin-top:60px;">
+  <p style="color:var(--text-3);font-size:.82rem;">Claude Code 源码学习系列 · Hooks 系统详解 · 27 事件 · 4 类型 · 15+ 示例</p>
+</footer>
+
+</body>
+</html>

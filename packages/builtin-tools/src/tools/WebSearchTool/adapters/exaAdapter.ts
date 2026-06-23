@@ -1,11 +1,11 @@
 /**
- * Exa AI-based search adapter — uses MCP protocol to call Exa's web search API.
+ * 基于 Exa AI 的搜索适配器 — 使用 MCP 协议调用 Exa 的网络搜索 API。
  *
- * Ported from kilocode's production-validated implementation (mcp-exa.ts + websearch.ts).
- * Key improvements over previous version:
- *   - Passes through numResults/livecrawl/type/contextMaxCharacters from options
- *   - Cleaner SSE parsing matching kilocode's approach
- *   - Proper content snippet extraction from Exa responses
+ * 移植自 kilocode 经过生产验证的实现（mcp-exa.ts + websearch.ts）。
+ * 相较上一版本的主要改进：
+ *   - 从 options 透传 numResults/livecrawl/type/contextMaxCharacters
+ *   - 更简洁的 SSE 解析，与 kilocode 的做法一致
+ *   - 从 Exa 响应中正确提取内容片段
  */
 
 import axios from 'axios'
@@ -33,13 +33,13 @@ export class ExaSearchAdapter implements WebSearchAdapter {
       })
     }
 
-    // Use options to derive search params — matches kilocode websearch.ts defaults
+    // 使用 options 派生搜索参数 — 与 kilocode websearch.ts 的默认值一致
     const numResults = options.numResults ?? 8
     const livecrawl = options.livecrawl ?? 'fallback'
     const searchType = options.searchType ?? 'auto'
     const contextMaxCharacters = options.contextMaxCharacters ?? 10000
 
-    // Read settings for custom endpoint / API key
+    // 读取自定义端点 / API key 的设置
     const settings = getSettings_DEPRECATED() as Record<string, unknown> & {
       exaEndpointUrl?: string
       exaApiKey?: string
@@ -97,10 +97,10 @@ export class ExaSearchAdapter implements WebSearchAdapter {
       throw new AbortError()
     }
 
-    // Parse the Exa results from the text response
+    // 从文本响应中解析 Exa 结果
     const results = this.parseResults(searchText)
 
-    // Client-side domain filtering
+    // 客户端域名过滤
     const filteredResults = results.filter(r => {
       if (!r.url) return false
       try {
@@ -135,8 +135,8 @@ export class ExaSearchAdapter implements WebSearchAdapter {
   }
 
   private parseSse(body: string): string | undefined {
-    // SSE format: lines starting with "data: " containing JSON
-    // Matches kilocode mcp-exa.ts parseSse implementation
+    // SSE 格式：以 "data: " 开头、包含 JSON 的行
+    // 与 kilocode mcp-exa.ts 的 parseSse 实现保持一致
     for (const line of body.split('\n')) {
       if (!line.startsWith('data: ')) continue
       const data = line.substring(6).trim()
@@ -149,11 +149,11 @@ export class ExaSearchAdapter implements WebSearchAdapter {
           return content[0].text
         }
       } catch {
-        // Continue to next line
+        // 继续处理下一行
       }
     }
 
-    // Fallback: try parsing as direct JSON response (non-SSE)
+    // 后备：尝试作为直接的 JSON 响应解析（非 SSE）
     try {
       const parsed = JSON.parse(body)
       const content = parsed?.result?.content
@@ -161,7 +161,7 @@ export class ExaSearchAdapter implements WebSearchAdapter {
         return content[0].text
       }
     } catch {
-      // Not JSON
+      // 不是 JSON
     }
 
     return undefined
@@ -172,8 +172,8 @@ export class ExaSearchAdapter implements WebSearchAdapter {
 
     const results: SearchResult[] = []
 
-    // Exa returns structured text with "Title:", "URL:", and "Content:" fields
-    // separated by "---" between entries
+    // Exa 返回结构化文本，包含 "Title:"、"URL:" 和 "Content:" 字段，
+    // 条目之间以 "---" 分隔
     const blocks = text.split(/\n---\n/g)
 
     for (const block of blocks) {
@@ -192,7 +192,7 @@ export class ExaSearchAdapter implements WebSearchAdapter {
       }
     }
 
-    // Fallback: markdown links
+    // 后备：markdown 链接
     if (results.length === 0) {
       const markdownLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g
       let match: RegExpExecArray | null
@@ -204,7 +204,7 @@ export class ExaSearchAdapter implements WebSearchAdapter {
       }
     }
 
-    // Fallback: plain URLs
+    // 后备：纯 URL
     if (results.length === 0) {
       const urlRegex = /^https?:\/\/[^\s<>"\]]+/gm
       let match: RegExpExecArray | null

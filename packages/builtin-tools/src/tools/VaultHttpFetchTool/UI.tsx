@@ -7,7 +7,7 @@ import type { ProgressMessage } from 'src/types/message.js';
 import { jsonStringify } from 'src/utils/slowOperations.js';
 import type { Output } from './VaultHttpFetchTool.js';
 
-// H6 fix: second `options` parameter matches Tool interface contract.
+// H6 修复：第二个 `options` 参数与 Tool 接口契约一致。
 export function renderToolUseMessage(
   input: Partial<{
     method?: string;
@@ -24,7 +24,7 @@ export function renderToolUseMessage(
   const method = input.method ?? 'GET';
   const key = input.vault_auth_key ?? '?';
   const url = input.url ?? '';
-  // Show key NAME (already required to be non-secret); no secret value involved.
+  // 显示 key 名称（本身已被要求为非密钥）；不涉及密钥值。
   return `${method} ${url} (vault: ${key})`;
 }
 
@@ -40,9 +40,8 @@ export function renderToolResultMessage(
       </MessageResponse>
     );
   }
-  // Body has already been scrubbed of secret forms before reaching here;
-  // safe to display.
-  // eslint-disable-next-line no-restricted-syntax -- human-facing UI, not tool_result
+  // body 在到达此处之前已 scrub 掉所有密钥形式；可安全展示。
+  // eslint-disable-next-line no-restricted-syntax -- 面向人类的 UI，不是 tool_result
   const formatted = jsonStringify(output, null, 2);
   return <OutputLine content={formatted} verbose={verbose} />;
 }

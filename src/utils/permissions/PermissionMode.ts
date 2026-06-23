@@ -1,6 +1,6 @@
 import z from 'zod/v4'
 import { PAUSE_ICON } from '../../constants/figures.js'
-// Types extracted to src/types/permissions.ts to break import cycles
+// 类型已提取到 src/types/permissions.ts 以打破导入循环
 import {
   EXTERNAL_PERMISSION_MODES,
   type ExternalPermissionMode,
@@ -9,7 +9,7 @@ import {
 } from '../../types/permissions.js'
 import { lazySchema } from '../lazySchema.js'
 
-// Re-export for backwards compatibility
+// 为了向后兼容而重新导出
 export {
   EXTERNAL_PERMISSION_MODES,
   PERMISSION_MODES,
@@ -86,13 +86,13 @@ const PERMISSION_MODE_CONFIG: Partial<
 }
 
 /**
- * Type guard to check if a PermissionMode is an ExternalPermissionMode.
- * auto is ant-only and excluded from external modes.
+ * 类型守卫，用于检查 PermissionMode 是否为 ExternalPermissionMode。
+ * auto 仅限内部使用，被排除在外部模式之外。
  */
 export function isExternalPermissionMode(
   mode: PermissionMode,
 ): mode is ExternalPermissionMode {
-  // External users can't have auto, so always true for them
+  // 外部用户不能有 auto，因此对他们来说总是返回 true
   if (process.env.USER_TYPE !== 'ant') {
     return true
   }

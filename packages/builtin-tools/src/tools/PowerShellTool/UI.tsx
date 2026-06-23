@@ -13,7 +13,7 @@ import type { PowerShellProgress } from 'src/types/tools.js';
 import type { ThemeName } from 'src/utils/theme.js';
 import type { Out, PowerShellToolInput } from './PowerShellTool.js';
 
-// Constants for command display
+// 命令显示常量
 const MAX_COMMAND_DISPLAY_LINES = 2;
 const MAX_COMMAND_DISPLAY_CHARS = 160;
 
@@ -70,7 +70,7 @@ export function renderToolUseProgressMessage(
   if (!lastProgress || !lastProgress.data) {
     return (
       <MessageResponse height={1}>
-        <Text dimColor>Running…</Text>
+        <Text dimColor>正在运行…</Text>
       </MessageResponse>
     );
   }
@@ -94,7 +94,7 @@ export function renderToolUseProgressMessage(
 export function renderToolUseQueuedMessage(): React.ReactNode {
   return (
     <MessageResponse height={1}>
-      <Text dimColor>Waiting…</Text>
+      <Text dimColor>等待中…</Text>
     </MessageResponse>
   );
 }
@@ -121,7 +121,7 @@ export function renderToolResultMessage(
   if (isImage) {
     return (
       <MessageResponse height={1}>
-        <Text dimColor>[Image data detected and sent to Claude]</Text>
+        <Text dimColor>[检测到图像数据并已发送给 Claude]</Text>
       </MessageResponse>
     );
   }
@@ -135,12 +135,12 @@ export function renderToolResultMessage(
           <Text dimColor>
             {backgroundTaskId ? (
               <>
-                Running in the background <KeyboardShortcutHint shortcut="↓" action="manage" parens />
+                正在后台运行 <KeyboardShortcutHint shortcut="↓" action="manage" parens />
               </>
             ) : interrupted ? (
-              'Interrupted'
+              '已中断'
             ) : (
-              returnCodeInterpretation || '(No output)'
+              returnCodeInterpretation || '(无输出)'
             )}
           </Text>
         </MessageResponse>

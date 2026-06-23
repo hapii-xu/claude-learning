@@ -7,7 +7,7 @@ export { SEARCH_EXTRA_TOOLS_TOOL_NAME } from './constants.js'
 
 import { SEARCH_EXTRA_TOOLS_TOOL_NAME } from './constants.js'
 
-const PROMPT_HEAD = `Search for deferred tools by name or keyword. LOW PRIORITY — only use this tool when no core tool can accomplish the task. Core tools (Read, Edit, Write, Bash, Glob, Grep, Agent, WebFetch, WebSearch, Skill) are always available and should be used directly. This tool is for discovering additional capabilities like MCP tools, cron scheduling, worktree management, agent teams (TeamCreate, TeamDelete, SendMessage), etc.
+const PROMPT_HEAD = `通过名称或关键词搜索延迟工具。低优先级 —— 仅在核心工具无法完成任务时使用此工具。核心工具（Read、Edit、Write、Bash、Glob、Grep、Agent、WebFetch、WebSearch、Skill）始终可用，应直接调用。此工具用于发现额外功能，如 MCP 工具、cron 调度、worktree 管理、agent 团队（TeamCreate、TeamDelete、SendMessage）等。
 
 `
 
@@ -19,45 +19,45 @@ function getToolLocationHint(): string {
     process.env.USER_TYPE === 'ant' ||
     getFeatureValue_CACHED_MAY_BE_STALE('tengu_glacier_2xr', false)
   return deltaEnabled
-    ? 'Deferred tools appear by name in <system-reminder> messages.'
-    : 'Deferred tools appear by name in <available-deferred-tools> messages.'
+    ? '延迟工具以名称出现在 <system-reminder> 消息中。'
+    : '延迟工具以名称出现在 <available-deferred-tools> 消息中。'
 }
 
-const PROMPT_TAIL = ` Returns matching tool names.
+const PROMPT_TAIL = ` 返回匹配的工具名称。
 
-## Two-step workflow (MUST follow exactly)
+## 两步工作流（必须严格遵守）
 
-Deferred tools CANNOT be called directly. You MUST use this two-step pattern:
+延迟工具无法直接调用。必须使用如下两步模式：
 
-Step 1 — Search: Call this tool (SearchExtraTools) to discover the target tool.
-  Input: {"query": "select:CronCreate"}
-  Response: "Found 1 deferred tool(s): CronCreate. Use ExecuteExtraTool with {"tool_name": "<name>", "params": {...}} to invoke."
+第一步 —— 搜索：调用此工具（SearchExtraTools）发现目标工具。
+  输入：{"query": "select:CronCreate"}
+  响应："找到 1 个延迟工具：CronCreate。请使用 ExecuteExtraTool，格式为 {"tool_name": "<name>", "params": {...}} 来调用。"
 
-Step 2 — Execute: Call ExecuteExtraTool to run the discovered tool.
-  Input: {"tool_name": "CronCreate", "params": {"schedule": "*/5 * * * *", "prompt": "check the deploy"}}
-  Response: the actual tool result.
+第二步 —— 执行：调用 ExecuteExtraTool 运行已发现的工具。
+  输入：{"tool_name": "CronCreate", "params": {"schedule": "*/5 * * * *", "prompt": "check the deploy"}}
+  响应：实际工具结果。
 
-## Example: user asks "schedule a cron to check deploy every 5 minutes"
+## 示例：用户要求"每 5 分钟调度一个 cron 检查部署"
 
 1. SearchExtraTools({"query": "select:CronCreate"})
-   → Response: Found deferred tool CronCreate
+   → 响应：找到延迟工具 CronCreate
 2. ExecuteExtraTool({"tool_name": "CronCreate", "params": {"schedule": "*/5 * * * *", "prompt": "check the deploy"}})
-   → Response: Cron job created successfully
+   → 响应：Cron 任务创建成功
 
-If you don't know the exact tool name, use keyword search first:
+如果不知道确切工具名，先使用关键词搜索：
 1. SearchExtraTools({"query": "cron schedule"})
-   → Response: Found deferred tool(s): CronCreate
+   → 响应：找到延迟工具：CronCreate
 2. ExecuteExtraTool({"tool_name": "CronCreate", "params": {...}})
 
-## Query forms
-- "select:CronCreate" — exact tool name (fastest, preferred when you know the name from <available-deferred-tools>)
-- "select:CronCreate,CronList" — comma-separated multi-select
-- "discover:schedule cron job" — returns tool name + description + schema without loading. Use to understand a tool before calling it.
-- "notebook jupyter" — keyword search, up to max_results best matches
-- "+slack send" — require "slack" in the name, rank by remaining terms
+## 查询格式
+- "select:CronCreate" —— 精确工具名（最快，推荐在从 <available-deferred-tools> 中知道名称时使用）
+- "select:CronCreate,CronList" —— 逗号分隔多选
+- "discover:schedule cron job" —— 返回工具名 + 描述 + schema，不触发加载。用于在调用前了解工具。
+- "notebook jupyter" —— 关键词搜索，最多返回 max_results 个最佳匹配
+- "+slack send" —— 要求名称中包含 "slack"，按剩余术语排序
 
-## Failure policy
-If ExecuteExtraTool fails, do NOT re-search for the same tool — it will loop. Stop and tell the user what failed.`
+## 失败策略
+如果 ExecuteExtraTool 失败，不要重新搜索同一工具 —— 这会导致循环。停止并告知用户失败原因。`
 
 /**
  * 检查工具是否应被延迟（需要 SearchExtraTools 来加载）。

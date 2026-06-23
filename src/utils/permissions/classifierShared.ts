@@ -1,16 +1,16 @@
 /**
- * Shared infrastructure for classifier-based permission systems.
+ * 分类器权限系统的共享基础设施。
  *
- * This module provides common types, schemas, and utilities used by both:
- * - bashClassifier.ts (semantic Bash command matching)
- * - yoloClassifier.ts (YOLO mode security classification)
+ * 本模块提供以下两个模块共用的类型、schema 和工具函数：
+ * - bashClassifier.ts（语义化 Bash 命令匹配）
+ * - yoloClassifier.ts（YOLO 模式安全分类）
  */
 
 import type { BetaContentBlock } from '@anthropic-ai/sdk/resources/beta/messages.js'
 import type { z } from 'zod/v4'
 
 /**
- * Extract tool use block from message content by tool name.
+ * 根据工具名称从消息内容中提取 tool use block。
  */
 export function extractToolUseBlock(
   content: BetaContentBlock[],
@@ -24,8 +24,8 @@ export function extractToolUseBlock(
 }
 
 /**
- * Parse and validate classifier response from tool use block.
- * Returns null if parsing fails.
+ * 解析并验证来自 tool use block 的分类器响应。
+ * 如果解析失败则返回 null。
  */
 export function parseClassifierResponse<T extends z.ZodTypeAny>(
   toolUseBlock: Extract<BetaContentBlock, { type: 'tool_use' }>,

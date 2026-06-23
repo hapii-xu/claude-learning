@@ -13,13 +13,13 @@ type Props = {
   timeoutMs?: number;
 };
 
-// Pattern to match "Shell cwd was reset to <path>" message
-// Use (?:^|\n) to match either start of string or after a newline
+// 用于匹配 "Shell cwd was reset to <path>" 消息的正则
+// 使用 (?:^|\n) 来匹配字符串开头或换行之后的位置
 const SHELL_CWD_RESET_PATTERN = /(?:^|\n)(Shell cwd was reset to .+)$/;
 
 /**
- * Extracts sandbox violations from stderr if present
- * Returns both the cleaned stderr and the violations content
+ * 若 stderr 中存在沙箱违规信息，则将其提取出来
+ * 返回清理后的 stderr 以及违规内容
  */
 function extractSandboxViolations(stderr: string): {
   cleanedStderr: string;
@@ -30,7 +30,7 @@ function extractSandboxViolations(stderr: string): {
     return { cleanedStderr: stderr };
   }
 
-  // Remove the sandbox violations section from stderr
+  // 从 stderr 中移除沙箱违规段落
   const cleanedStderr = removeSandboxViolationTags(stderr).trim();
 
   return {
@@ -39,8 +39,8 @@ function extractSandboxViolations(stderr: string): {
 }
 
 /**
- * Extracts the "Shell cwd was reset" warning message from stderr
- * Returns the cleaned stderr and the warning message separately
+ * 从 stderr 中提取 "Shell cwd was reset" 警告消息
+ * 分别返回清理后的 stderr 与该警告消息
  */
 function extractCwdResetWarning(stderr: string): {
   cleanedStderr: string;
@@ -51,9 +51,9 @@ function extractCwdResetWarning(stderr: string): {
     return { cleanedStderr: stderr, cwdResetWarning: null };
   }
 
-  // Extract the warning message from capture group 1
+  // 从捕获组 1 中提取警告消息
   const cwdResetWarning = match[1] ?? null;
-  // Remove the warning from stderr (replace the full match)
+  // 从 stderr 中移除该警告（替换掉整个匹配）
   const cleanedStderr = stderr.replace(SHELL_CWD_RESET_PATTERN, '').trim();
 
   return { cleanedStderr, cwdResetWarning };
@@ -71,19 +71,19 @@ export default function BashToolResultMessage({
   verbose,
   timeoutMs,
 }: Props): React.ReactNode {
-  // Extract sandbox violations from stderr as it feels cleaner on the UI
-  // We want the model to see the violations, so it can explain what went wrong, and the
-  // user can access them in the violation logs
+  // 从 stderr 中提取沙箱违规信息，这样在 UI 上看起来更干净
+  // 我们希望模型能够看到违规内容，以便解释哪里出了问题，
+  // 同时用户可以在违规日志中查看它们
   const { cleanedStderr: stderrWithoutViolations } = extractSandboxViolations(stdErrWithViolations);
 
-  // Extract "Shell cwd was reset" warning to render it with warning color instead of error
+  // 提取 "Shell cwd was reset" 警告，改用警告色（而非错误色）渲染
   const { cleanedStderr: stderr, cwdResetWarning } = extractCwdResetWarning(stderrWithoutViolations);
 
-  // If this is an image, we don't want to truncate it in the UI
+  // 若是图片，则在 UI 中不做截断
   if (isImage) {
     return (
       <MessageResponse height={1}>
-        <Text dimColor>[Image data detected and sent to Claude]</Text>
+        <Text dimColor>[已检测到图片数据并发送至 Claude]</Text>
       </MessageResponse>
     );
   }
@@ -102,10 +102,10 @@ export default function BashToolResultMessage({
           <Text dimColor>
             {backgroundTaskId ? (
               <>
-                Running in the background <KeyboardShortcutHint shortcut="↓" action="manage" parens />
+                正在后台运行 <KeyboardShortcutHint shortcut="↓" action="管理" parens />
               </>
             ) : (
-              returnCodeInterpretation || (noOutputExpected ? 'Done' : '(No output)')
+              returnCodeInterpretation || (noOutputExpected ? '完成' : '（无输出）')
             )}
           </Text>
         </MessageResponse>

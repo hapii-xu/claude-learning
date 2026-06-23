@@ -1,13 +1,13 @@
 /**
- * Session Tracing for Claude Code using OpenTelemetry (BETA)
+ * Claude Code 会话追踪（使用 OpenTelemetry，BETA）
  *
- * This module provides a high-level API for creating and managing spans
- * to trace Claude Code workflows. Each user interaction creates a root
- * interaction span, which contains operation spans (LLM requests, tool calls, etc.).
+ * 本模块提供高级 API，用于创建和管理 span，
+ * 以追踪 Claude Code 工作流。每次用户交互都会创建一个根交互 span，
+ * 其中包含操作 span（LLM 请求、工具调用等）。
  *
- * Requirements:
- * - Enhanced telemetry is enabled via feature('ENHANCED_TELEMETRY_BETA')
- * - Configure OTEL_TRACES_EXPORTER (console, otlp, etc.)
+ * 前提条件：
+ * - 通过 feature('ENHANCED_TELEMETRY_BETA') 启用增强遥测
+ * - 配置 OTEL_TRACES_EXPORTER（console、otlp 等）
  */
 
 import { feature } from 'bun:bundle'
@@ -39,11 +39,11 @@ import {
   startUserInputPerfettoSpan,
 } from './perfettoTracing.js'
 
-// Re-export for callers
+// 重新导出给调用方使用
 export type { Span }
 export { isBetaTracingEnabled, type LLMRequestNewContext }
 
-// Message type for API calls (UserMessage or AssistantMessage)
+// API 调用的消息类型（UserMessage 或 AssistantMessage）
 type APIMessage = UserMessage | AssistantMessage
 
 type SpanType =
@@ -62,40 +62,37 @@ interface SpanContext {
   perfettoSpanId?: string
 }
 
-// ALS stores SpanContext directly so it holds a strong reference while a span
-// is active. With that, activeSpans can use WeakRef — when ALS is cleared
-// (enterWith(undefined)) and no other code holds the SpanContext, GC can collect
-// it and the WeakRef goes stale.
+// ALS 直接存储 SpanContext，因此在 span 激活期间持有强引用。
+// 因此 activeSpans 可以使用 WeakRef —— 当 ALS 被清除
+// （enterWith(undefined)）且没有其他代码持有 SpanContext 时，GC 可以回收它，
+// WeakRef 就会失效。
 const interactionContext = new AsyncLocalStorage<SpanContext | undefined>()
 const toolContext = new AsyncLocalStorage<SpanContext | undefined>()
 const activeSpans = new Map<string, WeakRef<SpanContext>>()
-// Spans not stored in ALS (LLM request, blocked-on-user, tool execution, hook)
-// need a strong reference to prevent GC from collecting the SpanContext before
-// the corresponding end* function retrieves it.
+// 不存储在 ALS 中的 span（LLM 请求、等待用户、工具执行、hook）
+// 需要强引用以防止 GC 在对应的 end* 函数获取之前回收 SpanContext。
 const strongSpans = new Map<string, SpanContext>()
 let interactionSequence = 0
 let _cleanupIntervalStarted = false
 
-const SPAN_TTL_MS = 30 * 60 * 1000 // 30 minutes
+const SPAN_TTL_MS = 30 * 60 * 1000 // 30 分钟
 
 function getSpanId(span: Span): string {
   return span.spanContext().spanId || ''
 }
 
 /**
- * Lazily start a background interval that evicts orphaned spans from activeSpans.
+ * 延迟启动一个后台定时器，清理 activeSpans 中的孤立 span。
  *
- * Normal teardown calls endInteractionSpan / endToolSpan, which delete spans
- * immediately. This interval is a safety net for spans that were never ended
- * (e.g. aborted streams, uncaught exceptions mid-query) — without it they
- * accumulate in activeSpans indefinitely, holding references to Span objects
- * and the OpenTelemetry context chain.
+ * 正常的拆卸流程会调用 endInteractionSpan / endToolSpan，立即删除 span。
+ * 此定时器是针对从未结束的 span 的安全网（例如中止的流、查询中未捕获的异常）
+ * —— 没有它的话，这些 span 会无限期地累积在 activeSpans 中，
+ * 持有对 Span 对象和 OpenTelemetry 上下文链的引用。
  *
- * Initialized on the first startInteractionSpan call (not at module load) to
- * avoid triggering the no-top-level-side-effects lint rule and to keep the
- * interval from running in processes that never start a span.
- * unref() prevents the timer from keeping the process alive after all other
- * work is done.
+ * 在第一次 startInteractionSpan 调用时初始化（而非模块加载时），
+ * 以避免触发 no-top-level-side-effects lint 规则，并防止
+ * 在从未启动 span 的进程中运行该定时器。
+ * unref() 防止定时器在所有其他工作完成后阻止进程退出。
  */
 function ensureCleanupInterval(): void {
   if (_cleanupIntervalStarted) return
@@ -108,20 +105,20 @@ function ensureCleanupInterval(): void {
         activeSpans.delete(spanId)
         strongSpans.delete(spanId)
       } else if (ctx.startTime < cutoff) {
-        if (!ctx.ended) ctx.span.end() // flush any recorded attributes to the exporter
+        if (!ctx.ended) ctx.span.end() // 将已记录的任何属性刷新到导出器
         activeSpans.delete(spanId)
         strongSpans.delete(spanId)
       }
     }
   }, 60_000)
   if (typeof interval.unref === 'function') {
-    interval.unref() // Node.js / Bun: don't block process exit
+    interval.unref() // Node.js / Bun：不阻塞进程退出
   }
 }
 
 /**
- * Check if enhanced telemetry is enabled.
- * Priority: env var override > ant build > GrowthBook gate
+ * 检查是否启用了增强遥测。
+ * 优先级：环境变量覆盖 > ant 构建 > GrowthBook 开关
  */
 export function isEnhancedTelemetryEnabled(): boolean {
   if (feature('ENHANCED_TELEMETRY_BETA')) {
@@ -143,7 +140,7 @@ export function isEnhancedTelemetryEnabled(): boolean {
 }
 
 /**
- * Check if any tracing is enabled (either standard enhanced telemetry OR beta tracing)
+ * 检查是否启用了任何追踪（标准增强遥测或 beta 追踪）
  */
 function isAnyTracingEnabled(): boolean {
   return isEnhancedTelemetryEnabled() || isBetaTracingEnabled()
@@ -169,20 +166,20 @@ function createSpanAttributes(
 }
 
 /**
- * Start an interaction span. This wraps a user request -> Claude response cycle.
- * This is now a root span that includes all session-level attributes.
- * Sets the interaction context for all subsequent operations.
+ * 启动一个交互 span。此 span 包裹一次用户请求 -> Claude 响应周期。
+ * 这是一个根 span，包含所有会话级别的属性。
+ * 为后续所有操作设置交互上下文。
  */
 export function startInteractionSpan(userPrompt: string): Span {
   ensureCleanupInterval()
 
-  // Start Perfetto span regardless of OTel tracing state
+  // 无论 OTel 追踪状态如何，都启动 Perfetto span
   const perfettoSpanId = isPerfettoTracingEnabled()
     ? startInteractionPerfettoSpan(userPrompt)
     : undefined
 
   if (!isAnyTracingEnabled()) {
-    // Still track Perfetto span even if OTel is disabled
+    // 即使 OTel 被禁用，仍然追踪 Perfetto span
     if (perfettoSpanId) {
       const dummySpan = trace.getActiveSpan() || getTracer().startSpan('dummy')
       const spanId = getSpanId(dummySpan)
@@ -217,7 +214,7 @@ export function startInteractionSpan(userPrompt: string): Span {
     attributes,
   })
 
-  // Add experimental attributes (new_context)
+  // 添加实验性属性（new_context）
   addBetaInteractionAttributes(span, userPrompt)
 
   const spanId = getSpanId(span)
@@ -244,7 +241,7 @@ export function endInteractionSpan(): void {
     return
   }
 
-  // End Perfetto span
+  // 结束 Perfetto span
   if (spanContext.perfettoSpanId) {
     endInteractionPerfettoSpan(spanContext.perfettoSpanId)
   }
@@ -252,10 +249,10 @@ export function endInteractionSpan(): void {
   if (!isAnyTracingEnabled()) {
     spanContext.ended = true
     activeSpans.delete(getSpanId(spanContext.span))
-    // Clear the store so async continuations created after this point (timers,
-    // promise callbacks, I/O) do not inherit a reference to the ended span.
-    // enterWith(undefined) is intentional: exit(() => {}) is a no-op because it
-    // only suppresses the store inside the callback and returns immediately.
+    // 清除存储，使此后创建的异步续体（定时器、
+    // promise 回调、I/O）不会继承对已结束 span 的引用。
+    // enterWith(undefined) 是有意为之：exit(() => {}) 是空操作，因为它
+    // 仅在回调内部抑制存储并立即返回。
     interactionContext.enterWith(undefined)
     return
   }
@@ -277,17 +274,17 @@ export function startLLMRequestSpan(
   messagesForAPI?: APIMessage[],
   fastMode?: boolean,
 ): Span {
-  // Start Perfetto span regardless of OTel tracing state
+  // 无论 OTel 追踪状态如何，都启动 Perfetto span
   const perfettoSpanId = isPerfettoTracingEnabled()
     ? startLLMRequestPerfettoSpan({
         model,
         querySource: newContext?.querySource,
-        messageId: undefined, // Will be set in endLLMRequestSpan
+        messageId: undefined, // 将在 endLLMRequestSpan 中设置
       })
     : undefined
 
   if (!isAnyTracingEnabled()) {
-    // Still track Perfetto span even if OTel is disabled
+    // 即使 OTel 被禁用，仍然追踪 Perfetto span
     if (perfettoSpanId) {
       const dummySpan = trace.getActiveSpan() || getTracer().startSpan('dummy')
       const spanId = getSpanId(dummySpan)
@@ -318,12 +315,12 @@ export function startLLMRequestSpan(
     : otelContext.active()
   const span = tracer.startSpan('claude_code.llm_request', { attributes }, ctx)
 
-  // Add query_source (agent name) if provided
+  // 如果提供了 query_source（agent 名称），则添加
   if (newContext?.querySource) {
     span.setAttribute('query_source', newContext.querySource)
   }
 
-  // Add experimental attributes (system prompt, new_context)
+  // 添加实验性属性（system prompt, new_context）
   addBetaLLMRequestAttributes(span, newContext, messagesForAPI)
 
   const spanId = getSpanId(span)
@@ -340,15 +337,15 @@ export function startLLMRequestSpan(
 }
 
 /**
- * End an LLM request span and attach response metadata.
+ * 结束一个 LLM 请求 span 并附加响应元数据。
  *
- * @param span - Optional. The exact span returned by startLLMRequestSpan().
- *   IMPORTANT: When multiple LLM requests run in parallel (e.g., warmup requests,
- *   topic classifier, file path extractor, main thread), you MUST pass the specific span
- *   to ensure responses are attached to the correct request. Without it, responses may be
- *   incorrectly attached to whichever span happens to be "last" in the activeSpans map.
+ * @param span - 可选。startLLMRequestSpan() 返回的确切 span。
+ *   重要：当多个 LLM 请求并行运行时（例如预热请求、
+ *   主题分类器、文件路径提取器、主线程），你 必须 传递特定的 span，
+ *   以确保响应附加到正确的请求。否则，响应可能会被
+ *   错误地附加到 activeSpans 映射中碰巧是"最后一个"的 span。
  *
- *   If not provided, falls back to finding the most recent llm_request span (legacy behavior).
+ *   如果未提供，则回退到查找最近的 llm_request span（旧版行为）。
  */
 export function endLLMRequestSpan(
   span?: Span,
@@ -362,29 +359,29 @@ export function endLLMRequestSpan(
     error?: string
     attempt?: number
     modelResponse?: string
-    /** Text output from the model (non-thinking content) */
+    /** 模型的文本输出（非思考内容） */
     modelOutput?: string
-    /** Thinking/reasoning output from the model */
+    /** 模型的思考/推理输出 */
     thinkingOutput?: string
-    /** Whether the output included tool calls (look at tool spans for details) */
+    /** 输出是否包含工具调用（详情查看工具 span） */
     hasToolCall?: boolean
-    /** Time to first token in milliseconds */
+    /** 首 token 时间（毫秒） */
     ttftMs?: number
-    /** Time spent in pre-request setup before the successful attempt */
+    /** 成功尝试之前的预请求设置耗时（毫秒） */
     requestSetupMs?: number
-    /** Timestamps (Date.now()) of each attempt start — used to emit retry sub-spans */
+    /** 每次尝试开始的时间戳（Date.now()）—— 用于发出重试子 span */
     attemptStartTimes?: number[]
   },
 ): void {
   let llmSpanContext: SpanContext | undefined
 
   if (span) {
-    // Use the provided span directly - this is the correct approach for parallel requests
+    // 直接使用提供的 span —— 这是并行请求的正确做法
     const spanId = getSpanId(span)
     llmSpanContext = activeSpans.get(spanId)?.deref()
   } else {
-    // Legacy fallback: find the most recent llm_request span
-    // WARNING: This can cause mismatched responses when multiple requests are in flight
+    // 旧版回退：查找最近的 llm_request span
+    // 警告：当多个请求在进行中时，这可能导致响应不匹配
     llmSpanContext = Array.from(activeSpans.values())
       .findLast(r => {
         const ctx = r.deref()
@@ -397,17 +394,17 @@ export function endLLMRequestSpan(
   }
 
   if (!llmSpanContext) {
-    // Span was already ended or never tracked
+    // span 已经结束或从未被追踪
     return
   }
 
   const duration = Date.now() - llmSpanContext.startTime
 
-  // End Perfetto span with full metadata
+  // 使用完整元数据结束 Perfetto span
   if (llmSpanContext.perfettoSpanId) {
     endLLMRequestPerfettoSpan(llmSpanContext.perfettoSpanId, {
       ttftMs: metadata?.ttftMs,
-      ttltMs: duration, // Time to last token is the total duration
+      ttltMs: duration, // 最后 token 时间即为总耗时
       promptTokens: metadata?.inputTokens,
       outputTokens: metadata?.outputTokens,
       cacheReadTokens: metadata?.cacheReadTokens,
@@ -451,7 +448,7 @@ export function endLLMRequestSpan(
     if (metadata.ttftMs !== undefined)
       endAttributes['ttft_ms'] = metadata.ttftMs
 
-    // Add experimental response attributes (model_output, thinking_output)
+    // 添加实验性响应属性（model_output, thinking_output）
     addBetaLLMResponseAttributes(endAttributes, metadata)
   }
 
@@ -468,13 +465,13 @@ export function startToolSpan(
   toolAttributes?: Record<string, string | number | boolean>,
   toolInput?: string,
 ): Span {
-  // Start Perfetto span regardless of OTel tracing state
+  // 无论 OTel 追踪状态如何，都启动 Perfetto span
   const perfettoSpanId = isPerfettoTracingEnabled()
     ? startToolPerfettoSpan(toolName, toolAttributes)
     : undefined
 
   if (!isAnyTracingEnabled()) {
-    // Still track Perfetto span even if OTel is disabled
+    // 即使 OTel 被禁用，仍然追踪 Perfetto span
     if (perfettoSpanId) {
       const dummySpan = trace.getActiveSpan() || getTracer().startSpan('dummy')
       const spanId = getSpanId(dummySpan)
@@ -504,7 +501,7 @@ export function startToolSpan(
     : otelContext.active()
   const span = tracer.startSpan('claude_code.tool', { attributes }, ctx)
 
-  // Add experimental tool input attributes
+  // 添加实验性工具输入属性
   if (toolInput) {
     addBetaToolInputAttributes(span, toolName, toolInput)
   }
@@ -524,13 +521,13 @@ export function startToolSpan(
 }
 
 export function startToolBlockedOnUserSpan(): Span {
-  // Start Perfetto span regardless of OTel tracing state
+  // 无论 OTel 追踪状态如何，都启动 Perfetto span
   const perfettoSpanId = isPerfettoTracingEnabled()
     ? startUserInputPerfettoSpan('tool_permission')
     : undefined
 
   if (!isAnyTracingEnabled()) {
-    // Still track Perfetto span even if OTel is disabled
+    // 即使 OTel 被禁用，仍然追踪 Perfetto span
     if (perfettoSpanId) {
       const dummySpan = trace.getActiveSpan() || getTracer().startSpan('dummy')
       const spanId = getSpanId(dummySpan)
@@ -588,7 +585,7 @@ export function endToolBlockedOnUserSpan(
     return
   }
 
-  // End Perfetto span
+  // 结束 Perfetto span
   if (blockedSpanContext.perfettoSpanId) {
     endUserInputPerfettoSpan(blockedSpanContext.perfettoSpanId, {
       decision,
@@ -695,7 +692,7 @@ export function endToolSpan(toolResult?: string, resultTokens?: number): void {
     return
   }
 
-  // End Perfetto span
+  // 结束 Perfetto span
   if (toolSpanContext.perfettoSpanId) {
     endToolPerfettoSpan(toolSpanContext.perfettoSpanId, {
       success: true,
@@ -706,8 +703,8 @@ export function endToolSpan(toolResult?: string, resultTokens?: number): void {
   if (!isAnyTracingEnabled()) {
     const spanId = getSpanId(toolSpanContext.span)
     activeSpans.delete(spanId)
-    // Same reasoning as interactionContext above: clear so subsequent async
-    // work doesn't hold a stale reference to the ended tool span.
+    // 与上面 interactionContext 同理：清除以使后续异步
+    // 工作不会持有对已结束工具 span 的过时引用。
     toolContext.enterWith(undefined)
     return
   }
@@ -717,7 +714,7 @@ export function endToolSpan(toolResult?: string, resultTokens?: number): void {
     duration_ms: duration,
   }
 
-  // Add experimental tool result attributes (new_context)
+  // 添加实验性工具结果属性（new_context）
   if (toolResult) {
     const toolName = toolSpanContext.attributes['tool_name'] || 'unknown'
     addBetaToolResultAttributes(endAttributes, toolName, toolResult)
@@ -740,9 +737,9 @@ function isToolContentLoggingEnabled(): boolean {
 }
 
 /**
- * Add a span event with tool content/output data.
- * Only logs if OTEL_LOG_TOOL_CONTENT=1 is set.
- * Truncates content if it exceeds MAX_CONTENT_SIZE.
+ * 添加一个包含工具内容/输出数据的 span 事件。
+ * 仅在设置了 OTEL_LOG_TOOL_CONTENT=1 时记录。
+ * 如果内容超过 MAX_CONTENT_SIZE 则进行截断。
  */
 export function addToolContentEvent(
   eventName: string,
@@ -757,7 +754,7 @@ export function addToolContentEvent(
     return
   }
 
-  // Truncate string attributes that might be large
+  // 对可能很大的字符串属性进行截断
   const processedAttributes: Record<string, string | number | boolean> = {}
   for (const [key, value] of Object.entries(attributes)) {
     if (typeof value === 'string') {
@@ -833,13 +830,13 @@ export async function executeInSpan<T>(
 }
 
 /**
- * Start a hook execution span.
- * Only creates a span when beta tracing is enabled.
- * @param hookEvent The hook event type (e.g., 'PreToolUse', 'PostToolUse')
- * @param hookName The full hook name (e.g., 'PreToolUse:Write')
- * @param numHooks The number of hooks being executed
- * @param hookDefinitions JSON string of hook definitions for tracing
- * @returns The span (or a dummy span if tracing is disabled)
+ * 启动一个 hook 执行 span。
+ * 仅在 beta 追踪启用时创建 span。
+ * @param hookEvent hook 事件类型（例如 'PreToolUse'、'PostToolUse'）
+ * @param hookName 完整的 hook 名称（例如 'PreToolUse:Write'）
+ * @param numHooks 正在执行的 hook 数量
+ * @param hookDefinitions hook 定义的 JSON 字符串，用于追踪
+ * @returns span（如果追踪被禁用则返回 dummy span）
  */
 export function startHookSpan(
   hookEvent: string,
@@ -879,10 +876,10 @@ export function startHookSpan(
 }
 
 /**
- * End a hook execution span with outcome metadata.
- * Only does work when beta tracing is enabled.
- * @param span The span to end (returned from startHookSpan)
- * @param metadata The outcome metadata for the hook execution
+ * 结束一个 hook 执行 span 并附加结果元数据。
+ * 仅在 beta 追踪启用时执行。
+ * @param span 要结束的 span（由 startHookSpan 返回）
+ * @param metadata hook 执行的结果元数据
  */
 export function endHookSpan(
   span: Span,

@@ -13,7 +13,7 @@ const inputSchema = lazySchema(() =>
     duration_seconds: z
       .number()
       .describe(
-        'How long to sleep in seconds. Can be interrupted by the user at any time.',
+        '睡眠时长（秒）。用户可随时中断。',
       ),
   }),
 )
@@ -85,7 +85,7 @@ export const SleepTool = buildTool({
 
   renderToolUseMessage(input: Partial<SleepInput>) {
     const secs = input.duration_seconds ?? '?'
-    return `Sleep: ${secs}s`
+    return `睡眠：${secs}s`
   },
 
   mapToolResultToToolResultBlockParam(
@@ -93,8 +93,8 @@ export const SleepTool = buildTool({
     toolUseID: string,
   ): ToolResultBlockParam {
     const msg = content.interrupted
-      ? `Sleep interrupted after ${content.slept_seconds}s`
-      : `Slept for ${content.slept_seconds}s`
+      ? `睡眠在 ${content.slept_seconds}s 后被中断`
+      : `已睡眠 ${content.slept_seconds}s`
     return {
       tool_use_id: toolUseID,
       type: 'tool_result',
@@ -103,8 +103,7 @@ export const SleepTool = buildTool({
   },
 
   async call(input: SleepInput, context) {
-    // Don't enter sleep if proactive was disabled or new work arrived while
-    // the model was deciding to wait.
+    // 如果在模型决定等待期间 proactive 被禁用或有新工作到来，则不进入睡眠。
     if (shouldInterruptSleep()) {
       return {
         data: {
@@ -165,7 +164,7 @@ export const SleepTool = buildTool({
 
         timer = setTimeout(finish, duration_seconds * 1000)
 
-        // Abort via user interrupt
+        // 通过用户中断中止
         if (context.abortController.signal.aborted) {
           interrupt()
           return
@@ -174,8 +173,8 @@ export const SleepTool = buildTool({
           once: true,
         })
 
-        // Poll proactive state and the shared command queue so new work can
-        // wake Sleep without waiting for the full duration.
+        // 轮询 proactive 状态和共享命令队列，使新工作无需
+        // 等待完整时长即可唤醒 Sleep。
         wakeCheck = setInterval(() => {
           if (shouldInterruptSleep()) {
             interrupt()

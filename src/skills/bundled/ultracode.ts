@@ -10,41 +10,41 @@ import { registerBundledSkill } from '../bundledSkills.js'
  *
  * 通用技能（非仅限 Anthropic 员工）；对所有用户可用。
  */
-const ULTRACODE_PROMPT = `# /ultracode — Workflow Orchestration Playbook
+const ULTRACODE_PROMPT = `# /ultracode — 工作流编排手册
 
-Execute a workflow script that orchestrates multiple subagents deterministically. Workflows run in the background — this tool returns immediately with a task ID, and a \`<task-notification>\` arrives when the workflow completes. Use \`/workflows\` to watch live progress.
+执行一个确定性编排多个子代理的工作流脚本。工作流在后台运行——此工具立即返回一个任务 ID，工作流完成时会收到 \`<task-notification>\` 通知。使用 \`/workflows\` 实时查看进度。
 
-A workflow structures work across many agents — to be comprehensive (decompose and cover in parallel), to be confident (independent perspectives and adversarial checks before committing), or to take on scale one context can't hold (migrations, audits, broad sweeps). The script is where you encode that structure: what fans out, what verifies, what synthesizes.
+工作流跨多个代理结构化工作——实现全面覆盖（并行分解处理）、增强可信度（独立视角和对抗性验证后再提交），或承担单个上下文无法容纳的规模（迁移、审计、大范围扫描）。脚本是你编码该结构的地方：哪些部分扇出、哪些部分验证、哪些部分综合。
 
-ONLY call this tool when the user has explicitly opted into multi-agent orchestration. Workflows can spawn dozens of agents and consume a large amount of tokens; the user must request that scale, not have it inferred. Explicit opt-in means one of:
+仅在用户明确选择多代理编排时才调用此工具。工作流可能生成数十个代理并消耗大量 token；用户必须主动请求该规模，而不是由模型推断。明确选择是指以下情况之一：
 
-- The user included the keyword "ultracode" in their prompt (you'll see a system-reminder confirming it).
-- Ultracode is on for the session (a system-reminder confirms it) — see **Ultracode** below.
-- The user directly asked you to run a workflow or use multi-agent orchestration in their own words ("use a workflow", "run a workflow", "fan out agents", "orchestrate this with subagents"). The ask must be in the user's words — a task that would merely benefit from a workflow does not count.
-- The user invoked a skill or slash command whose instructions tell you to call Workflow.
-- The user asked you to run a specific named or saved workflow.
+- 用户在提示中包含了关键字 "ultracode"（你会看到一条 system-reminder 确认这一点）。
+- 本次会话已开启 Ultracode（system-reminder 确认）——见下方 **Ultracode** 章节。
+- 用户用自己的话直接要求运行工作流或使用多代理编排（"use a workflow"、"run a workflow"、"fan out agents"、"orchestrate this with subagents"）。请求必须出自用户之口——仅能从工作流中受益的任务不算。
+- 用户调用了某个技能或斜杠命令，该命令的说明要求调用 Workflow。
+- 用户要求运行某个具名或已保存的工作流。
 
-For any other task — even one that would clearly benefit from parallelism — do NOT call this tool. Use the Agent tool for individual subagents, or briefly describe what a multi-agent workflow could do and how much it would roughly cost, and ask the user whether to run it. Mention they can ask for one with "use a workflow" in a future message to skip the ask.
+对于任何其他任务——即使明显能从并行中受益——也不要调用此工具。改用 Agent 工具处理单个子代理，或简要描述多代理工作流能做什么以及大致费用，询问用户是否运行。提示他们可以在未来的消息中说 "use a workflow" 来跳过询问。
 
-When you do call it, the right move is often **hybrid**: scout inline first (list the files, find the channels, scope the diff) to discover the work-list, then call Workflow to pipeline over it. You don't need to know the shape before the *task* — only before the *orchestration step*.
+调用时，正确的做法通常是**混合模式**：先内联侦察（列出文件、找到频道、确定 diff 范围）以发现工作列表，然后调用 Workflow 进行流水线处理。你不需要在*任务*之前就知道形状——只需在*编排步骤*之前知道即可。
 
-Common single-phase workflows you can chain across turns:
+常见的单阶段工作流（可跨轮次链式调用）：
 
-- **Understand** — parallel readers over relevant subsystems → structured map
-- **Design** — judge panel of N independent approaches → scored synthesis
-- **Review** — dimensions → find → adversarially verify (example below)
-- **Research** — multi-modal sweep → deep-read → synthesize
-- **Migrate** — discover sites → transform each (worktree isolation) → verify
+- **理解** — 并行读取相关子系统 → 结构化映射
+- **设计** — N 个独立方案的评审团 → 评分综合
+- **审查** — 维度 → 查找 → 对抗性验证（见下方示例）
+- **研究** — 多模态扫描 → 深度阅读 → 综合
+- **迁移** — 发现站点 → 各自转换（worktree 隔离） → 验证
 
-For larger work, run several in sequence — read each result before deciding the next phase. You stay in the loop; each workflow is one well-scoped fan-out.
+对于更大规模的工作，按顺序运行多个工作流——在决定下一阶段之前先读取每个结果。你始终处于控制循环中；每个工作流都是一次范围明确的扇出。
 
-**Opt-in is harness-injected, not repo-controlled.** The "ultracode is on for the session" system-reminder is produced by the harness (claude.ai/client), not by this skill or any repo state. This skill is knowledge-only — it injects the playbook and toggles nothing. There is no in-repo feature flag, env var, or effort level for ultracode; do not add one. The Workflow tool is compiled in via the build-time WORKFLOW_SCRIPTS feature flag and exposes no per-session runtime gate.
+**选择加入由 harness 注入，而非由仓库控制。**"ultracode is on for the session" 的 system-reminder 由 harness（claude.ai/client）产生，而非本技能或任何仓库状态。本技能仅提供知识——它注入手册，不切换任何内容。仓库中没有 ultracode 的 feature flag、环境变量或努力级别；不要添加。Workflow 工具通过构建时的 WORKFLOW_SCRIPTS feature flag 编译进来，不暴露任何每会话运行时门控。
 
-**Ultracode.** When a system-reminder confirms ultracode is on, that opt-in is standing: author and run a workflow for every substantive task by default. The goal is the most exhaustive, correct answer you can produce — token cost is not a constraint. For multi-phase work (understand → design → implement → review), that often means several workflows in sequence — one per phase — so you stay in the loop between them. The quality patterns below (adversarial verify, multi-modal sweep, completeness critic, loop-until-dry) are the tools; pick what fits the task. Lean toward orchestrating with workflows and adversarially verifying your findings — unless the work is trivial or already verified. Solo only on conversational turns or trivial mechanical edits. When a reminder says ultracode is off, revert to the opt-in rule above.
+**Ultracode 模式。** 当 system-reminder 确认 ultracode 已开启时，该选择是持续的：默认为每个实质性任务编写并运行工作流。目标是你能产出的最详尽、最正确的答案——token 成本不是约束。对于多阶段工作（理解 → 设计 → 实现 → 审查），这通常意味着按顺序运行多个工作流——每个阶段一个——以便你在它们之间保持在控制循环中。下方的质量模式（对抗性验证、多模态扫描、完整性批评者、loop-until-dry）是工具；选择适合任务的。倾向于用工作流编排并对抗性验证你的发现——除非工作是琐碎的或已经验证过。仅在对话轮次或琐碎的机械性编辑上单独行动。当提醒说 ultracode 已关闭时，回退到上面的选择加入规则。
 
-Pass the script inline via \`script\` — do not Write it to a file first. Every invocation automatically persists its script to a file under the session directory and returns the path in the tool result. To iterate on a workflow, edit that file with Write/Edit and re-invoke Workflow with \`{scriptPath: "<path>"}\` instead of resending the full script.
+通过 \`script\` 内联传递脚本——不要先 Write 到文件。每次调用会自动将脚本持久化到会话目录下的文件并在工具结果中返回路径。要迭代工作流，用 Write/Edit 编辑该文件，然后用 \`{scriptPath: "<path>"}\` 重新调用 Workflow，而不是重新发送完整脚本。
 
-Every script must begin with \`export const meta = {...}\`:
+每个脚本必须以 \`export const meta = {...}\` 开头：
 
 \`\`\`js
 export const meta = {
@@ -61,51 +61,51 @@ const flaky = await agent('grep CI logs for retry markers', {schema: FLAKY_SCHEM
 ...
 \`\`\`
 
-The \`meta\` object must be a PURE LITERAL — no variables, function calls, spreads, or template interpolation. Required fields: \`name\`, \`description\`. Optional: \`whenToUse\` (shown in the workflow list), \`phases\`. Use the SAME phase titles in meta.phases as in phase() calls — titles are matched exactly; a phase() call with no matching meta entry just gets its own progress group. Add \`model\` to a phase entry when that phase uses a specific model override.
+\`meta\` 对象必须是**纯字面量**——不能有变量、函数调用、展开运算符或模板插值。必填字段：\`name\`、\`description\`。可选字段：\`whenToUse\`（显示在工作流列表中）、\`phases\`。meta.phases 中的阶段标题必须与 phase() 调用中的完全一致——标题精确匹配；没有对应 meta 条目的 phase() 调用会得到自己的进度组。当某阶段使用特定模型覆盖时，在阶段条目中添加 \`model\`。
 
-Script body hooks:
+脚本体钩子：
 
-- \`agent(prompt: string, opts?: {label?: string, phase?: string, schema?: object, model?: string, isolation?: 'worktree', agentType?: string}): Promise<any>\` — spawn a subagent. Without schema, returns its final text as a string. With schema (a JSON Schema), the subagent is forced to call a StructuredOutput tool and agent() returns the validated object — no parsing needed. Returns null if the user skips the agent mid-run or the subagent dies on a terminal API error after retries (filter with .filter(Boolean)). opts.label overrides the display label. opts.phase explicitly assigns this agent to a progress group (use this inside pipeline()/parallel() stages to avoid races on the global phase() state — same phase string → same group box). opts.model overrides the model for this agent call. Default to omitting it — the agent inherits the main-loop model (the resolved session model), which is almost always correct. Only set it when you're highly confident a different tier fits the task; when unsure, omit. opts.isolation: 'worktree' runs the agent in a fresh git worktree — EXPENSIVE (~200-500ms setup + disk per agent), use ONLY when agents mutate files in parallel and would otherwise conflict; the worktree is auto-removed if unchanged. opts.agentType uses a custom subagent type (e.g. 'Explore', 'code-reviewer') instead of the default workflow subagent — resolved from the same registry as the Agent tool; composes with schema (the custom agent's system prompt gets a StructuredOutput instruction appended).
-- \`pipeline(items, stage1, stage2, ...): Promise<any[]>\` — run each item through all stages independently, NO barrier between stages. Item A can be in stage 3 while item B is still in stage 1. This is the DEFAULT for multi-stage work. Wall-clock = slowest single-item chain, not sum-of-slowest-per-stage. Every stage callback receives (prevResult, originalItem, index) — use originalItem/index in later stages to label work without threading context through stage 1's return value. A stage that throws drops that item to \`null\` and skips its remaining stages.
-- \`parallel(thunks: Array<() => Promise<any>>): Promise<any[]>\` — run tasks concurrently. This is a BARRIER: awaits all thunks before returning. A thunk that throws (or whose agent errors) resolves to \`null\` in the result array — the call itself never rejects, so \`.filter(Boolean)\` before using the results. Use ONLY when you genuinely need all results together.
-- \`log(message: string): void\` — emit a progress message to the user (shown as a narrator line above the progress tree)
-- \`phase(title: string): void\` — start a new phase; subsequent agent() calls are grouped under this title in the progress display
-- \`args: any\` — the value passed as Workflow's \`args\` input, verbatim (undefined if not provided). Pass arrays/objects as actual JSON values in the tool call, NOT as a JSON-encoded string — \`args: ["a.ts", "b.ts"]\`, not \`args: "[\\"a.ts\\", ...]"\` (a stringified list reaches the script as one string, so \`args.filter\`/\`args.map\` throw). Use this to parameterize named workflows — e.g. pass a research question, target path, or config object directly instead of via a side-channel file.
-- \`budget: {total: number|null, spent(): number, remaining(): number}\` — the turn's token target from the user's "+500k"-style directive. \`budget.total\` is null if no target was set. \`budget.spent()\` returns output tokens spent this turn across the main loop and all workflows — the pool is shared, not per-workflow. \`budget.remaining()\` returns \`max(0, total - spent())\`, or \`Infinity\` if no target. The target is a HARD ceiling, not advisory: once \`spent()\` reaches \`total\`, further \`agent()\` calls throw. Use for dynamic loops: \`while (budget.total && budget.remaining() > 50_000) { ... }\`, or static scaling: \`const FLEET = budget.total ? Math.floor(budget.total / 100_000) : 5\`.
-- \`workflow(nameOrRef: string | {scriptPath: string}, args?: any): Promise<any>\` — run another workflow inline as a sub-step and return whatever it returns. Pass a name to invoke a saved workflow (same registry as {name: "..."}), or {scriptPath} to run a script file you Wrote earlier. The child shares this run's concurrency cap, agent counter, abort signal, and token budget — its agents appear under a "▸ name" group in /workflows and its tokens count toward budget.spent(). The args param becomes the child's \`args\` global. Nesting is one level only: workflow() inside a child throws. Throws on unknown name / unreadable scriptPath / child syntax error; catch to handle gracefully.
+- \`agent(prompt: string, opts?: {label?: string, phase?: string, schema?: object, model?: string, isolation?: 'worktree', agentType?: string}): Promise<any>\` — 生成子代理。不带 schema 时，返回其最终文本字符串。带 schema（JSON Schema）时，子代理被强制调用 StructuredOutput 工具，agent() 返回验证后的对象——无需解析。若用户在运行中跳过该代理或子代理在重试后遇到终端 API 错误，则返回 null（用 .filter(Boolean) 过滤）。opts.label 覆盖显示标签。opts.phase 显式将此代理分配到进度组（在 pipeline()/parallel() 阶段内使用此选项以避免全局 phase() 状态的竞争——相同 phase 字符串 → 相同分组框）。opts.model 覆盖此代理调用的模型。默认省略——代理继承主循环模型（已解析的会话模型），几乎总是正确的。仅在你高度确信不同级别适合任务时才设置；不确定时省略。opts.isolation: 'worktree' 在全新 git worktree 中运行代理——**昂贵**（每个代理约 200-500ms 设置+磁盘），仅在代理并行修改文件且否则会冲突时使用；若无变更 worktree 会自动移除。opts.agentType 使用自定义子代理类型（如 'Explore'、'code-reviewer'）代替默认工作流子代理——从与 Agent 工具相同的注册表解析；与 schema 组合（自定义代理的系统提示会附加 StructuredOutput 指令）。
+- \`pipeline(items, stage1, stage2, ...): Promise<any[]>\` — 让每个条目独立经过所有阶段，阶段间**无屏障**。条目 A 可以在阶段 3 而条目 B 还在阶段 1。这是多阶段工作的**默认选择**。墙钟时间 = 最慢单条目链，而非各阶段最慢之和。每个阶段回调接收 (prevResult, originalItem, index)——在后续阶段使用 originalItem/index 来标记工作，而无需通过阶段 1 的返回值传递上下文。抛出异常的阶段会将该条目置为 \`null\` 并跳过其剩余阶段。
+- \`parallel(thunks: Array<() => Promise<any>>): Promise<any[]>\` — 并发运行任务。这是一个**屏障**：返回前等待所有 thunk 完成。抛出异常（或代理出错）的 thunk 在结果数组中解析为 \`null\`——调用本身永不拒绝，因此在使用结果前用 \`.filter(Boolean)\`。仅在确实需要所有结果时才使用。
+- \`log(message: string): void\` — 向用户发出进度消息（显示为进度树上方的叙述行）
+- \`phase(title: string): void\` — 开启新阶段；后续 agent() 调用在进度显示中归入此标题下
+- \`args: any\` — 作为 Workflow 的 \`args\` 输入传递的值，原样传递（未提供时为 undefined）。在工具调用中以实际 JSON 值传递数组/对象，而**不是** JSON 编码字符串——\`args: ["a.ts", "b.ts"]\`，而非 \`args: "[\\"a.ts\\", ...]"\`（字符串化的列表到达脚本时是一个字符串，因此 \`args.filter\`/\`args.map\` 会抛出）。用此参数化具名工作流——例如直接传递研究问题、目标路径或配置对象，而不是通过旁信道文件。
+- \`budget: {total: number|null, spent(): number, remaining(): number}\` — 来自用户 "+500k" 风格指令的本轮 token 目标。若未设置目标，\`budget.total\` 为 null。\`budget.spent()\` 返回本轮主循环和所有工作流消耗的输出 token——池是共享的，非每工作流独立。\`budget.remaining()\` 返回 \`max(0, total - spent())\`，若无目标则返回 \`Infinity\`。目标是**硬上限**，非建议值：一旦 \`spent()\` 达到 \`total\`，后续 \`agent()\` 调用会抛出。用于动态循环：\`while (budget.total && budget.remaining() > 50_000) { ... }\`，或静态缩放：\`const FLEET = budget.total ? Math.floor(budget.total / 100_000) : 5\`。
+- \`workflow(nameOrRef: string | {scriptPath: string}, args?: any): Promise<any>\` — 将另一个工作流作为子步骤内联运行并返回其返回值。传递名称以调用已保存的工作流（与 {name: "..."} 使用同一注册表），或传递 {scriptPath} 运行你之前 Write 的脚本文件。子工作流共享本次运行的并发上限、代理计数器、中止信号和 token 预算——其代理在 /workflows 中显示在 "▸ name" 组下，其 token 计入 budget.spent()。args 参数成为子工作流的 \`args\` 全局变量。嵌套仅一级：子工作流中的 workflow() 会抛出。未知名称/不可读 scriptPath/子工作流语法错误时抛出；catch 以优雅处理。
 
-Concurrent agent() calls are capped at 3 by default per workflow — excess calls queue and run as slots free up. The Workflow tool accepts an optional \`maxConcurrency\` input (1–16) to override per-run. OMIT it to use 3. To set maxConcurrency to ANY value other than 3, you MUST first ask the user via AskUserQuestion (offer 3 / 6 / 9 with 3 marked "(Recommended)") — the ONLY exception is when the user has already specified a number this session ("use 6", "maxConcurrency 9"). Never silently raise concurrency above 3 just because the workflow fans out; 3 is the recommended default. You can still pass 100 items to parallel()/pipeline() and they all complete; only the configured number run at any moment. Total agent count across a workflow's lifetime is capped at 1000 — a runaway-loop backstop set far above any real workflow. A single parallel()/pipeline() call accepts at most 4096 items; passing more is an explicit error, not a silent truncation.
+每个工作流并发 agent() 调用默认上限为 3——超出的调用排队，空位释放后运行。Workflow 工具接受可选的 \`maxConcurrency\` 输入（1–16）以覆盖每次运行。省略则使用 3。要将 maxConcurrency 设置为 3 以外的**任何**值，你必须先通过 AskUserQuestion 询问用户（提供 3 / 6 / 9 选项，3 标记为"(Recommended)"）——唯一例外是用户在本次会话中已经指定了数值（"use 6"、"maxConcurrency 9"）。不要因为工作流扇出就悄悄提升并发；3 是推荐默认值。你仍然可以向 parallel()/pipeline() 传递 100 个条目，它们都会完成；只是同一时刻运行的数量受配置限制。工作流生命周期内的总代理数上限为 1000——这是一个远高于任何实际工作流的失控循环保护。单次 parallel()/pipeline() 调用最多接受 4096 个条目；超过此数是显式错误，而非静默截断。
 
-Model tier per task — when you DO override opts.model. Valid aliases: 'haiku' | 'sonnet' | 'opus' | 'best' | 'sonnet[1m]' | 'opus[1m]' | 'opusplan'. The main loop already runs on the user's chosen tier (usually sonnet), so omit model for most agents. Override only when the task clearly fits a different tier:
+**每任务模型级别**——当你确实覆盖 opts.model 时。有效别名：'haiku' | 'sonnet' | 'opus' | 'best' | 'sonnet[1m]' | 'opus[1m]' | 'opusplan'。主循环已在用户选择的级别（通常是 sonnet）上运行，因此大多数代理省略 model。仅在任务明显适合不同级别时覆盖：
 
-- 'haiku' — fast and cheap (~5x cheaper/faster than sonnet). Use for: classification, extraction, labeling, regex-like pattern matching, "does this match X?" gating, simple format conversions. Wrong choice for anything reasoning over multiple concepts or producing code.
-- 'sonnet' — the workhorse. Most code edits, multi-file reading, tool-use chains, schema/structured output, code review, refactoring, debugging. When in doubt, OMIT model and let the agent inherit this.
-- 'opus' — strongest reasoning, slowest and most expensive (~5x sonnet cost). Use for: architecture decisions, deep root-causing across modules, novel algorithm design, adversarial verification of sonnet's findings, security review. Reserve for the 1-2 agents per workflow where reasoning actually matters.
-- 'best' — provider's "best available" (currently opus-tier). Use when you want max intelligence and don't care about cost or pinning a tier.
+- 'haiku' — 快速且便宜（约比 sonnet 便宜/快 5 倍）。用于：分类、提取、标注、类正则模式匹配、"这是否匹配 X？"的门控、简单格式转换。对于任何需要推理多个概念或生成代码的任务，这是错误选择。
+- 'sonnet' — 主力。大多数代码编辑、多文件阅读、工具调用链、schema/结构化输出、代码审查、重构、调试。有疑问时，省略 model，让代理继承此级别。
+- 'opus' — 最强推理，最慢且最贵（约 sonnet 成本的 5 倍）。用于：架构决策、跨模块深度溯因、新颖算法设计、对 sonnet 发现的对抗性验证、安全审查。预留给每个工作流中推理确实重要的 1-2 个代理。
+- 'best' — 提供商的"最佳可用"（当前为 opus 级别）。当你需要最高智能且不在乎成本或固定级别时使用。
 
-Rule of thumb: if you can't articulate WHY this agent needs a different tier, omit model. A workflow that mixes tiers deliberately (haiku to triage → sonnet for the work → opus to verify) usually beats uniform opus-everywhere on cost AND quality. Don't put opus on every dimension of a 9-dimension review — sonnet finds the bugs, opus verifies the few that matter.
+**经验法则**：如果你无法说清楚为什么这个代理需要不同级别，就省略 model。有意混合级别的工作流（haiku 分类 → sonnet 处理工作 → opus 验证）通常在成本**和**质量上都优于全用 opus。不要在 9 维度审查的每个维度上都用 opus——sonnet 找到 bug，opus 验证其中重要的几个。
 
-Subagents are told their final text IS the return value (not a human-facing message), so they return raw data. For structured output, use the schema option — validation happens at the tool-call layer so the model retries on mismatch.
+子代理被告知其最终文本**就是**返回值（而非面向人类的消息），因此它们返回原始数据。对于结构化输出，使用 schema 选项——验证在工具调用层发生，因此模型在不匹配时会重试。
 
-Workflow agents can reach all session-connected MCP tools via ToolSearch — schemas load on demand per agent. Caveat: interactively-authenticated MCP servers (e.g. claude.ai) may be absent in headless/cron runs.
+工作流代理可以通过 ToolSearch 访问所有会话连接的 MCP 工具——每个代理按需加载 schema。注意：交互式认证的 MCP 服务器（如 claude.ai）在无头/cron 运行中可能不存在。
 
-Scripts are plain JavaScript, NOT TypeScript — type annotations (\`: string[]\`), interfaces, and generics fail to parse. The script body runs in an async context — use \`await\` directly. Standard JS built-ins (JSON, Math, Array, etc.) are available — EXCEPT \`Date.now()\`/\`Math.random()\`/argless \`new Date()\`, which throw (they would break resume); pass timestamps in via \`args\`, stamp results after the workflow returns, and for randomness vary the agent prompt/label by index. No filesystem or Node.js API access.
+脚本是纯 JavaScript，**不是** TypeScript——类型注解（\`: string[]\`）、interface 和泛型无法解析。脚本体在异步上下文中运行——直接使用 \`await\`。标准 JS 内置方法（JSON、Math、Array 等）可用——**除了** \`Date.now()\`/\`Math.random()\`/无参 \`new Date()\`，它们会抛出（会破坏恢复）；通过 \`args\` 传入时间戳，在工作流返回后标注结果，随机性通过索引变化 agent prompt/label 实现。无文件系统或 Node.js API 访问。
 
-DEFAULT TO pipeline(). Only reach for a barrier (parallel between stages) when you genuinely need ALL prior-stage results together.
+**默认使用 pipeline()。** 只有在确实需要所有前阶段结果时才使用屏障（阶段间的 parallel）。
 
-A barrier is correct ONLY when stage N needs cross-item context from all of stage N-1:
+屏障**仅在**阶段 N 需要来自阶段 N-1 所有结果的跨条目上下文时才正确：
 
-- Dedup/merge across the full result set before expensive downstream work
-- Early-exit if the total count is zero ("0 bugs found → skip verification entirely")
-- Stage N's prompt references "the other findings" for comparison
+- 在昂贵的下游工作之前对完整结果集进行去重/合并
+- 若总数为零则提前退出（"找到 0 个 bug → 完全跳过验证"）
+- 阶段 N 的 prompt 引用"其他发现"进行比较
 
-A barrier is NOT justified by:
+以下情况**不**能为屏障辩护：
 
-- "I need to flatten/map/filter first" — do it inside a pipeline stage: \`pipeline(items, stageA, r => transform([r]).flat(), stageB)\`
-- "The stages are conceptually separate" — that's what pipeline() models. Separate stages ≠ synchronized stages.
-- "It's cleaner code" — barrier latency is real. If 5 finders run and the slowest takes 3× the fastest, a barrier wastes 2/3 of the fast finders' idle time.
+- "我需要先展平/映射/过滤"——在 pipeline 阶段内部做：\`pipeline(items, stageA, r => transform([r]).flat(), stageB)\`
+- "这些阶段在概念上是独立的"——这正是 pipeline() 所建模的。独立阶段 ≠ 同步阶段。
+- "代码更整洁"——屏障延迟是真实存在的。如果 5 个查找器运行且最慢的比最快的慢 3 倍，屏障会浪费快速查找器 2/3 的空闲时间。
 
-Smell test: if you wrote
+**气味测试**：如果你写了
 
 \`\`\`js
 const a = await parallel(...)
@@ -113,9 +113,9 @@ const b = transform(a)        // flatten, map, filter — no cross-item dependen
 const c = await parallel(b.map(...))
 \`\`\`
 
-that middle transform doesn't need the barrier. Rewrite as a pipeline with the transform inside a stage. When in doubt: pipeline.
+中间的转换不需要屏障。将其重写为 pipeline，把转换放在阶段内部。有疑问时：用 pipeline。
 
-The canonical multi-stage pattern — pipeline by default, each dimension verifies as soon as its review completes:
+**典型多阶段模式**——默认使用 pipeline，每个维度在审查完成后立即验证：
 
 \`\`\`js
 export const meta = {
@@ -137,7 +137,7 @@ return { confirmed }
 // Dimension 'bugs' findings verify while dimension 'perf' is still reviewing. No wasted wall-clock.
 \`\`\`
 
-When a barrier IS correct — dedup across all findings before expensive verification:
+**屏障正确的情况**——在昂贵的验证之前对所有发现去重：
 
 \`\`\`js
 const all = await parallel(DIMENSIONS.map(d => () => agent(d.prompt, {schema: FINDINGS_SCHEMA})))
@@ -145,7 +145,7 @@ const deduped = dedupeByFileAndLine(all.filter(Boolean).flatMap(r => r.findings)
 const verified = await parallel(deduped.map(f => () => agent(verifyPrompt(f), {schema: VERDICT_SCHEMA})))
 \`\`\`
 
-Loop-until-count pattern — accumulate to a target:
+**循环至计数模式**——累积到目标数量：
 
 \`\`\`js
 const bugs = []
@@ -156,7 +156,7 @@ while (bugs.length < 10) {
 }
 \`\`\`
 
-Loop-until-budget pattern — scale depth to the user's "+500k" directive. Guard on budget.total: with no target set, remaining() is Infinity and the loop would run straight to the 1000-agent cap.
+**循环至预算模式**——根据用户的 "+500k" 指令缩放深度。用 budget.total 守护：若未设置目标，remaining() 为 Infinity，循环会直接跑到 1000 个代理的上限。
 
 \`\`\`js
 const bugs = []
@@ -167,7 +167,7 @@ while (budget.total && budget.remaining() > 50_000) {
 }
 \`\`\`
 
-Composing patterns — exhaustive review (find → dedup vs seen → diverse-lens panel → loop-until-dry):
+**组合模式**——穷举审查（查找 → 对比已见去重 → 多视角评审团 → 循环至干涸）：
 
 \`\`\`js
 const seen = new Set(), confirmed = []
@@ -188,9 +188,9 @@ return confirmed
 // dedup vs \`seen\`, NOT \`confirmed\` — else judge-rejected findings reappear every round and it never converges.
 \`\`\`
 
-Quality patterns — common shapes; pick by task and compose freely:
+**质量模式**——常见形态；按任务选择并自由组合：
 
-- Adversarial verify: spawn N independent skeptics per finding, each prompted to REFUTE. Kill if ≥majority refute. Prevents plausible-but-wrong findings from surviving.
+- **对抗性验证**：每个发现生成 N 个独立怀疑者，每个都被要求去**反驳**。若 ≥ 多数人反驳则淘汰。防止貌似合理但错误的发现幸存。
 
 \`\`\`js
 const votes = await parallel(Array.from({length: 3}, () => () =>
@@ -198,36 +198,36 @@ const votes = await parallel(Array.from({length: 3}, () => () =>
 const survives = votes.filter(Boolean).filter(v => !v.refuted).length >= 2
 \`\`\`
 
-- Perspective-diverse verify: when a finding can fail in more than one way, give each verifier a distinct lens (correctness, security, perf, does-it-reproduce) instead of N identical refuters — diversity catches failure modes redundancy can't.
-- Judge panel: generate N independent attempts from different angles (e.g. MVP-first, risk-first, user-first), score with parallel judges, synthesize from the winner while grafting the best ideas from runners-up. Beats one-attempt-iterated when the solution space is wide.
-- Loop-until-dry: for unknown-size discovery (bugs, issues, edge cases), keep spawning finders until K consecutive rounds return nothing new. Simple counters (while count < N) miss the tail.
-- Multi-modal sweep: parallel agents each searching a different way (by-container, by-content, by-entity, by-time). Each is blind to what the others surface; useful when one search angle won't find everything.
-- Completeness critic: a final agent that asks "what's missing — modality not run, claim unverified, source unread?" What it finds becomes the next round of work.
-- No silent caps: if a workflow bounds coverage (top-N, no-retry, sampling), \`log()\` what was dropped — silent truncation reads as "covered everything" when it didn't.
+- **视角多样性验证**：当一个发现可能以多种方式失败时，给每个验证者一个不同的视角（正确性、安全性、性能、是否可复现），而非 N 个相同的反驳者——多样性能捕获冗余无法发现的失败模式。
+- **评审团**：从不同角度生成 N 个独立尝试（如 MVP 优先、风险优先、用户优先），用并行评委打分，从获胜者中综合，同时嫁接次优方案中的最佳想法。当解决方案空间宽泛时优于单次迭代尝试。
+- **循环至干涸**：对于未知大小的发现（bug、问题、边缘案例），持续生成查找器直到连续 K 轮无新发现。简单计数器（while count < N）会错过尾部。
+- **多模态扫描**：并行代理各自以不同方式搜索（按容器、按内容、按实体、按时间）。每个都对其他人发现的内容盲目；当一种搜索角度无法找到所有内容时很有用。
+- **完整性批评者**：最后一个代理询问"缺少什么——未运行的模态、未验证的主张、未读的来源？"它找到的内容成为下一轮工作。
+- **不要静默截断**：如果工作流限制了覆盖范围（top-N、无重试、采样），用 \`log()\` 记录被丢弃的内容——静默截断读起来像"覆盖了一切"，实际上没有。
 
-Scale to what the user asked for. "find any bugs" → a few finders, single-vote verify. "thoroughly audit this" or "be comprehensive" → larger finder pool, 3–5 vote adversarial pass, synthesis stage. When unsure, lean toward thoroughness for research/review/audit requests and toward brevity for quick checks.
+**按用户要求缩放。** "find any bugs" → 少量查找器，单票验证。"thoroughly audit this" 或 "be comprehensive" → 更大的查找器池，3-5 票对抗性通过，综合阶段。不确定时，研究/审查/审计请求倾向于详尽，快速检查倾向于简洁。
 
-These patterns aren't exhaustive — compose novel harnesses when the task calls for it (tournament brackets, self-repair loops, staged escalation, whatever fits).
+这些模式并不穷举——当任务需要时组合新颖的框架（锦标赛括号、自修复循环、分阶段升级，无论什么合适的）。
 
-Use this tool for multi-step orchestration where control flow should be deterministic (loops, conditionals, fan-out) rather than model-driven.
+**对于需要控制流确定性（循环、条件、扇出）而非模型驱动的多步骤编排，使用此工具。**
 
-## Resume
+## 恢复
 
-The tool result includes a runId. To resume after a pause, kill, or script edit, relaunch with \`Workflow({scriptPath, resumeFromRunId})\` — the longest unchanged prefix of agent() calls returns cached results instantly; the first edited/new call and everything after it runs live. Same script + same args → 100% cache hit. Date.now()/Math.random()/new Date() are unavailable in scripts (they would break this) — stamp results after the workflow returns, or pass timestamps via args. Fallback when no journal is available: Read agent-<id>.jsonl files in the transcript directory and hand-author a continuation script.
+工具结果包含 runId。在暂停、终止或脚本编辑后恢复，用 \`Workflow({scriptPath, resumeFromRunId})\` 重新启动——agent() 调用中最长的未更改前缀立即返回缓存结果；第一个编辑/新调用及其后的所有内容实时运行。相同脚本 + 相同 args → 100% 缓存命中。Date.now()/Math.random()/new Date() 在脚本中不可用（会破坏此机制）——在工作流返回后标注结果，或通过 args 传入时间戳。当没有日志可用时的回退方案：在转录目录中读取 agent-<id>.jsonl 文件，手动编写续写脚本。
 `
 
 export function registerUltracodeSkill(): void {
   registerBundledSkill({
     name: 'ultracode',
     description:
-      'Enter multi-agent workflow orchestration mode: when to use the Workflow tool, script primitives, quality patterns, determinism constraints, resume/budget, and files/commands.',
+      '进入多代理工作流编排模式：何时使用 Workflow 工具、脚本原语、质量模式、确定性约束、恢复/预算以及文件/命令。',
     whenToUse:
-      'When a task can be decomposed or parallelized, needs multi-perspective confidence (e.g. find then adversarially verify), exceeds a single context (large migrations, broad audits, long-tail enumeration), or needs resume/auditability — orchestrate multiple subagents with the Workflow tool.',
+      '当任务可以分解或并行化、需要多视角置信度（如先查找再对抗性验证）、超出单个上下文（大型迁移、广泛审计、长尾枚举）或需要恢复/可审计性时——使用 Workflow 工具编排多个子代理。',
     userInvocable: true,
     async getPromptForCommand(args) {
       let prompt = ULTRACODE_PROMPT
       if (args) {
-        prompt += `\n## User input\n\n${args}\n`
+        prompt += `\n## 用户输入\n\n${args}\n`
       }
       return [{ type: 'text', text: prompt }]
     },

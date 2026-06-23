@@ -1356,12 +1356,12 @@ export async function createPluginFromPath(
   // 步骤 2：创建基础插件对象
   // 从清单和参数中获取所需字段
   const plugin: LoadedPlugin = {
-    name: manifest.name, // Use name from manifest (or fallback)
-    manifest, // Store full manifest for later use
-    path: pluginPath, // Absolute path to plugin directory
-    source, // Source identifier (e.g., "git:repo" or ".claude-plugin/name")
-    repository: source, // For backward compatibility with Plugin Repository
-    enabled, // Current enabled state
+    name: manifest.name, // 使用清单中的名称（或回退值）
+    manifest, // 存储完整清单以便后续使用
+    path: pluginPath, // 插件目录的绝对路径
+    source, // 来源标识符（例如 "git:repo" 或 ".claude-plugin/name"）
+    repository: source, // 为了与 Plugin Repository 向后兼容
+    enabled, // 当前启用状态
   }
 
   // 步骤 3：并行自动检测可选目录
@@ -2242,7 +2242,7 @@ async function loadPluginFromMarketplaceEntry(
         entry.source,
         pluginManifest,
         marketplaceDir,
-        entry.version, // Marketplace entry version as fallback
+        entry.version, // Marketplace 条目版本作为回退
       )
 
       // 复制到带版本号的缓存
@@ -2602,7 +2602,7 @@ async function finishLoadingPluginFromPath(
 
       // 并行化 pathExists 检查；按顺序处理结果。
       // 注意：此前此循环在每次迭代中调用 pathExists() 两次
-      // (once in a debug log template, once in the if) — now called once.
+      // （一次在调试日志模板中，一次在 if 中）— 现在只调用一次。
       const checks = await Promise.all(
         skillPaths.map(async skillPath => {
           const fullPath = join(pluginPath, skillPath)

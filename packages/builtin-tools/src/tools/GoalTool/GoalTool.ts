@@ -19,7 +19,7 @@ function toolLog(msg: string): void {
       require('src/utils/debug.js') as typeof import('src/utils/debug.js')
     logForDebugging(`[goal] tool: ${msg}`)
   } catch {
-    /* debug not available */
+    /* 调试不可用 */
   }
 }
 
@@ -29,18 +29,18 @@ const inputSchema = lazySchema(() =>
       .enum(['get', 'update'])
       .optional()
       .describe(
-        'Action to perform: "get" to read status, "update" to mark complete or blocked. Defaults to "update" if status is provided, otherwise "get".',
+        '要执行的操作："get" 用于读取状态，"update" 用于标记完成或受阻。如果提供了 status，则默认为 "update"，否则为 "get"。',
       ),
     status: z
       .enum(['complete', 'blocked'])
       .optional()
       .describe(
-        'Required for "update". Only "complete" or "blocked" are accepted.',
+        '"update" 时必填。仅接受 "complete" 或 "blocked"。',
       ),
     reason: z
       .string()
       .optional()
-      .describe('Explanation for the status change. Required for "update".'),
+      .describe('状态变更的说明。"update" 时必填。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -86,19 +86,19 @@ function buildCompletionReport(): string {
   if (!goal) return ''
   const budget =
     goal.tokenBudget !== null
-      ? `Token usage: ${goal.tokensUsed} / ${goal.tokenBudget}`
-      : `Token usage: ${goal.tokensUsed}`
+      ? `Token 使用量：${goal.tokensUsed} / ${goal.tokenBudget}`
+      : `Token 使用量：${goal.tokensUsed}`
   return [
-    'Goal achieved — usage report:',
+    '目标已达成 —— 使用报告：',
     `  ${budget}`,
-    `  Active time: ${formatGoalElapsed(goal)}`,
-    `  Continuation turns: ${goal.turnsExecuted}`,
+    `  活跃时长：${formatGoalElapsed(goal)}`,
+    `  续作轮数：${goal.turnsExecuted}`,
   ].join('\n')
 }
 
 export const GoalTool = buildTool({
   name: GOAL_TOOL_NAME,
-  searchHint: 'get or update the active goal (complete/blocked)',
+  searchHint: '获取或更新当前目标（complete/blocked）',
   maxResultSizeChars: 10_000,
   async description() {
     return DESCRIPTION
@@ -125,27 +125,27 @@ export const GoalTool = buildTool({
   },
   toAutoClassifierInput(input: Input) {
     const action = input.action ?? (input.status ? 'update' : 'get')
-    if (action === 'get') return 'get goal status'
-    return `update goal: ${input.status} — ${input.reason ?? ''}`
+    if (action === 'get') return '获取目标状态'
+    return `更新目标：${input.status} — ${input.reason ?? ''}`
   },
   async checkPermissions(input: Input) {
     return { behavior: 'allow' as const, updatedInput: input }
   },
   renderToolUseMessage(input: Input) {
     const action = input.action ?? (input.status ? 'update' : 'get')
-    if (action === 'get') return 'Checking goal status…'
-    return `Updating goal: ${input.status}${input.reason ? ` — ${input.reason}` : ''}`
+    if (action === 'get') return '正在检查目标状态…'
+    return `正在更新目标：${input.status}${input.reason ? ` — ${input.reason}` : ''}`
   },
   renderToolResultMessage(output: Output) {
-    if (output.error) return `Goal error: ${output.error}`
+    if (output.error) return `目标错误：${output.error}`
     if (output.report) return output.report
     if (output.goal) {
-      return `Goal "${output.goal.objective}" — ${output.goal.status}`
+      return `目标"${output.goal.objective}" — ${output.goal.status}`
     }
-    return output.message ?? 'Done'
+    return output.message ?? '完成'
   },
   renderToolUseRejectedMessage() {
-    return 'Goal operation rejected'
+    return '目标操作被拒绝'
   },
   async call(input: Input): Promise<{ data: Output }> {
     const action = input.action ?? (input.status ? 'update' : 'get')
@@ -159,7 +159,7 @@ export const GoalTool = buildTool({
           data: {
             success: true,
             message:
-              'No active goal. The user can set one with `/goal <objective>`.',
+              '没有活动目标。用户可以通过 `/goal <objective>` 来设置。',
           },
         }
       }
@@ -172,7 +172,7 @@ export const GoalTool = buildTool({
         data: {
           success: false,
           error:
-            'The "status" field is required for update. Use "complete" or "blocked".',
+            '更新时 "status" 字段必填。请使用 "complete" 或 "blocked"。',
         },
       }
     }
@@ -182,7 +182,7 @@ export const GoalTool = buildTool({
       return {
         data: {
           success: false,
-          error: 'No active goal to update.',
+          error: '没有可更新的活动目标。',
         },
       }
     }
@@ -201,13 +201,13 @@ export const GoalTool = buildTool({
     }
 
     // status === 'blocked'
-    const reason = input.reason ?? 'unspecified blocker'
+    const reason = input.reason ?? '未指定的阻碍'
     const result = recordBlockedAttempt(reason)
     if (!result) {
       return {
         data: {
           success: false,
-          error: 'Goal is not in a state that accepts blocked attempts.',
+          error: '目标不处于可记录受阻尝试的状态。',
         },
       }
     }
@@ -218,7 +218,7 @@ export const GoalTool = buildTool({
         data: {
           success: true,
           goal: buildGoalSnapshot(),
-          message: `Goal marked as blocked after ${result.attempts} consecutive attempts. Reason: ${reason}`,
+          message: `在连续 ${result.attempts} 次尝试后，目标被标记为受阻。原因：${reason}`,
         },
       }
     }
@@ -227,7 +227,7 @@ export const GoalTool = buildTool({
       data: {
         success: true,
         goal: buildGoalSnapshot(),
-        message: `Blocked attempt ${result.attempts} recorded. The goal remains active — the same condition must persist for 3 consecutive turns before it is marked blocked.`,
+        message: `已记录第 ${result.attempts} 次受阻尝试。目标仍然有效 —— 相同条件必须连续保持 3 轮后才会被标记为受阻。`,
       },
     }
   },
@@ -247,7 +247,7 @@ export const GoalTool = buildTool({
     return {
       tool_use_id: toolUseID,
       type: 'tool_result' as const,
-      content: parts.join('\n') || 'Done',
+      content: parts.join('\n') || '完成',
     }
   },
 } satisfies ToolDef<InputSchema, Output>)

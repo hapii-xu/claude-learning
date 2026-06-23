@@ -4,10 +4,10 @@ import { logForDebugging } from '../debug.js'
 import { isEnvTruthy } from '../envUtils.js'
 import { getTelemetryAttributes } from '../telemetryAttributes.js'
 
-// Monotonically increasing counter for ordering events within a session
+// 会话内事件排序的单调递增计数器
 let eventSequence = 0
 
-// Track whether we've already warned about a null event logger to avoid spamming
+// 跟踪是否已就空事件记录器发出过警告，以避免重复告警
 let hasWarnedNoEventLogger = false
 
 function isUserPromptLoggingEnabled() {
@@ -34,7 +34,7 @@ export async function logOTelEvent(
     return
   }
 
-  // Skip logging in test environment
+  // 在测试环境中跳过日志记录
   if (process.env.NODE_ENV === 'test') {
     return
   }
@@ -46,28 +46,28 @@ export async function logOTelEvent(
     'event.sequence': eventSequence++,
   }
 
-  // Add prompt ID to events (but not metrics, where it would cause unbounded cardinality)
+  // 为事件添加提示 ID（但不用于指标，因为会导致基数无限增长）
   const promptId = getPromptId()
   if (promptId) {
     attributes['prompt.id'] = promptId
   }
 
-  // Workspace directory from the desktop app (host path). Events only —
-  // filesystem paths are too high-cardinality for metric dimensions, and
-  // the BQ metrics pipeline must never see them.
+  // 来自桌面应用的工作区目录（宿主机路径）。仅用于事件——
+  // 文件系统路径对于指标维度过来说基数过高，
+  // BQ 指标管道绝不能看到它们。
   const workspaceDir = process.env.CLAUDE_CODE_WORKSPACE_HOST_PATHS
   if (workspaceDir) {
     attributes['workspace.host_paths'] = workspaceDir.split('|')
   }
 
-  // Add metadata as attributes - all values are already strings
+  // 将元数据作为属性添加 - 所有值已经是字符串
   for (const [key, value] of Object.entries(metadata)) {
     if (value !== undefined) {
       attributes[key] = value
     }
   }
 
-  // Emit log record as an event
+  // 将日志记录作为事件发出
   eventLogger.emit({
     body: `claude_code.${eventName}`,
     attributes,

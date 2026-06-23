@@ -1,405 +1,1160 @@
 ---
-title: Skills 系统知识总结
-description: Claude Code 的"可复用提示词单元"—— SKILL.md 格式、7 种 skill 来源、前置字段字典（含完整示例）、加载流水线（memoized 五步收集 + 条件激活 + 动态发现）、内联/分叉执行模式，以及如何从零创建一个 Project Skill
+title: Skills 系统详解（含完整示例）
+description: Claude Code 的可复用提示词单元 —— SKILL.md 完整 frontmatter 字段字典、7 种来源与加载流水线、内联/分叉执行模式、Shell 注入语法、条件激活机制，以及 15+ 真实世界可用示例
 ---
 
-# Skills 系统知识总结
+# Skills 系统详解
 
-> 这是"总结学习"栏目的第七篇。目标：彻底理解 Claude Code 的 **Skills 机制** —— 一个 `.md` 文件如何成为模型可调用的"技能"、7 种来源如何被收集与去重、frontmatter 字段各自意味着什么、内联与分叉执行有何区别，以及如何定义一个完整的 Skill 实例。
+> 目标读者：想**自己写 Skill 插件**的开发者。本文从"我能写什么 Skill"的角度出发，覆盖 SKILL.md 所有 frontmatter 字段含义、参数注入语法、执行模式选择，以及大量可直接使用的完整示例。
 
 ---
 
-## 一、Skills 全貌
+## 一、概念与整体架构
 
 ### 什么是 Skill
 
-Skill（技能）是存放在 Markdown 文件中的**可复用提示词模板**。模型通过 `SkillTool`（斜杠命令 `/skill-name` 或模型自主调用）来触发它。
+Skill 是存放在 Markdown 文件中的**可复用工作流提示词模板**。它告诉模型：
+- 应该如何思考这类任务
+- 可以调用哪些工具
+- 按什么顺序执行步骤
 
-与 MCP 工具不同，Skill 不会给模型提供新的**底层能力**，而是提供**预定义的工作流程**——告诉模型应该如何思考、调用哪些工具、以何种顺序执行一系列操作。
+与工具（Tool）不同，Skill 不给模型新的**底层能力**，而是提供**预定义的工作流程**。
 
 ### 两种执行模式
 
 ```
 内联模式（默认）                       分叉模式（context: fork）
 ──────────────────────────────────       ──────────────────────────────────
-Skill 提示词注入当前对话                   创建子代理，独立 token 预算
-模型看到完整历史上下文                     子代理有自己的对话状态
-适合交互式、需要上下文的任务                适合独立自包含任务（如代码审查）
-SkillTool → executeInlineSkill()          SkillTool → executeForkedSkill()
+提示词注入当前对话                        创建独立子代理
+模型能看到整个对话历史                    子代理有独立 token 预算
+适合交互式、需要上下文的任务               适合自包含任务（不需要历史上下文）
+
+示例：/commit（需要看到改了什么）          示例：/generate-tests（独立工作）
 ```
 
-### 7 种 Skill 来源
+### 目录结构
 
-| 来源 | 路径 | 加载函数 | 说明 |
-|------|------|---------|------|
-| 用户 Skills | `~/.claude/skills/` | `getSkillDirCommands()` | 用户级，跨项目生效 |
-| 项目 Skills | `./.claude/skills/` | `getSkillDirCommands()` | 项目级，git 跟踪 |
-| 管理员 Skills | 策略配置路径 | `getSkillDirCommands()` | 企业策略部署 |
-| Legacy 命令 | `./.claude/commands/` | `loadSkillsDir.ts:566` | 向后兼容，`.md` 格式 |
-| 内置 Skills | 编译进 CLI | `getBundledSkills()` | `src/skills/bundled/` 目录下 18 个 |
-| MCP Skills | `skill://` 资源 | `mcpSkills.ts` | MCP server 动态暴露 |
-| 动态 Skills | 嵌套 `.claude/skills/` | `discoverSkillDirsForPaths()` | 按文件访问懒发现 |
+```
+.claude/
+└── skills/
+    ├── my-skill/
+    │   ├── SKILL.md          ← 必须（技能定义）
+    │   ├── helper.sh         ← 可选（辅助脚本）
+    │   └── schema.json       ← 可选（数据结构定义）
+    └── another-skill/
+        └── SKILL.md
 
-其中**条件 Skills**（有 `paths` 字段）独立存储，只在匹配路径被触碰时激活。
+~/.claude/
+└── skills/
+    └── global-skill/
+        └── SKILL.md          ← 用户级全局 Skill
+```
+
+### 调用方式
+
+```bash
+# 用户在 REPL 中直接输入
+/my-skill arg1 arg2
+
+# 模型自主调用（通过 SkillTool）
+# 模型会根据 when-to-use 字段决定何时调用
+```
 
 ---
 
-## 二、必须掌握的 6 个核心概念
+## 二、SKILL.md 完整 Frontmatter 字段字典
 
-### 1. SKILL.md 文件格式
+每个 Skill 的 `SKILL.md` 文件由两部分组成：
 
-每个 Skill 对应一个目录下的 `SKILL.md` 文件（或直接一个 `.md` 文件用于 legacy 命令）：
-
-```
-.claude/skills/
-├── my-skill/
-│   └── SKILL.md       ← 必须
-│   └── helper.sh      ← 可选的辅助文件
-└── another-skill/
-    └── SKILL.md
-```
-
-文件结构：
 ```markdown
 ---
-description: 执行代码审查并提供改进建议
-# ... 其他 frontmatter 字段
+# ← YAML frontmatter（元数据）
+description: 这个 Skill 做什么
+allowed-tools: [BashTool, Read]
+# ...
 ---
 
-# My Skill 的主体内容
-
-你是一个代码审查专家。请按以下步骤审查 $ARGUMENTS 中指定的文件：
-...
+# ← 正文（提示词内容）
+请按以下步骤执行...
 ```
 
-### 2. Frontmatter 字段字典（完整）
+### 所有字段完整列表
 
-> 解析实现：`src/skills/loadSkillsDir.ts:185-265`（`parseSkillFrontmatterFields`）
-
-| 字段 | 类型 | 默认值 | 含义 |
+| 字段 | 类型 | 默认值 | 说明 |
 |------|------|-------|------|
-| `description` | `string` | 从正文提取 | **必填**，技能说明，显示在 UI 和模型的工具描述中 |
-| `display-name` | `string` | 目录名 | 覆盖 UI 显示名称（不影响调用名） |
-| `argument-hint` | `string` | `undefined` | UI 输入提示，如 `<file> [options]` |
-| `arguments` | `string[]` | `[]` | 位置参数名列表，注入为 `$ARG1 $ARG2` 等 |
-| `when-to-use` | `string` | `undefined` | 告诉模型何时主动调用此技能 |
+| `description` | `string` | 从正文第一行提取 | **核心字段**，显示在 `/` 命令列表，也是模型看到的工具描述 |
+| `name` | `string` | 目录名 | 覆盖显示名称（不影响调用名，调用名始终是目录名） |
+| `argument-hint` | `string` | `undefined` | UI 输入提示，如 `<file-path> [options]` |
+| `arguments` | `string \| string[]` | `[]` | 命名参数列表，定义后可用 `$ARG1`、`$ARG2` 引用 |
+| `when-to-use` | `string` | `undefined` | 告诉模型**何时主动**调用此 Skill（关键！） |
 | `allowed-tools` | `string[]` | `[]` | 执行时自动允许的工具（不弹权限确认框） |
-| `model` | `string` | 继承 | 覆盖本次执行用的模型 |
-| `effort` | `string/number` | 继承 | 努力程度：`low` / `medium` / `high` / `2`（数字） |
-| `context` | `'fork'` | `undefined` | `fork` = 分叉执行（子代理），省略 = 内联 |
-| `agent` | `string` | `undefined` | 指定执行此技能的自定义 Agent 名称 |
-| `user-invocable` | `boolean` | `true` | `false` = 从 UI 隐藏，仅供模型主动调用 |
-| `disable-model-invocation` | `boolean` | `false` | `true` = 只注入提示词，不实际调用模型 |
-| `version` | `string` | `undefined` | 语义化版本号，如 `1.0.0` |
-| `paths` | `string` | `undefined` | gitignore 模式，匹配时才激活（条件 Skill） |
-| `hooks` | `HooksSettings` | `undefined` | 技能内联的 Hooks 配置，格式同 settings.json |
-| `shell` | `object` | `undefined` | Shell 执行配置（高级用法） |
+| `model` | `string` | 继承当前模型 | 覆盖执行模型，如 `claude-opus-4-8` |
+| `effort` | `string \| number` | 继承 | 努力程度：`low` / `medium` / `high` 或数字 |
+| `context` | `"fork"` | `undefined`（内联） | 设为 `fork` 使用独立子代理执行 |
+| `agent` | `string` | `undefined` | 指定执行此 Skill 的 Agent 类型名 |
+| `user-invocable` | `boolean` | `true` | `false` = 从 `/` 命令列表隐藏（仅供模型调用） |
+| `disable-model-invocation` | `boolean` | `false` | `true` = 只注入提示词，不触发模型调用 |
+| `version` | `string` | `undefined` | 语义版本号，如 `1.2.0` |
+| `paths` | `string` | `undefined` | gitignore 格式的路径模式，只有触碰匹配文件时才激活 |
+| `hooks` | `HooksSettings` | `undefined` | 内联 Hook 配置，格式与 `settings.json` 相同 |
+| `shell` | `object` | `undefined` | Shell 执行配置（高级用法，控制 `!` 命令的执行方式） |
 
-### 3. 加载流水线（五步，memoized）
+---
 
-```
-getSkillDirCommands() [memoized]
-│
-├─ Step 1：收集目录
-│   ├─ managed skills path（策略注入）
-│   ├─ ~/.claude/skills/（用户）
-│   ├─ ./.claude/skills/（项目）
-│   └─ --add-dir 额外目录
-│
-├─ Step 2：解析每个 SKILL.md
-│   ├─ parseSkillFrontmatterFields() → 字段提取
-│   ├─ 生成 skillId（目录名 kebab-case）
-│   └─ 与 Legacy 命令合并
-│
-├─ Step 3：去重（realpath 比较）
-│   └─ 嵌套仓库的相同路径只保留一份
-│
-├─ Step 4：分离条件 Skills
-│   └─ 有 `paths` 字段 → 存入 conditionalSkills
-│
-└─ Step 5：返回无条件 Skills
-    ├─ 未激活条件 Skills 不在此列
-    └─ 首次调用后结果被缓存
+## 三、参数注入：`$ARGUMENTS`、`$ARG1`、`${CLAUDE_SKILL_DIR}`
+
+### 3.1 `$ARGUMENTS` — 全量参数字符串
+
+```markdown
+---
+description: 提交代码
+---
+
+请用以下 commit message 提交当前暂存的代码：
+
+**$ARGUMENTS**
+
+如果 $ARGUMENTS 为空，请先询问用户想要什么样的 commit message。
 ```
 
-### 4. 动态 Skills 发现
+调用方式：`/commit fix: 修复登录验证问题`
+`$ARGUMENTS` 展开为：`fix: 修复登录验证问题`
 
-每当 Claude Code 访问某个文件时，`discoverSkillDirsForPaths()` 检查该文件路径下是否有 `.claude/skills/` 目录，并懒加载新发现的 Skills。这允许 monorepo 中的子目录有自己的技能集。
+---
 
-### 5. 条件 Skill 激活
+### 3.2 `arguments` + `$ARG1`、`$ARG2` — 命名位置参数
+
+```markdown
+---
+description: 对比两个文件的差异
+arguments: [file1, file2]
+argument-hint: "<file1> <file2>"
+allowed-tools: [Read, BashTool]
+---
+
+请对比以下两个文件的差异：
+
+- 文件 1：$ARG1
+- 文件 2：$ARG2
+
+首先读取两个文件，然后分析差异并给出建议。
+```
+
+调用方式：`/diff src/old.ts src/new.ts`
+- `$ARG1` = `src/old.ts`
+- `$ARG2` = `src/new.ts`
+- `$ARGUMENTS` = `src/old.ts src/new.ts`（完整字符串，始终可用）
+
+---
+
+### 3.3 `${CLAUDE_SKILL_DIR}` — Skill 自身的目录路径
+
+**用途**：让 Skill 引用自己目录下的辅助文件（脚本、模板、Schema 等）。
+
+```markdown
+---
+description: 运行项目特定的检查脚本
+allowed-tools: [BashTool]
+---
+
+请运行以下检查脚本并报告结果：
+
+`${CLAUDE_SKILL_DIR}/check.sh $ARGUMENTS`
+```
+
+如果 Skill 在 `.claude/skills/project-check/SKILL.md`，则 `${CLAUDE_SKILL_DIR}` = `/absolute/path/to/.claude/skills/project-check`。
+
+---
+
+### 3.4 `${CLAUDE_SESSION_ID}` — 当前会话 ID
+
+```markdown
+---
+description: 记录任务进度到会话专属文件
+allowed-tools: [BashTool, FileWriteTool]
+---
+
+将以下任务状态记录到会话日志：
+
+任务：$ARGUMENTS
+会话日志文件：/tmp/claude-session-${CLAUDE_SESSION_ID}.log
+```
+
+---
+
+### 3.5 Shell 注入：`!` 语法（在提示词中执行命令）
+
+在 SKILL.md 的**正文**（非 frontmatter）中，可以用反引号 `` !`command` `` 语法嵌入 Shell 命令，Claude Code 会在展示提示词给模型之前**先执行这些命令并将输出内嵌进去**。
+
+```markdown
+---
+description: 显示当前 git 状态供模型参考
+allowed-tools: [BashTool]
+---
+
+当前 git 状态（自动收集）：
+
+```!
+git status --short
+git log --oneline -5
+```
+
+请基于以上状态，帮我生成一个合适的 commit message。
+```
+
+**注意**：Shell 注入命令中可使用 `${CLAUDE_SKILL_DIR}` 引用 Skill 自身的脚本文件：
+
+```markdown
+---
+description: 运行项目检查并报告
+---
+
+以下是项目检查结果：
+
+```!
+${CLAUDE_SKILL_DIR}/collect-project-info.sh
+```
+
+请根据以上信息给出改进建议。
+```
+
+---
+
+## 四、`allowed-tools` 字段详解
+
+设置后，Skill 执行期间这些工具**无需用户确认**即可使用。
+
+```yaml
+allowed-tools:
+  - BashTool        # Bash 命令执行
+  - Read            # 文件读取
+  - FileWriteTool   # 文件写入（含 Edit）
+  - GlobTool        # 文件模式匹配
+  - GrepTool        # 内容搜索
+  - AgentTool       # 子代理
+  - SkillTool       # 调用其他 Skill
+```
+
+**允许规则（精细控制）**：
+
+```yaml
+allowed-tools:
+  - "BashTool(git *)"           # 只允许 git 命令
+  - "BashTool(npm test)"        # 精确匹配
+  - "Read(src/**)"              # 只允许读 src 目录
+  - "FileWriteTool(*.md)"       # 只允许写 md 文件
+```
+
+---
+
+## 五、`context: fork` — 分叉执行模式
+
+### 什么时候用 fork
+
+| 内联模式（默认） | 分叉模式（fork） |
+|--------------|--------------|
+| 任务需要看历史上下文 | 任务自包含，不需要历史 |
+| 与用户交互式 | 后台独立完成 |
+| 轻量级任务 | 复杂、耗时的独立任务 |
+| 代码审查（需要看到改了什么） | 生成测试（只需读源码） |
+
+### fork 模式下的 token 预算
+
+Fork 子代理有独立的 token 预算，不影响主对话的上下文窗口。这对于需要读取大量文件的任务非常有价值。
 
 ```yaml
 ---
-paths: "src/frontend/** *.tsx"  # gitignore 模式
-description: React 组件最佳实践审查
+context: fork
+model: claude-opus-4-8
+effort: high
 ---
-```
-
-当用户修改 `src/frontend/Button.tsx` 时，该 Skill 被激活——它会出现在 `/` 命令列表中，直到 session 结束（激活状态不会因 `/clear` 重置）。
-
-### 6. SkillTool 执行路径
-
-```
-用户输入 "/my-skill arg1 arg2"
-    ↓
-SkillTool.runTool()
-    ↓
-getPromptForCommand(skillId, args)   ← 展开 $ARGUMENTS / $ARG1 占位符
-    ↓
-if executionContext === 'fork'
-    executeForkedSkill()             ← AgentTool 子代理调用
-else
-    executeInlineSkill()             ← 注入到当前对话的 system/user message
 ```
 
 ---
 
-## 三、应该了解的 3 个重要机制
+## 六、`when-to-use` 字段 — 让模型主动调用
 
-### A. `$ARGUMENTS` 占位符展开
+这是让模型**无需用户输入 `/`** 就主动调用 Skill 的关键字段。
 
-Skill 正文中可使用：
-- `$ARGUMENTS` — 展开为所有参数的完整字符串
-- `$ARG1`, `$ARG2`, `$ARG3` — 展开为对应位置参数（由 `arguments` 字段定义名称）
+```yaml
+when-to-use: |
+  当用户完成了代码修改并提到要"提交"或"commit"时，自动触发此 Skill。
+  当用户说"帮我提交"、"commit 一下"、"推送代码"时使用。
+```
 
-示例：如果定义 `arguments: [filename, branch]`，调用 `/review src/main.ts feature`：
-- `$ARGUMENTS` = `src/main.ts feature`
-- `$ARG1` = `src/main.ts`（参数名 `filename` 仅作 UI 提示）
-- `$ARG2` = `feature`
-
-### B. 内置 Skills（`src/skills/bundled/`）
-
-18 个编译进 CLI 的内置技能，通过 `registerBundledSkill()` 注册，包括：
-- 代码审查、文档生成、测试编写等通用工作流
-- 不占用文件系统，通过 `getBundledSkills()` 获取
-
-### C. MCP Skills（`skill://` 资源）
-
-如果 MCP server 暴露 `skill://skill-name` 格式的资源，`mcpSkills.ts` 会将其转换为普通 Skill 对象。这允许 MCP server 动态提供工作流定义。
+**好的 `when-to-use` 写法**：
+- 具体描述用户的意图或措辞
+- 说明触发条件（用户说了什么、做了什么）
+- 说明不该触发的情况（避免过度触发）
 
 ---
 
-## 四、字段字典 + 完整实例示例
+## 七、条件激活 Skill（`paths` 字段）
 
-### 实例 1：最简单的项目 Skill
+### 基本概念
 
-**文件位置**：`.claude/skills/hello/SKILL.md`
+有 `paths` 字段的 Skill 是**条件 Skill**，只有在会话中**触碰（读/写/搜索）**了匹配路径的文件时，才会被激活并出现在可用 Skill 列表中。
+
+```yaml
+paths: "src/frontend/**/*.tsx src/frontend/**/*.jsx"
+```
+
+### gitignore 风格的模式语法
+
+```yaml
+# 匹配特定目录
+paths: "src/api/**"
+
+# 匹配多种文件（空格分隔）
+paths: "*.go go.mod go.sum"
+
+# 匹配特定文件名
+paths: ".env .env.local"
+
+# 复杂模式（换行分隔也行）
+paths: |
+  src/database/**/*.sql
+  migrations/**
+  models/**
+```
+
+### 激活后的行为
+
+- 条件 Skill 激活后，在**当前 session 内永久激活**（不会因 `/clear` 重置）
+- `user-invocable: false` + `paths` = 完全自动触发的隐式 Skill
+
+---
+
+## 八、内联 Hooks（`hooks` 字段）
+
+Skill 的 frontmatter 中可以直接定义 Hooks，这些 Hooks 只在该 Skill **激活期间**有效。
+
+```yaml
+hooks:
+  PreToolUse:
+    - matcher: "Bash(git commit*)"
+      hooks:
+        - type: command
+          command: |
+            git diff --cached --stat
+          statusMessage: 显示待提交内容...
+  PostToolUse:
+    - matcher: "Bash(*)"
+      hooks:
+        - type: command
+          command: echo "命令执行完成"
+          async: true
+```
+
+格式与 `settings.json` 中完全相同，参见 Hooks 系统详解。
+
+---
+
+## 九、15+ 完整实战示例
+
+### 示例 1：最简 Skill — 打招呼
+
+**文件**：`.claude/skills/hello/SKILL.md`
 
 ```markdown
 ---
-description: 用友好的方式向用户打招呼
+description: 用创意方式向用户打招呼
 ---
 
 请用中文向用户说一句有创意的问候语，并询问今天有什么可以帮助的。
+要求：友好、简洁、不超过两句话。
 ```
 
-### 实例 2：带参数的代码审查 Skill
+调用：`/hello`
 
-**文件位置**：`.claude/skills/review/SKILL.md`
+---
+
+### 示例 2：带参数的代码审查 Skill
+
+**文件**：`.claude/skills/review/SKILL.md`
 
 ```markdown
 ---
-description: 对指定文件进行代码审查并输出改进建议
+description: 对指定文件进行全面代码审查，输出改进建议
 argument-hint: <file-path> [focus-area]
 arguments: [filepath, focus]
-when-to-use: 当用户要求审查某个具体文件时，优先使用此技能
-allowed-tools: [Read, Grep, GlobTool]
-user-invocable: true
-version: 1.2.0
+when-to-use: |
+  当用户要求"审查"、"review"、"检查代码"某个具体文件时，
+  或用户说"这个文件有问题"时使用。
+allowed-tools: [Read, GlobTool, GrepTool]
+version: 1.0.0
 ---
 
-# 代码审查技能
+# 代码审查
 
-请对以下文件进行全面的代码审查：**$ARG1**
+请对以下文件进行全面审查：`$ARG1`
 
-审查重点：$ARG2（如未指定，则进行全面审查）
+审查重点：$ARG2（如 $ARG2 为空或未指定，则进行全面审查）
 
 ## 审查维度
-1. **可读性**：命名是否清晰？代码是否易于理解？
-2. **安全性**：是否存在潜在的安全漏洞？
-3. **性能**：是否有明显的性能问题？
-4. **测试覆盖**：是否有对应的测试？
 
-首先使用 Read 工具读取文件内容，然后逐项给出具体建议。
+1. **可读性**：
+   - 命名是否清晰直观
+   - 代码结构是否易于理解
+   - 注释是否必要且准确
+
+2. **安全性**：
+   - 用户输入是否有充分验证
+   - 是否存在 SQL 注入、XSS 等常见漏洞
+   - 敏感信息是否被意外暴露
+
+3. **性能**：
+   - 是否有明显的性能瓶颈
+   - 循环和查询是否可以优化
+
+4. **测试覆盖**：
+   - 是否有对应的单元测试
+   - 边界情况是否被覆盖
+
+## 执行步骤
+
+1. 使用 Read 工具读取 $ARG1
+2. 如果是 TypeScript/JavaScript，用 GrepTool 查找相关测试文件
+3. 逐项分析，每个问题给出具体的行号和改进建议
+4. 最后给出优先级排序（P0/P1/P2）
 ```
 
-### 实例 3：分叉执行的独立任务 Skill
+调用：`/review src/utils/auth.ts security`
 
-**文件位置**：`.claude/skills/generate-tests/SKILL.md`
+---
+
+### 示例 3：分叉执行 + 高质量模型做测试生成
+
+**文件**：`.claude/skills/generate-tests/SKILL.md`
 
 ```markdown
 ---
-description: 为指定模块自动生成单元测试
+description: 为指定模块自动生成完整的单元测试，独立执行不占用主对话上下文
 argument-hint: <module-path>
 context: fork
-model: claude-opus-4-7
+model: claude-opus-4-8
 effort: high
-allowed-tools: [Read, Grep, GlobTool, FileWriteTool, BashTool]
+allowed-tools: [Read, GlobTool, GrepTool, FileWriteTool, BashTool]
 user-invocable: true
+when-to-use: |
+  当用户要求"生成测试"、"写测试"、"添加单元测试"时使用。
+  特别适合在新功能开发完成后一次性生成完整测试。
 ---
 
 # 自动生成单元测试
 
 为以下模块生成完整的单元测试：`$ARGUMENTS`
 
-## 执行步骤
+## 执行流程
 
-1. 读取目标模块的源代码
-2. 分析所有导出的函数/类及其签名
-3. 使用 Grep 查找现有测试（如果有）了解测试风格
-4. 生成覆盖正常路径和边界情况的测试用例
-5. 将测试写入 `<module-path>.test.ts` 文件
-6. 运行 `bun test <test-file>` 验证测试通过
+### 第一步：了解目标模块
 
-完成后输出测试覆盖率摘要。
+1. 读取 `$ARGUMENTS` 的源代码
+2. 识别所有导出的函数、类、常量
+3. 分析每个导出的参数类型和返回值
+
+### 第二步：了解已有测试风格
+
+1. 用 GlobTool 查找 `**/__tests__/**` 目录下的文件
+2. 读取 1-2 个现有测试文件，了解测试风格（框架、命名规范等）
+
+### 第三步：生成测试
+
+为每个导出函数生成测试，覆盖：
+- 正常路径（happy path）
+- 边界条件（空值、极值、超长输入）
+- 错误处理（异常输入应该抛出什么错误）
+
+测试文件命名规范：`<module-name>.test.ts`
+放置位置：与源文件同级的 `__tests__/` 目录
+
+### 第四步：验证
+
+写完测试后，运行 `bun test $ARGUMENTS` 确认测试通过。
+如果有失败，分析原因并修复（可能是测试写错，也可能发现了源码的 bug）。
+
+### 最终输出
+
+- 测试文件路径
+- 测试用例数量
+- 覆盖的函数列表
+- 如果发现了源码 bug，单独说明
 ```
 
-### 实例 4：条件 Skill（仅在前端文件触碰时激活）
+调用：`/generate-tests src/utils/auth.ts`
 
-**文件位置**：`.claude/skills/react-review/SKILL.md`
+---
+
+### 示例 4：条件激活 Skill（前端文件触碰后自动出现）
+
+**文件**：`.claude/skills/react-review/SKILL.md`
 
 ```markdown
 ---
-description: React 组件最佳实践检查（仅在触碰 tsx/jsx 文件时激活）
-paths: "src/**/*.tsx src/**/*.jsx"
-allowed-tools: [Read, GlobTool]
+description: React 组件最佳实践自动检查（仅在 React 文件被修改时激活）
+paths: "src/**/*.tsx src/**/*.jsx components/**"
 user-invocable: false
-when-to-use: 当修改了 React 组件文件时，主动进行代码审查
+when-to-use: |
+  当用户正在修改 React 组件，或者询问关于组件设计的问题时自动使用。
+  不需要用户显式调用，触碰 tsx/jsx 文件后自动激活。
+allowed-tools: [Read, GlobTool]
 ---
 
-# React 组件审查
+# React 组件自动审查
 
-你被激活是因为最近修改了 React 组件文件。
+你被激活是因为当前会话中有 React 组件文件被修改或访问。
+需要审查的文件：`$ARGUMENTS`（如果为空，审查最近修改的 tsx 文件）
 
-请检查 $ARGUMENTS 中指定的组件：
-- Hook 使用是否符合规范（不在条件语句中使用）
-- 是否有不必要的重渲染风险
-- Props 类型定义是否完整
-- 是否需要 memo/useCallback 优化
+## 请检查以下内容
+
+### Hook 规范
+- [ ] 没有在条件语句（if/for/while）中使用 Hook
+- [ ] `useEffect` 的依赖数组是否完整
+- [ ] 是否有不必要的 `useState`（应该用 `useMemo` 或 `useCallback`）
+
+### 性能
+- [ ] 是否需要 `React.memo` 包裹组件
+- [ ] 回调函数是否需要 `useCallback`
+- [ ] 昂贵计算是否需要 `useMemo`
+
+### TypeScript
+- [ ] Props 类型是否完整定义
+- [ ] 是否有 `any` 类型（应该明确指定）
+- [ ] 事件处理器的类型是否正确
+
+### 可访问性
+- [ ] 图片是否有 `alt` 属性
+- [ ] 按钮是否有语义化标签
+
+请逐项检查，有问题的给出具体改进方案。
 ```
 
-### 实例 5：带内联 Hooks 的 Skill
+---
 
-**文件位置**：`.claude/skills/safe-deploy/SKILL.md`
+### 示例 5：带内联 Hooks 的 Git 提交 Skill
+
+**文件**：`.claude/skills/safe-commit/SKILL.md`
 
 ```markdown
 ---
-description: 带安全检查的代码部署技能
-argument-hint: <environment>
-arguments: [env]
-allowed-tools: [BashTool, Read]
+description: 带完整安全检查的 git 提交（自动验证暂存内容）
+argument-hint: "<commit message>"
+allowed-tools: [BashTool]
 hooks:
   PreToolUse:
-    - matcher: "Bash(git push*)"
+    - matcher: "Bash(git commit*)"
       hooks:
         - type: command
-          command: echo "[Deploy Hook] 正在推送到 $ARG1 环境，确认中..."
-          timeout: 5
+          command: |
+            # 检查是否有暂存文件
+            STAGED=$(git diff --cached --name-only 2>/dev/null)
+            if [ -z "$STAGED" ]; then
+              echo "❌ 没有暂存的文件，无法提交" >&2
+              exit 2
+            fi
+            
+            # 检查是否有机密信息
+            if git diff --cached | grep -E '(password|secret|token|api_key)\s*=' -i -q; then
+              echo "⚠️ 检测到可能包含机密信息的修改，请确认" >&2
+            fi
+            
+            # 显示暂存内容
+            echo "📋 即将提交的文件："
+            echo "$STAGED" | sed 's/^/  /'
+          statusMessage: 验证提交内容...
   PostToolUse:
-    - matcher: "Bash(*)"
+    - matcher: "Bash(git commit*)"
       hooks:
         - type: command
-          command: echo "[Deploy Hook] 命令执行完成"
+          command: |
+            LAST=$(git log --oneline -1)
+            echo "✅ 提交成功：$LAST"
+          async: true
 ---
 
-# 安全部署技能
+# 安全提交
 
-部署到 **$ARG1** 环境。
+请按以下步骤进行提交：
 
-执行前，请先运行 `git status` 确认工作区干净，然后执行部署流程。
+1. 运行 `git status` 查看当前状态
+2. 运行 `git diff --cached` 确认暂存内容
+3. 如果内容正确，执行 `git commit -m "$ARGUMENTS"`
+
+如果 $ARGUMENTS 为空，请先分析暂存的修改，生成一个符合 Conventional Commits 规范的 commit message，然后执行提交。
+```
+
+调用：`/safe-commit feat: 添加用户注册功能`
+
+---
+
+### 示例 6：使用 Shell 注入自动收集上下文
+
+**文件**：`.claude/skills/daily-standup/SKILL.md`
+
+```markdown
+---
+description: 基于 git 历史生成每日站会报告
+allowed-tools: [BashTool]
+---
+
+# 每日站会报告生成
+
+以下是今天的工作数据（自动收集）：
+
+## Git 活动（今天）
+
+```!
+git log --oneline --since="24 hours ago" --author="$(git config user.name)" 2>/dev/null | head -20
+```
+
+## 待处理 PR
+
+```!
+gh pr list --author="@me" --json number,title,state 2>/dev/null | python3 -c "
+import json, sys
+prs = json.load(sys.stdin)
+for pr in prs:
+    print(f\"  #{pr['number']}: {pr['title']} [{pr['state']}]\")
+" 2>/dev/null || echo "  (gh CLI 未配置)"
+```
+
+## 未完成 TODO
+
+```!
+git diff main --name-only 2>/dev/null | xargs grep -l "TODO\|FIXME" 2>/dev/null | head -5 || echo "  (无变更文件)"
 ```
 
 ---
 
-## 五、Skill 加载机制详解
+请基于以上数据生成今天的站会报告，格式：
+1. **昨天完成了什么**（基于 git commits）
+2. **今天计划做什么**（基于未完成 PR 和 TODO）
+3. **有什么阻碍**（如果有明显问题）
 
-### 启动时加载（memoized）
-
-`getSkillDirCommands()` 在首次被调用时（通常是 REPL 初始化时）执行完整加载，之后的调用直接返回缓存。
-
-**调用链**：
-```
-REPL.tsx 初始化
-    → useGetCommands() hook
-    → getSkillDirCommands() [src/skills/loadSkillsDir.ts:638]
-    → 五步收集流水线（见上方）
-    → 缓存结果
+报告要简洁（每条不超过一句话），使用中文。
 ```
 
-### 缓存清除时机
+调用：`/daily-standup`
 
-以下操作会触发 Skill 缓存重置：
-- `/clear` 命令（会话清除）
-- `/compact` 命令（对话压缩）
-- 手动修改了 Skill 目录（通过文件监视）
+---
 
-注意：条件 Skill 的**激活状态**不会因 `/clear` 重置——这是设计决策，避免触碰文件后技能反复出现/消失。
+### 示例 7：多文件 Skill（引用辅助脚本）
 
-### 优先级与覆盖
+**文件结构**：
+```
+.claude/skills/security-audit/
+├── SKILL.md
+├── check-deps.sh        ← 检查依赖安全性
+├── check-secrets.sh     ← 检查机密信息泄漏
+└── report-template.md  ← 报告模板
+```
 
-同名 Skill（相同 `id`）的优先级（高 → 低）：
-1. `--add-dir` 额外目录（CLI 参数）
-2. 项目级 `./.claude/skills/`
+**文件**：`.claude/skills/security-audit/SKILL.md`
+
+```markdown
+---
+description: 全面的项目安全审查，检查依赖漏洞和机密信息泄漏
+argument-hint: "[scope]"
+context: fork
+allowed-tools: [BashTool, Read, GlobTool]
+---
+
+# 安全审查
+
+审查范围：$ARGUMENTS（为空则审查整个项目）
+
+## 第一步：检查依赖漏洞
+
+运行依赖安全扫描：
+
+```!
+bash ${CLAUDE_SKILL_DIR}/check-deps.sh
+```
+
+## 第二步：检查机密信息泄漏
+
+运行机密检测脚本：
+
+```!
+bash ${CLAUDE_SKILL_DIR}/check-secrets.sh
+```
+
+## 第三步：生成报告
+
+读取报告模板（${CLAUDE_SKILL_DIR}/report-template.md），填入以上检测结果，生成完整安全报告。
+
+安全报告输出到：security-audit-$(date +%Y%m%d).md
+```
+
+**文件**：`.claude/skills/security-audit/check-deps.sh`
+
+```bash
+#!/bin/bash
+echo "=== 依赖安全检查 ==="
+
+# npm audit
+if [ -f package.json ]; then
+  echo "--- npm/bun 依赖 ---"
+  npm audit 2>/dev/null | tail -20 || echo "npm audit 执行失败"
+fi
+
+# Python pip audit
+if [ -f requirements.txt ]; then
+  echo "--- Python 依赖 ---"
+  pip-audit -r requirements.txt 2>/dev/null | tail -20 || echo "pip-audit 未安装"
+fi
+```
+
+**文件**：`.claude/skills/security-audit/check-secrets.sh`
+
+```bash
+#!/bin/bash
+echo "=== 机密信息检测 ==="
+
+# 检查常见的机密模式
+PATTERNS=(
+  "password\s*=\s*['\"][^'\"]{8,}"
+  "api_key\s*=\s*['\"][^'\"]{16,}"
+  "secret\s*=\s*['\"][^'\"]{8,}"
+  "token\s*=\s*['\"][^'\"]{16,}"
+  "AWS_ACCESS_KEY_ID\s*=\s*[A-Z0-9]{16,}"
+)
+
+for pattern in "${PATTERNS[@]}"; do
+  results=$(grep -rn --include="*.ts" --include="*.js" --include="*.env" \
+    -E "$pattern" . 2>/dev/null | grep -v "node_modules" | grep -v ".git")
+  if [ -n "$results" ]; then
+    echo "⚠️ 发现疑似机密 (pattern: $pattern):"
+    echo "$results" | head -5
+  fi
+done
+
+echo "=== 检查完成 ==="
+```
+
+---
+
+### 示例 8：快速文档生成（带 argument-hint）
+
+**文件**：`.claude/skills/doc/SKILL.md`
+
+```markdown
+---
+description: 为函数/类/模块生成 JSDoc 或 Python docstring 文档
+argument-hint: "<file-path> [format: jsdoc|google|numpy]"
+arguments: [filepath, format]
+allowed-tools: [Read, FileWriteTool]
+when-to-use: 当用户要求"生成文档"、"加注释"、"写 docstring"时使用
+---
+
+# 文档生成
+
+为以下文件生成文档注释：`$ARG1`
+
+文档格式：$ARG2（默认使用 JSDoc 格式；如果是 Python 文件，默认使用 Google docstring 格式）
+
+## 步骤
+
+1. 读取 $ARG1 文件内容
+2. 识别所有公开（public）的函数、类、接口
+3. 为每个函数/类生成文档注释，包含：
+   - 功能说明（1-2 句话）
+   - 参数说明（名称、类型、含义）
+   - 返回值说明
+   - 如果可能抛出异常，说明异常类型和条件
+4. **直接在文件中插入注释**（使用 FileWriteTool 修改原文件）
+
+## 风格要求
+
+- 注释要简洁，不超过 5 行（除非函数非常复杂）
+- 不要描述"如何实现"，只描述"做什么"和"为什么"
+- 中文或英文与原文件保持一致
+```
+
+调用：`/doc src/utils/auth.ts jsdoc`
+
+---
+
+### 示例 9：自动翻译 Skill
+
+**文件**：`.claude/skills/translate/SKILL.md`
+
+```markdown
+---
+description: 将代码注释或文档翻译成指定语言
+argument-hint: "<file-path> <target-lang>"
+arguments: [filepath, lang]
+allowed-tools: [Read, FileWriteTool]
+---
+
+# 注释翻译
+
+请将 `$ARG1` 文件中的所有代码注释翻译成 **$ARG2**（如果 $ARG2 为空，默认翻译成中文）。
+
+## 要求
+
+1. 只翻译注释内容，**不修改任何代码逻辑**
+2. 保持注释的原始格式（单行注释、多行注释、JSDoc 格式等）
+3. 专业术语（如 API、HTTP、JSON 等）保持不变
+4. 翻译后直接修改原文件，不要创建新文件
+
+## 步骤
+
+1. 读取 $ARG1 文件
+2. 逐行识别注释（`//`、`/* */`、`#`、`"""` 等）
+3. 翻译注释内容
+4. 将修改后的内容写回文件
+
+提示：如果文件很大，请分批处理，每次处理 100 行，处理完告知进度。
+```
+
+调用：`/translate src/utils/auth.ts 英文`
+
+---
+
+### 示例 10：数据库迁移助手
+
+**文件**：`.claude/skills/db-migrate/SKILL.md`
+
+```markdown
+---
+description: 生成并验证数据库迁移脚本
+argument-hint: "<description>"
+context: fork
+allowed-tools: [Read, GlobTool, FileWriteTool, BashTool]
+paths: "migrations/** models/** src/db/**"
+when-to-use: |
+  当用户谈到数据库变更、迁移、新增表字段、修改 Schema 时使用。
+  在触碰 migrations/、models/ 或 src/db/ 目录后自动激活。
+---
+
+# 数据库迁移
+
+迁移描述：$ARGUMENTS
+
+## 第一步：了解当前状态
+
+1. 读取 `migrations/` 目录下最新的 5 个迁移文件
+2. 读取相关 model 文件（如果已知具体 model，读取对应文件）
+3. 如果有 `schema.prisma` 或 `db/schema.rb` 等 schema 文件，读取它
+
+## 第二步：生成迁移
+
+根据迁移描述，生成迁移文件：
+
+- **文件命名**：`migrations/YYYYMMDD_HHMMSS_<description>.sql`（或框架对应格式）
+- **内容要求**：
+  - 包含 `up`（正向迁移）
+  - 包含 `down`（回滚迁移）
+  - 对于大表的字段新增，使用 `DEFAULT NULL` 避免锁表
+
+## 第三步：安全性检查
+
+生成后，自动运行：
+```bash
+# 语法检查
+python3 -c "
+import re
+with open('$MIGRATION_FILE') as f:
+    content = f.read()
+# 检查是否有 DROP TABLE 或 DELETE FROM 没有 WHERE
+if re.search(r'DROP TABLE', content, re.I):
+    print('WARNING: 包含 DROP TABLE，请确认')
+if re.search(r'DELETE FROM\s+\w+\s*;', content, re.I):
+    print('WARNING: 包含无 WHERE 条件的 DELETE，请确认')
+"
+```
+
+## 第四步：应用迁移（可选）
+
+如果用户确认，执行迁移：
+```bash
+# 根据项目使用的迁移工具运行
+bun run db:migrate || npm run migrate || python manage.py migrate
+```
+```
+
+---
+
+### 示例 11：全局 Skill — PR 描述生成器
+
+**文件**：`~/.claude/skills/pr-desc/SKILL.md`（全局，所有项目可用）
+
+```markdown
+---
+description: 基于 git diff 自动生成 GitHub PR 描述
+argument-hint: "[base-branch]"
+allowed-tools: [BashTool]
+when-to-use: |
+  当用户要"开 PR"、"创建 PR"、"写 PR 描述"时使用。
+  在 git 仓库中且有未合并的提交时使用。
+---
+
+# PR 描述生成
+
+基础分支：$ARGUMENTS（默认为 main）
+
+## 自动收集数据
+
+请运行以下命令收集 PR 相关信息：
+
+1. `git log $ARGUMENTS..HEAD --oneline`（提交历史）
+2. `git diff $ARGUMENTS..HEAD --stat`（变更文件统计）
+3. `git diff $ARGUMENTS..HEAD --`（完整 diff，如果超过 500 行请截断）
+
+## 生成 PR 描述
+
+基于以上数据，生成一个清晰的 PR 描述：
+
+```markdown
+## 变更摘要
+
+（2-3 句话描述这次 PR 做了什么）
+
+## 主要修改
+
+- （变更点 1）
+- （变更点 2）
+- ...
+
+## 测试方案
+
+- [ ] （测试步骤 1）
+- [ ] （测试步骤 2）
+
+## 影响范围
+
+（说明对哪些模块/功能有影响，是否需要配合后端变更等）
+```
+
+最后直接调用 `gh pr create` 命令创建 PR（用户确认后执行）。
+```
+
+调用：`/pr-desc main`
+
+---
+
+### 示例 12：`user-invocable: false` 的隐式 Skill
+
+**文件**：`.claude/skills/detect-lang/SKILL.md`
+
+这种 Skill 不出现在 `/` 命令列表，但模型会根据 `when-to-use` 自主决定调用。
+
+```markdown
+---
+description: 检测用户消息中的编程语言，设置上下文
+user-invocable: false
+when-to-use: |
+  当用户开始讨论代码时，在第一次响应前调用。
+  检测当前项目使用的主要编程语言，设置适当的上下文。
+  每次会话只需调用一次（使用 once 机制，但通过 when-to-use 控制）
+allowed-tools: [GlobTool, Read]
+---
+
+# 编程语言检测（隐式）
+
+请检测当前项目的主要编程语言：
+
+1. 使用 GlobTool 查找 `*.ts`、`*.py`、`*.go`、`*.rs`、`*.java` 等文件
+2. 统计各语言文件数量
+3. 读取 `package.json`（如果存在）了解框架
+4. 输出简短结论（不超过 2 行），告诉用户已检测到的技术栈
+
+这个信息用于为后续所有代码相关回答提供更精确的上下文。
+```
+
+---
+
+### 示例 13：`disable-model-invocation` — 纯提示词注入 Skill
+
+这类 Skill 的提示词会被注入对话，但不会触发额外的模型调用（模型用注入的信息处理用户的实际问题）。
+
+**文件**：`.claude/skills/context-inject/SKILL.md`
+
+```markdown
+---
+description: 注入项目特定的编码规范上下文
+disable-model-invocation: true
+---
+
+## 本项目编码规范（自动注入）
+
+- TypeScript strict 模式，禁止 `any` 类型
+- 所有函数必须有返回类型注解
+- 文件名使用 kebab-case，组件名使用 PascalCase
+- 提交信息遵循 Conventional Commits 规范
+- 测试文件放在 `__tests__/` 目录下，文件名为 `xxx.test.ts`
+- 禁止 console.log（使用 logForDebugging 函数）
+
+请在所有代码建议中遵循以上规范。
+```
+
+---
+
+### 示例 14：带 effort 和 model 控制的深度分析 Skill
+
+**文件**：`.claude/skills/deep-analysis/SKILL.md`
+
+```markdown
+---
+description: 对代码库进行深度架构分析，使用最强模型和最高努力程度
+argument-hint: "<目标模块或问题描述>"
+context: fork
+model: claude-opus-4-8
+effort: high
+allowed-tools: [Read, GlobTool, GrepTool, BashTool]
+when-to-use: |
+  当用户需要深度分析、架构评审、复杂问题诊断时使用。
+  不适合简单问题，此 Skill 消耗 token 较多。
+---
+
+# 深度代码分析
+
+分析目标：$ARGUMENTS
+
+## 分析流程
+
+### Phase 1：信息收集（广度优先）
+
+1. 用 GlobTool 获取项目文件结构概览
+2. 读取核心文件（入口文件、主要配置、关键模块）
+3. 用 GrepTool 搜索与分析目标相关的所有文件
+
+### Phase 2：依赖分析
+
+1. 识别所有涉及模块及其依赖关系
+2. 绘制 ASCII 依赖图
+3. 标记循环依赖和过重耦合
+
+### Phase 3：问题诊断
+
+针对 "$ARGUMENTS" 描述的问题或模块：
+1. 追踪数据流
+2. 识别架构缺陷
+3. 对比最佳实践
+
+### Phase 4：改进建议
+
+1. 按优先级（P0/P1/P2）列出改进建议
+2. 每条建议附上具体的代码示例
+3. 估算改动影响范围
+
+输出一份完整的分析报告（Markdown 格式）。
+```
+
+---
+
+### 示例 15：组合 Shell 注入 + 条件激活的 Skill
+
+**文件**：`.claude/skills/test-watcher/SKILL.md`
+
+```markdown
+---
+description: 监控测试结果并给出修复建议（在测试文件被修改时激活）
+paths: "**/__tests__/** **/*.test.ts **/*.spec.ts"
+user-invocable: true
+when-to-use: |
+  当用户修改了测试文件，或者说"测试失败了"、"帮我修复测试"时使用。
+allowed-tools: [BashTool, Read, FileWriteTool]
+---
+
+# 测试监控与修复
+
+当前测试状态（自动获取）：
+
+## 失败的测试
+
+```!
+bun test 2>&1 | grep -A 3 "FAIL\|✗\|×" | head -50 || echo "运行测试失败"
+```
+
+## 测试覆盖率
+
+```!
+bun test --coverage 2>&1 | tail -20 || echo "覆盖率报告不可用"
+```
+
+---
+
+请分析上面的测试结果：
+
+1. **列出所有失败的测试**：文件名、测试用例名、失败原因
+2. **分析根因**：是测试代码问题还是被测代码问题？
+3. **逐一修复**：
+   - 读取失败的测试文件和对应的源文件
+   - 分析具体失败原因
+   - 直接修改文件修复问题
+4. **验证**：修复后再次运行测试，确认通过
+
+如果 $ARGUMENTS 指定了特定测试文件，只处理该文件。
+
+需要处理的文件：$ARGUMENTS（为空则处理所有失败测试）
+```
+
+---
+
+## 十、Skill 加载流水线（技术细节）
+
+### 加载顺序（优先级高到低）
+
+```
+启动时同时从以下目录加载（并行）：
+  1. 管理员 Skills（企业策略路径）
+  2. 用户 Skills（~/.claude/skills/）
+  3. 项目 Skills（.claude/skills/）
+  4. --add-dir 额外指定的目录
+  5. Legacy 命令（.claude/commands/）
+
+↓ 去重（相同 realpath 只保留一份）
+↓ 分离条件 Skills（有 paths 字段的）
+↓ 返回无条件 Skills（有条件的先存起来）
+```
+
+### 同名 Skill 优先级
+
+优先级从高到低：
+1. `--add-dir` 额外目录
+2. 项目级 `.claude/skills/`
 3. 用户级 `~/.claude/skills/`
 4. 管理员级（企业策略）
 5. 内置 Skills（编译进 CLI）
 
----
+### 缓存与清除
 
-## 六、关键文件清单
-
-| 文件 | 角色 | 关键函数/常量 |
-|------|------|-------------|
-| `src/skills/loadSkillsDir.ts` | core | `getSkillDirCommands`（:638）、`parseSkillFrontmatterFields`（:185）、`discoverSkillDirsForPaths`（:861）、`activateConditionalSkillsForPaths`（:997） |
-| `src/skills/bundledSkills.ts` | core | `registerBundledSkill`、`getBundledSkills` |
-| `src/skills/mcpSkills.ts` | core | `getMcpSkills`（:30）、`buildMcpSkillCommand`（:88） |
-| `src/skills/bundled/index.ts` | entry | 18 个内置 Skill 的初始化入口（:28-73） |
-| `packages/builtin-tools/src/tools/SkillTool/SkillTool.ts` | core | `executeInlineSkill`、`executeForkedSkill` |
-| `packages/builtin-tools/src/tools/SkillTool/hooks.ts` | util | Skill 内联 Hooks 注册 |
+- `getSkillDirCommands()` 是 memoized 的，首次调用后缓存结果
+- 以下操作清除缓存：`/clear`、`/compact`、文件监视检测到 Skill 文件变化
+- 条件 Skill 的**激活状态**不因 `/clear` 重置（设计决策）
 
 ---
 
-## 七、学习建议
+## 十一、关键源码文件
 
-**实操路线**（推荐按顺序）：
-
-1. **创建最简 Skill**：在项目根创建 `.claude/skills/hello/SKILL.md`，写入 `description: 打招呼` 和正文，重启会话测试 `/hello`
-
-2. **理解参数展开**：修改 SKILL.md 加入 `arguments: [name]`，正文写 `你好，$ARG1`，测试 `/hello Alice`
-
-3. **读 `parseSkillFrontmatterFields`**（`src/skills/loadSkillsDir.ts:185-265`）：理解所有字段如何被解析
-
-4. **对比内联 vs 分叉**：同一个任务分别用内联和 `context: fork` 执行，观察 token 计数的差异
-
-5. **实验条件激活**：给 Skill 加 `paths: "*.ts"`，修改一个 `.ts` 文件，观察 `/` 命令列表变化
+| 文件 | 说明 |
+|------|------|
+| `src/skills/loadSkillsDir.ts` | 核心加载器：`getSkillDirCommands`、`parseSkillFrontmatterFields`、`discoverSkillDirsForPaths`、`activateConditionalSkillsForPaths` |
+| `src/skills/bundledSkills.ts` | 内置 Skill 注册：`registerBundledSkill`、`getBundledSkills` |
+| `src/skills/mcpSkills.ts` | MCP Skill 加载：`getMcpSkills`、`buildMcpSkillCommand` |
+| `packages/builtin-tools/src/tools/SkillTool/SkillTool.ts` | Skill 执行引擎：`executeForkedSkill`、内联执行逻辑 |
+| `packages/builtin-tools/src/tools/SkillTool/prompt.ts` | Skill 工具的 prompt 生成（模型看到的工具描述） |
+| `src/utils/frontmatterParser.ts` | YAML frontmatter 解析工具 |
+| `src/utils/promptShellExecution.ts` | `!` Shell 注入执行逻辑 |
 
 ---
 
-## 八、与前序衔接
+## 十二、快速参考卡
 
-| 已学模块 | 与 Skills 的关联 |
-|---------|----------------|
-| 工具系统 | SkillTool 是 60+ 内置工具之一，通过标准 Tool 接口执行 |
-| 上下文工程 | 内联 Skill 的提示词被注入到 system message 或 user message 中 |
-| 安全与权限 | `allowed-tools` 字段绕过弹框确认；`context: fork` 的子代理有独立权限计数 |
-| MCP 协议 | MCP server 可通过 `skill://` 资源动态提供 Skills |
+```
+我想创建一个什么样的 Skill？
 
----
-
-## 九、验证清单
-
-完成本篇学习后，你应该能够：
-
-- [ ] 在项目中创建一个带参数的 Skill，调用成功
-- [ ] 解释 `context: fork` 和内联模式的 token 预算差异
-- [ ] 说出 `allowed-tools` 和权限系统的交互方式
-- [ ] 解释为什么条件 Skill 的激活状态不会被 `/clear` 重置
-- [ ] 在 `src/skills/loadSkillsDir.ts` 中找到 `getSkillDirCommands` 并追踪其缓存机制
-
----
-
-## 十、后续路线
-
-下一篇推荐：**Hooks 系统**
-
-Skills 定义了"做什么"，Hooks 定义了"什么时候插入额外逻辑"。两者在 Skill 的 frontmatter（`hooks` 字段）中有直接交集——理解 Skills 之后，Hooks 的 `PreToolUse` / `PostToolUse` 语义会更加清晰。
+用户手动调用：           user-invocable: true（默认）
+模型自动调用：           user-invocable: false + when-to-use
+只在特定文件时出现：      paths: "src/**/*.tsx"
+需要大量读文件：         context: fork（独立 token 预算）
+需要高质量输出：         model: claude-opus-4-8 + effort: high
+不弹权限确认框：         allowed-tools: [BashTool, Read, ...]
+读 Skill 自身的脚本：    ${CLAUDE_SKILL_DIR}/script.sh
+自动收集当前状态：       在正文中用 !`command` 语法
+带 Hook 的自动检查：     frontmatter 中的 hooks: 字段
+参数说明给用户看：       argument-hint: "<file> [options]"
+参数在正文中引用：       arguments: [file, opts] → $ARG1 $ARG2
+```

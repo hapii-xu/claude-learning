@@ -40,24 +40,24 @@ export async function getImageProcessor(): Promise<SharpFunction> {
   }
 
   if (isInBundledMode()) {
-    // Try to load the native image processor first
+    // 先尝试加载原生图像处理器
     try {
-      // Use the native image processor module
+      // 使用原生图像处理器模块
       const imageProcessor = await import('image-processor-napi')
       const sharpFn = (imageProcessor.sharp ??
         imageProcessor.default) as SharpFunction
       imageProcessorModule = { default: sharpFn }
       return sharpFn
     } catch {
-      // Fall back to sharp if native module is not available
+      // 原生模块不可用时回退到 sharp
       console.warn(
-        'Native image processor not available, falling back to sharp',
+        '原生图像处理器不可用，回退到 sharp',
       )
     }
   }
 
-  // Use sharp for non-bundled builds or as fallback.
-  // Single structural cast: our SharpFunction is a subset of sharp's actual type surface.
+  // 对于非 bundled 构建或作为兜底，使用 sharp。
+  // 单一结构性转型：我们的 SharpFunction 是 sharp 实际类型表面的一个子集。
   const imported = (await import(
     'sharp'
   )) as unknown as MaybeDefault<SharpFunction>
@@ -67,9 +67,9 @@ export async function getImageProcessor(): Promise<SharpFunction> {
 }
 
 /**
- * Get image creator for generating new images from scratch.
- * Note: image-processor-napi doesn't support image creation,
- * so this always uses sharp directly.
+ * 获取用于从零生成新图片的 image creator。
+ * 注意：image-processor-napi 不支持图片创建，
+ * 因此这里始终直接使用 sharp。
  */
 export async function getImageCreator(): Promise<SharpCreator> {
   if (imageCreatorModule) {
@@ -84,7 +84,7 @@ export async function getImageCreator(): Promise<SharpCreator> {
   return sharp
 }
 
-// Dynamic import shape varies by module interop mode — ESM yields { default: fn }, CJS yields fn directly.
+// 动态 import 的形态随模块 interop 模式而变 —— ESM 返回 { default: fn }，CJS 直接返回 fn。
 type MaybeDefault<T> = T | { default: T }
 
 function unwrapDefault<T extends (...args: never[]) => unknown>(

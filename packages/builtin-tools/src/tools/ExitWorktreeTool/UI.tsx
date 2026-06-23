@@ -6,7 +6,7 @@ import type { ThemeName } from 'src/utils/theme.js';
 import type { Output } from './ExitWorktreeTool.js';
 
 export function renderToolUseMessage(): React.ReactNode {
-  return 'Exiting worktree…';
+  return '退出 worktree…';
 }
 
 export function renderToolResultMessage(
@@ -14,7 +14,7 @@ export function renderToolResultMessage(
   _progressMessagesForMessage: ProgressMessage<ToolProgressData>[],
   _options: { theme: ThemeName },
 ): React.ReactNode {
-  const actionLabel = output.action === 'keep' ? 'Kept worktree' : 'Removed worktree';
+  const actionLabel = output.action === 'keep' ? '已保留 worktree' : '已删除 worktree';
   return (
     <Box flexDirection="column">
       <Text>
@@ -22,11 +22,11 @@ export function renderToolResultMessage(
         {output.worktreeBranch ? (
           <>
             {' '}
-            (branch <Text bold>{output.worktreeBranch}</Text>)
+            （分支 <Text bold>{output.worktreeBranch}</Text>）
           </>
         ) : null}
       </Text>
-      <Text dimColor>Returned to {output.originalCwd}</Text>
+      <Text dimColor>已返回到 {output.originalCwd}</Text>
     </Box>
   );
 }

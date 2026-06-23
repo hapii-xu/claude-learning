@@ -13,37 +13,37 @@ import { logError } from '../log.js'
 import { sleep } from '../sleep.js'
 import { jsonStringify } from '../slowOperations.js'
 
-// Retry configuration for teleport API requests
-const TELEPORT_RETRY_DELAYS = [2000, 4000, 8000, 16000] // 4 retries with exponential backoff
+// Teleport API 请求重试配置
+const TELEPORT_RETRY_DELAYS = [2000, 4000, 8000, 16000] // 4 次重试，指数退避
 const MAX_TELEPORT_RETRIES = TELEPORT_RETRY_DELAYS.length
 
 export const CCR_BYOC_BETA = 'ccr-byoc-2025-07-29'
 
 /**
- * Checks if an axios error is a transient network error that should be retried
+ * 检查 axios 错误是否为应重试的瞬时网络错误
  */
 export function isTransientNetworkError(error: unknown): boolean {
   if (!axios.isAxiosError(error)) {
     return false
   }
 
-  // Retry on network errors (no response received)
+  // 网络错误时重试（未收到响应）
   if (!error.response) {
     return true
   }
 
-  // Retry on server errors (5xx)
+  // 服务器错误时重试（5xx）
   if (error.response.status >= 500) {
     return true
   }
 
-  // Don't retry on client errors (4xx) - they're not transient
+  // 客户端错误不重试（4xx）— 它们不是瞬时错误
   return false
 }
 
 /**
- * Makes an axios GET request with automatic retry for transient network errors
- * Uses exponential backoff: 2s, 4s, 8s, 16s (4 retries = 5 total attempts)
+ * 发送带自动重试的 axios GET 请求（针对瞬时网络错误）
+ * 使用指数退避策略：2s、4s、8s、16s（4 次重试 = 共 5 次尝试）
  */
 export async function axiosGetWithRetry<T>(
   url: string,
@@ -57,12 +57,12 @@ export async function axiosGetWithRetry<T>(
     } catch (error) {
       lastError = error
 
-      // Don't retry if this isn't a transient error
+      // 如果这不是瞬时错误，则不重试
       if (!isTransientNetworkError(error)) {
         throw error
       }
 
-      // Don't retry if we've exhausted all retries
+      // 如果已用尽所有重试次数，则不重试
       if (attempt >= MAX_TELEPORT_RETRIES) {
         logForDebugging(
           `Teleport request failed after ${attempt + 1} attempts: ${errorMessage(error)}`,
@@ -81,7 +81,7 @@ export async function axiosGetWithRetry<T>(
   throw lastError
 }
 
-// Types matching the actual Sessions API response from api/schemas/sessions/sessions.py
+// 类型与 api/schemas/sessions/sessions.py 中实际的 Sessions API 响应匹配
 export type SessionStatus = 'requires_action' | 'running' | 'idle' | 'archived'
 
 export type GitSource = {
@@ -98,7 +98,7 @@ export type KnowledgeBaseSource = {
 
 export type SessionContextSource = GitSource | KnowledgeBaseSource
 
-// Outcome types from api/schemas/sandbox.py
+// 来自 api/schemas/sandbox.py 的结果类型
 export type OutcomeGitInfo = {
   type: 'github'
   repo: string
@@ -119,7 +119,7 @@ export type SessionContext = {
   custom_system_prompt: string | null
   append_system_prompt: string | null
   model: string | null
-  // Seed filesystem with a git bundle on Files API
+  // 在 Files API 上用 git bundle 初始化文件系统
   seed_bundle_file_id?: string
   github_pr?: { owner: string; repo: string; number: number }
   reuse_outcome_branches?: boolean
@@ -172,25 +172,20 @@ export const CodeSessionSchema = lazySchema(() =>
   }),
 )
 
-// Export the inferred type from the Zod schema
+// 从 Zod schema 导出推断类型
 export type CodeSession = z.infer<ReturnType<typeof CodeSessionSchema>>
 
 /**
- * L2 fix (codecov-100 audit #12): predicate for "was the workspace API key
- * explicitly cleared" vs "was it never set". Treats workspaceApiKey
- * present-but-falsy (null, '', whitespace) as cleared, and absent
- * (undefined, missing field) as never-set. The TypeScript type is
- * `string | undefined` but the JSON file can legally hold null if a user
- * manually edited it, so we handle null defensively via runtime check.
+ * L2 修复（codecov-100 审计 #12）：判断"工作区 API 密钥是否已被显式清除"与"是否从未设置"的谓词。
+ * 将 workspaceApiKey 存在但为假值（null、''、空白）视为已清除，将不存在（undefined、字段缺失）视为从未设置。
+ * TypeScript 类型为 `string | undefined`，但 JSON 文件可以合法地包含 null（如果用户手动编辑过），
+ * 因此我们通过运行时检查来防御性地处理 null。
  *
- * Other types (number, boolean, object, etc.) conservatively fall through
- * to "not cleared" — the underlying state is corrupt, and the standard
- * "required" message is less misleading than claiming the user cleared a
- * value they never set.
+ * 其他类型（number、boolean、object 等）会保守地回退到"未清除" — 底层状态已损坏，
+ * 标准的"required"消息比声称用户清除了他们从未设置的值更少误导性。
  *
- * Exported so unit tests can pin the predicate directly without needing
- * to bypass the process-wide mock.module() registrations on
- * `src/utils/teleport/api.js` from sibling test files.
+ * 导出此函数以便单元测试可以直接固定谓词，而无需绕过同级测试文件中
+ * 针对 `src/utils/teleport/api.js` 的进程级 mock.module() 注册。
  */
 export function isWorkspaceKeyCleared(rawValue: unknown): boolean {
   return (
@@ -200,32 +195,29 @@ export function isWorkspaceKeyCleared(rawValue: unknown): boolean {
 }
 
 /**
- * Validates and prepares for workspace API key requests (agents, vaults, memory_stores, skills).
+ * 验证并准备工作区 API 密钥请求（agents、vaults、memory_stores、skills）。
  *
- * Reads the workspace API key from two sources in priority order:
- *   1. ANTHROPIC_API_KEY environment variable (takes precedence)
- *   2. workspaceApiKey field in ~/.claude.json (set via /login UI, no restart needed)
+ * 按优先级从两个来源读取工作区 API 密钥：
+ *   1. ANTHROPIC_API_KEY 环境变量（优先）
+ *   2. ~/.claude.json 中的 workspaceApiKey 字段（通过 /login UI 设置，无需重启）
  *
- * Validates the sk-ant-api03-* prefix and returns the key for use in `x-api-key` headers.
- * Configuration errors (missing or wrong-prefix key) are surfaced as thrown errors so
- * callers can convert them to 501.
+ * 验证 sk-ant-api03-* 前缀并返回密钥以供 `x-api-key` 请求头使用。
+ * 配置错误（缺失或前缀错误的密钥）会以抛出错误的方式暴露，以便调用者将其转换为 501。
  *
- * @throws {Error} when no workspace key is found in env or settings, or the key does not
- *                 start with sk-ant-api03-
+ * @throws {Error} 当在环境变量或设置中未找到工作区密钥，或密钥不以 sk-ant-api03- 开头时抛出
  */
 export async function prepareWorkspaceApiRequest(): Promise<{
   apiKey: string
 }> {
-  // Dual-source: env var takes precedence, then settings (saved via /login UI)
+  // 双来源：环境变量优先，其次是设置（通过 /login UI 保存）
   const config = getGlobalConfig()
   const apiKey =
     process.env['ANTHROPIC_API_KEY']?.trim() || config.workspaceApiKey?.trim()
 
   if (!apiKey) {
-    // L2 fix (codecov-100 audit #12): when the user previously had a
-    // workspace key and explicitly cleared it (set to null/empty), the
-    // generic "required" error doesn't tell them what changed. Detect
-    // the cleared-vs-never-set distinction so the prompt is actionable.
+    // L2 修复（codecov-100 审计 #12）：当用户之前拥有工作区密钥并显式清除（设置为 null/空）时，
+    // 通用的"required"错误无法告知用户发生了什么变化。检测"已清除"与"从未设置"的区别，
+    // 使提示信息更具可操作性。
     const rawValue = (config as { workspaceApiKey?: string | null })
       .workspaceApiKey
     const wasCleared = isWorkspaceKeyCleared(rawValue)
@@ -242,7 +234,7 @@ export async function prepareWorkspaceApiRequest(): Promise<{
     )
   }
   if (!apiKey.startsWith('sk-ant-api03-')) {
-    // D5: expose at most first 4 chars to avoid leaking high-entropy secret bits into error logs/reports
+    // D5：最多暴露前 4 个字符，避免将高熵密钥片段泄露到错误日志/报告中
     throw new Error(
       `Workspace API key must start with sk-ant-api03-, got prefix "${apiKey.slice(0, 4)}...". ` +
         'Obtain a workspace API key from https://console.anthropic.com/settings/keys. ' +
@@ -253,8 +245,8 @@ export async function prepareWorkspaceApiRequest(): Promise<{
 }
 
 /**
- * Validates and prepares for API requests
- * @returns Object containing access token and organization UUID
+ * 验证并准备 API 请求
+ * @returns 包含访问令牌和组织 UUID 的对象
  */
 export async function prepareApiRequest(): Promise<{
   accessToken: string
@@ -276,8 +268,8 @@ export async function prepareApiRequest(): Promise<{
 }
 
 /**
- * Fetches code sessions from the new Sessions API (/v1/sessions)
- * @returns Array of code sessions
+ * 从新的 Sessions API（/v1/sessions）获取代码会话
+ * @returns 代码会话数组
  */
 export async function fetchCodeSessionsFromSessionsAPI(): Promise<
   CodeSession[]
@@ -301,16 +293,16 @@ export async function fetchCodeSessionsFromSessionsAPI(): Promise<
       throw new Error(`Failed to fetch code sessions: ${response.statusText}`)
     }
 
-    // Transform SessionResource[] to CodeSession[] format
+    // 将 SessionResource[] 转换为 CodeSession[] 格式
     const sessions: CodeSession[] = response.data.data.map(session => {
-      // Extract repository info from git sources
+      // 从 git sources 中提取仓库信息
       const gitSource = session.session_context.sources.find(
         (source): source is GitSource => source.type === 'git_repository',
       )
 
       let repo: CodeSession['repo'] = null
       if (gitSource?.url) {
-        // Parse GitHub URL using the existing utility function
+        // 使用现有的工具函数解析 GitHub URL
         const repoPath = parseGitHubRepository(gitSource.url)
         if (repoPath) {
           const [owner, name] = repoPath.split('/')
@@ -329,10 +321,10 @@ export async function fetchCodeSessionsFromSessionsAPI(): Promise<
       return {
         id: session.id,
         title: session.title || 'Untitled',
-        description: '', // SessionResource doesn't have description field
-        status: session.session_status as CodeSession['status'], // Map session_status to status
+        description: '', // SessionResource 没有 description 字段
+        status: session.session_status as CodeSession['status'], // 将 session_status 映射为 status
         repo,
-        turns: [], // SessionResource doesn't have turns field
+        turns: [], // SessionResource 没有 turns 字段
         created_at: session.created_at,
         updated_at: session.updated_at,
       }
@@ -347,9 +339,9 @@ export async function fetchCodeSessionsFromSessionsAPI(): Promise<
 }
 
 /**
- * Creates OAuth headers for API requests
- * @param accessToken The OAuth access token
- * @returns Headers object with Authorization, Content-Type, and anthropic-version
+ * 为 API 请求创建 OAuth 请求头
+ * @param accessToken OAuth 访问令牌
+ * @returns 包含 Authorization、Content-Type 和 anthropic-version 的请求头对象
  */
 export function getOAuthHeaders(accessToken: string): Record<string, string> {
   return {
@@ -360,9 +352,9 @@ export function getOAuthHeaders(accessToken: string): Record<string, string> {
 }
 
 /**
- * Fetches a single session by ID from the Sessions API
- * @param sessionId The session ID to fetch
- * @returns The session resource
+ * 通过 Sessions API 按 ID 获取单个会话
+ * @param sessionId 要获取的会话 ID
+ * @returns 会话资源
  */
 export async function fetchSession(
   sessionId: string,
@@ -383,7 +375,7 @@ export async function fetchSession(
   })
 
   if (response.status !== 200) {
-    // Extract error message from response if available
+    // 如果可用，从响应中提取错误消息
     const errorData = response.data as { error?: { message?: string } }
     const apiMessage = errorData?.error?.message
 
@@ -405,9 +397,9 @@ export async function fetchSession(
 }
 
 /**
- * Extracts the first branch name from a session's git repository outcomes
- * @param session The session resource to extract from
- * @returns The first branch name, or undefined if none found
+ * 从会话的 git 仓库结果中提取第一个分支名称
+ * @param session 要提取的会话资源
+ * @returns 第一个分支名称，如果未找到则返回 undefined
  */
 export function getBranchFromSession(
   session: SessionResource,
@@ -420,21 +412,20 @@ export function getBranchFromSession(
 }
 
 /**
- * Content for a remote session message.
- * Accepts a plain string or an array of content blocks (text, image, etc.)
- * following the Anthropic API messages spec.
+ * 远程会话消息的内容。
+ * 接受纯字符串或遵循 Anthropic API 消息规范的内容块数组（文本、图像等）。
  */
 export type RemoteMessageContent =
   | string
   | Array<{ type: string; [key: string]: unknown }>
 
 /**
- * Sends a user message event to an existing remote session via the Sessions API
- * @param sessionId The session ID to send the event to
- * @param messageContent The user message content (string or content blocks)
- * @param opts.uuid Optional UUID for the event — callers that added a local
- *   UserMessage first should pass its UUID so echo filtering can dedup
- * @returns Promise<boolean> True if successful, false otherwise
+ * 通过 Sessions API 向现有远程会话发送用户消息事件
+ * @param sessionId 要发送事件的会话 ID
+ * @param messageContent 用户消息内容（字符串或内容块）
+ * @param opts.uuid 事件的可选 UUID — 已添加本地 UserMessage 的调用者应传递其 UUID，
+ *   以便回声过滤可以进行去重
+ * @returns Promise<boolean> 成功返回 true，否则返回 false
  */
 export async function sendEventToRemoteSession(
   sessionId: string,
@@ -469,8 +460,8 @@ export async function sendEventToRemoteSession(
     logForDebugging(
       `[sendEventToRemoteSession] Sending event to session ${sessionId}`,
     )
-    // The endpoint may block until the CCR worker is ready. Observed ~2.6s
-    // in normal cases; allow a generous margin for cold-start containers.
+    // 该端点可能会阻塞，直到 CCR worker 就绪。正常情况下观察到约 2.6s；
+    // 为冷启动容器预留充足的超时时间。
     const response = await axios.post(url, requestBody, {
       headers,
       validateStatus: status => status < 500,
@@ -495,10 +486,10 @@ export async function sendEventToRemoteSession(
 }
 
 /**
- * Updates the title of an existing remote session via the Sessions API
- * @param sessionId The session ID to update
- * @param title The new title for the session
- * @returns Promise<boolean> True if successful, false otherwise
+ * 通过 Sessions API 更新现有远程会话的标题
+ * @param sessionId 要更新的会话 ID
+ * @param title 会话的新标题
+ * @returns Promise<boolean> 成功返回 true，否则返回 false
  */
 export async function updateSessionTitle(
   sessionId: string,

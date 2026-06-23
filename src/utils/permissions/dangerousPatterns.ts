@@ -1,22 +1,22 @@
 /**
- * Pattern lists for dangerous shell-tool allow-rule prefixes.
+ * 危险 shell 工具允许规则前缀的模式列表。
  *
- * An allow rule like `Bash(python:*)` or `PowerShell(node:*)` lets the model
- * run arbitrary code via that interpreter, bypassing the auto-mode classifier.
- * These lists feed the isDangerous{Bash,PowerShell}Permission predicates in
- * permissionSetup.ts, which strip such rules at auto-mode entry.
+ * 像 `Bash(python:*)` 或 `PowerShell(node:*)` 这样的允许规则会让模型
+ * 通过该解释器运行任意代码，从而绕过 auto mode 分类器。
+ * 这些列表为 permissionSetup.ts 中的 isDangerous{Bash,PowerShell}Permission
+ * 谓词提供数据，这些谓词在 auto mode 进入时会剥离此类规则。
  *
- * The matcher in each predicate handles the rule-shape variants (exact, `:*`,
- * trailing `*`, ` *`, ` -…*`). PS-specific cmdlet strings live in
- * isDangerousPowerShellPermission (permissionSetup.ts).
+ * 每个谓词中的匹配器处理规则形状变体（精确匹配、`:*`、
+ * 尾部 `*`、` *`、` -…*`）。PowerShell 特有的 cmdlet 字符串位于
+ * isDangerousPowerShellPermission（permissionSetup.ts）。
  */
 
 /**
- * Cross-platform code-execution entry points present on both Unix and Windows.
- * Shared to prevent the two lists drifting apart on interpreter additions.
+ * 跨平台代码执行入口，同时存在于 Unix 和 Windows 上。
+ * 共享以防止两个列表在添加解释器时出现不一致。
  */
 export const CROSS_PLATFORM_CODE_EXEC = [
-  // Interpreters
+  // 解释器
   'python',
   'python3',
   'python2',
@@ -27,17 +27,17 @@ export const CROSS_PLATFORM_CODE_EXEC = [
   'perl',
   'php',
   'lua',
-  // Package runners
+  // 包运行器
   'npx',
   'bunx',
   'npm run',
   'yarn run',
   'pnpm run',
   'bun run',
-  // Shells reachable from both (Git Bash / WSL on Windows, native on Unix)
+  // 可从两端访问的 Shell（Windows 上的 Git Bash / WSL，Unix 上的原生 Shell）
   'bash',
   'sh',
-  // Remote arbitrary-command wrapper (native OpenSSH on Win10+)
+  // 远程任意命令执行包装器（Win10+ 原生 OpenSSH）
   'ssh',
 ] as const
 
@@ -50,27 +50,27 @@ export const DANGEROUS_BASH_PATTERNS: readonly string[] = [
   'env',
   'xargs',
   'sudo',
-  // Anthropic internal: ant-only tools plus general tools that ant sandbox
-  // dotfile data shows are commonly over-allowlisted as broad prefixes.
-  // These stay ant-only — external users don't have coo, and the rest are
-  // an empirical-risk call grounded in ant sandbox data, not a universal
-  // "this tool is unsafe" judgment. PS may want these once it has usage data.
+  // Anthropic 内部：仅限 ant 的工具以及 ant 沙箱
+  // dotfile 数据显示经常被过度允许为宽泛前缀的通用工具。
+  // 这些保持仅限 ant — 外部用户没有 coo，其余是基于
+  // ant 沙箱数据的经验风险判断，而非"此工具不安全"的普遍
+  // 判断。PS 在有使用数据后可能需要这些。
   ...(process.env.USER_TYPE === 'ant'
     ? [
         'fa run',
-        // Cluster code launcher — arbitrary code on the cluster
+        // 集群代码启动器 — 在集群上运行任意代码
         'coo',
-        // Network/exfil: gh gist create --public, gh api arbitrary HTTP,
-        // curl/wget POST. gh api needs its own entry — the matcher is
-        // exact-shape, not prefix, so pattern 'gh' alone does not catch
-        // rule 'gh api:*' (same reason 'npm run' is separate from 'npm').
+        // 网络/数据泄露：gh gist create --public、gh api 任意 HTTP、
+        // curl/wget POST。gh api 需要单独条目 — 匹配器是
+        // 精确形状而非前缀，因此单独的模式 'gh' 无法捕获
+        // 规则 'gh api:*'（与 'npm run' 和 'npm' 分开的原因相同）。
         'gh',
         'gh api',
         'curl',
         'wget',
-        // git config core.sshCommand / hooks install = arbitrary code
+        // git config core.sshCommand / hooks install = 任意代码执行
         'git',
-        // Cloud resource writes (s3 public buckets, k8s mutations)
+        // 云资源写入（s3 公开桶、k8s 变更）
         'kubectl',
         'aws',
         'gcloud',

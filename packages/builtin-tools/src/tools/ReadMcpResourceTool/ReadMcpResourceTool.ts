@@ -21,8 +21,8 @@ import {
 
 export const inputSchema = lazySchema(() =>
   z.object({
-    server: z.string().describe('The MCP server name'),
-    uri: z.string().describe('The resource URI to read'),
+    server: z.string().describe('MCP 服务器名称'),
+    uri: z.string().describe('要读取的资源 URI'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -31,13 +31,13 @@ export const outputSchema = lazySchema(() =>
   z.object({
     contents: z.array(
       z.object({
-        uri: z.string().describe('Resource URI'),
-        mimeType: z.string().optional().describe('MIME type of the content'),
-        text: z.string().optional().describe('Text content of the resource'),
+        uri: z.string().describe('资源 URI'),
+        mimeType: z.string().optional().describe('内容的 MIME 类型'),
+        text: z.string().optional().describe('资源的文本内容'),
         blobSavedTo: z
           .string()
           .optional()
-          .describe('Path where binary blob content was saved'),
+          .describe('二进制 blob 内容保存到的路径'),
       }),
     ),
   }),
@@ -58,7 +58,7 @@ export const ReadMcpResourceTool = buildTool({
   },
   shouldDefer: true,
   name: 'ReadMcpResourceTool',
-  searchHint: 'read a specific MCP resource by URI',
+  searchHint: '按 URI 读取特定 MCP 资源',
   maxResultSizeChars: 100_000,
   async description() {
     return DESCRIPTION
@@ -79,16 +79,16 @@ export const ReadMcpResourceTool = buildTool({
 
     if (!client) {
       throw new Error(
-        `Server "${serverName}" not found. Available servers: ${mcpClients.map(c => c.name).join(', ')}`,
+        `未找到服务器 "${serverName}"。可用服务器：${mcpClients.map(c => c.name).join(', ')}`,
       )
     }
 
     if (client.type !== 'connected') {
-      throw new Error(`Server "${serverName}" is not connected`)
+      throw new Error(`服务器 "${serverName}" 未连接`)
     }
 
     if (!client.capabilities?.resources) {
-      throw new Error(`Server "${serverName}" does not support resources`)
+      throw new Error(`服务器 "${serverName}" 不支持 resources`)
     }
 
     const connectedClient = await ensureConnectedClient(client)
@@ -100,9 +100,8 @@ export const ReadMcpResourceTool = buildTool({
       ReadResourceResultSchema,
     )) as ReadResourceResult
 
-    // Intercept any blob fields: decode, write raw bytes to disk with a
-    // mime-derived extension, and replace with a path. Otherwise the base64
-    // would be stringified straight into the context.
+    // 拦截所有 blob 字段：解码后按 mime 推导的扩展名将原始字节写入磁盘，
+    // 并用一个路径替换。否则 base64 会被直接序列化进上下文。
     const contents = await Promise.all(
       result.contents.map(async (c, i) => {
         if ('text' in c) {
@@ -121,7 +120,7 @@ export const ReadMcpResourceTool = buildTool({
           return {
             uri: c.uri,
             mimeType: c.mimeType,
-            text: `Binary content could not be saved to disk: ${persisted.error}`,
+            text: `二进制内容无法保存到磁盘：${persisted.error}`,
           }
         }
         return {

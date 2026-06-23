@@ -12,15 +12,15 @@ import { DESCRIPTION, PROMPT } from './prompt.js'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    todos: TodoListSchema().describe('The updated todo list'),
+    todos: TodoListSchema().describe('更新后的待办列表'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
 
 const outputSchema = lazySchema(() =>
   z.object({
-    oldTodos: TodoListSchema().describe('The todo list before the update'),
-    newTodos: TodoListSchema().describe('The todo list after the update'),
+    oldTodos: TodoListSchema().describe('更新前的待办列表'),
+    newTodos: TodoListSchema().describe('更新后的待办列表'),
     verificationNudgeNeeded: z.boolean().optional(),
   }),
 )
@@ -56,7 +56,7 @@ export const TodoWriteTool = buildTool({
     return `${input.todos.length} items`
   },
   async checkPermissions(input) {
-    // No permission checks required for todo operations
+    // 待办操作不需要权限检查
     return { behavior: 'allow', updatedInput: input }
   },
   renderToolUseMessage() {
@@ -69,10 +69,10 @@ export const TodoWriteTool = buildTool({
     const allDone = todos.every(_ => _.status === 'completed')
     const newTodos = allDone ? [] : todos
 
-    // Structural nudge: if the main-thread agent is closing out a 3+ item
-    // list and none of those items was a verification step, append a reminder
-    // to the tool result. Fires at the exact loop-exit moment where skips
-    // happen ("when the last task closed, the loop exited").
+    // 结构性提示：如果主线程 agent 正在收尾一个包含 3 个及以上条目的列表，
+    // 且其中没有任何一个条目是验证步骤，则在工具结果中追加一条提醒。
+    // 它恰好在循环退出的那一刻触发（也就是最常发生跳过的时机——
+    // "当最后一个任务关闭时，循环随之退出"）。
     let verificationNudgeNeeded = false
     if (
       feature('VERIFICATION_AGENT') &&
@@ -102,9 +102,9 @@ export const TodoWriteTool = buildTool({
     }
   },
   mapToolResultToToolResultBlockParam({ verificationNudgeNeeded }, toolUseID) {
-    const base = `Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress. Please proceed with the current tasks if applicable`
+    const base = `\u5f85\u529e\u5217\u8868\u5df2\u6210\u529f\u66f4\u65b0\u3002\u8bf7\u7ee7\u7eed\u4f7f\u7528\u5f85\u529e\u5217\u8868\u8ddf\u8e2a\u4f60\u7684\u8fdb\u5ea6\u3002\u5982\u6709\u9002\u7528\u7684\u4efb\u52a1\uff0c\u8bf7\u7ee7\u7eed\u6267\u884c\u3002`
     const nudge = verificationNudgeNeeded
-      ? `\n\nNOTE: You just closed out 3+ tasks and none of them was a verification step. Before writing your final summary, spawn the verification agent (subagent_type="${VERIFICATION_AGENT_TYPE}"). You cannot self-assign PARTIAL by listing caveats in your summary \u2014 only the verifier issues a verdict.`
+      ? `\n\n\u6ce8\u610f\uff1a\u4f60\u521a\u521a\u6536\u5c3e\u4e86 3 \u4e2a\u53ca\u4ee5\u4e0a\u7684\u4efb\u52a1\uff0c\u4f46\u5176\u4e2d\u6ca1\u6709\u4e00\u4e2a\u9a8c\u8bc1\u6b65\u9aa4\u3002\u5728\u64b0\u5199\u6700\u7ec8\u603b\u7ed3\u4e4b\u524d\uff0c\u8bf7\u751f\u6210 verification agent\uff08subagent_type="${VERIFICATION_AGENT_TYPE}"\uff09\u3002\u4f60\u65e0\u6cd5\u901a\u8fc7\u5728\u603b\u7ed3\u4e2d\u5217\u51fa\u79cd\u79cd\u9650\u5b9a\u6765\u4e3a\u81ea\u5df1\u5224\u5b9a PARTIAL\u2014\u2014\u53ea\u6709\u9a8c\u8bc1 agent \u624d\u80fd\u4e0b\u8fbe\u5224\u5b9a\u3002`
       : ''
     return {
       tool_use_id: toolUseID,

@@ -1,4 +1,4 @@
-export const DESCRIPTION = 'Get a task by ID from the task list'
+export const DESCRIPTION = '按 ID 从任务列表获取一个任务'
 
 export const PROMPT = `Use this tool to retrieve a task by its ID from the task list.
 

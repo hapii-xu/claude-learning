@@ -7,12 +7,12 @@ const WEB_BROWSER_TOOL_NAME = 'WebBrowser'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    url: z.string().describe('URL to fetch and extract content from.'),
+    url: z.string().describe('要获取并提取内容的 URL'),
     action: z
       .enum(['navigate', 'screenshot'])
       .optional()
       .describe(
-        'Action to perform. "navigate" fetches page content (default). "screenshot" returns a text snapshot of the page.',
+        '要执行的操作。"navigate" 获取页面内容（默认）。"screenshot" 返回页面的文本快照。',
       ),
   }),
 )
@@ -37,24 +37,24 @@ export const WebBrowserTool = buildTool({
   },
 
   async description() {
-    return 'Fetch and read web page content via HTTP'
+    return '通过 HTTP 获取并读取网页内容'
   },
   async prompt() {
-    return `Fetch web pages via HTTP and extract their text content. This is a lightweight browser tool (HTTP fetch, not a full browser engine).
+    return `通过 HTTP 获取网页并提取其文本内容。这是一个轻量级浏览器工具（HTTP 抓取，并非完整的浏览器引擎）。
 
-Supported actions:
-- navigate: Fetch a URL and extract page title + text content
-- screenshot: Same as navigate (returns text snapshot, not a visual screenshot)
+支持的操作：
+- navigate：获取 URL 并提取页面标题 + 文本内容
+- screenshot：与 navigate 相同（返回文本快照，而非可视化截图）
 
-Limitations:
-- No JavaScript execution — only sees server-rendered HTML
-- click/type/scroll require a full browser runtime (not available)
-- For full browser interaction, use the Claude-in-Chrome MCP tools instead
+限制：
+- 不执行 JavaScript — 仅能看到服务器端渲染的 HTML
+- click/type/scroll 需要完整的浏览器运行时（不可用）
+- 如需完整的浏览器交互，请改用 Claude-in-Chrome MCP 工具
 
-Use this for:
-- Reading web page content and documentation
-- Checking API endpoints that return HTML
-- Quick page title/content extraction`
+适用场景：
+- 阅读网页内容和文档
+- 检查返回 HTML 的 API 端点
+- 快速提取页面标题/内容`
   },
 
   isConcurrencySafe() {
@@ -65,12 +65,12 @@ Use this for:
   },
 
   userFacingName() {
-    return 'Browser'
+    return '浏览器'
   },
 
   renderToolUseMessage(input: Partial<BrowserInput>) {
     const action = input.action ?? 'navigate'
-    return `Browser ${action}: ${input.url ?? '...'}`
+    return `浏览器 ${action}: ${input.url ?? '...'}`
   },
 
   mapToolResultToToolResultBlockParam(
@@ -88,7 +88,7 @@ Use this for:
     const action = input.action ?? 'navigate'
 
     if (action === 'navigate' || action === 'screenshot') {
-      // Fetch the page content via HTTP
+      // 通过 HTTP 获取页面内容
       try {
         const response = await fetch(input.url, {
           headers: {
@@ -105,18 +105,18 @@ Use this for:
             data: {
               title: `HTTP ${response.status}`,
               url: input.url,
-              content: `Error: ${response.status} ${response.statusText}`,
+              content: `错误：${response.status} ${response.statusText}`,
             },
           }
         }
 
         const html = await response.text()
 
-        // Extract title
+        // 提取标题
         const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i)
         const title = titleMatch?.[1]?.trim() ?? ''
 
-        // Extract text content (strip HTML tags, scripts, styles)
+        // 提取文本内容（剥离 HTML 标签、脚本、样式）
         let textContent = html
           .replace(/<script[\s\S]*?<\/script>/gi, '')
           .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -124,7 +124,7 @@ Use this for:
           .replace(/\s+/g, ' ')
           .trim()
 
-        // Truncate to reasonable size
+        // 截断到合理大小
         if (textContent.length > 50_000) {
           textContent = textContent.slice(0, 50_000) + '\n[truncated]'
         }
@@ -134,7 +134,7 @@ Use this for:
             data: {
               title,
               url: response.url,
-              content: `[Text snapshot — visual screenshots require Chrome browser tools]\n\n${textContent}`,
+              content: `[文本快照 — 可视化截图需要 Chrome 浏览器工具]\n\n${textContent}`,
             },
           }
         }
@@ -151,18 +151,18 @@ Use this for:
           data: {
             title: 'Error',
             url: input.url,
-            content: `Failed to fetch: ${err instanceof Error ? err.message : String(err)}`,
+            content: `获取失败：${err instanceof Error ? err.message : String(err)}`,
           },
         }
       }
     }
 
-    // Unreachable — schema only allows navigate/screenshot
+    // 不可达 — schema 仅允许 navigate/screenshot
     return {
       data: {
         title: '',
         url: input.url,
-        content: `Unknown action "${action}".`,
+        content: `未知操作 "${action}"。`,
       },
     }
   },

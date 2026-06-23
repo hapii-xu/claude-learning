@@ -3,7 +3,7 @@ import { jsonParse } from 'src/utils/slowOperations.js';
 import type { Output } from './TeamDeleteTool.js';
 
 export function renderToolUseMessage(_input: Record<string, unknown>): React.ReactNode {
-  return 'cleanup team: current';
+  return '清理团队：当前';
 }
 
 export function renderToolResultMessage(
@@ -13,7 +13,7 @@ export function renderToolResultMessage(
 ): React.ReactNode {
   const result: Output = typeof content === 'string' ? jsonParse(content) : content;
 
-  // Suppress cleanup result - the batched shutdown message covers this
+  // 抑制清理结果 - 批量关闭消息已覆盖此内容
   if ('success' in result && 'team_name' in result && 'message' in result) {
     return null;
   }

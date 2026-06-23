@@ -13,12 +13,12 @@ const inputSchema = lazySchema(() =>
     description: z
       .string()
       .describe(
-        'Description of what you want to do. Be specific — e.g. "deploy a Next.js app to Cloudflare Workers" rather than just "deploy".',
+        '描述你想要做什么。要具体 — 例如「将 Next.js 应用部署到 Cloudflare Workers」而不是仅说「部署」。',
       ),
     limit: z
       .number()
       .optional()
-      .describe('Maximum number of results to return (default: 5)'),
+      .describe('返回的最大结果数（默认：5）'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>

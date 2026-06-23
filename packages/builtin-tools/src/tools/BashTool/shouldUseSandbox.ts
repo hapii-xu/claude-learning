@@ -15,25 +15,25 @@ type SandboxInput = {
   dangerouslyDisableSandbox?: boolean
 }
 
-// NOTE: excludedCommands is a user-facing convenience feature, not a security boundary.
-// It is not a security bug to be able to bypass excludedCommands — the sandbox permission
-// system (which prompts users) is the actual security control.
+// 注意：excludedCommands 是面向用户的便利特性，并非安全边界。
+// 能够绕过 excludedCommands 并不属于安全漏洞——真正的安全控制是
+// 沙箱权限系统（会向用户弹出批准提示）。
 function containsExcludedCommand(command: string): boolean {
-  // Check dynamic config for disabled commands and substrings (only for ants)
+  // 检查动态配置中禁用的命令与子串（仅限 ant 用户）
   if (process.env.USER_TYPE === 'ant') {
     const disabledCommands = getFeatureValue_CACHED_MAY_BE_STALE<{
       commands: string[]
       substrings: string[]
     }>('tengu_sandbox_disabled_commands', { commands: [], substrings: [] })
 
-    // Check if command contains any disabled substrings
+    // 检查命令是否包含任意被禁用的子串
     for (const substring of disabledCommands.substrings) {
       if (command.includes(substring)) {
         return true
       }
     }
 
-    // Check if command starts with any disabled commands
+    // 检查命令是否以任意被禁用的命令开头
     try {
       const commandParts = splitCommand_DEPRECATED(command)
       for (const part of commandParts) {
@@ -43,13 +43,13 @@ function containsExcludedCommand(command: string): boolean {
         }
       }
     } catch {
-      // If we can't parse the command (e.g., malformed bash syntax),
-      // treat it as not excluded to allow other validation checks to handle it
-      // This prevents crashes when rendering tool use messages
+      // 若无法解析该命令（例如 bash 语法格式错误），
+      // 则视为未排除，以便交由其他校验检查处理，
+      // 这样可避免渲染 tool use 消息时崩溃
     }
   }
 
-  // Check user-configured excluded commands from settings
+  // 检查 settings 中用户配置的排除命令
   const settings = getSettings_DEPRECATED()
   const userExcludedCommands = settings.sandbox?.excludedCommands ?? []
 
@@ -57,10 +57,9 @@ function containsExcludedCommand(command: string): boolean {
     return false
   }
 
-  // Split compound commands (e.g. "docker ps && curl evil.com") into individual
-  // subcommands and check each one against excluded patterns. This prevents a
-  // compound command from escaping the sandbox just because its first subcommand
-  // matches an excluded pattern.
+  // 将复合命令（例如 "docker ps && curl evil.com"）拆分为单条
+  // 子命令，并逐条与排除模式匹配。这样可避免复合命令仅因其第一条
+  // 子命令命中排除模式而整体逃出沙箱。
   let subcommands: string[]
   try {
     subcommands = splitCommand_DEPRECATED(command)
@@ -70,15 +69,15 @@ function containsExcludedCommand(command: string): boolean {
 
   for (const subcommand of subcommands) {
     const trimmed = subcommand.trim()
-    // Also try matching with env var prefixes and wrapper commands stripped, so
-    // that `FOO=bar bazel ...` and `timeout 30 bazel ...` match `bazel:*`. Not a
-    // security boundary (see NOTE at top); the &&-split above already lets
-    // `export FOO=bar && bazel ...` match. BINARY_HIJACK_VARS kept as a heuristic.
+    // 同时尝试剥离环境变量前缀和包装命令后再匹配，
+    // 这样 `FOO=bar bazel ...` 与 `timeout 30 bazel ...` 也能命中 `bazel:*`。
+    // 这并非安全边界（见上方 NOTE）；上方的 &&-split 已经能让
+    // `export FOO=bar && bazel ...` 匹配。保留 BINARY_HIJACK_VARS 作为启发式判断。
     //
-    // We iteratively apply both stripping operations until no new candidates are
-    // produced (fixed-point), matching the approach in filterRulesByContentsMatchingInput.
-    // This handles interleaved patterns like `timeout 300 FOO=bar bazel run`
-    // where single-pass composition would fail.
+    // 我们迭代地同时应用两种剥离操作，直到不再产生新候选为止（不动点），
+    // 与 filterRulesByContentsMatchingInput 的做法一致。
+    // 这可以处理 `timeout 300 FOO=bar bazel run` 这种交错模式，
+    // 而单次组合剥离无法处理。
     const candidates = [trimmed]
     const seen = new Set(candidates)
     let startIdx = 0
@@ -132,7 +131,7 @@ export function shouldUseSandbox(input: Partial<SandboxInput>): boolean {
     return false
   }
 
-  // Don't sandbox if explicitly overridden AND unsandboxed commands are allowed by policy
+  // 若显式禁用沙箱且策略允许非沙箱命令，则不放入沙箱
   if (
     input.dangerouslyDisableSandbox &&
     SandboxManager.areUnsandboxedCommandsAllowed()
@@ -144,7 +143,7 @@ export function shouldUseSandbox(input: Partial<SandboxInput>): boolean {
     return false
   }
 
-  // Don't sandbox if the command contains user-configured excluded commands
+  // 若命令包含用户配置的排除命令，则不放入沙箱
   if (containsExcludedCommand(input.command)) {
     return false
   }

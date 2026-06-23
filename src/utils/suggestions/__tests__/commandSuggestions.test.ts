@@ -11,7 +11,7 @@ import {
   isCommandInput,
 } from '../commandSuggestions.js'
 
-// ─── Helpers ──────────────────────────────────────────────────────────
+// ─── 辅助函数 ──────────────────────────────────────────────────────────
 
 function makeCommand(name: string, opts?: Partial<Command>): Command {
   return {
@@ -37,15 +37,15 @@ function makePromptCommand(name: string, opts?: Partial<Command>): Command {
 // ─── isCommandInput ───────────────────────────────────────────────────
 
 describe('isCommandInput', () => {
-  test('returns true for slash-prefixed input', () => {
+  test('斜杠前缀输入返回 true', () => {
     expect(isCommandInput('/commit')).toBe(true)
   })
 
-  test('returns false for non-slash input', () => {
+  test('非斜杠输入返回 false', () => {
     expect(isCommandInput('commit')).toBe(false)
   })
 
-  test('returns true for just a slash', () => {
+  test('仅一个斜杠返回 true', () => {
     expect(isCommandInput('/')).toBe(true)
   })
 })
@@ -53,19 +53,19 @@ describe('isCommandInput', () => {
 // ─── hasCommandArgs ───────────────────────────────────────────────────
 
 describe('hasCommandArgs', () => {
-  test('returns false when no space in input', () => {
+  test('输入中无空格时返回 false', () => {
     expect(hasCommandArgs('/commit')).toBe(false)
   })
 
-  test('returns false when only trailing space', () => {
+  test('仅有尾部空格时返回 false', () => {
     expect(hasCommandArgs('/commit ')).toBe(false)
   })
 
-  test('returns true when there are real arguments', () => {
+  test('存在实际参数时返回 true', () => {
     expect(hasCommandArgs('/commit msg')).toBe(true)
   })
 
-  test('returns false for non-command input', () => {
+  test('非命令输入时返回 false', () => {
     expect(hasCommandArgs('commit msg')).toBe(false)
   })
 })
@@ -73,7 +73,7 @@ describe('hasCommandArgs', () => {
 // ─── formatCommand ────────────────────────────────────────────────────
 
 describe('formatCommand', () => {
-  test('formats command with leading slash and trailing space', () => {
+  test('格式化命令时添加前导斜杠和尾部空格', () => {
     expect(formatCommand('commit')).toBe('/commit ')
   })
 })
@@ -81,11 +81,11 @@ describe('formatCommand', () => {
 // ─── findMidInputSlashCommand ─────────────────────────────────────────
 
 describe('findMidInputSlashCommand', () => {
-  test('returns null when input starts with slash', () => {
+  test('输入以斜杠开头时返回 null', () => {
     expect(findMidInputSlashCommand('/commit some args', 7)).toBeNull()
   })
 
-  test('finds slash command after whitespace', () => {
+  test('在空白后找到斜杠命令', () => {
     const result = findMidInputSlashCommand('help me /com', 12)
     expect(result).not.toBeNull()
     expect(result!.token).toBe('/com')
@@ -93,11 +93,11 @@ describe('findMidInputSlashCommand', () => {
     expect(result!.partialCommand).toBe('com')
   })
 
-  test('returns null when no whitespace before slash', () => {
+  test('斜杠前无空白时返回 null', () => {
     expect(findMidInputSlashCommand('help/com', 8)).toBeNull()
   })
 
-  test('returns null when cursor is past the command with trailing text', () => {
+  test('光标位于命令之后且存在后续文本时返回 null', () => {
     expect(findMidInputSlashCommand('help /commit msg', 15)).toBeNull()
   })
 })
@@ -112,34 +112,34 @@ describe('generateCommandSuggestions', () => {
     makePromptCommand('sdd-archive'),
   ]
 
-  test('returns empty for non-slash input', () => {
+  test('非斜杠输入返回空结果', () => {
     expect(generateCommandSuggestions('commit', commands)).toHaveLength(0)
   })
 
-  test('returns all commands for bare slash', () => {
+  test('仅输入斜杠时返回所有命令', () => {
     const results = generateCommandSuggestions('/', commands)
     expect(results.length).toBeGreaterThan(0)
   })
 
-  test('filters by partial command name', () => {
+  test('按部分命令名过滤', () => {
     const results = generateCommandSuggestions('/com', commands)
     const names = results.map(r => r.displayText)
     expect(names.some(n => n.includes('commit'))).toBe(true)
     expect(names.some(n => n.includes('compact'))).toBe(true)
   })
 
-  test('returns empty when command has arguments', () => {
+  test('命令带参数时返回空结果', () => {
     expect(generateCommandSuggestions('/commit msg', commands)).toHaveLength(0)
   })
 
-  // ★ Core regression test: cursor-aware commandInput should not be
-  // affected by text after the cursor. Previously, passing the full input
-  // "/sdd-existing text" would fail because hasCommandArgs detected the
-  // space from the post-cursor text. The fix slices value to cursorOffset
-  // before calling generateCommandSuggestions.
-  test('suggests commands when called with cursor-sliced input (post-cursor text ignored)', () => {
-    // Simulates: input="/sdd-existing text", cursor at position 5
-    // The caller now passes input.substring(0, cursorOffset) = "/sdd-"
+  // ★ 核心回归测试：感知光标的 commandInput 不应受
+  // 光标后方文本的影响。之前传递完整输入
+  // "/sdd-existing text" 会失败，因为 hasCommandArgs 检测到了
+  // 光标后方文本中的空格。修复方案是在调用
+  // generateCommandSuggestions 之前将 value 截断至 cursorOffset。
+  test('使用光标截断输入调用时能正确建议命令（忽略光标后方文本）', () => {
+    // 模拟场景：input="/sdd-existing text"，光标位于位置 5
+    // 调用方现在传入 input.substring(0, cursorOffset) = "/sdd-"
     const cursorOffset = 5
     const fullInput = '/sdd-existing text'
     const commandInput = fullInput.substring(0, cursorOffset)
@@ -151,8 +151,8 @@ describe('generateCommandSuggestions', () => {
     expect(names.some(n => n.includes('sdd-archive'))).toBe(true)
   })
 
-  test('shows suggestions for bare slash even with text after cursor', () => {
-    // input="/hello world", cursor at position 1 → commandInput="/"
+  test('仅输入斜杠时即使光标后方有文本也显示建议', () => {
+    // input="/hello world"，光标位于位置 1 → commandInput="/"
     const commandInput = '/'.substring(0, 1)
     const results = generateCommandSuggestions(commandInput, commands)
     expect(results.length).toBeGreaterThan(0)
@@ -168,36 +168,36 @@ describe('getBestCommandMatch', () => {
     makePromptCommand('sdd-global-read'),
   ]
 
-  test('returns matching suffix for prefix match', () => {
+  test('前缀匹配时返回匹配后缀', () => {
     const result = getBestCommandMatch('com', commands)
     expect(result).not.toBeNull()
     expect(result!.suffix.length).toBeGreaterThan(0)
   })
 
-  test('returns null for no match', () => {
+  test('无匹配时返回 null', () => {
     expect(getBestCommandMatch('xyz', commands)).toBeNull()
   })
 
-  test('returns null for empty query', () => {
+  test('查询为空时返回 null', () => {
     expect(getBestCommandMatch('', commands)).toBeNull()
   })
 
-  // ★ Verifies that slicing to cursor position lets the fuzzy matching work
-  test('finds match when partial includes dash separator', () => {
+  // ★ 验证截断到光标位置能让模糊匹配正常工作
+  test('部分匹配包含连字符分隔符时能找到匹配', () => {
     const result = getBestCommandMatch('sdd', commands)
     expect(result).not.toBeNull()
     expect(result!.fullCommand).toBe('sdd-global-read')
   })
 })
 
-// ─── applyCommandSuggestion (Enter behavior) ──────────────────────────
+// ─── applyCommandSuggestion（回车行为）──────────────────────────────────
 
 describe('applyCommandSuggestion', () => {
   const commands: Command[] = [
     makeCommand('commit', { argumentHint: '[message]' }),
   ]
 
-  test('replaces entire input with formatted command', () => {
+  test('用格式化后的命令替换整个输入', () => {
     let newInput = ''
     let newCursor = -1
     const suggestion: SuggestionItem = {
@@ -224,7 +224,7 @@ describe('applyCommandSuggestion', () => {
     expect(newCursor).toBe('/commit '.length)
   })
 
-  test('executes command when shouldExecute is true', () => {
+  test('shouldExecute 为 true 时执行命令', () => {
     let submitted = ''
     const suggestion: SuggestionItem = {
       id: 'commit:local',
@@ -248,14 +248,13 @@ describe('applyCommandSuggestion', () => {
   })
 })
 
-// ─── Tab completion splice behavior ───────────────────────────────────
-// Tests the splice-at-cursor logic that was added to handle Tab completion
-// preserving text after the cursor. This mirrors the inline logic in
-// handleTab (useTypeahead.tsx) where applyCommandSuggestion is bypassed
-// in favor of direct splice.
+// ─── Tab 补全拼接行为 ─────────────────────────────────────────────────
+// 测试为处理 Tab 补全时保留光标后方文本而新增的光标位置拼接逻辑。
+// 这对应 handleTab（useTypeahead.tsx）中的内联逻辑，
+// 其中绕过了 applyCommandSuggestion，改用直接拼接。
 
-describe('Tab completion splice behavior', () => {
-  // Simulates the handleTab splice logic:
+describe('Tab 补全拼接行为', () => {
+  // 模拟 handleTab 拼接逻辑：
   //   const replacement = `/${commandName} `
   //   onInputChange(replacement + input.slice(cursorOffset))
   //   setCursorOffset(replacement.length)
@@ -272,11 +271,11 @@ describe('Tab completion splice behavior', () => {
     }
   }
 
-  test('preserves text after cursor when completing mid-input command', () => {
-    // User has "existing text here", types "/sdd-" at beginning, then
-    // presses Tab to accept "sdd-global-read" suggestion
+  test('在输入中间补全命令时保留光标后方文本', () => {
+    // 用户输入 "existing text here"，在开头输入 "/sdd-"，然后
+    // 按 Tab 接受 "sdd-global-read" 建议
     const input = '/sdd-existing text here'
-    const cursorOffset = 5 // after "/sdd-"
+    const cursorOffset = 5 // 在 "/sdd-" 之后
 
     const result = simulateTabCompletion('sdd-global-read', input, cursorOffset)
 
@@ -284,8 +283,8 @@ describe('Tab completion splice behavior', () => {
     expect(result.newCursorOffset).toBe('/sdd-global-read '.length)
   })
 
-  test('works normally when cursor is at end of input', () => {
-    // Standard case: cursor at end, no text after cursor
+  test('光标位于输入末尾时正常工作', () => {
+    // 标准场景：光标在末尾，光标后方无文本
     const input = '/com'
     const cursorOffset = 4
 
@@ -295,7 +294,7 @@ describe('Tab completion splice behavior', () => {
     expect(result.newCursorOffset).toBe('/commit '.length)
   })
 
-  test('preserves single word after cursor', () => {
+  test('保留光标后方的单个词', () => {
     const input = '/comworld'
     const cursorOffset = 4
 
@@ -305,7 +304,7 @@ describe('Tab completion splice behavior', () => {
     expect(result.newCursorOffset).toBe('/commit '.length)
   })
 
-  test('preserves multiline text after cursor', () => {
+  test('保留光标后方的多行文本', () => {
     const input = '/comline1\nline2'
     const cursorOffset = 4
 
@@ -315,7 +314,7 @@ describe('Tab completion splice behavior', () => {
     expect(result.newCursorOffset).toBe('/commit '.length)
   })
 
-  test('handles empty text after cursor identically to end-of-input', () => {
+  test('光标后方无文本时与末尾行为一致', () => {
     const input = '/commit'
     const endResult = simulateTabCompletion('commit', input, 7)
 
@@ -323,12 +322,11 @@ describe('Tab completion splice behavior', () => {
   })
 })
 
-// ─── hasCommandWithArguments with cursor-sliced input ─────────────────
-// Tests the helper function used in updateSuggestions to determine if
-// command has arguments. After the fix, only the text before cursor is
-// passed, so post-cursor text doesn't affect the check.
+// ─── hasCommandWithArguments 使用光标截断输入 ─────────────────────────
+// 测试 updateSuggestions 中用于判断命令是否带参数的辅助函数。
+// 修复后仅传递光标前的文本，因此光标后方文本不会影响判断。
 
-describe('hasCommandWithArguments (cursor-aware usage)', () => {
+describe('hasCommandWithArguments（感知光标的用法）', () => {
   function hasCommandWithArguments(
     isAtEndWithWhitespace: boolean,
     value: string,
@@ -336,38 +334,38 @@ describe('hasCommandWithArguments (cursor-aware usage)', () => {
     return !isAtEndWithWhitespace && value.includes(' ') && !value.endsWith(' ')
   }
 
-  test('returns false when cursor-sliced input has no space', () => {
-    // input="/sdd-existing text", cursorOffset=5 → commandInput="/sdd-"
+  test('光标截断输入无空格时返回 false', () => {
+    // input="/sdd-existing text"，cursorOffset=5 → commandInput="/sdd-"
     const commandInput = '/sdd-'
     expect(hasCommandWithArguments(false, commandInput)).toBe(false)
   })
 
-  test('returns true when cursor-sliced input has real arguments', () => {
-    // input="/commit msg rest", cursorOffset=11 → commandInput="/commit msg"
+  test('光标截断输入有实际参数时返回 true', () => {
+    // input="/commit msg rest"，cursorOffset=11 → commandInput="/commit msg"
     const commandInput = '/commit msg'
     expect(hasCommandWithArguments(false, commandInput)).toBe(true)
   })
 
-  test('returns false for trailing space (ready for arguments)', () => {
+  test('尾部空格（等待输入参数）时返回 false', () => {
     const commandInput = '/commit '
     expect(hasCommandWithArguments(false, commandInput)).toBe(false)
   })
 
-  test('returns false when cursor is at end with trailing space', () => {
-    // isAtEndWithWhitespace=true → always false
+  test('光标在末尾且有尾部空格时返回 false', () => {
+    // isAtEndWithWhitespace=true → 始终返回 false
     expect(hasCommandWithArguments(true, '/commit ')).toBe(false)
   })
 
-  test('does not match space from post-cursor text', () => {
-    // Before fix: full input "/sdd-existing text" → hasCommandWithArguments = true
-    // After fix: sliced input "/sdd-" → hasCommandWithArguments = false
+  test('不会匹配光标后方文本中的空格', () => {
+    // 修复前：完整输入 "/sdd-existing text" → hasCommandWithArguments = true
+    // 修复后：截断输入 "/sdd-" → hasCommandWithArguments = false
     const fullInput = '/sdd-existing text'
     const cursorOffset = 5
     const commandInput = fullInput.substring(0, cursorOffset)
 
     expect(commandInput).toBe('/sdd-')
     expect(hasCommandWithArguments(false, commandInput)).toBe(false)
-    // Verify the full input WOULD have been true (proving the bug existed)
+    // 验证完整输入本来会返回 true（证明 bug 确实存在）
     expect(hasCommandWithArguments(false, fullInput)).toBe(true)
   })
 })

@@ -7,12 +7,12 @@ const SUBSCRIBE_PR_TOOL_NAME = 'SubscribePR'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    repo: z.string().describe('Repository in owner/repo format.'),
-    pr_number: z.number().describe('Pull request number to subscribe to.'),
+    repo: z.string().describe('仓库，格式为 owner/repo。'),
+    pr_number: z.number().describe('要订阅的 Pull Request 编号。'),
     events: z
       .array(z.enum(['comment', 'review', 'ci', 'merge', 'close']))
       .optional()
-      .describe('Event types to subscribe to. Defaults to all events.'),
+      .describe('要订阅的事件类型。默认订阅全部事件。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -31,12 +31,12 @@ export const SubscribePRTool = buildTool({
   },
 
   async description() {
-    return 'Subscribe to pull request events via GitHub webhooks'
+    return '通过 GitHub webhook 订阅 pull request 事件'
   },
   async prompt() {
-    return `Subscribe to events on a GitHub pull request. You'll receive notifications when selected events occur (comments, reviews, CI status changes, merge, close).
+    return `订阅 GitHub pull request 上的事件。当所选事件发生时（评论、评审、CI 状态变化、合并、关闭），你将收到通知。
 
-Use this to monitor PRs you've created or are reviewing. Events are delivered as messages you can act on.`
+可用于监控你创建或正在评审的 PR。事件会以可处理的消息形式投递给你。`
   },
 
   isConcurrencySafe() {
@@ -53,7 +53,7 @@ Use this to monitor PRs you've created or are reviewing. Events are delivered as
   renderToolUseMessage(input: Partial<SubscribeInput>) {
     const pr =
       input.repo && input.pr_number ? `${input.repo}#${input.pr_number}` : '...'
-    return `Subscribe PR: ${pr}`
+    return `订阅 PR：${pr}`
   },
 
   mapToolResultToToolResultBlockParam(
@@ -64,19 +64,19 @@ Use this to monitor PRs you've created or are reviewing. Events are delivered as
       tool_use_id: toolUseID,
       type: 'tool_result',
       content: content.subscribed
-        ? `Subscribed to PR events (id: ${content.subscription_id})`
-        : 'Failed to subscribe to PR events.',
+        ? `已订阅 PR 事件（id：${content.subscription_id}）`
+        : '订阅 PR 事件失败。',
     }
   },
 
   async call(_input: SubscribeInput) {
-    // Webhook subscription is managed by the KAIROS GitHub webhook subsystem.
-    // Without the KAIROS runtime, this tool is not available.
+    // webhook 订阅由 KAIROS GitHub webhook 子系统管理。
+    // 没有 KAIROS runtime 时，该工具不可用。
     return {
       data: {
         subscribed: false,
         subscription_id: '',
-        error: 'SubscribePR requires the KAIROS GitHub webhook subsystem.',
+        error: 'SubscribePR 需要 KAIROS GitHub webhook 子系统。',
       },
     }
   },

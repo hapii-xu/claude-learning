@@ -72,49 +72,49 @@ import {
   renderToolUseQueuedMessage,
 } from './UI.js';
 
-// Never use os.EOL for terminal output — \r\n on Windows breaks Ink rendering
+// 终端输出永远不要使用 os.EOL — Windows 上的 \r\n 会破坏 Ink 渲染
 const EOL = '\n';
 
 /**
- * PowerShell search commands (grep equivalents) for collapsible display.
- * Stored as canonical (lowercase) cmdlet names.
+ * 用于可折叠显示的 PowerShell 搜索命令（grep 等价物）。
+ * 以规范（小写）cmdlet 名存储。
  */
 const PS_SEARCH_COMMANDS = new Set([
-  'select-string', // grep equivalent
-  'get-childitem', // find equivalent (with -Recurse)
-  'findstr', // native Windows search
-  'where.exe', // native Windows which
+  'select-string', // grep 等价物
+  'get-childitem', // find 等价物（带 -Recurse）
+  'findstr', // Windows 原生搜索
+  'where.exe', // Windows 原生 which
 ]);
 
 /**
- * PowerShell read/view commands for collapsible display.
- * Stored as canonical (lowercase) cmdlet names.
+ * 用于可折叠显示的 PowerShell 读取/查看命令。
+ * 以规范（小写）cmdlet 名存储。
  */
 const PS_READ_COMMANDS = new Set([
-  'get-content', // cat equivalent
-  'get-item', // file info
-  'test-path', // test -e equivalent
-  'resolve-path', // realpath equivalent
-  'get-process', // ps equivalent
-  'get-service', // system info
-  'get-childitem', // ls/dir equivalent (also search when recursive)
-  'get-location', // pwd equivalent
-  'get-filehash', // checksum
-  'get-acl', // permissions info
-  'format-hex', // hexdump equivalent
+  'get-content', // cat 等价物
+  'get-item', // 文件信息
+  'test-path', // test -e 等价物
+  'resolve-path', // realpath 等价物
+  'get-process', // ps 等价物
+  'get-service', // 系统信息
+  'get-childitem', // ls/dir 等价物（递归时也是搜索）
+  'get-location', // pwd 等价物
+  'get-filehash', // 校验和
+  'get-acl', // 权限信息
+  'format-hex', // hexdump 等价物
 ]);
 
 /**
- * PowerShell semantic-neutral commands that don't change the search/read nature.
+ * 不改变搜索/读取性质的 PowerShell 语义中性命令。
  */
 const PS_SEMANTIC_NEUTRAL_COMMANDS = new Set([
-  'write-output', // echo equivalent
+  'write-output', // echo 等价物
   'write-host',
 ]);
 
 /**
- * Checks if a PowerShell command is a search or read operation.
- * Used to determine if the command should be collapsed in the UI.
+ * 检查 PowerShell 命令是否是搜索或读取操作。
+ * 用于确定命令是否应在 UI 中折叠。
  */
 function isSearchOrReadPowerShellCommand(command: string): {
   isSearch: boolean;
@@ -125,8 +125,8 @@ function isSearchOrReadPowerShellCommand(command: string): {
     return { isSearch: false, isRead: false };
   }
 
-  // Simple split on statement separators and pipe operators
-  // This is a sync function so we use a lightweight approach
+  // 简单按语句分隔符和管道操作符分割
+  // 这是同步函数，因此我们使用轻量级方法
   const parts = trimmed.split(/\s*[;|]\s*/).filter(Boolean);
 
   if (parts.length === 0) {
@@ -169,24 +169,24 @@ function isSearchOrReadPowerShellCommand(command: string): {
   return { isSearch: hasSearch, isRead: hasRead };
 }
 
-// Progress display constants
+// 进度显示常量
 const PROGRESS_THRESHOLD_MS = 2000;
 const PROGRESS_INTERVAL_MS = 1000;
-// In assistant mode, blocking commands auto-background after this many ms in the main agent
+// 在 assistant 模式下，主 agent 中阻塞命令在此毫秒数后自动后台化
 const ASSISTANT_BLOCKING_BUDGET_MS = 15_000;
 
-// Commands that should not be auto-backgrounded (canonical lowercase).
-// 'sleep' is a PS built-in alias for Start-Sleep but not in COMMON_ALIASES,
-// so list both forms.
+// 不应自动后台化的命令（规范小写）。
+// 'sleep' 是 Start-Sleep 的 PS 内置别名，但不在 COMMON_ALIASES 中，
+// 因此同时列出两种形式。
 const DISALLOWED_AUTO_BACKGROUND_COMMANDS = [
-  'start-sleep', // Start-Sleep should run in foreground unless explicitly backgrounded
+  'start-sleep', // Start-Sleep 应在前台运行，除非显式后台化
   'sleep',
 ];
 
 /**
- * Checks if a command is allowed to be automatically backgrounded
- * @param command The command to check
- * @returns false for commands that should not be auto-backgrounded (like Start-Sleep)
+ * 检查命令是否允许自动后台化
+ * @param command 要检查的命令
+ * @returns 对不应自动后台化的命令（如 Start-Sleep）返回 false
  */
 function isAutobackgroundingAllowed(command: string): boolean {
   const firstWord = command.trim().split(/\s+/)[0];
@@ -196,50 +196,49 @@ function isAutobackgroundingAllowed(command: string): boolean {
 }
 
 /**
- * PS-flavored port of BashTool's detectBlockedSleepPattern.
- * Catches `Start-Sleep N`, `Start-Sleep -Seconds N`, `sleep N` (built-in alias)
- * as the first statement. Does NOT block `Start-Sleep -Milliseconds` (sub-second
- * pacing is fine) or float seconds (legit rate limiting).
+ * BashTool 的 detectBlockedSleepPattern 的 PS 风格移植。
+ * 捕获 `Start-Sleep N`、`Start-Sleep -Seconds N`、`sleep N`（内置别名）
+ * 作为第一个语句。不阻止 `Start-Sleep -Milliseconds`（亚秒级
+ * 步进没问题）或浮点秒数（合法的速率限制）。
  */
 export function detectBlockedSleepPattern(command: string): string | null {
-  // First statement only — split on PS statement separators: `;`, `|`,
-  // `&`/`&&`/`||` (pwsh 7+), and newline (PS's primary separator). This is
-  // intentionally shallow — sleep inside script blocks, subshells, or later
-  // pipeline stages is fine. Matches BashTool's splitCommandWithOperators
-  // intent (src/utils/bash/commands.ts) without a full PS parser.
+  // 仅第一个语句 — 按 PS 语句分隔符分割：`;`、`|`、
+  // `&`/`&&`/`||`（pwsh 7+）和换行（PS 的主要分隔符）。这是
+  // 故意浅的 — 脚本块、子 shell 或后续管道阶段内的 sleep 没问题。匹配 BashTool 的 splitCommandWithOperators
+  // 意图（src/utils/bash/commands.ts），无需完整 PS 解析器。
   const first =
     command
       .trim()
       .split(/[;|&\r\n]/)[0]
       ?.trim() ?? '';
-  // Match: Start-Sleep N, Start-Sleep -Seconds N, Start-Sleep -s N, sleep N
-  // (case-insensitive; -Seconds can be abbreviated to -s per PS convention)
+  // 匹配：Start-Sleep N、Start-Sleep -Seconds N、Start-Sleep -s N、sleep N
+  //（不区分大小写；-Seconds 按 PS 约定可缩写为 -s）
   const m = /^(?:start-sleep|sleep)(?:\s+-s(?:econds)?)?\s+(\d+)\s*$/i.exec(first);
   if (!m) return null;
   const secs = parseInt(m[1]!, 10);
-  if (secs < 2) return null; // sub-2s sleeps are fine (rate limiting, pacing)
+  if (secs < 2) return null; // 小于 2s 的 sleep 没问题（速率限制、步进）
 
   const rest = command
     .trim()
     .slice(first.length)
     .replace(/^[\s;|&]+/, '');
-  return rest ? `Start-Sleep ${secs} followed by: ${rest}` : `standalone Start-Sleep ${secs}`;
+  return rest ? `Start-Sleep ${secs} 后跟：${rest}` : `独立 Start-Sleep ${secs}`;
 }
 
 /**
- * On Windows native, sandbox is unavailable (bwrap/sandbox-exec are
- * POSIX-only). If enterprise policy has sandbox.enabled AND forbids
- * unsandboxed commands, PowerShell cannot comply — refuse execution
- * rather than silently bypass the policy. On Linux/macOS/WSL2, pwsh
- * runs as a native binary under the sandbox same as bash, so this
- * gate does not apply.
+ * 在 Windows 原生上，沙箱不可用（bwrap/sandbox-exec 是
+ * 仅 POSIX）。如果企业策略有 sandbox.enabled 且禁止
+// 未沙箱化命令，PowerShell 无法遵守 — 拒绝执行
+// 而非静默绕过策略。在 Linux/macOS/WSL2 上，pwsh
+// 作为原生二进制在沙箱下运行，与 bash 相同，因此此
+// 门不适用。
  *
- * Checked in BOTH validateInput (clean tool-runner error) and call()
- * (covers direct callers like promptShellExecution.ts that skip
- * validateInput). The call() guard is the load-bearing one.
+ * 在 validateInput（干净的工具运行器错误）和 call()
+//（覆盖跳过 validateInput 的直接调用者如 promptShellExecution.ts）中都检查。
+// call() 防护是承重的。
  */
 const WINDOWS_SANDBOX_POLICY_REFUSAL =
-  'Enterprise policy requires sandboxing, but sandboxing is not available on native Windows. Shell command execution is blocked on this platform by policy.';
+  '企业策略要求沙箱化，但原生 Windows 上不可用沙箱化。此平台上的 shell 命令执行被策略阻止。';
 function isWindowsSandboxPolicyViolation(): boolean {
   return (
     getPlatform() === 'windows' &&
@@ -248,61 +247,50 @@ function isWindowsSandboxPolicyViolation(): boolean {
   );
 }
 
-// Check if background tasks are disabled at module load time
+// 在模块加载时检查后台任务是否被禁用
 const isBackgroundTasksDisabled =
   // eslint-disable-next-line custom-rules/no-process-env-top-level -- Intentional: schema must be defined at module load
   isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_BACKGROUND_TASKS);
 
 const fullInputSchema = lazySchema(() =>
   z.strictObject({
-    command: z.string().describe('The PowerShell command to execute'),
-    timeout: semanticNumber(z.number().optional()).describe(
-      `Optional timeout in milliseconds (max ${getMaxTimeoutMs()})`,
-    ),
-    description: z
-      .string()
-      .optional()
-      .describe('Clear, concise description of what this command does in active voice.'),
+    command: z.string().describe('要执行的 PowerShell 命令'),
+    timeout: semanticNumber(z.number().optional()).describe(`可选超时（毫秒，最大 ${getMaxTimeoutMs()}）`),
+    description: z.string().optional().describe('清晰、简洁的描述，使用主动语态说明此命令的作用。'),
     run_in_background: semanticBoolean(z.boolean().optional()).describe(
-      `Set to true to run this command in the background. Use Read to read the output later.`,
+      `设置为 true 以在后台运行此命令。稍后使用 Read 读取输出。`,
     ),
     dangerouslyDisableSandbox: semanticBoolean(z.boolean().optional()).describe(
-      'Set this to true to dangerously override sandbox mode and run commands without sandboxing.',
+      '设置为 true 以危险地覆盖沙箱模式并在无沙箱的情况下运行命令。',
     ),
   }),
 );
 
-// Conditionally remove run_in_background from schema when background tasks are disabled
+// 当后台任务被禁用时，从 schema 中条件性移除 run_in_background
 const inputSchema = lazySchema(() =>
   isBackgroundTasksDisabled ? fullInputSchema().omit({ run_in_background: true }) : fullInputSchema(),
 );
 type InputSchema = ReturnType<typeof inputSchema>;
 
-// Use fullInputSchema for the type to always include run_in_background
-// (even when it's omitted from the schema, the code needs to handle it)
+// 为类型使用 fullInputSchema，以始终包含 run_in_background
+//（即使它从 schema 中省略，代码也需要处理它）
 export type PowerShellToolInput = z.infer<ReturnType<typeof fullInputSchema>>;
 
 const outputSchema = lazySchema(() =>
   z.object({
-    stdout: z.string().describe('The standard output of the command'),
-    stderr: z.string().describe('The standard error output of the command'),
-    interrupted: z.boolean().describe('Whether the command was interrupted'),
-    returnCodeInterpretation: z
-      .string()
-      .optional()
-      .describe('Semantic interpretation for non-error exit codes with special meaning'),
-    isImage: z.boolean().optional().describe('Flag to indicate if stdout contains image data'),
-    persistedOutputPath: z.string().optional().describe('Path to persisted full output when too large for inline'),
-    persistedOutputSize: z.number().optional().describe('Total output size in bytes when persisted'),
-    backgroundTaskId: z.string().optional().describe('ID of the background task if command is running in background'),
-    backgroundedByUser: z
-      .boolean()
-      .optional()
-      .describe('True if the user manually backgrounded the command with Ctrl+B'),
+    stdout: z.string().describe('命令的标准输出'),
+    stderr: z.string().describe('命令的标准错误输出'),
+    interrupted: z.boolean().describe('命令是否被中断'),
+    returnCodeInterpretation: z.string().optional().describe('对有特殊含义的非错误退出码的语义解释'),
+    isImage: z.boolean().optional().describe('标志，指示 stdout 是否包含图像数据'),
+    persistedOutputPath: z.string().optional().describe('当输出过大无法内联显示时，持久化完整输出的路径'),
+    persistedOutputSize: z.number().optional().describe('持久化时的总输出大小（字节）'),
+    backgroundTaskId: z.string().optional().describe('如果命令在后台运行，后台任务的 ID'),
+    backgroundedByUser: z.boolean().optional().describe('如果用户使用 Ctrl+B 手动将命令后台化，则为 true'),
     assistantAutoBackgrounded: z
       .boolean()
       .optional()
-      .describe('True if the command was auto-backgrounded by the assistant-mode blocking budget'),
+      .describe('如果命令被 assistant 模式阻塞预算自动后台化，则为 true'),
   }),
 );
 type OutputSchema = ReturnType<typeof outputSchema>;
@@ -352,12 +340,12 @@ function getCommandTypeForLogging(command: string): AnalyticsMetadata_I_VERIFIED
 
 export const PowerShellTool = buildTool({
   name: POWERSHELL_TOOL_NAME,
-  searchHint: 'execute Windows PowerShell commands',
+  searchHint: '执行 Windows PowerShell 命令',
   maxResultSizeChars: 30_000,
   strict: true,
 
   async description({ description }: Partial<PowerShellToolInput>): Promise<string> {
-    return description || 'Run PowerShell command';
+    return description || '运行 PowerShell 命令';
   },
 
   async prompt(): Promise<string> {
@@ -379,20 +367,20 @@ export const PowerShellTool = buildTool({
   },
 
   isReadOnly(input: PowerShellToolInput): boolean {
-    // Check sync security heuristics before declaring read-only.
-    // The full AST parse is async and unavailable here, so we use
-    // regex-based detection of subexpressions, splatting, member
-    // invocations, and assignments — matching BashTool's pattern of
-    // checking security concerns before cmdlet allowlist evaluation.
+    // 在声明只读之前检查同步安全启发式。
+    // 完整 AST 解析是异步的，此处不可用，因此我们使用
+    // 基于正则的子表达式、splatting、成员
+    // 调用和赋值检测 — 匹配 BashTool 在 cmdlet 白名单评估之前检查
+    // 安全问题的模式。
     if (hasSyncSecurityConcerns(input.command)) {
       return false;
     }
-    // NOTE: This calls isReadOnlyCommand without the parsed AST. Without the
-    // AST, isReadOnlyCommand cannot split pipelines/statements and will return
-    // false for anything but the simplest single-token commands. This is a
-    // known limitation of the sync Tool.isReadOnly() interface — the real
-    // read-only auto-allow happens async in powershellToolHasPermission (step
-    // 4.5) where the parsed AST is available.
+    // 注意：此处在无解析 AST 的情况下调用 isReadOnlyCommand。没有
+    // AST，isReadOnlyCommand 无法分割管道/语句，对除最简单单 token 命令外的
+    // 任何内容都将返回
+    // false。这是同步 Tool.isReadOnly() 接口的已知限制 — 真正的
+    // 只读自动允许在 powershellToolHasPermission（步骤
+    // 4.5）中异步发生，那里解析的 AST 可用。
     return isReadOnlyCommand(input.command);
   },
   toAutoClassifierInput(input) {
@@ -424,10 +412,10 @@ export const PowerShellTool = buildTool({
 
   getActivityDescription(input: Partial<PowerShellToolInput> | undefined): string {
     if (!input?.command) {
-      return 'Running command';
+      return '正在运行命令';
     }
     const desc = input.description ?? truncate(input.command, TOOL_SUMMARY_MAX_LENGTH);
-    return `Running ${desc}`;
+    return `正在运行 ${desc}`;
   },
 
   isEnabled(): boolean {
@@ -435,7 +423,7 @@ export const PowerShellTool = buildTool({
   },
 
   async validateInput(input: PowerShellToolInput): Promise<ValidationResult> {
-    // Defense-in-depth: also guarded in call() for direct callers.
+    // 纵深防御：在 call() 中也为直接调用者做了防护。
     if (isWindowsSandboxPolicyViolation()) {
       return {
         result: false,
@@ -448,7 +436,7 @@ export const PowerShellTool = buildTool({
       if (sleepPattern !== null) {
         return {
           result: false,
-          message: `Blocked: ${sleepPattern}. Run blocking commands in the background with run_in_background: true — you'll get a completion notification when done. For streaming events (watching logs, polling APIs), use the Monitor tool. If you genuinely need a delay (rate limiting, deliberate pacing), keep it under 2 seconds.`,
+          message: `已阻止：${sleepPattern}。使用 run_in_background: true 在后台运行阻塞命令 — 完成时会收到完成通知。对于流式事件（监视日志、轮询 API），请使用 Monitor 工具。如果你确实需要延迟（速率限制、刻意步进），请保持在 2 秒以下。`,
           errorCode: 10,
         };
       }
@@ -483,7 +471,7 @@ export const PowerShellTool = buildTool({
     }: Out,
     toolUseID: string,
   ): ToolResultBlockParam {
-    // For image data, format as image content block for Claude
+    // 对于图像数据，格式化为 Claude 的图像内容块
     if (isImage) {
       const block = buildImageToolResult(stdout, toolUseID);
       if (block) return block;
@@ -509,18 +497,18 @@ export const PowerShellTool = buildTool({
     let errorMessage = stderr.trim();
     if (interrupted) {
       if (stderr) errorMessage += EOL;
-      errorMessage += '<error>Command was aborted before completion</error>';
+      errorMessage += '<error>命令在完成前被中止</error>';
     }
 
     let backgroundInfo = '';
     if (backgroundTaskId) {
       const outputPath = getTaskOutputPath(backgroundTaskId);
       if (assistantAutoBackgrounded) {
-        backgroundInfo = `Command exceeded the assistant-mode blocking budget (${ASSISTANT_BLOCKING_BUDGET_MS / 1000}s) and was moved to the background with ID: ${backgroundTaskId}. It is still running — you will be notified when it completes. Output is being written to: ${outputPath}. In assistant mode, delegate long-running work to a subagent or use run_in_background to keep this conversation responsive.`;
+        backgroundInfo = `命令超过 assistant 模式阻塞预算（${ASSISTANT_BLOCKING_BUDGET_MS / 1000}s），已移至后台，ID：${backgroundTaskId}。它仍在运行 — 完成时会通知你。输出正写入：${outputPath}。在 assistant 模式下，将长时间运行的工作委托给子 agent 或使用 run_in_background 以保持此对话的响应性。`;
       } else if (backgroundedByUser) {
-        backgroundInfo = `Command was manually backgrounded by user with ID: ${backgroundTaskId}. Output is being written to: ${outputPath}`;
+        backgroundInfo = `命令被用户手动后台化，ID：${backgroundTaskId}。输出正写入：${outputPath}`;
       } else {
-        backgroundInfo = `Command running in background with ID: ${backgroundTaskId}. Output is being written to: ${outputPath}`;
+        backgroundInfo = `命令在后台运行，ID：${backgroundTaskId}。输出正写入：${outputPath}`;
       }
     }
 
@@ -539,10 +527,10 @@ export const PowerShellTool = buildTool({
     _parentMessage?: AssistantMessage,
     onProgress?: ToolCallProgress<PowerShellProgress>,
   ): Promise<{ data: Out }> {
-    // Load-bearing guard: promptShellExecution.ts and processBashCommand.tsx
-    // call PowerShellTool.call() directly, bypassing validateInput. This is
-    // the check that covers ALL callers. See isWindowsSandboxPolicyViolation
-    // comment for the policy rationale.
+    // 承重防护：promptShellExecution.ts 和 processBashCommand.tsx
+    // 直接调用 PowerShellTool.call()，绕过 validateInput。这是
+    // 覆盖所有调用者的检查。见 isWindowsSandboxPolicyViolation
+    // 注释了解策略理由。
     if (isWindowsSandboxPolicyViolation()) {
       throw new Error(WINDOWS_SANDBOX_POLICY_REFUSAL);
     }
@@ -557,8 +545,8 @@ export const PowerShellTool = buildTool({
       const commandGenerator = runPowerShellCommand({
         input,
         abortController,
-        // Use the always-shared task channel so async agents' background
-        // shell tasks are actually registered (and killable on agent exit).
+        // 使用始终共享的任务通道，使异步 agent 的后台
+        // shell 任务真正被注册（并在 agent 退出时可杀死）。
         setAppState: toolUseContext.setAppStateForTasks ?? setAppState,
         setToolJSX,
         preventCwdChanges: !isMainThread,
@@ -590,36 +578,36 @@ export const PowerShellTool = buildTool({
 
       const result = generatorResult.value;
 
-      // Feed git/PR usage metrics (same counters as BashTool). PS invokes
-      // git/gh/glab/curl as external binaries with identical syntax, so the
-      // shell-agnostic regex detection in trackGitOperations works as-is.
-      // Called before the backgroundTaskId early-return so backgrounded
-      // commands are counted too (matches BashTool.tsx:912).
+      // 馈送 git/PR 使用指标（与 BashTool 相同的计数器）。PS 以
+      // 相同语法将 git/gh/glab/curl 作为外部二进制调用，因此
+      // trackGitOperations 中 shell 无关的正则检测原样工作。
+      // 在 backgroundTaskId 早返回之前调用，使后台化的
+      // 命令也被计数（匹配 BashTool.tsx:912）。
       //
-      // Pre-flight sentinel guard: the two PS pre-flight paths (pwsh-not-found,
-      // exec-spawn-catch) return code: 0 + empty stdout + stderr so call() can
-      // surface stderr gracefully instead of throwing ShellError. But
-      // gitOperationTracking.ts:48 treats code 0 as success and would
-      // regex-match the command, mis-counting a command that never ran.
-      // BashTool is safe — its pre-flight goes through createFailedCommand
-      // (code: 1) so tracking early-returns. Skip tracking on this sentinel.
+      // 预飞哨兵防护：两条 PS 预飞路径（pwsh-not-found、
+      // exec-spawn-catch）返回 code: 0 + 空 stdout + stderr，使 call() 能
+      // 优雅地呈现 stderr 而非抛出 ShellError。但
+      // gitOperationTracking.ts:48 将 code 0 视为成功，并会
+      // 正则匹配命令，错误计数从未运行的命令。
+      // BashTool 安全 — 其预飞通过 createFailedCommand
+      //（code: 1），因此跟踪早返回。对此哨兵跳过跟踪。
       const isPreFlightSentinel = result.code === 0 && !result.stdout && result.stderr && !result.backgroundTaskId;
       if (!isPreFlightSentinel) {
         trackGitOperations(input.command, result.code, result.stdout);
       }
 
-      // Distinguish user-driven interrupt (new message submitted) from other
-      // interrupted states. Only user-interrupt should suppress ShellError —
-      // timeout-kill or process-kill with isError should still throw.
-      // Matches BashTool's isInterrupt.
+      // 区分用户驱动的中断（提交新消息）与其他
+      // 中断状态。只有用户中断应抑制 ShellError —
+      // 超时杀死或进程杀死带 isError 仍应抛出。
+      // 匹配 BashTool 的 isInterrupt。
       const isInterrupt = result.interrupted && abortController.signal.reason === 'interrupt';
 
-      // Only the main thread tracks/resets cwd; agents have their own cwd
-      // isolation. Matches BashTool's !preventCwdChanges guard.
-      // Runs before the backgroundTaskId early-return: a command may change
-      // CWD before being backgrounded (e.g. `Set-Location C:\temp;
-      // Start-Sleep 60`), and BashTool has no such early return — its
-      // backgrounded results flow through resetCwdIfOutsideProject at :945.
+      // 只有主线程跟踪/重置 cwd；agent 有自己的 cwd
+      // 隔离。匹配 BashTool 的 !preventCwdChanges 防护。
+      // 在 backgroundTaskId 早返回之前运行：命令可能在
+      // 后台化之前更改 CWD（例如 `Set-Location C:\temp;
+      // Start-Sleep 60`），BashTool 没有这样的早返回 — 其
+      // 后台化结果流经 :945 处的 resetCwdIfOutsideProject。
       let stderrForShellReset = '';
       if (isMainThread) {
         const appState = toolUseContext.getAppState();
@@ -628,10 +616,10 @@ export const PowerShellTool = buildTool({
         }
       }
 
-      // If backgrounded, return immediately with task ID. Strip hints first
-      // so interrupt-backgrounded fullOutput doesn't leak the tag to the
-      // model (BashTool has no early return, so all paths flow through its
-      // single extraction site).
+      // 如果后台化，立即返回任务 ID。先剥离提示，
+      // 使中断后台化的 fullOutput 不会泄漏标签到
+      // 模型（BashTool 无早返回，因此所有路径都流经其
+      // 单一提取点）。
       if (result.backgroundTaskId) {
         const bgExtracted = extractClaudeCodeHints(result.stdout || '', input.command);
         if (isMainThread && bgExtracted.hints.length > 0) {
@@ -654,35 +642,34 @@ export const PowerShellTool = buildTool({
 
       stdoutAccumulator.append(processedStdout + EOL);
 
-      // Interpret exit code using semantic rules. PS-native cmdlets (Select-String,
-      // Compare-Object, Test-Path) exit 0 on no-match so they always hit the default
-      // here. This primarily handles external .exe's (grep, rg, findstr, fc, robocopy)
-      // where non-zero can mean "no match" / "files copied" rather than failure.
+      // 使用语义规则解释退出码。PS 原生 cmdlet（Select-String、
+      // Compare-Object、Test-Path）在无匹配时退出 0，因此它们总是命中此处的默认
+      // 行为。这主要处理外部 .exe（grep、rg、findstr、fc、robocopy），
+      // 其中非零可能意味着"无匹配"/"文件已复制"而非失败。
       const interpretation = interpretCommandResult(input.command, result.code, processedStdout, result.stderr || '');
 
-      // getErrorParts() in toolErrors.ts already prepends 'Exit code N'
-      // from error.code when building the ShellError message. Do not
-      // duplicate it into stdout here (BashTool's append at :939 is dead
-      // code — it throws before stdoutAccumulator.toString() is read).
+      // toolErrors.ts 中的 getErrorParts() 已经在构建 ShellError 消息时从 error.code 前置了 'Exit code N'。
+      // 不要在此处将其重复到 stdout（BashTool 在 :939 的追加是死
+      // 代码 — 它在 stdoutAccumulator.toString() 被读取之前抛出）。
 
       let stdout = stripEmptyLines(stdoutAccumulator.toString());
 
-      // Claude Code hints protocol: CLIs/SDKs gated on CLAUDECODE=1 emit a
-      // `<claude-code-hint />` tag to stderr (merged into stdout here). Scan,
-      // record for useClaudeCodeHintRecommendation to surface, then strip
-      // so the model never sees the tag — a zero-token side channel.
-      // Stripping runs unconditionally (subagent output must stay clean too);
-      // only the dialog recording is main-thread-only.
+      // Claude Code hints 协议：基于 CLAUDECODE=1 门控的 CLI/SDK 向 stderr 发出
+      // `<claude-code-hint />` 标签（此处合并到 stdout）。扫描、
+      // 记录供 useClaudeCodeHintRecommendation 呈现，然后剥离，
+      // 使模型从不看到标签 — 零 token 侧通道。
+      // 剥离无条件运行（子 agent 输出也必须保持干净）；
+      // 只有对话记录是主线程专用。
       const extracted = extractClaudeCodeHints(stdout, input.command);
       stdout = extracted.stripped;
       if (isMainThread && extracted.hints.length > 0) {
         for (const hint of extracted.hints) maybeRecordPluginHint(hint);
       }
 
-      // preSpawnError means exec() succeeded but the inner shell failed before
-      // the command ran (e.g. CWD deleted). createFailedCommand sets code=1,
-      // which interpretCommandResult can mistake for grep-no-match / findstr
-      // string-not-found. Throw it directly. Matches BashTool.tsx:957.
+      // preSpawnError 意味着 exec() 成功但内部 shell 在命令运行之前失败
+      //（例如 CWD 删除）。createFailedCommand 设置 code=1，
+      // interpretCommandResult 可能误认为 grep-no-match / findstr
+      // string-not-found。直接抛出。匹配 BashTool.tsx:957。
       if (result.preSpawnError) {
         throw new Error(result.preSpawnError);
       }
@@ -690,15 +677,15 @@ export const PowerShellTool = buildTool({
         throw new ShellError(stdout, result.stderr || '', result.code, result.interrupted);
       }
 
-      // Large output: file on disk has more than getMaxOutputLength() bytes.
-      // stdout already contains the first chunk. Copy the output file to the
-      // tool-results dir so the model can read it via FileRead. If > 64 MB,
-      // truncate after copying. Matches BashTool.tsx:983-1005.
+      // 大输出：磁盘文件超过 getMaxOutputLength() 字节。
+      // stdout 已经包含第一块。将输出文件复制到
+      // tool-results 目录，使模型可以通过 FileRead 读取。如果 > 64 MB，
+      // 复制后截断。匹配 BashTool.tsx:983-1005。
       //
-      // Placed AFTER the preSpawnError/ShellError throws (matches BashTool's
-      // ordering, where persistence is post-try/finally): a failing command
-      // that also produced >maxOutputLength bytes would otherwise do 3-4 disk
-      // syscalls, store to tool-results/, then throw — orphaning the file.
+      // 放在 preSpawnError/ShellError 抛出之后（匹配 BashTool 的
+      // 顺序，其中持久化在 try/finally 之后）：同时产生 >maxOutputLength 字节的失败命令
+      // 否则会做 3-4 次磁盘
+      // 系统调用，存储到 tool-results/，然后抛出 — 使文件成为孤儿。
       const MAX_PERSISTED_SIZE = 64 * 1024 * 1024;
       let persistedOutputPath: string | undefined;
       let persistedOutputSize: number | undefined;
@@ -719,13 +706,13 @@ export const PowerShellTool = buildTool({
           }
           persistedOutputPath = dest;
         } catch {
-          // File may already be gone — stdout preview is sufficient
+          // 文件可能已经消失 — stdout 预览足够
         }
       }
 
-      // Cap image dimensions + size if present (CC-304 — see
-      // resizeShellImageOutput). Scope the decoded buffer so it can be
-      // reclaimed before we build the output object.
+      // 如果存在则限制图像尺寸 + 大小（CC-304 — 见
+      // resizeShellImageOutput）。限定解码缓冲区的作用域，使其在我们构建输出对象之前可被
+      // 回收。
       let isImage = isImageOutput(stdout);
       let compressedStdout = stdout;
       if (isImage) {
@@ -733,10 +720,10 @@ export const PowerShellTool = buildTool({
         if (resized) {
           compressedStdout = resized;
         } else {
-          // Parse failed (e.g. multi-line stdout after the data URL). Keep
-          // isImage in sync with what we actually send so the UI label stays
-          // accurate — mapToolResultToToolResultBlockParam's defensive
-          // fallthrough will send text, not an image block.
+          // 解析失败（例如数据 URL 之后的多行 stdout）。保持
+          // isImage 与我们实际发送的内容同步，使 UI 标签保持
+          // 准确 — mapToolResultToToolResultBlockParam 的防御性
+          // 回退将发送文本，而非图像块。
           isImage = false;
         }
       }
@@ -814,9 +801,9 @@ async function* runPowerShellCommand({
   let interruptBackgroundingStarted = false;
   let assistantAutoBackgrounded = false;
 
-  // Progress signal: resolved when backgroundShellId is set in the async
-  // .then() path, waking the generator's Promise.race immediately instead of
-  // waiting for the next setTimeout tick (matches BashTool pattern).
+  // 进度信号：在异步 .then() 路径中设置 backgroundShellId 时解析，
+  // 立即唤醒生成器的 Promise.race，而非
+  // 等待下一个 setTimeout tick（匹配 BashTool 模式）。
   let resolveProgress: (() => void) | null = null;
   function createProgressSignal(): Promise<null> {
     return new Promise<null>(resolve => {
@@ -828,12 +815,12 @@ async function* runPowerShellCommand({
 
   const powershellPath = await getCachedPowerShellPath();
   if (!powershellPath) {
-    // Pre-flight failure: pwsh not installed. Return code 0 so call() surfaces
-    // this as a graceful stderr message rather than throwing ShellError — the
-    // command never ran, so there is no meaningful non-zero exit to report.
+    // 预飞失败：pwsh 未安装。返回 code 0，使 call() 将
+    // 此情况呈现为优雅的 stderr 消息，而非抛出 ShellError —
+    // 命令从未运行，因此无有意义的非零退出码可报告。
     return {
       stdout: '',
-      stderr: 'PowerShell is not available on this system.',
+      stderr: '此系统上不可用 PowerShell。',
       code: 0,
       interrupted: false,
     };
@@ -850,22 +837,22 @@ async function* runPowerShellCommand({
         lastTotalBytes = isIncomplete ? totalBytes : 0;
       },
       preventCwdChanges,
-      // Sandbox works on Linux/macOS/WSL2 — pwsh there is a native binary and
-      // SandboxManager.wrapWithSandbox wraps it same as bash (Shell.ts uses
-      // /bin/sh for the outer spawn to parse the POSIX-quoted bwrap/sandbox-exec
-      // string). On Windows native, sandbox is unsupported; shouldUseSandbox()
-      // returns false via isSandboxingEnabled() → isSupportedPlatform() → false.
-      // The explicit platform check is redundant-but-obvious.
+      // Sandbox 在 Linux/macOS/WSL2 上工作 — pwsh 在那里是原生二进制，
+      // SandboxManager.wrapWithSandbox 像包装 bash 一样包装它（Shell.ts 使用
+      // /bin/sh 作为外部 spawn 以解析 POSIX 引用的 bwrap/sandbox-exec
+      // 字符串）。在 Windows 原生上，沙箱不支持；shouldUseSandbox()
+      // 通过 isSandboxingEnabled() → isSupportedPlatform() → false 返回 false。
+      // 显式平台检查是冗余但明显的。
       shouldUseSandbox: getPlatform() === 'windows' ? false : shouldUseSandbox({ command, dangerouslyDisableSandbox }),
       shouldAutoBackground,
     });
   } catch (e) {
     logError(e);
-    // Pre-flight failure: spawn/exec rejected before the command ran. Use
-    // code 0 so call() returns stderr gracefully instead of throwing ShellError.
+    // 预飞失败：spawn/exec 在命令运行之前被拒绝。使用
+    // code 0，使 call() 优雅返回 stderr，而非抛出 ShellError。
     return {
       stdout: '',
-      stderr: `Failed to execute PowerShell command: ${getErrorMessage(e)}`,
+      stderr: `执行 PowerShell 命令失败：${getErrorMessage(e)}`,
       code: 0,
       interrupted: false,
     };
@@ -873,7 +860,7 @@ async function* runPowerShellCommand({
 
   const resultPromise = shellCommand.result;
 
-  // Helper to spawn a background task and return its ID
+  // 辅助函数：派生后台任务并返回其 ID
   async function spawnBackgroundTask(): Promise<string> {
     const handle = await spawnShellTask(
       {
@@ -886,7 +873,7 @@ async function* runPowerShellCommand({
       {
         abortController,
         getAppState: () => {
-          throw new Error('getAppState not available in runPowerShellCommand context');
+          throw new Error('getAppState 在 runPowerShellCommand 上下文中不可用');
         },
         setAppState,
       },
@@ -894,12 +881,12 @@ async function* runPowerShellCommand({
     return handle.taskId;
   }
 
-  // Helper to start backgrounding with logging
+  // 辅助函数：开始后台化并记录日志
   function startBackgrounding(eventName: string, backgroundFn?: (shellId: string) => void): void {
-    // If a foreground task is already registered (via registerForeground in the
-    // progress loop), background it in-place instead of re-spawning. Re-spawning
-    // would overwrite tasks[taskId], emit a duplicate task_started SDK event,
-    // and leak the first cleanup callback.
+    // 如果前台任务已注册（通过进度循环中的 registerForeground），
+    // 原地后台化，而非重新派生。重新派生
+    // 会覆盖 tasks[taskId]，发出重复的 task_started SDK 事件，
+    // 并泄漏第一个清理回调。
     if (foregroundTaskId) {
       if (
         !backgroundExistingForegroundTask(
@@ -920,14 +907,14 @@ async function* runPowerShellCommand({
       return;
     }
 
-    // No foreground task registered — spawn a new background task
-    // Note: spawn is essentially synchronous despite being async
+    // 未注册前台任务 — 派生新的后台任务
+    // 注意：尽管是异步的，spawn 本质上是同步的
     void spawnBackgroundTask().then(shellId => {
       backgroundShellId = shellId;
 
-      // Wake the generator's Promise.race so it sees backgroundShellId.
-      // Without this, the generator waits for the current setTimeout to fire
-      // (up to ~1s) before noticing the backgrounding. Matches BashTool.
+      // 唤醒生成器的 Promise.race，使其看到 backgroundShellId。
+      // 没有此项，生成器等待当前 setTimeout 触发
+      //（最多 ~1s）才注意到后台化。匹配 BashTool。
       const resolve = resolveProgress;
       if (resolve) {
         resolveProgress = null;
@@ -944,16 +931,16 @@ async function* runPowerShellCommand({
     });
   }
 
-  // Set up auto-backgrounding on timeout if enabled
+  // 如果启用，则设置超时自动后台化
   if (shellCommand.onTimeout && shouldAutoBackground) {
     shellCommand.onTimeout(backgroundFn => {
       startBackgrounding('tengu_powershell_command_timeout_backgrounded', backgroundFn);
     });
   }
 
-  // In assistant mode, the main agent should stay responsive. Auto-background
-  // blocking commands after ASSISTANT_BLOCKING_BUDGET_MS so the agent can keep
-  // coordinating instead of waiting. The command keeps running — no state loss.
+  // 在 assistant 模式下，主 agent 应保持响应。在
+  // ASSISTANT_BLOCKING_BUDGET_MS 后自动后台化阻塞命令，使 agent 能继续
+  // 协调而非等待。命令继续运行 — 无状态丢失。
   if (
     feature('KAIROS') &&
     getKairosActive() &&
@@ -969,9 +956,9 @@ async function* runPowerShellCommand({
     }, ASSISTANT_BLOCKING_BUDGET_MS).unref();
   }
 
-  // Handle Claude asking to run it in the background explicitly
-  // When explicitly requested via run_in_background, always honor the request
-  // regardless of the command type (isAutobackgroundingAllowed only applies to automatic backgrounding)
+  // 处理 Claude 要求在后台显式运行
+  // 当通过 run_in_background 显式请求时，总是接受请求，
+  // 无论命令类型如何（isAutobackgroundingAllowed 只适用于自动后台化）
   if (run_in_background === true && !isBackgroundTasksDisabled) {
     const shellId = await spawnBackgroundTask();
 
@@ -988,17 +975,17 @@ async function* runPowerShellCommand({
     };
   }
 
-  // Start polling the output file for progress
+  // 开始轮询输出文件获取进度
   TaskOutput.startPolling(shellCommand.taskOutput.taskId);
 
-  // Set up progress yielding with periodic checks
+  // 设置进度 yield 的定期检查
   const startTime = Date.now();
   let nextProgressTime = startTime + PROGRESS_THRESHOLD_MS;
   let foregroundTaskId: string | undefined;
 
-  // Progress loop: wrap in try/finally so stopPolling is called on every exit
-  // path — normal completion, timeout/interrupt backgrounding, and Ctrl+B
-  // (matches BashTool pattern; see PR #18887 review thread at :560)
+  // 进度循环：包裹在 try/finally 中，使 stopPolling 在每个退出
+  // 路径上被调用 — 正常完成、超时/中断后台化和 Ctrl+B
+  //（匹配 BashTool 模式；见 PR #18887 评审帖 :560）
   try {
     while (true) {
       const now = Date.now();
@@ -1012,41 +999,41 @@ async function* runPowerShellCommand({
       ]);
 
       if (result !== null) {
-        // Race: backgrounding fired (15s timer / onTimeout / Ctrl+B) but the
-        // command completed before the next poll tick. #handleExit sets
-        // backgroundTaskId but skips outputFilePath (it assumes the background
-        // message or <task_notification> will carry the path). Strip
-        // backgroundTaskId so the model sees a clean completed command,
-        // reconstruct outputFilePath for large outputs, and suppress the
-        // redundant <task_notification> from the .then() handler.
-        // Check result.backgroundTaskId (not the closure var) to also cover
-        // Ctrl+B, which calls shellCommand.background() directly.
+        // 竞态：后台化触发（15s 定时器 / onTimeout / Ctrl+B）但
+        // 命令在下次轮询 tick 之前完成。#handleExit 设置
+        // backgroundTaskId 但跳过 outputFilePath（它假设后台
+        // 消息或 <task_notification> 会携带路径）。剥离
+        // backgroundTaskId 使模型看到干净的已完成命令，
+        // 为大输出重建 outputFilePath，并抑制
+        // .then() 处理器的冗余 <task_notification>。
+        // 检查 result.backgroundTaskId（非闭包变量）也覆盖
+        // Ctrl+B，它直接调用 shellCommand.background()。
         if (result.backgroundTaskId !== undefined) {
           markTaskNotified(result.backgroundTaskId, setAppState);
           const fixedResult: ExecResult = {
             ...result,
             backgroundTaskId: undefined,
           };
-          // Mirror ShellCommand.#handleExit's large-output branch that was
-          // skipped because #backgroundTaskId was set.
+          // 镜像 ShellCommand.#handleExit 的大输出分支，
+          // 因设置了 #backgroundTaskId 而跳过。
           const { taskOutput } = shellCommand;
           if (taskOutput.stdoutToFile && !taskOutput.outputFileRedundant) {
             fixedResult.outputFilePath = taskOutput.path;
             fixedResult.outputFileSize = taskOutput.outputFileSize;
             fixedResult.outputTaskId = taskOutput.taskId;
           }
-          // Command completed — cleanup stream listeners here. The finally
-          // block's guard (!backgroundShellId && status !== 'backgrounded')
-          // correctly skips cleanup for *running* backgrounded tasks, but
-          // in this race the process is done. Matches BashTool.tsx:1399.
+          // 命令已完成 — 在此处清理流监听器。
+          // finally 块的防护（!backgroundShellId && status !== 'backgrounded'）
+          // 正确跳过对*运行中*后台化任务的清理，但
+          // 在此竞态中进程已完成。匹配 BashTool.tsx:1399。
           shellCommand.cleanup();
           return fixedResult;
         }
-        // Command has completed
+        // 命令已完成
         return result;
       }
 
-      // Check if command was backgrounded (by timeout or interrupt)
+      // 检查命令是否被后台化（通过超时或中断）
       if (backgroundShellId) {
         return {
           stdout: interruptBackgroundingStarted ? fullOutput : '',
@@ -1058,7 +1045,7 @@ async function* runPowerShellCommand({
         };
       }
 
-      // User submitted a new message - background instead of killing
+      // 用户提交了新消息 - 后台化而非杀死
       if (
         abortController.signal.aborted &&
         abortController.signal.reason === 'interrupt' &&
@@ -1067,16 +1054,16 @@ async function* runPowerShellCommand({
         interruptBackgroundingStarted = true;
         if (!isBackgroundTasksDisabled) {
           startBackgrounding('tengu_powershell_command_interrupt_backgrounded');
-          // Reloop so the backgroundShellId check (above) catches the sync
-          // foregroundTaskId→background path. Without this, we fall through
-          // to the Ctrl+B check below, which matches status==='backgrounded'
-          // and incorrectly returns backgroundedByUser:true. (bugs 020/021)
+          // 重新循环，使 backgroundShellId 检查（上方）捕获同步的
+          // foregroundTaskId→background 路径。没有此项，我们穿透
+          // 到下方的 Ctrl+B 检查，它匹配 status==='backgrounded'
+          // 并错误返回 backgroundedByUser:true。（bugs 020/021）
           continue;
         }
         shellCommand.kill();
       }
 
-      // Check if this foreground task was backgrounded via backgroundAll() (ctrl+b)
+      // 检查此前台任务是否通过 backgroundAll()（ctrl+b）被后台化
       if (foregroundTaskId) {
         if (shellCommand.status === 'backgrounded') {
           return {
@@ -1090,11 +1077,11 @@ async function* runPowerShellCommand({
         }
       }
 
-      // Time for a progress update
+      // 进度更新时间
       const elapsed = Date.now() - startTime;
       const elapsedSeconds = Math.floor(elapsed / 1000);
 
-      // Show backgrounding UI hint after threshold
+      // 阈值后显示后台化 UI 提示
       if (
         !isBackgroundTasksDisabled &&
         backgroundShellId === undefined &&
@@ -1137,9 +1124,9 @@ async function* runPowerShellCommand({
     }
   } finally {
     TaskOutput.stopPolling(shellCommand.taskOutput.taskId);
-    // Ensure cleanup runs on every exit path (success, rejection, abort).
-    // Skip when backgrounded — LocalShellTask owns cleanup for those.
-    // Matches main #21105.
+    // 确保在每个退出路径上运行清理（成功、拒绝、中止）。
+    // 后台化时跳过 — LocalShellTask 拥有这些的清理。
+    // 匹配 main #21105。
     if (!backgroundShellId && shellCommand.status !== 'backgrounded') {
       if (foregroundTaskId) {
         unregisterForeground(foregroundTaskId, setAppState);

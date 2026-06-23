@@ -13,14 +13,12 @@ import {
 } from './macOsKeychainHelpers.js'
 import type { SecureStorage, SecureStorageData } from './types.js'
 
-// `security -i` reads stdin with a 4096-byte fgets() buffer (BUFSIZ on darwin).
-// A command line longer than this is truncated mid-argument: the first 4096
-// bytes are consumed as one command (unterminated quote → fails), the overflow
-// is interpreted as a second unknown command. Net: non-zero exit with NO data
-// written, but the *previous* keychain entry is left intact — which fallback
-// storage then reads as stale. See #30337.
-// Headroom of 64B below the limit guards against edge-case line-terminator
-// accounting differences.
+// `security -i` 使用 4096 字节的 fgets() 缓冲区（darwin 上的 BUFSIZ）读取标准输入。
+// 超过此长度的命令行会在参数中间被截断：前 4096 字节作为一个命令被消费
+// （未终止的引号 → 失败），溢出部分被解释为第二个未知命令。结果：非零退出且
+// 不写入任何数据，但*之前的*钥匙串条目保持完整 —— 后备存储会将其作为过期数据
+// 读取。参见 #30337。
+// 在限制以下预留 64 字节的余量，以防边缘情况下的行终止符计算差异。
 const SECURITY_STDIN_LINE_LIMIT = 4096 - 64
 
 export const macOsKeychainStorage = {
@@ -45,15 +43,14 @@ export const macOsKeychainStorage = {
         return data
       }
     } catch (_e) {
-      // fall through
+      // 继续执行
     }
-    // Stale-while-error: if we had a value before and the refresh failed,
-    // keep serving the stale value rather than caching null. Since #23192
-    // clears the upstream memoize on every API request (macOS path), a
-    // single transient `security` spawn failure would otherwise poison the
-    // cache and surface as "Not logged in" across all subsystems until the
-    // next user interaction. clearKeychainCache() sets data=null, so
-    // explicit invalidation (logout, delete) still reads through.
+    // 过期重用：如果之前有值且刷新失败，
+    // 继续提供过期值而不是缓存 null。由于 #23192
+    // 在每次 API 请求（macOS 路径）时清除上游记忆化，单个
+    // 瞬态 `security` 子进程生成失败会毒化缓存，并在所有子系统中
+    // 显示为"未登录"，直到下次用户交互。clearKeychainCache() 设置
+    // data=null，因此显式失效（登出、删除）仍会穿透读取。
     if (prev.data !== null) {
       logForDebugging('[keychain] read failed; serving stale cache', {
         level: 'warn',
@@ -75,10 +72,10 @@ export const macOsKeychainStorage = {
 
     const gen = keychainCacheState.generation
     const promise = doReadAsync().then(data => {
-      // If the cache was invalidated or updated while we were reading,
-      // our subprocess result is stale — don't overwrite the newer entry.
+      // 如果在读取期间缓存被失效或更新，
+      // 我们的子进程结果已过期 —— 不要覆盖更新的条目。
       if (gen === keychainCacheState.generation) {
-        // Stale-while-error — mirror read() above.
+        // 过期重用 —— 镜像上方的 read()。
         if (data === null && prev.data !== null) {
           logForDebugging('[keychain] readAsync failed; serving stale cache', {
             level: 'warn',
@@ -95,7 +92,7 @@ export const macOsKeychainStorage = {
     return promise
   },
   update(data: SecureStorageData): { success: boolean; warning?: string } {
-    // Invalidate cache before update
+    // 更新前失效缓存
     clearKeychainCache()
 
     try {
@@ -105,16 +102,15 @@ export const macOsKeychainStorage = {
       const username = getUsername()
       const jsonString = jsonStringify(data)
 
-      // Convert to hexadecimal to avoid any escaping issues
+      // 转换为十六进制以避免任何转义问题
       const hexValue = Buffer.from(jsonString, 'utf-8').toString('hex')
 
-      // Prefer stdin (`security -i`) so process monitors (CrowdStrike et al.)
-      // see only "security -i", not the payload (INC-3028).
-      // When the payload would overflow the stdin line buffer, fall back to
-      // argv. Hex in argv is recoverable by a determined observer but defeats
-      // naive plaintext-grep rules, and the alternative — silent credential
-      // corruption — is strictly worse. ARG_MAX on darwin is 1MB so argv has
-      // effectively no size limit for our purposes.
+      // 优先使用标准输入（`security -i`），这样进程监控器（CrowdStrike 等）
+      // 只看到 "security -i"，而不是有效载荷（INC-3028）。
+      // 当有效载荷会溢出标准输入行缓冲区时，回退到参数列表。
+      // 参数列表中的十六进制可以被有决心的观察者恢复，但可以阻止
+      // 天明的明文 grep 规则，而替代方案 —— 静默凭据损坏 —— 要糟糕得多。
+      // darwin 上的 ARG_MAX 是 1MB，所以参数列表对我们的目的来说几乎没有大小限制。
       const command = `add-generic-password -U -a "${username}" -s "${storageServiceName}" -X "${hexValue}"\n`
 
       let result
@@ -149,7 +145,7 @@ export const macOsKeychainStorage = {
         return { success: false }
       }
 
-      // Update cache with new data on success
+      // 成功时使用新数据更新缓存
       keychainCacheState.cache = { data, cachedAt: Date.now() }
       return { success: true }
     } catch (_e) {
@@ -157,7 +153,7 @@ export const macOsKeychainStorage = {
     }
   },
   delete(): boolean {
-    // Invalidate cache before delete
+    // 删除前失效缓存
     clearKeychainCache()
 
     try {
@@ -190,7 +186,7 @@ async function doReadAsync(): Promise<SecureStorageData | null> {
       return jsonParse(stdout.trim())
     }
   } catch (_e) {
-    // fall through
+    // 继续执行
   }
   return null
 }
@@ -198,19 +194,19 @@ async function doReadAsync(): Promise<SecureStorageData | null> {
 let keychainLockedCache: boolean | undefined
 
 /**
- * Checks if the macOS keychain is locked.
- * Returns true if on macOS and keychain is locked (exit code 36 from security show-keychain-info).
- * This commonly happens in SSH sessions where the keychain isn't automatically unlocked.
+ * 检查 macOS 钥匙串是否被锁定。
+ * 如果在 macOS 上且钥匙串被锁定（security show-keychain-info 的退出码为 36），则返回 true。
+ * 这通常发生在 SSH 会话中，钥匙串不会自动解锁。
  *
- * Cached for process lifetime — execaSync('security', ...) is a ~27ms sync
- * subprocess spawn, and this is called from render (AssistantTextMessage).
- * During virtual-scroll remounts on sessions with "Not logged in" messages,
- * each remount re-spawned security(1), adding 27ms/message to the commit.
- * Keychain lock state doesn't change during a CLI session.
+ * 在进程生命周期内缓存 —— execaSync('security', ...) 是一个约 27ms 的同步
+ * 子进程生成，这从渲染（AssistantTextMessage）中调用。
+ * 在带有"未登录"消息的会话中进行虚拟滚动重新挂载时，
+ * 每次重新挂载都会重新生成 security(1)，为提交增加 27ms/消息。
+ * 钥匙串锁定状态在 CLI 会话期间不会改变。
  */
 export function isMacOsKeychainLocked(): boolean {
   if (keychainLockedCache !== undefined) return keychainLockedCache
-  // Only check on macOS
+  // 仅在 macOS 上检查
   if (process.platform !== 'darwin') {
     keychainLockedCache = false
     return false
@@ -221,10 +217,10 @@ export function isMacOsKeychainLocked(): boolean {
       reject: false,
       stdio: ['ignore', 'pipe', 'pipe'],
     })
-    // Exit code 36 indicates the keychain is locked
+    // 退出码 36 表示钥匙串被锁定
     keychainLockedCache = result.exitCode === 36
   } catch {
-    // If the command fails for any reason, assume keychain is not locked
+    // 如果命令因任何原因失败，假设钥匙串未锁定
     keychainLockedCache = false
   }
   return keychainLockedCache

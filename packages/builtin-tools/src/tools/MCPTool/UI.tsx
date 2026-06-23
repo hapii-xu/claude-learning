@@ -64,7 +64,7 @@ export function renderToolUseProgressMessage(
   if (!lastProgress?.data) {
     return (
       <MessageResponse height={1}>
-        <Text dimColor>Running…</Text>
+        <Text dimColor>运行中…</Text>
       </MessageResponse>
     );
   }
@@ -74,7 +74,7 @@ export function renderToolUseProgressMessage(
   if (progress === undefined) {
     return (
       <MessageResponse height={1}>
-        <Text dimColor>Running…</Text>
+        <Text dimColor>运行中…</Text>
       </MessageResponse>
     );
   }
@@ -97,7 +97,7 @@ export function renderToolUseProgressMessage(
 
   return (
     <MessageResponse height={1}>
-      <Text dimColor>{progressMessage ?? `Processing… ${progress}`}</Text>
+      <Text dimColor>{progressMessage ?? `处理中… ${progress}`}</Text>
     </MessageResponse>
   );
 }
@@ -115,7 +115,7 @@ export function renderToolResultMessage(
       return (
         <MessageResponse height={1}>
           <Text>
-            Sent a message to <Ansi>{createHyperlink(slackSend.url, slackSend.channel)}</Ansi>
+            已向 <Ansi>{createHyperlink(slackSend.url, slackSend.channel)}</Ansi> 发送消息
           </Text>
         </MessageResponse>
       );
@@ -125,7 +125,7 @@ export function renderToolResultMessage(
   const estimatedTokens = getContentSizeEstimate(mcpOutput);
   const showWarning = estimatedTokens > MCP_OUTPUT_WARNING_THRESHOLD_TOKENS;
   const warningMessage = showWarning
-    ? `${figures.warning} Large MCP response (~${formatNumber(estimatedTokens)} tokens), this can fill up context quickly`
+    ? `${figures.warning} MCP 响应过大（约 ${formatNumber(estimatedTokens)} tokens），会迅速填满上下文`
     : null;
 
   let contentElement: React.ReactNode;
@@ -135,7 +135,7 @@ export function renderToolResultMessage(
         return (
           <Box key={i} justifyContent="space-between" overflowX="hidden" width="100%">
             <MessageResponse height={1}>
-              <Text>[Image]</Text>
+              <Text>[图片]</Text>
             </MessageResponse>
           </Box>
         );
@@ -162,7 +162,7 @@ export function renderToolResultMessage(
     contentElement = (
       <Box justifyContent="space-between" overflowX="hidden" width="100%">
         <MessageResponse height={1}>
-          <Text dimColor>(No content)</Text>
+          <Text dimColor>（无内容）</Text>
         </MessageResponse>
       </Box>
     );
@@ -189,11 +189,11 @@ export function renderToolResultMessage(
 }
 
 /**
- * Render MCP text output. Tries three strategies in order:
- * 1. If JSON wraps a single dominant text payload (e.g. slack's
- *    {"messages":"line1\nline2..."}), unwrap and let OutputLine truncate.
- * 2. If JSON is a small flat-ish object, render as aligned key: value.
- * 3. Otherwise fall through to OutputLine (pretty-print + truncate).
+ * 渲染 MCP 文本输出。依次尝试三种策略：
+ * 1. 如果 JSON 只包裹了一个占主导地位的文本 payload（如 Slack 的
+ *    {"messages":"line1\nline2..."}），解包并交给 OutputLine 截断。
+ * 2. 如果 JSON 是一个小而扁平的对象，按对齐的 key: value 渲染。
+ * 3. 否则回退到 OutputLine（pretty-print + 截断）。
  */
 function MCPTextOutput({ content, verbose }: { content: string; verbose: boolean }): React.ReactNode {
   const unwrapped = tryUnwrapTextPayload(content);
@@ -229,8 +229,8 @@ function MCPTextOutput({ content, verbose }: { content: string; verbose: boolean
 }
 
 /**
- * Parse content as a JSON object and return its entries. Null if content
- * doesn't parse, isn't an object, is too large, or has 0/too-many keys.
+ * 将 content 解析为 JSON 对象并返回其 entries。若 content 不可解析、
+ * 不是对象、过大、或键数为 0/过多，则返回 null。
  */
 function parseJsonEntries(
   content: string,
@@ -257,9 +257,9 @@ function parseJsonEntries(
 }
 
 /**
- * If content parses as a JSON object where every value is a scalar or a
- * small nested object, flatten it to [key, displayValue] pairs. Nested
- * objects get one-line JSON. Returns null if content doesn't qualify.
+ * 如果 content 解析为 JSON 对象，且所有值都是标量或小型嵌套对象，
+ * 则将其扁平化为 [key, displayValue] 对。嵌套对象用一行 JSON 表示。
+ * 如果 content 不符合条件则返回 null。
  */
 export function tryFlattenJson(content: string): [string, string][] | null {
   const entries = parseJsonEntries(content, {
@@ -285,10 +285,10 @@ export function tryFlattenJson(content: string): [string, string][] | null {
 }
 
 /**
- * If content is a JSON object where one key holds a dominant string payload
- * (multiline or long) and all siblings are small scalars, unwrap it. This
- * handles the common MCP pattern of {"messages":"line1\nline2..."} where
- * pretty-printing keeps \n escaped but we want real line breaks + truncation.
+ * 如果 content 是一个 JSON 对象，其中一个 key 持有占主导地位的字符串
+ * payload（多行或很长），且所有兄弟字段都是小标量，则解包它。这处理
+ * 常见的 MCP 模式 {"messages":"line1\nline2..."}：pretty-print 会保持
+ * \n 转义，但我们想要真正的换行 + 截断。
  */
 export function tryUnwrapTextPayload(content: string): { body: string; extras: [string, string][] } | null {
   const entries = parseJsonEntries(content, {
@@ -305,7 +305,7 @@ export function tryUnwrapTextPayload(content: string): { body: string; extras: [
       const t = value.trimEnd();
       const isDominant = t.length > UNWRAP_MIN_STRING_LEN || (t.includes('\n') && t.length > 50);
       if (isDominant) {
-        if (body !== null) return null; // two big strings — ambiguous
+        if (body !== null) return null; // 两个大字符串 —— 有歧义
         body = t;
         continue;
       }
@@ -314,7 +314,7 @@ export function tryUnwrapTextPayload(content: string): { body: string; extras: [
     } else if (value === null || typeof value === 'number' || typeof value === 'boolean') {
       extras.push([key, String(value)]);
     } else {
-      return null; // nested object/array — use flat or pretty-print path
+      return null; // 嵌套对象/数组 —— 走 flat 或 pretty-print 路径
     }
   }
   if (body === null) return null;
@@ -324,11 +324,11 @@ export function tryUnwrapTextPayload(content: string): { body: string; extras: [
 const SLACK_ARCHIVES_RE = /^https:\/\/[a-z0-9-]+\.slack\.com\/archives\/([A-Z0-9]+)\/p\d+$/;
 
 /**
- * Detect a Slack send-message result and return a compact {channel, url} pair.
- * Matches both hosted (claude.ai Slack) and community MCP server shapes —
- * both return `message_link` in the result. The channel label prefers the
- * tool input (may be a name like "#foo" or an ID like "C09EVDAN1NK") and
- * falls back to the ID parsed from the archives URL.
+ * 检测 Slack 发送消息的结果并返回紧凑的 {channel, url} 对。
+ * 同时匹配托管（claude.ai Slack）和社区 MCP server 的数据结构 ——
+ * 两者都在结果中返回 `message_link`。channel 标签优先取自工具输入
+ * （可能是名称如 "#foo" 或 ID 如 "C09EVDAN1NK"），找不到时回退到
+ * 从 archives URL 解析出的 ID。
  */
 export function trySlackSendCompact(
   output: string | MCPToolResult,

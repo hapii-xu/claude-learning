@@ -1,7 +1,7 @@
 import { EXECUTE_TOOL_NAME } from './constants.js'
 
 export const DESCRIPTION =
-  'ExecuteExtraTool — a first-class core tool that is always loaded and available. Execute any deferred tool by name with parameters. Use it after discovering a tool via SearchExtraTools. This is NOT a remote or external tool — it runs locally with full permissions.'
+  'ExecuteExtraTool——一个一等公民级核心工具，始终加载且可用。按名称和参数执行任意延迟加载的工具。请在使用 SearchExtraTools 发现某个工具后使用它。它不是远程或外部工具——它在本地以完整权限运行。'
 
 export function getPrompt(): string {
   return `ExecuteExtraTool — always loaded, always available. Runs locally with full permissions — NOT a remote or external tool.

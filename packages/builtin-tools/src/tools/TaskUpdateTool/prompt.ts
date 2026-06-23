@@ -1,76 +1,76 @@
-export const DESCRIPTION = 'Update a task in the task list'
+export const DESCRIPTION = '更新任务列表中的任务'
 
-export const PROMPT = `Use this tool to update a task in the task list.
+export const PROMPT = `使用此工具更新任务列表中的任务。
 
-## When to Use This Tool
+## 何时使用此工具
 
-**Mark tasks as resolved:**
-- When you have completed the work described in a task
-- When a task is no longer needed or has been superseded
-- IMPORTANT: Always mark your assigned tasks as resolved when you finish them
-- After resolving, call TaskList to find your next task
+**标记任务为已完成：**
+- 当你完成了某项任务中描述的工作
+- 当某项任务已不再需要或被取代
+- 重要：完成分配给你的任务后，务必将其标记为已完成
+- 标记完成后，调用 TaskList 查找下一个任务
 
-- ONLY mark a task as completed when you have FULLY accomplished it
-- If you encounter errors, blockers, or cannot finish, keep the task as in_progress
-- When blocked, create a new task describing what needs to be resolved
-- Never mark a task as completed if:
-  - Tests are failing
-  - Implementation is partial
-  - You encountered unresolved errors
-  - You couldn't find necessary files or dependencies
+- 只有在你已完全完成一项任务时，才能将其标记为 completed
+- 如果遇到错误、阻塞或无法完成，请保持任务为 in_progress
+- 当被阻塞时，创建一个新任务描述需要解决的问题
+- 出现以下情况时绝不标记为 completed：
+  - 测试正在失败
+  - 实现尚不完整
+  - 遇到未解决的错误
+  - 无法找到必需的文件或依赖
 
-**Delete tasks:**
-- When a task is no longer relevant or was created in error
-- Setting status to \`deleted\` permanently removes the task
+**删除任务：**
+- 当任务不再相关或创建有误
+- 把 status 设为 \`deleted\` 将永久移除该任务
 
-**Update task details:**
-- When requirements change or become clearer
-- When establishing dependencies between tasks
+**更新任务详情：**
+- 当需求发生变化或变得更清晰
+- 当需要建立任务之间的依赖关系
 
-## Fields You Can Update
+## 可更新的字段
 
-- **status**: The task status (see Status Workflow below)
-- **subject**: Change the task title (imperative form, e.g., "Run tests")
-- **description**: Change the task description
-- **activeForm**: Present continuous form shown in spinner when in_progress (e.g., "Running tests")
-- **owner**: Change the task owner (agent name)
-- **metadata**: Merge metadata keys into the task (set a key to null to delete it)
-- **addBlocks**: Mark tasks that cannot start until this one completes
-- **addBlockedBy**: Mark tasks that must complete before this one can start
+- **status**：任务状态（见下方状态工作流）
+- **subject**：修改任务标题（祈使句形式，例如 "Run tests"）
+- **description**：修改任务描述
+- **activeForm**：处于 in_progress 时在 spinner 中显示的现在进行时形式（例如 "Running tests"）
+- **owner**：修改任务负责人（agent 名称）
+- **metadata**：将 metadata 键合并到任务中（把某个键设为 null 可删除它）
+- **addBlocks**：标记必须等此任务完成后才能开始的任务
+- **addBlockedBy**：标记必须完成后此任务才能开始的任务
 
-## Status Workflow
+## 状态工作流
 
-Status progresses: \`pending\` → \`in_progress\` → \`completed\`
+状态流转：\`pending\` → \`in_progress\` → \`completed\`
 
-Use \`deleted\` to permanently remove a task.
+使用 \`deleted\` 永久移除一个任务。
 
-## Staleness
+## 状态时效
 
-Make sure to read a task's latest state using \`TaskGet\` before updating it.
+更新前请务必使用 \`TaskGet\` 读取任务的最新状态。
 
-## Examples
+## 示例
 
-Mark task as in progress when starting work:
+开始工作时把任务标记为 in_progress：
 \`\`\`json
 {"taskId": "1", "status": "in_progress"}
 \`\`\`
 
-Mark task as completed after finishing work:
+完成工作后把任务标记为 completed：
 \`\`\`json
 {"taskId": "1", "status": "completed"}
 \`\`\`
 
-Delete a task:
+删除任务：
 \`\`\`json
 {"taskId": "1", "status": "deleted"}
 \`\`\`
 
-Claim a task by setting owner:
+通过设置 owner 认领任务：
 \`\`\`json
 {"taskId": "1", "owner": "my-name"}
 \`\`\`
 
-Set up task dependencies:
+设置任务依赖：
 \`\`\`json
 {"taskId": "2", "addBlockedBy": ["1"]}
 \`\`\`

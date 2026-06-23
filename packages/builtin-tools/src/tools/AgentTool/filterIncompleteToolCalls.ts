@@ -5,9 +5,8 @@ import type {
 } from 'src/types/message.js'
 
 /**
- * Removes invalid or orphaned tool_use/tool_result blocks while preserving
- * completed tool-call pairs. This is intentionally block-level, not
- * message-level, so completed parallel tool calls stay paired with results.
+ * 移除无效或孤立的 tool_use/tool_result 块，同时保留已完成的工具调用对。
+ * 此操作有意在块级别而非消息级别进行，以便已完成的并行工具调用仍能与结果配对。
  */
 export function filterIncompleteToolCalls(messages: Message[]): Message[] {
   const toolUseIdsWithResults = new Set<string>()

@@ -38,12 +38,12 @@ const inputSchema = lazySchema(() =>
     setting: z
       .string()
       .describe(
-        'The setting key (e.g., "theme", "model", "permissions.defaultMode")',
+        '配置项键名（例如："theme"、"model"、"permissions.defaultMode"）',
       ),
     value: z
       .union([z.string(), z.boolean(), z.number()])
       .optional()
-      .describe('The new value. Omit to get current value.'),
+      .describe('新值。省略以获取当前值。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -66,7 +66,7 @@ export type Output = z.infer<OutputSchema>
 
 export const ConfigTool = buildTool({
   name: CONFIG_TOOL_NAME,
-  searchHint: 'get or set Claude Code settings (theme, model)',
+  searchHint: '获取或设置 Claude Code 配置项（主题、模型等）',
   maxResultSizeChars: 100_000,
   async description() {
     return DESCRIPTION
@@ -96,43 +96,43 @@ export const ConfigTool = buildTool({
       : `${input.setting} = ${input.value}`
   },
   async checkPermissions(input: Input) {
-    // Auto-allow reading configs
+    // 自动允许读取配置
     if (input.value === undefined) {
       return { behavior: 'allow' as const, updatedInput: input }
     }
     return {
       behavior: 'ask' as const,
-      message: `Set ${input.setting} to ${jsonStringify(input.value)}`,
+      message: `将 ${input.setting} 设置为 ${jsonStringify(input.value)}`,
     }
   },
   renderToolUseMessage,
   renderToolResultMessage,
   renderToolUseRejectedMessage,
   async call({ setting, value }: Input, context): Promise<{ data: Output }> {
-    // 1. Check if setting is supported
-    // Voice settings are registered at build-time (feature('VOICE_MODE')), but
-    // must also be gated at runtime. When the kill-switch is on, treat
-    // voiceEnabled as an unknown setting so no voice-specific strings leak.
+    // 1. 检查该 setting 是否受支持
+    // 语音相关 setting 在构建期注册（feature('VOICE_MODE')），但在运行期
+    // 还需再做一次门控。当 kill-switch 打开时，把 voiceEnabled 当作未知
+    // setting 处理，以免泄露任何语音相关的字符串。
     if (feature('VOICE_MODE') && setting === 'voiceEnabled') {
       const { isVoiceGrowthBookEnabled } = await import(
         'src/voice/voiceModeEnabled.js'
       )
       if (!isVoiceGrowthBookEnabled()) {
         return {
-          data: { success: false, error: `Unknown setting: "${setting}"` },
+          data: { success: false, error: `未知配置项："${setting}"` },
         }
       }
     }
     if (!isSupported(setting)) {
       return {
-        data: { success: false, error: `Unknown setting: "${setting}"` },
+        data: { success: false, error: `未知配置项："${setting}"` },
       }
     }
 
     const config = getConfig(setting)!
     const path = getPath(setting)
 
-    // 2. GET operation
+    // 2. GET 操作
     if (value === undefined) {
       const currentValue = getValue(config.source, path)
       const displayValue = config.formatOnRead
@@ -143,10 +143,10 @@ export const ConfigTool = buildTool({
       }
     }
 
-    // 3. SET operation
+    // 3. SET 操作
 
-    // Handle "default" — unset the config key so it falls back to the
-    // platform-aware default (determined by the bridge feature gate).
+    // 处理 "default"——取消该 config 键的设置，使其回落到
+    // 平台相关的默认值（由 bridge feature 门控决定）。
     if (
       setting === 'remoteControlAtStartup' &&
       typeof value === 'string' &&
@@ -159,7 +159,7 @@ export const ConfigTool = buildTool({
         return next
       })
       const resolved = getRemoteControlAtStartup()
-      // Sync to AppState so useReplBridge reacts immediately
+      // 同步到 AppState，使 useReplBridge 立即响应
       context.setAppState(prev => {
         if (prev.replBridgeEnabled === resolved && !prev.replBridgeOutboundOnly)
           return prev
@@ -181,7 +181,7 @@ export const ConfigTool = buildTool({
 
     let finalValue: unknown = value
 
-    // Coerce and validate boolean values
+    // 强制转换并校验布尔值
     if (config.type === 'boolean') {
       if (typeof value === 'string') {
         const lower = value.toLowerCase().trim()
@@ -194,13 +194,13 @@ export const ConfigTool = buildTool({
             success: false,
             operation: 'set',
             setting,
-            error: `${setting} requires true or false.`,
+            error: `${setting} 需要 true 或 false。`,
           },
         }
       }
     }
 
-    // Check options
+    // 校验可选值
     const options = getOptionsForSetting(setting)
     if (options && !options.includes(String(finalValue))) {
       return {
@@ -208,12 +208,12 @@ export const ConfigTool = buildTool({
           success: false,
           operation: 'set',
           setting,
-          error: `Invalid value "${value}". Options: ${options.join(', ')}`,
+          error: `无效值 "${value}"。可选项：${options.join(', ')}`,
         },
       }
     }
 
-    // Async validation (e.g., model API check)
+    // 异步校验（例如模型 API 检查）
     if (config.validateOnWrite) {
       const result = await config.validateOnWrite(finalValue)
       if (!result.valid) {
@@ -228,7 +228,7 @@ export const ConfigTool = buildTool({
       }
     }
 
-    // Pre-flight checks for voice mode
+    // 语音模式的预检
     if (
       feature('VOICE_MODE') &&
       setting === 'voiceEnabled' &&
@@ -243,8 +243,8 @@ export const ConfigTool = buildTool({
           data: {
             success: false,
             error: !isAnthropicAuthEnabled()
-              ? 'Voice mode requires a Claude.ai account. Please run /login to sign in.'
-              : 'Voice mode is not available.',
+              ? '语音模式需要 Claude.ai 账户，请运行 /login 登录。'
+              : '语音模式不可用。',
           },
         }
       }
@@ -264,7 +264,7 @@ export const ConfigTool = buildTool({
             success: false,
             error:
               recording.reason ??
-              'Voice mode is not available in this environment.',
+              '当前环境中语音模式不可用。',
           },
         }
       }
@@ -273,7 +273,7 @@ export const ConfigTool = buildTool({
           data: {
             success: false,
             error:
-              'Voice mode requires a Claude.ai account. Please run /login to sign in.',
+              '语音模式需要 Claude.ai 账户，请运行 /login 登录。',
           },
         }
       }
@@ -283,25 +283,25 @@ export const ConfigTool = buildTool({
           data: {
             success: false,
             error:
-              'No audio recording tool found.' +
-              (deps.installCommand ? ` Run: ${deps.installCommand}` : ''),
+              '未找到音频录制工具。' +
+              (deps.installCommand ? ` 请运行：${deps.installCommand}` : ''),
           },
         }
       }
       if (!(await requestMicrophonePermission())) {
         let guidance: string
         if (process.platform === 'win32') {
-          guidance = 'Settings \u2192 Privacy \u2192 Microphone'
+          guidance = '\u8bbe\u7f6e \u2192 \u9690\u79c1 \u2192 \u9ea6\u514b\u98ce'
         } else if (process.platform === 'linux') {
-          guidance = "your system's audio settings"
+          guidance = '\u7cfb\u7edf\u97f3\u9891\u8bbe\u7f6e'
         } else {
           guidance =
-            'System Settings \u2192 Privacy & Security \u2192 Microphone'
+            '\u7cfb\u7edf\u8bbe\u7f6e \u2192 \u9690\u79c1\u4e0e\u5b89\u5168 \u2192 \u9ea6\u514b\u98ce'
         }
         return {
           data: {
             success: false,
-            error: `Microphone access is denied. To enable it, go to ${guidance}, then try again.`,
+            error: `\u9ea6\u514b\u98ce\u8bbf\u95ee\u88ab\u62d2\u7edd\u3002\u8bf7\u524d\u5f80 ${guidance} \u542f\u7528\u540e\u91cd\u8bd5\u3002`,
           },
         }
       }
@@ -309,7 +309,7 @@ export const ConfigTool = buildTool({
 
     const previousValue = getValue(config.source, path)
 
-    // 4. Write to storage
+    // 4. 写入存储
     try {
       if (config.source === 'global') {
         const key = path[0]
@@ -319,7 +319,7 @@ export const ConfigTool = buildTool({
               success: false,
               operation: 'set',
               setting,
-              error: 'Invalid setting path',
+              error: '无效的配置路径',
             },
           }
         }
@@ -342,9 +342,9 @@ export const ConfigTool = buildTool({
         }
       }
 
-      // 5a. Voice needs notifyChange so applySettingsChange resyncs
-      // AppState.settings (useVoiceEnabled reads settings.voiceEnabled)
-      // and the settings cache resets for the next /voice read.
+      // 5a. 语音模式需要 notifyChange，以便 applySettingsChange 重新同步
+      // AppState.settings（useVoiceEnabled 读取的是 settings.voiceEnabled），
+      // 同时重置 settings 缓存以供下次 /voice 读取。
       if (feature('VOICE_MODE') && setting === 'voiceEnabled') {
         const { settingsChangeDetector } = await import(
           'src/utils/settings/changeDetector.js'
@@ -352,7 +352,7 @@ export const ConfigTool = buildTool({
         settingsChangeDetector.notifyChange('userSettings')
       }
 
-      // 5b. Sync to AppState if needed for immediate UI effect
+      // 5b. 如有需要则同步到 AppState，以实现即时的 UI 效果
       if (config.appStateKey) {
         const appKey = config.appStateKey
         context.setAppState(prev => {
@@ -361,9 +361,9 @@ export const ConfigTool = buildTool({
         })
       }
 
-      // Sync remoteControlAtStartup to AppState so the bridge reacts
-      // immediately (the config key differs from the AppState field name,
-      // so the generic appStateKey mechanism can't handle this).
+      // 将 remoteControlAtStartup 同步到 AppState，使 bridge 立即响应
+      //（该 config 键名与 AppState 字段名不一致，因此通用的 appStateKey
+      // 机制无法处理这种情况）。
       if (setting === 'remoteControlAtStartup') {
         const resolved = getRemoteControlAtStartup()
         context.setAppState(prev => {
@@ -421,7 +421,7 @@ export const ConfigTool = buildTool({
       return {
         tool_use_id: toolUseID,
         type: 'tool_result' as const,
-        content: `Set ${content.setting} to ${jsonStringify(content.newValue)}`,
+        content: `已将 ${content.setting} 设置为 ${jsonStringify(content.newValue)}`,
       }
     }
     return {

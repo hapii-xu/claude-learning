@@ -34,6 +34,11 @@ export function setSystemPromptInjection(value: string | null): void {
   getSystemContext.cache.clear?.()
 }
 
+/**
+ * 获取当前仓库的 Git 状态快照，包含当前分支、主分支、暂存/工作区变更（--short）
+ * 以及最近 5 条提交记录。结果会被 memoize 缓存，仅在会话开始时执行一次。
+ * 非 Git 仓库、测试环境或禁用 git 指令时返回 null。
+ */
 export const getGitStatus = memoize(async (): Promise<string | null> => {
   if (process.env.NODE_ENV === 'test') {
     // 在测试中避免循环
@@ -86,7 +91,7 @@ export const getGitStatus = memoize(async (): Promise<string | null> => {
     const truncatedStatus =
       status.length > MAX_STATUS_CHARS
         ? status.substring(0, MAX_STATUS_CHARS) +
-          '\n... (truncated because it exceeds 2k characters. If you need more information, run "git status" using BashTool)'
+          '\n... （内容已截断，超过 2k 字符。如需完整信息，请使用 BashTool 运行 "git status"）'
         : status
 
     logForDiagnosticsNoPII('info', 'git_status_completed', {
@@ -95,12 +100,12 @@ export const getGitStatus = memoize(async (): Promise<string | null> => {
     })
 
     return [
-      `This is the git status at the start of the conversation. Note that this status is a snapshot in time, and will not update during the conversation.`,
-      `Current branch: ${branch}`,
-      `Main branch (you will usually use this for PRs): ${mainBranch}`,
-      ...(userName ? [`Git user: ${userName}`] : []),
-      `Status:\n${truncatedStatus || '(clean)'}`,
-      `Recent commits:\n${log}`,
+      `这是会话开始时的 Git 状态快照。注意：此状态为某一时刻的快照，会话期间不会自动更新。`,
+      `当前分支：${branch}`,
+      `主分支（通常用于创建 PR）：${mainBranch}`,
+      ...(userName ? [`Git 用户：${userName}`] : []),
+      `状态：\n${truncatedStatus || '（干净）'}`,
+      `最近提交：\n${log}`,
     ].join('\n\n')
   } catch (error) {
     logForDiagnosticsNoPII('error', 'git_status_failed', {

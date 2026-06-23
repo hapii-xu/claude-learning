@@ -55,8 +55,8 @@ export async function resumeAgentBackground({
 }): Promise<ResumeAgentResult> {
   const startTime = Date.now()
   const appState = toolUseContext.getAppState()
-  // In-process teammates get a no-op setAppState; setAppStateForTasks
-  // reaches the root store so task registration/progress/kill stay visible.
+  // 进程内队友获得空操作的 setAppState；setAppStateForTasks
+  // 到达根存储以便任务注册/进度/终止保持可见。
   const rootSetAppState =
     toolUseContext.setAppStateForTasks ?? toolUseContext.setAppState
   const permissionMode = appState.toolPermissionContext.mode
@@ -78,8 +78,8 @@ export async function resumeAgentBackground({
     resumedMessages,
     transcript.contentReplacements,
   )
-  // Best-effort: if the original worktree was removed externally, fall back
-  // to parent cwd rather than crashing on chdir later.
+  // 尽力而为：如果原始 worktree 被外部移除，回退到
+  // 父 cwd 而不是稍后在 chdir 上崩溃。
   const resumedWorktreePath = meta?.worktreePath
     ? await fsp.stat(meta.worktreePath).then(
         s => (s.isDirectory() ? meta.worktreePath : undefined),
@@ -92,12 +92,12 @@ export async function resumeAgentBackground({
       )
     : undefined
   if (resumedWorktreePath) {
-    // Bump mtime so stale-worktree cleanup doesn't delete a just-resumed worktree (#22355)
+    // 提升 mtime 以便过时 worktree 清理不会删除刚刚恢复的 worktree (#22355)
     const now = new Date()
     await fsp.utimes(resumedWorktreePath, now, now)
   }
 
-  // Skip filterDeniedAgents re-gating — original spawn already passed permission checks
+  // 跳过 filterDeniedAgents 重新门控 — 原始生成已经通过权限检查
   let selectedAgent: AgentDefinition
   let isResumedFork = false
   if (meta?.agentType === FORK_AGENT.agentType) {
@@ -148,7 +148,7 @@ export async function resumeAgentBackground({
     }
   }
 
-  // Resolve model for analytics metadata (runAgent resolves its own internally)
+  // 为分析元数据解析模型（runAgent 在内部解析自己的）
   const resolvedAgentModel = getAgentModel(
     selectedAgent.model,
     toolUseContext.options.mainLoopModel,
@@ -178,24 +178,24 @@ export async function resumeAgentBackground({
       isBuiltInAgent(selectedAgent),
     ),
     model: undefined,
-    // Fork resume: pass parent's system prompt (cache-identical prefix).
-    // Non-fork: undefined → runAgent recomputes under wrapWithCwd so
-    // getCwd() sees resumedWorktreePath.
+    // Fork 恢复：传递父代理的系统提示（缓存相同的前缀）。
+    // 非 fork：undefined → runAgent 在 wrapWithCwd 下重新计算，
+    // 以便 getCwd() 看到 resumedWorktreePath。
     override: isResumedFork
       ? { systemPrompt: forkParentSystemPrompt }
       : undefined,
     availableTools: workerTools,
-    // Transcript already contains the parent context slice from the
-    // original fork. Re-supplying it would cause duplicate tool_use IDs.
+    // 转录已经包含了来自
+    // 原始 fork 的父代理上下文切片。重新提供它会导致重复的 tool_use ID。
     forkContextMessages: undefined,
     ...(isResumedFork && { useExactTools: true }),
-    // Re-persist so metadata survives runAgent's writeAgentMetadata overwrite
+    // 重新持久化以便元数据在 runAgent 的 writeAgentMetadata 覆盖中存活
     worktreePath: resumedWorktreePath,
     description: meta?.description,
     contentReplacementState: resumedReplacementState,
   }
 
-  // Skip name-registry write — original entry persists from the initial spawn
+  // 跳过名称注册表写入 — 原始条目从初始生成中持续存在
   const agentBackgroundTask = registerAsyncAgent({
     agentId,
     description: uiDescription,

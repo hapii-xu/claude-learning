@@ -1,6 +1,6 @@
 import { feature } from 'bun:bundle'
 
-export const DESCRIPTION = 'Send a message to another agent'
+export const DESCRIPTION = '向另一个 agent 发送消息'
 
 export function getPrompt(): string {
   const udsRow = feature('UDS_INBOX')

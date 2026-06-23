@@ -32,26 +32,26 @@ export const inputSchema = lazySchema(() =>
     notebook_path: z
       .string()
       .describe(
-        'The absolute path to the Jupyter notebook file to edit (must be absolute, not relative)',
+        '要编辑的 Jupyter notebook 文件的绝对路径（必须是绝对路径，不能是相对路径）',
       ),
     cell_id: z
       .string()
       .optional()
       .describe(
-        'The ID of the cell to edit. When inserting a new cell, the new cell will be inserted after the cell with this ID, or at the beginning if not specified.',
+        '要编辑的单元格 ID。插入新单元格时，新单元格会插入到具有此 ID 的单元格之后；如果未指定，则插入到开头。',
       ),
-    new_source: z.string().describe('The new source for the cell'),
+    new_source: z.string().describe('单元格的新 source'),
     cell_type: z
       .enum(['code', 'markdown'])
       .optional()
       .describe(
-        'The type of the cell (code or markdown). If not specified, it defaults to the current cell type. If using edit_mode=insert, this is required.',
+        '单元格的类型（code 或 markdown）。如果未指定，默认使用当前单元格类型。使用 edit_mode=insert 时此项必填。',
       ),
     edit_mode: z
       .enum(['replace', 'insert', 'delete'])
       .optional()
       .describe(
-        'The type of edit to make (replace, insert, delete). Defaults to replace.',
+        '编辑操作的类型（replace、insert、delete）。默认为 replace。',
       ),
   }),
 )
@@ -61,26 +61,26 @@ export const outputSchema = lazySchema(() =>
   z.object({
     new_source: z
       .string()
-      .describe('The new source code that was written to the cell'),
+      .describe('写入到单元格的新源代码'),
     cell_id: z
       .string()
       .optional()
-      .describe('The ID of the cell that was edited'),
-    cell_type: z.enum(['code', 'markdown']).describe('The type of the cell'),
-    language: z.string().describe('The programming language of the notebook'),
-    edit_mode: z.string().describe('The edit mode that was used'),
+      .describe('被编辑的单元格 ID'),
+    cell_type: z.enum(['code', 'markdown']).describe('单元格类型'),
+    language: z.string().describe('notebook 的编程语言'),
+    edit_mode: z.string().describe('使用的编辑模式'),
     error: z
       .string()
       .optional()
-      .describe('Error message if the operation failed'),
-    // Fields for attribution tracking
-    notebook_path: z.string().describe('The path to the notebook file'),
+      .describe('操作失败时的错误消息'),
+    // 用于归因追踪的字段
+    notebook_path: z.string().describe('notebook 文件的路径'),
     original_file: z
       .string()
-      .describe('The original notebook content before modification'),
+      .describe('修改前的原始 notebook 内容'),
     updated_file: z
       .string()
-      .describe('The updated notebook content after modification'),
+      .describe('修改后更新后的 notebook 内容'),
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>
@@ -89,7 +89,7 @@ export type Output = z.infer<OutputSchema>
 
 export const NotebookEditTool = buildTool({
   name: NOTEBOOK_EDIT_TOOL_NAME,
-  searchHint: 'edit Jupyter notebook cells (.ipynb)',
+  searchHint: '编辑 Jupyter notebook 单元格（.ipynb）',
   maxResultSizeChars: 100_000,
   shouldDefer: true,
   async description() {
@@ -99,12 +99,12 @@ export const NotebookEditTool = buildTool({
     return PROMPT
   },
   userFacingName() {
-    return 'Edit Notebook'
+    return '编辑 Notebook'
   },
   getToolUseSummary,
   getActivityDescription(input) {
     const summary = getToolUseSummary(input)
-    return summary ? `Editing notebook ${summary}` : 'Editing notebook'
+    return summary ? `正在编辑 notebook ${summary}` : '正在编辑 notebook'
   },
   get inputSchema(): InputSchema {
     return inputSchema()
@@ -147,25 +147,25 @@ export const NotebookEditTool = buildTool({
         return {
           tool_use_id: toolUseID,
           type: 'tool_result',
-          content: `Updated cell ${cell_id} with ${new_source}`,
+          content: `已更新单元格 ${cell_id}，内容为 ${new_source}`,
         }
       case 'insert':
         return {
           tool_use_id: toolUseID,
           type: 'tool_result',
-          content: `Inserted cell ${cell_id} with ${new_source}`,
+          content: `已插入单元格 ${cell_id}，内容为 ${new_source}`,
         }
       case 'delete':
         return {
           tool_use_id: toolUseID,
           type: 'tool_result',
-          content: `Deleted cell ${cell_id}`,
+          content: `已删除单元格 ${cell_id}`,
         }
       default:
         return {
           tool_use_id: toolUseID,
           type: 'tool_result',
-          content: 'Unknown edit mode',
+          content: '未知的编辑模式',
         }
     }
   },
@@ -181,7 +181,7 @@ export const NotebookEditTool = buildTool({
       ? notebook_path
       : resolve(getCwd(), notebook_path)
 
-    // SECURITY: Skip filesystem operations for UNC paths to prevent NTLM credential leaks.
+    // 安全：跳过对 UNC 路径的文件系统操作，以防止 NTLM 凭据泄露。
     if (fullPath.startsWith('\\\\') || fullPath.startsWith('//')) {
       return { result: true }
     }
@@ -190,7 +190,7 @@ export const NotebookEditTool = buildTool({
       return {
         result: false,
         message:
-          'File must be a Jupyter notebook (.ipynb file). For editing other file types, use the FileEdit tool.',
+          '文件必须是 Jupyter notebook（.ipynb 文件）。如需编辑其他文件类型，请使用 FileEdit 工具。',
         errorCode: 2,
       }
     }
@@ -202,7 +202,7 @@ export const NotebookEditTool = buildTool({
     ) {
       return {
         result: false,
-        message: 'Edit mode must be replace, insert, or delete.',
+        message: '编辑模式必须是 replace、insert 或 delete。',
         errorCode: 4,
       }
     }
@@ -210,20 +210,20 @@ export const NotebookEditTool = buildTool({
     if (edit_mode === 'insert' && !cell_type) {
       return {
         result: false,
-        message: 'Cell type is required when using edit_mode=insert.',
+        message: '使用 edit_mode=insert 时必须指定单元格类型。',
         errorCode: 5,
       }
     }
 
-    // Require Read-before-Edit (matches FileEditTool/FileWriteTool). Without
-    // this, the model could edit a notebook it never saw, or edit against a
-    // stale view after an external change — silent data loss.
+    // 要求先 Read 再 Edit（与 FileEditTool/FileWriteTool 保持一致）。否则
+    // 模型可能会编辑一个它从未见过的 notebook，或在外部修改后基于过期视图
+    // 进行编辑 —— 造成静默的数据丢失。
     const readTimestamp = toolUseContext.readFileState.get(fullPath)
     if (!readTimestamp) {
       return {
         result: false,
         message:
-          'File has not been read yet. Read it first before writing to it.',
+          '文件尚未被读取。请先读取文件再写入。',
         errorCode: 9,
       }
     }
@@ -231,7 +231,7 @@ export const NotebookEditTool = buildTool({
       return {
         result: false,
         message:
-          'File has been modified since read, either by the user or by a linter. Read it again before attempting to write it.',
+          '文件自读取后已被修改（由用户或 linter 造成）。请重新读取后再尝试写入。',
         errorCode: 10,
       }
     }
@@ -243,7 +243,7 @@ export const NotebookEditTool = buildTool({
       if (isENOENT(e)) {
         return {
           result: false,
-          message: 'Notebook file does not exist.',
+          message: 'Notebook 文件不存在。',
           errorCode: 1,
         }
       }
@@ -253,7 +253,7 @@ export const NotebookEditTool = buildTool({
     if (!notebook) {
       return {
         result: false,
-        message: 'Notebook is not valid JSON.',
+        message: 'Notebook 不是合法的 JSON。',
         errorCode: 6,
       }
     }
@@ -261,31 +261,31 @@ export const NotebookEditTool = buildTool({
       if (edit_mode !== 'insert') {
         return {
           result: false,
-          message: 'Cell ID must be specified when not inserting a new cell.',
+          message: '非插入新单元格时必须指定单元格 ID。',
           errorCode: 7,
         }
       }
     } else {
-      // First try to find the cell by its actual ID
+      // 首先尝试按单元格的真实 ID 查找
       const cellIndex = notebook.cells.findIndex(
         (cell: NotebookCell) => cell.id === cell_id,
       )
 
       if (cellIndex === -1) {
-        // If not found, try to parse as a numeric index (cell-N format)
+        // 若未找到，尝试将其解析为数字索引（cell-N 格式）
         const parsedCellIndex = parseCellId(cell_id)
         if (parsedCellIndex !== undefined) {
           if (!notebook.cells[parsedCellIndex]) {
             return {
               result: false,
-              message: `Cell with index ${parsedCellIndex} does not exist in notebook.`,
+              message: `notebook 中不存在索引为 ${parsedCellIndex} 的单元格。`,
               errorCode: 7,
             }
           }
         } else {
           return {
             result: false,
-            message: `Cell with ID "${cell_id}" not found in notebook.`,
+            message: `notebook 中未找到 ID 为 "${cell_id}" 的单元格。`,
             errorCode: 8,
           }
         }
@@ -319,17 +319,16 @@ export const NotebookEditTool = buildTool({
     }
 
     try {
-      // readFileSyncWithMetadata gives content + encoding + line endings in
-      // one safeResolvePath + readFileSync pass, replacing the previous
-      // detectFileEncoding + readFile + detectLineEndings chain (each of
-      // which redid safeResolvePath and/or a 4KB readSync).
+      // readFileSyncWithMetadata 在一次 safeResolvePath + readFileSync 流程中
+      // 同时返回 content + encoding + line endings，取代了之前的
+      // detectFileEncoding + readFile + detectLineEndings 链路（它们各自都会
+      // 重复执行 safeResolvePath 和/或 4KB 的 readSync）。
       const { content, encoding, lineEndings } =
         readFileSyncWithMetadata(fullPath)
-      // Must use non-memoized jsonParse here: safeParseJSON caches by content
-      // string and returns a shared object reference, but we mutate the
-      // notebook in place below (cells.splice, targetCell.source = ...).
-      // Using the memoized version poisons the cache for validateInput() and
-      // any subsequent call() with the same file content.
+      // 此处必须使用非 memoized 的 jsonParse：safeParseJSON 会按内容字符串
+      // 做缓存并返回共享对象引用，但下方我们会就地修改 notebook
+      // （cells.splice、targetCell.source = ...）。使用 memoized 版本会污染
+      // validateInput() 以及任何后续针对相同文件内容的 call() 的缓存。
       let notebook: NotebookContent
       try {
         notebook = jsonParse(content) as NotebookContent
@@ -340,7 +339,7 @@ export const NotebookEditTool = buildTool({
             cell_type: cell_type ?? 'code',
             language: 'python',
             edit_mode: 'replace',
-            error: 'Notebook is not valid JSON.',
+            error: 'Notebook 不是合法的 JSON。',
             cell_id,
             notebook_path: fullPath,
             original_file: '',
@@ -351,14 +350,14 @@ export const NotebookEditTool = buildTool({
 
       let cellIndex
       if (!cell_id) {
-        cellIndex = 0 // Default to inserting at the beginning if no cell_id is provided
+        cellIndex = 0 // 如果未提供 cell_id，默认插入到开头
       } else {
-        // First try to find the cell by its actual ID
+        // 首先尝试按单元格的真实 ID 查找
         cellIndex = notebook.cells.findIndex(
           (cell: NotebookCell) => cell.id === cell_id,
         )
 
-        // If not found, try to parse as a numeric index (cell-N format)
+        // 若未找到，尝试将其解析为数字索引（cell-N 格式）
         if (cellIndex === -1) {
           const parsedCellIndex = parseCellId(cell_id)
           if (parsedCellIndex !== undefined) {
@@ -367,16 +366,16 @@ export const NotebookEditTool = buildTool({
         }
 
         if (originalEditMode === 'insert') {
-          cellIndex += 1 // Insert after the cell with this ID
+          cellIndex += 1 // 插入到具有此 ID 的单元格之后
         }
       }
 
-      // Convert replace to insert if trying to replace one past the end
+      // 如果在末尾再 replace 一个单元格，则把 replace 转换为 insert
       let edit_mode = originalEditMode
       if (edit_mode === 'replace' && cellIndex === notebook.cells.length) {
         edit_mode = 'insert'
         if (!cell_type) {
-          cell_type = 'code' // Default to code if no cell_type specified
+          cell_type = 'code' // 未指定 cell_type 时默认为 code
         }
       }
 
@@ -394,7 +393,7 @@ export const NotebookEditTool = buildTool({
       }
 
       if (edit_mode === 'delete') {
-        // Delete the specified cell
+        // 删除指定单元格
         notebook.cells.splice(cellIndex, 1)
       } else if (edit_mode === 'insert') {
         let new_cell: NotebookCell
@@ -415,14 +414,14 @@ export const NotebookEditTool = buildTool({
             outputs: [],
           }
         }
-        // Insert the new cell
+        // 插入新单元格
         notebook.cells.splice(cellIndex, 0, new_cell)
       } else {
-        // Find the specified cell
-        const targetCell = notebook.cells[cellIndex]! // validateInput ensures cell_number is in bounds
+        // 查找指定单元格
+        const targetCell = notebook.cells[cellIndex]! // validateInput 已确保 cell_number 在范围内
         targetCell.source = new_source
         if (targetCell.cell_type === 'code') {
-          // Reset execution count and clear outputs since cell was modified
+          // 由于单元格已被修改，重置执行计数并清空输出
           targetCell.execution_count = null
           targetCell.outputs = []
         }
@@ -430,14 +429,14 @@ export const NotebookEditTool = buildTool({
           targetCell.cell_type = cell_type
         }
       }
-      // Write back to file
+      // 写回文件
       const IPYNB_INDENT = 1
       const updatedContent = jsonStringify(notebook, null, IPYNB_INDENT)
       writeTextContent(fullPath, updatedContent, encoding, lineEndings)
-      // Update readFileState with post-write mtime (matches FileEditTool/
-      // FileWriteTool). offset:undefined breaks FileReadTool's dedup match —
-      // without this, Read→NotebookEdit→Read in the same millisecond would
-      // return the file_unchanged stub against stale in-context content.
+      // 用写入后的 mtime 更新 readFileState（与 FileEditTool/FileWriteTool
+      // 保持一致）。offset:undefined 会破坏 FileReadTool 的去重匹配 —— 否则
+      // 同一毫秒内的 Read→NotebookEdit→Read 会针对上下文中过期的内容返回
+      // file_unchanged 桩结果。
       readFileState.set(fullPath, {
         content: updatedContent,
         timestamp: getFileModificationTime(fullPath),
@@ -480,7 +479,7 @@ export const NotebookEditTool = buildTool({
         cell_type: cell_type ?? 'code',
         language: 'python',
         edit_mode: 'replace',
-        error: 'Unknown error occurred while editing notebook',
+        error: '编辑 notebook 时发生未知错误',
         cell_id,
         notebook_path: fullPath,
         original_file: '',

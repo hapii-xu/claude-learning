@@ -78,7 +78,7 @@ export function renderToolUseErrorMessage(
   if (!verbose && typeof result === 'string' && extractTag(result, 'tool_use_error')) {
     return (
       <MessageResponse>
-        <Text color="error">Error editing notebook</Text>
+        <Text color="error">编辑 notebook 时出错</Text>
       </MessageResponse>
     );
   }
@@ -98,7 +98,7 @@ export function renderToolResultMessage({ cell_id, new_source, error }: Output):
     <MessageResponse>
       <Box flexDirection="column">
         <Text>
-          Updated cell <Text bold>{cell_id}</Text>:
+          已更新单元格 <Text bold>{cell_id}</Text>：
         </Text>
         <Box marginLeft={2}>
           <HighlightedCode code={new_source} filePath="notebook.py" />

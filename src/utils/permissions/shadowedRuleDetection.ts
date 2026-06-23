@@ -9,12 +9,12 @@ import {
 } from './permissions.js'
 
 /**
- * Type of shadowing that makes a rule unreachable
+ * 使规则不可达的遮蔽类型
  */
 export type ShadowType = 'ask' | 'deny'
 
 /**
- * Represents an unreachable permission rule with explanation
+ * 表示不可达的权限规则及说明
  */
 export type UnreachableRule = {
   rule: PermissionRule
@@ -25,38 +25,38 @@ export type UnreachableRule = {
 }
 
 /**
- * Options for detecting unreachable rules
+ * 检测不可达规则的选项
  */
 export type DetectUnreachableRulesOptions = {
   /**
-   * Whether sandbox auto-allow is enabled for Bash commands.
-   * When true, tool-wide Bash ask rules from personal settings don't block
-   * specific Bash allow rules because sandboxed commands are auto-allowed.
+   * 是否为 Bash 命令启用了沙箱自动允许。
+   * 为 true 时，来自个人设置的工具级 Bash ask 规则不会阻止
+   * 特定的 Bash allow 规则，因为沙箱命令会被自动允许。
    */
   sandboxAutoAllowEnabled: boolean
 }
 
 /**
- * Result of checking if a rule is shadowed.
- * Uses discriminated union for type safety.
+ * 检查规则是否被遮蔽的结果。
+ * 使用可辨识联合类型以确保类型安全。
  */
 type ShadowResult =
   | { shadowed: false }
   | { shadowed: true; shadowedBy: PermissionRule; shadowType: ShadowType }
 
 /**
- * Check if a permission rule source is shared (visible to other users).
- * Shared settings include:
- * - projectSettings: Committed to git, shared with team
- * - policySettings: Enterprise-managed, pushed to all users
- * - command: From slash command frontmatter, potentially shared
+ * 判断权限规则来源是否为共享的（对其他用户可见）。
+ * 共享设置包括：
+ * - projectSettings：提交到 git，与团队共享
+ * - policySettings：企业管理，推送给所有用户
+ * - command：来自斜杠命令的 frontmatter，可能被共享
  *
- * Personal settings include:
- * - userSettings: User's global ~/.claude settings
- * - localSettings: Gitignored per-project settings
- * - cliArg: Runtime CLI arguments
- * - session: In-memory session rules
- * - flagSettings: From --settings flag (runtime)
+ * 个人设置包括：
+ * - userSettings：用户的全局 ~/.claude 设置
+ * - localSettings：被 gitignore 的项目级设置
+ * - cliArg：运行时 CLI 参数
+ * - session：内存中的会话级规则
+ * - flagSettings：来自 --settings 标志（运行时）
  */
 export function isSharedSettingSource(source: PermissionRuleSource): boolean {
   return (
@@ -67,14 +67,14 @@ export function isSharedSettingSource(source: PermissionRuleSource): boolean {
 }
 
 /**
- * Format a rule source for display in warning messages.
+ * 格式化规则来源以在警告消息中显示。
  */
 function formatSource(source: PermissionRuleSource): string {
   return permissionRuleSourceDisplayString(source)
 }
 
 /**
- * Generate a fix suggestion based on the shadow type.
+ * 根据遮蔽类型生成修复建议。
  */
 function generateFixSuggestion(
   shadowType: ShadowType,
@@ -92,21 +92,21 @@ function generateFixSuggestion(
 }
 
 /**
- * Check if a specific allow rule is shadowed (unreachable) by an ask rule.
+ * 检查特定的 allow 规则是否被 ask 规则遮蔽（不可达）。
  *
- * An allow rule is unreachable when:
- * 1. There's a tool-wide ask rule (e.g., "Bash" in ask list)
- * 2. And a specific allow rule (e.g., "Bash(ls:*)" in allow list)
+ * allow 规则不可达的条件：
+ * 1. 存在工具级的 ask 规则（例如 ask 列表中的 "Bash"）
+ * 2. 以及特定的 allow 规则（例如 allow 列表中的 "Bash(ls:*)"）
  *
- * The ask rule takes precedence, making the specific allow rule unreachable
- * because the user will always be prompted first.
+ * ask 规则优先级更高，使特定的 allow 规则不可达，
+ * 因为用户总是会被首先提示。
  *
- * Exception: For Bash with sandbox auto-allow enabled, tool-wide ask rules
- * from PERSONAL settings don't shadow specific allow rules because:
- * - Sandboxed commands are auto-allowed regardless of ask rules
- * - This only applies to personal settings (userSettings, localSettings, etc.)
- * - Shared settings (projectSettings, policySettings) always warn because
- *   other team members may not have sandbox enabled
+ * 例外情况：对于启用了沙箱自动允许的 Bash，来自个人设置的
+ * 工具级 ask 规则不会遮蔽特定的 allow 规则，因为：
+ * - 沙箱命令无论如何都会被自动允许
+ * - 这仅适用于个人设置（userSettings、localSettings 等）
+ * - 共享设置（projectSettings、policySettings）始终会警告，因为
+ *   其他团队成员可能未启用沙箱
  */
 function isAllowRuleShadowedByAskRule(
   allowRule: PermissionRule,
@@ -115,13 +115,13 @@ function isAllowRuleShadowedByAskRule(
 ): ShadowResult {
   const { toolName, ruleContent } = allowRule.ruleValue
 
-  // Only check allow rules that have specific content (e.g., "Bash(ls:*)")
-  // Tool-wide allow rules cannot be shadowed by ask rules
+  // 仅检查具有特定内容的 allow 规则（例如 "Bash(ls:*)"）
+  // 工具级的 allow 规则不会被 ask 规则遮蔽
   if (ruleContent === undefined) {
     return { shadowed: false }
   }
 
-  // Find any tool-wide ask rule for the same tool
+  // 查找同一工具的工具级 ask 规则
   const shadowingAskRule = askRules.find(
     askRule =>
       askRule.ruleValue.toolName === toolName &&
@@ -132,30 +132,30 @@ function isAllowRuleShadowedByAskRule(
     return { shadowed: false }
   }
 
-  // Special case: Bash with sandbox auto-allow from personal settings
-  // The sandbox exception is based on the ASK rule's source, not the allow rule's source.
-  // If the ask rule is from personal settings, the user's own sandbox will auto-allow.
-  // If the ask rule is from shared settings, other team members may not have sandbox enabled.
+  // 特殊情况：来自个人设置的 Bash 沙箱自动允许
+  // 沙箱例外基于 ASK 规则的来源，而非 allow 规则的来源。
+  // 如果 ask 规则来自个人设置，用户自己的沙箱会自动允许。
+  // 如果 ask 规则来自共享设置，其他团队成员可能未启用沙箱。
   if (toolName === BASH_TOOL_NAME && options.sandboxAutoAllowEnabled) {
     if (!isSharedSettingSource(shadowingAskRule.source)) {
       return { shadowed: false }
     }
-    // Fall through to mark as shadowed - shared settings should always warn
+    // 继续向下标记为被遮蔽 - 共享设置应始终警告
   }
 
   return { shadowed: true, shadowedBy: shadowingAskRule, shadowType: 'ask' }
 }
 
 /**
- * Check if an allow rule is shadowed (completely blocked) by a deny rule.
+ * 检查 allow 规则是否被 deny 规则遮蔽（完全阻止）。
  *
- * An allow rule is unreachable when:
- * 1. There's a tool-wide deny rule (e.g., "Bash" in deny list)
- * 2. And a specific allow rule (e.g., "Bash(ls:*)" in allow list)
+ * allow 规则不可达的条件：
+ * 1. 存在工具级的 deny 规则（例如 deny 列表中的 "Bash"）
+ * 2. 以及特定的 allow 规则（例如 allow 列表中的 "Bash(ls:*)"）
  *
- * Deny rules are checked first in the permission evaluation order,
- * so the allow rule will never be reached - the tool is always denied.
- * This is more severe than ask-shadowing because the rule is truly blocked.
+ * 在权限评估顺序中 deny 规则首先被检查，
+ * 因此 allow 规则永远不会被触发 - 工具总是被拒绝。
+ * 这比 ask 遮蔽更严重，因为规则确实被完全阻止了。
  */
 function isAllowRuleShadowedByDenyRule(
   allowRule: PermissionRule,
@@ -163,13 +163,13 @@ function isAllowRuleShadowedByDenyRule(
 ): ShadowResult {
   const { toolName, ruleContent } = allowRule.ruleValue
 
-  // Only check allow rules that have specific content (e.g., "Bash(ls:*)")
-  // Tool-wide allow rules conflict with tool-wide deny rules but are not "shadowed"
+  // 仅检查具有特定内容的 allow 规则（例如 "Bash(ls:*)"）
+  // 工具级的 allow 规则与工具级的 deny 规则冲突但不算"被遮蔽"
   if (ruleContent === undefined) {
     return { shadowed: false }
   }
 
-  // Find any tool-wide deny rule for the same tool
+  // 查找同一工具的工具级 deny 规则
   const shadowingDenyRule = denyRules.find(
     denyRule =>
       denyRule.ruleValue.toolName === toolName &&
@@ -184,11 +184,11 @@ function isAllowRuleShadowedByDenyRule(
 }
 
 /**
- * Detect all unreachable permission rules in the given context.
+ * 检测给定上下文中所有不可达的权限规则。
  *
- * Currently detects:
- * - Allow rules shadowed by tool-wide deny rules (more severe - completely blocked)
- * - Allow rules shadowed by tool-wide ask rules (will always prompt)
+ * 当前检测：
+ * - 被工具级 deny 规则遮蔽的 allow 规则（更严重 - 完全阻止）
+ * - 被工具级 ask 规则遮蔽的 allow 规则（总是提示）
  */
 export function detectUnreachableRules(
   context: ToolPermissionContext,
@@ -200,9 +200,9 @@ export function detectUnreachableRules(
   const askRules = getAskRules(context)
   const denyRules = getDenyRules(context)
 
-  // Check each allow rule for shadowing
+  // 检查每个 allow 规则是否被遮蔽
   for (const allowRule of allowRules) {
-    // Check deny shadowing first (more severe)
+    // 优先检查 deny 遮蔽（更严重）
     const denyResult = isAllowRuleShadowedByDenyRule(allowRule, denyRules)
     if (denyResult.shadowed) {
       const shadowSource = formatSource(denyResult.shadowedBy.source)
@@ -213,10 +213,10 @@ export function detectUnreachableRules(
         shadowType: 'deny',
         fix: generateFixSuggestion('deny', denyResult.shadowedBy, allowRule),
       })
-      continue // Don't also report ask-shadowing if deny-shadowed
+      continue // 如果已被 deny 遮蔽，不再报告 ask 遮蔽
     }
 
-    // Check ask shadowing
+    // 检查 ask 遮蔽
     const askResult = isAllowRuleShadowedByAskRule(allowRule, askRules, options)
     if (askResult.shadowed) {
       const shadowSource = formatSource(askResult.shadowedBy.source)

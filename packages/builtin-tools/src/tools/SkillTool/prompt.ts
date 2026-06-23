@@ -17,16 +17,16 @@ import { toError } from 'src/utils/errors.js'
 import { truncate } from 'src/utils/format.js'
 import { logError } from 'src/utils/log.js'
 
-// Skill listing gets 1% of the context window (in characters)
+// skill 列表占用上下文窗口的 1%（按字符数计）
 export const SKILL_BUDGET_CONTEXT_PERCENT = 0.01
 export const CHARS_PER_TOKEN = 4
-export const DEFAULT_CHAR_BUDGET = 8_000 // Fallback: 1% of 200k × 4
+export const DEFAULT_CHAR_BUDGET = 8_000 // 兜底值：200k 的 1% × 4
 
-// Per-entry hard cap. The listing is for discovery only — the Skill tool loads
-// full content on invoke, so verbose whenToUse strings waste turn-1 cache_creation
-// tokens without improving match rate. Applies to all entries, including bundled,
-// since the cap is generous enough to preserve the core use case.
-// v2.1.117: raised from 250 → 1536 to allow richer skill descriptions.
+// 每条目的硬上限。列表仅用于发现 —— Skill 工具在调用时会加载完整内容，
+// 因此冗长的 whenToUse 字符串只会浪费 turn-1 的 cache_creation token，
+// 而不会提升匹配率。适用于所有条目（包括 bundled），因为该上限已经
+// 足够宽松，能保留核心用例。
+// v2.1.117：从 250 提升至 1536，以支持更丰富的 skill 描述。
 export const MAX_LISTING_DESC_CHARS = 1536
 
 export function getCharBudget(contextWindowTokens?: number): number {
@@ -51,7 +51,7 @@ function getCommandDescription(cmd: Command): string {
 }
 
 function formatCommandDescription(cmd: Command): string {
-  // Debug: log if userFacingName differs from cmd.name for plugin skills
+  // 调试：记录 plugin skill 的 userFacingName 与 cmd.name 不一致的情况
   const displayName = getCommandName(cmd)
   if (
     cmd.name !== displayName &&
@@ -76,12 +76,12 @@ export function formatCommandsWithinBudget(
 
   const budget = getCharBudget(contextWindowTokens)
 
-  // Try full descriptions first
+  // 先尝试完整描述
   const fullEntries = commands.map(cmd => ({
     cmd,
     full: formatCommandDescription(cmd),
   }))
-  // join('\n') produces N-1 newlines for N entries
+  // join('\n') 对 N 条目会产出 N-1 个换行
   const fullTotal =
     fullEntries.reduce((sum, e) => sum + stringWidth(e.full), 0) +
     (fullEntries.length - 1)
@@ -90,7 +90,7 @@ export function formatCommandsWithinBudget(
     return fullEntries.map(e => e.full).join('\n')
   }
 
-  // Partition into bundled (never truncated) and rest
+  // 将 bundled（永不截断）与其他条目分组
   const bundledIndices = new Set<number>()
   const restCommands: Command[] = []
   for (let i = 0; i < commands.length; i++) {
@@ -102,7 +102,7 @@ export function formatCommandsWithinBudget(
     }
   }
 
-  // Compute space used by bundled skills (full descriptions, always preserved)
+  // 计算 bundled skill 占用的空间（使用完整描述，始终保留）
   const bundledChars = fullEntries.reduce(
     (sum, e, i) =>
       bundledIndices.has(i) ? sum + stringWidth(e.full) + 1 : sum,
@@ -110,7 +110,7 @@ export function formatCommandsWithinBudget(
   )
   const remainingBudget = budget - bundledChars
 
-  // Calculate max description length for non-bundled commands
+  // 计算非 bundled 命令的最大描述长度
   if (restCommands.length === 0) {
     return fullEntries.map(e => e.full).join('\n')
   }
@@ -122,7 +122,7 @@ export function formatCommandsWithinBudget(
   const maxDescLen = Math.floor(availableForDescs / restCommands.length)
 
   if (maxDescLen < MIN_DESC_LENGTH) {
-    // Extreme case: non-bundled go names-only, bundled keep descriptions
+    // 极端情况：非 bundled 仅保留名称，bundled 保留描述
     if (process.env.USER_TYPE === 'ant') {
       logEvent('tengu_skill_descriptions_truncated', {
         skill_count: commands.length,
@@ -142,7 +142,7 @@ export function formatCommandsWithinBudget(
       .join('\n')
   }
 
-  // Truncate non-bundled descriptions to fit within budget
+  // 截断非 bundled 描述以适应预算
   const truncatedCount = count(
     restCommands,
     cmd => stringWidth(getCommandDescription(cmd)) > maxDescLen,
@@ -156,14 +156,14 @@ export function formatCommandsWithinBudget(
         'description_trimmed' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       max_desc_length: maxDescLen,
       truncated_count: truncatedCount,
-      // Count of bundled skills included in this prompt (excludes skills with disableModelInvocation)
+      // 本 prompt 中包含的 bundled skill 数量（不含设置了 disableModelInvocation 的 skill）
       bundled_count: bundledIndices.size,
       bundled_chars: bundledChars,
     })
   }
   return commands
     .map((cmd, i) => {
-      // Bundled skills always get full descriptions
+      // bundled skill 始终保留完整描述
       if (bundledIndices.has(i)) return fullEntries[i]!.full
       const description = getCommandDescription(cmd)
       return `- ${cmd.name}: ${truncate(description, maxDescLen)}`
@@ -208,9 +208,9 @@ export async function getSkillToolInfo(cwd: string): Promise<{
   }
 }
 
-// Returns the commands included in the SkillTool prompt.
-// All commands are always included (descriptions may be truncated to fit budget).
-// Used by analyzeContext to count skill tokens.
+// 返回 SkillTool prompt 中包含的命令。
+// 所有命令都会被包含（描述可能会被截断以适应预算）。
+// 被 analyzeContext 用于统计 skill token 数。
 export function getLimitedSkillToolCommands(cwd: string): Promise<Command[]> {
   return getSkillToolCommands(cwd)
 }
@@ -233,7 +233,7 @@ export async function getSkillInfo(cwd: string): Promise<{
   } catch (error) {
     logError(toError(error))
 
-    // Return zeros rather than throwing - let caller decide how to handle
+    // 返回零值而不是抛出异常 —— 由调用方决定如何处理
     return {
       totalSkills: 0,
       includedSkills: 0,

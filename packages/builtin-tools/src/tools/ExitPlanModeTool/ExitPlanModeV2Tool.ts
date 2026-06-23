@@ -58,16 +58,16 @@ const permissionSetupModule = feature('TRANSCRIPT_CLASSIFIER')
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 /**
- * Schema for prompt-based permission requests.
- * Used by Claude to request semantic permissions when exiting plan mode.
+ * 基于提示词的权限请求 schema。
+ * 由 Claude 用于在退出计划模式时请求语义化权限。
  */
 const allowedPromptSchema = lazySchema(() =>
   z.object({
-    tool: z.enum(['Bash']).describe('The tool this prompt applies to'),
+    tool: z.enum(['Bash']).describe('此提示词适用的工具'),
     prompt: z
       .string()
       .describe(
-        'Semantic description of the action, e.g. "run tests", "install dependencies"',
+        '操作的语义化描述，例如 "run tests"、"install dependencies"',
       ),
   }),
 )
@@ -112,32 +112,32 @@ export const outputSchema = lazySchema(() =>
     plan: z
       .string()
       .nullable()
-      .describe('The plan that was presented to the user'),
+      .describe('呈现给用户的计划'),
     isAgent: z.boolean(),
     filePath: z
       .string()
       .optional()
-      .describe('The file path where the plan was saved'),
+      .describe('计划保存到的文件路径'),
     hasTaskTool: z
       .boolean()
       .optional()
-      .describe('Whether the Agent tool is available in the current context'),
+      .describe('当前上下文中是否可以使用 Agent 工具'),
     planWasEdited: z
       .boolean()
       .optional()
       .describe(
-        'True when the user edited the plan (CCR web UI or Ctrl+G); determines whether the plan is echoed back in tool_result',
+        '当用户编辑了计划时为 true（CCR web UI 或 Ctrl+G）；决定是否在 tool_result 中回显计划',
       ),
     awaitingLeaderApproval: z
       .boolean()
       .optional()
       .describe(
-        'When true, the teammate has sent a plan approval request to the team leader',
+        '为 true 时，队友已向团队负责人发送了计划审批请求',
       ),
     requestId: z
       .string()
       .optional()
-      .describe('Unique identifier for the plan approval request'),
+      .describe('计划审批请求的唯一标识符'),
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>
@@ -146,10 +146,10 @@ export type Output = z.infer<OutputSchema>
 
 export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
   name: EXIT_PLAN_MODE_V2_TOOL_NAME,
-  searchHint: 'present plan for approval and start coding (plan mode only)',
+  searchHint: '提交计划等待审批并开始编码（仅计划模式）',
   maxResultSizeChars: 100_000,
   async description() {
-    return 'Prompts the user to exit plan mode and start coding'
+    return '提示用户退出计划模式并开始编码'
   },
   async prompt() {
     return EXIT_PLAN_MODE_V2_TOOL_PROMPT
@@ -213,7 +213,7 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
       return {
         result: false,
         message:
-          'You are not in plan mode. This tool is only for exiting plan mode after writing a plan. If your plan was already approved, continue with implementation.',
+          '你不在计划模式中。此工具仅用于在编写计划后退出计划模式。如果你的计划已经被批准，请继续实施。',
         errorCode: 1,
       }
     }
@@ -234,7 +234,7 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
     // 对于非队友，需要用户确认才能退出计划模式
     return {
       behavior: 'ask' as const,
-      message: 'Exit plan mode?',
+      message: '退出计划模式？',
       updatedInput: input,
     }
   },
@@ -322,14 +322,14 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
     // registerPlanVerificationHook() 注册。在此处注册会在上下文清除期间被清除。
 
     // 确保退出计划模式时模式已更改。
-    // This handles cases where permission flow didn't set the mode
-    // (e.g., when PermissionRequest hook auto-approves without providing updatedPermissions).
+    // 处理权限流程未设置模式的情况
+    //（例如，当 PermissionRequest hook 自动批准但未提供 updatedPermissions 时）。
     const appState = context.getAppState()
-    // Compute gate-off fallback before setAppState so we can notify the user.
-    // Circuit breaker defense: if prePlanMode was an auto-like mode but the
-    // gate is now off (circuit breaker or settings disable), restore to
-    // 'default' instead. Without this, ExitPlanMode would bypass the circuit
-    // breaker by calling setAutoModeActive(true) directly.
+    // 在 setAppState 之前计算 gate-off 回退，以便通知用户。
+    // 断路器防御：如果 prePlanMode 是 auto 类模式但
+    // gate 现在关闭（断路器或设置禁用），则恢复到
+    // 'default'。否则 ExitPlanMode 会通过直接调用 setAutoModeActive(true)
+    // 绕过断路器。
     let gateFallbackNotification: string | null = null
     if (feature('TRANSCRIPT_CLASSIFIER')) {
       const prePlanRaw = appState.toolPermissionContext.prePlanMode ?? 'default'
@@ -373,9 +373,9 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
           restoreMode = 'default'
         }
         const finalRestoringAuto = restoreMode === 'auto'
-        // Capture pre-restore state — isAutoModeActive() is the authoritative
-        // signal (prePlanMode/strippedDangerousRules are stale after
-        // transitionPlanAutoMode deactivates mid-plan).
+        // 捕获恢复前的状态 — isAutoModeActive() 是权威信号
+        //（prePlanMode/strippedDangerousRules 在 transitionPlanAutoMode 于计划中
+        //途停用后已过期）。
         const autoWasUsedDuringPlan =
           autoModeStateModule?.isAutoModeActive() ?? false
         autoModeStateModule?.setAutoModeActive(finalRestoringAuto)
@@ -383,9 +383,9 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
           setNeedsAutoModeExitAttachment(true)
         }
       }
-      // If restoring to a non-auto mode and permissions were stripped (either
-      // from entering plan from auto, or from shouldPlanUseAutoMode),
-      // restore them. If restoring to auto, keep them stripped.
+      // 如果恢复到非 auto 模式且权限被剥离（无论是从 auto 进入计划，
+      // 还是由 shouldPlanUseAutoMode 剥离），则恢复权限。
+      // 如果恢复到 auto，则保持剥离状态。
       const restoringToAuto = restoreMode === 'auto'
       let baseContext = prev.toolPermissionContext
       if (restoringToAuto) {
@@ -434,23 +434,23 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
     },
     toolUseID,
   ) {
-    // Handle teammate awaiting leader approval
+    // 处理等待负责人审批的队友
     if (awaitingLeaderApproval) {
       return {
         type: 'tool_result',
-        content: `Your plan has been submitted to the team lead for approval.
+        content: `你的计划已提交给团队负责人审批。
 
-Plan file: ${filePath}
+计划文件：${filePath}
 
-**What happens next:**
-1. Wait for the team lead to review your plan
-2. You will receive a message in your inbox with approval/rejection
-3. If approved, you can proceed with implementation
-4. If rejected, refine your plan based on the feedback
+**接下来会发生什么：**
+1. 等待团队负责人审阅你的计划
+2. 你将在收件箱中收到批准/拒绝的消息
+3. 如果批准，你可以继续实施
+4. 如果拒绝，请根据反馈完善你的计划
 
-**Important:** Do NOT proceed until you receive approval. Check your inbox for response.
+**重要：** 在收到批准之前不要继续。请检查收件箱以获取响应。
 
-Request ID: ${requestId}`,
+请求 ID：${requestId}`,
         tool_use_id: toolUseID,
       }
     }
@@ -459,39 +459,39 @@ Request ID: ${requestId}`,
       return {
         type: 'tool_result',
         content:
-          'User has approved the plan. There is nothing else needed from you now. Please respond with "ok"',
+          '用户已批准该计划。你现在不需要做其他事情。请回复 "ok"',
         tool_use_id: toolUseID,
       }
     }
 
-    // Handle empty plan
+    // 处理空计划
     if (!plan || plan.trim() === '') {
       return {
         type: 'tool_result',
-        content: 'User has approved exiting plan mode. You can now proceed.',
+        content: '用户已批准退出计划模式。你现在可以继续。',
         tool_use_id: toolUseID,
       }
     }
 
     const teamHint = hasTaskTool
-      ? `\n\nIf this plan can be broken down into multiple independent tasks, consider using the ${TEAM_CREATE_TOOL_NAME} tool to create a team and parallelize the work.`
+      ? `\n\n如果此计划可以拆分为多个独立任务，考虑使用 ${TEAM_CREATE_TOOL_NAME} 工具创建团队并并行执行工作。`
       : ''
 
-    // Always include the plan — extractApprovedPlan() in the Ultraplan CCR
-    // flow parses the tool_result to retrieve the plan text for the local CLI.
-    // Label edited plans so the model knows the user changed something.
+    // 始终包含计划 — Ultraplan CCR 流程中的 extractApprovedPlan()
+    // 会解析 tool_result 以获取本地 CLI 的计划文本。
+    // 标记已编辑的计划，让模型知道用户修改了内容。
     const planLabel = planWasEdited
-      ? 'Approved Plan (edited by user)'
-      : 'Approved Plan'
+      ? '已批准的计划（用户已编辑）'
+      : '已批准的计划'
 
     return {
       type: 'tool_result',
-      content: `User has approved your plan. You can now start coding. Start with updating your todo list if applicable
+      content: `用户已批准你的计划。你现在可以开始编码。如果适用，请先更新你的待办事项列表
 
-Your plan has been saved to: ${filePath}
-You can refer back to it if needed during implementation.${teamHint}
+你的计划已保存到：${filePath}
+在实施过程中，如果需要，你可以参考它。${teamHint}
 
-## ${planLabel}:
+## ${planLabel}：
 ${plan}`,
       tool_use_id: toolUseID,
     }

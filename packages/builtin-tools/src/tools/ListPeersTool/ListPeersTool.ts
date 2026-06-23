@@ -11,7 +11,7 @@ const inputSchema = lazySchema(() =>
       .boolean()
       .optional()
       .describe(
-        'Whether to include the current session in the list. Defaults to false.',
+        '是否在列表中包含当前会话。默认为 false。',
       ),
   }),
 )
@@ -37,16 +37,16 @@ export const ListPeersTool = buildTool({
   },
 
   async description() {
-    return 'Discover other Claude Code sessions for cross-session messaging'
+    return '发现其他 Claude Code 会话以进行跨会话消息传递'
   },
   async prompt() {
-    return `List active Claude Code sessions that can receive messages via SendMessage.
+    return `列出可以通过 SendMessage 接收消息的活动 Claude Code 会话。
 
-Returns an array of peers with their addresses. Use these addresses as the \`to\` field in SendMessage:
-- \`"uds:/path/to.sock"\` — local sessions on the same machine (Unix Domain Socket)
-- \`"bridge:session_..."\` — remote sessions via Remote Control
+返回一个包含地址的对等方数组。在 SendMessage 中使用这些地址作为 \`to\` 字段：
+- \`"uds:/path/to.sock"\` — 同一台机器上的本地会话（Unix Domain Socket）
+- \`"bridge:session_..."\` — 通过 Remote Control 的远程会话
 
-Use this tool to discover messaging targets before sending cross-session messages. Only running sessions with active messaging sockets are returned.`
+在发送跨会话消息之前，使用此工具发现消息目标。仅返回具有活动消息套接字的运行中会话。`
   },
 
   isConcurrencySafe() {
@@ -83,9 +83,9 @@ Use this tool to discover messaging targets before sending cross-session message
   },
 
   async call(_input: ListPeersInput, context) {
-    // Peer discovery uses the concurrent sessions PID registry and
-    // UDS socket directory. The implementation scans for live sockets
-    // and optionally includes Remote Control bridge peers.
+    // 对等方发现使用并发会话 PID 注册表和
+    // UDS socket 目录。实现扫描活跃的 socket
+    // 并可选地包括远程控制桥接对等方。
     const peers: PeerInfo[] = []
     const seen = new Set<string>()
     const addPeer = (peer: PeerInfo): void => {
@@ -105,7 +105,7 @@ Use this tool to discover messaging targets before sending cross-session message
 
     const messagingSocketPath = udsMessaging.getUdsMessagingSocketPath()
     if (messagingSocketPath) {
-      // Self entry for reference
+      // 用于参考的自身条目
       if (_input.include_self) {
         addPeer({
           address: udsMessaging.formatUdsAddress(messagingSocketPath),

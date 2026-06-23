@@ -1322,6 +1322,768 @@ continue
 
 ---
 
+## 十七、关键函数深度详解
+
+> 本章记录在阅读 `query.ts` 过程中深入分析过的函数。每节均包含：背景动机、完整执行流程、核心细节、与主循环的交互关系。后续遇到新函数时会持续补充。
+
+---
+
+### 17.1 `deps` 字段与 `productionDeps()` — 依赖注入（DI）模式
+
+**定义文件**：`src/query/deps.ts`  
+**使用位置**：`QueryParams.deps`（`query.ts:324`）、注入点 `query.ts:602`
+
+#### 背景：为什么需要 DI？
+
+`queryLoop` 内部有 4 个"有副作用的关键依赖"，它们分散在不同模块里：
+
+| 依赖 | 副作用 |
+|------|--------|
+| `queryModelWithStreaming` | 真实发 HTTP 请求到 Claude API |
+| `autoCompactIfNeeded` | 可能修改 / 压缩对话历史 |
+| `microcompactMessages` | 轻量版压缩，同样有副作用 |
+| `randomUUID` | 非确定性，影响断言 |
+
+旧做法是在每个测试文件里各自 `spyOn`，但这 4 个函数在 6–8 个测试文件中都需要 mock，导致大量重复的样板代码，而且 Bun 的 `mock.module` 是进程全局的（last-write-wins），跨文件 mock 污染难以排查。
+
+#### `QueryDeps` 接口（`deps.ts:19-29`）
+
+```typescript
+export type QueryDeps = {
+  callModel:    typeof queryModelWithStreaming  // ← typeof fn，类型自动跟真实函数同步
+  microcompact: typeof microcompactMessages
+  autocompact:  typeof autoCompactIfNeeded
+  uuid:         () => string
+}
+
+export function productionDeps(): QueryDeps {
+  return {
+    callModel:    queryModelWithStreaming,   // 真实实现
+    microcompact: microcompactMessages,
+    autocompact:  autoCompactIfNeeded,
+    uuid:         randomUUID,
+  }
+}
+```
+
+**`typeof fn` 技巧**：不手写类型，直接引用真实函数的类型。这样真实函数签名变了，接口会自动编译报错，永不失去同步。
+
+#### 注入点（`query.ts:602`）
+
+```typescript
+const deps = params.deps ?? productionDeps()
+```
+
+- **生产路径**：调用方不传 `deps`，走 `productionDeps()`，拿到 4 个真实函数
+- **测试路径**：调用方传入 `deps: { callModel: mockFn, ... }`，注入 fake 实现
+
+之后 `queryLoop` 里所有对这 4 个函数的调用都通过 `deps.xxx(...)` 而非直接 import：
+
+```typescript
+deps.uuid()           // :703 — 生成 chainId
+deps.microcompact()   // :807 — 轻量压缩
+deps.autocompact()    // :873 — 自动压缩
+deps.callModel()      // :1153 — 真正调用 Claude API
+```
+
+#### 真实测试场景（`src/__tests__/queryAutonomyProviderBoundary.test.ts:155–210`）
+
+```typescript
+let callCount = 0
+const deps = {
+  callModel: async function* () {
+    callCount += 1
+    if (callCount === 1) {
+      yield createToolUseAssistantMessage()   // 第一次：返回工具调用
+      return
+    }
+    yield createAssistantAPIErrorMessage({    // 第二次：模拟 API 挂掉
+      content: 'API Error: provider unavailable',
+      apiError: 'api_error',
+    })
+  },
+}
+
+const generator = query({
+  messages: [...],
+  // ...其他参数...
+  deps: deps as never,   // ← 注入 fake callModel
+})
+```
+
+这个测试验证"当第二次 API 调用失败时，autonomy flow 是否正确标记为 `failed`"。如果用真实 `callModel`，就得真的发 HTTP 请求，而且无法精确控制第几次调用失败。
+
+#### 为什么不用 `spyOn`？
+
+| 对比维度 | `spyOn` / `mock.module` | `deps` 注入 |
+|----------|------------------------|------------|
+| 作用域 | 进程全局（污染其他测试文件） | 仅当次 `query()` 调用 |
+| 模块副作用 | 需要 `mock.module('src/...')` | 无需触碰模块注册表 |
+| 类型安全 | 签名变了不报错 | `typeof fn` 自动报错 |
+| 并发隔离 | 需要 `afterEach` 恢复 | 天然隔离，每次传新对象 |
+
+#### 设计意图（来自 `deps.ts` 注释）
+
+> 范围特意缩小（4 个依赖）以证明此模式。后续 PR 可以添加 runTools、handleStopHooks、logEvent、队列操作等。
+
+---
+
+### 17.2 `startRelevantMemoryPrefetch()` — 异步记忆预取
+
+**定义文件**：`src/utils/attachments.ts:2420`  
+**使用位置**：`query.ts:641–645`（`using` 绑定）、消费点 `query.ts:2247–2261`
+
+#### 背景：Memory Dir 是什么？
+
+Claude Code 有一套本地"记忆目录"（memdir）机制，存放用户手动或自动积累的 `.md` 记忆文件。这些文件对当前对话可能有参考价值，但不能每次都全部塞入上下文（太多、太贵），所以需要**按需挑选**最相关的，在每次对话轮次时动态注入。
+
+#### 整体流程
+
+```
+用户发一条消息
+    │
+    ▼
+startRelevantMemoryPrefetch()   ← queryLoop 入口立即调用（非阻塞）
+    │
+    ├─ 5 道门控检查（任一失败 → 返回 undefined）
+    │
+    └─ 启动 getRelevantMemoryAttachments()  ← 异步，与主流程并行
+              │
+              └─ findRelevantMemories()：TF-IDF / 小模型语义搜索
+                 ↓
+                 返回 ≤5 个最相关记忆文件
+
+    返回 MemoryPrefetch handle（含 promise + 状态追踪字段）
+
+主流程继续 → 调用 Claude API → 流式输出 → 工具执行...
+
+工具执行结束、准备下一轮 toolResults 时：
+    └─ pendingMemoryPrefetch.settledAt !== null?
+           是（已 settle）→ 消费记忆，以 attachment 注入 toolResults
+           否（未 settle）→ 跳过，零等待，下次迭代再试
+
+queryLoop 退出时：
+    └─ [Symbol.dispose]() → abort() + 埋点上报
+```
+
+#### 5 道门控检查（`attachments.ts:2424–2451`）
+
+| 检查 | 原因 |
+|------|------|
+| `isAutoMemoryEnabled()` | 用户没有配置 memdir，没有记忆可取 |
+| feature gate `'tengu_moth_copse'` | GrowthBook 控的实验开关，还在 A/B test 阶段 |
+| `isPoorModeActive()` | 穷鬼模式，省 token 优先，跳过 side-query |
+| 没有最后一条用户消息 | 无法提取查询意图 |
+| 单词 prompt（无空格）| "ok" / "yes" 类上下文太少，无意义 |
+| 累计注入 ≥ 60KB（`MAX_SESSION_BYTES`） | 本 session 已注入太多记忆，停止 |
+
+**60KB 怎么来的**：注释说明约 3 次完整注入后最相关的记忆已进入上下文；compact 会自然重置计数器（旧附件从摘要中移除）。
+
+#### `getRelevantMemoryAttachments()` 内部（`attachments.ts:2249–2297`）
+
+```typescript
+async function getRelevantMemoryAttachments(
+  input: string,               // 用户消息文本
+  agents: AgentDefinition[],   // @mention 路由用
+  readFileState: FileStateCache,
+  recentTools: readonly string[],   // 最近成功调用的工具名（已掌握的跳过）
+  signal: AbortSignal,
+  alreadySurfaced: ReadonlySet<string>,  // 本 session 已注入过的路径
+  parentSpan?: unknown,
+): Promise<Attachment[]>
+```
+
+执行步骤：
+
+1. **@mention 路由**：prompt 里有 `@agent-xxx` → 只搜索那个 agent 的 memory 目录（隔离）；否则搜索全局 `getAutoMemPath()`
+2. **`findRelevantMemories()`**：TF-IDF 或向量搜索，返回候选记忆文件列表
+3. **双重过滤**：
+   - `readFileState`：模型本轮已读过的文件（通过 FileReadTool 等）——不重复注入
+   - `alreadySurfaced`：本 session 已注入过的路径——不重复注入
+4. **截取 ≤5 个**
+5. **读取内容**：`readMemoriesForSurfacing()` 按行/字节截断，部分内容带截断提示
+6. **组装 attachment**：`{ type: 'relevant_memories', memories: [...] }`
+
+`recentTools` 的用途：抑制模型已经在成功使用的工具的相关文档——文档对已掌握的工具是噪音，反而浪费 token。
+
+#### `MemoryPrefetch` handle 状态机（`attachments.ts:2405–2412`）
+
+```typescript
+export type MemoryPrefetch = {
+  promise: Promise<Attachment[]>
+  settledAt: number | null      // null 直到 promise settle
+  consumedOnIteration: number   // -1 直到被消费
+  [Symbol.dispose](): void
+}
+```
+
+| 状态 | `settledAt` | `consumedOnIteration` |
+|------|-------------|----------------------|
+| 初始 | `null` | `-1` |
+| promise 完成后 | `Date.now()` | `-1` |
+| 被消费后 | `Date.now()` | `turnCount - 1` |
+
+#### 为什么用 `using`（Explicit Resource Management）
+
+**`query.ts:641`**：
+```typescript
+using pendingMemoryPrefetch = startRelevantMemoryPrefetch(
+  state.messages,
+  state.toolUseContext,
+)
+```
+
+`using` 是 TC39 Explicit Resource Management 语法（TypeScript 5.2+）。`queryLoop` 函数**无论从哪条路径退出**（正常结束、异常、用户中断），`[Symbol.dispose]()` 都会被自动调用：
+
+```typescript
+[Symbol.dispose]() {
+  controller.abort()   // 取消 HTTP side-query（省 token + 省时间）
+  logEvent('tengu_memdir_prefetch_collected', {
+    hidden_by_first_iteration:
+      handle.settledAt !== null && handle.consumedOnIteration === 0,
+    consumed_on_iteration: handle.consumedOnIteration,
+    latency_ms: (handle.settledAt ?? Date.now()) - firedAt,
+  })
+}
+```
+
+用户按 Escape 中断 → `toolUseContext.abortController` 触发 → `createChildAbortController` 级联取消 → side-query 的 HTTP 请求立即中止。
+
+#### 消费点：Zero-wait 策略（`query.ts:2247–2261`）
+
+```typescript
+if (
+  pendingMemoryPrefetch &&
+  pendingMemoryPrefetch.settledAt !== null &&       // 已 settle（不等待）
+  pendingMemoryPrefetch.consumedOnIteration === -1  // 还没被消费过
+) {
+  const memoryAttachments = filterDuplicateMemoryAttachments(
+    await pendingMemoryPrefetch.promise,
+    toolUseContext.readFileState,
+  )
+  for (const memAttachment of memoryAttachments) {
+    const msg = createAttachmentMessage(memAttachment)
+    yield msg
+    toolResults.push(msg)
+  }
+  pendingMemoryPrefetch.consumedOnIteration = turnCount - 1
+}
+```
+
+**Zero-wait 原则**：
+- side-query 在 API 调用 + 工具执行期间并行跑
+- 消费点**不等待**：settle 了就消费，没 settle 就跳过，等下次迭代
+- 多轮工具调用时有多次机会消费（每次工具执行后都检查一次）
+- 整个 turn 结束时若仍未 settle → `[Symbol.dispose]` 取消，顺带上报 `hidden_by_first_iteration` 埋点
+
+**`filterDuplicateMemoryAttachments` 的作用**：消费时再做一次 `readFileState` 过滤——`readFileState` 是跨迭代累计的，比 prefetch 启动时的快照更新，可以过滤掉模型在中间迭代里读过的文件。
+
+#### 与其他预取机制的对比
+
+| 预取 | 启动时机 | 消费时机 | 门控 | Zero-wait？ |
+|------|----------|----------|------|------------|
+| Memory prefetch | queryLoop 入口（每 turn 一次） | 工具执行后 | GrowthBook gate | 是 |
+| Skill prefetch | 每次迭代开头 | 工具执行后 | `EXPERIMENTAL_SKILL_SEARCH` | 否（await） |
+| Tool prefetch | 每次迭代开头 | 工具执行后 | `EXPERIMENTAL_SEARCH_EXTRA_TOOLS` | 否（await） |
+
+Memory prefetch 是唯一**每 turn 只启动一次**（在入口处）且**zero-wait**的预取机制，体现了"记忆检索比工具发现更慢，不能阻塞主流程"的设计判断。
+
+---
+
+### 17.3 `startSkillDiscoveryPrefetch()` — 技能发现预取
+
+**定义文件**：`src/services/skillSearch/prefetch.ts:249`  
+**使用位置**：`query.ts:672`（每次迭代开头）、消费点 `query.ts:2266–2274`
+
+#### 背景：什么是 Skill？
+
+Skill 是 Claude Code 的"斜杠命令"（slash commands）——用户在 `.claude/skills/` 或 `.claude/commands/` 目录下放置的 SKILL.md 文件，以及通过 `/init` 等生成的提示词文件。每个 Skill 有 `name`、`description`、`whenToUse` 等字段。当用户的 prompt 与某个 Skill 高度匹配时，主动发现并注入 Skill 内容，可以显著引导模型使用正确的工作流。
+
+#### 执行流程
+
+```
+每次迭代开头
+    │
+    ▼
+startSkillDiscoveryPrefetch(null, messages, toolUseContext)
+    │
+    ├─ isSkillSearchEnabled() 检查（EXPERIMENTAL_SKILL_SEARCH feature gate）
+    ├─ extractQueryFromMessages() — 从消息历史提取查询文本
+    ├─ getSkillIndex(cwd) — 加载（或命中缓存的）Skill 索引
+    ├─ searchSkills(queryText, index) — TF-IDF 相似度搜索
+    ├─ 过滤已发现（discoveredThisSession）
+    └─ enrichResultsForAutoLoad() — 高分 Skill 自动加载内容
+
+    返回 Promise<Attachment[]>（立即异步启动，不阻塞主流程）
+
+工具执行结束后：
+    └─ collectSkillDiscoveryPrefetch(pendingSkillPrefetch)
+           │
+           └─ await promise → yield skill_discovery attachment → toolResults.push()
+```
+
+#### `extractQueryFromMessages()` — 查询文本提取（`prefetch.ts:54`）
+
+```typescript
+export function extractQueryFromMessages(
+  input: string | null,
+  messages: Message[],
+): string
+```
+
+两个来源拼接：
+1. `input` 参数（skill prefetch 传 `null`，turn-zero 传当前输入）
+2. 向后遍历消息找最后一条**真实用户话语**（跳过 tool_result 等非文本块），取前 500 字符
+
+**为什么要向后找**：迭代间预取时，最近的 `user` 消息通常是 tool_result（工具结果），不含语义信息，必须继续往前找到真正的用户 prompt。
+
+这个函数同时被 `startSearchExtraToolsPrefetch` 复用（`searchExtraTools/prefetch.ts:10` 直接 import）。
+
+#### TF-IDF 搜索引擎（`localSearch.ts`）
+
+两个预取（Skill 和 Tool）共用同一套算法：
+
+```
+tokenizeAndStem(text)
+    ├─ tokenize()：小写 → 分词（ASCII 单词 + CJK bigram）→ 去停用词
+    └─ stem()：词干提取（-ing/-tion/-ness/-ment/-er/-es/-s/-ed/-ly）
+
+computeWeightedTf(fields)  — 加权词频
+    每个字段独立计算 TF，取字段间最大值（而非累加）
+
+computeIdf(index)  — 逆文档频率
+    idf(term) = log(N / df)
+
+cosineSimilarity(queryTfIdf, docTfIdf)  — 余弦相似度
+```
+
+Skill 索引的字段权重：
+
+| 字段 | 权重 |
+|------|------|
+| `name` | 3.0 |
+| `whenToUse` | 2.0 |
+| `description` | 1.0 |
+| `allowedTools` | 0.3 |
+
+名称精确命中加分：query 包含 Skill 名称（4 字符以上）时，分数直接提升到 `max(score, 0.75)`。
+
+CJK 特殊处理：CJK 查询要求至少 2 个 bigram 命中，否则必须同时有 ASCII token 命中，防止误匹配。
+
+#### 会话级去重（`prefetch.ts:30`）
+
+```typescript
+const discoveredThisSession = new Set<string>()  // 已发现的 Skill 名称
+```
+
+- **上限**：1000 条，超出后 FIFO 淘汰到 750 条
+- **作用**：同一 session 内已发现的 Skill 不重复推送，防止噪音
+- **注意**：这是**模块级单例**，跨 `queryLoop` 调用持久存在（整个会话生命周期）
+
+#### Auto-Load 机制（`enrichResultsForAutoLoad`，`prefetch.ts:127`）
+
+```typescript
+const AUTO_LOAD_MIN_SCORE = 0.30   // 可通过 SKILL_SEARCH_AUTOLOAD_MIN_SCORE 覆盖
+const AUTO_LOAD_LIMIT = 2          // 可通过 SKILL_SEARCH_AUTOLOAD_LIMIT 覆盖
+const AUTO_LOAD_MAX_CHARS = 12000  // 可通过 SKILL_SEARCH_AUTOLOAD_MAX_CHARS 覆盖
+```
+
+对每个搜索结果：
+- 分数 `< 0.30` 或已达上限（2 个）→ 只返回 name+description+score（不加载内容）
+- 分数 `≥ 0.30` 且未达上限 → 读取 `SKILL.md` / `skill.md` 文件内容（截到 12000 字符）→ 标记 `autoLoaded: true` → 调用 `addInvokedSkill()` 注册到会话状态
+
+Auto-Load 相当于自动触发了 `/skill` 命令——模型在收到 assistant turn 之前，Skill 内容已经就绪在上下文里。
+
+#### Skill Gap 记录（`maybeRecordSkillGap`，`prefetch.ts:203`）
+
+仅在 turn-zero（`getTurnZeroSkillDiscovery`）时触发，turn-间预取不记录 gap：
+- 如果没有 Skill 被 auto-loaded，记录一条"需求缺口"（gap）
+- 用于 Skill Learning 系统学习用户常用但未覆盖的工作流
+- 通过 `SKILL_LEARNING` feature gate 控制
+
+#### 消费方式（`query.ts:2263–2274`）
+
+```typescript
+if (skillPrefetch && pendingSkillPrefetch) {
+  const skillAttachments =
+    await skillPrefetch.collectSkillDiscoveryPrefetch(pendingSkillPrefetch)
+  for (const att of skillAttachments) {
+    const msg = createAttachmentMessage(att)
+    yield msg
+    toolResults.push(msg)
+  }
+}
+```
+
+与 memory prefetch 的**关键区别**：skill prefetch 在消费点直接 `await`，不做 zero-wait 检查。注释说明：`AKI@250ms / Haiku@573ms` 相对于 2–30s 的轮次时长，`>98%` 的概率 promise 已经 settle，所以直接 `await` 几乎不造成等待。
+
+---
+
+### 17.4 `startSearchExtraToolsPrefetch()` — 延迟工具发现预取
+
+**定义文件**：`src/services/searchExtraTools/prefetch.ts:94`  
+**使用位置**：`query.ts:677`（每次迭代开头）、消费点 `query.ts:2277–2287`
+
+#### 背景：什么是"延迟工具"（Deferred Tool）？
+
+Claude Code 有 60+ 个内置工具，但不能全部塞进 API 的 `tools` 参数（token 太多）。因此将工具分为两类：
+
+```typescript
+export function isDeferredTool(tool: Tool): boolean {
+  if (tool.alwaysLoad === true) return false   // 显式标记永远加载
+  if (CORE_TOOLS.has(tool.name)) return false  // 38 个核心工具始终加载
+  return true                                  // 其余都是延迟工具
+}
+```
+
+| 类别 | 代表工具 | 加载方式 |
+|------|----------|----------|
+| CORE_TOOLS（38 个） | Read, Edit, Write, Bash, Glob, Grep, Agent, WebFetch... | 每次直接传给 API |
+| 延迟工具（非核心内置） | CronCreate, TaskCreate, EnterWorktree, TeamCreate... | 按需通过 SearchExtraTools 发现 |
+| MCP 工具 | `mcp__xxx__yyy` | 同上（全部延迟） |
+
+`startSearchExtraToolsPrefetch` 的目标：**在模型开始回答之前**，主动预测本轮可能用到哪些延迟工具，以 attachment 形式提前告知模型，省去模型主动调 `SearchExtraTools` 的往返。
+
+#### 执行流程
+
+```
+每次迭代开头
+    │
+    ▼
+startSearchExtraToolsPrefetch(toolUseContext.options.tools ?? [], messages)
+    │
+    ├─ extractQueryFromMessages(null, messages) — 同 skill prefetch 复用
+    ├─ getToolIndex(tools) — 构建（或命中缓存的）延迟工具索引
+    │       ├─ 过滤出 deferredTools（isDeferredTool 判定）
+    │       ├─ 对每个工具调用 tool.prompt() 获取描述文本
+    │       └─ 构建 TF-IDF 向量（name/searchHint/description 三字段）
+    ├─ searchTools(queryText, index, 3) — 返回 Top-3
+    ├─ 过滤已发现（discoveredToolsThisSession）
+    ├─ latestPrefetchResult = discoveryResults — 更新 UI 快照
+    └─ notifyPrefetchListeners() — 通知 React UI 订阅者
+
+    返回 Promise<Attachment[]>（立即异步启动）
+
+工具执行结束后：
+    └─ collectSearchExtraToolsPrefetch(pendingToolPrefetch)
+           │
+           └─ await promise → yield tool_discovery attachment → toolResults.push()
+```
+
+#### 工具索引构建（`toolIndex.ts:80`）
+
+与 Skill 索引相比，工具索引有几个特殊之处：
+
+**字段权重**：
+
+| 字段 | 权重 | 说明 |
+|------|------|------|
+| `name` | 3.0 | 工具名拆分（camelCase / mcp__xx__yy） |
+| `searchHint` | 2.5 | 工具自定义的搜索提示（比 description 权重高） |
+| `description` | 1.0 | 从 `tool.prompt()` 获取的完整描述 |
+
+`searchHint` 是工具作者专门为搜索优化的短语，权重比 description 高（2.5 vs 1.0），这是和 Skill 索引（无 searchHint 字段）的重要区别。
+
+**MCP 工具名称解析**：
+
+```typescript
+// "mcp__slack__send_message" → parts: ['slack', 'send', 'message']
+if (name.startsWith('mcp__')) {
+  const parts = name.replace(/^mcp__/, '').split('__').flatMap(p => p.split('_'))
+  ...
+}
+```
+
+MCP 工具名用 `__` 分隔服务名和操作名，需要特殊处理才能有效分词。
+
+**索引缓存**：工具列表不变时复用缓存（按工具名列表排序后 join 做 key），工具列表变化（新 MCP 连接）时自动重建。
+
+#### UI 订阅机制（`prefetch.ts:27–50`）
+
+```typescript
+let latestPrefetchResult: ToolDiscoveryResult[] = []
+const prefetchListeners = new Set<() => void>()
+
+export function subscribeToSearchExtraToolsPrefetch(listener: () => void): () => void
+export function getSearchExtraToolsPrefetchSnapshot(): ToolDiscoveryResult[]
+```
+
+这套 API 遵循 React 的 `useSyncExternalStore` 接口：
+- `subscribe`（`subscribeToSearchExtraToolsPrefetch`）：注册监听器
+- `getSnapshot`（`getSearchExtraToolsPrefetchSnapshot`）：读取当前快照
+
+用途：终端 UI 可以实时显示"发现了哪些延迟工具"的调试面板，不依赖 React state 传递。
+
+#### 搜索参数对比
+
+| 参数 | Skill 搜索 | Tool 搜索 |
+|------|-----------|----------|
+| 返回上限 | 5 | 3 |
+| 最低分阈值 | 0.10（`SKILL_SEARCH_DISPLAY_MIN_SCORE`） | 0.10（`SEARCH_EXTRA_TOOLS_DISPLAY_MIN_SCORE`） |
+| 名称精确加分 | ≥4 字符命中 → max(score, 0.75) | 名称命中 → max(score, 0.75) |
+| CJK 处理 | 是（≥2 bigram 或有 ASCII 命中） | 是（同逻辑） |
+| 会话去重上限 | 1000 条 → 裁到 750 | 500 条 → 裁到 400 |
+
+#### Turn-zero 已禁用
+
+```typescript
+export async function getTurnZeroSearchExtraToolsPrefetch(): Promise<Attachment | null> {
+  // 已禁用：第零轮用户输入工具推荐会导致频繁弹窗。
+  return null
+}
+```
+
+第一条用户消息时的工具推荐被关掉了——在用户刚开口时就弹出工具建议，体验上太打扰。只保留 turn-间（`assistant_turn`）的静默预取。
+
+---
+
+### 17.5 `getMessagesAfterCompactBoundary()` — 历史裁边
+
+**定义文件**：`src/utils/messages.ts:5062`  
+**使用位置**：`query.ts:722`（每次迭代步骤 3）
+
+#### 背景：为什么需要裁边？
+
+Claude Code 的 REPL 保留**完整对话历史**用于 UI 滚动回看。但发给 Claude API 的消息不能包含 compact 之前的旧历史——那些已经被摘要替代了，直接发给 API 会造成上下文重复（摘要 + 原始历史都出现）。
+
+`getMessagesAfterCompactBoundary` 的唯一职责：从 REPL 持有的完整消息列表里，**切出"最近一次 compact 之后"的部分**，作为本轮 API 调用的实际输入。
+
+#### 执行逻辑
+
+```typescript
+export function getMessagesAfterCompactBoundary<T extends Message | NormalizedMessage>(
+  messages: T[],
+  options?: { includeSnipped?: boolean }
+): T[] {
+  const boundaryIndex = findLastCompactBoundaryIndex(messages)
+  const sliced = boundaryIndex === -1 ? messages : messages.slice(boundaryIndex)
+
+  if (!options?.includeSnipped && feature('HISTORY_SNIP')) {
+    return projectSnippedView(sliced)  // 额外过滤 snipped 消息
+  }
+  return sliced
+}
+```
+
+**`findLastCompactBoundaryIndex`**（`messages.ts:5037`）：从后往前遍历，找到最后一条 `{ type: 'system', subtype: 'compact_boundary' }` 消息的下标。找不到则返回 `-1`（从不 compact 的全新会话）。
+
+**为什么 `slice(boundaryIndex)` 包含边界消息本身**：`compact_boundary` 是一条 system 消息，会被后续的 `normalizeMessagesForAPI` 过滤掉，不会发给 API。包含它的目的是让这次 slice 之后的调用方也能通过 `isCompactBoundaryMessage` 定位边界位置。
+
+#### `compact_boundary` 消息的结构
+
+```typescript
+{
+  type: 'system',
+  subtype: 'compact_boundary',
+  content: 'Conversation compacted',
+  compactMetadata: {
+    trigger: 'manual' | 'auto',
+    preTokens: number,        // compact 前的 token 数
+    userContext: string,      // 用户自定义上下文（/compact 命令传入）
+    messagesSummarized: number,
+  },
+  logicalParentUuid: UUID,   // 指向 compact 前最后一条消息
+}
+```
+
+#### 与 HISTORY_SNIP 的关系
+
+`HISTORY_SNIP` 门控下，`getMessagesAfterCompactBoundary` 默认还会调用 `projectSnippedView`：把被 snip 标记的旧历史段投影掉（只保留轻量占位符），进一步压缩发给 API 的消息体积。
+
+`options.includeSnipped: true` 用于 REPL fullscreen compact handler——UI 需要展示完整历史给用户看，不能过滤。
+
+#### 在消息状态架构中的位置
+
+```
+REPL/QueryEngine 持有的 mutableMessages（完整历史）
+    │
+    ▼
+getMessagesAfterCompactBoundary()   ← 本函数：裁掉 compact 之前的部分
+    │
+    ▼
+messagesForQuery（只含最近 compact 后的历史）
+    │
+    ├─ applyToolResultBudget()      ← 步骤 5
+    ├─ snipCompact()                ← 步骤 6（HISTORY_SNIP）
+    ├─ microcompact()               ← 步骤 7
+    ├─ contextCollapse()            ← 步骤 8
+    └─ autocompact()                ← 步骤 10
+              │
+              ▼
+        Claude API（messagesForQuery 最终形态）
+```
+
+#### 调用场景
+
+除 `query.ts` 外，该函数在 7 处被调用，都是同一目的——取"模型可见视图"而非完整 REPL 状态：
+
+| 调用方 | 目的 |
+|--------|------|
+| `compact.ts` | 手动 `/compact` 时取待摘要的历史 |
+| `context.tsx` | `/context` 命令展示当前上下文窗口 |
+| `REPL.tsx` | fullscreen compact 展示 |
+| `btw.tsx` | `/btw` fork context |
+| `bridge/initReplBridge.ts` | 远程控制模式提取对话文本 |
+| `skillify.ts` | Skill 生成时取对话上下文 |
+| `rename.ts` | 会话重命名时取摘要用历史 |
+
+---
+
+### 17.6 `applyToolResultBudget()` — 聚合工具结果预算
+
+**定义文件**：`src/utils/toolResultStorage.ts:925`  
+**使用位置**：`query.ts:753`（每次迭代步骤 5，在 microcompact 之前）
+
+#### 背景：为什么需要"消息级预算"？
+
+Claude Code 已经有**单个工具结果**的大小限制（`tool.maxResultSizeChars`，超出则持久化到磁盘）。但并行工具调用时，同一个 user 消息里可能同时包含 N 个工具结果，每个单独不超标，加总却超出 API 允许的上下文。
+
+`applyToolResultBudget` 解决的是**聚合超标**问题：按**API 线级 user 消息**分组（因为 `normalizeMessagesForAPI` 会把连续 user 消息合并），对组内总大小超标的情况，把最大的工具结果持久化到磁盘并替换为引用。
+
+#### 调用签名
+
+```typescript
+export async function applyToolResultBudget(
+  messages: Message[],
+  state: ContentReplacementState | undefined,  // undefined = feature 关闭，直接返回
+  writeToTranscript?: (records: ToolResultReplacementRecord[]) => void,
+  skipToolNames?: ReadonlySet<string>,          // 这些工具的结果跳过预算检查
+): Promise<Message[]>
+```
+
+**`skipToolNames` 来自 query.ts**：
+```typescript
+new Set(
+  toolUseContext.options.tools
+    .filter(t => !Number.isFinite(t.maxResultSizeChars))
+    .map(t => t.name),
+)
+```
+`maxResultSizeChars: Infinity` 的工具已经通过其他机制自我限制（比如 FileRead 的分页），不应再被聚合预算截断。
+
+#### `ContentReplacementState` — 跨轮次决策记忆
+
+```typescript
+export type ContentReplacementState = {
+  seenIds: Set<string>         // 见过的 tool_use_id（决策已冻结）
+  replacements: Map<string, string>  // 被替换的 id → 替换后的预览字符串
+}
+```
+
+**这是整个机制的核心不变量**：每个 `tool_use_id` 的命运**一旦决定就不再改变**。
+
+- 第一次见到：根据预算决定是否替换，写入 `seenIds`（+ 可能写 `replacements`）
+- 之后每轮重复见到：从 `seenIds` 查到已决策
+  - 在 `replacements` 里有 → 重新应用缓存的替换字符串（**零 I/O，字节完全相同**）
+  - 只在 `seenIds` → 保持原始内容不变（frozen）
+
+**为什么要保持字节完全相同**：相同的 `tool_use_id` + 相同的替换内容 → 相同的 prompt prefix → Anthropic API 命中 prompt cache。改一个字节就缓存未命中，浪费 token。
+
+#### `enforceToolResultBudget` 核心流程
+
+```
+collectCandidatesByMessage(messages)
+    │
+    └─ 分组规则：assistant 消息创建组边界（模拟 normalizeMessagesForAPI 的合并行为）
+       注意：同一 assistant.message.id 的重复出现不创建新边界
+       
+    对每组 candidates：
+        partitionByPriorDecision(candidates, state)
+            ├─ mustReapply：在 replacements Map 里 → 直接取缓存字符串（零 I/O）
+            ├─ frozen：在 seenIds 但不在 replacements → 保持原内容
+            └─ fresh：首次见到 → 进行预算检查
+        
+        如果 fresh.length > 0（新消息）：
+            frozenSize + freshSize > limit?
+                是 → selectFreshToReplace()：取最大的 fresh 结果直到降到 limit 以下
+                否 → 无需替换
+        
+        并发 persist：toPersist → Promise.all(buildReplacement)
+            persistToolResult() → 写磁盘（EEXIST 则跳过）
+            buildLargeToolResultMessage() → 生成预览引用字符串
+        
+        更新 state.seenIds + state.replacements（原子，post-await）
+        
+    replaceToolResultContents(messages, replacementMap)
+        → 返回新 Message[]（未替换的消息按引用共享，不拷贝）
+```
+
+#### 预算限制值
+
+```typescript
+// 默认值（src/constants/toolLimits.ts）
+MAX_TOOL_RESULTS_PER_MESSAGE_CHARS = 100_000  // 约 25k tokens
+
+// 可被 GrowthBook flag 'tengu_hawthorn_window' 覆盖
+export function getPerMessageBudgetLimit(): number { ... }
+```
+
+#### 持久化文件格式
+
+替换内容示例：
+```
+<persisted-output>
+Output too large (1.2 MB). Full output saved to: /path/to/session/tool-results/call_xxx.txt
+
+Preview (first 2.0 KB):
+<实际内容前 2000 字节>
+...
+</persisted-output>
+```
+
+模型在后续 turn 里看到这段文字，知道完整输出在磁盘上，可通过 FileRead 工具读取（路径已给出）。
+
+#### `writeToTranscript` 回调 — 决策持久化
+
+```typescript
+const persistReplacements =
+  querySource.startsWith('agent:') ||
+  querySource.startsWith('repl_main_thread')
+
+// query.ts 传入：
+persistReplacements
+  ? records => void recordContentReplacement(records, toolUseContext.agentId).catch(logError)
+  : undefined
+```
+
+只有主线程和 agent 子线程会将替换记录写入 transcript（`.jsonl` 文件），原因：
+- **主线程 / agent**：用户可能 `/resume` 恢复会话，需要重建 `ContentReplacementState`（让替换决策保持一致，prompt cache 不失效）
+- **临时 fork**（compact、session_memory、speculation 等）：会话结束即丢弃，无需持久化
+
+#### 并发安全设计
+
+`state.seenIds` 的更新有严格的时序要求：
+- **不需要 persist 的 candidates**：同步标记（`forEach(c => state.seenIds.add(c.toolUseId))`）
+- **需要 persist 的 candidates**：`await` 后标记（与 `replacements.set` 原子对），防止出现"在 seenIds 但不在 replacements"的中间状态被观察到
+
+#### Feature Flag 门控
+
+整个机制由 GrowthBook flag `tengu_hawthorn_steeple` 控制（`provisionContentReplacementState`）。Flag 关闭时 `state = undefined`，`applyToolResultBudget` 直接返回原始 messages，**零开销**。
+
+---
+
+### 17.8 三种预取机制横向对比
+
+| 维度 | Memory 预取 | Skill 预取 | Tool 预取 |
+|------|------------|-----------|----------|
+| 定义文件 | `utils/attachments.ts` | `services/skillSearch/prefetch.ts` | `services/searchExtraTools/prefetch.ts` |
+| 门控 | `isAutoMemoryEnabled` + GrowthBook gate | `EXPERIMENTAL_SKILL_SEARCH` feature | `EXPERIMENTAL_SEARCH_EXTRA_TOOLS` feature |
+| 启动时机 | queryLoop 入口（**每 turn 一次**） | **每次迭代**开头 | **每次迭代**开头 |
+| 搜索引擎 | `findRelevantMemories()`（TF-IDF 或向量） | TF-IDF（`localSearch.ts`） | TF-IDF（复用 `localSearch.ts`） |
+| 搜索目标 | 本地 `.md` 记忆文件 | `.claude/skills/` SKILL.md 文件 | 非 CORE_TOOLS 的延迟工具 |
+| 返回上限 | 5 个文件 | 5 个 Skill | 3 个工具 |
+| 消费策略 | **Zero-wait**（未 settle 跳过） | **直接 await**（几乎总已 settle） | **直接 await** |
+| 生命周期管理 | `using`（Disposable），自动 abort | 无 dispose，Promise 自然 settle | 无 dispose |
+| 会话去重 | `collectSurfacedMemories()`（扫消息） | 有界 Set（1000 → 750） | 有界 Set（500 → 400） |
+| UI 订阅 | 无 | 无 | 有（`useSyncExternalStore` 接口） |
+| Auto-Load | 无（读文件注入） | 有（score ≥ 0.30，≤2 个） | 无（只发现不加载） |
+| Turn-zero | 有 | 有（+意图归一化 Haiku 调用） | **已禁用**（太吵） |
+| `extractQueryFromMessages` | 自有实现（直接取最后用户消息） | 自有实现（向后找真实话语） | **复用** skillSearch 版本 |
+
+**共同设计原则**：三者都在 API 调用和工具执行期间**并行执行**，零额外等待地利用了主流程的"空闲窗口"，到消费点时结果大概率已就绪。
+
+---
+
 ## 十六、学习路径建议
 
 ### 推荐阅读顺序

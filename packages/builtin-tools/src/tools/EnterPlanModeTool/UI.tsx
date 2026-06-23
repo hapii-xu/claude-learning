@@ -20,10 +20,10 @@ export function renderToolResultMessage(
     <Box flexDirection="column" marginTop={1}>
       <Box flexDirection="row">
         <Text color={getModeColor('plan')}>{BLACK_CIRCLE}</Text>
-        <Text> Entered plan mode</Text>
+        <Text> 已进入计划模式</Text>
       </Box>
       <Box paddingLeft={2}>
-        <Text dimColor>Claude is now exploring and designing an implementation approach.</Text>
+        <Text dimColor>Claude 正在探索并设计实现方案。</Text>
       </Box>
     </Box>
   );
@@ -33,7 +33,7 @@ export function renderToolUseRejectedMessage(): React.ReactNode {
   return (
     <Box flexDirection="row" marginTop={1}>
       <Text color={getModeColor('default')}>{BLACK_CIRCLE}</Text>
-      <Text> User declined to enter plan mode</Text>
+      <Text> 用户拒绝进入计划模式</Text>
     </Box>
   );
 }

@@ -19,20 +19,19 @@ type ProgressCallback = (
 ) => void
 
 /**
- * Single source of truth for a shell command's output.
+ * Shell 命令输出的唯一真实来源。
  *
- * For bash commands (file mode): both stdout and stderr go directly to
- * a file via stdio fds — neither enters JS. Progress is extracted by
- * polling the file tail. getStderr() returns '' since stderr is
- * interleaved in the output file.
+ * 对于 bash 命令（文件模式）：stdout 和 stderr 都通过 stdio fd 直接写入
+ * 文件 —— 两者都不经过 JS。进度通过轮询文件尾部来提取。
+ * getStderr() 返回 ''，因为 stderr 已交织在输出文件中。
  *
- * For hooks (pipe mode): data flows through writeStdout()/writeStderr()
- * and is buffered in memory, spilling to disk if it exceeds the limit.
+ * 对于 hooks（管道模式）：数据通过 writeStdout()/writeStderr() 流入，
+ * 在内存中缓冲，超出限制时会溢出到磁盘。
  */
 export class TaskOutput {
   readonly taskId: string
   readonly path: string
-  /** True when stdout goes to a file fd (bypassing JS). False for pipe mode (hooks). */
+  /** stdout 是否写入文件 fd（绕过 JS）。管道模式（hooks）下为 false。 */
   readonly stdoutToFile: boolean
   #stdoutBuffer = ''
   #stderrBuffer = ''
@@ -42,16 +41,16 @@ export class TaskOutput {
   #totalBytes = 0
   #maxMemory: number
   #onProgress: ProgressCallback | null
-  /** Set by getStdout() — true when the file was fully read (≤ maxOutputLength). */
+  /** 由 getStdout() 设置 —— 文件被完整读取时为 true（≤ maxOutputLength）。 */
   #outputFileRedundant = false
-  /** Set by getStdout() — total file size in bytes. */
+  /** 由 getStdout() 设置 —— 文件总大小（字节）。 */
   #outputFileSize = 0
 
-  // --- Shared poller state ---
+  // --- 共享轮询器状态 ---
 
-  /** Registry of all file-mode TaskOutput instances with onProgress callbacks. */
+  /** 所有文件模式 TaskOutput 实例的注册表，带有 onProgress 回调。 */
   static #registry = new Map<string, TaskOutput>()
-  /** Subset of #registry currently being polled (visibility-driven by React). */
+  /** #registry 中当前正在轮询的子集（由 React 根据可见性驱动）。 */
   static #activePolling = new Map<string, TaskOutput>()
   static #pollInterval: ReturnType<typeof setInterval> | null = null
 
@@ -67,16 +66,16 @@ export class TaskOutput {
     this.#maxMemory = maxMemory
     this.#onProgress = onProgress
 
-    // Register for polling when stdout goes to a file and progress is needed.
-    // Actual polling is started/stopped by React via startPolling/stopPolling.
+    // 当 stdout 写入文件且需要进度回调时注册轮询。
+    // 实际轮询由 React 通过 startPolling/stopPolling 启停。
     if (stdoutToFile && onProgress) {
       TaskOutput.#registry.set(taskId, this)
     }
   }
 
   /**
-   * Begin polling the output file for progress. Called from React
-   * useEffect when the progress component mounts.
+   * 开始轮询输出文件以获取进度。由 React
+   * useEffect 在进度组件挂载时调用。
    */
   static startPolling(taskId: string): void {
     const instance = TaskOutput.#registry.get(taskId)
@@ -91,8 +90,8 @@ export class TaskOutput {
   }
 
   /**
-   * Stop polling the output file. Called from React useEffect cleanup
-   * when the progress component unmounts.
+   * 停止轮询输出文件。由 React useEffect cleanup
+   * 在进度组件卸载时调用。
    */
   static stopPolling(taskId: string): void {
     TaskOutput.#activePolling.delete(taskId)
@@ -103,8 +102,8 @@ export class TaskOutput {
   }
 
   /**
-   * Shared tick: reads the file tail for every actively-polled task.
-   * Non-async body (.then) to avoid stacking if I/O is slow.
+   * 共享 tick：为每个正在活跃轮询的任务读取文件尾部。
+   * 使用非 async 的 body（.then）以避免 I/O 缓慢时堆叠。
    */
   static #tick(): void {
     for (const [, entry] of TaskOutput.#activePolling) {
@@ -116,16 +115,16 @@ export class TaskOutput {
           if (!entry.#onProgress) {
             return
           }
-          // Always call onProgress even when content is empty, so the
-          // progress loop wakes up and can check for backgrounding.
-          // Commands like `git log -S` produce no output for long periods.
+          // 即使 content 为空也要调用 onProgress，这样进度
+          // 循环才能唤醒并检查是否转入后台。
+          // 像 `git log -S` 这样的命令会长时间无输出。
           if (!content) {
             entry.#onProgress('', '', entry.#totalLines, bytesTotal, false)
             return
           }
-          // Count all newlines in the tail and capture slice points for the
-          // last 5 and last 100 lines. Uncapped so extrapolation stays accurate
-          // for dense output (short lines → >100 newlines in 4KB).
+          // 统计尾部所有换行符，并捕获最后 5 行和最后 100 行的
+          // 切片位置。不设上限以便密集输出时外推保持准确
+          // （短行 → 4KB 内超过 100 个换行）。
           let pos = content.length
           let n5 = 0
           let n100 = 0
@@ -136,9 +135,8 @@ export class TaskOutput {
             if (lineCount === 5) n5 = pos <= 0 ? 0 : pos + 1
             if (lineCount === 100) n100 = pos <= 0 ? 0 : pos + 1
           }
-          // lineCount is exact when the whole file fits in PROGRESS_TAIL_BYTES.
-          // Otherwise extrapolate from the tail sample; monotone max keeps the
-          // counter from going backwards when the tail has longer lines on one tick.
+          // 当整个文件在 PROGRESS_TAIL_BYTES 内时 lineCount 是精确值。
+          // 否则从尾部样本外推；单调最大值可防止某次 tick 尾部行较长时计数器回退。
           const totalLines =
             bytesRead >= bytesTotal
               ? lineCount
@@ -157,18 +155,18 @@ export class TaskOutput {
           )
         },
         () => {
-          // File may not exist yet
+          // 文件可能尚未创建
         },
       )
     }
   }
 
-  /** Write stdout data (pipe mode only — used by hooks). */
+  /** 写入 stdout 数据（仅管道模式 —— 供 hooks 使用）。 */
   writeStdout(data: string): void {
     this.#writeBuffered(data, false)
   }
 
-  /** Write stderr data (always piped). */
+  /** 写入 stderr 数据（始终通过管道）。 */
   writeStderr(data: string): void {
     this.#writeBuffered(data, true)
   }
@@ -178,13 +176,13 @@ export class TaskOutput {
 
     this.#updateProgress(data)
 
-    // Write to disk if already overflowed
+    // 如果已经溢出则写入磁盘
     if (this.#disk) {
       this.#disk.append(isStderr ? `[stderr] ${data}` : data)
       return
     }
 
-    // Check if this chunk would exceed the in-memory limit
+    // 检查此数据块是否会超出内存限制
     const totalMem =
       this.#stdoutBuffer.length + this.#stderrBuffer.length + data.length
     if (totalMem > this.#maxMemory) {
@@ -200,9 +198,9 @@ export class TaskOutput {
   }
 
   /**
-   * Single backward pass: count all newlines (for totalLines) and extract
-   * the last few lines as flat copies (for the CircularBuffer / progress).
-   * Only used in pipe mode (hooks). File mode uses the shared poller.
+   * 单次反向遍历：统计所有换行符（用于 totalLines）并提取
+   * 最后几行作为平面副本（用于 CircularBuffer / 进度）。
+   * 仅在管道模式（hooks）下使用。文件模式使用共享轮询器。
    */
   #updateProgress(data: string): void {
     const MAX_PROGRESS_BYTES = 4096
@@ -256,7 +254,7 @@ export class TaskOutput {
   #spillToDisk(stderrChunk: string | null, stdoutChunk: string | null): void {
     this.#disk = new DiskTaskOutput(this.taskId)
 
-    // Flush existing buffers
+    // 刷新已有缓冲区
     if (this.#stdoutBuffer) {
       this.#disk.append(this.#stdoutBuffer)
       this.#stdoutBuffer = ''
@@ -266,7 +264,7 @@ export class TaskOutput {
       this.#stderrBuffer = ''
     }
 
-    // Write the chunk that triggered overflow
+    // 写入触发溢出的数据块
     if (stdoutChunk) {
       this.#disk.append(stdoutChunk)
     }
@@ -276,14 +274,14 @@ export class TaskOutput {
   }
 
   /**
-   * Get stdout. In file mode, reads from the output file.
-   * In pipe mode, returns the in-memory buffer or tail from CircularBuffer.
+   * 获取 stdout。文件模式下从输出文件读取。
+   * 管道模式下返回内存缓冲区或 CircularBuffer 的尾部。
    */
   async getStdout(): Promise<string> {
     if (this.stdoutToFile) {
       return this.#readStdoutFromFile()
     }
-    // Pipe mode (hooks) — use in-memory data
+    // 管道模式（hooks）—— 使用内存中的数据
     if (this.#disk) {
       const recent = this.#recentLines.getRecent(5)
       const tail = safeJoinLines(recent, '\n')
@@ -303,19 +301,18 @@ export class TaskOutput {
         return ''
       }
       const { content, bytesRead, bytesTotal } = result
-      // If the file fits, it's fully captured inline and can be deleted.
-      // If not, return what we read — processToolResultBlock handles
-      // the <persisted-output> formatting and persistence downstream.
+      // 如果文件完整装入则已完全内联捕获，可以删除。
+      // 否则返回已读取的内容 —— processToolResultBlock 会在下游处理
+      // <persisted-output> 格式化和持久化。
       this.#outputFileSize = bytesTotal
       this.#outputFileRedundant = bytesTotal <= bytesRead
       return content
     } catch (err) {
-      // Surface the error instead of silently returning empty. An ENOENT here
-      // means the output file was deleted while the command was running
-      // (historically: cross-session startup cleanup in the same project dir).
-      // Returning a diagnostic string keeps the tool_result non-empty, which
-      // avoids reminder-only-at-tail confusion downstream and tells the model
-      // (and us, via the transcript) what actually happened.
+      // 上抛错误而非静默返回空。这里的 ENOENT 意味着
+      // 输出文件在命令运行期间被删除了
+      // （历史原因：同一项目目录的跨会话启动清理）。
+      // 返回诊断信息使 tool_result 非空，这避免了下游
+      // 仅在尾部提示的困惑，并告知模型（以及通过记录中的我们）实际发生了什么。
       const code =
         err instanceof Error && 'code' in err ? String(err.code) : 'unknown'
       logForDebugging(
@@ -325,7 +322,7 @@ export class TaskOutput {
     }
   }
 
-  /** Sync getter for ExecResult.stderr */
+  /** 同步获取 ExecResult.stderr */
   getStderr(): string {
     if (this.#disk) {
       return ''
@@ -346,19 +343,19 @@ export class TaskOutput {
   }
 
   /**
-   * True after getStdout() when the output file was fully read.
-   * The file content is redundant (fully in ExecResult.stdout) and can be deleted.
+   * 在 getStdout() 调用后为 true，表示输出文件已被完整读取。
+   * 文件内容已冗余（完全包含在 ExecResult.stdout 中），可以删除。
    */
   get outputFileRedundant(): boolean {
     return this.#outputFileRedundant
   }
 
-  /** Total file size in bytes, set after getStdout() reads the file. */
+  /** 文件总大小（字节），在 getStdout() 读取文件后设置。 */
   get outputFileSize(): number {
     return this.#outputFileSize
   }
 
-  /** Force all buffered content to disk. Call when backgrounding. */
+  /** 将所有缓冲内容强制写入磁盘。转入后台时调用。 */
   spillToDisk(): void {
     if (!this.#disk) {
       this.#spillToDisk(null, null)
@@ -369,12 +366,12 @@ export class TaskOutput {
     await this.#disk?.flush()
   }
 
-  /** Delete the output file (fire-and-forget safe). */
+  /** 删除输出文件（可安全即发即弃）。 */
   async deleteOutputFile(): Promise<void> {
     try {
       await unlink(this.path)
     } catch {
-      // File may already be deleted or not exist
+      // 文件可能已被删除或不存在
     }
   }
 

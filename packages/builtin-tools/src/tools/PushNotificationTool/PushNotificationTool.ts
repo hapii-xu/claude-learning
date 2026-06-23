@@ -10,13 +10,13 @@ const PUSH_NOTIFICATION_TOOL_NAME = 'PushNotification'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    title: z.string().describe('Title of the push notification.'),
-    body: z.string().describe('Body text of the push notification.'),
+    title: z.string().describe('推送通知的标题。'),
+    body: z.string().describe('推送通知的正文内容。'),
     priority: z
       .enum(['normal', 'high'])
       .optional()
       .describe(
-        'Notification priority. Use "high" for blockers or permission prompts.',
+        '通知优先级。对于阻塞事项或权限提示请使用 "high"。',
       ),
   }),
 )

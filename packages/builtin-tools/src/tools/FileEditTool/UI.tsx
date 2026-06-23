@@ -34,19 +34,19 @@ export function userFacingName(
     | undefined,
 ): string {
   if (!input) {
-    return 'Update';
+    return '更新';
   }
   if (input.file_path?.startsWith(getPlansDirectory())) {
-    return 'Updated plan';
+    return '已更新计划';
   }
-  // Hashline edits always modify an existing file (line-ref based)
+  // Hashline 编辑始终修改现有文件（基于行引用）
   if (input.edits != null) {
-    return 'Update';
+    return '更新';
   }
   if (input.old_string === '') {
-    return 'Create';
+    return '创建';
   }
-  return 'Update';
+  return '更新';
 }
 
 export function getToolUseSummary(
@@ -72,7 +72,7 @@ export function renderToolUseMessage(
   if (!file_path) {
     return null;
   }
-  // For plan files, path is already in userFacingName
+  // 对于计划文件，路径已在 userFacingName 中
   if (file_path.startsWith(getPlansDirectory())) {
     return '';
   }
@@ -84,7 +84,7 @@ export function renderToolResultMessage(
   _progressMessagesForMessage: ProgressMessage[],
   { style, verbose }: { style?: 'condensed'; verbose: boolean },
 ): React.ReactNode {
-  // For plan files, show /plan hint above the diff
+  // 对于计划文件，在 diff 上方显示 /plan 提示
   const isPlanFile = filePath.startsWith(getPlansDirectory());
 
   return (
@@ -124,7 +124,7 @@ export function renderToolUseRejectedMessage(
   const newString = input.new_string ?? '';
   const replaceAll = input.replace_all ?? false;
 
-  // Defensive: if input has an unexpected shape, show a simple rejection message
+  // 防御性：如果输入具有意外形状，显示简单的拒绝消息
   if ('edits' in input && input.edits != null) {
     return (
       <FileEditToolUseRejectedMessage file_path={filePath} operation="update" firstLine={null} verbose={verbose} />
@@ -133,7 +133,7 @@ export function renderToolUseRejectedMessage(
 
   const isNewFile = oldString === '';
 
-  // For new file creation, show content preview instead of diff
+  // 对于新文件创建，显示内容预览而不是 diff
   if (isNewFile) {
     return (
       <FileEditToolUseRejectedMessage
@@ -172,13 +172,13 @@ export function renderToolUseErrorMessage(
     if (errorMessage?.includes(FILE_NOT_FOUND_CWD_NOTE)) {
       return (
         <MessageResponse>
-          <Text color="error">File not found</Text>
+          <Text color="error">未找到文件</Text>
         </MessageResponse>
       );
     }
     return (
       <MessageResponse>
-        <Text color="error">Error editing file</Text>
+        <Text color="error">编辑文件时出错</Text>
       </MessageResponse>
     );
   }
@@ -250,12 +250,12 @@ async function loadRejectionDiff(
   replaceAll: boolean,
 ): Promise<RejectionDiffData> {
   try {
-    // Chunked read — context window around the first occurrence. replaceAll
-    // still shows matches *within* the window via getPatchForEdit; we accept
-    // losing the all-occurrences view to keep the read bounded.
+    // 分块读取 — 围绕第一次出现的上下文窗口。replaceAll
+    // 仍然通过 getPatchForEdit 显示窗口*内*的匹配；我们接受
+    // 失去所有出现位置的视图以保持读取有界。
     const ctx = await readEditContext(filePath, oldString, CONTEXT_LINES);
     if (ctx === null || ctx.truncated || ctx.content === '') {
-      // ENOENT / not found / truncated — diff just the tool inputs.
+      // ENOENT / 未找到 / 截断 — 只对工具输入做 diff。
       const { patch } = getPatchForEdit({
         filePath,
         fileContents: oldString,
@@ -278,7 +278,7 @@ async function loadRejectionDiff(
       fileContent: ctx.content,
     };
   } catch (e) {
-    // User may have manually applied the change while the diff was shown.
+    // 用户可能在 diff 显示期间手动应用了更改。
     logError(e as Error);
     return { patch: [], firstLine: null, fileContent: undefined };
   }

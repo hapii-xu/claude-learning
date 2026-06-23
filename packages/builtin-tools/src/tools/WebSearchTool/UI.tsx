@@ -47,11 +47,11 @@ export function renderToolUseMessage(
 
   if (verbose) {
     if (allowed_domains && allowed_domains.length > 0) {
-      message += `, only allowing domains: ${allowed_domains.join(', ')}`;
+      message += `，仅允许域名：${allowed_domains.join(', ')}`;
     }
 
     if (blocked_domains && blocked_domains.length > 0) {
-      message += `, blocking domains: ${blocked_domains.join(', ')}`;
+      message += `，屏蔽域名：${blocked_domains.join(', ')}`;
     }
   }
 
@@ -74,14 +74,14 @@ export function renderToolUseProgressMessage(progressMessages: ProgressMessage<W
     case 'query_update':
       return (
         <MessageResponse>
-          <Text dimColor>Searching: {data.query}</Text>
+          <Text dimColor>正在搜索：{data.query}</Text>
         </MessageResponse>
       );
     case 'search_results_received':
       return (
         <MessageResponse>
           <Text dimColor>
-            Found {data.resultCount} results for &quot;{data.query}&quot;
+            为 &quot;{data.query}&quot; 找到 {data.resultCount} 条结果
           </Text>
         </MessageResponse>
       );
@@ -101,8 +101,7 @@ export function renderToolResultMessage(output: Output): React.ReactNode {
     <Box justifyContent="space-between" width="100%">
       <MessageResponse height={1}>
         <Text>
-          Did {searchCount} search
-          {searchCount !== 1 ? 'es' : ''} in {timeDisplay}
+          在 {timeDisplay} 内完成 {searchCount} 次搜索
         </Text>
       </MessageResponse>
     </Box>

@@ -9,7 +9,7 @@ import { extractTag } from 'src/utils/messages.js';
 import type { Input, Output } from './LSPTool.js';
 import { getSymbolAtPosition } from './symbolContext.js';
 
-// Lookup map for operation-specific labels
+// 各操作的专用标签查找表
 const OPERATION_LABELS: Record<Input['operation'], { singular: string; plural: string; special?: string }> = {
   goToDefinition: { singular: 'definition', plural: 'definitions' },
   findReferences: { singular: 'reference', plural: 'references' },
@@ -23,7 +23,7 @@ const OPERATION_LABELS: Record<Input['operation'], { singular: string; plural: s
 };
 
 /**
- * Reusable component for LSP result summaries with collapsed/expanded views
+ * 可复用的 LSP 结果摘要组件，支持折叠/展开视图
  */
 function LSPResultSummary({
   operation,
@@ -38,7 +38,7 @@ function LSPResultSummary({
   content: string;
   verbose: boolean;
 }): React.ReactNode {
-  // Get label configuration for this operation
+  // 获取该操作的标签配置
   const labelConfig = OPERATION_LABELS[operation] || {
     singular: 'result',
     plural: 'results',
@@ -47,10 +47,10 @@ function LSPResultSummary({
 
   const primaryText =
     operation === 'hover' && resultCount > 0 && labelConfig.special ? (
-      <Text>Hover info {labelConfig.special}</Text>
+      <Text>悬停信息 {labelConfig.special}</Text>
     ) : (
       <Text>
-        Found <Text bold>{resultCount} </Text>
+        找到 <Text bold>{resultCount} </Text>
         {countLabel}
       </Text>
     );
@@ -59,8 +59,8 @@ function LSPResultSummary({
     fileCount > 1 ? (
       <Text>
         {' '}
-        across <Text bold>{fileCount} </Text>
-        files
+        跨 <Text bold>{fileCount} </Text>
+        个文件
       </Text>
     ) : null;
 
@@ -102,8 +102,8 @@ export function renderToolUseMessage(input: Partial<Input>, { verbose }: { verbo
 
   const parts: string[] = [];
 
-  // For position-based operations (goToDefinition, findReferences, hover, goToImplementation),
-  // show the symbol at the position for better context
+  // 对于基于位置的操作（goToDefinition、findReferences、hover、goToImplementation），
+  // 显示该位置的符号以提供更好的上下文
   if (
     (input.operation === 'goToDefinition' ||
       input.operation === 'findReferences' ||
@@ -113,33 +113,33 @@ export function renderToolUseMessage(input: Partial<Input>, { verbose }: { verbo
     input.line !== undefined &&
     input.character !== undefined
   ) {
-    // Convert from 1-based (user input) to 0-based (internal file reading)
+    // 从 1-based（用户输入）转为 0-based（内部文件读取）
     const symbol = getSymbolAtPosition(input.filePath, input.line - 1, input.character - 1);
     const displayPath = verbose ? input.filePath : getDisplayPath(input.filePath);
 
     if (symbol) {
-      parts.push(`operation: "${input.operation}"`);
-      parts.push(`symbol: "${symbol}"`);
-      parts.push(`in: "${displayPath}"`);
+      parts.push(`操作："${input.operation}"`);
+      parts.push(`符号："${symbol}"`);
+      parts.push(`位于："${displayPath}"`);
     } else {
-      parts.push(`operation: "${input.operation}"`);
-      parts.push(`file: "${displayPath}"`);
-      parts.push(`position: ${input.line}:${input.character}`);
+      parts.push(`操作："${input.operation}"`);
+      parts.push(`文件："${displayPath}"`);
+      parts.push(`位置：${input.line}:${input.character}`);
     }
 
-    return parts.join(', ');
+    return parts.join('，');
   }
 
-  // For other operations (documentSymbol, workspaceSymbol),
-  // show operation and file without position details
-  parts.push(`operation: "${input.operation}"`);
+  // 对于其他操作（documentSymbol、workspaceSymbol），
+  // 只显示操作和文件，不显示位置细节
+  parts.push(`操作："${input.operation}"`);
 
   if (input.filePath) {
     const displayPath = verbose ? input.filePath : getDisplayPath(input.filePath);
-    parts.push(`file: "${displayPath}"`);
+    parts.push(`文件："${displayPath}"`);
   }
 
-  return parts.join(', ');
+  return parts.join('，');
 }
 
 export function renderToolUseErrorMessage(
@@ -149,7 +149,7 @@ export function renderToolUseErrorMessage(
   if (!verbose && typeof result === 'string' && extractTag(result, 'tool_use_error')) {
     return (
       <MessageResponse>
-        <Text color="error">LSP operation failed</Text>
+        <Text color="error">LSP 操作失败</Text>
       </MessageResponse>
     );
   }
@@ -161,7 +161,7 @@ export function renderToolResultMessage(
   _progressMessages: unknown[],
   { verbose }: { verbose: boolean },
 ): React.ReactNode {
-  // Use collapsed/expanded view if we have count information
+  // 若有计数信息则使用折叠/展开视图
   if (output.resultCount !== undefined && output.fileCount !== undefined) {
     return (
       <LSPResultSummary
@@ -174,8 +174,8 @@ export function renderToolResultMessage(
     );
   }
 
-  // Fallback for error cases where counts aren't available
-  // (e.g., LSP server initialization failures, request errors)
+  // 计数不可用时的错误回退
+  //（例如 LSP server 初始化失败、请求错误）
   return (
     <MessageResponse>
       <Text>{output.result}</Text>

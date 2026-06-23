@@ -1,8 +1,8 @@
 import React from 'react'
 
 /**
- * Shared spawn module for teammate creation.
- * Extracted from TeammateTool to allow reuse by AgentTool.
+ * 用于创建 teammate 的共享 spawn 模块。
+ * 从 TeammateTool 中抽取出来，以便 AgentTool 也能复用。
  */
 
 import { getSessionId } from 'src/bootstrap/state.js'
@@ -37,7 +37,7 @@ import { isCustomAgent } from '../AgentTool/loadAgentsDir.js'
 function getDefaultTeammateModel(leaderModel: string | null): string {
   const configured = getGlobalConfig().teammateDefaultModel
   if (configured === null) {
-    // User picked "Default" in the /config picker — follow the leader.
+    // 用户在 /config 选择器中选择了 "Default" — 跟随 leader。
     return leaderModel ?? getHardcodedTeammateModelFallback()
   }
   if (configured !== undefined) {
@@ -47,13 +47,12 @@ function getDefaultTeammateModel(leaderModel: string | null): string {
 }
 
 /**
- * Resolve a teammate model value. Handles the 'inherit' alias (from agent
- * frontmatter) by substituting the leader's model. gh-31069: 'inherit' was
- * passed literally to --model, producing "It may not exist or you may not
- * have access". If leader model is null (not yet set), falls through to the
- * default.
+ * 解析 teammate 的模型值。处理 'inherit' 别名（来自 agent
+ * frontmatter），将其替换为 leader 的模型。gh-31069：'inherit' 曾被
+ * 原样传给 --model，导致出现 "It may not exist or you may not have access"。
+ * 如果 leader 模型为 null（尚未设置），则回退到默认值。
  *
- * Exported for testing.
+ * 导出用于测试。
  */
 export function resolveTeammateModel(
   inputModel: string | undefined,
@@ -66,7 +65,7 @@ export function resolveTeammateModel(
 }
 
 // ============================================================================
-// Types
+// 类型
 // ============================================================================
 
 export type SpawnOutput = {
@@ -94,13 +93,12 @@ export type SpawnTeammateConfig = {
   model?: string
   agent_type?: string
   description?: string
-  /** request_id of the API call whose response contained the tool_use that
-   *  spawned this teammate. Threaded through to TeammateAgentContext for
-   *  lineage tracing on tengu_api_* events. */
+  /** API 调用的 request_id，该调用的响应中包含了生成此 teammate 的 tool_use。
+   *  透传给 TeammateAgentContext，用于 tengu_api_* 事件的血缘追踪。 */
   invokingRequestId?: string
 }
 
-// Internal input type matching TeammateTool's spawn parameters
+// 与 TeammateTool 的 spawn 参数对应的内部输入类型
 type SpawnInput = {
   name: string
   prompt: string
@@ -115,13 +113,13 @@ type SpawnInput = {
 }
 
 // ============================================================================
-// Helper Functions
+// 辅助函数
 // ============================================================================
 
 /**
- * Generates a unique teammate name by checking existing team members.
- * If the name already exists, appends a numeric suffix (e.g., tester-2, tester-3).
- * @internal Exported for testing
+ * 通过检查已有团队成员，生成唯一的 teammate 名称。
+ * 如果该名称已存在，则附加数字后缀（例如 tester-2、tester-3）。
+ * @internal 导出用于测试
  */
 export async function generateUniqueTeammateName(
   baseName: string,
@@ -138,12 +136,12 @@ export async function generateUniqueTeammateName(
 
   const existingNames = new Set(teamFile.members.map(m => m.name.toLowerCase()))
 
-  // If the base name doesn't exist, use it as-is
+  // 如果基础名称不存在，直接使用
   if (!existingNames.has(baseName.toLowerCase())) {
     return baseName
   }
 
-  // Find the next available suffix
+  // 查找下一个可用的后缀
   let suffix = 2
   while (existingNames.has(`${baseName}-${suffix}`.toLowerCase())) {
     suffix++
@@ -153,7 +151,7 @@ export async function generateUniqueTeammateName(
 }
 
 // ============================================================================
-// Spawn Handler
+// Spawn 处理器
 // ============================================================================
 
 type ResolvedSpawn = {
@@ -172,21 +170,21 @@ async function resolveSpawn(
   context: ToolUseContext,
 ): Promise<ResolvedSpawn> {
   if (!input.name || !input.prompt) {
-    throw new Error('name and prompt are required for spawn operation')
+    throw new Error('spawn 操作需要 name 和 prompt')
   }
 
   const appState = context.getAppState()
   const teamName = input.team_name || appState.teamContext?.teamName
   if (!teamName) {
     throw new Error(
-      'team_name is required for spawn operation. Either provide team_name in input or call TeamCreate first to establish team context.',
+      'spawn 操作需要 team_name。请在输入中提供 team_name，或先调用 TeamCreate 以建立团队上下文。',
     )
   }
 
   const teamFile = await readTeamFileAsync(teamName)
   if (!teamFile) {
     throw new Error(
-      `Team "${teamName}" does not exist. Call TeamCreate first to create the team before spawning teammates.`,
+      `团队 "${teamName}" 不存在。请先调用 TeamCreate 创建团队，然后再生成 teammate。`,
     )
   }
 
@@ -311,7 +309,7 @@ async function appendTeamMember(
   const teamFile = await readTeamFileAsync(spawn.teamName)
   if (!teamFile) {
     throw new Error(
-      `Team "${spawn.teamName}" disappeared during teammate spawn.`,
+      `团队 "${spawn.teamName}" 在生成 teammate 期间消失了。`,
     )
   }
 
@@ -374,7 +372,7 @@ async function handleSpawn(
   })
 
   if (!result.success) {
-    throw new Error(result.error ?? 'Failed to spawn teammate')
+    throw new Error(result.error ?? '生成 teammate 失败')
   }
 
   updateTeamContext(context, spawn, result)
@@ -400,12 +398,12 @@ async function handleSpawn(
 }
 
 // ============================================================================
-// Main Export
+// 主导出
 // ============================================================================
 
 /**
- * Spawns a new teammate with the given configuration.
- * This is the main entry point for teammate spawning, used by both TeammateTool and AgentTool.
+ * 使用给定配置生成一个新的 teammate。
+ * 这是生成 teammate 的主入口，TeammateTool 和 AgentTool 都会使用它。
  */
 export async function spawnTeammate(
   config: SpawnTeammateConfig,

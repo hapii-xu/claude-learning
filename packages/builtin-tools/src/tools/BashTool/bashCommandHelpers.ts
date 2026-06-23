@@ -28,7 +28,7 @@ async function segmentedCommandPermissionResult(
   ) => Promise<PermissionResult>,
   checkers: CommandIdentityCheckers,
 ): Promise<PermissionResult> {
-  // Check for multiple cd commands across all segments
+  // 检查所有段中是否存在多个 cd 命令
   const cdCommands = segments.filter(segment => {
     const trimmed = segment.trim()
     return checkers.isNormalizedCdCommand(trimmed)
@@ -46,12 +46,12 @@ async function segmentedCommandPermissionResult(
     }
   }
 
-  // SECURITY: Check for cd+git across pipe segments to prevent bare repo fsmonitor bypass.
-  // When cd and git are in different pipe segments (e.g., "cd sub && echo | git status"),
-  // each segment is checked independently and neither triggers the cd+git check in
-  // bashPermissions.ts. We must detect this cross-segment pattern here.
-  // Each pipe segment can itself be a compound command (e.g., "cd sub && echo"),
-  // so we split each segment into subcommands before checking.
+  // 安全：检查管道段之间的 cd+git 组合以防止裸仓库 fsmonitor 绕过。
+  // 当 cd 和 git 位于不同的管道段时（例如 "cd sub && echo | git status"），
+  // 每个段会被独立检查，都不会触发 bashPermissions.ts 中的 cd+git 检查。
+  // 必须在此处检测这种跨段模式。
+  // 每个管道段本身可以是复合命令（例如 "cd sub && echo"），
+  // 因此在检查前需将每个段拆分为子命令。
   {
     let hasCd = false
     let hasGit = false
@@ -83,10 +83,10 @@ async function segmentedCommandPermissionResult(
 
   const segmentResults = new Map<string, PermissionResult>()
 
-  // Check each segment through the full permission system
+  // 通过完整的权限系统检查每个分段
   for (const segment of segments) {
     const trimmedSegment = segment.trim()
-    if (!trimmedSegment) continue // Skip empty segments
+    if (!trimmedSegment) continue // 跳过空分段
 
     const segmentResult = await bashToolHasPermissionFn({
       ...input,
@@ -95,7 +95,7 @@ async function segmentedCommandPermissionResult(
     segmentResults.set(trimmedSegment, segmentResult)
   }
 
-  // Check if any segment is denied (after evaluating all)
+  // 检查是否有任一分段被拒绝（在评估完所有分段之后）
   const deniedSegment = Array.from(segmentResults.entries()).find(
     ([, result]) => result.behavior === 'deny',
   )
@@ -130,7 +130,7 @@ async function segmentedCommandPermissionResult(
     }
   }
 
-  // Collect suggestions from segments that need approval
+  // 从需要批准的分段中收集建议
   const suggestions: PermissionUpdate[] = []
   for (const [, result] of segmentResults) {
     if (
@@ -156,27 +156,26 @@ async function segmentedCommandPermissionResult(
 }
 
 /**
- * Builds a command segment, stripping output redirections to avoid
- * treating filenames as commands in permission checking.
- * Uses ParsedCommand to preserve original quoting.
+ * 构建命令分段，剥离输出重定向，以避免在权限检查时把文件名误当作命令。
+ * 使用 ParsedCommand 以保留原始引号。
  */
 async function buildSegmentWithoutRedirections(
   segmentCommand: string,
 ): Promise<string> {
-  // Fast path: skip parsing if no redirection operators present
+  // 快速路径：若不存在重定向操作符，则跳过解析
   if (!segmentCommand.includes('>')) {
     return segmentCommand
   }
 
-  // Use ParsedCommand to strip redirections while preserving quotes
+  // 使用 ParsedCommand 剥离重定向，同时保留引号
   const parsed = await ParsedCommand.parse(segmentCommand)
   return parsed?.withoutOutputRedirections() ?? segmentCommand
 }
 
 /**
- * Wrapper that resolves an IParsedCommand (from a pre-parsed AST root if
- * available, else via ParsedCommand.parse) and delegates to
- * bashToolCheckCommandOperatorPermissions.
+ * 包装函数：解析 IParsedCommand（若可用则从预解析的 AST root 构建，
+ * 否则通过 ParsedCommand.parse），再委托给
+ * bashToolCheckCommandOperatorPermissions。
  */
 export async function checkCommandOperatorPermissions(
   input: z.infer<typeof BashTool.inputSchema>,
@@ -202,8 +201,7 @@ export async function checkCommandOperatorPermissions(
 }
 
 /**
- * Checks if the command has special operators that require behavior beyond
- * simple subcommand checking.
+ * 检查命令是否含有超出简单子命令检查范围的特殊操作符。
  */
 async function bashToolCheckCommandOperatorPermissions(
   input: z.infer<typeof BashTool.inputSchema>,
@@ -213,15 +211,15 @@ async function bashToolCheckCommandOperatorPermissions(
   checkers: CommandIdentityCheckers,
   parsed: IParsedCommand,
 ): Promise<PermissionResult> {
-  // 1. Check for unsafe compound commands (subshells, command groups).
+  // 1. 检查是否存在不安全的复合命令（子 shell、命令分组）。
   const tsAnalysis = parsed.getTreeSitterAnalysis()
   const isUnsafeCompound = tsAnalysis
     ? tsAnalysis.compoundStructure.hasSubshell ||
       tsAnalysis.compoundStructure.hasCommandGroup
     : isUnsafeCompoundCommand_DEPRECATED(input.command)
   if (isUnsafeCompound) {
-    // This command contains an operator like `>` that we don't support as a subcommand separator
-    // Check if bashCommandIsSafe_DEPRECATED has a more specific message
+    // 此命令包含类似 `>` 的操作符，我们不把它作为子命令分隔符支持
+    // 检查 bashCommandIsSafe_DEPRECATED 是否提供了更具体的消息
     const safetyResult = await bashCommandIsSafeAsync_DEPRECATED(input.command)
 
     const decisionReason = {
@@ -235,14 +233,14 @@ async function bashToolCheckCommandOperatorPermissions(
       behavior: 'ask',
       message: createPermissionRequestMessage(BashTool.name, decisionReason),
       decisionReason,
-      // This is an unsafe compound command, so we don't want to suggest rules since we wont be able to allow it
+      // 这是一个不安全的复合命令，因此我们不希望给出规则建议，因为我们也无法允许它
     }
   }
 
-  // 2. Check for piped commands using ParsedCommand (preserves quotes)
+  // 2. 使用 ParsedCommand 检查管道命令（保留引号）
   const pipeSegments = parsed.getPipeSegments()
 
-  // If no pipes (single segment), let normal flow handle it
+  // 若没有管道（单分段），交给正常流程处理
   if (pipeSegments.length <= 1) {
     return {
       behavior: 'passthrough',
@@ -250,12 +248,12 @@ async function bashToolCheckCommandOperatorPermissions(
     }
   }
 
-  // Strip output redirections from each segment while preserving quotes
+  // 对每个分段剥离输出重定向，同时保留引号
   const segments = await Promise.all(
     pipeSegments.map(segment => buildSegmentWithoutRedirections(segment)),
   )
 
-  // Handle as segmented command
+  // 作为分段命令处理
   return segmentedCommandPermissionResult(
     input,
     segments,

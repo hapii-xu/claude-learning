@@ -9,13 +9,13 @@ export interface SearchOptions {
   blockedDomains?: string[]
   signal?: AbortSignal
   onProgress?: (progress: SearchProgress) => void
-  /** Number of search results to return (default: 8) */
+  /** 要返回的搜索结果数量（默认：8） */
   numResults?: number
-  /** Live crawl mode (default: 'fallback') */
+  /** 实时抓取模式（默认：'fallback'） */
   livecrawl?: 'fallback' | 'preferred'
-  /** Search type (default: 'auto') */
+  /** 搜索类型（默认：'auto'） */
   searchType?: 'auto' | 'fast' | 'deep'
-  /** Maximum characters for context string (default: 10000) */
+  /** 上下文字符串的最大字符数（默认：10000） */
   contextMaxCharacters?: number
 }
 

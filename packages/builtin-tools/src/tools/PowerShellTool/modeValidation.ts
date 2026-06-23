@@ -1,9 +1,9 @@
 /**
- * PowerShell permission mode validation.
+ * PowerShell 权限模式验证。
  *
- * Checks if commands should be auto-allowed based on the current permission mode.
- * In acceptEdits mode, filesystem-modifying PowerShell cmdlets are auto-allowed.
- * Follows the same patterns as BashTool/modeValidation.ts.
+ * 根据当前权限模式检查命令是否应被自动允许。
+ * 在 acceptEdits 模式下，修改文件系统的 PowerShell cmdlet 会被自动允许。
+ * 遵循与 BashTool/modeValidation.ts 相同的模式。
  */
 
 import type { ToolPermissionContext } from 'src/Tool.js'
@@ -23,12 +23,12 @@ import {
 } from './readOnlyValidation.js'
 
 /**
- * Filesystem-modifying cmdlets that are auto-allowed in acceptEdits mode.
- * Stored as canonical (lowercase) cmdlet names.
+ * 在 acceptEdits 模式下自动允许的文件系统修改 cmdlet。
+ * 以规范（小写）cmdlet 名存储。
  *
- * Tier 3 cmdlets with complex parameter binding removed — they fall through to
- * 'ask'. Only simple write cmdlets (first positional = -Path) are auto-allowed
- * here, and they get path validation via CMDLET_PATH_CONFIG in pathValidation.ts.
+ * 具有复杂参数绑定的 Tier 3 cmdlet 已移除 — 它们会回退到
+ * '询问'。只有简单的写入 cmdlet（第一个位置参数 = -Path）在此处自动允许，
+ * 并且它们通过 pathValidation.ts 中的 CMDLET_PATH_CONFIG 进行路径验证。
  */
 const ACCEPT_EDITS_ALLOWED_CMDLETS = new Set([
   'set-content',
@@ -38,28 +38,27 @@ const ACCEPT_EDITS_ALLOWED_CMDLETS = new Set([
 ])
 
 function isAcceptEditsAllowedCmdlet(name: string): boolean {
-  // resolveToCanonical handles aliases via COMMON_ALIASES, so e.g. 'rm' → 'remove-item',
-  // 'ac' → 'add-content'. Any alias that resolves to an allowed cmdlet is automatically
-  // allowed. Tier 3 cmdlets (new-item, copy-item, move-item, etc.) and their aliases
-  // (mkdir, ni, cp, mv, etc.) resolve to cmdlets NOT in the set and fall through to 'ask'.
+  // resolveToCanonical 通过 COMMON_ALIASES 处理别名，例如 'rm' → 'remove-item'，
+  // 'ac' → 'add-content'。任何解析到允许 cmdlet 的别名都会自动允许。
+  // Tier 3 cmdlet（new-item、copy-item、move-item 等）及其别名
+  //（mkdir、ni、cp、mv 等）解析到不在集合中的 cmdlet，回退到'询问'。
   const canonical = resolveToCanonical(name)
   return ACCEPT_EDITS_ALLOWED_CMDLETS.has(canonical)
 }
 
 /**
- * New-Item -ItemType values that create filesystem links (reparse points or
- * hard links). All three redirect path resolution at runtime — symbolic links
- * and junctions are directory/file reparse points; hard links alias a file's
- * inode. Any of these let a later relative-path write land outside the
- * validator's view.
+ * 创建文件系统链接（重解析点或硬链接）的 New-Item -ItemType 值。
+ * 这三者都在运行时重定向路径解析 — 符号链接和 junction 是目录/文件重解析点；
+ * 硬链接为文件的 inode 起别名。其中任何一个都会让后续的相对路径写入
+ * 落到验证器视图之外。
  */
 const LINK_ITEM_TYPES = new Set(['symboliclink', 'junction', 'hardlink'])
 
 /**
- * Check if a lowered, dash-normalized arg (colon-value stripped) is an
- * unambiguous PowerShell abbreviation of New-Item's -ItemType or -Type param.
- * Min prefixes: `-it` (avoids ambiguity with other New-Item params), `-ty`
- * (avoids `-t` colliding with `-Target`).
+ * 检查一个小写的、横杠规范化的参数（冒号值已剥离）是否是
+ * New-Item 的 -ItemType 或 -Type 参数的明确 PowerShell 缩写。
+ * 最小前缀：`-it`（避免与其他 New-Item 参数歧义），`-ty`
+ *（避免 `-t` 与 `-Target` 冲突）。
  */
 function isItemTypeParamAbbrev(p: string): boolean {
   return (
@@ -69,15 +68,14 @@ function isItemTypeParamAbbrev(p: string): boolean {
 }
 
 /**
- * Detects New-Item creating a filesystem link (-ItemType SymbolicLink /
- * Junction / HardLink, or the -Type alias). Links poison subsequent path
- * resolution the same way Set-Location/New-PSDrive do: a relative path
- * through the link resolves to the link target, not the validator's view.
- * Finding #18.
+ * 检测 New-Item 是否创建文件系统链接（-ItemType SymbolicLink /
+ * Junction / HardLink，或 -Type 别名）。链接会以与
+ * Set-Location/New-PSDrive 相同的方式毒化后续路径解析：通过链接的相对路径
+ * 解析到链接目标，而非验证器视图。发现 #18。
  *
- * Handles PS parameter abbreviation (`-it`, `-ite`, ... `-itemtype`; `-ty`,
- * `-typ`, `-type`), unicode dash prefixes (en-dash/em-dash/horizontal-bar),
- * and colon-bound values (`-it:Junction`).
+ * 处理 PS 参数缩写（`-it`、`-ite`、... `-itemtype`；`-ty`、
+ * `-typ`、`-type`），unicode 横杠前缀（en-dash/em-dash/horizontal-bar），
+ * 以及冒号绑定值（`-it:Junction`）。
  */
 export function isSymlinkCreatingCommand(cmd: {
   name: string
@@ -88,28 +86,28 @@ export function isSymlinkCreatingCommand(cmd: {
   for (let i = 0; i < cmd.args.length; i++) {
     const raw = cmd.args[i] ?? ''
     if (raw.length === 0) continue
-    // Normalize unicode dash prefixes (–, —, ―) and forward-slash (PS 5.1
-    // parameter prefix) → ASCII `-` so prefix comparison works. PS tokenizer
-    // treats all four dash chars plus `/` as parameter markers. (bug #26)
+    // 规范化 unicode 横杠前缀（–、—、―）和正斜杠（PS 5.1
+    // 参数前缀）→ ASCII `-`，使前缀比较生效。PS tokenizer
+    // 将所有四种横杠字符加上 `/` 视为参数标记。（bug #26）
     const normalized =
       PS_TOKENIZER_DASH_CHARS.has(raw[0]!) || raw[0] === '/'
         ? '-' + raw.slice(1)
         : raw
     const lower = normalized.toLowerCase()
-    // Split colon-bound value: -it:SymbolicLink → param='-it', val='symboliclink'
+    // 分割冒号绑定值：-it:SymbolicLink → 参数='-it'，值='symboliclink'
     const colonIdx = lower.indexOf(':', 1)
     const paramRaw = colonIdx > 0 ? lower.slice(0, colonIdx) : lower
-    // Strip backtick escapes: -Item`Type → -ItemType (bug #22)
+    // 剥离反引号转义：-Item`Type → -ItemType（bug #22）
     const param = paramRaw.replace(/`/g, '')
     if (!isItemTypeParamAbbrev(param)) continue
     const rawVal =
       colonIdx > 0
         ? lower.slice(colonIdx + 1)
         : (cmd.args[i + 1]?.toLowerCase() ?? '')
-    // Strip backtick escapes from colon-bound value: -it:Sym`bolicLink → symboliclink
-    // Mirrors the param-name strip at L103. Space-separated args use .value
-    // (backtick-resolved by .NET parser), but colon-bound uses .text (raw source).
-    // Strip surrounding quotes: -it:'SymbolicLink' or -it:"Junction" (bug #6)
+    // 从冒号绑定值剥离反引号转义：-it:Sym`bolicLink → symboliclink
+    // 与 L103 的参数名剥离对称。空格分隔的参数使用 .value
+    //（由 .NET 解析器解析反引号），但冒号绑定使用 .text（原始源码）。
+    // 剥离外围引号：-it:'SymbolicLink' 或 -it:"Junction"（bug #6）
     const val = rawVal.replace(/`/g, '').replace(/^['"]|['"]$/g, '')
     if (LINK_ITEM_TYPES.has(val)) return true
   }
@@ -117,51 +115,51 @@ export function isSymlinkCreatingCommand(cmd: {
 }
 
 /**
- * Checks if commands should be handled differently based on the current permission mode.
+ * 根据当前权限模式检查命令是否应不同地处理。
  *
- * In acceptEdits mode, auto-allows filesystem-modifying PowerShell cmdlets.
- * Uses the AST to resolve aliases before checking the allowlist.
+ * 在 acceptEdits 模式下，自动允许修改文件系统的 PowerShell cmdlet。
+ * 使用 AST 在检查白名单之前解析别名。
  *
- * @param input - The PowerShell command input
- * @param parsed - The parsed AST of the command
- * @param toolPermissionContext - Context containing mode and permissions
+ * @param input - PowerShell 命令输入
+ * @param parsed - 命令的已解析 AST
+ * @param toolPermissionContext - 包含模式和权限的上下文
  * @returns
- * - 'allow' if the current mode permits auto-approval
- * - 'passthrough' if no mode-specific handling applies
+ * - 'allow' 当当前模式允许自动批准时
+ * - 'passthrough' 当没有模式特定处理适用时
  */
 export function checkPermissionMode(
   input: { command: string },
   parsed: ParsedPowerShellCommand,
   toolPermissionContext: ToolPermissionContext,
 ): PermissionResult {
-  // Skip bypass and dontAsk modes (handled elsewhere)
+  // 跳过 bypass 和 dontAsk 模式（在其他地方处理）
   if (
     toolPermissionContext.mode === 'bypassPermissions' ||
     toolPermissionContext.mode === 'dontAsk'
   ) {
     return {
       behavior: 'passthrough',
-      message: 'Mode is handled in main permission flow',
+      message: '模式在主权限流程中处理',
     }
   }
 
   if (toolPermissionContext.mode !== 'acceptEdits') {
     return {
       behavior: 'passthrough',
-      message: 'No mode-specific validation required',
+      message: '无需模式特定验证',
     }
   }
 
-  // acceptEdits mode: check if all commands are filesystem-modifying cmdlets
+  // acceptEdits 模式：检查所有命令是否都是修改文件系统的 cmdlet
   if (!parsed.valid) {
     return {
       behavior: 'passthrough',
-      message: 'Cannot validate mode for unparsed command',
+      message: '无法为未解析的命令验证模式',
     }
   }
 
-  // SECURITY: Check for subexpressions, script blocks, or member invocations
-  // that could be used to smuggle arbitrary code through acceptEdits mode.
+  // 安全检查：检测子表达式、脚本块或成员调用，
+  // 它们可能被用来通过 acceptEdits 模式走私任意代码。
   const securityFlags = deriveSecurityFlags(parsed)
   if (
     securityFlags.hasSubExpressions ||
@@ -174,31 +172,30 @@ export function checkPermissionMode(
   ) {
     return {
       behavior: 'passthrough',
-      message:
-        'Command contains subexpressions, script blocks, or member invocations that require approval',
+      message: '命令包含需要批准的子表达式、脚本块或成员调用',
     }
   }
 
   const segments = getPipelineSegments(parsed)
 
-  // SECURITY: Empty segments with valid parse = no commands to check, don't auto-allow
+  // 安全检查：有效解析但段为空 = 没有命令可检查，不自动允许
   if (segments.length === 0) {
     return {
       behavior: 'passthrough',
-      message: 'No commands found to validate for acceptEdits mode',
+      message: '没有找到可验证 acceptEdits 模式的命令',
     }
   }
 
-  // SECURITY: Compound cwd desync guard — BashTool parity.
-  // When any statement in a compound contains Set-Location/Push-Location/Pop-Location
-  // (or aliases like cd, sl, chdir, pushd, popd), the cwd changes between statements.
-  // Path validation resolves relative paths against the stale process cwd, so a write
-  // cmdlet in a later statement targets a different directory than the validator checked.
-  // Example: `Set-Location ./.claude; Set-Content ./settings.json '...'` — the validator
-  // sees ./settings.json as /project/settings.json, but PowerShell writes to
-  // /project/.claude/settings.json. Refuse to auto-allow any write operation in a
-  // compound that contains a cwd-changing command. This matches BashTool's
-  // compoundCommandHasCd guard (BashTool/pathValidation.ts:630-655).
+  // 安全检查：复合 cwd 不同步防护 — 与 BashTool 对等。
+  // 当复合中的任何语句包含 Set-Location/Push-Location/Pop-Location
+  //（或别名 cd、sl、chdir、pushd、popd）时，cwd 在语句之间会改变。
+  // 路径验证针对过期的进程 cwd 解析相对路径，因此后续语句中的写入
+  // cmdlet 针对与验证器检查的不同目录。
+  // 示例：`Set-Location ./.claude; Set-Content ./settings.json '...'` — 验证器
+  // 看到 ./settings.json 为 /project/settings.json，但 PowerShell 写入到
+  // /project/.claude/settings.json。拒绝在包含 cwd 更改命令的复合中自动允许
+  // 任何写入操作。这与 BashTool 的 compoundCommandHasCd 防护一致
+  //（BashTool/pathValidation.ts:630-655）。
   const totalCommands = segments.reduce(
     (sum, seg) => sum + seg.commands.length,
     0,
@@ -219,24 +216,23 @@ export function checkPermissionMode(
       return {
         behavior: 'passthrough',
         message:
-          'Compound command contains a directory-changing command (Set-Location/Push-Location/Pop-Location) with a write operation — cannot auto-allow because path validation uses stale cwd',
+          '复合命令包含目录更改命令（Set-Location/Push-Location/Pop-Location）和写入操作 — 无法自动允许，因为路径验证使用过期的 cwd',
       }
     }
-    // SECURITY: Link-create compound guard (finding #18). Mirrors the cd
-    // guard above. `New-Item -ItemType SymbolicLink -Path ./link -Value /etc;
-    // Get-Content ./link/passwd` — path validation resolves ./link/passwd
-    // against cwd (no link there at validation time), but runtime follows
-    // the just-created link to /etc/passwd. Same TOCTOU shape as cwd desync.
-    // Applies to SymbolicLink, Junction, and HardLink — all three redirect
-    // path resolution at runtime.
-    // No `hasWriteCommand` requirement: read-through-symlink is equally
-    // dangerous (exfil via Get-Content ./link/etc/shadow), and any other
-    // command using paths after a just-created link is unvalidatable.
+    // 安全检查：链接创建复合防护（发现 #18）。与上方的 cd
+    // 防护对称。`New-Item -ItemType SymbolicLink -Path ./link -Value /etc;
+    // Get-Content ./link/passwd` — 路径验证针对 cwd 解析 ./link/passwd
+    //（验证时该处无链接），但运行时跟随刚创建的链接到 /etc/passwd。
+    // 与 cwd 不同步相同的 TOCTOU 形态。
+    // 适用于 SymbolicLink、Junction 和 HardLink — 三者都在运行时重定向路径解析。
+    // 不要求 `hasWriteCommand`：通过符号链接读取同样危险
+    //（通过 Get-Content ./link/etc/shadow 泄露），并且在刚创建链接后使用路径的
+    // 任何其他命令都无法验证。
     if (hasSymlinkCreate) {
       return {
         behavior: 'passthrough',
         message:
-          'Compound command creates a filesystem link (New-Item -ItemType SymbolicLink/Junction/HardLink) — cannot auto-allow because path validation cannot follow just-created links',
+          '复合命令创建文件系统链接（New-Item -ItemType SymbolicLink/Junction/HardLink）— 无法自动允许，因为路径验证无法跟随刚创建的链接',
       }
     }
   }
@@ -244,86 +240,84 @@ export function checkPermissionMode(
   for (const segment of segments) {
     for (const cmd of segment.commands) {
       if (cmd.elementType !== 'CommandAst') {
-        // SECURITY: This guard is load-bearing for THREE cases. Do not narrow it.
+        // 安全检查：此防护对三种情况承重。不要收窄它。
         //
-        // 1. Expression pipeline sources (designed): '/etc/passwd' | Remove-Item
-        //    — the string literal is CommandExpressionAst, piped value binds to
-        //    -Path. We cannot statically know what path it represents.
+        // 1. 表达式管道源（设计）：'/etc/passwd' | Remove-Item
+        //    — 字符串字面量是 CommandExpressionAst，管道值绑定到
+        //    -Path。我们无法静态知道它代表的路径。
         //
-        // 2. Control-flow statements (accidental but relied upon):
-        //    foreach ($x in ...) { Remove-Item $x }. Non-PipelineAst statements
-        //    produce a synthetic CommandExpressionAst entry in segment.commands
-        //    (parser.ts transformStatement). Without this guard, Remove-Item $x
-        //    in nestedCommands would be checked below and auto-allowed — but $x
-        //    is a loop-bound variable we cannot validate.
+        // 2. 控制流语句（意外但被依赖）：
+        //    foreach ($x in ...) { Remove-Item $x }。非 PipelineAst 语句
+        //    在 segment.commands 中产生一个合成的 CommandExpressionAst 条目
+        //   （parser.ts transformStatement）。没有此防护，nestedCommands 中的
+        //    Remove-Item $x 会在下方被检查并自动允许 — 但 $x
+        //    是循环绑定变量，我们无法验证。
         //
-        // 3. Non-PipelineAst redirection coverage (accidental): cmd && cmd2 > /tmp
-        //    also produces a synthetic element here. isReadOnlyCommand relies on
-        //    the same accident (its allowlist rejects the synthetic element's
-        //    full-text name), so both paths fail safe together.
+        // 3. 非 PipelineAst 重定向覆盖（意外）：cmd && cmd2 > /tmp
+        //    也在此产生一个合成元素。isReadOnlyCommand 依赖
+        //    相同的意外（其白名单拒绝合成元素的全文名），因此两条路径都安全失败。
         return {
           behavior: 'passthrough',
-          message: `Pipeline contains expression source (${cmd.elementType}) that cannot be statically validated`,
+          message: `管道包含无法静态验证的表达式源（${cmd.elementType}）`,
         }
       }
-      // SECURITY: nameType is computed from the raw name before stripModulePrefix.
-      // 'application' = raw name had path chars (. \\ /). scripts\\Remove-Item
-      // strips to Remove-Item and would match ACCEPT_EDITS_ALLOWED_CMDLETS below,
-      // but PowerShell runs scripts\\Remove-Item.ps1. Same gate as isAllowlistedCommand.
+      // 安全检查：nameType 从原始名称在 stripModulePrefix 之前计算。
+      // 'application' = 原始名称有路径字符（. \\ /）。scripts\\Remove-Item
+      // 剥离为 Remove-Item 并会匹配下方的 ACCEPT_EDITS_ALLOWED_CMDLETS，
+      // 但 PowerShell 运行 scripts\\Remove-Item.ps1。与 isAllowlistedCommand 相同的门。
       if (cmd.nameType === 'application') {
         return {
           behavior: 'passthrough',
-          message: `Command '${cmd.name}' resolved from a path-like name and requires approval`,
+          message: `命令 '${cmd.name}' 从类路径名称解析，需要批准`,
         }
       }
-      // SECURITY: elementTypes whitelist — same as isAllowlistedCommand.
-      // deriveSecurityFlags above checks hasSubExpressions/etc. but does NOT
-      // flag bare Variable/Other elementTypes. `Remove-Item $env:PATH`:
+      // 安全检查：elementTypes 白名单 — 与 isAllowlistedCommand 相同。
+      // 上方的 deriveSecurityFlags 检查 hasSubExpressions 等，但不
+      // 标记裸 Variable/Other elementTypes。`Remove-Item $env:PATH`：
       //   elementTypes = ['StringConstant', 'Variable']
-      //   deriveSecurityFlags: no subexpression → passes
-      //   checkPathConstraints: resolves literal text '$env:PATH' as relative
-      //     path → cwd/$env:PATH → inside cwd → allow
-      //   RUNTIME: PowerShell expands $env:PATH → deletes actual env value path
-      // isAllowlistedCommand rejects non-StringConstant/Parameter; this is the
-      // acceptEdits parity gate.
+      //   deriveSecurityFlags：无子表达式 → 通过
+      //   checkPathConstraints：将字面文本 '$env:PATH' 解析为相对
+      //     路径 → cwd/$env:PATH → 在 cwd 内 → 允许
+      //   运行时：PowerShell 展开 $env:PATH → 删除实际环境值路径
+      // isAllowlistedCommand 拒绝非 StringConstant/Parameter；这是
+      // acceptEdits 的对等门。
       //
-      // Also check colon-bound expression metachars (same as isAllowlistedCommand's
-      // colon-bound check). `Remove-Item -Path:(1 > /tmp/x)`:
-      //   elementTypes = ['StringConstant', 'Parameter'] — passes whitelist above
-      //   deriveSecurityFlags: ParenExpressionAst in .Argument not detected by
-      //     Get-SecurityPatterns (ParenExpressionAst not in FindAll filter)
-      //   checkPathConstraints: literal text '-Path:(1 > /tmp/x)' not a path
-      //   RUNTIME: paren evaluates, redirection writes /tmp/x → arbitrary write
+      // 还检查冒号绑定表达式元字符（与 isAllowlistedCommand 的
+      // 冒号绑定检查相同）。`Remove-Item -Path:(1 > /tmp/x)`：
+      //   elementTypes = ['StringConstant', 'Parameter'] — 通过上方白名单
+      //   deriveSecurityFlags：.Argument 中的 ParenExpressionAst 未被
+      //     Get-SecurityPatterns 检测到（ParenExpressionAst 不在 FindAll 过滤器中）
+      //   checkPathConstraints：字面文本 '-Path:(1 > /tmp/x)' 不是路径
+      //   运行时：括号求值，重定向写入 /tmp/x → 任意写入
       if (cmd.elementTypes) {
         for (let i = 1; i < cmd.elementTypes.length; i++) {
           const t = cmd.elementTypes[i]
           if (t !== 'StringConstant' && t !== 'Parameter') {
             return {
               behavior: 'passthrough',
-              message: `Command argument has unvalidatable type (${t}) — variable paths cannot be statically resolved`,
+              message: `命令参数有无法验证的类型（${t}）— 变量路径无法静态解析`,
             }
           }
           if (t === 'Parameter') {
-            // elementTypes[i] ↔ args[i-1] (elementTypes[0] is the command name).
+            // elementTypes[i] ↔ args[i-1]（elementTypes[0] 是命令名）。
             const arg = cmd.args[i - 1] ?? ''
             const colonIdx = arg.indexOf(':')
             if (colonIdx > 0 && /[$(@{[]/.test(arg.slice(colonIdx + 1))) {
               return {
                 behavior: 'passthrough',
-                message:
-                  'Colon-bound parameter contains an expression that cannot be statically validated',
+                message: '冒号绑定参数包含无法静态验证的表达式',
               }
             }
           }
         }
       }
-      // Safe output cmdlets (Out-Null, etc.) and allowlisted pipeline-tail
-      // transformers (Format-*, Measure-Object, Select-Object, etc.) don't
-      // affect the semantics of the preceding command. Skip them so
-      // `Remove-Item ./foo | Out-Null` or `Set-Content ./foo hi | Format-Table`
-      // auto-allows the same as the bare write cmdlet. isAllowlistedPipelineTail
-      // is the narrow fallback for cmdlets moved from SAFE_OUTPUT_CMDLETS to
-      // CMDLET_ALLOWLIST (argLeaksValue validates their args).
+      // 安全输出 cmdlet（Out-Null 等）和白名单管道尾部
+      // 转换器（Format-*、Measure-Object、Select-Object 等）不影响
+      // 前一个命令的语义。跳过它们，使
+      // `Remove-Item ./foo | Out-Null` 或 `Set-Content ./foo hi | Format-Table`
+      // 像裸写入 cmdlet 一样自动允许。isAllowlistedPipelineTail
+      // 是从 SAFE_OUTPUT_CMDLETS 移到 CMDLET_ALLOWLIST
+      // 的 cmdlet 的窄回退（argLeaksValue 验证其参数）。
       if (
         isSafeOutputCommand(cmd.name) ||
         isAllowlistedPipelineTail(cmd, input.command)
@@ -333,40 +327,40 @@ export function checkPermissionMode(
       if (!isAcceptEditsAllowedCmdlet(cmd.name)) {
         return {
           behavior: 'passthrough',
-          message: `No mode-specific handling for '${cmd.name}' in acceptEdits mode`,
+          message: `acceptEdits 模式中 '${cmd.name}' 无模式特定处理`,
         }
       }
-      // SECURITY: Reject commands with unclassifiable argument types. 'Other'
-      // covers HashtableAst, ConvertExpressionAst, BinaryExpressionAst — all
-      // can contain nested redirections or code that the parser cannot fully
-      // decompose. isAllowlistedCommand (readOnlyValidation.ts) already
-      // enforces this whitelist via argLeaksValue; this closes the same gap
-      // in acceptEdits mode. Without this, @{k='payload' > ~/.bashrc} as a
-      // -Value argument passes because HashtableAst maps to 'Other'.
-      // argLeaksValue also catches colon-bound variables (-Flag:$env:SECRET).
+      // 安全检查：拒绝具有不可分类参数类型的命令。'Other'
+      // 覆盖 HashtableAst、ConvertExpressionAst、BinaryExpressionAst — 全都
+      // 可能包含嵌套重定向或解析器无法完全分解的代码。isAllowlistedCommand
+      //（readOnlyValidation.ts）已经通过 argLeaksValue 强制此白名单；
+      // 这关闭了 acceptEdits 模式中相同的差距。没有此检查，
+      // 作为 -Value 参数的 @{k='payload' > ~/.bashrc} 会通过，因为
+      // HashtableAst 映射到 'Other'。
+      // argLeaksValue 还捕获冒号绑定变量（-Flag:$env:SECRET）。
       if (argLeaksValue(cmd.name, cmd)) {
         return {
           behavior: 'passthrough',
-          message: `Arguments in '${cmd.name}' cannot be statically validated in acceptEdits mode`,
+          message: `'${cmd.name}' 中的参数在 acceptEdits 模式下无法静态验证`,
         }
       }
     }
 
-    // Also check nested commands from control flow statements
+    // 也检查控制流语句中的嵌套命令
     if (segment.nestedCommands) {
       for (const cmd of segment.nestedCommands) {
         if (cmd.elementType !== 'CommandAst') {
-          // SECURITY: Same as above — non-CommandAst element in nested commands
-          // (control flow bodies) cannot be statically validated as a path source.
+          // 安全检查：与上方相同 — 嵌套命令中的非 CommandAst 元素
+          //（控制流体）无法作为路径源静态验证。
           return {
             behavior: 'passthrough',
-            message: `Nested expression element (${cmd.elementType}) cannot be statically validated`,
+            message: `嵌套表达式元素（${cmd.elementType}）无法静态验证`,
           }
         }
         if (cmd.nameType === 'application') {
           return {
             behavior: 'passthrough',
-            message: `Nested command '${cmd.name}' resolved from a path-like name and requires approval`,
+            message: `嵌套命令 '${cmd.name}' 从类路径名称解析，需要批准`,
           }
         }
         if (
@@ -378,21 +372,21 @@ export function checkPermissionMode(
         if (!isAcceptEditsAllowedCmdlet(cmd.name)) {
           return {
             behavior: 'passthrough',
-            message: `No mode-specific handling for '${cmd.name}' in acceptEdits mode`,
+            message: `acceptEdits 模式中 '${cmd.name}' 无模式特定处理`,
           }
         }
-        // SECURITY: Same argLeaksValue check as the main command loop above.
+        // 安全检查：与上方主命令循环相同的 argLeaksValue 检查。
         if (argLeaksValue(cmd.name, cmd)) {
           return {
             behavior: 'passthrough',
-            message: `Arguments in nested '${cmd.name}' cannot be statically validated in acceptEdits mode`,
+            message: `嵌套 '${cmd.name}' 中的参数在 acceptEdits 模式下无法静态验证`,
           }
         }
       }
     }
   }
 
-  // All commands are filesystem-modifying cmdlets -- auto-allow
+  // 所有命令都是修改文件系统的 cmdlet -- 自动允许
   return {
     behavior: 'allow',
     updatedInput: input,

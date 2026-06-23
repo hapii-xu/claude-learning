@@ -1,6 +1,6 @@
 /**
- * Bing-based search adapter — fetches Bing search pages and extracts
- * search results using regex pattern matching on raw HTML.
+ * 基于 Bing 的搜索适配器 — 抓取 Bing 搜索页面，并通过对原始 HTML
+ * 的正则模式匹配来提取搜索结果。
  */
 
 import axios from 'axios'
@@ -11,8 +11,8 @@ import type { SearchResult, SearchOptions, WebSearchAdapter } from './types.js'
 const FETCH_TIMEOUT_MS = 30_000
 
 /**
- * Browser-like headers to avoid Bing's anti-bot JS-rendered response.
- * These mimic Microsoft Edge on macOS to get full HTML search results.
+ * 类浏览器请求头，用于规避 Bing 的反爬虫 JS 渲染响应。
+ * 这些请求头模拟 macOS 上的 Microsoft Edge，以获取完整的 HTML 搜索结果。
  */
 const BROWSER_HEADERS = {
   'User-Agent':
@@ -75,7 +75,7 @@ export class BingSearchAdapter implements WebSearchAdapter {
 
     const rawResults = extractBingResults(html)
 
-    // Client-side domain filtering
+    // 客户端域名过滤
     const results = rawResults.filter(r => {
       if (!r.url) return false
       try {
@@ -111,8 +111,8 @@ export class BingSearchAdapter implements WebSearchAdapter {
 }
 
 /**
- * Extract organic search results from Bing HTML.
- * Bing results live in <li class="b_algo"> blocks within <ol id="b_results">.
+ * 从 Bing HTML 中提取自然搜索结果。
+ * Bing 的结果位于 <ol id="b_results"> 中的 <li class="b_algo"> 块内。
  */
 export function extractBingResults(html: string): SearchResult[] {
   const results: SearchResult[] = []
@@ -123,7 +123,7 @@ export function extractBingResults(html: string): SearchResult[] {
   while ((blockMatch = algoBlockRegex.exec(html)) !== null) {
     const block = blockMatch[1]
 
-    // Extract the primary link from <h2><a href="...">...</a></h2>
+    // 从 <h2><a href="...">...</a></h2> 中提取主要链接
     const h2LinkRegex =
       /<h2[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i
     const linkMatch = h2LinkRegex.exec(block)
@@ -132,14 +132,14 @@ export function extractBingResults(html: string): SearchResult[] {
     const rawUrl = decodeHtmlEntities(linkMatch[1])
     const titleHtml = linkMatch[2]
 
-    // Resolve Bing redirect URLs (bing.com/ck/a?...&u=a1aHR0cHM6Ly9...)
-    // or skip Bing-internal / relative links
+    // 解析 Bing 重定向 URL（bing.com/ck/a?...&u=a1aHR0cHM6Ly9...）
+    // 或跳过 Bing 内部/相对链接
     const url = resolveBingUrl(rawUrl)
     if (!url) continue
 
     const title = decodeHtmlEntities(titleHtml.replace(/<[^>]+>/g, '').trim())
 
-    // Extract snippet: try b_lineclamp → b_caption <p> → b_caption fallback
+    // 提取摘要：依次尝试 b_lineclamp → b_caption <p> → b_caption 后备
     const snippet = extractSnippet(block)
 
     results.push({ title, url, snippet })
@@ -149,14 +149,14 @@ export function extractBingResults(html: string): SearchResult[] {
 }
 
 function extractSnippet(block: string): string | undefined {
-  // 1. Try <p class="b_lineclamp...">
+  // 1. 尝试 <p class="b_lineclamp...">
   const lineclampRegex = /<p[^>]*class="b_lineclamp[^"]*"[^>]*>([\s\S]*?)<\/p>/i
   let match = lineclampRegex.exec(block)
   if (match) {
     return decodeHtmlEntities(match[1].replace(/<[^>]+>/g, '').trim())
   }
 
-  // 2. Try <p> inside b_caption
+  // 2. 尝试 b_caption 内的 <p>
   const captionPRegex =
     /<div[^>]*class="b_caption[^"]*"[^>]*>[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/i
   match = captionPRegex.exec(block)
@@ -164,7 +164,7 @@ function extractSnippet(block: string): string | undefined {
     return decodeHtmlEntities(match[1].replace(/<[^>]+>/g, '').trim())
   }
 
-  // 3. Fallback: any text inside b_caption <div>
+  // 3. 后备：b_caption <div> 内的任意文本
   const fallbackRegex =
     /<div[^>]*class="b_caption[^"]*"[^>]*>([\s\S]*?)<\/div>/i
   const fallbackMatch = fallbackRegex.exec(block)
@@ -179,16 +179,16 @@ function extractSnippet(block: string): string | undefined {
 export const decodeHtmlEntities = he.decode
 
 /**
- * Resolve a Bing redirect URL to the actual target URL.
- * Bing uses URLs like: https://www.bing.com/ck/a?...&u=a1aHR0cHM6Ly9leGFtcGxlLmNvbQ...
- * The `u` query parameter is a base64-encoded URL prefixed with a1 (https) or a0 (http).
- * Returns `undefined` for Bing-internal or relative links that should be skipped.
+ * 将 Bing 重定向 URL 解析为实际的目标 URL。
+ * Bing 使用形如 https://www.bing.com/ck/a?...&u=a1aHR0cHM6Ly9leGFtcGxlLmNvbQ... 的 URL，
+ * 其中 `u` 查询参数是以 a1（https）或 a0（http）为前缀的 base64 编码 URL。
+ * 对于应被跳过的 Bing 内部或相对链接，返回 `undefined`。
  */
 export function resolveBingUrl(rawUrl: string): string | undefined {
-  // Skip relative / anchor links
+  // 跳过相对/锚点链接
   if (rawUrl.startsWith('/') || rawUrl.startsWith('#')) return undefined
 
-  // Try to extract the `u` parameter from Bing redirect URLs
+  // 尝试从 Bing 重定向 URL 中提取 `u` 参数
   const uMatch = rawUrl.match(/[?&]u=([a-zA-Z0-9+/_=-]+)/)
   if (uMatch) {
     const encoded = uMatch[1]
@@ -196,17 +196,17 @@ export function resolveBingUrl(rawUrl: string): string | undefined {
       const prefix = encoded.slice(0, 2)
       const b64 = encoded.slice(2)
       try {
-        // Base64url decode (pad as needed)
+        // Base64url 解码（按需填充）
         const padded = b64.replace(/-/g, '+').replace(/_/g, '/')
         const decoded = Buffer.from(padded, 'base64').toString('utf-8')
         if (decoded.startsWith('http')) return decoded
       } catch {
-        // Fall through — not a valid base64 redirect
+        // 穿过 — 不是合法的 base64 重定向
       }
     }
   }
 
-  // Direct external URL (not a Bing-internal page)
+  // 直接的外部 URL（非 Bing 内部页面）
   if (!rawUrl.includes('bing.com')) return rawUrl
 
   return undefined

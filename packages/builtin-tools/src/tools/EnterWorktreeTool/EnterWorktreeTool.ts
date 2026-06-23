@@ -54,7 +54,7 @@ export const EnterWorktreeTool: Tool<InputSchema, Output> = buildTool({
   searchHint: 'create an isolated git worktree and switch into it',
   maxResultSizeChars: 100_000,
   async description() {
-    return 'Creates an isolated worktree (via git or configured hooks) and switches the session into it'
+    return '创建一个隔离的 worktree（通过 git 或已配置的 hooks），并将当前会话切换到其中'
   },
   async prompt() {
     return getEnterWorktreeToolPrompt()
@@ -66,7 +66,7 @@ export const EnterWorktreeTool: Tool<InputSchema, Output> = buildTool({
     return outputSchema()
   },
   userFacingName() {
-    return 'Creating worktree'
+    return '正在创建 worktree'
   },
   shouldDefer: true,
   toAutoClassifierInput(input) {
@@ -118,7 +118,7 @@ export const EnterWorktreeTool: Tool<InputSchema, Output> = buildTool({
       data: {
         worktreePath: worktreeSession.worktreePath,
         worktreeBranch: worktreeSession.worktreeBranch,
-        message: `Created worktree at ${worktreeSession.worktreePath}${branchInfo}. The session is now working in the worktree. Use ExitWorktree to leave mid-session, or exit the session to be prompted.`,
+        message: `已在 ${worktreeSession.worktreePath}${branchInfo} 创建 worktree。当前会话正在该 worktree 中工作。可以使用 ExitWorktree 中途退出，或退出会话时会收到提示。`,
       },
     }
   },

@@ -1,28 +1,26 @@
 /**
- * Strip Unicode bidi overrides, zero-width chars, BOM, line/paragraph
- * separators, NEL, and ASCII control chars (except newline, CR, tab) from
- * user-stored memory content before placing it in tool_result.
+ * \u5728\u5C06\u7528\u6237\u5B58\u50A8\u7684\u8BB0\u5FC6\u5185\u5BB9\u653E\u5165 tool_result \u4E4B\u524D\uFF0C\u4ECE\u4E2D\u5265\u79BB Unicode bidi
+ * \u8986\u76D6\u5B57\u7B26\u3001\u96F6\u5BBD\u5B57\u7B26\u3001BOM\u3001\u884C/\u6BB5\u5206\u9694\u7B26\u3001NEL \u4EE5\u53CA ASCII \u63A7\u5236\u5B57\u7B26
+ * \uFF08\u6362\u884C\u3001CR\u3001\u5236\u8868\u7B26\u9664\u5916\uFF09\u3002
  *
- * Memory content is data the user typed; it may contain prompt-injection
- * vectors (RTL overrides that flip apparent text, ANSI escapes, zero-width
- * characters that hide injected payloads).
+ * \u8BB0\u5FC6\u5185\u5BB9\u662F\u7528\u6237\u952E\u5165\u7684\u6570\u636E\uFF1B\u53EF\u80FD\u5305\u542B\u63D0\u793A\u6CE8\u5165\u5411\u91CF\uFF08\u7FFB\u8F6C\u6587\u672C\u89C6\u89C9\u7684
+ * RTL \u8986\u76D6\u3001ANSI \u8F6C\u4E49\u3001\u9690\u85CF\u6CE8\u5165\u8D1F\u8F7D\u7684\u96F6\u5BBD\u5B57\u7B26\uFF09\u3002
  *
- * NOTE on regex construction: built via new RegExp(string) rather than
- * regex literals. Two reasons:
- *   (a) U+2028 and U+2029 are JS regex-literal terminators, so they
- *       cannot appear directly in a regex literal,
- *   (b) the escape sequences in a regex literal are TS-source-level,
- *       which can be corrupted by editor save round-trips on Windows.
- * Building from a string with explicit unicode escape sequences sidesteps
- * both problems.
+ * \u5173\u4E8E\u6B63\u5219\u6784\u9020\u7684\u8BF4\u660E\uFF1A\u901A\u8FC7 new RegExp(string) \u6784\u5EFA\uFF0C\u800C\u975E
+ * \u6B63\u5219\u5B57\u9762\u91CF\u3002\u539F\u56E0\u6709\u4E8C\uFF1A
+ *   (a) U+2028 \u548C U+2029 \u662F JS \u6B63\u5219\u5B57\u9762\u91CF\u7684\u7EC8\u6B62\u7B26\uFF0C\u56E0\u6B64\u4E0D\u80FD
+ *       \u76F4\u63A5\u51FA\u73B0\u5728\u6B63\u5219\u5B57\u9762\u91CF\u4E2D\uFF0C
+ *   (b) \u6B63\u5219\u5B57\u9762\u91CF\u4E2D\u7684\u8F6C\u4E49\u5E8F\u5217\u5C5E\u4E8E TS \u6E90\u7801\u5C42\u9762\uFF0C\u53EF\u80FD\u5728 Windows \u4E0A
+ *       \u7684\u7F16\u8F91\u5668\u4FDD\u5B58\u5F80\u8FD4\u4E2D\u88AB\u635F\u574F\u3002
+ * \u901A\u8FC7\u5E26\u663E\u5F0F unicode \u8F6C\u4E49\u5E8F\u5217\u7684\u5B57\u7B26\u4E32\u6784\u5EFA\uFF0C\u53EF\u540C\u65F6\u89C4\u907F\u8FD9\u4E24\u4E2A\u95EE\u9898\u3002
  */
 
 const STRIP_PATTERN = new RegExp(
-  // Bidi overrides U+202A..U+202E and U+2066..U+2069
+  // Bidi \u8986\u76D6\u5B57\u7B26 U+202A..U+202E \u548C U+2066..U+2069
   '[\u202A-\u202E\u2066-\u2069]|' +
-    // Zero-width U+200B..U+200F and BOM U+FEFF
+    // \u96F6\u5BBD\u5B57\u7B26 U+200B..U+200F \u548C BOM U+FEFF
     '[\u200B-\u200F\uFEFF]|' +
-    // ASCII control chars except newline/CR/tab; DEL included
+    // \u9664\u6362\u884C/CR/\u5236\u8868\u7B26\u5916\u7684 ASCII \u63A7\u5236\u5B57\u7B26\uFF1B\u5305\u542B DEL
     '[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]',
   'g',
 )

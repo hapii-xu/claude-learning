@@ -1,7 +1,7 @@
 /**
- * Denial tracking infrastructure for permission classifiers.
- * Tracks consecutive denials and total denials to determine
- * when to fall back to prompting.
+ * 权限分类器的拒绝追踪基础设施。
+ * 追踪连续拒绝次数和总拒绝次数，以决定
+ * 何时回退到手动提示模式。
  */
 
 export type DenialTrackingState = {
@@ -30,7 +30,7 @@ export function recordDenial(state: DenialTrackingState): DenialTrackingState {
 }
 
 export function recordSuccess(state: DenialTrackingState): DenialTrackingState {
-  if (state.consecutiveDenials === 0) return state // No change needed
+  if (state.consecutiveDenials === 0) return state // 无需更改
   return {
     ...state,
     consecutiveDenials: 0,

@@ -1,7 +1,7 @@
 /**
- * Tavily-based search adapter — calls the Tavily Search API
- * (https://tavily.claude-code-best.win) and maps results to
- * the unified SearchResult format.
+ * 基于 Tavily 的搜索适配器 — 调用 Tavily Search API
+ *（https://tavily.claude-code-best.win），并将结果映射为
+ * 统一的 SearchResult 格式。
  */
 
 import axios from 'axios'
@@ -44,7 +44,7 @@ export class TavilySearchAdapter implements WebSearchAdapter {
       tavilyEndpointUrl?: string
     }
     const baseUrl = settings.tavilyEndpointUrl || DEFAULT_TAVILY_SEARCH_URL
-    // Ensure the URL ends with /search (same pattern as fetchContentWithTavily for /extract)
+    // 确保 URL 以 /search 结尾（与 fetchContentWithTavily 处理 /extract 的模式一致）
     const searchUrl = baseUrl.endsWith('/search')
       ? baseUrl
       : `${baseUrl.replace(/\/$/, '')}/search`

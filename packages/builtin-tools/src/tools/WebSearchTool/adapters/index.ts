@@ -1,10 +1,10 @@
 /**
- * Search adapter factory — selects the appropriate backend.
+ * 搜索适配器工厂 — 选择合适的后端。
  *
- * Priority (highest first):
- *   1. WEB_SEARCH_ADAPTER environment variable (explicit override)
- *   2. settings.webSearchAdapter (user-configurable via /web-tools)
- *   3. Default: tavily
+ * 优先级（从高到低）：
+ *   1. WEB_SEARCH_ADAPTER 环境变量（显式覆盖）
+ *   2. settings.webSearchAdapter（可通过 /web-tools 面板由用户配置）
+ *   3. 默认：tavily
  */
 
 import { getSettings_DEPRECATED } from 'src/utils/settings/settings.js'
@@ -28,9 +28,9 @@ let cachedAdapter: WebSearchAdapter | null = null
 let cachedAdapterKey: SearchAdapterKey | null = null
 
 export function createAdapter(): WebSearchAdapter {
-  // 1. Explicit env override
+  // 1. 显式环境变量覆盖
   const envAdapter = process.env.WEB_SEARCH_ADAPTER
-  // 2. Settings preference (set via /web-tools panel)
+  // 2. 设置项（通过 /web-tools 面板设置）
   const settingsAdapter = getSettings_DEPRECATED().webSearchAdapter
 
   const adapterKey: SearchAdapterKey =
@@ -46,7 +46,7 @@ export function createAdapter(): WebSearchAdapter {
           settingsAdapter === 'exa' ||
           settingsAdapter === 'tavily'
         ? settingsAdapter
-        : 'tavily' // 3. Default
+        : 'tavily' // 3. 默认
 
   if (cachedAdapter && cachedAdapterKey === adapterKey) return cachedAdapter
 

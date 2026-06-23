@@ -10,13 +10,13 @@ const inputSchema = lazySchema(() =>
       .number()
       .optional()
       .describe(
-        'Number of lines to capture from the terminal. Defaults to 50.',
+        '要从终端捕获的行数。默认为 50。',
       ),
     panel_id: z
       .string()
       .optional()
       .describe(
-        'ID of the terminal panel to capture from. Defaults to the active panel.',
+        '要从其捕获输出的终端面板 ID。默认为当前激活的面板。',
       ),
   }),
 )
@@ -36,15 +36,15 @@ export const TerminalCaptureTool = buildTool({
   },
 
   async description() {
-    return 'Capture output from a terminal panel'
+    return '从终端面板捕获输出'
   },
   async prompt() {
-    return `Capture the current content of a terminal panel. Use this to read output from terminal sessions running in the terminal panel UI.
+    return `捕获某个终端面板的当前内容。可用此工具读取运行在终端面板 UI 中的终端会话的输出。
 
-Guidelines:
-- Specify the number of lines to capture (default 50)
-- Optionally target a specific panel by ID
-- Content is returned as plain text`
+指引：
+- 指定要捕获的行数（默认 50）
+- 可选：通过 ID 指定目标面板
+- 内容以纯文本形式返回`
   },
 
   isConcurrencySafe() {
@@ -60,7 +60,7 @@ Guidelines:
 
   renderToolUseMessage(input: Partial<CaptureInput>) {
     const lines = input.lines ?? 50
-    return `Terminal Capture: ${lines} lines`
+    return `终端捕获：${lines} 行`
   },
 
   mapToolResultToToolResultBlockParam(
@@ -70,12 +70,12 @@ Guidelines:
     return {
       tool_use_id: toolUseID,
       type: 'tool_result',
-      content: content.content || '(empty terminal)',
+      content: content.content || '（终端为空）',
     }
   },
 
   async call(input: CaptureInput) {
-    // Terminal panel capture is provided by the TERMINAL_PANEL runtime.
+    // 终端面板捕获由 TERMINAL_PANEL 运行时提供。
     return {
       data: {
         content: '',

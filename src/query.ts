@@ -282,22 +282,45 @@ function getAutonomyTurnOutcome(params: {
 }
 
 export type QueryParams = {
+  // 对话历史（用户消息 / 助手消息 / 工具结果等）。queryLoop 每次迭代会把新的助手回复 + 工具结果追加进副本，作为下一轮 API 请求的 messages。
   messages: Message[]
+  // 基础系统提示词（SystemPrompt 包装类型）。不含 CLAUDE.md / git 状态等
+  // 动态上下文 —— 那些由 systemContext / userContext 在循环中拼接进来。
   systemPrompt: SystemPrompt
+  // 用户侧动态上下文（键值对）。在调用 API 前由 prependUserContext 拼到
+  // messages 最前面，例如当前 CWD、shell、日期等环境信息。
   userContext: { [k: string]: string }
+  // 系统侧动态上下文（键值对）。在调用 API 前由 appendSystemContext 拼到
+  // systemPrompt 后面，例如 CLAUDE.md 内容、git status 等。
   systemContext: { [k: string]: string }
+  // 工具权限回调。每次模型请求调用工具时，先经此函数判断是否允许执行
+  // （会触发权限提示 UI / 命中 allow 规则等）。
   canUseTool: CanUseToolFn
+  // 工具执行上下文：agentId、主循环模型、权限模式、AppState 引用等。
+  // 子 agent（agent:*）与主线程（main）共用 queryLoop，靠它区分来源。
   toolUseContext: ToolUseContext
+  // 兜底模型名。当主模型触发限流 / 不可用时切到该模型重试。
   fallbackModel?: string
+  // 本次查询的来源标签（repl_main_thread / agent:* 等）。用于：
+  //  1. 判断是否持久化工具结果替换（agent: / repl_main_thread 前缀才持久化）
+  //  2. Langfuse trace 归属、埋点统计
   querySource: QuerySource
+  // 输出 token 上限覆盖值。优先级高于全局默认；用于 max_tokens 限流恢复、
+  // 200k 超限重试等场景临时缩小输出。
   maxOutputTokensOverride?: number
+  // queryLoop 最大迭代轮数。未设置时为 ∞（直到模型不再发工具调用）。
+  // 用于限制 agent / 子任务的递归深度，防止无限工具调用循环。
   maxTurns?: number
+  // 是否跳过 prompt cache 写入。为 true 时本次请求不写缓存（仅读），
+  // 用于避免一次性大查询污染缓存命中率。
   skipCacheWrite?: boolean
   // API task_budget（output_config.task_budget，beta task-budgets-2026-03-13）。
   // 与 tokenBudget +500k 自动续写特性不同。`total` 是整个 agent 轮次的
   // 预算；`remaining` 每次迭代根据累计 API 用量计算。见 claude.ts 的
   // configureTaskBudgetParams。
   taskBudget?: { total: number }
+  // 可选依赖注入（microcompact / autocompact 等实现）。测试时替换为 mock，
+  // 未提供时使用 productionDeps()（真实生产实现）。
   deps?: QueryDeps
 }
 
@@ -524,8 +547,16 @@ export async function* query(
  *   5. 若未终止 → 继续下一次迭代
  */
 async function* queryLoop(
+  // 本次查询的全部输入（消息历史 / 系统提示词 / 权限回调 / 工具上下文等）。
+  // params 本身不可变 —— 循环中绝不重新赋值，需要修改的字段都走 State 副本。
   params: QueryParams,
+  // 本次 query 期间已被「消费」的命令 uuid 累积列表（由 query 创建后传入、
+  // 循环中往里 push）。query 结束后用它们批量通知 command lifecycle
+  // 「completed」，避免每条命令单独通知。
   consumedCommandUuids: string[],
+  // 本次 query 期间从 autonomy 队列认领并消费掉的命令（prompt /
+  // task-notification 模式）。query 结束后随 trace / 统计一起上报，
+  // 用于还原「这一轮自动执行了哪些注入命令」。
   consumedAutonomyCommands: QueuedCommand[],
 ): AsyncGenerator<
   | StreamEvent
@@ -539,6 +570,24 @@ async function* queryLoop(
     `-------------- queryLoop 开始 ----------- initMsgs=${params.messages.length} maxTurns=${params.maxTurns ?? '∞'} agentId=${params.toolUseContext.agentId ?? 'main'} querySource=${params.querySource} fallbackModel=${params.fallbackModel ?? 'none'}`,
     { level: 'info' },
   )
+  {
+    const seen = new WeakSet()
+    logForDebugging(
+      `[Hapii] queryLoop — params (JSON):\n${JSON.stringify(
+        params,
+        (_key, value) => {
+          if (typeof value === 'function') return '[Function]'
+          if (typeof value === 'object' && value !== null) {
+            if (seen.has(value)) return '[Circular]'
+            seen.add(value)
+          }
+          return value
+        },
+        2,
+      )}`,
+      { level: 'info' },
+    )
+  }
   // 不可变 params —— 查询循环中绝不重新赋值。
   const {
     systemPrompt,
@@ -550,15 +599,18 @@ async function* queryLoop(
     maxTurns,
     skipCacheWrite,
   } = params
-  const deps = params.deps ?? productionDeps()
+
+  // deps 是一个显式的依赖注入接口，把 query() 内部最难 mock 的 4 个副作用（API 调用、压缩、UUID 生成）聚合在一起；
+  // 生产时用 productionDeps() 透明默认，测试时只需传 { callModel: mockFn }  就能精确控制行为，而不必触碰进程全局的 mock.module。
+  // src\__tests__\queryAutonomyProviderBoundary.test.ts 测试文件  describe('query autonomy/provider boundary', ())
+  const deps = params.deps ?? productionDeps() 
   logForDebugging(
     `[Hapii] queryLoop — params 解构完成: deps=${deps === productionDeps() ? 'production' : 'injected'} taskBudget=${params.taskBudget ? `total=${params.taskBudget.total}` : 'none'}`,
     { level: 'info' },
   )
 
-  // 跨迭代的可变状态。循环体在每次迭代开头解构它，这样读取时只用
-  // 裸名（`messages`、`toolUseContext`）。继续点写入 `state = { ... }`
-  // 而不是 9 个单独的赋值。
+  // 跨迭代的可变状态。循环体在每次迭代开头解构它，这样读取时只用裸名（`messages`、`toolUseContext`）。
+  // 继续点写入 `state = { ... }` 而不是 9 个单独的赋值。
   let state: State = {
     messages: params.messages,
     toolUseContext: params.toolUseContext,
@@ -573,27 +625,19 @@ async function* queryLoop(
   }
   const budgetTracker = feature('TOKEN_BUDGET') ? createBudgetTracker() : null
 
-  // task_budget.remaining 跨压缩边界的追踪。首次 compact 触发之前为
-  // undefined —— 上下文未压缩时服务端能看到完整历史并自行处理从
-  // {total} 的倒计时（见 api/api/sampling/prompt/renderer.py:292）。
-  // compact 之后服务端只看到摘要，会低估消耗；remaining 告诉它被
-  // 压缩掉的那个 pre-compact 最终窗口。可跨多次压缩累计：每次减去
-  // 该 compact 触发点处的最终上下文。保留在循环局部（不放 State），
-  // 以免影响 7 个继续点。
+  // task_budget.remaining 跨压缩边界的追踪。首次 compact 触发之前为 undefined —— 上下文未压缩时服务端能看到完整历史并自行处理从 {total} 的倒计时（见 api/api/sampling/prompt/renderer.py:292）。
+  // compact 之后服务端只看到摘要，会低估消耗；remaining 告诉它被压缩掉的那个 pre-compact 最终窗口。可跨多次压缩累计：每次减去该 compact 触发点处的最终上下文。保留在循环局部（不放 State），以免影响 7 个继续点。
   let taskBudgetRemaining: number | undefined
 
-  // 在入口处一次性快照不可变的 env/statsig/session 状态。具体包含
-  // 什么、为什么 feature() 门控被刻意排除，见 QueryConfig。
+  // 在入口处一次性快照不可变的 env/statsig/session 状态。具体包含什么、为什么 feature() 门控被刻意排除，见 QueryConfig。
   const config = buildQueryConfig()
   logForDebugging(
-    `[Hapii] queryLoop — config 快照完成: gates.streamingToolExecution=${config.gates.streamingToolExecution} gates.isAnt=${config.gates.isAnt} gates.emitToolUseSummaries=${config.gates.emitToolUseSummaries}`,
+    `[Hapii] queryLoop — config 快照完成: ${JSON.stringify(config, null, 2)}`,
     { level: 'info' },
   )
 
-  // 每个用户轮次触发一次 —— prompt 在循环迭代之间是不变的，因此
-  // 每次迭代都触发会让 sideQuery 重复问 N 次相同的问题。
-  // 消费点轮询 settledAt（永不阻塞）。`using` 在所有 generator 退出
-  // 路径上都会 dispose —— 见 MemoryPrefetch 的 dispose/telemetry 语义。
+  // 每个用户轮次触发一次 —— prompt 在循环迭代之间是不变的，因此每次迭代都触发会让 sideQuery 重复问 N 次相同的问题。
+  // 消费点轮询 settledAt（永不阻塞）。`using` 在所有 generator 退出 路径上都会 dispose —— 见 MemoryPrefetch 的 dispose/telemetry 语义。
   using pendingMemoryPrefetch = startRelevantMemoryPrefetch(
     state.messages,
     state.toolUseContext,
@@ -602,11 +646,14 @@ async function* queryLoop(
     level: 'info',
   })
 
+  // 跨迭代内容追踪：首次打印全量，后续仅在变化时重新打印
+  let _prevFullSystemPromptJson: string | undefined
+  let _prevMessagesForQueryKey: string | undefined
+  let _prevClearedToolUseIdsJson: string | undefined
+
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    // 每次迭代开头解构 state。只有 toolUseContext 会在迭代中被重新
-    // 赋值（queryTracking、messages 更新）；其余字段在继续点之间
-    // 只读。
+    // 每次迭代开头解构 state。只有 toolUseContext 会在迭代中被重新赋值（queryTracking、messages 更新）；其余字段在继续点之间只读。
     let { toolUseContext } = state
     const {
       messages,
@@ -624,23 +671,18 @@ async function* queryLoop(
       { level: 'info' },
     )
 
-    // 技能发现预取 —— 按迭代执行（用 findWritePivot 守卫，非写入
-    // 迭代会提前返回）。发现在模型流式输出和工具执行期间并行跑；
-    // 工具完成后与 memory 预取消费一起 await。取代了原先
-    // getAttachmentMessages 内阻塞式的 assistant_turn 路径
-    //（生产环境 97% 的调用一无所获）。Turn-0 的用户输入发现仍
-    // 在 userInputAttachments 中阻塞 —— 那是唯一一个没有先前工作
-    // 可以隐藏在下面的信号。
+    // 技能发现预取 —— 按迭代执行（用 findWritePivot 守卫，非写入迭代会提前返回）。发现在模型流式输出和工具执行期间并行跑；
+    // 工具完成后与 memory 预取消费一起 await。取代了原先 getAttachmentMessages 内阻塞式的 assistant_turn 路径
+    //（生产环境 97% 的调用一无所获）。Turn-0 的用户输入发现仍在 userInputAttachments 中阻塞 —— 那是唯一一个没有先前工作可以隐藏在下面的信号。
     const pendingSkillPrefetch = skillPrefetch?.startSkillDiscoveryPrefetch(
       null,
       messages,
       toolUseContext,
     )
-    const pendingToolPrefetch =
-      searchExtraToolsPrefetch?.startSearchExtraToolsPrefetch(
-        toolUseContext.options.tools ?? [],
-        messages,
-      )
+    const pendingToolPrefetch = searchExtraToolsPrefetch?.startSearchExtraToolsPrefetch(
+      toolUseContext.options.tools ?? [],
+      messages,
+    )
     logForDebugging(
       `[Hapii] queryLoop.iter${turnCount} — 预取已启动: skillPrefetch=${pendingSkillPrefetch ? 'yes' : 'no'} toolPrefetch=${pendingToolPrefetch ? 'yes' : 'no'}`,
       { level: 'info' },
@@ -665,6 +707,7 @@ async function* queryLoop(
           chainId: deps.uuid(),
           depth: 0,
         }
+
     logForDebugging(
       `[Hapii] queryLoop.iter${turnCount} — queryTracking: chainId=${queryTracking.chainId} depth=${queryTracking.depth}`,
       { level: 'info' },
@@ -677,21 +720,37 @@ async function* queryLoop(
       queryTracking,
     }
 
-    logForDebugging(
-      `[Hapii] queryLoop.iter${turnCount} — 历史裁边前 messages=${messages.length}`,
-      { level: 'info' },
-    )
+    {
+      const byType = (msgs: typeof messages) =>
+        msgs.reduce<Record<string, number>>((acc, m) => {
+          const key = m.type === 'system' ? `system(${(m as { subtype?: string }).subtype ?? '?'})` : m.type
+          acc[key] = (acc[key] ?? 0) + 1
+          return acc
+        }, {})
+      logForDebugging(
+        `[Hapii] queryLoop.iter${turnCount} — 历史裁边前 messages=${messages.length} types=${JSON.stringify(byType(messages))}`,
+        { level: 'info' },
+      )
+    }
     let messagesForQuery = getMessagesAfterCompactBoundary(messages)
-    logForDebugging(
-      `[Hapii] queryLoop.iter${turnCount} — getMessagesAfterCompactBoundary 裁边后 messagesForQuery=${messagesForQuery.length}（原 ${messages.length}，移除 ${messages.length - messagesForQuery.length}）`,
-      { level: 'info' },
-    )
+    {
+      const boundaryMsg = messages.slice().reverse().find(m => m.type === 'system' && (m as { subtype?: string }).subtype === 'compact_boundary') as { compactMetadata?: Record<string, unknown> } | undefined
+      const byType = (msgs: typeof messages) =>
+        msgs.reduce<Record<string, number>>((acc, m) => {
+          const key = m.type === 'system' ? `system(${(m as { subtype?: string }).subtype ?? '?'})` : m.type
+          acc[key] = (acc[key] ?? 0) + 1
+          return acc
+        }, {})
+      logForDebugging(
+        `[Hapii] queryLoop.iter${turnCount} — getMessagesAfterCompactBoundary 裁边后 before=${messages.length} after=${messagesForQuery.length} removed=${messages.length - messagesForQuery.length} hasBoundary=${!!boundaryMsg} boundaryMeta=${JSON.stringify(boundaryMsg?.compactMetadata ?? null)} afterTypes=${JSON.stringify(byType(messagesForQuery))}`,
+        { level: 'info' },
+      )
+    }
 
     // 释放前序轮次的 toolUseResult 负载。此时 UI 已渲染完那些结果，
     // 下一次 API 调用只需要 message.message.content（tool_result 块），
     // 不再需要原始输出对象。这样可以避免 compact 触发前长会话中
-    // 无限增长的内存 —— 否则一次 400KB 文件的 FileRead 会永远留在
-    // mutableMessages 中。
+    // 无限增长的内存 —— 否则一次 400KB 文件的 FileRead 会永远留在 mutableMessages 中。
     for (const msg of messagesForQuery) {
       if (
         msg.type === 'user' &&
@@ -704,21 +763,22 @@ async function* queryLoop(
 
     let tracking = autoCompactTracking
 
-    // 对聚合工具结果大小强制执行按消息的预算。在 microcompact 之前
-    // 执行 —— 缓存 MC 完全靠 tool_use_id 操作（从不查看内容），
-    // 因此内容替换对它不可见，两者可以干净地组合。contentReplacementState
-    // 为 undefined 时（特性关闭）为 no-op。只对会在 resume 时读回
-    // 记录的 querySource 持久化：agentId 路由到 sidechain 文件
-    //（AgentTool resume）或会话文件（/resume）。临时 runForkedAgent
+    // 对聚合工具结果大小强制执行按消息的预算。在 microcompact 之前执行 —— 缓存 MC 完全靠 tool_use_id 操作（从不查看内容），
+    // 因此内容替换对它不可见，两者可以干净地组合。contentReplacementState 为 undefined 时（特性关闭）为 no-op。只对会在 resume 时读回
+    // 记录的 querySource 持久化：agentId 路由到 sidechain 文件 （AgentTool resume）或会话文件（/resume）。临时 runForkedAgent
     // 调用方（agent_summary 等）不持久化。
     const persistReplacements = querySource.startsWith('agent:') || querySource.startsWith('repl_main_thread')
+    const skipInfiniteTools = toolUseContext.options.tools
+      .filter(t => !Number.isFinite(t.maxResultSizeChars))
+      .map(t => t.name)
+    const crs = toolUseContext.contentReplacementState
     logForDebugging(
-      `[Hapii] queryLoop.iter${turnCount} — applyToolResultBudget 开始: msgs=${messagesForQuery.length} persistReplacements=${persistReplacements}`,
+      `[Hapii] queryLoop.iter${turnCount} — applyToolResultBudget 开始: msgs=${messagesForQuery.length} persistReplacements=${persistReplacements} featureEnabled=${!!crs} seenIds=${crs?.seenIds.size ?? 'N/A'} replacements=${crs?.replacements.size ?? 'N/A'} skipToolNames=${JSON.stringify(skipInfiniteTools)}`,
       { level: 'info' },
     )
     messagesForQuery = await applyToolResultBudget(
       messagesForQuery,
-      toolUseContext.contentReplacementState,
+      crs,
       persistReplacements
         ? records =>
             void recordContentReplacement(
@@ -726,21 +786,16 @@ async function* queryLoop(
               toolUseContext.agentId,
             ).catch(logError)
         : undefined,
-      new Set(
-        toolUseContext.options.tools
-          .filter(t => !Number.isFinite(t.maxResultSizeChars))
-          .map(t => t.name),
-      ),
+      new Set(skipInfiniteTools),
     )
     logForDebugging(
-      `[Hapii] queryLoop.iter${turnCount} — applyToolResultBudget 完成: msgs=${messagesForQuery.length}`,
+      `[Hapii] queryLoop.iter${turnCount} — applyToolResultBudget 完成: msgs=${messagesForQuery.length} seenIds=${crs?.seenIds.size ?? 'N/A'} replacements=${crs?.replacements.size ?? 'N/A'}`,
       { level: 'info' },
     )
 
     // 在 microcompact 之前应用 snip（两者可能都跑 —— 不互斥）。
-    // snipTokensFreed 传给 autocompact，让其阈值检查反映 snip 移除
-    // 的量；tokenCountWithEstimation 本身看不到（它从受保护尾部的
-    // assistant 读取 usage，而该部分在 snip 中保持不变）。
+    // snipTokensFreed 传给 autocompact，让其阈值检查反映 snip 移除的量；
+    // tokenCountWithEstimation 本身看不到（它从受保护尾部的 assistant 读取 usage，而该部分在 snip 中保持不变）。
     let snipTokensFreed = 0
     if (feature('HISTORY_SNIP')) {
       queryCheckpoint('query_snip_start')
@@ -786,22 +841,29 @@ async function* queryLoop(
     // 之后才发出，这样就能使用真实的 cache_deleted_input_tokens。
     // 用 feature() 门控，让该字符串从外部构建中消失。
     const pendingCacheEdits = feature('CACHED_MICROCOMPACT') ? microcompactResult.compactionInfo?.pendingCacheEdits : undefined
-    logForDebugging(
-      `[Hapii] queryLoop.iter${turnCount} — microcompact 完成: msgs=${messagesForQuery.length} clearedToolUseIds=${microcompactResult.clearedToolUseIds?.length ?? 0} hasPendingCacheEdits=${!!pendingCacheEdits}`,
-      { level: 'info' },
-    )
+    {
+      const _clearedJson = JSON.stringify(microcompactResult.clearedToolUseIds ?? null)
+      if (_prevClearedToolUseIdsJson === undefined || _prevClearedToolUseIdsJson !== _clearedJson) {
+        logForDebugging(
+          `[Hapii] queryLoop.iter${turnCount} — microcompact 完成 [${_prevClearedToolUseIdsJson === undefined ? '首次' : 'clearedToolUseIds 变动'}]: msgs=${messagesForQuery.length} hasPendingCacheEdits=${!!pendingCacheEdits}\nclearedToolUseIds=${_clearedJson}`,
+          { level: 'info' },
+        )
+        _prevClearedToolUseIdsJson = _clearedJson
+      } else {
+        logForDebugging(
+          `[Hapii] queryLoop.iter${turnCount} — microcompact 完成 [无变动]: msgs=${messagesForQuery.length} clearedToolUseIds=${microcompactResult.clearedToolUseIds?.length ?? 0} hasPendingCacheEdits=${!!pendingCacheEdits}`,
+          { level: 'info' },
+        )
+      }
+    }
     queryCheckpoint('query_microcompact_end')
 
-    // 投影折叠后的上下文视图，并可能提交更多折叠。在 autocompact
-    // 之前执行 —— 这样如果折叠已让我们低于 autocompact 阈值，
+    // 投影折叠后的上下文视图，并可能提交更多折叠。在 autocompact 之前执行 —— 这样如果折叠已让我们低于 autocompact 阈值，
     // autocompact 就成了 no-op，我们保留细粒度上下文而不是单一摘要。
     //
-    // 不 yield 任何东西 —— 折叠视图是对 REPL 完整历史的读取时
-    // 投影。摘要消息住在 collapse 存储里，不在 REPL 数组中。这正是
+    // 不 yield 任何东西 —— 折叠视图是对 REPL 完整历史的读取时投影。摘要消息住在 collapse 存储里，不在 REPL 数组中。这正是
     // 折叠能跨轮次持久的原因：projectView() 每次入口都重放提交
-    // 日志。轮次内，视图通过继续点（query.ts:1192）的 state.messages
-    // 向前流转，下一次 projectView() 成 no-op，因为归档的消息已经
-    // 从它的输入中消失。
+    // 日志。轮次内，视图通过继续点（query.ts:1192）的 state.messages 向前流转，下一次 projectView() 成 no-op，因为归档的消息已经 从它的输入中消失。
     if (feature('CONTEXT_COLLAPSE') && contextCollapse) {
       logForDebugging(
         `[Hapii] queryLoop.iter${turnCount} — contextCollapse.applyCollapsesIfNeeded 开始`,
@@ -822,10 +884,21 @@ async function* queryLoop(
     const fullSystemPrompt = asSystemPrompt(
       appendSystemContext(systemPrompt, systemContext),
     )
-    logForDebugging(
-      `[Hapii] queryLoop.iter${turnCount} — systemPrompt 构建完成: length=${fullSystemPrompt.length}`,
-      { level: 'info' },
-    )
+    {
+      const _fspJson = JSON.stringify(fullSystemPrompt, null, 2)
+      if (_prevFullSystemPromptJson === undefined || _prevFullSystemPromptJson !== _fspJson) {
+        logForDebugging(
+          `[Hapii] queryLoop.iter${turnCount} — systemPrompt 构建完成 [${_prevFullSystemPromptJson === undefined ? '首次' : '内容变动'}]: length=${fullSystemPrompt.length}\n${_fspJson}`,
+          { level: 'info' },
+        )
+        _prevFullSystemPromptJson = _fspJson
+      } else {
+        logForDebugging(
+          `[Hapii] queryLoop.iter${turnCount} — systemPrompt 构建完成 [无变动]: length=${fullSystemPrompt.length}`,
+          { level: 'info' },
+        )
+      }
+    }
 
     queryCheckpoint('query_autocompact_start')
     logForDebugging(
@@ -953,10 +1026,31 @@ async function* queryLoop(
           toolUseContext,
         )
       : null
-    logForDebugging(
-      `[Hapii] queryLoop.iter${turnCount} — 设置阶段: streamingToolExecution=${useStreamingToolExecution} msgsForQuery=${messagesForQuery.length}`,
-      { level: 'info' },
-    )
+    {
+      // 用消息数量 + 每条消息的 type/uuid 轻量级判断是否变动，变动时打印完整内容
+      const _msgsKey = messagesForQuery.map(m => `${m.type}:${(m as { uuid?: string }).uuid ?? ''}:${(m as { toolUseId?: string }).toolUseId ?? ''}`).join('|')
+      const seen = new WeakSet()
+      const _msgsJson = () => JSON.stringify(messagesForQuery, (_k, v) => {
+        if (typeof v === 'function') return '[Function]'
+        if (typeof v === 'object' && v !== null) {
+          if (seen.has(v)) return '[Circular]'
+          seen.add(v)
+        }
+        return v
+      }, 2)
+      if (_prevMessagesForQueryKey === undefined || _prevMessagesForQueryKey !== _msgsKey) {
+        logForDebugging(
+          `[Hapii] queryLoop.iter${turnCount} — 设置阶段 [${_prevMessagesForQueryKey === undefined ? '首次' : 'messagesForQuery 变动'}]: streamingToolExecution=${useStreamingToolExecution} msgsForQuery=${messagesForQuery.length}\n${_msgsJson()}`,
+          { level: 'info' },
+        )
+        _prevMessagesForQueryKey = _msgsKey
+      } else {
+        logForDebugging(
+          `[Hapii] queryLoop.iter${turnCount} — 设置阶段 [无变动]: streamingToolExecution=${useStreamingToolExecution} msgsForQuery=${messagesForQuery.length}`,
+          { level: 'info' },
+        )
+      }
+    }
 
     const appState = toolUseContext.getAppState()
     const permissionMode = appState.toolPermissionContext.mode

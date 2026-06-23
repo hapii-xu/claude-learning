@@ -1,6 +1,6 @@
 /**
- * API-based search adapter — delegates to Anthropic's server-side
- * web_search_20250305 tool via a secondary API call.
+ * 基于 API 的搜索适配器 — 通过辅助 API 调用委托给 Anthropic 服务端的
+ * web_search_20250305 工具。
  */
 
 import type {
@@ -40,7 +40,7 @@ export class ApiSearchAdapter implements WebSearchAdapter {
     const { signal, onProgress, allowedDomains, blockedDomains } = options
 
     const userMessage = createUserMessage({
-      content: 'Perform a web search for the query: ' + query,
+      content: '为以下查询执行网络搜索：' + query,
     })
     const toolSchema = makeToolSchema({ allowedDomains, blockedDomains })
 
@@ -61,7 +61,7 @@ export class ApiSearchAdapter implements WebSearchAdapter {
     const queryStream = queryModelWithStreaming({
       messages: [userMessage],
       systemPrompt: asSystemPrompt([
-        'You are an assistant for performing a web search tool use',
+        '你是一个用于执行网络搜索工具调用的助手',
       ]),
       thinkingConfig: useHaiku
         ? { type: 'disabled' as const }
@@ -161,7 +161,7 @@ export class ApiSearchAdapter implements WebSearchAdapter {
                 }
               }
             } catch {
-              // Ignore parsing errors for partial JSON
+              // 忽略部分 JSON 的解析错误
             }
           }
         }
@@ -185,7 +185,7 @@ export class ApiSearchAdapter implements WebSearchAdapter {
 
     endTrace(langfuseTrace)
 
-    // Extract SearchResult[] from content blocks
+    // 从内容块中提取 SearchResult[]
     return extractSearchResults(allContentBlocks)
   }
 }

@@ -26,8 +26,8 @@ export function renderToolResultMessage(
     return null;
   }
 
-  // In transcript mode (ctrl+o), model text is NOT filtered — keep the ⏺ so
-  // SendUserMessage is visually distinct from the surrounding text blocks.
+  // 在 transcript 模式下（ctrl+o），模型文本不会被过滤——保留 ⏺ 标记，使
+  // SendUserMessage 在周围的文本块中视觉上保持区分。
   if (options?.isTranscriptMode) {
     return (
       <Box flexDirection="row" marginTop={1}>
@@ -42,9 +42,9 @@ export function renderToolResultMessage(
     );
   }
 
-  // Brief-only (chat) view: "Claude" label + 2-col indent, matching the "You"
-  // label UserPromptMessage applies to user input (#20889). The "N in background"
-  // spinner status lives in BriefSpinner (Spinner.tsx) — stateless label here.
+  // Brief-only（chat）视图："Claude" 标签 + 2 列缩进，与 UserPromptMessage
+  // 给用户输入应用的 "You" 标签风格一致（#20889）。"N in background" 的
+  // spinner 状态位于 BriefSpinner（Spinner.tsx）中——这里的标签是无状态的。
   if (options?.isBriefOnly) {
     const ts = output.sentAt ? formatBriefTimestamp(output.sentAt) : '';
     return (
@@ -61,12 +61,12 @@ export function renderToolResultMessage(
     );
   }
 
-  // Default view: dropTextInBriefTurns (Messages.tsx) hides the redundant
-  // assistant text that would otherwise precede this — SendUserMessage is the
-  // only text-like content in its turn. No gutter mark; read as plain text.
-  // userFacingName() returns '' so UserToolSuccessMessage drops its columns-5
-  // width constraint and AssistantToolUseMessage renders null (no tool chrome).
-  // Empty minWidth={2} box mirrors AssistantTextMessage's ⏺ gutter spacing.
+  // 默认视图：dropTextInBriefTurns（Messages.tsx）会隐藏原本出现在此之前的
+  // 冗余 assistant 文本——SendUserMessage 是该轮次中唯一的类文本内容。
+  // 不显示 gutter 标记；以纯文本方式阅读。
+  // userFacingName() 返回 ''，使 UserToolSuccessMessage 放弃其 columns-5
+  // 宽度约束，且 AssistantToolUseMessage 渲染为 null（无工具外壳）。
+  // 空的 minWidth={2} box 对应 AssistantTextMessage 中 ⏺ gutter 的间距。
   return (
     <Box flexDirection="row" marginTop={1}>
       <Box minWidth={2} />

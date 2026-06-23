@@ -12,17 +12,17 @@ export type EnvironmentSelectionInfo = {
 }
 
 /**
- * Gets information about available environments and the currently selected one.
+ * 获取可用环境及当前选中环境的信息。
  *
- * @returns Promise<EnvironmentSelectionInfo> containing:
- *   - availableEnvironments: all environments from the API
- *   - selectedEnvironment: the environment that would be used (based on settings or first available),
- *     or null if no environments are available
- *   - selectedEnvironmentSource: the SettingSource where defaultEnvironmentId is configured,
- *     or null if using the default (first environment)
+ * @returns Promise<EnvironmentSelectionInfo>，包含：
+ *   - availableEnvironments：来自 API 的所有环境
+ *   - selectedEnvironment：将被使用的环境（基于设置或第一个可用环境），
+ *     如果没有可用环境则为 null
+ *   - selectedEnvironmentSource：配置了 defaultEnvironmentId 的 SettingSource，
+ *     如果使用默认值（第一个环境）则为 null
  */
 export async function getEnvironmentSelectionInfo(): Promise<EnvironmentSelectionInfo> {
-  // Fetch available environments
+  // 获取可用环境
   const environments = await fetchEnvironments()
 
   if (environments.length === 0) {
@@ -33,11 +33,11 @@ export async function getEnvironmentSelectionInfo(): Promise<EnvironmentSelectio
     }
   }
 
-  // Get the merged settings to see what would actually be used
+  // 获取合并后的设置，以确认实际会使用哪个环境
   const mergedSettings = getSettings_DEPRECATED()
   const defaultEnvironmentId = mergedSettings?.remote?.defaultEnvironmentId
 
-  // Find which environment would be selected
+  // 确定会选择哪个环境
   let selectedEnvironment: EnvironmentResource =
     environments.find(env => env.kind !== 'bridge') ?? environments[0]!
   let selectedEnvironmentSource: SettingSource | null = null
@@ -50,12 +50,12 @@ export async function getEnvironmentSelectionInfo(): Promise<EnvironmentSelectio
     if (matchingEnvironment) {
       selectedEnvironment = matchingEnvironment
 
-      // Find which source has this setting
-      // Iterate from lowest to highest priority, so the last match wins (highest priority)
+      // 查找该设置来自哪个来源
+      // 从最低优先级到最高优先级遍历，最后一个匹配项获胜（即最高优先级）
       for (let i = SETTING_SOURCES.length - 1; i >= 0; i--) {
         const source = SETTING_SOURCES[i]
         if (!source || source === 'flagSettings') {
-          // Skip flagSettings as it's not a normal source we check
+          // 跳过 flagSettings，因为它不是我们检查的常规来源
           continue
         }
         const sourceSettings = getSettingsForSource(source)

@@ -1,23 +1,23 @@
-// External stub for ExitPlanModeTool prompt - excludes Ant-only allowedPrompts section
+// ExitPlanModeTool prompt 的外部存根 - 不包含 Ant 专属的 allowedPrompts 部分
 
-// Hardcoded to avoid relative import issues in stub
+// 硬编码以避免存根中的相对导入问题
 const ASK_USER_QUESTION_TOOL_NAME = 'AskUserQuestion'
 
-export const EXIT_PLAN_MODE_V2_TOOL_PROMPT = `Use this tool when you are in plan mode and have finished writing your plan to the plan file and are ready for user approval.
+export const EXIT_PLAN_MODE_V2_TOOL_PROMPT = `当你处于计划模式，并且已将计划写入计划文件、准备好让用户审批时，使用此工具。
 
-## How This Tool Works
-- You should have already written your plan to the plan file specified in the plan mode system message
-- This tool does NOT take the plan content as a parameter - it will read the plan from the file you wrote
-- This tool simply signals that you're done planning and ready for the user to review and approve
-- The user will see the contents of your plan file when they review it
+## 此工具的工作方式
+- 你应该已经将计划写入计划模式系统消息中指定的计划文件
+- 此工具不接受计划内容作为参数 - 它会从你写入的文件中读取计划
+- 此工具只是表示你已完成规划，准备好让用户审阅和批准
+- 用户在审阅时会看到你计划文件的内容
 
-## When to Use This Tool
-IMPORTANT: Only use this tool when the task requires planning the implementation steps of a task that requires writing code. For research tasks where you're gathering information, searching files, reading files or in general trying to understand the codebase - do NOT use this tool.
+## 何时使用此工具
+重要提示：仅当任务需要规划编写代码的实现步骤时才使用此工具。对于收集信息、搜索文件、读取文件或一般性理解代码库的研究类任务 - 不要使用此工具。
 
-## Before Using This Tool
-Ensure your plan is complete and unambiguous:
-- If you have unresolved questions about requirements or approach, use ${ASK_USER_QUESTION_TOOL_NAME} first (in earlier phases)
-- Once your plan is finalized, use THIS tool to request approval
+## 使用此工具之前
+确保你的计划完整且明确：
+- 如果你对需求或方法有未解决的问题，请先使用 ${ASK_USER_QUESTION_TOOL_NAME}（在更早的阶段）
+- 一旦计划最终确定，使用此工具请求审批
 
-**Important:** Do NOT use ${ASK_USER_QUESTION_TOOL_NAME} to ask "Is this plan okay?" or "Should I proceed?" - that's exactly what THIS tool does. ExitPlanMode inherently requests user approval of your plan.
+**重要：** 不要使用 ${ASK_USER_QUESTION_TOOL_NAME} 来询问"这个计划可以吗？"或"我应该继续吗？" - 这正是此工具要做的事。ExitPlanMode 本身就会请求用户对你的计划进行审批。
 `

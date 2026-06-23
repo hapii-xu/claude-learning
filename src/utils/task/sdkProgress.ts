@@ -2,10 +2,9 @@ import type { SdkWorkflowProgress } from '../../types/tools.js'
 import { enqueueSdkEvent } from '../sdkEventQueue.js'
 
 /**
- * Emit a `task_progress` SDK event. Shared by background agents (per tool_use
- * in runAsyncAgentLifecycle) and workflows (per flushProgress batch). Accepts
- * already-computed primitives so callers can derive them from their own state
- * shapes (ProgressTracker for agents, LocalWorkflowTaskState for workflows).
+ * 触发一个 `task_progress` SDK 事件。由后台 agent（在 runAsyncAgentLifecycle 中每次 tool_use 时）
+ * 和工作流（每次 flushProgress 批量处理时）共用。接收已经计算好的原始值，以便调用方从各自的
+ * 状态结构中派生这些值（agent 使用 ProgressTracker，工作流使用 LocalWorkflowTaskState）。
  */
 export function emitTaskProgress(params: {
   taskId: string

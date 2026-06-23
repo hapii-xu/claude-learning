@@ -33,9 +33,7 @@ const inputSchema = lazySchema(() =>
       .min(0)
       .max(30_000)
       .optional()
-      .describe(
-        'Optional time to wait for active teammates to acknowledge shutdown before cleanup.',
-      ),
+      .describe('可选：清理前等待活跃 teammate 确认关闭的时间。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -68,7 +66,7 @@ export const TeamDeleteTool: Tool<InputSchema, Output> = buildTool({
   },
 
   async description() {
-    return 'Clean up team and task directories when the swarm is complete'
+    return '在 swarm 完成后清理团队和任务目录'
   },
 
   async prompt() {
@@ -100,16 +98,16 @@ export const TeamDeleteTool: Tool<InputSchema, Output> = buildTool({
     const teamName = appState.teamContext?.teamName
 
     if (teamName) {
-      // Read team config to check for active members
+      // 读取团队配置以检查活跃成员
       const teamFile = readTeamFile(teamName)
       if (teamFile) {
-        // Filter out the team lead - only count non-lead members
+        // 过滤掉团队负责人 - 只统计非负责人成员
         const nonLeadMembers = teamFile.members.filter(
           m => m.name !== TEAM_LEAD_NAME,
         )
 
-        // Separate truly active members from idle/dead ones
-        // Members with isActive === false are idle (finished their turn or crashed)
+        // 把真正活跃的成员与空闲/已死成员分开
+        // isActive === false 的成员是空闲的（已结束回合或已崩溃）
         const activeMembers = nonLeadMembers.filter(m => m.isActive !== false)
 
         if (activeMembers.length > 0) {
@@ -121,7 +119,7 @@ export const TeamDeleteTool: Tool<InputSchema, Output> = buildTool({
               executor.setContext?.(context)
               sent = await executor.terminate(
                 member.agentId,
-                'Team cleanup requested by team lead',
+                '团队负责人请求清理团队',
               )
             } else if (
               member.backendType &&
@@ -134,7 +132,7 @@ export const TeamDeleteTool: Tool<InputSchema, Output> = buildTool({
               executor.setContext?.(context)
               sent = await executor.terminate(
                 member.agentId,
-                'Team cleanup requested by team lead',
+                '团队负责人请求清理团队',
               )
             }
             if (sent) {
@@ -161,13 +159,13 @@ export const TeamDeleteTool: Tool<InputSchema, Output> = buildTool({
                 m => m.name !== TEAM_LEAD_NAME && m.isActive !== false,
               ) ?? []
             if (stillActive.length === 0) {
-              // Fall through to cleanup with the refreshed team file state.
+              // 继续执行清理，使用刷新后的团队文件状态。
             } else {
               const memberNames = stillActive.map(m => m.name).join(', ')
               return {
                 data: {
                   success: false,
-                  message: `Shutdown requested for active teammate(s): ${requested.join(', ')}. Cleanup is still blocked after waiting ${waitMs}ms: ${memberNames}.`,
+                  message: `已请求关闭活跃 teammate：${requested.join(', ')}。等待 ${waitMs}ms 后清理仍被阻塞：${memberNames}。`,
                   team_name: teamName,
                 },
               }
@@ -179,7 +177,7 @@ export const TeamDeleteTool: Tool<InputSchema, Output> = buildTool({
               m => m.name !== TEAM_LEAD_NAME && m.isActive !== false,
             ) ?? []
           if (latestActiveMembers.length === 0) {
-            // Continue to cleanup below.
+            // 继续执行下方清理。
           } else {
             const memberNames = latestActiveMembers.map(m => m.name).join(', ')
             return {
@@ -187,8 +185,8 @@ export const TeamDeleteTool: Tool<InputSchema, Output> = buildTool({
                 success: false,
                 message:
                   requested.length > 0
-                    ? `Shutdown requested for active teammate(s): ${requested.join(', ')}. Cleanup is blocked until they exit: ${memberNames}.`
-                    : `Cannot cleanup team with ${latestActiveMembers.length} active member(s): ${memberNames}. Use requestShutdown to gracefully terminate teammates first.`,
+                    ? `已请求关闭活跃 teammate：${requested.join(', ')}。清理在它们退出前被阻塞：${memberNames}。`
+                    : `无法清理仍有 ${latestActiveMembers.length} 个活跃成员的团队：${memberNames}。请先使用 requestShutdown 优雅终止 teammate。`,
                 team_name: teamName,
               },
             }
@@ -197,13 +195,13 @@ export const TeamDeleteTool: Tool<InputSchema, Output> = buildTool({
       }
 
       await cleanupTeamDirectories(teamName)
-      // Already cleaned — don't try again on gracefulShutdown.
+      // 已经清理 - 不要在 gracefulShutdown 时再次尝试。
       unregisterTeamForSessionCleanup(teamName)
 
-      // Clear color assignments so new teams start fresh
+      // 清除颜色分配，以便新团队从零开始
       clearTeammateColors()
 
-      // Clear leader team name so getTaskListId() falls back to session ID
+      // 清除负责人团队名称，使 getTaskListId() 回退到 session ID
       clearLeaderTeamName()
 
       logEvent('tengu_team_deleted', {
@@ -212,12 +210,12 @@ export const TeamDeleteTool: Tool<InputSchema, Output> = buildTool({
       })
     }
 
-    // Clear team context and inbox from app state
+    // 从 app state 中清除团队上下文和 inbox
     setAppState(prev => ({
       ...prev,
       teamContext: undefined,
       inbox: {
-        messages: [], // Clear any queued messages
+        messages: [], // 清除所有排队消息
       },
     }))
 
@@ -225,8 +223,8 @@ export const TeamDeleteTool: Tool<InputSchema, Output> = buildTool({
       data: {
         success: true,
         message: teamName
-          ? `Cleaned up directories and worktrees for team "${teamName}"`
-          : 'No team name found, nothing to clean up',
+          ? `已清理团队 "${teamName}" 的目录和 worktree`
+          : '未找到团队名称，无需清理',
         team_name: teamName,
       },
     }

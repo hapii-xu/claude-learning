@@ -8,16 +8,16 @@ const inputSchema = lazySchema(() =>
   z.strictObject({
     plan_summary: z
       .string()
-      .describe('A summary of the plan that was executed.'),
+      .describe('已执行计划的摘要。'),
     verification_notes: z
       .string()
       .optional()
       .describe(
-        'Notes on what was verified and any issues found during verification.',
+        '关于验证了什么、以及验证过程中发现的问题的说明。',
       ),
     all_steps_completed: z
       .boolean()
-      .describe('Whether all planned steps were completed successfully.'),
+      .describe('是否已成功完成所有计划步骤。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -36,16 +36,16 @@ export const VerifyPlanExecutionTool = buildTool({
   },
 
   async description() {
-    return 'Verify that a plan was executed correctly before exiting plan mode'
+    return '在退出 plan 模式之前验证计划是否被正确执行'
   },
   async prompt() {
-    return `Verify that a plan has been executed correctly. Call this tool before exiting plan mode to confirm all steps were completed.
+    return `验证某个计划是否已被正确执行。在退出 plan 模式之前调用此工具，确认所有步骤都已完成。
 
-Guidelines:
-- Summarize the plan that was executed
-- Note whether all steps completed successfully
-- Include any verification notes (tests passed, files created, etc.)
-- If steps were skipped or failed, explain why in verification_notes`
+指引：
+- 概述已执行的计划
+- 说明是否所有步骤都已成功完成
+- 附上任何验证说明（测试通过、创建了文件等）
+- 如果有步骤被跳过或失败，请在 verification_notes 中解释原因`
   },
 
   isConcurrencySafe() {
@@ -61,12 +61,12 @@ Guidelines:
 
   renderToolUseMessage(input: Partial<VerifyInput>) {
     if (input.all_steps_completed === true) {
-      return 'Verify Plan: all steps completed'
+      return '验证计划：所有步骤已完成'
     }
     if (input.all_steps_completed === false) {
-      return 'Verify Plan: incomplete'
+      return '验证计划：未完成'
     }
-    return 'Verify Plan'
+    return '验证计划'
   },
 
   mapToolResultToToolResultBlockParam(
@@ -77,8 +77,8 @@ Guidelines:
       tool_use_id: toolUseID,
       type: 'tool_result',
       content: content.verified
-        ? `Plan verified: ${content.summary}`
-        : `Plan verification failed: ${content.summary}`,
+        ? `计划已验证：${content.summary}`
+        : `计划验证失败：${content.summary}`,
     }
   },
 

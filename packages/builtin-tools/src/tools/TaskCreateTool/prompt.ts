@@ -1,15 +1,15 @@
 import { isAgentSwarmsEnabled } from 'src/utils/agentSwarmsEnabled.js'
 
-export const DESCRIPTION = 'Create a new task in the task list'
+export const DESCRIPTION = '在任务列表中创建一个新任务'
 
 export function getPrompt(): string {
   const teammateContext = isAgentSwarmsEnabled()
-    ? ' and potentially assigned to teammates'
+    ? '，并可能被分配给 teammate'
     : ''
 
   const teammateTips = isAgentSwarmsEnabled()
-    ? `- Include enough detail in the description for another agent to understand and complete the task
-- New tasks are created with status 'pending' and no owner - use TaskUpdate with the \`owner\` parameter to assign them
+    ? `- 在 description 中提供足够的细节，以便另一个 agent 能够理解并完成任务
+- 新建任务的状态为 'pending' 且没有 owner —— 使用 TaskUpdate 的 \`owner\` 参数来分配任务
 `
     : ''
 

@@ -12,7 +12,7 @@ import { DESCRIPTION, PROMPT } from './prompt.js'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    taskId: z.string().describe('The ID of the task to retrieve'),
+    taskId: z.string().describe('要获取的任务 ID'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -37,7 +37,7 @@ export type Output = z.infer<OutputSchema>
 
 export const TaskGetTool = buildTool({
   name: TASK_GET_TOOL_NAME,
-  searchHint: 'retrieve a task by ID',
+  searchHint: '按 ID 获取任务',
   maxResultSizeChars: 100_000,
   async description() {
     return DESCRIPTION
@@ -102,21 +102,21 @@ export const TaskGetTool = buildTool({
       return {
         tool_use_id: toolUseID,
         type: 'tool_result',
-        content: 'Task not found',
+        content: '未找到任务',
       }
     }
 
     const lines = [
-      `Task #${task.id}: ${task.subject}`,
-      `Status: ${task.status}`,
-      `Description: ${task.description}`,
+      `任务 #${task.id}：${task.subject}`,
+      `状态：${task.status}`,
+      `描述：${task.description}`,
     ]
 
     if (task.blockedBy.length > 0) {
-      lines.push(`Blocked by: ${task.blockedBy.map(id => `#${id}`).join(', ')}`)
+      lines.push(`被阻塞于：${task.blockedBy.map(id => `#${id}`).join(', ')}`)
     }
     if (task.blocks.length > 0) {
-      lines.push(`Blocks: ${task.blocks.map(id => `#${id}`).join(', ')}`)
+      lines.push(`阻塞：${task.blocks.map(id => `#${id}`).join(', ')}`)
     }
 
     return {
