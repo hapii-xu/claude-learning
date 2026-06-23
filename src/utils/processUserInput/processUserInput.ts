@@ -150,11 +150,11 @@ export async function processUserInput({
       ? input.slice(0, 80).replace(/\n/g, '\\n')
       : `ContentBlock[${input.length}]`
   logForDebugging(
-    `[Hapii] ProcessUserInput 开始 type=${typeof input === 'string' ? '文本' : 'ContentBlock'} mode=${mode} isMeta=${!!isMeta}`,
+    `------- processUserInput 开始 ------- type=${typeof input === 'string' ? '文本' : 'ContentBlock'} mode=${mode} isMeta=${!!isMeta} skipSlashCommands=${skipSlashCommands ?? false} skipAttachments=${skipAttachments ?? false}`,
     { level: 'info' },
   )
   logForDebugging(
-    `[输入处理] processUserInput 开始, 类型=${typeof input === 'string' ? '文本' : 'ContentBlock'}, 内容预览="${inputPreview}${typeof input === 'string' && input.length > 80 ? '...' : ''}"`,
+    `[processUserInput] 输入预览="${inputPreview}${typeof input === 'string' && input.length > 80 ? '...' : ''}"`,
     { level: 'info' },
   )
   // 在仍在处理输入时，立即显示用户输入的 prompt。
@@ -169,6 +169,10 @@ export async function processUserInput({
 
   const appState = context.getAppState()
 
+  logForDebugging(
+    `[processUserInput] 调用 processUserInputBase permissionMode=${appState.toolPermissionContext.mode}`,
+    { level: 'info' },
+  )
   const result = await processUserInputBase(
     input,
     mode,
@@ -190,14 +194,28 @@ export async function processUserInput({
     autonomy,
   )
   queryCheckpoint('query_process_user_input_base_end')
+  logForDebugging(
+    `[processUserInput] processUserInputBase 完成 shouldQuery=${result.shouldQuery} messages=${result.messages.length}${result.model ? ` model=${result.model}` : ''}`,
+    { level: 'info' },
+  )
 
   if (!result.shouldQuery) {
+    logForDebugging(`[processUserInput] 不需要查询，直接返回`, {
+      level: 'info',
+    })
+    logForDebugging(`------- processUserInput 结束 ------- (不查询)`, {
+      level: 'info',
+    })
     return result
   }
 
   // 执行 UserPromptSubmit hooks 并处理阻塞情况
   queryCheckpoint('query_hooks_start')
   const inputMessage = getContentText(input) || ''
+  logForDebugging(
+    `[processUserInput] 开始执行 UserPromptSubmit hooks inputMessage长度=${inputMessage.length}`,
+    { level: 'info' },
+  )
 
   for await (const hookResult of executeUserPromptSubmitHooks(
     inputMessage,
@@ -216,9 +234,12 @@ export async function processUserInput({
         hookResult.blockingError,
       )
       logForDebugging(
-        `[输入处理] processUserInput 完成（hook 阻止）, shouldQuery=false`,
+        `[processUserInput] Hook 阻止执行 blockingError=${hookResult.blockingError?.blockingError ?? 'unknown'}`,
         { level: 'info' },
       )
+      logForDebugging(`------- processUserInput 结束 ------- (hook阻止)`, {
+        level: 'info',
+      })
       return {
         messages: [
           // TODO: 把它改成 attachment 消息
@@ -238,6 +259,10 @@ export async function processUserInput({
       const message = hookResult.stopReason
         ? `Operation stopped by hook: ${hookResult.stopReason}`
         : 'Operation stopped by hook'
+      logForDebugging(
+        `[processUserInput] Hook 阻止继续 stopReason=${hookResult.stopReason ?? 'none'}`,
+        { level: 'info' },
+      )
       result.messages.push(
         createUserMessage({
           content: message,
@@ -288,10 +313,17 @@ export async function processUserInput({
     }
   }
   queryCheckpoint('query_hooks_end')
+  logForDebugging(
+    `[processUserInput] Hooks 执行完毕 resultMessages=${result.messages.length} shouldQuery=${result.shouldQuery}`,
+    { level: 'info' },
+  )
 
   // 正常路径：onQuery 会通过 startTransition 清除 userInputOnProcessing，
   // 使其与 deferredMessages 在同一帧内完成（没有闪烁间隙）。
   // 错误路径由 handlePromptSubmit 的 finally 块处理。
+  logForDebugging(`------- processUserInput 结束 ------- (正常)`, {
+    level: 'info',
+  })
   return result
 }
 
@@ -324,6 +356,10 @@ async function processUserInputBase(
   preExpansionInput?: string,
   autonomy?: QueuedCommand['autonomy'],
 ): Promise<ProcessUserInputBaseResult> {
+  logForDebugging(
+    `------- processUserInputBase 开始 ------- mode=${mode} bridgeOrigin=${bridgeOrigin ?? false} preExpansionInput="${(preExpansionInput ?? '').slice(0, 30)}"`,
+    { level: 'info' },
+  )
   let inputString: string | null = null
   let precedingInputBlocks: ContentBlockParam[] = []
 
@@ -342,6 +378,10 @@ async function processUserInputBase(
     inputString = input
   } else if (input.length > 0) {
     queryCheckpoint('query_image_processing_start')
+    logForDebugging(
+      `[processUserInputBase] 处理 ${input.length} 个 ContentBlock 图片`,
+      { level: 'info' },
+    )
     const processedBlocks: ContentBlockParam[] = []
     for (const block of input) {
       if (block.type === 'image') {
@@ -461,13 +501,21 @@ async function processUserInputBase(
     if (cmd) {
       const safety = getBridgeCommandSafety(cmd, parsed?.args ?? '')
       if (safety.ok) {
+        logForDebugging(
+          `[processUserInputBase] Bridge 命令安全，放行 commandName="${parsed?.commandName}"`,
+          { level: 'info' },
+        )
         effectiveSkipSlash = false
       } else {
         const msg =
           safety.reason ??
           `/${getCommandName(cmd)} isn't available over Remote Control.`
         logForDebugging(
-          `[输入处理] processUserInput 完成（bridge 命令不安全）, shouldQuery=false`,
+          `[processUserInputBase] Bridge 命令不安全，拦截 commandName="${parsed?.commandName}"`,
+          { level: 'info' },
+        )
+        logForDebugging(
+          `------- processUserInputBase 结束 ------- (bridge不安全)`,
           { level: 'info' },
         )
         return {
@@ -507,6 +555,10 @@ async function processUserInputBase(
     !context.getAppState().ultraplanLaunching &&
     hasUltraplanKeyword(preExpansionInput ?? inputString)
   ) {
+    logForDebugging(
+      `[processUserInputBase] 检测到 ultraplan 关键词，路由到 /ultraplan`,
+      { level: 'info' },
+    )
     logEvent('tengu_ultraplan_keyword', {})
     const rewritten = replaceUltraplanKeyword(inputString).trim()
     const { processSlashCommand } = await import('./processSlashCommand.js')
@@ -548,6 +600,12 @@ async function processUserInputBase(
 
   // Bash 命令
   if (inputString !== null && mode === 'bash') {
+    logForDebugging(`[processUserInputBase] 路由到 processBashCommand`, {
+      level: 'info',
+    })
+    logForDebugging(`------- processUserInputBase 结束 ------- (bash命令)`, {
+      level: 'info',
+    })
     const { processBashCommand } = await import('./processBashCommand.js')
     return addImageMetadataMessage(
       await processBashCommand(
@@ -568,6 +626,13 @@ async function processUserInputBase(
     !effectiveSkipSlash &&
     inputString.startsWith('/')
   ) {
+    logForDebugging(
+      `[processUserInputBase] 路由到 processSlashCommand command="${inputString.slice(0, 50)}"`,
+      { level: 'info' },
+    )
+    logForDebugging(`------- processUserInputBase 结束 ------- (斜杠命令)`, {
+      level: 'info',
+    })
     const { processSlashCommand } = await import('./processSlashCommand.js')
     const slashResult = await processSlashCommand(
       inputString,
@@ -595,6 +660,10 @@ async function processUserInputBase(
 
     if (agentMention) {
       const agentMentionString = `@agent-${agentMention.attachment.agentType}`
+      logForDebugging(
+        `[processUserInputBase] 检测到 agent mention: ${agentMentionString}`,
+        { level: 'info' },
+      )
       const isSubagentOnly = trimmedInput === agentMentionString
       const isPrefix =
         trimmedInput.startsWith(agentMentionString) && !isSubagentOnly
@@ -608,6 +677,13 @@ async function processUserInputBase(
   }
 
   // 常规用户 prompt
+  logForDebugging(
+    `[processUserInputBase] 路由到 processTextPrompt permissionMode=${permissionMode ?? 'none'} isMeta=${isMeta ?? false}`,
+    { level: 'info' },
+  )
+  logForDebugging(`------- processUserInputBase 结束 ------- (文本prompt)`, {
+    level: 'info',
+  })
   return addImageMetadataMessage(
     processTextPrompt(
       normalizedInput,
@@ -628,6 +704,10 @@ function addImageMetadataMessage(
   imageMetadataTexts: string[],
 ): ProcessUserInputBaseResult {
   if (imageMetadataTexts.length > 0) {
+    logForDebugging(
+      `[addImageMetadataMessage] 添加 ${imageMetadataTexts.length} 条图片元数据`,
+      { level: 'info' },
+    )
     result.messages.push(
       createUserMessage({
         content: imageMetadataTexts.map(text => ({ type: 'text', text })),
@@ -636,7 +716,7 @@ function addImageMetadataMessage(
     )
   }
   logForDebugging(
-    `[输入处理] processUserInput 完成, shouldQuery=${result.shouldQuery}, 消息数=${result.messages.length}${result.model ? `, model=${result.model}` : ''}`,
+    `[processUserInput] 最终返回 shouldQuery=${result.shouldQuery} 消息数=${result.messages.length}${result.model ? `, model=${result.model}` : ''}`,
     { level: 'info' },
   )
   return result

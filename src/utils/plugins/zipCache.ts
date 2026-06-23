@@ -1,19 +1,19 @@
 /**
- * Plugin Zip Cache Module
+ * 插件 Zip 缓存模块
  *
- * Manages plugins as ZIP archives in a mounted directory (e.g., Filestore).
- * When CLAUDE_CODE_PLUGIN_USE_ZIP_CACHE is enabled and CLAUDE_CODE_PLUGIN_CACHE_DIR
- * is set, plugins are stored as ZIPs in that directory and extracted to a
- * session-local temp directory at startup.
+ * 在挂载目录（如 Filestore）中以 ZIP 归档的形式管理插件。
+ * 当 CLAUDE_CODE_PLUGIN_USE_ZIP_CACHE 启用且 CLAUDE_CODE_PLUGIN_CACHE_DIR
+ * 已设置时，插件以 ZIP 形式存储在该目录中，并在启动时
+ * 提取到会话本地临时目录。
  *
- * Limitations:
- * - Only headless mode is supported
- * - All settings sources are used (same as normal plugin flow)
- * - Only github, git, and url marketplace sources are supported
- * - Only strict:true marketplace entries are supported
- * - Auto-update is non-blocking (background, does not affect current session)
+ * 限制：
+ * - 仅支持无头模式
+ * - 使用所有设置来源（与普通插件流相同）
+ * - 仅支持 github、git 和 url marketplace 来源
+ * - 仅支持 strict:true 的 marketplace 条目
+ * - 自动更新是非阻塞的（后台，不影响当前会话）
  *
- * Directory structure of the zip cache:
+ * Zip 缓存的目录结构：
  * /mnt/plugins-cache/
  *   ├── known_marketplaces.json
  *   ├── installed_plugins.json
@@ -50,16 +50,16 @@ import { expandTilde } from '../permissions/pathValidation.js'
 import type { MarketplaceSource } from './schemas.js'
 
 /**
- * Check if the plugin zip cache mode is enabled.
+ * 检查插件 zip 缓存模式是否已启用。
  */
 export function isPluginZipCacheEnabled(): boolean {
   return isEnvTruthy(process.env.CLAUDE_CODE_PLUGIN_USE_ZIP_CACHE)
 }
 
 /**
- * Get the path to the zip cache directory.
- * Requires CLAUDE_CODE_PLUGIN_CACHE_DIR to be set.
- * Returns undefined if zip cache is not enabled.
+ * 获取 zip 缓存目录的路径。
+ * 需要设置 CLAUDE_CODE_PLUGIN_CACHE_DIR。
+ * 若 zip 缓存未启用则返回 undefined。
  */
 export function getPluginZipCachePath(): string | undefined {
   if (!isPluginZipCacheEnabled()) {
@@ -70,7 +70,7 @@ export function getPluginZipCachePath(): string | undefined {
 }
 
 /**
- * Get the path to known_marketplaces.json in the zip cache.
+ * 获取 zip 缓存中 known_marketplaces.json 的路径。
  */
 export function getZipCacheKnownMarketplacesPath(): string {
   const cachePath = getPluginZipCachePath()
@@ -81,7 +81,7 @@ export function getZipCacheKnownMarketplacesPath(): string {
 }
 
 /**
- * Get the path to installed_plugins.json in the zip cache.
+ * 获取 zip 缓存中 installed_plugins.json 的路径。
  */
 export function getZipCacheInstalledPluginsPath(): string {
   const cachePath = getPluginZipCachePath()
@@ -92,7 +92,7 @@ export function getZipCacheInstalledPluginsPath(): string {
 }
 
 /**
- * Get the marketplaces directory within the zip cache.
+ * 获取 zip 缓存中的 marketplaces 目录。
  */
 export function getZipCacheMarketplacesDir(): string {
   const cachePath = getPluginZipCachePath()
@@ -103,7 +103,7 @@ export function getZipCacheMarketplacesDir(): string {
 }
 
 /**
- * Get the plugins directory within the zip cache.
+ * 获取 zip 缓存中的 plugins 目录。
  */
 export function getZipCachePluginsDir(): string {
   const cachePath = getPluginZipCachePath()
@@ -113,14 +113,14 @@ export function getZipCachePluginsDir(): string {
   return join(cachePath, 'plugins')
 }
 
-// Session plugin cache: a temp directory on local disk (NOT in the mounted zip cache)
-// that holds extracted plugins for the duration of the session.
+// 会话插件缓存：本地磁盘上的临时目录（不在挂载的 zip 缓存中），
+// 在会话期间存放已提取的插件。
 let sessionPluginCachePath: string | null = null
 let sessionPluginCachePromise: Promise<string> | null = null
 
 /**
- * Get or create the session plugin cache directory.
- * This is a temp directory on local disk where plugins are extracted for the session.
+ * 获取或创建会话插件缓存目录。
+ * 这是本地磁盘上的临时目录，会话期间在此提取插件。
  */
 export async function getSessionPluginCachePath(): Promise<string> {
   if (sessionPluginCachePath) {
@@ -140,8 +140,8 @@ export async function getSessionPluginCachePath(): Promise<string> {
 }
 
 /**
- * Clean up the session plugin cache directory.
- * Should be called when the session ends.
+ * 清理会话插件缓存目录。
+ * 应在会话结束时调用。
  */
 export async function cleanupSessionPluginCache(): Promise<void> {
   if (!sessionPluginCachePath) {
@@ -161,7 +161,7 @@ export async function cleanupSessionPluginCache(): Promise<void> {
 }
 
 /**
- * Reset the session plugin cache path (for testing).
+ * 重置会话插件缓存路径（用于测试）。
  */
 export function resetSessionPluginCache(): void {
   sessionPluginCachePath = null
@@ -169,8 +169,8 @@ export function resetSessionPluginCache(): void {
 }
 
 /**
- * Write data to a file in the zip cache atomically.
- * Writes to a temp file in the same directory, then renames.
+ * 原子地将数据写入 zip 缓存中的文件。
+ * 先写入同一目录中的临时文件，然后重命名。
  */
 export async function atomicWriteToZipCache(
   targetPath: string,
@@ -190,28 +190,28 @@ export async function atomicWriteToZipCache(
     }
     await rename(tmpPath, targetPath)
   } catch (error) {
-    // Clean up tmp file on failure
+    // 失败时清理临时文件
     try {
       await rm(tmpPath, { force: true })
     } catch {
-      // ignore cleanup errors
+      // 忽略清理错误
     }
     throw error
   }
 }
 
-// fflate's ZippableFile tuple form: [data, opts]. Using the tuple lets us
-// store {os, attrs} so parseZipModes can recover exec bits on extraction.
+// fflate 的 ZippableFile 元组形式：[data, opts]。使用元组让我们
+// 可以存储 {os, attrs}，以便 parseZipModes 在提取时恢复执行位。
 type ZipEntry = [Uint8Array, { os: number; attrs: number }]
 
 /**
- * Create a ZIP archive from a directory.
- * Resolves symlinks to actual file contents (replaces symlinks with real data).
- * Stores Unix mode bits in external_attr so extractZipToDirectory can restore
- * +x — otherwise the round-trip (git clone → zip → extract) loses exec bits.
+ * 从目录创建 ZIP 归档。
+ * 将符号链接解析为实际文件内容（用真实数据替换符号链接）。
+ * 将 Unix 模式位存储在 external_attr 中，以便 extractZipToDirectory 能恢复
+ * +x — 否则往返过程（git clone → zip → extract）会丢失执行位。
  *
- * @param sourceDir - Directory to zip
- * @returns ZIP file as Uint8Array
+ * @param sourceDir - 要压缩的目录
+ * @returns ZIP 文件的 Uint8Array
  */
 export async function createZipFromDirectory(
   sourceDir: string,
@@ -229,8 +229,8 @@ export async function createZipFromDirectory(
 }
 
 /**
- * Recursively collect files from a directory for zipping.
- * Uses lstat to detect symlinks and tracks visited inodes for cycle detection.
+ * 递归收集目录中的文件用于压缩。
+ * 使用 lstat 检测符号链接，并追踪已访问的 inode 以进行循环检测。
  */
 async function collectFilesForZip(
   baseDir: string,
@@ -246,21 +246,20 @@ async function collectFilesForZip(
     return
   }
 
-  // Track visited directories by dev+ino to detect symlink cycles.
-  // bigint: true is required — on Windows NTFS, the file index packs a 16-bit
-  // sequence number into the high bits. Once that sequence exceeds ~32 (very
-  // common on a busy CI runner that churns through temp files), the value
-  // exceeds Number.MAX_SAFE_INTEGER and two adjacent directories round to the
-  // same JS number, causing subdirs to be silently skipped as "cycles". This
-  // broke the round-trip test on Windows CI when sharding shuffled which tests
-  // ran first and pushed MFT sequence numbers over the precision cliff.
-  // See also: markdownConfigLoader.ts getFileIdentity, anthropics/claude-code#13893
+  // 按 dev+ino 追踪已访问目录以检测符号链接循环。
+  // bigint: true 是必需的 — 在 Windows NTFS 上，文件索引将 16 位
+  // 序列号打包进高位。一旦该序列超过 ~32（在频繁产生临时文件的
+  // CI runner 上很常见），值就超过了 Number.MAX_SAFE_INTEGER，
+  // 两个相邻目录会舍入为相同 JS 数字，导致子目录被静默跳过为"循环"。
+  // 当分片打乱测试执行顺序并将 MFT 序列号推过精度悬崖时，
+  // 这破坏了 Windows CI 上的往返测试。
+  // 另见：markdownConfigLoader.ts getFileIdentity，anthropics/claude-code#13893
   try {
     const dirStat = await stat(currentDir, { bigint: true })
-    // ReFS (Dev Drive), NFS, some FUSE mounts report dev=0 and ino=0 for
-    // everything. Fail open: skip cycle detection rather than skip the
-    // directory. We already skip symlinked directories unconditionally below,
-    // so the only cycle left here is a bind mount, which we accept.
+    // ReFS（Dev Drive）、NFS、某些 FUSE 挂载对所有内容报告 dev=0 和 ino=0。
+    // 失败时开放：跳过循环检测而非跳过目录。我们已经在下面
+    // 无条件跳过符号链接目录，所以唯一剩余的循环是 bind mount，
+    // 我们接受这种情况。
     if (dirStat.dev !== 0n || dirStat.ino !== 0n) {
       const key = `${dirStat.dev}:${dirStat.ino}`
       if (visited.has(key)) {
@@ -274,7 +273,7 @@ async function collectFilesForZip(
   }
 
   for (const entry of entries) {
-    // Skip hidden files that are git-related
+    // 跳过与 git 相关的隐藏文件
     if (entry === '.git') {
       continue
     }
@@ -289,17 +288,17 @@ async function collectFilesForZip(
       continue
     }
 
-    // Skip symlinked directories (follow symlinked files)
+    // 跳过符号链接目录（跟随符号链接文件）
     if (fileStat.isSymbolicLink()) {
       try {
         const targetStat = await stat(fullPath)
         if (targetStat.isDirectory()) {
           continue
         }
-        // Symlinked file — read its contents below
+        // 符号链接文件 — 在下面读取其内容
         fileStat = targetStat
       } catch {
-        continue // broken symlink
+        continue // 损坏的符号链接
       }
     }
 
@@ -308,9 +307,9 @@ async function collectFilesForZip(
     } else if (fileStat.isFile()) {
       try {
         const content = await readFile(fullPath)
-        // os=3 (Unix) + st_mode in high 16 bits of external_attr — this is
-        // what parseZipModes reads back on extraction. fileStat is already
-        // in hand from the lstat/stat above, so no extra syscall.
+        // os=3（Unix）+ st_mode 在 external_attr 的高 16 位 — 这是
+        // parseZipModes 在提取时回读的内容。fileStat 已经
+        // 通过上面的 lstat/stat 获得，无需额外系统调用。
         files[relPath] = [
           new Uint8Array(content),
           { os: 3, attrs: (fileStat.mode & 0xffff) << 16 },
@@ -323,10 +322,10 @@ async function collectFilesForZip(
 }
 
 /**
- * Extract a ZIP file to a target directory.
+ * 将 ZIP 文件提取到目标目录。
  *
- * @param zipPath - Path to the ZIP file
- * @param targetDir - Directory to extract into
+ * @param zipPath - ZIP 文件的路径
+ * @param targetDir - 要提取到的目录
  */
 export async function extractZipToDirectory(
   zipPath: string,
@@ -334,14 +333,14 @@ export async function extractZipToDirectory(
 ): Promise<void> {
   const zipBuf = await getFsImplementation().readFileBytes(zipPath)
   const files = await unzipFile(zipBuf)
-  // fflate doesn't surface external_attr — parse the central directory so
-  // exec bits survive extraction (hooks/scripts need +x to run via `sh -c`).
+  // fflate 不暴露 external_attr — 解析中央目录以便
+  // 执行位在提取后依然保留（hook/脚本需要 +x 才能通过 `sh -c` 运行）。
   const modes = parseZipModes(zipBuf)
 
   await getFsImplementation().mkdir(targetDir)
 
   for (const [relPath, data] of Object.entries(files)) {
-    // Skip directory entries (trailing slash)
+    // 跳过目录条目（尾部斜杠）
     if (relPath.endsWith('/')) {
       await getFsImplementation().mkdir(join(targetDir, relPath))
       continue
@@ -352,8 +351,8 @@ export async function extractZipToDirectory(
     await writeFile(fullPath, data)
     const mode = modes[relPath]
     if (mode && mode & 0o111) {
-      // Swallow EPERM/ENOTSUP (NFS root_squash, some FUSE mounts) — losing +x
-      // is the pre-PR behavior and better than aborting mid-extraction.
+      // 吞掉 EPERM/ENOTSUP（NFS root_squash、某些 FUSE 挂载）— 丢失 +x
+      // 是此 PR 之前的行为，比在提取中途中止要好。
       await chmod(fullPath, mode & 0o777).catch(() => {})
     }
   }
@@ -364,9 +363,9 @@ export async function extractZipToDirectory(
 }
 
 /**
- * Convert a plugin directory to a ZIP in-place: zip → atomic write → delete dir.
- * Both call sites (cacheAndRegisterPlugin, copyPluginToVersionedCache) need the
- * same sequence; getting it wrong (non-atomic write, forgetting rm) corrupts cache.
+ * 将插件目录原地转换为 ZIP：zip → 原子写入 → 删除目录。
+ * 两个调用点（cacheAndRegisterPlugin、copyPluginToVersionedCache）都需要
+ * 相同的序列；搞错（非原子写入、忘记 rm）会损坏缓存。
  */
 export async function convertDirectoryToZipInPlace(
   dirPath: string,
@@ -378,8 +377,8 @@ export async function convertDirectoryToZipInPlace(
 }
 
 /**
- * Get the relative path for a marketplace JSON file within the zip cache.
- * Format: marketplaces/{marketplace-name}.json
+ * 获取 zip 缓存中 marketplace JSON 文件的相对路径。
+ * 格式：marketplaces/{marketplace-name}.json
  */
 export function getMarketplaceJsonRelativePath(
   marketplaceName: string,
@@ -389,15 +388,15 @@ export function getMarketplaceJsonRelativePath(
 }
 
 /**
- * Check if a marketplace source type is supported by zip cache mode.
+ * 检查 marketplace 来源类型是否受 zip 缓存模式支持。
  *
- * Supported sources write to `join(cacheDir, name)` — syncMarketplacesToZipCache
- * reads marketplace.json from that installLocation, source-type-agnostic.
- * - github/git/url: clone to temp, rename into cacheDir
- * - settings: write synthetic marketplace.json directly to cacheDir (no fetch)
+ * 支持的来源写入 `join(cacheDir, name)` — syncMarketplacesToZipCache
+ * 从该 installLocation 读取 marketplace.json，与来源类型无关。
+ * - github/git/url：克隆到临时目录，重命名到 cacheDir
+ * - settings：直接将合成的 marketplace.json 写入 cacheDir（无需获取）
  *
- * Excluded: file/directory (installLocation is the user's path OUTSIDE cacheDir —
- * nonsensical in ephemeral containers), npm (node_modules bloat on Filestore mount).
+ * 排除：file/directory（installLocation 是 cacheDir 之外的用户路径 —
+ * 在临时容器中毫无意义），npm（Filestore 挂载上 node_modules 膨胀）。
  */
 export function isMarketplaceSourceSupportedByZipCache(
   source: MarketplaceSource,

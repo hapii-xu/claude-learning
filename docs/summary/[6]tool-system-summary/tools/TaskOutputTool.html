@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskOutput 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange:    #D77757; --orange-lt: #f0e0d8; --orange-dk: #b55e3a;
+      --blue:      #5769F7; --blue-lt:   #dde0fe; --blue-dk:   #3a4ed4;
+      --green:     #22a766; --green-lt:  #d2f0e3;
+      --bg:        #faf8f5; --bg2:       #f3f0eb; --bg3:       #ebe7e0;
+      --text:      #2d2a26; --text-2:    #5a5650; --text-3:    #8a8480;
+      --border:    #ddd8d0; --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px; --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+    section { margin-top: 56px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero p { font-size: 1.05rem; color: var(--text-2); max-width: 640px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 6px 16px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .82rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .8rem; line-height: 1.7; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    blockquote.callout { background: var(--bg2); border-left: 4px solid var(--orange); padding: 14px 20px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0; color: var(--text-2); }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin: 16px 0; overflow-x: auto; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 48px; padding: 8px 18px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; transition: border-color .15s, color .15s; }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    @media (max-width: 700px) { .hero h1 { font-size: 1.6rem; } }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>TaskOutput 工具详解</h1>
+  <p>获取后台任务（shell/agent/远程会话）的输出——后台任务子系统的读取入口，支持阻塞等待与非阻塞轮询，已被标记为废弃</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一">一、工具定位</a></li>
+    <li><a href="#二">二、关键文件清单</a></li>
+    <li><a href="#三">三、Tool 接口字段</a></li>
+    <li><a href="#四">四、核心执行流程</a></li>
+    <li><a href="#五">五、权限与安全</a></li>
+    <li><a href="#六">六、系统关系</a></li>
+    <li><a href="#七">七、亮点与设计取舍</a></li>
+    <li><a href="#八">八、源码导航</a></li>
+    <li><a href="#九">九、学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p>这是后台任务子系统系列的第一篇。注意：<code>TaskOutput</code> 属于<strong>后台任务系统</strong>（<code>src/tasks/</code>，管理 BashTool/AgentTool 后台化的任务），<strong>不是</strong> TodoV2 任务列表（<code>src/utils/tasks.ts</code>）的一部分。两者同名"Task"但完全不同。<code>TaskOutput</code>（517 行 .tsx）从 <code>appState.tasks</code> 读取后台任务的输出，支持 <code>block=true</code> 阻塞等待完成或 <code>block=false</code> 非阻塞轮询，且已被标记为 <strong>DEPRECATED</strong>（建议改用 Read 读任务输出文件路径）。</p></blockquote>
+
+  <section id="一">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>TaskOutput</code> = 按 task_id 读取后台任务（shell/agent/远程）的输出，可阻塞等待或非阻塞轮询。</strong></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>维度</th><th>值</th></tr></thead>
+      <tbody>
+        <tr><td>工具名</td><td><code>TaskOutput</code>（常量 <code>TASK_OUTPUT_TOOL_NAME</code>，<code>constants.ts:1</code>）</td></tr>
+        <tr><td>一句话</td><td>给定 task_id，返回后台任务的输出+状态；block=true 等完成，block=false 立即返回</td></tr>
+        <tr><td>别名</td><td><code>aliases: ['AgentOutputTool', 'BashOutputTool']</code>（<code>:164</code>，重命名后的向后兼容）</td></tr>
+        <tr><td>是否进 system prompt</td><td>✅ <strong>无条件注册</strong>（<code>tools.ts:222</code>，不在 TodoV2 门控内）；在 <code>CORE_TOOLS</code>（<code>constants/tools.ts:150</code>）</td></tr>
+        <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>，<code>:186</code>）</td></tr>
+        <tr><td>是否可并发</td><td>✅ 跟随 isReadOnly（<code>:178-180</code>）</td></tr>
+        <tr><td>废弃状态</td><td>⚠️ <strong>DEPRECATED</strong>（description <code>:175</code> + prompt <code>:194</code> 明示，建议改用 Read 读输出文件）</td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>为什么需要它？</strong> BashTool 的 <code>run_in_background</code> 和 AgentTool 的后台模式产生的任务，模型需要后续读取输出。TaskOutput 是这个"异步任务 → 同步取结果"的桥梁。但现在后台任务结果会带输出文件路径 + task-notification，直接 Read 文件更简单，所以被废弃。</p>
+  </section>
+
+  <section id="二">
+    <h2>二、关键文件清单</h2>
+    <pre>TaskOutputTool/
+├── TaskOutputTool.tsx   ← 主体（517 行），唯一一个 .tsx 的 Task 工具
+└── constants.ts         ← TASK_OUTPUT_TOOL_NAME = 'TaskOutput'</pre>
+    <div class="table-wrap"><table>
+      <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+      <tbody>
+        <tr><td><code>TaskOutputTool.tsx</code></td><td>全部逻辑 + Ink 渲染组件</td><td><code>buildTool:158</code>、<code>call:228</code>、<code>validateInput:205</code>、<code>getTaskOutputData:64</code>、<code>waitForTaskCompletion:124</code>、<code>TaskOutputResultDisplay:385</code></td></tr>
+        <tr><td><code>constants.ts</code></td><td>工具名</td><td><code>:1</code></td></tr>
+      </tbody>
+    </table></div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：<strong>没有独立 prompt.ts</strong>——DESCRIPTION 内联在 call 里（<code>:175</code>、<code>:194</code>）。是 Task 系列里唯一把工具定义和 React 渲染组件混在一个 .tsx 的（因为渲染逻辑复杂，按任务类型分 4 种展示）。</p></blockquote>
+  </section>
+
+  <section id="三">
+    <h2>三、Tool 接口字段实现（buildTool 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre>name: TASK_OUTPUT_TOOL_NAME,
+searchHint: 'read output/logs from a background task',
+maxResultSizeChars: 100_000,
+shouldDefer: true,
+aliases: ['AgentOutputTool', 'BashOutputTool'],   // :164 向后兼容
+userFacingName() { return 'Task Output' },
+isEnabled() { return process.env.USER_TYPE !== 'ant' },   // :182 ant 用户禁用</pre>
+    <h3>模型面字段</h3>
+    <pre>async description() { return '[已废弃] — 建议改用 Read 读取任务输出文件路径' },   // :175
+async prompt() { return `DEPRECATED: Prefer using the Read tool...` },            // :194</pre>
+    <p><strong>输入 schema</strong>（<code>:30-36</code>）：</p>
+    <pre>{
+  task_id: string,                          // 必填
+  block:   boolean (default true),          // 是否等待完成
+  timeout: number (default 30000, max 600000),  // 最大等待毫秒
+}</pre>
+    <p><strong>输出类型</strong>（<code>:55-58</code>）：</p>
+    <pre>{
+  retrieval_status: 'success' | 'timeout' | 'not_ready',
+  task: TaskOutput | null,
+}</pre>
+    <h3>行为字段</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code>call()</code></td><td><code>:228</code></td><td>核心（见下节）</td></tr>
+        <tr><td><code>validateInput()</code></td><td><code>:205</code></td><td>校验 task_id 非空 + 任务存在于 appState</td></tr>
+        <tr><td><code>isReadOnly()</code></td><td><code>:186</code> → <code>true</code></td><td>只读</td></tr>
+        <tr><td><code>isConcurrencySafe()</code></td><td><code>:178</code></td><td>跟随 isReadOnly</td></tr>
+        <tr><td><code>toAutoClassifierInput()</code></td><td><code>:189</code></td><td>返回 task_id</td></tr>
+      </tbody>
+    </table></div>
+    <h3>渲染字段</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>字段</th><th>行号</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code>renderToolUseMessage</code></td><td><code>:343</code></td><td>block=false 显示"非阻塞"，否则空</td></tr>
+        <tr><td><code>renderToolUseTag</code></td><td><code>:351</code></td><td>显示 task_id 标签</td></tr>
+        <tr><td><code>renderToolUseProgressMessage</code></td><td><code>:358</code></td><td>等待时显示"正在等待任务 (按 esc)"</td></tr>
+        <tr><td><code>renderToolResultMessage</code></td><td><code>:372</code></td><td>委托 <code>TaskOutputResultDisplay</code> 组件</td></tr>
+        <tr><td><code>renderToolUseRejectedMessage</code></td><td><code>:376</code></td><td>复用 Fallback 组件</td></tr>
+        <tr><td><code>renderToolUseErrorMessage</code></td><td><code>:380</code></td><td>复用 Fallback 组件</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="四">
+    <h2>四、核心执行流程：call()</h2>
+    <p><code>call()</code>（<code>:228-310</code>）分 block / non-block 两条路径：</p>
+    <div class="mermaid-wrap"><div class="mermaid">
+flowchart TD
+    A["call(input, ctx, ..., onProgress)\n:228"] --> B["从 appState.tasks 取 task\n:232"]
+    B --> C{block?}
+    C -->|false 非阻塞| D{任务已结束?}
+    D -->|是| E["标记 notified + return success\n:242-251"]
+    D -->|否 运行中| F["return not_ready\n:253-258"]
+    C -->|true 阻塞| G["onProgress 推 waiting_for_task\n:262"]
+    G --> H["waitForTaskCompletion 轮询\n:273 100ms 间隔"]
+    H --> I{结果}
+    I -->|null| J["return timeout task:null\n:281"]
+    I -->|仍 running| K["return timeout\n:289"]
+    I -->|已完成| L["标记 notified + return success\n:299-308"]
+    </div></div>
+    <p><strong>关键点逐条</strong>：</p>
+    <ol>
+      <li><strong><code>validateInput</code> 先行</strong>（<code>:205-226</code>）：校验 task_id 非空（errorCode 1）+ 任务存在于 <code>appState.tasks</code>（errorCode 2）。这是第 3 步，失败直接 emit tool_use_error，不进 call。</li>
+      <li><strong>非阻塞路径</strong>（<code>:238-259</code>）：<code>block=false</code> 时立即返回。任务已结束（非 running/pending）→ <code>success</code> + 标记 <code>notified:true</code>（<code>:244</code>）；运行中 → <code>not_ready</code>。</li>
+      <li><strong>阻塞路径 + 进度推送</strong>（<code>:262-309</code>）：<code>block=true</code> 时先通过 <code>onProgress</code> 推一条 <code>waiting_for_task</code> 进度消息，让 UI 显示"正在等待任务"。然后 <code>waitForTaskCompletion</code>（<code>:124-156</code>）以 100ms 间隔轮询 <code>appState.tasks</code>，直到任务离开 running/pending 态或超时。</li>
+      <li><strong><code>getTaskOutputData</code> 按类型取输出</strong>（<code>:64-121</code>）：local_bash 优先从 <code>shellCommand.taskOutput</code> 内存对象取 stdout/stderr；local_agent 优先用内存 result 的干净最终答案；remote_agent 附加 <code>prompt=command</code>。</li>
+      <li><strong><code>mapToolResultToToolResultBlockParam</code> 用 XML 标签包裹</strong>（<code>:312-341</code>）：输出用 <code>&lt;retrieval_status&gt;</code>、<code>&lt;task_id&gt;</code>、<code>&lt;output&gt;</code>、<code>&lt;error&gt;</code> 等 XML 标签结构化，便于模型解析。</li>
+    </ol>
+  </section>
+
+  <section id="五">
+    <h2>五、权限与安全</h2>
+    <ul>
+      <li><strong><code>validateInput</code> 校验任务存在</strong>（<code>:205</code>）：防止模型用任意 task_id 探测，只能访问 appState 里真实存在的后台任务。</li>
+      <li><strong><code>isEnabled: USER_TYPE !== 'ant'</code></strong>（<code>:182</code>）：ant（Anthropic 内部）用户禁用此工具。</li>
+      <li><strong>只读 + 不触碰用户文件</strong>：只读 appState 内存态和 <code>~/.claude</code> 下的任务输出文件，无破坏性。</li>
+      <li><strong>abort 支持</strong>：阻塞等待时可被用户 ESC 中断（<code>:134</code>）。</li>
+      <li><strong><code>notified</code> 标记防重复高亮</strong>（<code>:244, :299</code>）：模型取过输出后标记，UI 不再把该任务当"未读"。</li>
+    </ul>
+  </section>
+
+  <section id="六">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap"><div class="mermaid">
+flowchart TD
+    TO["TaskOutput"] -->|读| AS["appState.tasks[task_id]\n内存态"]
+    TO -->|回退读| DISK["task/diskOutput.ts getTaskOutput\n磁盘输出文件"]
+    TO -->|改| FW["task/framework.ts updateTaskState\n标记 notified"]
+    TO -.取后台输出.-> BASH["BashTool run_in_background"]
+    TO -.取 agent 输出.-> AGENT["AgentTool 后台模式"]
+    TO -.被替代.-> READ["Read 工具（读输出文件路径）"]
+    TO -.同类停止.-> STOP["TaskStopTool"]
+    </div></div>
+    <ul>
+      <li><strong>与 BashTool/AgentTool 的关系</strong>：这俩工具的后台模式产生 <code>appState.tasks</code> 条目，TaskOutput 是读取它们输出的入口。</li>
+      <li><strong>与 TaskStopTool 的关系</strong>：同属后台任务子系统（注意：不是 TodoV2）。TaskStop 停止运行中的任务，TaskOutput 读取任务的输出。</li>
+      <li><strong>与 Read 工具的关系（废弃原因）</strong>：prompt（<code>:194</code>）明示——后台任务结果会带输出文件路径，完成时还有 <code>&lt;task-notification&gt;</code> 推同一路径，直接 Read 文件比经 TaskOutput 更直接。TaskOutput 被废弃是"文件即接口"理念的体现。</li>
+    </ul>
+  </section>
+
+  <section id="七">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong><code>semanticBoolean</code> 包装 block 参数</strong>（<code>:33</code>）：比裸 boolean 更利于模型理解 true/false 的语义。</li>
+      <li><strong>内存优先、磁盘回退的输出取法</strong>（<code>:66-78</code>）：local_bash 优先从内存 taskOutput 对象取（快、新鲜），回退磁盘。local_agent 优先内存 result（干净答案）而非磁盘 JSONL（完整会话含噪音）。</li>
+      <li><strong>block/non-block 双模式</strong>（<code>:238-309</code>）：block=true 配合 <code>waitForTaskCompletion</code> 轮询 + 进度推送 + abort 支持；block=false 立即返回 not_ready。覆盖"等结果"和"瞄一眼状态"两种需求。</li>
+      <li><strong><code>notified</code> 标记</strong>（<code>:244, :299</code>）：模型取过输出后标记，配合 UI 避免"未读任务"高亮重复打扰。</li>
+      <li><strong>XML 标签结构化输出</strong>（<code>:312-341</code>）：用 <code>&lt;output&gt;</code>、<code>&lt;error&gt;</code> 等标签包裹，比纯文本更利于模型解析多字段结果。</li>
+      <li><strong>4 种渲染分支</strong>（<code>:385-515</code>）：local_bash 复用 Bash 渲染、local_agent 分 verbose/非 verbose、remote_agent 简化、默认兜底——一个组件适配全任务类型。</li>
+      <li><strong>废弃但仍保留 + 别名兼容</strong>（<code>:164, :175</code>）：<code>aliases</code> 保留旧名 AgentOutputTool/BashOutputTool，description 标废弃。这是"向后兼容不破坏老记录/SDK 用户"的典型处理。</li>
+    </ol>
+  </section>
+
+  <section id="八">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+      <tbody>
+        <tr><td>工具名常量</td><td><code>TaskOutputTool/constants.ts:1</code></td></tr>
+        <tr><td>废弃 description + prompt</td><td><code>TaskOutputTool.tsx:175,194</code></td></tr>
+        <tr><td><code>buildTool</code> 字段 + 渲染</td><td><code>TaskOutputTool.tsx:158-383</code></td></tr>
+        <tr><td>输入 schema（block/timeout）</td><td><code>TaskOutputTool.tsx:30-36</code></td></tr>
+        <tr><td><code>validateInput</code> 任务存在校验</td><td><code>TaskOutputTool.tsx:205-226</code></td></tr>
+        <tr><td><code>call()</code> 双路径核心</td><td><code>TaskOutputTool.tsx:228-310</code></td></tr>
+        <tr><td><code>getTaskOutputData</code> 按类型取输出</td><td><code>TaskOutputTool.tsx:64-121</code></td></tr>
+        <tr><td><code>waitForTaskCompletion</code> 轮询</td><td><code>TaskOutputTool.tsx:124-156</code></td></tr>
+        <tr><td>内存优先磁盘回退（agent）</td><td><code>TaskOutputTool.tsx:99-110</code></td></tr>
+        <tr><td>XML 标签结果映射</td><td><code>TaskOutputTool.tsx:312-341</code></td></tr>
+        <tr><td>4 种渲染分支</td><td><code>TaskOutputTool.tsx:385-515</code></td></tr>
+        <tr><td>别名（向后兼容）</td><td><code>TaskOutputTool.tsx:164</code></td></tr>
+        <tr><td>注册（无条件）</td><td><code>src/tools.ts:222</code></td></tr>
+        <tr><td>CORE_TOOLS 白名单</td><td><code>src/constants/tools.ts:150</code></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="九">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先区分清楚——这个 TaskOutput 属于<strong>后台任务系统</strong>（<code>appState.tasks</code>，管理 Bash/Agent 后台化），不是 TodoV2 任务列表（<code>~/.claude/tasks/*.json</code>）。两者同名"Task"极易混淆。然后重点理解"四、call()"的双路径（block/non-block）和"内存优先磁盘回退"的输出取法。最后看"七、亮点"里为什么被废弃（文件即接口）。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能区分 TaskOutput（后台任务系统）和 TaskCreate/List/Get/Update（TodoV2 任务列表）是完全不同的两套系统</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 block=true 和 block=false 的行为差异（轮询等待 vs 立即返回 not_ready）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 local_agent 输出为什么优先内存 result 而非磁盘 JSONL（磁盘是完整会话含噪音，内存是干净答案，<code>:99-101</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>notified</code> 标记的作用（模型取过输出后标记，UI 不再高亮，<code>:244</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 TaskOutput 为什么被废弃（后台任务结果带文件路径，直接 Read 更简单，<code>:194</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>aliases</code> 的用途（重命名后兼容旧名 AgentOutputTool/BashOutputTool，<code>:164</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>validateInput</code> 为什么校验任务存在于 appState（防任意 task_id 探测，<code>:214</code>）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>用 BashTool <code>run_in_background</code> 起一个 sleep 任务，用 TaskOutput(block=false) 观察返回 not_ready，任务结束后 TaskOutput(block=true) 取输出</li>
+      <li>对比 local_bash 任务经 TaskOutput 和直接 Read 输出文件路径的结果差异</li>
+      <li>在 <code>waitForTaskCompletion</code> 的 <code>:150</code> 加日志，观察 100ms 轮询节奏</li>
+      <li>验证 ESC 中断阻塞等待时抛出 AbortError</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

@@ -32,7 +32,7 @@ export type McpbUserConfigurationOption = {
 }
 
 /**
- * User configuration values for MCPB
+ * MCPB 的用户配置值
  */
 export type UserConfigValues = Record<
   string,
@@ -40,12 +40,12 @@ export type UserConfigValues = Record<
 >
 
 /**
- * User configuration schema from DXT manifest
+ * 来自 DXT 清单的用户配置 schema
  */
 export type UserConfigSchema = Record<string, McpbUserConfigurationOption>
 
 /**
- * Result of loading an MCPB file (success case)
+ * 加载 MCPB 文件的结果（成功情况）
  */
 export type McpbLoadResult = {
   manifest: McpbManifest
@@ -55,7 +55,7 @@ export type McpbLoadResult = {
 }
 
 /**
- * Result when MCPB needs user configuration
+ * MCPB 需要用户配置时的结果
  */
 export type McpbNeedsConfigResult = {
   status: 'needs-config'
@@ -68,7 +68,7 @@ export type McpbNeedsConfigResult = {
 }
 
 /**
- * Metadata stored for each cached MCPB
+ * 为每个缓存的 MCPB 存储的元数据
  */
 export type McpbCacheMetadata = {
   source: string
@@ -79,40 +79,40 @@ export type McpbCacheMetadata = {
 }
 
 /**
- * Progress callback for download and extraction operations
+ * 下载和提取操作的进度回调
  */
 export type ProgressCallback = (status: string) => void
 
 /**
- * Check if a source string is an MCPB file reference
+ * 检查来源字符串是否为 MCPB 文件引用
  */
 export function isMcpbSource(source: string): boolean {
   return source.endsWith('.mcpb') || source.endsWith('.dxt')
 }
 
 /**
- * Check if a source is a URL
+ * 检查来源是否为 URL
  */
 function isUrl(source: string): boolean {
   return source.startsWith('http://') || source.startsWith('https://')
 }
 
 /**
- * Generate content hash for an MCPB file
+ * 为 MCPB 文件生成内容哈希
  */
 function generateContentHash(data: Uint8Array): string {
   return createHash('sha256').update(data).digest('hex').substring(0, 16)
 }
 
 /**
- * Get cache directory for MCPB files
+ * 获取 MCPB 文件的缓存目录
  */
 function getMcpbCacheDir(pluginPath: string): string {
   return join(pluginPath, '.mcpb-cache')
 }
 
 /**
- * Get metadata file path for cached MCPB
+ * 获取缓存的 MCPB 的元数据文件路径
  */
 function getMetadataPath(cacheDir: string, source: string): string {
   const sourceHash = createHash('md5')
@@ -123,30 +123,30 @@ function getMetadataPath(cacheDir: string, source: string): string {
 }
 
 /**
- * Compose the secureStorage key for a per-server secret bucket.
- * `pluginSecrets` is a flat map — per-server secrets share it with top-level
- * plugin options (pluginOptionsStorage.ts) using a `${pluginId}/${server}`
- * composite key. `/` can't appear in plugin IDs (`name@marketplace`) or
- * server names (MCP identifier constraints), so it's unambiguous. Keeps the
- * SecureStorageData schema unchanged and the single-keychain-entry size
- * budget (~2KB stdin-safe, see INC-3028) shared across all plugin secrets.
+ * 组合每个服务器密钥桶的 secureStorage 键。
+ * `pluginSecrets` 是一个扁平 map — 每个服务器的密钥使用 `${pluginId}/${server}`
+ * 复合键与顶层插件选项（pluginOptionsStorage.ts）共享它。
+ * `/` 不能出现在插件 ID（`name@marketplace`）或
+ * 服务器名称（MCP 标识符约束）中，所以没有歧义。保持
+ * SecureStorageData schema 不变，单个 keychain 条目大小
+ * 预算（~2KB stdin 安全，见 INC-3028）在所有插件密钥间共享。
  */
 function serverSecretsKey(pluginId: string, serverName: string): string {
   return `${pluginId}/${serverName}`
 }
 
 /**
- * Load user configuration for an MCP server, merging non-sensitive values
- * (from settings.json) with sensitive values (from secureStorage keychain).
- * secureStorage wins on collision — schema determines destination so
- * collision shouldn't happen, but if a user hand-edits settings.json we
- * trust the more secure source.
+ * 加载 MCP 服务器的用户配置，合并非敏感值
+ * （来自 settings.json）与敏感值（来自 secureStorage keychain）。
+ * 冲突时 secureStorage 优先 — schema 决定存储目的地，
+ * 因此理论上不会冲突，但如果用户手动编辑 settings.json
+ * 我们信任更安全的来源。
  *
- * Returns null only if NEITHER source has anything — callers skip
- * ${user_config.X} substitution in that case.
+ * 仅当两个来源都没有内容时返回 null — 调用者
+ * 在该情况下跳过 ${user_config.X} 替换。
  *
- * @param pluginId - Plugin identifier in "plugin@marketplace" format
- * @param serverName - MCP server name from DXT manifest
+ * @param pluginId - 格式为 "plugin@marketplace" 的插件标识符
+ * @param serverName - DXT 清单中的 MCP 服务器名称
  */
 export function loadMcpServerUserConfig(
   pluginId: string,
@@ -182,23 +182,23 @@ export function loadMcpServerUserConfig(
 }
 
 /**
- * Save user configuration for an MCP server, splitting by `schema[key].sensitive`.
- * Mirrors savePluginOptions (pluginOptionsStorage.ts:90) for top-level options:
- *   - `sensitive: true` → secureStorage (keychain on macOS, .credentials.json 0600 elsewhere)
- *   - everything else   → settings.json pluginConfigs[pluginId].mcpServers[serverName]
+ * 保存 MCP 服务器的用户配置，按 `schema[key].sensitive` 分拆。
+ * 镜像 savePluginOptions（pluginOptionsStorage.ts:90）顶层选项的行为：
+ *   - `sensitive: true` → secureStorage（macOS 上的 keychain，其他地方为 .credentials.json 0600）
+ *   - 其他            → settings.json pluginConfigs[pluginId].mcpServers[serverName]
  *
- * Without this split, per-channel `sensitive: true` was a false sense of
- * security — the dialog masked the input but the save went to plaintext
- * settings.json anyway. H1 #3617646 (Telegram/Discord bot tokens in
- * world-readable .env) surfaced this as the gap to close.
+ * 没有此分拆，per-channel `sensitive: true` 只是一种虚假的安全感
+ * — 对话框掩盖了输入但保存仍然写入明文 settings.json。
+ * H1 #3617646（Telegram/Discord bot token 出现在全局可读的 .env 中）
+ * 暴露了这一待修复的缺口。
  *
- * Writes are skipped if nothing in that category is present.
+ * 若该类别中没有内容则跳过写入。
  *
- * @param pluginId - Plugin identifier in "plugin@marketplace" format
- * @param serverName - MCP server name from DXT manifest
- * @param config - User configuration values
- * @param schema - The userConfig schema for this server (manifest.user_config
- *   or channels[].userConfig) — drives the sensitive/non-sensitive split
+ * @param pluginId - 格式为 "plugin@marketplace" 的插件标识符
+ * @param serverName - DXT 清单中的 MCP 服务器名称
+ * @param config - 用户配置值
+ * @param schema - 此服务器的 userConfig schema（manifest.user_config
+ *   或 channels[].userConfig）— 驱动敏感/非敏感分拆
  */
 export function saveMcpServerUserConfig(
   pluginId: string,
@@ -218,25 +218,24 @@ export function saveMcpServerUserConfig(
       }
     }
 
-    // Scrub ONLY keys we're writing in this call. Covers both directions
-    // across schema-version flips:
-    //  - sensitive→secureStorage ⇒ remove stale plaintext from settings.json
-    //  - nonSensitive→settings.json ⇒ remove stale entry from secureStorage
-    //    (otherwise loadMcpServerUserConfig's {...nonSensitive, ...sensitive}
-    //    would let the stale secureStorage value win on next read)
-    // Partial `config` (user only re-enters one field) leaves other fields
-    // untouched in BOTH stores — defense-in-depth against future callers.
+    // 仅清除此次调用中正在写入的键。覆盖跨 schema 版本切换的两个方向：
+    //  - sensitive→secureStorage ⇒ 从 settings.json 中移除过时的明文
+    //  - nonSensitive→settings.json ⇒ 从 secureStorage 中移除过时条目
+    //    （否则 loadMcpServerUserConfig 的 {...nonSensitive, ...sensitive}
+    //    会让过时的 secureStorage 值在下次读取时优先）
+    // 部分 `config`（用户只重新输入一个字段）使两个存储中的
+    // 其他字段保持不变 — 对未来调用者的深度防御。
     const sensitiveKeysInThisSave = new Set(Object.keys(sensitive))
     const nonSensitiveKeysInThisSave = new Set(Object.keys(nonSensitive))
 
-    // Sensitive → secureStorage FIRST. If this fails (keychain locked,
-    // .credentials.json perms), throw before touching settings.json — the
-    // old plaintext stays as a fallback instead of losing BOTH copies.
+    // 敏感值 → secureStorage 优先。若失败（keychain 已锁、
+    // .credentials.json 权限问题），在修改 settings.json 之前抛出 —
+    // 旧的明文作为后备保留，而不是丢失两份副本。
     //
-    // Also scrub non-sensitive keys from secureStorage — schema flipped
-    // sensitive→false and they're being written to settings.json now. Without
-    // this, loadMcpServerUserConfig's merge would let the stale secureStorage
-    // value win on next read.
+    // 同时从 secureStorage 清除非敏感键 — schema 将
+    // sensitive 翻转为 false，它们现在要写入 settings.json。如果不这么做，
+    // loadMcpServerUserConfig 的合并会让过时的 secureStorage
+    // 值在下次读取时优先。
     const storage = getSecureStorage()
     const k = serverSecretsKey(pluginId, serverName)
     const existingInSecureStorage =
@@ -258,8 +257,8 @@ export function saveMcpServerUserConfig(
       if (!existing.pluginSecrets) {
         existing.pluginSecrets = {}
       }
-      // secureStorage keyvault is a flat object — direct replace, no merge
-      // semantics to worry about (unlike settings.json's mergeWith).
+      // secureStorage keyvault 是扁平对象 — 直接替换，无需关心合并
+      // 语义（不同于 settings.json 的 mergeWith）。
       existing.pluginSecrets[k] = {
         ...secureScrubbed,
         ...sensitive,
@@ -285,17 +284,17 @@ export function saveMcpServerUserConfig(
       }
     }
 
-    // Non-sensitive → settings.json. Write whenever there are new non-sensitive
-    // values OR existing plaintext sensitive values to scrub — so reconfiguring
-    // a sensitive-only schema still cleans up the old settings.json. Runs
-    // AFTER the secureStorage write succeeded, so the scrub can't leave you
-    // with zero copies of the secret.
+    // 非敏感值 → settings.json。在有新的非敏感值或需要
+    // 清除现有明文敏感值时写入 — 以便重新配置仅含
+    // 敏感字段的 schema 时仍能清理旧 settings.json。在
+    // secureStorage 写入成功后运行，确保清除不会让你
+    // 一份密钥副本都没有。
     //
-    // updateSettingsForSource does mergeWith(diskSettings, ourSettings, ...)
-    // which PRESERVES destination keys absent from source — so simply omitting
-    // sensitive keys doesn't scrub them, the disk copy merges back in. Instead:
-    // set each sensitive key to explicit `undefined` — mergeWith (with the
-    // customizer at settings.ts:349) treats explicit undefined as a delete.
+    // updateSettingsForSource 执行 mergeWith(diskSettings, ourSettings, ...)，
+    // 该操作会保留目标中来源没有的键 — 所以简单地省略
+    // 敏感键无法清除它们，磁盘副本会合并回来。作为替代：
+    // 将每个敏感键设为显式 `undefined` — mergeWith（搭配
+    // settings.ts:349 处的自定义器）将显式 undefined 视为删除。
     const settings = getSettings_DEPRECATED()
     const existingInSettings =
       settings.pluginConfigs?.[pluginId]?.mcpServers?.[serverName] ?? {}
@@ -315,11 +314,11 @@ export function saveMcpServerUserConfig(
       if (!settings.pluginConfigs[pluginId].mcpServers) {
         settings.pluginConfigs[pluginId].mcpServers = {}
       }
-      // Build the scrub-via-undefined map. The UserConfigValues type doesn't
-      // include undefined, but updateSettingsForSource's mergeWith customizer
-      // needs explicit undefined to delete — cast is deliberate internal
-      // plumbing (same rationale as deletePluginOptions in
-      // pluginOptionsStorage.ts:184, see CLAUDE.md's 10% case).
+      // 构建通过 undefined 清除的 map。UserConfigValues 类型不
+      // 包含 undefined，但 updateSettingsForSource 的 mergeWith 自定义器
+      // 需要显式 undefined 才能删除 — 此处的类型转换是有意为之的内部
+      // 管道（与 pluginOptionsStorage.ts:184 中 deletePluginOptions 的
+      // 理由相同，见 CLAUDE.md 的 10% case）。
       const scrubbed = Object.fromEntries(
         keysToScrubFromSettings.map(k => [k, undefined]),
       ) as Record<string, undefined>
@@ -351,7 +350,7 @@ export function saveMcpServerUserConfig(
 }
 
 /**
- * Validate user configuration values against DXT user_config schema
+ * 根据 DXT user_config schema 校验用户配置值
  */
 export function validateUserConfig(
   values: UserConfigValues,
@@ -359,25 +358,25 @@ export function validateUserConfig(
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = []
 
-  // Check each field in the schema
+  // 检查 schema 中的每个字段
   for (const [key, fieldSchema] of Object.entries(schema)) {
     const value = values[key]
 
-    // Check required fields
+    // 检查必填字段
     if (fieldSchema.required && (value === undefined || value === '')) {
       errors.push(`${fieldSchema.title || key} is required but not provided`)
       continue
     }
 
-    // Skip validation for optional fields that aren't provided
+    // 跳过未提供值的可选字段
     if (value === undefined || value === '') {
       continue
     }
 
-    // Type validation
+    // 类型校验
     if (fieldSchema.type === 'string') {
       if (Array.isArray(value)) {
-        // String arrays are allowed if multiple: true
+        // multiple: true 时允许字符串数组
         if (!fieldSchema.multiple) {
           errors.push(
             `${fieldSchema.title || key} must be a string, not an array`,
@@ -399,7 +398,7 @@ export function validateUserConfig(
       errors.push(`${fieldSchema.title || key} must be a path string`)
     }
 
-    // Number range validation
+    // 数值范围校验
     if (fieldSchema.type === 'number' && typeof value === 'number') {
       if (fieldSchema.min !== undefined && value < fieldSchema.min) {
         errors.push(
@@ -418,15 +417,15 @@ export function validateUserConfig(
 }
 
 /**
- * Generate MCP server configuration from DXT manifest
+ * 从 DXT 清单生成 MCP 服务器配置
  */
 async function generateMcpConfig(
   manifest: McpbManifest,
   extractedPath: string,
   userConfig: UserConfigValues = {},
 ): Promise<McpServerConfig> {
-  // Lazy import: @anthropic-ai/mcpb barrel pulls in zod v3 schemas (~700KB of
-  // bound closures). See dxt/helpers.ts for details.
+  // 懒导入：@anthropic-ai/mcpb barrel 引入 zod v3 schemas（~700KB
+  // 绑定闭包）。详见 dxt/helpers.ts。
   const { getMcpConfigForManifest } = await import('@anthropic-ai/mcpb')
   const mcpConfig = await getMcpConfigForManifest({
     manifest,
@@ -448,7 +447,7 @@ async function generateMcpConfig(
 }
 
 /**
- * Load cache metadata for an MCPB source
+ * 加载 MCPB 来源的缓存元数据
  */
 async function loadCacheMetadata(
   cacheDir: string,
@@ -473,7 +472,7 @@ async function loadCacheMetadata(
 }
 
 /**
- * Save cache metadata for an MCPB source
+ * 保存 MCPB 来源的缓存元数据
  */
 async function saveCacheMetadata(
   cacheDir: string,
@@ -487,7 +486,7 @@ async function saveCacheMetadata(
 }
 
 /**
- * Download MCPB file from URL
+ * 从 URL 下载 MCPB 文件
  */
 async function downloadMcpb(
   url: string,
@@ -503,9 +502,9 @@ async function downloadMcpb(
   let fetchTelemetryFired = false
   try {
     const response = await axios.get(url, {
-      timeout: 120000, // 2 minute timeout
+      timeout: 120000, // 2 分钟超时
       responseType: 'arraybuffer',
-      maxRedirects: 5, // Follow redirects (like curl -L)
+      maxRedirects: 5, // 跟随重定向（类似 curl -L）
       onDownloadProgress: progressEvent => {
         if (progressEvent.total && onProgress) {
           const percent = Math.round(
@@ -517,13 +516,13 @@ async function downloadMcpb(
     })
 
     const data = new Uint8Array(response.data)
-    // Fire telemetry before writeFile — the event measures the network
-    // fetch, not disk I/O. A writeFile EACCES would otherwise match
-    // classifyFetchError's /permission denied/ → misreport as auth.
+    // 在 writeFile 之前触发遥测 — 该事件度量网络
+    // 获取，而非磁盘 I/O。否则 writeFile 的 EACCES 会匹配
+    // classifyFetchError 的 /permission denied/ → 误报为认证问题。
     logPluginFetch('mcpb', url, 'success', performance.now() - started)
     fetchTelemetryFired = true
 
-    // Save to disk (binary data)
+    // 保存到磁盘（二进制数据）
     await writeFile(destPath, Buffer.from(data))
 
     logForDebugging(`Downloaded ${data.length} bytes to ${destPath}`)
@@ -552,10 +551,10 @@ async function downloadMcpb(
 }
 
 /**
- * Extract MCPB file and write contents to extraction directory.
+ * 提取 MCPB 文件并将内容写入提取目录。
  *
- * @param modes - name→mode map from `parseZipModes`. MCPB bundles can ship
- *   native MCP server binaries, so preserving the exec bit matters here.
+ * @param modes - 来自 `parseZipModes` 的 name→mode 映射。MCPB 包可能
+ *   包含原生 MCP 服务器二进制文件，因此保留执行位很重要。
  */
 async function extractMcpbContents(
   unzipped: Record<string, Uint8Array>,
@@ -567,30 +566,30 @@ async function extractMcpbContents(
     onProgress('Extracting files...')
   }
 
-  // Create extraction directory
+  // 创建提取目录
   await getFsImplementation().mkdir(extractPath)
 
-  // Write all files. Filter directory entries from the count so progress
-  // messages use the same denominator as filesWritten (which skips them).
+  // 写入所有文件。从计数中过滤目录条目，以便进度
+  // 消息使用与 filesWritten（跳过目录条目）相同的分母。
   let filesWritten = 0
   const entries = Object.entries(unzipped).filter(([k]) => !k.endsWith('/'))
   const totalFiles = entries.length
 
   for (const [filePath, fileData] of entries) {
-    // Directory entries (common in zip -r, Python zipfile, Java ZipOutputStream)
-    // are filtered above — writeFile would create `bin/` as an empty regular
-    // file, then mkdir for `bin/server` would fail with ENOTDIR. The
-    // mkdir(dirname(fullPath)) below creates parent dirs implicitly.
+    // 目录条目（zip -r、Python zipfile、Java ZipOutputStream 中常见）
+    // 在上面已过滤 — writeFile 会将 `bin/` 创建为空普通
+    // 文件，然后 `bin/server` 的 mkdir 会因 ENOTDIR 失败。
+    // 下面的 mkdir(dirname(fullPath)) 隐式创建父目录。
 
     const fullPath = join(extractPath, filePath)
     const dir = dirname(fullPath)
 
-    // Ensure directory exists (recursive handles already-existing)
+    // 确保目录存在（recursive 处理已存在的情况）
     if (dir !== extractPath) {
       await getFsImplementation().mkdir(dir)
     }
 
-    // Determine if text or binary
+    // 判断是文本还是二进制
     const isTextFile =
       filePath.endsWith('.json') ||
       filePath.endsWith('.js') ||
@@ -609,8 +608,8 @@ async function extractMcpbContents(
 
     const mode = modes[filePath]
     if (mode && mode & 0o111) {
-      // Swallow EPERM/ENOTSUP (NFS root_squash, some FUSE mounts) — losing +x
-      // is the pre-PR behavior and better than aborting mid-extraction.
+      // 吞掉 EPERM/ENOTSUP（NFS root_squash、某些 FUSE 挂载）— 丢失 +x
+      // 是此 PR 之前的行为，比在提取中途中止要好。
       await chmod(fullPath, mode & 0o777).catch(() => {})
     }
 
@@ -627,7 +626,7 @@ async function extractMcpbContents(
 }
 
 /**
- * Check if an MCPB source has changed and needs re-extraction
+ * 检查 MCPB 来源是否已变更并需要重新提取
  */
 export async function checkMcpbChanged(
   source: string,
@@ -638,11 +637,11 @@ export async function checkMcpbChanged(
   const metadata = await loadCacheMetadata(cacheDir, source)
 
   if (!metadata) {
-    // No cache metadata, needs loading
+    // 没有缓存元数据，需要加载
     return true
   }
 
-  // Check if extraction directory still exists
+  // 检查提取目录是否仍然存在
   try {
     await fs.stat(metadata.extractedPath)
   } catch (error) {
@@ -658,7 +657,7 @@ export async function checkMcpbChanged(
     return true
   }
 
-  // For local files, check mtime
+  // 对于本地文件，检查 mtime
   if (!isUrl(source)) {
     const localPath = join(pluginPath, source)
     let stats
@@ -678,9 +677,9 @@ export async function checkMcpbChanged(
     }
 
     const cachedTime = new Date(metadata.cachedAt).getTime()
-    // Floor to match the ms precision of cachedAt (ISO string). Sub-ms
-    // precision on mtimeMs would make a freshly-cached file appear "newer"
-    // than its own cache timestamp when both happen in the same millisecond.
+    // 取整以匹配 cachedAt 的毫秒精度（ISO 字符串）。mtimeMs 的亚毫秒
+    // 精度会让刚缓存的文件在两者发生于同一毫秒时看起来比
+    // 自身的缓存时间戳"更新"。
     const fileTime = Math.floor(stats.mtimeMs)
 
     if (fileTime > cachedTime) {
@@ -691,19 +690,19 @@ export async function checkMcpbChanged(
     }
   }
 
-  // For URLs, we'll re-check on explicit update (handled elsewhere)
+  // 对于 URL，在显式更新时重新检查（在其他地方处理）
   return false
 }
 
 /**
- * Load and extract an MCPB file, with caching and user configuration support
+ * 加载并提取 MCPB 文件，支持缓存和用户配置
  *
- * @param source - MCPB file path or URL
- * @param pluginPath - Plugin directory path
- * @param pluginId - Plugin identifier in "plugin@marketplace" format (for config storage)
- * @param onProgress - Progress callback
- * @param providedUserConfig - User configuration values (for initial setup or reconfiguration)
- * @returns Success with MCP config, or needs-config status with schema
+ * @param source - MCPB 文件路径或 URL
+ * @param pluginPath - 插件目录路径
+ * @param pluginId - 格式为 "plugin@marketplace" 的插件标识符（用于配置存储）
+ * @param onProgress - 进度回调
+ * @param providedUserConfig - 用户配置值（用于初次设置或重新配置）
+ * @returns 成功时返回 MCP 配置，或返回带 schema 的 needs-config 状态
  */
 export async function loadMcpbFile(
   source: string,
@@ -719,14 +718,14 @@ export async function loadMcpbFile(
 
   logForDebugging(`Loading MCPB from source: ${source}`)
 
-  // Check cache first
+  // 优先检查缓存
   const metadata = await loadCacheMetadata(cacheDir, source)
   if (metadata && !(await checkMcpbChanged(source, pluginPath))) {
     logForDebugging(
       `Using cached MCPB from ${metadata.extractedPath} (hash: ${metadata.contentHash})`,
     )
 
-    // Load manifest from cache
+    // 从缓存加载清单
     const manifestPath = join(metadata.extractedPath, 'manifest.json')
     let manifestContent: string
     try {
@@ -743,19 +742,19 @@ export async function loadMcpbFile(
     const manifestData = new TextEncoder().encode(manifestContent)
     const manifest = await parseAndValidateManifestFromBytes(manifestData)
 
-    // Check for user_config requirement
+    // 检查 user_config 需求
     if (manifest.user_config && Object.keys(manifest.user_config).length > 0) {
-      // Server name from DXT manifest
+      // DXT 清单中的服务器名称
       const serverName = manifest.name
 
-      // Try to load existing config from settings.json or use provided config
+      // 尝试从 settings.json 加载已有配置，或使用提供的配置
       const savedConfig = loadMcpServerUserConfig(pluginId, serverName)
       const userConfig = providedUserConfig || savedConfig || {}
 
-      // Validate we have all required fields
+      // 校验所有必填字段
       const validation = validateUserConfig(userConfig, manifest.user_config)
 
-      // Return needs-config if: forced (reconfiguration) OR validation failed
+      // 在以下情况返回 needs-config：强制（重新配置）或校验失败
       if (forceConfigDialog || !validation.valid) {
         return {
           status: 'needs-config',
@@ -768,7 +767,7 @@ export async function loadMcpbFile(
         }
       }
 
-      // Save config if it was provided (first time or reconfiguration)
+      // 若提供了配置则保存（初次设置或重新配置）
       if (providedUserConfig) {
         saveMcpServerUserConfig(
           pluginId,
@@ -778,7 +777,7 @@ export async function loadMcpbFile(
         )
       }
 
-      // Generate MCP config WITH user config
+      // 使用用户配置生成 MCP 配置
       const mcpConfig = await generateMcpConfig(
         manifest,
         metadata.extractedPath,
@@ -793,7 +792,7 @@ export async function loadMcpbFile(
       }
     }
 
-    // No user_config required - generate config without it
+    // 不需要 user_config — 不带配置生成
     const mcpConfig = await generateMcpConfig(manifest, metadata.extractedPath)
 
     return {
@@ -804,12 +803,12 @@ export async function loadMcpbFile(
     }
   }
 
-  // Not cached or changed - need to download/load and extract
+  // 未缓存或已变更 — 需要下载/加载并提取
   let mcpbData: Uint8Array
   let mcpbFilePath: string
 
   if (isUrl(source)) {
-    // Download from URL
+    // 从 URL 下载
     const sourceHash = createHash('md5')
       .update(source)
       .digest('hex')
@@ -817,7 +816,7 @@ export async function loadMcpbFile(
     mcpbFilePath = join(cacheDir, `${sourceHash}.mcpb`)
     mcpbData = await downloadMcpb(source, mcpbFilePath, onProgress)
   } else {
-    // Load from local path
+    // 从本地路径加载
     const localPath = join(pluginPath, source)
 
     if (onProgress) {
@@ -837,21 +836,21 @@ export async function loadMcpbFile(
     }
   }
 
-  // Generate content hash
+  // 生成内容哈希
   const contentHash = generateContentHash(mcpbData)
   logForDebugging(`MCPB content hash: ${contentHash}`)
 
-  // Extract ZIP
+  // 提取 ZIP
   if (onProgress) {
     onProgress('Extracting MCPB archive...')
   }
 
   const unzipped = await unzipFile(Buffer.from(mcpbData))
-  // fflate doesn't surface external_attr — parse the central directory so
-  // native MCP server binaries keep their exec bit after extraction.
+  // fflate 不暴露 external_attr — 解析中央目录以便
+  // 原生 MCP 服务器二进制文件在提取后保留执行位。
   const modes = parseZipModes(mcpbData)
 
-  // Check for manifest.json
+  // 检查 manifest.json
   const manifestData = unzipped['manifest.json']
   if (!manifestData) {
     const error = new Error('No manifest.json found in MCPB file')
@@ -859,13 +858,13 @@ export async function loadMcpbFile(
     throw error
   }
 
-  // Parse and validate manifest
+  // 解析并校验清单
   const manifest = await parseAndValidateManifestFromBytes(manifestData)
   logForDebugging(
     `MCPB manifest: ${manifest.name} v${manifest.version} by ${manifest.author.name}`,
   )
 
-  // Check if manifest has server config
+  // 检查清单是否有服务器配置
   if (!manifest.server) {
     const error = new Error(
       `MCPB manifest for "${manifest.name}" does not define a server configuration`,
@@ -874,24 +873,24 @@ export async function loadMcpbFile(
     throw error
   }
 
-  // Extract to cache directory
+  // 提取到缓存目录
   const extractPath = join(cacheDir, contentHash)
   await extractMcpbContents(unzipped, extractPath, modes, onProgress)
 
-  // Check for user_config requirement
+  // 检查 user_config 需求
   if (manifest.user_config && Object.keys(manifest.user_config).length > 0) {
-    // Server name from DXT manifest
+    // DXT 清单中的服务器名称
     const serverName = manifest.name
 
-    // Try to load existing config from settings.json or use provided config
+    // 尝试从 settings.json 加载已有配置，或使用提供的配置
     const savedConfig = loadMcpServerUserConfig(pluginId, serverName)
     const userConfig = providedUserConfig || savedConfig || {}
 
-    // Validate we have all required fields
+    // 校验所有必填字段
     const validation = validateUserConfig(userConfig, manifest.user_config)
 
     if (!validation.valid) {
-      // Save cache metadata even though config is incomplete
+      // 即使配置不完整也保存缓存元数据
       const newMetadata: McpbCacheMetadata = {
         source,
         contentHash,
@@ -901,7 +900,7 @@ export async function loadMcpbFile(
       }
       await saveCacheMetadata(cacheDir, source, newMetadata)
 
-      // Return "needs configuration" status
+      // 返回"需要配置"状态
       return {
         status: 'needs-config',
         manifest,
@@ -913,7 +912,7 @@ export async function loadMcpbFile(
       }
     }
 
-    // Save config if it was provided (first time or reconfiguration)
+    // 若提供了配置则保存（初次设置或重新配置）
     if (providedUserConfig) {
       saveMcpServerUserConfig(
         pluginId,
@@ -923,14 +922,14 @@ export async function loadMcpbFile(
       )
     }
 
-    // Generate MCP config WITH user config
+    // 使用用户配置生成 MCP 配置
     if (onProgress) {
       onProgress('Generating MCP server configuration...')
     }
 
     const mcpConfig = await generateMcpConfig(manifest, extractPath, userConfig)
 
-    // Save cache metadata
+    // 保存缓存元数据
     const newMetadata: McpbCacheMetadata = {
       source,
       contentHash,
@@ -948,14 +947,14 @@ export async function loadMcpbFile(
     }
   }
 
-  // No user_config required - generate config without it
+  // 不需要 user_config — 不带配置生成
   if (onProgress) {
     onProgress('Generating MCP server configuration...')
   }
 
   const mcpConfig = await generateMcpConfig(manifest, extractPath)
 
-  // Save cache metadata
+  // 保存缓存元数据
   const newMetadata: McpbCacheMetadata = {
     source,
     contentHash,

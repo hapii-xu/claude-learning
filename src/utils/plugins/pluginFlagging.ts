@@ -1,15 +1,14 @@
 /**
- * Flagged plugin tracking utilities
+ * 已标记插件的跟踪工具
  *
- * Tracks plugins that were auto-removed because they were delisted from
- * their marketplace. Data is stored in ~/.claude/plugins/flagged-plugins.json.
- * Flagged plugins appear in a "Flagged" section in /plugins until the user
- * dismisses them.
+ * 跟踪因在市场中被下架而被自动移除的插件。数据存储在
+ * ~/.claude/plugins/flagged-plugins.json 中。
+ * 被标记的插件会在 /plugins 的"已标记"区块中显示，直到用户
+ * 将其关闭为止。
  *
- * Uses a module-level cache so that getFlaggedPlugins() can be called
- * synchronously during React render. The cache is populated on the first
- * async call (loadFlaggedPlugins or addFlaggedPlugin) and kept in sync
- * with writes.
+ * 使用模块级缓存，使得 getFlaggedPlugins() 可以在 React 渲染期间
+ * 以同步方式调用。缓存在首次异步调用（loadFlaggedPlugins 或 addFlaggedPlugin）时填充，
+ * 并与写入操作保持同步。
  */
 
 import { randomBytes } from 'crypto'
@@ -28,9 +27,9 @@ export type FlaggedPlugin = {
   seenAt?: string
 }
 
-const SEEN_EXPIRY_MS = 48 * 60 * 60 * 1000 // 48 hours
+const SEEN_EXPIRY_MS = 48 * 60 * 60 * 1000 // 48 小时
 
-// Module-level cache — populated by loadFlaggedPlugins(), updated by writes.
+// 模块级缓存——由 loadFlaggedPlugins() 填充，随写入操作更新。
 let cache: Record<string, FlaggedPlugin> | null = null
 
 function getFlaggedPluginsPath(): string {
@@ -104,15 +103,15 @@ async function writeToDisk(
     try {
       await unlink(tempPath)
     } catch {
-      // Ignore cleanup errors
+      // 忽略清理错误
     }
   }
 }
 
 /**
- * Load flagged plugins from disk into the module cache.
- * Must be called (and awaited) before getFlaggedPlugins() returns
- * meaningful data. Called by useManagePlugins during plugin refresh.
+ * 从磁盘加载已标记插件到模块缓存。
+ * 必须先调用（并 await）此函数，getFlaggedPlugins() 才能返回有效数据。
+ * 在插件刷新期间由 useManagePlugins 调用。
  */
 export async function loadFlaggedPlugins(): Promise<void> {
   const all = await readFromDisk()
@@ -136,17 +135,17 @@ export async function loadFlaggedPlugins(): Promise<void> {
 }
 
 /**
- * Get all flagged plugins from the in-memory cache.
- * Returns an empty object if loadFlaggedPlugins() has not been called yet.
+ * 从内存缓存中获取所有已标记的插件。
+ * 如果尚未调用 loadFlaggedPlugins()，则返回空对象。
  */
 export function getFlaggedPlugins(): Record<string, FlaggedPlugin> {
   return cache ?? {}
 }
 
 /**
- * Add a plugin to the flagged list.
+ * 将插件添加到已标记列表。
  *
- * @param pluginId "name@marketplace" format
+ * @param pluginId "name@marketplace" 格式
  */
 export async function addFlaggedPlugin(pluginId: string): Promise<void> {
   if (cache === null) {
@@ -165,9 +164,9 @@ export async function addFlaggedPlugin(pluginId: string): Promise<void> {
 }
 
 /**
- * Mark flagged plugins as seen. Called when the Installed view renders
- * flagged plugins. Sets seenAt on entries that don't already have it.
- * After 48 hours from seenAt, entries are auto-cleared on next load.
+ * 将已标记的插件标记为已查看。在已安装视图渲染已标记插件时调用。
+ * 对尚未设置 seenAt 的条目设置 seenAt。
+ * 从 seenAt 起 48 小时后，条目在下次加载时自动清除。
  */
 export async function markFlaggedPluginsSeen(
   pluginIds: string[],
@@ -193,8 +192,8 @@ export async function markFlaggedPluginsSeen(
 }
 
 /**
- * Remove a plugin from the flagged list. Called when the user dismisses
- * a flagged plugin notification in /plugins.
+ * 从已标记列表中移除插件。当用户在 /plugins 中关闭
+ * 已标记插件通知时调用。
  */
 export async function removeFlaggedPlugin(pluginId: string): Promise<void> {
   if (cache === null) {

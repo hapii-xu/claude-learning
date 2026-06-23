@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Snip 工具详解 — Claude Code 工具详解</title>
+  <style>    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── SVG Diagram ──────────────────────────────────────── */
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      margin: 0 auto;
+      font-family: var(--font-sans);
+    }
+
+    /* SVG tooltip via CSS title */
+    .node-group { cursor: default; }
+    .node-group:hover rect.node-rect { filter: brightness(.93); }
+
+    /* ── Card Grid ────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .path-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: box-shadow .15s, border-color .15s;
+    }
+
+    .path-card:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--orange-lt);
+    }
+
+    .badge-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .card-body { flex: 1; min-width: 0; }
+
+    .card-trigger {
+      font-weight: 700;
+      font-size: .9rem;
+      color: var(--text);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    .card-module {
+      font-family: var(--font-mono);
+      font-size: .76rem;
+      color: var(--text-2);
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .card-flag {
+      font-size: .72rem;
+      color: var(--blue);
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .badge-enable {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    /* ── Collapsible knowledge cards ─────────────────────── */
+    .knowledge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    details.know-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    details.know-card[open] {
+      border-color: var(--orange-lt);
+    }
+
+    details.know-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      outline: none;
+    }
+
+    details.know-card > summary::-webkit-details-marker { display: none; }
+
+    details.know-card > summary:hover { background: var(--bg); }
+
+    .know-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    details.know-card[open] .know-num {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .know-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: .97rem;
+    }
+
+    .know-arrow {
+      width: 20px;
+      height: 20px;
+      color: var(--text-3);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    details.know-card[open] .know-arrow {
+      transform: rotate(90deg);
+      color: var(--orange);
+    }
+
+    .know-body {
+      padding: 0 20px 20px 64px;
+    }
+
+    .know-body p { margin-bottom: 8px; }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    /* CSS-only syntax highlighting */
+    .kw  { color: #7c9bff; font-weight: 600; }  /* keywords */
+    .str { color: #6cc77a; }                      /* strings */
+    .fn  { color: #f0906a; }                      /* function calls */
+    .cmt { color: #6e6a62; font-style: italic; } /* comments */
+    .type{ color: #e0a020; }                      /* TypeScript types */
+    .num { color: #c792ea; }                      /* numbers */
+
+    /* inline code */
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Comparison Table ─────────────────────────────────── */
+    .compare-table th:first-child { width: 130px; }
+    .compare-table th:nth-child(2) { color: var(--orange-dk); }
+    .compare-table th:nth-child(3) { color: var(--blue-dk); }
+
+    /* ── Key files ────────────────────────────────────────── */
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--blue-dk);
+      cursor: default;
+      position: relative;
+    }
+
+    .file-path:hover::after {
+      content: attr(data-full);
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+      background: #1e1b16;
+      color: #d4cfc8;
+      font-size: .75rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+      pointer-events: none;
+    }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    ul.key-list {
+      padding-left: 20px;
+      color: var(--text-2);
+    }
+
+    ul.key-list li { margin-bottom: 4px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .know-body { padding-left: 20px; }
+    }
+
+    /* === Additional styles === */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    section { margin-top: 56px; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>Snip 工具详解</h1>
+  <p>从对话历史中&quot;剪除&quot;消息以释放上下文空间——被剪除的消息由查询引擎投影系统替换为紧凑总结，工具本身只记录意图</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一工具定位一句话总结">一、工具定位（一句话总结）</a></li>
+    <li><a href="#二关键文件清单">二、关键文件清单</a></li>
+    <li><a href="#三tool-接口字段实现buildtool-逐字段">三、Tool 接口字段实现（`buildTool` 逐字段）</a></li>
+    <li><a href="#四核心执行流程call">四、核心执行流程：`call()`</a></li>
+    <li><a href="#五权限与安全">五、权限与安全</a></li>
+    <li><a href="#六与其他系统工具的关系">六、与其他系统/工具的关系</a></li>
+    <li><a href="#七亮点与设计取舍">七、亮点与设计取舍</a></li>
+    <li><a href="#八源码导航书签速查">八、源码导航（书签速查）</a></li>
+    <li><a href="#九学习建议与验证清单">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+  <section id="一工具定位一句话总结">
+<h2>一、工具定位（一句话总结）</h2>
+<p>**<code>Snip</code> = 让模型主动剪除历史消息以释放上下文窗口的上下文管理工具。**</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>维度</th><th>值</th></tr></thead>
+    <tbody>
+    <tr><td>工具名</td><td><code>Snip</code>（常量 <code>SNIP_TOOL_NAME</code>，<code>prompt.ts:1</code>）</td></tr>
+    <tr><td>一句话</td><td>指定 message_ids 列表，引擎把这些消息替换为紧凑总结</td></tr>
+    <tr><td>是否进 system prompt</td><td>❌ 不在 <code>CORE_TOOLS</code> 白名单；在 <code>tools.ts:140-142</code> 受 <code>feature('HISTORY_SNIP')</code> 门控，<code>:272</code> 条件注册</td></tr>
+    <tr><td>只读 / 破坏性</td><td><strong>破坏性</strong>（<code>isReadOnly() → false</code>，<code>SnipTool.ts:58</code>）——会移除消息内容</td></tr>
+    <tr><td>是否可并发</td><td>❌ <strong>不可并发</strong>（<code>isConcurrencySafe() → false</code>，<code>:54</code>）——修改共享历史</td></tr>
+    <tr><td>激活门控</td><td><code>feature('HISTORY_SNIP')</code>（构建期，<code>tools.ts:140</code>）</td></tr>
+    <tr><td>核心依赖</td><td>查询引擎的投影系统（外部拦截，本文件无直接依赖）</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><strong>为什么需要它？</strong> 上下文窗口有限，模型在长会话中会积累大量大型工具输出（文件读取、命令输出）。与其等系统自动 compaction，不如让模型在"确信不再需要逐字引用"时主动剪除。这给了模型对上下文预算的主动控制权。</p>
+<hr class="divider">
+</section>
+
+  <section id="二关键文件清单">
+<h2>二、关键文件清单</h2>
+<pre><code>SnipTool/
+├── SnipTool.ts   ← buildTool({...}) 主体（92 行），全部逻辑集中
+└── prompt.ts     ← 工具名常量 SNIP_TOOL_NAME（2 行）</code></pre>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+    <tbody>
+    <tr><td><code>SnipTool.ts</code></td><td>主体：schema + call() + 权限标记</td><td><code>buildTool:27</code>、<code>call:81</code>、<code>prompt:40</code></td></tr>
+    <tr><td><code>prompt.ts</code></td><td>工具名常量</td><td><code>SNIP_TOOL_NAME:1</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p><strong>结构特点</strong>：极简单文件主体。工具名常量拆出 <code>prompt.ts</code> 仅含一行。真正的剪除实现不在本目录——它由查询引擎（<code>QueryEngine.ts</code> / <code>query.ts</code> 的投影系统）拦截本工具的结果来执行。</p></blockquote>
+<hr class="divider">
+</section>
+
+  <section id="三tool-接口字段实现buildtool-逐字段">
+<h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+<h3>标识字段</h3>
+<pre><code>name: SNIP_TOOL_NAME,                                // &quot;Snip&quot;
+searchHint: 'snip trim history remove old messages compact context',
+maxResultSizeChars: 5_000,
+strict: true,                                        // 严格模式</code></pre>
+<h3>模型面字段</h3>
+<pre><code>async description() { return '从对话历史中剪除消息以释放上下文空间' }
+async prompt()      { return `从对话历史中剪除消息以释放上下文窗口空间...` }
+get inputSchema()   // lazySchema + z.strictObject</code></pre>
+<p><strong>输入 schema</strong>（<code>:7-21</code>）：</p>
+<pre><code>{
+  message_ids: string[],   // 必填，要剪除的消息 ID
+  reason?: string,         // 可选，剪除原因，用于总结替换
+}</code></pre>
+<p><strong>输出类型</strong>（<code>:25</code>，无 outputSchema getter）：</p>
+<pre><code>{ snipped_count: number, summary: string }</code></pre>
+<h3>行为字段</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+    <tbody>
+    <tr><td><code>call()</code></td><td><code>:81</code></td><td>仅返回意图数据，不执行真正剪除（见下节）</td></tr>
+    <tr><td><code>isConcurrencySafe()</code></td><td><code>:54</code> → <code>false</code></td><td>修改共享历史，不可并发</td></tr>
+    <tr><td><code>isReadOnly()</code></td><td><code>:58</code> → <code>false</code></td><td>破坏性（移除内容）</td></tr>
+    <tr><td><code>userFacingName()</code></td><td><code>:61</code> → <code>'Snip'</code></td><td></td></tr>
+    <tr><td><code>renderToolUseMessage</code></td><td><code>:65</code> → <code>剪除：N 条消息</code></td><td></td></tr>
+    <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>:70</code></td><td><code>已剪除 N 条消息。总结：&lt;summary&gt;</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p><strong>注意</strong>：本工具<strong>没有</strong> <code>validateInput</code> / <code>checkPermissions</code> / <code>isEnabled</code>。权限与校验完全由 <code>strict: true</code> + 引擎层处理。</p></blockquote>
+<hr class="divider">
+</section>
+
+  <section id="四核心执行流程call">
+<h2>四、核心执行流程：<code>call()</code></h2>
+<p><code>call()</code>（<code>SnipTool.ts:81-91</code>）是本工具最反直觉的部分——<strong>它不执行真正的剪除</strong>：</p>
+<pre><code>async call(input: SnipInput) {
+  // 剪除的实现由查询引擎的投影系统处理。
+  // 工具调用本身仅记录意图；查询引擎会拦截
+  // 剪除工具的结果，并相应调整其消息投影。
+  return {
+    data: {
+      snipped_count: input.message_ids.length,
+      summary: input.reason ?? `已剪除 ${input.message_ids.length} 条消息`,
+    },
+  }
+}</code></pre>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart LR
+    A[&quot;模型调用 Snip\n(message_ids, reason)&quot;] --&gt; B[&quot;call() 返回意图\n{snipped_count, summary}&quot;]
+    B --&gt; C[&quot;查询引擎投影系统\n拦截 tool_result&quot;]
+    C --&gt; D[&quot;按 message_ids 调整\n消息投影：替换为总结&quot;]
+    D --&gt; E[&quot;后续 API 调用看到\n压缩后的历史&quot;]
+  </div>
+</div>
+<p><strong>关键点</strong>：</p>
+<ol><li><strong>工具即意图声明</strong>：<code>call()</code> 只是把模型的剪除意图结构化为 <code>{snipped_count, summary}</code>。注释 <code>:82-84</code> 明确——真正的剪除由查询引擎的投影系统在拦截到本工具的 <code>tool_result</code> 时执行。</li><li><strong>总结来源</strong>（<code>:88</code>）：优先用 <code>input.reason</code>（模型给出的人类可读原因），否则用默认文案 <code>已剪除 N 条消息</code>。</li><li>**<code>isConcurrencySafe: false</code>** 的原因：剪除会修改所有调用方共享的历史投影，并发执行会产生竞态。</li></ol>
+<blockquote class="callout"><p>这种"工具声明意图、引擎执行副作用"的架构，让剪除逻辑集中在引擎层（单一真相源），工具层保持薄。对比 <code>BriefTool</code> 把上传逻辑拉进工具内部——两种风格各有取舍。</p></blockquote>
+<hr class="divider">
+</section>
+
+  <section id="五权限与安全">
+<h2>五、权限与安全</h2>
+<p>SnipTool 没有自定义 <code>checkPermissions</code> / <code>validateInput</code>：</p>
+<ul><li>**<code>strict: true</code>**（<code>:31</code>）：Zod 严格模式拦截非法输入（多余字段报错）。</li><li><strong>破坏性标记</strong>：<code>isReadOnly() → false</code>（<code>:58</code>）让权限/审批系统知道这是有副作用的操作。</li><li><strong>真实剪除逻辑在引擎层</strong>：本文件无法看到具体的安全校验（如是否允许剪除特定消息、是否需要用户确认）。这部分属于 <code>QueryEngine.ts</code> 的投影系统职责。</li></ul>
+<blockquote class="callout"><p>由于剪除不可撤销（<code>prompt</code> 明确"原始内容会从上下文中移除"），引擎层理应有保护机制，但这超出了本工具文件的范畴。</p></blockquote>
+<hr class="divider">
+</section>
+
+  <section id="六与其他系统工具的关系">
+<h2>六、与其他系统/工具的关系</h2>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    SNIP[&quot;SnipTool&quot;] --&gt;|声明意图| RESULT[&quot;tool_result\n{snipped_count,summary}&quot;]
+    RESULT --&gt;|被拦截| QE[&quot;QueryEngine 投影系统\n(query.ts / QueryEngine.ts)&quot;]
+    QE --&gt;|调整| HIST[&quot;消息历史投影&quot;]
+    SNIP -.同族.-&gt; COMP[&quot;自动 compaction\n系统级上下文压缩&quot;]
+    SNIP -.同族.-&gt; CTX[&quot;CtxInspectTool\n查看上下文预算&quot;]
+  </div>
+</div>
+<ul><li><strong>与查询引擎投影系统</strong>：核心关系。工具只是前端，引擎是后端执行者。模型调用 Snip → 引擎拦截结果 → 调整后续 API 调用看到的历史。</li><li><strong>与自动 compaction</strong>：互补关系。compaction 是系统在接近窗口上限时自动触发；Snip 是模型主动、选择性地剪除。Snip 给了模型更细粒度的控制。</li><li>**与 <code>CtxInspectTool</code>**：配套使用——先 CtxInspect 看上下文预算，再 Snip 剪除冗余。</li></ul>
+<hr class="divider">
+</section>
+
+  <section id="七亮点与设计取舍">
+<h2>七、亮点与设计取舍</h2>
+<ol><li><strong>"工具即意图、引擎即执行"架构</strong>（<code>:82-84</code>）：把剪除这种有状态、影响全局的副作用集中在引擎层，工具层只做意图声明。这是处理"需要跨调用方协调的副作用"的优雅模式。</li><li>**<code>reason</code> 字段双用途**（<code>:88</code>）：既是给总结的内容，也是模型解释剪除动机的记录。</li><li>**<code>isConcurrencySafe: false</code> + <code>isReadOnly: false</code>**：诚实标记破坏性与不可并发性，让权限/调度系统正确对待。</li><li>**<code>strict: true</code>**：防止模型幻觉多余参数。</li><li>**不设 <code>outputSchema</code> getter**：只用 TS 类型 <code>SnipOutput</code>（<code>:25</code>），输出结构简单到不需要运行时 schema 校验。</li></ol>
+<hr class="divider">
+</section>
+
+  <section id="八源码导航书签速查">
+<h2>八、源码导航（书签速查）</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+    <tbody>
+    <tr><td>工具名常量</td><td><code>SnipTool/prompt.ts:1</code></td></tr>
+    <tr><td><code>buildTool</code> 字段填充</td><td><code>SnipTool/SnipTool.ts:27-92</code></td></tr>
+    <tr><td>输入 schema</td><td><code>SnipTool.ts:7-21</code></td></tr>
+    <tr><td><code>call()</code>（意图声明）</td><td><code>SnipTool.ts:81-91</code></td></tr>
+    <tr><td>prompt 描述（使用准则）</td><td><code>SnipTool.ts:41-51</code></td></tr>
+    <tr><td>feature gate 注册</td><td><code>src/tools.ts:140-142, 272</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<hr class="divider">
+</section>
+
+  <section id="九学习建议与验证清单">
+<h2>九、学习建议与验证清单</h2>
+<p><strong>怎么读这章</strong>：核心是理解"四、call()"里工具不执行真正剪除这一反直觉设计。读完要明白 Snip 是"前端意图声明"，引擎投影系统才是"后端执行者"。</p>
+<p><strong>验证清单（读完自测）</strong>：</p>
+<ul class="checklist"><li><input type="checkbox" disabled> <span>能解释为什么 <code>call()</code> 不执行真正的剪除（由引擎投影系统拦截执行）</span></li><li><input type="checkbox" disabled> <span>能说出 <code>isConcurrencySafe</code> 返回 <code>false</code> 的原因（修改共享历史）</span></li><li><input type="checkbox" disabled> <span>能找到 feature gate（<code>HISTORY_SNIP</code>，<code>tools.ts:140</code>）</span></li><li><input type="checkbox" disabled> <span>能说出 <code>reason</code> 字段的双重作用（总结内容 + 动机记录）</span></li><li><input type="checkbox" disabled> <span>能指出 Snip 与自动 compaction 的区别（模型主动选择性 vs 系统自动全量）</span></li></ul>
+<p><strong>配合动作</strong>：</p>
+<ol><li>在 <code>call()</code> 返回处加日志，确认它确实只返回意图</li><li>在 <code>QueryEngine.ts</code> 搜索 <code>Snip</code> / <code>snipped</code>，找到投影系统的拦截逻辑（本报告未深入引擎层）</li><li>构造长会话，让模型在上下文接近上限时调用 Snip，观察历史是否被压缩</li></ol>
+</section>
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

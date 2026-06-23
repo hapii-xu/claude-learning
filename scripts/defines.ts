@@ -23,6 +23,8 @@ export function getMacroDefines(): Record<string, string> {
     'MACRO.NATIVE_PACKAGE_URL': JSON.stringify(''),
     'MACRO.PACKAGE_URL': JSON.stringify(''),
     'MACRO.VERSION_CHANGELOG': JSON.stringify(''),
+    // 全局常量（非 MACRO 命名空间，直接注入）
+    HOOK_TIMING_DISPLAY_THRESHOLD_MS: JSON.stringify(500),
   }
 }
 

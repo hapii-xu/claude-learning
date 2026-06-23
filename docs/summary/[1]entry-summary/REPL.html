@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>REPL.tsx 深度学习 — Claude Code 交互大脑全链路解析</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 660px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    /* syntax highlight tokens */
+    .k  { color: #c792ea; }   /* keyword */
+    .s  { color: #c3e88d; }   /* string */
+    .c  { color: #546e7a; font-style: italic; } /* comment */
+    .n  { color: #82aaff; }   /* name/identifier */
+    .t  { color: #ffcb6b; }   /* type */
+    .p  { color: #89ddff; }   /* punctuation */
+    .num{ color: #f78c6c; }   /* number */
+    .cm { color: #697098; font-style: italic; } /* comment muted */
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      color: var(--text);
+      border-bottom: 1.5px solid var(--border);
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--bg3);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    td code, th code { font-size: .82em; }
+
+    /* ── Details / Collapsible ── */
+    details.know-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    details.know-card[open] { border-color: var(--orange-lt); }
+
+    details.know-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      outline: none;
+    }
+
+    details.know-card > summary::-webkit-details-marker { display: none; }
+    details.know-card > summary:hover { background: var(--bg); }
+
+    .know-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+    }
+
+    .know-title {
+      font-weight: 700;
+      font-size: .95rem;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .know-arrow {
+      color: var(--text-3);
+      font-size: .8rem;
+      transition: transform .2s;
+    }
+
+    details.know-card[open] .know-arrow { transform: rotate(180deg); }
+
+    .know-body {
+      padding: 0 20px 18px;
+      border-top: 1px solid var(--bg3);
+    }
+
+    /* ── Diagram boxes ── */
+    .diagram-box {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+      margin: 14px 0;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      color: var(--text-2);
+      white-space: pre;
+    }
+
+    /* ── Flow Steps ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 14px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .flow-step-num {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .7rem;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+
+    .flow-step-body { flex: 1; min-width: 0; }
+    .flow-step-title { font-weight: 600; font-size: .9rem; color: var(--text); margin-bottom: 3px; }
+    .flow-step-desc  { font-size: .83rem; color: var(--text-2); }
+
+    /* ── Priority list ── */
+    .prio-list { display: flex; flex-direction: column; gap: 5px; margin: 10px 0; }
+
+    .prio-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: .85rem;
+    }
+
+    .prio-rank {
+      flex-shrink: 0;
+      font-family: var(--font-mono);
+      font-size: .75rem;
+      color: var(--text-3);
+      min-width: 32px;
+    }
+
+    .prio-key  { font-family: var(--font-mono); font-size: .82rem; color: var(--orange-dk); font-weight: 600; flex: 1; }
+    .prio-val  { font-size: .8rem; color: var(--text-2); }
+
+    /* ── Ref pills ── */
+    .ref { font-family: var(--font-mono); font-size: .75rem; color: var(--text-3); margin-left: 6px; }
+
+    /* ── Badge inline ── */
+    .badge {
+      display: inline-block;
+      font-size: .68rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 8px;
+      vertical-align: middle;
+    }
+
+    .badge-entry  { background: var(--orange-lt); color: var(--orange-dk); }
+    .badge-loop   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .badge-ui     { background: var(--purple-lt); color: var(--purple); }
+    .badge-perf   { background: var(--green-lt);  color: #1a7a4e; }
+    .badge-ant    { background: var(--bg3);        color: var(--text-3); }
+
+    /* ── Layer map ── */
+    .layer-map {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 14px 0;
+    }
+
+    @media (max-width: 600px) { .layer-map { grid-template-columns: 1fr; } }
+
+    .layer-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .layer-card-title {
+      font-weight: 700;
+      font-size: .88rem;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .layer-card ul { margin: 0; padding-left: 16px; }
+    .layer-card li { font-size: .83rem; color: var(--text-2); margin-bottom: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════ HERO ════════════════ -->
+<div class="hero">
+  <div class="hero-badge">入口层 + 核心循环层</div>
+  <h1><span>REPL.tsx</span> 深度学习</h1>
+  <p class="hero-sub">
+    Claude Code 的交互大脑——接收用户输入、直接消费 <code>query()</code>、管理权限对话框与渲染层。
+    约 <strong>5700 行</strong>，横跨入口层与核心循环层，是理解整个系统最重要的单个文件。
+  </p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/screens/REPL.tsx</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>~5700 行</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>~60 个 Hook 组合</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#arch">架构定位</a></li>
+    <li><a href="#props">Props 接口</a></li>
+    <li><a href="#feature-flags">条件导入</a></li>
+    <li><a href="#state">核心状态</a></li>
+    <li><a href="#tools">工具合并</a></li>
+    <li><a href="#query-lifecycle">Query 生命周期</a></li>
+    <li><a href="#cancel">取消机制</a></li>
+    <li><a href="#permissions">权限系统</a></li>
+    <li><a href="#tool-jsx">ToolJSX 保护</a></li>
+    <li><a href="#resume">会话恢复</a></li>
+    <li><a href="#context">工具上下文</a></li>
+    <li><a href="#system-prompt">系统提示</a></li>
+    <li><a href="#transcript">Transcript 模式</a></li>
+    <li><a href="#render">渲染架构</a></li>
+    <li><a href="#rewind">会话回退</a></li>
+    <li><a href="#init">挂载初始化</a></li>
+    <li><a href="#background">后台与 Proactive</a></li>
+    <li><a href="#remote">多远程模式</a></li>
+    <li><a href="#refs">关键常量</a></li>
+    <li><a href="#summary">双层定位总结</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<!-- ════════════ 一、架构定位 ════════════ -->
+<section id="arch">
+  <h2>一、REPL 的定位与架构关系</h2>
+
+  <div class="diagram-box">cli.tsx (entrypoint)
+    └─→ main.tsx (Commander.js CLI 定义)
+            └─→ <strong style="color:#D77757">REPL.tsx ★ 本文重点</strong>
+                    ├─→ for await of query()  →  query.ts  →  claude.ts (API)
+                    ├─→ Messages.tsx (渲染层)
+                    └─→ PromptInput/ (输入层)</div>
+
+  <div class="callout">
+    <strong>核心定位</strong>：REPL 是 React/Ink 组件树的控制中心。它维护整个会话的 <code>messages</code> 状态，
+    直接消费 <code>query()</code> async generator（不经过 QueryEngine），并管理约 60 个 hook 的协调。
+  </div>
+
+  <div class="layer-map">
+    <div class="layer-card">
+      <div class="layer-card-title"><span class="badge badge-entry">入口层</span> REPL 负责</div>
+      <ul>
+        <li>Props 解析与状态初始化</li>
+        <li><code>onInit()</code> 加载 CLAUDE.md</li>
+        <li>工具集合并（builtin + MCP）</li>
+        <li>会话恢复 <code>resume()</code></li>
+        <li>多远程模式选择（remote/ssh/connect）</li>
+        <li>插件/IDE 集成启动</li>
+      </ul>
+    </div>
+    <div class="layer-card">
+      <div class="layer-card-title"><span class="badge badge-loop">循环层</span> REPL 负责</div>
+      <ul>
+        <li><code>onQuery()</code> 并发守卫</li>
+        <li><code>onQueryImpl()</code> 系统提示构建</li>
+        <li><code>for await of query()</code> 驱动循环</li>
+        <li><code>onQueryEvent()</code> 事件路由</li>
+        <li><code>onCancel()</code> 中止机制</li>
+        <li><code>rewindConversationTo()</code> 回退</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout blue">
+    <strong>REPL vs QueryEngine</strong>：REPL 的 <code>messages</code> 存在 React <code>useState</code>，直接 <code>for await of query()</code>。
+    QueryEngine 的 <code>mutableMessages</code> 存在类实例属性，通过 <code>ask()</code> 包装 <code>query()</code>。
+    两者在 <code>query.ts</code> 层汇合，共享底层循环逻辑。
+  </div>
+</section>
+
+<!-- ════════════ 二、Props 接口 ════════════ -->
+<section id="props">
+  <h2>二、Props 接口完整解析 <span class="ref">REPL.tsx:762</span></h2>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Prop</th>
+          <th>类型</th>
+          <th>含义与关键行为</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>commands</code></td><td><code>Command[]</code></td><td>slash 命令列表（/clear、/help 等），可被 MCP/插件动态合并</td></tr>
+        <tr><td><code>initialTools</code></td><td><code>Tool[]</code></td><td>初始工具集，MCP 工具在此之外动态追加</td></tr>
+        <tr><td><code>initialMessages</code></td><td><code>MessageType[]?</code></td><td>恢复会话时的历史消息；有值时 <code>haikuTitleAttemptedRef=true</code>，跳过标题重命名</td></tr>
+        <tr><td><code>pendingHookMessages</code></td><td><code>Promise&lt;HookResultMessage[]&gt;?</code></td><td>SessionStart hook 延迟消息，第一次 API 调用前 await</td></tr>
+        <tr><td><code>initialFileHistorySnapshots</code></td><td><code>FileHistorySnapshot[]?</code></td><td>文件历史快照，用于 /undo 功能</td></tr>
+        <tr><td><code>initialContentReplacements</code></td><td><code>ContentReplacementRecord[]?</code></td><td>重建 contentReplacementState（工具结果大文本替换）</td></tr>
+        <tr><td><code>mcpClients</code></td><td><code>MCPServerConnection[]?</code></td><td>已连接 MCP 服务器列表</td></tr>
+        <tr><td><code>systemPrompt</code></td><td><code>string?</code></td><td>自定义系统提示，完全覆盖默认系统提示</td></tr>
+        <tr><td><code>appendSystemPrompt</code></td><td><code>string?</code></td><td>追加到系统提示末尾的内容</td></tr>
+        <tr><td><code>onBeforeQuery</code></td><td><code>Function?</code></td><td>query 前回调，<strong>返回 false 可阻止本次 query</strong></td></tr>
+        <tr><td><code>onTurnComplete</code></td><td><code>Function?</code></td><td>turn 成功完成回调（onQueryImpl 尾部调用）</td></tr>
+        <tr><td><code>disabled</code></td><td><code>boolean</code></td><td>隐藏 prompt 输入并禁用消息选择器</td></tr>
+        <tr><td><code>mainThreadAgentDefinition</code></td><td><code>AgentDefinition?</code></td><td>限制主线程可用工具集（agent 沙箱）</td></tr>
+        <tr><td><code>taskListId</code></td><td><code>string?</code></td><td>Tasks 模式：监听任务列表并自动处理任务</td></tr>
+        <tr><td><code>remoteSessionConfig</code></td><td><code>RemoteSessionConfig?</code></td><td>--remote 模式，使用 CCR 作为执行引擎</td></tr>
+        <tr><td><code>directConnectConfig</code></td><td><code>DirectConnectConfig?</code></td><td>claude connect 模式，WebSocket 直连服务器</td></tr>
+        <tr><td><code>sshSession</code></td><td><code>SSHSession?</code></td><td>claude ssh 模式，ChildProcess stdin/stdout 传输</td></tr>
+        <tr><td><code>thinkingConfig</code></td><td><code>ThinkingConfig</code></td><td>扩展思考配置（budget_tokens 等）</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════ 三、条件导入 ════════════ -->
+<section id="feature-flags">
+  <h2>三、条件导入与 Feature Flag 模式 <span class="ref">REPL.tsx:173</span></h2>
+
+  <div class="callout">
+    REPL 顶部用 <strong>死代码消除式条件导入</strong>：<code>feature('X') ? require(...) : noop</code>。
+    Bun 构建时根据 feature flag 值 tree-shake 整个模块，外部构建的包体积更小。
+  </div>
+
+  <pre><span class="c">// ① VOICE_MODE — 外部构建完全不包含语音模块</span>
+<span class="k">const</span> <span class="n">useVoiceIntegration</span> = <span class="n">feature</span>(<span class="s">'VOICE_MODE'</span>)
+  ? <span class="n">require</span>(<span class="s">'../hooks/useVoiceIntegration.js'</span>).<span class="n">useVoiceIntegration</span>
+  : () => ({ <span class="n">stripTrailing</span>: () => <span class="num">0</span>, <span class="n">handleKeyEvent</span>: () => {}, <span class="n">resetAnchor</span>: () => {} });
+
+<span class="c">// ② 仅 ant 使用 — USER_TYPE 环境变量运行时控制</span>
+<span class="k">const</span> <span class="n">useFrustrationDetection</span> = <span class="n">process</span>.<span class="n">env</span>.<span class="n">USER_TYPE</span> === <span class="s">'ant'</span>
+  ? <span class="n">require</span>(<span class="s">'...useFrustrationDetection.js'</span>).<span class="n">useFrustrationDetection</span>
+  : () => ({ <span class="n">state</span>: <span class="s">'closed'</span>, <span class="n">handleTranscriptSelect</span>: () => {} });
+
+<span class="c">// ③ COORDINATOR_MODE — 多 worker 协调模式</span>
+<span class="k">const</span> <span class="n">getCoordinatorUserContext</span> = <span class="n">feature</span>(<span class="s">'COORDINATOR_MODE'</span>)
+  ? <span class="n">require</span>(<span class="s">'../coordinator/coordinatorMode.js'</span>).<span class="n">getCoordinatorUserContext</span>
+  : () => ({});
+
+<span class="c">// ④ 各种 UDS_INBOX 相关 hooks（pipe IPC）</span>
+<span class="k">const</span> <span class="n">usePipeIpc</span> = <span class="n">feature</span>(<span class="s">'UDS_INBOX'</span>)
+  ? <span class="n">require</span>(<span class="s">'../hooks/usePipeIpc.js'</span>).<span class="n">usePipeIpc</span>
+  : () => <span class="k">undefined</span>;</pre>
+
+  <div class="callout blue">
+    <strong>规律</strong>：<code>feature()</code> 只能在 <code>if</code>/三元顶层使用，不能赋给变量再判断（Bun 编译器限制）。
+    <code>process.env.USER_TYPE === 'ant'</code> 是运行时门控，外部构建中 <code>'ant'</code> 字符串会被移除。
+  </div>
+</section>
+
+<!-- ════════════ 四、核心状态 ════════════ -->
+<section id="state">
+  <h2>四、核心状态变量全览 <span class="ref">REPL.tsx:900+</span></h2>
+
+  <h3>4.1 消息状态（最重要）</h3>
+
+  <pre><span class="c">// 主消息数组 — React state，驱动渲染</span>
+<span class="k">const</span> [<span class="n">messages</span>, <span class="n">rawSetMessages</span>] = <span class="n">useState</span>&lt;<span class="t">MessageType</span>[]&gt;(<span class="n">initialMessages</span> ?? []);
+
+<span class="c">// 始终新鲜的 ref 镜像 — 同步读取不等 React 调度</span>
+<span class="k">const</span> <span class="n">messagesRef</span> = <span class="n">useRef</span>(<span class="n">messages</span>);
+
+<span class="c">// 包装的 setMessages — 同时更新 ref 和 React state</span>
+<span class="k">const</span> <span class="n">setMessages</span> = <span class="n">useCallback</span>((action) => {
+  <span class="k">const</span> <span class="n">next</span> = <span class="k">typeof</span> action === <span class="s">'function'</span> ? action(<span class="n">messagesRef</span>.<span class="n">current</span>) : action;
+  <span class="n">messagesRef</span>.<span class="n">current</span> = <span class="n">next</span>;  <span class="c">// ← 立即同步，不等 React 批处理</span>
+  <span class="n">rawSetMessages</span>(<span class="n">next</span>);          <span class="c">// ← 通知 React 重渲染</span>
+}, []);</pre>
+
+  <div class="callout purple">
+    <strong>为什么需要 ref 镜像</strong>：<code>onQuery</code> 的 <code>finally</code> 块、<code>handleSpeculationAccept → onQuery</code> 等链式调用
+    需要立即读取最新消息，不能等 React 调度器。模式：<strong>ref 是真相源，React state 是渲染投射</strong>。
+  </div>
+
+  <h3>4.2 QueryGuard — 并发状态机 <span class="ref">REPL.tsx:1180</span></h3>
+
+  <div class="diagram-box">QueryGuard 状态机：
+
+  idle ──(reserve)──→ dispatching ──(tryStart)──→ running ──(end)──→ idle
+          │                 │
+          └─(cancelReservation)→ idle
+                            └─(forceEnd onCancel)→ idle（跳过 finally）
+
+  reserve()   在 processUserInput 第一个 await 之前预占（防并发提交）
+  tryStart()  原子地从 idle/dispatching 转 running，返回 generation 号
+  end(gen)    检查 generation，陈旧 finally（竞态）返回 false → 跳过</div>
+
+  <pre><span class="k">const</span> <span class="n">queryGuard</span> = <span class="t">React</span>.<span class="n">useRef</span>(<span class="k">new</span> <span class="t">QueryGuard</span>()).<span class="n">current</span>;
+
+<span class="c">// isQueryActive：dispatching 或 running 期间为 true</span>
+<span class="k">const</span> <span class="n">isQueryActive</span> = <span class="t">React</span>.<span class="n">useSyncExternalStore</span>(
+  <span class="n">queryGuard</span>.<span class="n">subscribe</span>,
+  <span class="n">queryGuard</span>.<span class="n">getSnapshot</span>
+);
+
+<span class="c">// isLoading：任何 loading 源活跃（本地 query 或 远程会话）</span>
+<span class="k">const</span> <span class="n">isLoading</span> = <span class="n">isQueryActive</span> || <span class="n">isExternalLoading</span>;</pre>
+
+  <h3>4.3 Streaming 状态 <span class="ref">REPL.tsx:1106</span></h3>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>State</th><th>类型</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td><code>streamMode</code></td><td><code>'requesting' | 'responding' | 'tool-use'</code></td><td>Spinner 显示不同文字</td></tr>
+        <tr><td><code>streamingToolUses</code></td><td><code>StreamingToolUse[]</code></td><td>当前正在流式执行的工具（Spinner 显示）</td></tr>
+        <tr><td><code>streamingThinking</code></td><td><code>StreamingThinking | null</code></td><td>扩展思考内容，30 秒后自动隐藏</td></tr>
+        <tr><td><code>streamingText</code></td><td><code>string | null</code></td><td>实时流式文本；<code>visibleStreamingText</code> 按行截断</td></tr>
+        <tr><td><code>toolJSX</code></td><td>复合对象</td><td>工具/命令的 JSX 覆盖层（见第九节）</td></tr>
+        <tr><td><code>abortController</code></td><td><code>AbortController | null</code></td><td>Ctrl+C 时调用 <code>.abort('user-cancel')</code></td></tr>
+        <tr><td><code>toolUseConfirmQueue</code></td><td><code>ToolUseConfirm[]</code></td><td>权限审批队列，每次显示队列头部</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre><span class="c">// visibleStreamingText — 隐藏正在输出的最后一行（按行流式）</span>
+<span class="k">const</span> <span class="n">visibleStreamingText</span> =
+  <span class="n">streamingText</span> &amp;&amp; <span class="n">showStreamingText</span>
+    ? <span class="n">streamingText</span>.<span class="n">substring</span>(<span class="num">0</span>, <span class="n">streamingText</span>.<span class="n">lastIndexOf</span>(<span class="s">'\n'</span>) + <span class="num">1</span>) || <span class="k">null</span>
+    : <span class="k">null</span>;</pre>
+</section>
+
+<!-- ════════════ 五、工具合并 ════════════ -->
+<section id="tools">
+  <h2>五、工具集合并链路 <span class="ref">REPL.tsx:969</span></h2>
+
+  <div class="diagram-box">getTools(toolPermissionContext)      ← 内置工具，按权限过滤
+        +
+initialTools (main.tsx 传入)
+        ↓  useMemo 合并
+combinedInitialTools
+        +
+mcp.tools (MCP 服务器工具，动态注入)
+        ↓  useMergedTools()
+mergedTools
+        ↓  resolveAgentTools()  ← 仅 mainThreadAgentDefinition 非空时
+tools  +  allowedAgentTypes     ← 最终工具集</div>
+
+  <div class="callout">
+    <strong>关键细节</strong>：<code>getToolUseContext</code> 中的 <code>computeTools()</code> 每次 query 时从 <code>store.getState()</code> 新鲜计算（REPL.tsx:2864），
+    确保 MCP 异步连接后工具列表最新，而非闭包捕获的陈旧值。
+  </div>
+</section>
+
+<!-- ════════════ 六、Query 生命周期 ════════════ -->
+<section id="query-lifecycle">
+  <h2>六、Query 生命周期完整流程</h2>
+
+  <h3>6.1 三层调用链 <span class="ref">REPL.tsx:3278 / 3566</span></h3>
+
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="flow-step-num">1</div>
+      <div class="flow-step-body">
+        <div class="flow-step-title">用户按 Enter → <code>handlePromptSubmit()</code></div>
+        <div class="flow-step-desc">解析 slash 命令 / 普通文本 / bash 模式，构建 <code>newMessages</code></div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-step-num">2</div>
+      <div class="flow-step-body">
+        <div class="flow-step-title"><code>onQuery()</code> — 并发守卫 + 消息追加</div>
+        <div class="flow-step-desc">
+          <code>queryGuard.tryStart()</code> 原子检查 → <code>setMessages([...old, ...newMessages])</code> →
+          <code>mrOnBeforeQuery()</code> → <code>onBeforeQueryCallback?.</code>（返回 false 提前退出）
+        </div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-step-num">3</div>
+      <div class="flow-step-body">
+        <div class="flow-step-title"><code>onQueryImpl()</code> — 系统提示构建 + query 循环</div>
+        <div class="flow-step-desc">
+          诊断跟踪 → 标题生成（Haiku 一次性调用）→ skill 工具权限写入 store →
+          <code>getToolUseContext()</code> → <code>Promise.all([getSystemPrompt, getUserContext, getSystemContext])</code> →
+          <code>buildEffectiveSystemPrompt()</code> →
+          <strong><code>for await (const event of query({...})) { onQueryEvent(event) }</code></strong>
+        </div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-step-num">4</div>
+      <div class="flow-step-body">
+        <div class="flow-step-title">Finally — 清理与收尾</div>
+        <div class="flow-step-desc">
+          <code>queryGuard.end(thisGeneration)</code> → <code>setLastQueryCompletionTime()</code> →
+          <code>resetLoadingState()</code> → <code>sendBridgeResult()</code>（通知移动端停止动画）→
+          <code>mrOnTurnComplete()</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>6.2 onQueryEvent — 事件路由 <span class="ref">REPL.tsx:3100</span></h3>
+
+  <pre><span class="n">onQueryEvent</span>(<span class="n">event</span>) {
+  <span class="c">// compact 边界</span>
+  <span class="k">if</span> (<span class="n">isCompactBoundaryMessage</span>(<span class="n">newMessage</span>)) {
+    <span class="n">setMessages</span>(() => [<span class="n">newMessage</span>]);     <span class="c">// 非全屏：直接替换</span>
+    <span class="n">setConversationId</span>(<span class="n">randomUUID</span>());  <span class="c">// 强制 Messages 行 key 刷新</span>
+  }
+  <span class="c">// 瞬态进度（Sleep/Bash tick）：向后扫描替换，防数组爆炸</span>
+  <span class="k">else if</span> (<span class="n">isEphemeralToolProgress</span>(<span class="n">newMessage</span>)) {
+    <span class="n">setMessages</span>(<span class="n">old</span> => { <span class="c">/* 向后扫描替换同类型消息 */</span> });
+  }
+  <span class="c">// 普通消息：追加</span>
+  <span class="k">else</span> {
+    <span class="n">setMessages</span>(<span class="n">old</span> => [...<span class="n">old</span>, <span class="n">newMessage</span>]);
+  }
+}</pre>
+
+  <div class="callout">
+    <strong>瞬态进度替换</strong>：Sleep/Bash 每秒 tick 一次，追加会造成数组爆炸（观察到 1.3 万+ 条目，transcript 120MB）。
+    向后扫描最近的同类型瞬态消息并原地替换。<code>agent_progress / hook_progress</code> 不是瞬态的，不替换。
+  </div>
+
+  <h3>6.3 并发输入排队 <span class="ref">REPL.tsx:3590</span></h3>
+
+  <pre><span class="c">// query 已在运行时：把新输入文本入队</span>
+<span class="k">if</span> (<span class="n">thisGeneration</span> === <span class="k">null</span>) {
+  <span class="n">newMessages</span>
+    .<span class="n">filter</span>(<span class="n">m</span> => <span class="n">m</span>.<span class="n">type</span> === <span class="s">'user'</span> &amp;&amp; !<span class="n">m</span>.<span class="n">isMeta</span>)
+    .<span class="n">map</span>(<span class="n">m</span> => <span class="n">getContentText</span>(<span class="n">m</span>.<span class="n">message</span>.<span class="n">content</span>))
+    .<span class="n">filter</span>(<span class="t">Boolean</span>)
+    .<span class="n">forEach</span>(<span class="n">msg</span> => <span class="n">enqueue</span>({ <span class="n">value</span>: <span class="n">msg</span>, <span class="n">mode</span>: <span class="s">'prompt'</span> }));
+  <span class="k">return</span> <span class="k">false</span>;
+}
+<span class="c">// useQueueProcessor 在 query 完成后自动处理队列</span></pre>
+</section>
+
+<!-- ════════════ 七、取消机制 ════════════ -->
+<section id="cancel">
+  <h2>七、onCancel — 取消机制 <span class="ref">REPL.tsx:2504</span></h2>
+
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="flow-step-num">1</div>
+      <div class="flow-step-body">
+        <div class="flow-step-title">宽限期守卫</div>
+        <div class="flow-step-desc">local-jsx 面板（如 /workflows）500ms 内刚关闭 → 吞掉 ESC，防止 ESC 关闭面板后意外中止正在运行的工具</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-step-num">2</div>
+      <div class="flow-step-body">
+        <div class="flow-step-title">暂停 proactive / goal 模式</div>
+        <div class="flow-step-desc"><code>proactiveModule?.pauseProactive()</code>；如果有活跃 goal 则 <code>pauseGoal() + persistCurrentGoal()</code></div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-step-num">3</div>
+      <div class="flow-step-body">
+        <div class="flow-step-title">保留部分流式文本</div>
+        <div class="flow-step-desc"><code>if (streamingText?.trim())</code> 则追加 assistant 消息，用户能读取按 Esc 前已生成的内容</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-step-num">4</div>
+      <div class="flow-step-body">
+        <div class="flow-step-title"><code>queryGuard.forceEnd()</code> + <code>resetLoadingState()</code></div>
+        <div class="flow-step-desc">跳过 finally 路径，直接置 idle；清空 streamingText/spinner/tool uses</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-step-num">5</div>
+      <div class="flow-step-body">
+        <div class="flow-step-title">按 focusedInputDialog 分派 abort</div>
+        <div class="flow-step-desc">
+          <code>tool-permission</code> → <code>toolUseConfirmQueue[0]?.onAbort()</code><br>
+          <code>prompt</code> → 拒绝所有挂起 prompt<br>
+          远程模式 → <code>activeRemote.cancelRequest()</code><br>
+          其他 → <code>abortController?.abort('user-cancel')</code>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ 八、权限系统 ════════════ -->
+<section id="permissions">
+  <h2>八、权限对话框系统 <span class="ref">REPL.tsx:2373</span></h2>
+
+  <h3>8.1 getFocusedInputDialog() — 18 级优先级队列</h3>
+
+  <div class="prio-list">
+    <div class="prio-item"><span class="prio-rank">P0</span><span class="prio-key">isExiting</span><span class="prio-val">→ undefined（最高优先，阻断所有）</span></div>
+    <div class="prio-item"><span class="prio-rank">P1</span><span class="prio-key">isMessageSelectorVisible</span><span class="prio-val">→ 'message-selector'（始终显示）</span></div>
+    <div class="prio-item"><span class="prio-rank">P2</span><span class="prio-key">isPromptInputActive</span><span class="prio-val">→ undefined（用户输入中，抑制中断）</span></div>
+    <div class="prio-item"><span class="prio-rank">P3</span><span class="prio-key">sandboxPermissionRequestQueue[0]</span><span class="prio-val">→ 'sandbox-permission'</span></div>
+    <div class="prio-item"><span class="prio-rank">P4</span><span class="prio-key">toolUseConfirmQueue[0]</span><span class="prio-val">→ 'tool-permission'（暂停计时器）</span></div>
+    <div class="prio-item"><span class="prio-rank">P5</span><span class="prio-key">promptQueue[0]</span><span class="prio-val">→ 'prompt'（hook 弹窗）</span></div>
+    <div class="prio-item"><span class="prio-rank">P6</span><span class="prio-key">workerSandboxPermissions.queue[0]</span><span class="prio-val">→ 'worker-sandbox-permission'</span></div>
+    <div class="prio-item"><span class="prio-rank">P7</span><span class="prio-key">elicitation.queue[0]</span><span class="prio-val">→ 'elicitation'（MCP elicitation）</span></div>
+    <div class="prio-item"><span class="prio-rank">P8</span><span class="prio-key">showingCostDialog ($5 阈值)</span><span class="prio-val">→ 'cost'</span></div>
+    <div class="prio-item"><span class="prio-rank">P9</span><span class="prio-key">idleReturnPending</span><span class="prio-val">→ 'idle-return'</span></div>
+    <div class="prio-item"><span class="prio-rank">P10</span><span class="prio-key">ultraplanPendingChoice</span><span class="prio-val">→ 'ultraplan-choice'（feature: ULTRAPLAN）</span></div>
+    <div class="prio-item"><span class="prio-rank">P11</span><span class="prio-key">ultraplanLaunchPending</span><span class="prio-val">→ 'ultraplan-launch'</span></div>
+    <div class="prio-item"><span class="prio-rank">P12</span><span class="prio-key">showIdeOnboarding</span><span class="prio-val">→ 'ide-onboarding'</span></div>
+    <div class="prio-item"><span class="prio-rank">P13</span><span class="prio-key">showModelSwitchCallout (ant)</span><span class="prio-val">→ 'model-switch'</span></div>
+    <div class="prio-item"><span class="prio-rank">P14</span><span class="prio-key">showUndercoverCallout (ant)</span><span class="prio-val">→ 'undercover-callout'</span></div>
+    <div class="prio-item"><span class="prio-rank">P15</span><span class="prio-key">showEffortCallout</span><span class="prio-val">→ 'effort-callout'（Opus 4.6 用户）</span></div>
+    <div class="prio-item"><span class="prio-rank">P16</span><span class="prio-key">lspRecommendation</span><span class="prio-val">→ 'lsp-recommendation'（非阻塞建议）</span></div>
+    <div class="prio-item"><span class="prio-rank">P17</span><span class="prio-key">searchExtraToolsHint</span><span class="prio-val">→ 'search-extra-tools-hint'</span></div>
+    <div class="prio-item"><span class="prio-rank">P18</span><span class="prio-key">showDesktopUpsellStartup</span><span class="prio-val">→ 'desktop-upsell'（最低优先）</span></div>
+  </div>
+
+  <h3>8.2 权限暂停计时 <span class="ref">REPL.tsx:2472</span></h3>
+
+  <pre><span class="c">// 工具权限对话框出现/消失时精确记录暂停时间</span>
+<span class="c">// SpinnerWithVerb 显示：经过时间 - 暂停时间</span>
+<span class="n">useEffect</span>(() => {
+  <span class="k">if</span> (!<span class="n">isLoading</span>) <span class="k">return</span>;
+  <span class="k">const</span> <span class="n">isPaused</span> = <span class="n">focusedInputDialog</span> === <span class="s">'tool-permission'</span>;
+  <span class="k">if</span> (<span class="n">isPaused</span> &amp;&amp; <span class="n">pauseStartTimeRef</span>.<span class="n">current</span> === <span class="k">null</span>) {
+    <span class="n">pauseStartTimeRef</span>.<span class="n">current</span> = <span class="t">Date</span>.<span class="n">now</span>();
+  } <span class="k">else if</span> (!<span class="n">isPaused</span> &amp;&amp; <span class="n">pauseStartTimeRef</span>.<span class="n">current</span> !== <span class="k">null</span>) {
+    <span class="n">totalPausedMsRef</span>.<span class="n">current</span> += <span class="t">Date</span>.<span class="n">now</span>() - <span class="n">pauseStartTimeRef</span>.<span class="n">current</span>;
+    <span class="n">pauseStartTimeRef</span>.<span class="n">current</span> = <span class="k">null</span>;
+  }
+}, [<span class="n">focusedInputDialog</span>, <span class="n">isLoading</span>]);</pre>
+</section>
+
+<!-- ════════════ 九、ToolJSX ════════════ -->
+<section id="tool-jsx">
+  <h2>九、setToolJSX — 本地 JSX 命令保护机制 <span class="ref">REPL.tsx:1336</span></h2>
+
+  <div class="callout">
+    普通工具 JSX（如 browser-lite 结果）可以被新调用覆盖，但 <strong>本地命令</strong>（/config、/plugin、/mcp 等对话框）
+    在用户主动关闭之前不能被工具覆盖。<code>localJSXCommandRef</code> 充当保护锁。
+  </div>
+
+  <div class="diagram-box">setToolJSX(args) 包装器逻辑：
+
+  args.isLocalJSXCommand = true
+    └─→ 存入 localJSXCommandRef.current（保护锁）
+        setToolJSXInternal(args)
+
+  localJSXCommandRef.current 非空（本地命令活跃）：
+    ├─ args.clearLocalJSX = true（onDone 显式关闭）
+    │     └─→ 清除 ref，setToolJSXInternal(null)
+    │         localJSXClosedAtRef.current = Date.now()  ← 供 onCancel 宽限期
+    └─ 其他（工具更新）→ 忽略，本地命令优先
+
+  正常情况：setToolJSXInternal(args)</div>
+
+  <p>添加新 <strong>IMMEDIATE 命令</strong>的步骤：</p>
+  <ol>
+    <li>命令定义中设置 <code>immediate: true</code></li>
+    <li>调用 <code>setToolJSX</code> 时传 <code>isLocalJSXCommand: true</code></li>
+    <li><code>onDone</code> 回调中传 <code>clearLocalJSX: true</code></li>
+  </ol>
+</section>
+
+<!-- ════════════ 十、会话恢复 ════════════ -->
+<section id="resume">
+  <h2>十、会话恢复 resume() 函数 <span class="ref">REPL.tsx:2086</span></h2>
+
+  <div class="flow-steps">
+    <div class="flow-step"><div class="flow-step-num">1</div><div class="flow-step-body"><div class="flow-step-title">反序列化历史消息</div><div class="flow-step-desc"><code>deserializeMessages()</code>：过滤未关闭 tool_use，添加合成 assistant 消息</div></div></div>
+    <div class="flow-step"><div class="flow-step-num">2</div><div class="flow-step-body"><div class="flow-step-title">coordinator/normal 模式匹配（COORDINATOR_MODE）</div><div class="flow-step-desc">检测模式不匹配时显示警告消息，重新派生 agent 定义</div></div></div>
+    <div class="flow-step"><div class="flow-step-num">3</div><div class="flow-step-body"><div class="flow-step-title">触发 SessionEnd hooks（与 /clear 一致）</div><div class="flow-step-desc"><code>executeSessionEndHooks('resume', ...)</code> 带超时</div></div></div>
+    <div class="flow-step"><div class="flow-step-num">4</div><div class="flow-step-body"><div class="flow-step-title">触发 SessionStart hooks（'resume' 类型）</div><div class="flow-step-desc"><code>processSessionStartHooks('resume', ...)</code>，结果追加到 messages</div></div></div>
+    <div class="flow-step"><div class="flow-step-num">5</div><div class="flow-step-body"><div class="flow-step-title">fork vs resume 的 plan 处理</div><div class="flow-step-desc">fork → <code>copyPlanForFork()</code>（新 plan slug）；resume → <code>copyPlanForResume()</code>（复用原 slug）</div></div></div>
+    <div class="flow-step"><div class="flow-step-num">6</div><div class="flow-step-body"><div class="flow-step-title">恢复各种状态</div><div class="flow-step-desc">文件历史、attribution、agent 定义、standaloneAgentContext、readFileState 缓存</div></div></div>
+    <div class="flow-step"><div class="flow-step-num">7</div><div class="flow-step-body"><div class="flow-step-title">切换会话 ID（原子操作）</div><div class="flow-step-desc"><code>switchSession(sessionId, projectDir)</code> → 重命名 asciicast → <code>resetSessionFilePointer()</code></div></div></div>
+    <div class="flow-step"><div class="flow-step-num">8</div><div class="flow-step-body"><div class="flow-step-title">成本状态恢复</div><div class="flow-step-desc">读取目标会话成本 → 保存当前成本 → 重置 → 恢复目标成本</div></div></div>
+    <div class="flow-step"><div class="flow-step-num">9</div><div class="flow-step-body"><div class="flow-step-title">重构内容替换状态（非 fork）</div><div class="flow-step-desc"><code>reconstructContentReplacementState(messages, log.contentReplacements)</code></div></div></div>
+    <div class="flow-step"><div class="flow-step-num">10</div><div class="flow-step-body"><div class="flow-step-title">最终设置</div><div class="flow-step-desc"><code>setMessages(() => messages)</code>、<code>setToolJSX(null)</code>、<code>setInputValue('')</code></div></div></div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>入口点 entrypoint</th><th>特点</th></tr></thead>
+      <tbody>
+        <tr><td><code>'resume'</code></td><td>普通 /resume，复用原始 worktree 和 plan slug</td></tr>
+        <tr><td><code>'fork'</code></td><td>/branch，新 session ID，新 plan slug，<strong>跳过 worktree 切换</strong></td></tr>
+        <tr><td><code>'reload'</code></td><td>重新加载当前会话</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════ 十一、工具上下文 ════════════ -->
+<section id="context">
+  <h2>十一、getToolUseContext — 工具执行上下文构建 <span class="ref">REPL.tsx:2848</span></h2>
+
+  <pre><span class="k">const</span> <span class="n">getToolUseContext</span> = <span class="n">useCallback</span>((<span class="n">messages</span>, <span class="n">_new</span>, <span class="n">abort</span>, <span class="n">model</span>) => {
+  <span class="k">const</span> <span class="n">s</span> = <span class="n">store</span>.<span class="n">getState</span>();  <span class="c">// 新鲜读取，非闭包捕获</span>
+
+  <span class="k">const</span> <span class="n">computeTools</span> = () => {
+    <span class="c">// 每次调用从 store 新鲜计算，确保 MCP 动态连接后最新</span>
+    <span class="k">const</span> <span class="n">state</span> = <span class="n">store</span>.<span class="n">getState</span>();
+    <span class="k">const</span> <span class="n">assembled</span> = <span class="n">assembleToolPool</span>(<span class="n">state</span>.<span class="n">toolPermissionContext</span>, <span class="n">state</span>.<span class="n">mcp</span>.<span class="n">tools</span>);
+    <span class="k">return</span> <span class="n">mergeAndFilterTools</span>(<span class="n">combinedInitialTools</span>, <span class="n">assembled</span>, <span class="n">state</span>.<span class="n">toolPermissionContext</span>.<span class="n">mode</span>);
+  };
+
+  <span class="k">return</span> {
+    <span class="n">abortController</span>: <span class="n">abort</span>,
+    <span class="n">options</span>: {
+      <span class="n">commands</span>, <span class="n">tools</span>: <span class="n">computeTools</span>(), <span class="n">debug</span>, <span class="n">verbose</span>: <span class="n">s</span>.<span class="n">verbose</span>,
+      <span class="n">thinkingConfig</span>: <span class="n">s</span>.<span class="n">thinkingEnabled</span> !== <span class="k">false</span> ? <span class="n">thinkingConfig</span> : { <span class="n">type</span>: <span class="s">'disabled'</span> },
+      <span class="n">mcpClients</span>: <span class="n">mergeClients</span>(<span class="n">initialMcpClients</span>, <span class="n">s</span>.<span class="n">mcp</span>.<span class="n">clients</span>),
+      <span class="cm">// ... refreshTools, agentDefinitions, customSystemPrompt ...</span>
+    },
+    <span class="n">getAppState</span>: () => <span class="n">store</span>.<span class="n">getState</span>(),
+    <span class="n">setAppState</span>, <span class="n">messages</span>, <span class="n">setMessages</span>,
+    <span class="n">updateFileHistoryState</span>(<span class="n">updater</span>) {
+      <span class="n">setAppState</span>(<span class="n">prev</span> => {
+        <span class="k">const</span> <span class="n">updated</span> = <span class="n">updater</span>(<span class="n">prev</span>.<span class="n">fileHistory</span>);
+        <span class="k">if</span> (<span class="n">updated</span> === <span class="n">prev</span>.<span class="n">fileHistory</span>) <span class="k">return</span> <span class="n">prev</span>;  <span class="c">// 相同引用跳过</span>
+        <span class="k">return</span> { ...<span class="n">prev</span>, <span class="n">fileHistory</span>: <span class="n">updated</span> };
+      });
+    },
+    <span class="n">setToolJSX</span>, <span class="n">addNotification</span>, <span class="n">readFileState</span>: <span class="n">readFileState</span>.<span class="n">current</span>,
+    <span class="n">setResponseLength</span>, <span class="n">setStreamMode</span>, <span class="n">resume</span>,
+    <span class="n">onCompactProgress</span>: <span class="n">event</span> => { <span class="cm">/* 更新 spinner 颜色/消息 */</span> },
+    <span class="n">contentReplacementState</span>: <span class="n">contentReplacementStateRef</span>.<span class="n">current</span>,
+  };
+}, [...]);</pre>
+</section>
+
+<!-- ════════════ 十二、系统提示 ════════════ -->
+<section id="system-prompt">
+  <h2>十二、系统提示构建链 <span class="ref">REPL.tsx:3416</span></h2>
+
+  <div class="diagram-box">Promise.all([
+  undefined,
+  feature('TRANSCRIPT_CLASSIFIER') ? checkAndDisableAutoModeIfNeeded() : undefined,
+  getSystemPrompt(freshTools, model, additionalWorkingDirs, freshMcpClients),
+  getUserContext(),    ← git status、date、CLAUDE.md 内容、memory 文件
+  getSystemContext(),  ← OS、shell、CWD 等环境信息
+])
+
+userContext = {
+  ...baseUserContext,
+  ...getCoordinatorUserContext(mcpClients, scratchpadDir),  ← coordinator 模式
+  ...(proactiveActive && !terminalFocused
+    ? { terminalFocus: 'The terminal is unfocused — ...' }  ← proactive 提示
+    : {}),
+}
+
+systemPrompt = buildEffectiveSystemPrompt({
+  mainThreadAgentDefinition,   ← agent 定义 > 一切
+  toolUseContext,
+  customSystemPrompt,          ← prop 传入的自定义提示
+  defaultSystemPrompt,         ← getSystemPrompt() 返回
+  appendSystemPrompt,          ← 末尾追加
+})</div>
+</section>
+
+<!-- ════════════ 十三、Transcript ════════════ -->
+<section id="transcript">
+  <h2>十三、屏幕模式与 Transcript 模式 <span class="ref">REPL.tsx:5531</span></h2>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>屏幕</th><th>切换</th><th>特点</th></tr></thead>
+      <tbody>
+        <tr><td><code>'prompt'</code>（主界面）</td><td>—</td><td>实时 streaming，PromptInput 可用，ScrollBox 随内容滚动</td></tr>
+        <tr><td><code>'transcript'</code>（全文）</td><td><code>ctrl+o</code></td><td>冻结状态，只读，支持 <code>/</code> 搜索，VirtualMessageList</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Transcript 模式快捷键（less 风格）</h3>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>按键</th><th>行为</th></tr></thead>
+      <tbody>
+        <tr><td><code>/</code></td><td>打开搜索栏（TranscriptSearchBar），增量搜索 + 高亮</td></tr>
+        <tr><td><code>Enter</code></td><td>提交 query，关闭搜索栏，n/N 继续导航</td></tr>
+        <tr><td><code>Esc</code></td><td>取消搜索，恢复锚点位置（setSearchQuery('')）</td></tr>
+        <tr><td><code>n / N</code></td><td>下/上一个匹配（支持按住键批量跳转）</td></tr>
+        <tr><td><code>v</code></td><td>渲染完整 transcript 到 tmp 文件，用 $VISUAL/$EDITOR 打开</td></tr>
+        <tr><td><code>[</code></td><td>强制 dump-to-scrollback（终端 cmd-F 可搜索全文）</td></tr>
+        <tr><td><code>q</code></td><td>退出 transcript 模式</td></tr>
+        <tr><td><code>ctrl+o</code></td><td>toggle：主界面 ↔ transcript</td></tr>
+        <tr><td><code>ctrl+e</code></td><td>transcript 中 collapse/show all 消息</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre><span class="c">// 冻结状态：进入 transcript 时捕获长度而非克隆数组（节省内存）</span>
+<span class="k">const</span> [<span class="n">frozenTranscriptState</span>, <span class="n">setFrozenTranscriptState</span>] = <span class="n">useState</span>&lt;{
+  <span class="n">messagesLength</span>: <span class="t">number</span>;
+  <span class="n">streamingToolUsesLength</span>: <span class="t">number</span>;
+} | <span class="k">null</span>&gt;(<span class="k">null</span>);
+
+<span class="c">// transcript 中显示的消息：冻结时的切片</span>
+<span class="k">const</span> <span class="n">transcriptMessages</span> = <span class="n">frozenTranscriptState</span>
+  ? <span class="n">deferredMessages</span>.<span class="n">slice</span>(<span class="num">0</span>, <span class="n">frozenTranscriptState</span>.<span class="n">messagesLength</span>)
+  : <span class="n">deferredMessages</span>;</pre>
+
+  <div class="callout">
+    <strong>调整宽度中止搜索</strong>：搜索位置以 <code>(msg, query, WIDTH)</code> 为键，宽度变化后缓存过期（换行改变），
+    自动清除 searchQuery 并关闭搜索栏。
+  </div>
+</section>
+
+<!-- ════════════ 十四、渲染架构 ════════════ -->
+<section id="render">
+  <h2>十四、渲染架构（普通模式） <span class="ref">REPL.tsx:5760</span></h2>
+
+  <div class="diagram-box">&lt;AlternateScreen&gt;                      ← 全屏时：终端备用缓冲区
+  &lt;KeybindingSetup&gt;                    ← keybinding 上下文提供者
+    &lt;AnimatedTerminalTitle /&gt;          ← tab 标题动画（960ms tick，独立叶子组件）
+    &lt;GlobalKeybindingHandlers /&gt;       ← ctrl+o / ctrl+e 等全局快捷键
+    &lt;VoiceKeybindingHandler /&gt;         ← VOICE_MODE
+    &lt;CommandKeybindingHandlers /&gt;      ← slash 命令快捷键（onSubmit 注入）
+    &lt;ScrollKeybindingHandler /&gt;        ← PgUp/PgDn/wheel（必须在 Cancel 之前注册）
+    &lt;MessageActionsKeybindings /&gt;      ← MESSAGE_ACTIONS 消息操作
+    &lt;CancelRequestHandler /&gt;           ← Ctrl+C / Escape
+
+    &lt;MCPConnectionManager&gt;             ← MCP 连接管理
+      &lt;FullscreenLayout
+        scrollable={                   ← 可滚动内容区
+          &lt;TeammateViewHeader /&gt;       ← swarm 头部
+          &lt;Messages messages=... /&gt;    ← 消息列表 + streamingText
+          &lt;AwsAuthStatusBox /&gt;
+          {placeholderText &amp;&amp; &lt;UserTextMessage /&gt;}  ← 处理中占位符
+          {toolJSX（非 immediate）}
+          &lt;TungstenLiveMonitor /&gt;      ← ant 专属
+          &lt;Box flexGrow={1} /&gt;         ← 推 spinner 到底部
+          {showSpinner &amp;&amp; &lt;SpinnerWithVerb /&gt;}
+          {isBriefOnly &amp;&amp; &lt;BriefIdleStatus /&gt;}
+        }
+        bottom={                       ← 固定底部（不随滚动移动）
+          &lt;PromptInputQueuedCommands /&gt;
+          {permissionStickyFooter}
+          {toolJSX.isImmediate → &lt;toolJSX.jsx /&gt;}  ← immediate 命令
+          {showExpandedTodos &amp;&amp; &lt;TaskListV2 /&gt;}
+          {sandbox-permission → &lt;SandboxPermissionRequest /&gt;}
+          {prompt → &lt;PromptDialog /&gt;}
+          {pendingWorkerRequest → &lt;WorkerPendingPermission /&gt;}
+          {elicitation → &lt;ElicitationDialog /&gt;}
+          {feedbackSurvey → &lt;FeedbackSurvey /&gt;}
+          {!disabled &amp;&amp; &lt;PromptInput onSubmit={onSubmit} /&gt;}
+        }
+        overlay={toolPermissionOverlay}  ← tool-permission 全屏覆盖
+        modal={centeredModal}            ← 全屏 local-jsx 居中弹窗（/config 等）
+        bottomFloat={&lt;CompanionFloatingBubble /&gt;}  ← BUDDY
+      /&gt;
+    &lt;/MCPConnectionManager&gt;
+  &lt;/KeybindingSetup&gt;
+&lt;/AlternateScreen&gt;</div>
+
+  <h3>showSpinner 计算 <span class="ref">REPL.tsx:2000</span></h3>
+
+  <pre><span class="k">const</span> <span class="n">showSpinner</span> =
+  (!<span class="n">toolJSX</span> || <span class="n">toolJSX</span>.<span class="n">showSpinner</span> === <span class="k">true</span>) &amp;&amp;
+  <span class="n">toolUseConfirmQueue</span>.<span class="n">length</span> === <span class="num">0</span> &amp;&amp;
+  <span class="n">promptQueue</span>.<span class="n">length</span> === <span class="num">0</span> &amp;&amp;
+  (<span class="n">isLoading</span> || <span class="n">userInputOnProcessing</span> || <span class="n">hasRunningTeammates</span> || <span class="n">getCommandQueueLength</span>() > <span class="num">0</span>) &amp;&amp;
+  !<span class="n">pendingWorkerRequest</span> &amp;&amp;
+  !<span class="n">onlySleepToolActive</span> &amp;&amp;      <span class="c">// Sleep 工具自己有 UI，隐藏 spinner</span>
+  (!<span class="n">visibleStreamingText</span> || <span class="n">isBriefOnly</span>);  <span class="c">// 流式文本可见时隐藏</span></pre>
+
+  <h3>immediate vs 非 immediate local-jsx 命令</h3>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>类型</th><th>挂载位置</th><th>示例</th><th>原因</th></tr></thead>
+      <tbody>
+        <tr><td>immediate</td><td><code>bottom</code> 槽（ScrollBox 外）</td><td>/btw、/sandbox、/assistant、/issue</td><td>主循环流式时保持挂载不抖动</td></tr>
+        <tr><td>非 immediate</td><td><code>scrollable</code> 内</td><td>/diff、/status、/theme（约 40 个）</td><td>高内容（DiffDetailView 最多 400 行）需外部 ScrollBox</td></tr>
+        <tr><td>fullscreen 居中</td><td><code>modal</code> 槽（FullscreenLayout 绝对定位）</td><td>全屏模式下所有 local-jsx</td><td>▔ 分隔线，底部锚定弹窗</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════ 十五、会话回退 ════════════ -->
+<section id="rewind">
+  <h2>十五、rewindConversationTo — 会话回退 <span class="ref">REPL.tsx:4504</span></h2>
+
+  <pre><span class="k">const</span> <span class="n">rewindConversationTo</span> = <span class="n">useCallback</span>((<span class="n">message</span>: <span class="t">UserMessage</span>) => {
+  <span class="k">const</span> <span class="n">messageIndex</span> = <span class="n">messagesRef</span>.<span class="n">current</span>.<span class="n">lastIndexOf</span>(<span class="n">message</span>);
+  <span class="k">if</span> (<span class="n">messageIndex</span> === -<span class="num">1</span>) <span class="k">return</span>;
+
+  <span class="n">setMessages</span>(<span class="n">prev</span>.<span class="n">slice</span>(<span class="num">0</span>, <span class="n">messageIndex</span>));  <span class="c">// 截断消息</span>
+  <span class="n">setConversationId</span>(<span class="n">randomUUID</span>());           <span class="c">// 强制 Messages 行 key 刷新</span>
+  <span class="n">resetMicrocompactState</span>();                   <span class="c">// 清除陈旧的 microcompact 缓存</span>
+
+  <span class="c">// 从回退点恢复权限模式 + 清除陈旧 prompt 建议</span>
+  <span class="k">const</span> <span class="n">permMode</span> = <span class="n">message</span>.<span class="n">permissionMode</span>;
+  <span class="n">setAppState</span>(<span class="n">prev</span> => ({
+    ...<span class="n">prev</span>,
+    <span class="n">toolPermissionContext</span>: <span class="n">permMode</span>
+      ? { ...<span class="n">prev</span>.<span class="n">toolPermissionContext</span>, <span class="n">mode</span>: <span class="n">permMode</span> }
+      : <span class="n">prev</span>.<span class="n">toolPermissionContext</span>,
+    <span class="n">promptSuggestion</span>: { <span class="n">text</span>: <span class="k">null</span>, <span class="n">promptId</span>: <span class="k">null</span>, <span class="n">shownAt</span>: <span class="num">0</span>, <span class="n">acceptedAt</span>: <span class="num">0</span>, <span class="n">generationRequestId</span>: <span class="k">null</span> },
+  }));
+}, [<span class="n">setMessages</span>, <span class="n">setAppState</span>]);</pre>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>触发路径</th><th>条件</th><th>流程</th></tr></thead>
+      <tbody>
+        <tr><td>直接回退</td><td>无文件变更 + 之后只有合成消息</td><td><code>onCancel()</code> → <code>handleRestoreMessage(message)</code>（setImmediate 延迟）</td></tr>
+        <tr><td>对话框路径</td><td>有文件变更或非合成后续消息</td><td>打开 MessageSelector → 用户确认 → <code>rewindConversationTo()</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════ 十六、挂载初始化 ════════════ -->
+<section id="init">
+  <h2>十六、挂载初始化 onInit() <span class="ref">REPL.tsx:4650</span></h2>
+
+  <pre><span class="k">async function</span> <span class="n">onInit</span>() {
+  <span class="c">// 1. API key 验证（屏幕右下角显示错误）</span>
+  <span class="k">void</span> <span class="n">reverify</span>();
+
+  <span class="c">// 2. 加载所有 CLAUDE.md / MEMORY.md 到 readFileState 缓存</span>
+  <span class="k">const</span> <span class="n">memoryFiles</span> = <span class="k">await</span> <span class="n">getMemoryFiles</span>();
+  <span class="k">for</span> (<span class="k">const</span> <span class="n">file</span> <span class="k">of</span> <span class="n">memoryFiles</span>) {
+    <span class="n">readFileState</span>.<span class="n">current</span>.<span class="n">set</span>(<span class="n">file</span>.<span class="n">path</span>, {
+      <span class="n">content</span>: <span class="n">file</span>.<span class="n">contentDiffersFromDisk</span>
+        ? (<span class="n">file</span>.<span class="n">rawContent</span> ?? <span class="n">file</span>.<span class="n">content</span>)  <span class="c">// 剥离注释/frontmatter 时存原始内容</span>
+        : <span class="n">file</span>.<span class="n">content</span>,
+      <span class="n">timestamp</span>: <span class="t">Date</span>.<span class="n">now</span>(),
+      <span class="n">isPartialView</span>: <span class="n">file</span>.<span class="n">contentDiffersFromDisk</span>,
+      <span class="c">// isPartialView=true → Edit/Write 工具要求先 Read（安全约束）</span>
+    });
+  }
+}
+
+<span class="c">// 挂载时调用，卸载时关闭诊断跟踪器</span>
+<span class="n">useEffect</span>(() => {
+  <span class="k">void</span> <span class="n">onInitRef</span>.<span class="n">current</span>();
+  <span class="k">return</span> () => { <span class="k">void</span> <span class="n">diagnosticTrackerRef</span>.<span class="n">current</span>.<span class="n">shutdown</span>(); };
+}, []);</pre>
+</section>
+
+<!-- ════════════ 十七、后台与 Proactive ════════════ -->
+<section id="background">
+  <h2>十七、后台任务与 Proactive 模式</h2>
+
+  <h3>17.1 会话后台化 <span class="ref">REPL.tsx:3008</span></h3>
+
+  <div class="callout">
+    <code>Ctrl+B</code>：将当前会话切入后台，REPL 继续显示但 query 在独立进程中运行。
+    通过 <code>startBackgroundSession()</code> 携带当前 messages + 系统提示。
+  </div>
+
+  <pre><span class="k">const</span> <span class="n">handleBackgroundQuery</span> = <span class="n">useCallback</span>(() => {
+  <span class="n">abortController</span>?.<span class="n">abort</span>(<span class="s">'background'</span>);
+  <span class="k">const</span> <span class="n">removedNotifications</span> = <span class="n">removeByFilter</span>(<span class="n">cmd</span> => <span class="n">cmd</span>.<span class="n">mode</span> === <span class="s">'task-notification'</span>);
+  <span class="k">void</span> (<span class="k">async</span> () => {
+    <span class="k">const</span> [<span class="n">systemPrompt</span>, <span class="n">userContext</span>, <span class="n">systemContext</span>] = <span class="k">await</span> <span class="t">Promise</span>.<span class="n">all</span>([...]);
+    <span class="n">startBackgroundSession</span>({
+      <span class="n">messages</span>: [...<span class="n">messagesRef</span>.<span class="n">current</span>, ...<span class="n">uniqueNotifications</span>],
+      <span class="n">queryParams</span>: { <span class="n">systemPrompt</span>, <span class="n">canUseTool</span>, <span class="n">toolUseContext</span>, ... },
+      <span class="n">description</span>: <span class="n">terminalTitle</span>,
+    });
+  })();
+}, [...]);</pre>
+
+  <h3>17.2 Proactive 模式 <span class="ref">REPL.tsx:5043</span></h3>
+
+  <pre><span class="c">// feature('PROACTIVE') || feature('KAIROS') 时激活</span>
+<span class="n">useProactive</span>?.({
+  <span class="n">isLoading</span>: <span class="n">isLoading</span> || <span class="n">initialMessage</span> !== <span class="k">null</span>,
+  <span class="n">queuedCommandsLength</span>: <span class="n">queuedCommands</span>.<span class="n">length</span>,
+  <span class="n">hasActiveLocalJsxUI</span>: <span class="n">isShowingLocalJSXCommand</span>,
+  <span class="n">isInPlanMode</span>: <span class="n">toolPermissionContext</span>.<span class="n">mode</span> === <span class="s">'plan'</span>,
+  <span class="n">onQueueTick</span>: (<span class="n">command</span>) => <span class="n">enqueue</span>(<span class="n">command</span>),  <span class="c">// proactive tick 入队</span>
+});
+
+<span class="c">// Goal 自动 continuation</span>
+<span class="n">useGoalContinuation</span>?.({
+  <span class="n">wasAborted</span>,  <span class="c">// Ctrl+C 中止后跳过 continuation，防止死循环</span>
+  <span class="n">onContinuationEnqueued</span>: ({ <span class="n">turn</span>, <span class="n">objective</span> }) => {
+    <span class="c">// 追加用于 transcript 显示的可见消息（isVisibleInTranscriptOnly）</span>
+  },
+  <span class="n">onMaxTurnsReached</span>: () => addNotification({ <span class="n">text</span>: <span class="s">'Goal reached max turns...'</span> }),
+});</pre>
+</section>
+
+<!-- ════════════ 十八、多远程模式 ════════════ -->
+<section id="remote">
+  <h2>十八、多远程模式 <span class="ref">REPL.tsx:1682</span></h2>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>模式</th><th>Hook</th><th>传输层</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td><code>--remote</code></td><td><code>useRemoteSession</code></td><td>WebSocket → CCR</td><td>使用远程计算资源执行引擎</td></tr>
+        <tr><td><code>claude connect</code></td><td><code>useDirectConnect</code></td><td>WebSocket → claude server</td><td>直连 claude 服务器</td></tr>
+        <tr><td><code>claude ssh</code></td><td><code>useSSHSession</code></td><td>ChildProcess stdin/stdout</td><td>本地 REPL，远程工具通过 SSH</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre><span class="c">// 优先级选择（REPL.tsx:1715）</span>
+<span class="k">const</span> <span class="n">activeRemote</span> = <span class="n">sshRemote</span>.<span class="n">isRemoteMode</span> ? <span class="n">sshRemote</span>
+  : <span class="n">directConnect</span>.<span class="n">isRemoteMode</span> ? <span class="n">directConnect</span>
+  : <span class="n">remoteSession</span>;
+
+<span class="c">// 远程模式时命令过滤（handleRemoteInit）</span>
+<span class="n">setLocalCommands</span>(<span class="n">prev</span> => <span class="n">prev</span>.<span class="n">filter</span>(<span class="n">cmd</span> =>
+  <span class="n">remoteCommandSet</span>.<span class="n">has</span>(<span class="n">cmd</span>.<span class="n">name</span>) || <span class="t">REMOTE_SAFE_COMMANDS</span>.<span class="n">has</span>(<span class="n">cmd</span>)
+));</pre>
+</section>
+
+<!-- ════════════ 十九、关键常量 ════════════ -->
+<section id="refs">
+  <h2>十九、关键常量与 Ref 集合</h2>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>名称</th><th>值/类型</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td><code>RECENT_SCROLL_REPIN_WINDOW_MS</code></td><td>3000ms</td><td>用户滚动后此窗口内输入不重新固定到底部</td></tr>
+        <tr><td><code>DEFERRED_CAP</code></td><td>500 条</td><td><code>useDeferredValue</code> 的消息数上限，限制内存双缓冲</td></tr>
+        <tr><td><code>MAX_FULLSCREEN_SCROLLBACK</code></td><td>500 条</td><td>compact 后全屏回滚最多保留条数（防 1GB+ 内存）</td></tr>
+        <tr><td><code>LOCAL_JSX_CLOSE_CANCEL_GRACE_MS</code></td><td>500ms</td><td>本地 JSX 面板关闭后的 ESC 宽限期</td></tr>
+        <tr><td><code>PROMPT_SUPPRESSION_MS</code></td><td>1500ms</td><td>用户停止输入后多久恢复对话框显示</td></tr>
+        <tr><td><code>TITLE_ANIMATION_INTERVAL_MS</code></td><td>960ms</td><td>终端 tab 标题动画频率（独立组件，不触发 REPL 重渲染）</td></tr>
+        <tr><td><code>messagesRef</code></td><td><code>MessageType[]</code></td><td>messages 的同步镜像（真相源）</td></tr>
+        <tr><td><code>abortControllerRef</code></td><td><code>AbortController</code></td><td>当前 query 的 abort（bridge 中断时用）</td></tr>
+        <tr><td><code>readFileState</code></td><td>LRU(100)</td><td>已读文件内容缓存（供 Edit/Write 工具判断是否先 Read）</td></tr>
+        <tr><td><code>haikuTitleAttemptedRef</code></td><td>boolean</td><td>防止重复触发标题 Haiku 调用</td></tr>
+        <tr><td><code>loadingStartTimeRef</code></td><td>number</td><td>query 开始时间（计算 spinner elapsed time）</td></tr>
+        <tr><td><code>totalPausedMsRef</code></td><td>number</td><td>累计暂停时间（权限对话框期间）</td></tr>
+        <tr><td><code>localJSXCommandRef</code></td><td>复合对象</td><td>本地 JSX 命令保护锁</td></tr>
+        <tr><td><code>discoveredSkillNamesRef</code></td><td><code>Set&lt;string&gt;</code></td><td>会话级 skill 发现去重（跨 turn 持久化）</td></tr>
+        <tr><td><code>loadedNestedMemoryPathsRef</code></td><td><code>Set&lt;string&gt;</code></td><td>nested CLAUDE.md 附件的会话级去重</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════ 二十、双层定位总结 ════════════ -->
+<section id="summary">
+  <h2>二十、REPL 在双层架构中的定位总结</h2>
+
+  <div class="diagram-box">┌─────────────────────────────────────────────────────────────┐
+│                     入口层（Entry）                          │
+│  cli.tsx → main.tsx → REPL.tsx（挂载、初始化、状态建立）    │
+│                                                              │
+│  · Props 解析 + 工具集合并                                   │
+│  · onInit() 加载 CLAUDE.md → readFileState                  │
+│  · 会话恢复 resume()（10 步原子流程）                        │
+│  · 多远程模式选择（remote / connect / ssh）                  │
+│  · 插件/IDE/MCP 集成启动                                     │
+├─────────────────────────────────────────────────────────────┤
+│                    核心循环层（Loop）                         │
+│  REPL.tsx → query.ts（直接消费，不经过 QueryEngine）        │
+│                                                              │
+│  · onQuery() — QueryGuard 并发守卫                          │
+│  · onQueryImpl() — 系统提示构建 + for await loop            │
+│  · onQueryEvent() — 事件路由（compact/ephemeral/normal）     │
+│  · onCancel() — 精确中止（宽限期守卫 + 分类 abort）         │
+│  · rewindConversationTo() — 会话历史回退                     │
+│  · setMessages ref 镜像模式（真相源 vs 渲染投射）           │
+└─────────────────────────────────────────────────────────────┘</div>
+
+  <div class="callout green">
+    <strong>核心差异一句话</strong>：REPL 的 <code>messages</code> 住在 React <code>useState</code>，自己直接 <code>for await of query()</code>；
+    QueryEngine 的 <code>mutableMessages</code> 住在类实例，通过 <code>ask()</code> 封装 <code>query()</code>。
+    两条路径在 <code>query.ts</code> 层汇合，共享同一个底层 async generator。
+  </div>
+</section>
+
+</div><!-- /page-wrap -->
+
+</body>
+</html>

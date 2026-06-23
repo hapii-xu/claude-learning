@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GoalTool 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange: #D77757; --orange-lt: #f0e0d8; --orange-dk: #b55e3a;
+      --blue: #5769F7; --blue-lt: #dde0fe; --blue-dk: #3a4ed4;
+      --green: #22a766; --green-lt: #d2f0e3;
+      --bg: #faf8f5; --bg2: #f3f0eb; --bg3: #ebe7e0;
+      --text: #2d2a26; --text-2: #5a5650; --text-3: #8a8480;
+      --border: #ddd8d0; --shadow: 0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius: 8px; --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+    section { margin-top: 56px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; letter-spacing: .01em; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero p { font-size: 1.05rem; color: var(--text-2); max-width: 640px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 6px 16px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .82rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s, box-shadow .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); box-shadow: 0 2px 6px rgba(215,119,87,.15); text-decoration: none; }
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .8rem; line-height: 1.7; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    blockquote.callout { background: var(--bg2); border-left: 4px solid var(--orange); padding: 14px 20px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0; color: var(--text-2); }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin: 16px 0; overflow-x: auto; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 48px; padding: 8px 18px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; transition: border-color .15s, color .15s; }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    @media (max-width: 700px) { .hero h1 { font-size: 1.6rem; } }
+  </style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>GoalTool 工具详解</h1>
+  <p>获取或更新当前线程目标的状态（complete/blocked）——目标驱动会话的终态判定工具，带受阻计数与完成报告</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一">工具定位</a></li>
+    <li><a href="#二">关键文件清单</a></li>
+    <li><a href="#三">Tool 接口字段实现</a></li>
+    <li><a href="#四">核心执行流程</a></li>
+    <li><a href="#五">权限与安全</a></li>
+    <li><a href="#六">与其他系统的关系</a></li>
+    <li><a href="#七">亮点与设计取舍</a></li>
+    <li><a href="#八">源码导航</a></li>
+    <li><a href="#九">学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+  <blockquote class="callout">
+    <p>这是工具系统逐个拆解系列的一篇。<code>GoalTool</code> 是一个<strong>中等复杂度</strong>的目标状态管理工具：它让模型查询当前目标（objective/status/token/elapsed/turns）或把目标标记为终态（complete/blocked）。它的设计哲学很特别——模型<strong>只能</strong>把目标推向终态，不能设置/暂停/清除目标（那是用户的 <code>/goal</code> 命令的事）。读完这篇你会理解"如何用受限的工具接口实现目标驱动会话"，以及"受阻需要连续 3 轮"这种防误判机制。</p>
+  </blockquote>
+
+  <section id="一">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>GoalTool</code> = 线程目标的只读查询 + 终态推进工具。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>GoalTool</code>（常量 <code>GOAL_TOOL_NAME</code>，<code>constants.ts:1</code>）</td></tr>
+          <tr><td>一句话</td><td><code>get</code> 查询当前目标状态；<code>update</code> 把目标标记为 complete 或 blocked（模型仅此两种终态权限）</td></tr>
+          <tr><td>是否进 system prompt</td><td>❌ 不在 <code>CORE_TOOLS</code>（延迟工具，<code>shouldDefer: true</code>）</td></tr>
+          <tr><td>注册门控</td><td><code>feature('GOAL')</code>（<code>src/tools.ts:90-93</code>）——feature flag 控制注册</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>动态</strong>：<code>isReadOnly(input)</code> 返回 <code>action === 'get'</code>（<code>:122</code>）</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>:119</code>）</td></tr>
+          <tr><td>权限</td><td><strong>自动放行</strong>（<code>checkPermissions</code> 返回 <code>allow</code>，<code>:131</code>）</td></tr>
+          <tr><td>核心依赖</td><td><code>src/services/goal/goalState.ts</code>（目标状态机）、<code>goalStorage.ts</code>（持久化）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> 目标驱动会话里，模型需要一个明确的"目标终态判定"机制。<code>GoalTool</code> 提供受控接口：模型能查询进度（token/轮数/时长），也能宣告完成或受阻，但<strong>不能</strong>自己设置目标（防模型偏离用户意图）。目标的设立/清除是用户的 <code>/goal</code> 命令的职责。</p>
+  </section>
+
+  <section id="二">
+    <h2>二、关键文件清单</h2>
+    <pre>GoalTool/
+├── GoalTool.ts   ← buildTool({...}) 主体（254 行），含 get/update 分支 + 报告生成
+├── prompt.ts     ← DESCRIPTION + generatePrompt()：完成审计/受阻审计清单
+└── constants.ts  ← GOAL_TOOL_NAME = 'GoalTool'</pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>GoalTool.ts</code></td><td>工具主体：schema + call() + 快照/报告辅助函数</td><td><code>buildTool:99</code>、<code>inputSchema:26</code>、<code>call:150</code>、<code>buildGoalSnapshot:71</code>、<code>buildCompletionReport:84</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>DESCRIPTION + 使用指南（完成审计/受阻审计/重要说明）</td><td><code>DESCRIPTION:1</code>、<code>generatePrompt:4</code></td></tr>
+          <tr><td><code>constants.ts</code></td><td>工具名常量</td><td><code>GOAL_TOOL_NAME:1</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：单文件主体（254 行）。辅助函数（<code>buildGoalSnapshot</code>/<code>buildCompletionReport</code>/<code>toolLog</code>）内联在工具文件里，因为它们和工具语义强绑定。</p></blockquote>
+  </section>
+
+  <section id="三">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+    <h3>标识字段</h3>
+    <pre>name: GOAL_TOOL_NAME,                        // "GoalTool"
+searchHint: '获取或更新当前目标（complete/blocked）',
+maxResultSizeChars: 10_000,                  // ★ 比其他工具小（10K vs 100K）
+shouldDefer: true,</pre>
+    <blockquote class="callout"><p><strong><code>maxResultSizeChars: 10_000</code></strong>（<code>:102</code>）：系列里独有的小上限。目标状态/报告文本量小，不需要 100K 的缓冲。这是按工具实际输出特征调参的例子。</p></blockquote>
+
+    <h3>模型面字段</h3>
+    <pre>async description() { return DESCRIPTION }
+async prompt()      { return generatePrompt() }
+userFacingName()    { return 'Goal' }</pre>
+    <p><strong>输入 schema</strong>（<code>:26-45</code>）：</p>
+    <pre>{
+  action?: 'get' | 'update',     // 可选；有 status 默认 update，否则 get
+  status?: 'complete' | 'blocked',  // update 时必填
+  reason?: string,                // 状态变更说明，update 时必填
+}</pre>
+    <blockquote class="callout"><p><strong><code>action</code> 可选 + 智能默认</strong>（<code>:31-33</code>）：模型可以省略 action——有 status 就当 update，否则当 get。这是"减少模型负担"的 schema 设计。</p></blockquote>
+    <p><strong>输出 schema</strong>（<code>:48-65</code>）：</p>
+    <pre>{
+  success: boolean,
+  goal?: {                          // 目标快照
+    objective: string,
+    status: string,                 // 格式化后的状态标签
+    tokensUsed: number,
+    tokenBudget: number | null,
+    elapsed: string,                // 格式化的时长
+    turnsExecuted: number,
+  },
+  message?: string,
+  report?: string,                  // 完成时的使用报告
+  error?: string,
+}</pre>
+
+    <h3>行为字段</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:150</code></td><td>核心逻辑（见下节）</td></tr>
+          <tr><td><code>checkPermissions(input)</code></td><td><code>:131</code></td><td><strong>自动放行</strong>：<code>{ behavior: 'allow', updatedInput: input }</code></td></tr>
+          <tr><td><code>isReadOnly(input)</code></td><td><code>:122</code></td><td><code>action === 'get'</code>——动态只读</td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:119</code></td><td><code>true</code></td></tr>
+          <tr><td><code>toAutoClassifierInput(input)</code></td><td><code>:126</code></td><td>get 返回"获取目标状态"，update 返回 <code>更新目标：status — reason</code></td></tr>
+          <tr><td><code>renderToolUseMessage(input)</code></td><td><code>:134</code></td><td>get 显示"正在检查目标状态…"，update 显示"正在更新目标：…"</td></tr>
+          <tr><td><code>renderToolResultMessage(output)</code></td><td><code>:139</code></td><td>按 error/report/goal/message 优先级渲染</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>注意缺失</strong>：没有 <code>validateInput</code>。校验逻辑（status 必填、活动目标存在）全在 <code>call()</code> 里返回结构化错误。</p></blockquote>
+  </section>
+
+  <section id="四">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code>（<code>:150-233</code>）按 action 分叉：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["call(input)\n:150"] --> ACT["action = input.action ?? (status ? 'update' : 'get')\n:151"]
+    ACT --> LOG["toolLog 调试日志\n:152"]
+    LOG --> G{"action === 'get'?"}
+    G -- "是" --> GS["buildGoalSnapshot()\n:156"]
+    GS --> GN{"snapshot 为空?"}
+    GN -- "是（无活动目标）" --> GM["返回 '没有活动目标。用户可通过 /goal 设置。'\n:159-164"]
+    GN -- "否" --> GR["返回 {success, goal: snapshot}\n:166"]
+    G -- "update" --> US{"input.status 存在?"}
+    US -- "否" --> UE["返回 error 'status 必填'\n:170-178"]
+    US -- "是" --> UG["getGoal()\n:180"]
+    UG --> UGN{"goal 为空?"}
+    UGN -- "是" --> UGE["返回 error '没有可更新的活动目标'\n:181-188"]
+    UGN -- "否" --> ST{"status?"}
+    ST -- "complete" --> CR["buildCompletionReport()\ncompleteGoal()\npersistCurrentGoal()\n:191-193"]
+    CR --> CRET["返回 {success, goal, report}\n:194-200"]
+    ST -- "blocked" --> BR["reason = input.reason ?? '未指定的阻碍'\nrecordBlockedAttempt(reason)\n:204-205"]
+    BR --> BRN{"result 为空?"}
+    BRN -- "是" --> BRE["返回 error '目标不处于可记录受阻尝试的状态'\n:206-212"]
+    BRN -- "否" --> BRS{"result.status === 'blocked'?"}
+    BRS -- "是（已达阈值）" --> BRM1["返回 '连续 N 次尝试后标记为受阻'\n:216-224"]
+    BRS -- "否（未达阈值）" --> BRM2["返回 '已记录第 N 次受阻尝试，需连续 3 轮'\n:226-232"]
+      </div>
+    </div>
+    <p><strong>关键点逐条</strong>：</p>
+    <ol>
+      <li><strong>action 智能默认</strong>（<code>:151</code>）：<code>input.action ?? (input.status ? 'update' : 'get')</code>——模型省略 action 也能正确路由。</li>
+      <li><strong>get 分支</strong>（<code>:155-167</code>）：<code>buildGoalSnapshot()</code>（<code>:71-82</code>）把原始 goal 转成输出格式（status/elapsed 经格式化）。无活动目标返回友好提示（不报错）。</li>
+      <li><strong>update 前置校验</strong>（<code>:170-188</code>）：status 必填 + 活动目标必须存在。任一失败返回结构化 error。</li>
+      <li><strong>complete 分支</strong>（<code>:190-201</code>）：<code>buildCompletionReport()</code>（<code>:84-97</code>）生成使用报告（token 用量、活跃时长、续作轮数），然后 <code>completeGoal()</code> + <code>persistCurrentGoal()</code>。</li>
+      <li><strong>blocked 分支的受阻计数</strong>（<code>:203-232</code>）：<code>recordBlockedAttempt(reason)</code> 返回 <code>{ status, attempts }</code>：
+        <ul>
+          <li>相同受阻条件需<strong>连续保持 3 轮</strong>才标记为 blocked（<code>:230</code> 文案明确）</li>
+          <li>未达阈值时返回"已记录第 N 次，目标仍然有效"</li>
+          <li>这是为了防模型轻易放弃——"困难"或"缓慢"不算受阻（见 prompt 受阻审计）</li>
+        </ul>
+      </li>
+    </ol>
+
+    <h3><code>buildCompletionReport</code>（<code>:84-97</code>）</h3>
+    <pre>['目标已达成 —— 使用报告：',
+ `  Token 使用量：${tokensUsed} / ${tokenBudget}`,  // 或无预算时的简化版
+ `  活跃时长：${formatGoalElapsed(goal)}`,
+ `  续作轮数：${goal.turnsExecuted}`]</pre>
+  </section>
+
+  <section id="五">
+    <h2>五、权限与安全</h2>
+
+    <h3><code>checkPermissions</code>（<code>:131-133</code>）</h3>
+    <pre>async checkPermissions(input) {
+  return { behavior: 'allow', updatedInput: input }   // 目标操作不需要权限
+}</pre>
+    <p><strong>自动放行</strong>——目标状态变更是模型自管状态，无文件/网络副作用。</p>
+
+    <h3>模型权限的"受限接口"设计</h3>
+    <p>这是 GoalTool 最核心的安全设计。模型对目标只有两种终态权限：</p>
+    <ul>
+      <li><strong>complete</strong>：所有需求验证通过（见 prompt 完成审计 6 条）</li>
+      <li><strong>blocked</strong>：受阻条件连续 3+ 轮（见 prompt 受阻审计 3 条）</li>
+    </ul>
+    <p>模型<strong>不能</strong>：设置/创建目标（用户的 <code>/goal</code> 命令）、暂停/恢复目标、清除目标。</p>
+    <p><code>prompt.ts:34</code> 明确："你无法暂停、恢复或清除目标——只有用户可以通过 /goal 这么做。"</p>
+
+    <h3>受阻防误判机制（<code>:203-232</code>）</h3>
+    <p><code>recordBlockedAttempt</code> 要求相同受阻条件<strong>连续保持 3 轮</strong>才标记 blocked。这防止模型在遇到"困难"或"缓慢"时轻易放弃——prompt（<code>prompt.ts:29-32</code>）的受阻审计明确："困难、缓慢或部分未完成不算受阻。只有真正无法克服的障碍才算数（缺少凭据、外部服务宕机等）。"</p>
+
+    <h3><code>isReadOnly</code> 动态化（<code>:122-125</code>）</h3>
+    <pre>isReadOnly(input) {
+  const action = input.action ?? (input.status ? 'update' : 'get')
+  return action === 'get'
+}</pre>
+    <p>GET 只读，UPDATE 非只读——与 ConfigTool 同样的动态权限模式。</p>
+  </section>
+
+  <section id="六">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    GOAL -->|状态机| GS["src/services/goal/goalState.ts\ngetGoal / completeGoal / recordBlockedAttempt"]
+    GOAL -->|格式化| GF["goalState.ts\nformatGoalStatusLabel / formatGoalElapsed"]
+    GOAL -->|持久化| GSTORE["src/services/goal/goalStorage.ts\npersistCurrentGoal"]
+    GOAL -.目标设立.-> CMD["/goal 命令\n（用户侧，设置/清除目标）"]
+    GOAL -.代际互补.-> TODO["TodoWriteTool\n目标=宏观，待办=微观执行"]
+    GOAL -.完成验证.-> VA["VERIFICATION_AGENT\n（GoalTool complete 前模型应自验）"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 <code>goalState.ts</code> 的关系</strong>：深度依赖——所有状态读写（getGoal/completeGoal/recordBlockedAttempt）和格式化（formatGoalStatusLabel/formatGoalElapsed）都在那里。GoalTool 是它的薄客户端。</li>
+      <li><strong>与 <code>goalStorage.ts</code> 的关系</strong>：<code>persistCurrentGoal()</code> 持久化目标状态变更（complete/blocked 后都调用）。</li>
+      <li><strong>与 <code>/goal</code> 命令的关系</strong>：职责分离。命令负责目标的"生命周期管理"（设置/清除/查看），工具负责"终态推进"（complete/blocked）。模型无法越权设置目标。</li>
+      <li><strong>与 TodoWriteTool 的关系</strong>：层次互补。目标是宏观（"实现 X 功能"），待办是微观执行步骤。</li>
+    </ul>
+  </section>
+
+  <section id="七">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>受限接口设计</strong>（<code>:26-45</code>）：模型只能 complete/blocked，不能 set/pause/clear。这是"用工具接口约束模型权限"的范例——把"防模型越权"落实到 schema 层。</li>
+      <li><strong>action 智能默认</strong>（<code>:151</code>）：<code>input.action ?? (input.status ? 'update' : 'get')</code> 减少模型负担，省略 action 也能正确路由。</li>
+      <li><strong>受阻防误判（连续 3 轮）</strong>（<code>:203-232</code>）：<code>recordBlockedAttempt</code> 要求相同条件持续 3 轮才标记 blocked。防止模型在困难时轻易放弃——这是"防过早终止"的关键机制。</li>
+      <li><strong>完成审计与受阻审计</strong>（<code>prompt.ts:21-32</code>）：prompt 用清单形式强制模型在终态判定前做尽职调查。</li>
+      <li><strong><code>maxResultSizeChars: 10_000</code></strong>（<code>:102</code>）：系列里独有的小上限，按工具实际输出（状态/报告文本量小）调参。</li>
+      <li><strong>动态 <code>isReadOnly</code></strong>（<code>:122</code>）：GET 只读，UPDATE 非只读——与 ConfigTool 同模式。</li>
+      <li><strong>完成报告的"使用量透明"</strong>（<code>:84-97</code>）：完成时返回 token 用量、活跃时长、续作轮数。让模型（和用户）看到目标达成的成本。</li>
+    </ol>
+  </section>
+
+  <section id="八">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>GoalTool/constants.ts:1</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>GoalTool.ts:99-253</code></td></tr>
+          <tr><td>输入/输出 schema</td><td><code>GoalTool.ts:26-66</code></td></tr>
+          <tr><td><code>call()</code> get 分支</td><td><code>GoalTool.ts:155-167</code></td></tr>
+          <tr><td><code>call()</code> complete 分支</td><td><code>GoalTool.ts:190-201</code></td></tr>
+          <tr><td><code>call()</code> blocked 分支（受阻计数）</td><td><code>GoalTool.ts:203-232</code></td></tr>
+          <tr><td><code>buildGoalSnapshot</code></td><td><code>GoalTool.ts:71-82</code></td></tr>
+          <tr><td><code>buildCompletionReport</code></td><td><code>GoalTool.ts:84-97</code></td></tr>
+          <tr><td><code>checkPermissions</code>（自动放行）</td><td><code>GoalTool.ts:131-133</code></td></tr>
+          <tr><td><code>isReadOnly</code>（动态）</td><td><code>GoalTool.ts:122-125</code></td></tr>
+          <tr><td>完成审计/受阻审计</td><td><code>prompt.ts:21-32</code></td></tr>
+          <tr><td>注册门控</td><td><code>src/tools.ts:90-93</code>（<code>feature('GOAL')</code>）</td></tr>
+          <tr><td>目标状态机</td><td><code>src/services/goal/goalState.ts</code></td></tr>
+          <tr><td>目标持久化</td><td><code>src/services/goal/goalStorage.ts</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="九">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先读"一、工具定位"理解"受限接口"设计哲学，再读"四、call()"的 blocked 分支理解受阻计数机制，最后对照 <code>prompt.ts</code> 的完成/受阻审计理解防误判设计。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出模型对目标的权限边界（只能 complete/blocked，不能 set/pause/clear）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么 action 可选（有 status 默认 update，否则 get）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出受阻需要"连续 3 轮"的作用（防模型在困难时轻易放弃）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>isReadOnly</code> 为何动态（get 只读，update 非只读）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出完成报告包含哪些信息（token 用量、活跃时长、续作轮数）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 GoalTool 与 <code>/goal</code> 命令的职责分离（命令管生命周期，工具管终态推进）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>maxResultSizeChars: 10_000</code> 比其他工具小的原因（输出文本量小）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>设置 <code>FEATURE_GOAL=1</code>，用 <code>/goal &lt;objective&gt;</code> 设目标，让 Claude 调 <code>GoalTool { action: 'get' }</code> 观察快照</li>
+      <li>让 Claude 标记 blocked 但只试 1 轮，验证返回"已记录第 1 次，需连续 3 轮"</li>
+      <li>让 Claude 标记 complete，观察完成报告（token/时长/轮数）</li>
+      <li>不设目标直接调 update，验证 error"没有可更新的活动目标"</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

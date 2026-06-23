@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SendUserFile 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange:    #D77757; --orange-lt: #f0e0d8; --orange-dk: #b55e3a;
+      --blue:      #5769F7; --blue-lt:   #dde0fe; --blue-dk:   #3a4ed4;
+      --green:     #22a766; --green-lt:  #d2f0e3;
+      --bg:        #faf8f5; --bg2:       #f3f0eb; --bg3:       #ebe7e0;
+      --text:      #2d2a26; --text-2:    #5a5650; --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08); --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px; --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+    section { margin-top: 56px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; letter-spacing: .01em; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero h1 span { color: var(--orange); }
+    .hero p { font-size: 1.05rem; color: var(--text-2); max-width: 640px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 6px 16px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .82rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s, box-shadow .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); box-shadow: 0 2px 6px rgba(215,119,87,.15); text-decoration: none; }
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .8rem; line-height: 1.7; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    @media (max-width: 700px) { .hero h1 { font-size: 1.6rem; } }
+    blockquote.callout { background: var(--bg2); border-left: 4px solid var(--orange); padding: 14px 20px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0; color: var(--text-2); }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin: 16px 0; overflow-x: auto; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 48px; padding: 8px 18px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; transition: border-color .15s, color .15s; }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>SendUserFile 工具详解</h1>
+  <p>KAIROS 助手模式下将文件发送到用户设备——校验文件存在后经 bridge 上传，复用 BriefTool 的上传逻辑，无 bridge 时返回本地路径</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-wen-jian">二、关键文件清单</a></li>
+    <li><a href="#san-jie-kou">三、Tool 接口字段</a></li>
+    <li><a href="#si-zhi-xing">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian">五、权限与安全</a></li>
+    <li><a href="#liu-guan-xi">六、与其他系统的关系</a></li>
+    <li><a href="#qi-liang-dian">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-dao-hang">八、源码导航</a></li>
+    <li><a href="#jiu-jian-yi">九、学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p>这是工具系统逐个拆解系列的一篇。<code>SendUserFile</code> 是一个<strong>简单</strong>的文件投递工具：在 KAIROS 助手模式下，当用户请求文件或文件与对话相关时，把本地文件发送到用户设备。它复用 BriefTool 的 <code>uploadBriefAttachment</code> 进行 bridge 上传，体现"工具间共享上传能力"的设计。</p></blockquote>
+
+  <hr class="divider">
+
+  <section id="yi-ding-wei">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>SendUserFile</code> = 助手模式下把本地文件投递给用户设备（经 bridge 上传）的工具。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>SendUserFile</code>（常量 <code>SEND_USER_FILE_TOOL_NAME</code>，<code>prompt.ts:1</code>）</td></tr>
+          <tr><td>一句话</td><td>校验文件存在 → bridge 上传 → 返回 file_uuid 或本地路径</td></tr>
+          <tr><td>是否进 system prompt</td><td>❌ 不在 <code>CORE_TOOLS</code>；<code>tools.ts:47-50</code> 受 <code>feature('KAIROS')</code> 门控，<code>:267</code> 条件注册</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>:52</code>，只读文件不修改）</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>:49</code>）</td></tr>
+          <tr><td>激活门控</td><td><code>feature('KAIROS')</code>（构建期） + <code>isBridgeEnabled()</code>（运行时 <code>:46</code>）</td></tr>
+          <tr><td>核心依赖</td><td><code>fs/promises.stat</code>、<code>BriefTool/upload.ts</code> 的 <code>uploadBriefAttachment</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> 助手模式下用户可能在移动端 / web 端。当对话涉及一个文件（如生成的报告、截图、日志），用户希望能直接在设备上查看，而非 SSH 到 Claude 的机器。本工具把文件上传到 private_api，返回 <code>file_uuid</code> 供 web 查看器预览。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-wen-jian">
+    <h2>二、关键文件清单</h2>
+    <pre><code>SendUserFileTool/
+├── SendUserFileTool.ts   ← buildTool({...}) 主体（131 行）
+└── prompt.ts             ← 工具名常量（2 行）</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>SendUserFileTool.ts</code></td><td>主体：schema + call() + 文件校验 + bridge 上传</td><td><code>buildTool:24</code>、<code>call:77</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>工具名常量</td><td><code>SEND_USER_FILE_TOOL_NAME:1</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：单文件主体 + 极简 prompt.ts。关键在于它<strong>跨工具复用</strong> BriefTool 的上传逻辑——通过动态 <code>import('.../BriefTool/upload.js')</code> 调用 <code>uploadBriefAttachment</code>（<code>:106-108</code>）。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-jie-kou">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre><code>name: SEND_USER_FILE_TOOL_NAME,   // "SendUserFile"
+searchHint: 'send file to user mobile device upload share',
+maxResultSizeChars: 5_000,
+strict: true,</code></pre>
+    <h3>模型面字段</h3>
+    <pre><code>async description() { return '将文件发送给用户（KAIROS 助手模式）' }
+async prompt()      { return `将文件发送到用户设备...` }
+get inputSchema()   // lazySchema + z.strictObject</code></pre>
+    <p><strong>输入 schema</strong>（<code>:8-18</code>）：</p>
+    <pre><code>{
+  file_path: string,       // 必填，绝对路径
+  description?: string,    // 可选，文件描述
+}</code></pre>
+    <p><strong>输出类型</strong>（<code>:22</code>）：</p>
+    <pre><code>{ sent: boolean, file_path: string }</code></pre>
+    <h3>行为字段</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:77</code></td><td>文件校验 + bridge 上传（见下节）</td></tr>
+          <tr><td><code>isEnabled()</code></td><td><code>:46</code> → <code>isBridgeEnabled()</code></td><td>运行时门控</td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:49</code> → <code>true</code></td><td></td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:52</code> → <code>true</code></td><td>只读文件</td></tr>
+          <tr><td><code>userFacingName()</code></td><td><code>:56</code> → <code>'SendFile'</code></td><td></td></tr>
+          <tr><td><code>renderToolUseMessage</code></td><td><code>:60</code> → <code>Send file: &lt;path&gt;</code></td><td></td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>:64</code></td><td><code>File sent: &lt;path&gt;</code> / <code>Failed...</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-zhi-xing">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code>（<code>:77-130</code>）分三步：校验 → 上传 → 组装结果：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["call(input, ctx)\n:77"] --> B["stat(file_path)\n:84"]
+    B --> C{"isFile?"}
+    C -->|否| ERR1["return {sent:false,\nerror:'Path is not a file.'}\n:86"]
+    C -->|是 且 stat 成功| D["fileSize = stat.size\n:90"]
+    B -->|catch| ERR2["return {sent:false,\nerror:'File does not exist...'}\n:91"]
+    D --> E{"replBridgeEnabled?\n:104"}
+    E -->|是| F["动态导入 uploadBriefAttachment\n上传\n:106-112"]
+    E -->|否| G["fileUuid=undefined"]
+    F --> H["delivered = !bridge || fileUuid\n:118"]
+    G --> H
+    H --> I["return {sent:delivered, file_path,\nsize, file_uuid?, error?}\n:119"]
+      </div>
+    </div>
+    <p><strong>关键点逐条</strong>：</p>
+    <ol>
+      <li><strong>文件校验先于上传</strong>（<code>:83-99</code>）：<code>stat</code> 检查路径存在且是普通文件。非文件 → <code>Path is not a file.</code>；异常 → <code>File does not exist or is not readable.</code>。错误用 return 而非 throw，保持工具语义。</li>
+      <li><strong>动态导入 BriefTool 上传</strong>（<code>:106-108</code>）：<code>import('@claude-code-best/builtin-tools/tools/BriefTool/upload.js')</code>——跨工具复用 <code>uploadBriefAttachment</code>。动态导入让 upload.ts（axios/crypto）在非 bridge 构建中可 tree-shaking。</li>
+      <li><strong>上传失败容忍</strong>（<code>:113-115</code>）：catch 块注释"best-effort upload——本地路径始终可用"。上传失败不阻断，文件在本地仍可访问。</li>
+      <li><strong><code>delivered</code> 判定</strong>（<code>:118</code>）：<code>!replBridgeEnabled || Boolean(fileUuid)</code>——无 bridge 时视为 delivered（本地可用）；有 bridge 时必须有 file_uuid 才算成功。</li>
+      <li><strong>结果组装</strong>（<code>:119-128</code>）：条件展开 <code>file_uuid</code>（成功时）与 <code>error</code>（失败时）。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian">
+    <h2>五、权限与安全</h2>
+    <ul>
+      <li><strong>无 <code>checkPermissions</code> / <code>validateInput</code></strong>：靠 <code>stat</code> 内联校验 + <code>strict: true</code>。</li>
+      <li><strong><code>isEnabled: isBridgeEnabled()</code></strong>（<code>:46</code>）：未配 bridge 时工具不可见。</li>
+      <li><strong>文件存在性校验</strong>（<code>:83-99</code>）：拒绝不存在的路径和非文件路径。</li>
+      <li><strong>上传鉴权</strong>：委托给 <code>uploadBriefAttachment</code>（Bearer token、30MB 上限、201 校验，详见 BriefTool 报告）。</li>
+      <li><strong>best-effort 上传</strong>（<code>:113</code>）：上传失败不抛错，本地路径兜底——但这意味着 web 用户可能看到无 file_uuid 的失效卡片（upload.ts 注释提及此风险）。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-guan-xi">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    SUF["SendUserFileTool"] -->|动态导入| UP["BriefTool/upload.ts\nuploadBriefAttachment"]
+    UP -->|上传| API["/api/oauth/file_upload\nprivate_api"]
+    SUF -->| isEnabled | BRIDGE["isBridgeEnabled"]
+    SUF -.同族.-> BRIEF["BriefTool\n共享附件上传能力"]
+    SUF -.同族.-> PUSH["PushNotificationTool\n共享 bridge 门控"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 <code>BriefTool</code></strong>：核心关系——复用 <code>uploadBriefAttachment</code>。这正是 <code>attachments.ts</code> / <code>upload.ts</code> 放在 BriefTool 目录的原因（BriefTool 报告"二、文件清单"已说明）。</li>
+      <li><strong>与 bridge 系统</strong>：上传依赖 bridge token、base URL、session。</li>
+      <li><strong>与 private_api</strong>：上传的文件存储在与 SpaceMessage 同一后端，web 查看器通过 file_uuid 预览。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>跨工具复用上传逻辑</strong>（<code>:106</code>）：不重复实现上传，直接动态导入 BriefTool 的 <code>uploadBriefAttachment</code>。DRY 原则的体现，也解释了 upload.ts 的模块归属。</li>
+      <li><strong>best-effort + 本地兜底</strong>（<code>:113,118</code>）：web 端可能失效，但本地端始终可用——在"远程预览"与"本地访问"之间做权衡。</li>
+      <li><strong><code>delivered</code> 双语义</strong>（<code>:118</code>）：无 bridge = 本地 delivered；有 bridge = 必须上传成功。诚实反映两种部署下的"送达"含义。</li>
+      <li><strong>错误用 return 而非 throw</strong>（<code>:86,91</code>）：工具语义要求结构化结果，throw 会被当成工具错误而非业务结果。</li>
+      <li><strong>动态导入隔离依赖</strong>（<code>:106</code>）：与 BriefTool 同策略，保护非 bridge 构建。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-dao-hang">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>SendUserFileTool/prompt.ts:1</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>SendUserFileTool/SendUserFileTool.ts:24-131</code></td></tr>
+          <tr><td>输入 schema</td><td><code>SendUserFileTool.ts:8-18</code></td></tr>
+          <tr><td><code>call()</code> 文件校验</td><td><code>SendUserFileTool.ts:77-99</code></td></tr>
+          <tr><td><code>call()</code> bridge 上传</td><td><code>SendUserFileTool.ts:101-116</code></td></tr>
+          <tr><td><code>delivered</code> 判定</td><td><code>SendUserFileTool.ts:118</code></td></tr>
+          <tr><td>上传实现（复用）</td><td><code>BriefTool/upload.ts:91-173</code></td></tr>
+          <tr><td>feature gate 注册</td><td><code>src/tools.ts:47-50, 267</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-jian-yi">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：核心是"四、call()"的三步流程，重点理解跨工具复用 uploadBriefAttachment 的设计与 best-effort 上传策略。建议先读 BriefTool 报告了解 upload.ts 细节。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 SendUserFile 如何复用 BriefTool 的上传能力（动态导入 <code>uploadBriefAttachment</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>delivered</code> 的双语义（无 bridge=本地；有 bridge=需 file_uuid）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 best-effort 上传失败时的兜底（本地路径可用）</span></li>
+      <li><input type="checkbox" disabled> <span>能找到 feature gate（<code>KAIROS</code>，<code>tools.ts:47</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出文件校验的两个失败分支（非文件 / 不存在）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>启用 KAIROS + bridge，让模型发送一个日志文件，观察 file_uuid 返回</li>
+      <li>传入不存在的路径，观察 <code>sent:false</code> 错误消息</li>
+      <li>断开 bridge，观察 <code>delivered</code> 是否仍为 true（本地路径）</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

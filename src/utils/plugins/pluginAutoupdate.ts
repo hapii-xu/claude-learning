@@ -1,13 +1,13 @@
 /**
- * Background plugin autoupdate functionality
+ * 后台插件自动更新功能
  *
- * At startup, this module:
- * 1. First updates marketplaces that have autoUpdate enabled
- * 2. Then checks all installed plugins from those marketplaces and updates them
+ * 启动时，本模块：
+ * 1. 首先更新启用了 autoUpdate 的 marketplace
+ * 2. 然后检查来自这些 marketplace 的所有已安装插件并更新它们
  *
- * Updates are non-inplace (disk-only), requiring a restart to take effect.
- * Official Anthropic marketplaces have autoUpdate enabled by default,
- * but users can disable it per-marketplace.
+ * 更新采用非就地方式（仅磁盘），需要重启才能生效。
+ * Anthropic 官方 marketplace 默认启用 autoUpdate，
+ * 但用户可以按 marketplace 禁用它。
  */
 
 import { updatePluginOp } from '../../services/plugins/pluginOperations.js'
@@ -30,30 +30,30 @@ import { parsePluginIdentifier } from './pluginIdentifier.js'
 import { isMarketplaceAutoUpdate, type PluginScope } from './schemas.js'
 
 /**
- * Callback type for notifying when plugins have been updated
+ * 插件更新通知的回调类型
  */
 export type PluginAutoUpdateCallback = (updatedPlugins: string[]) => void
 
-// Store callback for plugin update notifications
+// 存储插件更新通知的回调
 let pluginUpdateCallback: PluginAutoUpdateCallback | null = null
 
-// Store pending updates that occurred before callback was registered
-// This handles the race condition where updates complete before REPL mounts
+// 存储在回调注册前发生的待处理更新
+// 这处理了更新在 REPL 挂载前完成的竞态条件
 let pendingNotification: string[] | null = null
 
 /**
- * Register a callback to be notified when plugins are auto-updated.
- * This is used by the REPL to show restart notifications.
+ * 注册一个在插件自动更新时收到通知的回调。
+ * REPL 使用此函数显示重启通知。
  *
- * If plugins were already updated before the callback was registered,
- * the callback will be invoked immediately with the pending updates.
+ * 若在回调注册前插件已被更新，
+ * 回调将立即被调用并传入待处理的更新。
  */
 export function onPluginsAutoUpdated(
   callback: PluginAutoUpdateCallback,
 ): () => void {
   pluginUpdateCallback = callback
 
-  // If there are pending updates that happened before registration, deliver them now
+  // 若在注册前有待处理的更新，立即交付它们
   if (pendingNotification !== null && pendingNotification.length > 0) {
     callback(pendingNotification)
     pendingNotification = null
@@ -65,8 +65,8 @@ export function onPluginsAutoUpdated(
 }
 
 /**
- * Check if pending updates came from autoupdate (for notification purposes).
- * Returns the list of plugin names that have pending updates.
+ * 检查待处理的更新是否来自自动更新（用于通知目的）。
+ * 返回有待处理更新的插件名称列表。
  */
 export function getAutoUpdatedPluginNames(): string[] {
   if (!hasPendingUpdates()) {
@@ -78,8 +78,8 @@ export function getAutoUpdatedPluginNames(): string[] {
 }
 
 /**
- * Get the set of marketplaces that have autoUpdate enabled.
- * Returns the marketplace names that should be auto-updated.
+ * 获取启用了 autoUpdate 的 marketplace 集合。
+ * 返回应自动更新的 marketplace 名称。
  */
 async function getAutoUpdateEnabledMarketplaces(): Promise<Set<string>> {
   const config = await loadKnownMarketplacesConfig()
@@ -87,7 +87,7 @@ async function getAutoUpdateEnabledMarketplaces(): Promise<Set<string>> {
   const enabled = new Set<string>()
 
   for (const [name, entry] of Object.entries(config)) {
-    // Settings-declared autoUpdate takes precedence over JSON state
+    // Settings 声明的 autoUpdate 优先于 JSON 状态
     const declaredAutoUpdate = declared[name]?.autoUpdate
     const autoUpdate =
       declaredAutoUpdate !== undefined
@@ -102,8 +102,8 @@ async function getAutoUpdateEnabledMarketplaces(): Promise<Set<string>> {
 }
 
 /**
- * Update a single plugin's installations.
- * Returns the plugin ID if any installation was updated, null otherwise.
+ * 更新单个插件的所有安装。
+ * 若任意安装被更新则返回插件 ID，否则返回 null。
  */
 async function updatePlugin(
   pluginId: string,
@@ -138,25 +138,23 @@ async function updatePlugin(
 }
 
 /**
- * Update all project-relevant installed plugins from the given marketplaces.
+ * 更新所有与当前项目相关的已安装插件（来自给定的 marketplace）。
  *
- * Iterates installed_plugins.json, filters to plugins whose marketplace is in
- * the set, further filters each plugin's installations to those relevant to
- * the current project (user/managed scope, or project/local scope matching
- * cwd — see isInstallationRelevantToCurrentProject), then calls updatePluginOp
- * per installation. Already-up-to-date plugins are silently skipped.
+ * 遍历 installed_plugins.json，过滤出 marketplace 在集合中的插件，
+ * 进一步过滤每个插件的安装为与当前项目相关的安装（user/managed 作用域，
+ * 或与 cwd 匹配的 project/local 作用域 —— 参见 isInstallationRelevantToCurrentProject），
+ * 然后对每个安装调用 updatePluginOp。已是最新的插件会被静默跳过。
  *
- * Called by:
- * - updatePlugins() below — background autoupdate path (autoUpdate-enabled
- *   marketplaces only; third-party marketplaces default autoUpdate: false)
- * - ManageMarketplaces.tsx applyChanges() — user-initiated /plugin marketplace
- *   update. Before #29512 this path only called refreshMarketplace() (git
- *   pull on the marketplace clone), so the loader would create the new
- *   version cache dir but installed_plugins.json stayed on the old version,
- *   and the orphan GC stamped the NEW dir with .orphaned_at on next startup.
+ * 调用方：
+ * - 下方的 updatePlugins() —— 后台自动更新路径（仅限 autoUpdate 启用的
+ *   marketplace；第三方 marketplace 默认 autoUpdate: false）
+ * - ManageMarketplaces.tsx 的 applyChanges() —— 用户发起的 /plugin marketplace
+ *   更新。在 #29512 之前，此路径仅调用 refreshMarketplace()（对 marketplace
+ *   克隆执行 git pull），因此加载器会创建新版本缓存目录，但 installed_plugins.json
+ *   仍停留在旧版本，孤立 GC 在下次启动时会在新目录上盖上 .orphaned_at。
  *
- * @param marketplaceNames - lowercase marketplace names to update plugins from
- * @returns plugin IDs that were actually updated (not already up-to-date)
+ * @param marketplaceNames - 要更新插件的小写 marketplace 名称
+ * @returns 实际被更新的插件 ID（非已是最新的）
  */
 export async function updatePluginsForMarketplaces(
   marketplaceNames: Set<string>,
@@ -200,8 +198,8 @@ export async function updatePluginsForMarketplaces(
 }
 
 /**
- * Update plugins from marketplaces that have autoUpdate enabled.
- * Returns the list of plugin IDs that were updated.
+ * 从启用了 autoUpdate 的 marketplace 更新插件。
+ * 返回被更新的插件 ID 列表。
  */
 async function updatePlugins(
   autoUpdateEnabledMarketplaces: Set<string>,
@@ -210,19 +208,19 @@ async function updatePlugins(
 }
 
 /**
- * Auto-update marketplaces and plugins in the background.
+ * 在后台自动更新 marketplace 和插件。
  *
- * This function:
- * 1. Checks which marketplaces have autoUpdate enabled
- * 2. Refreshes only those marketplaces (git pull/re-download)
- * 3. Updates installed plugins from those marketplaces
- * 4. If any plugins were updated, notifies via the registered callback
+ * 此函数：
+ * 1. 检查哪些 marketplace 启用了 autoUpdate
+ * 2. 仅刷新这些 marketplace（git pull/重新下载）
+ * 3. 更新来自这些 marketplace 的已安装插件
+ * 4. 若有插件被更新，通过注册的回调通知
  *
- * Official Anthropic marketplaces have autoUpdate enabled by default,
- * but users can disable it per-marketplace in the UI.
+ * Anthropic 官方 marketplace 默认启用 autoUpdate，
+ * 但用户可以在 UI 中按 marketplace 禁用它。
  *
- * This function runs silently without blocking user interaction.
- * Called from main.tsx during startup as a background job.
+ * 此函数静默运行，不阻塞用户交互。
+ * 在启动期间从 main.tsx 作为后台任务调用。
  */
 export function autoUpdateMarketplacesAndPluginsInBackground(): void {
   void (async () => {
@@ -232,7 +230,7 @@ export function autoUpdateMarketplacesAndPluginsInBackground(): void {
     }
 
     try {
-      // Get marketplaces with autoUpdate enabled
+      // 获取启用了 autoUpdate 的 marketplace
       const autoUpdateEnabledMarketplaces =
         await getAutoUpdateEnabledMarketplaces()
 
@@ -240,7 +238,7 @@ export function autoUpdateMarketplacesAndPluginsInBackground(): void {
         return
       }
 
-      // Refresh only marketplaces with autoUpdate enabled
+      // 仅刷新启用了 autoUpdate 的 marketplace
       const refreshResults = await Promise.allSettled(
         Array.from(autoUpdateEnabledMarketplaces).map(async name => {
           try {
@@ -256,7 +254,7 @@ export function autoUpdateMarketplacesAndPluginsInBackground(): void {
         }),
       )
 
-      // Log any refresh failures
+      // 记录所有刷新失败
       const failures = refreshResults.filter(r => r.status === 'rejected')
       if (failures.length > 0) {
         logForDebugging(
@@ -270,10 +268,10 @@ export function autoUpdateMarketplacesAndPluginsInBackground(): void {
 
       if (updatedPlugins.length > 0) {
         if (pluginUpdateCallback) {
-          // Callback is already registered, invoke it immediately
+          // 回调已注册，立即调用
           pluginUpdateCallback(updatedPlugins)
         } else {
-          // Callback not yet registered (REPL not mounted), store for later delivery
+          // 回调尚未注册（REPL 未挂载），存储以便稍后交付
           pendingNotification = updatedPlugins
         }
       }

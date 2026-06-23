@@ -150,6 +150,11 @@ function* yieldMissingToolResultBlocks(
   assistantMessages: AssistantMessage[],
   errorMessage: string,
 ) {
+  logForDebugging(
+    `-------------- yieldMissingToolResultBlocks 开始 ----------- assistantMsgs=${assistantMessages.length} error="${errorMessage.slice(0, 80)}"`,
+    { level: 'info' },
+  )
+  let totalBlocksYielded = 0
   for (const assistantMessage of assistantMessages) {
     // 从该 assistant 消息中提取所有 tool_use 块
     const toolUseBlocks = (
@@ -160,8 +165,18 @@ function* yieldMissingToolResultBlocks(
       (content: { type: string }) => content.type === 'tool_use',
     ) as ToolUseBlock[]
 
+    logForDebugging(
+      `[Hapii] yieldMissingToolResultBlocks — assistantUuid=${assistantMessage.uuid} toolUseBlocks=${toolUseBlocks.length}`,
+      { level: 'info' },
+    )
+
     // 为每个 tool_use 生成一条中断消息
     for (const toolUse of toolUseBlocks) {
+      totalBlocksYielded++
+      logForDebugging(
+        `[Hapii] yieldMissingToolResultBlocks — yield error tool_result #${totalBlocksYielded} tool_use_id=${toolUse.id} name=${toolUse.name}`,
+        { level: 'info' },
+      )
       yield createUserMessage({
         content: [
           {
@@ -176,6 +191,10 @@ function* yieldMissingToolResultBlocks(
       })
     }
   }
+  logForDebugging(
+    `------------ yieldMissingToolResultBlocks 结束 --------- totalBlocksYielded=${totalBlocksYielded}`,
+    { level: 'info' },
+  )
 }
 
 /**
@@ -205,34 +224,61 @@ const MAX_OUTPUT_TOKENS_RECOVERY_LIMIT = 3
 function isWithheldMaxOutputTokens(
   msg: Message | StreamEvent | undefined,
 ): msg is AssistantMessage {
-  return msg?.type === 'assistant' && msg.apiError === 'max_output_tokens'
+  const result =
+    msg?.type === 'assistant' && msg.apiError === 'max_output_tokens'
+  logForDebugging(
+    `[Hapii] isWithheldMaxOutputTokens — msgType=${msg?.type ?? 'undefined'} apiError=${(msg as AssistantMessage | undefined)?.apiError ?? 'N/A'} result=${result}`,
+    { level: 'info' },
+  )
+  return result
 }
 
 function getAutonomyTurnOutcome(params: {
   terminal?: Terminal
   thrownError?: unknown
 }): AutonomyTurnOutcome {
+  logForDebugging(
+    `-------------- getAutonomyTurnOutcome 开始 ----------- hasTerminal=${params.terminal !== undefined} reason=${params.terminal?.reason ?? 'N/A'} hasThrownError=${params.thrownError !== undefined}`,
+    { level: 'info' },
+  )
+  let outcome: AutonomyTurnOutcome
   if (params.thrownError !== undefined) {
-    return { type: 'failed', error: params.thrownError }
+    outcome = { type: 'failed', error: params.thrownError }
+    logForDebugging(
+      `[Hapii] getAutonomyTurnOutcome — path=thrownError outcome=failed`,
+      { level: 'info' },
+    )
+  } else {
+    const terminal = params.terminal
+    const reason = terminal?.reason
+    switch (reason) {
+      case 'completed':
+        outcome = { type: 'completed' }
+        break
+      case undefined:
+      case 'aborted_streaming':
+      case 'aborted_tools':
+        outcome = { type: 'cancelled' }
+        break
+      case 'model_error':
+        outcome = { type: 'failed', error: terminal.error }
+        break
+      default:
+        outcome = {
+          type: 'failed',
+          message: `query ended without successful completion: ${reason}`,
+        }
+    }
+    logForDebugging(
+      `[Hapii] getAutonomyTurnOutcome — reason=${reason ?? 'undefined'} outcome.type=${outcome.type}`,
+      { level: 'info' },
+    )
   }
-
-  const terminal = params.terminal
-  const reason = terminal?.reason
-  switch (reason) {
-    case 'completed':
-      return { type: 'completed' }
-    case undefined:
-    case 'aborted_streaming':
-    case 'aborted_tools':
-      return { type: 'cancelled' }
-    case 'model_error':
-      return { type: 'failed', error: terminal.error }
-    default:
-      return {
-        type: 'failed',
-        message: `query ended without successful completion: ${reason}`,
-      }
-  }
+  logForDebugging(
+    `------------ getAutonomyTurnOutcome 结束 --------- outcome.type=${outcome.type}`,
+    { level: 'info' },
+  )
+  return outcome
 }
 
 export type QueryParams = {
@@ -305,6 +351,10 @@ export async function* query(
   | ToolUseSummaryMessage,
   Terminal
 > {
+  logForDebugging(
+    `-------------- query 开始 ----------- messages=${params.messages.length} tools=${params.toolUseContext.options.tools.length} source=${params.querySource} maxTurns=${params.maxTurns ?? '∞'} querySource=${params.querySource} agentId=${params.toolUseContext.agentId ?? 'main'}`,
+    { level: 'info' },
+  )
   const consumedCommandUuids: string[] = []
   const consumedAutonomyCommands: QueuedCommand[] = []
 
@@ -313,11 +363,8 @@ export async function* query(
   // 复用它而不是创建独立的 trace。
   const ownsTrace = !params.toolUseContext.langfuseTrace
   logForDebugging(
-    `[Hapii] Query.query 启动 messages=${params.messages.length} tools=${params.toolUseContext.options.tools.length} source=${params.querySource}`,
+    `[Hapii] query — ownsTrace=${ownsTrace} incomingLangfuseTrace=${params.toolUseContext.langfuseTrace ? 'present' : 'null'} isLangfuseEnabled=${isLangfuseEnabled()}`,
     { level: 'info' },
-  )
-  logForDebugging(
-    `[query] ownsTrace=${ownsTrace} incoming langfuseTrace=${params.toolUseContext.langfuseTrace ? 'present' : 'null/undefined'} isLangfuseEnabled=${isLangfuseEnabled()}`,
   )
   const langfuseTrace =
     params.toolUseContext.langfuseTrace ??
@@ -330,6 +377,10 @@ export async function* query(
           querySource: params.querySource,
         })
       : null)
+  logForDebugging(
+    `[Hapii] query — langfuseTrace resolved: ${langfuseTrace ? 'created/reused' : 'null(disabled)'}`,
+    { level: 'info' },
+  )
 
   // 将 trace 挂到 toolUseContext，让工具执行可以记录 observations
   const paramsWithTrace: QueryParams = langfuseTrace
@@ -342,17 +393,33 @@ export async function* query(
   let terminal: Terminal | undefined
   let didThrow = false
   let thrownError: unknown
+  logForDebugging(
+    `[Hapii] query — 准备调用 queryLoop, paramsWithTrace messages=${paramsWithTrace.messages.length}`,
+    { level: 'info' },
+  )
   try {
     terminal = yield* queryLoop(
       paramsWithTrace,
       consumedCommandUuids,
       consumedAutonomyCommands,
     )
+    logForDebugging(
+      `[Hapii] query — queryLoop 正常返回 terminal.reason=${terminal?.reason ?? 'undefined'}`,
+      { level: 'info' },
+    )
   } catch (error) {
     didThrow = true
     thrownError = error
+    logForDebugging(
+      `[Hapii] query — queryLoop 抛出错误: ${error instanceof Error ? error.message : String(error)}`,
+      { level: 'error' },
+    )
     throw error
   } finally {
+    logForDebugging(
+      `[Hapii] query — finally 块开始: didThrow=${didThrow} terminal.reason=${terminal?.reason ?? 'N/A'} consumedAutonomyCommands=${consumedAutonomyCommands.length}`,
+      { level: 'info' },
+    )
     await finalizeAutonomyCommandsForTurn({
       commands: consumedAutonomyCommands,
       outcome: getAutonomyTurnOutcome({
@@ -362,6 +429,10 @@ export async function* query(
       priority: 'later',
     })
       .then(nextCommands => {
+        logForDebugging(
+          `[Hapii] query — finalizeAutonomyCommands 完成, nextCommands=${nextCommands.length}`,
+          { level: 'info' },
+        )
         for (const command of nextCommands) {
           enqueue(command)
         }
@@ -373,12 +444,16 @@ export async function* query(
       const isAborted =
         terminal?.reason === 'aborted_streaming' ||
         terminal?.reason === 'aborted_tools'
+      logForDebugging(`[Hapii] query — endTrace: isAborted=${isAborted}`, {
+        level: 'info',
+      })
       endTrace(langfuseTrace, undefined, isAborted ? 'interrupted' : undefined)
       // flush processor 以释放 span 数据（包括以
       // langfuse.observation.input 存储的序列化对话历史）。没有这一步，
       // SpanImpl 对象会保留数百 KB 的 JSON 直到 processor 的批次定时器
       // 触发（默认 10s）。
       await flushLangfuse()
+      logForDebugging(`[Hapii] query — flushLangfuse 完成`, { level: 'info' })
     }
 
     // 斩断闭包链：toolUseContext 捕获的 langfuseTrace 持有
@@ -388,6 +463,9 @@ export async function* query(
       paramsWithTrace.toolUseContext.langfuseTrace = null
       paramsWithTrace.toolUseContext.langfuseRootTrace = null
       paramsWithTrace.toolUseContext.langfuseBatchSpan = null
+      logForDebugging(`[Hapii] query — 已置空 langfuse 闭包引用，方便 GC`, {
+        level: 'info',
+      })
     }
 
     // 清理 JSC 原生的 Performance 缓冲。OTel（otperformance）引用
@@ -400,19 +478,35 @@ export async function* query(
         gPerf.clearMarks()
         gPerf.clearMeasures?.()
         gPerf.clearResourceTimings?.()
+        logForDebugging(`[Hapii] query — Performance 缓冲已清理`, {
+          level: 'info',
+        })
       } catch {
         // 非关键 —— 某些环境可能不支持所有方法
+        logForDebugging(
+          `[Hapii] query — Performance 清理失败（非关键，某些环境不支持）`,
+          { level: 'warn' },
+        )
       }
     }
+    logForDebugging(`[Hapii] query — finally 块结束`, { level: 'info' })
   }
 
   // 只有 queryLoop 正常返回才会到达这里。throw 时（错误通过 yield*
   // 传播）和 .return() 时（Return 完成同时关闭两个 generator）都
   // 会跳过。这样在轮次失败时给出和 print.ts 的 drainCommandQueue
   // 相同的非对称 started-without-completed 信号。
+  logForDebugging(
+    `[Hapii] query — 通知 command lifecycle completed: consumedCommandUuids=${consumedCommandUuids.length}`,
+    { level: 'info' },
+  )
   for (const uuid of consumedCommandUuids) {
     notifyCommandLifecycle(uuid, 'completed')
   }
+  logForDebugging(
+    `------------ query 结束 --------- terminal.reason=${terminal?.reason ?? 'undefined'} consumedCommands=${consumedCommandUuids.length}`,
+    { level: 'info' },
+  )
   return terminal!
 }
 
@@ -442,11 +536,7 @@ async function* queryLoop(
   Terminal
 > {
   logForDebugging(
-    `[Hapii] Query.queryLoop 开始 initMsgs=${params.messages.length} maxTurns=${params.maxTurns ?? '∞'}`,
-    { level: 'info' },
-  )
-  logForDebugging(
-    `[query] queryLoop 开始, 初始消息数=${params.messages.length}, maxTurns=${params.maxTurns ?? '无限制'}`,
+    `-------------- queryLoop 开始 ----------- initMsgs=${params.messages.length} maxTurns=${params.maxTurns ?? '∞'} agentId=${params.toolUseContext.agentId ?? 'main'} querySource=${params.querySource} fallbackModel=${params.fallbackModel ?? 'none'}`,
     { level: 'info' },
   )
   // 不可变 params —— 查询循环中绝不重新赋值。
@@ -461,6 +551,10 @@ async function* queryLoop(
     skipCacheWrite,
   } = params
   const deps = params.deps ?? productionDeps()
+  logForDebugging(
+    `[Hapii] queryLoop — params 解构完成: deps=${deps === productionDeps() ? 'production' : 'injected'} taskBudget=${params.taskBudget ? `total=${params.taskBudget.total}` : 'none'}`,
+    { level: 'info' },
+  )
 
   // 跨迭代的可变状态。循环体在每次迭代开头解构它，这样读取时只用
   // 裸名（`messages`、`toolUseContext`）。继续点写入 `state = { ... }`
@@ -491,6 +585,10 @@ async function* queryLoop(
   // 在入口处一次性快照不可变的 env/statsig/session 状态。具体包含
   // 什么、为什么 feature() 门控被刻意排除，见 QueryConfig。
   const config = buildQueryConfig()
+  logForDebugging(
+    `[Hapii] queryLoop — config 快照完成: gates.streamingToolExecution=${config.gates.streamingToolExecution} gates.isAnt=${config.gates.isAnt} gates.emitToolUseSummaries=${config.gates.emitToolUseSummaries}`,
+    { level: 'info' },
+  )
 
   // 每个用户轮次触发一次 —— prompt 在循环迭代之间是不变的，因此
   // 每次迭代都触发会让 sideQuery 重复问 N 次相同的问题。
@@ -500,6 +598,9 @@ async function* queryLoop(
     state.messages,
     state.toolUseContext,
   )
+  logForDebugging(`[Hapii] queryLoop — pendingMemoryPrefetch 已启动`, {
+    level: 'info',
+  })
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -519,11 +620,7 @@ async function* queryLoop(
     } = state
 
     logForDebugging(
-      `[Hapii] Query.queryLoop 第${turnCount}轮 messages=${messages.length}`,
-      { level: 'info' },
-    )
-    logForDebugging(
-      `[query] === 第${turnCount}轮循环 ===, 消息数=${messages.length}`,
+      `-------------- queryLoop.iteration 开始 ----------- turn=${turnCount} messages=${messages.length} transition=${state.transition?.reason ?? 'initial'} maxOutputTokensOverride=${maxOutputTokensOverride ?? 'default'} stopHookActive=${stopHookActive ?? false}`,
       { level: 'info' },
     )
 
@@ -544,6 +641,10 @@ async function* queryLoop(
         toolUseContext.options.tools ?? [],
         messages,
       )
+    logForDebugging(
+      `[Hapii] queryLoop.iter${turnCount} — 预取已启动: skillPrefetch=${pendingSkillPrefetch ? 'yes' : 'no'} toolPrefetch=${pendingToolPrefetch ? 'yes' : 'no'}`,
+      { level: 'info' },
+    )
 
     yield { type: 'stream_request_start' }
 
@@ -564,9 +665,12 @@ async function* queryLoop(
           chainId: deps.uuid(),
           depth: 0,
         }
+    logForDebugging(
+      `[Hapii] queryLoop.iter${turnCount} — queryTracking: chainId=${queryTracking.chainId} depth=${queryTracking.depth}`,
+      { level: 'info' },
+    )
 
-    const queryChainIdForAnalytics =
-      queryTracking.chainId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
+    const queryChainIdForAnalytics = queryTracking.chainId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
 
     toolUseContext = {
       ...toolUseContext,
@@ -574,12 +678,12 @@ async function* queryLoop(
     }
 
     logForDebugging(
-      `[Hapii] Query.queryLoop 第${turnCount + 1}轮开始 — 历史裁边前 messages=${messages.length}`,
+      `[Hapii] queryLoop.iter${turnCount} — 历史裁边前 messages=${messages.length}`,
       { level: 'info' },
     )
     let messagesForQuery = getMessagesAfterCompactBoundary(messages)
     logForDebugging(
-      `[Hapii] Query.getMessagesAfterCompactBoundary 裁边后 messagesForQuery=${messagesForQuery.length}（原 ${messages.length}）`,
+      `[Hapii] queryLoop.iter${turnCount} — getMessagesAfterCompactBoundary 裁边后 messagesForQuery=${messagesForQuery.length}（原 ${messages.length}，移除 ${messages.length - messagesForQuery.length}）`,
       { level: 'info' },
     )
 
@@ -607,9 +711,11 @@ async function* queryLoop(
     // 记录的 querySource 持久化：agentId 路由到 sidechain 文件
     //（AgentTool resume）或会话文件（/resume）。临时 runForkedAgent
     // 调用方（agent_summary 等）不持久化。
-    const persistReplacements =
-      querySource.startsWith('agent:') ||
-      querySource.startsWith('repl_main_thread')
+    const persistReplacements = querySource.startsWith('agent:') || querySource.startsWith('repl_main_thread')
+    logForDebugging(
+      `[Hapii] queryLoop.iter${turnCount} — applyToolResultBudget 开始: msgs=${messagesForQuery.length} persistReplacements=${persistReplacements}`,
+      { level: 'info' },
+    )
     messagesForQuery = await applyToolResultBudget(
       messagesForQuery,
       toolUseContext.contentReplacementState,
@@ -626,6 +732,10 @@ async function* queryLoop(
           .map(t => t.name),
       ),
     )
+    logForDebugging(
+      `[Hapii] queryLoop.iter${turnCount} — applyToolResultBudget 完成: msgs=${messagesForQuery.length}`,
+      { level: 'info' },
+    )
 
     // 在 microcompact 之前应用 snip（两者可能都跑 —— 不互斥）。
     // snipTokensFreed 传给 autocompact，让其阈值检查反映 snip 移除
@@ -634,9 +744,16 @@ async function* queryLoop(
     let snipTokensFreed = 0
     if (feature('HISTORY_SNIP')) {
       queryCheckpoint('query_snip_start')
+      logForDebugging(`[Hapii] queryLoop.iter${turnCount} — snipCompact 开始`, {
+        level: 'info',
+      })
       const snipResult = snipModule!.snipCompactIfNeeded(messagesForQuery)
       messagesForQuery = snipResult.messages
       snipTokensFreed = snipResult.tokensFreed
+      logForDebugging(
+        `[Hapii] queryLoop.iter${turnCount} — snipCompact 完成: tokensFreed=${snipTokensFreed} hasBoundary=${!!snipResult.boundaryMessage} msgs=${messagesForQuery.length}`,
+        { level: 'info' },
+      )
       if (snipResult.boundaryMessage) {
         yield snipResult.boundaryMessage
       }
@@ -645,6 +762,10 @@ async function* queryLoop(
 
     // 在 autocompact 之前应用 microcompact
     queryCheckpoint('query_microcompact_start')
+    logForDebugging(
+      `[Hapii] queryLoop.iter${turnCount} — microcompact 开始: msgs=${messagesForQuery.length}`,
+      { level: 'info' },
+    )
     const microcompactResult = await deps.microcompact(
       messagesForQuery,
       toolUseContext,
@@ -664,9 +785,11 @@ async function* queryLoop(
     // 对于缓存的 microcompact（缓存编辑），边界消息延迟到 API 响应
     // 之后才发出，这样就能使用真实的 cache_deleted_input_tokens。
     // 用 feature() 门控，让该字符串从外部构建中消失。
-    const pendingCacheEdits = feature('CACHED_MICROCOMPACT')
-      ? microcompactResult.compactionInfo?.pendingCacheEdits
-      : undefined
+    const pendingCacheEdits = feature('CACHED_MICROCOMPACT') ? microcompactResult.compactionInfo?.pendingCacheEdits : undefined
+    logForDebugging(
+      `[Hapii] queryLoop.iter${turnCount} — microcompact 完成: msgs=${messagesForQuery.length} clearedToolUseIds=${microcompactResult.clearedToolUseIds?.length ?? 0} hasPendingCacheEdits=${!!pendingCacheEdits}`,
+      { level: 'info' },
+    )
     queryCheckpoint('query_microcompact_end')
 
     // 投影折叠后的上下文视图，并可能提交更多折叠。在 autocompact
@@ -680,19 +803,35 @@ async function* queryLoop(
     // 向前流转，下一次 projectView() 成 no-op，因为归档的消息已经
     // 从它的输入中消失。
     if (feature('CONTEXT_COLLAPSE') && contextCollapse) {
+      logForDebugging(
+        `[Hapii] queryLoop.iter${turnCount} — contextCollapse.applyCollapsesIfNeeded 开始`,
+        { level: 'info' },
+      )
       const collapseResult = await contextCollapse.applyCollapsesIfNeeded(
         messagesForQuery,
         toolUseContext,
         querySource,
       )
       messagesForQuery = collapseResult.messages
+      logForDebugging(
+        `[Hapii] queryLoop.iter${turnCount} — contextCollapse 完成: msgs=${messagesForQuery.length}`,
+        { level: 'info' },
+      )
     }
 
     const fullSystemPrompt = asSystemPrompt(
       appendSystemContext(systemPrompt, systemContext),
     )
+    logForDebugging(
+      `[Hapii] queryLoop.iter${turnCount} — systemPrompt 构建完成: length=${fullSystemPrompt.length}`,
+      { level: 'info' },
+    )
 
     queryCheckpoint('query_autocompact_start')
+    logForDebugging(
+      `[Hapii] queryLoop.iter${turnCount} — autocompact 开始: msgs=${messagesForQuery.length} snipTokensFreed=${snipTokensFreed}`,
+      { level: 'info' },
+    )
     const { compactionResult, consecutiveFailures } = await deps.autocompact(
       messagesForQuery,
       toolUseContext,
@@ -708,6 +847,10 @@ async function* queryLoop(
       snipTokensFreed,
     )
     queryCheckpoint('query_autocompact_end')
+    logForDebugging(
+      `[Hapii] queryLoop.iter${turnCount} — autocompact 完成: compacted=${!!compactionResult} consecutiveFailures=${consecutiveFailures ?? 'N/A'}`,
+      { level: 'info' },
+    )
 
     if (compactionResult) {
       const {
@@ -716,6 +859,10 @@ async function* queryLoop(
         truePostCompactTokenCount,
         compactionUsage,
       } = compactionResult
+      logForDebugging(
+        `[Hapii] queryLoop.iter${turnCount} — autocompact 成功: preTokens=${preCompactTokenCount} postTokens=${postCompactTokenCount} truePostTokens=${truePostCompactTokenCount} totalUsage=${compactionUsage ? compactionUsage.input_tokens + (compactionUsage.cache_creation_input_tokens ?? 0) + (compactionUsage.cache_read_input_tokens ?? 0) + compactionUsage.output_tokens : 0}`,
+        { level: 'info' },
+      )
 
       logEvent('tengu_auto_compact_succeeded', {
         originalMessageCount: messages.length,
@@ -806,6 +953,10 @@ async function* queryLoop(
           toolUseContext,
         )
       : null
+    logForDebugging(
+      `[Hapii] queryLoop.iter${turnCount} — 设置阶段: streamingToolExecution=${useStreamingToolExecution} msgsForQuery=${messagesForQuery.length}`,
+      { level: 'info' },
+    )
 
     const appState = toolUseContext.getAppState()
     const permissionMode = appState.toolPermissionContext.mode
@@ -816,6 +967,10 @@ async function* queryLoop(
         permissionMode === 'plan' &&
         doesMostRecentAssistantMessageExceed200k(messagesForQuery),
     })
+    logForDebugging(
+      `[Hapii] queryLoop.iter${turnCount} — currentModel=${currentModel} permissionMode=${permissionMode} mcpTools=${appState.mcp.tools.length} pendingMcpServers=${appState.mcp.clients.filter(c => c.type === 'pending').length}`,
+      { level: 'info' },
+    )
 
     queryCheckpoint('query_setup_end')
 
@@ -872,16 +1027,25 @@ async function* queryLoop(
       ) &&
       !collapseOwnsIt
     ) {
+      const estimatedTokens =
+        tokenCountWithEstimation(messagesForQuery) - snipTokensFreed
       const { isAtBlockingLimit } = calculateTokenWarningState(
-        tokenCountWithEstimation(messagesForQuery) - snipTokensFreed,
+        estimatedTokens,
         toolUseContext.options.mainLoopModel,
+      )
+      logForDebugging(
+        `[Hapii] queryLoop.iter${turnCount} — blockingLimit 检查: estimatedTokens=${estimatedTokens} isAtBlockingLimit=${isAtBlockingLimit}`,
+        { level: 'info' },
       )
       if (isAtBlockingLimit) {
         yield createAssistantAPIErrorMessage({
           content: PROMPT_TOO_LONG_ERROR_MESSAGE,
           error: 'invalid_request',
         })
-        logForDebugging('[query] 循环终止: blocking_limit', { level: 'warn' })
+        logForDebugging(
+          `------------ queryLoop 结束 (blocking_limit) --------- turn=${turnCount} estimatedTokens=${estimatedTokens}`,
+          { level: 'warn' },
+        )
         return { reason: 'blocking_limit' }
       }
     }
@@ -896,6 +1060,10 @@ async function* queryLoop(
       const estimatedGrowth = estimateMaxTurnGrowth(model)
       const predictiveThreshold =
         getEffectiveContextWindowSize(model) - estimatedGrowth
+      logForDebugging(
+        `[Hapii] queryLoop.iter${turnCount} — 预测式 autocompact: currentTokens=${currentTokens} estimatedGrowth=${estimatedGrowth} predictiveThreshold=${predictiveThreshold} willCompact=${currentTokens > predictiveThreshold}`,
+        { level: 'info' },
+      )
       if (currentTokens > predictiveThreshold) {
         const predictiveResult = await deps.autocompact(
           messagesForQuery,
@@ -910,6 +1078,10 @@ async function* queryLoop(
           querySource,
           tracking,
           snipTokensFreed,
+        )
+        logForDebugging(
+          `[Hapii] queryLoop.iter${turnCount} — 预测式 autocompact 结果: compacted=${!!predictiveResult.compactionResult}`,
+          { level: 'info' },
         )
         if (predictiveResult.compactionResult) {
           messagesForQuery = buildPostCompactMessages(
@@ -930,7 +1102,7 @@ async function* queryLoop(
     let attemptWithFallback = true
 
     logForDebugging(
-      `[query] 准备调用 API, model=${currentModel}, 消息数=${messagesForQuery.length}`,
+      `[Hapii] queryLoop.iter${turnCount} — 准备调用 API: model=${currentModel} msgs=${messagesForQuery.length} thinkingConfig=${toolUseContext.options.thinkingConfig ? 'yes' : 'no'} fastMode=${config.gates.fastModeEnabled ? (appState.fastMode ? 'on' : 'off') : 'disabled'}`,
       { level: 'info' },
     )
     queryCheckpoint('query_api_loop_start')
@@ -1162,7 +1334,7 @@ async function* queryLoop(
           }
           queryCheckpoint('query_api_streaming_end')
           logForDebugging(
-            `[query] API 响应完成, 工具调用块数=${toolUseBlocks.length}, needsFollowUp=${needsFollowUp}, assistant消息数=${assistantMessages.length}`,
+            `[Hapii] queryLoop.iter${turnCount} — API 响应完成: toolUseBlocks=${toolUseBlocks.length} needsFollowUp=${needsFollowUp} assistantMsgs=${assistantMessages.length} streamingToolResults=${toolResults.length}`,
             { level: 'info' },
           )
 
@@ -1194,6 +1366,10 @@ async function* queryLoop(
           }
         } catch (innerError) {
           if (innerError instanceof FallbackTriggeredError && fallbackModel) {
+            logForDebugging(
+              `[Hapii] queryLoop.iter${turnCount} — FallbackTriggeredError: original=${innerError.originalModel} fallback=${fallbackModel}, 切换模型并重试`,
+              { level: 'warn' },
+            )
             // Fallback 已触发 —— 切换模型并重试
             currentModel = fallbackModel
             attemptWithFallback = true
@@ -1227,6 +1403,10 @@ async function* queryLoop(
             // 重试前剥离，让 fallback 模型拿到干净的历史。
             if (process.env.USER_TYPE === 'ant') {
               messagesForQuery = stripSignatureBlocks(messagesForQuery)
+              logForDebugging(
+                `[Hapii] queryLoop.iter${turnCount} — 已剥离 thinking 签名块（ant 模式）`,
+                { level: 'info' },
+              )
             }
 
             // 记录 fallback 事件
@@ -1250,6 +1430,10 @@ async function* queryLoop(
 
             continue
           }
+          logForDebugging(
+            `[Hapii] queryLoop.iter${turnCount} — API 内层错误（非 fallback）: ${innerError instanceof Error ? innerError.message : String(innerError)}`,
+            { level: 'error' },
+          )
           throw innerError
         }
       }
@@ -1257,6 +1441,10 @@ async function* queryLoop(
       logError(error)
       const errorMessage =
         error instanceof Error ? error.message : String(error)
+      logForDebugging(
+        `[Hapii] queryLoop.iter${turnCount} — API 外层 catch: errorType=${error instanceof Error ? error.constructor.name : typeof error} msg="${errorMessage.slice(0, 120)}" assistantMsgs=${assistantMessages.length}`,
+        { level: 'error' },
+      )
       logEvent('tengu_query_error', {
         assistantMessages: assistantMessages.length,
         toolUses: assistantMessages.flatMap(_ =>
@@ -1278,6 +1466,10 @@ async function* queryLoop(
         yield createAssistantAPIErrorMessage({
           content: error.message,
         })
+        logForDebugging(
+          `------------ queryLoop 结束 (image_error) --------- turn=${turnCount}`,
+          { level: 'error' },
+        )
         return { reason: 'image_error' }
       }
 
@@ -1296,7 +1488,10 @@ async function* queryLoop(
 
       // 为了帮助追查 bug，高调记录
       logAntError('Query error', error)
-      logForDebugging('[query] 循环终止: model_error', { level: 'error' })
+      logForDebugging(
+        `------------ queryLoop 结束 (model_error) --------- turn=${turnCount} error="${errorMessage.slice(0, 120)}"`,
+        { level: 'error' },
+      )
       return { reason: 'model_error', error }
     }
 
@@ -1343,6 +1538,10 @@ async function* queryLoop(
     // 以便 executor 为排队/进行中的工具生成合成 tool_result 块。
     // 否则 tool_use 块会缺少匹配的 tool_result 块。
     if (toolUseContext.abortController.signal.aborted) {
+      logForDebugging(
+        `[Hapii] queryLoop.iter${turnCount} — 流式响应被中断(aborted_streaming), reason=${toolUseContext.abortController.signal.reason ?? 'unknown'}`,
+        { level: 'warn' },
+      )
       if (streamingToolExecutor) {
         // 消费剩余结果 —— executor 为中断的工具生成合成 tool_result，
         // 因为它在 executeTool() 中检查 abort 信号
@@ -1378,7 +1577,7 @@ async function* queryLoop(
         })
       }
       logForDebugging(
-        '[query] 循环终止: aborted_streaming（流式响应中被中断）',
+        `------------ queryLoop 结束 (aborted_streaming) --------- turn=${turnCount} reason=${toolUseContext.abortController.signal.reason ?? 'unknown'}`,
         { level: 'warn' },
       )
       return { reason: 'aborted_streaming' }
@@ -1395,24 +1594,28 @@ async function* queryLoop(
 
     if (!needsFollowUp) {
       const lastMessage = assistantMessages.at(-1)
+      logForDebugging(
+        `[Hapii] queryLoop.iter${turnCount} — needsFollowUp=false, 进入终止判断: lastMsgType=${lastMessage?.type ?? 'none'} isApiError=${lastMessage?.isApiErrorMessage ?? false} assistantMsgs=${assistantMessages.length}`,
+        { level: 'info' },
+      )
 
       // Prompt-too-long 恢复：流式循环扣留了错误（见上方的
       // withheldByCollapse / withheldByReactive）。先尝试 collapse 排空
       //（便宜，保留细粒度上下文），再尝试 reactive compact（完整摘要）。
       // 每个阶段单次尝试 —— 若重试仍 413，由下一阶段处理或错误冒泡。
-      const isWithheld413 =
-        lastMessage?.type === 'assistant' &&
-        lastMessage.isApiErrorMessage &&
-        isPromptTooLongMessage(lastMessage)
+      const isWithheld413 = lastMessage?.type === 'assistant' && lastMessage.isApiErrorMessage && isPromptTooLongMessage(lastMessage)
+
       // 媒体尺寸拒绝（图片/PDF/多图）可通过 reactive compact 的
       // strip-retry 恢复。与 PTL 不同，媒体错误跳过 collapse 排空 ——
       // collapse 不剥离图片。mediaRecoveryEnabled 是流循环之前上提的
       // 门控（与扣留检查的值相同 —— 两者必须一致，否则扣留的消息会
       // 丢失）。若超大媒体位于保留尾部，压缩后的轮次会再次媒体报错；
       // hasAttemptedReactiveCompact 防止螺旋，错误冒泡。
-      const isWithheldMedia =
-        mediaRecoveryEnabled &&
-        reactiveCompact?.isWithheldMediaSizeError(lastMessage as Message)
+      const isWithheldMedia = mediaRecoveryEnabled && reactiveCompact?.isWithheldMediaSizeError(lastMessage as Message)
+      logForDebugging(
+        `[Hapii] queryLoop.iter${turnCount} — 恢复检查: isWithheld413=${isWithheld413} isWithheldMedia=${isWithheldMedia} hasAttemptedReactiveCompact=${hasAttemptedReactiveCompact} maxOutputTokensRecovery=${maxOutputTokensRecoveryCount}/${MAX_OUTPUT_TOKENS_RECOVERY_LIMIT}`,
+        { level: 'info' },
+      )
       if (isWithheld413) {
         logForDebugging(
           `[Hapii] Query PTL恢复 — 收到 413/prompt_too_long，开始尝试 collapse_drain_retry，上次 transition=${state.transition?.reason ?? 'none'}`,
@@ -1472,8 +1675,7 @@ async function* queryLoop(
 
         if (compacted) {
           // task_budget：与上面的主动路径相同的延续语义。
-          // 这里 messagesForQuery 仍持有压缩前的数组（那次 413 失败
-          // 尝试的输入）。
+          // 这里 messagesForQuery 仍持有压缩前的数组（那次 413 失败尝试的输入）。
           if (params.taskBudget) {
             const preCompactContext =
               finalContextTokensFromLastResponse(messagesForQuery)
@@ -1511,7 +1713,7 @@ async function* queryLoop(
         yield lastMessage!
         void executeStopFailureHooks(lastMessage!, toolUseContext)
         logForDebugging(
-          `[query] 循环终止: ${isWithheldMedia ? 'image_error' : 'prompt_too_long'}`,
+          `------------ queryLoop 结束 (${isWithheldMedia ? 'image_error' : 'prompt_too_long'}) --------- turn=${turnCount} recoveryFailed=true`,
           { level: 'error' },
         )
         return { reason: isWithheldMedia ? 'image_error' : 'prompt_too_long' }
@@ -1522,7 +1724,7 @@ async function* queryLoop(
         yield lastMessage
         void executeStopFailureHooks(lastMessage, toolUseContext)
         logForDebugging(
-          '[query] 循环终止: prompt_too_long（上下文折叠也无法恢复）',
+          `------------ queryLoop 结束 (prompt_too_long) --------- turn=${turnCount} contextCollapse无法恢复`,
           { level: 'error' },
         )
         return { reason: 'prompt_too_long' }
@@ -1610,6 +1812,10 @@ async function* queryLoop(
       // 时跳过 stop hooks。模型从未产生真正的响应 —— 让 hooks 评估它
       // 会造成死亡螺旋：错误 → hook 阻塞 → 重试 → 错误 → …
       if (lastMessage?.isApiErrorMessage) {
+        logForDebugging(
+          `------------ queryLoop 结束 (model_error) --------- turn=${turnCount} lastMsgError=${lastMessage.error ?? lastMessage.apiError ?? 'api_error'}`,
+          { level: 'error' },
+        )
         void executeStopFailureHooks(lastMessage, toolUseContext)
         return {
           reason: 'model_error',
@@ -1618,7 +1824,7 @@ async function* queryLoop(
       }
 
       logForDebugging(
-        `[Hapii] Query.handleStopHooks 调用 — assistantMsgs=${assistantMessages.length} querySource=${querySource} stopHookActive=${state.stopHookActive}`,
+        `[Hapii] queryLoop.iter${turnCount} — handleStopHooks 调用: assistantMsgs=${assistantMessages.length} querySource=${querySource} stopHookActive=${state.stopHookActive}`,
         { level: 'info' },
       )
       const stopHookResult = yield* handleStopHooks(
@@ -1633,9 +1839,10 @@ async function* queryLoop(
       )
 
       if (stopHookResult.preventContinuation) {
-        logForDebugging('[query] 循环终止: stop_hook_prevented', {
-          level: 'info',
-        })
+        logForDebugging(
+          `------------ queryLoop 结束 (stop_hook_prevented) --------- turn=${turnCount}`,
+          { level: 'info' },
+        )
         return { reason: 'stop_hook_prevented' }
       }
 
@@ -1713,12 +1920,10 @@ async function* queryLoop(
         }
       }
 
-      logForDebugging('[Hapii] Query.queryLoop 终止 reason=completed', {
-        level: 'info',
-      })
-      logForDebugging('[query] 循环终止: completed（正常完成，无工具调用）', {
-        level: 'info',
-      })
+      logForDebugging(
+        `------------ queryLoop 结束 (completed) --------- turn=${turnCount} assistantMsgs=${assistantMessages.length}`,
+        { level: 'info' },
+      )
       return { reason: 'completed' }
     }
 
@@ -1742,7 +1947,7 @@ async function* queryLoop(
     }
 
     logForDebugging(
-      `[query] 开始执行工具, 工具列表=[${toolUseBlocks.map(b => b.name).join(', ')}]`,
+      `[Hapii] queryLoop.iter${turnCount} — 开始执行工具: tools=[${toolUseBlocks.map(b => b.name).join(', ')}] streamingMode=${!!streamingToolExecutor}`,
       { level: 'info' },
     )
     const toolUpdates = streamingToolExecutor
@@ -1758,6 +1963,10 @@ async function* queryLoop(
           update.message.attachment!.type === 'hook_stopped_continuation'
         ) {
           shouldPreventContinuation = true
+          logForDebugging(
+            `[Hapii] queryLoop.iter${turnCount} — hook_stopped_continuation 触发`,
+            { level: 'warn' },
+          )
         }
 
         toolResults.push(
@@ -1775,9 +1984,10 @@ async function* queryLoop(
       }
     }
     queryCheckpoint('query_tool_execution_end')
-    logForDebugging(`[query] 工具执行完成, 结果消息数=${toolResults.length}`, {
-      level: 'info',
-    })
+    logForDebugging(
+      `[Hapii] queryLoop.iter${turnCount} — 工具执行完成: resultMsgs=${toolResults.length} shouldPreventContinuation=${shouldPreventContinuation}`,
+      { level: 'info' },
+    )
 
     // 在工具批次完成之后生成工具使用摘要 —— 传递给下一次递归调用
     let nextPendingToolUseSummary:
@@ -1887,17 +2097,19 @@ async function* queryLoop(
           turnCount: nextTurnCountOnAbort,
         })
       }
-      logForDebugging('[query] 循环终止: aborted_tools（工具执行中被中断）', {
-        level: 'warn',
-      })
+      logForDebugging(
+        `------------ queryLoop 结束 (aborted_tools) --------- turn=${turnCount} reason=${toolUseContext.abortController.signal.reason ?? 'unknown'}`,
+        { level: 'warn' },
+      )
       return { reason: 'aborted_tools' }
     }
 
     // 若 hook 表示阻止继续，在此停止
     if (shouldPreventContinuation) {
-      logForDebugging('[query] 循环终止: hook_stopped（hook 阻止继续）', {
-        level: 'info',
-      })
+      logForDebugging(
+        `------------ queryLoop 结束 (hook_stopped) --------- turn=${turnCount}`,
+        { level: 'info' },
+      )
       return { reason: 'hook_stopped' }
     }
 
@@ -2119,15 +2331,16 @@ async function* queryLoop(
         maxTurns,
         turnCount: nextTurnCount,
       })
-      logForDebugging(`[query] 循环终止: max_turns=${nextTurnCount}`, {
-        level: 'warn',
-      })
+      logForDebugging(
+        `------------ queryLoop 结束 (max_turns) --------- nextTurnCount=${nextTurnCount} maxTurns=${maxTurns}`,
+        { level: 'warn' },
+      )
       return { reason: 'max_turns', turnCount: nextTurnCount }
     }
 
     queryCheckpoint('query_recursive_call')
     logForDebugging(
-      `[Hapii] Query next_turn 继续 — 第${nextTurnCount}轮完成，追加 assistantMsgs=${assistantMessages.length} toolResults=${toolResults.length}，新 messages=${messagesForQuery.length + assistantMessages.length + toolResults.length}`,
+      `[Hapii] queryLoop.iter${turnCount} — 继续下一轮(next_turn): nextTurnCount=${nextTurnCount} newMsgCount=${messagesForQuery.length + assistantMessages.length + toolResults.length} attachments=${toolResults.length - toolResults.filter(r => r.type === 'user').length} pendingToolUseSummary=${!!nextPendingToolUseSummary}`,
       { level: 'info' },
     )
     const next: State = {
@@ -2143,5 +2356,9 @@ async function* queryLoop(
       transition: { reason: 'next_turn' },
     }
     state = next
+    logForDebugging(
+      `-------------- queryLoop.iteration 结束 ----------- turn=${turnCount} -> nextTurn=${nextTurnCount}`,
+      { level: 'info' },
+    )
   } // while (true)
 }

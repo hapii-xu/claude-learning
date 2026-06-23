@@ -236,12 +236,41 @@ export class QueryEngine {
   private loadedNestedMemoryPaths = new Set<string>()
 
   constructor(config: QueryEngineConfig) {
+    logForDebugging(
+      `-------------- constructor 开始 -----------
+[Hapii] QueryEngine.constructor 参数:
+  cwd=${config.cwd}
+  toolsCount=${config.tools.length}
+  commandsCount=${config.commands.length}
+  mcpClientsCount=${config.mcpClients.length}
+  agentsCount=${config.agents.length}
+  initialMsgCount=${config.initialMessages?.length ?? 0}
+  hasCustomSystemPrompt=${config.customSystemPrompt !== undefined}
+  hasAppendSystemPrompt=${config.appendSystemPrompt !== undefined}
+  userSpecifiedModel=${config.userSpecifiedModel ?? 'default'}
+  hasFallbackModel=${config.fallbackModel !== undefined}
+  hasJsonSchema=${config.jsonSchema !== undefined}
+  maxTurns=${config.maxTurns ?? 'unlimited'}
+  maxBudgetUsd=${config.maxBudgetUsd ?? 'unlimited'}
+  hasTaskBudget=${config.taskBudget !== undefined}
+  verbose=${config.verbose ?? false}
+  replayUserMessages=${config.replayUserMessages ?? false}
+  includePartialMessages=${config.includePartialMessages ?? false}
+  hasAbortController=${config.abortController !== undefined}
+  hasOrphanedPermission=${config.orphanedPermission !== undefined}`,
+      { level: 'info' },
+    )
     this.config = config
     this.mutableMessages = config.initialMessages ?? []
     this.abortController = config.abortController ?? createAbortController()
     this.permissionDenials = []
     this.readFileState = config.readFileCache
     this.totalUsage = EMPTY_USAGE
+    logForDebugging(
+      `-------------- constructor 结束 ---------
+[Hapii] QueryEngine.constructor 初始化完成: mutableMsgCount=${this.mutableMessages.length}`,
+      { level: 'info' },
+    )
   }
 
   /**
@@ -297,7 +326,22 @@ export class QueryEngine {
     const persistSession = !isSessionPersistenceDisabled()
     const startTime = Date.now()
     logForDebugging(
-      `[Hapii] QueryEngine.submitMessage 开始 promptLen=${typeof prompt === 'string' ? prompt.length : prompt.length} msgCount=${this.mutableMessages.length}`,
+      `-------------- submitMessage 开始 -----------
+[Hapii] QueryEngine.submitMessage 参数:
+  promptLen=${typeof prompt === 'string' ? prompt.length : prompt.length}
+  promptType=${typeof prompt === 'string' ? 'string' : 'ContentBlockParam[]'}
+  msgCount=${this.mutableMessages.length}
+  uuid=${options?.uuid ?? 'none'}
+  isMeta=${options?.isMeta ?? false}
+  cwd=${cwd}
+  persistSession=${persistSession}
+  model=${userSpecifiedModel ?? 'default'}
+  maxTurns=${maxTurns ?? 'unlimited'}
+  maxBudgetUsd=${maxBudgetUsd ?? 'unlimited'}
+  toolsCount=${tools.length}
+  commandsCount=${commands.length}
+  mcpClientsCount=${mcpClients.length}
+  agentsCount=${agents.length}`,
       { level: 'info' },
     )
 
@@ -343,6 +387,14 @@ export class QueryEngine {
         ? { type: 'adaptive' }
         : { type: 'disabled' }
 
+    logForDebugging(
+      `[Hapii] submitMessage.phase[初始状态]:
+  initialMainLoopModel=${initialMainLoopModel}
+  thinkingConfig=${JSON.stringify(initialThinkingConfig)}
+  canUseTool=wrapped`,
+      { level: 'info' },
+    )
+
     headlessProfilerCheckpoint('before_getSystemPrompt')
     // 统一收窄一次，让 TS 在下方的条件分支中持续追踪类型。
     const customPrompt =
@@ -361,7 +413,15 @@ export class QueryEngine {
       customSystemPrompt: customPrompt,
     })
     headlessProfilerCheckpoint('after_getSystemPrompt')
-    logForDebugging(`[QueryEngine] system prompt 构建完成`, { level: 'info' })
+    logForDebugging(
+      `[Hapii] submitMessage.phase[系统提示构建完成]:
+  defaultSystemPromptParts=${defaultSystemPrompt.length}
+  systemContextLen=${systemContext.length}
+  userContextKeys=${Object.keys(baseUserContext).length}
+  hasCustomPrompt=${customPrompt !== undefined}
+  hasCoordinatorContext=${feature('COORDINATOR_MODE') ? true : false}`,
+      { level: 'info' },
+    )
     const userContext = {
       ...baseUserContext,
       ...getCoordinatorUserContext(
@@ -394,6 +454,15 @@ export class QueryEngine {
     if (jsonSchema && hasStructuredOutputTool) {
       registerStructuredOutputEnforcement(setAppState, getSessionId())
     }
+
+    logForDebugging(
+      `[Hapii] submitMessage.phase[系统提示组装完成]:
+  hasMemoryMechanicsPrompt=${memoryMechanicsPrompt !== null}
+  hasStructuredOutputTool=${hasStructuredOutputTool}
+  jsonSchema=${jsonSchema !== undefined}
+  registeredEnforcement=${jsonSchema !== undefined && hasStructuredOutputTool}`,
+      { level: 'info' },
+    )
 
     let processUserInputContext: ProcessUserInputContext = {
       messages: this.mutableMessages,
@@ -489,7 +558,13 @@ export class QueryEngine {
       querySource: 'sdk',
     })
     logForDebugging(
-      `[QueryEngine] processUserInput 完成, shouldQuery=${shouldQuery}, messages=${messagesFromUserInput.length}条${modelFromUserInput ? `, model=${modelFromUserInput}` : ''}`,
+      `[Hapii] submitMessage.phase[processUserInput完成]:
+  shouldQuery=${shouldQuery}
+  messagesFromUserInput=${messagesFromUserInput.length}
+  model=${modelFromUserInput ?? 'unchanged'}
+  allowedTools=${allowedTools?.length ?? 0}
+  hasResultText=${resultText !== undefined && resultText !== null}
+  resultTextLen=${resultText?.length ?? 0}`,
       { level: 'info' },
     )
 
@@ -527,6 +602,14 @@ export class QueryEngine {
       }
     }
 
+    logForDebugging(
+      `[Hapii] submitMessage.phase[用户消息持久化]:
+  persistSession=${persistSession}
+  isBareMode=${isBareMode()}
+  messagesLen=${messages.length}`,
+      { level: 'info' },
+    )
+
     // 过滤出在 transcript 之后需要确认的消息
     const _selector = messageSelector()
     const replayableMessages = messagesFromUserInput.filter(
@@ -538,6 +621,14 @@ export class QueryEngine {
         (msg.type === 'system' && msg.subtype === 'compact_boundary'), // 总是确认 compact 边界
     )
     const messagesToAck = replayUserMessages ? replayableMessages : []
+
+    logForDebugging(
+      `[Hapii] submitMessage.phase[消息确认准备]:
+  replayableMsgCount=${replayableMessages.length}
+  messagesToAckCount=${messagesToAck.length}
+  replayUserMessages=${replayUserMessages}`,
+      { level: 'info' },
+    )
 
     // 根据用户输入处理结果更新 ToolPermissionContext（按需）
     setAppState(prev => ({
@@ -602,6 +693,12 @@ export class QueryEngine {
       loadAllPluginsCacheOnly(),
     ])
     headlessProfilerCheckpoint('after_skills_plugins')
+    logForDebugging(
+      `[Hapii] submitMessage.phase[技能/插件加载完成]:
+  skillsCount=${skills.length}
+  enabledPluginsCount=${enabledPlugins.length}`,
+      { level: 'info' },
+    )
 
     yield buildSystemInitMessage({
       tools,
@@ -618,8 +715,16 @@ export class QueryEngine {
 
     // 记录 yield 系统消息的时间点，用于 headless 延迟追踪
     headlessProfilerCheckpoint('system_message_yielded')
+    logForDebugging(
+      `[Hapii] submitMessage.phase[系统初始化消息已yield]: shouldQuery=${shouldQuery}`,
+      { level: 'info' },
+    )
 
     if (!shouldQuery) {
+      logForDebugging(
+        `[Hapii] submitMessage.phase[slash命令结果路径]: shouldQuery=false, 返回本地命令结果 耗时=${Date.now() - startTime}ms`,
+        { level: 'info' },
+      )
       // 返回本地 slash 命令的结果。
       // 对命令输出使用 messagesFromUserInput（不是 replayableMessages），
       // 因为 selectableUserMessagesFilter 会过滤掉 local-command-stdout 标签。
@@ -741,7 +846,15 @@ export class QueryEngine {
       : 0
 
     logForDebugging(
-      `[QueryEngine] 开始执行 query() 循环, 消息数=${messages.length}`,
+      `[Hapii] submitMessage.phase[进入query循环准备]:
+  fileHistoryEnabled=${fileHistoryEnabled()}
+  messagesCount=${messages.length}
+  initialStructuredOutputCalls=${initialStructuredOutputCalls}
+  mainLoopModel=${mainLoopModel}`,
+      { level: 'info' },
+    )
+    logForDebugging(
+      `[Hapii] submitMessage.phase[开始执行query()循环]: 消息数=${messages.length}`,
       { level: 'info' },
     )
     for await (const message of query({
@@ -825,6 +938,10 @@ export class QueryEngine {
 
       if (message.type === 'user') {
         turnCount++
+        logForDebugging(
+          `[Hapii] submitMessage.queryLoop 用户消息(turn)到达: turnCount=${turnCount}`,
+          { level: 'debug' },
+        )
       }
 
       switch (message.type) {
@@ -843,6 +960,10 @@ export class QueryEngine {
           if (stopReason != null) {
             lastStopReason = stopReason
           }
+          logForDebugging(
+            `[Hapii] submitMessage.queryLoop assistant消息: stopReason=${stopReason ?? 'null'} contentBlocks=${msg.message?.content?.length ?? 0}`,
+            { level: 'debug' },
+          )
           this.mutableMessages.push(msg)
           yield* normalizeMessage(msg)
           break
@@ -882,6 +1003,10 @@ export class QueryEngine {
               currentMessageUsage,
               eventMessage.usage,
             )
+            logForDebugging(
+              `[Hapii] submitMessage.queryLoop message_start: inputTokens=${eventMessage.usage?.input_tokens ?? 0} cacheRead=${eventMessage.usage?.cache_read_input_tokens ?? 0} cacheCreate=${eventMessage.usage?.cache_creation_input_tokens ?? 0}`,
+              { level: 'debug' },
+            )
           }
           if (event.type === 'message_delta') {
             currentMessageUsage = updateUsage(
@@ -896,12 +1021,20 @@ export class QueryEngine {
             if (delta.stop_reason != null) {
               lastStopReason = delta.stop_reason
             }
+            logForDebugging(
+              `[Hapii] submitMessage.queryLoop message_delta: stopReason=${delta.stop_reason ?? 'null'} outputTokens=${(event.usage as BetaMessageDeltaUsage)?.output_tokens ?? 0}`,
+              { level: 'debug' },
+            )
           }
           if (event.type === 'message_stop') {
             // 将当前消息用量累计到总量
             this.totalUsage = accumulateUsage(
               this.totalUsage,
               currentMessageUsage,
+            )
+            logForDebugging(
+              `[Hapii] submitMessage.queryLoop message_stop: 累计用量 input=${this.totalUsage.input_tokens} output=${this.totalUsage.output_tokens}`,
+              { level: 'debug' },
             )
             // 推送累计用量到调试面板 sink
             try {
@@ -940,12 +1073,21 @@ export class QueryEngine {
             [key: string]: unknown
           }
 
+          logForDebugging(
+            `[Hapii] submitMessage.queryLoop attachment: type=${attachment.type}`,
+            { level: 'debug' },
+          )
+
           // 从 StructuredOutput 工具调用中提取结构化输出
           if (attachment.type === 'structured_output') {
             structuredOutputFromTool = attachment.data
           }
           // 处理 query.ts 发来的达到最大轮次的信号
           else if (attachment.type === 'max_turns_reached') {
+            logForDebugging(
+              `[Hapii] submitMessage.queryLoop max_turns_reached: turnCount=${attachment.turnCount} maxTurns=${attachment.maxTurns}`,
+              { level: 'warn' },
+            )
             if (persistSession) {
               if (
                 isEnvTruthy(process.env.CLAUDE_CODE_EAGER_FLUSH) ||
@@ -1017,6 +1159,10 @@ export class QueryEngine {
           this.mutableMessages.push(msg)
           // 向 SDK yield compact 边界消息
           if (msg.subtype === 'compact_boundary' && msg.compactMetadata) {
+            logForDebugging(
+              `[Hapii] submitMessage.queryLoop compact_boundary: 压缩前消息数 mutableMsgCount=${this.mutableMessages.length}`,
+              { level: 'info' },
+            )
             const compactMsg = msg as SystemCompactBoundaryMessage
             // 释放压缩前的消息以便 GC。边界刚刚被 push，所以它是
             // 最后一个元素。query.ts 内部已经使用
@@ -1048,6 +1194,10 @@ export class QueryEngine {
               retryInMs: number
               error: APIError
             }
+            logForDebugging(
+              `[Hapii] submitMessage.queryLoop api_error: status=${apiErrorMsg.error.status ?? 'unknown'} attempt=${apiErrorMsg.retryAttempt}/${apiErrorMsg.maxRetries} retryInMs=${apiErrorMsg.retryInMs}`,
+              { level: 'warn' },
+            )
             yield {
               type: 'system',
               subtype: 'api_retry' as const,
@@ -1082,6 +1232,10 @@ export class QueryEngine {
 
       // 检查是否超出 USD 预算
       if (maxBudgetUsd !== undefined && getTotalCost() >= maxBudgetUsd) {
+        logForDebugging(
+          `[Hapii] submitMessage.queryLoop 超出预算!: cost=$${getTotalCost()} maxBudget=$${maxBudgetUsd} turns=${turnCount}`,
+          { level: 'warn' },
+        )
         if (persistSession) {
           if (
             isEnvTruthy(process.env.CLAUDE_CODE_EAGER_FLUSH) ||
@@ -1127,6 +1281,10 @@ export class QueryEngine {
           10,
         )
         if (callsThisQuery >= maxRetries) {
+          logForDebugging(
+            `[Hapii] submitMessage.queryLoop 结构化输出重试上限!: callsThisQuery=${callsThisQuery} maxRetries=${maxRetries} turns=${turnCount}`,
+            { level: 'warn' },
+          )
           if (persistSession) {
             if (
               isEnvTruthy(process.env.CLAUDE_CODE_EAGER_FLUSH) ||
@@ -1163,7 +1321,15 @@ export class QueryEngine {
     }
 
     logForDebugging(
-      `[QueryEngine] query() 循环完成, 总耗时=${Date.now() - startTime}ms, 累计token: input=${this.totalUsage.input_tokens}, output=${this.totalUsage.output_tokens}`,
+      `[Hapii] submitMessage.phase[query()循环完成]:
+  总耗时=${Date.now() - startTime}ms
+  totalAPIDuration=${getTotalAPIDuration()}ms
+  累计token: input=${this.totalUsage.input_tokens}, output=${this.totalUsage.output_tokens}
+  totalCost=$${getTotalCost()}
+  turnCount=${turnCount}
+  lastStopReason=${lastStopReason}
+  mutableMsgCount=${this.mutableMessages.length}
+  messagesCount=${messages.length}`,
       { level: 'info' },
     )
 
@@ -1176,6 +1342,10 @@ export class QueryEngine {
     // 合法的成功终止状态）。
     const result = messages.findLast(
       m => m.type === 'assistant' || m.type === 'user',
+    )
+    logForDebugging(
+      `[Hapii] submitMessage.phase[结果提取]: resultType=${result?.type ?? 'undefined'} lastStopReason=${lastStopReason}`,
+      { level: 'info' },
     )
     // 为 error_during_execution 诊断捕获信息 —— isResultSuccessful
     // 是类型谓词（message is Message），所以在 false 分支里
@@ -1202,6 +1372,10 @@ export class QueryEngine {
     }
 
     if (!isResultSuccessful(result, lastStopReason)) {
+      logForDebugging(
+        `[Hapii] submitMessage.phase[执行错误!]: resultType=${edeResultType} lastContentType=${edeLastContentType} stopReason=${lastStopReason} turns=${turnCount}`,
+        { level: 'error' },
+      )
       yield {
         type: 'result',
         subtype: 'error_during_execution',
@@ -1258,7 +1432,18 @@ export class QueryEngine {
     }
 
     logForDebugging(
-      `[Hapii] QueryEngine.submitMessage 完成 耗时=${Date.now() - startTime}ms turns=${turnCount} finalMsgCount=${this.mutableMessages.length}`,
+      `-------------- submitMessage 结束 ---------
+[Hapii] QueryEngine.submitMessage 完成:
+  耗时=${Date.now() - startTime}ms
+  apiDuration=${getTotalAPIDuration()}ms
+  turns=${turnCount}
+  finalMsgCount=${this.mutableMessages.length}
+  totalCost=$${getTotalCost()}
+  totalUsage: input=${this.totalUsage.input_tokens} output=${this.totalUsage.output_tokens}
+  stopReason=${lastStopReason}
+  isApiError=${isApiError}
+  textResultLen=${textResult.length}
+  hasStructuredOutput=${structuredOutputFromTool !== undefined}`,
       { level: 'info' },
     )
     yield {
@@ -1285,34 +1470,75 @@ export class QueryEngine {
   }
 
   interrupt(): void {
+    logForDebugging(
+      `-------------- interrupt 开始 -----------
+[Hapii] QueryEngine.interrupt: 中止当前查询 signal.aborted=${this.abortController.signal.aborted}`,
+      { level: 'info' },
+    )
     this.abortController.abort()
+    logForDebugging(
+      `-------------- interrupt 结束 ---------
+[Hapii] QueryEngine.interrupt: 已完成 signal.aborted=${this.abortController.signal.aborted}`,
+      { level: 'info' },
+    )
   }
 
   /** 重置 abort controller，让下次 submitMessage() 调用可以拿到
    *  全新的、未被 abort 的信号。必须在 interrupt() 之后调用。 */
   resetAbortController(): void {
+    logForDebugging(
+      `-------------- resetAbortController 开始 -----------
+[Hapii] QueryEngine.resetAbortController: 旧signal.aborted=${this.abortController.signal.aborted}`,
+      { level: 'info' },
+    )
     this.abortController = createAbortController()
+    logForDebugging(
+      `-------------- resetAbortController 结束 ---------
+[Hapii] QueryEngine.resetAbortController: 新signal.aborted=${this.abortController.signal.aborted}`,
+      { level: 'info' },
+    )
   }
 
   /** 对外暴露当前的 abort 信号，供外部消费者（如 ACP bridge）使用。 */
   getAbortSignal(): AbortSignal {
+    logForDebugging(
+      `[Hapii] QueryEngine.getAbortSignal: signal.aborted=${this.abortController.signal.aborted}`,
+      { level: 'verbose' },
+    )
     return this.abortController.signal
   }
 
   getMessages(): readonly Message[] {
+    logForDebugging(
+      `[Hapii] QueryEngine.getMessages: msgCount=${this.mutableMessages.length}`,
+      { level: 'verbose' },
+    )
     return this.mutableMessages
   }
 
   getReadFileState(): FileStateCache {
+    logForDebugging(`[Hapii] QueryEngine.getReadFileState: 返回文件状态缓存`, {
+      level: 'verbose',
+    })
     return this.readFileState
   }
 
   getSessionId(): string {
-    return getSessionId()
+    const sid = getSessionId()
+    logForDebugging(`[Hapii] QueryEngine.getSessionId: sessionId=${sid}`, {
+      level: 'verbose',
+    })
+    return sid
   }
 
   setModel(model: string): void {
+    logForDebugging(
+      `-------------- setModel 开始 -----------
+[Hapii] QueryEngine.setModel: oldModel=${this.config.userSpecifiedModel ?? 'default'} newModel=${model}`,
+      { level: 'info' },
+    )
     this.config.userSpecifiedModel = model
+    logForDebugging(`-------------- setModel 结束 ---------`, { level: 'info' })
   }
 }
 
@@ -1388,6 +1614,28 @@ export async function* ask({
   setSDKStatus?: (status: SDKStatus) => void
   orphanedPermission?: OrphanedPermission
 }): AsyncGenerator<SDKMessage, void, unknown> {
+  logForDebugging(
+    `-------------- ask 开始 -----------
+[Hapii] QueryEngine.ask 参数:
+  promptLen=${typeof prompt === 'string' ? prompt.length : prompt.length}
+  promptType=${typeof prompt === 'string' ? 'string' : 'ContentBlockParam[]'}
+  cwd=${cwd}
+  toolsCount=${tools.length}
+  commandsCount=${commands.length}
+  mcpClientsCount=${mcpClients.length}
+  agentsCount=${agents.length}
+  mutableMsgCount=${mutableMessages.length}
+  userSpecifiedModel=${userSpecifiedModel ?? 'default'}
+  hasFallbackModel=${fallbackModel !== undefined}
+  maxTurns=${maxTurns ?? 'unlimited'}
+  maxBudgetUsd=${maxBudgetUsd ?? 'unlimited'}
+  hasJsonSchema=${jsonSchema !== undefined}
+  replayUserMessages=${replayUserMessages}
+  includePartialMessages=${includePartialMessages}
+  hasAbortController=${abortController !== undefined}
+  hasOrphanedPermission=${orphanedPermission !== undefined}`,
+    { level: 'info' },
+  )
   const engine = new QueryEngine({
     cwd,
     tools,
@@ -1427,7 +1675,7 @@ export async function* ask({
   })
 
   logForDebugging(
-    `[Hapii] QueryEngine.ask 创建临时引擎，开始 submitMessage promptLen=${typeof prompt === 'string' ? prompt.length : prompt.length} existingMsgs=${mutableMessages.length}`,
+    `[Hapii] ask.phase[引擎创建完成]: 开始 submitMessage mutableMsgCount=${mutableMessages.length}`,
     { level: 'info' },
   )
   try {
@@ -1437,5 +1685,10 @@ export async function* ask({
     })
   } finally {
     setReadFileCache(engine.getReadFileState())
+    logForDebugging(
+      `-------------- ask 结束 ---------
+[Hapii] QueryEngine.ask 完成: 文件状态缓存已回写`,
+      { level: 'info' },
+    )
   }
 }

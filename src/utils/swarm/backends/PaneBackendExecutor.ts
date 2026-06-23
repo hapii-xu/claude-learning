@@ -48,9 +48,9 @@ function buildPowerShellSpawnCommand(
   const envAssignments = getInheritedEnvVarAssignments().map(
     ([key, value]) => `$env:${key} = ${quotePowerShellString(value)}`,
   )
-  // In dev mode (non-bundled), binaryPath is a .ts/.tsx file that PowerShell
-  // cannot execute directly. Prepend `bun run` so the teammate process starts
-  // through Bun's runtime, matching how `bun run dev` works.
+  // 在开发模式（非打包）下，binaryPath 是 .ts/.tsx 文件，PowerShell
+  // 无法直接执行。前置 `bun run` 使 teammate 进程通过
+  // Bun 运行时启动，与 `bun run dev` 的工作方式一致。
   const invocation = isInBundledMode()
     ? `& ${quotePowerShellString(binaryPath)}`
     : `& ${quotePowerShellString(process.execPath)} ${quotePowerShellString(binaryPath)}`
@@ -62,18 +62,18 @@ function buildPowerShellSpawnCommand(
 }
 
 /**
- * PaneBackendExecutor adapts a PaneBackend to the TeammateExecutor interface.
+ * PaneBackendExecutor 将 PaneBackend 适配为 TeammateExecutor 接口。
  *
- * This allows pane-based backends (tmux, iTerm2) to be used through the same
- * TeammateExecutor abstraction as InProcessBackend, making getTeammateExecutor()
- * return a meaningful executor regardless of execution mode.
+ * 这使得基于 pane 的 backend（tmux、iTerm2）可以通过与 InProcessBackend 相同的
+ * TeammateExecutor 抽象使用，使 getTeammateExecutor() 无论执行模式如何
+ * 都返回一个有意义的执行器。
  *
- * The adapter handles:
- * - spawn(): Creates a pane and sends the Claude CLI command to it
- * - sendMessage(): Writes to the teammate's file-based mailbox
- * - terminate(): Sends a shutdown request via mailbox
- * - kill(): Kills the pane via the backend
- * - isActive(): Checks if the pane is still running
+ * 适配器处理：
+ * - spawn()：创建 pane 并向其发送 Claude CLI 命令
+ * - sendMessage()：写入 teammate 的基于文件的 mailbox
+ * - terminate()：通过 mailbox 发送关闭请求
+ * - kill()：通过 backend 终止 pane
+ * - isActive()：检查 pane 是否仍在运行
  */
 export class PaneBackendExecutor implements TeammateExecutor {
   readonly type: BackendType
@@ -82,8 +82,8 @@ export class PaneBackendExecutor implements TeammateExecutor {
   private context: ToolUseContext | null = null
 
   /**
-   * Track spawned teammates by agentId -> paneId mapping.
-   * This allows us to find the pane for operations like kill/terminate.
+   * 通过 agentId -> paneId 映射跟踪已生成的 teammate。
+   * 这允许我们为 kill/terminate 等操作找到 pane。
    */
   private spawnedTeammates: Map<string, { paneId: string; insideTmux: boolean }>
   private cleanupRegistered = false
@@ -95,25 +95,25 @@ export class PaneBackendExecutor implements TeammateExecutor {
   }
 
   /**
-   * Sets the ToolUseContext for this executor.
-   * Must be called before spawn() to provide access to AppState and permissions.
+   * 设置此执行器的 ToolUseContext。
+   * 必须在 spawn() 之前调用，以提供对 AppState 和权限的访问。
    */
   setContext(context: ToolUseContext): void {
     this.context = context
   }
 
   /**
-   * Checks if the underlying pane backend is available.
+   * 检查底层 pane backend 是否可用。
    */
   async isAvailable(): Promise<boolean> {
     return this.backend.isAvailable()
   }
 
   /**
-   * Spawns a teammate in a new pane.
+   * 在新 pane 中生成 teammate。
    *
-   * Creates a pane via the backend, builds the CLI command with teammate
-   * identity flags, and sends it to the pane.
+   * 通过 backend 创建 pane，构建带有 teammate
+   * 身份标志的 CLI 命令，并发送到 pane。
    */
   async spawn(config: TeammateSpawnConfig): Promise<TeammateSpawnResult> {
     const agentId = formatAgentId(config.name, config.teamName)
@@ -131,7 +131,7 @@ export class PaneBackendExecutor implements TeammateExecutor {
     }
 
     try {
-      // Assign a unique color to this teammate
+      // 为此 teammate 分配唯一颜色
       const teammateColor = config.color ?? assignTeammateColor(agentId)
 
       const paneResult =
@@ -147,18 +147,18 @@ export class PaneBackendExecutor implements TeammateExecutor {
             )
       const { paneId, isFirstTeammate } = paneResult
 
-      // Check if we're inside tmux to determine how to send commands
+      // 检查是否在 tmux 内，以确定如何发送命令
       const insideTmux = await isInsideTmux()
 
-      // Enable pane border status on first teammate when inside tmux
+      // 在 tmux 内时，第一个 teammate 启用 pane 边框状态
       if (isFirstTeammate && insideTmux) {
         await this.backend.enablePaneBorderStatus()
       }
 
-      // Build the command to spawn Claude Code with teammate identity
+      // 构建带 teammate 身份的 Claude Code 启动命令
       const binaryPath = getTeammateCommand()
 
-      // Build teammate identity CLI args
+      // 构建 teammate 身份 CLI 参数
       const teammateArgs = [
         '--agent-id',
         agentId,
@@ -174,14 +174,14 @@ export class PaneBackendExecutor implements TeammateExecutor {
         ...(config.agentType ? ['--agent-type', config.agentType] : []),
       ]
 
-      // Build CLI flags to propagate to teammate
+      // 构建要传播给 teammate 的 CLI 标志
       const appState = this.context.getAppState()
       let inheritedArgParts = buildInheritedCliArgParts({
         planModeRequired: config.planModeRequired,
         permissionMode: appState.toolPermissionContext.mode,
       })
 
-      // If teammate has a custom model, add --model flag (or replace inherited one)
+      // 如果 teammate 有自定义模型，添加 --model 标志（或替换继承的）
       if (config.model) {
         inheritedArgParts = withoutModelArg(inheritedArgParts)
         inheritedArgParts.push('--model', config.model)
@@ -189,7 +189,7 @@ export class PaneBackendExecutor implements TeammateExecutor {
 
       const workingDir = config.cwd
 
-      // Build environment variables to forward to teammate
+      // 构建要转发给 teammate 的环境变量
       const envStr = buildInheritedEnvVars()
 
       const allArgs = [...teammateArgs, ...inheritedArgParts]
@@ -198,14 +198,14 @@ export class PaneBackendExecutor implements TeammateExecutor {
           ? buildPowerShellSpawnCommand(binaryPath, allArgs, workingDir)
           : `cd ${quote([workingDir])} && env ${envStr} ${quote([binaryPath])} ${quote(allArgs)}`
 
-      // Send the command to the new pane
-      // Use swarm socket when running outside tmux (external swarm session)
+      // 将命令发送到新 pane
+      // 在 tmux 外运行时使用 swarm socket（外部 swarm 会话）
       await this.backend.sendCommandToPane(paneId, spawnCommand, !insideTmux)
 
-      // Track the spawned teammate
+      // 追踪已生成的 teammate
       this.spawnedTeammates.set(agentId, { paneId, insideTmux })
 
-      // Register cleanup to kill all panes on leader exit (e.g., SIGHUP)
+      // 注册清理函数，在 leader 退出时终止所有 pane（例如 SIGHUP）
       if (!this.cleanupRegistered) {
         this.cleanupRegistered = true
         registerCleanup(async () => {
@@ -219,7 +219,7 @@ export class PaneBackendExecutor implements TeammateExecutor {
         })
       }
 
-      // Send initial instructions to teammate via mailbox
+      // 通过 mailbox 向 teammate 发送初始指令
       await writeToMailbox(
         config.name,
         {
@@ -262,9 +262,9 @@ export class PaneBackendExecutor implements TeammateExecutor {
   }
 
   /**
-   * Sends a message to a pane-based teammate via file-based mailbox.
+   * 通过基于文件的 mailbox 向 pane teammate 发送消息。
    *
-   * All teammates (pane and in-process) use the same mailbox mechanism.
+   * 所有 teammate（pane 和 in-process）使用相同的 mailbox 机制。
    */
   async sendMessage(agentId: string, message: TeammateMessage): Promise<void> {
     logForDebugging(
@@ -297,10 +297,10 @@ export class PaneBackendExecutor implements TeammateExecutor {
   }
 
   /**
-   * Gracefully terminates a pane-based teammate.
+   * 优雅地终止基于 pane 的 teammate。
    *
-   * For pane-based teammates, we send a shutdown request via mailbox and
-   * let the teammate process handle exit gracefully.
+   * 对于基于 pane 的 teammate，我们通过 mailbox 发送关闭请求，
+   * 让 teammate 进程自行处理优雅退出。
    */
   async terminate(agentId: string, reason?: string): Promise<boolean> {
     logForDebugging(
@@ -317,7 +317,7 @@ export class PaneBackendExecutor implements TeammateExecutor {
 
     const { agentName, teamName } = parsed
 
-    // Send shutdown request via mailbox
+    // 通过 mailbox 发送关闭请求
     const shutdownRequest = {
       type: 'shutdown_request',
       requestId: `shutdown-${agentId}-${Date.now()}`,
@@ -343,7 +343,7 @@ export class PaneBackendExecutor implements TeammateExecutor {
   }
 
   /**
-   * Force kills a pane-based teammate by killing its pane.
+   * 通过终止 pane 来强制杀掉基于 pane 的 teammate。
    */
   async kill(agentId: string): Promise<boolean> {
     logForDebugging(`[PaneBackendExecutor] kill() called for ${agentId}`)
@@ -358,8 +358,8 @@ export class PaneBackendExecutor implements TeammateExecutor {
 
     const { paneId, insideTmux } = teammateInfo
 
-    // Kill the pane via the backend
-    // Use external session socket when we spawned outside tmux
+    // 通过 backend 终止 pane
+    // 当在 tmux 外生成时使用外部会话 socket
     const killed = await this.backend.killPane(paneId, !insideTmux)
 
     if (killed) {
@@ -373,11 +373,10 @@ export class PaneBackendExecutor implements TeammateExecutor {
   }
 
   /**
-   * Checks if a pane-based teammate is still active.
+   * 检查基于 pane 的 teammate 是否仍然活跃。
    *
-   * For pane-based teammates, we check if the pane still exists.
-   * This is a best-effort check - the pane may exist but the process inside
-   * may have exited.
+   * 对于基于 pane 的 teammate，我们检查 pane 是否仍然存在。
+   * 这是尽力而为的检查 — pane 可能存在但其中的进程已经退出。
    */
   async isActive(agentId: string): Promise<boolean> {
     logForDebugging(`[PaneBackendExecutor] isActive() called for ${agentId}`)
@@ -390,15 +389,15 @@ export class PaneBackendExecutor implements TeammateExecutor {
       return false
     }
 
-    // For now, assume active if we have a record of it
-    // A more robust check would query the backend for pane existence
-    // but that would require adding a new method to PaneBackend
+    // 目前，如果有记录则假定活跃
+    // 更可靠的检查是查询 backend 以确认 pane 存在，
+    // 但那需要为 PaneBackend 添加新方法
     return true
   }
 }
 
 /**
- * Creates a PaneBackendExecutor wrapping the given PaneBackend.
+ * 创建一个封装给定 PaneBackend 的 PaneBackendExecutor。
  */
 export function createPaneBackendExecutor(
   backend: PaneBackend,

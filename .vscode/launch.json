@@ -81,6 +81,45 @@
 			}
 		},
 		{
+			"name": "🎯 Interactive REPL [cc-lab]",
+			"type": "bun",
+			"request": "attach",
+			"url": "ws://localhost:8888/2dc3gzl5xot",
+			"stopOnEntry": false,
+			"internalConsoleOptions": "neverOpen",
+			"preLaunchTask": "Debug: 启动 dev (Interactive) [cc-lab]",
+			"presentation": {
+				"group": "1-quick",
+				"order": 5
+			}
+		},
+		{
+			"name": "🎯 Headless + Prompt [cc-lab]",
+			"type": "bun",
+			"request": "attach",
+			"url": "ws://localhost:8888/2dc3gzl5xot",
+			"stopOnEntry": false,
+			"internalConsoleOptions": "neverOpen",
+			"preLaunchTask": "Debug: 启动 dev (Headless + Prompt) [cc-lab]",
+			"presentation": {
+				"group": "1-quick",
+				"order": 6
+			}
+		},
+		{
+			"name": "🎯 自定义参数 [cc-lab]",
+			"type": "bun",
+			"request": "attach",
+			"url": "ws://localhost:8888/2dc3gzl5xot",
+			"stopOnEntry": false,
+			"internalConsoleOptions": "neverOpen",
+			"preLaunchTask": "Debug: 启动 dev (自定义参数) [cc-lab]",
+			"presentation": {
+				"group": "1-quick",
+				"order": 7
+			}
+		},
+		{
 			"name": "🧪 Debug 当前打开的 Test 文件",
 			"type": "bun",
 			"request": "launch",

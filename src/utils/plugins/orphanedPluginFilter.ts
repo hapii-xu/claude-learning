@@ -1,39 +1,36 @@
 /**
- * Provides ripgrep glob exclusion patterns for orphaned plugin versions.
+ * 为孤立插件版本提供 ripgrep glob 排除模式。
  *
- * When plugin versions are updated, old versions are marked with a
- * `.orphaned_at` file but kept on disk for 7 days (since concurrent
- * sessions might still reference them). During this window, Grep/Glob
- * could return files from orphaned versions, causing Claude to use
- * outdated plugin code.
+ * 当插件版本更新时，旧版本以 `.orphaned_at` 文件标记，
+ * 但在磁盘上保留 7 天（因为并发会话可能仍在引用它们）。
+ * 在此窗口期间，Grep/Glob 可能返回孤立版本的文件，
+ * 导致 Claude 使用过时的插件代码。
  *
- * We find `.orphaned_at` markers via a single ripgrep call and generate
- * `--glob '!<dir>/**'` patterns for their parent directories. The cache
- * is warmed in main.tsx AFTER cleanupOrphanedPluginVersionsInBackground
- * settles disk state. Once populated, the exclusion list is frozen for
- * the session unless /reload-plugins is called; subsequent disk mutations
- * (autoupdate, concurrent sessions) don't affect it.
+ * 我们通过单次 ripgrep 调用查找 `.orphaned_at` 标记，
+ * 并为其父目录生成 `--glob '!<dir>/**'` 模式。
+ * 缓存在 main.tsx 中 cleanupOrphanedPluginVersionsInBackground
+ * 稳定磁盘状态后预热。一旦填充，排除列表在会话中冻结，
+ * 除非调用 /reload-plugins；后续磁盘变更（自动更新、并发会话）不影响它。
  */
 
 import { dirname, isAbsolute, join, normalize, relative, sep } from 'path'
 import { ripGrep } from '../ripgrep.js'
 import { getPluginsDirectory } from './pluginDirectories.js'
 
-// Inlined from cacheUtils.ts to avoid a circular dep through commands.js.
+// 从 cacheUtils.ts 内联，以避免通过 commands.js 的循环依赖。
 const ORPHANED_AT_FILENAME = '.orphaned_at'
 
-/** Session-scoped cache. Frozen once computed — only cleared by explicit /reload-plugins. */
+/** 会话级缓存。计算后冻结 —— 仅通过显式 /reload-plugins 清除。 */
 let cachedExclusions: string[] | null = null
 
 /**
- * Get ripgrep glob exclusion patterns for orphaned plugin versions.
+ * 获取孤立插件版本的 ripgrep glob 排除模式。
  *
- * @param searchPath - When provided, exclusions are only returned if the
- *   search overlaps the plugin cache directory (avoids unnecessary --glob
- *   args for searches outside the cache).
+ * @param searchPath - 若提供，仅当搜索与插件缓存目录重叠时才返回排除项
+ *   （避免为缓存外的搜索添加不必要的 --glob 参数）。
  *
- * Warmed eagerly in main.tsx after orphan GC; the lazy-compute path here
- * is a fallback. Best-effort: returns empty array if anything goes wrong.
+ * 在 main.tsx 中孤立版本 GC 后预热；此处的延迟计算路径是回退。
+ * 尽力而为：若出现任何错误则返回空数组。
  */
 export async function getGlobExclusionsForPluginCache(
   searchPath?: string,
@@ -49,12 +46,11 @@ export async function getGlobExclusionsForPluginCache(
   }
 
   try {
-    // Find all .orphaned_at files within the plugin cache directory.
-    // --hidden: marker is a dotfile. --no-ignore: don't let a stray
-    // .gitignore hide it. --max-depth 4: marker is always at
-    // cache/<marketplace>/<plugin>/<version>/.orphaned_at — don't recurse
-    // into plugin contents (node_modules, etc.). Never-aborts signal: no
-    // caller signal to thread.
+    // 在插件缓存目录中查找所有 .orphaned_at 文件。
+    // --hidden：标记是点文件。--no-ignore：不让流浪的 .gitignore 隐藏它。
+    // --max-depth 4：标记始终位于
+    // cache/<marketplace>/<plugin>/<version>/.orphaned_at —— 不递归进入
+    // 插件内容（node_modules 等）。永不中止信号：无调用者信号到线程。
     const markers = await ripGrep(
       [
         '--files',
@@ -70,18 +66,18 @@ export async function getGlobExclusionsForPluginCache(
     )
 
     cachedExclusions = markers.map(markerPath => {
-      // ripgrep may return absolute or relative — normalize to relative.
+      // ripgrep 可能返回绝对路径或相对路径 —— 规范化为相对路径。
       const versionDir = dirname(markerPath)
       const rel = isAbsolute(versionDir)
         ? relative(cachePath, versionDir)
         : versionDir
-      // ripgrep glob patterns always use forward slashes, even on Windows
+      // ripgrep glob 模式始终使用正斜杠，即使在 Windows 上也是如此
       const posixRelative = rel.replace(/\\/g, '/')
       return `!**/${posixRelative}/**`
     })
     return cachedExclusions
   } catch {
-    // Best-effort — don't break core search tools if ripgrep fails here
+    // 尽力而为 —— 若 ripgrep 在此失败，不要破坏核心搜索工具
     cachedExclusions = []
     return cachedExclusions
   }
@@ -92,9 +88,9 @@ export function clearPluginCacheExclusions(): void {
 }
 
 /**
- * One path is a prefix of the other. Special-cases root (normalize('/') + sep
- * = '//'). Case-insensitive on win32 since normalize() doesn't lowercase
- * drive letters and CLAUDE_CODE_PLUGIN_CACHE_DIR may disagree with resolved.
+ * 一个路径是另一个的前缀。对根目录做特殊处理（normalize('/') + sep = '//'）。
+ * 在 win32 上不区分大小写，因为 normalize() 不会将驱动器字母小写，
+ * 而 CLAUDE_CODE_PLUGIN_CACHE_DIR 可能与 resolved 不一致。
  */
 function pathsOverlap(a: string, b: string): boolean {
   const na = normalizeForCompare(a)

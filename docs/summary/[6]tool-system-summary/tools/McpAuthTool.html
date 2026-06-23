@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>McpAuthTool 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── SVG Diagram ──────────────────────────────────────── */
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      margin: 0 auto;
+      font-family: var(--font-sans);
+    }
+
+    /* SVG tooltip via CSS title */
+    .node-group { cursor: default; }
+    .node-group:hover rect.node-rect { filter: brightness(.93); }
+
+    /* ── Card Grid ────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .path-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: box-shadow .15s, border-color .15s;
+    }
+
+    .path-card:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--orange-lt);
+    }
+
+    .badge-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .card-body { flex: 1; min-width: 0; }
+
+    .card-trigger {
+      font-weight: 700;
+      font-size: .9rem;
+      color: var(--text);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    .card-module {
+      font-family: var(--font-mono);
+      font-size: .76rem;
+      color: var(--text-2);
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .card-flag {
+      font-size: .72rem;
+      color: var(--blue);
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .badge-enable {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    /* ── Collapsible knowledge cards ─────────────────────── */
+    .knowledge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    details.know-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    details.know-card[open] {
+      border-color: var(--orange-lt);
+    }
+
+    details.know-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      outline: none;
+    }
+
+    details.know-card > summary::-webkit-details-marker { display: none; }
+
+    details.know-card > summary:hover { background: var(--bg); }
+
+    .know-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    details.know-card[open] .know-num {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .know-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: .97rem;
+    }
+
+    .know-arrow {
+      width: 20px;
+      height: 20px;
+      color: var(--text-3);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    details.know-card[open] .know-arrow {
+      transform: rotate(90deg);
+      color: var(--orange);
+    }
+
+    .know-body {
+      padding: 0 20px 20px 64px;
+    }
+
+    .know-body p { margin-bottom: 8px; }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    /* CSS-only syntax highlighting */
+    .kw  { color: #7c9bff; font-weight: 600; }  /* keywords */
+    .str { color: #6cc77a; }                      /* strings */
+    .fn  { color: #f0906a; }                      /* function calls */
+    .cmt { color: #6e6a62; font-style: italic; } /* comments */
+    .type{ color: #e0a020; }                      /* TypeScript types */
+    .num { color: #c792ea; }                      /* numbers */
+
+    /* inline code */
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Comparison Table ─────────────────────────────────── */
+    .compare-table th:first-child { width: 130px; }
+    .compare-table th:nth-child(2) { color: var(--orange-dk); }
+    .compare-table th:nth-child(3) { color: var(--blue-dk); }
+
+    /* ── Key files ────────────────────────────────────────── */
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--blue-dk);
+      cursor: default;
+      position: relative;
+    }
+
+    .file-path:hover::after {
+      content: attr(data-full);
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+      background: #1e1b16;
+      color: #d4cfc8;
+      font-size: .75rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+      pointer-events: none;
+    }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    ul.key-list {
+      padding-left: 20px;
+      color: var(--text-2);
+    }
+
+    ul.key-list li { margin-bottom: 4px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .know-body { padding-left: 20px; }
+    }
+
+    /* === Additional styles === */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    section { margin-top: 56px; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>McpAuthTool 工具详解</h1>
+  <p>未认证 MCP 服务器的&quot;占位伪工具&quot;——当 server 返回 401 时用它代替真实工具暴露给模型，让模型能代用户启动 OAuth 流程并在回调后自动替换为真实工具</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一工具定位一句话总结">一、工具定位</a></li>
+    <li><a href="#二关键文件清单">二、关键文件清单</a></li>
+    <li><a href="#三tool-接口字段实现工厂函数逐字段">三、Tool 接口字段实现</a></li>
+    <li><a href="#四核心执行流程call">四、核心执行流程：`call`</a></li>
+    <li><a href="#五权限与安全">五、权限与安全</a></li>
+    <li><a href="#六与其他系统工具的关系">六、与其他系统/工具的关系</a></li>
+    <li><a href="#七亮点与设计取舍">七、亮点与设计取舍</a></li>
+    <li><a href="#八源码导航书签速查">八、源码导航</a></li>
+    <li><a href="#九学习建议与验证清单">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+<blockquote class="callout"><p>这是一个<strong>动态生成的伪工具</strong>。它不在 <code>tools.ts</code> 里静态注册，也没有 <code>buildTool</code>——而是一个<strong>工厂函数</strong> <code>createMcpAuthTool(serverName, config)</code>（<code>McpAuthTool.ts:47</code>）。当某个 MCP 服务器需要 OAuth（连接时返回 HTTP 401），<code>client.ts</code> 不把该服务器的真实工具暴露给模型，而是用这个伪工具代替。模型看到"<code><server></code> 已安装但需要认证"，调用它就能拿到授权 URL 转给用户；OAuth 回调完成后，前缀替换机制自动把这个伪工具换成真实工具。它是 MCP 接入流程里"未认证态"的用户/模型交互桥梁。</p></blockquote>
+
+<section id="一工具定位一句话总结">
+<h2>一、工具定位（一句话总结）</h2>
+
+<p><strong><code>McpAuthTool</code> = 未认证 MCP 服务器的占位工具，由工厂函数动态生成。</strong></p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>维度</th><th>值</th></tr></thead>
+<tbody>
+<tr><td>工具名</td><td><code>buildMcpToolName(serverName, 'authenticate')</code>（<code>:61</code>）= <code>mcp__<server>__authenticate</code></td></tr>
+<tr><td>一句话</td><td>未认证 server 的伪工具，让模型代用户启动 OAuth 并返回授权 URL</td></tr>
+<tr><td>是否进 system prompt</td><td>❌ 不在 <code>getAllBaseTools()</code>；由 <code>client.ts:2330/2343</code> 在 needs-auth 状态时动态注入</td></tr>
+<tr><td>只读 / 破坏性</td><td><strong>非只读</strong>（<code>isReadOnly: () => false</code>，<code>:66</code>）——会触发网络 OAuth 流程</td></tr>
+<tr><td>是否可并发</td><td>❌ <strong>不可并发</strong>（<code>isConcurrencySafe: () => false</code>，<code>:65</code>）</td></tr>
+<tr><td>核心依赖</td><td><code>src/services/mcp/auth.ts</code> 的 <code>performMCPOAuthFlow</code>；<code>client.ts</code> 的 <code>reconnectMcpServerImpl</code></td></tr>
+<tr><td>关键标记</td><td><code>isMcp: true</code>（<code>:62</code>）+ <code>mcpInfo: {serverName, toolName:'authenticate'}</code>（<code>:63</code>）</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>为什么需要它？</strong> MCP 服务器（尤其 HTTP/SSE 远程服务器）常用 OAuth 保护。首次连接时返回 401，Claude Code 此刻拿不到任何真实工具。但如果完全隐藏这个 server，模型既不知道它存在、也无法引导用户认证。<code>McpAuthTool</code> 解决这个"已安装但未认证"的中间态：<strong>用一个伪工具占位</strong>，让模型能感知该 server 并代用户启动 OAuth，而不是无声失败或要求用户手动跑 <code>/mcp</code>。</p>
+
+</section>
+
+<section id="二关键文件清单">
+<h2>二、关键文件清单</h2>
+
+<pre><code>McpAuthTool/
+└── McpAuthTool.ts    ← 工厂函数 createMcpAuthTool + call() 的 OAuth 流程（211 行，单文件）
+</code></pre>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+<tbody>
+<tr><td><code>McpAuthTool.ts</code></td><td>全部逻辑：工厂函数 + description 构造 + call() OAuth 启动 + 回调后重连替换</td><td><code>createMcpAuthTool:47</code>、<code>description:55</code>、<code>call:83</code>、OAuth 启动 <code>:123</code>、重连替换 <code>:133</code>、URL 竞速 <code>:173</code></td></tr>
+<tr><td><code>src/services/mcp/auth.ts</code></td><td><code>performMCPOAuthFlow</code> 真正的 OAuth 实现（被 McpAuthTool 调用）</td><td>—</td></tr>
+<tr><td><code>src/services/mcp/client.ts</code></td><td>调用方：needs-auth 时 <code>createMcpAuthTool</code> 注入；<code>clearMcpAuthCache</code>/<code>reconnectMcpServerImpl</code> 提供</td><td><code>:2330</code>、<code>:2343</code>、<code>createMcpAuthTool</code> 导入 <code>:58</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<blockquote class="callout"><p><strong>结构特点</strong>：极简单文件——没有独立的 <code>prompt.ts</code> / <code>UI.tsx</code>，description 在工厂里动态拼字符串，渲染直接用 <code>renderToolUseMessage: () => '认证 ${serverName} MCP server'</code>（<code>:70</code>）。因为它是<strong>每个 server 一个独立工具实例</strong>，描述必须含 server 名，无法用静态常量。</p></blockquote>
+
+</section>
+
+<section id="三tool-接口字段实现工厂函数逐字段">
+<h2>三、Tool 接口字段实现（工厂函数逐字段）</h2>
+
+<p><code>createMcpAuthTool</code> 返回一个<strong>直接满足 <code>Tool</code> 接口的对象</strong>（不是 <code>buildTool</code>，<code>:60</code> 的 <code>satisfies Tool<InputSchema, McpAuthOutput></code>），因为它是运行时动态生成的，不需要 <code>buildTool</code> 的静态类型推导。</p>
+
+<h3>标识字段</h3>
+
+<pre><code>name: buildMcpToolName(serverName, 'authenticate'),  // :61 → &quot;mcp__&lt;server&gt;__authenticate&quot;
+isMcp: true,                                          // :62
+mcpInfo: { serverName, toolName: 'authenticate' },    // :63
+isEnabled: () =&gt; true,                                // :64
+userFacingName: () =&gt; `${serverName} - 认证 (MCP)`,   // :68
+maxResultSizeChars: 10_000,                           // :69（比常规 100k 小，因为只返回 URL/消息）
+</code></pre>
+
+<blockquote class="callout"><p><strong>命名共享前缀</strong>：<code>mcp__<server>__authenticate</code> 与该 server 的真实工具（<code>mcp__<server>__<tool></code>）共享 <code>mcp__<server>__</code> 前缀。这是<strong>刻意的</strong>——OAuth 完成后，前缀替换机制（<code>useManageMCPConnections.updateServer</code> + <code>:146</code> 的 <code>reject(..., t => t.name?.startsWith(prefix))</code>）会自动移除这个伪工具。</p></blockquote>
+
+<h3>模型面字段</h3>
+
+<pre><code>async description() { return description },  // :71 → 动态拼接的认证指引
+async prompt()      { return description },  // :74 → 同 description
+get inputSchema()   { return inputSchema() }, // :77 → z.object({})，无参数
+</code></pre>
+
+<p><strong>description 文本</strong>（<code>:55-58</code>）：</p>
+
+<pre><code>`&lt;server&gt;` MCP server（&lt;transport&gt; at &lt;url&gt;）已安装但需要认证。
+调用此工具以启动 OAuth 流程 —— 你会收到一个授权 URL，请分享给用户。
+用户在浏览器中完成认证后，该 server 的真实工具会自动变为可用。
+</code></pre>
+
+<p>这段描述直接驱动模型行为：<strong>模型读完就知道要调用它、拿到 URL、转给用户、等真实工具上线</strong>。没有额外的 system prompt 片段——description 即指令。</p>
+
+<p><strong>输入 schema</strong>（<code>:23</code>）：<code>z.object({})</code>——空对象，无参数。认证工具不需要任何输入。</p>
+
+<h3>输出类型</h3>
+
+<pre><code>type McpAuthOutput = {
+  status: 'auth_url' | 'unsupported' | 'error'  // :27
+  message: string
+  authUrl?: string  // 仅 status='auth_url' 时有
+}
+</code></pre>
+
+<h3>行为字段</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>call()</code></td><td><code>:83-202</code></td><td>OAuth 流程启动 + URL 返回 + 后台重连（见下节）</td></tr>
+<tr><td><code>checkPermissions(input)</code></td><td><code>:80-82</code></td><td><code>{behavior:'allow', updatedInput: input}</code> —— <strong>自动允许</strong></td></tr>
+<tr><td><code>isConcurrencySafe()</code></td><td><code>:65</code> → <code>false</code></td><td>OAuth 是有状态网络流程</td></tr>
+<tr><td><code>isReadOnly()</code></td><td><code>:66</code> → <code>false</code></td><td>改变 server 认证状态</td></tr>
+<tr><td><code>toAutoClassifierInput()</code></td><td><code>:67</code> → <code>serverName</code></td><td>自动审批分类器输入 = server 名</td></tr>
+</tbody>
+</table>
+</div>
+
+<blockquote class="callout"><p><strong><code>checkPermissions</code> 自动 allow</strong>（<code>:80-82</code>）：认证工具不需要用户确认——因为模型调用它本身就是在响应用户"我要用这个 server"的意图。用户真正的授权动作发生在<strong>浏览器里的 OAuth 页面</strong>，而不是 Claude Code 的权限确认对话框。</p></blockquote>
+
+<h3>渲染字段</h3>
+
+<pre><code>renderToolUseMessage: () =&gt; `认证 ${serverName} MCP server`,  // :70
+mapToolResultToToolResultBlockParam(data, id) { return {tool_use_id:id, type:'tool_result', content: data.message} },  // :203
+</code></pre>
+
+<p>只渲染 <code>data.message</code>（授权 URL 或错误说明）进 tool_result，丢弃 status/authUrl 结构化字段——模型只需要可读文本。</p>
+
+</section>
+
+<section id="四核心执行流程call">
+<h2>四、核心执行流程：<code>call()</code></h2>
+
+<p><code>call()</code>（<code>:83-202</code>）是 OAuth 流程的编排器。它<strong>不阻塞等 OAuth 完成</strong>——启动流程、拿到 URL、立即返回；真正的"OAuth 完成 → 重连 → 替换工具"在后台异步进行。</p>
+
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    A["call(_input, context)\nMcpAuthTool.ts:83"] --> B{config.type}
+    B -->|claudeai-proxy| C1["return status:'unsupported'\n引导到 /mcp（:86）"]
+    B -->|非 sse/http| C2["return status:'unsupported'\n引导到 /mcp（:98）"]
+    B -->|sse 或 http| D["构造 authUrlPromise + resolveAuthUrl\n（:115-118）"]
+    D --> E["performMCPOAuthFlow(skipBrowserOpen:true)\n后台启动 OAuth（:123）"]
+    E --> F["后台 oauthPromise.then：\nclearMcpAuthCache → reconnectMcpServerImpl\n→ setAppState 前缀替换真实工具（:133）"]
+    E --> G["Promise.race(authUrlPromise, oauthPromise.then(null))\n竞速取 URL 或静默完成（:173）"]
+    G --> H{有 authUrl?}
+    H -->|是| I["return status:'auth_url' + authUrl + message\n让模型把 URL 转给用户（:178）"]
+    H -->|否-静默完成| J["return status:'auth_url' + '静默完成' message\n（:188，如 XAA 有缓存 token）"]
+    E -->|失败| K["后台 catch：logMCPError\n（:163）"]
+    G -->|抛错| L["return status:'error' + message\n引导 /mcp（:194）"]
+
+  </div>
+</div>
+
+<p><strong>关键点逐条</strong>：</p>
+
+<ol>
+<li><strong>transport 守卫</strong>（<code>:86-105</code>）：只支持 <code>sse</code> / <code>http</code> 的 OAuth。<code>claudeai-proxy</code>（claude.ai connector）走独立认证流程（<code>MCPRemoteServerMenu.handleClaudeAIAuth</code>），此工具引导用户到 <code>/mcp</code> 手动认证。stdio 本地服务器理论上不会进 needs-auth 状态（needs-auth 只在 HTTP 401 时设置），做防御性处理。</li>
+</ol>
+
+<ol>
+<li><strong><code>skipBrowserOpen: true</code></strong>（<code>:128</code>）：Claude Code <strong>不自动开浏览器</strong>。它拿到授权 URL，由模型转给用户，用户自己决定何时打开。这是无头/CLI 场景的正确姿态（不像桌面 app 能直接弹浏览器）。</li>
+</ol>
+
+<ol>
+<li><strong>URL 竞速</strong>（<code>:173-176</code>）：<code>Promise.race([authUrlPromise, oauthPromise.then(() => null)])</code>——两种可能：</li>
+</ol>
+
+<ul>
+<li><strong>常见路径</strong>：OAuth 流程需要授权，<code>performMCPOAuthFlow</code> 通过 <code>onAuthorizationUrl</code> 回调 resolve <code>authUrlPromise</code>，本工具拿到 URL 返回。</li>
+<li><strong>静默路径</strong>：OAuth 流程不需要 URL 就完成了（如 XAA 有缓存的 IdP token），<code>oauthPromise</code> 先 resolve，race 返回 <code>null</code>，本工具返回"静默完成"消息（<code>:188</code>）。</li>
+</ul>
+
+<ol>
+<li><strong>后台重连 + 工具替换</strong>（<code>:133-168</code>）：这是<strong>最关键的设计</strong>。OAuth 完成后：</li>
+</ol>
+
+<ul>
+<li><code>clearMcpAuthCache()</code>（<code>:135</code>）——清掉"needs-auth"缓存，让下次连接尝试真正发起。</li>
+<li><code>reconnectMcpServerImpl(serverName, config)</code>（<code>:136</code>）——重连 server，拿到新的 <code>result.client</code> / <code>result.tools</code> / <code>result.commands</code> / <code>result.resources</code>。</li>
+<li><code>setAppState(prev => ...)</code>（<code>:138-157</code>）——<strong>前缀替换</strong>：用 <code>reject(prev.mcp.tools, t => t.name?.startsWith(prefix))</code> 移除所有 <code>mcp__<server>__*</code> 工具（包括这个伪认证工具），再 <code>...result.tools</code> 追加真实工具。commands/resources 同理。</li>
+</ul>
+
+<p>这就是"伪工具自动消失"的机制——它和真实工具共享前缀，重连后整组替换。</p>
+
+<ol>
+<li><strong>不阻塞主流程</strong>：<code>void oauthPromise.then(...).catch(...)</code>（<code>:133</code>）——后台延续（fire-and-forget），不 await。<code>call()</code> 在拿到 URL 后立即返回，让模型把 URL 转给用户；OAuth 回调在用户浏览器完成、后台重连在回调后异步发生。模型不需要等待。</li>
+</ol>
+
+<ol>
+<li><strong>失败降级</strong>（<code>:194-201</code>）：OAuth 启动失败时返回 <code>status:'error'</code>，引导用户运行 <code>/mcp</code> 手动认证——永远给用户一条出路，不会卡死。</li>
+</ol>
+
+</section>
+
+<section id="五权限与安全">
+<h2>五、权限与安全</h2>
+
+<h3><code>checkPermissions</code>（<code>:80-82</code>）</h3>
+
+<pre><code>async checkPermissions(input): Promise&lt;PermissionDecision&gt; {
+  return { behavior: 'allow', updatedInput: input }
+}
+</code></pre>
+
+<p><strong>自动允许</strong>，不弹权限确认。理由：模型调用认证工具本身就是在响应用户"我想用这个 server"的意图；真正的授权发生在浏览器 OAuth 页面（用户主动登录授权），而不是 CLI 权限对话框。两次确认会冗余。</p>
+
+<h3>安全考量</h3>
+
+<ol>
+<li><strong>不自动开浏览器</strong>（<code>skipBrowserOpen: true</code>）：URL 必须经模型→用户的可见路径传达，防止静默触发用户未预期的浏览器跳转/重定向。</li>
+</ol>
+
+<ol>
+<li><strong>transport 白名单</strong>（<code>:98</code>）：只对 <code>sse</code>/<code>http</code> 启动 OAuth。stdio 等本地传输走不了标准 OAuth，强制走 <code>/mcp</code>。</li>
+</ol>
+
+<ol>
+<li><strong>claude.ai connector 隔离</strong>（<code>:86</code>）：<code>claudeai-proxy</code> 类型有独立的 IdP 认证（<code>xaaIdpLogin.ts</code>），不通过此工具触发，避免认证流程混淆。</li>
+</ol>
+
+<ol>
+<li><strong>错误消息引导 <code>/mcp</code></strong>：所有失败路径（unsupported / error）都建议用户运行 <code>/mcp</code> 手动认证，保证用户始终有兜底入口。</li>
+</ol>
+
+</section>
+
+<section id="六与其他系统工具的关系">
+<h2>六、与其他系统/工具的关系</h2>
+
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    AUTH["createMcpAuthTool(server, config)\nMcpAuthTool.ts:47"] -->|needs-auth 时注入| CLIENT["client.ts\ngetMcpToolsCommandsAndResources"]
+    CLIENT -->|401 或无 token| AUTH
+    AUTH -->|call| OAUTH["performMCPOAuthFlow\nsrc/services/mcp/auth.ts"]
+    OAUTH -->|回调| RECONNECT["reconnectMcpServerImpl\nclient.ts"]
+    RECONNECT -->|前缀替换| REPLACE["setAppState: 移除 mcp__server__*\n追加真实工具"]
+    REPLACE -.伪工具消失.-> REAL["MCPTool 克隆体（真实工具）"]
+    AUTH -.兄弟.-> TMPL["MCPTool 模板（isMcp:true）"]
+    AUTH -.调用方.-> CACHE["clearMcpAuthCache\nclient.ts"]
+
+  </div>
+</div>
+
+<ul>
+<li><strong>与 <code>MCPTool</code> 的关系</strong>：兄弟伪工具。两者都 <code>isMcp: true</code>，但职责不同——MCPTool 是<strong>已认证</strong> server 工具的模板，McpAuthTool 是<strong>未认证</strong> server 的占位。一个 server 在任一时刻只暴露其中一种（真实工具 or 认证工具）。</li>
+</ul>
+
+<ul>
+<li><strong>与 <code>client.ts</code> 的关系</strong>：</li>
+<li><strong>被调用方</strong>：<code>getMcpToolsCommandsAndResources</code> 在两处生成它——<code>isMcpAuthCached(name)</code> 命中时（<code>:2330</code>，跳过连接直接用伪工具）和 <code>connectToServer</code> 返回 <code>needs-auth</code> 时（<code>:2343</code>）。</li>
+<li><strong>依赖方</strong>：<code>call()</code> 调用 <code>clearMcpAuthCache</code>（<code>:5</code> 导入）和 <code>reconnectMcpServerImpl</code>（<code>:6</code> 导入）完成重连。</li>
+</ul>
+
+<ul>
+<li><strong>与 <code>performMCPOAuthFlow</code>（<code>auth.ts</code>）的关系</strong>：OAuth 真正的实现。McpAuthTool 只负责编排（启动、抓 URL、后台重连），不处理 OAuth 协议细节（令牌交换、PKCE、回调监听等都在 <code>auth.ts</code>）。</li>
+</ul>
+
+<ul>
+<li><strong>与 <code>useManageMCPConnections</code> 的关系</strong>：<code>updateServer</code> hook 也做同样的前缀替换。McpAuthTool 的 <code>call()</code> 内联了替换逻辑（<code>:138-157</code>），与 hook 路径<strong>冗余但一致</strong>——因为认证工具触发的重连不一定经过 hook。</li>
+</ul>
+
+<ul>
+<li><strong>与 <code>/mcp</code> 命令的关系</strong>：所有失败/不支持的路径都引导用户到 <code>/mcp</code>。<code>/mcp</code> 是手动认证的权威入口，McpAuthTool 是"模型可主动触发"的便捷入口。</li>
+</ul>
+
+<ul>
+<li><strong>与 <code>hasMcpDiscoveryButNoToken</code>（<code>client.ts:2325</code>）的关系</strong>：首次探测发现 server 存在（discovery 成功）但无 token 时，直接跳过连接、注入认证工具——避免每 15 分钟重复无意义的 401 探测。</li>
+</ul>
+
+</section>
+
+<section id="七亮点与设计取舍">
+<h2>七、亮点与设计取舍</h2>
+
+<ol>
+<li><strong>工厂函数而非 <code>buildTool</code></strong>（<code>:47-211</code>）：McpAuthTool 是运行时按 server 动态生成的，每个实例需要闭包捕获 <code>serverName</code> / <code>config</code>。用工厂函数 + 直接 <code>satisfies Tool</code> 比静态 <code>buildTool</code> 更自然——<code>description</code> 里要含 server 名，渲染要含 server 名，必须闭包。</li>
+</ol>
+
+<ol>
+<li><strong>共享前缀 = 自动清理</strong>（<code>:61</code> + <code>:146</code>）：伪工具命名为 <code>mcp__<server>__authenticate</code>，与真实工具共享 <code>mcp__<server>__</code> 前缀。OAuth 完成后重连时的 <code>reject(startsWith(prefix))</code> 自动移除伪工具——<strong>不需要专门的"注销认证工具"逻辑</strong>，前缀替换天然处理。极优雅。</li>
+</ol>
+
+<ol>
+<li><strong>不阻塞的 OAuth</strong>（<code>:133</code> fire-and-forget）：<code>call()</code> 拿到 URL 就返回，不 await OAuth 完成。模型把 URL 转给用户后，工具调用就结束了；认证在用户浏览器 + 后台异步完成。这让 CLI 不会被长时间 OAuth 阻塞。</li>
+</ol>
+
+<ol>
+<li><strong>URL 竞速处理静默认证</strong>（<code>:173</code>）：<code>Promise.race</code> 同时处理"需要 URL"和"静默完成"两种 OAuth 路径（XAA 等 IdP 有缓存 token 时静默成功）。单一 <code>call()</code> 优雅覆盖两种场景。</li>
+</ol>
+
+<ol>
+<li><strong><code>checkPermissions</code> 自动 allow</strong>：刻意不在 CLI 弹确认——授权发生在浏览器 OAuth 页面，CLI 再确认是冗余。体现对"授权发生在哪一层"的清晰认知。</li>
+</ol>
+
+<ol>
+<li><strong>三态输出</strong>（<code>status: 'auth_url' | 'unsupported' | 'error'</code>）：覆盖所有路径——能给 URL、不支持该 transport、启动失败。每态都有面向用户/模型的引导消息，永不卡死。</li>
+</ol>
+
+<ol>
+<li><strong><code>maxResultSizeChars: 10_000</code></strong>（<code>:69</code>）：比常规 MCP 工具（100k）小一个数量级。因为输出就是 URL + 消息，不需要大空间——也防止异常情况下 OAuth 响应意外撑大 context。</li>
+</ol>
+
+</section>
+
+<section id="八源码导航书签速查">
+<h2>八、源码导航（书签速查）</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+<tbody>
+<tr><td>工厂函数 <code>createMcpAuthTool</code></td><td><code>McpAuthTool/McpAuthTool.ts:47</code></td></tr>
+<tr><td>动态 description 拼接</td><td><code>McpAuthTool.ts:55-58</code></td></tr>
+<tr><td><code>call()</code> OAuth 启动</td><td><code>McpAuthTool.ts:83-202</code></td></tr>
+<tr><td>transport 守卫（claudeai-proxy / 非 sse-http）</td><td><code>McpAuthTool.ts:86-105</code></td></tr>
+<tr><td><code>performMCPOAuthFlow</code> 调用</td><td><code>McpAuthTool.ts:123-129</code></td></tr>
+<tr><td>后台重连 + 前缀替换</td><td><code>McpAuthTool.ts:133-168</code></td></tr>
+<tr><td>URL 竞速（race）</td><td><code>McpAuthTool.ts:173-176</code></td></tr>
+<tr><td><code>checkPermissions</code> 自动 allow</td><td><code>McpAuthTool.ts:80-82</code></td></tr>
+<tr><td>输出类型 <code>McpAuthOutput</code></td><td><code>McpAuthTool.ts:26-30</code></td></tr>
+<tr><td><strong>调用方</strong>：needs-auth 注入</td><td><code>src/services/mcp/client.ts:2330,2343</code></td></tr>
+<tr><td>OAuth 真正实现</td><td><code>src/services/mcp/auth.ts:performMCPOAuthFlow</code></td></tr>
+<tr><td>重连实现</td><td><code>src/services/mcp/client.ts:reconnectMcpServerImpl</code></td></tr>
+</tbody>
+</table>
+</div>
+
+</section>
+
+<section id="九学习建议与验证清单">
+<h2>九、学习建议与验证清单</h2>
+
+<p><strong>怎么读这章</strong>：先看"一、工具定位"理解它是<strong>未认证态的占位</strong>，再跳到"四、call()"重点看两个机制——① URL 竞速（<code>:173</code>），② 后台重连 + 前缀替换（<code>:133</code>）。后者是"伪工具自动消失"的核心。最后看"六、关系图"理解它和 <code>MCPTool</code> 的兄弟关系。</p>
+
+<p><strong>验证清单（读完自测）</strong>：</p>
+
+<ul class="checklist">
+<li><input type="checkbox" disabled> <span>能说出 McpAuthTool 为什么用工厂函数而非 <code>buildTool</code>（动态捕获 serverName/config 闭包）</span></li>
+<li><input type="checkbox" disabled> <span>能解释命名 <code>mcp__<server>__authenticate</code> 共享前缀的作用（OAuth 完成后自动被前缀替换移除）</span></li>
+<li><input type="checkbox" disabled> <span>能指出 <code>call()</code> 为什么不 await OAuth 完成（不阻塞 CLI，后台异步重连）</span></li>
+<li><input type="checkbox" disabled> <span>能说出 URL 竞速（<code>Promise.race</code>）处理的两种路径（需要 URL / 静默完成）</span></li>
+<li><input type="checkbox" disabled> <span>能解释 <code>checkPermissions</code> 为什么自动 allow（授权发生在浏览器，CLI 确认冗余）</span></li>
+<li><input type="checkbox" disabled> <span>能找到 <code>client.ts</code> 里注入 McpAuthTool 的两个位置（<code>:2330</code> cached needs-auth、<code>:2343</code> connectToSserver needs-auth）</span></li>
+<li><input type="checkbox" disabled> <span>能说出哪些 transport 不支持此工具的 OAuth（claudeai-proxy、stdio 等，引导 <code>/mcp</code>）</span></li>
+</ul>
+
+<p><strong>配合动作</strong>：</p>
+
+<ol>
+<li>配置一个需要 OAuth 的 HTTP MCP 服务器（如托管 Slack），不预认证，观察模型侧出现的认证工具</li>
+<li>在 <code>McpAuthTool.ts:138</code> 的 <code>setAppState</code> 处加日志，观察 OAuth 完成后前缀替换移除了哪些工具、追加了哪些</li>
+<li>在 <code>:173</code> 的 race 处加日志，对比"需要 URL"和"静默完成"两种路径的触发条件</li>
+<li>故意让 OAuth 失败（错误凭证），验证 <code>status:'error'</code> 返回并引导 <code>/mcp</code></li>
+</ol>
+
+</section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

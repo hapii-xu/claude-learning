@@ -85,11 +85,11 @@ async function loadAgentFromFile(
     const baseAgentName =
       (frontmatter.name as string) || basename(filePath).replace(/\.md$/, '')
 
-    // Apply namespace prefixing like we do for commands
+    // 应用命名空间前缀，与命令的处理方式相同
     const nameParts = [pluginName, ...namespace, baseAgentName]
     const agentType = nameParts.join(':')
 
-    // Parse agent metadata from frontmatter
+    // 从 frontmatter 解析代理元数据
     const whenToUse =
       coerceDescriptionToString(frontmatter.description, agentType) ??
       coerceDescriptionToString(frontmatter['when-to-use'], agentType) ??
@@ -107,9 +107,9 @@ async function loadAgentFromFile(
     const backgroundRaw = frontmatter.background
     const background =
       backgroundRaw === 'true' || backgroundRaw === true ? true : undefined
-    // Substitute ${CLAUDE_PLUGIN_ROOT} so agents can reference bundled files,
-    // and ${user_config.X} (non-sensitive only) so they can embed configured
-    // usernames, endpoints, etc. Sensitive refs resolve to a placeholder.
+    // 替换 ${CLAUDE_PLUGIN_ROOT} 使代理可以引用捆绑文件，
+    // 替换 ${user_config.X}（仅非敏感）使代理可以嵌入已配置的
+    // 用户名、端点等。敏感引用解析为占位符。
     let systemPrompt = substitutePluginVariables(markdownContent.trim(), {
       path: pluginPath,
       source: sourceName,
@@ -122,7 +122,7 @@ async function loadAgentFromFile(
       )
     }
 
-    // Parse memory scope
+    // 解析记忆作用域
     const memoryRaw = frontmatter.memory as string | undefined
     let memory: AgentMemoryScope | undefined
     if (memoryRaw !== undefined) {
@@ -135,12 +135,12 @@ async function loadAgentFromFile(
       }
     }
 
-    // Parse isolation mode
+    // 解析隔离模式
     const isolationRaw = frontmatter.isolation as string | undefined
     const isolation =
       isolationRaw === 'worktree' ? ('worktree' as const) : undefined
 
-    // Parse effort (string level or integer)
+    // 解析努力程度（字符串级别或整数）
     const effortRaw = frontmatter.effort
     const effort =
       effortRaw !== undefined ? parseEffortValue(effortRaw) : undefined
@@ -150,14 +150,12 @@ async function loadAgentFromFile(
       )
     }
 
-    // permissionMode, hooks, and mcpServers are intentionally NOT parsed for
-    // plugin agents. Plugins are third-party marketplace code; these fields
-    // escalate what the agent can do beyond what the user approved at install
-    // time. For this level of control, define the agent in .claude/agents/
-    // where the user explicitly wrote the frontmatter. (Note: plugins can
-    // still ship hooks and MCP servers at the manifest level — that's the
-    // install-time trust boundary. Per-agent declarations would let a single
-    // agent file buried in agents/ silently add them.) See PR #22558 review.
+    // permissionMode、hooks 和 mcpServers 对插件代理有意不解析。
+    // 插件是第三方市场代码；这些字段会让代理的能力超出用户在安装时批准的范围。
+    // 需要此级别控制时，应在 .claude/agents/ 中定义代理，用户在那里
+    // 显式编写了 frontmatter。（注意：插件仍可在清单级别附带 hooks 和 MCP 服务器
+    // —— 那是安装时的信任边界。按代理声明会让 agents/ 中某个隐蔽的代理文件
+    // 静默添加它们。）参见 PR #22558 审查。
     for (const field of ['permissionMode', 'hooks', 'mcpServers'] as const) {
       if (frontmatter[field] !== undefined) {
         logForDebugging(
@@ -167,7 +165,7 @@ async function loadAgentFromFile(
       }
     }
 
-    // Parse maxTurns
+    // 解析 maxTurns
     const maxTurnsRaw = frontmatter.maxTurns
     const maxTurns = parsePositiveIntFromFrontmatter(maxTurnsRaw)
     if (maxTurnsRaw !== undefined && maxTurns === undefined) {
@@ -176,13 +174,13 @@ async function loadAgentFromFile(
       )
     }
 
-    // Parse disallowedTools
+    // 解析 disallowedTools
     const disallowedTools =
       frontmatter.disallowedTools !== undefined
         ? parseAgentToolsFromFrontmatter(frontmatter.disallowedTools)
         : undefined
 
-    // If memory is enabled, inject Write/Edit/Read tools for memory access
+    // 若启用了记忆，注入 Write/Edit/Read 工具以访问记忆
     if (isAutoMemoryEnabled() && memory && tools !== undefined) {
       const toolSet = new Set(tools)
       for (const tool of [
@@ -230,7 +228,7 @@ async function loadAgentFromFile(
 
 export const loadPluginAgents = memoize(
   async (): Promise<AgentDefinition[]> => {
-    // Only load agents from enabled plugins
+    // 仅从已启用插件加载代理
     const { enabled, errors } = await loadAllPluginsCacheOnly()
 
     if (errors.length > 0) {
@@ -239,14 +237,14 @@ export const loadPluginAgents = memoize(
       )
     }
 
-    // Process plugins in parallel; each plugin has its own loadedPaths scope
+    // 并行处理插件；每个插件有自己的 loadedPaths 作用域
     const perPluginAgents = await Promise.all(
       enabled.map(async (plugin): Promise<AgentDefinition[]> => {
-        // Track loaded file paths to prevent duplicates within this plugin
+        // 跟踪已加载的文件路径，防止该插件内重复
         const loadedPaths = new Set<string>()
         const pluginAgents: AgentDefinition[] = []
 
-        // Load agents from default agents directory
+        // 从默认代理目录加载代理
         if (plugin.agentsPath) {
           try {
             const agents = await loadAgentsFromDirectory(
@@ -272,10 +270,10 @@ export const loadPluginAgents = memoize(
           }
         }
 
-        // Load agents from additional paths specified in manifest
+        // 从清单中指定的额外路径加载代理
         if (plugin.agentsPaths) {
-          // Process all agentsPaths in parallel. isDuplicatePath is synchronous
-          // (check-and-add), so concurrent access to loadedPaths is safe.
+          // 并行处理所有 agentsPaths。isDuplicatePath 是同步的
+          // （检查并添加），因此并发访问 loadedPaths 是安全的。
           const pathResults = await Promise.all(
             plugin.agentsPaths.map(
               async (agentPath): Promise<AgentDefinition[]> => {
@@ -284,7 +282,7 @@ export const loadPluginAgents = memoize(
                   const stats = await fs.stat(agentPath)
 
                   if (stats.isDirectory()) {
-                    // Load all .md files from directory
+                    // 从目录中加载所有 .md 文件
                     const agents = await loadAgentsFromDirectory(
                       agentPath,
                       plugin.name,
@@ -301,7 +299,7 @@ export const loadPluginAgents = memoize(
                     }
                     return agents
                   } else if (stats.isFile() && agentPath.endsWith('.md')) {
-                    // Load single agent file
+                    // 加载单个代理文件
                     const agent = await loadAgentFromFile(
                       agentPath,
                       plugin.name,

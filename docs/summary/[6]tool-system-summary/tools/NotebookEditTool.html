@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NotebookEditTool（NotebookEdit）工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── SVG Diagram ──────────────────────────────────────── */
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      margin: 0 auto;
+      font-family: var(--font-sans);
+    }
+
+    /* SVG tooltip via CSS title */
+    .node-group { cursor: default; }
+    .node-group:hover rect.node-rect { filter: brightness(.93); }
+
+    /* ── Card Grid ────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .path-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: box-shadow .15s, border-color .15s;
+    }
+
+    .path-card:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--orange-lt);
+    }
+
+    .badge-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .card-body { flex: 1; min-width: 0; }
+
+    .card-trigger {
+      font-weight: 700;
+      font-size: .9rem;
+      color: var(--text);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    .card-module {
+      font-family: var(--font-mono);
+      font-size: .76rem;
+      color: var(--text-2);
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .card-flag {
+      font-size: .72rem;
+      color: var(--blue);
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .badge-enable {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    /* ── Collapsible knowledge cards ─────────────────────── */
+    .knowledge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    details.know-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    details.know-card[open] {
+      border-color: var(--orange-lt);
+    }
+
+    details.know-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      outline: none;
+    }
+
+    details.know-card > summary::-webkit-details-marker { display: none; }
+
+    details.know-card > summary:hover { background: var(--bg); }
+
+    .know-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    details.know-card[open] .know-num {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .know-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: .97rem;
+    }
+
+    .know-arrow {
+      width: 20px;
+      height: 20px;
+      color: var(--text-3);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    details.know-card[open] .know-arrow {
+      transform: rotate(90deg);
+      color: var(--orange);
+    }
+
+    .know-body {
+      padding: 0 20px 20px 64px;
+    }
+
+    .know-body p { margin-bottom: 8px; }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    /* CSS-only syntax highlighting */
+    .kw  { color: #7c9bff; font-weight: 600; }  /* keywords */
+    .str { color: #6cc77a; }                      /* strings */
+    .fn  { color: #f0906a; }                      /* function calls */
+    .cmt { color: #6e6a62; font-style: italic; } /* comments */
+    .type{ color: #e0a020; }                      /* TypeScript types */
+    .num { color: #c792ea; }                      /* numbers */
+
+    /* inline code */
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Comparison Table ─────────────────────────────────── */
+    .compare-table th:first-child { width: 130px; }
+    .compare-table th:nth-child(2) { color: var(--orange-dk); }
+    .compare-table th:nth-child(3) { color: var(--blue-dk); }
+
+    /* ── Key files ────────────────────────────────────────── */
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--blue-dk);
+      cursor: default;
+      position: relative;
+    }
+
+    .file-path:hover::after {
+      content: attr(data-full);
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+      background: #1e1b16;
+      color: #d4cfc8;
+      font-size: .75rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+      pointer-events: none;
+    }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    ul.key-list {
+      padding-left: 20px;
+      color: var(--text-2);
+    }
+
+    ul.key-list li { margin-bottom: 4px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .know-body { padding-left: 20px; }
+    }
+
+    /* === Additional styles === */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    section { margin-top: 56px; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>NotebookEditTool（NotebookEdit）工具详解</h1>
+  <p>Jupyter notebook 单元格结构化编辑工具——replace/insert/delete 三种模式、cell_id 数字索引兼容、nbformat 版本感知、JSON 就地修改，是 .ipynb 专用编辑器，与 FileEdit 互斥</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一工具定位一句话总结">一、工具定位</a></li>
+    <li><a href="#二关键文件清单">二、关键文件清单</a></li>
+    <li><a href="#三tool-接口字段实现buildtool-逐字段">三、Tool 接口字段实现</a></li>
+    <li><a href="#四核心执行流程call">四、核心执行流程：`call`</a></li>
+    <li><a href="#五权限与安全">五、权限与安全</a></li>
+    <li><a href="#六与其他系统工具的关系">六、与其他系统/工具的关系</a></li>
+    <li><a href="#七亮点与设计取舍">七、亮点与设计取舍</a></li>
+    <li><a href="#八源码导航书签速查">八、源码导航</a></li>
+    <li><a href="#九学习建议与验证清单">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+<blockquote class="callout"><p>这是工具系统逐个拆解系列的<strong>写工具篇之三</strong>。<code>NotebookEdit</code>（<code>NOTEBOOK_EDIT_TOOL_NAME = 'NotebookEdit'</code>）专门编辑 Jupyter notebook（<code>.ipynb</code>）的<strong>单元格</strong>——这是 FileEdit 无法胜任的场景，因为 notebook 是结构化 JSON，字符串替换会破坏 JSON 语法。它支持三种模式（replace/insert/delete）、cell_id 兼容真实 ID 与数字索引、按 nbformat 版本决定是否生成 cell ID、replace 末尾自动转 insert。它与 FileEdit 互斥——FileEdit 的 validateInput 会拦截 <code>.ipynb</code> 并引导到此工具。</p></blockquote>
+
+<section id="一工具定位一句话总结">
+<h2>一、工具定位（一句话总结）</h2>
+
+<p><strong><code>NotebookEdit</code> = 编辑 Jupyter notebook 单元格的结构化写工具（replace/insert/delete）。</strong></p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>维度</th><th>值</th></tr></thead>
+<tbody>
+<tr><td>工具名</td><td><code>NotebookEdit</code>（常量 <code>NOTEBOOK_EDIT_TOOL_NAME</code>，<code>constants.ts:2</code>）</td></tr>
+<tr><td>一句话</td><td>对 <code>.ipynb</code> 文件的单元格做 replace/insert/delete，就地在 JSON 上修改并写回</td></tr>
+<tr><td>是否进 system prompt</td><td>✅ 默认注册（<code>tools.ts:232</code>）；<code>NOTEBOOK_EDIT_TOOL_NAME</code> 在 <code>CORE_TOOLS</code> 白名单（<code>constants/tools.ts:18</code>、<code>:145</code>）</td></tr>
+<tr><td>只读 / 破坏性</td><td><strong>破坏性</strong>（写盘，无 <code>isReadOnly()</code>）</td></tr>
+<tr><td>是否可并发</td><td>❌ <strong>不可并发</strong>（无 <code>isConcurrencySafe()</code>）</td></tr>
+<tr><td>是否延迟加载</td><td>✅ <code>shouldDefer: true</code>（<code>:94</code>）——可被 TF-IDF 工具搜索延迟发现</td></tr>
+<tr><td>核心依赖</td><td><code>src/utils/notebook.ts</code>（readNotebook/parseCellId）、<code>src/utils/fileRead.ts:readFileSyncWithMetadata</code>、<code>src/utils/file.ts:writeTextContent</code></td></tr>
+<tr><td>定位互补方</td><td><code>FileEdit</code>（互斥，.ipynb 由此工具专管）、<code>Read</code>（读取 notebook 的前置契约）</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>为什么需要它？</strong> Jupyter notebook 是数据科学/研究的标准格式，结合代码、文本、可视化。它是 <strong>JSON 结构</strong>（<code>{cells: [...], metadata, nbformat}</code>），用 FileEdit 的字符串替换编辑会破坏 JSON 转义/结构。NotebookEdit 直接在解析后的对象上做<strong>结构化操作</strong>（splice 插入/删除、修改 cell.source），再 <code>jsonStringify</code> 写回，保证 JSON 合法性。FileEdit 的 prompt 明确："本工具无法编辑 .ipynb，请用 NotebookEdit。"</p>
+
+</section>
+
+<section id="二关键文件清单">
+<h2>二、关键文件清单</h2>
+
+<pre><code>NotebookEditTool/
+├── NotebookEditTool.ts   ← buildTool({...}) 主体（493 行），validateInput + call 全在这
+├── prompt.ts             ← DESCRIPTION + PROMPT（含 cell_number 索引说明）
+├── constants.ts          ← NOTEBOOK_EDIT_TOOL_NAME 常量（独立文件防循环依赖）
+├── UI.tsx                ← Ink 渲染（renderToolUseMessage/renderToolResultMessage）
+└── src/
+    ├── types/message.ts      ← 桩
+    └── utils/
+        ├── fileHistory.ts    ← 桩
+        ├── messages.ts       ← 桩
+        └── theme.ts          ← 桩
+</code></pre>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+<tbody>
+<tr><td><code>NotebookEditTool.ts</code></td><td>工具主体：schema + validateInput + call + 权限 + 渲染</td><td><code>buildTool:90-493</code>、<code>validateInput:176-296</code>、<code>call:297-492</code>、<code>checkPermissions:125-132</code>、<code>shouldDefer:94</code>、<code>mapToolResultToToolResultBlockParam:133-171</code></td></tr>
+<tr><td><code>prompt.ts</code></td><td>描述（cell_number 索引、edit_mode 说明）</td><td><code>DESCRIPTION:1-2</code>、<code>PROMPT:3</code></td></tr>
+<tr><td><code>constants.ts</code></td><td>工具名（独立文件防循环依赖）</td><td><code>NOTEBOOK_EDIT_TOOL_NAME:2</code></td></tr>
+<tr><td><code>UI.tsx</code></td><td>渲染</td><td><code>getToolUseSummary</code>、<code>renderToolResultMessage</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<blockquote class="callout"><p><strong>结构特点</strong>：NotebookEditTool 是"单文件主体"型——493 行全在 <code>NotebookEditTool.ts</code>，无独立 utils（notebook 操作逻辑直接内联，因为强耦合 JSON 结构）。<code>shouldDefer: true</code> 让它可被延迟发现，与其他 4 个文件操作工具（始终加载）不同。</p></blockquote>
+
+</section>
+
+<section id="三tool-接口字段实现buildtool-逐字段">
+<h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+<h3>标识字段</h3>
+
+<pre><code>name: NOTEBOOK_EDIT_TOOL_NAME,                    // &quot;NotebookEdit&quot;
+searchHint: '编辑 Jupyter notebook 单元格（.ipynb）',
+maxResultSizeChars: 100_000,
+shouldDefer: true,                                // ⭐ 延迟加载（唯一一个）
+</code></pre>
+
+<blockquote class="callout"><p><strong><code>shouldDefer: true</code></strong>：这是 5 个文件操作工具中<strong>唯一</strong>设为延迟的。意味着它不进默认 system prompt，而是通过 <code>SearchExtraTools</code> 的 TF-IDF 搜索按需发现。原因推测：notebook 编辑是低频场景，常驻 system prompt 占位不划算。但 <code>NOTEBOOK_EDIT_TOOL_NAME</code> 仍在 <code>CORE_TOOLS</code> 白名单——这是"可延迟但仍是核心工具"的设计。</p></blockquote>
+
+<h3>模型面字段</h3>
+
+<pre><code>async description() { return DESCRIPTION }
+async prompt()      { return PROMPT }
+userFacingName()    { return '编辑 Notebook' }   // 静态，无输入特判
+get inputSchema()   { return inputSchema() }
+get outputSchema()  { return outputSchema() }
+</code></pre>
+
+<p><strong>输入 schema</strong>（<code>:30-57</code>）：</p>
+
+<pre><code>{
+  notebook_path: string,                  // 必填，绝对路径
+  cell_id:      string?,                  // 单元格 ID 或数字索引（cell-N）
+  new_source:   string,                   // 必填，新 source
+  cell_type:    'code'|'markdown'?,       // insert 时必填
+  edit_mode:    'replace'|'insert'|'delete'?,  // 默认 replace
+}
+</code></pre>
+
+<p><strong>输出 schema</strong>（<code>:60-85</code>）：</p>
+
+<pre><code>{
+  new_source:    string,
+  cell_id?:      string,
+  cell_type:     'code'|'markdown',
+  language:      string,           // notebook 语言（metadata.language_info.name ?? 'python'）
+  edit_mode:     string,
+  error?:        string,           // 失败时（is_error: true）
+  notebook_path: string,
+  original_file: string,           // 修改前 JSON
+  updated_file:  string,           // 修改后 JSON
+}
+</code></pre>
+
+<h3>行为字段（重点）</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>字段</th><th>实现位置</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>call()</code></td><td><code>:297-492</code></td><td>核心逻辑（见下节）</td></tr>
+<tr><td><code>validateInput()</code></td><td><code>:176-296</code></td><td>扩展名、edit_mode、insert+cell_type、先读后写、JSON 合法性、cell_id 查找</td></tr>
+<tr><td><code>checkPermissions()</code></td><td><code>:125-132</code></td><td>委托 <code>checkWritePermissionForTool</code></td></tr>
+<tr><td><code>getPath()</code></td><td><code>:122-124</code></td><td><code>notebook_path</code></td></tr>
+<tr><td><code>toAutoClassifierInput()</code></td><td><code>:115-121</code></td><td>feature('TRANSCRIPT_CLASSIFIER') 时返回 <code>${path} ${mode}: ${new_source}</code>，否则空</td></tr>
+<tr><td><code>getActivityDescription()</code></td><td><code>:105-108</code></td><td>"正在编辑 notebook X"</td></tr>
+</tbody>
+</table>
+</div>
+
+<blockquote class="callout"><p><strong>注意缺失</strong>：无 <code>backfillObservableInput</code>/<code>preparePermissionMatcher</code>（Edit/Write/Read 都有）——notebook 编辑不展开路径（用 <code>isAbsolute</code> + <code>resolve(getCwd())</code> 内联处理），权限匹配靠默认。无 <code>extractSearchText</code>。<code>toAutoClassifierInput</code> 受 feature gate（其他工具无此 gating）。</p></blockquote>
+
+<h3>渲染字段</h3>
+
+<pre><code>renderToolUseMessage,
+renderToolUseRejectedMessage,
+renderToolUseErrorMessage,
+renderToolResultMessage,
+</code></pre>
+
+</section>
+
+<section id="四核心执行流程call">
+<h2>四、核心执行流程：<code>call()</code></h2>
+
+<p><code>call()</code>（<code>:297-492</code>）在解析后的 notebook 对象上做结构化操作。整体流程：</p>
+
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    A["call(input, ctx)\nNotebookEditTool.ts:297"] --> FH["fileHistoryTrackEdit\n（编辑前备份）"]
+    FH --> READ["readFileSyncWithMetadata\n读 content + encoding + lineEndings"]
+    READ --> PARSE["jsonParse(content)\n（非 memoized！防缓存污染）"]
+    PARSE -->|失败| ERRJ["return error:\n'Notebook 不是合法的 JSON'"]
+    PARSE -->|成功| IDX["定位 cellIndex\n（按 cell.id 查找 → 失败则 parseCellId 数字索引）"]
+    IDX --> INS{"edit_mode == insert?"}
+    INS -->|是| IDXP["cellIndex += 1\n（插入到指定 cell 之后）"]
+    INS -->|否| REPEND{"replace 且\ncellIndex == cells.length?"}
+    REPEND -->|是| CONV["replace → insert 转换\n（末尾追加语义）"]
+    REPEND -->|否| MODE{edit_mode}
+    IDXP --> MODE
+    CONV --> MODE
+    MODE -->|delete| DEL["cells.splice(cellIndex, 1)"]
+    MODE -->|insert| INS2["构造 new_cell\n（按 cell_type）\ncells.splice(cellIndex, 0, new_cell)"]
+    MODE -->|replace| REP["targetCell.source = new_source\n重置 execution_count + outputs\n（code 单元格）"]
+    DEL --> WRITE
+    INS2 --> WRITE
+    REP --> WRITE
+    WRITE["jsonStringify(notebook, null, 1)\nwriteTextContent（保留 encoding/lineEndings）"]
+    WRITE --> RFS["readFileState.set\n（offset=undefined 刷新）"]
+    RFS --> OUT["return { data }"]
+
+  </div>
+</div>
+
+<p><strong>关键点逐条</strong>：</p>
+
+<ol>
+<li><strong>非 memoized jsonParse</strong>（<code>:333-334</code> 注释）：<strong>必须用 <code>jsonParse</code> 而非 <code>safeParseJSON</code></strong>。<code>safeParseJSON</code> 按内容字符串缓存并返回共享对象引用，但下方会<strong>就地修改</strong> notebook（<code>cells.splice</code>、<code>targetCell.source = ...</code>）。用 memoized 版本会污染 <code>validateInput()</code> 及后续相同文件内容的 call() 缓存。这是对<strong>缓存与可变性冲突</strong>的精确防范。</li>
+<li><strong>cell_id 双重查找</strong>（<code>:355-366</code>）：先按真实 <code>cell.id</code> 查（<code>findIndex</code>），失败则 <code>parseCellId</code> 尝试数字索引（<code>cell-N</code> 格式）。兼容两种 cell 引用方式。</li>
+<li><strong>insert 的 cellIndex 偏移</strong>（<code>:368-370</code>）：insert 模式 <code>cellIndex += 1</code>——插入到指定 ID 的单元格<strong>之后</strong>。无 cell_id 时默认 <code>cellIndex = 0</code>（插到开头）。</li>
+<li><strong>replace→insert 自动转换</strong>（<code>:374-380</code>）：在末尾（<code>cellIndex == cells.length</code>）再 replace 时，转换为 insert——"末尾 replace"语义上等价于"追加"。未指定 cell_type 时默认 code。</li>
+<li><strong>nbformat 版本感知的 cell ID 生成</strong>（<code>:384-393</code>）：仅当 <code>nbformat > 4</code> 或 <code>(nbformat==4 && nbformat_minor>=5)</code> 时生成 cell ID。insert 生成随机 ID（<code>Math.random().toString(36).substring(2,15)</code>），replace 保留原 cell_id。旧格式 notebook 不要求 cell ID。</li>
+<li><strong>replace 重置执行状态</strong>（<code>:419-431</code>）：替换 code 单元格的 source 后，<code>execution_count = null</code>、<code>outputs = []</code>——内容变了，旧的执行结果失效。若指定了 cell_type 且与当前不同，还会切换类型。</li>
+<li><strong>JSON 缩进写回</strong>（<code>:433-435</code>）：<code>jsonStringify(notebook, null, 1)</code>（缩进 1 空格）+ <code>writeTextContent</code>（保留原 encoding/lineEndings）。</li>
+<li><strong>readFileState 刷新</strong>（<code>:436-445</code>）：<code>offset:undefined</code> 刷新时间戳。注释（<code>:437-439</code>）特别说明：offset=undefined 会<strong>破坏 FileReadTool 的去重匹配</strong>——否则同一毫秒内的 Read→NotebookEdit→Read 会针对过期内容返回 <code>file_unchanged</code> 桩。这是与 Read 去重逻辑的<strong>精细协同</strong>。</li>
+<li><strong>错误内联返回</strong>（<code>:460-491</code>）：catch 错误后不抛，而是 <code>return { data: { error: ... } }</code>——<code>mapToolResultToToolResultBlockParam</code>（<code>:137-143</code>）检测 <code>error</code> 字段返回 <code>is_error: true</code> 的 tool_result。这是"软失败"模式（对比 Edit 的硬抛错）。</li>
+</ol>
+
+</section>
+
+<section id="五权限与安全">
+<h2>五、权限与安全</h2>
+
+<h3><code>validateInput</code>（<code>:176-296</code>，第 3 步）</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>校验项</th><th>行号</th><th>errorCode</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>UNC 路径</td><td><code>:185-187</code></td><td>—</td><td><code>\\</code>/<code>//</code> 跳过（防 NTLM）</td></tr>
+<tr><td>扩展名</td><td><code>:189-196</code></td><td>2</td><td>非 <code>.ipynb</code> 拒绝，引导到 FileEdit</td></tr>
+<tr><td>edit_mode 合法性</td><td><code>:198-208</code></td><td>4</td><td>必须 replace/insert/delete</td></tr>
+<tr><td>insert + cell_type</td><td><code>:210-216</code></td><td>5</td><td>insert 时 cell_type 必填</td></tr>
+<tr><td>先读后写</td><td><code>:221-229</code></td><td>9</td><td><code>readFileState</code> 无记录则拒绝（"文件尚未被读取"）</td></tr>
+<tr><td>mtime 新鲜度</td><td><code>:230-237</code></td><td>10</td><td><code>getFileModificationTime > readTimestamp</code> 则拒绝</td></tr>
+<tr><td>文件存在</td><td><code>:239-251</code></td><td>1</td><td>ENOENT 拒绝</td></tr>
+<tr><td>JSON 合法性</td><td><code>:252-259</code></td><td>6</td><td><code>safeParseJSON</code> 失败拒绝</td></tr>
+<tr><td>cell_id 查找</td><td><code>:260-293</code></td><td>7/8</td><td>非 insert 时必填；按 id 查找失败则 parseCellId 数字索引</td></tr>
+</tbody>
+</table>
+</div>
+
+<blockquote class="callout"><p><strong>与 Edit 的 validateInput 差异</strong>：NotebookEdit 的校验聚焦"notebook 结构合法性"——JSON 解析、cell 存在性、edit_mode 语义。无"old_string 找不到/多处匹配"（因为是结构化操作非字符串替换）。但<strong>保留了先读后写契约</strong>（errorCode 9/10），与 Edit/Write 一致——注释（<code>:218-220</code>）强调：否则模型可能编辑从未见过的 notebook，或基于过期视图编辑造成静默数据丢失。</p></blockquote>
+
+<h3>安全细节</h3>
+
+<ul>
+<li><strong>UNC 豁免</strong>（<code>:185-187</code>）：与其他文件工具一致的 NTLM 防护。</li>
+<li><strong>非 memoized jsonParse 防缓存污染</strong>（<code>:328-332</code> 注释）：见关键点 1。这是本工具独有的缓存安全考量——<code>safeParseJSON</code> 的 memoization 与就地修改不兼容。</li>
+<li><strong>readFileState offset=undefined 破坏 Read 去重</strong>（<code>:437-439</code> 注释）：见关键点 8。与 FileReadTool 去重逻辑的精细协同——防止 Read→Edit→Read 返回过期内容。</li>
+</ul>
+
+<h3><code>checkPermissions</code>（<code>:125-132</code>，第 4 步）</h3>
+
+<p>委托 <code>checkWritePermissionForTool</code>——与 Edit/Write 共用。注意 NotebookEdit <strong>无</strong> <code>preparePermissionMatcher</code>/<code>backfillObservableInput</code>（其他文件工具都有），路径处理用 <code>isAbsolute</code> + <code>resolve(getCwd())</code> 内联。</p>
+
+</section>
+
+<section id="六与其他系统工具的关系">
+<h2>六、与其他系统/工具的关系</h2>
+
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    NB[NotebookEditTool] -->|读取| READNB["readFileSyncWithMetadata\n（content + encoding + lineEndings）"]
+    NB -->|解析| PARSENB["jsonParse\n（非 memoized）"]
+    NB -->|cell 查找| CELL["src/utils/notebook.ts\nparseCellId（数字索引兼容）"]
+    NB -->|写回| WRITE["writeTextContent\n（保留 encoding/lineEndings）"]
+    NB -->|新鲜度| RFS["readFileState\n（offset=undefined 破坏 Read 去重）"]
+    NB -->|权限| WPERM["checkWritePermissionForTool"]
+    NB -.互斥.-> EDIT["FileEditTool\n.ipynb 拦截（errorCode 5）\n引导到 NotebookEdit"]
+    NB -.契约.-> READ["FileReadTool\nRead .ipynb 走 notebook 分流\n（callInner:809-850）"]
+    NB -.延迟.-> SEARCH["SearchExtraTools\nshouldDefer: true\nTF-IDF 按需发现"]
+
+  </div>
+</div>
+
+<ul>
+<li><strong>与 <code>FileEdit</code> 的互斥</strong>（<strong>最重要</strong>）：FileEdit 的 validateInput（<code>:262-269</code>）拦截 <code>.ipynb</code>（errorCode 5），文案："File is a Jupyter Notebook. Use the NotebookEdit to edit this file." 反向地，NotebookEdit 的 validateInput（<code>:189-196</code>）拦截非 <code>.ipynb</code>（errorCode 2），引导到 FileEdit。两者形成<strong>按文件类型的分工契约</strong>。</li>
+<li><strong>与 <code>Read</code> 的双向契约</strong>：Read 的 callInner 对 <code>.ipynb</code> 走专门分流（<code>FileReadTool.ts:809-850</code>），<code>readNotebook</code> 读 JSON、<code>readFileState.set</code> 记录 cellsJson。NotebookEdit 的 validateInput 检查 <code>readFileState</code> 有无记录（errorCode 9）——<strong>Read 是 NotebookEdit 的前置依赖</strong>。且 NotebookEdit 写入的 <code>offset:undefined</code> 条目会破坏 Read 的去重，两者精细协同。</li>
+<li><strong>与 <code>FileWrite</code> 的关系</strong>：FileWrite <strong>不拦截</strong> <code>.ipynb</code>（可整文件覆盖 notebook），但 prompt 引导"改已有文件优先 Edit 类工具"。整文件重写 notebook 时用 Write，单元格级编辑用 NotebookEdit。</li>
+<li><strong>与延迟加载的关系</strong>：<code>shouldDefer: true</code> 让 NotebookEdit 不进默认 system prompt，通过 SearchExtraTools 的 TF-IDF 搜索发现。<code>searchHint: '编辑 Jupyter notebook 单元格（.ipynb）'</code> 提升自然语言命中率。但名字在 <code>CORE_TOOLS</code> 白名单——"可延迟但核心"。</li>
+</ul>
+
+</section>
+
+<section id="七亮点与设计取舍">
+<h2>七、亮点与设计取舍</h2>
+
+<ol>
+<li><strong>结构化操作 vs 字符串替换</strong>：本工具存在的根本理由。notebook 是 JSON，字符串替换会破坏转义/结构。直接在解析对象上 splice/赋值，再 jsonStringify 写回，保证 JSON 合法性。这是"<strong>用对的数据结构做对的事</strong>"。</li>
+<li><strong>非 memoized jsonParse 防缓存污染</strong>（<code>:328-332</code>）：精确识别 <code>safeParseJSON</code> 的 memoization 与就地修改的冲突。注释把原因写得清清楚楚——这是对<strong>共享缓存可变性陷阱</strong>的典范处理。</li>
+<li><strong>cell_id 双重查找</strong>（<code>:355-366</code>、<code>:270-292</code>）：兼容真实 cell.id 与 <code>cell-N</code> 数字索引两种引用。对模型友好——不必知道 notebook 的真实 ID 体系。</li>
+<li><strong>replace→insert 末尾自动转换</strong>（<code>:374-380</code>）：在末尾 replace 语义上等价于追加。这种"<strong>语义等价自动转换</strong>"减少了模型的失败率——不必区分末尾是 replace 还是 insert。</li>
+<li><strong>nbformat 版本感知的 cell ID</strong>（<code>:384-393</code>）：按 <code>nbformat</code>/<code>nbformat_minor</code> 决定是否生成 ID。对旧格式 notebook 不强加 ID，避免破坏兼容性。</li>
+<li><strong>replace 重置执行状态</strong>（<code>:419-427</code>）：改 code 单元格 source 后清空 <code>execution_count</code>/<code>outputs</code>——内容变了旧结果失效。这是对 notebook 语义的尊重。</li>
+<li><strong>软失败模式</strong>（<code>:460-491</code>）：错误内联返回 <code>{ data: { error } }</code> + mapper 标 <code>is_error: true</code>，而非硬抛。让模型收到结构化错误而非中断。对比 Edit 的硬抛 <code>FILE_UNEXPECTEDLY_MODIFIED_ERROR</code>——不同工具选择不同错误策略。</li>
+<li><strong><code>shouldDefer: true</code> 的延迟加载</strong>：5 个文件操作工具中唯一延迟的。notebook 编辑低频，常驻 system prompt 不划算。但 <code>CORE_TOOLS</code> 白名单保留"核心"地位——延迟是性能优化，非功能降级。</li>
+<li><strong><code>toAutoClassifierInput</code> 的 feature gate</strong>（<code>:115-121</code>）：仅 <code>feature('TRANSCRIPT_CLASSIFIER')</code> 启用时返回分类输入，否则空。其他文件工具无此 gating——notebook 编辑的自动审批分类受独立开关控制。</li>
+</ol>
+
+</section>
+
+<section id="八源码导航书签速查">
+<h2>八、源码导航（书签速查）</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+<tbody>
+<tr><td>工具名常量</td><td><code>constants.ts:2</code></td></tr>
+<tr><td>描述（cell_number/edit_mode 说明）</td><td><code>prompt.ts:1-3</code></td></tr>
+<tr><td>输入/输出 schema</td><td><code>NotebookEditTool.ts:30-85</code></td></tr>
+<tr><td><code>buildTool</code> 字段填充</td><td><code>NotebookEditTool.ts:90-493</code></td></tr>
+<tr><td><code>validateInput</code>（扩展名/edit_mode/先读后写/JSON/cell_id）</td><td><code>NotebookEditTool.ts:176-296</code></td></tr>
+<tr><td><code>call()</code> 结构化操作</td><td><code>NotebookEditTool.ts:297-492</code></td></tr>
+<tr><td>cell_id 双重查找</td><td><code>NotebookEditTool.ts:355-366</code></td></tr>
+<tr><td>replace→insert 末尾转换</td><td><code>NotebookEditTool.ts:374-380</code></td></tr>
+<tr><td>nbformat 版本感知 cell ID</td><td><code>NotebookEditTool.ts:384-393</code></td></tr>
+<tr><td>replace 重置执行状态</td><td><code>NotebookEditTool.ts:419-431</code></td></tr>
+<tr><td>非 memoized jsonParse 注释</td><td><code>NotebookEditTool.ts:328-332</code></td></tr>
+<tr><td>readFileState offset=undefined 注释</td><td><code>NotebookEditTool.ts:437-439</code></td></tr>
+<tr><td>软失败 + is_error</td><td><code>NotebookEditTool.ts:460-491</code>、<code>:133-143</code></td></tr>
+<tr><td><code>shouldDefer: true</code></td><td><code>NotebookEditTool.ts:94</code></td></tr>
+<tr><td>FileEdit 的 .ipynb 拦截（互斥）</td><td><code>FileEditTool/FileEditTool.ts:262-269</code></td></tr>
+<tr><td>写权限通用管道</td><td><code>src/utils/permissions/filesystem.ts:checkWritePermissionForTool</code></td></tr>
+</tbody>
+</table>
+</div>
+
+</section>
+
+<section id="九学习建议与验证清单">
+<h2>九、学习建议与验证清单</h2>
+
+<p><strong>怎么读这章</strong>：在读完 FileEdit/Write 后，本篇重点是"<strong>结构化 vs 字符串</strong>"的对比。先看"一、定位"理解为何需要专用工具（JSON 结构），再跳到"四、call()"看就地修改 + jsonStringify 写回的模式。然后重点啃"非 memoized jsonParse"和"readFileState offset=undefined 破坏 Read 去重"两条注释——它们体现了跨工具的精细协同。最后看"七、亮点"的 replace→insert 自动转换，体会"语义等价转换"的模型友好设计。</p>
+
+<p><strong>验证清单（读完自测）</strong>：</p>
+
+<ul class="checklist">
+<li><input type="checkbox" disabled> <span>能说出 NotebookEdit 存在的根本理由（notebook 是 JSON，字符串替换破坏结构）</span></li>
+<li><input type="checkbox" disabled> <span>能解释为何必须用非 memoized 的 jsonParse（safeParseJSON 缓存共享对象引用，就地修改会污染缓存）</span></li>
+<li><input type="checkbox" disabled> <span>能说出 cell_id 的两种查找方式（真实 cell.id + cell-N 数字索引）</span></li>
+<li><input type="checkbox" disabled> <span>能解释 replace→insert 末尾自动转换的语义（末尾 replace 等价于追加）</span></li>
+<li><input type="checkbox" disabled> <span>能指出 nbformat 版本如何决定 cell ID 生成（nbformat>4 或 4.x+minor>=5）</span></li>
+<li><input type="checkbox" disabled> <span>能说出 replace code 单元格后会重置什么（execution_count=null, outputs=[]）</span></li>
+<li><input type="checkbox" disabled> <span>能解释 readFileState offset=undefined 为何破坏 Read 去重（Read 去重要求 offset 有定义）</span></li>
+<li><input type="checkbox" disabled> <span>能指出 NotebookEdit 与 FileEdit 的互斥关系（.ipynb 双向拦截引导）</span></li>
+<li><input type="checkbox" disabled> <span>能说出 <code>shouldDefer: true</code> 的含义（延迟加载，TF-IDF 按需发现）及其独特性（5 个文件工具中唯一）</span></li>
+<li><input type="checkbox" disabled> <span>能解释软失败模式（错误内联返回 + is_error:true，对比 Edit 硬抛）</span></li>
+</ul>
+
+<p><strong>配合动作</strong>：</p>
+
+<ol>
+<li>创建一个 <code>.ipynb</code>，让 Claude <code>NotebookEdit</code> replace 一个单元格，验证 execution_count 清空</li>
+<li>尝试用 <code>FileEdit</code> 编辑 <code>.ipynb</code>，观察 errorCode 5 的引导文案</li>
+<li>在末尾 replace 一个单元格，观察自动转换为 insert</li>
+<li>用 cell_id 数字索引（cell-0）引用单元格，验证 parseCellId 兼容</li>
+<li>读 → NotebookEdit → 读 同一 notebook（同毫秒），验证不返回 file_unchanged 桩</li>
+</ol>
+
+</section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

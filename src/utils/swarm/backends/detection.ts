@@ -3,75 +3,75 @@ import { execFileNoThrow } from '../../../utils/execFileNoThrow.js'
 import { TMUX_COMMAND } from '../constants.js'
 
 /**
- * Captured at module load time to detect if the user started Claude from within tmux.
- * Shell.ts may override TMUX env var later, so we capture the original value.
+ * 在模块加载时捕获，用于检测用户是否从 tmux 内部启动了 Claude。
+ * Shell.ts 可能在后续覆盖 TMUX 环境变量，因此我们在此处捕获原始值。
  */
 // eslint-disable-next-line custom-rules/no-process-env-top-level
 const ORIGINAL_USER_TMUX = process.env.TMUX
 
 /**
- * Captured at module load time to get the leader's tmux pane ID.
- * TMUX_PANE is set by tmux to the pane ID (e.g., %0, %1) when a process runs inside tmux.
- * We capture this at startup so we always know the leader's original pane, even if
- * the user switches to a different pane later.
+ * 在模块加载时捕获，用于获取 leader 的 tmux pane ID。
+ * TMUX_PANE 由 tmux 设置（例如 %0、%1），表示进程所在的 pane ID。
+ * 我们在启动时捕获此值，以便始终知道 leader 的原始 pane，
+ * 即使用户后续切换到其他 pane 也不受影响。
  */
 // eslint-disable-next-line custom-rules/no-process-env-top-level
 const ORIGINAL_TMUX_PANE = process.env.TMUX_PANE
 
-/** Cached result for isInsideTmux */
+/** isInsideTmux 的缓存结果 */
 let isInsideTmuxCached: boolean | null = null
 
-/** Cached result for isInITerm2 */
+/** isInITerm2 的缓存结果 */
 let isInITerm2Cached: boolean | null = null
 
-/** Cached result for isInWindowsTerminal */
+/** isInWindowsTerminal 的缓存结果 */
 let isInWindowsTerminalCached: boolean | null = null
 
 /**
- * Checks if we're currently running inside a tmux session (synchronous version).
- * Uses the original TMUX value captured at module load, not process.env.TMUX,
- * because Shell.ts overrides TMUX when Claude's socket is initialized.
+ * 检查当前是否正在 tmux 会话中运行（同步版本）。
+ * 使用模块加载时捕获的原始 TMUX 值，而非 process.env.TMUX，
+ * 因为 Shell.ts 在初始化 Claude socket 时会覆盖 TMUX。
  *
- * IMPORTANT: We ONLY check the TMUX env var. We do NOT run `tmux display-message`
- * as a fallback because that command will succeed if ANY tmux server is running
- * on the system, not just if THIS process is inside tmux.
+ * 重要：我们仅检查 TMUX 环境变量，不使用 `tmux display-message`
+ * 作为备选方案，因为如果系统上运行了任何 tmux 服务器，该命令都会成功，
+ * 而不仅仅是当前进程是否在 tmux 内部。
  */
 export function isInsideTmuxSync(): boolean {
   return !!ORIGINAL_USER_TMUX
 }
 
 /**
- * Checks if we're currently running inside a tmux session.
- * Uses the original TMUX value captured at module load, not process.env.TMUX,
- * because Shell.ts overrides TMUX when Claude's socket is initialized.
- * Caches the result since this won't change during the process lifetime.
+ * 检查当前是否正在 tmux 会话中运行。
+ * 使用模块加载时捕获的原始 TMUX 值，而非 process.env.TMUX，
+ * 因为 Shell.ts 在初始化 Claude socket 时会覆盖 TMUX。
+ * 结果会被缓存，因为在进程生命周期内不会变化。
  *
- * IMPORTANT: We ONLY check the TMUX env var. We do NOT run `tmux display-message`
- * as a fallback because that command will succeed if ANY tmux server is running
- * on the system, not just if THIS process is inside tmux.
+ * 重要：我们仅检查 TMUX 环境变量，不使用 `tmux display-message`
+ * 作为备选方案，因为如果系统上运行了任何 tmux 服务器，该命令都会成功，
+ * 而不仅仅是当前进程是否在 tmux 内部。
  */
 export async function isInsideTmux(): Promise<boolean> {
   if (isInsideTmuxCached !== null) {
     return isInsideTmuxCached
   }
 
-  // Check the original TMUX env var (captured at module load)
-  // This tells us if the user started Claude from within their tmux session
-  // If TMUX is not set, we are NOT inside tmux - period.
+  // 检查原始的 TMUX 环境变量（在模块加载时捕获）
+  // 这告诉我们用户是否从 tmux 会话中启动了 Claude
+  // 如果 TMUX 未设置，我们就不在 tmux 内部——就这么简单
   isInsideTmuxCached = !!ORIGINAL_USER_TMUX
   return isInsideTmuxCached
 }
 
 /**
- * Gets the leader's tmux pane ID captured at module load.
- * Returns null if not running inside tmux.
+ * 获取模块加载时捕获的 leader tmux pane ID。
+ * 如果未在 tmux 中运行则返回 null。
  */
 export function getLeaderPaneId(): string | null {
   return ORIGINAL_TMUX_PANE || null
 }
 
 /**
- * Checks if tmux is available on the system (installed and in PATH).
+ * 检查系统上是否可用 tmux（已安装且在 PATH 中）。
  */
 export async function isTmuxAvailable(): Promise<boolean> {
   const result = await execFileNoThrow(TMUX_COMMAND, ['-V'])
@@ -79,10 +79,10 @@ export async function isTmuxAvailable(): Promise<boolean> {
 }
 
 /**
- * Checks if wt.exe is available without executing it.
- * Do NOT run `wt.exe --version` — wt.exe is a UWP app bridge that opens
- * the Windows Terminal GUI to render version info, producing a phantom
- * "Windows 终端 1.24.x" window every time availability is checked.
+ * 检查 wt.exe 是否可用，但不执行它。
+ * 不要运行 `wt.exe --version` —— wt.exe 是一个 UWP 应用桥接程序，
+ * 会打开 Windows Terminal GUI 来渲染版本信息，导致每次检查可用性时
+ * 都会出现一个幽灵般的"Windows 终端 1.24.x"窗口。
  */
 export async function isWindowsTerminalAvailable(): Promise<boolean> {
   if (process.env.WT_SESSION) {
@@ -93,23 +93,23 @@ export async function isWindowsTerminalAvailable(): Promise<boolean> {
 }
 
 /**
- * Checks if we're currently running inside iTerm2.
- * Uses multiple detection methods:
- * 1. TERM_PROGRAM env var set to "iTerm.app"
- * 2. ITERM_SESSION_ID env var is present
- * 3. env.terminal detection from utils/env.ts
+ * 检查当前是否正在 iTerm2 中运行。
+ * 使用多种检测方法：
+ * 1. TERM_PROGRAM 环境变量设置为 "iTerm.app"
+ * 2. ITERM_SESSION_ID 环境变量存在
+ * 3. utils/env.ts 中的 env.terminal 检测
  *
- * Caches the result since this won't change during the process lifetime.
+ * 结果会被缓存，因为在进程生命周期内不会变化。
  *
- * Note: iTerm2 backend uses AppleScript (osascript) which is built into macOS,
- * so no external CLI tool installation is required.
+ * 注意：iTerm2 backend 使用 AppleScript (osascript)，这是 macOS 内置的，
+ * 因此不需要安装外部 CLI 工具。
  */
 export function isInITerm2(): boolean {
   if (isInITerm2Cached !== null) {
     return isInITerm2Cached
   }
 
-  // Check multiple indicators for iTerm2
+  // 检查 iTerm2 的多个指标
   const termProgram = process.env.TERM_PROGRAM
   const hasItermSessionId = !!process.env.ITERM_SESSION_ID
   const terminalIsITerm = env.terminal === 'iTerm.app'
@@ -121,8 +121,8 @@ export function isInITerm2(): boolean {
 }
 
 /**
- * Checks if we're currently running inside Windows Terminal.
- * Windows Terminal sets WT_SESSION for child processes.
+ * 检查当前是否正在 Windows Terminal 中运行。
+ * Windows Terminal 会为子进程设置 WT_SESSION。
  */
 export function isInWindowsTerminal(): boolean {
   if (isInWindowsTerminalCached !== null) {
@@ -133,15 +133,15 @@ export function isInWindowsTerminal(): boolean {
 }
 
 /**
- * The it2 CLI command name.
+ * it2 CLI 命令名称。
  */
 export const IT2_COMMAND = 'it2'
 
 /**
- * Checks if the it2 CLI tool is available AND can reach the iTerm2 Python API.
- * Uses 'session list' (not '--version') because --version succeeds even when
- * the Python API is disabled in iTerm2 preferences — which would cause
- * 'session split' to fail later with no fallback.
+ * 检查 it2 CLI 工具是否可用并且可以访问 iTerm2 Python API。
+ * 使用 'session list'（而非 '--version'），因为即使 iTerm2 偏好设置中
+ * 禁用了 Python API，--version 也会成功——这会导致后续
+ * 'session split' 失败且没有备选方案。
  */
 export async function isIt2CliAvailable(): Promise<boolean> {
   const result = await execFileNoThrow(IT2_COMMAND, ['session', 'list'])
@@ -149,7 +149,7 @@ export async function isIt2CliAvailable(): Promise<boolean> {
 }
 
 /**
- * Resets all cached detection results. Used for testing.
+ * 重置所有缓存的检测结果。用于测试。
  */
 export function resetDetectionCache(): void {
   isInsideTmuxCached = null

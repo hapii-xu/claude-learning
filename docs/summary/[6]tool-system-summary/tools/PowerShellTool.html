@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PowerShell 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    .kw  { color: #7c9bff; font-weight: 600; }
+    .str { color: #6cc77a; }
+    .fn  { color: #f0906a; }
+    .cmt { color: #6e6a62; font-style: italic; }
+    .type{ color: #e0a020; }
+    .num { color: #c792ea; }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+
+    /* === Additional styles === */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>PowerShell 工具详解</h1>
+  <p>Windows 平台执行 PowerShell 命令的工具——BashTool 的 Windows 对应物，共享执行基础设施但独立的安全引擎</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian-qing-dan">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou-zi-duan">三、Tool 接口字段</a></li>
+    <li><a href="#si-he-xin-zhi-xing-liu-cheng">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian-yu-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-yu-qi-ta-xi-tong-de-guan-xi">六、与其他系统的关系</a></li>
+    <li><a href="#qi-liang-dian-yu-she-ji-qu-she">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma-dao-hang">八、源码导航</a></li>
+    <li><a href="#jiu-xue-xi-jian-yi">九、学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p><code>PowerShell</code> 是 <code>Bash</code> 的 <strong>Windows 对应物</strong>。两者结构高度相似（同样有 <code>call()</code> 编排器 + 异步生成器 + 三种后台化 + 30K 结果阈值），甚至<strong>复用</strong>了 BashTool 的 <code>shouldUseSandbox</code>、<code>utils</code>（图像/截断/cwd 重置）、<code>BackgroundHint</code> 组件。但 PowerShell 有<strong>自己独立的安全引擎</strong>——因为 PS 语法（cmdlet、splatting、子表达式 <code>$(...)</code>、stop-parsing <code>--%</code>、<code>Invoke-Expression</code>）与 bash 完全不同，注入向量也不同。本篇重点讲它与 BashTool 的<strong>差异面</strong>：Windows 专属的门控、PS 特有的攻击向量、版本感知的 prompt。</p></blockquote>
+
+  <hr class="divider">
+
+  <section id="yi-gong-ju-ding-wei">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>PowerShell</code> = Windows 平台执行 PowerShell 命令的执行类工具，BashTool 的 Windows 镜像。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>PowerShell</code>（常量 <code>POWERSHELL_TOOL_NAME</code>，<code>toolName.ts:2</code>）</td></tr>
+          <tr><td>一句话</td><td>给定一条 PowerShell 命令，在 Windows 上执行并返回 stdout/stderr</td></tr>
+          <tr><td>是否进 system prompt</td><td>✅ 在 <code>CORE_TOOLS</code> 内（经 <code>SHELL_TOOL_NAMES</code> 展开，<code>constants/tools.ts:139</code>）</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>动态判定</strong>（<code>isReadOnly()</code> 逐命令求值）</td></tr>
+          <tr><td>是否可并发</td><td>⚠️ <strong>仅当 <code>isReadOnly()</code> 为真才可并发</strong>（<code>PowerShellTool.tsx:355</code>）</td></tr>
+          <tr><td>核心依赖</td><td><code>src/utils/Shell.ts</code> 的 <code>exec()</code>（shell='powershell'）+ <code>getCachedPowerShellPath()</code> + 复用 BashTool 的 <code>shouldUseSandbox/utils/BackgroundHint</code></td></tr>
+          <tr><td>定位互补方</td><td><code>Bash</code>（POSIX 对应物）、<code>Agent</code>（开放式探索）</td></tr>
+          <tr><td>注册门控</td><td><strong>仅 Windows 启用</strong>（<code>isPowerShellToolEnabled()</code>，<code>shellToolUtils.ts</code>）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>注册条件</strong>（<code>src/utils/shell/shellToolUtils.ts</code>）：<code>getPlatform() !== 'windows'</code> 时返回 false；Windows 上 ant 用户默认启用（<code>CLAUDE_CODE_USE_POWERSHELL_TOOL=0</code> 关闭），外部用户默认关闭（<code>=1</code> 开启）。<code>tools.ts:175-179</code> 用惰性 <code>getPowerShellTool()</code> 按需 require。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-guan-jian-wen-jian-qing-dan">
+    <h2>二、关键文件清单</h2>
+    <pre><code>PowerShellTool/
+├── PowerShellTool.tsx        ← buildTool 主体（42KB，call/权限/渲染/runPowerShellCommand 生成器）
+├── prompt.ts                 ← system prompt（含 PS 版本感知语法指导）
+├── toolName.ts               ← POWERSHELL_TOOL_NAME 常量
+├── UI.tsx                    ← Ink 渲染（命令展示/进度/结果）
+├── powershellPermissions.ts  ← 【核心】权限引擎（66KB，powershellToolHasPermission 主入口）
+├── powershellSecurity.ts     ← 【核心】PS 命令注入校验（36KB，23 个验证器）
+├── readOnlyValidation.ts     ← 只读判定（67KB，isReadOnlyCommand + cmdlet 白名单）
+├── pathValidation.ts         ← 路径约束校验（72KB，Win32 路径规范化）
+├── modeValidation.ts         ← 权限模式校验（acceptEdits 放行文件系统 cmdlet）
+├── commandSemantics.ts       ← 退出码语义解释（findstr/robocopy/fc 等）
+├── destructiveCommandWarning.ts ← 破坏性命令正则告警（Remove-Item -Recurse -Force 等）
+├── gitSafety.ts              ← git 攻击防护（裸仓库/git 内部路径，PS 参数规范化）
+├── commonParameters.ts       ← PS 通用参数集（-Verbose/-ErrorAction 等）
+├── clmTypes.ts               ← Constrained Language Mode 允许类型白名单
+└── src/                      ← 内部子模块（hooks/useCanUseTool、state/AppState）</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>PowerShellTool.tsx</code></td><td>主体：schema + call() + 字段 + runPowerShellCommand</td><td><code>buildTool:341</code>、<code>call:523</code>、<code>runPowerShellCommand:761</code>、<code>isReadOnly:369</code>、<code>validateInput:425</code></td></tr>
+          <tr><td><code>powershellPermissions.ts</code></td><td>权限引擎主入口</td><td><code>powershellToolHasPermission:638</code></td></tr>
+          <tr><td><code>powershellSecurity.ts</code></td><td>命令注入校验</td><td><code>powershellCommandIsSafe:1025</code>（23 个验证器，<code>:1037-1062</code>）</td></tr>
+          <tr><td><code>readOnlyValidation.ts</code></td><td>只读判定</td><td><code>isReadOnlyCommand:1155</code>、<code>hasSyncSecurityConcerns:1099</code>、<code>resolveToCanonical:971</code></td></tr>
+          <tr><td><code>gitSafety.ts</code></td><td>git 攻击防护（PS 专属）</td><td><code>isGitInternalPathPS:134</code>、<code>isDotGitPathPS:152</code>、<code>normalizeGitPathArg:44</code></td></tr>
+          <tr><td><code>clmTypes.ts</code></td><td>CLM 允许类型（约束语言模式）</td><td><code>CLM_ALLOWED_TYPES:18</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>system prompt</td><td><code>getPrompt:73</code>、<code>getEditionSection:51</code>（版本感知）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：与 BashTool 一一对应的"多文件主体"型。每个 bash 侧的安全模块都有一个 PS 侧的对应物（<code>bashPermissions</code> ↔ <code>powershellPermissions</code>、<code>bashSecurity</code> ↔ <code>powershellSecurity</code>、<code>readOnlyValidation</code> 各自一份）。这种对称结构让两个 shell 工具共享执行管道但各自处理语法差异。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-tool-jie-kou-zi-duan">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <p>PowerShellTool 的字段实现与 BashTool <strong>高度对称</strong>，本节聚焦差异点。</p>
+    <h3>标识字段</h3>
+    <pre><code>name: POWERSHELL_TOOL_NAME,             // "PowerShell"
+searchHint: '执行 Windows PowerShell 命令',
+maxResultSizeChars: 30_000,             // 同 BashTool
+strict: true,
+isEnabled(): true,                      // 硬编码 true（运行时门控在 tools.ts 的 getPowerShellTool）</code></pre>
+    <h3>输入 schema（<code>PowerShellTool.tsx:255-272</code>）</h3>
+    <pre><code>{
+  command: string,
+  timeout?: number,
+  description?: string,
+  run_in_background?: boolean,
+  dangerouslyDisableSandbox?: boolean,
+}</code></pre>
+    <blockquote class="callout"><p><strong>与 BashTool 的差异</strong>：<strong>没有</strong> <code>_simulatedSedEdit</code> 内部字段——PS 侧没有 sed 预览直写的等价物。</p></blockquote>
+    <h3>行为字段差异</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>与 BashTool 的差异</th></tr></thead>
+        <tbody>
+          <tr><td><code>isReadOnly()</code></td><td><code>:369</code></td><td><strong>先用 <code>hasSyncSecurityConcerns</code> 同步启发式检查</strong>（<code>$(...)</code>/splatting/成员调用/赋值），再调 <code>isReadOnlyCommand</code>。BashTool 直接调 <code>checkReadOnlyConstraints</code>。</td></tr>
+          <tr><td><code>isSearchOrReadCommand()</code></td><td><code>:359</code></td><td>用 <code>isSearchOrReadPowerShellCommand</code>（PS_SEARCH_COMMANDS = <code>select-string/get-childitem/findstr</code>，PS_READ_COMMANDS = <code>get-content/get-item/test-path</code> 等）</td></tr>
+          <tr><td><code>validateInput()</code></td><td><code>:425</code></td><td><strong>额外检查 <code>isWindowsSandboxPolicyViolation</code></strong>（企业策略要求沙箱但 Windows 原生无沙箱 → 拒绝执行）</td></tr>
+          <tr><td><code>call()</code></td><td><code>:523</code></td><td><strong>承重防护</strong>：即使绕过 validateInput 的直接调用者（promptShellExecution.ts）也在 call() 内再次检查沙箱策略违规</td></tr>
+          <tr><td><code>checkPermissions()</code></td><td><code>:447</code></td><td>委托 <code>powershellToolHasPermission</code>（而非 bashToolHasPermission）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3><code>isReadOnly</code> 的两段式（<code>:369-385</code>）</h3>
+    <p>PowerShellTool 的 <code>isReadOnly</code> 是<strong>两段式</strong>，因为 Tool 接口的 <code>isReadOnly</code> 是同步的，而完整 AST 解析是异步的：</p>
+    <ol>
+      <li><strong>同步启发式</strong>（<code>hasSyncSecurityConcerns</code>，<code>readOnlyValidation.ts:1099</code>）：正则检测 <code>$(...)</code>（子表达式）、<code>@var</code>（splatting）、<code>.Method()</code>（成员调用）、<code>$var =</code>（赋值）、<code>--%</code>（stop-parsing）、<code>\\</code>（UNC 路径）、<code>::</code>（静态方法）。任何命中 → 非只读。</li>
+      <li><strong>cmdlet 白名单</strong>（<code>isReadOnlyCommand</code>，<code>:1155</code>）：无 AST 时对简单单 token 命令用白名单；有 AST 时（在 <code>powershellToolHasPermission</code> 步骤 4.5）真正异步判定只读。</li>
+    </ol>
+    <p>注释（<code>:377-384</code>）说明：没有 AST 时 <code>isReadOnlyCommand</code> 无法分割管道/语句，对复杂命令保守返回 false——真正的只读自动允许在异步权限检查中发生。</p>
+    <h3>Windows 沙箱策略违规（<code>:240-248</code>）</h3>
+    <pre><code>const WINDOWS_SANDBOX_POLICY_REFUSAL = '企业策略要求沙箱化，但原生 Windows 上不可用沙箱化...'
+function isWindowsSandboxPolicyViolation(): boolean {
+  return getPlatform() === 'windows' &&
+    SandboxManager.isSandboxEnabledInSettings() &&
+    !SandboxManager.areUnsandboxedCommandsAllowed();
+}</code></pre>
+    <p><strong>设计取舍</strong>：沙箱（bwrap/sandbox-exec）是 POSIX 专属，Windows 原生不支持。如果企业策略要求沙箱且禁止非沙箱命令，PowerShell <strong>无法遵守</strong>——选择<strong>拒绝执行</strong>而非静默绕过策略。这个检查在 <code>validateInput</code>（干净的工具运行器错误，errorCode 11）<strong>和</strong> <code>call()</code>（承重防护，覆盖绕过 validateInput 的直接调用者）中都做。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-he-xin-zhi-xing-liu-cheng">
+    <h2>四、核心执行流程：<code>call()</code> + <code>runPowerShellCommand</code></h2>
+    <p><code>call()</code>（<code>:523-755</code>）与 BashTool 的 <code>call()</code> 结构对称，本节聚焦差异。</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["call(input, ctx)\nPowerShellTool.tsx:523"] --> GUARD["isWindowsSandboxPolicyViolation?\n承重防护 :534"]
+    GUARD --> GEN["runPowerShellCommand()\n异步生成器 :761"]
+    GEN --> PWPOL["getCachedPowerShellPath()\n检测 pwsh/powershell.exe"]
+    PWPOL -->|未安装| PREFLIGHT["预飞失败：返回 code 0\n+ stderr 'PowerShell 不可用'\n:817"]
+    PWPOL -->|已安装| EXEC["exec(command, signal, 'powershell',\n{shouldUseSandbox: win? false : ...})\n:831"]
+    EXEC --> LOOP["进度循环\n:990-1124"]
+    LOOP -->|完成| RES["result"]
+    RES --> TRACK["trackGitOperations\n(跳过 preFlight sentinel)"]
+    TRACK --> CWD["resetCwdIfOutsideProject\n(仅主线程)"]
+    CWD --> BG{"backgroundTaskId?"}
+    BG -->|是| BGRET["早返回后台结果\n:623"]
+    BG -->|否| INTERP["interpretCommandResult"]
+    INTERP --> HINTS["extractClaudeCodeHints"]
+    HINTS --> PERSIST["大输出落盘\n(>64MB 截断)"]
+    PERSIST --> IMG{"isImage?"}
+    IMG --> RESIZE["resizeShellImageOutput\n(复用 BashTool utils)"]
+    IMG -->|否| OUT
+    RESIZE --> OUT["return { data }"]
+      </div>
+    </div>
+    <h3>与 BashTool 的 call() 差异</h3>
+    <ol>
+      <li><strong>Windows 沙箱策略承重防护</strong>（<code>:534</code>）：<code>promptShellExecution.ts</code> 和 <code>processBashCommand.tsx</code> 直接调用 <code>PowerShellTool.call()</code>，绕过 validateInput。call() 内重复检查策略违规，覆盖所有调用者。</li>
+      <li><strong>pwsh 预飞检测</strong>（<code>:816-827</code>）：<code>getCachedPowerShellPath()</code> 检测 PowerShell 是否安装。未安装时返回 code 0 + stderr（优雅呈现而非抛 ShellError，因为命令从未运行，无有意义的退出码）。</li>
+      <li><strong>沙箱平台判断</strong>（<code>:846</code>）：<code>shouldUseSandbox: getPlatform() === 'windows' ? false : shouldUseSandbox(...)</code>——Windows 原生不沙箱；Linux/macOS/WSL2 上 pwsh 是原生二进制，沙箱像 bash 一样工作。</li>
+      <li><strong>preFlight sentinel 哨兵</strong>（<code>:594</code>）：<code>code === 0 && !stdout && stderr && !backgroundTaskId</code> 是预飞失败的标志，跳过 <code>trackGitOperations</code>（否则会把从未运行的命令误计为 git 操作）。</li>
+      <li><strong>后台化早返回</strong>（<code>:623-638</code>）：有 <code>backgroundTaskId</code> 时<strong>提前返回</strong>（BashTool 没有这个早返回——BashTool 的后台化结果流经单一提取点）。先剥离 hints，使中断后台化的 fullOutput 不泄漏标签到模型。</li>
+      <li><strong>用户中断后台化</strong>（<code>:1049-1064</code>）：用户提交新消息时（<code>abortController.signal.reason === 'interrupt'</code>）<strong>后台化而非杀死</strong>命令——匹配 BashTool 的"中断即后台"设计，避免丢失运行中的工作。</li>
+    </ol>
+    <h3>runPowerShellCommand 的后台化设计（<code>:761-1137</code>）</h3>
+    <p>与 BashTool 的 <code>runShellCommand</code> 完全对称的三种触发：超时（<code>:935</code>）、助手模式 15 秒（<code>:944-957</code>）、用户 Ctrl+B（<code>:1067-1078</code>）。<code>finally</code> 块（<code>:1125-1136</code>）确保每个退出路径都清理流监听器，匹配 main #21105。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian-yu-an-quan">
+    <h2>五、权限与安全</h2>
+    <p>PowerShellTool 的安全子系统与 BashTool 对称，但针对 PS 语法有<strong>专属攻击向量</strong>的防护。</p>
+    <h3>5.1 总入口：<code>powershellToolHasPermission</code>（<code>powershellPermissions.ts:638</code>）</h3>
+    <p>管道结构与 <code>bashToolHasPermission</code> 对称，但有 PS 特有的顺序处理：</p>
+    <pre><code>// 1. 精确匹配（deny 优先）
+exactMatchResult = powershellToolCheckExactMatchPermission(...)
+if (deny) return deny;
+
+// 2. 前缀/通配规则
+{ matchingDenyRules, matchingAskRules } = matchingRulesForInput(...)
+
+// 2b. ask 规则延迟到 decisions[]（不早返回）
+// 注释 :693-700：以前 ask 早返回会掩盖后续子命令 deny
+let preParseAskDecision = askRules[0] ? {...} : null;
+
+// UNC 路径也延迟（同上原因）
+if (preParseAskDecision === null && containsVulnerableUncPath(command)) {
+  preParseAskDecision = { behavior: 'ask', ... }
+}
+
+// 解析 + 后续校验...</code></pre>
+    <p><strong>关键修复</strong>（<code>:693-700</code>）：以前 ask 规则早返回，导致 <code>Get-Process; Invoke-Expression evil</code> 带 <code>ask(Get-Process:*)</code> + <code>deny(Invoke-Expression:*)</code> 会显示 ask 对话框而 deny 从不触发。现在 ask 延迟到 decisions[]，让子命令 deny 优先生效。</p>
+    <h3>5.2 PS 命令注入校验：<code>powershellSecurity.ts</code></h3>
+    <p><code>powershellCommandIsSafe</code>（<code>:1025</code>）运行 <strong>23 个验证器</strong>（<code>:1037-1062</code>），任何一条 ask 则整体 ask：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>验证器</th><th>防的攻击</th></tr></thead>
+        <tbody>
+          <tr><td><code>checkInvokeExpression</code></td><td><code>Invoke-Expression</code> / <code>iex</code>（等价 eval）</td></tr>
+          <tr><td><code>checkDynamicCommandName</code></td><td>动态拼接的命令名</td></tr>
+          <tr><td><code>checkEncodedCommand</code></td><td><code>-EncodedCommand</code>（base64 混淆代码）</td></tr>
+          <tr><td><code>checkPwshCommandOrFile</code></td><td><code>pwsh -c</code> / <code>pwsh -File</code>（嵌套执行）</td></tr>
+          <tr><td><code>checkDownloadCradles</code></td><td>下载摇篮（<code>IEX(New-Object Net.WebClient).DownloadString(...)</code>）</td></tr>
+          <tr><td><code>checkDownloadUtilities</code></td><td><code>Invoke-WebRequest</code>/<code>Start-BitsTransfer</code> 等下载工具</td></tr>
+          <tr><td><code>checkAddType</code></td><td><code>Add-Type</code>（编译并加载任意 C#）</td></tr>
+          <tr><td><code>checkComObject</code></td><td><code>New-Object -ComObject</code>（COM 劫持）</td></tr>
+          <tr><td><code>checkDangerousFilePathExecution</code></td><td>执行危险路径下的文件</td></tr>
+          <tr><td><code>checkInvokeItem</code></td><td><code>Invoke-Item</code>（执行任意文件）</td></tr>
+          <tr><td><code>checkScheduledTask</code></td><td>注册计划任务（持久化）</td></tr>
+          <tr><td><code>checkForEachMemberName</code></td><td><code>ForEach-Object -MemberName</code>（动态调用）</td></tr>
+          <tr><td><code>checkStartProcess</code></td><td><code>Start-Process</code>（派生进程）</td></tr>
+          <tr><td><code>checkScriptBlockInjection</code></td><td>脚本块 <code>{...}</code> 注入</td></tr>
+          <tr><td><code>checkSubExpressions</code></td><td><code>$(...)</code> 子表达式执行任意代码</td></tr>
+          <tr><td><code>checkExpandableStrings</code></td><td>可展开字符串（<code>"$var"</code>）</td></tr>
+          <tr><td><code>checkSplatting</code></td><td><code>@var</code> splatting 传递任意参数</td></tr>
+          <tr><td><code>checkStopParsing</code></td><td><code>--%</code> stop-parsing 符号绕过 PS 解析</td></tr>
+          <tr><td><code>checkMemberInvocations</code></td><td><code>.Method()</code> 调用任意 .NET 方法</td></tr>
+          <tr><td><code>checkTypeLiterals</code></td><td><code>[Type]</code> 类型字面量（不在 CLM 白名单则 ask）</td></tr>
+          <tr><td><code>checkEnvVarManipulation</code></td><td>环境变量操纵</td></tr>
+          <tr><td><code>checkModuleLoading</code></td><td><code>Import-Module</code> 加载任意模块</td></tr>
+          <tr><td><code>checkRuntimeStateManipulation</code></td><td>运行时状态操纵</td></tr>
+          <tr><td><code>checkWmiProcessSpawn</code></td><td>WMI 派生进程</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>与 bashSecurity 的对比</strong>：bash 侧防的是 <code>$()</code>/<code>${}</code>/进程替换/ZSh builtins；PS 侧防的是 <code>Invoke-Expression</code>/splatting/子表达式/stop-parsing/Add-Type/COM 对象——攻击向量完全不同，所以需要独立的安全引擎。</p></blockquote>
+    <h3>5.3 Constrained Language Mode 类型白名单：<code>clmTypes.ts</code></h3>
+    <p><code>CLM_ALLOWED_TYPES</code>（<code>:18</code>）是 Microsoft 的 CLM 允许类型列表。不在白名单的类型字面量 → ask。注释（<code>:1-17</code>）说明：这是反向使用 Microsoft 的列表——一次规范化检查替代逐一枚举危险类型（命名管道、反射、进程派生、P/Invoke 封送）。<strong>安全细节</strong>（<code>:22-26</code>）：<code>adsi</code>/<code>adsisearcher</code> 被刻意移除——它们强转时会执行网络绑定（<code>[adsi]'LDAP://evil.com/...'</code> → 连接 LDAP 服务器），Microsoft 允许是因为面向可信域管理员，但本工具的目标不会被校验。</p>
+    <h3>5.4 git 攻击防护：<code>gitSafety.ts</code>（PS 专属）</h3>
+    <p>PS 侧的 git 攻击防护需要处理 <strong>PS 参数语法的路径规范化</strong>——这是与 bash 侧 <code>pathValidation.ts</code> 最大的差异。</p>
+    <p><code>normalizeGitPathArg</code>（<code>:44</code>）把 PS 参数文本规范化为规范路径，顺序严格：</p>
+    <ol>
+      <li>结构性剥离（横杠字符 <code>–—―</code>、引号、反引号转义、<code>FileSystem::</code> provider 前缀、<code>C:</code> 驱动器相对前缀）</li>
+      <li>NTFS 按组件尾部剥离（Win32 <code>CreateFileW</code> 会剥离尾部空格和点：<code>hooks .</code> → <code>hooks</code>，<code>...</code> → '' → <code>.</code>）</li>
+      <li><code>posix.normalize</code>（解析 <code>..</code>、<code>.</code>、<code>//</code>）</li>
+      <li>大小写折叠（Windows 路径不区分大小写）</li>
+    </ol>
+    <p><code>isGitInternalPathPS</code>（<code>:134</code>）检测参数是否解析为 cwd 中的 git 内部路径（<code>HEAD</code>/<code>objects</code>/<code>refs</code>/<code>hooks</code>），覆盖裸仓库攻击。<code>resolveCwdReentry</code>（<code>:21</code>）处理 <code>../&lt;cwd-basename&gt;/hooks</code> 这种通过父目录重新进入 cwd 的逃逸——<code>posix.normalize</code> 保留前导 <code>..</code>（无 cwd 上下文），所以需要针对实际 cwd 解析。</p>
+    <h3>5.5 同步安全启发式：<code>hasSyncSecurityConcerns</code>（<code>readOnlyValidation.ts:1099</code>）</h3>
+    <p>这是 <code>isReadOnly</code> 同步阶段的快速筛查（正则）：</p>
+    <ul>
+      <li><code>\$\(</code>（子表达式）、<code>@\w+</code>（splatting）、<code>\.\w+\s*\(</code>（成员调用）、<code>\$\w+\s*[+\-*/]?=</code>（赋值）、<code>--%</code>（stop-parsing）、<code>\\\\</code>（UNC）、<code>::</code>（静态方法）</li>
+    </ul>
+    <p>任何命中 → 非只读（保守地走完整权限检查）。</p>
+    <h3>5.6 破坏性告警：<code>destructiveCommandWarning.ts</code></h3>
+    <p><code>DESTRUCTIVE_PATTERNS</code>（<code>:11</code>）匹配 PS 破坏性命令（<code>Remove-Item -Recurse -Force</code> 及别名 <code>rm/del/rd/rmdir/ri</code>）。正则用 <code>(?:^|[|;&amp;\n({])</code> 锚定语句开头，<code>[^|;&amp;\n}]*</code> 限定同一语句内——这样 <code>git rm --force</code> 不会误匹配（<code>\b</code> 会在任何单词边界后匹配 <code>rm</code>）。</p>
+    <h3>5.7 通用参数：<code>commonParameters.ts</code></h3>
+    <p><code>COMMON PARAMETERS</code>（<code>:27</code>）是所有 PS cmdlet 通过 <code>[CmdletBinding()]</code> 可用的通用参数（<code>-Verbose</code>/<code>-ErrorAction</code>/<code>-OutVariable</code> 等）。由 <code>pathValidation.ts</code>（合并到每个 cmdlet 的已知参数集合）和 <code>readOnlyValidation.ts</code>（合并到 safeFlags 检查）共享——拆分出来是为了打破导入循环。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-yu-qi-ta-xi-tong-de-guan-xi">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    PS["PowerShell"] -->|执行| SHELL["src/utils/Shell.ts\nexec(shell='powershell')"]
+    PS -->|pwsh 检测| DETECT["src/utils/shell/\npowershellDetection.ts"]
+    PS -->|后台| TASK["LocalShellTask\n(共享 BashTool)"]
+    PS -->|沙箱 POSIX| SBX["sandbox-adapter\n(Linux/macOS/WSL2)"]
+    PS -->|权限| PERM["powershellToolHasPermission"]
+    PS -->|注入检测| SEC["powershellSecurity.ts\n23 个验证器"]
+    PS -->|CLM 类型| CLM["clmTypes.ts\nMicrosoft 白名单"]
+    PS -->|git 防护| GIT["gitSafety.ts\nPS 参数规范化"]
+    PS -.复用 Bash.-> BASHUTIL["BashTool/shouldUseSandbox\nBashTool/utils\nBashTool/UI BackgroundHint"]
+    PS -.POSIX 对应.-> BASH["BashTool"]
+    PS -.注册门控.-> GATE["isPowerShellToolEnabled\n仅 Windows + USER_TYPE 门控"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 <code>Bash</code> 的关系（重点）</strong>：两者是"共享执行基础设施 + 独立安全引擎"的镜像设计。PowerShellTool <strong>复用</strong>了 BashTool 的：<code>shouldUseSandbox</code>（沙箱判定）、<code>utils.ts</code> 的 <code>buildImageToolResult</code>/<code>isImageOutput</code>/<code>resetCwdIfOutsideProject</code>/<code>resizeShellImageOutput</code>/<code>stripEmptyLines</code>、<code>UI.tsx</code> 的 <code>BackgroundHint</code> 组件（Ctrl+B 后台化）、<code>shared/gitOperationTracking</code>（git 使用指标）。但<strong>各自独立</strong>的安全/权限/只读/路径校验引擎——因为 bash 和 PS 的注入向量、参数语法、路径规范完全不同。</li>
+      <li><strong>与 pwsh 检测的关系</strong>：<code>getCachedPowerShellPath()</code>（<code>src/utils/shell/powershellDetection.ts</code>）检测系统安装的 PowerShell 版本（5.1 desktop 或 7+ core），结果缓存并用于 prompt 的版本感知语法指导。</li>
+      <li><strong>与注册门控的关系</strong>：<code>tools.ts:175-179</code> 用惰性 <code>getPowerShellTool()</code>，非 Windows 或门控关闭时返回 null，工具不出现在列表中。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian-yu-she-ji-qu-she">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>镜像设计，共享执行 + 独立安全</strong>：与 BashTool 共享 Shell.ts/任务系统/沙箱/utils，但安全引擎完全独立。这是"DRY 到语法边界"的体现——执行管道 shell 无关，安全校验必须 shell 相关。</li>
+      <li><strong>版本感知 prompt</strong>（<code>prompt.ts:51</code>）：<code>getPowerShellEdition</code> 检测 5.1 还是 7+，注入不同的语法指导（5.1 不支持 <code>&amp;&amp;</code>/<code>??</code>/<code>?:</code>，7+ 支持）。避免模型在 5.1 上发出 7+ 语法导致解析错误。</li>
+      <li><strong>Windows 沙箱策略拒绝执行</strong>（<code>:240</code>）：企业策略要求沙箱但 Windows 原生无沙箱时，<strong>拒绝执行而非静默绕过</strong>——安全优先于可用性。承重防护在 call() 重复，覆盖绕过 validateInput 的调用者。</li>
+      <li><strong>23 个 PS 专属验证器</strong>：从 <code>Invoke-Expression</code> 到 <code>checkWmiProcessSpawn</code>，覆盖 PS 的完整攻击面。<code>checkTypeLiterals</code> 用 Microsoft 的 CLM 白名单做反向检查，一个列表替代逐一枚举危险类型。</li>
+      <li><strong>PS 参数规范化深坑</strong>（<code>gitSafety.ts:44</code>）：Win32 <code>CreateFileW</code> 按组件剥离尾部空格和点（<code>hooks .</code> → <code>hooks</code>），NTFS 8.3 短名（<code>.git</code> → <code>GIT~1</code>），provider 前缀（<code>FileSystem::</code>），驱动器相对（<code>C:foo</code>）——PS 侧的路径规范化比 bash 侧复杂得多，需要专项处理。</li>
+      <li><strong>ask 延迟到 decisions[]</strong>（<code>:693-700</code>）：修复 ask 早返回掩盖后续子命令 deny 的 bug。<code>Get-Process; Invoke-Expression evil</code> 带 ask+deny 规则时，deny 优先生效。</li>
+      <li><strong>CLM 类型白名单移除 adsi/adsisearcher</strong>（<code>:22-26</code>）：Microsoft 允许是因为面向可信域管理员，本工具移除是因为目标不会被校验——Active Directory 类型强转会执行网络绑定。安全细节的体现。</li>
+      <li><strong>preFlight sentinel 跳过 git 跟踪</strong>（<code>:594</code>）：预飞失败（pwsh 未安装）返回 code 0 + 空 stdout + stderr，跳过 <code>trackGitOperations</code> 避免误计从未运行的命令。</li>
+      <li><strong>中断即后台</strong>（<code>:1049</code>）：用户提交新消息时后台化而非杀死运行中的命令——避免丢失工作，匹配 BashTool 设计。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-yuan-ma-dao-hang">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>PowerShellTool/toolName.ts:2</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>PowerShellTool/PowerShellTool.tsx:341-759</code></td></tr>
+          <tr><td>输入/输出 schema</td><td><code>PowerShellTool.tsx:255-297</code></td></tr>
+          <tr><td><code>call()</code> 编排器</td><td><code>PowerShellTool.tsx:523-755</code></td></tr>
+          <tr><td><code>runPowerShellCommand</code> 生成器</td><td><code>PowerShellTool.tsx:761-1137</code></td></tr>
+          <tr><td>Windows 沙箱策略拒绝</td><td><code>PowerShellTool.tsx:240-248</code></td></tr>
+          <tr><td>权限引擎主入口</td><td><code>powershellPermissions.ts:638</code></td></tr>
+          <tr><td>PS 命令注入校验</td><td><code>powershellSecurity.ts:1025</code>（23 验证器 <code>:1037-1062</code>）</td></tr>
+          <tr><td>只读判定</td><td><code>readOnlyValidation.ts:1155</code>（isReadOnlyCommand）/ <code>:1099</code>（hasSyncSecurityConcerns）</td></tr>
+          <tr><td>cmdlet 规范化</td><td><code>readOnlyValidation.ts:971</code>（resolveToCanonical）</td></tr>
+          <tr><td>git 攻击防护（PS）</td><td><code>gitSafety.ts:134</code>（isGitInternalPathPS）/ <code>:44</code>（normalizeGitPathArg）</td></tr>
+          <tr><td>CLM 类型白名单</td><td><code>clmTypes.ts:18</code></td></tr>
+          <tr><td>通用参数集</td><td><code>commonParameters.ts:27</code></td></tr>
+          <tr><td>破坏性告警</td><td><code>destructiveCommandWarning.ts:11</code></td></tr>
+          <tr><td>退出码语义</td><td><code>commandSemantics.ts:129</code></td></tr>
+          <tr><td>system prompt 构造</td><td><code>prompt.ts:73</code>（getPrompt）/ <code>:51</code>（getEditionSection 版本感知）</td></tr>
+          <tr><td>pwsh 检测（外部）</td><td><code>src/utils/shell/powershellDetection.ts</code></td></tr>
+          <tr><td>注册门控（外部）</td><td><code>src/utils/shell/shellToolUtils.ts</code>（isPowerShellToolEnabled）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-xue-xi-jian-yi">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：这是 BashTool 的姊妹篇。<strong>强烈建议先读 BashTool</strong>，再来读本篇——两者结构对称，本篇聚焦差异。重点对比"五、权限与安全"的验证器列表（bash 侧 vs PS 侧的注入向量差异）和 gitSafety 的 PS 参数规范化深坑。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 PowerShellTool 复用了 BashTool 的哪些模块（shouldUseSandbox/utils/BackgroundHint/gitOperationTracking）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为何安全引擎必须独立（bash 与 PS 注入向量、参数语法、路径规范完全不同）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 Windows 沙箱策略违规时的处理（拒绝执行而非静默绕过，承重防护在 call()）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 <code>isReadOnly</code> 为何是两段式（同步接口 + 异步 AST 解析的矛盾）</span></li>
+      <li><input type="checkbox" disabled> <span>能列出 <code>hasSyncSecurityConcerns</code> 检测的 7 种模式（<code>$()</code>/splatting/成员调用/赋值/<code>--%</code>/UNC/<code>::</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释版本感知 prompt 的作用（5.1 vs 7+ 语法差异，避免解析错误）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 ask 延迟到 decisions[] 修复了什么 bug（ask 早返回掩盖子命令 deny）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 CLM 白名单为何移除 adsi/adsisearcher（强转执行网络绑定）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 preFlight sentinel 的作用（跳过 git 跟踪，避免误计未运行命令）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出注册门控的条件（仅 Windows + USER_TYPE 门控）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>在 Windows 上让 Claude 执行 <code>Get-ChildItem</code>，观察只读自动放行</li>
+      <li>让 Claude 执行 <code>Invoke-Expression "rm file"</code>，观察权限对话框（checkInvokeExpression 触发）</li>
+      <li>让 Claude 执行 <code>Select-String</code>（grep 等价物），观察 isSearch 标记与可折叠显示</li>
+      <li>在 5.1 系统上让 Claude 用 <code>&amp;&amp;</code>，观察解析错误与 prompt 的版本指导</li>
+      <li>对比 BashTool 与 PowerShellTool 的 <code>call()</code>，确认后台化逻辑对称</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

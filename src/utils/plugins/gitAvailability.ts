@@ -1,22 +1,21 @@
 /**
- * Utility for checking git availability.
+ * 检测 git 可用性的工具模块。
  *
- * Git is required for installing GitHub-based marketplaces. This module
- * provides a memoized check to determine if git is available on the system.
+ * 安装基于 GitHub 的市场需要 git。本模块提供带记忆化的检测，
+ * 用于判断 git 是否在系统上可用。
  */
 
 import memoize from 'lodash-es/memoize.js'
 import { which } from '../which.js'
 
 /**
- * Check if a command is available in PATH.
+ * 检测 PATH 中是否存在某个命令。
  *
- * Uses which to find the actual executable without executing it.
- * This is a security best practice to avoid executing arbitrary code
- * in untrusted directories.
+ * 使用 which 查找实际可执行文件而不执行它。
+ * 这是避免在不受信目录中执行任意代码的安全最佳实践。
  *
- * @param command - The command to check for
- * @returns True if the command exists and is executable
+ * @param command - 要检测的命令名
+ * @returns 命令存在且可执行时返回 true
  */
 async function isCommandAvailable(command: string): Promise<boolean> {
   try {
@@ -27,42 +26,38 @@ async function isCommandAvailable(command: string): Promise<boolean> {
 }
 
 /**
- * Check if git is available on the system.
+ * 检测系统上是否存在 git。
  *
- * This is memoized so repeated calls within a session return the cached result.
- * Git availability is unlikely to change during a single CLI session.
+ * 使用记忆化，在同一会话中多次调用会返回缓存结果。
+ * 单次 CLI 会话期间 git 可用性不太可能改变。
  *
- * Only checks PATH — does not exec git. On macOS this means the /usr/bin/git
- * xcrun shim passes even without Xcode CLT installed; callers that hit
- * `xcrun: error:` at exec time should call markGitUnavailable() so the rest
- * of the session behaves as though git is absent.
+ * 仅检测 PATH —— 不执行 git。在 macOS 上，/usr/bin/git 的 xcrun shim
+ * 在未安装 Xcode CLT 时也会通过检测；执行时遇到 `xcrun: error:` 的调用者
+ * 应调用 markGitUnavailable()，使会话其余部分表现为 git 不存在。
  *
- * @returns True if git is installed and executable
+ * @returns git 已安装且可执行时返回 true
  */
 export const checkGitAvailable = memoize(async (): Promise<boolean> => {
   return isCommandAvailable('git')
 })
 
 /**
- * Force the memoized git-availability check to return false for the rest of
- * the session.
+ * 强制记忆化的 git 可用性检测在本次会话余下时间返回 false。
  *
- * Call this when a git invocation fails in a way that indicates the binary
- * exists on PATH but cannot actually run — the macOS xcrun shim being the
- * main case (`xcrun: error: invalid active developer path`). Subsequent
- * checkGitAvailable() calls then short-circuit to false, so downstream code
- * that guards on git availability skips cleanly instead of failing repeatedly
- * with the same exec error.
+ * 当 git 调用失败且表明二进制文件存在于 PATH 但无法实际运行时调用此函数 ——
+ * 主要场景是 macOS xcrun shim（`xcrun: error: invalid active developer path`）。
+ * 后续的 checkGitAvailable() 调用将直接短路返回 false，使依赖 git 可用性的下游代码
+ * 能够干净跳过，而不是反复触发同一个执行错误。
  *
- * lodash memoize uses a no-arg cache key of undefined.
+ * lodash memoize 使用无参数时的缓存键 undefined。
  */
 export function markGitUnavailable(): void {
   checkGitAvailable.cache?.set?.(undefined, Promise.resolve(false))
 }
 
 /**
- * Clear the git availability cache.
- * Used for testing purposes.
+ * 清除 git 可用性缓存。
+ * 仅用于测试目的。
  */
 export function clearGitAvailabilityCache(): void {
   checkGitAvailable.cache?.clear?.()

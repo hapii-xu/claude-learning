@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskList 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+    section { margin-top: 56px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; letter-spacing: .01em; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero p { font-size: 1.05rem; color: var(--text-2); max-width: 640px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 6px 16px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .82rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s, box-shadow .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); box-shadow: 0 2px 6px rgba(215,119,87,.15); text-decoration: none; }
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .8rem; line-height: 1.7; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    .tag { display: inline-block; background: var(--blue-lt); color: var(--blue-dk); font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; letter-spacing: .04em; }
+    .badge-yes { display: inline-block; background: var(--green-lt); color: #1a7a4e; font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+    .badge-no  { display: inline-block; background: var(--bg3); color: var(--text-3); font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+    blockquote.callout { background: var(--bg2); border-left: 4px solid var(--orange); padding: 14px 20px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0; color: var(--text-2); }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin: 16px 0; overflow-x: auto; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 48px; padding: 8px 18px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; transition: border-color .15s, color .15s; }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    @media (max-width: 700px) { .hero h1 { font-size: 1.6rem; } }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>TaskList 工具详解</h1>
+  <p>列出任务列表全部任务的摘要——Task 子系统的只读"SELECT *"，过滤内部任务并清理已完成依赖引用</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一">一、工具定位</a></li>
+    <li><a href="#二">二、关键文件清单</a></li>
+    <li><a href="#三">三、Tool 接口字段</a></li>
+    <li><a href="#四">四、核心执行流程</a></li>
+    <li><a href="#五">五、权限与安全</a></li>
+    <li><a href="#六">六、系统关系</a></li>
+    <li><a href="#七">七、亮点与设计取舍</a></li>
+    <li><a href="#八">八、源码导航</a></li>
+    <li><a href="#九">九、学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p>这是 Task 子系统系列的第三篇。<code>TaskList</code>（117 行）是四个 TodoV2 工具里最轻量的一个：无入参，返回所有任务的 <code>{id, subject, status, owner, blockedBy}</code> 摘要。但它有两个不显然的处理——过滤 <code>_internal</code> 内部任务、从 <code>blockedBy</code> 里剔除已完成的依赖 ID——让模型看到的是"干净的可用任务视图"。</p></blockquote>
+
+  <section id="一">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>TaskList</code> = 无参列出当前任务列表所有（非内部）任务的摘要视图。</strong></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>维度</th><th>值</th></tr></thead>
+      <tbody>
+        <tr><td>工具名</td><td><code>TaskList</code>（常量 <code>TASK_LIST_TOOL_NAME</code>，<code>constants.ts:1</code>）</td></tr>
+        <tr><td>一句话</td><td>无入参，返回每个任务的 id/subject/status/owner/blockedBy 摘要</td></tr>
+        <tr><td>是否进 system prompt</td><td>⚠️ 条件注册——<code>isTodoV2Enabled()</code>（<code>tools.ts:247-249</code>）；在 <code>CORE_TOOLS</code>（<code>constants/tools.ts:154</code>）</td></tr>
+        <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>，<code>:59</code>）</td></tr>
+        <tr><td>是否可并发</td><td>✅ <code>true</code>（<code>:56</code>）</td></tr>
+        <tr><td>核心依赖</td><td><code>tasks.ts</code> 的 <code>listTasks()</code></td></tr>
+        <tr><td>协作方</td><td><code>TaskGet</code>（查单条详情）、<code>TaskUpdate</code>（认领/流转）、<code>TaskCreate</code>（产生条目）</td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>为什么需要它？</strong> teammate 完成任务后要"找下一个可做的"；leader 要看整体进度；模型要判断哪些任务被阻塞。TaskList 提供这个"鸟瞰图"，是 swarm 协作循环的枢纽（prompt 明确把它列为 teammate 工作流的第一步）。</p>
+  </section>
+
+  <section id="二">
+    <h2>二、关键文件清单</h2>
+    <pre>TaskListTool/
+├── TaskListTool.ts   ← 主体（117 行），schema + call + 结果映射
+├── prompt.ts         ← DESCRIPTION + getPrompt()（含 teammate 工作流分支）
+└── constants.ts      ← TASK_LIST_TOOL_NAME = 'TaskList'</pre>
+    <div class="table-wrap"><table>
+      <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+      <tbody>
+        <tr><td><code>TaskListTool.ts</code></td><td>主体</td><td><code>buildTool:33</code>、<code>call:65</code>、<code>mapToolResultToToolResultBlockParam:91</code></td></tr>
+        <tr><td><code>prompt.ts</code></td><td>描述 + teammate 工作流</td><td><code>DESCRIPTION:3</code>、<code>getPrompt:5</code>、teammate workflow <code>:15-26</code></td></tr>
+        <tr><td><code>constants.ts</code></td><td>工具名</td><td><code>:1</code></td></tr>
+      </tbody>
+    </table></div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：三件套，无 UI.tsx（<code>renderToolUseMessage → null</code>）。schema 是 <code>z.strictObject({})</code>——空对象，唯一一个无参的 Task 工具。</p></blockquote>
+  </section>
+
+  <section id="三">
+    <h2>三、Tool 接口字段实现（buildTool 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre>name: TASK_LIST_TOOL_NAME,
+searchHint: '列出所有任务',
+shouldDefer: true,
+isEnabled() { return isTodoV2Enabled() },   // :53
+isConcurrencySafe() { return true },        // :56
+isReadOnly() { return true },               // :59  ← 四个工具里只有 List/Get 标只读</pre>
+    <h3>模型面字段</h3>
+    <pre>async description() { return DESCRIPTION },
+async prompt() { return getPrompt() },   // 动态：swarm 模式追加 teammate 工作流
+get inputSchema() { return inputSchema() },  // z.strictObject({}) 空对象</pre>
+    <p><strong>输入 schema</strong>（<code>:13</code>）：<code>z.strictObject({})</code>——无参。用 strictObject 而非 object，传入多余字段会报错。</p>
+    <p><strong>输出 schema</strong>（<code>:16-28</code>）：</p>
+    <pre>{
+  tasks: Array&lt;{
+    id: string,
+    subject: string,
+    status: 'pending'|'in_progress'|'completed',
+    owner?: string,
+    blockedBy: string[],   // 注意：只输出 blockedBy，不输出 blocks
+  }&gt;
+}</pre>
+    <blockquote class="callout"><p>输出<strong>不含 description、activeForm、metadata、blocks</strong>——这些是 TaskGet 的职责。TaskList 是"摘要面"，TaskGet 是"详情面"。</p></blockquote>
+    <h3>行为字段</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code>call()</code></td><td><code>:65</code></td><td>核心（见下节）</td></tr>
+        <tr><td><code>isReadOnly()</code></td><td><code>:59</code> → <code>true</code></td><td>唯一只读标记，意味着可参与只读并发优化</td></tr>
+        <tr><td><code>renderToolUseMessage()</code></td><td><code>:62</code> → <code>null</code></td><td>任务面板已实时展示</td></tr>
+        <tr><td>无 <code>toAutoClassifierInput</code></td><td>—</td><td>无入参，无需分类</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="四">
+    <h2>四、核心执行流程：call()</h2>
+    <p><code>call()</code>（<code>:65-90</code>）极简，三步：</p>
+    <div class="mermaid-wrap"><div class="mermaid">
+flowchart LR
+    A["call() 无参\n:65"] --> B["listTasks(listId)\n:68 读全部 JSON"]
+    B --> C["filter 掉 _internal 任务\n:68-70"]
+    C --> D["构建已完成 ID 集合\n:73-75"]
+    D --> E["map 每条，从 blockedBy 剔除已完成 ID\n:77-83"]
+    E --> F["return {data:{tasks}}\n:85"]
+    </div></div>
+    <p><strong>关键点逐条</strong>：</p>
+    <ol>
+      <li><strong>过滤内部任务</strong>（<code>:68-70</code>）：<code>t =&gt; !t.metadata?._internal</code>。带 <code>_internal</code> 标记的任务（如系统创建的临时任务）不对模型展示。这让系统能用同一套任务存储放"用户可见"和"内部"两类条目。</li>
+      <li><strong>清理已完成依赖</strong>（<code>:73-83</code>）：先建一个 <code>resolvedTaskIds</code> 集合（所有 completed 任务的 ID），然后 map 时把每条任务的 <code>blockedBy</code> 里属于这个集合的 ID 过滤掉。<strong>效果</strong>：一个任务若只被已完成的任务阻塞，它的 <code>blockedBy</code> 会显示为空——即"现在可做了"。这让模型无需自己判断"阻塞我的任务完成没"，直接看 blockedBy 是否为空就能认领。</li>
+      <li><strong>不返回 blocks</strong>：输出 schema 只有 <code>blockedBy</code> 没有 <code>blocks</code>。这是刻意的摘要设计——"我被谁阻塞"对认领决策更重要；"我阻塞了谁"属于详情（TaskGet 才有）。</li>
+    </ol>
+    <p><strong><code>mapToolResultToToolResultBlockParam</code></strong>（<code>:91-115</code>）：把 tasks 渲染成多行文本，每行格式 <code>#${id} [${status}] ${subject}${owner?}${blocked?}</code>。空列表返回"未找到任务"。</p>
+  </section>
+
+  <section id="五">
+    <h2>五、权限与安全</h2>
+    <p>和 TaskGet 一样是纯只读工具，<strong>无 <code>checkPermissions</code> / <code>validateInput</code></strong>。安全边界：</p>
+    <ul>
+      <li><strong>只读磁盘</strong>：<code>listTasks</code>（<code>tasks.ts:443-456</code>）只 <code>readdir</code> + <code>readFile</code>，无写入。</li>
+      <li><strong>无路径入参</strong>：空 schema，不存在路径穿越/注入风险。</li>
+      <li><strong><code>_internal</code> 过滤是显示层逻辑</strong>：内部任务仍在磁盘上，只是不通过此工具暴露给模型。其他系统（如 UI 面板）可能有自己的过滤策略。</li>
+    </ul>
+  </section>
+
+  <section id="六">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap"><div class="mermaid">
+flowchart TD
+    TL["TaskList"] -->|读| STORE["tasks.ts listTasks"]
+    TL -.摘要/详情互补.-> TG["TaskGet 单条详情"]
+    TL -.被创建/更新驱动.-> TC["TaskCreate"]
+    TL -.被更新驱动.-> TU["TaskUpdate"]
+    TL -->|swarm 工作流入口| TEAM["teammate 认领循环"]
+    </div></div>
+    <ul>
+      <li><strong>与 TaskGet 的分工</strong>：List 是摘要面（id/subject/status/owner/blockedBy），Get 是详情面（加 description/activeForm/blocks/metadata）。prompt（<code>prompt.ts:47</code>）明确"用 TaskGet 看完整详情"。</li>
+      <li><strong>与 TaskUpdate/TaskCreate 的协作</strong>：这俩写入后，模型调 TaskList 看变化；teammate 完成 TaskUpdate(completed) 后，结果文案（TaskUpdate <code>:385</code>）主动提示"调 TaskList 找下一个"——形成闭环。</li>
+      <li><strong>与 swarm teammate 系统</strong>：prompt 的 <code>teammateWorkflow</code> 段（<code>prompt.ts:15-26</code>）把 TaskList 列为 teammate 工作流第 1 步："完成后调 TaskList → 找 pending/无 owner/无 blockedBy 的 → 优先低 ID → TaskUpdate 认领"。TaskList 是 swarm 任务分发的事实入口。</li>
+      <li><strong>与任务面板 UI</strong>：<code>tasksUpdated</code> 信号（<code>tasks.ts:43</code>）在每次写操作后 emit，UI 面板订阅它实时刷新。TaskList 工具本身是给<strong>模型</strong>用的查询入口，与给用户看的面板是两个消费者。</li>
+    </ul>
+  </section>
+
+  <section id="七">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>无参 <code>strictObject({})</code></strong>（<code>:13</code>）：唯一无参的 Task 工具。用 strictObject 而非 object，防止模型幻觉传参。</li>
+      <li><strong><code>_internal</code> 过滤</strong>（<code>:68</code>）：用 metadata 约定区分用户任务和系统内部任务，一套存储服务两类消费者。</li>
+      <li><strong>已完成依赖清理</strong>（<code>:73-83</code>）：这是最有价值的设计——把"阻塞我的任务完成了吗"的判断从模型侧挪到工具侧。模型只需看 <code>blockedBy.length === 0</code> 就能认领，降低推理负担。</li>
+      <li><strong>摘要/详情分离</strong>（List vs Get）：避免一次返回所有任务的完整 description（可能很长）撑爆 context。模型按需用 Get 取详情。</li>
+      <li><strong>teammate 工作流写进 prompt</strong>（<code>prompt.ts:15-26</code>）：不是靠模型猜，而是把"找可用任务→优先低 ID→认领"的协作协议显式写进 system prompt。</li>
+      <li><strong><code>isReadOnly: true</code></strong>：四个 TodoV2 工具里只有 List 和 Get 标只读，让权限/并发系统能对它们做只读优化。</li>
+    </ol>
+  </section>
+
+  <section id="八">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+      <tbody>
+        <tr><td>工具名常量</td><td><code>TaskListTool/constants.ts:1</code></td></tr>
+        <tr><td>描述 + teammate 工作流</td><td><code>TaskListTool/prompt.ts:3,5,15</code></td></tr>
+        <tr><td><code>buildTool</code> 字段</td><td><code>TaskListTool/TaskListTool.ts:33-116</code></td></tr>
+        <tr><td>空 schema + 输出 schema</td><td><code>TaskListTool.ts:13-28</code></td></tr>
+        <tr><td><code>call()</code> 核心逻辑</td><td><code>TaskListTool.ts:65-90</code></td></tr>
+        <tr><td><code>_internal</code> 过滤</td><td><code>TaskListTool.ts:68-70</code></td></tr>
+        <tr><td>已完成依赖清理</td><td><code>TaskListTool.ts:73-83</code></td></tr>
+        <tr><td>结果映射（多行渲染）</td><td><code>TaskListTool.ts:91-115</code></td></tr>
+        <tr><td>注册条件</td><td><code>src/tools.ts:247-249</code></td></tr>
+        <tr><td>底层 listTasks</td><td><code>src/utils/tasks.ts:443-456</code></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="九">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：最简单的一篇。先看"一、定位"确认它是无参只读 SELECT，重点理解"四、call()"里的两个过滤（<code>_internal</code> + 已完成依赖清理），这是它区别于"直接返回原始数据"的关键。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 TaskList 为什么是空 schema（<code>z.strictObject({})</code>，唯一无参 Task 工具）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>_internal</code> 过滤的作用（区分用户任务和系统内部任务，<code>:68</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出已完成依赖清理的逻辑（建 resolvedTaskIds 集合，map 时剔除，<code>:73-83</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 TaskList 输出为什么没有 <code>blocks</code> 字段（摘要/详情分离，blocks 属于 Get）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 TaskList 在 swarm teammate 工作流中的角色（认领循环入口，prompt <code>:15-26</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出四个 TodoV2 工具里哪两个标了 <code>isReadOnly</code>（List 和 Get）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>创建几个带依赖的任务（TaskCreate + TaskUpdate addBlockedBy），完成阻塞者后调 TaskList，观察被阻塞任务的 blockedBy 变空</li>
+      <li>创建一个带 <code>metadata._internal</code> 的任务（需绕过工具直接写文件），验证它不出现在 TaskList</li>
+      <li>对比 TaskList 输出和 TaskGet 单条输出，确认字段差异</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

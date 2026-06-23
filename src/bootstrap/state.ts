@@ -421,8 +421,42 @@ function getInitialState(): State {
 
 // 尤其是在这里——更要三思
 const STATE: State = getInitialState()
+// biome-ignore lint/suspicious/noConsole: 启动诊断日志
 console.debug(
-  `[Hapii] bootstrap/state: 全局 STATE 初始化完成 cwd=${STATE.originalCwd} sessionId=${STATE.sessionId}`,
+  `[Hapii] bootstrap/state 初始化完成 sessionId=${STATE.sessionId}`,
+  {
+    originalCwd: STATE.originalCwd,
+    projectRoot: STATE.projectRoot,
+    cwd: STATE.cwd,
+    startTime: new Date(STATE.startTime).toISOString(),
+    initialMainLoopModel: STATE.initialMainLoopModel,
+    clientType: STATE.clientType,
+    isInteractive: STATE.isInteractive,
+    isRemoteMode: STATE.isRemoteMode,
+    allowedSettingSources: STATE.allowedSettingSources,
+    inlinePlugins: STATE.inlinePlugins,
+    useCoworkPlugins: STATE.useCoworkPlugins,
+    chromeFlagOverride: STATE.chromeFlagOverride,
+    sessionBypassPermissionsMode: STATE.sessionBypassPermissionsMode,
+    scheduledTasksEnabled: STATE.scheduledTasksEnabled,
+    sessionTrustAccepted: STATE.sessionTrustAccepted,
+    sessionPersistenceDisabled: STATE.sessionPersistenceDisabled,
+    mainThreadAgentType: STATE.mainThreadAgentType,
+    directConnectServerUrl: STATE.directConnectServerUrl,
+    kairosActive: STATE.kairosActive,
+    strictToolResultPairing: STATE.strictToolResultPairing,
+    sdkAgentProgressSummariesEnabled: STATE.sdkAgentProgressSummariesEnabled,
+    userMsgOptIn: STATE.userMsgOptIn,
+    sessionSource: STATE.sessionSource,
+    sessionIngressToken: STATE.sessionIngressToken ? '[set]' : null,
+    oauthTokenFromFd: STATE.oauthTokenFromFd ? '[set]' : null,
+    apiKeyFromFd: STATE.apiKeyFromFd ? '[set]' : null,
+    flagSettingsPath: STATE.flagSettingsPath,
+    hasDevChannels: STATE.hasDevChannels,
+    additionalDirectoriesForClaudeMd: STATE.additionalDirectoriesForClaudeMd,
+    sessionProjectDir: STATE.sessionProjectDir,
+    parentSessionId: STATE.parentSessionId,
+  },
 )
 
 export function getSessionId(): SessionId {

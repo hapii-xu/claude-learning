@@ -1,19 +1,19 @@
 /**
- * Marketplace manager for Claude Code plugins
+ * Claude Code 插件的 Marketplace 管理器
  *
- * This module provides functionality to:
- * - Manage known marketplace sources (URLs, GitHub repos, npm packages, local files)
- * - Cache marketplace manifests locally for offline access
- * - Install plugins from marketplace entries
- * - Track and update marketplace configurations
+ * 本模块提供以下功能：
+ * - 管理已知的 marketplace 来源（URL、GitHub 仓库、npm 包、本地文件）
+ * - 在本地缓存 marketplace 清单以供离线访问
+ * - 从 marketplace 条目安装插件
+ * - 跟踪和更新 marketplace 配置
  *
- * File structure managed by this module:
+ * 本模块管理的文件结构：
  * ~/.claude/
  *   └── plugins/
- *       ├── known_marketplaces.json    # Configuration of all known marketplaces
- *       └── marketplaces/              # Cache directory for marketplace data
- *           ├── my-marketplace.json    # Cached marketplace from URL source
- *           └── github-marketplace/    # Cloned repository for GitHub source
+ *       ├── known_marketplaces.json    # 所有已知 marketplace 的配置
+ *       └── marketplaces/              # marketplace 数据的缓存目录
+ *           ├── my-marketplace.json    # 来自 URL 来源的缓存 marketplace
+ *           └── github-marketplace/    # 来自 GitHub 来源的克隆仓库
  *               └── .claude-plugin/
  *                   └── marketplace.json
  */
@@ -88,7 +88,7 @@ import {
 } from './schemas.js'
 
 /**
- * Result of loading and caching a marketplace
+ * 加载和缓存 marketplace 的结果
  */
 type LoadedPluginMarketplace = {
   marketplace: PluginMarketplace
@@ -96,74 +96,74 @@ type LoadedPluginMarketplace = {
 }
 
 /**
- * Get the path to the known marketplaces configuration file
- * Using a function instead of a constant allows proper mocking in tests
+ * 获取已知 marketplace 配置文件的路径
+ * 使用函数而非常量允许在测试中正确 mock
  */
 function getKnownMarketplacesFile(): string {
   return join(getPluginsDirectory(), 'known_marketplaces.json')
 }
 
 /**
- * Get the path to the marketplaces cache directory
- * Using a function instead of a constant allows proper mocking in tests
+ * 获取 marketplace 缓存目录的路径
+ * 使用函数而非常量允许在测试中正确 mock
  */
 export function getMarketplacesCacheDir(): string {
   return join(getPluginsDirectory(), 'marketplaces')
 }
 
 /**
- * Memoized inner function to get marketplace data.
- * This caches the marketplace in memory after loading from disk or network.
+ * 获取 marketplace 数据的记忆化内部函数。
+ * 这会在从磁盘或网络加载后将 marketplace 缓存在内存中。
  */
 
 /**
- * Clear all cached marketplace data (for testing)
+ * 清除所有缓存的 marketplace 数据（用于测试）
  */
 export function clearMarketplacesCache(): void {
   getMarketplace.cache?.clear?.()
 }
 
 /**
- * Configuration for known marketplaces
+ * 已知 marketplace 的配置
  */
 export type KnownMarketplacesConfig = KnownMarketplacesFile
 
 /**
- * Declared marketplace entry (intent layer).
+ * 声明的 marketplace 条目（意图层）。
  *
- * Structurally compatible with settings `extraKnownMarketplaces` entries, but
- * adds `sourceIsFallback` for implicit built-in declarations. This is NOT a
- * settings-schema field — it's only ever set in code (never parsed from JSON).
+ * 结构与 settings 的 `extraKnownMarketplaces` 条目兼容，但
+ * 添加了 `sourceIsFallback` 用于隐式内置声明。这 NOT 是
+ * settings-schema 字段 — 它只在代码中设置（从不从 JSON 解析）。
  */
 export type DeclaredMarketplace = {
   source: MarketplaceSource
   installLocation?: string
   autoUpdate?: boolean
   /**
-   * Presence suffices. When set, diffMarketplaces treats an already-materialized
-   * entry as upToDate regardless of source shape — never reports sourceChanged.
+   * 存在即可。设置后，diffMarketplaces 将已物化的条目视为
+   * upToDate，无论来源形状如何 — 从不报告 sourceChanged。
    *
-   * Used for the implicit official-marketplace declaration: we want "clone from
-   * GitHub if missing", not "replace with GitHub if present under a different
-   * source". Without this, a seed dir that registers the official marketplace
-   * under e.g. an internal-mirror source would be stomped by a GitHub re-clone.
+   * 用于隐式官方 marketplace 声明：我们想要"如果缺失则从
+   * GitHub 克隆"，而非"如果以不同来源存在则替换为 GitHub"。
+   * 没有这个，在例如内部镜像来源下注册官方 marketplace 的
+   * seed 目录会被 GitHub 重新克隆覆盖。
    */
   sourceIsFallback?: boolean
 }
 
 /**
- * Get declared marketplace intent from merged settings and --add-dir sources.
- * This is what SHOULD exist — used by the reconciler to find gaps.
+ * 从合并的 settings 和 --add-dir 来源获取声明的 marketplace 意图。
+ * 这是应该存在的 — 由对账器用来查找差距。
  *
- * The official marketplace is implicitly declared with `sourceIsFallback: true`
- * when any enabled plugin references it.
+ * 当任何启用的插件引用它时，官方 marketplace 会被隐式声明为
+ * `sourceIsFallback: true`。
  */
 export function getDeclaredMarketplaces(): Record<string, DeclaredMarketplace> {
   const implicit: Record<string, DeclaredMarketplace> = {}
 
-  // Only the official marketplace can be implicitly declared — it's the one
-  // built-in source we know. Other marketplaces have no default source to inject.
-  // Explicitly-disabled entries (value: false) don't count.
+  // 只有官方 marketplace 可以隐式声明 — 它是我们知道的
+  // 唯一一个内置来源。其他 marketplace 没有默认来源可以注入。
+  // 显式禁用的条目（值：false）不算。
   const enabledPlugins = {
     ...getAddDirEnabledPlugins(),
     ...(getInitialSettings().enabledPlugins ?? {}),
@@ -181,9 +181,9 @@ export function getDeclaredMarketplaces(): Record<string, DeclaredMarketplace> {
     }
   }
 
-  // Lowest precedence: implicit < --add-dir < merged settings.
-  // An explicit extraKnownMarketplaces entry for claude-plugins-official
-  // in --add-dir or settings wins.
+  // 最低优先级：隐式 < --add-dir < 合并的 settings。
+  // --add-dir 或 settings 中 claude-plugins-official 的显式
+  // extraKnownMarketplaces 条目会获胜。
   return {
     ...implicit,
     ...getAddDirExtraMarketplaces(),
@@ -192,16 +192,16 @@ export function getDeclaredMarketplaces(): Record<string, DeclaredMarketplace> {
 }
 
 /**
- * Find which editable settings source declared a marketplace.
- * Checks in reverse precedence order (highest priority last) so the
- * result is the source that "wins" in the merged view.
- * Returns null if the marketplace isn't declared in any editable source.
+ * 查找哪个可编辑的 settings 来源声明了 marketplace。
+ * 按逆优先级顺序检查（最高优先级最后），以便结果是
+ * 在合并视图中"获胜"的来源。
+ * 如果 marketplace 未在任何可编辑来源中声明则返回 null。
  */
 export function getMarketplaceDeclaringSource(
   name: string,
 ): 'userSettings' | 'projectSettings' | 'localSettings' | null {
-  // Check highest-precedence editable sources first — the one that wins
-  // in the merged view is the one we should write back to.
+  // 优先检查最高优先级的可编辑来源 — 在合并视图中
+  // 获胜的那个是我们应该回写的。
   const editableSources: Array<
     'localSettings' | 'projectSettings' | 'userSettings'
   > = ['localSettings', 'projectSettings', 'userSettings']
@@ -216,12 +216,12 @@ export function getMarketplaceDeclaringSource(
 }
 
 /**
- * Save a marketplace entry to settings (intent layer).
- * Does NOT touch known_marketplaces.json (state layer).
+ * 将 marketplace 条目保存到 settings（意图层）。
+ * 不触及 known_marketplaces.json（状态层）。
  *
- * @param name - The marketplace name
- * @param entry - The marketplace config
- * @param settingSource - Which settings source to write to (defaults to userSettings)
+ * @param name - marketplace 名称
+ * @param entry - marketplace 配置
+ * @param settingSource - 要写入的 settings 来源（默认为 userSettings）
  */
 export function saveMarketplaceToSettings(
   name: string,
@@ -238,12 +238,12 @@ export function saveMarketplaceToSettings(
 }
 
 /**
- * Load known marketplaces configuration from disk
+ * 从磁盘加载已知 marketplace 配置
  *
- * Reads the configuration file at ~/.claude/plugins/known_marketplaces.json
- * which contains a mapping of marketplace names to their sources and metadata.
+ * 读取 ~/.claude/plugins/known_marketplaces.json 的配置文件，
+ * 其中包含 marketplace 名称到其来源和元数据的映射。
  *
- * Example configuration file content:
+ * 配置文件内容示例：
  * ```json
  * {
  *   "official-marketplace": {
@@ -259,7 +259,7 @@ export function saveMarketplaceToSettings(
  * }
  * ```
  *
- * @returns Configuration object mapping marketplace names to their metadata
+ * @returns 将 marketplace 名称映射到其元数据的配置对象
  */
 export async function loadKnownMarketplacesConfig(): Promise<KnownMarketplacesConfig> {
   const fs = getFsImplementation()
@@ -270,7 +270,7 @@ export async function loadKnownMarketplacesConfig(): Promise<KnownMarketplacesCo
       encoding: 'utf-8',
     })
     const data = jsonParse(content)
-    // Validate against schema
+    // 针对 schema 校验
     const parsed = KnownMarketplacesFileSchema().safeParse(data)
     if (!parsed.success) {
       const errorMsg = `Marketplace configuration file is corrupted: ${parsed.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`
@@ -284,11 +284,11 @@ export async function loadKnownMarketplacesConfig(): Promise<KnownMarketplacesCo
     if (isENOENT(error)) {
       return {}
     }
-    // If it's already a ConfigParseError, re-throw it
+    // 如果已经是 ConfigParseError，重新抛出
     if (error instanceof ConfigParseError) {
       throw error
     }
-    // For JSON parse errors or I/O errors, throw with helpful message
+    // 对于 JSON 解析错误或 I/O 错误，抛出并附带有用消息
     const errorMsg = `Failed to load marketplace configuration: ${errorMessage(error)}`
     logForDebugging(errorMsg, {
       level: 'error',
@@ -298,36 +298,35 @@ export async function loadKnownMarketplacesConfig(): Promise<KnownMarketplacesCo
 }
 
 /**
- * Load known marketplaces config, returning {} on any error instead of throwing.
+ * 加载已知 marketplace 配置，在任何错误时返回 {} 而非抛出。
  *
- * Use this on read-only paths (plugin loading, feature checks) where a corrupted
- * config should degrade gracefully rather than crash. DO NOT use on load→mutate→save
- * paths — returning {} there would cause the save to overwrite the corrupted file
- * with just the new entry, permanently destroying the user's other entries. The
- * throwing variant preserves the file so the user can fix the corruption and recover.
+ * 在只读路径（插件加载、功能检查）上使用此函数，以便损坏的配置
+ * 优雅降级而非崩溃。不要在加载→变更→保存路径上使用 — 在那里
+ * 返回 {} 会导致保存操作仅用新条目覆盖损坏的文件，永久销毁用户的
+ * 其他条目。抛出变体保留文件以便用户可以修复损坏并恢复。
  */
 export async function loadKnownMarketplacesConfigSafe(): Promise<KnownMarketplacesConfig> {
   try {
     return await loadKnownMarketplacesConfig()
   } catch {
-    // Inner function already logged via logForDebugging. Don't logError here —
-    // corrupted user config isn't a Claude Code bug, shouldn't hit the error file.
+    // 内部函数已通过 logForDebugging 记录。不要在此处 logError —
+    // 损坏的用户配置不是 Claude Code 的错误，不应命中错误文件。
     return {}
   }
 }
 
 /**
- * Save known marketplaces configuration to disk
+ * 将已知 marketplace 配置保存到磁盘
  *
- * Writes the configuration to ~/.claude/plugins/known_marketplaces.json,
- * creating the directory structure if it doesn't exist.
+ * 将配置写入 ~/.claude/plugins/known_marketplaces.json，
+ * 如果目录结构不存在则创建。
  *
- * @param config - The marketplace configuration to save
+ * @param config - 要保存的 marketplace 配置
  */
 export async function saveKnownMarketplacesConfig(
   config: KnownMarketplacesConfig,
 ): Promise<void> {
-  // Validate before saving
+  // 保存前校验
   const parsed = KnownMarketplacesFileSchema().safeParse(config)
   const configFile = getKnownMarketplacesFile()
 
@@ -340,7 +339,7 @@ export async function saveKnownMarketplacesConfig(
   }
 
   const fs = getFsImplementation()
-  // Get directory from config file path to ensure consistency
+  // 从配置文件路径获取目录以确保一致性
   const dir = join(configFile, '..')
   await fs.mkdir(dir)
   writeFileSync_DEPRECATED(configFile, jsonStringify(parsed.data, null, 2), {
@@ -350,40 +349,40 @@ export async function saveKnownMarketplacesConfig(
 }
 
 /**
- * Register marketplaces from the read-only seed directories into the primary
- * known_marketplaces.json.
+ * 将只读 seed 目录中的 marketplace 注册到主
+ * known_marketplaces.json。
  *
- * The seed's known_marketplaces.json contains installLocation paths pointing
- * into the seed dir itself. Registering those entries into the primary JSON
- * makes them visible to all marketplace readers (getMarketplaceCacheOnly,
- * getPluginByIdCacheOnly, etc.) without any loader changes — they just follow
- * the installLocation wherever it points.
+ * seed 的 known_marketplaces.json 包含指向 seed 目录本身的
+ * installLocation 路径。将这些条目注册到主 JSON 使它们对所有
+ * marketplace 读取器可见（getMarketplaceCacheOnly、
+ * getPluginByIdCacheOnly 等），无需任何加载器更改 — 它们只需
+ * 跟随 installLocation 指向的任何位置。
  *
- * Seed entries always win for marketplaces declared in the seed — the seed is
- * admin-managed (baked into the container image). If admin updates the seed
- * in a new image, those changes propagate on next boot. Users opt out of seed
- * plugins via `plugin disable`, not by removing the marketplace.
+ * seed 条目在 seed 中声明的 marketplace 上始终获胜 — seed 由
+ * 管理员管理（烘焙到容器镜像中）。如果管理员在新镜像中更新
+ * seed，这些更改会在下次启动时传播。用户通过 `plugin disable`
+ * 退出 seed 插件，而非移除 marketplace。
  *
- * With multiple seed dirs (path-delimiter-separated), first-seed-wins: a
- * marketplace name claimed by an earlier seed is skipped by later seeds.
+ * 使用多个 seed 目录（路径分隔符分隔），第一个 seed 获胜：
+ * 被早期 seed 声明的 marketplace 名称会被后续 seed 跳过。
  *
- * autoUpdate is forced to false since the seed is read-only and git-pull would
- * fail. installLocation is computed from the runtime seedDir, not trusted from
- * the seed's JSON (handles multi-stage Docker mount-path drift).
+ * autoUpdate 被强制为 false，因为 seed 是只读的，git-pull 会
+ * 失败。installLocation 从运行时 seedDir 计算，而非信任 seed
+ * 的 JSON（处理多阶段 Docker 挂载路径漂移）。
  *
- * Idempotent: second call with unchanged seed writes nothing.
+ * 幂等：使用未更改 seed 的第二次调用不写入任何内容。
  *
- * @returns true if any marketplace entries were written/changed (caller should
- *   clear caches so earlier plugin-load passes don't keep stale "marketplace
- *   not found" state)
+ * @returns 如果写入/更改了任何 marketplace 条目则返回 true（调用者应
+ *   清除缓存，以便早期插件加载通道不会保留过时的"marketplace
+ *   未找到"状态）
  */
 export async function registerSeedMarketplaces(): Promise<boolean> {
   const seedDirs = getPluginSeedDirs()
   if (seedDirs.length === 0) return false
 
   const primary = await loadKnownMarketplacesConfig()
-  // First-seed-wins across this registration pass. Can't use the isEqual check
-  // alone — two seeds with the same name will have different installLocations.
+  // 本次注册过程中的第一个 seed 获胜。不能单独使用 isEqual 检查
+  // — 两个同名 seed 会有不同的 installLocations。
   const claimed = new Set<string>()
   let changed = 0
 
@@ -394,13 +393,13 @@ export async function registerSeedMarketplaces(): Promise<boolean> {
     for (const [name, seedEntry] of Object.entries(seedConfig)) {
       if (claimed.has(name)) continue
 
-      // Compute installLocation relative to THIS seedDir, not the build-time
-      // path baked into the seed's JSON. Handles multi-stage Docker builds
-      // where the seed is mounted at a different path than where it was built.
+      // 计算相对于此 seedDir 的 installLocation，而非烘焙到
+      // seed JSON 中的构建时路径。处理多阶段 Docker 构建，
+      // 其中 seed 挂载在与构建位置不同的路径。
       const resolvedLocation = await findSeedMarketplaceLocation(seedDir, name)
       if (!resolvedLocation) {
-        // Seed content missing (incomplete build) — leave primary alone, but
-        // don't claim the name either: a later seed may have working content.
+        // seed 内容缺失（不完整构建）— 保持主配置不变，但
+        // 也不要声明名称：后续 seed 可能有可用的内容。
         logForDebugging(
           `Seed marketplace '${name}' not found under ${seedDir}/marketplaces/, skipping`,
           { level: 'warn' },
@@ -416,10 +415,10 @@ export async function registerSeedMarketplaces(): Promise<boolean> {
         autoUpdate: false,
       }
 
-      // Skip if primary already matches — idempotent no-op, no write.
+      // 如果主配置已经匹配则跳过 — 幂等无操作，不写入。
       if (isEqual(primary[name], desired)) continue
 
-      // Seed wins — admin-managed. Overwrite any existing primary entry.
+      // seed 获胜 — 管理员管理。覆盖任何现有主条目。
       primary[name] = desired
       changed++
     }
@@ -462,13 +461,12 @@ async function readSeedKnownMarketplaces(
 }
 
 /**
- * Locate a marketplace in the seed directory by name.
+ * 按名称在 seed 目录中定位 marketplace。
  *
- * Probes the canonical locations under seedDir/marketplaces/ rather than
- * trusting the seed's stored installLocation (which may have a stale absolute
- * path from a different build-time mount point).
+ * 探测 seedDir/marketplaces/ 下的规范位置，而非信任 seed 存储的
+ * installLocation（可能包含来自不同构建时挂载点的过时绝对路径）。
  *
- * @returns Readable location, or null if neither format exists/validates
+ * @returns 可读位置，如果两种格式都不存在/验证则返回 null
  */
 async function findSeedMarketplaceLocation(
   seedDir: string,
@@ -481,17 +479,17 @@ async function findSeedMarketplaceLocation(
       await readCachedMarketplace(candidate)
       return candidate
     } catch {
-      // Try next candidate
+      // 尝试下一个候选
     }
   }
   return null
 }
 
 /**
- * If installLocation points into a configured seed directory, return that seed
- * directory. Seed-managed entries are admin-controlled — users can't
- * remove/refresh/modify them (they'd be overwritten by registerSeedMarketplaces
- * on next startup). Returning the specific seed lets error messages name it.
+ * 如果 installLocation 指向已配置的 seed 目录，则返回该 seed
+ * 目录。seed 管理的条目由管理员控制 — 用户不能
+ * 移除/刷新/修改它们（它们会在下次启动时被
+ * registerSeedMarketplaces 覆盖）。返回特定的 seed 让错误消息可以命名它。
  */
 function seedDirFor(installLocation: string): string | undefined {
   return getPluginSeedDirs().find(
@@ -500,16 +498,16 @@ function seedDirFor(installLocation: string): string | undefined {
 }
 
 /**
- * Git pull operation (exported for testing)
+ * Git pull 操作（导出用于测试）
  *
- * Pulls latest changes with a configurable timeout (default 120s, override via CLAUDE_CODE_PLUGIN_GIT_TIMEOUT_MS).
- * Provides helpful error messages for common failure scenarios.
- * If a ref is specified, fetches and checks out that specific branch or tag.
+ * 以可配置的超时拉取最新更改（默认 120 秒，通过 CLAUDE_CODE_PLUGIN_GIT_TIMEOUT_MS 覆盖）。
+ * 为常见失败场景提供有用的错误消息。
+ * 如果指定了 ref，则获取并检出该特定分支或标签。
  */
-// Environment variables to prevent git from prompting for credentials
+// 环境变量以防止 git 提示输入凭据
 const GIT_NO_PROMPT_ENV = {
-  GIT_TERMINAL_PROMPT: '0', // Prevent terminal credential prompts
-  GIT_ASKPASS: '', // Disable askpass GUI programs
+  GIT_TERMINAL_PROMPT: '0', // 防止终端凭据提示
+  GIT_ASKPASS: '', // 禁用 askpass GUI 程序
 }
 
 const DEFAULT_PLUGIN_GIT_TIMEOUT_MS = 120 * 1000
@@ -582,29 +580,29 @@ export async function gitPull(
 }
 
 /**
- * Sync submodule working dirs after a successful pull. gitClone() uses
- * --recurse-submodules, but gitPull() didn't — the parent repo's submodule
- * pointer would advance while the working dir stayed at the old commit,
- * making plugin sources in submodules unresolvable after marketplace update.
- * Non-fatal: a failed submodule update logs a warning; most marketplaces
- * don't use submodules at all. (gh-30696)
+ * 成功拉取后同步子模块工作目录。gitClone() 使用
+ * --recurse-submodules，但 gitPull() 没有 — 父仓库的子模块
+ * 指针会前进，而工作目录停留在旧提交，
+ * 使得 marketplace 更新后子模块中的插件来源无法解析。
+ * 非致命：失败的子模块更新记录警告；大多数 marketplace
+ * 根本不使用子模块。（gh-30696）
  *
- * Skipped for sparse clones — gitClone's sparse path intentionally omits
- * --recurse-submodules to preserve partial-clone bandwidth savings, and
- * .gitmodules is a root file that cone-mode sparse-checkout always
- * materializes, so the .gitmodules gate alone can't distinguish sparse repos.
+ * 对于稀疏克隆跳过 — gitClone 的稀疏路径故意省略
+ * --recurse-submodules 以保留部分克隆的带宽节省，且
+ * .gitmodules 是 cone-mode sparse-checkout 始终物化的根文件，
+ * 因此仅 .gitmodules 门控无法区分稀疏仓库。
  *
- * Perf: git-submodule is a bash script that spawns ~20 subprocesses (~35ms+)
- * even when no submodules exist. .gitmodules is a tracked file — pull
- * materializes it iff the repo has submodules — so gate on its presence to
- * skip the spawn for the common case.
+ * 性能：git-submodule 是一个 bash 脚本，即使没有子模块也会
+ * 产生约 20 个子进程（约 35ms+）。.gitmodules 是受跟踪的文件
+ * — pull 仅在仓库有子模块时物化它 — 因此在文件存在时门控
+ * 以跳过常见情况的进程产生。
  *
- * --init performs first-contact clone of newly-added submodules, so maintain
- * parity with gitClone's non-sparse path: StrictHostKeyChecking=yes for
- * fail-closed SSH (unknown hosts reject rather than silently populate
- * known_hosts), and --depth 1 for shallow clone (matching --shallow-submodules).
- * --depth only affects not-yet-initialized submodules; existing shallow
- * submodules are unaffected.
+ * --init 对新添加的子模块执行首次联系克隆，因此与
+ * gitClone 的非稀疏路径保持对等：StrictHostKeyChecking=yes
+ * 用于失败关闭的 SSH（未知主机拒绝而非静默填充
+ * known_hosts），以及 --depth 1 用于浅克隆（匹配
+ * --shallow-submodules）。--depth 仅影响尚未初始化的子模块；
+ * 现有浅子模块不受影响。
  */
 async function gitSubmoduleUpdate(
   cwd: string,
@@ -644,7 +642,7 @@ async function gitSubmoduleUpdate(
 }
 
 /**
- * Enhance error messages for git pull failures
+ * 增强 git pull 失败的错误消息
  */
 function enhanceGitPullErrorMessages(result: {
   code: number
@@ -655,8 +653,8 @@ function enhanceGitPullErrorMessages(result: {
     return result
   }
 
-  // Detect execa timeout kills via the error field (stderr won't contain "timed out"
-  // when the process is killed by SIGTERM — the timeout info is only in error)
+  // 通过 error 字段检测 execa 超时终止（当进程被 SIGTERM 杀死时
+  // stderr 不会包含 "timed out" — 超时信息只在 error 中）
   if (result.error?.includes('timed out')) {
     const timeoutSec = Math.round(getPluginGitTimeoutMs() / 1000)
     return {
@@ -665,11 +663,11 @@ function enhanceGitPullErrorMessages(result: {
     }
   }
 
-  // Detect SSH host key verification failures (check before the generic
-  // 'Could not read from remote' catch — that string appears in both cases).
-  // OpenSSH emits "Host key verification failed" for BOTH host-not-in-known_hosts
-  // and host-key-has-changed — the latter also includes the "REMOTE HOST
-  // IDENTIFICATION HAS CHANGED" banner, which needs different remediation.
+  // 检测 SSH 主机密钥验证失败（在通用的
+  // 'Could not read from remote' 捕获之前检查 — 两种情况都会出现该字符串）。
+  // OpenSSH 对于主机不在 known_hosts 和主机密钥已更改两种情况都发出
+  // "Host key verification failed" — 后者还包括"REMOTE HOST
+  // IDENTIFICATION HAS CHANGED"横幅，需要不同的修复方法。
   if (result.stderr.includes('REMOTE HOST IDENTIFICATION HAS CHANGED')) {
     return {
       ...result,
@@ -683,7 +681,7 @@ function enhanceGitPullErrorMessages(result: {
     }
   }
 
-  // Detect SSH authentication failures
+  // 检测 SSH 认证失败
   if (
     result.stderr.includes('Permission denied (publickey)') ||
     result.stderr.includes('Could not read from remote repository')
@@ -694,7 +692,7 @@ function enhanceGitPullErrorMessages(result: {
     }
   }
 
-  // Detect network issues
+  // 检测网络问题
   if (
     result.stderr.includes('timed out') ||
     result.stderr.includes('Could not resolve host')
@@ -709,21 +707,20 @@ function enhanceGitPullErrorMessages(result: {
 }
 
 /**
- * Check if SSH is likely to work for GitHub
- * This is a quick heuristic check that avoids the full clone timeout
+ * 检查 SSH 是否可能对 GitHub 有效
+ * 这是避免完整克隆超时的快速启发式检查
  *
- * Uses StrictHostKeyChecking=yes (not accept-new) so an unknown github.com
- * host key fails closed rather than being silently added to known_hosts.
- * This prevents a network-level MITM from poisoning known_hosts on first
- * contact. Users who already have github.com in known_hosts see no change;
- * users who don't are routed to the HTTPS clone path.
+ * 使用 StrictHostKeyChecking=yes（不是 accept-new），以便未知的 github.com
+ * 主机密钥失败关闭而非被静默添加到 known_hosts。这防止了网络级 MITM
+ * 在首次接触时污染 known_hosts。已经在 known_hosts 中有 github.com 的用户
+ * 看不到变化；没有的用户会被路由到 HTTPS 克隆路径。
  *
- * @returns true if SSH auth succeeds and github.com is already trusted
+ * @returns 如果 SSH 认证成功且 github.com 已被信任则返回 true
  */
 async function isGitHubSshLikelyConfigured(): Promise<boolean> {
   try {
-    // Quick SSH connection test with 2 second timeout
-    // This fails fast if SSH isn't configured
+    // 使用 2 秒超时的快速 SSH 连接测试
+    // 如果 SSH 未配置，这会快速失败
     const result = await execFileNoThrow(
       'ssh',
       [
@@ -737,12 +734,12 @@ async function isGitHubSshLikelyConfigured(): Promise<boolean> {
         'git@github.com',
       ],
       {
-        timeout: 3000, // 3 second total timeout
+        timeout: 3000, // 总超时 3 秒
       },
     )
 
-    // SSH to github.com always returns exit code 1 with "successfully authenticated"
-    // or exit code 255 with "Permission denied" - we want the former
+    // SSH 到 github.com 总是返回退出码 1 并显示"successfully authenticated"
+    // 或退出码 255 并显示"Permission denied" — 我们需要前者
     const configured =
       result.code === 1 &&
       (result.stderr?.includes('successfully authenticated') ||
@@ -752,7 +749,7 @@ async function isGitHubSshLikelyConfigured(): Promise<boolean> {
     )
     return configured
   } catch (error) {
-    // Any error means SSH isn't configured properly
+    // 任何错误都意味着 SSH 配置不正确
     logForDebugging(`SSH configuration check failed: ${errorMessage(error)}`, {
       level: 'warn',
     })
@@ -761,8 +758,8 @@ async function isGitHubSshLikelyConfigured(): Promise<boolean> {
 }
 
 /**
- * Check if a git error indicates authentication failure.
- * Used to provide enhanced error messages for auth failures.
+ * 检查 git 错误是否表示认证失败。
+ * 用于为认证失败提供增强的错误消息。
  */
 function isAuthenticationError(stderr: string): boolean {
   return (
@@ -775,8 +772,8 @@ function isAuthenticationError(stderr: string): boolean {
 }
 
 /**
- * Extract the SSH host from a git URL for error messaging.
- * Matches the SSH format user@host:path (e.g., git@github.com:owner/repo.git).
+ * 从 git URL 中提取 SSH 主机以用于错误消息。
+ * 匹配 SSH 格式 user@host:path（例如 git@github.com:owner/repo.git）。
  */
 function extractSshHost(gitUrl: string): string | null {
   const match = gitUrl.match(/^[^@]+@([^:]+):/)
@@ -784,21 +781,21 @@ function extractSshHost(gitUrl: string): string | null {
 }
 
 /**
- * Git clone operation (exported for testing)
+ * Git clone 操作（导出用于测试）
  *
- * Clones a git repository with a configurable timeout (default 120s, override via CLAUDE_CODE_PLUGIN_GIT_TIMEOUT_MS)
- * and larger repositories. Provides helpful error messages for common failure scenarios.
- * Optionally checks out a specific branch or tag.
+ * 克隆 git 仓库，可配置超时（默认 120 秒，通过 CLAUDE_CODE_PLUGIN_GIT_TIMEOUT_MS 覆盖）
+ * 和更大的仓库。为常见失败场景提供有用的错误消息。
+ * 可选地检出特定分支或标签。
  *
- * Does NOT disable credential helpers — this allows the user's existing auth setup
- * (gh auth, keychain, git-credential-store, etc.) to work natively for private repos.
- * Interactive prompts are still prevented via GIT_TERMINAL_PROMPT=0, GIT_ASKPASS='',
- * stdin: 'ignore', and BatchMode=yes for SSH.
+ * 不禁用凭据助手 — 这允许用户现有的认证设置
+ * （gh auth、keychain、git-credential-store 等）为私有仓库原生工作。
+ * 交互式提示仍通过 GIT_TERMINAL_PROMPT=0、GIT_ASKPASS=''、
+ * stdin: 'ignore' 和 SSH 的 BatchMode=yes 来防止。
  *
- * Uses StrictHostKeyChecking=yes (not accept-new): unknown SSH hosts fail closed
- * with a clear message rather than being silently trusted on first contact. For
- * the github source type, the preflight check routes unknown-host users to HTTPS
- * automatically; for explicit git@host:… URLs, users see an actionable error.
+ * 使用 StrictHostKeyChecking=yes（不是 accept-new）：未知 SSH 主机失败关闭
+ * 并显示清晰消息，而非在首次接触时被静默信任。对于
+ * github 来源类型，预检会将未知主机用户自动路由到 HTTPS；
+ * 对于显式 git@host:… URL，用户看到可操作的错误。
  */
 export async function gitClone(
   gitUrl: string,
@@ -816,10 +813,9 @@ export async function gitClone(
   ]
 
   if (useSparse) {
-    // Partial clone: skip blob download until checkout, defer checkout until
-    // after sparse-checkout is configured. Submodules are intentionally dropped
-    // for sparse clones — sparse monorepos rarely need them, and recursing
-    // submodules would defeat the partial-clone bandwidth savings.
+    // 部分克隆：跳过 blob 下载直到检出，在配置 sparse-checkout 后延迟检出。
+    // 对于稀疏克隆故意省略子模块 — 稀疏单仓库很少需要它们，
+    // 递归子模块会破坏部分克隆的带宽节省。
     args.push('--filter=blob:none', '--no-checkout')
   } else {
     args.push('--recurse-submodules', '--shallow-submodules')
@@ -842,10 +838,9 @@ export async function gitClone(
     env: { ...process.env, ...GIT_NO_PROMPT_ENV },
   })
 
-  // Scrub credentials from execa's error/stderr fields before any logging or
-  // returning. execa's shortMessage embeds the full command line (including
-  // the credentialed URL), and result.stderr may also contain it on some git
-  // versions.
+  // 在任何日志记录或返回之前，从 execa 的 error/stderr 字段中清除凭据。
+  // execa 的 shortMessage 嵌入完整命令行（包括带凭据的 URL），
+  // 而 result.stderr 在某些 git 版本上也可能包含它。
   const redacted = redactUrlCredentials(gitUrl)
   if (gitUrl !== redacted) {
     if (result.error) result.error = result.error.replaceAll(gitUrl, redacted)
@@ -855,9 +850,8 @@ export async function gitClone(
 
   if (result.code === 0) {
     if (useSparse) {
-      // Configure the sparse cone, then materialize only those paths.
-      // `sparse-checkout set --cone` handles both init and path selection
-      // in a single step on git >= 2.25.
+      // 配置稀疏锥，然后仅物化这些路径。
+      // `sparse-checkout set --cone` 在 git >= 2.25 上单步处理初始化和路径选择。
       const sparseResult = await execFileNoThrowWithCwd(
         gitExe(),
         ['sparse-checkout', 'set', '--cone', '--', ...sparsePaths],
@@ -877,8 +871,8 @@ export async function gitClone(
 
       const checkoutResult = await execFileNoThrowWithCwd(
         gitExe(),
-        // ref was already passed to clone via --branch, so HEAD points to it;
-        // if no ref, HEAD points to the remote's default branch.
+        // ref 已通过 --branch 传递给 clone，因此 HEAD 指向它；
+        // 如果没有 ref，HEAD 指向远程的默认分支。
         ['checkout', 'HEAD'],
         {
           cwd: targetPath,
@@ -903,10 +897,9 @@ export async function gitClone(
     { level: 'warn' },
   )
 
-  // Detect timeout kills — when execFileNoThrowWithCwd kills the process via SIGTERM,
-  // stderr may only contain partial output (e.g. "Cloning into '...'") with no
-  // "timed out" string. Check the error field from execa which contains the
-  // timeout message.
+  // 检测超时终止 — 当 execFileNoThrowWithCwd 通过 SIGTERM 杀死进程时，
+  // stderr 可能只包含部分输出（例如"Cloning into '...'"）而没有
+  // "timed out"字符串。检查 execa 的 error 字段，其中包含超时消息。
   if (result.error?.includes('timed out')) {
     return {
       ...result,
@@ -914,13 +907,13 @@ export async function gitClone(
     }
   }
 
-  // Enhance error messages for common scenarios
+  // 为常见场景增强错误消息
   if (result.stderr) {
-    // Host key verification failure — check FIRST, before the generic
-    // 'Could not read from remote repository' catch (that string appears
-    // in both stderr outputs, so order matters). OpenSSH emits
-    // "Host key verification failed" for BOTH host-not-in-known_hosts and
-    // host-key-has-changed; distinguish them by the key-change banner.
+    // 主机密钥验证失败 — 优先检查，在通用的
+    // 'Could not read from remote repository' 捕获之前（该字符串出现在
+    // 两个 stderr 输出中，因此顺序很重要）。OpenSSH 对于主机不在 known_hosts
+    // 和主机密钥已更改两种情况都发出"Host key verification failed"；
+    // 通过密钥更改横幅区分它们。
     if (result.stderr.includes('REMOTE HOST IDENTIFICATION HAS CHANGED')) {
       const host = extractSshHost(gitUrl)
       const removeHint = host ? `ssh-keygen -R ${host}` : 'ssh-keygen -R <host>'
@@ -967,11 +960,11 @@ export async function gitClone(
     }
   }
 
-  // Fallback for empty stderr — gh-28373: user saw "Failed to clone
-  // marketplace repository:" with nothing after the colon. Git CAN fail
-  // without writing to stderr (stdout instead, or output swallowed by
-  // credential helper / signal). execa's error field has the execa-level
-  // message (command, exit code, signal); exit code is the minimum.
+  // 空 stderr 的回退 — gh-28373：用户看到"Failed to clone
+  // marketplace repository:"后面什么都没有。Git CAN 在不写入
+  // stderr 的情况下失败（改为 stdout，或被凭据助手/信号吞掉的输出）。
+  // execa 的 error 字段有 execa 级别的消息（命令、退出码、信号）；
+  // 退出码是最低限度。
   if (!result.stderr) {
     return {
       code: result.code,
@@ -985,24 +978,24 @@ export async function gitClone(
 }
 
 /**
- * Progress callback for marketplace operations.
+ * marketplace 操作的进度回调。
  *
- * This callback is invoked at various stages during marketplace operations
- * (downloading, git operations, validation, etc.) to provide user feedback.
+ * 此回调在 marketplace 操作的各种阶段被调用
+ * （下载、git 操作、校验等）以提供用户反馈。
  *
- * IMPORTANT: Implementations should handle errors internally and not throw exceptions.
- * If a callback throws, it will be caught and logged but won't abort the operation.
+ * 重要：实现应该在内部处理错误并不抛出异常。
+ * 如果回调抛出，它会被捕获并记录但不会中止操作。
  *
- * @param message - Human-readable progress message to display to the user
+ * @param message - 显示给用户的可读进度消息
  */
 export type MarketplaceProgressCallback = (message: string) => void
 
 /**
- * Safely invoke a progress callback, catching and logging any errors.
- * Prevents callback errors from aborting marketplace operations.
+ * 安全调用进度回调，捕获并记录任何错误。
+ * 防止回调错误中止 marketplace 操作。
  *
- * @param onProgress - The progress callback to invoke
- * @param message - Progress message to pass to the callback
+ * @param onProgress - 要调用的进度回调
+ * @param message - 传递给回调的进度消息
  */
 function safeCallProgress(
   onProgress: MarketplaceProgressCallback | undefined,
@@ -1019,17 +1012,17 @@ function safeCallProgress(
 }
 
 /**
- * Reconcile the on-disk sparse-checkout state with the desired config.
+ * 协调磁盘上的 sparse-checkout 状态与所需配置。
  *
- * Runs before gitPull to handle transitions:
- * - Full→Sparse or SparseA→SparseB: run `sparse-checkout set --cone` (idempotent)
- * - Sparse→Full: return non-zero so caller falls back to rm+reclone. Avoids
- *   `sparse-checkout disable` on a --filter=blob:none partial clone, which would
- *   trigger a lazy fetch of every blob in the monorepo.
- * - Full→Full (common case): single local `git config --get` check, no-op.
+ * 在 gitPull 之前运行以处理转换：
+ * - 完整→稀疏 或 稀疏A→稀疏B：运行 `sparse-checkout set --cone`（幂等）
+ * - 稀疏→完整：返回非零以便调用者回退到 rm+重新克隆。避免
+ *   在 --filter=blob:none 部分克隆上 `sparse-checkout disable`，这会
+ *   触发单仓库中每个 blob 的惰性获取。
+ * - 完整→完整（常见情况）：单个本地 `git config --get` 检查，无操作。
  *
- * Failures here (ENOENT, not a repo) are harmless — gitPull will also fail and
- * trigger the clone path, which establishes the correct state from scratch.
+ * 此处的失败（ENOENT，不是仓库）是无害的 — gitPull 也会失败并
+ * 触发克隆路径，从头开始建立正确的状态。
  */
 export async function reconcileSparseCheckout(
   cwd: string,
@@ -1061,25 +1054,25 @@ export async function reconcileSparseCheckout(
 }
 
 /**
- * Cache a marketplace from a git repository
+ * 从 git 仓库缓存 marketplace
  *
- * Clones or updates a git repository containing marketplace data.
- * If the repository already exists at cachePath, pulls the latest changes.
- * If pulling fails, removes the directory and re-clones.
+ * 克隆或更新包含 marketplace 数据的 git 仓库。
+ * 如果仓库已存在于 cachePath，则拉取最新更改。
+ * 如果拉取失败，则移除目录并重新克隆。
  *
- * Example repository structure:
+ * 仓库结构示例：
  * ```
  * my-marketplace/
  *   ├── .claude-plugin/
- *   │   └── marketplace.json    # Default location for marketplace manifest
- *   ├── plugins/                # Plugin implementations
+ *   │   └── marketplace.json    # marketplace 清单的默认位置
+ *   ├── plugins/                # 插件实现
  *   └── README.md
  * ```
  *
- * @param gitUrl - The git URL to clone (https or ssh)
- * @param cachePath - Local directory path to clone/update the repository
- * @param ref - Optional git branch or tag to checkout
- * @param onProgress - Optional callback to report progress
+ * @param gitUrl - 要克隆的 git URL（https 或 ssh）
+ * @param cachePath - 克隆/更新仓库的本地目录路径
+ * @param ref - 可选的 git 分支或标签以检出
+ * @param onProgress - 可选的回调以报告进度
  */
 async function cacheMarketplaceFromGit(
   gitUrl: string,
@@ -1091,18 +1084,18 @@ async function cacheMarketplaceFromGit(
 ): Promise<void> {
   const fs = getFsImplementation()
 
-  // Attempt incremental update; fall back to re-clone if the repo is absent,
-  // stale, or otherwise not updatable. Using pull-first avoids a stat-before-operate
-  // TOCTOU check: gitPull returns non-zero when cachePath is missing or has no .git.
+  // 尝试增量更新；如果仓库缺失、过时或无法更新则回退到重新克隆。
+  // 使用先拉取避免 stat-before-operate TOCTOU 检查：当 cachePath
+  // 缺失或没有 .git 时 gitPull 返回非零。
   const timeoutSec = Math.round(getPluginGitTimeoutMs() / 1000)
   safeCallProgress(
     onProgress,
     `Refreshing marketplace cache (timeout: ${timeoutSec}s)…`,
   )
 
-  // Reconcile sparse-checkout config before pulling. If this requires a re-clone
-  // (Sparse→Full transition) or fails (missing dir, not a repo), skip straight
-  // to the rm+clone fallback.
+  // 在拉取前协调 sparse-checkout 配置。如果这需要重新克隆
+  // （稀疏→完整转换）或失败（缺失目录，不是仓库），直接跳到
+  // rm+克隆回退。
   const reconcileResult = await reconcileSparseCheckout(cachePath, sparsePaths)
   if (reconcileResult.code === 0) {
     const pullStarted = performance.now()
@@ -1129,7 +1122,7 @@ async function cacheMarketplaceFromGit(
 
   try {
     await fs.rm(cachePath, { recursive: true })
-    // rm succeeded — a stale or partially-cloned directory existed; log for diagnostics
+    // rm 成功 — 存在过时或部分克隆的目录；记录以用于诊断
     logForDebugging(
       `Found stale marketplace directory at ${cachePath}, cleaning up to allow re-clone`,
       { level: 'warn' },
@@ -1145,10 +1138,10 @@ async function cacheMarketplaceFromGit(
         `Failed to clean up existing marketplace directory. Please manually delete the directory at ${cachePath} and try again.\n\nTechnical details: ${rmErrorMsg}`,
       )
     }
-    // ENOENT — cachePath didn't exist, this is a fresh install, nothing to clean up
+    // ENOENT — cachePath 不存在，这是全新安装，无需清理
   }
 
-  // Clone the repository (one attempt — no internal retry loop)
+  // 克隆仓库（一次尝试 — 无内部重试循环）
   const refMessage = ref ? ` (ref: ${ref})` : ''
   safeCallProgress(
     onProgress,
@@ -1164,13 +1157,13 @@ async function cacheMarketplaceFromGit(
     result.code === 0 ? undefined : classifyFetchError(result.stderr),
   )
   if (result.code !== 0) {
-    // Clean up any partial directory created by the failed clone so the next
-    // attempt starts fresh. Best-effort: if this fails, the stale dir will be
-    // auto-detected and removed at the top of the next call.
+    // 清理失败克隆创建的任何部分目录，以便下次
+    // 尝试从头开始。尽力而为：如果失败，过时目录会在
+    // 下次调用顶部被自动检测并移除。
     try {
       await fs.rm(cachePath, { recursive: true, force: true })
     } catch {
-      // ignore
+      // 忽略
     }
     throw new Error(`Failed to clone marketplace repository: ${result.stderr}`)
   }
@@ -1178,10 +1171,10 @@ async function cacheMarketplaceFromGit(
 }
 
 /**
- * Redact header values for safe logging
+ * 为安全日志记录编辑头部值
  *
- * @param headers - Headers to redact
- * @returns Headers with values replaced by '***REDACTED***'
+ * @param headers - 要编辑的头部
+ * @returns 将值替换为 '***REDACTED***' 的头部
  */
 function redactHeaders(
   headers: Record<string, string>,
@@ -1192,23 +1185,22 @@ function redactHeaders(
 }
 
 /**
- * Redact userinfo (username:password) in a URL to avoid logging credentials.
+ * 编辑 URL 中的用户信息（用户名:密码）以避免记录凭据。
  *
- * Marketplace URLs may embed credentials (e.g. GitHub PATs in
- * `https://user:token@github.com/org/repo`). Debug logs and progress output
- * are written to disk and may be included in bug reports, so credentials must
- * be redacted before logging.
+ * marketplace URL 可能嵌入凭据（例如 GitHub PAT 在
+ * `https://user:token@github.com/org/repo` 中）。调试日志和进度输出
+ * 被写入磁盘，可能包含在错误报告中，因此必须在日志记录前编辑凭据。
  *
- * Redacts all credentials from http(s) URLs:
+ * 编辑 http(s) URL 中的所有凭据：
  *   https://user:token@github.com/repo → https://***:***@github.com/repo
  *   https://:token@github.com/repo     → https://:***@github.com/repo
  *   https://token@github.com/repo      → https://***@github.com/repo
  *
- * Both username and password are redacted unconditionally on http(s) because
- * it is impossible to distinguish `placeholder:secret` (e.g. x-access-token:ghp_...)
- * from `secret:placeholder` (e.g. ghp_...:x-oauth-basic) by parsing alone.
- * Non-http(s) schemes (ssh://git@...) and non-URL inputs (`owner/repo` shorthand)
- * pass through unchanged.
+ * 用户名和密码在 http(s) 上无条件编辑，因为
+ * 无法仅通过解析区分 `placeholder:secret`（例如 x-access-token:ghp_...）
+ * 和 `secret:placeholder`（例如 ghp_...:x-oauth-basic）。
+ * 非 http(s) 方案（ssh://git@...）和非 URL 输入（`owner/repo` 简写）
+ * 不变地传递。
  */
 function redactUrlCredentials(urlString: string): string {
   try {
@@ -1220,18 +1212,18 @@ function redactUrlCredentials(urlString: string): string {
       return parsed.toString()
     }
   } catch {
-    // Not a valid URL — safe as-is
+    // 不是有效 URL — 原样安全
   }
   return urlString
 }
 
 /**
- * Cache a marketplace from a URL
+ * 从 URL 缓存 marketplace
  *
- * Downloads a marketplace.json file from a URL and saves it locally.
- * Creates the cache directory structure if it doesn't exist.
+ * 从 URL 下载 marketplace.json 文件并保存到本地。
+ * 如不存在则创建缓存目录结构。
  *
- * Example marketplace.json structure:
+ * marketplace.json 结构示例：
  * ```json
  * {
  *   "name": "my-marketplace",
@@ -1248,10 +1240,10 @@ function redactUrlCredentials(urlString: string): string {
  * }
  * ```
  *
- * @param url - The URL to download the marketplace.json from
- * @param cachePath - Local file path to save the downloaded marketplace
- * @param customHeaders - Optional custom HTTP headers for authentication
- * @param onProgress - Optional callback to report progress
+ * @param url - 用于下载 marketplace.json 的 URL
+ * @param cachePath - 保存下载的 marketplace 的本地文件路径
+ * @param customHeaders - 可选的自定义 HTTP 头部（用于认证）
+ * @param onProgress - 可选的进度回调
  */
 async function cacheMarketplaceFromUrl(
   url: string,
@@ -1272,7 +1264,7 @@ async function cacheMarketplaceFromUrl(
 
   const headers = {
     ...customHeaders,
-    // User-Agent must come last to prevent override (for consistency with WebFetch)
+    // User-Agent 必须放在最后以防止被覆盖（与 WebFetch 保持一致）
     'User-Agent': 'Claude-Code-Plugin-Manager',
   }
 
@@ -1314,7 +1306,7 @@ async function cacheMarketplaceFromUrl(
   }
 
   safeCallProgress(onProgress, 'Validating marketplace data')
-  // Validate the response is a valid marketplace
+  // 校验响应是否为有效的 marketplace
   const result = PluginMarketplaceSchema().safeParse(response.data)
   if (!result.success) {
     logPluginFetch(
@@ -1338,11 +1330,11 @@ async function cacheMarketplaceFromUrl(
   )
 
   safeCallProgress(onProgress, 'Saving marketplace to cache')
-  // Ensure cache directory exists
+  // 确保缓存目录存在
   const cacheDir = join(cachePath, '..')
   await fs.mkdir(cacheDir)
 
-  // Write the validated marketplace file
+  // 写入已校验的 marketplace 文件
   writeFileSync_DEPRECATED(cachePath, jsonStringify(result.data, null, 2), {
     encoding: 'utf-8',
     flush: true,
@@ -1350,7 +1342,7 @@ async function cacheMarketplaceFromUrl(
 }
 
 /**
- * Generate a cache path for a marketplace source
+ * 为 marketplace 来源生成缓存路径
  */
 function getCachePathForSource(source: MarketplaceSource): string {
   const tempName =
@@ -1367,7 +1359,7 @@ function getCachePathForSource(source: MarketplaceSource): string {
 }
 
 /**
- * Parse and validate JSON file with a Zod schema
+ * 使用 Zod schema 解析并校验 JSON 文件
  */
 async function parseFileWithSchema<T>(
   filePath: string,
@@ -1405,30 +1397,30 @@ async function parseFileWithSchema<T>(
 }
 
 /**
- * Load and cache a marketplace from its source
+ * 从来源加载并缓存 marketplace
  *
- * Handles different source types:
- * - URL: Downloads marketplace.json directly
- * - GitHub: Clones repo and looks for .claude-plugin/marketplace.json
- * - Git: Clones repository from git URL
- * - NPM: (Not yet implemented) Would fetch from npm package
- * - File: Reads from local filesystem
+ * 处理不同的来源类型：
+ * - URL：直接下载 marketplace.json
+ * - GitHub：克隆仓库并查找 .claude-plugin/marketplace.json
+ * - Git：从 git URL 克隆仓库
+ * - NPM：（尚未实现）将从 npm 包获取
+ * - File：从本地文件系统读取
  *
- * After loading, validates the marketplace schema and renames the cache
- * to match the marketplace's actual name from the manifest.
+ * 加载后，校验 marketplace schema 并重命名缓存
+ * 以匹配清单中 marketplace 的实际名称。
  *
- * Cache structure:
+ * 缓存结构：
  * ~/.claude/plugins/marketplaces/
- *   ├── official-marketplace.json     # From URL source
- *   ├── github-marketplace/          # From GitHub/Git source
+ *   ├── official-marketplace.json     # 来自 URL 来源
+ *   ├── github-marketplace/          # 来自 GitHub/Git 来源
  *   │   └── .claude-plugin/
  *   │       └── marketplace.json
- *   └── local-marketplace.json       # From file source
+ *   └── local-marketplace.json       # 来自 file 来源
  *
- * @param source - The marketplace source to load from
- * @param onProgress - Optional callback to report progress
- * @returns Object containing the validated marketplace and its cache path
- * @throws If marketplace file not found or validation fails
+ * @param source - 要加载的 marketplace 来源
+ * @param onProgress - 可选的进度回调
+ * @returns 包含已校验 marketplace 及其缓存路径的对象
+ * @throws 如果 marketplace 文件未找到或校验失败
  */
 async function loadAndCacheMarketplace(
   source: MarketplaceSource,
@@ -1437,20 +1429,20 @@ async function loadAndCacheMarketplace(
   const fs = getFsImplementation()
   const cacheDir = getMarketplacesCacheDir()
 
-  // Ensure cache directory exists
+  // 确保缓存目录存在
   await fs.mkdir(cacheDir)
 
   let temporaryCachePath: string
   let marketplacePath: string
   let cleanupNeeded = false
 
-  // Generate a temp name for the cache path
+  // 为缓存路径生成临时名称
   const tempName = getCachePathForSource(source)
 
   try {
     switch (source.source) {
       case 'url': {
-        // Direct URL to marketplace.json
+        // 直接指向 marketplace.json 的 URL
         temporaryCachePath = join(cacheDir, `${tempName}.json`)
         cleanupNeeded = true
         await cacheMarketplaceFromUrl(
@@ -1464,8 +1456,8 @@ async function loadAndCacheMarketplace(
       }
 
       case 'github': {
-        // Smart SSH/HTTPS selection: check if SSH is configured before trying it
-        // This avoids waiting for timeout on SSH when it's not configured
+        // 智能 SSH/HTTPS 选择：在尝试 SSH 之前先检查是否已配置
+        // 这避免了在 SSH 未配置时等待超时
         const sshUrl = `git@github.com:${source.repo}.git`
         const httpsUrl = `https://github.com/${source.repo}.git`
         temporaryCachePath = join(cacheDir, tempName)
@@ -1473,11 +1465,11 @@ async function loadAndCacheMarketplace(
 
         let lastError: Error | null = null
 
-        // Quick check if SSH is likely to work
+        // 快速检查 SSH 是否可能正常工作
         const sshConfigured = await isGitHubSshLikelyConfigured()
 
         if (sshConfigured) {
-          // SSH looks good, try it first
+          // SSH 看起来没问题，先试试
           safeCallProgress(onProgress, `Cloning via SSH: ${sshUrl}`)
           try {
             await cacheMarketplaceFromGit(
@@ -1490,10 +1482,10 @@ async function loadAndCacheMarketplace(
           } catch (err) {
             lastError = toError(err)
 
-            // Log SSH failure for monitoring
+            // 记录 SSH 失败以供监控
             logError(lastError)
 
-            // SSH failed despite being configured, try HTTPS fallback
+            // SSH 尽管已配置仍然失败，尝试 HTTPS 回退
             safeCallProgress(
               onProgress,
               `SSH clone failed, retrying with HTTPS: ${httpsUrl}`,
@@ -1504,10 +1496,10 @@ async function loadAndCacheMarketplace(
               { level: 'info' },
             )
 
-            // Clean up failed SSH attempt if it created anything
+            // 清理失败的 SSH 尝试创建的任何内容
             await fs.rm(temporaryCachePath, { recursive: true, force: true })
 
-            // Try HTTPS
+            // 尝试 HTTPS
             try {
               await cacheMarketplaceFromGit(
                 httpsUrl,
@@ -1516,17 +1508,17 @@ async function loadAndCacheMarketplace(
                 source.sparsePaths,
                 onProgress,
               )
-              lastError = null // Success!
+              lastError = null // 成功！
             } catch (httpsErr) {
-              // HTTPS also failed - use HTTPS error as the final error
+              // HTTPS 也失败了 — 使用 HTTPS 错误作为最终错误
               lastError = toError(httpsErr)
 
-              // Log HTTPS failure for monitoring (both SSH and HTTPS failed)
+              // 记录 HTTPS 失败以供监控（SSH 和 HTTPS 均失败）
               logError(lastError)
             }
           }
         } else {
-          // SSH not configured, go straight to HTTPS
+          // SSH 未配置，直接走 HTTPS
           safeCallProgress(
             onProgress,
             `SSH not configured, cloning via HTTPS: ${httpsUrl}`,
@@ -1548,11 +1540,11 @@ async function loadAndCacheMarketplace(
           } catch (err) {
             lastError = toError(err)
 
-            // Always try SSH as fallback for ANY HTTPS failure
-            // Log HTTPS failure for monitoring
+            // 对于任何 HTTPS 失败始终尝试 SSH 作为回退
+            // 记录 HTTPS 失败以供监控
             logError(lastError)
 
-            // HTTPS failed, try SSH as fallback
+            // HTTPS 失败，尝试 SSH 作为回退
             safeCallProgress(
               onProgress,
               `HTTPS clone failed, retrying with SSH: ${sshUrl}`,
@@ -1563,10 +1555,10 @@ async function loadAndCacheMarketplace(
               { level: 'info' },
             )
 
-            // Clean up failed HTTPS attempt if it created anything
+            // 清理失败的 HTTPS 尝试创建的任何内容
             await fs.rm(temporaryCachePath, { recursive: true, force: true })
 
-            // Try SSH
+            // 尝试 SSH
             try {
               await cacheMarketplaceFromGit(
                 sshUrl,
@@ -1575,18 +1567,18 @@ async function loadAndCacheMarketplace(
                 source.sparsePaths,
                 onProgress,
               )
-              lastError = null // Success!
+              lastError = null // 成功！
             } catch (sshErr) {
-              // SSH also failed - use SSH error as the final error
+              // SSH 也失败了 — 使用 SSH 错误作为最终错误
               lastError = toError(sshErr)
 
-              // Log SSH failure for monitoring (both HTTPS and SSH failed)
+              // 记录 SSH 失败以供监控（HTTPS 和 SSH 均失败）
               logError(lastError)
             }
           }
         }
 
-        // If we still have an error, throw it
+        // 如果仍有错误，抛出
         if (lastError) {
           throw lastError
         }
@@ -1616,16 +1608,16 @@ async function loadAndCacheMarketplace(
       }
 
       case 'npm': {
-        // TODO: Implement npm package support
+        // TODO: 实现 npm 包支持
         throw new Error('NPM marketplace sources not yet implemented')
       }
 
       case 'file': {
-        // For local files, resolve paths relative to marketplace root directory
-        // File sources point to .claude-plugin/marketplace.json, so the marketplace
-        // root is two directories up (parent of .claude-plugin/)
-        // Resolve to absolute so error messages show the actual path checked
-        // (legacy known_marketplaces.json entries may have relative paths)
+        // 对于本地文件，解析相对于 marketplace 根目录的路径
+        // file 来源指向 .claude-plugin/marketplace.json，因此 marketplace
+        // 根目录在上两级（.claude-plugin/ 的父目录）
+        // 解析为绝对路径以便错误消息显示实际检查的路径
+        //（旧版 known_marketplaces.json 条目可能包含相对路径）
         const absPath = resolve(source.path)
         marketplacePath = absPath
         temporaryCachePath = dirname(dirname(absPath))
@@ -1634,9 +1626,9 @@ async function loadAndCacheMarketplace(
       }
 
       case 'directory': {
-        // For directories, look for .claude-plugin/marketplace.json
-        // Resolve to absolute so error messages show the actual path checked
-        // (legacy known_marketplaces.json entries may have relative paths)
+        // 对于目录，查找 .claude-plugin/marketplace.json
+        // 解析为绝对路径以便错误消息显示实际检查的路径
+        //（旧版 known_marketplaces.json 条目可能包含相对路径）
         const absPath = resolve(source.path)
         marketplacePath = join(absPath, '.claude-plugin', 'marketplace.json')
         temporaryCachePath = absPath
@@ -1645,18 +1637,18 @@ async function loadAndCacheMarketplace(
       }
 
       case 'settings': {
-        // Inline manifest from settings.json — no fetch. Synthesize the
-        // marketplace.json on disk so getMarketplaceCacheOnly reads it
-        // like any other source. The plugins array already passed
-        // PluginMarketplaceEntrySchema validation when settings were parsed;
-        // the post-switch parseFileWithSchema re-validates the full
-        // PluginMarketplaceSchema (catches schema drift between the two).
+        // 来自 settings.json 的内联清单 — 无需获取。在磁盘上合成
+        // marketplace.json，以便 getMarketplaceCacheOnly 像其他来源一样
+        // 读取它。plugins 数组在 settings 解析时已通过
+        // PluginMarketplaceEntrySchema 校验；切换后的 parseFileWithSchema
+        // 重新校验完整的 PluginMarketplaceSchema（捕获两者之间的
+        // schema 漂移）。
         //
-        // Writing to source.name up front means the rename below is a no-op
-        // (temporaryCachePath === finalCachePath). known_marketplaces.json
-        // stores this source object including the plugins array, so
-        // diffMarketplaces detects settings edits via isEqual — no special
-        // dirty-tracking needed.
+        // 预先写入 source.name 意味着下面的重命名是无操作
+        //（temporaryCachePath === finalCachePath）。known_marketplaces.json
+        // 存储此来源对象（包括 plugins 数组），因此
+        // diffMarketplaces 通过 isEqual 检测 settings 编辑 — 无需
+        // 特殊的脏标记跟踪。
         temporaryCachePath = join(cacheDir, source.name)
         marketplacePath = join(
           temporaryCachePath,
@@ -1665,10 +1657,10 @@ async function loadAndCacheMarketplace(
         )
         cleanupNeeded = false
         await fs.mkdir(dirname(marketplacePath))
-        // No `satisfies PluginMarketplace` here: source.plugins is the narrow
-        // SettingsMarketplacePlugin type (no strict/.default(), no manifest
-        // fields). The parseFileWithSchema(PluginMarketplaceSchema()) call
-        // below widens and validates — that's the real check.
+        // 此处不使用 `satisfies PluginMarketplace`：source.plugins 是窄
+        // SettingsMarketplacePlugin 类型（无 strict/.default()，无清单
+        // 字段）。下面的 parseFileWithSchema(PluginMarketplaceSchema())
+        // 调用拓宽并校验 — 那才是真正的检查。
         await writeFile(
           marketplacePath,
           jsonStringify(
@@ -1688,7 +1680,7 @@ async function loadAndCacheMarketplace(
         throw new Error(`Unsupported marketplace source type`)
     }
 
-    // Load and validate the marketplace
+    // 加载并校验 marketplace
     logForDebugging(`Reading marketplace from ${marketplacePath}`)
     let marketplace: PluginMarketplace
     try {
@@ -1705,12 +1697,13 @@ async function loadAndCacheMarketplace(
       )
     }
 
-    // Now rename the cache path to use the marketplace's actual name
+    // 现在重命名缓存路径以使用 marketplace 的实际名称
     const finalCachePath = join(cacheDir, marketplace.name)
-    // Defense-in-depth: the schema rejects path separators, .., and . in marketplace.name,
-    // but verify the computed path is a strict subdirectory of cacheDir before fs.rm.
-    // A malicious marketplace.json with a crafted name must never cause us to rm outside
-    // cacheDir, nor rm cacheDir itself (e.g. name "." → join normalizes to cacheDir).
+    // 深度防御：schema 拒绝 marketplace.name 中的路径分隔符、.. 和 .，
+    // 但在 fs.rm 之前验证计算出的路径是 cacheDir 的严格子目录。
+    // 带有精心构造名称的恶意 marketplace.json 绝不能导致我们在
+    // cacheDir 之外执行 rm，也不能 rm cacheDir 本身
+    //（例如 name "." → join 规范化为 cacheDir）。
     const resolvedFinal = resolve(finalCachePath)
     const resolvedCacheDir = resolve(cacheDir)
     if (!resolvedFinal.startsWith(resolvedCacheDir + sep)) {
@@ -1718,13 +1711,13 @@ async function loadAndCacheMarketplace(
         `Marketplace name '${marketplace.name}' resolves to a path outside the cache directory`,
       )
     }
-    // Don't rename if it's a local file or directory, or already has the right name
+    // 如果是本地文件或目录，或者已经具有正确的名称，则不重命名
     if (
       temporaryCachePath !== finalCachePath &&
       !isLocalMarketplaceSource(source)
     ) {
       try {
-        // Remove the destination if it already exists, then rename
+        // 如果目标已存在则移除，然后重命名
         try {
           onProgress?.('Cleaning up old marketplace cache…')
         } catch (callbackError) {
@@ -1734,10 +1727,10 @@ async function loadAndCacheMarketplace(
           )
         }
         await fs.rm(finalCachePath, { recursive: true, force: true })
-        // Rename temp cache to final name
+        // 将临时缓存重命名为最终名称
         await fs.rename(temporaryCachePath, finalCachePath)
         temporaryCachePath = finalCachePath
-        cleanupNeeded = false // Successfully renamed, no cleanup needed
+        cleanupNeeded = false // 成功重命名，无需清理
       } catch (error) {
         const errorMsg = errorMessage(error)
         throw new Error(
@@ -1748,7 +1741,7 @@ async function loadAndCacheMarketplace(
 
     return { marketplace, cachePath: temporaryCachePath }
   } catch (error) {
-    // Clean up any temporary files/directories on error
+    // 出错时清理任何临时文件/目录
     if (
       cleanupNeeded &&
       temporaryCachePath! &&
@@ -1768,16 +1761,16 @@ async function loadAndCacheMarketplace(
 }
 
 /**
- * Add a marketplace source to the known marketplaces
+ * 将 marketplace 来源添加到已知 marketplace
  *
- * The marketplace is fetched, validated, and cached locally.
- * The configuration is saved to ~/.claude/plugins/known_marketplaces.json.
+ * marketplace 被获取、校验并缓存到本地。
+ * 配置保存到 ~/.claude/plugins/known_marketplaces.json。
  *
- * @param source - MarketplaceSource object representing the marketplace source.
- *                 Callers should parse user input into MarketplaceSource format
- *                 (see AddMarketplace.parseMarketplaceInput for handling shortcuts like "owner/repo").
- * @param onProgress - Optional callback for progress updates during marketplace installation
- * @throws If source format is invalid or marketplace cannot be loaded
+ * @param source - 表示 marketplace 来源的 MarketplaceSource 对象。
+ *                 调用者应将用户输入解析为 MarketplaceSource 格式
+ *                 （参见 AddMarketplace.parseMarketplaceInput 处理 "owner/repo" 等快捷方式）。
+ * @param onProgress - marketplace 安装过程中的可选进度回调
+ * @throws 如果来源格式无效或 marketplace 无法加载
  */
 export async function addMarketplaceSource(
   source: MarketplaceSource,
@@ -1787,22 +1780,22 @@ export async function addMarketplaceSource(
   alreadyMaterialized: boolean
   resolvedSource: MarketplaceSource
 }> {
-  // Resolve relative directory/file paths to absolute so state is cwd-independent
+  // 将相对目录/文件路径解析为绝对路径，使状态独立于 cwd
   let resolvedSource = source
   if (isLocalMarketplaceSource(source) && !isAbsolute(source.path)) {
     resolvedSource = { ...source, path: resolve(source.path) }
   }
 
-  // Check policy FIRST, before any network/filesystem operations
-  // This prevents downloading/cloning when the source is blocked
+  // 首先检查策略，在任何网络/文件系统操作之前
+  // 这防止在来源被阻止时仍然下载/克隆
   if (!isSourceAllowedByPolicy(resolvedSource)) {
-    // Check if explicitly blocked vs not in allowlist for better error messages
+    // 检查是明确被阻止还是不在白名单中，以便提供更好的错误消息
     if (isSourceInBlocklist(resolvedSource)) {
       throw new Error(
         `Marketplace source '${formatSourceForDisplay(resolvedSource)}' is blocked by enterprise policy.`,
       )
     }
-    // Not in allowlist - build helpful error message
+    // 不在白名单中 — 构建有用的错误消息
     const allowlist = getStrictKnownMarketplaces() || []
     const hostPatterns = getHostPatternsFromAllowlist()
     const sourceHost = extractHostFromSource(resolvedSource)
@@ -1819,7 +1812,7 @@ export async function addMarketplaceSource(
       errorMessage += ' No external marketplaces are allowed.'
     }
 
-    // If source is a github shorthand and there are hostPatterns, suggest using full URL
+    // 如果来源是 github 简写且存在 hostPatterns，建议使用完整 URL
     if (resolvedSource.source === 'github' && hostPatterns.length > 0) {
       errorMessage +=
         `\n\nTip: The shorthand "${resolvedSource.repo}" assumes github.com. ` +
@@ -1830,7 +1823,7 @@ export async function addMarketplaceSource(
     throw new Error(errorMessage)
   }
 
-  // Source-idempotency: if this exact source already exists, skip clone
+  // 来源幂等性：如果完全相同的来源已存在，跳过克隆
   const existingConfig = await loadKnownMarketplacesConfig()
   for (const [existingName, existingEntry] of Object.entries(existingConfig)) {
     if (isEqual(existingEntry.source, resolvedSource)) {
@@ -1841,13 +1834,13 @@ export async function addMarketplaceSource(
     }
   }
 
-  // Load and cache the marketplace to validate it and get its name
+  // 加载并缓存 marketplace 以校验并获取其名称
   const { marketplace, cachePath } = await loadAndCacheMarketplace(
     resolvedSource,
     onProgress,
   )
 
-  // Validate that reserved names come from official sources
+  // 校验保留名称来自官方来源
   const sourceValidationError = validateOfficialNameSource(
     marketplace.name,
     resolvedSource,
@@ -1856,9 +1849,9 @@ export async function addMarketplaceSource(
     throw new Error(sourceValidationError)
   }
 
-  // Name collision with different source: overwrite (settings intent wins).
-  // Seed-managed entries are admin-controlled and cannot be overwritten.
-  // Re-read config after clone (may take a while; another process may have written).
+  // 名称冲突但来源不同：覆盖（settings 意图优先）。
+  // seed 管理的条目由管理员控制，不能被覆盖。
+  // 克隆后重新读取配置（可能耗时；另一个进程可能已写入）。
   const config = await loadKnownMarketplacesConfig()
   const oldEntry = config[marketplace.name]
   if (oldEntry) {
@@ -1873,26 +1866,26 @@ export async function addMarketplaceSource(
     logForDebugging(
       `Marketplace '${marketplace.name}' exists with different source — overwriting`,
     )
-    // Clean up the old cache if it's not a user-owned local path AND it
-    // actually differs from the new cachePath. loadAndCacheMarketplace writes
-    // to cachePath BEFORE we get here — rm-ing the same dir deletes the fresh
-    // write. Settings sources always land on the same dir (name → path);
-    // git sources hit this latently when the source repo changes but the
-    // fetched marketplace.json declares the same name. Only rm when locations
-    // genuinely differ (the only case where there's a stale dir to clean).
+    // 如果旧缓存不是用户拥有的本地路径且与新 cachePath
+    // 实际不同，则清理旧缓存。loadAndCacheMarketplace 在到达此处
+    // 之前已写入 cachePath — rm 同一目录会删除新写入的内容。
+    // settings 来源始终落在同一目录（name → path）；
+    // git 来源在来源仓库变更但获取的 marketplace.json
+    // 声明相同名称时会潜在触发此问题。仅在位置
+    // 确实不同时才 rm（这是唯一存在过时目录需要清理的情况）。
     //
-    // Defensively validate the stored path before rm: a corrupted
-    // installLocation (gh-32793, gh-32661) could point at the user's project
-    // dir. If it's outside the cache dir, skip cleanup — the stale dir (if
-    // any) is harmless, and blocking the re-add would prevent the user from
-    // fixing the corruption.
+    // 在 rm 之前防御性地校验存储的路径：损坏的
+    // installLocation（gh-32793, gh-32661）可能指向用户的项目
+    // 目录。如果在缓存目录之外，跳过清理 — 过时目录
+    //（如果有的话）无害，而阻止重新添加会妨碍用户
+    // 修复损坏。
     if (!isLocalMarketplaceSource(oldEntry.source)) {
       const cacheDir = resolve(getMarketplacesCacheDir())
       const resolvedOld = resolve(oldEntry.installLocation)
       const resolvedNew = resolve(cachePath)
       if (resolvedOld === resolvedNew) {
-        // Same dir — loadAndCacheMarketplace already overwrote in place.
-        // Nothing to clean.
+        // 同一目录 — loadAndCacheMarketplace 已就地覆盖。
+        // 无需清理。
       } else if (
         resolvedOld === cacheDir ||
         resolvedOld.startsWith(cacheDir + sep)
@@ -1910,7 +1903,7 @@ export async function addMarketplaceSource(
     }
   }
 
-  // Update config using the marketplace's actual name
+  // 使用 marketplace 的实际名称更新配置
   config[marketplace.name] = {
     source: resolvedSource,
     installLocation: cachePath,
@@ -1924,15 +1917,15 @@ export async function addMarketplaceSource(
 }
 
 /**
- * Remove a marketplace source from known marketplaces
+ * 从已知 marketplace 中移除 marketplace 来源
  *
- * Removes the marketplace configuration and cleans up cached files.
- * Deletes both directory caches (for git sources) and file caches (for URL sources).
- * Also cleans up the marketplace from settings.json (extraKnownMarketplaces) and
- * removes related plugin entries from enabledPlugins.
+ * 移除 marketplace 配置并清理缓存文件。
+ * 删除目录缓存（git 来源）和文件缓存（URL 来源）。
+ * 同时从 settings.json（extraKnownMarketplaces）中清理 marketplace
+ * 并从 enabledPlugins 中移除相关插件条目。
  *
- * @param name - The marketplace name to remove
- * @throws If marketplace with given name is not found
+ * @param name - 要移除的 marketplace 名称
+ * @throws 如果未找到给定名称的 marketplace
  */
 export async function removeMarketplaceSource(name: string): Promise<void> {
   const config = await loadKnownMarketplacesConfig()
@@ -1941,9 +1934,9 @@ export async function removeMarketplaceSource(name: string): Promise<void> {
     throw new Error(`Marketplace '${name}' not found`)
   }
 
-  // Seed-registered marketplaces are admin-baked into the container — removing
-  // them is a category error. They'd resurrect on next startup anyway. Guide
-  // the user to the right action instead.
+  // seed 注册的 marketplace 由管理员烘焙到容器中 — 移除
+  // 它们是类别错误。无论如何它们会在下次启动时复活。
+  // 引导用户采取正确的操作。
   const entry = config[name]
   const seedDir = seedDirFor(entry.installLocation)
   if (seedDir) {
@@ -1954,11 +1947,11 @@ export async function removeMarketplaceSource(name: string): Promise<void> {
     )
   }
 
-  // Remove from config
+  // 从配置中移除
   delete config[name]
   await saveKnownMarketplacesConfig(config)
 
-  // Clean up cached files (both directory and JSON formats)
+  // 清理缓存文件（目录和 JSON 两种格式）
   const fs = getFsImplementation()
   const cacheDir = getMarketplacesCacheDir()
   const cachePath = join(cacheDir, name)
@@ -1966,10 +1959,10 @@ export async function removeMarketplaceSource(name: string): Promise<void> {
   const jsonCachePath = join(cacheDir, `${name}.json`)
   await fs.rm(jsonCachePath, { force: true })
 
-  // Clean up settings.json - remove marketplace from extraKnownMarketplaces
-  // and remove related plugin entries from enabledPlugins
+  // 清理 settings.json — 从 extraKnownMarketplaces 中移除 marketplace
+  // 并从 enabledPlugins 中移除相关插件条目
 
-  // Check each editable settings source
+  // 检查每个可编辑的 settings 来源
   const editableSources: Array<
     'userSettings' | 'projectSettings' | 'localSettings'
   > = ['userSettings', 'projectSettings', 'localSettings']
@@ -1984,19 +1977,19 @@ export async function removeMarketplaceSource(name: string): Promise<void> {
       enabledPlugins?: typeof settings.enabledPlugins
     } = {}
 
-    // Remove from extraKnownMarketplaces if present
+    // 如果存在则从 extraKnownMarketplaces 中移除
     if (settings.extraKnownMarketplaces?.[name]) {
       const updatedMarketplaces: Partial<
         SettingsJson['extraKnownMarketplaces']
       > = { ...settings.extraKnownMarketplaces }
-      // Use undefined values (NOT delete) to signal key removal via mergeWith
+      // 使用 undefined 值（而非 delete）通过 mergeWith 发出键移除信号
       updatedMarketplaces[name] = undefined
       updates.extraKnownMarketplaces =
         updatedMarketplaces as SettingsJson['extraKnownMarketplaces']
       needsUpdate = true
     }
 
-    // Remove related plugins from enabledPlugins (format: "plugin@marketplace")
+    // 从 enabledPlugins 中移除相关插件（格式："plugin@marketplace"）
     if (settings.enabledPlugins) {
       const marketplaceSuffix = `@${name}`
       const updatedPlugins = { ...settings.enabledPlugins }
@@ -2015,7 +2008,7 @@ export async function removeMarketplaceSource(name: string): Promise<void> {
       }
     }
 
-    // Update settings if changes were made
+    // 如果发生了变更则更新 settings
     if (needsUpdate) {
       const result = updateSettingsForSource(source, updates)
       if (result.error) {
@@ -2031,10 +2024,10 @@ export async function removeMarketplaceSource(name: string): Promise<void> {
     }
   }
 
-  // Remove plugins from installed_plugins.json and mark orphaned paths.
-  // Also wipe their stored options/secrets — after marketplace removal
-  // zero installations remain, same "last scope gone" condition as
-  // uninstallPluginOp.
+  // 从 installed_plugins.json 中移除插件并标记孤立路径。
+  // 同时清除其存储的选项/密钥 — marketplace 移除后
+  // 剩余零个安装，与 uninstallPluginOp 的
+  // "最后一个作用域已移除"条件相同。
   const { orphanedPaths, removedPluginIds } =
     removeAllPluginsForMarketplace(name)
   for (const installPath of orphanedPaths) {
@@ -2049,19 +2042,19 @@ export async function removeMarketplaceSource(name: string): Promise<void> {
 }
 
 /**
- * Read a cached marketplace from disk without updating it
+ * 从磁盘读取已缓存的 marketplace，不进行更新
  *
- * @param installLocation - Path to the cached marketplace
- * @returns The marketplace object
- * @throws If marketplace file not found or invalid
+ * @param installLocation - 已缓存 marketplace 的路径
+ * @returns marketplace 对象
+ * @throws 当 marketplace 文件未找到或无效时抛出异常
  */
 async function readCachedMarketplace(
   installLocation: string,
 ): Promise<PluginMarketplace> {
-  // For git-sourced directories, the manifest lives at .claude-plugin/marketplace.json.
-  // For url/file/directory sources it is the installLocation itself.
-  // Try the nested path first; fall back to installLocation when it is a plain file
-  // (ENOTDIR) or the nested file is simply missing (ENOENT).
+  // 对于 git 来源的目录，manifest 位于 .claude-plugin/marketplace.json。
+  // 对于 url/file/directory 来源，installLocation 本身就是 manifest 路径。
+  // 优先尝试嵌套路径；当嵌套文件不存在（ENOENT）或路径不是目录（ENOTDIR）时，
+  // 回退到 installLocation。
   const nestedPath = join(installLocation, '.claude-plugin', 'marketplace.json')
   try {
     return await parseFileWithSchema(nestedPath, PluginMarketplaceSchema())

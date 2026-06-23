@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SearchExtraTools 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+    section { margin-top: 56px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; letter-spacing: .01em; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero h1 span { color: var(--orange); }
+    .hero p { font-size: 1.05rem; color: var(--text-2); max-width: 640px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 6px 16px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .82rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s, box-shadow .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); box-shadow: 0 2px 6px rgba(215,119,87,.15); text-decoration: none; }
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .8rem; line-height: 1.7; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    @media (max-width: 700px) { .hero h1 { font-size: 1.6rem; } }
+    blockquote.callout { background: var(--bg2); border-left: 4px solid var(--orange); padding: 14px 20px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0; color: var(--text-2); }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin: 16px 0; overflow-x: auto; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 48px; padding: 8px 18px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; transition: border-color .15s, color .15s; }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>SearchExtraTools 工具详解</h1>
+  <p>延迟工具发现三件套的"搜索面"——用 select:/discover:/关键词 三种姿势定位延迟工具，是工具系统控制 context 膨胀的精妙设计</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou">三、Tool 接口字段</a></li>
+    <li><a href="#si-he-xin-zhi-xing">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian">五、权限与安全</a></li>
+    <li><a href="#liu-xi-tong-guan-xi">六、与其他系统的关系</a></li>
+    <li><a href="#qi-liang-dian">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma">八、源码导航</a></li>
+    <li><a href="#jiu-xue-xi">九、学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p>这是<strong>延迟工具发现三件套</strong>的第一件（Search → Execute → Synthetic），也是整个工具系统最精妙的设计。<code>SearchExtraTools</code> 是一个<strong>复杂</strong>的只读检索工具：它本身是核心工具（始终加载），但它的使命是帮模型发现"按需加载的延迟工具"——那些非核心内置工具和所有 MCP 工具。理解了它，你就理解了 Claude Code 如何在 60+ 工具（含任意数量的 MCP 工具）的场景下不让工具定义撑爆 system prompt。</p></blockquote>
+
+  <hr class="divider">
+
+  <section id="yi-gong-ju-ding-wei">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>SearchExtraTools</code> = 延迟工具发现入口，模型用它把"还没进入 prompt 的工具"按需召唤出来。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>SearchExtraTools</code>（常量 <code>SEARCH_EXTRA_TOOLS_TOOL_NAME</code>，<code>constants.ts:1</code>）</td></tr>
+          <tr><td>一句话</td><td>用 <code>select:</code> 精确选名、<code>discover:</code> 只读预览、或关键词搜索，返回匹配的延迟工具名</td></tr>
+          <tr><td>是否进 system prompt</td><td>✅ 在 <code>CORE_TOOLS</code> 白名单内（<code>src/constants/tools.ts:176</code>），且<strong>条件注册</strong>（<code>tools.ts:279</code>，乐观门控）</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>）</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe() → true</code>）</td></tr>
+          <tr><td>核心依赖</td><td><code>src/services/searchExtraTools/toolIndex.ts</code>（TF-IDF 索引）+ 自建关键词打分</td></tr>
+          <tr><td>定位互补方</td><td><code>ExecuteExtraTool</code>（搜索完去执行）、<code>StructuredOutput</code>（动态 schema 工具）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> Claude Code 内置 60+ 工具，加上用户接入的 MCP 服务器（每个可能几十个工具），全部塞进 system prompt 会瞬间撑爆 context。解法是"延迟加载"——核心工具（<code>CORE_TOOLS</code> 白名单 38 个）始终加载，其余全部 <code>defer</code> 掉，只在模型真正需要时，通过 <code>SearchExtraTools</code> 发现、<code>ExecuteExtraTool</code> 调用。这就是工具系统的"context 瘦身"策略。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-guan-jian-wen-jian">
+    <h2>二、关键文件清单</h2>
+    <pre><code>SearchExtraToolsTool/
+├── SearchExtraToolsTool.ts   ← buildTool({...}) 主体（600 行），搜索/合并/输出全在这
+├── prompt.ts                 ← 工具名 + isDeferredTool() + getPrompt() + formatDeferredToolLine()
+├── constants.ts              ← SEARCH_EXTRA_TOOLS_TOOL_NAME 常量（仅 1 行）
+└── __tests__/                ← 测试目录</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>SearchExtraToolsTool.ts</code></td><td>主体：schema + 三路查询分支 + 关键词打分 + TF-IDF 合并 + 结果转 tool_result</td><td><code>buildTool:325</code>、<code>call:349</code>、<code>select 分支:383</code>、<code>discover 分支:442</code>、关键词分支:469、<code>mapToolResultToToolResultBlockParam:540</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td><code>isDeferredTool()</code>（延迟判定核心）、<code>getPrompt()</code>（系统提示）</td><td><code>isDeferredTool:69</code>、<code>getPrompt:89</code>、<code>getToolLocationHint:17</code></td></tr>
+          <tr><td><code>constants.ts</code></td><td>工具名常量</td><td><code>:1</code></td></tr>
+          <tr><td><code>src/services/searchExtraTools/toolIndex.ts</code></td><td>TF-IDF 索引构建与搜索（外部依赖）</td><td><code>buildToolIndex:80</code>、<code>searchTools:159</code>、<code>getToolIndex:244</code>（缓存）</td></tr>
+          <tr><td><code>src/utils/searchExtraTools.ts</code></td><td>启用判定 + 发现集提取（外部依赖）</td><td><code>isSearchExtraToolsEnabledOptimistic:208</code>、<code>extractDiscoveredToolNames:489</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：这是"单文件主体 + 外部索引模块"型——搜索调度逻辑在 <code>SearchExtraToolsTool.ts</code>，但 TF-IDF 算法引擎独立放在 <code>src/services/searchExtraTools/toolIndex.ts</code>，便于复用和测试。两处都各自做缓存（描述 memoize + 索引缓存）。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-tool-jie-kou">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre><code>name: SEARCH_EXTRA_TOOLS_TOOL_NAME,   // "SearchExtraTools"
+maxResultSizeChars: 100_000,          // 结果截断阈值
+userFacingName() { return 'SearchExtraTools' }</code></pre>
+    <blockquote class="callout"><p>注意：<strong>没有 <code>searchHint</code> 字段</strong>。本工具自身就是搜索入口，不需要再被别的工具搜索到（它始终在核心工具里）。</p></blockquote>
+    <h3>启用与并发门控</h3>
+    <pre><code>isEnabled()               { return isSearchExtraToolsEnabledOptimistic() }  // 乐观门控
+isConcurrencySafe()       { return true }   // 只读检索，可并发
+isReadOnly()              { return true }</code></pre>
+    <blockquote class="callout"><p><strong><code>isEnabled</code> 的双层设计</strong>：<code>isEnabled()</code> 只做<strong>乐观检查</strong>（<code>isSearchExtraToolsEnabledOptimistic</code>，<code>searchExtraTools.ts:208</code>）——只要不是 <code>standard</code> 模式就返回 true，用于决定工具是否注册（<code>tools.ts:279</code>）。真正的<strong>权威检查</strong>（含阈值、模型兼容性、可用性）是 <code>isSearchExtraToolsEnabled()</code>（<code>searchExtraTools.ts:296</code>），在 <code>claude.ts</code> 发请求时才判定，决定延迟工具是否真正 defer。</p></blockquote>
+    <h3>模型面字段</h3>
+    <pre><code>async description() { return getPrompt() }   // → API tool schema 描述
+async prompt()      { return getPrompt() }    // → system prompt 片段
+get inputSchema()   { return inputSchema() }  // Zod schema（lazySchema 懒加载）
+get outputSchema()  { return outputSchema() }</code></pre>
+    <p><strong>输入 schema</strong>（<code>:37-50</code>）：</p>
+    <pre><code>{
+  query: string          // 必填，支持三种格式：select:/discover:/关键词
+  max_results?: number   // 可选，默认 5
+}</code></pre>
+    <p><strong>输出 schema</strong>（<code>:53-62</code>）：</p>
+    <pre><code>{
+  matches: string[]                 // 匹配到的工具名
+  query: string                     // 原始查询
+  total_deferred_tools: number      // 延迟工具总数（让模型感知池子大小）
+  pending_mcp_servers?: string[]    // 仍在连接的 MCP 服务器（无匹配时附带）
+  already_loaded?: string[]         // 匹配项里已是核心工具的（提示模型直接调用）
+}</code></pre>
+    <h3>行为字段（重点）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:349</code></td><td>三路分发：select/discover/关键词（见下节）</td></tr>
+          <tr><td><code>renderToolUseMessage</code></td><td><code>:529</code></td><td>显示 <code>"${query}"</code></td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>:540</code></td><td>把结构化 Output 翻译成引导模型用 <code>ExecuteExtraTool</code> 的文本</td></tr>
+          <tr><td><code>validateInput</code></td><td>无</td><td>省略——query 是任意字符串，无需预校验</td></tr>
+          <tr><td><code>checkPermissions</code></td><td>无</td><td>省略——只读，走默认放行</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-he-xin-zhi-xing">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code>（<code>:349-528</code>）是三件套里最复杂的一个。它按 query 前缀分<strong>三路</strong>，外加一个合并算法：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["call(input, ctx)\nSearchExtraToolsTool.ts:349"] --> B["filter isDeferredTool\n得到延迟工具集"]
+    B --> C{"query 前缀?"}
+    C -->|"select:NAME"| D["精确选择分支 :383\n支持逗号多选\n区分 deferred vs alreadyLoaded"]
+    C -->|"discover:TEXT"| E["纯发现分支 :442\n调 getToolIndex + searchTools\n返回 name+desc+schema 文本\n不触发加载"]
+    C -->|"关键词"| F["混合搜索分支 :469"]
+    F --> F1["并行: 关键词打分 searchToolsWithKeywords\n+ TF-IDF getToolIndex/searchTools"]
+    F1 --> F2["合并: keyword*0.4 + tfidf*0.6\nKEYWORD_WEIGHT/TFIDF_WEIGHT"]
+    F2 --> F3["按合并分排序取 top N"]
+    D --> G["buildSearchResult\n组装 Output"]
+    E --> G
+    F3 --> G
+    G --> H["mapToolResultToToolResultBlockParam :540\n→ 引导 ExecuteExtraTool"]
+      </div>
+    </div>
+    <h3>分支一：<code>select:</code> 精确选择（<code>:383-437</code>）</h3>
+    <p>模型已知工具名时最快。正则 <code>^select:(.+)$</code> 解析，支持逗号多选 <code>select:A,B,C</code>。对每个名字：</p>
+    <ul>
+      <li>先在 <code>deferredTools</code> 找，找不到回退到完整 <code>tools</code>（核心工具也算"找到"，但标记为 <code>alreadyLoaded</code>——提示模型"这个已经是核心工具，直接调用即可，别用 ExecuteExtraTool 包装"）。</li>
+      <li>全找不到 → 返回空 + <code>pending_mcp_servers</code>（如果有 MCP 还在连接）。</li>
+    </ul>
+    <h3>分支二：<code>discover:</code> 纯发现（<code>:442-467</code>）</h3>
+    <p><strong>不触发加载</strong>，只返回工具的 <code>name + description + inputSchema</code> 文本块。调 <code>getToolIndex(deferredTools)</code> 拿 TF-IDF 索引，再 <code>searchTools(discoverQuery, index, max_results)</code>。用途：模型在调用前先"打量"工具长什么样、要什么参数。</p>
+    <h3>分支三：关键词混合搜索（<code>:469-527</code>）—— 最精妙</h3>
+    <p><strong>并行跑两路</strong>：</p>
+    <ol>
+      <li><strong>关键词打分</strong>（<code>searchToolsWithKeywords</code>，<code>:208-323</code>）：自建启发式。快速路径处理精确名匹配、<code>mcp__</code> 前缀匹配；否则按 <code>+term</code>（必需）/ 普通词拆分，对每个工具的 <code>parseToolName</code> 分词 + 描述 + <code>searchHint</code> 做词边界正则匹配，累加权重分（MCP 名 12 分、普通名 10、部分包含 5/6、searchHint 4、描述 2）。</li>
+      <li><strong>TF-IDF 语义搜索</strong>（<code>toolIndex.ts</code>）：<code>tokenizeAndStem</code> 分词 → <code>computeWeightedTf</code>（name 权重 3.0 / searchHint 2.5 / desc 1.0）→ <code>computeIdf</code> → <code>cosineSimilarity</code>。含 CJK bigram 防误匹配（<code>:198-204</code>）和名称兜底（<code>score = max(score, 0.75)</code>，<code>:206</code>）。</li>
+    </ol>
+    <p><strong>合并</strong>（<code>:478-499</code>）：关键词结果按排名转归一化分 <code>(len-rank)/len * 0.4</code>，TF-IDF 结果用原始分 <code>* 0.6</code>，相加后排序。权重可由环境变量 <code>SEARCH_EXTRA_TOOLS_WEIGHT_KEYWORD</code> / <code>SEARCH_EXTRA_TOOLS_WEIGHT_TFIDF</code> 调（<code>:30-35</code>，默认 0.4/0.6）。</p>
+    <h3>缓存机制（两层）</h3>
+    <ul>
+      <li><strong>描述 memoize</strong>（<code>:84-104</code>）：<code>getToolDescriptionMemoized</code> 按工具名缓存其 <code>prompt()</code> 输出，避免关键词搜索反复算描述。<code>maybeInvalidateCache</code>（<code>:109</code>）监测延迟工具集合变化（名字拼串做 key），变化即清缓存。</li>
+      <li><strong>TF-IDF 索引缓存</strong>（<code>toolIndex.ts:241-260</code>）：<code>getToolIndex</code> 按全工具名拼串缓存整个索引，MCP 服务器增减时重建。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian">
+    <h2>五、权限与安全</h2>
+    <p>SearchExtraTools 是<strong>只读检索</strong>，权限模型极简：</p>
+    <ul>
+      <li>无 <code>validateInput</code>、无 <code>checkPermissions</code>——走默认放行。</li>
+      <li><code>isReadOnly() → true</code> + <code>isConcurrencySafe() → true</code>，可安全并发。</li>
+    </ul>
+    <p><strong>真正的"安全"在别处</strong>——它控制的是<strong>信息可见性</strong>而非文件访问：</p>
+    <ul>
+      <li>延迟工具默认对模型不可见（不在 API 的 tools 数组里，见 <code>claude.ts:1252</code>），只有被 <code>SearchExtraTools</code> 发现后，模型才知道它们的存在和 schema。</li>
+      <li><code>select:</code> 对已加载核心工具的"软放行"（<code>:394-405</code>）是有意设计：避免模型对已加载工具反复搜索，但结果里明确标记 <code>already_loaded</code>，<code>mapToolResultToToolResultBlockParam</code> 会警告"别用 ExecuteExtraTool 包装核心工具"（<code>:567-573</code>）。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-xi-tong-guan-xi">
+    <h2>六、与其他系统/工具的关系（三件套协作链路）</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    M["模型"] -->|"query"| S["SearchExtraTools\n发现工具名 + schema"]
+    S -->|"tool_result:\n用 ExecuteExtraTool 调用"| M
+    M -->|"tool_name+params"| E["ExecuteExtraTool\n解包委托真实工具"]
+    E -->|"call()"| T["真实延迟工具\n(CronCreate / mcp__slack__* 等)"]
+    T -->|"结果"| E
+    E -->|"tool_result"| M
+    M -.结构化输出场景.-> SO["StructuredOutput\n(SyntheticOutputTool)\n按 JSON schema 返回最终响应"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 <code>ExecuteExtraTool</code> 的关系（强耦合）</strong>：Search 只负责"发现"，真正的调用必须走 Execute。<code>mapToolResultToToolResultBlockParam</code>（<code>:540</code>）的输出文本明确引导 <code>"请使用 ExecuteExtraTool（{"tool_name": ...}）来调用"</code>。这是<strong>两步工作流</strong>（prompt.ts:28-50 反复强调）。</li>
+      <li><strong>与 <code>isDeferredTool()</code>（<code>prompt.ts:69-78</code>）的关系</strong>：这是延迟判定的<strong>唯一真理源</strong>——<code>alwaysLoad: true</code> 退出、在 <code>CORE_TOOLS</code> 里退出，其余全延迟。<code>toolIndex.ts</code>、<code>searchExtraTools.ts</code>、<code>ExecuteTool.ts</code> 都从这里导入。</li>
+      <li><strong>与 <code>claude.ts</code> 请求层的关系</strong>：<code>claude.ts:1244-1252</code> 在发请求时把延迟工具从 API tools 数组排除；<code>extractDiscoveredToolNames</code>（<code>searchExtraTools.ts:489</code>）扫描消息历史中被发现过的工具，让它们在后续请求里重新可见。</li>
+      <li><strong>与 <code>StructuredOutput</code>（SyntheticOutputTool）的关系</strong>：<strong>独立</strong>。StructuredOutput 是 SDK 结构化输出场景的动态工具，与三件套的延迟工具发现<strong>没有协作关系</strong>（详见各自报告）。</li>
+      <li><strong>与 TF-IDF 引擎 <code>toolIndex.ts</code> 的关系</strong>：复用 <code>src/services/skillSearch/localSearch.ts</code> 的 <code>tokenizeAndStem</code>/<code>computeWeightedTf</code>/<code>computeIdf</code>/<code>cosineSimilarity</code>——技能搜索和工具搜索共享同一套语义检索算法。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>三路前缀分发</strong>（<code>:383/442/469</code>）：<code>select:</code> 求速度、<code>discover:</code> 求预览、关键词求召回——一个工具覆盖三种使用姿势，避免模型在"已知名/想看 schema/模糊找"间反复试错。</li>
+      <li><strong>关键词 + TF-IDF 双引擎融合</strong>（<code>:471-499</code>）：关键词打分精确（词边界、权重分级），TF-IDF 召回广（语义相似）。0.4/0.6 权重 + 环境变量可调，是工程上对"精确 vs 召回"的稳健折中。</li>
+      <li><strong>两层缓存</strong>（描述 memoize + 索引缓存）：延迟工具的 <code>prompt()</code> 较贵（要拼权限上下文），缓存让重复搜索近乎零成本。缓存键用工具名拼串，集合变化自动失效。</li>
+      <li><strong><code>already_loaded</code> 区分</strong>（<code>:502</code>、<code>:560-582</code>）：把"匹配到核心工具"和"匹配到真延迟工具"分开输出，前者直接劝退模型别包装，后者才引导走 Execute——避免无效的 ExecuteExtraTool 往返。</li>
+      <li><strong><code>pending_mcp_servers</code> 友好降级</strong>（<code>:511-518</code>、<code>:548-552</code>）：无匹配时如果 MCP 还在连接，明确告诉模型"稍后再搜"，而不是让模型误判工具不存在。</li>
+      <li><strong>CJK bigram 防误匹配</strong>（<code>toolIndex.ts:198-204</code>）：中文查询若只有 1 个 bigram 命中且无 ASCII 命中则置零——防止中文单字误命中大量工具。</li>
+      <li><strong><code>isDeferredTool</code> 的真理源设计</strong>：判定函数放在 <code>prompt.ts</code> 而非独立文件，但被 <code>toolIndex.ts</code>、<code>searchExtraTools.ts</code>、<code>ExecuteTool.ts</code> 三处导入——单一真理源，改一处全联动。</li>
+      <li><strong><code>mapToolResultToToolResultBlockParam</code> 的教学性输出</strong>（<code>:540-598</code>）：不返回原始 JSON，而是返回<strong>引导性自然语言</strong>——这是为了让模型可靠地走两步工作流，减少"搜了不调"或"直接调延迟工具"的错误。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-yuan-ma">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>SearchExtraToolsTool/constants.ts:1</code></td></tr>
+          <tr><td><code>isDeferredTool</code> 延迟判定</td><td><code>SearchExtraToolsTool/prompt.ts:69-78</code></td></tr>
+          <tr><td>系统提示 <code>getPrompt</code></td><td><code>prompt.ts:89-94</code>（<code>PROMPT_HEAD/TAIL</code> 在 <code>:10/:26</code>）</td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>SearchExtraToolsTool.ts:325-600</code></td></tr>
+          <tr><td>输入/输出 schema</td><td><code>SearchExtraToolsTool.ts:37-63</code></td></tr>
+          <tr><td><code>call()</code> 三路分发</td><td><code>SearchExtraToolsTool.ts:349-528</code></td></tr>
+          <tr><td><code>select:</code> 分支</td><td><code>:383-437</code></td></tr>
+          <tr><td><code>discover:</code> 分支</td><td><code>:442-467</code></td></tr>
+          <tr><td>关键词打分 <code>searchToolsWithKeywords</code></td><td><code>:208-323</code></td></tr>
+          <tr><td>关键词 + TF-IDF 合并</td><td><code>:471-499</code></td></tr>
+          <tr><td>结果转 tool_result</td><td><code>:540-598</code></td></tr>
+          <tr><td>TF-IDF 索引构建</td><td><code>src/services/searchExtraTools/toolIndex.ts:80-157</code></td></tr>
+          <tr><td>TF-IDF 搜索 + CJK 处理</td><td><code>toolIndex.ts:159-239</code></td></tr>
+          <tr><td>索引缓存</td><td><code>toolIndex.ts:241-266</code></td></tr>
+          <tr><td>启用判定（乐观/权威）</td><td><code>src/utils/searchExtraTools.ts:208-231</code>、<code>:296-377</code></td></tr>
+          <tr><td>发现集提取</td><td><code>searchExtraTools.ts:489-556</code></td></tr>
+          <tr><td>延迟工具排除出 API</td><td><code>src/services/api/claude.ts:1244-1331</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-xue-xi">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先读 <code>prompt.ts:69</code> 的 <code>isDeferredTool</code> 理解"什么是延迟工具"，再跳到 <code>call()</code> 看三路分发的心智模型，最后对照 <code>toolIndex.ts</code> 理解 TF-IDF 引擎。三件套里这一篇信息密度最高。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出三件套的协作链路：Search 发现 → Execute 执行（StructuredOutput 与之独立）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>select:</code> / <code>discover:</code> / 关键词三种 query 的区别和适用场景</span></li>
+      <li><input type="checkbox" disabled> <span>能指出关键词与 TF-IDF 的融合权重（0.4 / 0.6）和可调环境变量</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 <code>isDeferredTool</code> 的三条判定（alwaysLoad 退出、CORE_TOOLS 退出、其余延迟）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么需要"乐观检查"（<code>isEnabled</code>）和"权威检查"（<code>isSearchExtraToolsEnabled</code>）两层</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>already_loaded</code> 字段的作用（区分核心工具，避免无效 Execute 包装）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出两层缓存（描述 memoize + 索引缓存）各自的失效条件</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>设 <code>ENABLE_SEARCH_EXTRA_TOOLS=1</code>，让 Claude <code>SearchExtraTools({"query": "select:CronCreate"})</code>，观察返回的引导文本</li>
+      <li>用 <code>discover:CronCreate</code> 对比，看 schema 是否被返回</li>
+      <li>在 <code>call()</code> 的 <code>:475</code> 加日志，对比关键词与 TF-IDF 两路各自命中哪些工具</li>
+      <li>接入一个 MCP 服务器，观察 <code>total_deferred_tools</code> 数量变化和缓存重建</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

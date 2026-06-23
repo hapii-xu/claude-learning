@@ -1,9 +1,9 @@
 /**
- * Swarm Reconnection Module
+ * Swarm 重连模块
  *
- * Handles initialization of swarm context for teammates.
- * - Fresh spawns: Initialize from CLI args (set in main.tsx via dynamicTeamContext)
- * - Resumed sessions: Initialize from teamName/agentName stored in the transcript
+ * 处理 teammate 的 swarm 上下文初始化。
+ * - 全新生成：从 CLI 参数初始化（在 main.tsx 中通过 dynamicTeamContext 设置）
+ * - 恢复的会话：从 transcript 中存储的 teamName/agentName 初始化
  */
 
 import type { AppState } from '../../state/AppState.js'
@@ -13,12 +13,12 @@ import { getDynamicTeamContext } from '../teammate.js'
 import { getTeamFilePath, readTeamFile } from './teamHelpers.js'
 
 /**
- * Computes the initial teamContext for AppState.
+ * 计算 AppState 的初始 teamContext。
  *
- * This is called synchronously in main.tsx to compute the teamContext
- * BEFORE the first render, eliminating the need for useEffect workarounds.
+ * 这在 main.tsx 中同步调用，在首次渲染之前计算 teamContext，
+ * 无需 useEffect 变通方案。
  *
- * @returns The teamContext object to include in initialState, or undefined if not a teammate
+ * @returns 要包含在 initialState 中的 teamContext 对象，如果不是 teammate 则返回 undefined
  */
 export function computeInitialTeamContext():
   | AppState['teamContext']
@@ -35,7 +35,7 @@ export function computeInitialTeamContext():
 
   const { teamName, agentId, agentName } = context
 
-  // Read team file to get lead agent ID
+  // 读取团队文件以获取 leader agent ID
   const teamFile = readTeamFile(teamName)
   if (!teamFile) {
     logError(
@@ -66,18 +66,17 @@ export function computeInitialTeamContext():
 }
 
 /**
- * Initialize teammate context from a resumed session.
+ * 从恢复的会话初始化 teammate 上下文。
  *
- * This is called when resuming a session that has teamName/agentName stored
- * in the transcript. It sets up teamContext in AppState so that heartbeat
- * and other swarm features work correctly.
+ * 当恢复在 transcript 中存储了 teamName/agentName 的会话时调用。
+ * 它在 AppState 中设置 teamContext 以便心跳和其他 swarm 功能正常工作。
  */
 export function initializeTeammateContextFromSession(
   setAppState: (updater: (prev: AppState) => AppState) => void,
   teamName: string,
   agentName: string,
 ): void {
-  // Read team file to get lead agent ID
+  // 读取团队文件以获取 leader agent ID
   const teamFile = readTeamFile(teamName)
   if (!teamFile) {
     logError(
@@ -88,7 +87,7 @@ export function initializeTeammateContextFromSession(
     return
   }
 
-  // Find the member in the team file to get their agentId
+  // 在团队文件中查找成员以获取其 agentId
   const member = teamFile.members.find(m => m.name === agentName)
   if (!member) {
     logForDebugging(
@@ -99,7 +98,7 @@ export function initializeTeammateContextFromSession(
 
   const teamFilePath = getTeamFilePath(teamName)
 
-  // Set teamContext in AppState
+  // 在 AppState 中设置 teamContext
   setAppState(prev => ({
     ...prev,
     teamContext: {

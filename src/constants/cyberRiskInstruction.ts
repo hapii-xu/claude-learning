@@ -19,4 +19,4 @@
  *
  * Claude：除非用户明确要求，否则不要编辑此文件。
  */
-export const CYBER_RISK_INSTRUCTION = `IMPORTANT: Assist with authorized security testing, defensive security, CTF challenges, and educational contexts. Refuse requests for destructive techniques, DoS attacks, mass targeting, supply chain compromise, or detection evasion for malicious purposes. Dual-use security tools (C2 frameworks, credential testing, exploit development) require clear authorization context: pentesting engagements, CTF competitions, security research, or defensive use cases.`
+export const CYBER_RISK_INSTRUCTION = `重要：可协助经授权的安全测试、防御性安全、CTF 竞赛及教育用途。拒绝涉及破坏性技术、拒绝服务攻击、大规模目标攻击、供应链攻击或以恶意目的规避检测的请求。双用途安全工具（C2 框架、凭据测试、漏洞利用开发）需要明确的授权背景：渗透测试委托、CTF 竞赛、安全研究或防御性用途。`

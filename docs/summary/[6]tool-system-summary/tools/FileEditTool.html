@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FileEditTool（Edit）工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    .kw  { color: #7c9bff; font-weight: 600; }
+    .str { color: #6cc77a; }
+    .fn  { color: #f0906a; }
+    .cmt { color: #6e6a62; font-style: italic; }
+    .type{ color: #e0a020; }
+    .num { color: #c792ea; }
+
+    /* inline code */
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Additional styles ─────────────────────────────────── */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>FileEditTool（Edit）工具详解</h1>
+  <p>精确字符串替换工具——Claude Code 文件编辑流水线的"标准模板代表"，集中体现了 readFileState 新鲜度检查、原子读改写、diff 补丁、LSP/VSCode 通知等所有写工具的共有模式</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian-qing-dan">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou-zi-duan">三、Tool 接口字段</a></li>
+    <li><a href="#si-he-xin-zhi-xing-liu-cheng">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian-yu-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-yu-qi-ta-xi-tong-de-guan-xi">六、与其他系统的关系</a></li>
+    <li><a href="#qi-liang-dian-yu-she-ji-qu-she">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma-dao-hang">八、源码导航</a></li>
+    <li><a href="#jiu-xue-xi-jian-yi">九、学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout">
+    <p>这是工具系统逐个拆解系列的<strong>写工具旗舰篇</strong>。<code>Edit</code>（<code>FILE_EDIT_TOOL_NAME = 'Edit'</code>）执行<strong>就地精确字符串替换</strong>：给定 <code>old_string</code> 与 <code>new_string</code>，在文件中定位并替换。它是所有"修改型"工具的<strong>最标准模板</strong>——<code>readFileState</code> 新鲜度检查、原子"读-改-写"临界区、diff 补丁生成、LSP/VSCode 通知、UNC 路径豁免、二进制/超大文件拦截这些模式，几乎被 FileWriteTool、NotebookEditTool 原样复用。读懂这一个，其他写工具就是看差异。</p>
+  </blockquote>
+
+  <hr class="divider">
+
+  <section id="yi-gong-ju-ding-wei">
+    <h2>一、工具定位（一句话总结）</h2>
+
+    <p><strong><code>Edit</code> = 按精确字符串在已存在文件中做就地替换的写工具。</strong></p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>Edit</code>（常量 <code>FILE_EDIT_TOOL_NAME</code>，<code>constants.ts:2</code>）</td></tr>
+          <tr><td>一句话</td><td>给定 <code>old_string</code>→<code>new_string</code>，在文件中做精确字符串替换，返回结构化 diff</td></tr>
+          <tr><td>是否进 system prompt</td><td>✅ 默认注册且常用（<code>tools.ts:230</code>）；名字 <code>Edit</code> 未在 <code>CORE_TOOLS</code> 白名单数组中显式列出，但 <code>CLAUDE_CODE_SIMPLE</code> 模式仅保留 <code>[Bash, Read, Edit]</code>（<code>tools.ts:329</code>）——地位核心</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>破坏性</strong>（写盘，无 <code>isReadOnly()</code> → 默认 false）</td></tr>
+          <tr><td>是否可并发</td><td>❌ <strong>不可并发</strong>（无 <code>isConcurrencySafe()</code> → 默认 false，写操作天然冲突）</td></tr>
+          <tr><td>核心依赖</td><td><code>utils.ts:getPatchForEdit</code>、<code>src/utils/fileRead.ts:readFileSyncWithMetadata</code>、<code>src/utils/file.ts:writeTextContent</code></td></tr>
+          <tr><td>定位互补方</td><td><code>Write</code>（整文件覆盖）、<code>NotebookEdit</code>（.ipynb 单元格）、<code>Read</code>（编辑前置依赖）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>为什么需要它？</strong> 模型修改代码时，发送整个文件内容（用 Write）会浪费大量 token，且容易在大文件上引入无关变更。<code>Edit</code> 只发送 <strong>diff</strong>——<code>old_string</code>（唯一上下文）+ <code>new_string</code>，既省 token 又把变更范围显式约束在模型意图内。这是"修改已有文件"的首选路径；<code>Write</code> 仅用于新建或完整重写。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-guan-jian-wen-jian-qing-dan">
+    <h2>二、关键文件清单</h2>
+
+    <pre><code>FileEditTool/
+├── FileEditTool.ts   ← buildTool({...}) 主体（606 行），call() 心脏在此
+├── prompt.ts         ← getEditToolDescription() 动态拼装描述（含行号前缀格式提示）
+├── constants.ts      ← 工具名常量 + .claude 目录权限模式 + 意外修改错误文案
+├── types.ts          ← inputSchema / outputSchema + FileEdit/FileEditInput/FileEditOutput 类型
+├── utils.ts          ← 纯函数库：applyEditToFile、getPatchForEdits、normalizeFileEditInput、areFileEditsEquivalent（633 行）
+├── UI.tsx            ← Ink 渲染（userFacingName / renderToolUseMessage / renderToolResultMessage）
+├── __tests__/
+│   └── utils.test.ts ← utils.ts 纯函数单元测试
+└── src/
+    ├── components/   ← FileEditToolUseRejectedMessage、MessageResponse（共享组件）
+    ├── services/analytics/
+    └── utils/        ← log.ts、messages.ts、path.ts、stringUtils.ts（桩文件）</code></pre>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>FileEditTool.ts</code></td><td>工具主体：schema + validateInput + call + 权限 + 渲染全在这</td><td><code>buildTool:82</code>、<code>validateInput:133-346</code>、<code>call:371-555</code>、<code>checkPermissions:121-128</code>、<code>MAX_EDIT_FILE_SIZE:80</code>、<code>readFileForEdit:580-606</code></td></tr>
+          <tr><td><code>types.ts</code></td><td>输入/输出 schema + 类型</td><td><code>inputSchema:6-19</code>、<code>outputSchema:63-80</code>、<code>FileEdit:30-34</code></td></tr>
+          <tr><td><code>utils.ts</code></td><td>编辑算法纯函数（不碰磁盘）</td><td><code>applyEditToFile:66-88</code>、<code>getPatchForEdits:122-209</code>、<code>normalizeFileEditInput:439-515</code>、<code>areFileEditsEquivalent:521-583</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>动态描述（行号前缀格式随 feature 切换）</td><td><code>getEditToolDescription:8-10</code>、<code>getDefaultEditDescription:12-28</code></td></tr>
+          <tr><td><code>constants.ts</code></td><td>工具名 + 错误文案</td><td><code>FILE_EDIT_TOOL_NAME:2</code>、<code>FILE_UNEXPECTEDLY_MODIFIED_ERROR:10-11</code></td></tr>
+          <tr><td><code>UI.tsx</code></td><td>渲染：<code>userFacingName</code> 按操作类型显示"创建/更新/已更新计划"</td><td><code>userFacingName:25-50</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <blockquote class="callout">
+      <p><strong>结构特点</strong>：FileEditTool 是"主体 + 纯函数库"型——<code>FileEditTool.ts</code> 负责 I/O 与编排，<code>utils.ts</code> 把"应用编辑、生成补丁、规范化、等价比较"这些<strong>可测试的纯逻辑</strong>抽离，便于 <code>__tests__/utils.test.ts</code> 覆盖。这是写工具的标准拆分范式。</p>
+    </blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-tool-jie-kou-zi-duan">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+    <p>FileEditTool 实现了一个<strong>破坏性写工具的完整字段集</strong>，是观察"写工具如何填充字段"的最佳样板。</p>
+
+    <h3>标识字段</h3>
+
+    <pre><code>name: FILE_EDIT_TOOL_NAME,            // "Edit"
+searchHint: 'modify file contents in place',  // TF-IDF 索引关键词
+maxResultSizeChars: 100_000,          // 结果（含 originalFile + patch）截断阈值
+strict: true,                         // 严格模式</code></pre>
+
+    <h3>模型面字段</h3>
+
+    <pre><code>async description() { return '用于编辑文件的工具' }
+async prompt()      { return getEditToolDescription() }  // 动态：含行号前缀格式提示
+get inputSchema()   { return inputSchema() }   // 懒加载 getter
+get outputSchema()  { return outputSchema() }</code></pre>
+
+    <p><strong>输入 schema</strong>（<code>types.ts:6-19</code>，<code>z.strictObject</code> + <code>semanticBoolean</code>）：</p>
+
+    <pre><code>{
+  file_path:   string,        // 必填，绝对路径
+  old_string:  string,        // 必填，要替换的文本（空串 = 新建文件）
+  new_string:  string,        // 必填，替换后文本（必须与 old_string 不同）
+  replace_all: boolean?,      // 可选，默认 false；true = 替换所有出现
+}</code></pre>
+
+    <blockquote class="callout">
+      <p><strong><code>semanticBoolean</code></strong>：不是裸 <code>z.boolean()</code>，而是接受"模糊布尔输入"的预处理器（输入端类型为 <code>unknown</code>）。这就是 <code>types.ts:24</code> 用 <code>z.output</code> 而非 <code>z.input</code> 的原因——<code>FileEditInput</code> 是解析后类型，<code>replace_all</code> 在其中始终有定义。</p>
+    </blockquote>
+
+    <p><strong>输出 schema</strong>（<code>types.ts:63-80</code>）：</p>
+
+    <pre><code>{
+  filePath:        string,
+  oldString:       string,   // 实际匹配到的字符串（可能经规范化）
+  newString:       string,
+  originalFile:    string,   // 编辑前全文（供 UI 渲染 diff）
+  structuredPatch: Hunk[],   // diff 补丁
+  userModified:    boolean,  // 用户是否在接受前改了建议
+  replaceAll:      boolean,
+  gitDiff?:        GitDiff,  // 远程模式下可选的真实 git diff
+}</code></pre>
+
+    <h3>行为字段（重点）</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现位置</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:371-555</code></td><td>核心逻辑（见下节）</td></tr>
+          <tr><td><code>validateInput()</code></td><td><code>:133-346</code></td><td>最详尽的校验之一：10 种 errorCode（见下节）</td></tr>
+          <tr><td><code>inputsEquivalent()</code></td><td><code>:347-370</code></td><td>委托 <code>areFileEditsInputsEquivalent</code>，用于去重/幂等判定</td></tr>
+          <tr><td><code>checkPermissions()</code></td><td><code>:121-128</code></td><td>委托 <code>checkWritePermissionForTool</code></td></tr>
+          <tr><td><code>getPath()</code></td><td><code>:108-110</code></td><td>返回 <code>file_path</code>（供权限匹配）</td></tr>
+          <tr><td><code>backfillObservableInput()</code></td><td><code>:111-117</code></td><td><code>expandPath(file_path)</code>——防 hook 白名单被 <code>~</code>/相对路径绕过</td></tr>
+          <tr><td><code>preparePermissionMatcher()</code></td><td><code>:118-120</code></td><td>返回通配匹配闭包</td></tr>
+          <tr><td><code>toAutoClassifierInput()</code></td><td><code>:105-107</code></td><td><code>${file_path}: ${new_string}</code></td></tr>
+          <tr><td><code>getActivityDescription()</code></td><td><code>:95-98</code></td><td>"正在编辑 X"</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <blockquote class="callout">
+      <p><strong>注意缺失的字段</strong>：没有 <code>isReadOnly()</code> / <code>isConcurrencySafe()</code>（→ 默认 false，写工具正确语义）；没有 <code>isSearchOrReadCommand()</code>。对比 Glob/Grep 明确返回 <code>true</code>，写工具靠默认值表达"不可并发、有副作用"。</p>
+    </blockquote>
+
+    <h3>渲染字段</h3>
+
+    <pre><code>userFacingName,                 // UI.tsx:25：按 old_string 是否为空显示"创建/更新"
+renderToolUseMessage,           // 显示 file_path
+renderToolResultMessage,        // 渲染结构化 diff（FileEditToolUpdatedMessage）
+renderToolUseRejectedMessage,   // 渲染被拒绝的 diff
+renderToolUseErrorMessage,</code></pre>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-he-xin-zhi-xing-liu-cheng">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+
+    <p><code>call()</code> 是写工具的心脏，处于 7 步流水线的<strong>第 6 步</strong>。FileEditTool 的 <code>call()</code>（<code>:371-555</code>）严格遵循<strong>原子"读-改-写"临界区</strong>模式——这是所有写工具最关键的设计：</p>
+
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["call(input, ctx)\nFileEditTool.ts:371"] --> SK["后台：discoverSkills /\nactivateConditionalSkills\n（fire-and-forget，非阻塞）"]
+    A --> DG["diagnosticTracker.beforeFileEdited\n（编辑前诊断快照）"]
+    A --> MK["await fs.mkdir(dirname)\n确保父目录存在"]
+    MK --> FH["fileHistoryTrackEdit\n（编辑前备份，幂等）"]
+    FH --> CR["\n=== 临界区开始 ===\n"]
+    CR --> R["readFileForEdit\n同步读取 + 元数据\n（encoding/lineEndings）"]
+    R --> F["新鲜度检查：\nlastWriteTime > lastRead.timestamp?\n→ 内容兜底比对"]
+    F --> F2{"文件被外部修改?\n(且内容兜底失败)"}
+    F2 -->|是| ERR["throw FILE_UNEXPECTEDLY_MODIFIED_ERROR"]
+    F2 -->|否| S["findActualString\n定位精确匹配"]
+    S --> P["getPatchForEdit\n生成 patch + updatedFile"]
+    P --> W["writeTextContent\n写入磁盘\n=== 临界区结束 ==="]
+    W --> LSP["通知 LSP：\nchangeFile + saveFile"]
+    W --> VSC["notifyVscodeFileUpdated"]
+    W --> RS["readFileState.set\n更新时间戳\n（使后续过期写入失效）"]
+    RS --> EVT["logEvent / countLinesChanged"]
+    EVT --> GD["可选：fetchSingleFileGitDiff\n（远程模式）"]
+    GD --> OUT["return { data }"]
+      </div>
+    </div>
+
+    <p><strong>关键点逐条</strong>：</p>
+
+    <ol>
+      <li><strong>后台 skill 发现</strong>（<code>:394-410</code>）：从文件路径发现 skills，<code>addSkillDirectories(...).catch(() =&gt; {})</code> 不 await——让 skill 在后台加载，不阻塞编辑。<code>CLAUDE_CODE_SIMPLE</code> 模式跳过（无 skills）。</li>
+      <li><strong>临界区外的准备工作</strong>（<code>:412-427</code>）：<code>diagnosticTracker.beforeFileEdited</code>、<code>fs.mkdir</code>、<code>fileHistoryTrackEdit</code> 都在临界区<strong>之前</strong>完成。注释（<code>:414-416</code>）明确警告："过时检查和 writeTextContent 之间的让步会让并发编辑交错"。</li>
+      <li><strong>新鲜度检查</strong>（<code>:439-456</code>）：<code>lastWriteTime &gt; lastRead.timestamp</code> → 时间戳表明被改。但 Windows 上云同步/杀毒会改 mtime 而内容不变，故对<strong>完整读取</strong>（<code>offset/limit</code> 均 undefined）做<strong>内容兜底比对</strong>——内容相同则放行，避免误报。</li>
+      <li><strong>原子性红线</strong>（<code>:430-431</code> 注释）："请避免在此处和写入磁盘之间进行异步操作以保持原子性"。<code>readFileForEdit</code>→<code>getPatchForEdit</code>→<code>writeTextContent</code> 全是同步调用。</li>
+      <li><strong>编码与换行保留</strong>（<code>:472</code>）：<code>writeTextContent(path, updatedFile, encoding, endings)</code>——读取时记下的 <code>encoding</code>（utf8/utf16le）和 <code>lineEndings</code>（LF/CRLF）原样写回，不改写文件风格。</li>
+      <li><strong>写后通知三连</strong>（<code>:474-498</code>）：LSP（<code>changeFile</code>+<code>saveFile</code> 触发诊断）、VSCode（diff 视图）、<code>readFileState.set</code>（刷新时间戳使后续过期写入失效）。</li>
+      <li><strong>返回结构化结果</strong>（<code>:542-554</code>）：<code>originalFile</code>（编辑前全文）+ <code>structuredPatch</code>（diff）+ 可选 <code>gitDiff</code>。<code>originalFile</code> 让 UI 能渲染完整 diff，但<strong>不进模型 context</strong>——<code>mapToolResultToToolResultBlockParam</code>（<code>:556-575</code>）只返回精简文案"文件 X 已成功更新"。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian-yu-an-quan">
+    <h2>五、权限与安全</h2>
+
+    <p>FileEditTool 是破坏性工具，<code>validateInput</code> 是全工具集中<strong>最详尽之一</strong>——定义了 10 种 errorCode，每一类失败都有针对性文案：</p>
+
+    <h3><code>validateInput</code>（<code>:133-346</code>，第 3 步）校验矩阵</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>errorCode</th><th>触发条件</th><th>文案要点</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td><code>checkTeamMemSecrets</code> 命中（向团队记忆文件加密钥）</td><td>返回 secret 错误</td></tr>
+          <tr><td>1</td><td><code>old_string === new_string</code></td><td>"无变更可做"</td></tr>
+          <tr><td>2</td><td>deny-rule 匹配（<code>matchingRuleForInput(...,'edit','deny')</code>）</td><td>"文件在被拒绝的目录中"</td></tr>
+          <tr><td>3</td><td>文件存在但 <code>old_string===''</code> 且文件非空</td><td>"无法新建——文件已存在"</td></tr>
+          <tr><td>4</td><td>文件不存在且 <code>old_string!==''</code>（非新建）</td><td>"文件不存在"+ <code>findSimilarFile</code>/<code>suggestPathUnderCwd</code> 建议</td></tr>
+          <tr><td>5</td><td><code>.ipynb</code> 文件</td><td>"请用 NotebookEdit 编辑"</td></tr>
+          <tr><td>7</td><td><code>lastWriteTime &gt; readTimestamp</code> 且内容兜底失败</td><td>"文件自读取后已被修改，请重新读取"</td></tr>
+          <tr><td>8</td><td><code>findActualString</code> 找不到 <code>old_string</code></td><td>"要替换的字符串未找到"</td></tr>
+          <tr><td>9</td><td>多处匹配但 <code>replace_all=false</code></td><td>"找到 N 处匹配，但 replace_all 为 false"</td></tr>
+          <tr><td>10</td><td>文件 &gt; 1 GiB（<code>MAX_EDIT_FILE_SIZE</code>）</td><td>"文件过大无法编辑"</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <blockquote class="callout">
+      <p><strong>errorCode 设计哲学</strong>：每个码对应一类可恢复的失败，模型可据码调整下次调用（如 9 → 加上下文或设 replace_all；4 → 用建议路径；7 → 先 Read）。这是"<strong>校验即引导</strong>"——把错误变成对模型的纠正信号。</p>
+    </blockquote>
+
+    <h3>安全细节</h3>
+
+    <ul>
+      <li><strong>UNC 路径豁免</strong>（<code>:175-177</code>）：<code>\\</code> 或 <code>//</code> 开头跳过所有 <code>fs.stat</code>，交给权限检查处理——防 Windows UNC 路径触发 SMB 认证泄露 NTLM 凭据。注释（<code>:172-174</code>）明确这是安全考量。</li>
+      <li><strong>1 GiB 上限</strong>（<code>:80</code>，<code>:182-196</code>）：<code>MAX_EDIT_FILE_SIZE = 1024*1024*1024</code>——V8/Bun 字符串长度限制约 2^30 字符，1 GiB stat 字节是安全的 OOM 防护。注释（<code>:75-79</code>）解释了推导。</li>
+      <li><strong>BOM/编码探测</strong>（<code>:202-210</code>）：先读字节缓冲区，检测 UTF-16LE BOM（<code>0xFF 0xFE</code>）再 toString，避免 <code>detectFileEncoding</code> 的多余同步 readSync。</li>
+      <li><strong><code>settings.json</code> 额外校验</strong>（<code>:329-343</code>）：编辑 Claude 配置文件时走 <code>validateInputForSettingsFileEdit</code>，用"模拟编辑后的内容"做结构校验。</li>
+    </ul>
+
+    <h3><code>checkPermissions</code>（<code>:121-128</code>，第 4 步）</h3>
+
+    <pre><code>async checkPermissions(input, context) {
+  return checkWritePermissionForTool(FileEditTool, input, appState.toolPermissionContext)
+}</code></pre>
+
+    <p>委托通用 <code>checkWritePermissionForTool</code>（<code>src/utils/permissions/filesystem.ts</code>）——所有写工具（Edit/Write/NotebookEdit）共用，匹配 allow/deny 规则。注意 <code>validateInput</code> 里已先做一次 deny 检查（<code>:155-170</code>），这里是<strong>权限管道的正式闸门</strong>。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-yu-qi-ta-xi-tong-de-guan-xi">
+    <h2>六、与其他系统/工具的关系</h2>
+
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    EDIT[FileEditTool] -->|纯逻辑| U["utils.ts\ngetPatchForEdits / applyEditToFile\nnormalizeFileEditInput / areFileEditsEquivalent"]
+    EDIT -->|新鲜度| RFS["readFileState\nToolUseContext\n（Read/Edit/Write 共享状态）"]
+    EDIT -->|权限| WPERM["checkWritePermissionForTool\nsrc/utils/permissions/filesystem.ts"]
+    EDIT -->|写盘| WT["writeTextContent\n保留 encoding + lineEndings"]
+    EDIT -->|通知| LSP["getLspServerManager\nchangeFile + saveFile"]
+    EDIT -->|通知| VSC["notifyVscodeFileUpdated"]
+    EDIT -->|历史| FH["fileHistoryTrackEdit\n编辑前备份"]
+    EDIT -.同类.-> WRITE["FileWriteTool\n复用整套临界区模式"]
+    EDIT -.同类.-> NB["NotebookEditTool\n复用 readFileState 新鲜度"]
+    EDIT -.互补.-> READ["FileReadTool\n编辑前置依赖（prompt 强制）"]
+      </div>
+    </div>
+
+    <ul>
+      <li><strong>与 <code>Read</code> 的强绑定</strong>：<code>prompt.ts:5</code> 明确——"在编辑之前，你必须在对话中至少使用过一次 Read 工具。如果你尝试在未读取文件的情况下进行编辑，此工具会报错。" 这通过 <code>readFileState.get(fullFilePath)</code> 为空时返回 errorCode 7（NotebookEdit 用 errorCode 9）来强制。<strong>先读后写是契约</strong>，不是建议。</li>
+      <li><strong>与 <code>Write</code> 的关系</strong>：<code>prompt.ts</code>（FileWriteTool）明确——"修改已有文件时优先使用 Edit 工具，它只发送 diff"。两者共享临界区模式、readFileState、LSP 通知，但 Edit 是"最小 diff"，Write 是"整文件覆盖"。</li>
+      <li><strong>与 <code>NotebookEdit</code> 的互斥</strong>：<code>validateInput</code> errorCode 5（<code>:262-269</code>）拦截 <code>.ipynb</code>——notebook 必须用专用工具，因为 JSON 结构化编辑与字符串替换语义不同。</li>
+      <li><strong>与 <code>readFileState</code> 的双向交互</strong>：Read 写入（offset/limit 有定义）→ Edit 读取做新鲜度检查 → Edit 写入（offset=undefined）刷新时间戳。注释（FileReadTool.ts:537-540）特别说明：Edit/Write 存的 <code>offset=undefined</code> 条目<strong>不能用于 Read 的去重</strong>，否则会把模型指向编辑前的内容。</li>
+      <li><strong>与 <code>inputsEquivalent</code>/幂等</strong>：<code>:347-370</code> 委托 <code>areFileEditsInputsEquivalent</code>（<code>utils.ts:589</code>），用于工具调用去重——两次字面不同但语义相同的编辑（应用后结果一致）被视为等价。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian-yu-she-ji-qu-she">
+    <h2>七、亮点与设计取舍</h2>
+
+    <ol>
+      <li><strong>原子"读-改-写"临界区</strong>（<code>:430-472</code>）：本工具最重要的设计。注释反复强调临界区内禁止 await，从 <code>readFileForEdit</code> 到 <code>writeTextContent</code> 全同步，杜绝并发编辑交错。这是所有写工具的<strong>第一守则</strong>。</li>
+      <li><strong>内容兜底比对</strong>（<code>:280-294</code>、<code>:446-455</code>）：时间戳表明被改时，对完整读取做内容相等检查。Windows 云同步/杀毒会改 mtime 不改内容——兜底避免了大量误报。这是"<strong>时间戳快、内容准</strong>"的工程权衡。</li>
+      <li><strong><code>readFileState</code> 作为隐式契约</strong>：Read/Edit/Write 三者通过这个共享 Map 维持"模型认知 vs 磁盘真实"的一致性。没有它，模型会基于过期视图编辑，造成静默数据丢失。</li>
+      <li><strong><code>normalizeFileEditInput</code> 容错</strong>（<code>utils.ts:439-515</code>）：精确匹配失败时尝试 <code>desanitizeMatchString</code>（反转义 <code>&lt;fnr&gt;</code>→<code>&lt;function_results&gt;</code> 等模型常用转义）+ <code>stripTrailingWhitespace</code>。对 <code>.md/.mdx</code> 跳过尾部空白去除（两个空格是 Markdown 强制换行）。这是对模型输出格式漂移的<strong>务实兜底</strong>。</li>
+      <li><strong><code>getPatchForEdits</code> 的子串冲突检测</strong>（<code>utils.ts:157-171</code>）：依次应用多个编辑时，检查 <code>old_string</code> 是否是之前某个 <code>new_string</code> 的子串——若是则报错，防止编辑链自相吞噬。</li>
+      <li><strong>10 种 errorCode 的"校验即引导"</strong>：每个失败码都附带可操作文案（建议路径、提示 replace_all、提示重新 Read），把校验变成对模型的纠正反馈环。</li>
+      <li><strong>纯函数库分离</strong>（<code>utils.ts</code>）：所有可测试逻辑（应用编辑、生成补丁、规范化、等价比较）抽离到无 I/O 的纯函数，<code>__tests__/utils.test.ts</code> 直接覆盖。主体文件只管编排。</li>
+      <li><strong><code>mapToolResultToToolResultBlockParam</code> 精简返回</strong>（<code>:556-575</code>）：模型只看到"文件 X 已成功更新"，<strong>看不到</strong> <code>originalFile</code>/<code>patch</code>（这些仅用于 UI）。这是"模型面 vs UI 面"分离的典型——省 token，防污染。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-yuan-ma-dao-hang">
+    <h2>八、源码导航（书签速查）</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>FileEditTool/constants.ts:2</code></td></tr>
+          <tr><td>意外修改错误文案</td><td><code>constants.ts:10-11</code></td></tr>
+          <tr><td>输入/输出 schema + 类型</td><td><code>types.ts:6-19</code>、<code>types.ts:63-80</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>FileEditTool.ts:82-576</code></td></tr>
+          <tr><td><code>validateInput</code> 10 种 errorCode</td><td><code>FileEditTool.ts:133-346</code></td></tr>
+          <tr><td><code>call()</code> 原子临界区</td><td><code>FileEditTool.ts:371-555</code></td></tr>
+          <tr><td><code>readFileForEdit</code> 辅助</td><td><code>FileEditTool.ts:580-606</code></td></tr>
+          <tr><td>编辑算法纯函数</td><td><code>utils.ts:66-209</code></td></tr>
+          <tr><td>输入规范化（反转义/去空白）</td><td><code>utils.ts:439-515</code></td></tr>
+          <tr><td>编辑等价性比较</td><td><code>utils.ts:521-583</code></td></tr>
+          <tr><td>动态描述（行号前缀格式）</td><td><code>prompt.ts:12-28</code></td></tr>
+          <tr><td>1 GiB 上限常量</td><td><code>FileEditTool.ts:80</code></td></tr>
+          <tr><td>LSP/VSCode 通知</td><td><code>FileEditTool.ts:474-498</code></td></tr>
+          <tr><td>写权限通用管道</td><td><code>src/utils/permissions/filesystem.ts:checkWritePermissionForTool</code></td></tr>
+          <tr><td><code>readFileState</code> 类型</td><td><code>src/Tool.ts</code>（ToolUseContext）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-xue-xi-jian-yi">
+    <h2>九、学习建议与验证清单</h2>
+
+    <p><strong>怎么读这章</strong>：这是写工具的"母版"。先吃透"四、call()"的临界区 mermaid——它是 FileWriteTool/NotebookEditTool 的共同骨架。再对照"五、权限与安全"的 errorCode 表，理解"校验即引导"。最后看 <code>utils.ts</code> 的纯函数，体会"逻辑与 I/O 分离"的可测试性收益。</p>
+
+    <p><strong>验证清单（读完自测）</strong>：</p>
+
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出为什么 Edit 不可并发（无 <code>isConcurrencySafe</code> → 默认 false，写操作天然冲突）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释临界区的边界（从 <code>readFileForEdit</code> 到 <code>writeTextContent</code>，中间禁止 await）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出新鲜度检查的"内容兜底"为何只对完整读取生效（部分读取无完整 <code>content</code> 可比）</span></li>
+      <li><input type="checkbox" disabled> <span>能找到 1 GiB 上限的常量名（<code>MAX_EDIT_FILE_SIZE</code>）及其推导依据（V8 字符串长度 2^30）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>readFileState</code> 为何用 <code>offset:undefined</code> 标记 Edit/Write 的条目（破坏 Read 去重匹配）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>.ipynb</code> 文件会被哪个 errorCode 拦截（5），引导到哪个工具（NotebookEdit）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 <code>old_string===''</code> 的两种合法语义（新建文件 / 替换空文件内容）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>mapToolResultToToolResultBlockParam</code> 为何不返回 <code>originalFile</code>（省 token + 防污染）</span></li>
+    </ul>
+
+    <p><strong>配合动作</strong>：</p>
+
+    <ol>
+      <li>让 Claude <code>Edit</code> 一个文件，故意不改（old==new），观察 errorCode 1</li>
+      <li>在 <code>call()</code> 的 <code>:472</code>（writeTextContent 前）加日志，验证临界区内无 await</li>
+      <li>手动在磁盘改文件后再让 Edit，观察 errorCode 7 与"内容兜底"行为</li>
+      <li>构造多处匹配的 old_string 但不设 replace_all，观察 errorCode 9 的引导文案</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

@@ -52,7 +52,10 @@ const result = Bun.spawnSync(
     cliPath,
     ...process.argv.slice(2),
   ],
-  { stdio: ['inherit', 'inherit', 'inherit'], cwd: projectRoot },
+  {
+    stdio: ['inherit', 'inherit', 'inherit'],
+    cwd: process.env.CC_CWD ?? projectRoot,
+  },
 )
 
 process.exit(result.exitCode ?? 0)

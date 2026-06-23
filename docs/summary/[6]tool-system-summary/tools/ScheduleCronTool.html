@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScheduleCronTool 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange: #D77757; --orange-lt: #f0e0d8; --orange-dk: #b55e3a;
+      --blue: #5769F7; --blue-lt: #dde0fe; --blue-dk: #3a4ed4;
+      --green: #22a766; --green-lt: #d2f0e3;
+      --bg: #faf8f5; --bg2: #f3f0eb; --bg3: #ebe7e0;
+      --text: #2d2a26; --text-2: #5a5650; --text-3: #8a8480;
+      --border: #ddd8d0;
+      --shadow: 0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius: 8px; --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+    section { margin-top: 56px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; letter-spacing: .01em; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero p { font-size: 1.05rem; color: var(--text-2); max-width: 640px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 6px 16px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .82rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s, box-shadow .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); box-shadow: 0 2px 6px rgba(215,119,87,.15); text-decoration: none; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .8rem; line-height: 1.7; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    blockquote.callout { background: var(--bg2); border-left: 4px solid var(--orange); padding: 14px 20px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0; color: var(--text-2); }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin: 16px 0; overflow-x: auto; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 48px; padding: 8px 18px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; transition: border-color .15s, color .15s; }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    @media (max-width: 700px) { .hero h1 { font-size: 1.6rem; } }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>ScheduleCronTool（CronCreate / CronDelete / CronList）工具详解</h1>
+  <p>用标准 5 字段 cron 表达式把一个 prompt 安排到未来运行——一次性提醒或周期性调度，支持仅会话内存与跨重启磁盘持久化两种存储</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一">工具定位</a></li>
+    <li><a href="#二">关键文件清单</a></li>
+    <li><a href="#三">Tool 接口字段实现</a></li>
+    <li><a href="#四">核心执行流程</a></li>
+    <li><a href="#五">权限与安全</a></li>
+    <li><a href="#六">与其他系统的关系</a></li>
+    <li><a href="#七">亮点与设计取舍</a></li>
+    <li><a href="#八">源码导航</a></li>
+    <li><a href="#九">学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout">
+    <p>这是工具系统逐个拆解系列的调度类工具之一。<code>ScheduleCronTool</code> 是一个目录，里面装着<strong>三个紧密关联的工具</strong>——<code>CronCreate</code>（安排）、<code>CronDelete</code>（取消）、<code>CronList</code>（列出）——它们共用一套 <code>prompt.ts</code>（开关、常量、描述构造器）和 <code>UI.tsx</code>（渲染）。合在一起构成了 Claude Code 的"定时调度子系统"：把 prompt 在未来某个时间点（或周期性地）入队执行。这是 <code>/loop</code> 技能、proactive 自动化、teammate 协作的底层基础设施。</p>
+  </blockquote>
+
+  <section id="一">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>ScheduleCronTool</code> = 三个工具组成的 cron 调度三件套：创建 / 取消 / 列出未来要执行的 prompt。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>CronCreate</code> / <code>CronDelete</code> / <code>CronList</code>（常量在 <code>prompt.ts:56-58</code>）</td></tr>
+          <tr><td>一句话</td><td>用 5 字段 cron 表达式把 prompt 排到未来运行；支持一次性或周期性、会话级或磁盘持久化</td></tr>
+          <tr><td>是否进 system prompt</td><td>❌ <strong>三个工具都不在 <code>CORE_TOOLS</code> 白名单内</strong> → <strong>是延迟工具</strong>，走 SearchExtraTools → ExecuteExtraTool 两步式发现路径</td></tr>
+          <tr><td>注册条件</td><td><code>cronTools</code> 数组<strong>无条件</strong>展开（<code>tools.ts:31-38</code>、<code>:263</code>），但每个工具的 <code>isEnabled()</code> 受运行期开关 <code>isKairosCronEnabled()</code> 门控</td></tr>
+          <tr><td>运行期总开关</td><td><code>isKairosCronEnabled()</code>（<code>prompt.ts:35-37</code>）—— 默认 <code>true</code>，<code>CLAUDE_CODE_DISABLE_CRON=1</code> 可杀掉整个调度器</td></tr>
+          <tr><td>运行期持久化开关</td><td><code>isDurableCronEnabled()</code>（<code>prompt.ts:48-54</code>）—— GrowthBook <code>tengu_kairos_cron_durable</code>，默认 <code>true</code></td></tr>
+          <tr><td>只读 / 破坏性</td><td>Create/Delete 有副作用（写磁盘或改内存存储）；List <strong>只读</strong>（<code>isReadOnly() → true</code>，<code>CronListTool.ts:54-56</code>）</td></tr>
+          <tr><td>是否可并发</td><td>仅 CronList 显式返回 <code>isConcurrencySafe() → true</code>（<code>CronListTool.ts:51-53</code>）</td></tr>
+          <tr><td>核心依赖</td><td><code>src/utils/cronTasks.ts</code>（<code>addCronTask</code>/<code>removeCronTasks</code>/<code>listAllCronTasks</code>/<code>nextCronRunMs</code>）+ <code>src/utils/cron.ts</code>（<code>parseCronExpression</code>/<code>cronToHuman</code>）</td></tr>
+          <tr><td>触发执行方</td><td><code>useScheduledTasks</code> hook（REPL）轮询 <code>setScheduledTasksEnabled</code> 标志，空闲时入队 prompt</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> 用户经常要求"5 分钟后提醒我"、"每天早上 9 点检查部署"、"工作日每小时轮询一次"——这些都需要把 prompt 推迟到未来。直接用 <code>Bash(sleep ...)</code> 会占用 shell 进程且随会话结束而消失；cron 三件套提供了可列举、可取消、可持久化、带抖动的调度原语。</p>
+    <blockquote class="callout"><p><strong>关于"延迟工具"的精确说明</strong>：三个 cron 工具的 <code>buildTool</code> 里都写了 <code>shouldDefer: true</code>（如 <code>CronCreateTool.ts:60</code>），但实际生效的是<strong>不在 <code>CORE_TOOLS</code></strong>这一条。<code>isDeferredTool()</code>（<code>SearchExtraToolsTool/prompt.ts:69-78</code>）的判定逻辑只看 <code>alwaysLoad</code> 标志和 <code>CORE_TOOLS</code> 集合，<strong>并不读取 <code>shouldDefer</code> 字段</strong>。<code>shouldDefer</code> 是 <code>Tool.ts:458</code> 声明的元信息字段，目前主要用于文档化意图。</p></blockquote>
+  </section>
+
+  <section id="二">
+    <h2>二、关键文件清单</h2>
+    <pre><code>ScheduleCronTool/
+├── CronCreateTool.ts   ← CronCreate 主体（157 行），schedule 的核心
+├── CronDeleteTool.ts   ← CronDelete 主体（96 行），按 id 取消
+├── CronListTool.ts     ← CronList 主体（98 行），列出当前任务（只读）
+├── prompt.ts           ← 三工具共享：开关函数 + 名称常量 + 描述/prompt 构造器
+└── UI.tsx              ← 三工具共享：renderToolUseMessage / renderToolResultMessage</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>CronCreateTool.ts</code></td><td>创建工具：schema + 4 项校验 + call + 人类可读结果</td><td><code>buildTool:56</code>、<code>validateInput:82</code>、<code>call:117</code>、<code>MAX_JOBS:25</code></td></tr>
+          <tr><td><code>CronDeleteTool.ts</code></td><td>取消工具：按 id 查找 + teammate 归属校验</td><td><code>validateInput:61</code>、<code>call:82</code></td></tr>
+          <tr><td><code>CronListTool.ts</code></td><td>列出工具：teammate 过滤、人类可读时间</td><td><code>call:63</code>、<code>isReadOnly:54</code>、<code>isConcurrencySafe:51</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>开关 + 常量 + 描述/prompt 文本（durable 分支）</td><td><code>isKairosCronEnabled:35</code>、<code>isDurableCronEnabled:48</code>、<code>buildCronCreatePrompt:66</code></td></tr>
+          <tr><td><code>UI.tsx</code></td><td>六个 render 函数（每工具 use+result 各一）</td><td><code>renderCreateResultMessage:15</code>、<code>renderListResultMessage:47</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：这是"三工具共目录"型——三个工具实现各自一个文件，但<strong>共享 <code>prompt.ts</code> 和 <code>UI.tsx</code></strong>。<code>prompt.ts</code> 里的 <code>buildCronCreateDescription/Prompt</code> 都接受 <code>durableEnabled: boolean</code> 参数，根据持久化开关返回不同文案——<strong>这是动态 system prompt 的典型模式</strong>。</p></blockquote>
+  </section>
+
+  <section id="三">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre><code>name: CRON_CREATE_TOOL_NAME,        // "CronCreate"（prompt.ts:56）
+searchHint: '安排一个周期性或一次性的 prompt',  // TF-IDF 索引关键词，延迟工具发现靠它
+maxResultSizeChars: 100_000,        // 结果截断阈值
+shouldDefer: true,                  // 文档化意图（实际延迟判定靠 CORE_TOOLS，见上文）</code></pre>
+    <blockquote class="callout"><p><strong>延迟工具的 <code>searchHint</code> 更关键</strong>：因为这三个工具不在 system prompt 里，模型只有通过 <code>SearchExtraTools</code>（TF-IDF 语义搜索）才能发现它们。<code>searchHint</code> 的中文关键词"安排""周期性""一次性"直接进入索引，提升"提醒我""每小时检查"这类自然语言意图的命中率。</p></blockquote>
+    <h3>开关字段（重点）</h3>
+    <pre><code>isEnabled() {
+  return isKairosCronEnabled()      // 三个工具共用同一个
+}</code></pre>
+    <p><code>isKairosCronEnabled()</code>（<code>prompt.ts:35-37</code>）只读环境变量 <code>CLAUDE_CODE_DISABLE_CRON</code>——这是本地 kill switch，优先级高于 GrowthBook。注意它<strong>已经去掉了 GrowthBook 查询</strong>（注释说明历史），现在 GB 开关纯粹用作全集群级 kill switch。</p>
+    <h3>模型面字段</h3>
+    <pre><code>async description() { return buildCronCreateDescription(isDurableCronEnabled()) }
+async prompt()      { return buildCronCreatePrompt(isDurableCronEnabled()) }
+get inputSchema()   { return inputSchema() }   // getter，懒加载
+get outputSchema()  { return outputSchema() }</code></pre>
+    <p><strong>关键设计</strong>：<code>description()</code> 和 <code>prompt()</code> 都接受 <code>isDurableCronEnabled()</code> 的运行期布尔——<strong>根据持久化开关动态切换文案</strong>。当 durable 关闭时，描述里不提"写入 .claude/scheduled_tasks.json"，避免模型误用。这是"运行期裁剪 system prompt"的典范。</p>
+    <h3>输入 schema（CronCreate，<code>CronCreateTool.ts:27-42</code>）</h3>
+    <pre><code>{
+  cron:      string,   // 必填，5 字段 cron："M H DoM Mon DoW"
+  prompt:    string,   // 必填，每次触发要入队的 prompt
+  recurring?: boolean, // true（默认）= 周期性；false = 一次性触发后自删
+  durable?:  boolean,  // true = 写磁盘跨重启；false（默认）= 仅本次会话内存
+}</code></pre>
+    <p>注意 <code>recurring</code> 和 <code>durable</code> 都用 <code>semanticBoolean(z.boolean().optional())</code> 包裹——<code>semanticBoolean</code> 是把模糊布尔（"yes"/"true"/1 等）规范化为严格 boolean 的工具，避免模型幻觉。</p>
+    <h3>输出 schema</h3>
+    <ul>
+      <li><strong>CronCreate</strong>（<code>:45-52</code>）：<code>{ id, humanSchedule, recurring, durable? }</code>——<code>id</code> 是 8 位十六进制 UUID 切片，<code>humanSchedule</code> 是 <code>cronToHuman(cron)</code> 的人类可读时间。</li>
+      <li><strong>CronDelete</strong>（<code>:27-31</code>）：<code>{ id }</code>。</li>
+      <li><strong>CronList</strong>（<code>:20-33</code>）：<code>{ jobs: [{ id, cron, humanSchedule, prompt, recurring?, durable? }] }</code>。</li>
+    </ul>
+    <h3>行为字段对比</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>CronCreate</th><th>CronDelete</th><th>CronList</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:117</code> 写入存储 + 启用调度器</td><td><code>:82</code> 调 <code>removeCronTasks</code></td><td><code>:63</code> 读 + teammate 过滤</td></tr>
+          <tr><td><code>validateInput()</code></td><td><code>:82</code> 4 项校验</td><td><code>:61</code> 存在性 + 归属</td><td>❌ 无（只读，无需校验）</td></tr>
+          <tr><td><code>checkPermissions()</code></td><td>❌ 未声明</td><td>❌ 未声明</td><td>❌ 未声明</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td>❌ 未声明（默认破坏性）</td><td>❌ 未声明</td><td><code>:54</code> → <code>true</code></td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td>❌ 未声明</td><td>❌ 未声明</td><td><code>:51</code> → <code>true</code></td></tr>
+          <tr><td><code>getPath()</code></td><td><code>:79</code> → <code>getCronFilePath()</code></td><td><code>:58</code> 同</td><td>❌ 无</td></tr>
+          <tr><td><code>toAutoClassifierInput()</code></td><td><code>:70</code> → <code>"${cron}: ${prompt}"</code></td><td><code>:49</code> → <code>input.id</code></td><td>❌ 无</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="四">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <h3>CronCreate.call()（<code>CronCreateTool.ts:117-141</code>）</h3>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    A["call(input)\nCronCreateTool.ts:117"] --> B["effectiveDurable =\ndurable && isDurableCronEnabled()\n:120 — kill switch 强制仅会话"]
+    B --> C["addCronTask(cron, prompt,\nrecurring, effectiveDurable,\nagentId)\n:121 — 写内存或磁盘"]
+    C --> D["setScheduledTasksEnabled(true)\n:132 — 启动调度器 tick 循环"]
+    D --> E["return { data: {id,\nhumanSchedule, recurring,\ndurable: effectiveDurable} }"]
+      </div>
+    </div>
+    <p><strong>关键点逐条</strong>：</p>
+    <ol>
+      <li><strong>kill switch 软降级</strong>（<code>:120</code>）：<code>effectiveDurable = durable &amp;&amp; isDurableCronEnabled()</code>。即便模型传了 <code>durable: true</code>，若运行期 durable 开关被关掉，也会<strong>静默降级为仅会话</strong>。注释明确——"schema 保持稳定，即便开关在会话中途切换，模型也不会看到校验错误"。</li>
+      <li><strong>agentId 透传</strong>（<code>:126</code>）：<code>getTeammateContext()?.agentId</code>——teammate 创建的 cron 会打上创建者标记，后续 Delete/List 用它做归属过滤。</li>
+      <li><strong>启用调度器</strong>（<code>:132</code>）：<code>setScheduledTasksEnabled(true)</code> 写入 bootstrap state。REPL 的 <code>useScheduledTasks</code> hook 轮询该标志，下一 tick 开始监听。</li>
+      <li><strong>返回形式</strong>：<code>{ data: output }</code> 同步返回，非 async generator。调度是"注册即返回"，没有流式中间状态。</li>
+    </ol>
+    <h3>CronDelete.call()（<code>CronDeleteTool.ts:82-85</code>）</h3>
+    <pre><code>async call({ id }) {
+  await removeCronTasks([id])
+  return { data: { id } }
+}</code></pre>
+    <p>极简——校验已在 <code>validateInput</code> 完成（任务存在 + 归属正确），call 只需删除。<code>removeCronTasks</code>（<code>cronTasks.ts:230-247</code>）有个巧妙设计：<strong>先清会话存储，若全部命中则跳过文件读写</strong>（<code>:239</code>），避免不必要的磁盘 I/O。</p>
+    <h3>CronList.call()（<code>CronListTool.ts:63-79</code>）</h3>
+    <pre><code>async call() {
+  const allTasks = await listAllCronTasks()
+  const ctx = getTeammateContext()
+  const tasks = ctx ? allTasks.filter(t =&gt; t.agentId === ctx.agentId) : allTasks
+  const jobs = tasks.map(t =&gt; ({ id, cron, humanSchedule, prompt, ...recurring, ...durable }))
+  return { data: { jobs } }
+}</code></pre>
+    <p><strong>teammate 可见性过滤</strong>（<code>:66-69</code>）：teammate 只能看到自己的 cron；team lead（无 ctx）能看到全部。这是多租户隔离的体现。字段映射用了条件展开（<code>:75-76</code>）——<code>recurring</code> 只在为 true 时出现，<code>durable</code> 只在为 false 时出现，省 token。</p>
+  </section>
+
+  <section id="五">
+    <h2>五、权限与安全</h2>
+    <h3>CronCreate.validateInput（<code>:82-116</code>，4 项校验）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>校验</th><th>errorCode</th><th>含义</th></tr></thead>
+        <tbody>
+          <tr><td><code>parseCronExpression(cron)</code> 失败</td><td>1</td><td>cron 表达式格式错误（不是 5 字段）</td></tr>
+          <tr><td><code>nextCronRunMs(cron, now) === null</code></td><td>2</td><td>表达式合法但未来一年内不匹配任何日期（如 <code>0 0 31 2 *</code>）</td></tr>
+          <tr><td><code>tasks.length &gt;= MAX_JOBS</code>（50）</td><td>3</td><td>任务数达上限，防资源泄漏</td></tr>
+          <tr><td><code>durable &amp;&amp; getTeammateContext()</code></td><td>4</td><td>teammate 不支持 durable（teammate 不跨会话保留，会变孤儿）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong><code>MAX_JOBS = 50</code>（<code>:25</code>）</strong> 是硬上限。注释解释——cron 是多日会话的主要驱动力，无限制的循环任务会让 Tier-1 堆泄漏无限累积。50 个 + 7 天自动过期共同限制最坏情况。</p></blockquote>
+    <h3>CronDelete.validateInput（<code>:61-81</code>，2 项校验）</h3>
+    <ol>
+      <li>任务不存在（<code>:64</code>）→ <code>errorCode: 1</code>。</li>
+      <li><strong>teammate 归属校验</strong>（<code>:72-79</code>）：<code>task.agentId !== ctx.agentId</code> → <code>errorCode: 2</code>"该任务归属另一个 agent"。<strong>这是跨租户删除防护</strong>——teammate A 不能删 teammate B 的 cron。</li>
+    </ol>
+    <h3>调度器侧的安全机制</h3>
+    <ul>
+      <li><strong>抖动防惊群</strong>（<code>cronTasks.ts:348-355</code>）：让周期任务最多延迟周期的 10%（上限 15 分钟），一次性任务落在 <code>:00/:30</code> 最多提前 90 秒。<code>prompt.ts:96-108</code> 明确引导模型"避免 :00/:30 分钟"。</li>
+      <li><strong>7 天自动过期</strong>（<code>recurringMaxAgeMs</code>，<code>:354</code>）：周期任务到期自动删除，限制会话生命周期。</li>
+      <li><strong>仅空闲触发</strong>（<code>prompt.ts:107</code>）：任务只在 REPL 空闲时入队，不打断进行中的查询。</li>
+    </ul>
+  </section>
+
+  <section id="六">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    CRON["CronCreate/Delete/List"] -->|读写| CT["src/utils/cronTasks.ts\naddCronTask/removeCronTasks/\nlistAllCronTasks"]
+    CRON -->|解析| CR["src/utils/cron.ts\nparseCronExpression/cronToHuman"]
+    CRON -->|开关| PROMPT["prompt.ts\nisKairosCronEnabled/\nisDurableCronEnabled"]
+    CRON -->|启用调度器| BS["setScheduledTasksEnabled\nsrc/bootstrap/state.ts"]
+    BS -.轮询.-> HOOK["useScheduledTasks hook\n(REPL 空闲时入队 prompt)"]
+    CRON -->|teammate 归属| TM["getTeammateContext\nsrc/utils/teammateContext.ts"]
+    CRON -.延迟发现.-> SET["SearchExtraTools\n(TF-IDF 索引 searchHint)"]
+    CRON -.延迟调用.-> EXE["ExecuteExtraTool"]
+    CRON <-.被 /loop skill 使用.-> LOOP["/loop skill"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 <code>useScheduledTasks</code> hook 的关系</strong>：工具只负责"注册任务 + 翻 enable 标志"，真正的定时触发由 REPL 的 hook 完成。工具与调度器是<strong>生产者-消费者</strong>关系。</li>
+      <li><strong>与 teammate 系统的关系</strong>：<code>getTeammateContext()</code> 贯穿三个工具——Create 打 agentId 标记，Delete 做归属校验，List 做可见性过滤。三个工具都在 <code>IN_PROCESS_TEAMMATE_ALLOWED_TOOLS</code>（<code>constants/tools.ts:102-104</code>）白名单内。</li>
+      <li><strong>与延迟工具发现系统的关系</strong>：因为不在 <code>CORE_TOOLS</code>，三个工具是延迟工具。模型需要时先 <code>SearchExtraTools</code>（用 <code>searchHint</code> 的中文关键词做 TF-IDF 匹配），再 <code>ExecuteExtraTool</code> 调用。</li>
+      <li><strong>与 <code>/loop</code> 技能的关系</strong>：<code>/loop</code> skill 是 cron 三件套的上层封装，已 GA（<code>prompt.ts:28-29</code>）。skill 把"每 5 分钟跑 X"翻译成 <code>CronCreate</code> 调用。</li>
+    </ul>
+  </section>
+
+  <section id="七">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>三工具共目录 + 共享 prompt/UI</strong>：Create/Delete/List 语义耦合（id 是纽带），共享 <code>prompt.ts</code> 的开关函数和文案构造器，避免重复。<code>buildCronCreateDescription(durableEnabled)</code> 根据运行期开关动态裁剪文案——<strong>动态 system prompt 的典范</strong>。</li>
+      <li><strong>kill switch 软降级而非硬拒绝</strong>（<code>CronCreateTool.ts:120</code>）：durable 开关被关时，<code>effectiveDurable = durable &amp;&amp; isDurableCronEnabled()</code> 静默降级为仅会话，<strong>不报错</strong>。对比"硬拒绝"方案，软降级对模型更友好。</li>
+      <li><strong>双层 kill switch</strong>（<code>prompt.ts</code>）：<code>isKairosCronEnabled()</code>（<code>:35</code>）杀掉整个调度器；<code>isDurableCronEnabled()</code>（<code>:48</code>）只杀磁盘持久化。两个开关作用范围不同，让 Bedrock/Vertex/Foundry 用户（GB 被禁）仍能获得 durable cron。</li>
+      <li><strong>teammate 归属全链路</strong>：Create 打标记 → Delete 校验归属 → List 过滤可见。三工具协同实现多租户隔离，防跨租户删除。</li>
+      <li><strong>抖动 + 过期 + 空闲触发的三重调度安全</strong>：抖动防惊群、7 天过期防泄漏、仅空闲触发防打断。<code>prompt.ts</code> 的文案引导模型配合（"避免 :00/:30"、"告知用户 7 天限制"）。</li>
+      <li><strong><code>shouldDefer</code> 字段 vs 实际延迟判定</strong>：三个工具都写了 <code>shouldDefer: true</code>，但 <code>isDeferredTool()</code> 实际只看 <code>CORE_TOOLS</code> 和 <code>alwaysLoad</code>，<strong>不读 <code>shouldDefer</code></strong>。这是一个值得注意的"文档与实现不完全对齐"——字段表达了意图，但运行期判定走的是集合查表。</li>
+      <li><strong>短 ID 设计</strong>（<code>cronTasks.ts:203</code>）：<code>randomUUID().slice(0, 8)</code>——8 位十六进制对 <code>MAX_JOBS=50</code> 足够，避免在工具层（显示短 ID）和磁盘之间做 slice/prefix 操作。</li>
+    </ol>
+  </section>
+
+  <section id="八">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量 + 开关函数</td><td><code>ScheduleCronTool/prompt.ts:35,48,56-58</code></td></tr>
+          <tr><td>CronCreate <code>buildTool</code> 字段</td><td><code>CronCreateTool.ts:56-156</code></td></tr>
+          <tr><td>CronCreate <code>validateInput</code> 4 项校验</td><td><code>CronCreateTool.ts:82-116</code></td></tr>
+          <tr><td>CronCreate <code>call()</code> 核心逻辑</td><td><code>CronCreateTool.ts:117-141</code></td></tr>
+          <tr><td>CronDelete <code>validateInput</code> 归属校验</td><td><code>CronDeleteTool.ts:61-81</code></td></tr>
+          <tr><td>CronList teammate 过滤</td><td><code>CronListTool.ts:63-79</code></td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam</code>（人类可读结果）</td><td><code>CronCreateTool.ts:142-153</code></td></tr>
+          <tr><td>抖动配置 + 7 天过期</td><td><code>src/utils/cronTasks.ts:348-355</code></td></tr>
+          <tr><td><code>addCronTask</code>（写内存/磁盘 + 短 ID）</td><td><code>src/utils/cronTasks.ts:194-219</code></td></tr>
+          <tr><td><code>removeCronTasks</code>（先会话后文件优化）</td><td><code>src/utils/cronTasks.ts:230-247</code></td></tr>
+          <tr><td>延迟工具判定（只看 CORE_TOOLS）</td><td><code>SearchExtraToolsTool/prompt.ts:69-78</code></td></tr>
+          <tr><td>工具注册（无条件展开 cronTools）</td><td><code>src/tools.ts:31-38,263</code></td></tr>
+          <tr><td>teammate 白名单（含三个 cron）</td><td><code>src/constants/tools.ts:94-105</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="九">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先扫"一、工具定位"理解"三件套"的分工和延迟属性，再跳到"四、call()"看 CronCreate 的心脏（kill switch 软降级是亮点），最后对照"五、权限与安全"理解 teammate 归属链路。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出三个 cron 工具<strong>不在</strong> <code>CORE_TOOLS</code>，因此是延迟工具（走 SearchExtraTools 发现）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>shouldDefer: true</code> 字段与实际延迟判定的差异（字段是文档，判定靠 <code>CORE_TOOLS</code> 集合）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>isEnabled()</code> 共用 <code>isKairosCronEnabled()</code>，而它现在只读环境变量（已去 GrowthBook）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出双层 kill switch 的分工（<code>isKairosCronEnabled</code> 杀调度器 vs <code>isDurableCronEnabled</code> 杀持久化）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 durable kill switch 的软降级策略（<code>effectiveDurable = durable &amp;&amp; isDurableCronEnabled()</code>，不报错）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 teammate 归属校验在 Create/Delete/List 三处的体现（打标记/校验/过滤）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 <code>MAX_JOBS=50</code> + 7 天过期的资源泄漏防护动机</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么 <code>prompt.ts</code> 引导模型"避免 :00/:30 分钟"（抖动防惊群）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>让 Claude <code>CronCreate</code> 一个 <code>*/2 * * * *</code> 的周期任务，观察返回的短 ID 和 <code>humanSchedule</code></li>
+      <li><code>CronList</code> 确认任务出现，再用 <code>CronDelete</code> 取消，验证 id 往返</li>
+      <li>设 <code>CLAUDE_CODE_DISABLE_CRON=1</code> 重启，确认 <code>isEnabled()</code> 返回 false 工具不可见</li>
+      <li>在 <code>CronCreateTool.ts:120</code> 加日志，对比 durable 开关开关时 <code>effectiveDurable</code> 的值</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

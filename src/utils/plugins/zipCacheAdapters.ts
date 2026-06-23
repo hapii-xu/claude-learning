@@ -1,13 +1,13 @@
 /**
- * Zip Cache Adapters
+ * Zip 缓存适配器
  *
- * I/O helpers for the plugin zip cache. These functions handle reading/writing
- * zip-cache-local metadata files, extracting ZIPs to session directories,
- * and creating ZIPs for newly installed plugins.
+ * 插件 zip 缓存的 I/O 辅助函数。这些函数处理读/写
+ * zip 缓存本地元数据文件、将 ZIP 提取到会话目录，
+ * 以及为新安装的插件创建 ZIP。
  *
- * The zip cache stores data on a mounted volume (e.g., Filestore) that persists
- * across ephemeral container lifetimes. The session cache is a local temp dir
- * for extracted plugins used during a single session.
+ * zip 缓存将数据存储在挂载卷（如 Filestore）上，跨临时容器
+ * 生命周期持久化。会话缓存是本地临时目录，
+ * 用于单次会话中已提取的插件。
  */
 
 import { readFile } from 'fs/promises'
@@ -28,12 +28,12 @@ import {
   getZipCacheKnownMarketplacesPath,
 } from './zipCache.js'
 
-// ── Metadata I/O ──
+// ── 元数据 I/O ──
 
 /**
- * Read known_marketplaces.json from the zip cache.
- * Returns empty object if file doesn't exist, can't be parsed, or fails schema
- * validation (data comes from a shared mounted volume — other containers may write).
+ * 从 zip 缓存读取 known_marketplaces.json。
+ * 若文件不存在、无法解析或 schema 验证失败则返回空对象
+ * （数据来自共享挂载卷 — 其他容器可能写入）。
  */
 export async function readZipCacheKnownMarketplaces(): Promise<KnownMarketplacesFile> {
   try {
@@ -53,7 +53,7 @@ export async function readZipCacheKnownMarketplaces(): Promise<KnownMarketplaces
 }
 
 /**
- * Write known_marketplaces.json to the zip cache atomically.
+ * 原子地将 known_marketplaces.json 写入 zip 缓存。
  */
 export async function writeZipCacheKnownMarketplaces(
   data: KnownMarketplacesFile,
@@ -67,7 +67,7 @@ export async function writeZipCacheKnownMarketplaces(
 // ── Marketplace JSON ──
 
 /**
- * Read a marketplace JSON file from the zip cache.
+ * 从 zip 缓存读取 marketplace JSON 文件。
  */
 export async function readMarketplaceJson(
   marketplaceName: string,
@@ -95,7 +95,7 @@ export async function readMarketplaceJson(
 }
 
 /**
- * Save a marketplace JSON to the zip cache from its install location.
+ * 从安装位置将 marketplace JSON 保存到 zip 缓存。
  */
 export async function saveMarketplaceJsonToZipCache(
   marketplaceName: string,
@@ -113,38 +113,38 @@ export async function saveMarketplaceJsonToZipCache(
 }
 
 /**
- * Read marketplace.json content from a cloned marketplace directory or file.
- * For directory sources: checks .claude-plugin/marketplace.json, marketplace.json
- * For URL sources: the installLocation IS the marketplace JSON file itself.
+ * 从克隆的 marketplace 目录或文件读取 marketplace.json 内容。
+ * 对于目录来源：检查 .claude-plugin/marketplace.json、marketplace.json
+ * 对于 URL 来源：installLocation 本身就是 marketplace JSON 文件。
  */
 async function readMarketplaceJsonContent(dir: string): Promise<string | null> {
   const candidates = [
     join(dir, '.claude-plugin', 'marketplace.json'),
     join(dir, 'marketplace.json'),
-    dir, // For URL sources, installLocation IS the marketplace JSON file
+    dir, // 对于 URL 来源，installLocation 就是 marketplace JSON 文件
   ]
   for (const candidate of candidates) {
     try {
       return await readFile(candidate, 'utf-8')
     } catch {
-      // ENOENT (doesn't exist) or EISDIR (directory) — try next
+      // ENOENT（不存在）或 EISDIR（是目录）— 尝试下一个
     }
   }
   return null
 }
 
 /**
- * Sync marketplace data to zip cache for offline access.
- * Saves marketplace JSONs and merges with previously cached data
- * so ephemeral containers can access marketplaces without re-cloning.
+ * 将 marketplace 数据同步到 zip 缓存以供离线访问。
+ * 保存 marketplace JSON 并与之前缓存的数据合并，
+ * 以便临时容器无需重新克隆即可访问 marketplace。
  */
 export async function syncMarketplacesToZipCache(): Promise<void> {
-  // Read-only iteration — Safe variant so a corrupted config doesn't throw.
-  // This runs during startup paths; a throw here cascades to the same
-  // try-block that catches loadAllPlugins failures.
+  // 只读迭代 — 使用 Safe 变体，以免损坏的配置抛出异常。
+  // 这在启动路径中运行；此处的抛出会级联到捕获
+  // loadAllPlugins 失败的同一 try-block。
   const knownMarketplaces = await loadKnownMarketplacesConfigSafe()
 
-  // Save marketplace JSONs to zip cache
+  // 将 marketplace JSON 保存到 zip 缓存
   for (const [name, entry] of Object.entries(knownMarketplaces)) {
     if (!entry.installLocation) continue
     try {
@@ -154,7 +154,7 @@ export async function syncMarketplacesToZipCache(): Promise<void> {
     }
   }
 
-  // Merge with previously cached data (ephemeral containers lose global config)
+  // 与之前缓存的数据合并（临时容器会丢失全局配置）
   const zipCacheKnownMarketplaces = await readZipCacheKnownMarketplaces()
   const mergedKnownMarketplaces: KnownMarketplacesFile = {
     ...zipCacheKnownMarketplaces,

@@ -41,7 +41,7 @@ export const inputSchema = lazySchema(() =>
   }),
 )
 
-// Output types for different operations
+// 不同操作的不同输出类型
 export type SpawnTeamOutput = {
   team_name: string
   team_file_path: string
@@ -55,10 +55,10 @@ export type CleanupOutput = {
 }
 
 export type TeamAllowedPath = {
-  path: string // Directory path (absolute)
-  toolName: string // The tool this applies to (e.g., "Edit", "Write")
-  addedBy: string // Agent name who added this rule
-  addedAt: number // Timestamp when added
+  path: string // 目录路径（绝对路径）
+  toolName: string // 适用的工具（例如 "Edit"、"Write"）
+  addedBy: string // 添加此规则的 agent 名称
+  addedAt: number // 添加时间戳
 }
 
 export type TeamFile = {
@@ -66,9 +66,9 @@ export type TeamFile = {
   description?: string
   createdAt: number
   leadAgentId: string
-  leadSessionId?: string // Actual session UUID of the leader (for discovery)
-  hiddenPaneIds?: string[] // Pane IDs that are currently hidden from the UI
-  teamAllowedPaths?: TeamAllowedPath[] // Paths all teammates can edit without asking
+  leadSessionId?: string // leader 的实际会话 UUID（用于发现）
+  hiddenPaneIds?: string[] // 当前从 UI 隐藏的面板 ID
+  teamAllowedPaths?: TeamAllowedPath[] // 所有 teammate 无需询问即可编辑的路径
   members: Array<{
     agentId: string
     name: string
@@ -84,50 +84,46 @@ export type TeamFile = {
     sessionId?: string
     subscriptions: string[]
     backendType?: BackendType
-    isActive?: boolean // false when idle, undefined/true when active
-    mode?: PermissionMode // Current permission mode for this teammate
+    isActive?: boolean // 空闲时为 false，undefined/true 时为活动
+    mode?: PermissionMode // 此 teammate 当前的权限模式
   }>
 }
 
 export type Input = z.infer<ReturnType<typeof inputSchema>>
-// Export SpawnTeamOutput as Output for backward compatibility
+// 将 SpawnTeamOutput 导出为 Output 以保持向后兼容
 export type Output = SpawnTeamOutput
 
 /**
- * Sanitizes a name for use in tmux window names, worktree paths, and file paths.
- * Replaces all non-alphanumeric characters with hyphens and lowercases.
+ * 清理名称以用于 tmux 窗口名、worktree 路径和文件路径。
+ * 将所有非字母数字字符替换为连字符并转为小写。
  */
 export function sanitizeName(name: string): string {
   return name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()
 }
 
 /**
- * Sanitizes an agent name for use in deterministic agent IDs.
- * Replaces @ with - to prevent ambiguity in the agentName@teamName format.
+ * 清理 agent 名称以用于确定性 agent ID。
+ * 将 @ 替换为 - 以防止 agentName@teamName 格式中的歧义。
  */
 export function sanitizeAgentName(name: string): string {
   return name.replace(/@/g, '-')
 }
 
-/**
- * Gets the path to a team's directory
- */
+/** 获取团队目录的路径 */
 export function getTeamDir(teamName: string): string {
   return join(getTeamsDir(), sanitizeName(teamName))
 }
 
-/**
- * Gets the path to a team's config.json file
- */
+/** 获取团队 config.json 文件的路径 */
 export function getTeamFilePath(teamName: string): string {
   return join(getTeamDir(teamName), 'config.json')
 }
 
 /**
- * Reads a team file by name (sync — for sync contexts like React render paths)
- * @internal Exported for team discovery UI
+ * 按名称读取团队文件（同步，用于 React 渲染路径等同步上下文）
+ * @internal 导出用于团队发现 UI
  */
-// sync IO: called from sync context
+// 同步 IO：从同步上下文调用
 export function readTeamFile(teamName: string): TeamFile | null {
   try {
     const content = readFileSync(getTeamFilePath(teamName), 'utf-8')
@@ -141,9 +137,7 @@ export function readTeamFile(teamName: string): TeamFile | null {
   }
 }
 
-/**
- * Reads a team file by name (async — for tool handlers and other async contexts)
- */
+/** 按名称读取团队文件（异步，用于工具处理程序和其他异步上下文） */
 export async function readTeamFileAsync(
   teamName: string,
 ): Promise<TeamFile | null> {
@@ -159,19 +153,15 @@ export async function readTeamFileAsync(
   }
 }
 
-/**
- * Writes a team file (sync — for sync contexts)
- */
-// sync IO: called from sync context
+/** 写入团队文件（同步，用于同步上下文） */
+// 同步 IO：从同步上下文调用
 function writeTeamFile(teamName: string, teamFile: TeamFile): void {
   const teamDir = getTeamDir(teamName)
   mkdirSync(teamDir, { recursive: true })
   writeFileSync(getTeamFilePath(teamName), jsonStringify(teamFile, null, 2))
 }
 
-/**
- * Writes a team file (async — for tool handlers)
- */
+/** 写入团队文件（异步，用于工具处理程序） */
 export async function writeTeamFileAsync(
   teamName: string,
   teamFile: TeamFile,
@@ -182,8 +172,8 @@ export async function writeTeamFileAsync(
 }
 
 /**
- * Removes a teammate from the team file by agent ID or name.
- * Used by the leader when processing shutdown approvals.
+ * 通过 agent ID 或名称从团队文件中移除 teammate。
+ * 由 leader 在处理关闭批准时调用。
  */
 export function removeTeammateFromTeamFile(
   teamName: string,
@@ -227,10 +217,10 @@ export function removeTeammateFromTeamFile(
 }
 
 /**
- * Adds a pane ID to the hidden panes list in the team file.
- * @param teamName - The name of the team
- * @param paneId - The pane ID to hide
- * @returns true if the pane was added to hidden list, false if team doesn't exist
+ * 将面板 ID 添加到团队文件的隐藏面板列表中。
+ * @param teamName - 团队名称
+ * @param paneId - 要隐藏的面板 ID
+ * @returns 如果面板被添加到隐藏列表则返回 true，团队不存在则返回 false
  */
 export function addHiddenPaneId(teamName: string, paneId: string): boolean {
   const teamFile = readTeamFile(teamName)
@@ -251,10 +241,10 @@ export function addHiddenPaneId(teamName: string, paneId: string): boolean {
 }
 
 /**
- * Removes a pane ID from the hidden panes list in the team file.
- * @param teamName - The name of the team
- * @param paneId - The pane ID to show (remove from hidden list)
- * @returns true if the pane was removed from hidden list, false if team doesn't exist
+ * 从团队文件的隐藏面板列表中移除面板 ID。
+ * @param teamName - 团队名称
+ * @param paneId - 要显示的面板 ID（从隐藏列表中移除）
+ * @returns 如果面板从隐藏列表中移除则返回 true，团队不存在则返回 false
  */
 export function removeHiddenPaneId(teamName: string, paneId: string): boolean {
   const teamFile = readTeamFile(teamName)
@@ -276,11 +266,11 @@ export function removeHiddenPaneId(teamName: string, paneId: string): boolean {
 }
 
 /**
- * Removes a teammate from the team config file by pane ID.
- * Also removes from hiddenPaneIds if present.
- * @param teamName - The name of the team
- * @param tmuxPaneId - The pane ID of the teammate to remove
- * @returns true if the member was removed, false if team or member doesn't exist
+ * 通过面板 ID 从团队配置文件中移除 teammate。
+ * 如果存在，也会从 hiddenPaneIds 中移除。
+ * @param teamName - 团队名称
+ * @param tmuxPaneId - 要移除的 teammate 的面板 ID
+ * @returns 如果成员被移除则返回 true，团队或成员不存在则返回 false
  */
 export function removeMemberFromTeam(
   teamName: string,
@@ -298,10 +288,10 @@ export function removeMemberFromTeam(
     return false
   }
 
-  // Remove from members array
+  // 从 members 数组中移除
   teamFile.members.splice(memberIndex, 1)
 
-  // Also remove from hiddenPaneIds if present
+  // 如果存在也从 hiddenPaneIds 中移除
   if (teamFile.hiddenPaneIds) {
     const hiddenIndex = teamFile.hiddenPaneIds.indexOf(tmuxPaneId)
     if (hiddenIndex !== -1) {
@@ -317,11 +307,11 @@ export function removeMemberFromTeam(
 }
 
 /**
- * Removes a teammate from a team's member list by agent ID.
- * Use this for in-process teammates which all share the same tmuxPaneId.
- * @param teamName - The name of the team
- * @param agentId - The agent ID of the teammate to remove (e.g., "researcher@my-team")
- * @returns true if the member was removed, false if team or member doesn't exist
+ * 通过 agent ID 从团队的成员列表中移除 teammate。
+ * 用于所有共享同一 tmuxPaneId 的进程内 teammate。
+ * @param teamName - 团队名称
+ * @param agentId - 要移除的 teammate 的 agent ID（例如 "researcher@my-team"）
+ * @returns 如果成员被移除则返回 true，团队或成员不存在则返回 false
  */
 export function removeMemberByAgentId(
   teamName: string,
@@ -337,7 +327,7 @@ export function removeMemberByAgentId(
     return false
   }
 
-  // Remove from members array
+  // 从 members 数组中移除
   teamFile.members.splice(memberIndex, 1)
 
   writeTeamFile(teamName, teamFile)
@@ -348,11 +338,11 @@ export function removeMemberByAgentId(
 }
 
 /**
- * Sets a team member's permission mode.
- * Called when the team leader changes a teammate's mode via the TeamsDialog.
- * @param teamName - The name of the team
- * @param memberName - The name of the member to update
- * @param mode - The new permission mode
+ * 设置团队成员的权限模式。
+ * 当团队 leader 通过 TeamsDialog 更改 teammate 的模式时调用。
+ * @param teamName - 团队名称
+ * @param memberName - 要更新的成员名称
+ * @param mode - 新的权限模式
  */
 export function setMemberMode(
   teamName: string,
@@ -372,12 +362,12 @@ export function setMemberMode(
     return false
   }
 
-  // Only write if the value is actually changing
+  // 仅在值实际变化时才写入
   if (member.mode === mode) {
     return true
   }
 
-  // Create updated members array immutably
+  // 以不可变方式创建更新后的 members 数组
   const updatedMembers = teamFile.members.map(m =>
     m.name === memberName ? { ...m, mode } : m,
   )
@@ -389,10 +379,10 @@ export function setMemberMode(
 }
 
 /**
- * Sync the current teammate's mode to config.json so team lead sees it.
- * No-op if not running as a teammate.
- * @param mode - The permission mode to sync
- * @param teamNameOverride - Optional team name override (uses env var if not provided)
+ * 将当前 teammate 的模式同步到 config.json 以便 team lead 可见。
+ * 如果不是以 teammate 身份运行则无操作。
+ * @param mode - 要同步的权限模式
+ * @param teamNameOverride - 可选的团队名称覆盖（未提供时使用环境变量）
  */
 export function syncTeammateMode(
   mode: PermissionMode,
@@ -407,10 +397,10 @@ export function syncTeammateMode(
 }
 
 /**
- * Sets multiple team members' permission modes in a single atomic operation.
- * Avoids race conditions when updating multiple teammates at once.
- * @param teamName - The name of the team
- * @param modeUpdates - Array of {memberName, mode} to update
+ * 在单个原子操作中设置多个团队成员的权限模式。
+ * 避免同时更新多个 teammate 时的竞态条件。
+ * @param teamName - 团队名称
+ * @param modeUpdates - 要更新的 {memberName, mode} 数组
  */
 export function setMultipleMemberModes(
   teamName: string,
@@ -421,10 +411,10 @@ export function setMultipleMemberModes(
     return false
   }
 
-  // Build a map of updates for efficient lookup
+  // 构建更新映射以便高效查找
   const updateMap = new Map(modeUpdates.map(u => [u.memberName, u.mode]))
 
-  // Create updated members array immutably
+  // 以不可变方式创建更新后的 members 数组
   let anyChanged = false
   const updatedMembers = teamFile.members.map(member => {
     const newMode = updateMap.get(member.name)
@@ -445,11 +435,11 @@ export function setMultipleMemberModes(
 }
 
 /**
- * Sets a team member's active status.
- * Called when a teammate becomes idle (isActive=false) or starts a new turn (isActive=true).
- * @param teamName - The name of the team
- * @param memberName - The name of the member to update
- * @param isActive - Whether the member is active (true) or idle (false)
+ * 设置团队成员的活动状态。
+ * 当 teammate 变为空闲（isActive=false）或开始新轮次（isActive=true）时调用。
+ * @param teamName - 团队名称
+ * @param memberName - 要更新的成员名称
+ * @param isActive - 成员是否活动（true 为活动，false 为空闲）
  */
 export async function setMemberActive(
   teamName: string,
@@ -472,7 +462,7 @@ export async function setMemberActive(
     return
   }
 
-  // Only write if the value is actually changing
+  // 仅在值实际变化时才写入
   if (member.isActive === isActive) {
     return
   }
@@ -485,31 +475,31 @@ export async function setMemberActive(
 }
 
 /**
- * Destroys a git worktree at the given path.
- * First attempts to use `git worktree remove`, then falls back to rm -rf.
- * Safe to call on non-existent paths.
+ * 销毁给定路径的 git worktree。
+ * 首先尝试使用 `git worktree remove`，然后回退到 rm -rf。
+ * 对不存在的路径调用是安全的。
  */
 async function destroyWorktree(worktreePath: string): Promise<void> {
-  // Read the .git file in the worktree to find the main repo
+  // 读取 worktree 中的 .git 文件以找到主仓库
   const gitFilePath = join(worktreePath, '.git')
   let mainRepoPath: string | null = null
 
   try {
     const gitFileContent = (await readFile(gitFilePath, 'utf-8')).trim()
-    // The .git file contains something like: gitdir: /path/to/repo/.git/worktrees/worktree-name
+    // .git 文件包含类似：gitdir: /path/to/repo/.git/worktrees/worktree-name
     const match = gitFileContent.match(/^gitdir:\s*(.+)$/)
     if (match && match[1]) {
-      // Extract the main repo .git directory (go up from .git/worktrees/name to .git)
+      // 提取主仓库的 .git 目录（从 .git/worktrees/name 向上到 .git）
       const worktreeGitDir = match[1]
-      // Go up 2 levels from .git/worktrees/name to get to .git, then get parent for repo root
+      // 从 .git/worktrees/name 向上 2 级到 .git，然后获取父目录作为仓库根
       const mainGitDir = join(worktreeGitDir, '..', '..')
       mainRepoPath = join(mainGitDir, '..')
     }
   } catch {
-    // Ignore errors reading .git file (path doesn't exist, not a file, etc.)
+    // 忽略读取 .git 文件的错误（路径不存在、不是文件等）
   }
 
-  // Try to remove using git worktree remove command
+  // 尝试使用 git worktree remove 命令移除
   if (mainRepoPath) {
     const result = await execFileNoThrowWithCwd(
       gitExe(),
@@ -524,7 +514,7 @@ async function destroyWorktree(worktreePath: string): Promise<void> {
       return
     }
 
-    // Check if the error is "not a working tree" (already removed)
+    // 检查错误是否为 "not a working tree"（已移除）
     if (result.stderr?.includes('not a working tree')) {
       logForDebugging(
         `[TeammateTool] Worktree already removed: ${worktreePath}`,
@@ -537,7 +527,7 @@ async function destroyWorktree(worktreePath: string): Promise<void> {
     )
   }
 
-  // Fallback: manually remove the directory
+  // 回退：手动移除目录
   try {
     await rm(worktreePath, { recursive: true, force: true })
     logForDebugging(
@@ -551,27 +541,27 @@ async function destroyWorktree(worktreePath: string): Promise<void> {
 }
 
 /**
- * Mark a team as created this session so it gets cleaned up on exit.
- * Call this right after the initial writeTeamFile. TeamDelete should
- * call unregisterTeamForSessionCleanup to prevent double-cleanup.
- * Backing Set lives in bootstrap/state.ts so resetStateForTests()
- * clears it between tests (avoids the PR #17615 cross-shard leak class).
+ * 将团队标记为本会话创建，以便退出时清理。
+ * 在初始 writeTeamFile 之后立即调用。TeamDelete 应
+ * 调用 unregisterTeamForSessionCleanup 以防止重复清理。
+ * 底层 Set 位于 bootstrap/state.ts 中，以便 resetStateForTests()
+ * 在测试之间清除它（避免 PR #17615 跨分片泄漏类问题）。
  */
 export function registerTeamForSessionCleanup(teamName: string): void {
   getSessionCreatedTeams().add(teamName)
 }
 
 /**
- * Remove a team from session cleanup tracking (e.g., after explicit
- * TeamDelete — already cleaned, don't try again on shutdown).
+ * 从会话清理跟踪中移除团队（例如，在显式 TeamDelete 之后
+ * 已经清理过了，关闭时不再尝试）。
  */
 export function unregisterTeamForSessionCleanup(teamName: string): void {
   getSessionCreatedTeams().delete(teamName)
 }
 
 /**
- * Clean up all teams created this session that weren't explicitly deleted.
- * Registered with gracefulShutdown from init.ts.
+ * 清除此会话中创建但未被显式删除的所有团队。
+ * 通过 init.ts 中的 gracefulShutdown 注册。
  */
 export async function cleanupSessionTeams(): Promise<void> {
   const sessionCreatedTeams = getSessionCreatedTeams()
@@ -580,20 +570,20 @@ export async function cleanupSessionTeams(): Promise<void> {
   logForDebugging(
     `cleanupSessionTeams: removing ${teams.length} orphan team dir(s): ${teams.join(', ')}`,
   )
-  // Kill panes first — on SIGINT the teammate processes are still running;
-  // deleting directories alone would orphan them in open tmux/iTerm2 panes.
-  // (TeamDeleteTool's path doesn't need this — by then teammates have
-  // gracefully exited and useInboxPoller has already closed their panes.)
+  // 先杀死面板 — 在 SIGINT 时 teammate 进程仍在运行；
+  // 仅删除目录会使它们成为开放 tmux/iTerm2 面板中的孤儿进程。
+  // （TeamDeleteTool 的路径不需要这样做 — 那时 teammate 已经
+  // 优雅退出且 useInboxPoller 已经关闭了它们的面板。）
   await Promise.allSettled(teams.map(name => killOrphanedTeammatePanes(name)))
   await Promise.allSettled(teams.map(name => cleanupTeamDirectories(name)))
   sessionCreatedTeams.clear()
 }
 
 /**
- * Best-effort kill of all pane-backed teammate panes for a team.
- * Called from cleanupSessionTeams on ungraceful leader exit (SIGINT/SIGTERM).
- * Dynamic imports avoid adding registry/detection to this module's static
- * dep graph — this only runs at shutdown, so the import cost is irrelevant.
+ * 尽力杀死团队的所有面板支持的 teammate 面板。
+ * 从 cleanupSessionTeams 在 leader 非优雅退出（SIGINT/SIGTERM）时调用。
+ * 动态导入避免将 registry/detection 添加到此模块的静态
+ * 依赖图 — 这仅在关闭时运行，因此导入成本无关紧要。
  */
 async function killOrphanedTeammatePanes(teamName: string): Promise<void> {
   const teamFile = readTeamFile(teamName)
@@ -618,7 +608,7 @@ async function killOrphanedTeammatePanes(teamName: string): Promise<void> {
 
   await Promise.allSettled(
     paneMembers.map(async m => {
-      // filter above guarantees these; narrow for the type system
+      // 上面的 filter 保证了这些；为类型系统收窄
       if (!m.tmuxPaneId || !m.backendType || !isPaneBackend(m.backendType)) {
         return
       }
@@ -634,14 +624,14 @@ async function killOrphanedTeammatePanes(teamName: string): Promise<void> {
 }
 
 /**
- * Cleans up team and task directories for a given team name.
- * Also cleans up git worktrees created for teammates.
- * Called when a swarm session is terminated.
+ * 清理给定团队名称的团队和任务目录。
+ * 同时清理为 teammate 创建的 git worktree。
+ * 在 swarm 会话终止时调用。
  */
 export async function cleanupTeamDirectories(teamName: string): Promise<void> {
   const sanitizedName = sanitizeName(teamName)
 
-  // Read team file to get worktree paths BEFORE deleting the team directory
+  // 在删除团队目录之前读取团队文件以获取 worktree 路径
   const teamFile = readTeamFile(teamName)
   const worktreePaths: string[] = []
   if (teamFile) {
@@ -652,12 +642,12 @@ export async function cleanupTeamDirectories(teamName: string): Promise<void> {
     }
   }
 
-  // Clean up worktrees first
+  // 先清理 worktree
   for (const worktreePath of worktreePaths) {
     await destroyWorktree(worktreePath)
   }
 
-  // Clean up team directory (~/.claude/teams/{team-name}/)
+  // 清理团队目录（~/.claude/teams/{team-name}/）
   const teamDir = getTeamDir(teamName)
   try {
     await rm(teamDir, { recursive: true, force: true })
@@ -668,8 +658,8 @@ export async function cleanupTeamDirectories(teamName: string): Promise<void> {
     )
   }
 
-  // Clean up tasks directory (~/.claude/tasks/{taskListId}/)
-  // The leader and teammates all store tasks under the sanitized team name.
+  // 清理任务目录（~/.claude/tasks/{taskListId}/）
+  // leader 和 teammate 都在清理后的团队名称下存储任务。
   const tasksDir = getTasksDir(sanitizedName)
   try {
     await rm(tasksDir, { recursive: true, force: true })

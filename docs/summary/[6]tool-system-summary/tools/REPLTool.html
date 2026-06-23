@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>REPL 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange: #D77757; --orange-lt: #f0e0d8; --orange-dk: #b55e3a;
+      --blue: #5769F7; --blue-lt: #dde0fe; --blue-dk: #3a4ed4;
+      --green: #22a766; --green-lt: #d2f0e3;
+      --bg: #faf8f5; --bg2: #f3f0eb; --bg3: #ebe7e0;
+      --text: #2d2a26; --text-2: #5a5650; --text-3: #8a8480;
+      --border: #ddd8d0;
+      --shadow: 0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius: 8px; --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+    section { margin-top: 56px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; letter-spacing: .01em; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero p { font-size: 1.05rem; color: var(--text-2); max-width: 640px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 6px 16px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .82rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s, box-shadow .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); box-shadow: 0 2px 6px rgba(215,119,87,.15); text-decoration: none; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .8rem; line-height: 1.7; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    blockquote.callout { background: var(--bg2); border-left: 4px solid var(--orange); padding: 14px 20px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0; color: var(--text-2); }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin: 16px 0; overflow-x: auto; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 48px; padding: 8px 18px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; transition: border-color .15s, color .15s; }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    @media (max-width: 700px) { .hero h1 { font-size: 1.6rem; } }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>REPL 工具详解</h1>
+  <p>在 VM 上下文中批量调用原始工具的"包装器"工具——当前为 stub，依赖 ant 原生运行时</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一">工具定位</a></li>
+    <li><a href="#二">关键文件清单</a></li>
+    <li><a href="#三">Tool 接口字段实现</a></li>
+    <li><a href="#四">核心执行流程（stub）</a></li>
+    <li><a href="#五">权限与安全</a></li>
+    <li><a href="#六">与其他系统的关系</a></li>
+    <li><a href="#七">亮点与设计取舍</a></li>
+    <li><a href="#八">源码导航</a></li>
+    <li><a href="#九">学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout">
+    <p><code>REPL</code> 是一个<strong>特殊的"工具包装器"</strong>：它不在 VM 中执行任意 JS 代码，而是把 <code>Read</code>/<code>Write</code>/<code>Edit</code>/<code>Glob</code>/<code>Grep</code>/<code>Bash</code>/<code>NotebookEdit</code>/<code>Agent</code> 这 8 个"原始工具"作为函数 API 暴露在一个 VM 上下文里，让模型用一段代码批量调用它们。<strong>重点：在本逆向/学习版中，<code>REPLTool</code> 是一个 stub</strong>——<code>call()</code> 直接返回"REPL 不可用"的错误字符串，真正的 VM 分发由 ant 原生运行时提供。</p>
+  </blockquote>
+
+  <section id="一">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>REPL</code> = 批量调用原始工具的 VM 包装器，当前构建中为 stub。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>REPL</code>（常量 <code>REPL_TOOL_NAME</code>，<code>constants.ts:11</code>）</td></tr>
+          <tr><td>一句话</td><td>在 REPL/VM 环境中执行代码，可访问所有原始工具（当前 stub，返回不可用错误）</td></tr>
+          <tr><td>是否进 system prompt</td><td>❌ <strong>不在</strong> <code>CORE_TOOLS</code> 白名单内（条件注册，见下）</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>破坏性</strong>（<code>isReadOnly() → false</code>，<code>:49</code>）</td></tr>
+          <tr><td>是否可并发</td><td>❌ <strong>不可并发</strong>（<code>isConcurrencySafe() → false</code>，<code>:46</code>）</td></tr>
+          <tr><td>核心依赖</td><td>ant 原生运行时提供 VM 分发（本构建中缺失）</td></tr>
+          <tr><td>定位互补方</td><td><code>Bash</code>/<code>Read</code>/<code>Write</code>/<code>Edit</code>/<code>Glob</code>/<code>Grep</code>/<code>NotebookEdit</code>/<code>Agent</code>（被包装的原始工具）</td></tr>
+          <tr><td>注册门控</td><td><strong>ant 用户 + REPL 模式启用</strong>（<code>tools.ts:260</code> + <code>isReplModeEnabled</code>）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>注册条件</strong>（<code>tools.ts:16-19</code>、<code>:260</code>）：REPLTool 通过 <code>require()</code> 惰性加载（非顶层 import），仅在 <code>process.env.USER_TYPE === 'ant'</code> 且 <code>REPLTool</code> 存在时加入工具列表。<code>constants.ts:23-30</code> 的 <code>isReplModeEnabled</code> 进一步要求：<code>CLAUDE_CODE_REPL</code> 非假 +（<code>CLAUDE_REPL_MODE=1</code> 或 ant 用户 + cli 入口）。</p>
+  </section>
+
+  <section id="二">
+    <h2>二、关键文件清单</h2>
+    <pre><code>REPLTool/
+├── REPLTool.ts        ← buildTool 主体（2.6KB，极简，call() 是 stub）
+├── constants.ts       ← REPL_TOOL_NAME + isReplModeEnabled + REPL_ONLY_TOOLS
+└── primitiveTools.ts  ← getReplPrimitiveTools（被隐藏的原始工具列表）</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>REPLTool.ts</code></td><td>工具主体（极简 schema + stub call）</td><td><code>buildTool:21</code>、<code>call:77</code>（stub）</td></tr>
+          <tr><td><code>constants.ts</code></td><td>名称 + 门控函数 + REPL_ONLY_TOOLS</td><td><code>REPL_TOOL_NAME:11</code>、<code>isReplModeEnabled:23</code>、<code>REPL_ONLY_TOOLS:37</code></td></tr>
+          <tr><td><code>primitiveTools.ts</code></td><td>原始工具惰性列表</td><td><code>getReplPrimitiveTools:27</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：REPLTool 是"极简单文件"型——只有 3 个文件，主体 90 行。这是因为它是一个<strong>接口壳</strong>，真正逻辑（VM 分发）在 ant 原生运行时，本构建中不存在。</p></blockquote>
+  </section>
+
+  <section id="三">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <p>REPLTool 只实现了<strong>最小字段集</strong>，缺失大量标准字段（无 <code>checkPermissions</code>、无 <code>validateInput</code>、无 <code>renderToolResultMessage</code>、无 <code>preparePermissionMatcher</code>）。</p>
+    <h3>标识字段</h3>
+    <pre><code>name: REPL_TOOL_NAME,                  // "REPL"
+searchHint: 'repl execute batch code read write edit glob grep bash',
+maxResultSizeChars: 100_000,           // 比 Bash/Glob 高（10 万字符）
+strict: true,</code></pre>
+    <h3>输入 schema（<code>:7-15</code>）</h3>
+    <pre><code>{
+  code: string  // 在 REPL 中执行的代码，可通过 API 调用任何原始工具
+}</code></pre>
+    <p><strong>输出类型</strong>（<code>:19</code>，无 lazySchema）：</p>
+    <pre><code>type REPLOutput = { result: string; tool_calls: number }</code></pre>
+    <h3>行为字段</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:77</code></td><td><strong>stub</strong>：直接返回"REPL 工具不可用"错误</td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:46</code> → <code>false</code></td><td>不可并发（可能写文件）</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:49</code> → <code>false</code></td><td>破坏性</td></tr>
+          <tr><td><code>isTransparentWrapper()</code></td><td><code>:52</code> → <code>true</code></td><td>标记为"透明包装器"——它包装的是原始工具</td></tr>
+          <tr><td><code>description()</code></td><td><code>:31</code></td><td>在 REPL 环境中执行代码，可访问所有原始工具</td></tr>
+          <tr><td><code>prompt()</code></td><td><code>:34</code></td><td>说明 REPL 场景：批量操作、多步骤转换、合并搜索与编辑</td></tr>
+          <tr><td><code>userFacingName()</code></td><td><code>:56</code></td><td>返回 <code>'REPL'</code></td></tr>
+          <tr><td><code>renderToolUseMessage()</code></td><td><code>:60</code></td><td><code>REPL: &lt;code 前 77 字符&gt;</code>（超长截断）</td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam()</code></td><td><code>:66</code></td><td>直接把 <code>content.result</code> 作为 tool_result 内容</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3><code>isTransparentWrapper: true</code> 的含义</h3>
+    <p>这是 REPLTool 的关键标记。它告诉系统：这个工具<strong>不自己做实际工作</strong>，而是包装其他工具。这与 <code>call()</code> 是 stub 一致——真正的执行委托给被包装的原始工具。</p>
+  </section>
+
+  <section id="四">
+    <h2>四、核心执行流程：<code>call()</code>（stub）</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    A["call(input)\nREPLTool.ts:77"] --> B["无 VM 分发"]
+    B --> C["return { data: {\n  result: '错误：当前构建中 REPL 工具不可用...',\n  tool_calls: 0\n} }"]
+      </div>
+    </div>
+    <p><code>call()</code> 的完整实现（<code>:77-89</code>）：</p>
+    <pre><code>async call(_input: REPLInput) {
+  // REPL 执行引擎由 ant 原生运行时提供。
+  // 此存根仅满足工具接口；实际的 VM 分发
+  // 在 ant 构建中连接。没有 ant 运行时的情况下，REPL 不可用，
+  // 应告知调用方。
+  return {
+    data: {
+      result: '错误：当前构建中 REPL 工具不可用。REPL 执行引擎需要 ant 原生运行时。',
+      tool_calls: 0,
+    },
+  }
+}</code></pre>
+    <p><strong>如实说明</strong>：在本逆向/学习版中，REPLTool 不可用。注释明确：VM 分发在 ant 原生构建中连接，本构建缺失。调用 <code>call()</code> 会返回错误字符串，模型会被告知 REPL 不可用。</p>
+    <blockquote class="callout"><p><strong>设计意图</strong>（从 prompt 推断）：完整的 REPL 应该在一个 VM 上下文中执行 <code>code</code>，代码可通过函数 API 调用 <code>Read(path)</code>、<code>Bash(command)</code> 等原始工具，每次调用的结果被收集并一并返回。适用场景：跨多文件的批量操作、复杂多步骤转换、合并搜索结果与编辑。<code>tool_calls</code> 字段记录本次 REPL 执行中调用的工具次数。</p></blockquote>
+  </section>
+
+  <section id="五">
+    <h2>五、权限与安全</h2>
+    <p>REPLTool <strong>没有</strong> <code>checkPermissions</code> 字段，也没有 <code>validateInput</code>。这意味着：</p>
+    <ul>
+      <li><strong>无输入校验</strong>：<code>code</code> 字段不经过任何校验。</li>
+      <li><strong>无权限检查</strong>：不调用 <code>canUseTool</code> 管道。</li>
+    </ul>
+    <blockquote class="callout"><p><strong>如实说明</strong>：这是 stub 状态的体现。完整的 REPL 实现应该在 VM 内部对每个原始工具调用应用各自的权限检查。本构建中 stub 不执行任何操作，所以权限检查也无意义。</p></blockquote>
+    <p><strong>唯一的安全相关属性</strong>：</p>
+    <ul>
+      <li><code>isReadOnly() → false</code>：标记为破坏性，不会被自动放行或并发。</li>
+      <li><code>isConcurrencySafe() → false</code>：不可并发。</li>
+    </ul>
+  </section>
+
+  <section id="六">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    REPL["REPL"] -.包装.-> PRIM["getReplPrimitiveTools()\nFileRead/Write/Edit/Glob/Grep/\nBash/NotebookEdit/Agent"]
+    REPL -.门控.-> GATE["isReplModeEnabled\nUSER_TYPE=ant + cli 入口"]
+    REPL -.注册.-> TOOLS["tools.ts:260\n仅 ant 用户 + REPLTool 存在"]
+    REPL -.隐藏原始工具.-> HIDE["REPL_ONLY_TOOLS\nREPL 模式开启时从模型直接调用中隐藏"]
+    REPL -.VM 分发.-> ANT["ant 原生运行时\n（本构建缺失）"]
+    REPL -.simple 模式.-> SIMPLE["tools.ts:319\nCLAUDE_CODE_SIMPLE + REPL → [REPL]"]
+      </div>
+    </div>
+    <h3>REPL 模式如何改变工具可见性（重点）</h3>
+    <p><code>REPL_ONLY_TOOLS</code>（<code>constants.ts:37-46</code>）定义了 8 个工具：<code>Read</code>/<code>Write</code>/<code>Edit</code>/<code>Glob</code>/<code>Grep</code>/<code>Bash</code>/<code>NotebookEdit</code>/<code>Agent</code>。<strong>当 REPL 模式启用时，这些工具从模型的直接调用中被隐藏</strong>，迫使模型通过 REPL 执行批量操作。</p>
+    <p><code>primitiveTools.ts</code> 的 <code>getReplPrimitiveTools</code>（<code>:27-38</code>）返回<strong>完全相同的 8 个工具实例</strong>——它们在模型面隐藏，但仍可在 REPL VM 上下文中访问。惰性 getter（<code>_primitiveTools ??=</code>）避免循环依赖（TDZ 问题）。</p>
+    <h3>注册的两个门控层（<code>tools.ts</code>）</h3>
+    <ol>
+      <li><strong>顶层工具列表</strong>（<code>:260</code>）：<code>process.env.USER_TYPE === 'ant' &amp;&amp; REPLTool ? [REPLTool] : []</code>——仅 ant 用户加入。</li>
+      <li><strong>simple 模式 REPL 替换</strong>（<code>:319-328</code>）：<code>CLAUDE_CODE_SIMPLE</code> + REPL 模式时，用 <code>[REPLTool]</code> 替换 <code>[BashTool, FileReadTool, FileEditTool]</code>——因为 REPL 在 VM 内部包装这些工具。</li>
+    </ol>
+    <h3>SDK 入口默认关闭（<code>constants.ts:16-22</code>）</h3>
+    <p>注释明确：SDK 入口（sdk-ts/sdk-py/sdk-cli）默认<strong>不开启</strong> REPL 模式——SDK 使用者会脚本化直接调用工具，而 REPL 模式会隐藏这些工具。</p>
+  </section>
+
+  <section id="七">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>stub 如实暴露</strong>：<code>call()</code> 直接返回"不可用"错误，不假装执行。注释明确说明 VM 分发在 ant 原生运行时，本构建缺失——这是逆向项目的诚实体现。</li>
+      <li><strong><code>isTransparentWrapper</code> 标记</strong>：声明本工具是"透明包装器"，包装的是原始工具而非自己做工作。系统可据此做特殊处理。</li>
+      <li><strong>REPL_ONLY_TOOLS 隐藏机制</strong>：REPL 模式开启时，8 个原始工具从模型直接调用中隐藏，迫使模型用 REPL 批量操作——这是一个"减少工具调用往返"的设计，适合跨多文件的批量操作场景。</li>
+      <li><strong>惰性 getter 破循环依赖</strong>（<code>primitiveTools.ts:11</code>）：顶层 const 会触发 <code>Cannot access before initialization</code>（TDZ），延迟到调用时执行可避免。</li>
+      <li><strong>直接引用而非 getAllBaseTools</strong>（<code>primitiveTools.ts:24-26</code>）：注释说明，<code>getAllBaseTools()</code> 在 <code>hasEmbeddedSearchTools()</code> 为 true 时会排除 Glob/Grep，但 REPL 需要完整 8 个工具，所以直接引用。</li>
+      <li><strong>双层注册门控</strong>：<code>USER_TYPE === 'ant'</code> + <code>isReplModeEnabled()</code>，且 SDK 入口默认关闭——避免 ant 原生二进制对 SDK 子进程强制开启。</li>
+      <li><strong>100K 结果阈值</strong>：<code>maxResultSizeChars: 100_000</code>，高于 Bash/Glob（30K/100K）——批量操作可能产生更多输出。</li>
+    </ol>
+  </section>
+
+  <section id="八">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>REPLTool/constants.ts:11</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>REPLTool/REPLTool.ts:21-90</code></td></tr>
+          <tr><td>stub <code>call()</code> 实现</td><td><code>REPLTool.ts:77-89</code></td></tr>
+          <tr><td>输入/输出 schema</td><td><code>REPLTool.ts:7-19</code></td></tr>
+          <tr><td>REPL 模式门控</td><td><code>constants.ts:23</code>（isReplModeEnabled）</td></tr>
+          <tr><td>REPL_ONLY_TOOLS 隐藏列表</td><td><code>constants.ts:37</code></td></tr>
+          <tr><td>原始工具惰性列表</td><td><code>primitiveTools.ts:27</code>（getReplPrimitiveTools）</td></tr>
+          <tr><td>注册（tools.ts）</td><td><code>src/tools.ts:16-19</code>（惰性 require）/ <code>:260</code>（ant 用户注册）/ <code>:319</code>（simple 模式替换）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="九">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：这是本系列中<strong>唯一一个 stub 工具</strong>的样例。先理解"REPL 是包装器"的设计意图（通过 prompt 与 REPL_ONLY_TOOLS 推断），再确认它的 stub 状态（call() 返回错误），最后看注册门控如何控制它的可见性。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 REPLTool 在本构建中是 stub（call() 返回"不可用"错误）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 REPL 包装的 8 个原始工具（Read/Write/Edit/Glob/Grep/Bash/NotebookEdit/Agent）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>isTransparentWrapper: true</code> 的含义（透明包装器，不自己做工作）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 REPL 模式开启时 REPL_ONLY_TOOLS 的作用（从模型直接调用中隐藏原始工具）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 REPL 模式的两个门控条件（USER_TYPE=ant + isReplModeEnabled）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为何 SDK 入口默认关闭 REPL 模式（SDK 脚本化直接调用，REPL 会隐藏工具）</span></li>
+      <li><input type="checkbox" disabled> <span>能找到 simple 模式下 REPL 替换原始工具的位置（tools.ts:319）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>primitiveTools.ts</code> 为何用惰性 getter（破 TDZ 循环依赖）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>在 ant 用户 + cli 入口下启用 REPL 模式（<code>CLAUDE_CODE_REPL=1</code>），观察工具列表中原始工具被 REPL 替换</li>
+      <li>调用 <code>REPL</code> 工具，观察返回的"不可用"错误字符串</li>
+      <li>阅读 <code>primitiveTools.ts</code>，确认 8 个工具与 <code>REPL_ONLY_TOOLS</code> 一致</li>
+      <li>对比 BashTool 的 19 个文件与 REPLTool 的 3 个文件，理解 stub 与完整实现的规模差异</li>
+      <li>在 <code>tools.ts:319</code> 加日志，验证 simple + REPL 模式下工具列表的替换行为</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

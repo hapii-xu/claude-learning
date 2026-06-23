@@ -16,12 +16,12 @@ export type RelevantMemory = {
   mtimeMs: number
 }
 
-const SELECT_MEMORIES_SYSTEM_PROMPT = `You are selecting memories that will be useful to Claude Code as it processes a user's query. You will be given the user's query and a list of available memory files with their filenames and descriptions.
+const SELECT_MEMORIES_SYSTEM_PROMPT = `你正在筛选对 Claude Code 处理用户查询有用的记忆。你将获得用户的查询内容以及可用记忆文件的列表（包含文件名和描述）。
 
-Return a list of filenames for the memories that will clearly be useful to Claude Code as it processes the user's query (up to 5). Only include memories that you are certain will be helpful based on their name and description.
-- If you are unsure if a memory will be useful in processing the user's query, then do not include it in your list. Be selective and discerning.
-- If there are no memories in the list that would clearly be useful, feel free to return an empty list.
-- If a list of recently-used tools is provided, do not select memories that are usage reference or API documentation for those tools (Claude Code is already exercising them). DO still select memories containing warnings, gotchas, or known issues about those tools — active use is exactly when those matter.
+请返回一个文件名列表，列出那些在处理用户查询时明显有用的记忆（最多 5 个）。仅包含你根据名称和描述确定会有帮助的记忆。
+- 如果你不确定某条记忆是否对处理用户查询有用，则不要将其包含在列表中。请有选择性和判断力。
+- 如果列表中没有明显有用的记忆，可以返回空列表。
+- 如果提供了最近使用工具的列表，不要选择这些工具的使用参考或 API 文档类记忆（Claude Code 已在使用它们）。但仍应选择包含这些工具的警告、注意事项或已知问题的记忆——正在使用时恰恰是这些内容最重要的时候。
 `
 
 /**
@@ -107,7 +107,7 @@ async function selectRelevantMemories(
   // 描述中的 "spawn" → 误报）。
   const toolsSection =
     recentTools.length > 0
-      ? `\n\nRecently used tools: ${recentTools.join(', ')}`
+      ? `\n\n最近使用的工具：${recentTools.join(', ')}`
       : ''
 
   try {
@@ -118,7 +118,7 @@ async function selectRelevantMemories(
       messages: [
         {
           role: 'user',
-          content: `Query: ${query}\n\nAvailable memories:\n${manifest}${toolsSection}`,
+          content: `查询：${query}\n\n可用记忆：\n${manifest}${toolsSection}`,
         },
       ],
       max_tokens: 256,

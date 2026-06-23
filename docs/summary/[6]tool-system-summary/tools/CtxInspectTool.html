@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CtxInspect 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    .kw  { color: #7c9bff; font-weight: 600; }
+    .str { color: #6cc77a; }
+    .fn  { color: #f0906a; }
+    .cmt { color: #6e6a62; font-style: italic; }
+    .type{ color: #e0a020; }
+    .num { color: #c792ea; }
+
+    /* inline code */
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Additional styles ─────────────────────────────────── */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>CtxInspect 工具详解</h1>
+  <p>调试专用工具——检查当前上下文窗口的令牌占用、消息数量、prompt 缓存/会话内存/上下文折叠状态，帮助模型决定是否裁剪历史</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian-qing-dan">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou-zi-duan">三、Tool 接口字段</a></li>
+    <li><a href="#si-he-xin-zhi-xing-liu-cheng">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian-yu-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-yu-qi-ta-xi-tong-de-guan-xi">六、与其他系统的关系</a></li>
+    <li><a href="#qi-liang-dian-yu-she-ji-qu-she">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma-dao-hang">八、源码导航</a></li>
+    <li><a href="#jiu-xue-xi-jian-yi">九、学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout">
+    <p>这是工具系统逐个拆解系列的一篇。<code>CtxInspect</code> 是一个<strong>简单</strong>的调试专用工具：让模型（或调试者）查看当前上下文窗口的"健康度"——总令牌数、消息数、prompt 缓存是否启用、会话内存、上下文折叠（context collapse）状态与统计。它是只读的纯诊断工具，帮助模型在裁剪历史前评估上下文预算。</p>
+  </blockquote>
+
+  <hr class="divider">
+
+  <section id="yi-gong-ju-ding-wei">
+    <h2>一、工具定位（一句话总结）</h2>
+
+    <p><strong><code>CtxInspect</code> = 检查当前上下文窗口内容与令牌使用的只读诊断工具（调试专用）。</strong></p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>CtxInspect</code>（常量内联 <code>:12</code>）</td></tr>
+          <tr><td>一句话</td><td>返回 total_tokens / message_count / 缓存状态 / 折叠统计</td></tr>
+          <tr><td>是否进 system prompt</td><td>❌ 不在 <code>CORE_TOOLS</code>；<code>tools.ts:125-127</code> 受 <code>feature('CONTEXT_COLLAPSE')</code> 门控，<code>:251</code> 条件注册</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>:59</code>）</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>:56</code>）</td></tr>
+          <tr><td>激活门控</td><td><code>feature('CONTEXT_COLLAPSE')</code>（构建期）</td></tr>
+          <tr><td>核心依赖</td><td><code>tokenCountWithEstimation</code>、<code>contextCollapse</code>、<code>SessionMemory</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>为什么需要它？</strong> 模型在长会话中需要感知"我还剩多少上下文预算"。本工具提供这份体检报告，让模型在调用 Snip（剪除）或调整策略前有数据支撑。它是 context collapse 功能的配套诊断面板。</p>
+
+    <blockquote>
+      <p><strong>注</strong>：CLAUDE.md 列出 <code>CONTEXT_COLLAPSE</code> 为"已禁用"feature，故本工具在默认构建中不启用，属调试/实验性质。</p>
+    </blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-guan-jian-wen-jian-qing-dan">
+    <h2>二、关键文件清单</h2>
+
+    <pre><code>CtxInspectTool/
+├── CtxInspectTool.ts          ← buildTool({...}) 主体（125 行）
+└── __tests__/
+    └── CtxInspectTool.test.ts ← 单元测试</code></pre>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>CtxInspectTool.ts</code></td><td>主体：schema + call() + 上下文统计</td><td><code>buildTool:37</code>、<code>call:82</code>、token 统计 <code>:85</code>、折叠统计 <code>:86-87</code></td></tr>
+          <tr><td><code>__tests__/CtxInspectTool.test.ts</code></td><td>单元测试</td><td>覆盖 call() 各字段</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <blockquote>
+      <p><strong>结构特点</strong>：单文件主体 + 配套测试（本批少数有测试的工具）。无独立 prompt.ts（描述内联）。是 context collapse 系统的诊断出口。</p>
+    </blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-tool-jie-kou-zi-duan">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+    <h3>标识字段</h3>
+
+    <pre><code>name: CTX_INSPECT_TOOL_NAME,   // "CtxInspect"
+searchHint: 'context inspect tokens usage messages window collapse',
+maxResultSizeChars: 50_000,
+strict: true,</code></pre>
+
+    <h3>模型面字段</h3>
+
+    <pre><code>async description() { return '检查当前上下文窗口内容和令牌使用情况' }
+async prompt()      { return `检查当前的对话上下文...` }
+get inputSchema()   // lazySchema + z.strictObject</code></pre>
+
+    <p><strong>输入 schema</strong>（<code>:14-23</code>）：</p>
+
+    <pre><code>{
+  query?: string,   // 可选，过滤上下文条目；省略返回全部摘要
+}</code></pre>
+
+    <p><strong>输出类型</strong>（<code>:27-35</code>）：</p>
+
+    <pre><code>{
+  total_tokens: number,
+  message_count: number,
+  context_window_model: string,
+  prompt_caching_enabled: boolean,
+  session_memory_enabled: boolean,
+  context_collapse_enabled: boolean,
+  summary: string,
+}</code></pre>
+
+    <h3>行为字段</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:82</code></td><td>统计上下文（见下节）</td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:56</code> → <code>true</code></td><td>只读</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:59</code> → <code>true</code></td><td>纯诊断</td></tr>
+          <tr><td><code>userFacingName()</code></td><td><code>:63</code> → <code>'CtxInspect'</code></td><td></td></tr>
+          <tr><td><code>renderToolUseMessage</code></td><td><code>:67</code> → <code>'Context Inspect'</code></td><td></td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>:71</code></td><td><code>Context: N tokens, M messages\n&lt;summary&gt;</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <blockquote>
+      <p><strong>注意</strong>：没有 <code>isEnabled</code> / <code>checkPermissions</code> / <code>validateInput</code>。可见性由 <code>feature('CONTEXT_COLLAPSE')</code> 决定。</p>
+    </blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-he-xin-zhi-xing-liu-cheng">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+
+    <p><code>call()</code>（<code>:82-124</code>）收集上下文各项指标并组装报告：</p>
+
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    A["call(input, ctx)\n:82"] --> B["messages = ctx.messages ?? []\n:83"]
+    B --> C["model = ctx.options.mainLoopModel\n:84"]
+    C --> D["totalTokens =\ntokenCountWithEstimation(messages)\n:85"]
+    D --> E["collapseEnabled =\nisContextCollapseEnabled()\n:86"]
+    E --> F["collapseStats = getStats()\n:87"]
+    F --> G["sessionMemoryEnabled =\nisSessionMemoryInitialized()\n:90"]
+    G --> H["promptCachingEnabled =\n非 openai/grok/gemini 前缀\n:94"]
+    H --> I["组装 summaryParts\n:99-111"]
+    I --> J["return data\n:113"]
+      </div>
+    </div>
+
+    <p><strong>关键点逐条</strong>：</p>
+
+    <ol>
+      <li><strong>消息来源</strong>（<code>:83</code>）：<code>context.messages</code>——即当前对话历史。<code>?? []</code> 防御空值。</li>
+      <li><strong>模型来源</strong>（<code>:84</code>）：<code>context.options?.mainLoopModel ?? 'unknown'</code>。</li>
+      <li><strong>令牌估算</strong>（<code>:85</code>）：<code>tokenCountWithEstimation</code>——带估算的 token 计数（精确计数成本高，用估算）。</li>
+      <li><strong>折叠状态与统计</strong>（<code>:86-87</code>）：<code>isContextCollapseEnabled()</code> 判开关，<code>getStats()</code> 取 <code>{collapsedSpans, stagedSpans, collapsedMessages}</code>。这些是 context collapse 系统的核心指标。</li>
+      <li><strong>会话内存</strong>（<code>:90</code>）：<code>isSessionMemoryInitialized()</code> 判 SessionMemory 是否就绪。</li>
+      <li><strong>prompt 缓存判定</strong>（<code>:94-97</code>）：注释 <code>:91-93</code> 说明——prompt 缓存是 provider 控制的 API 级特性，非用户开关。仅对支持 Anthropic 风格缓存的 provider（firstParty/Bedrock/Vertex）报为 enabled；<code>openai/</code>、<code>grok/</code>、<code>gemini/</code> 前缀的模型报为 disabled。</li>
+      <li><strong>summary 组装</strong>（<code>:99-111</code>）：根据 <code>query</code> 是否提供决定标题（Focus vs Overall），追加模型、缓存、会话内存、折叠状态；折叠启用时再追加 span 统计。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian-yu-an-quan">
+    <h2>五、权限与安全</h2>
+
+    <ul>
+      <li><strong>无 <code>checkPermissions</code> / <code>validateInput</code></strong>：只读诊断，无副作用。</li>
+      <li><strong><code>isReadOnly: true</code> + <code>isConcurrencySafe: true</code></strong>：纯查询，可安全并发。</li>
+      <li><strong>无敏感信息泄露风险</strong>：返回的是聚合统计（token 数、消息数），不导出消息内容。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-yu-qi-ta-xi-tong-de-guan-xi">
+    <h2>六、与其他系统/工具的关系</h2>
+
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    CTX["CtxInspectTool"] -->|token 统计| TK["tokenCountWithEstimation\nsrc/utils/tokens.ts"]
+    CTX -->|折叠状态| CC["contextCollapse\nsrc/services/contextCollapse/"]
+    CTX -->|会话内存| SM["SessionMemory\nsrc/services/SessionMemory/"]
+    CTX -.配套.-> SNIP["SnipTool\n剪除决策的依据"]
+      </div>
+    </div>
+
+    <ul>
+      <li><strong>与 context collapse 系统</strong>：核心关系。<code>isContextCollapseEnabled</code> + <code>getStats</code> 直接反映该系统的运行状态，本工具是它的诊断面板。</li>
+      <li><strong>与 <code>SnipTool</code></strong>：配套——先 CtxInspect 看预算，再 Snip 剪除冗余。两者都是上下文管理工具族。</li>
+      <li><strong>与 token 计数</strong>：依赖 <code>tokenCountWithEstimation</code> 做令牌估算。</li>
+      <li><strong>与多 provider</strong>：prompt 缓存判定体现了对 firstParty vs openai/grok/gemini 差异的感知。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian-yu-she-ji-qu-she">
+    <h2>七、亮点与设计取舍</h2>
+
+    <ol>
+      <li><strong>provider 感知的缓存判定</strong>（<code>:94-97</code>）：不简单布尔，而是按模型前缀区分——体现对多 API 兼容层（CLAUDE.md 的 OpenAI/Gemini/Grok 兼容层）的认知。</li>
+      <li><strong>Focus vs Overall 标题</strong>（<code>:88,100</code>）：<code>query</code> 参数当前仅影响标题，注释说"用于过滤上下文条目"但实现未做过滤——是预留的扩展点。</li>
+      <li><strong>折叠统计详尽</strong>（<code>:108-110</code>）：<code>collapsedSpans</code> / <code>stagedSpans</code> / <code>collapsedMessages</code> 三个维度，完整反映折叠进度。</li>
+      <li><strong><code>tokenCountWithEstimation</code> 而非精确计数</strong>：性能与精度的权衡——诊断工具用估算足够。</li>
+      <li><strong>调试专用定位</strong>：feature gate <code>CONTEXT_COLLAPSE</code> 在默认构建禁用，明确其调试/实验性质。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-yuan-ma-dao-hang">
+    <h2>八、源码导航（书签速查）</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>CtxInspectTool/CtxInspectTool.ts:12</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>CtxInspectTool.ts:37-125</code></td></tr>
+          <tr><td>输入 schema</td><td><code>CtxInspectTool.ts:14-23</code></td></tr>
+          <tr><td>输出类型</td><td><code>CtxInspectTool.ts:27-35</code></td></tr>
+          <tr><td><code>call()</code> 统计逻辑</td><td><code>CtxInspectTool.ts:82-124</code></td></tr>
+          <tr><td>prompt 缓存判定</td><td><code>CtxInspectTool.ts:91-97</code></td></tr>
+          <tr><td>折叠统计追加</td><td><code>CtxInspectTool.ts:107-111</code></td></tr>
+          <tr><td>单元测试</td><td><code>CtxInspectTool/__tests__/CtxInspectTool.test.ts</code></td></tr>
+          <tr><td>feature gate 注册</td><td><code>src/tools.ts:125-127, 251</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-xue-xi-jian-yi">
+    <h2>九、学习建议与验证清单</h2>
+
+    <p><strong>怎么读这章</strong>：核心是"四、call()"的统计组装。重点理解 prompt 缓存的 provider 感知判定与折叠统计的字段含义。</p>
+
+    <p><strong>验证清单（读完自测）</strong>：</p>
+
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出本工具是调试专用（feature <code>CONTEXT_COLLAPSE</code> 默认禁用）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 prompt 缓存为何按模型前缀判定（provider 控制的 API 特性）</span></li>
+      <li><input type="checkbox" disabled> <span>能列出折叠统计的三个字段（collapsedSpans / stagedSpans / collapsedMessages）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>query</code> 参数当前的实际作用（仅影响标题，未真过滤）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出它与 SnipTool 的配套关系（先 inspect 再 snip）</span></li>
+      <li><input type="checkbox" disabled> <span>能找到配套单元测试（<code>__tests__/CtxInspectTool.test.ts</code>）</span></li>
+    </ul>
+
+    <p><strong>配合动作</strong>：</p>
+
+    <ol>
+      <li>启用 <code>FEATURE_CONTEXT_COLLAPSE=1</code>，让模型在长会话中调用 CtxInspect</li>
+      <li>对比 firstParty 与 openai provider 下 <code>prompt_caching_enabled</code> 的差异</li>
+      <li>阅读 <code>__tests__/CtxInspectTool.test.ts</code> 确认各字段的测试覆盖</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

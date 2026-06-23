@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RemoteTrigger 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    ul.key-list { padding-left: 20px; color: var(--text-2); }
+    ul.key-list li { margin-bottom: 4px; }
+
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+
+    /* === Additional styles === */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    section { margin-top: 56px; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>RemoteTrigger 工具详解</h1>
+  <p>管理 claude.ai 远程 Claude Code 代理触发器（CCR API）——进程内处理 OAuth、审计每次调用，避免 token 暴露给 shell</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一">工具定位</a></li>
+    <li><a href="#二">关键文件清单</a></li>
+    <li><a href="#三">Tool 接口字段实现</a></li>
+    <li><a href="#四">核心执行流程</a></li>
+    <li><a href="#五">权限与安全</a></li>
+    <li><a href="#六">与其他系统的关系</a></li>
+    <li><a href="#七">亮点与设计取舍</a></li>
+    <li><a href="#八">源码导航</a></li>
+    <li><a href="#九">学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout">
+    <p><code>RemoteTrigger</code> 是 Claude Code 与 claude.ai 远程触发器（CCR, Claude Code Remote）API 对接的工具。它支持对"计划内远程 agent 触发器"的 list/get/create/update/run 五种操作。核心设计亮点：<strong>OAuth token 在进程内自动注入，永不到达 shell</strong>——这是相对 <code>curl</code> 的关键安全优势。每次调用（无论成功失败）都写审计记录。属于"中等复杂度"的网络型工具。</p>
+  </blockquote>
+
+  <section id="一">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>RemoteTrigger</code> = 进程内调用 claude.ai CCR API 管理远程触发器的网络工具。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>RemoteTrigger</code>（常量 <code>REMOTE_TRIGGER_TOOL_NAME</code>，<code>prompt.ts:1</code>）</td></tr>
+          <tr><td>一句话</td><td>list/get/create/update/run 远程触发器，token 进程内注入 + 全程审计</td></tr>
+          <tr><td>是否进 system prompt</td><td>❌ 受 feature flag <code>AGENT_TRIGGERS_REMOTE</code> 门控（<code>tools.ts:39</code>）</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>动态</strong>——<code>list</code>/<code>get</code> 只读，<code>create</code>/<code>update</code>/<code>run</code> 写入（<code>:68-70</code>）</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe() → true</code>，<code>:65</code>）</td></tr>
+          <tr><td>启用条件</td><td><code>getFeatureValue('tengu_surreal_dali') &amp;&amp; isPolicyAllowed('allow_remote_sessions')</code>（<code>:59-64</code>）</td></tr>
+          <tr><td>核心依赖</td><td>axios、OAuth（<code>src/utils/auth.ts</code>）、<code>appendRemoteTriggerAuditRecord</code></td></tr>
+          <tr><td>定位互补方</td><td><code>Bash</code>（curl 替代品，但暴露 token）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> claude.ai 提供"远程触发器"功能——可以计划在远端启动一个 Claude Code agent 执行任务。管理这些触发器需要调 API。模型<strong>本可以用 Bash + curl</strong>，但那会把 OAuth token 暴露给 shell 历史/进程列表。RemoteTrigger 在进程内注入 token，并提供统一审计，是安全合规的官方路径。</p>
+  </section>
+
+  <section id="二">
+    <h2>二、关键文件清单</h2>
+    <pre><code>RemoteTriggerTool/
+├── RemoteTriggerTool.ts   ← buildTool({...}) 主体（182 行），call() 含 HTTP + 审计
+├── prompt.ts              ← 工具名 + DESCRIPTION + PROMPT（API 路径说明）
+├── UI.tsx                 ← renderToolUseMessage + renderToolResultMessage
+└── __tests__/
+    └── RemoteTriggerTool.test.ts   ← 审计记录单测</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>RemoteTriggerTool.ts</code></td><td>工具主体：schema + call（HTTP+审计）+ 结果映射</td><td><code>buildTool:48</code>、<code>call:80</code>、HTTP 分派 <code>:111-140</code>、审计 <code>:151-171</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>工具名 + 描述 + API 操作说明</td><td><code>REMOTE_TRIGGER_TOOL_NAME:1</code>、<code>DESCRIPTION:3</code>、<code>PROMPT:6</code></td></tr>
+          <tr><td><code>UI.tsx</code></td><td>渲染（显示 action + HTTP 状态 + 行数）</td><td><code>renderToolResultMessage:11</code></td></tr>
+          <tr><td><code>__tests__/...test.ts</code></td><td>审计记录单测（成功/失败两路径）</td><td><code>:79-114</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：标准三文件（主体 + prompt + UI）+ 测试。<code>prompt.ts</code> 同时承载工具名常量、DESCRIPTION、PROMPT 三者——与 TeamCreate 拆 <code>constants.ts</code> 不同，这里合并因为内容紧密相关。</p></blockquote>
+  </section>
+
+  <section id="三">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre><code>name: REMOTE_TRIGGER_TOOL_NAME,    // "RemoteTrigger"
+searchHint: 'manage scheduled remote agent triggers',
+maxResultSizeChars: 100_000,
+shouldDefer: true,                 // 延迟工具</code></pre>
+    <h3>模型面字段</h3>
+    <pre><code>async description() { return DESCRIPTION }
+async prompt()      { return PROMPT }
+get inputSchema()  { return inputSchema() }
+get outputSchema() { return outputSchema() }   // 显式 outputSchema</code></pre>
+    <p><strong>输入 schema</strong>（<code>:19-32</code>）：</p>
+    <pre><code>{
+  action: 'list'|'get'|'create'|'update'|'run',  // 必填，操作类型
+  trigger_id?: string,    // get/update/run 必需，正则 /^[\w-]+$/
+  body?: Record&lt;string, unknown&gt;,  // create/update 的 JSON body
+}</code></pre>
+    <blockquote class="callout"><p><strong><code>trigger_id</code> 正则约束</strong>（<code>:24</code>）：<code>/^[\w-]+$/</code>——只允许字母数字下划线和连字符，防止路径注入（trigger_id 会拼进 URL）。</p></blockquote>
+    <p><strong>输出 schema</strong>（<code>:36-43</code>）：</p>
+    <pre><code>{
+  status: number,         // HTTP 状态码
+  json: string,           // API 返回的原始 JSON（字符串化）
+  audit_id?: string,      // 审计记录 ID
+}</code></pre>
+    <h3>行为字段</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:80</code></td><td>HTTP 请求 + 审计（见下节）</td></tr>
+          <tr><td><code>isEnabled()</code></td><td><code>:59</code></td><td><strong>双重门控</strong>：growthbook flag + policy</td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:65</code> → <code>true</code></td><td>HTTP 请求可并发</td></tr>
+          <tr><td><code>isReadOnly(input)</code></td><td><code>:68</code></td><td><strong>动态</strong>：<code>list</code>/<code>get</code> 只读，其余写入</td></tr>
+          <tr><td><code>toAutoClassifierInput(input)</code></td><td><code>:71</code></td><td><code>RemoteTrigger {action} {trigger_id}</code></td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>:173</code></td><td><code>HTTP {status}\n{json}</code></td></tr>
+          <tr><td><code>renderToolUseMessage</code></td><td><code>UI.tsx:7</code></td><td>显示 <code>action trigger_id</code></td></tr>
+          <tr><td><code>renderToolResultMessage</code></td><td><code>UI.tsx:11</code></td><td>显示 <code>HTTP {status} ({lines} 行)</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout">
+      <p><strong>亮点字段</strong>：</p>
+      <ul>
+        <li><strong><code>isEnabled()</code> 双重门控</strong>（<code>:59-64</code>）：<code>getFeatureValue_CACHED_MAY_BE_STALE('tengu_surreal_dali', false) &amp;&amp; isPolicyAllowed('allow_remote_sessions')</code>——growthbook 功能灰度 + 组织策略限制，两层都要过。</li>
+        <li><strong>动态 <code>isReadOnly(input)</code></strong>（<code>:68-70</code>）：根据 <code>action</code> 判断只读性——这是少数让 <code>isReadOnly</code> 依赖输入的工具（多数是常量布尔）。</li>
+      </ul>
+    </blockquote>
+  </section>
+
+  <section id="四">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code>（<code>RemoteTriggerTool.ts:80-172</code>）是标准的"鉴权 → 构造请求 → 发送 → 审计"流程：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["call(input, ctx)\n:80"] --> B["auditBase = {action, triggerId?}"]
+    B --> C["checkAndRefreshOAuthTokenIfNeeded"]
+    C --> D{"accessToken 存在?"}
+    D -- 否 --> X["throw '请 /login'"]
+    D -- 是 --> E["getOrganizationUUID"]
+    E --> F{"orgUUID 存在?"}
+    F -- 否 --> Y["throw '无法解析组织'"]
+    F -- 是 --> G["构造 headers\nBearer token + beta header\n+ org uuid"]
+    G --> H["switch action → method/url/data\nlist/get/create/update/run"]
+    H --> I["axios.request\n20s timeout + abort signal\nvalidateStatus: () => true"]
+    I --> J["appendRemoteTriggerAuditRecord\n{ok, status}"]
+    J --> K["return {status, json, audit_id}"]
+    I -.catch.-> L["appendRemoteTriggerAuditRecord\n{ok:false, error}"]
+    L --> M["rethrow error"]
+      </div>
+    </div>
+    <p><strong>关键点逐条</strong>：</p>
+    <ol>
+      <li><strong>审计基座</strong>（<code>:81-84</code>）：每次调用先构造审计基座，无论后续成功失败都记录。</li>
+      <li><strong>OAuth 刷新</strong>（<code>:86</code>）：<code>checkAndRefreshOAuthTokenIfNeeded()</code> 确保 token 有效（可能自动刷新）。</li>
+      <li><strong>token 存在性检查</strong>（<code>:87-92</code>）：无 token 抛"请运行 /login"——友好引导而非裸错误。</li>
+      <li><strong>组织 UUID 解析</strong>（<code>:93-96</code>）：<code>getOrganizationUUID()</code> 从 OAuth 客户端获取，作为 <code>x-organization-uuid</code> header。</li>
+      <li><strong>请求头构造</strong>（<code>:99-105</code>）：含 <code>Authorization: Bearer {token}</code>、<code>anthropic-beta: ccr-triggers-2026-01-30</code>（<code>:46</code>）。<strong>token 在进程内注入，永不到达 shell</strong>。</li>
+      <li><strong>action 分派</strong>（<code>:111-140</code>）：<code>list</code> → GET、<code>get</code> → GET、<code>create</code> → POST、<code>update</code> → POST、<code>run</code> → POST /run。</li>
+      <li><strong>axios 请求</strong>（<code>:142-150</code>）：<code>timeout: 20_000</code>、<code>validateStatus: () => true</code>（不因 4xx/5xx 抛错）。</li>
+      <li><strong>成功审计</strong>（<code>:151-155</code>）：写 <code>appendRemoteTriggerAuditRecord</code>，返回 <code>auditId</code>。</li>
+      <li><strong>失败审计 + 重抛</strong>（<code>:164-171</code>）：catch 块先记录 <code>{ok:false, error}</code> 再 throw——<strong>审计先于重抛</strong>，保证失败也有记录。</li>
+      <li><strong>返回</strong>（<code>:157-163</code>）：<code>{status, json: jsonStringify(res.data), audit_id}</code>。</li>
+    </ol>
+  </section>
+
+  <section id="五">
+    <h2>五、权限与安全</h2>
+    <p>RemoteTrigger 的安全设计是本系列的标杆：</p>
+    <ol>
+      <li><strong><code>isEnabled()</code> 双重门控</strong>（<code>:59-64</code>）：growthbook flag <code>tengu_surreal_dali</code> + policy <code>allow_remote_sessions</code>。前者控制功能灰度，后者控制组织级权限。</li>
+      <li><strong>进程内 token 注入</strong>（<code>:99-105</code>）：OAuth token 在 Node.js 进程内组装到 header，<strong>永不经 shell</strong>。</li>
+      <li><strong><code>trigger_id</code> 正则约束</strong>（<code>:24</code>）：<code>/^[\w-]+$/</code> 防止路径注入。</li>
+      <li><strong>全程审计</strong>（<code>:151-171</code>）：每次调用（成功/失败）都写审计记录，失败时<strong>审计先于重抛</strong>。</li>
+      <li><strong><code>validateStatus: () => true</code></strong>（<code>:149</code>）：不因 HTTP 状态码抛错——让调用方根据 <code>status</code> 字段决策。</li>
+      <li><strong>OAuth 自动刷新</strong>（<code>:86</code>）：处理 token 过期，避免手动重新登录。</li>
+      <li><strong><code>isReadOnly</code> 动态判定</strong>（<code>:68-70</code>）：<code>list</code>/<code>get</code> 只读，<code>create</code>/<code>update</code>/<code>run</code> 写入，走更严格审批。</li>
+    </ol>
+  </section>
+
+  <section id="六">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    RT[RemoteTrigger] -->|HTTP| API["claude.ai /v1/code/triggers\nCCR API"]
+    RT -->|鉴权| AUTH["src/utils/auth.ts\nOAuth token 刷新"]
+    RT -->|鉴权| OAUTH["src/services/oauth/client.ts\ngetOrganizationUUID"]
+    RT -->|审计| AUD["src/utils/remoteTriggerAudit.ts\nappendRemoteTriggerAuditRecord"]
+    RT -->|门控| GB["growthbook tengu_surreal_dali"]
+    RT -->|门控| POL["policyLimits allow_remote_sessions"]
+    RT -.替代.-> BASH["Bash + curl\n（暴露 token，不推荐）"]
+    RT -.配套.-> SKILL["skills/bundled/scheduleRemoteAgents\n同门控，:333"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 CCR API</strong>：调用 claude.ai 的 <code>/v1/code/triggers</code> 端点，beta header <code>ccr-triggers-2026-01-30</code>（<code>:46</code>）。</li>
+      <li><strong>与 OAuth 系统</strong>：依赖 <code>src/utils/auth.ts</code>（token 刷新）和 <code>src/services/oauth/client.ts</code>（组织 UUID）。</li>
+      <li><strong>与审计系统</strong>：<code>src/utils/remoteTriggerAudit.ts</code> 的 <code>appendRemoteTriggerAuditRecord</code> 持久化每次调用记录。</li>
+      <li><strong>与 <code>Bash</code></strong>：功能上可被 curl 替代，但安全上 RemoteTrigger 是官方推荐路径。</li>
+    </ul>
+  </section>
+
+  <section id="七">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>进程内 token 注入</strong>（<code>:99-105</code>）：本工具最核心的安全卖点。PROMPT 把它作为首要宣传点。</li>
+      <li><strong>双重门控 <code>isEnabled()</code></strong>（<code>:59-64</code>）：growthbook（功能灰度）+ policy（组织权限），两层独立，任一关闭即禁用。</li>
+      <li><strong>动态 <code>isReadOnly(input)</code></strong>（<code>:68-70</code>）：根据 action 区分只读/写入，让权限管道对 <code>run</code>/<code>create</code> 等危险操作更严格。</li>
+      <li><strong><code>validateStatus: () => true</code></strong>（<code>:149</code>）：不因 HTTP 状态抛错，让模型看到完整的 API 响应（含错误信息）。</li>
+      <li><strong>审计先于重抛</strong>（<code>:164-171</code>）：catch 块先写审计再 throw，保证网络异常也有记录。测试专门验证此路径。</li>
+      <li><strong><code>trigger_id</code> 正则防注入</strong>（<code>:24</code>）：<code>/^[\w-]+$/</code> 简单有效，防路径穿越。</li>
+      <li><strong><code>shouldDefer: true</code></strong>：远程触发器是低频功能，延迟加载避免每个会话加载 OAuth/审计依赖。</li>
+      <li><strong>20s 超时 + abort signal</strong>（<code>:147-148</code>）：网络请求标配，支持用户 ESC 中断。</li>
+    </ol>
+  </section>
+
+  <section id="八">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名 + 描述 + PROMPT</td><td><code>RemoteTriggerTool/prompt.ts:1,3,6</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>RemoteTriggerTool/RemoteTriggerTool.ts:48-182</code></td></tr>
+          <tr><td>输入 schema（含 trigger_id 正则）</td><td><code>RemoteTriggerTool.ts:19-32</code></td></tr>
+          <tr><td>输出 schema</td><td><code>RemoteTriggerTool.ts:36-43</code></td></tr>
+          <tr><td><code>call()</code> HTTP + 审计</td><td><code>RemoteTriggerTool.ts:80-172</code></td></tr>
+          <tr><td>action → method/url 分派</td><td><code>RemoteTriggerTool.ts:111-140</code></td></tr>
+          <tr><td>双重门控 isEnabled</td><td><code>RemoteTriggerTool.ts:59-64</code></td></tr>
+          <tr><td>审计记录</td><td><code>RemoteTriggerTool.ts:151-171</code></td></tr>
+          <tr><td>beta header 常量</td><td><code>RemoteTriggerTool.ts:46</code></td></tr>
+          <tr><td>审计单测</td><td><code>RemoteTriggerTool/__tests__/RemoteTriggerTool.test.ts:79-114</code></td></tr>
+          <tr><td>feature flag 注册</td><td><code>src/tools.ts:39-42</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="九">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先看"一、定位"理解 RemoteTrigger 是 curl 的安全替代品，再跳到"四、call()"的流程图理解鉴权→请求→审计三段式，最后对照"五、安全"体会进程内 token + 双重门控 + 全程审计的设计。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 RemoteTrigger 相对 curl 的核心优势（进程内 token 注入）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出双重门控（growthbook <code>tengu_surreal_dali</code> + policy <code>allow_remote_sessions</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出五种 action 对应的 HTTP method 和 URL（list/get/create/update/run）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>validateStatus: () => true</code> 的意义（不因 HTTP 状态抛错，让模型看完整响应）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出审计先于重抛的设计（catch 块先写审计再 throw）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释动态 <code>isReadOnly(input)</code>（list/get 只读，其余写入）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>trigger_id</code> 正则 <code>/^[\w-]+$/</code> 的防注入作用</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>运行 <code>RemoteTriggerTool.test.ts</code>（<code>bun test .../RemoteTriggerTool.test.ts</code>），观察审计记录两路径</li>
+      <li>读 <code>src/utils/remoteTriggerAudit.ts</code>，理解审计记录的持久化格式</li>
+      <li>对比 <code>Bash</code> 工具，思考"为何对敏感 API 操作提供专用工具而非让模型用 curl"</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

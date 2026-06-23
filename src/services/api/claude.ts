@@ -531,8 +531,16 @@ export async function verifyApiKey(
   apiKey: string,
   isNonInteractiveSession: boolean,
 ): Promise<boolean> {
+  logForDebugging(
+    `-------------- verifyApiKey 开始 ----------- isNonInteractiveSession=${isNonInteractiveSession}`,
+    { level: 'info' },
+  )
   // 如果运行在 print 模式（isNonInteractiveSession）下，跳过 API 校验
   if (isNonInteractiveSession) {
+    logForDebugging(
+      `------------ verifyApiKey 结束 (skipped_non_interactive) ---------`,
+      { level: 'info' },
+    )
     return true
   }
 
@@ -540,7 +548,11 @@ export async function verifyApiKey(
     // 警告：如果改成使用非 Haiku 的模型，除非使用 getCLISyspromptPrefix，否则在 1P 下该请求会失败。
     const model = getSmallFastModel()
     const betas = getModelBetas(model)
-    return await returnValue(
+    logForDebugging(
+      `[Hapii] verifyApiKey — 发送测试请求 model=${model}`,
+      { level: 'info' },
+    )
+    const result = await returnValue(
       withRetry(
         () =>
           getAnthropicClient({
@@ -565,6 +577,11 @@ export async function verifyApiKey(
         { maxRetries: 2, model, thinkingConfig: { type: 'disabled' } }, // API key 校验使用更少的重试次数
       ),
     )
+    logForDebugging(
+      `------------ verifyApiKey 结束 (success) --------- result=${result}`,
+      { level: 'info' },
+    )
+    return result
   } catch (errorFromRetry) {
     let error = errorFromRetry
     if (errorFromRetry instanceof CannotRetryError) {
@@ -578,8 +595,16 @@ export async function verifyApiKey(
         '{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}',
       )
     ) {
+      logForDebugging(
+        `------------ verifyApiKey 结束 (auth_error) ---------`,
+        { level: 'error' },
+      )
       return false
     }
+    logForDebugging(
+      `------------ verifyApiKey 结束 (error) --------- error=${error instanceof Error ? error.message : String(error)}`,
+      { level: 'error' },
+    )
     throw error
   }
 }
@@ -748,6 +773,10 @@ export async function queryModelWithoutStreaming({
   signal: AbortSignal
   options: Options
 }): Promise<AssistantMessage> {
+  logForDebugging(
+    `-------------- queryModelWithoutStreaming 开始 ----------- messages=${messages.length} model=${options.model} tools=${tools.length} source=${options.querySource}`,
+    { level: 'info' },
+  )
   // 存下 assistant 消息，但继续消费生成器，确保 logAPISuccessAndDuration
   // 会被调用（它在所有 yield 之后发生）
   let assistantMessage: AssistantMessage | undefined
@@ -769,10 +798,22 @@ export async function queryModelWithoutStreaming({
     // 如果 signal 已中止，抛出 APIUserAbortError 而非通用错误
     // 这样调用方可以优雅地处理中止场景
     if (signal.aborted) {
+      logForDebugging(
+        `------------ queryModelWithoutStreaming 结束 (aborted) ---------`,
+        { level: 'warn' },
+      )
       throw new APIUserAbortError()
     }
+    logForDebugging(
+      `------------ queryModelWithoutStreaming 结束 (no_assistant_message) ---------`,
+      { level: 'error' },
+    )
     throw new Error('No assistant message found')
   }
+  logForDebugging(
+    `------------ queryModelWithoutStreaming 结束 --------- model=${options.model}`,
+    { level: 'info' },
+  )
   return assistantMessage
 }
 
@@ -795,7 +836,7 @@ export async function* queryModelWithStreaming({
   void
 > {
   logForDebugging(
-    `[Hapii] claude.queryModelWithStreaming 调用 model=${options.model} messages=${messages.length} tools=${tools.length}`,
+    `-------------- queryModelWithStreaming 开始 ----------- model=${options.model} messages=${messages.length} tools=${tools.length} source=${options.querySource}`,
     { level: 'info' },
   )
   return yield* withStreamingVCR(messages, async function* () {
@@ -869,7 +910,7 @@ export async function* executeNonStreamingRequest(
   originatingRequestId?: string | null,
 ): AsyncGenerator<SystemAPIErrorMessage, BetaMessage> {
   logForDebugging(
-    `[Hapii] claude.executeNonStreamingRequest 非流式降级 model=${retryOptions.model} source=${clientOptions.source}`,
+    `-------------- executeNonStreamingRequest 开始 ----------- model=${retryOptions.model} source=${clientOptions.source} timeoutMs=${fallbackTimeoutMs}`,
     { level: 'warn' },
   )
   const fallbackTimeoutMs = getNonstreamingFallbackTimeoutMs()
@@ -945,6 +986,10 @@ export async function* executeNonStreamingRequest(
     }
   } while (!e.done)
 
+  logForDebugging(
+    `------------ executeNonStreamingRequest 结束 --------- model=${retryOptions.model} stopReason=${(e.value as BetaMessage)?.stop_reason ?? 'N/A'}`,
+    { level: 'info' },
+  )
   return e.value as BetaMessage
 }
 
@@ -1065,11 +1110,7 @@ async function* queryModel(
   void
 > {
   logForDebugging(
-    `[Hapii] ClaudeApi.queryModel 发起请求 model=${options.model} messages=${messages.length} tools=${tools.length} source=${options.querySource}`,
-    { level: 'info' },
-  )
-  logForDebugging(
-    `[API] queryModel 开始, model=${options.model}, 消息数=${messages.length}, 工具数=${tools.length}, querySource=${options.querySource}`,
+    `-------------- queryModel 开始 ----------- model=${options.model} messages=${messages.length} tools=${tools.length} source=${options.querySource} agentId=${options.agentId ?? 'main'}`,
     { level: 'info' },
   )
   // 先检查廉价条件——off-switch 的 await 会阻塞 GrowthBook 初始化
@@ -3068,6 +3109,10 @@ async function* queryModel(
   })
 
   // 防御性：正常完成时也释放一次（如果 finally 已执行则为 no-op）。
+  logForDebugging(
+    `------------ queryModel 结束 --------- model=${options.model} stopReason=${stopReason ?? 'N/A'} usage.in=${usage.input_tokens} out=${usage.output_tokens}`,
+    { level: 'info' },
+  )
   releaseStreamResources()
 }
 
@@ -3255,7 +3300,7 @@ export function addCacheBreakpoints(
     skipCacheWrite,
   })
   logForDebugging(
-    `[Hapii] ClaudeApi.addCacheBreakpoints msgCount=${messages.length} enableCaching=${enablePromptCaching} skipCacheWrite=${skipCacheWrite} markerIndex=${skipCacheWrite ? messages.length - 2 : messages.length - 1}`,
+    `-------------- addCacheBreakpoints 开始 ----------- msgCount=${messages.length} enableCaching=${enablePromptCaching} skipCacheWrite=${skipCacheWrite} useCachedMC=${useCachedMC}`,
     { level: 'info' },
   )
 

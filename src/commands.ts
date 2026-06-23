@@ -441,18 +441,21 @@ async function getSkills(cwd: string): Promise<{
   bundledSkills: Command[]
   builtinPluginSkills: Command[]
 }> {
+  logForDebugging(`[Hapii] getSkills 开始 cwd=${cwd}`, { level: 'info' })
   try {
     const [skillDirCommands, pluginSkills] = await Promise.all([
       getSkillDirCommands(cwd).catch(err => {
         logError(toError(err))
-        logForDebugging(
-          'Skill directory commands failed to load, continuing without them',
-        )
+        logForDebugging('[Hapii] getSkillDirCommands 失败，降级为空数组', {
+          level: 'warn',
+        })
         return []
       }),
       getPluginSkills().catch(err => {
         logError(toError(err))
-        logForDebugging('Plugin skills failed to load, continuing without them')
+        logForDebugging('[Hapii] getPluginSkills 失败，降级为空数组', {
+          level: 'warn',
+        })
         return []
       }),
     ])
@@ -461,7 +464,8 @@ async function getSkills(cwd: string): Promise<{
     // 内置插件 skills 来自已启用的内置插件
     const builtinPluginSkills = getBuiltinPluginSkillCommands()
     logForDebugging(
-      `getSkills returning: ${skillDirCommands.length} skill dir commands, ${pluginSkills.length} plugin skills, ${bundledSkills.length} bundled skills, ${builtinPluginSkills.length} builtin plugin skills`,
+      `[Hapii] getSkills 完成 skillDir=${skillDirCommands.length} plugin=${pluginSkills.length} bundled=${bundledSkills.length} builtinPlugin=${builtinPluginSkills.length}`,
+      { level: 'info' },
     )
     return {
       skillDirCommands,
@@ -472,7 +476,9 @@ async function getSkills(cwd: string): Promise<{
   } catch (err) {
     // 由于已在 Promise 层捕获，理论上永远不应走到这里，但保留防御性处理
     logError(toError(err))
-    logForDebugging('Unexpected error in getSkills, returning empty')
+    logForDebugging('[Hapii] getSkills 意外异常，返回全空结果', {
+      level: 'error',
+    })
     return {
       skillDirCommands: [],
       pluginSkills: [],
@@ -524,6 +530,9 @@ export function meetsAvailabilityRequirement(cmd: Command): boolean {
       }
     }
   }
+  logForDebugging(
+    `[Hapii] meetsAvailabilityRequirement cmd=/${cmd.name} availability=[${cmd.availability.join(',')}] → false(过滤掉)`,
+  )
   return false
 }
 
@@ -532,6 +541,7 @@ export function meetsAvailabilityRequirement(cmd: Command): boolean {
  * 因为加载开销较大（磁盘 I/O、动态 import）。
  */
 const loadAllCommands = memoize(async (cwd: string): Promise<Command[]> => {
+  logForDebugging(`[Hapii] loadAllCommands 开始 cwd=${cwd}`, { level: 'info' })
   const [
     { skillDirCommands, pluginSkills, bundledSkills, builtinPluginSkills },
     pluginCommands,
@@ -542,7 +552,7 @@ const loadAllCommands = memoize(async (cwd: string): Promise<Command[]> => {
     getWorkflowCommands ? getWorkflowCommands(cwd) : Promise.resolve([]),
   ])
 
-  return [
+  const result = [
     ...bundledSkills,
     ...builtinPluginSkills,
     ...skillDirCommands,
@@ -551,6 +561,15 @@ const loadAllCommands = memoize(async (cwd: string): Promise<Command[]> => {
     ...pluginSkills,
     ...COMMANDS(),
   ]
+  logForDebugging(
+    `[Hapii] loadAllCommands 完成 total=${result.length} ` +
+      `(bundled=${bundledSkills.length} builtinPlugin=${builtinPluginSkills.length} ` +
+      `skillDir=${skillDirCommands.length} workflow=${(workflowCommands as Command[]).length} ` +
+      `pluginCmd=${(pluginCommands as Command[]).length} pluginSkill=${pluginSkills.length} ` +
+      `builtinCmd=${COMMANDS().length})`,
+    { level: 'info' },
+  )
+  return result
 })
 
 /**
@@ -559,17 +578,28 @@ const loadAllCommands = memoize(async (cwd: string): Promise<Command[]> => {
  * 以便鉴权变化（例如 /login）能立即生效。
  */
 export async function getCommands(cwd: string): Promise<Command[]> {
+  logForDebugging(`[Hapii] getCommands 开始 cwd=${cwd}`, { level: 'info' })
   const allCommands = await loadAllCommands(cwd)
 
   // 获取文件操作过程中动态发现的 skills
   const dynamicSkills = getDynamicSkills()
+  logForDebugging(
+    `[Hapii] getCommands allCommands=${allCommands.length} dynamicSkills=${dynamicSkills.length}`,
+  )
 
   // 在不包含动态 skills 的情况下构建基础命令
   const baseCommands = allCommands.filter(
     _ => meetsAvailabilityRequirement(_) && isCommandEnabled(_),
   )
+  logForDebugging(
+    `[Hapii] getCommands baseCommands(after filter)=${baseCommands.length}`,
+  )
 
   if (dynamicSkills.length === 0) {
+    logForDebugging(
+      `[Hapii] getCommands 返回(无动态 skills) total=${baseCommands.length}`,
+      { level: 'info' },
+    )
     return baseCommands
   }
 
@@ -583,6 +613,9 @@ export async function getCommands(cwd: string): Promise<Command[]> {
   )
 
   if (uniqueDynamicSkills.length === 0) {
+    logForDebugging(
+      `[Hapii] getCommands 动态 skills 全部重复，跳过 total=${baseCommands.length}`,
+    )
     return baseCommands
   }
 
@@ -590,15 +623,20 @@ export async function getCommands(cwd: string): Promise<Command[]> {
   const builtInNames = new Set(COMMANDS().map(c => c.name))
   const insertIndex = baseCommands.findIndex(c => builtInNames.has(c.name))
 
-  if (insertIndex === -1) {
-    return [...baseCommands, ...uniqueDynamicSkills]
-  }
-
-  return [
-    ...baseCommands.slice(0, insertIndex),
-    ...uniqueDynamicSkills,
-    ...baseCommands.slice(insertIndex),
-  ]
+  const result =
+    insertIndex === -1
+      ? [...baseCommands, ...uniqueDynamicSkills]
+      : [
+          ...baseCommands.slice(0, insertIndex),
+          ...uniqueDynamicSkills,
+          ...baseCommands.slice(insertIndex),
+        ]
+  logForDebugging(
+    `[Hapii] getCommands 返回(含动态 skills) total=${result.length} ` +
+      `uniqueDynamic=${uniqueDynamicSkills.length} insertIndex=${insertIndex}`,
+    { level: 'info' },
+  )
+  return result
 }
 
 /**
@@ -606,6 +644,7 @@ export async function getCommands(cwd: string): Promise<Command[]> {
  * 当动态新增 skill 时用此函数作废已缓存的命令列表。
  */
 export function clearCommandMemoizationCaches(): void {
+  logForDebugging('[Hapii] clearCommandMemoizationCaches 清除命令缓存')
   loadAllCommands.cache?.clear?.()
   getSkillToolCommands.cache?.clear?.()
   getSlashCommandToolSkills.cache?.clear?.()
@@ -646,8 +685,9 @@ export function getMcpSkillCommands(
 // 既包括 skills（来自 /skills/）也包括 commands（来自 /commands/）
 export const getSkillToolCommands = memoize(
   async (cwd: string): Promise<Command[]> => {
+    logForDebugging(`[Hapii] getSkillToolCommands 开始 cwd=${cwd}`)
     const allCommands = await getCommands(cwd)
-    return allCommands.filter(
+    const filtered = allCommands.filter(
       cmd =>
         cmd.type === 'prompt' &&
         !cmd.disableModelInvocation &&
@@ -661,6 +701,12 @@ export const getSkillToolCommands = memoize(
           cmd.hasUserSpecifiedDescription ||
           cmd.whenToUse),
     )
+    logForDebugging(
+      `[Hapii] getSkillToolCommands 完成 allCommands=${allCommands.length} → filtered=${filtered.length} ` +
+        `(type=prompt && !disableModel && !builtin && 有描述/whenToUse)`,
+      { level: 'info' },
+    )
+    return filtered
   },
 )
 
@@ -669,9 +715,10 @@ export const getSkillToolCommands = memoize(
 // 或设置了 disableModelInvocation。
 export const getSlashCommandToolSkills = memoize(
   async (cwd: string): Promise<Command[]> => {
+    logForDebugging(`[Hapii] getSlashCommandToolSkills 开始 cwd=${cwd}`)
     try {
       const allCommands = await getCommands(cwd)
-      return allCommands.filter(
+      const filtered = allCommands.filter(
         cmd =>
           cmd.type === 'prompt' &&
           cmd.source !== 'builtin' &&
@@ -681,11 +728,18 @@ export const getSlashCommandToolSkills = memoize(
             cmd.loadedFrom === 'bundled' ||
             cmd.disableModelInvocation),
       )
+      logForDebugging(
+        `[Hapii] getSlashCommandToolSkills 完成 allCommands=${allCommands.length} → skills=${filtered.length}`,
+        { level: 'info' },
+      )
+      return filtered
     } catch (error) {
       logError(toError(error))
       // 返回空数组而不是抛错 —— skills 不是关键路径
       // 这样可避免 skill 加载失败拖垮整个系统
-      logForDebugging('Returning empty skills array due to load failure')
+      logForDebugging('[Hapii] getSlashCommandToolSkills 异常，返回空数组', {
+        level: 'error',
+      })
       return []
     }
   },

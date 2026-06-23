@@ -21,20 +21,18 @@ import { clearPluginOptionsCache } from './pluginOptionsStorage.js'
 import { isPluginZipCacheEnabled } from './zipCache.js'
 
 const ORPHANED_AT_FILENAME = '.orphaned_at'
-const CLEANUP_AGE_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+const CLEANUP_AGE_MS = 7 * 24 * 60 * 60 * 1000 // 7 天
 
 export function clearAllPluginCaches(): void {
   clearPluginCache()
   clearPluginCommandCache()
   clearPluginAgentCache()
   clearPluginHookCache()
-  // Prune hooks from plugins no longer in the enabled set so uninstalled/
-  // disabled plugins stop firing immediately (gh-36995). Prune-only: hooks
-  // from newly-enabled plugins are NOT added here — they wait for
-  // /reload-plugins like commands/agents/MCP do. Fire-and-forget: old hooks
-  // stay valid until the prune completes (preserves gh-29767). No-op when
-  // STATE.registeredHooks is empty (test/preload.ts beforeEach clears it via
-  // resetStateForTests before reaching here).
+  // 从不再属于已启用集合的插件中剪除 hooks，使已卸载/禁用的插件立即
+  // 停止触发（gh-36995）。仅剪除：新启用插件的 hooks 不在此处添加
+  // —— 与命令/代理/MCP 一样等待 /reload-plugins。即发即忘：旧 hooks
+  // 在剪除完成之前保持有效（保留 gh-29767）。当 STATE.registeredHooks 为空时
+  // 为无操作（test/preload.ts 的 beforeEach 通过 resetStateForTests 在到达此处前清除它）。
   pruneRemovedPluginHooks().catch(e => logError(e))
   clearPluginOptionsCache()
   clearPluginOutputStyleCache()
@@ -50,8 +48,8 @@ export function clearAllCaches(): void {
 }
 
 /**
- * Mark a plugin version as orphaned.
- * Called when a plugin is uninstalled or updated to a new version.
+ * 将插件版本标记为孤立。
+ * 在插件被卸载或更新到新版本时调用。
  */
 export async function markPluginVersionOrphaned(
   versionPath: string,
@@ -64,17 +62,17 @@ export async function markPluginVersionOrphaned(
 }
 
 /**
- * Clean up orphaned plugin versions that have been orphaned for more than 7 days.
+ * 清理已孤立超过 7 天的插件版本。
  *
- * Pass 1: Remove .orphaned_at from installed versions (clears stale markers)
- * Pass 2: For each cached version not in installed_plugins.json:
- *   - If no .orphaned_at exists: create it (handles old CC versions, manual edits)
- *   - If .orphaned_at exists and > 7 days old: delete the version
+ * 第一轮：从已安装版本中移除 .orphaned_at（清除过期标记）
+ * 第二轮：对不在 installed_plugins.json 中的每个已缓存版本：
+ *   - 若不存在 .orphaned_at：创建它（处理旧版 CC、手动编辑的情况）
+ *   - 若 .orphaned_at 存在且超过 7 天：删除该版本
  */
 export async function cleanupOrphanedPluginVersionsInBackground(): Promise<void> {
-  // Zip cache mode stores plugins as .zip files, not directories. readSubdirs
-  // filters to directories only, so removeIfEmpty would see plugin dirs as empty
-  // and delete them (including the ZIPs). Skip cleanup entirely in zip mode.
+  // Zip 缓存模式将插件存储为 .zip 文件而非目录。readSubdirs
+  // 仅过滤目录，因此 removeIfEmpty 会将插件目录视为空目录并删除它们
+  // （包括 ZIP 文件）。在 zip 模式下完全跳过清理。
   if (isPluginZipCacheEnabled()) {
     return
   }
@@ -86,13 +84,13 @@ export async function cleanupOrphanedPluginVersionsInBackground(): Promise<void>
 
     const now = Date.now()
 
-    // Pass 1: Remove .orphaned_at from installed versions
-    // This handles cases where a plugin was reinstalled after being orphaned
+    // 第一轮：从已安装版本中移除 .orphaned_at
+    // 处理插件在孤立后被重新安装的情况
     await Promise.all(
       [...installedVersions].map(p => removeOrphanedAtMarker(p)),
     )
 
-    // Pass 2: Process orphaned versions
+    // 第二轮：处理孤立版本
     for (const marketplace of await readSubdirs(cachePath)) {
       const marketplacePath = join(cachePath, marketplace)
 

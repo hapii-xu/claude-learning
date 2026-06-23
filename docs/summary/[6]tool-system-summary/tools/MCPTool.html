@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCPTool 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── SVG Diagram ──────────────────────────────────────── */
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      margin: 0 auto;
+      font-family: var(--font-sans);
+    }
+
+    /* SVG tooltip via CSS title */
+    .node-group { cursor: default; }
+    .node-group:hover rect.node-rect { filter: brightness(.93); }
+
+    /* ── Card Grid ────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .path-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: box-shadow .15s, border-color .15s;
+    }
+
+    .path-card:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--orange-lt);
+    }
+
+    .badge-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .card-body { flex: 1; min-width: 0; }
+
+    .card-trigger {
+      font-weight: 700;
+      font-size: .9rem;
+      color: var(--text);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    .card-module {
+      font-family: var(--font-mono);
+      font-size: .76rem;
+      color: var(--text-2);
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .card-flag {
+      font-size: .72rem;
+      color: var(--blue);
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .badge-enable {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    /* ── Collapsible knowledge cards ─────────────────────── */
+    .knowledge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    details.know-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    details.know-card[open] {
+      border-color: var(--orange-lt);
+    }
+
+    details.know-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      outline: none;
+    }
+
+    details.know-card > summary::-webkit-details-marker { display: none; }
+
+    details.know-card > summary:hover { background: var(--bg); }
+
+    .know-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    details.know-card[open] .know-num {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .know-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: .97rem;
+    }
+
+    .know-arrow {
+      width: 20px;
+      height: 20px;
+      color: var(--text-3);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    details.know-card[open] .know-arrow {
+      transform: rotate(90deg);
+      color: var(--orange);
+    }
+
+    .know-body {
+      padding: 0 20px 20px 64px;
+    }
+
+    .know-body p { margin-bottom: 8px; }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    /* CSS-only syntax highlighting */
+    .kw  { color: #7c9bff; font-weight: 600; }  /* keywords */
+    .str { color: #6cc77a; }                      /* strings */
+    .fn  { color: #f0906a; }                      /* function calls */
+    .cmt { color: #6e6a62; font-style: italic; } /* comments */
+    .type{ color: #e0a020; }                      /* TypeScript types */
+    .num { color: #c792ea; }                      /* numbers */
+
+    /* inline code */
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Comparison Table ─────────────────────────────────── */
+    .compare-table th:first-child { width: 130px; }
+    .compare-table th:nth-child(2) { color: var(--orange-dk); }
+    .compare-table th:nth-child(3) { color: var(--blue-dk); }
+
+    /* ── Key files ────────────────────────────────────────── */
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--blue-dk);
+      cursor: default;
+      position: relative;
+    }
+
+    .file-path:hover::after {
+      content: attr(data-full);
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+      background: #1e1b16;
+      color: #d4cfc8;
+      font-size: .75rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+      pointer-events: none;
+    }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    ul.key-list {
+      padding-left: 20px;
+      color: var(--text-2);
+    }
+
+    ul.key-list li { margin-bottom: 4px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .know-body { padding-left: 20px; }
+    }
+
+    /* === Additional styles === */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    section { margin-top: 56px; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>MCPTool 工具详解</h1>
+  <p>MCP 工具的&quot;模板原型&quot;——一个被 client.ts 在运行时克隆并动态覆盖所有 stub 字段的特殊工具，是 Claude Code 接入外部 MCP 服务器的核心桥梁</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一工具定位一句话总结">一、工具定位</a></li>
+    <li><a href="#二关键文件清单">二、关键文件清单</a></li>
+    <li><a href="#三tool-接口字段实现buildtool-逐字段">三、Tool 接口字段实现</a></li>
+    <li><a href="#四核心执行流程callstub与运行时覆盖">四、核心执行流程：`call`与运行时覆盖</a></li>
+    <li><a href="#五权限与安全">五、权限与安全</a></li>
+    <li><a href="#六与其他系统工具的关系">六、与其他系统/工具的关系</a></li>
+    <li><a href="#七亮点与设计取舍">七、亮点与设计取舍</a></li>
+    <li><a href="#八源码导航书签速查">八、源码导航</a></li>
+    <li><a href="#九学习建议与验证清单">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+<blockquote class="callout"><p>这是工具系统里<strong>最特殊的工具</strong>：它本身什么都不会做。<code>MCPTool.ts</code> 里的 <code>call()</code>、<code>description()</code>、<code>prompt()</code>、<code>name</code>、<code>userFacingName()</code> 全是 stub——<code>call()</code> 被触发时只会打一条 error 日志（<code>MCPTool.ts:52-60</code>）。它的真正身份是一个<strong>原型模板</strong>：<code>src/services/mcp/client.ts</code> 在连接每个 MCP 服务器时，<code>{ ...MCPTool, ...overrides }</code> 克隆它，用真实工具的 schema/描述/调用逻辑逐字段覆盖。理解了这套"stub → 运行时覆盖"机制，就理解了 Claude Code 如何把任意外部 MCP 服务器动态接入成一组一等工具。</p></blockquote>
+
+<section id="一工具定位一句话总结">
+<h2>一、工具定位（一句话总结）</h2>
+
+<p><strong><code>MCPTool</code> = 一个 <code>isMcp: true</code> 标记的原型 Tool，被 <code>client.ts</code> 克隆改写后变成每个真实 MCP 工具。</strong></p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>维度</th><th>值</th></tr></thead>
+<tbody>
+<tr><td>工具名</td><td><code>'mcp'</code>（<code>MCPTool.ts:35</code>，占位名，运行时被 <code>buildMcpToolName(server, tool)</code> 覆盖为 <code>mcp__<server>__<tool></code>）</td></tr>
+<tr><td>一句话</td><td>MCP 工具的模板原型，所有字段都是 stub，由 <code>client.ts</code> 在运行时覆盖</td></tr>
+<tr><td>是否进 system prompt</td><td>❌ 本身<strong>不</strong>注册进 <code>getAllBaseTools()</code>，<strong>从不</strong>直接暴露给模型；被克隆改写后的实例才进工具池</td></tr>
+<tr><td>只读 / 破坏性</td><td>由克隆后的 <code>tool.annotations?.readOnlyHint</code> 决定（<code>client.ts:1810</code>），模板本身不声明</td></tr>
+<tr><td>是否可并发</td><td>同上，由 <code>readOnlyHint</code> 决定（<code>client.ts:1807</code>）</td></tr>
+<tr><td>核心依赖</td><td><code>src/services/mcp/client.ts</code> 的 <code>fetchToolsForClient</code>（<code>:1752</code>）+ <code>getMcpToolsCommandsAndResources</code>（<code>:2238</code>）</td></tr>
+<tr><td>关键标记</td><td><code>isMcp: true</code>（<code>MCPTool.ts:29</code>）——权限、渲染、折叠分类都靠它识别"MCP 系"工具</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>为什么需要它？</strong> Claude Code 不知道用户会装哪些 MCP 服务器、每个服务器提供哪些工具。它需要一个<strong>形状确定、字段齐全的 Tool 骨架</strong>，让 <code>client.ts</code> 只负责"填肉"（覆盖 name/schema/call），而不必每次都从头构造一个符合 <code>Tool</code> 接口的对象。模板提供渲染组件、进度协议、passthrough 权限骨架这些<strong>所有 MCP 工具共享</strong>的部分。</p>
+
+</section>
+
+<section id="二关键文件清单">
+<h2>二、关键文件清单</h2>
+
+<pre><code>MCPTool/
+├── MCPTool.ts          ← buildTool({...}) 模板主体（83 行）
+├── prompt.ts           ← PROMPT/DESCRIPTION 都是空字符串（运行时被覆盖）
+├── UI.tsx              ← 渲染组件（唯一不被覆盖的部分：调用展示/进度/结果渲染）
+├── classifyForCollapse.ts ← 按工具名白名单分类 search/read，供 UI 折叠
+└── __tests__/
+    └── classifyForCollapse.test.ts
+</code></pre>
+
+<p>涉及的外部文件（覆盖发生的地方）：</p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+<tbody>
+<tr><td><code>MCPTool.ts</code></td><td>模板本体：<code>isMcp</code> 标记 + stub call + passthrough 权限 + 渲染委托</td><td><code>buildTool:28</code>、<code>isMcp:29</code>、<code>call(stub):52</code>、<code>checkPermissions:61</code></td></tr>
+<tr><td><code>prompt.ts</code></td><td><code>PROMPT=''</code>、<code>DESCRIPTION=''</code>——明确标注"运行时被覆盖"</td><td><code>:1-3</code></td></tr>
+<tr><td><code>UI.tsx</code></td><td>调用展示 + 进度条 + 结果渲染（Slack 解包、JSON 扁平化、大输出警告）</td><td><code>renderToolUseMessage:41</code>、<code>renderToolResultMessage:105</code>、<code>tryUnwrapTextPayload:293</code></td></tr>
+<tr><td><code>classifyForCollapse.ts</code></td><td>600+ 行的 search/read 工具名白名单，UI 折叠用</td><td><code>SEARCH_TOOLS:14</code>、<code>READ_TOOLS:142</code>、<code>classifyMcpToolForCollapse:595</code></td></tr>
+<tr><td><code>src/services/mcp/client.ts</code></td><td><strong>覆盖核心</strong>：<code>{...MCPTool, name, mcpInfo, call, ...}</code> 克隆改写</td><td><code>fetchToolsForClient:1752</code>、克隆体 <code>:1782-1988</code>、<code>getMcpToolsCommandsAndResources:2238</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<blockquote class="callout"><p><strong>结构特点</strong>：MCPTool 是"<strong>模板 + 渲染</strong>"双职责。模板逻辑（<code>MCPTool.ts</code>）极简，但渲染逻辑（<code>UI.tsx</code>）反而是这批 MCP 工具里最复杂的——因为所有 MCP 工具共用这一份渲染器，它必须处理任意 MCP 服务器返回的异构输出（Slack/GitHub/Linear/JSON blob/二进制...）。</p></blockquote>
+
+</section>
+
+<section id="三tool-接口字段实现buildtool-逐字段">
+<h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+<p>MCPTool 实现了 <code>Tool</code> 接口，但字段分两类：<strong>A 类 = 模板提供、运行时不覆盖</strong>（渲染相关）；<strong>B 类 = stub、运行时必覆盖</strong>（行为相关）。</p>
+
+<h3>A 类：模板提供，克隆后保留</h3>
+
+<pre><code>isMcp: true,                  // 标记：权限/UI/折叠靠它识别 MCP 系工具（MCPTool.ts:29）
+maxResultSizeChars: 100_000,  // 结果截断阈值（:36）
+renderToolUseMessage,         // 渲染调用（UI.tsx:41）
+renderToolUseProgressMessage, // 渲染进度条（UI.tsx:59）
+renderToolResultMessage,      // 渲染结果（UI.tsx:105）
+isResultTruncated(output) { return isOutputLineTruncated(output) },  // :72
+mapToolResultToToolResultBlockParam(content, id) { return {tool_use_id:id, type:'tool_result', content} },  // :75
+</code></pre>
+
+<h3>B 类：stub，被 <code>client.ts</code> 覆盖</h3>
+
+<pre><code>name: 'mcp',                  // :35 → 覆盖为 buildMcpToolName(server, tool) = &quot;mcp__&lt;server&gt;__&lt;tool&gt;&quot;
+isOpenWorld() { return false }, // :31 → 覆盖为 tool.annotations?.openWorldHint
+async description() { return DESCRIPTION },  // :38 → '' 覆盖为 tool.description
+async prompt() { return PROMPT },            // :42 → '' 覆盖为 tool.description（截断）
+async call() { /* stub，打 error 日志 */ },   // :52 → 覆盖为真实 MCP 调用
+userFacingName: () =&gt; 'mcp',  // :69 → 覆盖为 `${client.name} - ${tool.annotations?.title||tool.name} (MCP)`
+async checkPermissions() { return {behavior:'passthrough', message:'MCPTool 需要权限。'} },  // :61
+get inputSchema() { return inputSchema() },  // :45 → z.object({}).passthrough()，覆盖为 inputJSONSchema
+</code></pre>
+
+<p><strong>输入 schema 的特殊设计</strong>（<code>MCPTool.ts:15</code>）：</p>
+
+<pre><code>export const inputSchema = lazySchema(() =&gt; z.object({}).passthrough())
+</code></pre>
+
+<p><code>z.object({}).passthrough()</code> = <strong>接受任意键、任意值的空对象</strong>。这是刻意的：模板自己不知道每个 MCP 工具的参数，用 passthrough 让任何输入都能通过 Zod 校验。<strong>真实 schema 在覆盖时换成 <code>tool.inputSchema</code></strong>（<code>client.ts:1825</code>，原始 JSON Schema，绕过 Zod）。</p>
+
+<p><strong>输出 schema</strong>（<code>:18-20</code>）：<code>z.string()</code>——MCP 工具结果序列化为字符串。但实际 <code>call()</code> 返回的 <code>data</code> 是 <code>MCPToolResult</code>（content blocks 数组），渲染层（<code>UI.tsx:105</code>）按数组/字符串两路处理。</p>
+
+<blockquote class="callout"><p><strong><code>checkPermissions</code> 的 passthrough</strong>（<code>:61-66</code>）：模板返回 <code>{behavior:'passthrough', message:'MCPTool 需要权限。'}</code>——意思是"我不做判定，把决定权交给全局权限系统"。<code>client.ts:1826</code> 覆盖时<strong>仍是 passthrough</strong>，但额外塞了 <code>suggestions</code>（建议用户加一条 allow 规则到 localSettings）。这是 MCP 工具权限的核心姿态：<strong>不内置判定逻辑，全部依赖用户的 allow/deny 规则 + 运行时确认</strong>。</p></blockquote>
+
+</section>
+
+<section id="四核心执行流程callstub与运行时覆盖">
+<h2>四、核心执行流程：<code>call()</code>（stub）与运行时覆盖</h2>
+
+<h3>模板的 stub <code>call()</code>（<code>MCPTool.ts:52-60</code>）</h3>
+
+<pre><code>async call() {
+  logForDebugging(
+    '[MCP Tool] 警告：stub call() 被触发！说明 MCP client 未正确覆盖此工具，请检查 client.ts',
+    { level: 'error' },
+  )
+  return { data: '' }
+}
+</code></pre>
+
+<p><strong>这个 stub 理论上永远不该被触发</strong>。如果它被调用了，说明 <code>client.ts</code> 的克隆覆盖出了 bug——某个 MCP 工具实例没正确替换 <code>call</code>。它是一个<strong>运行时断言/护栏</strong>：fail-safe 地返回空数据 + error 日志，而不是崩溃。</p>
+
+<h3>运行时覆盖的 <code>call()</code>（<code>client.ts:1845-1983</code>）</h3>
+
+<p>这才是真正执行 MCP 工具调用的逻辑。克隆时用这个函数替换模板的 stub：</p>
+
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    A["call(args, context, _, parentMsg, onProgress)\nclient.ts:1845"] --> B["extractToolUseId(parentMsg)\n提取 toolUseId 用于进度上报"]
+    B --> C["onProgress: started\n发出 'started' 进度事件"]
+    C --> D["ensureConnectedClient(client)\n确保连接健康（重连后的新 client）"]
+    D --> E["callMCPToolWithUrlElicitationRetry\n核心：带 URL elicitation 重试的 MCP 调用"]
+    E --> F{成功?}
+    F -->|是| G["onProgress: completed\n返回 {data: mcpResult.content, mcpMeta?}"]
+    F -->|否 - 会话过期| H["attempt < MAX_SESSION_RETRIES?\n清缓存后重连重试（仅 1 次）"]
+    H -->|是| D
+    H -->|否| I["onProgress: failed\n包装为 TelemetrySafeError 抛出"]
+
+  </div>
+</div>
+
+<p><strong>关键点逐条</strong>：</p>
+
+<ol>
+<li><strong>进度协议</strong>（<code>:1857-1907</code>）：MCP 工具支持流式进度（<code>MCPProgress</code> 类型，<code>MCPTool.ts:26</code> 重新导出以打破循环依赖）。<code>call()</code> 在 started/completed/failed 三个时机发 <code>onProgress</code>，UI 层的 <code>renderToolUseProgressMessage</code>（<code>UI.tsx:59</code>）据此渲染进度条 + 百分比。</li>
+</ol>
+
+<ol>
+<li><strong>会话过期重试</strong>（<code>:1871</code>、<code>:1925-1934</code>）：<code>MAX_SESSION_RETRIES = 1</code>——MCP HTTP/SSE 服务器可能因会话过期抛 <code>McpSessionExpiredError</code>，此时连接缓存被清，用新 client 重试一次。这是一个<strong>有限重试</strong>，不是无限循环。</li>
+</ol>
+
+<ol>
+<li><strong>URL elicitation 重试</strong>（<code>:1875</code>）：<code>callMCPToolWithUrlElicitationRetry</code>（<code>:2892</code>）包装了 <code>callMCPTool</code>——当 MCP 服务器返回需要 URL elicitation（要求用户输入 URL）的错误时，通过 <code>context.handleElicitation</code> 向用户收集后重试。</li>
+</ol>
+
+<ol>
+<li><strong>遥测安全错误包装</strong>（<code>:1949-1979</code>）：MCP SDK 的 <code>McpError</code> 只含协议级 JSON-RPC 错误（如 <code>-32000 ConnectionClosed</code>），<strong>不含用户文件路径或代码</strong>。包装成 <code>TelemetrySafeError_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS</code>（类名本身就是一道检查清单），确保遥测只上报安全的错误摘要（<code>error.message.slice(0, 200)</code> 或 <code>McpError <code></code>），不泄露用户数据。</li>
+</ol>
+
+<ol>
+<li><strong>返回结构</strong>（<code>:1909-1921</code>）：<code>{ data: mcpResult.content }</code>——<code>content</code> 是 MCP 协议的 content blocks 数组（text/image/resource）。若结果带 <code>_meta</code> 或 <code>structuredContent</code>，额外塞进 <code>mcpMeta</code>。</li>
+</ol>
+
+<h3><code>mapToolResultToToolResultBlockParam</code>（<code>MCPTool.ts:75-81</code>）</h3>
+
+<p>把 <code>data</code>（content blocks 或字符串）直接塞进 <code>tool_result.content</code>，不做转换。<strong>渲染层</strong>（<code>UI.tsx:105</code>）和<strong>模型层</strong>（tool_result block）看到的是同一份原始 content——MCP 工具刻意保持模型可见性与 UI 可见性一致。</p>
+
+</section>
+
+<section id="五权限与安全">
+<h2>五、权限与安全</h2>
+
+<h3>模板的 <code>checkPermissions</code>（<code>MCPTool.ts:61-66</code>）</h3>
+
+<pre><code>async checkPermissions(): Promise&lt;PermissionResult&gt; {
+  return { behavior: 'passthrough', message: 'MCPTool 需要权限。' }
+}
+</code></pre>
+
+<p><code>passthrough</code> = "我授权层不做决定，把请求往上抛给全局权限管道"。这与 <code>BashTool</code>（自己有复杂判定逻辑）截然相反——MCP 工具的权限<strong>完全外包</strong>给用户的 allow/deny 规则系统。</p>
+
+<h3>运行时覆盖的 <code>checkPermissions</code>（<code>client.ts:1826-1844</code>）</h3>
+
+<pre><code>async checkPermissions() {
+  return {
+    behavior: 'passthrough' as const,
+    message: 'MCPTool requires permission.',
+    suggestions: [{
+      type: 'addRules',
+      rules: [{ toolName: fullyQualifiedName, ruleContent: undefined }],
+      behavior: 'allow',
+      destination: 'localSettings',
+    }],
+  }
+}
+</code></pre>
+
+<p>仍是 <code>passthrough</code>，但<strong>附带建议</strong>：建议用户把 <code>mcp__<server>__<tool></code> 加进 localSettings 的 allow 规则。这驱动了权限确认 UI 里的"允许此 MCP 工具"快捷按钮。</p>
+
+<h3>安全相关的设计点</h3>
+
+<ol>
+<li><strong><code>isOpenWorld()</code> 默认 false</strong>（<code>MCPTool.ts:31</code>）：模板保守地声明 MCP 工具不是"开放世界"工具。运行时覆盖为 <code>tool.annotations?.openWorldHint</code>（<code>client.ts:1819</code>）——让 MCP 服务器自己声明它是否访问外部不可信环境。</li>
+</ol>
+
+<ol>
+<li><strong><code>isDestructive()</code> 由服务器声明</strong>（<code>client.ts:1816</code>）：<code>tool.annotations?.destructiveHint</code>——MCP 协议允许工具自我标注破坏性，Claude Code 透传这个标记给权限/UI 层。</li>
+</ol>
+
+<ol>
+<li><strong>遥测安全错误</strong>（<code>call()</code> 内，见上节）：防用户数据泄露进遥测。</li>
+</ol>
+
+<ol>
+<li><strong>Unicode 清理</strong>（<code>client.ts:1770</code>）：<code>recursivelySanitizeUnicode(result.tools)</code>——从 MCP 服务器拉到的工具数据先做 Unicode 清理，防止恶意服务器注入异常 Unicode（如零宽字符、RTL 覆盖符）污染工具名/描述。</li>
+</ol>
+
+<ol>
+<li><strong>描述长度截断</strong>（<code>client.ts:1803-1805</code>）：<code>MAX_MCP_DESCRIPTION_LENGTH</code>（<code>:218</code>，从 package 重新导出）——恶意/臃肿的 MCP 工具描述会被截断，防止撑爆 system prompt。</li>
+</ol>
+
+</section>
+
+<section id="六与其他系统工具的关系">
+<h2>六、与其他系统/工具的关系</h2>
+
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    TMPL["MCPTool 模板<br/>MCPTool.ts"] -->|被克隆覆盖| CLONE["每个真实 MCP 工具实例<br/>client.ts:1782"]
+    CLONE -->|call| CALLFN["callMCPToolWithUrlElicitationRetry<br/>client.ts:2892"]
+    CALLFN --> SDK["@modelcontextprotocol/sdk<br/>client.request tools/call"]
+    CLONE -->|权限 passthrough| PERM["全局 allow/deny 规则系统<br/>+ localSettings 建议"]
+    CLONE -->|渲染共享| UI["UI.tsx<br/>所有 MCP 工具共用"]
+    CLONE -->|折叠分类| COLLAPSE["classifyMcpToolForCollapse<br/>按工具名白名单判 search/read"]
+    AUTH["McpAuthTool<br/>未认证服务器的伪工具"] -.同源.-> TMPL
+    LISTRES["ListMcpResourcesTool<br/>ReadMcpResourceTool"] -.兄弟.-> TMPL
+
+  </div>
+</div>
+
+<ul>
+<li><strong>与 <code>client.ts</code> 的关系</strong>：模板是被 <code>client.ts</code> 操作的"对象"。<code>fetchToolsForClient</code>（<code>:1752</code>）从 MCP 服务器拉 <code>tools/list</code>，对每个工具 <code>{...MCPTool, ...overrides}</code> 生成实例。<code>getMcpToolsCommandsAndResources</code>（<code>:2238</code>）编排多服务器并发连接 + 工具汇总。</li>
+</ul>
+
+<ul>
+<li><strong>与 <code>McpAuthTool</code> 的关系</strong>：兄弟工具。<code>McpAuthTool</code>（<code>McpAuthTool.ts</code>）也是 <code>isMcp: true</code> 的伪工具，但它是<strong>未认证服务器的占位</strong>——当服务器需要 OAuth 时，<code>client.ts:2330/2343</code> 用 <code>createMcpAuthTool(name, config)</code> 生成一个认证工具代替该服务器的真实工具。认证完成后，前缀替换机制把伪工具换成真实工具（详见 <code>McpAuthTool</code> 单篇）。</li>
+</ul>
+
+<ul>
+<li><strong>与 <code>ListMcpResourcesTool</code> / <code>ReadMcpResourceTool</code> 的关系</strong>：兄弟工具，处理 MCP 协议的 resources 面（MCPTool 处理 tools 面）。它们是<strong>被 <code>getTools()</code> 过滤掉的"特殊内部工具"</strong>（<code>tools.ts:343-349</code>），只在 <code>getMcpToolsCommandsAndResources</code> 里<strong>当至少一个服务器支持 resources 时</strong>才手动注入（<code>client.ts:2372-2376</code>）。</li>
+</ul>
+
+<ul>
+<li><strong>与权限系统的关系</strong>：<code>filterToolsByDenyRules</code>（<code>tools.ts:300</code>）用 <code>mcpInfo</code> + 工具名匹配 deny 规则。<code>mcp__server</code> 前缀规则能在模型看到之前就剥离整个服务器的所有工具（注释 <code>tools.ts:296-298</code>）。</li>
+</ul>
+
+<ul>
+<li><strong>与延迟工具系统的关系</strong>：MCP 工具<strong>全部被延迟</strong>（<code>constants/tools.ts:134</code>：「所有 MCP 工具被延迟，必须通过 SearchExtraToolsTool / ExecuteExtraTool 发现」）。模板的 <code>shouldDefer</code> 未在 <code>MCPTool.ts</code> 显式设置，但运行时克隆体走延迟路径。</li>
+</ul>
+
+<ul>
+<li><strong>与 <code>classifyForCollapse</code> 的关系</strong>（<code>classifyForCollapse.ts</code>）：600 行的硬编码白名单（Slack/GitHub/Linear/Datadog/Sentry/Notion/Jira/Kubernetes...），按工具名（规范化为 snake_case）判定 <code>isSearch</code>/<code>isRead</code>，驱动 UI 把只读 MCP 调用折叠显示。</li>
+</ul>
+
+</section>
+
+<section id="七亮点与设计取舍">
+<h2>七、亮点与设计取舍</h2>
+
+<ol>
+<li><strong>"模板 + 运行时覆盖"模式</strong>：这是 MCPTool 最大的设计亮点。用一个静态 <code>buildTool({...})</code> 对象做骨架，所有不确定的字段（name/schema/call/description）留 stub，运行时用对象展开 <code>{...MCPTool, ...overrides}</code> 填充。<strong>好处</strong>：新增 MCP 工具零成本（服务器拉到啥就填啥）、共享逻辑（渲染/进度/权限骨架）只写一次、stub 是天然断言（覆盖漏了会 fail-safe 报错）。</li>
+</ol>
+
+<ol>
+<li><strong><code>z.object({}).passthrough()</code> 万能 schema</strong>（<code>MCPTool.ts:15</code>）：模板用 passthrough 让任何输入通过 Zod，真实 schema 走 <code>inputJSONSchema</code>（原始 JSON Schema，绕过 Zod）。因为 MCP 工具的 schema 来自外部服务器，是动态的 JSON Schema，不可能预先类型化。</li>
+</ol>
+
+<ol>
+<li><strong>passthrough 权限 + 建议</strong>：MCP 工具权限不做内置判定，全部依赖用户规则。<code>client.ts:1826</code> 的 <code>suggestions</code> 让权限确认 UI 能一键加 allow 规则——既安全（默认每次问）又渐进友好（用户批准一次后免打扰）。</li>
+</ol>
+
+<ol>
+<li><strong>会话过期有限重试</strong>（<code>MAX_SESSION_RETRIES = 1</code>）：不是无限重试，避免死循环；清缓存后重连一次能覆盖大多数瞬时失效场景。</li>
+</ol>
+
+<ol>
+<li><strong>遥测安全错误类</strong>（<code>TelemetrySafeError_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS</code>）：类名本身是一道开发者检查清单——强制你在构造它之前确认"这个错误里没有用户代码/文件路径"。极巧妙的命名即文档。</li>
+</ol>
+
+<ol>
+<li><strong>渲染层三策略解包</strong>（<code>UI.tsx:198-229</code>）：<code>MCPTextOutput</code> 依次尝试：① 解包占主导地位的文本 payload（如 Slack 的 <code>{"messages":"..."}</code>）；② 扁平 JSON 对齐渲染；③ 回退 pretty-print + 截断。专门优化常见 MCP server（Slack/GitHub）的输出可读性，而不是暴力 JSON.stringify。</li>
+</ol>
+
+<ol>
+<li><strong>Slack 发送紧凑渲染</strong>（<code>UI.tsx:333-356</code>）：检测到 Slack <code>message_link</code> 时，非 verbose 模式下只渲染一行"已向 #channel 发送消息"+ 超链接，而不是整个 JSON。这是针对托管 Slack MCP 的专属优化。</li>
+</ol>
+
+<ol>
+<li><strong><code>classifyForCollapse</code> 的取舍</strong>（<code>classifyForCollapse.ts:12-16</code>）：用硬编码白名单而非启发式（如分析工具名动词）。注释明确：工具名跨安装稳定（即使 server 名变），所以只匹配工具名；未知工具保守不折叠。代价是白名单需要持续维护（已含 40+ 服务的数百个工具名）。</li>
+</ol>
+
+</section>
+
+<section id="八源码导航书签速查">
+<h2>八、源码导航（书签速查）</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+<tbody>
+<tr><td>模板 <code>buildTool</code> 字段填充</td><td><code>MCPTool/MCPTool.ts:28-82</code></td></tr>
+<tr><td>stub <code>call()</code> 护栏</td><td><code>MCPTool/MCPTool.ts:52-60</code></td></tr>
+<tr><td><code>isMcp: true</code> 标记</td><td><code>MCPTool/MCPTool.ts:29</code></td></tr>
+<tr><td>空 PROMPT/DESCRIPTION（运行时覆盖）</td><td><code>MCPTool/prompt.ts:1-3</code></td></tr>
+<tr><td>passthrough 权限骨架</td><td><code>MCPTool/MCPTool.ts:61-66</code></td></tr>
+<tr><td><strong>运行时覆盖核心</strong>（克隆改写）</td><td><code>src/services/mcp/client.ts:1782-1988</code></td></tr>
+<tr><td>真实 <code>call()</code> 实现</td><td><code>src/services/mcp/client.ts:1845-1983</code></td></tr>
+<tr><td>覆盖后的 <code>checkPermissions</code> + suggestions</td><td><code>src/services/mcp/client.ts:1826-1844</code></td></tr>
+<tr><td>工具拉取入口 <code>fetchToolsForClient</code></td><td><code>src/services/mcp/client.ts:1752</code></td></tr>
+<tr><td>多服务器编排 <code>getMcpToolsCommandsAndResources</code></td><td><code>src/services/mcp/client.ts:2238</code></td></tr>
+<tr><td>调用包装 <code>callMCPToolWithUrlElicitationRetry</code></td><td><code>src/services/mcp/client.ts:2892</code></td></tr>
+<tr><td>渲染（调用/进度/结果）</td><td><code>MCPTool/UI.tsx:41,59,105</code></td></tr>
+<tr><td>Slack 紧凑渲染</td><td><code>MCPTool/UI.tsx:333</code></td></tr>
+<tr><td>search/read 折叠分类白名单</td><td><code>MCPTool/classifyForCollapse.ts:14,142,595</code></td></tr>
+<tr><td>MCP 工具全部延迟（注释）</td><td><code>src/constants/tools.ts:134</code></td></tr>
+</tbody>
+</table>
+</div>
+
+</section>
+
+<section id="九学习建议与验证清单">
+<h2>九、学习建议与验证清单</h2>
+
+<p><strong>怎么读这章</strong>：先看"一、工具定位"理解它是<strong>模板不是工具</strong>，再跳到"四、call()"对照 stub（<code>MCPTool.ts:52</code>）和运行时实现（<code>client.ts:1845</code>）——这是理解"覆盖机制"的关键。最后看"六、关系图"理解它在 MCP 工具家族里的位置。</p>
+
+<p><strong>验证清单（读完自测）</strong>：</p>
+
+<ul class="checklist">
+<li><input type="checkbox" disabled> <span>能说出为什么 <code>MCPTool</code> 本身不进 <code>getAllBaseTools()</code>（它是模板，被克隆后才暴露）</span></li>
+<li><input type="checkbox" disabled> <span>能指出 stub <code>call()</code> 触发意味着什么（client 覆盖出 bug，fail-safe 返回空 + error 日志）</span></li>
+<li><input type="checkbox" disabled> <span>能解释 <code>z.object({}).passthrough()</code> 的用意（万能 schema，真实 schema 走 inputJSONSchema）</span></li>
+<li><input type="checkbox" disabled> <span>能说出 <code>checkPermissions</code> 为什么是 <code>passthrough</code>（权限外包给用户规则系统）</span></li>
+<li><input type="checkbox" disabled> <span>能找到运行时覆盖 <code>call()</code> 的位置（<code>client.ts:1845</code>）及其会话过期重试上限（1 次）</span></li>
+<li><input type="checkbox" disabled> <span>能说出 <code>TelemetrySafeError_I_VERIFIED_...</code> 类名的用意（命名即检查清单，防用户数据进遥测）</span></li>
+<li><input type="checkbox" disabled> <span>能指出 <code>McpAuthTool</code> / <code>ListMcpResourcesTool</code> / <code>ReadMcpResourceTool</code> 与 MCPTool 的兄弟关系</span></li>
+</ul>
+
+<p><strong>配合动作</strong>：</p>
+
+<ol>
+<li>装 一个 MCP 服务器（如 filesystem），在 <code>client.ts:1782</code> 加日志，观察克隆时覆盖了哪些字段</li>
+<li>在 <code>MCPTool.ts:54</code> 的 stub error 日志处设断点，验证正常路径不会触发</li>
+<li>配置一个 <code>mcp__server</code> 前缀的 deny 规则，验证 <code>filterToolsByDenyRules</code> 在模型看到前剥离整个服务器</li>
+<li>调用一个返回大 JSON 的 MCP 工具，观察 <code>UI.tsx:198</code> 的三策略解包路径</li>
+</ol>
+
+</section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

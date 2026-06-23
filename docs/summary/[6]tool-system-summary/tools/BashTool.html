@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bash 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange: #D77757; --orange-lt: #f0e0d8; --orange-dk: #b55e3a;
+      --blue: #5769F7; --blue-lt: #dde0fe; --blue-dk: #3a4ed4;
+      --bg: #faf8f5; --bg2: #f3f0eb; --bg3: #ebe7e0;
+      --text: #2d2a26; --text-2: #5a5650; --text-3: #8a8480;
+      --border: #ddd8d0; --shadow: 0 2px 8px rgba(45,42,38,.08);
+      --radius: 8px; --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero p { font-size: 1.05rem; color: var(--text-2); max-width: 640px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 6px 16px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .82rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .8rem; line-height: 1.7; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    blockquote.callout { background: var(--bg2); border-left: 4px solid var(--orange); padding: 14px 20px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0; color: var(--text-2); }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin: 16px 0; overflow-x: auto; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 48px; padding: 8px 18px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; transition: border-color .15s, color .15s; }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    section { margin-top: 56px; }
+  </style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>Bash 工具详解</h1>
+  <p>执行 bash 命令的执行类工具——Claude Code 中最复杂、安全子系统最庞大的核心工具</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一">工具定位</a></li>
+    <li><a href="#二">关键文件清单</a></li>
+    <li><a href="#三">Tool 接口字段实现</a></li>
+    <li><a href="#四">核心执行流程</a></li>
+    <li><a href="#五">权限与安全</a></li>
+    <li><a href="#六">与其他系统的关系</a></li>
+    <li><a href="#七">亮点与设计取舍</a></li>
+    <li><a href="#八">源码导航</a></li>
+    <li><a href="#九">学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+  <blockquote class="callout">
+    <p>这是工具系统逐个拆解系列中最重的一篇。<code>Bash</code> 是整个工具集里<strong>最复杂的工具</strong>：它有一个 47KB 的主体文件、一个 98KB 的权限引擎（<code>bashPermissions.ts</code>）、一个 100KB 的安全校验器（<code>bashSecurity.ts</code>），外加只读判定、路径校验、sed 校验、沙箱判定、命令语义、破坏性警告等十几个专项模块。这些模块合起来构成一套<strong>纵深防御的安全子系统</strong>——从 AST 解析、命令注入检测、破坏性操作告警、只读白名单到沙箱执行，层层把关。</p>
+  </blockquote>
+
+  <section id="一">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>Bash</code> = 执行任意 bash 命令的执行类工具，配备完整的权限/安全/沙箱子系统。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>Bash</code>（常量 <code>BASH_TOOL_NAME</code>，<code>toolName.ts:2</code>）</td></tr>
+          <tr><td>一句话</td><td>给定一条 bash 命令，在前台或后台执行并返回合并的 stdout/stderr</td></tr>
+          <tr><td>是否进 system prompt</td><td>✅ 在 <code>CORE_TOOLS</code> 白名单内（经 <code>SHELL_TOOL_NAMES</code> 展开，<code>constants/tools.ts:139</code>）</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>动态判定</strong>（<code>isReadOnly()</code> 逐命令求值）</td></tr>
+          <tr><td>是否可并发</td><td>⚠️ <strong>仅当 <code>isReadOnly()</code> 为真才可并发</strong>（<code>BashTool.tsx:570</code>）</td></tr>
+          <tr><td>核心依赖</td><td><code>src/utils/Shell.ts</code> 的 <code>exec()</code> + <code>src/tasks/LocalShellTask/</code> 后台任务系统 + <code>src/utils/sandbox/</code> 沙箱</td></tr>
+          <tr><td>定位互补方</td><td><code>PowerShell</code>（Windows 对应物）、<code>Agent</code>（开放式探索）、<code>Monitor</code>（流式事件，feature-gated）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="二">
+    <h2>二、关键文件清单</h2>
+    <pre><code>BashTool/
+├── BashTool.tsx              ← buildTool 主体（47KB，call/权限/渲染/sed 预览全在这）
+├── prompt.ts                 ← system prompt 片段（含 git 提交协议、沙箱说明、工具偏好）
+├── toolName.ts               ← BASH_TOOL_NAME 常量（为打破循环依赖而独立）
+├── UI.tsx                    ← Ink 渲染（命令展示/进度/后台提示 Ctrl+B）
+├── BashToolResultMessage.tsx ← 结果渲染（含沙箱违规提取）
+├── bashPermissions.ts        ← 【核心】权限引擎（98KB，bashToolHasPermission 主入口）
+├── bashSecurity.ts           ← 【核心】命令注入/误解析校验（100KB，~24 个验证器）
+├── readOnlyValidation.ts     ← 只读命令白名单判定（67KB，checkReadOnlyConstraints）
+├── pathValidation.ts         ← 路径约束校验（43KB，重定向/危险路径/git 内部路径）
+├── sedValidation.ts          ← sed 就地编辑约束（21KB，checkSedConstraints）
+├── sedEditParser.ts          ← sed 编辑命令解析器（支持"预览即写入"）
+├── shouldUseSandbox.ts       ← 沙箱判定（含用户排除命令匹配）
+├── commandSemantics.ts       ← 退出码语义解释（grep/find/diff/test 的非错误码）
+├── destructiveCommandWarning.ts ← 破坏性命令正则告警（git reset --hard / rm -rf 等）
+├── modeValidation.ts         ← 权限模式校验（acceptEdits 模式下放行 mkdir/rm/sed 等）
+├── bashCommandHelpers.ts     ← 管道/复合命令分段权限检查
+├── commentLabel.ts           ← 全屏模式下 # 注释提取
+├── utils.ts                  ← 图像/截断/cwd 重置等杂项
+└── __tests__/                ← 5 个专项测试（转义/语义/复合命令/破坏性/网络重定向）</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>BashTool.tsx</code></td><td>主体：schema + call() + 字段填充 + runShellCommand 生成器</td><td><code>buildTool:558</code>、<code>call:755</code>、<code>runShellCommand:982</code>、<code>isReadOnly:573</code>、<code>checkPermissions:666</code></td></tr>
+          <tr><td><code>bashPermissions.ts</code></td><td>权限引擎主入口</td><td><code>bashToolHasPermission:1641</code>、<code>commandHasAnyCd:2582</code>、<code>MAX_SUBCOMMANDS_FOR_SECURITY_CHECK:100</code></td></tr>
+          <tr><td><code>bashSecurity.ts</code></td><td>命令注入/误解析闸门</td><td><code>bashCommandIsSafe_DEPRECATED:2281</code>、<code>COMMAND_SUBSTITUTION_PATTERNS:16</code></td></tr>
+          <tr><td><code>readOnlyValidation.ts</code></td><td>只读白名单判定</td><td><code>checkReadOnlyConstraints:1873</code></td></tr>
+          <tr><td><code>shouldUseSandbox.ts</code></td><td>沙箱判定</td><td><code>shouldUseSandbox:129</code>、<code>containsExcludedCommand:21</code></td></tr>
+          <tr><td><code>commandSemantics.ts</code></td><td>退出码语义</td><td><code>interpretCommandResult:124</code>、<code>COMMAND_SEMANTICS:31</code></td></tr>
+          <tr><td><code>destructiveCommandWarning.ts</code></td><td>破坏性正则告警</td><td><code>DESTRUCTIVE_PATTERNS:11</code>、<code>getDestructiveCommandWarning:94</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="三">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <h3>输入 schema（<code>BashTool.tsx:301-349</code>）</h3>
+    <pre><code>{
+  command: string,                    // 必填，要执行的命令
+  timeout?: number,                   // 可选，最大 getMaxTimeoutMs()
+  description?: string,               // 命令的人类可读描述
+  run_in_background?: boolean,        // 后台运行
+  dangerouslyDisableSandbox?: boolean, // 危险地关闭沙箱
+  _simulatedSedEdit?: {filePath, newContent},  // 内部字段，从模型面 schema 中省略
+}</code></pre>
+    <blockquote class="callout">
+      <p><strong>关键安全设计</strong>：<code>_simulatedSedEdit</code> 是内部字段，由 sed 编辑预览权限对话框设置——<strong>永远不暴露给模型</strong>（<code>inputSchema</code> 用 <code>omit</code> 剥离，<code>:342-348</code>）。若暴露，模型可绕过权限检查和沙箱，把任意文件写入塞进一条无害命令。</p>
+    </blockquote>
+
+    <h3>行为字段（重点）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:755</code></td><td>核心（见第四节）</td></tr>
+          <tr><td><code>validateInput()</code></td><td><code>:653</code></td><td>拦截 <code>sleep N</code>（N≥2）反模式，引导改用 Monitor/run_in_background</td></tr>
+          <tr><td><code>checkPermissions()</code></td><td><code>:666</code></td><td>委托 <code>bashToolHasPermission</code>（第五节）</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:573</code></td><td>逐命令求值：<code>checkReadOnlyConstraints(input, commandHasAnyCd(input.command))</code></td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:570</code></td><td><strong>=<code>isReadOnly</code></strong>——只读才并发</td></tr>
+          <tr><td><code>isSearchOrReadCommand()</code></td><td><code>:603</code></td><td>用 <code>isSearchOrReadBashCommand</code> 判定 grep/find/cat 等可折叠命令</td></tr>
+          <tr><td><code>preparePermissionMatcher()</code></td><td><code>:581</code></td><td>用 AST 解析复合命令，让 hook 的通配规则匹配每个子命令</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="四">
+    <h2>四、核心执行流程：<code>call()</code> + <code>runShellCommand</code></h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["call(input, ctx)\nBashTool.tsx:755"] --> SED{"input._simulatedSedEdit?"}
+    SED -->|是| APPLY["applySedEdit()\n直接写文件，不执行 sed\n:501-556"]
+    SED -->|否| GEN["runShellCommand()\n异步生成器 :982"]
+    GEN --> EXEC["exec(command, signal, 'bash',\n{timeout, onProgress,\n shouldUseSandbox, shouldAutoBackground})"]
+    EXEC --> LOOP{"进度循环\n:1217-1329"}
+    LOOP -->|每秒 tick| PROG["onProgress(bash_progress)"]
+    LOOP -->|完成| RES["result = generatorResult.value"]
+    RES --> INTERP["interpretCommandResult()\n退出码语义解释"]
+    INTERP --> CWD{"cwd 越界?"}
+    CWD -->|是| RESET["resetCwdIfOutsideProject()"]
+    CWD -->|否| PERSIST{"输出 > 阈值?"}
+    RESET --> PERSIST
+    PERSIST -->|是| DISK["复制到 tool-results/\n生成 persistedOutputPath"]
+    PERSIST -->|否| HINTS["extractClaudeCodeHints()\n剥离 claude-code-hint 标签"]
+    DISK --> HINTS
+    HINTS --> IMG{"isImageOutput?"}
+    IMG -->|是| RESIZE["resizeShellImageOutput()"]
+    IMG -->|否| OUT["组装 Out 对象"]
+    RESIZE --> OUT
+    OUT --> RETURN["return { data }"]
+      </div>
+    </div>
+
+    <h3><code>runShellCommand</code> 的三种后台化触发</h3>
+    <ol>
+      <li><strong>超时自动后台化</strong>（<code>:1136</code>）：命令超时时不杀进程，而是 <code>startBackgrounding</code> 转后台。</li>
+      <li><strong>助手模式自动后台化</strong>（<code>:1145-1158</code>）：feature-gated by <code>KAIROS</code>。主代理中命令运行超过 <code>ASSISTANT_BLOCKING_BUDGET_MS</code>（15 秒）自动转后台。</li>
+      <li><strong>用户手动后台化 Ctrl+B</strong>（<code>:1299-1310</code>）：进度循环里注册前台任务，用户按 Ctrl+B 时转后台。</li>
+    </ol>
+
+    <h3><code>call()</code> 的关键点</h3>
+    <ul>
+      <li><strong>sed 预览直写</strong>（<code>:764</code>）：若 <code>input._simulatedSedEdit</code> 存在，直接 <code>applySedEdit</code> 写文件而<strong>不执行 sed</strong>——确保预览与写入一致。</li>
+      <li><strong>退出码语义</strong>（<code>:834</code>）：<code>interpretCommandResult</code> 解释——<code>grep</code> 退出 1（无匹配）不算错误。</li>
+      <li><strong>大输出落盘</strong>（<code>:882-901</code>）：输出超过阈值时复制到 <code>tool-results/</code>，模型可通过 FileRead 读取。</li>
+      <li><strong>Claude Code hints 剥离</strong>（<code>:931</code>）：<code>&lt;claude-code-hint /&gt;</code> 标签从输出中剥离，模型永远看不到——零令牌旁通道。</li>
+    </ul>
+  </section>
+
+  <section id="五">
+    <h2>五、权限与安全（本工具的核心）</h2>
+    <h3>5.1 总入口：<code>bashToolHasPermission</code>（<code>bashPermissions.ts:1641</code>）</h3>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    IN["input.command"] --> AST{"AST 解析\n(tree-sitter)"}
+    AST -->|too-complex| TC["checkEarlyExitDeny\n→ 否则 ask"]
+    AST -->|parse-unavailable| LEGACY["旧正则路径\n(bashCommandIsSafe)"]
+    AST -->|simple| SEM["checkSemantics\n(zsh builtins/eval)"]
+    SEM --> MODE["checkPermissionMode\n(acceptEdits 放行)"]
+    MODE --> DENY["精确/前缀/通配 deny 规则匹配"]
+    DENY --> SEC["bashCommandIsSafeAsync\n(注入/误解析闸门)"]
+    SEC --> RO["checkReadOnlyConstraints\n(只读白名单)"]
+    RO --> PATH["checkPathConstraints\n(路径/重定向/git 内部)"]
+    PATH --> SED["checkSedConstraints\n(sed 就地编辑)"]
+    SED --> ASK["→ ask 用户批准"]
+      </div>
+    </div>
+
+    <h3>5.2 命令注入闸门 — <code>bashSecurity.ts</code></h3>
+    <ul>
+      <li><strong>控制字符</strong>（<code>:2287</code>）：null 字节等不可打印字符——首道闸门。</li>
+      <li><strong>命令替换</strong>（<code>COMMAND_SUBSTITUTION_PATTERNS:16</code>）：<code>$()</code>、<code>${}</code>、<code>$[]</code>、<code>&lt;()</code>（进程替换）等。</li>
+      <li><strong>Zsh 危险命令</strong>（<code>ZSH_DANGEROUS_COMMANDS:46</code>）：<code>zmodload</code>、<code>emulate -c</code>（等价 eval）等。</li>
+    </ul>
+
+    <h3>5.3 只读白名单 — <code>readOnlyValidation.ts</code></h3>
+    <ul>
+      <li><strong>UNC 路径</strong>（<code>:1900</code>）：Windows UNC 路径可能触发 WebDAV 攻击。</li>
+      <li><strong>cd + git 复合命令</strong>（<code>:1914</code>）：恶意目录的假 git 钩子会执行任意代码。</li>
+      <li><strong>裸仓库攻击</strong>（<code>:1927</code>）：裸 git 仓库结构时运行 git 可执行恶意钩子。</li>
+    </ul>
+
+    <h3>5.4 退出码语义 — <code>commandSemantics.ts</code></h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>命令</th><th>退出 1 含义</th><th>退出 ≥2</th></tr></thead>
+        <tbody>
+          <tr><td><code>grep</code> / <code>rg</code></td><td>"No matches found"（非错误）</td><td>错误</td></tr>
+          <tr><td><code>find</code></td><td>"Some directories were inaccessible"</td><td>错误</td></tr>
+          <tr><td><code>diff</code></td><td>"Files differ"（非错误）</td><td>错误</td></tr>
+          <tr><td><code>test</code> / <code>[</code></td><td>"Condition is false"（非错误）</td><td>错误</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>5.5 破坏性告警 — <code>destructiveCommandWarning.ts</code></h3>
+    <p><code>DESTRUCTIVE_PATTERNS</code>（<code>:11</code>）用正则匹配并返回告警字符串（<strong>纯信息性，不影响权限逻辑</strong>）：<code>git reset --hard</code>、<code>git push --force</code>、<code>rm -rf</code>、<code>DROP TABLE</code>、<code>terraform destroy</code> 等。</p>
+  </section>
+
+  <section id="六">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    BASH["Bash"] -->|执行| SHELL["src/utils/Shell.ts\nexec()"]
+    BASH -->|后台| TASK["src/tasks/LocalShellTask/\nLocalShellTask.ts"]
+    BASH -->|沙箱| SBX["src/utils/sandbox/\nsandbox-adapter.ts"]
+    BASH -->|权限| PERM["bashToolHasPermission\nbashPermissions.ts"]
+    BASH -->|注入检测| SEC["bashSecurity.ts\n~24 个验证器"]
+    BASH -->|只读判定| RO["readOnlyValidation.ts\n白名单 + git 攻击防护"]
+    BASH -->|sed 预览| SED["sedEditParser.ts\n预览即写入"]
+    BASH -->|AST| TS["src/utils/bash/\ntree-sitter 解析"]
+    BASH -.Windows 对应.-> PS["PowerShellTool\n共享 shouldUseSandbox/utils/BackgroundHint"]
+    BASH -.被 REPL 包装.-> REPL["REPLTool\nVM 上下文中调用 Bash"]
+      </div>
+    </div>
+  </section>
+
+  <section id="七">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>纵深防御管道</strong>：权限判定不是单一检查，而是 9 层管道（AST → 语义 → 模式 → deny 规则 → 注入 → 只读 → 路径 → sed → ask）。任何一层失败都 fail-safe 到 <code>ask</code>。</li>
+      <li><strong>AST 优先 + 正则回退</strong>：tree-sitter 解析成功时用 AST（精确），不可用时回退正则（保守）。<code>TREE_SITTER_BASH_SHADOW</code> 做 shadow 测试验证新解析器。</li>
+      <li><strong><code>_simulatedSedEdit</code> 内部字段隔离</strong>：从模型面 schema 中 <code>omit</code>，防止模型绕过权限。</li>
+      <li><strong>三种后台化触发</strong>：超时、助手模式自动（15 秒预算）、用户手动（Ctrl+B）。</li>
+      <li><strong>退出码语义解释</strong>：<code>grep</code> 退出 1 不算错误——避免模型误判"搜索失败"。</li>
+      <li><strong>破坏性告警分层</strong>：<code>destructiveCommandWarning</code> 纯信息性，<code>readOnlyValidation</code>/<code>pathValidation</code> 才是硬约束。</li>
+      <li><strong>git 攻击专项防护</strong>：cd+git 复合、裸仓库、git 内部路径写入——三类钩子逃逸攻击专项检查。</li>
+      <li><strong>ReDoS 防护</strong>：<code>MAX_SUBCOMMANDS_FOR_SECURITY_CHECK = 50</code> 上限防复合命令指数增长冻住 REPL（CC-643）。</li>
+      <li><strong>零令牌旁通道</strong>：<code>&lt;claude-code-hint /&gt;</code> 标签从输出剥离后记录，模型永远看不到——插件推荐等机制通过这个旁通道传递信息。</li>
+    </ol>
+  </section>
+
+  <section id="八">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>BashTool/toolName.ts:2</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>BashTool/BashTool.tsx:558-980</code></td></tr>
+          <tr><td>输入/输出 schema</td><td><code>BashTool.tsx:301-431</code></td></tr>
+          <tr><td><code>call()</code> 编排器</td><td><code>BashTool.tsx:755-975</code></td></tr>
+          <tr><td><code>runShellCommand</code> 生成器</td><td><code>BashTool.tsx:982-1333</code></td></tr>
+          <tr><td>sed 预览直写</td><td><code>BashTool.tsx:501-556</code>（applySedEdit）</td></tr>
+          <tr><td>权限引擎主入口</td><td><code>bashPermissions.ts:1641</code>（bashToolHasPermission）</td></tr>
+          <tr><td>命令注入检测</td><td><code>bashSecurity.ts:2281</code>（bashCommandIsSafe_DEPRECATED）</td></tr>
+          <tr><td>只读白名单</td><td><code>readOnlyValidation.ts:1873</code></td></tr>
+          <tr><td>沙箱判定</td><td><code>shouldUseSandbox.ts:129</code></td></tr>
+          <tr><td>退出码语义</td><td><code>commandSemantics.ts:31</code>（COMMAND_SEMANTICS）</td></tr>
+          <tr><td>破坏性告警正则</td><td><code>destructiveCommandWarning.ts:11</code></td></tr>
+          <tr><td>管道分段权限</td><td><code>bashCommandHelpers.ts:180</code></td></tr>
+          <tr><td>system prompt 构造</td><td><code>prompt.ts:274</code>（getSimplePrompt）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="九">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先读"一、工具定位"建立心智，再跳到"四、call()"看执行编排，然后重点啃"五、权限与安全"的 5.1-5.4——这是 BashTool 的灵魂。</p>
+    <p><strong>这是进阶篇，建议先读 GlobTool 再读本篇</strong>：GlobTool 教你"标准工具长什么样"，BashTool 教你"危险工具如何被驯服"。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 <code>bashToolHasPermission</code> 的 9 层管道顺序</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么 <code>isConcurrencySafe</code> 直接等于 <code>isReadOnly</code>（只读才无副作用可并发）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>_simulatedSedEdit</code> 为何从模型面 schema 中省略（防绕过权限）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出三种后台化触发（超时、助手模式 15 秒、用户 Ctrl+B）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>grep</code> 退出 1 为何不算错误（commandSemantics）</span></li>
+      <li><input type="checkbox" disabled> <span>能找到子命令上限（50）及其防的攻击（ReDoS / CC-643）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 cd+git 复合命令为何被特殊拦截（假 git 钩子执行任意代码）</span></li>
+      <li><input type="checkbox" disabled> <span>能区分破坏性告警（destructiveCommandWarning，纯信息）与硬约束</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 AST 优先 + 正则回退的双路径设计</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>让 Claude 执行 <code>grep nonexistent file</code>（退出 1），观察 <code>returnCodeInterpretation: "No matches found"</code></li>
+      <li>构造 <code>git reset --hard</code> 命令，观察权限对话框出现破坏性告警</li>
+      <li>在 <code>bashToolHasPermission</code> 入口加日志，观察一条复合命令经过哪些校验层</li>
+      <li>启用沙箱（<code>/sandbox</code>），执行访问项目外路径的命令，观察沙箱违规提示</li>
+      <li>构造 <code>cd /tmp &amp;&amp; git status</code>，验证 cd+git 复合命令被拦截</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

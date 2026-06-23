@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ListMcpResourcesTool 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange: #D77757; --orange-lt: #f0e0d8; --orange-dk: #b55e3a;
+      --blue: #5769F7; --blue-lt: #dde0fe; --blue-dk: #3a4ed4;
+      --green: #22a766; --green-lt: #d2f0e3;
+      --bg: #faf8f5; --bg2: #f3f0eb; --bg3: #ebe7e0;
+      --text: #2d2a26; --text-2: #5a5650; --text-3: #8a8480;
+      --border: #ddd8d0; --shadow: 0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius: 8px; --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+    section { margin-top: 56px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; letter-spacing: .01em; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero p { font-size: 1.05rem; color: var(--text-2); max-width: 640px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 6px 16px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .82rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s, box-shadow .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); box-shadow: 0 2px 6px rgba(215,119,87,.15); text-decoration: none; }
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .8rem; line-height: 1.7; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    blockquote.callout { background: var(--bg2); border-left: 4px solid var(--orange); padding: 14px 20px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0; color: var(--text-2); }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin: 16px 0; overflow-x: auto; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 48px; padding: 8px 18px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; transition: border-color .15s, color .15s; }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    @media (max-width: 700px) { .hero h1 { font-size: 1.6rem; } }
+  </style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>ListMcpResourcesTool 工具详解</h1>
+  <p>列出所有已连接 MCP 服务器暴露的 resources——MCP 协议 "resources 面" 的只读检索工具，被 getTools() 过滤的特殊内部工具，仅当某服务器支持 resources 时由 client.ts 注入</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一">工具定位</a></li>
+    <li><a href="#二">关键文件清单</a></li>
+    <li><a href="#三">Tool 接口字段实现</a></li>
+    <li><a href="#四">核心执行流程</a></li>
+    <li><a href="#五">权限与安全</a></li>
+    <li><a href="#六">与其他系统的关系</a></li>
+    <li><a href="#七">亮点与设计取舍</a></li>
+    <li><a href="#八">源码导航</a></li>
+    <li><a href="#九">学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+  <blockquote class="callout">
+    <p>这是 MCP 协议<strong>-resources 面</strong>的只读检索工具。MCP 服务器除了提供 tools（可调用函数），还可以提供 resources（静态/动态资源，如配置文件、文档、数据库 schema）。<code>ListMcpResourcesTool</code> 让模型列出所有已连接服务器的 resources。它有一个特殊身份：<strong>被 <code>getTools()</code> 过滤掉的"特殊内部工具"</strong>（<code>tools.ts:343-349</code>）——它不在常规工具池里，只在 <code>getMcpToolsCommandsAndResources</code> 检测到至少一个服务器支持 resources 时才手动注入（<code>client.ts:2372-2376</code>）。这避免了"没有 resources 服务器时仍暴露无用工具"。</p>
+  </blockquote>
+
+  <section id="一">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>ListMcpResourcesTool</code> = 列出已连接 MCP 服务器 resources 的只读检索工具（按需注入）。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>'ListMcpResourcesTool'</code>（<code>prompt.ts:1</code> 常量 <code>LIST_MCP_RESOURCES_TOOL_NAME</code>）</td></tr>
+          <tr><td>一句话</td><td>列出所有（或指定）已连接 MCP 服务器的 resources，每项含 server 字段</td></tr>
+          <tr><td>是否进 system prompt</td><td>⚠️ <strong>特殊</strong>：在 <code>getAllBaseTools()</code> 里（<code>tools.ts:275</code>），但被 <code>getTools()</code> 的 <code>specialTools</code> 过滤掉（<code>tools.ts:344</code>），由 <code>client.ts</code> 按需注入</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly: () => true</code>，<code>:45</code>）</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe: () => true</code>，<code>:42</code>）</td></tr>
+          <tr><td>是否延迟</td><td>✅ <code>shouldDefer: true</code>（<code>:50</code>）——通过 SearchExtraTools 按需发现</td></tr>
+          <tr><td>核心依赖</td><td><code>client.ts</code> 的 <code>fetchResourcesForClient</code>（LRU 缓存）+ <code>ensureConnectedClient</code></td></tr>
+          <tr><td>兄弟工具</td><td><code>ReadMcpResourceTool</code>（读单个 resource）、<code>MCPTool</code>（tools 面）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> MCP 协议区分 tools 和 resources：tools 是"可调用的动作"，resources 是"可读取的数据源"。有些服务器只暴露 resources 不暴露 tools（如只读文档库）。没有 ListMcpResourcesTool，模型就无法感知这些数据源的存在。它与 <code>ReadMcpResourceTool</code> 配对——先 list 再 read，是 resources 面的标准两步检索模式。</p>
+  </section>
+
+  <section id="二">
+    <h2>二、关键文件清单</h2>
+    <pre>ListMcpResourcesTool/
+├── ListMcpResourcesTool.ts ← buildTool({...}) 主体（123 行）
+├── prompt.ts              ← 工具名常量 + DESCRIPTION + PROMPT
+└── UI.tsx                 ← Ink 渲染（调用展示 + 结果 JSON 展示）</pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>ListMcpResourcesTool.ts</code></td><td>主体：schema + call() + mapToolResult</td><td><code>buildTool:40</code>、<code>call:66</code>、<code>mapToolResultToToolResultBlockParam:107</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>工具名 + 描述（含用法示例）</td><td><code>LIST_MCP_RESOURCES_TOOL_NAME:1</code>、<code>DESCRIPTION:3-10</code>、<code>PROMPT:12-20</code></td></tr>
+          <tr><td><code>UI.tsx</code></td><td>渲染（空结果/有结果两路）</td><td><code>renderToolUseMessage:10</code>、<code>renderToolResultMessage:14</code></td></tr>
+          <tr><td><code>src/tools.ts</code></td><td><strong>过滤逻辑</strong>：<code>specialTools</code> set + <code>getTools</code> filter</td><td><code>:343-349</code>（过滤）、<code>:275-276</code>（注册）</td></tr>
+          <tr><td><code>src/services/mcp/client.ts</code></td><td><strong>注入逻辑</strong>：supportsResources 时追加</td><td><code>:2372-2376</code>（注入）、<code>fetchResourcesForClient</code>（LRU 缓存）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：标准三文件结构（主体/prompt/UI），逻辑简洁。它的"特殊性"全在注册/过滤/注入的编排上（跨 <code>tools.ts</code> 和 <code>client.ts</code>），而非工具自身逻辑。</p></blockquote>
+  </section>
+
+  <section id="三">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+    <h3>标识字段</h3>
+    <pre>name: LIST_MCP_RESOURCES_TOOL_NAME,           // 'ListMcpResourcesTool'（:51）
+searchHint: '列出已连接 MCP 服务器的资源',     // :52，TF-IDF 索引关键词
+maxResultSizeChars: 100_000,                  // :53
+shouldDefer: true,                            // :50，延迟工具
+userFacingName: () => 'listMcpResources',     // :102</pre>
+
+    <h3>模型面字段</h3>
+    <pre>async description() { return DESCRIPTION },  // :54
+async prompt()      { return PROMPT },        // :57
+get inputSchema()   { return inputSchema() }, // :60
+get outputSchema()  { return outputSchema() },// :63</pre>
+    <p><strong>输入 schema</strong>（<code>:15-22</code>）：</p>
+    <pre>{
+  server?: string  // 可选，按服务器名过滤；省略 = 所有服务器
+}</pre>
+    <p><strong>输出 schema</strong>（<code>:25-35</code>）：</p>
+    <pre>Array&lt;{
+  uri: string,           // 资源 URI（如 "config://app"）
+  name: string,          // 资源名称
+  mimeType?: string,     // MIME 类型
+  description?: string,  // 资源描述
+  server: string,        // 提供该资源的服务器名（额外字段）
+}&gt;</pre>
+    <blockquote class="callout"><p><strong><code>server</code> 字段是额外追加的</strong>：MCP 协议的 resources 响应本身不含 server 名（因为是向单个 server 请求）。本工具在聚合多 server 结果时给每项追加 <code>server</code> 字段，让模型知道每个资源属于哪个 server——这对 <code>ReadMcpResourceTool</code>（需要 server 名参数）是必要的前置信息。</p></blockquote>
+
+    <h3>行为字段</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:66-100</code></td><td>核心逻辑（见下节）</td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:42</code> → <code>true</code></td><td>并发读不同服务器安全</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:45</code> → <code>true</code></td><td>纯读</td></tr>
+          <tr><td><code>toAutoClassifierInput(input)</code></td><td><code>:48</code> → <code>input.server ?? ''</code></td><td>自动审批分类器输入</td></tr>
+          <tr><td><code>isResultTruncated(output)</code></td><td><code>:104</code></td><td>基于 JSON 序列化长度判截断</td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>:107-121</code></td><td>空结果给友好提示，非空 JSON 序列化</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="四">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code>（<code>:66-100</code>）聚合多个服务器的 resources，单个服务器失败不拖垮整体。</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    A["call(input, {options:{mcpClients}})\n:66"] --> B{input.server?}
+    B -->|有| C["filter mcpClients by name\n:69-71"]
+    B -->|无| D["用全部 mcpClients\n:71"]
+    C --> E{匹配到?}
+    E -->|否| F["throw Error 列出可用服务器\n:73-77"]
+    E -->|是| G["Promise.all 并发拉取\n:83-95"]
+    D --> G
+    G --> H["每 client: ensureConnectedClient\n→ fetchResourcesForClient（LRU 缓存）"]
+    H --> I["单 client 失败 → logMCPError + 返回 []\n（不抛出，:89-93）"]
+    G --> J["results.flat() 聚合\n:98"]
+    J --> K["return { data: flatResults }\n:97-99"]
+      </div>
+    </div>
+    <p><strong>关键点逐条</strong>：</p>
+    <ol>
+      <li><strong>从 context 取 mcpClients</strong>（<code>:66</code>）：<code>call(input, { options: { mcpClients } })</code>——工具从调用上下文拿到当前所有 MCP 连接。</li>
+      <li><strong>按 server 过滤</strong>（<code>:69-71</code>）：<code>targetServer</code> 提供时只处理该 server；未提供时处理全部。过滤后若空（server 名拼错）抛错并列出所有可用服务器名（<code>:73-77</code>）——帮模型自我纠正。</li>
+      <li><strong>并发拉取 + 容错</strong>（<code>:83-95</code>）：<code>Promise.all</code> 并发拉所有 server。单个 server 失败只 <code>logMCPError</code> + 返回 <code>[]</code>，<strong>不抛出</strong>——保证一个 server 挂掉不影响其他 server 的结果聚合。</li>
+      <li><strong><code>ensureConnectedClient</code></strong>（<code>:87</code>）：确保连接健康。健康时是 no-op（memoize 命中）；<code>onclose</code> 后返回新连接以便重新拉取。</li>
+      <li><strong><code>fetchResourcesForClient</code> 的 LRU 缓存</strong>（注释 <code>:79-82</code>）：按服务器名缓存 resources。启动预取时预热，<code>onclose</code> 和 <code>resources/list_changed</code> 通知时失效——结果从不过期，性能极佳。</li>
+      <li><strong><code>results.flat()</code></strong>（<code>:98</code>）：把多 server 的二维数组拍平成一维。每个资源项已含 <code>server</code> 字段（由 <code>fetchResourcesForClient</code> 追加）。</li>
+      <li><strong>返回 <code>{ data: flatResults }</code></strong>（<code>:97</code>）：同步返回（非 async generator yield），因为 list 是原子操作，无中间进度。</li>
+    </ol>
+    <h4><code>mapToolResultToToolResultBlockParam</code>（<code>:107-121</code>）</h4>
+    <pre>if (!content || content.length === 0) {
+  content: '未找到资源。即使没有资源，MCP 服务器仍可能提供工具。'  // 关键引导
+}
+content: jsonStringify(content)</pre>
+    <p><strong>空结果的友好提示值得注意</strong>：它主动告诉模型"没有 resources 不代表 server 没用，可能它只提供 tools"。防止模型因空 resources 列表误判 server 无价值。</p>
+  </section>
+
+  <section id="五">
+    <h2>五、权限与安全</h2>
+    <p>ListMcpResourcesTool <strong>没有定义 <code>checkPermissions</code></strong>——走默认权限管道（由全局 allow/deny 规则 + 运行时确认处理）。</p>
+    <p><strong>安全特性</strong>：</p>
+    <ol>
+      <li><strong>纯只读</strong>（<code>isReadOnly: true</code>）：只调 <code>resources/list</code>，不修改任何状态。</li>
+      <li><strong>可并发</strong>（<code>isConcurrencySafe: true</code>）：多 server 并发拉取安全。</li>
+      <li><strong>容错聚合</strong>（<code>:89-93</code>）：单 server 失败不影响其他，不会因一个坏 server 阻塞整体。</li>
+      <li><strong>依赖 MCP 协议的 resources 权限</strong>：MCP 服务器自身控制向 Claude Code 暴露哪些 resources；本工具只能列出服务器主动暴露的，不能越权访问。</li>
+    </ol>
+    <blockquote class="callout"><p><strong>为何不内置 <code>checkPermissions</code></strong>：resources 是服务器已主动暴露的元数据（URI + name + description），列出它们不涉及敏感内容。读取具体内容（<code>ReadMcpResourceTool</code>）才可能涉及敏感数据，由那个工具的调用走权限确认。</p></blockquote>
+  </section>
+
+  <section id="六">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    LIST["ListMcpResourcesTool"] -->|call| FETCH["fetchResourcesForClient\nclient.ts（LRU 缓存）"]
+    FETCH -->|resources/list| SDK["@modelcontextprotocol/sdk"]
+    LIST -->|与| READ["ReadMcpResourceTool\n配对（先 list 再 read）"]
+    LIST -.被过滤.-> FILT["getTools specialTools 过滤\ntools.ts:344"]
+    LIST -.按需注入.-> INJ["client.ts:2372-2376\nsupportsResources 时追加"]
+    LIST -.兄弟.-> TMPL["MCPTool（tools 面）"]
+    LIST -.预热.-> PRE["prefetchAllMcpResources\nclient.ts:2420"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 <code>ReadMcpResourceTool</code> 的关系</strong>：配对工具。list 提供 <code>uri</code> + <code>server</code>，read 用这两个参数读具体内容。标准两步检索模式（类似 Glob 找文件 → Read 读文件）。</li>
+      <li><strong>与 <code>MCPTool</code> 的关系</strong>：兄弟工具，覆盖 MCP 协议的不同面。MCPTool 处理 tools（动作），ListMcpResourcesTool/ReadMcpResourceTool 处理 resources（数据源）。</li>
+      <li><strong>与 <code>tools.ts</code> 注册/过滤的关系</strong>（<strong>核心特殊性</strong>）：
+        <ul>
+          <li><strong>注册</strong>：在 <code>getAllBaseTools()</code> 里（<code>:275</code>），所以它进 <code>CORE_TOOLS</code> 相关的延迟判定流程。</li>
+          <li><strong>过滤</strong>：<code>getTools()</code>（<code>:309</code>）用 <code>specialTools</code> set（<code>:343-347</code>）把它从常规工具池<strong>剔除</strong>。同 set 的还有 <code>ReadMcpResourceTool</code> 和 <code>SyntheticOutputTool</code>。</li>
+          <li><strong>注入</strong>：<code>getMcpToolsCommandsAndResources</code>（<code>client.ts:2372-2376</code>）在遍历 server 时，若发现某 server <code>supportsResources</code> 且尚未添加资源工具，就把 <code>ListMcpResourcesTool</code> + <code>ReadMcpResourceTool</code> 追加（用 <code>resourceToolsAdded</code> 标志保证只加一次）。</li>
+        </ul>
+      </li>
+      <li><strong>与 <code>prefetchAllMcpResources</code>（<code>client.ts:2420</code>）的关系</strong>：启动时预热 resources 缓存，让首次 <code>ListMcpResources</code> 调用直接命中 LRU、无需等待网络。</li>
+    </ul>
+  </section>
+
+  <section id="七">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>"注册-过滤-按需注入"三段式</strong>（跨 <code>tools.ts</code> + <code>client.ts</code>）：避免在没有任何 resources 服务器时仍向模型暴露无用的 list/read 工具。模型看到的工具集始终与实际能力匹配——减少幻觉调用（模型调一个永远空结果的工具）。</li>
+      <li><strong><code>server</code> 字段额外追加</strong>：MCP resources 响应本身不含 server 名（单 server 请求）。本工具聚合时给每项加 <code>server</code>，让模型能直接把结果喂给 <code>ReadMcpResourceTool({server, uri})</code>——闭环设计。</li>
+      <li><strong>容错聚合</strong>（<code>:89-93</code>）：单 server 失败返回 <code>[]</code> 而非抛出，保证部分可用。这对多 server 场景（用户可能装 10+ MCP server）至关重要——一个 server 挂掉不能让整个 list 工具不可用。</li>
+      <li><strong>LRU 缓存 + 通知失效</strong>（<code>fetchResourcesForClient</code>）：resources 列表变化频率低，缓存命中率高；<code>onclose</code> / <code>list_changed</code> 主动失效保证不脏。性能与一致性兼顾。</li>
+      <li><strong>空结果的引导提示</strong>（<code>:108-114</code>）：<code>"未找到资源。即使没有资源，MCP 服务器仍可能提供工具。"</code>——防止模型误判 server 无价值。细节处见对模型行为的预判与引导。</li>
+      <li><strong><code>shouldDefer: true</code></strong>（<code>:50</code>）：延迟工具，通过 SearchExtraTools 按需发现。resources 操作不常用，没必要进初始 system prompt 占 token。</li>
+      <li><strong>并发安全 + 只读标记</strong>：让权限系统/调度器能放心并发执行、自动审批，不阻塞主流程。</li>
+    </ol>
+  </section>
+
+  <section id="八">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td><code>buildTool</code> 主体</td><td><code>ListMcpResourcesTool/ListMcpResourcesTool.ts:40-122</code></td></tr>
+          <tr><td>工具名常量 + 描述</td><td><code>ListMcpResourcesTool/prompt.ts:1-20</code></td></tr>
+          <tr><td><code>call()</code> 聚合逻辑</td><td><code>ListMcpResourcesTool.ts:66-100</code></td></tr>
+          <tr><td>空结果友好提示</td><td><code>ListMcpResourcesTool.ts:108-114</code></td></tr>
+          <tr><td>输入/输出 schema</td><td><code>ListMcpResourcesTool.ts:15-35</code></td></tr>
+          <tr><td><strong>过滤逻辑</strong>（specialTools）</td><td><code>src/tools.ts:343-349</code></td></tr>
+          <tr><td><strong>按需注入</strong>（supportsResources）</td><td><code>src/services/mcp/client.ts:2372-2376</code></td></tr>
+          <tr><td>resources 拉取 + LRU 缓存</td><td><code>src/services/mcp/client.ts:fetchResourcesForClient</code></td></tr>
+          <tr><td>启动预热</td><td><code>src/services/mcp/client.ts:prefetchAllMcpResources:2420</code></td></tr>
+          <tr><td>渲染（调用/结果）</td><td><code>ListMcpResourcesTool/UI.tsx:10,14</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="九">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先看"一、工具定位"理解它的<strong>特殊性</strong>（被过滤的内部工具），再跳到"六、关系图"的"注册-过滤-按需注入"三段式——这是它和普通工具最大的不同。<code>call()</code> 本身很简单（聚合 + 容错），重点理解它<strong>何时</strong>出现在工具池里。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 ListMcpResourcesTool 为什么是"特殊内部工具"（在 <code>getAllBaseTools</code> 但被 <code>getTools</code> 过滤，由 <code>client.ts</code> 按需注入）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>specialTools</code> set 里还有谁（<code>ReadMcpResourceTool</code>、<code>SyntheticOutputTool</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>server</code> 字段为什么需要额外追加（MCP resources 响应不含 server 名，但 ReadMcpResourceTool 需要它）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出单 server 拉取失败时的行为（返回 <code>[]</code> 不抛出，保证容错聚合）</span></li>
+      <li><input type="checkbox" disabled> <span>能找到注入这两个资源工具的条件（至少一个 server <code>supportsResources</code>，<code>client.ts:2373</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释空结果提示的作用（防模型误判 server 无价值）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出它与 <code>ReadMcpResourceTool</code> 的配对关系（list 提供 uri+server，read 消费）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>装一个支持 resources 的 MCP 服务器，调用 <code>ListMcpResourcesTool</code>，观察返回的 <code>server</code> 字段</li>
+      <li>不装任何 resources 服务器，验证这两个工具<strong>不</strong>出现在工具池（对比 MCP 工具列表）</li>
+      <li>在 <code>client.ts:2374</code> 的 <code>resourceToolsAdded = true</code> 处加日志，验证只注入一次</li>
+      <li>模拟一个 server 重连失败（断开），验证 list 仍返回其他 server 的结果（容错）</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

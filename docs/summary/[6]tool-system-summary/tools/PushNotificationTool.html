@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PushNotification 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>PushNotification 工具详解</h1>
+  <p>通过 Remote Control bridge 向用户移动设备发送推送通知——用于长任务完成、权限等待、紧急事项提醒</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou-zi-duan">三、Tool 接口字段</a></li>
+    <li><a href="#si-he-xin-zhi-xing-liu-cheng">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian-yu-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-yu-qi-ta-xi-tong">六、与其他系统的关系</a></li>
+    <li><a href="#qi-liang-dian">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma-dao-hang">八、源码导航</a></li>
+    <li><a href="#jiu-xue-xi-jian-yi">九、学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p>这是工具系统逐个拆解系列的一篇。<code>PushNotification</code> 是一个<strong>中等复杂度</strong>的通信工具：让模型在用户可能没盯着终端时（长任务完成、等待权限、紧急事项）主动向其移动设备推送通知。它依赖 Remote Control bridge，通过 <code>/v1/sessions/&lt;id&gt;/events</code> 端点投递。无 bridge 时优雅降级为"未送达"。</p></blockquote>
+
+  <hr class="divider">
+
+  <section id="yi-gong-ju-ding-wei">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>PushNotification</code> = 经 bridge 向用户移动设备推送通知的异步提醒工具。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>PushNotification</code>（常量定义在文件内 <code>:9</code>）</td></tr>
+          <tr><td>一句话</td><td>发送 title/body/priority 到用户手机，需 Remote Control 配置</td></tr>
+          <tr><td>是否进 system prompt</td><td>❌ 不在 <code>CORE_TOOLS</code>；<code>tools.ts:51-54</code> 受 <code>feature('BRIDGE_MODE')</code> 门控，<code>:268</code> 条件注册</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>标注只读</strong>（<code>isReadOnly() → true</code>，<code>:58</code>），但有用户可见副作用</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>:55</code>）</td></tr>
+          <tr><td>激活门控</td><td><code>feature('BRIDGE_MODE')</code>（构建期） + <code>isBridgeEnabled()</code>（运行时 <code>:52</code>）</td></tr>
+          <tr><td>核心依赖</td><td><code>axios</code>（动态导入）、bridge token、session ID</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> 助手模式 / 后台任务下，用户可能不在终端前。当长任务跑完、权限提示等待输入、或出现紧急情况时，模型需要一种"主动呼叫用户回来"的机制。推送通知填补了"终端静默 ↔ 用户在场"之间的鸿沟。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-guan-jian-wen-jian">
+    <h2>二、关键文件清单</h2>
+    <pre><code>PushNotificationTool/
+└── PushNotificationTool.ts   ← 单文件主体（149 行），全部逻辑集中</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>PushNotificationTool.ts</code></td><td>schema + call() + bridge 投递 + 降级</td><td><code>buildTool:28</code>、<code>call:83</code>、bridge 投递 <code>:87-135</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：单文件主体，无独立 prompt.ts（描述内联）。与 BriefTool 共享 <code>isBridgeEnabled</code> 门控模式，但投递路径独立（sessions/events 而非 file_upload）。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-tool-jie-kou-zi-duan">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre><code>name: PUSH_NOTIFICATION_TOOL_NAME,  // "PushNotification"
+searchHint: 'push notification mobile alert notify user',
+maxResultSizeChars: 1_000,
+strict: true,</code></pre>
+    <h3>模型面字段</h3>
+    <pre><code>async description() { return "Send a push notification to the user's mobile device" }
+async prompt()      { return `Send a push notification...via Remote Control...` }
+get inputSchema()   // lazySchema + z.strictObject</code></pre>
+    <p><strong>输入 schema</strong>（<code>:11-22</code>）：</p>
+    <pre><code>{
+  title: string,                      // 通知标题
+  body: string,                       // 通知正文
+  priority?: 'normal' | 'high',       // 可选优先级，阻塞/权限用 high
+}</code></pre>
+    <p><strong>输出类型</strong>（<code>:26</code>）：</p>
+    <pre><code>{ sent: boolean }</code></pre>
+    <h3>行为字段</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:83</code></td><td>bridge 投递 + 降级（见下节）</td></tr>
+          <tr><td><code>isEnabled()</code></td><td><code>:52</code> → <code>isBridgeEnabled()</code></td><td>运行时门控</td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:55</code> → <code>true</code></td><td>多条通知互不干扰</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:58</code> → <code>true</code></td><td>标注只读</td></tr>
+          <tr><td><code>userFacingName()</code></td><td><code>:62</code> → <code>'Notify'</code></td><td></td></tr>
+          <tr><td><code>renderToolUseMessage</code></td><td><code>:66</code> → <code>Push: &lt;title&gt;</code></td><td></td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>:70</code></td><td><code>Notification sent.</code> / <code>Failed to send notification.</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-he-xin-zhi-xing-liu-cheng">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code>（<code>:83-148</code>）尝试 bridge 投递，失败则降级：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["call(input, ctx)\n:83"] --> B{"replBridgeEnabled?\n:87"}
+    B -->|否| FAIL["降级：sent=false\nno bridge"]
+    B -->|是| C{"feature('BRIDGE_MODE')?\n:88"}
+    C -->|否| FAIL
+    C -->|是| D["动态导入 bridgeConfig + state\n取 token + sessionId\n:90-95"]
+    D --> E{"token && sessionId?"}
+    E -->|否| FAIL
+    E -->|是| F["axios.post\n/v1/sessions/<id>/events\n:99-120"]
+    F --> G{"status 2xx?"}
+    G -->|是| OK["return {sent:true}\n:125"]
+    G -->|否| FAIL
+      </div>
+    </div>
+    <p><strong>关键点逐条</strong>：</p>
+    <ol>
+      <li><strong>双层 bridge 门控</strong>（<code>:87</code> + <code>:88</code>）：先查运行时 <code>replBridgeEnabled</code>，再查构建期 <code>feature('BRIDGE_MODE')</code>。两者都满足才尝试投递。</li>
+      <li><strong>动态导入隔离依赖</strong>（<code>:90-93</code>、<code>:98</code>）：<code>bridgeConfig</code>、<code>bootstrap/state</code>、<code>axios</code> 全部动态 <code>import()</code>，让这些依赖在非 bridge 构建中被 tree-shaking（与 BriefTool/upload.ts 同一策略）。</li>
+      <li><strong>事件载荷</strong>（<code>:102-109</code>）：投递的是 <code>{type:'push_notification', title, body, priority}</code>，<code>priority</code> 缺省 <code>'normal'</code>（<code>:107</code>）。</li>
+      <li><strong>鉴权头</strong>（<code>:112-115</code>）：<code>Authorization: Bearer &lt;token&gt;</code>、<code>anthropic-version: 2023-06-01</code>。</li>
+      <li><strong><code>validateStatus: s =&gt; s &lt; 500</code></strong>（<code>:118</code>）：4xx 也视为正常响应（由后续 <code>:121</code> 判 2xx），只有 5xx 才抛异常——避免 4xx 触发 axios throw 掩盖真实状态。</li>
+      <li><strong>降级返回</strong>（<code>:141-147</code>）：无 bridge 或投递失败时返回 <code>{sent:false, error:'No Remote Control bridge configured...'}</code>，让模型知道通知没送达。</li>
+    </ol>
+    <blockquote class="callout"><p><strong>错误吞噬</strong>：整个 bridge 投递包在 try/catch（<code>:89-133</code>），任何异常都只 <code>logForDebugging</code> 不抛出——这是"尽力而为"的推送语义：推送失败不应中断主流程。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian-yu-an-quan">
+    <h2>五、权限与安全</h2>
+    <ul>
+      <li><strong>无 <code>checkPermissions</code> / <code>validateInput</code></strong>：靠 <code>strict: true</code> + <code>isEnabled</code> 门控。</li>
+      <li><strong><code>isEnabled: isBridgeEnabled()</code></strong>（<code>:52</code>）：未配置 bridge 时工具直接不可用，模型看不到它。</li>
+      <li><strong>Bearer token 鉴权</strong>：每次投递带 <code>getBridgeAccessToken()</code>，无 token 则跳过（<code>:107-110</code>）。</li>
+      <li><strong><code>validateStatus: s &lt; 500</code></strong>：故意不把 4xx 当异常，便于精确区分"客户端错误"与"服务端错误"。</li>
+    </ul>
+    <blockquote class="callout"><p>prompt（<code>:49</code>）提到尊重用户通知设置（<code>taskCompleteNotifEnabled</code>、<code>inputNeededNotifEnabled</code>、<code>agentPushNotifEnabled</code>），但这些检查不在本工具内——应在 bridge 服务端或事件路由层执行。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-yu-qi-ta-xi-tong">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    PUSH["PushNotificationTool"] -->|投递事件| API["/v1/sessions/<id>/events\nbridge 会话事件流"]
+    PUSH -->|鉴权| BRIDGE["bridgeConfig\ngetBridgeAccessToken"]
+    PUSH -->| isEnabled | ENABLED["isBridgeEnabled"]
+    PUSH -.同族.-> BRIEF["BriefTool\n共享 bridge 门控模式"]
+    PUSH -.同族.-> SUF["SendUserFileTool\n共享 bridge 投递"]
+    PUSH -.互补.-> TERM["长任务/权限等待\n触发场景"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 bridge 系统</strong>：核心依赖。token、base URL、session ID 全部来自 bridge 配置。</li>
+      <li><strong>与 <code>BriefTool</code> / <code>SendUserFileTool</code></strong>：三者都是"经 bridge 触达用户"的工具族，共享 <code>isBridgeEnabled</code> + <code>feature('BRIDGE_MODE')</code> 双门控和动态导入策略。</li>
+      <li><strong>与 Remote Control Server</strong>：投递的 <code>/v1/sessions/&lt;id&gt;/events</code> 由 RCS 处理，再路由到用户移动设备。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>动态导入隔离 axios</strong>（<code>:98</code>）：避免 axios 进入非 bridge 构建的产物。</li>
+      <li><strong><code>validateStatus: s &lt; 500</code></strong>（<code>:118</code>）：精细的 HTTP 状态处理，区分 4xx（正常响应，由业务判 2xx）与 5xx（真正异常）。</li>
+      <li><strong>尽力而为 + 优雅降级</strong>（<code>:141</code>）：推送失败不中断主流程，返回 <code>sent:false</code> 让模型知情。</li>
+      <li><strong><code>priority</code> 字段路由</strong>（<code>:107,15-18</code>）：<code>high</code> 用于阻塞/权限，<code>normal</code> 用于普通通知，下游据此决定通知行为。</li>
+      <li><strong><code>isConcurrencySafe: true</code></strong>：多条通知并发投递安全（不同的 HTTP 请求）。</li>
+      <li><strong>完整 try/catch 包裹</strong>（<code>:89-133</code>）：网络工具的健壮性标配。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-yuan-ma-dao-hang">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>PushNotificationTool.ts:9</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>PushNotificationTool.ts:28-149</code></td></tr>
+          <tr><td>输入 schema</td><td><code>PushNotificationTool.ts:11-22</code></td></tr>
+          <tr><td><code>call()</code> bridge 投递</td><td><code>PushNotificationTool.ts:83-148</code></td></tr>
+          <tr><td>事件载荷构造</td><td><code>PushNotificationTool.ts:102-109</code></td></tr>
+          <tr><td>feature gate 注册</td><td><code>src/tools.ts:51-54, 268</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-xue-xi-jian-yi">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：核心是"四、call()"的双层门控与降级路径。重点理解为什么 axios 要动态导入、为什么 <code>validateStatus</code> 设为 <code>&lt;500</code>。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出两层 bridge 门控（<code>replBridgeEnabled</code> + <code>feature('BRIDGE_MODE')</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>validateStatus: s &lt; 500</code> 的用意（4xx 不抛异常，精确区分错误类型）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出降级时的返回（<code>{sent:false, error:'No Remote Control bridge...'}</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>priority</code> 字段的语义（normal vs high，阻塞用 high）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么 axios 动态导入（非 bridge 构建可 tree-shaking）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>启用 bridge 模式，让模型在长任务完成时调用 PushNotification</li>
+      <li>在 <code>:99</code> 的 axios.post 前加日志，观察事件载荷</li>
+      <li>断开 bridge，观察降级返回的 <code>sent:false</code></li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

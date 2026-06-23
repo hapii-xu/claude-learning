@@ -51,7 +51,7 @@ async function loadOutputStyleFromFile(
 
     const fileName = basename(filePath, '.md')
     const baseStyleName = (frontmatter.name as string) || fileName
-    // Namespace output styles with plugin name, consistent with commands and agents
+    // 使用插件名称为输出风格命名空间，与命令和 agent 一致
     const name = `${pluginName}:${baseStyleName}`
     const description =
       coerceDescriptionToString(frontmatter.description, name) ??
@@ -60,7 +60,7 @@ async function loadOutputStyleFromFile(
         `Output style from ${pluginName} plugin`,
       )
 
-    // Parse forceForPlugin flag (supports both boolean and string values)
+    // 解析 forceForPlugin 标志（支持布尔值和字符串值）
     const forceRaw = frontmatter['force-for-plugin']
     const forceForPlugin =
       forceRaw === true || forceRaw === 'true'
@@ -86,7 +86,7 @@ async function loadOutputStyleFromFile(
 
 export const loadPluginOutputStyles = memoize(
   async (): Promise<OutputStyleConfig[]> => {
-    // Only load output styles from enabled plugins
+    // 仅从已启用的插件加载输出风格
     const { enabled, errors } = await loadAllPluginsCacheOnly()
     const allStyles: OutputStyleConfig[] = []
 
@@ -97,10 +97,10 @@ export const loadPluginOutputStyles = memoize(
     }
 
     for (const plugin of enabled) {
-      // Track loaded file paths to prevent duplicates within this plugin
+      // 跟踪已加载的文件路径以防止此插件内重复
       const loadedPaths = new Set<string>()
 
-      // Load output styles from default output-styles directory
+      // 从默认的 output-styles 目录加载输出风格
       if (plugin.outputStylesPath) {
         try {
           const styles = await loadOutputStylesFromDirectory(
@@ -123,7 +123,7 @@ export const loadPluginOutputStyles = memoize(
         }
       }
 
-      // Load output styles from additional paths specified in manifest
+      // 从清单中指定的额外路径加载输出风格
       if (plugin.outputStylesPaths) {
         for (const stylePath of plugin.outputStylesPaths) {
           try {
@@ -131,7 +131,7 @@ export const loadPluginOutputStyles = memoize(
             const stats = await fs.stat(stylePath)
 
             if (stats.isDirectory()) {
-              // Load all .md files from directory
+              // 从目录加载所有 .md 文件
               const styles = await loadOutputStylesFromDirectory(
                 stylePath,
                 plugin.name,
@@ -145,7 +145,7 @@ export const loadPluginOutputStyles = memoize(
                 )
               }
             } else if (stats.isFile() && stylePath.endsWith('.md')) {
-              // Load single output style file
+              // 加载单个输出风格文件
               const style = await loadOutputStyleFromFile(
                 stylePath,
                 plugin.name,

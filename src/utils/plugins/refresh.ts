@@ -1,20 +1,20 @@
 /**
- * Layer-3 refresh primitive: swap active plugin components in the running session.
+ * 第 3 层刷新原语：在运行中的会话内交换活跃插件组件。
  *
- * Three-layer model (see reconciler.ts for Layer-2):
- * - Layer 1: intent (settings)
- * - Layer 2: materialization (~/.claude/plugins/) — reconcileMarketplaces()
- * - Layer 3: active components (AppState) — this file
+ * 三层模型（Layer-2 见 reconciler.ts）：
+ * - 第 1 层：意图（settings）
+ * - 第 2 层：物化（~/.claude/plugins/）— reconcileMarketplaces()
+ * - 第 3 层：活跃组件（AppState）— 本文件
  *
- * Called from:
- * - /reload-plugins command (interactive, user-initiated)
- * - print.ts refreshPluginState() (headless, auto before first query with SYNC_PLUGIN_INSTALL)
- * - performBackgroundPluginInstallations() (background, auto after new marketplace install)
+ * 调用来源：
+ * - /reload-plugins 命令（交互式，用户发起）
+ * - print.ts refreshPluginState()（无头模式，SYNC_PLUGIN_INSTALL 下首次查询前自动调用）
+ * - performBackgroundPluginInstallations()（后台，新 marketplace 安装后自动调用）
  *
- * NOT called from:
- * - useManagePlugins needsRefresh effect — interactive mode shows a notification;
- *   user explicitly runs /reload-plugins (PR 5c)
- * - /plugin menu — sets needsRefresh, user runs /reload-plugins (PR 5b)
+ * 不调用自：
+ * - useManagePlugins needsRefresh effect — 交互模式显示通知；
+ *   用户明确运行 /reload-plugins（PR 5c）
+ * - /plugin 菜单 — 设置 needsRefresh，用户运行 /reload-plugins（PR 5b）
  */
 
 import { getOriginalCwd } from '../../bootstrap/state.js'
@@ -44,47 +44,47 @@ export type RefreshActivePluginsResult = {
   agent_count: number
   hook_count: number
   mcp_count: number
-  /** LSP servers provided by enabled plugins. reinitializeLspServerManager()
-   * is called unconditionally so the manager picks these up (no-op if
-   * manager was never initialized). */
+  /** 已启用插件提供的 LSP 服务器。reinitializeLspServerManager()
+   * 无条件调用以便管理器接收这些服务器（若管理器
+   * 从未初始化则为无操作）。 */
   lsp_count: number
   error_count: number
-  /** The refreshed agent definitions, for callers (e.g. print.ts) that also
-   * maintain a local mutable reference outside AppState. */
+  /** 刷新后的 agent 定义，供同时在 AppState 外
+   * 维护本地可变引用的调用者使用（如 print.ts）。 */
   agentDefinitions: AgentDefinitionsResult
-  /** The refreshed plugin commands, same rationale as agentDefinitions. */
+  /** 刷新后的插件命令，理由同 agentDefinitions。 */
   pluginCommands: Command[]
 }
 
 /**
- * Refresh all active plugin components: commands, agents, hooks, MCP-reconnect
- * trigger, AppState plugin arrays. Clears ALL plugin caches (unlike the old
- * needsRefresh path which only cleared loadAllPlugins and returned stale data
- * from downstream memoized loaders).
+ * 刷新所有活跃插件组件：命令、agent、hook、MCP 重连
+ * 触发器、AppState 插件数组。清除所有插件缓存（不同于旧的
+ * needsRefresh 路径，后者只清除 loadAllPlugins 并从
+ * 下游记忆化加载器返回过时数据）。
  *
- * Consumes plugins.needsRefresh (sets to false).
- * Increments mcp.pluginReconnectKey so useManageMCPConnections effects re-run
- * and pick up new plugin MCP servers.
+ * 消费 plugins.needsRefresh（设为 false）。
+ * 递增 mcp.pluginReconnectKey，使 useManageMCPConnections effects 重新运行
+ * 并接收新的插件 MCP 服务器。
  *
- * LSP: if plugins now contribute LSP servers, reinitializeLspServerManager()
- * re-reads config. Servers are lazy-started so this is just config parsing.
+ * LSP：如果插件现在贡献 LSP 服务器，reinitializeLspServerManager()
+ * 重新读取配置。服务器是懒启动的，所以这只是配置解析。
  */
 export async function refreshActivePlugins(
   setAppState: SetAppState,
 ): Promise<RefreshActivePluginsResult> {
   logForDebugging('refreshActivePlugins: clearing all plugin caches')
   clearAllCaches()
-  // Orphan exclusions are session-frozen by default, but /reload-plugins is
-  // an explicit "disk changed, re-read it" signal — recompute them too.
+  // 孤儿排除默认在会话中冻结，但 /reload-plugins 是
+  // 明确的"磁盘已变更，重新读取"信号 — 也重新计算它们。
   clearPluginCacheExclusions()
 
-  // Sequence the full load before cache-only consumers. Before #23693 all
-  // three shared loadAllPlugins()'s memoize promise so Promise.all was a
-  // no-op race. After #23693 getPluginCommands/getAgentDefinitions call
-  // loadAllPluginsCacheOnly (separate memoize) — racing them means they
-  // read installed_plugins.json before loadAllPlugins() has cloned+cached
-  // the plugin, returning plugin-cache-miss. loadAllPlugins warms the
-  // cache-only memoize on completion, so the awaits below are ~free.
+  // 在仅缓存消费者之前排序完整加载。在 #23693 之前，所有
+  // 三个共享 loadAllPlugins() 的记忆化 promise，所以 Promise.all 是
+  // 无操作竞争。在 #23693 之后，getPluginCommands/getAgentDefinitions 调用
+  // loadAllPluginsCacheOnly（单独记忆化）— 竞争它们意味着它们
+  // 在 loadAllPlugins() 克隆并缓存插件之前读取 installed_plugins.json，
+  // 返回 plugin-cache-miss。loadAllPlugins 在完成时预热
+  // 仅缓存记忆化，所以下面的 await 基本上是免费的。
   const pluginResult = await loadAllPlugins()
   const [pluginCommands, agentDefinitions] = await Promise.all([
     getPluginCommands(),
@@ -93,12 +93,12 @@ export async function refreshActivePlugins(
 
   const { enabled, disabled, errors } = pluginResult
 
-  // Populate mcpServers/lspServers on each enabled plugin. These are lazy
-  // cache slots NOT filled by loadAllPlugins() — they're written later by
-  // extractMcpServersFromPlugins/getPluginLspServers, which races with this.
-  // Loading here gives accurate metrics AND warms the cache slots so the MCP
-  // connection manager (triggered by pluginReconnectKey bump) sees the servers
-  // without re-parsing manifests. Errors are pushed to the shared errors array.
+  // 在每个已启用插件上填充 mcpServers/lspServers。这些是懒
+  // 缓存槽，loadAllPlugins() 不会填充 — 它们后来由
+  // extractMcpServersFromPlugins/getPluginLspServers 写入，与此竞争。
+  // 在此处加载提供准确指标，并预热缓存槽，使 MCP
+  // 连接管理器（由 pluginReconnectKey 递增触发）无需
+  // 重新解析清单即可看到服务器。错误推入共享错误数组。
   const [mcpCounts, lspCounts] = await Promise.all([
     Promise.all(
       enabled.map(async p => {
@@ -137,18 +137,18 @@ export async function refreshActivePlugins(
     },
   }))
 
-  // Re-initialize LSP manager so newly-loaded plugin LSP servers are picked
-  // up. No-op if LSP was never initialized (headless subcommand path).
-  // Unconditional so removing the last LSP plugin also clears stale config.
-  // Fixes issue #15521: LSP manager previously read a stale memoized
-  // loadAllPlugins() result from before marketplaces were reconciled.
+  // 重新初始化 LSP 管理器，以便新加载的插件 LSP 服务器被接收。
+  // 若 LSP 从未初始化（无头子命令路径）则为无操作。
+  // 无条件调用，以便移除最后一个 LSP 插件时也能清除过时配置。
+  // 修复问题 #15521：LSP 管理器之前读取了来自 marketplace 对账之前的
+  // 过时记忆化 loadAllPlugins() 结果。
   reinitializeLspServerManager()
 
-  // clearAllCaches() prunes removed-plugin hooks; this does the FULL swap
-  // (adds hooks from newly-enabled plugins too). Catching here so
-  // hook_load_failed can feed error_count; a failure doesn't lose the
-  // plugin/command/agent data above (hooks go to STATE.registeredHooks, not
-  // AppState).
+  // clearAllCaches() 修剪已移除插件的 hook；此处执行完整交换
+  // （也添加新启用插件的 hook）。在此捕获以便
+  // hook_load_failed 可以计入 error_count；失败不会丢失
+  // 上面的 plugin/command/agent 数据（hook 进入 STATE.registeredHooks，
+  // 不是 AppState）。
   let hook_load_failed = false
   try {
     await loadPluginHooks()
@@ -199,10 +199,9 @@ export async function refreshActivePlugins(
 }
 
 /**
- * Merge fresh plugin-load errors with existing errors, preserving LSP and
- * plugin-component errors that were recorded by other systems and
- * deduplicating. Same logic as refreshPlugins()/updatePluginState(), extracted
- * so refresh.ts doesn't leave those errors stranded.
+ * 将新的插件加载错误与现有错误合并，保留由其他系统
+ * 记录的 LSP 和插件组件错误并去重。与 refreshPlugins()/updatePluginState()
+ * 相同的逻辑，提取出来以避免 refresh.ts 遗漏这些错误。
  */
 function mergePluginErrors(
   existing: PluginError[],

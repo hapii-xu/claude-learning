@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SendMessage 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange:    #D77757; --orange-lt: #f0e0d8; --orange-dk: #b55e3a;
+      --blue:      #5769F7; --blue-lt:   #dde0fe; --blue-dk:   #3a4ed4;
+      --green:     #22a766; --green-lt:  #d2f0e3;
+      --bg:        #faf8f5; --bg2:       #f3f0eb; --bg3:       #ebe7e0;
+      --text:      #2d2a26; --text-2:    #5a5650; --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08); --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px; --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+    section { margin-top: 56px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; letter-spacing: .01em; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero h1 span { color: var(--orange); }
+    .hero p { font-size: 1.05rem; color: var(--text-2); max-width: 640px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 6px 16px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .82rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s, box-shadow .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); box-shadow: 0 2px 6px rgba(215,119,87,.15); text-decoration: none; }
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .8rem; line-height: 1.7; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    @media (max-width: 700px) { .hero h1 { font-size: 1.6rem; } }
+    blockquote.callout { background: var(--bg2); border-left: 4px solid var(--orange); padding: 14px 20px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0; color: var(--text-2); }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin: 16px 0; overflow-x: auto; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 48px; padding: 8px 18px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; transition: border-color .15s, color .15s; }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>SendMessage 工具详解</h1>
+  <p>向已存在的子代理续发消息——Agent 创建新代理，SendMessage 让代理之间持续对话，是 Claude Code 多代理协作的"通信层"</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-wen-jian">二、关键文件清单</a></li>
+    <li><a href="#san-jie-kou">三、Tool 接口字段</a></li>
+    <li><a href="#si-zhi-xing">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian">五、权限与安全</a></li>
+    <li><a href="#liu-guan-xi">六、与其他系统的关系</a></li>
+    <li><a href="#qi-liang-dian">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-dao-hang">八、源码导航</a></li>
+    <li><a href="#jiu-jian-yi">九、学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p>这是工具系统逐个拆解系列中<strong>Agent 协作篇</strong>的第二篇。如果说 <code>Agent</code> 工具是"派一个新代理去干活"，那么 <code>SendMessage</code> 就是"给已经在干活的代理再发一句话"。它是一个<strong>纯通信路由工具</strong>——本身不调用大模型，只负责把消息按地址投递到正确的通道：正在跑的子代理（入队）、已停止的子代理（唤醒恢复）、队友（写邮箱）、跨会话的远端 Claude（bridge/UDS/TCP）。理解了它，就理解了 Claude Code 多代理系统里"消息如何流动"。</p></blockquote>
+
+  <hr class="divider">
+
+  <section id="yi-ding-wei">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>SendMessage</code> = 向另一个 agent（或通道）发送消息，让已存在的代理继续对话而非新建一个。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>SendMessage</code>（常量 <code>SEND_MESSAGE_TOOL_NAME</code>，<code>constants.ts:1</code>）</td></tr>
+          <tr><td>一句话</td><td>按 <code>to</code> 地址把消息投递给目标代理/队友/远端会话；运行中的子代理入队，停止的自动恢复</td></tr>
+          <tr><td>是否进 system prompt</td><td>❌ <strong>不在 <code>CORE_TOOLS</code> 白名单</strong>（<code>src/constants/tools.ts</code> 只 import 不入数组）</td></tr>
+          <tr><td>加载方式</td><td><code>shouldDefer: true</code>（<code>SendMessageTool.ts:567</code>）+ <code>alwaysLoad: isAgentSwarmsEnabled()</code>（<code>:568</code>）——延迟工具，仅当多代理团队开启时才预加载</td></tr>
+          <tr><td>注册位置</td><td><code>src/tools.ts:255</code>（<code>getSendMessageTool()</code> in <code>getAllBaseTools()</code>），并在 <code>:325</code>（replSimple）、<code>:337</code>（COORDINATOR simpleTools）条件性 push</td></tr>
+          <tr><td>只读 / 破坏性</td><td>通信类工具，副作用是"改变另一个代理的状态/唤醒进程"；权限由 <code>to</code> 的 scheme 决定</td></tr>
+          <tr><td>核心依赖</td><td><code>queuePendingMessage</code>（投递运行中代理）、<code>resumeAgentBackground</code>（唤醒停止的代理，复用自 AgentTool）、<code>writeToMailbox</code>（队友邮箱）</td></tr>
+          <tr><td>定位互补方</td><td><code>Agent</code>（创建新代理）；本工具<strong>续发</strong>已有代理</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> <code>Agent</code> 工具是"一次性任务"——子代理跑完返回结果就结束。但很多场景需要<strong>持续对话</strong>：主代理派子代理调研，看完初报后想追问"再深挖一下 X"；team lead 给多个 teammate 分配任务后要逐个催促进度。如果每次都新建代理，上下文全丢、还得重述背景。<code>SendMessage</code> 让已存在的代理接着上次的记忆继续，是多代理从"单次委派"升级到"持续协作"的关键。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-wen-jian">
+    <h2>二、关键文件清单</h2>
+    <p>SendMessageTool 是单文件主体型，逻辑集中但篇幅大（1029 行，因为要处理多种投递通道）。</p>
+    <pre><code>SendMessageTool/
+├── SendMessageTool.ts   ← 主体（1029 行）：schema + call() 路由 + 权限 + 校验 + 结构化消息处理
+├── constants.ts         ← SEND_MESSAGE_TOOL_NAME = 'SendMessage'
+├── prompt.ts            ← getPrompt()：注入 system prompt 的使用说明（49 行）
+├── UI.tsx               ← Ink 渲染（37 行，仅渲染结构化消息/结果）
+└── __tests__/
+    └── udsRecipientSanitization.test.ts  ← UDS 内联 token 脱敏测试（181 行）</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>SendMessageTool.ts</code></td><td>工具主体：路由 <code>call()</code> + <code>validateInput</code> + <code>checkPermissions</code> + 结构化消息处理器</td><td><code>buildTool:553</code>、<code>call:800</code>、<code>validateInput:650</code>、<code>checkPermissions:623</code>、in-process 路由:908、结构化:995</td></tr>
+          <tr><td><code>constants.ts</code></td><td>工具名</td><td><code>:1</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>使用说明（含"必须用此工具，纯文本队友看不到"等关键提示）</td><td><code>DESCRIPTION:3</code>、<code>getPrompt:5</code></td></tr>
+          <tr><td><code>UI.tsx</code></td><td>仅渲染 plan_approval 等结构化消息</td><td><code>renderToolUseMessage:7</code>、<code>renderToolResultMessage:17</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：单文件 1029 行，按职责分段——helper（findTeammateColor 等）、广播/邮箱处理（handleBroadcast/handleMessage）、结构化消息处理（handleShutdown*/handlePlan*）、schema、权限校验、<code>call()</code> 路由。没有像 AgentTool 那样拆子模块，因为各通道逻辑相对独立、不需要共享状态。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-jie-kou">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre><code>name: SEND_MESSAGE_TOOL_NAME,   // "SendMessage"（SendMessageTool.ts:555）
+userFacingName() { return 'SendMessage' },   // :561
+shouldDefer: true,              // 延迟加载（:567）
+alwaysLoad: isAgentSwarmsEnabled(),  // 多代理团队开启时预加载（:568）</code></pre>
+    <blockquote class="callout"><p><strong><code>shouldDefer: true</code> + <code>alwaysLoad</code> 的组合</strong>：这是延迟工具的典型配置。<code>shouldDefer</code> 让它不进默认 tool schema（省 token），<code>alwaysLoad</code> 在特定条件（swarm 开启）下绕过延迟直接加载。普通单代理场景下这个工具根本不暴露给模型。</p></blockquote>
+    <h3>模型面字段</h3>
+    <pre><code>async description() { return DESCRIPTION }   // '向另一个 agent 发送消息'（prompt.ts:3）
+async prompt({ appState }) { return getPrompt() }  // 详细使用文档
+get inputSchema() { return inputSchema() }   // 懒加载 getter</code></pre>
+    <p><strong>输入 schema</strong>（<code>SendMessageTool.ts:67-87</code>，<code>lazySchema</code>）：</p>
+    <pre><code>{
+  to: string,          // 收件人：队友名 | "*"（广播）| "uds:<path>" | "bridge:<session>" | "tcp:<host>:<port>"
+  summary?: string,    // 5-10 词 UI 预览；字符串消息时必填
+  message: string | StructuredMessage   // 正文 或 结构化消息
+}</code></pre>
+    <p><strong><code>StructuredMessage</code></strong>（<code>:46-65</code>，<code>z.discriminatedUnion('type', ...)</code>）三种：</p>
+    <pre><code>{ type: 'shutdown_request', reason?: string }
+| { type: 'shutdown_response', request_id: string, approve: semanticBoolean(), reason?: string }
+| { type: 'plan_approval_response', request_id: string, approve: semanticBoolean(), feedback?: string }</code></pre>
+    <p><strong>输出 schema</strong>（<code>:127-132</code>）union：<code>MessageOutput | BroadcastOutput | RequestOutput | ResponseOutput</code>。<code>MessageRouting</code>（<code>:92-99</code>）携带 sender/target/summary/content/colors。</p>
+    <h3>行为字段</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:800-1025</code></td><td>五阶段路由（见下节），纯路由不调模型</td></tr>
+          <tr><td><code>validateInput()</code></td><td><code>:650-777</code></td><td>大量校验：空 to、地址 scheme、UDS token、<code>@</code> 符号、bridge 连接、summary 必填、结构化消息约束</td></tr>
+          <tr><td><code>checkPermissions()</code></td><td><code>:623-648</code></td><td>按 scheme 决定：bridge/tcp → <code>ask</code>，其余 → <code>allow</code></td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam()</code></td><td><code>:787-798</code></td><td>结果包成单个文本块（<code>jsonStringify</code>）</td></tr>
+          <tr><td>渲染</td><td><code>UI.tsx</code></td><td>仅渲染结构化消息（plan_approval 等）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-zhi-xing">
+    <h2>四、核心执行流程：<code>call()</code>（五阶段路由）</h2>
+    <p><code>call()</code>（<code>:800-1025</code>）是一个<strong>纯路由分发器</strong>——根据 <code>to</code> 的 scheme 和 <code>message</code> 的类型，把消息扔进不同通道。它<strong>不等待回复</strong>，是 fire-and-forget 模式。</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    IN["call(input, ctx, canUseTool, assistantMessage)<br/>:800"] --> A{"Phase A<br/>UDS 内联 token 守卫<br/>:801-812"}
+    A -->|通过| B{"Phase B<br/>跨会话路由<br/>(string only)<br/>:814-906"}
+    B -->|bridge:| B1["postInterClaudeMessage<br/>发往远端 Claude"]
+    B -->|uds:| B2["sendToUdsSocket<br/>Unix 域套接字"]
+    B -->|tcp:| B3["PipeClient.send<br/>LAN_PIPES gate"]
+    B -->|其他| C{"Phase C<br/>进程内子代理路由<br/>string 且 to≠*<br/>:908-986"}
+    C -->|name 注册表命中| C1{"task 状态"}
+    C1 -->|running| C2["queuePendingMessage<br/>入队，下轮投递"]
+    C1 -->|stopped| C3["resumeAgentBackground<br/>后台唤醒恢复"]
+    C1 -->|无活跃 task| C4["从磁盘 transcript 恢复"]
+    C -->|未命中| D{"Phase D<br/>队友邮箱<br/>:988-993"}
+    D -->|to=*| D1["handleBroadcast<br/>writeToMailbox 全队"]
+    D -->|其他| D2["handleMessage<br/>writeToMailbox 单人"]
+    A -.结构化消息.-> E["Phase E<br/>shutdown/plan 处理<br/>:995-1024"]
+      </div>
+    </div>
+    <h3>各阶段要点</h3>
+    <h4>Phase A — UDS 内联 token 守卫（<code>:801-812</code>）</h4>
+    <p>若 <code>message</code> 是字符串且 <code>parseAddress(to).scheme === 'uds'</code> 且含内联 <code>#token=</code> 标记，立即失败。这是 <code>validateInput</code> 之后的<strong>第二道防线</strong>——防止 UDS 鉴权 token 通过消息体泄露。</p>
+    <h4>Phase B — 跨会话路由（<code>:814-906</code>，仅 string 消息）</h4>
+    <ul>
+      <li><strong>bridge scheme</strong>（<code>:816-846</code>）：<strong>重新检查</strong> <code>getReplBridgeHandle()</code> && <code>isReplBridgeActive()</code>（因为 <code>checkPermissions</code> 到现在可能过了几分钟，bridge 可能已断）。断了就失败；否则 <code>require('src/bridge/peerSessions.js').postInterClaudeMessage(addr.target, input.message)</code> 把消息作为 user prompt 发给远端 Claude。</li>
+      <li><strong>uds scheme</strong>（<code>:847-870</code>）：<code>require('src/utils/udsClient.js').sendToUdsSocket(addr.target, message)</code>，收件人显示用 <code>recipientForDisplay</code>（token 已剥离）。</li>
+      <li><strong>tcp scheme</strong>（<code>:871-905</code>，<code>LAN_PIPES</code> gate）：<code>parseTcpTarget</code> → <code>new PipeClient(to, 'send-&lt;pid&gt;', ep)</code> → <code>connect(5000)</code> → <code>client.send({type:'chat', data: message})</code> → <code>disconnect()</code>。</li>
+    </ul>
+    <blockquote class="callout"><p><strong>Phase B 全部被 <code>feature('UDS_INBOX')</code> / <code>feature('LAN_PIPES')</code> 包裹</strong>。CLAUDE.md 明确这两个 flag 在生产构建里<strong>已禁用</strong>，所以这些分支在外部构建里会被编译器删除——这也是为什么 UDS/TCP 测试单独放在 <code>__tests__/udsRecipientSanitization.test.ts</code>。</p></blockquote>
+    <h4>Phase C — 进程内子代理路由（<code>:908-986</code>，string 消息且 <code>to !== '*'</code>）</h4>
+    <p><strong>这是"给已存在子代理续发消息"的核心逻辑</strong>：</p>
+    <ol>
+      <li><strong>查找收件人</strong>（<code>:912-913</code>）：
+        <pre><code>const registered = appState.agentNameRegistry.get(input.to)   // name → agentId
+const agentId = registered ?? toAgentId(input.to)             // 兜底：直接当 agentId 解析</code></pre>
+        <code>agentNameRegistry</code> 是 AppState 上的 <code>Map&lt;name, agentId&gt;</code>——AgentTool 创建子代理时把 name 写进去。<code>toAgentId</code> 只在 <code>to</code> 本身符合 <code>createAgentId</code> 格式时才成功，所以普通队友名不会误命中。
+      </li>
+      <li><strong>命中且是 LocalAgentTask（非主会话）</strong>：
+        <ul>
+          <li><strong>running</strong>（<code>:917-929</code>）：<code>queuePendingMessage(agentId, message, setAppState)</code> 把消息塞进待投递队列，返回 <code>"消息已排队，将在 &lt;name&gt; 的下一轮工具轮次投递。"</code> —— <strong>不打断当前轮</strong>。</li>
+          <li><strong>stopped</strong>（<code>:930-954</code>）：<code>await resumeAgentBackground({ agentId, prompt: message, toolUseContext, canUseTool, invokingRequestId })</code> —— <strong>后台唤醒恢复</strong>，返回 outputFile 路径 + "完成时会通知你"。</li>
+        </ul>
+      </li>
+      <li><strong>task 已不在 state 里</strong>（<code>:955-984</code>）：仍调 <code>resumeAgentBackground</code>——从磁盘 transcript 恢复。无 transcript 才报错。</li>
+    </ol>
+    <blockquote class="callout"><p><strong>关键洞察</strong>：SendMessage 给运行中代理发消息时<strong>不调 <code>query()</code>、不调 <code>runAgent</code></strong>，只是入队——运行中的代理在自己的轮循环里会自己取。给停止的代理发消息才调 <code>resumeAgentBackground</code>（从 AgentTool import，复用恢复机制）。这就是"fire-and-forget"——<strong>不等回复</strong>，回复会作为新的异步消息回流。</p></blockquote>
+    <h4>Phase D — 队友邮箱（<code>:988-993</code>）</h4>
+    <p><code>to === '*'</code> → <code>handleBroadcast(message, summary, context)</code>；否则 <code>handleMessage(to, message, summary, context)</code>。两者最终都 <code>writeToMailbox(recipientName, {from, text, summary, timestamp, color}, teamName)</code>（<code>src/utils/teammateMailbox.js</code>）——写文件，收件人轮询。</p>
+    <h4>Phase E — 结构化消息（<code>:995-1024</code>）</h4>
+    <p><code>to === '*'</code> → 抛 <code>"结构化消息不能广播"</code>。按 <code>input.message.type</code> switch：</p>
+    <ul>
+      <li><code>shutdown_request</code> → <code>handleShutdown请求</code></li>
+      <li><code>shutdown_response</code>：approve → <code>handleShutdownApproval</code>（<code>:338-432</code>，定位自己的 paneId/backendType，in-process 则 <code>task.abortController.abort()</code>，否则 <code>gracefulShutdown</code>）；reject → <code>handleShutdownRejection(request_id, reason!)</code></li>
+      <li><code>plan_approval_response</code>：approve → <code>handlePlanApproval</code>（仅 team lead 可批）；reject → <code>handlePlanRejection(... feedback ?? 'Plan 需要修改')</code></li>
+    </ul>
+    <h3>投递后如何拿到回复？</h3>
+    <p><strong>拿不到——至少不在这次工具调用里。</strong> prompt.ts 明说：<em>"Messages from teammates are delivered automatically; you don't check an inbox"</em>（队友的消息会自动送达，你不用查邮箱）。回复会作为<strong>新的入站消息</strong>异步出现在对话里，而不是作为 SendMessage 的 tool_result。这种设计让多代理协作不被同步等待阻塞。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian">
+    <h2>五、权限与安全</h2>
+    <h3><code>checkPermissions</code>（<code>:623-648</code>）——按 scheme 分流</h3>
+    <pre><code>async checkPermissions(input, _context) {
+  if (feature('UDS_INBOX') && scheme === 'bridge') {
+    return { behavior: 'ask', message: '...Remote Control session...', decisionReason: { type:'safetyCheck', classifierApprovable: false } }
+  }
+  if (feature('LAN_PIPES') && scheme === 'tcp') { /* 同样 'ask' */ }
+  return { behavior: 'allow', updatedInput: input }
+}</code></pre>
+    <p><strong>设计</strong>：本地队友名/广播/UDS 一律 <code>allow</code>（进程内/同机，风险低）；<strong>跨机器</strong>的 bridge/tcp 必须 <code>ask</code>（要用户明确同意把消息发到另一台机器/另一个 Claude 会话）。<code>classifierApprovable: false</code> 确保这种跨机发送<strong>永远走人工确认</strong>，不能被自动分类器批准。</p>
+    <h3><code>validateInput</code>（<code>:650-777</code>）——10 项校验，返回 <code>{result:false, message, errorCode:9}</code></h3>
+    <ol>
+      <li><code>to</code> 为空（<code>:651</code>）</li>
+      <li>bridge/uds/tcp scheme 但 target 空（<code>:658</code>）</li>
+      <li>uds 含内联 token（<code>:671</code>）</li>
+      <li><code>to.includes('@')</code>（<code>:679</code>）——"必须是裸队友名或 <code>*</code>"，单会话单团队</li>
+      <li>bridge scheme 下发结构化消息（<code>:690</code>）——结构化消息不能跨会话</li>
+      <li>bridge scheme 但 <code>!getReplBridgeHandle() || !isReplBridgeActive()</code>（<code>:702</code>）——注释（<code>:698-701</code>）解释这覆盖了初始化窗口期和 CCR 镜像只写模式</li>
+      <li>UDS/LAN string 消息短路放行（<code>:712</code>）</li>
+      <li>string 消息必须带 <code>summary</code>（<code>:726</code>）</li>
+      <li>结构化消息不能广播（<code>:737</code>）或跨会话（<code>:744</code>）</li>
+      <li><code>shutdown_response</code> 必须发给 <code>TEAM_LEAD_NAME</code>（<code>:753</code>），且 reject 时 <code>reason</code> 必填（<code>:764</code>）</li>
+    </ol>
+    <blockquote class="callout"><p><strong>校验密度高是有原因的</strong>：这个工具能唤醒进程、跨机发消息、批准/拒绝 plan、关停队友——每一条校验都是一道安全栏。<code>errorCode: 9</code> 是统一的"输入非法"码。</p></blockquote>
+    <h3>UDS token 脱敏（6 个专用测试）</h3>
+    <p>UDS 地址可能带鉴权 token（<code>uds:/path.sock#token=secret</code>）。工具用三个 helper（<code>:133-164</code>）——<code>redactObservableInlineUdsToken</code>、<code>recipientForDisplay</code>、<code>redactInlineUdsTokenForRejection</code>——把 token 从所有可观测路径（日志、UI、错误消息、分类器输入）剥离。<code>udsRecipientSanitization.test.ts</code>（181 行）专测这一点。这是防止凭据通过错误消息泄露的防御性设计。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-guan-xi">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    SEND[SendMessage 工具<br/>call:800] -->|运行中代理| QUEUE["queuePendingMessage<br/>LocalAgentTask.js"]
+    SEND -->|停止的代理| RESUME["resumeAgentBackground<br/>从 AgentTool/resumeAgent.ts import"]
+    SEND -->|队友| MAIL["writeToMailbox<br/>teammateMailbox.js"]
+    SEND -->|跨机 bridge| PEER["postInterClaudeMessage<br/>bridge/peerSessions.js"]
+    SEND -->|UDS| UDS["sendToUdsSocket<br/>udsClient.js"]
+    SEND -->|LAN tcp| PIPE["PipeClient<br/>LAN_PIPES gate"]
+    AGENT[Agent 工具] -->|创建时写名| REG["agentNameRegistry<br/>name→agentId"]
+    SEND -->|按名查| REG
+    SEND -.唤醒.-> AGENT
+    RESUME -.内部调.-> RUN["runAgent → query()"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 <code>Agent</code> 工具的关系</strong>：<strong>互补不重叠</strong>。Agent <strong>创建</strong>新代理（一次性任务返回结果）；SendMessage <strong>续发</strong>已存在的代理。两者通过 <code>agentNameRegistry</code>（name→agentId）连接——Agent 创建时写名，SendMessage 按名查。SendMessage 还直接 import AgentTool 的 <code>resumeAgentBackground</code>（<code>:41</code>），复用唤醒机制。两者在 <code>src/tools.ts</code> 里也被成对注册（<code>:325</code> replSimple、<code>:337</code> COORDINATOR）。</li>
+      <li><strong>与 <code>LocalAgentTask</code> 的关系</strong>：<code>queuePendingMessage</code> 来自 <code>src/tasks/LocalAgentTask/LocalAgentTask.js</code>——运行中的子代理任务类型。SendMessage 把消息塞进它的待投递队列，任务自己在下个工具轮取。</li>
+      <li><strong>与 bridge/UDS/LAN 系统的关系</strong>：这三条跨会话通道分别接 <code>src/bridge/</code>、<code>src/utils/udsClient.js</code>、<code>PipeClient</code>，全被 <code>feature('UDS_INBOX')</code> / <code>feature('LAN_PIPES')</code> 门控——生产构建里编译消除。</li>
+      <li><strong>与 <code>canUseTool</code> 的关系</strong>：SendMessage 把 <code>canUseTool</code> 和 <code>invokingRequestId</code>（<code>assistantMessage?.requestId</code>）透传给 <code>resumeAgentBackground</code>，把唤醒的后台任务关联回父轮次。</li>
+      <li><strong>与 prompt 系统的关系</strong>：<code>prompt.ts:20</code> 的关键提示——<em>"Your plain text output is NOT visible to other agents — to communicate, you MUST call this tool"</em>（你的纯文本输出队友看不到，必须调此工具才能通信）。这是引导模型正确使用多代理通信的核心约束。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>纯路由分发，不调模型</strong>（<code>:800</code>）：<code>call()</code> 只决定"消息往哪走"，没有任何 LLM 调用。这让消息投递极快、可预测，复杂度全在通道选择上。</li>
+      <li><strong>fire-and-forget + 异步回流</strong>（prompt.ts）：不等回复，回复作为新消息自动送达。避免了"发一条等一条"的同步阻塞，让多代理能真正并发。</li>
+      <li><strong>复用 AgentTool 的恢复机制</strong>（<code>:41</code>）：SendMessage 不自己实现唤醒，直接 import <code>resumeAgentBackground</code>。DRY 原则的体现——"唤醒停止的代理"逻辑只有一处真相。</li>
+      <li><strong><code>classifierApprovable: false</code> 的跨机安全栏</strong>（<code>:624</code>）：bridge/tcp 发送永远人工确认，自动分类器不能越权批准。把"消息出本机"当成需要人盯的高危动作。</li>
+      <li><strong>UDS token 三重脱敏</strong>（<code>:133-164</code> + 181 行测试）：token 从日志/UI/错误/分类器输入全剥离。安全细节做到位，防凭据通过错误消息泄露。</li>
+      <li><strong>按 name 注册表路由</strong>（<code>:912</code>）：<code>agentNameRegistry</code> 让模型用人类可读的名字（"researcher"）而非 UUID 寻址——prompt.ts 明确 <em>"Refer to teammates by name, never by UUID"</em>。对模型友好。</li>
+      <li><strong>10 项 <code>validateInput</code> 校验</strong>（<code>:650-777</code>）：每条都是安全栏（禁 <code>@</code>、禁跨会话结构化消息、shutdown 必须发 lead、reject 必填理由）。高权限工具必须严校验。</li>
+      <li><strong><code>shouldDefer + alwaysLoad</code> 按需加载</strong>（<code>:567-568</code>）：单代理场景根本不暴露此工具，只在多代理团队开启时才加载——省 token、减少模型误用。</li>
+      <li><strong>Phase B 的 bridge 活性复检</strong>（<code>:821</code>）：<code>checkPermissions</code> 到 <code>call()</code> 之间可能间隔很久，bridge 可能已断。在执行前再查一次是防御性编程的典范——"权限通过不代表现在还能执行"。</li>
+      <li><strong>结构化消息用 discriminatedUnion</strong>（<code>:46-65</code>）：shutdown/plan 三种结构化消息用 <code>z.discriminatedUnion('type', ...)</code>——类型安全，避免模型幻觉出非法结构。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-dao-hang">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>SendMessageTool/constants.ts:1</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>SendMessageTool.ts:553-568</code></td></tr>
+          <tr><td>输入 schema（含 StructuredMessage）</td><td><code>SendMessageTool.ts:46-87</code></td></tr>
+          <tr><td><code>call()</code> 五阶段路由</td><td><code>SendMessageTool.ts:800-1025</code></td></tr>
+          <tr><td>进程内子代理路由（核心）</td><td><code>SendMessageTool.ts:908-986</code></td></tr>
+          <tr><td>queuePendingMessage（运行中入队）</td><td><code>SendMessageTool.ts:917-929</code></td></tr>
+          <tr><td>resumeAgentBackground（停止唤醒）</td><td><code>SendMessageTool.ts:932-954</code></td></tr>
+          <tr><td>跨会话 bridge/uds/tcp</td><td><code>SendMessageTool.ts:814-906</code></td></tr>
+          <tr><td>结构化消息处理</td><td><code>SendMessageTool.ts:995-1024</code></td></tr>
+          <tr><td><code>checkPermissions</code>（scheme 分流）</td><td><code>SendMessageTool.ts:623-648</code></td></tr>
+          <tr><td><code>validateInput</code>（10 项校验）</td><td><code>SendMessageTool.ts:650-777</code></td></tr>
+          <tr><td>UDS token 脱敏 helper</td><td><code>SendMessageTool.ts:133-164</code></td></tr>
+          <tr><td>handleShutdownApproval</td><td><code>SendMessageTool.ts:338-432</code></td></tr>
+          <tr><td>使用说明 prompt</td><td><code>SendMessageTool/prompt.ts:5-49</code></td></tr>
+          <tr><td>注册位置</td><td><code>src/tools.ts:255,325,337</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-jian-yi">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先读"一、定位"建立"SendMessage = 路由器"的心智，再跳到"四、call()"看流程图理清五条通道，最后对照"五、权限"理解为什么跨机要 <code>ask</code>。Phase C（进程内子代理路由）是重中之重——它是"给已存在代理续发消息"的核心。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 SendMessage 与 Agent 的分工（续发已有 vs 创建新代理）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出工具名常量位置（<code>constants.ts:1</code>）和它<strong>不在 CORE_TOOLS</strong> 的事实</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>shouldDefer + alwaysLoad: isAgentSwarmsEnabled()</code> 的加载策略（按需，省 token）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出运行中代理如何收消息（<code>queuePendingMessage</code> 入队，下轮取，不打断当前轮）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出停止的代理如何收消息（<code>resumeAgentBackground</code> 后台唤醒，复用自 AgentTool）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么不等回复（fire-and-forget，回复作为新消息异步回流）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 bridge/tcp 为何 <code>classifierApprovable: false</code>（跨机发送永不自动批准）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 Phase B 为何要复检 bridge 活性（权限通过后 bridge 可能已断）</span></li>
+      <li><input type="checkbox" disabled> <span>能找到 UDS token 脱敏的三个 helper（<code>:133-164</code>）及其测试文件</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>先用 <code>Agent</code> 创建一个具名子代理，再用 <code>SendMessage(to=&lt;那个名字&gt;, ...)</code> 续发，观察消息如何出现在子代理的对话里。</li>
+      <li>让一个后台代理跑长任务时给它发消息，验证 <code>queuePendingMessage</code> 的"下轮投递"行为（不打断当前轮）。</li>
+      <li>在 <code>call()</code> 的 <code>:912</code> 加日志，确认 <code>agentNameRegistry</code> 的 name→agentId 解析。</li>
+      <li>读 <code>__tests__/udsRecipientSanitization.test.ts</code>，理解 token 脱敏的 6 个测试用例覆盖了哪些泄露路径。</li>
+      <li>构造一条 bridge scheme 的消息，确认触发 <code>behavior: 'ask'</code> 人工确认。</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

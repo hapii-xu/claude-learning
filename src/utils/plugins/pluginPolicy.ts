@@ -1,18 +1,17 @@
 /**
- * Plugin policy checks backed by managed settings (policySettings).
+ * 由托管设置（policySettings）支持的插件策略检查。
  *
- * Kept as a leaf module (only imports settings) to avoid circular dependencies
- * — marketplaceHelpers.ts imports marketplaceManager.ts which transitively
- * reaches most of the plugin subsystem.
+ * 作为叶子模块保留（仅导入设置），以避免循环依赖
+ * ——marketplaceHelpers.ts 导入 marketplaceManager.ts，
+ * 后者会传递触达插件子系统的大部分内容。
  */
 
 import { getSettingsForSource } from '../settings/settings.js'
 
 /**
- * Check if a plugin is force-disabled by org policy (managed-settings.json).
- * Policy-blocked plugins cannot be installed or enabled by the user at any
- * scope. Used as the single source of truth for policy blocking across the
- * install chokepoint, enable op, and UI filters.
+ * 检查插件是否被组织策略（managed-settings.json）强制禁用。
+ * 被策略屏蔽的插件在任何作用域下均不能被用户安装或启用。
+ * 作为策略屏蔽的唯一数据来源，贯穿安装检查点、启用操作和 UI 过滤器。
  */
 export function isPluginBlockedByPolicy(pluginId: string): boolean {
   const policyEnabled = getSettingsForSource('policySettings')?.enabledPlugins

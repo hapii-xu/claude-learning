@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebFetch 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    .kw  { color: #7c9bff; font-weight: 600; }
+    .str { color: #6cc77a; }
+    .fn  { color: #f0906a; }
+    .cmt { color: #6e6a62; font-style: italic; }
+    .type{ color: #e0a020; }
+    .num { color: #c792ea; }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Additional styles ────────────────────────────────── */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>WebFetch 工具详解</h1>
+  <p>抓取 URL 内容并交给辅助小模型（Haiku）按提示提炼——Claude Code 访问"公开网页"的主力工具，含 130+ 预批准域名白名单与 Tavily 双后端</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou">三、Tool 接口字段实现</a></li>
+    <li><a href="#si-call-liu-cheng">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-xi-tong-guan-xi">六、与其他系统/工具的关系</a></li>
+    <li><a href="#qi-liang-dian">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma">八、源码导航</a></li>
+    <li><a href="#jiu-xuexi">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+<blockquote class="callout"><p>WebFetch 是 Claude Code 的<strong>网页抓取 + 摘要</strong>工具：给定一个公开 URL 和一段提示（prompt），它把页面内容取回、转成 Markdown，再用一个"小而快"的辅助模型（Haiku）按你的提示把内容压缩成回答。它有一个<strong>预批准域名白名单</strong>（130+ 个编程文档站，如 MDN、React、AWS 文档），白名单内的域名可以跳过 Haiku 摘要直接回吐内容，且对每个域名单独做权限控制。这是理解"一个有网络副作用、但只读的工具如何做权限与缓存"的最佳样本。</p></blockquote>
+
+<hr class="divider">
+
+<section id="yi-gong-ju-ding-wei">
+<h2>一、工具定位（一句话总结）</h2>
+<p><strong><code>WebFetch</code> = 抓公开 URL → 转 Markdown → 辅助模型按 prompt 提炼的只读网页工具。</strong></p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>维度</th><th>值</th></tr></thead>
+    <tbody>
+      <tr><td>工具名</td><td><code>WebFetch</code>（常量 <code>WEB_FETCH_TOOL_NAME</code>，<code>prompt.ts:1</code>）</td></tr>
+      <tr><td>一句话</td><td>取 URL、转 Markdown、用 Haiku 按 prompt 摘要；预批准域名直吐内容</td></tr>
+      <tr><td>是否进 system prompt</td><td>✅ 在 <code>CORE_TOOLS</code> 白名单内（<code>src/constants/tools.ts:162</code>）</td></tr>
+      <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>，<code>WebFetchTool.ts:100</code>）</td></tr>
+      <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe() → true</code>，<code>:97</code>）</td></tr>
+      <tr><td>是否延迟加载</td><td>✅ <code>shouldDefer: true</code>（<code>maxResultSizeChars:100_000</code> + 延迟，<code>:72-73</code>）</td></tr>
+      <tr><td>核心依赖</td><td><code>utils.ts</code>（抓取/turndown/Haiku）、<code>preapproved.ts</code>（域名白名单）、Tavily Extract API</td></tr>
+      <tr><td>定位互补方</td><td><code>WebSearch</code>（先搜再读）、<code>VaultHttpFetch</code>（带认证密钥）、<code>WebBrowser</code>（轻量 HTTP）</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><strong>为什么需要它？</strong> 模型自身知识有截止日期，遇到"最新文档""某个 URL 说了什么"时需要真正去抓网页。WebFetch 把"抓 + 转 Markdown + 压缩"打包，避免把整个 10MB HTML 塞进主上下文。</p>
+</section>
+
+<hr class="divider">
+
+<section id="er-guan-jian-wen-jian">
+<h2>二、关键文件清单</h2>
+<pre><code>WebFetchTool/
+├── WebFetchTool.ts    ← buildTool({...}) 主体（385 行）：schema + call + 权限
+├── prompt.ts          ← 工具名 + DESCRIPTION + makeSecondaryModelPrompt（给 Haiku 的模板）
+├── preapproved.ts     ← 130+ 预批准域名白名单 + isPreapprovedHost()（163 行）
+├── utils.ts           ← 抓取核心：getURLMarkdownContent / fetchContentWithTavily / applyPromptToMarkdown（585 行）
+└── UI.tsx             ← Ink 渲染（抓取进度 / 结果大小 + HTTP 码）</code></pre>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+    <tbody>
+      <tr><td><code>WebFetchTool.ts</code></td><td>工具主体：双后端 call() + 域名权限</td><td><code>checkPermissions:106</code>、<code>call:209</code>、tavily 路径 <code>:220</code>、http 路径 <code>:281</code></td></tr>
+      <tr><td><code>preapproved.ts</code></td><td>130+ 白名单 + 主机/路径分离优化</td><td><code>PREAPPROVED_HOSTS:12</code>、拆分优化 <code>:134</code>、<code>isPreapprovedHost:152</code></td></tr>
+      <tr><td><code>utils.ts</code></td><td>抓取/缓存/turndown/Haiku</td><td>LRU 缓存 <code>:52</code>、重定向白名单 <code>:183</code>、<code>getURLMarkdownContent:320</code>、<code>fetchContentWithTavily:436</code>、<code>applyPromptToMarkdown:534</code></td></tr>
+      <tr><td><code>prompt.ts</code></td><td>Haiku 的 system prompt 模板（预批准域名放宽版权约束）</td><td><code>DESCRIPTION:3</code>、<code>makeSecondaryModelPrompt:23</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p><strong>结构特点</strong>：WebFetchTool 是"主体 + 三辅助"型——<code>WebFetchTool.ts</code> 做编排，真正干活的抓取逻辑在 <code>utils.ts</code>，安全边界（预批准域名）在 <code>preapproved.ts</code>，给 Haiku 的提示模板在 <code>prompt.ts</code>。这是逻辑足够复杂时分文件的典型做法。</p></blockquote>
+</section>
+
+<hr class="divider">
+
+<section id="san-tool-jie-kou">
+<h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+<p>WebFetchTool 实现了 <code>Tool</code> 接口的几乎所有字段，且它的 <code>checkPermissions</code> / <code>call</code> 比只读文件工具复杂得多。</p>
+
+<h3>标识字段</h3>
+<pre><code>name: WEB_FETCH_TOOL_NAME,                    // "WebFetch"
+searchHint: 'fetch and extract content from a URL',  // TF-IDF 索引关键词
+maxResultSizeChars: 100_000,                  // 结果持久化阈值
+shouldDefer: true,                            // 延迟加载（非核心启动时注入）
+userFacingName() { return '抓取' },           // 中文显示名</code></pre>
+
+<h3>模型面字段</h3>
+<pre><code>async description(input) { /* 显示 "Claude 想要获取来自 &lt;hostname&gt; 的内容" */ }
+async prompt() { /* 固定前缀警告认证 URL 会失败 + DESCRIPTION */ }
+get inputSchema()  // { url: string.url(), prompt: string }
+get outputSchema() // { bytes, code, codeText, result, durationMs, url }</code></pre>
+<p><strong>输入 schema</strong>（<code>WebFetchTool.ts:26-31</code>，<code>z.strictObject</code>）：</p>
+<pre><code>{
+  url:    string  // 必填，必须是合法 URL
+  prompt: string  // 必填，对抓取到的内容运行的提示
+}</code></pre>
+<blockquote class="callout"><p>注意：<code>url</code> 用 <code>z.string().url()</code> 校验合法性，<code>prompt</code> 是必填——模型必须说明想从页面提取什么。</p></blockquote>
+<p><strong>输出 schema</strong>（<code>:34-47</code>）：<code>{ bytes, code, codeText, result, durationMs, url }</code>——<code>result</code> 是 Haiku 处理后的文本（或重定向提示消息）。</p>
+
+<h3>行为字段（重点）</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>call()</code></td><td><code>:209</code></td><td>双后端核心逻辑（见下节）</td></tr>
+      <tr><td><code>validateInput()</code></td><td><code>:192</code></td><td>仅校验 URL 能否 <code>new URL()</code> 解析</td></tr>
+      <tr><td><code>checkPermissions()</code></td><td><code>:106</code></td><td><strong>三层判定</strong>：预批准域名 → deny 规则 → ask/allow 规则</td></tr>
+      <tr><td><code>isConcurrencySafe()</code></td><td><code>:97</code> → <code>true</code></td><td>抓不同 URL 互不干扰</td></tr>
+      <tr><td><code>isReadOnly()</code></td><td><code>:100</code> → <code>true</code></td><td>不改本地状态（但有网络副作用）</td></tr>
+      <tr><td><code>toAutoClassifierInput()</code></td><td><code>:103</code></td><td><code>"&lt;url&gt;: &lt;prompt&gt;"</code> 用于自动审批分类</td></tr>
+      <tr><td><code>getActivityDescription()</code></td><td><code>:87</code></td><td>"正在抓取 &lt;url&gt;" 状态行</td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p><strong>没有 <code>isSearchOrReadCommand()</code></strong>：与文件工具不同，WebFetch 不标记 search/read，因为它不属于本地文件检索分类。</p></blockquote>
+</section>
+
+<hr class="divider">
+
+<section id="si-call-liu-cheng">
+<h2>四、核心执行流程：<code>call()</code></h2>
+<p><code>call()</code>（<code>WebFetchTool.ts:209-365</code>）的核心是<strong>按后端分支</strong>：</p>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    A["call({url,prompt}, ctx)\n:209"] --> B{"backend =\nsettings.webFetchAdapter\n?? 'tavily'\n:217"}
+    B -->|tavily 默认| C["fetchContentWithTavily(url)\nutils.ts:436\nPOST /extract 直接返回 Markdown"]
+    B -->|http 直连| D["getURLMarkdownContent(url)\nutils.ts:320\naxios + turndown"]
+    C --> E{"type === 'redirect'?"}
+    D --> E
+    E -->|是 跨主机重定向| F["构造重定向提示消息\n请用重定向 URL 再调用一次\n:223 / :284"]
+    E -->|否| G["拿到 FetchedContent\n{content,bytes,code,...}"]
+    G --> H{"prompt 非空?"}
+    H -->|是| I["applyPromptToMarkdown()\n调 Haiku 按提示提炼"]
+    H -->|否| J["result = content 原样"]
+    I --> K["二进制内容? 追加\n'已保存到 persistedPath' 标记"]
+    J --> K
+    K --> L["return { data: Output }"]
+    F --> L
+  </div>
+</div>
+<p><strong>Tavily 路径关键点</strong>（<code>:220-278</code>，默认）：</p>
+<ol>
+  <li><code>fetchContentWithTavily</code>（<code>utils.ts:436</code>）向 <code>https://tavily.claude-code-best.win/extract</code> POST <code>{urls:[url]}</code>，直接拿回<strong>已转好的 Markdown</strong>——跳过了 turndown 转换。</li>
+  <li>即便 Tavily 已给 Markdown，若用户提供了 <code>prompt</code>，<strong>仍会再调一次 Haiku</strong> 处理内容（<code>:256</code>）。</li>
+  <li><code>tavilyEndpointUrl</code> 可通过 settings 覆盖（<code>utils.ts:476</code>）。</li>
+</ol>
+<p><strong>HTTP 直连路径关键点</strong>（<code>:281-364</code>）：</p>
+<ol>
+  <li><code>getURLMarkdownContent</code>（<code>utils.ts:320</code>）：15 分钟 LRU 缓存（<code>:52</code>，50MB 上限）→ http 强制升级 https（<code>:349</code>）→ axios 抓取 → 二进制内容落盘（<code>:390</code>）→ turndown 转 Markdown。</li>
+  <li><strong>预批准域名短路</strong>（<code>:328-336</code>）：若 URL 在白名单内、内容是 <code>text/markdown</code>、且 &lt; 100K 字符，<strong>跳过 Haiku 直接返回原文</strong>——省一次模型调用、保全文细节。</li>
+  <li>否则走 <code>applyPromptToMarkdown</code>（<code>:338</code>）让 Haiku 提炼。</li>
+</ol>
+<p><strong>重定向处理</strong>（<code>:223</code> / <code>:284</code>）：检测到<strong>跨主机</strong>重定向时，不自动跟随，而是返回一条消息让模型用新 URL 再调一次。<code>isPermittedRedirect</code>（<code>utils.ts:183</code>）只允许同主机 / 加减 <code>www.</code> 的重定向自动跟随。</p>
+<p><strong><code>applyPromptToMarkdown</code></strong>（<code>utils.ts:534</code>）：</p>
+<ul>
+  <li>内容 &gt; 100K 字符先截断（<code>:543</code>）。</li>
+  <li>用 <code>makeSecondaryModelPrompt</code> 拼模板——<strong>预批准域名走宽松版权约束</strong>（可引用代码示例、文档摘录），非预批准走严格约束（引用 ≤125 字符、不复述歌词、不发法律意见）（<code>prompt.ts:23-46</code>）。</li>
+  <li>调 <code>queryHaiku</code>（<code>utils.ts:553</code>），<code>querySource: 'web_fetch_apply'</code>。</li>
+</ul>
+</section>
+
+<hr class="divider">
+
+<section id="wu-quan-xian-an-quan">
+<h2>五、权限与安全</h2>
+<p>WebFetch 的权限模型是"<strong>域名粒度</strong>"，这是它最值得学的地方：</p>
+
+<h3><code>checkPermissions</code>（<code>:106-182</code>，三层判定）</h3>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    S["解析 URL 取 hostname"] --> P{"isPreapprovedHost?\npreapproved.ts:152"}
+    P -->|是 白名单域名| ALLOW1["allow\nreason: '预批准的主机'"]
+    P -->|否| R["ruleContent =\n'domain:' + hostname\n:126"]
+    R --> D{"deny 规则命中?"}
+    D -->|是| DENY["deny"]
+    D -->|否| A{"ask 规则命中?"}
+    A -->|是| ASK["ask + 建议 allow 规则"]
+    A -->|否| AL{"allow 规则命中?"}
+    AL -->|是| ALLOW2["allow"]
+    AL -->|否| ASK2["默认 ask\n+ buildSuggestions"]
+  </div>
+</div>
+<p><strong>核心设计</strong>：</p>
+<ul>
+  <li><strong>权限键是 <code>domain:&lt;hostname&gt;</code></strong>（<code>webFetchToolInputToPermissionRuleContent</code>，<code>:52-66</code>）——不是完整 URL。批准 <code>domain:developer.mozilla.org</code> 一次，以后访问该域名任意路径都不再问。</li>
+  <li><strong>预批准域名优先级最高</strong>（<code>:114</code>）：在白名单内的（MDN、React 文档、AWS 文档等）直接 allow，绕过所有用户规则——这是为了让常用文档站零摩擦。</li>
+  <li>默认 <code>ask</code>（<code>:177</code>），并附 <code>buildSuggestions</code>（<code>:375</code>）给用户一键加 allow 规则。</li>
+</ul>
+
+<h3><code>preapproved.ts</code> —— 130+ 域名白名单</h3>
+<ul>
+  <li><strong>白名单内容</strong>（<code>:12-129</code>）：Anthropic 自家 + 主流编程语言文档（Python/Java/C#/Go/Rust...）+ Web 框架（React/Vue/Angular/Next...）+ Python 库（Django/FastAPI/PyTorch...）+ 云厂商文档（AWS/GCP/K8s...）+ 数据库 + 测试工具等。</li>
+  <li><strong>安全警告</strong>（文件头注释 <code>:1-10</code>）：白名单<strong>仅适用于 WebFetch（仅 GET）</strong>。沙箱网络限制<strong>故意不继承</strong>此列表——因为 POST/上传到 huggingface.co、kaggle.com 等会有数据渗出风险。</li>
+  <li><strong>性能优化</strong>（<code>:134-150</code>）：模块加载时把白名单拆成 <code>HOSTNAME_ONLY</code>（Set，O(1) 查）和 <code>PATH_PREFIXES</code>（带路径的少量条目如 <code>github.com/anthropics</code>）。</li>
+  <li><strong>路径边界保护</strong>（<code>:158-160</code>）：<code>/anthropics</code> 不得匹配 <code>/anthropics-evil/malware</code>——强制路径段边界。</li>
+</ul>
+
+<h3><code>validateInput</code>（<code>:192-205</code>）</h3>
+<p>仅校验 URL 能否被 <code>new URL()</code> 解析，失败返回 <code>errorCode: 1</code> + 友好提示。更深层的 URL 安全检查在 <code>utils.ts:validateURL</code>（<code>:145</code>）：URL ≤ 2000 字符、禁止带 username/password、主机名至少两段（防内部域名）。</p>
+
+<h3>安全细节（散落各处）</h3>
+<ul>
+  <li><strong>HTTP → HTTPS 强制升级</strong>（<code>utils.ts:349</code>）。</li>
+  <li><strong>重定向白名单</strong>（<code>utils.ts:183</code> <code>isPermittedRedirect</code>）：只跟同主机/加减 www 的重定向，防开放重定向攻击。</li>
+  <li><strong>重定向上限 10 跳</strong>（<code>utils.ts:131</code> <code>MAX_REDIRECTS</code>）：防重定向循环。</li>
+  <li><strong>内容上限 10MB</strong>（<code>utils.ts:113</code> <code>MAX_HTTP_CONTENT_LENGTH</code>）：防资源耗尽。</li>
+  <li><strong>出口代理封锁检测</strong>（<code>utils.ts:290-298</code>）：代理返回 <code>403 + x-proxy-error: blocked-by-allowlist</code> 时抛 <code>EgressBlockedError</code>。</li>
+  <li><strong>turndown 懒加载</strong>（<code>utils.ts:94-101</code>）：1.4MB 的 turndown + domino 延迟到首次 HTML 抓取才加载。</li>
+</ul>
+</section>
+
+<hr class="divider">
+
+<section id="liu-xi-tong-guan-xi">
+<h2>六、与其他系统/工具的关系</h2>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    WF["WebFetch"] -->|抓取核心| U["utils.ts\ngetURLMarkdownContent / Tavily"]
+    WF -->|白名单| P["preapproved.ts\n130+ 文档域名"]
+    WF -->|Haiku 摘要| Q["queryHaiku\nsrc/services/api/claude.ts"]
+    WF -->|权限| PERM["getRuleByContentsForTool\ndomain: 粒度"]
+    WF -->|二进制落盘| M["persistBinaryContent\nsrc/utils/mcpOutputStorage.ts"]
+    WF -.互补.-> WS["WebSearch（先搜 URL）"]
+    WF -.互补.-> VHF["VaultHttpFetch（带认证密钥）"]
+    WF -.互补.-> WB["WebBrowser（轻量纯 HTTP）"]
+  </div>
+</div>
+<ul>
+  <li><strong>与 <code>WebSearch</code></strong>：WebSearch 找 URL，WebFetch 读 URL。两者都默认走 Tavily 后端。</li>
+  <li><strong>与 <code>VaultHttpFetch</code></strong>：WebFetch 只读公开页；VaultHttpFetch 用 vault 密钥发认证请求（GitHub API、Stripe 等）。</li>
+  <li><strong>与 <code>WebBrowser</code></strong>：WebFetch 功能完整（turndown + Haiku + 缓存）；WebBrowser 是极简纯 HTTP 抓取（见单独章节）。</li>
+  <li><strong>与 Haiku 辅助模型</strong>：<code>applyPromptToMarkdown</code> 通过 <code>queryHaiku</code> 调用——把"压缩大网页"的活外包给便宜的小模型，省主上下文。</li>
+  <li><strong>与权限系统</strong>：用 <code>getRuleByContentsForTool</code> 做域名粒度的 deny/ask/allow 匹配，是"非文件类工具如何接入权限管道"的范例。</li>
+</ul>
+</section>
+
+<hr class="divider">
+
+<section id="qi-liang-dian">
+<h2>七、亮点与设计取舍</h2>
+<ol>
+  <li><strong>双后端可切换</strong>（<code>:217</code>）：<code>settings.webFetchAdapter</code> 选 <code>tavily</code>（默认，服务端转好 Markdown）或 <code>http</code>（本地 axios + turndown）。Tavily 路径更干净、省本地 CPU；http 路径更可控、离线可调。</li>
+  <li><strong>预批准域名 + 版权约束分层</strong>（<code>prompt.ts:23-46</code>）：白名单域名走宽松 Haiku 提示（可贴代码示例），非白名单走严格提示（引用 ≤125 字符）。这是"信任域 vs 不信任域"在 AI 摘要层的体现。</li>
+  <li><strong>域名粒度权限</strong>（<code>:52-66</code>）：用 <code>domain:&lt;host&gt;</code> 而非完整 URL 做权限键——批准一次覆盖整站，平衡安全与摩擦。</li>
+  <li><strong>跨主机重定向让模型重试</strong>（<code>:223</code>）：不自动跟随跨主机重定向（防开放重定向攻击），而是返回提示让模型显式再调一次——把安全决策交给上层。</li>
+  <li><strong>15 分钟 LRU 缓存</strong>（<code>utils.ts:52</code>）：50MB 上限，重复访问同一 URL 直接命中——显著降低延迟和 API 调用。</li>
+  <li><strong>turndown 懒加载单例</strong>（<code>utils.ts:94</code>）：1.4MB 的 HTML→Markdown 库延迟到首次抓取，且全程复用一个实例——启动性能 + 运行时内存双赢。</li>
+  <li><strong>二进制内容落盘</strong>（<code>utils.ts:390</code>）：PDF 等二进制存到磁盘，正文仍走 utf-8 解码 + Haiku 摘要，并附路径让模型可二次检查原始文件。</li>
+  <li><strong>prompt 前缀的缓存考量</strong>（<code>:183-190</code> 注释）：认证警告前缀<strong>无条件常驻</strong>，避免随 SearchExtraTools 启用状态切换导致 system prompt 闪烁、击穿 Anthropic API 缓存——一个很生产级的细节。</li>
+</ol>
+</section>
+
+<hr class="divider">
+
+<section id="ba-yuan-ma">
+<h2>八、源码导航（书签速查）</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+    <tbody>
+      <tr><td>工具名常量 + 描述</td><td><code>WebFetchTool/prompt.ts:1,3</code></td></tr>
+      <tr><td>Haiku 二级提示模板（版权约束分层）</td><td><code>WebFetchTool/prompt.ts:23-46</code></td></tr>
+      <tr><td>130+ 预批准域名</td><td><code>WebFetchTool/preapproved.ts:12-129</code></td></tr>
+      <tr><td><code>isPreapprovedHost</code> + 路径边界</td><td><code>WebFetchTool/preapproved.ts:152-163</code></td></tr>
+      <tr><td><code>checkPermissions</code> 三层判定</td><td><code>WebFetchTool.ts:106-182</code></td></tr>
+      <tr><td><code>call()</code> 双后端</td><td><code>WebFetchTool.ts:209-365</code></td></tr>
+      <tr><td>tavily 路径</td><td><code>WebFetchTool.ts:220-278</code> + <code>utils.ts:436</code></td></tr>
+      <tr><td>http 直连路径</td><td><code>WebFetchTool.ts:281-364</code> + <code>utils.ts:320</code></td></tr>
+      <tr><td>重定向白名单 <code>isPermittedRedirect</code></td><td><code>WebFetchTool/utils.ts:183-214</code></td></tr>
+      <tr><td>LRU 缓存</td><td><code>WebFetchTool/utils.ts:49-59</code></td></tr>
+      <tr><td>Haiku 摘要 <code>applyPromptToMarkdown</code></td><td><code>WebFetchTool/utils.ts:534-584</code></td></tr>
+      <tr><td>工具注册</td><td><code>src/tools.ts:11,233</code></td></tr>
+      <tr><td>CORE_TOOLS 白名单</td><td><code>src/constants/tools.ts:162</code></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="jiu-xuexi">
+<h2>九、学习建议与验证清单</h2>
+<p><strong>怎么读这章</strong>：先看"一、定位"理解"抓 + 转 Markdown + Haiku 摘要"三段式，再跳"五、权限"理解域名粒度三层判定（这是本工具最精髓处），最后看"四、call()"的双后端分支。</p>
+<p><strong>验证清单（读完自测）</strong>：</p>
+<ul class="checklist">
+  <li><input type="checkbox" disabled> <span>能说出 WebFetch 的三段式流水线（抓取 → 转 Markdown → Haiku 摘要）</span></li>
+  <li><input type="checkbox" disabled> <span>能解释为什么权限键是 <code>domain:&lt;hostname&gt;</code> 而非完整 URL（平衡安全与摩擦）</span></li>
+  <li><input type="checkbox" disabled> <span>能说出预批准域名的两个作用（跳过权限问 + 放宽 Haiku 版权约束 + 可短路跳过 Haiku）</span></li>
+  <li><input type="checkbox" disabled> <span>能指出预批准白名单<strong>不</strong>被沙箱继承的安全理由（防 POST/上传数据渗出）</span></li>
+  <li><input type="checkbox" disabled> <span>能解释双后端 tavily vs http 的区别（服务端转 Markdown vs 本地 turndown）</span></li>
+  <li><input type="checkbox" disabled> <span>能说出跨主机重定向为什么不自动跟随（防开放重定向攻击）</span></li>
+  <li><input type="checkbox" disabled> <span>能找到 LRU 缓存的 TTL（15 分钟）和大小上限（50MB）</span></li>
+</ul>
+<p><strong>配合动作</strong>：</p>
+<ol>
+  <li>让 Claude <code>WebFetch</code> 一个 MDN 页面（如 <code>developer.mozilla.org/en-US/docs/Web/HTTP/CORS</code>），观察它走预批准路径、无权限提示</li>
+  <li>让 Claude <code>WebFetch</code> 一个非白名单域名，观察 ask 权限提示和 buildSuggestions 的一键 allow</li>
+  <li>在 <code>utils.ts:328</code> 加日志，验证预批准域名 + markdown 内容时跳过了 Haiku 调用</li>
+  <li>构造一个跨主机重定向 URL，观察"请用重定向 URL 再调一次"的提示消息</li>
+</ol>
+</section>
+
+<a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

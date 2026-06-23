@@ -1,16 +1,15 @@
 /**
- * Constants for the official Anthropic plugins marketplace.
+ * Anthropic 官方插件市场的常量。
  *
- * The official marketplace is hosted on GitHub and provides first-party
- * plugins developed by Anthropic. This file defines the constants needed
- * to install and identify this marketplace.
+ * 官方市场托管在 GitHub 上，提供由 Anthropic 开发的第一方插件。
+ * 本文件定义了安装和识别该市场所需的常量。
  */
 
 import type { MarketplaceSource } from './schemas.js'
 
 /**
- * Source configuration for the official Anthropic plugins marketplace.
- * Used when auto-installing the marketplace on startup.
+ * 官方 Anthropic 插件市场的源配置。
+ * 在启动时自动安装市场时使用。
  */
 export const OFFICIAL_MARKETPLACE_SOURCE = {
   source: 'github',
@@ -18,8 +17,7 @@ export const OFFICIAL_MARKETPLACE_SOURCE = {
 } as const satisfies MarketplaceSource
 
 /**
- * Display name for the official marketplace.
- * This is the name under which the marketplace will be registered
- * in the known_marketplaces.json file.
+ * 官方市场的显示名称。
+ * 这是市场在 known_marketplaces.json 文件中注册时使用的名称。
  */
 export const OFFICIAL_MARKETPLACE_NAME = 'claude-plugins-official'

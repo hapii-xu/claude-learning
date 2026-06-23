@@ -1,13 +1,11 @@
 /**
- * LSP Plugin Recommendation Utility
+ * LSP 插件推荐工具
  *
- * Scans installed marketplaces for LSP plugins and recommends plugins
- * based on file extensions, but ONLY when the LSP binary is already
- * installed on the system.
+ * 扫描已安装的 marketplace 中的 LSP 插件，并根据文件扩展名推荐插件，
+ * 但仅当 LSP 二进制文件已安装在系统上时。
  *
- * Limitation: Can only detect LSP plugins that declare their servers
- * inline in the marketplace entry. Plugins with separate .lsp.json files
- * are not detectable until after installation.
+ * 限制：只能检测在 marketplace 条目中内联声明其服务器的 LSP 插件。
+ * 具有单独 .lsp.json 文件的插件在安装前无法检测到。
  */
 
 import { extname } from 'path'
@@ -25,30 +23,30 @@ import {
 } from './schemas.js'
 
 /**
- * LSP plugin recommendation returned to the caller
+ * 返回给调用方的 LSP 插件推荐
  */
 export type LspPluginRecommendation = {
   pluginId: string // "plugin-name@marketplace-name"
-  pluginName: string // Human-readable plugin name
-  marketplaceName: string // Marketplace name
-  description?: string // Plugin description
-  isOfficial: boolean // From official marketplace?
-  extensions: string[] // File extensions this plugin supports
-  command: string // LSP server command (e.g., "typescript-language-server")
+  pluginName: string // 人类可读的插件名称
+  marketplaceName: string // Marketplace 名称
+  description?: string // 插件描述
+  isOfficial: boolean // 来自官方 marketplace？
+  extensions: string[] // 此插件支持的文件扩展名
+  command: string // LSP 服务器命令（例如 "typescript-language-server"）
 }
 
-// Maximum number of times user can ignore recommendations before we stop showing
+// 用户可忽略推荐的最大次数，超过后停止显示
 const MAX_IGNORED_COUNT = 5
 
 /**
- * Check if a marketplace is official (from Anthropic)
+ * 检查 marketplace 是否为官方（来自 Anthropic）
  */
 function isOfficialMarketplace(name: string): boolean {
   return ALLOWED_OFFICIAL_MARKETPLACE_NAMES.has(name.toLowerCase())
 }
 
 /**
- * Internal type for LSP info extracted from plugin manifest
+ * 从插件清单提取的 LSP 信息的内部类型
  */
 type LspInfo = {
   extensions: Set<string>
@@ -56,13 +54,13 @@ type LspInfo = {
 }
 
 /**
- * Extract LSP info (extensions and command) from inline lspServers config.
+ * 从内联 lspServers 配置提取 LSP 信息（扩展名和命令）。
  *
- * NOTE: Can only read inline configs, not external .lsp.json files.
- * String paths are skipped as they reference files only available after installation.
+ * 注意：只能读取内联配置，不能读取外部 .lsp.json 文件。
+ * 字符串路径会被跳过，因为它们引用的文件仅在安装后可用。
  *
- * @param lspServers - The lspServers field from PluginMarketplaceEntry
- * @returns LSP info with extensions and command, or null if not extractable
+ * @param lspServers - PluginMarketplaceEntry 的 lspServers 字段
+ * @returns 包含扩展名和命令的 LSP 信息，若无法提取则返回 null
  */
 function extractLspInfoFromManifest(
   lspServers: PluginMarketplaceEntry['lspServers'],
@@ -71,7 +69,7 @@ function extractLspInfoFromManifest(
     return null
   }
 
-  // If it's a string path (e.g., "./.lsp.json"), we can't read it from marketplace
+  // 若是字符串路径（例如 "./.lsp.json"），无法从 marketplace 读取
   if (typeof lspServers === 'string') {
     logForDebugging(
       '[lspRecommendation] Skipping string path lspServers (not readable from marketplace)',
@@ -79,14 +77,14 @@ function extractLspInfoFromManifest(
     return null
   }
 
-  // If it's an array, process each element
+  // 若是数组，处理每个元素
   if (Array.isArray(lspServers)) {
     for (const item of lspServers) {
-      // Skip string paths in arrays
+      // 跳过数组中的字符串路径
       if (typeof item === 'string') {
         continue
       }
-      // Try to extract from inline config object
+      // 尝试从内联配置对象提取
       const info = extractFromServerConfigRecord(item)
       if (info) {
         return info
@@ -95,15 +93,15 @@ function extractLspInfoFromManifest(
     return null
   }
 
-  // It's an inline config object: Record<string, LspServerConfig>
+  // 是内联配置对象：Record<string, LspServerConfig>
   return extractFromServerConfigRecord(lspServers)
 }
 
 /**
- * Extract LSP info from a server config record (inline object format)
+ * 从服务器配置记录（内联对象格式）提取 LSP 信息
  */
 /**
- * Type guard to check if a value is a record object
+ * 类型守卫：检查值是否为 record 对象
  */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -120,12 +118,12 @@ function extractFromServerConfigRecord(
       continue
     }
 
-    // Get command from first valid server config
+    // 从第一个有效的服务器配置获取命令
     if (!command && typeof config.command === 'string') {
       command = config.command
     }
 
-    // Collect all extensions from extensionToLanguage mapping
+    // 从 extensionToLanguage 映射收集所有扩展名
     const extMapping = config.extensionToLanguage
     if (isRecord(extMapping)) {
       for (const ext of Object.keys(extMapping)) {
@@ -142,7 +140,7 @@ function extractFromServerConfigRecord(
 }
 
 /**
- * Internal type for plugin with LSP info
+ * 带 LSP 信息的插件内部类型
  */
 type LspPluginInfo = {
   entry: PluginMarketplaceEntry
@@ -153,9 +151,9 @@ type LspPluginInfo = {
 }
 
 /**
- * Get all LSP plugins from all installed marketplaces
+ * 从所有已安装的 marketplace 获取所有 LSP 插件
  *
- * @returns Map of pluginId to plugin info with LSP metadata
+ * @returns pluginId 到含 LSP 元数据的插件信息的映射
  */
 async function getLspPluginsFromMarketplaces(): Promise<
   Map<string, LspPluginInfo>
@@ -171,7 +169,7 @@ async function getLspPluginsFromMarketplaces(): Promise<
         const isOfficial = isOfficialMarketplace(marketplaceName)
 
         for (const entry of marketplace.plugins) {
-          // Skip plugins without lspServers
+          // 跳过没有 lspServers 的插件
           if (!entry.lspServers) {
             continue
           }
@@ -206,29 +204,29 @@ async function getLspPluginsFromMarketplaces(): Promise<
 }
 
 /**
- * Find matching LSP plugins for a file path.
+ * 查找与文件路径匹配的 LSP 插件。
  *
- * Returns recommendations for plugins that:
- * 1. Support the file's extension
- * 2. Have their LSP binary installed on the system
- * 3. Are not already installed
- * 4. Are not in the user's "never suggest" list
+ * 返回满足以下条件的插件推荐：
+ * 1. 支持该文件的扩展名
+ * 2. 其 LSP 二进制文件已安装在系统上
+ * 3. 尚未安装
+ * 4. 不在用户的"永不建议"列表中
  *
- * Results are sorted with official marketplace plugins first.
+ * 结果按官方 marketplace 插件优先排序。
  *
- * @param filePath - Path to the file to find LSP plugins for
- * @returns Array of matching plugin recommendations (empty if none or disabled)
+ * @param filePath - 要查找 LSP 插件的文件路径
+ * @returns 匹配的插件推荐数组（若无匹配或已禁用则为空）
  */
 export async function getMatchingLspPlugins(
   filePath: string,
 ): Promise<LspPluginRecommendation[]> {
-  // Check if globally disabled
+  // 检查是否全局禁用
   if (isLspRecommendationsDisabled()) {
     logForDebugging('[lspRecommendation] Recommendations are disabled')
     return []
   }
 
-  // Extract file extension
+  // 提取文件扩展名
   const ext = extname(filePath).toLowerCase()
   if (!ext) {
     logForDebugging('[lspRecommendation] No file extension found')
@@ -237,23 +235,23 @@ export async function getMatchingLspPlugins(
 
   logForDebugging(`[lspRecommendation] Looking for LSP plugins for ${ext}`)
 
-  // Get all LSP plugins from marketplaces
+  // 从 marketplace 获取所有 LSP 插件
   const allLspPlugins = await getLspPluginsFromMarketplaces()
 
-  // Get config for filtering
+  // 获取用于过滤的配置
   const config = getGlobalConfig()
   const neverPlugins = config.lspRecommendationNeverPlugins ?? []
 
-  // Filter to matching plugins
+  // 过滤出匹配的插件
   const matchingPlugins: Array<{ info: LspPluginInfo; pluginId: string }> = []
 
   for (const [pluginId, info] of allLspPlugins) {
-    // Check extension match
+    // 检查扩展名匹配
     if (!info.extensions.has(ext)) {
       continue
     }
 
-    // Filter: not in "never" list
+    // 过滤：不在"永不"列表中
     if (neverPlugins.includes(pluginId)) {
       logForDebugging(
         `[lspRecommendation] Skipping ${pluginId} (in never suggest list)`,
@@ -261,7 +259,7 @@ export async function getMatchingLspPlugins(
       continue
     }
 
-    // Filter: not already installed
+    // 过滤：尚未安装
     if (isPluginInstalled(pluginId)) {
       logForDebugging(
         `[lspRecommendation] Skipping ${pluginId} (already installed)`,
@@ -272,7 +270,7 @@ export async function getMatchingLspPlugins(
     matchingPlugins.push({ info, pluginId })
   }
 
-  // Filter: binary must be installed (async check)
+  // 过滤：二进制文件必须已安装（异步检查）
   const pluginsWithBinary: Array<{ info: LspPluginInfo; pluginId: string }> = []
 
   for (const { info, pluginId } of matchingPlugins) {
@@ -289,14 +287,14 @@ export async function getMatchingLspPlugins(
     }
   }
 
-  // Sort: official marketplaces first
+  // 排序：官方 marketplace 优先
   pluginsWithBinary.sort((a, b) => {
     if (a.info.isOfficial && !b.info.isOfficial) return -1
     if (!a.info.isOfficial && b.info.isOfficial) return 1
     return 0
   })
 
-  // Convert to recommendations
+  // 转换为推荐结果
   return pluginsWithBinary.map(({ info, pluginId }) => ({
     pluginId,
     pluginName: info.entry.name,
@@ -309,9 +307,9 @@ export async function getMatchingLspPlugins(
 }
 
 /**
- * Add a plugin to the "never suggest" list
+ * 将插件添加到"永不建议"列表
  *
- * @param pluginId - Plugin ID to never suggest again
+ * @param pluginId - 不再建议的插件 ID
  */
 export function addToNeverSuggest(pluginId: string): void {
   saveGlobalConfig(currentConfig => {
@@ -328,8 +326,8 @@ export function addToNeverSuggest(pluginId: string): void {
 }
 
 /**
- * Increment the ignored recommendation count.
- * After MAX_IGNORED_COUNT ignores, recommendations are disabled.
+ * 递增已忽略推荐计数。
+ * 在忽略 MAX_IGNORED_COUNT 次后，推荐被禁用。
  */
 export function incrementIgnoredCount(): void {
   saveGlobalConfig(currentConfig => {
@@ -343,10 +341,10 @@ export function incrementIgnoredCount(): void {
 }
 
 /**
- * Check if LSP recommendations are disabled.
- * Disabled when:
- * - User explicitly disabled via config
- * - User has ignored MAX_IGNORED_COUNT recommendations
+ * 检查 LSP 推荐是否被禁用。
+ * 禁用条件：
+ * - 用户通过配置显式禁用
+ * - 用户已忽略 MAX_IGNORED_COUNT 次推荐
  */
 export function isLspRecommendationsDisabled(): boolean {
   const config = getGlobalConfig()
@@ -357,7 +355,7 @@ export function isLspRecommendationsDisabled(): boolean {
 }
 
 /**
- * Reset the ignored count (useful if user re-enables recommendations)
+ * 重置已忽略计数（若用户重新启用推荐则有用）
  */
 export function resetIgnoredCount(): void {
   saveGlobalConfig(currentConfig => {

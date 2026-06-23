@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ListPeers 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── SVG Diagram ──────────────────────────────────────── */
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      margin: 0 auto;
+      font-family: var(--font-sans);
+    }
+
+    /* SVG tooltip via CSS title */
+    .node-group { cursor: default; }
+    .node-group:hover rect.node-rect { filter: brightness(.93); }
+
+    /* ── Card Grid ────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .path-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: box-shadow .15s, border-color .15s;
+    }
+
+    .path-card:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--orange-lt);
+    }
+
+    .badge-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .card-body { flex: 1; min-width: 0; }
+
+    .card-trigger {
+      font-weight: 700;
+      font-size: .9rem;
+      color: var(--text);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    .card-module {
+      font-family: var(--font-mono);
+      font-size: .76rem;
+      color: var(--text-2);
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .card-flag {
+      font-size: .72rem;
+      color: var(--blue);
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .badge-enable {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    /* ── Collapsible knowledge cards ─────────────────────── */
+    .knowledge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    details.know-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    details.know-card[open] {
+      border-color: var(--orange-lt);
+    }
+
+    details.know-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      outline: none;
+    }
+
+    details.know-card > summary::-webkit-details-marker { display: none; }
+
+    details.know-card > summary:hover { background: var(--bg); }
+
+    .know-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    details.know-card[open] .know-num {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .know-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: .97rem;
+    }
+
+    .know-arrow {
+      width: 20px;
+      height: 20px;
+      color: var(--text-3);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    details.know-card[open] .know-arrow {
+      transform: rotate(90deg);
+      color: var(--orange);
+    }
+
+    .know-body {
+      padding: 0 20px 20px 64px;
+    }
+
+    .know-body p { margin-bottom: 8px; }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    /* CSS-only syntax highlighting */
+    .kw  { color: #7c9bff; font-weight: 600; }  /* keywords */
+    .str { color: #6cc77a; }                      /* strings */
+    .fn  { color: #f0906a; }                      /* function calls */
+    .cmt { color: #6e6a62; font-style: italic; } /* comments */
+    .type{ color: #e0a020; }                      /* TypeScript types */
+    .num { color: #c792ea; }                      /* numbers */
+
+    /* inline code */
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Comparison Table ─────────────────────────────────── */
+    .compare-table th:first-child { width: 130px; }
+    .compare-table th:nth-child(2) { color: var(--orange-dk); }
+    .compare-table th:nth-child(3) { color: var(--blue-dk); }
+
+    /* ── Key files ────────────────────────────────────────── */
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--blue-dk);
+      cursor: default;
+      position: relative;
+    }
+
+    .file-path:hover::after {
+      content: attr(data-full);
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+      background: #1e1b16;
+      color: #d4cfc8;
+      font-size: .75rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+      pointer-events: none;
+    }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    ul.key-list {
+      padding-left: 20px;
+      color: var(--text-2);
+    }
+
+    ul.key-list li { margin-bottom: 4px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .know-body { padding-left: 20px; }
+    }
+
+    blockquote.callout { background: var(--bg2); border-left: 4px solid var(--orange); padding: 14px 20px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0; color: var(--text-2); }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin: 16px 0; overflow-x: auto; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 48px; padding: 8px 18px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; transition: border-color .15s, color .15s; }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    section { margin-top: 56px; }
+  </style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>ListPeers 工具详解</h1>
+  <p>发现可跨会话通信的 Claude Code 对等方（UDS 本地会话 + Remote Control 远程会话）——SendMessage 的前置发现工具</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei-yi-ju-hua-zong-jie">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian-qing-dan">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou-zi-duan-shi-xian-buildtool-zhu-zi-duan">三、Tool 接口字段</a></li>
+    <li><a href="#si-he-xin-zhi-xing-liu-cheng-call">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian-yu-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-yu-qi-ta-xi-tong-gong-ju-de-guan-xi">六、系统关系</a></li>
+    <li><a href="#qi-liang-dian-yu-she-ji-qu-she">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma-dao-hang-shu-qian-su-cha">八、源码导航</a></li>
+    <li><a href="#jiu-xue-xi-jian-yi-yu-yan-zheng-qing-dan">九、学习建议</a></li>
+  </ul>
+</header>
+<div class="page-wrap">
+
+  <blockquote class="callout">
+    <p><code>ListPeers</code> 是跨会话消息传递（<code>SendMessage</code>）的<strong>前置发现工具</strong>：它扫描当前机器上所有可通过 UDS（Unix Domain Socket）通信的本地 Claude Code 会话，加上通过 Remote Control 桥接的远程会话，返回带地址的对等方列表。这些地址随后作为 <code>SendMessage</code> 的 <code>to</code> 字段。属于"中等复杂度"的只读发现工具，核心逻辑在聚合三个来源（自身、UDS 客户端、bridge 对等方）并去重。</p>
+  </blockquote>
+
+  <hr class="divider">
+
+  <section id="yi-gong-ju-ding-wei-yi-ju-hua-zong-jie">
+    <h2>一、工具定位（一句话总结）</h2>
+
+    <p><strong><code>ListPeers</code> = 发现可接收跨会话消息的对等 Claude Code 会话的只读工具。</strong></p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>维度</th><th>值</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>ListPeers</code>（常量 <code>LIST_PEERS_TOOL_NAME</code>，<code>:6</code>）</td></tr>
+          <tr><td>一句话</td><td>扫描 UDS 本地会话 + Remote Control 远程会话，返回去重后的 peer 地址列表</td></tr>
+          <tr><td>是否进 system prompt</td><td>❌ 受 feature flag <code>UDS_INBOX</code> 门控（<code>tools.ts:152</code>）；CLAUDE.md 列为"已禁用"</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>，<code>:55</code>）——纯发现，无副作用</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe() → true</code>，<code>:52</code>）</td></tr>
+          <tr><td>启用条件</td><td><code>feature('UDS_INBOX')</code> 为真才注册（<code>tools.ts:152-155</code>）</td></tr>
+          <tr><td>核心依赖</td><td><code>src/utils/udsMessaging.ts</code>、<code>src/utils/udsClient.ts</code>、<code>src/bridge/peerSessions.ts</code></td></tr>
+          <tr><td>定位互补方</td><td><code>SendMessage</code>（用发现的地址发消息）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>为什么需要它？</strong> 跨会话通信前必须知道"消息发给谁"。Claude Code 会话有两种通信通道：本地 UDS socket（同机进程间）和 Remote Control bridge（跨机远程）。ListPeers 把两个来源的活跃会话聚合，供 <code>SendMessage</code> 使用。没有它，模型无法构造有效的 <code>to</code> 地址（<code>uds:/path/to.sock</code> 或 <code>bridge:session_...</code>）。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-guan-jian-wen-jian-qing-dan">
+    <h2>二、关键文件清单</h2>
+
+    <pre><code>ListPeersTool/
+└── ListPeersTool.ts   ← 全部逻辑（136 行，单文件）</code></pre>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>文件</th><th>角色</th><th>必看行号</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>ListPeersTool.ts</code></td><td>工具主体：schema + call（三源聚合去重）+ 渲染全在这</td><td><code>buildTool:29</code>、<code>call:85</code>、三源聚合 <code>:106-130</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <blockquote class="callout">
+      <p><strong>结构特点</strong>：单文件工具，内联常量/prompt/渲染。与 SubscribePR/SuggestBackgroundPR 同构，但 call 体有真实逻辑（聚合三源），非 stub。</p>
+    </blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-tool-jie-kou-zi-duan-shi-xian-buildtool-zhu-zi-duan">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+    <h3>标识字段</h3>
+
+    <pre><code>name: LIST_PEERS_TOOL_NAME,       <span class="cmt">// "ListPeers"（内联，:6）</span>
+searchHint: <span class="str">'list peers sessions discover uds socket messaging'</span>,
+maxResultSizeChars: 50_000,       <span class="cmt">// 中等缓冲</span>
+strict: <span class="kw">true</span>,</code></pre>
+
+    <h3>模型面字段</h3>
+
+    <pre><code><span class="kw">async</span> description() { <span class="kw">return</span> <span class="str">'发现其他 Claude Code 会话以进行跨会话消息传递'</span> }
+<span class="kw">async</span> prompt()      { <span class="kw">return</span> <span class="str">`列出可以通过 SendMessage 接收消息的活动 Claude Code 会话...`</span> }
+<span class="kw">get</span> inputSchema()  { <span class="kw">return</span> <span class="fn">inputSchema</span>() }</code></pre>
+
+    <p><strong>输入 schema</strong>（<code>:8-17</code>）——极简：</p>
+
+    <pre><code>{
+  include_self?: boolean,   <span class="cmt">// 可选，是否在列表中包含当前会话，默认 false</span>
+}</code></pre>
+
+    <p><strong>输出类型</strong>（<code>:21-27</code>）：</p>
+
+    <pre><code><span class="kw">type</span> <span class="type">PeerInfo</span> = {
+  address: string,    <span class="cmt">// 通信地址，如 "uds:/path/to.sock" 或 "bridge:session_..."</span>
+  name?: string,
+  cwd?: string,
+  pid?: number,
+}
+<span class="kw">type</span> <span class="type">ListPeersOutput</span> = { peers: <span class="type">PeerInfo</span>[] }</code></pre>
+
+    <h3>行为字段</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>字段</th><th>实现</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:85</code></td><td>三源聚合 + 去重（见下节）</td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:52</code> → <code>true</code></td><td>发现操作可并发</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:55</code> → <code>true</code></td><td>纯查询</td></tr>
+          <tr><td><code>userFacingName()</code></td><td><code>:59</code> → <code>'ListPeers'</code></td><td>UI 显示名</td></tr>
+          <tr><td><code>renderToolUseMessage()</code></td><td><code>:63</code></td><td>固定显示 <code>'ListPeers'</code></td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>:67</code></td><td>格式化为 <code>Found N peer(s):\n...</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <blockquote class="callout">
+      <p><strong>缺失的字段</strong>：没有 <code>validateInput</code>、<code>checkPermissions</code>、<code>isEnabled</code>、<code>getPath</code>、<code>shouldDefer</code>。最小可用字段集。</p>
+    </blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-he-xin-zhi-xing-liu-cheng-call">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+
+    <p><code>call()</code>（<code>ListPeersTool.ts:85-135</code>）的核心是<strong>三源聚合 + 去重</strong>：</p>
+
+    <pre><code><span class="kw">async</span> call(_input, context) {
+  <span class="kw">const</span> peers: <span class="type">PeerInfo</span>[] = []
+  <span class="kw">const</span> seen = <span class="kw">new</span> <span class="type">Set</span>&lt;string&gt;()
+  <span class="kw">const</span> <span class="fn">addPeer</span> = (peer) =&gt; {           <span class="cmt">// 去重闭包</span>
+    <span class="kw">if</span> (seen.<span class="fn">has</span>(peer.address)) <span class="kw">return</span>
+    seen.<span class="fn">add</span>(peer.address)
+    peers.<span class="fn">push</span>(peer)
+  }
+
+  <span class="cmt">// 源 1：自身（可选）</span>
+  <span class="kw">const</span> udsMessaging = <span class="fn">require</span>(<span class="str">'src/utils/udsMessaging.js'</span>)
+  <span class="kw">const</span> udsClient = <span class="fn">require</span>(<span class="str">'src/utils/udsClient.js'</span>)
+  <span class="kw">const</span> bridgePeers = <span class="fn">require</span>(<span class="str">'src/bridge/peerSessions.js'</span>)
+
+  <span class="kw">const</span> messagingSocketPath = udsMessaging.<span class="fn">getUdsMessagingSocketPath</span>()
+  <span class="kw">if</span> (messagingSocketPath &amp;&amp; _input.include_self) {
+    <span class="fn">addPeer</span>({
+      address: udsMessaging.<span class="fn">formatUdsAddress</span>(messagingSocketPath),
+      name: <span class="str">'self'</span>, pid: process.pid,
+    })
+  }
+
+  <span class="cmt">// 源 2：UDS 本地对等方</span>
+  <span class="kw">for</span> (<span class="kw">const</span> peer <span class="kw">of</span> <span class="kw">await</span> udsClient.<span class="fn">listPeers</span>()) {
+    <span class="kw">if</span> (!peer.messagingSocketPath) <span class="kw">continue</span>
+    <span class="fn">addPeer</span>({
+      address: udsMessaging.<span class="fn">formatUdsAddress</span>(peer.messagingSocketPath),
+      name: peer.name ?? peer.kind, cwd: peer.cwd, pid: peer.pid,
+    })
+  }
+
+  <span class="cmt">// 源 3：Remote Control 桥接对等方</span>
+  <span class="kw">for</span> (<span class="kw">const</span> peer <span class="kw">of</span> <span class="kw">await</span> bridgePeers.<span class="fn">listBridgePeers</span>()) {
+    <span class="fn">addPeer</span>(peer)
+  }
+
+  <span class="kw">return</span> { data: { peers } }
+}</code></pre>
+
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["call(_input, ctx)\n:85"] --> B["初始化 peers[] + seen Set + addPeer 去重闭包"]
+    B --> C["require 三个模块\nudsMessaging / udsClient / bridgePeers"]
+    C --> D{"include_self &&\n有 messagingSocketPath?"}
+    D -- 是 --> E["addPeer 自身\nuds:/...  name='self'"]
+    D -- 否 --> F
+    E --> F["源2: udsClient.listPeers()\n遍历本地 UDS 对等方"]
+    F --> G["源3: bridgePeers.listBridgePeers()\n遍历远程桥接对等方"]
+    G --> H["return { data: { peers } }"]
+      </div>
+    </div>
+
+    <p><strong>关键点逐条</strong>：</p>
+
+    <ol>
+      <li><strong>去重闭包 <code>addPeer</code></strong>（<code>:91-95</code>）：用 <code>seen: Set&lt;string&gt;</code> 按 <code>address</code> 去重。三个来源可能返回相同会话（如自身既在 UDS 列表又在 bridge 列表），去重保证每个 peer 只出现一次。</li>
+      <li><strong>延迟 require</strong>（<code>:97-104</code>）：三个模块用 <code>require()</code> 而非顶层 <code>import</code>，且带 <code>eslint-disable</code> 注释。原因：这些模块（<code>udsMessaging</code>、<code>udsClient</code>、<code>peerSessions</code>）可能有重副作用或循环依赖，延迟到 <code>call()</code> 内加载避免影响启动。</li>
+      <li><strong>源 1：自身</strong>（<code>:107-116</code>）：仅当 <code>include_self</code> 为真且有 <code>messagingSocketPath</code> 时加入。地址用 <code>udsMessaging.formatUdsAddress(path)</code> 格式化为 <code>uds:/...</code>。</li>
+      <li><strong>源 2：UDS 本地对等方</strong>（<code>:118-126</code>）：<code>udsClient.listPeers()</code> 返回同机所有活跃 UDS 会话。过滤掉无 <code>messagingSocketPath</code> 的（<code>:119</code>），地址同样格式化。<code>name</code> 取 <code>peer.name ?? peer.kind</code>（回退到类型）。</li>
+      <li><strong>源 3：Remote Control 桥接对等方</strong>（<code>:128-130</code>）：<code>bridgePeers.listBridgePeers()</code> 返回远程会话，地址格式为 <code>bridge:session_...</code>。直接 <code>addPeer(peer)</code>——桥接 peer 已自带 <code>address</code>。</li>
+      <li><strong><code>mapToolResultToToolResultBlockParam</code></strong>（<code>:67-83</code>）：把 peers 格式化为人类可读文本——<code>{address} ({name}) @ {cwd}</code>，空列表返回 <code>"No peers found."</code>。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian-yu-an-quan">
+    <h2>五、权限与安全</h2>
+
+    <p>ListPeers 没有自定义 <code>checkPermissions()</code>，安全控制体现在：</p>
+
+    <ol>
+      <li><strong>feature flag 门控</strong>（<code>tools.ts:152-155</code>）：<code>feature('UDS_INBOX')</code> 为真才注册。CLAUDE.md 明确 <code>UDS_INBOX</code> 在"已禁用"列表，故默认环境下工具不存在。</li>
+      <li><strong><code>isReadOnly() → true</code></strong>：纯发现，权限管道宽松。</li>
+      <li><strong>只读 socket 列表</strong>：<code>udsClient.listPeers()</code> 和 <code>bridgePeers.listBridgePeers()</code> 只读取已注册的会话信息，不发送任何消息、不修改状态。</li>
+      <li><strong>无敏感数据泄露</strong>：返回的 <code>PeerInfo</code> 含 address/name/cwd/pid——这些是会话元数据，不含对话内容或 token。</li>
+    </ol>
+
+    <blockquote class="callout">
+      <p><strong><code>include_self</code> 默认 false</strong>：默认不包含自身——因为向自己发消息无意义，排除自身让列表更聚焦于"可通信的对方"。</p>
+    </blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-yu-qi-ta-xi-tong-gong-ju-de-guan-xi">
+    <h2>六、与其他系统/工具的关系</h2>
+
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    LP[ListPeers] -->|源1| SELF["自身 UDS socket\nudsMessaging.getUdsMessagingSocketPath"]
+    LP -->|源2| UDS["udsClient.listPeers\n本地 UDS 会话注册表"]
+    LP -->|源3| BRIDGE["bridge/peerSessions.listBridgePeers\nRemote Control 远程会话"]
+    LP -.前置.-> SM["SendMessage\n用 address 作为 to 字段"]
+    LP -.门控.-> FF["feature UDS_INBOX\ntools.ts:152\n（默认禁用）"]
+      </div>
+    </div>
+
+    <ul>
+      <li><strong>与 <code>SendMessage</code></strong>：严格的前置关系。ListPeers 发现地址，SendMessage 用地址发消息。prompt（<code>:42-49</code>）明确两种地址格式：<code>uds:/path/to.sock</code>（本地）和 <code>bridge:session_...</code>（远程）。</li>
+      <li><strong>与 UDS 消息系统</strong>：依赖 <code>src/utils/udsMessaging.ts</code>（socket 路径 + 地址格式化）和 <code>src/utils/udsClient.ts</code>（对等方枚举）。UDS 是同机进程间通信的基础设施。</li>
+      <li><strong>与 Remote Control / bridge</strong>：依赖 <code>src/bridge/peerSessions.ts</code> 的 <code>listBridgePeers()</code>。bridge 模块（<code>src/bridge/</code>）处理跨机远程会话，feature-gated by <code>BRIDGE_MODE</code>。</li>
+      <li><strong>与会话注册表</strong>：UDS 对等方来自"并发会话 PID 注册表和 UDS socket 目录"（注释 <code>:86-88</code>）——每个会话启动时注册自己的 socket 路径，ListPeers 扫描这个目录。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian-yu-she-ji-qu-she">
+    <h2>七、亮点与设计取舍</h2>
+
+    <ol>
+      <li><strong>三源聚合 + 去重</strong>（<code>:91-130</code>）：统一的 <code>addPeer</code> 闭包按 address 去重，简洁地处理多源重叠。这是发现类工具的常见模式。</li>
+      <li><strong>延迟 require 破除副作用</strong>（<code>:97-104</code>）：三个模块延迟到 <code>call()</code> 内加载，避免启动时副作用。<code>eslint-disable</code> 注释表明这是有意为之。</li>
+      <li><strong><code>include_self</code> 可选</strong>（<code>:8-12</code>）：默认排除自身（向自己发消息无意义），但保留选项——调试或自测时可能需要。</li>
+      <li><strong><code>name ?? kind</code> 回退</strong>（<code>:122</code>）：peer 名称缺失时回退到类型（kind），保证总有可读标识。</li>
+      <li><strong>地址格式统一</strong>（<code>:111,121</code>）：UDS 地址用 <code>udsMessaging.formatUdsAddress()</code> 格式化，bridge 地址自带 <code>bridge:</code> 前缀。SendMessage 只需原样使用。</li>
+      <li><strong>prompt 明确两种地址语义</strong>（<code>:45-48</code>）：<code>uds:</code> 和 <code>bridge:</code> 前缀让模型能区分本地/远程，选择合适的通信预期。</li>
+      <li><strong><code>strict: true</code></strong>：严格模式，确保未来扩展时模型不传多余参数。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-yuan-ma-dao-hang-shu-qian-su-cha">
+    <h2>八、源码导航（书签速查）</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>想看什么</th><th>去哪里</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>工具名常量（内联）</td><td><code>ListPeersTool/ListPeersTool.ts:6</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>ListPeersTool.ts:29-136</code></td></tr>
+          <tr><td>输入 schema</td><td><code>ListPeersTool.ts:8-17</code></td></tr>
+          <tr><td>PeerInfo 类型</td><td><code>ListPeersTool.ts:21-27</code></td></tr>
+          <tr><td><code>call()</code> 三源聚合</td><td><code>ListPeersTool.ts:85-135</code></td></tr>
+          <tr><td>去重闭包 addPeer</td><td><code>ListPeersTool.ts:91-95</code></td></tr>
+          <tr><td>UDS 对等方枚举</td><td><code>ListPeersTool.ts:118-126</code></td></tr>
+          <tr><td>bridge 对等方枚举</td><td><code>ListPeersTool.ts:128-130</code></td></tr>
+          <tr><td>结果文本格式化</td><td><code>ListPeersTool.ts:67-83</code></td></tr>
+          <tr><td>feature flag 注册</td><td><code>src/tools.ts:152-155</code></td></tr>
+          <tr><td>UDS 底层</td><td><code>src/utils/udsMessaging.ts</code>、<code>src/utils/udsClient.ts</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-xue-xi-jian-yi-yu-yan-zheng-qing-dan">
+    <h2>九、学习建议与验证清单</h2>
+
+    <p><strong>怎么读这章</strong>：先看"一、定位"理解 ListPeers 是 SendMessage 的前置发现，再跳到"四、call()"的三源聚合流程图，最后对照"六、关系"理解 UDS 与 bridge 两种通信通道。</p>
+
+    <p><strong>验证清单（读完自测）</strong>：</p>
+
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 ListPeers 的三个来源（自身、UDS 本地、bridge 远程）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 feature flag 门控（<code>UDS_INBOX</code>，默认禁用）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释去重闭包 <code>addPeer</code> 的作用（按 address 去重，防多源重叠）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出两种地址格式（<code>uds:/path/to.sock</code> 和 <code>bridge:session_...</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>include_self</code> 默认 false 的原因（向自己发消息无意义）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出为何用延迟 require 而非顶层 import（避免启动副作用/循环依赖）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 ListPeers 与 SendMessage 的前置关系</span></li>
+    </ul>
+
+    <p><strong>配合动作</strong>：</p>
+
+    <ol>
+      <li>设置 <code>FEATURE_UDS_INBOX=1</code> 运行 dev 模式，观察工具出现</li>
+      <li>启动两个 Claude Code 会话，在一个里调用 ListPeers，观察是否发现另一个</li>
+      <li>读 <code>src/utils/udsClient.ts</code> 的 <code>listPeers()</code>，理解 UDS socket 目录扫描</li>
+      <li>对比 <code>SendMessage</code> 工具，验证发现的 address 能作为 <code>to</code> 字段使用</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

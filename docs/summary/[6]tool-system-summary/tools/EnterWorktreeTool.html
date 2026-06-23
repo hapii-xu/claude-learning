@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EnterWorktreeTool 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    section { margin-top: 56px; }
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: var(--orange); }
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>EnterWorktreeTool 工具详解</h1>
+  <p>创建一个隔离的 git worktree 并把当前会话切换进去——worktree 工作流的"进入"半边，与 ExitWorktree 成对使用</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei-yi">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian-qing-dan">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou-zi-duan-buildtool-zi-duan">三、Tool 接口字段实现</a></li>
+    <li><a href="#si-he-xin-zhi-xing-liu-cheng-call">四、核心执行流程：<code>call()</code></a></li>
+    <li><a href="#wu-quan-xian-yu-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-yu-qi-xi-tong-gong-ju-de-guan-xi">六、与其他系统/工具的关系</a></li>
+    <li><a href="#qi-liang-dian-yu-she-ji-qu-she">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma-dao-hang">八、源码导航</a></li>
+    <li><a href="#jiu-xue-xi-jian-yi-yu-yan-zheng-qing-dan">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p>这是工具系统逐个拆解系列的一篇。<code>EnterWorktree</code> 是一个<strong>中等复杂度</strong>的会话级状态变更工具：它不是简单地跑一条 <code>git worktree add</code>，而是会重写会话的工作目录、清空依赖 CWD 的各类缓存、并把"当前处于哪个 worktree"记到会话存储里。它和 <code>ExitWorktree</code> 是一对——前者负责"进入隔离环境"，后者负责"干净地退出"。读完这篇你会理解 Claude Code 是怎么把 git worktree 包装成"会话级沙箱"的。</p></blockquote>
+
+  <hr class="divider">
+
+  <hr class="divider">
+
+  <section id="yi-gong-ju-ding-wei-yi">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>EnterWorktree</code> = 创建隔离 worktree 并把会话切进去的入口工具。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>EnterWorktree</code>（常量 <code>ENTER_WORKTREE_TOOL_NAME</code>，<code>constants.ts:1</code>）</td></tr>
+          <tr><td>一句话</td><td>用户显式要求"在 worktree 里工作"时，创建 <code>.claude/worktrees/&lt;name&gt;</code> 并切换会话工作目录</td></tr>
+          <tr><td>是否进 system prompt</td><td>❌ <strong>不在</strong> <code>CORE_TOOLS</code> 白名单（延迟工具，<code>shouldDefer: true</code>）</td></tr>
+          <tr><td>注册门控</td><td><code>isWorktreeModeEnabled()</code>（<code>src/tools.ts:254</code>）—— 目前在 <code>worktreeModeEnabled.ts:9</code> 里<strong>无条件返回 <code>true</code></strong>，对所有用户启用</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>有副作用</strong>（创建目录、改动会话全局 CWD），但非破坏性</td></tr>
+          <tr><td>是否可并发</td><td>未声明（默认非并发安全）—— 因为它会改 <code>process.cwd()</code> 和会话全局状态</td></tr>
+          <tr><td>核心依赖</td><td><code>src/utils/worktree.ts</code> 的 <code>createWorktreeForSession</code></td></tr>
+          <tr><td>配对工具</td><td><code>ExitWorktree</code>（退出，keep 或 remove）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> 当用户说"开个 worktree 干活"时，模型不应自己拼接 <code>git worktree add</code> 命令（容易出错、还忘记同步会话状态）。<code>EnterWorktree</code> 一次性完成"创建 worktree + 切目录 + 清缓存 + 记状态"，保证后续所有工具（Read/Bash/Edit）自动落到新 worktree 里。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-guan-jian-wen-jian-qing-dan">
+    <h2>二、关键文件清单</h2>
+    <pre><code>EnterWorktreeTool/
+├── EnterWorktreeTool.ts   ← buildTool({...}) 主体（133 行），全部逻辑都在这
+├── prompt.ts              ← getEnterWorktreeToolPrompt()：何时用 / 何时不用 / 参数说明
+├── UI.tsx                 ← Ink 渲染（renderToolUseMessage / renderToolResultMessage）
+└── constants.ts           ← ENTER_WORKTREE_TOOL_NAME = 'EnterWorktree'</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>EnterWorktreeTool.ts</code></td><td>工具主体：schema + call() + 结果序列化全在这</td><td><code>buildTool:52</code>、<code>inputSchema:23</code>、<code>call:77</code>、<code>mapToolResultToToolResultBlockParam:125</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>进 system prompt 的使用指南（中英混合）</td><td><code>getEnterWorktreeToolPrompt:1</code></td></tr>
+          <tr><td><code>UI.tsx</code></td><td>终端渲染：调用时显示"正在创建 worktree…"，结果展示分支与路径</td><td><code>renderToolUseMessage:8</code>、<code>renderToolResultMessage:12</code></td></tr>
+          <tr><td><code>constants.ts</code></td><td>工具名常量</td><td><code>ENTER_WORKTREE_TOOL_NAME:1</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：典型的"单文件主体"型工具——4 个文件、总共约 130 行。复杂度不在工具本身，而在它调用的 <code>src/utils/worktree.ts</code>（1518 行，承载真正的 worktree 创建/hook 分发/tmux 挂接逻辑）。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-tool-jie-kou-zi-duan-buildtool-zi-duan">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre><code>name: ENTER_WORKTREE_TOOL_NAME,                       // "EnterWorktree"
+searchHint: 'create an isolated git worktree and switch into it',
+maxResultSizeChars: 100_000,
+shouldDefer: true,                                    // 延迟工具：非核心，按需发现</code></pre>
+    <blockquote class="callout"><p><strong><code>shouldDefer: true</code></strong>：虽然 <code>isWorktreeModeEnabled()</code> 无条件注册了它，但它不在 <code>CORE_TOOLS</code>，因此默认走延迟发现管道（TF-IDF 索引命中"worktree"语义时才进 prompt）。<code>searchHint</code> 用英文写就是为了喂给 TF-IDF 索引。</p></blockquote>
+    <h3>模型面字段</h3>
+    <pre><code>async description() { return '创建一个隔离的 worktree…' }   // → API tool schema 的描述
+async prompt()      { return getEnterWorktreeToolPrompt() } // → system prompt 片段（命中后注入）
+get inputSchema()   { return inputSchema() }               // Zod schema（getter，懒加载）
+get outputSchema()  { return outputSchema() }
+userFacingName()    { return '正在创建 worktree' }</code></pre>
+    <p><strong>输入 schema</strong>（<code>EnterWorktreeTool.ts:23-39</code>，<code>lazySchema</code> + <code>z.strictObject</code>）：</p>
+    <pre><code>{
+  name?: string   // 可选，worktree 名字；校验器 validateWorktreeSlug 限制字符集与 64 字符上限
+}</code></pre>
+    <p><strong>输出 schema</strong>（<code>:42-49</code>）：</p>
+    <pre><code>{
+  worktreePath:   string,           // 新 worktree 的绝对路径
+  worktreeBranch: string?,          // 新建的分支名（hook 模式可能没有）
+  message:        string,           // 给模型看的总结
+}</code></pre>
+    <h3>行为字段</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:77</code></td><td>核心逻辑（见下节）</td></tr>
+          <tr><td><code>toAutoClassifierInput(input)</code></td><td><code>:72</code></td><td>返回 <code>input.name ?? ''</code>——自动审批分类器的输入</td></tr>
+          <tr><td><code>renderToolUseMessage</code> / <code>renderToolResultMessage</code></td><td>来自 <code>UI.tsx</code></td><td>终端展示</td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>:125</code></td><td>只把 <code>message</code> 字段塞进 <code>tool_result</code>——路径/分支走 UI 渲染</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>注意缺失</strong>：没有 <code>validateInput</code>、没有 <code>checkPermissions</code>、没有 <code>isReadOnly</code>/<code>isConcurrencySafe</code>。这是有意为之——<code>EnterWorktree</code> 的"权限"是模型自律（prompt 里写明"仅在用户显式说 worktree 时才用"），加上运行时的 <code>getCurrentWorktreeSession()</code> 幂等守卫。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-he-xin-zhi-xing-liu-cheng-call">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code> 处于 7 步流水线的<strong>第 6 步</strong>。EnterWorktreeTool 的 <code>call()</code>（<code>:77-124</code>）：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["call(input)\n:77"] --> B{"getCurrentWorktreeSession()?\n:84"}
+    B -- "已在 worktree" --> X["throw 'Already in a worktree session'"]
+    B -- "否" --> C["findCanonicalGitRoot(getCwd())\n:89"]
+    C --> D{"mainRepoRoot !== cwd?"}
+    D -- "是" --> E["process.chdir + setCwd 回主仓库根\n:91-92"]
+    D -- "否" --> F["slug = input.name ?? getPlanSlug()\n:95"]
+    E --> F
+    F --> G["createWorktreeForSession(sessionId, slug)\n:97"]
+    G --> H["chdir/setCwd/setOriginalCwd 到 worktree\n:99-101"]
+    H --> I["saveWorktreeState(session)\n:102"]
+    I --> J["clearSystemPromptSections()\nclearMemoryFileCaches()\ngetPlansDirectory.cache.clear()\n:104-107"]
+    J --> K["logEvent('tengu_worktree_created')\n:109"]
+    K --> L["return { data: { worktreePath, worktreeBranch, message } }"]
+      </div>
+    </div>
+    <p><strong>关键点逐条</strong>：</p>
+    <ol>
+      <li><strong>幂等守卫</strong>（<code>:84</code>）：<code>getCurrentWorktreeSession()</code> 来自 <code>worktree.ts:158</code>，返回当前会话的 worktree 记录。如果非空说明已经进过 worktree，直接 <code>throw</code>——防止嵌套创建。</li>
+      <li><strong>先回到主仓库根</strong>（<code>:89-93</code>）：<code>findCanonicalGitRoot()</code> 解析 cwd 的真实 git 根。如果当前 cwd 不在根上（比如用户先 cd 进了子目录），就 <code>process.chdir</code> + <code>setCwd</code> 回到根。<strong>原因</strong>：<code>git worktree add</code> 必须从主仓库执行，即使你已经在某个 worktree 内部。</li>
+      <li><strong>名字回退</strong>（<code>:95</code>）：<code>input.name ?? getPlanSlug()</code>——用户没给名字就用 plan 系统生成的随机 slug。<code>validateWorktreeSlug</code>（<code>worktree.ts:66</code>）在 schema 层就把非法字符挡掉了。</li>
+      <li><strong>会话状态重写</strong>（<code>:99-101</code>）：三连 <code>process.chdir</code> → <code>setCwd</code> → <code>setOriginalCwd(getCwd())</code>。<strong><code>setOriginalCwd</code> 是关键</strong>——它把"原始目录"记成 worktree 路径，这样 <code>ExitWorktree</code> 才能知道从哪儿来回哪儿去（详见 <code>state.ts</code> 的 <code>getProjectRoot</code> 注释）。</li>
+      <li><strong>持久化 + 清缓存</strong>（<code>:102-107</code>）：<code>saveWorktreeState</code> 写会话存储；然后清三类缓存—— - <code>clearSystemPromptSections()</code>：让 <code>env_info_simple</code> 用新 CWD 重算 - <code>clearMemoryFileCaches()</code>：CLAUDE.md 等记忆文件按 CWD 分层，必须重读 - <code>getPlansDirectory.cache.clear?.()</code>：plans 目录也依赖 CWD</li>
+      <li><strong>埋点</strong>（<code>:109</code>）：<code>tengu_worktree_created</code> 带 <code>mid_session: true</code>——区分"会话中途进入"与"<code>--worktree</code> 启动时进入"。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian-yu-an-quan">
+    <h2>五、权限与安全</h2>
+    <p>EnterWorktreeTool <strong>没有 <code>validateInput</code> 也没有 <code>checkPermissions</code></strong>——它把安全寄托在三道防线上：</p>
+    <h3>1. 模型自律（prompt 约束）</h3>
+    <p><code>prompt.ts:2-12</code> 用强语气限制调用时机：</p>
+    <blockquote class="callout"><p>Use this tool ONLY when the user explicitly asks to work in a worktree. Never use this tool unless the user explicitly mentions "worktree".</p></blockquote>
+    <p>明确禁止在"用户要切分支""修 bug"等场景误用——这类需求该走 <code>git</code> 命令。</p>
+    <h3>2. 幂等守卫（运行时）</h3>
+    <p><code>call()</code> 第一行（<code>:84</code>）检查 <code>getCurrentWorktreeSession()</code>，已存在 worktree 会话就直接抛错。这是<strong>唯一的硬性运行时门控</strong>。</p>
+    <h3>3. 前置条件声明（prompt）</h3>
+    <p><code>prompt.ts:16-17</code> 声明：</p>
+    <ul>
+      <li>必须在 git 仓库里，<strong>或</strong>配置了 <code>WorktreeCreate/WorktreeRemove</code> hooks</li>
+      <li>不能已经处于 worktree 中</li>
+    </ul>
+    <p>真正的 git 仓库校验、hook 分发都在 <code>createWorktreeForSession</code>（<code>worktree.ts:702</code>）内部——git 仓库存在性、分支可用性、<code>.claude/worktrees/</code> 目录创建都在那里。</p>
+    <blockquote class="callout"><p><strong>设计取舍</strong>：把权限/校验下沉到底层 <code>worktree.ts</code> 而非工具层，是因为 <code>--worktree</code> 启动路径（<code>cli.tsx:388</code> / <code>main.tsx:1642</code>）也复用同一套逻辑。工具层只负责"会话级编排"。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-yu-qi-xi-tong-gong-ju-de-guan-xi">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    ENTER -->|创建逻辑| WT["src/utils/worktree.ts\ncreateWorktreeForSession:702"]
+    ENTER -->|会话状态| STATE["src/bootstrap/state.ts\nsetCwd / setOriginalCwd / getSessionId"]
+    ENTER -->|持久化| SS["src/utils/sessionStorage.ts\nsaveWorktreeState"]
+    ENTER -->|清缓存| SYS["clearSystemPromptSections\nclearMemoryFileCaches"]
+    ENTER -->|git 根| GIT["src/utils/git.ts\nfindCanonicalGitRoot"]
+    ENTER -.配对.-> EXIT["ExitWorktreeTool\n唯一合法的退出路径"]
+    ENTER -.启动复用.-> CLI["src/entrypoints/cli.tsx:388\n--worktree 启动分支"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 <code>ExitWorktree</code> 的关系</strong>：这是<strong>强配对</strong>。<code>ExitWorktree</code> 的 <code>validateInput</code> 用 <code>getCurrentWorktreeSession()</code> 做"是否在 worktree 里"的判据——只有 <code>EnterWorktree</code>（更准确地说是 <code>createWorktreeForSession</code>）会设置这个值。手动 <code>git worktree add</code> 不会触发它，因此 <code>ExitWorktree</code> 对手动 worktree 是空操作。</li>
+      <li><strong>与 <code>--worktree</code> 启动的关系</strong>：CLI 启动时的 <code>--worktree</code> 分支（<code>cli.tsx:388</code>）走的是同一套底层函数，但路径不同——启动时由 <code>setup.ts</code> 直接 <code>setCwd</code> + <code>setProjectRoot</code>，而工具走的是会话中途的编排逻辑。</li>
+      <li><strong>与会话状态系统</strong>：直接写 <code>setCwd</code> / <code>setOriginalCwd</code>，这是会话全局可变状态。<code>setOriginalCwd</code> 的值会被 <code>ExitWorktree</code> 读出来作为"回去的路"。</li>
+      <li><strong>与缓存系统</strong>：三类 CWD 相关缓存都要清，否则后续工具会读到旧目录的 CLAUDE.md / plans。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian-yu-she-ji-qu-she">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong><code>shouldDefer: true</code> + 无条件注册的张力</strong>：<code>isWorktreeModeEnabled()</code> 无条件返回 <code>true</code>（<code>worktreeModeEnabled.ts:9</code>，注释提到早期 GrowthBook 门控导致首启缓存未就绪时 <code>--worktree</code> 被静默吞掉的 bug #27044），所以工具一定被注册；但仍标记 <code>shouldDefer</code>，让它在不需要时不占 prompt token。</li>
+      <li><strong><code>setOriginalCwd(worktreePath)</code> 的反直觉设计</strong>：进入时把"原始目录"记成 worktree 自己的路径——这是为了让 <code>ExitWorktree</code> 能区分"会话中途进入"与"<code>--worktree</code> 启动"两种场景（详见 <code>ExitWorktreeTool.ts:244-251</code> 长注释）。</li>
+      <li><strong>缓存清理是进入的一部分</strong>：不清 <code>clearSystemPromptSections</code> / <code>clearMemoryFileCaches</code>，模型下一轮就会基于旧 CWD 推理。把缓存失效放进 <code>call()</code> 而非依赖调用方，是健壮性设计。</li>
+      <li><strong>权限下沉到 <code>worktree.ts</code></strong>：工具层没有 <code>checkPermissions</code>，看似"裸奔"，实则因为底层 <code>createWorktreeForSession</code> 已经处理了 git 仓库校验、hook 分发、tmux 挂接——工具层加一道权限只会重复。</li>
+      <li><strong>prompt 的强语气</strong>：用"ONLY when explicitly asks""Never use unless explicitly mentions"——这是用 prompt 约束模型行为，而非运行时拦截。代价是模型偶尔会误判，但收益是体验顺滑（不需要每次确认）。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-yuan-ma-dao-hang">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>EnterWorktreeTool/constants.ts:1</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>EnterWorktreeTool.ts:52-132</code></td></tr>
+          <tr><td>输入/输出 schema</td><td><code>EnterWorktreeTool.ts:23-50</code></td></tr>
+          <tr><td><code>call()</code> 核心逻辑</td><td><code>EnterWorktreeTool.ts:77-124</code></td></tr>
+          <tr><td>幂等守卫</td><td><code>EnterWorktreeTool.ts:84</code></td></tr>
+          <tr><td>会话状态重写</td><td><code>EnterWorktreeTool.ts:99-101</code></td></tr>
+          <tr><td>缓存清理</td><td><code>EnterWorktreeTool.ts:104-107</code></td></tr>
+          <tr><td>进 prompt 的使用指南</td><td><code>prompt.ts:1-30</code></td></tr>
+          <tr><td>注册门控</td><td><code>src/tools.ts:254</code>（<code>isWorktreeModeEnabled()</code>）</td></tr>
+          <tr><td>门控实现</td><td><code>src/utils/worktreeModeEnabled.ts:9</code></td></tr>
+          <tr><td>底层创建逻辑</td><td><code>src/utils/worktree.ts:702</code>（<code>createWorktreeForSession</code>）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-xue-xi-jian-yi-yu-yan-zheng-qing-dan">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先看"一、工具定位"理解它为什么存在，再看"四、call()"理解它做了什么会话级副作用，最后对照"六、关系图"理解它和 <code>ExitWorktree</code> 的强配对。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出为什么 <code>shouldDefer: true</code> 但工具仍然一定被注册（<code>isWorktreeModeEnabled</code> 无条件 true）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>call()</code> 第一行为什么要先查 <code>getCurrentWorktreeSession()</code>（幂等守卫，防嵌套）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>setOriginalCwd(worktreePath)</code> 看似反直觉但服务于 <code>ExitWorktree</code> 的区分逻辑</span></li>
+      <li><input type="checkbox" disabled> <span>能列出 <code>call()</code> 清空的三类缓存（system prompt sections / memory files / plans directory）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出为什么没有 <code>checkPermissions</code>（权限下沉到 <code>worktree.ts</code> + prompt 自律）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 prompt 里"ONLY when user explicitly asks"的强语气约束作用</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>在 git 仓库里让 Claude <code>EnterWorktree</code>，观察 <code>.claude/worktrees/&lt;name&gt;</code> 是否被创建、cwd 是否切换</li>
+      <li>连续调用两次 <code>EnterWorktree</code>，验证第二次抛 "Already in a worktree session"</li>
+      <li>调用后让 Claude <code>Read</code> 一个 CLAUDE.md，确认读到的是 worktree 内的版本（验证缓存清理生效）</li>
+      <li>对照阅读 <code>ExitWorktreeTool.ts:174-224</code> 的 <code>validateInput</code>，理解配对工具如何识别"这是 EnterWorktree 创建的"</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

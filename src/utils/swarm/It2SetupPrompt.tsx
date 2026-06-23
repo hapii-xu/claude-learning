@@ -3,7 +3,7 @@ import { type OptionWithDescription, Select } from '../../components/CustomSelec
 import { Pane } from '@anthropic/ink';
 import { Spinner } from '../../components/Spinner.js';
 import { useExitOnCtrlCDWithKeybindings } from '../../hooks/useExitOnCtrlCDWithKeybindings.js';
-// eslint-disable-next-line custom-rules/prefer-use-keybindings -- enter to proceed through setup steps
+// eslint-disable-next-line custom-rules/prefer-use-keybindings -- 按回车键继续设置步骤
 import { Box, Text, useInput } from '@anthropic/ink';
 import { useKeybinding } from '../../keybindings/useKeybinding.js';
 import {
@@ -37,7 +37,7 @@ export function It2SetupPrompt({ onDone, tmuxAvailable }: Props): React.ReactNod
   const [error, setError] = useState<string | null>(null);
   const exitState = useExitOnCtrlCDWithKeybindings();
 
-  // Detect package manager on mount
+  // 组件挂载时检测包管理器
   useEffect(() => {
     void detectPythonPackageManager().then(pm => {
       setPackageManager(pm);
@@ -53,7 +53,7 @@ export function It2SetupPrompt({ onDone, tmuxAvailable }: Props): React.ReactNod
     isActive: step !== 'installing' && step !== 'verifying',
   });
 
-  // Handle keyboard input for verification step
+  // 处理验证步骤的键盘输入
   useInput((_input, key) => {
     if (step === 'api-instructions' && key.return) {
       setStep('verifying');
@@ -70,7 +70,7 @@ export function It2SetupPrompt({ onDone, tmuxAvailable }: Props): React.ReactNod
     }
   });
 
-  // Handle installation
+  // 处理安装流程
   async function handleInstall(): Promise<void> {
     if (!packageManager) {
       setError('No Python package manager found (uvx, pipx, or pip)');
@@ -82,7 +82,7 @@ export function It2SetupPrompt({ onDone, tmuxAvailable }: Props): React.ReactNod
     const result = await installIt2(packageManager);
 
     if (result.success) {
-      // Show Python API instructions
+      // 显示 Python API 使用说明
       setStep('api-instructions');
     } else {
       setError(result.error || 'Installation failed');
@@ -90,13 +90,13 @@ export function It2SetupPrompt({ onDone, tmuxAvailable }: Props): React.ReactNod
     }
   }
 
-  // Handle using tmux instead
+  // 处理改用 tmux 的情况
   function handleUseTmux(): void {
     setPreferTmuxOverIterm2(true);
     onDone('use-tmux');
   }
 
-  // Render based on current step
+  // 根据当前步骤渲染内容
   const renderContent = (): React.ReactNode => {
     switch (step) {
       case 'initial':

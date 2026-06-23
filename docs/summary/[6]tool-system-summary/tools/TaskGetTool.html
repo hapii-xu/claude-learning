@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskGet 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    .kw  { color: #7c9bff; font-weight: 600; }
+    .str { color: #6cc77a; }
+    .fn  { color: #f0906a; }
+    .cmt { color: #6e6a62; font-style: italic; }
+    .type{ color: #e0a020; }
+    .num { color: #c792ea; }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Additional styles ────────────────────────────────── */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>TaskGet 工具详解</h1>
+  <p>按 ID 获取单个任务的完整详情——Task 子系统的只读"SELECT BY id"，与 TaskList 的摘要面互补</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou">三、Tool 接口字段实现</a></li>
+    <li><a href="#si-call-liu-cheng">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-xi-tong-guan-xi">六、与其他系统/工具的关系</a></li>
+    <li><a href="#qi-liang-dian">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma">八、源码导航</a></li>
+    <li><a href="#jiu-xuexi">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+<blockquote class="callout"><p>这是 Task 子系统系列的第四篇。<code>TaskGet</code>（129 行）是 TaskList 的"详情面"搭档：给它一个 <code>taskId</code>，返回该任务的完整字段（含 description、blocks、blockedBy）。它和 TaskList 共享只读语义，但一个给摘要、一个给详情，刻意分离以控制 context 占用。</p></blockquote>
+
+<hr class="divider">
+
+<section id="yi-gong-ju-ding-wei">
+<h2>一、工具定位（一句话总结）</h2>
+<p><strong><code>TaskGet</code> = 按 taskId 读取单个任务的全部字段（含 description 和双向依赖）。</strong></p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>维度</th><th>值</th></tr></thead>
+    <tbody>
+      <tr><td>工具名</td><td><code>TaskGet</code>（常量 <code>TASK_GET_TOOL_NAME</code>，<code>constants.ts:1</code>）</td></tr>
+      <tr><td>一句话</td><td>输入 taskId，返回该任务的完整详情（不存在则 task=null）</td></tr>
+      <tr><td>是否进 system prompt</td><td>⚠️ 条件注册——<code>isTodoV2Enabled()</code>（<code>tools.ts:247-249</code>）；在 <code>CORE_TOOLS</code>（<code>constants/tools.ts:153</code>）</td></tr>
+      <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>，<code>:64</code>）</td></tr>
+      <tr><td>是否可并发</td><td>✅ <code>true</code>（<code>:61</code>）</td></tr>
+      <tr><td>核心依赖</td><td><code>tasks.ts</code> 的 <code>getTask()</code></td></tr>
+      <tr><td>协作方</td><td><code>TaskList</code>（摘要面）、<code>TaskUpdate</code>（改前读最新态）</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><strong>为什么需要它？</strong> TaskList 只给摘要（省 context），但模型在真正开始干活前需要完整的 description、要确认 blocks/blockedBy 全貌。TaskGet 提供这个"放大镜"。TaskUpdate 的 prompt（<code>prompt.ts:49</code>）明确要求"更新前用 TaskGet 读最新状态"——多 agent 并发下任务可能已被他人改过。</p>
+</section>
+
+<hr class="divider">
+
+<section id="er-guan-jian-wen-jian">
+<h2>二、关键文件清单</h2>
+<pre><code>TaskGetTool/
+├── TaskGetTool.ts   ← 主体（129 行）
+├── prompt.ts        ← DESCRIPTION + PROMPT（英文使用指南）
+└── constants.ts     ← TASK_GET_TOOL_NAME = 'TaskGet'</code></pre>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+    <tbody>
+      <tr><td><code>TaskGetTool.ts</code></td><td>主体</td><td><code>buildTool:38</code>、<code>call:73</code>、<code>mapToolResultToToolResultBlockParam:99</code></td></tr>
+      <tr><td><code>prompt.ts</code></td><td>描述 + 英文 prompt</td><td><code>DESCRIPTION:1</code>、<code>PROMPT:3-24</code></td></tr>
+      <tr><td><code>constants.ts</code></td><td>工具名</td><td><code>:1</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p><strong>结构特点</strong>：三件套，无 UI.tsx。是四个 TodoV2 工具里 prompt 唯一用纯英文静态字符串（<code>PROMPT</code>）而非 <code>getPrompt()</code> 函数的——因为它没有 teammate 分支需要动态拼装。</p></blockquote>
+</section>
+
+<hr class="divider">
+
+<section id="san-tool-jie-kou">
+<h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+<h3>标识字段</h3>
+<pre><code>name: TASK_GET_TOOL_NAME,
+searchHint: '按 ID 获取任务',
+shouldDefer: true,
+isEnabled() { return isTodoV2Enabled() },   // :58
+isConcurrencySafe() { return true },        // :61
+isReadOnly() { return true },               // :64</code></pre>
+
+<h3>模型面字段</h3>
+<pre><code>async description() { return DESCRIPTION },
+async prompt() { return PROMPT },   // 静态字符串，非函数
+get inputSchema() { return inputSchema() },</code></pre>
+<p><strong>输入 schema</strong>（<code>:13-17</code>）：</p>
+<pre><code>{ taskId: string }   // 必填</code></pre>
+<p><strong>输出 schema</strong>（<code>:20-33</code>）：</p>
+<pre><code>{
+  task: {
+    id, subject, description, status,
+    blocks: string[],     // 我阻塞了谁
+    blockedBy: string[],  // 谁阻塞了我
+  } | null   // 不存在时为 null
+}</code></pre>
+<blockquote class="callout"><p>对比 TaskList 的输出：TaskGet <strong>多了 description 和 blocks</strong>，<strong>没有 owner</strong>。这是因为详情查询关心任务内容与完整依赖图，而 owner 是摘要信息（List 已提供）。</p></blockquote>
+
+<h3>行为字段</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>call()</code></td><td><code>:73</code></td><td>核心（见下节）</td></tr>
+      <tr><td><code>toAutoClassifierInput()</code></td><td><code>:67</code></td><td>返回 <code>input.taskId</code> 供自动审批分类</td></tr>
+      <tr><td><code>isReadOnly()</code></td><td><code>:64</code> → <code>true</code></td><td>只读</td></tr>
+      <tr><td><code>renderToolUseMessage()</code></td><td><code>:70</code> → <code>null</code></td><td>不显示调用摘要</td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="si-call-liu-cheng">
+<h2>四、核心执行流程：<code>call()</code></h2>
+<p><code>call()</code>（<code>:73-98</code>）是最直白的一个：读 + 映射 + 返回。</p>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart LR
+    A["call({taskId})\n:73"] --> B["getTask(listId, taskId)\n:76 读 JSON"]
+    B --> C{task 存在?}
+    C -->|否| D["return {data:{task:null}}\n:79"]
+    C -->|是| E["映射 6 个字段\n:88-95"]
+    E --> F["return {data:{task:{...}}}\n:86"]
+  </div>
+</div>
+<p><strong>关键点</strong>：</p>
+<ol>
+  <li><strong>不存在返回 null 而非报错</strong>（<code>:78-84</code>）：<code>task: null</code> 是合法输出。<code>mapToolResultToToolResultBlockParam</code>（<code>:101-106</code>）把它翻成"未找到任务"。这是软处理——和 TaskUpdate 的"任务不存在软失败"哲学一致，避免良性错误打断流程。</li>
+  <li><strong>显式字段映射</strong>（<code>:88-95</code>）：不直接返回 <code>getTask</code> 的原始对象，而是逐字段挑选 <code>{id, subject, description, status, blocks, blockedBy}</code>。这过滤掉了磁盘上的 <code>activeForm</code>、<code>metadata</code> 等字段——它们对"开始干活前的需求理解"不是必需的，且 metadata 可能含敏感/内部数据。</li>
+  <li><strong>返回双向依赖</strong>（<code>:93-94</code>）：同时给 <code>blocks</code> 和 <code>blockedBy</code>。这让模型一次性看清"我阻塞了谁、谁阻塞了我"的完整依赖图（TaskList 只给单向 blockedBy）。</li>
+</ol>
+<p><strong><code>mapToolResultToToolResultBlockParam</code></strong>（<code>:99-127</code>）：多行渲染——标题行、状态行、描述行，条件追加"被阻塞于"和"阻塞"行。空任务返回"未找到任务"。</p>
+</section>
+
+<hr class="divider">
+
+<section id="wu-quan-xian-an-quan">
+<h2>五、权限与安全</h2>
+<p>纯只读，<strong>无 <code>checkPermissions</code> / <code>validateInput</code></strong>。</p>
+<ul>
+  <li><strong>只读单文件</strong>：<code>getTask</code>（<code>tasks.ts:310</code>）只 <code>readFile</code> 一个 JSON。</li>
+  <li><strong>字段白名单</strong>：call 里显式挑选 6 个字段返回，磁盘上的 metadata 等不暴露给模型——这是<strong>数据最小化</strong>原则。</li>
+  <li><strong>不存在的 taskId 软处理</strong>：返回 null 而非抛错，配合"未找到任务"文案。</li>
+</ul>
+</section>
+
+<hr class="divider">
+
+<section id="liu-xi-tong-guan-xi">
+<h2>六、与其他系统/工具的关系</h2>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    TG["TaskGet"] -->|读| STORE["tasks.ts getTask"]
+    TG -.详情/摘要互补.-> TL["TaskList 摘要面"]
+    TG -.被 TaskUpdate prompt 要求.-> TU["TaskUpdate 改前读最新态"]
+    TG -.被 TaskCreate 产生.-> TC["TaskCreate"]
+  </div>
+</div>
+<ul>
+  <li><strong>与 TaskList 的分工</strong>：List 给摘要（多任务、省 context），Get 给详情（单任务、完整字段）。prompt（<code>prompt.ts:23</code>）"用 TaskList 看摘要"互相指引。这是典型的"列表页 + 详情页"模式。</li>
+  <li><strong>与 TaskUpdate 的协作</strong>：TaskUpdate 的 prompt（<code>TaskUpdateTool/prompt.ts:49</code>）明确要求"更新前用 TaskGet 读最新状态"。多 agent 并发下，TaskGet 是避免"基于过时状态修改"的第一道防线（底层文件锁是第二道）。</li>
+  <li><strong>与任务面板 UI</strong>：面板订阅 <code>tasksUpdated</code> 信号实时刷新，TaskGet 工具是给模型用的按需查询入口，两者消费者不同。</li>
+</ul>
+</section>
+
+<hr class="divider">
+
+<section id="qi-liang-dian">
+<h2>七、亮点与设计取舍</h2>
+<ol>
+  <li><strong>静态 PROMPT 而非 getPrompt()</strong>（<code>:46</code>）：四个 TodoV2 工具里唯一不用函数的。因为 TaskGet 没有 teammate/swarm 分支需要动态拼装——它对所有上下文行为一致。</li>
+  <li><strong>字段白名单映射</strong>（<code>:88-95</code>）：不透传磁盘原始对象，显式挑 6 个字段。过滤掉 metadata 等可能敏感的字段——数据最小化。</li>
+  <li><strong>null 而非报错</strong>（<code>:78-84</code>）：不存在的任务返回 <code>task: null</code>，软处理。和 TaskUpdate 的软失败哲学一致，避免良性错误打断并发工具链。</li>
+  <li><strong>双向依赖 vs TaskList 单向</strong>：Get 给 blocks+blockedBy（完整图），List 只给 blockedBy（认领决策够用）。按场景裁剪输出。</li>
+  <li><strong><code>isReadOnly: true</code></strong>：和 TaskList 一样标只读，参与只读并发优化。</li>
+</ol>
+</section>
+
+<hr class="divider">
+
+<section id="ba-yuan-ma">
+<h2>八、源码导航（书签速查）</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+    <tbody>
+      <tr><td>工具名常量</td><td><code>TaskGetTool/constants.ts:1</code></td></tr>
+      <tr><td>描述 + 英文 prompt</td><td><code>TaskGetTool/prompt.ts:1,3</code></td></tr>
+      <tr><td><code>buildTool</code> 字段</td><td><code>TaskGetTool/TaskGetTool.ts:38-128</code></td></tr>
+      <tr><td>输入/输出 schema</td><td><code>TaskGetTool.ts:13-33</code></td></tr>
+      <tr><td><code>call()</code> 核心逻辑</td><td><code>TaskGetTool.ts:73-98</code></td></tr>
+      <tr><td>字段白名单映射</td><td><code>TaskGetTool.ts:88-95</code></td></tr>
+      <tr><td>null 软处理</td><td><code>TaskGetTool.ts:78-84</code></td></tr>
+      <tr><td>结果映射（多行渲染）</td><td><code>TaskGetTool.ts:99-127</code></td></tr>
+      <tr><td>注册条件</td><td><code>src/tools.ts:247-249</code></td></tr>
+      <tr><td>底层 getTask</td><td><code>src/utils/tasks.ts:310</code></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="jiu-xuexi">
+<h2>九、学习建议与验证清单</h2>
+<p><strong>怎么读这章</strong>：和 TaskList 对照读。两者都是只读查询，区别在"摘要面 vs 详情面"、"单向依赖 vs 双向依赖"、"多任务 vs 单任务"。理解这个对称设计后，Task 子系统的查询侧就完整了。</p>
+<p><strong>验证清单（读完自测）</strong>：</p>
+<ul class="checklist">
+  <li><input type="checkbox" disabled> <span>能说出 TaskGet 与 TaskList 的字段差异（Get 多 description+blocks、无 owner；List 反之）</span></li>
+  <li><input type="checkbox" disabled> <span>能解释为什么 TaskGet 用静态 PROMPT 而非 getPrompt()（无 teammate 分支，<code>:46</code>）</span></li>
+  <li><input type="checkbox" disabled> <span>能指出不存在的 taskId 返回什么（<code>task: null</code>，软处理，<code>:79</code>）</span></li>
+  <li><input type="checkbox" disabled> <span>能说出字段白名单映射过滤掉了什么（activeForm、metadata 等，<code>:88-95</code>）</span></li>
+  <li><input type="checkbox" disabled> <span>能解释 TaskUpdate prompt 为什么要求"改前用 TaskGet"（多 agent 并发，读最新态）</span></li>
+  <li><input type="checkbox" disabled> <span>能指出 TaskGet 返回双向依赖而 TaskList 只返回单向的原因（详情场景需完整依赖图）</span></li>
+</ul>
+<p><strong>配合动作</strong>：</p>
+<ol>
+  <li>TaskCreate 后调 TaskGet，对比返回字段和磁盘 JSON 的差异（确认 metadata 被过滤）</li>
+  <li>用不存在的 taskId 调 TaskGet，验证返回 <code>task: null</code> 和"未找到任务"文案</li>
+  <li>建立 A blocks B 的依赖，TaskGet B 确认 blocks 和 blockedBy 双向都正确</li>
+</ol>
+</section>
+
+<a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

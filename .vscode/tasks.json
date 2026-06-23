@@ -105,6 +105,90 @@
 					"endsPattern": ".*Listening:.*"
 				}
 			}
+		},
+		{
+			"label": "Debug: 启动 dev (Interactive) [cc-lab]",
+			"type": "shell",
+			"command": "bun run dev:inspect",
+			"options": {
+				"env": {
+					"CC_CWD": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\cc-lab"
+				}
+			},
+			"isBackground": true,
+			"presentation": {
+				"reveal": "always",
+				"focus": false,
+				"panel": "dedicated",
+				"clear": true,
+				"group": "debug-cclab"
+			},
+			"problemMatcher": {
+				"pattern": {
+					"regexp": "^$"
+				},
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": ".*Bun Inspector.*",
+					"endsPattern": ".*Listening:.*"
+				}
+			}
+		},
+		{
+			"label": "Debug: 启动 dev (Headless + Prompt) [cc-lab]",
+			"type": "shell",
+			"command": "echo ${input:promptText} | bun run dev:inspect -- -p",
+			"options": {
+				"env": {
+					"CC_CWD": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\cc-lab"
+				}
+			},
+			"isBackground": true,
+			"presentation": {
+				"reveal": "always",
+				"focus": false,
+				"panel": "dedicated",
+				"clear": true,
+				"group": "debug-cclab"
+			},
+			"problemMatcher": {
+				"pattern": {
+					"regexp": "^$"
+				},
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": ".*Bun Inspector.*",
+					"endsPattern": ".*Listening:.*"
+				}
+			}
+		},
+		{
+			"label": "Debug: 启动 dev (自定义参数) [cc-lab]",
+			"type": "shell",
+			"command": "bun run dev:inspect -- ${input:cliArgs}",
+			"options": {
+				"env": {
+					"CC_CWD": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\cc-lab"
+				}
+			},
+			"isBackground": true,
+			"presentation": {
+				"reveal": "always",
+				"focus": false,
+				"panel": "dedicated",
+				"clear": true,
+				"group": "debug-cclab"
+			},
+			"problemMatcher": {
+				"pattern": {
+					"regexp": "^$"
+				},
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": ".*Bun Inspector.*",
+					"endsPattern": ".*Listening:.*"
+				}
+			}
 		}
 	]
 }

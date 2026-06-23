@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskStop 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange:#D77757;--orange-lt:#f0e0d8;--orange-dk:#b55e3a;
+      --blue:#5769F7;--blue-lt:#dde0fe;--blue-dk:#3a4ed4;
+      --green:#22a766;--green-lt:#d2f0e3;
+      --bg:#faf8f5;--bg2:#f3f0eb;--bg3:#ebe7e0;
+      --text:#2d2a26;--text-2:#5a5650;--text-3:#8a8480;
+      --border:#ddd8d0;--shadow:0 2px 8px rgba(45,42,38,.08);--shadow-lg:0 4px 20px rgba(45,42,38,.12);
+      --radius:8px;--radius-lg:12px;
+      --font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+      --font-mono:'JetBrains Mono','Fira Code','Cascadia Code','Consolas','SF Mono',monospace;
+    }
+    html{scroll-behavior:smooth;}
+    body{font-family:var(--font-sans);background:var(--bg);color:var(--text);line-height:1.65;font-size:15px;}
+    .page-wrap{max-width:1100px;margin:0 auto;padding:0 24px 80px;}
+    section{margin-top:56px;}
+    h2{font-size:1.35rem;font-weight:700;color:var(--orange-dk);border-bottom:2px solid var(--orange-lt);padding-bottom:8px;margin-bottom:24px;}
+    h3{font-size:1.05rem;font-weight:600;color:var(--text);margin-bottom:10px;}
+    h4{font-size:.95rem;font-weight:600;color:var(--text);margin:16px 0 8px;}
+    p{color:var(--text-2);margin-bottom:10px;}
+    a{color:var(--blue);text-decoration:none;}
+    a:hover{text-decoration:underline;}
+    ul,ol{padding-left:22px;color:var(--text-2);margin-bottom:10px;}
+    li{margin-bottom:4px;line-height:1.6;}
+    li>ul,li>ol{margin-top:4px;margin-bottom:2px;}
+    strong{color:var(--text);font-weight:700;}
+    em{font-style:italic;}
+    .hero{background:linear-gradient(135deg,#fff9f6 0%,#f5f1ff 100%);border-bottom:1px solid var(--border);padding:56px 24px 48px;text-align:center;}
+    .hero-badge{display:inline-block;background:var(--orange);color:#fff;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:20px;margin-bottom:20px;}
+    .hero h1{font-size:2.4rem;font-weight:800;color:var(--text);letter-spacing:-.02em;line-height:1.2;margin-bottom:12px;}
+    .hero p{font-size:1.05rem;color:var(--text-2);max-width:640px;margin:0 auto 28px;}
+    .nav-links{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;list-style:none;}
+    .nav-links a{display:inline-block;padding:6px 16px;background:#fff;border:1.5px solid var(--border);border-radius:20px;font-size:.82rem;font-weight:600;color:var(--text-2);transition:border-color .15s,color .15s;}
+    .nav-links a:hover{border-color:var(--orange);color:var(--orange-dk);text-decoration:none;}
+    pre{background:#1e1b16;color:#d4cfc8;border-radius:var(--radius);padding:16px 20px;font-family:var(--font-mono);font-size:.8rem;line-height:1.7;overflow-x:auto;margin:12px 0;border-left:3px solid var(--orange);}
+    code{font-family:var(--font-mono);}
+    p code,li code,td code{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:.82em;color:var(--orange-dk);}
+    .table-wrap{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;font-size:.88rem;}
+    th{background:var(--bg2);color:var(--text);font-weight:700;text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);white-space:nowrap;}
+    td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text-2);}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:var(--bg);}
+    .divider{border:none;border-top:1px solid var(--border);margin:48px 0;}
+    blockquote.callout{background:var(--bg2);border-left:4px solid var(--orange);padding:14px 20px;border-radius:0 var(--radius) var(--radius) 0;margin:16px 0;color:var(--text-2);}
+    blockquote.callout strong{color:var(--text);font-weight:700;}
+    .mermaid-wrap{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin:16px 0;overflow-x:auto;}
+    .checklist{list-style:none;padding-left:0;}
+    .checklist li{display:flex;align-items:flex-start;gap:10px;padding:5px 0;color:var(--text-2);}
+    .checklist input[type="checkbox"]{margin-top:3px;flex-shrink:0;accent-color:var(--orange);}
+    .back-link{display:inline-flex;align-items:center;gap:6px;margin-top:48px;padding:8px 18px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);font-size:.85rem;font-weight:600;color:var(--text-2);text-decoration:none;transition:border-color .15s,color .15s;}
+    .back-link:hover{border-color:var(--orange);color:var(--orange-dk);text-decoration:none;}
+    @media(max-width:700px){.hero h1{font-size:1.6rem;}}
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>TaskStop 工具详解</h1>
+  <p>按 task_id 停止运行中的后台任务——后台任务子系统的终止入口，兼容已废弃的 KillShell 工具</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一">一、工具定位</a></li>
+    <li><a href="#二">二、关键文件清单</a></li>
+    <li><a href="#三">三、Tool 接口字段</a></li>
+    <li><a href="#四">四、核心执行流程</a></li>
+    <li><a href="#五">五、权限与安全</a></li>
+    <li><a href="#六">六、系统关系</a></li>
+    <li><a href="#七">七、亮点与设计取舍</a></li>
+    <li><a href="#八">八、源码导航</a></li>
+    <li><a href="#九">九、学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p>这是后台任务子系统系列的第二篇（与 TaskOutput 同属后台任务系统，不是 TodoV2）。<code>TaskStop</code>（125 行）按 task_id 终止运行中的后台 shell/agent/远程任务。它保留了旧名 <code>KillShell</code> 作为别名以兼容历史记录和 SDK 用户，并严格校验"任务必须处于 running 态"才允许停止。</p></blockquote>
+
+  <section id="一">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>TaskStop</code> = 按 task_id 终止处于 running 状态的后台任务。</strong></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>维度</th><th>值</th></tr></thead>
+      <tbody>
+        <tr><td>工具名</td><td><code>TaskStop</code>（常量 <code>TASK_STOP_TOOL_NAME</code>，<code>prompt.ts:1</code>）</td></tr>
+        <tr><td>一句话</td><td>输入 task_id（或已废弃的 shell_id），停止运行中的后台任务</td></tr>
+        <tr><td>别名</td><td><code>aliases: ['KillShell']</code>（<code>:37</code>，向后兼容旧工具名）</td></tr>
+        <tr><td>是否进 system prompt</td><td>✅ <strong>无条件注册</strong>（<code>tools.ts:236</code>）；在 <code>CORE_TOOLS</code>（<code>constants/tools.ts:151</code>）</td></tr>
+        <tr><td>只读 / 破坏性</td><td><strong>写入/破坏性</strong>（终止进程/取消任务）</td></tr>
+        <tr><td>是否可并发</td><td>✅ <code>true</code>（<code>:47</code>）</td></tr>
+        <tr><td>核心依赖</td><td><code>src/tasks/stopTask.ts</code> 的 <code>stopTask()</code></td></tr>
+        <tr><td>协作方</td><td><code>TaskOutput</code>（取输出）、BashTool/AgentTool（产生后台任务）</td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>为什么需要它？</strong> 后台任务（长跑 shell、agent）可能失控、卡住或不再需要。模型/用户需要主动终止。TaskStop 是这个"紧急刹车"。在 coordinator 模式下，它还被特别加入简化工具集（<code>tools.ts:325,337</code>），让 coordinator 能管理 worker 任务。</p>
+  </section>
+
+  <section id="二">
+    <h2>二、关键文件清单</h2>
+    <pre>TaskStopTool/
+├── TaskStopTool.ts   ← 主体（125 行）
+├── prompt.ts         ← TASK_STOP_TOOL_NAME + DESCRIPTION
+└── UI.tsx            ← Ink 渲染（renderToolUseMessage + renderToolResultMessage，51 行）</pre>
+    <div class="table-wrap"><table>
+      <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+      <tbody>
+        <tr><td><code>TaskStopTool.ts</code></td><td>主体：schema + validateInput + call + 结果映射</td><td><code>buildTool:33</code>、<code>validateInput:53</code>、<code>call:100</code>、<code>mapToolResultToToolResultBlockParam:91</code></td></tr>
+        <tr><td><code>prompt.ts</code></td><td>工具名 + 描述</td><td><code>TASK_STOP_TOOL_NAME:1</code>、<code>DESCRIPTION:3-8</code></td></tr>
+        <tr><td><code>UI.tsx</code></td><td>渲染：命令截断 + "已停止"后缀</td><td><code>renderToolUseMessage:7</code>、<code>renderToolResultMessage:29</code>、<code>truncateCommand:14</code></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="三">
+    <h2>三、Tool 接口字段实现（buildTool 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre>name: TASK_STOP_TOOL_NAME,
+searchHint: 'kill a running background task',
+aliases: ['KillShell'],                  // :37 兼容旧名
+maxResultSizeChars: 100_000,
+userFacingName: () =&gt; (process.env.USER_TYPE === 'ant' ? '' : 'Stop Task'),  // :39
+shouldDefer: true,
+isConcurrencySafe() { return true },     // :47</pre>
+    <p><strong>输入 schema</strong>（<code>:10-16</code>）：</p>
+    <pre>{
+  task_id:  string?,   // 要停止的后台任务 ID
+  shell_id: string?,   // 已废弃：KillShell 兼容，改用 task_id
+}</pre>
+    <p><strong>输出 schema</strong>（<code>:19-28</code>）：</p>
+    <pre>{
+  message: string,      // "成功停止任务：${id} (${command})"
+  task_id: string,
+  task_type: string,
+  command?: string,     // 可选：旧会话记录无此字段（:26 注释）
+}</pre>
+    <h3>行为字段</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code>call()</code></td><td><code>:100</code></td><td>核心（见下节）</td></tr>
+        <tr><td><code>validateInput()</code></td><td><code>:53</code></td><td>三重校验（见下节）</td></tr>
+        <tr><td><code>toAutoClassifierInput()</code></td><td><code>:50</code></td><td>返回 <code>task_id ?? shell_id ?? ''</code></td></tr>
+        <tr><td><code>renderToolUseMessage</code> / <code>renderToolResultMessage</code></td><td><code>:98-99</code></td><td>来自 UI.tsx</td></tr>
+        <tr><td>无 <code>isReadOnly</code></td><td>—</td><td>默认非只读（破坏性操作）</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="四">
+    <h2>四、核心执行流程：call()</h2>
+    <div class="mermaid-wrap"><div class="mermaid">
+flowchart TD
+    V["validateInput\n:53"] --> V1{"task_id ?? shell_id\n非空?"}
+    V1 -->|否| V2["errorCode 1 缺参数"]
+    V1 -->|是| V3{"appState.tasks[id]\n存在?"}
+    V3 -->|否| V4["errorCode 1 未找到"]
+    V3 -->|是| V5{"status === 'running'?"}
+    V5 -->|否| V6["errorCode 3 未运行"]
+    V5 -->|是| V7["通过"]
+    V7 --> C["call\n:100"]
+    C --> C1["id = task_id ?? shell_id\n:105"]
+    C1 --> C2["stopTask(id, {getAppState,setAppState})\n:110"]
+    C2 --> C3["return message + task_id/type/command\n:115"]
+    </div></div>
+    <p><strong>关键点逐条</strong>：</p>
+    <ol>
+      <li><strong>三重 validateInput 校验</strong>（<code>:53-84</code>）：参数非空（<code>:55-56</code>）+ 任务存在（<code>:64-73</code>）+ <strong>必须是 running 态</strong>（<code>:75-81</code>）：status !== 'running' → errorCode 3。这是关键——只允许停止正在运行的任务，防止对已完成/已失败的任务误操作。</li>
+      <li><strong><code>call()</code> 委托 stopTask</strong>（<code>:110-113</code>）：核心逻辑全在 <code>src/tasks/stopTask.ts</code> 的 <code>stopTask()</code>（<code>:37</code>）。它返回 <code>{taskId, taskType, command}</code>。</li>
+      <li><strong><code>id = task_id ?? shell_id</code></strong>（<code>:105</code>）：call 里再次兼容旧参数，和 validateInput 一致。</li>
+      <li><strong>结果固定文案</strong>（<code>:117</code>）：<code>成功停止任务：${result.taskId} (${result.command})</code>，连同 task_type/command 一起返回。</li>
+    </ol>
+    <p><strong><code>mapToolResultToToolResultBlockParam</code></strong>（<code>:91-97</code>）：直接 <code>jsonStringify(output)</code>——把整个 Output 对象 JSON 化给模型。和 TaskOutput 的 XML 标签风格不同，是另一种结构化输出选择。</p>
+  </section>
+
+  <section id="五">
+    <h2>五、权限与安全</h2>
+    <ul>
+      <li><strong>三重 validateInput 是核心安全防线</strong>（<code>:53-84</code>）：① 参数非空 ② 任务存在 ③ 必须 running。尤其第 3 条——防止停止已完成任务引发未定义行为。</li>
+      <li><strong>委托底层 stopTask</strong>：实际的进程终止/任务取消逻辑在 <code>src/tasks/stopTask.ts</code>，工具层只做校验和参数适配。关注点分离。</li>
+      <li><strong>无 checkPermissions</strong>：停止后台任务被视为模型自主操作（任务本身是模型起的后台进程），不需要额外权限审批。</li>
+      <li><strong>abortController 接收但未使用</strong>（<code>:102</code>）：call 签名解构了 <code>abortController</code> 但函数体未用——stopTask 本身是同步快操作，不需中断支持。</li>
+    </ul>
+  </section>
+
+  <section id="六">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap"><div class="mermaid">
+flowchart TD
+    TS["TaskStop"] -->|委托| STOP["src/tasks/stopTask.ts\nstopTask()"]
+    TS -->|校验| AS["appState.tasks[id]"]
+    TS -.同后台任务子系统.-> TO["TaskOutput 取输出"]
+    TS -.终止产生方.-> BASH["BashTool run_in_background"]
+    TS -.终止产生方.-> AGENT["AgentTool 后台模式"]
+    TS -.兼容.-> KILL["已废弃 KillShell"]
+    TS -.coordinator 管理.-> COORD["tools.ts:325,337\ncoordinator 模式特供"]
+    </div></div>
+    <ul>
+      <li><strong>与 TaskOutput 的关系</strong>：同属后台任务系统（注意：不是 TodoV2）。TaskStop 终止运行中任务，TaskOutput 读取任务输出。两者都读 <code>appState.tasks</code>，是后台任务生命周期的两端。</li>
+      <li><strong>与 BashTool/AgentTool 的关系</strong>：这俩的后台模式产生可被停止的任务。TaskStop 是它们的"取消"配套。</li>
+      <li><strong>与 coordinator 模式的关系</strong>：<code>tools.ts:325</code> 和 <code>:337</code> 显示——在 CLAUDE_CODE_SIMPLE + REPL + coordinator 模式下，TaskStop 被特别加入简化工具集。这让 coordinator 能管理 worker 起的后台任务，而 worker 只拿到 Bash/Read/Edit。</li>
+      <li><strong>与 KillShell 的关系（向后兼容）</strong>：<code>aliases: ['KillShell']</code>（<code>:37</code>）+ <code>shell_id</code> 参数（<code>:14</code>）。旧版 Claude Code 有个独立 <code>KillShell</code> 工具，重命名后用别名让历史会话记录和 SDK 用户不破坏。</li>
+    </ul>
+  </section>
+
+  <section id="七">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>严格的三重校验</strong>（<code>:53-84</code>）：参数非空 + 任务存在 + 必须 running。尤其"必须 running"防止误停已完成任务。errorCode 3 专门给"未运行"——区分"找不到"（1）和"状态不对"（3）。</li>
+      <li><strong>KillShell 别名 + shell_id 兼容</strong>（<code>:14, :37</code>）：重命名工具时不破坏老记录/SDK。这是工具演进的标准做法。</li>
+      <li><strong>userFacingName 的 ant 分支</strong>（<code>:39</code>）：ant 用户返回空串不显示标签——内部/外部体验差异化。</li>
+      <li><strong>关注点分离</strong>：工具层只校验+适配参数，实际终止逻辑全在 <code>stopTask.ts</code>。这让 stopTask 可被其他地方（如会话清理）复用。</li>
+      <li><strong>command 字段 optional</strong>（<code>:26</code>）：为兼容 <code>--resume</code> 回放老记录（那时没有 command 字段）。注释明确说明持久化结果不重新校验。</li>
+      <li><strong>JSON 化结果输出</strong>（<code>:91-97</code>）：和 TaskOutput 的 XML 标签风格不同，直接 <code>jsonStringify</code>。简单直接，适合结构化字段少的场景。</li>
+      <li><strong>coordinator 模式特供</strong>（<code>tools.ts:325,337</code>）：在简化工具集里仍保留 TaskStop，体现"coordinator 必须能管 worker 任务"的设计意图。</li>
+    </ol>
+  </section>
+
+  <section id="八">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+      <tbody>
+        <tr><td>工具名常量 + DESCRIPTION</td><td><code>TaskStopTool/prompt.ts:1,3</code></td></tr>
+        <tr><td><code>buildTool</code> 字段</td><td><code>TaskStopTool/TaskStopTool.ts:33-124</code></td></tr>
+        <tr><td>输入 schema（含 shell_id 兼容）</td><td><code>TaskStopTool.ts:10-16</code></td></tr>
+        <tr><td>三重 <code>validateInput</code></td><td><code>TaskStopTool.ts:53-84</code></td></tr>
+        <tr><td><code>call()</code> 委托 stopTask</td><td><code>TaskStopTool.ts:100-123</code></td></tr>
+        <tr><td>结果 JSON 映射</td><td><code>TaskStopTool.ts:91-97</code></td></tr>
+        <tr><td>KillShell 别名</td><td><code>TaskStopTool.ts:37</code></td></tr>
+        <tr><td>渲染（命令截断 + 已停止）</td><td><code>TaskStopTool/UI.tsx:14,29</code></td></tr>
+        <tr><td>注册（无条件 + coordinator 特供）</td><td><code>src/tools.ts:236,325,337</code></td></tr>
+        <tr><td>CORE_TOOLS 白名单</td><td><code>src/constants/tools.ts:151</code></td></tr>
+        <tr><td>底层 stopTask 实现</td><td><code>src/tasks/stopTask.ts:37</code></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="九">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：和 TaskOutput 对照读，两者构成后台任务系统（区别于 TodoV2）。重点看"四、call()"的<strong>前置三重校验</strong>——这是 TaskStop 安全性的核心。然后理解"六、关系"里 KillShell 别名的向后兼容逻辑，以及为什么 coordinator 模式特别保留它。</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能区分 TaskStop（后台任务系统）和 TodoV2 的 Task* 工具是完全不同的系统</span></li>
+      <li><input type="checkbox" disabled> <span>能列出 validateInput 的三重校验（参数非空 + 任务存在 + 必须 running）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 errorCode 1 和 errorCode 3 分别对应什么情况（找不到 vs 未运行）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>shell_id</code> 参数和 <code>KillShell</code> 别名为何保留（向后兼容旧工具/记录/SDK）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 command 字段为何是 optional（兼容 --resume 回放的老记录，<code>:26</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 coordinator 模式为何在简化工具集里仍保留 TaskStop（让 coordinator 管 worker 任务，<code>tools.ts:325</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么 TaskStop 没有 isReadOnly（破坏性终止操作，非只读）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>用 BashTool 起一个 <code>sleep 100</code> 后台任务，用 TaskStop 终止它，观察 message 返回</li>
+      <li>对一个已完成的任务调 TaskStop，验证 errorCode 3"未运行"</li>
+      <li>用 <code>shell_id</code>（旧参数）调 TaskStop，验证兼容路径生效</li>
+      <li>在 coordinator 模式下确认 worker 起的后台任务能被 coordinator 的 TaskStop 停掉</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

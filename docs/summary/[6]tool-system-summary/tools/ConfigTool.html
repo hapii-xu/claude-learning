@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ConfigTool 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    section { margin-top: 56px; }
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: var(--orange); }
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>ConfigTool 工具详解</h1>
+  <p>获取或设置 Claude Code 配置项（主题、模型、权限模式等）——基于注册表驱动的统一配置读写工具</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian-qing-dan">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou-zi-duan">三、Tool 接口字段</a></li>
+    <li><a href="#si-he-xin-zhi-xing-liu-cheng">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian-yu-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-yu-qi-ta-xi-tong-de-guan-xi">六、与其他系统的关系</a></li>
+    <li><a href="#qi-liang-dian-yu-she-ji-qu-she">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma-dao-hang">八、源码导航</a></li>
+    <li><a href="#jiu-xue-xi-jian-yi">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p>这是工具系统逐个拆解系列的一篇。<code>ConfigTool</code> 是一个<strong>复杂</strong>的注册表驱动型工具：它本身不硬编码任何配置项，所有可配置的 setting 都在 <code>supportedSettings.ts</code> 的 <code>SUPPORTED_SETTINGS</code> 注册表里声明（source/type/options/校验/格式化）。工具的 <code>call()</code> 根据注册表元数据动态决定读写路径、类型转换、校验、AppState 同步。这是理解"如何用一个工具服务 N 种异构配置项"的关键样本。</p></blockquote>
+
+  <hr class="divider">
+
+  <section id="yi-gong-ju-ding-wei">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>ConfigTool</code> = 统一的 Claude Code 配置读写工具，由注册表驱动。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>Config</code>（常量 <code>CONFIG_TOOL_NAME</code>，<code>constants.ts:1</code>）</td></tr>
+          <tr><td>一句话</td><td>获取（省略 value）或设置（带 value）配置项，支持全局配置（<code>~/.claude.json</code>）和项目设置（<code>settings.json</code>）</td></tr>
+          <tr><td>是否进 system prompt</td><td>❌ 不在 <code>CORE_TOOLS</code>（延迟工具，<code>shouldDefer: true</code>）</td></tr>
+          <tr><td>注册门控</td><td><code>process.env.USER_TYPE === 'ant'</code>（<code>src/tools.ts:242</code>）—— <strong>仅 ant 用户注册</strong></td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>动态</strong>：<code>isReadOnly(input)</code> 返回 <code>input.value === undefined</code>（<code>:90</code>）</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>:87</code>）</td></tr>
+          <tr><td>核心依赖</td><td><code>SUPPORTED_SETTINGS</code> 注册表（<code>supportedSettings.ts</code>）、<code>saveGlobalConfig</code>/<code>updateSettingsForSource</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> 用户常想"换个主题""切到 opus""启用 vim 模式"。如果让模型自己改配置文件，容易写错路径、漏校验、不同步 UI。<code>ConfigTool</code> 把所有配置项的"读/写/校验/同步"统一成一套注册表驱动的管道，模型只需 <code>{setting, value}</code> 两个参数。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-guan-jian-wen-jian-qing-dan">
+    <h2>二、关键文件清单</h2>
+    <pre><code>ConfigTool/
+├── ConfigTool.ts          ← buildTool({...}) 主体（468 行），含 GET/SET 全流程
+├── supportedSettings.ts   ← SUPPORTED_SETTINGS 注册表：所有可配置项的元数据
+├── prompt.ts              ← generatePrompt()：从注册表动态生成配置文档
+├── UI.tsx                 ← Ink 渲染（get/set/失败三种展示）
+└── constants.ts           ← CONFIG_TOOL_NAME = 'Config'</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>ConfigTool.ts</code></td><td>工具主体：schema + checkPermissions + call() + GET/SET 分支 + getValue/buildNestedObject 辅助</td><td><code>buildTool:67</code>、<code>inputSchema:36</code>、<code>checkPermissions:98</code>、<code>call:111</code>、<code>getValue:436</code>、<code>buildNestedObject:455</code></td></tr>
+          <tr><td><code>supportedSettings.ts</code></td><td><strong>注册表</strong>：每项的 source/type/options/校验/格式化/appStateKey</td><td><code>SUPPORTED_SETTINGS:29</code>、<code>SettingConfig:15</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>从注册表遍历生成模型可见的配置列表 + 模型选项段落</td><td><code>generatePrompt:14</code>、<code>generateModelSection:79</code></td></tr>
+          <tr><td><code>UI.tsx</code></td><td>get 显示 <code>setting = value</code>，set 显示"已将 X 设置为 Y"</td><td><code>renderToolResultMessage:19</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：5 个文件中 <code>supportedSettings.ts</code> 是真正的"数据"——它定义了工具能做什么。<code>ConfigTool.ts</code> 是"引擎"，根据注册表元数据执行。两者分离让新增配置项只需改注册表，不动工具逻辑。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-tool-jie-kou-zi-duan">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+    <h3>标识字段</h3>
+    <pre><code>name: CONFIG_TOOL_NAME,                          // "Config"
+searchHint: '获取或设置 Claude Code 配置项（主题、模型等）',
+maxResultSizeChars: 100_000,
+shouldDefer: true,</code></pre>
+
+    <h3>模型面字段</h3>
+    <pre><code>async description() { return DESCRIPTION }       // prompt.ts:9 '获取或设置 Claude Code 配置项。'
+async prompt()      { return generatePrompt() }   // 动态遍历注册表生成文档
+userFacingName()    { return 'Config' }</code></pre>
+    <blockquote class="callout"><p><strong><code>prompt()</code> 动态生成</strong>：<code>generatePrompt()</code>（<code>prompt.ts:14-77</code>）遍历 <code>SUPPORTED_SETTINGS</code>，按 source（global/settings）分组，附加每项的 options 或 <code>true/false</code>，再拼接模型选项段落。这意味着新增配置项会<strong>自动出现在模型可见的 prompt 里</strong>——无需改工具代码。</p></blockquote>
+
+    <h3>输入 schema（<code>:36-48</code>）</h3>
+    <pre><code>{
+  setting: string,                    // 配置项键名，如 "theme"/"model"/"permissions.defaultMode"
+  value?: string | boolean | number,  // 省略 = GET，提供 = SET
+}</code></pre>
+    <p><strong>输出 schema</strong>（<code>:51-61</code>）：</p>
+    <pre><code>{
+  success: boolean,
+  operation?: 'get' | 'set',
+  setting?: string,
+  value?: unknown,           // GET 的当前值
+  previousValue?: unknown,   // SET 的旧值
+  newValue?: unknown,        // SET 的新值
+  error?: string,
+}</code></pre>
+
+    <h3>行为字段</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:111</code></td><td>核心逻辑（见下节）</td></tr>
+          <tr><td><code>checkPermissions(input)</code></td><td><code>:98</code></td><td><strong>读自动允许，写需确认</strong></td></tr>
+          <tr><td><code>isReadOnly(input)</code></td><td><code>:90</code></td><td><code>input.value === undefined</code>（GET 只读，SET 非只读）</td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:87</code></td><td><code>true</code></td></tr>
+          <tr><td><code>toAutoClassifierInput(input)</code></td><td><code>:93</code></td><td>GET 返回 setting 名，SET 返回 <code>setting = value</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3><code>checkPermissions</code>（<code>:98-107</code>）—— 读写差异化</h3>
+    <pre><code>async checkPermissions(input) {
+  if (input.value === undefined) {
+    return { behavior: 'allow', updatedInput: input }   // GET 自动放行
+  }
+  return {
+    behavior: 'ask',
+    message: `将 ${input.setting} 设置为 ${jsonStringify(input.value)}`,
+  }
+}</code></pre>
+    <blockquote class="callout"><p><strong>读不问、写要问</strong>：读取配置无副作用，直接 allow；写入配置会改持久化状态，必须 ask。这是 <code>isReadOnly</code> + <code>checkPermissions</code> 配合实现"动态权限"的范例。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-he-xin-zhi-xing-liu-cheng">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code>（<code>:111-411</code>）按 GET / SET 分叉，SET 内部又有 5 个阶段：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    C["call({setting, value})\n:111"] --> S1{"isSupported(setting)?\n:126"}
+    S1 -- "否" --> ERR["返回 success:false\n'未知配置项'"]
+    S1 -- "是" --> CFG["getConfig(setting), getPath(setting)\n:132-133"]
+    CFG --> S2{"value === undefined?"}
+    S2 -- "是 GET" --> G["getValue(source, path)\n:137"]
+    G --> GF{"formatOnRead?"}
+    GF -- "有" --> GFF["config.formatOnRead(value)\n:139"]
+    GF -- "无" --> RETG["返回 get 结果"]
+    GFF --> RETG
+    S2 -- "否 SET" --> V1["类型转换（布尔串→bool）\n:185-201"]
+    V1 --> V2["可选值校验 getOptionsForSetting\n:204-214"]
+    V2 --> V3["异步校验 validateOnWrite\n:217-229"]
+    V3 --> V4["语音模式特殊预检\n:232-308"]
+    V4 --> W{"source?"}
+    W -- "global" --> WG["saveGlobalConfig\n:326-329"]
+    W -- "settings" --> WS["updateSettingsForSource\n:331-342"]
+    WG --> SYNC["同步 AppState\n:356-381"]
+    WS --> SYNC
+    SYNC --> LOG["logEvent('tengu_config_tool_changed')\n:383"]
+    LOG --> RETS["返回 set 结果\n含 previousValue/newValue"]
+      </div>
+    </div>
+
+    <h3>GET 分支（<code>:136-144</code>）</h3>
+    <ol>
+      <li><code>getValue(config.source, path)</code>（<code>:436-453</code>）按 source 从 <code>getGlobalConfig()</code> 或 <code>getInitialSettings()</code> 取值。settings 源支持嵌套路径遍历。</li>
+      <li>若注册表项有 <code>formatOnRead</code>（如 <code>model</code> 把 <code>null</code> 显示成 <code>'default'</code>，<code>:105</code>），格式化后返回。</li>
+    </ol>
+
+    <h3>SET 分支的 5 个阶段</h3>
+    <h4>阶段 1：类型转换（<code>:185-201</code>）</h4>
+    <p>注册表 <code>type === 'boolean'</code> 时，把字符串 <code>'true'/'false'</code> 转成布尔值。非布尔值返回错误。</p>
+    <h4>阶段 2：可选值校验（<code>:204-214</code>）</h4>
+    <p><code>getOptionsForSetting(setting)</code> 返回注册表的静态 <code>options</code> 或动态 <code>getOptions()</code>（如 <code>model</code> 调 <code>getModelOptions()</code>）。值不在选项内 → 错误。</p>
+    <h4>阶段 3：异步校验（<code>:217-229</code>）</h4>
+    <p>注册表 <code>validateOnWrite</code>（如 <code>model</code> 用 <code>validateModel</code>，<code>:104</code>）做异步校验（如 API 可达性检查）。</p>
+    <h4>阶段 4：特殊预检（仅 <code>voiceEnabled</code>，<code>:232-308</code>）</h4>
+    <p>语音模式启用前做 5 项预检：GrowthBook 门控、Anthropic 登录、录音可用性、语音流可用、依赖、麦克风权限。任一失败返回具体错误。</p>
+    <h4>阶段 5：写入 + 同步（<code>:313-389</code>）</h4>
+    <ul>
+      <li>按 source 写入：global 用 <code>saveGlobalConfig</code>，settings 用 <code>updateSettingsForSource</code> + <code>buildNestedObject</code>（<code>:455-466</code> 把 <code>['permissions','defaultMode']</code> 构造成嵌套对象）</li>
+      <li>同步 AppState：
+        <ul>
+          <li>注册表有 <code>appStateKey</code>（如 <code>verbose</code>/<code>mainLoopModel</code>/<code>thinkingEnabled</code>）→ <code>setAppState</code> 即时更新 UI</li>
+          <li><code>voiceEnabled</code> 特殊触发 <code>settingsChangeDetector.notifyChange</code></li>
+          <li><code>remoteControlAtStartup</code> 特殊同步到 <code>replBridgeEnabled</code>（键名不一致，通用机制处理不了）</li>
+        </ul>
+      </li>
+      <li><code>logEvent('tengu_config_tool_changed')</code> 埋点</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian-yu-an-quan">
+    <h2>五、权限与安全</h2>
+
+    <h3>读写差异化权限（<code>:98-107</code>）</h3>
+    <p>GET 自动 allow（无副作用），SET 必须 ask（改持久化状态）。<code>isReadOnly(input)</code> 返回 <code>input.value === undefined</code> 配合权限系统区分。</p>
+
+    <h3>注册表白名单（<code>:126-130</code>）</h3>
+    <p><code>isSupported(setting)</code>（<code>supportedSettings.ts:188</code>）检查 <code>setting in SUPPORTED_SETTINGS</code>。未注册的 setting 直接返回"未知配置项"——<strong>模型无法写入任意配置键</strong>。</p>
+
+    <h3>类型与选项校验</h3>
+    <p>SET 分支三重校验：类型转换（布尔串→bool）、静态/动态选项、异步 <code>validateOnWrite</code>。任何一关失败都返回结构化错误，不写入。</p>
+
+    <h3><code>voiceEnabled</code> 的特殊安全（<code>:116-125, 232-308</code>）</h3>
+    <ul>
+      <li>构建期注册（<code>feature('VOICE_MODE')</code>），运行期还要再过 GrowthBook 门控（<code>isVoiceGrowthBookEnabled</code>）——kill-switch 打开时当作"未知 setting"，不泄露语音字符串</li>
+      <li>启用前 5 项预检，包括麦克风权限（按平台给出不同引导文案，<code>:293-300</code>）</li>
+    </ul>
+
+    <h3><code>mapToolResultToToolResultBlockParam</code>（<code>:412-433</code>）</h3>
+    <p>成功 GET → <code>setting = value</code>；成功 SET → <code>已将 setting 设置为 newValue</code>；失败 → <code>Error: ...</code> 带 <code>is_error: true</code>。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-yu-qi-ta-xi-tong-de-guan-xi">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    CFG -->|读注册表| REG["supportedSettings.ts\nSUPPORTED_SETTINGS:29"]
+    CFG -->|读全局配置| GC["src/utils/config.ts\ngetGlobalConfig/saveGlobalConfig"]
+    CFG -->|读项目设置| SET["src/utils/settings/settings.ts\ngetInitialSettings/updateSettingsForSource"]
+    CFG -->|同步 UI| AS["context.setAppState\n（appStateKey 机制）"]
+    CFG -->|模型选项| MO["src/utils/model/modelOptions.ts"]
+    CFG -->|语音预检| VOICE["src/voice/voiceModeEnabled.ts\nsrc/services/voice*.ts"]
+    CFG -.动态 prompt.-> PP["prompt.ts generatePrompt\n遍历注册表"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与配置存储系统的关系</strong>：双源——<code>global</code>（<code>~/.claude.json</code>，扁平键）和 <code>settings</code>（<code>settings.json</code>，嵌套对象，用 <code>buildNestedObject</code> 构造）。<code>getValue</code>/写入都按 source 分叉。</li>
+      <li><strong>与 AppState 的关系</strong>：<code>appStateKey</code> 机制让配置变更即时反映到 UI（如 <code>verbose</code>/<code>mainLoopModel</code>/<code>thinkingEnabled</code>）。键名不一致的特殊情况（<code>remoteControlAtStartup</code> → <code>replBridgeEnabled</code>）单独处理。</li>
+      <li><strong>与模型系统的关系</strong>：<code>model</code> 配置项的 <code>getOptions</code> 调 <code>getModelOptions()</code>、<code>validateOnWrite</code> 调 <code>validateModel</code>——动态选项 + 异步校验。</li>
+      <li><strong>与语音系统的关系</strong>：<code>voiceEnabled</code> 是最复杂的配置项，启用前做 5 项预检，写入后触发 <code>settingsChangeDetector.notifyChange</code> 重同步。</li>
+      <li><strong>与 prompt 生成的关系</strong>：<code>generatePrompt</code> 遍历注册表，新增配置项自动出现在模型可见文档里。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian-yu-she-ji-qu-she">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>注册表驱动</strong>（<code>supportedSettings.ts:29</code>）：所有配置项的元数据（source/type/options/校验/格式化/appStateKey）集中声明。新增配置只改注册表，工具逻辑、prompt 文档、权限行为全部自动跟进。这是"数据驱动工具"的典范。</li>
+      <li><strong>动态 prompt 生成</strong>（<code>prompt.ts:14-77</code>）：<code>generatePrompt</code> 遍历注册表，按 source 分组、附加 options、拼接模型段落。注册表变了模型文档自动更新——避免"代码改了 prompt 忘改"的漂移。</li>
+      <li><strong>读写差异化权限</strong>（<code>:90, 98-107</code>）：<code>isReadOnly(input)</code> 返回 <code>value === undefined</code>，<code>checkPermissions</code> 据此决定 allow/ask。一个工具同时服务读和写，权限按输入动态切换。</li>
+      <li><strong>类型转换 + 三重校验</strong>（<code>:185-229</code>）：布尔串自动转 bool，选项校验，异步 <code>validateOnWrite</code>。层层过滤保证写入值合法。</li>
+      <li><strong><code>appStateKey</code> 即时同步</strong>（<code>:356-362</code>）：配置变更通过 <code>setAppState</code> 即时反映到 UI，无需重启。键名不一致的特殊情况单独硬编码（<code>:367-381</code>）。</li>
+      <li><strong><code>buildNestedObject</code> 处理嵌套路径</strong>（<code>:455-466</code>）：<code>permissions.defaultMode</code> 这样的点分键被构造成 <code>{permissions:{defaultMode:value}}</code>，让 <code>updateSettingsForSource</code> 能深合并。</li>
+      <li><strong><code>formatOnRead</code> 与 <code>formatOnWrite</code> 不对称</strong>：读时格式化（<code>model</code> 的 null→'default'，<code>:105</code>），写时校验（<code>validateOnWrite</code>）。读面向用户展示，写面向存储合法性。</li>
+      <li><strong>voiceEnabled 的双重门控</strong>（<code>:116-125, 232-308</code>）：构建期 feature flag + 运行期 GrowthBook + 5 项预检。最敏感的配置项得到最严的保护。</li>
+      <li><strong>ant 用户专属注册</strong>（<code>src/tools.ts:242</code>）：<code>process.env.USER_TYPE === 'ant'</code> 才注册——这是内部工具，不对普通用户暴露。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-yuan-ma-dao-hang">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>ConfigTool/constants.ts:1</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>ConfigTool.ts:67-434</code></td></tr>
+          <tr><td>输入/输出 schema</td><td><code>ConfigTool.ts:36-62</code></td></tr>
+          <tr><td><code>call()</code> GET 分支</td><td><code>ConfigTool.ts:136-144</code></td></tr>
+          <tr><td><code>call()</code> SET 五阶段</td><td><code>ConfigTool.ts:182-411</code></td></tr>
+          <tr><td><code>checkPermissions</code>（读写差异）</td><td><code>ConfigTool.ts:98-107</code></td></tr>
+          <tr><td><code>getValue</code>（双源读取）</td><td><code>ConfigTool.ts:436-453</code></td></tr>
+          <tr><td><code>buildNestedObject</code></td><td><code>ConfigTool.ts:455-466</code></td></tr>
+          <tr><td>注册表定义</td><td><code>supportedSettings.ts:29-186</code></td></tr>
+          <tr><td><code>SettingConfig</code> 类型</td><td><code>supportedSettings.ts:15-27</code></td></tr>
+          <tr><td>动态 prompt 生成</td><td><code>prompt.ts:14-77</code></td></tr>
+          <tr><td>注册门控（ant 专属）</td><td><code>src/tools.ts:242</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-xue-xi-jian-yi">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先读"一、工具定位"理解它是注册表驱动，再读 <code>supportedSettings.ts:29</code> 看注册表结构，最后回 <code>ConfigTool.ts:111</code> 的 <code>call()</code> 看引擎如何根据注册表元数据分叉执行。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出为什么 <code>ConfigTool</code> 不硬编码任何配置项（注册表驱动，新增只改 <code>SUPPORTED_SETTINGS</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>isReadOnly(input)</code> 为何返回 <code>input.value === undefined</code>（GET 只读，SET 非只读）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>checkPermissions</code> 如何差异化对待读写（GET allow，SET ask）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 SET 分支的 5 个阶段（类型转换/选项校验/异步校验/特殊预检/写入同步）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>appStateKey</code> 机制的作用（配置变更即时同步 UI）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>buildNestedObject</code> 解决什么问题（点分键构造嵌套对象深合并）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 <code>generatePrompt</code> 如何工作（遍历注册表按 source 分组）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出注册门控（<code>USER_TYPE === 'ant'</code>，仅内部用户）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 voiceEnabled 的双重门控（构建期 feature + 运行期 GrowthBook + 5 项预检）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>让 Claude <code>Config { setting: 'theme' }</code>（GET），观察返回当前主题</li>
+      <li>让 Claude <code>Config { setting: 'theme', value: 'dark' }</code>（SET），观察权限确认提示 + UI 即时变化</li>
+      <li>传一个非法 setting 名，验证"未知配置项"错误</li>
+      <li>在 <code>supportedSettings.ts</code> 末尾加一个测试项，观察 <code>generatePrompt</code> 输出是否自动包含它</li>
+      <li>追一个带 <code>appStateKey</code> 的配置（如 <code>verbose</code>），确认 <code>setAppState</code> 触发 UI 更新</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

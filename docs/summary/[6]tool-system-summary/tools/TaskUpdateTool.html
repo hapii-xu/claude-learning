@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskUpdate 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{--orange:#D77757;--orange-lt:#f0e0d8;--orange-dk:#b55e3a;--blue:#5769F7;--blue-lt:#dde0fe;--blue-dk:#3a4ed4;--green:#22a766;--green-lt:#d2f0e3;--bg:#faf8f5;--bg2:#f3f0eb;--bg3:#ebe7e0;--text:#2d2a26;--text-2:#5a5650;--text-3:#8a8480;--border:#ddd8d0;--shadow:0 2px 8px rgba(45,42,38,.08);--shadow-lg:0 4px 20px rgba(45,42,38,.12);--radius:8px;--radius-lg:12px;--font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;--font-mono:'JetBrains Mono','Fira Code','Cascadia Code','Consolas','SF Mono',monospace;}
+    html{scroll-behavior:smooth;}body{font-family:var(--font-sans);background:var(--bg);color:var(--text);line-height:1.65;font-size:15px;}
+    .page-wrap{max-width:1100px;margin:0 auto;padding:0 24px 80px;}section{margin-top:56px;}
+    h2{font-size:1.35rem;font-weight:700;color:var(--orange-dk);border-bottom:2px solid var(--orange-lt);padding-bottom:8px;margin-bottom:24px;}
+    h3{font-size:1.05rem;font-weight:600;color:var(--text);margin-bottom:10px;}h4{font-size:.95rem;font-weight:600;color:var(--text);margin:16px 0 8px;}
+    p{color:var(--text-2);margin-bottom:10px;}a{color:var(--blue);text-decoration:none;}a:hover{text-decoration:underline;}
+    ul,ol{padding-left:22px;color:var(--text-2);margin-bottom:10px;}li{margin-bottom:4px;line-height:1.6;}li>ul,li>ol{margin-top:4px;margin-bottom:2px;}
+    strong{color:var(--text);font-weight:700;}em{font-style:italic;}
+    .hero{background:linear-gradient(135deg,#fff9f6 0%,#f5f1ff 100%);border-bottom:1px solid var(--border);padding:56px 24px 48px;text-align:center;}
+    .hero-badge{display:inline-block;background:var(--orange);color:#fff;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:20px;margin-bottom:20px;}
+    .hero h1{font-size:2.4rem;font-weight:800;color:var(--text);letter-spacing:-.02em;line-height:1.2;margin-bottom:12px;}
+    .hero p{font-size:1.05rem;color:var(--text-2);max-width:640px;margin:0 auto 28px;}
+    .nav-links{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;list-style:none;}
+    .nav-links a{display:inline-block;padding:6px 16px;background:#fff;border:1.5px solid var(--border);border-radius:20px;font-size:.82rem;font-weight:600;color:var(--text-2);transition:border-color .15s,color .15s;}
+    .nav-links a:hover{border-color:var(--orange);color:var(--orange-dk);text-decoration:none;}
+    pre{background:#1e1b16;color:#d4cfc8;border-radius:var(--radius);padding:16px 20px;font-family:var(--font-mono);font-size:.8rem;line-height:1.7;overflow-x:auto;margin:12px 0;border-left:3px solid var(--orange);}
+    code{font-family:var(--font-mono);}p code,li code,td code{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:.82em;color:var(--orange-dk);}
+    .table-wrap{overflow-x:auto;}table{width:100%;border-collapse:collapse;font-size:.88rem;}
+    th{background:var(--bg2);color:var(--text);font-weight:700;text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);white-space:nowrap;}
+    td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text-2);}tr:last-child td{border-bottom:none;}tr:hover td{background:var(--bg);}
+    .divider{border:none;border-top:1px solid var(--border);margin:48px 0;}
+    blockquote.callout{background:var(--bg2);border-left:4px solid var(--orange);padding:14px 20px;border-radius:0 var(--radius) var(--radius) 0;margin:16px 0;color:var(--text-2);}
+    blockquote.callout strong{color:var(--text);font-weight:700;}
+    .mermaid-wrap{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin:16px 0;overflow-x:auto;}
+    .checklist{list-style:none;padding-left:0;}.checklist li{display:flex;align-items:flex-start;gap:10px;padding:5px 0;color:var(--text-2);}
+    .checklist input[type="checkbox"]{margin-top:3px;flex-shrink:0;accent-color:var(--orange);}
+    .back-link{display:inline-flex;align-items:center;gap:6px;margin-top:48px;padding:8px 18px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);font-size:.85rem;font-weight:600;color:var(--text-2);text-decoration:none;transition:border-color .15s,color .15s;}
+    .back-link:hover{border-color:var(--orange);color:var(--orange-dk);text-decoration:none;}
+    @media(max-width:700px){.hero h1{font-size:1.6rem;}}
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>TaskUpdate 工具详解</h1>
+  <p>更新任务的状态/字段/依赖关系——Task 子系统的"UPDATE"，承载状态流转、hook 触发、teammate 分配通知与验证提醒</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一">一、工具定位</a></li>
+    <li><a href="#二">二、关键文件清单</a></li>
+    <li><a href="#三">三、Tool 接口字段</a></li>
+    <li><a href="#四">四、核心执行流程</a></li>
+    <li><a href="#五">五、权限与安全</a></li>
+    <li><a href="#六">六、系统关系</a></li>
+    <li><a href="#七">七、亮点与设计取舍</a></li>
+    <li><a href="#八">八、源码导航</a></li>
+    <li><a href="#九">九、学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p>这是 Task 子系统系列的第二篇，也是<strong>最复杂的一个</strong>。<code>TaskUpdate</code>（398 行）不只是改字段：它处理 <code>pending→in_progress→completed</code> 状态机、<code>deleted</code> 软删除、<code>blocks</code>/<code>blockedBy</code> 依赖图、owner 变更时的 teammate mailbox 通知、TaskCompleted hooks 的阻塞校验，以及在"关闭最后一个任务且无验证步骤"时触发 verification nudge。它是任务生命周期的中枢。</p></blockquote>
+
+  <section id="一">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>TaskUpdate</code> = 任务列表的全功能 UPDATE：改字段、流转状态、建依赖、分配负责人、删任务，全部在一个工具里。</strong></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>维度</th><th>值</th></tr></thead>
+      <tbody>
+        <tr><td>工具名</td><td><code>TaskUpdate</code>（常量 <code>TASK_UPDATE_TOOL_NAME</code>，<code>constants.ts:1</code>）</td></tr>
+        <tr><td>一句话</td><td>按 taskId 更新任意子集字段；status 含特殊值 <code>deleted</code> 实现删除</td></tr>
+        <tr><td>是否进 system prompt</td><td>⚠️ <strong>条件注册</strong>——<code>isTodoV2Enabled()</code> 为真时（<code>tools.ts:247-249</code>）；在 <code>CORE_TOOLS</code> 白名单（<code>constants/tools.ts:155</code>）</td></tr>
+        <tr><td>只读 / 破坏性</td><td><strong>写入</strong>（改磁盘 + 可能触发 hook + 写 mailbox + 可能删文件）</td></tr>
+        <tr><td>是否可并发</td><td>✅ <code>isConcurrencySafe() → true</code>（底层文件锁）</td></tr>
+        <tr><td>核心依赖</td><td><code>tasks.ts</code> 的 <code>updateTask</code>/<code>deleteTask</code>/<code>blockTask</code>/<code>listTasks</code>；<code>hooks.ts</code> 的 <code>executeTaskCompletedHooks</code>；<code>teammateMailbox.ts</code></td></tr>
+        <tr><td>协作方</td><td><code>TaskCreate</code>（产 pending）、<code>TaskList</code>/<code>TaskGet</code>（读最新态再改）</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="二">
+    <h2>二、关键文件清单</h2>
+    <pre>TaskUpdateTool/
+├── TaskUpdateTool.ts   ← 主体（398 行），最长的一个 Task 工具
+├── prompt.ts           ← DESCRIPTION + PROMPT（中文使用指南，含状态工作流示例）
+└── constants.ts        ← TASK_UPDATE_TOOL_NAME = 'TaskUpdate'</pre>
+    <div class="table-wrap"><table>
+      <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+      <tbody>
+        <tr><td><code>TaskUpdateTool.ts</code></td><td>主体：schema + call（巨型）+ 结果映射</td><td><code>buildTool:84</code>、<code>call:119</code>、删除分支 <code>:209</code>、completed+hook <code>:227</code>、mailbox <code>:272</code>、verification <code>:326</code>、结果映射 <code>:357</code></td></tr>
+        <tr><td><code>prompt.ts</code></td><td>中文 prompt，含状态工作流 + 4 个 JSON 示例</td><td><code>DESCRIPTION:3</code>、<code>PROMPT:3-77</code></td></tr>
+        <tr><td><code>constants.ts</code></td><td>工具名</td><td><code>:1</code></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="三">
+    <h2>三、Tool 接口字段实现（buildTool 逐字段）</h2>
+    <p><strong>输入 schema</strong>（<code>:33-62</code>，字段最多）：</p>
+    <pre>{
+  taskId:        string,                     // 必填
+  subject?:      string,                     // 改标题
+  description?:  string,
+  activeForm?:   string,
+  status?:       TaskStatus | 'deleted',     // 扩展：加 'deleted' 特殊值（:35）
+  addBlocks?:    string[],                   // 增量添加，非覆盖
+  addBlockedBy?: string[],
+  owner?:        string,
+  metadata?:     Record&lt;string, unknown&gt;,    // 合并语义，null=删 key（:60）
+}</pre>
+    <p><strong>三个值得注意的 schema 设计</strong>：</p>
+    <ol>
+      <li><code>status</code> 用 <code>TaskStatusSchema().or(z.literal('deleted'))</code>（<code>:35</code>）——把"删除"塞进 status 字段而非独立参数，统一了"状态变更"的入口。</li>
+      <li><code>addBlocks</code>/<code>addBlockedBy</code> 是<strong>增量</strong>语义（名字带 <code>add</code>），内部去重后调用 <code>blockTask</code>，不覆盖现有依赖。</li>
+      <li><code>metadata</code> 是<strong>合并</strong>语义：<code>null</code> 值表示删除该 key（<code>:198-203</code>）。</li>
+    </ol>
+    <p><strong>输出 schema</strong>（<code>:65-79</code>）：</p>
+    <pre>{
+  success: boolean,
+  taskId: string,
+  updatedFields: string[],        // 实际变更的字段名列表
+  error?: string,
+  statusChange?: { from: string, to: string },
+  verificationNudgeNeeded?: boolean,  // @internal，不进公共 SDK
+}</pre>
+    <h3>行为字段</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code>call()</code></td><td><code>:119</code></td><td>巨型核心（见下节）</td></tr>
+        <tr><td><code>toAutoClassifierInput()</code></td><td><code>:110</code></td><td>拼接 <code>taskId + status + subject</code> 供自动审批分类</td></tr>
+        <tr><td><code>renderToolUseMessage()</code></td><td><code>:116</code> → <code>null</code></td><td>不显示调用摘要</td></tr>
+        <tr><td>无 <code>validateInput</code> / <code>checkPermissions</code></td><td>—</td><td>任务不存在时在 call 内返回 <code>success:false</code>（软失败）</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="四">
+    <h2>四、核心执行流程：call()</h2>
+    <p><code>call()</code>（<code>:119-356</code>）是 7 段顺序逻辑：</p>
+    <div class="mermaid-wrap"><div class="mermaid">
+flowchart TD
+    A["call(input, ctx)\n:119"] --> B["展开 tasks 面板\n:136"]
+    B --> C["getTask 取现有态\n:142"]
+    C --> D{任务存在?}
+    D -->|否| E["return success:false '未找到任务'\n:144 软失败"]
+    D -->|是| F["逐字段比对攒 updates\n:165-206"]
+    F --> G{status?}
+    G -->|deleted| H["deleteTask + 提前 return\n:209"]
+    G -->|completed| I["executeTaskCompletedHooks\n阻塞校验 :227"]
+    G -->|其他| J["updates.status=status :262"]
+    I --> K{有 blockingError?}
+    K -->|是| L["return success:false :251"]
+    K -->|否| J
+    H --> M["updateTask 落盘\n:268"]
+    J --> M
+    M --> N{owner 变了?}
+    N -->|是| O["writeToMailbox 通知新负责人\n:272"]
+    N -->|否| P["处理 addBlocks/addBlockedBy\n:296-319"]
+    O --> P
+    P --> Q["verification nudge 检测\n:326"]
+    Q --> R["return success:true + updatedFields\n:344"]
+    </div></div>
+    <p><strong>逐段关键点</strong>：</p>
+    <ol>
+      <li><strong>软失败而非 throw</strong>（<code>:142-152</code>）：任务不存在时返回 <code>success:false, error:'未找到任务'</code>，<strong>不抛异常</strong>。避免在 <code>StreamingToolExecutor</code> 触发兄弟工具取消。</li>
+      <li><strong>字段级 diff 攒 updates</strong>（<code>:165-206</code>）：只有"新值 ≠ 旧值"才进 <code>updates</code> 并 push 到 <code>updatedFields</code>。这避免了无谓的磁盘写入。</li>
+      <li><strong>teammate 自动认领</strong>（<code>:183-194</code>）：当 swarm 启用、status 改为 <code>in_progress</code>、但没显式给 owner、且任务当前无 owner 时，<strong>自动把当前 agent 名设为 owner</strong>。</li>
+      <li><strong><code>deleted</code> 特殊路径</strong>（<code>:209-222</code>）：status='deleted' 时调用 <code>deleteTask</code> 并<strong>提前 return</strong>，跳过后续所有逻辑。</li>
+      <li><strong>TaskCompleted hooks 阻塞校验</strong>（<code>:227-260</code>）：仅当 status→completed 时执行。失败时<strong>返回 success:false 而非回滚</strong>（任务保持原状态）。</li>
+      <li><strong>owner 变更 → mailbox 通知</strong>（<code>:272-293</code>）：swarm 模式下，若 owner 变了，向新 owner 的 mailbox 写一条 <code>task_assignment</code> JSON 消息。</li>
+      <li><strong>verification nudge</strong>（<code>:326-342</code>）：当主线程 agent 刚把最后一个任务标记为 completed，且满足六重条件（feature + growthbook + 全完成 + ≥3 + 无 verify subject）时，置 <code>verificationNudgeNeeded=true</code>。</li>
+    </ol>
+  </section>
+
+  <section id="五">
+    <h2>五、权限与安全</h2>
+    <p>和 TaskCreate 一样，<strong>无 <code>checkPermissions</code> / <code>validateInput</code></strong>。安全靠底层：</p>
+    <ul>
+      <li><strong>文件锁</strong>：<code>updateTask</code>（<code>tasks.ts:370-391</code>）对单个任务文件加锁。</li>
+      <li><strong>存在性预检</strong>（<code>tasks.ts:379-382</code>）：<code>updateTask</code> 先 <code>getTask</code> 判存在再上锁——<code>proper-lockfile</code> 对不存在文件会抛错，预检避免此问题。</li>
+      <li><strong>删除的引用清理</strong>（<code>tasks.ts:420-434</code>）：<code>deleteTask</code> 遍历所有任务，清理对被删任务的 blocks/blockedBy 引用，防止悬空依赖。</li>
+      <li><strong>teammate mailbox 写入</strong>：受 <code>isAgentSwarmsEnabled()</code> 门控，非 swarm 模式不触发跨 agent 通信。</li>
+    </ul>
+    <blockquote class="callout"><p>软失败设计（success:false 而非 throw）是<strong>显式的安全取舍</strong>：防止"任务不存在"这类良性错误连锁取消并发的兄弟工具调用。</p></blockquote>
+  </section>
+
+  <section id="六">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap"><div class="mermaid">
+flowchart TD
+    TU["TaskUpdate"] -->|改| STORE["tasks.ts updateTask/deleteTask/blockTask"]
+    TU -->|completed 时| HOOK["executeTaskCompletedHooks"]
+    TU -->|owner 变| MB["teammateMailbox writeToMailbox"]
+    TU -->|nudge| VA["VERIFICATION_AGENT feature"]
+    TU -->|teammate 认领| AG["agentSwarmsEnabled + getAgentName"]
+    TU -.读最新态.-> TG["TaskGet / TaskList"]
+    TU -.被创建后流转.-> TC["TaskCreate"]
+    </div></div>
+    <ul>
+      <li><strong>与 TaskCreate 的协作</strong>：Create 产出 pending，Update 负责全部后续流转。prompt（<code>prompt.ts:49</code>）明确要求"更新前用 TaskGet 读最新状态"。</li>
+      <li><strong>与 TaskList/TaskGet 的协作</strong>：teammate 完成 TaskUpdate(completed) 后，结果文案（<code>:385</code>）主动提示"调用 TaskList 找下一个任务"，形成工作循环。</li>
+      <li><strong>与 hooks 系统</strong>：<code>TaskCompleted</code> 是任务从 in_progress→completed 的唯一埋点，供验证/审计 agent 介入。</li>
+    </ul>
+  </section>
+
+  <section id="七">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong><code>deleted</code> 塞进 status 字段</strong>（<code>:35</code>）：schema 统一、模型只需记一个 status 工作流。</li>
+      <li><strong>字段级 diff 而非整体覆盖</strong>（<code>:165-206</code>）：只写真正变化的字段。省 IO、输出精确、避免并发覆盖未传字段。</li>
+      <li><strong>metadata 合并 + null 删除语义</strong>（<code>:195-206</code>）：<code>{...existing, ...new}</code> 但 <code>null</code> 触发 <code>delete</code>。比"整体替换 metadata"更精细。</li>
+      <li><strong>软失败设计</strong>（<code>:144, :366</code>）：任务不存在/删除失败返回 success:false 而非 throw，避免连锁取消。</li>
+      <li><strong>verification nudge 的"循环退出瞬间"检测</strong>（<code>:326-342</code>）：只在"最后一个任务关闭、且无验证步骤"时触发，精准对应 V1 的 TodoWrite 收尾提醒。feature + growthbook + agentId + 全完成 + ≥3 任务 + 无 verify subject——六重条件避免误报。</li>
+      <li><strong>teammate 自动认领的隐式契约</strong>（<code>:183-194</code>）：模型不需要显式设 owner，只要把任务标 in_progress 就自动认领。降低 teammate 协作的认知负担。</li>
+    </ol>
+  </section>
+
+  <section id="八">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+      <tbody>
+        <tr><td>工具名常量</td><td><code>TaskUpdateTool/constants.ts:1</code></td></tr>
+        <tr><td>中文 prompt + 状态工作流示例</td><td><code>TaskUpdateTool/prompt.ts:3-77</code></td></tr>
+        <tr><td><code>buildTool</code> 字段</td><td><code>TaskUpdateTool/TaskUpdateTool.ts:84-398</code></td></tr>
+        <tr><td>输入 schema（含 deleted 扩展）</td><td><code>TaskUpdateTool.ts:33-62</code></td></tr>
+        <tr><td><code>call()</code> 巨型核心</td><td><code>TaskUpdateTool.ts:119-356</code></td></tr>
+        <tr><td>软失败（任务不存在）</td><td><code>TaskUpdateTool.ts:142-152</code></td></tr>
+        <tr><td><code>deleted</code> 删除分支</td><td><code>TaskUpdateTool.ts:209-222</code></td></tr>
+        <tr><td>TaskCompleted hooks 阻塞校验</td><td><code>TaskUpdateTool.ts:227-260</code></td></tr>
+        <tr><td>owner 变更 mailbox 通知</td><td><code>TaskUpdateTool.ts:272-293</code></td></tr>
+        <tr><td>依赖增量添加</td><td><code>TaskUpdateTool.ts:296-319</code></td></tr>
+        <tr><td>verification nudge 检测</td><td><code>TaskUpdateTool.ts:326-342</code></td></tr>
+        <tr><td>结果映射（含 nudge 文案）</td><td><code>TaskUpdateTool.ts:357-397</code></td></tr>
+        <tr><td>注册条件</td><td><code>src/tools.ts:247-249</code></td></tr>
+        <tr><td>底层 updateTask/deleteTask/blockTask</td><td><code>src/utils/tasks.ts:370,393,458</code></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="九">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：这是 Task 系列最复杂的一篇。建议先扫"一、定位"和 schema（三、），然后对着"四、call()"的流程图逐段读源码——8 个关键点对应 call 的 8 个代码段。最后重点理解"七、亮点"里的 6 个设计取舍，它们解释了为什么 call 这么长。</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 <code>status: 'deleted'</code> 如何走特殊路径（提前 return，跳过后续逻辑，<code>:209</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么任务不存在是软失败而非 throw（避免兄弟工具取消，<code>:367</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 TaskCompleted hooks 失败时任务保持什么状态（原状态，不回滚也不推进，<code>:251</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 metadata 的 <code>null</code> 语义（删除该 key，<code>:198</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能列出 verification nudge 触发的全部条件（feature + growthbook + 主线程 + 全完成 + ≥3 + 无 verify，<code>:327-342</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 teammate 自动认领的触发条件（swarm + in_progress + 无显式 owner + 任务无 owner，<code>:183</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 <code>addBlocks</code>/<code>addBlockedBy</code> 的增量语义（filter 已存在后逐个 blockTask，<code>:296</code>）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>创建一个任务后，分别测 <code>TaskUpdate(status:in_progress)</code>、<code>(status:completed)</code>、<code>(status:deleted)</code>，观察文件变化</li>
+      <li>在 <code>:227</code> 加日志，验证 TaskCompleted hooks 的迭代</li>
+      <li>开 swarm 模式，观察 owner 变更后 mailbox 文件的生成</li>
+      <li>构造 3 个全完成且无 verify 的任务，验证 verificationNudgeNeeded 触发</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

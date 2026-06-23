@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>query.ts 底层引擎深度学习 — Claude Code 核心执行引擎全链路解析</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 660px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 14px 0;
+    }
+
+    .arch-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Caller cards ── */
+    .caller-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .caller-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .caller-header {
+      padding: 12px 16px;
+      font-weight: 700;
+      font-size: .88rem;
+    }
+
+    .caller-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .caller-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .caller-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .caller-header.green  { background: var(--green-lt);  color: var(--green); }
+
+    .caller-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .caller-body p { margin-bottom: 6px; }
+    .caller-body .file { font-family: var(--font-mono); color: var(--blue); font-size: .8rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* ── State machine ── */
+    .state-flow { margin: 14px 0; }
+    .state-flow .sf-title { font-weight: 700; font-size: .88rem; color: var(--text); margin-bottom: 8px; }
+    .state-transitions { display: flex; flex-direction: column; gap: 4px; }
+    .sf-row { display: flex; align-items: center; gap: 8px; font-size: .82rem; }
+    .sf-from { font-weight: 600; color: var(--text); min-width: 180px; }
+    .sf-arrow { color: var(--text-3); }
+    .sf-to { padding: 3px 10px; border-radius: 12px; font-size: .78rem; font-weight: 600; }
+    .sf-to.continue { background: var(--blue-lt); color: var(--blue-dk); }
+    .sf-to.terminal { background: var(--red-lt); color: var(--red); }
+    .sf-desc { color: var(--text-3); font-size: .78rem; margin-left: 8px; }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════ HERO ════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-badge">核心循环 · 第三篇附录</div>
+  <h1><span>query.ts</span> 底层引擎深度学习</h1>
+  <p class="hero-sub">
+    Claude Code 的<strong>核心执行引擎</strong>完整拆解 —— 2370 行代码逐段精读，4 大调用方全景、14 步循环流水线、系统提示词 / Skills / MCP 集成、6 级上下文管理管线、多档错误恢复、流式工具执行全链路解析。
+  </p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/query.ts · 2370 行</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>4 大调用方</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>14 步流水线</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>11 个 Feature 门控</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、定位与全景</a></li>
+    <li><a href="#sec-2">二、导出类型</a></li>
+    <li><a href="#sec-3">三、调用方全景</a></li>
+    <li><a href="#sec-4">四、query() 入口</a></li>
+    <li><a href="#sec-5">五、queryLoop 详解</a></li>
+    <li><a href="#sec-6">六、系统提示词</a></li>
+    <li><a href="#sec-7">七、Skills 集成</a></li>
+    <li><a href="#sec-8">八、MCP 工具</a></li>
+    <li><a href="#sec-9">九、错误恢复</a></li>
+    <li><a href="#sec-10">十、上下文管线</a></li>
+    <li><a href="#sec-11">十一、流式与工具</a></li>
+    <li><a href="#sec-12">十二、Feature Flags</a></li>
+    <li><a href="#sec-13">十三、排队命令</a></li>
+    <li><a href="#sec-14">十四、设计模式</a></li>
+    <li><a href="#sec-15">十五、行号书签</a></li>
+    <li><a href="#sec-16">十六、学习路径</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<!-- ════════════════ 一、定位与全景 ════════════════ -->
+<section id="sec-1">
+  <h2>一、定位与全景</h2>
+
+  <h3>1.1 三层架构中的位置</h3>
+
+  <div class="arch">
+    <div class="arch-row">
+      <span class="arch-label">交互入口</span>
+      <div class="arch-box dim">screens/REPL.tsx（for await of query() 直连）</div>
+    </div>
+    <div class="arch-row">
+      <span class="arch-label">会话编排</span>
+      <div class="arch-box dim">QueryEngine.ts（SDK/headless/ACP 路径）</div>
+    </div>
+    <div class="arch-row">
+      <span class="arch-label" style="font-weight:700;color:var(--orange-dk)">★ 本文重点</span>
+      <div class="arch-box active">query.ts（核心执行引擎 · async generator · 2370 行）</div>
+    </div>
+    <div class="arch-row">
+      <span class="arch-label">API 传输</span>
+      <div class="arch-box dim">services/api/claude.ts（Anthropic SDK 调用、流解码）</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>核心定位：</strong><code>query()</code> 是 Claude Code 的<strong>底层 async generator</strong>——它接收消息列表和系统提示词，驱动 API 流式调用，处理工具执行，管理上下文压缩，并通过 yield 向上传递流式事件和消息。所有上层（REPL、SDK、ACP、fork agent）最终都汇聚于此。
+  </div>
+
+  <h3>1.2 文件规模一览</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>指标</th><th>数量</th><th>说明</th></tr>
+      <tr><td>总行数</td><td>2370</td><td><code>wc -l</code> 实测</td></tr>
+      <tr><td>导出函数</td><td>1</td><td><code>query()</code>（async generator）</td></tr>
+      <tr><td>导出类型</td><td>1</td><td><code>QueryParams</code></td></tr>
+      <tr><td>内部类型</td><td>1</td><td><code>State</code>（循环可变状态体）</td></tr>
+      <tr><td>内部函数</td><td>4</td><td><code>queryLoop()</code> + <code>yieldMissingToolResultBlocks()</code> + <code>isWithheldMaxOutputTokens()</code> + <code>getAutonomyTurnOutcome()</code></td></tr>
+      <tr><td>Feature 门控数</td><td>11</td><td><code>CONTEXT_COLLAPSE</code>、<code>HISTORY_SNIP</code>、<code>TOKEN_BUDGET</code>、<code>CHICAGO_MCP</code> 等</td></tr>
+      <tr><td><code>import</code> 语句</td><td>52</td><td>含条件 <code>require()</code> 的 feature-gated 导入</td></tr>
+    </table>
+  </div>
+
+  <h3>1.3 文件按职责切片</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>行号范围</th><th>内容</th></tr>
+      <tr><td><code>1-147</code></td><td>模块 imports（含 6 处 <code>feature()</code> 条件 <code>require()</code>）</td></tr>
+      <tr><td><code>149-198</code></td><td><code>yieldMissingToolResultBlocks()</code> — 为孤儿 tool_use 生成合成错误结果</td></tr>
+      <tr><td><code>200-234</code></td><td><code>isWithheldMaxOutputTokens()</code> — max_output_tokens 错误类型守卫</td></tr>
+      <tr><td><code>236-282</code></td><td><code>getAutonomyTurnOutcome()</code> — 映射终止原因为 AutonomyTurnOutcome</td></tr>
+      <tr><td><code>284-302</code></td><td><code>QueryParams</code> 导出类型</td></tr>
+      <tr><td><code>307-320</code></td><td><code>State</code> 内部类型</td></tr>
+      <tr><td><code>322-511</code></td><td><code>query()</code> 导出函数（入口 + finally 清理链）</td></tr>
+      <tr><td><code>526-2370</code></td><td><code>queryLoop()</code> 内部函数（核心循环主体）</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 二、导出类型与接口 ════════════════ -->
+<section id="sec-2">
+  <h2>二、导出类型与接口</h2>
+
+  <h3>2.1 QueryParams（query.ts:284-302）</h3>
+  <p><code>query()</code> 的入参类型——不可变快照，入口处一次性传入，循环内绝不重新赋值。</p>
+
+<pre><code><span class="k">export type</span> <span class="t">QueryParams</span> <span class="p">=</span> {
+  <span class="n">messages</span><span class="p">:</span> <span class="t">Message</span>[]                      <span class="c">// 当前对话历史（不可变快照）</span>
+  <span class="n">systemPrompt</span><span class="p">:</span> <span class="t">SystemPrompt</span>              <span class="c">// 基础系统提示词（缓存分块数组）</span>
+  <span class="n">userContext</span><span class="p">:</span> { [k: <span class="t">string</span>]: <span class="t">string</span> }     <span class="c">// 用户上下文（CLAUDE.md + 日期）</span>
+  <span class="n">systemContext</span><span class="p">:</span> { [k: <span class="t">string</span>]: <span class="t">string</span> }   <span class="c">// 系统上下文（git status）</span>
+  <span class="n">canUseTool</span><span class="p">:</span> <span class="t">CanUseToolFn</span>                 <span class="c">// 权限决策回调</span>
+  <span class="n">toolUseContext</span><span class="p">:</span> <span class="t">ToolUseContext</span>            <span class="c">// 工具执行共享上下文</span>
+  <span class="n">fallbackModel</span><span class="p">?:</span> <span class="t">string</span>                   <span class="c">// 主模型失败时的备用模型</span>
+  <span class="n">querySource</span><span class="p">:</span> <span class="t">QuerySource</span>                 <span class="c">// 调用来源标识</span>
+  <span class="n">maxOutputTokensOverride</span><span class="p">?:</span> <span class="t">number</span>         <span class="c">// 覆盖 max_output_tokens</span>
+  <span class="n">maxTurns</span><span class="p">?:</span> <span class="t">number</span>                        <span class="c">// 最大工具调用轮次</span>
+  <span class="n">skipCacheWrite</span><span class="p">?:</span> <span class="t">boolean</span>                 <span class="c">// 跳过 prompt cache 写入</span>
+  <span class="n">taskBudget</span><span class="p">?:</span> { <span class="n">total</span>: <span class="t">number</span> }           <span class="c">// API 级 task_budget</span>
+  <span class="n">deps</span><span class="p">?:</span> <span class="t">QueryDeps</span>                         <span class="c">// 可注入依赖（测试用）</span>
+}</code></pre>
+
+  <h3>2.2 query() 函数签名（query.ts:344-352）</h3>
+<pre><code><span class="k">export async function*</span> <span class="n">query</span>(
+  params: <span class="t">QueryParams</span>,
+): <span class="t">AsyncGenerator</span>&lt;
+  | <span class="t">StreamEvent</span>            <span class="c">// Anthropic SSE 原始事件</span>
+  | <span class="t">RequestStartEvent</span>      <span class="c">// HTTP 请求启动信号</span>
+  | <span class="t">Message</span>                <span class="c">// 完整消息（assistant/user/system/attachment）</span>
+  | <span class="t">TombstoneMessage</span>       <span class="c">// 要求删除已 yield 的消息</span>
+  | <span class="t">ToolUseSummaryMessage</span>  <span class="c">// 子 agent 工具使用摘要</span>
+  <span class="t">Terminal</span>                 <span class="c">// 返回值：终止原因</span>
+&gt;</code></pre>
+
+  <h3>2.3 State 内部可变状态体（query.ts:307-320）</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+      <tr><td><code>messages</code></td><td><code>Message[]</code></td><td>当前迭代的消息列表</td></tr>
+      <tr><td><code>toolUseContext</code></td><td><code>ToolUseContext</code></td><td>工具上下文（含 abortController）</td></tr>
+      <tr><td><code>autoCompactTracking</code></td><td><code>AutoCompactTrackingState | undefined</code></td><td>compact 状态追踪</td></tr>
+      <tr><td><code>maxOutputTokensRecoveryCount</code></td><td><code>number</code></td><td>max_output_tokens 恢复次数</td></tr>
+      <tr><td><code>hasAttemptedReactiveCompact</code></td><td><code>boolean</code></td><td>是否已尝试 reactive compact</td></tr>
+      <tr><td><code>maxOutputTokensOverride</code></td><td><code>number | undefined</code></td><td>动态 token 上限覆盖</td></tr>
+      <tr><td><code>pendingToolUseSummary</code></td><td><code>Promise&lt;...&gt; | undefined</code></td><td>异步 Haiku 摘要</td></tr>
+      <tr><td><code>stopHookActive</code></td><td><code>boolean | undefined</code></td><td>stop hook 是否活跃</td></tr>
+      <tr><td><code>turnCount</code></td><td><code>number</code></td><td>已执行轮次数</td></tr>
+      <tr><td><code>transition</code></td><td><code>Continue | undefined</code></td><td>上一次继续的原因</td></tr>
+    </table>
+  </div>
+
+  <div class="callout blue">
+    <strong>设计要点：</strong><code>State</code> 是循环内部的可变对象，<code>params</code> 是入口处一次性传入的不可变快照。每次迭代开头解构 <code>state</code>，继续点统一用 <code>state = { ... }</code> 整体替换，避免 9 个独立赋值导致的竞态。
+  </div>
+</section>
+
+<!-- ════════════════ 三、对外调用方全景 ════════════════ -->
+<section id="sec-3">
+  <h2>三、对外调用方全景</h2>
+
+  <h3>3.1 调用链总图</h3>
+  <div class="mermaid-box">graph TD
+    subgraph "入口层"
+        cli_repl["REPL 交互 · screens/REPL.tsx:3450"]
+        cli_print["-p / headless · cli/print.ts:2202"]
+        acp["ACP 编辑器桥接 · services/acp/agent.ts:308"]
+        ctrlb["Ctrl+B 后台 · tasks/LocalMainSessionTask.ts:384"]
+    end
+
+    subgraph "中间层"
+        qe["QueryEngine.submitMessage() · QueryEngine.ts:732"]
+        ask["ask() · QueryEngine.ts:1328"]
+        bg["startBackgroundSession() · LocalMainSessionTask.ts:340"]
+        fork["runForkedAgent() · utils/forkedAgent.ts:517"]
+        hook["execAgentHook() · utils/hooks/execAgentHook.ts:59"]
+    end
+
+    subgraph "底层引擎"
+        query["query() · src/query.ts:344"]
+    end
+
+    cli_repl --&gt;|"直接消费 querySource: repl_main_thread"| query
+    cli_print --&gt; ask
+    acp --&gt; qe
+    ask --&gt; qe
+    qe --&gt;|"for await of query() querySource: sdk"| query
+    bg --&gt; query
+    fork --&gt; query
+    hook --&gt; query
+    ctrlb --&gt; bg</div>
+
+  <h3>3.2 四大直接调用方</h3>
+
+  <div class="caller-grid">
+    <div class="caller-card">
+      <div class="caller-header orange">A: QueryEngine.submitMessage()</div>
+      <div class="caller-body">
+        <p class="file">QueryEngine.ts:732-758</p>
+        <p><strong>场景：</strong>SDK / headless / ACP 路径</p>
+        <p><strong>上游：</strong><code>ask()</code>（-p 模式）、ACP agent（Zed 编辑器）</p>
+        <p><strong>querySource：</strong><code>'sdk'</code></p>
+        <p><strong>特点：</strong>所有 stop hook 完整启用，排队命令路由到主线程</p>
+      </div>
+    </div>
+    <div class="caller-card">
+      <div class="caller-header blue">B: startBackgroundSession()</div>
+      <div class="caller-body">
+        <p class="file">LocalMainSessionTask.ts:340-387</p>
+        <p><strong>场景：</strong>Ctrl+B 后台任务</p>
+        <p><strong>触发：</strong>用户在 REPL 中按 Ctrl+B</p>
+        <p><strong>特点：</strong>透传前台 queryParams，在 runWithAgentContext() 中 ALS 隔离</p>
+      </div>
+    </div>
+    <div class="caller-card">
+      <div class="caller-header purple">C: runForkedAgent()</div>
+      <div class="caller-body">
+        <p class="file">utils/forkedAgent.ts:517-584</p>
+        <p><strong>场景：</strong>11 种 fork agent（compact, memory, recap...）</p>
+        <p><strong>特点：</strong>每次 createSubagentContext() 隔离可变状态</p>
+      </div>
+    </div>
+    <div class="caller-card">
+      <div class="caller-header green">D: execAgentHook()</div>
+      <div class="caller-body">
+        <p class="file">utils/hooks/execAgentHook.ts:59-198</p>
+        <p><strong>场景：</strong>stop hook 多轮 LLM 验证</p>
+        <p><strong>特点：</strong>querySource='hook_agent'，mode:'dontAsk'，最多 50 轮</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>3.3 runForkedAgent 的 8 种调用方</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>调用方</th><th>文件:行号</th><th>querySource</th><th>场景</th></tr>
+      <tr><td>compact</td><td><code>compact.ts:1222</code></td><td><code>'compact'</code></td><td>上下文压缩（fork agent 做摘要）</td></tr>
+      <tr><td>sessionMemory</td><td><code>sessionMemory.ts:325,427</code></td><td><code>'session_memory'</code></td><td>自动提取会话记忆</td></tr>
+      <tr><td>extractMemories</td><td><code>extractMemories.ts:412</code></td><td><code>'session_memory'</code></td><td>显式记忆提取</td></tr>
+      <tr><td>promptSuggestion</td><td><code>promptSuggestion.ts:321</code></td><td><code>'prompt_suggestion'</code></td><td>建议下一个 prompt</td></tr>
+      <tr><td>speculation</td><td><code>speculation.ts:460</code></td><td><code>'speculation'</code></td><td>推测性 prompt 生成</td></tr>
+      <tr><td>generateRecap</td><td><code>generateRecap.ts:68</code></td><td><code>'recap'</code></td><td>/recap 命令</td></tr>
+      <tr><td>sideQuestion</td><td><code>sideQuestion.ts:80</code></td><td><code>'side_question'</code></td><td>侧问（auto mode 等）</td></tr>
+      <tr><td>autoDream</td><td><code>autoDream.ts:225</code></td><td><code>'auto_dream'</code></td><td>空闲时的自动处理</td></tr>
+    </table>
+  </div>
+
+  <h3>3.4 querySource 语义总表</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>querySource</th><th>路径</th><th>特殊行为</th></tr>
+      <tr><td><code>'repl_main_thread'</code></td><td>REPL 直接消费</td><td>stop hook 保存 cacheSafeParams；blocking limit 正常检查</td></tr>
+      <tr><td><code>'sdk'</code></td><td>QueryEngine / ask()</td><td>stop hook 保存 cacheSafeParams；blocking limit 正常检查</td></tr>
+      <tr><td><code>'compact'</code></td><td>runForkedAgent → compact</td><td>跳过 blocking limit（防死锁）；跳过 snip</td></tr>
+      <tr><td><code>'session_memory'</code></td><td>runForkedAgent → memory</td><td>跳过 blocking limit（防死锁）</td></tr>
+      <tr><td><code>'hook_agent'</code></td><td>execAgentHook</td><td>stop hook 行为受限</td></tr>
+      <tr><td><code>'agent:&lt;agentId&gt;'</code></td><td>AgentTool 子 agent</td><td>排队命令路由到子 agent</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 四、query() 入口函数 ════════════════ -->
+<section id="sec-4">
+  <h2>四、query() 入口函数（query.ts:344-511）</h2>
+
+  <h3>4.1 入口职责</h3>
+  <p><code>query()</code> 是对外暴露的 async generator，核心逻辑委托给内部的 <code>queryLoop()</code>。它自身负责<strong>生命周期管理</strong>：</p>
+
+  <div class="flow-steps">
+    <div class="flow-step"><span class="flow-num">1</span><div class="flow-body"><div class="flow-title">初始化追踪数组 <code>:358</code></div><div class="flow-desc"><code>consumedCommandUuids</code> 和 <code>consumedAutonomyCommands</code></div></div></div>
+    <div class="flow-step"><span class="flow-num">2</span><div class="flow-body"><div class="flow-title">Langfuse trace 管理 <code>:364-379</code></div><div class="flow-desc">子 agent 复用父 trace，主调用创建新 trace</div></div></div>
+    <div class="flow-step"><span class="flow-num">3</span><div class="flow-body"><div class="flow-title">委托 queryLoop <code>:401</code></div><div class="flow-desc"><code>terminal = yield* queryLoop(...)</code> — 透传所有 yield</div></div></div>
+    <div class="flow-step"><span class="flow-num">4</span><div class="flow-body"><div class="flow-title">finally 三重清理链 <code>:418-492</code></div><div class="flow-desc">finalizeAutonomyCommands → endTrace → flushLangfuse → 闭包置 null → gPerf.clearMarks</div></div></div>
+    <div class="flow-step"><span class="flow-num">5</span><div class="flow-body"><div class="flow-title">通知命令完成 <code>:503-505</code></div><div class="flow-desc"><code>notifyCommandLifecycle(uuid, 'completed')</code></div></div></div>
+  </div>
+
+  <h3>4.2 finally 三重清理链</h3>
+  <div class="callout red">
+    <strong>为什么需要清理：</strong>
+    <ul>
+      <li><code>flushLangfuse()</code> — SpanImpl 对象保留序列化对话历史（数百 KB JSON），不 flush 要等批次定时器（默认 10s）</li>
+      <li>闭包置 null — <code>toolUseContext.langfuseTrace</code> 捕获了 SpanImpl → <code>otperformance</code>（571MB Performance 对象），不斩断 GC 无法回收</li>
+      <li><code>gPerf.clearMarks()</code> — OTel 引用的 <code>globalThis.performance</code> 把 marks/measures 存在永不收缩的 C++ Vector 中</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ════════════════ 五、queryLoop 核心循环详解 ════════════════ -->
+<section id="sec-5">
+  <h2>五、queryLoop() 核心循环详解</h2>
+
+  <h3>5.1 初始化阶段（:542-599）</h3>
+  <div class="flow-steps">
+    <div class="flow-step"><span class="flow-num">1</span><div class="flow-body"><div class="flow-title">解构不可变 params <code>:543-552</code></div><div class="flow-desc">systemPrompt, userContext, systemContext, canUseTool, fallbackModel, querySource...</div></div></div>
+    <div class="flow-step"><span class="flow-num">2</span><div class="flow-body"><div class="flow-title">初始化可变 State <code>:562-573</code></div><div class="flow-desc">messages, toolUseContext, turnCount=1, recoveryCount=0, hasAttemptedReactiveCompact=false</div></div></div>
+    <div class="flow-step"><span class="flow-num">3</span><div class="flow-body"><div class="flow-title">创建 BudgetTracker <code>:574</code></div><div class="flow-desc">TOKEN_BUDGET 门控</div></div></div>
+    <div class="flow-step"><span class="flow-num">4</span><div class="flow-body"><div class="flow-title">快照 QueryConfig <code>:587</code></div><div class="flow-desc"><code>buildQueryConfig()</code> — 一次性快照 env/Statsig 状态</div></div></div>
+    <div class="flow-step"><span class="flow-num">5</span><div class="flow-body"><div class="flow-title">启动 Memory 预取 <code>:597</code></div><div class="flow-desc"><code>using pendingMemoryPrefetch = startRelevantMemoryPrefetch()</code></div></div></div>
+  </div>
+
+  <h3>5.2 14 步流水线总览</h3>
+  <div class="flow-steps">
+    <div class="flow-step"><span class="flow-num">1</span><div class="flow-body"><div class="flow-title">技能/工具预取 <code>:634-643</code></div><div class="flow-desc">startSkillDiscoveryPrefetch + startSearchExtraToolsPrefetch — 与 API 调用并行</div></div></div>
+    <div class="flow-step"><span class="flow-num">2</span><div class="flow-body"><div class="flow-title">yield stream_request_start <code>:649</code></div><div class="flow-desc">通知调用方 HTTP 请求即将开始</div></div></div>
+    <div class="flow-step"><span class="flow-num">3</span><div class="flow-body"><div class="flow-title">历史裁边 <code>:685</code></div><div class="flow-desc">getMessagesAfterCompactBoundary — 只保留 compact 之后的消息</div></div></div>
+    <div class="flow-step"><span class="flow-num">4</span><div class="flow-body"><div class="flow-title">释放 toolUseResult <code>:696-704</code></div><div class="flow-desc">删除原始工具输出对象，防止 400KB FileRead 永久驻留内存</div></div></div>
+    <div class="flow-step"><span class="flow-num">5</span><div class="flow-body"><div class="flow-title">工具结果预算 <code>:720-735</code></div><div class="flow-desc">applyToolResultBudget — 按消息预算限制聚合工具结果大小</div></div></div>
+    <div class="flow-step"><span class="flow-num">6</span><div class="flow-body"><div class="flow-title">History Snip <code>:746-762</code></div><div class="flow-desc">HISTORY_SNIP 门控 — 移除旧历史，释放 token</div></div></div>
+    <div class="flow-step"><span class="flow-num">7</span><div class="flow-body"><div class="flow-title">Microcompact <code>:770-794</code></div><div class="flow-desc">替换旧工具结果为清理摘要</div></div></div>
+    <div class="flow-step"><span class="flow-num">8</span><div class="flow-body"><div class="flow-title">Context Collapse <code>:806-821</code></div><div class="flow-desc">CONTEXT_COLLAPSE 门控 — 上下文折叠投影（在 autocompact 之前）</div></div></div>
+    <div class="flow-step"><span class="flow-num">9</span><div class="flow-body"><div class="flow-title">系统提示词构建 <code>:823-825</code></div><div class="flow-desc"><code>asSystemPrompt(appendSystemContext(systemPrompt, systemContext))</code></div></div></div>
+    <div class="flow-step"><span class="flow-num">10</span><div class="flow-body"><div class="flow-title">Autocompact <code>:836-931</code></div><div class="flow-desc">超阈值时完整摘要压缩</div></div></div>
+    <div class="flow-step"><span class="flow-num">11</span><div class="flow-body"><div class="flow-title">阻塞限制 + 预测式 compact <code>:1022-1101</code></div><div class="flow-desc">硬阻塞检查 + 估算本轮增长提前 compact</div></div></div>
+    <div class="flow-step"><span class="flow-num">12</span><div class="flow-body"><div class="flow-title">API 流式调用 <code>:1116-1335</code></div><div class="flow-desc">deps.callModel() → queryModelWithStreaming — 流式事件 yield + 工具收集 + 实时执行</div></div></div>
+    <div class="flow-step"><span class="flow-num">13</span><div class="flow-body"><div class="flow-title">错误恢复 / Stop Hooks <code>:1596-1934</code></div><div class="flow-desc">PTL 两阶段 / max_output_tokens 三档 / stop hooks / token budget</div></div></div>
+    <div class="flow-step"><span class="flow-num">14</span><div class="flow-body"><div class="flow-title">工具执行 + 附件 + 状态更新 <code>:1936-2369</code></div><div class="flow-desc">runTools/StreamingToolExecutor → 附件注入 → MCP 刷新 → maxTurns 检查 → state 更新</div></div></div>
+  </div>
+
+  <h3>5.3 状态机转移图</h3>
+  <div class="state-flow">
+    <div class="sf-title">Terminal（终止）转移：</div>
+    <div class="state-transitions">
+      <div class="sf-row"><span class="sf-from">无 tool_use + hooks 通过</span><span class="sf-arrow">→</span><span class="sf-to terminal">completed</span></div>
+      <div class="sf-row"><span class="sf-from">上下文硬阻塞</span><span class="sf-arrow">→</span><span class="sf-to terminal">blocking_limit</span></div>
+      <div class="sf-row"><span class="sf-from">PTL 恢复失败</span><span class="sf-arrow">→</span><span class="sf-to terminal">prompt_too_long</span></div>
+      <div class="sf-row"><span class="sf-from">媒体错误恢复失败</span><span class="sf-arrow">→</span><span class="sf-to terminal">image_error</span></div>
+      <div class="sf-row"><span class="sf-from">API 错误（不可恢复）</span><span class="sf-arrow">→</span><span class="sf-to terminal">model_error</span></div>
+      <div class="sf-row"><span class="sf-from">用户中断（流式中）</span><span class="sf-arrow">→</span><span class="sf-to terminal">aborted_streaming</span></div>
+      <div class="sf-row"><span class="sf-from">用户中断（工具中）</span><span class="sf-arrow">→</span><span class="sf-to terminal">aborted_tools</span></div>
+      <div class="sf-row"><span class="sf-from">stop hook 阻止继续</span><span class="sf-arrow">→</span><span class="sf-to terminal">stop_hook_prevented</span></div>
+      <div class="sf-row"><span class="sf-from">hook 阻止继续（工具后）</span><span class="sf-arrow">→</span><span class="sf-to terminal">hook_stopped</span></div>
+      <div class="sf-row"><span class="sf-from">达到最大轮次</span><span class="sf-arrow">→</span><span class="sf-to terminal">max_turns</span></div>
+    </div>
+  </div>
+
+  <div class="state-flow" style="margin-top:18px">
+    <div class="sf-title">Continue（继续）转移：</div>
+    <div class="state-transitions">
+      <div class="sf-row"><span class="sf-from">有 tool_use 块</span><span class="sf-arrow">→</span><span class="sf-to continue">next_turn</span><span class="sf-desc">工具执行成功，追加结果后继续</span></div>
+      <div class="sf-row"><span class="sf-from">PTL → collapse 排空</span><span class="sf-arrow">→</span><span class="sf-to continue">collapse_drain_retry</span><span class="sf-desc">context collapse 第一阶段恢复</span></div>
+      <div class="sf-row"><span class="sf-from">PTL/媒体 → reactive compact</span><span class="sf-arrow">→</span><span class="sf-to continue">reactive_compact_retry</span><span class="sf-desc">完整摘要压缩恢复</span></div>
+      <div class="sf-row"><span class="sf-from">8k → 64k 升级</span><span class="sf-arrow">→</span><span class="sf-to continue">max_output_tokens_escalate</span><span class="sf-desc">一次性上限升级</span></div>
+      <div class="sf-row"><span class="sf-from">注入续写 prompt (×3)</span><span class="sf-arrow">→</span><span class="sf-to continue">max_output_tokens_recovery</span><span class="sf-desc">多轮恢复</span></div>
+      <div class="sf-row"><span class="sf-from">stop hook blocking errors</span><span class="sf-arrow">→</span><span class="sf-to continue">stop_hook_blocking</span><span class="sf-desc">注入错误消息后重试</span></div>
+      <div class="sf-row"><span class="sf-from">token budget 续写</span><span class="sf-arrow">→</span><span class="sf-to continue">token_budget_continuation</span><span class="sf-desc">注入 nudge message</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ 六、系统提示词构建 ════════════════ -->
+<section id="sec-6">
+  <h2>六、系统提示词构建</h2>
+
+  <h3>6.1 数据流全景</h3>
+  <div class="token-flow">
+    <span class="tok-node engine">fetchSystemPromptParts()</span>
+    <span class="tok-arrow">→</span>
+    <span class="tok-node">getSystemPrompt() + getUserContext() + getSystemContext()</span>
+    <span class="tok-arrow">→</span>
+    <span class="tok-node engine">appendSystemContext()</span>
+    <span class="tok-arrow">→</span>
+    <span class="tok-node engine">asSystemPrompt()</span>
+    <span class="tok-arrow">→</span>
+    <span class="tok-node api">API 调用</span>
+  </div>
+
+  <h3>6.2 三个并行任务</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>函数</th><th>产出</th><th>包含内容</th></tr>
+      <tr><td><code>getSystemPrompt</code></td><td><code>string[]</code></td><td>角色定位、环境信息、skill 命令、输出规范、语言规则、MCP 指令</td></tr>
+      <tr><td><code>getUserContext</code></td><td><code>{ claudeMd?, currentDate }</code></td><td>所有层级的 CLAUDE.md 合并内容 + 今日日期</td></tr>
+      <tr><td><code>getSystemContext</code></td><td><code>{ gitStatus?, cacheBreaker? }</code></td><td><code>git status --short</code> + 近 5 条 commit log</td></tr>
+    </table>
+  </div>
+
+  <h3>6.3 appendSystemContext — 系统上下文追加（utils/api.ts:431）</h3>
+  <p>将 <code>systemContext</code> 中的 key-value 对（主要是 gitStatus）格式化为文本块，追加到 systemPrompt 数组末尾。</p>
+
+  <h3>6.4 prependUserContext — CLAUDE.md 注入</h3>
+  <p>将 <code>userContext</code>（主要是 claudeMd）包装为 <code>&lt;project-instructions&gt;</code> 标签的 user message，注入到消息数组<strong>开头</strong>。</p>
+  <div class="callout blue">
+    <strong>为什么是 user message 而非 system prompt：</strong>CLAUDE.md 的内容在 API 调用之间可能变化（文件被编辑），放在 user message 中可以利用 prompt caching 的 <code>cache_control</code> 标记。
+  </div>
+
+  <h3>6.5 最终拼装顺序（queryLoop 内 :823-825）</h3>
+<pre><code><span class="k">const</span> fullSystemPrompt = <span class="n">asSystemPrompt</span>(
+  <span class="n">appendSystemContext</span>(systemPrompt, systemContext),
+)</code></pre>
+</section>
+
+<!-- ════════════════ 七、Skills 集成 ════════════════ -->
+<section id="sec-7">
+  <h2>七、Skills 集成</h2>
+
+  <h3>7.1 Prefetch-Then-Consume 模式</h3>
+  <div class="token-flow">
+    <span class="tok-node engine">startSkillDiscoveryPrefetch()<br/>:634（步骤 1）</span>
+    <span class="tok-arrow">→ 并行 →</span>
+    <span class="tok-node api">API 调用<br/>:1116（步骤 12）</span>
+    <span class="tok-arrow">→</span>
+    <span class="tok-node engine">collectSkillDiscoveryPrefetch()<br/>:2235（步骤 14）</span>
+    <span class="tok-arrow">→</span>
+    <span class="tok-node global">attachment 注入</span>
+  </div>
+
+  <h3>7.2 预取启动（:634-638）</h3>
+<pre><code><span class="k">const</span> pendingSkillPrefetch = skillPrefetch?.<span class="n">startSkillDiscoveryPrefetch</span>(
+  <span class="k">null</span>, messages, toolUseContext,
+)</code></pre>
+  <ul>
+    <li><strong>门控：</strong><code>EXPERIMENTAL_SKILL_SEARCH</code> feature flag</li>
+    <li><strong>时机：</strong>每次迭代开头，与 API 调用并行执行</li>
+    <li><strong>算法：</strong>TF-IDF 搜索匹配的技能</li>
+  </ul>
+
+  <h3>7.3 结果消费（:2235-2243）</h3>
+<pre><code><span class="k">if</span> (skillPrefetch &amp;&amp; pendingSkillPrefetch) {
+  <span class="k">const</span> skillAttachments = <span class="k">await</span> skillPrefetch.<span class="n">collectSkillDiscoveryPrefetch</span>(pendingSkillPrefetch)
+  <span class="k">for</span> (<span class="k">const</span> att <span class="k">of</span> skillAttachments) {
+    <span class="k">const</span> msg = <span class="n">createAttachmentMessage</span>(att)
+    <span class="k">yield</span> msg
+    toolResults.<span class="n">push</span>(msg)
+  }
+}</code></pre>
+
+  <h3>7.4 去重机制</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>机制</th><th>位置</th><th>生命周期</th><th>说明</th></tr>
+      <tr><td><code>discoveredSkillNames</code></td><td>QueryEngine.ts:227</td><td>每 turn 清空</td><td>防止同一 turn 内重复加载</td></tr>
+      <tr><td>skillSearch 内部 Set</td><td>prefetch.ts</td><td>跨迭代（FIFO 1000）</td><td>评分 ≥ 0.30，最多 2 个，每个 ≤ 12k 字符</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 八、MCP 工具集成 ════════════════ -->
+<section id="sec-8">
+  <h2>八、MCP 工具集成</h2>
+
+  <h3>8.1 MCP 工具传入 API（:1146-1149）</h3>
+<pre><code>mcpTools: appState.mcp.tools,
+hasPendingMcpServers: appState.mcp.clients.some(c =&gt; c.type === <span class="s">'pending'</span>),</code></pre>
+  <ul>
+    <li><code>mcpTools</code> — 已连接的 MCP 服务器提供的工具列表，与内置工具合并后传给 API</li>
+    <li><code>hasPendingMcpServers</code> — 信号：还有 MCP 服务器在连接中</li>
+  </ul>
+
+  <h3>8.2 工具刷新（:2290-2302）</h3>
+  <p>每次工具执行完成后、下一轮迭代之前，调用 <code>refreshTools()</code> 让新连接的 MCP server 提供的工具在下一轮可用。</p>
+
+  <h3>8.3 Chicago MCP Cleanup</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>清理点</th><th>行号</th><th>触发条件</th><th>作用</th></tr>
+      <tr><td>流式中断</td><td><code>:1563-1572</code></td><td><code>abortController.signal.aborted</code>（流中）</td><td>自动取消隐藏 + 释放锁</td></tr>
+      <tr><td>工具中断</td><td><code>:2081-2090</code></td><td><code>abortController.signal.aborted</code>（工具后）</td><td>同上（最常见的 Ctrl+C 路径）</td></tr>
+    </table>
+  </div>
+  <p>仅主线程执行（<code>!toolUseContext.agentId</code>）。CHICAGO_MCP feature 门控。</p>
+
+  <h3>8.4 延迟工具路由</h3>
+  <p>MCP 工具尚未连接时，标记为 "deferred"。通过 <code>SearchExtraToolsTool</code> + <code>ExecuteExtraTool</code> 路由。搜索预取在 <code>:639-643</code> 启动，结果在 <code>:2246-2256</code> 作为附件注入。</p>
+</section>
+
+<!-- ════════════════ 九、错误恢复矩阵 ════════════════ -->
+<section id="sec-9">
+  <h2>九、错误恢复矩阵</h2>
+
+  <h3>9.1 PTL（Prompt Too Long）两阶段恢复</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>阶段</th><th>行号</th><th>转移原因</th><th>动作</th></tr>
+      <tr><td>1</td><td><code>:1632-1660</code></td><td><code>collapse_drain_retry</code></td><td><code>contextCollapse.recoverFromOverflow()</code> — 排空已分阶段的 collapse，保留细粒度上下文</td></tr>
+      <tr><td>2</td><td><code>:1662-1713</code></td><td><code>reactive_compact_retry</code></td><td><code>reactiveCompact.tryReactiveCompact()</code> — 完整摘要压缩</td></tr>
+    </table>
+  </div>
+
+  <h3>9.2 max_output_tokens 三档恢复</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>档位</th><th>行号</th><th>转移原因</th><th>动作</th></tr>
+      <tr><td>1</td><td><code>:1746-1776</code></td><td><code>max_output_tokens_escalate</code></td><td>8k → 64k 上限升级（一次性），Statsig gate <code>tengu_otk_slot_v1</code></td></tr>
+      <tr><td>2</td><td><code>:1778-1811</code></td><td><code>max_output_tokens_recovery</code></td><td>注入续写 prompt（最多 3 次）</td></tr>
+      <tr><td>3</td><td><code>:1813-1815</code></td><td>—</td><td>恢复耗尽，暴露扣留的错误</td></tr>
+    </table>
+  </div>
+
+  <div class="callout">
+    <strong>续写 prompt 内容（:1784-1787）：</strong><br/>
+    <code>Output token limit hit. Resume directly — no apology, no recap of what you were doing. Pick up mid-thought if that is where the cut happened. Break remaining work into smaller pieces.</code>
+  </div>
+
+  <h3>9.3 FallbackTriggeredError 模型切换</h3>
+  <div class="flow-steps">
+    <div class="flow-step"><span class="flow-num">1</span><div class="flow-body"><div class="flow-title"><code>currentModel = fallbackModel</code> <code>:1375</code></div></div></div>
+    <div class="flow-step"><span class="flow-num">2</span><div class="flow-body"><div class="flow-title">yieldMissingToolResultBlocks() <code>:1379</code></div><div class="flow-desc">为孤儿 tool_use 生成合成错误结果</div></div></div>
+    <div class="flow-step"><span class="flow-num">3</span><div class="flow-body"><div class="flow-title">清空状态 + 丢弃 StreamingToolExecutor <code>:1383-1397</code></div></div></div>
+    <div class="flow-step"><span class="flow-num">4</span><div class="flow-body"><div class="flow-title">stripSignatureBlocks() <code>:1405</code></div><div class="flow-desc">剥离 thinking 签名（ant 模式，防止 400 错误）</div></div></div>
+    <div class="flow-step"><span class="flow-num">5</span><div class="flow-body"><div class="flow-title">yield 系统消息通知 <code>:1427</code></div><div class="flow-desc">"Switched to {fallback} due to high demand for {original}"</div></div></div>
+  </div>
+
+  <h3>9.4 完整恢复流程</h3>
+  <div class="mermaid-box">flowchart TD
+    API["API 响应完成 needsFollowUp=false"] --&gt; CHK1{"isWithheld413?"}
+    CHK1 --&gt;|"是"| CC{"CONTEXT_COLLAPSE 且上次非 collapse_drain?"}
+    CC --&gt;|"是"| DRAIN["collapse_drain_retry"]
+    CC --&gt;|"否"| RC
+    DRAIN --&gt;|"drained &gt; 0"| RETRY1["continue → API"]
+    RC["reactive_compact_retry"] --&gt;|"成功"| RETRY2["continue → API"]
+    RC --&gt;|"失败"| EXPOSE1["return prompt_too_long / image_error"]
+
+    CHK1 --&gt;|"否"| CHK3{"isWithheldMaxOutputTokens?"}
+    CHK3 --&gt;|"是 无override"| ESC["max_output_tokens_escalate 8k→64k"]
+    ESC --&gt; RETRY3["continue → API"]
+    CHK3 --&gt;|"是 有override count&lt;3"| REC["max_output_tokens_recovery"]
+    REC --&gt; RETRY4["continue → API"]
+    CHK3 --&gt;|"否"| SH["handleStopHooks()"]
+    SH --&gt;|"prevent"| SP["return stop_hook_prevented"]
+    SH --&gt;|"blocking"| SB["continue stop_hook_blocking"]
+    SH --&gt;|"通过"| OK["return completed"]</div>
+</section>
+
+<!-- ════════════════ 十、上下文管理管线 ════════════════ -->
+<section id="sec-10">
+  <h2>十、上下文管理管线</h2>
+
+  <h3>10.1 六级管线</h3>
+  <div class="flow-steps">
+    <div class="flow-step"><span class="flow-num">1</span><div class="flow-body"><div class="flow-title">getMessagesAfterCompactBoundary() <code>:685</code></div><div class="flow-desc">裁掉 compact 之前的历史（零成本纯裁剪）</div></div></div>
+    <div class="flow-step"><span class="flow-num">2</span><div class="flow-body"><div class="flow-title">applyToolResultBudget() <code>:720</code></div><div class="flow-desc">按消息预算限制工具结果大小（替换为占位符）</div></div></div>
+    <div class="flow-step"><span class="flow-num">3</span><div class="flow-body"><div class="flow-title">snipCompact() <code>:746</code> <span style="font-size:.75rem;background:var(--purple-lt);padding:2px 6px;border-radius:4px;color:var(--purple)">HISTORY_SNIP</span></div><div class="flow-desc">移除旧历史段（一次 fork agent 调用）</div></div></div>
+    <div class="flow-step"><span class="flow-num">4</span><div class="flow-body"><div class="flow-title">microcompact() <code>:770</code></div><div class="flow-desc">替换旧工具结果为清理摘要（纯文本替换）</div></div></div>
+    <div class="flow-step"><span class="flow-num">5</span><div class="flow-body"><div class="flow-title">contextCollapse.applyCollapsesIfNeeded() <code>:806</code> <span style="font-size:.75rem;background:var(--purple-lt);padding:2px 6px;border-radius:4px;color:var(--purple)">CONTEXT_COLLAPSE</span></div><div class="flow-desc">上下文折叠投影（读时投影，可恢复）</div></div></div>
+    <div class="flow-step"><span class="flow-num">6</span><div class="flow-body"><div class="flow-title">autocompact() <code>:836</code></div><div class="flow-desc">超阈值时完整摘要压缩（一次 fork agent 调用）</div></div></div>
+  </div>
+
+  <h3>10.2 各级设计对比</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>级别</th><th>模块</th><th>粒度</th><th>不可逆？</th><th>成本</th></tr>
+      <tr><td>1. Compact boundary</td><td>getMessagesAfterCompactBoundary</td><td>按压缩边界裁剪</td><td>是</td><td>零</td></tr>
+      <tr><td>2. Tool result budget</td><td>applyToolResultBudget</td><td>按消息预算截断</td><td>是</td><td>低</td></tr>
+      <tr><td>3. History snip</td><td>snipCompact</td><td>移除旧历史段</td><td>是</td><td>fork agent</td></tr>
+      <tr><td>4. Microcompact</td><td>microcompactMessages</td><td>按 tool_use_id 替换</td><td>是</td><td>零</td></tr>
+      <tr><td>5. Context collapse</td><td>contextCollapse</td><td>按轮次折叠</td><td>可恢复</td><td>低</td></tr>
+      <tr><td>6. Autocompact</td><td>autoCompactIfNeeded</td><td>全量摘要</td><td>是</td><td>fork agent</td></tr>
+    </table>
+  </div>
+
+  <h3>10.3 预测式 Autocompact（:1057-1101）</h3>
+<pre><code><span class="k">const</span> currentTokens = <span class="n">tokenCountWithEstimation</span>(messagesForQuery) - snipTokensFreed
+<span class="k">const</span> estimatedGrowth = <span class="n">estimateMaxTurnGrowth</span>(model)
+<span class="k">const</span> predictiveThreshold = <span class="n">getEffectiveContextWindowSize</span>(model) - estimatedGrowth
+
+<span class="k">if</span> (currentTokens &gt; predictiveThreshold) {
+  <span class="c">// 提前触发 compact，避免在 API 调用时撞墙</span>
+}</code></pre>
+</section>
+
+<!-- ════════════════ 十一、流式处理与工具执行 ════════════════ -->
+<section id="sec-11">
+  <h2>十一、流式处理与工具执行</h2>
+
+  <h3>11.1 StreamingToolExecutor vs runTools</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>维度</th><th>StreamingToolExecutor</th><th>runTools</th></tr>
+      <tr><td>门控</td><td>Statsig <code>tengu_streamling_tool_execution2</code></td><td>默认路径</td></tr>
+      <tr><td>时机</td><td>流式响应期间<strong>边收边执行</strong></td><td>等整个响应完成后执行</td></tr>
+      <tr><td>并发</td><td>内部并发管理</td><td><code>partitionToolCalls()</code> 分区（并发/串行）</td></tr>
+      <tr><td>Fallback 处理</td><td><code>discard()</code> + 新建实例</td><td>不涉及</td></tr>
+      <tr><td>结果收集</td><td><code>getCompletedResults()</code>（实时）+ <code>getRemainingResults()</code>（收尾）</td><td>同步迭代</td></tr>
+    </table>
+  </div>
+
+  <h3>11.2 Withholding 机制</h3>
+  <p>某些可恢复的错误在流式循环中被<strong>扣留</strong>（不 yield），给恢复逻辑一个机会：</p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>扣留条件</th><th>检查函数</th><th>行号</th><th>恢复路径</th></tr>
+      <tr><td>PTL（context collapse）</td><td><code>contextCollapse.isWithheldPromptTooLong()</code></td><td><code>:1267</code></td><td>collapse_drain_retry</td></tr>
+      <tr><td>PTL（reactive）</td><td><code>reactiveCompact.isWithheldPromptTooLong()</code></td><td><code>:1278</code></td><td>reactive_compact_retry</td></tr>
+      <tr><td>媒体尺寸错误</td><td><code>reactiveCompact.isWithheldMediaSizeError()</code></td><td><code>:1281</code></td><td>reactive_compact_retry</td></tr>
+      <tr><td>max_output_tokens</td><td><code>isWithheldMaxOutputTokens()</code></td><td><code>:1287</code></td><td>escalate → recovery ×3</td></tr>
+    </table>
+  </div>
+
+  <div class="callout red">
+    <strong>为什么扣留：</strong>提前 yield 会让中间态错误泄漏给 SDK 调用方（如 cowork/desktop），它们一遇到 <code>error</code> 字段就终止会话——恢复循环仍在跑，但没人监听了。
+  </div>
+
+  <h3>11.3 Backfill Observable Input（:1200-1256）</h3>
+  <p>对克隆消息回填 <code>tool_use</code> 输入的派生字段（如展开文件路径），让 SDK 消费者看到友好字段。<strong>原始消息保持不变</strong>——修改会破坏 prompt 缓存（字节不匹配）。</p>
+</section>
+
+<!-- ════════════════ 十二、Feature Flags 与 Gates ════════════════ -->
+<section id="sec-12">
+  <h2>十二、Feature Flags 与 Gates</h2>
+
+  <h3>12.1 feature() 门控一览</h3>
+  <div class="card-grid">
+    <div class="card orange"><div class="card-icon">🔧</div><div class="card-title">REACTIVE_COMPACT</div><div class="card-body"><code>:17-19</code> 条件加载 reactiveCompact 模块</div></div>
+    <div class="card orange"><div class="card-icon">📦</div><div class="card-title">CONTEXT_COLLAPSE</div><div class="card-body"><code>:20-22</code> 条件加载 contextCollapse 模块</div></div>
+    <div class="card blue"><div class="card-icon">🎯</div><div class="card-title">EXPERIMENTAL_SKILL_SEARCH</div><div class="card-body"><code>:68-70</code> 条件加载 skill 预取模块</div></div>
+    <div class="card blue"><div class="card-icon">🔍</div><div class="card-title">EXPERIMENTAL_SEARCH_EXTRA_TOOLS</div><div class="card-body"><code>:71-73</code> 条件加载延迟工具预取</div></div>
+    <div class="card purple"><div class="card-icon">✂️</div><div class="card-title">HISTORY_SNIP</div><div class="card-body"><code>:141-143</code> 条件加载 snip 模块</div></div>
+    <div class="card purple"><div class="card-icon">💰</div><div class="card-title">TOKEN_BUDGET</div><div class="card-body"><code>:574,:1880</code> 客户端 token 预算续写</div></div>
+    <div class="card green"><div class="card-icon">🖥️</div><div class="card-title">CHICAGO_MCP</div><div class="card-body"><code>:1563,:2081</code> Computer Use MCP 清理</div></div>
+    <div class="card green"><div class="card-icon">📋</div><div class="card-title">BG_SESSIONS</div><div class="card-body"><code>:144-146</code> 条件加载 task summary</div></div>
+  </div>
+
+  <h3>12.2 feature() vs QueryConfig.gates vs Statsig</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>机制</th><th>解析时机</th><th>可变？</th><th>用途</th></tr>
+      <tr><td><code>feature('X')</code></td><td><strong>构建时</strong>（tree-shaking）</td><td>不可变</td><td>模块加载/排除</td></tr>
+      <tr><td><code>config.gates.*</code></td><td><strong>queryLoop 入口处</strong>（快照一次）</td><td>不可变（单次 query）</td><td>env/Statsig 状态</td></tr>
+      <tr><td><code>getFeatureValue_CACHED_MAY_BE_STALE()</code></td><td><strong>运行时</strong>（可能缓存）</td><td>可能翻转</td><td>恢复路径门控</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 十三、排队命令生命周期 ════════════════ -->
+<section id="sec-13">
+  <h2>十三、排队命令生命周期</h2>
+
+  <h3>13.1 命令从进入到消费</h3>
+  <div class="flow-steps">
+    <div class="flow-step"><span class="flow-num">1</span><div class="flow-body"><div class="flow-title">getCommandsByMaxPriority() <code>:2168</code></div><div class="flow-desc">获取排队命令快照</div></div></div>
+    <div class="flow-step"><span class="flow-num">2</span><div class="flow-body"><div class="flow-title">claimConsumableQueuedAutonomyCommands() <code>:2177</code></div><div class="flow-desc">声明消费 + 分离 stale commands</div></div></div>
+    <div class="flow-step"><span class="flow-num">3</span><div class="flow-body"><div class="flow-title">notifyCommandLifecycle(uuid, 'started') <code>:2192</code></div><div class="flow-desc">标记命令启动</div></div></div>
+    <div class="flow-step"><span class="flow-num">4</span><div class="flow-body"><div class="flow-title">getAttachmentMessages() <code>:2198</code></div><div class="flow-desc">将命令转为附件注入对话</div></div></div>
+    <div class="flow-step"><span class="flow-num">5</span><div class="flow-body"><div class="flow-title">notifyCommandLifecycle(uuid, 'completed') <code>:503</code></div><div class="flow-desc">在 query() finally 块中标记完成</div></div></div>
+  </div>
+
+  <h3>13.2 Agent 作用域路由（:2164-2176）</h3>
+  <ul>
+    <li><strong>主线程：</strong>排空 <code>agentId === undefined</code> 的命令</li>
+    <li><strong>子 agent：</strong>只排空发给自己（<code>agentId === currentAgentId</code>）的 <code>task-notification</code></li>
+    <li><strong>Sleep 工具：</strong>如果 Sleep 工具运行了，优先级切换到 <code>'later'</code></li>
+  </ul>
+</section>
+
+<!-- ════════════════ 十四、设计模式与架构决策 ════════════════ -->
+<section id="sec-14">
+  <h2>十四、设计模式与架构决策</h2>
+
+  <h3>14.1 DI Seam（deps.ts）</h3>
+  <p>通过 <code>params.deps ?? productionDeps()</code> 注入，测试无需 <code>spyOn</code> 整个模块，只需传 <code>deps: { callModel: mockFn }</code>。<code>typeof fn</code> 写法保证 DI 接口与真实签名自动同步。</p>
+
+  <h3>14.2 Async Generator Yield-Up 链</h3>
+  <div class="token-flow">
+    <span class="tok-node api">claude.ts<br/>yield StreamEvent</span>
+    <span class="tok-arrow">→</span>
+    <span class="tok-node engine">query.ts<br/>yield（透传 + 过滤）</span>
+    <span class="tok-arrow">→</span>
+    <span class="tok-node global">QueryEngine<br/>switch → SDKMessage</span>
+    <span class="tok-arrow">→</span>
+    <span class="tok-node sink">REPL / SDK<br/>消费</span>
+  </div>
+
+  <h3>14.3 不可变快照 + 可变 State 分离</h3>
+  <div class="callout blue">
+    <strong>核心原则：</strong><code>query()</code> 从不修改 <code>params.messages</code>，也从不直接修改外部的 <code>mutableMessages</code>。两套数据在 QueryEngine 层通过事件回流合并。
+  </div>
+
+  <h3>14.4 state = { ... } 整体替换模式</h3>
+  <p>每个继续点用 <code>state = { ... }</code> 整体替换所有 10 个字段，而不是 9 个独立赋值。TypeScript 强制完整性，避免遗漏和竞态。</p>
+</section>
+
+<!-- ════════════════ 十五、关键行号书签表 ════════════════ -->
+<section id="sec-15">
+  <h2>十五、关键行号书签表</h2>
+
+  <h3>入口与类型</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>内容</th><th>行号</th></tr>
+      <tr><td><code>yieldMissingToolResultBlocks()</code></td><td>149-198</td></tr>
+      <tr><td><code>isWithheldMaxOutputTokens()</code></td><td>224-234</td></tr>
+      <tr><td><code>QueryParams</code> 类型</td><td>284-302</td></tr>
+      <tr><td><code>State</code> 类型</td><td>307-320</td></tr>
+      <tr><td><code>MAX_OUTPUT_TOKENS_RECOVERY_LIMIT</code></td><td>214</td></tr>
+      <tr><td><code>query()</code> 函数</td><td>344-511</td></tr>
+      <tr><td><code>queryLoop()</code> 函数</td><td>526-2370</td></tr>
+    </table>
+  </div>
+
+  <h3>queryLoop 流水线关键行号</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>步骤</th><th>行号</th></tr>
+      <tr><td>不可变 params 解构</td><td>543-552</td></tr>
+      <tr><td>可变 State 初始化</td><td>562-573</td></tr>
+      <tr><td>技能/工具预取</td><td>634-643</td></tr>
+      <tr><td>历史裁边</td><td>685</td></tr>
+      <tr><td>释放 toolUseResult</td><td>696-704</td></tr>
+      <tr><td>工具结果预算</td><td>720-735</td></tr>
+      <tr><td>History Snip</td><td>746-762</td></tr>
+      <tr><td>Microcompact</td><td>770-794</td></tr>
+      <tr><td>Context Collapse</td><td>806-821</td></tr>
+      <tr><td>系统提示词构建</td><td>823-825</td></tr>
+      <tr><td>Autocompact</td><td>836-931</td></tr>
+      <tr><td>阻塞限制检查</td><td>1022-1052</td></tr>
+      <tr><td>预测式 autocompact</td><td>1057-1101</td></tr>
+      <tr><td>API 流式调用</td><td>1116-1335</td></tr>
+      <tr><td>FallbackTriggeredError</td><td>1369-1432</td></tr>
+      <tr><td>流式中断处理</td><td>1541-1585</td></tr>
+      <tr><td>PTL collapse_drain</td><td>1624-1660</td></tr>
+      <tr><td>PTL reactive_compact</td><td>1662-1737</td></tr>
+      <tr><td>max_output_tokens escalate</td><td>1741-1776</td></tr>
+      <tr><td>max_output_tokens recovery</td><td>1778-1815</td></tr>
+      <tr><td>handleStopHooks 调用</td><td>1836-1878</td></tr>
+      <tr><td>Token budget 检查</td><td>1880-1927</td></tr>
+      <tr><td>工具执行</td><td>1936-1996</td></tr>
+      <tr><td>Tool use summary 生成</td><td>1998-2074</td></tr>
+      <tr><td>排队命令快照</td><td>2164-2196</td></tr>
+      <tr><td>附件注入</td><td>2198-2208</td></tr>
+      <tr><td>Skill 预取消费</td><td>2235-2243</td></tr>
+      <tr><td>MCP 工具刷新</td><td>2290-2302</td></tr>
+      <tr><td>Max turns 检查</td><td>2334-2345</td></tr>
+      <tr><td>下一轮 state 更新</td><td>2352-2364</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 十六、学习路径建议 ════════════════ -->
+<section id="sec-16">
+  <h2>十六、学习路径建议</h2>
+
+  <h3>推荐阅读顺序</h3>
+  <div class="flow-steps">
+    <div class="flow-step"><span class="flow-num">1</span><div class="flow-body"><div class="flow-title">query/transitions.ts（21 行）</div><div class="flow-desc">理解所有可能的循环出口——10 个 Terminal + 7 个 Continue</div></div></div>
+    <div class="flow-step"><span class="flow-num">2</span><div class="flow-body"><div class="flow-title">query/deps.ts（38 行）+ query/config.ts（45 行）</div><div class="flow-desc">理解 DI 接口和配置快照设计</div></div></div>
+    <div class="flow-step"><span class="flow-num">3</span><div class="flow-body"><div class="flow-title">QueryParams（284-302）和 State（307-320）</div><div class="flow-desc">理解入参和内部状态的区别</div></div></div>
+    <div class="flow-step"><span class="flow-num">4</span><div class="flow-body"><div class="flow-title">query() 入口（344-511）</div><div class="flow-desc">理解 finally 清理链和生命周期管理</div></div></div>
+    <div class="flow-step"><span class="flow-num">5</span><div class="flow-body"><div class="flow-title">queryLoop 的 14 步流水线</div><div class="flow-desc">重点看 API 调用（1116-1335）、PTL 恢复（1624-1737）、max_output_tokens 恢复（1741-1815）、工具执行（1936-1996）</div></div></div>
+    <div class="flow-step"><span class="flow-num">6</span><div class="flow-body"><div class="flow-title">QueryEngine.ts:732-758</div><div class="flow-desc">理解高层编排如何消费 query()</div></div></div>
+    <div class="flow-step"><span class="flow-num">7</span><div class="flow-body"><div class="flow-title">REPL.tsx:3450</div><div class="flow-desc">理解 REPL 直接消费 query() 的路径</div></div></div>
+  </div>
+
+  <h3>相关文档交叉引用</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>文档</th><th>覆盖范围</th><th>与本文的关系</th></tr>
+      <tr><td>core-loop-summary.mdx</td><td>三层架构全貌</td><td>本文是其中 "query.ts 层" 的深度展开</td></tr>
+      <tr><td>query_engine.mdx</td><td>QueryEngine 编排层</td><td>本文的"调用方 A"章节详细描述了 QueryEngine 如何调用 query()</td></tr>
+      <tr><td>[4]api-layer-summary</td><td>claude.ts API 层</td><td>本文的 <code>deps.callModel()</code> 指向 claude.ts</td></tr>
+      <tr><td>[5]context-engineering-summary</td><td>上下文工程</td><td>本文的第十章是上下文管线的 query.ts 视角</td></tr>
+      <tr><td>[6]tool-system-summary</td><td>工具系统</td><td>StreamingToolExecutor 和 runTools 指向工具系统</td></tr>
+      <tr><td>[9]hooks-system-summary</td><td>Hooks 系统</td><td>handleStopHooks 和 execAgentHook 指向 hooks 系统</td></tr>
+      <tr><td>[12]skills-system-summary</td><td>Skills 系统</td><td>本文的第七章是 skills 在 query.ts 中的集成视角</td></tr>
+    </table>
+  </div>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

@@ -1,21 +1,21 @@
 /**
- * Synchronized Permission Prompts for Agent Swarms
+ * Agent Swarm 的同步权限提示
  *
- * This module provides infrastructure for coordinating permission prompts across
- * multiple agents in a swarm. When a worker agent needs permission for a tool use,
- * it can forward the request to the team leader, who can then approve or deny it.
+ * 本模块提供在 swarm 中多个 agent 之间协调权限提示的基础设施。
+ * 当 worker agent 需要工具使用的权限时，
+ * 它可以将请求转发给团队 leader，由 leader 批准或拒绝。
  *
- * The system uses the teammate mailbox for message passing:
- * - Workers send permission requests to the leader's mailbox
- * - Leaders send permission responses to the worker's mailbox
+ * 系统使用 teammate 邮箱进行消息传递：
+ * - Worker 向 leader 的邮箱发送权限请求
+ * - Leader 向 worker 的邮箱发送权限响应
  *
- * Flow:
- * 1. Worker agent encounters a permission prompt
- * 2. Worker sends a permission_request message to the leader's mailbox
- * 3. Leader polls for mailbox messages and detects permission requests
- * 4. User approves/denies via the leader's UI
- * 5. Leader sends a permission_response message to the worker's mailbox
- * 6. Worker polls mailbox for responses and continues execution
+ * 流程：
+ * 1. Worker agent 遇到权限提示
+ * 2. Worker 向 leader 的邮箱发送 permission_request 消息
+ * 3. Leader 轮询邮箱消息并检测到权限请求
+ * 4. 用户通过 leader 的 UI 批准/拒绝
+ * 5. Leader 向 worker 的邮箱发送 permission_response 消息
+ * 6. Worker 轮询邮箱获取响应并继续执行
  */
 
 import { mkdir, readdir, readFile, unlink, writeFile } from 'fs/promises'
@@ -44,43 +44,43 @@ import {
 import { getTeamDir, readTeamFileAsync } from './teamHelpers.js'
 
 /**
- * Full request schema for a permission request from a worker to the leader
+ * worker 向 leader 发送权限请求的完整请求 schema
  */
 export const SwarmPermissionRequestSchema = lazySchema(() =>
   z.object({
-    /** Unique identifier for this request */
+    /** 此请求的唯一标识符 */
     id: z.string(),
-    /** Worker's CLAUDE_CODE_AGENT_ID */
+    /** Worker 的 CLAUDE_CODE_AGENT_ID */
     workerId: z.string(),
-    /** Worker's CLAUDE_CODE_AGENT_NAME */
+    /** Worker 的 CLAUDE_CODE_AGENT_NAME */
     workerName: z.string(),
-    /** Worker's CLAUDE_CODE_AGENT_COLOR */
+    /** Worker 的 CLAUDE_CODE_AGENT_COLOR */
     workerColor: z.string().optional(),
-    /** Team name for routing */
+    /** 用于路由的团队名称 */
     teamName: z.string(),
-    /** Tool name requiring permission (e.g., "Bash", "Edit") */
+    /** 需要权限的工具名称（例如 "Bash"、"Edit"） */
     toolName: z.string(),
-    /** Original toolUseID from worker's context */
+    /** 来自 worker 上下文的原始 toolUseID */
     toolUseId: z.string(),
-    /** Human-readable description of the tool use */
+    /** 工具使用的可读描述 */
     description: z.string(),
-    /** Serialized tool input */
+    /** 序列化的工具输入 */
     input: z.record(z.string(), z.unknown()),
-    /** Suggested permission rules from the permission result */
+    /** 来自权限结果的权限规则建议 */
     permissionSuggestions: z.array(z.unknown()),
-    /** Status of the request */
+    /** 请求的状态 */
     status: z.enum(['pending', 'approved', 'rejected']),
-    /** Who resolved the request */
+    /** 谁解决了此请求 */
     resolvedBy: z.enum(['worker', 'leader']).optional(),
-    /** Timestamp when resolved */
+    /** 解决时的时间戳 */
     resolvedAt: z.number().optional(),
-    /** Rejection feedback message */
+    /** 拒绝反馈消息 */
     feedback: z.string().optional(),
-    /** Modified input if changed by resolver */
+    /** 如果解决者修改了输入，则为修改后的输入 */
     updatedInput: z.record(z.string(), z.unknown()).optional(),
-    /** "Always allow" rules applied during resolution */
+    /** 解决期间应用的"始终允许"规则 */
     permissionUpdates: z.array(z.unknown()).optional(),
-    /** Timestamp when request was created */
+    /** 请求创建时的时间戳 */
     createdAt: z.number(),
   }),
 )
@@ -90,45 +90,45 @@ export type SwarmPermissionRequest = z.infer<
 >
 
 /**
- * Resolution data returned when leader/worker resolves a request
+ * leader/worker 解决请求时返回的解决数据
  */
 export type PermissionResolution = {
-  /** Decision: approved or rejected */
+  /** 决定：批准或拒绝 */
   decision: 'approved' | 'rejected'
-  /** Who resolved it */
+  /** 谁解决了此请求 */
   resolvedBy: 'worker' | 'leader'
-  /** Optional feedback message if rejected */
+  /** 如果被拒绝，可选的反馈消息 */
   feedback?: string
-  /** Optional updated input if the resolver modified it */
+  /** 如果解决者修改了，可选的更新输入 */
   updatedInput?: Record<string, unknown>
-  /** Permission updates to apply (e.g., "always allow" rules) */
+  /** 要应用的权限更新（例如"始终允许"规则） */
   permissionUpdates?: PermissionUpdate[]
 }
 
 /**
- * Get the base directory for a team's permission requests
- * Path: ~/.claude/teams/{teamName}/permissions/
+ * 获取团队权限请求的基础目录
+ * 路径：~/.claude/teams/{teamName}/permissions/
  */
 export function getPermissionDir(teamName: string): string {
   return join(getTeamDir(teamName), 'permissions')
 }
 
 /**
- * Get the pending directory for a team
+ * 获取团队的待处理目录
  */
 function getPendingDir(teamName: string): string {
   return join(getPermissionDir(teamName), 'pending')
 }
 
 /**
- * Get the resolved directory for a team
+ * 获取团队的已解决目录
  */
 function getResolvedDir(teamName: string): string {
   return join(getPermissionDir(teamName), 'resolved')
 }
 
 /**
- * Ensure the permissions directory structure exists (async)
+ * 确保权限目录结构存在（异步）
  */
 async function ensurePermissionDirsAsync(teamName: string): Promise<void> {
   const permDir = getPermissionDir(teamName)
@@ -141,28 +141,28 @@ async function ensurePermissionDirsAsync(teamName: string): Promise<void> {
 }
 
 /**
- * Get the path to a pending request file
+ * 获取待处理请求文件的路径
  */
 function getPendingRequestPath(teamName: string, requestId: string): string {
   return join(getPendingDir(teamName), `${requestId}.json`)
 }
 
 /**
- * Get the path to a resolved request file
+ * 获取已解决请求文件的路径
  */
 function getResolvedRequestPath(teamName: string, requestId: string): string {
   return join(getResolvedDir(teamName), `${requestId}.json`)
 }
 
 /**
- * Generate a unique request ID
+ * 生成唯一的请求 ID
  */
 export function generateRequestId(): string {
   return `perm-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
 }
 
 /**
- * Create a new SwarmPermissionRequest object
+ * 创建一个新的 SwarmPermissionRequest 对象
  */
 export function createPermissionRequest(params: {
   toolName: string
@@ -207,10 +207,10 @@ export function createPermissionRequest(params: {
 }
 
 /**
- * Write a permission request to the pending directory with file locking
- * Called by worker agents when they need permission approval from the leader
+ * 将权限请求写入待处理目录，带文件锁定
+ * 由 worker agent 在需要 leader 权限批准时调用
  *
- * @returns The written request
+ * @returns 写入的请求
  */
 export async function writePermissionRequest(
   request: SwarmPermissionRequest,
@@ -220,7 +220,7 @@ export async function writePermissionRequest(
   const pendingPath = getPendingRequestPath(request.teamName, request.id)
   const lockDir = getPendingDir(request.teamName)
 
-  // Create a directory-level lock file for atomic writes
+  // 创建目录级锁文件以实现原子写入
   const lockFilePath = join(lockDir, '.lock')
   await writeFile(lockFilePath, '', 'utf-8')
 
@@ -228,7 +228,7 @@ export async function writePermissionRequest(
   try {
     release = await lockfile.lock(lockFilePath)
 
-    // Write the request file
+    // 写入请求文件
     await writeFile(pendingPath, jsonStringify(request, null, 2), 'utf-8')
 
     logForDebugging(
@@ -250,8 +250,8 @@ export async function writePermissionRequest(
 }
 
 /**
- * Read all pending permission requests for a team
- * Called by the team leader to see what requests need attention
+ * 读取团队所有待处理的权限请求
+ * 由团队 leader 调用以查看需要处理的请求
  */
 export async function readPendingPermissions(
   teamName?: string,
@@ -305,17 +305,17 @@ export async function readPendingPermissions(
 
   const requests = results.filter(r => r !== null)
 
-  // Sort by creation time (oldest first)
+  // 按创建时间排序（最旧的在前）
   requests.sort((a, b) => a.createdAt - b.createdAt)
 
   return requests
 }
 
 /**
- * Read a resolved permission request by ID
- * Called by workers to check if their request has been resolved
+ * 按 ID 读取已解决的权限请求
+ * 由 worker 调用以检查其请求是否已被解决
  *
- * @returns The resolved request, or null if not yet resolved
+ * @returns 已解决的请求，如果尚未解决则返回 null
  */
 export async function readResolvedPermission(
   requestId: string,
@@ -352,10 +352,10 @@ export async function readResolvedPermission(
 }
 
 /**
- * Resolve a permission request
- * Called by the team leader (or worker in self-resolution cases)
+ * 解决权限请求
+ * 由团队 leader（或在自解决情况下的 worker）调用
  *
- * Writes the resolution to resolved/, removes from pending/
+ * 将解决结果写入 resolved/，从 pending/ 中移除
  */
 export async function resolvePermission(
   requestId: string,
@@ -380,7 +380,7 @@ export async function resolvePermission(
   try {
     release = await lockfile.lock(lockFilePath)
 
-    // Read the pending request
+    // 读取待处理的请求
     let content: string
     try {
       content = await readFile(pendingPath, 'utf-8')
@@ -405,7 +405,7 @@ export async function resolvePermission(
 
     const request = parsed.data
 
-    // Update the request with resolution data
+    // 使用解决数据更新请求
     const resolvedRequest: SwarmPermissionRequest = {
       ...request,
       status: resolution.decision === 'approved' ? 'approved' : 'rejected',
@@ -416,14 +416,14 @@ export async function resolvePermission(
       permissionUpdates: resolution.permissionUpdates,
     }
 
-    // Write to resolved directory
+    // 写入已解决目录
     await writeFile(
       resolvedPath,
       jsonStringify(resolvedRequest, null, 2),
       'utf-8',
     )
 
-    // Remove from pending directory
+    // 从待处理目录中移除
     await unlink(pendingPath)
 
     logForDebugging(
@@ -443,11 +443,11 @@ export async function resolvePermission(
 }
 
 /**
- * Clean up old resolved permission files
- * Called periodically to prevent file accumulation
+ * 清理旧的已解决权限文件
+ * 定期调用以防止文件堆积
  *
- * @param teamName - Team name
- * @param maxAgeMs - Maximum age in milliseconds (default: 1 hour)
+ * @param teamName - 团队名称
+ * @param maxAgeMs - 最大年龄（毫秒）（默认：1 小时）
  */
 export async function cleanupOldResolutions(
   teamName?: string,
@@ -483,8 +483,8 @@ export async function cleanupOldResolutions(
         const content = await readFile(filePath, 'utf-8')
         const request = jsonParse(content) as SwarmPermissionRequest
 
-        // Check if the resolution is old enough to clean up
-        // Use >= to handle edge case where maxAgeMs is 0 (clean up everything)
+        // 检查解决是否足够旧以进行清理
+        // 使用 >= 处理 maxAgeMs 为 0 的边界情况（清理所有内容）
         const resolvedAt = request.resolvedAt || request.createdAt
         if (now - resolvedAt >= maxAgeMs) {
           await unlink(filePath)
@@ -493,12 +493,12 @@ export async function cleanupOldResolutions(
         }
         return 0
       } catch {
-        // If we can't parse it, clean it up anyway
+        // 如果无法解析，无论如何清理掉
         try {
           await unlink(filePath)
           return 1
         } catch {
-          // Ignore deletion errors
+          // 忽略删除错误
           return 0
         }
       }
@@ -517,29 +517,29 @@ export async function cleanupOldResolutions(
 }
 
 /**
- * Legacy response type for worker polling
- * Used for backward compatibility with worker integration code
+ * Worker 轮询的旧版响应类型
+ * 用于与 worker 集成代码保持向后兼容
  */
 export type PermissionResponse = {
-  /** ID of the request this responds to */
+  /** 响应对应的请求 ID */
   requestId: string
-  /** Decision: approved or denied */
+  /** 决定：批准或拒绝 */
   decision: 'approved' | 'denied'
-  /** Timestamp when response was created */
+  /** 响应创建时的时间戳 */
   timestamp: string
-  /** Optional feedback message if denied */
+  /** 如果被拒绝，可选的反馈消息 */
   feedback?: string
-  /** Optional updated input if the resolver modified it */
+  /** 如果解决者修改了，可选的更新输入 */
   updatedInput?: Record<string, unknown>
-  /** Permission updates to apply (e.g., "always allow" rules) */
+  /** 要应用的权限更新（例如"始终允许"规则） */
   permissionUpdates?: unknown[]
 }
 
 /**
- * Poll for a permission response (worker-side convenience function)
- * Converts the resolved request into a simpler response format
+ * 轮询权限响应（worker 端便捷函数）
+ * 将已解决的请求转换为更简单的响应格式
  *
- * @returns The permission response, or null if not yet resolved
+ * @returns 权限响应，如果尚未解决则返回 null
  */
 export async function pollForResponse(
   requestId: string,
@@ -564,8 +564,8 @@ export async function pollForResponse(
 }
 
 /**
- * Remove a worker's response after processing
- * This is an alias for deleteResolvedPermission for backward compatibility
+ * 处理后移除 worker 的响应
+ * 这是 deleteResolvedPermission 的别名，用于向后兼容
  */
 export async function removeWorkerResponse(
   requestId: string,
@@ -576,7 +576,7 @@ export async function removeWorkerResponse(
 }
 
 /**
- * Check if the current agent is a team leader
+ * 检查当前 agent 是否为团队 leader
  */
 export function isTeamLeader(teamName?: string): boolean {
   const team = teamName || getTeamName()
@@ -584,14 +584,14 @@ export function isTeamLeader(teamName?: string): boolean {
     return false
   }
 
-  // Team leaders don't have an agent ID set, or their ID is 'team-lead'
+  // 团队 leader 没有设置 agent ID，或者其 ID 为 'team-lead'
   const agentId = getAgentId()
 
   return !agentId || agentId === 'team-lead'
 }
 
 /**
- * Check if the current agent is a worker in a swarm
+ * 检查当前 agent 是否为 swarm 中的 worker
  */
 export function isSwarmWorker(): boolean {
   const teamName = getTeamName()
@@ -601,8 +601,8 @@ export function isSwarmWorker(): boolean {
 }
 
 /**
- * Delete a resolved permission file
- * Called after a worker has processed the resolution
+ * 删除已解决的权限文件
+ * 在 worker 处理完解决结果后调用
  */
 export async function deleteResolvedPermission(
   requestId: string,
@@ -635,18 +635,18 @@ export async function deleteResolvedPermission(
 }
 
 /**
- * Submit a permission request (alias for writePermissionRequest)
- * Provided for backward compatibility with worker integration code
+ * 提交权限请求（writePermissionRequest 的别名）
+ * 为与 worker 集成代码保持向后兼容而提供
  */
 export const submitPermissionRequest = writePermissionRequest
 
 // ============================================================================
-// Mailbox-Based Permission System
+// 基于邮箱的权限系统
 // ============================================================================
 
 /**
- * Get the leader's name from the team file
- * This is needed to send permission requests to the leader's mailbox
+ * 从团队文件中获取 leader 的名称
+ * 这是向 leader 的邮箱发送权限请求所必需的
  */
 export async function getLeaderName(teamName?: string): Promise<string | null> {
   const team = teamName || getTeamName()
@@ -667,11 +667,11 @@ export async function getLeaderName(teamName?: string): Promise<string | null> {
 }
 
 /**
- * Send a permission request to the leader via mailbox.
- * This is the new mailbox-based approach that replaces the file-based pending directory.
+ * 通过邮箱向 leader 发送权限请求。
+ * 这是替代基于文件的 pending 目录的新邮箱方案。
  *
- * @param request - The permission request to send
- * @returns true if the message was sent successfully
+ * @param request - 要发送的权限请求
+ * @returns 如果消息发送成功则返回 true
  */
 export async function sendPermissionRequestViaMailbox(
   request: SwarmPermissionRequest,
@@ -685,7 +685,7 @@ export async function sendPermissionRequestViaMailbox(
   }
 
   try {
-    // Create the permission request message
+    // 创建权限请求消息
     const message = createPermissionRequestMessage({
       request_id: request.id,
       agent_id: request.workerName,
@@ -696,7 +696,7 @@ export async function sendPermissionRequestViaMailbox(
       permission_suggestions: request.permissionSuggestions,
     })
 
-    // Send to leader's mailbox (routes to in-process or file-based based on recipient)
+    // 发送到 leader 的邮箱（根据接收者路由到进程内或基于文件的邮箱）
     await writeToMailbox(
       leaderName,
       {
@@ -722,14 +722,14 @@ export async function sendPermissionRequestViaMailbox(
 }
 
 /**
- * Send a permission response to a worker via mailbox.
- * This is the new mailbox-based approach that replaces the file-based resolved directory.
+ * 通过邮箱向 worker 发送权限响应。
+ * 这是替代基于文件的 resolved 目录的新邮箱方案。
  *
- * @param workerName - The worker's name to send the response to
- * @param resolution - The permission resolution
- * @param requestId - The original request ID
- * @param teamName - The team name
- * @returns true if the message was sent successfully
+ * @param workerName - 要发送响应的 worker 名称
+ * @param resolution - 权限解决结果
+ * @param requestId - 原始请求 ID
+ * @param teamName - 团队名称
+ * @returns 如果消息发送成功则返回 true
  */
 export async function sendPermissionResponseViaMailbox(
   workerName: string,
@@ -746,7 +746,7 @@ export async function sendPermissionResponseViaMailbox(
   }
 
   try {
-    // Create the permission response message
+    // 创建权限响应消息
     const message = createPermissionResponseMessage({
       request_id: requestId,
       subtype: resolution.decision === 'approved' ? 'success' : 'error',
@@ -755,10 +755,10 @@ export async function sendPermissionResponseViaMailbox(
       permission_updates: resolution.permissionUpdates,
     })
 
-    // Get the sender name (leader's name)
+    // 获取发送者名称（leader 的名称）
     const senderName = getAgentName() || 'team-lead'
 
-    // Send to worker's mailbox (routes to in-process or file-based based on recipient)
+    // 发送到 worker 的邮箱（根据接收者路由到进程内或基于文件的邮箱）
     await writeToMailbox(
       workerName,
       {
@@ -783,24 +783,24 @@ export async function sendPermissionResponseViaMailbox(
 }
 
 // ============================================================================
-// Sandbox Permission Mailbox System
+// 沙箱权限邮箱系统
 // ============================================================================
 
 /**
- * Generate a unique sandbox permission request ID
+ * 生成唯一的沙箱权限请求 ID
  */
 export function generateSandboxRequestId(): string {
   return `sandbox-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
 }
 
 /**
- * Send a sandbox permission request to the leader via mailbox.
- * Called by workers when sandbox runtime needs network access approval.
+ * 通过邮箱向 leader 发送沙箱权限请求。
+ * 当沙箱运行时需要网络访问批准时由 worker 调用。
  *
- * @param host - The host requesting network access
- * @param requestId - Unique ID for this request
- * @param teamName - Optional team name
- * @returns true if the message was sent successfully
+ * @param host - 请求网络访问的主机
+ * @param requestId - 此请求的唯一 ID
+ * @param teamName - 可选的团队名称
+ * @returns 如果消息发送成功则返回 true
  */
 export async function sendSandboxPermissionRequestViaMailbox(
   host: string,
@@ -843,7 +843,7 @@ export async function sendSandboxPermissionRequestViaMailbox(
       host,
     })
 
-    // Send to leader's mailbox (routes to in-process or file-based based on recipient)
+    // 发送到 leader 的邮箱（根据接收者路由到进程内或基于文件的邮箱）
     await writeToMailbox(
       leaderName,
       {
@@ -869,15 +869,15 @@ export async function sendSandboxPermissionRequestViaMailbox(
 }
 
 /**
- * Send a sandbox permission response to a worker via mailbox.
- * Called by the leader when approving/denying a sandbox network access request.
+ * 通过邮箱向 worker 发送沙箱权限响应。
+ * 由 leader 在批准/拒绝沙箱网络访问请求时调用。
  *
- * @param workerName - The worker's name to send the response to
- * @param requestId - The original request ID
- * @param host - The host that was approved/denied
- * @param allow - Whether the connection is allowed
- * @param teamName - Optional team name
- * @returns true if the message was sent successfully
+ * @param workerName - 要发送响应的 worker 名称
+ * @param requestId - 原始请求 ID
+ * @param host - 被批准/拒绝的主机
+ * @param allow - 是否允许连接
+ * @param teamName - 可选的团队名称
+ * @returns 如果消息发送成功则返回 true
  */
 export async function sendSandboxPermissionResponseViaMailbox(
   workerName: string,
@@ -903,7 +903,7 @@ export async function sendSandboxPermissionResponseViaMailbox(
 
     const senderName = getAgentName() || 'team-lead'
 
-    // Send to worker's mailbox (routes to in-process or file-based based on recipient)
+    // 发送到 worker 的邮箱（根据接收者路由到进程内或基于文件的邮箱）
     await writeToMailbox(
       workerName,
       {

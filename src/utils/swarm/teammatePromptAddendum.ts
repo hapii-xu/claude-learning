@@ -1,8 +1,8 @@
 /**
- * Teammate-specific system prompt addendum.
+ * Teammate 专用的系统提示词附录。
  *
- * This is appended to the full main agent system prompt for teammates.
- * It explains visibility constraints and communication requirements.
+ * 此内容会追加到 teammate 的完整主 agent 系统提示词中。
+ * 它说明了可见性约束和通信要求。
  */
 
 export const TEAMMATE_SYSTEM_PROMPT_ADDENDUM = `

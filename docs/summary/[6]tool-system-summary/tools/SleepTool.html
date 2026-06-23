@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SleepTool 工具详解 — Claude Code 工具详解</title>
+  <style>    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── SVG Diagram ──────────────────────────────────────── */
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      margin: 0 auto;
+      font-family: var(--font-sans);
+    }
+
+    /* SVG tooltip via CSS title */
+    .node-group { cursor: default; }
+    .node-group:hover rect.node-rect { filter: brightness(.93); }
+
+    /* ── Card Grid ────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .path-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: box-shadow .15s, border-color .15s;
+    }
+
+    .path-card:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--orange-lt);
+    }
+
+    .badge-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .card-body { flex: 1; min-width: 0; }
+
+    .card-trigger {
+      font-weight: 700;
+      font-size: .9rem;
+      color: var(--text);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    .card-module {
+      font-family: var(--font-mono);
+      font-size: .76rem;
+      color: var(--text-2);
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .card-flag {
+      font-size: .72rem;
+      color: var(--blue);
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .badge-enable {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    /* ── Collapsible knowledge cards ─────────────────────── */
+    .knowledge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    details.know-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    details.know-card[open] {
+      border-color: var(--orange-lt);
+    }
+
+    details.know-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      outline: none;
+    }
+
+    details.know-card > summary::-webkit-details-marker { display: none; }
+
+    details.know-card > summary:hover { background: var(--bg); }
+
+    .know-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    details.know-card[open] .know-num {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .know-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: .97rem;
+    }
+
+    .know-arrow {
+      width: 20px;
+      height: 20px;
+      color: var(--text-3);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    details.know-card[open] .know-arrow {
+      transform: rotate(90deg);
+      color: var(--orange);
+    }
+
+    .know-body {
+      padding: 0 20px 20px 64px;
+    }
+
+    .know-body p { margin-bottom: 8px; }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    /* CSS-only syntax highlighting */
+    .kw  { color: #7c9bff; font-weight: 600; }  /* keywords */
+    .str { color: #6cc77a; }                      /* strings */
+    .fn  { color: #f0906a; }                      /* function calls */
+    .cmt { color: #6e6a62; font-style: italic; } /* comments */
+    .type{ color: #e0a020; }                      /* TypeScript types */
+    .num { color: #c792ea; }                      /* numbers */
+
+    /* inline code */
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Comparison Table ─────────────────────────────────── */
+    .compare-table th:first-child { width: 130px; }
+    .compare-table th:nth-child(2) { color: var(--orange-dk); }
+    .compare-table th:nth-child(3) { color: var(--blue-dk); }
+
+    /* ── Key files ────────────────────────────────────────── */
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--blue-dk);
+      cursor: default;
+      position: relative;
+    }
+
+    .file-path:hover::after {
+      content: attr(data-full);
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+      background: #1e1b16;
+      color: #d4cfc8;
+      font-size: .75rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+      pointer-events: none;
+    }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    ul.key-list {
+      padding-left: 20px;
+      color: var(--text-2);
+    }
+
+    ul.key-list li { margin-bottom: 4px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .know-body { padding-left: 20px; }
+    }
+
+    /* === Additional styles === */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    section { margin-top: 56px; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>SleepTool 工具详解</h1>
+  <p>让 Claude 等待指定时长（可被用户中断或新工作提前唤醒）——proactive 自动化的&quot;休息&quot;原语，优先于 Bash(sleep) 因为不占 shell 进程</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一工具定位一句话总结">一、工具定位（一句话总结）</a></li>
+    <li><a href="#二关键文件清单">二、关键文件清单</a></li>
+    <li><a href="#三tool-接口字段实现buildtool-逐字段">三、Tool 接口字段实现（`buildTool` 逐字段）</a></li>
+    <li><a href="#四核心执行流程call">四、核心执行流程：`call()`</a></li>
+    <li><a href="#五权限与安全">五、权限与安全</a></li>
+    <li><a href="#六与其他系统工具的关系">六、与其他系统/工具的关系</a></li>
+    <li><a href="#七亮点与设计取舍">七、亮点与设计取舍</a></li>
+    <li><a href="#八源码导航书签速查">八、源码导航（书签速查）</a></li>
+    <li><a href="#九学习建议与验证清单">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+  <section id="一工具定位一句话总结">
+<h2>一、工具定位（一句话总结）</h2>
+<p>**<code>Sleep</code> = 可中断、可提前唤醒、不占 shell 的等待原语。**</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>维度</th><th>值</th></tr></thead>
+    <tbody>
+    <tr><td>工具名</td><td><code>Sleep</code>（常量 <code>SLEEP_TOOL_NAME</code>，<code>prompt.ts:3</code>）</td></tr>
+    <tr><td>一句话</td><td>睡眠指定秒数；用户可中断，新工作到来或 proactive 禁用时提前唤醒</td></tr>
+    <tr><td>是否进 system prompt</td><td>✅ **在 <code>CORE_TOOLS</code> 白名单内**（<code>constants/tools.ts:174</code>，<code>SLEEP_TOOL_NAME</code>）—— 核心工具，schema 完整注入，<strong>不延迟</strong></td></tr>
+    <tr><td>注册条件（tools.ts）</td><td>`feature('PROACTIVE')</td><td></td><td>feature('KAIROS')<code> 门控（</code>tools.ts:26-30<code>、</code>:262`）—— 构建期决定是否注册</td></tr>
+    <tr><td>feature gate</td><td><code>PROACTIVE</code> 或 <code>KAIROS</code>（满足其一即注册）</td></tr>
+    <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>，<code>SleepTool.ts:75-77</code>）—— 纯等待，无副作用</td></tr>
+    <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe() → true</code>，<code>:72-74</code>）—— prompt.ts 明确"可与其他工具并发调用"</td></tr>
+    <tr><td>中断行为</td><td><code>interruptBehavior() → 'cancel'</code>（<code>:78-80</code>）—— 用户 ESC 时取消睡眠</td></tr>
+    <tr><td><code>strict</code> 模式</td><td>✅ <code>strict: true</code>（<code>:59</code>）</td></tr>
+    <tr><td>核心依赖</td><td><code>src/utils/messageQueueManager.ts</code>（命令队列，检测新工作）+ <code>src/proactive/index.ts</code>（proactive 状态）+ <code>src/utils/sessionState.ts</code>（自动化状态通知）</td></tr>
+    <tr><td>互补方</td><td><code>CronCreate</code>（安排未来的 prompt）、Bash(sleep)（占 shell，不推荐）</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><strong>为什么需要它？</strong> 在 proactive 自动化场景下，模型可能"现在无事可做，等一会儿再检查"。直接 <code>Bash(sleep 300)</code> 有三个问题：占用 shell 进程、无法被新工作提前唤醒、不与自动化状态机通信。<code>Sleep</code> 解决了这三点——它是个专用的"模型休息"原语。</p>
+<blockquote class="callout"><p><strong>关于 CORE_TOOLS 与 feature gate 的关系</strong>：Sleep 的特殊之处在于——它**既在 <code>CORE_TOOLS</code> 里（不延迟）<strong>，</strong>又受 feature gate 控制（可能不注册）**。当 <code>PROACTIVE</code> 和 <code>KAIROS</code> 都关闭时，Sleep 根本不注册（tools.ts:262 条件展开）；当任一开启时，Sleep 注册并在 CORE_TOOLS 里，schema 完整注入 system prompt，<strong>不走延迟发现</strong>。这是"核心但可选"的工具——一旦启用就立即可见，不像 Cron/Monitor 那样需要 SearchExtraTools 发现。</p></blockquote>
+<hr class="divider">
+</section>
+
+  <section id="二关键文件清单">
+<h2>二、关键文件清单</h2>
+<pre><code>SleepTool/
+├── SleepTool.ts          ← 工具主体（211 行），call() 含完整睡眠/中断逻辑
+├── prompt.ts             ← 工具名常量 + DESCRIPTION + SLEEP_TOOL_PROMPT 文本
+└── __tests__/
+    └── SleepTool.test.ts ← 单元测试（40 行，测中断行为 + 提前唤醒）</code></pre>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+    <tbody>
+    <tr><td><code>SleepTool.ts</code></td><td>工具主体：schema + call + 中断逻辑 + proactive 联动</td><td><code>buildTool:55</code>、<code>call:105</code>、<code>shouldInterruptSleep:51</code>、<code>SLEEP_WAKE_CHECK_INTERVAL_MS:9</code></td></tr>
+    <tr><td><code>prompt.ts</code></td><td>工具名 + 描述 + 详细 prompt（含 <code>&lt;tick&gt;</code> 提示说明）</td><td><code>SLEEP_TOOL_NAME:3</code>、<code>DESCRIPTION:5</code>、<code>SLEEP_TOOL_PROMPT:7-17</code></td></tr>
+    <tr><td><code>__tests__/SleepTool.test.ts</code></td><td>测试：cancel 中断行为 + 队列工作提前唤醒</td><td><code>:14-39</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p><strong>结构特点</strong>：SleepTool 是"单文件主体 + 独立 prompt.ts + 有测试"型。和 GlobTool 类似主体逻辑在一个文件，但<strong>多了测试目录</strong>（GlobTool 无独立测试）。<code>prompt.ts</code> 独立是因为 prompt 文本较长（含 <code>&lt;tick&gt;</code> 提示机制说明）且引用了 <code>TICK_TAG</code> 常量（<code>prompt.ts:1</code>，来自 <code>src/constants/xml.ts</code>）。</p></blockquote>
+<hr class="divider">
+</section>
+
+  <section id="三tool-接口字段实现buildtool-逐字段">
+<h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+<h3>标识字段</h3>
+<pre><code>name: SLEEP_TOOL_NAME,                      // &quot;Sleep&quot;（prompt.ts:3）
+searchHint: 'wait pause sleep rest idle duration timer',  // :57，英文关键词簇
+maxResultSizeChars: 1_000,                  // :58，极小——输出只有 slept_seconds + interrupted
+strict: true,                               // :59</code></pre>
+<blockquote class="callout"><p>**<code>searchHint</code> 是英文关键词簇**：虽然 Sleep 在 CORE_TOOLS 不延迟，但 searchHint 仍进 TF-IDF 索引（提升自然语言意图命中率）。六个同义词 "wait pause sleep rest idle duration timer" 覆盖了各种"等待"表达。</p></blockquote>
+<blockquote><p>**<code>maxResultSizeChars: 1_000</code>**：输出 schema 只有 <code>{ slept_seconds, interrupted }</code>，1 千字符足够。这是所有工具里最小的阈值之一，反映"等待结果本就简短"。</p></blockquote>
+<h3>模型面字段</h3>
+<pre><code>async description() { return DESCRIPTION }       // → &quot;等待指定的时长&quot;（prompt.ts:5）
+async prompt()      { return SLEEP_TOOL_PROMPT }  // → 详细 prompt（prompt.ts:7-17）
+get inputSchema()   { return inputSchema() }      // getter，懒加载</code></pre>
+<p>注意 Sleep <strong>没有 outputSchema getter</strong>——输出类型 <code>SleepOutput = { slept_seconds: number; interrupted: boolean }</code>（<code>:23</code>）是纯 TypeScript 类型，不走 Zod schema。这是因为输出极简，无需 schema 校验。</p>
+<p><strong>输入 schema</strong>（<code>:11-19</code>，<code>z.strictObject</code> + <code>lazySchema</code>）：</p>
+<pre><code>{
+  duration_seconds: number,  // 必填，睡眠时长（秒）
+}</code></pre>
+<h3>行为字段（重点）</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+    <tbody>
+    <tr><td><code>call()</code></td><td><code>:105</code></td><td>核心逻辑（见下节）</td></tr>
+    <tr><td><code>validateInput()</code></td><td>❌ 未声明</td><td>无需校验（duration 是 number，Zod 已保证类型）</td></tr>
+    <tr><td><code>checkPermissions()</code></td><td>❌ 未声明</td><td>只读等待，无权限要求</td></tr>
+    <tr><td><code>isConcurrencySafe()</code></td><td><code>:72</code> → <code>true</code></td><td>可与其他工具并发</td></tr>
+    <tr><td><code>isReadOnly()</code></td><td><code>:75</code> → <code>true</code></td><td>纯等待无副作用</td></tr>
+    <tr><td><code>interruptBehavior()</code></td><td><code>:78</code> → <code>'cancel'</code></td><td>用户 ESC 时取消（而非 resume）</td></tr>
+    <tr><td><code>userFacingName()</code></td><td><code>:82</code> → <code>&quot;Sleep&quot;</code></td><td>用户面显示名</td></tr>
+    <tr><td><code>toAutoClassifierInput()</code></td><td>❌ 未声明</td><td>—</td></tr>
+    <tr><td><code>getPath()</code></td><td>❌ 未声明</td><td>无文件系统操作</td></tr>
+    </tbody>
+  </table>
+</div>
+<h3>渲染字段</h3>
+<pre><code>renderToolUseMessage(input)  // :86，显示 &quot;睡眠：${secs}s&quot;
+mapToolResultToToolResultBlockParam(content, toolUseID)  // :91，区分 interrupted/正常</code></pre>
+<p><code>mapToolResultToToolResultBlockParam</code>（<code>:91-103</code>）根据 <code>interrupted</code> 标志返回不同文本：</p>
+<ul><li><code>interrupted: true</code> → <code>&quot;睡眠在 ${slept_seconds}s 后被中断&quot;</code></li><li><code>interrupted: false</code> → <code>&quot;已睡眠 ${slept_seconds}s&quot;</code></li></ul>
+<p>注意 Sleep **没有 <code>renderToolResultMessage</code>**（无 JSX 渲染）——因为 <code>.ts</code> 文件而非 <code>.tsx</code>，结果只通过 <code>mapToolResultToToolResultBlockParam</code> 转纯文本给模型。</p>
+<hr class="divider">
+</section>
+
+  <section id="四核心执行流程call">
+<h2>四、核心执行流程：<code>call()</code></h2>
+<p><code>SleepTool.call()</code>（<code>SleepTool.ts:105-210</code>）是三个工具里最复杂的——它不只是 <code>setTimeout</code>，而是个完整的中断/唤醒状态机。</p>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    A[&quot;call(input, context)\nSleepTool.ts:105&quot;] --&gt; B{&quot;shouldInterruptSleep()?\n:107 — 入口预检&quot;}
+    B --&gt;|是| C[&quot;return {slept:0, interrupted:true}\n:108-113 — 直接不睡&quot;]
+    B --&gt;|否| D[&quot;计算 sleepUntil\n:118&quot;]
+    D --&gt; E{&quot;isProactiveAutomationEnabled()?\n:120&quot;}
+    E --&gt;|是| F[&quot;notifyAutomationStateChanged\n{phase:'sleeping', sleep_until}\n:121-127&quot;]
+    E --&gt;|否| G[&quot;跳过通知&quot;]
+    F --&gt; H[&quot;new Promise: setTimeout(finish)\n+ setInterval(wakeCheck, 500ms)\n+ abort signal listener\n:130-183&quot;]
+    G --&gt; H
+    H --&gt; I{&quot;正常 finish / interrupt?&quot;}
+    I --&gt;|finish| J[&quot;return {slept:duration, interrupted:false}\n:184-189&quot;]
+    I --&gt;|interrupt| K[&quot;catch: return {slept:elapsed, interrupted:true}\n:190-197&quot;]
+    J --&gt; L[&quot;finally: notifyAutomationStateChanged\n恢复/清空状态\n:198-209&quot;]
+    K --&gt; L
+  </div>
+</div>
+<p><strong>关键点逐条</strong>：</p>
+<ol><li><strong>入口预检</strong>（<code>:107-114</code>）：<code>shouldInterruptSleep()</code> 为 true 时<strong>直接不睡</strong>，返回 <code>{ slept_seconds: 0, interrupted: true }</code>。这处理"模型决定等待期间 proactive 被禁用或有新工作到来"的竞态——避免无谓睡眠。</li></ol>
+<ol><li><strong>proactive 状态通知</strong>（<code>:120-127</code>）：若 proactive 自动化启用，调用 <code>notifyAutomationStateChanged({ enabled: true, phase: 'sleeping', sleep_until })</code> 通知会话状态机"模型进入睡眠"。这让外部观察者（如 UI 状态栏、自动化编排器）知道当前状态。<code>finally</code> 块（<code>:198-209</code>）负责恢复——睡眠结束后清空 <code>sleep_until</code> 和 <code>phase</code>。</li></ol>
+<ol><li><strong>三路中断源的 Promise</strong>（<code>:130-183</code>）：核心是个 <code>new Promise</code>，内部注册三个中断源：</li></ol>
+<p>   - <strong>正常超时</strong>（<code>:165</code>）：<code>setTimeout(finish, duration_seconds * 1000)</code>——到点正常结束。    - <strong>用户 ESC 中断</strong>（<code>:161-163</code>、<code>:172-174</code>）：监听 <code>context.abortController.signal</code> 的 <code>abort</code> 事件，触发 <code>interrupt()</code>。<code>interruptBehavior() → 'cancel'</code> 决定了中断后取消（而非 resume）。    - <strong>新工作提前唤醒</strong>（<code>:178-182</code>）：<code>setInterval(wakeCheck, 500ms)</code> 每 500ms 调一次 <code>shouldInterruptSleep()</code>，若 true 则 <code>interrupt()</code>。这是"提前唤醒"的核心——<strong>不等到完整时长</strong>就因为新工作而醒来。</p>
+<ol><li>**<code>settled</code> 防重入**（<code>:133</code>、<code>:148</code>、<code>:155</code>）：三个中断源都可能触发，用 <code>settled</code> 标志保证只有第一个生效，后续的 no-op。<code>cleanup()</code>（<code>:135-145</code>）清理所有定时器和事件监听，防内存泄漏。</li></ol>
+<ol><li><strong>结果分支</strong>：</li></ol>
+<p>   - 正常 finish → <code>{ slept_seconds: duration_seconds, interrupted: false }</code>（<code>:184-189</code>）    - interrupt（catch）→ <code>{ slept_seconds: elapsed, interrupted: true }</code>（<code>:190-197</code>），<code>elapsed</code> 是实际已睡秒数（<code>Math.round((now - startTime)/1000)</code>）</p>
+<ol><li>**<code>finally</code> 状态恢复**（<code>:198-209</code>）：无论正常结束还是中断，都调用 <code>notifyAutomationStateChanged</code> 恢复状态——proactive 启用时清空 sleep 字段，否则传 null。</li></ol>
+<blockquote class="callout"><p>**<code>SLEEP_WAKE_CHECK_INTERVAL_MS = 500</code>**（<code>:9</code>）：唤醒检查间隔 500ms。这是个权衡——太短浪费 CPU，太长延迟感知新工作。500ms 让新工作最多半秒内被感知。</p></blockquote>
+<hr class="divider">
+</section>
+
+  <section id="五权限与安全">
+<h2>五、权限与安全</h2>
+<p>SleepTool 的权限模型是最简的——<strong>纯只读等待，无副作用，无需权限</strong>。</p>
+<h3>无 <code>validateInput</code></h3>
+<p>Sleep 没有声明 <code>validateInput</code>。输入只有 <code>duration_seconds: number</code>，Zod schema 已保证类型正确性。极端值（如负数或超大数）不校验——<code>setTimeout</code> 对负数立即触发，对超大数正常等待（用户可 ESC 中断）。这是"输入足够简单时省略校验"的体现。</p>
+<h3>无 <code>checkPermissions</code></h3>
+<p>Sleep 没有声明 <code>checkPermissions</code>。因为它：</p>
+<ul><li>不触碰文件系统</li><li>不执行 shell 命令</li><li>不访问网络</li><li>纯内存等待</li></ul>
+<p>走默认权限管道，无需特殊审批。</p>
+<h3><code>isReadOnly</code> + <code>isConcurrencySafe</code>（<code>:72-77</code>）</h3>
+<pre><code>isConcurrencySafe() { return true }  // 可与其他工具并发
+isReadOnly()        { return true }  // 纯等待无副作用</code></pre>
+<p><code>prompt.ts:13-14</code>（SLEEP_TOOL_PROMPT）明确——"本工具可与其他工具并发调用——不会相互干扰"。这让模型可以同时 Sleep + 干别的（虽然语义上 Sleep 是"歇会儿"，但技术上支持并发）。</p>
+<h3><code>interruptBehavior: 'cancel'</code>（<code>:78-80</code>）</h3>
+<p>用户 ESC 中断时，睡眠被<strong>取消</strong>（而非 resume 到后台继续）。<code>SleepTool.test.ts:14-16</code> 测试了这一点：</p>
+<pre><code>test('declares cancel interrupt behavior', () =&gt; {
+  expect(SleepTool.interruptBehavior()).toBe('cancel')
+})</code></pre>
+<h3>安全考量</h3>
+<ul><li><strong>不占 shell 进程</strong>（<code>prompt.ts:15</code>）："请优先使用本工具而非 <code>Bash(sleep ...)</code>——它不会占用 shell 进程"。这是 Sleep 相对 Bash(sleep) 的核心安全/资源优势。</li><li><strong>可中断</strong>：用户随时 ESC，不会被迫等到完整时长。</li><li><strong>proactive 联动</strong>：与自动化状态机通信，避免"模型睡了但系统以为它在工作"的状态不一致。</li></ul>
+<hr class="divider">
+</section>
+
+  <section id="六与其他系统工具的关系">
+<h2>六、与其他系统/工具的关系</h2>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    SLP[&quot;Sleep&quot;] --&gt;|检测新工作| MQM[&quot;messageQueueManager\nhasCommandsInQueue\nsrc/utils/messageQueueManager.ts&quot;]
+    SLP --&gt;|proactive 状态| PRO[&quot;src/proactive/index.ts\nisProactiveActive&quot;]
+    SLP --&gt;|状态通知| SS[&quot;notifyAutomationStateChanged\nsrc/utils/sessionState.ts&quot;]
+    SLP --&gt;|feature gate| FG[&quot;feature('PROACTIVE')\n|| feature('KAIROS')\ntools.ts:26-30&quot;]
+    SLP -.替代.-&gt; BASH[&quot;Bash(sleep)\n（占 shell，不推荐）&quot;]
+    SLP -.互补.-&gt; CRON[&quot;CronCreate\n（安排未来的 prompt）&quot;]
+    SLP -.被 tick 触发.-&gt; TICK[&quot;&lt;tick&gt; 提示\n周期性检查&quot;]
+    SLP -.CORE_TOOLS.-&gt; CT[&quot;constants/tools.ts:174\n（不延迟）&quot;]
+  </div>
+</div>
+<ul><li>**与 <code>messageQueueManager</code> 的关系**：<code>hasQueuedWakeSignal()</code>（<code>:45-49</code>）调 <code>hasCommandsInQueue()</code> 检测是否有排队的工作。这是"提前唤醒"的数据源——新 prompt 入队时，Sleep 的 wakeCheck 会感知到并 interrupt。</li><li><strong>与 proactive 自动化的关系</strong>：Sleep 是 proactive 基础设施的一部分。<code>isProactiveAutomationEnabled()</code>（<code>:25-33</code>）和 <code>isProactiveSleepAllowed()</code>（<code>:35-43</code>）都动态 require <code>src/proactive/index.ts</code>（注意是<strong>惰性 require</strong>，避免模块加载循环）。<code>shouldInterruptSleep()</code>（<code>:51-53</code>）= <code>!isProactiveSleepAllowed() || hasQueuedWakeSignal()</code>。</li><li>**与 <code>notifyAutomationStateChanged</code> 的关系**（<code>:6</code>、<code>:121</code>、<code>:199</code>）：睡眠前后通知会话状态机，让 UI/编排器感知"模型在睡眠"。这是自动化可观测性的关键。</li><li>**与 <code>CronCreate</code> 的关系<strong>：互补。Cron 是"安排一个</strong>未来的 prompt<strong>"（模型不在场，到点被唤醒入队）；Sleep 是"</strong>模型现在自己歇会儿**"（模型在场，被动等待）。Cron 持久化跨会话，Sleep 随会话结束。</li><li>**与 <code>Bash(sleep)</code> 的关系**：Sleep 是 Bash(sleep) 的推荐替代品。<code>prompt.ts:15</code> 明确引导模型优先用 Sleep。区别：Sleep 不占 shell、可提前唤醒、与 proactive 联动。</li><li>**与 <code>&lt;tick&gt;</code> 提示的关系**（<code>prompt.ts:11</code>）：Sleep 的 prompt 提到"你可能会收到 <code>&lt;tick&gt;</code> 提示——这些是周期性检查。在睡眠前先寻找有用的工作来做"。<code>&lt;tick&gt;</code> 是 Claude Code 的周期性唤醒机制，Sleep 与之配合——tick 唤醒模型，模型决定是否 Sleep。</li><li>**与 <code>CORE_TOOLS</code> 的关系**：Sleep 在 CORE_TOOLS（<code>:174</code>），一旦注册就完整注入 system prompt，<strong>不延迟</strong>。这与 Cron/Monitor（延迟工具）形成对比。</li></ul>
+<hr class="divider">
+</section>
+
+  <section id="七亮点与设计取舍">
+<h2>七、亮点与设计取舍</h2>
+<ol><li><strong>三路中断源的状态机</strong>（<code>:130-183</code>）：Sleep 不是简单 setTimeout，而是同时监听"正常超时 + 用户 ESC + 新工作唤醒"三个源。<code>settled</code> 标志防重入，<code>cleanup()</code> 防泄漏。这是"等待"语义的完整实现——真正的可中断、可唤醒。</li></ol>
+<ol><li><strong>惰性 require 避免循环</strong>（<code>:31-32</code>、<code>:41-42</code>、<code>:47-48</code>）：对 <code>src/proactive/index.ts</code> 和 <code>messageQueueManager</code> 用 <code>require()</code> 而非顶层 <code>import</code>。注释 <code>:30</code> 隐含——proactive 模块可能反向依赖 SleepTool 所在的模块图，顶层 import 会循环。惰性 require 把依赖解析推迟到调用时，打破循环。这是 monorepo 中常见的模块解耦技巧。</li></ol>
+<ol><li><strong>入口预检避免无谓睡眠</strong>（<code>:107-114</code>）：<code>call()</code> 一开始就检查 <code>shouldInterruptSleep()</code>，若已有新工作或 proactive 禁用，直接返回 <code>{ slept: 0, interrupted: true }</code>。这处理"模型决定等待的瞬间，状态已变"的竞态——避免注册一堆定时器又立即 interrupt。</li></ol>
+<ol><li><strong>proactive 状态通知的对称性</strong>（<code>:120-127</code> + <code>:198-209</code>）：睡眠前通知 <code>phase: 'sleeping'</code>，结束后（finally）清空。这种"进入-退出"对称通知让外部观察者能准确追踪状态。finally 块保证无论正常结束还是中断都恢复——防状态泄漏。</li></ol>
+<ol><li><strong>不占 shell 进程</strong>（<code>prompt.ts:15</code>）：这是 Sleep 相对 Bash(sleep) 的核心价值。shell 进程是有限资源（BashTool 有并发限制），Sleep 用纯 JS 定时器（setTimeout/setInterval）实现，不消耗 shell 池。</li></ol>
+<ol><li>**<code>interruptBehavior: 'cancel'</code>**（<code>:78-80</code>）：明确声明中断行为为 cancel。这让工具执行框架知道——用户 ESC 时直接取消 Promise（reject），而非尝试 resume。对比某些工具可能用 <code>'resume'</code>（中断后后台继续），Sleep 选择 cancel 因为"睡眠被中断=用户有新意图"，没必要继续睡。</li></ol>
+<ol><li><strong>在 CORE_TOOLS 但受 feature gate</strong>：Sleep 的独特定位——核心工具（不延迟）但可选（feature gate）。一旦 PROACTIVE/KAIROS 启用，Sleep 立即可见于 system prompt，无需 SearchExtraTools 往返。这反映了"proactive 启用后 Sleep 是高频原语"的设计判断。</li></ol>
+<ol><li><strong>无 outputSchema 的极简输出</strong>：输出类型是纯 TS 类型（<code>:23</code>），不走 Zod。因为 <code>{ slept_seconds, interrupted }</code> 极简且只供模型读，无需 schema 校验/序列化。这是"按需引入 schema 复杂度"的体现。</li></ol>
+<ol><li><strong>500ms 唤醒检查间隔的权衡</strong>（<code>:9</code>）：<code>SLEEP_WAKE_CHECK_INTERVAL_MS = 500</code>。太短浪费 CPU 轮询，太长延迟感知新工作。500ms 让新工作最多半秒内被感知——对"提醒我"类场景足够灵敏，对 CPU 友好。</li></ol>
+<hr class="divider">
+</section>
+
+  <section id="八源码导航书签速查">
+<h2>八、源码导航（书签速查）</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+    <tbody>
+    <tr><td>工具名常量 + 描述 + prompt</td><td><code>SleepTool/prompt.ts:3,5,7-17</code></td></tr>
+    <tr><td><code>&lt;tick&gt;</code> 提示说明</td><td><code>prompt.ts:11</code>（引用 <code>TICK_TAG</code>）</td></tr>
+    <tr><td><code>buildTool</code> 字段填充</td><td><code>SleepTool.ts:55-211</code></td></tr>
+    <tr><td>输入 schema</td><td><code>SleepTool.ts:11-19</code></td></tr>
+    <tr><td><code>call()</code> 核心逻辑（状态机）</td><td><code>SleepTool.ts:105-210</code></td></tr>
+    <tr><td><code>shouldInterruptSleep()</code>（唤醒判定）</td><td><code>SleepTool.ts:51-53</code></td></tr>
+    <tr><td>三路中断源（setTimeout/abort/wakeCheck）</td><td><code>SleepTool.ts:130-183</code></td></tr>
+    <tr><td>proactive 状态通知</td><td><code>SleepTool.ts:120-127,198-209</code></td></tr>
+    <tr><td><code>interruptBehavior: 'cancel'</code></td><td><code>SleepTool.ts:78-80</code></td></tr>
+    <tr><td><code>SLEEP_WAKE_CHECK_INTERVAL_MS</code>（500ms）</td><td><code>SleepTool.ts:9</code></td></tr>
+    <tr><td>命令队列（新工作检测）</td><td><code>src/utils/messageQueueManager.ts:hasCommandsInQueue</code></td></tr>
+    <tr><td>proactive 状态</td><td><code>src/proactive/index.ts:isProactiveActive</code></td></tr>
+    <tr><td>自动化状态通知</td><td><code>src/utils/sessionState.ts:notifyAutomationStateChanged</code></td></tr>
+    <tr><td>feature gate 注册</td><td><code>src/tools.ts:26-30,262</code></td></tr>
+    <tr><td>CORE_TOOLS 白名单（不延迟）</td><td><code>src/constants/tools.ts:174</code></td></tr>
+    <tr><td>测试（中断 + 提前唤醒）</td><td><code>SleepTool/__tests__/SleepTool.test.ts:14-39</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<hr class="divider">
+</section>
+
+  <section id="九学习建议与验证清单">
+<h2>九、学习建议与验证清单</h2>
+<p><strong>怎么读这章</strong>：先扫"一、工具定位"理解 Sleep 与 Bash(sleep) 的本质区别（不占 shell + 可唤醒 + proactive 联动），再跳到"四、call()"看三路中断状态机（这是最复杂的部分），最后对照"六、与其他系统"理解 proactive 生态。</p>
+<p><strong>验证清单（读完自测）</strong>：</p>
+<ul class="checklist"><li><input type="checkbox" disabled> <span>能说出 Sleep 与 Bash(sleep) 的三个本质区别（不占 shell、可提前唤醒、proactive 联动）</span></li><li><input type="checkbox" disabled> <span>能指出 Sleep <strong>在</strong> <code>CORE_TOOLS</code>（不延迟），但受 <code>feature('PROACTIVE')||feature('KAIROS')</code> 门控</span></li><li><input type="checkbox" disabled> <span>能解释三路中断源（正常超时 / 用户 ESC / 新工作唤醒）和 <code>settled</code> 防重入机制</span></li><li><input type="checkbox" disabled> <span>能说出 <code>shouldInterruptSleep()</code> 的两个判定条件（<code>!isProactiveSleepAllowed() || hasQueuedWakeSignal()</code>）</span></li><li><input type="checkbox" disabled> <span>能解释为什么用惰性 <code>require</code> 而非顶层 import（打破 proactive 模块循环依赖）</span></li><li><input type="checkbox" disabled> <span>能指出入口预检（<code>:107-114</code>）处理的竞态场景（决定等待瞬间状态已变）</span></li><li><input type="checkbox" disabled> <span>能解释 <code>notifyAutomationStateChanged</code> 的进入-退出对称性（phase:sleeping → 清空，finally 保证恢复）</span></li><li><input type="checkbox" disabled> <span>能说出 <code>interruptBehavior: 'cancel'</code> 的语义（ESC 时取消而非 resume）</span></li><li><input type="checkbox" disabled> <span>能解释 500ms 唤醒检查间隔的权衡（CPU vs 灵敏度）</span></li><li><input type="checkbox" disabled> <span>能说出 Sleep 与 CronCreate 的分工（模型现在歇会儿 vs 安排未来 prompt）</span></li></ul>
+<p><strong>配合动作</strong>：</p>
+<ol><li>让 Claude <code>Sleep</code> 5 秒，观察返回的 <code>slept_seconds</code> 和 <code>interrupted: false</code></li><li>Sleep 期间 ESC 中断，验证 <code>interrupted: true</code> 和实际已睡秒数</li><li>运行 <code>SleepTool.test.ts</code>（<code>bun test .../SleepTool.test.ts</code>），观察"队列工作提前唤醒"测试</li><li>在 <code>:178</code> wakeCheck 加日志，观察 500ms 轮询频率</li><li>对比 <code>Bash(sleep 5)</code> 的行为，体会"不占 shell"的资源差异</li><li>启用 proactive（<code>feature('PROACTIVE')</code>），观察 <code>notifyAutomationStateChanged</code> 的状态变化</li></ol>
+</section>
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

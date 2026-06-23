@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TungstenTool 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    .kw  { color: #7c9bff; font-weight: 600; }
+    .str { color: #6cc77a; }
+    .fn  { color: #f0906a; }
+    .cmt { color: #6e6a62; font-style: italic; }
+    .type{ color: #e0a020; }
+    .num { color: #c792ea; }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Additional styles ────────────────────────────────── */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>TungstenTool 工具详解</h1>
+  <p>内部 stub 工具——仅导出恒禁用的工具对象与空操作辅助函数，真实终端监控逻辑未恢复</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou">三、Tool 接口字段</a></li>
+    <li><a href="#si-call-liu-cheng">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-xi-tong-guan-xi">六、与其他系统/工具的关系</a></li>
+    <li><a href="#qi-liang-dian">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma">八、源码导航</a></li>
+    <li><a href="#jiu-xuexi">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+<blockquote class="callout"><p>这是工具系统逐个拆解系列的一篇。<code>TungstenTool</code> 是一个<strong>stub</strong> 工具：<code>TungstenTool.ts</code> 把一个空函数强转为 <code>Tool</code> 类型（恒为 falsy 的桩），<code>isEnabled: () =&gt; false</code> 保证它永不启用；配套的 <code>TungstenLiveMonitor.ts</code>（3 行）返回 null，<code>clearSessionsWithTungstenUsage</code> / <code>resetInitializationState</code> 是空操作。这是为内部 <code>USER_TYPE === 'ant'</code> 保留的占位，真实终端监控逻辑未恢复。</p></blockquote>
+
+<hr class="divider">
+
+<section id="yi-gong-ju-ding-wei">
+<h2>一、工具定位（一句话总结）</h2>
+<p><strong><code>TungstenTool</code> = 内部 ant 用户专属的终端监控工具占位（stub，恒禁用）。</strong></p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>维度</th><th>值</th></tr></thead>
+    <tbody>
+      <tr><td>工具名</td><td><code>TungstenTool</code>（无独立工具名常量，<code>:1</code> 内联）</td></tr>
+      <tr><td>一句话</td><td>桩对象，<code>isEnabled</code> 恒 false，永不激活</td></tr>
+      <tr><td>是否进 system prompt</td><td>❌ 不在 <code>CORE_TOOLS</code>；<code>tools.ts:67</code> 无条件 import，<code>:244</code> 仅 <code>USER_TYPE === 'ant'</code> 时注入</td></tr>
+      <tr><td>只读 / 破坏性</td><td>N/A（桩，<code>isEnabled</code> 恒 false）</td></tr>
+      <tr><td>是否可并发</td><td>N/A</td></tr>
+      <tr><td>激活门控</td><td><code>process.env.USER_TYPE === 'ant'</code>（<code>tools.ts:244</code>）+ <code>isEnabled: () =&gt; false</code>（<code>.js</code> 桩）</td></tr>
+      <tr><td>核心依赖</td><td>无（stub）</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><strong>为什么需要它？</strong> 原始 TungstenTool 是 Anthropic 内部（ant 用户）的终端监控工具，推测用于实时监控/分析终端活动。<code>src/constants/tools.ts:113</code> 注释提到"TungstenTool 使用单例虚拟终端抽象，在代理之间冲突"——说明真实实现涉及共享终端状态，多 agent 会冲突。反编译后未恢复，保留桩占位以维持 <code>tools.ts</code> 的 import 不报错。</p>
+</section>
+
+<hr class="divider">
+
+<section id="er-guan-jian-wen-jian">
+<h2>二、关键文件清单</h2>
+<pre><code>TungstenTool/
+├── TungstenTool.ts            ← 桩：空函数强转 Tool + 空操作辅助（7 行）
+├── TungstenTool.js            ← 更完整的桩（带 name / isEnabled，4 行）
+└── TungstenLiveMonitor.ts     ← React 组件桩，返回 null（3 行）</code></pre>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+    <tbody>
+      <tr><td><code>TungstenTool.ts</code></td><td>TS 桩：<code>(() =&gt; {}) as unknown as Tool</code></td><td><code>TungstenTool:4</code>、<code>clearSessionsWithTungstenUsage:5</code>、<code>resetInitializationState:6</code></td></tr>
+      <tr><td><code>TungstenTool.js</code></td><td>JS 桩（更结构化）：<code>{name, isEnabled:()=&gt;false}</code></td><td><code>:1-4</code></td></tr>
+      <tr><td><code>TungstenLiveMonitor.ts</code></td><td>组件桩：<code>() =&gt; null</code></td><td><code>:2-3</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<p><strong><code>.ts</code> 桩全部内容</strong>：</p>
+<pre><code><span class="cmt">// 自动生成的桩实现 — 请用真实实现替换</span>
+<span class="kw">import type</span> { Tool } <span class="kw">from</span> <span class="str">'src/Tool.js'</span>
+
+<span class="kw">export const</span> <span class="fn">TungstenTool</span>: Tool = (() =&gt; {}) <span class="kw">as unknown as</span> Tool
+<span class="kw">export const</span> <span class="fn">clearSessionsWithTungstenUsage</span>: () =&gt; <span class="type">void</span> = () =&gt; {}
+<span class="kw">export const</span> <span class="fn">resetInitializationState</span>: () =&gt; <span class="type">void</span> = () =&gt; {}</code></pre>
+<blockquote class="callout"><p><strong>结构特点</strong>：本批最"多文件却全 stub"的工具。三个文件都是占位。<code>.ts</code> 与 <code>.js</code> 并存是反编译产物——<code>.js</code> 带 <code>isEnabled: () =&gt; false</code> 的结构化桩，<code>.ts</code> 是更激进的空函数强转。<code>tools.ts:67</code> import 的是 <code>.js</code>（<code>require(...).TungstenTool</code>）。</p></blockquote>
+</section>
+
+<hr class="divider">
+
+<section id="san-tool-jie-kou">
+<h2>三、Tool 接口字段实现</h2>
+<p><strong>桩，无真实字段实现。</strong></p>
+
+<h3><code>.js</code> 桩（被 <code>tools.ts</code> 实际使用）</h3>
+<pre><code><span class="kw">export const</span> <span class="fn">TungstenTool</span> = {
+  name: <span class="str">'TungstenTool'</span>,
+  isEnabled: () =&gt; <span class="num">false</span>,
+}
+<span class="kw">export const</span> <span class="fn">clearSessionsWithTungstenUsage</span> = () =&gt; {}
+<span class="kw">export const</span> <span class="fn">resetInitializationState</span> = () =&gt; {}</code></pre>
+<ul>
+  <li><code>name: 'TungstenTool'</code>：仅有名字。</li>
+  <li><code>isEnabled: () =&gt; false</code>：<strong>恒禁用</strong>——即便注入工具列表，运行时也永不激活。</li>
+  <li>其余 Tool 接口字段（call、schema、prompt 等）全部缺失。</li>
+</ul>
+
+<h3><code>.ts</code> 桩</h3>
+<p><code>(() =&gt; {}) as unknown as Tool</code>——空函数双重断言为 Tool 类型，连 <code>name</code> / <code>isEnabled</code> 都没有。这是一个"类型占位"而非运行时可用对象。</p>
+</section>
+
+<hr class="divider">
+
+<section id="si-call-liu-cheng">
+<h2>四、核心执行流程：<code>call()</code></h2>
+<p><strong>无 <code>call()</code>。</strong> 桩对象没有 <code>call</code> 方法。即便工具被注入列表，<code>isEnabled: () =&gt; false</code> 也保证它永不被调用。</p>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart LR
+    A["tools.ts:67 import TungstenTool"] --> B["tools.ts:244\nUSER_TYPE==='ant' ? 注入 : 跳过"]
+    B --> C["即便注入\nisEnabled()=>false"]
+    C --> D["工具永不激活\n无 call 执行"]
+  </div>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="wu-quan-xian-an-quan">
+<h2>五、权限与安全</h2>
+<p><strong>不适用。</strong> <code>isEnabled: () =&gt; false</code> 使工具在任何环境都不可用，无权限检查可言。</p>
+<p><code>src/constants/tools.ts:113</code> 的注释提示真实实现的隐患："TungstenTool 使用单例虚拟终端抽象，在代理之间冲突"——说明真实工具涉及共享终端状态，多 agent 并发会冲突。这可能是它被桩化的原因之一。</p>
+</section>
+
+<hr class="divider">
+
+<section id="liu-xi-tong-guan-xi">
+<h2>六、与其他系统/工具的关系</h2>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    TUNG["TungstenTool (桩)"] -->|被 import| TOOLS["src/tools.ts:67"]
+    TOOLS -->|ant 用户注入| REGIST["工具注册表\n:244"]
+    REGIST -->|isEnabled false| DISABLED["永不激活"]
+    TUNG -.关联注释.-> CONST["src/constants/tools.ts:113\n单例终端冲突说明"]
+  </div>
+</div>
+<ul>
+  <li><strong>与 <code>tools.ts</code></strong>：<code>:67</code> 无条件 import（无 feature gate），<code>:244</code> 按 <code>USER_TYPE === 'ant'</code> 注入。这是本批唯一按用户类型（而非 feature flag）门控的工具。</li>
+  <li><strong>与 <code>src/constants/tools.ts:113</code></strong>：注释提及真实实现的"单例虚拟终端冲突"隐患，解释了为何被桩化。</li>
+  <li><strong>与 <code>TungstenLiveMonitor</code></strong>：配套组件桩（<code>:2-3</code> 返回 null），推测真实实现是终端实时监控的 React 组件。</li>
+</ul>
+</section>
+
+<hr class="divider">
+
+<section id="qi-liang-dian">
+<h2>七、亮点与设计取舍</h2>
+<ol>
+  <li><strong><code>.js</code> 桩的 <code>isEnabled: () =&gt; false</code> 防御</strong>：即便工具被注入列表（ant 用户），运行时也恒禁用。双重保险——既不在非 ant 构建注入，又在 ant 构建里禁用。</li>
+  <li><strong><code>.ts</code> 与 <code>.js</code> 并存</strong>：反编译产物的典型特征。<code>.ts</code> 是类型占位（空函数强转），<code>.js</code> 是运行时占位（结构化对象）。<code>tools.ts</code> 实际用 <code>.js</code>。</li>
+  <li><strong><code>USER_TYPE === 'ant'</code> 门控</strong>（<code>tools.ts:244</code>）：本批唯一按用户类型门控的工具，表明它是 Anthropic 内部专属。</li>
+  <li><strong>诚实标注 stub</strong>（<code>TungstenTool.ts:1</code>、<code>TungstenLiveMonitor.ts:1</code>）：两个文件注释都明确"自动生成的桩实现"。</li>
+  <li><strong>空操作辅助函数</strong>：<code>clearSessionsWithTungstenUsage</code> / <code>resetInitializationState</code> 是空函数，维持调用方代码不报错。</li>
+</ol>
+</section>
+
+<hr class="divider">
+
+<section id="ba-yuan-ma">
+<h2>八、源码导航（书签速查）</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+    <tbody>
+      <tr><td>TS 桩全部内容</td><td><code>TungstenTool/TungstenTool.ts:1-7</code></td></tr>
+      <tr><td>JS 桩（实际使用）</td><td><code>TungstenTool/TungstenTool.js:1-4</code></td></tr>
+      <tr><td><code>isEnabled: () =&gt; false</code></td><td><code>TungstenTool.js:3</code></td></tr>
+      <tr><td>LiveMonitor 组件桩</td><td><code>TungstenTool/TungstenLiveMonitor.ts:2-3</code></td></tr>
+      <tr><td>import 注册</td><td><code>src/tools.ts:67</code></td></tr>
+      <tr><td>ant 用户条件注入</td><td><code>src/tools.ts:244</code></td></tr>
+      <tr><td>冲突隐患注释</td><td><code>src/constants/tools.ts:113</code></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="jiu-xuexi">
+<h2>九、学习建议与验证清单</h2>
+<p><strong>怎么读这章</strong>：核心认知——这是纯 stub，无任何可学习的行为模式。重点反而在于理解它为何被桩化（单例终端冲突，<code>constants/tools.ts:113</code>）以及 <code>USER_TYPE === 'ant'</code> 的门控方式。</p>
+<p><strong>验证清单（读完自测）</strong>：</p>
+<ul class="checklist">
+  <li><input type="checkbox" disabled> <span>能说出本工具是 stub（<code>.ts</code> 与 <code>.js</code> 注释均明确）</span></li>
+  <li><input type="checkbox" disabled> <span>能指出 <code>.js</code> 桩的 <code>isEnabled: () =&gt; false</code> 使工具恒禁用</span></li>
+  <li><input type="checkbox" disabled> <span>能说出门控方式（<code>USER_TYPE === 'ant'</code>，<code>tools.ts:244</code>，本批唯一按用户类型门控）</span></li>
+  <li><input type="checkbox" disabled> <span>能找到冲突隐患的注释（<code>src/constants/tools.ts:113</code>）</span></li>
+  <li><input type="checkbox" disabled> <span>能解释 <code>.ts</code> 与 <code>.js</code> 并存的原因（反编译产物的类型占位 vs 运行时占位）</span></li>
+  <li><input type="checkbox" disabled> <span>能说出 <code>TungstenLiveMonitor</code> 桩返回什么（null）</span></li>
+</ul>
+<p><strong>配合动作</strong>：</p>
+<ol>
+  <li>阅读三个桩文件，确认无业务逻辑</li>
+  <li>设置 <code>USER_TYPE=ant</code> 启动，观察 TungstenTool 是否被注入（会注入但 isEnabled 禁用）</li>
+  <li>阅读 <code>src/constants/tools.ts:113</code> 附近的注释，了解真实工具的设计冲突</li>
+</ol>
+</section>
+
+<a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

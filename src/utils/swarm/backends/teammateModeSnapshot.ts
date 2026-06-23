@@ -1,9 +1,9 @@
 /**
- * Teammate mode snapshot module.
+ * Teammate 模式快照模块。
  *
- * Captures the teammate mode at session startup, following the same pattern
- * as hooksConfigSnapshot.ts. This ensures that runtime config changes don't
- * affect the teammate mode for the current session.
+ * 在会话启动时捕获 teammate 模式，遵循与
+ * hooksConfigSnapshot.ts 相同的模式。这确保运行时配置变更
+ * 不会影响当前会话的 teammate 模式。
  */
 
 import { getGlobalConfig } from '../../../utils/config.js'
@@ -12,33 +12,33 @@ import { logError } from '../../../utils/log.js'
 
 export type TeammateMode = 'auto' | 'tmux' | 'windows-terminal' | 'in-process'
 
-// Module-level variable to hold the captured mode at startup
+// 模块级变量，保存启动时捕获的模式
 let initialTeammateMode: TeammateMode | null = null
 
-// CLI override (set before capture if --teammate-mode is provided)
+// CLI 覆盖值（如果提供了 --teammate-mode，则在 capture 之前设置）
 let cliTeammateModeOverride: TeammateMode | null = null
 
 /**
- * Set the CLI override for teammate mode.
- * Must be called before captureTeammateModeSnapshot().
+ * 设置 teammate 模式的 CLI 覆盖值。
+ * 必须在 captureTeammateModeSnapshot() 之前调用。
  */
 export function setCliTeammateModeOverride(mode: TeammateMode): void {
   cliTeammateModeOverride = mode
 }
 
 /**
- * Get the current CLI override, if any.
- * Returns null if no CLI override was set.
+ * 获取当前的 CLI 覆盖值（如果有）。
+ * 如果未设置 CLI 覆盖值，则返回 null。
  */
 export function getCliTeammateModeOverride(): TeammateMode | null {
   return cliTeammateModeOverride
 }
 
 /**
- * Clear the CLI override and update the snapshot to the new mode.
- * Called when user changes the setting in the UI, allowing their change to take effect.
+ * 清除 CLI 覆盖值并将快照更新为新模式。
+ * 当用户在 UI 中更改设置时调用，使其更改生效。
  *
- * @param newMode - The new mode the user selected (passed directly to avoid race condition)
+ * @param newMode - 用户选择的新模式（直接传入以避免竞态条件）
  */
 export function clearCliTeammateModeOverride(newMode: TeammateMode): void {
   cliTeammateModeOverride = null
@@ -49,9 +49,9 @@ export function clearCliTeammateModeOverride(newMode: TeammateMode): void {
 }
 
 /**
- * Capture the teammate mode at session startup.
- * Called early in main.tsx, after CLI args are parsed.
- * CLI override takes precedence over config.
+ * 在会话启动时捕获 teammate 模式。
+ * 在 main.tsx 中早期调用，CLI 参数解析之后执行。
+ * CLI 覆盖值优先于配置。
  */
 export function captureTeammateModeSnapshot(): void {
   if (cliTeammateModeOverride) {
@@ -69,12 +69,12 @@ export function captureTeammateModeSnapshot(): void {
 }
 
 /**
- * Get the teammate mode for this session.
- * Returns the snapshot captured at startup, ignoring any runtime config changes.
+ * 获取本次会话的 teammate 模式。
+ * 返回启动时捕获的快照值，忽略任何运行时配置变更。
  */
 export function getTeammateModeFromSnapshot(): TeammateMode {
   if (initialTeammateMode === null) {
-    // This indicates an initialization bug - capture should happen in setup()
+    // 这表示初始化错误——捕获应在 setup() 中进行
     logError(
       new Error(
         'getTeammateModeFromSnapshot called before capture - this indicates an initialization bug',
@@ -82,6 +82,6 @@ export function getTeammateModeFromSnapshot(): TeammateMode {
     )
     captureTeammateModeSnapshot()
   }
-  // Fallback to 'auto' if somehow still null (shouldn't happen, but safe)
+  // 如果仍以某种方式保持 null，则回退到 'auto'（不应发生，但安全起见）
   return initialTeammateMode ?? 'auto'
 }

@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskCreate 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    .kw  { color: #7c9bff; font-weight: 600; }
+    .str { color: #6cc77a; }
+    .fn  { color: #f0906a; }
+    .cmt { color: #6e6a62; font-style: italic; }
+    .type{ color: #e0a020; }
+    .num { color: #c792ea; }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Additional styles ────────────────────────────────── */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>TaskCreate 工具详解</h1>
+  <p>在文件系统任务列表中创建一条新任务——Task 子系统（TodoV2）的写入入口，配合 TaskUpdate/TaskList/TaskGet 组成任务管理闭环</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou">三、Tool 接口字段实现</a></li>
+    <li><a href="#si-call-liu-cheng">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-xi-tong-guan-xi">六、与其他系统/工具的关系</a></li>
+    <li><a href="#qi-liang-dian">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma">八、源码导航</a></li>
+    <li><a href="#jiu-xuexi">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+<blockquote class="callout"><p>这是 Task 子系统系列的第一篇。<code>TaskCreate</code> 是任务列表的<strong>唯一写入入口</strong>：它把一条 <code>{subject, description, ...}</code> 落盘为磁盘上的 JSON 文件，触发 <code>TaskCreated</code> hooks，并自动展开任务面板。它和 <code>TaskUpdate</code>（改）/<code>TaskList</code>（查摘要）/<code>TaskGet</code>（查详情）共享同一套基于 <code>~/.claude/tasks/&lt;listId&gt;/*.json</code> 的存储层（<code>src/utils/tasks.ts</code>）。读完这一篇，就掌握了整个 TodoV2 子系统的数据模型。</p></blockquote>
+
+<hr class="divider">
+
+<section id="yi-gong-ju-ding-wei">
+<h2>一、工具定位（一句话总结）</h2>
+<p><strong><code>TaskCreate</code> = 在会话/团队共享的任务列表里新建一条任务（pending 态）的写入工具。</strong></p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>维度</th><th>值</th></tr></thead>
+    <tbody>
+      <tr><td>工具名</td><td><code>TaskCreate</code>（常量 <code>TASK_CREATE_TOOL_NAME</code>，<code>constants.ts:1</code>）</td></tr>
+      <tr><td>一句话</td><td>给定 subject/description（+可选 activeForm/metadata），创建任务并返回其 ID</td></tr>
+      <tr><td>是否进 system prompt</td><td>⚠️ <strong>条件注册</strong>——仅当 <code>isTodoV2Enabled()</code> 为真时才进工具列表（<code>tools.ts:247-249</code>）；在 <code>CORE_TOOLS</code> 白名单内（<code>constants/tools.ts:152</code>）</td></tr>
+      <tr><td>只读 / 破坏性</td><td><strong>写入</strong>（创建磁盘文件 + 触发 hooks + 改 AppState）</td></tr>
+      <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe() → true</code>，底层文件锁保证一致性）</td></tr>
+      <tr><td>核心依赖</td><td><code>src/utils/tasks.ts</code> 的 <code>createTask()</code> / <code>deleteTask()</code>；<code>src/utils/hooks.ts</code> 的 <code>executeTaskCreatedHooks</code></td></tr>
+      <tr><td>协作方</td><td><code>TaskUpdate</code>（改状态/依赖）、<code>TaskList</code>（列）、<code>TaskGet</code>（查）</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><strong>为什么需要它？</strong> TodoV2 用"每条任务一个 JSON 文件 + 文件锁"替代了 V1 的单一内存数组（<code>TodoWriteTool</code>），让多 agent / swarm teammate 能并发读写同一份任务列表而不互相覆盖。<code>TaskCreate</code> 是这个持久化模型的"INSERT"。</p>
+</section>
+
+<hr class="divider">
+
+<section id="er-guan-jian-wen-jian">
+<h2>二、关键文件清单</h2>
+<pre><code>TaskCreateTool/
+├── TaskCreateTool.ts   ← buildTool({...}) 主体（139 行），schema + call() + 结果映射全在这
+├── prompt.ts           ← DESCRIPTION + getPrompt()（含 teammate 分支文案）
+└── constants.ts        ← TASK_CREATE_TOOL_NAME = 'TaskCreate'</code></pre>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+    <tbody>
+      <tr><td><code>TaskCreateTool.ts</code></td><td>主体：schema + call + hook 执行 + 失败回滚</td><td><code>buildTool:48</code>、<code>call:80</code>、<code>inputSchema:18</code>、<code>mapToolResultToToolResultBlockParam:130</code></td></tr>
+      <tr><td><code>prompt.ts</code></td><td>工具描述 + 进 system prompt 的使用指南（中英混合）</td><td><code>DESCRIPTION:3</code>、<code>getPrompt:5</code>、teammate 分支 <code>:6-14</code></td></tr>
+      <tr><td><code>constants.ts</code></td><td>工具名常量</td><td><code>:1</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p><strong>结构特点</strong>：典型的"单文件主体 + prompt + constants"三件套，没有独立 UI.tsx（<code>renderToolUseMessage</code> 直接返回 <code>null</code>——任务创建不显示调用摘要，因为任务面板会实时展示）。</p></blockquote>
+</section>
+
+<hr class="divider">
+
+<section id="san-tool-jie-kou">
+<h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+<h3>标识字段</h3>
+<pre><code>name: TASK_CREATE_TOOL_NAME,           // "TaskCreate"
+searchHint: '在任务列表中创建一个任务',  // TF-IDF 索引额外关键词
+maxResultSizeChars: 100_000,
+shouldDefer: true,                     // 延迟工具——按需通过 SearchExtraTools 加载</code></pre>
+<blockquote class="callout"><p><strong><code>shouldDefer: true</code> 的含义</strong>：尽管 TaskCreate 在 <code>CORE_TOOLS</code> 白名单里，<code>shouldDefer</code> 标记它可被延迟发现。配合 <code>isTodoV2Enabled()</code> 的 <code>isEnabled</code> 门控，非交互式会话默认不加载。</p></blockquote>
+
+<h3>门控字段</h3>
+<pre><code>isEnabled() { return isTodoV2Enabled() }   // TaskCreateTool.ts:68</code></pre>
+<p><code>isTodoV2Enabled()</code>（<code>tasks.ts:133-139</code>）逻辑：<code>CLAUDE_CODE_ENABLE_TASKS=1</code> 强制开；否则<strong>非交互式会话返回 false</strong>（即 SDK/headless 默认走老的 <code>TodoWriteTool</code>，交互式 REPL 才启用 Task 工具）。</p>
+
+<h3>模型面字段</h3>
+<pre><code>async description() { return DESCRIPTION }   // "在任务列表中创建一个新任务"
+async prompt()      { return getPrompt() }   // 动态拼装，含 teammate 分支
+get inputSchema()   { return inputSchema() }  // 懒加载 getter</code></pre>
+<p><strong>输入 schema</strong>（<code>TaskCreateTool.ts:18-33</code>，<code>z.strictObject</code>）：</p>
+<pre><code>{
+  subject:    string,                  // 必填，祈使句标题
+  description:string,                  // 必填，详细需求
+  activeForm: string?,                 // 可选，in_progress 时 spinner 文案
+  metadata:   Record&lt;string, unknown&gt;?,// 可选，任意元数据
+}</code></pre>
+<p><strong>输出 schema</strong>（<code>:36-43</code>）：</p>
+<pre><code>{ task: { id: string, subject: string } }</code></pre>
+
+<h3>行为字段</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>call()</code></td><td><code>:80</code></td><td>核心（见下节）</td></tr>
+      <tr><td><code>isConcurrencySafe()</code></td><td><code>:71</code> → <code>true</code></td><td>多 agent 并发创建靠底层文件锁串行化</td></tr>
+      <tr><td><code>toAutoClassifierInput()</code></td><td><code>:74</code></td><td>返回 <code>input.subject</code>——自动审批分类器按标题判断</td></tr>
+      <tr><td><code>renderToolUseMessage()</code></td><td><code>:77</code> → <code>null</code></td><td>不在消息流显示调用摘要（任务面板已展示）</td></tr>
+      <tr><td>无 <code>checkPermissions</code> / <code>validateInput</code></td><td>—</td><td>创建任务无副作用风险，直接进 <code>call()</code></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="si-call-liu-cheng">
+<h2>四、核心执行流程：<code>call()</code></h2>
+<p><code>call()</code>（<code>TaskCreateTool.ts:80-129</code>）分四步：</p>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart LR
+    A["call(input, ctx)\n:80"] --> B["createTask(listId, {...status:pending})\n:81 文件锁分配ID"]
+    B --> C["executeTaskCreatedHooks 异步迭代\n:93 收集 blockingError"]
+    C --> D{有 blockingError?}
+    D -->|是| E["deleteTask 回滚 + throw\n:111"]
+    D -->|否| F["setAppState 展开 tasks 面板\n:116"]
+    F --> G["return {data:{task:{id,subject}}}\n:121"]
+  </div>
+</div>
+<p><strong>关键点逐条</strong>：</p>
+<ol>
+  <li><strong>固定初始状态为 <code>pending</code></strong>（<code>:85</code>）：<code>createTask</code> 收到的对象硬编码 <code>status: 'pending', owner: undefined, blocks: [], blockedBy: []</code>——模型无法在创建时直接指定状态/负责人，必须随后用 <code>TaskUpdate</code>。这强制了"先创建后流转"的工作流。</li>
+  <li><strong>TaskCreated hooks 的阻塞性语义</strong>（<code>:93-108</code>）：<code>executeTaskCreatedHooks</code> 是 async generator，逐个 yield hook 结果。若任一 hook 返回 <code>blockingError</code>，收集后<strong>整批回滚</strong>——调用 <code>deleteTask</code> 删掉刚建的文件再 throw。这给了外部系统（如审批、配额）否决任务创建的能力。</li>
+  <li><strong>自动展开任务面板</strong>（<code>:116-119</code>）：<code>context.setAppState</code> 把 <code>expandedView</code> 设为 <code>'tasks'</code>，让 REPL 立刻显示任务列表。注意先判 <code>prev.expandedView === 'tasks'</code> 避免无谓重渲染。</li>
+  <li><strong>返回 <code>{data}</code> 而非 yield</strong>：创建是原子的，无中间进度。</li>
+</ol>
+<p><strong><code>mapToolResultToToolResultBlockParam</code></strong>（<code>:130-137</code>）：把 <code>Output</code> 翻成给模型看的 <code>任务 #${id} 创建成功：${subject}</code>。注意是"非错误形式"返回（即使 hook 失败也是 throw，不会到这里）。</p>
+</section>
+
+<hr class="divider">
+
+<section id="wu-quan-xian-an-quan">
+<h2>五、权限与安全</h2>
+<p>TaskCreate <strong>没有</strong> <code>checkPermissions</code> 也没有 <code>validateInput</code>——创建任务不触碰用户文件系统（只写 <code>~/.claude/tasks/</code>）、不需要权限审批。安全边界完全由底层 <code>tasks.ts</code> 保证：</p>
+<ul>
+  <li><strong>文件锁</strong>（<code>tasks.ts:284-308</code> <code>createTask</code>）：用 <code>lockfile.lock</code> + 30 次退避重试串行化并发创建，防止多 agent 同时分配到同一个 ID。</li>
+  <li><strong>路径消毒</strong>（<code>tasks.ts:217-219</code> <code>sanitizePathComponent</code>）：<code>taskListId</code> 经 <code>replace(/[^a-zA-Z0-9_-]/g, '-')</code> 处理，防止路径穿越。</li>
+  <li><strong>高水位文件</strong>（<code>tasks.ts:125</code>）：<code>.highwatermark</code> 记录历史最大 ID，删除/重置后 ID 不复用。</li>
+</ul>
+<blockquote class="callout"><p>hooks 的 <code>blockingError</code> 是<strong>业务层</strong>的否决（非安全层），用于配额、审批等策略。</p></blockquote>
+</section>
+
+<hr class="divider">
+
+<section id="liu-xi-tong-guan-xi">
+<h2>六、与其他系统/工具的关系</h2>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    TC["TaskCreate"] -->|写| STORE["src/utils/tasks.ts\ncreateTask/deleteTask\n~/.claude/tasks/&lt;listId&gt;/*.json"]
+    TC -->|触发| HOOK["executeTaskCreatedHooks\nsrc/utils/hooks.ts"]
+    TC -->|改 UI| AS["AppState.expandedView='tasks'"]
+    TC -.同子系统.-> TU["TaskUpdate 改状态/依赖"]
+    TC -.同子系统.-> TL["TaskList 列摘要"]
+    TC -.同子系统.-> TG["TaskGet 查详情"]
+    TC -.替代.-> V1["TodoWriteTool V1 内存数组"]
+  </div>
+</div>
+<ul>
+  <li><strong>存储共享</strong>：四个 TodoV2 工具（Create/Update/List/Get）全部经 <code>getTaskListId()</code>（<code>tasks.ts:199-210</code>）定位同一份任务目录。listId 解析优先级：<code>CLAUDE_CODE_TASK_LIST_ID</code> &gt; 进程内 teammate 的 teamName &gt; <code>CLAUDE_CODE_TEAM_NAME</code> &gt; leaderTeamName &gt; sessionId。这让 swarm 里所有 teammate 共享 leader 的任务列表。</li>
+  <li><strong>与 TaskUpdate 的协作</strong>：Create 只能产出 <code>pending</code> 任务；状态流转（pending→in_progress→completed）、依赖建立（blocks/blockedBy）、负责人分配全部交给 TaskUpdate。这是<strong>关注点分离</strong>——Create 负责"INSERT"，Update 负责"UPDATE"。</li>
+  <li><strong>与 hooks 系统</strong>：<code>TaskCreated</code> / <code>TaskCompleted</code>（后者在 TaskUpdate 触发）是任务生命周期的两个埋点，供外部 agent/审批流介入。</li>
+  <li><strong>与 TodoWriteTool 的关系</strong>：TodoV2 是 V1 的持久化、并发安全、团队共享升级版。V1 是单会话内存数组；V2 是文件系统 + 锁。<code>isTodoV2Enabled()</code> 决定走哪套。</li>
+</ul>
+</section>
+
+<hr class="divider">
+
+<section id="qi-liang-dian">
+<h2>七、亮点与设计取舍</h2>
+<ol>
+  <li><strong>创建即 pending 的硬约束</strong>（<code>:85</code>）：不让模型在创建时设状态，强制走 Update 流转。好处是 hook 能在每次状态变更时介入；坏处是多一次工具调用。权衡偏向"可观测性"。</li>
+  <li><strong>hook 失败自动回滚</strong>（<code>:110-113</code>）：<code>deleteTask</code> + throw 的组合保证"要么创建成功且 hooks 全过，要么完全不创建"——原子性。</li>
+  <li><strong><code>shouldDefer: true</code> + <code>isEnabled</code> 双门控</strong>：既支持延迟加载（省启动开销），又支持运行时按会话类型开关。</li>
+  <li><strong>teammate 文案动态拼装</strong>（<code>prompt.ts:6-14</code>）：<code>isAgentSwarmsEnabled()</code> 为真时，prompt 会追加"在 description 里给 teammate 写够细节""用 TaskUpdate 的 owner 分配"等指引。一份代码服务两种部署形态。</li>
+  <li><strong><code>renderToolUseMessage → null</code></strong>：任务创建不在消息流占行，因为任务面板（<code>expandedView: 'tasks'</code>）会实时展示。避免重复信息。</li>
+</ol>
+</section>
+
+<hr class="divider">
+
+<section id="ba-yuan-ma">
+<h2>八、源码导航（书签速查）</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+    <tbody>
+      <tr><td>工具名常量</td><td><code>TaskCreateTool/constants.ts:1</code></td></tr>
+      <tr><td>描述 + 使用指南（含 teammate 分支）</td><td><code>TaskCreateTool/prompt.ts:3,5</code></td></tr>
+      <tr><td><code>buildTool</code> 字段填充</td><td><code>TaskCreateTool/TaskCreateTool.ts:48-138</code></td></tr>
+      <tr><td>输入/输出 schema</td><td><code>TaskCreateTool.ts:18-43</code></td></tr>
+      <tr><td><code>call()</code> 核心逻辑</td><td><code>TaskCreateTool.ts:80-129</code></td></tr>
+      <tr><td>hook 执行 + 失败回滚</td><td><code>TaskCreateTool.ts:93-113</code></td></tr>
+      <tr><td>注册条件（TodoV2 门控）</td><td><code>src/tools.ts:247-249</code></td></tr>
+      <tr><td>CORE_TOOLS 白名单条目</td><td><code>src/constants/tools.ts:152</code></td></tr>
+      <tr><td>底层存储 createTask</td><td><code>src/utils/tasks.ts:284-308</code></td></tr>
+      <tr><td>listId 解析（team 共享）</td><td><code>src/utils/tasks.ts:199-210</code></td></tr>
+      <tr><td>TodoV2 启用判定</td><td><code>src/utils/tasks.ts:133-139</code></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="jiu-xuexi">
+<h2>九、学习建议与验证清单</h2>
+<p><strong>怎么读这章</strong>：先看"一、定位"理解 TaskCreate 是 INSERT，再跳到"四、call()"看 hook 回滚机制，最后结合"六、关系"理解它如何与 Update/List/Get 组成子系统。本篇是整个 Task 系列的存储模型基础，后续 5 篇都建立在这之上。</p>
+<p><strong>验证清单（读完自测）</strong>：</p>
+<ul class="checklist">
+  <li><input type="checkbox" disabled> <span>能说出 TaskCreate 为什么创建出的任务一定是 <code>pending</code>（硬编码，强制走 Update 流转）</span></li>
+  <li><input type="checkbox" disabled> <span>能指出 hook 失败时的回滚路径（<code>deleteTask</code> + throw，<code>:111-112</code>）</span></li>
+  <li><input type="checkbox" disabled> <span>能解释 <code>isTodoV2Enabled()</code> 在交互式 vs SDK 会话下的差异（交互式默认开，SDK 默认关）</span></li>
+  <li><input type="checkbox" disabled> <span>能说出四个 TodoV2 工具如何定位同一份任务列表（<code>getTaskListId</code> 优先级链）</span></li>
+  <li><input type="checkbox" disabled> <span>能指出底层并发安全靠什么保证（<code>lockfile.lock</code> + 30 次退避，<code>tasks.ts:284</code>）</span></li>
+  <li><input type="checkbox" disabled> <span>能解释 <code>shouldDefer: true</code> 与 <code>CORE_TOOLS</code> 白名单并存的原因（白名单控制 schema 注入，shouldDefer 控制按需加载）</span></li>
+</ul>
+<p><strong>配合动作</strong>：</p>
+<ol>
+  <li>在 REPL 让 Claude <code>TaskCreate</code> 一个任务，观察 <code>~/.claude/tasks/&lt;sessionId&gt;/1.json</code> 的生成</li>
+  <li>在 <code>call()</code> 的 <code>:104</code> 加日志，验证 hook generator 的迭代顺序</li>
+  <li>设 <code>CLAUDE_CODE_ENABLE_TASKS=1</code> 在 SDK 模式下启用，对比默认行为</li>
+</ol>
+</section>
+
+<a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

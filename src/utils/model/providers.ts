@@ -83,10 +83,10 @@ export function getAPIProvider(
     return 'grok'
   }
 
-  logForDebugging(
-    `[Hapii] Providers.getAPIProvider → firstParty (默认 Anthropic 直连)`,
-    { level: 'info' },
-  )
+  // logForDebugging(
+  //   `[Hapii] Providers.getAPIProvider → firstParty (默认 Anthropic 直连)`,
+  //   { level: 'info' },
+  // )
   return 'firstParty'
 }
 

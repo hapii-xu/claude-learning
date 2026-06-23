@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VerifyPlanExecution 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    .kw  { color: #7c9bff; font-weight: 600; }
+    .str { color: #6cc77a; }
+    .fn  { color: #f0906a; }
+    .cmt { color: #6e6a62; font-style: italic; }
+    .type{ color: #e0a020; }
+    .num { color: #c792ea; }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Additional styles ────────────────────────────────── */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>VerifyPlanExecution 工具详解</h1>
+  <p>计划实施后的"收尾验证"工具——接收模型自报的完成摘要，返回验证结果，是"计划三件套"的闭环，默认环境变量关闭</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou">三、Tool 接口字段实现</a></li>
+    <li><a href="#si-call-liu-cheng">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-xi-tong-guan-xi">六、与其他系统/工具的关系</a></li>
+    <li><a href="#qi-liang-dian">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma">八、源码导航</a></li>
+    <li><a href="#jiu-xuexi">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+<blockquote class="callout"><p>这是规划三件套里<strong>最轻量</strong>的一个（主体仅 93 行），也是唯一一个<strong>默认关闭</strong>的（由 <code>CLAUDE_CODE_VERIFY_PLAN=true</code> 环境变量门控）。它不真的"验证"代码——只是接收模型自报的"计划完成摘要 + 是否全步骤完成"，原样回包成 <code>{ verified, summary }</code>。真正的后台验证逻辑在别处（<code>REPL.tsx</code> 的 <code>registerPlanVerificationHook</code>）。可以把它理解成"模型主动上报完成状态、触发后台验证 hook 的信号灯"。</p></blockquote>
+
+<hr class="divider">
+
+<section id="yi-gong-ju-ding-wei">
+<h2>一、工具定位（一句话总结）</h2>
+<p><strong><code>VerifyPlanExecution</code> = 计划实施完成后，模型自报完成情况、触发后台验证流程的轻量收尾工具。</strong></p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>维度</th><th>值</th></tr></thead>
+    <tbody>
+      <tr><td>工具名</td><td><code>VerifyPlanExecution</code>（常量 <code>VERIFY_PLAN_EXECUTION_TOOL_NAME</code>，<code>constants.ts:1</code>）</td></tr>
+      <tr><td>一句话</td><td>接收模型自报的计划完成摘要，回包验证结果，触发后台验证</td></tr>
+      <tr><td>是否进 system prompt</td><td>✅ 在 <code>CORE_TOOLS</code> 白名单内（<code>src/constants/tools.ts:160</code>）</td></tr>
+      <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>，<code>VerifyPlanExecutionTool.ts:54</code>）</td></tr>
+      <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>:51</code>）</td></tr>
+      <tr><td>是否默认启用</td><td>❌ <strong>默认关闭</strong>——<code>CLAUDE_CODE_VERIFY_PLAN=true</code> 才注册（<code>src/tools.ts:106</code>）</td></tr>
+      <tr><td>是否严格模式</td><td>✅ <code>strict: true</code>（<code>:32</code>）——模型必须按 schema 调用</td></tr>
+      <tr><td>输入参数</td><td><code>plan_summary</code>（必填）、<code>all_steps_completed</code>（必填）、<code>verification_notes</code>（可选）</td></tr>
+      <tr><td>协作方</td><td><code>ExitPlanMode</code>（批准后才有"计划"可验证）、后台验证 hook</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><strong>为什么需要它？</strong> 计划批准 → 实施完成后，需要一个"收尾仪式"：模型明确声明"我做完了，这是摘要，所有步骤都完成了"。这个声明有两个用途——一是作为 tool_result 留痕，二是<strong>触发后台验证</strong>（<code>ExitPlanModePermissionRequest.tsx:423</code> 在批准计划时会提醒模型"实施完后必须调用 VerifyPlanExecution"）。工具本身不做验证，验证由消费 <code>pendingPlanVerification</code> 状态的后台 hook 完成。</p>
+</section>
+
+<hr class="divider">
+
+<section id="er-guan-jian-wen-jian">
+<h2>二、关键文件清单</h2>
+<pre><code>VerifyPlanExecutionTool/
+├── VerifyPlanExecutionTool.ts   ← buildTool({...}) 主体（93 行），全部逻辑在这
+└── constants.ts                 ← VERIFY_PLAN_EXECUTION_TOOL_NAME 常量</code></pre>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+    <tbody>
+      <tr><td><code>VerifyPlanExecutionTool.ts</code></td><td>主体：schema + call() + prompt + 渲染 + 结果翻译</td><td><code>buildTool:28</code>、<code>call:85</code>、<code>mapToolResultToToolResultBlockParam:72</code>、<code>renderToolUseMessage:62</code></td></tr>
+      <tr><td><code>constants.ts</code></td><td>工具名常量</td><td><code>:1</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p><strong>结构特点</strong>：三件套里<strong>唯一没有 <code>src/</code> 子目录、没有 <code>UI.tsx</code>、没有 <code>prompt.ts</code></strong> 的——它的 UI 用内联的 <code>renderToolUseMessage</code>（不返回 React 节点而是返回字符串），prompt 直接写在 <code>async prompt()</code> 里。整个工具就是一个文件 93 行，是学习"最小可用工具"的极佳样本。</p></blockquote>
+</section>
+
+<hr class="divider">
+
+<section id="san-tool-jie-kou">
+<h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+<p>VerifyPlanExecution 是一个<strong>字段极简但有两个不寻常标记</strong>（<code>strict: true</code> 和 <code>maxResultSizeChars: 10_000</code>）的工具。</p>
+
+<h3>标识字段</h3>
+<pre><code>name: VERIFY_PLAN_EXECUTION_TOOL_NAME,            <span class="cmt">// "VerifyPlanExecution"</span>
+searchHint: <span class="str">'verify plan execution check completion'</span>,
+maxResultSizeChars: 10_000,                         <span class="cmt">// ← 注意：只有 1 万字符（其他工具通常 10 万）</span>
+strict: <span class="kw">true</span>,                                       <span class="cmt">// ← 严格模式</span></code></pre>
+<blockquote class="callout"><p><strong>两个特殊值</strong>：</p>
+<ul>
+<li><code>maxResultSizeChars: 10_000</code>：比 EnterPlanMode/ExitPlanMode 的 <code>100_000</code> 小一个数量级。因为验证摘要本就该简短，大结果说明模型在灌水。</li>
+<li><code>strict: true</code>：严格工具——schema 校验更严，模型必须按字段定义调用，不允许模糊匹配。这符合"收尾报告"应该结构化的预期。</li>
+</ul></blockquote>
+
+<h3>模型面字段</h3>
+<pre><code><span class="kw">get</span> inputSchema()  { <span class="kw">return</span> inputSchema() }
+<span class="kw">async</span> description() { <span class="kw">return</span> <span class="str">'在退出 plan 模式之前验证计划是否被正确执行'</span> }
+<span class="kw">async</span> prompt()      { <span class="kw">return</span> <span class="str">`验证某个计划是否已被正确执行...`</span> }   <span class="cmt">// 内联，无独立 prompt.ts</span>
+userFacingName()    { <span class="kw">return</span> <span class="str">'VerifyPlan'</span> }   <span class="cmt">// ← 注意：显示名与工具名不同</span></code></pre>
+<p><strong>输入 schema</strong>（<code>:7-22</code>）——严格对象，三个字段：</p>
+<pre><code>z.strictObject({
+  plan_summary: z.string(),                  <span class="cmt">// 必填，已执行计划的摘要</span>
+  verification_notes: z.string().optional(), <span class="cmt">// 可选，验证说明（测试通过、创建了文件等）</span>
+  all_steps_completed: z.boolean(),          <span class="cmt">// 必填，是否所有步骤都成功完成</span>
+})</code></pre>
+<p><strong>输出类型</strong>（<code>:26</code>，未用 zod，直接 type alias）：</p>
+<pre><code><span class="kw">type</span> <span class="type">VerifyOutput</span> = { verified: <span class="type">boolean</span>; summary: <span class="type">string</span> }</code></pre>
+
+<h3>行为字段</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>call()</code></td><td><code>:85-92</code></td><td>极简：把 <code>all_steps_completed</code> 映射成 <code>verified</code>，原样回包</td></tr>
+      <tr><td><code>isConcurrencySafe()</code></td><td><code>:51</code> → <code>true</code></td><td>无副作用</td></tr>
+      <tr><td><code>isReadOnly()</code></td><td><code>:54</code> → <code>true</code></td><td>不写盘</td></tr>
+      <tr><td><strong>无</strong> <code>validateInput</code></td><td>—</td><td>输入靠 strict schema 兜底</td></tr>
+      <tr><td><strong>无</strong> <code>checkPermissions</code></td><td>—</td><td>只读、无副作用，默认走允许路径</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>渲染字段</h3>
+<pre><code>renderToolUseMessage(input) {   <span class="cmt">// :62-70 —— 注意返回的是字符串，不是 React 节点</span>
+  <span class="kw">if</span> (input.all_steps_completed === <span class="kw">true</span>)  <span class="kw">return</span> <span class="str">'验证计划：所有步骤已完成'</span>
+  <span class="kw">if</span> (input.all_steps_completed === <span class="kw">false</span>) <span class="kw">return</span> <span class="str">'验证计划：未完成'</span>
+  <span class="kw">return</span> <span class="str">'验证计划'</span>
+}
+mapToolResultToToolResultBlockParam(content, id) {  <span class="cmt">// :72-83</span>
+  content.verified ? <span class="str">`计划已验证：${content.summary}`</span> : <span class="str">`计划验证失败：${content.summary}`</span>
+}</code></pre>
+<blockquote class="callout"><p><code>renderToolUseMessage</code> 返回字符串而非 React 节点是<strong>合法但不常见</strong>的做法——框架会把它当纯文本渲染。这里用它是因为验证状态只有三态，没必要画组件。</p></blockquote>
+</section>
+
+<hr class="divider">
+
+<section id="si-call-liu-cheng">
+<h2>四、核心执行流程：<code>call()</code></h2>
+<p><code>call()</code>（<code>:85-92</code>）是三件套里最短的，只有 5 行有效代码：</p>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart LR
+    A["call(input)\nVerifyPlanExecutionTool.ts:85"] --> B["verified = input.all_steps_completed\n:88"]
+    B --> C["summary = input.plan_summary\n:89"]
+    C --> D["return { data: { verified, summary } }"]
+  </div>
+</div>
+<pre><code><span class="kw">async</span> call(input: <span class="type">VerifyInput</span>) {
+  <span class="kw">return</span> {
+    data: {
+      verified: input.all_steps_completed,   <span class="cmt">// 直接透传，无独立判定</span>
+      summary: input.plan_summary,
+    },
+  }
+}</code></pre>
+<p><strong>关键点</strong>：</p>
+<ol>
+  <li><strong><code>verified</code> 就是 <code>all_steps_completed</code> 的别名</strong>：工具<strong>不做任何独立验证</strong>——模型说完成就是完成，模型说没完成就是没完成。这听起来很"假"，但合理：真正的验证是异步的后台 hook（<code>pendingPlanVerification.verificationStarted/Completed</code>，见 <code>AppStateStore.ts:417-421</code>），本工具只是"启动信号"。</li>
+  <li><strong><code>verification_notes</code> 被丢弃</strong>：输入 schema 接收 <code>verification_notes</code>，但 <code>call()</code> 和输出 type 都没用它。这个字段的价值在 prompt 层面——引导模型思考"我验证了什么"，而非在数据层面消费。</li>
+  <li><strong>同步返回</strong>：<code>{ data }</code> 包裹，非 async generator。无中间状态。</li>
+</ol>
+<p><strong><code>mapToolResultToToolResultBlockParam</code>（<code>:72-83</code>）</strong>：把 <code>{ verified, summary }</code> 翻译成给模型的 tool_result：</p>
+<ul>
+  <li><code>verified: true</code> → <code>计划已验证：${summary}</code></li>
+  <li><code>verified: false</code> → <code>计划验证失败：${summary}</code></li>
+</ul>
+<p>这个 tool_result 是模型"知道自己是否通过验证"的唯一信号。</p>
+</section>
+
+<hr class="divider">
+
+<section id="wu-quan-xian-an-quan">
+<h2>五、权限与安全</h2>
+<p>VerifyPlanExecution 的权限模型<strong>是三件套里最简单的</strong>——因为它只读、无副作用、不碰文件、不切换模式。</p>
+
+<h3>为什么没有任何权限字段？</h3>
+<ul>
+  <li><strong>无 <code>validateInput</code></strong>：输入靠 <code>strict: true</code> + <code>z.strictObject</code> 在 schema 层校验，不需要额外的运行时校验。</li>
+  <li><strong>无 <code>checkPermissions</code></strong>：只读工具走默认允许路径，无需审批。</li>
+  <li><strong><code>isReadOnly: true</code> + <code>isConcurrencySafe: true</code></strong>：双重无害标记，可与其他工具并发。</li>
+</ul>
+
+<h3>唯一的"安全"考量：环境变量门控</h3>
+<p>工具本身不危险，但<strong>默认不注册</strong>（<code>src/tools.ts:105-109</code>）：</p>
+<pre><code><span class="kw">const</span> VerifyPlanExecutionTool =
+  process.env.CLAUDE_CODE_VERIFY_PLAN === <span class="str">'true'</span>
+    ? require(<span class="str">'...VerifyPlanExecutionTool.js'</span>).VerifyPlanExecutionTool
+    : <span class="kw">null</span></code></pre>
+<p>这是<strong>死代码消除</strong>（注释 <code>src/tools.ts:103</code>）：不启用时连 require 都不执行，减少打包体积和启动开销。门控原因：后台验证功能（<code>registerPlanVerificationHook</code>）目前主要面向 ant 内部用户和实验环境（<code>getVerifyPlanReminderAttachment</code> 还检查 <code>USER_TYPE === 'ant'</code>，见 <code>src/utils/attachments.ts:3982</code>）。</p>
+
+<h3><code>strict: true</code> 的隐含安全意义</h3>
+<p>严格工具模式下，模型必须精确按 schema 调用——不能省略必填字段、不能加多余字段。这对"完成报告"很重要：防止模型用模糊的 free-form 文本糊弄过去，强制它明确回答"所有步骤是否完成"这个布尔值。</p>
+</section>
+
+<hr class="divider">
+
+<section id="liu-xi-tong-guan-xi">
+<h2>六、与其他系统/工具的关系</h2>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    VERIFY["VerifyPlanExecution"] -->|触发| HOOK["后台验证 hook\nREPL.tsx registerPlanVerificationHook"]
+    VERIFY -->|消费状态| PENDING["pendingPlanVerification\nAppStateStore.ts:417"]
+    VERIFY -.闭环.-> EXIT["ExitPlanMode (批准计划)"]
+    VERIFY -.提醒.-> REMIND["getVerifyPlanReminderAttachment\nattachments.ts:3977"]
+    VERIFY -.埋点.-> CLASSIFY["classifierDecision.ts\n分类器引用工具名"]
+    VERIFY -.门控.-> ENV["CLAUDE_CODE_VERIFY_PLAN=true\nsrc/tools.ts:106"]
+  </div>
+</div>
+<ul>
+  <li><strong>与 <code>ExitPlanMode</code> 的关系</strong>：弱耦合。ExitPlanMode 批准计划 → 模型实施 → 实施完调用 VerifyPlanExecution。<code>ExitPlanModePermissionRequest.tsx:423</code> 在批准时<strong>强制提醒</strong>模型"实施完后必须调用 VerifyPlanExecution（而不是 Agent 工具）"。</li>
+  <li><strong>与后台验证 hook 的关系</strong>：<code>pendingPlanVerification</code>（<code>AppStateStore.ts:417</code>）在退出计划模式时设置，由 <code>VerifyPlanExecution 工具用于触发后台验证</code>（注释 <code>:416</code>）。工具调用是触发条件，hook 才是真正的验证执行者。</li>
+  <li><strong>与 <code>attachments.ts</code> 的关系</strong>：<code>getVerifyPlanReminderAttachment</code>（<code>:3977</code>）会在模型还没调用本工具时下发提醒附件——但仅当 <code>USER_TYPE === 'ant'</code> 且 <code>CLAUDE_CODE_VERIFY_PLAN</code> 为真（<code>:3982-3984</code>）。</li>
+  <li><strong>与分类器的关系</strong>：<code>src/utils/permissions/classifierDecision.ts:40</code> 引用本工具名常量——auto 模式分类器在判定是否自动批准时，会识别"这是验证调用"这类语义。</li>
+  <li><strong>与 <code>ExitPlanModeV2Tool.ts:321</code> 注释的关系</strong>：ExitPlanMode 的代码注释明确说"后台验证 hook 在 REPL.tsx 中上下文清除之后通过 <code>registerPlanVerificationHook()</code> 注册"——解释了为什么不在 ExitPlanMode 里直接注册。</li>
+</ul>
+</section>
+
+<hr class="divider">
+
+<section id="qi-liang-dian">
+<h2>七、亮点与设计取舍</h2>
+<ol>
+  <li><strong>"信号灯"式工具设计</strong>：工具本身不做验证，只是模型自报状态的信号。真正的逻辑在消费方（后台 hook）。这是一种"工具作为协议触发器"的范式——和 EnterPlanMode（模式切换器）异曲同工。</li>
+  <li><strong><code>strict: true</code> 强制结构化</strong>：少数开启 strict 的工具。完成报告必须结构化（summary + 布尔完成标志），防止模型用散文糊弄。</li>
+  <li><strong><code>maxResultSizeChars: 10_000</code> 的克制</strong>：比同类工具小 10 倍。结果不该长——长了说明摘要变成长篇叙述，违背"收尾报告"的初衷。</li>
+  <li><strong>死代码消除式门控</strong>：<code>process.env.CLAUDE_CODE_VERIFY_PLAN === 'true'</code> 三元 + 条件 require，关闭时零开销。这是实验性工具注册的推荐模式（对比 <code>feature()</code> flag，env 变量更利于 A/B 测试）。</li>
+  <li><strong><code>verification_notes</code> 的"prompt 价值 > 数据价值"</strong>：字段被接收但不被消费——它的存在是为了在 prompt 里引导模型思考验证过程（<code>prompt.ts:48</code> "附上任何验证说明"），而非真的存储这些信息。这是一种"用 schema 塑造模型行为"的技巧。</li>
+  <li><strong><code>userFacingName: 'VerifyPlan'</code> ≠ 工具名</strong>：UI 显示 <code>VerifyPlan</code>，工具调用名是 <code>VerifyPlanExecution</code>。这种分离让 UI 简短、API 明确。</li>
+  <li><strong>极简单文件结构</strong>：93 行、无子目录、无 UI.tsx、无 prompt.ts——是三件套里最好的"最小工具模板"。新手读源码应该从这个开始。</li>
+</ol>
+</section>
+
+<hr class="divider">
+
+<section id="ba-yuan-ma">
+<h2>八、源码导航（书签速查）</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+    <tbody>
+      <tr><td>工具名常量</td><td><code>VerifyPlanExecutionTool/constants.ts:1</code></td></tr>
+      <tr><td><code>buildTool</code> 全字段</td><td><code>VerifyPlanExecutionTool.ts:28-93</code></td></tr>
+      <tr><td>输入 schema（三字段）</td><td><code>VerifyPlanExecutionTool.ts:7-22</code></td></tr>
+      <tr><td>输出类型</td><td><code>VerifyPlanExecutionTool.ts:26</code></td></tr>
+      <tr><td><code>call()</code> 核心（5 行）</td><td><code>VerifyPlanExecutionTool.ts:85-92</code></td></tr>
+      <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>VerifyPlanExecutionTool.ts:72-83</code></td></tr>
+      <tr><td><code>renderToolUseMessage</code>（字符串渲染）</td><td><code>VerifyPlanExecutionTool.ts:62-70</code></td></tr>
+      <tr><td>内联 prompt</td><td><code>VerifyPlanExecutionTool.ts:42-49</code></td></tr>
+      <tr><td>环境变量门控（死代码消除）</td><td><code>src/tools.ts:103-110</code></td></tr>
+      <tr><td>条件注册</td><td><code>src/tools.ts:259</code></td></tr>
+      <tr><td>CORE_TOOLS 白名单</td><td><code>src/constants/tools.ts:160</code></td></tr>
+      <tr><td>后台验证状态字段</td><td><code>src/state/AppStateStore.ts:416-421</code></td></tr>
+      <tr><td>提醒附件（ant 专属）</td><td><code>src/utils/attachments.ts:3977</code></td></tr>
+      <tr><td>ExitPlanMode 批准时的提醒</td><td><code>src/components/permissions/ExitPlanModePermissionRequest/ExitPlanModePermissionRequest.tsx:423</code></td></tr>
+      <tr><td>分类器引用</td><td><code>src/utils/permissions/classifierDecision.ts:40</code></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="jiu-xuexi">
+<h2>九、学习建议与验证清单</h2>
+<p><strong>怎么读这章</strong>：这是三件套里最简单的一个，建议<strong>先读它</strong>建立"一个最小工具长什么样"的心智，再去看 EnterPlanMode（无参数模式切换）和 ExitPlanMode（复杂审批流）。注意它的两个反直觉点：工具本身不验证（只触发）、默认关闭（env 门控）。</p>
+<p><strong>验证清单（读完自测）</strong>：</p>
+<ul class="checklist">
+  <li><input type="checkbox" disabled> <span>能说出 <code>verified</code> 字段的真实来源（就是 <code>all_steps_completed</code> 的透传，工具不做独立判定）</span></li>
+  <li><input type="checkbox" disabled> <span>能解释为什么工具默认不注册（<code>CLAUDE_CODE_VERIFY_PLAN=true</code> 门控，死代码消除）</span></li>
+  <li><input type="checkbox" disabled> <span>能指出 <code>verification_notes</code> 输入字段被谁消费（没人——它只有 prompt 引导价值）</span></li>
+  <li><input type="checkbox" disabled> <span>能说出 <code>strict: true</code> 和 <code>maxResultSizeChars: 10_000</code> 的设计意图（强制结构化 + 限制摘要长度）</span></li>
+  <li><input type="checkbox" disabled> <span>能找到真正的后台验证逻辑在哪（<code>pendingPlanVerification</code> + REPL.tsx 的 <code>registerPlanVerificationHook</code>）</span></li>
+  <li><input type="checkbox" disabled> <span>能解释 ExitPlanMode 批准时为什么会提醒调用本工具（<code>ExitPlanModePermissionRequest.tsx:423</code>）</span></li>
+</ul>
+<p><strong>配合动作</strong>：</p>
+<ol>
+  <li>设置 <code>CLAUDE_CODE_VERIFY_PLAN=true</code>，完成一个计划后让 Claude 调用本工具，观察 <code>verified</code> 与 <code>all_steps_completed</code> 的一致性。</li>
+  <li>在 <code>call()</code> 的 <code>:85</code> 加日志，确认 <code>verification_notes</code> 进了 input 但没进 output。</li>
+  <li>不设置环境变量重跑，确认工具不出现在工具列表（<code>src/tools.ts:259</code> 的条件展开）。</li>
+  <li>设置 <code>USER_TYPE=ant</code> + <code>CLAUDE_CODE_VERIFY_PLAN=true</code>，观察 <code>getVerifyPlanReminderAttachment</code> 在模型忘记调用时下发的提醒（<code>attachments.ts:3977</code>）。</li>
+  <li>对比 EnterPlanMode/ExitPlanMode 的 <code>maxResultSizeChars</code>（10 万）与本工具（1 万），体会"收尾报告应该简短"的设计取向。</li>
+</ol>
+</section>
+
+<a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

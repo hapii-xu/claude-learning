@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>内置工具学习手册（书签总览） — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; display: inline-block; font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+    .badge-no  { background: var(--bg3); color: var(--text-3); display: inline-block; font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Additional styles ────────────────────────────────── */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 学习手册</div>
+  <h1>内置工具学习手册</h1>
+  <p>60 个内置工具逐个拆解的导航总入口——按分类一键跳转到每个工具的详细学习报告</p>
+  <ul class="nav-links">
+    <li><a href="#tui-jian">推荐学习顺序</a></li>
+    <li><a href="#yi-wen-jian">一、文件操作</a></li>
+    <li><a href="#er-shell">二、Shell 执行</a></li>
+    <li><a href="#san-fa-xian">三、工具发现三件套</a></li>
+    <li><a href="#si-gui-hua">四、规划</a></li>
+    <li><a href="#wu-task">五、Task 系统</a></li>
+    <li><a href="#liu-agent">六、Agent 系统</a></li>
+    <li><a href="#qi-mcp">七、MCP</a></li>
+    <li><a href="#ba-web">八、Web</a></li>
+    <li><a href="#jiu-skill">九、Skill 与 Memory</a></li>
+    <li><a href="#shi-diao-du">十、调度与监控</a></li>
+    <li><a href="#shi-yi-worktree">十一、Worktree</a></li>
+    <li><a href="#shi-er-za-xiang">十二、配置与杂项</a></li>
+    <li><a href="#shi-san-team">十三、Team 与 PR</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+<blockquote class="callout"><p>这是工具系统逐个拆解系列的<strong>导航总入口</strong>。<code>packages/builtin-tools/src/tools/</code> 下共有 <strong>59 个工具目录</strong>，本页把它们按职能分成 13 组，每个工具配一句话定位 + 一个跳转链接。点进去就是该工具的完整学习报告（9 章节结构：定位 / 文件清单 / 接口字段 / call() 流程 / 权限安全 / 系统关系 / 设计取舍 / 源码书签 / 验证清单）。</p>
+<p>配套阅读：先读 <a href="../tool-system-summary.html">工具系统知识总结</a> 建立全局心智（Tool 接口、注册表、7 步流水线、延迟工具），再按下方"推荐学习顺序"逐个深入。</p></blockquote>
+
+<hr class="divider">
+
+<section id="zen-me-yong">
+<h2>怎么用这本手册</h2>
+<ul>
+  <li><strong>找工具</strong>：用下方分类表，工具名是链接，点击直达报告。</li>
+  <li><strong>判断优先级</strong>：表格末列的复杂度标记（<span class="badge-yes">复杂</span> / <span class="tag">中等</span> / <span class="badge-no">简单</span> / <span style="color:var(--text-3)">stub</span>）帮你决定投入多少时间。<span style="color:var(--text-3)">stub</span> 表示当前为桩/占位/feature-gated 关闭，可快速略读。</li>
+  <li><strong>读第一篇</strong>：还没读过任何一篇？强烈建议从 <a href="GlobTool.html">GlobTool</a> 开始——它是这套报告的<strong>标杆模板</strong>，中等复杂度、字段齐全，读懂它就能按图索骥读其他任何工具。</li>
+</ul>
+</section>
+
+<hr class="divider">
+
+<section id="tui-jian">
+<h2>推荐学习顺序</h2>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart LR
+    A["① 文件操作\nRead/Write/Edit/\nGlob/Grep/Notebook"] --> B["② Shell执行\nBash/PowerShell"]
+    A --> C["③ 工具发现三件套\nSearch/Execute/Synthetic"]
+    B --> D["④ 规划\nEnterPlan/ExitPlan/Verify"]
+    C --> E["⑤ Agent系统\nAgent/SendMessage"]
+    D --> E
+    E --> F["⑥ 其余按需\nMCP/Web/Skill/调度/\nWorktree/配置/Team"]
+  </div>
+</div>
+<ol>
+  <li><strong>文件操作 6 个</strong> —— 最高频、最基础，<code>FileEditTool</code> 是"标准模板"代表。</li>
+  <li><strong>Shell 执行</strong> —— <code>BashTool</code> 是最复杂的工具，含完整安全/权限子系统。</li>
+  <li><strong>工具发现三件套</strong> —— 理解 60+ 工具如何靠 TF-IDF "按需暴露"。</li>
+  <li><strong>规划 / Agent 系统</strong> —— 理解 plan 模式与子代理递归复用 query()。</li>
+  <li><strong>其余按需</strong> —— MCP / Web / Skill / 调度 / Worktree / 配置杂项 / Team&amp;PR。</li>
+</ol>
+</section>
+
+<hr class="divider">
+
+<section id="yi-wen-jian">
+<h2>一、文件操作（6 个）</h2>
+<p class="section-desc">模型读写检索文件的基础能力。<code>Read</code>/<code>Edit</code>/<code>Glob</code>/<code>Grep</code> 都在 <code>CORE_TOOLS</code> 白名单。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>工具</th><th>一句话定位</th><th>复杂度</th></tr></thead>
+    <tbody>
+      <tr><td><a href="FileReadTool.html">FileReadTool</a></td><td>多模态文件读取网关：文本/图片/PDF/notebook 四类分流，<code>fileStateCache</code> 去重</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="FileWriteTool.html">FileWriteTool</a></td><td>整文件覆盖写工具，新建或完整重写，强制 LF 换行</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="FileEditTool.html">FileEditTool</a></td><td>精确字符串替换的写工具旗舰模板，原子读改写临界区</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="NotebookEditTool.html">NotebookEditTool</a></td><td>Jupyter notebook 单元格结构化编辑，replace/insert/delete 三模式</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="GlobTool.html">GlobTool</a></td><td>按名称模式查文件路径的只读检索工具（<strong>标杆模板</strong>）</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="GrepTool.html">GrepTool</a></td><td>基于 ripgrep 的内容检索，三模式 + head_limit 分页，内容面检索</td><td><span class="badge-yes">复杂</span></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="er-shell">
+<h2>二、Shell 执行（3 个）</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>工具</th><th>一句话定位</th><th>复杂度</th></tr></thead>
+    <tbody>
+      <tr><td><a href="BashTool.html">BashTool</a></td><td>执行 bash 命令的执行类工具，配备完整权限/安全/沙箱子系统</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="PowerShellTool.html">PowerShellTool</a></td><td>Windows 平台执行 PowerShell 命令，BashTool 的 Windows 镜像</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="REPLTool.html">REPLTool</a></td><td>VM 上下文批量调用原始工具的包装器，当前为 stub</td><td><span style="color:var(--text-3)">stub</span></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="san-fa-xian">
+<h2>三、工具发现三件套（3 个）</h2>
+<p class="section-desc">60+ 工具如何靠"先搜后调"按需暴露给模型。三者都在 <code>CORE_TOOLS</code>，但 <code>SyntheticOutput</code> 不对模型可见。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>工具</th><th>一句话定位</th><th>复杂度</th></tr></thead>
+    <tbody>
+      <tr><td><a href="SearchExtraToolsTool.html">SearchExtraToolsTool</a></td><td>三路前缀搜索延迟工具，关键词 + TF-IDF 双引擎融合</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="ExecuteTool.html">ExecuteTool</a></td><td><code>ExecuteExtraTool</code>：6 步守卫委托执行延迟工具，模型调用唯一通道</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="SyntheticOutputTool.html">SyntheticOutputTool</a></td><td>让 ExecuteExtraTool 的结果在 transcript 中显示为真实工具名的内部工具</td><td><span class="tag">中等</span></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="si-gui-hua">
+<h2>四、规划（3 个）</h2>
+<p class="section-desc">plan 模式的进入/退出/验证三件套，与 <code>PermissionMode</code> 强耦合。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>工具</th><th>一句话定位</th><th>复杂度</th></tr></thead>
+    <tbody>
+      <tr><td><a href="EnterPlanModeTool.html">EnterPlanModeTool</a></td><td>把权限模式切换到 plan 的只读开关，强制只读探索与设计</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="ExitPlanModeTool.html">ExitPlanModeTool</a></td><td>读计划请求审批并回滚模式，含队友负责人审批流</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="VerifyPlanExecutionTool.html">VerifyPlanExecutionTool</a></td><td>计划实施后模型自报完成情况、触发后台验证的收尾工具</td><td><span class="badge-no">简单</span></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="wu-task">
+<h2>五、Task 系统（6 个）</h2>
+<p class="section-desc">注意分属<strong>两个</strong>子系统：<code>TaskCreate/Update/List/Get</code> 是 TodoV2 待办 CRUD；<code>TaskOutput/Stop</code> 是 Bash/Agent 后台任务管理。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>工具</th><th>一句话定位</th><th>复杂度</th></tr></thead>
+    <tbody>
+      <tr><td><a href="TaskCreateTool.html">TaskCreateTool</a></td><td>在任务列表新建 pending 任务并触发 TaskCreated hooks</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="TaskUpdateTool.html">TaskUpdateTool</a></td><td>全功能 UPDATE：状态流转/依赖/owner 通知/验证提醒</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="TaskListTool.html">TaskListTool</a></td><td>无参列出任务摘要，过滤内部任务与已完成依赖</td><td><span class="badge-no">简单</span></td></tr>
+      <tr><td><a href="TaskGetTool.html">TaskGetTool</a></td><td>按 ID 读取单任务完整详情，字段白名单映射</td><td><span class="badge-no">简单</span></td></tr>
+      <tr><td><a href="TaskOutputTool.html">TaskOutputTool</a></td><td>读取后台任务输出（block/non-block），已废弃</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="TaskStopTool.html">TaskStopTool</a></td><td>按 task_id 停止运行中的后台任务，兼容 KillShell</td><td><span class="tag">中等</span></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="liu-agent">
+<h2>六、Agent 系统（2 个）</h2>
+<p class="section-desc">子代理的递归复用——<code>runAgent()</code> 内部再调一次 <code>query()</code>，构成代理树。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>工具</th><th>一句话定位</th><th>复杂度</th></tr></thead>
+    <tbody>
+      <tr><td><a href="AgentTool.html">AgentTool</a></td><td>递归启动子代理，runAgent 内部复用 query() 实现代理树</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="SendMessageTool.html">SendMessageTool</a></td><td>向已存在子代理续发消息，五通道纯路由分发器</td><td><span class="badge-yes">复杂</span></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="qi-mcp">
+<h2>七、MCP（4 个）</h2>
+<p class="section-desc">MCP 工具如何"伪装"成内置 Tool。<code>MCPTool</code> 是模板原型，由 <code>client.ts</code> 运行时克隆覆盖。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>工具</th><th>一句话定位</th><th>复杂度</th></tr></thead>
+    <tbody>
+      <tr><td><a href="MCPTool.html">MCPTool</a></td><td>MCP 工具的模板原型，字段全是 stub，由 client.ts 运行时克隆覆盖</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="McpAuthTool.html">McpAuthTool</a></td><td>未认证 MCP 服务器的占位伪工具，工厂动态生成，代用户启动 OAuth</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="ListMcpResourcesTool.html">ListMcpResourcesTool</a></td><td>列出已连接 MCP 服务器 resources，被 getTools 过滤、按需注入</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="ReadMcpResourceTool.html">ReadMcpResourceTool</a></td><td>按 server+uri 读单个 MCP resource，含 blob 落盘拦截防上下文爆炸</td><td><span class="tag">中等</span></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="ba-web">
+<h2>八、Web（4 个）</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>工具</th><th>一句话定位</th><th>复杂度</th></tr></thead>
+    <tbody>
+      <tr><td><a href="WebFetchTool.html">WebFetchTool</a></td><td>抓公开 URL 转 Markdown 并用 Haiku 按 prompt 提炼，含 130+ 预批准域名</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="WebSearchTool.html">WebSearchTool</a></td><td>委托给 5 种可插拔适配器的网络搜索，强制 Sources 引用</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="WebBrowserTool.html">WebBrowserTool</a></td><td>名为浏览器实为纯 fetch + 正则剥标签的极简 HTTP 抓取工具</td><td><span style="color:var(--text-3)">stub</span></td></tr>
+      <tr><td><a href="VaultHttpFetchTool.html">VaultHttpFetchTool</a></td><td>用 vault 密钥发认证 HTTPS 请求，密钥不进上下文 + 全链路 scrub 脱敏</td><td><span class="badge-yes">复杂</span></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="jiu-skill">
+<h2>九、Skill 与 Memory（3 个）</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>工具</th><th>一句话定位</th><th>复杂度</th></tr></thead>
+    <tbody>
+      <tr><td><a href="SkillTool.html">SkillTool</a></td><td>调用/执行 skill，inline/fork/remote 三路分发，含 safe-properties 权限白名单</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="DiscoverSkillsTool.html">DiscoverSkillsTool</a></td><td>按任务描述 TF-IDF 检索可用 skill，SkillTool 的发现面，feature-gated</td><td><span class="badge-no">简单</span></td></tr>
+      <tr><td><a href="LocalMemoryRecallTool.html">LocalMemoryRecallTool</a></td><td>只读召回用户跨会话笔记，五重注入防护 + 单轮预算记账 + UTF-8 截断</td><td><span class="tag">中等</span></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="shi-diao-du">
+<h2>十、调度与监控（3 个）</h2>
+<p class="section-desc">多为延迟工具（不在 <code>CORE_TOOLS</code>），走 SearchExtraTools → ExecuteExtraTool 两步发现。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>工具</th><th>一句话定位</th><th>复杂度</th></tr></thead>
+    <tbody>
+      <tr><td><a href="ScheduleCronTool.html">ScheduleCronTool</a></td><td>cron 三件套：创建/取消/列出未来 prompt，支持会话级与磁盘持久化</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="MonitorTool.html">MonitorTool</a></td><td>启动长时流式 shell 命令为后台监控器，立即返回任务句柄</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="SleepTool.html">SleepTool</a></td><td>可中断可提前唤醒的等待原语，不占 shell，与 proactive 联动</td><td><span class="tag">中等</span></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="shi-yi-worktree">
+<h2>十一、Worktree（2 个）</h2>
+<p class="section-desc">git worktree 隔离会话，与 <code>--worktree</code> 快速路径配套。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>工具</th><th>一句话定位</th><th>复杂度</th></tr></thead>
+    <tbody>
+      <tr><td><a href="EnterWorktreeTool.html">EnterWorktreeTool</a></td><td>创建隔离 git worktree 并把会话切进去，清缓存记状态</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="ExitWorktreeTool.html">ExitWorktreeTool</a></td><td>安全退出 worktree，含失败即关闭的变更守卫与 tmux 清理</td><td><span class="badge-yes">复杂</span></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="shi-er-za-xiang">
+<h2>十二、配置与杂项（15 个）</h2>
+<p class="section-desc">交互、配置、LSP、待办、通知、上下文管理等。含多个 stub / 调试专用工具。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>工具</th><th>一句话定位</th><th>复杂度</th></tr></thead>
+    <tbody>
+      <tr><td><a href="AskUserQuestionTool.html">AskUserQuestionTool</a></td><td>向用户提结构化多选问题，answers 由权限组件回填</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="ConfigTool.html">ConfigTool</a></td><td>注册表驱动的配置读写，动态 prompt 与差异化权限</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="LSPTool.html">LSPTool</a></td><td>9 种 LSP 操作的统一客户端，含 gitignore 过滤</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="TodoWriteTool.html">TodoWriteTool</a></td><td>全量更新会话待办列表，带验证 agent 提示机制</td><td><span class="badge-no">简单</span></td></tr>
+      <tr><td><a href="GoalTool.html">GoalTool</a></td><td>受限接口查询/推进目标终态，受阻需连续 3 轮</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="BriefTool.html">BriefTool</a></td><td>assistant/chat 视图下模型回复用户的唯一可见出口，支持 markdown 与附件</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="SnipTool.html">SnipTool</a></td><td>剪除历史消息释放上下文，引擎投影系统拦截结果执行真正压缩</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="PushNotificationTool.html">PushNotificationTool</a></td><td>经 bridge 向用户移动设备推送通知，无 bridge 时优雅降级</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="SendUserFileTool.html">SendUserFileTool</a></td><td>助手模式下经 bridge 上传文件到用户设备，复用 BriefTool 上传逻辑</td><td><span class="badge-no">简单</span></td></tr>
+      <tr><td><a href="TerminalCaptureTool.html">TerminalCaptureTool</a></td><td>捕获终端面板输出，契约完整但 call() 为 stub 待运行时注入</td><td><span style="color:var(--text-3)">stub</span></td></tr>
+      <tr><td><a href="CtxInspectTool.html">CtxInspectTool</a></td><td>调试专用，检查上下文令牌占用与折叠/缓存/会话内存状态</td><td><span class="badge-no">简单</span></td></tr>
+      <tr><td><a href="OverflowTestTool.html">OverflowTestTool</a></td><td>自动生成的桩文件，仅导出空工具名常量，被过滤</td><td><span style="color:var(--text-3)">stub</span></td></tr>
+      <tr><td><a href="TungstenTool.html">TungstenTool</a></td><td>ant 用户专属终端监控工具占位，isEnabled 恒 false 永不激活</td><td><span style="color:var(--text-3)">stub</span></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="shi-san-team">
+<h2>十三、Team 与 PR（7 个）</h2>
+<p class="section-desc">多 agent 协作 / PR 审查 / 远程触发。多数被 feature gate 关闭或限定 <code>USER_TYPE=ant</code>。</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>工具</th><th>一句话定位</th><th>复杂度</th></tr></thead>
+    <tbody>
+      <tr><td><a href="TeamCreateTool.html">TeamCreateTool</a></td><td>创建多 agent 协作团队并初始化负责人上下文</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="TeamDeleteTool.html">TeamDeleteTool</a></td><td>优雅终止 teammate 后清理团队与任务目录</td><td><span class="badge-yes">复杂</span></td></tr>
+      <tr><td><a href="SubscribePRTool.html">SubscribePRTool</a></td><td>订阅 GitHub PR 事件的 webhook stub，无 KAIROS 返回失败</td><td><span style="color:var(--text-3)">stub</span></td></tr>
+      <tr><td><a href="SuggestBackgroundPRTool.html">SuggestBackgroundPRTool</a></td><td>建议后台创建 PR 的 stub，需 USER_TYPE=ant</td><td><span style="color:var(--text-3)">stub</span></td></tr>
+      <tr><td><a href="ReviewArtifactTool.html">ReviewArtifactTool</a></td><td>结构化呈现代码/文档审阅结果的纯展示工具</td><td><span class="badge-no">简单</span></td></tr>
+      <tr><td><a href="RemoteTriggerTool.html">RemoteTriggerTool</a></td><td>进程内调 claude.ai CCR API 管理远程触发器，全程审计</td><td><span class="tag">中等</span></td></tr>
+      <tr><td><a href="ListPeersTool.html">ListPeersTool</a></td><td>发现 UDS 本地与 bridge 远程可通信对等方</td><td><span class="tag">中等</span></td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="fu-fu-za-du">
+<h2>附：复杂度分布速览</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>复杂度</th><th>数量</th><th>含义</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge-yes">复杂</span></td><td>18</td><td>多文件子系统、值得反复读（Bash/FileRead/FileEdit/Grep/Agent/SendMessage/SkillTool/MCPTool 等）</td></tr>
+      <tr><td><span class="tag">中等</span></td><td>22</td><td>结构清晰的标准工具，一遍能读懂</td></tr>
+      <tr><td><span class="badge-no">简单</span></td><td>9</td><td>单职责小工具</td></tr>
+      <tr><td><span style="color:var(--text-3)">stub</span></td><td>10</td><td>桩/占位/feature-gated 关闭/调试专用，快速略读即可</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><strong>合计 59 个工具</strong>（+ 本手册 = tools/ 下 60 个 mdx 文件）。</p>
+</section>
+
+<hr class="divider">
+
+<section id="hui-dao-shang-ceng">
+<h2>回到上层</h2>
+<ul>
+  <li><a href="../tool-system-summary.html">工具系统知识总结（全局篇）</a> —— Tool 接口、注册表组装、7 步执行流水线、延迟工具机制、MCP 接入</li>
+  <li><a href="../tool-system-summary.html">工具系统总结 HTML 版</a></li>
+</ul>
+</section>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

@@ -5,20 +5,20 @@ import { getFsImplementation } from '../fsOperations.js'
 import type { MarketplaceSource } from './schemas.js'
 
 /**
- * Parses a marketplace input string and returns the appropriate marketplace source type.
- * Handles various input formats:
- * - Git SSH URLs (user@host:path or user@host:path.git)
- *   - Standard: git@github.com:owner/repo.git
- *   - GitHub Enterprise SSH certificates: org-123456@github.com:owner/repo.git
- *   - Custom usernames: deploy@gitlab.com:group/project.git
- *   - Self-hosted: user@192.168.10.123:path/to/repo
- * - HTTP/HTTPS URLs
- * - GitHub shorthand (owner/repo)
- * - Local file paths (.json files)
- * - Local directory paths
+ * 解析 marketplace 输入字符串并返回相应的 marketplace 源类型。
+ * 处理各种输入格式：
+ * - Git SSH URL（user@host:path 或 user@host:path.git）
+ *   - 标准：git@github.com:owner/repo.git
+ *   - GitHub Enterprise SSH 证书：org-123456@github.com:owner/repo.git
+ *   - 自定义用户名：deploy@gitlab.com:group/project.git
+ *   - 自托管：user@192.168.10.123:path/to/repo
+ * - HTTP/HTTPS URL
+ * - GitHub 简写（owner/repo）
+ * - 本地文件路径（.json 文件）
+ * - 本地目录路径
  *
- * @param input The marketplace source input string
- * @returns MarketplaceSource object, error object, or null if format is unrecognized
+ * @param input marketplace 源输入字符串
+ * @returns MarketplaceSource 对象、错误对象，或格式无法识别时返回 null
  */
 export async function parseMarketplaceInput(
   input: string,
@@ -26,9 +26,9 @@ export async function parseMarketplaceInput(
   const trimmed = input.trim()
   const fs = getFsImplementation()
 
-  // Handle git SSH URLs with any valid username (not just 'git')
-  // Supports: user@host:path, user@host:path.git, and with #ref suffix
-  // Username can contain: alphanumeric, dots, underscores, hyphens
+  // 处理任意有效用户名的 git SSH URL（不仅限于 'git'）
+  // 支持：user@host:path、user@host:path.git，以及带 #ref 后缀
+  // 用户名可包含：字母数字、点、下划线、连字符
   const sshMatch = trimmed.match(
     /^([a-zA-Z0-9._-]+@[^:]+:.+?(?:\.git)?)(#(.+))?$/,
   )
@@ -38,21 +38,20 @@ export async function parseMarketplaceInput(
     return ref ? { source: 'git', url, ref } : { source: 'git', url }
   }
 
-  // Handle URLs
+  // 处理 URL
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    // Extract fragment (ref) from URL if present
+    // 若存在则从 URL 中提取片段（ref）
     const fragmentMatch = trimmed.match(/^([^#]+)(#(.+))?$/)
     const urlWithoutFragment = fragmentMatch?.[1] || trimmed
     const ref = fragmentMatch?.[3]
 
-    // When user explicitly provides an HTTPS/HTTP URL that looks like a git
-    // repo, use the git source type so we clone rather than fetch-as-JSON.
-    // The .git suffix is a GitHub/GitLab/Bitbucket convention. Azure DevOps
-    // uses /_git/ in the path with NO suffix (appending .git breaks ADO:
-    // TF401019 "repo does not exist"). Without this check, an ADO URL falls
-    // through to source:'url' below, which tries to fetch it as a raw
-    // marketplace.json — the HTML response parses as "expected object,
-    // received string". (gh-31256 / CC-299)
+    // 当用户显式提供看起来像 git 仓库的 HTTPS/HTTP URL 时，
+    // 使用 git 源类型以克隆而非按 JSON 获取。
+    // .git 后缀是 GitHub/GitLab/Bitbucket 的约定。Azure DevOps
+    // 在路径中使用 /_git/，没有后缀（追加 .git 会破坏 ADO：
+    // TF401019 "repo does not exist"）。若没有此检查，ADO URL 会
+    // 落到下方的 source:'url'，尝试将其作为原始 marketplace.json 获取
+    // —— HTML 响应解析为 "expected object, received string"。（gh-31256 / CC-299）
     if (
       urlWithoutFragment.endsWith('.git') ||
       urlWithoutFragment.includes('/_git/')
@@ -61,21 +60,21 @@ export async function parseMarketplaceInput(
         ? { source: 'git', url: urlWithoutFragment, ref }
         : { source: 'git', url: urlWithoutFragment }
     }
-    // Parse URL to check hostname
+    // 解析 URL 以检查主机名
     let url: URL
     try {
       url = new URL(urlWithoutFragment)
     } catch (_err) {
-      // Not a valid URL for parsing, treat as generic URL
-      // new URL() throws TypeError for invalid URLs
+      // 不是有效的 URL 无法解析，当作通用 URL 处理
+      // new URL() 对无效 URL 抛出 TypeError
       return { source: 'url', url: urlWithoutFragment }
     }
 
     if (url.hostname === 'github.com' || url.hostname === 'www.github.com') {
       const match = url.pathname.match(/^\/([^/]+\/[^/]+?)(\/|\.git|$)/)
       if (match?.[1]) {
-        // User explicitly provided HTTPS URL - keep it as HTTPS via 'git' type
-        // Add .git suffix if not present for proper git clone
+        // 用户显式提供了 HTTPS URL —— 通过 'git' 类型保持为 HTTPS
+        // 若不存在则添加 .git 后缀以便正确 git clone
         const gitUrl = urlWithoutFragment.endsWith('.git')
           ? urlWithoutFragment
           : `${urlWithoutFragment}.git`
@@ -87,9 +86,9 @@ export async function parseMarketplaceInput(
     return { source: 'url', url: urlWithoutFragment }
   }
 
-  // Handle local paths
-  // On Windows, also recognize backslash-relative (.\, ..\) and drive letter paths (C:\)
-  // These are Windows-only because backslashes are valid filename chars on Unix
+  // 处理本地路径
+  // 在 Windows 上，还识别反斜杠相对路径（.\, ..\)和驱动器号路径（C:\）
+  // 这些仅在 Windows 上有效，因为反斜杠在 Unix 上是合法的文件名字符
   const isWindows = process.platform === 'win32'
   const isWindowsPath =
     isWindows &&
@@ -107,9 +106,9 @@ export async function parseMarketplaceInput(
       trimmed.startsWith('~') ? trimmed.replace(/^~/, homedir()) : trimmed,
     )
 
-    // Stat the path to determine if it's a file or directory. Swallow all stat
-    // errors (ENOENT, EACCES, EPERM, etc.) and return an error result instead
-    // of throwing — matches the old existsSync behavior which never threw.
+    // 对路径执行 stat 以判断是文件还是目录。吞掉所有 stat
+    // 错误（ENOENT、EACCES、EPERM 等）并返回错误结果而非
+    // 抛出 —— 与旧的从不抛出的 existsSync 行为一致。
     let stats
     try {
       stats = await fs.stat(resolvedPath)
@@ -140,23 +139,23 @@ export async function parseMarketplaceInput(
     }
   }
 
-  // Handle GitHub shorthand (owner/repo, owner/repo#ref, or owner/repo@ref)
-  // Accept both # and @ as ref separators — the display formatter uses @, so users
-  // naturally type @ when copying from error messages or managed settings.
+  // 处理 GitHub 简写（owner/repo、owner/repo#ref 或 owner/repo@ref）
+  // 同时接受 # 和 @ 作为 ref 分隔符 —— 显示格式化器使用 @，因此用户在
+  // 从错误信息或托管设置中复制时自然地输入 @。
   if (trimmed.includes('/') && !trimmed.startsWith('@')) {
     if (trimmed.includes(':')) {
       return null
     }
-    // Extract ref if present (either #ref or @ref)
+    // 提取 ref（若存在，可以是 #ref 或 @ref）
     const fragmentMatch = trimmed.match(/^([^#@]+)(?:[#@](.+))?$/)
     const repo = fragmentMatch?.[1] || trimmed
     const ref = fragmentMatch?.[2]
-    // Assume it's a GitHub repo
+    // 假定为 GitHub 仓库
     return ref ? { source: 'github', repo, ref } : { source: 'github', repo }
   }
 
-  // NPM packages not yet implemented
-  // Returning null for unrecognized input
+  // NPM 包尚未实现
+  // 对无法识别的输入返回 null
 
   return null
 }

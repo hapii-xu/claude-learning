@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReadMcpResourceTool 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>ReadMcpResourceTool 工具详解</h1>
+  <p>按 URI 读取指定 MCP 服务器的单个 resource 内容——MCP "resources 面" 的读取工具，含二进制 blob 落盘拦截（防 base64 撑爆上下文）</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou">三、Tool 接口字段</a></li>
+    <li><a href="#si-he-xin-zhi-xing">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian">五、权限与安全</a></li>
+    <li><a href="#liu-xi-tong-guan-xi">六、与其他系统的关系</a></li>
+    <li><a href="#qi-liang-dian">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma">八、源码导航</a></li>
+    <li><a href="#jiu-xue-xi">九、学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p>这是 MCP 协议 resources 面的<strong>读取工具</strong>，与 <code>ListMcpResourcesTool</code> 配对。给定 <code>server</code> + <code>uri</code>，它调 MCP 协议的 <code>resources/read</code> 拉资源内容。它的核心亮点是<strong>二进制 blob 落盘拦截</strong>（<code>:103-138</code>）：MCP resource 可能返回 base64 编码的二进制（图片、PDF、音频），如果直接序列化进上下文会瞬间撑爆 token。本工具拦截所有 blob，解码后按 MIME 推导扩展名写入磁盘，用文件路径替换 base64——把潜在的上下文炸弹转成一行路径文本。和 <code>ListMcpResourcesTool</code> 一样，它也是被 <code>getTools()</code> 过滤、由 <code>client.ts</code> 按需注入的特殊内部工具。</p></blockquote>
+
+  <hr class="divider">
+
+  <section id="yi-gong-ju-ding-wei">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>ReadMcpResourceTool</code> = 按 server+uri 读取单个 MCP resource 的只读工具，含 blob 落盘保护。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>'ReadMcpResourceTool'</code>（<code>ReadMcpResourceTool.ts:60</code>，字面量）</td></tr>
+          <tr><td>一句话</td><td>从指定 MCP 服务器读取指定 URI 的 resource，blob 落盘保护</td></tr>
+          <tr><td>是否进 system prompt</td><td>⚠️ <strong>特殊</strong>：在 <code>getAllBaseTools()</code>（<code>tools.ts:276</code>），被 <code>getTools()</code> 的 <code>specialTools</code> 过滤（<code>tools.ts:345</code>），由 <code>client.ts:2375</code> 按需注入</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly: () =&gt; true</code>，<code>:53</code>）</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe: () =&gt; true</code>，<code>:51</code>）</td></tr>
+          <tr><td>是否延迟</td><td>✅ <code>shouldDefer: true</code>（<code>:59</code>）</td></tr>
+          <tr><td>核心依赖</td><td><code>client.ts</code> 的 <code>ensureConnectedClient</code>；<code>mcpOutputStorage</code> 的 <code>persistBinaryContent</code></td></tr>
+          <tr><td>兄弟工具</td><td><code>ListMcpResourcesTool</code>（列出 resources）、<code>MCPTool</code>（tools 面）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> 列出 resources 只是第一步，模型要真正消费资源内容（读文档、查 schema、看配置）必须有读取工具。它和 <code>ListMcpResourcesTool</code> 构成标准两步检索：list 拿 uri → read 拿内容。没有它，resources 面就只是"可见不可用"的摆设。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-guan-jian-wen-jian">
+    <h2>二、关键文件清单</h2>
+    <pre><code>ReadMcpResourceTool/
+├── ReadMcpResourceTool.ts ← buildTool({...}) 主体（158 行），含 blob 落盘逻辑
+├── prompt.ts              ← DESCRIPTION + PROMPT（无工具名常量导出，字面量）
+└── UI.tsx                 ← Ink 渲染 + userFacingName 导出</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>ReadMcpResourceTool.ts</code></td><td>主体：schema + call() + blob 落盘 + mapToolResult</td><td><code>buildTool:49</code>、<code>call:75</code>、blob 拦截 <code>:103-138</code>、<code>mapToolResultToToolResultBlockParam:150</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>描述（含参数说明 + 用法示例）</td><td><code>DESCRIPTION:1-8</code>、<code>PROMPT:10-16</code></td></tr>
+          <tr><td><code>UI.tsx</code></td><td>渲染 + <code>userFacingName</code> 导出</td><td><code>renderToolUseMessage:11</code>、<code>userFacingName:18</code>、<code>renderToolResultMessage:22</code></td></tr>
+          <tr><td><code>src/tools.ts</code></td><td>过滤逻辑（specialTools）</td><td><code>:345</code>（过滤）、<code>:276</code>（注册）</td></tr>
+          <tr><td><code>src/services/mcp/client.ts</code></td><td>按需注入（与 List 配套）</td><td><code>:2375</code>（注入）</td></tr>
+          <tr><td><code>src/utils/mcpOutputStorage.ts</code></td><td><code>persistBinaryContent</code> + <code>getBinaryBlobSavedMessage</code></td><td>blob 落盘 + 提示消息生成</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：标准三文件，但 <code>call()</code> 是这批资源工具里逻辑最复杂的——主要是 blob 落盘分支多。它没有独立的 <code>checkPermissions</code>（走默认权限管道）。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-tool-jie-kou">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre><code>name: 'ReadMcpResourceTool',                  // :60（字面量，prompt.ts 没导出常量）
+searchHint: '按 URI 读取特定 MCP 资源',       // :61
+maxResultSizeChars: 100_000,                  // :62
+shouldDefer: true,                            // :59
+userFacingName,                               // UI.tsx:18 → 'readMcpResource'</code></pre>
+    <blockquote class="callout"><p><strong>工具名是字面量而非常量导出</strong>：与 <code>ListMcpResourcesTool</code>（导出 <code>LIST_MCP_RESOURCES_TOOL_NAME</code>）不同，这里直接写 <code>'ReadMcpResourceTool'</code>。<code>tools.ts:345</code> 的过滤也用字面量 <code>.name</code> 对比——保持一致即可。</p></blockquote>
+    <h3>模型面字段</h3>
+    <pre><code>async description() { return DESCRIPTION },  // :63
+async prompt()      { return PROMPT },        // :66
+get inputSchema()   { return inputSchema() }, // :69
+get outputSchema()  { return outputSchema() },// :72</code></pre>
+    <p><strong>输入 schema</strong>（<code>:22-27</code>）：</p>
+    <pre><code>{
+  server: string,  // 必填，MCP 服务器名
+  uri:    string,  // 必填，资源 URI（来自 ListMcpResourcesTool）
+}</code></pre>
+    <p><strong>输出 schema</strong>（<code>:30-44</code>）：</p>
+    <pre><code>{
+  contents: Array&lt;{
+    uri: string,
+    mimeType?: string,
+    text?: string,          // 文本内容 或 落盘提示消息
+    blobSavedTo?: string,   // 二进制落盘路径（仅 blob 分支）
+  }&gt;
+}</code></pre>
+    <h3>行为字段</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:75-143</code></td><td>核心逻辑（见下节），含 blob 落盘</td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:51</code> → <code>true</code></td><td>并发读不同 resource 安全</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:53</code> → <code>true</code></td><td>纯读（blob 落盘是缓存，不改 server 状态）</td></tr>
+          <tr><td><code>toAutoClassifierInput(input)</code></td><td><code>:56</code></td><td><code>${input.server} ${input.uri}</code> 自动审批分类器输入</td></tr>
+          <tr><td><code>isResultTruncated(output)</code></td><td><code>:147</code></td><td>基于 JSON 序列化长度判截断</td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>:150-156</code></td><td>直接 JSON 序列化</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>渲染字段</h3>
+    <pre><code>renderToolUseMessage,      // UI.tsx:11 → '从服务器 X 读取资源 "uri"'
+userFacingName,            // UI.tsx:18 → 'readMcpResource'
+renderToolResultMessage,   // UI.tsx:22 → 空/有内容两路，pretty JSON</code></pre>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-he-xin-zhi-xing">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code>（<code>:75-143</code>）拉取 resource 内容，并对每个 content block 做分支处理（text 直返、blob 落盘）。</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["call(input, {options:{mcpClients}})\n:75"] --> B["find client by server name\n:78"]
+    B --> C{找到?}
+    C -->|否| D["throw Error 列出可用服务器\n:80-83"]
+    C -->|是| E{client.type === 'connected'?}
+    E -->|否| F["throw Error '未连接'\n:86-88"]
+    E -->|是| G{client.capabilities?.resources?}
+    G -->|否| H["throw Error '不支持 resources'\n:90-92"]
+    G -->|是| I["ensureConnectedClient\n:94"]
+    I --> J["client.request resources/read {uri}\n:95-101"]
+    J --> K["Promise.all 遍历 result.contents\n:105-138"]
+    K --> L{每项 content 类型}
+    L -->|有 text| M["直返 {uri, mimeType, text}\n:107-108"]
+    L -->|无 blob/非 string| N["返 {uri, mimeType}\n:110-111"]
+    L -->|有 blob| O["persistBinaryContent(base64解码, mime)\n:113-118"]
+    O --> P{落盘成功?}
+    P -->|error| Q["返 text: '无法保存到磁盘'\n:119-124"]
+    P -->|成功| R["返 {uri, mimeType, blobSavedTo:path,\ntext: getBinaryBlobSavedMessage(...)}\n:125-135"]
+    M --> S["return { data: {contents} }\n:140-142"]
+    N --> S
+    Q --> S
+    R --> S
+      </div>
+    </div>
+    <p><strong>关键点逐条</strong>：</p>
+    <ol>
+      <li><strong>三级前置校验</strong>（<code>:78-92</code>）：
+        <ul>
+          <li>找不到 server 名 → 抛错列出可用服务器（<code>:80-83</code>，帮模型纠正）。</li>
+          <li>server 未连接（<code>client.type !== 'connected'</code>）→ 抛错（<code>:86-88</code>）。</li>
+          <li>server 不支持 resources（<code>!client.capabilities?.resources</code>）→ 抛错（<code>:90-92</code>）。</li>
+        </ul>
+        三级校验逐层收窄，每层都有面向模型的友好错误消息。
+      </li>
+      <li><strong>直接调 MCP 协议</strong>（<code>:95-101</code>）：用 <code>connectedClient.client.request({method:'resources/read', params:{uri}}, ReadResourceResultSchema)</code>。注意它<strong>不走</strong> <code>MCPTool</code> 的 <code>call()</code> 模板——本工具是独立工具，直接持 MCP SDK 的 client 引用。</li>
+      <li><strong><code>ensureConnectedClient</code></strong>（<code>:94</code>）：与 ListMcpResourcesTool 一样，确保连接健康（<code>onclose</code> 后返回新连接）。</li>
+      <li><strong>blob 落盘拦截</strong>（<code>:103-138</code>）——<strong>最关键的逻辑</strong>：
+        <ul>
+          <li><strong>text 分支</strong>（<code>:107-108</code>）：content 带 <code>text</code> 字段，直返。</li>
+          <li><strong>无效 blob 分支</strong>（<code>:110-111</code>）：无 <code>blob</code> 或 <code>blob</code> 非 string，返最小 <code>{uri, mimeType}</code>。</li>
+          <li><strong>blob 分支</strong>（<code>:113-118</code>）：调 <code>persistBinaryContent(Buffer.from(blob, 'base64'), mimeType, persistId)</code>，把解码后的字节按 MIME 推导的扩展名写入磁盘。</li>
+          <li><strong>落盘失败</strong>（<code>:119-124</code>）：返 <code>text: '二进制内容无法保存到磁盘：&lt;error&gt;'</code>，不抛出。</li>
+          <li><strong>落盘成功</strong>（<code>:125-135</code>）：返 <code>blobSavedTo: filepath</code> + <code>text: getBinaryBlobSavedMessage(filepath, mime, size, '[Resource from ...]')</code>——text 是给模型看的"已保存到 X，类型 Y，大小 Z"提示。</li>
+        </ul>
+      </li>
+      <li><strong><code>persistId</code> 唯一性</strong>（<code>:113</code>）：<code>mcp-resource-${Date.now()}-${i}-${Math.random().toString(36).slice(2,8)}</code>——时间戳 + 索引 + 随机后缀，防并发调用落盘冲突。</li>
+      <li><strong>返回结构</strong>（<code>:140-142</code>）：<code>{ data: { contents } }</code>——contents 是处理后的数组，每个元素已把 blob 替换成路径提示。</li>
+    </ol>
+    <h3><code>mapToolResultToToolResultBlockParam</code>（<code>:150-156</code>）</h3>
+    <pre><code>content: jsonStringify(content)</code></pre>
+    <p>直接 JSON 序列化整个 <code>{contents}</code>。模型看到的是结构化 JSON（含 text 提示或 blobSavedTo 路径）。<strong>没有空结果特殊提示</strong>（与 ListMcpResourcesTool 不同）——空 contents 由 <code>call()</code> 的校验层保证不会到达此处（找不到 server / 未连接 / 不支持都会先抛错）。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian">
+    <h2>五、权限与安全</h2>
+    <p>ReadMcpResourceTool <strong>没有定义 <code>checkPermissions</code></strong>——走默认权限管道。但因为读取内容可能涉及敏感数据，实际调用会经用户确认（除非用户配了 allow 规则）。</p>
+    <p><strong>安全特性</strong>：</p>
+    <ol>
+      <li><strong>blob 落盘保护</strong>（<strong>核心安全设计</strong>，<code>:103-138</code>）：
+        <ul>
+          <li><strong>问题</strong>：MCP resource 可返回任意大的 base64 二进制（PDF、图片、音频）。直接序列化进 <code>tool_result</code> 会瞬间撑爆上下文（一个 1MB PDF 的 base64 约 1.3M 字符 ≈ 30 万 token）。</li>
+          <li><strong>方案</strong>：拦截所有 blob，解码后写磁盘，用路径替换。模型只看到"已保存到 /tmp/xxx.pdf，类型 application/pdf，大小 1.2MB"——一行文本。</li>
+          <li><strong>意义</strong>：把潜在的上下文炸弹转成可管理的文件路径。模型若需进一步处理可再用 Read/FileRead 工具读路径（或交给其他工具）。</li>
+        </ul>
+      </li>
+      <li><strong>三级前置校验</strong>（<code>:78-92</code>）：防无效调用——找不到 server / 未连接 / 不支持 resources 都先抛错，不发起无意义的 <code>resources/read</code> 请求。</li>
+      <li><strong>纯只读标记</strong>（<code>isReadOnly: true</code>）：虽然落盘写文件，但那是缓存产物，不改 server 状态。标记为只读让调度器能并发执行、自动审批。</li>
+      <li><strong>落盘失败降级</strong>（<code>:119-124</code>）：写盘失败不抛出，返友好错误文本——保证工具可用性（磁盘满等场景不至于让整个 read 崩溃）。</li>
+      <li><strong>依赖 MCP 协议授权</strong>：本工具只能读 server 主动暴露的 resource URI，不能越权访问未暴露的资源。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-xi-tong-guan-xi">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    READ["ReadMcpResourceTool"] -->|call| ENSURE["ensureConnectedClient\nclient.ts"]
+    ENSURE --> REQ["client.request resources/read\n@modelcontextprotocol/sdk"]
+    READ -->|blob 落盘| STORE["persistBinaryContent\nsrc/utils/mcpOutputStorage.ts"]
+    STORE --> DISK["磁盘文件\n/tmp/mcp-resource-*"]
+    READ -->|配对| LIST["ListMcpResourcesTool\n提供 server+uri"]
+    READ -.被过滤.-> FILT["getTools specialTools\ntools.ts:345"]
+    READ -.按需注入.-> INJ["client.ts:2375\n与 List 一起注入"]
+    READ -.blob 提示.-> MSG["getBinaryBlobSavedMessage\nmcpOutputStorage.ts"]
+    READ -.兄弟.-> TMPL["MCPTool（tools 面）"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 <code>ListMcpResourcesTool</code> 的关系</strong>：配对工具。List 返回 <code>{uri, server, ...}</code>，Read 消费 <code>{server, uri}</code>。标准两步检索：list 探路 → read 取内容。模型通常先调 List 拿到候选 URI，再调 Read 读具体内容。</li>
+      <li><strong>与 <code>MCPTool</code> 的关系</strong>：兄弟工具，覆盖 MCP 协议不同面。注意 ReadMcpResourceTool <strong>不经过</strong> MCPTool 的 <code>call()</code> 模板——它是独立工具，直接持 SDK client 引用调 <code>resources/read</code>。它也没有 <code>isMcp: true</code> 标记（因为它不是 tools 面的工具实例）。</li>
+      <li><strong>与 <code>mcpOutputStorage</code>（<code>src/utils/mcpOutputStorage.ts</code>）的关系</strong>：核心依赖。<code>persistBinaryContent(buffer, mime, id)</code>——把字节写磁盘，按 MIME 推导扩展名。<code>getBinaryBlobSavedMessage(filepath, mime, size, prefix)</code>——生成给模型看的"已保存到 X"提示文本。这两个函数也被 MCPTool 的渲染层（<code>UI.tsx</code>）复用，处理 MCP tool 返回的 blob——统一的二进制处理管道。</li>
+      <li><strong>与 <code>tools.ts</code> 注册/过滤的关系</strong>（同 ListMcpResourcesTool）：注册在 <code>getAllBaseTools()</code>（<code>:276</code>）。过滤在 <code>getTools()</code> 的 <code>specialTools</code> set（<code>:345</code>）。注入在 <code>getMcpToolsCommandsAndResources</code>（<code>client.ts:2375</code>），与 ListMcpResourcesTool 一起、当首个 supportsResources server 出现时追加。</li>
+      <li><strong>与文件读取工具链的关系</strong>：blob 落盘后，模型若需查看文本内容可用 <code>FileReadTool</code> 读 <code>blobSavedTo</code> 路径。形成"MCP resource → 落盘 → 文件读取"的跨工具数据流。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>blob 落盘拦截</strong>（<code>:103-138</code>）——<strong>最大亮点</strong>：把潜在的上下文炸弹（base64 二进制）转成文件路径。这是处理异构 MCP resource 输出的工程化方案——不假设 resource 是文本，不强撑上下文，优雅降级到文件系统。</li>
+      <li><strong>三级前置校验</strong>（<code>:78-92</code>）：逐层收窄（server 存在 → 已连接 → 支持 resources），每层给模型可操作的错误消息（列出可用服务器名等）。防止无效请求消耗网络往返。</li>
+      <li><strong>落盘失败降级</strong>（<code>:119-124</code>）：写盘失败返友好文本而非抛出——保证工具在磁盘满/权限不足等异常下仍可用（至少告诉模型发生了什么）。</li>
+      <li><strong><code>persistId</code> 防并发冲突</strong>（<code>:113</code>）：时间戳 + 索引 + 随机后缀。并发读多个 blob 不会因文件名碰撞互相覆盖。</li>
+      <li><strong>直接持 SDK client</strong>（不走 MCPTool 模板）：resources 面的工具不需要 MCPTool 的进度协议/passthrough 权限骨架那套（那是给 tools/call 用的）。直接简洁地 request → 处理 → 返回。</li>
+      <li><strong>统一的 Blob 处理管道</strong>（<code>mcpOutputStorage</code>）：ReadMcpResourceTool 和 MCPTool 渲染层共用 <code>persistBinaryContent</code> / <code>getBinaryBlobSavedMessage</code>。避免两套二进制处理逻辑分叉。</li>
+      <li><strong>"注册-过滤-按需注入"三段式</strong>（同 ListMcpResourcesTool）：保证没有 resources 服务器时这两个工具不污染工具池。</li>
+      <li><strong><code>shouldDefer: true</code></strong>（<code>:59</code>）：延迟工具。resource 读取是低频操作，不进初始 system prompt 省 token。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-yuan-ma">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td><code>buildTool</code> 主体</td><td><code>ReadMcpResourceTool/ReadMcpResourceTool.ts:49-157</code></td></tr>
+          <tr><td>描述（含参数说明）</td><td><code>ReadMcpResourceTool/prompt.ts:1-16</code></td></tr>
+          <tr><td><code>call()</code> 主体</td><td><code>ReadMcpResourceTool.ts:75-143</code></td></tr>
+          <tr><td>三级前置校验</td><td><code>ReadMcpResourceTool.ts:78-92</code></td></tr>
+          <tr><td><strong>blob 落盘拦截</strong></td><td><code>ReadMcpResourceTool.ts:103-138</code></td></tr>
+          <tr><td><code>persistBinaryContent</code> 调用</td><td><code>ReadMcpResourceTool.ts:114-118</code></td></tr>
+          <tr><td>落盘提示消息</td><td><code>ReadMcpResourceTool.ts:130-135</code></td></tr>
+          <tr><td>输入/输出 schema</td><td><code>ReadMcpResourceTool.ts:22-44</code></td></tr>
+          <tr><td><strong>过滤逻辑</strong>（specialTools）</td><td><code>src/tools.ts:343-349</code></td></tr>
+          <tr><td><strong>按需注入</strong></td><td><code>src/services/mcp/client.ts:2372-2376</code></td></tr>
+          <tr><td>blob 落盘实现</td><td><code>src/utils/mcpOutputStorage.ts:persistBinaryContent</code></td></tr>
+          <tr><td>落盘提示生成</td><td><code>src/utils/mcpOutputStorage.ts:getBinaryBlobSavedMessage</code></td></tr>
+          <tr><td>渲染 + userFacingName</td><td><code>ReadMcpResourceTool/UI.tsx:11,18,22</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-xue-xi">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先看"一、工具定位"理解它与 List 的配对关系，再跳到"四、call()"重点看 <strong>blob 落盘拦截</strong>（<code>:103-138</code>）——这是它最核心的工程亮点。三级前置校验（<code>:78-92</code>）也值得留意，是防御性编程的好例子。最后理解它和 List 共享的"注册-过滤-按需注入"特殊性（同 ListMcpResourcesTool 单篇）。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 ReadMcpResourceTool 与 ListMcpResourcesTool 的配对关系（list 提供 uri+server，read 消费）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么 blob 要落盘（base64 二进制会撑爆上下文，转成路径文本）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出三级前置校验的顺序（server 存在 → 已连接 → 支持 resources）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出落盘失败时的行为（返友好文本，不抛出）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>persistId</code> 的构成（时间戳+索引+随机，防并发冲突）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出它与 <code>mcpOutputStorage</code> 的关系（<code>persistBinaryContent</code> + <code>getBinaryBlobSavedMessage</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出它为什么不经过 MCPTool 的 <code>call()</code> 模板（resources 面独立工具，直接持 SDK client）</span></li>
+      <li><input type="checkbox" disabled> <span>能找到它与 List 一起被注入的条件（<code>client.ts:2375</code>，supportsResources 时）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>装一个返回二进制 resource 的 MCP 服务器（如返回图片），调用 ReadMcpResourceTool，观察 <code>blobSavedTo</code> 路径和 <code>text</code> 提示消息</li>
+      <li>在 <code>:114</code> 的 <code>persistBinaryContent</code> 处加日志，观察传入的 buffer 大小和 MIME</li>
+      <li>故意传一个不存在的 server 名，验证三级校验第一层抛错并列出可用服务器</li>
+      <li>对比一个返回 text 的 resource 和返回 blob 的 resource，观察 contents 数组里两种元素的字段差异（text vs blobSavedTo）</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

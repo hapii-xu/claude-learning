@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AskUserQuestionTool 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange: #D77757; --orange-lt: #f0e0d8; --orange-dk: #b55e3a;
+      --blue: #5769F7; --blue-lt: #dde0fe; --blue-dk: #3a4ed4;
+      --bg: #faf8f5; --bg2: #f3f0eb; --bg3: #ebe7e0;
+      --text: #2d2a26; --text-2: #5a5650; --text-3: #8a8480;
+      --border: #ddd8d0; --shadow: 0 2px 8px rgba(45,42,38,.08);
+      --radius: 8px; --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero p { font-size: 1.05rem; color: var(--text-2); max-width: 640px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 6px 16px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .82rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .8rem; line-height: 1.7; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    blockquote.callout { background: var(--bg2); border-left: 4px solid var(--orange); padding: 14px 20px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0; color: var(--text-2); }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin: 16px 0; overflow-x: auto; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 48px; padding: 8px 18px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; transition: border-color .15s, color .15s; }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    section { margin-top: 56px; }
+  </style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>AskUserQuestionTool 工具详解</h1>
+  <p>向用户提出 1-4 个多选问题以澄清需求、收集偏好——模型与用户交互的"结构化提问"通道</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一">工具定位</a></li>
+    <li><a href="#二">关键文件清单</a></li>
+    <li><a href="#三">Tool 接口字段实现</a></li>
+    <li><a href="#四">核心执行流程</a></li>
+    <li><a href="#五">权限与安全</a></li>
+    <li><a href="#六">与其他系统的关系</a></li>
+    <li><a href="#七">亮点与设计取舍</a></li>
+    <li><a href="#八">源码导航</a></li>
+    <li><a href="#九">学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+  <blockquote class="callout">
+    <p>这是工具系统逐个拆解系列的一篇。<code>AskUserQuestion</code> 是一个<strong>中等复杂度</strong>的交互式工具：它让模型能向用户提出结构化的多选问题（2-4 选项、最多 4 个问题、支持 multiSelect 和 preview）。它的特殊之处在于 <code>call()</code> 几乎不做事——真正的提问 UI 在权限组件里渲染，工具本身只负责 schema 校验和回答格式化。这是理解"工具结果如何由 UI 组件回填"的关键样本。</p>
+  </blockquote>
+
+  <section id="一">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>AskUserQuestion</code> = 模型向用户提结构化多选问题的交互通道。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>AskUserQuestion</code>（常量 <code>ASK_USER_QUESTION_TOOL_NAME</code>，<code>prompt.ts:3</code>）</td></tr>
+          <tr><td>一句话</td><td>让模型提 1-4 个多选问题（每题 2-4 选项），收集用户澄清/偏好/决策</td></tr>
+          <tr><td>是否进 system prompt</td><td>✅ <strong>在</strong> <code>CORE_TOOLS</code> 白名单（<code>src/constants/tools.ts:148</code>）</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly: true</code>，<code>:213</code>）</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe: true</code>，<code>:210</code>）</td></tr>
+          <tr><td>需要用户交互</td><td>✅ <strong>是</strong>（<code>requiresUserInteraction: true</code>，<code>:219</code>）——这是它最关键的标记</td></tr>
+          <tr><td>子代理禁止</td><td>✅ 在 <code>ALL_AGENT_DISALLOWED_TOOLS</code>（<code>src/constants/tools.ts:50</code>）——子代理不能问用户</td></tr>
+          <tr><td>核心依赖</td><td>权限组件渲染提问 UI、<code>MessageResponse</code> 组件展示回答</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> 模型在执行中常遇到歧义——"用哪个库？""要走方案 A 还是 B？""启用哪些功能？"。如果让模型用纯文本提问，用户体验差且回答难解析。<code>AskUserQuestion</code> 把提问结构化：每题固定 2-4 选项 + 自动"其他"入口，UI 渲染成可导航的多选框，回答以 <code>{question: answer}</code> 字典形式回填到工具结果。</p>
+  </section>
+
+  <section id="二">
+    <h2>二、关键文件清单</h2>
+    <pre><code>AskUserQuestionTool/
+├── AskUserQuestionTool.tsx   ← buildTool({...}) 主体（314 行），含 schema + HTML 校验
+├── prompt.ts                 ← ASK_USER_QUESTION_TOOL_NAME + DESCRIPTION + PREVIEW_FEATURE_PROMPT
+└── src/                      ← 内联的辅助模块（bootstrap/components/constants/utils 子集）</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>AskUserQuestionTool.tsx</code></td><td>工具主体：复杂 schema + <code>requiresUserInteraction</code> + HTML 预览校验</td><td><code>buildTool:173</code>、<code>inputSchema:119</code>、<code>checkPermissions:240</code>、<code>call:267</code>、<code>validateHtmlPreview:298</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>工具名、chip 宽度常量、预览格式说明（markdown/html 两版）</td><td><code>ASK_USER_QUESTION_TOOL_NAME:3</code>、<code>PREVIEW_FEATURE_PROMPT:10</code>、<code>ASK_USER_QUESTION_TOOL_PROMPT:32</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout">
+      <p><strong>结构特点</strong>：单 <code>.tsx</code> 主体（因为含 JSX 渲染），但 <code>call()</code> 反而极简——复杂度全在 schema 定义（嵌套 lazySchema）和 UI 校验上。<code>src/</code> 子目录是辅助模块的局部副本（bootstrap/state、components/MessageResponse 等），不展开。</p>
+    </blockquote>
+  </section>
+
+  <section id="三">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre><code>name: ASK_USER_QUESTION_TOOL_NAME,             // "AskUserQuestion"
+searchHint: '向用户提出多选问题',
+maxResultSizeChars: 100_000,
+shouldDefer: true,                             // 延迟工具，但又在 CORE_TOOLS——见下方说明</code></pre>
+    <blockquote class="callout">
+      <p><strong><code>shouldDefer: true</code> 与 <code>CORE_TOOLS</code> 并存</strong>：<code>AskUserQuestion</code> 在 <code>CORE_TOOLS</code> 白名单内（始终注入完整 schema），但 <code>shouldDefer</code> 标记让它在 TF-IDF 索引里也能被命中。两套机制不冲突——CORE_TOOLS 决定"是否初始注入 schema"，shouldDefer 影响"是否参与延迟发现"。</p>
+    </blockquote>
+
+    <h3>模型面字段</h3>
+    <pre><code>async description() { return DESCRIPTION }
+async prompt() {
+  const format = getQuestionPreviewFormat()       // SDK 消费者可选预览格式
+  if (format === undefined) return ASK_USER_QUESTION_TOOL_PROMPT
+  return ASK_USER_QUESTION_TOOL_PROMPT + PREVIEW_FEATURE_PROMPT[format]   // markdown 或 html
+}
+userFacingName() { return '' }                    // 空字符串——不显示工具名</code></pre>
+    <blockquote class="callout">
+      <p><strong><code>prompt()</code> 动态拼接</strong>：根据 <code>getQuestionPreviewFormat()</code> 决定是否追加预览指南。markdown/html 两套 <code>PREVIEW_FEATURE_PROMPT</code> 让工具描述随宿主自适应。</p>
+    </blockquote>
+
+    <h3>输入 schema（<code>:119-128</code>，嵌套 lazySchema）</h3>
+    <pre><code>{
+  questions: [{                          // 1-4 个问题
+    question: string,                    // 完整问题文本
+    header: string,                      // ≤12 字符的 chip 标签
+    options: [{                          // 2-4 个选项
+      label: string,                     // 选项显示文本
+      description: string,               // 选项含义说明
+      preview?: string,                  // 可选预览（代码/图/HTML 片段）
+    }],
+    multiSelect?: boolean,               // 默认 false
+  }],
+  answers?: Record&lt;string, string&gt;,      // 由权限组件回填的用户回答
+  annotations?: Record&lt;string, {         // 每问题用户注释
+    preview?: string,
+    notes?: string,
+  }&gt;,
+  metadata?: { source?: string },        // 分析跟踪用
+}</code></pre>
+    <p><strong>关键约束</strong>（<code>:86-101</code> <code>UNIQUENESS_REFINE</code>）：问题文本必须唯一；每题选项 label 必须唯一。</p>
+
+    <h3>行为字段</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:267</code></td><td><strong>极简</strong>：直接把输入的 <code>questions/answers/annotations</code> 包成 <code>{data}</code> 返回</td></tr>
+          <tr><td><code>validateInput({questions})</code></td><td><code>:222</code></td><td>仅当 <code>previewFormat === 'html'</code> 时校验每个选项的 preview 是合法 HTML 片段</td></tr>
+          <tr><td><code>checkPermissions(input)</code></td><td><code>:240</code></td><td>返回 <code>{ behavior: 'ask', message: '回答问题？' }</code>——触发提问 UI</td></tr>
+          <tr><td><code>isEnabled()</code></td><td><code>:199</code></td><td>KAIROS channels 激活时返回 false（多选框会挂死）</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:213</code></td><td><code>true</code></td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:210</code></td><td><code>true</code></td></tr>
+          <tr><td><code>requiresUserInteraction()</code></td><td><code>:219</code></td><td><strong><code>true</code></strong>——标记此工具必须有用户参与</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="四">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code> 是系列里<strong>最反直觉</strong>的一个——它几乎不做事：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    A["call({questions, answers, annotations})\n:267"] --> B["直接包成 {data}\n:268"]
+    B --> C["return {data: {questions, answers, annotations}}"]
+      </div>
+    </div>
+    <p><strong>为什么 <code>call()</code> 这么空？</strong> 因为真正的提问交互发生在<strong>权限阶段</strong>：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    M["模型调用 AskUserQuestion"] --> VI["validateInput\n:222\nHTML 预览校验"]
+    VI --> CP["checkPermissions\n:240\n返回 behavior:'ask'"]
+    CP --> UI["权限组件渲染提问 UI\n（多选框 + 预览分栏）"]
+    UI --> U["用户选择 / 输入'其他'"]
+    U --> RB["UI 把 answers 回填到 input.answers"]
+    RB --> CALL["call()\n:267\n把回填的 answers 包成结果"]
+    CALL --> MAP["mapToolResultToToolResultBlockParam\n:272\n格式化为 '\"问题\"=\"回答\"' 文本"]
+      </div>
+    </div>
+    <p><strong>关键设计</strong>：<code>answers</code> 字段在模型发出的 input 里是空的，由<strong>权限组件</strong>在用户回答后回填到 <code>updatedInput</code>，然后 <code>call()</code> 收到带 answers 的 input 直接透传。</p>
+
+    <h3><code>mapToolResultToToolResultBlockParam</code>（<code>:272-292</code>）</h3>
+    <p>把回答格式化成模型可读文本：<code>"问题"="回答"</code> 形式；若有 annotation.preview 追加 selected preview；若有 annotation.notes 追加 user notes；整体包装"用户已回答你的问题"。</p>
+  </section>
+
+  <section id="五">
+    <h2>五、权限与安全</h2>
+    <h3><code>checkPermissions</code>（<code>:240-246</code>）—— 不是权限，是提问触发器</h3>
+    <pre><code>async checkPermissions(input) {
+  return { behavior: 'ask', message: '回答问题？', updatedInput: input }
+}</code></pre>
+    <p>返回 <code>behavior: 'ask'</code> 让权限系统弹出提问 UI。<code>updatedInput</code> 把 input 原样传回——UI 组件会<strong>修改这个 input 的 answers 字段</strong>，然后流水线带着修改后的 input 继续到 <code>call()</code>。</p>
+    <blockquote class="callout">
+      <p><strong>这是"权限组件充当 UI 容器"的设计</strong>：提问 UI 复用权限系统的渲染管道，省去单独的交互机制。</p>
+    </blockquote>
+
+    <h3><code>validateInput</code>（<code>:222-239</code>）—— 仅 HTML 预览校验</h3>
+    <p>只在 <code>getQuestionPreviewFormat() === 'html'</code> 时生效，调用 <code>validateHtmlPreview</code>（<code>:298-313</code>）：禁止 <code>&lt;html&gt;/&lt;body&gt;/&lt;!DOCTYPE&gt;</code>（必须是片段）；禁止 <code>&lt;script&gt;/&lt;style&gt;</code>（防代码执行/样式污染宿主页）；必须包含至少一个 HTML 标签。</p>
+
+    <h3><code>isEnabled</code> 门控（<code>:199-209</code>）</h3>
+    <pre><code>isEnabled() {
+  if ((feature('KAIROS') || feature('KAIROS_CHANNELS')) && getAllowedChannels().length > 0) {
+    return false   // 用户在频道上，不在看 TUI
+  }
+  return true
+}</code></pre>
+  </section>
+
+  <section id="六">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    ASK -->|触发提问 UI| PERM["权限系统\ncheckPermissions behavior:'ask'"]
+    PERM -->|渲染| QUI["提问组件\n（多选框 + 预览分栏）"]
+    ASK -->|预览格式| PF["getQuestionPreviewFormat\nbootstrap/state"]
+    ASK -->|回答展示| MR["MessageResponse 组件"]
+    ASK -.计划模式.-> EPM["ExitPlanMode\n计划审批专用，不混用"]
+    ASK -.子代理禁止.-> AGENT["ALL_AGENT_DISALLOWED_TOOLS\n子代理不能问用户"]
+    ASK -.频道禁用.-> CH["KAIROS channels\n无人在键盘前"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与权限系统的关系</strong>：最深的耦合——提问 UI 完全复用权限渲染管道。<code>checkPermissions</code> 返回 <code>ask</code> 触发 UI，UI 修改 <code>input.answers</code>，再流转到 <code>call()</code>。</li>
+      <li><strong>与 <code>ExitPlanMode</code> 的关系</strong>：<code>prompt.ts:43</code> 明确划界——计划审批用 <code>ExitPlanMode</code>，<strong>不要</strong>用 <code>AskUserQuestion</code>。两者职责分离。</li>
+      <li><strong>与子代理系统的关系</strong>：在 <code>ALL_AGENT_DISALLOWED_TOOLS</code>——子代理不能问用户（用户在主线程交互）。</li>
+    </ul>
+  </section>
+
+  <section id="七">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong><code>call()</code> 的"空"是有意的</strong>（<code>:267-271</code>）：提问交互在权限阶段完成，<code>call()</code> 只做透传。这是"工具结果由 UI 组件回填"模式的典范——复杂度在 UI 层，工具层保持极简。</li>
+      <li><strong><code>checkPermissions</code> 兼任 UI 触发器</strong>（<code>:240-246</code>）：复用权限渲染管道省去独立的交互机制，但代价是"提问"和"权限确认"在代码上耦合。</li>
+      <li><strong>动态 prompt 拼接</strong>（<code>:182-189</code>）：根据 SDK 宿主的 preview 能力裁剪描述。</li>
+      <li><strong>HTML 预览的安全校验</strong>（<code>:298-313</code>）：禁止 <code>&lt;script&gt;/&lt;style&gt;</code> 防代码执行和样式污染，注释坦承"这不是解析器"。</li>
+      <li><strong>唯一性 refine</strong>（<code>:86-101</code>）：问题文本唯一 + 选项 label 唯一——防重复/歧义问题集。</li>
+      <li><strong>渠道感知的 <code>isEnabled</code></strong>（<code>:199-209</code>）：KAIROS channels 激活时禁用，避免多选框挂死。</li>
+      <li><strong><code>requiresUserInteraction</code> 标记</strong>（<code>:219</code>）：让频道中继识别并跳过——元数据字段驱动的运行时行为。</li>
+      <li><strong>chip 宽度常量</strong>（<code>prompt.ts:5</code> <code>ASK_USER_QUESTION_TOOL_CHIP_WIDTH = 12</code>）：header 字段长度限制硬编码为常量，保证 UI 一致性。</li>
+    </ol>
+  </section>
+
+  <section id="八">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量 + chip 宽度</td><td><code>AskUserQuestionTool/prompt.ts:3,5</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>AskUserQuestionTool.tsx:173-293</code></td></tr>
+          <tr><td>输入 schema（嵌套 lazySchema）</td><td><code>AskUserQuestionTool.tsx:119-128</code></td></tr>
+          <tr><td>唯一性约束</td><td><code>AskUserQuestionTool.tsx:86-101</code></td></tr>
+          <tr><td><code>call()</code>（极简透传）</td><td><code>AskUserQuestionTool.tsx:267-271</code></td></tr>
+          <tr><td><code>checkPermissions</code>（提问触发器）</td><td><code>AskUserQuestionTool.tsx:240-246</code></td></tr>
+          <tr><td><code>validateHtmlPreview</code></td><td><code>AskUserQuestionTool.tsx:298-313</code></td></tr>
+          <tr><td><code>requiresUserInteraction</code></td><td><code>AskUserQuestionTool.tsx:219-221</code></td></tr>
+          <tr><td><code>isEnabled</code> 渠道门控</td><td><code>AskUserQuestionTool.tsx:199-209</code></td></tr>
+          <tr><td>结果格式化</td><td><code>AskUserQuestionTool.tsx:272-292</code></td></tr>
+          <tr><td>预览格式 prompt</td><td><code>prompt.ts:10-30</code></td></tr>
+          <tr><td>子代理禁止</td><td><code>src/constants/tools.ts:50</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="九">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先看"一、工具定位"理解它是交互通道，再重点读"四、call() 的空"和"五、checkPermissions"——理解"提问 UI 在权限阶段渲染、answers 由 UI 回填"这一反直觉流程。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能解释为什么 <code>call()</code> 几乎是空的（提问在权限阶段，call 只透传回填的 answers）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 <code>checkPermissions</code> 返回 <code>behavior: 'ask'</code> 的真实作用（触发提问 UI，不是问"允不允许"）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>answers</code> 字段如何从空变成有值（权限组件修改 <code>updatedInput.answers</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>requiresUserInteraction: true</code> 的作用（让频道中继跳过此工具）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 <code>isEnabled</code> 在什么条件下返回 false（KAIROS channels 激活且用户有频道）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>validateHtmlPreview</code> 禁止哪些标签（<code>&lt;script&gt;/&lt;style&gt;</code> + 完整文档标签）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释唯一性 refine 检查什么（问题文本唯一 + 选项 label 唯一）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出它与 <code>ExitPlanMode</code> 的职责分界（计划审批用 ExitPlanMode，不用 AskUserQuestion）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>让 Claude 在有歧义时调 <code>AskUserQuestion</code>，观察提问 UI（多选框、chip、可选预览）</li>
+      <li>在提问时选"其他"输入自定义文本，验证 answers 字典正确回填</li>
+      <li>启用 multiSelect，观察 UI 切换为多选模式</li>
+      <li>在 <code>checkPermissions:240</code> 加日志，确认 answers 字段在权限阶段被修改</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

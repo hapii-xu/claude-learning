@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>启动入口深度学习 · src/main.tsx</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --orange:    #D77757;
+    --orange-lt: #f0e0d8;
+    --orange-dk: #b55e3a;
+    --blue:      #5769F7;
+    --blue-lt:   #dde0fe;
+    --blue-dk:   #3a4ed4;
+    --green:     #22a766;
+    --green-lt:  #d2f0e3;
+    --purple:    #7c5cbf;
+    --purple-lt: #ece6f9;
+    --red:       #d63b3b;
+    --red-lt:    #fde8e8;
+    --bg:        #faf8f5;
+    --bg2:       #f3f0eb;
+    --bg3:       #ebe7e0;
+    --text:      #2d2a26;
+    --text-2:    #5a5650;
+    --text-3:    #8a8480;
+    --border:    #ddd8d0;
+    --shadow:    0 2px 8px rgba(45,42,38,.08);
+    --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+    --radius:    8px;
+    --radius-lg: 12px;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  .layout { display: flex; min-height: 100vh; }
+
+  /* ── 侧边导航 ── */
+  nav {
+    width: 260px;
+    flex-shrink: 0;
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+    overflow-y: auto;
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 24px 0 40px;
+    z-index: 100;
+    box-shadow: 2px 0 8px rgba(45,42,38,.04);
+  }
+
+  nav .nav-title {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .08em;
+    color: var(--orange);
+    padding: 0 20px 12px;
+    border-bottom: 1px solid var(--bg3);
+    margin-bottom: 8px;
+  }
+
+  nav a {
+    display: block; padding: 5px 20px;
+    color: var(--text-3); text-decoration: none;
+    font-size: 13px; line-height: 1.5;
+    border-left: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+  }
+  nav a:hover { color: var(--text); border-left-color: var(--border); }
+  nav a.active { color: var(--orange-dk); border-left-color: var(--orange); font-weight: 600; }
+  nav a.l2 { padding-left: 32px; font-size: 12px; }
+  nav a.l3 { padding-left: 44px; font-size: 12px; color: var(--text-3); }
+
+  /* ── 主内容 ── */
+  main {
+    margin-left: 260px;
+    max-width: 960px;
+    padding: 48px 48px 80px;
+    width: 100%;
+  }
+
+  /* ── 标题 ── */
+  h1 {
+    font-size: 28px; font-weight: 800; color: var(--text);
+    margin-bottom: 8px; letter-spacing: -.02em;
+  }
+  h1 span { color: var(--orange); }
+  h2 {
+    font-size: 20px; font-weight: 700; color: var(--orange-dk);
+    margin: 48px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--orange-lt);
+  }
+  h3 { font-size: 16px; font-weight: 600; color: var(--text); margin: 32px 0 12px; }
+  h4 { font-size: 14px; font-weight: 600; color: var(--text-2); margin: 24px 0 10px; }
+
+  /* ── 描述条 ── */
+  .description {
+    font-size: 13px; color: var(--text-2);
+    margin-bottom: 32px; padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── callout（替代 blockquote）── */
+  .callout {
+    border-left: 3px solid var(--orange);
+    background: #fff9f6;
+    padding: 12px 16px;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    margin: 14px 0;
+    font-size: .9rem;
+    color: var(--text-2);
+  }
+  .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+  .callout.green { border-color: var(--green);  background: #f3fcf7; }
+  .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+  .callout strong { color: var(--text); }
+  .callout code {
+    background: var(--bg2); padding: 1px 5px; border-radius: 3px;
+    font-size: .85em; color: var(--orange-dk);
+  }
+
+  /* ── 段落 ── */
+  p { color: var(--text-2); margin: 10px 0; }
+
+  /* ── 行内代码 ── */
+  code {
+    font-family: var(--font-mono);
+    font-size: .84em;
+    background: var(--bg2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--orange-dk);
+  }
+
+  /* ── 代码块 ── */
+  pre {
+    background: #fefcfa;
+    color: var(--text);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    font-family: var(--font-mono);
+    font-size: .82rem;
+    line-height: 1.65;
+    overflow-x: auto;
+    margin: 14px 0;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  pre code {
+    background: none !important;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+    border-radius: 0;
+  }
+
+  /* ── mermaid 图 ── */
+  .mermaid {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin: 16px 0;
+    display: flex;
+    justify-content: center;
+    overflow-x: auto;
+    box-shadow: var(--shadow);
+  }
+
+  /* ── 表格 ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: .88rem;
+    background: #fff;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  th {
+    background: var(--bg2);
+    font-weight: 700;
+    text-align: left;
+    padding: 10px 14px;
+    color: var(--text);
+    border-bottom: 1.5px solid var(--border);
+  }
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--bg3);
+    color: var(--text-2);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg); }
+  td code, th code { font-size: .82em; }
+
+  /* ── 列表 ── */
+  ul, ol { padding-left: 22px; margin: 8px 0; color: var(--text-2); }
+  li { margin: 5px 0; }
+  li code { font-size: .85em; }
+
+  /* ── 粗体 / 斜体 ── */
+  strong { color: var(--text); font-weight: 600; }
+  em { color: var(--text-2); }
+
+  /* ── 分隔线 ── */
+  .section-divider, hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 40px 0;
+  }
+
+  /* ── 徽章 ── */
+  .badge {
+    display: inline-block;
+    font-size: .68rem;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 8px;
+    vertical-align: middle;
+  }
+  .badge-danger { background: var(--red-lt); color: var(--red); }
+  .badge-ok { background: var(--green-lt); color: #1a7a4e; }
+
+  /* ── 提示块 ── */
+  .tip {
+    border-left: 3px solid var(--blue);
+    background: #f5f6ff;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: .9rem;
+    color: var(--text-2);
+  }
+  .tip strong { color: var(--blue-dk); }
+  .tip code {
+    background: var(--blue-lt); padding: 1px 5px; border-radius: 3px;
+    font-size: .85em; color: var(--blue-dk);
+  }
+
+  /* ── 块状图 ── */
+  .block-diagram {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--text-2);
+    margin: 14px 0;
+    line-height: 1.5;
+    box-shadow: var(--shadow);
+  }
+
+  /* ── 滚动条 ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ── 侧边导航 ── -->
+<nav>
+  <div class="nav-title">目录</div>
+  <a href="#intro">概述</a>
+  <a href="#s1" class="l2">一、全局视野</a>
+  <a href="#s1-1" class="l3">1.1 文件规模</a>
+  <a href="#s1-2" class="l3">1.2 cli.tsx 分工</a>
+  <a href="#s1-3" class="l3">1.3 文件切片</a>
+  <a href="#s2" class="l2">二、顶层副作用</a>
+  <a href="#s3" class="l2">三、main() 与 argv 重写</a>
+  <a href="#s3-1" class="l3">3.1 四件事</a>
+  <a href="#s3-2" class="l3">3.2 pending 单例</a>
+  <a href="#s3-3" class="l3">3.3 四条重写分支</a>
+  <a href="#s3-4" class="l3">3.4 clientType 推断</a>
+  <a href="#s3-5" class="l3">3.5 getInputPrompt</a>
+  <a href="#s4" class="l2">四、preAction 流水线</a>
+  <a href="#s4-1" class="l3">4.1 9 步流水线</a>
+  <a href="#s4-2" class="l3">4.2 runMigrations</a>
+  <a href="#s4-3" class="l3">4.3 与 init.ts 的关系</a>
+  <a href="#s4-4" class="l3">4.4 --help 不触发</a>
+  <a href="#s5" class="l2">五、CLI 选项目录</a>
+  <a href="#s5-1" class="l3">5.1 调试与输出</a>
+  <a href="#s5-2" class="l3">5.2 权限与安全</a>
+  <a href="#s5-3" class="l3">5.3 模型与思考</a>
+  <a href="#s5-4" class="l3">5.4 会话恢复</a>
+  <a href="#s5-5" class="l3">5.5 配置与资源</a>
+  <a href="#s5-6" class="l3">5.6 高级/隐藏</a>
+  <a href="#s6" class="l2">六、子命令完整地图</a>
+  <a href="#s6-mcp" class="l3">6.2.1 mcp 簇</a>
+  <a href="#s6-remote" class="l3">6.2.2 远程交互</a>
+  <a href="#s6-auth" class="l3">6.2.3 auth 簇</a>
+  <a href="#s6-plugin" class="l3">6.2.4 plugin 簇</a>
+  <a href="#s6-autonomy" class="l3">6.2.5 autonomy</a>
+  <a href="#s6-maint" class="l3">6.2.6 维护类</a>
+  <a href="#s6-ant" class="l3">6.2.7 ant 专属</a>
+  <a href="#s7" class="l2">七、主 .action() 装配车间</a>
+  <a href="#s7-5" class="l3">7.5 交互式决策树</a>
+  <a href="#s8" class="l2">八、实战命令速查</a>
+  <a href="#s9" class="l2">九、协作总图</a>
+  <a href="#s10" class="l2">十、亲手验证</a>
+  <a href="#s11" class="l2">十一、FAQ</a>
+</nav>
+
+<!-- ── 主内容 ── -->
+<main>
+  <h1 id="intro">启动入口深度学习 · <span>src/main.tsx</span></h1>
+  <p class="description">拆解 5743 行 Commander.js 主程序——argv 重写四分支、preAction 9 步初始化流水线、58 个子命令完整地图、主 action 3070 行巨型分发，以及与 cli.tsx 的协作边界</p>
+
+  <div class="callout">
+    <code>src/main.tsx</code> 是 Claude Code CLI 的"装配车间"：所有 <code>claude</code> 命令的语法定义、参数解析、初始化流水线、以及最终分发到 REPL 或 headless 模式，都在这 5743 行里完成。理解它等价于理解"<code>claude</code> 这条命令从语法层面到执行层面究竟支持什么、怎么走"。
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ── 一 ── -->
+  <h2 id="s1">一、全局视野</h2>
+
+  <h3 id="s1-1">1.1 文件规模一览</h3>
+  <table>
+    <tr><th>指标</th><th>数量</th><th>说明</th></tr>
+    <tr><td>总行数</td><td>5743</td><td><code>wc -l</code> 实测</td></tr>
+    <tr><td><code>.command(...)</code> 调用</td><td>58</td><td>含 stub 和父命令</td></tr>
+    <tr><td><code>.option(...)</code> / <code>.addOption(...)</code></td><td>163</td><td>主命令 + 所有子命令累计</td></tr>
+    <tr><td><code>.action(...)</code> 调用</td><td>52</td><td>每个可执行命令一个</td></tr>
+    <tr><td>导出函数</td><td>2</td><td><code>main</code> + <code>startDeferredPrefetches</code></td></tr>
+    <tr><td>顶层非导出函数</td><td>18</td><td><code>run</code> / <code>getInputPrompt</code> / <code>runMigrations</code> 等</td></tr>
+  </table>
+
+  <h3 id="s1-2">1.2 与 cli.tsx 的责任分工</h3>
+  <div class="mermaid">
+flowchart TD
+    A[用户执行 claude ...] --> B[cli.tsx main]
+    B --> C{14 条快速路径\n有命中？}
+    C -- 命中 --> D[动态 import 对应模块\n提前 return\n~ms 级响应]
+    C -- 未命中 --> E[startCapturingEarlyInput\ncli.tsx:417]
+    E --> F[import 'main.jsx'\n取 main 别名 cliMain\n约 ~135ms import 开销]
+    F --> G[await cliMain / main]
+    G --> H[argv 重写四分支]
+    H --> I[initializeEntrypoint\nclientType 推断]
+    I --> J[eagerLoadSettings]
+    J --> K[await run\nCommander parseAsync]
+    K --> L[preAction 9 步流水线]
+    L --> M[对应子命令 action\n或主 action 分发]
+  </div>
+
+  <p><strong>14 条快速路径（cli.tsx 拦截）：</strong></p>
+  <table>
+    <tr><th>#</th><th>触发条件</th><th>拦截内容</th></tr>
+    <tr><td>1</td><td><code>--version</code> / <code>-v</code> / <code>-V</code></td><td>零模块加载，直接打印</td></tr>
+    <tr><td>2</td><td><code>--dump-system-prompt</code></td><td>打印系统提示词后退出</td></tr>
+    <tr><td>3</td><td><code>--claude-in-chrome-mcp</code> / <code>--chrome-native-host</code> / <code>--computer-use-mcp</code></td><td>对应 MCP server 模式</td></tr>
+    <tr><td>4</td><td><code>--acp</code></td><td>Agent Client Protocol stdio</td></tr>
+    <tr><td>5</td><td><code>weixin</code></td><td>微信集成</td></tr>
+    <tr><td>6</td><td><code>--daemon-worker=&lt;kind&gt;</code></td><td>Daemon supervisor 派生</td></tr>
+    <tr><td>7</td><td><code>remote-control</code> / <code>rc</code> / <code>remote</code> / <code>sync</code> / <code>bridge</code></td><td>Bridge 模式</td></tr>
+    <tr><td>8</td><td><code>daemon [subcommand]</code></td><td>Daemon 长驻进程</td></tr>
+    <tr><td>9</td><td><code>autonomy ...</code>（部分查询）</td><td>状态查询快速路径</td></tr>
+    <tr><td>10</td><td><code>--bg</code> / <code>--background</code></td><td>后台 daemon 模式</td></tr>
+    <tr><td>11</td><td><code>job ...</code></td><td>Template job 命令</td></tr>
+    <tr><td>12</td><td><code>environment-runner</code></td><td>BYOC runner</td></tr>
+    <tr><td>13</td><td><code>self-hosted-runner</code></td><td>自托管 runner</td></tr>
+    <tr><td>14</td><td><code>--tmux + --worktree</code> 组合</td><td><code>execIntoTmuxWorktree(args)</code> 直接 exec</td></tr>
+  </table>
+
+  <h3 id="s1-3">1.3 文件按职责切片</h3>
+  <table>
+    <tr><th>行号范围</th><th>内容</th></tr>
+    <tr><td><code>1-22</code></td><td>顶层副作用（3 个必须先于 import 的调用）</td></tr>
+    <tr><td><code>24-359</code></td><td>主体 imports（Commander / chalk / lodash / services 等）</td></tr>
+    <tr><td><code>360-511</code></td><td>模块级函数和常量（遥测 / migrations / prefetch）</td></tr>
+    <tr><td><code>512-691</code></td><td>Settings 早加载 / <code>eagerLoadSettings</code></td></tr>
+    <tr><td><code>692-717</code></td><td><code>initializeEntrypoint()</code>（设置 <code>CLAUDE_CODE_ENTRYPOINT</code>）</td></tr>
+    <tr><td><code>718-763</code></td><td>三套 pending 模块单例类型 + 初始化</td></tr>
+    <tr><td><code>777-1072</code></td><td><code>main()</code> 导出函数（argv 重写 + clientType 推断 + 调用 run）</td></tr>
+    <tr><td><code>1074-1107</code></td><td><code>getInputPrompt()</code>（stdin 3 秒超时拼接）</td></tr>
+    <tr><td><code>1122-1209</code></td><td><code>run()</code> 开头 + preAction hook（9 步流水线）</td></tr>
+    <tr><td><code>1211-1493</code></td><td>主命令 <code>program.name()</code> + 所有 <code>.option(...)</code> 注册</td></tr>
+    <tr><td><code>1495-4566</code></td><td>主 <code>.action(...)</code>（约 3070 行的巨型 handler）</td></tr>
+    <tr><td><code>4567-4695</code></td><td><code>.version()</code> + worktree/tmux/ant/remote 等 option</td></tr>
+    <tr><td><code>4720-5546</code></td><td>全部子命令注册（<code>mcp</code> → <code>task</code>）</td></tr>
+    <tr><td><code>5562-5743</code></td><td>尾部辅助（<code>logTenguInit</code> / <code>maybeActivateProactive</code> / <code>extractTeammateOptions</code>）</td></tr>
+  </table>
+
+  <hr class="section-divider">
+
+  <!-- ── 二 ── -->
+  <h2 id="s2">二、顶层副作用（前 22 行的"优先并行"）</h2>
+<pre><code class="language-typescript">// src/main.tsx:1-22
+// 这些副作用必须先于所有其他 import 运行：
+// 1. profileCheckpoint 在重量级模块求值开始前标记入口
+// 2. startMdmRawRead 触发 MDM 子进程（plutil/reg query），让它们与
+//    下面剩余约 ~135ms 的 import 并行运行
+// 3. startKeychainPrefetch 同时触发两次 macOS keychain 读取（OAuth + 旧版 API
+//    key）—— 否则会在 applySafeConfigEnvironmentVariables() 内部同步顺序读取
+//    （每次 macOS 启动约 ~65ms）
+import { profileCheckpoint } from './utils/startupProfiler.js';
+profileCheckpoint('main_tsx_entry');        // 第 12 行
+
+import { startMdmRawRead } from './utils/settings/mdm/rawRead.js';
+startMdmRawRead();                          // 第 17 行
+
+import { startKeychainPrefetch } from './utils/secureStorage/keychainPrefetch.js';
+startKeychainPrefetch();                    // 第 22 行</code></pre>
+
+  <p><strong>为什么要这样排列？</strong> 时序图展示"并行化"的价值：</p>
+  <div class="mermaid">
+sequenceDiagram
+    participant idx as cli.tsx
+    participant main as main.tsx 顶层
+    participant mdm as MDM 子进程 plutil/reg query
+    participant kc as macOS Keychain 两次 spawn
+
+    idx ->> main: import('../main.jsx')
+    Note over main: profileCheckpoint('main_tsx_entry') 12行
+    main ->> mdm: startMdmRawRead() 17行（异步派生）
+    main ->> kc: startKeychainPrefetch() 22行（异步spawn）
+    Note over main: 执行 24-359 行的重型 import (~135ms)
+    Note over mdm: MDM 数据读取并行完成
+    Note over kc: OAuth + API key 读取并行完成
+    main ->> main: preAction:1154
+    main ->> main: await Promise.all([ensureMdmSettingsLoaded, ensureKeychainPrefetchCompleted])
+    Note over main: 汇合点——几乎免费，子进程已完成
+    main ->> main: await init()
+  </div>
+
+  <div class="tip">
+    <strong>汇合点</strong>：<code>preAction</code> 的第一件事（<code>main.tsx:1154</code>）是 <code>await Promise.all([ensureMdmSettingsLoaded(), ensureKeychainPrefetchCompleted()])</code>——等待这两个预取完成。因为子进程在 ~135ms 的 import 期间早已完成，这里几乎是 0 等待。
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ── 三 ── -->
+  <h2 id="s3">三、<code>main()</code> 函数与 argv 重写</h2>
+
+  <h3 id="s3-1">3.1 <code>main()</code> 的四件事</h3>
+  <p><code>main()</code> 函数（<code>777-1072</code>）按顺序完成四件事：</p>
+<pre><code class="language-typescript">// src/main.tsx:777 简化示意
+export async function main() {
+  // 1. 安全环境变量 + warning handler + 进程退出清理（789-811）
+  process.env.NoDefaultCurrentDirectoryInExePath = '1'; // 防 Windows PATH 劫持
+  initializeWarningHandler();
+
+  // 2. argv 重写四分支（817-993）
+  // → cc:// URL / --handle-uri / assistant / ssh
+
+  // 3. isNonInteractive 判定 + clientType 9 种推断（997-1040）
+  const isNonInteractive = hasPrintFlag || hasInitOnlyFlag || hasSdkUrl
+    || (!forceInteractive && !process.stdout.isTTY);
+
+  // 4. eagerLoadSettings + 调用 run()（1065-1070）
+  eagerLoadSettings();
+  await run();
+}</code></pre>
+
+  <h3 id="s3-2">3.2 三套 pending 模块单例</h3>
+  <p>这三套"暂存-消费"状态对象是 <code>main.tsx</code> 最独特的设计模式：<code>main()</code> 写入，主 action 消费。</p>
+<pre><code class="language-typescript">// src/main.tsx:725-763
+const _pendingConnect: PendingConnect | undefined = feature('DIRECT_CONNECT')
+  ? { url: undefined, authToken: undefined, dangerouslySkipPermissions: false }
+  : undefined;
+
+const _pendingAssistantChat: PendingAssistantChat | undefined = feature('KAIROS')
+  ? { sessionId: undefined, discover: false }
+  : undefined;
+
+const _pendingSSH: PendingSSH | undefined = feature('SSH_REMOTE')
+  ? { host: undefined, cwd: undefined, permissionMode: undefined,
+      dangerouslySkipPermissions: false, local: false,
+      extraCliArgs: [], remoteBin: undefined }
+  : undefined;</code></pre>
+
+  <p><strong>为什么是模块级变量而非函数参数？</strong> Commander 的 <code>parseAsync</code> 会自动分发到对应 <code>.action(handler)</code>，<code>main()</code> 无法直接把数据传给 action handler。模块级变量是这种"argv 预解析 → action 消费"跨函数通信的唯一方式。</p>
+
+  <table>
+    <tr><th>变量</th><th>功能守卫</th><th>main() 写入位置</th><th>主 action 消费位置</th></tr>
+    <tr><td><code>_pendingConnect</code></td><td><code>DIRECT_CONNECT</code></td><td><code>817-845</code>（cc:// URL 时）</td><td><code>3791-3836</code></td></tr>
+    <tr><td><code>_pendingAssistantChat</code></td><td><code>KAIROS</code></td><td><code>881-896</code>（assistant argv 时）</td><td><code>3918-4051</code></td></tr>
+    <tr><td><code>_pendingSSH</code></td><td><code>SSH_REMOTE</code></td><td><code>902-993</code>（ssh argv 时）</td><td><code>3837-3917</code></td></tr>
+  </table>
+
+  <h3 id="s3-3">3.3 四条 argv 重写分支</h3>
+
+  <h4>3.3.1 <code>cc://</code> URL 重写（<code>817-846</code>）</h4>
+<pre><code class="language-typescript">// src/main.tsx:817
+if (feature('DIRECT_CONNECT')) {
+  const ccIdx = rawCliArgs.findIndex(a =&gt; a.startsWith('cc://') || a.startsWith('cc+unix://'));
+  if (ccIdx !== -1 &amp;&amp; _pendingConnect) {
+    if (rawCliArgs.includes('-p') || rawCliArgs.includes('--print')) {
+      // Headless 模式：改写为内部 open 子命令
+      process.argv = [..., 'open', ccUrl, ...stripped];
+    } else {
+      // 交互模式：剥离 cc:// URL，暂存到 _pendingConnect
+      _pendingConnect.url = parsed.serverUrl;
+      _pendingConnect.authToken = parsed.authToken;
+      process.argv = [..., ...stripped]; // 去掉 ccUrl 和 --dangerously-skip-permissions
+    }
+  }
+}</code></pre>
+
+  <table>
+    <tr><th>模式</th><th>改写结果</th><th>最终路径</th></tr>
+    <tr><td>交互（默认）</td><td>剥离 ccUrl，主命令看到干净 argv</td><td>主 action <code>3791</code> 消费 <code>_pendingConnect.url</code> → <code>createDirectConnectSession</code> → <code>launchRepl</code></td></tr>
+    <tr><td>Headless（<code>-p</code>）</td><td>改写为 <code>['open', ccUrl, ...]</code></td><td><code>open</code> 子命令 action（<code>4927</code>）</td></tr>
+  </table>
+<pre><code class="language-bash"># 交互模式 —— 打开远端 session 的完整 TUI
+claude cc://host:port/token
+
+# Headless 模式 —— 向远端发一条 prompt
+claude -p "git log --oneline" cc://host:port/token --output-format=json
+# 改写后 argv: ['open', 'cc://host:port/token', '-p', 'git log ...', '--output-format=json']</code></pre>
+
+  <h4>3.3.2 <code>--handle-uri</code> deep link（<code>851-872</code>）</h4>
+<pre><code class="language-typescript">// src/main.tsx:851
+if (feature('LODESTONE')) {
+  const handleUriIdx = process.argv.indexOf('--handle-uri');
+  if (handleUriIdx !== -1) {
+    const uri = process.argv[handleUriIdx + 1]!;
+    const { handleDeepLinkUri } = await import('./utils/deepLink/protocolHandler.js');
+    const exitCode = await handleDeepLinkUri(uri);
+    process.exit(exitCode); // 直接 exit，不进入 Commander
+  }
+  // macOS LaunchServices 入口：__CFBundleIdentifier 被 bundle 覆盖
+  if (process.platform === 'darwin' &amp;&amp;
+      process.env.__CFBundleIdentifier === 'com.anthropic.claude-code-url-handler') {
+    const { handleUrlSchemeLaunch } = await import('./utils/deepLink/protocolHandler.js');
+    process.exit(await handleUrlSchemeLaunch() ?? 1);
+  }
+}</code></pre>
+
+  <p>这条路径<strong>不暂存到模块单例</strong>，处理完直接 <code>process.exit()</code>。macOS 在用户点击 <code>claude://...</code> 链接时，通过 LaunchServices 启动 app bundle，会把 <code>__CFBundleIdentifier</code> 覆盖为 bundle ID，这是比解析 argv 更精确的检测信号。</p>
+
+  <h4>3.3.3 <code>assistant [sessionId]</code> KAIROS 模式（<code>881-896</code>）</h4>
+<pre><code class="language-typescript">// src/main.tsx:881
+if (feature('KAIROS') &amp;&amp; _pendingAssistantChat) {
+  const rawArgs = process.argv.slice(2);
+  if (rawArgs[0] === 'assistant') {              // 只匹配位置 0
+    const nextArg = rawArgs[1];
+    if (nextArg &amp;&amp; !nextArg.startsWith('-')) {
+      _pendingAssistantChat.sessionId = nextArg; // claude assistant &lt;uuid&gt;
+      rawArgs.splice(0, 2);
+    } else if (!nextArg) {
+      _pendingAssistantChat.discover = true;     // claude assistant（无 id → 弹选择器）
+      rawArgs.splice(0, 1);
+    }
+    process.argv = [process.argv[0]!, process.argv[1]!, ...rawArgs];
+  }
+}</code></pre>
+
+  <p><strong>为什么只匹配位置 0？</strong> 防止 <code>claude -p "explain assistant mode"</code> 误判——<code>-p</code> 在前时 <code>rawArgs[0]</code> 是 <code>-p</code> 而非 <code>assistant</code>。</p>
+<pre><code class="language-bash">claude assistant                  # discover=true → launchAssistantSessionChooser
+claude assistant abc-def-123      # sessionId='abc-def-123' → 直接连接
+claude assistant --help           # 落入 stub 子命令，打印帮助</code></pre>
+
+  <h4>3.3.4 <code>ssh &lt;host&gt; [dir]</code> SSH 远程（<code>902-993</code>）</h4>
+  <p>这是最复杂的 argv 重写，会从 argv 中抽走 7 个专属 flag：</p>
+<pre><code class="language-typescript">// src/main.tsx:902
+if (feature('SSH_REMOTE') &amp;&amp; _pendingSSH) {
+  if (rawCliArgs[0] === 'ssh') {
+    // 1. 预抽 SSH 专属标志
+    _pendingSSH.local = 提取 --local
+    _pendingSSH.dangerouslySkipPermissions = 提取 --dangerously-skip-permissions
+    _pendingSSH.permissionMode = 提取 --permission-mode &lt;val&gt;
+    _pendingSSH.remoteBin      = 提取 --remote-bin &lt;val&gt;
+
+    // 2. 转发给远程首次派生的标志（存入 extraCliArgs）
+    extractFlag('-c', { as: '--continue' });
+    extractFlag('--resume', { hasValue: true });
+    extractFlag('--model',  { hasValue: true });
+
+    // 3. 读 host [dir]（非 dash 参数）
+    if (rawCliArgs[1] &amp;&amp; !rawCliArgs[1].startsWith('-')) {
+      _pendingSSH.host = rawCliArgs[1];
+      _pendingSSH.cwd  = rawCliArgs[2] &amp;&amp; !rawCliArgs[2].startsWith('-')
+        ? rawCliArgs[2] : undefined;
+      process.argv = [argv[0], argv[1], ...rest]; // 去掉 'ssh', host, dir
+    }
+  }
+}</code></pre>
+  <p><strong>v1 约束</strong>：<code>-p/--print</code> 与 <code>ssh</code> 不兼容，会在第 <code>984-988</code> 行提前报错退出。</p>
+<pre><code class="language-bash">claude ssh user@host /app            # host='user@host', cwd='/app'
+claude ssh host --permission-mode auto --resume abc123
+# _pendingSSH.permissionMode='auto', extraCliArgs=['--resume','abc123']
+claude ssh host --local              # e2e 测试模式，跳过真实 SSH</code></pre>
+
+  <h3 id="s3-4">3.4 <code>clientType</code> 9 种推断（<code>1022-1040</code>）</h3>
+<pre><code class="language-typescript">// src/main.tsx:1022
+const clientType = (() => {
+  if (GITHUB_ACTIONS)                                               return 'github-action';
+  if (CLAUDE_CODE_ENTRYPOINT === 'sdk-ts')                          return 'sdk-typescript';
+  if (CLAUDE_CODE_ENTRYPOINT === 'sdk-py')                          return 'sdk-python';
+  if (CLAUDE_CODE_ENTRYPOINT === 'sdk-cli')                         return 'sdk-cli';
+  if (CLAUDE_CODE_ENTRYPOINT === 'claude-vscode')                   return 'claude-vscode';
+  if (CLAUDE_CODE_ENTRYPOINT === 'local-agent')                     return 'local-agent';
+  if (CLAUDE_CODE_ENTRYPOINT === 'claude-desktop')                  return 'claude-desktop';
+  if (CLAUDE_CODE_ENTRYPOINT === 'remote' || hasSessionIngressToken) return 'remote';
+  return 'cli';
+})();</code></pre>
+  <p><code>clientType</code> 会影响遥测归因、权限检查、功能开关等下游逻辑。</p>
+
+  <h3 id="s3-5">3.5 <code>getInputPrompt()</code>——stdin 拼接（<code>1074-1107</code>）</h3>
+<pre><code class="language-typescript">// src/main.tsx:1074
+async function getInputPrompt(prompt: string, inputFormat: 'text' | 'stream-json') {
+  if (!process.stdin.isTTY &amp;&amp; !process.argv.includes('mcp')) {
+    if (inputFormat === 'stream-json') return process.stdin; // 直接返回流
+    // text 模式：收集 stdin，等 3 秒
+    // 超时则打印警告并继续（防止继承的僵尸管道）
+    const timedOut = await peekForStdinData(process.stdin, 3000);
+    return [prompt, data].filter(Boolean).join('\n');
+  }
+  return prompt; // TTY 模式：直接返回命令行 prompt
+}</code></pre>
+  <p><strong>设计细节</strong>：3 秒超时覆盖了"慢生产者"（curl、大文件的 jq、带 import 开销的 python），超时后打印警告而非静默截断。MCP 模式排除 stdin 劫持，避免干扰 MCP 协议帧。</p>
+
+  <hr class="section-divider">
+
+  <!-- ── 四 ── -->
+  <h2 id="s4">四、run() + preAction：每次执行前的固定流水线</h2>
+
+  <h3 id="s4-1">4.1 preAction 9 步流水线（<code>1146-1209</code>）</h3>
+  <p><code>program.hook('preAction', ...)</code> 在<strong>每个子命令或主命令的 action 执行前</strong>统一运行，显示 <code>--help</code> 时不触发。</p>
+  <table>
+    <tr><th>步骤</th><th>行号</th><th>调用</th><th>作用</th></tr>
+    <tr><td>1</td><td><code>1147</code></td><td><code>profileCheckpoint('preAction_start')</code></td><td>性能计时</td></tr>
+    <tr><td>2</td><td><code>1154</code></td><td><code>await Promise.all([ensureMdmSettingsLoaded(), ensureKeychainPrefetchCompleted()])</code></td><td>等待顶层 17/22 行启动的两个预取完成（汇合点）</td></tr>
+    <tr><td>3</td><td><code>1156</code></td><td><code>await init()</code></td><td>执行 <code>entrypoints/init.ts:89</code> 的 memoized 初始化（apply env vars / analytics / graceful shutdown）</td></tr>
+    <tr><td>4</td><td><code>1163-1165</code></td><td><code>process.title = 'claude'</code></td><td>终端标签/任务管理器显示 <code>claude</code>（除非 <code>CLAUDE_CODE_DISABLE_TERMINAL_TITLE</code>）</td></tr>
+    <tr><td>5</td><td><code>1172-1173</code></td><td><code>initSinks()</code></td><td>挂载日志 sink，子命令 action（doctor/mcp/plugin）也能使用 <code>logEvent</code></td></tr>
+    <tr><td>6</td><td><code>1184-1188</code></td><td><code>setInlinePlugins()</code> + <code>clearPluginCache()</code></td><td>处理 <code>--plugin-dir</code> option，让 plugin 系统在所有子命令中可用</td></tr>
+    <tr><td>7</td><td><code>1190</code></td><td><code>runMigrations()</code></td><td>跑 9 项 migration（版本号 11，详见 4.2）</td></tr>
+    <tr><td>8</td><td><code>1197-1198</code></td><td><code>loadRemoteManagedSettings()</code> + <code>loadPolicyLimits()</code></td><td>企业远程管理设置（非阻塞，fail-open）</td></tr>
+    <tr><td>9</td><td><code>1204-1206</code></td><td><code>uploadUserSettingsInBackground()</code></td><td>上传本地 settings 到远端同步（feature gated）</td></tr>
+  </table>
+  <p><strong>关键 insight</strong>：<code>init()</code> 是 memoized 的（<code>entrypoints/init.ts:89</code> 用了 memo wrapper），无论被 preAction 调用多少次，实际初始化代码只运行一次。这使得其他入口（cli.tsx 快速路径）也可以安全地独立调用 <code>init()</code>。</p>
+
+  <h3 id="s4-2">4.2 runMigrations() 9 项 migration（<code>484-510</code>）</h3>
+<pre><code class="language-typescript">// src/main.tsx:484
+const CURRENT_MIGRATION_VERSION = 11;
+function runMigrations(): void {
+  if (getGlobalConfig().migrationVersion !== CURRENT_MIGRATION_VERSION) {
+    migrateBypassPermissionsAcceptedToSettings();      // bypass perms 迁移到 settings
+    migrateEnableAllProjectMcpServersToSettings();     // 启用所有 project MCP servers
+    resetProToOpusDefault();                           // Pro 套餐 → 默认 Opus
+    migrateSonnet1mToSonnet45();                       // Sonnet 1M → Sonnet 4.5
+    migrateLegacyOpusToCurrent();                      // 旧 opus 系列 → 当前
+    migrateSonnet45ToSonnet46();                       // Sonnet 4.5 → 4.6
+    migrateOpusToOpus1m();                             // Opus → Opus 1m
+    migrateReplBridgeEnabledToRemoteControlAtStartup();// bridge flag 改名
+    if (feature('TRANSCRIPT_CLASSIFIER'))
+      resetAutoModeOptInForDefaultOffer();             // auto-mode 重置
+    if (process.env.USER_TYPE === 'ant')
+      migrateFennecToOpus();                           // ant 内部：Fennec → Opus
+    saveGlobalConfig(prev =&gt; ({ ...prev, migrationVersion: 11 }));
+  }
+  migrateChangelogFromConfig().catch(() =&gt; {}); // 异步 fire-and-forget
+}</code></pre>
+  <p>migration 是<strong>幂等且版本号门控</strong>的：只要 <code>migrationVersion !== 11</code> 才跑，完成后写入 11。</p>
+
+  <h3 id="s4-3">4.3 preAction 与 <code>init.ts</code> 的关系</h3>
+  <div class="mermaid">
+sequenceDiagram
+    participant preAction as preAction hook
+    participant init as entrypoints/init.ts
+    participant state as bootstrap/state.ts
+
+    preAction ->> init: await init()（memoized，只跑一次）
+    init ->> init: enableConfigs()
+    init ->> state: 触发 STATE 单例（realpathSync + randomUUID）
+    init ->> init: applySafeConfigEnvironmentVariables()
+    init ->> init: applyExtraCACertsFromConfig()
+    init ->> init: setupGracefulShutdown()
+    init ->> init: initialize1PEventLogging()（异步）
+    init ->> init: initJetBrainsDetection()
+    init -->> preAction: 返回
+  </div>
+
+  <h3 id="s4-4">4.4 <code>--help</code> 时不触发 preAction</h3>
+  <p>Commander 内建行为：匹配到 <code>-h</code> / <code>--help</code> 后直接打印帮助并退出，<strong>不会进入 preAction hook 也不会进入 action</strong>。这意味着 <code>--help</code> 是零初始化成本的——无 keychain 读取、无 migration、无 init。</p>
+
+  <hr class="section-divider">
+
+  <!-- ── 五 ── -->
+  <h2 id="s5">五、CLI 选项目录（主命令 option 分类）</h2>
+
+  <h3 id="s5-1">5.1 调试与输出</h3>
+  <table>
+    <tr><th>选项</th><th>行号</th><th>说明</th><th>示例</th></tr>
+    <tr><td><code>-d, --debug [filter]</code></td><td><code>1218</code></td><td>启用 debug，可选过滤如 <code>"api,hooks"</code> 或 <code>"!1p"</code></td><td><code>claude --debug api</code></td></tr>
+    <tr><td><code>--debug-to-stderr</code></td><td><code>1228</code></td><td>debug 输出到 stderr（hidden）</td><td><code>claude --debug-to-stderr -p "..."</code></td></tr>
+    <tr><td><code>--debug-file &lt;path&gt;</code></td><td><code>1229</code></td><td>写 debug log 到文件，隐式开 debug</td><td><code>claude --debug-file ./debug.log</code></td></tr>
+    <tr><td><code>--verbose</code></td><td><code>1234</code></td><td>覆盖 settings 中的 verbose 配置</td><td><code>claude --verbose</code></td></tr>
+    <tr><td><code>-p, --print</code></td><td><code>1235</code></td><td>Headless / print 模式，无 TUI</td><td><code>claude -p "说 hello"</code></td></tr>
+    <tr><td><code>--output-format &lt;format&gt;</code></td><td><code>1248</code></td><td><code>text</code> / <code>json</code> / <code>stream-json</code>（仅 <code>-p</code>）</td><td><code>claude -p "..." --output-format=json</code></td></tr>
+    <tr><td><code>--include-hook-events</code></td><td><code>1261</code></td><td>hook 生命周期事件加入输出流</td><td><code>claude -p "..." --include-hook-events</code></td></tr>
+    <tr><td><code>--include-partial-messages</code></td><td><code>1266</code></td><td>流式输出部分消息块</td><td><code>claude -p "..." --include-partial-messages</code></td></tr>
+    <tr><td><code>--input-format &lt;format&gt;</code></td><td><code>1271</code></td><td><code>text</code> / <code>stream-json</code>（仅 <code>-p</code>）</td><td><code>echo '...' | claude -p --input-format=stream-json</code></td></tr>
+    <tr><td><code>--json-schema &lt;schema&gt;</code></td><td><code>1254</code></td><td>structured output 校验 schema</td><td><code>claude -p "..." --json-schema '{"type":"object",...}'</code></td></tr>
+  </table>
+<pre><code class="language-bash"># SDK 双向流式调用
+claude --print \
+  --input-format=stream-json \
+  --output-format=stream-json \
+  --sdk-url ws://localhost:3000</code></pre>
+
+  <h3 id="s5-2">5.2 权限与安全</h3>
+  <table>
+    <tr><th>选项</th><th>行号</th><th>说明</th><th>示例</th></tr>
+    <tr><td><code>--permission-mode &lt;mode&gt;</code></td><td><code>1375</code></td><td>权限模式（<code>default</code>/<code>plan</code>/<code>auto</code>/<code>bypass</code>等）</td><td><code>claude --permission-mode auto</code></td></tr>
+    <tr><td><code>--dangerously-skip-permissions</code></td><td><code>1282</code></td><td>绕过所有权限检查</td><td><code>claude --dangerously-skip-permissions -p "..."</code></td></tr>
+    <tr><td><code>--allow-dangerously-skip-permissions</code></td><td><code>1287</code></td><td>允许 dsp 但默认不开</td><td>—</td></tr>
+    <tr><td><code>--allowedTools &lt;tools...&gt;</code></td><td><code>1342</code></td><td>工具白名单</td><td><code>claude --allowedTools "Bash(git:*) Edit"</code></td></tr>
+    <tr><td><code>--disallowedTools &lt;tools...&gt;</code></td><td><code>1350</code></td><td>工具黑名单</td><td><code>claude --disallowedTools Read FileWrite</code></td></tr>
+    <tr><td><code>--tools &lt;tools...&gt;</code></td><td><code>1346</code></td><td>可用内建工具集（<code>""</code> 禁全部）</td><td><code>claude --tools "default"</code></td></tr>
+  </table>
+<pre><code class="language-bash">claude --allowedTools "Bash(git:*)" -p "帮我写一个 git commit 信息"</code></pre>
+
+  <h3 id="s5-3">5.3 模型与思考</h3>
+  <table>
+    <tr><th>选项</th><th>行号</th><th>说明</th><th>示例</th></tr>
+    <tr><td><code>--model &lt;model&gt;</code></td><td><code>1431</code></td><td>模型别名或全名</td><td><code>claude --model sonnet</code></td></tr>
+    <tr><td><code>--effort &lt;level&gt;</code></td><td><code>1435</code></td><td><code>low</code>/<code>medium</code>/<code>high</code>/<code>max</code></td><td><code>claude --effort max</code></td></tr>
+    <tr><td><code>--thinking &lt;mode&gt;</code></td><td><code>1292</code></td><td><code>enabled</code>/<code>adaptive</code>/<code>disabled</code>（hidden）</td><td><code>claude --thinking adaptive</code></td></tr>
+    <tr><td><code>--max-turns &lt;turns&gt;</code></td><td><code>1305</code></td><td>最大轮数（仅 <code>-p</code>，hidden）</td><td><code>claude -p "..." --max-turns 5</code></td></tr>
+    <tr><td><code>--max-budget-usd &lt;amount&gt;</code></td><td><code>1313</code></td><td>美元预算上限（仅 <code>-p</code>）</td><td><code>claude -p "..." --max-budget-usd 0.50</code></td></tr>
+    <tr><td><code>--betas &lt;betas...&gt;</code></td><td><code>1448</code></td><td>API beta header</td><td><code>claude --betas interleaved-thinking-2025-05-14</code></td></tr>
+    <tr><td><code>--fallback-model &lt;model&gt;</code></td><td><code>1449</code></td><td>主模型过载时回落（仅 <code>-p</code>）</td><td><code>claude -p "..." --fallback-model haiku</code></td></tr>
+  </table>
+
+  <h3 id="s5-4">5.4 会话恢复</h3>
+  <table>
+    <tr><th>选项</th><th>行号</th><th>说明</th><th>示例</th></tr>
+    <tr><td><code>-c, --continue</code></td><td><code>1380</code></td><td>继续当前 cwd 最近的会话</td><td><code>claude -c</code></td></tr>
+    <tr><td><code>-r, --resume [value]</code></td><td><code>1381</code></td><td>按 sessionId 恢复，或弹交互选择器</td><td><code>claude --resume</code> 或 <code>claude --resume abc-123</code></td></tr>
+    <tr><td><code>--fork-session</code></td><td><code>1386</code></td><td>resume 时创建新 sessionId（保护原会话）</td><td><code>claude --fork-session --resume abc-123</code></td></tr>
+    <tr><td><code>--from-pr [value]</code></td><td><code>1407</code></td><td>按 PR 号或 URL 恢复</td><td><code>claude --from-pr 123</code></td></tr>
+    <tr><td><code>--session-id &lt;uuid&gt;</code></td><td><code>1470</code></td><td>强制指定 sessionId（必须是 UUID）</td><td><code>claude --session-id $(uuidgen)</code></td></tr>
+    <tr><td><code>--name &lt;name&gt;</code></td><td><code>1471</code></td><td>会话显示名</td><td><code>claude --name "my-feature-session"</code></td></tr>
+    <tr><td><code>--no-session-persistence</code></td><td><code>1412</code></td><td>关闭会话持久化（仅 <code>-p</code>）</td><td><code>claude -p "..." --no-session-persistence</code></td></tr>
+    <tr><td><code>--rewind-files &lt;msg-id&gt;</code></td><td><code>1424</code></td><td>文件回滚到指定消息时的状态后退出（hidden）</td><td>—</td></tr>
+  </table>
+<pre><code class="language-bash"># 先弹选择器找到目标 session
+claude --resume
+
+# 确认 id 后 fork 出新 session，原 session 不受影响
+claude --fork-session --resume abc-def-123</code></pre>
+
+  <h3 id="s5-5">5.5 配置与外部资源</h3>
+  <table>
+    <tr><th>选项</th><th>行号</th><th>说明</th><th>示例</th></tr>
+    <tr><td><code>--settings &lt;file-or-json&gt;</code></td><td><code>1459</code></td><td>settings JSON 文件或字符串</td><td><code>claude --settings ./my-settings.json</code></td></tr>
+    <tr><td><code>--setting-sources &lt;sources&gt;</code></td><td><code>1476</code></td><td>加载哪些 setting 来源</td><td><code>claude --setting-sources user,project</code></td></tr>
+    <tr><td><code>--mcp-config &lt;configs...&gt;</code></td><td><code>1354</code></td><td>从 JSON 文件/字符串加载 MCP server</td><td><code>claude --mcp-config ./mcp.json</code></td></tr>
+    <tr><td><code>--strict-mcp-config</code></td><td><code>1465</code></td><td>只用 <code>--mcp-config</code> 的 server</td><td><code>claude --strict-mcp-config --mcp-config ./mcp.json</code></td></tr>
+    <tr><td><code>--system-prompt &lt;prompt&gt;</code></td><td><code>1360</code></td><td>完全覆盖系统提示词</td><td><code>claude --system-prompt "你是一个 SQL 专家"</code></td></tr>
+    <tr><td><code>--append-system-prompt &lt;prompt&gt;</code></td><td><code>1362</code></td><td>追加系统提示词</td><td><code>claude --append-system-prompt "请用中文回复"</code></td></tr>
+    <tr><td><code>--add-dir &lt;directories...&gt;</code></td><td><code>1463</code></td><td>追加工具可访问目录</td><td><code>claude --add-dir ~/lib --add-dir ~/scripts</code></td></tr>
+    <tr><td><code>--plugin-dir &lt;path&gt;</code></td><td><code>1482</code></td><td>临时插件目录（可重复）</td><td><code>claude --plugin-dir ./my-plugin</code></td></tr>
+    <tr><td><code>--bare</code></td><td><code>1240</code></td><td>最小模式：写 <code>CLAUDE_CODE_SIMPLE=1</code>，跳过 hooks/LSP/plugins/CLAUDE.md</td><td><code>claude --bare -p "..."</code></td></tr>
+    <tr><td><code>--ide</code></td><td><code>1464</code></td><td>启动时自动连接唯一可用 IDE</td><td><code>claude --ide</code></td></tr>
+    <tr><td><code>--chrome</code></td><td><code>1489</code></td><td>启用 Chrome 集成</td><td><code>claude --chrome</code></td></tr>
+    <tr><td><code>--disable-slash-commands</code></td><td><code>1488</code></td><td>禁用所有 skills</td><td><code>claude --disable-slash-commands</code></td></tr>
+  </table>
+<pre><code class="language-bash">claude --bare \
+  -p "$(cat query.txt)" \
+  --system-prompt-file ./sys.md \
+  --output-format=json \
+  --no-session-persistence</code></pre>
+
+  <h3 id="s5-6">5.6 高级/隐藏选项</h3>
+  <table>
+    <tr><th>选项</th><th>行号</th><th>说明</th></tr>
+    <tr><td><code>-w, --worktree [name]</code></td><td><code>4570</code></td><td>为本会话创建 git worktree</td></tr>
+    <tr><td><code>--tmux</code></td><td><code>4571</code></td><td>在 tmux 内创建 worktree 会话（与 <code>--worktree</code> 配合，被 cli.tsx 拦截）</td></tr>
+    <tr><td><code>--proactive</code></td><td><code>4620</code></td><td>启动 proactive 自治模式</td></tr>
+    <tr><td><code>--brief</code></td><td><code>4633</code></td><td>启用 SendUserMessage 工具</td></tr>
+    <tr><td><code>--sdk-url &lt;url&gt;</code></td><td><code>4667</code></td><td>远程 WebSocket I/O（hidden）</td></tr>
+    <tr><td><code>--teleport [session]</code></td><td><code>4675</code></td><td>resume teleport（hidden）</td></tr>
+    <tr><td><code>--remote [description]</code></td><td><code>4678</code></td><td>创建远程会话（hidden）</td></tr>
+    <tr><td><code>--remote-control [name]</code></td><td><code>4682</code></td><td>启用 Remote Control（BRIDGE_MODE，hidden）</td></tr>
+    <tr><td><code>--prefill &lt;text&gt;</code></td><td><code>1391</code></td><td>预填 prompt 输入框（hidden）</td></tr>
+    <tr><td><code>--advisor &lt;model&gt;</code></td><td><code>4578</code></td><td>服务端 advisor 工具（hidden）</td></tr>
+    <tr><td>teammate 系列：<code>--agent-id</code>, <code>--agent-name</code>, <code>--team-name</code>, <code>--agent-color</code>, <code>--teammate-mode</code>, <code>--agent-type</code></td><td><code>4653-4664</code></td><td>全部 hidden，tmux 派生 teammate 使用</td></tr>
+  </table>
+
+  <hr class="section-divider">
+
+  <!-- ── 六 ── -->
+  <h2 id="s6">六、Commander 子命令完整地图（58 个）</h2>
+  <div class="mermaid">
+flowchart LR
+    claude --> mcp
+    claude --> server
+    claude --> ssh
+    claude --> open
+    claude --> auth
+    claude --> plugin
+    claude --> setup-token
+    claude --> agents
+    claude --> auto-mode
+    claude --> autonomy
+    claude --> remote-control
+    claude --> assistant
+    claude --> doctor
+    claude --> update
+    claude --> install
+    claude --> rollback
+    claude --> up
+    claude --> log
+    claude --> error
+    claude --> export
+    claude --> task
+    claude --> completion
+
+    mcp --> mcp-serve[serve]
+    mcp --> mcp-add[add]
+    mcp --> mcp-remove[remove]
+    mcp --> mcp-list[list]
+    mcp --> mcp-get[get]
+    mcp --> mcp-add-json[add-json]
+    mcp --> mcp-add-desktop[add-from-claude-desktop]
+    mcp --> mcp-reset[reset-project-choices]
+
+    auth --> auth-login[login]
+    auth --> auth-status[status]
+    auth --> auth-logout[logout]
+
+    plugin --> p-validate[validate]
+    plugin --> p-list[list]
+    plugin --> marketplace
+    plugin --> p-install[install]
+    plugin --> p-uninstall[uninstall]
+    plugin --> p-enable[enable]
+    plugin --> p-disable[disable]
+    plugin --> p-update[update]
+    marketplace --> m-add[add]
+    marketplace --> m-list[list]
+    marketplace --> m-remove[remove]
+    marketplace --> m-update[update]
+
+    auto-mode --> am-defaults[defaults]
+    auto-mode --> am-config[config]
+    auto-mode --> am-critique[critique]
+
+    autonomy --> a-status[status]
+    autonomy --> a-runs[runs]
+    autonomy --> a-flows[flows]
+    autonomy --> a-flow[flow]
+    a-flow --> a-flow-cancel[cancel]
+    a-flow --> a-flow-resume[resume]
+
+    task --> t-create[create]
+    task --> t-list[list]
+    task --> t-get[get]
+    task --> t-update[update]
+    task --> t-dir[dir]
+  </div>
+
+  <h3 id="s6-mcp">6.2.1 mcp 簇（9 个子命令，<code>4720-4800</code>）</h3>
+  <table>
+    <tr><th>行号</th><th>命令</th><th>说明</th><th>示例</th></tr>
+    <tr><td><code>4727</code></td><td><code>mcp serve</code></td><td>启动 Claude Code 自身作为 MCP server</td><td><code>claude mcp serve</code></td></tr>
+    <tr><td><code>4737</code>（外注册）</td><td><code>mcp add &lt;name&gt;</code></td><td>添加 MCP server（<code>src/commands/mcp/addCommand.ts</code>）</td><td><code>claude mcp add my-server --stdio "node server.js"</code></td></tr>
+    <tr><td><code>4744</code></td><td><code>mcp remove &lt;name&gt;</code></td><td>按 scope 删除</td><td><code>claude mcp remove my-server -s user</code></td></tr>
+    <tr><td><code>4756</code></td><td><code>mcp list</code></td><td>列出所有已配置 MCP server（含健康检查）</td><td><code>claude mcp list</code></td></tr>
+    <tr><td><code>4766</code></td><td><code>mcp get &lt;name&gt;</code></td><td>显示单个 MCP server 详情</td><td><code>claude mcp get my-server</code></td></tr>
+    <tr><td><code>4776</code></td><td><code>mcp add-json &lt;name&gt; &lt;json&gt;</code></td><td>用 JSON 字符串添加</td><td><code>claude mcp add-json my-server '{"type":"stdio",...}' -s user</code></td></tr>
+    <tr><td><code>4786</code></td><td><code>mcp add-from-claude-desktop</code></td><td>从 Claude Desktop 导入（macOS/WSL）</td><td><code>claude mcp add-from-claude-desktop -s user</code></td></tr>
+    <tr><td><code>4795</code></td><td><code>mcp reset-project-choices</code></td><td>清除对 <code>.mcp.json</code> server 的批准/拒绝记忆</td><td><code>claude mcp reset-project-choices</code></td></tr>
+  </table>
+
+  <h3 id="s6-remote">6.2.2 远程交互三套（server / open / ssh / assistant）</h3>
+  <table>
+    <tr><th>行号</th><th>命令</th><th>场景</th><th>机制</th></tr>
+    <tr><td><code>4805</code></td><td><code>server</code></td><td>启动本地 Claude Code session server，让其他客户端通过 <code>cc://</code> 连接</td><td>HTTP/Unix socket；写 lockfile 到 <code>~/.claude/</code></td></tr>
+    <tr><td><code>4927</code></td><td><code>open &lt;cc-url&gt;</code></td><td>headless 连接到远端 server</td><td>由 <code>main()</code> argv 重写（<code>-p</code> 路径）生成，调用 <code>runConnectHeadless</code></td></tr>
+    <tr><td><code>4892</code></td><td><code>ssh &lt;host&gt; [dir]</code></td><td>在远程机器跑 Claude，本地渲染 UI</td><td>stub；真实逻辑在主 action <code>3837</code>（argv 重写 <code>902</code> 驱动）</td></tr>
+    <tr><td><code>5323</code></td><td><code>assistant [sessionId]</code></td><td>连接 KAIROS bridge session</td><td>stub；真实逻辑在主 action <code>3918</code>（argv 改写 <code>881</code> 驱动）</td></tr>
+  </table>
+<pre><code class="language-bash"># 在机器 A 上启动 session server
+claude server
+
+# 从机器 B（或另一个终端）交互连接
+claude cc://localhost:3000/token
+
+# headless 连接（自动走 open 子命令）
+claude -p "git status" cc://localhost:3000/token
+
+# SSH 到远端
+claude ssh user@remote.host /home/user/proj --model sonnet
+claude ssh user@remote.host -c  # 继续远端最近会话</code></pre>
+
+  <h3 id="s6-auth">6.2.3 auth 簇（<code>4972-5023</code>）</h3>
+  <table>
+    <tr><th>行号</th><th>命令</th><th>说明</th><th>示例</th></tr>
+    <tr><td><code>4975</code></td><td><code>auth login</code></td><td>OAuth / SSO / Console / Claude AI 四种路径登录</td><td><code>claude auth login</code></td></tr>
+    <tr><td><code>4999</code></td><td><code>auth status</code></td><td>显示当前 token / 订阅状态</td><td><code>claude auth status --json</code></td></tr>
+    <tr><td><code>5009</code></td><td><code>auth logout</code></td><td>清除本地 token</td><td><code>claude auth logout</code></td></tr>
+  </table>
+<pre><code class="language-bash">claude auth login              # 默认 OAuth（claude.ai 账号）
+claude auth login --sso        # SSO 登录（企业 IdP）
+claude auth login --console    # Anthropic Console API key
+claude auth login --claudeai --email me@example.com</code></pre>
+
+  <h3 id="s6-plugin">6.2.4 plugin + marketplace 簇（11 个子命令）</h3>
+  <table>
+    <tr><th>行号</th><th>命令</th><th>示例</th></tr>
+    <tr><td><code>5033</code></td><td><code>plugin validate &lt;path&gt;</code></td><td><code>claude plugin validate ./my-plugin</code></td></tr>
+    <tr><td><code>5043</code></td><td><code>plugin list [--json] [--available]</code></td><td><code>claude plugin list --available</code></td></tr>
+    <tr><td><code>5060</code></td><td><code>plugin marketplace add &lt;source&gt;</code></td><td><code>claude plugin marketplace add github.com/foo/claude-plugins</code></td></tr>
+    <tr><td><code>5083</code></td><td><code>plugin marketplace list</code></td><td><code>claude plugin marketplace list</code></td></tr>
+    <tr><td><code>5093</code></td><td><code>plugin marketplace remove &lt;name&gt;</code></td><td><code>claude plugin marketplace remove my-market</code></td></tr>
+    <tr><td><code>5103</code></td><td><code>plugin marketplace update [name]</code></td><td><code>claude plugin marketplace update</code></td></tr>
+    <tr><td><code>5113</code></td><td><code>plugin install &lt;plugin&gt;</code></td><td><code>claude plugin install my-plugin@my-market -s user</code></td></tr>
+    <tr><td><code>5125</code></td><td><code>plugin uninstall &lt;plugin&gt;</code></td><td><code>claude plugin uninstall my-plugin --keep-data</code></td></tr>
+    <tr><td><code>5148</code></td><td><code>plugin enable &lt;plugin&gt;</code></td><td><code>claude plugin enable my-plugin</code></td></tr>
+    <tr><td><code>5159</code></td><td><code>plugin disable [plugin]</code></td><td><code>claude plugin disable my-plugin</code> 或 <code>plugin disable -a</code></td></tr>
+    <tr><td><code>5171</code></td><td><code>plugin update &lt;plugin&gt;</code></td><td><code>claude plugin update my-plugin</code></td></tr>
+  </table>
+
+  <h3 id="s6-autonomy">6.2.5 autonomy + auto-mode 簇</h3>
+<pre><code class="language-bash"># autonomy 状态监控（5243-5298）
+claude autonomy status --deep       # 深度检查
+claude autonomy runs 50             # 查看最近 50 次运行
+claude autonomy flows               # 查看 flows
+claude autonomy flow &lt;flowId&gt;       # 查看单个 flow
+claude autonomy flow &lt;flowId&gt; cancel &lt;flowId&gt;
+claude autonomy flow &lt;flowId&gt; resume &lt;flowId&gt;
+
+# auto-mode 配置（5209-5237，需 TRANSCRIPT_CLASSIFIER feature）
+claude auto-mode defaults
+claude auto-mode config
+claude auto-mode critique --model sonnet</code></pre>
+
+  <h3 id="s6-maint">6.2.6 维护类命令</h3>
+  <table>
+    <tr><th>行号</th><th>命令</th><th>说明</th><th>示例</th></tr>
+    <tr><td><code>5342</code></td><td><code>doctor</code></td><td>健康检查（auto-updater + MCP）</td><td><code>claude doctor</code></td></tr>
+    <tr><td><code>5408</code></td><td><code>update</code></td><td>升级 ccb 自身（npm/bun）</td><td><code>claude update</code></td></tr>
+    <tr><td><code>5396</code></td><td><code>install [target]</code></td><td>安装指定版本的 native build</td><td><code>claude install stable</code> 或 <code>claude install 2.2.1 --force</code></td></tr>
+    <tr><td><code>5183</code></td><td><code>setup-token</code></td><td>申请长期 token（订阅用户）</td><td><code>claude setup-token</code></td></tr>
+  </table>
+
+  <h3 id="s6-ant">6.2.7 ant 专属命令</h3>
+  <table>
+    <tr><th>行号</th><th>命令</th><th>说明</th></tr>
+    <tr><td><code>5358</code></td><td><code>up</code></td><td>执行 CLAUDE.md 中的 <code># claude up</code> 区块</td></tr>
+    <tr><td><code>5372</code></td><td><code>rollback [target]</code></td><td>回滚到旧版本：<code>claude rollback 3 --dry-run</code></td></tr>
+    <tr><td><code>5424</code></td><td><code>log [number|sessionId]</code></td><td>查看历史日志：<code>claude log -1</code></td></tr>
+    <tr><td><code>5438</code></td><td><code>error [number]</code></td><td>查看错误日志：<code>claude error -1</code></td></tr>
+    <tr><td><code>5450</code></td><td><code>export &lt;src&gt; &lt;out&gt;</code></td><td>会话导出为 txt：<code>claude export &lt;session-id&gt; output.txt</code></td></tr>
+    <tr><td><code>5473</code></td><td><code>task create &lt;subject&gt;</code></td><td>创建 task：<code>claude task create "修复 bug" -l my-list</code></td></tr>
+    <tr><td><code>5483</code></td><td><code>task list [--pending]</code></td><td>列出 task</td></tr>
+    <tr><td><code>5494</code></td><td><code>task get &lt;id&gt;</code></td><td>获取 task 详情</td></tr>
+    <tr><td><code>5503</code></td><td><code>task update &lt;id&gt;</code></td><td>更新 task：<code>claude task update abc -s done</code></td></tr>
+    <tr><td><code>5529</code></td><td><code>task dir</code></td><td>显示 task 数据目录</td></tr>
+    <tr><td><code>5540</code></td><td><code>completion &lt;shell&gt;</code></td><td>生成 shell 补全脚本：<code>claude completion bash &gt; ~/.bashrc.d/claude.bash</code></td></tr>
+  </table>
+
+  <hr class="section-divider">
+
+  <!-- ── 七 ── -->
+  <h2 id="s7">七、主 .action(...)：3070 行的"装配车间"</h2>
+
+  <h3>7.1 注册位置</h3>
+<pre><code class="language-typescript">// src/main.tsx:1495
+program.argument('[prompt]', ...).action(async (prompt, options) =&gt; {
+  // 这里是 claude 命令不带子命令时的默认入口
+  // 约 3070 行（1495-4566）
+})</code></pre>
+
+  <h3>7.2 早期处理阶段（<code>1495-2300</code>）</h3>
+  <ul>
+    <li><code>1505-1507</code>：<code>--bare</code> → <code>process.env.CLAUDE_CODE_SIMPLE = '1'</code>（与 <code>cli.tsx:410-412</code> 双重保障）</li>
+    <li><code>1510-1513</code>：<code>claude code</code> 向后兼容（把 <code>code</code> 作为 prompt 消耗）</li>
+    <li><code>1540-1579</code>：KAIROS assistant 模式激活 trust gate</li>
+    <li><code>1581-1598</code>：解构主要标志（<code>print</code>, <code>outputFormat</code>, <code>inputFormat</code>, <code>verbose</code>, <code>permissionMode</code> 等）</li>
+    <li><code>1600-1602</code>：<code>--prefill</code> → <code>seedEarlyInput()</code>（写入 REPL 输入框）</li>
+    <li><code>1620-1746</code>：推导 <code>outputFormat</code>（自动 stream-json 等）/ <code>--sdk-url</code> 触发自动设 stream-json + verbose + print</li>
+  </ul>
+
+  <h3>7.3 MCP 客户端启动（<code>3280-3408</code>）</h3>
+<pre><code class="language-typescript">// src/main.tsx:3290 — connectMcpBatch
+async function connectMcpBatch(configs, label) {
+  // 批量连接 MCP server，带进度显示
+}
+// 3328：连接常规 MCP server（settings + --mcp-config）
+await connectMcpBatch(regularConfigs, 'mcp');
+// 3393：连接 claude.ai connector MCP（带超时）
+await connectMcpBatch(claudeAiConfigs, 'claude.ai');
+// 3415：非 --bare 时启动 startDeferredPrefetches + backgroundHousekeeping</code></pre>
+
+  <h3>7.4 Headless 派发（<code>3425-3466</code>）</h3>
+<pre><code class="language-typescript">// src/main.tsx:3425
+const { runHeadless } = await import('src/cli/print.js'); // 动态 import
+await runHeadless(inputPrompt, ..., {
+  continue: options.continue,
+  resume: options.resume,
+  outputFormat,
+  maxTurns,
+  maxBudgetUsd,
+  systemPrompt,
+  appendSystemPrompt,
+  // ...20+ 个参数
+});
+return; // 立即 return，不进入 REPL</code></pre>
+
+  <h3 id="s7-5">7.5 交互式分支决策树</h3>
+  <div class="mermaid">
+flowchart TD
+    A[主 action 进入交互模式] --> B{-p/--print?}
+    B -- 是 --> C[runHeadless\n3425-3466\nreturn]
+    B -- 否 --> D{--continue?}
+    D -- 是 --> E[loadConversationForResume\n3723-3789\nlaunchRepl]
+    D -- 否 --> F{_pendingConnect.url?}
+    F -- 是 --> G[createDirectConnectSession\n3791-3836\nlaunchRepl]
+    F -- 否 --> H{_pendingSSH.host?}
+    H -- 是 --> I[createSSHSession\n3837-3917\nlaunchRepl]
+    H -- 否 --> J{_pendingAssistantChat?}
+    J -- 是 --> K[discoverAssistantSessions\n3918-4051\nlaunchRepl]
+    J -- 否 --> L{--remote?}
+    L -- 是 --> M[remoteSessionUrl\n4180-4218\nlaunchRepl]
+    L -- 否 --> N{--teleport?}
+    N -- 是 --> O[teleport 流程\n4219-4299\nlaunchRepl]
+    N -- 否 --> P{--resume?}
+    P -- 是 --> Q[解析 ccshare/transcript/sessionId\n4301-4456]
+    Q --> R{解析成功?}
+    R -- 是 --> S[launchRepl 4477]
+    R -- 否 --> T[launchResumeChooser 4495]
+    P -- 否 --> U[全新会话\n4505-4565\nlaunchRepl]
+  </div>
+  <p><strong>终点统一性</strong>：所有 9 条分支最终都调用 <code>launchRepl(...)</code>，这是交互式入口的唯一出口函数。</p>
+
+  <hr class="section-divider">
+
+  <!-- ── 八 ── -->
+  <h2 id="s8">八、典型命令实战速查</h2>
+  <table>
+    <tr><th>命令</th><th>行为</th><th>关键代码点</th></tr>
+    <tr><td><code>claude</code></td><td>进入交互式 REPL，新会话</td><td>主 action <code>4555-4564</code> → <code>launchRepl</code></td></tr>
+    <tr><td><code>claude "帮我写一个 hello world"</code></td><td>REPL + 首条消息预填</td><td><code>getInputPrompt(prompt)</code> <code>1074</code> → <code>launchRepl</code></td></tr>
+    <tr><td><code>claude -p "帮我写一个 hello world"</code></td><td>Headless，text 输出</td><td><code>runHeadless</code> <code>3427</code></td></tr>
+    <tr><td><code>claude -p "..." --output-format=json</code></td><td>Headless，JSON 输出</td><td><code>outputFormat='json'</code> → <code>runHeadless</code></td></tr>
+    <tr><td><code>claude -p "..." --output-format=stream-json</code></td><td>Headless，流式 JSON</td><td>同上，stream 模式</td></tr>
+    <tr><td><code>claude -c</code></td><td>继续当前 cwd 最近的会话</td><td><code>loadConversationForResume(undefined)</code> <code>3723</code></td></tr>
+    <tr><td><code>claude --resume</code></td><td>弹交互式会话选择器</td><td><code>launchResumeChooser</code> <code>4495</code></td></tr>
+    <tr><td><code>claude --resume abc-def-123</code></td><td>按 sessionId 恢复</td><td>主 action <code>4397</code></td></tr>
+    <tr><td><code>claude --fork-session --resume abc</code></td><td>恢复并 fork 新 sessionId</td><td><code>4386</code> + <code>fork=true</code></td></tr>
+    <tr><td><code>claude --from-pr 123</code></td><td>按 PR 号恢复</td><td><code>4407-4411</code></td></tr>
+    <tr><td><code>claude mcp serve</code></td><td>启动 MCP server 模式</td><td><code>mcpServeHandler</code> <code>4727</code></td></tr>
+    <tr><td><code>claude mcp add my-server --stdio "node s.js" -s user</code></td><td>添加 MCP server</td><td><code>registerMcpAddCommand</code> <code>4737</code></td></tr>
+    <tr><td><code>claude mcp list</code></td><td>列出 MCP server</td><td><code>mcpListHandler</code> <code>4756</code></td></tr>
+    <tr><td><code>claude mcp get my-server</code></td><td>查看 MCP server 详情</td><td><code>mcpGetHandler</code> <code>4766</code></td></tr>
+    <tr><td><code>claude mcp remove my-server -s user</code></td><td>删除 MCP server</td><td><code>mcpRemoveHandler</code> <code>4744</code></td></tr>
+    <tr><td><code>claude server</code></td><td>启动本地 session server</td><td><code>4805</code> → <code>startServer</code></td></tr>
+    <tr><td><code>claude cc://host:port/token</code></td><td>交互连接到远端 session</td><td>argv 改写 <code>817</code> → <code>_pendingConnect</code> → <code>3791</code></td></tr>
+    <tr><td><code>claude -p "..." cc://host:port/token</code></td><td>Headless 连接远端</td><td>argv 改写 <code>826</code> → <code>open</code> 子命令 <code>4927</code></td></tr>
+    <tr><td><code>claude ssh user@host /app</code></td><td>SSH 到远端</td><td>argv 改写 <code>902</code> → <code>_pendingSSH</code> → <code>3837</code></td></tr>
+    <tr><td><code>claude ssh host --resume abc --model sonnet</code></td><td>SSH 并传参给远端</td><td><code>extraCliArgs</code> <code>964-967</code></td></tr>
+    <tr><td><code>claude auth login</code></td><td>登录</td><td><code>authLogin</code> <code>4975</code></td></tr>
+    <tr><td><code>claude auth status --json</code></td><td>查看登录状态</td><td><code>authStatus</code> <code>4999</code></td></tr>
+    <tr><td><code>claude auth logout</code></td><td>退出登录</td><td><code>authLogout</code> <code>5009</code></td></tr>
+    <tr><td><code>claude doctor</code></td><td>健康检查</td><td><code>doctorHandler</code> <code>5342</code></td></tr>
+    <tr><td><code>claude update</code></td><td>升级</td><td><code>updateCCB</code> <code>5408</code></td></tr>
+    <tr><td><code>claude --model sonnet --effort high</code></td><td>指定模型 + 强度</td><td>option <code>1431</code> + <code>1435</code></td></tr>
+    <tr><td><code>claude --permission-mode auto</code></td><td>自动权限模式</td><td>option <code>1375</code></td></tr>
+    <tr><td><code>claude --dangerously-skip-permissions -p "..."</code></td><td>跳过所有权限检查</td><td>option <code>1282</code></td></tr>
+    <tr><td><code>claude --allowedTools "Bash(git:*) Edit"</code></td><td>工具白名单</td><td>option <code>1342</code></td></tr>
+    <tr><td><code>claude --mcp-config ./mcp.json --strict-mcp-config</code></td><td>专用 MCP 配置</td><td>option <code>1354</code> + <code>1465</code></td></tr>
+    <tr><td><code>claude --settings '{"model":"sonnet"}'</code></td><td>临时 settings</td><td>option <code>1459</code> → <code>eagerLoadSettings</code> <code>1065</code></td></tr>
+    <tr><td><code>claude --add-dir ~/lib</code></td><td>追加目录权限</td><td>option <code>1463</code></td></tr>
+    <tr><td><code>claude plugin install my-plugin -s user</code></td><td>安装 plugin</td><td><code>pluginInstallHandler</code> <code>5113</code></td></tr>
+    <tr><td><code>claude plugin list --available</code></td><td>查看可用 plugin</td><td><code>pluginListHandler</code> <code>5043</code></td></tr>
+    <tr><td><code>claude --proactive</code></td><td>自主代理模式</td><td>option <code>4620</code> + <code>maybeActivateProactive</code> <code>5668</code></td></tr>
+    <tr><td><code>claude --brief</code></td><td>启用 Brief 工具</td><td>option <code>4633</code> + <code>maybeActivateBrief</code> <code>5681</code></td></tr>
+    <tr><td><code>claude --bare -p "..."</code></td><td>最小化调用（无 hooks/LSP/CLAUDE.md）</td><td>option <code>1240</code> → <code>CLAUDE_CODE_SIMPLE=1</code></td></tr>
+    <tr><td><code>claude --ide</code></td><td>启动时连接唯一 IDE</td><td>option <code>1464</code></td></tr>
+  </table>
+
+  <hr class="section-divider">
+
+  <!-- ── 九 ── -->
+  <h2 id="s9">九、cli.tsx ↔ main.tsx 协作总图</h2>
+  <div class="mermaid">
+flowchart TD
+    A[用户执行 claude args] --> B[cli.tsx main函数]
+    B --> C{argv 快速路径扫描}
+
+    subgraph quick ["cli.tsx 快速路径（main.tsx 不加载）"]
+        D["1: --version/-v"]
+        E["2: --dump-system-prompt"]
+        F["3: --chrome/--computer-use-mcp"]
+        G["4: --acp"]
+        H["5: weixin"]
+        I["6: --daemon-worker=..."]
+        J["7: remote-control/rc/bridge"]
+        K["8: daemon subcommand"]
+        L["9: autonomy 状态查询"]
+        M["10: --bg/--background"]
+        N["11: job ..."]
+        O["12: environment-runner"]
+        P["13: self-hosted-runner"]
+        Q["14: --tmux+--worktree 组合"]
+    end
+
+    C -- 命中 --> quick --> Z[提前 return]
+
+    C -- 未命中 --> R["cli.tsx:417 startCapturingEarlyInput()"]
+    R --> S["import('../main.jsx') 约 ~135ms"]
+    S --> T["cli.tsx:421 await cliMain()"]
+
+    subgraph main ["main.tsx 处理"]
+        U["main() 4 件事"]
+        V["1. 安全 env + warning handler"]
+        W["2. argv 重写四分支"]
+        X["3. clientType + isNonInteractive 判定"]
+        Y["4. eagerLoadSettings + await run()"]
+        U --> V --> W --> X --> Y
+    end
+
+    T --> main
+
+    Y --> AA["Commander preAction 9 步流水线"]
+    AA --> BB{路由到哪个命令}
+    BB --> CC[子命令 action\nmcp/auth/plugin/doctor等]
+    BB --> DD[主 action 3070 行]
+    DD --> EE{headless?}
+    EE -- 是 --> FF[runHeadless\ncli/print.ts]
+    EE -- 否 --> GG[9 个分支\n全部汇聚至 launchRepl]
+  </div>
+
+  <p><strong>stub 命令的存在意义</strong>：<code>ssh</code>、<code>assistant</code>、<code>remote-control</code> 在 main.tsx 也有 stub <code>.command(...)</code> 注册，原因是：</p>
+  <ol>
+    <li><code>claude ssh --help</code> 需要显示参数说明</li>
+    <li>feature 未开时 stub 提供"命令未启用"的友好提示</li>
+    <li><code>cli.tsx</code> 快速路径仅 bridge/daemon 等才拦截，<code>ssh</code>/<code>assistant</code> 不在快速路径中</li>
+  </ol>
+
+  <hr class="section-divider">
+
+  <!-- ── 十 ── -->
+  <h2 id="s10">十、亲手验证</h2>
+<pre><code class="language-bash"># 查看所有子命令列表
+bun run dev --help
+
+# 查看任意子命令详细 help
+bun run dev mcp --help
+bun run dev plugin marketplace add --help
+bun run dev ssh --help
+
+# 实测 CLAUDE_CODE_SIMPLE 分支
+CLAUDE_CODE_SIMPLE=1 bun run dev --help   # 等价于 --bare 的效果
+
+# 测试 headless 模式
+bun run dev -p "say hello" --output-format=json
+
+# 查看 MCP server 列表
+bun run dev mcp list
+
+# 实测 debug 启动链（查看 profileCheckpoint 输出）
+bun run dev --debug startup -p "hi" 2&gt;&amp;1 | head -50</code></pre>
+
+  <hr class="section-divider">
+
+  <!-- ── 十一 ── -->
+  <h2 id="s11">十一、常见问题 FAQ</h2>
+
+  <h3>Q：为什么 main.tsx 顶层只有三行副作用？为什么必须排在所有 import 之前？</h3>
+  <p><strong>A</strong>：因为 Bun/Node 在求值 <code>import</code> 时是<strong>同步阻塞</strong>的。<code>startMdmRawRead()</code> 和 <code>startKeychainPrefetch()</code> 各自派生异步子进程，如果放在重型 import 之后，就必须等 ~135ms 的 import 完成才能启动，与 import 并行的机会就丢了。注释里专门写明了"这三个副作用必须先于所有其他 import 运行"。</p>
+
+  <h3>Q：<code>_pendingConnect</code> / <code>_pendingAssistantChat</code> / <code>_pendingSSH</code> 为什么是模块级变量，而不是函数参数？</h3>
+  <p><strong>A</strong>：Commander 的 <code>parseAsync</code> 自动把 argv 路由到对应 <code>.action(handler)</code>。<code>main()</code> 无法直接给 action handler 传额外参数——Commander 只给 <code>(prompt, options)</code> 两个参数。模块级变量是唯一在"argv 预解析（main 阶段）"和"action 消费（run 阶段）"之间通信的方式。</p>
+
+  <h3>Q：<code>ssh</code> / <code>assistant</code> / <code>remote-control</code> 既有 stub 子命令又有 argv 改写，不是重复了吗？</h3>
+  <p><strong>A</strong>：不同作用。<strong>argv 改写</strong>（<code>902-993</code>）把特殊子命令的 argv 重写成主命令能接受的形式，让主 action 的 <code>_pendingSSH</code> 机制接手。<strong>stub 子命令</strong>（<code>4892</code>）只是为了给 <code>--help</code> 正确的帮助输出，以及在 feature 关闭时或 help 场景里给用户可见的命令名。两者不冲突——argv 改写在 <code>parseAsync</code> 之前就把 argv 改好了，Commander 解析时已经看不到 <code>ssh</code> 这个词。</p>
+
+  <h3>Q：preAction 在 <code>--help</code> 时不跑，这意味着什么？</h3>
+  <p><strong>A</strong>：意味着 <code>claude --help</code> 是"零副作用"的——不读 keychain、不跑 migrations、不做 init，几乎瞬时响应。这是 Commander 的内建行为（<code>-h/--help</code> 匹配后直接打印并 exit）。反之，任何真实执行（哪怕 <code>claude mcp list</code>）都会先过 preAction 的 9 步流水线。</p>
+
+  <h3>Q：主 action 为什么这么大（3070 行）？应该拆分吗？</h3>
+  <p><strong>A</strong>：历史演进的结果。这 3070 行实际上是 Claude Code 的"会话装配工厂"——它需要根据 20+ 个 option 的组合（resume/teleport/SSH/cc://…）决定怎么建立会话。拆分的难点在于这些分支之间共享大量中间变量（<code>setup()</code>、<code>enabledTools</code>、<code>mcpClients</code>、<code>sessionConfig</code> 等），提取为独立函数会有大量参数传递。从可读性角度看，流程图（七节中的决策树）比把它拆成 20 个小函数更容易理解。</p>
+
+</main>
+</div>
+
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    background: '#ffffff',
+    primaryColor: '#f0e0d8',
+    primaryTextColor: '#2d2a26',
+    primaryBorderColor: '#D77757',
+    lineColor: '#8a8480',
+    secondaryColor: '#dde0fe',
+    tertiaryColor: '#f3f0eb',
+    edgeLabelBackground: '#ffffff',
+    nodeTextColor: '#2d2a26',
+    clusterBkg: '#faf8f5',
+    clusterBorder: '#ddd8d0',
+    titleColor: '#2d2a26',
+    fontFamily: 'ui-monospace, SFMono-Regular, Consolas, monospace',
+    fontSize: '13px'
+  }
+});
+hljs.highlightAll();
+
+// IntersectionObserver：滚动时高亮导航
+const headings = document.querySelectorAll('h2[id], h3[id]');
+const navLinks = document.querySelectorAll('nav a[href^="#"]');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(a => a.classList.remove('active'));
+      const active = document.querySelector(`nav a[href="#${e.target.id}"]`);
+      if (active) active.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+headings.forEach(h => observer.observe(h));
+</script>
+</body>
+</html>

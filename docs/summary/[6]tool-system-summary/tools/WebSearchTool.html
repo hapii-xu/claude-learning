@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebSearch 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    .kw  { color: #7c9bff; font-weight: 600; }
+    .str { color: #6cc77a; }
+    .fn  { color: #f0906a; }
+    .cmt { color: #6e6a62; font-style: italic; }
+    .type{ color: #e0a020; }
+    .num { color: #c792ea; }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Additional styles ────────────────────────────────── */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>WebSearch 工具详解</h1>
+  <p>网络搜索工具——通过 5 种可插拔适配器（Tavily/Bing/Brave/Exa/Anthropic API）执行搜索，带域名过滤、进度回传与 Sources 强制引用要求</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou">三、Tool 接口字段实现</a></li>
+    <li><a href="#si-call-liu-cheng">四、核心执行流程</a></li>
+    <li><a href="#wu-shi-pei-qi-gong-chang">五、适配器工厂</a></li>
+    <li><a href="#liu-quan-xian-an-quan">六、权限与安全</a></li>
+    <li><a href="#qi-xi-tong-guan-xi">七、与其他系统/工具的关系</a></li>
+    <li><a href="#ba-liang-dian">八、亮点与设计取舍</a></li>
+    <li><a href="#jiu-xuexi">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+<blockquote class="callout"><p>WebSearch 是 Claude Code 的<strong>网络搜索</strong>工具。它的精髓不在搜索本身（那只是调一个 HTTP API），而在于<strong>适配器工厂模式</strong>：把"搜索后端"抽象成统一接口，运行时按优先级（环境变量 &gt; 设置 &gt; 默认 Tavily）选择 5 种实现之一——Tavily、Bing（HTML 抓取）、Brave、Exa、Anthropic API（服务端 <code>web_search_20250305</code> 工具）。主工具类（255 行）几乎不含搜索逻辑，全部委托给适配器。这是理解"工具如何通过抽象层支持多后端"的最佳样本。</p></blockquote>
+
+<hr class="divider">
+
+<section id="yi-gong-ju-ding-wei">
+<h2>一、工具定位（一句话总结）</h2>
+<p><strong><code>WebSearch</code> = 委托给可插拔适配器的网络搜索工具，带域名过滤 + Sources 强制引用。</strong></p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>维度</th><th>值</th></tr></thead>
+    <tbody>
+      <tr><td>工具名</td><td><code>WebSearch</code>（常量 <code>WEB_SEARCH_TOOL_NAME</code>，<code>prompt.ts:3</code>）</td></tr>
+      <tr><td>一句话</td><td>调适配器搜索网络，返回标题+URL+摘要列表，强制回复末尾带 Sources</td></tr>
+      <tr><td>是否进 system prompt</td><td>✅ 在 <code>CORE_TOOLS</code> 白名单内（<code>src/constants/tools.ts:163</code>）</td></tr>
+      <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>，<code>WebSearchTool.ts:120</code>）</td></tr>
+      <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe() → true</code>，<code>:117</code>）</td></tr>
+      <tr><td>是否延迟加载</td><td>✅ <code>shouldDefer: true</code>（<code>:94</code>）</td></tr>
+      <tr><td>核心依赖</td><td><code>adapters/</code>（5 个适配器 + 工厂）、<code>WebSearchProgress</code> 进度类型</td></tr>
+      <tr><td>定位互补方</td><td><code>WebFetch</code>（读具体 URL）、<code>mcp__web_reader</code>（抓取转换）</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><strong>为什么需要它？</strong> 模型知识有截止日期。WebSearch 让模型主动查"2026 年的最新 React 文档""当前的 Node 版本"，把外部最新信息注入上下文。</p>
+</section>
+
+<hr class="divider">
+
+<section id="er-guan-jian-wen-jian">
+<h2>二、关键文件清单</h2>
+<pre><code>WebSearchTool/
+├── WebSearchTool.ts          ← buildTool 主体（255 行）：schema + call + 权限 + 结果格式化
+├── prompt.ts                 ← 工具名 + getWebSearchPrompt()（含当前月份 + Sources 要求）
+├── UI.tsx                    ← Ink 渲染（搜索中进度 / 完成 X 次搜索）
+├── adapters/
+│   ├── index.ts              ← createAdapter() 工厂：按优先级选 5 种后端
+│   ├── types.ts              ← WebSearchAdapter 接口 + SearchResult/SearchOptions/SearchProgress
+│   ├── tavilyAdapter.ts      ← 默认：Tavily Search API（POST /search）
+│   ├── apiAdapter.ts         ← 委托 Anthropic 服务端 web_search_20250305 工具
+│   ├── bingAdapter.ts        ← 抓 Bing HTML + 正则提取（免 API key）
+│   ├── braveAdapter.ts       ← Brave Search API
+│   └── exaAdapter.ts         ← Exa 搜索 API
+└── src/                      ← （constants/utils 子目录，辅助）</code></pre>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+    <tbody>
+      <tr><td><code>WebSearchTool.ts</code></td><td>主体：call 委托适配器 + 结果格式化</td><td><code>call:168</code>、<code>validateInput:149</code>、<code>mapToolResultToToolResultBlockParam:217</code></td></tr>
+      <tr><td><code>adapters/index.ts</code></td><td>工厂：优先级 <code>env &gt; settings &gt; 'tavily'</code></td><td><code>createAdapter:30</code>、5 种 key <code>:25</code></td></tr>
+      <tr><td><code>adapters/types.ts</code></td><td><code>WebSearchAdapter.search()</code> 接口</td><td><code>:28-30</code></td></tr>
+      <tr><td><code>adapters/tavilyAdapter.ts</code></td><td>默认后端实现</td><td><code>search:27</code></td></tr>
+      <tr><td><code>adapters/apiAdapter.ts</code></td><td>委托服务端工具（最复杂）</td><td><code>search:39</code>、流式解析 <code>:102</code></td></tr>
+      <tr><td><code>prompt.ts</code></td><td>Sources 强制要求 + 当前月份注入</td><td><code>getWebSearchPrompt:5</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p><strong>结构特点</strong>：WebSearchTool 是"薄主体 + 厚适配器"型——主体只做参数校验、委托、结果格式化（255 行）；真正干活的是 5 个适配器，每个独立封装一种搜索后端。这是策略模式（Strategy Pattern）的教科书实现。</p></blockquote>
+</section>
+
+<hr class="divider">
+
+<section id="san-tool-jie-kou">
+<h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+<h3 id="biao-shi-zi-duan">标识字段</h3>
+<pre><code>name: WEB_SEARCH_TOOL_NAME,                       <span class="cmt">// "WebSearch"</span>
+searchHint: <span class="str">'search the web for current information'</span>,
+maxResultSizeChars: 100_000,
+shouldDefer: true,
+userFacingName() { <span class="kw">return</span> <span class="str">'网络搜索'</span> },</code></pre>
+
+<h3 id="mo-xing-mian-zi-duan">模型面字段</h3>
+<pre><code><span class="kw">async</span> description(input) { <span class="kw">return</span> <span class="str">`Claude 想要在网络上搜索：${input.query}`</span> }
+<span class="kw">async</span> prompt()      { <span class="kw">return</span> getWebSearchPrompt() }  <span class="cmt">// 含当前月份 + Sources 要求</span>
+isEnabled()         { <span class="kw">return</span> <span class="kw">true</span> }  <span class="cmt">// 始终启用，适配器工厂自选后端</span></code></pre>
+<blockquote class="callout"><p><strong><code>isEnabled() → true</code> 的注释</strong>（<code>:106-110</code>）明确：始终启用，因为适配器工厂会根据 provider 能力选后端（API 服务端搜索或 Bing 后备）。没有 feature gate。</p></blockquote>
+<p><strong>输入 schema</strong>（<code>:15-49</code>，字段最丰富的工具之一）：</p>
+<pre><code>{
+  query:                 string.min(2)   <span class="cmt">// 必填，搜索词</span>
+  allowed_domains?:      string[]        <span class="cmt">// 仅包含这些域名</span>
+  blocked_domains?:      string[]        <span class="cmt">// 屏蔽这些域名</span>
+  num_results?:          number          <span class="cmt">// 结果数（默认 8）</span>
+  livecrawl?:            <span class="str">'fallback'</span>|<span class="str">'preferred'</span>  <span class="cmt">// 实时抓取模式</span>
+  search_type?:          <span class="str">'auto'</span>|<span class="str">'fast'</span>|<span class="str">'deep'</span>     <span class="cmt">// 搜索深度</span>
+  context_max_characters?: number        <span class="cmt">// 上下文字符上限（默认 10000）</span>
+}</code></pre>
+<p><strong>输出 schema</strong>（<code>:70-80</code>）：<code>{ query, results: (SearchResult|string)[], durationSeconds }</code>。<code>results</code> 是联合类型——既可能是结构化搜索命中数组，也可能是纯文字说明（如"未找到结果"）。</p>
+
+<h3 id="xing-wei-zi-duan">行为字段（重点）</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>call()</code></td><td><code>:168</code></td><td>委托 <code>adapter.search()</code> + 进度回传</td></tr>
+      <tr><td><code>validateInput()</code></td><td><code>:149</code></td><td>query 非空 + allowed/blocked 不可同时指定</td></tr>
+      <tr><td><code>checkPermissions()</code></td><td><code>:126</code></td><td>返回 <code>passthrough</code> + 建议 allow 规则</td></tr>
+      <tr><td><code>isConcurrencySafe()</code></td><td><code>:117</code> → <code>true</code></td><td>不同 query 互不干扰</td></tr>
+      <tr><td><code>isReadOnly()</code></td><td><code>:120</code> → <code>true</code></td><td>只读</td></tr>
+      <tr><td><code>toAutoClassifierInput()</code></td><td><code>:123</code></td><td>返回 <code>input.query</code></td></tr>
+      <tr><td><code>extractSearchText()</code></td><td><code>:146</code> → <code>''</code></td><td>不参与历史检索聚合</td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p><strong><code>checkPermissions</code> 返回 <code>passthrough</code></strong>（<code>:126-139</code>）：不是 allow/deny/ask，而是"放行但建议用户加 allow 规则"。这是 WebSearch 特有的权限姿态——搜索本身低风险，但工具会建议持久化授权。</p></blockquote>
+</section>
+
+<hr class="divider">
+
+<section id="si-call-liu-cheng">
+<h2>四、核心执行流程：<code>call()</code></h2>
+<p><code>call()</code>（<code>WebSearchTool.ts:168-216</code>）极简，因为逻辑都在适配器里：</p>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart LR
+    A["call(input, ctx,\n_canUseTool, _parent,\nonProgress)\n:168"] --> B["adapter = createAdapter()\nadapters/index.ts:30"]
+    B --> C["adapter.search(query, {\n  allowedDomains, blockedDomains,\n  numResults, livecrawl,\n  searchType, contextMaxCharacters,\n  signal, onProgress\n})\n:173"]
+    C --> D["results.push({\n  tool_use_id, content: hits\n}) 或 '未找到'\n:196-208"]
+    D --> E["return { data: Output }"]
+  </div>
+</div>
+<p><strong>关键点</strong>：</p>
+<ol>
+  <li><strong>适配器选择在 call 内做</strong>（<code>:172</code>）：每次调用都 <code>createAdapter()</code>——工厂内部有缓存（<code>adapters/index.ts:27-28</code> <code>cachedAdapter</code>），同 key 复用实例。</li>
+  <li><strong>进度回传</strong>（<code>:181-189</code>）：适配器调 <code>onProgress</code> 时，本工具用 <code>Date.now()</code> 生成唯一 <code>toolUseID</code>（<code>search-progress-&lt;ts&gt;</code>）转发给上层 <code>onProgress</code>，让 UI 能显示"正在搜索 X""找到 Y 条结果"。</li>
+  <li><strong>空结果兜底</strong>（<code>:206</code>）：适配器返回空数组时，results 塞一条 <code>'未找到搜索结果。'</code> 字符串。</li>
+  <li><strong>返回 <code>{ data }</code></strong>：不是 async generator yield——搜索是原子的，没有需要流式的中间态（进度是通过 <code>onProgress</code> 回调而非 yield）。</li>
+</ol>
+<p><strong><code>mapToolResultToToolResultBlockParam</code></strong>（<code>:217-253</code>）：把结构化 Output 翻译成模型可读文本：</p>
+<ul>
+  <li>拼成 <code>查询 "X" 的网络搜索结果</code> + 列表 <code>- [标题](URL): 摘要</code>。</li>
+  <li><strong>末尾强制追加</strong>（<code>:245-246</code>）：<code>提醒：你必须在回复中使用 markdown 超链接包含上述来源。</code>——与 prompt 里的 Sources 要求双重保险。</li>
+</ul>
+</section>
+
+<hr class="divider">
+
+<section id="wu-shi-pei-qi-gong-chang">
+<h2>五、适配器工厂（核心设计）</h2>
+<p><code>adapters/index.ts:30-74</code> 的 <code>createAdapter()</code> 是本工具的灵魂：</p>
+<p><strong>优先级</strong>（从高到低）：</p>
+<ol>
+  <li><code>process.env.WEB_SEARCH_ADAPTER</code>（显式覆盖）</li>
+  <li><code>settings.webSearchAdapter</code>（用户通过 <code>/web-tools</code> 面板配置）</li>
+  <li>默认 <code>'tavily'</code></li>
+</ol>
+<p><strong>5 种适配器</strong>（<code>SearchAdapterKey</code>，<code>:25</code>）：</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>适配器</th><th>后端</th><th>特点</th></tr></thead>
+    <tbody>
+      <tr><td><code>tavily</code>（默认）</td><td><code>tavily.claude-code-best.win/search</code></td><td>POST 查询，返回 title/url/content，端点可配置</td></tr>
+      <tr><td><code>api</code></td><td>Anthropic 服务端 <code>web_search_20250305</code> 工具</td><td>委托服务端，支持 thinking，流式解析 server_tool_use</td></tr>
+      <tr><td><code>bing</code></td><td>抓 Bing HTML + 正则提取</td><td>免 API key，模拟 Edge UA 绕反爬</td></tr>
+      <tr><td><code>brave</code></td><td>Brave Search API</td><td>独立后端</td></tr>
+      <tr><td><code>exa</code></td><td>Exa 搜索 API</td><td>独立后端</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><strong>缓存</strong>（<code>:27-28</code> + <code>:51</code>）：<code>cachedAdapter</code> + <code>cachedAdapterKey</code>——同 key 复用实例，避免每次 call 都 new。</p>
+<p><strong><code>WebSearchAdapter</code> 接口</strong>（<code>types.ts:28-30</code>）极简：</p>
+<pre><code><span class="kw">interface</span> <span class="type">WebSearchAdapter</span> {
+  <span class="fn">search</span>(query: <span class="type">string</span>, options: <span class="type">SearchOptions</span>): <span class="type">Promise</span>&lt;<span class="type">SearchResult</span>[]&gt;
+}</code></pre>
+
+<h3 id="api-adapter"><code>apiAdapter</code> 最复杂（<code>apiAdapter.ts</code>）</h3>
+<p>它把搜索<strong>委托回 Anthropic 服务端</strong>的 <code>web_search_20250305</code> 工具（<code>:38-191</code>）：</p>
+<ul>
+  <li>用 <code>queryModelWithStreaming</code> 发起一次带 <code>web_search</code> 工具的 API 调用（<code>:61</code>）。</li>
+  <li><strong>流式解析</strong>（<code>:102-184</code>）：监听 <code>server_tool_use</code> / <code>input_json_delta</code> / <code>web_search_tool_result</code> 事件，边解析边回传 <code>onProgress</code>。</li>
+  <li>用 growthbook flag <code>tengu_plum_vx3</code>（<code>:47</code>）决定用 Haiku（禁 thinking）还是主模型（开 thinking）。</li>
+</ul>
+</section>
+
+<hr class="divider">
+
+<section id="liu-quan-xian-an-quan">
+<h2>六、权限与安全</h2>
+<p>WebSearch 的权限模型比 WebFetch 简单——搜索不针对具体域名：</p>
+
+<h3 id="check-permissions"><code>checkPermissions</code>（<code>:126-139</code>）</h3>
+<pre><code><span class="kw">return</span> {
+  behavior: <span class="str">'passthrough'</span>,
+  message: <span class="str">'WebSearchTool 需要权限。'</span>,
+  suggestions: [{
+    type: <span class="str">'addRules'</span>,
+    rules: [{ toolName: WEB_SEARCH_TOOL_NAME }],
+    behavior: <span class="str">'allow'</span>,
+    destination: <span class="str">'localSettings'</span>
+  }],
+}</code></pre>
+<ul>
+  <li><strong><code>passthrough</code></strong>：放行本次调用，但不建立持久授权。工具靠 <code>suggestions</code> 引导用户主动加 allow 规则。</li>
+  <li><strong>规则不带 ruleContent</strong>（<code>:133</code>）：只指定 <code>toolName</code>，不绑定域名——整工具级授权。</li>
+</ul>
+
+<h3 id="validate-input"><code>validateInput</code>（<code>:149-167</code>）</h3>
+<ul>
+  <li>query 必须非空（<code>:151</code>，<code>errorCode: 1</code>）。</li>
+  <li><strong>allowed_domains 和 blocked_domains 不可同时指定</strong>（<code>:158</code>，<code>errorCode: 2</code>）——语义冲突。</li>
+</ul>
+
+<h3 id="an-quan-kao-lv">安全考虑</h3>
+<ul>
+  <li><strong>Sources 强制引用</strong>（<code>prompt.ts:14-23</code> + <code>WebSearchTool.ts:245</code>）：prompt 要求 + 结果末尾提醒双重保险，确保模型回复带来源链接。</li>
+  <li><strong>当前月份注入</strong>（<code>prompt.ts:5,30-32</code>）：<code>getLocalMonthYear()</code> 把当前年月注入 prompt，逼模型搜索时用对年份（如 2026 年的 React 文档）。</li>
+  <li><strong>仅美国可用</strong>（<code>prompt.ts:28</code>）：明确写在 prompt 里——这是 Anthropic 服务端搜索后端的地理限制。</li>
+</ul>
+</section>
+
+<hr class="divider">
+
+<section id="qi-xi-tong-guan-xi">
+<h2>七、与其他系统/工具的关系</h2>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    WS["WebSearch"] -->|委托| FAC["createAdapter()\nadapters/index.ts"]
+    FAC -->|默认| TV["TavilySearchAdapter"]
+    FAC -->|env/settings| API["ApiSearchAdapter\n→ Anthropic 服务端"]
+    FAC --> Bing["BingSearchAdapter\n抓 HTML"]
+    WS -->|进度| UI["UI.tsx\nquery_update / results_received"]
+    WS -->|结果格式化| MAP["mapToolResultToToolResultBlockParam\n+ Sources 提醒"]
+    WS -.互补.-> WF["WebFetch（读 URL）"]
+    WS -.同类.-> WB["WebBrowser"]
+  </div>
+</div>
+<ul>
+  <li><strong>与 <code>WebFetch</code></strong>：WebSearch 找 URL，WebFetch 读 URL。两者都默认走 Tavily 后端，端点都可配置。</li>
+  <li><strong>与 Anthropic 服务端 web_search 工具</strong>：<code>apiAdapter</code> 把搜索委托回服务端原生工具——这是"客户端工具复用服务端能力"的范例。</li>
+  <li><strong>与 settings 系统</strong>：<code>webSearchAdapter</code> 设置项驱动后端选择（通过 <code>/web-tools</code> 面板配置）。</li>
+  <li><strong>与 growthbook</strong>：<code>apiAdapter</code> 用 <code>tengu_plum_vx3</code> flag 决定 Haiku vs 主模型——feature flag 控制运行时行为。</li>
+</ul>
+</section>
+
+<hr class="divider">
+
+<section id="ba-liang-dian">
+<h2>八、亮点与设计取舍</h2>
+<ol>
+  <li><strong>适配器工厂模式</strong>（<code>adapters/index.ts</code>）：5 种后端用统一接口，运行时按优先级切换。新增后端只需实现 <code>WebSearchAdapter</code> 接口 + 在 switch 加 case——开闭原则。</li>
+  <li><strong>主体极薄</strong>（255 行）：所有搜索逻辑下沉到适配器，主体只做参数校验 + 委托 + 结果格式化。对比 WebFetch 主体 385 行——因为搜索逻辑被抽象隔离了。</li>
+  <li><strong>适配器实例缓存</strong>（<code>:27-28</code>）：避免每次 call 都 new 适配器，同 key 复用。</li>
+  <li><strong>Sources 强制双重保险</strong>：prompt 要求（<code>prompt.ts:14</code>）+ 结果末尾提醒（<code>WebSearchTool.ts:245</code>）——防止模型"忘记"引用来源。</li>
+  <li><strong>当前月份动态注入</strong>（<code>prompt.ts:5</code>）：<code>getLocalMonthYear()</code> 让搜索始终用对年份，避免模型用过期年份搜索。</li>
+  <li><strong>passthrough 权限姿态</strong>（<code>:126</code>）：不强制 ask，放行但建议授权——降低搜索的摩擦。</li>
+  <li><strong>apiAdapter 流式进度回传</strong>（<code>apiAdapter.ts:102-184</code>）：边解析服务端流边回传 <code>onProgress</code>，让 UI 实时显示搜索进度——复杂但体验好。</li>
+  <li><strong>allowed/blocked 互斥校验</strong>（<code>:158</code>）：在 validateInput 就拦截语义冲突，而非等适配器报错。</li>
+</ol>
+</section>
+
+<hr class="divider">
+
+<section id="jiu-xuexi">
+<h2>九、学习建议与验证清单</h2>
+<p><strong>怎么读这章</strong>：先看"五、适配器工厂"理解策略模式，再看"四、call()"看主体如何委托，最后对照 <code>tavilyAdapter</code>（最简）和 <code>apiAdapter</code>（最复杂）看两种后端实现。</p>
+<p><strong>验证清单（读完自测）</strong>：</p>
+<ul class="checklist">
+  <li><input type="checkbox" disabled> <span>能说出适配器选择的 3 级优先级（env &gt; settings &gt; 默认 tavily）</span></li>
+  <li><input type="checkbox" disabled> <span>能列出 5 种适配器后端（tavily/api/bing/brave/exa）</span></li>
+  <li><input type="checkbox" disabled> <span>能解释为什么 <code>call()</code> 只有 50 行（逻辑全在适配器）</span></li>
+  <li><input type="checkbox" disabled> <span>能说出 <code>passthrough</code> 权限姿态的含义（放行但不持久授权）</span></li>
+  <li><input type="checkbox" disabled> <span>能解释 Sources 强制的双重保险（prompt + 结果末尾提醒）</span></li>
+  <li><input type="checkbox" disabled> <span>能说出 allowed_domains 和 blocked_domains 为何互斥（语义冲突）</span></li>
+  <li><input type="checkbox" disabled> <span>能指出 <code>apiAdapter</code> 委托的是哪个服务端工具（<code>web_search_20250305</code>）</span></li>
+</ul>
+<p><strong>配合动作</strong>：</p>
+<ol>
+  <li>设 <code>WEB_SEARCH_ADAPTER=bing bun run dev</code>，观察搜索走 Bing HTML 抓取</li>
+  <li>在 <code>createAdapter()</code> 加日志，验证 <code>cachedAdapter</code> 复用逻辑</li>
+  <li>让 Claude <code>WebSearch</code> 一个查询，观察回复末尾的 Sources 部分</li>
+  <li>在 <code>apiAdapter.ts:102</code> 流式循环加日志，观察 server_tool_use 事件解析</li>
+</ol>
+</section>
+
+<a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

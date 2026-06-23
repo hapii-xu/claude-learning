@@ -2526,6 +2526,10 @@ export function REPL({
     localJSXClosedAtRef.current = 0;
 
     logForDebugging(`[onCancel] focusedInputDialog=${focusedInputDialog} streamMode=${streamMode}`);
+    logForDebugging(
+      `[Hapii] REPL.onCancel 开始取消 isLoading=${queryGuard.getSnapshot()} msgs=${messagesRef.current.length} streamingText=${streamingText?.length ?? 0}`,
+      { level: 'info' },
+    );
 
     // 暂停 proactive 模式，使用户重新获得控制权。
     // 它会在用户提交下一个输入时恢复（见 onSubmit）。
@@ -3099,6 +3103,14 @@ export function REPL({
 
   const onQueryEvent = useCallback(
     (event: Parameters<typeof handleMessageFromStream>[0]) => {
+      // 流式事件 (stream_event) 每个 token 都触发，仅记录非流式事件避免刷屏。
+      // 这些是 query loop 与 UI 之间的关键边界：消息完成、工具使用摘要、请求开始等。
+      if (event.type !== 'stream_event') {
+        logForDebugging(
+          `[Hapii] REPL.onQueryEvent type=${event.type}${event.type === 'stream_request_start' ? '' : ` uuid=${(event as { uuid?: string }).uuid?.slice(0, 8) ?? '?'}`}`,
+          { level: 'verbose' },
+        );
+      }
       handleMessageFromStream(
         event,
         newMessage => {
@@ -3449,6 +3461,10 @@ export function REPL({
         defaultSystemPrompt,
         appendSystemPrompt,
       });
+      logForDebugging(
+        `[Hapii] REPL.onQueryImpl 系统提示已构建 tools=${freshTools.length} mcpClients=${freshMcpClients.length} sysPromptLen=${systemPrompt?.length ?? 0}`,
+        { level: 'info' },
+      );
       toolUseContext.renderedSystemPrompt = systemPrompt;
 
       queryCheckpoint('query_query_start');
@@ -3574,6 +3590,10 @@ export function REPL({
       input?: string,
       effort?: EffortValue,
     ): Promise<boolean> => {
+      logForDebugging(
+        `[Hapii] REPL.onQuery 入口 newMsgs=${newMessages.length} shouldQuery=${shouldQuery} model=${mainLoopModelParam} effort=${effort ?? 'default'} allowedTools=${additionalAllowedTools.length}`,
+        { level: 'info' },
+      );
       // 如果是 teammate，在开始 turn 时标记为活跃
       if (isAgentSwarmsEnabled()) {
         const teamName = getTeamName();
@@ -3589,6 +3609,7 @@ export function REPL({
       // 如果已在运行则返回 null — 无单独的 check-then-set。
       const thisGeneration = queryGuard.tryStart();
       if (thisGeneration === null) {
+        logForDebugging('[Hapii] REPL.onQuery queryGuard.tryStart 失败，并发查询被拒绝，消息入队', { level: 'warn' });
         logEvent('tengu_concurrent_onquery_detected', {});
 
         // 提取并将用户消息文本入队，跳过 meta 消息
@@ -3605,6 +3626,8 @@ export function REPL({
           });
         return false;
       }
+
+      logForDebugging(`[Hapii] REPL.onQuery queryGuard generation=${thisGeneration} 查询启动`, { level: 'info' });
 
       try {
         pipeReturnHadErrorRef.current = false;
@@ -3651,6 +3674,10 @@ export function REPL({
             effort,
           );
         } catch (error) {
+          logForDebugging(
+            `[Hapii] REPL.onQuery onQueryImpl 抛出错误: ${error instanceof Error ? error.message : String(error)}`,
+            { level: 'error' },
+          );
           if (feature('UDS_INBOX')) {
             pipeReturnHadErrorRef.current = true;
             relayPipeMessage({
@@ -3661,6 +3688,10 @@ export function REPL({
           throw error;
         }
       } finally {
+        logForDebugging(
+          `[Hapii] REPL.onQuery finally 块执行 aborted=${abortController.signal.aborted} msgs=${messagesRef.current.length}`,
+          { level: 'info' },
+        );
         // queryGuard.end() 原子地检查 generation 并将 running 转为 idle。
         // 如果更新的 query 拥有 guard 则返回 false
         //（cancel+resubmit 竞态中陈旧的 finally 作为 microtask 触发）。
@@ -3919,9 +3950,10 @@ export function REPL({
       },
       options?: { fromKeybinding?: boolean },
     ) => {
-      logForDebugging(`[Hapii] REPL.onSubmit 收到用户输入 len=${typeof input === 'string' ? input.length : '?'}`, {
-        level: 'info',
-      });
+      logForDebugging(
+        `[Hapii] REPL.onSubmit 收到用户输入 input = ${input} len=${typeof input === 'string' ? input.length : '?'} isLoading=${queryGuard.getSnapshot()} fromKeybinding=${options?.fromKeybinding ?? false}`,
+        { level: 'info' },
+      );
       // 提交时重新固定滚动到底部，使用户始终看到新交流
       // （匹配 OpenCode 的自动滚动行为）。
       repinScroll();
@@ -3933,6 +3965,7 @@ export function REPL({
 
       // 将用户输入路由到选定的 pipe 目标（抽取到 usePipeRouter）
       if (routeToSelectedPipes(input)) {
+        logForDebugging('[Hapii] REPL.onSubmit 路由到 pipe 目标（非 Claude 处理）', { level: 'info' });
         // 在消息列表中显示用户的 prompt，使他们能看到发送了什么
         const userMessage = createUserMessage({ content: input });
         setMessages(prev => [...prev, userMessage]);
@@ -3984,6 +4017,13 @@ export function REPL({
         }
 
         const shouldTreatAsImmediate = queryGuard.isActive && (matchingCommand?.immediate || options?.fromKeybinding);
+
+        if (matchingCommand) {
+          logForDebugging(
+            `[Hapii] REPL.onSubmit slash 命令 cmd=${matchingCommand.name} immediate=${shouldTreatAsImmediate} type=${matchingCommand.type}`,
+            { level: 'info' },
+          );
+        }
 
         if (matchingCommand && shouldTreatAsImmediate && matchingCommand.type === 'local-jsx') {
           // 仅当提交文本与 prompt 中内容匹配时才清除输入。
@@ -4297,6 +4337,11 @@ export function REPL({
 
       // 确保第一次 API 调用前 SessionStart hook 上下文可用。
       await awaitPendingHooks();
+
+      logForDebugging(
+        `[Hapii] REPL.onSubmit 正常提交路径 handlePromptSubmit inputMode=${inputMode} msgs=${messagesRef.current.length}`,
+        { level: 'info' },
+      );
 
       await handlePromptSubmit({
         input,

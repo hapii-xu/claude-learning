@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReviewArtifact 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange: #D77757; --orange-lt: #f0e0d8; --orange-dk: #b55e3a;
+      --blue: #5769F7; --blue-lt: #dde0fe; --blue-dk: #3a4ed4;
+      --green: #22a766; --green-lt: #d2f0e3;
+      --bg: #faf8f5; --bg2: #f3f0eb; --bg3: #ebe7e0;
+      --text: #2d2a26; --text-2: #5a5650; --text-3: #8a8480;
+      --border: #ddd8d0;
+      --shadow: 0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius: 8px; --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+    section { margin-top: 56px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; letter-spacing: .01em; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero p { font-size: 1.05rem; color: var(--text-2); max-width: 640px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 6px 16px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .82rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s, box-shadow .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); box-shadow: 0 2px 6px rgba(215,119,87,.15); text-decoration: none; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .8rem; line-height: 1.7; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    blockquote.callout { background: var(--bg2); border-left: 4px solid var(--orange); padding: 14px 20px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0; color: var(--text-2); }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin: 16px 0; overflow-x: auto; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 48px; padding: 8px 18px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; transition: border-color .15s, color .15s; }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    @media (max-width: 700px) { .hero h1 { font-size: 1.6rem; } }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>ReviewArtifact 工具详解</h1>
+  <p>以带行号标注和严重级别的方式呈现对代码/文档产出物的审阅结果——纯展示型工具，无外部副作用</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一">工具定位</a></li>
+    <li><a href="#二">关键文件清单</a></li>
+    <li><a href="#三">Tool 接口字段实现</a></li>
+    <li><a href="#四">核心执行流程</a></li>
+    <li><a href="#五">权限与安全</a></li>
+    <li><a href="#六">与其他系统的关系</a></li>
+    <li><a href="#七">亮点与设计取舍</a></li>
+    <li><a href="#八">源码导航</a></li>
+    <li><a href="#九">学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout">
+    <p><code>ReviewArtifact</code> 是一个<strong>纯展示型工具</strong>：它不检索、不修改、不联网，唯一的职责是把 Claude 对一段代码/文档的审阅意见（含逐行标注和严重级别）以结构化方式呈现给用户。<code>call()</code> 体只是把输入回包成输出（<code>annotationCount: annotations.length</code>）。它的价值全部在 schema 契约和渲染层——强制模型用"标题 + 产出物 + 标注列表 + 总结"的规范格式表达审阅，而非散漫的自然语言。</p>
+  </blockquote>
+
+  <section id="一">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>ReviewArtifact</code> = 结构化呈现代码/文档审阅结果的纯展示工具。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>ReviewArtifact</code>（常量 <code>REVIEW_ARTIFACT_TOOL_NAME</code>，<code>:7</code>）</td></tr>
+          <tr><td>一句话</td><td>接收产出物 + 标注列表，回包输出用于结构化渲染</td></tr>
+          <tr><td>是否进 system prompt</td><td>❌ 受 feature flag <code>REVIEW_ARTIFACT</code> 门控（<code>tools.ts:148</code>），默认禁用</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>，<code>:80</code>）——无任何副作用</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe() → true</code>，<code>:77</code>）</td></tr>
+          <tr><td>启用条件</td><td><code>feature('REVIEW_ARTIFACT')</code> 为真才注册（<code>tools.ts:148-151</code>）</td></tr>
+          <tr><td>核心依赖</td><td>无（纯数据搬运）</td></tr>
+          <tr><td>定位互补方</td><td><code>Edit</code>（实施修改）、<code>AskUserQuestion</code>（交互）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> 审阅代码时，模型可以用纯文本罗列问题，但缺乏结构——无法精确指向某一行、无法区分严重级别、无法给出总结。ReviewArtifact 强制模型按 <code>{artifact, title, annotations[], summary}</code> 契约输出，渲染层就能展示带行号高亮、严重级别图标的审阅视图。它是"用工具 schema 约束模型输出格式"的典型案例。</p>
+    <blockquote class="callout"><p><strong>注意</strong>：CLAUDE.md 明确 <code>REVIEW_ARTIFACT</code> 在 build features 的"已禁用"列表中，故默认环境下该工具不注册。</p></blockquote>
+  </section>
+
+  <section id="二">
+    <h2>二、关键文件清单</h2>
+    <pre><code>ReviewArtifactTool/
+└── ReviewArtifactTool.ts   ← 全部逻辑（141 行，单文件，含 React 渲染）</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>ReviewArtifactTool.ts</code></td><td>工具主体：schema + call + 内联 React 渲染全在这</td><td><code>buildTool:58</code>、<code>call:132</code>、inputSchema <code>:12-43</code>、outputSchema <code>:46-53</code>、渲染 <code>:96-131</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：单文件，且<strong>渲染逻辑（React 组件）内联在主文件</strong>，没有独立的 <code>UI.tsx</code>。这是因为渲染逻辑简单（一个 Box + 几个 Text），不值得拆分。对比 GlobTool 复用 Grep 的 UI 组件，ReviewArtifact 的 UI 是自包含的。</p></blockquote>
+  </section>
+
+  <section id="三">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre><code>name: REVIEW_ARTIFACT_TOOL_NAME,    // "ReviewArtifact"（内联，:7）
+searchHint: 'review code or documents with inline annotations',
+maxResultSizeChars: 100_000,</code></pre>
+    <blockquote class="callout"><p><strong>无 <code>shouldDefer</code>、无 <code>strict</code></strong>：与 SubscribePR/SuggestBackgroundPR 不同，ReviewArtifact 既未声明延迟也未声明严格模式。</p></blockquote>
+    <h3>模型面字段</h3>
+    <pre><code>async description(input) {                    // 注意：description 接收 input！
+  return input.title
+    ? `Claude 想要审阅：${input.title}`
+    : 'Claude 想要审阅一个产出物'
+}
+async prompt() { return `使用本工具呈现对代码片段...的审阅结果...` }
+get inputSchema()  { return inputSchema() }
+get outputSchema() { return outputSchema() }  // 有显式 outputSchema</code></pre>
+    <p><strong>输入 schema</strong>（<code>:12-43</code>）：</p>
+    <pre><code>{
+  artifact: string,          // 必填，待审阅内容
+  title?: string,            // 可选，标题/文件路径
+  annotations: [{            // 必填，标注列表
+    line?: number,           //   行号（1-based）
+    message: string,         //   标注消息
+    severity?: 'info'|'warning'|'error'|'suggestion',
+  }],
+  summary?: string,          // 可选，总体总结
+}</code></pre>
+    <p><strong>输出 schema</strong>（<code>:46-53</code>）——有显式 <code>outputSchema</code>，这是少数工具才有的：</p>
+    <pre><code>{
+  artifact: string,
+  title?: string,
+  annotationCount: number,   // = annotations.length
+  summary?: string,
+}</code></pre>
+    <h3>行为字段</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:132</code></td><td>纯数据搬运（见下节）</td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:77</code> → <code>true</code></td><td>无副作用</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:80</code> → <code>true</code></td><td>纯展示</td></tr>
+          <tr><td><code>toAutoClassifierInput()</code></td><td><code>:83</code></td><td><code>input.title ?? input.artifact.slice(0, 200)</code></td></tr>
+          <tr><td><code>description(input)</code></td><td><code>:62</code></td><td><strong>动态描述</strong>，根据 title 变化</td></tr>
+          <tr><td><code>renderToolUseMessage</code></td><td><code>:96</code></td><td>verbose 模式显示标注数</td></tr>
+          <tr><td><code>renderToolResultMessage</code></td><td><code>:107</code></td><td>内联 React，verbose 模式展示标题+总结</td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>:89</code></td><td>文本：<code>已完成审阅，共 N 条标注</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout">
+      <p><strong>亮点字段</strong>：</p>
+      <ul>
+        <li><code>description(input)</code> 是<strong>动态描述</strong>——少数工具会让 description 依赖输入（多数是常量）。</li>
+        <li>显式 <code>outputSchema</code>——大部分工具只有 inputSchema，ReviewArtifact 双 schema 齐全，便于序列化/UI 推导。</li>
+      </ul>
+    </blockquote>
+  </section>
+
+  <section id="四">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code>（<code>ReviewArtifactTool.ts:132-140</code>）是本系列中最纯粹的"数据搬运"：</p>
+    <pre><code>async call({ artifact, title, annotations, summary }, _context) {
+  const output: Output = {
+    artifact,
+    title,
+    annotationCount: annotations.length,  // 唯一计算
+    summary,
+  }
+  return { data: output }
+}</code></pre>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    A["call(input, _ctx)\n:132"] --> B["output = {\n  artifact, title,\n  annotationCount: annotations.length,\n  summary\n}"]
+    B --> C["return { data: output }"]
+      </div>
+    </div>
+    <p><strong>关键点</strong>：</p>
+    <ol>
+      <li><strong>无任何外部调用</strong>：不读文件、不联网、不查状态。纯输入到输出的映射。</li>
+      <li><strong>唯一计算</strong>：<code>annotationCount: annotations.length</code>——把标注数组转为计数，完整标注在渲染层通过 input 已知。</li>
+      <li><strong><code>_context</code> 未使用</strong>：连 <code>abortController</code> 都不需要——没有可中断的操作。</li>
+      <li><strong>解构入参</strong>：<code>{ artifact, title, annotations, summary }</code> 直接解构，比 <code>input.xxx</code> 简洁。</li>
+    </ol>
+    <blockquote class="callout"><p><strong>为何 call 这么简单？</strong> 因为 ReviewArtifact 的全部价值在<strong>契约约束</strong>和<strong>渲染呈现</strong>，不在执行逻辑。模型调用这个工具，意味着它承诺按 schema 输出结构化审阅；<code>call()</code> 只是确认契约被满足并回包。真正的"工作"在模型生成 <code>annotations</code> 时就完成了。</p></blockquote>
+  </section>
+
+  <section id="五">
+    <h2>五、权限与安全</h2>
+    <p>ReviewArtifact 没有自定义 <code>checkPermissions()</code>，安全控制极简：</p>
+    <ol>
+      <li><strong>feature flag 门控</strong>（<code>tools.ts:148-151</code>）：<code>feature('REVIEW_ARTIFACT')</code> 为真才注册。CLAUDE.md 明确该 flag 在"已禁用"列表，默认不注册。</li>
+      <li><strong><code>isReadOnly() → true</code></strong>：纯展示，权限管道宽松。</li>
+      <li><strong>无副作用</strong>：不接触文件系统、网络、状态——即使无权限校验也无风险。</li>
+    </ol>
+  </section>
+
+  <section id="六">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    RA[ReviewArtifact] -->|渲染| INK["内联 React 组件\nBox + Text（@anthropic/ink）"]
+    RA -.约束.-> MODEL["强制模型按 schema\n输出结构化审阅"]
+    RA -.配套.-> EDIT["Edit 工具\n实施审阅建议的修改"]
+    RA -.门控.-> FF["feature REVIEW_ARTIFACT\ntools.ts:148\n（默认禁用）"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与渲染系统</strong>：使用 <code>@anthropic/ink</code> 的 <code>Box</code>/<code>Text</code> 组件（<code>:5</code>），内联在主文件。verbose 模式下展示标题、标注数、总结；非 verbose 模式只显示"审阅完成：N 条标注"。</li>
+      <li><strong>与 <code>Edit</code>/<code>FileEditTool</code></strong>：审阅与修改是配套——ReviewArtifact 提出 <code>suggestion</code>/<code>warning</code> 标注，Edit 实施修改。但两者独立，模型可只审阅不修改。</li>
+      <li><strong>与模型契约</strong>：本工具的核心作用是<strong>用 schema 约束模型输出格式</strong>。没有它，模型可能用散漫文本描述审阅；有了它，模型被迫按 <code>{line, message, severity}</code> 结构组织意见。</li>
+    </ul>
+  </section>
+
+  <section id="七">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>纯展示工具的范式</strong>：call 体几乎空，价值全在 schema + 渲染。这示范了"工具不一定执行外部动作，约束模型输出格式本身就有价值"。</li>
+      <li><strong>动态 <code>description(input)</code></strong>（<code>:62</code>）：少数工具让 description 依赖输入，让 UI 反馈更具体。</li>
+      <li><strong>显式 <code>outputSchema</code></strong>（<code>:46-53</code>）：双 schema 齐全，便于 UI 推导渲染结构、便于序列化校验。</li>
+      <li><strong><code>severity</code> 四级枚举</strong>（<code>:32</code>）：<code>info/warning/error/suggestion</code>——区分审阅意见的轻重缓急，suggestion 是建设性建议（区别于 error 的强制性）。</li>
+      <li><strong>渲染内联而非拆 UI.tsx</strong>（<code>:96-131</code>）：逻辑简单时不强行拆分，避免文件碎片化。用 <code>React.createElement</code> 而非 JSX（因 <code>.ts</code> 扩展名，非 <code>.tsx</code>）。</li>
+      <li><strong><code>mapToolResultToToolResultBlockParam</code> 极简文本</strong>（<code>:89</code>）：给模型看的只是"已完成审阅，共 N 条标注"——模型不需要看到完整标注（它自己生成的），只需确认工具调用成功。</li>
+      <li><strong>verbose/非 verbose 双模式渲染</strong>（<code>:96-131</code>）：verbose 模式信息丰富（标题+标注数+总结），非 verbose 极简（一行计数），适应不同用户偏好。</li>
+    </ol>
+  </section>
+
+  <section id="八">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名 + 描述常量</td><td><code>ReviewArtifactTool/ReviewArtifactTool.ts:7,9</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>ReviewArtifactTool.ts:58-141</code></td></tr>
+          <tr><td>输入 schema（含 severity 枚举）</td><td><code>ReviewArtifactTool.ts:12-43</code></td></tr>
+          <tr><td>输出 schema</td><td><code>ReviewArtifactTool.ts:46-53</code></td></tr>
+          <tr><td>纯搬运 <code>call()</code></td><td><code>ReviewArtifactTool.ts:132-140</code></td></tr>
+          <tr><td>动态 <code>description(input)</code></td><td><code>ReviewArtifactTool.ts:62-67</code></td></tr>
+          <tr><td>内联 React 渲染</td><td><code>ReviewArtifactTool.ts:96-131</code></td></tr>
+          <tr><td>feature flag 门控</td><td><code>src/tools.ts:148-151</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="九">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：把 ReviewArtifact 当作"纯展示型工具"的典范。重点不是 call（几乎没有），而是 schema 如何约束模型输出、渲染如何呈现结构化数据。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 ReviewArtifact 的 call 体几乎空，价值在 schema + 渲染</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 feature flag 门控（<code>REVIEW_ARTIFACT</code>，默认禁用）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 severity 的四种级别（info/warning/error/suggestion）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释动态 <code>description(input)</code> 的作用（UI 显示具体审阅目标）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出显式 <code>outputSchema</code> 的存在（多数工具只有 inputSchema）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出渲染逻辑为何内联而非拆 UI.tsx（逻辑简单，避免碎片化）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>设置 <code>FEATURE_REVIEW_ARTIFACT=1</code> 运行 dev 模式，观察工具出现</li>
+      <li>调用 ReviewArtifact，传入一段代码 + 几条标注，观察 verbose/非 verbose 渲染差异</li>
+      <li>对比 <code>Edit</code> 工具，理解"审阅（只读）→ 修改（写入）"的配套关系</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

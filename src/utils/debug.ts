@@ -36,6 +36,79 @@ const LEVEL_ORDER: Record<DebugLogLevel, number> = {
 }
 
 /**
+ * 缓存项目根目录前缀，用于在 callerInfo 中缩短文件路径。
+ * 例如 "C:/Users/hapii/Documents/GitHub/claude-learning/claude-code/"
+ */
+let _projectRootPrefix: string | null | undefined
+function getProjectRootPrefix(): string | null {
+  if (_projectRootPrefix !== undefined) return _projectRootPrefix
+  try {
+    const stack = new Error().stack || ''
+    // 匹配形如 "C:/.../claude-code/src/utils/debug.ts:12:34" 的帧路径
+    const m = stack.match(/[A-Z]:\\[^\s)]+\\src\\utils\\debug\.ts/i)
+    if (m) {
+      const idx = m[0].lastIndexOf('src\\utils\\debug')
+      _projectRootPrefix = idx > 0 ? m[0].slice(0, idx) : null
+    } else {
+      _projectRootPrefix = null
+    }
+  } catch {
+    _projectRootPrefix = null
+  }
+  return _projectRootPrefix
+}
+
+/**
+ * 从当前调用栈中提取调用方的文件名和行号。
+ * 跳过 debug.ts 自身的帧，返回相对于项目根目录的短路径。
+ *
+ * 示例输出: "src/context.ts:42"
+ */
+function getCallerInfo(): string {
+  const err = new Error()
+  const stack = err.stack
+  if (!stack) return ''
+
+  const lines = stack.split('\n')
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    // 跳过非帧行（如 "Error" 头部）和异步帧分隔符 "at async ..."
+    if (!trimmed.startsWith('at ') || trimmed.startsWith('at async ')) continue
+
+    // 跳过 "at getCallerInfo"、"at logForDebugging" 等 debug.ts 内部的命名帧
+    if (/^at\s+(getCallerInfo|logForDebugging)\b/.test(trimmed)) continue
+    // 跳过 debug.ts 自身的帧（可能以匿名方式出现，无函数名）
+    if (trimmed.includes('debug.ts')) continue
+
+    // V8 / Bun 格式: "at funcName (path/to/file.ts:10:15)" 或 "at path/to/file.ts:10:15"
+    const atMatch = trimmed.match(/^at\s+(?:.*?\s+\()?(.+?):(\d+)(?::\d+)?\)?$/)
+    if (atMatch) {
+      return formatLocation(atMatch[1]!, atMatch[2]!)
+    }
+
+    // SpiderMonkey 格式: "funcName@path/to/file.ts:10:15"
+    const mfMatch = trimmed.match(/^[^@]*@(.+?):(\d+)(?::\d+)?$/)
+    if (mfMatch) {
+      return formatLocation(mfMatch[1]!, mfMatch[2]!)
+    }
+  }
+  return ''
+}
+
+function formatLocation(filePath: string, line: string): string {
+  // 去掉项目绝对路径前缀，保留 "claude-code/..." 之后的相对路径
+  const root = getProjectRootPrefix()
+  let rel = filePath
+  if (root && rel.startsWith(root)) {
+    rel = rel.slice(root.length)
+  }
+  // Windows 反斜杠转正斜杠
+  rel = rel.replace(/\\/g, '/')
+  return `${rel}:${line}`
+}
+
+/**
  * 调试输出的最低日志级别，默认为 'debug'（过滤掉 'verbose' 消息）。
  * 设置 CLAUDE_CODE_DEBUG_LOG_LEVEL=verbose 可包含高频诊断信息
  * （如完整的 statusLine 命令、shell、cwd、stdout/stderr），
@@ -162,6 +235,11 @@ function noop(): void {}
 function getDebugWriter(): BufferedWriter {
   if (!debugWriter) {
     let ensuredDir: string | null = null
+    const isDebug = isDebugMode()
+    console.info(
+      `  ┌─ getDebugWriter 初始化 ─ immediateMode=${isDebug}\n` +
+        `  │ flushIntervalMs=1000, maxBufferSize=100`,
+    )
     debugWriter = createBufferedWriter({
       writeFn: content => {
         const path = getDebugLogPath()
@@ -190,11 +268,13 @@ function getDebugWriter(): BufferedWriter {
       },
       flushIntervalMs: 1000,
       maxBufferSize: 100,
-      immediateMode: isDebugMode(),
+      immediateMode: isDebug,
     })
     registerCleanup(async () => {
+      console.info(`  └─ getDebugWriter cleanup ─ 开始刷缓存并 dispose`)
       debugWriter?.dispose()
       await pendingWrite
+      console.info(`  └─ getDebugWriter cleanup ─ 完成`)
     })
   }
   return debugWriter
@@ -211,7 +291,27 @@ export function logForDebugging(
     level: 'debug',
   },
 ): void {
+  // 在函数入口处立即捕获堆栈，确保后续异步/同步操作不会污染帧顺序
+  const callerInfo = getCallerInfo()
+
+  // 提取方法名用于分割线（从 callerInfo 中获取，格式如 "src/xxx.ts:42"）
+  const methodTag = callerInfo ? callerInfo.replace(/:\d+$/, '') : 'unknown'
+
+  // ---- logForDebugging 入口日志（仅 verbose 级别，避免日志爆炸）----
+  if (LEVEL_ORDER['verbose'] >= LEVEL_ORDER[getMinDebugLogLevel()]) {
+    console.info(
+      `  ┌─ logForDebugging 入口 ─ level=${level} caller=${callerInfo || 'N/A'}\n` +
+        `  │ message(前80字)=${message.slice(0, 80).replace(/\n/g, '⏎')}${message.length > 80 ? '...' : ''}`,
+    )
+  }
+
   if (LEVEL_ORDER[level] < LEVEL_ORDER[getMinDebugLogLevel()]) {
+    // ---- logForDebugging 早退：级别不足 ----
+    if (LEVEL_ORDER['verbose'] >= LEVEL_ORDER[getMinDebugLogLevel()]) {
+      console.info(
+        `  └─ logForDebugging 早退 ─ 级别不足 level=${level} < minLevel=${getMinDebugLogLevel()}`,
+      )
+    }
     return
   }
   // 通知 bridge 调试面板 sink（在 shouldLogDebugMessage 之前，确保 bridge
@@ -220,6 +320,12 @@ export function logForDebugging(
     _debugLogSink?.(level, message, new Date().toISOString())
   } catch {}
   if (!shouldLogDebugMessage(message)) {
+    // ---- logForDebugging 早退：shouldLogDebugMessage=false ----
+    if (LEVEL_ORDER['verbose'] >= LEVEL_ORDER[getMinDebugLogLevel()]) {
+      console.info(
+        `  └─ logForDebugging 早退 ─ shouldLogDebugMessage=false (NODE_ENV=${process.env.NODE_ENV}, USER_TYPE=${process.env.USER_TYPE ?? 'N/A'})`,
+      )
+    }
     return
   }
 
@@ -228,14 +334,25 @@ export function logForDebugging(
     message = jsonStringify(message)
   }
   const timestamp = new Date().toISOString()
-  const output = `${timestamp} [${level.toUpperCase()}] ${message.trim()}\n`
+  const caller = callerInfo ? `${callerInfo} ` : ''
+  const output = `${timestamp} [${level.toUpperCase()}] ${caller}${message.trim()}\n`
   if (isDebugToStdErr()) {
     writeToStderr(output)
+    // ---- logForDebugging 出口：写入 stderr ----
+    if (LEVEL_ORDER['verbose'] >= LEVEL_ORDER[getMinDebugLogLevel()]) {
+      console.info(`  └─ logForDebugging 完成 ─ 输出到 stderr`)
+    }
     return
   }
 
   console.info(output.trim())
   getDebugWriter().write(output)
+  // ---- logForDebugging 出口：写入文件+console ----
+  if (LEVEL_ORDER['verbose'] >= LEVEL_ORDER[getMinDebugLogLevel()]) {
+    console.info(
+      `  └─ logForDebugging 完成 ─ 输出到 console+文件 caller=${callerInfo || 'N/A'}`,
+    )
+  }
 }
 
 export function getDebugLogPath(): string {

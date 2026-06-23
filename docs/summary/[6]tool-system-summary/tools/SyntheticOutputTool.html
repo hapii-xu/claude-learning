@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SyntheticOutputTool（StructuredOutput）详解 — Claude Code 工具详解</title>
+  <style>    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── SVG Diagram ──────────────────────────────────────── */
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      margin: 0 auto;
+      font-family: var(--font-sans);
+    }
+
+    /* SVG tooltip via CSS title */
+    .node-group { cursor: default; }
+    .node-group:hover rect.node-rect { filter: brightness(.93); }
+
+    /* ── Card Grid ────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .path-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: box-shadow .15s, border-color .15s;
+    }
+
+    .path-card:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--orange-lt);
+    }
+
+    .badge-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .card-body { flex: 1; min-width: 0; }
+
+    .card-trigger {
+      font-weight: 700;
+      font-size: .9rem;
+      color: var(--text);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    .card-module {
+      font-family: var(--font-mono);
+      font-size: .76rem;
+      color: var(--text-2);
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .card-flag {
+      font-size: .72rem;
+      color: var(--blue);
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .badge-enable {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    /* ── Collapsible knowledge cards ─────────────────────── */
+    .knowledge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    details.know-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    details.know-card[open] {
+      border-color: var(--orange-lt);
+    }
+
+    details.know-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      outline: none;
+    }
+
+    details.know-card > summary::-webkit-details-marker { display: none; }
+
+    details.know-card > summary:hover { background: var(--bg); }
+
+    .know-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    details.know-card[open] .know-num {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .know-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: .97rem;
+    }
+
+    .know-arrow {
+      width: 20px;
+      height: 20px;
+      color: var(--text-3);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    details.know-card[open] .know-arrow {
+      transform: rotate(90deg);
+      color: var(--orange);
+    }
+
+    .know-body {
+      padding: 0 20px 20px 64px;
+    }
+
+    .know-body p { margin-bottom: 8px; }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    /* CSS-only syntax highlighting */
+    .kw  { color: #7c9bff; font-weight: 600; }  /* keywords */
+    .str { color: #6cc77a; }                      /* strings */
+    .fn  { color: #f0906a; }                      /* function calls */
+    .cmt { color: #6e6a62; font-style: italic; } /* comments */
+    .type{ color: #e0a020; }                      /* TypeScript types */
+    .num { color: #c792ea; }                      /* numbers */
+
+    /* inline code */
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Comparison Table ─────────────────────────────────── */
+    .compare-table th:first-child { width: 130px; }
+    .compare-table th:nth-child(2) { color: var(--orange-dk); }
+    .compare-table th:nth-child(3) { color: var(--blue-dk); }
+
+    /* ── Key files ────────────────────────────────────────── */
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--blue-dk);
+      cursor: default;
+      position: relative;
+    }
+
+    .file-path:hover::after {
+      content: attr(data-full);
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+      background: #1e1b16;
+      color: #d4cfc8;
+      font-size: .75rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+      pointer-events: none;
+    }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    ul.key-list {
+      padding-left: 20px;
+      color: var(--text-2);
+    }
+
+    ul.key-list li { margin-bottom: 4px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .know-body { padding-left: 20px; }
+    }
+
+    /* === Additional styles === */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    section { margin-top: 56px; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>SyntheticOutputTool（StructuredOutput）详解</h1>
+  <p>动态 JSON schema 结构化输出工具——SDK 非交互式场景下按用户给定 schema 校验并返回最终响应，是 CORE_TOOLS 里唯一被 getTools 过滤、按需动态创建的内部工具</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一工具定位一句话总结">一、工具定位（一句话总结）</a></li>
+    <li><a href="#二关键文件清单">二、关键文件清单</a></li>
+    <li><a href="#三tool-接口字段实现buildtool-逐字段">三、Tool 接口字段实现（`buildTool` 逐字段）</a></li>
+    <li><a href="#四核心执行流程call动态版">四、核心执行流程：`call()`（动态版）</a></li>
+    <li><a href="#五权限与安全">五、权限与安全</a></li>
+    <li><a href="#六与其他系统工具的关系">六、与其他系统/工具的关系</a></li>
+    <li><a href="#七亮点与设计取舍">七、亮点与设计取舍</a></li>
+    <li><a href="#八源码导航书签速查">八、源码导航（书签速查）</a></li>
+    <li><a href="#九学习建议与验证清单">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+  <section id="一工具定位一句话总结">
+<h2>一、工具定位（一句话总结）</h2>
+<p>**<code>StructuredOutput</code> = SDK 结构化输出的动态 schema 工具，让模型按用户给的 JSON schema 校验并返回最终响应。**</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>维度</th><th>值</th></tr></thead>
+    <tbody>
+    <tr><td>工具名</td><td><code>StructuredOutput</code>（常量 <code>SYNTHETIC_OUTPUT_TOOL_NAME</code>，<code>SyntheticOutputTool.ts:20</code>）</td></tr>
+    <tr><td>一句话</td><td>接收任意对象，用动态注入的 JSON schema（Ajv）校验，通过则原样作为 <code>structured_output</code> 返回</td></tr>
+    <tr><td>是否进 system prompt</td><td>⚠️ <strong>特殊</strong>：在 <code>CORE_TOOLS</code> 白名单内（<code>src/constants/tools.ts:178</code>），但被 <code>getTools()</code> 的 <code>specialTools</code> 过滤掉（<code>tools.ts:346</code>），<strong>默认对模型不可见</strong></td></tr>
+    <tr><td>何时对模型可见</td><td>仅 SDK 非交互式会话 + 传入 <code>jsonSchema</code> 时，由 <code>createSyntheticOutputTool</code> 动态创建并追加（<code>main.tsx:2420-2426</code>）</td></tr>
+    <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>，只校验并返回数据）</td></tr>
+    <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe() → true</code>）</td></tr>
+    <tr><td>核心依赖</td><td><code>ajv</code>（JSON schema 校验）+ <code>WeakMap</code> 缓存（<code>createSyntheticOutputTool</code>）</td></tr>
+    <tr><td>定位互补方</td><td><code>SearchExtraTools</code>/<code>ExecuteExtraTool</code>（<strong>独立</strong>，无协作）；<code>QueryEngine.ts</code>（消费 <code>structured_output</code>）</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><strong>为什么需要它？</strong> Claude SDK 的 <code>agent({schema: BUGS_SCHEMA})</code> 模式要求模型返回符合特定 JSON schema 的结构化数据。Anthropic 原生 API 有 <code>modelSupportsStructuredOutputs</code> 路径（<code>claude.ts:1720</code>），但<strong>工具路径</strong>用这个动态创建的 <code>StructuredOutput</code> 工具实现——模型在响应末尾必须调用一次它，传入符合 schema 的对象，工具用 Ajv 校验通过后作为 <code>structured_output</code> 字段返回给调用方。工作流脚本每次运行会调 30-80 次（注释 <code>:105-108</code>），所以 schema 校验做了 <code>WeakMap</code> 缓存。</p>
+<hr class="divider">
+</section>
+
+  <section id="二关键文件清单">
+<h2>二、关键文件清单</h2>
+<pre><code>SyntheticOutputTool/
+└── SyntheticOutputTool.ts   ← 全部逻辑（163 行）：静态原型 + createSyntheticOutputTool 动态工厂</code></pre>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+    <tbody>
+    <tr><td><code>SyntheticOutputTool.ts</code></td><td>静态原型 <code>SyntheticOutputTool</code> + 动态工厂 <code>createSyntheticOutputTool</code> + Ajv 校验 + WeakMap 缓存</td><td><code>SYNTHETIC_OUTPUT_TOOL_NAME:20</code>、<code>isSyntheticOutputToolEnabled:22</code>、<code>SyntheticOutputTool buildTool:28</code>、<code>createSyntheticOutputTool:116</code>、<code>buildSyntheticOutputTool:127</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>外部消费方</th><th>角色</th><th>必看行号</th></tr></thead>
+    <tbody>
+    <tr><td><code>src/main.tsx</code></td><td>动态创建入口</td><td><code>:2416</code>（条件）、<code>:2421</code>（创建）、<code>:2426</code>（追加到 tools）</td></tr>
+    <tr><td><code>src/tools.ts</code></td><td>过滤逻辑（<code>specialTools</code>）</td><td><code>:343-349</code></td></tr>
+    <tr><td><code>src/QueryEngine.ts</code></td><td>消费 <code>structured_output</code></td><td><code>:451-463</code>（注册强制）、<code>:1081-1082</code>（提取）、<code>:1463</code>（返回）</td></tr>
+    <tr><td><code>src/constants/tools.ts</code></td><td><code>CORE_TOOLS</code> 白名单 + <code>ASYNC_AGENT_ALLOWED_TOOLS</code> + <code>COORDINATOR_MODE_ALLOWED_TOOLS</code></td><td><code>:83</code>、<code>:128</code>、<code>:178</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p><strong>结构特点</strong>：单文件，但有两个导出——<code>SyntheticOutputTool</code>（静态原型，<code>call()</code> 无 schema 校验，直接返回 input）和 <code>createSyntheticOutputTool(jsonSchema)</code>（动态工厂，返回带 schema 校验的新工具）。生产中用的是后者。</p></blockquote>
+<hr class="divider">
+</section>
+
+  <section id="三tool-接口字段实现buildtool-逐字段">
+<h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+<h3>标识字段</h3>
+<pre><code>isMcp: false,
+name: SYNTHETIC_OUTPUT_TOOL_NAME,        // &quot;StructuredOutput&quot;
+searchHint: 'return the final response as structured JSON',
+maxResultSizeChars: 100_000,</code></pre>
+<h3>启用与并发字段</h3>
+<pre><code>isEnabled()          { return true }     // 一旦创建就始终启用（创建本身有门控）
+isConcurrencySafe()  { return true }
+isReadOnly()         { return true }
+isOpenWorld()        { return false }    // 非开放世界工具</code></pre>
+<blockquote class="callout"><p>**<code>isEnabled</code> 恒 true 的原因**（<code>:30-34</code> 注释）：工具的"是否启用"门控不在 <code>isEnabled</code>，而在<strong>创建时机</strong>——<code>main.tsx:2416</code> 的 <code>isSyntheticOutputToolEnabled({isNonInteractiveSession})</code> 在创建前就判过了（仅非交互式会话创建）。一旦创建进 tools 数组，就始终启用。</p></blockquote>
+<h3>模型面字段</h3>
+<pre><code>async description() { return '按请求的格式返回结构化输出' }
+async prompt()      {
+  return '使用此工具按请求的结构化格式返回最终响应。你必须在响应末尾精确调用一次此工具以提供结构化输出。'
+}</code></pre>
+<blockquote><p><code>prompt()</code> 明确要求模型<strong>在响应末尾精确调用一次</strong>——这是强制契约，QueryEngine 会校验是否调用（<code>:1081</code>、<code>:1278</code> 的 <code>error_max_structured_output_retries</code>）。</p></blockquote>
+<h3>Schema 字段（关键）</h3>
+<p><strong>静态原型的 schema</strong>（<code>:11-18</code>）：</p>
+<pre><code>inputSchema  = z.object({}).passthrough()   // 允许任意输入对象
+outputSchema = z.string()                    // 输出是字符串</code></pre>
+<p><strong>动态工具的 schema</strong>（<code>:140-141</code>）：</p>
+<pre><code>inputJSONSchema = jsonSchema   // 用户传入的 JSON schema，覆盖静态 schema</code></pre>
+<blockquote><p>静态原型的 <code>inputSchema</code> 用 <code>passthrough()</code>（允许任意键），是因为 schema 是动态注入的。动态工厂通过 <code>inputJSONSchema</code> 字段（<code>Tool</code> 接口的可选字段）注入用户 schema，模型看到的 tool 定义就是用户的 JSON schema。</p></blockquote>
+<h3>行为字段</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>字段</th><th>静态原型</th><th>动态工具（<code>buildSyntheticOutputTool</code>）</th></tr></thead>
+    <tbody>
+    <tr><td><code>call()</code></td><td><code>:59-65</code> 直接返回 <code>{data, structured_output: input}</code>（无校验）</td><td><code>:142-157</code> Ajv 校验，失败抛 <code>TelemetrySafeError</code></td></tr>
+    <tr><td><code>checkPermissions</code></td><td><code>:66-72</code> 返回 <code>allow</code>（始终允许）</td><td>继承静态原型</td></tr>
+    </tbody>
+  </table>
+</div>
+<hr class="divider">
+</section>
+
+  <section id="四核心执行流程call动态版">
+<h2>四、核心执行流程：<code>call()</code>（动态版）</h2>
+<p>动态工具的 <code>call()</code>（<code>:142-157</code>）极简——校验 + 返回：</p>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart LR
+    A[&quot;call(input)\nSyntheticOutputTool.ts:142\n（动态工具覆盖版）&quot;] --&gt; B[&quot;validateSchema(input)\nAjv 编译好的校验器&quot;]
+    B --&gt;|&quot;无效&quot;| X[&quot;抛 TelemetrySafeError:\n'输出不匹配必需的 schema：...'\n（错误信息截断 150 字符）&quot;]
+    B --&gt;|&quot;有效&quot;| C[&quot;return {\ndata: '成功提供结构化输出',\nstructured_output: input\n}&quot;]
+  </div>
+</div>
+<p><strong>关键点</strong>：</p>
+<ol><li><strong>校验器预编译</strong>（<code>:136</code>）：<code>ajv.compile(jsonSchema)</code> 在工具创建时就编译好，<code>call()</code> 里直接调用编译产物 <code>validateSchema(input)</code>——每次调用零编译开销。</li><li><strong>错误用异常而非 newMessages</strong>（<code>:148-151</code>）：与 <code>ExecuteExtraTool</code> 不同，这里校验失败**抛 <code>TelemetrySafeError</code>**。错误信息分两层——面向用户的中文 <code>输出不匹配必需的 schema：${errors}</code> + 遥测安全的长信息（截断 150 字符）。这是因为结构化输出失败是硬错误，需要 QueryEngine 的重试逻辑（<code>:1278</code>）捕获后让模型重试。</li><li>**返回 <code>structured_output</code> 字段**（<code>:155</code>）：这是 QueryEngine 识别的契约字段——<code>QueryEngine.ts:1081</code> 扫描 attachment 提取 <code>structured_output</code>，<code>:1463</code> 把它放进最终返回结构。</li></ol>
+<h3>静态原型 <code>call()</code>（<code>:59-65</code>，生产中不直接用）</h3>
+<p>静态原型不做校验，直接 <code>return {data: '成功提供结构化输出', structured_output: input}</code>。它是动态工厂的"基底"——<code>buildSyntheticOutputTool</code> 用 <code>{...SyntheticOutputTool, call: 覆盖版}</code> 继承所有字段，只覆盖 <code>inputJSONSchema</code> 和 <code>call()</code>。</p>
+<hr class="divider">
+</section>
+
+  <section id="五权限与安全">
+<h2>五、权限与安全</h2>
+<p>SyntheticOutputTool 是<strong>纯数据工具</strong>，权限极简：</p>
+<h3><code>checkPermissions</code> 返回 <code>allow</code>（<code>:66-72</code>）</h3>
+<pre><code>async checkPermissions(input) {
+  return { behavior: 'allow', updatedInput: input }
+}</code></pre>
+<p><strong>始终允许</strong>——它只是校验并返回数据，无副作用、无文件访问、无网络。<code>updatedInput</code> 原样回传。</p>
+<h3>真正的"安全"在创建门控</h3>
+<p>工具不暴露给普通用户——只有 SDK 非交互式会话 + 传入 schema 时才创建（<code>main.tsx:2416</code>）。<code>isSyntheticOutputToolEnabled</code>（<code>:22-26</code>）的判定就是 <code>opts.isNonInteractiveSession</code>——交互式 REPL 永远看不到这个工具。</p>
+<h3>Ajv schema 校验防注入</h3>
+<p><code>buildSyntheticOutputTool</code>（<code>:127-163</code>）在创建工具时先用 <code>ajv.validateSchema(jsonSchema)</code> 校验 schema 本身是否合法（<code>:132-135</code>）——非法 schema 返回 <code>{error}</code>，<code>main.tsx:2436</code> 记录 <code>tengu_structured_output_failure</code> 事件，不创建工具。这是防御性编程，防止恶意/错误 schema 导致 Ajv 编译崩溃。</p>
+<hr class="divider">
+</section>
+
+  <section id="六与其他系统工具的关系">
+<h2>六、与其他系统/工具的关系</h2>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    SDK[&quot;SDK 调用\nagent({schema: JSON_SCHEMA})&quot;] --&gt;|&quot;options.jsonSchema&quot;| MAIN[&quot;main.tsx:2416-2426&quot;]
+    MAIN --&gt;|&quot;isSyntheticOutputToolEnabled?&quot;| GATE{&quot;非交互式会话\n+ 有 jsonSchema?&quot;}
+    GATE --&gt;|&quot;是&quot;| CREATE[&quot;createSyntheticOutputTool(jsonSchema)\nSyntheticOutputTool.ts:116&quot;]
+    GATE --&gt;|&quot;否&quot;| HIDE[&quot;不创建，模型不可见&quot;]
+    CREATE --&gt; WEAK[&quot;WeakMap 缓存\n同 schema 引用复用&quot;]
+    CREATE --&gt; ADD[&quot;tools = [...tools, tool]\nmain.tsx:2426&quot;]
+    ADD --&gt; MODEL[&quot;模型可见\n必须调用一次&quot;]
+    MODEL --&gt;|&quot;call(input)&quot;| CALL[&quot;Ajv 校验 :142&quot;]
+    CALL --&gt; Q[&quot;QueryEngine.ts\n提取 structured_output\n:1081 / 返回 :1463&quot;]
+  </div>
+</div>
+<ul><li>**与 <code>SearchExtraTools</code>/<code>ExecuteExtraTool</code> 的关系：无<strong>。这是必须澄清的重点。三件套里 Search/Execute 是延迟工具发现链路，StructuredOutput 是结构化输出链路，</strong>两者完全独立**。源码中没有任何"把 ExecuteExtraTool 结果挂回真实工具名"的逻辑——ExecuteExtraTool 的 <code>mapToolResultToToolResultBlockParam</code>（<code>ExecuteTool.ts:194</code>）只是 <code>JSON.stringify</code>，不涉及本工具。</li><li>**与 <code>main.tsx</code> 的关系（创建入口）**：<code>:2416</code> 条件判定、<code>:2421</code> 创建、<code>:2426</code> 追加。注释（<code>:2423-2425</code>）明确——本工具被 <code>getTools()</code> 正常过滤排除（<code>tools.ts:346</code>），是"结构化输出的实现细节，而非用户控制的工具"。</li><li>**与 <code>tools.ts</code> 的关系（过滤）**：<code>:343-349</code> 的 <code>specialTools</code> 集合包含 <code>SYNTHETIC_OUTPUT_TOOL_NAME</code>，<code>getAllBaseTools().filter(tool =&gt; !specialTools.has(tool.name))</code> 把它从常规输出里剔除。</li><li>**与 <code>QueryEngine.ts</code> 的关系（消费）**：<code>:451-463</code> 检测工具存在并注册强制执行钩子 <code>registerStructuredOutputEnforcement</code>；<code>:834-852</code> 追踪调用计数（防无限重试）；<code>:1081-1082</code> 从 attachment 提取 <code>structured_output</code>；<code>:1278</code> 超过重试上限抛 <code>error_max_structured_output_retries</code>；<code>:1463</code> 把 <code>structured_output</code> 放进最终返回。</li><li>**与 <code>CORE_TOOLS</code> 的关系（白名单但被过滤）**：<code>:178</code> 在 <code>CORE_TOOLS</code> 里（说明它是"一等核心工具"），<code>tools.ts:83</code> 在 <code>ASYNC_AGENT_ALLOWED_TOOLS</code> 里（异步代理可用），<code>:128</code> 在 <code>COORDINATOR_MODE_ALLOWED_TOOLS</code> 里（coordinator 模式可用）。<strong>在 CORE_TOOLS 却被 getTools 过滤</strong>——这是有意设计：白名单保证它不被 <code>isDeferredTool</code> 判为延迟（从而不进 SearchExtraTools 索引），过滤保证它不污染普通交互式会话的工具列表。</li><li>**与 <code>claude.ts</code> 原生结构化输出的关系**：<code>:1720</code> 的 <code>modelSupportsStructuredOutputs(options.model)</code> 是另一条路径——原生 API 级别的结构化输出。本工具是<strong>工具路径</strong>的补充实现，两者择一。</li></ul>
+<hr class="divider">
+</section>
+
+  <section id="七亮点与设计取舍">
+<h2>七、亮点与设计取舍</h2>
+<ol><li><strong>静态原型 + 动态工厂的双层设计</strong>（<code>:28</code> + <code>:116</code>）：<code>SyntheticOutputTool</code> 是无 schema 的基底，<code>createSyntheticOutputTool(jsonSchema)</code> 用 <code>{...SyntheticOutputTool, inputJSONSchema, call}</code> 继承所有字段只覆盖两处。这是"用对象 spread 实现工具特化"的优雅模式。</li><li>**<code>WeakMap</code> 缓存省 Ajv 开销**（<code>:109-125</code>）：工作流脚本同 schema 引用调用 30-80 次，缓存把 80 次 Ajv 编译从 ~110ms 降到 ~4ms（注释 <code>:105-108</code>）。用 <code>WeakMap</code> 而非 <code>Map</code>——schema 对象可被 GC 回收时缓存自动清理，无内存泄漏。</li><li><strong>schema 合法性预检</strong>（<code>:132-135</code>）：创建工具前先 <code>ajv.validateSchema</code>，非法 schema 返回 <code>{error}</code> 不创建——防御性编程，防 Ajv 编译崩溃。</li><li>**<code>inputJSONSchema</code> 字段注入**（<code>:141</code>）：通过 <code>Tool</code> 接口的可选 <code>inputJSONSchema</code> 字段动态覆盖 schema，模型看到的 tool 定义就是用户的 JSON schema——无需为每个 schema 写新工具类。</li><li><strong>错误用异常而非 newMessages</strong>（<code>:148</code>）：与 ExecuteExtraTool 的"错误注入对话"策略相反。这里校验失败抛 <code>TelemetrySafeError</code>，由 QueryEngine 的重试逻辑捕获（<code>:1278</code>）——因为结构化输出失败是契约违背，需要主动重试而非让模型自由发挥。</li><li>**<code>TelemetrySafeError</code> 双信息**（<code>:148-151</code>）：用户面中文 + 遥测面英文（截断 150 字符）——防止 schema 细节（可能含敏感结构）泄露到遥测。</li><li><strong>CORE_TOOLS 白名单 + getTools 过滤的矛盾设计</strong>：白名单让它"不算延迟工具"（不进 Search 索引），过滤让它"不进普通会话工具列表"——两个机制配合，精确控制它的可见范围（仅 SDK 结构化输出场景）。</li><li><strong>强制单次调用契约</strong>（<code>prompt()</code> + QueryEngine 校验）：<code>prompt()</code> 要求"精确调用一次"，QueryEngine 计数防多调/漏调——这是把"返回结构化 JSON"的软约定硬化为工具调用契约。</li></ol>
+<hr class="divider">
+</section>
+
+  <section id="八源码导航书签速查">
+<h2>八、源码导航（书签速查）</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+    <tbody>
+    <tr><td>工具名常量</td><td><code>SyntheticOutputTool.ts:20</code></td></tr>
+    <tr><td>启用门控 <code>isSyntheticOutputToolEnabled</code></td><td><code>:22-26</code></td></tr>
+    <tr><td>静态原型 <code>buildTool</code></td><td><code>:28-101</code></td></tr>
+    <tr><td>静态 <code>call()</code>（无校验）</td><td><code>:59-65</code></td></tr>
+    <tr><td>静态 <code>checkPermissions</code>（allow）</td><td><code>:66-72</code></td></tr>
+    <tr><td>渲染字段（最小化，面向 SDK）</td><td><code>:74-100</code></td></tr>
+    <tr><td>WeakMap 缓存</td><td><code>:109</code></td></tr>
+    <tr><td>动态工厂 <code>createSyntheticOutputTool</code></td><td><code>:116-125</code></td></tr>
+    <tr><td><code>buildSyntheticOutputTool</code>（Ajv 校验）</td><td><code>:127-163</code></td></tr>
+    <tr><td>动态 <code>call()</code>（Ajv 校验 + 抛错）</td><td><code>:142-157</code></td></tr>
+    <tr><td>创建入口（main.tsx）</td><td><code>src/main.tsx:2416-2440</code></td></tr>
+    <tr><td>过滤逻辑（tools.ts）</td><td><code>src/tools.ts:343-349</code></td></tr>
+    <tr><td>消费逻辑（QueryEngine）</td><td><code>src/QueryEngine.ts:451-463</code>、<code>:1081-1082</code>、<code>:1278</code>、<code>:1463</code></td></tr>
+    <tr><td>原生结构化输出路径</td><td><code>src/services/api/claude.ts:1720</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<hr class="divider">
+</section>
+
+  <section id="九学习建议与验证清单">
+<h2>九、学习建议与验证清单</h2>
+<p><strong>怎么读这章</strong>：先看"一、工具定位"的<strong>澄清</strong>——理解本工具与三件套的 Search/Execute <strong>无关</strong>，是独立的结构化输出工具。然后看"四、call()"的 Ajv 校验，再看"六、关系"的创建-消费全链路（main.tsx 创建 → 模型调用 → QueryEngine 消费）。</p>
+<p><strong>验证清单（读完自测）</strong>：</p>
+<ul class="checklist"><li><input type="checkbox" disabled> <span>能说出本工具与 Search/Execute <strong>没有协作关系</strong>（纠正"三件套"误解）</span></li><li><input type="checkbox" disabled> <span>能解释为什么它在 <code>CORE_TOOLS</code> 却被 <code>getTools()</code> 过滤（白名单防延迟 + 过滤防污染交互式会话）</span></li><li><input type="checkbox" disabled> <span>能说出动态创建的两个条件（非交互式会话 + 传入 jsonSchema）</span></li><li><input type="checkbox" disabled> <span>能指出 <code>createSyntheticOutputTool</code> 用 <code>WeakMap</code> 缓存的动机（工作流同 schema 调 30-80 次，省 Ajv 编译）</span></li><li><input type="checkbox" disabled> <span>能解释静态原型与动态工具 <code>call()</code> 的区别（前者无校验，后者 Ajv 校验 + 抛错）</span></li><li><input type="checkbox" disabled> <span>能说出校验失败为何用异常而非 <code>newMessages</code>（契约违背，需 QueryEngine 重试）</span></li><li><input type="checkbox" disabled> <span>能指出 QueryEngine 如何消费 <code>structured_output</code>（<code>:1081</code> 提取、<code>:1463</code> 返回）</span></li><li><input type="checkbox" disabled> <span>能说出 <code>TelemetrySafeError</code> 双信息的用意（防 schema 细节泄露到遥测）</span></li></ul>
+<p><strong>配合动作</strong>：</p>
+<ol><li>用 SDK 模式 <code>agent({schema: {type:'object', properties:{bugs:{...}}}})</code>，观察模型在响应末尾调用 StructuredOutput，验证返回的 <code>structured_output</code> 符合 schema</li><li>故意让 schema 要求必填字段，让模型漏填，观察 <code>TelemetrySafeError</code> 抛出与 QueryEngine 重试（<code>:1278</code>）</li><li>在交互式 REPL 里确认本工具不可见（<code>getTools</code> 过滤生效）</li><li>在 <code>buildSyntheticOutputTool</code> 的 <code>:136</code> 加日志，验证同 schema 引用第二次创建走 WeakMap 缓存（不重新 compile）</li></ol>
+</section>
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

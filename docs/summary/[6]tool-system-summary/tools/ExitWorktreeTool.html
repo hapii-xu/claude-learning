@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ExitWorktreeTool 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    section { margin-top: 56px; }
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: var(--orange); }
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>ExitWorktreeTool 工具详解</h1>
+  <p>退出由 EnterWorktree 创建的 worktree 会话——支持 keep/remove 两动作，带未提交变更守卫与 tmux 会话清理</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei-yi">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian-qing-dan">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou-zi-duan-buildtool-zi-duan">三、Tool 接口字段实现</a></li>
+    <li><a href="#si-he-xin-zhi-xing-liu-cheng">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian-yu-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-yu-qi-xi-tong-gong-ju-de-guan-xi">六、与其他系统/工具的关系</a></li>
+    <li><a href="#qi-liang-dian-yu-she-ji-qu-she">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma-dao-hang">八、源码导航</a></li>
+    <li><a href="#jiu-xue-xi-jian-yi-yu-yan-zheng-qing-dan">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p>这是工具系统逐个拆解系列的一篇。<code>ExitWorktree</code> 是一个<strong>复杂度较高</strong>的"清理型"工具：它要做的不只是删个目录，还要安全地判定"worktree 里有没有未提交工作"、还原会话状态、处理 tmux 会话、区分"--worktree 启动 vs 会话中期进入"两种进入路径。它的 <code>validateInput</code> 是系列里少见的"失败即关闭"安全门控样本。读完这篇你会理解 Claude Code 如何用一道道守卫确保"退出 worktree 不会误删用户工作"。</p></blockquote>
+
+  <hr class="divider">
+
+  <hr class="divider">
+
+  <section id="yi-gong-ju-ding-wei-yi">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>ExitWorktree</code> = 安全退出当前会话的 worktree，按用户选择保留或删除。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>ExitWorktree</code>（常量 <code>EXIT_WORKTREE_TOOL_NAME</code>，<code>constants.ts:1</code>）</td></tr>
+          <tr><td>一句话</td><td>退出本会话由 <code>EnterWorktree</code> 创建的 worktree，恢复原始 cwd；<code>remove</code> 时按需清理目录/分支/tmux</td></tr>
+          <tr><td>是否进 system prompt</td><td>❌ 不在 <code>CORE_TOOLS</code>（延迟工具，<code>shouldDefer: true</code>）</td></tr>
+          <tr><td>注册门控</td><td><code>isWorktreeModeEnabled()</code>（<code>src/tools.ts:254</code>），与 EnterWorktree 同门</td></tr>
+          <tr><td>只读 / 破坏性</td><td><code>keep</code> → 非破坏；<code>remove</code> → <strong>破坏性</strong>（<code>isDestructive: action === 'remove'</code>，<code>:168</code>）</td></tr>
+          <tr><td>异步代理可用</td><td>✅ 在 <code>ASYNC_AGENT_ALLOWED_TOOLS</code> 白名单（<code>src/constants/tools.ts:87</code>）</td></tr>
+          <tr><td>核心依赖</td><td><code>src/utils/worktree.ts</code> 的 <code>keepWorktree</code> / <code>cleanupWorktree</code> / <code>killTmuxSession</code></td></tr>
+          <tr><td>配对工具</td><td><code>EnterWorktree</code>（唯一合法的进入路径）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> 进 worktree 容易，干净地退出来难——用户可能在 worktree 里改了文件、提了 commit、开了 tmux。<code>ExitWorktree</code> 把这些"善后"全部封装：保留时通知 tmux 还在跑、删除前强制要求 <code>discard_changes: true</code>、还原会话状态到进入前的样子。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-guan-jian-wen-jian-qing-dan">
+    <h2>二、关键文件清单</h2>
+    <pre><code>ExitWorktreeTool/
+├── ExitWorktreeTool.ts   ← buildTool({...}) 主体（331 行），含 validateInput 安全门控
+├── prompt.ts             ← getExitWorktreeToolPrompt()：范围/何时用/参数/行为
+├── UI.tsx                ← Ink 渲染（区分 keep/remove 的结果展示）
+└── constants.ts          ← EXIT_WORKTREE_TOOL_NAME = 'ExitWorktree'</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>ExitWorktreeTool.ts</code></td><td>工具主体：schema + 安全守卫 + call() 全在这</td><td><code>buildTool:148</code>、<code>validateInput:174</code>、<code>call:227</code>、<code>countWorktreeChanges:79</code>、<code>restoreSessionToOriginalCwd:122</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>中文使用指南，明确"仅操作本会话 EnterWorktree 创建的 worktree"</td><td><code>getExitWorktreeToolPrompt:1</code></td></tr>
+          <tr><td><code>UI.tsx</code></td><td>终端渲染：keep 显示"已保留 worktree"，remove 显示"已删除 worktree"</td><td><code>renderToolResultMessage:12</code></td></tr>
+          <tr><td><code>constants.ts</code></td><td>工具名常量</td><td><code>EXIT_WORKTREE_TOOL_NAME:1</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：本目录里行数最多（331 行）的 ExitWorktreeTool.ts 把"变更计数"和"会话状态还原"两个辅助函数也内联了进来——因为它们和工具语义强绑定，不值得拆到 <code>worktree.ts</code> 里。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-tool-jie-kou-zi-duan-buildtool-zi-duan">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre><code>name: EXIT_WORKTREE_TOOL_NAME,                    // "ExitWorktree"
+searchHint: '退出 worktree 会话并返回原始目录',
+maxResultSizeChars: 100_000,
+shouldDefer: true,
+isDestructive(input) { return input.action === 'remove' },   // ← 动态破坏性</code></pre>
+    <blockquote class="callout"><p><strong><code>isDestructive</code> 是函数而非常量</strong>：这是系列里少见的"输入相关破坏性"判定。<code>remove</code> 才算破坏性，<code>keep</code> 不是。这让权限系统可以按输入差异化提示用户。</p></blockquote>
+    <h3>模型面字段</h3>
+    <pre><code>async description() { return '退出由 EnterWorktree 创建的 worktree 会话…' }
+async prompt()      { return getExitWorktreeToolPrompt() }
+userFacingName()    { return '退出 worktree' }</code></pre>
+    <p><strong>输入 schema</strong>（<code>:30-44</code>，<code>z.strictObject</code>）：</p>
+    <pre><code>{
+  action: 'keep' | 'remove',       // 必填
+  discard_changes?: boolean,       // remove 时若有未提交工作，必须显式 true
+}</code></pre>
+    <p><strong>输出 schema</strong>（<code>:47-58</code>）：</p>
+    <pre><code>{
+  action: 'keep' | 'remove',
+  originalCwd: string,             // 进入前的目录（还原目标）
+  worktreePath: string,
+  worktreeBranch?: string,
+  tmuxSessionName?: string,        // keep 时仍存活的 tmux 名
+  discardedFiles?: number,         // remove 时丢弃的未提交文件数
+  discardedCommits?: number,       // remove 时丢弃的提交数
+  message: string,
+}</code></pre>
+    <h3>行为字段</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:227</code></td><td>核心逻辑（见下节）</td></tr>
+          <tr><td><code>validateInput(input)</code></td><td><code>:174</code></td><td><strong>安全门控</strong>：范围守卫 + 变更守卫（见下节）</td></tr>
+          <tr><td><code>isDestructive(input)</code></td><td><code>:168</code></td><td><code>action === 'remove'</code> 才算破坏</td></tr>
+          <tr><td><code>toAutoClassifierInput(input)</code></td><td><code>:171</code></td><td>返回 <code>input.action</code>（keep/remove）</td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>:323</code></td><td>只塞 <code>message</code>，路径信息走 UI</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>注意缺失</strong>：没有 <code>checkPermissions</code>、没有 <code>isReadOnly</code>/<code>isConcurrencySafe</code>。安全全部寄托在 <code>validateInput</code> 的两道守卫上。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-he-xin-zhi-xing-liu-cheng">
+    <h2>四、核心执行流程</h2>
+    <h3><code>validateInput</code>（<code>:174-224</code>，第 3 步）—— 安全门控</h3>
+    <p>这是 ExitWorktreeTool 最值得学的地方，包含<strong>两道守卫</strong>：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    V["validateInput(input)\n:174"] --> S1{"getCurrentWorktreeSession()?"}
+    S1 -- "null（不在本会话 worktree）" --> N1["返回 result:false\nmessage='空操作：没有活动的 EnterWorktree 会话…'\nerrorCode:1"]
+    S1 -- "有 session" --> S2{"action === 'remove'\n&& !discard_changes?"}
+    S2 -- "否" --> OK["返回 result:true"]
+    S2 -- "是" --> CT["countWorktreeChanges(path, originalHeadCommit)\n:191"]
+    CT --> S3{"summary === null?"}
+    S3 -- "是（git 失败/无基线）" --> N3["result:false\n'无法验证状态，拒绝删除'\nerrorCode:3"]
+    S3 -- "否" --> S4{"changedFiles>0 ∥ commits>0?"}
+    S4 -- "是" --> N2["result:false\n列出未提交文件数与提交数\n要求 discard_changes:true\nerrorCode:2"]
+    S4 -- "否" --> OK
+      </div>
+    </div>
+    <p><strong>守卫 1：范围守卫</strong>（<code>:180-188</code>）</p>
+    <p><code>getCurrentWorktreeSession()</code> 为 null 时直接拒绝，<code>message</code> 明确写"空操作"——不报错，只是说明没事可做。这是为了<strong>不误伤</strong>手动 <code>git worktree add</code> 或先前会话创建的 worktree。</p>
+    <p><strong>守卫 2：变更守卫</strong>（<code>:190-221</code>）</p>
+    <p><code>action: 'remove'</code> 且未带 <code>discard_changes: true</code> 时，调用 <code>countWorktreeChanges</code>：</p>
+    <ul>
+      <li>返回 <code>null</code>（git 失败 / 无 baseline commit）→ <code>errorCode: 3</code>，<strong>失败即关闭</strong>——绝不假设 0/0 就安全（见 <code>:78</code> 注释）。</li>
+      <li><code>changedFiles &gt; 0 || commits &gt; 0</code> → <code>errorCode: 2</code>，列出具体数量，要求显式确认。</li>
+    </ul>
+    <h3><code>countWorktreeChanges</code>（<code>:79-113</code>）—— 失败即关闭的计数器</h3>
+    <pre><code>async function countWorktreeChanges(worktreePath, originalHeadCommit):
+  Promise&lt;{ changedFiles, commits } | null&gt;</code></pre>
+    <ul>
+      <li><code>git status --porcelain</code> 非零退出 → <code>null</code></li>
+      <li><code>originalHeadCommit</code> 为 undefined（hook 包装的 worktree，<code>worktree.ts:525-532</code> 未设置）→ <code>null</code>（不能算 commits，保守失败）</li>
+      <li><code>git rev-list --count &lt;base&gt;..HEAD</code> 非零 → <code>null</code></li>
+    </ul>
+    <blockquote class="callout"><p><strong>设计哲学</strong>（<code>:67-78</code> 注释）：宁可让用户重试，也不静默 0/0 删掉真实工作。这是"安全门控"的教科书实现。</p></blockquote>
+    <h3><code>call()</code>（<code>:227-322</code>，第 6 步）</h3>
+    <p>通过 validateInput 后，<code>call()</code> 分两路：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    C["call(input)\n:227"] --> R["重查 session（防竞态）\n:228"]
+    R --> PR["计算 projectRootIsWorktree\n:251"]
+    PR --> RC["重算 changedFiles/commits（执行时点）\n:257"]
+    RC --> A{"action?"}
+    A -- "keep" --> K["keepWorktree()\n:263"]
+    K --> RS["restoreSessionToOriginalCwd\n:264"]
+    K --> KLOG["logEvent('tengu_worktree_kept')\n:266"]
+    KLOG --> KRET["返回 keep 结果\n含 tmuxSessionName 重附提示"]
+    A -- "remove" --> KT{"tmuxSessionName?"}
+    KT -- "有" --> KILL["killTmuxSession()\n:289"]
+    KT -- "无" --> CU["cleanupWorktree()\n:291"]
+    KILL --> CU
+    CU --> RS2["restoreSessionToOriginalCwd\n:292"]
+    RS2 --> RLOG["logEvent('tengu_worktree_removed')\n:294"]
+    RLOG --> RRET["返回 remove 结果\n含 discardedFiles/Commits"]
+      </div>
+    </div>
+    <p><strong>关键点</strong>：</p>
+    <ol>
+      <li><strong>重查 session 防竞态</strong>（<code>:228-233</code>）：<code>validateInput</code> 与 <code>call()</code> 之间模块级可变状态可能变化，再次 <code>getCurrentWorktreeSession()</code> 为 null 时 <code>throw</code>。</li>
+      <li><strong><code>projectRootIsWorktree</code> 判定</strong>（<code>:251</code>）：<code>getProjectRoot() === getOriginalCwd()</code> 用来区分"会话中期进入"（false，不动 projectRoot）与"<code>--worktree</code> 启动进入"（true，要还原 projectRoot + 重读 hooks 配置）。<code>ExitWorktreeTool.ts:244-251</code> 的长注释详细解释了为什么不能用 <code>getCwd()</code>（BashTool 每次改）也不能用 <code>session.worktreePath</code>（不是 realpath）。</li>
+      <li><strong>执行时点重算变更</strong>（<code>:257</code>）：validateInput 时的状态可能已过期，<code>call()</code> 里再算一次用于埋点和消息。此时 <code>null</code> 回退到 0/0 是安全的（守卫已经在 validateInput 做过了）。</li>
+      <li><strong>tmux 处理差异</strong>：<code>keep</code> 时 tmux 继续跑，<code>message</code> 带重附命令（<code>:272-273</code>）；<code>remove</code> 时先 <code>killTmuxSession</code> 再 <code>cleanupWorktree</code>。</li>
+    </ol>
+    <h3><code>restoreSessionToOriginalCwd</code>（<code>:122-146</code>）—— EnterWorktree 的逆操作</h3>
+    <p>5 步还原：</p>
+    <ol>
+      <li><code>setCwd(originalCwd)</code></li>
+      <li><code>setOriginalCwd(originalCwd)</code>（EnterWorktree 把它设成了 worktree，这里重置回真正原始路径）</li>
+      <li>仅 <code>projectRootIsWorktree</code> 时：<code>setProjectRoot(originalCwd)</code> + <code>updateHooksConfigSnapshot()</code>（对称还原 <code>--worktree</code> 启动时的 hooks 重读）</li>
+      <li><code>saveWorktreeState(null)</code>（清掉会话 worktree 记录）</li>
+      <li>三类缓存清理（system prompt / memory / plans）</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian-yu-an-quan">
+    <h2>五、权限与安全</h2>
+    <p>ExitWorktreeTool 把安全全部寄托在 <code>validateInput</code>，没有 <code>checkPermissions</code>：</p>
+    <h3>范围安全（防误删他人 worktree）</h3>
+    <p><code>getCurrentWorktreeSession()</code>（<code>worktree.ts:158</code>）只在 <code>createWorktreeForSession</code> 里被设置。这意味着：</p>
+    <ul>
+      <li>手动 <code>git worktree add</code> → <code>ExitWorktree</code> 空操作（不报错，提示"没有活动会话"）</li>
+      <li>先前会话进入的 worktree → 同样空操作</li>
+    </ul>
+    <p><code>prompt.ts:6-11</code> 明确划清边界：</p>
+    <blockquote class="callout"><p>此工具仅操作由本会话中 EnterWorktree 创建的 worktree。它不会触及你手动用 git worktree add 创建的 worktree、来自先前会话的 worktree……</p></blockquote>
+    <h3>数据安全（防误删未提交工作）</h3>
+    <p><code>countWorktreeChanges</code> 的"失败即关闭"策略是核心：</p>
+    <ul>
+      <li>git 状态读不出来 → 拒绝删除（<code>errorCode: 3</code>）</li>
+      <li>有未提交文件或未合并提交 → 要求 <code>discard_changes: true</code>（<code>errorCode: 2</code>）</li>
+    </ul>
+    <p><code>discard_changes</code> 默认 false，且 prompt（<code>prompt.ts:23</code>）要求模型在重设该参数前必须<strong>与用户确认</strong>——这是双重保险。</p>
+    <h3>破坏性标记</h3>
+    <p><code>isDestructive(input)</code> 返回 <code>action === 'remove'</code>，让权限/UI 系统能对 <code>remove</code> 路径特别警示。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-yu-qi-xi-tong-gong-ju-de-guan-xi">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    EXIT -->|范围判据| WTS["getCurrentWorktreeSession\nworktree.ts:158"]
+    EXIT -->|变更计数| GIT["git status --porcelain\ngit rev-list --count"]
+    EXIT -->|keep 路径| KEEP["keepWorktree\nworktree.ts:780"]
+    EXIT -->|remove 路径| CUP["cleanupWorktree\nworktree.ts:813"]
+    EXIT -->|tmux| TMUX["killTmuxSession\nworktree.ts:693"]
+    EXIT -->|会话还原| STATE["setCwd/setOriginalCwd/setProjectRoot\nbootstrap/state.ts"]
+    EXIT -->|hooks 重读| HOOK["updateHooksConfigSnapshot"]
+    EXIT -.强配对.-> ENTER["EnterWorktreeTool\n唯一合法的进入路径"]
+    EXIT -.启动对称.-> SETUP["setup.ts 的 --worktree 块\n启动时的对称还原"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 <code>EnterWorktree</code> 的关系</strong>：强配对。ExitWorktreeTool.ts:127-129 注释明确指出 <code>restoreSessionToOriginalCwd</code> 是 <code>EnterWorktreeTool.call()</code> 会话级变更的<strong>逆操作</strong>。</li>
+      <li><strong>与会话状态系统</strong>：直接写 <code>setCwd</code>/<code>setOriginalCwd</code>/<code>setProjectRoot</code>，并触发 <code>updateHooksConfigSnapshot</code>——比 EnterWorktree 多动一个 <code>projectRoot</code>（条件性）。</li>
+      <li><strong>与 tmux 系统</strong>：keep 时保留 tmux 名字供用户重附，remove 时主动 kill——这是 <code>--tmux + --worktree</code> 组合启动的善后。</li>
+      <li><strong>与 <code>ASYNC_AGENT_ALLOWED_TOOLS</code></strong>：两个 worktree 工具都在异步代理白名单（<code>src/constants/tools.ts:86-87</code>），说明它们被设计成可被子代理使用。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian-yu-she-ji-qu-she">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>"失败即关闭" 的安全门控</strong>（<code>:67-78</code> 注释）：<code>countWorktreeChanges</code> 返回 null 时<strong>绝不静默 0/0</strong>。这是防数据丢失的关键——注释明确说"静默的 0/0 会让 cleanupWorktree 销毁真实工作"。</li>
+      <li><strong><code>isDestructive</code> 动态化</strong>（<code>:168-170</code>）：把破坏性绑定到 <code>action</code> 字段，让权限系统能差异化对待 keep/remove。这是工具接口灵活性的体现。</li>
+      <li><strong>进入路径区分</strong>（<code>:244-251</code>）：用 <code>projectRoot === originalCwd</code> 这一招区分"会话中期进入"与"<code>--worktree</code> 启动进入"，并据此决定是否还原 projectRoot 和重读 hooks。注释解释了为什么不能用更直观的 <code>getCwd()</code>（BashTool 改动）或 <code>session.worktreePath</code>（非 realpath）。</li>
+      <li><strong>重查防竞态</strong>（<code>:228-233</code>）：validateInput 通过不代表 call 时 session 还在——模块级可变状态要求关键守卫在 call 里重做一遍。</li>
+      <li><strong>执行时点重算</strong>（<code>:257</code>）：埋点和消息用执行时点的真实变更数，而非 validateInput 时的快照——保证埋点准确。</li>
+      <li><strong>tmux 善后不对称</strong>：keep 时保留 tmux 名字让用户重附，remove 时主动 kill——符合"保留 = 一切照旧，删除 = 彻底清理"的直觉。</li>
+      <li><strong>prompt 的范围声明</strong>（<code>prompt.ts:6-11</code>）：明确写"不会触及手动创建/先前会话的 worktree"，把工具的"作用域"讲清楚——这是减少模型误用的有效手段。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-yuan-ma-dao-hang">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>ExitWorktreeTool/constants.ts:1</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>ExitWorktreeTool.ts:148-330</code></td></tr>
+          <tr><td>输入/输出 schema</td><td><code>ExitWorktreeTool.ts:30-60</code></td></tr>
+          <tr><td><code>validateInput</code> 安全门控</td><td><code>ExitWorktreeTool.ts:174-224</code></td></tr>
+          <tr><td><code>countWorktreeChanges</code>（失败即关闭）</td><td><code>ExitWorktreeTool.ts:79-113</code></td></tr>
+          <tr><td><code>restoreSessionToOriginalCwd</code></td><td><code>ExitWorktreeTool.ts:122-146</code></td></tr>
+          <tr><td><code>call()</code> 核心逻辑</td><td><code>ExitWorktreeTool.ts:227-322</code></td></tr>
+          <tr><td>进入路径区分注释</td><td><code>ExitWorktreeTool.ts:244-251</code></td></tr>
+          <tr><td>进 prompt 的范围声明</td><td><code>prompt.ts:6-11</code></td></tr>
+          <tr><td>注册门控</td><td><code>src/tools.ts:254</code></td></tr>
+          <tr><td>底层 keep/cleanup/killTmux</td><td><code>src/utils/worktree.ts:780,813,693</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-xue-xi-jian-yi-yu-yan-zheng-qing-dan">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先读"一、工具定位"理解它为何是 EnterWorktree 的镜像，再精读"四、validateInput"理解两道安全守卫，最后看"四、call()"末尾的进入路径区分注释（这是全文最精妙的设计）。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 <code>validateInput</code> 的两道守卫（范围守卫 + 变更守卫）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么 <code>countWorktreeChanges</code> 返回 null 时要拒绝删除（失败即关闭，防静默 0/0 销毁工作）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>isDestructive</code> 为何是函数而非常量（绑定 <code>action === 'remove'</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 <code>projectRootIsWorktree</code> 判定的作用（区分会话中期进入 vs <code>--worktree</code> 启动）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么 <code>call()</code> 里要重查 <code>getCurrentWorktreeSession()</code>（防 validateInput 与 call 之间的竞态）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 tmux 在 keep/remove 两种路径下的不同处理（keep 保留+提示重附，remove 主动 kill）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出为什么 <code>discard_changes</code> 默认 false 且 prompt 要求重设前与用户确认（双重防误删）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>先 <code>EnterWorktree</code>，在 worktree 里改一个文件不提交，再尝试 <code>ExitWorktree { action: 'remove' }</code>——验证 <code>errorCode: 2</code> 守卫触发</li>
+      <li>上面场景用 <code>discard_changes: true</code> 重试，验证 worktree 被删除、cwd 还原</li>
+      <li>在非 worktree 会话里直接调 <code>ExitWorktree</code>，验证"空操作"提示（<code>errorCode: 1</code>）</li>
+      <li>对照阅读 <code>EnterWorktreeTool.ts:99-107</code>，理解"进入时的状态变更"如何对应"退出时的还原步骤"</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

@@ -1,13 +1,13 @@
 /**
- * Leader Permission Bridge
+ * Leader 权限桥接
  *
- * Module-level bridge that allows the REPL to register its setToolUseConfirmQueue
- * and setToolPermissionContext functions for in-process teammates to use.
+ * 模块级桥接，允许 REPL 注册其 setToolUseConfirmQueue
+ * 和 setToolPermissionContext 函数供进程内 teammate 使用。
  *
- * When an in-process teammate requests permissions, it uses the standard
- * ToolUseConfirm dialog rather than the worker permission badge. This bridge
- * makes the REPL's queue setter and permission context setter accessible
- * from non-React code in the in-process runner.
+ * 当进程内 teammate 请求权限时，它使用标准的
+ * ToolUseConfirm 对话框而非 worker 权限徽章。此桥接
+ * 使 REPL 的队列设置器和权限上下文设置器可从
+ * 进程内运行器的非 React 代码中访问。
  */
 
 import type { ToolUseConfirm } from '../../components/permissions/PermissionRequest.js'

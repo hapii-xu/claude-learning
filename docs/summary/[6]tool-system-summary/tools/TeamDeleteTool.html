@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TeamDelete 工具详解 — Claude Code 工具详解</title>
+  <style>    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── SVG Diagram ──────────────────────────────────────── */
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      margin: 0 auto;
+      font-family: var(--font-sans);
+    }
+
+    /* SVG tooltip via CSS title */
+    .node-group { cursor: default; }
+    .node-group:hover rect.node-rect { filter: brightness(.93); }
+
+    /* ── Card Grid ────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .path-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: box-shadow .15s, border-color .15s;
+    }
+
+    .path-card:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--orange-lt);
+    }
+
+    .badge-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .card-body { flex: 1; min-width: 0; }
+
+    .card-trigger {
+      font-weight: 700;
+      font-size: .9rem;
+      color: var(--text);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    .card-module {
+      font-family: var(--font-mono);
+      font-size: .76rem;
+      color: var(--text-2);
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .card-flag {
+      font-size: .72rem;
+      color: var(--blue);
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .badge-enable {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    /* ── Collapsible knowledge cards ─────────────────────── */
+    .knowledge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    details.know-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    details.know-card[open] {
+      border-color: var(--orange-lt);
+    }
+
+    details.know-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      outline: none;
+    }
+
+    details.know-card > summary::-webkit-details-marker { display: none; }
+
+    details.know-card > summary:hover { background: var(--bg); }
+
+    .know-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    details.know-card[open] .know-num {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .know-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: .97rem;
+    }
+
+    .know-arrow {
+      width: 20px;
+      height: 20px;
+      color: var(--text-3);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    details.know-card[open] .know-arrow {
+      transform: rotate(90deg);
+      color: var(--orange);
+    }
+
+    .know-body {
+      padding: 0 20px 20px 64px;
+    }
+
+    .know-body p { margin-bottom: 8px; }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    /* CSS-only syntax highlighting */
+    .kw  { color: #7c9bff; font-weight: 600; }  /* keywords */
+    .str { color: #6cc77a; }                      /* strings */
+    .fn  { color: #f0906a; }                      /* function calls */
+    .cmt { color: #6e6a62; font-style: italic; } /* comments */
+    .type{ color: #e0a020; }                      /* TypeScript types */
+    .num { color: #c792ea; }                      /* numbers */
+
+    /* inline code */
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Comparison Table ─────────────────────────────────── */
+    .compare-table th:first-child { width: 130px; }
+    .compare-table th:nth-child(2) { color: var(--orange-dk); }
+    .compare-table th:nth-child(3) { color: var(--blue-dk); }
+
+    /* ── Key files ────────────────────────────────────────── */
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--blue-dk);
+      cursor: default;
+      position: relative;
+    }
+
+    .file-path:hover::after {
+      content: attr(data-full);
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+      background: #1e1b16;
+      color: #d4cfc8;
+      font-size: .75rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+      pointer-events: none;
+    }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    ul.key-list {
+      padding-left: 20px;
+      color: var(--text-2);
+    }
+
+    ul.key-list li { margin-bottom: 4px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .know-body { padding-left: 20px; }
+    }
+
+    /* === Additional styles === */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    section { margin-top: 56px; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>TeamDelete 工具详解</h1>
+  <p>优雅关闭团队——先终止活跃 teammate、等待确认、再清理团队与任务目录，是 Agent Teams 生命周期的收尾工具</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一工具定位一句话总结">一、工具定位（一句话总结）</a></li>
+    <li><a href="#二关键文件清单">二、关键文件清单</a></li>
+    <li><a href="#三tool-接口字段实现buildtool-逐字段">三、Tool 接口字段实现（`buildTool` 逐字段）</a></li>
+    <li><a href="#四核心执行流程call">四、核心执行流程：`call()`</a></li>
+    <li><a href="#五权限与安全">五、权限与安全</a></li>
+    <li><a href="#六与其他系统工具的关系">六、与其他系统/工具的关系</a></li>
+    <li><a href="#七亮点与设计取舍">七、亮点与设计取舍</a></li>
+    <li><a href="#八源码导航书签速查">八、源码导航（书签速查）</a></li>
+    <li><a href="#九学习建议与验证清单">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+  <section id="一工具定位一句话总结">
+<h2>一、工具定位（一句话总结）</h2>
+<p>**<code>TeamDelete</code> = 优雅终止活跃 teammate 后清理团队/任务目录的销毁型工具。**</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>维度</th><th>值</th></tr></thead>
+    <tbody>
+    <tr><td>工具名</td><td><code>TeamDelete</code>（常量 <code>TEAM_DELETE_TOOL_NAME</code>，<code>constants.ts:1</code>）</td></tr>
+    <tr><td>一句话</td><td>终止活跃 teammate → 等待退出 → 清理团队/任务目录 → 清 AppState</td></tr>
+    <tr><td>是否进 system prompt</td><td>❌ 不在 <code>CORE_TOOLS</code>（<code>src/constants/tools.ts:137</code>），<code>shouldDefer: true</code></td></tr>
+    <tr><td>只读 / 破坏性</td><td><strong>强破坏性</strong>（删目录、杀进程、清状态）——无 <code>isReadOnly()</code></td></tr>
+    <tr><td>是否可并发</td><td>未声明（默认非并发安全，符合"销毁"语义）</td></tr>
+    <tr><td>启用条件</td><td>注册<strong>无条件</strong>（<code>tools.ts:258</code>）；运行时由 <code>isAgentSwarmsEnabled()</code> 把关（<code>TeamDeleteTool.ts:90</code>）</td></tr>
+    <tr><td>核心依赖</td><td><code>src/utils/swarm/teamHelpers.ts</code>、<code>src/utils/swarm/backends/*</code>、<code>src/utils/swarm/teammateLayoutManager.ts</code></td></tr>
+    <tr><td>定位互补方</td><td><code>TeamCreate</code>（创建团队）</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><strong>为什么需要它？</strong> 团队是磁盘上的持久状态（配置文件 + 任务目录 + worktree）。如果直接退出会话而不清理，资源会残留（历史 bug gh-32730）。更关键的是，teammate 是独立运行的 agent 进程/pane，直接删目录会留下孤儿进程。TeamDelete 保证"先停人、再拆屋"的有序退出。</p>
+<hr class="divider">
+</section>
+
+  <section id="二关键文件清单">
+<h2>二、关键文件清单</h2>
+<pre><code>TeamDeleteTool/
+├── TeamDeleteTool.ts   ← buildTool({...}) 主体（235 行），call() 含三层逻辑
+├── prompt.ts           ← 简短说明（16 行，强调&quot;活跃成员存在时失败&quot;）
+├── UI.tsx              ← renderToolUseMessage + renderToolResultMessage（结果被抑制）
+└── constants.ts        ← TEAM_DELETE_TOOL_NAME 常量（1 行）</code></pre>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+    <tbody>
+    <tr><td><code>TeamDeleteTool.ts</code></td><td>工具主体：三层清理逻辑全在这</td><td><code>buildTool:49</code>、<code>call:89</code>、活跃成员终止 <code>:111-194</code>、清理 <code>:197-205</code></td></tr>
+    <tr><td><code>prompt.ts</code></td><td>进 system prompt 的简短说明</td><td><code>:1-16</code></td></tr>
+    <tr><td><code>UI.tsx</code></td><td>渲染（结果消息<strong>被有意抑制</strong>返回 null）</td><td><code>renderToolResultMessage:9-22</code></td></tr>
+    <tr><td><code>constants.ts</code></td><td>工具名常量</td><td><code>:1</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p><strong>结构特点</strong>：与 TeamCreate 的"长 prompt + 中等 call"不同，TeamDelete 是"短 prompt + 长 call"。清理逻辑（终止 + 等待 + 阻塞判定）占 <code>call()</code> 大部分篇幅（<code>:100-211</code>），prompt 反而极简——因为删除操作的语义不言自明。</p></blockquote>
+<hr class="divider">
+</section>
+
+  <section id="三tool-接口字段实现buildtool-逐字段">
+<h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+<h3>标识字段</h3>
+<pre><code>name: TEAM_DELETE_TOOL_NAME,        // &quot;TeamDelete&quot;
+searchHint: 'disband delete swarm team cleanup, ...',
+maxResultSizeChars: 100_000,
+shouldDefer: true,                  // 延迟工具
+userFacingName() { return '' },     // UI 不单独展示</code></pre>
+<h3>模型面字段</h3>
+<pre><code>async description() { return '在 swarm 完成后清理团队和任务目录' }
+async prompt()      { return getPrompt() }
+get inputSchema()  { return inputSchema() }</code></pre>
+<p><strong>输入 schema</strong>（<code>TeamDeleteTool.ts:29-38</code>）——极简，只有一个可选参数：</p>
+<pre><code>{
+  wait_ms?: number   // 可选，0–30000，清理前等待活跃 teammate 确认关闭的毫秒数
+}</code></pre>
+<blockquote class="callout"><p><strong>设计要点</strong>：团队名<strong>不从输入取</strong>，而是从 <code>appState.teamContext?.teamName</code> 读（<code>:98</code>）。这避免模型误删别的团队——只能删"当前会话负责的团队"。</p></blockquote>
+<p><strong>输出类型</strong>（<code>:41-45</code>）：</p>
+<pre><code>{
+  success: boolean,
+  message: string,
+  team_name?: string,
+}</code></pre>
+<h3>行为字段</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+    <tbody>
+    <tr><td><code>call()</code></td><td><code>:89</code></td><td>核心逻辑（见下节）</td></tr>
+    <tr><td><code>isEnabled()</code></td><td><code>:64</code> → <code>true</code></td><td>工具级恒真；业务门控在 <code>call()</code> 内</td></tr>
+    <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>:76</code></td><td>Output JSON 化</td></tr>
+    <tr><td><code>renderToolUseMessage</code></td><td><code>UI.tsx:5</code></td><td>显示"清理团队：当前"</td></tr>
+    <tr><td><code>renderToolResultMessage</code></td><td><code>UI.tsx:9</code></td><td><strong>有意返回 null</strong>（注释 <code>:17</code>：批量关闭消息已覆盖）</td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote><p><strong>缺失的字段</strong>：没有 <code>validateInput</code>（输入太简单，无需校验）、没有 <code>checkPermissions</code>、没有 <code>isReadOnly</code>/<code>isConcurrencySafe</code>。<code>wait_ms</code> 的范围约束（0–30000）由 Zod <code>.min(0).max(30_000)</code> 在 schema 层强制。</p></blockquote>
+<hr class="divider">
+</section>
+
+  <section id="四核心执行流程call">
+<h2>四、核心执行流程：<code>call()</code></h2>
+<p><code>call()</code>（<code>TeamDeleteTool.ts:89-231</code>）分三大阶段：</p>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    A[&quot;call(input, ctx)\n:89&quot;] --&gt; B{&quot;isAgentSwarmsEnabled()?&quot;}
+    B -- 否 --&gt; X[&quot;throw&quot;]
+    B -- 是 --&gt; C[&quot;读 teamName = appState.teamContext?.teamName&quot;]
+    C --&gt; D{&quot;teamName 存在?&quot;}
+    D -- 否 --&gt; Z[&quot;直接清 AppState, 返回 success&quot;]
+    D -- 是 --&gt; E[&quot;readTeamFile 读取成员&quot;]
+    E --&gt; F[&quot;过滤非负责人 + 活跃成员\n(isActive !== false)&quot;]
+    F --&gt; G{&quot;有活跃成员?&quot;}
+    G -- 否 --&gt; M
+    G -- 是 --&gt; H[&quot;遍历: 按后端类型 terminate\n(in-process / pane backend)&quot;]
+    H --&gt; I{&quot;wait_ms &gt; 0?&quot;}
+    I -- 是 --&gt; J[&quot;循环轮询 readTeamFile\n直到无活跃成员或超时&quot;]
+    I -- 否 --&gt; K
+    J --&gt; K{&quot;仍活跃?&quot;}
+    K -- 是 --&gt; R[&quot;返回 success:false\n列出阻塞成员名&quot;]
+    K -- 否 --&gt; L[&quot;再次确认无活跃成员&quot;]
+    L --&gt; M[&quot;cleanupTeamDirectories\n+ unregisterTeamForSessionCleanup\n+ clearTeammateColors\n+ clearLeaderTeamName&quot;]
+    M --&gt; N[&quot;logEvent tengu_team_deleted&quot;]
+    N --&gt; O[&quot;setAppState: 清 teamContext + inbox&quot;]
+    O --&gt; P[&quot;返回 success:true&quot;]
+  </div>
+</div>
+<p><strong>关键点逐条</strong>：</p>
+<ol><li><strong>运行时门控</strong>（<code>:90</code>）：同 TeamCreate，<code>isAgentSwarmsEnabled()</code> 检查。</li><li><strong>团队名来源</strong>（<code>:98</code>）：从 AppState 读，不从输入取——<strong>安全设计</strong>，防误删。</li><li><strong>活跃成员判定</strong>（<code>:105-112</code>）：先过滤掉负责人（<code>name !== TEAM_LEAD_NAME</code>），再过滤 <code>isActive !== false</code>。注释 <code>:109-110</code> 说明：<code>isActive === false</code> 表示空闲（已结束回合或已崩溃）。</li><li><strong>多后端终止</strong>（<code>:116-141</code>）：按 <code>member.backendType</code> 分派：</li></ol>
+<p>   - <code>in-process</code> 后端 → <code>getInProcessBackend()</code> + <code>executor.terminate(agentId, '团队负责人请求清理团队')</code>    - pane 后端（tmux/iTerm2）→ <code>ensureBackendsRegistered()</code> + <code>createPaneBackendExecutor(getBackendByType(...))</code> + terminate    - 每次终止前 <code>executor.setContext?.(context)</code> 注入上下文，成功则记入 <code>requested</code> 列表。</p>
+<ol><li><strong>可选等待循环</strong>（<code>:142-173</code>）：若 <code>wait_ms &gt; 0</code> 且发出了终止请求，进入轮询循环：每 250ms（<code>Math.min(250, ...)</code>）<code>readTeamFile</code> 刷新，直到无活跃成员或超时。超时后仍有活跃成员 → 返回 <code>success: false</code> + 成员名列表。</li><li><strong>二次确认</strong>（<code>:174-194</code>）：等待结束后再读一次团队文件，确认无活跃成员才继续；否则返回阻塞消息。注释区分两种话术：<code>requested.length &gt; 0</code>（已请求但未退出）vs <code>requested.length === 0</code>（无法终止，需手动 <code>requestShutdown</code>）。</li><li><strong>目录清理</strong>（<code>:197-205</code>）：四步——</li></ol>
+<p>   - <code>cleanupTeamDirectories(teamName)</code>：删团队目录 + 任务目录 + worktree    - <code>unregisterTeamForSessionCleanup(teamName)</code>：注销会话清理登记（避免 <code>gracefulShutdown</code> 重复尝试，注释 <code>:198-199</code>）    - <code>clearTeammateColors()</code>：清颜色分配，新团队从零开始    - <code>clearLeaderTeamName()</code>：让 <code>getTaskListId()</code> 回退到 session ID</p>
+<ol><li><strong>遥测</strong>（<code>:207</code>）：<code>logEvent('tengu_team_deleted', {team_name})</code>。</li><li><strong>AppState 清理</strong>（<code>:214-220</code>）：无论团队名是否存在，都清 <code>teamContext</code> 和 <code>inbox.messages</code>（清空排队消息）。</li></ol>
+<hr class="divider">
+</section>
+
+  <section id="五权限与安全">
+<h2>五、权限与安全</h2>
+<p>TeamDelete 没有自定义 <code>checkPermissions()</code>，安全控制体现在：</p>
+<ol><li><strong>团队名绑定当前会话</strong>（<code>:98</code>）：只能删 <code>appState.teamContext.teamName</code>，模型无法通过输入指定任意团队——<strong>从根本上杜绝误删</strong>。</li><li><strong>运行时功能门控</strong>（<code>:90</code>）：<code>isAgentSwarmsEnabled()</code>。</li><li><strong>活跃成员阻塞</strong>（<code>:111-194</code>）：核心安全机制——有活跃 teammate 时拒绝直接清理，强制先优雅终止。这是防止孤儿进程/孤儿 pane 的关键。</li><li>**<code>wait_ms</code> 上限 30000**（schema <code>:34</code>）：防止无限等待，Zod 层强制。</li><li><strong>注销清理登记</strong>（<code>:199</code>）：避免 <code>gracefulShutdown</code> 重复清理已删团队。</li></ol>
+<blockquote class="callout"><p><strong>对比 TeamCreate</strong>：Create 的安全是"单团队约束"（防重复建），Delete 的安全是"活跃成员阻塞"（防孤儿进程）。两者从不同角度保护团队状态一致性。</p></blockquote>
+<hr class="divider">
+</section>
+
+  <section id="六与其他系统工具的关系">
+<h2>六、与其他系统/工具的关系</h2>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    TD[TeamDelete] --&gt;|读| TF[&quot;teamHelpers.ts\nreadTeamFile&quot;]
+    TD --&gt;|终止| BE[&quot;swarm/backends/*\nin-process + pane backends&quot;]
+    TD --&gt;|清理| CD[&quot;cleanupTeamDirectories\n删 teams/ + tasks/ + worktree&quot;]
+    TD --&gt;|清色| TCM[&quot;teammateLayoutManager\nclearTeammateColors&quot;]
+    TD --&gt;|清任务绑定| TK[&quot;tasks.ts clearLeaderTeamName&quot;]
+    TD --&gt;|写状态| AS[&quot;AppState: teamContext=undefined\ninbox.messages=[]&quot;]
+    TD -.对偶.-&gt; TC[TeamCreate]
+    TD -.配套.-&gt; SM[SendMessage shutdown_request\nprompt.ts 建议的优雅关闭方式]
+  </div>
+</div>
+<ul><li>**与 <code>TeamCreate</code>**：严格对偶。Create 建（写文件 + 重置任务 + 设 leader name），Delete 拆（终止成员 + 删目录 + 清 leader name）。两者的 <code>setLeaderTeamName</code>/<code>clearLeaderTeamName</code>、<code>registerTeamForSessionCleanup</code>/<code>unregisterTeamForSessionCleanup</code>、<code>assignTeammateColor</code>/<code>clearTeammateColors</code> 一一对应。</li><li><strong>与 swarm backends</strong>：依赖 <code>src/utils/swarm/backends/</code> 的后端注册表（<code>registry.ts</code>、<code>PaneBackendExecutor.ts</code>、<code>types.ts</code>）。支持 in-process 和 pane（tmux/iTerm2）两种 teammate 后端的统一终止接口。</li><li>**与 <code>SendMessage</code>**：<code>prompt.ts:12</code> 建议——更优雅的方式是用 <code>SendMessage</code> 发 <code>shutdown_request</code> 让 teammate 自行退出，TeamDelete 是兜底强制清理。</li><li>**与 <code>gracefulShutdown</code>**：通过 <code>unregisterTeamForSessionCleanup</code> 协调，避免会话退出时重复清理。</li></ul>
+<hr class="divider">
+</section>
+
+  <section id="七亮点与设计取舍">
+<h2>七、亮点与设计取舍</h2>
+<ol><li><strong>团队名绑定会话而非输入</strong>（<code>:98</code>）：根本性安全设计——模型无法误删任意团队。对比 TeamCreate 的"重名自动 slug"，Delete 更保守，因为删除不可逆。</li><li><strong>三层渐进式终止</strong>：terminate 请求 → 可选等待轮询 → 二次确认 → 清理。任何一层失败都不进下一层，保证不会在活跃成员存在时强行删目录。</li><li>**<code>isActive !== false</code> 的语义**（<code>:111</code>）：把"空闲"和"崩溃"统一视为"非活跃"，都可以安全清理。注释 <code>:109-110</code> 明确这个设计意图。</li><li><strong>多后端统一终止接口</strong>（<code>:116-141</code>）：in-process 和 pane backend 走不同的 executor，但都实现 <code>terminate(agentId, reason)</code> 接口，让 <code>call()</code> 逻辑后端无关。</li><li><strong>结果消息有意抑制</strong>（<code>UI.tsx:17-21</code>）：<code>renderToolResultMessage</code> 返回 null——因为批量关闭 teammate 时已有更丰富的 UI 反馈，单独的结果行会冗余。这是"避免 UI 噪音"的取舍。</li><li>**<code>wait_ms</code> 默认 0**（<code>:142</code>）：默认不等待，立即返回阻塞状态；模型可显式传 <code>wait_ms</code> 进入轮询模式。把"是否耐心等待"的决定权交给调用方。</li><li><strong>无论团队名是否存在都清 AppState</strong>（<code>:214</code>）：保证 AppState 总是干净，即使团队状态已不一致（如文件被手动删除）。</li></ol>
+<hr class="divider">
+</section>
+
+  <section id="八源码导航书签速查">
+<h2>八、源码导航（书签速查）</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+    <tbody>
+    <tr><td>工具名常量</td><td><code>TeamDeleteTool/constants.ts:1</code></td></tr>
+    <tr><td><code>buildTool</code> 字段填充</td><td><code>TeamDeleteTool/TeamDeleteTool.ts:49-235</code></td></tr>
+    <tr><td>输入 schema（wait_ms）</td><td><code>TeamDeleteTool.ts:29-38</code></td></tr>
+    <tr><td><code>call()</code> 核心逻辑</td><td><code>TeamDeleteTool.ts:89-231</code></td></tr>
+    <tr><td>活跃成员终止</td><td><code>TeamDeleteTool.ts:111-141</code></td></tr>
+    <tr><td>等待轮询循环</td><td><code>TeamDeleteTool.ts:142-173</code></td></tr>
+    <tr><td>二次确认阻塞</td><td><code>TeamDeleteTool.ts:174-194</code></td></tr>
+    <tr><td>目录清理四步</td><td><code>TeamDeleteTool.ts:197-205</code></td></tr>
+    <tr><td>结果消息抑制</td><td><code>TeamDeleteTool/UI.tsx:9-22</code></td></tr>
+    <tr><td>后端终止接口</td><td><code>src/utils/swarm/backends/PaneBackendExecutor.ts</code></td></tr>
+    <tr><td>注册位置</td><td><code>src/tools.ts:258</code>（无条件注册）</td></tr>
+    </tbody>
+  </table>
+</div>
+<hr class="divider">
+</section>
+
+  <section id="九学习建议与验证清单">
+<h2>九、学习建议与验证清单</h2>
+<p><strong>怎么读这章</strong>：先看"一、定位"理解 TeamDelete 是 TeamCreate 的对偶，再跳到"四、call()"的流程图理解三层渐进式终止，最后对照"五、安全"理解为什么团队名绑定会话。</p>
+<p><strong>验证清单（读完自测）</strong>：</p>
+<ul class="checklist"><li><input type="checkbox" disabled> <span>能说出 TeamDelete 的团队名来源是 <code>appState.teamContext</code>（非输入），并解释安全意义</span></li><li><input type="checkbox" disabled> <span>能指出活跃成员判定条件（<code>name !== TEAM_LEAD_NAME &amp;&amp; isActive !== false</code>）</span></li><li><input type="checkbox" disabled> <span>能解释三层终止流程（terminate → 等待轮询 → 二次确认）</span></li><li><input type="checkbox" disabled> <span>能说出 <code>wait_ms</code> 的上限（30000）和默认值（0）</span></li><li><input type="checkbox" disabled> <span>能解释 <code>unregisterTeamForSessionCleanup</code> 的作用（防 gracefulShutdown 重复清理）</span></li><li><input type="checkbox" disabled> <span>能说出结果消息为何被抑制（批量关闭 UI 已覆盖）</span></li></ul>
+<p><strong>配合动作</strong>：</p>
+<ol><li>创建一个团队后立即调用 TeamDelete（无活跃 teammate），观察直接清理路径</li><li>生成一个 teammate 后调用 TeamDelete，观察"活跃成员阻塞"返回</li><li>读 <code>src/utils/swarm/backends/PaneBackendExecutor.ts</code> 的 <code>terminate</code> 实现，理解多后端终止</li></ol>
+</section>
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

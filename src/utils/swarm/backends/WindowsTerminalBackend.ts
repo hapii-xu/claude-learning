@@ -30,9 +30,9 @@ function quotePowerShellString(value: string): string {
 
 function wrapPowerShellCommand(command: string, pidFile: string): string {
   const quotedPidFile = quotePowerShellString(pidFile)
-  // PowerShell requires try/catch/finally to be a single compound statement —
-  // semicolons between the blocks cause "Try 语句缺少自己的 Catch 或 Finally 块".
-  // Use newlines (\n) so the parser treats it as one statement.
+  // PowerShell 要求 try/catch/finally 为单个复合语句 —
+  // 块之间的分号会导致 "Try 语句缺少自己的 Catch 或 Finally 块"。
+  // 使用换行符 (\n) 使解析器将其视为一个语句。
   return [
     "$ErrorActionPreference = 'Stop'",
     `Set-Content -LiteralPath ${quotedPidFile} -Value $PID`,
@@ -83,12 +83,12 @@ async function waitForPidFile(
 }
 
 /**
- * WindowsTerminalBackend uses wt.exe to create visible teammate panes/tabs.
+ * WindowsTerminalBackend 使用 wt.exe 创建可见的 teammate pane/标签页。
  *
- * Windows Terminal's CLI starts commands directly in a new pane; it does not
- * expose a stable pane id that can later receive arbitrary input. To fit the
- * PaneBackend contract, createTeammatePaneInSwarmView allocates an internal id,
- * and sendCommandToPane performs the actual `wt split-pane` launch.
+ * Windows Terminal 的 CLI 直接在新 pane 中启动命令；它不会
+ * 暴露一个稳定的 pane id 来后续接收任意输入。为了符合
+ * PaneBackend 接口，createTeammatePaneInSwarmView 分配一个内部 id，
+ * 而 sendCommandToPane 执行实际的 `wt split-pane` 启动。
  */
 export class WindowsTerminalBackend implements PaneBackend {
   readonly type = 'windows-terminal' as const
@@ -136,11 +136,11 @@ export class WindowsTerminalBackend implements PaneBackend {
     if (this.getPlatformValue() !== 'windows') {
       return false
     }
-    // Do NOT run `wt.exe --version` — wt.exe is a UWP app bridge that opens
-    // the Windows Terminal app to render version info, producing a phantom
-    // "Windows 终端 1.24.x" window every time availability is checked.
-    // Instead, check the WT_SESSION env var (set inside WT) or verify the
-    // binary exists on PATH without executing it.
+    // 不要运行 `wt.exe --version` — wt.exe 是 UWP 应用桥接器，会打开
+    // Windows Terminal 应用来渲染版本信息，每次检查可用性时
+    // 都会产生一个幻影 "Windows 终端 1.24.x" 窗口。
+    // 改为检查 WT_SESSION 环境变量（在 WT 内设置）或验证
+    // 二进制文件存在于 PATH 中而不执行它。
     if (process.env.WT_SESSION) {
       return true
     }
@@ -209,26 +209,26 @@ export class WindowsTerminalBackend implements PaneBackend {
     // pane.status === 'registered' → 继续
 
     // 提前赋值 spawnPromise 在任何 await 前（inner Promise 包装）
-    // Attach a no-op .catch() immediately to prevent unhandled rejection warnings
-    // in case killPane never awaits spawnPromise (e.g. sendCommandToPane fails
-    // before killPane is called).
+    // 立即附加无操作的 .catch() 以防止未处理拒绝警告，
+    // 以防 killPane 从未 await spawnPromise（例如 sendCommandToPane
+    // 在调用 killPane 之前失败）。
     let resolveSpawn!: () => void
     let rejectSpawn!: (err: unknown) => void
     const spawnPromise = new Promise<void>((res, rej) => {
       resolveSpawn = res
       rejectSpawn = rej
     })
-    // Silence unhandled-rejection: killPane may .catch() this later, but if
-    // the pane dies before any kill is attempted, the rejection must not leak.
+    // 静默未处理拒绝：killPane 可能会稍后 .catch() 这个，但如果
+    // pane 在尝试任何 kill 之前就死了，拒绝不能泄漏。
     spawnPromise.catch(() => {})
     pane.status = 'spawning'
     pane.spawnPromise = spawnPromise
 
     try {
       const launcher = wrapPowerShellCommand(command, pane.pidFile)
-      // wt.exe treats ';' as its own command separator, which breaks
-      // multi-statement PowerShell commands passed via -Command. Encode the
-      // entire script as Base64 UTF-16LE and use -EncodedCommand instead.
+      // wt.exe 将 ';' 视为自己的命令分隔符，这会破坏
+      // 通过 -Command 传递的多语句 PowerShell 命令。将整个
+      // 脚本编码为 Base64 UTF-16LE 并改用 -EncodedCommand。
       const encoded = Buffer.from(launcher, 'utf16le').toString('base64')
       const args =
         pane.mode === 'window'
@@ -288,7 +288,7 @@ export class WindowsTerminalBackend implements PaneBackend {
     _color: AgentColorName,
     _useExternalSession?: boolean,
   ): Promise<void> {
-    // Windows Terminal does not expose per-pane border colors through wt.exe.
+    // Windows Terminal 不通过 wt.exe 暴露每个 pane 的边框颜色。
   }
 
   async setPaneTitle(
@@ -297,21 +297,21 @@ export class WindowsTerminalBackend implements PaneBackend {
     _color: AgentColorName,
     _useExternalSession?: boolean,
   ): Promise<void> {
-    // Title is passed at launch in sendCommandToPane.
+    // 标题在 sendCommandToPane 启动时传递。
   }
 
   async enablePaneBorderStatus(
     _windowTarget?: string,
     _useExternalSession?: boolean,
   ): Promise<void> {
-    // Not supported by Windows Terminal's wt.exe surface.
+    // Windows Terminal 的 wt.exe 接口不支持此功能。
   }
 
   async rebalancePanes(
     _windowTarget: string,
     _hasLeader: boolean,
   ): Promise<void> {
-    // Windows Terminal handles split layout itself.
+    // Windows Terminal 自行处理分割布局。
   }
 
   async killPane(
@@ -408,7 +408,7 @@ export class WindowsTerminalBackend implements PaneBackend {
   }
 }
 
-// Register the backend with the registry when this module is imported.
-// This side effect is intentional - the registry needs backends to self-register.
+// 在导入此模块时向 registry 注册 backend。
+// 这个副作用是有意为之 — registry 需要 backend 自注册。
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
 registerWindowsTerminalBackend(WindowsTerminalBackend)

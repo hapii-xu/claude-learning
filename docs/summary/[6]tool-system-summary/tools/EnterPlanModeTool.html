@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EnterPlanMode 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    section { margin-top: 56px; }
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: var(--orange); }
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>EnterPlanMode 工具详解</h1>
+  <p>进入"计划模式"的开关型工具——把会话权限模式从 default/acceptEdits 切换到 plan，强制只读探索与设计，是"计划三件套"的入口</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei-yi">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian-qing-dan">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou-zi-duan-buildtool-zi-duan">三、Tool 接口字段实现</a></li>
+    <li><a href="#si-he-xin-zhi-xing-liu-cheng-call">四、核心执行流程：<code>call()</code></a></li>
+    <li><a href="#wu-quan-xian-yu-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-yu-qi-xi-tong-gong-ju-de-guan-xi">六、与其他系统/工具的关系</a></li>
+    <li><a href="#qi-liang-dian-yu-she-ji-qu-she">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma-dao-hang">八、源码导航</a></li>
+    <li><a href="#jiu-xue-xi-jian-yi-yu-yan-zheng-qing-dan">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p>这是规划类工具三件套（EnterPlanMode / ExitPlanMode / VerifyPlanExecution）的<strong>入口</strong>。它本身不写任何文件、不执行任何代码，唯一的副作用是<strong>翻转会话的权限模式到 <code>plan</code></strong>，从而在后续整轮对话里把 Claude 关进"只能读、只能想、不能改"的笼子。理解它的关键是把"工具"与"权限模式"解耦：工具只是触发器，真正的约束来自 <code>plan</code> 模式下的权限管道。</p></blockquote>
+
+  <hr class="divider">
+
+  <hr class="divider">
+
+  <section id="yi-gong-ju-ding-wei-yi">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>EnterPlanMode</code> = 把权限模式切换到 <code>plan</code> 的只读、可并发的开关型工具。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>EnterPlanMode</code>（常量 <code>ENTER_PLAN_MODE_TOOL_NAME</code>，<code>constants.ts:1</code>）</td></tr>
+          <tr><td>一句话</td><td>请求用户批准进入计划模式，进入后 Claude 只能探索和设计，不能写文件</td></tr>
+          <tr><td>是否进 system prompt</td><td>✅ 在 <code>CORE_TOOLS</code> 白名单内（<code>src/constants/tools.ts:158</code>）</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>，<code>EnterPlanModeTool.ts:71</code>）</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe() → true</code>，<code>:68</code>）</td></tr>
+          <tr><td>是否延迟加载</td><td>✅ <code>shouldDefer: true</code>（<code>:55</code>）——按需注册</td></tr>
+          <tr><td>输入参数</td><td><strong>无</strong>（<code>z.strictObject({})</code>，<code>:21-25</code>）</td></tr>
+          <tr><td>启用条件</td><td>非 channels 模式（<code>:56-67</code>）；非 agent 上下文（<code>:80</code> 抛错）</td></tr>
+          <tr><td>协作方</td><td><code>ExitPlanMode</code>（提交计划、退出 plan 模式）、<code>VerifyPlanExecution</code>（执行后验证）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> Claude 默认是"边想边写"的——遇到模糊任务容易直接动手改代码，改完才发现方向错了。<code>EnterPlanMode</code> 强制在动手前插入一个"探索 + 设计 + 用户签字"的阶段：进入 plan 模式后，写/编辑类工具会被权限管道拒绝，Claude 只能 Glob/Grep/Read 并把方案写到计划文件，再用 <code>ExitPlanMode</code> 请求审批。这把"先对齐再实施"固化为工具流程。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-guan-jian-wen-jian-qing-dan">
+    <h2>二、关键文件清单</h2>
+    <pre><code>EnterPlanModeTool/
+├── EnterPlanModeTool.ts   ← buildTool({...}) 主体（128 行），含 call() + mapToolResultToToolResultBlockParam
+├── prompt.ts              ← 外部/ant 两版 prompt 工厂（93 行）
+├── UI.tsx                 ← Ink 渲染：进入/被拒两种状态（40 行）
+├── constants.ts           ← ENTER_PLAN_MODE_TOOL_NAME 常量
+└── src/
+    ├── constants/figures.ts            ← 类型桩（BLACK_CIRCLE）
+    └── utils/permissions/PermissionMode.ts ← 类型桩（getModeColor）</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>EnterPlanModeTool.ts</code></td><td>主体：schema + call() + 模式切换 + 结果翻译</td><td><code>buildTool:36</code>、<code>call:77</code>、<code>mapToolResultToToolResultBlockParam:105</code>、<code>isEnabled:56</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>外部用户/ant 内部两套不同的"何时使用"指引</td><td><code>getEnterPlanModeToolPromptExternal:16</code>、<code>...Ant:53</code>、<code>getEnterPlanModeToolPrompt:88</code></td></tr>
+          <tr><td><code>UI.tsx</code></td><td>终端渲染（计划模式小圆点 + 副标题）</td><td><code>renderToolResultMessage:14</code>、<code>renderToolUseRejectedMessage:32</code></td></tr>
+          <tr><td><code>constants.ts</code></td><td>工具名常量</td><td><code>:1</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：<code>src/</code> 下两个文件都是反编译留下的<strong>类型桩</strong>（<code>export type X = any</code>），真实实现来自 <code>src/constants/figures.js</code> 和 <code>src/utils/permissions/PermissionMode.js</code>。读源码时忽略桩，直接看主体文件即可。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-tool-jie-kou-zi-duan-buildtool-zi-duan">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <p>EnterPlanModeTool 是一个<strong>无参数、无 <code>checkPermissions</code>、无 <code>validateInput</code></strong> 的极简工具——它的"权限"体现在"进入后改变了整个会话的权限模式"，而不是单次调用要审批。</p>
+    <h3>标识字段</h3>
+    <pre><code>name: ENTER_PLAN_MODE_TOOL_NAME,                       // "EnterPlanMode"
+searchHint: 'switch to plan mode to design an approach before coding',  // TF-IDF 索引关键词
+maxResultSizeChars: 100_000,
+shouldDefer: true,                                       // 延迟注册，按需加载</code></pre>
+    <blockquote class="callout"><p><strong><code>shouldDefer: true</code> 的含义</strong>：本工具不在启动时全量注入 schema，而是放进延迟工具池，由 <code>SearchExtraTools</code>/<code>SyntheticOutput</code> 的 TF-IDF 搜索按需激活。但它仍在 <code>CORE_TOOLS</code> 白名单里（<code>src/constants/tools.ts:158</code>），意味着一旦激活就享有核心工具待遇。</p></blockquote>
+    <h3>模型面字段</h3>
+    <pre><code>async description() { return '请求权限以进入计划模式，用于需要探索和设计的复杂任务' }
+async prompt()      { return getEnterPlanModeToolPrompt() }   // 按 USER_TYPE 分流（prompt.ts:88）
+get inputSchema()   { return inputSchema() }                  // 空对象 schema
+get outputSchema()  { return outputSchema() }                 // { message: string }
+userFacingName()    { return '' }                             // 不在 UI 显示工具名</code></pre>
+    <p><strong>输入 schema</strong>（<code>:21-25</code>）——严格空对象：</p>
+    <pre><code>z.strictObject({})   // 不接受任何参数</code></pre>
+    <p><strong>输出 schema</strong>（<code>:28-32</code>）：</p>
+    <pre><code>{ message: string }   // "已进入计划模式。现在请专注于探索代码库并设计实现方案。"</code></pre>
+    <h3>行为字段</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:77-104</code></td><td>核心逻辑（见下节）</td></tr>
+          <tr><td><code>isEnabled()</code></td><td><code>:56-67</code></td><td>channels 模式下禁用（防止"进得去出不来"的陷阱）</td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:68</code> → <code>true</code></td><td>无文件副作用，可并发</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:71</code> → <code>true</code></td><td>不写盘</td></tr>
+          <tr><td><strong>无</strong> <code>validateInput</code></td><td>—</td><td>无输入，无需校验</td></tr>
+          <tr><td><strong>无</strong> <code>checkPermissions</code></td><td>—</td><td><strong>关键设计</strong>：见第五节</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p>注意 <code>call()</code> 第一行（<code>:80-82</code>）就检查 <code>context.agentId</code>——<strong>子 agent 不允许进入计划模式</strong>，否则会抛错。计划模式是"主线程抽象"（<code>src/constants/tools.ts:111</code> 注释）。</p></blockquote>
+    <h3>渲染字段</h3>
+    <pre><code>renderToolUseMessage,          // 返回 null（调用时不显示）
+renderToolResultMessage,       // "● 已进入计划模式"（UI.tsx:14）
+renderToolUseRejectedMessage,  // "● 用户拒绝进入计划模式"（UI.tsx:32）
+mapToolResultToToolResultBlockParam,  // 给模型下发 plan 模式工作流指引（:105）</code></pre>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-he-xin-zhi-xing-liu-cheng-call">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code>（<code>:77-104</code>）只做<strong>一件事</strong>——把权限模式翻转到 <code>plan</code>，但中间涉及三个协同的状态更新：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["call(input, ctx)\nEnterPlanModeTool.ts:77"] --> B{"context.agentId?\n:80"}
+    B -- "有（子 agent）" --> X["抛错：不能在 agent 上下文使用"]
+    B -- "无（主线程）" --> C["handlePlanModeTransition\n(currentMode, 'plan')\n:85"]
+    C --> D["prepareContextForPlanMode\n(prev.toolPermissionContext)\n:93"]
+    D --> E["applyPermissionUpdate(ctx,<br/>{type:'setMode', mode:'plan',<br/>destination:'session'})\n:94"]
+    E --> F["setAppState → 模式变 plan"]
+    F --> G["return { data: { message } }"]
+      </div>
+    </div>
+    <p><strong>关键点逐条</strong>：</p>
+    <ol>
+      <li><strong>agent 上下文硬拦截</strong>（<code>:80-82</code>）：子 agent 调用直接 <code>throw</code>。这是因为 plan 模式依赖主线程的审批 UI（<code>ExitPlanModePermissionRequest</code>）和会话级 <code>pendingPlanVerification</code> 状态，子 agent 没有这些基础设施。</li>
+      <li><strong><code>handlePlanModeTransition</code>（<code>:85</code>）</strong>（<code>src/bootstrap/state.ts:1382</code>）：纯会话级状态机维护——切换到 <code>plan</code> 时<strong>清除</strong>待处理的 <code>plan_mode_exit</code> 附件，防止用户快速进出导致同时下发 <code>plan_mode</code> 和 <code>plan_mode_exit</code> 两个系统消息。这是过渡状态的"防抖"。</li>
+      <li><strong><code>prepareContextForPlanMode</code>（<code>:93</code>）</strong>（<code>src/utils/permissions/permissionSetup.ts:1443</code>）：<strong>真正复杂的部分</strong>。它决定"进入 plan 模式时，原来的权限上下文要怎么暂存"： - 若当前已是 <code>plan</code>：原样返回（幂等）。 - 若当前是 <code>auto</code>（TRANSCRIPT_CLASSIFIER 启用时）：决定计划期间是否继续用 auto 模式（<code>shouldPlanUseAutoMode()</code>）。若用，仅记 <code>prePlanMode='auto'</code>；若不用，先 <code>restoreDangerousPermissions</code>（auto 模式会剥离危险权限），再记 <code>prePlanMode='auto'</code>。 - 普通 default/acceptEdits：记 <code>prePlanMode=当前模式</code>，供 <code>ExitPlanMode</code> 恢复。</li>
+    </ol>
+    <p>   它会把"进 plan 之前的模式"存进 <code>toolPermissionContext.prePlanMode</code>——这是 <code>ExitPlanMode</code> 能正确回滚的依据。</p>
+    <ol>
+      <li><strong><code>applyPermissionUpdate(... setMode: 'plan')</code>（<code>:94</code>）</strong>（<code>src/utils/permissions/PermissionUpdate.ts:55</code>）：把 <code>context.mode</code> 字段实际改成 <code>'plan'</code>，destination 是 <code>'session'</code>（会话级，不持久化到 settings）。</li>
+      <li><strong>返回</strong>（<code>:98-103</code>）：<code>{ data: { message } }</code>——同步返回，不是 async generator（没有中间进度）。</li>
+    </ol>
+    <p><strong><code>mapToolResultToToolResultBlockParam</code>（<code>:105-127</code>）</strong>：这个函数才是"给模型戴枷锁"的地方。它把简短的 <code>message</code> 翻译成一段<strong>带行为约束的 tool_result</strong>：</p>
+    <ul>
+      <li><strong>interview phase 启用时</strong>（<code>isPlanModeInterviewPhaseEnabled()</code>）：只附一句 <code>DO NOT write or edit any files except the plan file. Detailed workflow instructions will follow.</code>——详细工作流改由 <code>messages.ts</code> 里的 <code>plan_mode</code> 附件下发（5 阶段访谈式流程）。</li>
+      <li><strong>未启用时</strong>：直接附 6 条工作流（探索→找相似→权衡→AskUserQuestion→设计→ExitPlanMode），并强调 <code>DO NOT write or edit any files yet</code>。</li>
+    </ul>
+    <blockquote class="callout"><p>这段 tool_result 是模型"知道自己在 plan 模式该怎么做事"的唯一来源——它替代了 system prompt 里写死的工作流，因为是否启用 interview phase 是运行时配置。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian-yu-an-quan">
+    <h2>五、权限与安全</h2>
+    <p>EnterPlanMode 的权限模型<strong>反直觉地简单</strong>：它本身<strong>没有 <code>checkPermissions</code></strong>。为什么？</p>
+    <h3>为什么不需要 <code>checkPermissions</code>？</h3>
+    <p>因为这个工具<strong>本身的副作用是良性的</strong>（只是改会话状态，不碰文件、不执行命令），真正的约束发生在<strong>进入 plan 模式之后</strong>——那时所有写/执行类工具的 <code>checkPermissions</code> 会因为 <code>mode === 'plan'</code> 而被拒绝。换句话说，EnterPlanMode 是"开锁的钥匙"，开完锁之后笼子才关上。</p>
+    <h3>进入 plan 模式后的约束（由权限管道强制）</h3>
+    <p>进入 plan 后，<code>plan</code> 模式下：</p>
+    <ul>
+      <li>写文件工具（FileWrite/FileEdit）→ 被权限管道拒绝</li>
+      <li>执行工具（Bash/PowerShell）→ 被拒绝</li>
+      <li>唯一允许的写入是<strong>计划文件</strong>（<code>getPlanFilePath()</code>，<code>src/utils/plans.ts:123</code>）</li>
+    </ul>
+    <h3><code>isEnabled</code> 的安全门（<code>:56-67</code>）</h3>
+    <pre><code>if ((feature('KAIROS') || feature('KAIROS_CHANNELS')) &amp;&amp; getAllowedChannels().length &gt; 0) {
+  return false
+}</code></pre>
+    <p>当 <code>--channels</code> 启用（用户在 Telegram/Discord 而非 TUI 前）时，<strong>禁用进入</strong>。原因在注释里说得很直白（<code>:57-59</code>）：ExitPlanMode 的审批对话框需要终端，channels 模式下用户看不到，会变成"模型能进 plan 但永远出不去"的陷阱。所以入口和出口必须<strong>成对门控</strong>。</p>
+    <h3>agent 上下文硬拒绝（<code>:80-82</code>）</h3>
+    <p>子 agent 调用直接抛错（不是返回错误，是 throw）。这是<strong>编译期 + 运行期双重保险</strong>：理论上延迟工具列表不应该给子 agent 暴露这个工具，但即便暴露了，call 里也会兜底。</p>
+    <h3><code>isReadOnly: true</code> 的含义</h3>
+    <p>虽然 <code>call()</code> 会改 <code>appState</code>，但从"是否产生不可逆的外部副作用"角度看它是只读的——不写盘、不联网、不执行命令。标记为只读让它能和其他只读工具并发，也能在更宽的权限模式下被调用。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-yu-qi-xi-tong-gong-ju-de-guan-xi">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    ENTER["EnterPlanMode"] -->|切换模式| PLAN["toolPermissionContext.mode='plan'\nprePlanMode=旧模式"]
+    ENTER -->|暂存旧模式| PREP["prepareContextForPlanMode\npermissionSetup.ts:1443"]
+    ENTER -->|防抖附件| TRANS["handlePlanModeTransition\nbootstrap/state.ts:1382"]
+    ENTER -.配对门控.-> EXIT["ExitPlanMode\n(出口，回滚模式)"]
+    ENTER -.模型指引.-> ATTACH["plan_mode 附件\nmessages.ts (interview phase)"]
+    ENTER -.后续验证.-> VERIFY["VerifyPlanExecution\n(执行后验证)"]
+    PLAN -->|约束| WRITE["写/执行工具被拒绝\n(由各工具 checkPermissions 强制)"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 <code>ExitPlanMode</code> 的关系</strong>：入口与出口<strong>必须成对</strong>。ExitPlanMode 读取 <code>prePlanMode</code> 回滚模式（<code>ExitPlanModeV2Tool.ts:367</code>）；两者共享同一套 channels 门控（<code>:60-65</code> ↔ <code>:171-178</code>），否则会形成陷阱。</li>
+      <li><strong>与 <code>VerifyPlanExecution</code> 的关系</strong>：弱关联。Verify 是"实施完成后"的验证工具，与 EnterPlanMode 不直接交互，但同属"计划三件套"。</li>
+      <li><strong>与权限管道的关系</strong>：EnterPlanMode 不做权限判定，但它<strong>改写</strong>了权限管道的输入（<code>mode</code> 字段），间接决定了后续每个工具的审批行为。</li>
+      <li><strong>与 <code>planModeV2</code> 的关系</strong>：<code>isPlanModeInterviewPhaseEnabled()</code>（<code>src/utils/planModeV2.ts:50</code>）控制 prompt 和 tool_result 的措辞——interview phase 是 5 阶段交互式规划流程，对 ant 用户始终开启，对外部用户由 <code>tengu_plan_mode_interview_phase</code> feature flag 控制。</li>
+      <li><strong>与 <code>Agent</code> 工具的互斥</strong>：子 agent 不能进 plan（<code>:80</code>），所以 plan 模式是<strong>主线程独占</strong>的工作流。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian-yu-she-ji-qu-she">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>"工具即模式切换器"的范式</strong>：EnterPlanMode 把"进入一种工作模式"建模成一个工具调用，而不是一个 slash command 或一个配置项。好处是模型可以<strong>自主决定</strong>何时进入（prompt 引导它"对模糊任务主动用"），而不是等用户敲 <code>/plan</code>。</li>
+      <li><strong>入口/出口成对门控</strong>：<code>isEnabled</code> 里同时考虑了 ExitPlanMode 的可用性（注释 <code>:57-59</code>）。这是一个容易遗漏的健壮性细节——单独门控入口会制造死锁状态。</li>
+      <li><strong><code>prepareContextForPlanMode</code> 的 auto 模式协调</strong>：进入 plan 时不是简单存 <code>prePlanMode</code>，而是要处理"原 auto 模式期间被剥离的危险权限是否要恢复"的复杂情况（<code>permissionSetup.ts:1443-1474</code>）。这让 plan 模式与 auto 模式可以正交组合。</li>
+      <li><strong>interview phase 的运行时分流</strong>：prompt 和 tool_result 都按 <code>isPlanModeInterviewPhaseEnabled()</code> 分两套文案，避免硬编码工作流。新增规划流程变体时只改 <code>planModeV2.ts</code> 的门控，不动工具代码。</li>
+      <li><strong>无 <code>checkPermissions</code> 的取舍</strong>：简化了工具，但意味着用户无法用 deny rule 单独阻止"进入计划模式"——只能通过拒绝整个工具调用来表达"我不想用 plan"。这是有意的：plan 模式的进入本身不危险，没必要拦。</li>
+      <li><strong><code>mapToolResultToToolResultBlockParam</code> 承载行为约束</strong>：plan 模式的工作流指引不在 system prompt 里写死，而是作为 tool_result 动态下发，让 ant/external 用户看到不同详细度的指引。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-yuan-ma-dao-hang">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>EnterPlanModeTool/constants.ts:1</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>EnterPlanModeTool.ts:36-128</code></td></tr>
+          <tr><td>输入/输出 schema（空对象 / message）</td><td><code>EnterPlanModeTool.ts:21-33</code></td></tr>
+          <tr><td><code>call()</code> 模式切换核心</td><td><code>EnterPlanModeTool.ts:77-104</code></td></tr>
+          <tr><td>agent 上下文拦截</td><td><code>EnterPlanModeTool.ts:80-82</code></td></tr>
+          <tr><td>channels 门控 <code>isEnabled</code></td><td><code>EnterPlanModeTool.ts:56-67</code></td></tr>
+          <tr><td>模型工作流指引下发</td><td><code>EnterPlanModeTool.ts:105-127</code></td></tr>
+          <tr><td>prompt 外部版 / ant 版</td><td><code>prompt.ts:16</code> / <code>prompt.ts:53</code></td></tr>
+          <tr><td>prompt 分流入口</td><td><code>prompt.ts:88</code></td></tr>
+          <tr><td>进入时权限上下文准备</td><td><code>src/utils/permissions/permissionSetup.ts:1443</code></td></tr>
+          <tr><td>模式切换防抖</td><td><code>src/bootstrap/state.ts:1382</code></td></tr>
+          <tr><td><code>applyPermissionUpdate(setMode)</code></td><td><code>src/utils/permissions/PermissionUpdate.ts:55</code></td></tr>
+          <tr><td>interview phase 门控</td><td><code>src/utils/planModeV2.ts:50</code></td></tr>
+          <tr><td>计划文件路径</td><td><code>src/utils/plans.ts:123</code></td></tr>
+          <tr><td>CORE_TOOLS 注册</td><td><code>src/constants/tools.ts:158</code></td></tr>
+          <tr><td>工具注册（导入）</td><td><code>src/tools.ts:86</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-xue-xi-jian-yi-yu-yan-zheng-qing-dan">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先看"一、工具定位"理解"工具 = 模式切换器"这个不寻常的定位，再跳到"四、call()"看三步状态更新，最后对照"五、权限"理解为什么它没有 <code>checkPermissions</code>。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 EnterPlanMode 唯一的副作用是什么（把 <code>mode</code> 翻到 <code>plan</code>，暂存 <code>prePlanMode</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么 <code>call()</code> 要在 <code>:80</code> 拦截 agent 上下文（plan 是主线程抽象）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>handlePlanModeTransition</code> 解决了什么竞态（快速进出导致 plan_mode / plan_mode_exit 附件同发）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 channels 模式下为什么要禁用进入（ExitPlanMode 审批对话框需要终端，否则形成陷阱）</span></li>
+      <li><input type="checkbox" disabled> <span>能找到 <code>prePlanMode</code> 存在哪里（<code>toolPermissionContext.prePlanMode</code>，由 <code>prepareContextForPlanMode</code> 写入）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 interview phase 启用/未启用时 tool_result 下发的差异（精简指引 vs 6 条工作流）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>让 Claude 对一个模糊任务调用 <code>EnterPlanMode</code>，观察 UI 出现"● 已进入计划模式"，然后尝试让它写文件——应被权限管道拒绝。</li>
+      <li>在 <code>call()</code> 的 <code>:85</code> 加日志，对比 <code>prePlanMode</code> 在 default/acceptEdits/auto 三种起始模式下的值。</li>
+      <li>设置 <code>USER_TYPE=ant</code> 重跑，对比 prompt（<code>prompt.ts:53</code>）和 tool_result（<code>:105</code>）措辞的变化。</li>
+      <li>开启 channels（<code>feature('KAIROS_CHANNELS')</code>），确认 <code>isEnabled()</code> 返回 false、工具不出现。</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

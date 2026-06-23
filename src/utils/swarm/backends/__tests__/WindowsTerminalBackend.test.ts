@@ -106,8 +106,8 @@ describe('WindowsTerminalBackend', () => {
     const backend = createBackend(calls)
     const pane = await backend.createTeammatePaneInSwarmView('killer', 'red')
 
-    // sendCommandToPane resolves — simulate writes '54321' to pidFile, which
-    // becomes pane.pid. killPane should use the cached pid, not re-read the file.
+    // sendCommandToPane 执行完毕 — 模拟向 pidFile 写入 '54321'，
+    // 成为 pane.pid。killPane 应使用缓存的 pid，而不是重新读取文件。
     await backend.sendCommandToPane(pane.paneId, "Write-Output 'running'")
 
     const killed = await backend.killPane(pane.paneId)
@@ -160,14 +160,14 @@ describe('WindowsTerminalBackend', () => {
     const calls: Call[] = []
     const backend = createBackend(calls, { simulatePidWrite: 30 })
     const pane = await backend.createTeammatePaneInSwarmView('stale', 'pink')
-    // pidFile path is deterministic: <tempDir>/<sanitized paneId>.pid
+    // pidFile 路径是确定性的：<tempDir>/<sanitized paneId>.pid
     const stalePidFile = join(
       tempDir,
       `${pane.paneId.replace(/[^a-zA-Z0-9_-]/g, '-')}.pid`,
     )
-    // Pre-seed stale content. If sendCommandToPane did NOT unlink, waitForPidFile
-    // would immediately accept '99999' and cache it as pane.pid. With unlink,
-    // simulate's '54321' is the value killPane sees.
+    // 预填充过期内容。如果 sendCommandToPane 没有 unlink，waitForPidFile
+    // 会立即接受 '99999' 并缓存为 pane.pid。经过 unlink 后，
+    // simulate 的 '54321' 才是 killPane 看到的值。
     await writeFile(stalePidFile, '99999', 'utf-8')
 
     await backend.sendCommandToPane(pane.paneId, "Write-Output 'x'")
@@ -183,7 +183,7 @@ describe('WindowsTerminalBackend', () => {
     const backend = createBackend(calls)
     const pane = await backend.createTeammatePaneInSwarmView('reentry', 'cyan')
     await backend.sendCommandToPane(pane.paneId, "Write-Output 'first'")
-    // pane.status === 'ready' now. Second sendCommandToPane must throw.
+    // 此时 pane.status === 'ready'。第二次 sendCommandToPane 必须抛出异常。
     let caught: unknown
     try {
       await backend.sendCommandToPane(pane.paneId, "Write-Output 'second'")
@@ -210,7 +210,7 @@ describe('WindowsTerminalBackend', () => {
   test('rejects corrupted pidFile content ("123abc") and times out', async () => {
     process.env.CLAUDE_WT_PANE_TIMEOUT_MS = '400'
     const calls: Call[] = []
-    // Custom runner writes invalid pid content (not all digits).
+    // 自定义 runner 写入无效的 pid 内容（不全是数字）。
     const backend = new WindowsTerminalBackend({
       runCommand: async (command, args) => {
         calls.push({ command, args })
@@ -241,33 +241,33 @@ describe('WindowsTerminalBackend', () => {
       caught = err
     }
     expect(caught).toBeInstanceOf(Error)
-    // Inner error from waitForPidFile must reach the wrapped diagnostic message.
+    // waitForPidFile 的内部错误必须传递到包装后的诊断消息中。
     const msg = (caught as Error).message
     expect(msg).toMatch(/failed to launch within 400ms/)
     expect(msg).toMatch(/not a valid pid|invalid pid|123abc/)
   })
 
   test('killPane awaits in-flight spawn before killing (kill-while-spawn race)', async () => {
-    // simulatePidWrite: 800ms — sendCommandToPane stays in waitForPidFile for ~800ms.
+    // simulatePidWrite: 800ms — sendCommandToPane 在 waitForPidFile 中停留约 800ms。
     process.env.CLAUDE_WT_PANE_TIMEOUT_MS = '3000'
     const calls: Call[] = []
     const backend = createBackend(calls, { simulatePidWrite: 800 })
     const pane = await backend.createTeammatePaneInSwarmView('racy', 'blue')
 
-    // Start spawn but don't await it yet.
+    // 启动 spawn 但先不 await 它。
     const spawnP = backend.sendCommandToPane(pane.paneId, "Write-Output 'x'")
-    // 50ms later, call killPane — pane is still 'spawning', killPane must
-    // await spawnPromise (which resolves at ~800ms when simulate writes pid 54321),
-    // then kill using the cached pid.
+    // 50ms 后，调用 killPane — 此时 pane 仍处于 'spawning' 状态，killPane 必须
+    // await spawnPromise（在 simulate 于 ~800ms 时写入 pid 54321 后 resolve），
+    // 然后使用缓存的 pid 执行 kill。
     await new Promise(r => setTimeout(r, 50))
     const killP = backend.killPane(pane.paneId)
 
-    // Both must resolve cleanly.
+    // 两者都必须正常 resolve。
     await spawnP
     const killed = await killP
     expect(killed).toBe(true)
-    // The kill must target the freshly-spawned pid (54321), not have used a
-    // stale-or-missing fallback path.
+    // kill 必须针对刚启动的 pid（54321），不能使用
+    // 过期或缺失的回退路径。
     const killCall = calls[calls.length - 1]!
     expect(killCall.command).toBe('powershell.exe')
     expect(killCall.args.join(' ')).toContain('Stop-Process -Id 54321')
@@ -275,7 +275,7 @@ describe('WindowsTerminalBackend', () => {
 
   test('Stop-Process failure clears cached pid and marks pane dead', async () => {
     const calls: Call[] = []
-    // Runner returns code 1 only for powershell.exe (kill); wt.exe succeeds.
+    // Runner 仅对 powershell.exe（kill）返回 code 1；wt.exe 成功。
     const backend = new WindowsTerminalBackend({
       runCommand: async (command, args) => {
         calls.push({ command, args })
@@ -294,7 +294,7 @@ describe('WindowsTerminalBackend', () => {
           }
           return { stdout: 'ok', stderr: '', code: 0 }
         }
-        // powershell Stop-Process fails
+        // powershell Stop-Process 失败
         return { stdout: '', stderr: 'access denied', code: 1 }
       },
       getPlatform: () => 'windows',
@@ -304,13 +304,13 @@ describe('WindowsTerminalBackend', () => {
     await backend.sendCommandToPane(pane.paneId, "Write-Output 'x'")
 
     const killed = await backend.killPane(pane.paneId)
-    expect(killed).toBe(false) // Stop-Process exit 1 → false
+    expect(killed).toBe(false) // Stop-Process 退出码 1 → false
 
-    // After kill failure, pane is removed from map: second killPane → false (not retry).
+    // kill 失败后，pane 从 map 中移除：第二次 killPane → false（非重试）。
     const killedAgain = await backend.killPane(pane.paneId)
     expect(killedAgain).toBe(false)
-    // Critically: only ONE powershell call happened — the second killPane returned
-    // false from "pane not in map", not from another Stop-Process attempt.
+    // 关键：只发生了一次 powershell 调用 — 第二次 killPane 返回 false
+    // 是因为 "pane 不在 map 中"，而非另一次 Stop-Process 尝试。
     const psCalls = calls.filter(c => c.command === 'powershell.exe')
     expect(psCalls.length).toBe(1)
   })
@@ -321,15 +321,15 @@ describe('WindowsTerminalBackend', () => {
     const pane = await backend.createTeammatePaneInSwarmView('cached', 'yellow')
     await backend.sendCommandToPane(pane.paneId, "Write-Output 'x'")
 
-    // After sendCommandToPane, pane.pid = 54321 (from simulate). killPane must
-    // use this cached pid without reading the pidFile at all.
+    // sendCommandToPane 之后，pane.pid = 54321（来自 simulate）。killPane 必须
+    // 使用此缓存的 pid，完全不读取 pidFile。
     const killed = await backend.killPane(pane.paneId)
     expect(killed).toBe(true)
     expect(calls[calls.length - 1]!.args.join(' ')).toContain(
       'Stop-Process -Id 54321',
     )
 
-    // After kill, pane is removed — a second killPane must return false.
+    // kill 之后，pane 被移除 — 第二次 killPane 必须返回 false。
     const killedAgain = await backend.killPane(pane.paneId)
     expect(killedAgain).toBe(false)
   })

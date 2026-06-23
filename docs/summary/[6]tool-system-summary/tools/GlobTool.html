@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Glob 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--blue-dk);
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card-grid { grid-template-columns: 1fr; }
+    }
+
+    /* === Additional styles === */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    section { margin-top: 56px; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>Glob 工具详解</h1>
+  <p>按文件名模式（glob pattern）快速查找文件路径——Claude Code 文件检索的"名称面"，与 Grep 的"内容面"互补</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一">工具定位</a></li>
+    <li><a href="#二">关键文件清单</a></li>
+    <li><a href="#三">Tool 接口字段实现</a></li>
+    <li><a href="#四">核心执行流程</a></li>
+    <li><a href="#五">权限与安全</a></li>
+    <li><a href="#六">与其他系统的关系</a></li>
+    <li><a href="#七">亮点与设计取舍</a></li>
+    <li><a href="#八">源码导航</a></li>
+    <li><a href="#九">学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout">
+    <p>这是工具系统逐个拆解系列的第一篇参考样例。<code>Glob</code> 是一个<strong>中等复杂度</strong>的只读检索工具：输入一个 glob 模式（如 <code>**/*.ts</code>），返回匹配的文件路径列表。它结构干净、字段齐全，是理解"一个标准工具长什么样"的最佳切入点。读完这一篇，你就能按图索骥阅读其他任何工具。</p>
+  </blockquote>
+
+  <section id="一">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>Glob</code> = 按名称模式查文件路径的只读检索工具。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>Glob</code>（常量 <code>GLOB_TOOL_NAME</code>，<code>prompt.ts:1</code>）</td></tr>
+          <tr><td>一句话</td><td>给定 glob 模式，返回按修改时间排序的匹配文件路径</td></tr>
+          <tr><td>是否进 system prompt</td><td>✅ 在 <code>CORE_TOOLS</code> 白名单内（核心工具，schema 完整注入）</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>）</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe() → true</code>）</td></tr>
+          <tr><td>核心依赖</td><td><code>src/utils/glob.ts</code> 的 <code>glob()</code> 函数</td></tr>
+          <tr><td>定位互补方</td><td><code>Grep</code>（按<strong>内容</strong>检索）、<code>Agent</code>（开放式、多轮检索）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> 模型（或用户）经常需要"我知道文件名大概叫什么，但不知道在哪"——比如找 <code>tsconfig.json</code>、找所有 <code>*.test.ts</code>。<code>Glob</code> 用通配符模式一次命中，比 <code>Grep</code> 逐文件扫内容快得多。</p>
+  </section>
+
+  <section id="二">
+    <h2>二、关键文件清单</h2>
+    <pre>GlobTool/
+├── GlobTool.ts      ← buildTool({...}) 主体（195 行），全部逻辑都在这
+├── prompt.ts        ← 工具名常量 GLOB_TOOL_NAME + DESCRIPTION 描述文本
+├── UI.tsx           ← Ink 渲染组件（renderToolUseMessage / renderToolResultMessage）
+└── src/             ← 内部子模块</pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>GlobTool.ts</code></td><td>工具主体：schema + call() + 权限 + 渲染全在这</td><td><code>buildTool:54</code>、<code>call:151</code>、<code>checkPermissions:132</code>、<code>validateInput:91</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>工具名 + 进 system prompt 的描述</td><td><code>GLOB_TOOL_NAME:1</code>、<code>DESCRIPTION:3-7</code></td></tr>
+          <tr><td><code>UI.tsx</code></td><td>终端渲染（复用 Grep 的显示逻辑）</td><td><code>getToolUseSummary</code>、<code>renderToolResultMessage</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：GlobTool 是"单文件主体"型——所有逻辑集中在 <code>GlobTool.ts</code> 一个文件里，没有像 BashTool 那样拆出独立的权限/安全子模块。这是因为它的逻辑足够简单，不需要分文件。</p></blockquote>
+  </section>
+
+  <section id="三">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <p>GlobTool 实现了 <code>Tool</code> 接口的<strong>几乎所有关键字段</strong>，是观察"一个完整工具如何填充字段"的好例子。下面按字段类别拆解：</p>
+
+    <h3>标识字段</h3>
+    <pre>name: GLOB_TOOL_NAME,              // "Glob"
+searchHint: '按名称模式或通配符查找文件',  // TF-IDF 索引额外关键词，权重 2.5
+maxResultSizeChars: 100_000,       // 结果截断阈值（10 万字符）
+userFacingName,                    // 来自 UI.tsx 的显示名函数</pre>
+    <blockquote class="callout"><p><strong><code>searchHint</code> 的作用</strong>：延迟工具发现靠 TF-IDF 搜索。虽然 Glob 在 <code>CORE_TOOLS</code> 里不延迟，但 <code>searchHint</code> 仍会进索引，提升模型在自然语言描述时命中"找文件"意图的概率。</p></blockquote>
+
+    <h3>模型面字段</h3>
+    <pre>async description() { return DESCRIPTION }   // → API tool schema 的描述
+async prompt()      { return DESCRIPTION }    // → system prompt 片段（这里与 description 同文）
+get inputSchema()  { return inputSchema() }   // Zod schema（getter，懒加载）
+get outputSchema() { return outputSchema() }  // 输出 schema（用于 UI / 序列化）</pre>
+    <p><strong>输入 schema</strong>（<code>GlobTool.ts:23-33</code>，用 <code>lazySchema</code> 懒加载 + <code>z.strictObject</code>）：</p>
+    <pre>{
+  pattern: string   // 必填，glob 模式，如 "**/*.js"
+  path?:   string   // 可选，搜索目录；省略 = 当前工作目录
+}</pre>
+    <p><strong>输出 schema</strong>（<code>GlobTool.ts:36-49</code>）：</p>
+    <pre>{
+  durationMs: number,    // 耗时
+  numFiles:   number,    // 命中数
+  filenames:  string[],  // 相对路径数组
+  truncated:  boolean,   // 是否超过 100 个被截断
+}</pre>
+
+    <h3>行为字段（重点）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>GlobTool.ts:151</code></td><td>核心逻辑（见下节）</td></tr>
+          <tr><td><code>validateInput()</code></td><td><code>:91</code></td><td>校验 <code>path</code> 是否存在且是目录</td></tr>
+          <tr><td><code>checkPermissions()</code></td><td><code>:132</code></td><td>委托给 <code>checkReadPermissionForTool</code></td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:73</code> → <code>true</code></td><td>读不同目录可安全并发</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:76</code> → <code>true</code></td><td>无副作用</td></tr>
+          <tr><td><code>getPath()</code></td><td><code>:85</code></td><td>返回搜索根目录（供权限/UI 使用）</td></tr>
+          <tr><td><code>preparePermissionMatcher()</code></td><td><code>:88</code></td><td>返回一个 <code>rulePattern => matchWildcardPattern(...)</code> 闭包，用于 deny-rule 通配匹配</td></tr>
+          <tr><td><code>toAutoClassifierInput()</code></td><td><code>:79</code></td><td>自动审批分类器输入 = pattern 文本</td></tr>
+          <tr><td><code>isSearchOrReadCommand()</code></td><td><code>:82</code></td><td><code>{ isSearch: true, isRead: false }</code> → 标记为"搜索类"操作</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>渲染字段</h3>
+    <pre>renderToolUseMessage,         // 渲染工具调用（显示 pattern）
+renderToolUseErrorMessage,    // 渲染错误
+renderToolResultMessage,      // 渲染结果（复用 Grep 的逻辑）
+extractSearchText({filenames}) { return filenames.join('\n') }  // 用于检索历史聚合</pre>
+  </section>
+
+  <section id="四">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code> 是工具的心脏，处于 7 步流水线的<strong>第 6 步</strong>。GlobTool 的 <code>call()</code>（<code>GlobTool.ts:151-173</code>）非常简洁：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    A["call(input, ctx)\nGlobTool.ts:151"] --> B["glob(pattern, rootDir,\n{limit,offset}, signal,\npermContext)"]
+    B --> C["files.map(toRelativePath)\n相对化路径省 token"]
+    C --> D["组装 Output\n{filenames,durationMs,\nnumFiles,truncated}"]
+    D --> E["return { data: output }"]
+      </div>
+    </div>
+    <p><strong>关键点逐条</strong>：</p>
+    <ol>
+      <li><strong>限流</strong>（<code>:154</code>）：<code>limit = globLimits?.maxResults ?? 100</code>——默认最多返回 100 个文件，超出则 <code>truncated=true</code>。这是防止超大代码库一次返回成千上万路径撑爆 context。</li>
+      <li><strong>权限透传</strong>（<code>:160</code>）：<code>glob()</code> 内部也会做 <code>toolPermissionContext</code> 检查，确保 deny-rule 在文件遍历时依然生效。</li>
+      <li><strong>路径相对化</strong>（<code>:163</code>）：<code>files.map(toRelativePath)</code>——把绝对路径转成相对 cwd 的路径，<strong>纯粹为了省 token</strong>（绝对路径长得多）。这与 <code>GrepTool</code> 的做法一致（注释 <code>:162</code> 明确说明）。</li>
+      <li><strong>中断支持</strong>（<code>:159</code>）：传入 <code>abortController.signal</code>，用户 ESC 中断时 <code>glob()</code> 会终止遍历。</li>
+      <li><strong>返回形式</strong>：<code>{ data: output }</code>——注意 GlobTool 的 <code>call()</code> 返回的是 <code>{ data }</code> 包裹的对象，<strong>不是</strong> async generator 的 yield。这是因为 Glob 没有中间进度需要 yield（搜索是原子的）。最终结果会通过 <code>mapToolResultToToolResultBlockParam</code>（<code>:174</code>）转成模型可读的 <code>tool_result</code> block。</li>
+    </ol>
+    <p><strong><code>mapToolResultToToolResultBlockParam</code></strong>（<code>:174-194</code>）：把结构化 <code>Output</code> 翻译成给模型看的纯文本：</p>
+    <ul>
+      <li>空结果 → <code>"未找到文件"</code></li>
+      <li>有结果 → <code>filenames.join('\n')</code>，若 <code>truncated</code> 再追加提示"结果已被截断，请用更具体的路径"</li>
+    </ul>
+  </section>
+
+  <section id="五">
+    <h2>五、权限与安全</h2>
+    <p>GlobTool 是只读工具，权限模型相对简单，但有几个值得学习的细节：</p>
+
+    <h3><code>validateInput</code>（<code>:91-131</code>，第 3 步）</h3>
+    <p><strong>先于权限检查</strong>，校验 <code>path</code> 参数：</p>
+    <ul>
+      <li>跳过 UNC 路径（<code>:98</code>）：<code>\\</code> 或 <code>//</code> 开头的路径不调用 <code>fs.stat()</code>，<strong>安全考量——防止 NTLM 凭据泄露</strong>（注释 <code>:97</code> 明确）。</li>
+      <li>目录不存在（<code>:106</code>）→ 返回 <code>{ result: false, errorCode: 1 }</code> + 友好提示，还会调用 <code>suggestPathUnderCwd()</code> 建议"你是不是想用 X？"。</li>
+      <li>路径不是目录（<code>:121</code>）→ <code>errorCode: 2</code>。</li>
+    </ul>
+    <blockquote class="callout"><p>这是 <code>validateInput</code> 的典型用法：<strong>纯输入合法性校验，不需要权限，失败直接 emit <code>tool_use_error</code></strong>，不走 <code>canUseTool</code>。</p></blockquote>
+
+    <h3><code>checkPermissions</code>（<code>:132-139</code>，第 4 步）</h3>
+    <pre>async checkPermissions(input, context) {
+  return checkReadPermissionForTool(GlobTool, input, appState.toolPermissionContext)
+}</pre>
+    <p>委托给通用的 <code>checkReadPermissionForTool</code>（<code>src/utils/permissions/filesystem.ts</code>）——所有只读文件工具（Read/Glob/Grep）共用这个权限判定。它会把搜索根目录（来自 <code>getPath()</code>）拿去和用户的 allow/deny 规则匹配。</p>
+
+    <h3><code>preparePermissionMatcher</code>（<code>:88-90</code>）</h3>
+    <p>返回一个匹配器闭包，让权限系统能用<strong>通配符规则</strong>（如 <code>deny: **/secrets/**</code>）匹配 glob 模式本身。这让 deny-rule 既能匹配"在哪个目录搜"，也能匹配"搜什么模式"。</p>
+  </section>
+
+  <section id="六">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    Glob -->|依赖| G["src/utils/glob.ts\nglob() 核心实现"]
+    Glob -->|权限| PERM["checkReadPermissionForTool\nsrc/utils/permissions/filesystem.ts"]
+    Glob -->|渲染| UI["UI.tsx（复用 Grep 渲染）"]
+    Glob -->|相对化| REL["toRelativePath\nsrc/utils/path.ts"]
+    Glob -.同源.-> GREP["GrepTool\n共享 isSearch 标记 + 相对化策略"]
+    Glob -.被替代.-> AGENT["Agent 工具\n开放式多轮检索时优先用 Agent"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 <code>Grep</code> 的关系</strong>：两者是文件检索的"名称面 vs 内容面"。共享 <code>isSearchOrReadCommand() → {isSearch:true}</code> 标记、<code>toRelativePath</code> 路径相对化策略，甚至 <code>renderToolResultMessage</code> 都复用。</li>
+      <li><strong>与 <code>Agent</code> 的关系</strong>：<code>prompt.ts:7</code> 明确写——"当你在进行开放式搜索、可能需要多轮 glob 和 grep 时，请改用 Agent 工具"。单次确定模式用 Glob，探索性搜索交给子代理。</li>
+      <li><strong>与权限系统</strong>：通过 <code>checkReadPermissionForTool</code> 接入通用读权限管道。</li>
+      <li><strong>与 TF-IDF 工具索引</strong>：<code>searchHint</code> 让"找文件"类自然语言意图更容易命中本工具。</li>
+    </ul>
+  </section>
+
+  <section id="七">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong><code>lazySchema</code> 懒加载</strong>（<code>:23</code>）：schema 用 <code>lazySchema(() => z.strictObject(...))</code> 包裹，避免 Zod 在模块加载时就构造（启动性能优化，60+ 工具累积可观）。</li>
+      <li><strong><code>z.strictObject</code> 而非 <code>z.object</code></strong>（<code>:24</code>）：严格模式——传入 schema 未定义的字段会报错，防止模型幻觉出多余参数。</li>
+      <li><strong>路径相对化省 token</strong>（<code>:163</code>）：看似微小的优化，在大代码库里能显著降低 context 占用。</li>
+      <li><strong>截断机制 + 友好提示</strong>（<code>:154</code> + <code>:187</code>）：硬上限 100 文件防 context 爆炸，截断时主动提示"用更具体的路径"，引导模型收敛查询。</li>
+      <li><strong>UNC 路径安全豁免</strong>（<code>:98</code>）：一个容易被忽略的安全细节——防止 Windows UNC 路径触发 NTLM 凭据外泄。</li>
+      <li><strong><code>call()</code> 返回 <code>{data}</code> 而非 yield</strong>：因为搜索是原子的，没有中间进度，用同步返回比 async generator 更直接。对比 <code>BashTool</code> 的 <code>call()</code> 会多次 yield 进度——选择哪种取决于工具是否有流式中间状态。</li>
+    </ol>
+  </section>
+
+  <section id="八">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量 &amp; 描述</td><td><code>GlobTool/prompt.ts:1,3</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>GlobTool/GlobTool.ts:54-195</code></td></tr>
+          <tr><td>输入/输出 schema</td><td><code>GlobTool.ts:23-50</code></td></tr>
+          <tr><td><code>call()</code> 核心逻辑</td><td><code>GlobTool.ts:151-173</code></td></tr>
+          <tr><td><code>validateInput</code> 校验</td><td><code>GlobTool.ts:91-131</code></td></tr>
+          <tr><td><code>checkPermissions</code></td><td><code>GlobTool.ts:132-139</code></td></tr>
+          <tr><td>结果转 tool_result</td><td><code>GlobTool.ts:174-194</code></td></tr>
+          <tr><td>底层 glob 实现</td><td><code>src/utils/glob.ts</code></td></tr>
+          <tr><td>读权限通用管道</td><td><code>src/utils/permissions/filesystem.ts:checkReadPermissionForTool</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="九">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先扫"一、工具定位"建立心智，再跳到"四、call()"看心脏，最后对照"三、字段实现"理解每个 <code>buildTool</code> 字段的含义。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 Glob 与 Grep 的分工（名称面 vs 内容面）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>validateInput</code> 在 7 步流水线的第 3 步、<code>checkPermissions</code> 在第 4 步</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么 <code>isConcurrencySafe</code> 返回 <code>true</code>（只读、无副作用、读不同目录互不干扰）</span></li>
+      <li><input type="checkbox" disabled> <span>能找到结果截断的硬上限（100）和触发后的友好提示位置</span></li>
+      <li><input type="checkbox" disabled> <span>能说出路径相对化（<code>toRelativePath</code>）的动机（省 token）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 UNC 路径豁免的安全意义（防 NTLM 凭据泄露）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>让 Claude <code>Glob</code> 一个 <code>**/*.test.ts</code>，观察返回的相对路径与截断提示</li>
+      <li>在 <code>call()</code> 的 <code>:163</code> 加日志，对比相对化前后的 token 差异</li>
+      <li>构造一个 deny-rule 拦截某目录，验证 <code>checkReadPermissionForTool</code> 生效</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

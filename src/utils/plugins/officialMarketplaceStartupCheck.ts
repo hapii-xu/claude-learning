@@ -1,11 +1,11 @@
 /**
- * Auto-install logic for the official Anthropic marketplace.
+ * Anthropic 官方 marketplace 的自动安装逻辑。
  *
- * This module handles automatically installing the official marketplace
- * on startup for new users, with appropriate checks for:
- * - Enterprise policy restrictions
- * - Git availability
- * - Previous installation attempts
+ * 此模块处理在启动时为新用户自动安装官方 marketplace，
+ * 并进行以下适当检查：
+ * - 企业策略限制
+ * - Git 可用性
+ * - 之前的安装尝试
  */
 
 import { join } from 'path'
@@ -31,7 +31,7 @@ import {
 import { fetchOfficialMarketplaceFromGcs } from './officialMarketplaceGcs.js'
 
 /**
- * Reason why the official marketplace was not installed
+ * 官方 marketplace 未安装的原因
  */
 export type OfficialMarketplaceSkipReason =
   | 'already_attempted'
@@ -42,7 +42,7 @@ export type OfficialMarketplaceSkipReason =
   | 'unknown'
 
 /**
- * Check if official marketplace auto-install is disabled via environment variable.
+ * 检查官方 marketplace 自动安装是否通过环境变量禁用。
  */
 export function isOfficialMarketplaceAutoInstallDisabled(): boolean {
   return isEnvTruthy(
@@ -51,17 +51,17 @@ export function isOfficialMarketplaceAutoInstallDisabled(): boolean {
 }
 
 /**
- * Configuration for retry logic
+ * 重试逻辑配置
  */
 export const RETRY_CONFIG = {
   MAX_ATTEMPTS: 10,
-  INITIAL_DELAY_MS: 60 * 60 * 1000, // 1 hour
+  INITIAL_DELAY_MS: 60 * 60 * 1000, // 1 小时
   BACKOFF_MULTIPLIER: 2,
-  MAX_DELAY_MS: 7 * 24 * 60 * 60 * 1000, // 1 week
+  MAX_DELAY_MS: 7 * 24 * 60 * 60 * 1000, // 1 周
 }
 
 /**
- * Calculate next retry delay using exponential backoff
+ * 使用指数退避计算下次重试延迟
  */
 function calculateNextRetryDelay(retryCount: number): number {
   const delay =
@@ -71,17 +71,17 @@ function calculateNextRetryDelay(retryCount: number): number {
 }
 
 /**
- * Determine if installation should be retried based on failure reason and retry state
+ * 根据失败原因和重试状态判断是否应重试安装
  */
 function shouldRetryInstallation(
   config: ReturnType<typeof getGlobalConfig>,
 ): boolean {
-  // If never attempted, should try
+  // 若从未尝试，则应尝试
   if (!config.officialMarketplaceAutoInstallAttempted) {
     return true
   }
 
-  // If already installed successfully, don't retry
+  // 若已成功安装，则不重试
   if (config.officialMarketplaceAutoInstalled) {
     return false
   }
@@ -91,23 +91,23 @@ function shouldRetryInstallation(
   const nextRetryTime = config.officialMarketplaceAutoInstallNextRetryTime
   const now = Date.now()
 
-  // Check if we've exceeded max attempts
+  // 检查是否超过最大尝试次数
   if (retryCount >= RETRY_CONFIG.MAX_ATTEMPTS) {
     return false
   }
 
-  // Permanent failures - don't retry
+  // 永久性失败 —— 不重试
   if (failReason === 'policy_blocked') {
     return false
   }
 
-  // Check if enough time has passed for next retry
+  // 检查是否已过足够时间可以下次重试
   if (nextRetryTime && now < nextRetryTime) {
     return false
   }
 
-  // Retry for temporary failures (unknown), semi-permanent (git_unavailable),
-  // and legacy state (undefined failReason from before retry logic existed)
+  // 对临时失败（unknown）、半永久性失败（git_unavailable）
+  // 以及旧版状态（重试逻辑存在之前的 undefined failReason）进行重试
   return (
     failReason === 'unknown' ||
     failReason === 'git_unavailable' ||
@@ -117,37 +117,36 @@ function shouldRetryInstallation(
 }
 
 /**
- * Result of the auto-install check
+ * 自动安装检查的结果
  */
 export type OfficialMarketplaceCheckResult = {
-  /** Whether the marketplace was successfully installed */
+  /** 是否成功安装了 marketplace */
   installed: boolean
-  /** Whether the installation was skipped (and why) */
+  /** 是否跳过了安装（以及原因） */
   skipped: boolean
-  /** Reason for skipping, if applicable */
+  /** 跳过原因（若适用） */
   reason?: OfficialMarketplaceSkipReason
-  /** Whether saving retry metadata to config failed */
+  /** 是否保存重试元数据到配置失败 */
   configSaveFailed?: boolean
 }
 
 /**
- * Check and install the official marketplace on startup.
+ * 在启动时检查并安装官方 marketplace。
  *
- * This function is designed to be called as a fire-and-forget operation
- * during startup. It will:
- * 1. Check if installation was already attempted
- * 2. Check if marketplace is already installed
- * 3. Check enterprise policy restrictions
- * 4. Check git availability
- * 5. Attempt installation
- * 6. Record the result in GlobalConfig
+ * 此函数设计为在启动期间以"即发即忘"方式调用。它将：
+ * 1. 检查安装是否已尝试过
+ * 2. 检查 marketplace 是否已安装
+ * 3. 检查企业策略限制
+ * 4. 检查 Git 可用性
+ * 5. 尝试安装
+ * 6. 将结果记录在 GlobalConfig 中
  *
- * @returns Result indicating whether installation succeeded or was skipped
+ * @returns 指示安装成功或被跳过的结果
  */
 export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMarketplaceCheckResult> {
   const config = getGlobalConfig()
 
-  // Check if we should retry installation
+  // 检查是否应重试安装
   if (!shouldRetryInstallation(config)) {
     const reason: OfficialMarketplaceSkipReason =
       config.officialMarketplaceAutoInstallFailReason ?? 'already_attempted'
@@ -160,7 +159,7 @@ export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMark
   }
 
   try {
-    // Check if auto-install is disabled via env var
+    // 检查是否通过环境变量禁用了自动安装
     if (isOfficialMarketplaceAutoInstallDisabled()) {
       logForDebugging(
         'Official marketplace auto-install disabled via env var, skipping',
@@ -179,13 +178,13 @@ export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMark
       return { installed: false, skipped: true, reason: 'policy_blocked' }
     }
 
-    // Check if marketplace is already installed
+    // 检查 marketplace 是否已安装
     const knownMarketplaces = await loadKnownMarketplacesConfig()
     if (knownMarketplaces[OFFICIAL_MARKETPLACE_NAME]) {
       logForDebugging(
         `Official marketplace '${OFFICIAL_MARKETPLACE_NAME}' already installed, skipping`,
       )
-      // Mark as attempted so we don't check again
+      // 标记为已尝试，以便不再检查
       saveGlobalConfig(current => ({
         ...current,
         officialMarketplaceAutoInstallAttempted: true,
@@ -194,7 +193,7 @@ export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMark
       return { installed: false, skipped: true, reason: 'already_installed' }
     }
 
-    // Check enterprise policy restrictions
+    // 检查企业策略限制
     if (!isSourceAllowedByPolicy(OFFICIAL_MARKETPLACE_SOURCE)) {
       logForDebugging(
         'Official marketplace blocked by enterprise policy, skipping',
@@ -213,11 +212,10 @@ export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMark
       return { installed: false, skipped: true, reason: 'policy_blocked' }
     }
 
-    // inc-5046: try GCS mirror first — doesn't need git, doesn't hit GitHub.
-    // Backend (anthropic#317037) publishes a marketplace zip to the same
-    // bucket as the native binary. If GCS succeeds, register the marketplace
-    // with source:'github' (still true — GCS is a mirror) and skip git
-    // entirely.
+    // inc-5046：先尝试 GCS 镜像 —— 不需要 git，也不访问 GitHub。
+    // 后端（anthropic#317037）将 marketplace zip 发布到与原生二进制相同的存储桶。
+    // 若 GCS 成功，以 source:'github' 注册 marketplace（仍然正确 —— GCS 是镜像），
+    // 完全跳过 git。
     const cacheDir = getMarketplacesCacheDir()
     const installLocation = join(cacheDir, OFFICIAL_MARKETPLACE_NAME)
     const gcsSha = await fetchOfficialMarketplaceFromGcs(
@@ -249,8 +247,8 @@ export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMark
       })
       return { installed: true, skipped: false }
     }
-    // GCS failed (404 until backend writes, or network). Fall through to git
-    // ONLY if the kill-switch allows — same gate as refreshMarketplace().
+    // GCS 失败（后端写入前 404，或网络问题）。仅当熔断开关允许时才回退到 git
+    // —— 与 refreshMarketplace() 的门控相同。
     if (
       !getFeatureValue_CACHED_MAY_BE_STALE(
         'tengu_plugin_official_mkt_git_fallback',
@@ -260,8 +258,8 @@ export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMark
       logForDebugging(
         'Official marketplace GCS failed; git fallback disabled by flag — skipping install',
       )
-      // Same retry-with-backoff metadata as git_unavailable below — transient
-      // GCS failures should retry with exponential backoff, not give up.
+      // 与下方 git_unavailable 相同的指数退避重试元数据 ——
+      // 暂时性 GCS 失败应使用指数退避重试，而非放弃。
       const retryCount =
         (config.officialMarketplaceAutoInstallRetryCount || 0) + 1
       const now = Date.now()
@@ -284,7 +282,7 @@ export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMark
       return { installed: false, skipped: true, reason: 'gcs_unavailable' }
     }
 
-    // Check git availability
+    // 检查 Git 可用性
     const gitAvailable = await checkGitAvailable()
     if (!gitAvailable) {
       logForDebugging(
@@ -309,7 +307,7 @@ export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMark
         }))
       } catch (saveError) {
         configSaveFailed = true
-        // Log the error properly so it gets tracked
+        // 正确记录错误以便跟踪
         const configError = toError(saveError)
         logError(configError)
 
@@ -332,11 +330,11 @@ export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMark
       }
     }
 
-    // Attempt installation
+    // 尝试安装
     logForDebugging('Attempting to auto-install official marketplace')
     await addMarketplaceSource(OFFICIAL_MARKETPLACE_SOURCE)
 
-    // Success
+    // 成功
     logForDebugging('Successfully auto-installed official marketplace')
     const previousRetryCount =
       config.officialMarketplaceAutoInstallRetryCount || 0
@@ -344,7 +342,7 @@ export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMark
       ...current,
       officialMarketplaceAutoInstallAttempted: true,
       officialMarketplaceAutoInstalled: true,
-      // Clear retry metadata on success
+      // 成功后清除重试元数据
       officialMarketplaceAutoInstallFailReason: undefined,
       officialMarketplaceAutoInstallRetryCount: undefined,
       officialMarketplaceAutoInstallLastAttemptTime: undefined,
@@ -357,16 +355,15 @@ export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMark
     })
     return { installed: true, skipped: false }
   } catch (error) {
-    // Handle installation failure
+    // 处理安装失败
     const errorMessage = error instanceof Error ? error.message : String(error)
 
-    // On macOS, /usr/bin/git is an xcrun shim that always exists on PATH, so
-    // checkGitAvailable() (which only does `which git`) passes even without
-    // Xcode CLT installed. The shim then fails at clone time with
-    // "xcrun: error: invalid active developer path (...)". Poison the memoized
-    // availability check so other git callers in this session skip cleanly,
-    // then return silently without recording any attempt state — next startup
-    // tries fresh (no backoff machinery for what is effectively "git absent").
+    // 在 macOS 上，/usr/bin/git 是一个始终存在于 PATH 中的 xcrun shim，
+    // 因此 checkGitAvailable()（仅执行 `which git`）即使未安装 Xcode CLT 也会通过。
+    // shim 随后在克隆时失败，报错 "xcrun: error: invalid active developer path (...)"。
+    // 毒化记忆化的可用性检查，使本会话中的其他 git 调用者干净地跳过，
+    // 然后静默返回且不记录任何尝试状态 —— 下次启动时全新尝试
+    // （对于实际上"git 不存在"的情况无需退避机制）。
     if (errorMessage.includes('xcrun: error:')) {
       markGitUnavailable()
       logForDebugging(
@@ -410,7 +407,7 @@ export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMark
       }))
     } catch (saveError) {
       configSaveFailed = true
-      // Log the error properly so it gets tracked
+      // 正确记录错误以便跟踪
       const configError = toError(saveError)
       logError(configError)
 
@@ -419,8 +416,8 @@ export async function checkAndInstallOfficialMarketplace(): Promise<OfficialMark
         { level: 'error' },
       )
 
-      // Still return the failure result even if config save failed
-      // This ensures we report the installation failure correctly
+      // 即使配置保存失败也返回失败结果
+      // 这确保我们正确报告安装失败
     }
     logEvent('tengu_official_marketplace_auto_install', {
       installed: false,

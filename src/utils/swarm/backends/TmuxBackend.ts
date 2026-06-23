@@ -19,17 +19,17 @@ import {
 import { registerTmuxBackend } from './registry.js'
 import type { CreatePaneResult, PaneBackend, PaneId } from './types.js'
 
-// Track whether the first pane has been used for external swarm session
+// 追踪第一个 pane 是否已用于外部 swarm 会话
 let firstPaneUsedForExternal = false
 
-// Cached leader window target (session:window format) to avoid repeated queries
+// 缓存的 leader 窗口目标（session:window 格式），避免重复查询
 let cachedLeaderWindowTarget: string | null = null
 
-// Lock mechanism to prevent race conditions when spawning teammates in parallel
+// 锁机制，防止并行生成 teammate 时的竞态条件
 let paneCreationLock: Promise<void> = Promise.resolve()
 
-// Delay after pane creation to allow shell initialization (loading rc files, prompts, etc.)
-// 200ms is enough for most shell configurations including slow ones like starship/oh-my-zsh
+// pane 创建后延迟等待 shell 初始化（加载 rc 文件、提示符等）
+// 200ms 对大多数 shell 配置足够，包括较慢的 starship/oh-my-zsh
 const PANE_SHELL_INIT_DELAY_MS = 200
 
 function waitForPaneShellReady(): Promise<void> {
@@ -37,8 +37,8 @@ function waitForPaneShellReady(): Promise<void> {
 }
 
 /**
- * Acquires a lock for pane creation, ensuring sequential execution.
- * Returns a release function that must be called when done.
+ * 获取 pane 创建的锁，确保顺序执行。
+ * 返回一个释放函数，完成后必须调用。
  */
 function acquirePaneCreationLock(): Promise<() => void> {
   let release: () => void
@@ -53,8 +53,8 @@ function acquirePaneCreationLock(): Promise<() => void> {
 }
 
 /**
- * Gets the tmux color name for a given agent color.
- * These are tmux's built-in color names that work with pane-border-style.
+ * 获取给定 agent 颜色对应的 tmux 颜色名称。
+ * 这些是 tmux 内置的颜色名称，可用于 pane-border-style。
  */
 function getTmuxColorName(color: AgentColorName): string {
   const tmuxColors: Record<AgentColorName, string> = {
@@ -71,8 +71,8 @@ function getTmuxColorName(color: AgentColorName): string {
 }
 
 /**
- * Runs a tmux command in the user's original tmux session (no socket override).
- * Use this for operations that interact with the user's tmux panes (split-pane with leader).
+ * 在用户的原始 tmux 会话中运行 tmux 命令（不覆盖 socket）。
+ * 用于与用户的 tmux pane 交互的操作（与 leader 一起分割 pane）。
  */
 function runTmuxInUserSession(
   args: string[],
@@ -81,8 +81,8 @@ function runTmuxInUserSession(
 }
 
 /**
- * Runs a tmux command in the external swarm socket.
- * Use this for operations in the standalone swarm session (when user is not in tmux).
+ * 在外部 swarm socket 中运行 tmux 命令。
+ * 用于独立 swarm 会话中的操作（当用户不在 tmux 中时）。
  */
 function runTmuxInSwarm(
   args: string[],
@@ -91,15 +91,15 @@ function runTmuxInSwarm(
 }
 
 /**
- * TmuxBackend implements PaneBackend using tmux for pane management.
+ * TmuxBackend 使用 tmux 实现 PaneBackend 的 pane 管理。
  *
- * When running INSIDE tmux (leader is in tmux):
- * - Splits the current window to add teammates alongside the leader
- * - Leader stays on left (30%), teammates on right (70%)
+ * 在 tmux 内运行时（leader 在 tmux 中）：
+ * - 分割当前窗口，将 teammate 添加到 leader 旁边
+ * - Leader 保持在左侧（30%），teammate 在右侧（70%）
  *
- * When running OUTSIDE tmux (leader is in regular terminal):
- * - Creates a claude-swarm session with a swarm-view window
- * - All teammates are equally distributed (no leader pane)
+ * 在 tmux 外运行时（leader 在普通终端中）：
+ * - 创建 claude-swarm 会话和 swarm-view 窗口
+ * - 所有 teammate 均等分布（无 leader pane）
  */
 export class TmuxBackend implements PaneBackend {
   readonly type = 'tmux' as const
@@ -107,24 +107,24 @@ export class TmuxBackend implements PaneBackend {
   readonly supportsHideShow = true
 
   /**
-   * Checks if tmux is installed and available.
-   * Delegates to detection.ts for consistent detection logic.
+   * 检查 tmux 是否已安装并可用。
+   * 委托给 detection.ts 以保持一致的检测逻辑。
    */
   async isAvailable(): Promise<boolean> {
     return isTmuxAvailable()
   }
 
   /**
-   * Checks if we're currently running inside a tmux session.
-   * Delegates to detection.ts for consistent detection logic.
+   * 检查当前是否在 tmux 会话内运行。
+   * 委托给 detection.ts 以保持一致的检测逻辑。
    */
   async isRunningInside(): Promise<boolean> {
     return isInsideTmuxFromDetection()
   }
 
   /**
-   * Creates a new teammate pane in the swarm view.
-   * Uses a lock to prevent race conditions when multiple teammates are spawned in parallel.
+   * 在 swarm 视图中创建新的 teammate pane。
+   * 使用锁防止并行生成多个 teammate 时的竞态条件。
    */
   async createTeammatePaneInSwarmView(
     name: string,
@@ -146,8 +146,8 @@ export class TmuxBackend implements PaneBackend {
   }
 
   /**
-   * Creates a separate tmux window for a teammate in the swarm session.
-   * Used by the legacy `use_splitpane: false` path.
+   * 在 swarm 会话中为 teammate 创建独立的 tmux 窗口。
+   * 由旧版 `use_splitpane: false` 路径使用。
    */
   async createTeammateWindowInSwarmView(
     name: string,
@@ -182,7 +182,7 @@ export class TmuxBackend implements PaneBackend {
   }
 
   /**
-   * Sends a command to a specific pane.
+   * 向指定 pane 发送命令。
    */
   async sendCommandToPane(
     paneId: PaneId,
@@ -200,7 +200,7 @@ export class TmuxBackend implements PaneBackend {
   }
 
   /**
-   * Sets the border color for a specific pane.
+   * 设置指定 pane 的边框颜色。
    */
   async setPaneBorderColor(
     paneId: PaneId,
@@ -210,7 +210,7 @@ export class TmuxBackend implements PaneBackend {
     const tmuxColor = getTmuxColorName(color)
     const runTmux = useExternalSession ? runTmuxInSwarm : runTmuxInUserSession
 
-    // Set pane-specific border style using pane options (requires tmux 3.2+)
+    // 使用 pane 选项设置 pane 特定的边框样式（需要 tmux 3.2+）
     await runTmux([
       'select-pane',
       '-t',
@@ -239,7 +239,7 @@ export class TmuxBackend implements PaneBackend {
   }
 
   /**
-   * Sets the title for a pane (shown in pane border if pane-border-status is set).
+   * 设置 pane 的标题（如果设置了 pane-border-status 则显示在 pane 边框中）。
    */
   async setPaneTitle(
     paneId: PaneId,
@@ -250,10 +250,10 @@ export class TmuxBackend implements PaneBackend {
     const tmuxColor = getTmuxColorName(color)
     const runTmux = useExternalSession ? runTmuxInSwarm : runTmuxInUserSession
 
-    // Set the pane title
+    // 设置 pane 标题
     await runTmux(['select-pane', '-t', paneId, '-T', name])
 
-    // Enable pane border status with colored format
+    // 启用带彩色格式的 pane 边框状态
     await runTmux([
       'set-option',
       '-p',
@@ -265,7 +265,7 @@ export class TmuxBackend implements PaneBackend {
   }
 
   /**
-   * Enables pane border status for a window (shows pane titles).
+   * 启用窗口的 pane 边框状态（显示 pane 标题）。
    */
   async enablePaneBorderStatus(
     windowTarget?: string,
@@ -288,7 +288,7 @@ export class TmuxBackend implements PaneBackend {
   }
 
   /**
-   * Rebalances panes to achieve the desired layout.
+   * 重新平衡 pane 以达到期望的布局。
    */
   async rebalancePanes(
     windowTarget: string,
@@ -302,7 +302,7 @@ export class TmuxBackend implements PaneBackend {
   }
 
   /**
-   * Kills/closes a specific pane.
+   * 终止/关闭指定 pane。
    */
   async killPane(paneId: PaneId, useExternalSession = false): Promise<boolean> {
     const runTmux = useExternalSession ? runTmuxInSwarm : runTmuxInUserSession
@@ -311,16 +311,16 @@ export class TmuxBackend implements PaneBackend {
   }
 
   /**
-   * Hides a pane by moving it to a detached hidden session.
-   * Creates the hidden session if it doesn't exist, then uses break-pane to move the pane there.
+   * 通过将 pane 移动到分离的隐藏会话来隐藏 pane。
+   * 如果隐藏会话不存在则创建，然后使用 break-pane 将 pane 移动到那里。
    */
   async hidePane(paneId: PaneId, useExternalSession = false): Promise<boolean> {
     const runTmux = useExternalSession ? runTmuxInSwarm : runTmuxInUserSession
 
-    // Create hidden session if it doesn't exist (detached, not visible)
+    // 如果隐藏会话不存在则创建（分离的，不可见）
     await runTmux(['new-session', '-d', '-s', HIDDEN_SESSION_NAME])
 
-    // Move the pane to the hidden session
+    // 将 pane 移动到隐藏会话
     const result = await runTmux([
       'break-pane',
       '-d',
@@ -342,9 +342,9 @@ export class TmuxBackend implements PaneBackend {
   }
 
   /**
-   * Shows a previously hidden pane by joining it back into the target window.
-   * Uses `tmux join-pane` to move the pane back, then reapplies main-vertical layout
-   * with leader at 30%.
+   * 通过将之前隐藏的 pane 重新加入目标窗口来显示它。
+   * 使用 `tmux join-pane` 将 pane 移回，然后重新应用 main-vertical 布局，
+   * leader 占 30%。
    */
   async showPane(
     paneId: PaneId,
@@ -353,9 +353,9 @@ export class TmuxBackend implements PaneBackend {
   ): Promise<boolean> {
     const runTmux = useExternalSession ? runTmuxInSwarm : runTmuxInUserSession
 
-    // join-pane -s: source pane to move
-    // -t: target window/pane to join into
-    // -h: join horizontally (side by side)
+    // join-pane -s：要移动的源 pane
+    // -t：要加入的目标窗口/pane
+    // -h：水平加入（并排）
     const result = await runTmux([
       'join-pane',
       '-h',
@@ -376,10 +376,10 @@ export class TmuxBackend implements PaneBackend {
       `[TmuxBackend] Showed pane ${paneId} in ${targetWindowOrPane}`,
     )
 
-    // Reapply main-vertical layout with leader at 30%
+    // 重新应用 main-vertical 布局，leader 占 30%
     await runTmux(['select-layout', '-t', targetWindowOrPane, 'main-vertical'])
 
-    // Get the first pane (leader) and resize to 30%
+    // 获取第一个 pane（leader）并调整大小为 30%
     const panesResult = await runTmux([
       'list-panes',
       '-t',
@@ -396,21 +396,21 @@ export class TmuxBackend implements PaneBackend {
     return true
   }
 
-  // Private helper methods
+  // 私有辅助方法
 
   /**
-   * Gets the leader's pane ID.
-   * Uses the TMUX_PANE env var captured at module load to ensure we always
-   * get the leader's original pane, even if the user has switched panes.
+   * 获取 leader 的 pane ID。
+   * 使用模块加载时捕获的 TMUX_PANE 环境变量，确保始终
+   * 获取 leader 的原始 pane，即使用户已切换 pane。
    */
   private async getCurrentPaneId(): Promise<string | null> {
-    // Use the pane ID captured at startup (from TMUX_PANE env var)
+    // 使用启动时捕获的 pane ID（来自 TMUX_PANE 环境变量）
     const leaderPane = getLeaderPaneId()
     if (leaderPane) {
       return leaderPane
     }
 
-    // Fallback to dynamic query (shouldn't happen if we're inside tmux)
+    // 回退到动态查询（如果在 tmux 内则不应发生）
     const result = await execFileNoThrow(TMUX_COMMAND, [
       'display-message',
       '-p',
@@ -428,18 +428,18 @@ export class TmuxBackend implements PaneBackend {
   }
 
   /**
-   * Gets the leader's window target (session:window format).
-   * Uses the leader's pane ID to query for its window, ensuring we get the
-   * correct window even if the user has switched to a different window.
-   * Caches the result since the leader's window won't change.
+   * 获取 leader 的窗口目标（session:window 格式）。
+   * 使用 leader 的 pane ID 查询其所在窗口，确保获取正确的窗口，
+   * 即使用户已切换到其他窗口。
+   * 缓存结果，因为 leader 的窗口不会改变。
    */
   private async getCurrentWindowTarget(): Promise<string | null> {
-    // Return cached value if available
+    // 如果有缓存值则返回
     if (cachedLeaderWindowTarget) {
       return cachedLeaderWindowTarget
     }
 
-    // Build the command - use -t to target the leader's pane specifically
+    // 构建命令 - 使用 -t 专门针对 leader 的 pane
     const leaderPane = getLeaderPaneId()
     const args = ['display-message']
     if (leaderPane) {
@@ -461,7 +461,7 @@ export class TmuxBackend implements PaneBackend {
   }
 
   /**
-   * Gets the number of panes in a window.
+   * 获取窗口中的 pane 数量。
    */
   private async getCurrentWindowPaneCount(
     windowTarget?: string,
@@ -490,7 +490,7 @@ export class TmuxBackend implements PaneBackend {
   }
 
   /**
-   * Checks if a tmux session exists in the swarm socket.
+   * 检查 swarm socket 中是否存在指定的 tmux 会话。
    */
   private async hasSessionInSwarm(sessionName: string): Promise<boolean> {
     const result = await runTmuxInSwarm(['has-session', '-t', sessionName])
@@ -498,7 +498,7 @@ export class TmuxBackend implements PaneBackend {
   }
 
   /**
-   * Creates the swarm session with a single window for teammates when running outside tmux.
+   * 在 tmux 外运行时，创建带有单个 teammate 窗口的 swarm 会话。
    */
   private async createExternalSwarmSession(): Promise<{
     windowTarget: string
@@ -535,7 +535,7 @@ export class TmuxBackend implements PaneBackend {
       return { windowTarget, paneId }
     }
 
-    // Session exists, check if swarm-view window exists
+    // 会话已存在，检查 swarm-view 窗口是否存在
     const listResult = await runTmuxInSwarm([
       'list-windows',
       '-t',
@@ -560,7 +560,7 @@ export class TmuxBackend implements PaneBackend {
       return { windowTarget, paneId: panes[0] || '' }
     }
 
-    // Create the swarm-view window
+    // 创建 swarm-view 窗口
     const createResult = await runTmuxInSwarm([
       'new-window',
       '-t',
@@ -582,7 +582,7 @@ export class TmuxBackend implements PaneBackend {
   }
 
   /**
-   * Creates a teammate pane when running inside tmux (with leader).
+   * 在 tmux 内运行时创建 teammate pane（有 leader）。
    */
   private async createTeammatePaneWithLeader(
     teammateName: string,
@@ -603,7 +603,7 @@ export class TmuxBackend implements PaneBackend {
 
     let splitResult
     if (isFirstTeammate) {
-      // First teammate: split horizontally from the leader pane
+      // 第一个 teammate：从 leader pane 水平分割
       splitResult = await execFileNoThrow(TMUX_COMMAND, [
         'split-window',
         '-t',
@@ -616,7 +616,7 @@ export class TmuxBackend implements PaneBackend {
         '#{pane_id}',
       ])
     } else {
-      // Additional teammates: split from an existing teammate pane
+      // 后续 teammate：从已有 teammate pane 分割
       const listResult = await execFileNoThrow(TMUX_COMMAND, [
         'list-panes',
         '-t',
@@ -659,14 +659,14 @@ export class TmuxBackend implements PaneBackend {
     await this.setPaneTitle(paneId, teammateName, teammateColor)
     await this.rebalancePanesWithLeader(windowTarget)
 
-    // Wait for shell to initialize before returning, so commands can be sent immediately
+    // 等待 shell 初始化完成后再返回，以便可以立即发送命令
     await waitForPaneShellReady()
 
     return { paneId, isFirstTeammate }
   }
 
   /**
-   * Creates a teammate pane when running outside tmux (no leader in tmux).
+   * 在 tmux 外运行时创建 teammate pane（tmux 中无 leader）。
    */
   private async createTeammatePaneExternal(
     teammateName: string,
@@ -731,14 +731,14 @@ export class TmuxBackend implements PaneBackend {
     await this.setPaneTitle(paneId, teammateName, teammateColor, true)
     await this.rebalancePanesTiled(windowTarget)
 
-    // Wait for shell to initialize before returning, so commands can be sent immediately
+    // 等待 shell 初始化完成后再返回，以便可以立即发送命令
     await waitForPaneShellReady()
 
     return { paneId, isFirstTeammate }
   }
 
   /**
-   * Rebalances panes in a window with a leader.
+   * 在有 leader 的窗口中重新平衡 pane。
    */
   private async rebalancePanesWithLeader(windowTarget: string): Promise<void> {
     const listResult = await runTmuxInUserSession([
@@ -770,7 +770,7 @@ export class TmuxBackend implements PaneBackend {
   }
 
   /**
-   * Rebalances panes in a window without a leader (tiled layout).
+   * 在无 leader 的窗口中重新平衡 pane（平铺布局）。
    */
   private async rebalancePanesTiled(windowTarget: string): Promise<void> {
     const listResult = await runTmuxInSwarm([
@@ -794,7 +794,7 @@ export class TmuxBackend implements PaneBackend {
   }
 }
 
-// Register the backend with the registry when this module is imported.
-// This side effect is intentional - the registry needs backends to self-register to avoid circular dependencies.
+// 在导入此模块时向 registry 注册 backend。
+// 这个副作用是有意为之 — registry 需要 backend 自注册以避免循环依赖。
 // eslint-disable-next-line custom-rules/no-top-level-side-effects
 registerTmuxBackend(TmuxBackend)

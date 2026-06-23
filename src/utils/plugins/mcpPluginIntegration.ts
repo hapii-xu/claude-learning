@@ -28,8 +28,8 @@ import {
 } from './pluginOptionsStorage.js'
 
 /**
- * Load MCP servers from an MCPB file
- * Handles downloading, extracting, and converting DXT manifest to MCP config
+ * 从 MCPB 文件加载 MCP 服务器
+ * 处理下载、提取以及将 DXT manifest 转换为 MCP 配置
  */
 async function loadMcpServersFromMcpb(
   plugin: LoadedPlugin,
@@ -39,7 +39,7 @@ async function loadMcpServersFromMcpb(
   try {
     logForDebugging(`Loading MCP servers from MCPB: ${mcpbPath}`)
 
-    // Use plugin.repository directly - it's already in "plugin@marketplace" format
+    // 直接使用 plugin.repository——它已经是 "plugin@marketplace" 格式
     const pluginId = plugin.repository
 
     const result = await loadMcpbFile(
@@ -51,26 +51,26 @@ async function loadMcpServersFromMcpb(
       },
     )
 
-    // Check if MCPB needs user configuration
+    // 检查 MCPB 是否需要用户配置
     if ('status' in result && result.status === 'needs-config') {
-      // User config needed - this is normal for unconfigured plugins
-      // Don't load the MCP server yet - user can configure via /plugin menu
+      // 需要用户配置——这对于未配置的插件来说是正常的
+      // 暂不加载 MCP 服务器——用户可以通过 /plugin 菜单配置
       logForDebugging(
         `MCPB ${mcpbPath} requires user configuration. ` +
           `User can configure via: /plugin → Manage plugins → ${plugin.name} → Configure`,
       )
-      // Return null to skip this server for now (not an error)
+      // 返回 null 以暂时跳过此服务器（不算错误）
       return null
     }
 
-    // Type guard passed - result is success type
+    // 类型守卫通过——result 是成功类型
     const successResult = result as McpbLoadResult
 
-    // Use the DXT manifest name as the server name
+    // 使用 DXT manifest 的名称作为服务器名称
     const serverName = successResult.manifest.name
 
-    // Check for server name conflicts with existing servers
-    // This will be checked later when merging all servers, but we log here for debugging
+    // 检查与现有服务器的名称冲突
+    // 合并所有服务器时将进行后续检查，此处仅记录日志以供调试
     logForDebugging(
       `Loaded MCP server "${serverName}" from MCPB (extracted to ${successResult.extractedPath})`,
     )
@@ -82,10 +82,10 @@ async function loadMcpServersFromMcpb(
       level: 'error',
     })
 
-    // Use plugin@repository as source (consistent with other plugin errors)
+    // 使用 plugin@repository 作为来源（与其他插件错误保持一致）
     const source = `${plugin.name}@${plugin.repository}`
 
-    // Determine error type based on error message
+    // 根据错误消息确定错误类型
     const isUrl = mcpbPath.startsWith('http')
     if (
       isUrl &&
@@ -124,9 +124,9 @@ async function loadMcpServersFromMcpb(
 }
 
 /**
- * Load MCP servers from a plugin's manifest
- * This function loads MCP server configurations from various sources within the plugin
- * including manifest entries, .mcp.json files, and .mcpb files
+ * 从插件的 manifest 加载 MCP 服务器
+ * 此函数从插件内的各种来源加载 MCP 服务器配置，
+ * 包括 manifest 条目、.mcp.json 文件和 .mcpb 文件
  */
 export async function loadPluginMcpServers(
   plugin: LoadedPlugin,
@@ -134,7 +134,7 @@ export async function loadPluginMcpServers(
 ): Promise<Record<string, McpServerConfig> | undefined> {
   let servers: Record<string, McpServerConfig> = {}
 
-  // Check for .mcp.json in plugin directory first (lowest priority)
+  // 首先检查插件目录中的 .mcp.json（最低优先级）
   const defaultMcpServers = await loadMcpServersFromFile(
     plugin.path,
     '.mcp.json',
@@ -143,11 +143,11 @@ export async function loadPluginMcpServers(
     servers = { ...servers, ...defaultMcpServers }
   }
 
-  // Handle manifest mcpServers if present (higher priority)
+  // 如果存在则处理 manifest 的 mcpServers（更高优先级）
   if (plugin.manifest.mcpServers) {
     const mcpServersSpec = plugin.manifest.mcpServers
 
-    // Handle different mcpServers formats
+    // 处理不同的 mcpServers 格式
     if (typeof mcpServersSpec === 'string') {
       // Check if it's an MCPB file
       if (isMcpbSource(mcpServersSpec)) {
@@ -160,7 +160,7 @@ export async function loadPluginMcpServers(
           servers = { ...servers, ...mcpbServers }
         }
       } else {
-        // Path to JSON file
+        // JSON 文件路径
         const mcpServers = await loadMcpServersFromFile(
           plugin.path,
           mcpServersSpec,
@@ -170,9 +170,9 @@ export async function loadPluginMcpServers(
         }
       }
     } else if (Array.isArray(mcpServersSpec)) {
-      // Array of paths or inline configs.
-      // Load all specs in parallel, then merge in original order so
-      // last-wins collision semantics are preserved.
+      // 路径数组或内联配置。
+      // 并行加载所有规格，然后按原始顺序合并，以保留
+      // 后来者覆盖前者的冲突语义。
       const results = await Promise.all(
         mcpServersSpec.map(async spec => {
           try {
@@ -181,14 +181,14 @@ export async function loadPluginMcpServers(
               if (isMcpbSource(spec)) {
                 return await loadMcpServersFromMcpb(plugin, spec, errors)
               }
-              // Path to JSON file
+              // JSON 文件路径
               return await loadMcpServersFromFile(plugin.path, spec)
             }
-            // Inline MCP server configs (sync)
+            // 内联 MCP 服务器配置（同步）
             return spec
           } catch (e) {
-            // Defensive: if one spec throws, don't lose results from the
-            // others. The previous serial loop implicitly tolerated this.
+            // 防御性处理：如果某个规格抛出异常，不要丢失其他规格的结果。
+            // 之前的串行循环隐式地容忍了这一点。
             logForDebugging(
               `Failed to load MCP servers from spec for plugin ${plugin.name}: ${e}`,
               { level: 'error' },
@@ -203,7 +203,7 @@ export async function loadPluginMcpServers(
         }
       }
     } else {
-      // Direct MCP server configs
+      // 直接 MCP 服务器配置
       servers = { ...servers, ...mcpServersSpec }
     }
   }
@@ -212,9 +212,9 @@ export async function loadPluginMcpServers(
 }
 
 /**
- * Load MCP servers from a JSON file within a plugin
- * This is a simplified version that doesn't expand environment variables
- * and is specifically for plugin MCP configs
+ * 从插件内的 JSON 文件加载 MCP 服务器
+ * 这是一个不展开环境变量的简化版本，
+ * 专门用于插件 MCP 配置
  */
 async function loadMcpServersFromFile(
   pluginPath: string,

@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebBrowser 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    .kw  { color: #7c9bff; font-weight: 600; }
+    .str { color: #6cc77a; }
+    .fn  { color: #f0906a; }
+    .cmt { color: #6e6a62; font-style: italic; }
+    .type{ color: #e0a020; }
+    .num { color: #c792ea; }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Additional styles ────────────────────────────────── */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>WebBrowser 工具详解</h1>
+  <p>轻量级 HTTP 网页抓取工具——纯 fetch + 正则剥标签，无 JS 执行、无浏览器引擎，是 WebFetch 的极简替代/学习样板</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou">三、Tool 接口字段实现</a></li>
+    <li><a href="#si-call-liu-cheng">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-xi-tong-guan-xi">六、与其他系统/工具的关系</a></li>
+    <li><a href="#qi-liang-dian">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma">八、源码导航</a></li>
+    <li><a href="#jiu-xuexi">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+<blockquote class="callout"><p>WebBrowser 是一个<strong>极简的 HTTP 网页抓取工具</strong>。它名字叫"浏览器"，但实际只是 <code>fetch</code> 一个 URL + 用正则剥掉 HTML 标签，<strong>不执行 JavaScript、没有真实浏览器引擎</strong>。它的 prompt 如实声明这一限制，并建议需要完整浏览器交互时改用 Claude-in-Chrome MCP。它是 feature-gated（<code>WEB_BROWSER_TOOL</code>）的，且 <code>WebBrowserPanel.ts</code> 是个空桩文件。这个工具的价值在于：它是一个"薄工具"的反面教材——展示了一个不依赖 turndown/Haiku/缓存的纯 HTTP 工具长什么样，适合作为学习 WebFetch 前的对照。</p></blockquote>
+
+<hr class="divider">
+
+<section id="yi-gong-ju-ding-wei">
+<h2>一、工具定位（一句话总结）</h2>
+<p><strong><code>WebBrowser</code> = 名为浏览器、实为纯 HTTP 抓取 + 正则剥标签的极简只读工具。</strong></p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>维度</th><th>值</th></tr></thead>
+    <tbody>
+      <tr><td>工具名</td><td><code>WebBrowser</code>（内联常量 <code>WEB_BROWSER_TOOL_NAME</code>，<code>WebBrowserTool.ts:6</code>）</td></tr>
+      <tr><td>一句话</td><td>fetch URL → 正则剥 script/style/标签 → 截断 50K 字符返回文本</td></tr>
+      <tr><td>是否进 system prompt</td><td>❌ <strong>不在</strong> <code>CORE_TOOLS</code> 白名单（feature-gated，按需加载）</td></tr>
+      <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>，<code>:63</code>）</td></tr>
+      <tr><td>是否可并发</td><td>❌ <strong>不可并发</strong>（<code>isConcurrencySafe() → false</code>，<code>:60</code>）</td></tr>
+      <tr><td>feature gate</td><td><code>feature('WEB_BROWSER_TOOL')</code>（<code>src/tools.ts:133</code>）</td></tr>
+      <tr><td>核心依赖</td><td>仅 <code>fetch</code>（Web API）+ 正则。无 turndown、无 Haiku、无缓存</td></tr>
+      <tr><td>定位互补方</td><td><code>WebFetch</code>（功能完整版）、Claude-in-Chrome MCP（真实浏览器）</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><strong>为什么需要它？</strong> 在 WebFetch（重：turndown + Haiku + 缓存）和真实浏览器（Chrome MCP）之间，WebBrowser 提供一个<strong>零依赖的轻量抓取</strong>选项。它适合"只想快速看一眼页面文本"的场景，不需要 Markdown 转换或 AI 摘要。</p>
+<blockquote class="callout"><p><strong>注意</strong>：本工具在 <code>src/tools.ts:133</code> 受 <code>feature('WEB_BROWSER_TOOL')</code> 门控，默认构建/dev 不一定启用。<code>CORE_TOOLS</code> 白名单（<code>src/constants/tools.ts</code>）<strong>不包含</strong>它——搜索该文件无 <code>WebBrowser</code>，所以它是延迟加载工具。</p></blockquote>
+</section>
+
+<hr class="divider">
+
+<section id="er-guan-jian-wen-jian">
+<h2>二、关键文件清单</h2>
+<pre><code>WebBrowserTool/
+├── WebBrowserTool.ts      ← 全部逻辑（169 行）：schema + call + 渲染全在这
+├── WebBrowserPanel.ts     ← 空桩文件（4 行），导出恒返回 null 的组件
+└── __tests__/
+    └── WebBrowserTool.test.ts  ← 测试（3493 字节）</code></pre>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+    <tbody>
+      <tr><td><code>WebBrowserTool.ts</code></td><td>全部逻辑：schema + call + 渲染</td><td><code>buildTool:29</code>、<code>call:87</code>、navigate 分支 <code>:90</code>、剥标签 <code>:120</code></td></tr>
+      <tr><td><code>WebBrowserPanel.ts</code></td><td>空桩（自动生成，<code>export {}</code>）</td><td><code>:1-4</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p><strong>结构特点</strong>：WebBrowserTool 是"单文件主体 + 空桩"型。所有逻辑集中在 <code>WebBrowserTool.ts</code> 一个文件；<code>WebBrowserPanel.ts</code> 是自动生成的占位桩（注释 <code>:1</code> 明确"自动生成的桩文件 — 请替换为真实实现"），说明原本可能计划有一个 Ink 面板组件但未实现。<strong>没有独立的 prompt.ts / UI.tsx</strong>——prompt 和渲染函数都内联在主体里。</p></blockquote>
+</section>
+
+<hr class="divider">
+
+<section id="san-tool-jie-kou">
+<h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+<p>WebBrowserTool 实现的字段比 WebFetch 少——没有独立的权限函数、没有 searchHint 进索引的辅助文件。</p>
+
+<h3>标识字段</h3>
+<pre><code>name: WEB_BROWSER_TOOL_NAME,                  // "WebBrowser"（内联定义，无独立常量文件）
+searchHint: 'web browser navigate url page screenshot click',
+maxResultSizeChars: 100_000,
+strict: true,                                  // 严格模式（未启用？见下）</code></pre>
+<blockquote class="callout"><p><strong><code>strict: true</code></strong>（<code>:33</code>）：标记为严格工具。注意此工具<strong>没有</strong> <code>shouldDefer</code>——是否延迟取决于 feature gate 和注册逻辑。</p></blockquote>
+
+<h3>模型面字段</h3>
+<pre><code>get inputSchema()  // { url: string, action?: 'navigate'|'screenshot' }
+async description() { return '通过 HTTP 获取并读取网页内容' }
+async prompt() { /* 如实声明：HTTP 抓取，非浏览器引擎，不执行 JS */ }</code></pre>
+<p><strong>输入 schema</strong>（<code>:8-18</code>）：</p>
+<pre><code>{
+  url:    string,                // 必填，目标 URL
+  action?: 'navigate'|'screenshot'  // 可选，默认 navigate
+}</code></pre>
+<blockquote class="callout"><p><strong><code>screenshot</code> 是个误导性命名</strong>：prompt（<code>:46-47</code>）明确"screenshot 与 navigate 相同（返回文本快照，而非可视化截图）"。真正的截图需要 Chrome MCP。</p></blockquote>
+<p><strong>输出类型</strong>（<code>:22-27</code>，内联 type，非 Zod schema）：</p>
+<pre><code>type BrowserOutput = {
+  title: string
+  url: string
+  content?: string
+  screenshot?: string  // 实际未使用
+}</code></pre>
+
+<h3>行为字段</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>call()</code></td><td><code>:87</code></td><td>纯 fetch + 正则剥标签</td></tr>
+      <tr><td><code>isConcurrencySafe()</code></td><td><code>:60</code> → <strong><code>false</code></strong></td><td>与 WebFetch（true）相反</td></tr>
+      <tr><td><code>isReadOnly()</code></td><td><code>:63</code> → <code>true</code></td><td>只读</td></tr>
+      <tr><td><code>userFacingName()</code></td><td><code>:67</code> → <code>'浏览器'</code></td><td>中文显示名</td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p><strong>缺失的字段</strong>（对比 WebFetch）：<strong>没有</strong> <code>checkPermissions</code>、<strong>没有</strong> <code>validateInput</code>、<strong>没有</strong> <code>toAutoClassifierInput</code>、<strong>没有</strong> <code>getActivityDescription</code>、<strong>没有</strong> <code>isSearchOrReadCommand</code>。这是一个字段最少的工具之一。</p></blockquote>
+
+<h3>渲染字段</h3>
+<pre><code>renderToolUseMessage(input) { return `浏览器 ${action}: ${url}` }  // :71，内联
+// 没有 renderToolResultMessage —— 结果只通过 mapToolResultToToolResultBlockParam 给模型</code></pre>
+</section>
+
+<hr class="divider">
+
+<section id="si-call-liu-cheng">
+<h2>四、核心执行流程：<code>call()</code></h2>
+<p><code>call()</code>（<code>WebBrowserTool.ts:87-168</code>）是本系列里最简单的 call 之一：</p>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart LR
+    A["call({url, action})\n:87"] --> B["action = action ?? 'navigate'\n:88"]
+    B --> C["fetch(url, { headers,\n  redirect: 'follow' })\n:93"]
+    C --> D{"response.ok?"}
+    D -->|否| E["return { title: 'HTTP &lt;code&gt;',\n  content: '错误: ...' }\n:104"]
+    D -->|是| F["html = response.text()\n:113"]
+    F --> G["正则提取 &lt;title&gt;\n:116"]
+    G --> H["剥 script/style/标签\n+ 压缩空白\n:120-125"]
+    H --> I{"textContent > 50_000?"}
+    I -->|是| J["截断 + '[truncated]'\n:128"]
+    I -->|否| K["保留全文"]
+    J --> L["return { data: {title, url, content} }"]
+    K --> L
+  </div>
+</div>
+<p><strong>关键点</strong>：</p>
+<ol>
+  <li><strong>用原生 <code>fetch</code></strong>（<code>:93</code>），不是 axios。带一个固定的 Chrome UA（<code>:95-98</code>）和 <code>redirect: 'follow'</code>（<code>:100</code>）——<strong>无条件跟随重定向</strong>，与 WebFetch 的"跨主机重定向让模型重试"截然不同。</li>
+  <li><strong>标题提取是正则</strong>（<code>:116</code>）：<code>/&lt;title[^&gt;]*&gt;([^&lt;]*)&lt;\/title&gt;/i</code>——简单粗暴，不解析 DOM。</li>
+  <li><strong>剥标签是正则链</strong>（<code>:120-125</code>）：
+    <pre><code>html.replace(/&lt;script[\s\S]*?&lt;\/script&gt;/gi, '')   // 删 script
+    .replace(/&lt;style[\s\S]*?&lt;\/style&gt;/gi, '')     // 删 style
+    .replace(/&lt;[^&gt;]+&gt;/g, ' ')                     // 标签→空格
+    .replace(/\s+/g, ' ')                         // 压缩空白
+    .trim()</code></pre>
+    对比 WebFetch 用 turndown（1.4MB 库）做 HTML→Markdown——WebBrowser 用 4 行正则，零依赖但质量差（无法保留结构、表格、代码块语义）。
+  </li>
+  <li><strong>50K 字符硬截断</strong>（<code>:128</code>）：超出直接 <code>slice + '[truncated]'</code>。对比 WebFetch 的 100K + Haiku 摘要。</li>
+  <li><strong>screenshot 分支与 navigate 几乎相同</strong>（<code>:132-139</code>）：只在 content 前加 <code>[文本快照 — 可视化截图需要 Chrome 浏览器工具]</code> 前缀。</li>
+  <li><strong>错误兜底</strong>（<code>:149-157</code>）：catch 任意错误，返回 <code>{ title: 'Error', content: '获取失败：...' }</code>——不抛异常，始终返回 data。</li>
+</ol>
+</section>
+
+<hr class="divider">
+
+<section id="wu-quan-xian-an-quan">
+<h2>五、权限与安全</h2>
+<p>WebBrowserTool <strong>没有实现 <code>checkPermissions</code></strong>——这意味着它走工具系统的<strong>默认权限管道</strong>（通常会触发 ask 或继承会话模式）。这是它和 WebFetch（精细的域名权限）最大的差异。</p>
+<p><strong>安全姿态相对宽松/简陋</strong>：</p>
+<ul>
+  <li><strong>无条件跟随重定向</strong>（<code>:100</code>）——没有 WebFetch 的 <code>isPermittedRedirect</code> 白名单。理论上可被开放重定向利用，但因为只 GET + 只读，风险有限。</li>
+  <li><strong>无 URL 校验</strong>（没有 validateInput）——任何字符串都直接交给 fetch。</li>
+  <li><strong>无缓存</strong>——每次都重新抓。</li>
+  <li><strong>无 HTTPS 强制</strong>——不像 WebFetch/VaultHttpFetch 强制升级 https。</li>
+</ul>
+<blockquote class="callout"><p>这工具的安全模型基本是"信任 fetch 自身的行为"。生产场景下 WebFetch 是更安全的选择。</p></blockquote>
+</section>
+
+<hr class="divider">
+
+<section id="liu-xi-tong-guan-xi">
+<h2>六、与其他系统/工具的关系</h2>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    WB["WebBrowser"] -->|抓取| FETCH["原生 fetch Web API"]
+    WB -->|feature gate| FG["feature('WEB_BROWSER_TOOL')\nsrc/tools.ts:133"]
+    WB -.极简版.-> WF["WebFetch（完整版：\nturndown+Haiku+缓存+域名权限）"]
+    WB -.被建议替代.-> CHROME["Claude-in-Chrome MCP\n（真实浏览器，prompt:52 建议）"]
+    WB -.同类.-> VHF["VaultHttpFetch（带认证）"]
+  </div>
+</div>
+<ul>
+  <li><strong>与 <code>WebFetch</code></strong>：WebBrowser 是 WebFetch 的"极简近亲"。WebFetch 有 turndown、Haiku 摘要、15 分钟缓存、130+ 域名白名单、域名粒度权限；WebBrowser 全没有，只用 4 行正则。两者 input 都含 url，但 WebFetch 多了 prompt（让 Haiku 提炼），WebBrowser 没有。</li>
+  <li><strong>与 Claude-in-Chrome MCP</strong>：WebBrowser 的 prompt（<code>:52</code>）明确建议——需要完整浏览器交互（click/type/scroll/JS）时改用 Claude-in-Chrome MCP。WebBrowser 只是 HTTP 抓取的占位。</li>
+  <li><strong>与 feature 系统</strong>：唯一的 feature gate 入口在 <code>src/tools.ts:133</code>。<code>getAllBaseTools()</code>（<code>:246</code>）用 <code>...(WebBrowserTool ? [WebBrowserTool] : [])</code> 条件展开——feature 关闭时根本不进工具列表。</li>
+  <li><strong>与 <code>WebBrowserPanel.ts</code></strong>：原本可能计划有 Ink 面板，目前是空桩（<code>:1-4</code> <code>export {}</code> + 恒 null 组件）。</li>
+</ul>
+</section>
+
+<hr class="divider">
+
+<section id="qi-liang-dian">
+<h2>七、亮点与设计取舍</h2>
+<ol>
+  <li><strong>零依赖</strong>（亮点也是缺点）：不用 axios、不用 turndown、不用 Haiku、不用 lru-cache。启动开销几乎为零，但牺牲了转换质量和缓存。</li>
+  <li><strong>如实声明限制</strong>（<code>:42-58</code> prompt）：明确告诉模型"不执行 JS、click/type/scroll 不可用、需要完整浏览器请用 Chrome MCP"——不伪装成真浏览器，避免模型误用。</li>
+  <li><strong><code>screenshot</code> 命名的坦诚</strong>（<code>:46-47</code>）：prompt 直接说明 screenshot 返回的是文本快照而非可视化截图——不误导。</li>
+  <li><strong><code>isConcurrencySafe: false</code></strong>（<code>:60</code>）：与 WebFetch（true）相反。可能是因为没有缓存/状态隔离的考量，或保守默认。这是一个值得追问的设计选择。</li>
+  <li><strong>字段极简</strong>：没有 checkPermissions、validateInput、toAutoClassifierInput——展示了"一个最小可用工具"长什么样。也意味着它失去了精细控制。</li>
+  <li><strong><code>WebBrowserPanel.ts</code> 空桩</strong>（<code>:1-4</code>）：自动生成的占位，说明这是未完成/学习用途的工具，而非生产主力。</li>
+  <li><strong>错误不抛、始终返回 data</strong>（<code>:149-157</code>）：catch 所有异常转成 <code>{title:'Error', content:'获取失败'}</code>——工具永不抛错，代价是模型要自己判断 content 里是不是错误信息。</li>
+</ol>
+</section>
+
+<hr class="divider">
+
+<section id="ba-yuan-ma">
+<h2>八、源码导航（书签速查）</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+    <tbody>
+      <tr><td>工具名常量（内联）</td><td><code>WebBrowserTool.ts:6</code></td></tr>
+      <tr><td><code>buildTool</code> 字段填充</td><td><code>WebBrowserTool.ts:29-169</code></td></tr>
+      <tr><td>输入 schema（url + action）</td><td><code>WebBrowserTool.ts:8-18</code></td></tr>
+      <tr><td>输出 type（内联）</td><td><code>WebBrowserTool.ts:22-27</code></td></tr>
+      <tr><td><code>call()</code> fetch + 剥标签</td><td><code>WebBrowserTool.ts:87-168</code></td></tr>
+      <tr><td>标题正则提取</td><td><code>WebBrowserTool.ts:116</code></td></tr>
+      <tr><td>标签剥离正则链</td><td><code>WebBrowserTool.ts:120-125</code></td></tr>
+      <tr><td>50K 截断</td><td><code>WebBrowserTool.ts:128</code></td></tr>
+      <tr><td>prompt（如实声明限制）</td><td><code>WebBrowserTool.ts:42-58</code></td></tr>
+      <tr><td>空桩面板</td><td><code>WebBrowserPanel.ts:1-4</code></td></tr>
+      <tr><td>feature gate 注册</td><td><code>src/tools.ts:133-136,246</code></td></tr>
+      <tr><td>CORE_TOOLS 白名单</td><td><code>src/constants/tools.ts</code>（<strong>不含</strong> WebBrowser）</td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<hr class="divider">
+
+<section id="jiu-xuexi">
+<h2>九、学习建议与验证清单</h2>
+<p><strong>怎么读这章</strong>：先把它当 WebFetch 的"极简对照"读。重点对比"四、call()"——看剥离标签的正则链 vs WebFetch 的 turndown，理解"零依赖"的代价。然后注意"五、权限"——看一个<strong>没有</strong> checkPermissions 的工具如何走默认管道。</p>
+<p><strong>验证清单（读完自测）</strong>：</p>
+<ul class="checklist">
+  <li><input type="checkbox" disabled> <span>能说出 WebBrowser 名为浏览器但实际只做 HTTP 抓取（不执行 JS）</span></li>
+  <li><input type="checkbox" disabled> <span>能指出它剥 HTML 标签用的是 4 行正则（非 turndown）</span></li>
+  <li><input type="checkbox" disabled> <span>能解释为什么它不在 CORE_TOOLS 白名单（feature-gated，按需加载）</span></li>
+  <li><input type="checkbox" disabled> <span>能说出它与 WebFetch 的 3 个主要差异（无 turndown / 无 Haiku / 无缓存 / 无域名权限）</span></li>
+  <li><input type="checkbox" disabled> <span>能指出 <code>screenshot</code> action 实际返回的是文本快照（非可视化截图）</span></li>
+  <li><input type="checkbox" disabled> <span>能说出 <code>isConcurrencySafe: false</code> 与 WebFetch（true）相反</span></li>
+  <li><input type="checkbox" disabled> <span>能找到 <code>WebBrowserPanel.ts</code> 是空桩的证据（<code>:1</code> 注释"自动生成的桩文件"）</span></li>
+  <li><input type="checkbox" disabled> <span>能说出它没有 checkPermissions（走默认权限管道）</span></li>
+</ul>
+<p><strong>配合动作</strong>：</p>
+<ol>
+  <li>用 <code>FEATURE_WEB_BROWSER_TOOL=1 bun run dev</code> 启用本工具，让 Claude <code>WebBrowser navigate</code> 一个简单 HTML 页面，观察剥标签后的纯文本</li>
+  <li>对比同一 URL 用 WebFetch（有 Markdown 结构）和 WebBrowser（纯文本）的输出差异</li>
+  <li>让 Claude <code>WebBrowser screenshot</code> 一个 URL，验证它返回的是文本而非图片</li>
+  <li>在 <code>:120-125</code> 正则链前后加日志，对比原始 HTML 和剥离后的文本</li>
+</ol>
+</section>
+
+<a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

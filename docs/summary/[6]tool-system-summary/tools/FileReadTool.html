@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FileReadTool（Read）工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── SVG Diagram ──────────────────────────────────────── */
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      margin: 0 auto;
+      font-family: var(--font-sans);
+    }
+
+    /* SVG tooltip via CSS title */
+    .node-group { cursor: default; }
+    .node-group:hover rect.node-rect { filter: brightness(.93); }
+
+    /* ── Card Grid ────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .path-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: box-shadow .15s, border-color .15s;
+    }
+
+    .path-card:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--orange-lt);
+    }
+
+    .badge-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .card-body { flex: 1; min-width: 0; }
+
+    .card-trigger {
+      font-weight: 700;
+      font-size: .9rem;
+      color: var(--text);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    .card-module {
+      font-family: var(--font-mono);
+      font-size: .76rem;
+      color: var(--text-2);
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .card-flag {
+      font-size: .72rem;
+      color: var(--blue);
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .badge-enable {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    /* ── Collapsible knowledge cards ─────────────────────── */
+    .knowledge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    details.know-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    details.know-card[open] {
+      border-color: var(--orange-lt);
+    }
+
+    details.know-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      outline: none;
+    }
+
+    details.know-card > summary::-webkit-details-marker { display: none; }
+
+    details.know-card > summary:hover { background: var(--bg); }
+
+    .know-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    details.know-card[open] .know-num {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .know-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: .97rem;
+    }
+
+    .know-arrow {
+      width: 20px;
+      height: 20px;
+      color: var(--text-3);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    details.know-card[open] .know-arrow {
+      transform: rotate(90deg);
+      color: var(--orange);
+    }
+
+    .know-body {
+      padding: 0 20px 20px 64px;
+    }
+
+    .know-body p { margin-bottom: 8px; }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    /* CSS-only syntax highlighting */
+    .kw  { color: #7c9bff; font-weight: 600; }  /* keywords */
+    .str { color: #6cc77a; }                      /* strings */
+    .fn  { color: #f0906a; }                      /* function calls */
+    .cmt { color: #6e6a62; font-style: italic; } /* comments */
+    .type{ color: #e0a020; }                      /* TypeScript types */
+    .num { color: #c792ea; }                      /* numbers */
+
+    /* inline code */
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Comparison Table ─────────────────────────────────── */
+    .compare-table th:first-child { width: 130px; }
+    .compare-table th:nth-child(2) { color: var(--orange-dk); }
+    .compare-table th:nth-child(3) { color: var(--blue-dk); }
+
+    /* ── Key files ────────────────────────────────────────── */
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--blue-dk);
+      cursor: default;
+      position: relative;
+    }
+
+    .file-path:hover::after {
+      content: attr(data-full);
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+      background: #1e1b16;
+      color: #d4cfc8;
+      font-size: .75rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+      pointer-events: none;
+    }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    ul.key-list {
+      padding-left: 20px;
+      color: var(--text-2);
+    }
+
+    ul.key-list li { margin-bottom: 4px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .know-body { padding-left: 20px; }
+    }
+
+    /* ── Additional ───────────────────────────────────────── */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    section { margin-top: 56px; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>FileReadTool（Read）工具详解</h1>
+  <p>从磁盘读取文件的多模态网关——文本/图片/PDF/Jupyter notebook 四种内容类型，fileStateCache 去重、行号截断、token 预算压缩、设备文件拦截集于一身，是 Claude Code 最大的内置工具之一</p>
+  <ul class="nav-links">
+    <li><a href="#yi-gong-ju-ding-wei-yi-ju-hua-zong-jie">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian-qing-dan">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou-zi-duan-shi-xian-buildtool-zhu-zi-duan">三、Tool 接口字段实现</a></li>
+    <li><a href="#si-he-xin-zhi-xing-liu-cheng-call-yu-callinner">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian-yu-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-yu-qi-ta-xi-tong-gong-ju-de-guan-xi">六、与其他系统/工具的关系</a></li>
+    <li><a href="#qi-liang-dian-yu-she-ji-qu-she">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma-dao-hang-shu-qian-su-cha">八、源码导航</a></li>
+    <li><a href="#jiu-xue-xi-jian-yi-yu-yan-zheng-qing-dan">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+<blockquote class="callout">
+  <p>这是工具系统逐个拆解系列的<strong>读工具旗舰篇</strong>。<code>Read</code>（<code>FILE_READ_TOOL_NAME = 'Read'</code>，主体 <strong>1169 行</strong>）是 Claude Code 最大的内置工具之一。它远不止"读文本"——而是<strong>多模态内容网关</strong>：文本（带 <code>cat -n</code> 行号）、图片（PNG/JPG/GIF/WebP，带 token 预算压缩）、PDF（原生 + 页面提取双路径）、Jupyter notebook（结构化单元格）。它还实现了 <code>readFileState</code> 去重（同文件同范围不重发）、设备文件拦截（防 <code>/dev/zero</code> 挂起）、二进制扩展名拦截、macOS 截图窄空格容错。读懂它，就读懂了"读"的全部复杂度。</p>
+</blockquote>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="yi-gong-ju-ding-wei-yi-ju-hua-zong-jie">
+  <h2>一、工具定位（一句话总结）</h2>
+
+  <p><strong><code>Read</code> = 从磁盘读取文件并按类型（文本/图片/PDF/notebook）多模态呈现的只读工具。</strong></p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>维度</th><th>值</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>工具名</td><td><code>Read</code>（常量 <code>FILE_READ_TOOL_NAME</code>，<code>prompt.ts:5</code>）</td></tr>
+        <tr><td>一句话</td><td>按扩展名分流到文本/图片/PDF/notebook 四条路径，文本带行号，图片/PDF 经 token 预算压缩，notebook 返回结构化单元格</td></tr>
+        <tr><td>是否进 system prompt</td><td>✅ 默认注册（<code>tools.ts:229</code>）；<code>FILE_READ_TOOL_NAME</code> 在 <code>CORE_TOOLS</code> 白名单（<code>constants/tools.ts:9</code>）；<code>CLAUDE_CODE_SIMPLE</code> 模式仅保留 <code>[Bash, Read, Edit]</code>（<code>tools.ts:329</code>）</td></tr>
+        <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>，<code>:375-377</code>）</td></tr>
+        <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe() → true</code>，<code>:372-374</code>）</td></tr>
+        <tr><td>核心依赖</td><td><code>src/utils/readFileInRange.ts</code>（文本）、<code>src/utils/imageResizer.ts</code>（图片）、<code>src/utils/pdf.ts</code>+<code>pdfUtils.ts</code>（PDF）、<code>src/utils/notebook.ts</code>（notebook）、<code>src/utils/tokenEstimation.ts</code>（token 上限）</td></tr>
+        <tr><td>定位互补方</td><td><code>Glob</code>/<code>Grep</code>（先定位再读）、<code>Edit</code>/<code>Write</code>（读取是编辑前置契约）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><strong>为什么需要它？</strong> 模型要修改代码，必须先"看见"它。<code>Read</code> 是这双眼睛——而且是一双<strong>多模态</strong>的眼睛：能看代码（文本）、看截图（图片）、看文档（PDF）、看数据分析（notebook）。它还是 Edit/Write 的<strong>契约前置</strong>：<code>readFileState</code> 记录每次读取的 mtime，后续编辑据此做新鲜度检查。没有 Read，写工具就无法判断"模型认知 vs 磁盘真实"是否一致。</p>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="er-guan-jian-wen-jian-qing-dan">
+  <h2>二、关键文件清单</h2>
+
+  <pre><code>FileReadTool/
+├── FileReadTool.ts     ← buildTool({...}) 主体（1169 行），callInner 分流四类内容
+├── prompt.ts           ← DESCRIPTION + renderPromptTemplate（动态拼装，含 PDF/notebook 说明）
+├── limits.ts           ← getDefaultFileReadingLimits（maxTokens/maxSizeBytes，GrowthBook 可覆盖）
+├── imageProcessor.ts   ← 图片处理辅助
+├── UI.tsx              ← Ink 渲染（renderToolUseMessage/renderToolResultMessage/renderToolUseTag）
+└── src/
+    ├── services/analytics/growthbook.ts   ← 桩
+    └── utils/
+        ├── file.ts      ← 桩
+        └── messages.ts  ← 桩</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>文件</th><th>角色</th><th>必看行号</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>FileReadTool.ts</code></td><td>工具主体：schema + validateInput + call + callInner + 四类分流 + readImageWithTokenBudget</td><td><code>buildTool:336-707</code>、<code>validateInput:415-491</code>、<code>call:492-645</code>、<code>callInner:791-1072</code>、<code>BLOCKED_DEVICE_PATHS:97-114</code>、<code>MaxFileReadTokenExceededError:174-184</code>、<code>readImageWithTokenBudget:1083-1169</code></td></tr>
+        <tr><td><code>prompt.ts</code></td><td>描述模板 + 常量</td><td><code>FILE_READ_TOOL_NAME:5</code>、<code>DESCRIPTION:12</code>、<code>MAX_LINES_TO_READ:10</code>、<code>renderPromptTemplate:26-48</code>、<code>FILE_UNCHANGED_STUB:7-8</code></td></tr>
+        <tr><td><code>limits.ts</code></td><td>读取上限（memoized，GrowthBook 可覆盖）</td><td><code>DEFAULT_MAX_OUTPUT_TOKENS:17</code>、<code>getDefaultFileReadingLimits:51-90</code>、<code>getEnvMaxTokens:23-32</code></td></tr>
+        <tr><td><code>imageProcessor.ts</code></td><td>图片处理辅助</td><td>—</td></tr>
+        <tr><td><code>UI.tsx</code></td><td>渲染：<code>getAgentOutputTaskId</code>（agent 输出文件特殊处理）</td><td><code>getAgentOutputTaskId:19-30</code>、<code>renderToolUseMessage:32</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <blockquote class="callout">
+    <p><strong>结构特点</strong>：FileReadTool 是"单文件巨主体"型——1169 行全在 <code>FileReadTool.ts</code>，没有像 FileEditTool 那样拆纯函数库（因为逻辑强 I/O 耦合，难纯化）。复杂度来自<strong>四类内容的分流处理</strong>，而非算法深度。</p>
+  </blockquote>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="san-tool-jie-kou-zi-duan-shi-xian-buildtool-zhu-zi-duan">
+  <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+  <h3>标识字段</h3>
+
+  <pre><code>name: FILE_READ_TOOL_NAME,                    // "Read"
+searchHint: 'read files, images, PDFs, notebooks',
+maxResultSizeChars: 100_000,                  // 超 100KB 持久化到磁盘（减轻长会话内存）
+strict: true,</code></pre>
+
+  <h3>模型面字段</h3>
+
+  <pre><code>async description() { return DESCRIPTION }
+async prompt() {
+  // 动态：根据 limits（GrowthBook）拼装 maxSizeInstruction + offsetInstruction
+  return renderPromptTemplate(pickLineFormatInstruction(), maxSizeInstruction, offsetInstruction)
+}
+get inputSchema()  { return inputSchema() }
+get outputSchema() { return outputSchema() }</code></pre>
+
+  <p><strong>输入 schema</strong>（<code>:226-242</code>，<code>semanticNumber</code> 包裹 offset/limit）：</p>
+
+  <pre><code>{
+  file_path: string,          // 必填，绝对路径
+  offset?:   number,          // 起始行（semanticNumber 容错）
+  limit?:    number,          // 读取行数
+  pages?:    string,          // PDF 页面范围，如 "1-5"
+}</code></pre>
+
+  <p><strong>输出 schema</strong>（<code>:247-331</code>）——<strong>判别式联合</strong>（<code>z.discriminatedUnion('type', ...)</code>），6 种类型：</p>
+
+  <pre><code>| { type: 'text',     file: { filePath, content, numLines, startLine, totalLines } }
+| { type: 'image',    file: { base64, type, originalSize, dimensions? } }
+| { type: 'notebook', file: { filePath, cells: any[] } }
+| { type: 'pdf',      file: { filePath, base64, originalSize } }
+| { type: 'parts',    file: { filePath, originalSize, count, outputDir } }  // PDF 页面提取
+| { type: 'file_unchanged', file: { filePath } }                            // 去重命中</code></pre>
+
+  <blockquote class="callout">
+    <p><strong>判别式联合的价值</strong>：6 种结果形态差异巨大（文本是字符串、图片是 base64、PDF 是 document block），用 <code>type</code> 字段判别让 <code>mapToolResultToToolResultBlockParam</code>（<code>:646-706</code>）能 switch 分流，每种走不同的序列化路径。</p>
+  </blockquote>
+
+  <h3>行为字段（重点）</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>字段</th><th>实现位置</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>call()</code></td><td><code>:492-645</code></td><td>入口：去重检查 + skill 发现 + 调 callInner + ENOENT 容错</td></tr>
+        <tr><td><code>validateInput()</code></td><td><code>:415-491</code></td><td>pages 格式、deny 规则、UNC、二进制扩展名、设备文件</td></tr>
+        <tr><td><code>checkPermissions()</code></td><td><code>:397-404</code></td><td>委托 <code>checkReadPermissionForTool</code></td></tr>
+        <tr><td><code>isConcurrencySafe()</code></td><td><code>:372-374</code> → <code>true</code></td><td>读不同文件可安全并发</td></tr>
+        <tr><td><code>isReadOnly()</code></td><td><code>:375-377</code> → <code>true</code></td><td>无副作用</td></tr>
+        <tr><td><code>isSearchOrReadCommand()</code></td><td><code>:381-383</code> → <code>{isRead:true}</code></td><td>标记为"读取类"</td></tr>
+        <tr><td><code>getPath()</code></td><td><code>:384-386</code></td><td><code>file_path || getCwd()</code></td></tr>
+        <tr><td><code>backfillObservableInput()</code></td><td><code>:387-393</code></td><td><code>expandPath</code> 防 hook 绕过</td></tr>
+        <tr><td><code>preparePermissionMatcher()</code></td><td><code>:394-396</code></td><td>通配匹配闭包</td></tr>
+        <tr><td><code>toAutoClassifierInput()</code></td><td><code>:378-380</code></td><td><code>file_path</code></td></tr>
+        <tr><td><code>extractSearchText()</code></td><td><code>:411-413</code> → <code>''</code></td><td>UI 只渲染摘要外框，不索引内容</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>渲染字段</h3>
+
+  <pre><code>userFacingName,
+renderToolUseMessage,    // 显示 file_path（agent 输出文件特殊处理）
+renderToolUseTag,
+renderToolResultMessage, // UI.tsx:140 —— 只渲染摘要外框，不渲染内容
+renderToolUseErrorMessage,</code></pre>
+
+  <blockquote class="callout">
+    <p><strong>UI 不渲染内容</strong>（<code>:408-410</code> 注释）：所有类型只渲染"Read N 行"、"Read image (42KB)"这样的摘要外框。面向模型的内容序列化（行号前缀、base64）走 <code>mapToolResultToToolResultBlockParam</code>，<strong>不经过 UI</strong>。这是"模型面 vs 用户面"的彻底分离。</p>
+  </blockquote>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="si-he-xin-zhi-xing-liu-cheng-call-yu-callinner">
+  <h2>四、核心执行流程：<code>call()</code> 与 <code>callInner()</code></h2>
+
+  <p><code>call()</code>（<code>:492-645</code>）是入口，<code>callInner()</code>（<code>:791-1072</code>）按扩展名分流。整体流程：</p>
+
+  <div class="mermaid-wrap">
+    <div class="mermaid">
+flowchart TD
+    A["call(input, ctx)\nFileReadTool.ts:492"] --> LIM["读 maxSizeBytes/maxTokens\n（GrowthBook/env 覆盖）"]
+    LIM --> DEDUP{"readFileState 命中?\n(同 offset/limit + mtime 未变)\n且 dedupKillswitch 关闭?"}
+    DEDUP -->|是| STUB["return file_unchanged\n（占位，防重复发全文）"]
+    DEDUP -->|否| SK["后台：discoverSkills\n（fire-and-forget）"]
+    SK --> INNER["callInner(...)\n按 ext 分流"]
+    INNER --> ENOENT{"ENOENT?"}
+    ENOENT -->|是| ALT["getAlternateScreenshotPath\nmacOS 窄空格容错\n重试 callInner"]
+    ALT -->|仍 ENOENT| SUGG["findSimilarFile /\nsuggestPathUnderCwd\n友好错误"]
+    ENOENT -->|否| RET["return { data }"]
+
+    INNER --> IPYNB{ext}
+    IPYNB -->|ipynb| NB["readNotebook → cells\ntoken 校验 → readFileState.set"]
+    IPYNB -->|png/jpg/gif/webp| IMG["readImageWithTokenBudget\nresize + 压缩 + 兜底"]
+    IPYNB -->|pdf| PDF["pages? extractPDFPages\n: readPDF（原生/提取双路径）"]
+    IPYNB -->|其他| TXT["readFileInRange\noffset/limit 切片\nvalidateContentTokens\n→ readFileState.set"]
+    </div>
+  </div>
+
+  <p><strong>call() 关键点</strong>：</p>
+
+  <ol>
+    <li><strong><code>readFileState</code> 去重</strong>（<code>:519-567</code>）：若已读过同 <code>offset/limit</code> 且磁盘 mtime 未变，返回 <code>file_unchanged</code> 占位。注释（<code>:519-527</code>）引用实测数据——约 18% 的 Read 调用是同文件冲突，最高占全集群 cache_creation 的 2.64%。<strong>仅对 Read 的条目去重</strong>（<code>existingState.offset !== undefined</code>）——Edit/Write 存的 <code>offset=undefined</code> 条目反映编辑后 mtime，基于它去重会把模型指向编辑前的内容。可通过 GrowthBook <code>tengu_read_dedup_killswitch</code> 熔断。</li>
+    <li><strong>ENOENT 容错 + macOS 截图窄空格</strong>（<code>:602-644</code>）：文件不存在时，先试 <code>getAlternateScreenshotPath</code>（<code>:146-158</code>）——macOS 截图 AM/PM 前的空格可能是普通空格或窄不换行空格（U+202F），换一种再试。仍失败才用 <code>findSimilarFile</code>/<code>suggestPathUnderCwd</code> 给友好建议。</li>
+    <li><strong>skill 发现非阻塞</strong>（<code>:569-585</code>）：<code>addSkillDirectories(...).catch(() =&gt; {})</code> 不 await。</li>
+  </ol>
+
+  <p><strong>callInner() 四类分流</strong>（<code>:791-1072</code>）：</p>
+
+  <ul>
+    <li><strong>notebook</strong>（<code>:809-850</code>）：<code>readNotebook</code> 读 JSON，<code>validateContentTokens</code> 校验，超 <code>maxSizeBytes</code> 则建议用 Bash+jq 读片段。<code>readFileState.set</code> 记录 cellsJson。</li>
+    <li><strong>image</strong>（<code>:853-878</code>）：<code>readImageWithTokenBudget</code>（<code>:1083-1169</code>）——单次读文件，标准 resize；若超 token 预算则同 buffer 激进压缩，再失败用 sharp 兜底（400x400, quality 20）。返回 dimensions 供坐标映射。</li>
+    <li><strong>PDF</strong>（<code>:881-1004</code>）：双路径——有 <code>pages</code> 参数则 <code>extractPDFPages</code> 提取页面为 JPG 图片块；无 pages 且页数 ≤ <code>PDF_AT_MENTION_INLINE_THRESHOLD</code> 则 <code>readPDF</code> 原生读取为 document block。<code>isPDFSupported()</code> 为假（旧模型）时强制走页面提取，需 poppler-utils。</li>
+    <li><strong>text</strong>（<code>:1006-1071</code>）：<code>readFileInRange</code>（单次异步，支持 offset/limit 切片 + maxSizeBytes 上限 + abort signal），<code>validateContentTokens</code> 校验，<code>addLineNumbers</code> 加 <code>cat -n</code> 行号，<code>readFileState.set</code> 记录。</li>
+  </ul>
+
+  <p><strong><code>validateContentTokens</code></strong>（<code>:732-759</code>）——三级 token 防护：</p>
+
+  <ol>
+    <li>快速拒绝：字节数 &gt; maxTokens×4 直接抛（最坏 4 字节/token）。</li>
+    <li>粗估：<code>roughTokenCountEstimationForFileType</code> ≤ maxTokens/4 放行。</li>
+    <li>精确：<code>countTokensWithAPI</code> 调 API 精确计数，超限抛 <code>MaxFileReadTokenExceededError</code>。</li>
+  </ol>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="wu-quan-xian-yu-an-quan">
+  <h2>五、权限与安全</h2>
+
+  <h3><code>validateInput</code>（<code>:415-491</code>，第 3 步）</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>校验项</th><th>行号</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>pages 格式</td><td><code>:417-437</code></td><td><code>parsePDFPageRange</code> 校验，范围超 <code>PDF_MAX_PAGES_PER_READ</code> 拒绝（errorCode 7/8）</td></tr>
+        <tr><td>deny 规则</td><td><code>:440-455</code></td><td><code>matchingRuleForInput(...,'read','deny')</code>（errorCode 1）</td></tr>
+        <tr><td>UNC 路径</td><td><code>:459-463</code></td><td><code>\\</code>/<code>//</code> 跳过 fs 操作（errorCode 推迟到权限层），防 NTLM 泄露</td></tr>
+        <tr><td>二进制扩展名</td><td><code>:465-478</code></td><td><code>hasBinaryExtension</code> 且非 PDF/图片 → 拒绝（errorCode 4）</td></tr>
+        <tr><td>设备文件</td><td><code>:480-488</code></td><td><code>isBlockedDevicePath</code> → 拒绝（errorCode 9）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3><code>BLOCKED_DEVICE_PATHS</code>（<code>:97-114</code>）——防挂起的黑名单</h3>
+
+  <pre><code>const BLOCKED_DEVICE_PATHS = new Set([
+  '/dev/zero', '/dev/random', '/dev/urandom', '/dev/full',  // 无限输出
+  '/dev/stdin', '/dev/tty', '/dev/console',                 // 阻塞等待输入
+  '/dev/stdout', '/dev/stderr',                             // 读取无意义
+  '/dev/fd/0', '/dev/fd/1', '/dev/fd/2',                    // stdio fd 别名
+])</code></pre>
+
+  <p><code>isBlockedDevicePath</code>（<code>:116-127</code>）还拦截 <code>/proc/&lt;pid&gt;/fd/0-2</code>（Linux stdio 别名）。注释（<code>:95-96</code>）强调：这是<strong>纯路径检查无 I/O</strong>，<code>/dev/null</code> 等安全设备故意放行。<strong>没有这个黑名单，读 <code>/dev/zero</code> 会让进程永远到不了 EOF 而 OOM 挂起。</strong></p>
+
+  <h3>安全细节</h3>
+
+  <ul>
+    <li><strong><code>readFileState</code> 去重仅限 Read 条目</strong>（<code>:541-545</code>）：<code>existingState.offset !== undefined</code> 过滤——防止把 Edit/Write 的条目误用于去重（会指向过期内容）。</li>
+    <li><strong>图片单次读取</strong>（<code>:1089</code> 注释）：<code>readFileBytes</code> 只读一次，后续压缩基于同一 buffer，避免超大文件 OOM。</li>
+    <li><strong><code>memoryFileMtimes</code> WeakMap 侧信道</strong>（<code>:724-730</code>）：auto-memory 文件的 mtime 通过 WeakMap 传给 <code>mapToolResultToToolResultBlockParam</code>，避免在输出 schema 加仅展示用的字段，也避免 mapper 做同步 fs。data 对象 GC 后 WeakMap 自动回收。</li>
+    <li><strong>会话文件 analytics</strong>（<code>:194-224</code>、<code>:1053-1069</code>）：<code>detectSessionFileType</code> 识别 <code>~/.claude/session-memory/*.md</code> 和 <code>~/.claude/projects/*.jsonl</code>，记录 <code>tengu_session_file_read</code> 事件（含行数/字节统计）。</li>
+  </ul>
+
+  <h3><code>checkPermissions</code>（<code>:397-404</code>，第 4 步）</h3>
+
+  <p>委托 <code>checkReadPermissionForTool</code>——所有只读文件工具（Read/Glob/Grep）共用。</p>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="liu-yu-qi-ta-xi-tong-gong-ju-de-guan-xi">
+  <h2>六、与其他系统/工具的关系</h2>
+
+  <div class="mermaid-wrap">
+    <div class="mermaid">
+flowchart TD
+    READ[FileReadTool] -->|文本| RNG["readFileInRange\nsrc/utils/readFileInRange.ts"]
+    READ -->|图片| IMG["imageResizer.ts\nmaybeResizeAndDownsample +\ncompressImageBufferWithTokenLimit"]
+    READ -->|PDF| PDF["pdf.ts + pdfUtils.ts\nreadPDF / extractPDFPages"]
+    READ -->|notebook| NB["notebook.ts\nreadNotebook / mapNotebookCellsToToolResult"]
+    READ -->|token| TK["tokenEstimation.ts\nroughTokenCount + countTokensWithAPI"]
+    READ -->|去重| RFS["readFileState\n（Read 写入 offset/limit + mtime）"]
+    READ -->|权限| RPERM["checkReadPermissionForTool"]
+    READ -.契约.-> EDIT["FileEditTool\n依赖 readFileState 做新鲜度检查"]
+    READ -.契约.-> WRITE["FileWriteTool\n同上"]
+    READ -.互补.-> GLOB["Glob/Grep\n先定位再 Read"]
+    </div>
+  </div>
+
+  <ul>
+    <li><strong>与 Edit/Write 的契约关系</strong>（<strong>最重要</strong>）：Read 是编辑的<strong>前置依赖</strong>。<code>readFileState</code> 是三者共享的"模型认知账本"——Read 写入（offset/limit 有定义 + mtime），Edit/Write 读取做新鲜度检查、写入（offset=undefined）刷新。Edit 的 prompt 明确："未读取就编辑会报错。" Read 的去重注释（<code>:537-540</code>）特别说明：不能基于 Edit/Write 的条目去重，否则指向过期内容。</li>
+    <li><strong>与 Glob/Grep 的互补</strong>：Glob 按名找路径、Grep 按内容找路径、Read 读具体内容。典型流程：Grep 定位 → Read 读全文 → Edit 改。</li>
+    <li><strong>与 Bash 的边界</strong>：<code>prompt.ts:45</code> 明确——"本工具只能读文件，不能读目录。要列目录，用 Bash 执行 ls。" notebook 超限时也建议用 Bash+jq（<code>:817-821</code>）。</li>
+    <li><strong>与图片坐标映射</strong>：<code>dimensions</code>（<code>:276-295</code>）返回原始 + 显示尺寸，供 Computer Use 等场景做坐标映射。</li>
+    <li><strong>与 <code>registerFileReadListener</code></strong>（<code>:164-172</code>）：暴露监听器注册 API，其他服务可在文件被读时收到通知（content + path）。</li>
+  </ul>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="qi-liang-dian-yu-she-ji-qu-she">
+  <h2>七、亮点与设计取舍</h2>
+
+  <ol>
+    <li><strong>判别式联合输出 schema</strong>（<code>:256-330</code>）：6 种结果形态用 <code>z.discriminatedUnion('type', ...)</code> 统一，让序列化、UI、类型推导都受益。这是处理"一个工具多种返回"的范本。</li>
+    <li><strong><code>readFileState</code> 去重</strong>（<code>:519-567</code>）：实测驱动——18% 冲突率、2.64% cache_creation 占比。用 GrowthBook killswitch 可熔断，3P（Bedrock/Vertex/Foundry）安全（纯客户端，无需服务端）。</li>
+    <li><strong>三级 token 防护</strong>（<code>:732-759</code>）：快速字节拒绝 → 粗估放行 → API 精确计数。避免了"每次都调 API 计数"的延迟，又防止超大文件漏网。</li>
+    <li><strong>设备文件黑名单</strong>（<code>:97-127</code>）：纯路径检查防 <code>/dev/zero</code> 挂起——一个容易被忽略但致命的健壮性细节。</li>
+    <li><strong>macOS 截图窄空格容错</strong>（<code>:129-158</code>）：不同 macOS 版本 AM/PM 前的空格字符不同（普通 vs U+202F），ENOENT 时换一种再试。这是对<strong>平台怪癖</strong>的极致容错。</li>
+    <li><strong>图片单次读取 + 多级压缩</strong>（<code>:1083-1169</code>）：读一次 buffer，标准 resize → 激进压缩 → sharp 兜底，全基于同一 buffer。防 OOM 又保降级。</li>
+    <li><strong>PDF 双路径</strong>（<code>:881-1004</code>）：原生 document block（新模型 + 小文件）vs 页面提取为图片（旧模型/大文件/指定 pages）。<code>isPDFSupported</code> + <code>PDF_EXTRACT_SIZE_THRESHOLD</code> 决定路径。</li>
+    <li><strong><code>memoryFileMtimes</code> WeakMap 侧信道</strong>（<code>:724-730</code>）：用 WeakMap 把 mtime 从 call 传到 mapper，不污染 schema、不做同步 fs、自动 GC。展示了对"临时跨函数状态"的优雅处理。</li>
+    <li><strong>UI 与模型面彻底分离</strong>（<code>:408-413</code>）：UI 只渲染摘要外框，内容序列化走 mapper。避免大文件内容在终端刷屏，也避免内容进错误的管道。</li>
+    <li><strong>memoized limits</strong>（<code>limits.ts:51</code>）：GrowthBook 值首次调用固定，防止会话中途上限跳变。env 覆盖优先于 GrowthBook（用户意图 &gt; 实验基础设施）。</li>
+  </ol>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="ba-yuan-ma-dao-hang-shu-qian-su-cha">
+  <h2>八、源码导航（书签速查）</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>想看什么</th><th>去哪里</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>工具名 + 描述常量</td><td><code>prompt.ts:5,12</code></td></tr>
+        <tr><td>输入/输出 schema（判别式联合）</td><td><code>FileReadTool.ts:226-242</code>、<code>:247-331</code></td></tr>
+        <tr><td><code>buildTool</code> 字段填充</td><td><code>FileReadTool.ts:336-707</code></td></tr>
+        <tr><td><code>validateInput</code>（pages/deny/UNC/二进制/设备）</td><td><code>FileReadTool.ts:415-491</code></td></tr>
+        <tr><td><code>call()</code> 入口（去重 + ENOENT 容错）</td><td><code>FileReadTool.ts:492-645</code></td></tr>
+        <tr><td><code>callInner()</code> 四类分流</td><td><code>FileReadTool.ts:791-1072</code></td></tr>
+        <tr><td><code>mapToolResultToToolResultBlockParam</code>（6 种序列化）</td><td><code>FileReadTool.ts:646-706</code></td></tr>
+        <tr><td>设备文件黑名单</td><td><code>FileReadTool.ts:97-127</code></td></tr>
+        <tr><td>macOS 截图窄空格容错</td><td><code>FileReadTool.ts:129-158</code></td></tr>
+        <tr><td><code>readFileState</code> 去重逻辑</td><td><code>FileReadTool.ts:519-567</code></td></tr>
+        <tr><td><code>validateContentTokens</code>（三级防护）</td><td><code>FileReadTool.ts:732-759</code></td></tr>
+        <tr><td><code>readImageWithTokenBudget</code>（图片多级压缩）</td><td><code>FileReadTool.ts:1083-1169</code></td></tr>
+        <tr><td><code>MaxFileReadTokenExceededError</code></td><td><code>FileReadTool.ts:174-184</code></td></tr>
+        <tr><td>读取上限（GrowthBook 可覆盖）</td><td><code>limits.ts:51-90</code></td></tr>
+        <tr><td>描述模板（PDF/notebook 说明）</td><td><code>prompt.ts:26-48</code></td></tr>
+        <tr><td>读权限通用管道</td><td><code>src/utils/permissions/filesystem.ts:checkReadPermissionForTool</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section id="jiu-xue-xi-jian-yi-yu-yan-zheng-qing-dan">
+  <h2>九、学习建议与验证清单</h2>
+
+  <p><strong>怎么读这章</strong>：这是读工具的"母版"，也是最复杂的单工具。先看"一、定位"建立"多模态网关"心智，再跳到"四、call/callInner"的分流 mermaid 理解四类路径。然后重点啃"<code>readFileState</code> 去重"和"三级 token 防护"——它们体现了实测驱动的工程优化。最后看"五、设备文件黑名单"，体会健壮性细节。</p>
+
+  <p><strong>验证清单（读完自测）</strong>：</p>
+
+  <ul class="checklist">
+    <li><input type="checkbox" disabled> <span>能说出 Read 支持的 4 种内容类型（文本/图片/PDF/notebook）及各自分流入口</span></li>
+    <li><input type="checkbox" disabled> <span>能解释输出 schema 为何用判别式联合（6 种形态差异大，type 判别让序列化分流）</span></li>
+    <li><input type="checkbox" disabled> <span>能说出 <code>readFileState</code> 去重的两个前提（同 offset/limit + mtime 未变 + offset 有定义）</span></li>
+    <li><input type="checkbox" disabled> <span>能解释为什么不能基于 Edit/Write 的 readFileState 条目去重（offset=undefined 指向编辑后 mtime，会误指向过期内容）</span></li>
+    <li><input type="checkbox" disabled> <span>能找到设备文件黑名单（<code>BLOCKED_DEVICE_PATHS</code>）并说出它防什么（<code>/dev/zero</code> 无限输出挂起）</span></li>
+    <li><input type="checkbox" disabled> <span>能说出三级 token 防护的顺序（字节快速拒绝 → 粗估放行 → API 精确计数）</span></li>
+    <li><input type="checkbox" disabled> <span>能解释图片为何单次读取（防 OOM，多级压缩基于同一 buffer）</span></li>
+    <li><input type="checkbox" disabled> <span>能说出 PDF 的双路径决策依据（<code>isPDFSupported</code> + <code>PDF_EXTRACT_SIZE_THRESHOLD</code> + pages 参数）</span></li>
+    <li><input type="checkbox" disabled> <span>能解释 <code>memoryFileMtimes</code> WeakMap 的作用（侧信道传 mtime，不污染 schema，自动 GC）</span></li>
+    <li><input type="checkbox" disabled> <span>能指出 Read 与 Edit/Write 的契约关系（readFileState 共享，Read 是编辑前置依赖）</span></li>
+  </ul>
+
+  <p><strong>配合动作</strong>：</p>
+
+  <ol>
+    <li>让 Claude 连续 <code>Read</code> 同一文件两次，观察第二次返回 <code>file_unchanged</code> 占位</li>
+    <li>在 <code>:553</code>（去重命中处）加日志，验证去重触发</li>
+    <li>用一个超 25000 token 的大文件触发 <code>MaxFileReadTokenExceededError</code>，观察 errorCode</li>
+    <li>读一张大图片，对比 <code>dimensions.originalWidth</code> 与 <code>displayWidth</code>，验证压缩</li>
+    <li>读 <code>.ipynb</code> 文件，观察返回的 <code>cells</code> 结构与 <code>mapNotebookCellsToToolResult</code> 序列化</li>
+  </ol>
+</section>
+
+<a href="index.html" class="back-link">← 返回工具总览</a>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

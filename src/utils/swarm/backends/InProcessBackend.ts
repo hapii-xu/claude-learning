@@ -23,51 +23,51 @@ import type {
 } from './types.js'
 
 /**
- * InProcessBackend implements TeammateExecutor for in-process teammates.
+ * InProcessBackend 为进程内 teammate 实现 TeammateExecutor。
  *
- * Unlike pane-based backends (tmux/iTerm2), in-process teammates run in the
- * same Node.js process with isolated context via AsyncLocalStorage. They:
- * - Share resources (API client, MCP connections) with the leader
- * - Communicate via file-based mailbox (same as pane-based teammates)
- * - Are terminated via AbortController (not kill-pane)
+ * 与基于 pane 的 backend（tmux/iTerm2）不同，进程内 teammate 在
+ * 同一 Node.js 进程中运行，通过 AsyncLocalStorage 实现上下文隔离。它们：
+ * - 与 leader 共享资源（API 客户端、MCP 连接）
+ * - 通过基于文件的 mailbox 通信（与基于 pane 的 teammate 相同）
+ * - 通过 AbortController 终止（而非 kill-pane）
  *
- * IMPORTANT: Before spawning, call setContext() to provide the ToolUseContext
- * needed for AppState access. This is intended for use via the TeammateExecutor
- * abstraction (getTeammateExecutor() in registry.ts).
+ * 重要：在生成之前，调用 setContext() 提供 AppState 访问所需的
+ * ToolUseContext。这旨在通过 TeammateExecutor 抽象使用
+ * （registry.ts 中的 getTeammateExecutor()）。
  */
 export class InProcessBackend implements TeammateExecutor {
   readonly type = 'in-process' as const
 
   /**
-   * Tool use context for AppState access.
-   * Must be set via setContext() before spawn() is called.
+   * 用于 AppState 访问的工具使用上下文。
+   * 必须在调用 spawn() 之前通过 setContext() 设置。
    */
   private context: ToolUseContext | null = null
 
   /**
-   * Sets the ToolUseContext for this backend.
-   * Called by TeammateTool before spawning to provide AppState access.
+   * 设置此 backend 的 ToolUseContext。
+   * 由 TeammateTool 在生成之前调用，以提供 AppState 访问。
    */
   setContext(context: ToolUseContext): void {
     this.context = context
   }
 
   /**
-   * In-process backend is always available (no external dependencies).
+   * 进程内 backend 始终可用（无外部依赖）。
    */
   async isAvailable(): Promise<boolean> {
     return true
   }
 
   /**
-   * Spawns an in-process teammate.
+   * 生成进程内 teammate。
    *
-   * Uses spawnInProcessTeammate() to:
-   * 1. Create TeammateContext via createTeammateContext()
-   * 2. Create independent AbortController (not linked to parent)
-   * 3. Register teammate in AppState.tasks
-   * 4. Start agent execution via startInProcessTeammate()
-   * 5. Return spawn result with agentId, taskId, abortController
+   * 使用 spawnInProcessTeammate() 来：
+   * 1. 通过 createTeammateContext() 创建 TeammateContext
+   * 2. 创建独立的 AbortController（不与父级关联）
+   * 3. 在 AppState.tasks 中注册 teammate
+   * 4. 通过 startInProcessTeammate() 启动 agent 执行
+   * 5. 返回包含 agentId、taskId、abortController 的生成结果
    */
   async spawn(config: TeammateSpawnConfig): Promise<TeammateSpawnResult> {
     if (!this.context) {
@@ -96,15 +96,15 @@ export class InProcessBackend implements TeammateExecutor {
       this.context,
     )
 
-    // If spawn succeeded, start the agent execution loop
+    // 如果生成成功，启动 agent 执行循环
     if (
       result.success &&
       result.taskId &&
       result.teammateContext &&
       result.abortController
     ) {
-      // Start the agent loop in the background (fire-and-forget)
-      // The prompt is passed through the task state and config
+      // 在后台启动 agent 循环（即发即忘）
+      // prompt 通过 task state 和 config 传递
       startInProcessTeammate({
         identity: {
           agentId: result.agentId,
@@ -119,9 +119,9 @@ export class InProcessBackend implements TeammateExecutor {
         description: config.description,
         agentDefinition: config.agentDefinition,
         teammateContext: result.teammateContext,
-        // Strip messages: the teammate never reads toolUseContext.messages
-        // (runAgent overrides it via createSubagentContext). Passing the
-        // parent's conversation would pin it for the teammate's lifetime.
+        // 剥离 messages：teammate 从不读取 toolUseContext.messages
+        // （runAgent 通过 createSubagentContext 覆盖它）。传递父级的
+        // 对话会在 teammate 的整个生命周期内固定它。
         toolUseContext: { ...this.context, messages: [] },
         abortController: result.abortController,
         model: config.model,
@@ -149,17 +149,17 @@ export class InProcessBackend implements TeammateExecutor {
   }
 
   /**
-   * Sends a message to an in-process teammate.
+   * 向进程内 teammate 发送消息。
    *
-   * All teammates use file-based mailboxes for simplicity.
+   * 所有 teammate 都使用基于文件的 mailbox，以简化实现。
    */
   async sendMessage(agentId: string, message: TeammateMessage): Promise<void> {
     logForDebugging(
       `[InProcessBackend] sendMessage() to ${agentId}: ${message.text.substring(0, 50)}...`,
     )
 
-    // Parse agentId to get agentName and teamName
-    // agentId format: "agentName@teamName" (e.g., "researcher@my-team")
+    // 解析 agentId 以获取 agentName 和 teamName
+    // agentId 格式："agentName@teamName"（例如 "researcher@my-team"）
     const parsed = parseAgentId(agentId)
     if (!parsed) {
       logForDebugging(`[InProcessBackend] Invalid agentId format: ${agentId}`)
@@ -170,7 +170,7 @@ export class InProcessBackend implements TeammateExecutor {
 
     const { agentName, teamName } = parsed
 
-    // Write to file-based mailbox
+    // 写入基于文件的 mailbox
     await writeToMailbox(
       agentName,
       {
@@ -186,14 +186,14 @@ export class InProcessBackend implements TeammateExecutor {
   }
 
   /**
-   * Gracefully terminates an in-process teammate.
+   * 优雅地终止进程内 teammate。
    *
-   * Sends a shutdown request message to the teammate and sets the
-   * shutdownRequested flag. The teammate processes the request and
-   * either approves (exits) or rejects (continues working).
+   * 向 teammate 发送关闭请求消息并设置
+   * shutdownRequested 标志。teammate 处理该请求并
+   * 批准（退出）或拒绝（继续工作）。
    *
-   * Unlike pane-based teammates, in-process teammates handle their own
-   * exit via the shutdown flow - no external killPane() is needed.
+   * 与基于 pane 的 teammate 不同，进程内 teammate 通过
+   * 关闭流程自行处理退出——不需要外部 killPane()。
    */
   async terminate(agentId: string, reason?: string): Promise<boolean> {
     logForDebugging(
@@ -207,7 +207,7 @@ export class InProcessBackend implements TeammateExecutor {
       return false
     }
 
-    // Get current AppState to find the task
+    // 获取当前 AppState 以查找 task
     const state = this.context.getAppState()
     const task = findTeammateTaskByAgentId(agentId, state.tasks)
 
@@ -218,7 +218,7 @@ export class InProcessBackend implements TeammateExecutor {
       return false
     }
 
-    // Don't send another shutdown request if one is already pending
+    // 如果已有待处理的关闭请求，不要再次发送
     if (task.shutdownRequested) {
       logForDebugging(
         `[InProcessBackend] terminate(): shutdown already requested for ${agentId}`,
@@ -226,17 +226,17 @@ export class InProcessBackend implements TeammateExecutor {
       return true
     }
 
-    // Generate deterministic request ID
+    // 生成确定性的 request ID
     const requestId = `shutdown-${agentId}-${Date.now()}`
 
-    // Create shutdown request message
+    // 创建关闭请求消息
     const shutdownRequest = createShutdownRequestMessage({
       requestId,
-      from: 'team-lead', // Terminate is always called by the leader
+      from: 'team-lead', // 终止始终由 leader 调用
       reason,
     })
 
-    // Send to teammate's mailbox
+    // 发送到 teammate 的 mailbox
     const teammateAgentName = task.identity.agentName
     await writeToMailbox(
       teammateAgentName,
@@ -248,7 +248,7 @@ export class InProcessBackend implements TeammateExecutor {
       task.identity.teamName,
     )
 
-    // Mark the task as shutdown requested
+    // 将 task 标记为已请求关闭
     requestTeammateShutdown(task.id, this.context.setAppState)
 
     logForDebugging(
@@ -259,10 +259,10 @@ export class InProcessBackend implements TeammateExecutor {
   }
 
   /**
-   * Force kills an in-process teammate immediately.
+   * 立即强制终止进程内 teammate。
    *
-   * Uses the teammate's AbortController to cancel all async operations
-   * and updates the task state to 'killed'.
+   * 使用 teammate 的 AbortController 取消所有异步操作
+   * 并将 task 状态更新为 'killed'。
    */
   async kill(agentId: string): Promise<boolean> {
     logForDebugging(`[InProcessBackend] kill() called for ${agentId}`)
@@ -274,7 +274,7 @@ export class InProcessBackend implements TeammateExecutor {
       return false
     }
 
-    // Get current AppState to find the task
+    // 获取当前 AppState 以查找 task
     const state = this.context.getAppState()
     const task = findTeammateTaskByAgentId(agentId, state.tasks)
 
@@ -285,7 +285,7 @@ export class InProcessBackend implements TeammateExecutor {
       return false
     }
 
-    // Kill the teammate via the existing helper function
+    // 通过现有辅助函数终止 teammate
     const killed = killInProcessTeammate(task.id, this.context.setAppState)
 
     logForDebugging(
@@ -296,10 +296,10 @@ export class InProcessBackend implements TeammateExecutor {
   }
 
   /**
-   * Checks if an in-process teammate is still active.
+   * 检查进程内 teammate 是否仍然活跃。
    *
-   * Returns true if the teammate exists, has status 'running',
-   * and its AbortController has not been aborted.
+   * 如果 teammate 存在、状态为 'running'
+   * 且 AbortController 尚未被中止，则返回 true。
    */
   async isActive(agentId: string): Promise<boolean> {
     logForDebugging(`[InProcessBackend] isActive() called for ${agentId}`)
@@ -311,7 +311,7 @@ export class InProcessBackend implements TeammateExecutor {
       return false
     }
 
-    // Get current AppState to find the task
+    // 获取当前 AppState 以查找 task
     const state = this.context.getAppState()
     const task = findTeammateTaskByAgentId(agentId, state.tasks)
 
@@ -322,7 +322,7 @@ export class InProcessBackend implements TeammateExecutor {
       return false
     }
 
-    // Check if task is running and not aborted
+    // 检查 task 是否正在运行且未被中止
     const isRunning = task.status === 'running'
     const isAborted = task.abortController?.signal.aborted ?? true
 
@@ -337,8 +337,8 @@ export class InProcessBackend implements TeammateExecutor {
 }
 
 /**
- * Factory function to create an InProcessBackend instance.
- * Used by the registry (Task #8) to get backend instances.
+ * 创建 InProcessBackend 实例的工厂函数。
+ * 由 registry（Task #8）使用以获取 backend 实例。
  */
 export function createInProcessBackend(): InProcessBackend {
   return new InProcessBackend()

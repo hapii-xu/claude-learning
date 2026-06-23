@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SuggestBackgroundPR 工具详解 — Claude Code 工具详解</title>
+  <style>    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── SVG Diagram ──────────────────────────────────────── */
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .diagram-wrap svg {
+      display: block;
+      margin: 0 auto;
+      font-family: var(--font-sans);
+    }
+
+    /* SVG tooltip via CSS title */
+    .node-group { cursor: default; }
+    .node-group:hover rect.node-rect { filter: brightness(.93); }
+
+    /* ── Card Grid ────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .path-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: box-shadow .15s, border-color .15s;
+    }
+
+    .path-card:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--orange-lt);
+    }
+
+    .badge-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .card-body { flex: 1; min-width: 0; }
+
+    .card-trigger {
+      font-weight: 700;
+      font-size: .9rem;
+      color: var(--text);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    .card-module {
+      font-family: var(--font-mono);
+      font-size: .76rem;
+      color: var(--text-2);
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .card-flag {
+      font-size: .72rem;
+      color: var(--blue);
+      font-weight: 600;
+      letter-spacing: .03em;
+    }
+
+    .badge-enable {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+
+    .badge-yes { background: var(--green-lt); color: #1a7a4e; }
+    .badge-no  { background: var(--bg3);      color: var(--text-3); }
+
+    /* ── Collapsible knowledge cards ─────────────────────── */
+    .knowledge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    details.know-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    details.know-card[open] {
+      border-color: var(--orange-lt);
+    }
+
+    details.know-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      outline: none;
+    }
+
+    details.know-card > summary::-webkit-details-marker { display: none; }
+
+    details.know-card > summary:hover { background: var(--bg); }
+
+    .know-num {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    details.know-card[open] .know-num {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .know-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: .97rem;
+    }
+
+    .know-arrow {
+      width: 20px;
+      height: 20px;
+      color: var(--text-3);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    details.know-card[open] .know-arrow {
+      transform: rotate(90deg);
+      color: var(--orange);
+    }
+
+    .know-body {
+      padding: 0 20px 20px 64px;
+    }
+
+    .know-body p { margin-bottom: 8px; }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    /* CSS-only syntax highlighting */
+    .kw  { color: #7c9bff; font-weight: 600; }  /* keywords */
+    .str { color: #6cc77a; }                      /* strings */
+    .fn  { color: #f0906a; }                      /* function calls */
+    .cmt { color: #6e6a62; font-style: italic; } /* comments */
+    .type{ color: #e0a020; }                      /* TypeScript types */
+    .num { color: #c792ea; }                      /* numbers */
+
+    /* inline code */
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Comparison Table ─────────────────────────────────── */
+    .compare-table th:first-child { width: 130px; }
+    .compare-table th:nth-child(2) { color: var(--orange-dk); }
+    .compare-table th:nth-child(3) { color: var(--blue-dk); }
+
+    /* ── Key files ────────────────────────────────────────── */
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--blue-dk);
+      cursor: default;
+      position: relative;
+    }
+
+    .file-path:hover::after {
+      content: attr(data-full);
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+      background: #1e1b16;
+      color: #d4cfc8;
+      font-size: .75rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+      pointer-events: none;
+    }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag-orange {
+      background: var(--orange-lt);
+      color: var(--orange-dk);
+    }
+
+    ul.key-list {
+      padding-left: 20px;
+      color: var(--text-2);
+    }
+
+    ul.key-list li { margin-bottom: 4px; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card-grid { grid-template-columns: 1fr; }
+      .know-body { padding-left: 20px; }
+    }
+
+    /* === Additional styles === */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    section { margin-top: 56px; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>SuggestBackgroundPR 工具详解</h1>
+  <p>建议后台创建 PR 处理后续改进——当前为 stub，无 KAIROS 运行时直接返回失败</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一工具定位一句话总结">一、工具定位（一句话总结）</a></li>
+    <li><a href="#二关键文件清单">二、关键文件清单</a></li>
+    <li><a href="#三tool-接口字段实现buildtool-逐字段">三、Tool 接口字段实现（`buildTool` 逐字段）</a></li>
+    <li><a href="#四核心执行流程call">四、核心执行流程：`call()`</a></li>
+    <li><a href="#五权限与安全">五、权限与安全</a></li>
+    <li><a href="#六与其他系统工具的关系">六、与其他系统/工具的关系</a></li>
+    <li><a href="#七亮点与设计取舍">七、亮点与设计取舍</a></li>
+    <li><a href="#八源码导航书签速查">八、源码导航（书签速查）</a></li>
+    <li><a href="#九学习建议与验证清单">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+  <section id="一工具定位一句话总结">
+<h2>一、工具定位（一句话总结）</h2>
+<p>**<code>SuggestBackgroundPR</code> = 建议后台 agent 创建 PR 的 stub 工具（当前无后端）。**</p>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>维度</th><th>值</th></tr></thead>
+    <tbody>
+    <tr><td>工具名</td><td><code>SuggestBackgroundPR</code>（常量 <code>SUGGEST_BACKGROUND_PR_TOOL_NAME</code>，<code>:6</code>）</td></tr>
+    <tr><td>一句话</td><td>记录一个"后台 PR 建议"；无 KAIROS 时返回失败</td></tr>
+    <tr><td>是否进 system prompt</td><td>❌ 受 <code>USER_TYPE === 'ant'</code> 门控（<code>tools.ts:21-25</code>），仅内部用户可见</td></tr>
+    <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>，<code>:43</code>）——"建议"本身不产生副作用</td></tr>
+    <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe() → true</code>，<code>:39</code>）</td></tr>
+    <tr><td>启用条件</td><td><code>process.env.USER_TYPE === 'ant'</code>（<code>tools.ts:22</code>）</td></tr>
+    <tr><td>核心依赖</td><td>无（call 体空）</td></tr>
+    <tr><td>定位互补方</td><td><code>SubscribePR</code>（同为 KAIROS stub）、<code>Agent</code>（后台任务的实际执行者）</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><strong>为什么需要它？</strong> 在 agent 工作中，常遇到"顺手能改但偏离当前任务"的改进（如重构、补注释、修小 bug）。直接做会分散当前会话焦点；忽略又显得低效。SuggestBackgroundPR 提供第三条路：把改进记为"建议"，由后台 agent 异步开 PR。这实现了<strong>关注点分离</strong>——当前会话保持专注，次要工作进入后台队列。当前 stub 状态意味着这条链路的后端（KAIROS）未接通。</p>
+<hr class="divider">
+</section>
+
+  <section id="二关键文件清单">
+<h2>二、关键文件清单</h2>
+<pre><code>SuggestBackgroundPRTool/
+└── SuggestBackgroundPRTool.ts   ← 全部逻辑（77 行，单文件）</code></pre>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+    <tbody>
+    <tr><td><code>SuggestBackgroundPRTool.ts</code></td><td>工具主体：schema + 描述 + stub call + 渲染全在这</td><td><code>buildTool:20</code>、<code>call:67</code>、schema <code>:8-14</code></td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p><strong>结构特点</strong>：与 SubscribePR 完全同构——单文件、内联常量/prompt/渲染。这两个工具几乎是模板复制的关系，差异仅在业务语义（订阅事件 vs 建议改进）。</p></blockquote>
+<hr class="divider">
+</section>
+
+  <section id="三tool-接口字段实现buildtool-逐字段">
+<h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+<h3>标识字段</h3>
+<pre><code>name: SUGGEST_BACKGROUND_PR_TOOL_NAME,  // &quot;SuggestBackgroundPR&quot;（内联，:6）
+searchHint: 'suggest background pr pull request create',
+maxResultSizeChars: 5_000,
+strict: true,</code></pre>
+<h3>模型面字段</h3>
+<pre><code>async description() { return '建议为后续改动创建后台 PR' }
+async prompt()      { return `建议在后台创建一个 pull request...` }  // 内联
+get inputSchema()  { return inputSchema() }</code></pre>
+<p><strong>输入 schema</strong>（<code>:8-14</code>）：</p>
+<pre><code>{
+  title: string,        // 必填，建议的 PR 标题
+  description: string,  // 必填，PR 要做的改动描述
+  branch?: string,      // 可选，分支名（省略时自动生成）
+}</code></pre>
+<p><strong>输出类型</strong>（<code>:18</code>）：</p>
+<pre><code>{ suggested: boolean, suggestion_id: string }  // call 附加 error 字段</code></pre>
+<h3>行为字段</h3>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+    <tbody>
+    <tr><td><code>call()</code></td><td><code>:67</code></td><td><strong>stub</strong>——直接返回失败</td></tr>
+    <tr><td><code>isConcurrencySafe()</code></td><td><code>:39</code> → <code>true</code></td><td>建议记录可并发</td></tr>
+    <tr><td><code>isReadOnly()</code></td><td><code>:43</code> → <code>true</code></td><td>无副作用</td></tr>
+    <tr><td><code>userFacingName()</code></td><td><code>:47</code> → <code>'SuggestPR'</code></td><td>UI 显示名（注意：不同于工具名）</td></tr>
+    <tr><td><code>renderToolUseMessage</code></td><td><code>:50</code></td><td>显示"建议 PR：{title}"</td></tr>
+    <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>:54</code></td><td>按 <code>suggested</code> 返回不同文本</td></tr>
+    </tbody>
+  </table>
+</div>
+<blockquote class="callout"><p>**<code>userFacingName</code> 与 <code>name</code> 不一致**：工具名是 <code>SuggestBackgroundPR</code>，但 <code>userFacingName()</code> 返回 <code>'SuggestPR'</code>（<code>:47</code>）。这是有意的 UI 简化——终端显示用更短的名称。对比 SubscribePR 的 <code>userFacingName()</code> 返回 <code>'SubscribePR'</code>（与工具名一致）。</p></blockquote>
+<hr class="divider">
+</section>
+
+  <section id="四核心执行流程call">
+<h2>四、核心执行流程：<code>call()</code></h2>
+<p><code>call()</code>（<code>SuggestBackgroundPRTool.ts:67-77</code>）与 SubscribePR 同构——<strong>直接返回失败</strong>：</p>
+<pre><code>async call(_input: SuggestInput) {
+  // 后台 PR 建议需要 KAIROS runtime。
+  return {
+    data: {
+      suggested: false,
+      suggestion_id: '',
+      error: 'SuggestBackgroundPR 需要 KAIROS runtime。',
+    },
+  }
+}</code></pre>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart LR
+    A[&quot;call(_input)\n:67&quot;] --&gt; B[&quot;return {suggested: false,\nsuggestion_id: '',\nerror: '需要 KAIROS'}&quot;]
+  </div>
+</div>
+<p><strong>关键点</strong>：</p>
+<ol><li>**<code>_input</code> 未使用**：参数仅保留签名。</li><li><strong>注释归属</strong>（<code>:68</code>）：明确真实逻辑需要 KAIROS runtime。</li><li>**返回 <code>error</code> 字段**：超出 Output 类型（<code>:18</code>）声明，向调用方传达不可用原因。</li><li>**<code>mapToolResultToToolResultBlockParam</code>**（<code>:54-65</code>）：<code>suggested</code> 为真返回"已记录 PR 建议（id：xxx）"，为假返回"记录失败"。stub 下模型看到"记录 PR 建议失败"，从而知道功能未接通。</li></ol>
+<blockquote class="callout"><p><strong>完整实现下的预期行为</strong>（基于 prompt 推断）：建议会呈现给用户，用户批准后后台 agent 创建该 PR。这是"人机协作的后台工作分流"——agent 提议，人决策，后台执行。</p></blockquote>
+<hr class="divider">
+</section>
+
+  <section id="五权限与安全">
+<h2>五、权限与安全</h2>
+<p>SuggestBackgroundPR 没有自定义 <code>checkPermissions()</code>，安全控制极简：</p>
+<ol><li>**<code>USER_TYPE === 'ant'</code> 门控**（<code>tools.ts:21-25</code>）：仅 Anthropic 内部用户可见。注意这是<strong>比 SubscribePR 更严格</strong>的门控——SubscribePR 用 feature flag（<code>KAIROS_GITHUB_WEBHOOKS</code>），SuggestBackgroundPR 用环境变量（<code>USER_TYPE</code>）。两者机制不同。</li><li>**<code>isReadOnly() → true</code>**：建议记录无副作用。</li><li><strong>stub 无副作用</strong>：call 体无网络/文件操作。</li></ol>
+<blockquote class="callout"><p><strong>门控差异的意义</strong>：<code>USER_TYPE === 'ant'</code> 是"内部用户"硬门控（编译期/启动期决定），feature flag 是"功能灰度"软门控（可动态开关）。SuggestBackgroundPR 用前者，说明它更接近内部实验功能，未到灰度阶段。</p></blockquote>
+<hr class="divider">
+</section>
+
+  <section id="六与其他系统工具的关系">
+<h2>六、与其他系统/工具的关系</h2>
+<div class="mermaid-wrap">
+  <div class="mermaid">
+flowchart TD
+    SBP[SuggestBackgroundPR] -.依赖.-&gt; KX[&quot;KAIROS runtime\n（未接入）&quot;]
+    SBP -.孪生.-&gt; SPR[SubscribePR\n同构 stub]
+    SBP -.分流.-&gt; AG[&quot;后台 agent 创建 PR\n（Agent 工具）&quot;]
+    SBP -.门控.-&gt; UT[&quot;USER_TYPE === 'ant'\ntools.ts:21&quot;]
+  </div>
+</div>
+<ul><li><strong>与 KAIROS 子系统</strong>：同 SubscribePR，是 KAIROS 后台任务框架的工具面。KAIROS 负责后台 agent 调度、PR 创建执行。</li><li>**与 <code>SubscribePR</code>**：结构孪生（schema + stub call），差异在门控（USER_TYPE vs feature flag）和业务语义（建议 vs 订阅）。</li><li>**与 <code>Agent</code> 工具**：完整实现下，SuggestBackgroundPR 记录的建议会被 KAIROS 转化为后台 agent 任务（通过 Agent 工具执行）。</li><li>**与 <code>SendMessage</code>/通知系统**：后台 PR 完成后可能通过通知机制告知用户。</li></ul>
+<hr class="divider">
+</section>
+
+  <section id="七亮点与设计取舍">
+<h2>七、亮点与设计取舍</h2>
+<ol><li><strong>"建议而非执行"的语义</strong>：工具名叫 <code>Suggest...</code> 而非 <code>Create...</code>——明确这是非阻塞的提议，最终决策权在用户。这体现了 agent 设计中"主动但不越权"的原则。</li><li>**必填 <code>description</code>**（<code>:11</code>）：与 SubscribePR 的 <code>events</code> 可选不同，SuggestBackgroundPR 要求必填描述——因为建议必须说清"要改什么"，否则后台 agent 无从执行。</li><li>**<code>userFacingName</code> 简化**（<code>:47</code>）：UI 显示 <code>'SuggestPR'</code> 而非冗长的 <code>'SuggestBackgroundPR'</code>，终端空间有限时的优化。</li><li>**stub 返回 <code>error</code> 字段**：与 SubscribePR 一致的 stub 模式，友好传达不可用原因。</li><li><strong>更严格的门控</strong>（<code>USER_TYPE === 'ant'</code>）：比 SubscribePR 的 feature flag 更保守，暗示这是更内部的功能。</li><li>**<code>branch</code> 可选自动生成**（<code>:12</code>）：schema 描述"省略时自动生成"——为未来实现预留便利，模型无需纠结分支命名。</li></ol>
+<hr class="divider">
+</section>
+
+  <section id="八源码导航书签速查">
+<h2>八、源码导航（书签速查）</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+    <tbody>
+    <tr><td>工具名常量（内联）</td><td><code>SuggestBackgroundPRTool/SuggestBackgroundPRTool.ts:6</code></td></tr>
+    <tr><td><code>buildTool</code> 字段填充</td><td><code>SuggestBackgroundPRTool.ts:20-77</code></td></tr>
+    <tr><td>输入 schema</td><td><code>SuggestBackgroundPRTool.ts:8-14</code></td></tr>
+    <tr><td>stub <code>call()</code></td><td><code>SuggestBackgroundPRTool.ts:67-77</code></td></tr>
+    <tr><td>结果文本映射</td><td><code>SuggestBackgroundPRTool.ts:54-65</code></td></tr>
+    <tr><td>门控条件</td><td><code>src/tools.ts:21-25</code>（<code>USER_TYPE === 'ant'</code>）</td></tr>
+    </tbody>
+  </table>
+</div>
+<hr class="divider">
+</section>
+
+  <section id="九学习建议与验证清单">
+<h2>九、学习建议与验证清单</h2>
+<p><strong>怎么读这章</strong>：把 SuggestBackgroundPR 与 SubscribePR 对照读，理解 Claude Code 的 stub 工具范式。重点体会"建议而非执行"的语义设计——这是 agent 非阻塞工作分流的关键理念。</p>
+<p><strong>验证清单（读完自测）</strong>：</p>
+<ul class="checklist"><li><input type="checkbox" disabled> <span>能说出 SuggestBackgroundPR 当前是 stub，<code>call()</code> 直接返回失败</span></li><li><input type="checkbox" disabled> <span>能指出门控条件是 <code>USER_TYPE === 'ant'</code>（不同于 SubscribePR 的 feature flag）</span></li><li><input type="checkbox" disabled> <span>能说出 <code>userFacingName()</code> 返回 <code>'SuggestPR'</code>（与工具名不一致）</span></li><li><input type="checkbox" disabled> <span>能解释"建议而非执行"的语义（非阻塞提议，用户决策）</span></li><li><input type="checkbox" disabled> <span>能说出必填字段 <code>title</code> + <code>description</code>，可选 <code>branch</code></span></li><li><input type="checkbox" disabled> <span>能对比 SuggestBackgroundPR 与 SubscribePR 的结构相似性与门控差异</span></li></ul>
+<p><strong>配合动作</strong>：</p>
+<ol><li>设置 <code>USER_TYPE=ant</code> 运行 dev 模式，观察工具是否出现</li><li>调用 SuggestBackgroundPR，验证返回 <code>{suggested: false, error: ...}</code></li><li>对比 <code>SubscribePRTool.ts</code>，确认两者结构同构、门控不同</li></ol>
+</section>
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

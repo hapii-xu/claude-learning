@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ExitPlanMode 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+    section { margin-top: 56px; }
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: var(--orange); }
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>ExitPlanMode 工具详解</h1>
+  <p>退出/提交计划的工具——从计划文件读取计划、请求用户审批、回滚权限模式、处理队友负责人审批流，是"计划三件套"中最复杂的一环</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei-yi">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian-qing-dan">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou-zi-duan-buildtool-zi-duan">三、Tool 接口字段实现</a></li>
+    <li><a href="#si-he-xin-zhi-xing-liu-cheng-call">四、核心执行流程：<code>call()</code></a></li>
+    <li><a href="#wu-quan-xian-yu-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-yu-qi-xi-tong-gong-ju-de-guan-xi">六、与其他系统/工具的关系</a></li>
+    <li><a href="#qi-liang-dian-yu-she-ji-qu-she">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma-dao-hang">八、源码导航</a></li>
+    <li><a href="#jiu-xue-xi-jian-yi-yu-yan-zheng-qing-dan">九、学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p>这是规划三件套中<strong>最复杂</strong>的一个（主体 <code>ExitPlanModeV2Tool.ts</code> 共 499 行）。它表面上是"退出 plan 模式"，实际要同时处理四件事：从磁盘读计划、请求用户审批、回滚权限模式（含 auto 模式断路器协调）、以及"队友向团队负责人提交审批"的多代理协作流。它是少数 <code>isReadOnly() → false</code> 且 <code>requiresUserInteraction() → true</code> 的工具——因为它会写计划文件、且必须等用户点"批准"。</p></blockquote>
+
+  <hr class="divider">
+
+  <hr class="divider">
+
+  <section id="yi-gong-ju-ding-wei-yi">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>ExitPlanMode</code> = 提交计划请求审批、并在批准后把权限模式从 <code>plan</code> 回滚到 <code>prePlanMode</code> 的工具。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>ExitPlanMode</code>（常量 <code>EXIT_PLAN_MODE_V2_TOOL_NAME</code>，<code>constants.ts:2</code>）</td></tr>
+          <tr><td>一句话</td><td>从计划文件读计划→请求用户审批→批准则回滚模式、拒绝则留在 plan</td></tr>
+          <tr><td>是否进 system prompt</td><td>✅ 在 <code>CORE_TOOLS</code> 白名单内（<code>src/constants/tools.ts:159</code>）</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>非只读</strong>（<code>isReadOnly() → false</code>，<code>:182</code>——会写计划文件到磁盘）</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>:179</code>）</td></tr>
+          <tr><td>是否延迟加载</td><td>✅ <code>shouldDefer: true</code>（<code>:166</code>）</td></tr>
+          <tr><td>是否需要用户交互</td><td>✅ <code>requiresUserInteraction() → true</code>（<code>:185</code>——需用户批准，队友除外）</td></tr>
+          <tr><td>核心依赖</td><td><code>getPlan</code> / <code>getPlanFilePath</code>（<code>src/utils/plans.ts</code>）、<code>prepareContextForPlanMode</code> 的逆操作</td></tr>
+          <tr><td>协作方</td><td><code>EnterPlanMode</code>（入口）、<code>VerifyPlanExecution</code>（实施后验证）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> Plan 模式是一个"笼子"——进去后只能探索不能改。必须有一个明确的"出口"仪式：Claude 把方案写到计划文件，调用 ExitPlanMode 把内容呈现给用户，用户批准后才解锁写权限、进入实施阶段。没有这个出口，Claude 会永远困在只读模式里。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-guan-jian-wen-jian-qing-dan">
+    <h2>二、关键文件清单</h2>
+    <pre><code>ExitPlanModeTool/
+├── ExitPlanModeV2Tool.ts   ← buildTool({...}) 主体（499 行），所有逻辑集中于此
+├── prompt.ts               ← EXIT_PLAN_MODE_V2_TOOL_PROMPT（外部存根版，23 行）
+├── UI.tsx                  ← Ink 渲染：批准/空计划/等负责人/被拒四种状态（87 行）
+├── constants.ts            ← 两个工具名常量（V1/V2 同名 'ExitPlanMode'）
+└── src/
+    ├── components/Markdown.ts                          ← 类型桩
+    ├── components/MessageResponse.ts                   ← 类型桩
+    ├── components/messages/UserToolResultMessage/      ← 类型桩
+    │   └── RejectedPlanMessage.ts
+    ├── constants/figures.ts                            ← 类型桩
+    └── utils/permissions/PermissionMode.ts             ← 类型桩</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>ExitPlanModeV2Tool.ts</code></td><td>主体：schema + call() + 权限 + 模式回滚 + 队友审批流</td><td><code>buildTool:147</code>、<code>validateInput:195</code>、<code>checkPermissions:222</code>、<code>call:244</code>、<code>mapToolResultToToolResultBlockParam:425</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>外部用户看到的工具描述</td><td><code>EXIT_PLAN_MODE_V2_TOOL_PROMPT:6</code></td></tr>
+          <tr><td><code>UI.tsx</code></td><td>终端渲染（四种状态分支）</td><td><code>renderToolResultMessage:19</code>、<code>renderToolUseRejectedMessage:75</code></td></tr>
+          <tr><td><code>constants.ts</code></td><td>V1/V2 同名常量</td><td><code>:1-2</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：<code>src/</code> 下五个文件<strong>全部是反编译类型桩</strong>（<code>export type X = any</code>），真实实现来自 <code>src/components/Markdown.js</code> 等。主体逻辑全部集中在 <code>ExitPlanModeV2Tool.ts</code>，文件名带 <code>V2</code> 是因为存在过一个 V1 版本（已废弃，但常量保留）。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-tool-jie-kou-zi-duan-buildtool-zi-duan">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <p>ExitPlanMode 实现了 <code>Tool</code> 接口的<strong>几乎所有字段</strong>，且每个字段都有非平凡逻辑——它是观察"一个完整的、带审批流的工具长什么样"的最佳样本。</p>
+    <h3>标识字段</h3>
+    <pre><code>name: EXIT_PLAN_MODE_V2_TOOL_NAME,                    // "ExitPlanMode"
+searchHint: '提交计划等待审批并开始编码（仅计划模式）',
+maxResultSizeChars: 100_000,
+shouldDefer: true,                                      // 延迟注册</code></pre>
+    <h3>模型面字段</h3>
+    <pre><code>async description() { return '提示用户退出计划模式并开始编码' }
+async prompt()      { return EXIT_PLAN_MODE_V2_TOOL_PROMPT }
+get inputSchema()   { return inputSchema() }
+get outputSchema()  { return outputSchema() }
+userFacingName()    { return '' }</code></pre>
+    <p><strong>输入 schema</strong>（<code>:77-89</code>）——宽松对象，带 <code>allowedPrompts</code>：</p>
+    <pre><code>z.strictObject({
+  allowedPrompts: z.array({ tool: z.enum(['Bash']), prompt: z.string() }).optional()
+}).passthrough()   // ← 注意 passthrough，允许额外字段</code></pre>
+    <blockquote class="callout"><p><code>allowedPrompts</code> 是"基于提示词的语义化权限"——模型可以声明"实现这个计划需要 bash 运行测试、装依赖"，用户批准计划时这些操作类别也被预授权（存进 <code>appState.allowedPrompts</code>，见 <code>AppStateStore.ts:413</code>）。<code>.passthrough()</code> 是为了兼容 SDK/normalizeToolInput 注入的 <code>plan</code>/<code>planFilePath</code> 字段。</p></blockquote>
+    <p><strong>SDK 专用 schema <code>_sdkInputSchema</code></strong>（<code>:97-108</code>）：在内部 schema 基础上 <code>extend</code> 出 <code>plan</code> 和 <code>planFilePath</code>——这两个字段<strong>不来自模型</strong>，而是由 <code>normalizeToolInput</code> 从磁盘注入。内部 <code>inputSchema</code> 省略它们是因为计划从磁盘读，但 SDK/hooks 看到的是标准化版本。</p>
+    <p><strong>输出 schema</strong>（<code>:110-142</code>）：</p>
+    <pre><code>{
+  plan: string | null,              // 呈现给用户的计划
+  isAgent: boolean,                 // 是否在 agent 上下文
+  filePath?: string,                // 计划保存路径
+  hasTaskTool?: boolean,            // 是否可用 Agent 工具（决定是否提示拆团队）
+  planWasEdited?: boolean,          // 用户是否编辑过计划（CCR/Ctrl+G）
+  awaitingLeaderApproval?: boolean, // 队友已提交给负责人
+  requestId?: string,               // 审批请求 ID
+}</code></pre>
+    <h3>行为字段（重点）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:244-424</code></td><td>核心逻辑（见下节）</td></tr>
+          <tr><td><code>validateInput()</code></td><td><code>:195-221</code></td><td>校验是否在 plan 模式（非 plan 直接拒绝）</td></tr>
+          <tr><td><code>checkPermissions()</code></td><td><code>:222-240</code></td><td>非队友 <code>behavior:'ask'</code>，队友 <code>behavior:'allow'</code></td></tr>
+          <tr><td><code>requiresUserInteraction()</code></td><td><code>:185-194</code></td><td>非队友 <code>true</code>，队友 <code>false</code></td></tr>
+          <tr><td><code>isEnabled()</code></td><td><code>:167-178</code></td><td>channels 模式禁用（与 EnterPlanMode 成对）</td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:179</code> → <code>true</code></td><td>可并发</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:182</code> → <code>false</code></td><td><strong>会写计划文件到磁盘</strong></td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam()</code></td><td><code>:425-498</code></td><td>四种分支：等审批 / agent / 空计划 / 正常批准</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-he-xin-zhi-xing-liu-cheng-call">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code>（<code>:244-424</code>）是全工具最复杂的函数，按"队友流 vs 主线程流"分两大分支：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["call(input, ctx)\nExitPlanModeV2Tool.ts:244"] --> B["getPlanFilePath(agentId)\n:252"]
+    B --> C["读计划：input.plan ?? getPlan()\n:257-259"]
+    C --> D["若 inputPlan 有值且 filePath 存在\n→ writeFile 同步磁盘 + persistFileSnapshotIfRemote\n:264-267"]
+    D --> E{"isTeammate() &&\nisPlanModeRequired()?\n:270"}
+    E -- "是（队友强制计划）" --> TM["写 plan_approval_request 到 team-lead 邮箱\n:284-301"]
+    TM --> TM2["setAwaitingPlanApproval(taskId)\n:305-308"]
+    TM2 --> TM3["return { awaitingLeaderApproval:true, requestId }"]
+    E -- "否（主线程/自愿队友）" --> MAIN["gate 断路器检查\n:333-352"]
+    MAIN --> MODE["setAppState：回滚模式到 prePlanMode\n:363-409"]
+    MODE --> OUT["return { plan, isAgent, filePath,\nhasTaskTool, planWasEdited }"]
+      </div>
+    </div>
+    <p><strong>关键点逐条</strong>：</p>
+    <ol>
+      <li><strong>计划来源优先级</strong>（<code>:257-259</code>）： ``<code>ts const inputPlan = 'plan' in input &amp;&amp; typeof input.plan === 'string' ? input.plan : undefined const plan = inputPlan ?? getPlan(context.agentId) </code>`<code> - 优先用 CCR web UI / Ctrl+G 编辑后的 </code>input.plan<code>（用户可能改过） - 否则从磁盘 </code>getPlan()<code> 读 - 类型收窄是必要的，因为内部 </code>inputSchema<code> 用 </code>.passthrough()<code> 不保证 </code>plan` 字段类型</li>
+      <li><strong>磁盘同步</strong>（<code>:264-267</code>）：如果用户编辑过计划（<code>inputPlan !== undefined</code>），先 <code>writeFile</code> 落盘，再 <code>persistFileSnapshotIfRemote()</code>——后者是为远程（CCR）环境快照文件系统，让后续 <code>VerifyPlanExecution</code> / <code>Read</code> 能看到编辑后的版本。注释 <code>:261</code> 解释：这是<strong>第二次</strong>快照，第一次在 <code>api.ts</code> 的 <code>normalizeToolInput</code> 里（捕获的是旧计划）。</li>
+      <li><strong>队友负责人审批流</strong>（<code>:270-319</code>）：这是多代理协作的核心。当调用者是"强制需要计划的队友"（<code>isPlanModeRequired()</code>）时： - 生成唯一 <code>requestId</code>（<code>generateRequestId('plan_approval', agentId)</code>） - 构造 <code>plan_approval_request</code> 消息（含 planFilePath、planContent、requestId） - <code>writeToMailbox('team-lead', ...)</code> 发到负责人邮箱 - 若是进程内队友，<code>setAwaitingPlanApproval(taskId, true)</code> 标记任务状态 - 返回 <code>awaitingLeaderApproval: true</code>——模型看到"等待审批，不要继续"</li>
+      <li><strong>auto 模式断路器协调</strong>（<code>:333-352</code>）：主线程流里最微妙的逻辑。如果 <code>prePlanMode === 'auto'</code> 但<strong>现在</strong>断路器/设置禁用了 auto（<code>isAutoModeGateEnabled()</code> 返回 false），不能直接恢复到 auto——否则 ExitPlanMode 会绕过断路器。于是： - 回退到 <code>'default'</code> - 取回退原因和通知文案 - <code>addNotification</code> 推一条 <code>plan exit → default · &lt;reason&gt;</code> 警告给用户</li>
+      <li><strong>模式回滚（<code>:363-409</code>）</strong>：<code>setAppState</code> 内部做一整套上下文修复： - <code>setHasExitedPlanMode(true)</code> + <code>setNeedsPlanModeExitAttachment(true)</code>——标记会话已退出，触发 <code>plan_mode_exit</code> 系统附件 - <code>restoreMode = prePlanMode ?? 'default'</code>（断路器 fallback 后可能变 <code>'default'</code>） - auto 模式激活状态同步：<code>setAutoModeActive(finalRestoringAuto)</code>，若计划期间用过 auto 但现在不恢复，触发 <code>setNeedsAutoModeExitAttachment</code> - <strong>权限规则恢复</strong>：恢复到非 auto → <code>restoreDangerousPermissions</code>（把进 plan 时剥离的危险 allow 规则加回来）；恢复到 auto → 再次 <code>stripDangerousPermissionsForAutoMode</code> - 最终 <code>{ ...baseContext, mode: restoreMode, prePlanMode: undefined }</code></li>
+      <li><strong><code>hasTaskTool</code> 检测</strong>（<code>:411-413</code>）：检查当前工具集里有没有 <code>Agent</code> 工具——有则在 tool_result 里提示"可拆分为团队并行执行"（<code>:476-478</code>）。</li>
+    </ol>
+    <p><strong><code>mapToolResultToToolResultBlockParam</code>（<code>:425-498</code>）</strong> 四分支：</p>
+    <ul>
+      <li><strong>等负责人审批</strong>（<code>:438-456</code>）：告诉模型"等邮箱、别继续"</li>
+      <li><strong>agent 上下文</strong>（<code>:458-465</code>）：<code>用户已批准，回复 ok</code>（agent 流程简化）</li>
+      <li><strong>空计划</strong>（<code>:468-474</code>）：<code>用户已批准退出计划模式</code></li>
+      <li><strong>正常批准</strong>（<code>:487-497</code>）：回显完整计划 + 保存路径 + 团队提示。注意 <code>:483</code> 始终回显计划——注释说 Ultraplan CCR 流程的 <code>extractApprovedPlan()</code> 会解析 tool_result 取计划文本，所以不能省略。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian-yu-an-quan">
+    <h2>五、权限与安全</h2>
+    <p>ExitPlanMode 的权限模型是三件套里最丰富的，因为它涉及用户审批、跨代理通信、模式回滚。</p>
+    <h3><code>validateInput</code>（<code>:195-221</code>，第 3 步）</h3>
+    <pre><code>if (isTeammate()) return { result: true }              // 队友跳过
+const mode = getAppState().toolPermissionContext.mode
+if (mode !== 'plan') {
+  logEvent('tengu_exit_plan_mode_called_outside_plan', {...})
+  return { result: false, message: '你不在计划模式中...', errorCode: 1 }
+}</code></pre>
+    <ul>
+      <li><strong>队友直接放行</strong>（<code>:199-201</code>）：因为队友的 AppState 可能显示负责人的模式（<code>runAgent.ts</code> 在 acceptEdits/bypassPermissions/auto 下跳过覆盖），<code>isPlanModeRequired()</code> 才是真实来源。</li>
+      <li><strong>非 plan 模式硬拒</strong>（<code>:206-219</code>）：延迟工具列表无论什么模式都会<strong>宣布</strong>这个工具（这样计划批准后、压缩/清空 context 的新增量里仍能调用），所以必须在 <code>validateInput</code> 里（<code>checkPermissions</code> 之前）拦截，避免弹审批对话框。同时打 <code>tengu_exit_plan_mode_called_outside_plan</code> 埋点。</li>
+    </ul>
+    <blockquote class="callout"><p>这是 <code>validateInput</code> 的典型高级用法：<strong>在权限之前拒绝，避免无意义的审批 UI</strong>。</p></blockquote>
+    <h3><code>checkPermissions</code>（<code>:222-240</code>，第 4 步）</h3>
+    <pre><code>if (isTeammate()) return { behavior: 'allow', updatedInput: input }
+return { behavior: 'ask', message: '退出计划模式？', updatedInput: input }</code></pre>
+    <ul>
+      <li>队友 <code>allow</code>——因为队友的审批走邮箱（<code>call()</code> 里处理），不走本地 UI</li>
+      <li>非队友 <code>ask</code>——弹 <code>ExitPlanModePermissionRequest</code> 对话框，用户批准/拒绝/编辑（Ctrl+G）计划</li>
+    </ul>
+    <h3><code>requiresUserInteraction</code>（<code>:185-194</code>）</h3>
+    <p>返回 <code>true</code>（非队友）意味着这个工具<strong>在没有 TUI 的环境（headless/SDK）里需要特殊处理</strong>——通常表现为"挂起等待 API 调用方决议"。队友返回 <code>false</code> 因为审批异步走邮箱。</p>
+    <h3>auto 模式断路器防御（<code>:333-352</code>）</h3>
+    <p>这是安全关键设计。注释 <code>:330-332</code> 解释得很清楚：如果没有这段防御，ExitPlanMode 会通过直接 <code>setAutoModeActive(true)</code> <strong>绕过断路器</strong>——断路器本应在 auto 模式失控时把它打回 default。所以这里主动检测 <code>isAutoModeGateEnabled()</code>，gate 关了就强制回退 default 并通知用户。</p>
+    <h3>队友邮箱通信安全</h3>
+    <p><code>writeToMailbox('team-lead', ...)</code>（<code>:293-301</code>）是跨进程通信——<code>plan_approval_request</code> 携带完整计划内容。安全性依赖邮箱机制本身（<code>src/utils/teammateMailbox.ts</code>），本工具只负责构造合规消息体。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-yu-qi-xi-tong-gong-ju-de-guan-xi">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    EXIT["ExitPlanMode"] -->|读计划| PLANS["getPlan / getPlanFilePath\nsrc/utils/plans.ts:123,139"]
+    EXIT -->|落盘| DISK["writeFile + persistFileSnapshotIfRemote"]
+    EXIT -->|审批 UI| PERMREQ["ExitPlanModePermissionRequest\nsrc/components/permissions/"]
+    EXIT -->|回滚模式| PREP["restoreDangerousPermissions /\nstripDangerousPermissionsForAutoMode\npermissionSetup.ts:559,509"]
+    EXIT -->|队友流| MAIL["writeToMailbox('team-lead')\nteammateMailbox.ts"]
+    EXIT -->|断路器| GATE["isAutoModeGateEnabled\npermissionSetup.ts:1264"]
+    EXIT -.配对.-> ENTER["EnterPlanMode (入口)"]
+    EXIT -.后续.-> VERIFY["VerifyPlanExecution"]
+    EXIT -.附件.-> ATTACH["setNeedsPlanModeExitAttachment\n→ plan_mode_exit 系统消息"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 <code>EnterPlanMode</code> 的关系</strong>：严格的逆操作。Enter 存 <code>prePlanMode</code>，Exit 读 <code>prePlanMode</code> 回滚；两者共享 channels 门控，缺一会形成"进得去出不来"或"出得去但没人进"的状态。</li>
+      <li><strong>与 <code>VerifyPlanExecution</code> 的关系</strong>：ExitPlanMode 批准后，实施完成的验证由 VerifyPlanExecution 做。<code>ExitPlanModePermissionRequest.tsx:423</code> 会在批准时提醒模型"实施完后必须调用 VerifyPlanExecution"。</li>
+      <li><strong>与权限管道的关系</strong>：ExitPlanMode 是少数<strong>自己改写 <code>toolPermissionContext</code></strong> 的工具（大部分工具只读不写）。它调用 <code>restoreDangerousPermissions</code> / <code>stripDangerousPermissionsForAutoMode</code> 直接操纵 allow 规则集。</li>
+      <li><strong>与 <code>prepareContextForPlanMode</code> 的镜像</strong>：注释 <code>:1488</code> 明确说权限恢复逻辑"镜像 prepareContextForPlanMode 的进入时排除"——进和出必须对称。</li>
+      <li><strong>与 AppState 的关系</strong>：写入 <code>pendingPlanVerification</code>（<code>AppStateStore.ts:417</code>）、<code>allowedPrompts</code>（<code>:413</code>）等会话级状态。</li>
+      <li><strong>与 Ultraplan/CCR 的关系</strong>：<code>mapToolResultToToolResultBlockParam</code> 的 <code>:480-482</code> 注释提到 Ultraplan CCR 流程的 <code>extractApprovedPlan()</code> 解析 tool_result——所以计划文本必须始终回显。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian-yu-she-ji-qu-she">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>一个工具承载四条流程</strong>：正常用户审批、CCR 编辑后审批、agent 简化流、队友负责人审批——全部塞进一个 <code>call()</code>，靠 <code>isTeammate()</code> / <code>isPlanModeRequired()</code> / <code>context.agentId</code> 分支。复杂但避免了拆四个工具的碎片化。</li>
+      <li><strong><code>validateInput</code> 在 <code>checkPermissions</code> 之前拦截</strong>（<code>:206</code>）：延迟工具无论模式都宣布，所以必须在审批前判断"你到底在不在 plan 模式"，否则会弹无意义的对话框。这是延迟工具机制的必要补救。</li>
+      <li><strong>auto 模式断路器防御</strong>（<code>:333-352</code>）：体现了"工具不能绕过系统级安全机制"的原则。ExitPlanMode 本可以简单恢复 <code>prePlanMode</code>，但主动检测 gate 状态，宁可回退 default 也不破坏断路器。</li>
+      <li><strong><code>.passthrough()</code> schema</strong>（<code>:88</code>）：内部 schema 用 passthrough 是为了接纳 normalizeToolInput 注入的 <code>plan</code>/<code>planFilePath</code>。同时导出 <code>_sdkInputSchema</code>（<code>:97</code>）给 SDK/hooks 一个有类型的视图——同一份数据两种 schema 视角。</li>
+      <li><strong>计划始终回显</strong>（<code>:480-497</code>）：看似冗余（用户刚批准，为什么 tool_result 还要全文回显？），实际是为了 Ultraplan CCR 的 <code>extractApprovedPlan()</code> 能从 tool_result 解析计划。这是"消费方驱动"的兼容性设计。</li>
+      <li><strong>队友/主线程分流</strong>：<code>requiresUserInteraction</code> 和 <code>checkPermissions</code> 都按 <code>isTeammate()</code> 分流——队友不需要本地 UI（审批异步走邮箱），主线程必须弹对话框。这让同一个工具既能服务单人规划，又能服务多代理协作。</li>
+      <li><strong><code>isReadOnly: false</code> 的诚实</strong>：尽管主体是状态切换，但因为 <code>writeFile</code> 落盘，诚实标记为非只读。这影响并发调度和权限分类。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-yuan-ma-dao-hang">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量（V1/V2 同名）</td><td><code>ExitPlanModeTool/constants.ts:1-2</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>ExitPlanModeV2Tool.ts:147-499</code></td></tr>
+          <tr><td>输入 schema（allowedPrompts + passthrough）</td><td><code>ExitPlanModeV2Tool.ts:64-89</code></td></tr>
+          <tr><td>SDK schema（注入 plan/planFilePath）</td><td><code>ExitPlanModeV2Tool.ts:97-108</code></td></tr>
+          <tr><td>输出 schema（7 字段）</td><td><code>ExitPlanModeV2Tool.ts:110-142</code></td></tr>
+          <tr><td><code>call()</code> 主逻辑</td><td><code>ExitPlanModeV2Tool.ts:244-424</code></td></tr>
+          <tr><td>计划来源优先级</td><td><code>ExitPlanModeV2Tool.ts:257-259</code></td></tr>
+          <tr><td>队友负责人审批流</td><td><code>ExitPlanModeV2Tool.ts:270-319</code></td></tr>
+          <tr><td>auto 断路器 fallback</td><td><code>ExitPlanModeV2Tool.ts:333-361</code></td></tr>
+          <tr><td>模式回滚 + 权限恢复</td><td><code>ExitPlanModeV2Tool.ts:363-409</code></td></tr>
+          <tr><td><code>validateInput</code>（plan 模式校验）</td><td><code>ExitPlanModeV2Tool.ts:195-221</code></td></tr>
+          <tr><td><code>checkPermissions</code>（ask/allow 分流）</td><td><code>ExitPlanModeV2Tool.ts:222-240</code></td></tr>
+          <tr><td>tool_result 四分支</td><td><code>ExitPlanModeV2Tool.ts:425-498</code></td></tr>
+          <tr><td>外部 prompt</td><td><code>ExitPlanModeTool/prompt.ts:6</code></td></tr>
+          <tr><td>计划文件路径</td><td><code>src/utils/plans.ts:123</code></td></tr>
+          <tr><td>计划读取</td><td><code>src/utils/plans.ts:139</code></td></tr>
+          <tr><td>权限恢复/剥离</td><td><code>src/utils/permissions/permissionSetup.ts:559,509</code></td></tr>
+          <tr><td>auto gate 检测</td><td><code>src/utils/permissions/permissionSetup.ts:1264</code></td></tr>
+          <tr><td>审批 UI（含 VerifyPlan 提醒）</td><td><code>src/components/permissions/ExitPlanModePermissionRequest/ExitPlanModePermissionRequest.tsx:423</code></td></tr>
+          <tr><td>CORE_TOOLS 注册</td><td><code>src/constants/tools.ts:159</code></td></tr>
+          <tr><td>工具注册（导入）</td><td><code>src/tools.ts:64</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-xue-xi-jian-yi-yu-yan-zheng-qing-dan">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先看"一、工具定位"理解"ExitPlanMode 不只是退出，是审批+回滚+协作三合一"，再跳到"四、call()"按两大分支（队友/主线程）分别读，最后对照"五、权限"理解 <code>validateInput</code> / <code>checkPermissions</code> / <code>requiresUserInteraction</code> 三个字段的分工。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 ExitPlanMode 的计划来源优先级（input.plan &gt; 磁盘 getPlan）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么 <code>validateInput</code> 要在 <code>checkPermissions</code> 之前拒绝非 plan 调用（延迟工具无论模式都宣布）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 auto 模式断路器 fallback 解决了什么问题（防止 ExitPlanMode 绕过断路器恢复 auto）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出队友流和主线程流在 <code>checkPermissions</code> 上的差异（队友 allow，主线程 ask）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>prePlanMode</code> 在回滚时的作用（决定恢复到哪个模式 + 是否恢复危险权限）</span></li>
+      <li><input type="checkbox" disabled> <span>能找到 <code>mapToolResultToToolResultBlockParam</code> 的四个分支（等审批/agent/空计划/正常批准）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出为什么计划要始终回显（Ultraplan CCR 的 extractApprovedPlan 依赖 tool_result）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>进 plan 模式写个计划，调用 <code>ExitPlanMode</code>，观察审批对话框；批准后确认模式回到 <code>prePlanMode</code>。</li>
+      <li>在 <code>call()</code> 的 <code>:363</code> 加日志，对比 default/acceptEdits/auto 三种起始模式下的 <code>restoreMode</code> 和权限恢复行为。</li>
+      <li>在 auto 模式 + 断路器关闭的场景下调用 ExitPlanMode，观察 <code>:353</code> 的 <code>addNotification</code> 警告。</li>
+      <li>用 Ctrl+G 在审批对话框里编辑计划，确认 <code>planWasEdited=true</code> 且磁盘被 <code>writeFile</code> 更新（<code>:264</code>）。</li>
+      <li>若启用 teammate 功能，构造一个 <code>isPlanModeRequired()</code> 队友调用 ExitPlanMode，确认 <code>plan_approval_request</code> 写入 team-lead 邮箱（<code>:293</code>）。</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

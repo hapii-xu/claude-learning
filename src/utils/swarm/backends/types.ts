@@ -3,74 +3,74 @@ import type { CustomAgentDefinition } from '@claude-code-best/builtin-tools/tool
 import type { ToolUseContext } from '../../../Tool.js'
 
 /**
- * Types of backends available for teammate execution.
- * - 'tmux': Uses tmux for pane management (works in tmux or standalone)
- * - 'iterm2': Uses iTerm2 native split panes via the it2 CLI
- * - 'windows-terminal': Uses Windows Terminal panes/tabs via wt.exe
- * - 'in-process': Runs teammate in the same Node.js process with isolated context
+ * 可用于 teammate 执行的 backend 类型。
+ * - 'tmux'：使用 tmux 进行 pane 管理（可在 tmux 内或独立运行）
+ * - 'iterm2'：通过 it2 CLI 使用 iTerm2 原生分割 pane
+ * - 'windows-terminal'：通过 wt.exe 使用 Windows Terminal 的 pane/标签页
+ * - 'in-process'：在同一 Node.js 进程中运行 teammate，具有隔离的上下文
  */
 export type BackendType = 'tmux' | 'iterm2' | 'windows-terminal' | 'in-process'
 
 /**
- * Subset of BackendType for pane-based backends only.
- * Used in messages and types that specifically deal with terminal panes.
+ * BackendType 的子集，仅包含基于 pane 的 backend。
+ * 用于专门处理终端 pane 的消息和类型。
  */
 export type PaneBackendType = 'tmux' | 'iterm2' | 'windows-terminal'
 
 /**
- * Opaque identifier for a pane managed by a backend.
- * For tmux, this is the tmux pane ID (e.g., "%1").
- * For iTerm2, this is the session ID returned by it2.
- * For Windows Terminal, this is an internal id mapped to the spawned shell PID.
+ * backend 管理的 pane 的不透明标识符。
+ * 对于 tmux，这是 tmux pane ID（例如 "%1"）。
+ * 对于 iTerm2，这是 it2 返回的 session ID。
+ * 对于 Windows Terminal，这是映射到生成的 shell PID 的内部 ID。
  */
 export type PaneId = string
 
 /**
- * Result of creating a new teammate pane.
+ * 创建新 teammate pane 的结果。
  */
 export type CreatePaneResult = {
-  /** The pane ID for the newly created pane */
+  /** 新创建的 pane 的 ID */
   paneId: PaneId
-  /** Whether this is the first teammate pane (affects layout strategy) */
+  /** 是否是第一个 teammate pane（影响布局策略） */
   isFirstTeammate: boolean
 }
 
 /**
- * Interface for pane management backends.
- * Abstracts operations for creating and managing terminal panes
- * for teammate visualization in swarm mode.
+ * pane 管理 backend 的接口。
+ * 抽象了创建和管理终端 pane 的操作，
+ * 用于 swarm 模式下的 teammate 可视化。
  */
 export type PaneBackend = {
-  /** The type identifier for this backend */
+  /** 此 backend 的类型标识符 */
   readonly type: BackendType
 
-  /** Human-readable display name for this backend */
+  /** 此 backend 的可读显示名称 */
   readonly displayName: string
 
-  /** Whether this backend supports hiding and showing panes */
+  /** 此 backend 是否支持隐藏和显示 pane */
   readonly supportsHideShow: boolean
 
   /**
-   * Checks if this backend is available on the system.
-   * For tmux: checks if tmux command exists.
-   * For iTerm2: checks if it2 CLI is installed and configured.
+   * 检查此 backend 在系统上是否可用。
+   * 对于 tmux：检查 tmux 命令是否存在。
+   * 对于 iTerm2：检查 it2 CLI 是否已安装并配置。
    */
   isAvailable(): Promise<boolean>
 
   /**
-   * Checks if we're currently running inside this backend's environment.
-   * For tmux: checks if we're in a tmux session.
-   * For iTerm2: checks if we're running in iTerm2.
+   * 检查当前是否在此 backend 的环境中运行。
+   * 对于 tmux：检查是否在 tmux 会话中。
+   * 对于 iTerm2：检查是否在 iTerm2 中运行。
    */
   isRunningInside(): Promise<boolean>
 
   /**
-   * Creates a new pane for a teammate in the swarm view.
-   * The backend handles layout strategy (with/without leader pane).
+   * 在 swarm 视图中为 teammate 创建新 pane。
+   * backend 处理布局策略（有/无 leader pane）。
    *
-   * @param name - The teammate's name for display
-   * @param color - The color to use for the pane border/title
-   * @returns The pane ID and whether this was the first teammate
+   * @param name - teammate 的显示名称
+   * @param color - 用于 pane 边框/标题的颜色
+   * @returns pane ID 以及是否是第一个 teammate
    */
   createTeammatePaneInSwarmView(
     name: string,
@@ -78,8 +78,8 @@ export type PaneBackend = {
   ): Promise<CreatePaneResult>
 
   /**
-   * Creates a separate terminal window/tab for a teammate when supported.
-   * This preserves the legacy `use_splitpane: false` behavior.
+   * 在支持时为 teammate 创建独立的终端窗口/标签页。
+   * 保留旧版 `use_splitpane: false` 行为。
    */
   createTeammateWindowInSwarmView?(
     name: string,
@@ -87,11 +87,11 @@ export type PaneBackend = {
   ): Promise<CreatePaneResult & { windowName: string }>
 
   /**
-   * Sends a command to execute in a specific pane.
+   * 在指定 pane 中发送命令执行。
    *
-   * @param paneId - The pane to send the command to
-   * @param command - The command string to execute
-   * @param useExternalSession - If true, uses external session socket (tmux-specific)
+   * @param paneId - 要发送命令的 pane
+   * @param command - 要执行的命令字符串
+   * @param useExternalSession - 如果为 true，使用外部会话 socket（tmux 特有）
    */
   sendCommandToPane(
     paneId: PaneId,
@@ -100,11 +100,11 @@ export type PaneBackend = {
   ): Promise<void>
 
   /**
-   * Sets the border color for a pane.
+   * 设置 pane 的边框颜色。
    *
-   * @param paneId - The pane to style
-   * @param color - The color to apply to the border
-   * @param useExternalSession - If true, uses external session socket (tmux-specific)
+   * @param paneId - 要设置样式的 pane
+   * @param color - 应用于边框的颜色
+   * @param useExternalSession - 如果为 true，使用外部会话 socket（tmux 特有）
    */
   setPaneBorderColor(
     paneId: PaneId,
@@ -113,12 +113,12 @@ export type PaneBackend = {
   ): Promise<void>
 
   /**
-   * Sets the title for a pane (displayed in pane border/header).
+   * 设置 pane 的标题（显示在 pane 边框/头部）。
    *
-   * @param paneId - The pane to title
-   * @param name - The title to display
-   * @param color - The color for the title text
-   * @param useExternalSession - If true, uses external session socket (tmux-specific)
+   * @param paneId - 要设置标题的 pane
+   * @param name - 要显示的标题
+   * @param color - 标题文字的颜色
+   * @param useExternalSession - 如果为 true，使用外部会话 socket（tmux 特有）
    */
   setPaneTitle(
     paneId: PaneId,
@@ -128,10 +128,10 @@ export type PaneBackend = {
   ): Promise<void>
 
   /**
-   * Enables pane border status display (shows titles in borders).
+   * 启用 pane 边框状态显示（在边框中显示标题）。
    *
-   * @param windowTarget - The window to enable status for (optional)
-   * @param useExternalSession - If true, uses external session socket (tmux-specific)
+   * @param windowTarget - 要启用状态的窗口（可选）
+   * @param useExternalSession - 如果为 true，使用外部会话 socket（tmux 特有）
    */
   enablePaneBorderStatus(
     windowTarget?: string,
@@ -139,39 +139,39 @@ export type PaneBackend = {
   ): Promise<void>
 
   /**
-   * Rebalances panes to achieve the desired layout.
+   * 重新平衡 pane 以达到所需布局。
    *
-   * @param windowTarget - The window containing the panes
-   * @param hasLeader - Whether there's a leader pane (affects layout strategy)
+   * @param windowTarget - 包含 pane 的窗口
+   * @param hasLeader - 是否有 leader pane（影响布局策略）
    */
   rebalancePanes(windowTarget: string, hasLeader: boolean): Promise<void>
 
   /**
-   * Kills/closes a specific pane.
+   * 关闭/终止指定 pane。
    *
-   * @param paneId - The pane to kill
-   * @param useExternalSession - If true, uses external session socket (tmux-specific)
-   * @returns true if the pane was killed successfully, false otherwise
+   * @param paneId - 要终止的 pane
+   * @param useExternalSession - 如果为 true，使用外部会话 socket（tmux 特有）
+   * @returns 成功终止返回 true，否则返回 false
    */
   killPane(paneId: PaneId, useExternalSession?: boolean): Promise<boolean>
 
   /**
-   * Hides a pane by breaking it out into a hidden window.
-   * The pane remains running but is not visible in the main layout.
+   * 通过将 pane 移出到隐藏窗口来隐藏 pane。
+   * pane 继续运行但在主布局中不可见。
    *
-   * @param paneId - The pane to hide
-   * @param useExternalSession - If true, uses external session socket (tmux-specific)
-   * @returns true if the pane was hidden successfully, false otherwise
+   * @param paneId - 要隐藏的 pane
+   * @param useExternalSession - 如果为 true，使用外部会话 socket（tmux 特有）
+   * @returns 成功隐藏返回 true，否则返回 false
    */
   hidePane(paneId: PaneId, useExternalSession?: boolean): Promise<boolean>
 
   /**
-   * Shows a previously hidden pane by joining it back into the main window.
+   * 通过将之前隐藏的 pane 重新加入主窗口来显示。
    *
-   * @param paneId - The pane to show
-   * @param targetWindowOrPane - The window or pane to join into
-   * @param useExternalSession - If true, uses external session socket (tmux-specific)
-   * @returns true if the pane was shown successfully, false otherwise
+   * @param paneId - 要显示的 pane
+   * @param targetWindowOrPane - 要加入的窗口或 pane
+   * @param useExternalSession - 如果为 true，使用外部会话 socket（tmux 特有）
+   * @returns 成功显示返回 true，否则返回 false
    */
   showPane(
     paneId: PaneId,
@@ -181,166 +181,166 @@ export type PaneBackend = {
 }
 
 /**
- * Result from backend detection.
+ * backend 检测的结果。
  */
 export type BackendDetectionResult = {
-  /** The backend that should be used */
+  /** 应该使用的 backend */
   backend: PaneBackend
-  /** Whether we're running inside the backend's native environment */
+  /** 是否在 backend 的原生环境中运行 */
   isNative: boolean
-  /** If iTerm2 is detected but it2 not installed, this will be true */
+  /** 如果检测到 iTerm2 但未安装 it2，则为 true */
   needsIt2Setup?: boolean
 }
 
 // =============================================================================
-// In-Process Teammate Types
+// 进程内 Teammate 类型
 // =============================================================================
 
 /**
- * Identity fields for a teammate.
- * This is a subset shared with TeammateContext (Task #4) to avoid circular deps.
- * lifecycle-specialist defines the full TeammateContext with additional fields.
+ * teammate 的身份字段。
+ * 这是与 TeammateContext（Task #4）共享的子集，以避免循环依赖。
+ * lifecycle-specialist 定义完整的 TeammateContext，包含额外字段。
  */
 export type TeammateIdentity = {
-  /** Agent name (e.g., "researcher", "tester") */
+  /** Agent 名称（例如 "researcher"、"tester"） */
   name: string
-  /** Team name this teammate belongs to */
+  /** 此 teammate 所属的团队名称 */
   teamName: string
-  /** Assigned color for UI differentiation */
+  /** 用于 UI 区分的颜色 */
   color?: AgentColorName
-  /** Whether plan mode approval is required before implementation */
+  /** 实现前是否需要 plan mode 审批 */
   planModeRequired?: boolean
 }
 
 /**
- * Configuration for spawning a teammate (any execution mode).
+ * 生成 teammate 的配置（任意执行模式）。
  */
 export type TeammateSpawnConfig = TeammateIdentity & {
-  /** Initial prompt to send to the teammate */
+  /** 发送给 teammate 的初始 prompt */
   prompt: string
-  /** Working directory for the teammate */
+  /** teammate 的工作目录 */
   cwd: string
-  /** Model to use for this teammate */
+  /** 用于此 teammate 的模型 */
   model?: string
-  /** Optional custom agent type for process-based teammates. */
+  /** 基于进程的 teammate 的可选自定义 agent 类型。 */
   agentType?: string
-  /** Optional resolved custom agent definition for in-process teammates. */
+  /** 进程内 teammate 的可选已解析自定义 agent 定义。 */
   agentDefinition?: CustomAgentDefinition
-  /** Short description of the task, used for prompt display. */
+  /** 任务的简短描述，用于 prompt 显示。 */
   description?: string
-  /** System prompt for this teammate (resolved from workflow config) */
+  /** 此 teammate 的系统 prompt（从 workflow 配置中解析） */
   systemPrompt?: string
-  /** How to apply the system prompt: 'replace' or 'append' to default */
+  /** 如何应用系统 prompt：'replace' 替换或 'append' 追加到默认值 */
   systemPromptMode?: 'default' | 'replace' | 'append'
-  /** Optional git worktree path */
+  /** 可选的 git worktree 路径 */
   worktreePath?: string
-  /** false preserves legacy separate-window spawning for pane-capable backends. */
+  /** false 保留旧版为支持 pane 的 backend 生成独立窗口的行为。 */
   useSplitPane?: boolean
-  /** Parent session ID (for context linking) */
+  /** 父会话 ID（用于上下文关联） */
   parentSessionId: string
-  /** request_id of the API call that spawned this teammate. */
+  /** 生成此 teammate 的 API 调用的 request_id。 */
   invokingRequestId?: string
-  /** Tool permissions to grant this teammate */
+  /** 授予此 teammate 的工具权限 */
   permissions?: string[]
-  /** Whether this teammate can show permission prompts for unlisted tools.
-   * When false (default), unlisted tools are auto-denied. */
+  /** 此 teammate 是否可以显示未列出工具的权限提示。
+   * 当为 false（默认值）时，未列出的工具会被自动拒绝。 */
   allowPermissionPrompts?: boolean
 }
 
 /**
- * Result from spawning a teammate.
+ * 生成 teammate 的结果。
  */
 export type TeammateSpawnResult = {
-  /** Whether spawn was successful */
+  /** 生成是否成功 */
   success: boolean
-  /** Unique agent ID (format: agentName@teamName) */
+  /** 唯一 agent ID（格式：agentName@teamName） */
   agentId: string
-  /** Error message if spawn failed */
+  /** 生成失败时的错误消息 */
   error?: string
 
   /**
-   * Abort controller for lifecycle management (in-process only).
-   * Leader uses this to cancel/kill the teammate.
-   * For pane-based teammates, use kill() method instead.
+   * 用于生命周期管理的 Abort controller（仅限进程内）。
+   * leader 使用此 controller 取消/终止 teammate。
+   * 对于基于 pane 的 teammate，使用 kill() 方法。
    */
   abortController?: AbortController
 
   /**
-   * Task ID in AppState.tasks (in-process only).
-   * Used for UI rendering and progress tracking.
-   * agentId is the logical identifier; taskId is for AppState indexing.
+   * AppState.tasks 中的 Task ID（仅限进程内）。
+   * 用于 UI 渲染和进度跟踪。
+   * agentId 是逻辑标识符；taskId 用于 AppState 索引。
    */
   taskId?: string
 
-  /** Pane ID (pane-based only) */
+  /** Pane ID（仅限基于 pane 的） */
   paneId?: PaneId
-  /** Backend used for the spawned teammate. */
+  /** 用于生成 teammate 的 Backend。 */
   backendType?: BackendType
-  /** Assigned color for display. */
+  /** 分配的显示颜色。 */
   color?: AgentColorName
-  /** Whether the pane was spawned inside the user's current tmux session. */
+  /** pane 是否在用户当前的 tmux 会话内生成。 */
   insideTmux?: boolean
-  /** Window/tab name when the backend created a separate window. */
+  /** backend 创建独立窗口时的窗口/标签页名称。 */
   windowName?: string
-  /** Whether the backend used split panes. */
+  /** backend 是否使用了分割 pane。 */
   isSplitPane?: boolean
 }
 
 /**
- * Message to send to a teammate.
+ * 发送给 teammate 的消息。
  */
 export type TeammateMessage = {
-  /** Message content */
+  /** 消息内容 */
   text: string
-  /** Sender agent ID */
+  /** 发送者 agent ID */
   from: string
-  /** Sender display color */
+  /** 发送者显示颜色 */
   color?: string
-  /** Message timestamp (ISO string) */
+  /** 消息时间戳（ISO 字符串） */
   timestamp?: string
-  /** 5-10 word summary shown as preview in the UI */
+  /** 5-10 词的摘要，在 UI 中作为预览显示 */
   summary?: string
 }
 
 /**
- * Common interface for teammate execution backends.
- * Abstracts the differences between pane-based (tmux/iTerm2) and in-process execution.
+ * teammate 执行 backend 的通用接口。
+ * 抽象了基于 pane 的（tmux/iTerm2）和进程内执行之间的差异。
  *
- * PaneBackend handles low-level pane operations; TeammateExecutor handles
- * high-level teammate lifecycle operations that work across all backends.
+ * PaneBackend 处理底层 pane 操作；TeammateExecutor 处理
+ * 在所有 backend 中通用的高层 teammate 生命周期操作。
  */
 export type TeammateExecutor = {
-  /** Backend type identifier */
+  /** Backend 类型标识符 */
   readonly type: BackendType
 
-  /** Provide AppState/tool context before lifecycle operations that need it. */
+  /** 在需要 AppState/工具上下文的生命周期操作之前提供。 */
   setContext?(context: ToolUseContext): void
 
-  /** Check if this executor is available on the system */
+  /** 检查此执行器在系统上是否可用 */
   isAvailable(): Promise<boolean>
 
-  /** Spawn a new teammate with the given configuration */
+  /** 使用给定配置生成新 teammate */
   spawn(config: TeammateSpawnConfig): Promise<TeammateSpawnResult>
 
-  /** Send a message to a teammate */
+  /** 向 teammate 发送消息 */
   sendMessage(agentId: string, message: TeammateMessage): Promise<void>
 
-  /** Terminate a teammate (graceful shutdown request) */
+  /** 终止 teammate（优雅关闭请求） */
   terminate(agentId: string, reason?: string): Promise<boolean>
 
-  /** Force kill a teammate (immediate termination) */
+  /** 强制终止 teammate（立即终止） */
   kill(agentId: string): Promise<boolean>
 
-  /** Check if a teammate is still active */
+  /** 检查 teammate 是否仍然活跃 */
   isActive(agentId: string): Promise<boolean>
 }
 
 // =============================================================================
-// Type Guards
+// 类型守卫
 // =============================================================================
 
 /**
- * Type guard to check if a backend type uses terminal panes.
+ * 类型守卫，检查 backend 类型是否使用终端 pane。
  */
 export function isPaneBackend(
   type: BackendType,

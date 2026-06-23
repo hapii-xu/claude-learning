@@ -1,5 +1,5 @@
 /**
- * Shared utilities for spawning teammates across different backends.
+ * 跨不同后端的 teammate 生成共享工具函数。
  */
 
 import {
@@ -16,9 +16,9 @@ import { getTeammateModeFromSnapshot } from './backends/teammateModeSnapshot.js'
 import { TEAMMATE_COMMAND_ENV_VAR } from './constants.js'
 
 /**
- * Gets the command to use for spawning teammate processes.
- * Uses TEAMMATE_COMMAND_ENV_VAR if set, otherwise falls back to the
- * current process executable path.
+ * 获取用于生成 teammate 进程的命令。
+ * 如果设置了 TEAMMATE_COMMAND_ENV_VAR 则使用该值，否则回退到
+ * 当前进程的可执行文件路径。
  */
 export function getTeammateCommand(): string {
   if (process.env[TEAMMATE_COMMAND_ENV_VAR]) {
@@ -28,12 +28,12 @@ export function getTeammateCommand(): string {
 }
 
 /**
- * Builds CLI flags to propagate from the current session to spawned teammates.
- * This ensures teammates inherit important settings like permission mode,
- * model selection, and plugin configuration from their parent.
+ * 构建从当前会话传播到生成的 teammate 的 CLI 标志。
+ * 这确保 teammate 继承父级的重要设置，如权限模式、
+ * 模型选择和插件配置。
  *
- * @param options.planModeRequired - If true, don't inherit bypass permissions (plan mode takes precedence)
- * @param options.permissionMode - Permission mode to propagate
+ * @param options.planModeRequired - 如果为 true，则不继承绕过权限（计划模式优先）
+ * @param options.permissionMode - 要传播的权限模式
  */
 export function buildInheritedCliFlags(options?: {
   planModeRequired?: boolean
@@ -49,10 +49,10 @@ export function buildInheritedCliArgParts(options?: {
   const flags: string[] = []
   const { planModeRequired, permissionMode } = options || {}
 
-  // Propagate permission mode to teammates, but NOT if plan mode is required
-  // Plan mode takes precedence over bypass permissions for safety
+  // 将权限模式传播到 teammate，但如果要求计划模式则不传播
+  // 为安全起见，计划模式优先于绕过权限
   if (planModeRequired) {
-    // Don't inherit bypass permissions when plan mode is required
+    // 当要求计划模式时不继承绕过权限
   } else if (
     permissionMode === 'bypassPermissions' ||
     getSessionBypassPermissionsMode()
@@ -61,33 +61,33 @@ export function buildInheritedCliArgParts(options?: {
   } else if (permissionMode === 'acceptEdits') {
     flags.push('--permission-mode', 'acceptEdits')
   } else if (permissionMode === 'auto') {
-    // Teammates inherit auto mode so the classifier evaluates their tool calls too.
+    // Teammate 继承自动模式，以便分类器也评估其工具调用。
     flags.push('--permission-mode', 'auto')
   }
 
-  // Propagate --model if explicitly set via CLI
+  // 如果通过 CLI 显式设置了 --model 则传播
   const modelOverride = getMainLoopModelOverride()
   if (modelOverride) {
     flags.push('--model', modelOverride)
   }
 
-  // Propagate --settings if set via CLI
+  // 如果通过 CLI 设置了 --settings 则传播
   const settingsPath = getFlagSettingsPath()
   if (settingsPath) {
     flags.push('--settings', settingsPath)
   }
 
-  // Propagate --plugin-dir for each inline plugin
+  // 为每个内联插件传播 --plugin-dir
   const inlinePlugins = getInlinePlugins()
   for (const pluginDir of inlinePlugins) {
     flags.push('--plugin-dir', pluginDir)
   }
 
-  // Propagate --teammate-mode so tmux teammates use the same mode as leader
+  // 传播 --teammate-mode 以便 tmux teammate 使用与 leader 相同的模式
   const sessionMode = getTeammateModeFromSnapshot()
   flags.push('--teammate-mode', sessionMode)
 
-  // Propagate --chrome / --no-chrome if explicitly set on the CLI
+  // 如果在 CLI 上显式设置了 --chrome / --no-chrome 则传播
   const chromeFlagOverride = getChromeFlagOverride()
   if (chromeFlagOverride === true) {
     flags.push('--chrome')
@@ -99,32 +99,32 @@ export function buildInheritedCliArgParts(options?: {
 }
 
 /**
- * Environment variables that must be explicitly forwarded to tmux-spawned
- * teammates. Tmux may start a new login shell that doesn't inherit the
- * parent's env, so we forward any that are set in the current process.
+ * 必须显式转发到 tmux 生成的 teammate 的环境变量。
+ * Tmux 可能会启动一个新的登录 shell，不继承父级的环境变量，
+ * 因此我们转发当前进程中设置的所有环境变量。
  */
 const TEAMMATE_ENV_VARS = [
-  // API provider selection — without these, teammates default to firstParty
-  // and send requests to the wrong endpoint (GitHub issue #23561)
+  // API 提供者选择 — 没有这些，teammate 默认使用 firstParty
+  // 并向错误的端点发送请求（GitHub issue #23561）
   'CLAUDE_CODE_USE_BEDROCK',
   'CLAUDE_CODE_USE_VERTEX',
   'CLAUDE_CODE_USE_FOUNDRY',
-  // Custom API endpoint
+  // 自定义 API 端点
   'ANTHROPIC_BASE_URL',
-  // Config directory override
+  // 配置目录覆盖
   'CLAUDE_CONFIG_DIR',
-  // CCR marker — teammates need this for CCR-aware code paths. Auth finds
-  // its own way via /home/claude/.claude/remote/.oauth_token regardless;
-  // the FD env var wouldn't help (pipe FDs don't cross tmux).
+  // CCR 标记 — teammate 需要此标记用于 CCR 感知的代码路径。认证
+  // 通过 /home/claude/.claude/remote/.oauth_token 自行寻找方式；
+  // FD 环境变量无济于事（管道 FD 无法跨越 tmux）。
   'CLAUDE_CODE_REMOTE',
-  // Auto-memory gate (memdir/paths.ts) checks REMOTE && !MEMORY_DIR to
-  // disable memory on ephemeral CCR filesystems. Forwarding REMOTE alone
-  // would flip teammates to memory-off when the parent has it on.
+  // 自动内存门控（memdir/paths.ts）检查 REMOTE && !MEMORY_DIR 以
+  // 在临时 CCR 文件系统上禁用内存。仅转发 REMOTE
+  // 会使 teammate 在父级开启内存时变为内存关闭。
   'CLAUDE_CODE_REMOTE_MEMORY_DIR',
-  // Upstream proxy — the parent's MITM relay is reachable from teammates
-  // (same container network). Forward the proxy vars so teammates route
-  // customer-configured upstream traffic through the relay for credential
-  // injection. Without these, teammates bypass the proxy entirely.
+  // 上游代理 — 父级的 MITM 中继可从 teammate 访问
+  // （同一容器网络）。转发代理变量以便 teammate 将
+  // 客户配置的上游流量通过中继路由以进行凭证注入。
+  // 没有这些，teammate 会完全绕过代理。
   'HTTPS_PROXY',
   'https_proxy',
   'HTTP_PROXY',
@@ -138,9 +138,9 @@ const TEAMMATE_ENV_VARS = [
 ] as const
 
 /**
- * Builds the `env KEY=VALUE ...` string for teammate spawn commands.
- * Always includes CLAUDECODE=1 and CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1,
- * plus any provider/config env vars that are set in the current process.
+ * 为 teammate 生成命令构建 `env KEY=VALUE ...` 字符串。
+ * 始终包含 CLAUDECODE=1 和 CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1，
+ * 加上当前进程中设置的任何提供者/配置环境变量。
  */
 export function buildInheritedEnvVars(): string {
   return getInheritedEnvVarAssignments()

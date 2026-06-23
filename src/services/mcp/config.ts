@@ -60,7 +60,17 @@ import { getProjectMcpServerStatus } from './utils.js'
  * 获取托管 MCP 配置文件的路径
  */
 export function getEnterpriseMcpFilePath(): string {
-  return join(getManagedFilePath(), 'managed-mcp.json')
+  logForDebugging(`[Hapii] -------- getEnterpriseMcpFilePath 开始 --------`, {
+    level: 'info',
+  })
+  const result = join(getManagedFilePath(), 'managed-mcp.json')
+  logForDebugging(`[Hapii] getEnterpriseMcpFilePath result=${result}`, {
+    level: 'info',
+  })
+  logForDebugging(`[Hapii] -------- getEnterpriseMcpFilePath 结束 --------`, {
+    level: 'info',
+  })
+  return result
 }
 
 /**
@@ -70,13 +80,34 @@ function addScopeToServers(
   servers: Record<string, McpServerConfig> | undefined,
   scope: ConfigScope,
 ): Record<string, ScopedMcpServerConfig> {
+  logForDebugging(
+    `[Hapii] -------- addScopeToServers 开始 --------
+  scope=${scope}
+  serverCount=${servers ? Object.keys(servers).length : 0}
+  serverNames=${servers ? Object.keys(servers).join(', ') : 'none'}`,
+    { level: 'info' },
+  )
   if (!servers) {
+    logForDebugging(
+      `[Hapii] addScopeToServers: servers is undefined, returning {}`,
+      { level: 'info' },
+    )
+    logForDebugging(`[Hapii] -------- addScopeToServers 结束 --------`, {
+      level: 'info',
+    })
     return {}
   }
   const scopedServers: Record<string, ScopedMcpServerConfig> = {}
   for (const [name, config] of Object.entries(servers)) {
     scopedServers[name] = { ...config, scope }
   }
+  logForDebugging(
+    `[Hapii] addScopeToServers: scoped ${Object.keys(scopedServers).length} servers`,
+    { level: 'info' },
+  )
+  logForDebugging(`[Hapii] -------- addScopeToServers 结束 --------`, {
+    level: 'info',
+  })
   return scopedServers
 }
 
@@ -86,29 +117,55 @@ function addScopeToServers(
  * 使用原始路径进行重命名（不跟随符号链接）。
  */
 async function writeMcpjsonFile(config: McpJsonConfig): Promise<void> {
+  logForDebugging(
+    `[Hapii] -------- writeMcpjsonFile 开始 --------
+  serverCount=${config.mcpServers ? Object.keys(config.mcpServers).length : 0}
+  serverNames=${config.mcpServers ? Object.keys(config.mcpServers).join(', ') : 'none'}`,
+    { level: 'info' },
+  )
   const mcpJsonPath = join(getCwd(), '.mcp.json')
+  logForDebugging(`[Hapii] writeMcpjsonFile: mcpJsonPath=${mcpJsonPath}`, {
+    level: 'info',
+  })
 
   // 读取现有文件权限以保留
   let existingMode: number | undefined
   try {
     const stats = await stat(mcpJsonPath)
     existingMode = stats.mode
+    logForDebugging(
+      `[Hapii] writeMcpjsonFile: existing file mode=${existingMode?.toString(8)}`,
+      { level: 'info' },
+    )
   } catch (e: unknown) {
     const code = getErrnoCode(e)
     if (code !== 'ENOENT') {
+      logForDebugging(`[Hapii] writeMcpjsonFile: stat error=${e}`, {
+        level: 'error',
+      })
       throw e
     }
+    logForDebugging(
+      `[Hapii] writeMcpjsonFile: file does not exist, using default mode`,
+      { level: 'info' },
+    )
     // 文件尚不存在——没有需要保留的权限
   }
 
   // 写入临时文件，刷新到磁盘，然后原子重命名
   const tempPath = `${mcpJsonPath}.tmp.${process.pid}.${Date.now()}`
+  logForDebugging(`[Hapii] writeMcpjsonFile: writing to tempPath=${tempPath}`, {
+    level: 'info',
+  })
   const handle = await open(tempPath, 'w', existingMode ?? 0o644)
   try {
     await handle.writeFile(jsonStringify(config, null, 2), {
       encoding: 'utf8',
     })
     await handle.datasync()
+    logForDebugging(`[Hapii] writeMcpjsonFile: wrote and synced temp file`, {
+      level: 'info',
+    })
   } finally {
     await handle.close()
   }
@@ -117,9 +174,21 @@ async function writeMcpjsonFile(config: McpJsonConfig): Promise<void> {
     // 在重命名前恢复临时文件的原始权限
     if (existingMode !== undefined) {
       await chmod(tempPath, existingMode)
+      logForDebugging(
+        `[Hapii] writeMcpjsonFile: restored permissions to temp file`,
+        { level: 'info' },
+      )
     }
     await rename(tempPath, mcpJsonPath)
+    logForDebugging(
+      `[Hapii] writeMcpjsonFile: renamed temp -> ${mcpJsonPath}`,
+      { level: 'info' },
+    )
   } catch (e: unknown) {
+    logForDebugging(
+      `[Hapii] writeMcpjsonFile: rename error=${e}, cleaning up temp file`,
+      { level: 'error' },
+    )
     // 失败时清理临时文件
     try {
       await unlink(tempPath)
@@ -128,6 +197,9 @@ async function writeMcpjsonFile(config: McpJsonConfig): Promise<void> {
     }
     throw e
   }
+  logForDebugging(`[Hapii] -------- writeMcpjsonFile 结束 --------`, {
+    level: 'info',
+  })
 }
 
 /**
@@ -135,22 +207,61 @@ async function writeMcpjsonFile(config: McpJsonConfig): Promise<void> {
  * 非 stdio 服务器返回 null
  */
 function getServerCommandArray(config: McpServerConfig): string[] | null {
+  logForDebugging(`[Hapii] -------- getServerCommandArray 开始 --------`, {
+    level: 'info',
+  })
   // 非 stdio 服务器没有命令
   if (config.type !== undefined && config.type !== 'stdio') {
+    logForDebugging(
+      `[Hapii] getServerCommandArray: non-stdio type=${config.type}, returning null`,
+      { level: 'info' },
+    )
+    logForDebugging(`[Hapii] -------- getServerCommandArray 结束 --------`, {
+      level: 'info',
+    })
     return null
   }
   const stdioConfig = config as McpStdioServerConfig
-  return [stdioConfig.command, ...(stdioConfig.args ?? [])]
+  const result = [stdioConfig.command, ...(stdioConfig.args ?? [])]
+  logForDebugging(
+    `[Hapii] getServerCommandArray: command=${stdioConfig.command}, args=${JSON.stringify(stdioConfig.args ?? [])}`,
+    { level: 'info' },
+  )
+  logForDebugging(`[Hapii] -------- getServerCommandArray 结束 --------`, {
+    level: 'info',
+  })
+  return result
 }
 
 /**
  * 检查两个命令数组是否完全匹配
  */
 function commandArraysMatch(a: string[], b: string[]): boolean {
+  logForDebugging(`[Hapii] -------- commandArraysMatch 开始 --------`, {
+    level: 'info',
+  })
+  logForDebugging(
+    `[Hapii] commandArraysMatch: a=${JSON.stringify(a)}, b=${JSON.stringify(b)}`,
+    { level: 'info' },
+  )
   if (a.length !== b.length) {
+    logForDebugging(
+      `[Hapii] commandArraysMatch: length mismatch ${a.length} vs ${b.length}`,
+      { level: 'info' },
+    )
+    logForDebugging(`[Hapii] -------- commandArraysMatch 结束 --------`, {
+      level: 'info',
+    })
     return false
   }
-  return a.every((val, idx) => val === b[idx])
+  const result = a.every((val, idx) => val === b[idx])
+  logForDebugging(`[Hapii] commandArraysMatch: result=${result}`, {
+    level: 'info',
+  })
+  logForDebugging(`[Hapii] -------- commandArraysMatch 结束 --------`, {
+    level: 'info',
+  })
+  return result
 }
 
 /**
@@ -158,7 +269,15 @@ function commandArraysMatch(a: string[], b: string[]): boolean {
  * stdio/sdk 服务器返回 null
  */
 function getServerUrl(config: McpServerConfig): string | null {
-  return 'url' in config ? config.url : null
+  logForDebugging(`[Hapii] -------- getServerUrl 开始 --------`, {
+    level: 'info',
+  })
+  const result = 'url' in config ? config.url : null
+  logForDebugging(`[Hapii] getServerUrl: result=${result}`, { level: 'info' })
+  logForDebugging(`[Hapii] -------- getServerUrl 结束 --------`, {
+    level: 'info',
+  })
+  return result
 }
 
 /**
@@ -179,14 +298,41 @@ const CCR_PROXY_PATH_MARKERS = [
  * 与连接器的重写代理 URL 之间匹配（当两者指向同一个 MCP 服务器时）。
  */
 export function unwrapCcrProxyUrl(url: string): string {
+  logForDebugging(`[Hapii] -------- unwrapCcrProxyUrl 开始 --------`, {
+    level: 'info',
+  })
+  logForDebugging(`[Hapii] unwrapCcrProxyUrl: input url=${url}`, {
+    level: 'info',
+  })
   if (!CCR_PROXY_PATH_MARKERS.some(m => url.includes(m))) {
+    logForDebugging(
+      `[Hapii] unwrapCcrProxyUrl: no CCR proxy marker found, returning original url`,
+      { level: 'info' },
+    )
+    logForDebugging(`[Hapii] -------- unwrapCcrProxyUrl 结束 --------`, {
+      level: 'info',
+    })
     return url
   }
   try {
     const parsed = new URL(url)
     const original = parsed.searchParams.get('mcp_url')
+    logForDebugging(
+      `[Hapii] unwrapCcrProxyUrl: CCR proxy detected, original=${original}`,
+      { level: 'info' },
+    )
+    logForDebugging(`[Hapii] -------- unwrapCcrProxyUrl 结束 --------`, {
+      level: 'info',
+    })
     return original || url
   } catch {
+    logForDebugging(
+      `[Hapii] unwrapCcrProxyUrl: URL parse error, returning original url`,
+      { level: 'error' },
+    )
+    logForDebugging(`[Hapii] -------- unwrapCcrProxyUrl 结束 --------`, {
+      level: 'info',
+    })
     return url
   }
 }
@@ -199,14 +345,38 @@ export function unwrapCcrProxyUrl(url: string): string {
  * 仅对既没有 command 也没有 url 的配置（sdk 类型）返回 null。
  */
 export function getMcpServerSignature(config: McpServerConfig): string | null {
+  logForDebugging(`[Hapii] -------- getMcpServerSignature 开始 --------`, {
+    level: 'info',
+  })
   const cmd = getServerCommandArray(config)
   if (cmd) {
-    return `stdio:${jsonStringify(cmd)}`
+    const sig = `stdio:${jsonStringify(cmd)}`
+    logForDebugging(`[Hapii] getMcpServerSignature: stdio signature=${sig}`, {
+      level: 'info',
+    })
+    logForDebugging(`[Hapii] -------- getMcpServerSignature 结束 --------`, {
+      level: 'info',
+    })
+    return sig
   }
   const url = getServerUrl(config)
   if (url) {
-    return `url:${unwrapCcrProxyUrl(url)}`
+    const sig = `url:${unwrapCcrProxyUrl(url)}`
+    logForDebugging(`[Hapii] getMcpServerSignature: url signature=${sig}`, {
+      level: 'info',
+    })
+    logForDebugging(`[Hapii] -------- getMcpServerSignature 结束 --------`, {
+      level: 'info',
+    })
+    return sig
   }
+  logForDebugging(
+    `[Hapii] getMcpServerSignature: no command or url, returning null`,
+    { level: 'info' },
+  )
+  logForDebugging(`[Hapii] -------- getMcpServerSignature 结束 --------`, {
+    level: 'info',
+  })
   return null
 }
 
@@ -224,12 +394,24 @@ export function dedupPluginMcpServers(
   servers: Record<string, ScopedMcpServerConfig>
   suppressed: Array<{ name: string; duplicateOf: string }>
 } {
+  logForDebugging(
+    `[Hapii] -------- dedupPluginMcpServers 开始 --------
+  pluginServerCount=${Object.keys(pluginServers).length}
+  manualServerCount=${Object.keys(manualServers).length}
+  pluginServerNames=${Object.keys(pluginServers).join(', ')}
+  manualServerNames=${Object.keys(manualServers).join(', ')}`,
+    { level: 'info' },
+  )
   // 映射签名 -> 服务器名称，以便报告重复匹配的是哪个服务器
   const manualSigs = new Map<string, string>()
   for (const [name, config] of Object.entries(manualServers)) {
     const sig = getMcpServerSignature(config)
     if (sig && !manualSigs.has(sig)) manualSigs.set(sig, name)
   }
+  logForDebugging(
+    `[Hapii] dedupPluginMcpServers: manualSigs count=${manualSigs.size}`,
+    { level: 'info' },
+  )
 
   const servers: Record<string, ScopedMcpServerConfig> = {}
   const suppressed: Array<{ name: string; duplicateOf: string }> = []
@@ -237,13 +419,18 @@ export function dedupPluginMcpServers(
   for (const [name, config] of Object.entries(pluginServers)) {
     const sig = getMcpServerSignature(config)
     if (sig === null) {
+      logForDebugging(
+        `[Hapii] dedupPluginMcpServers: plugin "${name}" has no signature, keeping`,
+        { level: 'info' },
+      )
       servers[name] = config
       continue
     }
     const manualDup = manualSigs.get(sig)
     if (manualDup !== undefined) {
       logForDebugging(
-        `Suppressing plugin MCP server "${name}": duplicates manually-configured "${manualDup}"`,
+        `[Hapii] dedupPluginMcpServers: Suppressing plugin "${name}": duplicates manually-configured "${manualDup}"`,
+        { level: 'info' },
       )
       suppressed.push({ name, duplicateOf: manualDup })
       continue
@@ -251,7 +438,8 @@ export function dedupPluginMcpServers(
     const pluginDup = seenPluginSigs.get(sig)
     if (pluginDup !== undefined) {
       logForDebugging(
-        `Suppressing plugin MCP server "${name}": duplicates earlier plugin server "${pluginDup}"`,
+        `[Hapii] dedupPluginMcpServers: Suppressing plugin "${name}": duplicates earlier plugin server "${pluginDup}"`,
+        { level: 'info' },
       )
       suppressed.push({ name, duplicateOf: pluginDup })
       continue
@@ -259,6 +447,13 @@ export function dedupPluginMcpServers(
     seenPluginSigs.set(sig, name)
     servers[name] = config
   }
+  logForDebugging(
+    `[Hapii] dedupPluginMcpServers: kept ${Object.keys(servers).length} servers, suppressed ${suppressed.length}`,
+    { level: 'info' },
+  )
+  logForDebugging(`[Hapii] -------- dedupPluginMcpServers 结束 --------`, {
+    level: 'info',
+  })
   return { servers, suppressed }
 }
 
@@ -282,12 +477,30 @@ export function dedupClaudeAiMcpServers(
   servers: Record<string, ScopedMcpServerConfig>
   suppressed: Array<{ name: string; duplicateOf: string }>
 } {
+  logForDebugging(
+    `[Hapii] -------- dedupClaudeAiMcpServers 开始 --------
+  claudeAiServerCount=${Object.keys(claudeAiServers).length}
+  manualServerCount=${Object.keys(manualServers).length}
+  claudeAiServerNames=${Object.keys(claudeAiServers).join(', ')}
+  manualServerNames=${Object.keys(manualServers).join(', ')}`,
+    { level: 'info' },
+  )
   const manualSigs = new Map<string, string>()
   for (const [name, config] of Object.entries(manualServers)) {
-    if (isMcpServerDisabled(name)) continue
+    if (isMcpServerDisabled(name)) {
+      logForDebugging(
+        `[Hapii] dedupClaudeAiMcpServers: manual server "${name}" is disabled, skipping`,
+        { level: 'info' },
+      )
+      continue
+    }
     const sig = getMcpServerSignature(config)
     if (sig && !manualSigs.has(sig)) manualSigs.set(sig, name)
   }
+  logForDebugging(
+    `[Hapii] dedupClaudeAiMcpServers: enabled manual sigs count=${manualSigs.size}`,
+    { level: 'info' },
+  )
 
   const servers: Record<string, ScopedMcpServerConfig> = {}
   const suppressed: Array<{ name: string; duplicateOf: string }> = []
@@ -296,13 +509,25 @@ export function dedupClaudeAiMcpServers(
     const manualDup = sig !== null ? manualSigs.get(sig) : undefined
     if (manualDup !== undefined) {
       logForDebugging(
-        `Suppressing claude.ai connector "${name}": duplicates manually-configured "${manualDup}"`,
+        `[Hapii] dedupClaudeAiMcpServers: Suppressing claude.ai connector "${name}": duplicates manually-configured "${manualDup}"`,
+        { level: 'info' },
       )
       suppressed.push({ name, duplicateOf: manualDup })
       continue
     }
+    logForDebugging(
+      `[Hapii] dedupClaudeAiMcpServers: keeping claude.ai connector "${name}"`,
+      { level: 'info' },
+    )
     servers[name] = config
   }
+  logForDebugging(
+    `[Hapii] dedupClaudeAiMcpServers: kept ${Object.keys(servers).length} servers, suppressed ${suppressed.length}`,
+    { level: 'info' },
+  )
+  logForDebugging(`[Hapii] -------- dedupClaudeAiMcpServers 结束 --------`, {
+    level: 'info',
+  })
   return { servers, suppressed }
 }
 
@@ -362,14 +587,38 @@ function isMcpServerDenied(
   serverName: string,
   config?: McpServerConfig,
 ): boolean {
+  logForDebugging(
+    `[Hapii] -------- isMcpServerDenied 开始 --------
+  serverName=${serverName}
+  hasConfig=${!!config}`,
+    { level: 'info' },
+  )
   const settings = getMcpDenylistSettings()
   if (!settings.deniedMcpServers) {
+    logForDebugging(
+      `[Hapii] isMcpServerDenied: no deniedMcpServers in settings, returning false`,
+      { level: 'info' },
+    )
+    logForDebugging(`[Hapii] -------- isMcpServerDenied 结束 --------`, {
+      level: 'info',
+    })
     return false // 无限制
   }
+  logForDebugging(
+    `[Hapii] isMcpServerDenied: deniedMcpServers count=${settings.deniedMcpServers.length}`,
+    { level: 'info' },
+  )
 
   // 检查基于名称的拒绝
   for (const entry of settings.deniedMcpServers) {
     if (isMcpServerNameEntry(entry) && entry.serverName === serverName) {
+      logForDebugging(
+        `[Hapii] isMcpServerDenied: server "${serverName}" denied by name match`,
+        { level: 'info' },
+      )
+      logForDebugging(`[Hapii] -------- isMcpServerDenied 结束 --------`, {
+        level: 'info',
+      })
       return true
     }
   }
@@ -378,11 +627,22 @@ function isMcpServerDenied(
   if (config) {
     const serverCommand = getServerCommandArray(config)
     if (serverCommand) {
+      logForDebugging(
+        `[Hapii] isMcpServerDenied: checking command-based deny for stdio server`,
+        { level: 'info' },
+      )
       for (const entry of settings.deniedMcpServers) {
         if (
           isMcpServerCommandEntry(entry) &&
           commandArraysMatch(entry.serverCommand, serverCommand)
         ) {
+          logForDebugging(
+            `[Hapii] isMcpServerDenied: server "${serverName}" denied by command match`,
+            { level: 'info' },
+          )
+          logForDebugging(`[Hapii] -------- isMcpServerDenied 结束 --------`, {
+            level: 'info',
+          })
           return true
         }
       }
@@ -390,17 +650,35 @@ function isMcpServerDenied(
 
     const serverUrl = getServerUrl(config)
     if (serverUrl) {
+      logForDebugging(
+        `[Hapii] isMcpServerDenied: checking URL-based deny for remote server, url=${serverUrl}`,
+        { level: 'info' },
+      )
       for (const entry of settings.deniedMcpServers) {
         if (
           isMcpServerUrlEntry(entry) &&
           urlMatchesPattern(serverUrl, entry.serverUrl)
         ) {
+          logForDebugging(
+            `[Hapii] isMcpServerDenied: server "${serverName}" denied by URL match`,
+            { level: 'info' },
+          )
+          logForDebugging(`[Hapii] -------- isMcpServerDenied 结束 --------`, {
+            level: 'info',
+          })
           return true
         }
       }
     }
   }
 
+  logForDebugging(
+    `[Hapii] isMcpServerDenied: server "${serverName}" is NOT denied`,
+    { level: 'info' },
+  )
+  logForDebugging(`[Hapii] -------- isMcpServerDenied 结束 --------`, {
+    level: 'info',
+  })
   return false
 }
 
@@ -415,26 +693,65 @@ function isMcpServerAllowedByPolicy(
   serverName: string,
   config?: McpServerConfig,
 ): boolean {
+  logForDebugging(
+    `[Hapii] -------- isMcpServerAllowedByPolicy 开始 --------
+  serverName=${serverName}
+  hasConfig=${!!config}`,
+    { level: 'info' },
+  )
   // 拒绝列表具有绝对优先权
   if (isMcpServerDenied(serverName, config)) {
+    logForDebugging(
+      `[Hapii] isMcpServerAllowedByPolicy: server "${serverName}" is denied, returning false`,
+      { level: 'info' },
+    )
+    logForDebugging(
+      `[Hapii] -------- isMcpServerAllowedByPolicy 结束 --------`,
+      { level: 'info' },
+    )
     return false
   }
 
   const settings = getMcpAllowlistSettings()
   if (!settings.allowedMcpServers) {
+    logForDebugging(
+      `[Hapii] isMcpServerAllowedByPolicy: no allowedMcpServers in settings, returning true`,
+      { level: 'info' },
+    )
+    logForDebugging(
+      `[Hapii] -------- isMcpServerAllowedByPolicy 结束 --------`,
+      { level: 'info' },
+    )
     return true // 无允许列表限制（未定义）
   }
 
   // 空允许列表意味着阻止所有服务器
   if (settings.allowedMcpServers.length === 0) {
+    logForDebugging(
+      `[Hapii] isMcpServerAllowedByPolicy: empty allowedMcpServers list, returning false`,
+      { level: 'info' },
+    )
+    logForDebugging(
+      `[Hapii] -------- isMcpServerAllowedByPolicy 结束 --------`,
+      { level: 'info' },
+    )
     return false
   }
+
+  logForDebugging(
+    `[Hapii] isMcpServerAllowedByPolicy: allowedMcpServers count=${settings.allowedMcpServers.length}`,
+    { level: 'info' },
+  )
 
   // 检查允许列表是否包含任何基于命令或基于 URL 的条目
   const hasCommandEntries = settings.allowedMcpServers.some(
     isMcpServerCommandEntry,
   )
   const hasUrlEntries = settings.allowedMcpServers.some(isMcpServerUrlEntry)
+  logForDebugging(
+    `[Hapii] isMcpServerAllowedByPolicy: hasCommandEntries=${hasCommandEntries}, hasUrlEntries=${hasUrlEntries}`,
+    { level: 'info' },
+  )
 
   if (config) {
     const serverCommand = getServerCommandArray(config)
@@ -443,64 +760,183 @@ function isMcpServerAllowedByPolicy(
     if (serverCommand) {
       // 这是一个 stdio 服务器
       if (hasCommandEntries) {
+        logForDebugging(
+          `[Hapii] isMcpServerAllowedByPolicy: stdio server, checking command entries`,
+          { level: 'info' },
+        )
         // 如果存在任何 serverCommand 条目，stdio 服务器必须匹配其中之一
         for (const entry of settings.allowedMcpServers) {
           if (
             isMcpServerCommandEntry(entry) &&
             commandArraysMatch(entry.serverCommand, serverCommand)
           ) {
+            logForDebugging(
+              `[Hapii] isMcpServerAllowedByPolicy: stdio server "${serverName}" allowed by command match`,
+              { level: 'info' },
+            )
+            logForDebugging(
+              `[Hapii] -------- isMcpServerAllowedByPolicy 结束 --------`,
+              { level: 'info' },
+            )
             return true
           }
         }
+        logForDebugging(
+          `[Hapii] isMcpServerAllowedByPolicy: stdio server "${serverName}" not allowed by any command entry`,
+          { level: 'info' },
+        )
+        logForDebugging(
+          `[Hapii] -------- isMcpServerAllowedByPolicy 结束 --------`,
+          { level: 'info' },
+        )
         return false // stdio 服务器不匹配任何命令条目
       } else {
+        logForDebugging(
+          `[Hapii] isMcpServerAllowedByPolicy: stdio server, checking name entries`,
+          { level: 'info' },
+        )
         // 无命令条目，检查基于名称的允许
         for (const entry of settings.allowedMcpServers) {
           if (isMcpServerNameEntry(entry) && entry.serverName === serverName) {
+            logForDebugging(
+              `[Hapii] isMcpServerAllowedByPolicy: stdio server "${serverName}" allowed by name match`,
+              { level: 'info' },
+            )
+            logForDebugging(
+              `[Hapii] -------- isMcpServerAllowedByPolicy 结束 --------`,
+              { level: 'info' },
+            )
             return true
           }
         }
+        logForDebugging(
+          `[Hapii] isMcpServerAllowedByPolicy: stdio server "${serverName}" not allowed by name`,
+          { level: 'info' },
+        )
+        logForDebugging(
+          `[Hapii] -------- isMcpServerAllowedByPolicy 结束 --------`,
+          { level: 'info' },
+        )
         return false
       }
     } else if (serverUrl) {
       // 这是一个远程服务器（sse、http、ws 等）
       if (hasUrlEntries) {
+        logForDebugging(
+          `[Hapii] isMcpServerAllowedByPolicy: remote server, checking URL entries`,
+          { level: 'info' },
+        )
         // 如果存在任何 serverUrl 条目，远程服务器必须匹配其中之一
         for (const entry of settings.allowedMcpServers) {
           if (
             isMcpServerUrlEntry(entry) &&
             urlMatchesPattern(serverUrl, entry.serverUrl)
           ) {
+            logForDebugging(
+              `[Hapii] isMcpServerAllowedByPolicy: remote server "${serverName}" allowed by URL match`,
+              { level: 'info' },
+            )
+            logForDebugging(
+              `[Hapii] -------- isMcpServerAllowedByPolicy 结束 --------`,
+              { level: 'info' },
+            )
             return true
           }
         }
+        logForDebugging(
+          `[Hapii] isMcpServerAllowedByPolicy: remote server "${serverName}" not allowed by any URL entry`,
+          { level: 'info' },
+        )
+        logForDebugging(
+          `[Hapii] -------- isMcpServerAllowedByPolicy 结束 --------`,
+          { level: 'info' },
+        )
         return false // 远程服务器不匹配任何 URL 条目
       } else {
+        logForDebugging(
+          `[Hapii] isMcpServerAllowedByPolicy: remote server, checking name entries`,
+          { level: 'info' },
+        )
         // 无 URL 条目，检查基于名称的允许
         for (const entry of settings.allowedMcpServers) {
           if (isMcpServerNameEntry(entry) && entry.serverName === serverName) {
+            logForDebugging(
+              `[Hapii] isMcpServerAllowedByPolicy: remote server "${serverName}" allowed by name match`,
+              { level: 'info' },
+            )
+            logForDebugging(
+              `[Hapii] -------- isMcpServerAllowedByPolicy 结束 --------`,
+              { level: 'info' },
+            )
             return true
           }
         }
+        logForDebugging(
+          `[Hapii] isMcpServerAllowedByPolicy: remote server "${serverName}" not allowed by name`,
+          { level: 'info' },
+        )
+        logForDebugging(
+          `[Hapii] -------- isMcpServerAllowedByPolicy 结束 --------`,
+          { level: 'info' },
+        )
         return false
       }
     } else {
+      logForDebugging(
+        `[Hapii] isMcpServerAllowedByPolicy: unknown server type, checking name entries only`,
+        { level: 'info' },
+      )
       // 未知服务器类型——仅检查基于名称的允许
       for (const entry of settings.allowedMcpServers) {
         if (isMcpServerNameEntry(entry) && entry.serverName === serverName) {
+          logForDebugging(
+            `[Hapii] isMcpServerAllowedByPolicy: server "${serverName}" allowed by name match`,
+            { level: 'info' },
+          )
+          logForDebugging(
+            `[Hapii] -------- isMcpServerAllowedByPolicy 结束 --------`,
+            { level: 'info' },
+          )
           return true
         }
       }
+      logForDebugging(
+        `[Hapii] isMcpServerAllowedByPolicy: server "${serverName}" not allowed`,
+        { level: 'info' },
+      )
+      logForDebugging(
+        `[Hapii] -------- isMcpServerAllowedByPolicy 结束 --------`,
+        { level: 'info' },
+      )
       return false
     }
   }
 
   // 未提供配置——仅检查基于名称的允许
+  logForDebugging(
+    `[Hapii] isMcpServerAllowedByPolicy: no config provided, checking name entries only`,
+    { level: 'info' },
+  )
   for (const entry of settings.allowedMcpServers) {
     if (isMcpServerNameEntry(entry) && entry.serverName === serverName) {
+      logForDebugging(
+        `[Hapii] isMcpServerAllowedByPolicy: server "${serverName}" allowed by name match`,
+        { level: 'info' },
+      )
+      logForDebugging(
+        `[Hapii] -------- isMcpServerAllowedByPolicy 结束 --------`,
+        { level: 'info' },
+      )
       return true
     }
   }
+  logForDebugging(
+    `[Hapii] isMcpServerAllowedByPolicy: server "${serverName}" not allowed`,
+    { level: 'info' },
+  )
+  logForDebugging(`[Hapii] -------- isMcpServerAllowedByPolicy 结束 --------`, {
+    level: 'info',
+  })
   return false
 }
 
@@ -528,16 +964,37 @@ export function filterMcpServersByPolicy<T>(configs: Record<string, T>): {
   allowed: Record<string, T>
   blocked: string[]
 } {
+  logForDebugging(
+    `[Hapii] -------- filterMcpServersByPolicy 开始 --------
+  inputCount=${Object.keys(configs).length}
+  inputNames=${Object.keys(configs).join(', ')}`,
+    { level: 'info' },
+  )
   const allowed: Record<string, T> = {}
   const blocked: string[] = []
   for (const [name, config] of Object.entries(configs)) {
     const c = config as McpServerConfig
     if (c.type === 'sdk' || isMcpServerAllowedByPolicy(name, c)) {
+      logForDebugging(
+        `[Hapii] filterMcpServersByPolicy: "${name}" allowed (type=${c.type})`,
+        { level: 'info' },
+      )
       allowed[name] = config
     } else {
+      logForDebugging(
+        `[Hapii] filterMcpServersByPolicy: "${name}" blocked by policy`,
+        { level: 'info' },
+      )
       blocked.push(name)
     }
   }
+  logForDebugging(
+    `[Hapii] filterMcpServersByPolicy: allowed=${Object.keys(allowed).length}, blocked=${blocked.length}`,
+    { level: 'info' },
+  )
+  logForDebugging(`[Hapii] -------- filterMcpServersByPolicy 结束 --------`, {
+    level: 'info',
+  })
   return { allowed, blocked }
 }
 
@@ -618,7 +1075,17 @@ export async function addMcpConfig(
   config: unknown,
   scope: ConfigScope,
 ): Promise<void> {
+  logForDebugging(
+    `[Hapii] -------- addMcpConfig 开始 --------
+  name=${name}
+  scope=${scope}
+  config=${JSON.stringify(config)}`,
+    { level: 'info' },
+  )
   if (name.match(/[^a-zA-Z0-9_-]/)) {
+    logForDebugging(`[Hapii] addMcpConfig: invalid name "${name}"`, {
+      level: 'error',
+    })
     throw new Error(
       `Invalid name ${name}. Names can only contain letters, numbers, hyphens, and underscores.`,
     )
@@ -626,6 +1093,9 @@ export async function addMcpConfig(
 
   // 阻止保留的服务器名称 "claude-in-chrome"
   if (isClaudeInChromeMCPServer(name)) {
+    logForDebugging(`[Hapii] addMcpConfig: reserved name "${name}"`, {
+      level: 'error',
+    })
     throw new Error(`Cannot add MCP server "${name}": this name is reserved.`)
   }
 
@@ -634,12 +1104,20 @@ export async function addMcpConfig(
       '../../utils/computerUse/common.js'
     )
     if (isComputerUseMCPServer(name)) {
+      logForDebugging(
+        `[Hapii] addMcpConfig: reserved computer use name "${name}"`,
+        { level: 'error' },
+      )
       throw new Error(`Cannot add MCP server "${name}": this name is reserved.`)
     }
   }
 
   // 当企业 MCP 配置存在时阻止添加服务器（它具有独占控制权）
   if (doesEnterpriseMcpConfigExist()) {
+    logForDebugging(
+      `[Hapii] addMcpConfig: enterprise MCP config exists, blocking add`,
+      { level: 'error' },
+    )
     throw new Error(
       `Cannot add MCP server: enterprise MCP configuration is active and has exclusive control over MCP servers`,
     )
@@ -651,12 +1129,24 @@ export async function addMcpConfig(
     const formattedErrors = result.error.issues
       .map(err => `${err.path.join('.')}: ${err.message}`)
       .join(', ')
+    logForDebugging(
+      `[Hapii] addMcpConfig: invalid configuration: ${formattedErrors}`,
+      { level: 'error' },
+    )
     throw new Error(`Invalid configuration: ${formattedErrors}`)
   }
   const validatedConfig = result.data
+  logForDebugging(
+    `[Hapii] addMcpConfig: configuration validated successfully`,
+    { level: 'info' },
+  )
 
   // 检查拒绝列表（使用配置进行基于命令的检查）
   if (isMcpServerDenied(name, validatedConfig)) {
+    logForDebugging(
+      `[Hapii] addMcpConfig: server "${name}" is denied by policy`,
+      { level: 'error' },
+    )
     throw new Error(
       `Cannot add MCP server "${name}": server is explicitly blocked by enterprise policy`,
     )
@@ -664,6 +1154,10 @@ export async function addMcpConfig(
 
   // 检查允许列表（使用配置进行基于命令的检查）
   if (!isMcpServerAllowedByPolicy(name, validatedConfig)) {
+    logForDebugging(
+      `[Hapii] addMcpConfig: server "${name}" is not allowed by policy`,
+      { level: 'error' },
+    )
     throw new Error(
       `Cannot add MCP server "${name}": not allowed by enterprise policy`,
     )
@@ -674,6 +1168,10 @@ export async function addMcpConfig(
     case 'project': {
       const { servers } = getProjectMcpConfigsFromCwd()
       if (servers[name]) {
+        logForDebugging(
+          `[Hapii] addMcpConfig: server "${name}" already exists in project scope`,
+          { level: 'error' },
+        )
         throw new Error(`MCP server ${name} already exists in .mcp.json`)
       }
       break
@@ -681,6 +1179,10 @@ export async function addMcpConfig(
     case 'user': {
       const globalConfig = getGlobalConfig()
       if (globalConfig.mcpServers?.[name]) {
+        logForDebugging(
+          `[Hapii] addMcpConfig: server "${name}" already exists in user scope`,
+          { level: 'error' },
+        )
         throw new Error(`MCP server ${name} already exists in user config`)
       }
       break
@@ -688,15 +1190,28 @@ export async function addMcpConfig(
     case 'local': {
       const projectConfig = getCurrentProjectConfig()
       if (projectConfig.mcpServers?.[name]) {
+        logForDebugging(
+          `[Hapii] addMcpConfig: server "${name}" already exists in local scope`,
+          { level: 'error' },
+        )
         throw new Error(`MCP server ${name} already exists in local config`)
       }
       break
     }
     case 'dynamic':
+      logForDebugging(`[Hapii] addMcpConfig: cannot add to dynamic scope`, {
+        level: 'error',
+      })
       throw new Error('Cannot add MCP server to scope: dynamic')
     case 'enterprise':
+      logForDebugging(`[Hapii] addMcpConfig: cannot add to enterprise scope`, {
+        level: 'error',
+      })
       throw new Error('Cannot add MCP server to scope: enterprise')
     case 'claudeai':
+      logForDebugging(`[Hapii] addMcpConfig: cannot add to claudeai scope`, {
+        level: 'error',
+      })
       throw new Error('Cannot add MCP server to scope: claudeai')
   }
 
@@ -718,7 +1233,15 @@ export async function addMcpConfig(
       // 写回 .mcp.json
       try {
         await writeMcpjsonFile(mcpConfig)
+        logForDebugging(
+          `[Hapii] addMcpConfig: added "${name}" to project scope`,
+          { level: 'info' },
+        )
       } catch (error) {
+        logForDebugging(
+          `[Hapii] addMcpConfig: failed to write .mcp.json: ${error}`,
+          { level: 'error' },
+        )
         throw new Error(`Failed to write to .mcp.json: ${error}`)
       }
       break
@@ -732,6 +1255,9 @@ export async function addMcpConfig(
           [name]: validatedConfig,
         },
       }))
+      logForDebugging(`[Hapii] addMcpConfig: added "${name}" to user scope`, {
+        level: 'info',
+      })
       break
     }
 
@@ -743,12 +1269,21 @@ export async function addMcpConfig(
           [name]: validatedConfig,
         },
       }))
+      logForDebugging(`[Hapii] addMcpConfig: added "${name}" to local scope`, {
+        level: 'info',
+      })
       break
     }
 
     default:
+      logForDebugging(`[Hapii] addMcpConfig: invalid scope "${scope}"`, {
+        level: 'error',
+      })
       throw new Error(`Cannot add MCP server to scope: ${scope}`)
   }
+  logForDebugging(`[Hapii] -------- addMcpConfig 结束 --------`, {
+    level: 'info',
+  })
 }
 
 /**
@@ -761,11 +1296,21 @@ export async function removeMcpConfig(
   name: string,
   scope: ConfigScope,
 ): Promise<void> {
+  logForDebugging(
+    `[Hapii] -------- removeMcpConfig 开始 --------
+  name=${name}
+  scope=${scope}`,
+    { level: 'info' },
+  )
   switch (scope) {
     case 'project': {
       const { servers: existingServers } = getProjectMcpConfigsFromCwd()
 
       if (!existingServers[name]) {
+        logForDebugging(
+          `[Hapii] removeMcpConfig: server "${name}" not found in .mcp.json`,
+          { level: 'error' },
+        )
         throw new Error(`No MCP server found with name: ${name} in .mcp.json`)
       }
 
@@ -782,7 +1327,15 @@ export async function removeMcpConfig(
       const mcpConfig = { mcpServers }
       try {
         await writeMcpjsonFile(mcpConfig)
+        logForDebugging(
+          `[Hapii] removeMcpConfig: removed "${name}" from project scope`,
+          { level: 'info' },
+        )
       } catch (error) {
+        logForDebugging(
+          `[Hapii] removeMcpConfig: failed to write .mcp.json: ${error}`,
+          { level: 'error' },
+        )
         throw new Error(`Failed to remove from .mcp.json: ${error}`)
       }
       break
@@ -791,6 +1344,10 @@ export async function removeMcpConfig(
     case 'user': {
       const config = getGlobalConfig()
       if (!config.mcpServers?.[name]) {
+        logForDebugging(
+          `[Hapii] removeMcpConfig: server "${name}" not found in user config`,
+          { level: 'error' },
+        )
         throw new Error(`No user-scoped MCP server found with name: ${name}`)
       }
       saveGlobalConfig(current => {
@@ -800,6 +1357,10 @@ export async function removeMcpConfig(
           mcpServers: restMcpServers,
         }
       })
+      logForDebugging(
+        `[Hapii] removeMcpConfig: removed "${name}" from user scope`,
+        { level: 'info' },
+      )
       break
     }
 
@@ -807,6 +1368,10 @@ export async function removeMcpConfig(
       // 更新前检查服务器是否存在
       const config = getCurrentProjectConfig()
       if (!config.mcpServers?.[name]) {
+        logForDebugging(
+          `[Hapii] removeMcpConfig: server "${name}" not found in local config`,
+          { level: 'error' },
+        )
         throw new Error(`No project-local MCP server found with name: ${name}`)
       }
       saveCurrentProjectConfig(current => {
@@ -816,12 +1381,22 @@ export async function removeMcpConfig(
           mcpServers: restMcpServers,
         }
       })
+      logForDebugging(
+        `[Hapii] removeMcpConfig: removed "${name}" from local scope`,
+        { level: 'info' },
+      )
       break
     }
 
     default:
+      logForDebugging(`[Hapii] removeMcpConfig: invalid scope "${scope}"`, {
+        level: 'error',
+      })
       throw new Error(`Cannot remove MCP server from scope: ${scope}`)
   }
+  logForDebugging(`[Hapii] -------- removeMcpConfig 结束 --------`, {
+    level: 'info',
+  })
 }
 
 /**
@@ -835,12 +1410,28 @@ export function getProjectMcpConfigsFromCwd(): {
   servers: Record<string, ScopedMcpServerConfig>
   errors: ValidationError[]
 } {
+  logForDebugging(
+    `[Hapii] -------- getProjectMcpConfigsFromCwd 开始 --------`,
+    { level: 'info' },
+  )
   // 检查 project 源是否已启用
   if (!isSettingSourceEnabled('projectSettings')) {
+    logForDebugging(
+      `[Hapii] getProjectMcpConfigsFromCwd: projectSettings not enabled, returning empty`,
+      { level: 'info' },
+    )
+    logForDebugging(
+      `[Hapii] -------- getProjectMcpConfigsFromCwd 结束 --------`,
+      { level: 'info' },
+    )
     return { servers: {}, errors: [] }
   }
 
   const mcpJsonPath = join(getCwd(), '.mcp.json')
+  logForDebugging(
+    `[Hapii] getProjectMcpConfigsFromCwd: mcpJsonPath=${mcpJsonPath}`,
+    { level: 'info' },
+  )
 
   const { config, errors } = parseMcpConfigFromFilePath({
     filePath: mcpJsonPath,
@@ -855,18 +1446,39 @@ export function getProjectMcpConfigsFromCwd(): {
     )
     if (nonMissingErrors.length > 0) {
       logForDebugging(
-        `MCP config errors for ${mcpJsonPath}: ${jsonStringify(nonMissingErrors.map(e => e.message))}`,
+        `[Hapii] getProjectMcpConfigsFromCwd: config errors for ${mcpJsonPath}: ${jsonStringify(nonMissingErrors.map(e => e.message))}`,
         { level: 'error' },
+      )
+      logForDebugging(
+        `[Hapii] -------- getProjectMcpConfigsFromCwd 结束 --------`,
+        { level: 'info' },
       )
       return { servers: {}, errors: nonMissingErrors }
     }
+    logForDebugging(
+      `[Hapii] getProjectMcpConfigsFromCwd: no config found (file may not exist), returning empty`,
+      { level: 'info' },
+    )
+    logForDebugging(
+      `[Hapii] -------- getProjectMcpConfigsFromCwd 结束 --------`,
+      { level: 'info' },
+    )
     return { servers: {}, errors: [] }
   }
 
+  const result = config.mcpServers
+    ? addScopeToServers(config.mcpServers, 'project')
+    : {}
+  logForDebugging(
+    `[Hapii] getProjectMcpConfigsFromCwd: found ${Object.keys(result).length} servers: ${Object.keys(result).join(', ')}`,
+    { level: 'info' },
+  )
+  logForDebugging(
+    `[Hapii] -------- getProjectMcpConfigsFromCwd 结束 --------`,
+    { level: 'info' },
+  )
   return {
-    servers: config.mcpServers
-      ? addScopeToServers(config.mcpServers, 'project')
-      : {},
+    servers: result,
     errors: errors || [],
   }
 }
@@ -882,6 +1494,10 @@ export function getMcpConfigsByScope(
   servers: Record<string, ScopedMcpServerConfig>
   errors: ValidationError[]
 } {
+  logForDebugging(
+    `[Hapii] -------- getMcpConfigsByScope 开始 -------- scope=${scope}`,
+    { level: 'info' },
+  )
   // 检查此源是否已启用
   const sourceMap: Record<
     string,
@@ -893,11 +1509,22 @@ export function getMcpConfigsByScope(
   }
 
   if (scope in sourceMap && !isSettingSourceEnabled(sourceMap[scope]!)) {
+    logForDebugging(
+      `[Hapii] getMcpConfigsByScope: source ${sourceMap[scope]} not enabled, returning empty`,
+      { level: 'info' },
+    )
+    logForDebugging(`[Hapii] -------- getMcpConfigsByScope 结束 --------`, {
+      level: 'info',
+    })
     return { servers: {}, errors: [] }
   }
 
   switch (scope) {
     case 'project': {
+      logForDebugging(
+        `[Hapii] getMcpConfigsByScope: processing project scope`,
+        { level: 'info' },
+      )
       const allServers: Record<string, ScopedMcpServerConfig> = {}
       const allErrors: ValidationError[] = []
 
@@ -909,10 +1536,18 @@ export function getMcpConfigsByScope(
         dirs.push(currentDir)
         currentDir = dirname(currentDir)
       }
+      logForDebugging(
+        `[Hapii] getMcpConfigsByScope: checking ${dirs.length} directories from CWD to root`,
+        { level: 'info' },
+      )
 
       // 从根目录向下处理到 CWD（这样更近的文件具有更高优先级）
       for (const dir of dirs.reverse()) {
         const mcpJsonPath = join(dir, '.mcp.json')
+        logForDebugging(
+          `[Hapii] getMcpConfigsByScope: checking ${mcpJsonPath}`,
+          { level: 'info' },
+        )
 
         const { config, errors } = parseMcpConfigFromFilePath({
           filePath: mcpJsonPath,
@@ -927,7 +1562,7 @@ export function getMcpConfigsByScope(
           )
           if (nonMissingErrors.length > 0) {
             logForDebugging(
-              `MCP config errors for ${mcpJsonPath}: ${jsonStringify(nonMissingErrors.map(e => e.message))}`,
+              `[Hapii] getMcpConfigsByScope: config errors for ${mcpJsonPath}: ${jsonStringify(nonMissingErrors.map(e => e.message))}`,
               { level: 'error' },
             )
             allErrors.push(...nonMissingErrors)
@@ -936,6 +1571,11 @@ export function getMcpConfigsByScope(
         }
 
         if (config.mcpServers) {
+          const serverCount = Object.keys(config.mcpServers).length
+          logForDebugging(
+            `[Hapii] getMcpConfigsByScope: found ${serverCount} servers in ${mcpJsonPath}`,
+            { level: 'info' },
+          )
           // 合并服务器，更靠近 CWD 的文件覆盖父配置
           Object.assign(allServers, addScopeToServers(config.mcpServers, scope))
         }
@@ -945,16 +1585,37 @@ export function getMcpConfigsByScope(
         }
       }
 
+      logForDebugging(
+        `[Hapii] getMcpConfigsByScope: project scope total ${Object.keys(allServers).length} servers`,
+        { level: 'info' },
+      )
+      logForDebugging(`[Hapii] -------- getMcpConfigsByScope 结束 --------`, {
+        level: 'info',
+      })
       return {
         servers: allServers,
         errors: allErrors,
       }
     }
     case 'user': {
+      logForDebugging(`[Hapii] getMcpConfigsByScope: processing user scope`, {
+        level: 'info',
+      })
       const mcpServers = getGlobalConfig().mcpServers
       if (!mcpServers) {
+        logForDebugging(
+          `[Hapii] getMcpConfigsByScope: no user mcpServers in global config`,
+          { level: 'info' },
+        )
+        logForDebugging(`[Hapii] -------- getMcpConfigsByScope 结束 --------`, {
+          level: 'info',
+        })
         return { servers: {}, errors: [] }
       }
+      logForDebugging(
+        `[Hapii] getMcpConfigsByScope: user scope has ${Object.keys(mcpServers).length} servers`,
+        { level: 'info' },
+      )
 
       const { config, errors } = parseMcpConfig({
         configObject: { mcpServers },
@@ -962,16 +1623,38 @@ export function getMcpConfigsByScope(
         scope: 'user',
       })
 
+      const result = addScopeToServers(config?.mcpServers, scope)
+      logForDebugging(
+        `[Hapii] getMcpConfigsByScope: user scope parsed ${Object.keys(result).length} servers`,
+        { level: 'info' },
+      )
+      logForDebugging(`[Hapii] -------- getMcpConfigsByScope 结束 --------`, {
+        level: 'info',
+      })
       return {
-        servers: addScopeToServers(config?.mcpServers, scope),
+        servers: result,
         errors,
       }
     }
     case 'local': {
+      logForDebugging(`[Hapii] getMcpConfigsByScope: processing local scope`, {
+        level: 'info',
+      })
       const mcpServers = getCurrentProjectConfig().mcpServers
       if (!mcpServers) {
+        logForDebugging(
+          `[Hapii] getMcpConfigsByScope: no local mcpServers in project config`,
+          { level: 'info' },
+        )
+        logForDebugging(`[Hapii] -------- getMcpConfigsByScope 结束 --------`, {
+          level: 'info',
+        })
         return { servers: {}, errors: [] }
       }
+      logForDebugging(
+        `[Hapii] getMcpConfigsByScope: local scope has ${Object.keys(mcpServers).length} servers`,
+        { level: 'info' },
+      )
 
       const { config, errors } = parseMcpConfig({
         configObject: { mcpServers },
@@ -979,13 +1662,29 @@ export function getMcpConfigsByScope(
         scope: 'local',
       })
 
+      const result = addScopeToServers(config?.mcpServers, scope)
+      logForDebugging(
+        `[Hapii] getMcpConfigsByScope: local scope parsed ${Object.keys(result).length} servers`,
+        { level: 'info' },
+      )
+      logForDebugging(`[Hapii] -------- getMcpConfigsByScope 结束 --------`, {
+        level: 'info',
+      })
       return {
-        servers: addScopeToServers(config?.mcpServers, scope),
+        servers: result,
         errors,
       }
     }
     case 'enterprise': {
+      logForDebugging(
+        `[Hapii] getMcpConfigsByScope: processing enterprise scope`,
+        { level: 'info' },
+      )
       const enterpriseMcpPath = getEnterpriseMcpFilePath()
+      logForDebugging(
+        `[Hapii] getMcpConfigsByScope: enterpriseMcpPath=${enterpriseMcpPath}`,
+        { level: 'info' },
+      )
 
       const { config, errors } = parseMcpConfigFromFilePath({
         filePath: enterpriseMcpPath,
@@ -1000,16 +1699,35 @@ export function getMcpConfigsByScope(
         )
         if (nonMissingErrors.length > 0) {
           logForDebugging(
-            `Enterprise MCP config errors for ${enterpriseMcpPath}: ${jsonStringify(nonMissingErrors.map(e => e.message))}`,
+            `[Hapii] getMcpConfigsByScope: enterprise config errors for ${enterpriseMcpPath}: ${jsonStringify(nonMissingErrors.map(e => e.message))}`,
             { level: 'error' },
+          )
+          logForDebugging(
+            `[Hapii] -------- getMcpConfigsByScope 结束 --------`,
+            { level: 'info' },
           )
           return { servers: {}, errors: nonMissingErrors }
         }
+        logForDebugging(
+          `[Hapii] getMcpConfigsByScope: no enterprise config found (file may not exist)`,
+          { level: 'info' },
+        )
+        logForDebugging(`[Hapii] -------- getMcpConfigsByScope 结束 --------`, {
+          level: 'info',
+        })
         return { servers: {}, errors: [] }
       }
 
+      const result = addScopeToServers(config.mcpServers, scope)
+      logForDebugging(
+        `[Hapii] getMcpConfigsByScope: enterprise scope has ${Object.keys(result).length} servers`,
+        { level: 'info' },
+      )
+      logForDebugging(`[Hapii] -------- getMcpConfigsByScope 结束 --------`, {
+        level: 'info',
+      })
       return {
-        servers: addScopeToServers(config.mcpServers, scope),
+        servers: result,
         errors,
       }
     }
@@ -1022,31 +1740,86 @@ export function getMcpConfigsByScope(
  * @returns 带作用域的服务器配置，如果未找到则返回 undefined
  */
 export function getMcpConfigByName(name: string): ScopedMcpServerConfig | null {
+  logForDebugging(
+    `[Hapii] -------- getMcpConfigByName 开始 -------- name=${name}`,
+    { level: 'info' },
+  )
   const { servers: enterpriseServers } = getMcpConfigsByScope('enterprise')
+  logForDebugging(
+    `[Hapii] getMcpConfigByName: enterpriseServers count=${Object.keys(enterpriseServers).length}`,
+    { level: 'info' },
+  )
 
   // 当 MCP 被限制为仅限插件时，只有企业服务器可以通过
   // 名称访问。用户/项目/本地服务器被阻止——与 getClaudeCodeMcpConfigs() 相同。
   if (isRestrictedToPluginOnly('mcp')) {
-    return enterpriseServers[name] ?? null
+    logForDebugging(
+      `[Hapii] getMcpConfigByName: restricted to plugin-only, checking enterprise only`,
+      { level: 'info' },
+    )
+    const result = enterpriseServers[name] ?? null
+    logForDebugging(
+      `[Hapii] getMcpConfigByName: result=${result ? 'found' : 'not found'}`,
+      { level: 'info' },
+    )
+    logForDebugging(`[Hapii] -------- getMcpConfigByName 结束 --------`, {
+      level: 'info',
+    })
+    return result
   }
 
   const { servers: userServers } = getMcpConfigsByScope('user')
   const { servers: projectServers } = getMcpConfigsByScope('project')
   const { servers: localServers } = getMcpConfigsByScope('local')
+  logForDebugging(
+    `[Hapii] getMcpConfigByName: user=${Object.keys(userServers).length}, project=${Object.keys(projectServers).length}, local=${Object.keys(localServers).length}`,
+    { level: 'info' },
+  )
 
   if (enterpriseServers[name]) {
+    logForDebugging(`[Hapii] getMcpConfigByName: found in enterprise scope`, {
+      level: 'info',
+    })
+    logForDebugging(`[Hapii] -------- getMcpConfigByName 结束 --------`, {
+      level: 'info',
+    })
     return enterpriseServers[name]
   }
   if (localServers[name]) {
+    logForDebugging(`[Hapii] getMcpConfigByName: found in local scope`, {
+      level: 'info',
+    })
+    logForDebugging(`[Hapii] -------- getMcpConfigByName 结束 --------`, {
+      level: 'info',
+    })
     return localServers[name]
   }
   if (projectServers[name]) {
+    logForDebugging(`[Hapii] getMcpConfigByName: found in project scope`, {
+      level: 'info',
+    })
+    logForDebugging(`[Hapii] -------- getMcpConfigByName 结束 --------`, {
+      level: 'info',
+    })
     return projectServers[name]
   }
   if (userServers[name]) {
+    logForDebugging(`[Hapii] getMcpConfigByName: found in user scope`, {
+      level: 'info',
+    })
+    logForDebugging(`[Hapii] -------- getMcpConfigByName 结束 --------`, {
+      level: 'info',
+    })
     return userServers[name]
   }
 
+  logForDebugging(
+    `[Hapii] getMcpConfigByName: "${name}" not found in any scope`,
+    { level: 'info' },
+  )
+  logForDebugging(`[Hapii] -------- getMcpConfigByName 结束 --------`, {
+    level: 'info',
+  })
   return null
 }
 
@@ -1067,27 +1840,55 @@ export async function getClaudeCodeMcpConfigs(
   servers: Record<string, ScopedMcpServerConfig>
   errors: PluginError[]
 }> {
+  logForDebugging(
+    `[Hapii] -------- getClaudeCodeMcpConfigs 开始 --------
+  dynamicServerCount=${Object.keys(dynamicServers).length}
+  hasExtraDedupTargets=${extraDedupTargets !== undefined}`,
+    { level: 'info' },
+  )
   const { servers: enterpriseServers } = getMcpConfigsByScope('enterprise')
+  logForDebugging(
+    `[Hapii] getClaudeCodeMcpConfigs: enterpriseServers count=${Object.keys(enterpriseServers).length}`,
+    { level: 'info' },
+  )
 
   // 如果存在企业 mcp 配置，则不使用其他配置；这拥有对所有 MCP 服务器的独占控制权
   //（企业客户通常不希望其用户能够添加自己的 MCP 服务器）。
   if (doesEnterpriseMcpConfigExist()) {
+    logForDebugging(
+      `[Hapii] getClaudeCodeMcpConfigs: enterprise MCP config exists, using enterprise only`,
+      { level: 'info' },
+    )
     // 对企业服务器应用策略过滤
     const filtered: Record<string, ScopedMcpServerConfig> = {}
 
     for (const [name, serverConfig] of Object.entries(enterpriseServers)) {
       if (!isMcpServerAllowedByPolicy(name, serverConfig)) {
+        logForDebugging(
+          `[Hapii] getClaudeCodeMcpConfigs: enterprise server "${name}" blocked by policy`,
+          { level: 'info' },
+        )
         continue
       }
       filtered[name] = serverConfig
     }
 
+    logForDebugging(
+      `[Hapii] getClaudeCodeMcpConfigs: returning ${Object.keys(filtered).length} enterprise servers`,
+      { level: 'info' },
+    )
+    logForDebugging(`[Hapii] -------- getClaudeCodeMcpConfigs 结束 --------`, {
+      level: 'info',
+    })
     return { servers: filtered, errors: [] }
   }
 
   // 加载其他作用域——除非托管策略将 MCP 锁定为仅限插件。
   // 与上面的企业独占块不同，这保留了插件服务器。
   const mcpLocked = isRestrictedToPluginOnly('mcp')
+  logForDebugging(`[Hapii] getClaudeCodeMcpConfigs: mcpLocked=${mcpLocked}`, {
+    level: 'info',
+  })
   const noServers: { servers: Record<string, ScopedMcpServerConfig> } = {
     servers: {},
   }
@@ -1100,11 +1901,22 @@ export async function getClaudeCodeMcpConfigs(
   const { servers: localServers } = mcpLocked
     ? noServers
     : getMcpConfigsByScope('local')
+  logForDebugging(
+    `[Hapii] getClaudeCodeMcpConfigs: user=${Object.keys(userServers).length}, project=${Object.keys(projectServers).length}, local=${Object.keys(localServers).length}`,
+    { level: 'info' },
+  )
 
   // 加载插件 MCP 服务器
   const pluginMcpServers: Record<string, ScopedMcpServerConfig> = {}
 
+  logForDebugging(`[Hapii] getClaudeCodeMcpConfigs: loading plugins...`, {
+    level: 'info',
+  })
   const pluginResult = await loadAllPluginsCacheOnly()
+  logForDebugging(
+    `[Hapii] getClaudeCodeMcpConfigs: plugins loaded, enabled=${pluginResult.enabled.length}, errors=${pluginResult.errors.length}`,
+    { level: 'info' },
+  )
 
   // 收集服务器加载过程中的 MCP 相关错误
   const mcpErrors: PluginError[] = []
@@ -1121,19 +1933,27 @@ export async function getClaudeCodeMcpConfigs(
         error.type === 'mcpb-invalid-manifest'
       ) {
         const errorMessage = `Plugin MCP loading error - ${error.type}: ${getPluginErrorMessage(error)}`
+        logForDebugging(`[Hapii] getClaudeCodeMcpConfigs: ${errorMessage}`, {
+          level: 'error',
+        })
         logError(new Error(errorMessage))
       } else {
         // 插件不存在或不可用——这很常见，不一定是错误
         // 如果可能，插件系统将负责安装它
         const errorType = error.type
         logForDebugging(
-          `Plugin not available for MCP: ${error.source} - error type: ${errorType}`,
+          `[Hapii] getClaudeCodeMcpConfigs: plugin not available: ${error.source} - error type: ${errorType}`,
+          { level: 'info' },
         )
       }
     }
   }
 
   // 并行处理已启用插件的 MCP 服务器
+  logForDebugging(
+    `[Hapii] getClaudeCodeMcpConfigs: getting MCP servers from ${pluginResult.enabled.length} enabled plugins...`,
+    { level: 'info' },
+  )
   const pluginServerResults = await Promise.all(
     pluginResult.enabled.map(plugin => getPluginMcpServers(plugin, mcpErrors)),
   )
@@ -1142,11 +1962,18 @@ export async function getClaudeCodeMcpConfigs(
       Object.assign(pluginMcpServers, servers)
     }
   }
+  logForDebugging(
+    `[Hapii] getClaudeCodeMcpConfigs: plugin servers loaded: ${Object.keys(pluginMcpServers).length}`,
+    { level: 'info' },
+  )
 
   // 将服务器加载过程中的 MCP 相关错误添加到插件错误中
   if (mcpErrors.length > 0) {
     for (const error of mcpErrors) {
       const errorMessage = `Plugin MCP server error - ${error.type}: ${getPluginErrorMessage(error)}`
+      logForDebugging(`[Hapii] getClaudeCodeMcpConfigs: ${errorMessage}`, {
+        level: 'error',
+      })
       logError(new Error(errorMessage))
     }
   }
@@ -1155,7 +1982,16 @@ export async function getClaudeCodeMcpConfigs(
   const approvedProjectServers: Record<string, ScopedMcpServerConfig> = {}
   for (const [name, config] of Object.entries(projectServers)) {
     if (getProjectMcpServerStatus(name) === 'approved') {
+      logForDebugging(
+        `[Hapii] getClaudeCodeMcpConfigs: project server "${name}" is approved`,
+        { level: 'info' },
+      )
       approvedProjectServers[name] = config
+    } else {
+      logForDebugging(
+        `[Hapii] getClaudeCodeMcpConfigs: project server "${name}" is NOT approved, skipping`,
+        { level: 'info' },
+      )
     }
   }
 
@@ -1193,11 +2029,19 @@ export async function getClaudeCodeMcpConfigs(
       isMcpServerDisabled(name) ||
       !isMcpServerAllowedByPolicy(name, config)
     ) {
+      logForDebugging(
+        `[Hapii] getClaudeCodeMcpConfigs: plugin server "${name}" is disabled or blocked by policy`,
+        { level: 'info' },
+      )
       disabledPluginServers[name] = config
     } else {
       enabledPluginServers[name] = config
     }
   }
+  logForDebugging(
+    `[Hapii] getClaudeCodeMcpConfigs: enabledPluginServers=${Object.keys(enabledPluginServers).length}, disabledPluginServers=${Object.keys(disabledPluginServers).length}`,
+    { level: 'info' },
+  )
   const { servers: dedupedPluginServers, suppressed } = dedupPluginMcpServers(
     enabledPluginServers,
     enabledManualServers,
@@ -1219,6 +2063,10 @@ export async function getClaudeCodeMcpConfigs(
   }
 
   // 按优先级顺序合并：plugin < user < project < local
+  logForDebugging(
+    `[Hapii] getClaudeCodeMcpConfigs: merging servers by priority (plugin < user < project < local)`,
+    { level: 'info' },
+  )
   const configs = Object.assign(
     {},
     dedupedPluginServers,
@@ -1226,17 +2074,32 @@ export async function getClaudeCodeMcpConfigs(
     approvedProjectServers,
     localServers,
   )
+  logForDebugging(
+    `[Hapii] getClaudeCodeMcpConfigs: merged total ${Object.keys(configs).length} servers`,
+    { level: 'info' },
+  )
 
   // 对合并后的配置应用策略过滤
   const filtered: Record<string, ScopedMcpServerConfig> = {}
 
   for (const [name, serverConfig] of Object.entries(configs)) {
     if (!isMcpServerAllowedByPolicy(name, serverConfig as McpServerConfig)) {
+      logForDebugging(
+        `[Hapii] getClaudeCodeMcpConfigs: server "${name}" blocked by policy`,
+        { level: 'info' },
+      )
       continue
     }
     filtered[name] = serverConfig as ScopedMcpServerConfig
   }
 
+  logForDebugging(
+    `[Hapii] getClaudeCodeMcpConfigs: final filtered ${Object.keys(filtered).length} servers, errors=${mcpErrors.length}`,
+    { level: 'info' },
+  )
+  logForDebugging(`[Hapii] -------- getClaudeCodeMcpConfigs 结束 --------`, {
+    level: 'info',
+  })
   return { servers: filtered, errors: mcpErrors }
 }
 
@@ -1249,20 +2112,47 @@ export async function getAllMcpConfigs(): Promise<{
   servers: Record<string, ScopedMcpServerConfig>
   errors: PluginError[]
 }> {
+  logForDebugging(`[Hapii] -------- getAllMcpConfigs 开始 --------`, {
+    level: 'info',
+  })
   // 在企业模式下，不加载 claude.ai 服务器（企业拥有独占控制权）
   if (doesEnterpriseMcpConfigExist()) {
-    return getClaudeCodeMcpConfigs()
+    logForDebugging(
+      `[Hapii] getAllMcpConfigs: enterprise mode, returning only claude code configs`,
+      { level: 'info' },
+    )
+    const result = await getClaudeCodeMcpConfigs()
+    logForDebugging(
+      `[Hapii] getAllMcpConfigs: returning ${Object.keys(result.servers).length} enterprise servers`,
+      { level: 'info' },
+    )
+    logForDebugging(`[Hapii] -------- getAllMcpConfigs 结束 --------`, {
+      level: 'info',
+    })
+    return result
   }
 
   // 在 getClaudeCodeMcpConfigs 之前启动 claude.ai 获取，以便与其中的
   // loadAllPluginsCacheOnly() 重叠。已记忆化——下面等待的调用是缓存命中。
+  logForDebugging(
+    `[Hapii] getAllMcpConfigs: fetching claude.ai configs in parallel`,
+    { level: 'info' },
+  )
   const claudeaiPromise = fetchClaudeAIMcpConfigsIfEligible()
   const { servers: claudeCodeServers, errors } = await getClaudeCodeMcpConfigs(
     {},
     claudeaiPromise,
   )
+  logForDebugging(
+    `[Hapii] getAllMcpConfigs: claudeCodeServers=${Object.keys(claudeCodeServers).length}`,
+    { level: 'info' },
+  )
   const { allowed: claudeaiMcpServers } = filterMcpServersByPolicy(
     await claudeaiPromise,
+  )
+  logForDebugging(
+    `[Hapii] getAllMcpConfigs: claudeaiMcpServers (after policy filter)=${Object.keys(claudeaiMcpServers).length}`,
+    { level: 'info' },
   )
 
   // 抑制与已启用的手动服务器重复的 claude.ai 连接器。
@@ -1272,9 +2162,20 @@ export async function getAllMcpConfigs(): Promise<{
     claudeaiMcpServers as Record<string, ScopedMcpServerConfig>,
     claudeCodeServers,
   )
+  logForDebugging(
+    `[Hapii] getAllMcpConfigs: dedupedClaudeAi=${Object.keys(dedupedClaudeAi).length}`,
+    { level: 'info' },
+  )
 
   // 合并，claude.ai 优先级最低
   const servers = Object.assign({}, dedupedClaudeAi, claudeCodeServers)
+  logForDebugging(
+    `[Hapii] getAllMcpConfigs: total servers=${Object.keys(servers).length}, errors=${errors.length}`,
+    { level: 'info' },
+  )
+  logForDebugging(`[Hapii] -------- getAllMcpConfigs 结束 --------`, {
+    level: 'info',
+  })
 
   return { servers, errors }
 }
@@ -1293,9 +2194,23 @@ export function parseMcpConfig(params: {
   config: McpJsonConfig | null
   errors: ValidationError[]
 } {
+  logForDebugging(
+    `[Hapii] -------- parseMcpConfig 开始 --------
+  scope=${params.scope}
+  expandVars=${params.expandVars}
+  filePath=${params.filePath ?? 'none'}`,
+    { level: 'info' },
+  )
   const { configObject, expandVars, scope, filePath } = params
   const schemaResult = McpJsonConfigSchema().safeParse(configObject)
   if (!schemaResult.success) {
+    logForDebugging(
+      `[Hapii] parseMcpConfig: schema validation failed, issues=${schemaResult.error.issues.length}`,
+      { level: 'error' },
+    )
+    logForDebugging(`[Hapii] -------- parseMcpConfig 结束 --------`, {
+      level: 'info',
+    })
     return {
       config: null,
       errors: schemaResult.error.issues.map(issue => ({
@@ -1310,17 +2225,29 @@ export function parseMcpConfig(params: {
     }
   }
 
+  logForDebugging(
+    `[Hapii] parseMcpConfig: schema validation passed, serverCount=${Object.keys(schemaResult.data.mcpServers).length}`,
+    { level: 'info' },
+  )
+
   // 验证每个服务器并在请求时展开变量
   const errors: ValidationError[] = []
   const validatedServers: Record<string, McpServerConfig> = {}
 
   for (const [name, config] of Object.entries(schemaResult.data.mcpServers)) {
+    logForDebugging(`[Hapii] parseMcpConfig: validating server "${name}"`, {
+      level: 'info',
+    })
     let configToCheck = config
 
     if (expandVars) {
       const { expanded, missingVars } = expandEnvVars(config)
 
       if (missingVars.length > 0) {
+        logForDebugging(
+          `[Hapii] parseMcpConfig: server "${name}" has missing env vars: ${missingVars.join(', ')}`,
+          { level: 'error' },
+        )
         errors.push({
           ...(filePath && { file: filePath }),
           path: `mcpServers.${name}`,
@@ -1346,6 +2273,10 @@ export function parseMcpConfig(params: {
         configToCheck.command.endsWith('\\npx') ||
         configToCheck.command.endsWith('/npx'))
     ) {
+      logForDebugging(
+        `[Hapii] parseMcpConfig: server "${name}" uses npx without cmd wrapper on Windows`,
+        { level: 'error' },
+      )
       errors.push({
         ...(filePath && { file: filePath }),
         path: `mcpServers.${name}`,
@@ -1361,6 +2292,13 @@ export function parseMcpConfig(params: {
 
     validatedServers[name] = configToCheck
   }
+  logForDebugging(
+    `[Hapii] parseMcpConfig: validated ${Object.keys(validatedServers).length} servers, errors=${errors.length}`,
+    { level: 'info' },
+  )
+  logForDebugging(`[Hapii] -------- parseMcpConfig 结束 --------`, {
+    level: 'info',
+  })
   return {
     config: { mcpServers: validatedServers },
     errors,
@@ -1380,15 +2318,34 @@ export function parseMcpConfigFromFilePath(params: {
   config: McpJsonConfig | null
   errors: ValidationError[]
 } {
+  logForDebugging(
+    `[Hapii] -------- parseMcpConfigFromFilePath 开始 --------
+  filePath=${params.filePath}
+  scope=${params.scope}
+  expandVars=${params.expandVars}`,
+    { level: 'info' },
+  )
   const { filePath, expandVars, scope } = params
   const fs = getFsImplementation()
 
   let configContent: string
   try {
     configContent = fs.readFileSync(filePath, { encoding: 'utf8' })
+    logForDebugging(
+      `[Hapii] parseMcpConfigFromFilePath: read ${configContent.length} bytes from ${filePath}`,
+      { level: 'info' },
+    )
   } catch (error: unknown) {
     const code = getErrnoCode(error)
     if (code === 'ENOENT') {
+      logForDebugging(
+        `[Hapii] parseMcpConfigFromFilePath: file not found: ${filePath}`,
+        { level: 'info' },
+      )
+      logForDebugging(
+        `[Hapii] -------- parseMcpConfigFromFilePath 结束 --------`,
+        { level: 'info' },
+      )
       return {
         config: null,
         errors: [
@@ -1406,8 +2363,12 @@ export function parseMcpConfigFromFilePath(params: {
       }
     }
     logForDebugging(
-      `MCP config read error for ${filePath} (scope=${scope}): ${error}`,
+      `[Hapii] parseMcpConfigFromFilePath: read error for ${filePath} (scope=${scope}): ${error}`,
       { level: 'error' },
+    )
+    logForDebugging(
+      `[Hapii] -------- parseMcpConfigFromFilePath 结束 --------`,
+      { level: 'info' },
     )
     return {
       config: null,
@@ -1430,8 +2391,12 @@ export function parseMcpConfigFromFilePath(params: {
 
   if (!parsedJson) {
     logForDebugging(
-      `MCP config is not valid JSON: ${filePath} (scope=${scope}, length=${configContent.length}, first100=${jsonStringify(configContent.slice(0, 100))})`,
+      `[Hapii] parseMcpConfigFromFilePath: invalid JSON in ${filePath} (scope=${scope}, length=${configContent.length}, first100=${jsonStringify(configContent.slice(0, 100))})`,
       { level: 'error' },
+    )
+    logForDebugging(
+      `[Hapii] -------- parseMcpConfigFromFilePath 结束 --------`,
+      { level: 'info' },
     )
     return {
       config: null,
@@ -1450,21 +2415,45 @@ export function parseMcpConfigFromFilePath(params: {
     }
   }
 
-  return parseMcpConfig({
+  logForDebugging(
+    `[Hapii] parseMcpConfigFromFilePath: JSON parsed successfully, calling parseMcpConfig`,
+    { level: 'info' },
+  )
+  const result = parseMcpConfig({
     configObject: parsedJson,
     expandVars,
     scope,
     filePath,
   })
+  logForDebugging(
+    `[Hapii] parseMcpConfigFromFilePath: parseMcpConfig returned, servers=${result.config ? Object.keys(result.config.mcpServers).length : 0}, errors=${result.errors.length}`,
+    { level: 'info' },
+  )
+  logForDebugging(`[Hapii] -------- parseMcpConfigFromFilePath 结束 --------`, {
+    level: 'info',
+  })
+  return result
 }
 
 export const doesEnterpriseMcpConfigExist = memoize((): boolean => {
+  logForDebugging(
+    `[Hapii] -------- doesEnterpriseMcpConfigExist 开始 --------`,
+    { level: 'info' },
+  )
   const { config } = parseMcpConfigFromFilePath({
     filePath: getEnterpriseMcpFilePath(),
     expandVars: true,
     scope: 'enterprise',
   })
-  return config !== null
+  const result = config !== null
+  logForDebugging(`[Hapii] doesEnterpriseMcpConfigExist: result=${result}`, {
+    level: 'info',
+  })
+  logForDebugging(
+    `[Hapii] -------- doesEnterpriseMcpConfigExist 结束 --------`,
+    { level: 'info' },
+  )
+  return result
 })
 
 /**
@@ -1522,13 +2511,33 @@ function isDefaultDisabledBuiltin(name: string): boolean {
  * @returns 如果服务器已禁用则返回 true
  */
 export function isMcpServerDisabled(name: string): boolean {
+  logForDebugging(
+    `[Hapii] -------- isMcpServerDisabled 开始 -------- name=${name}`,
+    { level: 'info' },
+  )
   const projectConfig = getCurrentProjectConfig()
   if (isDefaultDisabledBuiltin(name)) {
     const enabledServers = projectConfig.enabledMcpServers || []
-    return !enabledServers.includes(name)
+    const result = !enabledServers.includes(name)
+    logForDebugging(
+      `[Hapii] isMcpServerDisabled: "${name}" is default-disabled builtin, enabledServers=${enabledServers.join(',')}, result=${result}`,
+      { level: 'info' },
+    )
+    logForDebugging(`[Hapii] -------- isMcpServerDisabled 结束 --------`, {
+      level: 'info',
+    })
+    return result
   }
   const disabledServers = projectConfig.disabledMcpServers || []
-  return disabledServers.includes(name)
+  const result = disabledServers.includes(name)
+  logForDebugging(
+    `[Hapii] isMcpServerDisabled: "${name}" disabledServers=${disabledServers.join(',')}, result=${result}`,
+    { level: 'info' },
+  )
+  logForDebugging(`[Hapii] -------- isMcpServerDisabled 结束 --------`, {
+    level: 'info',
+  })
+  return result
 }
 
 function toggleMembership(
@@ -1547,28 +2556,53 @@ function toggleMembership(
  * @param enabled 服务器是否应该启用
  */
 export function setMcpServerEnabled(name: string, enabled: boolean): void {
+  logForDebugging(
+    `[Hapii] -------- setMcpServerEnabled 开始 --------
+  name=${name}
+  enabled=${enabled}`,
+    { level: 'info' },
+  )
   const isBuiltinStateChange =
     isDefaultDisabledBuiltin(name) && isMcpServerDisabled(name) === enabled
+  logForDebugging(
+    `[Hapii] setMcpServerEnabled: isBuiltinStateChange=${isBuiltinStateChange}`,
+    { level: 'info' },
+  )
 
   saveCurrentProjectConfig(current => {
     if (isDefaultDisabledBuiltin(name)) {
       const prev = current.enabledMcpServers || []
       const next = toggleMembership(prev, name, enabled)
       if (next === prev) return current
+      logForDebugging(
+        `[Hapii] setMcpServerEnabled: updated enabledMcpServers for "${name}", prev=${prev.join(',')}, next=${next.join(',')}`,
+        { level: 'info' },
+      )
       return { ...current, enabledMcpServers: next }
     }
 
     const prev = current.disabledMcpServers || []
     const next = toggleMembership(prev, name, !enabled)
     if (next === prev) return current
+    logForDebugging(
+      `[Hapii] setMcpServerEnabled: updated disabledMcpServers for "${name}", prev=${prev.join(',')}, next=${next.join(',')}`,
+      { level: 'info' },
+    )
     return { ...current, disabledMcpServers: next }
   })
 
   if (isBuiltinStateChange) {
+    logForDebugging(
+      `[Hapii] setMcpServerEnabled: logging analytics event for builtin toggle`,
+      { level: 'info' },
+    )
     logEvent('tengu_builtin_mcp_toggle', {
       serverName:
         name as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       enabled,
     })
   }
+  logForDebugging(`[Hapii] -------- setMcpServerEnabled 结束 --------`, {
+    level: 'info',
+  })
 }

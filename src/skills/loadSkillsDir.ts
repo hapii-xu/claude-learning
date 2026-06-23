@@ -79,18 +79,28 @@ export function getSkillsPath(
   source: SettingSource | 'plugin',
   dir: 'skills' | 'commands',
 ): string {
+  logForDebugging(
+    `[Hapii] ------ getSkillsPath 开始 ------ source=${source} dir=${dir}`,
+  )
+  let result: string
   switch (source) {
     case 'policySettings':
-      return join(getManagedFilePath(), '.claude', dir)
+      result = join(getManagedFilePath(), '.claude', dir)
+      break
     case 'userSettings':
-      return join(getClaudeConfigHomeDir(), dir)
+      result = join(getClaudeConfigHomeDir(), dir)
+      break
     case 'projectSettings':
-      return `.claude/${dir}`
+      result = `.claude/${dir}`
+      break
     case 'plugin':
-      return 'plugin'
+      result = 'plugin'
+      break
     default:
-      return ''
+      result = ''
   }
+  logForDebugging(`[Hapii] ------ getSkillsPath 结束 ------ result="${result}"`)
+  return result
 }
 
 /**
@@ -98,10 +108,17 @@ export function getSkillsPath(
  * 因为完整内容仅在调用时加载。
  */
 export function estimateSkillFrontmatterTokens(skill: Command): number {
+  logForDebugging(
+    `[Hapii] ------ estimateSkillFrontmatterTokens 开始 ------ skill.name=${skill.name}`,
+  )
   const frontmatterText = [skill.name, skill.description, skill.whenToUse]
     .filter(Boolean)
     .join(' ')
-  return roughTokenCountEstimation(frontmatterText)
+  const tokens = roughTokenCountEstimation(frontmatterText)
+  logForDebugging(
+    `[Hapii] ------ estimateSkillFrontmatterTokens 结束 ------ textLen=${frontmatterText.length} tokens=${tokens}`,
+  )
+  return tokens
 }
 
 /**
@@ -116,9 +133,19 @@ export function estimateSkillFrontmatterTokens(skill: Command): number {
  * 参见：https://github.com/anthropics/claude-code/issues/13893
  */
 async function getFileIdentity(filePath: string): Promise<string | null> {
+  logForDebugging(
+    `[Hapii] ------ getFileIdentity 开始 ------ filePath=${filePath}`,
+  )
   try {
-    return await realpath(filePath)
-  } catch {
+    const resolved = await realpath(filePath)
+    logForDebugging(
+      `[Hapii] ------ getFileIdentity 结束 ------ resolved=${resolved}`,
+    )
+    return resolved
+  } catch (e) {
+    logForDebugging(
+      `[Hapii] ------ getFileIdentity 结束 ------ realpath失败, 返回null err=${e}`,
+    )
     return null
   }
 }
@@ -137,18 +164,30 @@ function parseHooksFromFrontmatter(
   frontmatter: FrontmatterData,
   skillName: string,
 ): HooksSettings | undefined {
+  logForDebugging(
+    `[Hapii] ------ parseHooksFromFrontmatter 开始 ------ skillName=${skillName} hasHooks=${!!frontmatter.hooks}`,
+  )
   if (!frontmatter.hooks) {
+    logForDebugging(
+      `[Hapii] ------ parseHooksFromFrontmatter 结束 ------ 无hooks字段, 返回undefined`,
+    )
     return undefined
   }
 
   const result = HooksSchema().safeParse(frontmatter.hooks)
   if (!result.success) {
     logForDebugging(
+      `[Hapii] ------ parseHooksFromFrontmatter 结束 ------ hooks校验失败: ${result.error.message}`,
+    )
+    logForDebugging(
       `Invalid hooks in skill '${skillName}': ${result.error.message}`,
     )
     return undefined
   }
 
+  logForDebugging(
+    `[Hapii] ------ parseHooksFromFrontmatter 结束 ------ hooks校验通过`,
+  )
   return result.data
 }
 
@@ -157,7 +196,13 @@ function parseHooksFromFrontmatter(
  * 如果未指定路径或所有模式都是全匹配，则返回 undefined。
  */
 function parseSkillPaths(frontmatter: FrontmatterData): string[] | undefined {
+  logForDebugging(
+    `[Hapii] ------ parseSkillPaths 开始 ------ hasPaths=${!!frontmatter.paths}`,
+  )
   if (!frontmatter.paths) {
+    logForDebugging(
+      `[Hapii] ------ parseSkillPaths 结束 ------ 无paths字段, 返回undefined`,
+    )
     return undefined
   }
 
@@ -169,11 +214,21 @@ function parseSkillPaths(frontmatter: FrontmatterData): string[] | undefined {
     })
     .filter((p: string) => p.length > 0)
 
+  logForDebugging(
+    `[Hapii] parseSkillPaths rawPatterns=${patterns.length} [${patterns.join(', ')}]`,
+  )
+
   // 如果所有模式都是 **（全匹配），则视为无路径（undefined）
   if (patterns.length === 0 || patterns.every((p: string) => p === '**')) {
+    logForDebugging(
+      `[Hapii] ------ parseSkillPaths 结束 ------ 全匹配模式, 返回undefined`,
+    )
     return undefined
   }
 
+  logForDebugging(
+    `[Hapii] ------ parseSkillPaths 结束 ------ patterns=[${patterns.join(', ')}]`,
+  )
   return patterns
 }
 
@@ -204,6 +259,9 @@ export function parseSkillFrontmatterFields(
   effort: EffortValue | undefined
   shell: FrontmatterShell | undefined
 } {
+  logForDebugging(
+    `[Hapii] ------ parseSkillFrontmatterFields 开始 ------ resolvedName=${resolvedName} fallbackLabel=${descriptionFallbackLabel} mdLen=${markdownContent.length}`,
+  )
   const validatedDescription = coerceDescriptionToString(
     frontmatter.description,
     resolvedName,
@@ -233,7 +291,24 @@ export function parseSkillFrontmatterFields(
     )
   }
 
-  return {
+  const parsed: {
+    displayName: string | undefined
+    description: string
+    hasUserSpecifiedDescription: boolean
+    allowedTools: string[]
+    argumentHint: string | undefined
+    argumentNames: string[]
+    whenToUse: string | undefined
+    version: string | undefined
+    model: ReturnType<typeof parseUserSpecifiedModel> | undefined
+    disableModelInvocation: boolean
+    userInvocable: boolean
+    hooks: HooksSettings | undefined
+    executionContext: 'fork' | undefined
+    agent: string | undefined
+    effort: EffortValue | undefined
+    shell: FrontmatterShell | undefined
+  } = {
     displayName:
       frontmatter.name != null ? String(frontmatter.name) : undefined,
     description,
@@ -261,6 +336,14 @@ export function parseSkillFrontmatterFields(
     effort,
     shell: parseShellFrontmatter(frontmatter.shell, resolvedName),
   }
+  logForDebugging(
+    `[Hapii] ------ parseSkillFrontmatterFields 结束 ------ ` +
+      `userInvocable=${parsed.userInvocable} tools=${parsed.allowedTools.length} ` +
+      `args=${parsed.argumentNames.length} hasModel=${!!parsed.model} ` +
+      `hasHooks=${!!parsed.hooks} ctx=${parsed.executionContext ?? 'inline'} ` +
+      `agent=${parsed.agent ?? 'none'} effort=${parsed.effort ?? 'default'}`,
+  )
+  return parsed
 }
 
 /**
@@ -313,7 +396,13 @@ export function createSkillCommand({
   effort: EffortValue | undefined
   shell: FrontmatterShell | undefined
 }): Command {
-  return {
+  logForDebugging(
+    `[Hapii] ------ createSkillCommand 开始 ------ ` +
+      `skillName=${skillName} source=${source} loadedFrom=${loadedFrom} ` +
+      `tools=${allowedTools.length} args=${argumentNames.length} ` +
+      `mdLen=${markdownContent.length} userInvocable=${userInvocable}`,
+  )
+  const command: Command = {
     type: 'prompt',
     name: skillName,
     description,
@@ -396,7 +485,11 @@ export function createSkillCommand({
 
       return [{ type: 'text', text: finalContent }]
     },
-  } satisfies Command
+  }
+  logForDebugging(
+    `[Hapii] ------ createSkillCommand 结束 ------ skill="${command.name}" contentLen=${command.contentLength}`,
+  )
+  return command
 }
 
 /**
@@ -407,6 +500,9 @@ async function loadSkillsFromSkillsDir(
   basePath: string,
   source: SettingSource,
 ): Promise<SkillWithPath[]> {
+  logForDebugging(
+    `[Hapii] ------ loadSkillsFromSkillsDir 开始 ------ basePath=${basePath} source=${source}`,
+  )
   const fs = getFsImplementation()
 
   let entries
@@ -414,14 +510,27 @@ async function loadSkillsFromSkillsDir(
     entries = await fs.readdir(basePath)
   } catch (e: unknown) {
     if (!isFsInaccessible(e)) logError(e)
+    logForDebugging(
+      `[Hapii] ------ loadSkillsFromSkillsDir 结束 ------ basePath=${basePath} 目录不可访问，返回空 err=${e}`,
+    )
     return []
   }
 
+  logForDebugging(
+    `[Hapii] loadSkillsFromSkillsDir 读取目录 entries=${entries.length} basePath=${basePath}`,
+  )
+
   const results = await Promise.all(
-    entries.map(async (entry): Promise<SkillWithPath | null> => {
+    entries.map(async (entry, idx): Promise<SkillWithPath | null> => {
       try {
+        logForDebugging(
+          `[Hapii] loadSkillsFromSkillsDir 处理条目 [${idx + 1}/${entries.length}] name="${entry.name}" isDir=${entry.isDirectory()} isSymlink=${entry.isSymbolicLink()}`,
+        )
         // 仅支持目录格式：skill-name/SKILL.md
         if (!entry.isDirectory() && !entry.isSymbolicLink()) {
+          logForDebugging(
+            `[Hapii] loadSkillsFromSkillsDir 跳过非目录/非符号链接 "${entry.name}"`,
+          )
           // /skills/ 目录不支持单个 .md 文件
           return null
         }
@@ -432,6 +541,9 @@ async function loadSkillsFromSkillsDir(
         let content: string
         try {
           content = await fs.readFile(skillFilePath, { encoding: 'utf-8' })
+          logForDebugging(
+            `[Hapii] loadSkillsFromSkillsDir 读取SKILL.md成功 skillFilePath=${skillFilePath} contentLen=${content.length}`,
+          )
         } catch (e: unknown) {
           // SKILL.md 不存在，跳过此条目。记录非 ENOENT 错误
           // （EACCES/EPERM/EIO），以便诊断权限/IO 问题。
@@ -439,10 +551,17 @@ async function loadSkillsFromSkillsDir(
             logForDebugging(`[skills] failed to read ${skillFilePath}: ${e}`, {
               level: 'warn',
             })
+          } else {
+            logForDebugging(
+              `[Hapii] loadSkillsFromSkillsDir SKILL.md不存在(ENOENT) skillFilePath=${skillFilePath}`,
+            )
           }
           return null
         }
 
+        logForDebugging(
+          `[Hapii] loadSkillsFromSkillsDir 解析frontmatter skillFilePath=${skillFilePath}`,
+        )
         const { frontmatter, content: markdownContent } = parseFrontmatter(
           content,
           skillFilePath,
@@ -455,6 +574,12 @@ async function loadSkillsFromSkillsDir(
           skillName,
         )
         const paths = parseSkillPaths(frontmatter)
+
+        logForDebugging(
+          `[Hapii] loadSkillsFromSkillsDir 成功加载 skill="${skillName}" ` +
+            `source=${source} desc="${parsed.description.slice(0, 40)}..." ` +
+            `tools=${parsed.allowedTools.length} paths=${paths ? paths.length : 0}`,
+        )
 
         return {
           skill: createSkillCommand({
@@ -470,18 +595,30 @@ async function loadSkillsFromSkillsDir(
         }
       } catch (error) {
         logError(error)
+        logForDebugging(
+          `[Hapii] loadSkillsFromSkillsDir 处理条目异常 name="${entry.name}" err=${error}`,
+          { level: 'warn' },
+        )
         return null
       }
     }),
   )
 
-  return results.filter((r): r is SkillWithPath => r !== null)
+  const validResults = results.filter((r): r is SkillWithPath => r !== null)
+  logForDebugging(
+    `[Hapii] ------ loadSkillsFromSkillsDir 结束 ------ basePath=${basePath} 有效=${validResults.length}/${entries.length}`,
+  )
+  return validResults
 }
 
 // --- 旧版 /commands/ 加载器 ---
 
 function isSkillFile(filePath: string): boolean {
-  return /^skill\.md$/i.test(basename(filePath))
+  const result = /^skill\.md$/i.test(basename(filePath))
+  logForDebugging(
+    `[Hapii] ------ isSkillFile 开始 ------ filePath=${filePath} isSkill=${result}`,
+  )
+  return result
 }
 
 /**
@@ -490,6 +627,9 @@ function isSkillFile(filePath: string): boolean {
  * 并使用其父目录的名称。
  */
 function transformSkillFiles(files: MarkdownFile[]): MarkdownFile[] {
+  logForDebugging(
+    `[Hapii] ------ transformSkillFiles 开始 ------ files=${files.length}`,
+  )
   const filesByDir = new Map<string, MarkdownFile[]>()
 
   for (const file of files) {
@@ -516,45 +656,77 @@ function transformSkillFiles(files: MarkdownFile[]): MarkdownFile[] {
     }
   }
 
+  logForDebugging(
+    `[Hapii] ------ transformSkillFiles 结束 ------ result=${result.length} dirs=${filesByDir.size}`,
+  )
   return result
 }
 
 function buildNamespace(targetDir: string, baseDir: string): string {
+  logForDebugging(
+    `[Hapii] ------ buildNamespace 开始 ------ targetDir=${targetDir} baseDir=${baseDir}`,
+  )
   const normalizedBaseDir = baseDir.endsWith(pathSep)
     ? baseDir.slice(0, -1)
     : baseDir
 
   if (targetDir === normalizedBaseDir) {
+    logForDebugging(
+      `[Hapii] ------ buildNamespace 结束 ------ targetDir===baseDir, 返回空命名空间`,
+    )
     return ''
   }
 
   const relativePath = targetDir.slice(normalizedBaseDir.length + 1)
-  return relativePath ? relativePath.split(pathSep).join(':') : ''
+  const ns = relativePath ? relativePath.split(pathSep).join(':') : ''
+  logForDebugging(`[Hapii] ------ buildNamespace 结束 ------ namespace="${ns}"`)
+  return ns
 }
 
 function getSkillCommandName(filePath: string, baseDir: string): string {
+  logForDebugging(
+    `[Hapii] ------ getSkillCommandName 开始 ------ filePath=${filePath} baseDir=${baseDir}`,
+  )
   const skillDirectory = dirname(filePath)
   const parentOfSkillDir = dirname(skillDirectory)
   const commandBaseName = basename(skillDirectory)
 
   const namespace = buildNamespace(parentOfSkillDir, baseDir)
-  return namespace ? `${namespace}:${commandBaseName}` : commandBaseName
+  const result = namespace ? `${namespace}:${commandBaseName}` : commandBaseName
+  logForDebugging(
+    `[Hapii] ------ getSkillCommandName 结束 ------ name="${result}"`,
+  )
+  return result
 }
 
 function getRegularCommandName(filePath: string, baseDir: string): string {
+  logForDebugging(
+    `[Hapii] ------ getRegularCommandName 开始 ------ filePath=${filePath} baseDir=${baseDir}`,
+  )
   const fileName = basename(filePath)
   const fileDirectory = dirname(filePath)
   const commandBaseName = fileName.replace(/\.md$/, '')
 
   const namespace = buildNamespace(fileDirectory, baseDir)
-  return namespace ? `${namespace}:${commandBaseName}` : commandBaseName
+  const result = namespace ? `${namespace}:${commandBaseName}` : commandBaseName
+  logForDebugging(
+    `[Hapii] ------ getRegularCommandName 结束 ------ name="${result}"`,
+  )
+  return result
 }
 
 function getCommandName(file: MarkdownFile): string {
+  logForDebugging(
+    `[Hapii] ------ getCommandName 开始 ------ filePath=${file.filePath} baseDir=${file.baseDir}`,
+  )
   const isSkill = isSkillFile(file.filePath)
-  return isSkill
+  const result = isSkill
     ? getSkillCommandName(file.filePath, file.baseDir)
     : getRegularCommandName(file.filePath, file.baseDir)
+  logForDebugging(
+    `[Hapii] ------ getCommandName 结束 ------ isSkill=${isSkill} name="${result}"`,
+  )
+  return result
 }
 
 /**
@@ -565,20 +737,28 @@ function getCommandName(file: MarkdownFile): string {
 async function loadSkillsFromCommandsDir(
   cwd: string,
 ): Promise<SkillWithPath[]> {
+  logForDebugging(
+    `[Hapii] ------ loadSkillsFromCommandsDir 开始 ------ cwd=${cwd} (旧版 /commands/ 格式)`,
+  )
   try {
     const markdownFiles = await loadMarkdownFilesForSubdir('commands', cwd)
+    logForDebugging(
+      `[Hapii] loadSkillsFromCommandsDir 加载markdown文件 markdownFiles=${markdownFiles.length}`,
+    )
     const processedFiles = transformSkillFiles(markdownFiles)
+    logForDebugging(
+      `[Hapii] loadSkillsFromCommandsDir 转换后 processedFiles=${processedFiles.length}`,
+    )
 
     const skills: SkillWithPath[] = []
 
-    for (const {
-      baseDir,
-      filePath,
-      frontmatter,
-      content,
-      source,
-    } of processedFiles) {
+    for (let i = 0; i < processedFiles.length; i++) {
+      const { baseDir, filePath, frontmatter, content, source } =
+        processedFiles[i]!
       try {
+        logForDebugging(
+          `[Hapii] loadSkillsFromCommandsDir 处理 [${i + 1}/${processedFiles.length}] filePath=${filePath} source=${source}`,
+        )
         const isSkillFormat = isSkillFile(filePath)
         const skillDirectory = isSkillFormat ? dirname(filePath) : undefined
         const cmdName = getCommandName({
@@ -588,6 +768,9 @@ async function loadSkillsFromCommandsDir(
           content,
           source,
         })
+        logForDebugging(
+          `[Hapii] loadSkillsFromCommandsDir cmdName="${cmdName}" isSkillFormat=${isSkillFormat}`,
+        )
 
         const parsed = parseSkillFrontmatterFields(
           frontmatter,
@@ -611,12 +794,25 @@ async function loadSkillsFromCommandsDir(
         })
       } catch (error) {
         logError(error)
+        logForDebugging(
+          `[Hapii] loadSkillsFromCommandsDir 处理单个文件失败 filePath=${filePath} err=${error}`,
+          { level: 'warn' },
+        )
       }
     }
 
+    logForDebugging(
+      `[Hapii] ------ loadSkillsFromCommandsDir 结束 ------ 加载=${skills.length} 个旧版命令`,
+    )
     return skills
   } catch (error) {
     logError(error)
+    logForDebugging(
+      '[Hapii] ------ loadSkillsFromCommandsDir 结束 ------ 异常，返回空数组',
+      {
+        level: 'warn',
+      },
+    )
     return []
   }
 }
@@ -640,11 +836,14 @@ export const getSkillDirCommands = memoize(
     const managedSkillsDir = join(getManagedFilePath(), '.claude', 'skills')
     const projectSkillsDirs = getProjectDirsUpToHome('skills', cwd)
 
-    logForDebugging(`[Hapii] Skills.getSkillDirCommands 开始加载 cwd=${cwd}`, {
-      level: 'info',
-    })
     logForDebugging(
-      `Loading skills from: managed=${managedSkillsDir}, user=${userSkillsDir}, project=[${projectSkillsDirs.join(', ')}]`,
+      `[Hapii] ------ getSkillDirCommands 开始 ------ cwd=${cwd}`,
+      {
+        level: 'info',
+      },
+    )
+    logForDebugging(
+      `[Hapii] getSkillDirCommands 目录: managed=${managedSkillsDir}, user=${userSkillsDir}, project=[${projectSkillsDirs.join(', ')}]`,
     )
 
     // 从额外目录加载（--add-dir）
@@ -653,13 +852,17 @@ export const getSkillDirCommands = memoize(
     const projectSettingsEnabled =
       isSettingSourceEnabled('projectSettings') && !skillsLocked
 
+    logForDebugging(
+      `[Hapii] getSkillDirCommands 配置: additionalDirs=${additionalDirs.length} skillsLocked=${skillsLocked} projectSettingsEnabled=${projectSettingsEnabled} bareMode=${isBareMode()}`,
+    )
+
     // --bare：跳过自动发现（managed/user/project 目录遍历 + 旧版
     // commands 目录）。仅加载显式的 --add-dir 路径。捆绑技能单独注册。
     // skillsLocked 仍然适用——--bare 不是策略绕过。
     if (isBareMode()) {
       if (additionalDirs.length === 0 || !projectSettingsEnabled) {
         logForDebugging(
-          `[bare] Skipping skill dir discovery (${additionalDirs.length === 0 ? 'no --add-dir' : 'projectSettings disabled or skillsLocked'})`,
+          `[Hapii] ------ getSkillDirCommands 结束 ------ [bare] 跳过技能发现 (${additionalDirs.length === 0 ? '无 --add-dir' : 'projectSettings 禁用或 skillsLocked'})`,
         )
         return []
       }
@@ -672,11 +875,19 @@ export const getSkillDirCommands = memoize(
         ),
       )
       // 无需去重——显式目录，用户控制唯一性。
-      return additionalSkillsNested.flat().map(s => s.skill)
+      const result = additionalSkillsNested.flat().map(s => s.skill)
+      logForDebugging(
+        `[Hapii] ------ getSkillDirCommands 结束 ------ [bare] 仅加载 --add-dir 技能 total=${result.length}`,
+        { level: 'info' },
+      )
+      return result
     }
 
     // 并行从 /skills/ 目录、额外目录和旧版 /commands/ 加载
     // （全部独立——不同的目录，没有共享状态）
+    logForDebugging(
+      `[Hapii] getSkillDirCommands 开始并行加载 5 个来源 (managed/user/project/additional/legacy)`,
+    )
     const [
       managedSkills,
       userSkills,
@@ -714,6 +925,12 @@ export const getSkillDirCommands = memoize(
       skillsLocked ? Promise.resolve([]) : loadSkillsFromCommandsDir(cwd),
     ])
 
+    logForDebugging(
+      `[Hapii] getSkillDirCommands 并行加载完成: managed=${managedSkills.length} user=${userSkills.length} ` +
+        `project=${projectSkillsNested.flat().length} additional=${additionalSkillsNested.flat().length} ` +
+        `legacy=${legacyCommands.length}`,
+    )
+
     // 扁平化并合并所有技能
     const allSkillsWithPaths = [
       ...managedSkills,
@@ -726,6 +943,9 @@ export const getSkillDirCommands = memoize(
     // 按解析路径去重（处理符号链接和重复的父目录）
     // 并行预计算文件标识（realpath 调用是独立的），
     // 然后同步去重（顺序依赖的首次获胜）
+    logForDebugging(
+      `[Hapii] getSkillDirCommands 开始去重 allSkillsWithPaths=${allSkillsWithPaths.length}`,
+    )
     const fileIds = await Promise.all(
       allSkillsWithPaths.map(({ skill, filePath }) =>
         skill.type === 'prompt'
@@ -754,7 +974,7 @@ export const getSkillDirCommands = memoize(
       const existingSource = seenFileIds.get(fileId)
       if (existingSource !== undefined) {
         logForDebugging(
-          `Skipping duplicate skill '${skill.name}' from ${skill.source} (same file already loaded from ${existingSource})`,
+          `[Hapii] getSkillDirCommands 跳过重复技能 '${skill.name}' from=${skill.source} existingSource=${existingSource}`,
         )
         continue
       }
@@ -765,9 +985,9 @@ export const getSkillDirCommands = memoize(
 
     const duplicatesRemoved =
       allSkillsWithPaths.length - deduplicatedSkills.length
-    if (duplicatesRemoved > 0) {
-      logForDebugging(`Deduplicated ${duplicatesRemoved} skills (same file)`)
-    }
+    logForDebugging(
+      `[Hapii] getSkillDirCommands 去重完成 duplicatesRemoved=${duplicatesRemoved} remaining=${deduplicatedSkills.length}`,
+    )
 
     // 将条件技能（带 paths frontmatter）与无条件技能分开
     const unconditionalSkills: Command[] = []
@@ -792,16 +1012,20 @@ export const getSkillDirCommands = memoize(
 
     if (newConditionalSkills.length > 0) {
       logForDebugging(
-        `[skills] ${newConditionalSkills.length} conditional skills stored (activated when matching files are touched)`,
+        `[Hapii] getSkillDirCommands 条件技能(带paths) stored=${newConditionalSkills.length} names=[${newConditionalSkills.map(s => s.name).join(', ')}]`,
       )
     }
 
     logForDebugging(
-      `[Hapii] Skills.getSkillDirCommands 完成 total=${unconditionalSkills.length} skills`,
+      `[Hapii] ------ getSkillDirCommands 结束 ------ ` +
+        `返回=${unconditionalSkills.length} (无条件) ` +
+        `条件暂存=${newConditionalSkills.length} ` +
+        `去重后总数=${deduplicatedSkills.length} ` +
+        `(managed=${managedSkills.length} user=${userSkills.length} ` +
+        `project=${projectSkillsNested.flat().length} ` +
+        `additional=${additionalSkillsNested.flat().length} ` +
+        `legacy=${legacyCommands.length})`,
       { level: 'info' },
-    )
-    logForDebugging(
-      `Loaded ${deduplicatedSkills.length} unique skills (${unconditionalSkills.length} unconditional, ${newConditionalSkills.length} conditional, managed: ${managedSkills.length}, user: ${userSkills.length}, project: ${projectSkillsNested.flat().length}, additional: ${additionalSkillsNested.flat().length}, legacy commands: ${legacyCommands.length})`,
     )
 
     return unconditionalSkills
@@ -809,10 +1033,14 @@ export const getSkillDirCommands = memoize(
 )
 
 export function clearSkillCaches() {
+  logForDebugging(
+    `[Hapii] ------ clearSkillCaches 开始 ------ 清除 getSkillDirCommands/loadMarkdownFilesForSubdir/conditionalSkills/activatedConditionalSkillNames`,
+  )
   getSkillDirCommands.cache?.clear?.()
   loadMarkdownFilesForSubdir.cache?.clear?.()
   conditionalSkills.clear()
   activatedConditionalSkillNames.clear()
+  logForDebugging(`[Hapii] ------ clearSkillCaches 结束 ------ 所有缓存已清除`)
 }
 
 // 测试的向后兼容别名
@@ -842,17 +1070,22 @@ const skillsLoaded = createSignal()
  * 返回取消订阅函数。
  */
 export function onDynamicSkillsLoaded(callback: () => void): () => void {
+  logForDebugging(
+    `[Hapii] ------ onDynamicSkillsLoaded 开始 ------ 注册动态技能加载回调`,
+  )
   // 在订阅时包装，这样抛出异常的监听器会被记录并跳过，
   // 而不是中止 skillsLoaded.emit() 并破坏技能加载。
   // 与 growthbook.ts 相同的 callSafe 模式——createSignal.emit() 没有
   // 每监听器的 try/catch。
-  return skillsLoaded.subscribe(() => {
+  const unsubscribe = skillsLoaded.subscribe(() => {
     try {
       callback()
     } catch (error) {
       logError(error)
     }
   })
+  logForDebugging(`[Hapii] ------ onDynamicSkillsLoaded 结束 ------ 回调已注册`)
+  return unsubscribe
 }
 
 /**
@@ -867,6 +1100,9 @@ export async function discoverSkillDirsForPaths(
   filePaths: string[],
   cwd: string,
 ): Promise<string[]> {
+  logForDebugging(
+    `[Hapii] ------ discoverSkillDirsForPaths 开始 ------ filePaths=${filePaths.length} cwd=${cwd}`,
+  )
   const fs = getFsImplementation()
   const resolvedCwd = cwd.endsWith(pathSep) ? cwd.slice(0, -1) : cwd
   const newDirs: string[] = []
@@ -913,9 +1149,13 @@ export async function discoverSkillDirsForPaths(
   }
 
   // 按路径深度排序（最深优先），以便更接近文件的技能优先
-  return newDirs.sort(
+  const sorted = newDirs.sort(
     (a, b) => b.split(pathSep).length - a.split(pathSep).length,
   )
+  logForDebugging(
+    `[Hapii] ------ discoverSkillDirsForPaths 结束 ------ newDirs=${sorted.length} ${sorted.length > 0 ? `paths=[${sorted.join(', ')}]` : ''}`,
+  )
+  return sorted
 }
 
 /**
@@ -930,13 +1170,19 @@ export async function addSkillDirectories(dirs: string[]): Promise<void> {
     isRestrictedToPluginOnly('skills')
   ) {
     logForDebugging(
-      '[skills] Dynamic skill discovery skipped: projectSettings disabled or plugin-only policy',
+      '[Hapii] ------ addSkillDirectories 结束 ------ 跳过: projectSettings 禁用或 plugin-only',
     )
     return
   }
   if (dirs.length === 0) {
+    logForDebugging(
+      '[Hapii] ------ addSkillDirectories 结束 ------ dirs为空, 无需加载',
+    )
     return
   }
+  logForDebugging(
+    `[Hapii] ------ addSkillDirectories 开始 ------ dirs=${dirs.length} [${dirs.join(', ')}]`,
+  )
 
   const previousSkillNamesForLogging = new Set(dynamicSkills.keys())
 
@@ -960,7 +1206,8 @@ export async function addSkillDirectories(dirs: string[]): Promise<void> {
       n => !previousSkillNamesForLogging.has(n),
     )
     logForDebugging(
-      `[skills] Dynamically discovered ${newSkillCount} skills from ${dirs.length} directories`,
+      `[Hapii] ------ addSkillDirectories 结束 ------ 新加载=${newSkillCount} 新增=${addedSkills.length} dynamicSkills总数=${dynamicSkills.size} ${addedSkills.length > 0 ? `names=[${addedSkills.join(', ')}]` : ''}`,
+      { level: 'info' },
     )
     if (addedSkills.length > 0) {
       logEvent('tengu_dynamic_skills_changed', {
@@ -975,6 +1222,9 @@ export async function addSkillDirectories(dirs: string[]): Promise<void> {
   }
 
   // 通知监听器技能已加载（以便它们可以清除缓存）
+  logForDebugging(
+    `[Hapii] ------ addSkillDirectories 结束 ------ 触发skillsLoaded信号`,
+  )
   skillsLoaded.emit()
 }
 
@@ -983,6 +1233,9 @@ export async function addSkillDirectories(dirs: string[]): Promise<void> {
  * 这些是在会话期间从文件路径发现的技能。
  */
 export function getDynamicSkills(): Command[] {
+  logForDebugging(
+    `[Hapii] ------ getDynamicSkills 开始/结束 ------ count=${dynamicSkills.size} names=[${[...dynamicSkills.keys()].join(', ')}]`,
+  )
   return Array.from(dynamicSkills.values())
 }
 
@@ -1001,8 +1254,15 @@ export function activateConditionalSkillsForPaths(
   cwd: string,
 ): string[] {
   if (conditionalSkills.size === 0) {
+    logForDebugging(
+      `[Hapii] ------ activateConditionalSkillsForPaths 结束 ------ 无条件技能待匹配, 直接返回`,
+    )
     return []
   }
+  logForDebugging(
+    `[Hapii] ------ activateConditionalSkillsForPaths 开始 ------ filePaths=${filePaths.length} ` +
+      `待匹配条件技能=${conditionalSkills.size} [${[...conditionalSkills.keys()].join(', ')}]`,
+  )
 
   const activated: string[] = []
 
@@ -1035,7 +1295,8 @@ export function activateConditionalSkillsForPaths(
         activatedConditionalSkillNames.add(name)
         activated.push(name)
         logForDebugging(
-          `[skills] Activated conditional skill '${name}' (matched path: ${relativePath})`,
+          `[Hapii]   激活条件技能 '${name}' (匹配路径: ${relativePath})`,
+          { level: 'info' },
         )
         break
       }
@@ -1043,6 +1304,11 @@ export function activateConditionalSkillsForPaths(
   }
 
   if (activated.length > 0) {
+    logForDebugging(
+      `[Hapii] ------ activateConditionalSkillsForPaths 结束 ------ 激活=${activated.length} ` +
+        `names=[${activated.join(', ')}] dynamicSkills总数=${dynamicSkills.size}`,
+      { level: 'info' },
+    )
     logEvent('tengu_dynamic_skills_changed', {
       source:
         'conditional_paths' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -1054,6 +1320,10 @@ export function activateConditionalSkillsForPaths(
 
     // 通知监听器技能已加载（以便它们可以清除缓存）
     skillsLoaded.emit()
+  } else {
+    logForDebugging(
+      `[Hapii] ------ activateConditionalSkillsForPaths 结束 ------ 无新激活的条件技能`,
+    )
   }
 
   return activated
@@ -1063,6 +1333,9 @@ export function activateConditionalSkillsForPaths(
  * 获取待处理条件技能的数量（用于测试/调试）。
  */
 export function getConditionalSkillCount(): number {
+  logForDebugging(
+    `[Hapii] ------ getConditionalSkillCount 开始/结束 ------ count=${conditionalSkills.size}`,
+  )
   return conditionalSkills.size
 }
 
@@ -1070,10 +1343,16 @@ export function getConditionalSkillCount(): number {
  * 清除动态技能状态（用于测试）。
  */
 export function clearDynamicSkills(): void {
+  logForDebugging(
+    `[Hapii] ------ clearDynamicSkills 开始 ------ dynamicSkillDirs=${dynamicSkillDirs.size} dynamicSkills=${dynamicSkills.size} conditionalSkills=${conditionalSkills.size} activated=${activatedConditionalSkillNames.size}`,
+  )
   dynamicSkillDirs.clear()
   dynamicSkills.clear()
   conditionalSkills.clear()
   activatedConditionalSkillNames.clear()
+  logForDebugging(
+    `[Hapii] ------ clearDynamicSkills 结束 ------ 所有动态技能状态已清除`,
+  )
 }
 
 // 通过叶子注册表模块向 MCP 技能发现公开 createSkillCommand +
@@ -1082,6 +1361,9 @@ export function clearDynamicSkills(): void {
 // 扇出成许多循环违规；变量说明符的动态导入可通过 dep-cruiser 但在
 // 运行时无法在 Bun 打包的二进制文件中解析）。
 // eslint-disable-next-line custom-rules/no-top-level-side-effects -- 一次性写入注册，幂等
+logForDebugging(
+  `[Hapii] ------ registerMCPSkillBuilders ------ 注册 createSkillCommand + parseSkillFrontmatterFields`,
+)
 registerMCPSkillBuilders({
   createSkillCommand,
   parseSkillFrontmatterFields,

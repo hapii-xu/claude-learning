@@ -33,30 +33,30 @@ export function parseMemoryType(raw: unknown): MemoryType | undefined {
  * 包含 <scope> 标签和示例中的团队/私有限定符。
  */
 export const TYPES_SECTION_COMBINED: readonly string[] = [
-  '## Types of memory',
+  '## 记忆类型',
   '',
-  'There are several discrete types of memory that you can store in your memory system. Each type below declares a <scope> of `private`, `team`, or guidance for choosing between the two.',
+  '你可以在记忆系统中存储若干离散的记忆类型。以下每种类型均声明了 <scope>（范围）为 `private`（私有）、`team`（团队），或提供在两者之间选择的指导。',
   '',
   '<types>',
   '<type>',
   '    <name>user</name>',
-  '    <scope>always private</scope>',
-  "    <description>The user's role, goals, preferences, responsibilities, and knowledge. Use these to tailor your behavior to the user.</description>",
+  '    <scope>始终私有</scope>',
+  '    <description>用户的角色、目标、偏好、职责和知识。用这些来定制你对用户的行为方式。</description>',
   '</type>',
   '<type>',
   '    <name>feedback</name>',
-  '    <scope>default to private. Save as team only when the guidance is clearly a project-wide convention that every contributor should follow (e.g., a testing policy, a build invariant), not a personal style preference.</scope>',
-  '    <description>Guidance from the user about how to approach work — what to avoid and what to keep doing. Record from failure AND success. Include *why* so you can judge edge cases later. Structure content as: rule/fact, then **Why:** and **How to apply:** lines.</description>',
+  '    <scope>默认私有。仅当指导明显是所有贡献者都应遵循的项目级约定（如测试策略、构建不变量）而非个人风格偏好时，才保存为团队级别。</scope>',
+  '    <description>用户关于如何处理工作的指导——避免什么、坚持什么。同时记录失败和成功的经验。包含*原因*以便日后判断边界情况。内容结构为：规则/事实，然后是 **Why:**（原因）和 **How to apply:**（应用方式）两行。</description>',
   '</type>',
   '<type>',
   '    <name>project</name>',
-  '    <scope>private or team, but strongly bias toward team</scope>',
-  '    <description>Information about ongoing work, goals, initiatives, bugs, or incidents not derivable from code or git history. Convert relative dates to absolute dates when saving (e.g., "Thursday" → "2026-03-05").</description>',
+  '    <scope>私有或团队均可，但强烈倾向于团队</scope>',
+  '    <description>关于进行中工作、目标、计划、Bug 或无法从代码或 git 历史推导的事件的信息。保存时将相对日期转换为绝对日期（如"周四" → "2026-03-05"）。</description>',
   '</type>',
   '<type>',
   '    <name>reference</name>',
-  '    <scope>usually team</scope>',
-  '    <description>Pointers to external systems where information can be found (e.g., Linear projects, Slack channels, Grafana dashboards).</description>',
+  '    <scope>通常为团队</scope>',
+  '    <description>指向可找到信息的外部系统的指针（如 Linear 项目、Slack 频道、Grafana 仪表盘）。</description>',
   '</type>',
   '</types>',
   '',
@@ -67,24 +67,24 @@ export const TYPES_SECTION_COMBINED: readonly string[] = [
  * 无 <scope> 标签。仅在私有/团队拆分下才有意义的措辞已被改写。
  */
 export const TYPES_SECTION_INDIVIDUAL: readonly string[] = [
-  '## Types of memory',
+  '## 记忆类型',
   '',
   '<types>',
   '<type>',
   '    <name>user</name>',
-  "    <description>The user's role, goals, preferences, responsibilities, and knowledge. Use these to tailor your behavior to the user.</description>",
+  '    <description>用户的角色、目标、偏好、职责和知识。用这些来定制你对用户的行为方式。</description>',
   '</type>',
   '<type>',
   '    <name>feedback</name>',
-  '    <description>Guidance from the user about how to approach work — what to avoid and what to keep doing. Record from failure AND success. Include *why* so you can judge edge cases later. Structure content as: rule/fact, then **Why:** and **How to apply:** lines.</description>',
+  '    <description>用户关于如何处理工作的指导——避免什么、坚持什么。同时记录失败和成功的经验。包含*原因*以便日后判断边界情况。内容结构为：规则/事实，然后是 **Why:**（原因）和 **How to apply:**（应用方式）两行。</description>',
   '</type>',
   '<type>',
   '    <name>project</name>',
-  '    <description>Information about ongoing work, goals, initiatives, bugs, or incidents not derivable from code or git history. Convert relative dates to absolute dates when saving (e.g., "Thursday" → "2026-03-05").</description>',
+  '    <description>关于进行中工作、目标、计划、Bug 或无法从代码或 git 历史推导的事件的信息。保存时将相对日期转换为绝对日期（如"周四" → "2026-03-05"）。</description>',
   '</type>',
   '<type>',
   '    <name>reference</name>',
-  '    <description>Pointers to external systems where information can be found (e.g., Linear projects, Slack channels, Grafana dashboards).</description>',
+  '    <description>指向可找到信息的外部系统的指针（如 Linear 项目、Slack 频道、Grafana 仪表盘）。</description>',
   '</type>',
   '</types>',
   '',
@@ -94,17 +94,17 @@ export const TYPES_SECTION_INDIVIDUAL: readonly string[] = [
  * `## What NOT to save in memory` 章节。两种模式完全相同。
  */
 export const WHAT_NOT_TO_SAVE_SECTION: readonly string[] = [
-  '## What NOT to save in memory',
+  '## 不应保存为记忆的内容',
   '',
-  '- Code patterns, conventions, architecture, file paths, or project structure — these can be derived by reading the current project state.',
-  '- Git history, recent changes, or who-changed-what — `git log` / `git blame` are authoritative.',
-  '- Debugging solutions or fix recipes — the fix is in the code; the commit message has the context.',
-  '- Anything already documented in CLAUDE.md files.',
-  '- Ephemeral task details: in-progress work, temporary state, current conversation context.',
+  '- 代码模式、约定、架构、文件路径或项目结构——这些可通过读取当前项目状态推导出。',
+  '- Git 历史、近期变更或谁改了什么——`git log` / `git blame` 是权威来源。',
+  '- 调试方案或修复方法——修复已在代码中；提交信息包含背景。',
+  '- 已在 CLAUDE.md 文件中记录的任何内容。',
+  '- 临时任务细节：进行中的工作、临时状态、当前对话上下文。',
   '',
   // H2：显式保存门控。经 eval 验证（memory-prompt-iteration 用例 3，
   // 0/2 → 3/3）：防止"保存本周 PR 列表"→ 活动日志噪音。
-  'These exclusions apply even when the user explicitly asks you to save. If they ask you to save a PR list or activity summary, ask what was *surprising* or *non-obvious* about it — that is the part worth keeping.',
+  '即使用户明确要求保存，上述排除项同样适用。如果他们要求保存 PR 列表或活动摘要，请询问其中有哪些*令人意外*或*不显而易见*的内容——那才是值得保留的部分。',
 ]
 
 /**
@@ -112,7 +112,7 @@ export const WHAT_NOT_TO_SAVE_SECTION: readonly string[] = [
  * 主动性：在回答前根据当前状态验证记忆。
  */
 export const MEMORY_DRIFT_CAVEAT =
-  '- Memory records can become stale over time. Use memory as context for what was true at a given point in time. Before answering the user or building assumptions based solely on information in memory records, verify that the memory is still correct and up-to-date by reading the current state of the files or resources. If a recalled memory conflicts with current information, trust what you observe now — and update or remove the stale memory rather than acting on it.'
+  '- 记忆记录可能随时间变得过时。将记忆作为某一时间点上真实情况的上下文来使用。在仅基于记忆记录中的信息回答用户或建立假设之前，请通过读取文件或资源的当前状态来验证记忆是否仍然正确和最新。如果召回的记忆与当前信息冲突，请信任你现在观察到的内容——并更新或删除过时的记忆，而非基于它行动。'
 
 /**
  * `## When to access memories` 章节。包含 MEMORY_DRIFT_CAVEAT。
@@ -126,10 +126,10 @@ export const MEMORY_DRIFT_CAVEAT =
  * 约为 70 token；新的 4 行约为 73 token。净增约 +3。
  */
 export const WHEN_TO_ACCESS_SECTION: readonly string[] = [
-  '## When to access memories',
-  '- When memories seem relevant, or the user references prior-conversation work.',
-  '- You MUST access memory when the user explicitly asks you to check, recall, or remember.',
-  '- If the user says to *ignore* or *not use* memory: proceed as if MEMORY.md were empty. Do not apply remembered facts, cite, compare against, or mention memory content.',
+  '## 何时访问记忆',
+  '- 当记忆似乎相关时，或用户提及过往对话中的工作时。',
+  '- 当用户明确要求你检查、回忆或记住某事时，你必须访问记忆。',
+  '- 如果用户说要*忽略*或*不使用*记忆：请视 MEMORY.md 为空。不要应用已记住的事实、引用、对比或提及记忆内容。',
   MEMORY_DRIFT_CAVEAT,
 ]
 
@@ -153,17 +153,17 @@ export const TRUSTING_RECALL_SECTION: readonly string[] = [
   // 测试效果优于 "Trusting what you recall"（抽象）。使用此标题的
   // appendSystemPrompt 变体通过了 3/3；抽象标题就地通过 0/3。
   // 正文相同 —— 只有标题不同。
-  '## Before recommending from memory',
+  '## 基于记忆进行推荐前',
   '',
-  'A memory that names a specific function, file, or flag is a claim that it existed *when the memory was written*. It may have been renamed, removed, or never merged. Before recommending it:',
+  '一条记忆中提到特定函数、文件或标志，是对其*写入记忆时*存在的断言。它可能已被重命名、删除或从未合并。在推荐前：',
   '',
-  '- If the memory names a file path: check the file exists.',
-  '- If the memory names a function or flag: grep for it.',
-  '- If the user is about to act on your recommendation (not just asking about history), verify first.',
+  '- 如果记忆提到文件路径：检查该文件是否存在。',
+  '- 如果记忆提到函数或标志：用 grep 搜索它。',
+  '- 如果用户即将基于你的推荐采取行动（而非仅询问历史），请先验证。',
   '',
-  '"The memory says X exists" is not the same as "X exists now."',
+  '"记忆中说 X 存在"不等同于"X 现在存在"。',
   '',
-  'A memory that summarizes repo state (activity logs, architecture snapshots) is frozen in time. If the user asks about *recent* or *current* state, prefer `git log` or reading the code over recalling the snapshot.',
+  '汇总仓库状态（活动日志、架构快照）的记忆是时间固化的。如果用户询问*近期*或*当前*状态，请优先使用 `git log` 或读取代码，而非召回快照。',
 ]
 
 /**
@@ -172,11 +172,11 @@ export const TRUSTING_RECALL_SECTION: readonly string[] = [
 export const MEMORY_FRONTMATTER_EXAMPLE: readonly string[] = [
   '```markdown',
   '---',
-  'name: {{memory name}}',
-  'description: {{one-line description — used to decide relevance in future conversations, so be specific}}',
+  'name: {{记忆名称}}',
+  'description: {{一行描述——用于在未来对话中判断相关性，请尽量具体}}',
   `type: {{${MEMORY_TYPES.join(', ')}}}`,
   '---',
   '',
-  '{{memory content — for feedback/project types, structure as: rule/fact, then **Why:** and **How to apply:** lines}}',
+  '{{记忆内容——对于 feedback/project 类型，结构为：规则/事实，然后是 **Why:**（原因）和 **How to apply:**（应用方式）两行}}',
   '```',
 ]

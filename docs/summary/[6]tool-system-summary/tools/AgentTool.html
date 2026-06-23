@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent 工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    .diagram-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .knowledge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    .file-path {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--blue-dk);
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--blue-lt);
+      color: var(--blue-dk);
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+      .card-grid { grid-template-columns: 1fr; }
+    }
+
+    /* === Additional styles === */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    section { margin-top: 56px; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>Agent 工具详解</h1>
+  <p>递归子代理入口——Claude Code 工具系统里最复杂的工具，通过复用 query() 把"一个 Claude 会话"变成"可嵌套的代理树"</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一">工具定位</a></li>
+    <li><a href="#二">关键文件清单</a></li>
+    <li><a href="#三">Tool 接口字段实现</a></li>
+    <li><a href="#四">核心执行流程</a></li>
+    <li><a href="#五">权限与安全</a></li>
+    <li><a href="#六">与其他系统的关系</a></li>
+    <li><a href="#七">亮点与设计取舍</a></li>
+    <li><a href="#八">源码导航</a></li>
+    <li><a href="#九">学习建议与验证清单</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout">
+    <p>这是工具系统逐个拆解系列中<strong>最复杂</strong>的一篇。<code>Agent</code> 不是"调用一个函数"型工具，而是"启动一个完整的子 Claude 会话"。它的 <code>call()</code> 本身只做选型与调度，真正的执行委托给 <code>runAgent()</code>——而 <code>runAgent()</code> 内部<strong>递归调用了主循环的 <code>query()</code></strong>。所以每一个子代理都是一个缩小版的 Claude Code：有自己的 system prompt、自己的工具集、自己的权限上下文、自己的对话历史。理解了 Agent 工具，就理解了 Claude Code 如何把"单轮 CLI"扩展成"多代理协作系统"。</p>
+  </blockquote>
+
+  <section id="一">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>Agent</code> = 递归启动一个子 Claude 会话（子代理），让它独立完成一个子任务后返回结果。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>Agent</code>（常量 <code>AGENT_TOOL_NAME</code>，<code>constants.ts:1</code>）；旧名 <code>Task</code>（<code>LEGACY_AGENT_TOOL_NAME</code>，<code>constants.ts:3</code>）作为 alias</td></tr>
+          <tr><td>一句话</td><td>把一段工作委托给一个独立的子代理（subagent）去跑，主循环得到它的最终结论</td></tr>
+          <tr><td>是否进 system prompt</td><td>✅ 在 <code>CORE_TOOLS</code> 白名单内（<code>src/constants/tools.ts:147</code>），核心工具，schema 完整注入</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong><code>isReadOnly() → true</code></strong>（<code>AgentTool.tsx:1468</code>）——工具本身不改文件，破坏性由子代理内部的具体工具各自承担</td></tr>
+          <tr><td>是否可并发</td><td>✅ <code>isConcurrencySafe() → true</code>（<code>AgentTool.tsx:1469</code>）——多个 Agent 调用可并发执行</td></tr>
+          <tr><td>注册位置</td><td><code>src/tools.ts:221</code>（<code>getAllBaseTools()</code>），注册本身没有 feature() gate，Agent 永远加载</td></tr>
+          <tr><td>核心依赖</td><td><code>runAgent.ts</code>（执行器）→ <code>src/query.js</code> 的 <code>query()</code>（真正的大模型对话循环）</td></tr>
+          <tr><td>定位互补方</td><td><code>SendMessage</code>（给<strong>已存在</strong>的子代理续发消息，而非新建）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> 模型在处理"需要扫很多文件才能下结论""需要多步骤试错""有独立上下文会更好"的任务时，如果全在主对话里做，会污染主上下文、超出 token 预算、也无法并发。<code>Agent</code> 把这类工作隔离到一个子代理里——子代理跑完只把结论（和它用了多少 token）汇报回来，主对话保持干净。这是 Claude Code 从"单线程助手"升级为"可调度代理树"的关键。</p>
+  </section>
+
+  <section id="二">
+    <h2>二、关键文件清单</h2>
+    <p>AgentTool 是整个工具系统里<strong>文件最多</strong>的工具（17 个真实源码文件，另有若干测试和文档桩）。</p>
+    <pre><code>AgentTool/
+├── AgentTool.tsx              ← buildTool 主体（~1612 行）：schema + call() + 权限 + 结果映射
+├── runAgent.ts                ← 子代理执行器（~961 行）：async generator，内部调用 query()
+├── resumeAgent.ts             ← resumeAgentBackground()：按 agentId 恢复已停止的子代理
+├── forkSubagent.ts            ← Fork 实验：FORK_AGENT 定义 + 构造 fork 上下文消息
+├── loadAgentsDir.ts           ← AgentDefinition 类型 + 从 agents/ 目录加载自定义代理
+├── builtInAgents.ts           ← getBuiltInAgents()：内置代理注册表
+├── built-in/                  ← 6 个内置代理定义
+│   ├── generalPurposeAgent.ts
+│   ├── exploreAgent.ts
+│   ├── planAgent.ts
+│   ├── claudeCodeGuideAgent.ts
+│   ├── verificationAgent.ts   ← feature('VERIFICATION_AGENT') gate
+│   └── statuslineSetup.ts
+├── agentToolUtils.ts          ← resolveAgentTools / filterToolsForAgent / runAsyncAgentLifecycle
+├── agentMemory.ts             ← 子代理持久化记忆目录（user/project/local 三种 scope）
+├── agentMemorySnapshot.ts     ← project→local 记忆快照初始化
+├── agentColorManager.ts       ← 子代理终端配色（8 色）
+├── agentDisplay.ts            ← /agents 命令的展示辅助
+├── filterIncompleteToolCalls.ts ← 过滤孤儿 tool_use/tool_result（fork 前清理上下文）
+├── prompt.ts                  ← getPrompt()：注入 system prompt 的代理列表说明
+├── constants.ts               ← AGENT_TOOL_NAME 等常量
+└── UI.tsx                     ← Ink 渲染（~1005 行）</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>AgentTool.tsx</code></td><td>工具主体：所有 <code>buildTool</code> 字段、<code>call()</code> 九阶段流程</td><td><code>buildTool:309</code>、<code>call:322</code>、<code>checkPermissions:1477</code>、<code>isReadOnly:1468</code>、<code>mapToolResultToToolResultBlockParam:1493</code></td></tr>
+          <tr><td><code>runAgent.ts</code></td><td><strong>子代理如何真正运行</strong>——async generator 包裹 <code>query()</code></td><td><code>runAgent:256</code>、<code>query() 调用:777</code>、清理 finally:845</td></tr>
+          <tr><td><code>builtInAgents.ts</code></td><td>内置代理注册</td><td><code>getBuiltInAgents:20</code></td></tr>
+          <tr><td><code>loadAgentsDir.ts</code></td><td>代理定义类型 + 加载/合并/去重</td><td><code>AgentDefinition 类型:162</code>、<code>BaseAgentDefinition:106</code>、<code>getAgentDefinitionsWithOverrides:294</code></td></tr>
+          <tr><td><code>resumeAgent.ts</code></td><td>恢复机制</td><td><code>resumeAgentBackground:43</code></td></tr>
+          <tr><td><code>forkSubagent.ts</code></td><td>Fork 实验</td><td><code>isForkSubagentEnabled:31</code>、<code>FORK_AGENT:59</code>、<code>buildForkedMessages:106</code></td></tr>
+          <tr><td><code>constants.ts</code></td><td>工具名 + 一次性代理集合</td><td><code>:1,3,9</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout">
+      <p><strong>结构特点</strong>：AgentTool 是"多文件协作型"——主体只做调度，真正的执行、工具过滤、记忆、配色、fork、恢复都拆到独立模块。注意 <code>built-in/src/**</code> 下的文件是<strong>反编译残留的文档桩</strong>（每文件 2 行 <code>export type</code> + JSDoc），并非可执行源码——真正的 import 走 <code>@claude-code-best/builtin-tools</code> workspace 包。</p>
+    </blockquote>
+  </section>
+
+  <section id="三">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre><code>name: AGENT_TOOL_NAME,                 // "Agent"（AgentTool.tsx:309）
+aliases: [LEGACY_AGENT_TOOL_NAME],     // ["Task"]——旧名，权限规则/hooks/会话恢复兼容（:311）
+searchHint: 'delegate work to a subagent',  // TF-IDF 索引关键词（:310）
+maxResultSizeChars: 100_000,           // 结果截断阈值（:312）
+userFacingName,                        // 来自 UI.tsx 的显示名
+userFacingNameBackgroundColor,         // 子代理配色背景</code></pre>
+    <blockquote class="callout">
+      <p><strong><code>aliases: ['Task']</code></strong> 是关键设计：早期版本工具叫 <code>Task</code>，用户的权限规则、hooks 配置、保存的会话里都写的是 <code>Task</code>。通过 alias，升级后这些配置无需迁移依然生效。<code>toolMatchesName</code> 会把 <code>Task</code> 解析到 Agent 工具。</p>
+    </blockquote>
+
+    <h3>模型面字段</h3>
+    <pre><code>async description() { return '启动一个新代理' }   // AgentTool.tsx:313
+async prompt({ tools, appState, toolPermissionContext }) {
+  // 收集 MCP 服务器名 → filterAgentsByMcpRequirements → filterDeniedAgents → getPrompt(...)
+  return await getPrompt(filteredAgents, isCoordinator, allowedAgentTypes)   // :307
+}
+get inputSchema()  { return inputSchema() }   // getter，懒加载（:316）
+get outputSchema() { return outputSchema() }  // 输出 schema（:319）</code></pre>
+
+    <p><strong>输入 schema</strong>（<code>AgentTool.tsx:137-206</code>，<code>lazySchema</code> + 动态字段）：</p>
+    <pre><code>{
+  description: string,          // 必填，给用户看的一句话（也用于 /agents 列表）
+  prompt: string,               // 必填，交给子代理的指令
+  subagent_type?: string,       // 代理类型，如 "Explore" / "general-purpose" / 自定义代理名
+  model?: 'sonnet'|'opus'|'haiku',
+  run_in_background?: boolean,  // 后台异步运行（受 CLAUDE_CODE_DISABLE_BACKGROUND_TASKS / fork 抑制）
+  // 多代理团队字段（需 isAgentSwarmsEnabled）：
+  name?: string,                // 队友名
+  team_name?: string,
+  mode?: PermissionMode,        // spawn 时的权限模式
+  isolation?: 'worktree'|'remote',
+  cwd?: string,                 // KAIROS gate
+}</code></pre>
+
+    <p><strong>输出 schema</strong>（<code>:221-241</code>）是 <strong>union</strong>：</p>
+    <pre><code>{ status: 'completed', prompt, ...agentToolResultSchema }      // 同步完成
+| { status: 'async_launched', agentId, description, prompt, outputFile, canReadOutputFile? }  // 异步启动</code></pre>
+
+    <h3>行为字段</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>AgentTool.tsx:322-1459</code></td><td>九阶段调度（见下节），主体不直接跑模型</td></tr>
+          <tr><td><code>checkPermissions()</code></td><td><code>:1477</code></td><td>默认 <code>allow</code>；仅 <code>auto</code> 模式（ant）走 <code>passthrough</code> 分类器</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:1468</code> → <code>true</code></td><td>Agent 工具本身无副作用，子代理内部工具各自过权限</td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:1469</code> → <code>true</code></td><td>多个 Agent 可并发</td></tr>
+          <tr><td><code>getActivityDescription()</code></td><td><code>:1474</code></td><td><code>input.description ?? 'Running task'</code></td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam()</code></td><td><code>:1493-1595</code></td><td>把四种输出形态翻译成模型可读文本</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3><code>mapToolResultToToolResultBlockParam</code> 的 token 优化（<code>:1571-1577</code>）</h3>
+    <p>对 <strong>一次性代理</strong>（<code>ONE_SHOT_BUILTIN_AGENT_TYPES = {'Explore','Plan'}</code>，<code>constants.ts:9</code>），结果文本里<strong>省略</strong> <code>agentId</code>、SendMessage 提示、<code>&lt;usage&gt;</code> 尾部——注释明说这能省下"约 135 字符 × 每周 3400 万次 Explore 运行"。这是把高频路径的每一点 token 都抠到极致的典型例子。</p>
+  </section>
+
+  <section id="四">
+    <h2>四、核心执行流程：<code>call()</code>（九阶段）</h2>
+    <p><code>AgentTool.tsx:322-1459</code> 是全工具系统最长的 <code>call()</code>。它本身<strong>不调用大模型</strong>，而是选好代理、搭好上下文，然后把执行委托给 <code>runAgent()</code>。整体分九个阶段：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["Phase 1 守卫<br/>model/team_name 校验<br/>:340-411"] --> B["Phase 2 代理选型<br/>fork vs 普通<br/>:417-463"]
+    B --> C["Phase 3 MCP 依赖检查<br/>最多等 30s<br/>:476-540"]
+    C --> D["Phase 4 远程隔离<br/>ant only<br/>:571-614"]
+    D --> E["Phase 5 系统提示 + 消息构造<br/>fork vs 普通<br/>:624-685"]
+    E --> F["Phase 6 组装 workerTools<br/>assembleToolPool<br/>:725-729"]
+    F --> G["Phase 7 worktree 隔离<br/>:743-746"]
+    G --> H["Phase 8 build runAgentParams<br/>:759-791"]
+    H --> I["Phase 9 同步/异步分发<br/>包裹 runAgent<br/>:813-1458"]
+      </div>
+    </div>
+
+    <h3>各阶段要点</h3>
+    <p><strong>Phase 1 — 守卫（<code>:340-411</code>）</strong></p>
+    <ul>
+      <li><code>model</code> 在 coordinator 模式下强制 <code>undefined</code>（<code>:345</code>）。</li>
+      <li><code>team_name</code> 必须 <code>isAgentSwarmsEnabled()</code>（<code>:355</code>），否则抛 <code>"Agent Teams is not yet available on your plan."</code>。</li>
+      <li><strong>多代理 spawn 分支</strong>（<code>:378-411</code>）：若 <code>teamName &amp;&amp; name</code> → 调 <code>spawnTeammate(...)</code> 走 tmux/分屏队友路径，返回 <code>TeammateSpawnedOutput</code>，<strong>提前 return</strong>。</li>
+    </ul>
+
+    <p><strong>Phase 2 — 代理选型（<code>:417-463</code>）</strong></p>
+    <pre><code>const effectiveType = subagent_type ?? (isForkSubagentEnabled() ? undefined : GENERAL_PURPOSE_AGENT.agentType)
+const isForkPath = effectiveType === undefined</code></pre>
+    <ul>
+      <li><strong>Fork 路径</strong>：递归守卫（<code>querySource === 'agent:builtin:fork'</code> 或 <code>isInForkChild(messages)</code>），通过后 <code>selectedAgent = FORK_AGENT</code>。</li>
+      <li><strong>普通路径</strong>：<code>filterDeniedAgents(activeAgents)</code>，并支持 <code>Agent(x,y)</code> 语法限制 <code>allowedAgentTypes</code>。</li>
+    </ul>
+
+    <p><strong>Phase 3 — MCP 依赖检查（<code>:476-540</code>）</strong>：代理若声明了 <code>requiredMcpServers</code>，最多等 30 秒 pending MCP，再确认这些服务器确有工具，否则报错。</p>
+
+    <p><strong>Phase 5 — 系统提示 + 消息构造（<code>:624-685</code>）</strong></p>
+    <ul>
+      <li>Fork：<code>forkParentSystemPrompt = toolUseContext.renderedSystemPrompt</code>（<strong>逐字节复用</strong>父提示以命中 prompt cache）。</li>
+      <li>普通：<code>enhancedSystemPrompt = enhanceSystemPromptWithEnvDetails([agent.getSystemPrompt({toolUseContext})], ...)</code>。</li>
+    </ul>
+
+    <p><strong>Phase 6 — 组装 worker 工具（<code>:725-729</code>）</strong></p>
+    <pre><code>const workerPermissionContext = { ...appState.toolPermissionContext, mode: selectedAgent.permissionMode ?? 'acceptEdits' }
+const workerTools = assembleToolPool(workerPermissionContext, appState.mcp.tools)</code></pre>
+    <blockquote class="callout">
+      <p><strong>为什么在 AgentTool 而非 runAgent 里算？</strong> 注释明说是"为了避开与 <code>tools.ts</code> 的循环依赖"——<code>assembleToolPool</code> 依赖 <code>tools.ts</code>，而 <code>runAgent</code> 已经被 <code>query.ts</code> 依赖，把这一步挪进来会成环。</p>
+    </blockquote>
+
+    <h3><code>runAgent()</code> 才是真正跑模型的地方（<code>runAgent.ts:256-891</code>）</h3>
+    <p><code>call()</code> 把一切搭好后调 <code>runAgent()</code>，后者是一个 <strong>async generator</strong>，内部在 <code>:777</code> <strong>递归调用主循环的 <code>query()</code></strong>：</p>
+    <pre><code>for await (const message of query({
+  messages: initialMessages,
+  systemPrompt: agentSystemPrompt,
+  userContext: resolvedUserContext,
+  systemContext: resolvedSystemContext,
+  canUseTool,
+  toolUseContext: agentToolUseContext,
+  querySource,
+  maxTurns: maxTurns ?? agentDefinition.maxTurns,
+})) { ... }</code></pre>
+    <blockquote class="callout">
+      <p>这是整个 Agent 系统的<strong>核心洞察</strong>：子代理不是一个特殊的执行器，它就是<strong>又一次 <code>query()</code> 调用</strong>——和主对话用的是同一套核心循环。区别只在传给它的 <code>systemPrompt</code>、<code>tools</code>、<code>userContext</code>、<code>maxTurns</code> 不同。</p>
+    </blockquote>
+  </section>
+
+  <section id="五">
+    <h2>五、权限与安全</h2>
+    <h3><code>checkPermissions</code>（<code>AgentTool.tsx:1477-1492</code>）</h3>
+    <pre><code>async checkPermissions(input, context): Promise&lt;PermissionResult&gt; {
+  const appState = context.getAppState()
+  if (process.env.USER_TYPE === 'ant' && appState.toolPermissionContext.mode === 'auto') {
+    return { behavior: 'passthrough', message: 'Agent tool requires permission to spawn sub-agents.' }
+  }
+  return { behavior: 'allow', updatedInput: input }
+}</code></pre>
+    <p><strong>关键设计</strong>：除 <code>auto</code> 模式外，<strong>生成子代理本身一律 <code>allow</code></strong>。因为 Agent 工具 <code>isReadOnly() → true</code>——它自己不改任何东西。真正的破坏性操作发生在子代理内部的具体工具（Edit/Write/Bash），<strong>那些工具各自走 <code>canUseTool</code></strong>。这是"权限分层"的典范。</p>
+
+    <h3>子代理工具过滤（<code>agentToolUtils.ts</code>）</h3>
+    <p>子代理拿到的工具是 <code>assembleToolPool(workerPermissionContext, appState.mcp.tools)</code> 再经 <code>resolveAgentTools()</code>（<code>:122-224</code>）过滤，依次套用：</p>
+    <ul>
+      <li><code>ALL_AGENT_DISALLOWED_TOOLS</code>：所有子代理都禁的工具（防止递归失控）。</li>
+      <li><code>CUSTOM_AGENT_DISALLOWED_TOOLS</code>：特定代理额外禁的。</li>
+      <li><code>ASYNC_AGENT_ALLOWED_TOOLS</code>：后台代理的白名单。</li>
+      <li>代理自定义的 <code>disallowedTools</code>（如 Explore/Plan 禁 Agent/Edit/Write/NotebookEdit/ExitPlanMode）。</li>
+    </ul>
+
+    <h3>Fork 递归守卫</h3>
+    <p><code>forkSubagent.ts</code> 的 <code>isInForkChild(messages)</code> 检测对话里是否已有 <code>&lt;fork-boilerplate&gt;</code> 标签——有就拒绝再次 fork，防止 fork 无限递归。</p>
+  </section>
+
+  <section id="六">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    AGENT[Agent 工具<br/>call:322] -->|委托执行| RUN[runAgent.ts:256]
+    RUN -->|递归调用| QUERY["src/query.js<br/>query()"]
+    RUN -->|工具来自| TOOLS["assembleToolPool<br/>+ resolveAgentTools"]
+    AGENT -->|注册名| REG["agentNameRegistry<br/>name→agentId"]
+    AGENT -.被续发.-> SEND[SendMessage 工具<br/>给已存在子代理发消息]
+    AGENT -->|恢复| RESUME["resumeAgentBackground<br/>resumeAgent.ts:43"]
+    AGENT -->|记忆| MEM["agentMemory.ts<br/>user/project/local"]
+    AGENT -->|fork| FORK["forkSubagent.ts<br/>复用父 prompt cache"]
+    AGENT -->|配色| COLOR["agentColorManager.ts<br/>8 色"]
+    QUERY -.子代理内.-> INNER[子代理的工具调用<br/>各自过 canUseTool]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 <code>query()</code> 的关系</strong>：子代理 = 一次 <code>query()</code> 调用。这是整个设计的基石。</li>
+      <li><strong>与 <code>SendMessage</code> 的关系</strong>：<code>Agent</code> <strong>创建</strong>新子代理；<code>SendMessage</code> <strong>续发</strong>消息给已存在的子代理。两者互补。</li>
+      <li><strong>与 hooks 系统</strong>：<code>registerFrontmatterHooks(..., isAgent: true)</code> 把代理 frontmatter 里的 Stop hooks 改写成 SubagentStop。</li>
+      <li><strong>与记忆系统</strong>：<code>agentMemory.ts</code> 给代理提供 user/project/local 三级持久化记忆目录。</li>
+    </ul>
+  </section>
+
+  <section id="七">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>递归复用 <code>query()</code></strong>（<code>runAgent.ts:777</code>）：最核心的设计。子代理不是新引擎，而是带不同上下文的主引擎。这让流式、工具调用、权限、中断全部自动继承，是"用组合代替继承"的教科书案例。</li>
+      <li><strong><code>isReadOnly() → true</code> 的权限分层</strong>：Agent 自己不鉴权，把责任下推给子代理内部工具。避免了"生成代理要问一次、代理里每个工具又问一次"的双重提示。</li>
+      <li><strong><code>aliases: ['Task']</code> 向后兼容</strong>（<code>:311</code>）：旧名无缝迁移，权限/hooks/会话恢复都不破坏。</li>
+      <li><strong>一次性代理省 token</strong>（<code>constants.ts:9</code> + <code>:1571</code>）：Explore/Plan 结果省掉 agentId/usage 尾部，注释量化了收益（~135 字符 × 每周 3400 万次）。</li>
+      <li><strong>Fork 的 prompt cache 共享</strong>（<code>forkSubagent.ts</code>）：fork 逐字节复用父系统提示 + 把父的所有 tool_use 块克隆进子上下文——让 fork 能命中父的 prompt cache，极大降低成本。</li>
+      <li><strong>上下文裁剪省 Gtok</strong>（<code>runAgent.ts:392</code>）：Explore/Plan 丢 <code>claudeMd</code> 和 <code>gitStatus</code>，注释称每周省 5-15 Gtok。</li>
+      <li><strong>同步可后台化</strong>（<code>:915</code>）：前台跑的子代理超过 <code>autoBackgroundMs</code> 自动分离进后台，既保留同步体验又避免长任务阻塞。</li>
+      <li><strong>循环依赖规避</strong>（<code>:725</code>）：<code>assembleToolPool</code> 在 AgentTool 而非 runAgent 里算，注释明说为避环。</li>
+      <li><strong>ant 守卫 + DCE</strong>（<code>:1483</code>）：<code>USER_TYPE === 'ant'</code> 分支让内部功能在外部构建时被编译器删除，产物更小。</li>
+      <li><strong>17 文件分领域解耦</strong>：执行/恢复/fork/加载/记忆/配色/显示/过滤各自独立，AgentTool.tsx 只做调度。</li>
+    </ol>
+  </section>
+
+  <section id="八">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>AgentTool/constants.ts:1,3,9</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>AgentTool.tsx:309-1602</code></td></tr>
+          <tr><td>输入/输出 schema</td><td><code>AgentTool.tsx:137-275</code></td></tr>
+          <tr><td><code>call()</code> 九阶段</td><td><code>AgentTool.tsx:322-1459</code></td></tr>
+          <tr><td>同步/异步分发</td><td><code>AgentTool.tsx:813-1458</code></td></tr>
+          <tr><td><code>checkPermissions</code></td><td><code>AgentTool.tsx:1477-1492</code></td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>AgentTool.tsx:1493-1595</code></td></tr>
+          <tr><td><strong>子代理如何真正跑（query 调用）</strong></td><td><code>runAgent.ts:256, 777</code></td></tr>
+          <tr><td>工具过滤 resolveAgentTools</td><td><code>agentToolUtils.ts:122-224</code></td></tr>
+          <tr><td>内置代理注册</td><td><code>builtInAgents.ts:20</code></td></tr>
+          <tr><td>代理定义类型</td><td><code>loadAgentsDir.ts:106-184</code></td></tr>
+          <tr><td>恢复机制</td><td><code>resumeAgent.ts:43</code></td></tr>
+          <tr><td>Fork 上下文构造</td><td><code>forkSubagent.ts:106</code></td></tr>
+          <tr><td>记忆目录路径</td><td><code>agentMemory.ts:49-62</code></td></tr>
+          <tr><td>CORE_TOOLS 白名单项</td><td><code>src/constants/tools.ts:147</code></td></tr>
+          <tr><td>注册位置</td><td><code>src/tools.ts:221</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="九">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：这是全系列最难的一篇。建议三遍读：</p>
+    <ol>
+      <li><strong>第一遍</strong>只看"一、定位"和"四、call() 九阶段"的流程图，建立"Agent = 调度器 + runAgent"的心智。</li>
+      <li><strong>第二遍</strong>精读 <code>runAgent.ts:256-891</code>，重点看 <code>:777</code> 的 <code>query()</code> 调用——理解"子代理就是一次主循环"。</li>
+      <li><strong>第三遍</strong>对照"五、权限"和 <code>agentToolUtils.ts</code> 的工具过滤，理解权限如何分层下推。</li>
+    </ol>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 Agent 工具 <code>isReadOnly()</code> 为何返回 <code>true</code>（破坏性由子代理内部工具各自承担）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出子代理真正调用大模型的位置（<code>runAgent.ts:777</code> 的 <code>query()</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>checkPermissions</code> 为何默认 <code>allow</code>（权限分层，子代理工具各自鉴权）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 <code>aliases: ['Task']</code> 的作用（向后兼容旧权限规则/hooks/会话）</span></li>
+      <li><input type="checkbox" disabled> <span>能找到一次性代理省 token 的集合（<code>constants.ts:9</code> <code>ONE_SHOT_BUILTIN_AGENT_TYPES</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么 workerTools 在 AgentTool 而非 runAgent 里算（避循环依赖）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 SendMessage 与 Agent 的分工（创建新代理 vs 续发已有代理）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 Fork 如何命中父 prompt cache（逐字节复用父系统提示 + 克隆父 tool_use 块）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>让 Claude <code>Agent(subagent_type='Explore', ...)</code> 跑一次，观察 UI 里子代理的独立对话流和最终汇报。</li>
+      <li>在 <code>runAgent.ts:777</code> 加日志，确认子代理确实走了 <code>query()</code>。</li>
+      <li>构造一条 deny-rule 禁掉某代理类型，验证 <code>filterDeniedAgents</code> 抛错并列出可用类型。</li>
+      <li>对比 Explore（丢 claudeMd）和 general-purpose（保留）的 system prompt 长度差异。</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SendUserMessage（Brief）工具详解 — Claude Code 工具详解</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    section { margin-top: 56px; }
+
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 24px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 640px;
+      margin: 0 auto 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s, box-shadow .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      box-shadow: 0 2px 6px rgba(215,119,87,.15);
+      text-decoration: none;
+    }
+
+    /* ── Code Blocks ──────────────────────────────────────── */
+    pre {
+      background: #1e1b16;
+      color: #d4cfc8;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 12px 0;
+      border-left: 3px solid var(--orange);
+    }
+
+    code { font-family: var(--font-mono); }
+
+    .kw  { color: #7c9bff; font-weight: 600; }
+    .str { color: #6cc77a; }
+    .fn  { color: #f0906a; }
+    .cmt { color: #6e6a62; font-style: italic; }
+    .type{ color: #e0a020; }
+    .num { color: #c792ea; }
+
+    /* inline code */
+    p code, li code, td code {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .82em;
+      color: var(--orange-dk);
+    }
+
+    /* ── Tables ───────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-2);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Misc helpers ─────────────────────────────────────── */
+    .section-desc {
+      color: var(--text-2);
+      font-size: .92rem;
+      margin-bottom: 20px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    /* ── Additional styles ─────────────────────────────────── */
+    blockquote.callout {
+      background: var(--bg2);
+      border-left: 4px solid var(--orange);
+      padding: 14px 20px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      color: var(--text-2);
+    }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 48px; padding: 8px 18px;
+      background: var(--bg2); border: 1.5px solid var(--border);
+      border-radius: var(--radius); font-size: .85rem; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      transition: border-color .15s, color .15s;
+    }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>SendUserMessage（Brief）工具详解</h1>
+  <p>Claude Code 面向用户的"唯一可见输出渠道"——在 chat/assistant 视图下，模型写给用户的所有内容都经此工具投递，支持 markdown 文本与文件附件</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-gong-ju-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-guan-jian-wen-jian-qing-dan">二、关键文件清单</a></li>
+    <li><a href="#san-tool-jie-kou-zi-duan">三、Tool 接口字段</a></li>
+    <li><a href="#si-he-xin-zhi-xing-liu-cheng">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian-yu-an-quan">五、权限与安全</a></li>
+    <li><a href="#liu-yu-qi-ta-xi-tong-de-guan-xi">六、与其他系统的关系</a></li>
+    <li><a href="#qi-liang-dian-yu-she-ji-qu-she">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-yuan-ma-dao-hang">八、源码导航</a></li>
+    <li><a href="#jiu-xue-xi-jian-yi">九、学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout">
+    <p>这是工具系统逐个拆解系列的一篇。<code>Brief</code>（对外工具名 <code>SendUserMessage</code>，旧名 <code>Brief</code>）是 KAIROS 助手模式 / chat 视图下的<strong>用户面消息出口</strong>：在 brief-only 视图里，工具调用之外的 assistant 文本会被 UI 隐藏，真正能被用户读到的只有通过本工具投递的消息。它结构完整（含附件解析、bridge 上传、多视图渲染），是观察"面向用户的副作用型工具"如何与 feature gate、bridge、多视图渲染协作的好例子。</p>
+  </blockquote>
+
+  <hr class="divider">
+
+  <section id="yi-gong-ju-ding-wei">
+    <h2>一、工具定位（一句话总结）</h2>
+
+    <p><strong><code>SendUserMessage</code> = assistant/chat 模式下模型回复用户的唯一可见出口（支持 markdown + 文件附件）。</strong></p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>SendUserMessage</code>（常量 <code>BRIEF_TOOL_NAME</code>，<code>prompt.ts:1</code>），别名 <code>Brief</code>（<code>LEGACY_BRIEF_TOOL_NAME</code>，<code>prompt.ts:2</code>）</td></tr>
+          <tr><td>一句话</td><td>把模型的回答（+可选附件）投递给用户；在 brief-only 视图里这是唯一可见文本</td></tr>
+          <tr><td>是否进 system prompt</td><td>❌ 不在 <code>CORE_TOOLS</code> 白名单；在 <code>tools.ts:266</code> 无条件注册，但运行时受 <code>isBriefEnabled()</code> / bridge 门控</td></tr>
+          <tr><td>只读 / 破坏性</td><td>标注为<strong>只读</strong>（<code>isReadOnly() → true</code>，<code>BriefTool.ts:156</code>），但它产生用户可见副作用</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe() → true</code>，<code>:153</code>）</td></tr>
+          <tr><td>激活门控</td><td><code>feature('KAIROS'||'KAIROS_BRIEF')</code> + <code>isBriefEnabled()</code> + <code>isBridgeEnabled()</code>（<code>tools.ts</code> 无显式 feature gate，运行时 <code>isEnabled</code> 决定）</td></tr>
+          <tr><td>核心依赖</td><td><code>attachments.ts</code>（解析）、<code>upload.ts</code>（bridge 上传）、<code>UI.tsx</code>（多视图渲染）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>为什么需要它？</strong> 在普通 CLI 视图，模型的文本就是答案。但在 KAIROS 助手模式（<code>--brief</code>、<code>defaultView:'chat'</code>、SDK <code>tools:[SendUserMessage]</code>）下，UI 会隐藏工具调用之外的 assistant 文本（<code>UI.tsx:64-69</code> 注释），用户只能看到通过本工具显式投递的消息。没有它，助手模式下的回答对用户不可见。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-guan-jian-wen-jian-qing-dan">
+    <h2>二、关键文件清单</h2>
+
+    <pre><code>BriefTool/
+├── BriefTool.ts      ← buildTool({...}) 主体（203 行），含权限/激活门控
+├── prompt.ts         ← 工具名常量 + DESCRIPTION + BRIEF_TOOL_PROMPT + BRIEF_PROACTIVE_SECTION
+├── UI.tsx            ← 三视图渲染（默认 / brief-only / transcript）
+├── attachments.ts    ← 附件校验 + 解析（stat + 并行上传）
+└── upload.ts         ← bridge 附件上传到 private_api（multipart）</code></pre>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>BriefTool.ts</code></td><td>主体：schema + 激活门控 + call()</td><td><code>isBriefEntitled:87</code>、<code>isBriefEnabled:125</code>、<code>buildTool:135</code>、<code>call:185</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>工具名 + 描述 + 主动沟通段落</td><td><code>BRIEF_TOOL_NAME:1</code>、<code>BRIEF_TOOL_PROMPT:6</code>、<code>BRIEF_PROACTIVE_SECTION:12</code></td></tr>
+          <tr><td><code>UI.tsx</code></td><td>三种视图的渲染分支</td><td><code>renderToolResultMessage:16</code>、brief-only 分支 <code>:48</code>、transcript 分支 <code>:31</code></td></tr>
+          <tr><td><code>attachments.ts</code></td><td>附件路径校验与解析（与 SendUserFile 共享）</td><td><code>validateAttachmentPaths:26</code>、<code>resolveAttachments:63</code></td></tr>
+          <tr><td><code>upload.ts</code></td><td>bridge 模式下上传到 <code>/api/oauth/file_upload</code></td><td><code>uploadBriefAttachment:91</code>、<code>MAX_UPLOAD_BYTES:32</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <blockquote class="callout">
+      <p><strong>结构特点</strong>：BriefTool 是本批中文件最多、逻辑最完整的工具。附件/上传拆成独立模块，是因为它们需要被 <code>SendUserFileTool</code> 复用（<code>attachments.ts:1-6</code> 注释说明放在 BriefTool 目录是为了让 <code>./upload.js</code> 的动态导入保持相对路径，同时让 upload.ts 在非 bridge 构建中可被 tree-shaking 移除）。</p>
+    </blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-tool-jie-kou-zi-duan">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+    <h3>标识字段</h3>
+
+    <pre><code>name: BRIEF_TOOL_NAME,                // "SendUserMessage"
+aliases: [LEGACY_BRIEF_TOOL_NAME],    // ["Brief"] —— 旧会话恢复兼容
+searchHint: '向用户发送消息 —— 你的主要可见输出渠道',
+maxResultSizeChars: 100_000,
+userFacingName() { return '' },       // 关键：返回空串</code></pre>
+
+    <blockquote class="callout">
+      <p><strong><code>userFacingName()</code> 返回 <code>''</code></strong>（<code>:141</code>）：这是一个精心设计的副作用——让 <code>UserToolSuccessMessage</code> 放弃 <code>columns-5</code> 宽度约束，<code>AssistantToolUseMessage</code> 渲染为 null（无工具外壳）。注释 <code>UI.tsx:67-69</code> 明确：这样 SendUserMessage 在默认视图里看起来就是普通文本，没有"工具调用"的视觉边框。</p>
+    </blockquote>
+
+    <h3>模型面字段</h3>
+
+    <pre><code>async description() { return DESCRIPTION }   // "向用户发送消息"
+async prompt()      { return BRIEF_TOOL_PROMPT }
+get inputSchema()   // lazySchema + z.strictObject
+get outputSchema()  // lazySchema + z.object</code></pre>
+
+    <p><strong>输入 schema</strong>（<code>:21-38</code>）：</p>
+
+    <pre><code>{
+  message: string,                    // markdown 消息
+  attachments?: string[],             // 文件路径数组（绝对/相对 cwd）
+  status: 'normal' | 'proactive',     // 意图标注，下游路由使用
+}</code></pre>
+
+    <p><strong>输出 schema</strong>（<code>:43-65</code>）：</p>
+
+    <pre><code>{
+  message: string,
+  attachments?: { path, size, isImage, file_uuid? }[],
+  sentAt?: string,   // ISO 时间戳（可选，会话恢复兼容）
+}</code></pre>
+
+    <blockquote class="callout">
+      <p><strong><code>attachments</code> 与 <code>sentAt</code> 必须可选</strong>（<code>:42</code>、<code>:59-62</code> 注释）：恢复的旧会话会原样重放这些字段引入之前的输出，若为必填会导致 UI 渲染器崩溃。这是"向前兼容旧输出"的典型 schema 设计。</p>
+    </blockquote>
+
+    <h3>行为字段</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:185</code></td><td>核心逻辑（见下节）</td></tr>
+          <tr><td><code>isEnabled()</code></td><td><code>:150</code> → <code>isBridgeEnabled()</code></td><td>运行时门控</td></tr>
+          <tr><td><code>validateInput()</code></td><td><code>:162</code> → <code>validateAttachmentPaths</code></td><td>校验附件路径存在且是普通文件</td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:153</code> → <code>true</code></td><td>多次发送互不干扰</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:156</code> → <code>true</code></td><td>标注只读（虽有副作用）</td></tr>
+          <tr><td><code>toAutoClassifierInput()</code></td><td><code>:159</code> → <code>input.message</code></td><td>自动审批分类器看消息文本</td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam</code></td><td><code>:174</code></td><td>返回"消息已发送给用户。(N attachments included)"</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>渲染字段</h3>
+
+    <p><code>renderToolUseMessage</code> 返回 <code>''</code>（不在调用时显示），<code>renderToolResultMessage</code>（<code>UI.tsx:16</code>）有三视图分支（见第六节）。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-he-xin-zhi-xing-liu-cheng">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+
+    <p><code>call()</code>（<code>BriefTool.ts:185-202</code>）非常简洁，因为它把重活都委托给了 <code>attachments.ts</code>：</p>
+
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    A["call(input, ctx)\nBriefTool.ts:185"] --> B["sentAt = ISO 时间戳\nlogEvent('tengu_brief_send')"]
+    B --> C{"有附件?"}
+    C -->|否| D["return {data:{message, sentAt}}"]
+    C -->|是| E["resolveAttachments(attachments,\n{replBridgeEnabled, signal})"]
+    E --> F["return {data:{message,\nattachments:resolved, sentAt}}"]
+      </div>
+    </div>
+
+    <p><strong>关键点逐条</strong>：</p>
+
+    <ol>
+      <li><strong>遥测先记</strong>（<code>:187</code>）：<code>logEvent('tengu_brief_send', {proactive, attachment_count})</code>——每次发送都上报，<code>status</code> 字段（normal/proactive）进入遥测用于路由分析。</li>
+      <li><strong>无附件快路径</strong>（<code>:191</code>）：直接返回 <code>{message, sentAt}</code>，不触发任何 IO。</li>
+      <li><strong>附件解析委托</strong>（<code>:195</code>）：<code>resolveAttachments</code> 做 stat（本地、串行）+ 上传（网络、并行），上传失败仍保留 <code>{path,size,isImage}</code> 供本地渲染（<code>attachments.ts:66-69</code>）。</li>
+      <li><strong>bridge 信号透传</strong>：<code>replBridgeEnabled</code> 来自 <code>appState</code>，决定是否上传；<code>abortController.signal</code> 传入上传以支持中断。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian-yu-an-quan">
+    <h2>五、权限与安全</h2>
+
+    <p>BriefTool 的权限模型比较特殊——<strong>它没有 <code>checkPermissions</code></strong>，而是用<strong>双层激活门控</strong>控制可用性：</p>
+
+    <h3><code>isBriefEntitled()</code>（<code>:87</code>，资格判定）</h3>
+
+    <p>判断用户是否"有资格"使用 Brief，用于决定是否尊重 <code>--brief</code> / <code>defaultView</code> / <code>--tools</code> 等激活动作：</p>
+
+    <ul>
+      <li>构建期：<code>feature('KAIROS') || feature('KAIROS_BRIEF')</code>（OR 门控，注释 <code>:75-78</code>）</li>
+      <li>运行时：<code>getKairosActive()</code>（assistant 模式）|| <code>CLAUDE_CODE_BRIEF</code> 环境变量（开发绕过）|| GrowthBook 开关 <code>tengu_kairos_brief</code>（5 分钟刷新缓存）</li>
+    </ul>
+
+    <h3><code>isBriefEnabled()</code>（<code>:125</code>，会话激活）</h3>
+
+    <p>判断工具在当前会话是否真正激活，控制工具可用性、system prompt 段落、延迟加载绕过：</p>
+
+    <ul>
+      <li>需要 <code>getKairosActive() || getUserMsgOptIn()</code>（显式 opt-in）</li>
+      <li><strong>AND</strong> <code>isBriefEntitled()</code>（GB kill-switch 会中途关闭，<code>:118-119</code>）</li>
+      <li>opt-in 来源（注释 <code>:106-112</code>）：<code>--brief</code> 标志、<code>defaultView:'chat'</code>、<code>/brief</code> 命令、<code>/config</code> 选择器、<code>--tools</code> 列表、<code>CLAUDE_CODE_BRIEF</code> 环境变量</li>
+    </ul>
+
+    <h3>附件校验 <code>validateAttachmentPaths</code>（<code>attachments.ts:26</code>）</h3>
+
+    <ul>
+      <li><code>stat</code> 检查每个路径：非普通文件 → 报错；ENOENT → 友好提示含 cwd；EACCES/EPERM → 权限拒绝</li>
+      <li>注释 <code>attachments.ts:74-76</code> 承认 TOCTOU（validateInput 与 resolveAttachments 之间文件可能被移动），但选择让错误冒泡</li>
+    </ul>
+
+    <h3><code>upload.ts</code> 的安全细节</h3>
+
+    <ul>
+      <li>上传大小硬上限 30MB（<code>MAX_UPLOAD_BYTES:32</code>）</li>
+      <li>Bearer token 鉴权（<code>getBridgeAccessToken</code>）</li>
+      <li><code>validateStatus: () =&gt; true</code> + 手动检查 201，任何失败都优雅降级返回 undefined（<code>:150</code>）</li>
+    </ul>
+
+    <blockquote class="callout">
+      <p><strong>为什么用正向三元而非 early-return</strong>（<code>upload.ts:96-97</code>、<code>BriefTool.ts:88-90</code>）：CLAUDE.md 明确，Bun 编译器只能对 <code>feature() ? a : b</code> 形式做死代码消除（DCE）。反向写法 <code>if(!feature()) return</code> 无法消除函数体，会把 axios/crypto 等依赖留在非 bridge 构建里。</p>
+    </blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-yu-qi-ta-xi-tong-de-guan-xi">
+    <h2>六、与其他系统/工具的关系</h2>
+
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    BRIEF["BriefTool"] -->|附件解析| ATT["attachments.ts\n(与 SendUserFile 共享)"]
+    ATT -->|bridge 模式| UP["upload.ts\n→ /api/oauth/file_upload"]
+    BRIEF -->|激活门控| KAIROS["getKairosActive\ngetUserMsgOptIn"]
+    BRIEF -->| isEnabled | BRIDGE["isBridgeEnabled\nsrc/bridge/bridgeEnabled.ts"]
+    BRIEF -->|多视图渲染| UI["UI.tsx\n三视图分支"]
+    BRIEF -.被复用.-> SUF["SendUserFileTool\n复用 uploadBriefAttachment"]
+    BRIEF -.被旁路.-> TEXT["普通 assistant 文本\nbrief-only 视图下被隐藏"]
+      </div>
+    </div>
+
+    <ul>
+      <li><strong>与 <code>SendUserFileTool</code></strong>：SendUserFile 直接 <code>import('.../BriefTool/upload.js')</code> 复用上传逻辑（<code>SendUserFileTool.ts:106</code>）。</li>
+      <li><strong>与 bridge 系统</strong>：附件上传、推送都依赖 bridge token 与 base URL。</li>
+      <li><strong>与 UI 渲染</strong>：<code>renderToolResultMessage</code> 的 <code>options</code> 参数（<code>UI.tsx:19-22</code>）由上层 <code>Messages.tsx</code> 根据 <code>isTranscriptMode</code> / <code>isBriefOnly</code> 传入，驱动三视图分支。</li>
+    </ul>
+
+    <h3>三视图渲染（<code>UI.tsx:16-79</code>）</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>视图</th><th>触发</th><th>渲染</th></tr></thead>
+        <tbody>
+          <tr><td><strong>transcript</strong>（ctrl+o）</td><td><code>options.isTranscriptMode</code></td><td>保留 <code>⏺</code> 黑圆点 gutter（<code>:31-43</code>），使 SendUserMessage 在文本块中视觉可辨</td></tr>
+          <tr><td><strong>brief-only</strong>（chat）</td><td><code>options.isBriefOnly</code></td><td>"Claude" 标签 + 时间戳 + 2 列缩进（<code>:48-62</code>），与用户输入的 "You" 标签对称</td></tr>
+          <tr><td><strong>默认</strong></td><td>无 options</td><td>空 <code>minWidth={2}</code> box 占位（<code>:70-78</code>），无 gutter，纯文本阅读</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><code>AttachmentList</code>（<code>:85</code>）渲染附件列表：<code>› [image]/[file] &lt;路径&gt; (&lt;大小&gt;)</code>。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian-yu-she-ji-qu-she">
+    <h2>七、亮点与设计取舍</h2>
+
+    <ol>
+      <li><strong><code>userFacingName()</code> 返回空串的视觉副作用</strong>（<code>:141</code>）：一个看似奇怪的字段值，实则是让工具在默认视图里"隐形"为普通文本的关键——精巧的 UI 协同。</li>
+      <li><strong>双层激活门控</strong>（entitled vs enabled）：把"是否有资格"与"本会话是否激活"分开，支持 GB kill-switch 中途关闭已 opt-in 会话（<code>:118</code>）。</li>
+      <li><strong>附件模块拆分 + 动态导入</strong>（<code>attachments.ts:83-88</code>）：<code>import('./upload.js')</code> 包在 <code>feature('BRIDGE_MODE')</code> 守卫内，确保 axios/crypto 在非 bridge 构建中被 tree-shaking。注释明确指出静态导入会破坏这一优化。</li>
+      <li><strong>向前兼容旧输出</strong>：<code>attachments</code> / <code>sentAt</code> 都设为可选，schema 设计直接服务会话恢复（<code>:42,59</code>）。</li>
+      <li><strong><code>status</code> 字段驱动路由</strong>：<code>normal</code> vs <code>proactive</code> 不只是标注，下游用它决定通知行为（<code>prompt.ts:10</code>）。</li>
+      <li><strong>upload 优雅降级</strong>：任何上传失败都返回 undefined，本地渲染不受影响（<code>upload.ts:90</code> 注释 "best-effort"）。</li>
+      <li><strong>正向三元保证 DCE</strong>：贯穿全模块的编码纪律，是反编译代码库对 Bun 编译器的适配。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-yuan-ma-dao-hang">
+    <h2>八、源码导航（书签速查）</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量 + 别名</td><td><code>BriefTool/prompt.ts:1-2</code></td></tr>
+          <tr><td>资格门控 <code>isBriefEntitled</code></td><td><code>BriefTool.ts:87-99</code></td></tr>
+          <tr><td>会话激活 <code>isBriefEnabled</code></td><td><code>BriefTool.ts:125-133</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>BriefTool.ts:135-203</code></td></tr>
+          <tr><td>输入/输出 schema</td><td><code>BriefTool.ts:21-65</code></td></tr>
+          <tr><td><code>call()</code> 核心</td><td><code>BriefTool.ts:185-202</code></td></tr>
+          <tr><td>附件校验</td><td><code>attachments.ts:26-61</code></td></tr>
+          <tr><td>附件解析（含上传）</td><td><code>attachments.ts:63-110</code></td></tr>
+          <tr><td>bridge 上传实现</td><td><code>upload.ts:91-173</code></td></tr>
+          <tr><td>三视图渲染</td><td><code>UI.tsx:16-79</code></td></tr>
+          <tr><td>主动沟通 prompt 段落</td><td><code>prompt.ts:12-22</code>（<code>BRIEF_PROACTIVE_SECTION</code>）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-xue-xi-jian-yi">
+    <h2>九、学习建议与验证清单</h2>
+
+    <p><strong>怎么读这章</strong>：先看"一、定位"理解为什么需要"唯一可见出口"，再跳到"五、权限"理解双层门控，最后对照"六、三视图渲染"看 UI 如何配合。</p>
+
+    <p><strong>验证清单（读完自测）</strong>：</p>
+
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 <code>SendUserMessage</code> 与 <code>Brief</code> 是同一工具的现名/别名</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>userFacingName()</code> 返回 <code>''</code> 的视觉作用（让工具隐形为普通文本）</span></li>
+      <li><input type="checkbox" disabled> <span>能区分 <code>isBriefEntitled</code>（资格）与 <code>isBriefEnabled</code>（会话激活）的职责</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 <code>attachments.ts</code> 为什么放在 BriefTool 目录（让 SendUserFile 复用 + upload.ts 可 tree-shaking）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释为什么 <code>attachments</code> / <code>sentAt</code> 设为可选（会话恢复向前兼容）</span></li>
+      <li><input type="checkbox" disabled> <span>能找到上传大小硬上限（30MB，<code>upload.ts:32</code>）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出三视图（transcript / brief-only / 默认）各自的渲染特征</span></li>
+    </ul>
+
+    <p><strong>配合动作</strong>：</p>
+
+    <ol>
+      <li>用 <code>CLAUDE_CODE_BRIEF=1 bun run dev -- --brief</code> 启动，观察 brief-only 视图里 "Claude" 标签</li>
+      <li>让 Claude 发送带图片附件的消息，观察 <code>AttachmentList</code> 渲染</li>
+      <li>在 <code>call()</code> 的 <code>:187</code> 加日志，确认 <code>tengu_brief_send</code> 遥测字段</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

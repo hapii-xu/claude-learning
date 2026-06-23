@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkillTool 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange:    #D77757; --orange-lt: #f0e0d8; --orange-dk: #b55e3a;
+      --blue:      #5769F7; --blue-lt:   #dde0fe; --blue-dk:   #3a4ed4;
+      --green:     #22a766; --green-lt:  #d2f0e3;
+      --bg:        #faf8f5; --bg2:       #f3f0eb; --bg3:       #ebe7e0;
+      --text:      #2d2a26; --text-2:    #5a5650; --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08); --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px; --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+    section { margin-top: 56px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; letter-spacing: .01em; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero h1 span { color: var(--orange); }
+    .hero p { font-size: 1.05rem; color: var(--text-2); max-width: 640px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 6px 16px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .82rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s, box-shadow .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); box-shadow: 0 2px 6px rgba(215,119,87,.15); text-decoration: none; }
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .8rem; line-height: 1.7; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    @media (max-width: 700px) { .hero h1 { font-size: 1.6rem; } }
+    blockquote.callout { background: var(--bg2); border-left: 4px solid var(--orange); padding: 14px 20px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0; color: var(--text-2); }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin: 16px 0; overflow-x: auto; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 48px; padding: 8px 18px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; transition: border-color .15s, color .15s; }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>SkillTool 工具详解</h1>
+  <p>调用/执行 skill（斜杠命令）——把人类可读的 slash-command 展开为可执行的 prompt，是 Claude Code "能力扩展面"的核心枢纽</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#yi-ding-wei">一、工具定位</a></li>
+    <li><a href="#er-wen-jian">二、关键文件清单</a></li>
+    <li><a href="#san-jie-kou">三、Tool 接口字段</a></li>
+    <li><a href="#si-zhi-xing">四、核心执行流程</a></li>
+    <li><a href="#wu-quan-xian">五、权限与安全</a></li>
+    <li><a href="#liu-guan-xi">六、与其他系统的关系</a></li>
+    <li><a href="#qi-liang-dian">七、亮点与设计取舍</a></li>
+    <li><a href="#ba-dao-hang">八、源码导航</a></li>
+    <li><a href="#jiu-jian-yi">九、学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+
+  <blockquote class="callout"><p>这是工具系统逐个拆解系列之一。<code>Skill</code> 是一个<strong>复杂</strong>工具：模型（或用户键入 <code>/xxx</code>）给一个 skill 名，工具负责查找、校验、权限判定，然后要么把 skill 的 prompt <strong>内联展开</strong>注入会话，要么<strong>fork 一个子 agent</strong> 隔离执行。它横跨命令系统、权限系统、agent 系统、遥测系统四大子系统，是理解"一个工具如何编排整个 CLI"的最佳样本。</p></blockquote>
+
+  <hr class="divider">
+
+  <section id="yi-ding-wei">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>Skill</code> = 把 skill 名（斜杠命令）解析并注入/执行的工具。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>Skill</code>（常量 <code>SKILL_TOOL_NAME</code>，<code>constants.ts:1</code>）</td></tr>
+          <tr><td>一句话</td><td>输入 skill 名 + 可选 args，查找命令、校验、权限判定，展开为 prompt 注入会话或 fork 子 agent 执行</td></tr>
+          <tr><td>是否进 system prompt</td><td>✅ 在 <code>CORE_TOOLS</code> 白名单内（<code>src/constants/tools.ts:167</code>），schema 完整注入、永不延迟</td></tr>
+          <tr><td>注册条件</td><td>无条件注册（<code>src/tools.ts:238</code>，非 feature-gated）</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>非只读</strong>——会向会话注入消息、修改 toolPermissionContext、可能 fork 子 agent 调用任意工具</td></tr>
+          <tr><td>是否可并发</td><td>❌ <strong>不可并发</strong>（默认；一次只应运行一个 skill，因为工具会展开 prompt 让 Claude 先处理）</td></tr>
+          <tr><td>核心依赖</td><td><code>src/commands.ts</code>（命令注册表）、<code>processPromptSlashCommand</code>、<code>runAgent</code>（fork 路径）、<code>remoteSkillModules</code>（实验性远程 skill）</td></tr>
+          <tr><td>定位互补方</td><td><code>DiscoverSkills</code>（发现可用 skill 名）、<code>LocalMemoryRecall</code>（回忆用户笔记，非 skill）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> Skill 是 Claude Code 的"能力扩展原语"——bundled（内置）/ plugin（插件）/ user-defined（用户自定义）/ mcp（MCP 提供）四类能力统一建模成 <code>Command</code>（prompt 类型）。模型无法直接"运行"一个 markdown 文件，必须通过 <code>SkillTool</code> 把它展开成 <code>newMessages</code> 注入对话。用户敲 <code>/commit</code> 和模型主动判断"应该用 commit skill"走的是同一个工具。</p>
+  </section>
+
+  <hr class="divider">
+
+  <section id="er-wen-jian">
+    <h2>二、关键文件清单</h2>
+    <pre><code>SkillTool/
+├── SkillTool.ts        ← buildTool({...}) 主体（1108 行），全部逻辑都在这
+├── prompt.ts           ← 进 system prompt 的描述 + skill 列表预算裁剪算法
+├── constants.ts        ← SKILL_TOOL_NAME 常量
+├── UI.tsx              ← Ink 渲染（6 个 render 函数）
+└── src/                ← 内部子模块（commands / permissions / telemetry / types / utils）</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>SkillTool.ts</code></td><td>工具主体：schema + validateInput + checkPermissions + call（inline/fork/remote 三路）</td><td><code>buildTool:333</code>、<code>validateInput:356</code>、<code>checkPermissions:433</code>、<code>call:581</code>、<code>executeForkedSkill:120</code>、<code>executeRemoteSkill:972</code>、<code>SAFE_SKILL_PROPERTIES:878</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>system prompt 文本 + skill 列表的字符预算裁剪（<code>formatCommandsWithinBudget</code>）</td><td><code>getPrompt:174</code>、<code>formatCommandsWithinBudget:71</code>、<code>MAX_LISTING_DESC_CHARS:30</code></td></tr>
+          <tr><td><code>constants.ts</code></td><td>工具名常量</td><td><code>SKILL_TOOL_NAME:1</code></td></tr>
+          <tr><td><code>UI.tsx</code></td><td>渲染：成功/进度/fork 完成/被拒/错误 5 种状态</td><td><code>renderToolResultMessage:23</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：与 GlobTool 的"单文件主体"不同，SkillTool 虽然逻辑集中在 <code>SkillTool.ts</code>，但它<strong>动态 import</strong> 了 4 个子系统（命令、权限、agent、遥测），并条件 <code>require</code> 了实验性的 <code>remoteSkillModules</code>（<code>SkillTool.ts:106-114</code>）。这是一个"扇出极广"的编排型工具。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="san-jie-kou">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+    <h3>标识字段</h3>
+    <pre><code>name: SKILL_TOOL_NAME,              // "Skill"
+searchHint: 'invoke a slash-command skill',
+maxResultSizeChars: 100_000,</code></pre>
+    <blockquote class="callout"><p><code>Skill</code> 在 <code>CORE_TOOLS</code> 内，本不需要 <code>searchHint</code> 进 TF-IDF 索引，但保留它无副作用。</p></blockquote>
+    <h3>模型面字段</h3>
+    <pre><code>description: async ({ skill }) => `执行 skill：${skill}`,   // 动态描述，带上 skill 名
+prompt: async () => getPrompt(getProjectRoot()),             // system prompt 片段（memoize）
+get inputSchema  // { skill: string, args?: string }
+get outputSchema // union: inline 输出 | forked 输出</code></pre>
+    <p><strong>输入 schema</strong>（<code>SkillTool.ts:293-300</code>，注意用 <code>z.object</code> 而非 <code>z.strictObject</code>）：</p>
+    <pre><code>{
+  skill: string          // 必填，skill 名，如 "commit"
+  args?:  string         // 可选，传给 skill 的参数
+}</code></pre>
+    <p><strong>输出 schema</strong>（<code>:303-328</code>，union 类型）：</p>
+    <pre><code>// inline 路径
+{ success: boolean, commandName: string, allowedTools?: string[], model?: string, status?: 'inline' }
+// fork 路径
+{ success: boolean, commandName: string, status: 'forked', agentId: string, result: string }</code></pre>
+    <blockquote class="callout"><p>输出 schema 是 union，因为 inline 和 fork 两条路径返回结构完全不同。<code>mapToolResultToToolResultBlockParam</code>（<code>:846</code>）用 <code>'status' in result</code> 做判别式分发。</p></blockquote>
+    <h3>行为字段（重点）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:581</code></td><td>核心逻辑（见下节，三路分发）</td></tr>
+          <tr><td><code>validateInput()</code></td><td><code>:356</code></td><td>校验 skill 名格式、存在性、<code>disableModelInvocation</code>、是否 prompt 类型</td></tr>
+          <tr><td><code>checkPermissions()</code></td><td><code>:433</code></td><td>deny → remote 自动 allow → allow 规则 → safe-properties 自动 allow → ask</td></tr>
+          <tr><td><code>toAutoClassifierInput()</code></td><td><code>:354</code></td><td>返回 skill 名（供自动审批分类器 + skill-coach）</td></tr>
+          <tr><td>无 <code>isReadOnly</code> / <code>isConcurrencySafe</code></td><td>—</td><td>默认 false（会改会话状态，不能并发）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>渲染字段</h3>
+    <pre><code>renderToolUseMessage,          // 显示 "执行 skill：xxx"
+renderToolResultMessage,       // inline 成功 / fork 完成
+renderToolUseProgressMessage,  // fork 子 agent 的中间消息
+renderToolUseRejectedMessage,  // 被权限拒绝
+renderToolUseErrorMessage,     // 错误</code></pre>
+  </section>
+
+  <hr class="divider">
+
+  <section id="si-zhi-xing">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code>（<code>:581-844</code>）不是单一流程，而是<strong>三路分发器</strong>。<code>validateInput</code> 已保证到 <code>call()</code> 时 skill 合法，<code>call()</code> 根据 skill 类型选择执行路径：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["call(input, ctx, canUseTool,\nparentMessage, onProgress)\nSkillTool.ts:581"] --> B{"command.context\n=== 'fork'?"}
+    B -->|"是"| C["executeForkedSkill\n:627 → :120"]
+    B -->|"否"| D{"远程 canonical skill?\n(EXPERIMENTAL_SKILL_SEARCH\n+ USER_TYPE=ant)"}
+    D -->|"是"| E["executeRemoteSkill\n:615 → :972"]
+    D -->|"否"| F["内联展开路径\nprocessPromptSlashCommand"]
+    F --> G["返回 newMessages +\ncontextModifier\n(allowedTools/model/effort)"]
+    C --> H["runAgent 子 agent\n返回 {status:'forked', result}"]
+    E --> I["addInvokedSkill + 注入\nSKILL.md 为 user 消息"]
+      </div>
+    </div>
+    <h3>路径一：内联展开（最常见）</h3>
+    <p><code>:638-843</code>。绝大多数 bundled/plugin/user skill 走这里：</p>
+    <ol>
+      <li><strong><code>getAllCommands</code></strong>（<code>:81</code>）：合并本地命令 + MCP skill（<code>loadedFrom === 'mcp'</code>），用 <code>uniqBy</code> 去重。</li>
+      <li><strong><code>processPromptSlashCommand</code></strong>（<code>:642</code>）：把 skill 名 + args 经由 <code>processSlashCommand</code> 处理——展开 <code>!command</code>、插值 <code>$ARGUMENTS</code>、应用 frontmatter、注册 hooks、返回 <code>messages</code>。</li>
+      <li><strong><code>tagMessagesWithToolUseID</code></strong>（<code>:739</code>）：给生成的 user/attachment/system 消息打上 <code>sourceToolUseID</code>，使其在工具解析完成前保持 transient（<code>utils.ts</code>）。</li>
+      <li><strong><code>contextModifier</code></strong>（<code>:778</code>）：返回一个闭包，按需修改下游 context：
+        <ul>
+          <li><code>allowedTools</code> → 合并进 <code>toolPermissionContext.alwaysAllowRules.command</code>；</li>
+          <li><code>model</code> → <code>resolveSkillModelOverride</code>（保留 <code>[1m]</code> 后缀，防 opus[1m] 被降到 200K 触发 autocompact，注释 <code>:812</code>）；</li>
+          <li><code>effort</code> → 覆盖 <code>effortValue</code>。</li>
+        </ul>
+      </li>
+      <li><strong>返回</strong> <code>{ data: {success, commandName, allowedTools, model}, newMessages, contextModifier }</code>——注意带 <code>newMessages</code>，这些消息会被注入会话历史。</li>
+    </ol>
+    <h3>路径二：fork 子 agent（<code>:120-291</code>）</h3>
+    <p>当 skill 的 <code>context === 'fork'</code> 时（<code>:626</code>），在隔离的子 agent 中执行：</p>
+    <ul>
+      <li><code>prepareForkedCommandContext</code> 构造 agent 定义 + prompt 消息；</li>
+      <li><code>runAgent({...})</code> 跑子 agent，<strong>实时 yield 消息</strong>，对含 <code>tool_use</code>/<code>tool_result</code> 的消息调 <code>onProgress</code> 上报进度（<code>:252</code>）；</li>
+      <li><code>extractResultText</code> 提取最终文本结果；</li>
+      <li><code>finally</code> 块 <code>clearInvokedSkillsForAgent(agentId)</code> 释放 skill 内容内存；</li>
+      <li>返回 <code>{ status: 'forked', agentId, result }</code>。</li>
+    </ul>
+    <blockquote class="callout"><p>fork 路径让 skill 拥有独立 token 预算，适合重型/多轮 skill。</p></blockquote>
+    <h3>路径三：远程 canonical skill（<code>:972-1108</code>，仅 ant 实验性）</h3>
+    <p><code>feature('EXPERIMENTAL_SKILL_SEARCH') && USER_TYPE === 'ant'</code> 时，<code>_canonical_&lt;slug&gt;</code> 名被拦截：</p>
+    <ul>
+      <li><code>loadRemoteSkill</code> 从 AKI/GCS 拉 SKILL.md（带本地缓存）；</li>
+      <li><code>parseFrontmatter</code> 剥离 YAML；</li>
+      <li>注入 <code>Base directory for this skill:</code> header + 替换 <code>${CLAUDE_SKILL_DIR}</code> / <code>${CLAUDE_SESSION_ID}</code>；</li>
+      <li><code>addInvokedSkill</code> 注册到 compaction 保留状态；</li>
+      <li>直接把内容包装成 <code>isMeta: true</code> 的 user 消息注入。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="wu-quan-xian">
+    <h2>五、权限与安全</h2>
+    <p>SkillTool 的权限模型（<code>checkPermissions:433-579</code>）是分层 cascade，<strong>顺序至关重要</strong>：</p>
+    <h3>1. deny 规则优先（<code>:471-487</code>）</h3>
+    <p><code>getRuleByContentsForTool(..., 'deny')</code> 取所有 deny 规则，用 <code>ruleMatches</code>（<code>:452</code>）逐条匹配。匹配支持：</p>
+    <ul>
+      <li><strong>精确匹配</strong>：<code>commit</code> 匹配 <code>commit</code>；</li>
+      <li><strong>前缀匹配</strong>：<code>review:*</code> 匹配 <code>review-pr</code>（<code>:463</code> 去掉 <code>:*</code> 后 <code>startsWith</code>）。</li>
+    </ul>
+    <p>命中即 <code>behavior: 'deny'</code>。</p>
+    <h3>2. 远程 canonical skill 自动 allow（<code>:493-505</code>）</h3>
+    <p>放在 deny 之后，确保用户配置的 <code>Skill(_canonical_:*)</code> deny 仍生效。理由：远程 skill 内容是 canonical/精选的，非用户自创。</p>
+    <h3>3. allow 规则（<code>:508-524</code>）</h3>
+    <p>同样用 <code>ruleMatches</code>，命中即 allow。</p>
+    <h3>4. safe-properties 自动 allow（<code>:530-539</code> + <code>:878-936</code>）</h3>
+    <p><strong>这是 SkillTool 最精巧的安全设计。</strong> <code>skillHasOnlySafeProperties</code> 检查 <code>Command</code> 对象的所有属性是否都在 <code>SAFE_SKILL_PROPERTIES</code> 白名单内：</p>
+    <pre><code>const SAFE_SKILL_PROPERTIES = new Set([
+  'type', 'progressMessage', 'contentLength', 'argNames', 'model', 'effort',
+  'source', 'pluginInfo', 'disableNonInteractive', 'skillRoot', 'context',
+  'agent', 'getPromptForCommand', 'frontmatterKeys',
+  /* CommandBase 属性 */ 'name', 'description', ...
+])</code></pre>
+    <p><strong>默认拒绝原则</strong>：未来新增到 <code>PromptCommand</code> 的属性，在显式审查并加入白名单前，<strong>默认都需要权限</strong>（注释 <code>:876-877</code>）。只有空值/空数组/空对象的非白名单属性会被忽略（<code>:920-932</code>）。</p>
+    <h3>5. ask（<code>:543-578</code>）</h3>
+    <p>都不命中则 <code>behavior: 'ask'</code>，附带两条 suggestions：精确 skill allow + <code>prefix:*</code> 前缀 allow，写入 <code>localSettings</code>。</p>
+    <h3><code>validateInput</code> 的 errorCode 体系（<code>:356-431</code>）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>errorCode</th><th>含义</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>skill 名为空</td></tr>
+          <tr><td>2</td><td>未知 skill（找不到命令）</td></tr>
+          <tr><td>4</td><td><code>disableModelInvocation</code>（skill 禁止模型调用）</td></tr>
+          <tr><td>5</td><td>非 prompt 类型命令</td></tr>
+          <tr><td>6</td><td>远程 skill 未在本次会话被发现</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p>注意 <code>validateInput</code> 对远程 canonical skill（<code>:378-397</code>）有特殊拦截：<code>_canonical_&lt;slug&gt;</code> 名在本地命令查找<strong>之前</strong>就被处理，因为远程 skill 不在本地注册表里。</p></blockquote>
+  </section>
+
+  <hr class="divider">
+
+  <section id="liu-guan-xi">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    SKILL["SkillTool"] -->|命令查找| CMD["src/commands.ts\ngetCommands / findCommand"]
+    SKILL -->|展开| PROC["processPromptSlashCommand\nsrc/utils/processUserInput"]
+    SKILL -->|fork| AGENT["runAgent\n../AgentTool/runAgent"]
+    SKILL -->|远程| REMOTE["remoteSkillModules\n(EXPERIMENTAL_SKILL_SEARCH)"]
+    SKILL -->|权限| PERM["getRuleByContentsForTool\nsrc/utils/permissions"]
+    SKILL -->|遥测| TEL["logEvent\ntengu_skill_tool_invocation"]
+    SKILL -->|保留| INV["addInvokedSkill\nsrc/bootstrap/state"]
+    SKILL -.发现.-> DISC["DiscoverSkillsTool\nTF-IDF 搜索 skill"]
+    SKILL -.模型面.-> PROMPT["prompt.ts\nformatCommandsWithinBudget"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与命令系统</strong>：<code>getAllCommands</code>（<code>:81</code>）合并本地 + MCP skill，是 SkillTool 的数据源。</li>
+      <li><strong>与 AgentTool</strong>：fork 路径直接复用 <code>runAgent</code>（<code>:221</code>），共享子 agent 执行基础设施。</li>
+      <li><strong>与 DiscoverSkillsTool</strong>：互补——Discover 用 TF-IDF 找 skill 名，Skill 执行找到的 skill。远程 skill 必须先 Discover 才能被 Skill 的 <code>validateInput</code> 通过（<code>:388-393</code>）。</li>
+      <li><strong>与权限系统</strong>：通过 <code>getRuleByContentsForTool</code> 接入按内容的 ACL。</li>
+      <li><strong>与 compaction</strong>：<code>addInvokedSkill</code> 把 skill 内容注册到保留状态，确保 compaction 后 skill 上下文不丢（远程路径 <code>:1088</code>，本地路径在 <code>processPromptSlashCommand</code> 内完成）。</li>
+      <li><strong>与遥测</strong>：<code>tengu_skill_tool_invocation</code> 事件记录 skill 名（脱敏 <code>command_name</code> + PII 标签 <code>_PROTO_skill_name</code> 双写）、execution_context（inline/fork/remote）、plugin 信息等。</li>
+    </ul>
+  </section>
+
+  <hr class="divider">
+
+  <section id="qi-liang-dian">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>三路分发架构</strong>：inline / fork / remote 三条路径在同一 <code>call()</code> 里分发，<code>outputSchema</code> 用 union + <code>status</code> 判别字段统一。这让一个工具覆盖从"轻量 prompt 注入"到"重型子 agent"到"远程拉取"的全部场景。</li>
+      <li><strong><code>SAFE_SKILL_PROPERTIES</code> 默认拒绝白名单</strong>（<code>:878-936</code>）：安全工程的典范——新增属性默认需权限，而非默认放行。避免新属性（可能是危险能力）静默绕过权限。</li>
+      <li><strong><code>remoteSkillModules</code> 条件 require</strong>（<code>:106-114</code>）：用 <code>feature()</code> 守卫 + <code>require()</code> 而非静态 import，避免 <code>akiBackend.ts</code> 的模块级副作用（memoize/lazySchema 常量）在 tree-shaking 后仍保留，污染非实验构建。</li>
+      <li><strong>遥测双写脱敏</strong>（<code>:681-687</code> 等）：<code>command_name</code>（脱敏）+ <code>_PROTO_skill_name</code>（PII 标签未脱敏）双列写入，让通用仪表盘用脱敏值、特权分析用原值。<code>isOfficialSkill ? name : 'third-party'</code> 对非官方 plugin 名统一脱敏为 <code>third-party</code>（<code>:722</code>）。</li>
+      <li><strong><code>contextModifier</code> 链式应用</strong>（<code>:778-842</code>）：捕获 <code>previousGetAppState</code> 而非闭包外的 <code>context.getAppState</code>，确保多个 contextModifier 能正确链式叠加（注释 <code>:788</code>）。</li>
+      <li><strong>保留 <code>[1m]</code> 后缀</strong>（<code>:812-823</code>）：<code>resolveSkillModelOverride</code> 防止 <code>model: opus</code> 的 skill 在 <code>opus[1m]</code> 会话中把窗口降到 200K 触发 autocompact——一个极易被忽略的边界情况。</li>
+      <li><strong>fork 路径的内存释放</strong>（<code>:271</code> + <code>:289</code>）：<code>agentMessages.length = 0</code> 释放消息数组，<code>finally</code> 清 <code>invokedSkills</code>，避免长 skill 泄漏内存。</li>
+      <li><strong>prompt.ts 的预算裁剪算法</strong>（<code>prompt.ts:71-172</code>）：skill 列表占上下文 1%（<code>SKILL_BUDGET_CONTEXT_PERCENT</code>），bundled skill 永不截断、其他 skill 按比例截断描述，极端情况只保留名称——一套渐进降级策略。</li>
+    </ol>
+  </section>
+
+  <hr class="divider">
+
+  <section id="ba-dao-hang">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名常量</td><td><code>SkillTool/constants.ts:1</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>SkillTool/SkillTool.ts:333-872</code></td></tr>
+          <tr><td>输入/输出 schema</td><td><code>SkillTool.ts:293-331</code></td></tr>
+          <tr><td><code>validateInput</code>（errorCode 体系）</td><td><code>SkillTool.ts:356-431</code></td></tr>
+          <tr><td><code>checkPermissions</code>（5 层 cascade）</td><td><code>SkillTool.ts:433-579</code></td></tr>
+          <tr><td><code>call()</code> 三路分发</td><td><code>SkillTool.ts:581-844</code></td></tr>
+          <tr><td>fork 子 agent 执行</td><td><code>SkillTool.ts:120-291</code></td></tr>
+          <tr><td>远程 canonical skill</td><td><code>SkillTool.ts:972-1108</code></td></tr>
+          <tr><td>safe-properties 白名单</td><td><code>SkillTool.ts:878-936</code></td></tr>
+          <tr><td>system prompt + 预算裁剪</td><td><code>SkillTool/prompt.ts:71-197</code></td></tr>
+          <tr><td>注册位置</td><td><code>src/tools.ts:238</code></td></tr>
+          <tr><td>CORE_TOOLS 白名单</td><td><code>src/constants/tools.ts:167</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section id="jiu-jian-yi">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：先看"一、工具定位"理解 skill 是什么，再看"四、call()"的三路分发图建立全局，最后精读"五、权限"的 cascade——那是 SkillTool 安全设计最密集的部分。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 inline / fork / remote 三条路径的触发条件（<code>context==='fork'</code> / 远程 canonical / 默认）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 <code>checkPermissions</code> 的 5 层顺序（deny → remote auto-allow → allow → safe-properties → ask）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>SAFE_SKILL_PROPERTIES</code> 为什么是"默认拒绝"白名单（新增属性默认需权限）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>remoteSkillModules</code> 为什么用条件 <code>require</code> 而非静态 import（避免副作用污染）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 <code>resolveSkillModelOverride</code> 保留 <code>[1m]</code> 后缀的原因（防 autocompact）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>Skill</code> 在 <code>CORE_TOOLS</code>（<code>src/constants.tools.ts:167</code>）、<code>DiscoverSkills</code> 是 feature-gated 延迟加载（<code>src/tools.ts:144</code>）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>让 Claude <code>Skill</code> 一个 bundled skill（如 <code>commit</code>），观察内联展开注入的 newMessages</li>
+      <li>构造一个 <code>Skill(commit)</code> 的 deny 规则，验证 <code>ruleMatches</code> 的精确 + 前缀匹配</li>
+      <li>在 <code>checkPermissions:530</code> 加日志，观察 <code>skillHasOnlySafeProperties</code> 对不同 skill 的判定</li>
+      <li>启用 <code>FEATURE_EXPERIMENTAL_SKILL_SEARCH=1</code> + <code>USER_TYPE=ant</code>，用 DiscoverSkills 发现远程 skill 再用 Skill 执行，观察 <code>executeRemoteSkill</code> 路径</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>

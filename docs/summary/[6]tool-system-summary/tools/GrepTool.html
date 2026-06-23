@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GrepTool 工具详解 — Claude Code 工具详解</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange: #D77757; --orange-lt: #f0e0d8; --orange-dk: #b55e3a;
+      --blue: #5769F7; --blue-lt: #dde0fe; --blue-dk: #3a4ed4;
+      --green: #22a766; --green-lt: #d2f0e3;
+      --bg: #faf8f5; --bg2: #f3f0eb; --bg3: #ebe7e0;
+      --text: #2d2a26; --text-2: #5a5650; --text-3: #8a8480;
+      --border: #ddd8d0; --shadow: 0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius: 8px; --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'SF Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px; }
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+    section { margin-top: 56px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--orange-dk); border-bottom: 2px solid var(--orange-lt); padding-bottom: 8px; margin-bottom: 24px; letter-spacing: .01em; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    h4 { font-size: .95rem; font-weight: 600; color: var(--text); margin: 16px 0 8px; }
+    p { color: var(--text-2); margin-bottom: 10px; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hero { background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%); border-bottom: 1px solid var(--border); padding: 56px 24px 48px; text-align: center; }
+    .hero-badge { display: inline-block; background: var(--orange); color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; color: var(--text); letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+    .hero p { font-size: 1.05rem; color: var(--text-2); max-width: 640px; margin: 0 auto 28px; }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; list-style: none; }
+    .nav-links a { display: inline-block; padding: 6px 16px; background: #fff; border: 1.5px solid var(--border); border-radius: 20px; font-size: .82rem; font-weight: 600; color: var(--text-2); transition: border-color .15s, color .15s, box-shadow .15s; }
+    .nav-links a:hover { border-color: var(--orange); color: var(--orange-dk); box-shadow: 0 2px 6px rgba(215,119,87,.15); text-decoration: none; }
+    pre { background: #1e1b16; color: #d4cfc8; border-radius: var(--radius); padding: 16px 20px; font-family: var(--font-mono); font-size: .8rem; line-height: 1.7; overflow-x: auto; margin: 12px 0; border-left: 3px solid var(--orange); }
+    code { font-family: var(--font-mono); }
+    p code, li code, td code { background: var(--bg2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: .82em; color: var(--orange-dk); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { background: var(--bg2); color: var(--text); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+    blockquote.callout { background: var(--bg2); border-left: 4px solid var(--orange); padding: 14px 20px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0; color: var(--text-2); }
+    blockquote.callout strong { color: var(--text); font-weight: 700; }
+    .mermaid-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin: 16px 0; overflow-x: auto; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: var(--text-2); }
+    .checklist input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--orange); }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 48px; padding: 8px 18px; background: var(--bg2); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; transition: border-color .15s, color .15s; }
+    .back-link:hover { border-color: var(--orange); color: var(--orange-dk); text-decoration: none; }
+    ul, ol { padding-left: 22px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; line-height: 1.6; }
+    li > ul, li > ol { margin-top: 4px; margin-bottom: 2px; }
+    strong { color: var(--text); font-weight: 700; }
+    em { font-style: italic; }
+    @media (max-width: 700px) { .hero h1 { font-size: 1.6rem; } }
+  </style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-badge">工具系统 · 工具详解</div>
+  <h1>GrepTool（Grep）工具详解</h1>
+  <p>基于 ripgrep 的内容检索工具——Claude Code 文件检索的"内容面"，与 Glob 的"名称面"互补，三种输出模式、head_limit/offset 分页、VCS 目录自动排除、路径相对化省 token，条件加载（hasEmbeddedSearchTools）</p>
+  <ul class="nav-links">
+    <li><a href="index.html">← 返回工具总览</a></li>
+    <li><a href="#一">工具定位</a></li>
+    <li><a href="#二">关键文件清单</a></li>
+    <li><a href="#三">Tool 接口字段实现</a></li>
+    <li><a href="#四">核心执行流程</a></li>
+    <li><a href="#五">权限与安全</a></li>
+    <li><a href="#六">与其他系统的关系</a></li>
+    <li><a href="#七">亮点与设计取舍</a></li>
+    <li><a href="#八">源码导航</a></li>
+    <li><a href="#九">学习建议</a></li>
+  </ul>
+</header>
+
+<div class="page-wrap">
+  <blockquote class="callout">
+    <p>这是工具系统逐个拆解系列的<strong>检索工具篇之二</strong>。<code>Grep</code>（<code>GREP_TOOL_NAME = 'Grep'</code>）是 Claude Code 文件检索的"<strong>内容面</strong>"——给定正则模式，在文件内容中搜索匹配。它与 <code>Glob</code>（"名称面"）互补：Glob 按文件名找路径，Grep 按内容找路径。底层是 <strong>ripgrep</strong>（<code>rg</code>），支持三种输出模式（content/files_with_matches/count）、上下文行（-B/-A/-C）、行号（-n）、大小写（-i）、类型过滤（--type）、glob 过滤、多行模式（-U）、head_limit/offset 分页。自动排除 VCS 目录、限制行长 500、路径相对化省 token。</p>
+  </blockquote>
+
+  <section id="一">
+    <h2>一、工具定位（一句话总结）</h2>
+    <p><strong><code>Grep</code> = 按正则在文件内容中搜索匹配的只读检索工具（ripgrep 封装）。</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>工具名</td><td><code>Grep</code>（常量 <code>GREP_TOOL_NAME</code>，<code>prompt.ts:3</code>）</td></tr>
+          <tr><td>一句话</td><td>给定正则模式，用 ripgrep 搜索文件内容，三种输出模式 + head_limit/offset 分页</td></tr>
+          <tr><td>是否进 system prompt</td><td>⚠️ <strong>条件加载</strong>（<code>tools.ts:227</code>）：<code>hasEmbeddedSearchTools() ? [] : [GlobTool, GrepTool]</code>——当 Ant 原生构建把 bfs/ugrep 嵌入 bun 二进制时，Glob/Grep 不再需要。常规构建下两者都加载。<code>GREP_TOOL_NAME</code> 在 <code>CORE_TOOLS</code> 白名单</td></tr>
+          <tr><td>只读 / 破坏性</td><td><strong>只读</strong>（<code>isReadOnly() → true</code>，<code>:183-185</code>）</td></tr>
+          <tr><td>是否可并发</td><td>✅ <strong>可并发</strong>（<code>isConcurrencySafe() → true</code>，<code>:180-182</code>）</td></tr>
+          <tr><td>核心依赖</td><td><code>src/utils/ripgrep.ts:ripGrep</code>（ripgrep 进程封装）、<code>src/utils/permissions/filesystem.ts</code>（ignore patterns）</td></tr>
+          <tr><td>定位互补方</td><td><code>Glob</code>（按名称找路径）、<code>Agent</code>（开放式多轮检索）、<code>Read</code>（读具体内容）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>为什么需要它？</strong> 模型经常需要"我知道代码里有什么模式，但不知道在哪个文件"——比如找所有 <code>console.log</code>、找某个函数的调用点、找 TODO 注释。<code>Grep</code> 用正则一次扫遍代码库内容，比逐文件 Read 快几个数量级。prompt 明确（<code>prompt.ts:10</code>）——"搜索任务请始终用 Grep。绝不可以通过 Bash 调用 grep 或 rg"——因为 Grep 已针对正确权限和访问做了优化。</p>
+  </section>
+
+  <section id="二">
+    <h2>二、关键文件清单</h2>
+    <pre>GrepTool/
+├── GrepTool.ts   ← buildTool({...}) 主体（574 行），schema + validateInput + call（参数→rg args 拼装）
+├── prompt.ts     ← GREP_TOOL_NAME + getDescription（含正则语法、多行说明、Agent 引导）
+└── UI.tsx        ← Ink 渲染（SearchResultSummary 复用组件，Glob 也复用）</pre>
+    <blockquote class="callout"><p><strong>注意</strong>：GrepTool <strong>无 src/ 子目录</strong>——是 5 个文件操作工具中最精简的结构，所有逻辑在单文件。</p></blockquote>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>文件</th><th>角色</th><th>必看行号</th></tr></thead>
+        <tbody>
+          <tr><td><code>GrepTool.ts</code></td><td>工具主体：schema + validateInput + call（参数→rg argv 拼装）+ mapToolResult</td><td><code>buildTool:157</code>、<code>inputSchema:30-87</code>、<code>validateInput:198</code>、<code>call:307-573</code>、<code>applyHeadLimit:107</code>、<code>VCS_DIRECTORIES_TO_EXCLUDE:92</code></td></tr>
+          <tr><td><code>prompt.ts</code></td><td>工具名 + 描述（正则语法、多行、Agent 引导）</td><td><code>GREP_TOOL_NAME:3</code>、<code>getDescription:6-18</code></td></tr>
+          <tr><td><code>UI.tsx</code></td><td>渲染（SearchResultSummary，Glob 复用）</td><td><code>SearchResultSummary:15</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>结构特点</strong>：GrepTool 是"单文件精简主体"型——574 行全在 <code>GrepTool.ts</code>，无 utils/types/constants 拆分（参数→rg argv 的拼装逻辑强内聚，难拆）。核心复杂度在 <code>call()</code> 的<strong>参数到 ripgrep argv 的映射</strong>——14 个输入参数翻译成 rg 命令行。</p></blockquote>
+  </section>
+
+  <section id="三">
+    <h2>三、Tool 接口字段实现（<code>buildTool</code> 逐字段）</h2>
+
+    <h3>标识字段</h3>
+    <pre>name: GREP_TOOL_NAME,                      // "Grep"
+searchHint: '使用正则搜索文件内容（ripgrep）',
+maxResultSizeChars: 20_000,                 // ⭐ 20K（其他工具是 100K）—— 工具结果持久化阈值
+strict: true,</pre>
+    <blockquote class="callout"><p><strong><code>maxResultSizeChars: 20_000</code> 的特殊性</strong>：其他文件工具是 100_000，Grep 是 20_000。因为重度 grep 会话可能产生 6-24K tokens 的 content 输出，20K 阈值让超限结果<strong>持久化到磁盘</strong>（减轻长会话内存压力），而非无限保留在消息数组。</p></blockquote>
+
+    <h3>模型面字段</h3>
+    <pre>async description() { return getDescription() }
+async prompt()      { return getDescription() }   // 与 description 同文
+userFacingName()    { return '搜索' }             // 静态
+get inputSchema()   { return inputSchema() }
+get outputSchema()  { return outputSchema() }</pre>
+    <p><strong>输入 schema</strong>（<code>:30-87</code>）——<strong>14 个参数</strong>，是文件工具中最丰富的：</p>
+    <pre>{
+  pattern:      string,          // 必填，正则
+  path?:        string,          // 搜索路径（rg PATH），默认 cwd
+  glob?:        string,          // 文件名 glob 过滤（rg --glob）
+  output_mode?: 'content'|'files_with_matches'|'count',  // 默认 files_with_matches
+  '-B'?:        number,          // 匹配前行数（content 模式）
+  '-A'?:        number,          // 匹配后行数
+  '-C'?:        number,          // context 别名
+  context?:     number,          // 匹配前后行数（优先于 -B/-A）
+  '-n'?:        boolean,         // 行号（默认 true）
+  '-i'?:        boolean,         // 大小写不敏感
+  type?:        string,          // 文件类型（rg --type）
+  head_limit?:  number,          // 限制前 N 条（默认 250，0=不限）
+  offset?:      number,          // 跳过前 N 条
+  multiline?:   boolean,         // 多行模式（rg -U --multiline-dotall）
+}</pre>
+    <blockquote class="callout"><p><strong>参数命名设计</strong>：<code>-B</code>/<code>-A</code>/<code>-C</code>/<code>-n</code>/<code>-i</code> 直接对应 ripgrep 标志名，让模型能映射 CLI 经验。<code>semanticNumber</code>/<code>semanticBoolean</code> 包裹容错输入。</p></blockquote>
+    <p><strong>输出 schema</strong>（<code>:141-152</code>）：</p>
+    <pre>{
+  mode?:          'content'|'files_with_matches'|'count',
+  numFiles:       number,
+  filenames:      string[],
+  content?:       string,         // content/count 模式
+  numLines?:      number,         // content 模式
+  numMatches?:    number,         // count 模式
+  appliedLimit?:  number,         // 实际应用的 limit（截断时才设）
+  appliedOffset?: number,
+}</pre>
+
+    <h3>行为字段（重点）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>实现位置</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>call()</code></td><td><code>:307-573</code></td><td>参数→rg argv 拼装 + ripGrep 调用 + 三模式后处理</td></tr>
+          <tr><td><code>validateInput()</code></td><td><code>:198-229</code></td><td>仅校验 path 存在性（+ UNC 豁免）</td></tr>
+          <tr><td><code>checkPermissions()</code></td><td><code>:230-237</code></td><td>委托 <code>checkReadPermissionForTool</code></td></tr>
+          <tr><td><code>isConcurrencySafe()</code></td><td><code>:180-182</code> → <code>true</code></td><td>读不同内容可安全并发</td></tr>
+          <tr><td><code>isReadOnly()</code></td><td><code>:183-185</code> → <code>true</code></td><td>无副作用</td></tr>
+          <tr><td><code>isSearchOrReadCommand()</code></td><td><code>:189-191</code> → <code>{isSearch:true}</code></td><td>标记为"搜索类"（与 Glob 一致）</td></tr>
+          <tr><td><code>getPath()</code></td><td><code>:192-194</code></td><td><code>path || getCwd()</code></td></tr>
+          <tr><td><code>preparePermissionMatcher()</code></td><td><code>:195-197</code></td><td>匹配 <strong>pattern</strong>（非 path）——<code>matchWildcardPattern(rulePattern, pattern)</code></td></tr>
+          <tr><td><code>toAutoClassifierInput()</code></td><td><code>:186-188</code></td><td><code>path ? '${pattern} in ${path}' : pattern</code></td></tr>
+          <tr><td><code>extractSearchText()</code></td><td><code>:247-250</code></td><td>content 模式返回 content，否则 filenames.join</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong><code>preparePermissionMatcher</code> 的独特性</strong>：其他文件工具匹配 <code>file_path</code>/<code>path</code>，Grep 匹配 <strong>pattern</strong> 本身。这让 deny-rule 既能匹配"搜什么模式"（如 <code>deny: password.*</code>），也能匹配"在哪搜"（通过 getPath）。</p></blockquote>
+  </section>
+
+  <section id="四">
+    <h2>四、核心执行流程：<code>call()</code></h2>
+    <p><code>call()</code>（<code>:307-573</code>）核心是<strong>把 14 个输入参数翻译成 ripgrep argv</strong>，再按输出模式后处理：</p>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    A["call(input, ctx)\nGrepTool.ts:307"] --> BASE["基础 argv:\n--hidden + 排除 VCS 目录\n+ --max-columns 500"]
+    BASE --> ML{"multiline?"}
+    ML -->|是| MLA["-U --multiline-dotall"]
+    ML -->|否| CI{"-i?"}
+    CI -->|是| CIA["-i"]
+    CIA --> MODE
+    ML --> MODE{output_mode}
+    MODE -->|files_with_matches| MODL["-l"]
+    MODE -->|count| MODC["-c"]
+    MODE -->|content| MODN["-n（若 show_line_numbers）\n+ -B/-A/-C（context 优先）"]
+    MODL --> PAT
+    MODC --> PAT
+    MODN --> PAT["pattern（-e 前缀防横杠歧义）"]
+    PAT --> FLT["--type / --glob 过滤"]
+    FLT --> IGN["ignore patterns\n（权限 deny 规则 → !**/pattern）"]
+    IGN --> PLG["排除孤立插件版本目录"]
+    PLG --> RG["ripGrep(args, absolutePath, signal)"]
+    RG --> OUT{output_mode}
+    OUT -->|content| OCON["applyHeadLimit →\n逐行相对化路径\n（先限后相对化，省功）"]
+    OUT -->|count| OCNT["applyHeadLimit →\n相对化 + 解析总匹配数"]
+    OUT -->|files_with_matches| OFIL["Promise.allSettled stat\n→ 按 mtime 排序\n→ applyHeadLimit → 相对化"]
+    OCON --> RES["return { data }"]
+    OCNT --> RES
+    OFIL --> RES
+      </div>
+    </div>
+    <p><strong>关键点逐条</strong>：</p>
+    <ol>
+      <li><strong>基础 argv</strong>（<code>:327-335</code>）：<code>--hidden</code>（含隐藏文件）+ 排除 6 个 VCS 目录（<code>.git/.svn/.hg/.bzr/.jj/.sl</code>，<code>:92-99</code>）+ <code>--max-columns 500</code>（限制行长，防 base64/压缩内容塞满输出）。</li>
+      <li><strong>context 优先级</strong>（<code>:360-373</code>）：<code>-C</code>/<code>context</code> 优先于 <code>-B</code>/<code>-A</code>。指定 context 则忽略 -B/-A。</li>
+      <li><strong>pattern 的 <code>-e</code> 前缀</strong>（<code>:376-381</code>）：pattern 以横杠开头时用 <code>-e pattern</code>，防 ripgrep 解释为命令行选项。</li>
+      <li><strong>glob 智能拆分</strong>（<code>:388-406</code>）：按空格拆分，但保留花括号模式（<code>*.{ts,tsx}</code> 不拆）；无花括号的再按逗号拆。支持多 glob 模式。</li>
+      <li><strong>ignore patterns 转换</strong>（<code>:408-424</code>）：权限 deny 规则转成 ripgrep 排除 glob。绝对路径直接 <code>!pattern</code>，相对路径需 <code>!**/pattern</code>（ripgrep 相对 cwd 应用 gitignore 模式）。</li>
+      <li><strong>ripgrep 调用</strong>（<code>:438</code>）：<code>ripGrep(args, absolutePath, abortController.signal)</code>。超时由 ripgrep 自身 execFile timeout 处理，<strong>不用 AbortController 超时</strong>以避免打断 agent 循环；超时抛 <code>RipgrepTimeoutError</code> 让 Claude 知道搜索未完成。</li>
+      <li><strong>content 模式后处理</strong>（<code>:440-473</code>）：<strong>先 applyHeadLimit 再相对化</strong>——相对化逐行处理，宽泛模式可能返 10k+ 行而 head_limit 只留 30-100 行，先限后相对化省功。</li>
+      <li><strong>count 模式</strong>（<code>:475-521</code>）：透传 rg 原始 <code>filename:count</code> 格式，相对化后解析总匹配数和文件数。</li>
+      <li><strong>files_with_matches 模式</strong>（<code>:523-572</code>）：<code>Promise.allSettled</code> 批量 stat（单文件 ENOENT 不让整批失败）→ 按 mtime 排序（测试环境按文件名保证确定性）→ applyHeadLimit → 相对化。</li>
+    </ol>
+    <h4><code>applyHeadLimit</code>（<code>:107-125</code>）——分页核心</h4>
+    <ul>
+      <li><code>limit === 0</code> 是<strong>不限的逃生口</strong>（<code>:113-115</code>）。</li>
+      <li>默认 <code>DEFAULT_HEAD_LIMIT = 250</code>（<code>:105</code>）——无界 content 可能填满 20KB 持久化阈值。</li>
+      <li>仅在<strong>确实截断时</strong>设 <code>appliedLimit</code>（<code>:120-123</code>）——让模型知道可能还有更多结果，可 offset 分页。</li>
+    </ul>
+  </section>
+
+  <section id="五">
+    <h2>五、权限与安全</h2>
+
+    <h3><code>validateInput</code>（<code>:198-229</code>，第 3 步）——极简</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>校验项</th><th>行号</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>path 存在性</td><td><code>:200-225</code></td><td>仅当提供 path 时 <code>fs.stat</code>，ENOENT 则 <code>suggestPathUnderCwd</code> 建议（errorCode 1）</td></tr>
+          <tr><td>UNC 豁免</td><td><code>:205-207</code></td><td><code>\\</code>/<code>//</code> 跳过</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <blockquote class="callout"><p><strong>为何这么简？</strong> Grep 的合法性主要靠<strong>权限系统</strong>（checkPermissions 的 deny 规则→ignore patterns）和 <strong>ripgrep 自身</strong>（正则语法错误由 rg 报）。validateInput 只做最基础的路径存在性检查。</p></blockquote>
+
+    <h3>安全与健壮性细节</h3>
+    <ul>
+      <li><strong>VCS 目录自动排除</strong>（<code>:92-99</code>）：<code>.git/.svn/.hg/.bzr/.jj/.sl</code>——版本控制元数据自动排除。</li>
+      <li><strong><code>--max-columns 500</code></strong>（<code>:335</code>）：限制行长，防 base64/压缩内容/minified JS 塞满输出。</li>
+      <li><strong>ignore patterns 注入</strong>（<code>:408-424</code>）：权限 deny 规则转成 rg 排除 glob，确保搜索遵守用户的读限制。</li>
+      <li><strong><code>Promise.allSettled</code> 容错</strong>（<code>:526-528</code>）：files_with_matches 模式批量 stat，单文件 ENOENT（ripgrep 扫描与 stat 之间被删）不让整批失败，按 mtime 0 排序。</li>
+      <li><strong>测试环境确定性</strong>（<code>:539-542</code>）：<code>NODE_ENV === 'test'</code> 时按文件名排序，保证测试结果确定。</li>
+      <li><strong>不用 AbortController 超时</strong>（<code>:433-437</code>）：避免打断 agent 循环；超时由 ripgrep execFile timeout 处理，抛 <code>RipgrepTimeoutError</code> 让 Claude 知道搜索未完成。</li>
+    </ul>
+
+    <h3><code>checkPermissions</code>（<code>:230-237</code>，第 4 步）</h3>
+    <p>委托 <code>checkReadPermissionForTool</code>——与 Read/Glob 共用读权限管道。deny 规则通过 <code>getFileReadIgnorePatterns</code> 在 <code>call()</code> 中转成 rg 排除 glob。</p>
+  </section>
+
+  <section id="六">
+    <h2>六、与其他系统/工具的关系</h2>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart TD
+    GREP[GrepTool] -->|底层| RG["src/utils/ripgrep.ts\nripGrep（进程封装）"]
+    GREP -->|权限| RPERM["checkReadPermissionForTool\n+ getFileReadIgnorePatterns\n→ rg 排除 glob"]
+    GREP -->|相对化| REL["toRelativePath\nsrc/utils/path.ts"]
+    GREP -->|渲染| UI["UI.tsx SearchResultSummary\n（Glob 复用）"]
+    GREP -.同源.-> GLOB["GlobTool\n共享 isSearch 标记 +\n相对化策略 + 渲染逻辑"]
+    GREP -.条件加载.-> EMB["hasEmbeddedSearchTools()\nAnt 原生构建嵌入 bfs/ugrep\n时两者都不加载"]
+    GREP -.被引导.-> AGENT["Agent 工具\n开放式多轮检索优先"]
+    GREP -.互补.-> READ["Read\n定位后读具体内容"]
+    GREP -.互斥.-> BASH["BashTool\nprompt 禁止用 Bash 调 grep/rg"]
+      </div>
+    </div>
+    <ul>
+      <li><strong>与 <code>Glob</code> 的关系</strong>（最重要）：两者是文件检索的"内容面 vs 名称面"。共享 <code>isSearchOrReadCommand() → {isSearch:true}</code> 标记、<code>toRelativePath</code> 路径相对化策略、<code>renderToolResultMessage</code> 的 SearchResultSummary 组件（Glob 的 UI.tsx:65 复用 Grep 的实现）。条件加载时两者绑定——<code>hasEmbeddedSearchTools() ? [] : [GlobTool, GrepTool]</code>（<code>tools.ts:227</code>）。</li>
+      <li><strong>与 <code>Agent</code> 的关系</strong>：<code>prompt.ts:14</code> 明确——"对于需要多轮的开放式搜索，请使用 Agent 工具"。单次确定模式用 Grep，探索性多轮搜索交给子代理。</li>
+      <li><strong>与 <code>Bash</code> 的互斥</strong>（<code>prompt.ts:10</code>）："绝不可以通过 Bash 调用 grep 或 rg"——Grep 已针对权限和访问优化，绕过它会失去这些保障。</li>
+      <li><strong>与 <code>Read</code> 的互补</strong>：Grep 定位 → Read 读全文。Grep 只返匹配行/文件，要看完整上下文用 Read。</li>
+      <li><strong>与权限系统的双重集成</strong>：<code>checkPermissions</code>（正式闸门）+ <code>getFileReadIgnorePatterns</code>（deny 规则→rg 排除 glob，确保搜索本身遵守读限制）。这是"权限即搜索约束"的设计。</li>
+    </ul>
+  </section>
+
+  <section id="七">
+    <h2>七、亮点与设计取舍</h2>
+    <ol>
+      <li><strong>14 参数到 rg argv 的完备映射</strong>（<code>:307-432</code>）：每个输入参数都精确对应 ripgrep 标志，且处理了优先级（context > -B/-A）、歧义（-e 前缀防横杠）、拆分（花括号 glob 保留）。这是"<strong>CLI 工具封装</strong>"的范本。</li>
+      <li><strong><code>maxResultSizeChars: 20_000</code> 的差异化</strong>：其他文件工具 100K，Grep 20K。重度 grep 会话的 content 输出 6-24K tokens，20K 让超限结果持久化到磁盘。这是对"<strong>搜索工具输出特性</strong>"的针对性调优。</li>
+      <li><strong><code>applyHeadLimit</code> 的先限后相对化</strong>（<code>:444-447</code> 注释）：content 模式先 applyHeadLimit 再逐行相对化——避免处理将被丢弃的行（宽泛模式可能 10k+ 行，head_limit 只留 30-100）。性能优化。</li>
+      <li><strong><code>appliedLimit</code> 仅截断时设</strong>（<code>:120-123</code>）：让模型知道"可能还有更多，可 offset 分页"。这是对模型的<strong>分页信号</strong>——配合 offset 参数实现探索性搜索的逐步收敛。</li>
+      <li><strong><code>limit === 0</code> 不限逃生口</strong>（<code>:113-115</code>）：默认 250 防膨胀，但显式传 0 可获取不限结果。prompt 描述（<code>:78</code>）警告"请谨慎使用——过大的结果集会浪费上下文"。</li>
+      <li><strong><code>Promise.allSettled</code> 容错</strong>（<code>:526-528</code>）：批量 stat 单文件失败不让整批失败。文件在 ripgrep 扫描与 stat 之间被删（ENOENT）按 mtime 0 排序。</li>
+      <li><strong>测试环境确定性排序</strong>（<code>:539-542</code>）：<code>NODE_ENV === 'test'</code> 按文件名排序，否则按 mtime。保证测试可复现。</li>
+      <li><strong>不用 AbortController 超时</strong>（<code>:433-437</code>）：避免打断 agent 循环。超时由 ripgrep 自身处理，抛 <code>RipgrepTimeoutError</code> 让 Claude 知道搜索未完成（而非误以为无匹配）。</li>
+      <li><strong>VCS 目录自动排除</strong>（<code>:92-99</code>）：6 个版本控制目录自动排除——搜索结果去噪，无需用户手动指定。</li>
+      <li><strong><code>--max-columns 500</code></strong>（<code>:335</code>）：限制行长防 base64/minified 内容污染。一个容易被忽略但重要的输出质量控制。</li>
+    </ol>
+  </section>
+
+  <section id="八">
+    <h2>八、源码导航（书签速查）</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>想看什么</th><th>去哪里</th></tr></thead>
+        <tbody>
+          <tr><td>工具名 + 描述（正则/多行/Agent 引导）</td><td><code>prompt.ts:3,6-18</code></td></tr>
+          <tr><td>输入 schema（14 参数）</td><td><code>GrepTool.ts:30-87</code></td></tr>
+          <tr><td>输出 schema</td><td><code>GrepTool.ts:141-152</code></td></tr>
+          <tr><td><code>buildTool</code> 字段填充</td><td><code>GrepTool.ts:157-574</code></td></tr>
+          <tr><td><code>validateInput</code>（path 存在性 + UNC）</td><td><code>GrepTool.ts:198-229</code></td></tr>
+          <tr><td><code>call()</code> 参数→rg argv 拼装</td><td><code>GrepTool.ts:307-437</code></td></tr>
+          <tr><td>三模式后处理</td><td><code>GrepTool.ts:440-572</code></td></tr>
+          <tr><td><code>applyHeadLimit</code>（分页核心）</td><td><code>GrepTool.ts:107-125</code></td></tr>
+          <tr><td><code>mapToolResultToToolResultBlockParam</code>（三模式序列化）</td><td><code>GrepTool.ts:251-306</code></td></tr>
+          <tr><td>VCS 目录排除</td><td><code>GrepTool.ts:92-99</code></td></tr>
+          <tr><td><code>DEFAULT_HEAD_LIMIT</code></td><td><code>GrepTool.ts:105</code></td></tr>
+          <tr><td>ignore patterns→rg glob</td><td><code>GrepTool.ts:408-424</code></td></tr>
+          <tr><td>context 优先级</td><td><code>GrepTool.ts:360-373</code></td></tr>
+          <tr><td>条件加载（hasEmbeddedSearchTools）</td><td><code>src/tools.ts:227</code></td></tr>
+          <tr><td>ripgrep 底层封装</td><td><code>src/utils/ripgrep.ts:ripGrep</code></td></tr>
+          <tr><td>渲染（SearchResultSummary，Glob 复用）</td><td><code>UI.tsx:15</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="九">
+    <h2>九、学习建议与验证清单</h2>
+    <p><strong>怎么读这章</strong>：这是检索工具的"内容面"，与 Glob 对照阅读最佳。先看"一、定位"建立"内容面 vs 名称面"心智，再跳到"四、call()"的参数→argv 映射 mermaid——核心复杂度在这。然后看 <code>applyHeadLimit</code> 的分页设计（先限后相对化、appliedLimit 信号、0 不限逃生口）。最后看"六、关系"的条件加载（hasEmbeddedSearchTools），理解工具注册的条件性。</p>
+    <p><strong>验证清单（读完自测）</strong>：</p>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled> <span>能说出 Grep 与 Glob 的分工（内容面 vs 名称面）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 Grep 的 <code>maxResultSizeChars</code> 与其他文件工具不同（20K vs 100K）及原因</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>applyHeadLimit</code> 的先限后相对化为何省功（避免处理将被丢弃的行）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 <code>appliedLimit</code> 仅截断时设的作用（分页信号，配合 offset）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出 <code>limit === 0</code> 的含义（不限逃生口）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 context 与 -B/-A 的优先级（context/-C 优先）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 pattern 以横杠开头时为何用 <code>-e</code> 前缀（防 ripgrep 解释为选项）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出 VCS 目录自动排除清单（.git/.svn/.hg/.bzr/.jj/.sl）</span></li>
+      <li><input type="checkbox" disabled> <span>能解释 <code>Promise.allSettled</code> 在 files_with_matches 模式的作用（单文件 ENOENT 不让整批失败）</span></li>
+      <li><input type="checkbox" disabled> <span>能说出为何不用 AbortController 超时（避免打断 agent 循环，由 ripgrep 自身超时）</span></li>
+      <li><input type="checkbox" disabled> <span>能指出条件加载的条件（<code>hasEmbeddedSearchTools()</code>，Ant 原生构建嵌入 bfs/ugrep 时不加载）</span></li>
+    </ul>
+    <p><strong>配合动作</strong>：</p>
+    <ol>
+      <li>让 Claude <code>Grep</code> 一个宽泛模式（如 <code>.</code>），观察 head_limit=250 截断 + appliedLimit 分页信号</li>
+      <li>传 <code>head_limit=0</code>，观察不限结果（注意 prompt 的谨慎警告）</li>
+      <li>用 offset 分页获取第二批结果</li>
+      <li>在 content 模式用 <code>-C 3</code>，观察上下文行；再同时传 <code>-B 1 -A 1</code>，验证 context 优先</li>
+      <li>构造 deny-rule 拦截某目录，验证 <code>getFileReadIgnorePatterns</code> 转 rg 排除 glob 生效</li>
+      <li>用 <code>multiline: true</code> 搜跨行模式，对比单行模式</li>
+    </ol>
+  </section>
+
+  <a href="index.html" class="back-link">← 返回工具总览</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral' });</script>
+</body>
+</html>
