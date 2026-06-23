@@ -123,7 +123,7 @@ mock.module('src/bootstrap/state.js', () => ({
 }))
 
 // mock skillDetect，让 initialMessage 在各 CI 环境下是确定的
-// （真实的 existsSync 会依赖工作目录下的 .claude/skills/*）。
+// （真实的 existsSync 会依赖工作目录下的 .hclaude/skills/*）。
 mock.module('src/commands/autofix-pr/skillDetect.js', () => ({
   detectAutofixSkills: () => [] as string[],
   formatSkillsHint: () => '',

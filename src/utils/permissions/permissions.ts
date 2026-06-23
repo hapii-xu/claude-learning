@@ -1167,7 +1167,7 @@ export async function checkRuleBasedPermissions(
     return toolPermissionResult
   }
 
-  // 1g. 安全检查（例如 .git/、.claude/、.vscode/、shell 配置）
+  // 1g. 安全检查（例如 .git/、.hclaude/、.vscode/、shell 配置）
   // 对绕过免疫 —— 即使 PreToolUse 钩子返回允许也必须提示。
   // checkPathSafetyForAutoEdit 为这些返回 {type:'safetyCheck'}。
   if (
@@ -1274,7 +1274,7 @@ async function hasPermissionsToUseToolInner(
     return toolPermissionResult
   }
 
-  // 1g. 安全检查（例如 .git/、.claude/、.vscode/、shell 配置）
+  // 1g. 安全检查（例如 .git/、.hclaude/、.vscode/、shell 配置）
   // 对绕过免疫 —— 即使在 bypassPermissions 模式下也必须提示。
   // checkPathSafetyForAutoEdit 为这些路径返回 {type:'safetyCheck'}。
   if (

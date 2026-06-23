@@ -1533,10 +1533,10 @@ export async function powershellToolHasPermission(
     // cwd 更改命令（Set-Location/Push-Location/Pop-Location）时跳过此自动允许路径。
     // 合成的单语句 AST 剥离复合上下文，因此
     // checkPermissionMode 无法看到其他语句中的 cd。没有此
-    // 门，`Set-Location ./.claude; Set-Content ./settings.json '...'` 会
+    // 门，`Set-Location ./.hclaude; Set-Content ./settings.json '...'` 会
     // 通过：Set-Content 隔离检查，匹配 ACCEPT_EDITS_ALLOWED_CMDLETS，
     // 自动允许 — 但 PowerShell 从更改的 cwd 运行它，写入到
-    // .claude/settings.json（路径验证器未检查的 Claude config 文件）。
+    // .hclaude/settings.json（路径验证器未检查的 Claude config 文件）。
     // 这匹配 BashTool 的 compoundCommandHasCd 防护。
     if (statement !== null && !hasCdSubCommand && !hasSymlinkCreate) {
       const subModeResult = checkPermissionMode(

@@ -18,7 +18,7 @@ export function getEnterWorktreeToolPrompt(): string {
 
 ## 行为
 
-- 在 git 仓库中：在 \`.claude/worktrees/\` 下基于 HEAD 创建一个新的 git worktree 及新分支
+- 在 git 仓库中：在 \`.hclaude/worktrees/\` 下基于 HEAD 创建一个新的 git worktree 及新分支
 - 在 git 仓库之外：委托给 WorktreeCreate/WorktreeRemove hooks 实现 VCS 无关的隔离
 - 将会话的工作目录切换到新的 worktree
 - 使用 ExitWorktree 可在会话中途离开 worktree（保留或移除）。会话退出时若仍处于 worktree 中，会提示用户保留还是移除它

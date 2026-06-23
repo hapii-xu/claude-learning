@@ -95,7 +95,7 @@ function getTokenFromFileDescriptor(): string | null {
  *  2. 文件描述符（传统路径）— CLAUDE_CODE_WEBSOCKET_AUTH_FILE_DESCRIPTOR，
  *     读取一次并缓存。
  *  3. 知名文件 — CLAUDE_SESSION_INGRESS_TOKEN_FILE 环境变量路径，或
- *     /home/claude/.claude/remote/.session_ingress_token。覆盖无法
+ *     /home/claude/.hclaude/remote/.session_ingress_token。覆盖无法
  *     继承 FD 的子进程。
  */
 export function getSessionIngressAuthToken(): string | null {

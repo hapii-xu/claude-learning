@@ -10,6 +10,7 @@ import {
   type ExistingSkill,
 } from './skillLifecycle.js'
 import type { LearnedSkillDraft, SkillLearningScope } from './types.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 export const DUPLICATE_SKILL_OVERLAP_THRESHOLD = 0.8
 const MAX_EVIDENCE_LINES_PER_APPEND = 20
@@ -167,7 +168,7 @@ export function getLearnedSkillPath(
 ): string {
   if (options?.outputRoot) return join(options.outputRoot, name)
   if (scope === 'project') {
-    return join(options?.cwd ?? process.cwd(), '.claude', 'skills', name)
+    return join(options?.cwd ?? process.cwd(), CLAUDE_DIR_NAME, 'skills', name)
   }
   return join(
     options?.globalSkillsDir ?? join(getClaudeConfigHomeDir(), 'skills'),

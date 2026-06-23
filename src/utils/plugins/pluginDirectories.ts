@@ -48,12 +48,12 @@ function getPluginsDirectoryName(): string {
  *
  * 优先级：
  * 1. CLAUDE_CODE_PLUGIN_CACHE_DIR 环境变量（显式覆盖）
- * 2. 默认值：~/.claude/plugins 或 ~/.claude/cowork_plugins
+ * 2. 默认值：~/.hclaude/plugins 或 ~/.hclaude/cowork_plugins
  */
 export function getPluginsDirectory(): string {
   // expandTilde：当 CLAUDE_CODE_PLUGIN_CACHE_DIR 通过 settings.json 的
   // `env`（非 shell）设置时，~ 不会被 shell 展开。若不这样做，类似
-  // "~/.claude/plugins" 的值会在每个项目的 cwd 中创建一个字面的 `~` 目录
+  // "~/.hclaude/plugins" 的值会在每个项目的 cwd 中创建一个字面的 `~` 目录
   //（gh-30794 / CC-212）。
   const envOverride = process.env.CLAUDE_CODE_PLUGIN_CACHE_DIR
   if (envOverride) {

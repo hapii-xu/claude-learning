@@ -34,6 +34,7 @@ import {
   createApiQueryHook,
 } from './apiQueryHookHelper.js'
 import { registerPostSamplingHook } from './postSamplingHooks.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 export function isSkillImprovementEnabled(): boolean {
   const explicit = process.env.SKILL_IMPROVEMENT_ENABLED
@@ -211,8 +212,14 @@ export async function applySkillImprovement(
   const { join } = await import('path')
   const fs = await import('fs/promises')
 
-  // Skills live at .claude/skills/<name>/SKILL.md relative to CWD
-  const filePath = join(getCwd(), '.claude', 'skills', skillName, 'SKILL.md')
+  // Skills live at .hclaude/skills/<name>/SKILL.md relative to CWD
+  const filePath = join(
+    getCwd(),
+    CLAUDE_DIR_NAME,
+    'skills',
+    skillName,
+    'SKILL.md',
+  )
 
   let currentContent: string
   try {

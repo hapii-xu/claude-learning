@@ -275,7 +275,7 @@ export async function forkSession(
 // ============================================================================
 
 /**
- * 来自 `<dir>/.claude/scheduled_tasks.json` 的定时任务。
+ * 来自 `<dir>/.hclaude/scheduled_tasks.json` 的定时任务。
  * @internal
  */
 export type CronTask = {
@@ -325,7 +325,7 @@ export type ScheduledTasksHandle = {
 }
 
 /**
- * 监听 `<dir>/.claude/scheduled_tasks.json`，在任务触发时 yield 事件。
+ * 监听 `<dir>/.hclaude/scheduled_tasks.json`，在任务触发时 yield 事件。
  *
  * 获取该目录级别的调度器锁（基于 PID 的存活检测），这样同一目录下的
  * REPL 会话不会重复触发。当 signal 中断时释放锁并关闭文件 watcher。

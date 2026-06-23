@@ -10,7 +10,7 @@ import { ProvidersFileSchema, type ProviderConfig } from './types.js'
  * 四个内置的 OpenAI 兼容 provider。
  *
  * 当 providers.json 不存在或没有条目时使用这些默认值。
- * 用户在 ~/.claude/providers.json 中定义的 provider 会覆盖同 id 的内置项。
+ * 用户在 ~/.hclaude/providers.json 中定义的 provider 会覆盖同 id 的内置项。
  */
 export const DEFAULT_PROVIDERS: ProviderConfig[] = [
   {
@@ -68,7 +68,7 @@ export function _invalidateProviderCache(): void {
  *
  * 策略：
  * 1. 从 DEFAULT_PROVIDERS 开始。
- * 2. 若 ~/.claude/providers.json 存在，用 Zod 解析并校验。
+ * 2. 若 ~/.hclaude/providers.json 存在，用 Zod 解析并校验。
  *    - 有效条目替换同 id 的默认值；新 id 追加到末尾。
  *    - 文件损坏/无效：记录警告，仅返回默认值。
  * 3. providers.json 为空：返回默认值。
@@ -183,7 +183,7 @@ function providerConfigEqual(a: ProviderConfig, b: ProviderConfig): boolean {
 }
 
 /**
- * 将额外的 provider 写入 ~/.claude/providers.json。
+ * 将额外的 provider 写入 ~/.hclaude/providers.json。
  *
  * 仅写入不在 DEFAULT_PROVIDERS（或现有文件）中的 provider。
  * 若存在相同 id 的 provider，则替换之。

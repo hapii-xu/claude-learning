@@ -647,7 +647,7 @@ export async function cleanupTeamDirectories(teamName: string): Promise<void> {
     await destroyWorktree(worktreePath)
   }
 
-  // 清理团队目录（~/.claude/teams/{team-name}/）
+  // 清理团队目录（~/.hclaude/teams/{team-name}/）
   const teamDir = getTeamDir(teamName)
   try {
     await rm(teamDir, { recursive: true, force: true })
@@ -658,7 +658,7 @@ export async function cleanupTeamDirectories(teamName: string): Promise<void> {
     )
   }
 
-  // 清理任务目录（~/.claude/tasks/{taskListId}/）
+  // 清理任务目录（~/.hclaude/tasks/{taskListId}/）
   // leader 和 teammate 都在清理后的团队名称下存储任务。
   const tasksDir = getTasksDir(sanitizedName)
   try {

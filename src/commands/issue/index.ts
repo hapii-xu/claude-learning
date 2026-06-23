@@ -22,6 +22,7 @@ import { sanitizePath } from '../../utils/path.js'
 
 import * as childProcess from 'node:child_process'
 import { promisify } from 'node:util'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 // 在调用时通过 namespace import 重新解析，使使用 mock.module('node:child_process')
 // 的测试运行器能看到替换后的实现。
@@ -351,7 +352,7 @@ const issue: Command = {
         // 回退：提供经过 URL 编码的浏览器链接。
         // 浏览器会静默截断超过 ~8KB 的 URL，因此我们将正文限制在
         // MAX_URL_BODY 字符以内。当完整正文超出限制时，会保存草稿到
-        // ~/.claude/issue-drafts/ 并告知用户位置。
+        // ~/.hclaude/issue-drafts/ 并告知用户位置。
         const MAX_URL_BODY = 4096
         const sessionSummary = getTranscriptSummary()
         const fullBodyText = `## Context from Claude Code session\n\n${sessionSummary}`
@@ -363,7 +364,7 @@ const issue: Command = {
             fullBodyText.slice(0, MAX_URL_BODY) +
             '\n\n... (truncated, see CLI for full body)'
           try {
-            const draftsDir = join(homedir(), '.claude', 'issue-drafts')
+            const draftsDir = join(homedir(), CLAUDE_DIR_NAME, 'issue-drafts')
             mkdirSync(draftsDir, { recursive: true })
             const stamp = new Date().toISOString().replace(/[:.]/g, '-')
             draftPath = join(draftsDir, `issue-${stamp}.md`)

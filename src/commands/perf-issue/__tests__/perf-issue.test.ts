@@ -17,7 +17,7 @@ let claudeDir: string
 
 beforeEach(() => {
   tmpDir = mkdtempSync(join(tmpdir(), 'perf-test-'))
-  claudeDir = join(tmpDir, '.claude')
+  claudeDir = join(tmpDir, '.hclaude')
   mkdirSync(claudeDir, { recursive: true })
   process.env.CLAUDE_CONFIG_DIR = claudeDir
 })

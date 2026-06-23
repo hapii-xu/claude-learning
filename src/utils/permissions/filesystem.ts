@@ -47,6 +47,7 @@ import type { PermissionRule, PermissionRuleSource } from './PermissionRule.js'
 import { createReadRuleSuggestion } from './PermissionUpdate.js'
 import type { PermissionUpdate } from './PermissionUpdateSchema.js'
 import { getRuleByContentsForToolName } from './permissions.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 declare const MACRO: { VERSION: string }
 
@@ -64,7 +65,7 @@ export const DANGEROUS_FILES = [
   '.profile',
   '.ripgreprc',
   '.mcp.json',
-  '.claude.json',
+  '.hclaude.json',
 ] as const
 
 /**
@@ -75,13 +76,13 @@ export const DANGEROUS_DIRECTORIES = [
   '.git',
   '.vscode',
   '.idea',
-  '.claude',
+  CLAUDE_DIR_NAME,
 ] as const
 
 /**
  * 对路径进行大小写不敏感比较的规范化处理。
  * 这可以防止在大小写不敏感的文件系统（macOS/Windows）上
- * 使用混合大小写路径绕过安全检查，例如 `.cLauDe/Settings.locaL.json`。
+ * 使用混合大小写路径绕过安全检查，例如 `.hclaude/Settings.locaL.json`。
  *
  * 无论平台如何，始终规范化为小写以确保一致的安全性。
  * @param path 要规范化的路径
@@ -92,10 +93,10 @@ export function normalizeCaseForComparison(path: string): string {
 }
 
 /**
- * 如果 filePath 位于 .claude/skills/{name}/ 目录内（项目级或全局级），
+ * 如果 filePath 位于 .hclaude/skills/{name}/ 目录内（项目级或全局级），
  * 返回技能名称和仅限定于该技能的 session-allow 模式。
  * 用于在权限对话框和 SDK 建议中提供更窄的"仅允许编辑此技能"选项，
- * 这样在迭代单个技能时不需要授予对整个 .claude/ 目录的会话访问权限
+ * 这样在迭代单个技能时不需要授予对整个 .hclaude/ 目录的会话访问权限
  * （包括 settings.json、hooks/ 等）。
  */
 export function getClaudeSkillScope(
@@ -106,12 +107,12 @@ export function getClaudeSkillScope(
 
   const bases = [
     {
-      dir: expandPath(join(getOriginalCwd(), '.claude', 'skills')),
-      prefix: '/.claude/skills/',
+      dir: expandPath(join(getOriginalCwd(), CLAUDE_DIR_NAME, 'skills')),
+      prefix: '/.hclaude/skills/',
     },
     {
-      dir: expandPath(join(homedir(), '.claude', 'skills')),
-      prefix: '~/.claude/skills/',
+      dir: expandPath(join(homedir(), CLAUDE_DIR_NAME, 'skills')),
+      prefix: '~/.hclaude/skills/',
     },
   ]
 
@@ -143,7 +144,7 @@ export function getClaudeSkillScope(
         }
         // 拒绝 glob 元字符。skillName 会被插入到
         // matchingRuleForInput 中步骤 1.6 的 ignore().add() 消费的 gitignore 模式中。
-        // 一个名为 '*' 的目录（在 POSIX 上合法）会产生 '/.claude/skills/*/**'，
+        // 一个名为 '*' 的目录（在 POSIX 上合法）会产生 '/.hclaude/skills/*/**'，
         // 这会匹配所有技能。返回 null 以便回退到 generateSuggestions()。
         if (/[*?[\]]/.test(skillName)) return null
         return { skillName, pattern: prefix + skillName + '/**' }
@@ -197,19 +198,19 @@ function getSettingsPaths(): string[] {
 
 export function isClaudeSettingsPath(filePath: string): boolean {
   // 安全性：首先规范化路径结构，防止通过冗余的 ./
-  // 序列（如 `./.claude/./settings.json`）绕过 endsWith() 检查
+  // 序列（如 `./.hclaude/./settings.json`）绕过 endsWith() 检查
   const expandedPath = expandPath(filePath)
 
   // 规范化以进行大小写不敏感比较，防止通过
-  // .cLauDe/Settings.locaL.json 等路径绕过安全性
+  // .hclaude/Settings.locaL.json 等路径绕过安全性
   const normalizedPath = normalizeCaseForComparison(expandedPath)
 
   // 使用平台分隔符，使 endsWith 检查在 Unix (/) 和 Windows (\) 上都能工作
   if (
-    normalizedPath.endsWith(`${sep}.claude${sep}settings.json`) ||
-    normalizedPath.endsWith(`${sep}.claude${sep}settings.local.json`)
+    normalizedPath.endsWith(`${sep}.hclaude${sep}settings.json`) ||
+    normalizedPath.endsWith(`${sep}.hclaude${sep}settings.local.json`)
   ) {
-    // 包含其他项目的 .claude/settings.json
+    // 包含其他项目的 .hclaude/settings.json
     return true
   }
   // 检查当前项目的设置文件（包括托管设置和 CLI 参数）
@@ -225,12 +226,12 @@ function isClaudeConfigFilePath(filePath: string): boolean {
     return true
   }
 
-  // 检查文件是否在 .claude/commands 或 .claude/agents 目录内
+  // 检查文件是否在 .hclaude/commands 或 .hclaude/agents 目录内
   // 使用正确的路径段验证（而不是使用 includes() 的字符串匹配）
   // pathInWorkingPath 现在处理大小写不敏感比较以防止绕过
-  const commandsDir = join(getOriginalCwd(), '.claude', 'commands')
-  const agentsDir = join(getOriginalCwd(), '.claude', 'agents')
-  const skillsDir = join(getOriginalCwd(), '.claude', 'skills')
+  const commandsDir = join(getOriginalCwd(), CLAUDE_DIR_NAME, 'commands')
+  const agentsDir = join(getOriginalCwd(), CLAUDE_DIR_NAME, 'agents')
+  const skillsDir = join(getOriginalCwd(), CLAUDE_DIR_NAME, 'skills')
 
   return (
     pathInWorkingPath(filePath, commandsDir) ||
@@ -277,7 +278,7 @@ function isSessionMemoryPath(absolutePath: string): boolean {
 
 /**
  * 检查文件是否在当前项目的目录内。
- * 路径格式：~/.claude/projects/{sanitized-cwd}/...
+ * 路径格式：~/.hclaude/projects/{sanitized-cwd}/...
  */
 function isProjectDirPath(absolutePath: string): boolean {
   const projectDir = getProjectDir(getCwd())
@@ -449,16 +450,16 @@ function isDangerousFilePathToAutoEdit(path: string): boolean {
         continue
       }
 
-      // 特殊情况：.claude/worktrees/ 是结构路径（Claude 存储 git worktree 的位置），
-      // 不是用户创建的危险目录。当 .claude 后跟 'worktrees' 时跳过。
-      // worktree 内嵌套的任何 .claude 目录（不跟 'worktrees'）仍被阻止。
-      if (dir === '.claude') {
+      // 特殊情况：.hclaude/worktrees/ 是结构路径（Claude 存储 git worktree 的位置），
+      // 不是用户创建的危险目录。当 .hclaude 后跟 'worktrees' 时跳过。
+      // worktree 内嵌套的任何 .hclaude 目录（不跟 'worktrees'）仍被阻止。
+      if (dir === CLAUDE_DIR_NAME) {
         const nextSegment = pathSegments[i + 1]
         if (
           nextSegment &&
           normalizeCaseForComparison(nextSegment) === 'worktrees'
         ) {
-          break // 跳过此 .claude，继续检查其他段
+          break // 跳过此 .hclaude，继续检查其他段
         }
       }
 
@@ -488,7 +489,7 @@ function isDangerousFilePathToAutoEdit(path: string): boolean {
  * - NTFS 备用数据流（例如 file.txt::$DATA 或 file.txt:stream）
  * - 8.3 短名称（例如 GIT~1、CLAUDE~1、SETTIN~1.JSON）
  * - 长路径前缀（例如 \\?\C:\...、\\.\C:\...、//?/C:/...、//./C:/...）
- * - 尾随点和空格（例如 .git.、.claude 、.bashrc...）
+ * - 尾随点和空格（例如 .git.、.hclaude 、.bashrc...）
  * - DOS 设备名（例如 .git.CON、settings.json.PRN、.bashrc.AUX）
  * - 三个或更多连续点（例如 .../file.txt、path/.../file、file...txt）
  *
@@ -562,7 +563,7 @@ function hasSuspiciousWindowsPathPattern(path: string): boolean {
   }
 
   // 检查 Windows 在路径解析期间会剥离的尾随点和空格
-  // 示例：.git.、.claude 、.bashrc...、settings.json.
+  // 示例：.git.、.hclaude 、.bashrc...、settings.json.
   // 如果 ".git" 被阻止但使用 ".git." 则可能绕过字符串匹配
   if (/[.\s]+$/.test(path)) {
     return true
@@ -600,7 +601,7 @@ function hasSuspiciousWindowsPathPattern(path: string): boolean {
  *
  * 此函数执行全面的安全检查，包括：
  * - 可疑的 Windows 路径模式（NTFS 流、8.3 名称、长路径前缀等）
- * - Claude 配置文件（.claude/settings.json、.claude/commands/、.claude/agents/）
+ * - Claude 配置文件（.hclaude/settings.json、.hclaude/commands/、.hclaude/agents/）
  * - MCP CLI 状态文件（由 Claude Code 内部管理）
  * - 危险文件（.bashrc、.gitconfig、.git/、.vscode/、.idea/ 等）
  *
@@ -714,7 +715,7 @@ export function pathInWorkingPath(path: string, workingPath: string): boolean {
     .replace(/^\/private\/tmp(\/|$)/, '/tmp$1')
 
   // 规范化大小写以在大小写不敏感的文件系统（macOS/Windows）上进行
-  // 比较，防止绕过安全检查，如 .cLauDe/CoMmAnDs
+  // 比较，防止绕过安全检查，如 .hclaude/CoMmAnDs
   const caseNormalizedPath = normalizeCaseForComparison(normalizedPath)
   const caseNormalizedWorkingPath = normalizeCaseForComparison(
     normalizedWorkingPath,
@@ -890,7 +891,7 @@ function patternWithRoot(
       root: homedir().normalize('NFC'),
     }
   } else if (pattern.startsWith(DIR_SEP)) {
-    // 以 / 开头的模式相对于存储设置的目录解析（不含 .claude/）
+    // 以 / 开头的模式相对于存储设置的目录解析（不含 .hclaude/）
     return {
       relativePattern: pattern,
       root: rootPathForSource(source),
@@ -1232,7 +1233,7 @@ export function checkWritePermissionForTool<Input extends AnyObject>(
   }
 
   // 1.5. 允许写入内部可编辑路径（计划文件、临时目录）
-  // 这必须在 isDangerousFilePathToAutoEdit 检查之前，因为 .claude 是危险目录
+  // 这必须在 isDangerousFilePathToAutoEdit 检查之前，因为 .hclaude 是危险目录
   const absolutePathForEdit = expandPath(path)
   const internalEditResult = checkEditableInternalPath(
     absolutePathForEdit,
@@ -1242,13 +1243,13 @@ export function checkWritePermissionForTool<Input extends AnyObject>(
     return internalEditResult
   }
 
-  // 1.6. 在安全检查之前检查 .claude/** 允许规则
-  // 这允许会话级权限绕过 .claude/ 的安全阻止
+  // 1.6. 在安全检查之前检查 .hclaude/** 允许规则
+  // 这允许会话级权限绕过 .hclaude/ 的安全阻止
   // 我们只允许会话级规则，以防止用户意外地永久授予
-  // 对其 .claude/ 文件夹的广泛访问。
+  // 对其 .hclaude/ 文件夹的广泛访问。
   //
   // matchingRuleForInput 返回跨所有来源的第一个匹配。如果用户
-  // 在 userSettings 中也有更广泛的 Edit(.claude) 规则（例如来自沙箱
+  // 在 userSettings 中也有更广泛的 Edit(.hclaude) 规则（例如来自沙箱
   // 写入允许转换），该规则会首先被找到，其来源检查
   // 会失败。将搜索限定为仅会话规则，以便对话框的
   // "允许 Claude 在此会话中编辑其自己的设置"选项实际生效。
@@ -1264,13 +1265,13 @@ export function checkWritePermissionForTool<Input extends AnyObject>(
     'allow',
   )
   if (claudeFolderAllowRule) {
-    // 检查此规则是否限定在 .claude/ 下（项目级或全局级）。
-    // 接受广泛模式（'/.claude/**'、'~/.claude/**'）和
-    // 缩小模式（如 '/.claude/skills/my-skill/**'），这样用户可以
+    // 检查此规则是否限定在 .hclaude/ 下（项目级或全局级）。
+    // 接受广泛模式（'/.hclaude/**'、'~/.hclaude/**'）和
+    // 缩小模式（如 '/.hclaude/skills/my-skill/**'），这样用户可以
     // 授予单个技能的会话访问权限，而不暴露 settings.json
     // 或 hooks/。该规则已通过 matchingRuleForInput 匹配路径；
     // 这是额外的范围检查。拒绝 '..' 以防止像
-    // '/.claude/../**' 这样的规则将此绕过泄漏到 .claude/ 之外。
+    // '/.hclaude/../**' 这样的规则将此绕过泄漏到 .hclaude/ 之外。
     const ruleContent = claudeFolderAllowRule.ruleValue.ruleContent
     if (
       ruleContent &&
@@ -1297,9 +1298,9 @@ export function checkWritePermissionForTool<Input extends AnyObject>(
   // 编辑受保护文件的权限
   const safetyCheck = checkPathSafetyForAutoEdit(path, pathsToCheck)
   if (!safetyCheck.safe) {
-    // SDK 建议：如果在 .claude/skills/{name}/ 下，发出步骤 1.6
+    // SDK 建议：如果在 .hclaude/skills/{name}/ 下，发出步骤 1.6
     // 将在下次调用时遵守的缩小会话范围 addRules。
-    // 其他一切（.claude/settings.json、.git/、.vscode/、.idea/）
+    // 其他一切（.hclaude/settings.json、.git/、.vscode/、.idea/）
     // 回退到 generateSuggestions——其 setMode 建议不会绕过
     // 此检查，但保留它可以避免意外的空数组。
     const skillScope = getClaudeSkillScope(path)
@@ -1509,7 +1510,7 @@ export function checkEditableInternalPath(
   // 模板任务自身的目录。环境变量键硬编码（而非从 jobs/state 导入
   // JOB_ENV_KEY），以便 tree-shaking 从外部构建中消除此字符串——
   // spawn.test.ts 断言字符串匹配。劫持保护：环境变量值
-  // 本身必须在 ~/.claude/jobs/ 下可解析。符号链接保护：目标的
+  // 本身必须在 ~/.hclaude/jobs/ 下可解析。符号链接保护：目标的
   // 每个解析形式（词法 + 符号链接链）必须落在任务目录的某个
   // 解析形式下，这样任务目录内指向例如
   // ~/.ssh/authorized_keys 的符号链接不会获得免费写入权限。
@@ -1523,7 +1524,7 @@ export function checkEditableInternalPath(
       const jobsRootForms = getPathsForPermissionCheck(jobsRoot).map(normalize)
       // 劫持保护：任务目录的每个解析形式必须位于
       // 任务根的某个解析形式下。解析双方可以处理
-      // ~/.claude 是符号链接（例如指向 /data/claude-config）的情况。
+      // ~/.hclaude 是符号链接（例如指向 /data/claude-config）的情况。
       const isUnderJobsRoot = jobDirForms.every(jd =>
         jobsRootForms.some(jr => jd.startsWith(jr + sep)),
       )
@@ -1562,7 +1563,7 @@ export function checkEditableInternalPath(
 
   // Memdir 目录（用于跨会话学习的持久内存）
   // 此安全检查前的例外存在是因为默认路径在
-  // ~/.claude/ 下，这是 DANGEROUS_DIRECTORIES 中的。CLAUDE_COWORK_MEMORY_PATH_OVERRIDE
+  // ~/.hclaude/ 下，这是 DANGEROUS_DIRECTORIES 中的。CLAUDE_COWORK_MEMORY_PATH_OVERRIDE
   // 覆盖是任意的调用者指定目录，没有这种冲突，
   // 因此它在此处没有特殊权限处理——写入经过正常
   // 权限流程（步骤 5 → 询问）。想要静默内存的 SDK 调用者
@@ -1578,16 +1579,18 @@ export function checkEditableInternalPath(
     }
   }
 
-  // .claude/launch.json——桌面预览配置（开发服务器命令 + 端口）。
+  // .hclaude/launch.json——桌面预览配置（开发服务器命令 + 端口）。
   // 桌面的 preview_start MCP 工具指示 Claude 创建/更新
   // 此文件作为预览工作流的一部分。没有此例外的话，
-  // .claude/ DANGEROUS_DIRECTORIES 检查会提示它，这在 SDK 模式下
+  // .hclaude/ DANGEROUS_DIRECTORIES 检查会提示它，这在 SDK 模式下
   // 会级联：用户点击"始终允许"→ setMode:acceptEdits 建议
   // 应用→从 auto 模式静默降级。仅匹配项目级
-  // .claude/（非 ~/.claude/），因为 launch.json 是每项目的。
+  // .hclaude/（非 ~/.hclaude/），因为 launch.json 是每项目的。
   if (
     normalizeCaseForComparison(normalizedPath) ===
-    normalizeCaseForComparison(join(getOriginalCwd(), '.claude', 'launch.json'))
+    normalizeCaseForComparison(
+      join(getOriginalCwd(), CLAUDE_DIR_NAME, 'launch.json'),
+    )
   ) {
     return {
       behavior: 'allow',
@@ -1627,7 +1630,7 @@ export function checkReadableInternalPath(
   }
 
   // 项目目录（用于读取过去的会话内存）
-  // 路径格式：~/.claude/projects/{sanitized-cwd}/...
+  // 路径格式：~/.hclaude/projects/{sanitized-cwd}/...
   if (isProjectDirPath(normalizedPath)) {
     return {
       behavior: 'allow',
@@ -1722,7 +1725,7 @@ export function checkReadableInternalPath(
     }
   }
 
-  // 任务目录（~/.claude/tasks/）用于群体任务协调
+  // 任务目录（~/.hclaude/tasks/）用于群体任务协调
   const tasksDir = join(getClaudeConfigHomeDir(), 'tasks') + sep
   if (
     normalizedPath === tasksDir.slice(0, -1) ||
@@ -1738,7 +1741,7 @@ export function checkReadableInternalPath(
     }
   }
 
-  // 团队目录（~/.claude/teams/）用于群体协调
+  // 团队目录（~/.hclaude/teams/）用于群体协调
   const teamsReadDir = join(getClaudeConfigHomeDir(), 'teams') + sep
   if (
     normalizedPath === teamsReadDir.slice(0, -1) ||

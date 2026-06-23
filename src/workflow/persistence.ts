@@ -4,6 +4,7 @@ import { getProjectRoot } from '../bootstrap/state.js'
 import { logForDebugging } from '../utils/debug.js'
 import type { ProgressBus } from './progress/bus.js'
 import type { ProgressStore, RunProgress } from './progress/store.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 /** state.json 当前的 schema 版本；升级时引入迁移链。 */
 const SCHEMA_VERSION = 1
@@ -11,12 +12,12 @@ const STATE_FILE = 'state.json'
 const STATE_TMP = 'state.json.tmp'
 
 /**
- * runsDir 的唯一来源：与 ports.ts journalStore 共享同一根（${projectRoot}/.claude/workflow-runs）。
+ * runsDir 的唯一来源：与 ports.ts journalStore 共享同一根（${projectRoot}/.hclaude/workflow-runs）。
  * 抽成函数：消除 ports.ts 与持久化逻辑之间的重复路径拼接，进入 worktree/子目录时仍留在同一根下。
  * 测试中 monkey-patch 该函数指向 tmpdir。
  */
 export function getRunsDir(): string {
-  return join(getProjectRoot(), '.claude', 'workflow-runs')
+  return join(getProjectRoot(), CLAUDE_DIR_NAME, 'workflow-runs')
 }
 
 type StateFile = {

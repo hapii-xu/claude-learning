@@ -57,6 +57,7 @@ import { errorMessage } from '../errors.js'
 import { getClaudeTempDir } from '../permissions/filesystem.js'
 import type { PermissionRuleValue } from '../permissions/PermissionRule.js'
 import { ripgrepCommand } from '../ripgrep.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 // 本地副本以避免循环依赖
 // （permissions.ts 导入 SandboxManager，bashPermissions.ts 导入 permissions.ts）
@@ -240,18 +241,18 @@ export function convertToSandboxRuntimeConfig(
   const cwd = getCwdState()
   const originalCwd = getOriginalCwd()
   if (cwd !== originalCwd) {
-    denyWrite.push(resolve(cwd, '.claude', 'settings.json'))
-    denyWrite.push(resolve(cwd, '.claude', 'settings.local.json'))
+    denyWrite.push(resolve(cwd, CLAUDE_DIR_NAME, 'settings.json'))
+    denyWrite.push(resolve(cwd, CLAUDE_DIR_NAME, 'settings.local.json'))
   }
 
-  // 阻止在原始和当前工作目录中写入 .claude/skills。
-  // sandbox-runtime 的 getDangerousDirectories() 保护 .claude/commands 和
-  // .claude/agents，但不包括 .claude/skills。Skills 具有相同的权限级别
+  // 阻止在原始和当前工作目录中写入 .hclaude/skills。
+  // sandbox-runtime 的 getDangerousDirectories() 保护 .hclaude/commands 和
+  // .hclaude/agents，但不包括 .hclaude/skills。Skills 具有相同的权限级别
   // （自动发现、自动加载、完整 Claude 能力），因此需要相同的
   // OS 级 sandbox 保护。
-  denyWrite.push(resolve(originalCwd, '.claude', 'skills'))
+  denyWrite.push(resolve(originalCwd, CLAUDE_DIR_NAME, 'skills'))
   if (cwd !== originalCwd) {
-    denyWrite.push(resolve(cwd, '.claude', 'skills'))
+    denyWrite.push(resolve(cwd, CLAUDE_DIR_NAME, 'skills'))
   }
 
   // 安全性：Git 的 is_git_directory() 若 cwd 包含 HEAD + objects/ + refs/

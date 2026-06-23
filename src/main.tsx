@@ -930,7 +930,7 @@ export async function main() {
       }
       // 将 session-resume + model 标志转发给远程 CLI 的首次派生。
       // --continue/-c 和 --resume <uuid> 操作的是 REMOTE 会话历史
-      // （持久化在远程的 ~/.claude/projects/<cwd>/ 下）。
+      // （持久化在远程的 ~/.hclaude/projects/<cwd>/ 下）。
       // --model 控制远程使用哪个模型。
       const extractFlag = (flag: string, opts: { hasValue?: boolean; as?: string } = {}) => {
         const i = rawCliArgs.indexOf(flag);
@@ -1518,7 +1518,7 @@ async function run(): Promise<CommanderCommand> {
         logEvent('tengu_single_word_prompt', { length: prompt.length });
       }
 
-      // Assistant 模式：当 .claude/settings.json 中 assistant: true 且
+      // Assistant 模式：当 .hclaude/settings.json 中 assistant: true 且
       // tengu_kairos GrowthBook 开关开启时，强制打开 brief。权限
       // 模式交给用户 —— settings defaultMode 或 --permission-mode
       // 照常应用。REPL 输入的消息默认就是 'next'
@@ -1528,10 +1528,10 @@ async function run(): Promise<CommanderCommand> {
       // kairosEnabled 在此处计算一次，并在下方
       // getAssistantSystemPromptAddendum() 调用处复用。
       //
-      // Trust gate：.claude/settings.json 在不受信任的
+      // Trust gate：.hclaude/settings.json 在不受信任的
       // 克隆中可被攻击者控制。我们在 showSetupScreens() 显示
       // trust dialog 之前运行约 1000 行，而那时我们早已把
-      // .claude/agents/assistant.md 追加到系统 prompt。拒绝激活，
+      // .hclaude/agents/assistant.md 追加到系统 prompt。拒绝激活，
       // 直到目录被显式信任。
       let kairosEnabled = false;
       let assistantTeamContext:
@@ -2496,7 +2496,7 @@ async function run(): Promise<CommanderCommand> {
 
       if (getIsNonInteractiveSession()) {
         // 现在应用完整合并后的 settings env（含 project 范围
-        // .claude/settings.json 的 PATH/GIT_DIR/GIT_WORK_TREE），让下面的
+        // .hclaude/settings.json 的 PATH/GIT_DIR/GIT_WORK_TREE），让下面的
         // gitExe() 和 git spawn 能看到它。-p 模式下 trust 是隐式的；
         // managedEnv.ts:96-97 的 docstring 说明这里会应用 "潜在危险的
         // 环境变量，如 LD_PRELOAD、PATH"（来自所有来源）。下面
@@ -3127,7 +3127,7 @@ async function run(): Promise<CommanderCommand> {
 
       logManagedSettings();
 
-      // 注册 PID 文件用于并发会话检测（~/.claude/sessions/）
+      // 注册 PID 文件用于并发会话检测（~/.hclaude/sessions/）
       // 并触发 multi-clauding 遥测。放在这里（而不是 init.ts），这样只有
       // REPL 路径会注册 —— `claude doctor` 这类子命令不会注册。链式：
       // count 必须在 register 写完成后执行，否则会漏掉自己的文件。
@@ -5127,7 +5127,7 @@ async function run(): Promise<CommanderCommand> {
     .alias('rm')
     .description('Uninstall an installed plugin')
     .option('-s, --scope <scope>', 'Uninstall from scope: user, project, or local', 'user')
-    .option('--keep-data', "Preserve the plugin's persistent data directory (~/.claude/plugins/data/{id}/)")
+    .option('--keep-data', "Preserve the plugin's persistent data directory (~/.hclaude/plugins/data/{id}/)")
     .addOption(coworkOption())
     .action(
       async (

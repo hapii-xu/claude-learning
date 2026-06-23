@@ -28,7 +28,7 @@ import { getSettingsForSource } from './settings/settings.js'
  * 并确保 Node.js 兼容性。
  *
  * 在信任对话框之前调用此函数是安全的，因为我们只从
- * 用户控制的文件（~/.claude/settings.json 和 ~/.claude.json）读取，
+ * 用户控制的文件（~/.hclaude/settings.json 和 ~/.hclaude.json）读取，
  * 不从项目级设置读取。
  */
 export function applyExtraCACertsFromConfig(): void {
@@ -51,15 +51,15 @@ export function applyExtraCACertsFromConfig(): void {
  * 信任攻击者控制的服务器），因此只在信任对话框之后才应用到 process.env。
  * 但我们需要尽早获取 CA 证书以在 init() 期间建立到 HTTPS 代理的 TLS 连接。
  *
- * 我们从全局配置（~/.claude.json）和用户设置
- *（~/.claude/settings.json）读取。这些是用户控制的文件，
+ * 我们从全局配置（~/.hclaude.json）和用户设置
+ *（~/.hclaude/settings.json）读取。这些是用户控制的文件，
  * 不需要信任批准。
  */
 function getExtraCertsPathFromConfig(): string | undefined {
   try {
     const globalConfig = getGlobalConfig()
     const globalEnv = globalConfig?.env
-    // 仅从用户控制的设置（~/.claude/settings.json）读取，
+    // 仅从用户控制的设置（~/.hclaude/settings.json）读取，
     // 不从项目级设置读取，以防止恶意项目在信任对话框之前
     // 注入 CA 证书。
     const settings = getSettingsForSource('userSettings')

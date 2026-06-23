@@ -8,6 +8,7 @@ import {
 } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 export const DEFAULT_BASE_URL = 'https://ilinkai.weixin.qq.com'
 export const CDN_BASE_URL = 'https://novac2c.cdn.weixin.qq.com/c2c'
@@ -22,7 +23,7 @@ export interface AccountData {
 export function getStateDir(): string {
   const dir =
     process.env.WEIXIN_STATE_DIR ||
-    join(homedir(), '.claude', 'channels', 'weixin')
+    join(homedir(), CLAUDE_DIR_NAME, 'channels', 'weixin')
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true })
   }

@@ -116,9 +116,9 @@ function checkDangerousRemovalPaths(
  * `!arg.startsWith('-')` 过滤会丢弃这些参数，导致 path 校验被静默跳过，
  * 从而被如下攻击载荷利用：
  *
- *   rm -- -/../.claude/settings.local.json
+ *   rm -- -/../.hclaude/settings.local.json
  *
- * 这里 `-/../.claude/settings.local.json` 以 `-` 开头，简单过滤器会
+ * 这里 `-/../.hclaude/settings.local.json` 以 `-` 开头，简单过滤器会
  * 丢弃它，校验看到零个 path，返回 passthrough，文件在无提示的情况下
  * 被删除。通过处理 `--`，path 会被提取并校验（被
  * isClaudeConfigFilePath / pathInAllowedWorkingPath 阻止）。
@@ -627,12 +627,12 @@ function validateCommandPaths(
 
   // 安全：阻止包含 'cd' 的复合命令中的写操作
   // 这可防止通过在操作前更改目录来绕过 path 安全检查。
-  // 攻击示例：cd .claude/ && mv test.txt settings.json
-  // 这会绕过对 .claude/settings.json 的检查，因为 path 是相对于
+  // 攻击示例：cd .hclaude/ && mv test.txt settings.json
+  // 这会绕过对 .hclaude/settings.json 的检查，因为 path 是相对于
   // 原始 CWD 解析的，未考虑 cd 的影响。
   //
   // 替代方案：与其阻止所有带 cd 的写操作，我们可以在命令链中跟踪
-  // 有效 CWD（例如，在 "cd .claude/" 之后，后续命令将以 CWD=".claude/"
+  // 有效 CWD（例如，在 "cd .hclaude/" 之后，后续命令将以 CWD=".hclaude/"
   // 进行校验）。这样更宽松，但需要谨慎处理：
   // - 相对 path（cd ../foo）
   // - 特殊 cd 目标（cd ~、cd -、无参数 cd）
@@ -925,7 +925,7 @@ function validateOutputRedirections(
 ): PermissionResult {
   // 安全：在包含 'cd' 的复合命令中阻止输出重定向。
   // 这样可以防止通过在重定向之前切换目录来绕过 path 安全检查。
-  // 攻击示例：cd .claude/ && echo "malicious" > settings.json
+  // 攻击示例：cd .hclaude/ && echo "malicious" > settings.json
   // 重定向目标会相对于原始 CWD 进行校验，但实际写入发生在 'cd' 执行后
   // 切换过的目录中。
   if (compoundCommandHasCd && redirections.length > 0) {

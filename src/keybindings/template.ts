@@ -1,6 +1,6 @@
 /**
  * 快捷键模板生成器。
- * 为 ~/.claude/keybindings.json 生成带良好文档的模板文件
+ * 为 ~/.hclaude/keybindings.json 生成带良好文档的模板文件
  */
 
 import { jsonStringify } from '../utils/slowOperations.js'

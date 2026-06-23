@@ -119,7 +119,7 @@ let claudeDir: string
 
 beforeEach(() => {
   tmpDir = mkdtempSync(join(tmpdir(), 'share-test-'))
-  claudeDir = join(tmpDir, '.claude')
+  claudeDir = join(tmpDir, '.hclaude')
   mkdirSync(claudeDir, { recursive: true })
   process.env.CLAUDE_CONFIG_DIR = claudeDir
   // 重置为 gh 成功的默认值（execFile 返回空 stdout — gh 检查通过，

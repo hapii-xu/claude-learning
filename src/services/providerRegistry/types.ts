@@ -45,7 +45,7 @@ export const ProviderConfigSchema = z.object({
 export type ProviderConfig = z.infer<typeof ProviderConfigSchema>
 
 /**
- * 整个 ~/.claude/providers.json 文件的模式。
+ * 整个 ~/.hclaude/providers.json 文件的模式。
  * 顶层必须是 ProviderConfig 的数组。
  */
 export const ProvidersFileSchema = z.array(ProviderConfigSchema)

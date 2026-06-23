@@ -14,7 +14,7 @@ import type { Command, LocalCommandResult } from '../../types/command.js'
  * Shell profile 集成：将以下内容添加到 ~/.bashrc / ~/.zshrc，
  * 即可在标记存在时自动启用 TUI 模式：
  *
- *   [ -f "$HOME/.claude/.tui-mode" ] && export CLAUDE_CODE_NO_FLICKER=1
+ *   [ -f "$HOME/.hclaude/.tui-mode" ] && export CLAUDE_CODE_NO_FLICKER=1
  *
  * 注意：运行时设置 CLAUDE_CODE_NO_FLICKER 无法追溯进入备用屏幕缓冲 ——
  * Ink 渲染树已经挂载完毕。该改动要到「下一次会话启动」时才会生效。
@@ -40,11 +40,11 @@ const USAGE_TEXT = [
   '',
   'TUI mode uses the ANSI alternate screen buffer (\\x1b[?1049h) so the',
   'Claude Code UI occupies a clean full-screen area with no scroll-back',
-  'flicker.  The setting is stored in ~/.claude/.tui-mode and takes effect',
+  'flicker.  The setting is stored in ~/.hclaude/.tui-mode and takes effect',
   'on the next session start.',
   '',
   'Shell-profile integration (auto-enable on every start):',
-  '  [ -f "$HOME/.claude/.tui-mode" ] && export CLAUDE_CODE_NO_FLICKER=1',
+  '  [ -f "$HOME/.hclaude/.tui-mode" ] && export CLAUDE_CODE_NO_FLICKER=1',
   '',
   'Environment override:',
   '  CLAUDE_CODE_NO_FLICKER=1   force on (overrides marker)',
@@ -65,7 +65,7 @@ function enableTui(): LocalCommandResult {
       'Flicker-free alternate-screen rendering will be active on the next',
       'session start.  Add this to your shell profile to make it permanent:',
       '',
-      '  [ -f "$HOME/.claude/.tui-mode" ] && export CLAUDE_CODE_NO_FLICKER=1',
+      '  [ -f "$HOME/.hclaude/.tui-mode" ] && export CLAUDE_CODE_NO_FLICKER=1',
       '',
       'To disable: `/tui off`',
     ].join('\n'),

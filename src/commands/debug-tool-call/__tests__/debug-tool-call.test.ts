@@ -36,7 +36,7 @@ mock.module('src/utils/envUtils.js', () => ({
 
 beforeEach(() => {
   tmpDir = mkdtempSync(join(tmpdir(), 'dtc-test-'))
-  claudeDir = join(tmpDir, '.claude')
+  claudeDir = join(tmpDir, '.hclaude')
   mkdirSync(claudeDir, { recursive: true })
   process.env.CLAUDE_CONFIG_DIR = claudeDir
 })

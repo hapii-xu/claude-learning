@@ -96,7 +96,7 @@ export function expandTilde(path: string): string {
  * 像 `echo foo > /tmp/claude/x.txt` 这样的命令不会提示权限。
  *
  * 尊重 allow-within-deny 列表：denyWithinAllow 中的路径（如
- * .claude/settings.json）即使其父目录在 allowOnly 中也会被阻止。
+ * .hclaude/settings.json）即使其父目录在 allowOnly 中也会被阻止。
  */
 export function isPathInSandboxWriteAllowlist(resolvedPath: string): boolean {
   if (!SandboxManager.isSandboxingEnabled()) {
@@ -165,8 +165,8 @@ export function isPathAllowed(
   }
 
   // 2. 对于写入/创建操作，检查内部可编辑路径（计划文件、临时目录、代理内存、任务目录）
-  // 这必须在 checkPathSafetyForAutoEdit 之前，因为 .claude 是危险目录
-  // 且内部可编辑路径位于 ~/.claude/ 下——匹配
+  // 这必须在 checkPathSafetyForAutoEdit 之前，因为 .hclaude 是危险目录
+  // 且内部可编辑路径位于 ~/.hclaude/ 下——匹配
   // checkWritePermissionForTool 中的顺序（filesystem.ts 步骤 1.5）
   if (operationType !== 'read') {
     const internalEditResult = checkEditableInternalPath(resolvedPath, {})

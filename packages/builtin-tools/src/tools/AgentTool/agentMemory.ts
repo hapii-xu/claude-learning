@@ -5,8 +5,9 @@ import { getMemoryBaseDir } from 'src/memdir/paths.js'
 import { getCwd } from 'src/utils/cwd.js'
 import { findCanonicalGitRoot } from 'src/utils/git.js'
 import { sanitizePath } from 'src/utils/path.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
-// 持久化代理记忆作用域：'user' (~/.claude/agent-memory/)、'project' (.claude/agent-memory/) 或 'local' (.claude/agent-memory-local/)
+// 持久化代理记忆作用域：'user' (~/.hclaude/agent-memory/)、'project' (.hclaude/agent-memory/) 或 'local' (.hclaude/agent-memory-local/)
 export type AgentMemoryScope = 'user' | 'project' | 'local'
 
 /**
@@ -21,7 +22,7 @@ function sanitizeAgentTypeForPath(agentType: string): string {
 /**
  * 返回本地代理记忆目录，该目录特定于项目且不提交到版本控制。
  * 设置 CLAUDE_CODE_REMOTE_MEMORY_DIR 时，持久化到挂载点并以项目命名空间隔离。
- * 否则，使用 <cwd>/.claude/agent-memory-local/<agentType>/。
+ * 否则，使用 <cwd>/.hclaude/agent-memory-local/<agentType>/。
  */
 function getLocalAgentMemoryDir(dirName: string): string {
   if (process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR) {
@@ -37,13 +38,13 @@ function getLocalAgentMemoryDir(dirName: string): string {
       ) + sep
     )
   }
-  return join(getCwd(), '.claude', 'agent-memory-local', dirName) + sep
+  return join(getCwd(), CLAUDE_DIR_NAME, 'agent-memory-local', dirName) + sep
 }
 
 /**
  * 返回给定代理类型和作用域的代理记忆目录。
  * - 'user' 作用域：<memoryBase>/agent-memory/<agentType>/
- * - 'project' 作用域：<cwd>/.claude/agent-memory/<agentType>/
+ * - 'project' 作用域：<cwd>/.hclaude/agent-memory/<agentType>/
  * - 'local' 作用域：参见 getLocalAgentMemoryDir()
  */
 export function getAgentMemoryDir(
@@ -53,7 +54,7 @@ export function getAgentMemoryDir(
   const dirName = sanitizeAgentTypeForPath(agentType)
   switch (scope) {
     case 'project':
-      return join(getCwd(), '.claude', 'agent-memory', dirName) + sep
+      return join(getCwd(), CLAUDE_DIR_NAME, 'agent-memory', dirName) + sep
     case 'local':
       return getLocalAgentMemoryDir(dirName)
     case 'user':
@@ -74,7 +75,9 @@ export function isAgentMemoryPath(absolutePath: string): boolean {
 
   // 项目作用域：始终基于 cwd（不会被重定向）
   if (
-    normalizedPath.startsWith(join(getCwd(), '.claude', 'agent-memory') + sep)
+    normalizedPath.startsWith(
+      join(getCwd(), CLAUDE_DIR_NAME, 'agent-memory') + sep,
+    )
   ) {
     return true
   }
@@ -91,7 +94,7 @@ export function isAgentMemoryPath(absolutePath: string): boolean {
     }
   } else if (
     normalizedPath.startsWith(
-      join(getCwd(), '.claude', 'agent-memory-local') + sep,
+      join(getCwd(), CLAUDE_DIR_NAME, 'agent-memory-local') + sep,
     )
   ) {
     return true
@@ -117,7 +120,7 @@ export function getMemoryScopeDisplay(
     case 'user':
       return `User (${join(getMemoryBaseDir(), 'agent-memory')}/)`
     case 'project':
-      return 'Project (.claude/agent-memory/)'
+      return 'Project (.hclaude/agent-memory/)'
     case 'local':
       return `Local (${getLocalAgentMemoryDir('...')})`
     default:
@@ -130,7 +133,7 @@ export function getMemoryScopeDisplay(
  * 如有需要会创建记忆目录，并返回包含记忆内容的提示字符串。
  *
  * @param agentType 代理类型名称（用作目录名）
- * @param scope 'user' 对应 ~/.claude/agent-memory/，'project' 对应 .claude/agent-memory/
+ * @param scope 'user' 对应 ~/.hclaude/agent-memory/，'project' 对应 .hclaude/agent-memory/
  */
 export function loadAgentMemoryPrompt(
   agentType: string,

@@ -191,9 +191,9 @@ export function checkPermissionMode(
   //（或别名 cd、sl、chdir、pushd、popd）时，cwd 在语句之间会改变。
   // 路径验证针对过期的进程 cwd 解析相对路径，因此后续语句中的写入
   // cmdlet 针对与验证器检查的不同目录。
-  // 示例：`Set-Location ./.claude; Set-Content ./settings.json '...'` — 验证器
+  // 示例：`Set-Location ./.hclaude; Set-Content ./settings.json '...'` — 验证器
   // 看到 ./settings.json 为 /project/settings.json，但 PowerShell 写入到
-  // /project/.claude/settings.json。拒绝在包含 cwd 更改命令的复合中自动允许
+  // /project/.hclaude/settings.json。拒绝在包含 cwd 更改命令的复合中自动允许
   // 任何写入操作。这与 BashTool 的 compoundCommandHasCd 防护一致
   //（BashTool/pathValidation.ts:630-655）。
   const totalCommands = segments.reduce(

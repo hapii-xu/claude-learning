@@ -63,6 +63,7 @@ import { isRestrictedToPluginOnly } from '../utils/settings/pluginOnlyPolicy.js'
 import { HooksSchema, type HooksSettings } from '../utils/settings/types.js'
 import { createSignal } from '../utils/signal.js'
 import { registerMCPSkillBuilders } from './mcpSkillBuilders.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 export type LoadedFrom =
   | 'commands_DEPRECATED'
@@ -85,13 +86,13 @@ export function getSkillsPath(
   let result: string
   switch (source) {
     case 'policySettings':
-      result = join(getManagedFilePath(), '.claude', dir)
+      result = join(getManagedFilePath(), CLAUDE_DIR_NAME, dir)
       break
     case 'userSettings':
       result = join(getClaudeConfigHomeDir(), dir)
       break
     case 'projectSettings':
-      result = `.claude/${dir}`
+      result = `.hclaude/${dir}`
       break
     case 'plugin':
       result = 'plugin'
@@ -833,7 +834,11 @@ async function loadSkillsFromCommandsDir(
 export const getSkillDirCommands = memoize(
   async (cwd: string): Promise<Command[]> => {
     const userSkillsDir = join(getClaudeConfigHomeDir(), 'skills')
-    const managedSkillsDir = join(getManagedFilePath(), '.claude', 'skills')
+    const managedSkillsDir = join(
+      getManagedFilePath(),
+      CLAUDE_DIR_NAME,
+      'skills',
+    )
     const projectSkillsDirs = getProjectDirsUpToHome('skills', cwd)
 
     logForDebugging(
@@ -869,7 +874,7 @@ export const getSkillDirCommands = memoize(
       const additionalSkillsNested = await Promise.all(
         additionalDirs.map(dir =>
           loadSkillsFromSkillsDir(
-            join(dir, '.claude', 'skills'),
+            join(dir, CLAUDE_DIR_NAME, 'skills'),
             'projectSettings',
           ),
         ),
@@ -912,7 +917,7 @@ export const getSkillDirCommands = memoize(
         ? Promise.all(
             additionalDirs.map(dir =>
               loadSkillsFromSkillsDir(
-                join(dir, '.claude', 'skills'),
+                join(dir, CLAUDE_DIR_NAME, 'skills'),
                 'projectSettings',
               ),
             ),
@@ -1115,7 +1120,7 @@ export async function discoverSkillDirsForPaths(
     // CWD 级别的技能已在启动时加载，所以我们只发现嵌套的技能
     // 使用前缀+分隔符检查以避免在 cwd 为 /project 时匹配 /project-backup
     while (currentDir.startsWith(resolvedCwd + pathSep)) {
-      const skillDir = join(currentDir, '.claude', 'skills')
+      const skillDir = join(currentDir, CLAUDE_DIR_NAME, 'skills')
 
       // 如果我们已经检查过此路径（命中或未命中）则跳过——避免
       // 在目录不存在时（常见情况）每次 Read/Write/Edit 调用都重复
@@ -1125,7 +1130,7 @@ export async function discoverSkillDirsForPaths(
         try {
           await fs.stat(skillDir)
           // 技能目录存在。加载前，检查包含目录是否被 gitignore——
-          // 阻止例如 node_modules/pkg/.claude/skills 静默加载。
+          // 阻止例如 node_modules/pkg/.hclaude/skills 静默加载。
           // `git check-ignore` 处理嵌套的 .gitignore、.git/info/exclude
           // 和全局 gitignore。在 git 仓库外部失败时开放
           // （exit 128 → false）；调用时的信任对话框是真正的安全边界。

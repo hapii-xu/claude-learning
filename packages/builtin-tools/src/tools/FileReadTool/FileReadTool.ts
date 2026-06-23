@@ -188,7 +188,7 @@ const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp'])
 
 /**
  * 检测文件路径是否为用于 analytics 日志记录的会话相关文件。
- * 仅匹配 Claude 配置目录（例如 ~/.claude）内的文件。
+ * 仅匹配 Claude 配置目录（例如 ~/.hclaude）内的文件。
  * 返回会话文件类型，如果不是会话文件则返回 null。
  */
 function detectSessionFileType(
@@ -204,7 +204,7 @@ function detectSessionFileType(
   // 将路径规范化为使用正斜杠，以在不同平台上一致匹配
   const normalizedPath = filePath.split(win32.sep).join(posix.sep)
 
-  // 会话内存文件：~/.claude/session-memory/*.md（包括 summary.md）
+  // 会话内存文件：~/.hclaude/session-memory/*.md（包括 summary.md）
   if (
     normalizedPath.includes('/session-memory/') &&
     normalizedPath.endsWith('.md')
@@ -212,7 +212,7 @@ function detectSessionFileType(
     return 'session_memory'
   }
 
-  // 会话 JSONL 转录文件：~/.claude/projects/*/*.jsonl
+  // 会话 JSONL 转录文件：~/.hclaude/projects/*/*.jsonl
   if (
     normalizedPath.includes('/projects/') &&
     normalizedPath.endsWith('.jsonl')

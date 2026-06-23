@@ -11,15 +11,15 @@ import {
 import { clearPluginOutputStyleCache } from '../utils/plugins/loadPluginOutputStyles.js'
 
 /**
- * 从整个项目的 .claude/output-styles 目录和 ~/.claude/output-styles 目录
+ * 从整个项目的 .hclaude/output-styles 目录和 ~/.hclaude/output-styles 目录
  * 加载 markdown 文件，并将它们转换为输出样式。
  *
  * 每个文件名成为一个样式名称，文件内容成为样式提示。
  * frontmatter 提供 name 和 description。
  *
  * 结构：
- * - 项目 .claude/output-styles/*.md -> 项目样式
- * - 用户 ~/.claude/output-styles/*.md -> 用户样式（被项目样式覆盖）
+ * - 项目 .hclaude/output-styles/*.md -> 项目样式
+ * - 用户 ~/.hclaude/output-styles/*.md -> 用户样式（被项目样式覆盖）
  *
  * @param cwd 用于项目目录遍历的当前工作目录
  */

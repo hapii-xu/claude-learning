@@ -1,4 +1,4 @@
-// .claude/scheduled_tasks.json 的非 React 调度器核心。
+// .hclaude/scheduled_tasks.json 的非 React 调度器核心。
 // 由 REPL（通过 useScheduledTasks）和 SDK/-p 模式（print.ts）共享。
 //
 // 生命周期：轮询 getScheduledTasksEnabled() 直到为 true
@@ -84,7 +84,7 @@ type CronSchedulerOptions = {
    */
   onMissed?: (tasks: CronTask[]) => void
   /**
-   * 包含 .claude/scheduled_tasks.json 的目录。提供时，调度器
+   * 包含 .hclaude/scheduled_tasks.json 的目录。提供时，调度器
    * 永不触及引导状态：不读取 getProjectRoot/getSessionId，
    * 且跳过 getScheduledTasksEnabled() 轮询（enable() 在 start 时
    * 立即运行）。Agent SDK daemon 调用方必需。
@@ -539,7 +539,7 @@ export function buildMissedTaskNotification(missed: CronTask[]): string {
   const plural = missed.length > 1
   const header =
     `The following one-shot scheduled task${plural ? 's were' : ' was'} missed while Claude was not running. ` +
-    `${plural ? 'They have' : 'It has'} already been removed from .claude/scheduled_tasks.json.\n\n` +
+    `${plural ? 'They have' : 'It has'} already been removed from .hclaude/scheduled_tasks.json.\n\n` +
     `Do NOT execute ${plural ? 'these prompts' : 'this prompt'} yet. ` +
     `First use the AskUserQuestion tool to ask whether to run ${plural ? 'each one' : 'it'} now. ` +
     `Only execute if the user confirms.`

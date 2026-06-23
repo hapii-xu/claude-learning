@@ -145,7 +145,7 @@ let claudeDir: string
 
 beforeEach(() => {
   tmpDir = mkdtempSync(join(tmpdir(), 'share-gh-test-'))
-  claudeDir = join(tmpDir, '.claude')
+  claudeDir = join(tmpDir, '.hclaude')
   mkdirSync(claudeDir, { recursive: true })
   process.env.CLAUDE_CONFIG_DIR = claudeDir
   // 重置为中性的默认值（成功且输出为空），使得未显式设置此 mock 的相邻测试文件

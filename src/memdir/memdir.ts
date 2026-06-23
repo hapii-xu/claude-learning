@@ -122,7 +122,7 @@ export const DIRS_EXIST_GUIDANCE =
  * 确保记忆目录存在。幂等 - 由 loadMemoryPrompt 调用（通过
  * systemPromptSection 缓存每会话一次），这样模型总是可以直接写入
  * 而无需先检查存在性。FsOperations.mkdir 默认递归且已吞并 EEXIST，
- * 所以完整的父链（~/.claude/projects/<slug>/memory/）在一次调用中
+ * 所以完整的父链（~/.hclaude/projects/<slug>/memory/）在一次调用中
  * 创建，正常路径无需 try/catch。
  */
 export async function ensureMemoryDirExists(memoryDir: string): Promise<void> {

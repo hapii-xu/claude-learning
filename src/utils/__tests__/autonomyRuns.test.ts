@@ -107,7 +107,7 @@ describe('autonomyRuns', () => {
     })
     expect(runs[0]?.ownerSessionId).toBeString()
     expect(flows).toHaveLength(0)
-    expect(resolveAutonomyRunsPath(tempDir)).toContain('.claude')
+    expect(resolveAutonomyRunsPath(tempDir)).toContain('.hclaude')
   })
 
   test('createAutonomyQueuedPrompt defaults currentDir to the active cwd for nested authority', async () => {
@@ -836,12 +836,12 @@ describe('autonomyRuns', () => {
       '..',
       '..',
       '..',
-      '.claude',
+      '.hclaude',
       'autonomy',
       'HEARTBEAT.md',
     )
     if (!(await tempPathExists(heartbeatPath))) {
-      // .claude/ may be absent in some checkout layouts (e.g., shallow clone
+      // .hclaude/ may be absent in some checkout layouts (e.g., shallow clone
       // for npm pack). Skip rather than fail in that case.
       return
     }

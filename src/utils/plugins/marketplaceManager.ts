@@ -8,7 +8,7 @@
  * - 跟踪和更新 marketplace 配置
  *
  * 本模块管理的文件结构：
- * ~/.claude/
+ * ~/.hclaude/
  *   └── plugins/
  *       ├── known_marketplaces.json    # 所有已知 marketplace 的配置
  *       └── marketplaces/              # marketplace 数据的缓存目录
@@ -240,7 +240,7 @@ export function saveMarketplaceToSettings(
 /**
  * 从磁盘加载已知 marketplace 配置
  *
- * 读取 ~/.claude/plugins/known_marketplaces.json 的配置文件，
+ * 读取 ~/.hclaude/plugins/known_marketplaces.json 的配置文件，
  * 其中包含 marketplace 名称到其来源和元数据的映射。
  *
  * 配置文件内容示例：
@@ -248,12 +248,12 @@ export function saveMarketplaceToSettings(
  * {
  *   "official-marketplace": {
  *     "source": { "source": "url", "url": "https://example.com/marketplace.json" },
- *     "installLocation": "/Users/me/.claude/plugins/marketplaces/official-marketplace.json",
+ *     "installLocation": "/Users/me/.hclaude/plugins/marketplaces/official-marketplace.json",
  *     "lastUpdated": "2024-01-15T10:30:00.000Z"
  *   },
  *   "company-plugins": {
  *     "source": { "source": "github", "repo": "mycompany/plugins" },
- *     "installLocation": "/Users/me/.claude/plugins/marketplaces/company-plugins",
+ *     "installLocation": "/Users/me/.hclaude/plugins/marketplaces/company-plugins",
  *     "lastUpdated": "2024-01-14T15:45:00.000Z"
  *   }
  * }
@@ -318,7 +318,7 @@ export async function loadKnownMarketplacesConfigSafe(): Promise<KnownMarketplac
 /**
  * 将已知 marketplace 配置保存到磁盘
  *
- * 将配置写入 ~/.claude/plugins/known_marketplaces.json，
+ * 将配置写入 ~/.hclaude/plugins/known_marketplaces.json，
  * 如果目录结构不存在则创建。
  *
  * @param config - 要保存的 marketplace 配置
@@ -1410,7 +1410,7 @@ async function parseFileWithSchema<T>(
  * 以匹配清单中 marketplace 的实际名称。
  *
  * 缓存结构：
- * ~/.claude/plugins/marketplaces/
+ * ~/.hclaude/plugins/marketplaces/
  *   ├── official-marketplace.json     # 来自 URL 来源
  *   ├── github-marketplace/          # 来自 GitHub/Git 来源
  *   │   └── .claude-plugin/
@@ -1764,7 +1764,7 @@ async function loadAndCacheMarketplace(
  * 将 marketplace 来源添加到已知 marketplace
  *
  * marketplace 被获取、校验并缓存到本地。
- * 配置保存到 ~/.claude/plugins/known_marketplaces.json。
+ * 配置保存到 ~/.hclaude/plugins/known_marketplaces.json。
  *
  * @param source - 表示 marketplace 来源的 MarketplaceSource 对象。
  *                 调用者应将用户输入解析为 MarketplaceSource 格式

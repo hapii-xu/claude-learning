@@ -162,7 +162,7 @@ export function getVersionedCachePathIn(
 
 /**
  * 获取插件在主插件目录下的带版本号缓存路径。
- * 格式：~/.claude/plugins/cache/{marketplace}/{plugin}/{version}/
+ * 格式：~/.hclaude/plugins/cache/{marketplace}/{plugin}/{version}/
  *
  * @param pluginId - 插件标识符，格式为 "name@marketplace"
  * @param version - 版本字符串（semver、git SHA 等）
@@ -238,7 +238,7 @@ export async function probeSeedCacheAnyVersion(
 
 /**
  * 获取插件的旧版（非版本号）缓存路径。
- * 格式：~/.claude/plugins/cache/{plugin-name}/
+ * 格式：~/.hclaude/plugins/cache/{plugin-name}/
  *
  * 用于与现有安装的向后兼容。
  *

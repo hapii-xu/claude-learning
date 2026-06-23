@@ -9,6 +9,7 @@ import {
   resolveProjectContext,
 } from './projectContext.js'
 import { generateSkillDraft, writeLearnedSkill } from './skillGenerator.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 import type {
   InstinctDomain,
   SkillGapStatus,
@@ -249,7 +250,7 @@ async function writeSkillGapDraft(
   const instinct = createGapInstinct(gap, 'pending')
   const draftsRoot = join(
     project.projectRoot ?? project.cwd,
-    '.claude',
+    CLAUDE_DIR_NAME,
     'skills',
     '.drafts',
   )

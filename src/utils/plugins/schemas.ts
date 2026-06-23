@@ -1434,7 +1434,7 @@ export const SettingsPluginEntrySchema = lazySchema(() =>
  *   "version": "1.2.0",
  *   "installedAt": "2024-01-15T10:30:00Z",
  *   "marketplace": "anthropic-tools",
- *   "installPath": "/home/user/.claude/plugins/installed/anthropic-tools/code-formatter"
+ *   "installPath": "/home/user/.hclaude/plugins/installed/anthropic-tools/code-formatter"
  * }
  */
 export const InstalledPluginSchema = lazySchema(() =>
@@ -1490,9 +1490,9 @@ export const InstalledPluginsFileSchemaV1 = lazySchema(() =>
  *
  * 插件可以在不同 scope 安装：
  * - managed：企业/系统范围（只读，平台特定路径）
- * - user：用户全局设置（~/.claude/settings.json）
- * - project：共享项目设置（$project/.claude/settings.json）
- * - local：个人项目覆盖（$project/.claude/settings.local.json）
+ * - user：用户全局设置（~/.hclaude/settings.json）
+ * - project：共享项目设置（$project/.hclaude/settings.json）
+ * - local：个人项目覆盖（$project/.hclaude/settings.local.json）
  *
  * 注意：'flag' scope 插件（来自 --settings）仅限会话，
  * 不会持久化到 installed_plugins.json。
@@ -1579,7 +1579,7 @@ export const InstalledPluginsFileSchema = lazySchema(() =>
  * 示例条目：
  * {
  *   "source": { "source": "github", "repo": "anthropic/claude-plugins" },
- *   "installLocation": "/home/user/.claude/plugins/cached/marketplaces/anthropic-tools",
+ *   "installLocation": "/home/user/.hclaude/plugins/cached/marketplaces/anthropic-tools",
  *   "lastUpdated": "2024-01-15T10:30:00Z"
  * }
  */

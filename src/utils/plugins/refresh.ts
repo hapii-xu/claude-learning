@@ -3,7 +3,7 @@
  *
  * 三层模型（Layer-2 见 reconciler.ts）：
  * - 第 1 层：意图（settings）
- * - 第 2 层：物化（~/.claude/plugins/）— reconcileMarketplaces()
+ * - 第 2 层：物化（~/.hclaude/plugins/）— reconcileMarketplaces()
  * - 第 3 层：活跃组件（AppState）— 本文件
  *
  * 调用来源：

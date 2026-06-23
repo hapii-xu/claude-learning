@@ -62,6 +62,7 @@ import {
   getXDGStateHome,
 } from '../xdg.js'
 import { downloadVersion, getLatestVersion } from './download.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 import {
   acquireProcessLifetimeLock,
   cleanupStaleLocks,
@@ -1685,8 +1686,8 @@ export async function cleanupNpmInstallations(): Promise<{
     }
   }
 
-  // Check for local installation at ~/.claude/local
-  const localInstallDir = join(homedir(), '.claude', 'local')
+  // Check for local installation at ~/.hclaude/local
+  const localInstallDir = join(homedir(), CLAUDE_DIR_NAME, 'local')
 
   try {
     await rm(localInstallDir, { recursive: true })

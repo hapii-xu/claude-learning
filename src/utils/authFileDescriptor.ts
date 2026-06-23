@@ -12,12 +12,12 @@ import { getFsImplementation } from './fsOperations.js'
 
 /**
  * CCR 中已知的 token 文件位置。Go 环境管理器创建
- * /home/claude/.claude/remote/ 并（最终）也会写入这些文件。
+ * /home/claude/.hclaude/remote/ 并（最终）也会写入这些文件。
  * 在此之前，此模块在成功读取 FD 后写入它们，以便 CCR 容器内
  * 生成的子进程可以找到 token 而无需继承 FD —— 它们无法继承：
  * 管道 FD 不能跨越 tmux/shell 边界。
  */
-const CCR_TOKEN_DIR = '/home/claude/.claude/remote'
+const CCR_TOKEN_DIR = '/home/claude/.hclaude/remote'
 export const CCR_OAUTH_TOKEN_PATH = `${CCR_TOKEN_DIR}/.oauth_token`
 export const CCR_API_KEY_PATH = `${CCR_TOKEN_DIR}/.api_key`
 export const CCR_SESSION_INGRESS_TOKEN_PATH = `${CCR_TOKEN_DIR}/.session_ingress_token`
@@ -166,7 +166,7 @@ function getCredentialFromFd({
 /**
  * 获取 CCR 注入的 OAuth token。FD 与磁盘的选择理由见 getCredentialFromFd。
  * 环境变量：CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR。
- * 已知文件：/home/claude/.claude/remote/.oauth_token。
+ * 已知文件：/home/claude/.hclaude/remote/.oauth_token。
  */
 export function getOAuthTokenFromFileDescriptor(): string | null {
   return getCredentialFromFd({
@@ -181,7 +181,7 @@ export function getOAuthTokenFromFileDescriptor(): string | null {
 /**
  * 获取 CCR 注入的 API 密钥。FD 与磁盘的选择理由见 getCredentialFromFd。
  * 环境变量：CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR。
- * 已知文件：/home/claude/.claude/remote/.api_key。
+ * 已知文件：/home/claude/.hclaude/remote/.api_key。
  */
 export function getApiKeyFromFileDescriptor(): string | null {
   return getCredentialFromFd({

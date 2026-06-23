@@ -9,6 +9,7 @@ import {
 import { getClaudeConfigHomeDir } from '../../utils/envUtils.js'
 import { sanitizePath } from '../../utils/path.js'
 import type { Command, LocalCommandResult } from '../../types/command.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 /**
  * 以每 100 万 token 多少美元计价的费率，按模型 ID 前缀索引。
@@ -101,7 +102,7 @@ function sanitizeErrorMessage(msg: string): string {
 }
 
 function getPerfReportDir(): string {
-  return join(homedir(), '.claude', 'perf-reports')
+  return join(homedir(), CLAUDE_DIR_NAME, 'perf-reports')
 }
 
 function getTranscriptPath(): string {

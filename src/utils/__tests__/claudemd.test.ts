@@ -86,8 +86,8 @@ describe('isMemoryFilePath', () => {
     expect(isMemoryFilePath('/project/CLAUDE.local.md')).toBe(true)
   })
 
-  test('returns true for .claude/rules/ path', () => {
-    expect(isMemoryFilePath('/project/.claude/rules/foo.md')).toBe(true)
+  test('returns true for .hclaude/rules/ path', () => {
+    expect(isMemoryFilePath('/project/.hclaude/rules/foo.md')).toBe(true)
   })
 
   test('returns false for regular file', () => {
@@ -98,16 +98,16 @@ describe('isMemoryFilePath', () => {
     expect(isMemoryFilePath('/project/README.md')).toBe(false)
   })
 
-  test('returns false for .claude directory non-rules file', () => {
-    expect(isMemoryFilePath('/project/.claude/settings.json')).toBe(false)
+  test('returns false for .hclaude directory non-rules file', () => {
+    expect(isMemoryFilePath('/project/.hclaude/settings.json')).toBe(false)
   })
 
   test('returns false for lowercase claude.md (case-sensitive match)', () => {
     expect(isMemoryFilePath('/project/claude.md')).toBe(false)
   })
 
-  test('returns false for non-.md file in .claude/rules/', () => {
-    expect(isMemoryFilePath('.claude/rules/foo.txt')).toBe(false)
+  test('returns false for non-.md file in .hclaude/rules/', () => {
+    expect(isMemoryFilePath('.hclaude/rules/foo.txt')).toBe(false)
   })
 })
 

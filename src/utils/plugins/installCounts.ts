@@ -4,7 +4,7 @@
  * 本模块从官方 Claude 插件统计仓库获取并缓存插件安装次数。
  * 若缓存超过 24 小时则刷新。
  *
- * 缓存位置：~/.claude/plugins/install-counts-cache.json
+ * 缓存位置：~/.hclaude/plugins/install-counts-cache.json
  */
 
 import axios from 'axios'

@@ -166,7 +166,7 @@ export async function connectDoubaoStream(
 
   // 在后台启动 ASR 会话
   const config = new ASRConfig({
-    credentialPath: `${homedir()}/.claude/tts/doubao/credentials.json`,
+    credentialPath: `${homedir()}/.hclaude/tts/doubao/credentials.json`,
   })
 
   // 确保凭证已初始化（可能自动生成）

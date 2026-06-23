@@ -312,7 +312,7 @@ export type PermissionDecisionReason =
       type: 'safetyCheck'
       reason: string
       // 为 true 时，auto 模式会让分类器评估而非强制提示。对敏感文件路径
-      //（.claude/、.git/、shell 配置）为 true —— 分类器能看到上下文并决策。
+      //（.hclaude/、.git/、shell 配置）为 true —— 分类器能看到上下文并决策。
       // 对 Windows 路径绕过尝试和跨机 bridge 消息为 false。
       classifierApprovable: boolean
     }

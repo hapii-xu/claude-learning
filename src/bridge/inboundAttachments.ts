@@ -3,7 +3,7 @@
  *
  * Web composer 用 cookie 鉴权的 /api/{org}/upload 上传，随消息一起发
  * file_uuid。这里通过 GET /api/oauth/files/{uuid}/content（oauth 鉴权、
- * 同一个存储）把每个附件拉下来，写到 ~/.claude/uploads/{sessionId}/，
+ * 同一个存储）把每个附件拉下来，写到 ~/.hclaude/uploads/{sessionId}/，
  * 返回要 prepend 到消息前面的 @path 引用。剩下的交给 Claude 的 Read
  * 工具。
  *

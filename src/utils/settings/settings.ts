@@ -45,6 +45,7 @@ import {
   setSessionSettingsCache,
 } from './settingsCache.js'
 import { type SettingsJson, SettingsSchema } from './types.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 import {
   filterInvalidPermissionRules,
   formatZodError,
@@ -229,7 +230,7 @@ function parseSettingsFileUncached(path: string): {
 
 /**
  * 获取给定设置源关联的文件根目录的绝对路径
- * （例如，对于 $PROJ_DIR/.claude/settings.json，返回 $PROJ_DIR）
+ * （例如，对于 $PROJ_DIR/.hclaude/settings.json，返回 $PROJ_DIR）
  * @param source 设置的来源
  * @returns 设置文件的根路径
  */
@@ -297,9 +298,9 @@ export function getRelativeSettingsFilePathForSource(
 ): string {
   switch (source) {
     case 'projectSettings':
-      return join('.claude', 'settings.json')
+      return join(CLAUDE_DIR_NAME, 'settings.json')
     case 'localSettings':
-      return join('.claude', 'settings.local.json')
+      return join(CLAUDE_DIR_NAME, 'settings.local.json')
   }
 }
 

@@ -155,6 +155,7 @@ export {
 } from './configConstants.js'
 
 import type { EDITOR_MODES, NOTIFICATION_CHANNELS } from './configConstants.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number]
 
@@ -200,9 +201,9 @@ export type GlobalConfig = {
   lastOnboardingVersion?: string
   // 记录用户已看过其 release notes 的最近版本，用于管理 release notes
   lastReleaseNotesSeen?: string
-  // changelog 最近一次抓取的时间戳（内容存放在 ~/.claude/cache/changelog.md）
+  // changelog 最近一次抓取的时间戳（内容存放在 ~/.hclaude/cache/changelog.md）
   changelogLastFetched?: number
-  // @deprecated —— 已迁移到 ~/.claude/cache/changelog.md。仅为迁移支持保留。
+  // @deprecated —— 已迁移到 ~/.hclaude/cache/changelog.md。仅为迁移支持保留。
   cachedChangelog?: string
   mcpServers?: Record<string, McpServerConfig>
   // 至少成功连接过一次的 claude.ai MCP connector。
@@ -874,7 +875,7 @@ let configCacheHits = 0
 let configCacheMisses = 0
 // 会话内向全局配置文件实际发起磁盘写入的总次数。
 // 仅供 ant 内部开发诊断使用（见 inc-4552），让异常写入速率在破坏
-// ~/.claude.json 之前就能在 UI 上暴露。
+// ~/.hclaude.json 之前就能在 UI 上暴露。
 let globalConfigWriteCount = 0
 
 export function getGlobalConfigWriteCount(): number {
@@ -1208,7 +1209,7 @@ function saveConfigWithLock<A extends object>(
     const currentConfig = getConfig(file, createDefault)
     if (file === getGlobalClaudeFile() && wouldLoseAuthState(currentConfig)) {
       logForDebugging(
-        'saveConfigWithLock：重新读取的配置缺失了缓存中的 auth；为避免抹除 ~/.claude.json 拒绝写入。参见 GH #3117。',
+        'saveConfigWithLock：重新读取的配置缺失了缓存中的 auth；为避免抹除 ~/.hclaude.json 拒绝写入。参见 GH #3117。',
         { level: 'error' },
       )
       logEvent('tengu_config_auth_loss_prevented', {})
@@ -1232,7 +1233,7 @@ function saveConfigWithLock<A extends object>(
 
     // 写入前为现有配置创建带时间戳的备份
     // 保留多份备份，以防 reset/损坏的配置覆盖掉完好的备份。
-    // 备份存放在 ~/.claude/backups/ 下，保持 home 目录整洁。
+    // 备份存放在 ~/.hclaude/backups/ 下，保持 home 目录整洁。
     try {
       const fileBase = basename(file)
       const backupDir = getConfigBackupDir()
@@ -1354,7 +1355,7 @@ export function enableConfigs(): void {
 
 /**
  * 返回配置备份文件的存放目录。
- * 使用 ~/.claude/backups/，保持 home 目录整洁。
+ * 使用 ~/.hclaude/backups/，保持 home 目录整洁。
  */
 function getConfigBackupDir(): string {
   return join(getClaudeConfigHomeDir(), 'backups')
@@ -1362,7 +1363,7 @@ function getConfigBackupDir(): string {
 
 /**
  * 为给定配置文件查找最近的备份。
- * 先检查 ~/.claude/backups/，若不存在则 fallback 到遗留位置
+ * 先检查 ~/.hclaude/backups/，若不存在则 fallback 到遗留位置
  *（配置文件旁边）以保持向后兼容。
  * 返回最近备份的完整路径，若不存在则返回 null。
  */
@@ -1792,7 +1793,7 @@ export function getMemoryPath(memoryType: MemoryType): string {
 }
 
 export function getManagedClaudeRulesDir(): string {
-  return join(getManagedFilePath(), '.claude', 'rules')
+  return join(getManagedFilePath(), CLAUDE_DIR_NAME, 'rules')
 }
 
 export function getUserClaudeRulesDir(): string {

@@ -79,7 +79,7 @@ export function isExtractModeActive(): boolean {
  * 返回持久化记忆存储的基础目录。
  * 解析顺序：
  *   1. CLAUDE_CODE_REMOTE_MEMORY_DIR 环境变量（显式覆盖，在 CCR 中设置）
- *   2. ~/.claude（默认配置主目录）
+ *   2. ~/.hclaude（默认配置主目录）
  */
 export function getMemoryBaseDir(): string {
   if (process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR) {
@@ -166,7 +166,7 @@ function getAutoMemPathOverride(): string | undefined {
  * settings.json 对完整自动记忆目录路径的覆盖。
  * 支持 ~/ 展开以方便用户使用。
  *
- * 安全性：projectSettings（提交到仓库的 .claude/settings.json）被有意排除 -
+ * 安全性：projectSettings（提交到仓库的 .hclaude/settings.json）被有意排除 -
  * 否则恶意仓库可以设置 autoMemoryDirectory: "~/.ssh" 并通过 filesystem.ts
  * 写入豁免（当 isAutoMemPath() 匹配且 hasAutoMemPathOverride() 为 false 时触发）
  * 获得对敏感目录的静默写入权限。这遵循 hasSkipDangerousModePermissionPrompt()

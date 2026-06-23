@@ -17,7 +17,7 @@
  * 2. 可选设置 CLAUDE_CODE_PERFETTO_WRITE_INTERVAL_S=<正整数> 以周期性写入
  *    追踪文件（默认：仅在退出时写入）。
  * 3. 正常运行 Claude Code
- * 4. 追踪文件写入 ~/.claude/traces/trace-<session-id>.json
+ * 4. 追踪文件写入 ~/.hclaude/traces/trace-<session-id>.json
  *    或指定路径
  * 5. 在 ui.perfetto.dev 中打开以可视化
  */

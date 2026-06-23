@@ -16,7 +16,7 @@ import {
 
 /**
  * `claude ssh` 远程模式：ANTHROPIC_UNIX_SOCKET 通过 -R 转发的 socket 将认证路由到本地代理，
- * 启动器设置了一些占位认证环境变量，远程的 ~/.claude settings.env 不得覆盖它们（参见
+ * 启动器设置了一些占位认证环境变量，远程的 ~/.hclaude settings.env 不得覆盖它们（参见
  * isAnthropicAuthEnabled）。从所有来自 settings 的 env 对象中剥离这些变量。
  */
 function withoutSSHTunnelVars(
@@ -37,7 +37,7 @@ function withoutSSHTunnelVars(
 /**
  * 当宿主机拥有推理路由控制权时（在 spawn env 中设置了
  * CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST），从 settings 来源的 env 中剥离
- * provider 选择 / 模型默认值变量，防止用户的 ~/.claude/settings.json 将请求
+ * provider 选择 / 模型默认值变量，防止用户的 ~/.hclaude/settings.json 将请求
  * 重定向到非宿主机配置的 provider。
  */
 function withoutHostManagedProviderVars(
@@ -90,7 +90,7 @@ function filterSettingsEnv(
 /**
  * 可在信任对话框之前应用 env 变量的受信任 setting 来源。
  *
- * - userSettings (~/.claude/settings.json)：由用户控制，非项目专属
+ * - userSettings (~/.hclaude/settings.json)：由用户控制，非项目专属
  * - flagSettings (--settings CLI 参数或 SDK 内联 settings)：由用户显式传入
  * - policySettings（来自企业 API 或本地 managed-settings.json 的托管 settings）：
  *   由 IT/管理员控制（最高优先级，不可被覆盖）
@@ -123,14 +123,14 @@ export function applySafeConfigEnvironmentVariables(): void {
         : null
   }
 
-  // 全局配置（~/.claude.json）由用户控制。在 CCD 模式下，
+  // 全局配置（~/.hclaude.json）由用户控制。在 CCD 模式下，
   // filterSettingsEnv 会剥离 spawn env 快照中存在的 key，
   // 防止覆盖桌面宿主机的运营变量（OTEL 等）。
   Object.assign(process.env, filterSettingsEnv(getGlobalConfig().env))
 
   // 从受信任 setting 来源应用全部 env 变量，policySettings 最后应用。
   // 通过 isSettingSourceEnabled 把关，防止 SDK settingSources: []（隔离模式）
-  // 被 ~/.claude/settings.json env 覆盖（gh#217）。policy/flag 来源始终启用，
+  // 被 ~/.hclaude/settings.json env 覆盖（gh#217）。policy/flag 来源始终启用，
   // 因此此处实际只过滤 userSettings。
   for (const source of TRUSTED_SETTING_SOURCES) {
     if (source === 'policySettings') continue

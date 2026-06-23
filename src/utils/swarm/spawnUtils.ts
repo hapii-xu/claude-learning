@@ -114,7 +114,7 @@ const TEAMMATE_ENV_VARS = [
   // 配置目录覆盖
   'CLAUDE_CONFIG_DIR',
   // CCR 标记 — teammate 需要此标记用于 CCR 感知的代码路径。认证
-  // 通过 /home/claude/.claude/remote/.oauth_token 自行寻找方式；
+  // 通过 /home/claude/.hclaude/remote/.oauth_token 自行寻找方式；
   // FD 环境变量无济于事（管道 FD 无法跨越 tmux）。
   'CLAUDE_CODE_REMOTE',
   // 自动内存门控（memdir/paths.ts）检查 REMOTE && !MEMORY_DIR 以

@@ -18,9 +18,9 @@ const SETTINGS_EXAMPLES_DOCS = `## 设置文件位置
 
 | 文件 | 作用域 | Git | 用途 |
 |------|-------|-----|---------|
-| \`~/.claude/settings.json\` | 全局 | N/A | 所有项目的个人偏好 |
-| \`.claude/settings.json\` | 项目 | 提交 | 团队共享的 hooks、权限、插件 |
-| \`.claude/settings.local.json\` | 项目 | Gitignore | 此项目的个人覆盖 |
+| \`~/.hclaude/settings.json\` | 全局 | N/A | 所有项目的个人偏好 |
+| \`.hclaude/settings.json\` | 项目 | 提交 | 团队共享的 hooks、权限、插件 |
+| \`.hclaude/settings.local.json\` | 项目 | Gitignore | 此项目的个人覆盖 |
 
 设置加载顺序：用户 → 项目 → 本地（后者覆盖前者）。
 
@@ -30,7 +30,7 @@ const SETTINGS_EXAMPLES_DOCS = `## 设置文件位置
 \`\`\`json
 {
   "permissions": {
-    "allow": ["Bash(npm:*)", "Edit(.claude)", "Read"],
+    "allow": ["Bash(npm:*)", "Edit(.hclaude)", "Read"],
     "deny": ["Bash(rm -rf:*)"],
     "ask": ["Write(/etc/*)"],
     "defaultMode": "default" | "plan" | "acceptEdits" | "dontAsk",
@@ -235,7 +235,7 @@ Hooks 可以返回 JSON 来控制行为：
       "matcher": "Bash",
       "hooks": [{
         "type": "command",
-        "command": "jq -r '.tool_input.command' >> ~/.claude/bash-log.txt"
+        "command": "jq -r '.tool_input.command' >> ~/.hclaude/bash-log.txt"
       }]
     }]
   }
@@ -285,7 +285,7 @@ const HOOK_VERIFICATION_FLOW = `## 构建 Hook（含验证）
 
    检查退出码**和**副作用（文件确实被格式化了，测试确实运行了）。若失败则得到真实错误——修复（包管理器错误？工具未安装？jq 路径错误？）并重测。一旦有效，用 \`2>/dev/null || true\` 包装（除非用户需要阻止性检查）。
 
-4. **写入 JSON。** 合并到目标文件（schema 形状见上方"Hook 结构"章节）。若首次创建 \`.claude/settings.local.json\`，将其加入 .gitignore——Write 工具不会自动 gitignore 它。
+4. **写入 JSON。** 合并到目标文件（schema 形状见上方"Hook 结构"章节）。若首次创建 \`.hclaude/settings.local.json\`，将其加入 .gitignore——Write 工具不会自动 gitignore 它。
 
 5. **一次性验证语法 + schema：**
 
@@ -299,7 +299,7 @@ const HOOK_VERIFICATION_FLOW = `## 构建 Hook（含验证）
 
    **务必清理**——无论证明是否通过，都要还原违规、去除哨兵前缀。
 
-   **若证明失败但管道测试通过且 \`jq -e\` 通过**：设置监视器没有监视 \`.claude/\`——它只监视本次会话启动时已有设置文件的目录。Hook 写入正确。告诉用户打开一次 \`/hooks\`（重新加载配置）或重启——你自己无法这样做；\`/hooks\` 是用户 UI 菜单，打开它会结束本轮。
+   **若证明失败但管道测试通过且 \`jq -e\` 通过**：设置监视器没有监视 \`.hclaude/\`——它只监视本次会话启动时已有设置文件的目录。Hook 写入正确。告诉用户打开一次 \`/hooks\`（重新加载配置）或重启——你自己无法这样做；\`/hooks\` 是用户 UI 菜单，打开它会结束本轮。
 
 7. **移交。** 告诉用户 hook 已生效（或根据监视器注意事项需要 \`/hooks\`/重启）。引导他们使用 \`/hooks\` 来审查、编辑或之后禁用它。UI 只在 hook 报错或缓慢时显示"运行了 N 个 hooks"——静默成功在设计上是不可见的。
 `
@@ -368,7 +368,7 @@ const UPDATE_CONFIG_PROMPT = `# 更新配置技能
   "permissions": {
     "allow": [
       "Bash(git:*)",      // existing
-      "Edit(.claude)",    // existing
+      "Edit(.hclaude)",    // existing
       "Bash(npm:*)"       // new
     ]
   }
@@ -388,7 +388,7 @@ ${HOOK_VERIFICATION_FLOW}
 用户："Claude 写入代码后帮我格式化"
 
 1. **澄清**：使用哪个格式化工具？（prettier、gofmt 等）
-2. **读取**：\`.claude/settings.json\`（不存在则创建）
+2. **读取**：\`.hclaude/settings.json\`（不存在则创建）
 3. **合并**：添加到现有 hooks，不要替换
 4. **结果**：
 \`\`\`json
@@ -434,7 +434,7 @@ ${HOOK_VERIFICATION_FLOW}
 ## 排查 Hooks 问题
 
 若 hook 未运行：
-1. **检查设置文件** - 读取 ~/.claude/settings.json 或 .claude/settings.json
+1. **检查设置文件** - 读取 ~/.hclaude/settings.json 或 .hclaude/settings.json
 2. **验证 JSON 语法** - 无效 JSON 会静默失败
 3. **检查 matcher** - 是否匹配工具名？（如 "Bash"、"Write"、"Edit"）
 4. **检查 hook 类型** - 是 "command"、"prompt" 还是 "agent"？

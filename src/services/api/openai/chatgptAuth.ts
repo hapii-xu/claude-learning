@@ -2,6 +2,7 @@ import { chmod, mkdir, readFile, unlink, writeFile } from 'fs/promises'
 import { homedir } from 'os'
 import { join } from 'path'
 import { logForDebugging } from 'src/utils/debug.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 const ISSUER = 'https://auth.openai.com'
 const CLIENT_ID = 'app_EMoamEEZ73f0CkXaXp7hrann'
@@ -45,7 +46,7 @@ function authFilePath(): string {
 
 function getClaudeConfigHomeDirLocal(): string {
   return (
-    process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude')
+    process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), CLAUDE_DIR_NAME)
   ).normalize('NFC')
 }
 

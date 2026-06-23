@@ -38,7 +38,7 @@ export function getShellConfigPaths(
 
 /**
  * 从行数组中过滤安装器创建的 claude 别名
- * 仅移除指向 $HOME/.claude/local/claude 的别名
+ * 仅移除指向 $HOME/.hclaude/local/claude 的别名
  * 保留指向其他位置的自定义用户别名
  * 返回过滤后的行以及是否找到默认安装器别名
  */

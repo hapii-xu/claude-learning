@@ -59,7 +59,7 @@ export function generatePrompt(): string {
 ## 可配置设置列表
 以下设置可供更改：
 
-### 全局设置（存储在 ~/.claude.json 中）
+### 全局设置（存储在 ~/.hclaude.json 中）
 ${globalSettings.join('\n')}
 
 ### 项目设置（存储在 settings.json 中）

@@ -18,8 +18,8 @@ export interface TemplateInfo {
 }
 
 /**
- * 从 CWD 向上到 git 根目录发现 .claude/templates 目录，
- * 以及用户级别的 ~/.claude/templates。
+ * 从 CWD 向上到 git 根目录发现 .hclaude/templates 目录，
+ * 以及用户级别的 ~/.hclaude/templates。
  */
 function getTemplatesDirs(): string[] {
   const projectDirs = getProjectDirsUpToHome(

@@ -36,7 +36,7 @@ type Props = {
  *
  * 特性：
  * - 从代码加载默认绑定
- * - 与来自 ~/.claude/keybindings.json 的用户绑定合并
+ * - 与来自 ~/.hclaude/keybindings.json 的用户绑定合并
  * - 监视文件变更并自动重载（热重载）
  * - 用户绑定覆盖默认值（后出现的条目优先）
  * - 支持和弦及自动超时

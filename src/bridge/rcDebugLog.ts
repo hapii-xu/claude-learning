@@ -1,16 +1,17 @@
 /**
  * Remote Control bridge 诊断的基于文件的调试日志器。
- * 将 [RC-DEBUG] 行写入 ~/.claude/rc-debug.log，使其能在
+ * 将 [RC-DEBUG] 行写入 ~/.hclaude/rc-debug.log，使其能在
  * REPL / bridge UI 中 Ink 的 stdout 捕获后留存。
  */
 import { appendFileSync, mkdirSync, existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
-const LOG_PATH = join(homedir(), '.claude', 'rc-debug.log')
+const LOG_PATH = join(homedir(), CLAUDE_DIR_NAME, 'rc-debug.log')
 
 function ensureLogDir() {
-  const dir = join(homedir(), '.claude')
+  const dir = join(homedir(), CLAUDE_DIR_NAME)
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 }
 

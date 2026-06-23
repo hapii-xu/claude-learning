@@ -42,6 +42,7 @@ import { checkPromotion } from './promotion.js'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { getClaudeConfigHomeDir } from '../../utils/envUtils.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 export const RUNTIME_SESSION_ID = 'runtime-session'
 
@@ -205,7 +206,7 @@ async function autoEvolveLearnedSkills(options: {
   const cwd = process.cwd()
 
   const skillRoots = [
-    join(cwd, '.claude', 'skills'),
+    join(cwd, CLAUDE_DIR_NAME, 'skills'),
     join(getClaudeConfigHomeDir(), 'skills'),
   ]
   const skillClusters = clusterInstincts(instincts).filter(
@@ -230,7 +231,7 @@ async function autoEvolveLearnedSkills(options: {
   const commandDrafts = generateCommandCandidates(instincts, { cwd })
   for (const draft of commandDrafts) {
     const roots = [
-      join(cwd, '.claude', 'commands'),
+      join(cwd, CLAUDE_DIR_NAME, 'commands'),
       join(getClaudeConfigHomeDir(), 'commands'),
     ]
     const existing = await compareExistingArtifacts('command', draft, roots)
@@ -241,7 +242,7 @@ async function autoEvolveLearnedSkills(options: {
   const agentDrafts = generateAgentCandidates(instincts, { cwd })
   for (const draft of agentDrafts) {
     const roots = [
-      join(cwd, '.claude', 'agents'),
+      join(cwd, CLAUDE_DIR_NAME, 'agents'),
       join(getClaudeConfigHomeDir(), 'agents'),
     ]
     const existing = await compareExistingArtifacts('agent', draft, roots)

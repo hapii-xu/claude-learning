@@ -297,7 +297,7 @@ function registerWindowsNativeHosts(manifestPath: string): void {
 }
 
 /**
- * 在 ~/.claude/chrome/ 中创建调用指定命令的 wrapper 脚本。这
+ * 在 ~/.hclaude/chrome/ 中创建调用指定命令的 wrapper 脚本。这
  * 是必需的，因为 Chrome 的原生宿主 manifest "path" 字段不能包含参数。
  *
  * @param command - 要执行的完整命令（如 "/path/to/claude --chrome-native-host"）
@@ -351,7 +351,7 @@ exec ${command}
  * 近期未更新，该值可能已过期。
  *
  * 仅持久化正向检测结果。文件系统扫描的负结果不会缓存，
- * 因为它可能来自一台共享 ~/.claude.json 但本地没有 Chrome 的机器
+ * 因为它可能来自一台共享 ~/.hclaude.json 但本地没有 Chrome 的机器
  * （如使用 bridge 的远程开发环境），缓存它将永久破坏
  * 读取该配置的每台机器上每个会话的自动启用。
  */

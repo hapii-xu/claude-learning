@@ -40,7 +40,7 @@ export type SessionInfo = {
 }
 
 /**
- * 稳定的会话键 → 会话元数据。持久化到 ~/.claude/server-sessions.json
+ * 稳定的会话键 → 会话元数据。持久化到 ~/.hclaude/server-sessions.json
  * 以便会话可以跨服务器重启恢复。
  */
 export type SessionIndexEntry = {

@@ -25,7 +25,7 @@ const origEnv: Record<string, string | undefined> = {}
 
 beforeEach(() => {
   tmpDir = mkdtempSync(join(tmpdir(), 'tui-test-'))
-  claudeDir = join(tmpDir, '.claude')
+  claudeDir = join(tmpDir, '.hclaude')
   mkdirSync(claudeDir, { recursive: true })
   process.env.CLAUDE_CONFIG_DIR = claudeDir
   // getClaudeConfigHomeDir 是 `memoize(...)` —— 清理它的缓存，

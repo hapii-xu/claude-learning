@@ -29,21 +29,21 @@ export function MemoryStep(): ReactNode {
   const memoryOptions: MemoryOption[] = isUserScope
     ? [
         {
-          label: 'User scope (~/.claude/agent-memory/) (Recommended)',
+          label: 'User scope (~/.hclaude/agent-memory/) (Recommended)',
           value: 'user',
         },
         { label: 'None (no persistent memory)', value: 'none' },
-        { label: 'Project scope (.claude/agent-memory/)', value: 'project' },
-        { label: 'Local scope (.claude/agent-memory-local/)', value: 'local' },
+        { label: 'Project scope (.hclaude/agent-memory/)', value: 'project' },
+        { label: 'Local scope (.hclaude/agent-memory-local/)', value: 'local' },
       ]
     : [
         {
-          label: 'Project scope (.claude/agent-memory/) (Recommended)',
+          label: 'Project scope (.hclaude/agent-memory/) (Recommended)',
           value: 'project',
         },
         { label: 'None (no persistent memory)', value: 'none' },
-        { label: 'User scope (~/.claude/agent-memory/)', value: 'user' },
-        { label: 'Local scope (.claude/agent-memory-local/)', value: 'local' },
+        { label: 'User scope (~/.hclaude/agent-memory/)', value: 'user' },
+        { label: 'Local scope (.hclaude/agent-memory-local/)', value: 'local' },
       ];
 
   const handleSelect = (value: string): void => {

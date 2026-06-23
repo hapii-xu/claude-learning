@@ -39,7 +39,7 @@ export type WorkflowToolDescriptor = {
 
 const WORKFLOW_TOOL_PROMPT = `使用 Workflow 工具执行一个 workflow 脚本，该脚本以确定性方式编排多个 subagent。脚本在后台运行；你会立即收到 run_id，并在完成时收到通知。
 
-通过 "script" 内联提供脚本，或通过 "name" 引用命名 workflow（从 .claude/workflows/ 解析），或通过 "scriptPath" 引用现有文件。将 "args" 作为真实 JSON 值（对象/数组/字符串）传递，而非字符串化的字符串。
+通过 "script" 内联提供脚本，或通过 "name" 引用命名 workflow（从 .hclaude/workflows/ 解析），或通过 "scriptPath" 引用现有文件。将 "args" 作为真实 JSON 值（对象/数组/字符串）传递，而非字符串化的字符串。
 
 使用 "resumeFromRunId" 恢复之前的运行——已完成的 agent() 调用会从日志中即时回放。
 

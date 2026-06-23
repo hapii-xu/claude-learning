@@ -102,7 +102,7 @@ export async function processSessionStartHooks(
         errorMessage.includes('EPERM')
       ) {
         userGuidance =
-          'This appears to be a permissions issue. Check file permissions on ~/.claude/plugins/'
+          'This appears to be a permissions issue. Check file permissions on ~/.hclaude/plugins/'
       } else if (
         errorMessage.includes('Invalid') ||
         errorMessage.includes('parse') ||
@@ -110,7 +110,7 @@ export async function processSessionStartHooks(
         errorMessage.includes('schema')
       ) {
         userGuidance =
-          'This appears to be a configuration issue. Check your plugin settings in .claude/settings.json'
+          'This appears to be a configuration issue. Check your plugin settings in .hclaude/settings.json'
       } else {
         userGuidance =
           'Please fix the plugin configuration or remove problematic plugins from your settings.'
@@ -122,7 +122,7 @@ export async function processSessionStartHooks(
         { level: 'warn' },
       )
 
-      // 继续执行 — 插件 hook 将不可用，但来自 .claude/settings.json
+      // 继续执行 — 插件 hook 将不可用，但来自 .hclaude/settings.json
       // 的项目级 hook（通过 captureHooksConfigSnapshot 加载）仍可工作
     }
   }

@@ -49,7 +49,7 @@ async function invokeBreakCache(
 
 beforeEach(() => {
   tmpDir = mkdtempSync(join(tmpdir(), 'break-cache-test-'))
-  claudeDir = join(tmpDir, '.claude')
+  claudeDir = join(tmpDir, '.hclaude')
   mkdirSync(claudeDir, { recursive: true })
   process.env.CLAUDE_CONFIG_DIR = claudeDir
 })

@@ -149,11 +149,11 @@ const CHORD_EXAMPLE: KeybindingsSchemaType['bindings'][number] = {
 const SECTION_INTRO = [
   '# 快捷键技能',
   '',
-  '创建或修改 `~/.claude/keybindings.json` 以自定义键盘快捷键。',
+  '创建或修改 `~/.hclaude/keybindings.json` 以自定义键盘快捷键。',
   '',
   '## 重要：写入前必须先读取',
   '',
-  '**始终先读取 `~/.claude/keybindings.json`**（该文件可能尚不存在）。将更改与现有绑定合并——切勿替换整个文件。',
+  '**始终先读取 `~/.hclaude/keybindings.json`**（该文件可能尚不存在）。将更改与现有绑定合并——切勿替换整个文件。',
   '',
   '- 修改现有文件时使用 **Edit** 工具',
   '- 仅当文件不存在时才使用 **Write** 工具',
@@ -231,7 +231,7 @@ const SECTION_BEHAVIORAL_RULES = [
 const SECTION_DOCTOR = [
   '## 使用 /doctor 验证',
   '',
-  '`/doctor` 命令包含"快捷键配置问题"部分，用于验证 `~/.claude/keybindings.json`。',
+  '`/doctor` 命令包含"快捷键配置问题"部分，用于验证 `~/.hclaude/keybindings.json`。',
   '',
   '### 常见问题及修复方法',
   '',
@@ -280,7 +280,7 @@ const SECTION_DOCTOR = [
   '',
   '```',
   'Keybinding Configuration Issues',
-  'Location: ~/.claude/keybindings.json',
+  'Location: ~/.hclaude/keybindings.json',
   '  └ [Error] Unknown context "chat"',
   '    → Valid contexts: Global, Chat, Autocomplete, ...',
   '  └ [Warning] "ctrl+c" may not work: Terminal interrupt (SIGINT)',
@@ -293,7 +293,7 @@ export function registerKeybindingsSkill(): void {
   registerBundledSkill({
     name: 'keybindings-help',
     description:
-      '当用户想要自定义键盘快捷键、重新绑定按键、添加和弦绑定或修改 ~/.claude/keybindings.json 时使用。示例："rebind ctrl+s"、"add a chord shortcut"、"change the submit key"、"customize keybindings"。',
+      '当用户想要自定义键盘快捷键、重新绑定按键、添加和弦绑定或修改 ~/.hclaude/keybindings.json 时使用。示例："rebind ctrl+s"、"add a chord shortcut"、"change the submit key"、"customize keybindings"。',
     allowedTools: ['Read'],
     userInvocable: false,
     isEnabled: isKeybindingCustomizationEnabled,

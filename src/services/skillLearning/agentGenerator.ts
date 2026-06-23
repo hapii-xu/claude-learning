@@ -6,6 +6,7 @@ import { clearCommandsCache } from '../../commands.js'
 import type { Instinct } from './instinctParser.js'
 import { normalizeSkillName } from './learningPolicy.js'
 import type { SkillLearningScope } from './types.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 export type AgentGeneratorOptions = {
   cwd?: string
@@ -76,7 +77,7 @@ export function getLearnedAgentPath(
 ): string {
   if (options?.outputRoot) return options.outputRoot
   if (scope === 'project') {
-    return join(options?.cwd ?? process.cwd(), '.claude', 'agents')
+    return join(options?.cwd ?? process.cwd(), CLAUDE_DIR_NAME, 'agents')
   }
   return options?.globalAgentsDir ?? join(getClaudeConfigHomeDir(), 'agents')
 }

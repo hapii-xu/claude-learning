@@ -131,13 +131,13 @@ type State = {
   useCoworkPlugins: boolean
   // 仅限会话的绕过权限模式标志（不持久化）
   sessionBypassPermissionsMode: boolean
-  // 控制 .claude/scheduled_tasks.json 观察器的仅限会话标志
+  // 控制 .hclaude/scheduled_tasks.json 观察器的仅限会话标志
   // （useScheduledTasks）。当 JSON 有条目时由 cronScheduler.start() 设置，
   // 或由 CronCreateTool 设置。不持久化。
   scheduledTasksEnabled: boolean
   // 通过 CronCreate 以 durable: false 创建的仅限会话的 cron 任务。
   // 按计划触发，类似于文件持久化的任务，但永远不会写入
-  // .claude/scheduled_tasks.json——随进程终止而消失。通过下方的
+  // .hclaude/scheduled_tasks.json——随进程终止而消失。通过下方的
   // SessionCronTask 类型定义（不导入 cronTasks.ts 以保持
   // bootstrap 位于导入 DAG 的叶子节点）。
   sessionCronTasks: SessionCronTask[]

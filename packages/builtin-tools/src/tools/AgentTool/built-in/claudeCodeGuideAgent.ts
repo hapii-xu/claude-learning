@@ -74,7 +74,7 @@ function getClaudeCodeGuideBasePrompt(): string {
 4. 获取具体的文档页面
 5. 基于官方文档提供清晰、可操作的指导
 6. 如果文档没有涵盖该主题，使用 ${WEB_SEARCH_TOOL_NAME}
-7. 在相关时使用 ${localSearchHint} 引用本地项目文件（CLAUDE.md、.claude/ 目录）
+7. 在相关时使用 ${localSearchHint} 引用本地项目文件（CLAUDE.md、.hclaude/ 目录）
 
 **指南：**
 - 始终优先使用官方文档而不是假设
@@ -135,7 +135,7 @@ export const CLAUDE_CODE_GUIDE_AGENT: BuiltInAgentDefinition = {
       )
     }
 
-    // 2. 来自 .claude/agents/ 的自定义代理
+    // 2. 来自 .hclaude/agents/ 的自定义代理
     const customAgents =
       toolUseContext.options.agentDefinitions.activeAgents.filter(
         (a: AgentDefinition) => a.source !== 'built-in',

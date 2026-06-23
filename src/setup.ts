@@ -306,7 +306,7 @@ export async function setup(
     clearMemoryFileCaches()
     // settings 缓存已在 init()（通过 applySafeConfigEnvironmentVariables）中填充，
     // 又在上面的 captureHooksConfigSnapshot() 中再填充一次，这两次都来自
-    // 原目录的 .claude/settings.json。这里从 worktree 重新读取并重新捕获 hooks 快照。
+    // 原目录的 .hclaude/settings.json。这里从 worktree 重新读取并重新捕获 hooks 快照。
     updateHooksConfigSnapshot()
   }
 

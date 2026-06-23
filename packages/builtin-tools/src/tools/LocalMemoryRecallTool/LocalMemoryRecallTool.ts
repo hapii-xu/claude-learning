@@ -453,7 +453,7 @@ export const LocalMemoryRecallTool = buildTool({
       const cap = previewMode ? PREVIEW_CAP_BYTES : FETCH_CAP_BYTES
 
       // M4 修复：有界读取。即使攻击者直接向
-      // ~/.claude/local-memory/<store>/<key>.md 写入一个 1GB 的 markdown
+      // ~/.hclaude/local-memory/<store>/<key>.md 写入一个 1GB 的 markdown
       // 文件，我们也只会把 `cap + 16` 字节加载到内存。+16 的余量覆盖
       // truncateUtf8 中最多 3 字节的 UTF-8 codepoint 回退。
       const bounded = getEntryBounded(store, key, cap + 16)

@@ -59,7 +59,7 @@ export const CRON_LIST_TOOL_NAME = 'CronList'
 
 export function buildCronCreateDescription(durableEnabled: boolean): string {
   return durableEnabled
-    ? '安排一个 prompt 在未来某个时间运行 —— 可以是按 cron 周期性运行，也可以在指定时间运行一次。传入 durable: true 可持久化到 .claude/scheduled_tasks.json；否则仅本次会话有效。'
+    ? '安排一个 prompt 在未来某个时间运行 —— 可以是按 cron 周期性运行，也可以在指定时间运行一次。传入 durable: true 可持久化到 .hclaude/scheduled_tasks.json；否则仅本次会话有效。'
     : '安排一个 prompt 在本次 Claude 会话内的未来某个时间运行 —— 可以是按 cron 周期性运行，也可以在指定时间运行一次。'
 }
 
@@ -67,13 +67,13 @@ export function buildCronCreatePrompt(durableEnabled: boolean): string {
   const durabilitySection = durableEnabled
     ? `## 持久化
 
-默认情况下（durable: false），任务只在当前 Claude 会话中存在 —— 不写入磁盘，Claude 退出后任务消失。传入 durable: true 可将任务写入 .claude/scheduled_tasks.json，使其在重启后依然存在。仅在用户明确要求任务持久化时（"每天都这样做"、"永久设置"）才使用 durable: true。大多数"5 分钟后提醒我"/"1 小时后回来"的请求应保持仅会话有效。`
+默认情况下（durable: false），任务只在当前 Claude 会话中存在 —— 不写入磁盘，Claude 退出后任务消失。传入 durable: true 可将任务写入 .hclaude/scheduled_tasks.json，使其在重启后依然存在。仅在用户明确要求任务持久化时（"每天都这样做"、"永久设置"）才使用 durable: true。大多数"5 分钟后提醒我"/"1 小时后回来"的请求应保持仅会话有效。`
     : `## 仅会话有效
 
 任务只在当前 Claude 会话中存在 —— 不写入磁盘，Claude 退出后任务消失。`
 
   const durableRuntimeNote = durableEnabled
-    ? '持久化任务写入 .claude/scheduled_tasks.json，在会话重启后继续存在 —— 下次启动时自动恢复。REPL 关闭期间错过的一次性持久任务会被提示补偿执行。仅会话任务随进程消亡。'
+    ? '持久化任务写入 .hclaude/scheduled_tasks.json，在会话重启后继续存在 —— 下次启动时自动恢复。REPL 关闭期间错过的一次性持久任务会被提示补偿执行。仅会话任务随进程消亡。'
     : ''
 
   return `将一个 prompt 安排在未来某个时间加入队列执行。适用于周期性调度和一次性提醒。
@@ -115,13 +115,13 @@ ${durabilitySection}
 export const CRON_DELETE_DESCRIPTION = '按 ID 取消一个已安排的 cron 任务'
 export function buildCronDeletePrompt(durableEnabled: boolean): string {
   return durableEnabled
-    ? `取消之前通过 ${CRON_CREATE_TOOL_NAME} 安排的 cron 任务。从 .claude/scheduled_tasks.json（持久化任务）或内存会话存储（仅会话任务）中移除。`
+    ? `取消之前通过 ${CRON_CREATE_TOOL_NAME} 安排的 cron 任务。从 .hclaude/scheduled_tasks.json（持久化任务）或内存会话存储（仅会话任务）中移除。`
     : `取消之前通过 ${CRON_CREATE_TOOL_NAME} 安排的 cron 任务。从内存会话存储中移除。`
 }
 
 export const CRON_LIST_DESCRIPTION = '列出已安排的 cron 任务'
 export function buildCronListPrompt(durableEnabled: boolean): string {
   return durableEnabled
-    ? `列出所有通过 ${CRON_CREATE_TOOL_NAME} 安排的 cron 任务，包括持久化任务（.claude/scheduled_tasks.json）和仅会话任务。`
+    ? `列出所有通过 ${CRON_CREATE_TOOL_NAME} 安排的 cron 任务，包括持久化任务（.hclaude/scheduled_tasks.json）和仅会话任务。`
     : `列出本次会话中所有通过 ${CRON_CREATE_TOOL_NAME} 安排的 cron 任务。`
 }

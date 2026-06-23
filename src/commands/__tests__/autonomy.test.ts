@@ -269,9 +269,9 @@ describe('/autonomy', () => {
     })
     expect(run).not.toBeNull()
 
-    await mkdir(join(tempDir, '.claude'), { recursive: true })
+    await mkdir(join(tempDir, '.hclaude'), { recursive: true })
     await writeFile(
-      join(tempDir, '.claude', 'scheduled_tasks.json'),
+      join(tempDir, '.hclaude', 'scheduled_tasks.json'),
       JSON.stringify({
         tasks: [
           {
@@ -284,11 +284,11 @@ describe('/autonomy', () => {
         ],
       }),
     )
-    await mkdir(join(tempDir, '.claude', 'workflow-runs'), {
+    await mkdir(join(tempDir, '.hclaude', 'workflow-runs'), {
       recursive: true,
     })
     await writeFile(
-      join(tempDir, '.claude', 'workflow-runs', 'workflow-1.json'),
+      join(tempDir, '.hclaude', 'workflow-runs', 'workflow-1.json'),
       JSON.stringify({
         runId: 'workflow-1',
         workflow: 'release',

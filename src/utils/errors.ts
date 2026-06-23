@@ -180,7 +180,7 @@ export function shortErrorStack(e: unknown, maxFrames = 5): string {
  *  EACCES    —— 权限被拒绝
  *  EPERM     —— 操作不允许
  *  ENOTDIR   —— 路径组件不是目录（如预期的目录位置
- *              存在名为 `.claude` 的文件）
+ *              存在名为 `.hclaude` 的文件）
  *  ELOOP     —— 符号链接层数过多（循环符号链接）
  */
 export function isFsInaccessible(e: unknown): e is NodeJS.ErrnoException {

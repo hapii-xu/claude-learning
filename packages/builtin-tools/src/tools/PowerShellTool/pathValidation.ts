@@ -877,8 +877,8 @@ function isPathAllowed(
   }
 
   // 2. 对于写入/创建操作，检查内部可编辑路径（plan 文件、scratchpad、agent memory、job 目录）
-  // 这必须在 checkPathSafetyForAutoEdit 之前，因为 .claude 是危险目录
-  // 而内部可编辑路径位于 ~/.claude/ 下 — 匹配
+  // 这必须在 checkPathSafetyForAutoEdit 之前，因为 .hclaude 是危险目录
+  // 而内部可编辑路径位于 ~/.hclaude/ 下 — 匹配
   // checkWritePermissionForTool（filesystem.ts 步骤 1.5）中的顺序
   if (operationType !== 'read') {
     const internalEditResult = checkEditableInternalPath(resolvedPath, {})
@@ -1580,12 +1580,12 @@ function checkPathConstraintsForStatement(
   // New-PSDrive 时，后续语句中的相对路径在运行时针对
   // 更改的 cwd 解析，但此验证器针对过期的
   // getCwd() 快照解析它们。示例攻击（发现 #3）：
-  //   Set-Location ./.claude; Set-Content ./settings.json '...'
+  //   Set-Location ./.hclaude; Set-Content ./settings.json '...'
   // 验证器看到 ./settings.json → /project/settings.json（不是 config 文件）。
-  // 运行时写入 /project/.claude/settings.json（Claude 的权限 config）。
+  // 运行时写入 /project/.hclaude/settings.json（Claude 的权限 config）。
   //
   // 替代方法（被拒绝）：通过语句链模拟 cwd —
-  // 在 `Set-Location ./.claude` 之后，用 cwd='./.claude' 验证后续语句。
+  // 在 `Set-Location ./.hclaude` 之后，用 cwd='./.hclaude' 验证后续语句。
   // 这会更宽松，但需要仔细处理：
   //   - Push-Location/Pop-Location 栈语义
   //   - 无参数的 Set-Location（→ 在某些平台上是 home）

@@ -8,19 +8,20 @@ import type { ToolPermissionContext } from '../../../Tool.js';
 import { expandPath, getDirectoryForPath } from '../../../utils/path.js';
 import { normalizeCaseForComparison, pathInAllowedWorkingPath } from '../../../utils/permissions/filesystem.js';
 import type { OptionWithDescription } from '../../CustomSelect/select.js';
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js';
 /**
- * 检查路径是否位于项目的 .claude/ 文件夹内。
- * 用于决定是否显示特殊的 ".claude folder" 权限选项。
+ * 检查路径是否位于项目的 .hclaude/ 文件夹内。
+ * 用于决定是否显示特殊的 ".hclaude folder" 权限选项。
  */
 export function isInClaudeFolder(filePath: string): boolean {
   const absolutePath = expandPath(filePath);
-  const claudeFolderPath = expandPath(`${getOriginalCwd()}/.claude`);
+  const claudeFolderPath = expandPath(`${getOriginalCwd()}/.hclaude`);
 
-  // 检查路径是否位于项目的 .claude 文件夹内
+  // 检查路径是否位于项目的 .hclaude 文件夹内
   const normalizedAbsolutePath = normalizeCaseForComparison(absolutePath);
   const normalizedClaudeFolderPath = normalizeCaseForComparison(claudeFolderPath);
 
-  // 路径必须以 .claude 文件夹路径开头（且位于其中，而不仅是文件夹本身）
+  // 路径必须以 .hclaude 文件夹路径开头（且位于其中，而不仅是文件夹本身）
   return (
     normalizedAbsolutePath.startsWith(normalizedClaudeFolderPath + sep.toLowerCase()) ||
     // 同时匹配 posix 系统上 sep 为 / 的情况
@@ -29,12 +30,12 @@ export function isInClaudeFolder(filePath: string): boolean {
 }
 
 /**
- * 检查路径是否位于全局 ~/.claude/ 文件夹内。
- * 用于决定是否对用户主目录下的文件显示特殊的 ".claude folder" 权限选项。
+ * 检查路径是否位于全局 ~/.hclaude/ 文件夹内。
+ * 用于决定是否对用户主目录下的文件显示特殊的 ".hclaude folder" 权限选项。
  */
 export function isInGlobalClaudeFolder(filePath: string): boolean {
   const absolutePath = expandPath(filePath);
-  const globalClaudeFolderPath = join(homedir(), '.claude');
+  const globalClaudeFolderPath = join(homedir(), CLAUDE_DIR_NAME);
 
   const normalizedAbsolutePath = normalizeCaseForComparison(absolutePath);
   const normalizedGlobalClaudeFolderPath = normalizeCaseForComparison(globalClaudeFolderPath);
@@ -97,17 +98,17 @@ export function getFilePermissionOptions({
 
   const inAllowedPath = pathInAllowedWorkingPath(filePath, toolPermissionContext);
 
-  // 检查是否为 .claude/ 文件夹路径（项目或全局）
+  // 检查是否为 .hclaude/ 文件夹路径（项目或全局）
   const inClaudeFolder = isInClaudeFolder(filePath);
   const inGlobalClaudeFolder = isInGlobalClaudeFolder(filePath);
 
-  // 选项 2：对于 .claude/ 文件夹，显示特殊选项而非通用 session 选项
+  // 选项 2：对于 .hclaude/ 文件夹，显示特殊选项而非通用 session 选项
   // 注意：session 级别的选项始终显示，因为它们只影响内存中的状态，
   // 不持久化到设置。allowManagedPermissionRulesOnly 设置仅限制
   // 持久化的权限规则。
   if ((inClaudeFolder || inGlobalClaudeFolder) && operationType !== 'read') {
     options.push({
-      label: 'Yes, allow edits to .claude/ config for this session',
+      label: 'Yes, allow edits to .hclaude/ config for this session',
       value: 'yes-claude-folder',
       option: {
         type: 'accept-session',

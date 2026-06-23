@@ -32,7 +32,7 @@ export function createFallbackStorage(
 
       if (result.success) {
         // 首次迁移到主存储时删除备用存储
-        // 在宿主机与容器共享 .claude 目录时保留凭据
+        // 在宿主机与容器共享 .hclaude 目录时保留凭据
         // 参见: https://github.com/anthropics/claude-code/issues/1414
         if (primaryDataBefore === null) {
           secondary.delete()

@@ -119,12 +119,12 @@ describe('autonomy lifecycle user-equivalent CLI flow', () => {
     expect(output).toContain('# Autonomy Deep Status')
     expect(output).toContain('Autonomy runs: 0')
     expect(output).toContain('Autonomy flows: 0')
-    expect(existsSync(join(tempDir, '.claude', 'autonomy', 'runs.json'))).toBe(
+    expect(existsSync(join(tempDir, '.hclaude', 'autonomy', 'runs.json'))).toBe(
       false,
     )
-    expect(existsSync(join(tempDir, '.claude', 'autonomy', 'flows.json'))).toBe(
-      false,
-    )
+    expect(
+      existsSync(join(tempDir, '.hclaude', 'autonomy', 'flows.json')),
+    ).toBe(false)
   })
 
   test('real CLI can inspect, resume, and cancel a persisted managed flow', async () => {

@@ -55,8 +55,8 @@ afterAll(() => {
 // Provide a stable path so tryChmod600 at least knows which file to chmod
 // (it will fail gracefully for a non-existent file and log via logError)
 mock.module('src/utils/env.ts', () => ({
-  getGlobalClaudeFile: () => '/tmp/.claude-saveWorkspaceKey-test.json',
-  getClaudeConfigHomeDir: () => '/tmp/.claude-test',
+  getGlobalClaudeFile: () => '/tmp/.hclaude-saveWorkspaceKey-test.json',
+  getClaudeConfigHomeDir: () => '/tmp/.hclaude-test',
 }))
 
 describe('saveWorkspaceKey', () => {

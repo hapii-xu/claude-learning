@@ -2,8 +2,8 @@
  * 文件按以下顺序加载：
  *
  * 1. 托管内存（如 /etc/claude-code/CLAUDE.md）—— 所有用户的全局指令
- * 2. 用户内存（~/.claude/CLAUDE.md）—— 所有项目的私人全局指令
- * 3. 项目内存（项目根目录中的 CLAUDE.md、.claude/CLAUDE.md 和 .claude/rules/*.md）—— 签入代码库的指令
+ * 2. 用户内存（~/.hclaude/CLAUDE.md）—— 所有项目的私人全局指令
+ * 3. 项目内存（项目根目录中的 CLAUDE.md、.hclaude/CLAUDE.md 和 .hclaude/rules/*.md）—— 签入代码库的指令
  * 4. 本地内存（项目根目录中的 CLAUDE.local.md）—— 私人项目特定指令
  *
  * 文件按优先级相反的顺序加载，即后加载的文件优先级最高，
@@ -13,7 +13,7 @@
  * - 用户内存从用户主目录加载
  * - 项目和本地文件通过从当前目录向上遍历到根目录来发现
  * - 越靠近当前目录的文件优先级越高（后加载）
- * - 每个目录中检查 CLAUDE.md、.claude/CLAUDE.md 和 .claude/rules/ 下的所有 .md 文件作为项目内存
+ * - 每个目录中检查 CLAUDE.md、.hclaude/CLAUDE.md 和 .hclaude/rules/ 下的所有 .md 文件作为项目内存
  *
  * 内存 @include 指令：
  * - 内存文件可以使用 @ 符号包含其他文件
@@ -76,6 +76,7 @@ import { expandPath } from './path.js'
 import { pathInWorkingPath } from './permissions/filesystem.js'
 import { isSettingSourceEnabled } from './settings/constants.js'
 import { getInitialSettings } from './settings/settings.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const teamMemPaths = feature('TEAMMEM')
@@ -679,7 +680,7 @@ export async function processMemoryFile(
 }
 
 /**
- * 处理 .claude/rules/ 目录及其子目录中的所有 .md 文件
+ * 处理 .hclaude/rules/ 目录及其子目录中的所有 .md 文件
  * @param rulesDir rules 目录的路径
  * @param type 内存文件类型（User、Project、Local）
  * @param processedPaths 已处理文件路径的集合
@@ -807,7 +808,7 @@ export const getMemoryFiles = memoize(
         includeExternal,
       )),
     )
-    // 处理 Managed .claude/rules/*.md 文件
+    // 处理 Managed .hclaude/rules/*.md 文件
     const managedClaudeRulesDir = getManagedClaudeRulesDir()
     result.push(
       ...(await processMdRules({
@@ -830,7 +831,7 @@ export const getMemoryFiles = memoize(
           true, // User 内存始终可以包含外部文件
         )),
       )
-      // 处理 User ~/.claude/rules/*.md 文件
+      // 处理 User ~/.hclaude/rules/*.md 文件
       const userClaudeRulesDir = getUserClaudeRulesDir()
       result.push(
         ...(await processMdRules({
@@ -854,8 +855,8 @@ export const getMemoryFiles = memoize(
     }
 
     // 当从嵌套在主仓库内的 git worktree 运行时（例如 `claude -w` 产生的
-    // .claude/worktrees/<name>/），向上遍历会同时经过 worktree 根目录和主仓库根目录。
-    // 两者都包含签入文件（如 CLAUDE.md 和 .claude/rules/*.md），
+    // .hclaude/worktrees/<name>/），向上遍历会同时经过 worktree 根目录和主仓库根目录。
+    // 两者都包含签入文件（如 CLAUDE.md 和 .hclaude/rules/*.md），
     // 导致同一内容被加载两次。跳过 worktree 之上但在主仓库之内的
     // Project 类型（签入）文件 —— worktree 已有自己的签出。
     // CLAUDE.local.md 被 gitignore，仅存在于主仓库中，仍会被加载。
@@ -890,8 +891,8 @@ export const getMemoryFiles = memoize(
           )),
         )
 
-        // 尝试读取 .claude/CLAUDE.md（Project）
-        const dotClaudePath = join(dir, '.claude', 'CLAUDE.md')
+        // 尝试读取 .hclaude/CLAUDE.md（Project）
+        const dotClaudePath = join(dir, CLAUDE_DIR_NAME, 'CLAUDE.md')
         result.push(
           ...(await processMemoryFile(
             dotClaudePath,
@@ -901,8 +902,8 @@ export const getMemoryFiles = memoize(
           )),
         )
 
-        // 尝试读取 .claude/rules/*.md 文件（Project）
-        const rulesDir = join(dir, '.claude', 'rules')
+        // 尝试读取 .hclaude/rules/*.md 文件（Project）
+        const rulesDir = join(dir, CLAUDE_DIR_NAME, 'rules')
         result.push(
           ...(await processMdRules({
             rulesDir,
@@ -946,8 +947,8 @@ export const getMemoryFiles = memoize(
           )),
         )
 
-        // 尝试从附加目录读取 .claude/CLAUDE.md
-        const dotClaudePath = join(dir, '.claude', 'CLAUDE.md')
+        // 尝试从附加目录读取 .hclaude/CLAUDE.md
+        const dotClaudePath = join(dir, CLAUDE_DIR_NAME, 'CLAUDE.md')
         result.push(
           ...(await processMemoryFile(
             dotClaudePath,
@@ -957,8 +958,8 @@ export const getMemoryFiles = memoize(
           )),
         )
 
-        // 尝试从附加目录读取 .claude/rules/*.md 文件
-        const rulesDir = join(dir, '.claude', 'rules')
+        // 尝试从附加目录读取 .hclaude/rules/*.md 文件
+        const rulesDir = join(dir, CLAUDE_DIR_NAME, 'rules')
         result.push(
           ...(await processMdRules({
             rulesDir,
@@ -1217,7 +1218,7 @@ export async function getManagedAndUserConditionalRules(
 ): Promise<MemoryFileInfo[]> {
   const result: MemoryFileInfo[] = []
 
-  // 处理 Managed 条件 .claude/rules/*.md 文件
+  // 处理 Managed 条件 .hclaude/rules/*.md 文件
   const managedClaudeRulesDir = getManagedClaudeRulesDir()
   result.push(
     ...(await processConditionedMdRules(
@@ -1230,7 +1231,7 @@ export async function getManagedAndUserConditionalRules(
   )
 
   if (isSettingSourceEnabled('userSettings')) {
-    // 处理 User 条件 .claude/rules/*.md 文件
+    // 处理 User 条件 .hclaude/rules/*.md 文件
     const userClaudeRulesDir = getUserClaudeRulesDir()
     result.push(
       ...(await processConditionedMdRules(
@@ -1262,7 +1263,7 @@ export async function getMemoryFilesForNestedDirectory(
 ): Promise<MemoryFileInfo[]> {
   const result: MemoryFileInfo[] = []
 
-  // 处理项目内存文件（CLAUDE.md 和 .claude/CLAUDE.md）
+  // 处理项目内存文件（CLAUDE.md 和 .hclaude/CLAUDE.md）
   if (isSettingSourceEnabled('projectSettings')) {
     const projectPath = join(dir, 'CLAUDE.md')
     result.push(
@@ -1273,7 +1274,7 @@ export async function getMemoryFilesForNestedDirectory(
         false,
       )),
     )
-    const dotClaudePath = join(dir, '.claude', 'CLAUDE.md')
+    const dotClaudePath = join(dir, CLAUDE_DIR_NAME, 'CLAUDE.md')
     result.push(
       ...(await processMemoryFile(
         dotClaudePath,
@@ -1292,9 +1293,9 @@ export async function getMemoryFilesForNestedDirectory(
     )
   }
 
-  const rulesDir = join(dir, '.claude', 'rules')
+  const rulesDir = join(dir, CLAUDE_DIR_NAME, 'rules')
 
-  // 处理项目无条件 .claude/rules/*.md 文件，这些未被急切加载
+  // 处理项目无条件 .hclaude/rules/*.md 文件，这些未被急切加载
   // 使用独立的 processedPaths 集合，避免将条件规则文件标记为已处理
   const unconditionalProcessedPaths = new Set(processedPaths)
   result.push(
@@ -1307,7 +1308,7 @@ export async function getMemoryFilesForNestedDirectory(
     })),
   )
 
-  // 处理项目条件 .claude/rules/*.md 文件
+  // 处理项目条件 .hclaude/rules/*.md 文件
   result.push(
     ...(await processConditionedMdRules(
       targetPath,
@@ -1340,7 +1341,7 @@ export async function getConditionalRulesForCwdLevelDirectory(
   targetPath: string,
   processedPaths: Set<string>,
 ): Promise<MemoryFileInfo[]> {
-  const rulesDir = join(dir, '.claude', 'rules')
+  const rulesDir = join(dir, CLAUDE_DIR_NAME, 'rules')
   return processConditionedMdRules(
     targetPath,
     rulesDir,
@@ -1351,7 +1352,7 @@ export async function getConditionalRulesForCwdLevelDirectory(
 }
 
 /**
- * 处理 .claude/rules/ 目录及其子目录中的所有 .md 文件，
+ * 处理 .hclaude/rules/ 目录及其子目录中的所有 .md 文件，
  * 仅包含 frontmatter paths 匹配目标路径的文件
  * @param targetPath 要与 frontmatter glob 模式匹配的文件路径
  * @param rulesDir rules 目录的路径
@@ -1381,11 +1382,11 @@ export async function processConditionedMdRules(
       return false
     }
 
-    // 对于 Project 规则：glob 模式相对于包含 .claude 的目录
+    // 对于 Project 规则：glob 模式相对于包含 .hclaude 的目录
     // 对于 Managed/User 规则：glob 模式相对于原始 CWD
     const baseDir =
       type === 'Project'
-        ? dirname(dirname(rulesDir)) // .claude 的父目录
+        ? dirname(dirname(rulesDir)) // .hclaude 的父目录
         : getOriginalCwd() // Managed/User 规则的项目根目录
 
     const relativePath = isAbsolute(targetPath)
@@ -1439,7 +1440,7 @@ export async function shouldShowClaudeMdExternalIncludesWarning(): Promise<boole
 }
 
 /**
- * 检查文件路径是否为内存文件（CLAUDE.md、CLAUDE.local.md 或 .claude/rules/*.md）
+ * 检查文件路径是否为内存文件（CLAUDE.md、CLAUDE.local.md 或 .hclaude/rules/*.md）
  */
 export function isMemoryFilePath(filePath: string): boolean {
   const name = basename(filePath)
@@ -1450,8 +1451,8 @@ export function isMemoryFilePath(filePath: string): boolean {
     return true
   }
 
-  // .claude/rules/ 目录中的 .md 文件
-  if (name.endsWith('.md') && normalizedPath.includes('/.claude/rules/')) {
+  // .hclaude/rules/ 目录中的 .md 文件
+  if (name.endsWith('.md') && normalizedPath.includes('/.hclaude/rules/')) {
     return true
   }
 

@@ -1128,7 +1128,7 @@ export function ManagePlugins({
         case 'uninstall': {
           if (isBuiltin) break; // 上面已守卫；此处收窄 pluginScope
           if (!isInstallableScope(pluginScope)) break;
-          // 如果插件在 .claude/settings.json（与团队共享）中启用，
+          // 如果插件在 .hclaude/settings.json（与团队共享）中启用，
           // 则转到确认对话框，提供在 settings.local.json 中禁用的选项。
           // 直接检查 settings 文件 —— `pluginScope`（来自
           // installed_plugins.json）即使在插件同时被项目启用时也可能为
@@ -1646,7 +1646,7 @@ export function ManagePlugins({
         }
         clearAllCaches();
         setResult(
-          `✓ Disabled ${selectedPlugin.plugin.name} in .claude/settings.local.json. Run /reload-plugins to apply.`,
+          `✓ Disabled ${selectedPlugin.plugin.name} in .hclaude/settings.local.json. Run /reload-plugins to apply.`,
         );
         if (onManageComplete) void onManageComplete();
         setParentViewState({ type: 'menu' });
@@ -1919,16 +1919,16 @@ export function ManagePlugins({
     );
   }
 
-  // confirm-project-uninstall：警告共享的 .claude/settings.json，
+  // confirm-project-uninstall：警告共享的 .hclaude/settings.json，
   // 提供改为在 settings.local.json 中禁用的选项。
   if (viewState === 'confirm-project-uninstall' && selectedPlugin) {
     return (
       <Box flexDirection="column">
         <Text bold color="warning">
-          {selectedPlugin.plugin.name} is enabled in .claude/settings.json (shared with your team)
+          {selectedPlugin.plugin.name} is enabled in .hclaude/settings.json (shared with your team)
         </Text>
         <Box marginTop={1} flexDirection="column">
-          <Text>Disable it just for you in .claude/settings.local.json?</Text>
+          <Text>Disable it just for you in .hclaude/settings.local.json?</Text>
           <Text dimColor>This has the same effect as uninstalling, without affecting other contributors.</Text>
         </Box>
         {processError && (

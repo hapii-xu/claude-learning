@@ -101,7 +101,7 @@ function handleAcceptSession(
 
   logPermissionEvent('accept', completionType, languageName, messageId)
 
-  // 对于 claude-folder 作用域，授予对全部 .claude/ 文件的 session 级别访问权限
+  // 对于 claude-folder 作用域，授予对全部 .hclaude/ 文件的 session 级别访问权限
   if (
     options?.scope === 'claude-folder' ||
     options?.scope === 'global-claude-folder'

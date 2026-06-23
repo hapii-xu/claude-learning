@@ -62,7 +62,7 @@ describe('compound command security', () => {
   // ─── Redirection targets in compound commands ────────────────
   test('blocks cd + redirect compound', () => {
     const result = bashCommandIsSafe_DEPRECATED(
-      'cd .claude && echo "malicious" > settings.json',
+      'cd .hclaude && echo "malicious" > settings.json',
     )
     // Should be blocked — cd + redirect in compound is dangerous
     expect(result.behavior).toBe('ask')

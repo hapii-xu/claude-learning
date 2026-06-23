@@ -6,7 +6,7 @@ export const workflowInputSchema = z.object({
   name: z
     .string()
     .optional()
-    .describe('命名 workflow，解析至 .claude/workflows/<name>.ts|js|mjs'),
+    .describe('命名 workflow，解析至 .hclaude/workflows/<name>.ts|js|mjs'),
   scriptPath: z.string().optional().describe('现有脚本文件的绝对路径'),
   args: z
     .unknown()

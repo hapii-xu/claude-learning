@@ -6,7 +6,7 @@
  * - 哪些插件已全局安装
  * - 安装元数据（版本、时间戳、路径）
  *
- * 启用/禁用状态保留在 .claude/settings.json 中，以便按仓库控制。
+ * 启用/禁用状态保留在 .hclaude/settings.json 中，以便按仓库控制。
  *
  * 原因：安装是全局的（插件要么在磁盘上，要么不在），而
  * 启用/禁用状态是按仓库的（不同项目可能需要不同的插件激活）。
@@ -182,8 +182,8 @@ export function migrateToSinglePluginFile(): void {
 /**
  * 清理旧版无版本号的缓存目录。
  *
- * 旧版缓存结构：~/.claude/plugins/cache/{plugin-name}/
- * 版本化缓存结构：~/.claude/plugins/cache/{marketplace}/{plugin}/{version}/
+ * 旧版缓存结构：~/.hclaude/plugins/cache/{plugin-name}/
+ * 版本化缓存结构：~/.hclaude/plugins/cache/{marketplace}/{plugin}/{version}/
  *
  * 此函数删除未被任何安装引用的旧版目录。
  */
@@ -283,7 +283,7 @@ function migrateV1ToV2(v1Data: InstalledPluginsFileV1): InstalledPluginsFileV2 {
   const v2Plugins: InstalledPluginsMapV2 = {}
 
   for (const [pluginId, plugin] of Object.entries(v1Data.plugins)) {
-    // V2 格式使用版本化缓存路径：~/.claude/plugins/cache/{marketplace}/{plugin}/{version}
+    // V2 格式使用版本化缓存路径：~/.hclaude/plugins/cache/{marketplace}/{plugin}/{version}
     // 从 pluginId 和 version 计算路径，而非使用 V1 的 installPath
     const versionedCachePath = getVersionedCachePath(pluginId, plugin.version)
 

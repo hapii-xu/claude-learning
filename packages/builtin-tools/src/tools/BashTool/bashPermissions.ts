@@ -2010,10 +2010,10 @@ export async function bashToolHasPermission(
       appState = context.getAppState()
       // 安全要求：从完整命令计算 compoundCommandHasCd，绝不能硬编码 false。
       // 管道处理路径此前在此处传入 `false`，禁用了 pathValidation.ts:821
-      // 的 cd+redirect 检查。在 `cd .claude && echo x > settings.json` 后面
+      // 的 cd+redirect 检查。在 `cd .hclaude && echo x > settings.json` 后面
       // 拼接 `| echo done` 会经此路径并以 compoundCommandHasCd=false 处理，
       // 使重定向在 cd+redirect 拦截未触发的情况下写入
-      // .claude/settings.json。
+      // .hclaude/settings.json。
       const pathResult = checkPathConstraints(
         input,
         getCwd(),
@@ -2165,7 +2165,7 @@ export async function bashToolHasPermission(
   }
 
   // 跟踪复合命令是否包含 cd，用于安全校验
-  // 这能防止通过 cd .claude/ && mv test.txt settings.json 绕过路径检查
+  // 这能防止通过 cd .hclaude/ && mv test.txt settings.json 绕过路径检查
   const compoundCommandHasCd = cdCommands.length > 0
 
   // 安全要求：拦截同时包含 cd 和 git 的复合命令

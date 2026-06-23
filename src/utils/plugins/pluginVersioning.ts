@@ -118,7 +118,7 @@ export function getGitCommitSha(dirPath: string): Promise<string | null> {
 /**
  * 从版本化缓存路径中提取版本。
  *
- * 给定类似 `~/.claude/plugins/cache/marketplace/plugin/1.0.0` 的路径，
+ * 给定类似 `~/.hclaude/plugins/cache/marketplace/plugin/1.0.0` 的路径，
  * 提取并返回 `1.0.0`。
  *
  * @param installPath - 插件安装的完整路径

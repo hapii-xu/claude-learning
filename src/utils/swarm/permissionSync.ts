@@ -107,7 +107,7 @@ export type PermissionResolution = {
 
 /**
  * 获取团队权限请求的基础目录
- * 路径：~/.claude/teams/{teamName}/permissions/
+ * 路径：~/.hclaude/teams/{teamName}/permissions/
  */
 export function getPermissionDir(teamName: string): string {
   return join(getTeamDir(teamName), 'permissions')

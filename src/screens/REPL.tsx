@@ -1963,7 +1963,7 @@ export function REPL({
     setMessages(prev => [
       ...prev,
       createSystemMessage(
-        `Worktree creation took ${secs}s. For large repos, set \`worktree.sparsePaths\` in .claude/settings.json to check out only the directories you need — e.g. \`{"worktree": {"sparsePaths": ["src", "packages/foo"]}}\`.`,
+        `Worktree creation took ${secs}s. For large repos, set \`worktree.sparsePaths\` in .hclaude/settings.json to check out only the directories you need — e.g. \`{"worktree": {"sparsePaths": ["src", "packages/foo"]}}\`.`,
         'info',
       ),
     ]);
@@ -4794,7 +4794,7 @@ export function REPL({
   // 为 analytics 跟踪 prompt 队列使用。每次从空到非空的转换触发一次，
   // 而非每次长度变化都触发 -- 否则渲染循环
   // （并发 onQuery 抖动等）会垃圾刷 saveGlobalConfig，它在并发会话下命中
-  // ELOCKED 并回退到无锁写入。该写入风暴是 ~/.claude.json 损坏的主要触发器
+  // ELOCKED 并回退到无锁写入。该写入风暴是 ~/.hclaude.json 损坏的主要触发器
   // （GH #3117）。
   const hasCountedQueueUseRef = useRef(false);
   useEffect(() => {
@@ -5112,7 +5112,7 @@ export function REPL({
   usePipeIpc({ store, handleIncomingPrompt });
   const { routeToSelectedPipes } = usePipeRouter({ store, setAppState, addNotification });
 
-  // 来自 .claude/scheduled_tasks.json 的计划任务（CronCreate/Delete/List）
+  // 来自 .hclaude/scheduled_tasks.json 的计划任务（CronCreate/Delete/List）
   if (feature('AGENT_TRIGGERS')) {
     // Assistant 模式绕过 isLoading 门控（否则 proactive tick → Sleep →
     // tick 循环会使调度器饥饿）。

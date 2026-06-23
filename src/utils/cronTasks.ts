@@ -1,4 +1,4 @@
-// 计划提示，存储在 <project>/.claude/scheduled_tasks.json 中。
+// 计划提示，存储在 <project>/.hclaude/scheduled_tasks.json 中。
 //
 // 任务有两种类型：
 //   - 一次性（recurring: false/undefined）—— 触发一次，然后自动删除。
@@ -26,6 +26,7 @@ import { getFsImplementation } from './fsOperations.js'
 import { safeParseJSON } from './json.js'
 import { logError } from './log.js'
 import { jsonStringify } from './slowOperations.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 export type CronTask = {
   id: string
@@ -72,7 +73,7 @@ export type CronTask = {
 
 type CronFile = { tasks: CronTask[] }
 
-const CRON_FILE_REL = join('.claude', 'scheduled_tasks.json')
+const CRON_FILE_REL = join(CLAUDE_DIR_NAME, 'scheduled_tasks.json')
 
 /**
  * cron 文件的路径。`dir` 默认为 getProjectRoot() ——
@@ -84,7 +85,7 @@ export function getCronFilePath(dir?: string): string {
 }
 
 /**
- * 读取并解析 .claude/scheduled_tasks.json。若文件缺失、为空
+ * 读取并解析 .hclaude/scheduled_tasks.json。若文件缺失、为空
  * 或格式错误则返回空任务列表。cron 字符串无效的任务会被静默
  * 丢弃（在 debug 级别记录），这样单个错误条目不会阻塞整个文件。
  */
@@ -158,7 +159,7 @@ export function hasCronTasksSync(dir?: string): boolean {
 }
 
 /**
- * 用给定任务覆盖 .claude/scheduled_tasks.json。若 .claude/ 不存在则创建。
+ * 用给定任务覆盖 .hclaude/scheduled_tasks.json。若 .hclaude/ 不存在则创建。
  * 空任务列表会写入空文件（而非删除），这样文件监视器能在
  * 最后一个任务被移除时看到变更事件。
  */
@@ -167,7 +168,7 @@ export async function writeCronTasks(
   dir?: string,
 ): Promise<void> {
   const root = dir ?? getProjectRoot()
-  await mkdir(join(root, '.claude'), { recursive: true })
+  await mkdir(join(root, CLAUDE_DIR_NAME), { recursive: true })
   // 剥离仅运行时的 `durable` 标志 —— 磁盘上的内容按定义
   // 都是持久的，保留该标志意味着 readCronTasks() 会自然地
   // 得到 durable: undefined，无需显式设置。
@@ -187,7 +188,7 @@ export async function writeCronTasks(
  *
  * 当 `durable` 为 false 时，任务仅保存在进程内存中
  *（bootstrap/state.ts）—— 它会在本次会话中按计划触发，
- * 但永不写入 .claude/scheduled_tasks.json，并随进程终止。
+ * 但永不写入 .hclaude/scheduled_tasks.json，并随进程终止。
  * 调度器将任务直接合并到其 tick 循环中，因此不需要文件
  * 变更事件。
  */

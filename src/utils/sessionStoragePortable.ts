@@ -381,7 +381,7 @@ export async function findProjectDir(
  * 然后回退到兄弟 git worktree。结果中的 `projectPath` 是找到文件的
  * 规范用户可见目录。
  *
- * 省略 `dir` 时：扫描 ~/.claude/projects/ 下所有项目目录。
+ * 省略 `dir` 时：扫描 ~/.hclaude/projects/ 下所有项目目录。
  * 此情况下 `projectPath` 为 undefined（没有有意义的项目路径可报告）。
  *
  * 使用 stat 检查文件是否存在（先操作再捕获 ENOENT，不使用 existsSync）。

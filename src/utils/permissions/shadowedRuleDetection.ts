@@ -52,7 +52,7 @@ type ShadowResult =
  * - command：来自斜杠命令的 frontmatter，可能被共享
  *
  * 个人设置包括：
- * - userSettings：用户的全局 ~/.claude 设置
+ * - userSettings：用户的全局 ~/.hclaude 设置
  * - localSettings：被 gitignore 的项目级设置
  * - cliArg：运行时 CLI 参数
  * - session：内存中的会话级规则

@@ -154,7 +154,7 @@ mock.module('src/utils/effort.js', () => ({
 // process-global, so envUtils.test.ts and other consumers running in the
 // same process must see correct behavior for hasNodeOption, isBareMode,
 // parseEnvVars, getVertexRegionForModel, etc. Only getClaudeConfigHomeDir
-// is overridden to '/mock/home/.claude' while this suite runs.
+// is overridden to '/mock/home/.hclaude' while this suite runs.
 const realIsEnvDefinedFalsy = (v: string | boolean | undefined): boolean => {
   if (v === undefined) return false
   if (typeof v === 'boolean') return !v
@@ -182,10 +182,10 @@ const mockedGetClaudeConfigHomeDirMD: (() => string) & {
 } = Object.assign(
   () =>
     useMockForMagicDocs
-      ? '/mock/home/.claude'
-      : (process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude')).normalize(
-          'NFC',
-        ),
+      ? '/mock/home/.hclaude'
+      : (
+          process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.hclaude')
+        ).normalize('NFC'),
   { cache: { clear: () => {}, get: (_k: unknown) => undefined } },
 )
 
@@ -208,8 +208,8 @@ mock.module('src/utils/envUtils.js', () => ({
   getTeamsDir: () =>
     join(
       useMockForMagicDocs
-        ? '/mock/home/.claude'
-        : (process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude')),
+        ? '/mock/home/.hclaude'
+        : (process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.hclaude')),
       'teams',
     ),
   hasNodeOption: (flag: string) => {
@@ -255,7 +255,7 @@ const mockReadFile = mock(
 
 // IMPORTANT: this file used to mock fsOperations wholesale (readdir → [],
 // exists → false, …), which silently broke sibling tests that walk
-// .claude/skills (skill prefetch, skillLearning smoke). After this suite
+// .hclaude/skills (skill prefetch, skillLearning smoke). After this suite
 // finishes (useMockForMagicDocs flips to false), construct a minimal real
 // fs adapter inline using node:fs/promises so cross-file consumers see real
 // disk state — without pre-importing the heavy fsOperations module (its

@@ -10,6 +10,7 @@ import { isENOENT } from './errors.js'
 import { execFileNoThrow } from './execFileNoThrow.js'
 import { logError } from './log.js'
 import type { ThemeName } from './theme.js'
+import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
 const EOL = '\n'
 
@@ -24,7 +25,7 @@ type ShellInfo = {
 function detectShell(): ShellInfo | null {
   const shell = process.env.SHELL || ''
   const home = homedir()
-  const claudeDir = join(home, '.claude')
+  const claudeDir = join(home, CLAUDE_DIR_NAME)
 
   if (shell.endsWith('/zsh') || shell.endsWith('/zsh.exe')) {
     const cacheFile = join(claudeDir, 'completion.zsh')
@@ -134,7 +135,7 @@ export async function setupShellCompletion(theme: ThemeName): Promise<string> {
 }
 
 /**
- * 重新生成 ~/.claude/ 中缓存的 shell 补全脚本。
+ * 重新生成 ~/.hclaude/ 中缓存的 shell 补全脚本。
  * 在 `claude update` 后调用，以保持补全与新二进制文件同步。
  */
 export async function regenerateCompletionCache(): Promise<void> {

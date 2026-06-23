@@ -377,7 +377,7 @@ export function getProjectMcpServerStatus(
   // 安全性：我们特意仅通过 hasSkipDangerousModePermissionPrompt() 来检查
   // skipDangerousModePermissionPrompt，该函数从 userSettings/localSettings/
   // flagSettings/policySettings 中读取，但不从 projectSettings（仓库级
-  // .claude/settings.json）中读取。这是有意为之：仓库不应能代表用户
+  // .hclaude/settings.json）中读取。这是有意为之：仓库不应能代表用户
   // 接受绕过对话框。我们也不在这里检查 getSessionBypassPermissionsMode()，
   // 因为 sessionBypassPermissionsMode 可能在对话框显示之前就从项目设置中被设置，
   // 这将允许通过恶意项目设置进行 RCE 攻击。

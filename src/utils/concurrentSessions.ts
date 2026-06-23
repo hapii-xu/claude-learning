@@ -194,7 +194,7 @@ export async function countConcurrentSessions(): Promise<number> {
       count++
     } else if (getPlatform() !== 'wsl') {
       // 来自崩溃会话的过时文件 —— 清除它。在 WSL 上跳过：
-      // 如果 ~/.claude/sessions/ 与 Windows 原生 Claude 共享
+      // 如果 ~/.hclaude/sessions/ 与 Windows 原生 Claude 共享
       //（通过符号链接或 CLAUDE_CONFIG_DIR），Windows PID 无法
       // 从 WSL 探测，我们会错误地删除存活会话的文件。
       // 这只是遥测，因此保守的欠计数是可接受的。

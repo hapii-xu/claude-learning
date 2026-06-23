@@ -109,7 +109,7 @@ export async function initializeAssistantTeam(): Promise<
 }
 
 /**
- * 从 ~/.claude/agents/assistant.md 加载的 assistant 专属 system prompt 补充内容。
+ * 从 ~/.hclaude/agents/assistant.md 加载的 assistant 专属 system prompt 补充内容。
  * 文件不存在时返回空字符串。
  */
 export function getAssistantSystemPromptAddendum(): string {

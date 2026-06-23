@@ -152,14 +152,14 @@ async function loadAgentFromFile(
 
     // permissionMode、hooks 和 mcpServers 对插件代理有意不解析。
     // 插件是第三方市场代码；这些字段会让代理的能力超出用户在安装时批准的范围。
-    // 需要此级别控制时，应在 .claude/agents/ 中定义代理，用户在那里
+    // 需要此级别控制时，应在 .hclaude/agents/ 中定义代理，用户在那里
     // 显式编写了 frontmatter。（注意：插件仍可在清单级别附带 hooks 和 MCP 服务器
     // —— 那是安装时的信任边界。按代理声明会让 agents/ 中某个隐蔽的代理文件
     // 静默添加它们。）参见 PR #22558 审查。
     for (const field of ['permissionMode', 'hooks', 'mcpServers'] as const) {
       if (frontmatter[field] !== undefined) {
         logForDebugging(
-          `Plugin agent file ${filePath} sets ${field}, which is ignored for plugin agents. Use .claude/agents/ for this level of control.`,
+          `Plugin agent file ${filePath} sets ${field}, which is ignored for plugin agents. Use .hclaude/agents/ for this level of control.`,
           { level: 'warn' },
         )
       }

@@ -1,7 +1,7 @@
 /**
  * 用户快捷键配置加载器，支持热重载。
  *
- * 从 ~/.claude/keybindings.json 加载快捷键，
+ * 从 ~/.hclaude/keybindings.json 加载快捷键，
  * 并监听文件变更以自动重新加载。
  *
  * 注意：用户快捷键自定义目前仅对 Anthropic 员工

@@ -1,5 +1,5 @@
 export const DESCRIPTION =
-  '使用存储在用户加密本地 vault（~/.claude/local-vault/）中的密钥发起已认证的 HTTPS 请求。' +
+  '使用存储在用户加密本地 vault（~/.hclaude/local-vault/）中的密钥发起已认证的 HTTPS 请求。' +
   '你只需指定 vault key 的名称 —— 绝不是密钥值本身。工具框架会把密钥直接注入到请求头中，' +
   '并且该密钥绝不会出现在 tool_result 中、绝不会写入日志、绝不会传给 shell。' +
   '每个 vault key 都需要通过 permissions.allow 获得用户预授权：' +

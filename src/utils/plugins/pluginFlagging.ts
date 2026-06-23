@@ -2,7 +2,7 @@
  * 已标记插件的跟踪工具
  *
  * 跟踪因在市场中被下架而被自动移除的插件。数据存储在
- * ~/.claude/plugins/flagged-plugins.json 中。
+ * ~/.hclaude/plugins/flagged-plugins.json 中。
  * 被标记的插件会在 /plugins 的"已标记"区块中显示，直到用户
  * 将其关闭为止。
  *

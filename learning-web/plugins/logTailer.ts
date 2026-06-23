@@ -21,12 +21,12 @@ const LOG_SOURCES: LogSource[] = [
   {
     id: 'claude-debug',
     label: 'Claude Debug Log',
-    path: path.join(os.homedir(), '.claude', 'debug', 'latest'),
+    path: path.join(os.homedir(), '.hclaude', 'debug', 'latest'),
   },
   {
     id: 'claude-config',
     label: 'Claude Config',
-    path: path.join(os.homedir(), '.claude', 'config.json'),
+    path: path.join(os.homedir(), '.hclaude', 'config.json'),
   },
 ]
 
@@ -38,8 +38,8 @@ function resolveLogPath(sourceId: string): string | null {
   if (!source) return null
 
   const resolved = source.path
-  // 安全检查：只允许 ~/.claude/ 子树
-  const claudeDir = path.join(os.homedir(), '.claude')
+  // 安全检查：只允许 ~/.hclaude/ 子树
+  const claudeDir = path.join(os.homedir(), '.hclaude')
   if (!resolved.startsWith(claudeDir)) return null
 
   return resolved
@@ -60,8 +60,8 @@ export function handleLogsList(_req: IncomingMessage, res: ServerResponse) {
     return { ...s, exists, size }
   })
 
-  // 额外扫描 ~/.claude/errors/ 目录
-  const errorsDir = path.join(os.homedir(), '.claude', 'errors')
+  // 额外扫描 ~/.hclaude/errors/ 目录
+  const errorsDir = path.join(os.homedir(), '.hclaude', 'errors')
   try {
     if (fs.existsSync(errorsDir)) {
       const files = fs
@@ -113,7 +113,7 @@ export function handleLogsTail(
   let logPath: string | null
   if (sourceId.startsWith('error:')) {
     const filename = sourceId.slice(6)
-    const errorsDir = path.join(os.homedir(), '.claude', 'errors')
+    const errorsDir = path.join(os.homedir(), '.hclaude', 'errors')
     logPath = path.join(errorsDir, filename)
     // 安全检查
     if (!logPath.startsWith(errorsDir)) {

@@ -51,7 +51,7 @@ afterEach(() => {
 })
 
 function draftsDir(): string {
-  return join(root, '.claude', 'skills', '.drafts')
+  return join(root, '.hclaude', 'skills', '.drafts')
 }
 
 describe('recordSkillGap — P0-1 state machine', () => {
@@ -224,7 +224,7 @@ describe('recordDraftHit — draft hits escalation (P1-4 contract)', () => {
 
   test('findGapKeyByDraftPath returns undefined for unknown paths', async () => {
     const result = await findGapKeyByDraftPath(
-      '/nowhere/.claude/skills/.drafts/mystery/SKILL.md',
+      '/nowhere/.hclaude/skills/.drafts/mystery/SKILL.md',
       project,
       root,
     )

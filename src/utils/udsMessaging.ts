@@ -91,7 +91,7 @@ export const UDS_IDLE_TIMEOUT_MS = 30_000
 
 /**
  * Default socket path based on PID, placed in a tmpdir subdirectory so it
- * survives across config-home changes and avoids polluting ~/.claude.
+ * survives across config-home changes and avoids polluting ~/.hclaude.
  *
  * On Windows, Node.js requires named pipe paths in the `\\.\pipe\` namespace;
  * file-system paths like `C:\...\Temp\x.sock` cause EACCES. Bun handles both

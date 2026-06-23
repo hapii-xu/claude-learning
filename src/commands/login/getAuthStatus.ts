@@ -30,7 +30,7 @@ export interface AuthStatus {
   }
   workspaceKey: {
     /**
-     * 当环境变量或保存的设置（~/.claude.json 中的 workspaceApiKey）提供了
+     * 当环境变量或保存的设置（~/.hclaude.json 中的 workspaceApiKey）提供了
      * workspace API key 时为 true。
      */
     set: boolean
@@ -44,7 +44,7 @@ export interface AuthStatus {
     /**
      * key 的来源：
      *   'env'      — ANTHROPIC_API_KEY 环境变量
-     *   'settings' — 通过 /login UI 保存在 ~/.claude.json 中的 workspaceApiKey
+     *   'settings' — 通过 /login UI 保存在 ~/.hclaude.json 中的 workspaceApiKey
      *   null       — 未设置
      */
     source: 'env' | 'settings' | null

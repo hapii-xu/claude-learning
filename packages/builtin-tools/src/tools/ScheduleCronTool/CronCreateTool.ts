@@ -36,7 +36,7 @@ const inputSchema = lazySchema(() =>
       `true（默认）= 每次匹配 cron 都会触发，直到被删除或在 ${DEFAULT_MAX_AGE_DAYS} 天后自动过期。false = 在下一次匹配时触发一次，然后自动删除。对于固定 minute/hour/dom/month 的 "在 X 时提醒我" 一次性请求应使用 false。`,
     ),
     durable: semanticBoolean(z.boolean().optional()).describe(
-      'true = 持久化到 .claude/scheduled_tasks.json，并在重启后保留。false（默认）= 仅存于内存，当本次 Claude 会话结束时消失。仅当用户要求任务跨会话保留时才使用 true。',
+      'true = 持久化到 .hclaude/scheduled_tasks.json，并在重启后保留。false（默认）= 仅存于内存，当本次 Claude 会话结束时消失。仅当用户要求任务跨会话保留时才使用 true。',
     ),
   }),
 )
@@ -140,7 +140,7 @@ export const CronCreateTool = buildTool({
   },
   mapToolResultToToolResultBlockParam(output, toolUseID) {
     const where = output.durable
-      ? '已持久化到 .claude/scheduled_tasks.json'
+      ? '已持久化到 .hclaude/scheduled_tasks.json'
       : '仅本次会话（不写入磁盘，Claude 退出时消失）'
     return {
       tool_use_id: toolUseID,
