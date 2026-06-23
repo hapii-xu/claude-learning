@@ -35,7 +35,7 @@ export type Output = z.infer<OutputSchema>
 
 export const EnterPlanModeTool: Tool<InputSchema, Output> = buildTool({
   name: ENTER_PLAN_MODE_TOOL_NAME,
-  searchHint: 'switch to plan mode to design an approach before coding',
+  searchHint: '切换到 plan mode，在编码前设计实现方案',
   maxResultSizeChars: 100_000,
   async description() {
     return '请求权限以进入计划模式，用于需要探索和设计的复杂任务'
@@ -78,7 +78,7 @@ export const EnterPlanModeTool: Tool<InputSchema, Output> = buildTool({
     const { logForDebugging } = await import('src/utils/debug.js')
     logForDebugging('[Hapii] EnterPlanMode 进入计划模式', { level: 'info' })
     if (context.agentId) {
-      throw new Error('EnterPlanMode tool cannot be used in agent contexts')
+      throw new Error('EnterPlanMode 工具不能在 agent 上下文中使用')
     }
 
     const appState = context.getAppState()
@@ -97,8 +97,7 @@ export const EnterPlanModeTool: Tool<InputSchema, Output> = buildTool({
 
     return {
       data: {
-        message:
-          '已进入计划模式。现在请专注于探索代码库并设计实现方案。',
+        message: '已进入计划模式。现在请专注于探索代码库并设计实现方案。',
       },
     }
   },
@@ -106,18 +105,18 @@ export const EnterPlanModeTool: Tool<InputSchema, Output> = buildTool({
     const instructions = isPlanModeInterviewPhaseEnabled()
       ? `${message}
 
-DO NOT write or edit any files except the plan file. Detailed workflow instructions will follow.`
+除计划文件外，不要写入或编辑任何文件。详细的工作流说明稍后下发。`
       : `${message}
 
-In plan mode, you should:
-1. Thoroughly explore the codebase to understand existing patterns
-2. Identify similar features and architectural approaches
-3. Consider multiple approaches and their trade-offs
-4. Use AskUserQuestion if you need to clarify the approach
-5. Design a concrete implementation strategy
-6. When ready, use ExitPlanMode to present your plan for approval
+在 plan mode 中，你应该：
+1. 彻底探索代码库，理解现有的代码模式
+2. 识别相似功能和架构方案
+3. 考虑多种实现方式及其权衡
+4. 如需澄清方案，使用 AskUserQuestion
+5. 设计具体的实现策略
+6. 准备好后，使用 ExitPlanMode 提交计划以供审批
 
-Remember: DO NOT write or edit any files yet. This is a read-only exploration and planning phase.`
+注意：现在不要写入或编辑任何文件。这是一个只读的探索和规划阶段。`
 
     return {
       type: 'tool_result',

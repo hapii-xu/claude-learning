@@ -28,8 +28,7 @@ export function registerCronDeleteSkill(): void {
   registerBundledSkill({
     name: 'cron-delete',
     description: '通过 ID 取消已计划的 cron 任务',
-    whenToUse:
-      '当用户想取消、停止或删除已计划/循环任务或 cron 任务时使用。',
+    whenToUse: '当用户想取消、停止或删除已计划/循环任务或 cron 任务时使用。',
     argumentHint: '<job-id>',
     userInvocable: true,
     isEnabled: isKairosCronEnabled,

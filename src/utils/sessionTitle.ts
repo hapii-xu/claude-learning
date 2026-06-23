@@ -57,19 +57,19 @@ export function extractConversationText(messages: Message[]): string {
     : text
 }
 
-const SESSION_TITLE_PROMPT = `Generate a concise, sentence-case title (3-7 words) that captures the main topic or goal of this coding session. The title should be clear enough that the user recognizes the session in a list. Use sentence case: capitalize only the first word and proper nouns.
+const SESSION_TITLE_PROMPT = `为本次编程会话生成一个简洁的标题（3-7 个词），准确概括主要主题或目标。标题应足够清晰，让用户在列表中一眼认出该会话。
 
-Return JSON with a single "title" field.
+以 JSON 格式返回，包含单个 "title" 字段。
 
-Good examples:
-{"title": "Fix login button on mobile"}
-{"title": "Add OAuth authentication"}
-{"title": "Debug failing CI tests"}
-{"title": "Refactor API client error handling"}
+好的示例：
+{"title": "修复移动端登录按钮"}
+{"title": "添加 OAuth 认证"}
+{"title": "调试失败的 CI 测试"}
+{"title": "重构 API 客户端错误处理"}
 
-Bad (too vague): {"title": "Code changes"}
-Bad (too long): {"title": "Investigate and fix the issue where the login button does not respond on mobile devices"}
-Bad (wrong case): {"title": "Fix Login Button On Mobile"}`
+不好的示例（太模糊）：{"title": "代码修改"}
+不好的示例（太长）：{"title": "排查并修复移动设备上登录按钮无响应的问题"}
+不好的示例（重复废话）：{"title": "本次会话的代码编写工作"}`
 
 const titleSchema = lazySchema(() => z.object({ title: z.string() }))
 

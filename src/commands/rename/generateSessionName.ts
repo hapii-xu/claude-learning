@@ -19,7 +19,7 @@ export async function generateSessionName(
   try {
     const result = await queryHaiku({
       systemPrompt: asSystemPrompt([
-        'Generate a short kebab-case name (2-4 words) that captures the main topic of this conversation. Use lowercase words separated by hyphens. Examples: "fix-login-bug", "add-auth-feature", "refactor-api-client", "debug-test-failures". Return JSON with a "name" field.',
+        '生成一个简短的 kebab-case 名称（2-4 个单词），概括本次对话的主要主题。使用小写字母，以连字符分隔。示例："fix-login-bug"、"add-auth-feature"、"refactor-api-client"、"debug-test-failures"。以 JSON 格式返回，包含 "name" 字段。',
       ]),
       userPrompt: conversationText,
       outputFormat: {

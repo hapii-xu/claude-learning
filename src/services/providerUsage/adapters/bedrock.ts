@@ -1,16 +1,15 @@
 import type { ProviderUsageAdapter, ProviderUsageBucket } from '../types.js'
 
 /**
- * AWS Bedrock rate-limit / throttling headers.
+ * AWS Bedrock 限速 / 限流请求头。
  *
- * Bedrock does not expose a precise per-minute quota the way OpenAI or
- * Anthropic do — the only reliably-present signal is `x-amzn-bedrock-*`
- * metadata on the response. We surface *throttle pressure* as a bucket
- * only when we can derive a meaningful 0..1 signal; otherwise return [].
+ * Bedrock 不像 OpenAI 或 Anthropic 那样暴露精确的每分钟配额——
+ * 响应中唯一可靠存在的信号是 `x-amzn-bedrock-*` 元数据。
+ * 仅当能推导出有意义的 0..1 信号时才将*限流压力*作为桶返回；否则返回 []。
  *
- *   x-amzn-bedrock-quota-remaining  (0..1 fraction, when present on some models)
- *   x-amzn-bedrock-quota-reset      (unix seconds)
- *   retry-after                     (seconds, present on 429)
+ *   x-amzn-bedrock-quota-remaining  （0..1 分数，部分模型响应中存在）
+ *   x-amzn-bedrock-quota-reset      （Unix 秒）
+ *   retry-after                     （秒，429 响应时存在）
  */
 export const bedrockAdapter: ProviderUsageAdapter = {
   providerId: 'bedrock',

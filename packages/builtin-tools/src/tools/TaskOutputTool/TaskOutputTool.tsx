@@ -157,7 +157,7 @@ async function waitForTaskCompletion(
 
 export const TaskOutputTool: Tool<InputSchema, TaskOutputToolOutput> = buildTool({
   name: TASK_OUTPUT_TOOL_NAME,
-  searchHint: 'read output/logs from a background task',
+  searchHint: '读取后台任务的输出/日志',
   maxResultSizeChars: 100_000,
   shouldDefer: true,
   // 重命名工具的向后兼容别名

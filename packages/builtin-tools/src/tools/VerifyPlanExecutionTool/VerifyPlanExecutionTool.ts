@@ -6,18 +6,12 @@ import { VERIFY_PLAN_EXECUTION_TOOL_NAME } from './constants.js'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    plan_summary: z
-      .string()
-      .describe('已执行计划的摘要。'),
+    plan_summary: z.string().describe('已执行计划的摘要。'),
     verification_notes: z
       .string()
       .optional()
-      .describe(
-        '关于验证了什么、以及验证过程中发现的问题的说明。',
-      ),
-    all_steps_completed: z
-      .boolean()
-      .describe('是否已成功完成所有计划步骤。'),
+      .describe('关于验证了什么、以及验证过程中发现的问题的说明。'),
+    all_steps_completed: z.boolean().describe('是否已成功完成所有计划步骤。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -27,7 +21,7 @@ type VerifyOutput = { verified: boolean; summary: string }
 
 export const VerifyPlanExecutionTool = buildTool({
   name: VERIFY_PLAN_EXECUTION_TOOL_NAME,
-  searchHint: 'verify plan execution check completion',
+  searchHint: '校验计划执行 检查完成情况',
   maxResultSizeChars: 10_000,
   strict: true,
 

@@ -31,9 +31,7 @@ const inputSchema = lazySchema(() =>
   z.strictObject({
     action: z
       .enum(['keep', 'remove'])
-      .describe(
-        '"keep" 在磁盘上保留 worktree 和分支；"remove" 删除两者。',
-      ),
+      .describe('"keep" 在磁盘上保留 worktree 和分支；"remove" 删除两者。'),
     discard_changes: z
       .boolean()
       .optional()
@@ -302,9 +300,7 @@ export const ExitWorktreeTool: Tool<InputSchema, Output> = buildTool({
       discardParts.push(`${commits} 个提交`)
     }
     if (changedFiles > 0) {
-      discardParts.push(
-        `${changedFiles} 个未提交文件`,
-      )
+      discardParts.push(`${changedFiles} 个未提交文件`)
     }
     const discardNote =
       discardParts.length > 0 ? ` 已丢弃${discardParts.join('和')}。` : ''

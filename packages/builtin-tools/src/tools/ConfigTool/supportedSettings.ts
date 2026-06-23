@@ -74,8 +74,7 @@ export const SUPPORTED_SETTINGS: Record<string, SettingConfig> = {
   showTurnDuration: {
     source: 'global',
     type: 'boolean',
-    description:
-      '在响应后显示轮次耗时消息（例如 "Cooked for 1m 6s"）',
+    description: '在响应后显示轮次耗时消息（例如 "Cooked for 1m 6s"）',
   },
   terminalProgressBarEnabled: {
     source: 'global',
@@ -136,8 +135,7 @@ export const SUPPORTED_SETTINGS: Record<string, SettingConfig> = {
         classifierPermissionsEnabled: {
           source: 'settings' as const,
           type: 'boolean' as const,
-          description:
-            '为 Bash(prompt:...) 权限规则启用基于 AI 的分类',
+          description: '为 Bash(prompt:...) 权限规则启用基于 AI 的分类',
         },
       }
     : {}),

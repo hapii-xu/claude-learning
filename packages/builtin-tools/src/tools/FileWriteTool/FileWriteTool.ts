@@ -67,9 +67,7 @@ const outputSchema = lazySchema(() =>
       .describe('是创建了新文件还是更新了已有文件'),
     filePath: z.string().describe('被写入文件的路径'),
     content: z.string().describe('已写入文件的内容'),
-    structuredPatch: z
-      .array(hunkSchema())
-      .describe('展示变更内容的 Diff 补丁'),
+    structuredPatch: z.array(hunkSchema()).describe('展示变更内容的 Diff 补丁'),
     originalFile: z
       .string()
       .nullable()
@@ -84,7 +82,7 @@ export type FileWriteToolInput = InputSchema
 
 export const FileWriteTool = buildTool({
   name: FILE_WRITE_TOOL_NAME,
-  searchHint: 'create or overwrite files',
+  searchHint: '创建或覆盖文件',
   maxResultSizeChars: 100_000,
   strict: true,
   async description() {

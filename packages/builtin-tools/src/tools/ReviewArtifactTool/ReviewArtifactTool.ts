@@ -13,20 +13,12 @@ const inputSchema = lazySchema(() =>
   z.strictObject({
     artifact: z
       .string()
-      .describe(
-        '待审阅产出物的内容（代码片段、文档文本等）。',
-      ),
-    title: z
-      .string()
-      .optional()
-      .describe('待审阅产出物的可选标题或文件路径。'),
+      .describe('待审阅产出物的内容（代码片段、文档文本等）。'),
+    title: z.string().optional().describe('待审阅产出物的可选标题或文件路径。'),
     annotations: z
       .array(
         z.object({
-          line: z
-            .number()
-            .optional()
-            .describe('标注的行号（从 1 开始）。'),
+          line: z.number().optional().describe('标注的行号（从 1 开始）。'),
           message: z.string().describe('标注或反馈消息。'),
           severity: z
             .enum(['info', 'warning', 'error', 'suggestion'])
@@ -35,10 +27,7 @@ const inputSchema = lazySchema(() =>
         }),
       )
       .describe('产出物上的标注/评论列表。'),
-    summary: z
-      .string()
-      .optional()
-      .describe('审阅的总体总结。'),
+    summary: z.string().optional().describe('审阅的总体总结。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -57,13 +46,11 @@ export type Output = z.infer<OutputSchema>
 
 export const ReviewArtifactTool = buildTool({
   name: REVIEW_ARTIFACT_TOOL_NAME,
-  searchHint: 'review code or documents with inline annotations',
+  searchHint: '审阅代码或文档并添加内联标注',
   maxResultSizeChars: 100_000,
   async description(input) {
     const { title } = input as { title?: string }
-    return title
-      ? `Claude 想要审阅：${title}`
-      : 'Claude 想要审阅一个产出物'
+    return title ? `Claude 想要审阅：${title}` : 'Claude 想要审阅一个产出物'
   },
   userFacingName() {
     return 'ReviewArtifact'

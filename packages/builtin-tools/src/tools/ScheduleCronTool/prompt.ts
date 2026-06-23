@@ -115,13 +115,13 @@ ${durabilitySection}
 export const CRON_DELETE_DESCRIPTION = '按 ID 取消一个已安排的 cron 任务'
 export function buildCronDeletePrompt(durableEnabled: boolean): string {
   return durableEnabled
-    ? `Cancel a cron job previously scheduled with ${CRON_CREATE_TOOL_NAME}. Removes it from .claude/scheduled_tasks.json (durable jobs) or the in-memory session store (session-only jobs).`
-    : `Cancel a cron job previously scheduled with ${CRON_CREATE_TOOL_NAME}. Removes it from the in-memory session store.`
+    ? `取消之前通过 ${CRON_CREATE_TOOL_NAME} 安排的 cron 任务。从 .claude/scheduled_tasks.json（持久化任务）或内存会话存储（仅会话任务）中移除。`
+    : `取消之前通过 ${CRON_CREATE_TOOL_NAME} 安排的 cron 任务。从内存会话存储中移除。`
 }
 
 export const CRON_LIST_DESCRIPTION = '列出已安排的 cron 任务'
 export function buildCronListPrompt(durableEnabled: boolean): string {
   return durableEnabled
-    ? `List all cron jobs scheduled via ${CRON_CREATE_TOOL_NAME}, both durable (.claude/scheduled_tasks.json) and session-only.`
-    : `List all cron jobs scheduled via ${CRON_CREATE_TOOL_NAME} in this session.`
+    ? `列出所有通过 ${CRON_CREATE_TOOL_NAME} 安排的 cron 任务，包括持久化任务（.claude/scheduled_tasks.json）和仅会话任务。`
+    : `列出本次会话中所有通过 ${CRON_CREATE_TOOL_NAME} 安排的 cron 任务。`
 }

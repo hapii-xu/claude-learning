@@ -32,7 +32,7 @@ export type Output = z.infer<OutputSchema>
 
 export const TaskStopTool = buildTool({
   name: TASK_STOP_TOOL_NAME,
-  searchHint: 'kill a running background task',
+  searchHint: '停止并终止正在运行的后台任务',
   // KillShell 是已废弃的名称 - 作为别名保留是为了向后兼容已有的记录和 SDK 用户
   aliases: ['KillShell'],
   maxResultSizeChars: 100_000,

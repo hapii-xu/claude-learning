@@ -50,37 +50,23 @@ export const inputSchema = lazySchema(() =>
     edit_mode: z
       .enum(['replace', 'insert', 'delete'])
       .optional()
-      .describe(
-        '编辑操作的类型（replace、insert、delete）。默认为 replace。',
-      ),
+      .describe('编辑操作的类型（replace、insert、delete）。默认为 replace。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
 
 export const outputSchema = lazySchema(() =>
   z.object({
-    new_source: z
-      .string()
-      .describe('写入到单元格的新源代码'),
-    cell_id: z
-      .string()
-      .optional()
-      .describe('被编辑的单元格 ID'),
+    new_source: z.string().describe('写入到单元格的新源代码'),
+    cell_id: z.string().optional().describe('被编辑的单元格 ID'),
     cell_type: z.enum(['code', 'markdown']).describe('单元格类型'),
     language: z.string().describe('notebook 的编程语言'),
     edit_mode: z.string().describe('使用的编辑模式'),
-    error: z
-      .string()
-      .optional()
-      .describe('操作失败时的错误消息'),
+    error: z.string().optional().describe('操作失败时的错误消息'),
     // 用于归因追踪的字段
     notebook_path: z.string().describe('notebook 文件的路径'),
-    original_file: z
-      .string()
-      .describe('修改前的原始 notebook 内容'),
-    updated_file: z
-      .string()
-      .describe('修改后更新后的 notebook 内容'),
+    original_file: z.string().describe('修改前的原始 notebook 内容'),
+    updated_file: z.string().describe('修改后更新后的 notebook 内容'),
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>
@@ -222,8 +208,7 @@ export const NotebookEditTool = buildTool({
     if (!readTimestamp) {
       return {
         result: false,
-        message:
-          '文件尚未被读取。请先读取文件再写入。',
+        message: '文件尚未被读取。请先读取文件再写入。',
         errorCode: 9,
       }
     }

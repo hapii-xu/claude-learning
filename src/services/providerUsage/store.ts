@@ -18,8 +18,7 @@ export function getProviderUsage(): ProviderUsage {
 }
 
 /**
- * Replace buckets for a provider. Passing an empty array is valid — it records
- * that the latest response carried no usable quota header.
+ * 替换某个提供商的用量桶。传入空数组是合法的——这表示最新响应中没有可用的配额请求头。
  */
 export function updateProviderBuckets(
   providerId: string,
@@ -62,7 +61,7 @@ function emit(): void {
     try {
       listener(current)
     } catch {
-      // Listener errors must not break the publish loop.
+      // 监听器错误不应中断发布循环。
     }
   }
 }

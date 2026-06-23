@@ -1,5 +1,5 @@
 export const DESCRIPTION =
-  "回忆用户存储在 ~/.claude/local-memory/ 中的本地跨会话笔记。 " +
+  '回忆用户存储在 ~/.claude/local-memory/ 中的本地跨会话笔记。 ' +
   '用户通过 /local-memory CLI（list、create、store、fetch、archive）管理这些笔记。 ' +
   "当用户引用过往笔记、说 'last time' 或 'my saved X'，" +
   '或继续多会话工作时使用此工具。此工具只读 —— 要写入笔记，' +

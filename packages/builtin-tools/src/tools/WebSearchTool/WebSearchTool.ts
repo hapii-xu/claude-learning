@@ -42,9 +42,7 @@ const inputSchema = lazySchema(() =>
     context_max_characters: z
       .number()
       .optional()
-      .describe(
-        '针对 LLM 优化的上下文字符串的最大字符数（默认：10000）',
-      ),
+      .describe('针对 LLM 优化的上下文字符串的最大字符数（默认：10000）'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -53,10 +51,7 @@ const searchResultSchema = lazySchema(() => {
   const searchHitSchema = z.object({
     title: z.string().describe('搜索结果的标题'),
     url: z.string().describe('搜索结果的 URL'),
-    snippet: z
-      .string()
-      .optional()
-      .describe('搜索结果的简短描述'),
+    snippet: z.string().optional().describe('搜索结果的简短描述'),
   })
 
   return z.object({
@@ -73,9 +68,7 @@ const outputSchema = lazySchema(() =>
     results: z
       .array(z.union([searchResultSchema(), z.string()]))
       .describe('搜索结果和/或模型的文字说明'),
-    durationSeconds: z
-      .number()
-      .describe('完成搜索操作所花费的时间'),
+    durationSeconds: z.number().describe('完成搜索操作所花费的时间'),
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>
@@ -89,7 +82,7 @@ import type { WebSearchProgress } from 'src/types/tools.js'
 
 export const WebSearchTool = buildTool({
   name: WEB_SEARCH_TOOL_NAME,
-  searchHint: 'search the web for current information',
+  searchHint: '在网络上搜索最新信息',
   maxResultSizeChars: 100_000,
   shouldDefer: true,
   async description(input) {

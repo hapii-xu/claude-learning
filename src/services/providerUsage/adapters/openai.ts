@@ -1,8 +1,8 @@
 import type { ProviderUsageAdapter, ProviderUsageBucket } from '../types.js'
 
 /**
- * Parse a Retry-After-style duration string (e.g. "6m0s", "1h30m", "500ms")
- * into unix epoch seconds *from now*. Returns 0 if unparseable.
+ * 将 Retry-After 风格的时间字符串（如 "6m0s"、"1h30m"、"500ms"）
+ * 解析为*从现在起*的 Unix 纪元秒数。无法解析时返回 0。
  */
 function parseResetAt(value: string | null): number {
   if (!value) return 0
@@ -51,13 +51,13 @@ function computeUtilization(
 }
 
 /**
- * OpenAI-compatible rate-limit headers.
+ * OpenAI 兼容的限速请求头。
  *
  *   x-ratelimit-limit-requests     / x-ratelimit-remaining-requests     / x-ratelimit-reset-requests
  *   x-ratelimit-limit-tokens       / x-ratelimit-remaining-tokens       / x-ratelimit-reset-tokens
  *
- * Works for OpenAI, DeepSeek, Moonshot, Grok (xAI) and many self-hosted
- * OpenAI-compatible gateways.
+ * 适用于 OpenAI、DeepSeek、Moonshot、Grok（xAI）以及许多自托管的
+ * OpenAI 兼容网关。
  */
 export const openaiAdapter: ProviderUsageAdapter = {
   providerId: 'openai',

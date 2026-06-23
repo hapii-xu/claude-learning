@@ -6,18 +6,11 @@ import { TERMINAL_CAPTURE_TOOL_NAME } from './prompt.js'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    lines: z
-      .number()
-      .optional()
-      .describe(
-        '要从终端捕获的行数。默认为 50。',
-      ),
+    lines: z.number().optional().describe('要从终端捕获的行数。默认为 50。'),
     panel_id: z
       .string()
       .optional()
-      .describe(
-        '要从其捕获输出的终端面板 ID。默认为当前激活的面板。',
-      ),
+      .describe('要从其捕获输出的终端面板 ID。默认为当前激活的面板。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -27,7 +20,7 @@ type CaptureOutput = { content: string; line_count: number }
 
 export const TerminalCaptureTool = buildTool({
   name: TERMINAL_CAPTURE_TOOL_NAME,
-  searchHint: 'terminal capture screen output panel read',
+  searchHint: '终端 捕获 屏幕 输出 面板 读取',
   maxResultSizeChars: 100_000,
   strict: true,
 

@@ -115,8 +115,8 @@ export function renderToolResultMessage(output: Output): React.ReactNode {
       return (
         <MessageResponse height={1}>
           <Text>
-            读取了 <Text bold>{output.file.count}</Text>{' '}
-            {output.file.count === 1 ? '页' : '页'}（{formatFileSize(output.file.originalSize)}）
+            读取了 <Text bold>{output.file.count}</Text> {output.file.count === 1 ? '页' : '页'}（
+            {formatFileSize(output.file.originalSize)}）
           </Text>
         </MessageResponse>
       );

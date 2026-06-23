@@ -30,9 +30,7 @@ import { renderToolResultMessage, renderToolUseMessage } from './UI.js'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    url: z
-      .string()
-      .describe('目标 URL。必须是 https://。其他协议会被拒绝。'),
+    url: z.string().describe('目标 URL。必须是 https://。其他协议会被拒绝。'),
     method: z
       .enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
       .default('GET')
@@ -41,9 +39,7 @@ const inputSchema = lazySchema(() =>
       .string()
       .min(1)
       .max(128)
-      .describe(
-        'vault key 的名称（不是密钥值本身）。需要按 key 单独授权。',
-      ),
+      .describe('vault key 的名称（不是密钥值本身）。需要按 key 单独授权。'),
     auth_scheme: z
       .enum(['bearer', 'basic', 'header_x_api_key', 'custom'])
       .default('bearer')
@@ -61,25 +57,17 @@ const inputSchema = lazySchema(() =>
       .describe(
         '当 auth_scheme=custom 时，用作密钥值的 HTTP header 名称。必须匹配 [A-Za-z0-9_-]{1,64}。',
       ),
-    body: z
-      .string()
-      .max(RESPONSE_BODY_CAP_BYTES)
-      .optional()
-      .describe('请求体'),
+    body: z.string().max(RESPONSE_BODY_CAP_BYTES).optional().describe('请求体'),
     body_content_type: z
       .string()
       .max(128)
       .optional()
-      .describe(
-        '请求体的 Content-Type。默认为 application/json。',
-      ),
+      .describe('请求体的 Content-Type。默认为 application/json。'),
     reason: z
       .string()
       .min(1)
       .max(500)
-      .describe(
-        '说明你为什么需要这次请求。会出现在用户权限提示和审计日志中。',
-      ),
+      .describe('说明你为什么需要这次请求。会出现在用户权限提示和审计日志中。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -124,7 +112,7 @@ function hashKey(key: string): string {
 
 export const VaultHttpFetchTool = buildTool({
   name: VAULT_HTTP_FETCH_TOOL_NAME,
-  searchHint: 'authenticated HTTPS request using a vault-stored secret',
+  searchHint: '使用 vault 存储的密钥发起带认证的 HTTPS 请求',
   // 响应大小上限与 axios maxContentLength 一致；超过的体积会由 toolResultStorage
   // 落盘为文件引用。
   maxResultSizeChars: RESPONSE_BODY_CAP_BYTES,

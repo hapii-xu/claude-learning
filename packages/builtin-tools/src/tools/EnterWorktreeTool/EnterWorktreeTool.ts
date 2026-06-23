@@ -51,7 +51,7 @@ export type Output = z.infer<OutputSchema>
 
 export const EnterWorktreeTool: Tool<InputSchema, Output> = buildTool({
   name: ENTER_WORKTREE_TOOL_NAME,
-  searchHint: 'create an isolated git worktree and switch into it',
+  searchHint: '创建隔离的 git worktree 并切换进去',
   maxResultSizeChars: 100_000,
   async description() {
     return '创建一个隔离的 worktree（通过 git 或已配置的 hooks），并将当前会话切换到其中'

@@ -109,7 +109,7 @@
 		{
 			"label": "Debug: 启动 dev (Interactive) [cc-lab]",
 			"type": "shell",
-			"command": "bun run dev:inspect",
+			"command": "bun run dev:inspect -- --append-system-prompt \"我叫Hapii，今年25岁\"",
 			"options": {
 				"env": {
 					"CC_CWD": "C:\\Users\\hapii\\Documents\\GitHub\\claude-learning\\cc-lab"
@@ -178,6 +178,29 @@
 				"panel": "dedicated",
 				"clear": true,
 				"group": "debug-cclab"
+			},
+			"problemMatcher": {
+				"pattern": {
+					"regexp": "^$"
+				},
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": ".*Bun Inspector.*",
+					"endsPattern": ".*Listening:.*"
+				}
+			}
+		},
+		{
+			"label": "Debug: 启动 dev (带系统提示词)",
+			"type": "shell",
+			"command": "bun run dev:inspect -- --append-system-prompt \"我叫Hapii，今年25岁\"",
+			"isBackground": true,
+			"presentation": {
+				"reveal": "always",
+				"focus": false,
+				"panel": "dedicated",
+				"clear": true,
+				"group": "debug-study"
 			},
 			"problemMatcher": {
 				"pattern": {

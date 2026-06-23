@@ -243,9 +243,7 @@ async function handleBroadcast(
   const senderName =
     getAgentName() || (isTeammate() ? 'teammate' : TEAM_LEAD_NAME)
   if (!senderName) {
-    throw new Error(
-      '无法广播：需要发送者名称。请设置 CLAUDE_CODE_AGENT_NAME。',
-    )
+    throw new Error('无法广播：需要发送者名称。请设置 CLAUDE_CODE_AGENT_NAME。')
   }
 
   const senderColor = getTeammateColor()
@@ -627,8 +625,7 @@ export const SendMessageTool: Tool<InputSchema, SendMessageToolOutput> =
           message: `向 Remote Control 会话 ${input.to} 发送消息？它将通过 Anthropic 的服务器作为 user prompt 发送到接收方 Claude（可能在另一台机器上）。`,
           decisionReason: {
             type: 'safetyCheck',
-            reason:
-              '跨机器 bridge 消息需要用户明确同意',
+            reason: '跨机器 bridge 消息需要用户明确同意',
             classifierApprovable: false,
           },
         }
@@ -679,8 +676,7 @@ export const SendMessageTool: Tool<InputSchema, SendMessageToolOutput> =
       if (input.to.includes('@')) {
         return {
           result: false,
-          message:
-            'to 必须是裸 teammate 名称或 "*" —— 每个会话只有一个 team',
+          message: 'to 必须是裸 teammate 名称或 "*" —— 每个会话只有一个 team',
           errorCode: 9,
         }
       }
@@ -690,8 +686,7 @@ export const SendMessageTool: Tool<InputSchema, SendMessageToolOutput> =
         if (typeof input.message !== 'string') {
           return {
             result: false,
-            message:
-              '结构化消息不能跨会话发送 —— 只支持纯文本',
+            message: '结构化消息不能跨会话发送 —— 只支持纯文本',
             errorCode: 9,
           }
         }
@@ -744,8 +739,7 @@ export const SendMessageTool: Tool<InputSchema, SendMessageToolOutput> =
       if (feature('UDS_INBOX') && parseAddress(input.to).scheme !== 'other') {
         return {
           result: false,
-          message:
-            '结构化消息不能跨会话发送 —— 只支持纯文本',
+          message: '结构化消息不能跨会话发送 —— 只支持纯文本',
           errorCode: 9,
         }
       }

@@ -18,8 +18,7 @@ const DREAM_PROMPT_PREFIX = `# Dream：记忆整合（手动运行）
 export function registerDreamSkill(): void {
   registerBundledSkill({
     name: 'dream',
-    description:
-      '手动触发记忆整合——审查、整理并精简自动记忆文件。',
+    description: '手动触发记忆整合——审查、整理并精简自动记忆文件。',
     whenToUse:
       '当用户输入 /dream 或想手动整合记忆、整理记忆文件或清理过时条目时使用。',
     userInvocable: true,

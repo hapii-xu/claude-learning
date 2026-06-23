@@ -4,13 +4,13 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { logMock } from '../../../../tests/mocks/log.js'
 
-// Must mock log before any import that transitively loads log.ts
+// 必须在任何间接加载 log.ts 的 import 之前 mock log
 mock.module('src/utils/log.ts', logMock)
 
-// bun:bundle must be mocked before imports that use feature()
+// 必须在使用 feature() 的 import 之前 mock bun:bundle
 mock.module('bun:bundle', () => ({ feature: () => false }))
 
-// settings.js must be mocked to cut bootstrap chain
+// 必须 mock settings.js 以切断 bootstrap 链
 mock.module('src/utils/settings/settings.js', () => ({
   getSettings_DEPRECATED: () => ({}),
   updateSettingsForSource: () => {},
@@ -26,7 +26,7 @@ beforeEach(() => {
 afterEach(async () => {
   delete process.env['CLAUDE_CONFIG_DIR']
   rmSync(tmpDir, { recursive: true, force: true })
-  // J1 fix: invalidate the per-process cache between tests so each test starts fresh
+  // J1 修复：在测试间使进程级缓存失效，确保每次测试从干净状态开始
   const { _invalidateProviderCache } = await import('../loader.js')
   _invalidateProviderCache()
 })
@@ -90,7 +90,7 @@ describe('loadProviders', () => {
     )
     const { loadProviders } = await import('../loader.js')
     const providers = loadProviders()
-    // 4 defaults + 1 custom = 5
+    // 4 个默认 + 1 个自定义 = 5
     expect(providers).toHaveLength(5)
     expect(providers.find(p => p.id === 'myendpoint')).toMatchObject({
       baseUrl: 'https://my.api.com/v1',
@@ -112,7 +112,7 @@ describe('loadProviders', () => {
     )
     const { loadProviders } = await import('../loader.js')
     const providers = loadProviders()
-    // Still 4 providers (cerebras replaced, not added)
+    // 仍为 4 个 provider（cerebras 被替换，而非新增）
     expect(providers).toHaveLength(4)
     const cerebras = providers.find(p => p.id === 'cerebras')
     expect(cerebras?.baseUrl).toBe('https://custom-cerebras.example.com/v1')

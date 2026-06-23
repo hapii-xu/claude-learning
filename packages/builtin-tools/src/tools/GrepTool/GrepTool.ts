@@ -29,17 +29,11 @@ import {
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    pattern: z
-      .string()
-      .describe(
-        '用于在文件内容中搜索的正则表达式模式',
-      ),
+    pattern: z.string().describe('用于在文件内容中搜索的正则表达式模式'),
     path: z
       .string()
       .optional()
-      .describe(
-        '要搜索的文件或目录（rg PATH）。默认为当前工作目录。',
-      ),
+      .describe('要搜索的文件或目录（rg PATH）。默认为当前工作目录。'),
     glob: z
       .string()
       .optional()

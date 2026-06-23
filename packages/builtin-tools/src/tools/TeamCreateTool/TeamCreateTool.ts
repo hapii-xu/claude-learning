@@ -74,7 +74,7 @@ function generateUniqueTeamName(providedName: string): string {
 export const TeamCreateTool: Tool<InputSchema, Output> = buildTool({
   name: TEAM_CREATE_TOOL_NAME,
   searchHint:
-    'create multi-agent swarm team, collaborate, parallel agents, task distribution, agent coordination, team management',
+    '创建多 agent swarm 团队，协作、并行 agent、任务分发、agent 协调、团队管理',
   maxResultSizeChars: 100_000,
   shouldDefer: true,
 

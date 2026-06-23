@@ -983,3 +983,14 @@ A：意味着 `claude --help` 是"零副作用"的——不读 keychain、不跑
 **Q：主 action 为什么这么大（3070 行）？应该拆分吗？**
 
 A：历史演进的结果。这 3070 行实际上是 Claude Code 的"会话装配工厂"——它需要根据 20+ 个 option 的组合（resume/teleport/SSH/cc://…）决定怎么建立会话。拆分的难点在于这些分支之间共享大量中间变量（`setup()`、`enabledTools`、`mcpClients`、`sessionConfig` 等），提取为独立函数会有大量参数传递。从可读性角度看，流程图（七节中的决策树）比把它拆成 20 个小函数更容易理解。
+
+------------------------------
+
+appendSystemPrompt 的 6 个来源（全部在 main.tsx 组装，函数本身只做追加）
+
+1. --append-system-prompt CLI flag
+2. --append-system-prompt-file CLI flag（读文件）
+3. tmux teammate 的 TEAMMATE_SYSTEM_PROMPT_ADDENDUM
+4. Claude in Chrome 显式启用时的 chromeSystemPrompt
+5. Chrome 自动启用时的 hint 文本
+6. settings.json 里的 customInstructions 字段（拼接到 appendSystemPrompt 末尾）

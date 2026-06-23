@@ -1,41 +1,41 @@
 import type { CompatRule } from './types.js'
 
 /**
- * Per-provider OpenAI-compat field whitelist.
+ * 各 provider 的 OpenAI 兼容字段白名单。
  *
- * Each profile describes what an endpoint actually accepts so we can strip
- * fields that would cause a strict endpoint to reject the request.
+ * 每个 profile 描述了端点实际接受的字段，以便我们剔除
+ * 会导致严格端点拒绝请求的字段。
  */
 export interface CompatProfile {
   /**
-   * Whether the server accepts stream_options.include_usage in chat completions.
-   * Strict endpoints (Cerebras, Qwen) reject unknown top-level keys.
+   * 服务器是否在聊天补全中接受 stream_options.include_usage。
+   * 严格端点（Cerebras、Qwen）会拒绝未知的顶层字段。
    */
   supportsStreamUsageOption: boolean
 
   /**
-   * Whether the server accepts a custom 'thinking' field in messages.
-   * Only permissive or DeepSeek-thinking endpoints accept this.
+   * 服务器是否在消息中接受自定义的 'thinking' 字段。
+   * 仅宽松或 DeepSeek 思考模式端点支持此字段。
    */
   supportsThinkingField: boolean
 
   /**
-   * How to handle reasoning_content in roundtrips.
+   * 在往返请求中如何处理 reasoning_content。
    *
-   * DeepSeek has three modes:
-   *   - thinking-only:    model returns reasoning_content, no tools
-   *   - thinking+tools:   model returns both reasoning_content and tool calls
-   *   - normal:           model returns neither
+   * DeepSeek 有三种模式：
+   *   - thinking-only：    模型返回 reasoning_content，无工具调用
+   *   - thinking+tools：   模型同时返回 reasoning_content 和工具调用
+   *   - normal：           模型两者都不返回
    *
-   * 'always-preserve':      echo back (DeepSeek thinking+tools roundtrip)
-   * 'drop-on-non-thinking': remove unless current model is thinking variant
-   * 'strip':                remove always (safe default for strict endpoints)
+   * 'always-preserve':      回传（DeepSeek thinking+tools 往返场景）
+   * 'drop-on-non-thinking': 非思考模型时删除
+   * 'strip':                始终删除（严格端点的安全默认值）
    */
   reasoningContentEcho: 'always-preserve' | 'drop-on-non-thinking' | 'strip'
 
   /**
-   * Tool call schema flavor supported by the endpoint.
-   * 'openai-v2' = standard OpenAI function-calling schema
+   * 端点支持的工具调用模式。
+   * 'openai-v2' = 标准 OpenAI 函数调用模式
    */
   toolCallFormat: 'openai-v2'
 }
@@ -54,8 +54,8 @@ export const COMPAT_PROFILES: Record<CompatRule, CompatProfile> = {
     toolCallFormat: 'openai-v2',
   },
   deepseek: {
-    // DeepSeek-reasoner supports reasoning_content and the thinking field.
-    // For normal deepseek-chat, thinking field is ignored rather than rejected.
+    // DeepSeek-reasoner 支持 reasoning_content 和 thinking 字段。
+    // 对于普通 deepseek-chat，thinking 字段会被忽略而非拒绝。
     supportsStreamUsageOption: true,
     supportsThinkingField: true,
     reasoningContentEcho: 'always-preserve',
@@ -76,12 +76,12 @@ export const COMPAT_PROFILES: Record<CompatRule, CompatProfile> = {
 }
 
 /**
- * Determine the DeepSeek reasoning mode based on presence of reasoning_content
- * and tool_calls in the assistant message.
+ * 根据 assistant 消息中是否存在 reasoning_content 和 tool_calls
+ * 来确定 DeepSeek 推理模式。
  *
- * DeepSeek thinking-only:    has reasoning_content, no tool_calls
- * DeepSeek thinking+tools:   has reasoning_content AND tool_calls
- * DeepSeek normal:           no reasoning_content
+ * DeepSeek thinking-only：有 reasoning_content，无 tool_calls
+ * DeepSeek thinking+tools：同时有 reasoning_content 和 tool_calls
+ * DeepSeek normal：无 reasoning_content
  */
 export function getDeepSeekReasoningMode(
   assistantMessage: Record<string, unknown>,
@@ -96,10 +96,10 @@ export function getDeepSeekReasoningMode(
 }
 
 /**
- * Apply a compat rule to an outgoing request body, dropping fields the
- * target endpoint won't accept. Returns a new object (immutable).
+ * 将兼容规则应用于出站请求体，删除目标端点不接受的字段。
+ * 返回新对象（不可变）。
  *
- * This is a pure function: it does not mutate the input body.
+ * 这是纯函数：不修改输入的请求体。
  */
 export function applyCompatRule(
   body: Record<string, unknown>,
@@ -108,7 +108,7 @@ export function applyCompatRule(
   const profile = COMPAT_PROFILES[rule]
   const result: Record<string, unknown> = { ...body }
 
-  // Strip stream_options.include_usage if endpoint doesn't support it
+  // 若端点不支持，则删除 stream_options.include_usage
   if (!profile.supportsStreamUsageOption) {
     const streamOptions = result['stream_options']
     if (
@@ -128,7 +128,7 @@ export function applyCompatRule(
     }
   }
 
-  // Strip 'thinking' field from messages if endpoint doesn't support it
+  // 若端点不支持，则从消息中删除 'thinking' 字段
   if (!profile.supportsThinkingField && Array.isArray(result['messages'])) {
     result['messages'] = (result['messages'] as Record<string, unknown>[]).map(
       msg => {
@@ -141,7 +141,7 @@ export function applyCompatRule(
     )
   }
 
-  // Handle reasoning_content echo policy
+  // 处理 reasoning_content 回传策略
   if (
     profile.reasoningContentEcho === 'strip' &&
     Array.isArray(result['messages'])
@@ -157,8 +157,8 @@ export function applyCompatRule(
     )
   }
 
-  // For 'drop-on-non-thinking': strip reasoning_content unless model name
-  // indicates a thinking variant (contains 'reason' or 'think' in model string)
+  // 对于 'drop-on-non-thinking'：除非模型名称中包含 'reason' 或 'think'（表示思考模型变体），
+  // 否则删除 reasoning_content
   if (profile.reasoningContentEcho === 'drop-on-non-thinking') {
     const model = typeof result['model'] === 'string' ? result['model'] : ''
     const isThinkingModel = /reason|think/i.test(model)

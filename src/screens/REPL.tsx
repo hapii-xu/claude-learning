@@ -3013,6 +3013,10 @@ export function REPL({
   const handleBackgroundQuery = useCallback(() => {
     // 停止前台 query，使后台 query 接管
     abortController?.abort('background');
+    logForDebugging(
+      `[Hapii] REPL.handleBackgroundQuery 开始: abortController=${abortController ? '存在' : 'null'} appendSystemPrompt=${appendSystemPrompt ? `已设置(${appendSystemPrompt.length}字符)` : '未设置'} customSystemPrompt=${customSystemPrompt ? `已设置(${customSystemPrompt.length}字符)` : '未设置'} agentDef=${mainThreadAgentDefinition ? (mainThreadAgentDefinition.agentType ?? 'custom') : '无'} model=${mainLoopModel}`,
+      { level: 'info' },
+    );
     // 中止 subagent 可能产生 task-completed 通知。
     // 清除任务通知，使队列处理器不会立即启动新的前台 query；
     // 将它们转发到后台会话。
@@ -3040,6 +3044,10 @@ export function REPL({
         appendSystemPrompt,
       });
       toolUseContext.renderedSystemPrompt = systemPrompt;
+      logForDebugging(
+        `[Hapii] REPL.handleBackgroundQuery 系统提示构建完成: len=${systemPrompt?.length ?? 0} tools=${toolUseContext.options.tools?.length ?? 0} mcpClients=${toolUseContext.options.mcpClients?.length ?? 0}`,
+        { level: 'info' },
+      );
 
       const notificationAttachments = await getQueuedCommandAttachments(removedNotifications).catch(() => []);
       const notificationMessages = notificationAttachments.map(createAttachmentMessage);
@@ -3103,14 +3111,43 @@ export function REPL({
 
   const onQueryEvent = useCallback(
     (event: Parameters<typeof handleMessageFromStream>[0]) => {
-      // 流式事件 (stream_event) 每个 token 都触发，仅记录非流式事件避免刷屏。
-      // 这些是 query loop 与 UI 之间的关键边界：消息完成、工具使用摘要、请求开始等。
-      if (event.type !== 'stream_event') {
-        logForDebugging(
-          `[Hapii] REPL.onQueryEvent type=${event.type}${event.type === 'stream_request_start' ? '' : ` uuid=${(event as { uuid?: string }).uuid?.slice(0, 8) ?? '?'}`}`,
-          { level: 'verbose' },
-        );
+      // ── 学习日志：进入时打印 event 全量内容 ──────────────────────────────
+      // stream_event 每个 token 都触发，只打印 subtype + delta 摘要（避免刷屏）。
+      // 其他事件打印完整 JSON（字符串字段 >300 字符时截断），换行格式化便于阅读。
+      // 通过 --verbose 或 CLAUDE_CODE_DEBUG=1 开启 verbose 日志可见。
+      if (event.type === 'stream_event') {
+        const se = event as {
+          type: string;
+          event?: {
+            type?: string;
+            delta?: { type?: string; text?: string; thinking?: string };
+          };
+        };
+        const subtype = se.event?.type ?? '?';
+        const delta = se.event?.delta;
+        const snippet = delta?.text
+          ? `text="${delta.text.slice(0, 40)}${delta.text.length > 40 ? '…' : ''}"`
+          : delta?.thinking
+            ? `thinking="${delta.thinking.slice(0, 40)}${delta.thinking.length > 40 ? '…' : ''}"`
+            : (delta?.type ?? '');
+        logForDebugging(`[Hapii] REPL.onQueryEvent [stream_event/${subtype}] ${snippet}`, { level: 'verbose' });
+      } else {
+        // 非流式事件：完整序列化，字符串字段超长时截断
+        const serialized = (() => {
+          try {
+            return JSON.stringify(
+              event,
+              (_, val) =>
+                typeof val === 'string' && val.length > 300 ? `${val.slice(0, 300)}…[+${val.length - 300}字符]` : val,
+              2,
+            );
+          } catch {
+            return `[序列化失败] type=${event.type}`;
+          }
+        })();
+        logForDebugging(`[Hapii] REPL.onQueryEvent [${event.type}]:\n${serialized}`, { level: 'verbose' });
       }
+      // ────────────────────────────────────────────────────────────────────
       handleMessageFromStream(
         event,
         newMessage => {
@@ -3126,8 +3163,7 @@ export function REPL({
                 const postBoundary = getMessagesAfterCompactBoundary(old, {
                   includeSnipped: true,
                 });
-                // 硬上限：全屏回滚中最多保留 500 条消息，
-                // 防止多日会话中内存无限增长。
+                // 硬上限：全屏回滚中最多保留 500 条消息，防止多日会话中内存无限增长。
                 // normalizeMessages/applyGrouping 为 O(n)，Ink fiber 树每条
                 // 消息约 250KB RSS。没有此上限，多次 compaction 后回滚可达
                 // 数千条消息（已观察到 1.3 万+，堆 1GB+）。
@@ -3301,6 +3337,14 @@ export function REPL({
         `[REPL] onQueryImpl 开始, shouldQuery=${shouldQuery}, 新消息数=${newMessages.length}, model=${mainLoopModelParam}`,
         { level: 'info' },
       );
+      logForDebugging(
+        `[REPL] onQueryImpl feature flags: PROACTIVE=${feature('PROACTIVE') ? 'on' : 'off'} KAIROS=${feature('KAIROS') ? 'on' : 'off'} TRANSCRIPT_CLASSIFIER=${feature('TRANSCRIPT_CLASSIFIER') ? 'on' : 'off'} BUDDY=${feature('BUDDY') ? 'on' : 'off'} COORDINATOR_MODE=${feature('COORDINATOR_MODE') ? 'on' : 'off'}`,
+        { level: 'info' },
+      );
+      logForDebugging(
+        `[REPL] onQueryImpl system prompt params: appendSystemPrompt=${appendSystemPrompt ? `已设置(${appendSystemPrompt.length}字符)` : '未设置'} customSystemPrompt=${customSystemPrompt ? `已设置(${customSystemPrompt.length}字符)` : '未设置'} agentDef=${mainThreadAgentDefinition ? (mainThreadAgentDefinition.agentType ?? 'custom') : '无'}`,
+        { level: 'info' },
+      );
       // 为新 prompt 准备 IDE 集成。从 store 新鲜读取 mcpClients —
       // useManageMCPConnections 可能在捕获此闭包的渲染之后填充了它
       // （与 computeTools 相同模式）。
@@ -3448,10 +3492,19 @@ export function REPL({
         proactiveModule?.isProactiveActive() &&
         !terminalFocusRef.current
           ? {
-              terminalFocus: 'The terminal is unfocused \u2014 the user is not actively watching.',
+              terminalFocus: '终端未聚焦 - 用户未主动查看。',
             }
           : {}),
       };
+      if (feature('PROACTIVE') || feature('KAIROS')) {
+        logForDebugging(
+          `[REPL] onQueryImpl proactive/kairos: proactiveModule=${proactiveModule ? 'loaded' : 'null'} isProactiveActive=${proactiveModule?.isProactiveActive() ?? false} terminalFocused=${terminalFocusRef.current} terminalFocusInjected=${'terminalFocus' in userContext}`,
+          { level: 'info' },
+        );
+      }
+      logForDebugging(`[REPL] onQueryImpl userContext keys=[${Object.keys(userContext).join(', ')}]`, {
+        level: 'info',
+      });
       queryCheckpoint('query_context_loading_end');
 
       const systemPrompt = buildEffectiveSystemPrompt({
@@ -3482,7 +3535,7 @@ export function REPL({
         toolUseContext,
         querySource: getQuerySourceForREPL(),
       })) {
-        onQueryEvent(event);
+        onQueryEvent(event); //stream_request_start
       }
 
       logForDebugging(`[REPL] query() 循环完成`, { level: 'info' });

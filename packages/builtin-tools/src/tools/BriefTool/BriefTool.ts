@@ -20,9 +20,7 @@ import { renderToolResultMessage, renderToolUseMessage } from './UI.js'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    message: z
-      .string()
-      .describe('发给用户的消息，支持 markdown 格式。'),
+    message: z.string().describe('发给用户的消息，支持 markdown 格式。'),
     attachments: z
       .array(z.string())
       .optional()
@@ -135,8 +133,7 @@ export function isBriefEnabled(): boolean {
 export const BriefTool = buildTool({
   name: BRIEF_TOOL_NAME,
   aliases: [LEGACY_BRIEF_TOOL_NAME],
-  searchHint:
-    '向用户发送消息 —— 你的主要可见输出渠道',
+  searchHint: '向用户发送消息 —— 你的主要可见输出渠道',
   maxResultSizeChars: 100_000,
   userFacingName() {
     return ''

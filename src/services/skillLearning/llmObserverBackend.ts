@@ -14,29 +14,27 @@ import {
 } from './types.js'
 
 /**
- * LLM-based observer backend.
+ * 基于 LLM 的观察者后端。
  *
- * Runs the small fast model (Haiku) through the project's `queryHaiku`
- * helper, feeds it a compact summary of recent observations, and asks for
- * up to three atomic reusable instincts in JSON. Output is validated and
- * mapped to `InstinctCandidate[]` so the existing evolution pipeline
- * consumes LLM output the same way it consumes heuristic output.
+ * 通过项目的 `queryHaiku` 辅助函数运行轻量快速模型（Haiku），
+ * 向其提供最近观察记录的紧凑摘要，并请求最多三条 JSON 格式的原子可复用本能。
+ * 输出经过验证后映射为 `InstinctCandidate[]`，使现有的进化流水线
+ * 能以相同方式消费 LLM 输出和启发式输出。
  *
- * Design notes:
- * - Reuses `queryHaiku` (goes through the full Claude Code API stack:
- *   OAuth, beta headers, providers, VCR in tests). No new auth code.
- * - Caps input to the tail of the observation buffer so the prompt stays
- *   small and predictable, and runs under a 10-second abort signal so a
- *   slow Haiku round-trip never blocks the REPL turn end.
- * - On ANY failure (abort, parse error, empty output) returns `[]` —
- *   the backend is opt-in via `SKILL_LEARNING_OBSERVER_BACKEND=llm` and
- *   must never destabilise skill-learning when the API is unavailable.
+ * 设计说明：
+ * - 复用 `queryHaiku`（经过完整的 Claude Code API 栈：
+ *   OAuth、beta 头、providers、测试中的 VCR）。无新增鉴权代码。
+ * - 将输入限制在观察缓冲区末尾，使提示词保持简洁可预测，
+ *   并在 10 秒中止信号下运行，确保慢速 Haiku 往返不会阻塞 REPL 轮次结束。
+ * - 任何失败（中止、解析错误、空输出）均返回 `[]` ——
+ *   该后端通过 `SKILL_LEARNING_OBSERVER_BACKEND=llm` 选择启用，
+ *   当 API 不可用时绝不能使技能学习失稳。
  */
 
 const MAX_OBSERVATIONS_PER_CALL = 30
 const MAX_CANDIDATES_PER_CALL = 3
 
-// --- Circuit breaker state ---
+// --- 熔断器状态 ---
 let consecutiveFailures = 0
 let circuitOpenUntil = 0
 
@@ -45,25 +43,25 @@ export function resetCircuitBreaker(): void {
   circuitOpenUntil = 0
 }
 
-const LLM_OBSERVER_SYSTEM_PROMPT = `You analyse a short sequence of observations from a coding-assistant session (user messages, tool invocations with outcomes, assistant messages) and extract atomic, reusable "instincts" — behavioural patterns that would help the assistant act correctly in future similar situations.
+const LLM_OBSERVER_SYSTEM_PROMPT = `你分析编程助手会话中的一段简短观察序列（用户消息、带结果的工具调用、助手消息），并提取原子性、可复用的"本能"—— 有助于助手在未来类似情境中正确行动的行为模式。
 
-Respond with ONLY a JSON array (no prose, no code fences, no commentary). Each item must match this schema:
+仅以 JSON 数组回应（无散文、无代码围栏、无注释）。每项须符合此 schema：
 
 {
-  "trigger": string,        // <= 80 chars, short phrase describing WHEN the instinct applies
-  "action": string,         // <= 120 chars, short phrase describing WHAT to do
-  "confidence": number,     // 0..1 — how strongly these observations support the pattern
+  "trigger": string,        // <= 80 字符，描述本能适用时机的短语
+  "action": string,         // <= 120 字符，描述应采取何种行动的短语
+  "confidence": number,     // 0..1 —— 观察结果支持该模式的强度
   "domain": "workflow"|"testing"|"debugging"|"code-style"|"security"|"git"|"project",
   "scope": "project"|"global",
-  "evidence": string[]      // 1..3 short excerpts copied/paraphrased from the observations
+  "evidence": string[]      // 1..3 条从观察中摘录或改写的简短证据
 }
 
-Rules:
-- Return [] if nothing clearly reusable. No guessing.
-- At most 3 items, highest confidence first.
-- confidence > 0.7 only when observations show the pattern in action (a correction followed by a successful retry, a repeated sequence, an explicit rule).
-- Never include secrets, tokens, full file contents, or personally-identifying data.
-- Scope "global" only when the pattern is obviously project-agnostic (generic testing, git hygiene); default to "project".`
+规则：
+- 若无明显可复用内容，返回 []。禁止猜测。
+- 最多 3 项，置信度由高到低排列。
+- confidence > 0.7 仅当观察显示模式在实际运作时（纠正后紧跟成功重试、重复序列、明确规则）。
+- 绝不包含密钥、令牌、完整文件内容或个人识别数据。
+- scope "global" 仅当模式明显与项目无关时（通用测试、git 规范）；默认为 "project"。`
 
 export const llmObserverBackend: ObserverBackend = {
   name: 'llm',
@@ -81,7 +79,7 @@ async function analyseWithHaiku(
 ): Promise<InstinctCandidate[]> {
   if (observations.length === 0) return []
 
-  // Circuit breaker: if the circuit is open, skip queryHaiku entirely.
+  // 熔断器：若熔断器处于打开状态，完全跳过 queryHaiku。
   if (Date.now() < circuitOpenUntil) {
     return runHeuristicFallback(observations, ctx)
   }
@@ -105,12 +103,12 @@ async function analyseWithHaiku(
         mcpTools: [],
       },
     })
-    // Success: reset failure counter.
+    // 成功：重置失败计数器。
     consecutiveFailures = 0
     responseText = extractResponseText(response.message?.content)
   } catch {
-    // Haiku failure (timeout / rate limit / bad response) — increment failure
-    // counter and potentially open the circuit breaker.
+    // Haiku 失败（超时 / 限流 / 错误响应）—— 递增失败计数器，
+    // 并在必要时打开熔断器。
     consecutiveFailures++
     if (consecutiveFailures >= getSkillLearningConfig().llm.failureThreshold) {
       circuitOpenUntil =
@@ -121,9 +119,9 @@ async function analyseWithHaiku(
 
   const parsed = parseInstinctCandidates(responseText, ctx, capped)
   if (parsed.length === 0) {
-    // Empty / malformed LLM output — count as a failure so the circuit
-    // breaker opens if Haiku is systematically returning garbage (e.g. the
-    // model version drifted and no longer emits the expected JSON).
+    // LLM 输出为空或格式错误 —— 计为一次失败，以便在 Haiku 系统性
+    // 返回无效内容时（例如模型版本漂移导致不再输出预期 JSON）
+    // 打开熔断器。
     consecutiveFailures++
     if (consecutiveFailures >= getSkillLearningConfig().llm.failureThreshold) {
       circuitOpenUntil =

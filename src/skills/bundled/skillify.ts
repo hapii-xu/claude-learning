@@ -164,7 +164,7 @@ export function registerSkillifySkill(): void {
   registerBundledSkill({
     name: 'skillify',
     description:
-      "将本次会话的可复用流程捕获为一个技能。在想要捕获的流程结束时调用，可附带可选的描述。",
+      '将本次会话的可复用流程捕获为一个技能。在想要捕获的流程结束时调用，可附带可选的描述。',
     allowedTools: [
       'Read',
       'Write',

@@ -145,10 +145,7 @@ const baseInputSchema = lazySchema(() =>
       .describe(
         '此代理的可选模型覆盖。优先级高于代理定义的 model frontmatter。如果省略，使用代理定义的模型，或继承自父代理。',
       ),
-    run_in_background: z
-      .boolean()
-      .optional()
-      .describe('设为 true 以在后台运行此代理。完成时会通知你。'),
+    run_in_background: z.boolean().optional().describe('设为 true 以在后台运行此代理。完成时会通知你。'),
   }),
 );
 
@@ -156,14 +153,9 @@ const baseInputSchema = lazySchema(() =>
 const fullInputSchema = lazySchema(() => {
   // 多代理参数
   const multiAgentInputSchema = z.object({
-    name: z
-      .string()
-      .optional()
-      .describe('生成的代理的名称。使其在运行时可通过 SendMessage({to: name}) 寻址。'),
+    name: z.string().optional().describe('生成的代理的名称。使其在运行时可通过 SendMessage({to: name}) 寻址。'),
     team_name: z.string().optional().describe('用于生成的团队名称。如果省略，使用当前团队上下文。'),
-    mode: permissionModeSchema()
-      .optional()
-      .describe('生成的队友的权限模式（例如，「plan」以要求计划审批）。'),
+    mode: permissionModeSchema().optional().describe('生成的队友的权限模式（例如，「plan」以要求计划审批）。'),
   });
 
   return baseInputSchema()
@@ -230,10 +222,7 @@ export const outputSchema = lazySchema(() => {
     description: z.string().describe('任务的描述'),
     prompt: z.string().describe('代理的提示'),
     outputFile: z.string().describe('用于检查代理进度的输出文件路径'),
-    canReadOutputFile: z
-      .boolean()
-      .optional()
-      .describe('调用代理是否具有 Read/Bash 工具以检查进度'),
+    canReadOutputFile: z.boolean().optional().describe('调用代理是否具有 Read/Bash 工具以检查进度'),
   });
 
   return z.union([syncOutputSchema, asyncOutputSchema]);
@@ -307,7 +296,7 @@ export const AgentTool = buildTool({
     return await getPrompt(filteredAgents, isCoordinator, allowedAgentTypes);
   },
   name: AGENT_TOOL_NAME,
-  searchHint: 'delegate work to a subagent',
+  searchHint: '把任务委派给子 agent',
   aliases: [LEGACY_AGENT_TOOL_NAME],
   maxResultSizeChars: 100_000,
   async description() {

@@ -109,8 +109,7 @@ export const ListMcpResourcesTool = buildTool({
       return {
         tool_use_id: toolUseID,
         type: 'tool_result',
-        content:
-          '未找到资源。即使没有资源，MCP 服务器仍可能提供工具。',
+        content: '未找到资源。即使没有资源，MCP 服务器仍可能提供工具。',
       }
     }
     return {

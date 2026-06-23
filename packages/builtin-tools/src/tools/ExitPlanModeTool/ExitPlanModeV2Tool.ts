@@ -66,9 +66,7 @@ const allowedPromptSchema = lazySchema(() =>
     tool: z.enum(['Bash']).describe('此提示词适用的工具'),
     prompt: z
       .string()
-      .describe(
-        '操作的语义化描述，例如 "run tests"、"install dependencies"',
-      ),
+      .describe('操作的语义化描述，例如 "run tests"、"install dependencies"'),
   }),
 )
 
@@ -109,15 +107,9 @@ export const _sdkInputSchema = lazySchema(() =>
 
 export const outputSchema = lazySchema(() =>
   z.object({
-    plan: z
-      .string()
-      .nullable()
-      .describe('呈现给用户的计划'),
+    plan: z.string().nullable().describe('呈现给用户的计划'),
     isAgent: z.boolean(),
-    filePath: z
-      .string()
-      .optional()
-      .describe('计划保存到的文件路径'),
+    filePath: z.string().optional().describe('计划保存到的文件路径'),
     hasTaskTool: z
       .boolean()
       .optional()
@@ -131,13 +123,8 @@ export const outputSchema = lazySchema(() =>
     awaitingLeaderApproval: z
       .boolean()
       .optional()
-      .describe(
-        '为 true 时，队友已向团队负责人发送了计划审批请求',
-      ),
-    requestId: z
-      .string()
-      .optional()
-      .describe('计划审批请求的唯一标识符'),
+      .describe('为 true 时，队友已向团队负责人发送了计划审批请求'),
+    requestId: z.string().optional().describe('计划审批请求的唯一标识符'),
   }),
 )
 type OutputSchema = ReturnType<typeof outputSchema>
@@ -458,8 +445,7 @@ export const ExitPlanModeV2Tool: Tool<InputSchema, Output> = buildTool({
     if (isAgent) {
       return {
         type: 'tool_result',
-        content:
-          '用户已批准该计划。你现在不需要做其他事情。请回复 "ok"',
+        content: '用户已批准该计划。你现在不需要做其他事情。请回复 "ok"',
         tool_use_id: toolUseID,
       }
     }

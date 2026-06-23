@@ -7,13 +7,8 @@ import { isBridgeEnabled } from 'src/bridge/bridgeEnabled.js'
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    file_path: z
-      .string()
-      .describe('要发送给用户的文件的绝对路径。'),
-    description: z
-      .string()
-      .optional()
-      .describe('要发送文件的可选描述。'),
+    file_path: z.string().describe('要发送给用户的文件的绝对路径。'),
+    description: z.string().optional().describe('要发送文件的可选描述。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -23,7 +18,7 @@ type SendUserFileOutput = { sent: boolean; file_path: string }
 
 export const SendUserFileTool = buildTool({
   name: SEND_USER_FILE_TOOL_NAME,
-  searchHint: 'send file to user mobile device upload share',
+  searchHint: '发送文件给用户 上传 分享 移动设备',
   maxResultSizeChars: 5_000,
   strict: true,
 

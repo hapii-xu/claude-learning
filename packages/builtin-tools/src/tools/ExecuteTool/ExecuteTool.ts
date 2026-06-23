@@ -24,11 +24,9 @@ export const inputSchema = lazySchema(() =>
     tool_name: z
       .string()
       .describe(
-        'The exact name of the target tool to execute (e.g., "CronCreate", "mcp__server__action")',
+        '要执行的目标工具的精确名称（例如 "CronCreate"、"mcp__server__action"）',
       ),
-    params: z
-      .record(z.string(), z.unknown())
-      .describe('The parameters to pass to the target tool'),
+    params: z.record(z.string(), z.unknown()).describe('传递给目标工具的参数'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -45,7 +43,7 @@ export type Output = z.infer<OutputSchema>
 
 export const ExecuteTool = buildTool({
   name: EXECUTE_TOOL_NAME,
-  searchHint: 'execute run invoke call a deferred tool by name with parameters',
+  searchHint: '通过名称和参数执行、运行、调用一个 deferred tool',
   maxResultSizeChars: 100_000,
   isConcurrencySafe() {
     return false
@@ -74,7 +72,7 @@ export const ExecuteTool = buildTool({
         },
         newMessages: [
           createUserMessage({
-            content: `Tool "${input.tool_name}" not found. Use SearchExtraTools to discover available tools.`,
+            content: `工具 "${input.tool_name}" 未找到。请使用 SearchExtraTools 发现可用工具。`,
           }),
         ],
       }
@@ -98,7 +96,7 @@ export const ExecuteTool = buildTool({
           },
           newMessages: [
             createUserMessage({
-              content: `Tool "${input.tool_name}" has not been discovered yet. You must first use SearchExtraTools to discover this tool before executing it.\n\nUsage: SearchExtraTools("select:${input.tool_name}")`,
+              content: `工具 "${input.tool_name}" 尚未被发现。必须先使用 SearchExtraTools 发现此工具，然后才能执行它。\n\n用法：SearchExtraTools("select:${input.tool_name}")`,
             }),
           ],
         }
@@ -136,7 +134,7 @@ export const ExecuteTool = buildTool({
           },
           newMessages: [
             createUserMessage({
-              content: `Invalid parameters for tool "${input.tool_name}": ${validation.message}`,
+              content: `工具 "${input.tool_name}" 的参数无效：${validation.message}`,
             }),
           ],
         }
@@ -156,7 +154,7 @@ export const ExecuteTool = buildTool({
         },
         newMessages: [
           createUserMessage({
-            content: `Permission denied for tool "${input.tool_name}": ${permResult.message ?? 'Permission denied'}`,
+            content: `工具 "${input.tool_name}" 权限被拒绝：${permResult.message ?? '权限被拒绝'}`,
           }),
         ],
       }
@@ -182,7 +180,7 @@ export const ExecuteTool = buildTool({
   async checkPermissions() {
     return {
       behavior: 'passthrough',
-      message: 'ExecuteExtraTool delegates permission to the target tool.',
+      message: 'ExecuteExtraTool 将权限委托给目标工具。',
     }
   },
   renderToolUseMessage(input) {

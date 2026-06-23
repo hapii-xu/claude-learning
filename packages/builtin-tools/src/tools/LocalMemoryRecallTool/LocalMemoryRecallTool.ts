@@ -195,9 +195,7 @@ const inputSchema = lazySchema(() =>
       .string()
       .regex(new RegExp(KEY_REGEX_STRING))
       .optional()
-      .describe(
-        '条目 key。fetch 时必填。允许：[A-Za-z0-9._-]，长度 1-128。',
-      ),
+      .describe('条目 key。fetch 时必填。允许：[A-Za-z0-9._-]，长度 1-128。'),
     preview_only: z
       .boolean()
       .optional()
@@ -282,7 +280,7 @@ function truncateListByByteCap(
 
 export const LocalMemoryRecallTool = buildTool({
   name: LOCAL_MEMORY_RECALL_TOOL_NAME,
-  searchHint: "按 store/key 回忆用户的本地跨会话笔记",
+  searchHint: '按 store/key 回忆用户的本地跨会话笔记',
   // 50KB 与 FETCH_CAP_BYTES 对应 —— 超过此长度的 tool_result 会按
   // fork 的 toolResultStorage 持久化为文件引用。
   maxResultSizeChars: FETCH_CAP_BYTES,

@@ -888,7 +888,7 @@ export async function validateManifest(
             fileType: 'plugin', // 错误报告时默认为插件类型
           }
         }
-          // 回退到默认校验以处理其他错误（例如 JSON 解析）
+        // 回退到默认校验以处理其他错误（例如 JSON 解析）
       }
 
       // 默认：作为插件清单校验

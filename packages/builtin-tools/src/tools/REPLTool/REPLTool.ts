@@ -20,7 +20,7 @@ type REPLOutput = { result: string; tool_calls: number }
 
 export const REPLTool = buildTool({
   name: REPL_TOOL_NAME,
-  searchHint: 'repl execute batch code read write edit glob grep bash',
+  searchHint: 'REPL 执行批量代码 读取 写入 编辑 搜索 文件操作',
   maxResultSizeChars: 100_000,
   strict: true,
 

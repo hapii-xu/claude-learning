@@ -5,8 +5,8 @@ import type { BalanceProvider } from './types.js'
 
 const DEFAULT_INTERVAL_MIN = 10
 
-// Registration order = priority. First enabled wins. Generic (user-supplied
-// URL) comes first so operators can override the built-in DeepSeek detection.
+// 注册顺序即优先级。第一个启用的提供商胜出。通用提供商（用户自定义 URL）
+// 排在最前面，以便操作员覆盖内置的 DeepSeek 检测。
 const PROVIDERS: BalanceProvider[] = [
   genericBalanceProvider,
   deepseekBalanceProvider,
@@ -45,17 +45,17 @@ async function tick(): Promise<void> {
   }
 }
 
-/** Start polling if a provider is configured. Idempotent. */
+/** 如果已配置提供商则开始轮询。幂等操作。 */
 export function startBalancePolling(): void {
   if (timer !== null) return
   active = selectProvider()
   if (!active) return
-  // Kick off immediately, then on interval.
+  // 立即启动一次，然后按间隔轮询。
   void tick()
   timer = setInterval(() => {
     void tick()
   }, intervalMs())
-  // Don't keep the event loop alive just for the poller.
+  // 不要仅为轮询器保持事件循环存活。
   if (
     typeof (timer as unknown as { unref?: () => void }).unref === 'function'
   ) {

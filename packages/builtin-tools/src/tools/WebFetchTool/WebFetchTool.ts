@@ -36,12 +36,8 @@ const outputSchema = lazySchema(() =>
     bytes: z.number().describe('获取到的内容大小（字节）'),
     code: z.number().describe('HTTP 响应码'),
     codeText: z.string().describe('HTTP 响应码文本'),
-    result: z
-      .string()
-      .describe('将提示应用到内容后得到的处理结果'),
-    durationMs: z
-      .number()
-      .describe('获取并处理内容所花费的时间'),
+    result: z.string().describe('将提示应用到内容后得到的处理结果'),
+    durationMs: z.number().describe('获取并处理内容所花费的时间'),
     url: z.string().describe('所获取的 URL'),
   }),
 )
@@ -67,7 +63,7 @@ function webFetchToolInputToPermissionRuleContent(input: {
 
 export const WebFetchTool = buildTool({
   name: WEB_FETCH_TOOL_NAME,
-  searchHint: 'fetch and extract content from a URL',
+  searchHint: '从 URL 获取并提取内容',
   // 100K 字符 - 工具结果持久化阈值
   maxResultSizeChars: 100_000,
   shouldDefer: true,
@@ -186,7 +182,7 @@ export const WebFetchTool = buildTool({
     // SDK query() 调用之间闪烁（当 SearchExtraTools 的启用状态因 MCP 工具
     // 数量阈值而变化时），在每次切换时都会使 Anthropic API 提示缓存失效 —
     // 每次闪烁事件会造成两次连续的缓存未命中。
-    return `IMPORTANT: WebFetch WILL FAIL for authenticated or private URLs. Before using this tool, check if the URL points to an authenticated service (e.g. Google Docs, Confluence, Jira, GitHub). If so, look for a specialized MCP tool that provides authenticated access.
+    return `重要提示：WebFetch 对需要认证或私有的 URL 将会失败。使用此工具前，请检查 URL 是否指向需要认证的服务（例如 Google Docs、Confluence、Jira、GitHub）。如果是，请寻找提供认证访问的专用 MCP 工具。
 ${DESCRIPTION}`
   },
   async validateInput(input) {

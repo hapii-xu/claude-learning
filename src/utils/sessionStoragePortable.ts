@@ -1,9 +1,9 @@
 /**
- * Portable session storage utilities.
+ * 可移植的会话存储工具函数。
  *
- * Pure Node.js — no internal dependencies on logging, experiments, or feature
- * flags. Shared between the CLI (src/utils/sessionStorage.ts) and the VS Code
- * extension (packages/claude-vscode/src/common-host/sessionStorage.ts).
+ * 纯 Node.js 实现 — 不依赖日志、实验或功能标志等内部模块。
+ * 由 CLI（src/utils/sessionStorage.ts）和 VS Code 扩展
+ *（packages/claude-vscode/src/common-host/sessionStorage.ts）共享。
  */
 
 import type { UUID } from 'crypto'
@@ -13,11 +13,11 @@ import { getClaudeConfigHomeDir } from './envUtils.js'
 import { getWorktreePathsPortable } from './getWorktreePathsPortable.js'
 import { djb2Hash } from './hash.js'
 
-/** Size of the head/tail buffer for lite metadata reads. */
+/** 轻量元数据读取时首尾缓冲区的大小。 */
 export const LITE_READ_BUF_SIZE = 65536
 
 // ---------------------------------------------------------------------------
-// UUID validation
+// UUID 校验
 // ---------------------------------------------------------------------------
 
 const uuidRegex =
@@ -29,12 +29,12 @@ export function validateUuid(maybeUuid: unknown): UUID | null {
 }
 
 // ---------------------------------------------------------------------------
-// JSON string field extraction — no full parse, works on truncated lines
+// JSON 字符串字段提取 — 无需完整解析，可处理截断的行
 // ---------------------------------------------------------------------------
 
 /**
- * Unescape a JSON string value extracted as raw text.
- * Only allocates a new string when escape sequences are present.
+ * 对从原始文本中提取的 JSON 字符串值进行反转义。
+ * 仅在存在转义序列时才分配新字符串。
  */
 export function unescapeJsonString(raw: string): string {
   if (!raw.includes('\\')) return raw
@@ -46,9 +46,9 @@ export function unescapeJsonString(raw: string): string {
 }
 
 /**
- * Extracts a simple JSON string field value from raw text without full parsing.
- * Looks for `"key":"value"` or `"key": "value"` patterns.
- * Returns the first match, or undefined if not found.
+ * 从原始文本中提取简单 JSON 字符串字段值，无需完整解析。
+ * 查找 `"key":"value"` 或 `"key": "value"` 模式。
+ * 返回第一个匹配项，未找到则返回 undefined。
  */
 export function extractJsonStringField(
   text: string,
@@ -76,8 +76,8 @@ export function extractJsonStringField(
 }
 
 /**
- * Like extractJsonStringField but finds the LAST occurrence.
- * Useful for fields that are appended (customTitle, tag, etc.).
+ * 与 extractJsonStringField 类似，但查找最后一次出现的位置。
+ * 适用于追加写入的字段（如 customTitle、tag 等）。
  */
 export function extractLastJsonStringField(
   text: string,
@@ -111,14 +111,13 @@ export function extractLastJsonStringField(
 }
 
 // ---------------------------------------------------------------------------
-// First prompt extraction from head chunk
+// 从头部块中提取首条提示词
 // ---------------------------------------------------------------------------
 
 /**
- * Pattern matching auto-generated or system messages that should be skipped
- * when looking for the first meaningful user prompt. Matches anything that
- * starts with a lowercase XML-like tag (IDE context, hook output, task
- * notifications, channel messages, etc.) or a synthetic interrupt marker.
+ * 用于匹配自动生成或系统消息的模式，在查找第一条有意义的用户提示词时跳过这些内容。
+ * 匹配以小写 XML 类标签开头的内容（IDE 上下文、hook 输出、任务通知、频道消息等）
+ * 或合成中断标记。
  */
 const SKIP_FIRST_PROMPT_PATTERN =
   /^(?:\s*<[a-z][\w-]*[\s>]|\[Request interrupted by user[^\]]*\])/
@@ -126,11 +125,11 @@ const SKIP_FIRST_PROMPT_PATTERN =
 const COMMAND_NAME_RE = /<command-name>(.*?)<\/command-name>/
 
 /**
- * Extracts the first meaningful user prompt from a JSONL head chunk.
+ * 从 JSONL 头部块中提取第一条有意义的用户提示词。
  *
- * Skips tool_result messages, isMeta, isCompactSummary, command-name messages,
- * and auto-generated patterns (session hooks, tick, IDE metadata, etc.).
- * Truncates to 200 chars.
+ * 跳过 tool_result 消息、isMeta、isCompactSummary、command-name 消息
+ * 以及自动生成的模式（会话 hook、tick、IDE 元数据等）。
+ * 截断至 200 个字符。
  */
 export function extractFirstPromptFromHead(head: string): string {
   let start = 0
@@ -175,14 +174,14 @@ export function extractFirstPromptFromHead(head: string): string {
         let result = raw.replace(/\n/g, ' ').trim()
         if (!result) continue
 
-        // Skip slash-command messages but remember first as fallback
+        // 跳过斜杠命令消息，但记住第一条作为备选
         const cmdMatch = COMMAND_NAME_RE.exec(result)
         if (cmdMatch) {
           if (!commandFallback) commandFallback = cmdMatch[1]!
           continue
         }
 
-        // Format bash input with ! prefix before the generic XML skip
+        // 在通用 XML 跳过逻辑之前，为 bash 输入添加 ! 前缀格式化
         const bashMatch = /<bash-input>([\s\S]*?)<\/bash-input>/.exec(result)
         if (bashMatch) return `! ${bashMatch[1]!.trim()}`
 
@@ -200,15 +199,15 @@ export function extractFirstPromptFromHead(head: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// File I/O — read head and tail of a file
+// 文件 I/O — 读取文件的首尾内容
 // ---------------------------------------------------------------------------
 
 /**
- * Reads the first and last LITE_READ_BUF_SIZE bytes of a file.
+ * 读取文件的前 LITE_READ_BUF_SIZE 字节和后 LITE_READ_BUF_SIZE 字节。
  *
- * For small files where head covers tail, `tail === head`.
- * Accepts a shared Buffer to avoid per-file allocation overhead.
- * Returns `{ head: '', tail: '' }` on any error.
+ * 对于头部覆盖尾部的小文件，`tail === head`。
+ * 接受共享 Buffer 以避免每个文件的单独分配开销。
+ * 出现任何错误时返回 `{ head: '', tail: '' }`。
  */
 export async function readHeadAndTail(
   filePath: string,
@@ -247,9 +246,9 @@ export type LiteSessionFile = {
 }
 
 /**
- * Opens a single session file, stats it, and reads head + tail in one fd.
- * Allocates its own buffer — safe for concurrent use with Promise.all.
- * Returns null on any error.
+ * 打开单个会话文件，获取其 stat 信息，并通过一个文件描述符读取首尾内容。
+ * 自行分配缓冲区 — 可安全用于 Promise.all 并发场景。
+ * 出现任何错误时返回 null。
  */
 export async function readSessionLite(
   filePath: string,
@@ -280,13 +279,13 @@ export async function readSessionLite(
 }
 
 // ---------------------------------------------------------------------------
-// Path sanitization
+// 路径净化
 // ---------------------------------------------------------------------------
 
 /**
- * Maximum length for a single filesystem path component (directory or file name).
- * Most filesystems (ext4, APFS, NTFS) limit individual components to 255 bytes.
- * We use 200 to leave room for the hash suffix and separator.
+ * 单个文件系统路径组件（目录名或文件名）的最大长度。
+ * 大多数文件系统（ext4、APFS、NTFS）将单个组件限制为 255 字节。
+ * 此处使用 200，以为哈希后缀和分隔符预留空间。
  */
 export const MAX_SANITIZED_LENGTH = 200
 
@@ -295,16 +294,15 @@ function simpleHash(str: string): string {
 }
 
 /**
- * Makes a string safe for use as a directory or file name.
- * Replaces all non-alphanumeric characters with hyphens.
- * This ensures compatibility across all platforms, including Windows
- * where characters like colons are reserved.
+ * 将字符串转换为可安全用作目录名或文件名的形式。
+ * 将所有非字母数字字符替换为连字符。
+ * 确保跨平台兼容性，包括 Windows（冒号等字符在 Windows 上为保留字符）。
  *
- * For deeply nested paths that would exceed filesystem limits (255 bytes),
- * truncates and appends a hash suffix for uniqueness.
+ * 对于超出文件系统限制（255 字节）的深层嵌套路径，
+ * 截断后追加哈希后缀以保证唯一性。
  *
- * @param name - The string to make safe (e.g., '/Users/foo/my-project' or 'plugin:name:server')
- * @returns A safe name (e.g., '-Users-foo-my-project' or 'plugin-name-server')
+ * @param name - 需要转换的字符串（如 '/Users/foo/my-project' 或 'plugin:name:server'）
+ * @returns 安全的名称（如 '-Users-foo-my-project' 或 'plugin-name-server'）
  */
 export function sanitizePath(name: string): string {
   const sanitized = name.replace(/[^a-zA-Z0-9]/g, '-')
@@ -317,7 +315,7 @@ export function sanitizePath(name: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Project directory discovery (shared by listSessions & getSessionMessages)
+// 项目目录查找（由 listSessions 和 getSessionMessages 共享）
 // ---------------------------------------------------------------------------
 
 export function getProjectsDir(): string {
@@ -329,10 +327,9 @@ export function getProjectDir(projectDir: string): string {
 }
 
 /**
- * Resolves a directory path to its canonical form using realpath + NFC
- * normalization. Falls back to NFC-only if realpath fails (e.g., the
- * directory doesn't exist yet). Ensures symlinked paths (e.g.,
- * /tmp → /private/tmp on macOS) resolve to the same project directory.
+ * 使用 realpath + NFC 规范化将目录路径解析为规范形式。
+ * 若 realpath 失败（如目录尚不存在），则仅使用 NFC 规范化作为回退。
+ * 确保符号链接路径（如 macOS 上的 /tmp → /private/tmp）解析到同一项目目录。
  */
 export async function canonicalizePath(dir: string): Promise<string> {
   try {
@@ -343,11 +340,10 @@ export async function canonicalizePath(dir: string): Promise<string> {
 }
 
 /**
- * Finds the project directory for a given path, tolerating hash mismatches
- * for long paths (>200 chars). The CLI uses Bun.hash while the SDK under
- * Node.js uses simpleHash — for paths that exceed MAX_SANITIZED_LENGTH,
- * these produce different directory suffixes. This function falls back to
- * prefix-based scanning when the exact match doesn't exist.
+ * 查找给定路径对应的项目目录，对长路径（>200 字符）的哈希不匹配情况具有容错性。
+ * CLI 使用 Bun.hash，而 Node.js 下的 SDK 使用 simpleHash —— 对于超过
+ * MAX_SANITIZED_LENGTH 的路径，两者会生成不同的目录后缀。
+ * 当精确匹配不存在时，此函数回退到基于前缀的扫描。
  */
 export async function findProjectDir(
   projectPath: string,
@@ -357,8 +353,8 @@ export async function findProjectDir(
     await readdir(exact)
     return exact
   } catch {
-    // Exact match failed — for short paths this means no sessions exist.
-    // For long paths, try prefix matching to handle hash mismatches.
+    // 精确匹配失败 —— 对于短路径，这意味着不存在会话。
+    // 对于长路径，尝试前缀匹配以处理哈希不匹配的情况。
     const sanitized = sanitizePath(projectPath)
     if (sanitized.length <= MAX_SANITIZED_LENGTH) {
       return undefined
@@ -378,25 +374,23 @@ export async function findProjectDir(
 }
 
 /**
- * Resolve a sessionId to its on-disk JSONL file path.
+ * 将 sessionId 解析为其在磁盘上的 JSONL 文件路径。
  *
- * When `dir` is provided: canonicalize it, look in that project's directory
- * (with findProjectDir fallback for Bun/Node hash mismatches), then fall back
- * to sibling git worktrees. `projectPath` in the result is the canonical
- * user-facing directory the file was found under.
+ * 提供 `dir` 时：对其进行规范化，在该项目的目录中查找
+ *（在 Bun/Node 哈希不匹配时使用 findProjectDir 作为回退），
+ * 然后回退到兄弟 git worktree。结果中的 `projectPath` 是找到文件的
+ * 规范用户可见目录。
  *
- * When `dir` is omitted: scan all project directories under ~/.claude/projects/.
- * `projectPath` is undefined in this case (no meaningful project path to report).
+ * 省略 `dir` 时：扫描 ~/.claude/projects/ 下所有项目目录。
+ * 此情况下 `projectPath` 为 undefined（没有有意义的项目路径可报告）。
  *
- * Existence is checked by stat (operate-then-catch-ENOENT, no existsSync).
- * Zero-byte files are treated as not-found so callers continue searching past
- * a truncated copy to find a valid one in a sibling directory.
+ * 使用 stat 检查文件是否存在（先操作再捕获 ENOENT，不使用 existsSync）。
+ * 零字节文件视为未找到，以便调用方继续搜索兄弟目录中的有效副本。
  *
- * `fileSize` is returned so callers (loadSessionBuffer) don't need to re-stat.
+ * 返回 `fileSize` 以避免调用方（loadSessionBuffer）重复 stat。
  *
- * Shared by getSessionInfoImpl and getSessionMessagesImpl — the caller
- * invokes its own reader (readSessionLite / loadSessionBuffer) on the
- * resolved path.
+ * 由 getSessionInfoImpl 和 getSessionMessagesImpl 共享 —— 调用方
+ * 在解析路径上调用自己的读取器（readSessionLite / loadSessionBuffer）。
  */
 export async function resolveSessionFilePath(
   sessionId: string,
@@ -417,10 +411,10 @@ export async function resolveSessionFilePath(
         if (s.size > 0)
           return { filePath, projectPath: canonical, fileSize: s.size }
       } catch {
-        // ENOENT/EACCES — keep searching
+        // ENOENT/EACCES — 继续搜索
       }
     }
-    // Worktree fallback — sessions may live under a different worktree root
+    // Worktree 回退 —— 会话可能位于不同的 worktree 根目录下
     let worktreePaths: string[]
     try {
       worktreePaths = await getWorktreePathsPortable(canonical)
@@ -436,13 +430,13 @@ export async function resolveSessionFilePath(
         const s = await stat(filePath)
         if (s.size > 0) return { filePath, projectPath: wt, fileSize: s.size }
       } catch {
-        // ENOENT/EACCES — keep searching
+        // ENOENT/EACCES — 继续搜索
       }
     }
     return undefined
   }
 
-  // No dir — scan all project directories
+  // 未提供 dir —— 扫描所有项目目录
   const projectsDir = getProjectsDir()
   let dirents: string[]
   try {
@@ -457,36 +451,35 @@ export async function resolveSessionFilePath(
       if (s.size > 0)
         return { filePath, projectPath: undefined, fileSize: s.size }
     } catch {
-      // ENOENT/ENOTDIR — not in this project, keep scanning
+      // ENOENT/ENOTDIR — 不在此项目中，继续扫描
     }
   }
   return undefined
 }
 
 // ---------------------------------------------------------------------------
-// Compact-boundary chunked read (shared by loadTranscriptFile & SDK getSessionMessages)
+// 压缩边界分块读取（由 loadTranscriptFile 和 SDK getSessionMessages 共享）
 // ---------------------------------------------------------------------------
 
-/** Chunk size for the forward transcript reader. 1 MB balances I/O calls vs buffer growth. */
+/** 前向逐字记录读取器的分块大小。1 MB 在 I/O 调用次数与缓冲区增长之间取得平衡。 */
 const TRANSCRIPT_READ_CHUNK_SIZE = 1024 * 1024
 
 /**
- * File size below which precompact filtering is skipped.
- * Large sessions (>5 MB) almost always have compact boundaries — they got big
- * because of many turns triggering auto-compact.
+ * 低于此文件大小时，跳过预压缩过滤。
+ * 大型会话（>5 MB）几乎总有压缩边界 —— 它们变大是因为多轮对话触发了自动压缩。
  */
 export const SKIP_PRECOMPACT_THRESHOLD = 5 * 1024 * 1024
 
-/** Marker bytes searched for when locating the boundary. Lazy: allocated on
- * first use, not at module load. Most sessions never resume. */
+/** 定位边界时搜索的标记字节。懒初始化：首次使用时分配，而非模块加载时。
+ * 大多数会话不会恢复。 */
 let _compactBoundaryMarker: Buffer | undefined
 function compactBoundaryMarker(): Buffer {
   return (_compactBoundaryMarker ??= Buffer.from('"compact_boundary"'))
 }
 
 /**
- * Confirm a byte-matched line is a real compact_boundary (marker can appear
- * inside user content) and check for preservedSegment.
+ * 确认字节匹配的行是真正的 compact_boundary（标记可能出现在用户内容中），
+ * 并检查是否存在 preservedSegment。
  */
 function parseBoundaryLine(
   line: string,
@@ -509,13 +502,11 @@ function parseBoundaryLine(
 }
 
 /**
- * Single forward chunked read for the --resume load path. Attr-snap lines
- * are skipped at the fd level; compact boundaries truncate in-stream. Peak
- * is the output size, not the file size.
+ * --resume 加载路径的单次前向分块读取。Attr-snap 行在文件描述符层面被跳过；
+ * 压缩边界在流中截断。峰值是输出大小，而非文件大小。
  *
- * The surviving (last) attr-snap is appended at EOF instead of in-place;
- * restoreAttributionStateFromSnapshots only reads [length-1] so position
- * doesn't matter.
+ * 存留的（最后一条）attr-snap 追加在 EOF，而非原位插入；
+ * restoreAttributionStateFromSnapshots 只读取 [length-1]，因此位置无关紧要。
  */
 
 type Sink = { buf: Buffer; len: number; cap: number }
@@ -550,23 +541,23 @@ const ATTR_SNAP_PREFIX = Buffer.from('{"type":"attribution-snapshot"')
 const SYSTEM_PREFIX = Buffer.from('{"type":"system"')
 const LF = 0x0a
 const LF_BYTE = Buffer.from([LF])
-const BOUNDARY_SEARCH_BOUND = 256 // marker sits ~28 bytes in; 256 is slack
+const BOUNDARY_SEARCH_BOUND = 256 // 标记约在第 28 字节处；256 为冗余空间
 
 type LoadState = {
   out: Sink
   boundaryStartOffset: number
   hasPreservedSegment: boolean
-  lastSnapSrc: Buffer | null // most-recent attr-snap, appended at EOF
+  lastSnapSrc: Buffer | null // 最近一条 attr-snap，追加到 EOF
   lastSnapLen: number
   lastSnapBuf: Buffer | undefined
-  bufFileOff: number // file offset of buf[0]
+  bufFileOff: number // buf[0] 在文件中的偏移量
   carryLen: number
   carryBuf: Buffer | undefined
-  straddleSnapCarryLen: number // per-chunk; reset by processStraddle
+  straddleSnapCarryLen: number // 每个分块；由 processStraddle 重置
   straddleSnapTailEnd: number
 }
 
-// Line spanning the chunk seam. 0 = fall through to concat.
+// 跨越分块接缝的行。返回 0 表示跳转至拼接逻辑。
 function processStraddle(
   s: LoadState,
   chunk: Buffer,
@@ -608,7 +599,7 @@ function processStraddle(
   return tailEnd
 }
 
-// Strip attr-snaps, truncate on boundaries. Kept lines write as runs.
+// 剥离 attr-snap，在边界处截断。保留的行以连续段写入。
 function scanChunkLines(
   s: LoadState,
   buf: Buffer,
@@ -636,7 +627,7 @@ function scanChunkLines(
     ) {
       const hit = parseBoundaryLine(buf.toString('utf-8', lineStart, nl))
       if (hit?.hasPreservedSegment) {
-        s.hasPreservedSegment = true // don't truncate; preserved msgs already in output
+        s.hasPreservedSegment = true // 不截断；保留的消息已在输出中
       } else if (hit) {
         s.out.len = 0
         s.boundaryStartOffset = s.bufFileOff + lineStart
@@ -658,7 +649,7 @@ function scanChunkLines(
   return { lastSnapStart, lastSnapEnd, trailStart: lineStart }
 }
 
-// In-buf snap wins over straddle (later in file). carryBuf still valid here.
+// 缓冲区内的 snap 优先于跨缝 snap（文件中位置更靠后）。carryBuf 在此处仍有效。
 function captureSnap(
   s: LoadState,
   buf: Buffer,
@@ -725,14 +716,14 @@ export async function readTranscriptForLoad(
 
   const s: LoadState = {
     out: {
-      // Gated callers enter with fileSize > 5MB, so min(fileSize, 8MB) lands
-      // in [5, 8]MB; large boundaryless sessions (24-31MB output) take 2
-      // grows. Ungated callers (attribution.ts) pass small files too — the
-      // min just right-sizes the initial buf, no grows.
+      // 有门控的调用方传入 fileSize > 5MB，min(fileSize, 8MB) 落在 [5, 8]MB；
+      // 无边界的大型会话（输出 24-31MB）需要 2 次扩容。
+      // 无门控的调用方（attribution.ts）也可能传入小文件 ——
+      // min 只是合理初始化缓冲区大小，不会触发扩容。
       buf: Buffer.allocUnsafe(Math.min(fileSize, 8 * 1024 * 1024)),
       len: 0,
-      // +1: finalizeOutput may insert one LF between a non-LF-terminated
-      // carry and the reordered last attr-snap (crash-truncated file).
+      // +1：finalizeOutput 可能在非 LF 结尾的 carry 与重排后的最后一条
+      // attr-snap 之间插入一个 LF（应对崩溃截断的文件）。
       cap: fileSize + 1,
     },
     boundaryStartOffset: 0,

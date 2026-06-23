@@ -259,9 +259,7 @@ const outputSchema = lazySchema(() => {
       file: z.object({
         filePath: z.string().describe('被读取文件的路径'),
         content: z.string().describe('文件内容'),
-        numLines: z
-          .number()
-          .describe('返回内容中的行数'),
+        numLines: z.number().describe('返回内容中的行数'),
         startLine: z.number().describe('起始行号'),
         totalLines: z.number().describe('文件总行数'),
       }),
@@ -316,9 +314,7 @@ const outputSchema = lazySchema(() => {
         filePath: z.string().describe('PDF 文件的路径'),
         originalSize: z.number().describe('原始文件大小（字节）'),
         count: z.number().describe('提取的页数'),
-        outputDir: z
-          .string()
-          .describe('包含提取出的页面图片的目录'),
+        outputDir: z.string().describe('包含提取出的页面图片的目录'),
       }),
     }),
     z.object({
@@ -335,7 +331,7 @@ export type Output = z.infer<OutputSchema>
 
 export const FileReadTool = buildTool({
   name: FILE_READ_TOOL_NAME,
-  searchHint: 'read files, images, PDFs, notebooks',
+  searchHint: '读取 文件 图片 PDF notebook',
   // 输出受 maxTokens 约束（validateContentTokens）。超过 100KB 的结果会
   // 持久化到磁盘（减轻长会话中的内存压力），而不是无限期保留在消息数组中。
   maxResultSizeChars: 100_000,

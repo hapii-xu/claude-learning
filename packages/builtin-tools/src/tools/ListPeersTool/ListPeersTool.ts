@@ -10,9 +10,7 @@ const inputSchema = lazySchema(() =>
     include_self: z
       .boolean()
       .optional()
-      .describe(
-        '是否在列表中包含当前会话。默认为 false。',
-      ),
+      .describe('是否在列表中包含当前会话。默认为 false。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -28,7 +26,7 @@ type ListPeersOutput = { peers: PeerInfo[] }
 
 export const ListPeersTool = buildTool({
   name: LIST_PEERS_TOOL_NAME,
-  searchHint: 'list peers sessions discover uds socket messaging',
+  searchHint: '列出并发现其他 Claude Code 会话（UDS Socket / Bridge 远程会话）',
   maxResultSizeChars: 50_000,
   strict: true,
 

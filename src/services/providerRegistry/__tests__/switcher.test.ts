@@ -9,7 +9,7 @@ mock.module('src/utils/settings/settings.js', () => ({
 }))
 
 beforeEach(() => {
-  // Clean OpenAI env vars before each test
+  // 每次测试前清除 OpenAI 环境变量
   delete process.env['CLAUDE_CODE_USE_OPENAI']
   delete process.env['OPENAI_API_KEY']
   delete process.env['OPENAI_BASE_URL']
@@ -120,9 +120,9 @@ describe('buildShellExportBlock', () => {
     const { DEFAULT_PROVIDERS } = await import('../loader.js')
     const result = switchProvider('deepseek', DEFAULT_PROVIDERS)
     const block = buildShellExportBlock(result)
-    // Must NOT contain the literal key value
+    // 不得包含字面量密钥值
     expect(block).not.toContain('sk-secret-key')
-    // Must use variable reference
+    // 必须使用变量引用
     expect(block).toContain('$DEEPSEEK_API_KEY')
     delete process.env['DEEPSEEK_API_KEY']
   })

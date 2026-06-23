@@ -15,10 +15,7 @@ const inputSchema = lazySchema(() =>
       .describe(
         '描述你想要做什么。要具体 — 例如「将 Next.js 应用部署到 Cloudflare Workers」而不是仅说「部署」。',
       ),
-    limit: z
-      .number()
-      .optional()
-      .describe('返回的最大结果数（默认：5）'),
+    limit: z.number().optional().describe('返回的最大结果数（默认：5）'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -31,7 +28,7 @@ type DiscoverOutput = {
 
 export const DiscoverSkillsTool = buildTool({
   name: DISCOVER_SKILLS_TOOL_NAME,
-  searchHint: 'find search discover skills commands tools capabilities',
+  searchHint: '查找 搜索 发现 skills 技能 slash 命令 工具 能力',
   maxResultSizeChars: 10_000,
   strict: true,
 

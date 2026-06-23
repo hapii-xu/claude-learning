@@ -19,14 +19,8 @@ const inputSchema = lazySchema(() =>
   z.strictObject({
     command: z
       .string()
-      .describe(
-        '要作为长时间运行监控器执行的 shell 命令。应产生流式输出（如 tail -f、watch、轮询循环等）。',
-      ),
-    description: z
-      .string()
-      .describe(
-        '对此监控器所监视内容的清晰简洁描述。用作后台任务 UI 中的标签。',
-      ),
+      .describe('要作为长时间运行监控器执行的 shell 命令。应产生流式输出（如 tail -f、watch、轮询循环等）。'),
+    description: z.string().describe('对此监控器所监视内容的清晰简洁描述。用作后台任务 UI 中的标签。'),
   }),
 );
 type InputSchema = ReturnType<typeof inputSchema>;
@@ -43,7 +37,7 @@ export type MonitorOutput = z.infer<OutputSchema>;
 
 export const MonitorTool = buildTool({
   name: MONITOR_TOOL_NAME,
-  searchHint: 'start long-running background monitor for streaming events',
+  searchHint: '启动长驻后台 monitor 监听流式事件',
   maxResultSizeChars: 10_000,
   strict: true,
 

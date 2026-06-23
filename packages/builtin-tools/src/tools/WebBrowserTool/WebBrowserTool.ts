@@ -28,7 +28,7 @@ type BrowserOutput = {
 
 export const WebBrowserTool = buildTool({
   name: WEB_BROWSER_TOOL_NAME,
-  searchHint: 'web browser navigate url page screenshot click',
+  searchHint: 'web 浏览器 导航 url 页面 截图 点击',
   maxResultSizeChars: 100_000,
   strict: true,
 

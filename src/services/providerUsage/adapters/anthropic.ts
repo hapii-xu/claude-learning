@@ -4,15 +4,15 @@ export const anthropicAdapter: ProviderUsageAdapter = {
   providerId: 'anthropic',
 
   /**
-   * Parse Anthropic's unified rate-limit headers.
+   * 解析 Anthropic 统一限速请求头。
    *
-   *   anthropic-ratelimit-unified-5h-utilization   (0..1)
-   *   anthropic-ratelimit-unified-5h-reset         (unix seconds)
+   *   anthropic-ratelimit-unified-5h-utilization   （0..1）
+   *   anthropic-ratelimit-unified-5h-reset         （Unix 秒）
    *   anthropic-ratelimit-unified-7d-utilization
    *   anthropic-ratelimit-unified-7d-reset
    *
-   * Only present for OAuth (Claude AI Pro/Max) subscribers. For raw API keys
-   * these headers are absent and this adapter returns [].
+   * 仅对 OAuth（Claude AI Pro/Max）订阅者存在。使用原始 API 密钥时
+   * 这些请求头不存在，此适配器返回 []。
    */
   parseHeaders(headers): ProviderUsageBucket[] {
     const buckets: ProviderUsageBucket[] = []

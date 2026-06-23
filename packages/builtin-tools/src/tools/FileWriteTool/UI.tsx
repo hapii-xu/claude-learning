@@ -56,8 +56,7 @@ function FileWriteToolCreatedMessage({
     <MessageResponse>
       <Box flexDirection="column">
         <Text>
-          已写入 <Text bold>{numLines}</Text> 行至{' '}
-          <Text bold>{verbose ? filePath : relative(getCwd(), filePath)}</Text>
+          已写入 <Text bold>{numLines}</Text> 行至 <Text bold>{verbose ? filePath : relative(getCwd(), filePath)}</Text>
         </Text>
         <Box flexDirection="column">
           <HighlightedCode

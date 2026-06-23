@@ -603,7 +603,7 @@ async function* queryLoop(
   // deps 是一个显式的依赖注入接口，把 query() 内部最难 mock 的 4 个副作用（API 调用、压缩、UUID 生成）聚合在一起；
   // 生产时用 productionDeps() 透明默认，测试时只需传 { callModel: mockFn }  就能精确控制行为，而不必触碰进程全局的 mock.module。
   // src\__tests__\queryAutonomyProviderBoundary.test.ts 测试文件  describe('query autonomy/provider boundary', ())
-  const deps = params.deps ?? productionDeps() 
+  const deps = params.deps ?? productionDeps()
   logForDebugging(
     `[Hapii] queryLoop — params 解构完成: deps=${deps === productionDeps() ? 'production' : 'injected'} taskBudget=${params.taskBudget ? `total=${params.taskBudget.total}` : 'none'}`,
     { level: 'info' },
@@ -679,10 +679,11 @@ async function* queryLoop(
       messages,
       toolUseContext,
     )
-    const pendingToolPrefetch = searchExtraToolsPrefetch?.startSearchExtraToolsPrefetch(
-      toolUseContext.options.tools ?? [],
-      messages,
-    )
+    const pendingToolPrefetch =
+      searchExtraToolsPrefetch?.startSearchExtraToolsPrefetch(
+        toolUseContext.options.tools ?? [],
+        messages,
+      )
     logForDebugging(
       `[Hapii] queryLoop.iter${turnCount} — 预取已启动: skillPrefetch=${pendingSkillPrefetch ? 'yes' : 'no'} toolPrefetch=${pendingToolPrefetch ? 'yes' : 'no'}`,
       { level: 'info' },
@@ -713,7 +714,8 @@ async function* queryLoop(
       { level: 'info' },
     )
 
-    const queryChainIdForAnalytics = queryTracking.chainId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
+    const queryChainIdForAnalytics =
+      queryTracking.chainId as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
 
     toolUseContext = {
       ...toolUseContext,
@@ -723,7 +725,10 @@ async function* queryLoop(
     {
       const byType = (msgs: typeof messages) =>
         msgs.reduce<Record<string, number>>((acc, m) => {
-          const key = m.type === 'system' ? `system(${(m as { subtype?: string }).subtype ?? '?'})` : m.type
+          const key =
+            m.type === 'system'
+              ? `system(${(m as { subtype?: string }).subtype ?? '?'})`
+              : m.type
           acc[key] = (acc[key] ?? 0) + 1
           return acc
         }, {})
@@ -734,10 +739,20 @@ async function* queryLoop(
     }
     let messagesForQuery = getMessagesAfterCompactBoundary(messages)
     {
-      const boundaryMsg = messages.slice().reverse().find(m => m.type === 'system' && (m as { subtype?: string }).subtype === 'compact_boundary') as { compactMetadata?: Record<string, unknown> } | undefined
+      const boundaryMsg = messages
+        .slice()
+        .reverse()
+        .find(
+          m =>
+            m.type === 'system' &&
+            (m as { subtype?: string }).subtype === 'compact_boundary',
+        ) as { compactMetadata?: Record<string, unknown> } | undefined
       const byType = (msgs: typeof messages) =>
         msgs.reduce<Record<string, number>>((acc, m) => {
-          const key = m.type === 'system' ? `system(${(m as { subtype?: string }).subtype ?? '?'})` : m.type
+          const key =
+            m.type === 'system'
+              ? `system(${(m as { subtype?: string }).subtype ?? '?'})`
+              : m.type
           acc[key] = (acc[key] ?? 0) + 1
           return acc
         }, {})
@@ -767,7 +782,9 @@ async function* queryLoop(
     // 因此内容替换对它不可见，两者可以干净地组合。contentReplacementState 为 undefined 时（特性关闭）为 no-op。只对会在 resume 时读回
     // 记录的 querySource 持久化：agentId 路由到 sidechain 文件 （AgentTool resume）或会话文件（/resume）。临时 runForkedAgent
     // 调用方（agent_summary 等）不持久化。
-    const persistReplacements = querySource.startsWith('agent:') || querySource.startsWith('repl_main_thread')
+    const persistReplacements =
+      querySource.startsWith('agent:') ||
+      querySource.startsWith('repl_main_thread')
     const skipInfiniteTools = toolUseContext.options.tools
       .filter(t => !Number.isFinite(t.maxResultSizeChars))
       .map(t => t.name)
@@ -840,10 +857,17 @@ async function* queryLoop(
     // 对于缓存的 microcompact（缓存编辑），边界消息延迟到 API 响应
     // 之后才发出，这样就能使用真实的 cache_deleted_input_tokens。
     // 用 feature() 门控，让该字符串从外部构建中消失。
-    const pendingCacheEdits = feature('CACHED_MICROCOMPACT') ? microcompactResult.compactionInfo?.pendingCacheEdits : undefined
+    const pendingCacheEdits = feature('CACHED_MICROCOMPACT')
+      ? microcompactResult.compactionInfo?.pendingCacheEdits
+      : undefined
     {
-      const _clearedJson = JSON.stringify(microcompactResult.clearedToolUseIds ?? null)
-      if (_prevClearedToolUseIdsJson === undefined || _prevClearedToolUseIdsJson !== _clearedJson) {
+      const _clearedJson = JSON.stringify(
+        microcompactResult.clearedToolUseIds ?? null,
+      )
+      if (
+        _prevClearedToolUseIdsJson === undefined ||
+        _prevClearedToolUseIdsJson !== _clearedJson
+      ) {
         logForDebugging(
           `[Hapii] queryLoop.iter${turnCount} — microcompact 完成 [${_prevClearedToolUseIdsJson === undefined ? '首次' : 'clearedToolUseIds 变动'}]: msgs=${messagesForQuery.length} hasPendingCacheEdits=${!!pendingCacheEdits}\nclearedToolUseIds=${_clearedJson}`,
           { level: 'info' },
@@ -886,7 +910,10 @@ async function* queryLoop(
     )
     {
       const _fspJson = JSON.stringify(fullSystemPrompt, null, 2)
-      if (_prevFullSystemPromptJson === undefined || _prevFullSystemPromptJson !== _fspJson) {
+      if (
+        _prevFullSystemPromptJson === undefined ||
+        _prevFullSystemPromptJson !== _fspJson
+      ) {
         logForDebugging(
           `[Hapii] queryLoop.iter${turnCount} — systemPrompt 构建完成 [${_prevFullSystemPromptJson === undefined ? '首次' : '内容变动'}]: length=${fullSystemPrompt.length}\n${_fspJson}`,
           { level: 'info' },
@@ -1028,17 +1055,30 @@ async function* queryLoop(
       : null
     {
       // 用消息数量 + 每条消息的 type/uuid 轻量级判断是否变动，变动时打印完整内容
-      const _msgsKey = messagesForQuery.map(m => `${m.type}:${(m as { uuid?: string }).uuid ?? ''}:${(m as { toolUseId?: string }).toolUseId ?? ''}`).join('|')
+      const _msgsKey = messagesForQuery
+        .map(
+          m =>
+            `${m.type}:${(m as { uuid?: string }).uuid ?? ''}:${(m as { toolUseId?: string }).toolUseId ?? ''}`,
+        )
+        .join('|')
       const seen = new WeakSet()
-      const _msgsJson = () => JSON.stringify(messagesForQuery, (_k, v) => {
-        if (typeof v === 'function') return '[Function]'
-        if (typeof v === 'object' && v !== null) {
-          if (seen.has(v)) return '[Circular]'
-          seen.add(v)
-        }
-        return v
-      }, 2)
-      if (_prevMessagesForQueryKey === undefined || _prevMessagesForQueryKey !== _msgsKey) {
+      const _msgsJson = () =>
+        JSON.stringify(
+          messagesForQuery,
+          (_k, v) => {
+            if (typeof v === 'function') return '[Function]'
+            if (typeof v === 'object' && v !== null) {
+              if (seen.has(v)) return '[Circular]'
+              seen.add(v)
+            }
+            return v
+          },
+          2,
+        )
+      if (
+        _prevMessagesForQueryKey === undefined ||
+        _prevMessagesForQueryKey !== _msgsKey
+      ) {
         logForDebugging(
           `[Hapii] queryLoop.iter${turnCount} — 设置阶段 [${_prevMessagesForQueryKey === undefined ? '首次' : 'messagesForQuery 变动'}]: streamingToolExecution=${useStreamingToolExecution} msgsForQuery=${messagesForQuery.length}\n${_msgsJson()}`,
           { level: 'info' },
@@ -1145,8 +1185,7 @@ async function* queryLoop(
     }
 
     // 预测式 autocompact：估算本轮的增长是否会超过上下文窗口。
-    // 直接用 effectiveContextWindow（不带 autocompact 缓冲）以避免
-    // 与 getAutoCompactThreshold（已经减去了缓冲）重复预留。
+    // 直接用 effectiveContextWindow（不带 autocompact 缓冲）以避免与 getAutoCompactThreshold（已经减去了缓冲）重复预留。
     if (!compactionResult && isAutoCompactEnabled()) {
       const model = toolUseContext.options.mainLoopModel
       const currentTokens =
@@ -1290,11 +1329,8 @@ async function* queryLoop(
                 )
               }
             }
-            // 在 yield 之前对克隆消息回填 tool_use 输入，让 SDK 流
-            // 输出和 transcript 序列化看到 legacy/derived 字段。
-            // 原始 `message` 保持不变，供下面 assistantMessages.push
-            // 使用 —— 它会回流到 API，修改它会破坏 prompt 缓存
-            //（字节不匹配）。
+            // 在 yield 之前对克隆消息回填 tool_use 输入，让 SDK 流输出和 transcript 序列化看到 legacy/derived 字段。
+            // 原始 `message` 保持不变，供下面 assistantMessages.push 使用 —— 它会回流到 API，修改它会破坏 prompt 缓存（字节不匹配）。
             let yieldMessage: typeof message = message
             if (message.type === 'assistant') {
               const assistantMsg = message as AssistantMessage
@@ -1322,11 +1358,8 @@ async function* queryLoop(
                     const originalInput = block.input as Record<string, unknown>
                     const inputCopy = { ...originalInput }
                     tool.backfillObservableInput(inputCopy)
-                    // 仅当 backfill 新增字段时才 yield 克隆；若只是
-                    // 覆盖已有字段（例如文件工具展开 file_path）则跳过。
-                    // 覆盖会改变序列化的 transcript 并破坏 resume 时的
-                    // VCR 固件哈希，而 SDK 流也用不到 —— hooks 会通过
-                    // toolExecution.ts 单独拿到展开后的路径。
+                    // 仅当 backfill 新增字段时才 yield 克隆；若只是覆盖已有字段（例如文件工具展开 file_path）则跳过。
+                    // 覆盖会改变序列化的 transcript 并破坏 resume 时的 VCR 固件哈希，而 SDK 流也用不到 —— hooks 会通过 toolExecution.ts 单独拿到展开后的路径。
                     const addedFields = Object.keys(inputCopy).some(
                       k => !(k in originalInput),
                     )
@@ -1347,15 +1380,11 @@ async function* queryLoop(
                 } as typeof message
               }
             }
-            // 扣留可恢复的错误（prompt-too-long、max-output-tokens），
-            // 直到我们知道恢复（collapse 排空 / reactive compact /
-            // 截断重试）能否成功。仍 push 到 assistantMessages，以便
-            // 下面的恢复检查能找到它们。任一子系统的扣留都足够 ——
+            // 扣留可恢复的错误（prompt-too-long、max-output-tokens），直到我们知道恢复（collapse 排空 / reactive compact /
+            // 截断重试）能否成功。仍 push 到 assistantMessages，以便下面的恢复检查能找到它们。任一子系统的扣留都足够 ——
             // 它们相互独立，关闭一个不会破坏另一个的恢复路径。
             //
-            // feature() 只能在 if/三元条件中使用（bun:bundle 的
-            // tree-shaking 约束），因此 collapse 检查是嵌套的而非
-            // 组合的。
+            // feature() 只能在 if/三元条件中使用（bun:bundle 的 tree-shaking 约束），因此 collapse 检查是嵌套的而非组合的。
             let withheld = false
             if (feature('CONTEXT_COLLAPSE')) {
               if (
@@ -1437,8 +1466,7 @@ async function* queryLoop(
           // 让被排除的字符串从外部构建中消失。
           if (feature('CACHED_MICROCOMPACT') && pendingCacheEdits) {
             const lastAssistant = assistantMessages.at(-1)
-            // API 字段在请求间是累计/粘性的，因此减去本次请求之前
-            // 捕获的基线以得到增量。
+            // API 字段在请求间是累计/粘性的，因此减去本次请求之前捕获的基线以得到增量。
             const usage = lastAssistant?.message.usage
             const cumulativeDeleted = usage
               ? ((usage as unknown as Record<string, number>)
@@ -1478,8 +1506,7 @@ async function* queryLoop(
             toolUseBlocks.length = 0
             needsFollowUp = false
 
-            // 丢弃失败尝试的待处理结果，创建新的 executor。
-            // 防止带旧 tool_use_id 的孤儿 tool_results 泄漏到重试中。
+            // 丢弃失败尝试的待处理结果，创建新的 executor。防止带旧 tool_use_id 的孤儿 tool_results 泄漏到重试中。
             if (streamingToolExecutor) {
               streamingToolExecutor.discard()
               streamingToolExecutor = new StreamingToolExecutor(
@@ -1492,8 +1519,7 @@ async function* queryLoop(
             // 用新模型更新 tool use context
             toolUseContext.options.mainLoopModel = fallbackModel
 
-            // Thinking 签名与模型绑定：把受保护的 thinking 块
-            //（例如 capybara）回放给未受保护的 fallback（例如 opus）会 400。
+            // Thinking 签名与模型绑定：把受保护的 thinking 块（例如 capybara）回放给未受保护的 fallback（例如 opus）会 400。
             // 重试前剥离，让 fallback 模型拿到干净的历史。
             if (process.env.USER_TYPE === 'ant') {
               messagesForQuery = stripSignatureBlocks(messagesForQuery)
@@ -1515,8 +1541,7 @@ async function* queryLoop(
               queryDepth: queryTracking.depth,
             })
 
-            // yield 关于 fallback 的系统消息 —— 用 'warning' 级别，
-            // 让用户不需要 verbose 模式也能看到通知
+            // yield 关于 fallback 的系统消息 —— 用 'warning' 级别，让用户不需要 verbose 模式也能看到通知
             yield createSystemMessage(
               `Switched to ${renderModelName(innerError.fallbackModel)} due to high demand for ${renderModelName(innerError.originalModel)}`,
               'warning',
@@ -1568,14 +1593,12 @@ async function* queryLoop(
       }
 
       // 通常 queryModelWithStreaming 不应该抛错，而是把错误作为合成
-      // assistant 消息 yield。但如果因为 bug 抛了，我们可能处在
-      // 已经发出 tool_use 块但会在发出 tool_result 之前停止的状态。
+      // assistant 消息 yield。但如果因为 bug 抛了，我们可能处在已经发出 tool_use 块但会在发出 tool_result 之前停止的状态。
       yield* yieldMissingToolResultBlocks(assistantMessages, errorMessage)
 
       // 抛出真实错误，而不是误导性的 "[Request interrupted by user]"
       // —— 这条路径是模型/运行时失败，不是用户操作。SDK 消费者过去
-      // 会看到幻影中断（例如 Node 18 缺少 Array.prototype.with()），
-      // 掩盖了真正的原因。
+      // 会看到幻影中断（例如 Node 18 缺少 Array.prototype.with()），掩盖了真正的原因。
       yield createAssistantAPIErrorMessage({
         content: errorMessage,
       })
@@ -1628,8 +1651,7 @@ async function* queryLoop(
     }
 
     // 我们必须先处理流式中断，比任何其它事都早。
-    // 使用 streamingToolExecutor 时，必须消费 getRemainingResults()，
-    // 以便 executor 为排队/进行中的工具生成合成 tool_result 块。
+    // 使用 streamingToolExecutor 时，必须消费 getRemainingResults()，以便 executor 为排队/进行中的工具生成合成 tool_result 块。
     // 否则 tool_use 块会缺少匹配的 tool_result 块。
     if (toolUseContext.abortController.signal.aborted) {
       logForDebugging(
@@ -1693,19 +1715,21 @@ async function* queryLoop(
         { level: 'info' },
       )
 
-      // Prompt-too-long 恢复：流式循环扣留了错误（见上方的
-      // withheldByCollapse / withheldByReactive）。先尝试 collapse 排空
-      //（便宜，保留细粒度上下文），再尝试 reactive compact（完整摘要）。
+      // Prompt-too-long 恢复：流式循环扣留了错误（见上方的 withheldByCollapse / withheldByReactive）。
+      // 先尝试 collapse 排空（便宜，保留细粒度上下文），再尝试 reactive compact（完整摘要）。
       // 每个阶段单次尝试 —— 若重试仍 413，由下一阶段处理或错误冒泡。
-      const isWithheld413 = lastMessage?.type === 'assistant' && lastMessage.isApiErrorMessage && isPromptTooLongMessage(lastMessage)
+      const isWithheld413 =
+        lastMessage?.type === 'assistant' &&
+        lastMessage.isApiErrorMessage &&
+        isPromptTooLongMessage(lastMessage)
 
-      // 媒体尺寸拒绝（图片/PDF/多图）可通过 reactive compact 的
-      // strip-retry 恢复。与 PTL 不同，媒体错误跳过 collapse 排空 ——
-      // collapse 不剥离图片。mediaRecoveryEnabled 是流循环之前上提的
-      // 门控（与扣留检查的值相同 —— 两者必须一致，否则扣留的消息会
-      // 丢失）。若超大媒体位于保留尾部，压缩后的轮次会再次媒体报错；
+      // 媒体尺寸拒绝（图片/PDF/多图）可通过 reactive compact 的 strip-retry 恢复。与 PTL 不同，媒体错误跳过 collapse 排空 ——
+      // collapse 不剥离图片。mediaRecoveryEnabled 是流循环之前上提的门控（与扣留检查的值相同 —— 两者必须一致，否则扣留的消息会丢失）。
+      // 若超大媒体位于保留尾部，压缩后的轮次会再次媒体报错；
       // hasAttemptedReactiveCompact 防止螺旋，错误冒泡。
-      const isWithheldMedia = mediaRecoveryEnabled && reactiveCompact?.isWithheldMediaSizeError(lastMessage as Message)
+      const isWithheldMedia =
+        mediaRecoveryEnabled &&
+        reactiveCompact?.isWithheldMediaSizeError(lastMessage as Message)
       logForDebugging(
         `[Hapii] queryLoop.iter${turnCount} — 恢复检查: isWithheld413=${isWithheld413} isWithheldMedia=${isWithheldMedia} hasAttemptedReactiveCompact=${hasAttemptedReactiveCompact} maxOutputTokensRecovery=${maxOutputTokensRecoveryCount}/${MAX_OUTPUT_TOKENS_RECOVERY_LIMIT}`,
         { level: 'info' },
@@ -1870,8 +1894,8 @@ async function* queryLoop(
           )
           const recoveryMessage = createUserMessage({
             content:
-              `Output token limit hit. Resume directly — no apology, no recap of what you were doing. ` +
-              `Pick up mid-thought if that is where the cut happened. Break remaining work into smaller pieces.`,
+              `输出令牌限制已达到。直接继续——不要道歉，也不要复述你刚才正在做的事。 ` +
+              `如果思路在半途被打断，就从那里接着来。把剩下的工作拆分成更小的部分。`,
             isMeta: true,
           })
 
@@ -2164,8 +2188,7 @@ async function* queryLoop(
     // 我们在工具调用期间被中断
     if (toolUseContext.abortController.signal.aborted) {
       // chicago MCP：工具调用中途被中断时自动取消隐藏 + 释放锁。
-      // 这是 CU 最常见的 Ctrl+C 路径（例如慢截图）。仅主线程 ——
-      // 子 agent 的原因见 stopHooks.ts。
+      // 这是 CU 最常见的 Ctrl+C 路径（例如慢截图）。仅主线程 —— 子 agent 的原因见 stopHooks.ts。
       if (feature('CHICAGO_MCP') && !toolUseContext.agentId) {
         try {
           const { cleanupComputerUseAfterTurn } = await import(
@@ -2219,8 +2242,7 @@ async function* queryLoop(
       })
     }
 
-    // 注意：必须在工具调用完成之后再做这件事，因为 API 会报错
-    // 如果我们交错 tool_result 消息和普通 user 消息。
+    // 注意：必须在工具调用完成之后再做这件事，因为 API 会报错 如果我们交错 tool_result 消息和普通 user 消息。
 
     // 埋点：在追加附件之前追踪消息数量
     logEvent('tengu_query_before_attachments', {
@@ -2231,24 +2253,18 @@ async function* queryLoop(
       queryDepth: queryTracking.depth,
     })
 
-    // 在处理附件之前获取排队命令的快照。这些将作为附件发送，
-    // 让 Claude 在当前轮次内响应它们。
+    // 在处理附件之前获取排队命令的快照。这些将作为附件发送，让 Claude 在当前轮次内响应它们。
     //
-    // 排空待处理通知。LocalShellTask 完成是 'next'（当 MONITOR_TOOL 打开时），
-    // 不经 Sleep 直接排空。其他任务类型（agent/workflow/framework）仍默认
-    // 为 'later' —— 由 Sleep flush 覆盖。若所有任务类型都迁移到 'next'，
-    // 此分支可移除。
+    // 排空待处理通知。LocalShellTask 完成是 'next'（当 MONITOR_TOOL 打开时）， 不经 Sleep 直接排空。
+    // 其他任务类型（agent/workflow/framework）仍默认为 'later' —— 由 Sleep flush 覆盖。若所有任务类型都迁移到 'next'，此分支可移除。
     //
-    // Slash 命令被排除在轮次内排空之外 —— 它们必须在轮次结束后
-    //（通过 useQueueProcessor）走 processSlashCommand 流程，而不是作为
-    // 文本发给模型。Bash 模式命令已被 getQueuedCommandAttachments 的
-    // INLINE_NOTIFICATION_MODES 排除。
+    // Slash 命令被排除在轮次内排空之外 —— 它们必须在轮次结束后（通过 useQueueProcessor）走 processSlashCommand 流程，而不是作为
+    // 文本发给模型。Bash 模式命令已被 getQueuedCommandAttachments 的 INLINE_NOTIFICATION_MODES 排除。
     //
-    // Agent 作用域：队列是进程全局单例，由协调器和所有进程内子 agent
-    // 共享。每个循环只排空发给自己的内容 —— 主线程排空
-    // agentId===undefined，子 agent 排空自己的 agentId。用户 prompt
-    //（mode:'prompt'）仍只发给主线程；子 agent 看不到 prompt 流。
-    // eslint-disable-next-line custom-rules/require-tool-match-name -- ToolUseBlock.name has no aliases
+    // Agent 作用域：队列是进程全局单例，由协调器和所有进程内子 agent共享。每个循环只排空发给自己的内容 —— 主线程排空
+    // agentId===undefined，子 agent 排空自己的 agentId。用户 prompt（mode:'prompt'）仍只发给主线程；子 agent 看不到 prompt 流。
+    // eslint-disable-next-line custom-rules/require-tool-match-name -- ToolUseBlock.name has no alia
+
     const sleepRan = toolUseBlocks.some(b => b.name === SLEEP_TOOL_NAME)
     const isMainThread =
       querySource.startsWith('repl_main_thread') || querySource === 'sdk'

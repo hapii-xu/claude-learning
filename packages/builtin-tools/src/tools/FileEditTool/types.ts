@@ -7,11 +7,7 @@ const inputSchema = lazySchema(() =>
   z.strictObject({
     file_path: z.string().describe('要修改的文件的绝对路径'),
     old_string: z.string().describe('要替换的文本'),
-    new_string: z
-      .string()
-      .describe(
-        '替换后的文本（必须与 old_string 不同）',
-      ),
+    new_string: z.string().describe('替换后的文本（必须与 old_string 不同）'),
     replace_all: semanticBoolean(
       z.boolean().default(false).optional(),
     ).describe('是否替换所有出现的 old_string（默认为 false）'),
@@ -65,15 +61,9 @@ const outputSchema = lazySchema(() =>
     filePath: z.string().describe('已编辑的文件路径'),
     oldString: z.string().describe('被替换的原始字符串'),
     newString: z.string().describe('替换后的新字符串'),
-    originalFile: z
-      .string()
-      .describe('编辑前的原始文件内容'),
-    structuredPatch: z
-      .array(hunkSchema())
-      .describe('展示变更的 diff 补丁'),
-    userModified: z
-      .boolean()
-      .describe('用户是否修改了建议的变更'),
+    originalFile: z.string().describe('编辑前的原始文件内容'),
+    structuredPatch: z.array(hunkSchema()).describe('展示变更的 diff 补丁'),
+    userModified: z.boolean().describe('用户是否修改了建议的变更'),
     replaceAll: z.boolean().describe('是否替换了所有出现位置'),
     gitDiff: gitDiffSchema().optional(),
   }),

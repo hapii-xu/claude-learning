@@ -11,7 +11,7 @@ import type { WorkflowRunResult } from '../types.js'
 import { workflowInputSchema, type WorkflowInput } from './schema.js'
 import { persistInlineScript } from './persistInline.js'
 
-/** Self-contained tool descriptor (core wiring wraps it with buildTool). Zero core-layer dependencies. */
+/** 自包含的工具描述符（核心层用 buildTool 包装它）。不依赖核心层。*/
 export type WorkflowToolDescriptor = {
   name: string
   inputSchema: z.ZodType<WorkflowInput>
@@ -37,20 +37,20 @@ export type WorkflowToolDescriptor = {
   }
 }
 
-const WORKFLOW_TOOL_PROMPT = `Use the Workflow tool to execute a workflow script that orchestrates multiple subagents deterministically. The script runs in the background; you receive a run_id immediately and are notified on completion.
+const WORKFLOW_TOOL_PROMPT = `使用 Workflow 工具执行一个 workflow 脚本，该脚本以确定性方式编排多个 subagent。脚本在后台运行；你会立即收到 run_id，并在完成时收到通知。
 
-Provide the script inline via "script", or reference a named workflow via "name" (resolved from .claude/workflows/), or an existing file via "scriptPath". Pass "args" as a real JSON value (object/array/string), not a stringified string.
+通过 "script" 内联提供脚本，或通过 "name" 引用命名 workflow（从 .claude/workflows/ 解析），或通过 "scriptPath" 引用现有文件。将 "args" 作为真实 JSON 值（对象/数组/字符串）传递，而非字符串化的字符串。
 
-Use "resumeFromRunId" to resume a prior run — completed agent() calls replay from the journal instantly.
+使用 "resumeFromRunId" 恢复之前的运行——已完成的 agent() 调用会从日志中即时回放。
 
-Concurrency: default is 3 (hard ceiling 16). OMIT maxConcurrency to use 3. To set maxConcurrency to ANY value other than 3, you MUST first ask the user via AskUserQuestion — propose 3 / 6 / 9 (or other tiers matching the fan-out width) with 3 marked "(Recommended)". The ONLY exception: the user has ALREADY specified a concurrency number in this session ("use 6", "maxConcurrency 9") — then honor it without re-asking. Never silently raise concurrency above 3 just because the workflow fans out; 3 is the recommended default.
+并发数：默认为 3（硬上限 16）。省略 maxConcurrency 则使用 3。要将 maxConcurrency 设为 3 以外的任何值，必须先通过 AskUserQuestion 询问用户——提议 3 / 6 / 9（或与扇出宽度匹配的其他档位），并将 3 标记为"（推荐）"。唯一例外：用户在本次会话中已明确指定并发数（"使用 6"、"maxConcurrency 9"）——此时直接遵从，无需重新询问。不要因为 workflow 扇出而悄悄提高并发数超过 3；3 是推荐的默认值。
 
-Script execution model (common pitfalls — getting these wrong is the #1 cause of script errors): the script is the body of \`new AsyncFunction\` — NOT an ESM module, and TypeScript is NOT transpiled. Therefore:
-- Do NOT use \`import\` — \`agent\`, \`parallel\`, \`pipeline\`, \`phase\`, \`log\`, \`workflow\`, \`args\`, and \`budget\` are injected as parameters; reference them directly.
-- Do NOT use TS type annotations, \`interface\`, \`enum\`, \`as\`, or generics — the engine does not transpile, so even a .ts file with type syntax fails to parse.
-- Keep EXACTLY ONE \`export const meta = {...}\` (plain literal) and remove every other \`export\` / \`export default\`.
-- Return the result with a top-level \`return\`.
-Prefer .js / .mjs. See /ultracode for the full playbook and quality patterns.`
+脚本执行模型（常见陷阱——搞错这些是脚本报错的首要原因）：脚本是 \`new AsyncFunction\` 的函数体——不是 ESM 模块，TypeScript 也不会被转译。因此：
+- 不要使用 \`import\`——\`agent\`、\`parallel\`、\`pipeline\`、\`phase\`、\`log\`、\`workflow\`、\`args\` 和 \`budget\` 作为参数注入；直接引用即可。
+- 不要使用 TS 类型注解、\`interface\`、\`enum\`、\`as\` 或泛型——引擎不进行转译，即使是带类型语法的 .ts 文件也会解析失败。
+- 保留恰好一个 \`export const meta = {...}\`（纯字面量），移除所有其他 \`export\` / \`export default\`。
+- 用顶层 \`return\` 返回结果。
+优先使用 .js / .mjs。完整 playbook 和质量模式见 /ultracode。`
 
 export function createWorkflowTool(
   ports: WorkflowPorts,
@@ -58,15 +58,15 @@ export function createWorkflowTool(
   return {
     name: WORKFLOW_TOOL_NAME,
     inputSchema: workflowInputSchema,
-    // No per-session runtime opt-in gate here: the "ultracode is on for the
-    // session" signal is injected by the harness (claude.ai/client), not held
-    // in any repo state. This tool is compiled in/out via feature('WORKFLOW_SCRIPTS')
-    // in src/tools.ts; beyond that it is always enabled when present.
+    // 此处没有会话级运行时启用门控："ultracode 在本会话中已开启"
+    // 的信号由 harness（claude.ai/client）注入，而非保存在仓库状态中。
+    // 此工具通过 src/tools.ts 中的 feature('WORKFLOW_SCRIPTS') 编译进/出；
+    // 除此之外，只要工具存在就始终启用。
     isEnabled: () => true,
     isReadOnly: () => false,
 
     async description() {
-      return 'Execute a workflow script that orchestrates multiple subagents to complete a task'
+      return '执行一个 workflow 脚本，编排多个 subagent 协作完成任务'
     },
 
     async prompt() {
@@ -75,16 +75,16 @@ export function createWorkflowTool(
 
     renderToolUseMessage(input) {
       if (input.resumeFromRunId)
-        return `Workflow resume: ${input.resumeFromRunId}`
+        return `Workflow 恢复：${input.resumeFromRunId}`
       const id =
         input.name ?? input.scriptPath ?? (input.script ? 'inline' : 'unknown')
-      return `Workflow: ${id}`
+      return `Workflow：${id}`
     },
 
     async call(input, context, canUseTool, parentMessage) {
       const host = ports.hostFactory({ context, canUseTool, parentMessage })
 
-      // Resolve the script source
+      // 解析脚本来源
       let script: string
       let workflowFile: string | undefined
       try {
@@ -95,7 +95,7 @@ export function createWorkflowTool(
         return { data: { output: `Error: ${(e as Error).message}` } }
       }
 
-      // Quick validation (meta + syntax): on failure return an error to the model directly, do not enter the background
+      // 快速校验（meta + 语法）：失败时直接向模型返回错误，不进入后台
       try {
         parseScript(script)
       } catch (e) {
@@ -118,9 +118,9 @@ export function createWorkflowTool(
         host.handle,
       )
 
-      // Inline entry: persist the script to the run directory and return a reusable path (the
-      // inline -> persist -> edit -> resubmit-as-scriptPath iteration loop promised by the ultracode skill).
-      // On write failure degrade to a placeholder + warn, do not abort the run (script is already in memory).
+      // 内联入口：将脚本持久化到运行目录并返回可复用路径
+      //（ultracode skill 承诺的 inline → persist → edit → resubmit-as-scriptPath 迭代循环）。
+      // 写入失败时降级为占位符并警告，不中止运行（脚本已在内存中）。
       if (!workflowFile && input.script) {
         try {
           workflowFile = await persistInlineScript(
@@ -135,7 +135,7 @@ export function createWorkflowTool(
         }
       }
 
-      // Detached execution
+      // 后台分离执行
       void runWorkflow({
         script,
         ...(input.args !== undefined
@@ -160,12 +160,12 @@ export function createWorkflowTool(
       return {
         data: {
           output: [
-            'Workflow started (running in the background).',
+            'Workflow 已启动（在后台运行）。',
             `run_id: ${runId}`,
             `workflow: ${workflowName}`,
             `script: ${scriptPath}`,
             '',
-            'You will be notified on completion. Use /workflows to view live progress.',
+            '完成时将通知你。使用 /workflows 查看实时进度。',
           ].join('\n'),
         },
       }
@@ -189,7 +189,7 @@ function onFinish(
   if (result.status === 'completed') {
     const summary =
       result.returnValue == null
-        ? '(no return value)'
+        ? '（无返回值）'
         : formatValue(result.returnValue)
     ports.taskRegistrar.complete(runId, summary)
   } else if (result.status === 'failed') {
@@ -209,8 +209,8 @@ function formatValue(v: unknown): string {
 }
 
 /**
- * Defensively normalize args: under the legacy `z.string()` contract the model may send a stringified JSON object.
- * Only normalize when the string JSON.parses to an object/array; plain strings, numbers, etc. are preserved as-is.
+ * 防御性地规范化 args：在旧版 `z.string()` 约定下，模型可能发送字符串化的 JSON 对象。
+ * 仅当字符串能 JSON.parse 为对象/数组时才规范化；普通字符串、数字等保持原样。
  */
 function normalizeArgs(raw: unknown): unknown {
   if (typeof raw !== 'string') return raw
@@ -232,7 +232,7 @@ async function resolveScriptSource(
     const resolved = resolve(cwd, input.scriptPath)
     if (!containsPath(cwd, resolved)) {
       throw new Error(
-        `scriptPath "${input.scriptPath}" is out of bounds (after resolve, ${resolved} is not within cwd ${cwd})`,
+        `scriptPath "${input.scriptPath}" 超出范围（resolve 后，${resolved} 不在 cwd ${cwd} 内）`,
       )
     }
     return {
@@ -243,7 +243,7 @@ async function resolveScriptSource(
   if (input.name) {
     if (sanitizeWorkflowName(input.name) === null) {
       throw new Error(
-        `Named workflow name "${input.name}" is invalid (contains path separators or is . / ..)`,
+        `命名 workflow 名称 "${input.name}" 无效（包含路径分隔符，或为 . / ..）`,
       )
     }
     const found = await resolveNamedWorkflow(
@@ -252,10 +252,10 @@ async function resolveScriptSource(
     )
     if (!found) {
       throw new Error(
-        `Named workflow "${input.name}" not found (looked in ${WORKFLOW_DIR_NAME}/)`,
+        `命名 workflow "${input.name}" 未找到（已在 ${WORKFLOW_DIR_NAME}/ 中查找）`,
       )
     }
     return { script: found.content, workflowFile: found.path }
   }
-  throw new Error('One of script, name, or scriptPath must be provided')
+  throw new Error('必须提供 script、name 或 scriptPath 之一')
 }

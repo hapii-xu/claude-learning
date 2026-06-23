@@ -301,9 +301,7 @@ const isBackgroundTasksDisabled =
 const fullInputSchema = lazySchema(() =>
   z.strictObject({
     command: z.string().describe('要执行的命令'),
-    timeout: semanticNumber(z.number().optional()).describe(
-      `可选的超时时间（毫秒，最大 ${getMaxTimeoutMs()}）`,
-    ),
+    timeout: semanticNumber(z.number().optional()).describe(`可选的超时时间（毫秒，最大 ${getMaxTimeoutMs()}）`),
     description: z
       .string()
       .optional()
@@ -401,32 +399,20 @@ const outputSchema = lazySchema(() =>
     interrupted: z.boolean().describe('命令是否被中断'),
     isImage: z.boolean().optional().describe('标志，指示 stdout 是否包含图像数据'),
     backgroundTaskId: z.string().optional().describe('如果命令在后台运行，后台任务的 ID'),
-    backgroundedByUser: z
-      .boolean()
-      .optional()
-      .describe('如果用户使用 Ctrl+B 手动将命令转为后台则为 true'),
+    backgroundedByUser: z.boolean().optional().describe('如果用户使用 Ctrl+B 手动将命令转为后台则为 true'),
     assistantAutoBackgrounded: z
       .boolean()
       .optional()
       .describe('如果助手模式自动将长时间运行的阻塞命令转为后台则为 true'),
     dangerouslyDisableSandbox: z.boolean().optional().describe('标志，指示沙箱模式是否被覆盖'),
-    returnCodeInterpretation: z
-      .string()
-      .optional()
-      .describe('对具有特殊含义的非错误退出码的语义解释'),
-    noOutputExpected: z
-      .boolean()
-      .optional()
-      .describe('命令在成功时是否预期不产生输出'),
+    returnCodeInterpretation: z.string().optional().describe('对具有特殊含义的非错误退出码的语义解释'),
+    noOutputExpected: z.boolean().optional().describe('命令在成功时是否预期不产生输出'),
     structuredContent: z.array(z.any()).optional().describe('结构化内容块'),
     persistedOutputPath: z
       .string()
       .optional()
       .describe('持久化在 tool-results 目录中的完整输出路径（当输出过大无法内联时设置）'),
-    persistedOutputSize: z
-      .number()
-      .optional()
-      .describe('输出的总大小（字节）（当输出过大无法内联时设置）'),
+    persistedOutputSize: z.number().optional().describe('输出的总大小（字节）（当输出过大无法内联时设置）'),
   }),
 );
 
@@ -557,7 +543,7 @@ async function applySedEdit(
 
 export const BashTool = buildTool({
   name: BASH_TOOL_NAME,
-  searchHint: 'execute shell commands',
+  searchHint: '执行 shell 命令',
   // 30K 字符 - 工具结果持久化阈值
   maxResultSizeChars: 30_000,
   strict: true,

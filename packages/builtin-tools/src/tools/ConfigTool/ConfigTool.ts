@@ -262,9 +262,7 @@ export const ConfigTool = buildTool({
         return {
           data: {
             success: false,
-            error:
-              recording.reason ??
-              '当前环境中语音模式不可用。',
+            error: recording.reason ?? '当前环境中语音模式不可用。',
           },
         }
       }
@@ -272,8 +270,7 @@ export const ConfigTool = buildTool({
         return {
           data: {
             success: false,
-            error:
-              '语音模式需要 Claude.ai 账户，请运行 /login 登录。',
+            error: '语音模式需要 Claude.ai 账户，请运行 /login 登录。',
           },
         }
       }
@@ -291,7 +288,8 @@ export const ConfigTool = buildTool({
       if (!(await requestMicrophonePermission())) {
         let guidance: string
         if (process.platform === 'win32') {
-          guidance = '\u8bbe\u7f6e \u2192 \u9690\u79c1 \u2192 \u9ea6\u514b\u98ce'
+          guidance =
+            '\u8bbe\u7f6e \u2192 \u9690\u79c1 \u2192 \u9ea6\u514b\u98ce'
         } else if (process.platform === 'linux') {
           guidance = '\u7cfb\u7edf\u97f3\u9891\u8bbe\u7f6e'
         } else {

@@ -548,10 +548,9 @@ export async function verifyApiKey(
     // 警告：如果改成使用非 Haiku 的模型，除非使用 getCLISyspromptPrefix，否则在 1P 下该请求会失败。
     const model = getSmallFastModel()
     const betas = getModelBetas(model)
-    logForDebugging(
-      `[Hapii] verifyApiKey — 发送测试请求 model=${model}`,
-      { level: 'info' },
-    )
+    logForDebugging(`[Hapii] verifyApiKey — 发送测试请求 model=${model}`, {
+      level: 'info',
+    })
     const result = await returnValue(
       withRetry(
         () =>
@@ -595,10 +594,9 @@ export async function verifyApiKey(
         '{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}',
       )
     ) {
-      logForDebugging(
-        `------------ verifyApiKey 结束 (auth_error) ---------`,
-        { level: 'error' },
-      )
+      logForDebugging(`------------ verifyApiKey 结束 (auth_error) ---------`, {
+        level: 'error',
+      })
       return false
     }
     logForDebugging(
@@ -909,11 +907,11 @@ export async function* executeNonStreamingRequest(
    */
   originatingRequestId?: string | null,
 ): AsyncGenerator<SystemAPIErrorMessage, BetaMessage> {
+  const fallbackTimeoutMs = getNonstreamingFallbackTimeoutMs()
   logForDebugging(
     `-------------- executeNonStreamingRequest 开始 ----------- model=${retryOptions.model} source=${clientOptions.source} timeoutMs=${fallbackTimeoutMs}`,
     { level: 'warn' },
   )
-  const fallbackTimeoutMs = getNonstreamingFallbackTimeoutMs()
   const generator = withRetry(
     () =>
       getAnthropicClient({

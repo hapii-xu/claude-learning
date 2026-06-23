@@ -2,13 +2,13 @@ import type { ProviderBalance } from '../types.js'
 import type { BalanceProvider } from './types.js'
 
 /**
- * DeepSeek exposes balance at `GET /user/balance`.
+ * DeepSeek 通过 `GET /user/balance` 暴露余额接口。
  *
- * Enabled when:
- *   - OPENAI_BASE_URL points at api.deepseek.com, OR
- *   - DEEPSEEK_API_KEY is set (explicit opt-in).
+ * 启用条件：
+ *   - OPENAI_BASE_URL 指向 api.deepseek.com，或
+ *   - DEEPSEEK_API_KEY 已设置（显式启用）。
  *
- * Response shape:
+ * 响应格式：
  *   { is_available: true, balance_infos: [{ currency:"USD", total_balance:"5.00", ... }, ...] }
  */
 
@@ -60,7 +60,7 @@ export const deepseekBalanceProvider: BalanceProvider = {
     const infos = (data as { balance_infos?: unknown })?.balance_infos
     if (!Array.isArray(infos)) return null
 
-    // Prefer USD; fall back to the first entry.
+    // 优先选择 USD；回退到第一个条目。
     const usd = infos.find(
       (e: unknown) =>
         typeof e === 'object' &&

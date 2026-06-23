@@ -102,9 +102,7 @@ const outputSchema = lazySchema(() =>
       ])
       .describe('执行的 LSP 操作'),
     result: z.string().describe('LSP 操作格式化后的结果'),
-    filePath: z
-      .string()
-      .describe('执行该操作所针对的文件路径'),
+    filePath: z.string().describe('执行该操作所针对的文件路径'),
     resultCount: z
       .number()
       .int()
@@ -236,14 +234,11 @@ export const LSPTool = buildTool({
     const manager = getLspServerManager()
     if (!manager) {
       // 记录此系统级失败以便追踪
-      logError(
-        new Error('调用工具时 LSP server manager 尚未初始化'),
-      )
+      logError(new Error('调用工具时 LSP server manager 尚未初始化'))
 
       const output: Output = {
         operation: input.operation,
-        result:
-          'LSP server manager 未初始化。这可能表明存在启动问题。',
+        result: 'LSP server manager 未初始化。这可能表明存在启动问题。',
         filePath: input.filePath,
       }
       return {

@@ -308,9 +308,7 @@ async function appendTeamMember(
 ): Promise<void> {
   const teamFile = await readTeamFileAsync(spawn.teamName)
   if (!teamFile) {
-    throw new Error(
-      `团队 "${spawn.teamName}" 在生成 teammate 期间消失了。`,
-    )
+    throw new Error(`团队 "${spawn.teamName}" 在生成 teammate 期间消失了。`)
   }
 
   const display = getBackendDisplay(result)

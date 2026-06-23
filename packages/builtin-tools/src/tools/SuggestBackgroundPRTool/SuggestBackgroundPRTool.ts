@@ -19,7 +19,7 @@ type SuggestOutput = { suggested: boolean; suggestion_id: string }
 
 export const SuggestBackgroundPRTool = buildTool({
   name: SUGGEST_BACKGROUND_PR_TOOL_NAME,
-  searchHint: 'suggest background pr pull request create',
+  searchHint: '建议后台创建 pull request PR',
   maxResultSizeChars: 5_000,
   strict: true,
 

@@ -36,7 +36,7 @@ type CtxOutput = {
 
 export const CtxInspectTool = buildTool({
   name: CTX_INSPECT_TOOL_NAME,
-  searchHint: 'context inspect tokens usage messages window collapse',
+  searchHint: '上下文检查 token 用量 消息 窗口 折叠 压缩',
   maxResultSizeChars: 50_000,
   strict: true,
 

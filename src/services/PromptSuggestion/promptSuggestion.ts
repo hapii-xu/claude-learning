@@ -35,7 +35,7 @@ export function getPromptVariant(): PromptVariant {
 }
 
 export function shouldEnablePromptSuggestion(): boolean {
-  // Env var overrides everything (for testing)
+  // 环境变量优先级最高（用于测试）
   const envOverride = process.env.CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION
   if (isEnvDefinedFalsy(envOverride)) {
     logEvent('tengu_prompt_suggestion_init', {
@@ -54,7 +54,7 @@ export function shouldEnablePromptSuggestion(): boolean {
     return true
   }
 
-  // Keep default in sync with Config.tsx (settings toggle visibility)
+  // 默认值需与 Config.tsx 保持同步（设置开关可见性）
   if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_chomp_inflection', false)) {
     logEvent('tengu_prompt_suggestion_init', {
       enabled: false,
@@ -64,7 +64,7 @@ export function shouldEnablePromptSuggestion(): boolean {
     return false
   }
 
-  // Disable in non-interactive mode (print mode, piped input, SDK)
+  // 非交互模式下禁用（打印模式、管道输入、SDK）
   if (getIsNonInteractiveSession()) {
     logEvent('tengu_prompt_suggestion_init', {
       enabled: false,
@@ -74,7 +74,7 @@ export function shouldEnablePromptSuggestion(): boolean {
     return false
   }
 
-  // Disable for swarm teammates (only leader should show suggestions)
+  // swarm 协作模式下禁用（只有 leader 显示建议）
   if (isAgentSwarmsEnabled() && isTeammate()) {
     logEvent('tengu_prompt_suggestion_init', {
       enabled: false,
@@ -101,8 +101,8 @@ export function abortPromptSuggestion(): void {
 }
 
 /**
- * Returns a suppression reason if suggestions should not be generated,
- * or null if generation is allowed. Shared by main and pipelined paths.
+ * 如果不应生成建议，则返回抑制原因；允许生成时返回 null。
+ * 主路径和流水线路径共用。
  */
 export function getSuggestionSuppressReason(appState: AppState): string | null {
   if (!appState.promptSuggestionEnabled) return 'disabled'
@@ -119,8 +119,8 @@ export function getSuggestionSuppressReason(appState: AppState): string | null {
 }
 
 /**
- * Shared guard + generation logic used by both CLI TUI and SDK push paths.
- * Returns the suggestion with metadata, or null if suppressed/filtered.
+ * CLI TUI 和 SDK 推送路径共用的守卫与生成逻辑。
+ * 返回带元数据的建议内容，若被抑制/过滤则返回 null。
  */
 export async function tryGenerateSuggestion(
   abortController: AbortController,
@@ -246,7 +246,7 @@ export function getParentCacheSuppressReason(
   const usage = lastAssistantMessage.message!.usage
   const inputTokens = usage!.input_tokens ?? 0
   const cacheWriteTokens = usage!.cache_creation_input_tokens ?? 0
-  // The fork re-processes the parent's output (never cached) plus its own prompt.
+  // fork 会重新处理父请求的输出（从不缓存）加上自身的 prompt。
   const outputTokens = usage!.output_tokens ?? 0
 
   return (inputTokens as number) +
@@ -257,36 +257,36 @@ export function getParentCacheSuppressReason(
     : null
 }
 
-const SUGGESTION_PROMPT = `[SUGGESTION MODE: Suggest what the user might naturally type next into Claude Code.]
+const SUGGESTION_PROMPT = `[建议模式：预测用户接下来会自然地在 Claude Code 中输入什么。]
 
-FIRST: Look at the user's recent messages and original request.
+首先：查看用户的最近消息和原始请求。
 
-Your job is to predict what THEY would type - not what you think they should do.
+你的工作是预测他们会输入什么——而不是你认为他们应该做什么。
 
-THE TEST: Would they think "I was just about to type that"?
+判断标准：他们会不会想到"我正想输这个"？
 
-EXAMPLES:
-User asked "fix the bug and run tests", bug is fixed → "run the tests"
-After code written → "try it out"
-Claude offers options → suggest the one the user would likely pick, based on conversation
-Claude asks to continue → "yes" or "go ahead"
-Task complete, obvious follow-up → "commit this" or "push it"
-After error or misunderstanding → silence (let them assess/correct)
+示例：
+用户请求"修复 bug 并运行测试"，bug 已修复 → "run the tests"
+代码写好后 → "try it out"
+Claude 提供选项 → 根据对话内容，建议用户最可能选的那个
+Claude 询问是否继续 → "yes" 或 "go ahead"
+任务完成，有明显后续步骤 → "commit this" 或 "push it"
+出错或误解后 → 保持沉默（让他们自行评估/纠正）
 
-Be specific: "run the tests" beats "continue".
+要具体："run the tests" 比 "continue" 更好。
 
-NEVER SUGGEST:
-- Evaluative ("looks good", "thanks")
-- Questions ("what about...?")
-- Claude-voice ("Let me...", "I'll...", "Here's...")
-- New ideas they didn't ask about
-- Multiple sentences
+绝对不要建议：
+- 评价性语句（"looks good"、"thanks"）
+- 问题（"what about...?"）
+- Claude 语气（"Let me..."、"I'll..."、"Here's..."）
+- 用户未提及的新想法
+- 多个句子
 
-Stay silent if the next step isn't obvious from what the user said.
+如果从用户所说的内容中看不出明显的下一步，保持沉默。
 
-Format: 2-12 words, match the user's style. Or nothing.
+格式：2-12 个词，匹配用户的风格。或者什么都不输出。
 
-Reply with ONLY the suggestion, no quotes or explanation.`
+只回复建议内容，不加引号或解释。`
 
 const SUGGESTION_PROMPTS: Record<PromptVariant, string> = {
   user_intent: SUGGESTION_PROMPT,
@@ -300,27 +300,26 @@ export async function generateSuggestion(
 ): Promise<{ suggestion: string | null; generationRequestId: string | null }> {
   const prompt = SUGGESTION_PROMPTS[promptId]
 
-  // Deny tools via callback, NOT by passing tools:[] - that busts cache (0% hit)
+  // 通过回调拒绝工具，不要传 tools:[]——那样会破坏缓存（命中率 0%）
   const canUseTool = async () => ({
     behavior: 'deny' as const,
     message: 'No tools needed for suggestion',
     decisionReason: { type: 'other' as const, reason: 'suggestion only' },
   })
 
-  // DO NOT override any API parameter that differs from the parent request.
-  // The fork piggybacks on the main thread's prompt cache by sending identical
-  // cache-key params. The billing cache key includes more than just
-  // system/tools/model/messages/thinking — empirically, setting effortValue
-  // or maxOutputTokens on the fork (even via output_config or getAppState)
-  // busts cache. PR #18143 tried effort:'low' and caused a 45x spike in cache
-  // writes (92.7% → 61% hit rate). The only safe overrides are:
-  //   - abortController (not sent to API)
-  //   - skipTranscript (client-side only)
-  //   - skipCacheWrite (controls cache_control markers, not the cache key)
-  //   - canUseTool (client-side permission check)
+  // 不要覆盖任何与父请求不同的 API 参数。
+  // fork 通过发送相同的缓存键参数来复用主线程的 prompt 缓存。
+  // 计费缓存键包含的内容不止 system/tools/model/messages/thinking——
+  // 实测发现，在 fork 上设置 effortValue 或 maxOutputTokens（即使通过
+  // output_config 或 getAppState）会破坏缓存。PR #18143 尝试 effort:'low'
+  // 导致缓存写入量暴涨 45 倍（命中率从 92.7% 降至 61%）。安全的覆盖项仅有：
+  //   - abortController（不发送到 API）
+  //   - skipTranscript（仅客户端）
+  //   - skipCacheWrite（控制 cache_control 标记，不影响缓存键）
+  //   - canUseTool（客户端权限检查）
   const result = await runForkedAgent({
     promptMessages: [createUserMessage({ content: prompt })],
-    cacheSafeParams, // Don't override tools/thinking settings - busts cache
+    cacheSafeParams, // 不要覆盖 tools/thinking 设置——会破坏缓存
     canUseTool,
     querySource: 'prompt_suggestion',
     forkLabel: 'prompt_suggestion',
@@ -331,8 +330,8 @@ export async function generateSuggestion(
     skipCacheWrite: true,
   })
 
-  // Check ALL messages - model may loop (try tool → denied → text in next message)
-  // Also extract the requestId from the first assistant message for RL dataset joins
+  // 检查所有消息——模型可能会循环（尝试工具 → 被拒绝 → 下一条消息中输出文本）
+  // 同时从第一条 assistant 消息中提取 requestId，用于强化学习数据集关联
   const firstAssistantMsg = result.messages.find(m => m.type === 'assistant')
   const generationRequestId =
     firstAssistantMsg?.type === 'assistant'
@@ -378,14 +377,14 @@ export function shouldFilterSuggestion(
         lower === 'nothing found.' ||
         lower.startsWith('nothing to suggest') ||
         lower.startsWith('no suggestion') ||
-        // Model spells out the prompt's "stay silent" instruction
+        // 模型将 prompt 中的"保持沉默"指令原文输出
         /\bsilence is\b|\bstay(s|ing)? silent\b/.test(lower) ||
-        // Model outputs bare "silence" wrapped in punctuation/whitespace
+        // 模型输出被标点/空白包裹的裸 "silence"
         /^\W*silence\W*$/.test(lower),
     ],
     [
       'meta_wrapped',
-      // Model wraps meta-reasoning in parens/brackets: (silence — ...), [no suggestion]
+      // 模型将元推理用括号/方括号包裹：(silence — ...)、[no suggestion]
       () => /^\(.*\)$|^\[.*\]$/.test(suggestion),
     ],
     [
@@ -402,11 +401,11 @@ export function shouldFilterSuggestion(
       'too_few_words',
       () => {
         if (wordCount >= 2) return false
-        // Allow slash commands — these are valid user commands
+        // 允许斜杠命令——这些是合法的用户命令
         if (suggestion.startsWith('/')) return false
-        // Allow common single-word inputs that are valid user commands
+        // 允许合法的常用单词输入
         const ALLOWED_SINGLE_WORDS = new Set([
-          // Affirmatives
+          // 肯定词
           'yes',
           'yeah',
           'yep',
@@ -415,7 +414,7 @@ export function shouldFilterSuggestion(
           'sure',
           'ok',
           'okay',
-          // Actions
+          // 操作词
           'push',
           'commit',
           'deploy',
@@ -424,7 +423,7 @@ export function shouldFilterSuggestion(
           'check',
           'exit',
           'quit',
-          // Negation
+          // 否定词
           'no',
         ])
         return !ALLOWED_SINGLE_WORDS.has(lower)
@@ -461,8 +460,7 @@ export function shouldFilterSuggestion(
 }
 
 /**
- * Log acceptance/ignoring of a prompt suggestion. Used by the SDK push path
- * to track outcomes when the next user message arrives.
+ * 记录提示建议的接受/忽略情况。用于 SDK 推送路径在下一条用户消息到达时追踪结果。
  */
 export function logSuggestionOutcome(
   suggestion: string,

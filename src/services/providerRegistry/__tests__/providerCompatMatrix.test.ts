@@ -88,7 +88,7 @@ describe('applyCompatRule - stream_options stripping', () => {
       stream_options: { include_usage: true },
     }
     applyCompatRule(body, 'groq')
-    // Input must be unchanged
+    // 输入不得被修改
     expect(body['stream_options']).toEqual({ include_usage: true })
   })
 })

@@ -24,16 +24,16 @@ import { queryHaiku } from '../api/claude.js'
 import { asSystemPrompt } from '../../utils/systemPromptType.js'
 import { logForDebugging } from '../../utils/debug.js'
 
-const INTENT_SYSTEM_PROMPT = `You are a query normalizer for a skill-search index.
+const INTENT_SYSTEM_PROMPT = `你是一个技能搜索索引的查询归一化器。
 
-Given a user's natural-language request (often Chinese, possibly long), extract 3-6 English keywords that capture:
-1. TASK VERB (optimize, review, debug, refactor, test, deploy, analyze, write, audit, design, research, cleanup, implement)
-2. OBJECT (code, prompt, test, UI, API, database, documentation, performance, security, architecture)
-3. CONTEXT/DOMAIN when clear (frontend, backend, mobile, python, go, rust, typescript)
+给定用户的自然语言请求（通常为中文，可能较长），提取 3-6 个能捕捉以下信息的英文关键词：
+1. 任务动词（optimize, review, debug, refactor, test, deploy, analyze, write, audit, design, research, cleanup, implement）
+2. 操作对象（code, prompt, test, UI, API, database, documentation, performance, security, architecture）
+3. 上下文/领域（frontend, backend, mobile, python, go, rust, typescript）（如语义清晰则提取）
 
-Output ONLY space-separated lowercase English keywords. No prose, no JSON, no punctuation, no code fences.
+仅输出以空格分隔的小写英文关键词。无散文、无 JSON、无标点、无代码围栏。
 
-Examples:
+示例：
 - "帮我优化代码的性能" -> optimize code performance refactor
 - "研究当前代码的实现然后分析优化思路" -> analyze code research refactor architecture
 - "优化 prompt 的表达" -> optimize prompt refine writing
@@ -42,7 +42,7 @@ Examples:
 - "重构这个模块的代码" -> refactor code modularize
 - "帮我写个 Go 单元测试" -> write test golang unit
 
-Output ONLY keywords. Nothing else.`
+仅输出关键词，不含其他内容。`
 
 const DEFAULT_TIMEOUT_MS = 6_000
 const MAX_QUERY_CHARS = 500

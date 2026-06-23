@@ -1,30 +1,30 @@
 export function getEnterWorktreeToolPrompt(): string {
-  return `Use this tool ONLY when the user explicitly asks to work in a worktree. This tool creates an isolated git worktree and switches the current session into it.
+  return `仅当用户明确要求在 worktree 中工作时才使用此工具。此工具会创建一个隔离的 git worktree，并将当前会话切换到其中。
 
-## When to Use
+## 何时使用
 
-- The user explicitly says "worktree" (e.g., "start a worktree", "work in a worktree", "create a worktree", "use a worktree")
+- 用户明确说出 "worktree"（例如 "启动一个 worktree"、"在 worktree 中工作"、"创建一个 worktree"、"使用 worktree"）
 
-## When NOT to Use
+## 何时不使用
 
-- The user asks to create a branch, switch branches, or work on a different branch — use git commands instead
-- The user asks to fix a bug or work on a feature — use normal git workflow unless they specifically mention worktrees
-- Never use this tool unless the user explicitly mentions "worktree"
+- 用户要求创建分支、切换分支或在其他分支上工作 —— 改用 git 命令
+- 用户要求修复 bug 或开发功能 —— 使用常规 git 工作流，除非他们明确提到 worktree
+- 除非用户明确提到 "worktree"，否则绝不要使用此工具
 
-## Requirements
+## 前置要求
 
-- Must be in a git repository, OR have WorktreeCreate/WorktreeRemove hooks configured in settings.json
-- Must not already be in a worktree
+- 必须处于 git 仓库中，或在 settings.json 中配置了 WorktreeCreate/WorktreeRemove hooks
+- 必须当前不在 worktree 中
 
-## Behavior
+## 行为
 
-- In a git repository: creates a new git worktree inside \`.claude/worktrees/\` with a new branch based on HEAD
-- Outside a git repository: delegates to WorktreeCreate/WorktreeRemove hooks for VCS-agnostic isolation
-- Switches the session's working directory to the new worktree
-- Use ExitWorktree to leave the worktree mid-session (keep or remove). On session exit, if still in the worktree, the user will be prompted to keep or remove it
+- 在 git 仓库中：在 \`.claude/worktrees/\` 下基于 HEAD 创建一个新的 git worktree 及新分支
+- 在 git 仓库之外：委托给 WorktreeCreate/WorktreeRemove hooks 实现 VCS 无关的隔离
+- 将会话的工作目录切换到新的 worktree
+- 使用 ExitWorktree 可在会话中途离开 worktree（保留或移除）。会话退出时若仍处于 worktree 中，会提示用户保留还是移除它
 
-## Parameters
+## 参数
 
-- \`name\` (optional): A name for the worktree. If not provided, a random name is generated.
+- \`name\`（可选）：worktree 的名称。若未提供，则生成一个随机名称。
 `
 }

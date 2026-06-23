@@ -8,15 +8,11 @@ const inputSchema = lazySchema(() =>
   z.strictObject({
     message_ids: z
       .array(z.string())
-      .describe(
-        '需要从历史中剪除的消息 ID。被剪除的消息会被替换为简短总结。',
-      ),
+      .describe('需要从历史中剪除的消息 ID。被剪除的消息会被替换为简短总结。'),
     reason: z
       .string()
       .optional()
-      .describe(
-        '剪除这些消息的原因。用于总结替换。',
-      ),
+      .describe('剪除这些消息的原因。用于总结替换。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -26,7 +22,7 @@ type SnipOutput = { snipped_count: number; summary: string }
 
 export const SnipTool = buildTool({
   name: SNIP_TOOL_NAME,
-  searchHint: 'snip trim history remove old messages compact context',
+  searchHint: '剪除 修剪历史 移除旧消息 压缩上下文',
   maxResultSizeChars: 5_000,
   strict: true,
 

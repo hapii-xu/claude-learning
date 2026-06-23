@@ -15,9 +15,7 @@ const inputSchema = lazySchema(() =>
     priority: z
       .enum(['normal', 'high'])
       .optional()
-      .describe(
-        '通知优先级。对于阻塞事项或权限提示请使用 "high"。',
-      ),
+      .describe('通知优先级。对于阻塞事项或权限提示请使用 "high"。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -27,7 +25,7 @@ type PushOutput = { sent: boolean }
 
 export const PushNotificationTool = buildTool({
   name: PUSH_NOTIFICATION_TOOL_NAME,
-  searchHint: 'push notification mobile alert notify user',
+  searchHint: '推送通知 移动端 提醒 通知用户',
   maxResultSizeChars: 1_000,
   strict: true,
 

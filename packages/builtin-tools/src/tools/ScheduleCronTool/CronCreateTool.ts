@@ -107,8 +107,7 @@ export const CronCreateTool = buildTool({
     if (input.durable && getTeammateContext()) {
       return {
         result: false,
-        message:
-          'teammate 不支持 durable cron（teammate 不会跨会话保留）',
+        message: 'teammate 不支持 durable cron（teammate 不会跨会话保留）',
         errorCode: 4,
       }
     }

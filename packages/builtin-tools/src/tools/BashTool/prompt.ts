@@ -227,44 +227,44 @@ function getSimpleSandboxSection(): string {
   const sandboxOverrideItems: Array<string | string[]> =
     allowUnsandboxedCommands
       ? [
-          'You should always default to running commands within the sandbox. Do NOT attempt to set `dangerouslyDisableSandbox: true` unless:',
+          '默认始终在沙箱内运行命令。除非满足以下条件，否则不要尝试设置 `dangerouslyDisableSandbox: true`：',
           [
-            'The user *explicitly* asks you to bypass sandbox',
-            'A specific command just failed and you see evidence of sandbox restrictions causing the failure. Note that commands can fail for many reasons unrelated to the sandbox (missing files, wrong arguments, network issues, etc.).',
+            '用户*明确*要求你绕过沙箱',
+            '某个具体命令刚刚失败，且你有证据表明是沙箱限制导致的失败。注意，命令失败的原因很多，可能与沙箱无关（文件缺失、参数错误、网络问题等）。',
           ],
-          'Evidence of sandbox-caused failures includes:',
+          '沙箱导致失败的证据包括：',
           [
-            '"Operation not permitted" errors for file/network operations',
-            'Access denied to specific paths outside allowed directories',
-            'Network connection failures to non-whitelisted hosts',
-            'Unix socket connection errors',
+            '文件/网络操作出现 "Operation not permitted" 错误',
+            '访问允许目录之外的特定路径被拒绝',
+            '连接非白名单主机的网络请求失败',
+            'Unix socket 连接错误',
           ],
-          'When you see evidence of sandbox-caused failure:',
+          '当你看到沙箱导致失败的证据时：',
           [
-            "Immediately retry with `dangerouslyDisableSandbox: true` (don't ask, just do it)",
-            'Briefly explain what sandbox restriction likely caused the failure. Be sure to mention that the user can use the `/sandbox` command to manage restrictions.',
-            'This will prompt the user for permission',
+            '立即带 `dangerouslyDisableSandbox: true` 重试（无需询问，直接做）',
+            '简要说明很可能是哪条沙箱限制导致了失败，并提醒用户可以用 `/sandbox` 命令管理这些限制。',
+            '这会向用户请求权限',
           ],
-          'Treat each command you execute with `dangerouslyDisableSandbox: true` individually. Even if you have recently run a command with this setting, you should default to running future commands within the sandbox.',
-          'Do not suggest adding sensitive paths like ~/.bashrc, ~/.zshrc, ~/.ssh/*, or credential files to the sandbox allowlist.',
+          '对你执行的每一条带 `dangerouslyDisableSandbox: true` 的命令单独处理。即使你最近用这个设置运行过命令，后续命令也应默认在沙箱内运行。',
+          '不要建议将敏感路径（如 ~/.bashrc、~/.zshrc、~/.ssh/* 或凭证文件）加入沙箱白名单。',
         ]
       : [
-          'All commands MUST run in sandbox mode - the `dangerouslyDisableSandbox` parameter is disabled by policy.',
-          'Commands cannot run outside the sandbox under any circumstances.',
-          'If a command fails due to sandbox restrictions, work with the user to adjust sandbox settings instead.',
+          '所有命令必须在沙箱模式下运行 —— 根据策略，`dangerouslyDisableSandbox` 参数已被禁用。',
+          '任何情况下命令都不能在沙箱之外运行。',
+          '如果命令因沙箱限制而失败，请与用户协作调整沙箱设置。',
         ]
 
   const items: Array<string | string[]> = [
     ...sandboxOverrideItems,
-    'For temporary files, always use the `$TMPDIR` environment variable. TMPDIR is automatically set to the correct sandbox-writable directory in sandbox mode. Do NOT use `/tmp` directly - use `$TMPDIR` instead.',
+    '临时文件请始终使用 `$TMPDIR` 环境变量。在沙箱模式下，TMPDIR 会自动设为正确的、沙箱可写目录。不要直接使用 `/tmp` —— 请改用 `$TMPDIR`。',
   ]
 
   return [
     '',
-    '## Command sandbox',
-    'By default, your command will be run in a sandbox. This sandbox controls which directories and network hosts commands may access or modify without an explicit override.',
+    '## 命令沙箱',
+    '默认情况下，你的命令会在沙箱中运行。该沙箱控制命令在未经显式覆盖时可以访问或修改哪些目录和网络主机。',
     '',
-    'The sandbox has the following restrictions:',
+    '沙箱具有以下限制：',
     restrictionsLines.join('\n'),
     '',
     ...prependBullets(items),
@@ -280,13 +280,13 @@ export function getSimplePrompt(): string {
     ...(embedded
       ? []
       : [
-          `File search: Use ${GLOB_TOOL_NAME} (NOT find or ls)`,
-          `Content search: Use ${GREP_TOOL_NAME} (NOT grep or rg)`,
+          `文件搜索：使用 ${GLOB_TOOL_NAME}（不要用 find 或 ls）`,
+          `内容搜索：使用 ${GREP_TOOL_NAME}（不要用 grep 或 rg）`,
         ]),
-    `Read files: Use ${FILE_READ_TOOL_NAME} (NOT cat/head/tail)`,
-    `Edit files: Use ${FILE_EDIT_TOOL_NAME} (NOT sed/awk)`,
-    `Write files: Use ${FILE_WRITE_TOOL_NAME} (NOT echo >/cat <<EOF)`,
-    'Communication: Output text directly (NOT echo/printf)',
+    `读取文件：使用 ${FILE_READ_TOOL_NAME}（不要用 cat/head/tail）`,
+    `编辑文件：使用 ${FILE_EDIT_TOOL_NAME}（不要用 sed/awk）`,
+    `写入文件：使用 ${FILE_WRITE_TOOL_NAME}（不要用 echo >/cat <<EOF)`,
+    '通信：直接输出文本（不要用 echo/printf）',
   ]
 
   const avoidCommands = embedded
@@ -294,70 +294,68 @@ export function getSimplePrompt(): string {
     : '`find`, `grep`, `cat`, `head`, `tail`, `sed`, `awk`, or `echo`'
 
   const multipleCommandsSubitems = [
-    `If the commands are independent and can run in parallel, make multiple ${BASH_TOOL_NAME} tool calls in a single message. Example: if you need to run "git status" and "git diff", send a single message with two ${BASH_TOOL_NAME} tool calls in parallel.`,
-    `If the commands depend on each other and must run sequentially, use a single ${BASH_TOOL_NAME} call with '&&' to chain them together.`,
-    "Use ';' only when you need to run commands sequentially but don't care if earlier commands fail.",
-    'DO NOT use newlines to separate commands (newlines are ok in quoted strings).',
+    `如果命令相互独立、可以并行运行，就在单条消息里发起多个 ${BASH_TOOL_NAME} 工具调用。例如：如果你需要运行 "git status" 和 "git diff"，就在一条消息里并行发起两个 ${BASH_TOOL_NAME} 工具调用。`,
+    `如果命令相互依赖、必须按顺序运行，就在一次 ${BASH_TOOL_NAME} 调用里用 '&&' 把它们串起来。`,
+    '只有当你需要按顺序运行命令、但不在乎前面的命令是否失败时，才使用 ";"。',
+    '不要用换行符来分隔命令（在引号字符串内换行是可以的）。',
   ]
 
   const gitSubitems = [
-    'Prefer to create a new commit rather than amending an existing commit.',
-    'Before running destructive operations (e.g., git reset --hard, git push --force, git checkout --), consider whether there is a safer alternative that achieves the same goal. Only use destructive operations when they are truly the best approach.',
-    'Never skip hooks (--no-verify) or bypass signing (--no-gpg-sign, -c commit.gpgsign=false) unless the user has explicitly asked for it. If a hook fails, investigate and fix the underlying issue.',
+    '优先创建新提交，而不是修改（amend）已有提交。',
+    '在运行破坏性操作（如 git reset --hard、git push --force、git checkout --）之前，先考虑是否有更安全的替代方案能达到同样目的。只有当破坏性操作确实是最佳方案时才使用。',
+    '除非用户明确要求，否则绝不跳过钩子（--no-verify）或绕过签名（--no-gpg-sign、-c commit.gpgsign=false）。如果钩子失败，请排查并修复根本问题。',
   ]
 
   const sleepSubitems = [
-    'Do not sleep between commands that can run immediately — just run them.',
+    '不要在可以立即运行的命令之间 sleep —— 直接运行即可。',
     ...(feature('MONITOR_TOOL')
       ? [
-          'Use the Monitor tool to stream events from a background process (each stdout line is a notification). For one-shot "wait until done," use Bash with run_in_background instead.',
+          '使用 Monitor 工具来流式获取后台进程的事件（stdout 的每一行都是一个通知）。对于一次性的 "等到完成"，请改用带 run_in_background 的 Bash。',
         ]
       : []),
-    'For long-running commands, use `run_in_background` — you will be notified when it completes. Do not poll.',
-    'Do not retry failing commands in a sleep loop — diagnose the root cause.',
+    '对于长时间运行的命令，使用 `run_in_background` —— 命令完成时你会收到通知。不要轮询。',
+    '不要用 sleep 循环来重试失败的命令 —— 应诊断根本原因。',
     ...(feature('MONITOR_TOOL')
       ? [
-          '`sleep N` as the first command with N ≥ 2 is blocked. If you need a delay (rate limiting, deliberate pacing), keep it under 2 seconds.',
+          '作为首条命令的 `sleep N`（N ≥ 2）会被阻止。如果你确实需要延迟（限流、刻意的节奏控制），请保持在 2 秒以内。',
         ]
-      : [
-          'If you must sleep, keep the duration short (1-5 seconds) to avoid blocking the user.',
-        ]),
+      : ['如果确实需要 sleep，请保持时长较短（1-5 秒），以免阻塞用户。']),
   ]
   const backgroundNote = getBackgroundUsageNote()
 
   const instructionItems: Array<string | string[]> = [
-    'If your command will create new directories or files, first use this tool to run `ls` to verify the parent directory exists and is the correct location.',
-    'Always quote file paths that contain spaces with double quotes in your command (e.g., cd "path with spaces/file.txt")',
-    'Try to maintain your current working directory throughout the session by using absolute paths and avoiding usage of `cd`. You may use `cd` if the User explicitly requests it.',
-    `You may specify an optional timeout in milliseconds (up to ${getMaxTimeoutMs()}ms / ${getMaxTimeoutMs() / 60000} minutes). By default, your command will timeout after ${getDefaultTimeoutMs()}ms (${getDefaultTimeoutMs() / 60000} minutes).`,
+    '如果你的命令会创建新的目录或文件，先用此工具运行 `ls` 确认父目录存在且位置正确。',
+    '命令中包含空格的文件路径始终用双引号括起来（例如 cd "path with spaces/file.txt"）。',
+    '尽量在整个会话中保持当前工作目录不变——使用绝对路径，避免使用 `cd`。仅当用户明确要求时才可使用 `cd`。',
+    `你可以指定一个可选的超时时间（毫秒），上限为 ${getMaxTimeoutMs()}ms / ${getMaxTimeoutMs() / 60000} 分钟。默认情况下，你的命令会在 ${getDefaultTimeoutMs()}ms（${getDefaultTimeoutMs() / 60000} 分钟）后超时。`,
     ...(backgroundNote !== null ? [backgroundNote] : []),
-    'When issuing multiple commands:',
+    '当发出多条命令时：',
     multipleCommandsSubitems,
-    'For git commands:',
+    '对于 git 命令：',
     gitSubitems,
-    'Avoid unnecessary `sleep` commands:',
+    '避免不必要的 `sleep` 命令：',
     sleepSubitems,
     ...(embedded
       ? [
           // bfs（支撑 `find`）在 -regex 中使用 Oniguruma，它采用最左优先
           // 匹配（leftmost-first），而 GNU find 使用 POSIX 最长匹配。
           // 当较短的备选项是较长备选项的前缀时，这会静默丢弃部分匹配。
-          "When using `find -regex` with alternation, put the longest alternative first. Example: use `'.*\\.\\(tsx\\|ts\\)'` not `'.*\\.\\(ts\\|tsx\\)'` — the second form silently skips `.tsx` files.",
+          "使用 `find -regex` 配合或（alternation）时，把最长的备选项放在最前面。例如：用 `'.*\\.\\(tsx\\|ts\\)'` 而不是 `'.*\\.\\(ts\\|tsx\\)'` —— 后者会静默跳过 `.tsx` 文件。",
         ]
       : []),
   ]
 
   return [
-    'Executes a given bash command and returns its output.',
+    '执行给定的 bash 命令并返回其输出。',
     '',
-    "The working directory persists between commands, but shell state does not. The shell environment is initialized from the user's profile (bash or zsh).",
+    '工作目录在命令之间会保留，但 shell 状态不会保留。shell 环境从用户的 profile（bash 或 zsh）初始化。',
     '',
-    `IMPORTANT: Avoid using this tool to run ${avoidCommands} commands, unless explicitly instructed or after you have verified that a dedicated tool cannot accomplish your task. Instead, use the appropriate dedicated tool as this will provide a much better experience for the user:`,
+    `重要：避免使用此工具运行 ${avoidCommands} 命令，除非被明确指示，或在确认专用工具无法完成任务之后。请改用合适的专用工具，这会为用户提供更好的体验：`,
     '',
     ...prependBullets(toolPreferenceItems),
-    `While the ${BASH_TOOL_NAME} tool can do similar things, it’s better to use the built-in tools as they provide a better user experience and make it easier to review tool calls and give permission.`,
+    `虽然 ${BASH_TOOL_NAME} 工具也能做类似的事，但使用内置工具更好——它们提供更好的用户体验，也更容易审查工具调用并授予权限。`,
     '',
-    '# Instructions',
+    '# 指令',
     ...prependBullets(instructionItems),
     getSimpleSandboxSection(),
     ...(getCommitAndPRInstructions() ? ['', getCommitAndPRInstructions()] : []),

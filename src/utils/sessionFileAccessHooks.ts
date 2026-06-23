@@ -1,7 +1,7 @@
 /**
- * Session file access analytics hooks.
- * Tracks access to session memory and transcript files via Read, Grep, Glob tools.
- * Also tracks memdir file access via Read, Grep, Glob, Edit, and Write tools.
+ * 会话文件访问分析钩子。
+ * 通过 Read、Grep、Glob 工具追踪对会话内存和转录文件的访问。
+ * 同时通过 Read、Grep、Glob、Edit 和 Write 工具追踪 memdir 文件访问。
  */
 import { feature } from 'bun:bundle'
 import { registerHookCallbacks } from '../bootstrap/state.js'
@@ -43,8 +43,8 @@ const memoryShapeTelemetry = feature('MEMORY_SHAPE_TELEMETRY')
 import { getSubagentLogName } from './agentContext.js'
 
 /**
- * Extract the file path from a tool input for memdir detection.
- * Covers Read (file_path), Edit (file_path), and Write (file_path).
+ * 从工具输入中提取文件路径，用于 memdir 检测。
+ * 覆盖 Read（file_path）、Edit（file_path）和 Write（file_path）。
  */
 function getFilePathFromInput(
   toolName: string,
@@ -69,8 +69,8 @@ function getFilePathFromInput(
 }
 
 /**
- * Extract file type from tool input.
- * Returns the detected session file type or null.
+ * 从工具输入中提取文件类型。
+ * 返回检测到的会话文件类型，或 null。
  */
 function getSessionFileTypeFromInput(
   toolName: string,
@@ -85,12 +85,12 @@ function getSessionFileTypeFromInput(
     case GREP_TOOL_NAME: {
       const parsed = GrepTool.inputSchema.safeParse(toolInput)
       if (!parsed.success) return null
-      // Check path if provided
+      // 若提供了路径则检查路径
       if (parsed.data.path) {
         const pathType = detectSessionFileType(parsed.data.path)
         if (pathType) return pathType
       }
-      // Check glob pattern
+      // 检查 glob 模式
       if (parsed.data.glob) {
         const globType = detectSessionPatternType(parsed.data.glob)
         if (globType) return globType
@@ -100,12 +100,12 @@ function getSessionFileTypeFromInput(
     case GLOB_TOOL_NAME: {
       const parsed = GlobTool.inputSchema.safeParse(toolInput)
       if (!parsed.success) return null
-      // Check path if provided
+      // 若提供了路径则检查路径
       if (parsed.data.path) {
         const pathType = detectSessionFileType(parsed.data.path)
         if (pathType) return pathType
       }
-      // Check pattern
+      // 检查模式
       const patternType = detectSessionPatternType(parsed.data.pattern)
       if (patternType) return patternType
       return null
@@ -116,9 +116,9 @@ function getSessionFileTypeFromInput(
 }
 
 /**
- * Check if a tool use constitutes a memory file access.
- * Detects session memory (via Read/Grep/Glob) and memdir access (via Read/Edit/Write).
- * Uses the same conditions as the PostToolUse session file access hooks.
+ * 检查某次工具调用是否构成内存文件访问。
+ * 检测会话内存（通过 Read/Grep/Glob）和 memdir 访问（通过 Read/Edit/Write）。
+ * 使用与 PostToolUse 会话文件访问钩子相同的判断条件。
  */
 export function isMemoryFileAccess(
   toolName: string,
@@ -141,7 +141,7 @@ export function isMemoryFileAccess(
 }
 
 /**
- * PostToolUse callback to log session file access events.
+ * PostToolUse 回调，用于记录会话文件访问事件。
  */
 async function handleSessionFileAccess(
   input: HookInput,
@@ -164,7 +164,7 @@ async function handleSessionFileAccess(
     logEvent('tengu_transcript_accessed', { ...subagentProps })
   }
 
-  // Memdir access tracking
+  // Memdir 访问追踪
   const filePath = getFilePathFromInput(
     input.tool_name as string,
     input.tool_input as string,
@@ -188,7 +188,7 @@ async function handleSessionFileAccess(
     }
   }
 
-  // Team memory access tracking
+  // 团队内存访问追踪
   if (feature('TEAMMEM') && filePath && teamMemPaths!.isTeamMemFile(filePath)) {
     logEvent('tengu_team_mem_accessed', {
       tool: input.tool_name as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -230,14 +230,14 @@ async function handleSessionFileAccess(
 }
 
 /**
- * Register session file access tracking hooks.
- * Called during CLI initialization.
+ * 注册会话文件访问追踪钩子。
+ * 在 CLI 初始化时调用。
  */
 export function registerSessionFileAccessHooks(): void {
   const hook: HookCallback = {
     type: 'callback',
     callback: handleSessionFileAccess,
-    timeout: 1, // Very short timeout - just logging
+    timeout: 1, // 极短超时 - 仅用于日志记录
     internal: true,
   }
 

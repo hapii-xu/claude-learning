@@ -318,9 +318,7 @@ export const outputSchema = lazySchema(() => {
     success: z.boolean().describe('该 skill 是否成功完成'),
     commandName: z.string().describe('skill 的名称'),
     status: z.literal('forked').describe('执行状态'),
-    agentId: z
-      .string()
-      .describe('执行该 skill 的子 agent ID'),
+    agentId: z.string().describe('执行该 skill 的子 agent ID'),
     result: z.string().describe('fork skill 执行的结果'),
   })
 
@@ -332,7 +330,7 @@ export type Output = z.input<OutputSchema>
 
 export const SkillTool: Tool<InputSchema, Output, Progress> = buildTool({
   name: SKILL_TOOL_NAME,
-  searchHint: 'invoke a slash-command skill',
+  searchHint: '调用 slash 命令 skill 技能',
   maxResultSizeChars: 100_000,
   get inputSchema(): InputSchema {
     return inputSchema()

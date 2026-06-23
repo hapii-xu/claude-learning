@@ -2,17 +2,17 @@ import type { ProviderBalance } from '../types.js'
 import type { BalanceProvider } from './types.js'
 
 /**
- * Generic URL+key balance provider.
+ * 通用 URL + 密钥余额提供商。
  *
- * Environment:
- *   CLAUDE_CODE_BALANCE_URL        — GET endpoint returning JSON (required)
- *   CLAUDE_CODE_BALANCE_KEY        — optional Bearer token (falls back to OPENAI_API_KEY / ANTHROPIC_API_KEY)
- *   CLAUDE_CODE_BALANCE_JSON_PATH  — dot path into the JSON for the remaining number (default: "balance")
- *                                    array indices allowed, e.g. "data.0.credit"
- *   CLAUDE_CODE_BALANCE_CURRENCY   — display currency label (default: "USD")
+ * 环境变量：
+ *   CLAUDE_CODE_BALANCE_URL        — 返回 JSON 的 GET 端点（必填）
+ *   CLAUDE_CODE_BALANCE_KEY        — 可选的 Bearer 令牌（回退到 OPENAI_API_KEY / ANTHROPIC_API_KEY）
+ *   CLAUDE_CODE_BALANCE_JSON_PATH  — JSON 中余额数字的点分路径（默认："balance"）
+ *                                    允许数组索引，例如 "data.0.credit"
+ *   CLAUDE_CODE_BALANCE_CURRENCY   — 显示货币标签（默认："USD"）
  *
- * Kept intentionally permissive so any OpenAI-compatible "my balance" endpoint
- * can be wired up without writing new code.
+ * 有意保持宽松，以便任何 OpenAI 兼容的"我的余额"端点
+ * 都能直接接入，无需编写新代码。
  */
 
 function pickAtPath(obj: unknown, path: string): unknown {
@@ -72,9 +72,9 @@ export const genericBalanceProvider: BalanceProvider = {
       return null
     }
 
-    // Fallback chain: BALANCE_KEY → OPENAI_API_KEY → ANTHROPIC_API_KEY.
-    // WARNING: fallback keys are sent to CLAUDE_CODE_BALANCE_URL as Bearer token.
-    // If that URL is untrusted, your provider key leaks. Prefer CLAUDE_CODE_BALANCE_KEY.
+    // 回退链：BALANCE_KEY → OPENAI_API_KEY → ANTHROPIC_API_KEY。
+    // 警告：回退密钥将作为 Bearer 令牌发送到 CLAUDE_CODE_BALANCE_URL。
+    // 如果该 URL 不可信，你的提供商密钥将泄露。推荐使用 CLAUDE_CODE_BALANCE_KEY。
     const key =
       process.env.CLAUDE_CODE_BALANCE_KEY ||
       process.env.OPENAI_API_KEY ||

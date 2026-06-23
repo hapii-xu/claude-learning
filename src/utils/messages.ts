@@ -86,7 +86,7 @@ import { formatNumber, formatTokens } from './format.js'
 import { getPewterLedgerVariant } from './planModeV2.js'
 import { jsonStringify } from './slowOperations.js'
 
-// Hook attachments that have a hookName field (excludes HookPermissionDecisionAttachment)
+// 带有 hookName 字段的 hook attachment（不含 HookPermissionDecisionAttachment）
 type HookAttachmentWithName = Exclude<
   HookAttachment,
   HookPermissionDecisionAttachment
@@ -163,7 +163,7 @@ import {
 import { escapeRegExp } from './stringUtils.js'
 import { isTodoV2Enabled } from './tasks.js'
 
-// Lazy import to avoid circular dependency (teammateMailbox -> teammate -> ... -> messages)
+// 懒加载以避免循环依赖（teammateMailbox -> teammate -> ... -> messages）
 function getTeammateMailbox(): typeof import('./teammateMailbox.js') {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   return require('./teammateMailbox.js')
@@ -174,14 +174,16 @@ import {
   isSearchExtraToolsEnabledOptimistic,
 } from './searchExtraTools.js'
 
+// 记忆纠正提示：注入到拒绝/取消消息末尾，引导模型关注用户的下一条纠正消息
 const MEMORY_CORRECTION_HINT =
   "\n\nNote: The user's next message may contain a correction or preference. Pay close attention — if they explain what went wrong or how they'd prefer you to work, consider saving that to memory for future sessions."
 
+// tool_reference 消息的轮次边界标记，用于区分工具加载后的人类轮次
 const TOOL_REFERENCE_TURN_BOUNDARY = 'Tool loaded.'
 
 /**
- * Appends a memory correction hint to a rejection/cancellation message
- * when auto-memory is enabled and the GrowthBook flag is on.
+ * 当 auto-memory 已启用且 GrowthBook 开关打开时，
+ * 向拒绝/取消消息末尾追加记忆纠正提示。
  */
 export function withMemoryCorrectionHint(message: string): string {
   if (
@@ -194,35 +196,43 @@ export function withMemoryCorrectionHint(message: string): string {
 }
 
 /**
- * Derive a short stable message ID (6-char base36 string) from a UUID.
- * Used for snip tool referencing — injected into API-bound messages as [id:...] tags.
- * Deterministic: same UUID always produces the same short ID.
+ * 从 UUID 派生一个短稳定的消息 ID（6 位 base36 字符串）。
+ * 用于 snip 工具引用——以 [id:...] 标签注入到发往 API 的消息中。
+ * 确定性：相同 UUID 始终生成相同的短 ID。
  */
 export function deriveShortMessageId(uuid: string): string {
-  // Take first 10 hex chars from the UUID (skipping dashes)
+  // 取 UUID 的前 10 个十六进制字符（跳过连字符）
   const hex = uuid.replace(/-/g, '').slice(0, 10)
-  // Convert to base36 for shorter representation, take 6 chars
+  // 转为 base36 以缩短表示，取前 6 位
   return parseInt(hex, 16).toString(36).slice(0, 6)
 }
 
+// 用户中断请求的消息（注入为 tool_result，告知模型请求已被打断）
 export const INTERRUPT_MESSAGE = '[Request interrupted by user]'
+// 用户在 tool use 阶段中断的消息
 export const INTERRUPT_MESSAGE_FOR_TOOL_USE =
   '[Request interrupted by user for tool use]'
+// 用户取消当前操作：要求模型停下来等待指示
 export const CANCEL_MESSAGE =
   "The user doesn't want to take this action right now. STOP what you are doing and wait for the user to tell you how to proceed."
+// 用户拒绝 tool use：告知模型操作未执行，停下等待
 export const REJECT_MESSAGE =
   "The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to tell you how to proceed."
+// 带原因的拒绝消息前缀（用户填写拒绝原因时使用）
 export const REJECT_MESSAGE_WITH_REASON_PREFIX =
   "The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). To tell you how to proceed, the user said:\n"
+// 子 agent 的 tool use 被拒绝时发送的消息（鼓励换一种方式）
 export const SUBAGENT_REJECT_MESSAGE =
   'Permission for this tool use was denied. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). Try a different approach or report the limitation to complete your task.'
+// 子 agent 带原因的拒绝消息前缀
 export const SUBAGENT_REJECT_MESSAGE_WITH_REASON_PREFIX =
   'Permission for this tool use was denied. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). The user said:\n'
+// 用户拒绝 plan mode 提案时的前缀
 export const PLAN_REJECTION_PREFIX =
   'The agent proposed a plan that was rejected by the user. The user chose to stay in plan mode rather than proceed with implementation.\n\nRejected plan:\n'
 
 /**
- * Shared guidance for permission denials, instructing the model on appropriate workarounds.
+ * 权限拒绝时的通用引导语：告知模型可以尝试合理的替代方案，但不能绕过拒绝的真实意图。
  */
 export const DENIAL_WORKAROUND_GUIDANCE =
   `IMPORTANT: You *may* attempt to accomplish this action using other tools that might naturally be used to accomplish this goal, ` +
@@ -240,30 +250,29 @@ export function DONT_ASK_REJECT_MESSAGE(toolName: string): string {
 }
 export const NO_RESPONSE_REQUESTED = 'No response requested.'
 
-// Synthetic tool_result content inserted by ensureToolResultPairing when a
-// tool_use block has no matching tool_result. Exported so HFI submission can
-// reject any payload containing it — placeholder satisfies pairing structurally
-// but the content is fake, which poisons training data if submitted.
+// ensureToolResultPairing 在 tool_use 没有匹配 tool_result 时插入的合成内容。
+// 对外导出是为了让 HFI 提交端拒绝包含此占位符的 payload——
+// 结构上满足配对要求，但内容是伪造的，若提交会污染训练数据。
 export const SYNTHETIC_TOOL_RESULT_PLACEHOLDER =
   '[Tool result missing due to internal error]'
 
-// Prefix used by UI to detect classifier denials and render them concisely
+// UI 用来检测"分类器拒绝"并以简洁方式渲染的前缀
 const AUTO_MODE_REJECTION_PREFIX =
   'Permission for this action has been denied. Reason: '
 
 /**
- * Check if a tool result message is a classifier denial.
- * Used by the UI to render a short summary instead of the full message.
+ * 判断 tool result 消息是否为分类器拒绝。
+ * UI 层用此判断来渲染简短摘要，而非完整原文。
  */
 export function isClassifierDenial(content: string): boolean {
   return content.startsWith(AUTO_MODE_REJECTION_PREFIX)
 }
 
 /**
- * Build a rejection message for auto mode classifier denials.
- * Encourages continuing with other tasks and suggests permission rules.
+ * 构建 auto mode 分类器拒绝的消息文本。
+ * 鼓励模型继续完成其他任务，并建议配置权限规则。
  *
- * @param reason - The classifier's reason for denying the action
+ * @param reason - 分类器给出的拒绝原因
  */
 export function buildYoloRejectionMessage(reason: string): string {
   const prefix = AUTO_MODE_REJECTION_PREFIX
@@ -283,8 +292,8 @@ export function buildYoloRejectionMessage(reason: string): string {
 }
 
 /**
- * Build a message for when the auto mode classifier is temporarily unavailable.
- * Tells the agent to wait and retry, and suggests working on other tasks.
+ * 构建 auto mode 分类器暂时不可用时的消息文本。
+ * 告知 agent 等待后重试，并建议先处理其他不需要分类器的任务。
  */
 export function buildClassifierUnavailableMessage(
   toolName: string,
@@ -334,8 +343,8 @@ function isSyntheticApiErrorMessage(
 export function getLastAssistantMessage(
   messages: Message[],
 ): AssistantMessage | undefined {
-  // findLast exits early from the end — much faster than filter + last for
-  // large message arrays (called on every REPL render via useFeedbackSurvey).
+  // findLast 从末尾提前退出——比 filter + last 快得多
+  // （每次 REPL 渲染都会通过 useFeedbackSurvey 调用此函数）
   return messages.findLast(
     (msg): msg is AssistantMessage => msg.type === 'assistant',
   )
@@ -427,7 +436,7 @@ export function createAssistantMessage({
             {
               type: 'text' as const,
               text: content === '' ? NO_CONTENT_MESSAGE : content,
-            } as BetaContentBlock, // NOTE: citations field is not supported in Bedrock API
+            } as BetaContentBlock, // 注意：Bedrock API 不支持 citations 字段
           ]
         : content,
     usage,
@@ -451,7 +460,7 @@ export function createAssistantAPIErrorMessage({
       {
         type: 'text' as const,
         text: content === '' ? NO_CONTENT_MESSAGE : content,
-      } as BetaContentBlock, // NOTE: citations field is not supported in Bedrock API
+      } as BetaContentBlock, // 注意：Bedrock API 不支持 citations 字段
     ],
     isApiErrorMessage: true,
     apiError,
@@ -481,8 +490,8 @@ export function createUserMessage({
   isVisibleInTranscriptOnly?: true
   isVirtual?: true
   isCompactSummary?: true
-  toolUseResult?: unknown // Matches tool's `Output` type
-  /** MCP protocol metadata to pass through to SDK consumers (never sent to model) */
+  toolUseResult?: unknown // 与 tool 的 `Output` 类型匹配
+  /** MCP 协议元数据，透传给 SDK 消费者（永远不发送给模型） */
   mcpMeta?: {
     _meta?: Record<string, unknown>
     structuredContent?: Record<string, unknown>
@@ -490,23 +499,23 @@ export function createUserMessage({
   uuid?: UUID | string
   timestamp?: string
   imagePasteIds?: number[]
-  // For tool_result messages: the UUID of the assistant message containing the matching tool_use
+  // 对于 tool_result 消息：包含匹配 tool_use 的 assistant 消息的 UUID
   sourceToolAssistantUUID?: UUID
-  // Permission mode when message was sent (for rewind restoration)
+  // 消息发送时的权限模式（用于 rewind 恢复）
   permissionMode?: PermissionMode
   summarizeMetadata?: {
     messagesSummarized: number
     userContext?: string
     direction?: PartialCompactDirection
   }
-  // Provenance of this message. undefined = human (keyboard).
+  // 消息来源。undefined = 人类（键盘输入）
   origin?: MessageOrigin
 }): UserMessage {
   const m: UserMessage = {
     type: 'user',
     message: {
       role: 'user',
-      content: content || NO_CONTENT_MESSAGE, // Make sure we don't send empty messages
+      content: content || NO_CONTENT_MESSAGE, // 确保不发送空消息
     },
     isMeta,
     isVisibleInTranscriptOnly,
@@ -563,8 +572,8 @@ export function createUserInterruptionMessage({
 }
 
 /**
- * Creates a new synthetic user caveat message for local commands (eg. bash, slash).
- * We need to create a new message each time because messages must have unique uuids.
+ * 为本地命令（如 bash、slash 命令）创建一条新的合成 user 警示消息。
+ * 每次都需要创建新消息，因为消息必须有唯一 UUID。
  */
 export function createSyntheticUserCaveatMessage(): UserMessage {
   return createUserMessage({
@@ -574,7 +583,7 @@ export function createSyntheticUserCaveatMessage(): UserMessage {
 }
 
 /**
- * Formats the command-input breadcrumb the model sees when a slash command runs.
+ * 格式化 slash 命令执行时模型看到的命令输入面包屑。
  */
 export function formatCommandInputTags(
   commandName: string,
@@ -586,9 +595,9 @@ export function formatCommandInputTags(
 }
 
 /**
- * Builds the breadcrumb trail the SDK set_model control handler injects
- * so the model can see mid-conversation switches. Same shape the CLI's
- * /model command produces via processSlashCommand.
+ * 构建 SDK set_model 控制处理器注入的面包屑链，
+ * 让模型能看到会话中途的模型切换。
+ * 与 CLI 的 /model 命令通过 processSlashCommand 产生的格式相同。
  */
 export function createModelSwitchBreadcrumbs(
   modelArg: string,
@@ -725,15 +734,14 @@ export function isNotEmptyMessage(message: Message): boolean {
   )
 }
 
-// Deterministic UUID derivation. Produces a stable UUID-shaped string from a
-// parent UUID + content block index so that the same input always produces the
-// same key across calls. Used by normalizeMessages and synthetic message creation.
+// 确定性 UUID 派生：从父 UUID + 内容块索引生成稳定的 UUID 形状字符串，
+// 相同输入始终产生相同 key。被 normalizeMessages 和合成消息创建使用。
 export function deriveUUID(parentUUID: UUID, index: number): UUID {
   const hex = index.toString(16).padStart(12, '0')
   return `${parentUUID.slice(0, 24)}${hex}` as UUID
 }
 
-// Split messages, so each content block gets its own message
+// 拆分消息，让每个 content block 获得独立消息
 export function normalizeMessages(
   messages: AssistantMessage[],
 ): NormalizedAssistantMessage[]
@@ -745,12 +753,10 @@ export function normalizeMessages(
 ): (NormalizedAssistantMessage | NormalizedUserMessage)[]
 export function normalizeMessages(messages: Message[]): NormalizedMessage[]
 export function normalizeMessages(messages: Message[]): NormalizedMessage[] {
-  // isNewChain tracks whether we need to generate new UUIDs for messages when normalizing.
-  // When a message has multiple content blocks, we split it into multiple messages,
-  // each with a single content block. When this happens, we need to generate new UUIDs
-  // for all subsequent messages to maintain proper ordering and prevent duplicate UUIDs.
-  // This flag is set to true once we encounter a message with multiple content blocks,
-  // and remains true for all subsequent messages in the normalization process.
+  // isNewChain 跟踪规范化时是否需要为消息生成新 UUID。
+  // 当一条消息包含多个 content block 时，我们将其拆分为多条消息（每条只有一个 block）。
+  // 发生拆分后，所有后续消息都需要生成新 UUID，以维护正确顺序并防止重复 UUID。
+  // 一旦遇到多 block 消息，该标志置为 true，后续所有消息保持 true。
   let isNewChain = false
   return messages.flatMap(message => {
     switch (message.type) {
@@ -851,7 +857,7 @@ export function isToolUseRequestMessage(
 ): message is ToolUseRequestMessage {
   return (
     message.type === 'assistant' &&
-    // Note: stop_reason === 'tool_use' is unreliable -- it's not always set correctly
+    // 注意：stop_reason === 'tool_use' 不可靠——并非总是被正确设置
     Array.isArray(message.message?.content) &&
     (message.message?.content as Array<{ type: string }>).some(
       _ => _.type === 'tool_use',
@@ -875,7 +881,7 @@ export function isToolUseResultMessage(
   )
 }
 
-// Re-order, to move result messages to be after their tool use messages
+// 重排消息：将 tool result 移动到对应 tool use 消息之后
 export function reorderMessagesInUI(
   messages: (
     | NormalizedUserMessage
@@ -890,7 +896,7 @@ export function reorderMessagesInUI(
   | AttachmentMessage
   | SystemMessage
 )[] {
-  // Maps tool use ID to its related messages
+  // 将 tool use ID 映射到其关联的消息组
   const toolUseGroups = new Map<
     string,
     {
@@ -901,9 +907,9 @@ export function reorderMessagesInUI(
     }
   >()
 
-  // First pass: group messages by tool use ID
+  // 第一遍：按 tool use ID 对消息分组
   for (const message of messages) {
-    // Handle tool use messages
+    // 处理 tool use 消息
     if (isToolUseRequestMessage(message)) {
       const toolUseID = message.message.content[0]?.id
       if (toolUseID) {
@@ -920,7 +926,7 @@ export function reorderMessagesInUI(
       continue
     }
 
-    // Handle pre-tool-use hooks
+    // 处理 tool use 前置 hook
     if (
       isHookAttachmentMessage(message) &&
       message.attachment.hookEvent === 'PreToolUse'
@@ -938,7 +944,7 @@ export function reorderMessagesInUI(
       continue
     }
 
-    // Handle tool results
+    // 处理 tool result
     if (
       message.type === 'user' &&
       Array.isArray(message.message.content) &&
@@ -958,7 +964,7 @@ export function reorderMessagesInUI(
       continue
     }
 
-    // Handle post-tool-use hooks
+    // 处理 tool use 后置 hook
     if (
       isHookAttachmentMessage(message) &&
       message.attachment.hookEvent === 'PostToolUse'
@@ -976,7 +982,7 @@ export function reorderMessagesInUI(
     }
   }
 
-  // Second pass: reconstruct the message list in the correct order
+  // 第二遍：按正确顺序重建消息列表
   const result: (
     | NormalizedUserMessage
     | NormalizedAssistantMessage
@@ -986,14 +992,14 @@ export function reorderMessagesInUI(
   const processedToolUses = new Set<string>()
 
   for (const message of messages) {
-    // Check if this is a tool use
+    // 检查是否为 tool use 消息
     if (isToolUseRequestMessage(message)) {
       const toolUseID = message.message.content[0]?.id
       if (toolUseID && !processedToolUses.has(toolUseID)) {
         processedToolUses.add(toolUseID)
         const group = toolUseGroups.get(toolUseID)
         if (group && group.toolUse) {
-          // Output in order: tool use, pre hooks, tool result, post hooks
+          // 按顺序输出：tool use、前置 hook、tool result、后置 hook
           result.push(group.toolUse)
           result.push(...group.preHooks)
           if (group.toolResult) {
@@ -1005,13 +1011,13 @@ export function reorderMessagesInUI(
       continue
     }
 
-    // Check if this message is part of a tool use group
+    // 检查消息是否属于某个 tool use 分组
     if (
       isHookAttachmentMessage(message) &&
       (message.attachment.hookEvent === 'PreToolUse' ||
         message.attachment.hookEvent === 'PostToolUse')
     ) {
-      // Skip - already handled in tool use groups
+      // 跳过——已在 tool use 分组中处理
       continue
     }
 
@@ -1020,11 +1026,11 @@ export function reorderMessagesInUI(
       Array.isArray(message.message.content) &&
       message.message.content[0]?.type === 'tool_result'
     ) {
-      // Skip - already handled in tool use groups
+      // 跳过——已在 tool use 分组中处理
       continue
     }
 
-    // Handle api error messages (only keep the last one)
+    // 处理 API 错误消息（只保留最后一条）
     if (message.type === 'system' && message.subtype === 'api_error') {
       const last = result.at(-1)
       if (last?.type === 'system' && last.subtype === 'api_error') {
@@ -1035,16 +1041,16 @@ export function reorderMessagesInUI(
       continue
     }
 
-    // Add standalone messages
+    // 添加独立消息
     result.push(message)
   }
 
-  // Add synthetic streaming tool use messages
+  // 添加流式 tool use 的合成消息
   for (const message of syntheticStreamingToolUseMessages) {
     result.push(message)
   }
 
-  // Filter to keep only the last api error message
+  // 过滤，只保留最后一条 api error 消息
   const last = result.at(-1)
   return result.filter(
     _ => _.type !== 'system' || _.subtype !== 'api_error' || _ === last,
@@ -1089,8 +1095,8 @@ function getResolvedHookCount(
   toolUseID: string,
   hookEvent: HookEvent,
 ): number {
-  // Count unique hook names, since a single hook can produce multiple
-  // attachment messages (e.g., hook_success + hook_additional_context)
+  // 统计唯一 hook 名称，因为单个 hook 可能产生多条 attachment 消息
+  // （例如 hook_success + hook_additional_context）
   const uniqueHookNames = new Set(
     messages
       .filter(
@@ -1193,30 +1199,30 @@ export type MessageLookups = {
   progressMessagesByToolUseID: Map<string, ProgressMessage[]>
   inProgressHookCounts: Map<string, Map<HookEvent, number>>
   resolvedHookCounts: Map<string, Map<HookEvent, number>>
-  /** Maps tool_use_id to the user message containing its tool_result */
+  /** tool_use_id 到包含其 tool_result 的 user 消息的映射 */
   toolResultByToolUseID: Map<string, NormalizedMessage>
-  /** Maps tool_use_id to the ToolUseBlockParam */
+  /** tool_use_id 到 ToolUseBlockParam 的映射 */
   toolUseByToolUseID: Map<string, ToolUseBlockParam>
-  /** Total count of normalized messages (for truncation indicator text) */
+  /** 规范化消息的总数（用于截断提示文本） */
   normalizedMessageCount: number
-  /** Set of tool use IDs that have a corresponding tool_result */
+  /** 已有对应 tool_result 的 tool use ID 集合 */
   resolvedToolUseIDs: Set<string>
-  /** Set of tool use IDs that have an errored tool_result */
+  /** tool_result 带有错误的 tool use ID 集合 */
   erroredToolUseIDs: Set<string>
 }
 
 /**
- * Build pre-computed lookups for efficient O(1) access to message relationships.
- * Call once per render, then use the lookups for all messages.
+ * 构建预计算查找表，以 O(1) 高效访问消息关系。
+ * 每次渲染调用一次，然后对所有消息复用查找结果。
  *
- * This avoids O(n²) behavior from calling getProgressMessagesForMessage,
- * getSiblingToolUseIDs, and hasUnresolvedHooks for each message.
+ * 避免了对每条消息分别调用 getProgressMessagesForMessage、
+ * getSiblingToolUseIDs 和 hasUnresolvedHooks 导致的 O(n²) 行为。
  */
 export function buildMessageLookups(
   normalizedMessages: NormalizedMessage[],
   messages: Message[],
 ): MessageLookups {
-  // First pass: group assistant messages by ID and collect all tool use IDs per message
+  // 第一遍：按 ID 对 assistant 消息分组，收集每条消息的所有 tool use ID
   const toolUseIDsByMessageID = new Map<string, Set<string>>()
   const toolUseIDToMessageID = new Map<string, string>()
   const toolUseByToolUseID = new Map<string, ToolUseBlockParam>()
@@ -1245,21 +1251,21 @@ export function buildMessageLookups(
     }
   }
 
-  // Build sibling lookup - each tool use ID maps to all sibling tool use IDs
+  // 构建兄弟查找表——每个 tool use ID 映射到同一消息内的所有兄弟 tool use ID
   const siblingToolUseIDs = new Map<string, Set<string>>()
   for (const [toolUseID, messageID] of toolUseIDToMessageID) {
     siblingToolUseIDs.set(toolUseID, toolUseIDsByMessageID.get(messageID)!)
   }
 
-  // Single pass over normalizedMessages to build progress, hook, and tool result lookups
+  // 对 normalizedMessages 单次遍历，构建进度、hook 和 tool result 查找表
   const progressMessagesByToolUseID = new Map<string, ProgressMessage[]>()
   const inProgressHookCounts = new Map<string, Map<HookEvent, number>>()
-  // Track unique hook names per (toolUseID, hookEvent) to match getResolvedHookCount behavior.
-  // A single hook can produce multiple attachment messages (e.g., hook_success + hook_additional_context),
-  // so we deduplicate by hookName.
+  // 按 (toolUseID, hookEvent) 跟踪唯一 hook 名称，匹配 getResolvedHookCount 的行为。
+  // 单个 hook 可能产生多条 attachment 消息（如 hook_success + hook_additional_context），
+  // 因此通过 hookName 去重。
   const resolvedHookNames = new Map<string, Map<HookEvent, Set<string>>>()
   const toolResultByToolUseID = new Map<string, NormalizedMessage>()
-  // Track resolved/errored tool use IDs (replaces separate useMemos in Messages.tsx)
+  // 跟踪已解决/出错的 tool use ID（替代 Messages.tsx 中独立的 useMemos）
   const resolvedToolUseIDs = new Set<string>()
   const erroredToolUseIDs = new Set<string>()
 
@@ -1274,7 +1280,7 @@ export function buildMessageLookups(
         progressMessagesByToolUseID.set(toolUseID, [msg as ProgressMessage])
       }
 
-      // Count in-progress hooks
+      // 统计进行中的 hook 数量
       const progressData = msg.data as { type: string; hookEvent: HookEvent }
       if (progressData.type === 'hook_progress') {
         const hookEvent = progressData.hookEvent
@@ -1287,7 +1293,7 @@ export function buildMessageLookups(
       }
     }
 
-    // Build tool result lookup and resolved/errored sets
+    // 构建 tool result 查找表及已解决/出错集合
     if (msg.type === 'user' && Array.isArray(msg.message?.content)) {
       for (const content of msg.message?.content ?? []) {
         if (typeof content !== 'string' && content.type === 'tool_result') {
@@ -1304,8 +1310,8 @@ export function buildMessageLookups(
     if (msg.type === 'assistant' && Array.isArray(msg.message?.content)) {
       for (const content of msg.message?.content ?? []) {
         if (typeof content === 'string') continue
-        // Track all server-side *_tool_result blocks (advisor, web_search,
-        // code_execution, mcp, etc.) — any block with tool_use_id is a result.
+        // 跟踪所有服务端 *_tool_result 块（advisor、web_search、
+        // code_execution、mcp 等）——任何带有 tool_use_id 的块都是结果。
         if (
           'tool_use_id' in content &&
           typeof (content as { tool_use_id: string }).tool_use_id === 'string'
@@ -1326,7 +1332,7 @@ export function buildMessageLookups(
       }
     }
 
-    // Count resolved hooks (deduplicate by hookName)
+    // 统计已解决的 hook 数量（按 hookName 去重）
     if (isHookAttachmentMessage(msg)) {
       const toolUseID = msg.attachment.toolUseID
       const hookEvent = msg.attachment.hookEvent
@@ -1347,7 +1353,7 @@ export function buildMessageLookups(
     }
   }
 
-  // Convert resolved hook name sets to counts
+  // 将已解决 hook 名称集合转换为计数
   const resolvedHookCounts = new Map<string, Map<HookEvent, number>>()
   for (const [toolUseID, byHookEvent] of resolvedHookNames) {
     const countMap = new Map<HookEvent, number>()
@@ -1357,17 +1363,15 @@ export function buildMessageLookups(
     resolvedHookCounts.set(toolUseID, countMap)
   }
 
-  // Mark orphaned server_tool_use / mcp_tool_use blocks (no matching
-  // result) as errored so the UI shows them as failed instead of
-  // perpetually spinning.
+  // 将孤立的 server_tool_use / mcp_tool_use 块（没有匹配结果的）标记为出错，
+  // 这样 UI 显示为失败，而不是一直转圈。
   const lastMsg = messages.at(-1)
   const lastAssistantMsgId =
     lastMsg?.type === 'assistant' ? lastMsg.message?.id : undefined
   for (const msg of normalizedMessages) {
     if (msg.type !== 'assistant') continue
     const aMsg = msg as AssistantMessage
-    // Skip blocks from the last original message if it's an assistant,
-    // since it may still be in progress.
+    // 跳过最后一条原始 assistant 消息中的块，因为它可能仍在进行中。
     if (aMsg.message.id === lastAssistantMsgId) continue
     if (!Array.isArray(aMsg.message.content)) continue
     for (const content of aMsg.message.content) {
@@ -1398,9 +1402,9 @@ export function buildMessageLookups(
 }
 
 /**
- * Incrementally update lookups by processing only newly appended messages.
- * Returns the same lookups object (mutated in place) if update succeeds,
- * or null if a full rebuild is needed (e.g., messages were removed).
+ * 增量更新查找表：只处理新追加的消息。
+ * 更新成功返回同一个（原地修改的）查找表对象；
+ * 需要完全重建时（如消息被删除）返回 null。
  */
 export function updateMessageLookupsIncremental(
   existing: MessageLookups,
@@ -1409,7 +1413,7 @@ export function updateMessageLookupsIncremental(
   normalizedMessages: NormalizedMessage[],
   messages: Message[],
 ): MessageLookups | null {
-  // Safety check: only handle append-only case
+  // 安全检查：仅处理只追加的情况
   if (
     normalizedMessages.length < previousNormalizedCount ||
     messages.length < previousMessageCount
@@ -1417,7 +1421,7 @@ export function updateMessageLookupsIncremental(
     return null
   }
 
-  // No new messages — nothing to do
+  // 没有新消息——无需处理
   if (
     normalizedMessages.length === previousNormalizedCount &&
     messages.length === previousMessageCount
@@ -1425,7 +1429,7 @@ export function updateMessageLookupsIncremental(
     return existing
   }
 
-  // Process new messages entries (pass 1: assistant tool_use blocks)
+  // 处理新消息条目（第一遍：assistant tool_use 块）
   const newMessageStart = previousMessageCount
   for (let i = newMessageStart; i < messages.length; i++) {
     const msg = messages[i]!
@@ -1444,7 +1448,7 @@ export function updateMessageLookupsIncremental(
             )
           }
         }
-        // Update sibling lookup: all tool_use IDs in this message share siblings
+        // 更新兄弟查找表：此消息中的所有 tool_use ID 共享兄弟关系
         const allSiblings = new Set(newToolUseIDs)
         for (const toolUseID of newToolUseIDs) {
           existing.siblingToolUseIDs.set(toolUseID, allSiblings)
@@ -1453,7 +1457,7 @@ export function updateMessageLookupsIncremental(
     }
   }
 
-  // Process new normalizedMessages entries (pass 2: progress, hooks, tool results)
+  // 处理新 normalizedMessages 条目（第二遍：进度、hook、tool result）
   const newNormalizedStart = previousNormalizedCount
   for (let i = newNormalizedStart; i < normalizedMessages.length; i++) {
     const msg = normalizedMessages[i]!
@@ -1534,9 +1538,9 @@ export function updateMessageLookupsIncremental(
 
   existing.normalizedMessageCount = normalizedMessages.length
 
-  // Mark orphaned server_tool_use / mcp_tool_use blocks as errored.
-  // Only scan the new normalizedMessages since the previous count —
-  // existing entries were already checked by a prior full build.
+  // 将孤立的 server_tool_use / mcp_tool_use 块标记为出错。
+  // 只扫描上次计数之后的新 normalizedMessages——
+  // 旧条目已在上次完整构建时检查过。
   const lastMsg = messages.at(-1)
   const lastAssistantMsgId =
     lastMsg?.type === 'assistant' ? lastMsg.message?.id : undefined
@@ -1564,12 +1568,12 @@ export function updateMessageLookupsIncremental(
 }
 
 /**
- * Compute a lightweight structural fingerprint for buildMessageLookups caching.
- * Only captures information that affects lookup results (types, IDs, counts),
- * not content. Returns an empty string when the arrays are structurally empty.
+ * 计算 buildMessageLookups 缓存用的轻量级结构指纹。
+ * 只捕获影响查找结果的信息（类型、ID、数量），不捕获内容。
+ * 数组结构为空时返回空字符串。
  *
- * O(n) but allocates only a string — much cheaper than the 8 Maps/Sets that
- * buildMessageLookups creates on every call.
+ * O(n) 但只分配一个字符串——远比 buildMessageLookups 每次调用
+ * 创建的 8 个 Map/Set 便宜。
  */
 export function computeMessageStructureKey(
   normalizedMessages: NormalizedMessage[],
@@ -1611,7 +1615,7 @@ export function computeMessageStructureKey(
   return parts.join(',')
 }
 
-/** Empty lookups for static rendering contexts that don't need real lookups. */
+/** 用于不需要真实查找表的静态渲染上下文的空查找表。 */
 export const EMPTY_LOOKUPS: MessageLookups = {
   siblingToolUseIDs: new Map(),
   progressMessagesByToolUseID: new Map(),
@@ -1625,22 +1629,21 @@ export const EMPTY_LOOKUPS: MessageLookups = {
 }
 
 /**
- * Shared empty Set singleton. Reused on bail-out paths to avoid allocating
- * a fresh Set per message per render. Mutation is prevented at compile time
- * by the ReadonlySet<string> type — Object.freeze here is convention only
- * (it freezes own properties, not Set internal state).
- * All consumers are read-only (iteration / .has / .size).
+ * 共享的空 Set 单例。在提前退出路径上复用，避免每次渲染为每条消息分配新 Set。
+ * ReadonlySet<string> 类型在编译时阻止修改——Object.freeze 只是约定
+ * （它冻结自有属性，不冻结 Set 内部状态）。
+ * 所有使用方都是只读的（遍历 / .has / .size）。
  */
 export const EMPTY_STRING_SET: ReadonlySet<string> = Object.freeze(
   new Set<string>(),
 )
 
 /**
- * Build lookups from subagent/skill progress messages so child tool uses
- * render with correct resolved/in-progress/queued state.
+ * 从 subagent/skill 的进度消息构建查找表，使子工具调用能以正确的
+ * 已解决/进行中/排队状态渲染。
  *
- * Each progress message must have a `message` field of type
- * `AssistantMessage | NormalizedUserMessage`.
+ * 每条进度消息必须有一个类型为 `AssistantMessage | NormalizedUserMessage`
+ * 的 `message` 字段。
  */
 export function buildSubagentLookups(
   messages: { message: AssistantMessage | NormalizedUserMessage }[],
@@ -1692,7 +1695,7 @@ export function buildSubagentLookups(
 }
 
 /**
- * Get sibling tool use IDs using pre-computed lookup. O(1).
+ * 使用预计算查找表获取兄弟 tool use ID。O(1)。
  */
 export function getSiblingToolUseIDsFromLookup(
   message: NormalizedMessage,
@@ -1706,7 +1709,7 @@ export function getSiblingToolUseIDsFromLookup(
 }
 
 /**
- * Get progress messages for a message using pre-computed lookup. O(1).
+ * 使用预计算查找表获取某条消息的进度消息。O(1)。
  */
 export function getProgressMessagesFromLookup(
   message: NormalizedMessage,
@@ -1720,7 +1723,7 @@ export function getProgressMessagesFromLookup(
 }
 
 /**
- * Check for unresolved hooks using pre-computed lookup. O(1).
+ * 使用预计算查找表检查是否有未完成的 hook。O(1)。
  */
 export function hasUnresolvedHooksFromLookup(
   toolUseID: string,
@@ -1751,27 +1754,26 @@ export function getToolUseIDs(
 }
 
 /**
- * Reorders messages so that attachments bubble up until they hit either:
- * - A tool call result (user message with tool_result content)
- * - Any assistant message
+ * 重排消息，让 attachment 向上冒泡，直到遇到以下停止点之一：
+ * - 工具调用结果（含 tool_result 内容的 user message）
+ * - 任意 assistant 消息
  */
 export function reorderAttachmentsForAPI(messages: Message[]): Message[] {
-  // We build `result` backwards (push) and reverse once at the end — O(N).
-  // Using unshift inside the loop would be O(N²).
+  // 从后往前 push 构建 result，最后 reverse 一次——O(N)。
+  // 循环内用 unshift 会是 O(N²)。
   const result: Message[] = []
-  // Attachments are pushed as we encounter them scanning bottom-up, so
-  // this buffer holds them in reverse order (relative to the input array).
+  // 从底部向上扫描时遇到的 attachment 按相对输入数组的逆序存入缓冲区。
   const pendingAttachments: AttachmentMessage[] = []
 
-  // Scan from the bottom up
+  // 从底部向上扫描
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i]!
 
     if (message.type === 'attachment') {
-      // Collect attachment to bubble up
+      // 收集 attachment，准备向上冒泡
       pendingAttachments.push(message as AttachmentMessage)
     } else {
-      // Check if this is a stopping point
+      // 检查是否为停止点
       const isStoppingPoint =
         message.type === 'assistant' ||
         (message.type === 'user' &&
@@ -1780,22 +1782,22 @@ export function reorderAttachmentsForAPI(messages: Message[]): Message[] {
             'tool_result')
 
       if (isStoppingPoint && pendingAttachments.length > 0) {
-        // Hit a stopping point — attachments stop here (go after the stopping point).
-        // pendingAttachments is already reversed; after the final result.reverse()
-        // they will appear in original order right after `message`.
+        // 遇到停止点——attachment 停在这里（放在停止点之后）。
+        // pendingAttachments 已是逆序；最终 result.reverse() 后
+        // 它们将以原始顺序出现在 message 之后。
         for (let j = 0; j < pendingAttachments.length; j++) {
           result.push(pendingAttachments[j]!)
         }
         result.push(message)
         pendingAttachments.length = 0
       } else {
-        // Regular message
+        // 普通消息
         result.push(message)
       }
     }
   }
 
-  // Any remaining attachments bubble all the way to the top.
+  // 剩余的 attachment 冒泡到顶部。
   for (let j = 0; j < pendingAttachments.length; j++) {
     result.push(pendingAttachments[j]!)
   }
@@ -1811,10 +1813,10 @@ export function isSystemLocalCommandMessage(
 }
 
 /**
- * Strips tool_reference blocks for tools that no longer exist from tool_result content.
- * This handles the case where a session was saved with MCP tools that are no longer
- * available (e.g., MCP server was disconnected, renamed, or removed).
- * Without this filtering, the API rejects with "Tool reference not found in available tools".
+ * 从 tool_result 内容中剥除已不存在的工具的 tool_reference 块。
+ * 处理会话保存时存在的 MCP 工具已不再可用的情况
+ * （如 MCP server 断开、重命名或删除）。
+ * 不过滤的话 API 会拒绝并报错 "Tool reference not found in available tools"。
  */
 function stripUnavailableToolReferencesFromUserMessage(
   message: UserMessage,
@@ -1852,7 +1854,7 @@ function stripUnavailableToolReferencesFromUserMessage(
           return block
         }
 
-        // Filter out tool_reference blocks for unavailable tools
+        // 过滤掉不可用工具的 tool_reference 块
         const filteredContent = block.content.filter(c => {
           if (!isToolReferenceBlock(c)) return true
           const rawToolName = (c as { tool_name?: string }).tool_name
@@ -1868,7 +1870,7 @@ function stripUnavailableToolReferencesFromUserMessage(
           return isAvailable
         })
 
-        // If all content was filtered out, replace with a placeholder
+        // 如果所有内容都被过滤掉，替换为占位符
         if (filteredContent.length === 0) {
           return {
             ...block,
@@ -1891,9 +1893,9 @@ function stripUnavailableToolReferencesFromUserMessage(
 }
 
 /**
- * Appends a [id:...] message ID tag to the last text block of a user message.
- * Only mutates the API-bound copy, not the stored message.
- * This lets Claude reference message IDs when calling the snip tool.
+ * 向 user message 的最后一个 text block 末尾追加 [id:...] 消息 ID 标签。
+ * 只修改发往 API 的副本，不修改存储的消息。
+ * 这让 Claude 在调用 snip 工具时可以引用消息 ID。
  */
 function appendMessageTagToUserMessage(message: UserMessage): UserMessage {
   if (message.isMeta) {
@@ -1904,7 +1906,7 @@ function appendMessageTagToUserMessage(message: UserMessage): UserMessage {
 
   const content = message.message.content
 
-  // Handle string content (most common for simple text input)
+  // 处理字符串内容（简单文本输入最常见的情况）
   if (typeof content === 'string') {
     return {
       ...message,
@@ -1919,7 +1921,7 @@ function appendMessageTagToUserMessage(message: UserMessage): UserMessage {
     return message
   }
 
-  // Find the last text block
+  // 找到最后一个 text block
   let lastTextIdx = -1
   for (let i = content.length - 1; i >= 0; i--) {
     if (content[i]!.type === 'text') {
@@ -1948,9 +1950,9 @@ function appendMessageTagToUserMessage(message: UserMessage): UserMessage {
 }
 
 /**
- * Strips tool_reference blocks from tool_result content in a user message.
- * tool_reference blocks are only valid when the tool search beta is enabled.
- * When tool search is disabled, we need to remove these blocks to avoid API errors.
+ * 从 user message 的 tool_result 内容中剥除 tool_reference 块。
+ * tool_reference 块只在 tool search beta 启用时有效。
+ * 禁用 tool search 时需要删除这些块，否则会触发 API 错误。
  */
 export function stripToolReferenceBlocksFromUserMessage(
   message: UserMessage,
@@ -1980,12 +1982,12 @@ export function stripToolReferenceBlocksFromUserMessage(
           return block
         }
 
-        // Filter out tool_reference blocks from tool_result content
+        // 从 tool_result 内容中过滤掉 tool_reference 块
         const filteredContent = block.content.filter(
           c => !isToolReferenceBlock(c),
         )
 
-        // If all content was tool_reference blocks, replace with a placeholder
+        // 如果所有内容都是 tool_reference 块，替换为占位符
         if (filteredContent.length === 0) {
           return {
             ...block,
@@ -2008,14 +2010,14 @@ export function stripToolReferenceBlocksFromUserMessage(
 }
 
 /**
- * Strips the 'caller' field from tool_use blocks in an assistant message.
- * The 'caller' field is only valid when the tool search beta is enabled.
- * When tool search is disabled, we need to remove this field to avoid API errors.
+ * 从 assistant message 的 tool_use 块中剥除 'caller' 字段。
+ * 'caller' 字段只在 tool search beta 启用时有效。
+ * 禁用 tool search 时需要删除此字段，否则触发 API 错误。
  *
- * NOTE: This function only strips the 'caller' field - it does NOT normalize
- * tool inputs (that's done by normalizeToolInputForAPI in normalizeMessagesForAPI).
- * This is intentional: this helper is used for model-specific post-processing
- * AFTER normalizeMessagesForAPI has already run, so inputs are already normalized.
+ * 注意：此函数只剥除 'caller' 字段——不规范化 tool 输入
+ * （输入规范化由 normalizeMessagesForAPI 中的 normalizeToolInputForAPI 完成）。
+ * 这是有意为之：此辅助函数用于 normalizeMessagesForAPI 之后的
+ * 模型特定后处理，此时输入已规范化。
  */
 export function stripCallerFieldFromAssistantMessage(
   message: AssistantMessage,
@@ -2044,7 +2046,7 @@ export function stripCallerFieldFromAssistantMessage(
           return block
         }
         const toolUse = block as ToolUseBlock
-        // Explicitly construct with only standard API fields
+        // 显式构建，只包含标准 API 字段
         return {
           type: 'tool_use' as const,
           id: toolUse.id,
@@ -2057,8 +2059,8 @@ export function stripCallerFieldFromAssistantMessage(
 }
 
 /**
- * Does the content array have a tool_result block whose inner content
- * contains tool_reference (SearchExtraTools loaded tools)?
+ * content 数组中是否存在 tool_result 块，其内部包含 tool_reference
+ * （SearchExtraTools 加载的工具）？
  */
 function contentHasToolReference(
   content: ReadonlyArray<ContentBlockParam>,
@@ -2276,17 +2278,17 @@ export function normalizeMessagesForAPI(
   messages: Message[],
   tools: Tools = [],
 ): (UserMessage | AssistantMessage)[] {
-  // Build set of available tool names for filtering unavailable tool references
+  // 构建可用工具名称集合，用于过滤不可用的 tool reference
   const availableToolNames = new Set(tools.map(t => t.name))
 
-  // First, reorder attachments to bubble up until they hit a tool result or assistant message
-  // Then strip virtual messages — they're display-only (e.g. REPL inner tool
-  // calls) and must never reach the API.
+  // 先将 attachment 向上冒泡，直到遇到 tool result 或 assistant 消息，
+  // 然后过滤虚拟消息——它们仅用于显示（如 REPL 内部工具调用），
+  // 绝不能发到 API。
   const reorderedMessages = reorderAttachmentsForAPI(messages).filter(
     m => !((m.type === 'user' || m.type === 'assistant') && m.isVirtual),
   )
 
-  // Build a map from error text → which block types to strip from the preceding user message.
+  // 构建从错误文本到"需要从前一条 user message 中剥除的块类型"的映射。
   const errorToBlockTypes: Record<string, Set<string>> = {
     [getPdfTooLargeErrorMessage()]: new Set(['document']),
     [getPdfPasswordProtectedErrorMessage()]: new Set(['document']),
@@ -2295,15 +2297,15 @@ export function normalizeMessagesForAPI(
     [getRequestTooLargeErrorMessage()]: new Set(['document', 'image']),
   }
 
-  // Walk the reordered messages to build a targeted strip map:
-  // userMessageUUID → set of block types to strip from that message.
+  // 遍历重排后的消息，构建精确的剥除映射：
+  // userMessageUUID → 需要从该消息中剥除的块类型集合。
   const stripTargets = new Map<string, Set<string>>()
   for (let i = 0; i < reorderedMessages.length; i++) {
     const msg = reorderedMessages[i]!
     if (!isSyntheticApiErrorMessage(msg)) {
       continue
     }
-    // Determine which error this is
+    // 确定这是哪种错误
     const errorText =
       Array.isArray(msg.message.content) &&
       msg.message.content[0]?.type === 'text'
@@ -2316,7 +2318,7 @@ export function normalizeMessagesForAPI(
     if (!blockTypesToStrip) {
       continue
     }
-    // Walk backward to find the nearest preceding isMeta user message
+    // 向前查找最近的 isMeta user message
     for (let j = i - 1; j >= 0; j--) {
       const candidate = reorderedMessages[j]!
       if (candidate.type === 'user' && candidate.isMeta) {
@@ -2330,11 +2332,11 @@ export function normalizeMessagesForAPI(
         }
         break
       }
-      // Skip over other synthetic error messages or non-meta messages
+      // 跳过其他合成错误消息或非 meta 消息
       if (isSyntheticApiErrorMessage(candidate)) {
         continue
       }
-      // Stop if we hit an assistant message or non-meta user message
+      // 遇到 assistant 消息或非 meta user 消息时停止
       break
     }
   }
@@ -2362,8 +2364,8 @@ export function normalizeMessagesForAPI(
     .forEach(message => {
       switch (message.type) {
         case 'system': {
-          // local_command system messages need to be included as user messages
-          // so the model can reference previous command output in later turns
+          // local_command 系统消息需要作为 user message 包含进来，
+          // 让模型在后续轮次中能引用之前的命令输出
           const userMsg = createUserMessage({
             content: message.content as string | ContentBlockParam[],
             uuid: message.uuid,
@@ -2378,14 +2380,13 @@ export function normalizeMessagesForAPI(
           return
         }
         case 'user': {
-          // Merge consecutive user messages because Bedrock doesn't support
-          // multiple user messages in a row; 1P API does and merges them
-          // into a single user turn
+          // 合并连续的 user message，因为 Bedrock 不支持连续多条 user message；
+          // 1P API 支持并会将它们合并为单个 user turn
 
-          // When tool search is NOT enabled, strip all tool_reference blocks from
-          // tool_result content, as these are only valid with the tool search beta.
-          // When tool search IS enabled, strip only tool_reference blocks for
-          // tools that no longer exist (e.g., MCP server was disconnected).
+          // 未启用 tool search 时，从 tool_result 内容中剥除所有 tool_reference 块，
+          // 因为这些块只在 tool search beta 下有效。
+          // 启用 tool search 时，只剥除不存在的工具的 tool_reference 块
+          // （如 MCP server 已断开连接）。
           let normalizedMessage = message
           if (!isSearchExtraToolsEnabledOptimistic()) {
             normalizedMessage = stripToolReferenceBlocksFromUserMessage(message)
@@ -2396,9 +2397,8 @@ export function normalizeMessagesForAPI(
             )
           }
 
-          // Strip document/image blocks from the specific meta user message that
-          // preceded a PDF/image/request-too-large error, to prevent re-sending
-          // the problematic content on every subsequent API call.
+          // 从紧接 PDF/图片/请求过大错误前的特定 meta user message 中
+          // 剥除 document/image 块，防止后续每次 API 调用都重发问题内容。
           const typesToStrip = stripTargets.get(normalizedMessage.uuid)
           if (typesToStrip && normalizedMessage.isMeta) {
             const content = normalizedMessage.message.content
@@ -2407,7 +2407,7 @@ export function normalizeMessagesForAPI(
                 block => !typesToStrip.has(block.type),
               )
               if (filtered.length === 0) {
-                // All content blocks were stripped; skip this message entirely
+                // 所有内容块都被剥除；跳过该消息
                 return
               }
               if (filtered.length < content.length) {
@@ -2422,26 +2422,22 @@ export function normalizeMessagesForAPI(
             }
           }
 
-          // Server renders tool_reference expansion as <functions>...</functions>
-          // (same tags as the system prompt's tool block). When this is at the
-          // prompt tail, capybara models sample the stop sequence at ~10% (A/B:
-          // 21/200 vs 0/200 on v3-prod). A sibling text block inserts a clean
-          // "\n\nHuman: ..." turn boundary. Injected here (API-prep) rather than
-          // stored in the message so it never renders in the REPL, and is
-          // auto-skipped when strip* above removes all tool_reference content.
-          // Must be a sibling, NOT inside tool_result.content — mixing text with
-          // tool_reference inside the block is a server ValueError.
-          // Idempotent: query.ts calls this per-tool-result; the output flows
-          // back through here via claude.ts on the next API request. The first
-          // pass's sibling gets a \n[id:xxx] suffix from appendMessageTag below,
-          // so startsWith matches both bare and tagged forms.
+          // 服务端将 tool_reference 展开为 <functions>...</functions>
+          // （与系统提示工具块使用相同标签）。当这出现在提示末尾时，
+          // capybara 模型以约 10% 的概率采样停止序列（A/B：21/200 vs 0/200）。
+          // 一个兄弟 text 块插入干净的 "\n\nHuman: ..." 轮次边界。
+          // 在 API 准备阶段注入（而不是存储在消息中），因此永远不会在 REPL 渲染，
+          // 并且当上面的 strip* 移除所有 tool_reference 内容时会自动跳过。
+          // 必须是兄弟块，而非在 tool_result.content 内——在块内混合 text 和
+          // tool_reference 会触发服务端 ValueError。
+          // 幂等：query.ts 对每个 tool_result 调用此函数；输出在下次 API 请求时
+          // 通过 claude.ts 流回这里。第一遍的兄弟块会从下面的 appendMessageTag
+          // 获得 \n[id:xxx] 后缀，因此 startsWith 同时匹配裸形式和带标签形式。
           //
-          // Gated OFF when tengu_toolref_defer_j8m is active — that gate
-          // enables relocateToolReferenceSiblings in post-processing below,
-          // which moves existing siblings to a later non-ref message instead
-          // of adding one here. This injection is itself one of the patterns
-          // that gets relocated, so skipping it saves a scan. When gate is
-          // off, this is the fallback (same as pre-#21049 main).
+          // 当 tengu_toolref_defer_j8m 开关激活时关闭：该开关在下面的后处理中
+          // 启用 relocateToolReferenceSiblings，将现有兄弟块移到后面的非引用消息，
+          // 而不是在这里添加一个。这个注入本身就是会被迁移的模式之一，
+          // 因此跳过它可以节省一次扫描。关闭时，这是回退方案（同 #21049 前的 main）。
           if (
             !checkStatsigFeatureGate_CACHED_MAY_BE_STALE(
               'tengu_toolref_defer_j8m',
@@ -2470,7 +2466,7 @@ export function normalizeMessagesForAPI(
             }
           }
 
-          // If the last message is also a user message, merge them
+          // 如果最后一条消息也是 user message，合并它们
           const lastMessage = last(result)
           if (lastMessage?.type === 'user') {
             result[result.length - 1] = mergeUserMessages(
@@ -2480,15 +2476,14 @@ export function normalizeMessagesForAPI(
             return
           }
 
-          // Otherwise, add the message normally
+          // 否则正常添加消息
           result.push(normalizedMessage)
           return
         }
         case 'assistant': {
-          // Normalize tool inputs for API (strip fields like plan from ExitPlanModeV2)
-          // When tool search is NOT enabled, we must strip tool_search-specific fields
-          // like 'caller' from tool_use blocks, as these are only valid with the
-          // tool search beta header
+          // 为 API 规范化 tool 输入（如从 ExitPlanModeV2 剥除 plan 字段）
+          // 未启用 tool search 时，必须从 tool_use 块中剥除 tool_search 专用字段
+          // 如 'caller'，因为这些字段只在 tool search beta header 下有效
           const searchExtraToolsEnabled = isSearchExtraToolsEnabledOptimistic()
           const normalizedMessage: AssistantMessage = {
             ...message,
@@ -2512,7 +2507,7 @@ export function normalizeMessagesForAPI(
                     : toolUseBlk.input
                   const canonicalName = tool?.name ?? toolUseBlk.name
 
-                  // When tool search is enabled, preserve all fields including 'caller'
+                  // 启用 tool search 时，保留所有字段（包括 'caller'）
                   if (searchExtraToolsEnabled) {
                     return {
                       ...block,
@@ -2521,9 +2516,9 @@ export function normalizeMessagesForAPI(
                     }
                   }
 
-                  // When tool search is NOT enabled, strip tool-search-only fields
-                  // like 'caller', but preserve other provider metadata attached to
-                  // the block (for example Gemini thought signatures on tool_use).
+                  // 未启用 tool search 时，剥除 tool search 专用字段如 'caller'，
+                  // 但保留块上附加的其他 provider 元数据
+                  // （例如 tool_use 上的 Gemini thought signatures）。
                   const { caller: _caller, ...toolUseRest } =
                     block as ToolUseBlock &
                       Record<string, unknown> & { caller?: unknown }
@@ -2540,17 +2535,16 @@ export function normalizeMessagesForAPI(
             },
           }
 
-          // Find a previous assistant message with the same message ID and merge.
-          // Walk backwards, skipping different-ID assistants, since concurrent
-          // agents (teammates) can interleave streaming content blocks from
-          // multiple API responses with different message IDs.
+          // 向前查找相同 message ID 的 assistant 消息并合并。
+          // 向后遍历时跳过不同 ID 的 assistant，因为并发 agent（teammates）
+          // 可能将来自不同 message ID 的多个 API 响应的流式内容块交错。
           //
-          // Do NOT skip tool_result messages — when claude.ts yields separate
-          // AssistantMessages for thinking and tool_use blocks (same message.id),
-          // a StreamingToolExecutor tool_result can land between them. Merging
-          // across that boundary produces duplicate tool_use IDs that downstream
-          // ensureToolResultPairing strips, leaving orphaned tool_results and
-          // ultimately consecutive user messages → API 400 (CC-1215).
+          // 不要跳过 tool_result 消息——当 claude.ts 为 thinking 和 tool_use 块
+          // 产生独立的 AssistantMessage（相同 message.id）时，
+          // StreamingToolExecutor 的 tool_result 可能落在它们之间。
+          // 跨该边界合并会产生重复的 tool_use ID，
+          // 下游 ensureToolResultPairing 会剥除它们，留下孤立的 tool_result，
+          // 最终导致连续 user message → API 400（CC-1215）。
           for (let i = result.length - 1; i >= 0; i--) {
             const msg = result[i]!
 
@@ -2593,62 +2587,55 @@ export function normalizeMessagesForAPI(
       }
     })
 
-  // Relocate text siblings off tool_reference messages — prevents the
-  // anomalous two-consecutive-human-turns pattern that teaches the model
-  // to emit the stop sequence after tool results. See #21049.
-  // Runs after merge (siblings are in place) and before ID tagging (so
-  // tags reflect final positions). When gate is OFF, this is a noop and
-  // the TOOL_REFERENCE_TURN_BOUNDARY injection above serves as fallback.
+  // 将文本兄弟块从 tool_reference 消息迁移走——防止连续两个人类轮次的异常模式，
+  // 该模式会训练模型在 tool result 后发出停止序列。详见 #21049。
+  // 在合并之后（兄弟块已就位）、ID 标签注入之前运行
+  // （以便标签反映最终位置）。开关关闭时为空操作，
+  // 上面的 TOOL_REFERENCE_TURN_BOUNDARY 注入作为回退。
   const relocated = checkStatsigFeatureGate_CACHED_MAY_BE_STALE(
     'tengu_toolref_defer_j8m',
   )
     ? relocateToolReferenceSiblings(result)
     : result
 
-  // Filter orphaned thinking-only assistant messages (likely introduced by
-  // compaction slicing away intervening messages between a failed streaming
-  // response and its retry). Without this, consecutive assistant messages with
-  // mismatched thinking block signatures cause API 400 errors.
+  // 过滤孤立的仅含 thinking 的 assistant 消息（可能由 compaction 切掉
+  // 失败流式响应与重试之间的中间消息引入）。
+  // 不过滤的话，连续 assistant 消息的 thinking 块签名不匹配会导致 API 400。
   const withFilteredOrphans = filterOrphanedThinkingOnlyMessages(relocated)
 
-  // Order matters: strip trailing thinking first, THEN filter whitespace-only
-  // messages. The reverse order has a bug: a message like [text("\n\n"), thinking("...")]
-  // survives the whitespace filter (has a non-text block), then thinking stripping
-  // removes the thinking block, leaving [text("\n\n")] — which the API rejects.
+  // 顺序很重要：先剥除末尾 thinking，再过滤纯空白消息。
+  // 顺序反转有 bug：[text("\n\n"), thinking("...")] 这样的消息能通过空白过滤
+  // （有非 text 块），然后 thinking 剥除移走 thinking 块，
+  // 留下 [text("\n\n")]——API 会拒绝。
   //
-  // These multi-pass normalizations are inherently fragile — each pass can create
-  // conditions a prior pass was meant to handle. Consider unifying into a single
-  // pass that cleans content, then validates in one shot.
+  // 这些多轮规范化本质上脆弱——每轮都可能创造前一轮本该处理的条件。
+  // 可以考虑统一为单轮清理内容后一次性校验。
   const withFilteredThinking =
     filterTrailingThinkingFromLastAssistant(withFilteredOrphans)
   const withFilteredWhitespace =
     filterWhitespaceOnlyAssistantMessages(withFilteredThinking)
   const withNonEmpty = ensureNonEmptyAssistantContent(withFilteredWhitespace)
 
-  // filterOrphanedThinkingOnlyMessages doesn't merge adjacent users (whitespace
-  // filter does, but only when IT fires). Merge here so smoosh can fold the
-  // SR-text sibling that hoistToolResults produces. The smoosh itself folds
-  // <system-reminder>-prefixed text siblings into the adjacent tool_result.
-  // Gated together: the merge exists solely to feed the smoosh; running it
-  // ungated changes VCR fixture hashes for @-mention scenarios (adjacent
-  // [prompt, attachment] users) without any benefit when the smoosh is off.
+  // filterOrphanedThinkingOnlyMessages 不合并相邻 user（空白过滤会，但只在它触发时）。
+  // 在这里合并，让 smoosh 能折叠 hoistToolResults 产生的 SR-text 兄弟块。
+  // smoosh 本身将 <system-reminder> 前缀的文本兄弟块折叠到相邻 tool_result 中。
+  // 一起门控：合并只为了喂给 smoosh；不门控运行会改变 @-mention 场景
+  // （相邻 [prompt, attachment] users）的 VCR fixture 哈希，而 smoosh 关闭时无任何收益。
   const smooshed = checkStatsigFeatureGate_CACHED_MAY_BE_STALE(
     'tengu_chair_sermon',
   )
     ? smooshSystemReminderSiblings(mergeAdjacentUserMessages(withNonEmpty))
     : withNonEmpty
 
-  // Unconditional — catches transcripts persisted before smooshIntoToolResult
-  // learned to filter on is_error. Without this a resumed session with an
-  // image-in-error tool_result 400s forever.
+  // 无条件执行——处理 smooshIntoToolResult 学会过滤 is_error 之前持久化的 transcript。
+  // 不做这步，恢复带有 image-in-error tool_result 的会话会每次调用都 400。
   const sanitized = sanitizeErrorToolResultContent(smooshed)
 
-  // Append message ID tags for snip tool visibility (after all merging,
-  // so tags always match the surviving message's messageId field).
-  // Skip in test mode — tags change message content hashes, breaking
-  // VCR fixture lookup. Gate must match SnipTool.isEnabled() — don't
-  // inject [id:] tags when the tool isn't available (confuses the model
-  // and wastes tokens on every non-meta user message for every ant).
+  // 追加消息 ID 标签以让 snip tool 可见（在所有合并之后，
+  // 这样标签始终与存活消息的 messageId 字段匹配）。
+  // 测试模式下跳过——标签会改变消息内容哈希，破坏 VCR fixture 查找。
+  // 门控必须与 SnipTool.isEnabled() 匹配——工具不可用时不注入 [id:] 标签
+  // （会迷惑模型，并对每个 ant 的每条非 meta user message 浪费 token）。
   if (feature('HISTORY_SNIP') && process.env.NODE_ENV !== 'test') {
     const { isSnipRuntimeEnabled } =
       // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -2664,7 +2651,7 @@ export function normalizeMessagesForAPI(
     }
   }
 
-  // Validate all images are within API size limits before sending
+  // 发送前校验所有图片是否在 API 大小限制内
   validateImagesForAPI(sanitized)
 
   return sanitized
@@ -2726,13 +2713,12 @@ export function mergeUserMessages(a: UserMessage, b: UserMessage): UserMessage {
     b.message.content as string | ContentBlockParam[],
   )
   if (feature('HISTORY_SNIP')) {
-    // A merged message is only meta if ALL merged messages are meta. If any
-    // operand is real user content, the result must not be flagged isMeta
-    // (so [id:] tags get injected and it's treated as user-visible content).
-    // Gated behind the full runtime check because changing isMeta semantics
-    // affects downstream callers (e.g., VCR fixture hashing in SDK harness
-    // tests), so this must only fire when snip is actually enabled — not
-    // for all ants.
+    // 合并消息只有在所有被合并消息都是 meta 时才为 meta。
+    // 如果任一操作数是真实用户内容，结果不能标记 isMeta
+    // （以便注入 [id:] 标签并作为用户可见内容处理）。
+    // 门控在完整运行时检查后，因为改变 isMeta 语义会影响下游调用者
+    // （如 SDK harness 测试中的 VCR fixture 哈希），
+    // 因此只在 snip 实际启用时触发——不针对所有 ant。
     const { isSnipRuntimeEnabled } =
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       require('../services/compact/snipCompact.js') as typeof import('../services/compact/snipCompact.js')
@@ -2752,8 +2738,8 @@ export function mergeUserMessages(a: UserMessage, b: UserMessage): UserMessage {
   }
   return {
     ...a,
-    // Preserve the non-meta message's uuid so [id:] tags (derived from uuid)
-    // stay stable across API calls (meta messages like system context get fresh uuids each call)
+    // 保留非 meta 消息的 uuid，使 [id:] 标签（从 uuid 派生）
+    // 在 API 调用之间保持稳定（系统上下文等 meta 消息每次调用都获得新 uuid）
     uuid: a.isMeta ? b.uuid : a.uuid,
     message: {
       ...a.message,
@@ -2778,8 +2764,8 @@ function mergeAdjacentUserMessages(
 }
 
 /**
- * In thecontent[] list on a UserMessage, tool_result blocks much come first
- * to avoid "tool result must follow tool use" API errors.
+ * 在 UserMessage 的 content[] 列表中，tool_result 块必须排在最前面，
+ * 以避免 "tool result must follow tool use" API 错误。
  */
 function hoistToolResults(content: ContentBlockParam[]): ContentBlockParam[] {
   const toolResults: ContentBlockParam[] = []
@@ -2806,15 +2792,13 @@ function normalizeUserTextContent(
 }
 
 /**
- * Concatenate two content block arrays, appending `\n` to a's last text block
- * when the seam is text-text. The API concatenates adjacent text blocks in a
- * user message without a separator, so two queued prompts `"2 + 2"` +
- * `"3 + 3"` would otherwise reach the model as `"2 + 23 + 3"`.
+ * 连接两个 content block 数组，当接缝处是 text-text 时向 a 的最后一个 text block 追加 `\n`。
+ * API 会把 user message 中相邻 text block 无分隔符拼接，
+ * 因此两个排队的提示 `"2 + 2"` + `"3 + 3"` 本来会以 `"2 + 23 + 3"` 到达模型。
  *
- * Blocks stay separate; the `\n` goes on a's side so no block's startsWith
- * changes — smooshSystemReminderSiblings classifies via
- * `startsWith('<system-reminder>')`, and prepending to b would break that
- * when b is an SR-wrapped attachment.
+ * 块保持独立；`\n` 放在 a 一侧，这样没有块的 startsWith 会改变——
+ * smooshSystemReminderSiblings 通过 `startsWith('<system-reminder>')` 分类，
+ * 如果向 b 前置会在 b 是 SR 包裹的 attachment 时破坏该行为。
  */
 function joinTextAtSeam(
   a: ContentBlockParam[],
@@ -2834,16 +2818,16 @@ type ToolResultContentItem = Extract<
 >[number]
 
 /**
- * Fold content blocks into a tool_result's content. Returns the updated
- * tool_result, or `null` if smoosh is impossible (tool_reference constraint).
+ * 将 content block 折叠进 tool_result 的内容。
+ * 返回更新后的 tool_result，如果无法 smoosh（tool_reference 约束）则返回 `null`。
  *
- * Valid block types inside tool_result.content per SDK: text, image,
- * search_result, document. All of these smoosh. tool_reference (beta) cannot
- * mix with other types — server ValueError — so we bail with null.
+ * SDK 允许的 tool_result.content 内块类型：text、image、search_result、document。
+ * 这些都可以 smoosh。tool_reference（beta）不能与其他类型混用——服务端 ValueError——
+ * 因此返回 null。
  *
- * - string/undefined content + all-text blocks → string (preserve legacy shape)
- * - array content with tool_reference → null
- * - otherwise → array, with adjacent text merged (notebook.ts idiom)
+ * - string/undefined content + 全 text 块 → string（保留旧形状）
+ * - 带 tool_reference 的 array content → null
+ * - 其他情况 → array，相邻 text 合并（notebook.ts 惯用法）
  */
 function smooshIntoToolResult(
   tr: ToolResultBlockParam,
@@ -2856,11 +2840,10 @@ function smooshIntoToolResult(
     return null
   }
 
-  // API constraint: is_error tool_results must contain only text blocks.
-  // Queued-command siblings can carry images (pasted screenshot) — smooshing
-  // those into an error result produces a transcript that 400s on every
-  // subsequent call and can't be recovered by /fork. The image isn't lost:
-  // it arrives as a proper user turn anyway.
+  // API 约束：is_error 的 tool_result 只能包含 text 块。
+  // 排队命令的兄弟块可能携带图片（粘贴的截图）——将其 smoosh 进错误结果
+  // 会产生每次后续调用都 400 且无法通过 /fork 恢复的 transcript。
+  // 图片并不丢失：它会作为正常 user turn 到达。
   if (tr.is_error) {
     blocks = blocks.filter(b => b.type === 'text')
     if (blocks.length === 0) return tr
@@ -2868,9 +2851,8 @@ function smooshIntoToolResult(
 
   const allText = blocks.every(b => b.type === 'text')
 
-  // Preserve string shape when existing was string/undefined and all incoming
-  // blocks are text — this is the common case (hook reminders into Bash/Read
-  // results) and matches the legacy smoosh output shape.
+  // 当现有内容为 string/undefined 且所有传入块都是 text 时，保留字符串形状——
+  // 这是常见情况（hook 提示折进 Bash/Read 结果），与旧版 smoosh 输出形状匹配。
   if (allText && (existing === undefined || typeof existing === 'string')) {
     const joined = [
       (typeof existing === 'string' ? existing : '').trim(),
@@ -2881,7 +2863,7 @@ function smooshIntoToolResult(
     return { ...tr, content: joined }
   }
 
-  // General case: normalize to array, concat, merge adjacent text
+  // 通用情况：规范化为数组，拼接，合并相邻 text
   const base: ToolResultContentItem[] =
     existing === undefined
       ? []
@@ -2903,7 +2885,7 @@ function smooshIntoToolResult(
         merged.push({ type: 'text', text: t })
       }
     } else {
-      // image / search_result / document — pass through
+      // image / search_result / document——直接传递
       merged.push(b as ToolResultContentItem)
     }
   }
@@ -2960,8 +2942,8 @@ export function mergeUserContentBlocks(
   return [...a.slice(0, -1), smooshed, ...toolResults]
 }
 
-// Sometimes the API returns empty messages (eg. "\n\n"). We need to filter these out,
-// otherwise they will give an API error when we send them to the API next time we call query().
+// 有时 API 会返回空消息（如 "\n\n"）。需要过滤掉，
+// 否则下次调用 query() 发给 API 时会触发 API 错误。
 export function normalizeContentFromAPI(
   contentBlocks: BetaMessage['content'],
   tools: Tools,
@@ -2977,23 +2959,22 @@ export function normalizeContentFromAPI(
           typeof contentBlock.input !== 'string' &&
           !isObject(contentBlock.input)
         ) {
-          // we stream tool use inputs as strings, but when we fall back, they're objects
+          // 我们以字符串形式流式传输 tool use 输入，但回退时它们是对象
           throw new Error('Tool use input must be a string or object')
         }
 
-        // With fine-grained streaming on, we are getting a stringied JSON back from the API.
-        // The API has strange behaviour, where it returns nested stringified JSONs, and so
-        // we need to recursively parse these. If the top-level value returned from the API is
-        // an empty string, this should become an empty object (nested values should be empty string).
-        // TODO: This needs patching as recursive fields can still be stringified
+        // 启用细粒度流式传输时，API 返回的是字符串化的 JSON。
+        // API 有奇怪的行为：它返回嵌套的字符串化 JSON，
+        // 因此需要递归解析。如果 API 返回的顶层值是空字符串，
+        // 应变为空对象（嵌套值应为空字符串）。
+        // TODO：需要修复，因为递归字段仍可能是字符串化的
         let normalizedInput: unknown
         if (typeof contentBlock.input === 'string') {
           const parsed = safeParseJSON(contentBlock.input)
           if (parsed === null && contentBlock.input.length > 0) {
-            // TET/FC-v3 diagnostic: the streamed tool input JSON failed to
-            // parse. We fall back to {} which means downstream validation
-            // sees empty input. The raw prefix goes to debug log only — no
-            // PII-tagged proto column exists for it yet.
+            // TET/FC-v3 诊断：流式传输的 tool 输入 JSON 解析失败。
+            // 回退为 {}，这意味着下游校验会看到空输入。
+            // 原始前缀仅写入 debug 日志——目前尚无对应的 PII 标记 proto 列。
             logEvent('tengu_tool_input_json_parse_fail', {
               toolName: sanitizeToolNameForAnalytics(contentBlock.name),
               inputLen: contentBlock.input.length,
@@ -3010,7 +2991,7 @@ export function normalizeContentFromAPI(
           normalizedInput = contentBlock.input
         }
 
-        // Then apply tool-specific corrections
+        // 然后应用工具特定的修正
         if (typeof normalizedInput === 'object' && normalizedInput !== null) {
           const tool = findToolByName(tools, contentBlock.name)
           if (tool) {
@@ -3022,7 +3003,7 @@ export function normalizeContentFromAPI(
               )
             } catch (error) {
               logError(new Error('Error normalizing tool input: ' + error))
-              // Keep the original input if normalization fails
+              // 规范化失败时保留原始输入
             }
           }
         }
@@ -3038,15 +3019,14 @@ export function normalizeContentFromAPI(
             length: contentBlock.text.length,
           })
         }
-        // Return the block as-is to preserve exact content for prompt caching.
-        // Empty text blocks are handled at the display layer and must not be
-        // altered here.
+        // 原样返回块以保留 prompt caching 的精确内容。
+        // 空 text 块在显示层处理，这里不能修改。
         return contentBlock
       case 'code_execution_tool_result':
       case 'mcp_tool_use':
       case 'mcp_tool_result':
       case 'container_upload':
-        // Beta-specific content blocks - pass through as-is
+        // Beta 专用 content block——原样传递
         return contentBlock
       case 'server_tool_use':
         if (typeof contentBlock.input === 'string') {
@@ -3126,11 +3106,10 @@ export function getToolUseID(message: NormalizedMessage): string | null {
 }
 
 export function filterUnresolvedToolUses(messages: Message[]): Message[] {
-  // Collect all tool_use IDs and tool_result IDs directly from message content blocks.
-  // This avoids calling normalizeMessages() which generates new UUIDs — if those
-  // normalized messages were returned and later recorded to the transcript JSONL,
-  // the UUID dedup would not catch them, causing exponential transcript growth on
-  // every session resume.
+  // 直接从消息 content block 收集所有 tool_use ID 和 tool_result ID。
+  // 避免调用 normalizeMessages()（它会生成新 UUID）——如果那些
+  // 规范化后的消息被返回并记录到 transcript JSONL，
+  // UUID 去重将无法捕获，导致每次恢复会话时 transcript 指数增长。
   const toolUseIds = new Set<string>()
   const toolResultIds = new Set<string>()
 
@@ -3160,7 +3139,7 @@ export function filterUnresolvedToolUses(messages: Message[]): Message[] {
     return messages
   }
 
-  // Filter out assistant messages whose tool_use blocks are all unresolved
+  // 过滤掉 tool_use 块全部未解决的 assistant 消息
   return messages.filter(msg => {
     if (msg.type !== 'assistant') return true
     const content = msg.message?.content
@@ -3172,7 +3151,7 @@ export function filterUnresolvedToolUses(messages: Message[]): Message[] {
       }
     }
     if (toolUseBlockIds.length === 0) return true
-    // Remove message only if ALL its tool_use blocks are unresolved
+    // 仅在消息的所有 tool_use 块都未解决时才移除
     return !toolUseBlockIds.every(id => unresolvedIds.has(id))
   })
 }
@@ -3182,7 +3161,7 @@ export function getAssistantMessageText(message: Message): string | null {
     return null
   }
 
-  // For content blocks array, extract and concatenate text blocks
+  // 对于 content block 数组，提取并拼接 text block
   if (Array.isArray(message.message?.content)) {
     return (
       (message.message?.content as Array<{ type: string; text?: string }>)
@@ -3223,9 +3202,9 @@ export function textForResubmit(
 }
 
 /**
- * Extract text from an array of content blocks, joining text blocks with the
- * given separator. Works with ContentBlock, ContentBlockParam, BetaContentBlock,
- * and their readonly/DeepImmutable variants via structural typing.
+ * 从 content block 数组中提取文本，用给定分隔符拼接 text block。
+ * 通过结构类型兼容 ContentBlock、ContentBlockParam、BetaContentBlock
+ * 及其 readonly/DeepImmutable 变体。
  */
 export function extractTextContent(
   blocks: readonly { readonly type: string }[],
@@ -3262,7 +3241,7 @@ export type StreamingThinking = {
 }
 
 /**
- * Handles messages from a stream, updating response length for deltas and appending completed messages
+ * 处理来自 stream 的消息：为 delta 更新响应长度，并追加已完成的消息
  */
 export function handleMessageFromStream(
   message:
@@ -3288,16 +3267,16 @@ export function handleMessageFromStream(
     message.type !== 'stream_event' &&
     message.type !== 'stream_request_start'
   ) {
-    // Handle tombstone messages - remove the targeted message instead of adding
+    // 处理 tombstone 消息——移除目标消息而非添加
     if (message.type === 'tombstone') {
       onTombstone?.(message.message as unknown as Message)
       return
     }
-    // Tool use summary messages are SDK-only, ignore them in stream handling
+    // tool_use_summary 消息仅用于 SDK，流处理时忽略
     if (message.type === 'tool_use_summary') {
       return
     }
-    // Capture complete thinking blocks for real-time display in transcript mode
+    // 捕获完整的 thinking 块用于 transcript 模式的实时显示
     if (message.type === 'assistant') {
       const assistMsg = message as Message
       const contentArr = Array.isArray(assistMsg.message?.content)
@@ -3319,9 +3298,9 @@ export function handleMessageFromStream(
         }))
       }
     }
-    // Clear streaming text NOW so the render can switch displayedMessages
-    // from deferredMessages to messages in the same batch, making the
-    // transition from streaming text → final message atomic (no gap, no duplication).
+    // 立即清除流式文本，让渲染可以在同一批次中将 displayedMessages
+    // 从 deferredMessages 切换为 messages，使流式文本→最终消息的过渡原子化
+    // （无间隙，无重复）。
     onStreamingText?.(() => null)
     onMessage(message as Message)
     return
@@ -3332,7 +3311,7 @@ export function handleMessageFromStream(
     return
   }
 
-  // At this point, message is a stream event with an `event` property
+  // 到这里，message 是带有 `event` 属性的 stream event
   const streamMsg = message as {
     type: string
     event: {
@@ -3446,9 +3425,8 @@ export function handleMessageFromStream(
           onUpdateLength(streamMsg.event.delta.thinking)
           return
         case 'signature_delta':
-          // Signatures are cryptographic authentication strings, not model
-          // output. Excluding them from onUpdateLength prevents them from
-          // inflating the OTPS metric and the animated token counter.
+          // Signature 是密码学认证字符串，不是模型输出。
+          // 排除在 onUpdateLength 之外，防止它们虚增 OTPS 指标和动画 token 计数器。
           return
         default:
           return
@@ -3869,9 +3847,9 @@ Read the team config to discover your teammates' names. Check the task list peri
     }
   }
 
-  // skill_discovery handled here (not in the switch) so the 'skill_discovery'
-  // string literal lives inside a feature()-guarded block. A case label can't
-  // be gated, but this pattern can — same approach as teammate_mailbox above.
+  // skill_discovery 在此处理（不在 switch 中），以便 'skill_discovery'
+  // 字符串字面量位于 feature() 守卫块内。case 标签无法门控，
+  // 但这种模式可以——与上面 teammate_mailbox 的做法相同。
   if (feature('EXPERIMENTAL_SKILL_SEARCH')) {
     if (attachment.type === 'skill_discovery') {
       if (attachment.skills.length === 0 && !attachment.gap) return []
@@ -3914,8 +3892,8 @@ Read the team config to discover your teammates' names. Check the task list peri
     }
   }
 
-  // tool_discovery handled here (not in the switch) so the 'tool_discovery'
-  // string literal lives inside a feature()-guarded block.
+  // tool_discovery 在此处理（不在 switch 中），以便 'tool_discovery'
+  // 字符串字面量位于 feature() 守卫块内。
   if (feature('EXPERIMENTAL_SEARCH_EXTRA_TOOLS')) {
     if (attachment.type === 'tool_discovery') {
       if (attachment.tools.length === 0) return []
@@ -3989,7 +3967,7 @@ Read the team config to discover your teammates' names. Check the task list peri
           ])
         }
         case 'pdf': {
-          // PDFs are handled via supplementalContent in the tool result
+          // PDF 通过 tool result 中的 supplementalContent 处理
           return wrapMessagesInSystemReminder([
             createToolUseMessage(FileReadTool.name, {
               file_path: attachment.filename,
@@ -4119,10 +4097,8 @@ Read the team config to discover your teammates' names. Check the task list peri
     case 'relevant_memories': {
       return wrapMessagesInSystemReminder(
         attachment.memories.map(m => {
-          // Use the header stored at attachment-creation time so the
-          // rendered bytes are stable across turns (prompt-cache hit).
-          // Fall back to recomputing for resumed sessions that predate
-          // the stored-header field.
+          // 使用 attachment 创建时存储的 header，以保证渲染字节在多轮间稳定（prompt-cache 命中）。
+          // 对早于 stored-header 字段的已恢复会话，回退为重新计算。
           const header = m.header ?? memoryHeader(m.path, m.mtimeMs)
           return createUserMessage({
             content: `${header}\n\n${m.content}`,
@@ -4132,8 +4108,7 @@ Read the team config to discover your teammates' names. Check the task list peri
       )
     }
     case 'dynamic_skill': {
-      // Dynamic skills are informational for the UI only - the skills themselves
-      // are loaded separately and available via the Skill tool
+      // Dynamic skill 仅供 UI 展示——技能本身单独加载，通过 Skill tool 可用
       return []
     }
     case 'skill_listing': {
@@ -4148,25 +4123,24 @@ Read the team config to discover your teammates' names. Check the task list peri
       ])
     }
     case 'queued_command': {
-      // Prefer explicit origin carried from the queue; fall back to commandMode
-      // for task notifications (which predate origin).
+      // 优先使用队列中携带的显式 origin；对早于 origin 字段的
+      // task-notification 回退为 commandMode。
       const origin = (attachment.origin ??
         (attachment.commandMode === 'task-notification'
           ? { kind: 'task-notification' }
           : undefined)) as MessageOrigin | undefined
 
-      // Only hide from the transcript if the queued command was itself
-      // system-generated. Human input drained mid-turn has no origin and no
-      // QueuedCommand.isMeta — it should stay visible. Previously this
-      // hardcoded isMeta:true, which hid user-typed messages in brief mode
-      // (filterForBriefTool) and in normal mode (shouldShowUserMessage).
+      // 只有当排队命令本身是系统生成时才从 transcript 隐藏。
+      // 轮次中途被清空的人工输入没有 origin 也没有 QueuedCommand.isMeta——
+      // 应保持可见。之前硬编码 isMeta:true，导致用户输入在 brief 模式
+      // （filterForBriefTool）和普通模式（shouldShowUserMessage）中被隐藏。
       const metaProp =
         origin !== undefined || attachment.isMeta
           ? ({ isMeta: true } as const)
           : {}
 
       if (Array.isArray(attachment.prompt)) {
-        // Handle content blocks (may include images)
+        // 处理 content block（可能含图片）
         const textContent = attachment.prompt
           .filter((block): block is TextBlockParam => block.type === 'text')
           .map(block => block.text)
@@ -4194,7 +4168,7 @@ Read the team config to discover your teammates' names. Check the task list peri
         ])
       }
 
-      // String prompt
+      // 字符串 prompt
       return wrapMessagesInSystemReminder([
         createUserMessage({
           content: wrapCommandText(String(attachment.prompt), origin),
@@ -4222,7 +4196,7 @@ Read the team config to discover your teammates' names. Check the task list peri
     case 'diagnostics': {
       if (attachment.files.length === 0) return []
 
-      // Use the centralized diagnostic formatting
+      // 使用集中式诊断格式化
       const diagnosticSummary =
         DiagnosticTrackingService.formatDiagnosticsSummary(attachment.files)
 
@@ -4285,7 +4259,7 @@ You have exited auto mode. The user may now want to interact more directly. You 
       ])
     }
     case 'mcp_resource': {
-      // Format the resource content similar to how file attachments work
+      // 格式化 resource 内容，方式类似于文件 attachment
       const content = attachment.content
       if (!content || !content.contents || content.contents.length === 0) {
         return wrapMessagesInSystemReminder([
@@ -4296,10 +4270,10 @@ You have exited auto mode. The user may now want to interact more directly. You 
         ])
       }
 
-      // Transform each content item using the MCP transform function
+      // 使用 MCP 转换函数转换每个 content item
       const transformedBlocks: ContentBlockParam[] = []
 
-      // Handle the resource contents - only process text content
+      // 处理 resource 内容——只处理 text 内容
       for (const item of content.contents) {
         if (item && typeof item === 'object') {
           if ('text' in item && typeof item.text === 'string') {
@@ -4318,7 +4292,7 @@ You have exited auto mode. The user may now want to interact more directly. You 
               },
             )
           } else if ('blob' in item) {
-            // Skip binary content including images
+            // 跳过二进制内容（含图片）
             const mimeType =
               'mimeType' in item
                 ? String(item.mimeType)
@@ -4331,7 +4305,7 @@ You have exited auto mode. The user may now want to interact more directly. You 
         }
       }
 
-      // If we have any content blocks, return them as a message
+      // 有 content block 时作为消息返回
       if (transformedBlocks.length > 0) {
         return wrapMessagesInSystemReminder([
           createUserMessage({
@@ -4344,7 +4318,7 @@ You have exited auto mode. The user may now want to interact more directly. You 
           attachment.server,
           `No displayable content found in MCP resource ${attachment.uri}.`,
         )
-        // Fallback if no content could be transformed
+        // 无法转换内容时的回退
         return wrapMessagesInSystemReminder([
           createUserMessage({
             content: `<mcp-resource server="${attachment.server}" uri="${attachment.uri}">(No displayable content)</mcp-resource>`,
@@ -4365,8 +4339,7 @@ You have exited auto mode. The user may now want to interact more directly. You 
       const displayStatus =
         attachment.status === 'killed' ? 'stopped' : attachment.status
 
-      // For stopped tasks, keep it brief — the work was interrupted and
-      // the raw transcript delta isn't useful context.
+      // 对已停止的任务保持简洁——工作已中断，原始 transcript delta 不是有用上下文。
       if (attachment.status === 'killed') {
         return [
           createUserMessage({
@@ -4378,8 +4351,8 @@ You have exited auto mode. The user may now want to interact more directly. You 
         ]
       }
 
-      // For running tasks, warn against spawning a duplicate — this attachment
-      // is only emitted post-compaction, where the original spawn message is gone.
+      // 对运行中的任务警告不要创建重复——此 attachment 仅在 compaction 后发出，
+      // 届时原始 spawn 消息已消失。
       if (attachment.status === 'running') {
         const parts = [
           `Background agent "${attachment.description}" (${attachment.taskId}) is still running.`,
@@ -4404,7 +4377,7 @@ You have exited auto mode. The user may now want to interact more directly. You 
         ]
       }
 
-      // For completed/failed tasks, include the full delta
+      // 对已完成/失败的任务，包含完整 delta
       const messageParts: string[] = [
         `Task ${attachment.taskId}`,
         `(type: ${attachment.taskType})`,
@@ -4444,7 +4417,7 @@ You have exited auto mode. The user may now want to interact more directly. You 
       }
       const messages: UserMessage[] = []
 
-      // Handle systemMessage
+      // 处理 systemMessage
       if (response.systemMessage) {
         messages.push(
           createUserMessage({
@@ -4454,7 +4427,7 @@ You have exited auto mode. The user may now want to interact more directly. You 
         )
       }
 
-      // Handle additionalContext
+      // 处理 additionalContext
       if (
         response.hookSpecificOutput &&
         'additionalContext' in response.hookSpecificOutput &&
@@ -4472,8 +4445,8 @@ You have exited auto mode. The user may now want to interact more directly. You 
 
       return wrapMessagesInSystemReminder(messages)
     }
-    // Note: 'teammate_mailbox' and 'team_context' are handled BEFORE switch
-    // to avoid case label strings leaking into compiled output
+    // 注意：'teammate_mailbox' 和 'team_context' 在 switch 之前处理，
+    // 以避免 case 标签字符串泄露到编译输出中
     case 'token_usage':
       return [
         createUserMessage({
@@ -4657,7 +4630,7 @@ You have exited auto mode. The user may now want to interact more directly. You 
       ])
     }
     case 'verify_plan_reminder': {
-      // Dead code elimination: CLAUDE_CODE_VERIFY_PLAN='false' in external builds, so === 'true' check allows Bun to eliminate the string
+      // 死代码消除：外部构建中 CLAUDE_CODE_VERIFY_PLAN='false'，因此 === 'true' 检查允许 Bun 消除该字符串
       /* eslint-disable-next-line custom-rules/no-process-env-top-level */
       const toolName =
         process.env.CLAUDE_CODE_VERIFY_PLAN === 'true'
@@ -4680,16 +4653,15 @@ You have exited auto mode. The user may now want to interact more directly. You 
       return []
   }
 
-  // Handle legacy attachments that were removed
-  // IMPORTANT: if you remove an attachment type from normalizeAttachmentForAPI, make sure
-  // to add it here to avoid errors from old --resume'd sessions that might still have
-  // these attachment types.
+  // 处理已删除的遗留 attachment
+  // 重要：从 normalizeAttachmentForAPI 删除 attachment 类型时，
+  // 必须在此添加，以避免旧的 --resume 会话仍有这些类型时报错。
   const LEGACY_ATTACHMENT_TYPES = [
     'autocheckpointing',
     'background_task_status',
     'todo',
-    'task_progress', // removed in PR #19337
-    'ultramemory', // removed in PR #23596
+    'task_progress', // 在 PR #19337 中删除
+    'ultramemory', // 在 PR #23596 中删除
   ]
   if (LEGACY_ATTACHMENT_TYPES.includes((attachment as { type: string }).type)) {
     return []
@@ -4711,7 +4683,7 @@ function createToolResultMessage<Output>(
   try {
     const result = tool.mapToolResultToToolResultBlockParam(toolUseResult, '1')
 
-    // If the result contains image content blocks, preserve them as is
+    // 如果结果包含 image content block，原样保留
     if (
       Array.isArray(result.content) &&
       result.content.some(block => block.type === 'image')
@@ -4722,9 +4694,9 @@ function createToolResultMessage<Output>(
       })
     }
 
-    // For string content, use raw string — jsonStringify would escape \n→\\n,
-    // wasting ~1 token per newline (a 2000-line @-file = ~1000 wasted tokens).
-    // Keep jsonStringify for array/object content where structure matters.
+    // 对字符串内容使用原始字符串——jsonStringify 会将 \n 转义为 \\n，
+    // 每个换行符浪费约 1 个 token（2000 行的 @-file 约浪费 1000 个 token）。
+    // 对结构重要的 array/object 内容保留 jsonStringify。
     const contentStr =
       typeof result.content === 'string'
         ? result.content
@@ -5022,7 +4994,7 @@ export function createSystemAPIErrorMessage(
 }
 
 /**
- * Checks if a message is a compact boundary marker
+ * 检查消息是否为 compact 边界标记
  */
 export function isCompactBoundaryMessage(
   message: Message | NormalizedMessage,
@@ -5031,33 +5003,32 @@ export function isCompactBoundaryMessage(
 }
 
 /**
- * Finds the index of the last compact boundary marker in the messages array
- * @returns The index of the last compact boundary, or -1 if none found
+ * 在消息数组中查找最后一个 compact 边界标记的索引
+ * @returns 最后一个 compact 边界的索引，未找到时返回 -1
  */
 export function findLastCompactBoundaryIndex<
   T extends Message | NormalizedMessage,
 >(messages: T[]): number {
-  // Scan backwards to find the most recent compact boundary
+  // 从末尾向前扫描，找到最近的 compact 边界
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i]
     if (message && isCompactBoundaryMessage(message)) {
       return i
     }
   }
-  return -1 // No boundary found
+  return -1 // 未找到边界
 }
 
 /**
- * Returns messages from the last compact boundary onward (including the boundary).
- * If no boundary exists, returns all messages.
+ * 返回从最后一个 compact 边界开始（含边界）的消息。
+ * 不存在边界时返回所有消息。
  *
- * Also filters snipped messages by default (when HISTORY_SNIP is enabled) —
- * the REPL keeps full history for UI scrollback, so model-facing paths need
- * both compact-slice AND snip-filter applied. Pass `{ includeSnipped: true }`
- * to opt out (e.g., REPL.tsx fullscreen compact handler which preserves
- * snipped messages in scrollback).
+ * 默认也过滤 snipped 消息（启用 HISTORY_SNIP 时）——
+ * REPL 保留完整历史用于 UI 滚动，因此面向模型的路径需要同时应用
+ * compact 切片和 snip 过滤。传入 `{ includeSnipped: true }` 可选出
+ * （如 REPL.tsx 全屏 compact 处理器，它在滚动中保留 snipped 消息）。
  *
- * Note: The boundary itself is a system message and will be filtered by normalizeMessagesForAPI.
+ * 注意：边界本身是 system 消息，会被 normalizeMessagesForAPI 过滤掉。
  */
 export function getMessagesAfterCompactBoundary<
   T extends Message | NormalizedMessage,
@@ -5080,10 +5051,9 @@ export function shouldShowUserMessage(
 ): boolean {
   if (message.type !== 'user') return true
   if (message.isMeta) {
-    // Channel messages stay isMeta (for snip-tag/turn-boundary/brief-mode
-    // semantics) but render in the default transcript — the keyboard user
-    // should see what arrived. The <channel> tag in UserTextMessage handles
-    // the actual rendering.
+    // channel 消息保持 isMeta（用于 snip-tag/轮次边界/brief-mode 语义）
+    // 但在默认 transcript 中渲染——键盘用户应该看到收到的内容。
+    // UserTextMessage 中的 <channel> 标签处理实际渲染。
     if (
       (feature('KAIROS') || feature('KAIROS_CHANNELS')) &&
       (message.origin as { kind?: string } | undefined)?.kind === 'channel'
@@ -5104,8 +5074,8 @@ export function isThinkingMessage(message: Message): boolean {
 }
 
 /**
- * Count total calls to a specific tool in message history
- * Stops early at maxCount for efficiency
+ * 统计消息历史中某个特定工具的调用次数
+ * 达到 maxCount 时提前退出以提高效率
  */
 export function countToolCalls(
   messages: Message[],
@@ -5134,14 +5104,14 @@ export function countToolCalls(
 }
 
 /**
- * Check if the most recent tool call succeeded (has result without is_error)
- * Searches backwards for efficiency.
+ * 检查最近一次工具调用是否成功（有结果且 is_error 不为 true）
+ * 为提高效率，从后向前搜索。
  */
 export function hasSuccessfulToolCall(
   messages: Message[],
   toolName: string,
 ): boolean {
-  // Search backwards to find most recent tool_use for this tool
+  // 从后向前搜索，找到该工具最近的 tool_use
   let mostRecentToolUseId: string | undefined
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i]
@@ -5166,7 +5136,7 @@ export function hasSuccessfulToolCall(
 
   if (!mostRecentToolUseId) return false
 
-  // Find the corresponding tool_result (search backwards)
+  // 找到对应的 tool_result（从后向前搜索）
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i]
     if (!msg) continue
@@ -5183,13 +5153,13 @@ export function hasSuccessfulToolCall(
           block.tool_use_id === mostRecentToolUseId,
       )
       if (toolResult) {
-        // Success if is_error is false or undefined
+        // is_error 为 false 或 undefined 时表示成功
         return toolResult.is_error !== true
       }
     }
   }
 
-  // Tool called but no result yet (shouldn't happen in practice)
+  // 工具已调用但尚无结果（实际上不应发生）
   return false
 }
 
@@ -5208,15 +5178,15 @@ function isThinkingBlock(
 }
 
 /**
- * Filter trailing thinking blocks from the last message if it's an assistant message.
- * The API doesn't allow assistant messages to end with thinking/redacted_thinking blocks.
+ * 如果最后一条消息是 assistant 消息，过滤其末尾的 thinking 块。
+ * API 不允许 assistant 消息以 thinking/redacted_thinking 块结尾。
  */
 function filterTrailingThinkingFromLastAssistant(
   messages: (UserMessage | AssistantMessage)[],
 ): (UserMessage | AssistantMessage)[] {
   const lastMessage = messages.at(-1)
   if (!lastMessage || lastMessage.type !== 'assistant') {
-    // Last message is not assistant, nothing to filter
+    // 最后一条消息不是 assistant，无需过滤
     return messages
   }
 
@@ -5231,7 +5201,7 @@ function filterTrailingThinkingFromLastAssistant(
     return messages
   }
 
-  // Find last non-thinking block
+  // 找到最后一个非 thinking 块
   let lastValidIndex = content.length - 1
   while (lastValidIndex >= 0) {
     const block = content[lastValidIndex]
@@ -5248,7 +5218,7 @@ function filterTrailingThinkingFromLastAssistant(
     remainingBlocks: lastValidIndex + 1,
   })
 
-  // Insert placeholder if all blocks were thinking
+  // 如果所有块都是 thinking 块，插入占位符
   const filteredContent =
     lastValidIndex < 0
       ? [{ type: 'text' as const, text: '[No message content]', citations: [] }]
@@ -5266,9 +5236,9 @@ function filterTrailingThinkingFromLastAssistant(
 }
 
 /**
- * Check if an assistant message has only whitespace-only text content blocks.
- * Returns true if all content blocks are text blocks with only whitespace.
- * Returns false if there are any non-text blocks (like tool_use) or text with actual content.
+ * 检查 assistant 消息是否只有纯空白 text content block。
+ * 所有 content block 都是只含空白字符的 text block 时返回 true。
+ * 有任意非 text 块（如 tool_use）或含实际内容的 text 块时返回 false。
  */
 function hasOnlyWhitespaceTextContent(
   content: Array<{ type: string; text?: string }>,
@@ -5278,31 +5248,29 @@ function hasOnlyWhitespaceTextContent(
   }
 
   for (const block of content) {
-    // If there's any non-text block (tool_use, thinking, etc.), the message is valid
+    // 有任意非 text 块（tool_use、thinking 等），消息有效
     if (block.type !== 'text') {
       return false
     }
-    // If there's a text block with non-whitespace content, the message is valid
+    // 有含非空白内容的 text 块，消息有效
     if (block.text !== undefined && block.text.trim() !== '') {
       return false
     }
   }
 
-  // All blocks are text blocks with only whitespace
+  // 所有块都是只含空白字符的 text block
   return true
 }
 
 /**
- * Filter out assistant messages with only whitespace-only text content.
+ * 过滤只含纯空白 text 内容的 assistant 消息。
  *
- * The API requires "text content blocks must contain non-whitespace text".
- * This can happen when the model outputs whitespace (like "\n\n") before a thinking block,
- * but the user cancels mid-stream, leaving only the whitespace text.
+ * API 要求"text content block 必须包含非空白文本"。
+ * 当模型在 thinking block 之前输出空白（如 "\n\n"），但用户在流式传输中途取消时会出现这种情况。
  *
- * This function removes such messages entirely rather than keeping a placeholder,
- * since whitespace-only content has no semantic value.
+ * 此函数完全移除此类消息而非保留占位符，因为纯空白内容没有语义价值。
  *
- * Also used by conversationRecovery to filter these from the main state during session resume.
+ * 也被 conversationRecovery 用于在会话恢复时从主状态中过滤这些消息。
  */
 export function filterWhitespaceOnlyAssistantMessages(
   messages: (UserMessage | AssistantMessage)[],
@@ -5341,8 +5309,8 @@ export function filterWhitespaceOnlyAssistantMessages(
     return messages
   }
 
-  // Removing assistant messages may leave adjacent user messages that need
-  // merging (the API requires alternating user/assistant roles).
+  // 移除 assistant 消息后，相邻 user 消息可能需要合并
+  // （API 要求 user/assistant 角色交替）。
   const merged: Message[] = []
   for (const message of filtered) {
     const prev = merged.at(-1)
@@ -5359,14 +5327,13 @@ export function filterWhitespaceOnlyAssistantMessages(
 }
 
 /**
- * Ensure all non-final assistant messages have non-empty content.
+ * 确保所有非末尾 assistant 消息的内容非空。
  *
- * The API requires "all messages must have non-empty content except for the
- * optional final assistant message". This can happen when the model returns
- * an empty content array.
+ * API 要求"除可选的末尾 assistant 消息外，所有消息必须有非空内容"。
+ * 当模型返回空 content 数组时会出现这种情况。
  *
- * For non-final assistant messages with empty content, we insert a placeholder.
- * The final assistant message is left as-is since it's allowed to be empty (for prefill).
+ * 对于内容为空的非末尾 assistant 消息，插入占位符。
+ * 末尾 assistant 消息保持原样，因为允许为空（用于 prefill）。
  *
  * Note: Whitespace-only text content is handled separately by filterWhitespaceOnlyAssistantMessages.
  */
@@ -5379,17 +5346,17 @@ function ensureNonEmptyAssistantContent(
 
   let hasChanges = false
   const result = messages.map((message, index) => {
-    // Skip non-assistant messages
+    // 跳过非 assistant 消息
     if (message.type !== 'assistant') {
       return message
     }
 
-    // Skip the final message (allowed to be empty for prefill)
+    // 跳过末尾消息（prefill 时允许为空）
     if (index === messages.length - 1) {
       return message
     }
 
-    // Check if content is empty
+    // 检查内容是否为空
     const content = message.message.content
     if (Array.isArray(content) && content.length === 0) {
       hasChanges = true
@@ -5417,16 +5384,16 @@ function ensureNonEmptyAssistantContent(
 }
 
 /**
- * Filter orphaned thinking-only assistant messages.
+ * 过滤孤立的仅含 thinking 的 assistant 消息。
  *
- * During streaming, each content block is yielded as a separate message with the same
- * message.id. When messages are loaded for resume, interleaved user messages or attachments
- * can prevent proper merging by message.id, leaving orphaned assistant messages that contain
- * only thinking blocks. These cause "thinking blocks cannot be modified" API errors.
+ * 流式传输期间，每个 content block 作为带相同 message.id 的独立消息产出。
+ * 恢复加载消息时，插入的 user 消息或 attachment 可能阻止按 message.id 正确合并，
+ * 留下只含 thinking block 的孤立 assistant 消息。
+ * 这些消息会导致 "thinking blocks cannot be modified" API 错误。
  *
- * A thinking-only message is "orphaned" if there is NO other assistant message with the
- * same message.id that contains non-thinking content (text, tool_use, etc). If such a
- * message exists, the thinking block will be merged with it in normalizeMessagesForAPI().
+ * 仅含 thinking 的消息在"孤立"条件下被过滤：即不存在相同 message.id、
+ * 含非 thinking 内容（text、tool_use 等）的其他 assistant 消息。
+ * 若存在这样的消息，thinking block 将在 normalizeMessagesForAPI() 中与其合并。
  */
 export function filterOrphanedThinkingOnlyMessages(
   messages: (UserMessage | AssistantMessage)[],
@@ -5437,8 +5404,8 @@ export function filterOrphanedThinkingOnlyMessages(
 export function filterOrphanedThinkingOnlyMessages(
   messages: Message[],
 ): Message[] {
-  // First pass: collect message.ids that have non-thinking content
-  // These will be merged later in normalizeMessagesForAPI()
+  // 第一遍：收集含非 thinking 内容的 message.id
+  // 这些将在 normalizeMessagesForAPI() 中合并
   const messageIdsWithNonThinkingContent = new Set<string>()
   for (const msg of messages) {
     if (msg.type !== 'assistant') continue
@@ -5454,7 +5421,7 @@ export function filterOrphanedThinkingOnlyMessages(
     }
   }
 
-  // Second pass: filter out thinking-only messages that are truly orphaned
+  // 第二遍：过滤真正孤立的仅含 thinking 消息
   const filtered = messages.filter(msg => {
     if (msg.type !== 'assistant') {
       return true
@@ -5465,17 +5432,16 @@ export function filterOrphanedThinkingOnlyMessages(
       return true
     }
 
-    // Check if ALL content blocks are thinking blocks
+    // 检查是否所有 content block 都是 thinking block
     const allThinking = (content as Array<{ type: string }>).every(
       block => block.type === 'thinking' || block.type === 'redacted_thinking',
     )
 
     if (!allThinking) {
-      return true // Has non-thinking content, keep it
+      return true // 含非 thinking 内容，保留
     }
 
-    // It's thinking-only. Keep it if there's another message with same id
-    // that has non-thinking content (they'll be merged later)
+    // 仅含 thinking。若存在相同 id 的其他消息含非 thinking 内容（将被合并），则保留
     if (
       msg.message?.id &&
       messageIdsWithNonThinkingContent.has(msg.message.id as string)
@@ -5483,7 +5449,7 @@ export function filterOrphanedThinkingOnlyMessages(
       return true
     }
 
-    // Truly orphaned - no other message with same id has content to merge with
+    // 真正孤立——没有相同 id 的其他消息可合并
     logEvent('tengu_filtered_orphaned_thinking_message', {
       messageUUID:
         msg.uuid as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -5498,10 +5464,9 @@ export function filterOrphanedThinkingOnlyMessages(
 }
 
 /**
- * Strip signature-bearing blocks (thinking, redacted_thinking, connector_text)
- * from all assistant messages. Their signatures are bound to the API key that
- * generated them; after a credential change (e.g. /login) they're invalid and
- * the API rejects them with a 400.
+ * 从所有 assistant 消息中剥除带签名的块（thinking、redacted_thinking、connector_text）。
+ * 它们的签名绑定到生成它们的 API key；凭据变更后（如 /login）签名失效，
+ * API 会以 400 拒绝。
  */
 export function stripSignatureBlocks(messages: Message[]): Message[] {
   let changed = false
@@ -5520,13 +5485,12 @@ export function stripSignatureBlocks(messages: Message[]): Message[] {
     })
     if (filtered.length === content.length) return msg
 
-    // Strip to [] even for thinking-only messages. Streaming yields each
-    // content block as a separate same-id AssistantMessage (claude.ts:2150),
-    // so a thinking-only singleton here is usually a split sibling that
-    // mergeAssistantMessages (2232) rejoins with its text/tool_use partner.
-    // If we returned the original message, the stale signature would survive
-    // the merge. Empty content is absorbed by merge; true orphans are handled
-    // by the empty-content placeholder path in normalizeMessagesForAPI.
+    // 对仅含 thinking 的消息也剥除为 []。流式传输将每个 content block 产出为
+    // 独立的相同 id AssistantMessage（claude.ts:2150），
+    // 因此这里的 thinking-only 单例通常是 mergeAssistantMessages（2232）
+    // 与其 text/tool_use 伙伴重新合并的分裂兄弟。
+    // 若返回原始消息，过期签名会在合并中存活。
+    // 空内容被合并吸收；真正的孤立消息由 normalizeMessagesForAPI 的空内容占位符路径处理。
 
     changed = true
     return {
@@ -5539,8 +5503,8 @@ export function stripSignatureBlocks(messages: Message[]): Message[] {
 }
 
 /**
- * Creates a tool use summary message for SDK emission.
- * Tool use summaries provide human-readable progress updates after tool batches complete.
+ * 创建用于 SDK 发出的 tool use summary 消息。
+ * Tool use summary 在工具批次完成后提供人类可读的进度更新。
  */
 export function createToolUseSummaryMessage(
   summary: string,
@@ -5556,19 +5520,18 @@ export function createToolUseSummaryMessage(
 }
 
 /**
- * Defensive validation: ensure tool_use/tool_result pairing is correct.
+ * 防御性校验：确保 tool_use/tool_result 配对正确。
  *
- * Handles both directions:
- * - Forward: inserts synthetic error tool_result blocks for tool_use blocks missing results
- * - Reverse: strips orphaned tool_result blocks referencing non-existent tool_use blocks
+ * 处理两个方向：
+ * - 正向：为缺少结果的 tool_use 块插入合成错误 tool_result 块
+ * - 反向：剥除引用不存在 tool_use 块的孤立 tool_result 块
  *
- * Logs when this activates to help identify the root cause.
+ * 激活时记录日志以协助定位根因。
  *
- * Strict mode: when getStrictToolResultPairing() is true (HFI opts in at
- * startup), any mismatch throws instead of repairing. For training-data
- * collection, a model response conditioned on synthetic placeholders is
- * tainted — fail the trajectory rather than waste labeler time on a turn
- * that will be rejected at submission anyway.
+ * 严格模式：getStrictToolResultPairing() 为 true 时（HFI 在启动时启用），
+ * 任何不匹配都会抛出而非修复。
+ * 对于训练数据采集，以合成占位符为条件的模型响应是被污染的——
+ * 使轨迹失败，而不是浪费标注员时间在一个提交时必然被拒绝的轮次上。
  */
 export function ensureToolResultPairing(
   messages: (UserMessage | AssistantMessage)[],
@@ -5590,14 +5553,12 @@ export function ensureToolResultPairing(
     const msg = messages[i]!
 
     if (msg.type !== 'assistant') {
-      // A user message with tool_result blocks but NO preceding assistant
-      // message in the output has orphaned tool_results. The assistant
-      // lookahead below only validates assistant→user adjacency; it never
-      // sees user messages at index 0 or user messages preceded by another
-      // user. This happens on resume when the transcript starts mid-turn
-      // (e.g. messages[0] is a tool_result whose assistant pair was dropped
-      // by earlier compaction — API rejects with "messages.0.content:
-      // unexpected tool_use_id").
+      // 有 tool_result 块但输出中没有前置 assistant 消息的 user 消息
+      // 含有孤立的 tool_result。下面的 assistant 前向查找只验证
+      // assistant→user 相邻性；永远不会看到 index 0 的 user 消息
+      // 或被另一个 user 前置的 user 消息。这在 transcript 从轮次中途开始时的
+      // 恢复中发生（如 messages[0] 是 tool_result，其 assistant 配对已被
+      // 早期 compaction 丢弃——API 报 "messages.0.content: unexpected tool_use_id"）。
       if (
         msg.type === 'user' &&
         Array.isArray(msg.message.content) &&
@@ -5613,11 +5574,10 @@ export function ensureToolResultPairing(
         )
         if (stripped.length !== msg.message.content.length) {
           repaired = true
-          // If stripping emptied the message and nothing has been pushed yet,
-          // keep a placeholder so the payload still starts with a user
-          // message (normalizeMessagesForAPI runs before us, so messages[1]
-          // is an assistant — dropping messages[0] entirely would yield a
-          // payload starting with assistant, a different 400).
+          // 如果剥除后消息为空且尚未推入任何内容，
+          // 保留占位符以确保 payload 仍以 user 消息开头
+          // （normalizeMessagesForAPI 在我们之前运行，所以 messages[1]
+          // 是 assistant——完全丢弃 messages[0] 会产生以 assistant 开头的 payload，触发不同的 400）。
           const content =
             stripped.length > 0
               ? stripped
@@ -5642,7 +5602,7 @@ export function ensureToolResultPairing(
       continue
     }
 
-    // Collect server-side tool result IDs (*_tool_result blocks have tool_use_id).
+    // 收集服务端 tool result ID（*_tool_result 块有 tool_use_id）。
     const serverResultIds = new Set<string>()
     const aMsg5 = msg as AssistantMessage
     for (const c of aMsg5.message.content as (
@@ -5658,18 +5618,15 @@ export function ensureToolResultPairing(
       }
     }
 
-    // Dedupe tool_use blocks by ID. Checks against the cross-message
-    // allSeenToolUseIds Set so a duplicate in a LATER assistant (different
-    // message.id, not merged by normalizeMessagesForAPI) is also stripped.
-    // The per-message seenToolUseIds tracks only THIS assistant's surviving
-    // IDs — the orphan/missing-result detection below needs a per-message
-    // view, not the cumulative one.
+    // 按 ID 对 tool_use 块去重。对比跨消息的 allSeenToolUseIds Set，
+    // 使后续 assistant（不同 message.id，不被 normalizeMessagesForAPI 合并）中的重复也被剥除。
+    // 每消息的 seenToolUseIds 只跟踪当前 assistant 存活的 ID——
+    // 下面的孤立/缺少结果检测需要每消息视图，而非累积视图。
     //
-    // Also strip orphaned server-side tool use blocks (server_tool_use,
-    // mcp_tool_use) whose result blocks live in the SAME assistant message.
-    // If the stream was interrupted before the result arrived, the use block
-    // has no matching *_tool_result and the API rejects with e.g. "advisor
-    // tool use without corresponding advisor_tool_result".
+    // 也剥除孤立的服务端 tool use 块（server_tool_use、mcp_tool_use），
+    // 其结果块在同一 assistant 消息中。
+    // 如果流在结果到达前被中断，use 块没有匹配的 *_tool_result，
+    // API 会报如 "advisor tool use without corresponding advisor_tool_result"。
     const seenToolUseIds = new Set<string>()
     const assistantContent = Array.isArray(aMsg5.message.content)
       ? aMsg5.message.content
@@ -5699,8 +5656,8 @@ export function ensureToolResultPairing(
       finalContent.length !==
       (aMsg5.message.content as (ContentBlockParam | ContentBlock)[]).length
 
-    // If stripping orphaned server tool uses empties the content array,
-    // insert a placeholder so the API doesn't reject empty assistant content.
+    // 如果剥除孤立的服务端 tool use 导致 content 数组为空，
+    // 插入占位符以防 API 拒绝空 assistant 内容。
     if (finalContent.length === 0) {
       finalContent.push({
         type: 'text' as const,
@@ -5721,14 +5678,12 @@ export function ensureToolResultPairing(
     // Collect tool_use IDs from this assistant message
     const toolUseIds = [...seenToolUseIds]
 
-    // Check the next message for matching tool_results. Also track duplicate
-    // tool_result blocks (same tool_use_id appearing twice) — for transcripts
-    // corrupted before Fix 1 shipped, the orphan handler ran to completion
-    // multiple times, producing [asst(X), user(tr_X), asst(X), user(tr_X)] which
-    // normalizeMessagesForAPI merges to [asst([X,X]), user([tr_X,tr_X])]. The
-    // tool_use dedup above strips the second X; without also stripping the
-    // second tr_X, the API rejects with a duplicate-tool_result 400 and the
-    // session stays stuck.
+    // 检查下一条消息是否有匹配的 tool_result。同时跟踪重复的 tool_result 块
+    // （相同 tool_use_id 出现两次）——对于 Fix 1 发布前损坏的 transcript，
+    // 孤立处理器多次运行完成，产生 [asst(X), user(tr_X), asst(X), user(tr_X)]，
+    // normalizeMessagesForAPI 将其合并为 [asst([X,X]), user([tr_X,tr_X])]。
+    // 上面的 tool_use 去重剥除了第二个 X；不同时剥除第二个 tr_X，
+    // API 会因重复 tool_result 报 400，会话一直卡住。
     const nextMsg = messages[i + 1]
     const existingToolResultIds = new Set<string>()
     let hasDuplicateToolResults = false
@@ -5752,11 +5707,11 @@ export function ensureToolResultPairing(
       }
     }
 
-    // Find missing tool_result IDs (forward direction: tool_use without tool_result)
+    // 查找缺失的 tool_result ID（正向：有 tool_use 但无 tool_result）
     const toolUseIdSet = new Set(toolUseIds)
     const missingIds = toolUseIds.filter(id => !existingToolResultIds.has(id))
 
-    // Find orphaned tool_result IDs (reverse direction: tool_result without tool_use)
+    // 查找孤立的 tool_result ID（反向：有 tool_result 但无 tool_use）
     const orphanedIds = [...existingToolResultIds].filter(
       id => !toolUseIdSet.has(id),
     )
@@ -5771,7 +5726,7 @@ export function ensureToolResultPairing(
 
     repaired = true
 
-    // Build synthetic error tool_result blocks for missing IDs
+    // 为缺失的 ID 构建合成错误 tool_result 块
     const syntheticBlocks: ToolResultBlockParam[] = missingIds.map(id => ({
       type: 'tool_result' as const,
       tool_use_id: id,
@@ -5780,7 +5735,7 @@ export function ensureToolResultPairing(
     }))
 
     if (nextMsg?.type === 'user') {
-      // Next message is already a user message - patch it
+      // 下一条消息已经是 user 消息——直接修补
       const nextUserMsg = nextMsg as UserMessage
       let content: (ContentBlockParam | ContentBlock)[] = Array.isArray(
         nextUserMsg.message.content,
@@ -5793,7 +5748,7 @@ export function ensureToolResultPairing(
             },
           ]
 
-      // Strip orphaned tool_results and dedupe duplicate tool_result IDs
+      // 剥除孤立 tool_result 并对重复的 tool_result ID 去重
       if (orphanedIds.length > 0 || hasDuplicateToolResults) {
         const orphanedSet = new Set(orphanedIds)
         const seenTrIds = new Set<string>()
@@ -5814,7 +5769,7 @@ export function ensureToolResultPairing(
 
       const patchedContent = [...syntheticBlocks, ...content]
 
-      // If content is now empty after stripping orphans, skip the user message
+      // 剥除孤立项后内容为空时，跳过该 user 消息
       if (patchedContent.length > 0) {
         const patchedNext: UserMessage = {
           ...nextUserMsg,
@@ -5824,21 +5779,18 @@ export function ensureToolResultPairing(
           },
         }
         i++
-        // Prepending synthetics to existing content can produce a
-        // [tool_result, text] sibling the smoosh inside normalize never saw
-        // (pairing runs after normalize). Re-smoosh just this one message.
+        // 向现有内容前置合成块可能产生 [tool_result, text] 兄弟块，
+        // normalize 内的 smoosh 从未见过（pairing 在 normalize 之后运行）。
+        // 只对这一条消息重新 smoosh。
         result.push(
           checkStatsigFeatureGate_CACHED_MAY_BE_STALE('tengu_chair_sermon')
             ? smooshSystemReminderSiblings([patchedNext])[0]!
             : patchedNext,
         )
       } else {
-        // Content is empty after stripping orphaned tool_results. We still
-        // need a user message here to maintain role alternation — unless the
-        // previous result entry is already a user message, in which case
-        // inserting another user placeholder creates consecutive-user messages
-        // that Anthropic rejects with a misleading "tool_use without
-        // tool_result" 400 (CC-1215).
+        // 剥除孤立 tool_result 后内容为空。仍需在此插入 user 消息以维持角色交替——
+        // 除非前一个结果条目已是 user 消息，否则插入另一个 user 占位符会产生
+        // 连续 user 消息，Anthropic 会以误导性的 "tool_use without tool_result" 400 拒绝（CC-1215）。
         i++
         if (result.at(-1)?.type === 'user') {
           continue
@@ -5851,7 +5803,7 @@ export function ensureToolResultPairing(
         )
       }
     } else {
-      // No user message follows - insert a synthetic user message (only if missing IDs)
+      // 后面没有 user 消息——插入合成 user 消息（仅在有缺失 ID 时）
       if (syntheticBlocks.length > 0) {
         result.push(
           createUserMessage({
@@ -5864,7 +5816,7 @@ export function ensureToolResultPairing(
   }
 
   if (repaired) {
-    // Capture diagnostic info to help identify root cause
+    // 捕获诊断信息以协助定位根因
     const messageTypes = messages.map((m, idx) => {
       if (m.type === 'assistant') {
         const contentArr = Array.isArray(m.message.content)
@@ -5930,8 +5882,8 @@ export function ensureToolResultPairing(
 }
 
 /**
- * Strip advisor blocks from messages. The API rejects server_tool_use blocks
- * with name "advisor" unless the advisor beta header is present.
+ * 从消息中剥除 advisor 块。除非携带 advisor beta header，
+ * 否则 API 会拒绝名为 "advisor" 的 server_tool_use 块。
  */
 export function stripAdvisorBlocks(
   messages: (UserMessage | AssistantMessage)[],

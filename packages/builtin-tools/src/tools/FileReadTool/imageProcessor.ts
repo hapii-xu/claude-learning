@@ -50,9 +50,7 @@ export async function getImageProcessor(): Promise<SharpFunction> {
       return sharpFn
     } catch {
       // 原生模块不可用时回退到 sharp
-      console.warn(
-        '原生图像处理器不可用，回退到 sharp',
-      )
+      console.warn('原生图像处理器不可用，回退到 sharp')
     }
   }
 

@@ -19,16 +19,8 @@ import {
 
 const questionOptionSchema = lazySchema(() =>
   z.object({
-    label: z
-      .string()
-      .describe(
-        '用户将看到并选择的选项显示文本。应简洁（1-5 个词），并清晰描述该选项。',
-      ),
-    description: z
-      .string()
-      .describe(
-        '说明该选项的含义或选择后将发生什么。用于提供关于权衡或影响的上下文。',
-      ),
+    label: z.string().describe('用户将看到并选择的选项显示文本。应简洁（1-5 个词），并清晰描述该选项。'),
+    description: z.string().describe('说明该选项的含义或选择后将发生什么。用于提供关于权衡或影响的上下文。'),
     preview: z
       .string()
       .optional()
@@ -60,27 +52,20 @@ const questionSchema = lazySchema(() =>
     multiSelect: z
       .boolean()
       .default(false)
-      .describe(
-        '设为 true 以允许用户选择多个选项而非仅一个。当选项之间不互斥时使用。',
-      ),
+      .describe('设为 true 以允许用户选择多个选项而非仅一个。当选项之间不互斥时使用。'),
   }),
 );
 
 const annotationsSchema = lazySchema(() => {
   const annotationSchema = z.object({
-    preview: z
-      .string()
-      .optional()
-      .describe('所选选项的预览内容（如果问题使用了预览）。'),
+    preview: z.string().optional().describe('所选选项的预览内容（如果问题使用了预览）。'),
     notes: z.string().optional().describe('用户为其选择添加的自由文本备注。'),
   });
 
   return z
     .record(z.string(), annotationSchema)
     .optional()
-    .describe(
-      '可选的每问题用户注释（例如，关于预览选择的备注）。按问题文本作为键。',
-    );
+    .describe('可选的每问题用户注释（例如，关于预览选择的备注）。按问题文本作为键。');
 });
 
 const UNIQUENESS_REFINE = {
@@ -108,9 +93,7 @@ const commonFields = lazySchema(() => ({
       source: z
         .string()
         .optional()
-        .describe(
-          '可选的问题来源标识符（例如，「remember」用于 /remember 命令）。用于分析跟踪。',
-        ),
+        .describe('可选的问题来源标识符（例如，「remember」用于 /remember 命令）。用于分析跟踪。'),
     })
     .optional()
     .describe('用于跟踪和分析目的的可选元数据。不显示给用户。'),
@@ -131,11 +114,7 @@ type InputSchema = ReturnType<typeof inputSchema>;
 const outputSchema = lazySchema(() =>
   z.object({
     questions: z.array(questionSchema()).describe('已提出的问题'),
-    answers: z
-      .record(z.string(), z.string())
-      .describe(
-        '用户提供的回答（问题文本 -> 回答字符串；多选回答以逗号分隔）',
-      ),
+    answers: z.record(z.string(), z.string()).describe('用户提供的回答（问题文本 -> 回答字符串；多选回答以逗号分隔）'),
     annotations: annotationsSchema(),
   }),
 );

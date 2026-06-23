@@ -49,7 +49,7 @@ export type Input = z.infer<InputSchema>
 export const TeamDeleteTool: Tool<InputSchema, Output> = buildTool({
   name: TEAM_DELETE_TOOL_NAME,
   searchHint:
-    'disband delete swarm team cleanup, remove team, end team collaboration, cleanup team resources',
+    '解散 删除 swarm 团队，清理、移除团队、结束团队协作、清理团队资源',
   maxResultSizeChars: 100_000,
   shouldDefer: true,
 

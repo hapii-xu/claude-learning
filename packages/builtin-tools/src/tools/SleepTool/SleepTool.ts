@@ -10,11 +10,7 @@ const SLEEP_WAKE_CHECK_INTERVAL_MS = 500
 
 const inputSchema = lazySchema(() =>
   z.strictObject({
-    duration_seconds: z
-      .number()
-      .describe(
-        '睡眠时长（秒）。用户可随时中断。',
-      ),
+    duration_seconds: z.number().describe('睡眠时长（秒）。用户可随时中断。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -54,7 +50,7 @@ function shouldInterruptSleep(): boolean {
 
 export const SleepTool = buildTool({
   name: SLEEP_TOOL_NAME,
-  searchHint: 'wait pause sleep rest idle duration timer',
+  searchHint: '等待 暂停 睡眠 休息 空闲 计时器',
   maxResultSizeChars: 1_000,
   strict: true,
 

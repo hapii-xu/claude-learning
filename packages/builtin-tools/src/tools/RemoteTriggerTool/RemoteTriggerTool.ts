@@ -47,7 +47,7 @@ const TRIGGERS_BETA = 'ccr-triggers-2026-01-30'
 
 export const RemoteTriggerTool = buildTool({
   name: REMOTE_TRIGGER_TOOL_NAME,
-  searchHint: 'manage scheduled remote agent triggers',
+  searchHint: '管理计划内的远程 agent 触发器',
   maxResultSizeChars: 100_000,
   shouldDefer: true,
   get inputSchema(): InputSchema {
@@ -86,9 +86,7 @@ export const RemoteTriggerTool = buildTool({
       await checkAndRefreshOAuthTokenIfNeeded()
       const accessToken = getClaudeAIOAuthTokens()?.accessToken
       if (!accessToken) {
-        throw new Error(
-          '尚未使用 claude.ai 账号认证。请运行 /login 后重试。',
-        )
+        throw new Error('尚未使用 claude.ai 账号认证。请运行 /login 后重试。')
       }
       const orgUUID = await getOrganizationUUID()
       if (!orgUUID) {

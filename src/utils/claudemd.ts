@@ -85,7 +85,8 @@ const teamMemPaths = feature('TEAMMEM')
 
 let hasLoggedInitialLoad = false
 
-const MEMORY_INSTRUCTION_PROMPT = 'Codebase and user instructions are shown below. Be sure to adhere to these instructions. IMPORTANT: These instructions OVERRIDE any default behavior and you MUST follow them exactly as written.'
+const MEMORY_INSTRUCTION_PROMPT =
+  '以下是代码库和用户的指令说明，请务必遵照执行。重要提示：这些指令将覆盖任何默认行为，你必须严格按照所写内容执行。'
 // 内存文件的建议最大字符数
 export const MAX_MEMORY_CHARACTER_COUNT = 40000
 
@@ -1166,22 +1167,22 @@ export const getClaudeMds = (
     if (file.content) {
       const description =
         file.type === 'Project'
-          ? ' (project instructions, checked into the codebase)'
+          ? '（项目指令，已提交到代码库）'
           : file.type === 'Local'
-            ? " (user's private project instructions, not checked in)"
+            ? '（用户的私有项目指令，未提交）'
             : feature('TEAMMEM') && file.type === 'TeamMem'
-              ? ' (shared team memory, synced across the organization)'
+              ? '（共享团队记忆，跨组织同步）'
               : file.type === 'AutoMem'
-                ? " (user's auto-memory, persists across conversations)"
-                : " (user's private global instructions for all projects)"
+                ? '（用户的自动记忆，跨对话持久化）'
+                : '（用户针对所有项目的私有全局指令）'
 
       const content = file.content.trim()
       if (feature('TEAMMEM') && file.type === 'TeamMem') {
         memories.push(
-          `Contents of ${file.path}${description}:\n\n<team-memory-content source="shared">\n${content}\n</team-memory-content>`,
+          `${file.path} 的内容${description}:\n\n<team-memory-content source="shared">\n${content}\n</team-memory-content>`,
         )
       } else {
-        memories.push(`Contents of ${file.path}${description}:\n\n${content}`)
+        memories.push(`${file.path} 的内容${description}:\n\n${content}`)
       }
     }
   }

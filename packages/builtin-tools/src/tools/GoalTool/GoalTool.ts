@@ -34,13 +34,8 @@ const inputSchema = lazySchema(() =>
     status: z
       .enum(['complete', 'blocked'])
       .optional()
-      .describe(
-        '"update" 时必填。仅接受 "complete" 或 "blocked"。',
-      ),
-    reason: z
-      .string()
-      .optional()
-      .describe('状态变更的说明。"update" 时必填。'),
+      .describe('"update" 时必填。仅接受 "complete" 或 "blocked"。'),
+    reason: z.string().optional().describe('状态变更的说明。"update" 时必填。'),
   }),
 )
 type InputSchema = ReturnType<typeof inputSchema>
@@ -158,8 +153,7 @@ export const GoalTool = buildTool({
         return {
           data: {
             success: true,
-            message:
-              '没有活动目标。用户可以通过 `/goal <objective>` 来设置。',
+            message: '没有活动目标。用户可以通过 `/goal <objective>` 来设置。',
           },
         }
       }
@@ -171,8 +165,7 @@ export const GoalTool = buildTool({
       return {
         data: {
           success: false,
-          error:
-            '更新时 "status" 字段必填。请使用 "complete" 或 "blocked"。',
+          error: '更新时 "status" 字段必填。请使用 "complete" 或 "blocked"。',
         },
       }
     }

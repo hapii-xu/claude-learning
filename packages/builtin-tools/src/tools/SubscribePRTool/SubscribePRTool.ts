@@ -22,7 +22,7 @@ type SubscribeOutput = { subscribed: boolean; subscription_id: string }
 
 export const SubscribePRTool = buildTool({
   name: SUBSCRIBE_PR_TOOL_NAME,
-  searchHint: 'subscribe pull request github webhook events watch',
+  searchHint: '订阅 pull request GitHub webhook 事件监听',
   maxResultSizeChars: 5_000,
   strict: true,
 

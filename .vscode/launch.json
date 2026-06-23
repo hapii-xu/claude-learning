@@ -120,6 +120,19 @@
 			}
 		},
 		{
+			"name": "🚀 带系统提示词 (启动 + 调试)",
+			"type": "bun",
+			"request": "attach",
+			"url": "ws://localhost:8888/2dc3gzl5xot",
+			"stopOnEntry": false,
+			"internalConsoleOptions": "neverOpen",
+			"preLaunchTask": "Debug: 启动 dev (带系统提示词)",
+			"presentation": {
+				"group": "1-quick",
+				"order": 8
+			}
+		},
+		{
 			"name": "🧪 Debug 当前打开的 Test 文件",
 			"type": "bun",
 			"request": "launch",

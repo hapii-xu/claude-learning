@@ -11,8 +11,7 @@ export const MAX_LINES_TO_READ = 2000
 
 export const DESCRIPTION = '从本地文件系统读取文件。'
 
-export const LINE_FORMAT_INSTRUCTION =
-  '- 结果以 cat -n 格式返回，行号从 1 开始'
+export const LINE_FORMAT_INSTRUCTION = '- 结果以 cat -n 格式返回，行号从 1 开始'
 
 export const OFFSET_INSTRUCTION_DEFAULT =
   '- 你可以选择性地指定行 offset 和 limit（对长文件尤其方便），但建议不提供这些参数以读取整个文件'

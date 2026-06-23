@@ -60,9 +60,7 @@ export class ApiSearchAdapter implements WebSearchAdapter {
 
     const queryStream = queryModelWithStreaming({
       messages: [userMessage],
-      systemPrompt: asSystemPrompt([
-        '你是一个用于执行网络搜索工具调用的助手',
-      ]),
+      systemPrompt: asSystemPrompt(['你是一个用于执行网络搜索工具调用的助手']),
       thinkingConfig: useHaiku
         ? { type: 'disabled' as const }
         : { type: 'enabled' as const, budgetTokens: 10000 },

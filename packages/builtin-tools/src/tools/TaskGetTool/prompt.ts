@@ -1,24 +1,24 @@
 export const DESCRIPTION = '按 ID 从任务列表获取一个任务'
 
-export const PROMPT = `Use this tool to retrieve a task by its ID from the task list.
+export const PROMPT = `使用此工具通过 ID 从任务列表中获取一个任务。
 
-## When to Use This Tool
+## 何时使用此工具
 
-- When you need the full description and context before starting work on a task
-- To understand task dependencies (what it blocks, what blocks it)
-- After being assigned a task, to get complete requirements
+- 开始处理任务前，需要完整描述和上下文时
+- 了解任务依赖关系时（它阻塞了什么、什么阻塞了它）
+- 被分配任务后，获取完整需求时
 
-## Output
+## 输出
 
-Returns full task details:
-- **subject**: Task title
-- **description**: Detailed requirements and context
-- **status**: 'pending', 'in_progress', or 'completed'
-- **blocks**: Tasks waiting on this one to complete
-- **blockedBy**: Tasks that must complete before this one can start
+返回完整的任务详情：
+- **subject**：任务标题
+- **description**：详细需求和上下文
+- **status**：'pending'、'in_progress' 或 'completed'
+- **blocks**：等待此任务完成的任务
+- **blockedBy**：必须在此任务开始前完成的任务
 
-## Tips
+## 提示
 
-- After fetching a task, verify its blockedBy list is empty before beginning work.
-- Use TaskList to see all tasks in summary form.
+- 获取任务后，开始工作前请确认其 blockedBy 列表为空。
+- 使用 TaskList 以摘要形式查看所有任务。
 `
