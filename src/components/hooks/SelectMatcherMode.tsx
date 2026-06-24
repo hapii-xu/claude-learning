@@ -55,30 +55,30 @@ export function SelectMatcherMode({
   if (matchersForSelectedEvent.length === 0) {
     return (
       <Dialog
-        title={`${selectedEvent} - Matchers`}
+        title={`${selectedEvent} - 匹配器`}
         subtitle={eventDescription}
         onCancel={onCancel}
-        inputGuide={() => <Text>Esc to go back</Text>}
+        inputGuide={() => <Text>Esc 返回</Text>}
       >
         <Box flexDirection="column" gap={1}>
-          <Text dimColor>No hooks configured for this event.</Text>
-          <Text dimColor>To add hooks, edit settings.json directly or ask Claude.</Text>
+          <Text dimColor>此事件未配置任何钩子。</Text>
+          <Text dimColor>要添加钩子，请直接编辑 settings.json 或询问 Claude。</Text>
         </Box>
       </Dialog>
     );
   }
 
   return (
-    <Dialog title={`${selectedEvent} - Matchers`} subtitle={eventDescription} onCancel={onCancel}>
+    <Dialog title={`${selectedEvent} - 匹配器`} subtitle={eventDescription} onCancel={onCancel}>
       <Box flexDirection="column">
         <Select
           options={matchersWithSources.map(item => {
             const sourceText = item.sources.map(hookSourceInlineDisplayString).join(', ');
-            const matcherLabel = item.matcher || '(all)';
+            const matcherLabel = item.matcher || '（全部）';
             return {
               label: `[${sourceText}] ${matcherLabel}`,
               value: item.matcher,
-              description: `${item.hookCount} ${plural(item.hookCount, 'hook')}`,
+              description: `${item.hookCount} 个${plural(item.hookCount, '钩子')}`,
             };
           })}
           onChange={value => {

@@ -180,24 +180,24 @@ export function HooksConfigMenu({ toolNames, onExit }: Props): React.ReactNode {
   // 用户可以编辑 settings.json 或让 Claude 帮忙。
   if (hooksDisabled) {
     return (
-      <Dialog title="Hook Configuration - Disabled" onCancel={handleExit} inputGuide={() => <Text>Esc to close</Text>}>
+      <Dialog title="钩子配置 - 已禁用" onCancel={handleExit} inputGuide={() => <Text>Esc 关闭</Text>}>
         <Box flexDirection="column" gap={1}>
           <Box flexDirection="column">
             <Text>
-              All hooks are currently <Text bold>disabled</Text>
-              {disabledByPolicy && ' by a managed settings file'}. You have <Text bold>{totalHooksCount}</Text>{' '}
-              configured {plural(totalHooksCount, 'hook')} that {plural(totalHooksCount, 'is', 'are')} not running.
+              所有钩子当前已<Text bold>禁用</Text>
+              {disabledByPolicy && '（由托管设置文件禁用）'}。您有 <Text bold>{totalHooksCount}</Text>{' '}
+              个已配置的{plural(totalHooksCount, '钩子')}未在运行。
             </Text>
             <Box marginTop={1}>
-              <Text dimColor>When hooks are disabled:</Text>
+              <Text dimColor>钩子被禁用时：</Text>
             </Box>
-            <Text dimColor>· No hook commands will execute</Text>
-            <Text dimColor>· StatusLine will not be displayed</Text>
-            <Text dimColor>· Tool operations will proceed without hook validation</Text>
+            <Text dimColor>· 不会执行任何钩子命令</Text>
+            <Text dimColor>· 不会显示 StatusLine</Text>
+            <Text dimColor>· 工具操作将跳过钩子验证</Text>
           </Box>
           {!disabledByPolicy && (
             <Text dimColor>
-              To re-enable hooks, remove &quot;disableAllHooks&quot; from settings.json or ask Claude.
+              要重新启用钩子，请从 settings.json 中移除 &quot;disableAllHooks&quot; 或询问 Claude。
             </Text>
           )}
         </Box>
