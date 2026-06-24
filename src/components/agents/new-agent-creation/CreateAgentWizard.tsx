@@ -50,7 +50,7 @@ export function CreateAgentWizard({ tools, existingAgents, onComplete, onCancel 
         // which calls onComplete with the appropriate message
       }}
       onCancel={onCancel}
-      title="Create new agent"
+      title="创建新 Agent"
       showStepCounter={false}
     />
   );

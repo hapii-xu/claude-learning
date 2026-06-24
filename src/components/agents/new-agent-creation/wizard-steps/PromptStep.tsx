@@ -32,7 +32,7 @@ export function PromptStep(): ReactNode {
   const handleSubmit = (): void => {
     const trimmedPrompt = systemPrompt.trim();
     if (!trimmedPrompt) {
-      setError('System prompt is required');
+      setError('系统提示词不能为空');
       return;
     }
 
@@ -43,31 +43,31 @@ export function PromptStep(): ReactNode {
 
   return (
     <WizardDialogLayout
-      subtitle="System prompt"
+      subtitle="系统提示词"
       footerText={
         <Byline>
-          <KeyboardShortcutHint shortcut="Type" action="enter text" />
-          <KeyboardShortcutHint shortcut="Enter" action="continue" />
+          <KeyboardShortcutHint shortcut="输入" action="输入文字" />
+          <KeyboardShortcutHint shortcut="Enter" action="继续" />
           <ConfigurableShortcutHint
             action="chat:externalEditor"
             context="Chat"
             fallback="ctrl+g"
-            description="open in editor"
+            description="在编辑器中打开"
           />
-          <ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="go back" />
+          <ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="返回" />
         </Byline>
       }
     >
       <Box flexDirection="column">
-        <Text>Enter the system prompt for your agent:</Text>
-        <Text dimColor>Be comprehensive for best results</Text>
+        <Text>为您的 Agent 输入系统提示词：</Text>
+        <Text dimColor>描述越详细，效果越好</Text>
 
         <Box marginTop={1}>
           <TextInput
             value={systemPrompt}
             onChange={setSystemPrompt}
             onSubmit={handleSubmit}
-            placeholder="You are a helpful code reviewer who..."
+            placeholder="你是一位专业的代码审查员，负责..."
             columns={80}
             cursorOffset={cursorOffset}
             onChangeCursorOffset={setCursorOffset}

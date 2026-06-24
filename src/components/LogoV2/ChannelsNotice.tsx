@@ -104,12 +104,12 @@ export function findUnmatched(entries: readonly ChannelEntry[], deps?: FindUnmat
   for (const entry of entries) {
     if (entry.kind === 'server') {
       if (!configured.has(entry.name)) {
-        out.push({ entry, why: 'no MCP server configured with that name' });
+        out.push({ entry, why: '未找到同名 MCP 服务器配置' });
       }
       continue;
     }
     if (!installedPluginIds.has(`${entry.name}@${entry.marketplace}`)) {
-      out.push({ entry, why: 'plugin not installed' });
+      out.push({ entry, why: '插件未安装' });
     }
   }
   return out;

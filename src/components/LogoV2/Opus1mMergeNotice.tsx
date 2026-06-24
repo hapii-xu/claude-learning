@@ -29,7 +29,7 @@ export function Opus1mMergeNotice(): React.ReactNode {
   return (
     <Box paddingLeft={2}>
       <AnimatedAsterisk char={UP_ARROW} />
-      <Text dimColor> Opus now defaults to 1M context · 5x more room, same pricing</Text>
+      <Text dimColor> Opus 现在默认使用 1M 上下文 · 空间扩大 5 倍，价格不变</Text>
     </Box>
   );
 }

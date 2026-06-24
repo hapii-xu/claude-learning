@@ -123,8 +123,8 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
             source={modeState.source}
             agents={resolvedAgents}
             onBack={() => {
-              const exitMessage = changes.length > 0 ? `Agent changes:\n${changes.join('\n')}` : undefined;
-              onExit(exitMessage ?? 'Agents dialog dismissed', {
+              const exitMessage = changes.length > 0 ? `Agent 变更记录：\n${changes.join('\n')}` : undefined;
+              onExit(exitMessage ?? 'Agent 对话框已关闭', {
                 display: changes.length === 0 ? 'system' : undefined,
               });
             }}
