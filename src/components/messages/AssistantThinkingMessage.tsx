@@ -30,7 +30,7 @@ export function AssistantThinkingMessage({
   }
 
   const shouldShowFullThinking = isTranscriptMode || verbose;
-  const label = '∴ Thinking';
+  const label = '∴ 思考中';
 
   if (!shouldShowFullThinking) {
     return (

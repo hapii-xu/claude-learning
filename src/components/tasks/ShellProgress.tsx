@@ -25,11 +25,11 @@ export function TaskStatusText({ status, label, suffix }: TaskStatusTextProps): 
 export function ShellProgress({ shell }: { shell: DeepImmutable<LocalShellTaskState> }): ReactNode {
   switch (shell.status) {
     case 'completed':
-      return <TaskStatusText status="completed" label="done" />;
+      return <TaskStatusText status="completed" label="完成" />;
     case 'failed':
-      return <TaskStatusText status="failed" label="error" />;
+      return <TaskStatusText status="failed" label="错误" />;
     case 'killed':
-      return <TaskStatusText status="killed" label="stopped" />;
+      return <TaskStatusText status="killed" label="已停止" />;
     case 'running':
     case 'pending':
       return <TaskStatusText status="running" />;

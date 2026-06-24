@@ -67,15 +67,15 @@ export function bashToolUseOptions({
   if (yesInputMode) {
     options.push({
       type: 'input',
-      label: 'Yes',
+      label: '是',
       value: 'yes',
-      placeholder: 'and tell Claude what to do next',
+      placeholder: '告诉 Claude 接下来做什么',
       onChange: onAcceptFeedbackChange,
       allowEmptySubmitToCancel: true,
     });
   } else {
     options.push({
-      label: 'Yes',
+      label: '是',
       value: 'yes',
     });
   }
@@ -91,9 +91,9 @@ export function bashToolUseOptions({
     if (editablePrefix !== undefined && onEditablePrefixChange && !hasNonBashSuggestions && suggestions.length > 0) {
       options.push({
         type: 'input',
-        label: 'Yes, and don\u2019t ask again for',
+        label: '\u662f\uff0c\u4ee5\u540e\u4e0d\u518d\u8be2\u95ee',
         value: 'yes-prefix-edited',
-        placeholder: 'command prefix (e.g., npm run:*)',
+        placeholder: '\u547d\u4ee4\u524d\u7f00\uff08\u4f8b\u5982 npm run:*\uff09',
         initialValue: editablePrefix,
         onChange: onEditablePrefixChange,
         allowEmptySubmitToCancel: true,
@@ -129,9 +129,9 @@ export function bashToolUseOptions({
     ) {
       options.push({
         type: 'input',
-        label: 'Yes, and don\u2019t ask again for',
+        label: '\u662f\uff0c\u4ee5\u540e\u4e0d\u518d\u8be2\u95ee',
         value: 'yes-classifier-reviewed',
-        placeholder: 'describe what to allow...',
+        placeholder: '\u63cf\u8ff0\u5141\u8bb8\u7684\u5185\u5bb9...',
         initialValue: classifierDescription ?? '',
         onChange: onClassifierDescriptionChange,
         allowEmptySubmitToCancel: true,
@@ -145,15 +145,15 @@ export function bashToolUseOptions({
   if (noInputMode) {
     options.push({
       type: 'input',
-      label: 'No',
+      label: '否',
       value: 'no',
-      placeholder: 'and tell Claude what to do differently',
+      placeholder: '告诉 Claude 要做什么改变',
       onChange: onRejectFeedbackChange,
       allowEmptySubmitToCancel: true,
     });
   } else {
     options.push({
-      label: 'No',
+      label: '否',
       value: 'no',
     });
   }

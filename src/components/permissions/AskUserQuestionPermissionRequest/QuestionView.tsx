@@ -174,8 +174,8 @@ export function QuestionView({
   const otherOption: OptionWithDescription<string> = {
     type: 'input' as const,
     value: '__other__',
-    label: 'Other',
-    placeholder: question.multiSelect ? 'Type something' : 'Type something.',
+    label: '其他',
+    placeholder: question.multiSelect ? '输入内容' : '输入内容。',
     initialValue: questionState?.textInputValue ?? '',
     onChange: (value: string) => {
       onUpdateQuestionState(questionText, { textInputValue: value }, question.multiSelect ?? false);
@@ -251,7 +251,7 @@ export function QuestionView({
                 }}
                 onFocus={handleFocus}
                 onCancel={onCancel}
-                submitButtonText={currentQuestionIndex === questions.length - 1 ? 'Submit' : 'Next'}
+                submitButtonText={currentQuestionIndex === questions.length - 1 ? '提交' : '下一题'}
                 onSubmit={onSubmit}
                 onDownFromLastItem={handleDownFromLastItem}
                 isDisabled={isFooterFocused}
@@ -292,7 +292,7 @@ export function QuestionView({
                 <Text> </Text>
               )}
               <Text color={isFooterFocused && footerIndex === 0 ? 'suggestion' : undefined}>
-                {options.length + 1}. Chat about this
+                {options.length + 1}. 与 Claude 讨论
               </Text>
             </Box>
             {isInPlanMode && (
@@ -303,7 +303,7 @@ export function QuestionView({
                   <Text> </Text>
                 )}
                 <Text color={isFooterFocused && footerIndex === 1 ? 'suggestion' : undefined}>
-                  {options.length + 2}. Skip interview and plan immediately
+                  {options.length + 2}. 跳过问答，立即规划
                 </Text>
               </Box>
             )}

@@ -50,17 +50,17 @@ function ComputerUseTccPanel({
     const opts: OptionWithDescription<TccOption>[] = [];
     if (!tccState.accessibility) {
       opts.push({
-        label: 'Open System Settings → Accessibility',
+        label: '打开系统设置 → 辅助功能',
         value: 'open_accessibility',
       });
     }
     if (!tccState.screenRecording) {
       opts.push({
-        label: 'Open System Settings → Screen Recording',
+        label: '打开系统设置 → 屏幕录制',
         value: 'open_screen_recording',
       });
     }
-    opts.push({ label: 'Try again', value: 'retry' });
+    opts.push({ label: '重试', value: 'retry' });
     return opts;
   }, [tccState.accessibility, tccState.screenRecording]);
 
@@ -89,19 +89,14 @@ function ComputerUseTccPanel({
   }
 
   return (
-    <Dialog title="Computer Use needs macOS permissions" onCancel={onDone}>
+    <Dialog title="计算机使用需要 macOS 权限" onCancel={onDone}>
       <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
         <Box flexDirection="column">
-          <Text>
-            Accessibility: {tccState.accessibility ? `${figures.tick} granted` : `${figures.cross} not granted`}
-          </Text>
-          <Text>
-            Screen Recording: {tccState.screenRecording ? `${figures.tick} granted` : `${figures.cross} not granted`}
-          </Text>
+          <Text>辅助功能：{tccState.accessibility ? `${figures.tick} 已授权` : `${figures.cross} 未授权`}</Text>
+          <Text>屏幕录制：{tccState.screenRecording ? `${figures.tick} 已授权` : `${figures.cross} 未授权`}</Text>
         </Box>
         <Text dimColor>
-          Grant the missing permissions in System Settings, then select &quot;Try again&quot;. macOS may require you to
-          restart Claude Code after granting Screen Recording.
+          请在系统设置中授予缺失的权限，然后选择"重试"。授权屏幕录制后，macOS 可能需要你重启 Claude Code。
         </Text>
         <Select options={options} onChange={onChange} onCancel={onDone} />
       </Box>
@@ -114,9 +109,9 @@ function ComputerUseTccPanel({
 type AppListOption = 'allow_all' | 'deny';
 
 const SENTINEL_WARNING: Record<NonNullable<ReturnType<typeof getSentinelCategory>>, string> = {
-  shell: 'equivalent to shell access',
-  filesystem: 'can read/write any file',
-  system_settings: 'can change system settings',
+  shell: '相当于 Shell 访问权限',
+  filesystem: '可读写任意文件',
+  system_settings: '可更改系统设置',
 };
 
 function ComputerUseAppListPanel({ request, onDone }: ComputerUseApprovalProps): React.ReactNode {
@@ -138,13 +133,13 @@ function ComputerUseAppListPanel({ request, onDone }: ComputerUseApprovalProps):
   const options = useMemo<OptionWithDescription<AppListOption>[]>(
     () => [
       {
-        label: `Allow for this session (${checked.size} ${plural(checked.size, 'app')})`,
+        label: `本次会话允许（${checked.size} 个应用）`,
         value: 'allow_all',
       },
       {
         label: (
           <Text>
-            Deny, and tell Claude what to do differently <Text bold>(esc)</Text>
+            拒绝，并告诉 Claude 要做什么改变 <Text bold>(esc)</Text>
           </Text>
         ),
         value: 'deny',
@@ -185,7 +180,7 @@ function ComputerUseAppListPanel({ request, onDone }: ComputerUseApprovalProps):
   }
 
   return (
-    <Dialog title="Computer Use wants to control these apps" onCancel={() => respond(false)}>
+    <Dialog title="计算机使用想要控制这些应用" onCancel={() => respond(false)}>
       <Box flexDirection="column" paddingX={1} paddingY={1} gap={1}>
         {request.reason ? <Text dimColor>{request.reason}</Text> : null}
 
@@ -196,7 +191,7 @@ function ComputerUseAppListPanel({ request, onDone }: ComputerUseApprovalProps):
               return (
                 <Text key={a.requestedName} dimColor>
                   {'  '}
-                  {figures.circle} {a.requestedName} <Text dimColor>(not installed)</Text>
+                  {figures.circle} {a.requestedName} <Text dimColor>（未安装）</Text>
                 </Text>
               );
             }
@@ -204,7 +199,7 @@ function ComputerUseAppListPanel({ request, onDone }: ComputerUseApprovalProps):
               return (
                 <Text key={resolved.bundleId} dimColor>
                   {'  '}
-                  {figures.tick} {resolved.displayName} <Text dimColor>(already granted)</Text>
+                  {figures.tick} {resolved.displayName} <Text dimColor>（已授权）</Text>
                 </Text>
               );
             }
@@ -229,7 +224,7 @@ function ComputerUseAppListPanel({ request, onDone }: ComputerUseApprovalProps):
 
         {requestedFlagKeys.length > 0 ? (
           <Box flexDirection="column">
-            <Text dimColor>Also requested:</Text>
+            <Text dimColor>其他请求：</Text>
             {requestedFlagKeys.map(flag => (
               <Text key={flag} dimColor>
                 {'  '}· {flag}
@@ -239,9 +234,7 @@ function ComputerUseAppListPanel({ request, onDone }: ComputerUseApprovalProps):
         ) : null}
 
         {request.willHide && request.willHide.length > 0 ? (
-          <Text dimColor>
-            {request.willHide.length} other {plural(request.willHide.length, 'app')} will be hidden while Claude works.
-          </Text>
+          <Text dimColor>Claude 工作期间将隐藏另外 {request.willHide.length} 个应用。</Text>
         ) : null}
 
         <Select options={options} onChange={v => respond(v === 'allow_all')} onCancel={() => respond(false)} />

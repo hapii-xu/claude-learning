@@ -33,11 +33,11 @@ export function SubmitQuestionsView({
       <Divider color="inactive" />
       <Box flexDirection="column" borderTop borderColor="inactive" paddingTop={0}>
         <QuestionNavigationBar questions={questions} currentQuestionIndex={currentQuestionIndex} answers={answers} />
-        <PermissionRequestTitle title="Review your answers" color="text" />
+        <PermissionRequestTitle title="审阅你的回答" color="text" />
         <Box flexDirection="column" marginTop={1} minHeight={minContentHeight}>
           {!allQuestionsAnswered && (
             <Box marginBottom={1}>
-              <Text color="warning">{figures.warning} You have not answered all questions</Text>
+              <Text color="warning">{figures.warning} 你还有问题未回答</Text>
             </Box>
           )}
           {Object.keys(answers).length > 0 && (
@@ -64,16 +64,16 @@ export function SubmitQuestionsView({
           )}
 
           <PermissionRuleExplanation permissionResult={permissionResult} toolType="tool" />
-          <Text color="inactive">Ready to submit your answers?</Text>
+          <Text color="inactive">准备提交你的回答？</Text>
           <Box marginTop={1}>
             <Select
               options={[
                 {
                   type: 'text' as const,
-                  label: 'Submit answers',
+                  label: '提交回答',
                   value: 'submit',
                 },
-                { type: 'text' as const, label: 'Cancel', value: 'cancel' },
+                { type: 'text' as const, label: '取消', value: 'cancel' },
               ]}
               onChange={value => onFinalResponse(value as 'submit' | 'cancel')}
               onCancel={() => onFinalResponse('cancel')}

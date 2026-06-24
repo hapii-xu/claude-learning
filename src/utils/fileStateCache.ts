@@ -6,26 +6,24 @@ export type FileState = {
   timestamp: number
   offset: number | undefined
   limit: number | undefined
-  // True when this entry was populated by auto-injection (e.g. CLAUDE.md) and
-  // the injected content did not match disk (stripped HTML comments, stripped
-  // frontmatter, truncated MEMORY.md). The model has only seen a partial view;
-  // Edit/Write must require an explicit Read first. `content` here holds the
-  // RAW disk bytes (for getChangedFiles diffing), not what the model saw.
+  // 当此条目由自动注入（如 CLAUDE.md）填充且注入内容与磁盘不匹配时为 true
+  //（已剥离 HTML 注释、frontmatter 或截断了 MEMORY.md）。模型只看到了部分视图；
+  // Edit/Write 必须先进行显式 Read。`content` 此处保存的是原始磁盘字节
+  //（用于 getChangedFiles 差异对比），而非模型看到的内容。
   isPartialView?: boolean
 }
 
-// Default max entries for read file state caches
+// 读取文件状态缓存的默认最大条目数
 export const READ_FILE_STATE_CACHE_SIZE = 100
 
-// Default size limit for file state caches (25MB)
-// This prevents unbounded memory growth from large file contents
+// 文件状态缓存的默认大小限制（25MB）
+// 防止大文件内容导致内存无限增长
 const DEFAULT_MAX_CACHE_SIZE_BYTES = 25 * 1024 * 1024
 
 /**
- * A file state cache that normalizes all path keys before access.
- * This ensures consistent cache hits regardless of whether callers pass
- * relative vs absolute paths with redundant segments (e.g. /foo/../bar)
- * or mixed path separators on Windows (/ vs \).
+ * 一个在访问前对所有路径键进行规范化的文件状态缓存。
+ * 确保无论调用方传入相对路径还是含冗余段的绝对路径（如 /foo/../bar）
+ * 或 Windows 上的混合路径分隔符（/ 与 \），缓存命中均保持一致。
  */
 export class FileStateCache {
   private cache: LRUCache<string, FileState>
@@ -104,10 +102,10 @@ export class FileStateCache {
 }
 
 /**
- * Factory function to create a size-limited FileStateCache.
- * Uses LRUCache's built-in size-based eviction to prevent memory bloat.
- * Note: Images are not cached (see FileReadTool) so size limit is mainly
- * for large text files, notebooks, and other editable content.
+ * 创建带大小限制的 FileStateCache 的工厂函数。
+ * 使用 LRUCache 内置的基于大小的驱逐策略防止内存膨胀。
+ * 注意：图像不缓存（见 FileReadTool），因此大小限制主要针对
+ * 大型文本文件、notebook 及其他可编辑内容。
  */
 export function createFileStateCacheWithSizeLimit(
   maxEntries: number,
@@ -116,27 +114,27 @@ export function createFileStateCacheWithSizeLimit(
   return new FileStateCache(maxEntries, maxSizeBytes)
 }
 
-// Helper function to convert cache to object (used by compact.ts)
+// 将缓存转换为对象的辅助函数（供 compact.ts 使用）
 export function cacheToObject(
   cache: FileStateCache,
 ): Record<string, FileState> {
   return Object.fromEntries(cache.entries())
 }
 
-// Helper function to get all keys from cache (used by several components)
+// 获取缓存中所有键的辅助函数（供多个组件使用）
 export function cacheKeys(cache: FileStateCache): string[] {
   return Array.from(cache.keys())
 }
 
-// Helper function to clone a FileStateCache
-// Preserves size limit configuration from the source cache
+// 克隆 FileStateCache 的辅助函数
+// 从源缓存保留大小限制配置
 export function cloneFileStateCache(cache: FileStateCache): FileStateCache {
   const cloned = createFileStateCacheWithSizeLimit(cache.max, cache.maxSize)
   cloned.load(cache.dump())
   return cloned
 }
 
-// Merge two file state caches, with more recent entries (by timestamp) overriding older ones
+// 合并两个文件状态缓存，较新的条目（按时间戳）覆盖较旧的条目
 export function mergeFileStateCaches(
   first: FileStateCache,
   second: FileStateCache,
@@ -144,7 +142,7 @@ export function mergeFileStateCaches(
   const merged = cloneFileStateCache(first)
   for (const [filePath, fileState] of second.entries()) {
     const existing = merged.get(filePath)
-    // Only override if the new entry is more recent
+    // 仅当新条目更新时才覆盖
     if (!existing || fileState.timestamp > existing.timestamp) {
       merged.set(filePath, fileState)
     }

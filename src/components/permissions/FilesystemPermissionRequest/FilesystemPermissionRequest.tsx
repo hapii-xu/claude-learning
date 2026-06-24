@@ -30,10 +30,10 @@ export function FilesystemPermissionRequest({
   const userFacingName = toolUseConfirm.tool.userFacingName(toolUseConfirm.input as never);
 
   const isReadOnly = toolUseConfirm.tool.isReadOnly(toolUseConfirm.input);
-  const userFacingReadOrEdit = isReadOnly ? 'Read' : 'Edit';
+  const userFacingReadOrEdit = isReadOnly ? '读取' : '编辑';
 
   // Use simple singular form - the actual operation details are shown in content
-  const title = `${userFacingReadOrEdit} file`;
+  const title = `${userFacingReadOrEdit}文件`;
 
   // Simple pass-through parser since we don't need to transform the input
   const parseInput = (input: unknown): ToolInput => input as ToolInput;

@@ -1,5 +1,5 @@
 /**
- * UserForkBoilerplateMessage — render the fork/subagent boilerplate directive.
+ * UserForkBoilerplateMessage — 渲染 fork/子 agent 的样板指令。
  */
 import type { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs';
 import * as React from 'react';

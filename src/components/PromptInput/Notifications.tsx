@@ -73,9 +73,9 @@ export function Notifications({
     return tokenCountFromLastAPIResponse(messagesForTokenCount);
   }, [messages]);
 
-  // AppState-sourced model — same source as API requests. getMainLoopModel()
-  // re-reads settings.json on every call, so another session's /model write
-  // would leak into this session's display (anthropics/claude-code#37596).
+  // 来自 AppState 的模型 —— 与 API 请求使用相同来源。getMainLoopModel()
+  // 每次调用都会重新读取 settings.json，因此另一个会话的 /model 写入
+  // 会泄漏到本会话的显示中（anthropics/claude-code#37596）。
   const mainLoopModel = useMainLoopModel();
   const isShowingCompactMessage = calculateTokenWarningState(tokenUsage, mainLoopModel).isAboveWarningThreshold;
   const { status: ideStatus } = useIdeConnectionStatus(mcpClients);
@@ -83,7 +83,7 @@ export function Notifications({
   const { addNotification, removeNotification } = useNotifications();
   const claudeAiLimits = useClaudeAiLimits();
 
-  // Register env hook notifier for CwdChanged/FileChanged feedback
+  // 注册 env hook 通知器，用于 CwdChanged/FileChanged 的反馈
   useEffect(() => {
     setEnvHookNotifier((text, isError) => {
       addNotification({
@@ -97,16 +97,16 @@ export function Notifications({
     return () => setEnvHookNotifier(null);
   }, [addNotification]);
 
-  // Check if we should show the IDE selection indicator
+  // 检查是否应显示 IDE 选择指示器
   const shouldShowIdeSelection =
     ideStatus === 'connected' && (ideSelection?.filePath || (ideSelection?.text && ideSelection.lineCount > 0));
 
-  // Check if we're in overage mode for UI indicators
+  // 检查是否处于超额使用模式（用于 UI 指示器）
   const isInOverageMode = claudeAiLimits.isUsingOverage;
   const subscriptionType = getSubscriptionType();
   const isTeamOrEnterprise = subscriptionType === 'team' || subscriptionType === 'enterprise';
 
-  // Check if the external editor hint should be shown
+  // 检查是否应显示外部编辑器提示
   const editor = getExternalEditor();
   const shouldShowExternalEditorHint =
     isInputWrapped &&
@@ -115,7 +115,7 @@ export function Notifications({
     apiKeyStatus !== 'missing' &&
     editor !== undefined;
 
-  // Show external editor hint as notification when input is wrapped
+  // 当输入换行时，以通知形式显示外部编辑器提示
   useEffect(() => {
     if (shouldShowExternalEditorHint && editor) {
       logEvent('tengu_external_editor_hint_shown', {});
@@ -127,7 +127,7 @@ export function Notifications({
               action="chat:externalEditor"
               context="Chat"
               fallback="ctrl+g"
-              description={`edit in ${toIDEDisplayName(editor)}`}
+              description={`在 ${toIDEDisplayName(editor)} 中编辑`}
             />
           </Text>
         ),
@@ -185,9 +185,9 @@ function NotificationContent({
   tokenUsage: number;
   mainLoopModel: string;
 }): ReactNode {
-  // Poll apiKeyHelper inflight state to show slow-helper notice.
-  // Gated on configuration — most users never set apiKeyHelper, so the
-  // effect is a no-op for them (no interval allocated).
+  // 轮询 apiKeyHelper 的运行中状态以显示「助手缓慢」提示。
+  // 受配置限制 —— 大多数用户从不设置 apiKeyHelper，
+  // 对他们来说此 effect 是无操作（不分配定时器）。
   const [apiKeyHelperSlow, setApiKeyHelperSlow] = useState<string | null>(null);
   useEffect(() => {
     if (!getConfiguredApiKeyHelper()) return;
@@ -203,7 +203,7 @@ function NotificationContent({
     return () => clearInterval(interval);
   }, []);
 
-  // Voice state (VOICE_MODE builds only, runtime-gated by GrowthBook)
+  // 语音状态（仅在 VOICE_MODE 构建中，由 GrowthBook 在运行时控制）
   const voiceStateRaw = useVoiceState(s => s.voiceState);
   const voiceState = feature('VOICE_MODE') ? voiceStateRaw : ('idle' as const);
   const voiceEnabledRaw = useVoiceEnabled();
@@ -213,8 +213,7 @@ function NotificationContent({
   const isBriefOnlyState = useAppState(s => s.isBriefOnly);
   const isBriefOnly = feature('KAIROS') || feature('KAIROS_BRIEF') ? isBriefOnlyState : false;
 
-  // When voice is actively recording or processing, replace all
-  // notifications with just the voice indicator.
+  // 当语音正在录制或处理时，将所有通知替换为仅显示语音指示器。
   if (feature('VOICE_MODE') && voiceEnabled && (voiceState === 'recording' || voiceState === 'processing')) {
     return <VoiceIndicator voiceState={voiceState} />;
   }
@@ -235,14 +234,14 @@ function NotificationContent({
       {isInOverageMode && !isTeamOrEnterprise && (
         <Box>
           <Text dimColor wrap="truncate">
-            Now using extra usage
+            正在使用额外用量
           </Text>
         </Box>
       )}
       {apiKeyHelperSlow && (
         <Box>
           <Text color="warning" wrap="truncate">
-            apiKeyHelper is taking a while{' '}
+            apiKeyHelper 响应较慢{' '}
           </Text>
           <Text dimColor wrap="truncate">
             ({apiKeyHelperSlow})
@@ -252,16 +251,14 @@ function NotificationContent({
       {(apiKeyStatus === 'invalid' || apiKeyStatus === 'missing') && (
         <Box>
           <Text color="error" wrap="truncate">
-            {isEnvTruthy(process.env.CLAUDE_CODE_REMOTE)
-              ? 'Authentication error · Try again'
-              : 'Not logged in · Run /login'}
+            {isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) ? '认证失败 · 请重试' : '未登录 · 请运行 /login'}
           </Text>
         </Box>
       )}
       {debug && (
         <Box>
           <Text color="warning" wrap="truncate">
-            Debug mode
+            调试模式
           </Text>
         </Box>
       )}

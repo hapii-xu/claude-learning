@@ -46,9 +46,9 @@ Never reuse tab IDs from a previous/other session. Follow these guidelines:
 4. When a tab is closed by the user or a navigation error occurs, call tabs_context_mcp to see what tabs are available`
 
 /**
- * Additional instructions for chrome tools when tool search is enabled.
- * These instruct the model to load chrome tools via SearchExtraTools before using them.
- * Only injected when tool search is actually enabled (not just optimistically possible).
+ * 启用工具搜索时，附加给 chrome 工具的补充说明。
+ * 这些说明指示模型在使用 chrome 工具前先通过 SearchExtraTools 加载它们。
+ * 仅在工具搜索实际启用时注入（而非乐观地假设可用）。
  */
 export const CHROME_SEARCH_EXTRA_TOOLS_INSTRUCTIONS = `**IMPORTANT: Before using any chrome browser tools, you MUST first load them using SearchExtraTools.**
 
@@ -61,23 +61,21 @@ For example, to get tab context:
 2. Then: Call mcp__claude-in-chrome__tabs_context_mcp`
 
 /**
- * Get the base chrome system prompt (without tool search instructions).
- * Tool search instructions are injected separately at request time in claude.ts
- * based on the actual tool search enabled state.
+ * 获取基础 chrome 系统提示词（不含工具搜索说明）。
+ * 工具搜索说明在请求时由 claude.ts 根据工具搜索的实际启用状态单独注入。
  */
 export function getChromeSystemPrompt(): string {
   return BASE_CHROME_PROMPT
 }
 
 /**
- * Minimal hint about Claude in Chrome skill availability. This is injected at startup when the extension is installed
- * to guide the model to invoke the skill before using the MCP tools.
+ * 关于 Claude in Chrome 技能可用性的最小提示。扩展安装后在启动时注入，
+ * 引导模型在使用 MCP 工具前先调用该技能。
  */
 export const CLAUDE_IN_CHROME_SKILL_HINT = `**Browser Automation**: Chrome browser tools are available via the "claude-in-chrome" skill. CRITICAL: Before using any mcp__claude-in-chrome__* tools, invoke the skill by calling the Skill tool with skill: "claude-in-chrome". The skill provides browser automation instructions and enables the tools.`
 
 /**
- * Variant when the built-in WebBrowser tool is also available — steer
- * dev-loop tasks to WebBrowser and reserve the extension for the user's
- * authenticated Chrome (logged-in sites, OAuth, computer-use).
+ * 当内置 WebBrowser 工具也可用时的变体 —— 将开发循环任务引导至 WebBrowser，
+ * 将扩展保留用于需要用户已登录 Chrome 的场景（已登录站点、OAuth、computer-use）。
  */
 export const CLAUDE_IN_CHROME_SKILL_HINT_WITH_WEBBROWSER = `**Browser Automation**: Use WebBrowser for development (dev servers, JS eval, console, screenshots). Use claude-in-chrome for the user's real Chrome when you need logged-in sessions, OAuth, or computer-use — invoke Skill(skill: "claude-in-chrome") before any mcp__claude-in-chrome__* tool.`

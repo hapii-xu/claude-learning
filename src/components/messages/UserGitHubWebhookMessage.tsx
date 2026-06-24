@@ -1,5 +1,5 @@
 /**
- * UserGitHubWebhookMessage — render inbound GitHub webhook activity.
+ * UserGitHubWebhookMessage — 渲染入站的 GitHub webhook 活动。
  */
 import type { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs';
 import * as React from 'react';
@@ -20,9 +20,9 @@ export function UserGitHubWebhookMessage({ param, addMargin }: Props): React.Rea
 
   const eventMatch = extracted.match(/event[_-]?type[":\s]+["']?(\w+)/);
   const repoMatch = extracted.match(/repo(?:sitory)?[":\s]+["']?([^"'\s,}]+)/);
-  const event = eventMatch?.[1] ?? 'activity';
+  const event = eventMatch?.[1] ?? '活动';
   const repo = repoMatch?.[1] ?? '';
-  const repoSuffix = repo ? ` in ${repo}` : '';
+  const repoSuffix = repo ? ` 在 ${repo}` : '';
 
   return (
     <Box flexDirection="row" marginTop={addMargin ? 1 : 0}>

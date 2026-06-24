@@ -52,7 +52,7 @@ export function SkillPermissionRequest(props: PermissionRequestProps): React.Rea
   const options = useMemo((): PermissionPromptOption<SkillOptionValue>[] => {
     const baseOptions: PermissionPromptOption<SkillOptionValue>[] = [
       {
-        label: 'Yes',
+        label: '是',
         value: 'yes',
         feedbackConfig: { type: 'accept' },
       },
@@ -65,7 +65,7 @@ export function SkillPermissionRequest(props: PermissionRequestProps): React.Rea
       alwaysAllowOptions.push({
         label: (
           <Text>
-            Yes, and don&apos;t ask again for <Text bold>{skill}</Text> in <Text bold>{originalCwd}</Text>
+            是，且不再询问 <Text bold>{skill}</Text> 在 <Text bold>{originalCwd}</Text>
           </Text>
         ),
         value: 'yes-exact',
@@ -78,8 +78,7 @@ export function SkillPermissionRequest(props: PermissionRequestProps): React.Rea
         alwaysAllowOptions.push({
           label: (
             <Text>
-              Yes, and don&apos;t ask again for <Text bold>{commandPrefix + ':*'}</Text> commands in{' '}
-              <Text bold>{originalCwd}</Text>
+              是，且不再询问 <Text bold>{commandPrefix + ':*'}</Text> 命令在 <Text bold>{originalCwd}</Text>
             </Text>
           ),
           value: 'yes-prefix',
@@ -88,7 +87,7 @@ export function SkillPermissionRequest(props: PermissionRequestProps): React.Rea
     }
 
     const noOption: PermissionPromptOption<SkillOptionValue> = {
-      label: 'No',
+      label: '否',
       value: 'no',
       feedbackConfig: { type: 'reject' },
     };
@@ -213,8 +212,8 @@ export function SkillPermissionRequest(props: PermissionRequestProps): React.Rea
   }, [toolUseConfirm, onDone, onReject]);
 
   return (
-    <PermissionDialog title={`Use skill "${skill}"?`} workerBadge={workerBadge}>
-      <Text>Claude may use instructions, code, or files from this Skill.</Text>
+    <PermissionDialog title={`使用技能 "${skill}"？`} workerBadge={workerBadge}>
+      <Text>Claude 可能会使用此技能中的指令、代码或文件。</Text>
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Text dimColor>{commandObj?.description}</Text>
       </Box>

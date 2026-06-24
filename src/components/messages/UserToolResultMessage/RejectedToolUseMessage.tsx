@@ -5,7 +5,7 @@ import { MessageResponse } from '../../MessageResponse.js';
 export function RejectedToolUseMessage(): React.ReactNode {
   return (
     <MessageResponse height={1}>
-      <Text dimColor>Tool use rejected</Text>
+      <Text dimColor>工具调用已拒绝</Text>
     </MessageResponse>
   );
 }

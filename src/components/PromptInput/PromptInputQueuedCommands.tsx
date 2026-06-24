@@ -15,8 +15,8 @@ import { Message } from '../Message.js';
 const EMPTY_SET = new Set<string>();
 
 /**
- * Check if a command value is an idle notification that should be hidden.
- * Idle notifications are processed silently without showing to the user.
+ * 检查命令值是否为应隐藏的空闲通知。
+ * 空闲通知会被静默处理，不向用户展示。
  */
 function isIdleNotification(value: string): boolean {
   try {
@@ -27,44 +27,44 @@ function isIdleNotification(value: string): boolean {
   }
 }
 
-// Maximum number of task notification lines to show
+// 最多显示的任务通知条数
 const MAX_VISIBLE_NOTIFICATIONS = 3;
 
 /**
- * Create a synthetic overflow notification message for capped task notifications.
+ * 为超出上限的任务通知创建合成的溢出提示消息。
  */
 function createOverflowNotificationMessage(count: number): string {
   return `<${TASK_NOTIFICATION_TAG}>
-<${SUMMARY_TAG}>+${count} more tasks completed</${SUMMARY_TAG}>
+<${SUMMARY_TAG}>+${count} 个任务已完成</${SUMMARY_TAG}>
 <${STATUS_TAG}>completed</${STATUS_TAG}>
 </${TASK_NOTIFICATION_TAG}>`;
 }
 
 /**
- * Process queued commands to cap task notifications at MAX_VISIBLE_NOTIFICATIONS lines.
- * Other command types are always shown in full.
- * Idle notifications are filtered out entirely.
+ * 处理队列命令，将任务通知条数限制在 MAX_VISIBLE_NOTIFICATIONS 以内。
+ * 其他类型的命令始终完整展示。
+ * 空闲通知会被完全过滤掉。
  */
 function processQueuedCommands(queuedCommands: QueuedCommand[]): QueuedCommand[] {
-  // Filter out idle notifications - they are processed silently
+  // 过滤掉空闲通知 —— 它们会被静默处理
   const filteredCommands = queuedCommands.filter(
     cmd => typeof cmd.value !== 'string' || !isIdleNotification(cmd.value),
   );
 
-  // Separate task notifications from other commands
+  // 将任务通知与其他命令分开
   const taskNotifications = filteredCommands.filter(cmd => cmd.mode === 'task-notification');
   const otherCommands = filteredCommands.filter(cmd => cmd.mode !== 'task-notification');
 
-  // If notifications fit within limit, return all commands as-is
+  // 如果通知数量未超过限制，直接返回所有命令
   if (taskNotifications.length <= MAX_VISIBLE_NOTIFICATIONS) {
     return [...otherCommands, ...taskNotifications];
   }
 
-  // Show first (MAX_VISIBLE_NOTIFICATIONS - 1) notifications, then a summary
+  // 显示前 (MAX_VISIBLE_NOTIFICATIONS - 1) 条通知，然后显示汇总信息
   const visibleNotifications = taskNotifications.slice(0, MAX_VISIBLE_NOTIFICATIONS - 1);
   const overflowCount = taskNotifications.length - (MAX_VISIBLE_NOTIFICATIONS - 1);
 
-  // Create synthetic overflow message
+  // 创建合成的溢出消息
   const overflowCommand: QueuedCommand = {
     value: createOverflowNotificationMessage(overflowCount),
     mode: 'task-notification',
@@ -76,21 +76,19 @@ function processQueuedCommands(queuedCommands: QueuedCommand[]): QueuedCommand[]
 function PromptInputQueuedCommandsImpl(): React.ReactNode {
   const queuedCommands = useCommandQueue();
   const viewingAgent = useAppState(s => !!s.viewingAgentTaskId);
-  // Brief layout: dim queue items + skip the paddingX (brief messages
-  // already indent themselves). Gate mirrors the brief-spinner/message
-  // check elsewhere — no teammate-view override needed since this
-  // component early-returns when viewing a teammate.
+  // 简洁布局：队列项目变暗 + 跳过 paddingX（简洁消息自身已带缩进）。
+  // 门控逻辑与其他地方的 brief-spinner/message 检查保持一致 ——
+  // 查看队友时此组件会提前返回，因此不需要队友视图覆盖。
   const isBriefOnlyState = useAppState(s => s.isBriefOnly);
   const useBriefLayout = feature('KAIROS') || feature('KAIROS_BRIEF') ? isBriefOnlyState : false;
 
-  // createUserMessage mints a fresh UUID per call; without memoization, streaming
-  // re-renders defeat Message's areMessagePropsEqual (compares uuid) → flicker.
+  // createUserMessage 每次调用都会生成新的 UUID；不做 memoize 的话，流式重渲染
+  // 会导致 Message 的 areMessagePropsEqual（比较 uuid）失效 → 画面闪烁。
   const messages = useMemo(() => {
     if (queuedCommands.length === 0) return null;
-    // task-notification is shown via useInboxNotification; most isMeta commands
-    // (scheduled tasks, proactive ticks) are system-generated and hidden.
-    // Channel messages are the exception — isMeta but shown so the keyboard
-    // user sees what arrived.
+    // task-notification 通过 useInboxNotification 展示；大多数 isMeta 命令
+    // （计划任务、主动触发）由系统生成并隐藏。
+    // 频道消息是例外 —— 虽然是 isMeta，但仍需展示，让键盘用户看到收到的内容。
     const visibleCommands = queuedCommands.filter(isQueuedCommandVisible);
     if (visibleCommands.length === 0) return null;
     const processedCommands = processQueuedCommands(visibleCommands);
@@ -100,14 +98,14 @@ function PromptInputQueuedCommandsImpl(): React.ReactNode {
         if (cmd.mode === 'bash' && typeof content === 'string') {
           content = `<bash-input>${content}</bash-input>`;
         }
-        // [Image #N] placeholders are inline in the text value (inserted at
-        // paste time), so the queue preview shows them without stub blocks.
+        // [Image #N] 占位符内联在文本值中（粘贴时插入），
+        // 因此队列预览直接展示，无需额外的占位块。
         return createUserMessage({ content });
       }),
     );
   }, [queuedCommands]);
 
-  // Don't show leader's queued commands when viewing any agent's transcript
+  // 查看任何 agent 的对话记录时，不显示主节点的队列命令
   if (viewingAgent || messages === null) {
     return null;
   }

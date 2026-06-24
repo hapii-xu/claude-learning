@@ -25,7 +25,7 @@ export function QuestionNavigationBar({
     // 计算固定宽度元素
     const leftArrow = '← ';
     const rightArrow = ' →';
-    const submitText = hideSubmitTab ? '' : ` ${figures.tick} Submit `;
+    const submitText = hideSubmitTab ? '' : ` ${figures.tick} 提交 `;
     const checkboxWidth = 2; // 复选框 + 空格
     const paddingPerTab = 2; // 每个标签页文本前后的空格
 
@@ -114,10 +114,10 @@ export function QuestionNavigationBar({
           {currentQuestionIndex === questions.length ? (
             <Text backgroundColor="permission" color="inverseText">
               {' '}
-              {figures.tick} Submit{' '}
+              {figures.tick} 提交{' '}
             </Text>
           ) : (
-            <Text> {figures.tick} Submit </Text>
+            <Text> {figures.tick} 提交 </Text>
           )}
         </Box>
       )}

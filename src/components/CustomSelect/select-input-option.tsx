@@ -336,13 +336,13 @@ export function SelectInputOption<T>({
                         action="attachments:next"
                         context="Attachments"
                         fallback="→"
-                        description="next"
+                        description="下一张"
                       />
                       <ConfigurableShortcutHint
                         action="attachments:previous"
                         context="Attachments"
                         fallback="←"
-                        description="prev"
+                        description="上一张"
                       />
                     </>
                   )}
@@ -350,17 +350,17 @@ export function SelectInputOption<T>({
                     action="attachments:remove"
                     context="Attachments"
                     fallback="backspace"
-                    description="remove"
+                    description="移除"
                   />
                   <ConfigurableShortcutHint
                     action="attachments:exit"
                     context="Attachments"
                     fallback="esc"
-                    description="cancel"
+                    description="取消"
                   />
                 </Byline>
               ) : isFocused ? (
-                '(↓ to select)'
+                '(↓ 选择图片)'
               ) : null}
             </Text>
           </Box>

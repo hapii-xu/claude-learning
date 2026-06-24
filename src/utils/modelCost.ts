@@ -32,7 +32,7 @@ export type ModelCosts = {
   webSearchRequests: number
 }
 
-// Standard pricing tier for Sonnet models: $3 input / $15 output per Mtok
+// Sonnet 模型的标准定价层：每百万 token $3 输入 / $15 输出
 export const COST_TIER_3_15 = {
   inputTokens: 3,
   outputTokens: 15,
@@ -41,7 +41,7 @@ export const COST_TIER_3_15 = {
   webSearchRequests: 0.01,
 } as const satisfies ModelCosts
 
-// Pricing tier for Opus 4/4.1: $15 input / $75 output per Mtok
+// Opus 4/4.1 定价层：每百万 token $15 输入 / $75 输出
 export const COST_TIER_15_75 = {
   inputTokens: 15,
   outputTokens: 75,
@@ -50,7 +50,7 @@ export const COST_TIER_15_75 = {
   webSearchRequests: 0.01,
 } as const satisfies ModelCosts
 
-// Pricing tier for Opus 4.5: $5 input / $25 output per Mtok
+// Opus 4.5 定价层：每百万 token $5 输入 / $25 输出
 export const COST_TIER_5_25 = {
   inputTokens: 5,
   outputTokens: 25,
@@ -59,7 +59,7 @@ export const COST_TIER_5_25 = {
   webSearchRequests: 0.01,
 } as const satisfies ModelCosts
 
-// Fast mode pricing for Opus 4.6: $30 input / $150 output per Mtok
+// Opus 4.6 快速模式定价：每百万 token $30 输入 / $150 输出
 export const COST_TIER_30_150 = {
   inputTokens: 30,
   outputTokens: 150,
@@ -68,7 +68,7 @@ export const COST_TIER_30_150 = {
   webSearchRequests: 0.01,
 } as const satisfies ModelCosts
 
-// Pricing for Haiku 3.5: $0.80 input / $4 output per Mtok
+// Haiku 3.5 定价：每百万 token $0.80 输入 / $4 输出
 export const COST_HAIKU_35 = {
   inputTokens: 0.8,
   outputTokens: 4,

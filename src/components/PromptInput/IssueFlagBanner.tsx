@@ -3,8 +3,8 @@ import { FLAG_ICON } from '../../constants/figures.js';
 import { Box, Text } from '@anthropic/ink';
 
 /**
- * ANT-ONLY: Banner shown in the transcript that prompts users to report
- * issues via /issue. Appears when friction is detected in the conversation.
+ * 仅限 ANT 内部：在对话记录中展示的横幅，提示用户通过 /issue 上报问题。
+ * 当对话中检测到摩擦时出现。
  */
 export function IssueFlagBanner(): React.ReactNode {
   if (process.env.USER_TYPE !== 'ant') {
@@ -19,9 +19,9 @@ export function IssueFlagBanner(): React.ReactNode {
       <Text>
         <Text dimColor>[ANT-ONLY] </Text>
         <Text color="warning" bold>
-          Something off with Claude?
+          Claude 有异常？
         </Text>
-        <Text dimColor> /issue to report it</Text>
+        <Text dimColor> 使用 /issue 上报问题</Text>
       </Text>
     </Box>
   );

@@ -15,18 +15,17 @@ type LinePart = {
 };
 
 export function HighlightedInput({ text, highlights }: Props): React.ReactNode {
-  // The shimmer animation (below) re-renders this component at 20fps while the
-  // ultrathink keyword is present. text/highlights are referentially stable
-  // across animation ticks (parent doesn't re-render), so memoize everything
-  // that derives from them: segmentTextByHighlights alone is ~85µs/call
-  // (tokenize + sort + O(n²) overlap), which adds up fast at 20fps.
+  // 当 ultrathink 关键字存在时，下方的闪光动画会以 20fps 速率重新渲染此组件。
+  // text/highlights 在动画帧间引用稳定（父组件不会重新渲染），
+  // 因此对所有派生值进行 memoize 处理：
+  // segmentTextByHighlights 单次调用约 ~85µs（分词 + 排序 + O(n²) 重叠检测），
+  // 以 20fps 运行时累积很快。
   const { lines, hasShimmer, sweepStart, cycleLength } = React.useMemo(() => {
     const segments = segmentTextByHighlights(text, highlights);
 
-    // Split segments by newlines into per-line groups. Ink's row-direction Box
-    // indents continuation lines of a multi-line child to that child's X offset.
-    // By splitting at newlines, each line renders as its own row, avoiding the
-    // incorrect indentation when highlighted text is followed by wrapped content.
+    // 按换行符将 segment 拆分为逐行组。Ink 的行方向 Box 会将多行子元素的续行
+    // 缩进到该子元素的 X 偏移位置。通过在换行处拆分，每行独立渲染为一行，
+    // 避免高亮文本后跟折行内容时出现错误缩进。
     const lines: LinePart[][] = [[]];
     let pos = 0;
     for (const segment of segments) {
@@ -48,8 +47,8 @@ export function HighlightedInput({ text, highlights }: Props): React.ReactNode {
       }
     }
 
-    // Scope the sweep to shimmer-highlighted ranges so cycle time doesn't grow
-    // with input length. Padding creates an offscreen pause between sweeps.
+    // 将扫光范围限定在闪光高亮区域，避免循环时长随输入长度增长。
+    // 填充值在扫光之间制造屏外暂停效果。
     const hasShimmer = highlights.some(h => h.shimmerColor);
     let sweepStart = 0;
     let cycleLength = 1;

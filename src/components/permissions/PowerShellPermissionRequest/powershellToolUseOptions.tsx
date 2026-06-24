@@ -28,15 +28,15 @@ export function powershellToolUseOptions({
   if (yesInputMode) {
     options.push({
       type: 'input',
-      label: 'Yes',
+      label: '是',
       value: 'yes',
-      placeholder: 'and tell Claude what to do next',
+      placeholder: '告诉 Claude 接下来做什么',
       onChange: onAcceptFeedbackChange,
       allowEmptySubmitToCancel: true,
     });
   } else {
     options.push({
-      label: 'Yes',
+      label: '是',
       value: 'yes',
     });
   }
@@ -58,9 +58,9 @@ export function powershellToolUseOptions({
     if (editablePrefix !== undefined && onEditablePrefixChange && !hasNonPowerShellSuggestions) {
       options.push({
         type: 'input',
-        label: 'Yes, and don\u2019t ask again for',
+        label: '\u662f\uff0c\u4ee5\u540e\u4e0d\u518d\u8be2\u95ee',
         value: 'yes-prefix-edited',
-        placeholder: 'command prefix (e.g., Get-Process:*)',
+        placeholder: '\u547d\u4ee4\u524d\u7f00\uff08\u4f8b\u5982 Get-Process:*\uff09',
         initialValue: editablePrefix,
         onChange: onEditablePrefixChange,
         allowEmptySubmitToCancel: true,
@@ -82,15 +82,15 @@ export function powershellToolUseOptions({
   if (noInputMode) {
     options.push({
       type: 'input',
-      label: 'No',
+      label: '否',
       value: 'no',
-      placeholder: 'and tell Claude what to do differently',
+      placeholder: '并告诉 Claude 要做什么改变',
       onChange: onRejectFeedbackChange,
       allowEmptySubmitToCancel: true,
     });
   } else {
     options.push({
-      label: 'No',
+      label: '否',
       value: 'no',
     });
   }

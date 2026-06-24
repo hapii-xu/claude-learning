@@ -17,7 +17,6 @@ import type { Theme } from 'src/utils/theme.js';
 import { UserImageMessage } from './UserImageMessage.js';
 
 import { jsonParse } from '../../utils/slowOperations.js';
-import { plural } from '../../utils/stringUtils.js';
 import { isEnvTruthy } from '../../utils/envUtils.js';
 import { isAgentSwarmsEnabled } from '../../utils/agentSwarmsEnabled.js';
 import { tryRenderPlanApprovalMessage, formatTeammateMessageContent } from './PlanApprovalMessage.js';
@@ -80,10 +79,10 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
             return (
               <Box key={idx} paddingLeft={2}>
                 <Text>{BLACK_CIRCLE} </Text>
-                <Text>Task assigned: </Text>
+                <Text>任务已分配：</Text>
                 <Text bold>#{parsedMsg.taskId}</Text>
                 <Text> - {parsedMsg.subject}</Text>
-                <Text dimColor> (from {parsedMsg.assignedBy || msg.from})</Text>
+                <Text dimColor>（来自 {parsedMsg.assignedBy || msg.from}）</Text>
               </Box>
             );
           }
@@ -131,7 +130,7 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
           : '';
       return (
         <Line>
-          <Text bold>{attachment.skills.length}</Text> relevant {plural(attachment.skills.length, 'skill')}: {names}
+          <Text bold>{attachment.skills.length}</Text> 个相关技能：{names}
           {hint && <Text dimColor>{hint}</Text>}
         </Line>
       );
@@ -146,7 +145,7 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
       const names = attachment.tools.map(t => t.name).join(', ');
       return (
         <Line>
-          <Text dimColor>Discovered tools: </Text>
+          <Text dimColor>发现的工具：</Text>
           <Text>{names}</Text>
         </Line>
       );
@@ -158,7 +157,7 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
     case 'directory':
       return (
         <Line>
-          Listed directory <Text bold>{attachment.displayPath + sep}</Text>
+          已列出目录 <Text bold>{attachment.displayPath + sep}</Text>
         </Line>
       );
     case 'file':
@@ -166,49 +165,49 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
       if (attachment.content.type === 'notebook') {
         return (
           <Line>
-            Read <Text bold>{attachment.displayPath}</Text> ({attachment.content.file.cells.length} cells)
+            已读取 <Text bold>{attachment.displayPath}</Text>（{attachment.content.file.cells.length} 个单元格）
           </Line>
         );
       }
       if (attachment.content.type === 'file_unchanged') {
         return (
           <Line>
-            Read <Text bold>{attachment.displayPath}</Text> (unchanged)
+            已读取 <Text bold>{attachment.displayPath}</Text>（未变更）
           </Line>
         );
       }
       return (
         <Line>
-          Read <Text bold>{attachment.displayPath}</Text> (
+          已读取 <Text bold>{attachment.displayPath}</Text>（
           {attachment.content.type === 'text'
-            ? `${attachment.content.file.numLines}${attachment.truncated ? '+' : ''} lines`
+            ? `${attachment.content.file.numLines}${attachment.truncated ? '+' : ''} 行`
             : formatFileSize(attachment.content.file.originalSize)}
-          )
+          ）
         </Line>
       );
     case 'compact_file_reference':
       return (
         <Line>
-          Referenced file <Text bold>{attachment.displayPath}</Text>
+          已引用文件 <Text bold>{attachment.displayPath}</Text>
         </Line>
       );
     case 'pdf_reference':
       return (
         <Line>
-          Referenced PDF <Text bold>{attachment.displayPath}</Text> ({attachment.pageCount} pages)
+          已引用 PDF <Text bold>{attachment.displayPath}</Text>（{attachment.pageCount} 页）
         </Line>
       );
     case 'selected_lines_in_ide':
       return (
         <Line>
-          ⧉ Selected <Text bold>{attachment.lineEnd - attachment.lineStart + 1}</Text> lines from{' '}
-          <Text bold>{attachment.displayPath}</Text> in {attachment.ideName}
+          ⧉ 已在 {attachment.ideName} 中从 <Text bold>{attachment.displayPath}</Text> 选中{' '}
+          <Text bold>{attachment.lineEnd - attachment.lineStart + 1}</Text> 行
         </Line>
       );
     case 'nested_memory':
       return (
         <Line>
-          Loaded <Text bold>{attachment.displayPath}</Text>
+          已加载 <Text bold>{attachment.displayPath}</Text>
         </Line>
       );
     case 'relevant_memories':
@@ -221,8 +220,8 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
           <Box flexDirection="row">
             <Box minWidth={2} />
             <Text dimColor>
-              Recalled <Text bold>{attachment.memories.length}</Text>{' '}
-              {attachment.memories.length === 1 ? 'memory' : 'memories'}
+              已调取 <Text bold>{attachment.memories.length}</Text> 条{' '}
+              {attachment.memories.length === 1 ? '记忆' : '记忆'}
               {!isTranscriptMode && (
                 <>
                   {' '}
@@ -254,11 +253,7 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
       const skillCount = attachment.skillNames.length;
       return (
         <Line>
-          Loaded{' '}
-          <Text bold>
-            {skillCount} {plural(skillCount, 'skill')}
-          </Text>{' '}
-          from <Text bold>{attachment.displayPath}</Text>
+          已从 <Text bold>{attachment.displayPath}</Text> 加载 <Text bold>{skillCount} 个技能</Text>
         </Line>
       );
     }
@@ -268,7 +263,7 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
       }
       return (
         <Line>
-          <Text bold>{attachment.skillCount}</Text> {plural(attachment.skillCount, 'skill')} available
+          <Text bold>{attachment.skillCount}</Text> 个技能可用
         </Line>
       );
     }
@@ -279,7 +274,7 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
       const count = attachment.addedTypes.length;
       return (
         <Line>
-          <Text bold>{count}</Text> agent {plural(count, 'type')} available
+          <Text bold>{count}</Text> 种 agent 类型可用
         </Line>
       );
     }
@@ -299,20 +294,20 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
       );
     }
     case 'plan_file_reference':
-      return <Line>Plan file referenced ({getDisplayPath(attachment.planFilePath)})</Line>;
+      return <Line>已引用计划文件（{getDisplayPath(attachment.planFilePath)}）</Line>;
     case 'invoked_skills': {
       if (attachment.skills.length === 0) {
         return null;
       }
       const skillNames = attachment.skills.map(s => s.name).join(', ');
-      return <Line>Skills restored ({skillNames})</Line>;
+      return <Line>已恢复技能（{skillNames}）</Line>;
     }
     case 'diagnostics':
       return <DiagnosticsDisplay attachment={attachment} verbose={verbose} />;
     case 'mcp_resource':
       return (
         <Line>
-          Read MCP resource <Text bold>{attachment.name}</Text> from {attachment.server}
+          已从 {attachment.server} 读取 MCP 资源 <Text bold>{attachment.name}</Text>
         </Line>
       );
     case 'command_permissions':
@@ -330,7 +325,7 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
       }
       return (
         <Line>
-          Async hook <Text bold>{attachment.hookEvent}</Text> completed
+          异步 Hook <Text bold>{attachment.hookEvent}</Text> 已完成
         </Line>
       );
     }
@@ -343,7 +338,7 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
       const stderr = attachment.blockingError.blockingError.trim();
       return (
         <>
-          <Line color="error">{attachment.hookName} hook returned blocking error</Line>
+          <Line color="error">{attachment.hookName} Hook 返回了阻塞性错误</Line>
           {stderr ? <Line color="error">{stderr}</Line> : null}
         </>
       );
@@ -354,7 +349,7 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
         return null;
       }
       // 完整的 hook 输出通过 hookEvents.ts 记录到 debug log
-      return <Line color="error">{attachment.hookName} hook error</Line>;
+      return <Line color="error">{attachment.hookName} Hook 错误</Line>;
     }
     case 'hook_error_during_execution':
       // Stop hooks 作为摘要渲染在 SystemStopHookSummaryMessage 中
@@ -362,7 +357,7 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
         return null;
       }
       // 完整的 hook 输出通过 hookEvents.ts 记录到 debug log
-      return <Line>{attachment.hookName} hook warning</Line>;
+      return <Line>{attachment.hookName} Hook 警告</Line>;
     case 'hook_success':
       // 完整的 hook 输出通过 hookEvents.ts 记录到 debug log
       return null;
@@ -373,20 +368,20 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
       }
       return (
         <Line color="warning">
-          {attachment.hookName} hook stopped continuation: {attachment.message}
+          {attachment.hookName} Hook 已停止继续执行：{attachment.message}
         </Line>
       );
     case 'hook_system_message':
       return (
         <Line>
-          {attachment.hookName} says: {attachment.content}
+          {attachment.hookName} 说：{attachment.content}
         </Line>
       );
     case 'hook_permission_decision': {
-      const action = attachment.decision === 'allow' ? 'Allowed' : 'Denied';
+      const action = attachment.decision === 'allow' ? '已允许' : '已拒绝';
       return (
         <Line>
-          {action} by <Text bold>{attachment.hookEvent}</Text> hook
+          {action}，触发者：<Text bold>{attachment.hookEvent}</Text> Hook
         </Line>
       );
     }
@@ -396,9 +391,7 @@ export function AttachmentMessage({ attachment, addMargin, verbose, isTranscript
       return (
         <Box flexDirection="row" width="100%" marginTop={1} backgroundColor={bg}>
           <Text dimColor>{BLACK_CIRCLE} </Text>
-          <Text dimColor>
-            {attachment.count} {plural(attachment.count, 'teammate')} shut down gracefully
-          </Text>
+          <Text dimColor>{attachment.count} 个队友已优雅关闭</Text>
         </Box>
       );
     default:
@@ -444,17 +437,17 @@ function GenericTaskStatus({ attachment }: { attachment: TaskStatusAttachment })
   const bg = useSelectedMessageBg();
   const statusText =
     attachment.status === 'completed'
-      ? 'completed in background'
+      ? '已在后台完成'
       : attachment.status === 'killed'
-        ? 'stopped'
+        ? '已停止'
         : attachment.status === 'running'
-          ? 'still running in background'
+          ? '仍在后台运行'
           : attachment.status;
   return (
     <Box flexDirection="row" width="100%" marginTop={1} backgroundColor={bg}>
       <Text dimColor>{BLACK_CIRCLE} </Text>
       <Text dimColor>
-        Task &quot;<Text bold>{attachment.description}</Text>&quot; {statusText}
+        任务 &quot;<Text bold>{attachment.description}</Text>&quot; {statusText}
       </Text>
     </Box>
   );
@@ -469,12 +462,12 @@ function TeammateTaskStatus({ attachment }: { attachment: TaskStatusAttachment }
     return <GenericTaskStatus attachment={attachment} />;
   }
   const agentColor = toInkColor(task.identity.color);
-  const statusText = attachment.status === 'completed' ? 'shut down gracefully' : attachment.status;
+  const statusText = attachment.status === 'completed' ? '已优雅关闭' : attachment.status;
   return (
     <Box flexDirection="row" width="100%" marginTop={1} backgroundColor={bg}>
       <Text dimColor>{BLACK_CIRCLE} </Text>
       <Text dimColor>
-        Teammate{' '}
+        队员{' '}
         <Text color={agentColor} bold dimColor={false}>
           @{task.identity.agentName}
         </Text>{' '}

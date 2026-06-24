@@ -70,7 +70,7 @@ export function SystemTextMessage({ message, addMargin, verbose, isTranscriptMod
         <Box minWidth={2}>
           <Text color="error">{BLACK_CIRCLE}</Text>
         </Box>
-        <Text dimColor>All background agents stopped</Text>
+        <Text dimColor>所有后台 Agent 已停止</Text>
       </Box>
     );
   }
@@ -101,7 +101,7 @@ export function SystemTextMessage({ message, addMargin, verbose, isTranscriptMod
     return (
       <Box marginTop={addMargin ? 1 : 0} backgroundColor={bg} width="100%">
         <Text dimColor>{TEARDROP_ASTERISK} </Text>
-        <Text>Allowed </Text>
+        <Text>已允许 </Text>
         <Text bold>{(message.commands as string[]).join(', ')}</Text>
       </Box>
     );
@@ -185,7 +185,7 @@ function StopHookSummaryMessage({
     return (
       <Box flexDirection="column" width="100%">
         <Text dimColor>
-          {'  ⎿  '}Ran {hookCount} {message.hookLabel} {hookCount === 1 ? 'hook' : 'hooks'}
+          {'  ⎿  '}已运行 {hookCount} 个 {message.hookLabel} 钩子
           {totalStr}
         </Text>
         {isTranscriptMode &&
@@ -211,7 +211,7 @@ function StopHookSummaryMessage({
       </Box>
       <Box flexDirection="column" width={columns - 10}>
         <Text>
-          Ran <Text bold>{hookCount}</Text> {message.hookLabel ?? 'stop'} {hookCount === 1 ? 'hook' : 'hooks'}
+          已运行 <Text bold>{hookCount}</Text> 个 {message.hookLabel ?? 'stop'} 钩子
           {totalStr}
           {!verbose && hookInfos.length > 0 && (
             <>
@@ -243,7 +243,7 @@ function StopHookSummaryMessage({
           hookErrors.map((err, idx) => (
             <Text key={idx}>
               <Text dimColor>⎿ &nbsp;</Text>
-              {message.hookLabel ?? 'Stop'} hook error: {err}
+              {message.hookLabel ?? 'Stop'} 钩子错误：{err}
             </Text>
           ))}
       </Box>
@@ -293,7 +293,7 @@ function TurnDurationMessage({
   addMargin: boolean;
 }): React.ReactNode {
   const bg = useSelectedMessageBg();
-  const [verb] = useState(() => sample(TURN_COMPLETION_VERBS) ?? 'Worked');
+  const [verb] = useState(() => sample(TURN_COMPLETION_VERBS) ?? '完成');
   const store = useAppStateStore();
   const [backgroundTaskSummary] = useState(() => {
     const tasks = store.getState().tasks;
@@ -311,12 +311,10 @@ function TurnDurationMessage({
     const limit = message.budgetLimit as number;
     const usage =
       tokens >= limit
-        ? `${formatNumber(tokens)} used (${formatNumber(limit)} min ${figures.tick})`
+        ? `已使用 ${formatNumber(tokens)}（最低 ${formatNumber(limit)} ${figures.tick}）`
         : `${formatNumber(tokens)} / ${formatNumber(limit)} (${Math.round((tokens / limit) * 100)}%)`;
     const nudges =
-      (message.budgetNudges as number) > 0
-        ? ` \u00B7 ${message.budgetNudges as number} ${(message.budgetNudges as number) === 1 ? 'nudge' : 'nudges'}`
-        : '';
+      (message.budgetNudges as number) > 0 ? ` \u00B7 ${message.budgetNudges as number} \u6B21\u63D0\u9192` : '';
     return `${showTurnDuration ? ' \u00B7 ' : ''}${usage}${nudges}`;
   })();
 
@@ -330,9 +328,9 @@ function TurnDurationMessage({
         <Text dimColor>{TEARDROP_ASTERISK}</Text>
       </Box>
       <Text dimColor>
-        {showTurnDuration && `${verb} for ${duration}`}
+        {showTurnDuration && `${verb} ${duration}`}
         {budgetSuffix}
-        {backgroundTaskSummary && ` \u00B7 ${backgroundTaskSummary} still running`}
+        {backgroundTaskSummary && ` \u00B7 ${backgroundTaskSummary} \u4ECD\u5728\u8FD0\u884C`}
       </Text>
     </Box>
   );
@@ -349,10 +347,7 @@ function MemorySavedMessage({
   const writtenPaths = (message.writtenPaths ?? []) as string[];
   const team = feature('TEAMMEM') ? teamMemSaved!.teamMemSavedPart(message) : null;
   const privateCount = writtenPaths.length - (team?.count ?? 0);
-  const parts = [
-    privateCount > 0 ? `${privateCount} ${privateCount === 1 ? 'memory' : 'memories'}` : null,
-    team?.segment as React.ReactNode,
-  ].filter(Boolean);
+  const parts = [privateCount > 0 ? `${privateCount} 条记忆` : null, team?.segment as React.ReactNode].filter(Boolean);
   return (
     <Box flexDirection="column" marginTop={addMargin ? 1 : 0} backgroundColor={bg}>
       <Box flexDirection="row">
@@ -360,7 +355,7 @@ function MemorySavedMessage({
           <Text dimColor>{BLACK_CIRCLE}</Text>
         </Box>
         <Text>
-          {(message.verb as string) ?? 'Saved'} {parts.join(' \u00B7 ')}
+          {(message.verb as string) ?? '\u5DF2\u4FDD\u5B58'} {parts.join(' \u00B7 ')}
         </Text>
       </Box>
       {writtenPaths.map(p => (
@@ -416,7 +411,7 @@ function BridgeStatusMessage({
       <Box minWidth={2} />
       <Box flexDirection="column">
         <Text>
-          <ThemedText color="suggestion">/remote-control</ThemedText> is active. Code in CLI or at
+          <ThemedText color="suggestion">/remote-control</ThemedText> 已激活。在 CLI 中或访问以下地址使用：
         </Text>
         <Link url={url}>{url}</Link>
         {upgradeNudge && <Text dimColor>⎿ {upgradeNudge}</Text>}

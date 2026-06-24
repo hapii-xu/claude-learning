@@ -12,7 +12,7 @@ export function UserPlanMessage({ addMargin, planContent }: Props): React.ReactN
     <Box flexDirection="column" borderStyle="round" borderColor="planMode" marginTop={addMargin ? 1 : 0} paddingX={1}>
       <Box marginBottom={1}>
         <Text bold color="planMode">
-          Plan to implement
+          待实现的计划
         </Text>
       </Box>
       <Markdown>{planContent}</Markdown>

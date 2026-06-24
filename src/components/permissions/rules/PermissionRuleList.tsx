@@ -44,18 +44,18 @@ type RuleSourceTextProps = {
   rule: PermissionRule;
 };
 function RuleSourceText({ rule }: RuleSourceTextProps): React.ReactNode {
-  return <Text dimColor>{`From ${permissionRuleSourceDisplayString(rule.source)}`}</Text>;
+  return <Text dimColor>{`来自 ${permissionRuleSourceDisplayString(rule.source)}`}</Text>;
 }
 
 // Helper function to get the appropriate label for rule behavior
 function getRuleBehaviorLabel(ruleBehavior: PermissionBehavior): string {
   switch (ruleBehavior) {
     case 'allow':
-      return 'allowed';
+      return '已允许';
     case 'deny':
-      return 'denied';
+      return '已拒绝';
     case 'ask':
-      return 'ask';
+      return '询问';
   }
 }
 
@@ -83,11 +83,7 @@ function RuleDetails({
 
   const footer = (
     <Box marginLeft={3}>
-      {exitState.pending ? (
-        <Text dimColor>Press {exitState.keyName} again to exit</Text>
-      ) : (
-        <Text dimColor>Esc to cancel</Text>
-      )}
+      {exitState.pending ? <Text dimColor>再次按 {exitState.keyName} 退出</Text> : <Text dimColor>Esc 取消</Text>}
     </Box>
   );
 
@@ -104,13 +100,13 @@ function RuleDetails({
           borderColor="permission"
         >
           <Text bold color="permission">
-            Rule details
+            规则详情
           </Text>
           {ruleDescription}
           <Text italic>
-            This rule is configured by managed settings and cannot be modified.
+            此规则由托管设置配置，无法修改。
             {'\n'}
-            Contact your system administrator for more information.
+            如需更多信息，请联系系统管理员。
           </Text>
         </Box>
         {footer}
@@ -122,16 +118,16 @@ function RuleDetails({
     <>
       <Box flexDirection="column" gap={1} borderStyle="round" paddingLeft={1} paddingRight={1} borderColor="error">
         <Text bold color="error">
-          Delete {getRuleBehaviorLabel(rule.ruleBehavior)} tool?
+          删除 {getRuleBehaviorLabel(rule.ruleBehavior)} 工具？
         </Text>
         {ruleDescription}
-        <Text>Are you sure you want to delete this permission rule?</Text>
+        <Text>确定要删除此权限规则吗？</Text>
         <Select
           onChange={_ => (_ === 'yes' ? onDelete() : onCancel())}
           onCancel={onCancel}
           options={[
-            { label: 'Yes', value: 'yes' },
-            { label: 'No', value: 'no' },
+            { label: '是', value: 'yes' },
+            { label: '否', value: 'no' },
           ]}
         />
       </Box>
@@ -213,9 +209,9 @@ function PermissionRulesTab({
       <Text>
         {
           {
-            allow: "Claude Code won't ask before using allowed tools.",
-            ask: 'Claude Code will always ask for confirmation before using these tools.',
-            deny: 'Claude Code will always reject requests to use denied tools.',
+            allow: 'Claude Code 使用已允许的工具时不会询问。',
+            ask: 'Claude Code 使用这些工具前始终会请求确认。',
+            deny: 'Claude Code 始终会拒绝使用已拒绝工具的请求。',
           }[tab]
         }
       </Text>
@@ -322,7 +318,7 @@ export function PermissionRuleList({ onExit, initialTab, onRetryDenials }: Props
       // Only show "Add a new rule" for allow and deny tabs (and not when searching)
       if (tab !== 'workspace' && tab !== 'recent' && !query) {
         options.push({
-          label: `Add a new rule${figures.ellipsis}`,
+          label: `添加新规则${figures.ellipsis}`,
           value: 'add-new-rule',
         });
       }
@@ -438,7 +434,7 @@ export function PermissionRuleList({ onExit, initialTab, onRetryDenials }: Props
     for (const rule of rules) {
       setChanges(prev => [
         ...prev,
-        `Added ${rule.ruleBehavior} rule ${chalk.bold(permissionRuleValueToString(rule.ruleValue))}`,
+        `已添加 ${rule.ruleBehavior} 规则 ${chalk.bold(permissionRuleValueToString(rule.ruleValue))}`,
       ]);
     }
 
@@ -448,9 +444,9 @@ export function PermissionRuleList({ onExit, initialTab, onRetryDenials }: Props
         const severity = u.shadowType === 'deny' ? 'blocked' : 'shadowed';
         setChanges(prev => [
           ...prev,
-          chalk.yellow(`${figures.warning} Warning: ${permissionRuleValueToString(u.rule.ruleValue)} is ${severity}`),
+          chalk.yellow(`${figures.warning} 警告：${permissionRuleValueToString(u.rule.ruleValue)} 已${severity}`),
           chalk.dim(`  ${u.reason}`),
-          chalk.dim(`  Fix: ${u.fix}`),
+          chalk.dim(`  修复：${u.fix}`),
         ]);
       }
     }
@@ -476,7 +472,7 @@ export function PermissionRuleList({ onExit, initialTab, onRetryDenials }: Props
       onExit(undefined, {
         shouldQuery: true,
         metaMessages: [
-          `Permission granted for: ${commands.join(', ')}. You may now retry ${commands.length === 1 ? 'this command' : 'these commands'} if you would like.`,
+          `已授权：${commands.join(', ')}。如需重试，可重新执行 ${commands.length === 1 ? '该命令' : '这些命令'}。`,
         ],
       });
       return;
@@ -537,7 +533,7 @@ export function PermissionRuleList({ onExit, initialTab, onRetryDenials }: Props
 
     setChanges(prev => [
       ...prev,
-      `Deleted ${selectedRule.ruleBehavior} rule ${chalk.bold(permissionRuleValueToString(selectedRule.ruleValue))}`,
+      `已删除 ${selectedRule.ruleBehavior} 规则 ${chalk.bold(permissionRuleValueToString(selectedRule.ruleValue))}`,
     ]);
     setSelectedRule(undefined);
   };
@@ -600,7 +596,7 @@ export function PermissionRuleList({ onExit, initialTab, onRetryDenials }: Props
 
           setChanges(prev => [
             ...prev,
-            `Added directory ${chalk.bold(path)} to workspace${remember ? ' and saved to local settings' : ' for this session'}`,
+            `已将目录 ${chalk.bold(path)} 添加到工作区${remember ? '，并保存到本地设置' : '（仅本次会话）'}`,
           ]);
           setIsAddingWorkspaceDirectory(false);
         }}
@@ -615,7 +611,7 @@ export function PermissionRuleList({ onExit, initialTab, onRetryDenials }: Props
       <RemoveWorkspaceDirectory
         directoryPath={removingDirectory}
         onRemove={() => {
-          setChanges(prev => [...prev, `Removed directory ${chalk.bold(removingDirectory)} from workspace`]);
+          setChanges(prev => [...prev, `已从工作区移除目录 ${chalk.bold(removingDirectory)}`]);
           setRemovingDirectory(null);
         }}
         onCancel={() => setRemovingDirectory(null)}
@@ -649,28 +645,28 @@ export function PermissionRuleList({ onExit, initialTab, onRetryDenials }: Props
     <Box flexDirection="column" onKeyDown={handleKeyDown}>
       <Pane color="permission">
         <Tabs
-          title="Permissions:"
+          title="权限设置："
           color="permission"
           defaultTab={defaultTab}
           hidden={isHidden}
           initialHeaderFocused={!hasDenials}
           navFromContent={!isSearchMode}
         >
-          <Tab id="recent" title="Recently denied">
+          <Tab id="recent" title="最近拒绝">
             <RecentDenialsTab onHeaderFocusChange={handleHeaderFocusChange} onStateChange={handleDenialStateChange} />
           </Tab>
-          <Tab id="allow" title="Allow">
+          <Tab id="allow" title="允许">
             <PermissionRulesTab tab="allow" {...sharedRulesProps} />
           </Tab>
-          <Tab id="ask" title="Ask">
+          <Tab id="ask" title="询问">
             <PermissionRulesTab tab="ask" {...sharedRulesProps} />
           </Tab>
-          <Tab id="deny" title="Deny">
+          <Tab id="deny" title="拒绝">
             <PermissionRulesTab tab="deny" {...sharedRulesProps} />
           </Tab>
-          <Tab id="workspace" title="Workspace">
+          <Tab id="workspace" title="工作区">
             <Box flexDirection="column">
-              <Text>Claude Code can read files in the workspace, and make edits when auto-accept edits is on.</Text>
+              <Text>Claude Code 可以读取工作区中的文件，并在启用自动接受编辑时进行修改。</Text>
               <WorkspaceTab
                 onExit={onExit}
                 toolPermissionContext={toolPermissionContext}
@@ -684,15 +680,15 @@ export function PermissionRuleList({ onExit, initialTab, onRetryDenials }: Props
         <Box marginTop={1} paddingLeft={1}>
           <Text dimColor>
             {exitState.pending ? (
-              <>Press {exitState.keyName} again to exit</>
+              <>再次按 {exitState.keyName} 退出</>
             ) : headerFocused ? (
-              <>←/→ tab switch · ↓ return · Esc cancel</>
+              <>←/→ 切换标签页 · ↓ 进入 · Esc 取消</>
             ) : isSearchMode ? (
-              <>Type to filter · Enter/↓ select · ↑ tabs · Esc clear</>
+              <>输入筛选 · Enter/↓ 选择 · ↑ 标签页 · Esc 清除</>
             ) : hasDenials && defaultTab === 'recent' ? (
-              <>Enter approve · r retry · ↑↓ navigate · ←/→ switch · Esc cancel</>
+              <>Enter 批准 · r 重试 · ↑↓ 导航 · ←/→ 切换 · Esc 取消</>
             ) : (
-              <>↑↓ navigate · Enter select · Type to search · ←/→ switch · Esc cancel</>
+              <>↑↓ 导航 · Enter 选择 · 输入搜索 · ←/→ 切换 · Esc 取消</>
             )}
           </Text>
         </Box>

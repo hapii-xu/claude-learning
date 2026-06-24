@@ -21,12 +21,12 @@ export function ShutdownRequestDisplay({ request }: ShutdownRequestProps): React
       <Box borderStyle="round" borderColor="warning" flexDirection="column" paddingX={1} paddingY={1}>
         <Box marginBottom={1}>
           <Text color="warning" bold>
-            Shutdown request from {request.from}
+            来自 {request.from} 的关闭请求
           </Text>
         </Box>
         {request.reason && (
           <Box>
-            <Text>Reason: {request.reason}</Text>
+            <Text>原因：{request.reason}</Text>
           </Box>
         )}
       </Box>
@@ -46,7 +46,7 @@ export function ShutdownRejectedDisplay({ response }: ShutdownRejectedProps): Re
     <Box flexDirection="column" marginY={1}>
       <Box borderStyle="round" borderColor="subtle" flexDirection="column" paddingX={1} paddingY={1}>
         <Text color="subtle" bold>
-          Shutdown rejected by {response.from}
+          来自 {response.from} 的关闭请求已被拒绝
         </Text>
         <Box
           marginTop={1}
@@ -56,10 +56,10 @@ export function ShutdownRejectedDisplay({ response }: ShutdownRejectedProps): Re
           borderRight={false}
           paddingX={1}
         >
-          <Text>Reason: {response.reason}</Text>
+          <Text>原因：{response.reason}</Text>
         </Box>
         <Box marginTop={1}>
-          <Text dimColor>Teammate is continuing to work. You may request shutdown again later.</Text>
+          <Text dimColor>团队成员继续工作中。您可以稍后再次发送关闭请求。</Text>
         </Box>
       </Box>
     </Box>
@@ -97,17 +97,17 @@ export function tryRenderShutdownMessage(content: string): React.ReactNode | nul
 export function getShutdownMessageSummary(content: string): string | null {
   const request = isShutdownRequest(content);
   if (request) {
-    return `[Shutdown Request from ${request.from}]${request.reason ? ` ${request.reason}` : ''}`;
+    return `[来自 ${request.from} 的关闭请求]${request.reason ? ` ${request.reason}` : ''}`;
   }
 
   const approved = isShutdownApproved(content);
   if (approved) {
-    return `[Shutdown Approved] ${approved.from} is now exiting`;
+    return `[关闭已批准] ${approved.from} 正在退出`;
   }
 
   const rejected = isShutdownRejected(content);
   if (rejected) {
-    return `[Shutdown Rejected] ${rejected.from}: ${rejected.reason}`;
+    return `[关闭已拒绝] ${rejected.from}：${rejected.reason}`;
   }
 
   return null;

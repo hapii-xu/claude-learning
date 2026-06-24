@@ -47,8 +47,7 @@ export function SandboxPromptFooterHint(): ReactNode {
   return (
     <Box paddingX={0} paddingY={0}>
       <Text color="inactive" wrap="truncate">
-        ⧈ Sandbox blocked {recentViolationCount} {recentViolationCount === 1 ? 'operation' : 'operations'} ·{' '}
-        {detailsShortcut} for details · /sandbox to disable
+        ⧈ 沙盒已拦截 {recentViolationCount} 个操作 · {detailsShortcut} 查看详情 · /sandbox 禁用沙盒
       </Text>
     </Box>
   );

@@ -66,7 +66,7 @@ export function FileWritePermissionRequest(props: PermissionRequestProps): React
     }
   }, [file_path]);
 
-  const actionText = fileExists ? 'overwrite' : 'create';
+  const actionText = fileExists ? '覆盖' : '创建';
 
   return (
     <FilePermissionDialog
@@ -75,11 +75,11 @@ export function FileWritePermissionRequest(props: PermissionRequestProps): React
       onDone={props.onDone}
       onReject={props.onReject}
       workerBadge={props.workerBadge}
-      title={fileExists ? 'Overwrite file' : 'Create file'}
+      title={fileExists ? '覆盖文件' : '创建文件'}
       subtitle={relative(getCwd(), file_path)}
       question={
         <Text>
-          Do you want to {actionText} <Text bold>{basename(file_path)}</Text>?
+          是否{actionText} <Text bold>{basename(file_path)}</Text>？
         </Text>
       }
       content={

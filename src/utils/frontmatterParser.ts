@@ -1,6 +1,6 @@
 /**
- * Frontmatter parser for markdown files
- * Extracts and parses YAML frontmatter between --- delimiters
+ * Markdown 文件的 frontmatter 解析器
+ * 提取并解析 --- 分隔符之间的 YAML frontmatter
  */
 
 import { logForDebugging } from './debug.js'
@@ -8,52 +8,51 @@ import type { HooksSettings } from './settings/types.js'
 import { parseYaml } from './yaml.js'
 
 export type FrontmatterData = {
-  // YAML can return null for keys with no value (e.g., "key:" with nothing after)
+  // YAML 对没有值的键（如 "key:" 后面什么都没有）可能返回 null
   'allowed-tools'?: string | string[] | null
   description?: string | null
-  // Memory type: 'user', 'feedback', 'project', or 'reference'
-  // Only applicable to memory files; narrowed via parseMemoryType() in src/memdir/memoryTypes.ts
+  // 内存类型：'user'、'feedback'、'project' 或 'reference'
+  // 仅适用于内存文件；通过 src/memdir/memoryTypes.ts 中的 parseMemoryType() 细化
   type?: string | null
   'argument-hint'?: string | null
   when_to_use?: string | null
   version?: string | null
-  // Only applicable to slash commands -- a string similar to a boolean env var
-  // to determine whether to make them visible to the SlashCommand tool.
+  // 仅适用于斜杠命令 — 类似布尔环境变量的字符串，
+  // 用于确定是否对 SlashCommand 工具可见
   'hide-from-slash-command-tool'?: string | null
-  // Model alias or name (e.g., 'haiku', 'sonnet', 'opus', or specific model names)
-  // Use 'inherit' for commands to use the parent model
+  // 模型别名或名称（如 'haiku'、'sonnet'、'opus' 或具体模型名）
+  // 命令使用父模型时用 'inherit'
   model?: string | null
-  // Comma-separated list of skill names to preload (only applicable to agents)
+  // 逗号分隔的 skill 名称列表，用于预加载（仅适用于 agent）
   skills?: string | null
-  // Whether users can invoke this skill by typing /skill-name
-  // 'true' = user can type /skill-name to invoke
-  // 'false' = only model can invoke via Skill tool
-  // Default depends on source: commands/ defaults to true, skills/ defaults to false
+  // 用户是否可以通过输入 /skill-name 调用此 skill
+  // 'true' = 用户可以输入 /skill-name 调用
+  // 'false' = 只有模型可以通过 Skill 工具调用
+  // 默认值取决于来源：commands/ 默认为 true，skills/ 默认为 false
   'user-invocable'?: string | null
-  // Hooks to register when this skill is invoked
-  // Keys are hook events (PreToolUse, PostToolUse, Stop, etc.)
-  // Values are arrays of matcher configurations with hooks
-  // Validated by HooksSchema in loadSkillsDir.ts
+  // 调用此 skill 时要注册的 hooks
+  // 键为钩子事件（PreToolUse、PostToolUse、Stop 等）
+  // 值为带有 hooks 的匹配器配置数组
+  // 由 loadSkillsDir.ts 中的 HooksSchema 验证
   hooks?: HooksSettings | null
-  // Effort level for agents (e.g., 'low', 'medium', 'high', 'xhigh', 'max', or an integer)
-  // Controls the thinking effort used by the agent's model
+  // agent 的努力程度（如 'low'、'medium'、'high'、'xhigh'、'max' 或整数）
+  // 控制 agent 模型使用的思考努力程度
   effort?: string | null
-  // Execution context for skills: 'inline' (default) or 'fork' (run as sub-agent)
-  // 'inline' = skill content expands into the current conversation
-  // 'fork' = skill runs in a sub-agent with separate context and token budget
+  // skill 的执行上下文：'inline'（默认）或 'fork'（作为子 agent 运行）
+  // 'inline' = skill 内容扩展到当前对话中
+  // 'fork' = skill 在有独立上下文和 token 预算的子 agent 中运行
   context?: 'inline' | 'fork' | null
-  // Agent type to use when forked (e.g., 'Bash', 'general-purpose')
-  // Only applicable when context is 'fork'
+  // fork 时使用的 agent 类型（如 'Bash'、'general-purpose'）
+  // 仅在 context 为 'fork' 时适用
   agent?: string | null
-  // Glob patterns for file paths this skill applies to. Accepts either a
-  // comma-separated string or a YAML list of strings.
-  // When set, the skill is only activated when the model touches matching files
-  // Uses the same format as CLAUDE.md paths frontmatter
+  // 此 skill 适用的文件路径 glob 模式。接受逗号分隔的字符串或字符串 YAML 列表。
+  // 设置后，仅当模型接触到匹配文件时才激活 skill
+  // 使用与 CLAUDE.md paths frontmatter 相同的格式
   paths?: string | string[] | null
-  // Shell to use for !`cmd` and ```! blocks in skill/command .md content.
-  // 'bash' (default) or 'powershell'. File-scoped — applies to all !-blocks.
-  // Never consults settings.defaultShell: skills are portable across platforms,
-  // so the author picks the shell, not the reader. See docs/design/ps-shell-selection.md §5.3.
+  // skill/command .md 内容中 !`cmd` 和 ```! 块使用的 shell。
+  // 'bash'（默认）或 'powershell'。文件级别 — 适用于所有 !-块。
+  // 从不查询 settings.defaultShell：skill 跨平台可移植，
+  // 因此由作者选择 shell 而非读者。见 docs/design/ps-shell-selection.md §5.3。
   shell?: string | null
   [key: string]: unknown
 }
@@ -63,31 +62,31 @@ export type ParsedMarkdown = {
   content: string
 }
 
-// Characters that require quoting in YAML values (when unquoted)
-// - { } are flow mapping indicators
-// - * is anchor/alias indicator
-// - [ ] are flow sequence indicators
-// - ': ' (colon followed by space) is key indicator — causes 'Nested mappings
-//   are not allowed in compact mappings' when it appears mid-value. Match the
-//   pattern rather than bare ':' so '12:34' times and 'https://' URLs stay unquoted.
-// - # is comment indicator
-// - & is anchor indicator
-// - ! is tag indicator
-// - | > are block scalar indicators (only at start)
-// - % is directive indicator (only at start)
-// - @ ` are reserved
+// 在 YAML 值中需要引用的字符（未引用时）
+// - { } 是流映射指示符
+// - * 是锚点/别名指示符
+// - [ ] 是流序列指示符
+// - ': '（冒号后跟空格）是键指示符 — 出现在值中间时会导致
+//   "紧凑映射中不允许嵌套映射"。匹配该模式而非裸 ':' 使
+//   '12:34' 时间和 'https://' URL 保持不引用。
+// - # 是注释指示符
+// - & 是锚点指示符
+// - ! 是标签指示符
+// - | > 是块标量指示符（仅在开头）
+// - % 是指令指示符（仅在开头）
+// - @ ` 是保留字符
 const YAML_SPECIAL_CHARS = /[{}[\]*&#!|>%@`]|: /
 
 /**
- * Pre-processes frontmatter text to quote values that contain special YAML characters.
- * This allows glob patterns like **\/*.{ts,tsx} to be parsed correctly.
+ * 预处理 frontmatter 文本，对包含特殊 YAML 字符的值进行引用。
+ * 使 **\/*.{ts,tsx} 等 glob 模式能被正确解析。
  */
 function quoteProblematicValues(frontmatterText: string): string {
   const lines = frontmatterText.split('\n')
   const result: string[] = []
 
   for (const line of lines) {
-    // Match simple key: value lines (not indented, not list items, not block scalars)
+    // 匹配简单的 key: value 行（非缩进、非列表项、非块标量）
     const match = line.match(/^([a-zA-Z_-]+):\s+(.+)$/)
     if (match) {
       const [, key, value] = match
@@ -96,7 +95,7 @@ function quoteProblematicValues(frontmatterText: string): string {
         continue
       }
 
-      // Skip if already quoted
+      // 已引用则跳过
       if (
         (value.startsWith('"') && value.endsWith('"')) ||
         (value.startsWith("'") && value.endsWith("'"))
@@ -105,9 +104,9 @@ function quoteProblematicValues(frontmatterText: string): string {
         continue
       }
 
-      // Quote if contains special YAML characters
+      // 包含特殊 YAML 字符则引用
       if (YAML_SPECIAL_CHARS.test(value)) {
-        // Use double quotes and escape any existing double quotes
+        // 使用双引号并转义已有的双引号
         const escaped = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
         result.push(`${key}: "${escaped}"`)
         continue
@@ -123,9 +122,9 @@ function quoteProblematicValues(frontmatterText: string): string {
 export const FRONTMATTER_REGEX = /^---\s*\n([\s\S]*?)---\s*\n?/
 
 /**
- * Parses markdown content to extract frontmatter and content
- * @param markdown The raw markdown content
- * @returns Object containing parsed frontmatter and content without frontmatter
+ * 解析 markdown 内容以提取 frontmatter 和正文
+ * @param markdown 原始 markdown 内容
+ * @returns 包含解析后的 frontmatter 和去除 frontmatter 后的内容的对象
  */
 export function parseFrontmatter(
   markdown: string,

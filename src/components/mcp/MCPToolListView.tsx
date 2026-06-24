@@ -49,23 +49,23 @@ export function MCPToolListView({ server, onSelectTool, onBack }: Props): React.
 
   return (
     <Dialog
-      title={`Tools for ${server.name}`}
-      subtitle={`${serverTools.length} ${plural(serverTools.length, 'tool')}`}
+      title={`${server.name} 的工具`}
+      subtitle={`${serverTools.length} 个工具`}
       onCancel={onBack}
       inputGuide={exitState =>
         exitState.pending ? (
-          <Text>Press {exitState.keyName} again to exit</Text>
+          <Text>再次按下 {exitState.keyName} 退出</Text>
         ) : (
           <Byline>
             <KeyboardShortcutHint shortcut="↑↓" action="navigate" />
             <KeyboardShortcutHint shortcut="Enter" action="select" />
-            <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="back" />
+            <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="返回" />
           </Byline>
         )
       }
     >
       {serverTools.length === 0 ? (
-        <Text dimColor>No tools available</Text>
+        <Text dimColor>暂无可用工具</Text>
       ) : (
         <Select
           options={toolOptions}

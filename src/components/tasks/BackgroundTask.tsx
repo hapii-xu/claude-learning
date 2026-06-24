@@ -52,8 +52,8 @@ export function BackgroundTask({ task, maxActivityWidth }: Props): React.ReactNo
           {truncate(task.description, activityLimit, true)}{' '}
           <TaskStatusText
             status={task.status}
-            label={task.status === 'completed' ? 'done' : undefined}
-            suffix={task.status === 'completed' && !task.notified ? ', unread' : undefined}
+            label={task.status === 'completed' ? '完成' : undefined}
+            suffix={task.status === 'completed' && !task.notified ? '，未读' : undefined}
           />
         </Text>
       );
@@ -81,10 +81,10 @@ export function BackgroundTask({ task, maxActivityWidth }: Props): React.ReactNo
               task.status === 'running'
                 ? `${_task.agentCount as number} ${plural(_task.agentCount as number, 'agent')}`
                 : task.status === 'completed'
-                  ? 'done'
+                  ? '完成'
                   : undefined
             }
-            suffix={task.status === 'completed' && !task.notified ? ', unread' : undefined}
+            suffix={task.status === 'completed' && !task.notified ? '，未读' : undefined}
           />
         </Text>
       );
@@ -95,8 +95,8 @@ export function BackgroundTask({ task, maxActivityWidth }: Props): React.ReactNo
           {truncate(task.description, activityLimit, true)}{' '}
           <TaskStatusText
             status={task.status}
-            label={task.status === 'completed' ? 'done' : undefined}
-            suffix={task.status === 'completed' && !task.notified ? ', unread' : undefined}
+            label={task.status === 'completed' ? '完成' : undefined}
+            suffix={task.status === 'completed' && !task.notified ? '，未读' : undefined}
           />
         </Text>
       );
@@ -114,8 +114,8 @@ export function BackgroundTask({ task, maxActivityWidth }: Props): React.ReactNo
           </Text>{' '}
           <TaskStatusText
             status={task.status}
-            label={task.status === 'completed' ? 'done' : undefined}
-            suffix={task.status === 'completed' && !task.notified ? ', unread' : undefined}
+            label={task.status === 'completed' ? '完成' : undefined}
+            suffix={task.status === 'completed' && !task.notified ? '，未读' : undefined}
           />
         </Text>
       );

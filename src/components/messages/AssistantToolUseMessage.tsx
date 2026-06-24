@@ -172,12 +172,14 @@ export function AssistantToolUseMessage({
           (isClassifierChecking ? (
             <MessageResponse height={1}>
               <Text dimColor>
-                {isAutoClassifier ? 'Auto classifier checking\u2026' : 'Bash classifier checking\u2026'}
+                {isAutoClassifier
+                  ? '\u81ea\u52a8\u5206\u7c7b\u5668\u68c0\u67e5\u4e2d\u2026'
+                  : 'Bash \u5206\u7c7b\u5668\u68c0\u67e5\u4e2d\u2026'}
               </Text>
             </MessageResponse>
           ) : isWaitingForPermission ? (
             <MessageResponse height={1}>
-              <Text dimColor>Waiting for permission…</Text>
+              <Text dimColor>等待权限确认…</Text>
             </MessageResponse>
           ) : (
             renderToolUseProgressMessage(

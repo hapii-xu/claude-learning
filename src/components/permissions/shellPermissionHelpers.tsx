@@ -14,13 +14,13 @@ function commandListDisplay(commands: string[]): ReactNode {
     case 2:
       return (
         <Text>
-          <Text bold>{commands[0]}</Text> and <Text bold>{commands[1]}</Text>
+          <Text bold>{commands[0]}</Text> 和 <Text bold>{commands[1]}</Text>
         </Text>
       );
     default:
       return (
         <Text>
-          <Text bold>{commands.slice(0, -1).join(', ')}</Text>, and <Text bold>{commands.slice(-1)[0]}</Text>
+          <Text bold>{commands.slice(0, -1).join('、')}</Text>、以及 <Text bold>{commands.slice(-1)[0]}</Text>
         </Text>
       );
   }
@@ -30,7 +30,7 @@ function commandListDisplayTruncated(commands: string[]): ReactNode {
   // 检查纯文本表示是否过长
   const plainText = commands.join(', ');
   if (plainText.length > 50) {
-    return 'similar';
+    return '类似命令';
   }
   return commandListDisplay(commands);
 }
@@ -53,7 +53,7 @@ function formatPathList(paths: string[]): ReactNode {
     return (
       <Text>
         <Text bold>{names[0]}</Text>
-        {sep} and <Text bold>{names[1]}</Text>
+        {sep} 和 <Text bold>{names[1]}</Text>
         {sep}
       </Text>
     );
@@ -63,8 +63,8 @@ function formatPathList(paths: string[]): ReactNode {
   return (
     <Text>
       <Text bold>{names[0]}</Text>
-      {sep}, <Text bold>{names[1]}</Text>
-      {sep} and {paths.length - 2} more
+      {sep}、<Text bold>{names[1]}</Text>
+      {sep} 及其余 {paths.length - 2} 项
     </Text>
   );
 }
@@ -116,14 +116,14 @@ export function generateShellSuggestionsLabel(
       const dirName = basename(firstPath) || firstPath;
       return (
         <Text>
-          Yes, allow reading from <Text bold>{dirName}</Text>
-          {sep} from this project
+          是，允许从此项目的 <Text bold>{dirName}</Text>
+          {sep} 读取
         </Text>
       );
     }
 
     // 多个读取路径
-    return <Text>Yes, allow reading from {formatPathList(readPaths)} from this project</Text>;
+    return <Text>是，允许从此项目读取 {formatPathList(readPaths)}</Text>;
   }
 
   if (hasDirectories && !hasReadPaths && !hasCommands) {
@@ -133,22 +133,22 @@ export function generateShellSuggestionsLabel(
       const dirName = basename(firstDir) || firstDir;
       return (
         <Text>
-          Yes, and always allow access to <Text bold>{dirName}</Text>
-          {sep} from this project
+          是，始终允许访问此项目的 <Text bold>{dirName}</Text>
+          {sep}
         </Text>
       );
     }
 
     // 多个目录
-    return <Text>Yes, and always allow access to {formatPathList(directories)} from this project</Text>;
+    return <Text>是，始终允许访问此项目的 {formatPathList(directories)}</Text>;
   }
 
   if (hasCommands && !hasDirectories && !hasReadPaths) {
     // 仅 shell 命令权限
     return (
       <Text>
-        {"Yes, and don't ask again for "}
-        {commandListDisplayTruncated(shellCommands)} commands in <Text bold>{getOriginalCwd()}</Text>
+        {'是，且不再询问 '}
+        {commandListDisplayTruncated(shellCommands)} 命令（在 <Text bold>{getOriginalCwd()}</Text> 中）
       </Text>
     );
   }
@@ -159,7 +159,7 @@ export function generateShellSuggestionsLabel(
     const allPaths = [...directories, ...readPaths];
     if (hasDirectories && hasReadPaths) {
       // 混合 - 使用通用的 "access to" 措辞
-      return <Text>Yes, and always allow access to {formatPathList(allPaths)} from this project</Text>;
+      return <Text>是，始终允许访问此项目的 {formatPathList(allPaths)}</Text>;
     }
   }
 
@@ -171,14 +171,14 @@ export function generateShellSuggestionsLabel(
     if (allPaths.length === 1 && shellCommands.length === 1) {
       return (
         <Text>
-          Yes, and allow access to {formatPathList(allPaths)} and {commandListDisplayTruncated(shellCommands)} commands
+          是，允许访问 {formatPathList(allPaths)} 以及 {commandListDisplayTruncated(shellCommands)} 命令
         </Text>
       );
     }
 
     return (
       <Text>
-        Yes, and allow {formatPathList(allPaths)} access and {commandListDisplayTruncated(shellCommands)} commands
+        是，允许 {formatPathList(allPaths)} 访问及 {commandListDisplayTruncated(shellCommands)} 命令
       </Text>
     );
   }

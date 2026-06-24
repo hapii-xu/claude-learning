@@ -13,27 +13,27 @@ export type AnsiColor = {
 
 // 默认终端调色板（类似于大多数终端）
 const ANSI_COLORS: Record<number, AnsiColor> = {
-  30: { r: 0, g: 0, b: 0 }, // black
-  31: { r: 205, g: 49, b: 49 }, // red
-  32: { r: 13, g: 188, b: 121 }, // green
-  33: { r: 229, g: 229, b: 16 }, // yellow
-  34: { r: 36, g: 114, b: 200 }, // blue
-  35: { r: 188, g: 63, b: 188 }, // magenta
-  36: { r: 17, g: 168, b: 205 }, // cyan
-  37: { r: 229, g: 229, b: 229 }, // white
+  30: { r: 0, g: 0, b: 0 }, // 黑色
+  31: { r: 205, g: 49, b: 49 }, // 红色
+  32: { r: 13, g: 188, b: 121 }, // 绿色
+  33: { r: 229, g: 229, b: 16 }, // 黄色
+  34: { r: 36, g: 114, b: 200 }, // 蓝色
+  35: { r: 188, g: 63, b: 188 }, // 洋红色
+  36: { r: 17, g: 168, b: 205 }, // 青色
+  37: { r: 229, g: 229, b: 229 }, // 白色
   // 亮色
-  90: { r: 102, g: 102, b: 102 }, // bright black (gray)
-  91: { r: 241, g: 76, b: 76 }, // bright red
-  92: { r: 35, g: 209, b: 139 }, // bright green
-  93: { r: 245, g: 245, b: 67 }, // bright yellow
-  94: { r: 59, g: 142, b: 234 }, // bright blue
-  95: { r: 214, g: 112, b: 214 }, // bright magenta
-  96: { r: 41, g: 184, b: 219 }, // bright cyan
-  97: { r: 255, g: 255, b: 255 }, // bright white
+  90: { r: 102, g: 102, b: 102 }, // 亮黑色（灰色）
+  91: { r: 241, g: 76, b: 76 }, // 亮红色
+  92: { r: 35, g: 209, b: 139 }, // 亮绿色
+  93: { r: 245, g: 245, b: 67 }, // 亮黄色
+  94: { r: 59, g: 142, b: 234 }, // 亮蓝色
+  95: { r: 214, g: 112, b: 214 }, // 亮洋红色
+  96: { r: 41, g: 184, b: 219 }, // 亮青色
+  97: { r: 255, g: 255, b: 255 }, // 亮白色
 }
 
-export const DEFAULT_FG: AnsiColor = { r: 229, g: 229, b: 229 } // light gray
-export const DEFAULT_BG: AnsiColor = { r: 30, g: 30, b: 30 } // dark gray
+export const DEFAULT_FG: AnsiColor = { r: 229, g: 229, b: 229 } // 浅灰色
+export const DEFAULT_BG: AnsiColor = { r: 30, g: 30, b: 30 } // 深灰色
 
 export type TextSpan = {
   text: string
@@ -94,7 +94,7 @@ export function parseAnsi(text: string): ParsedLine[] {
             } else if (code === 38) {
               // 扩展颜色 - 检查下一个代码
               if (codes[k + 1] === 5 && codes[k + 2] !== undefined) {
-                // 256-color mode: 38;5;n
+                // 256 色模式：38;5;n
                 const colorIndex = codes[k + 2]!
                 currentColor = get256Color(colorIndex)
                 k += 2
@@ -104,7 +104,7 @@ export function parseAnsi(text: string): ParsedLine[] {
                 codes[k + 3] !== undefined &&
                 codes[k + 4] !== undefined
               ) {
-                // 24-bit true color: 38;2;r;g;b
+                // 24 位真彩色：38;2;r;g;b
                 currentColor = {
                   r: codes[k + 2]!,
                   g: codes[k + 3]!,
@@ -151,27 +151,27 @@ function get256Color(index: number): AnsiColor {
   // 标准颜色（0-15）
   if (index < 16) {
     const standardColors: AnsiColor[] = [
-      { r: 0, g: 0, b: 0 }, // 0 black
-      { r: 128, g: 0, b: 0 }, // 1 red
-      { r: 0, g: 128, b: 0 }, // 2 green
-      { r: 128, g: 128, b: 0 }, // 3 yellow
-      { r: 0, g: 0, b: 128 }, // 4 blue
-      { r: 128, g: 0, b: 128 }, // 5 magenta
-      { r: 0, g: 128, b: 128 }, // 6 cyan
-      { r: 192, g: 192, b: 192 }, // 7 white
-      { r: 128, g: 128, b: 128 }, // 8 bright black
-      { r: 255, g: 0, b: 0 }, // 9 bright red
-      { r: 0, g: 255, b: 0 }, // 10 bright green
-      { r: 255, g: 255, b: 0 }, // 11 bright yellow
-      { r: 0, g: 0, b: 255 }, // 12 bright blue
-      { r: 255, g: 0, b: 255 }, // 13 bright magenta
-      { r: 0, g: 255, b: 255 }, // 14 bright cyan
-      { r: 255, g: 255, b: 255 }, // 15 bright white
+      { r: 0, g: 0, b: 0 }, // 0 黑色
+      { r: 128, g: 0, b: 0 }, // 1 红色
+      { r: 0, g: 128, b: 0 }, // 2 绿色
+      { r: 128, g: 128, b: 0 }, // 3 黄色
+      { r: 0, g: 0, b: 128 }, // 4 蓝色
+      { r: 128, g: 0, b: 128 }, // 5 洋红色
+      { r: 0, g: 128, b: 128 }, // 6 青色
+      { r: 192, g: 192, b: 192 }, // 7 白色
+      { r: 128, g: 128, b: 128 }, // 8 亮黑色
+      { r: 255, g: 0, b: 0 }, // 9 亮红色
+      { r: 0, g: 255, b: 0 }, // 10 亮绿色
+      { r: 255, g: 255, b: 0 }, // 11 亮黄色
+      { r: 0, g: 0, b: 255 }, // 12 亮蓝色
+      { r: 255, g: 0, b: 255 }, // 13 亮洋红色
+      { r: 0, g: 255, b: 255 }, // 14 亮青色
+      { r: 255, g: 255, b: 255 }, // 15 亮白色
     ]
     return standardColors[index] || DEFAULT_FG
   }
 
-  // 216 color cube (16-231)
+  // 216 色立方体（16-231）
   if (index < 232) {
     const i = index - 16
     const r = Math.floor(i / 36)

@@ -103,7 +103,7 @@ export function UserToolSuccessMessage({
               <MessageResponse height={1}>
                 <Text dimColor>
                   <Text color="success">{figures.tick}</Text>
-                  {' Auto-approved \u00b7 matched '}
+                  {' \u5df2\u81ea\u52a8\u6279\u51c6 \u00b7 \u5339\u914d\u89c4\u5219 '}
                   {`"${classifierRule}"`}
                 </Text>
               </MessageResponse>
@@ -112,7 +112,7 @@ export function UserToolSuccessMessage({
         {feature('TRANSCRIPT_CLASSIFIER')
           ? yoloReason && (
               <MessageResponse height={1}>
-                <Text dimColor>Allowed by auto mode classifier</Text>
+                <Text dimColor>已被自动模式分类器允许</Text>
               </MessageResponse>
             )
           : null}

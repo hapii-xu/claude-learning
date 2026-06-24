@@ -19,7 +19,7 @@ function AgentRow({ task, selected }: { task: LocalAgentTaskState; selected: boo
       </Box>
       <Box flexShrink={0}>
         <Text dimColor>
-          {elapsed} · ↓ {formatTokens(tokens)} tokens
+          {elapsed} · ↓ {formatTokens(tokens)} 个 Token
         </Text>
       </Box>
     </Box>
@@ -27,9 +27,9 @@ function AgentRow({ task, selected }: { task: LocalAgentTaskState; selected: boo
 }
 
 function getHint(pillFocused: boolean, viewedTask: LocalAgentTaskState | null): string {
-  if (pillFocused) return '↑/↓ to select · Enter to view';
-  if (!viewedTask) return 'shift+↓ to manage background agents';
-  return viewedTask.status === 'running' ? 'shift+↓ to manage · x to stop' : 'shift+↓ to manage · x to clear';
+  if (pillFocused) return '↑/↓ 选择 · Enter 查看';
+  if (!viewedTask) return 'shift+↓ 管理后台 Agent';
+  return viewedTask.status === 'running' ? 'shift+↓ 管理 · x 停止' : 'shift+↓ 管理 · x 清除';
 }
 
 export function BackgroundAgentSelector(): React.ReactNode {

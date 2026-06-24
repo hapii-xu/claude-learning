@@ -24,7 +24,7 @@ export function WorkerPendingPermission({ toolName, description }: Props): React
         <Spinner />
         <Text color="warning" bold>
           {' '}
-          Waiting for team lead approval
+          等待团队负责人批准
         </Text>
       </Box>
 
@@ -35,21 +35,21 @@ export function WorkerPendingPermission({ toolName, description }: Props): React
       )}
 
       <Box>
-        <Text dimColor>Tool: </Text>
+        <Text dimColor>工具：</Text>
         <Text>{toolName}</Text>
       </Box>
 
       <Box>
-        <Text dimColor>Action: </Text>
+        <Text dimColor>操作：</Text>
         <Text>{description}</Text>
       </Box>
 
       {teamName && (
         <Box marginTop={1}>
           <Text dimColor>
-            Permission request sent to team {'"'}
+            权限请求已发送至团队 {'"'}
             {teamName}
-            {'"'} leader
+            {'"'} 负责人
           </Text>
         </Box>
       )}

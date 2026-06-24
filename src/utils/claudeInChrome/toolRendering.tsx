@@ -10,8 +10,8 @@ import { trackClaudeInChromeTabId } from './common.js';
 export type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 /**
- * All tool names from BROWSER_TOOLS in @ant/claude-for-chrome-mcp.
- * Keep in sync with the package's BROWSER_TOOLS array.
+ * 来自 @ant/claude-for-chrome-mcp 中 BROWSER_TOOLS 的所有工具名称。
+ * 需与该包的 BROWSER_TOOLS 数组保持同步。
  */
 export type ChromeToolName =
   | 'javascript_tool'
@@ -44,7 +44,7 @@ function renderChromeToolUseMessage(
     trackClaudeInChromeTabId(tabId);
   }
 
-  // Build secondary info based on tool type and input
+  // 根据工具类型和输入构建次要信息
   const secondaryInfo: string[] = [];
 
   switch (toolName) {
@@ -131,11 +131,11 @@ function renderChromeToolUseMessage(
       break;
 
     case 'javascript_tool':
-      // In verbose mode, show the full code
+      // 详细模式下，显示完整代码
       if (verbose && typeof input.text === 'string') {
         return input.text;
       }
-      // In non-verbose mode, return empty string to preserve View Tab layout
+      // 非详细模式下，返回空字符串以保留"查看标签页"的布局
       return '';
 
     case 'tabs_create_mcp':
@@ -146,8 +146,8 @@ function renderChromeToolUseMessage(
     case 'upload_image':
     case 'get_page_text':
     case 'update_plan':
-      // These tools don't have meaningful secondary info to show inline.
-      // Return empty string (not null) to ensure tool header still renders.
+      // 这些工具没有有意义的内联次要信息可展示。
+      // 返回空字符串（而非 null）以确保工具标题仍能正常渲染。
       return '';
   }
 
@@ -155,11 +155,11 @@ function renderChromeToolUseMessage(
 }
 
 /**
- * Renders a clickable "View Tab" link for Claude in Chrome MCP tools.
- * Returns null if:
- * - The tool is not a Claude in Chrome MCP tool
- * - The input doesn't have a valid tabId
- * - Hyperlinks are not supported
+ * 为 Claude in Chrome MCP 工具渲染可点击的"查看标签页"链接。
+ * 以下情况返回 null：
+ * - 该工具不是 Claude in Chrome MCP 工具
+ * - 输入中没有有效的 tabId
+ * - 当前环境不支持超链接
  */
 function renderChromeViewTabLink(input: unknown): React.ReactNode {
   if (!supportsHyperlinks()) {
@@ -185,9 +185,9 @@ function renderChromeViewTabLink(input: unknown): React.ReactNode {
 }
 
 /**
- * Custom tool result message rendering for claude-in-chrome tools.
- * Shows a brief summary for successful results. Errors are handled by
- * the default renderToolUseErrorMessage when is_error is set.
+ * 为 claude-in-chrome 工具自定义工具结果消息的渲染。
+ * 成功结果显示简短摘要；错误由默认的 renderToolUseErrorMessage
+ * 在 is_error 被设置时处理。
  */
 export function renderChromeToolResultMessage(
   output: MCPToolResult,
@@ -265,8 +265,8 @@ export function renderChromeToolResultMessage(
 }
 
 /**
- * Returns tool method overrides for Claude in Chrome MCP tools. Use this to customize
- * rendering for chrome tools in a single spread operation.
+ * 返回 Claude in Chrome MCP 工具的方法覆盖配置。
+ * 通过单次展开操作即可自定义 chrome 工具的渲染行为。
  */
 export function getClaudeInChromeMCPToolOverrides(toolName: string): {
   userFacingName: (input?: Record<string, unknown>) => string;
@@ -280,7 +280,7 @@ export function getClaudeInChromeMCPToolOverrides(toolName: string): {
 } {
   return {
     userFacingName(_input?: Record<string, unknown>) {
-      // Trim the _mcp postfix that show up in some of the tool names
+      // 去除部分工具名末尾出现的 _mcp 后缀
       const displayName = toolName.replace(/_mcp$/, '');
       return `Claude in Chrome[${displayName}]`;
     },

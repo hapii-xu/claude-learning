@@ -26,9 +26,9 @@ export function MCPReconnect({ serverName, onComplete }: Props): React.ReactNode
         // reconnectMcpServer updates mcp.clients via onConnectionAttempt.
         const server = store.getState().mcp.clients.find(c => c.name === serverName);
         if (!server) {
-          setError(`MCP server "${serverName}" not found`);
+          setError(`找不到 MCP 服务器 "${serverName}"`);
           setIsReconnecting(false);
-          onComplete(`MCP server "${serverName}" not found`);
+          onComplete(`找不到 MCP 服务器 "${serverName}"`);
           return;
         }
 
@@ -38,19 +38,19 @@ export function MCPReconnect({ serverName, onComplete }: Props): React.ReactNode
         switch (result.client.type) {
           case 'connected':
             setIsReconnecting(false);
-            onComplete(`Successfully reconnected to ${serverName}`);
+            onComplete(`已成功重连到 ${serverName}`);
             break;
           case 'needs-auth':
-            setError(`${serverName} requires authentication`);
+            setError(`${serverName} 需要身份验证`);
             setIsReconnecting(false);
-            onComplete(`${serverName} requires authentication. Use /mcp to authenticate.`);
+            onComplete(`${serverName} 需要身份验证，请使用 /mcp 命令进行认证。`);
             break;
           case 'pending':
           case 'failed':
           case 'disabled':
-            setError(`Failed to reconnect to ${serverName}`);
+            setError(`重连 ${serverName} 失败`);
             setIsReconnecting(false);
-            onComplete(`Failed to reconnect to ${serverName}`);
+            onComplete(`重连 ${serverName} 失败`);
             break;
         }
       } catch (err) {
@@ -69,11 +69,11 @@ export function MCPReconnect({ serverName, onComplete }: Props): React.ReactNode
     return (
       <Box flexDirection="column" gap={1} padding={1}>
         <Text color="text">
-          Reconnecting to <Text bold>{serverName}</Text>
+          正在重连到 <Text bold>{serverName}</Text>
         </Text>
         <Box>
           <Spinner />
-          <Text> Establishing connection to MCP server</Text>
+          <Text> 正在建立与 MCP 服务器的连接</Text>
         </Box>
       </Box>
     );
@@ -84,9 +84,9 @@ export function MCPReconnect({ serverName, onComplete }: Props): React.ReactNode
       <Box flexDirection="column" gap={1} padding={1}>
         <Box>
           <Text>{color('error', theme)(figures.cross)} </Text>
-          <Text color="error">Failed to reconnect to {serverName}</Text>
+          <Text color="error">重连 {serverName} 失败</Text>
         </Box>
-        <Text dimColor>Error: {error}</Text>
+        <Text dimColor>错误：{error}</Text>
       </Box>
     );
   }

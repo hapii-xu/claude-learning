@@ -66,7 +66,7 @@ export function FileWriteToolDiff({ file_path, content, fileExists, oldContent }
             ),
           )
         ) : (
-          <HighlightedCode code={content || '(No content)'} filePath={file_path} />
+          <HighlightedCode code={content || '（无内容）'} filePath={file_path} />
         )}
       </Box>
     </Box>

@@ -303,14 +303,14 @@ export type FileAttachment = {
    * Whether the file was truncated due to size limits
    */
   truncated?: boolean
-  /** Path relative to CWD at creation time, for stable display */
+  /** 创建时相对于 CWD 的路径，用于稳定显示 */
   displayPath: string
 }
 
 export type CompactFileReferenceAttachment = {
   type: 'compact_file_reference'
   filename: string
-  /** Path relative to CWD at creation time, for stable display */
+  /** 创建时相对于 CWD 的路径，用于稳定显示 */
   displayPath: string
 }
 
@@ -319,7 +319,7 @@ export type PDFReferenceAttachment = {
   filename: string
   pageCount: number
   fileSize: number
-  /** Path relative to CWD at creation time, for stable display */
+  /** 创建时相对于 CWD 的路径，用于稳定显示 */
   displayPath: string
 }
 
@@ -331,7 +331,7 @@ export type AlreadyReadFileAttachment = {
    * Whether the file was truncated due to size limits
    */
   truncated?: boolean
-  /** Path relative to CWD at creation time, for stable display */
+  /** 创建时相对于 CWD 的路径，用于稳定显示 */
   displayPath: string
 }
 
@@ -465,7 +465,7 @@ export type Attachment =
       type: 'directory'
       path: string
       content: string
-      /** Path relative to CWD at creation time, for stable display */
+      /** 创建时相对于 CWD 的路径，用于稳定显示 */
       displayPath: string
     }
   | {
@@ -475,7 +475,7 @@ export type Attachment =
       lineEnd: number
       filename: string
       content: string
-      /** Path relative to CWD at creation time, for stable display */
+      /** 创建时相对于 CWD 的路径，用于稳定显示 */
       displayPath: string
     }
   | {
@@ -496,7 +496,7 @@ export type Attachment =
       type: 'nested_memory'
       path: string
       content: MemoryFileInfo
-      /** Path relative to CWD at creation time, for stable display */
+      /** 创建时相对于 CWD 的路径，用于稳定显示 */
       displayPath: string
     }
   | {
@@ -528,7 +528,7 @@ export type Attachment =
       type: 'dynamic_skill'
       skillDir: string
       skillNames: string[]
-      /** Path relative to CWD at creation time, for stable display */
+      /** 创建时相对于 CWD 的路径，用于稳定显示 */
       displayPath: string
     }
   | {
@@ -572,11 +572,11 @@ export type Attachment =
       prompt: string | Array<ContentBlockParam>
       source_uuid?: UUID
       imagePasteIds?: number[]
-      /** Original queue mode — 'prompt' for user messages, 'task-notification' for system events */
+      /** 原始队列模式 —— 用户消息为 'prompt'，系统事件为 'task-notification' */
       commandMode?: string
-      /** Provenance carried from QueuedCommand so mid-turn drains preserve it */
+      /** 从 QueuedCommand 携带的来源，使中途 drain 保留它 */
       origin?: MessageOrigin
-      /** Carried from QueuedCommand.isMeta — distinguishes human-typed from system-injected */
+      /** 从 QueuedCommand.isMeta 携带 —— 区分人工输入和系统注入 */
       isMeta?: boolean
     }
   | {
@@ -1401,12 +1401,12 @@ async function getAutoModeAttachments(
     return []
   }
 
-  // Check if we should attach based on turn count (except for first turn)
+  // 根据轮次数检查是否应该附加（第一轮除外）
   if (messages && messages.length > 0) {
     const { turnCount, foundAutoModeAttachment } =
       getAutoModeAttachmentTurnCount(messages)
-    // Only throttle if we've already sent an auto_mode attachment before
-    // On first turn in auto mode, always attach
+    // 仅在已发送过 auto_mode 附件后才进行节流
+    // 在 auto 模式的第一轮，始终附加
     if (
       foundAutoModeAttachment &&
       turnCount < AUTO_MODE_ATTACHMENT_CONFIG.TURNS_BETWEEN_ATTACHMENTS
@@ -1415,7 +1415,7 @@ async function getAutoModeAttachments(
     }
   }
 
-  // Determine if this should be a full or sparse reminder
+  // 确定这应该是完整提醒还是稀疏提醒
   const attachmentCount =
     countAutoModeAttachmentsSinceLastExit(messages ?? []) + 1
   const reminderType: 'full' | 'sparse' =
@@ -1429,8 +1429,8 @@ async function getAutoModeAttachments(
 }
 
 /**
- * Returns an auto_mode_exit attachment if we just exited auto mode.
- * This is a one-time notification to tell the model it's no longer in auto mode.
+ * 如果刚退出 auto 模式则返回 auto_mode_exit 附件。
+ * 这是一次性通知，告知模型它不再处于 auto 模式。
  */
 async function getAutoModeExitAttachment(
   toolUseContext: ToolUseContext,
@@ -1440,8 +1440,8 @@ async function getAutoModeExitAttachment(
   }
 
   const appState = toolUseContext.getAppState()
-  // Suppress when auto is still active — covers both mode==='auto' and
-  // plan-with-auto-active (where mode==='plan' but classifier runs).
+  // 当 auto 仍然活跃时抑制 —— 涵盖 mode==='auto' 和
+  // plan-with-auto-active（其中 mode==='plan' 但分类器运行）。
   if (
     appState.toolPermissionContext.mode === 'auto' ||
     (autoModeStateModule?.isAutoModeActive() ?? false)
@@ -1455,17 +1455,16 @@ async function getAutoModeExitAttachment(
 }
 
 /**
- * Detects when the local date has changed since the last turn (user coding
- * past midnight) and emits an attachment to notify the model.
+ * 检测本地日期是否在上次轮次后发生了变化（用户编程超过午夜），
+ * 并发出附件通知模型。
  *
- * The date_change attachment is appended at the tail of the conversation,
- * so the model learns the new date without mutating the cached prefix.
- * messages[0] (from getUserContext → prependUserContext) intentionally
- * keeps the stale date — clearing that cache would regenerate the prefix
- * and turn the entire conversation into cache_creation on the next turn
- * (~920K effective tokens per midnight crossing per overnight session).
+ * date_change 附件追加在对话末尾，
+ * 使模型在不改变缓存前缀的情况下得知新日期。
+ * messages[0]（来自 getUserContext → prependUserContext）有意保留旧日期
+ * —— 清除该缓存会重新生成前缀，并在下一轮使整个对话变为
+ * cache_creation（每次跨午夜约 920K 有效 tokens）。
  *
- * Exported for testing — regression guard for the cache-clear removal.
+ * 导出用于测试 —— 缓存清除移除的回归保护。
  */
 export function getDateChangeAttachments(
   messages: Message[] | undefined,
@@ -1474,7 +1473,7 @@ export function getDateChangeAttachments(
   const lastDate = getLastEmittedDate()
 
   if (lastDate === null) {
-    // First turn — just record, no attachment needed
+    // 第一轮 —— 只记录，不需要附件
     setLastEmittedDate(currentDate)
     return []
   }
@@ -1485,10 +1484,10 @@ export function getDateChangeAttachments(
 
   setLastEmittedDate(currentDate)
 
-  // Assistant mode: flush yesterday's transcript to the per-day file so
-  // the /dream skill (1–5am local) finds it even if no compaction fires
-  // today. Fire-and-forget; writeSessionTranscriptSegment buckets by
-  // message timestamp so a multi-day gap flushes each day correctly.
+  // 助手模式：将昨天的转录刷新到每日文件中，
+  // 使 /dream 技能（本地时间 1-5am）即使今天没有压缩触发也能找到它。
+  // Fire-and-forget；writeSessionTranscriptSegment 按消息时间戳分桶，
+  // 使多日间隔能正确刷新每一天。
   if (feature('KAIROS')) {
     if (getKairosActive() && messages !== undefined) {
       sessionTranscriptModule?.flushOnDateChange(messages, currentDate)
@@ -1506,7 +1505,7 @@ function getUltrathinkEffortAttachment(input: string | null): Attachment[] {
   return [{ type: 'ultrathink_effort', level: 'high' }]
 }
 
-// Exported for compact.ts — the gate must be identical at both call sites.
+// 导出给 compact.ts —— 两个调用点的门控必须相同。
 export function getDeferredToolsDeltaAttachment(
   tools: Tools,
   model: string,
@@ -1514,13 +1513,12 @@ export function getDeferredToolsDeltaAttachment(
   scanContext?: DeferredToolsDeltaScanContext,
 ): Attachment[] {
   if (!isDeferredToolsDeltaEnabled()) return []
-  // These three checks mirror the sync parts of isSearchExtraToolsEnabled —
-  // the attachment text says "available via SearchExtraTools", so SearchExtraTools
-  // has to actually be in the request. The async auto-threshold check
-  // is not replicated (would double-fire tengu_search_extra_tools_mode_decision);
-  // in tst-auto below-threshold the attachment can fire while SearchExtraTools
-  // is filtered out, but that's a narrow case and the tools announced
-  // are directly callable anyway.
+  // 这三个检查镜像了 isSearchExtraToolsEnabled 的同步部分 ——
+  // 附件文本说"通过 SearchExtraTools 可用"，因此 SearchExtraTools
+  // 必须实际存在于请求中。异步自动阈值检查未被复制
+  //（会导致 tengu_search_extra_tools_mode_decision 触发两次）；
+  // 在 tst-auto 低于阈值时，附件可能触发而 SearchExtraTools 被过滤掉，
+  // 但这是极少数情况，且宣布的工具无论如何都可以直接调用。
   if (!isSearchExtraToolsEnabledOptimistic()) return []
   if (!isSearchExtraToolsToolAvailable(tools)) return []
   const delta = getDeferredToolsDelta(tools, messages ?? [], scanContext)
@@ -1529,17 +1527,16 @@ export function getDeferredToolsDeltaAttachment(
 }
 
 /**
- * Diff the current filtered agent pool against what's already been announced
- * in this conversation (reconstructed from prior agent_listing_delta
- * attachments). Returns [] if nothing changed or the gate is off.
+ * 将当前经过过滤的 agent 池与此对话中已宣布的内容进行对比
+ *（从先前的 agent_listing_delta 附件重建）。
+ * 如果没有变化或门控关闭，则返回 []。
  *
- * The agent list was embedded in AgentTool's description, causing ~10.2% of
- * fleet cache_creation: MCP async connect, /reload-plugins, or
- * permission-mode change → description changes → full tool-schema cache bust.
- * Moving the list here keeps the tool description static.
+ * agent 列表曾嵌入在 AgentTool 的描述中，导致约 10.2% 的
+ * fleet cache_creation：MCP 异步连接、/reload-plugins 或
+ * 权限模式变更 → 描述变化 → 完整 tool-schema 缓存失效。
+ * 将列表移到这里使工具描述保持静态。
  *
- * Exported for compact.ts — re-announces the full set after compaction eats
- * prior deltas.
+ * 导出给 compact.ts —— 在压缩消耗先前 delta 后重新宣布完整集合。
  */
 export function getAgentListingDeltaAttachment(
   toolUseContext: ToolUseContext,
@@ -1547,7 +1544,7 @@ export function getAgentListingDeltaAttachment(
 ): Attachment[] {
   if (!shouldInjectAgentListInMessages()) return []
 
-  // Skip if AgentTool isn't in the pool — the listing would be unactionable.
+  // 如果 AgentTool 不在工具池中则跳过 —— 列表将无法操作。
   if (
     !toolUseContext.options.tools.some(t => toolMatchesName(t, AGENT_TOOL_NAME))
   ) {
@@ -1557,8 +1554,8 @@ export function getAgentListingDeltaAttachment(
   const { activeAgents, allowedAgentTypes } =
     toolUseContext.options.agentDefinitions
 
-  // Mirror AgentTool.prompt()'s filtering: MCP requirements → deny rules →
-  // allowedAgentTypes restriction. Keep this in sync with AgentTool.tsx.
+  // 镜像 AgentTool.prompt() 的过滤：MCP 要求 → 拒绝规则 →
+  // allowedAgentTypes 限制。保持与 AgentTool.tsx 的同步。
   const mcpServers = new Set<string>()
   for (const tool of toolUseContext.options.tools) {
     const info = mcpInfoFromString(tool.name)
@@ -1574,7 +1571,7 @@ export function getAgentListingDeltaAttachment(
     filtered = filtered.filter(a => allowedAgentTypes.includes(a.agentType))
   }
 
-  // Reconstruct announced set from prior deltas in the transcript.
+  // 从转录中先前的 delta 重建已宣布的集合。
   const announced = new Set<string>()
   for (const msg of messages ?? []) {
     if (msg.type !== 'attachment') continue
@@ -1593,8 +1590,8 @@ export function getAgentListingDeltaAttachment(
 
   if (added.length === 0 && removed.length === 0) return []
 
-  // Sort for deterministic output — agent load order is nondeterministic
-  // (plugin load races, MCP async connect).
+  // 排序以确保确定性输出 —— agent 加载顺序是不确定的
+  //（插件加载竞争、MCP 异步连接）。
   added.sort((a, b) => a.agentType.localeCompare(b.agentType))
   removed.sort()
 
@@ -1610,7 +1607,7 @@ export function getAgentListingDeltaAttachment(
   ]
 }
 
-// Exported for compact.ts / reactiveCompact.ts — single source of truth for the gate.
+// 导出给 compact.ts / reactiveCompact.ts —— 门控的单一真相来源。
 export function getMcpInstructionsDeltaAttachment(
   mcpClients: MCPServerConnection[],
   tools: Tools,
@@ -1619,9 +1616,9 @@ export function getMcpInstructionsDeltaAttachment(
 ): Attachment[] {
   if (!isMcpInstructionsDeltaEnabled()) return []
 
-  // The chrome SearchExtraTools hint is client-authored and SearchExtraTools-conditional;
-  // actual server `instructions` are unconditional. Decide the chrome part
-  // here, pass it into the pure diff as a synthesized entry.
+  // chrome SearchExtraTools 提示由客户端创建且依赖 SearchExtraTools；
+  // 实际服务器 `instructions` 则是无条件的。在这里决定 chrome 部分，
+  // 作为合成条目传入纯 diff。
   const clientSide: ClientSideInstruction[] = []
   if (
     isSearchExtraToolsEnabledOptimistic() &&
@@ -1652,7 +1649,7 @@ function getOutputStyleAttachment(): Attachment[] {
   const settings = getSettings_DEPRECATED()
   const outputStyle = settings?.outputStyle || 'default'
 
-  // Only show for non-default styles
+  // 仅对非默认样式显示
   if (outputStyle === 'default') {
     return []
   }
@@ -1698,25 +1695,25 @@ async function getSelectedLinesFromIDE(
 }
 
 /**
- * Computes the directories to process for nested memory file loading.
- * Returns two lists:
- * - nestedDirs: Directories between CWD and targetPath (processed for CLAUDE.md + all rules)
- * - cwdLevelDirs: Directories from root to CWD (processed for conditional rules only)
+ * 计算嵌套内存文件加载需要处理的目录。
+ * 返回两个列表：
+ * - nestedDirs：CWD 与 targetPath 之间的目录（处理 CLAUDE.md + 所有规则）
+ * - cwdLevelDirs：从根目录到 CWD 的目录（仅处理条件规则）
  *
- * @param targetPath The target file path
- * @param originalCwd The original current working directory
- * @returns Object with nestedDirs and cwdLevelDirs arrays, both ordered from parent to child
+ * @param targetPath 目标文件路径
+ * @param originalCwd 原始当前工作目录
+ * @returns 包含 nestedDirs 和 cwdLevelDirs 数组的对象，均按从父到子排序
  */
 export function getDirectoriesToProcess(
   targetPath: string,
   originalCwd: string,
 ): { nestedDirs: string[]; cwdLevelDirs: string[] } {
-  // Build list of directories from original CWD to targetPath's directory
+  // 构建从原始 CWD 到 targetPath 目录的目录列表
   const targetDir = dirname(resolve(targetPath))
   const nestedDirs: string[] = []
   let currentDir = targetDir
 
-  // Walk up from target directory to original CWD
+  // 从目标目录向上遍历到原始 CWD
   while (currentDir !== originalCwd && currentDir !== parse(currentDir).root) {
     if (currentDir.startsWith(originalCwd)) {
       nestedDirs.push(currentDir)
@@ -1724,10 +1721,10 @@ export function getDirectoriesToProcess(
     currentDir = dirname(currentDir)
   }
 
-  // Reverse to get order from CWD down to target
+  // 反转以获得从 CWD 到目标的顺序
   nestedDirs.reverse()
 
-  // Build list of directories from root to CWD (for conditional rules only)
+  // 构建从根目录到 CWD 的目录列表（仅条件规则）
   const cwdLevelDirs: string[] = []
   currentDir = originalCwd
 
@@ -1736,18 +1733,18 @@ export function getDirectoriesToProcess(
     currentDir = dirname(currentDir)
   }
 
-  // Reverse to get order from root to CWD
+  // 反转以获得从根目录到 CWD 的顺序
   cwdLevelDirs.reverse()
 
   return { nestedDirs, cwdLevelDirs }
 }
 
 /**
- * Converts memory files to attachments, filtering out already-loaded files.
+ * 将内存文件转换为附件，过滤掉已加载的文件。
  *
- * @param memoryFiles The memory files to convert
- * @param toolUseContext The tool use context (for tracking loaded files)
- * @returns Array of nested memory attachments
+ * @param memoryFiles 要转换的内存文件
+ * @param toolUseContext 工具使用上下文（用于跟踪已加载文件）
+ * @returns 嵌套内存附件数组
  */
 function isInstructionsMemoryType(
   type: MemoryFileInfo['type'],
@@ -1760,7 +1757,7 @@ function isInstructionsMemoryType(
   )
 }
 
-/** Exported for testing — regression guard for LRU-eviction re-injection. */
+/** 导出用于测试 —— LRU 淘汰重注入的回归保护。 */
 export function memoryFilesToAttachments(
   memoryFiles: MemoryFileInfo[],
   toolUseContext: ToolUseContext,
@@ -1770,9 +1767,9 @@ export function memoryFilesToAttachments(
   const shouldFireHook = hasInstructionsLoadedHook()
 
   for (const memoryFile of memoryFiles) {
-    // Dedup: loadedNestedMemoryPaths is a non-evicting Set; readFileState
-    // is a 100-entry LRU that drops entries in busy sessions, so relying
-    // on it alone re-injects the same CLAUDE.md on every eviction cycle.
+    // 去重：loadedNestedMemoryPaths 是非淘汰的 Set；readFileState
+    // 是 100 条目的 LRU，在繁忙会话中会丢弃条目，单独依赖它
+    // 会在每次淘汰周期重注入相同的 CLAUDE.md。
     if (toolUseContext.loadedNestedMemoryPaths?.has(memoryFile.path)) {
       continue
     }
@@ -1785,14 +1782,14 @@ export function memoryFilesToAttachments(
       })
       toolUseContext.loadedNestedMemoryPaths?.add(memoryFile.path)
 
-      // Mark as loaded in readFileState — this provides cross-function and
-      // cross-turn dedup via the .has() check above.
+      // 在 readFileState 中标记为已加载 —— 这通过上方的 .has() 检查
+      // 提供跨函数和跨轮次的去重。
       //
-      // When the injected content doesn't match disk (stripped HTML comments,
-      // stripped frontmatter, truncated MEMORY.md), cache the RAW disk bytes
-      // with `isPartialView: true`. Edit/Write see the flag and require a real
-      // Read first; getChangedFiles sees real content + undefined offset/limit
-      // so mid-session change detection still works.
+      // 当注入内容与磁盘不匹配时（剥离的 HTML 注释、
+      // 剥离的前置内容、截断的 MEMORY.md），使用 `isPartialView: true`
+      // 缓存原始磁盘字节。Edit/Write 看到该标志时需要先进行真实 Read；
+      // getChangedFiles 看到真实内容 + undefined offset/limit，
+      // 使会话中途的变更检测仍然有效。
       toolUseContext.readFileState.set(memoryFile.path, {
         content: memoryFile.contentDiffersFromDisk
           ? (memoryFile.rawContent ?? memoryFile.content)
@@ -1803,7 +1800,7 @@ export function memoryFilesToAttachments(
         isPartialView: memoryFile.contentDiffersFromDisk,
       })
 
-      // Fire InstructionsLoaded hook for audit/observability (fire-and-forget)
+      // 触发 InstructionsLoaded 钩子用于审计/可观测性（fire-and-forget）
       if (shouldFireHook && isInstructionsMemoryType(memoryFile.type)) {
         const loadReason = memoryFile.globs
           ? 'path_glob_match'
@@ -1828,19 +1825,18 @@ export function memoryFilesToAttachments(
 }
 
 /**
- * Loads nested memory files for a given file path and returns them as attachments.
- * This function performs directory traversal to find CLAUDE.md files and conditional rules
- * that apply to the target file path.
+ * 为给定文件路径加载嵌套内存文件并作为附件返回。
+ * 此函数执行目录遍历以查找适用于目标文件路径的 CLAUDE.md 文件和条件规则。
  *
- * Processing order (must be preserved):
- * 1. Managed/User conditional rules matching targetPath
- * 2. Nested directories (CWD → target): CLAUDE.md + unconditional + conditional rules
- * 3. CWD-level directories (root → CWD): conditional rules only
+ * 处理顺序（必须保留）：
+ * 1. 匹配 targetPath 的 Managed/User 条件规则
+ * 2. 嵌套目录（CWD → 目标）：CLAUDE.md + 无条件规则 + 条件规则
+ * 3. CWD 级目录（根目录 → CWD）：仅条件规则
  *
- * @param filePath The file path to get nested memory files for
- * @param toolUseContext The tool use context
- * @param appState The app state containing tool permission context
- * @returns Array of nested memory attachments
+ * @param filePath 要获取嵌套内存文件的文件路径
+ * @param toolUseContext 工具使用上下文
+ * @param appState 包含工具权限上下文的应用状态
+ * @returns 嵌套内存附件数组
  */
 async function getNestedMemoryAttachmentsForFile(
   filePath: string,
@@ -1850,7 +1846,7 @@ async function getNestedMemoryAttachmentsForFile(
   const attachments: Attachment[] = []
 
   try {
-    // Early return if path is not in allowed working path
+    // 如果路径不在允许的工作路径中则提前返回
     if (!pathInAllowedWorkingPath(filePath, appState.toolPermissionContext)) {
       return attachments
     }
@@ -1858,7 +1854,7 @@ async function getNestedMemoryAttachmentsForFile(
     const processedPaths = new Set<string>()
     const originalCwd = getOriginalCwd()
 
-    // Phase 1: Process Managed and User conditional rules
+    // 阶段 1：处理 Managed 和 User 条件规则
     const managedUserRules = await getManagedAndUserConditionalRules(
       filePath,
       processedPaths,
@@ -1867,7 +1863,7 @@ async function getNestedMemoryAttachmentsForFile(
       ...memoryFilesToAttachments(managedUserRules, toolUseContext, filePath),
     )
 
-    // Phase 2: Get directories to process
+    // 阶段 2：获取需要处理的目录
     const { nestedDirs, cwdLevelDirs } = getDirectoriesToProcess(
       filePath,
       originalCwd,
@@ -1878,8 +1874,8 @@ async function getNestedMemoryAttachmentsForFile(
       false,
     )
 
-    // Phase 3: Process nested directories (CWD → target)
-    // Each directory gets: CLAUDE.md + unconditional rules + conditional rules
+    // 阶段 3：处理嵌套目录（CWD → 目标）
+    // 每个目录处理：CLAUDE.md + 无条件规则 + 条件规则
     for (const dir of nestedDirs) {
       const memoryFiles = (
         await getMemoryFilesForNestedDirectory(dir, filePath, processedPaths)
@@ -1891,8 +1887,8 @@ async function getNestedMemoryAttachmentsForFile(
       )
     }
 
-    // Phase 4: Process CWD-level directories (root → CWD)
-    // Only conditional rules (unconditional rules are already loaded eagerly)
+    // 阶段 4：处理 CWD 级目录（根目录 → CWD）
+    // 仅处理条件规则（无条件规则已被预先加载）
     for (const dir of cwdLevelDirs) {
       const conditionalRules = (
         await getConditionalRulesForCwdLevelDirectory(
@@ -1927,14 +1923,14 @@ async function getOpenedFileFromIDE(
     return []
   }
 
-  // Get nested memory files
+  // 获取嵌套内存文件
   const nestedMemoryAttachments = await getNestedMemoryAttachmentsForFile(
     ideSelection.filePath,
     toolUseContext,
     appState,
   )
 
-  // Return nested memory attachments followed by the opened file attachment
+  // 返回嵌套内存附件，然后是打开的文件附件
   return [
     ...nestedMemoryAttachments,
     {
@@ -1964,7 +1960,7 @@ async function processAtMentionedFiles(
           return null
         }
 
-        // Check if it's a directory
+        // 检查是否为目录
         try {
           const stats = await stat(absoluteFilename)
           if (stats.isDirectory()) {
@@ -1994,7 +1990,7 @@ async function processAtMentionedFiles(
             }
           }
         } catch {
-          // If stat fails, continue with file logic
+          // 如果 stat 失败，继续文件逻辑
         }
 
         return await generateFileAttachment(
@@ -2065,14 +2061,14 @@ async function processMcpResourceAttachments(
           return null
         }
 
-        // Find the MCP client
+        // 查找 MCP 客户端
         const client = mcpClients.find(c => c.name === serverName)
         if (!client || client.type !== 'connected') {
           logEvent('tengu_at_mention_mcp_resource_error', {})
           return null
         }
 
-        // Find the resource in available resources to get its metadata
+        // 在可用资源中查找该资源以获取其元数据
         const serverResources =
           toolUseContext.options.mcpResources?.[serverName] || []
         const resourceInfo = serverResources.find(r => r.uri === uri)
@@ -2125,14 +2121,14 @@ export async function getChangedFiles(
       const fileState = toolUseContext.readFileState.get(filePath)
       if (!fileState) return null
 
-      // TODO: Implement offset/limit support for changed files
+      // TODO: 为变更文件实现 offset/limit 支持
       if (fileState.offset !== undefined || fileState.limit !== undefined) {
         return null
       }
 
       const normalizedPath = expandPath(filePath)
 
-      // Check if file has a deny rule configured
+      // 检查文件是否配置了拒绝规则
       if (isFileReadDenied(normalizedPath, appState.toolPermissionContext)) {
         return null
       }
@@ -2145,7 +2141,7 @@ export async function getChangedFiles(
 
         const fileInput = { file_path: normalizedPath }
 
-        // Validate file path is valid
+        // 验证文件路径是否有效
         const isValid = await FileReadTool.validateInput(
           fileInput,
           toolUseContext,
@@ -2155,14 +2151,14 @@ export async function getChangedFiles(
         }
 
         const result = await FileReadTool.call(fileInput, toolUseContext)
-        // Extract only the changed section
+        // 仅提取变更部分
         if (result.data.type === 'text') {
           const snippet = getSnippetForTwoFileDiff(
             fileState.content,
             result.data.file.content,
           )
 
-          // File was touched but not modified
+          // 文件被触碰但未修改
           if (snippet === '') {
             return null
           }
@@ -2174,7 +2170,7 @@ export async function getChangedFiles(
           }
         }
 
-        // For non-text files (images), apply the same token limit logic as FileReadTool
+        // 对于非文本文件（图片），应用与 FileReadTool 相同的 token 限制逻辑
         if (result.data.type === 'image') {
           try {
             const data = await readImageWithTokenBudget(normalizedPath)
@@ -2192,17 +2188,17 @@ export async function getChangedFiles(
           }
         }
 
-        // notebook / pdf / parts — no diff representation; explicitly
-        // null so the map callback has no implicit-undefined path.
+        // notebook / pdf / parts —— 没有 diff 表示；显式返回
+        // null 使 map 回调没有隐式 undefined 路径。
         return null
       } catch (err) {
-        // Evict ONLY on ENOENT (file truly deleted). Transient stat
-        // failures — atomic-save races (editor writes tmp→rename and
-        // stat hits the gap), EACCES churn, network-FS hiccups — must
-        // NOT evict, or the next Edit fails code-6 even though the
-        // file still exists and the model just read it. VS Code
-        // auto-save/format-on-save hits this race especially often.
-        // See regression analysis on PR #18525.
+        // 仅在 ENOENT（文件已真正删除）时淘汰。瞬态 stat
+        // 失败 —— 原子保存竞争（编辑器写入 tmp→rename，
+        // stat 命中间隙）、EACCES 抖动、网络 FS 问题 —— 绝对
+        // 不能淘汰，否则下一次 Edit 会以 code-6 失败，即使
+        // 文件仍然存在且模型刚刚读取了它。VS Code
+        // 自动保存/格式化保存尤其频繁触发此竞争。
+        // 参见 PR #18525 的回归分析。
         if (isENOENT(err)) {
           toolUseContext.readFileState.delete(filePath)
         }
@@ -2214,14 +2210,14 @@ export async function getChangedFiles(
 }
 
 /**
- * Processes paths that need nested memory attachments and checks for nested CLAUDE.md files
- * Uses nestedMemoryAttachmentTriggers field from ToolUseContext
+ * 处理需要嵌套内存附件的路径，检查嵌套的 CLAUDE.md 文件。
+ * 使用 ToolUseContext 中的 nestedMemoryAttachmentTriggers 字段。
  */
 async function getNestedMemoryAttachments(
   toolUseContext: ToolUseContext,
 ): Promise<Attachment[]> {
-  // Check triggers first — getAppState() waits for a React render cycle,
-  // and the common case is an empty trigger set.
+  // 首先检查触发器 —— getAppState() 等待 React 渲染周期，
+  // 而常见情况是触发器集合为空。
   if (
     !toolUseContext.nestedMemoryAttachmentTriggers ||
     toolUseContext.nestedMemoryAttachmentTriggers.size === 0
@@ -2255,8 +2251,8 @@ async function getRelevantMemoryAttachments(
   alreadySurfaced: ReadonlySet<string>,
   parentSpan?: unknown,
 ): Promise<Attachment[]> {
-  // If an agent is @-mentioned, search only its memory dir (isolation).
-  // Otherwise search the auto-memory dir.
+  // 如果 @-提及了 agent，仅搜索其内存目录（隔离）。
+  // 否则搜索自动内存目录。
   const memoryDirs = extractAgentMentions(input).flatMap(mention => {
     const agentType = mention.replace('agent-', '')
     const agentDef = agents.find(def => def.agentType === agentType)
@@ -2278,11 +2274,10 @@ async function getRelevantMemoryAttachments(
       ).catch(() => []),
     ),
   )
-  // alreadySurfaced is filtered inside the selector so Sonnet spends its
-  // 5-slot budget on fresh candidates; readFileState catches files the
-  // model read via FileReadTool. The redundant alreadySurfaced check here
-  // is a belt-and-suspenders guard (multi-dir results may re-introduce a
-  // path the selector filtered in a different dir).
+  // alreadySurfaced 在选择器内部过滤，使 Sonnet 将其 5 个槽位预算
+  // 用于新候选；readFileState 捕获模型通过 FileReadTool 读取的文件。
+  // 这里的冗余 alreadySurfaced 检查是双重保险
+  //（多目录结果可能在不同目录中重新引入选择器过滤的路径）。
   const selected = allResults
     .flat()
     .filter(m => !readFileState.has(m.path) && !alreadySurfaced.has(m.path))
@@ -2297,11 +2292,10 @@ async function getRelevantMemoryAttachments(
 }
 
 /**
- * Scan messages for past relevant_memories attachments.  Returns both the
- * set of surfaced paths (for selector de-dup) and cumulative byte count
- * (for session-total throttle).  Scanning messages rather than tracking
- * in toolUseContext means compact naturally resets both — old attachments
- * are gone from the compacted transcript, so re-surfacing is valid again.
+ * 扫描消息以查找过去的 relevant_memories 附件。返回已浮现路径的集合
+ *（用于选择器去重）和累计字节数（用于会话总限速）。
+ * 扫描消息而不是在 toolUseContext 中跟踪意味着压缩自然重置两者 ——
+ * 旧附件已从压缩后的转录中消失，因此重新浮现再次有效。
  */
 export function collectSurfacedMemories(messages: ReadonlyArray<Message>): {
   paths: Set<string>
@@ -2325,15 +2319,14 @@ export function collectSurfacedMemories(messages: ReadonlyArray<Message>): {
 }
 
 /**
- * Reads a set of relevance-ranked memory files for injection as
- * <system-reminder> attachments. Enforces both MAX_MEMORY_LINES and
- * MAX_MEMORY_BYTES via readFileInRange's truncateOnByteLimit option.
- * Truncation surfaces partial
- * content with a note rather than dropping the file — findRelevantMemories
- * already picked this as most-relevant, so the frontmatter + opening context
- * is worth surfacing even if later lines are cut.
+ * 读取一组按相关性排序的内存文件，作为 <system-reminder> 附件注入。
+ * 通过 readFileInRange 的 truncateOnByteLimit 选项同时强制执行
+ * MAX_MEMORY_LINES 和 MAX_MEMORY_BYTES 限制。
+ * 截断会显示带注释的部分内容而不是丢弃文件 ——
+ * findRelevantMemories 已将其选为最相关，因此即使后续行被截断，
+ * 前置内容 + 开头上下文也值得显示。
  *
- * Exported for direct testing without mocking the ranker + GB gates.
+ * 导出用于直接测试，无需模拟排名器 + GB 门控。
  */
 export async function readMemoriesForSurfacing(
   selected: ReadonlyArray<{ path: string; mtimeMs: number }>,
@@ -2380,8 +2373,8 @@ export async function readMemoriesForSurfacing(
 }
 
 /**
- * Header string for a relevant-memory block.  Exported so messages.ts
- * can fall back for resumed sessions where the stored header is missing.
+ * 相关内存块的标题字符串。导出以便 messages.ts
+ * 在恢复会话中存储的标题丢失时可以回退使用。
  */
 export function memoryHeader(path: string, mtimeMs: number): string {
   const staleness = memoryFreshnessText(mtimeMs)
@@ -2391,31 +2384,30 @@ export function memoryHeader(path: string, mtimeMs: number): string {
 }
 
 /**
- * A memory relevance-selector prefetch handle. The promise is started once
- * per user turn and runs while the main model streams and tools execute.
- * At the collect point (post-tools), the caller reads settledAt to
- * consume-if-ready or skip-and-retry-next-iteration — the prefetch never
- * blocks the turn.
+ * 内存相关性选择器的预取句柄。Promise 每个用户轮次启动一次，
+ * 在主模型流式传输和工具执行期间运行。
+ * 在收集点（工具执行后），调用者读取 settledAt 以决定
+ * 消费（若已就绪）或跳过并在下次迭代重试 —— 预取永不阻塞轮次。
  *
- * Disposable: query.ts binds with `using`, so [Symbol.dispose] fires on all
- * generator exit paths (return, throw, .return() closure) — aborting the
- * in-flight request and emitting terminal telemetry without instrumenting
- * each of the ~13 return sites inside the while loop.
+ * Disposable：query.ts 通过 `using` 绑定，因此 [Symbol.dispose] 在所有
+ * 生成器退出路径（return、throw、.return() 关闭）触发 ——
+ * 中止进行中的请求并发出终端遥测，无需对 while 循环内约 13 个
+ * 返回站点各自进行仪表化。
  */
 export type MemoryPrefetch = {
   promise: Promise<Attachment[]>
-  /** Set by promise.finally(). null until the promise settles. */
+  /** 由 promise.finally() 设置。在 promise 完成前为 null。 */
   settledAt: number | null
-  /** Set by the collect point in query.ts. -1 until consumed. */
+  /** 由 query.ts 中的收集点设置。在消费前为 -1。 */
   consumedOnIteration: number
   [Symbol.dispose](): void
 }
 
 /**
- * Starts the relevant memory search as an async prefetch.
- * Extracts the last real user prompt from messages (skipping isMeta system
- * injections) and kicks off a non-blocking search. Returns a Disposable
- * handle with settlement tracking. Bound with `using` in query.ts.
+ * 将相关内存搜索作为异步预取启动。
+ * 从消息中提取最后一个真实用户提示（跳过 isMeta 系统注入），
+ * 并启动非阻塞搜索。返回带有完成状态跟踪的 Disposable 句柄。
+ * 在 query.ts 中通过 `using` 绑定。
  */
 export function startRelevantMemoryPrefetch(
   messages: ReadonlyArray<Message>,
@@ -2441,7 +2433,7 @@ export function startRelevantMemoryPrefetch(
   }
 
   const input = getUserMessageText(lastUserMessage)
-  // Single-word prompts lack enough context for meaningful term extraction
+  // 单词提示缺乏足够上下文进行有意义的词项提取
   if (!input || !/\s/.test(input.trim())) {
     return undefined
   }
@@ -2451,8 +2443,8 @@ export function startRelevantMemoryPrefetch(
     return undefined
   }
 
-  // Chained to the turn-level abort so user Escape cancels the sideQuery
-  // immediately, not just on [Symbol.dispose] when queryLoop exits.
+  // 链接到轮次级别的中止，使用户按 Escape 立即取消 sideQuery，
+  // 而不仅仅是在 queryLoop 退出时 [Symbol.dispose] 触发。
   const controller = createChildAbortController(toolUseContext.abortController)
   const firedAt = Date.now()
   const promise = getRelevantMemoryAttachments(
@@ -2506,28 +2498,26 @@ function isToolResultBlock(b: unknown): b is ToolResultBlock {
 }
 
 /**
- * Check whether a user message's content contains tool_result blocks.
- * This is more reliable than checking `toolUseResult === undefined` because
- * sub-agent tool result messages explicitly set `toolUseResult` to `undefined`
- * when `preserveToolUseResults` is false (the default for Explore agents).
+ * 检查用户消息的内容是否包含 tool_result 块。
+ * 这比检查 `toolUseResult === undefined` 更可靠，因为
+ * 当 `preserveToolUseResults` 为 false 时（Explore agent 的默认值），
+ * 子 agent 工具结果消息会显式将 `toolUseResult` 设置为 `undefined`。
  */
 function hasToolResultContent(content: unknown): boolean {
   return Array.isArray(content) && content.some(isToolResultBlock)
 }
 
 /**
- * Tools that succeeded (and never errored) since the previous real turn
- * boundary.  The memory selector uses this to suppress docs about tools
- * that are working — surfacing reference material for a tool the model
- * is already calling successfully is noise.
+ * 自上一个真实轮次边界以来成功（且从未出错）的工具。
+ * 内存选择器用此抑制关于正常工作的工具的文档 ——
+ * 为模型已在成功调用的工具展示参考材料是噪音。
  *
- * Any error → tool excluded (model is struggling, docs stay available).
- * No result yet → also excluded (outcome unknown).
+ * 任何错误 → 工具被排除（模型正在挣扎，文档保持可用）。
+ * 尚无结果 → 也被排除（结果未知）。
  *
- * tool_use lives in assistant content; tool_result in user content
- * (toolUseResult set, isMeta undefined).  Both are within the scan window.
- * Backward scan sees results before uses so we collect both by id and
- * resolve after.
+ * tool_use 存在于助手内容中；tool_result 在用户内容中
+ *（toolUseResult 已设置，isMeta 为 undefined）。两者都在扫描窗口内。
+ * 向后扫描先看到结果再看到使用，因此按 id 收集两者并在之后解析。
  */
 export function collectRecentSuccessfulTools(
   messages: ReadonlyArray<Message>,
@@ -2833,65 +2823,65 @@ async function getSkillListingAttachments(
   ]
 }
 
-// getSkillDiscoveryAttachment moved to skillSearch/prefetch.ts as
-// getTurnZeroSkillDiscovery — keeps the 'skill_discovery' string literal inside
-// a feature-gated module so it doesn't leak into external builds.
+// getSkillDiscoveryAttachment 已移至 skillSearch/prefetch.ts，
+// 名称改为 getTurnZeroSkillDiscovery —— 将 'skill_discovery' 字符串字面量
+// 保留在功能门控模块内，以防其泄漏到外部构建中。
 
 export function extractAtMentionedFiles(content: string): string[] {
-  // Extract filenames mentioned with @ symbol, including line range syntax: @file.txt#L10-20
-  // Also supports quoted paths for files with spaces: @"my/file with spaces.txt"
-  // Example: "foo bar @baz moo" would extract "baz"
-  // Example: 'check @"my file.txt" please' would extract "my file.txt"
+  // 提取用 @ 符号提及的文件名，包括行范围语法：@file.txt#L10-20
+  // 也支持带空格的文件路径：@"my/file with spaces.txt"
+  // 示例："foo bar @baz moo" 会提取 "baz"
+  // 示例：'check @"my file.txt" please' 会提取 "my file.txt"
 
-  // Two patterns: quoted paths and regular paths
+  // 两种模式：带引号路径和常规路径
   const quotedAtMentionRegex = /(^|\s)@"([^"]+)"/g
   const regularAtMentionRegex = /(^|\s)@([^\s]+)\b/g
 
   const quotedMatches: string[] = []
   const regularMatches: string[] = []
 
-  // Extract quoted mentions first (skip agent mentions like @"code-reviewer (agent)")
+  // 首先提取带引号的提及（跳过 agent 提及，如 @"code-reviewer (agent)"）
   let match
   while ((match = quotedAtMentionRegex.exec(content)) !== null) {
     if (match[2] && !match[2].endsWith(' (agent)')) {
-      quotedMatches.push(match[2]) // The content inside quotes
+      quotedMatches.push(match[2]) // 引号内的内容
     }
   }
 
-  // Extract regular mentions
+  // 提取常规提及
   const regularMatchArray: string[] = content.match(regularAtMentionRegex) ?? []
   regularMatchArray.forEach(match => {
     const filename = match.slice(match.indexOf('@') + 1)
-    // Don't include if it starts with a quote (already handled as quoted)
+    // 如果以引号开头则不包含（已作为带引号路径处理）
     if (!filename.startsWith('"')) {
       regularMatches.push(filename)
     }
   })
 
-  // Combine and deduplicate
+  // 合并并去重
   return uniq([...quotedMatches, ...regularMatches])
 }
 
 export function extractMcpResourceMentions(content: string): string[] {
-  // Extract MCP resources mentioned with @ symbol in format @server:uri
-  // Example: "@server1:resource/path" would extract "server1:resource/path"
+  // 提取用 @ 符号提及的 MCP 资源，格式为 @server:uri
+  // 示例："@server1:resource/path" 会提取 "server1:resource/path"
   const atMentionRegex = /(^|\s)@([^\s]+:[^\s]+)\b/g
   const matches = content.match(atMentionRegex) || []
 
-  // Remove the prefix (everything before @) from each match
+  // 移除每个匹配中的前缀（@ 之前的所有内容）
   return uniq(matches.map(match => match.slice(match.indexOf('@') + 1)))
 }
 
 export function extractAgentMentions(content: string): string[] {
-  // Extract agent mentions in two formats:
-  // 1. @agent-<agent-type> (legacy/manual typing)
-  //    Example: "@agent-code-elegance-refiner" → "agent-code-elegance-refiner"
-  // 2. @"<agent-type> (agent)" (from autocomplete selection)
-  //    Example: '@"code-reviewer (agent)"' → "code-reviewer"
-  // Supports colons, dots, and at-signs for plugin-scoped agents like "@agent-asana:project-status-updater"
+  // 以两种格式提取 agent 提及：
+  // 1. @agent-<agent-type>（旧版/手动输入）
+  //    示例："@agent-code-elegance-refiner" → "agent-code-elegance-refiner"
+  // 2. @"<agent-type> (agent)"（来自自动补全选择）
+  //    示例：'@"code-reviewer (agent)"' → "code-reviewer"
+  // 支持冒号、点和 @ 符号，用于插件范围的 agent，如 "@agent-asana:project-status-updater"
   const results: string[] = []
 
-  // Match quoted format: @"<type> (agent)"
+  // 匹配带引号格式：@"<type> (agent)"
   const quotedAgentRegex = /(^|\s)@"([\w:.@-]+) \(agent\)"/g
   let match
   while ((match = quotedAgentRegex.exec(content)) !== null) {
@@ -2900,7 +2890,7 @@ export function extractAgentMentions(content: string): string[] {
     }
   }
 
-  // Match unquoted format: @agent-<type>
+  // 匹配不带引号格式：@agent-<type>
   const unquotedAgentRegex = /(^|\s)@(agent-[\w:.@-]+)/g
   const unquotedMatches = content.match(unquotedAgentRegex) || []
   for (const m of unquotedMatches) {
@@ -2919,8 +2909,8 @@ interface AtMentionedFileLines {
 export function parseAtMentionedFileLines(
   mention: string,
 ): AtMentionedFileLines {
-  // Parse mentions like "file.txt#L10-20", "file.txt#heading", or just "file.txt"
-  // Supports line ranges (#L10, #L10-20) and strips non-line-range fragments (#heading)
+  // 解析如 "file.txt#L10-20"、"file.txt#heading" 或仅 "file.txt" 的提及
+  // 支持行范围（#L10、#L10-20）并去除非行范围片段（#heading）
   const match = mention.match(/^([^#]+)(?:#L(\d+)(?:-(\d+))?)?(?:#[^#]*)?$/)
 
   if (!match) {
@@ -2937,14 +2927,14 @@ export function parseAtMentionedFileLines(
 async function getDiagnosticAttachments(
   toolUseContext: ToolUseContext,
 ): Promise<Attachment[]> {
-  // Diagnostics are only useful if the agent has the Bash tool to act on them
+  // 诊断信息仅在 agent 有 Bash 工具可以处理时才有用
   if (
     !toolUseContext.options.tools.some(t => toolMatchesName(t, BASH_TOOL_NAME))
   ) {
     return []
   }
 
-  // Get new diagnostics from the tracker (IDE diagnostics via MCP)
+  // 从跟踪器获取新诊断（通过 MCP 的 IDE 诊断）
   const newDiagnostics = await diagnosticTracker.getNewDiagnostics()
   if (newDiagnostics.length === 0) {
     return []
@@ -2960,13 +2950,13 @@ async function getDiagnosticAttachments(
 }
 
 /**
- * Get LSP diagnostic attachments from passive LSP servers.
- * Follows the AsyncHookRegistry pattern for consistent async attachment delivery.
+ * 从被动 LSP 服务器获取 LSP 诊断附件。
+ * 遵循 AsyncHookRegistry 模式以实现一致的异步附件交付。
  */
 async function getLSPDiagnosticAttachments(
   toolUseContext: ToolUseContext,
 ): Promise<Attachment[]> {
-  // LSP diagnostics are only useful if the agent has the Bash tool to act on them
+  // LSP 诊断仅在 agent 有 Bash 工具可以处理时才有用
   if (
     !toolUseContext.options.tools.some(t => toolMatchesName(t, BASH_TOOL_NAME))
   ) {
@@ -2986,15 +2976,15 @@ async function getLSPDiagnosticAttachments(
       `LSP Diagnostics: Found ${diagnosticSets.length} pending diagnostic set(s)`,
     )
 
-    // Convert each diagnostic set to an attachment
+    // 将每个诊断集转换为附件
     const attachments: Attachment[] = diagnosticSets.map(({ files }) => ({
       type: 'diagnostics' as const,
       files,
       isNew: true,
     }))
 
-    // Clear delivered diagnostics from registry to prevent memory leak
-    // Follows same pattern as removeDeliveredAsyncHooks
+    // 从注册表中清除已交付的诊断以防止内存泄漏
+    // 遵循与 removeDeliveredAsyncHooks 相同的模式
     if (diagnosticSets.length > 0) {
       clearAllLSPDiagnostics()
       logForDebugging(
@@ -3012,7 +3002,7 @@ async function getLSPDiagnosticAttachments(
     logError(
       new Error(`Failed to get LSP diagnostic attachments: ${err.message}`),
     )
-    // Return empty array to allow other attachments to proceed
+    // 返回空数组以允许其他附件继续处理
     return []
   }
 }
@@ -3026,7 +3016,7 @@ export async function* getAttachmentMessages(
   querySource?: QuerySource,
   options?: { skipSkillDiscovery?: boolean },
 ): AsyncGenerator<AttachmentMessage, void> {
-  // TODO: Compute this upstream
+  // TODO: 在上游计算此值
   const attachments = await getAttachments(
     input,
     toolUseContext,
@@ -3053,18 +3043,18 @@ export async function* getAttachmentMessages(
 }
 
 /**
- * Generates a file attachment by reading a file with proper validation and truncation.
- * This is the core file reading logic shared between @-mentioned files and post-compact restoration.
+ * 通过读取文件并进行适当的验证和截断来生成文件附件。
+ * 这是 @-提及文件和压缩后恢复之间共享的核心文件读取逻辑。
  *
- * @param filename The absolute path to the file to read
- * @param toolUseContext The tool use context for calling FileReadTool
- * @param options Optional configuration for file reading
- * @returns A new_file attachment or null if the file couldn't be read
+ * @param filename 要读取的文件的绝对路径
+ * @param toolUseContext 用于调用 FileReadTool 的工具使用上下文
+ * @param options 文件读取的可选配置
+ * @returns new_file 附件，或在文件无法读取时返回 null
  */
 /**
- * Check if a PDF file should be represented as a lightweight reference
- * instead of being inlined. Returns a PDFReferenceAttachment for large PDFs
- * (more than PDF_AT_MENTION_INLINE_THRESHOLD pages), or null otherwise.
+ * 检查 PDF 文件是否应该以轻量级引用而不是内联方式表示。
+ * 对于大型 PDF（超过 PDF_AT_MENTION_INLINE_THRESHOLD 页），
+ * 返回 PDFReferenceAttachment，否则返回 null。
  */
 export async function tryGetPDFReference(
   filename: string,
@@ -3078,7 +3068,7 @@ export async function tryGetPDFReference(
       getFsImplementation().stat(filename),
       getPDFPageCount(filename),
     ])
-    // Use page count if available, otherwise fall back to size heuristic (~100KB per page)
+    // 如果页数可用则使用页数，否则回退到大小启发式（约每页 100KB）
     const effectivePageCount = pageCount ?? Math.ceil(stats.size / (100 * 1024))
     if (effectivePageCount > PDF_AT_MENTION_INLINE_THRESHOLD) {
       logEvent('tengu_pdf_reference_attachment', {
@@ -3095,7 +3085,7 @@ export async function tryGetPDFReference(
       }
     }
   } catch {
-    // If we can't stat the file, return null to proceed with normal reading
+    // 如果无法 stat 文件，返回 null 以继续正常读取
   }
   return null
 }
@@ -3119,13 +3109,13 @@ export async function generateFileAttachment(
 > {
   const { offset, limit } = options ?? {}
 
-  // Check if file has a deny rule configured
+  // 检查文件是否配置了拒绝规则
   const appState = toolUseContext.getAppState()
   if (isFileReadDenied(filename, appState.toolPermissionContext)) {
     return null
   }
 
-  // Check file size before attempting to read (skip for PDFs — they have their own size/page handling below)
+  // 尝试读取前检查文件大小（跳过 PDF —— 它们有自己的大小/页面处理逻辑）
   if (
     mode === 'at-mention' &&
     !isFileWithinReadSizeLimit(
@@ -3143,12 +3133,12 @@ export async function generateFileAttachment(
         } as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS)
         return null
       } catch {
-        // If we can't stat the file, proceed with normal reading (will fail later if file doesn't exist)
+        // 如果无法 stat 文件，继续正常读取（如果文件不存在稍后会失败）
       }
     }
   }
 
-  // For large PDFs on @ mention, return a lightweight reference instead of inlining
+  // 对于 @ 提及的大型 PDF，返回轻量级引用而不是内联
   if (mode === 'at-mention') {
     const pdfRef = await tryGetPDFReference(filename)
     if (pdfRef) {
@@ -3156,28 +3146,28 @@ export async function generateFileAttachment(
     }
   }
 
-  // Check if file is already in context with latest version
+  // 检查文件是否已在上下文中且为最新版本
   const existingFileState = toolUseContext.readFileState.get(filename)
   if (existingFileState && mode === 'at-mention') {
     try {
-      // Check if the file has been modified since we last read it
+      // 检查文件是否自上次读取后已被修改
       const mtimeMs = await getFileModificationTimeAsync(filename)
 
-      // Handle timestamp format inconsistency:
-      // - FileReadTool stores Date.now() (current time when read)
-      // - FileEdit/WriteTools store mtimeMs (file modification time)
+      // 处理时间戳格式不一致：
+      // - FileReadTool 存储 Date.now()（读取时的当前时间）
+      // - FileEdit/WriteTools 存储 mtimeMs（文件修改时间）
       //
-      // If timestamp > mtimeMs, it was stored by FileReadTool using Date.now()
-      // In this case, we should not use the optimization since we can't reliably
-      // compare modification times. Only use optimization when timestamp <= mtimeMs,
-      // indicating it was stored by FileEdit/WriteTool with actual mtimeMs.
+      // 如果 timestamp > mtimeMs，则由 FileReadTool 使用 Date.now() 存储。
+      // 在这种情况下，不应使用优化，因为无法可靠地比较修改时间。
+      // 仅当 timestamp <= mtimeMs 时使用优化，
+      // 表明由 FileEdit/WriteTool 使用实际 mtimeMs 存储。
 
       if (
         existingFileState.timestamp <= mtimeMs &&
         mtimeMs === existingFileState.timestamp
       ) {
-        // File hasn't been modified, return already_read_file attachment
-        // This tells the system the file is already in context and doesn't need to be sent to API
+        // 文件未被修改，返回 already_read_file 附件
+        // 这告知系统文件已在上下文中，无需发送到 API
         logEvent(successEventName, {})
         return {
           type: 'already_read_file',
@@ -3197,7 +3187,7 @@ export async function generateFileAttachment(
         }
       }
     } catch {
-      // If we can't stat the file, proceed with normal reading
+      // 如果无法 stat 文件，继续正常读取
     }
   }
 
@@ -3222,14 +3212,14 @@ export async function generateFileAttachment(
         }
       }
 
-      // Check deny rules before reading truncated file
+      // 在读取截断文件前检查拒绝规则
       const appState = toolUseContext.getAppState()
       if (isFileReadDenied(filename, appState.toolPermissionContext)) {
         return null
       }
 
       try {
-        // Read only the first MAX_LINES_TO_READ lines for files that are too large
+        // 仅读取过大文件的前 MAX_LINES_TO_READ 行
         const truncatedInput = {
           file_path: filename,
           offset: offset ?? 1,

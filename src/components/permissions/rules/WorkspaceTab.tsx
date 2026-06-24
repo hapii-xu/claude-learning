@@ -66,7 +66,7 @@ export function WorkspaceTab({
     }));
 
     opts.push({
-      label: `Add directory${figures.ellipsis}`,
+      label: `添加目录${figures.ellipsis}`,
       value: 'add-directory',
     });
 
@@ -79,7 +79,7 @@ export function WorkspaceTab({
       {/* Current working directory section */}
       <Box flexDirection="row" marginTop={1} marginLeft={2} gap={1}>
         <Text>{`-  ${getOriginalCwd()}`}</Text>
-        <Text dimColor>(Original working directory)</Text>
+        <Text dimColor>（原始工作目录）</Text>
       </Box>
       <Select
         options={options}

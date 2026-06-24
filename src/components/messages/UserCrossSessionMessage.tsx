@@ -1,6 +1,6 @@
 /**
- * UserCrossSessionMessage — render a message received from another Claude session
- * via UDS_INBOX (SendMessage tool).
+ * UserCrossSessionMessage — 渲染通过 UDS_INBOX（SendMessage 工具）
+ * 从另一个 Claude 会话接收的消息。
  */
 import type { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs';
 import * as React from 'react';
@@ -20,7 +20,7 @@ export function UserCrossSessionMessage({ param, addMargin }: Props): React.Reac
   }
 
   const fromMatch = text.match(/from="([^"]*)"/);
-  const from = fromMatch?.[1] ?? 'another session';
+  const from = fromMatch?.[1] ?? '另一个会话';
 
   return (
     <Box flexDirection="row" marginTop={addMargin ? 1 : 0}>

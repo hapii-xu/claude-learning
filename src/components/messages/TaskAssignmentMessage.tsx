@@ -7,7 +7,7 @@ type Props = {
 };
 
 /**
- * Renders a task assignment with a cyan border (team-related color).
+ * 渲染一个带有青色边框（团队相关颜色）的任务分配消息。
  */
 export function TaskAssignmentDisplay({ assignment }: Props): React.ReactNode {
   return (
@@ -15,7 +15,7 @@ export function TaskAssignmentDisplay({ assignment }: Props): React.ReactNode {
       <Box borderStyle="round" borderColor="cyan_FOR_SUBAGENTS_ONLY" flexDirection="column" paddingX={1} paddingY={1}>
         <Box marginBottom={1}>
           <Text color="cyan_FOR_SUBAGENTS_ONLY" bold>
-            Task #{assignment.taskId} assigned by {assignment.assignedBy}
+            任务 #{assignment.taskId} 由 {assignment.assignedBy} 分配
           </Text>
         </Box>
         <Box>
@@ -32,7 +32,7 @@ export function TaskAssignmentDisplay({ assignment }: Props): React.ReactNode {
 }
 
 /**
- * Try to parse and render a task assignment message from raw content.
+ * 尝试从原始内容解析并渲染任务分配消息。
  */
 export function tryRenderTaskAssignmentMessage(content: string): React.ReactNode | null {
   const assignment = isTaskAssignment(content);
@@ -43,12 +43,12 @@ export function tryRenderTaskAssignmentMessage(content: string): React.ReactNode
 }
 
 /**
- * Get a brief summary text for a task assignment message.
+ * 获取任务分配消息的简要摘要文本。
  */
 export function getTaskAssignmentSummary(content: string): string | null {
   const assignment = isTaskAssignment(content);
   if (assignment) {
-    return `[Task Assigned] #${assignment.taskId} - ${assignment.subject}`;
+    return `[任务已分配] #${assignment.taskId} - ${assignment.subject}`;
   }
   return null;
 }

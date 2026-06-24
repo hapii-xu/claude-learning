@@ -893,3 +893,22 @@ const activeRemote = sshRemote.isRemoteMode ? sshRemote
 - REPL：`messages` 存在 React state（`useState`），直接 `for await of query()`
 - QueryEngine：`mutableMessages` 存在类实例属性，通过 `ask()` 包装 `query()`
 - 两者在 `query.ts` 层汇合，共享底层循环逻辑
+
+
+-----------
+
+ 层级          文件                                    职责
+  ──────────────────────────────────────────────────────────────────────
+  输入接收      src/screens/REPL.tsx                   监听 PromptInput 提交
+  路由分发      processUserInput.ts                    bash/slash/普通文本 三叉路由
+  Slash 分发    processSlashCommand.tsx                parse → findCommand → 按 type 分支
+                （local / local-jsx / prompt）
+  命令定义      src/commands/rename/index.ts           type:'local-jsx' + 懒加载路径
+                src/commands/resume/index.ts
+  业务逻辑      src/commands/rename/rename.ts          写 sessionTitle 到磁盘
+                src/commands/resume/resume.tsx         渲染 JSX 列表 / 加载历史消息
+  持久化        src/utils/sessionStorage.ts            JSONL 读写，~/.claude/projects/
+
+  两个命令都是 type: 'local-jsx'，区别在于：
+  - /rename aa 有参数，直接在 call() 里同步完成，通过 onDone() 回报结果
+  - /resume 无参数时返回 JSX 组件（<LogSelector/>），等用户在 UI 里选择后才触发 onDone()

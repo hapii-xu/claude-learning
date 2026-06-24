@@ -36,24 +36,22 @@ import { isProcessRunning } from './genericProcessUtils.js'
 import { logError } from './log.js'
 
 const AUTONOMY_RUNS_MAX = 200
-// Diagnostic threshold for active (queued/running) runs. Active records are
-// deliberately exempt from AUTONOMY_RUNS_MAX so a leak in finalization cannot
-// silently evict in-flight work; that exemption only makes sense if a leak is
-// loud when it appears. Crossing this threshold warns once per process so
-// operators see the divergence in logs before runs.json grows pathologically.
+// 活跃（排队/运行中）runs 的诊断阈值。活跃记录故意不受 AUTONOMY_RUNS_MAX 限制，
+// 这样最终化过程中的泄漏就不会静默地驱逐进行中的工作；
+// 只有在泄漏出现时及早发现，该豁免才有意义。超过此阈值时每进程警告一次，
+// 让运维人员在 runs.json 病态增长前能在日志中看到偏差。
 const AUTONOMY_ACTIVE_RUNS_WARN_THRESHOLD = 100
 let warnedActiveRunsThresholdCrossed = false
 const AUTONOMY_RUNS_RELATIVE_PATH = join(AUTONOMY_DIR, 'runs.json')
-// Sentinel string surfaced to operators via runs.json error fields and
-// referenced literally by the HEARTBEAT.md `stale-recovery-health` task.
-// A unit test asserts the HEARTBEAT.md file contains this exact prefix —
-// changing the value will fail the test, forcing the heartbeat prompt
-// to be updated in the same change.
+// 通过 runs.json 的 error 字段暴露给运维人员的哨兵字符串，
+// 并被 HEARTBEAT.md 中的 `stale-recovery-health` 任务直接引用。
+// 单元测试断言 HEARTBEAT.md 文件包含此精确前缀 ——
+// 更改该值会导致测试失败，强制在同一次变更中更新 heartbeat 提示。
 export const STALE_ACTIVE_RUN_ERROR_PREFIX =
   'Recovered stale active autonomy run'
 
-// Guards the legacy-block warning so it fires once per (process, runId) instead
-// of every dedup tick while a no-owner record sits there.
+// 守护 legacy-block 警告，使其每个 (进程, runId) 只触发一次，
+// 而不是在无所有者记录存在期间每次去重时都触发。
 const warnedLegacyBlockRunIds = new Set<string>()
 
 export type AutonomyRunStatus =
@@ -122,7 +120,7 @@ function truncatePromptPreview(prompt: string): string {
     : `${singleLine.slice(0, 237)}...`
 }
 
-/** A persisted record may lack fields that were added after the initial schema. */
+/** 持久化的记录可能缺少在初始 schema 之后添加的字段。 */
 type PersistedAutonomyRunRecord = Omit<
   AutonomyRunRecord,
   'runtime' | 'currentDir' | 'ownerKey'
@@ -267,10 +265,9 @@ function isActiveAutonomyRunStatus(status: AutonomyRunStatus): boolean {
 }
 
 function isValidOwnerProcessId(pid: number | undefined): pid is number {
-  // Reject non-numeric, negative, zero (Linux: send-to-process-group), and
-  // non-integer values. A forged record with pid=0 or pid<0 used to be
-  // treated as live and could permanently block dedup; treating them as
-  // stale closes that availability hole.
+  // 拒绝非数字、负数、零（Linux：发送给进程组）以及
+  // 非整数值。pid=0 或 pid<0 的伪造记录曾被视为存活状态，
+  // 可能永久阻塞去重；将其视为过时可关闭该可用性漏洞。
   return (
     typeof pid === 'number' &&
     Number.isInteger(pid) &&
@@ -920,10 +917,10 @@ export async function createAutonomyQueuedPromptIfNoActiveSource(params: {
 }): Promise<QueuedCommand | null> {
   const rootDir = resolve(params.rootDir ?? getProjectRoot())
   const currentDir = resolve(params.currentDir ?? getCwd())
-  // Cheap optimistic pre-check: skip the AGENTS.md / HEARTBEAT.md disk
-  // reads + prompt assembly when an active run for this source already
-  // blocks dedup. The lock-side check inside persistAutonomyRunRecord
-  // remains authoritative; this only fast-paths the common storm case.
+  // 廉价的乐观预检查：当此来源的活跃 run 已阻塞去重时，
+  // 跳过 AGENTS.md / HEARTBEAT.md 磁盘读取 + 提示组装。
+  // persistAutonomyRunRecord 内部的锁检查仍是权威；
+  // 这里只是快速路径处理常见的风暴情况。
   if (
     await hasActiveAutonomyRunForSource({
       trigger: params.trigger,

@@ -66,12 +66,12 @@ export function RecentDenialsTab({ onHeaderFocusChange, onStateChange }: Props):
   );
 
   if (denials.length === 0) {
-    return <Text dimColor>No recent denials. Commands denied by the auto mode classifier will appear here.</Text>;
+    return <Text dimColor>暂无最近拒绝记录。被自动模式分类器拒绝的命令将显示在这里。</Text>;
   }
 
   const options = denials.map((d, idx) => {
     const isApproved = approved.has(idx);
-    const suffix = retry.has(idx) ? ' (retry)' : '';
+    const suffix = retry.has(idx) ? '（重试）' : '';
     return {
       label: (
         <Text>
@@ -86,7 +86,7 @@ export function RecentDenialsTab({ onHeaderFocusChange, onStateChange }: Props):
 
   return (
     <Box flexDirection="column">
-      <Text>Commands recently denied by the auto mode classifier.</Text>
+      <Text>自动模式分类器最近拒绝的命令。</Text>
       <Box marginTop={1}>
         <Select
           options={options}

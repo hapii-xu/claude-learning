@@ -21,29 +21,29 @@ const teamMemPaths = feature('TEAMMEM')
 
 const IS_WINDOWS = process.platform === 'win32'
 
-// Normalize path separators to posix (/). Does NOT translate drive encoding.
+// 将路径分隔符规范化为 posix（/）格式。不翻译驱动器编码。
 function toPosix(p: string): string {
   return p.split(win32.sep).join(posix.sep)
 }
 
-// Convert a path to a stable string-comparable form: forward-slash separated,
-// and on Windows, lowercased (Windows filesystems are case-insensitive).
+// 将路径转为稳定可字符串比较的形式：正斜杠分隔，
+// 在 Windows 上额外转为小写（Windows 文件系统不区分大小写）。
 function toComparable(p: string): string {
   const posixForm = toPosix(p)
   return IS_WINDOWS ? posixForm.toLowerCase() : posixForm
 }
 
 /**
- * Detects if a file path is a session-related file under ~/.hclaude.
- * Returns the type of session file or null if not a session file.
+ * 检测文件路径是否为 ~/.hclaude 下与会话相关的文件。
+ * 返回会话文件类型，若不是会话文件则返回 null。
  */
 export function detectSessionFileType(
   filePath: string,
 ): 'session_memory' | 'session_transcript' | null {
   const configDir = getClaudeConfigHomeDir()
-  // Compare in forward-slash form; on Windows also case-fold. The caller
-  // (isShellCommandTargetingMemory) converts MinGW /c/... → native before
-  // reaching here, so we only need separator + case normalization.
+  // 以正斜杠形式比较；在 Windows 上还要进行大小写折叠。调用方
+  //（isShellCommandTargetingMemory）在到达此处前会将 MinGW /c/... 转为原生路径，
+  // 因此这里只需要分隔符 + 大小写规范化。
   const normalized = toComparable(filePath)
   const configDirCmp = toComparable(configDir)
   if (!normalized.startsWith(configDirCmp)) {
@@ -59,8 +59,8 @@ export function detectSessionFileType(
 }
 
 /**
- * Checks if a glob/pattern string indicates session file access intent.
- * Used for Grep/Glob tools where we check patterns, not actual file paths.
+ * 检查 glob/pattern 字符串是否表示会话文件访问意图。
+ * 用于 Grep/Glob 工具，此处检查的是模式而非实际文件路径。
  */
 export function detectSessionPatternType(
   pattern: string,
@@ -82,7 +82,7 @@ export function detectSessionPatternType(
 }
 
 /**
- * Check if a file path is within the memdir directory.
+ * 检查文件路径是否在 memdir 目录内。
  */
 export function isAutoMemFile(filePath: string): boolean {
   if (isAutoMemoryEnabled()) {
@@ -94,14 +94,13 @@ export function isAutoMemFile(filePath: string): boolean {
 export type MemoryScope = 'personal' | 'team'
 
 /**
- * Determine which memory store (if any) a path belongs to.
+ * 判断路径属于哪个内存存储（如果有）。
  *
- * Team dir is a subdirectory of memdir (getTeamMemPath = join(getAutoMemPath, 'team')),
- * so a team path matches both isTeamMemFile and isAutoMemFile. Check team first.
+ * team 目录是 memdir 的子目录（getTeamMemPath = join(getAutoMemPath, 'team')），
+ * 因此 team 路径同时匹配 isTeamMemFile 和 isAutoMemFile。优先检查 team。
  *
- * Use this for scope-keyed telemetry where a single event name distinguishes
- * by scope field — the existing tengu_memdir_* / tengu_team_mem_* event-name
- * hierarchy handles the overlap differently (team writes intentionally fire both).
+ * 用于按 scope 字段区分的遥测事件——现有的 tengu_memdir_* / tengu_team_mem_*
+ * 事件名层次以不同方式处理重叠（team 写入会有意同时触发两者）。
  */
 export function memoryScopeForPath(filePath: string): MemoryScope | null {
   if (feature('TEAMMEM') && teamMemPaths!.isTeamMemFile(filePath)) {
@@ -114,7 +113,7 @@ export function memoryScopeForPath(filePath: string): MemoryScope | null {
 }
 
 /**
- * Check if a file path is within an agent memory directory.
+ * 检查文件路径是否在 agent 内存目录内。
  */
 function isAgentMemFile(filePath: string): boolean {
   if (isAutoMemoryEnabled()) {
@@ -124,11 +123,11 @@ function isAgentMemFile(filePath: string): boolean {
 }
 
 /**
- * Check if a file is a Claude-managed memory file (NOT user-managed instruction files).
- * Includes: auto-memory (memdir), agent memory, session memory/transcripts.
- * Excludes: CLAUDE.md, CLAUDE.local.md, .hclaude/rules/*.md (user-managed).
+ * 检查文件是否为 Claude 托管的内存文件（不含用户管理的指令文件）。
+ * 包含：自动内存（memdir）、agent 内存、会话内存/记录。
+ * 排除：CLAUDE.md、CLAUDE.local.md、.hclaude/rules/*.md（用户管理）。
  *
- * Use this for collapse/badge logic where user-managed files should show full diffs.
+ * 用于折叠/徽章逻辑，用户管理的文件应显示完整 diff。
  */
 export function isAutoManagedMemoryFile(filePath: string): boolean {
   if (isAutoMemFile(filePath)) {
@@ -146,18 +145,17 @@ export function isAutoManagedMemoryFile(filePath: string): boolean {
   return false
 }
 
-// Check if a directory path is a memory-related directory.
-// Used by Grep/Glob which take a directory `path` rather than a specific file.
-// Checks both configDir and memoryBaseDir to handle custom memory dir paths.
+// 检查目录路径是否为内存相关目录。
+// 供 Grep/Glob 使用，它们接受目录 `path` 而非具体文件。
+// 同时检查 configDir 和 memoryBaseDir 以处理自定义内存目录路径。
 export function isMemoryDirectory(dirPath: string): boolean {
-  // SECURITY: Normalize to prevent path traversal bypasses via .. segments.
-  // On Windows this produces backslashes; toComparable flips them back for
-  // string matching. MinGW /c/... paths are converted to native before
-  // reaching here (extraction-time in isShellCommandTargetingMemory), so
-  // normalize() never sees them.
+  // 安全：规范化路径以防止通过 .. 段进行路径穿越绕过。
+  // 在 Windows 上会生成反斜杠；toComparable 将其翻转回正斜杠以用于字符串匹配。
+  // MinGW /c/... 路径在到达此处前（isShellCommandTargetingMemory 提取阶段）
+  // 已被转换为原生路径，因此 normalize() 不会看到它们。
   const normalizedPath = normalize(dirPath)
   const normalizedCmp = toComparable(normalizedPath)
-  // Agent memory directories can be under cwd (project scope), configDir, or memoryBaseDir
+  // Agent 内存目录可位于 cwd（项目作用域）、configDir 或 memoryBaseDir 下
   if (
     isAutoMemoryEnabled() &&
     (normalizedCmp.includes('/agent-memory/') ||
@@ -165,7 +163,7 @@ export function isMemoryDirectory(dirPath: string): boolean {
   ) {
     return true
   }
-  // Team memory directories live under <autoMemPath>/team/
+  // team 内存目录位于 <autoMemPath>/team/ 下
   if (
     feature('TEAMMEM') &&
     teamMemPaths!.isTeamMemoryEnabled() &&
@@ -173,7 +171,7 @@ export function isMemoryDirectory(dirPath: string): boolean {
   ) {
     return true
   }
-  // Check the auto-memory path override (CLAUDE_COWORK_MEMORY_PATH_OVERRIDE)
+  // 检查自动内存路径覆盖（CLAUDE_COWORK_MEMORY_PATH_OVERRIDE）
   if (isAutoMemoryEnabled()) {
     const autoMemPath = getAutoMemPath()
     const autoMemDirCmp = toComparable(autoMemPath.replace(/[/\\]+$/, ''))
@@ -207,10 +205,9 @@ export function isMemoryDirectory(dirPath: string): boolean {
 }
 
 /**
- * Check if a shell command string (Bash or PowerShell) targets memory files
- * by extracting absolute path tokens and checking them against memory
- * detection functions. Used for Bash/PowerShell grep/search commands in the
- * collapse logic.
+ * 通过提取绝对路径 token 并与内存检测函数对比，
+ * 检查 shell 命令字符串（Bash 或 PowerShell）是否以内存文件为目标。
+ * 用于折叠逻辑中 Bash/PowerShell grep/search 命令的检测。
  */
 export function isShellCommandTargetingMemory(command: string): boolean {
   const configDir = getClaudeConfigHomeDir()
@@ -219,13 +216,13 @@ export function isShellCommandTargetingMemory(command: string): boolean {
     ? getAutoMemPath().replace(/[/\\]+$/, '')
     : ''
 
-  // Quick check: does the command mention the config, memory base, or
-  // auto-mem directory? Compare in forward-slash form (PowerShell on Windows
-  // may use either separator while configDir uses the platform-native one).
-  // On Windows also check the MinGW form (/c/...) since BashTool runs under
-  // Git Bash which emits that encoding. On Linux/Mac, configDir is already
-  // posix so only one form to check — and crucially, windowsPathToPosixPath
-  // is NOT called, so Linux paths like /m/foo aren't misinterpreted as MinGW.
+  // 快速检查：命令是否提及 config、memory base 或 auto-mem 目录？
+  // 以正斜杠形式比较（Windows 上的 PowerShell 可能使用任意分隔符，
+  // 而 configDir 使用平台原生分隔符）。
+  // 在 Windows 上还要检查 MinGW 形式（/c/...），因为 BashTool 在
+  // Git Bash 下运行，它会输出该编码。在 Linux/Mac 上，configDir 已是
+  // posix 形式，只需检查一种形式——关键是 windowsPathToPosixPath
+  // 不会被调用，以防 Linux 路径如 /m/foo 被误解为 MinGW。
   const commandCmp = toComparable(command)
   const dirs = [configDir, memoryBase, autoMemDir].filter(Boolean)
   const matchesAnyDir = dirs.some(d => {
@@ -240,25 +237,23 @@ export function isShellCommandTargetingMemory(command: string): boolean {
     return false
   }
 
-  // Extract absolute path-like tokens. Matches Unix absolute paths (/foo/bar),
-  // Windows drive-letter paths (C:\foo, C:/foo), and MinGW paths (/c/foo —
-  // they're /-prefixed so the regex already captures them). Bare backslash
-  // tokens (\foo) are intentionally excluded — they appear in regex/grep
-  // patterns and would cause false-positive memory classification after
-  // normalization flips backslashes to forward slashes.
+  // 提取绝对路径类 token。匹配 Unix 绝对路径（/foo/bar）、
+  // Windows 驱动器路径（C:\foo, C:/foo）和 MinGW 路径（/c/foo——
+  // 以 / 开头，正则已可捕获）。裸反斜杠 token（\foo）被有意排除——
+  // 它们出现在正则/grep 模式中，规范化将反斜杠翻转为正斜杠后会导致内存误分类。
   const matches = command.match(/(?:[A-Za-z]:[/\\]|\/)[^\s'"]+/g)
   if (!matches) {
     return false
   }
 
   for (const match of matches) {
-    // Strip trailing shell metacharacters that could be adjacent to a path
+    // 去除可能紧邻路径的尾部 shell 元字符
     const cleanPath = match.replace(/[,;|&>]+$/, '')
-    // On Windows, convert MinGW /c/... → native C:\... at this single
-    // point. Downstream predicates (isAutoManagedMemoryFile, isMemoryDirectory,
-    // isAutoMemPath, isAgentMemoryPath) then receive native paths and only
-    // need toComparable() for matching. On other platforms, paths are already
-    // native — no conversion, so /m/foo etc. pass through unmodified.
+    // 在 Windows 上，在此单一位置将 MinGW /c/... 转换为原生 C:\...。
+    // 下游谓词（isAutoManagedMemoryFile、isMemoryDirectory、
+    // isAutoMemPath、isAgentMemoryPath）随后接收原生路径，
+    // 只需 toComparable() 即可匹配。在其他平台上，路径已是原生形式——
+    // 无需转换，/m/foo 等直接透传不变。
     const nativePath = IS_WINDOWS
       ? posixPathToWindowsPath(cleanPath)
       : cleanPath
@@ -270,10 +265,9 @@ export function isShellCommandTargetingMemory(command: string): boolean {
   return false
 }
 
-// Check if a glob/pattern targets auto-managed memory files only.
-// Excludes CLAUDE.md, CLAUDE.local.md, .hclaude/rules/ (user-managed).
-// Used for collapse badge logic where user-managed files should not be
-// counted as "memory" operations.
+// 检查 glob/pattern 是否仅以自动管理的内存文件为目标。
+// 排除 CLAUDE.md、CLAUDE.local.md、.hclaude/rules/（用户管理）。
+// 用于折叠徽章逻辑，用户管理的文件不应被计为"内存"操作。
 export function isAutoManagedMemoryPattern(pattern: string): boolean {
   if (detectSessionPatternType(pattern) !== null) {
     return true

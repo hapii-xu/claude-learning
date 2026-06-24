@@ -11,7 +11,7 @@ export function RejectedPlanMessage({ plan }: Props): React.ReactNode {
   return (
     <MessageResponse>
       <Box flexDirection="column">
-        <Text color="subtle">User rejected Claude&apos;s plan:</Text>
+        <Text color="subtle">用户拒绝了 Claude 的计划：</Text>
         <Box
           borderStyle="round"
           borderColor="planMode"

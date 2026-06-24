@@ -111,7 +111,7 @@ function ReviewRainbowLine({ session }: { session: DeepImmutable<RemoteAgentTask
       <>
         <Text color="background">{DIAMOND_FILLED} </Text>
         <RainbowText text="ultrareview" phase={0} />
-        <Text dimColor> ready · shift+↓ to view</Text>
+        <Text dimColor> 已就绪 · shift+↓ 查看</Text>
       </>
     );
   }
@@ -122,7 +122,7 @@ function ReviewRainbowLine({ session }: { session: DeepImmutable<RemoteAgentTask
         <RainbowText text="ultrareview" phase={0} />
         <Text color="error" dimColor>
           {' · '}
-          error
+          错误
         </Text>
       </>
     );
@@ -151,7 +151,7 @@ export function RemoteSessionProgress({ session }: { session: DeepImmutable<Remo
   if (session.status === 'completed') {
     return (
       <Text bold color="success" dimColor>
-        done
+        完成
       </Text>
     );
   }
@@ -159,7 +159,7 @@ export function RemoteSessionProgress({ session }: { session: DeepImmutable<Remo
   if (session.status === 'failed') {
     return (
       <Text bold color="error" dimColor>
-        error
+        错误
       </Text>
     );
   }

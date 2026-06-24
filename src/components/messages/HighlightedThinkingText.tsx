@@ -25,7 +25,7 @@ export function HighlightedThinkingText({ text, useBriefLayout, timestamp }: Pro
     return (
       <Box flexDirection="column" paddingLeft={2}>
         <Box flexDirection="row">
-          <Text color={isQueued ? 'subtle' : 'briefLabelYou'}>You</Text>
+          <Text color={isQueued ? 'subtle' : 'briefLabelYou'}>你</Text>
           {ts ? <Text dimColor> {ts}</Text> : null}
         </Box>
         <Text color={isQueued ? 'subtle' : 'text'}>{text}</Text>

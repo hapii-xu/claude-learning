@@ -16,7 +16,7 @@ type Props = {
  * 除非 addMargin 为 true（图片在没有文本的情况下开始新的用户 turn）。
  */
 export function UserImageMessage({ imageId, addMargin }: Props): React.ReactNode {
-  const label = imageId ? `[Image #${imageId}]` : '[Image]';
+  const label = imageId ? `[图片 #${imageId}]` : '[图片]';
   const imagePath = imageId ? getStoredImagePath(imageId) : null;
 
   const content =

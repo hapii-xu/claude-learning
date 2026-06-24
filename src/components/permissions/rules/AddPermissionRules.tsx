@@ -22,20 +22,20 @@ export function optionForPermissionSaveDestination(saveDestination: EditableSett
   switch (saveDestination) {
     case 'localSettings':
       return {
-        label: 'Project settings (local)',
-        description: `Saved in ${getRelativeSettingsFilePathForSource('localSettings')}`,
+        label: '项目设置（本地）',
+        description: `保存到 ${getRelativeSettingsFilePathForSource('localSettings')}`,
         value: saveDestination,
       };
     case 'projectSettings':
       return {
-        label: 'Project settings',
-        description: `Checked in at ${getRelativeSettingsFilePathForSource('projectSettings')}`,
+        label: '项目设置',
+        description: `检入到 ${getRelativeSettingsFilePathForSource('projectSettings')}`,
         value: saveDestination,
       };
     case 'userSettings':
       return {
-        label: 'User settings',
-        description: `Saved in at ~/.hclaude/settings.json`,
+        label: '用户设置',
+        description: `保存到 ~/.hclaude/settings.json`,
         value: saveDestination,
       };
   }
@@ -125,9 +125,7 @@ export function AddPermissionRules({
       </Box>
 
       <Box flexDirection="column" marginY={1}>
-        <Text>
-          {ruleValues.length === 1 ? 'Where should this rule be saved?' : 'Where should these rules be saved?'}
-        </Text>
+        <Text>{ruleValues.length === 1 ? '该规则保存到哪里？' : '这些规则保存到哪里？'}</Text>
         <Select options={allOptions} onChange={onSelect} />
       </Box>
     </Dialog>

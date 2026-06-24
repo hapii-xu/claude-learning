@@ -1,29 +1,28 @@
 /**
- * Environment variables that control inference routing: which provider to use,
- * which endpoint to hit, and which model IDs to send.
+ * 控制推理路由的环境变量：使用哪个 provider、访问哪个端点、发送哪些模型 ID。
  *
- * When CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST is truthy in the spawn env, these
- * are stripped from settings-sourced env so the host's routing config isn't
- * overridden by a user's ~/.hclaude/settings.json — e.g. a Bedrock setup for
- * terminal CLI that would break a host that only supports first-party auth.
+ * 当 spawn env 中 CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST 为真时，这些变量
+ * 会从 settings 来源的 env 中剥离，防止用户的 ~/.hclaude/settings.json
+ * 覆盖宿主机的路由配置——例如，针对终端 CLI 的 Bedrock 配置会破坏
+ * 只支持 first-party 认证的宿主机。
  *
- * @[MODEL LAUNCH]: New models usually don't need changes here —
- * VERTEX_REGION_CLAUDE_* is prefix-matched. New providers or new routing
- * config vars (endpoint, project, region, auth) do.
+ * @[MODEL LAUNCH]: 新模型通常不需要在此处改动——
+ * VERTEX_REGION_CLAUDE_* 采用前缀匹配。新 provider 或新的路由
+ * 配置变量（endpoint、project、region、auth）才需要改动。
  *
- * Note: OpenAI provider uses OPENAI_* env vars (OPENAI_API_KEY, OPENAI_BASE_URL,
- * OPENAI_MODEL, OPENAI_AUTH_MODE, OPENAI_DEFAULT_*_MODEL, OPENAI_SMALL_FAST_MODEL) which are all
- * provider-managed to keep routing config isolated from Anthropic settings.
+ * 注意：OpenAI provider 使用 OPENAI_* 环境变量（OPENAI_API_KEY、OPENAI_BASE_URL、
+ * OPENAI_MODEL、OPENAI_AUTH_MODE、OPENAI_DEFAULT_*_MODEL、OPENAI_SMALL_FAST_MODEL），
+ * 这些均为 provider 管理变量，以便将路由配置与 Anthropic settings 隔离。
  */
 const PROVIDER_MANAGED_ENV_VARS = new Set([
-  // The flag itself — settings can't unset it once the host set it
+  // 标志本身——一旦宿主机设置，settings 不能取消它
   'CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST',
-  // Provider selection
+  // Provider 选择
   'CLAUDE_CODE_USE_BEDROCK',
   'CLAUDE_CODE_USE_VERTEX',
   'CLAUDE_CODE_USE_FOUNDRY',
   'CLAUDE_CODE_USE_GEMINI',
-  // Endpoint config (base URLs, project/resource identifiers)
+  // 端点配置（base URL、project/resource 标识符）
   'ANTHROPIC_BASE_URL',
   'ANTHROPIC_BEDROCK_BASE_URL',
   'ANTHROPIC_VERTEX_BASE_URL',
@@ -31,9 +30,9 @@ const PROVIDER_MANAGED_ENV_VARS = new Set([
   'ANTHROPIC_FOUNDRY_RESOURCE',
   'ANTHROPIC_VERTEX_PROJECT_ID',
   'GEMINI_BASE_URL',
-  // Region routing (per-model VERTEX_REGION_CLAUDE_* handled by prefix below)
+  // 区域路由（每模型的 VERTEX_REGION_CLAUDE_* 通过下方前缀匹配处理）
   'CLOUD_ML_REGION',
-  // Auth
+  // 认证
   'ANTHROPIC_API_KEY',
   'ANTHROPIC_AUTH_TOKEN',
   'CLAUDE_CODE_OAUTH_TOKEN',
@@ -43,7 +42,7 @@ const PROVIDER_MANAGED_ENV_VARS = new Set([
   'CLAUDE_CODE_SKIP_VERTEX_AUTH',
   'CLAUDE_CODE_SKIP_FOUNDRY_AUTH',
   'GEMINI_API_KEY',
-  // Model defaults — often set to provider-specific ID formats
+  // 模型默认值——通常设置为 provider 特定的 ID 格式
   'ANTHROPIC_MODEL',
   'ANTHROPIC_DEFAULT_HAIKU_MODEL',
   'ANTHROPIC_DEFAULT_HAIKU_MODEL_DESCRIPTION',
@@ -57,7 +56,7 @@ const PROVIDER_MANAGED_ENV_VARS = new Set([
   'ANTHROPIC_DEFAULT_SONNET_MODEL_DESCRIPTION',
   'ANTHROPIC_DEFAULT_SONNET_MODEL_NAME',
   'ANTHROPIC_DEFAULT_SONNET_MODEL_SUPPORTED_CAPABILITIES',
-  // OpenAI provider specific
+  // OpenAI provider 专用
   'OPENAI_AUTH_MODE',
   'OPENAI_API_KEY',
   'OPENAI_BASE_URL',
@@ -80,7 +79,7 @@ const PROVIDER_MANAGED_ENV_VARS = new Set([
   'CLAUDE_CODE_SUBAGENT_MODEL',
   'GEMINI_MODEL',
   'GEMINI_SMALL_FAST_MODEL',
-  // Gemini provider specific - separate from Anthropic/OpenAI
+  // Gemini provider 专用——与 Anthropic/OpenAI 独立
   'GEMINI_DEFAULT_HAIKU_MODEL',
   'GEMINI_DEFAULT_HAIKU_MODEL_DESCRIPTION',
   'GEMINI_DEFAULT_HAIKU_MODEL_NAME',
@@ -96,8 +95,8 @@ const PROVIDER_MANAGED_ENV_VARS = new Set([
 ])
 
 const PROVIDER_MANAGED_ENV_PREFIXES = [
-  // Per-model Vertex region overrides — scales with model releases, so
-  // prefix-matched to avoid drift on each launch.
+  // 每模型 Vertex 区域覆盖——随模型发布扩展，因此
+  // 使用前缀匹配以避免每次发布时产生漂移。
   'VERTEX_REGION_CLAUDE_',
 ]
 
@@ -110,7 +109,7 @@ export function isProviderManagedEnvVar(key: string): boolean {
 }
 
 /**
- * Dangerous shell settings that can execute arbitrary shell code
+ * 可执行任意 shell 代码的危险 shell 设置项
  */
 export const DANGEROUS_SHELL_SETTINGS = [
   'apiKeyHelper',
@@ -122,25 +121,25 @@ export const DANGEROUS_SHELL_SETTINGS = [
 ] as const
 
 /**
- * Safe environment variables that can be applied before trust dialog.
- * These are Claude Code specific settings that don't pose security risks.
+ * 可在信任对话框之前应用的安全环境变量。
+ * 这些是 Claude Code 专属设置，不存在安全风险。
  *
- * IMPORTANT: This is the source of truth for which env vars are safe.
- * Any env var NOT in this list is considered dangerous and will trigger
- * a security dialog when set via remote managed settings.
+ * 重要：这是判断哪些 env var 安全的唯一可信来源。
+ * 不在此列表中的 env var 均视为危险，通过远程托管 settings 设置时
+ * 会触发安全对话框。
  *
- * Dangerous env vars (NOT in this list):
+ * 危险 env var（不在此列表中）：
  *
- * === REDIRECT TO ATTACKER-CONTROLLED SERVER ===
+ * === 重定向到攻击者控制的服务器 ===
  * - ANTHROPIC_BASE_URL, ANTHROPIC_BEDROCK_BASE_URL, ANTHROPIC_FOUNDRY_BASE_URL, ANTHROPIC_VERTEX_BASE_URL
  * - HTTP_PROXY, HTTPS_PROXY, NO_PROXY, http_proxy, https_proxy, no_proxy
  * - OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
  *
- * === TRUST ATTACKER-CONTROLLED SERVER ===
+ * === 信任攻击者控制的服务器 ===
  * - NODE_TLS_REJECT_UNAUTHORIZED
  * - NODE_EXTRA_CA_CERTS
  *
- * === SWITCH TO ATTACKER-CONTROLLED PROJECT ===
+ * === 切换到攻击者控制的项目 ===
  * - ANTHROPIC_FOUNDRY_RESOURCE
  * - ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN
  * - AWS_BEARER_TOKEN_BEDROCK
@@ -162,7 +161,7 @@ export const SAFE_ENV_VARS = new Set([
   'ANTHROPIC_DEFAULT_SONNET_MODEL_DESCRIPTION',
   'ANTHROPIC_DEFAULT_SONNET_MODEL_NAME',
   'ANTHROPIC_DEFAULT_SONNET_MODEL_SUPPORTED_CAPABILITIES',
-  // OpenAI provider specific
+  // OpenAI provider 专用
   'OPENAI_API_KEY',
   'OPENAI_AUTH_MODE',
   'OPENAI_BASE_URL',
@@ -184,7 +183,7 @@ export const SAFE_ENV_VARS = new Set([
   'OPENAI_ORG_ID',
   'OPENAI_PROJECT_ID',
   'OPENAI_SMALL_FAST_MODEL',
-  // Grok provider specific
+  // Grok provider 专用
   'GROK_API_KEY',
   'GROK_BASE_URL',
   'GROK_DEFAULT_HAIKU_MODEL',

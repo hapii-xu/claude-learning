@@ -26,7 +26,7 @@ import { getManagedFilePath } from './settings/managedPath.js'
 import { isRestrictedToPluginOnly } from './settings/pluginOnlyPolicy.js'
 import { CLAUDE_DIR_NAME } from 'src/constants/claudeDirName.js'
 
-// Claude configuration directory names
+// Claude 配置目录名称
 export const CLAUDE_CONFIG_DIRECTORIES = [
   'commands',
   'agents',
@@ -47,8 +47,8 @@ export type MarkdownFile = {
 }
 
 /**
- * Extracts a description from markdown content
- * Uses the first non-empty line as the description, or falls back to a default
+ * 从 markdown 内容中提取描述。
+ * 使用第一个非空行作为描述，或回退到默认值。
  */
 export function extractDescriptionFromMarkdown(
   content: string,
@@ -58,11 +58,11 @@ export function extractDescriptionFromMarkdown(
   for (const line of lines) {
     const trimmed = line.trim()
     if (trimmed) {
-      // If it's a header, strip the header prefix
+      // 若为标题则剥除标题前缀
       const headerMatch = trimmed.match(/^#+\s+(.+)$/)
       const text = headerMatch?.[1] ?? trimmed
 
-      // Return the text, limited to reasonable length
+      // 返回文本，限制在合理长度内
       return text.length > 100 ? text.substring(0, 97) + '...' : text
     }
   }
@@ -70,18 +70,18 @@ export function extractDescriptionFromMarkdown(
 }
 
 /**
- * Parses tools from frontmatter, supporting both string and array formats
- * Always returns a string array for consistency
- * @param toolsValue The value from frontmatter
- * @returns Parsed tool list as string[]
+ * 解析 frontmatter 中的工具列表，同时支持字符串和数组格式。
+ * 始终返回字符串数组以保持一致性。
+ * @param toolsValue frontmatter 中的值
+ * @returns 解析后的工具列表，类型为 string[]
  */
 function parseToolListString(toolsValue: unknown): string[] | null {
-  // Return null for missing/null - let caller decide the default
+  // 缺失/null 时返回 null——让调用方决定默认值
   if (toolsValue === undefined || toolsValue === null) {
     return null
   }
 
-  // Empty string or other falsy values mean no tools
+  // 空字符串或其他假值表示无工具
   if (!toolsValue) {
     return []
   }
@@ -107,19 +107,19 @@ function parseToolListString(toolsValue: unknown): string[] | null {
 }
 
 /**
- * Parse tools from agent frontmatter
- * Missing field = undefined (all tools)
- * Empty field = [] (no tools)
+ * 解析 agent frontmatter 中的工具列表。
+ * 字段缺失 = undefined（所有工具）
+ * 字段为空 = []（无工具）
  */
 export function parseAgentToolsFromFrontmatter(
   toolsValue: unknown,
 ): string[] | undefined {
   const parsed = parseToolListString(toolsValue)
   if (parsed === null) {
-    // For agents: undefined = all tools (undefined), null = no tools ([])
+    // 对于 agent：undefined = 所有工具（undefined），null = 无工具（[]）
     return toolsValue === undefined ? undefined : []
   }
-  // If parsed contains '*', return undefined (all tools)
+  // 如果解析结果包含 '*'，返回 undefined（所有工具）
   if (parsed.includes('*')) {
     return undefined
   }
@@ -127,8 +127,8 @@ export function parseAgentToolsFromFrontmatter(
 }
 
 /**
- * Parse allowed-tools from slash command frontmatter
- * Missing or empty field = no tools ([])
+ * 解析 slash 命令 frontmatter 中的允许工具列表。
+ * 字段缺失或为空 = 无工具（[]）
  */
 export function parseSlashCommandToolsFromFrontmatter(
   toolsValue: unknown,
@@ -141,28 +141,28 @@ export function parseSlashCommandToolsFromFrontmatter(
 }
 
 /**
- * Gets a unique identifier for a file based on its device ID and inode.
- * This allows detection of duplicate files accessed through different paths
- * (e.g., via symlinks). Returns null if the file doesn't exist or can't be stat'd.
+ * 根据设备 ID 和 inode 获取文件的唯一标识符。
+ * 用于检测通过不同路径（如符号链接）访问的重复文件。
+ * 若文件不存在或无法 stat 则返回 null。
  *
- * Note: On Windows, dev and ino may not be reliable for all file systems.
- * The code handles this gracefully by returning null on error (fail open),
- * meaning deduplication may not work on some Windows configurations.
+ * 注意：在 Windows 上，dev 和 ino 对所有文件系统可能并不可靠。
+ * 代码通过出错时返回 null 来优雅处理（fail open），
+ * 这意味着在某些 Windows 配置下去重可能无法正常工作。
  *
- * Uses bigint: true to handle filesystems with large inodes (e.g., ExFAT)
- * that exceed JavaScript's Number precision (53 bits). Without bigint, different
- * large inodes can round to the same Number, causing false duplicate detection.
- * See: https://github.com/anthropics/claude-code/issues/13893
+ * 使用 bigint: true 处理 inode 较大的文件系统（如 ExFAT），
+ * 其 inode 超出 JavaScript Number 精度（53 位）。不用 bigint 时，
+ * 不同的大 inode 可能四舍五入到相同的 Number，导致误判重复。
+ * 参见：https://github.com/anthropics/claude-code/issues/13893
  *
- * @param filePath - Path to the file
- * @returns A string identifier "device:inode" or null if file can't be identified
+ * @param filePath - 文件路径
+ * @returns 字符串标识符 "device:inode"，若无法识别文件则返回 null
  */
 async function getFileIdentity(filePath: string): Promise<string | null> {
   try {
     const stats = await lstat(filePath, { bigint: true })
-    // Some filesystems (NFS, FUSE, network mounts) report dev=0 and ino=0
-    // for all files, which would cause every file to look like a duplicate.
-    // Return null to skip deduplication for these unreliable identities.
+    // 部分文件系统（NFS、FUSE、网络挂载）对所有文件报告 dev=0 和 ino=0，
+    // 这会导致每个文件看起来都像是重复的。
+    // 返回 null 以跳过这些不可靠标识的去重。
     if (stats.dev === 0n && stats.ino === 0n) {
       return null
     }
@@ -173,21 +173,20 @@ async function getFileIdentity(filePath: string): Promise<string | null> {
 }
 
 /**
- * Compute the stop boundary for getProjectDirsUpToHome's upward walk.
+ * 计算 getProjectDirsUpToHome 向上遍历的停止边界。
  *
- * Normally the walk stops at the nearest `.git` above `cwd`. But if the Bash
- * tool has cd'd into a nested git repo inside the session's project (submodule,
- * vendored dep with its own `.git`), that nested root isn't the right boundary —
- * stopping there makes the parent project's `.hclaude/` unreachable (#31905).
+ * 通常遍历在 cwd 上方最近的 `.git` 处停止。但如果 Bash 工具
+ * 已切换到会话项目内的嵌套 git 仓库（子模块、自带 `.git` 的
+ * vendored 依赖），该嵌套根目录并非正确边界——在此停止会让
+ * 父项目的 `.hclaude/` 变得不可达（#31905）。
  *
- * The boundary is widened to the session's git root only when BOTH:
- *   - the nearest `.git` from cwd belongs to a *different* canonical repo
- *     (submodule/vendored clone — not a worktree, which resolves back to main)
- *   - that nearest `.git` sits *inside* the session's project tree
+ * 仅当同时满足以下两个条件时，边界才扩展到会话的 git 根：
+ *   - cwd 上方最近的 `.git` 属于*不同*的规范仓库
+ *     （子模块/vendored 克隆——而非 worktree，worktree 会解析回主仓库）
+ *   - 该最近的 `.git` 位于会话项目树*内部*
  *
- * Worktrees (under `.hclaude/worktrees/`) stay on the old behavior: their `.git`
- * file is the stop, and loadMarkdownFilesForSubdir's fallback adds the main-repo
- * copy only when the worktree lacks one.
+ * Worktree（在 `.hclaude/worktrees/` 下）保持旧行为：其 `.git` 文件是停止点，
+ * loadMarkdownFilesForSubdir 的回退仅在 worktree 缺少时才添加主仓库副本。
  */
 function resolveStopBoundary(cwd: string): string | null {
   const cwdGitRoot = findGitRoot(cwd)
@@ -195,42 +194,42 @@ function resolveStopBoundary(cwd: string): string | null {
   if (!cwdGitRoot || !sessionGitRoot) {
     return cwdGitRoot
   }
-  // findCanonicalGitRoot resolves worktree `.git` files to the main repo.
-  // Submodules (no commondir) and standalone clones fall through unchanged.
+  // findCanonicalGitRoot 将 worktree 的 `.git` 文件解析到主仓库。
+  // 子模块（无 commondir）和独立克隆保持不变。
   const cwdCanonical = findCanonicalGitRoot(cwd)
   if (
     cwdCanonical &&
     normalizePathForComparison(cwdCanonical) ===
       normalizePathForComparison(sessionGitRoot)
   ) {
-    // Same canonical repo (main, or a worktree of main). Stop at nearest .git.
+    // 同一规范仓库（主仓库或其 worktree）。停在最近的 .git。
     return cwdGitRoot
   }
-  // Different canonical repo. Is it nested *inside* the session's project?
+  // 不同规范仓库。它是否嵌套在会话项目*内部*？
   const nCwdGitRoot = normalizePathForComparison(cwdGitRoot)
   const nSessionRoot = normalizePathForComparison(sessionGitRoot)
   if (
     nCwdGitRoot !== nSessionRoot &&
     nCwdGitRoot.startsWith(nSessionRoot + sep)
   ) {
-    // Nested repo inside the project — skip past it, stop at the project's root.
+    // 嵌套在项目内的仓库——跳过它，停在项目根目录。
     return sessionGitRoot
   }
-  // Sibling repo or elsewhere. Stop at nearest .git (old behavior).
+  // 兄弟仓库或其他位置。停在最近的 .git（旧行为）。
   return cwdGitRoot
 }
 
 /**
- * Traverses from the current directory up to the git root (or home directory if not in a git repo),
- * collecting all .hclaude directories along the way.
+ * 从当前目录向上遍历至 git 根目录（若不在 git 仓库中则至 home 目录），
+ * 收集沿途所有 .hclaude 目录。
  *
- * Stopping at git root prevents commands/skills from parent directories outside the repository
- * from leaking into projects. For example, if ~/projects/.hclaude/commands/ exists, it won't
- * appear in ~/projects/my-repo/ if my-repo is a git repository.
+ * 在 git 根处停止可防止仓库外父目录的命令/skills 泄漏到项目中。
+ * 例如，若 ~/projects/.hclaude/commands/ 存在，当 my-repo 是 git 仓库时，
+ * 它不会出现在 ~/projects/my-repo/ 中。
  *
- * @param subdir Subdirectory (eg. "commands", "agents")
- * @param cwd Current working directory to start from
- * @returns Array of directory paths containing .hclaude/subdir, from most specific (cwd) to least specific
+ * @param subdir 子目录（如 "commands"、"agents"）
+ * @param cwd 开始遍历的当前工作目录
+ * @returns 包含 .hclaude/subdir 的目录路径数组，从最具体（cwd）到最不具体
  */
 export function getProjectDirsUpToHome(
   subdir: ClaudeConfigDirectory,
@@ -241,10 +240,10 @@ export function getProjectDirsUpToHome(
   let current = resolve(cwd)
   const dirs: string[] = []
 
-  // Traverse from current directory up to git root (or home if not in a git repo)
+  // 从当前目录向上遍历至 git 根目录（若不在 git 仓库中则至 home 目录）
   while (true) {
-    // Stop if we've reached the home directory (don't check it, as it's loaded separately as userDir)
-    // Use normalized comparison to handle Windows drive letter casing (C:\ vs c:\)
+    // 到达 home 目录时停止（不检查它，因为它作为 userDir 单独加载）
+    // 使用规范化比较处理 Windows 驱动器字母大小写（C:\ vs c:\）
     if (
       normalizePathForComparison(current) === normalizePathForComparison(home)
     ) {
@@ -252,12 +251,11 @@ export function getProjectDirsUpToHome(
     }
 
     const claudeSubdir = join(current, CLAUDE_DIR_NAME, subdir)
-    // Filter to existing dirs. This is a perf filter (avoids spawning
-    // ripgrep on non-existent dirs downstream) and the worktree fallback
-    // in loadMarkdownFilesForSubdir relies on it. statSync + explicit error
-    // handling instead of existsSync — re-throws unexpected errors rather
-    // than silently swallowing them. Downstream loadMarkdownFiles handles
-    // the TOCTOU window (dir disappearing before read) gracefully.
+    // 过滤到已存在的目录。这是性能过滤器（避免对不存在目录向下游的
+    // ripgrep 进行 spawn），loadMarkdownFilesForSubdir 中的 worktree 回退也依赖它。
+    // 使用 statSync + 显式错误处理而非 existsSync——会重新抛出意外错误
+    // 而非静默吞下。下游 loadMarkdownFiles 能优雅处理 TOCTOU 窗口
+    //（目录在读取前消失的情况）。
     try {
       statSync(claudeSubdir)
       dirs.push(claudeSubdir)
@@ -265,8 +263,7 @@ export function getProjectDirsUpToHome(
       if (!isFsInaccessible(e)) throw e
     }
 
-    // Stop after processing the git root directory - this prevents commands from parent
-    // directories outside the repository from appearing in the project
+    // 处理完 git 根目录后停止——防止仓库外父目录的命令出现在项目中
     if (
       gitRoot &&
       normalizePathForComparison(current) ===
@@ -275,10 +272,10 @@ export function getProjectDirsUpToHome(
       break
     }
 
-    // Move to parent directory
+    // 移动到父目录
     const parent = dirname(current)
 
-    // Safety check: if parent is the same as current, we've reached the root
+    // 安全检查：若父目录与当前目录相同，说明已到达文件系统根目录
     if (parent === current) {
       break
     }
@@ -290,10 +287,10 @@ export function getProjectDirsUpToHome(
 }
 
 /**
- * Loads markdown files from managed, user, and project directories
- * @param subdir Subdirectory (eg. "agents" or "commands")
- * @param cwd Current working directory for project directory traversal
- * @returns Array of parsed markdown files with metadata
+ * 从托管、用户和项目目录加载 markdown 文件
+ * @param subdir 子目录（如 "agents" 或 "commands"）
+ * @param cwd 用于项目目录遍历的当前工作目录
+ * @returns 带元数据的已解析 markdown 文件数组
  */
 export const loadMarkdownFilesForSubdir = memoize(
   async function (
@@ -305,19 +302,17 @@ export const loadMarkdownFilesForSubdir = memoize(
     const managedDir = join(getManagedFilePath(), CLAUDE_DIR_NAME, subdir)
     const projectDirs = getProjectDirsUpToHome(subdir, cwd)
 
-    // For git worktrees where the worktree does NOT have .hclaude/<subdir> checked
-    // out (e.g. sparse-checkout), fall back to the main repository's copy.
-    // getProjectDirsUpToHome stops at the worktree root (where the .git file is),
-    // so it never sees the main repo on its own.
+    // 对于 .hclaude/<subdir> 未被检出的 git worktree（如 sparse-checkout），
+    // 回退到主仓库的副本。getProjectDirsUpToHome 在 worktree 根目录
+    //（.git 文件所在处）停止，因此它不会自行看到主仓库。
     //
-    // Only add the main repo's copy when the worktree root's .hclaude/<subdir>
-    // is absent. A standard `git worktree add` checks out the full tree, so the
-    // worktree already has identical .hclaude/<subdir> content — loading the main
-    // repo's copy too would duplicate every command/agent/skill
-    // (anthropics/claude-code#29599, #28182, #26992).
+    // 仅在 worktree 根的 .hclaude/<subdir> 不存在时才添加主仓库副本。
+    // 标准的 `git worktree add` 会检出完整树，所以 worktree 已有相同的
+    // .hclaude/<subdir> 内容——同时加载主仓库副本会导致每个
+    // command/agent/skill 重复（anthropics/claude-code#29599, #28182, #26992）。
     //
-    // projectDirs already reflects existence (getProjectDirsUpToHome checked
-    // each dir), so we compare against that instead of stat'ing again.
+    // projectDirs 已经反映了存在性（getProjectDirsUpToHome 逐一检查过），
+    // 因此我们与它比较，而不是再次 stat。
     const gitRoot = findGitRoot(cwd)
     const canonicalRoot = findCanonicalGitRoot(cwd)
     if (gitRoot && canonicalRoot && canonicalRoot !== gitRoot) {
@@ -336,7 +331,7 @@ export const loadMarkdownFilesForSubdir = memoize(
     }
 
     const [managedFiles, userFiles, projectFilesNested] = await Promise.all([
-      // Always load managed (policy settings)
+      // 始终加载托管文件（policy settings）
       loadMarkdownFiles(managedDir).then(_ =>
         _.map(file => ({
           ...file,
@@ -344,7 +339,7 @@ export const loadMarkdownFilesForSubdir = memoize(
           source: 'policySettings' as const,
         })),
       ),
-      // Conditionally load user files
+      // 条件性加载用户文件
       isSettingSourceEnabled('userSettings') &&
       !(subdir === 'agents' && isRestrictedToPluginOnly('agents'))
         ? loadMarkdownFiles(userDir).then(_ =>
@@ -355,7 +350,7 @@ export const loadMarkdownFilesForSubdir = memoize(
             })),
           )
         : Promise.resolve([]),
-      // Conditionally load project files from all directories up to home
+      // 条件性从所有目录（至 home）加载项目文件
       isSettingSourceEnabled('projectSettings') &&
       !(subdir === 'agents' && isRestrictedToPluginOnly('agents'))
         ? Promise.all(
@@ -372,16 +367,15 @@ export const loadMarkdownFilesForSubdir = memoize(
         : Promise.resolve([]),
     ])
 
-    // Flatten nested project files array
+    // 展平嵌套的项目文件数组
     const projectFiles = projectFilesNested.flat()
 
-    // Combine all files with priority: managed > user > project
+    // 合并所有文件，优先级：托管 > 用户 > 项目
     const allFiles = [...managedFiles, ...userFiles, ...projectFiles]
 
-    // Deduplicate files that resolve to the same physical file (same inode).
-    // This prevents the same file from appearing multiple times when ~/.hclaude is
-    // symlinked to a directory within the project hierarchy, causing the same
-    // physical file to be discovered through different paths.
+    // 去重解析到同一物理文件（相同 inode）的文件。
+    // 防止当 ~/.hclaude 被符号链接到项目层次中的某个目录时，
+    // 同一物理文件通过不同路径被多次发现。
     const fileIdentities = await Promise.all(
       allFiles.map(file => getFileIdentity(file.filePath)),
     )
@@ -392,7 +386,7 @@ export const loadMarkdownFilesForSubdir = memoize(
     for (const [i, file] of allFiles.entries()) {
       const fileId = fileIdentities[i] ?? null
       if (fileId === null) {
-        // If we can't identify the file, include it (fail open)
+        // 若无法识别文件，则包含它（fail open）
         deduplicatedFiles.push(file)
         continue
       }

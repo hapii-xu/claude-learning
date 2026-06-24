@@ -119,7 +119,7 @@ export function FallbackPermissionRequest({
   const options = useMemo((): PermissionPromptOption<FallbackOptionValue>[] => {
     const result: PermissionPromptOption<FallbackOptionValue>[] = [
       {
-        label: 'Yes',
+        label: '是',
         value: 'yes',
         feedbackConfig: { type: 'accept' },
       },
@@ -129,8 +129,7 @@ export function FallbackPermissionRequest({
       result.push({
         label: (
           <Text>
-            Yes, and don&apos;t ask again for <Text bold>{userFacingName}</Text> commands in{' '}
-            <Text bold>{originalCwd}</Text>
+            是，且不再询问 <Text bold>{userFacingName}</Text> 在 <Text bold>{originalCwd}</Text> 中的命令
           </Text>
         ),
         value: 'yes-dont-ask-again',
@@ -138,7 +137,7 @@ export function FallbackPermissionRequest({
     }
 
     result.push({
-      label: 'No',
+      label: '否',
       value: 'no',
       feedbackConfig: { type: 'reject' },
     });
@@ -155,7 +154,7 @@ export function FallbackPermissionRequest({
   );
 
   return (
-    <PermissionDialog title="Tool use" workerBadge={workerBadge}>
+    <PermissionDialog title="工具使用" workerBadge={workerBadge}>
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Text>
           {userFacingName}(

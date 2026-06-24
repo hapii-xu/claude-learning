@@ -46,7 +46,7 @@ function InvalidApiKeyMessage(): React.ReactNode {
     <MessageResponse>
       <Box flexDirection="column">
         <Text color="error">{INVALID_API_KEY_ERROR_MESSAGE}</Text>
-        {isKeychainLocked && <Text dimColor>· Run in another terminal: security unlock-keychain</Text>}
+        {isKeychainLocked && <Text dimColor>· 在另一个终端中运行：security unlock-keychain</Text>}
       </Box>
     </MessageResponse>
   );
@@ -81,7 +81,7 @@ export function AssistantTextMessage({
       return (
         <MessageResponse height={1}>
           <Text color="error">
-            Context limit reached · /compact or /clear to continue
+            上下文已达上限 · 使用 /compact 或 /clear 继续
             {upgradeHint ? ` · ${upgradeHint}` : ''}
           </Text>
         </MessageResponse>
@@ -91,9 +91,7 @@ export function AssistantTextMessage({
     case CREDIT_BALANCE_TOO_LOW_ERROR_MESSAGE:
       return (
         <MessageResponse height={1}>
-          <Text color="error">
-            Credit balance too low &middot; Add funds: https://platform.claude.com/settings/billing
-          </Text>
+          <Text color="error">余额不足 · 充值：https://platform.claude.com/settings/billing</Text>
         </MessageResponse>
       );
 
@@ -127,7 +125,7 @@ export function AssistantTextMessage({
         <MessageResponse height={1}>
           <Text color="error">
             {API_TIMEOUT_ERROR_MESSAGE}
-            {process.env.API_TIMEOUT_MS && <> (API_TIMEOUT_MS={process.env.API_TIMEOUT_MS}ms, try increasing it)</>}
+            {process.env.API_TIMEOUT_MS && <> (API_TIMEOUT_MS={process.env.API_TIMEOUT_MS}ms，可尝试增大该值)</>}
           </Text>
         </MessageResponse>
       );
@@ -136,11 +134,8 @@ export function AssistantTextMessage({
       return (
         <MessageResponse>
           <Box flexDirection="column" gap={1}>
-            <Text color="error">We are experiencing high demand for Opus 4.</Text>
-            <Text>
-              To continue immediately, use /model to switch to {renderModelName(getDefaultSonnetModel())} and continue
-              coding.
-            </Text>
+            <Text color="error">Opus 4 当前需求量很高，暂时无法使用。</Text>
+            <Text>如需立即继续，请使用 /model 切换到 {renderModelName(getDefaultSonnetModel())} 继续编码。</Text>
           </Box>
         </MessageResponse>
       );
@@ -161,7 +156,7 @@ export function AssistantTextMessage({
             <Box flexDirection="column">
               <Text color="error">
                 {text === API_ERROR_MESSAGE_PREFIX
-                  ? `${API_ERROR_MESSAGE_PREFIX}: Please wait a moment and try again.`
+                  ? `${API_ERROR_MESSAGE_PREFIX}：请稍候再试。`
                   : truncated
                     ? text.slice(0, MAX_API_ERROR_CHARS) + '…'
                     : text}

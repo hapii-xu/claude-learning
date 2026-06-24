@@ -22,7 +22,7 @@ import { createSignal } from './signal.js'
 export type SetAppState = (f: (prev: AppState) => AppState) => void
 
 // ============================================================================
-// Logging helper
+// 日志辅助
 // ============================================================================
 
 function logOperation(operation: QueueOperation, content?: string): void {
@@ -38,20 +38,20 @@ function logOperation(operation: QueueOperation, content?: string): void {
 }
 
 // ============================================================================
-// Unified command queue (module-level, independent of React state)
+// 统一命令队列（模块级，独立于 React 状态）
 //
-// All commands — user input, task notifications, orphaned permissions — go
-// through this single queue. React components subscribe via
-// useSyncExternalStore (subscribeToCommandQueue / getCommandQueueSnapshot).
-// Non-React code (print.ts streaming loop) reads directly via
-// getCommandQueue() / getCommandQueueLength().
+// 所有命令——用户输入、任务通知、孤立权限——均通过此单一队列处理。
+// React 组件通过 useSyncExternalStore 订阅
+//（subscribeToCommandQueue / getCommandQueueSnapshot）。
+// 非 React 代码（print.ts 流式循环）直接通过
+// getCommandQueue() / getCommandQueueLength() 读取。
 //
-// Priority determines dequeue order: 'now' > 'next' > 'later'.
-// Within the same priority, commands are processed FIFO.
+// 优先级决定出队顺序：'now' > 'next' > 'later'。
+// 相同优先级内，命令按 FIFO 处理。
 // ============================================================================
 
 const commandQueue: QueuedCommand[] = []
-/** Frozen snapshot — recreated on every mutation for useSyncExternalStore. */
+/** 冻结快照——每次变更时重建，供 useSyncExternalStore 使用。 */
 let snapshot: readonly QueuedCommand[] = Object.freeze([])
 const queueChanged = createSignal()
 
@@ -61,54 +61,54 @@ function notifySubscribers(): void {
 }
 
 // ============================================================================
-// useSyncExternalStore interface
+// useSyncExternalStore 接口
 // ============================================================================
 
 /**
- * Subscribe to command queue changes.
- * Compatible with React's useSyncExternalStore.
+ * 订阅命令队列变更。
+ * 与 React 的 useSyncExternalStore 兼容。
  */
 export const subscribeToCommandQueue = queueChanged.subscribe
 
 /**
- * Get current snapshot of the command queue.
- * Compatible with React's useSyncExternalStore.
- * Returns a frozen array that only changes reference on mutation.
+ * 获取命令队列的当前快照。
+ * 与 React 的 useSyncExternalStore 兼容。
+ * 返回一个冻结数组，仅在变更时更改引用。
  */
 export function getCommandQueueSnapshot(): readonly QueuedCommand[] {
   return snapshot
 }
 
 // ============================================================================
-// Read operations (for non-React code)
+// 读取操作（供非 React 代码使用）
 // ============================================================================
 
 /**
- * Get a mutable copy of the current queue.
- * Use for one-off reads where you need the actual commands.
+ * 获取当前队列的可变副本。
+ * 用于需要实际命令的一次性读取。
  */
 export function getCommandQueue(): QueuedCommand[] {
   return [...commandQueue]
 }
 
 /**
- * Get the current queue length without copying.
+ * 不复制地获取当前队列长度。
  */
 export function getCommandQueueLength(): number {
   return commandQueue.length
 }
 
 /**
- * Check if there are commands in the queue.
+ * 检查队列中是否有命令。
  */
 export function hasCommandsInQueue(): boolean {
   return commandQueue.length > 0
 }
 
 /**
- * Trigger a re-check by notifying subscribers.
- * Use after async processing completes to ensure remaining commands
- * are picked up by useSyncExternalStore consumers.
+ * 通过通知订阅者触发重新检查。
+ * 在异步处理完成后使用，以确保 useSyncExternalStore 消费者
+ * 能获取到剩余的命令。
  */
 export function recheckCommandQueue(): void {
   if (commandQueue.length > 0) {
@@ -117,13 +117,13 @@ export function recheckCommandQueue(): void {
 }
 
 // ============================================================================
-// Write operations
+// 写入操作
 // ============================================================================
 
 /**
- * Add a command to the queue.
- * Used for user-initiated commands (prompt, bash, orphaned-permission).
- * Defaults priority to 'next' (processed before task notifications).
+ * 向队列添加命令。
+ * 用于用户发起的命令（prompt、bash、孤立权限）。
+ * 默认优先级为 'next'（在任务通知之前处理）。
  */
 export function enqueue(command: QueuedCommand): void {
   commandQueue.push({ ...command, priority: command.priority ?? 'next' })
@@ -135,9 +135,8 @@ export function enqueue(command: QueuedCommand): void {
 }
 
 /**
- * Add a task notification to the queue.
- * Convenience wrapper that defaults priority to 'later' so user input
- * is never starved by system messages.
+ * 向队列添加任务通知。
+ * 便捷包装器，默认优先级为 'later'，确保用户输入不会被系统消息饿死。
  */
 export function enqueuePendingNotification(command: QueuedCommand): void {
   commandQueue.push({ ...command, priority: command.priority ?? 'later' })
@@ -155,14 +154,13 @@ const PRIORITY_ORDER: Record<QueuePriority, number> = {
 }
 
 /**
- * Remove and return the highest-priority command, or undefined if empty.
- * Within the same priority level, commands are dequeued FIFO.
+ * 移除并返回最高优先级的命令，若队列为空则返回 undefined。
+ * 相同优先级内，命令按 FIFO 出队。
  *
- * An optional `filter` narrows the candidates: only commands for which the
- * predicate returns `true` are considered. Non-matching commands stay in the
- * queue untouched. This lets between-turn drains (SDK, REPL) restrict to
- * main-thread commands (`cmd.agentId === undefined`) without restructuring
- * the existing while-loop patterns.
+ * 可选的 `filter` 缩小候选范围：只考虑谓词返回 `true` 的命令。
+ * 不匹配的命令保留在队列中不变。这使得轮次间的排空
+ *（SDK、REPL）可以限制为主线程命令（`cmd.agentId === undefined`），
+ * 而无需重构现有的 while 循环模式。
  */
 export function dequeue(
   filter?: (cmd: QueuedCommand) => boolean,
@@ -171,7 +169,7 @@ export function dequeue(
     return undefined
   }
 
-  // Find the first command with the highest priority (respecting filter)
+  // 找到优先级最高的第一个命令（遵守过滤器）
   let bestIdx = -1
   let bestPriority = Infinity
   for (let i = 0; i < commandQueue.length; i++) {
@@ -193,8 +191,8 @@ export function dequeue(
 }
 
 /**
- * Remove and return all commands from the queue.
- * Logs a dequeue operation for each command.
+ * 移除并返回队列中的所有命令。
+ * 为每条命令记录一次出队操作。
  */
 export function dequeueAll(): QueuedCommand[] {
   if (commandQueue.length === 0) {
@@ -213,8 +211,8 @@ export function dequeueAll(): QueuedCommand[] {
 }
 
 /**
- * Return the highest-priority command without removing it, or undefined if empty.
- * Accepts an optional `filter` — only commands passing the predicate are considered.
+ * 不移除地返回最高优先级的命令，若队列为空则返回 undefined。
+ * 接受可选的 `filter`——只考虑通过谓词的命令。
  */
 export function peek(
   filter?: (cmd: QueuedCommand) => boolean,
@@ -238,8 +236,8 @@ export function peek(
 }
 
 /**
- * Remove and return all commands matching a predicate, preserving priority order.
- * Non-matching commands stay in the queue.
+ * 移除并返回所有匹配谓词的命令，保持优先级顺序。
+ * 不匹配的命令保留在队列中。
  */
 export function dequeueAllMatching(
   predicate: (cmd: QueuedCommand) => boolean,
@@ -266,9 +264,9 @@ export function dequeueAllMatching(
 }
 
 /**
- * Remove specific commands from the queue by reference identity.
- * Callers must pass the same object references that are in the queue
- * (e.g. from getCommandsByMaxPriority). Logs a 'remove' operation for each.
+ * 按引用标识从队列中移除特定命令。
+ * 调用方必须传入队列中相同的对象引用（如来自 getCommandsByMaxPriority 的）。
+ * 为每个命令记录一次 'remove' 操作。
  */
 export function remove(commandsToRemove: QueuedCommand[]): void {
   if (commandsToRemove.length === 0) {
@@ -292,8 +290,8 @@ export function remove(commandsToRemove: QueuedCommand[]): void {
 }
 
 /**
- * Remove commands matching a predicate.
- * Returns the removed commands.
+ * 移除匹配谓词的命令。
+ * 返回已移除的命令。
  */
 export function removeByFilter(
   predicate: (cmd: QueuedCommand) => boolean,
@@ -316,8 +314,8 @@ export function removeByFilter(
 }
 
 /**
- * Clear all commands from the queue.
- * Used by ESC cancellation to discard queued notifications.
+ * 清除队列中的所有命令。
+ * 供 ESC 取消功能用于丢弃已排队通知。
  */
 export function clearCommandQueue(): void {
   if (commandQueue.length === 0) {
@@ -328,8 +326,8 @@ export function clearCommandQueue(): void {
 }
 
 /**
- * Clear all commands and reset snapshot.
- * Used for test cleanup.
+ * 清除所有命令并重置快照。
+ * 用于测试清理。
  */
 export function resetCommandQueue(): void {
   commandQueue.length = 0
@@ -337,7 +335,7 @@ export function resetCommandQueue(): void {
 }
 
 // ============================================================================
-// Editable mode helpers
+// 可编辑模式辅助函数
 // ============================================================================
 
 const NON_EDITABLE_MODES = new Set<PromptInputMode>([
@@ -351,19 +349,18 @@ export function isPromptInputModeEditable(
 }
 
 /**
- * Whether this queued command can be pulled into the input buffer via UP/ESC.
- * System-generated commands (proactive ticks, scheduled tasks, plan
- * verification, channel messages) contain raw XML and must not leak into
- * the user's input.
+ * 此排队命令是否可以通过 UP/ESC 拉入输入缓冲区。
+ * 系统生成的命令（主动触发、计划任务、计划验证、频道消息）
+ * 包含原始 XML，不得泄漏到用户输入中。
  */
 export function isQueuedCommandEditable(cmd: QueuedCommand): boolean {
   return isPromptInputModeEditable(cmd.mode) && !cmd.isMeta
 }
 
 /**
- * Whether this queued command should render in the queue preview under the
- * prompt. Superset of editable — channel messages show (so the keyboard user
- * sees what arrived) but stay non-editable (raw XML).
+ * 此排队命令是否应在提示符下方的队列预览中渲染。
+ * 是 editable 的超集——频道消息会显示（让键盘用户看到到达的内容），
+ * 但保持不可编辑（原始 XML）。
  */
 export function isQueuedCommandVisible(cmd: QueuedCommand): boolean {
   if (
@@ -377,17 +374,17 @@ export function isQueuedCommandVisible(cmd: QueuedCommand): boolean {
 }
 
 /**
- * Extract text from a queued command value.
- * For strings, returns the string.
- * For ContentBlockParam[], extracts text from text blocks.
+ * 从排队命令值中提取文本。
+ * 对于字符串，直接返回字符串。
+ * 对于 ContentBlockParam[]，从文本块中提取文本。
  */
 function extractTextFromValue(value: string | ContentBlockParam[]): string {
   return typeof value === 'string' ? value : extractTextContent(value, '\n')
 }
 
 /**
- * Extract images from ContentBlockParam[] and convert to PastedContent format.
- * Returns empty array for string values or if no images found.
+ * 从 ContentBlockParam[] 中提取图片并转换为 PastedContent 格式。
+ * 对于字符串值或未找到图片时，返回空数组。
  */
 function extractImagesFromValue(
   value: string | ContentBlockParam[],
@@ -421,11 +418,10 @@ export type PopAllEditableResult = {
 }
 
 /**
- * Pop all editable commands and combine them with current input for editing.
- * Notification modes (task-notification) are left in the queue
- * to be auto-processed later.
- * Returns object with combined text, cursor offset, and images to restore.
- * Returns undefined if no editable commands in queue.
+ * 弹出所有可编辑命令并与当前输入合并以供编辑。
+ * 通知模式（task-notification）保留在队列中，稍后自动处理。
+ * 返回包含合并文本、光标偏移量和待恢复图片的对象。
+ * 若队列中无可编辑命令则返回 undefined。
  */
 export function popAllEditable(
   currentInput: string,
@@ -444,19 +440,19 @@ export function popAllEditable(
     return undefined
   }
 
-  // Extract text from queued commands (handles both strings and ContentBlockParam[])
+  // 从排队命令中提取文本（同时处理字符串和 ContentBlockParam[]）
   const queuedTexts = editable.map(cmd => extractTextFromValue(cmd.value))
   const newInput = [...queuedTexts, currentInput].filter(Boolean).join('\n')
 
-  // Calculate cursor offset: length of joined queued commands + 1 + current cursor offset
+  // 计算光标偏移量：已合并排队命令的长度 + 1 + 当前光标偏移量
   const cursorOffset = queuedTexts.join('\n').length + 1 + currentCursorOffset
 
-  // Extract images from queued commands
+  // 从排队命令中提取图片
   const images: PastedContent[] = []
-  let nextImageId = Date.now() // Use timestamp as base for unique IDs
+  let nextImageId = Date.now() // 使用时间戳作为唯一 ID 的基础
   for (const cmd of editable) {
-    // handlePromptSubmit queues images in pastedContents (value is a string).
-    // Preserve the original PastedContent id so imageStore lookups still work.
+    // handlePromptSubmit 将图片队列化到 pastedContents（value 为字符串）。
+    // 保留原始 PastedContent id，以便 imageStore 查找仍然有效。
     if (cmd.pastedContents) {
       for (const content of Object.values(cmd.pastedContents)) {
         if (content.type === 'image') {
@@ -464,7 +460,7 @@ export function popAllEditable(
         }
       }
     }
-    // Bridge/remote commands may embed images directly in ContentBlockParam[].
+    // Bridge/远程命令可能直接在 ContentBlockParam[] 中嵌入图片。
     const cmdImages = extractImagesFromValue(cmd.value, nextImageId)
     images.push(...cmdImages)
     nextImageId += cmdImages.length
@@ -477,7 +473,7 @@ export function popAllEditable(
     )
   }
 
-  // Replace queue contents with only the non-editable commands
+  // 用仅含不可编辑命令的内容替换队列
   commandQueue.length = 0
   commandQueue.push(...nonEditable)
   notifySubscribers()
@@ -486,43 +482,43 @@ export function popAllEditable(
 }
 
 // ============================================================================
-// Backward-compatible aliases (deprecated — prefer new names)
+// 向后兼容别名（已弃用——优先使用新名称）
 // ============================================================================
 
-/** @deprecated Use subscribeToCommandQueue */
+/** @deprecated 使用 subscribeToCommandQueue */
 export const subscribeToPendingNotifications = subscribeToCommandQueue
 
-/** @deprecated Use getCommandQueueSnapshot */
+/** @deprecated 使用 getCommandQueueSnapshot */
 export function getPendingNotificationsSnapshot(): readonly QueuedCommand[] {
   return snapshot
 }
 
-/** @deprecated Use hasCommandsInQueue */
+/** @deprecated 使用 hasCommandsInQueue */
 export const hasPendingNotifications = hasCommandsInQueue
 
-/** @deprecated Use getCommandQueueLength */
+/** @deprecated 使用 getCommandQueueLength */
 export const getPendingNotificationsCount = getCommandQueueLength
 
-/** @deprecated Use recheckCommandQueue */
+/** @deprecated 使用 recheckCommandQueue */
 export const recheckPendingNotifications = recheckCommandQueue
 
-/** @deprecated Use dequeue */
+/** @deprecated 使用 dequeue */
 export function dequeuePendingNotification(): QueuedCommand | undefined {
   return dequeue()
 }
 
-/** @deprecated Use resetCommandQueue */
+/** @deprecated 使用 resetCommandQueue */
 export const resetPendingNotifications = resetCommandQueue
 
-/** @deprecated Use clearCommandQueue */
+/** @deprecated 使用 clearCommandQueue */
 export const clearPendingNotifications = clearCommandQueue
 
 /**
- * Get commands at or above a given priority level without removing them.
- * Useful for mid-chain draining where only urgent items should be processed.
+ * 获取达到或超过给定优先级的命令，不移除它们。
+ * 用于链中间排空，此时只应处理紧急项目。
  *
- * Priority order: 'now' (0) > 'next' (1) > 'later' (2).
- * Passing 'now' returns only now-priority commands; 'later' returns everything.
+ * 优先级顺序：'now' (0) > 'next' (1) > 'later' (2)。
+ * 传入 'now' 只返回 now 优先级命令；传入 'later' 返回所有命令。
  */
 export function getCommandsByMaxPriority(
   maxPriority: QueuePriority,
@@ -534,12 +530,12 @@ export function getCommandsByMaxPriority(
 }
 
 /**
- * Returns true if the command is a slash command that should be routed through
- * processSlashCommand rather than sent to the model as text.
+ * 若命令是 slash 命令（应通过 processSlashCommand 路由而非作为文本发送给模型）
+ * 则返回 true。
  *
- * Commands with `skipSlashCommands` are usually treated as plain text, except
- * Remote Control bridge messages (`bridgeOrigin`) that are re-validated later
- * through isBridgeSafeCommand().
+ * 带有 `skipSlashCommands` 的命令通常被视为纯文本，
+ * Remote Control bridge 消息（`bridgeOrigin`）除外，
+ * 它们稍后通过 isBridgeSafeCommand() 重新验证。
  */
 export function isSlashCommand(cmd: QueuedCommand): boolean {
   return (

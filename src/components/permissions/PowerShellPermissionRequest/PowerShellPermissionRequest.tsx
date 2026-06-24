@@ -212,7 +212,7 @@ export function PowerShellPermissionRequest(props: PermissionRequestProps): Reac
   }
 
   return (
-    <PermissionDialog workerBadge={workerBadge} title="PowerShell command">
+    <PermissionDialog workerBadge={workerBadge} title="PowerShell 命令">
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Text dimColor={explainerState.visible}>
           {PowerShellTool.renderToolUseMessage(
@@ -228,7 +228,7 @@ export function PowerShellPermissionRequest(props: PermissionRequestProps): Reac
           <PermissionDecisionDebugInfo permissionResult={toolUseConfirm.permissionResult} toolName="PowerShell" />
           {toolUseContext.options.debug && (
             <Box justifyContent="flex-end" marginTop={1}>
-              <Text dimColor>Ctrl-D to hide debug info</Text>
+              <Text dimColor>Ctrl-D 隐藏调试信息</Text>
             </Box>
           )}
         </>
@@ -241,7 +241,7 @@ export function PowerShellPermissionRequest(props: PermissionRequestProps): Reac
                 <Text color="warning">{destructiveWarning}</Text>
               </Box>
             )}
-            <Text>Do you want to proceed?</Text>
+            <Text>是否继续执行？</Text>
             <Select
               options={options}
               inlineDescriptions
@@ -253,12 +253,12 @@ export function PowerShellPermissionRequest(props: PermissionRequestProps): Reac
           </Box>
           <Box justifyContent="space-between" marginTop={1}>
             <Text dimColor>
-              Esc to cancel
+              Esc 取消
               {((focusedOption === 'yes' && !yesInputMode) || (focusedOption === 'no' && !noInputMode)) &&
-                ' · Tab to amend'}
-              {explainerState.enabled && ` · ctrl+e to ${explainerState.visible ? 'hide' : 'explain'}`}
+                ' · Tab 添加反馈'}
+              {explainerState.enabled && ` · ctrl+e ${explainerState.visible ? '隐藏' : '解释'}`}
             </Text>
-            {toolUseContext.options.debug && <Text dimColor>Ctrl+d to show debug info</Text>}
+            {toolUseContext.options.debug && <Text dimColor>Ctrl+d 显示调试信息</Text>}
           </Box>
         </>
       )}

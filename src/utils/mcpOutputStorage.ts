@@ -11,7 +11,7 @@ import { logError } from './log.js'
 import { ensureToolResultsDir, getToolResultsDir } from './toolResultStorage.js'
 
 /**
- * Generates a format description string based on the MCP result type and schema.
+ * 根据 MCP 结果类型和 schema 生成格式描述字符串。
  */
 export function getFormatDescription(
   type: MCPResultType,
@@ -28,13 +28,13 @@ export function getFormatDescription(
 }
 
 /**
- * Generates instruction text for Claude to read from a saved output file.
+ * 生成指示 Claude 从已保存输出文件中读取的提示文本。
  *
- * @param rawOutputPath - Path to the saved output file
- * @param contentLength - Length of the content in characters
- * @param formatDescription - Description of the content format
- * @param maxReadLength - Optional max chars for Read tool (for Bash output context)
- * @returns Instruction text to include in the tool result
+ * @param rawOutputPath - 已保存输出文件的路径
+ * @param contentLength - 内容的字符长度
+ * @param formatDescription - 内容格式描述
+ * @param maxReadLength - Read 工具的可选最大字符数（用于 Bash 输出上下文）
+ * @returns 要包含在工具结果中的提示文本
  */
 export function getLargeOutputInstructions(
   rawOutputPath: string,
@@ -59,13 +59,13 @@ export function getLargeOutputInstructions(
 }
 
 /**
- * Map a mime type to a file extension. Conservative: known types get their
- * proper extension; unknown types get 'bin'. The extension matters because
- * the Read tool dispatches on it (PDFs, images, etc. need the right ext).
+ * 将 mime 类型映射到文件扩展名。保守策略：已知类型获得正确扩展名；
+ * 未知类型获得 'bin'。扩展名很重要，因为 Read 工具会根据它进行分发
+ *（PDF、图片等需要正确的扩展名）。
  */
 export function extensionForMimeType(mimeType: string | undefined): string {
   if (!mimeType) return 'bin'
-  // Strip any charset/boundary parameter
+  // 去除 charset/boundary 参数
   const mt = (mimeType.split(';')[0] ?? '').trim().toLowerCase()
   switch (mt) {
     case 'application/pdf':
@@ -118,16 +118,15 @@ export function extensionForMimeType(mimeType: string | undefined): string {
 }
 
 /**
- * Heuristic for whether a content-type header indicates binary content that
- * should be saved to disk rather than put into the model context.
- * Text-ish types (text/*, json, xml, form data) are treated as non-binary.
+ * 启发式判断 content-type 头是否表示应保存到磁盘而非放入模型上下文的二进制内容。
+ * 类文本类型（text/*、json、xml、表单数据）被视为非二进制。
  */
 export function isBinaryContentType(contentType: string): boolean {
   if (!contentType) return false
   const mt = (contentType.split(';')[0] ?? '').trim().toLowerCase()
   if (mt.startsWith('text/')) return false
-  // Structured text formats delivered with an application/ type. Use suffix
-  // or exact match rather than substring so 'openxmlformats' (docx/xlsx) stays binary.
+  // 以 application/ 类型传递的结构化文本格式。使用后缀或精确匹配
+  // 而非子字符串，以使 'openxmlformats'（docx/xlsx）保持二进制。
   if (mt.endsWith('+json') || mt === 'application/json') return false
   if (mt.endsWith('+xml') || mt === 'application/xml') return false
   if (mt.startsWith('application/javascript')) return false
@@ -140,10 +139,9 @@ export type PersistBinaryResult =
   | { error: string }
 
 /**
- * Write raw binary bytes to the tool-results directory with a mime-derived
- * extension. Unlike persistToolResult (which stringifies), this writes the
- * bytes as-is so the resulting file can be opened with native tools (Read
- * for PDFs, pandas for xlsx, etc.).
+ * 将原始二进制字节以 mime 派生的扩展名写入 tool-results 目录。
+ * 与 persistToolResult（会做字符串化）不同，此函数按原样写入字节，
+ * 使生成的文件可用原生工具打开（PDF 用 Read，xlsx 用 pandas 等）。
  */
 export async function persistBinaryContent(
   bytes: Buffer,
@@ -162,7 +160,7 @@ export async function persistBinaryContent(
     return { error: err.message }
   }
 
-  // mime type and extension are safe fixed-vocabulary strings (not paths/code)
+  // mime 类型和扩展名是安全的固定词汇字符串（非路径/代码）
   logEvent('tengu_binary_content_persisted', {
     mimeType: (mimeType ??
       'unknown') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -174,9 +172,9 @@ export async function persistBinaryContent(
 }
 
 /**
- * Build a short message telling Claude where binary content was saved.
- * Just states the path — no prescriptive hint, since what the model can
- * actually do with the file depends on provider/tooling.
+ * 构建简短消息告知 Claude 二进制内容已保存到何处。
+ * 仅声明路径——不提供规定性提示，因为模型对文件的实际操作能力
+ * 取决于 provider/工具链。
  */
 export function getBinaryBlobSavedMessage(
   filepath: string,

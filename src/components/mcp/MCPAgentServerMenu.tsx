@@ -68,7 +68,7 @@ export function MCPAgentServerMenu({ agentServer, onCancel, onComplete }: Props)
 
       await performMCPOAuthFlow(agentServer.name, tempConfig, setAuthorizationUrl, controller.signal);
 
-      onComplete?.(`Authentication successful for ${agentServer.name}. The server will connect when the agent runs.`);
+      onComplete?.(`${agentServer.name} 身份验证成功。代理运行时服务器将自动连接。`);
     } catch (err) {
       // Don't show error if it was a cancellation
       if (err instanceof Error && !(err instanceof AuthenticationCancelledError)) {
@@ -85,21 +85,21 @@ export function MCPAgentServerMenu({ agentServer, onCancel, onComplete }: Props)
   if (isAuthenticating) {
     return (
       <Box flexDirection="column" gap={1} padding={1}>
-        <Text color="claude">Authenticating with {agentServer.name}…</Text>
+        <Text color="claude">正在验证 {agentServer.name} 的身份…</Text>
         <Box>
           <Spinner />
-          <Text> A browser window will open for authentication</Text>
+          <Text> 浏览器窗口将打开以进行身份验证</Text>
         </Box>
         {authorizationUrl && (
           <Box flexDirection="column">
-            <Text dimColor>If your browser doesn&apos;t open automatically, copy this URL manually:</Text>
+            <Text dimColor>如果浏览器未自动打开，请手动复制此链接：</Text>
             <Link url={authorizationUrl} />
           </Box>
         )}
         <Box marginLeft={3}>
           <Text dimColor>
-            Return here after authenticating in your browser.{' '}
-            <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="go back" />
+            在浏览器中完成认证后请返回此处。{' '}
+            <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="返回" />
           </Text>
         </Box>
       </Box>
@@ -111,82 +111,82 @@ export function MCPAgentServerMenu({ agentServer, onCancel, onComplete }: Props)
   // Only show authenticate option for HTTP/SSE servers
   if (agentServer.needsAuth) {
     menuOptions.push({
-      label: agentServer.isAuthenticated ? 'Re-authenticate' : 'Authenticate',
+      label: agentServer.isAuthenticated ? '重新验证' : '验证身份',
       value: 'auth',
     });
   }
 
   menuOptions.push({
-    label: 'Back',
+    label: '返回',
     value: 'back',
   });
 
   return (
     <Dialog
-      title={`${capitalizedServerName} MCP Server`}
-      subtitle="agent-only"
+      title={`${capitalizedServerName} MCP 服务器`}
+      subtitle="仅限代理"
       onCancel={onCancel}
       inputGuide={exitState =>
         exitState.pending ? (
-          <Text>Press {exitState.keyName} again to exit</Text>
+          <Text>再次按下 {exitState.keyName} 退出</Text>
         ) : (
           <Byline>
             <KeyboardShortcutHint shortcut="↑↓" action="navigate" />
             <KeyboardShortcutHint shortcut="Enter" action="confirm" />
-            <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="go back" />
+            <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="返回" />
           </Byline>
         )
       }
     >
       <Box flexDirection="column" gap={0}>
         <Box>
-          <Text bold>Type: </Text>
+          <Text bold>类型：</Text>
           <Text dimColor>{agentServer.transport}</Text>
         </Box>
 
         {agentServer.url && (
           <Box>
-            <Text bold>URL: </Text>
+            <Text bold>地址：</Text>
             <Text dimColor>{agentServer.url}</Text>
           </Box>
         )}
 
         {agentServer.command && (
           <Box>
-            <Text bold>Command: </Text>
+            <Text bold>命令：</Text>
             <Text dimColor>{agentServer.command}</Text>
           </Box>
         )}
 
         <Box>
-          <Text bold>Used by: </Text>
+          <Text bold>使用者：</Text>
           <Text dimColor>{agentServer.sourceAgents.join(', ')}</Text>
         </Box>
 
         <Box marginTop={1}>
-          <Text bold>Status: </Text>
-          <Text>{color('inactive', theme)(figures.radioOff)} not connected (agent-only)</Text>
+          <Text bold>状态：</Text>
+          <Text>{color('inactive', theme)(figures.radioOff)} 未连接（仅限代理）</Text>
         </Box>
 
         {agentServer.needsAuth && (
           <Box>
-            <Text bold>Auth: </Text>
+            <Text bold>认证：</Text>
             {agentServer.isAuthenticated ? (
-              <Text>{color('success', theme)(figures.tick)} authenticated</Text>
+              <Text>{color('success', theme)(figures.tick)} 已认证</Text>
             ) : (
-              <Text>{color('warning', theme)(figures.triangleUpOutline)} may need authentication</Text>
+              <Text>{color('warning', theme)(figures.triangleUpOutline)} 可能需要身份验证</Text>
             )}
           </Box>
         )}
       </Box>
 
       <Box>
-        <Text dimColor>This server connects only when running the agent.</Text>
+        <Text dimColor>此服务器仅在运行代理时连接。</Text>
       </Box>
 
       {error && (
         <Box>
-          <Text color="error">Error: {error}</Text>
+          <Text color="error">错误：{error}</Text>
         </Box>
       )}
 

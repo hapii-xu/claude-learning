@@ -37,7 +37,7 @@ export function MonitorMcpDetailDialog({ task, onBack, onKill }: Props): React.R
   return (
     <Box flexDirection="column" tabIndex={0} borderStyle="round" onKeyDown={handleKeyDown}>
       <Dialog
-        title="MCP Monitor"
+        title="MCP 监控"
         subtitle={
           <Text dimColor>
             {elapsedTime} · {task.serverName}:{task.resourceUri}
@@ -46,35 +46,35 @@ export function MonitorMcpDetailDialog({ task, onBack, onKill }: Props): React.R
         onCancel={onBack ?? (() => {})}
         inputGuide={() => (
           <Byline>
-            {onBack && <KeyboardShortcutHint shortcut="←" action="go back" />}
-            <KeyboardShortcutHint shortcut="Esc" action="close" />
-            {task.status === 'running' && onKill && <KeyboardShortcutHint shortcut="x" action="stop" />}
+            {onBack && <KeyboardShortcutHint shortcut="←" action="返回" />}
+            <KeyboardShortcutHint shortcut="Esc" action="关闭" />
+            {task.status === 'running' && onKill && <KeyboardShortcutHint shortcut="x" action="停止" />}
           </Byline>
         )}
       >
         <Box flexDirection="column" gap={1}>
           <Text>
-            <Text bold>Status:</Text>{' '}
+            <Text bold>状态：</Text>{' '}
             {task.status === 'running' ? (
-              <Text color="ansi:green">running</Text>
+              <Text color="ansi:green">运行中</Text>
             ) : task.status === 'completed' ? (
-              <Text color="ansi:green">{task.status}</Text>
+              <Text color="ansi:green">已完成</Text>
             ) : (
               <Text color="ansi:red">{task.status}</Text>
             )}
           </Text>
           <Text>
-            <Text bold>Description:</Text> {task.description}
+            <Text bold>描述：</Text> {task.description}
           </Text>
           <Text>
-            <Text bold>Server:</Text> {task.serverName}
+            <Text bold>服务器：</Text> {task.serverName}
           </Text>
           <Text>
-            <Text bold>Resource:</Text> {task.resourceUri}
+            <Text bold>资源：</Text> {task.resourceUri}
           </Text>
           {task.command && (
             <Text>
-              <Text bold>Command:</Text> {task.command}
+              <Text bold>命令：</Text> {task.command}
             </Text>
           )}
         </Box>

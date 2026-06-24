@@ -3367,6 +3367,11 @@ export function REPL({
       // 附件消息（由 processTextPrompt 追加）破坏 — 两者都在第一个 turn
       // 就把长度推过 1，所以标题静默回退到 "Claude Code" 默认值。
       if (!titleDisabled && !sessionTitle && !agentTitle && !haikuTitleAttemptedRef.current) {
+        // titleDisabled 用户设置了环境变量 process.env.CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1，表示完全不想让 Claude Code 修改终端标题栏   ---------- 场景：运维人员在脚本里跑 Claude Code，不希望终端 tab 标题被改。
+        // sessionTitle 用户主动用 --name "我的项目" 参数启动了 Claude Code，或者之前用过 /rename 命令给 session 起了名字，这个名字被持久化到 session 存储里了。 ---------- 场景：claude --name "重构任务" 启动 → sessionTitle = "重构任务" → 不再自动生成标题，尊重用户自定义。
+        // agentTitle 这个 REPL 实例是以某个特定 Agent 身份运行的（比如 Plan、Explore、code-reviewer 等）。mainThreadAgentDefinition 是从 props 传入的，agent 有自己的 agentType 名称。 ------------- 场景：你调用 /plan 技能，它会在内部启动一个 REPL，agentTitle = "Plan"，终端标题直接显示 agent 名，不需要再基于对话内容生成标题。
+        // haikuTitleAttempted 已经尝试过/是恢复的会话       防重复/防中途重命名
+
         const firstUserMessage = newMessages.find(m => m.type === 'user' && !m.isMeta);
         const text =
           firstUserMessage?.type === 'user'
@@ -3396,14 +3401,10 @@ export function REPL({
         }
       }
 
-      // 将 slash 命令作用域的 allowedTools（来自 skill frontmatter）应用到
-      // store，每个 turn 一次。这也覆盖重置：下一个非 skill turn 传递 []
-      // 并清除它。必须在 !shouldQuery 门控之前运行：fork 命令
-      // （executeForkedSlashCommand）返回 shouldQuery=false，而
-      // forkedAgent.ts 中的 createGetAppStateWithAllowedTools 读取此字段，
-      // 所以陈旧的 skill 工具否则会泄露到 fork agent 权限中。
-      // 之前此写入隐藏在 getToolUseContext 的 getAppState 内部
-      // （约 85 次调用/turn）；在此提升使 getAppState 成为纯读取，并阻止
+      // 将 slash 命令作用域的 allowedTools（来自 skill frontmatter）应用到 store，每个 turn 一次。这也覆盖重置：下一个非 skill turn 传递 []
+      // 并清除它。必须在 !shouldQuery 门控之前运行：fork 命令 （executeForkedSlashCommand）返回 shouldQuery=false，而
+      // forkedAgent.ts 中的 createGetAppStateWithAllowedTools 读取此字段，所以陈旧的 skill 工具否则会泄露到 fork agent 权限中。
+      // 之前此写入隐藏在 getToolUseContext 的 getAppState 内部（约 85 次调用/turn）；在此提升使 getAppState 成为纯读取，并阻止
       // 瞬态上下文（权限对话框、BackgroundTasksDialog）在 turn 中途意外清除它。
       store.setState(prev => {
         const cur = prev.toolPermissionContext.alwaysAllowRules.command;

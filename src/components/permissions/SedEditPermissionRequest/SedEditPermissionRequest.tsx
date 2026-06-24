@@ -108,7 +108,7 @@ function SedEditPermissionRequestInner({
       toolUseContext={props.toolUseContext}
       onDone={props.onDone}
       onReject={props.onReject}
-      title="Edit file"
+      title="编辑文件"
       subtitle={relative(getCwd(), filePath)}
       question={
         <Text>

@@ -30,7 +30,7 @@ export function HookProgressMessage({ hookEvent, lookups, toolUseID, isTranscrip
             <Text dimColor bold>
               {hookEvent}
             </Text>
-            <Text dimColor>{inProgressHookCount === 1 ? ' hook' : ' hooks'} ran</Text>
+            <Text dimColor>{inProgressHookCount === 1 ? ' 个钩子' : ' 个钩子'}已运行</Text>
           </Box>
         </MessageResponse>
       );
@@ -47,11 +47,11 @@ export function HookProgressMessage({ hookEvent, lookups, toolUseID, isTranscrip
   return (
     <MessageResponse>
       <Box flexDirection="row">
-        <Text dimColor>Running </Text>
+        <Text dimColor>正在运行 </Text>
         <Text dimColor bold>
           {hookEvent}
         </Text>
-        <Text dimColor>{inProgressHookCount === 1 ? ' hook…' : ' hooks…'}</Text>
+        <Text dimColor>{inProgressHookCount === 1 ? ' 个钩子…' : ' 个钩子…'}</Text>
       </Box>
     </MessageResponse>
   );

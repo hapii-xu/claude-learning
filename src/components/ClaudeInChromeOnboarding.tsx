@@ -1,6 +1,6 @@
 import React from 'react';
 import { logEvent } from 'src/services/analytics/index.js';
-// eslint-disable-next-line custom-rules/prefer-use-keybindings -- enter to continue
+// eslint-disable-next-line custom-rules/prefer-use-keybindings -- 按 Enter 继续
 import { Box, Dialog, Link, Newline, Text, useInput } from '@anthropic/ink';
 import { isChromeExtensionInstalled } from '../utils/claudeInChrome/setup.js';
 import { saveGlobalConfig } from '../utils/config.js';
@@ -23,7 +23,7 @@ export function ClaudeInChromeOnboarding({ onDone }: Props): React.ReactNode {
     });
   }, []);
 
-  // Handle Enter to continue
+  // 处理 Enter 键继续操作
   useInput((_input, key) => {
     if (key.return) {
       onDone();

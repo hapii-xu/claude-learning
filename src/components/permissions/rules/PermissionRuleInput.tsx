@@ -45,14 +45,14 @@ export function PermissionRuleInput({ onCancel, onSubmit, ruleBehavior }: Permis
     <>
       <Box flexDirection="column" gap={1} borderStyle="round" paddingLeft={1} paddingRight={1} borderColor="permission">
         <Text bold color="permission">
-          Add {ruleBehavior} permission rule
+          添加 {ruleBehavior} 权限规则
         </Text>
         <Box flexDirection="column">
           <Text>
-            Permission rules are a tool name, optionally followed by a specifier in parentheses.
+            权限规则由工具名称组成，后面可选地跟上括号内的匹配说明符。
             <Newline />
-            e.g., <Text bold>{permissionRuleValueToString({ toolName: WebFetchTool.name })}</Text>
-            <Text bold={false}> or </Text>
+            例如：<Text bold>{permissionRuleValueToString({ toolName: WebFetchTool.name })}</Text>
+            <Text bold={false}> 或 </Text>
             <Text bold>
               {permissionRuleValueToString({
                 toolName: BashTool.name,
@@ -66,7 +66,7 @@ export function PermissionRuleInput({ onCancel, onSubmit, ruleBehavior }: Permis
               value={inputValue}
               onChange={setInputValue}
               onSubmit={handleSubmit}
-              placeholder={`Enter permission rule${figures.ellipsis}`}
+              placeholder={`输入权限规则${figures.ellipsis}`}
               columns={textInputColumns}
               cursorOffset={cursorOffset}
               onChangeCursorOffset={setCursorOffset}
@@ -76,9 +76,9 @@ export function PermissionRuleInput({ onCancel, onSubmit, ruleBehavior }: Permis
       </Box>
       <Box marginLeft={3}>
         {exitState.pending ? (
-          <Text dimColor>Press {exitState.keyName} again to exit</Text>
+          <Text dimColor>再次按 {exitState.keyName} 退出</Text>
         ) : (
-          <Text dimColor>Enter to submit · Esc to cancel</Text>
+          <Text dimColor>Enter 提交 · Esc 取消</Text>
         )}
       </Box>
     </>

@@ -36,27 +36,27 @@ export function EnterPlanModePermissionRequest({
   }
 
   return (
-    <PermissionDialog color="planMode" title="Enter plan mode?" workerBadge={workerBadge}>
+    <PermissionDialog color="planMode" title="进入规划模式？" workerBadge={workerBadge}>
       <Box flexDirection="column" marginTop={1} paddingX={1}>
-        <Text>Claude wants to enter plan mode to explore and design an implementation approach.</Text>
+        <Text>Claude 想进入规划模式，探索并设计实现方案。</Text>
 
         <Box marginTop={1} flexDirection="column">
-          <Text dimColor>In plan mode, Claude will:</Text>
-          <Text dimColor> · Explore the codebase thoroughly</Text>
-          <Text dimColor> · Identify existing patterns</Text>
-          <Text dimColor> · Design an implementation strategy</Text>
-          <Text dimColor> · Present a plan for your approval</Text>
+          <Text dimColor>在规划模式中，Claude 将：</Text>
+          <Text dimColor> · 深入探索代码库</Text>
+          <Text dimColor> · 识别现有模式</Text>
+          <Text dimColor> · 设计实现策略</Text>
+          <Text dimColor> · 提交计划供你审批</Text>
         </Box>
 
         <Box marginTop={1}>
-          <Text dimColor>No code changes will be made until you approve the plan.</Text>
+          <Text dimColor>在你批准计划之前，不会进行任何代码修改。</Text>
         </Box>
 
         <Box marginTop={1}>
           <Select
             options={[
-              { label: 'Yes, enter plan mode', value: 'yes' as const },
-              { label: 'No, start implementing now', value: 'no' as const },
+              { label: '是，进入规划模式', value: 'yes' as const },
+              { label: '否，立即开始实现', value: 'no' as const },
             ]}
             onChange={handleResponse}
             onCancel={() => handleResponse('no')}

@@ -32,10 +32,10 @@ export function NotebookEditPermissionRequest(props: PermissionRequestProps): Re
 
   const editTypeText =
     edit_mode === 'insert'
-      ? 'insert this cell into'
+      ? '插入此单元格至'
       : edit_mode === 'delete'
-        ? 'delete this cell from'
-        : 'make this edit to';
+        ? '从以下笔记本删除此单元格：'
+        : '对以下笔记本进行此编辑：';
 
   return (
     <FilePermissionDialog
@@ -44,7 +44,7 @@ export function NotebookEditPermissionRequest(props: PermissionRequestProps): Re
       onDone={props.onDone}
       onReject={props.onReject}
       workerBadge={props.workerBadge}
-      title="Edit notebook"
+      title="编辑笔记本"
       question={
         <Text>
           Do you want to {editTypeText} <Text bold>{basename(notebook_path)}</Text>?

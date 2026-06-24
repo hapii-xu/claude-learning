@@ -12,7 +12,7 @@ import {
 import { ShimmerChar } from '../Spinner/ShimmerChar.js';
 import { useShimmerAnimation } from '../Spinner/useShimmerAnimation.js';
 
-const LOADING_MESSAGE = 'Loading explanation…';
+const LOADING_MESSAGE = '正在加载解释…';
 
 function ShimmerLoadingText(): React.ReactNode {
   const [ref, glimmerIndex] = useShimmerAnimation('responding', LOADING_MESSAGE, false);
@@ -49,11 +49,11 @@ function getRiskColor(riskLevel: RiskLevel): 'success' | 'warning' | 'error' {
 function getRiskLabel(riskLevel: RiskLevel): string {
   switch (riskLevel) {
     case 'LOW':
-      return 'Low risk';
+      return '低风险';
     case 'MEDIUM':
-      return 'Med risk';
+      return '中风险';
     case 'HIGH':
-      return 'High risk';
+      return '高风险';
   }
 }
 
@@ -123,7 +123,7 @@ function ExplanationResult({ promise }: { promise: Promise<PermissionExplanation
   if (!explanation) {
     return (
       <Box marginTop={1}>
-        <Text dimColor>Explanation unavailable</Text>
+        <Text dimColor>解释不可用</Text>
       </Box>
     );
   }

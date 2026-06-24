@@ -27,7 +27,7 @@ export function PlanApprovalRequestDisplay({ request }: PlanApprovalRequestProps
       <Box borderStyle="round" borderColor="planMode" flexDirection="column" paddingX={1}>
         <Box marginBottom={1}>
           <Text color="planMode" bold>
-            Plan Approval Request from {request.from}
+            来自 {request.from} 的计划审批请求
           </Text>
         </Box>
         <Box
@@ -41,7 +41,7 @@ export function PlanApprovalRequestDisplay({ request }: PlanApprovalRequestProps
         >
           <Markdown>{request.planContent}</Markdown>
         </Box>
-        <Text dimColor>Plan file: {request.planFilePath}</Text>
+        <Text dimColor>计划文件：{request.planFilePath}</Text>
       </Box>
     </Box>
   );
@@ -62,11 +62,11 @@ export function PlanApprovalResponseDisplay({ response, senderName }: PlanApprov
         <Box borderStyle="round" borderColor="success" flexDirection="column" paddingX={1} paddingY={1}>
           <Box>
             <Text color="success" bold>
-              ✓ Plan Approved by {senderName}
+              ✓ 计划已被 {senderName} 批准
             </Text>
           </Box>
           <Box marginTop={1}>
-            <Text>You can now proceed with implementation. Your plan mode restrictions have been lifted.</Text>
+            <Text>您现在可以开始实施。计划模式限制已解除。</Text>
           </Box>
         </Box>
       </Box>
@@ -78,7 +78,7 @@ export function PlanApprovalResponseDisplay({ response, senderName }: PlanApprov
       <Box borderStyle="round" borderColor="error" flexDirection="column" paddingX={1} paddingY={1}>
         <Box>
           <Text color="error" bold>
-            ✗ Plan Rejected by {senderName}
+            ✗ 计划已被 {senderName} 拒绝
           </Text>
         </Box>
         {response.feedback && (
@@ -90,11 +90,11 @@ export function PlanApprovalResponseDisplay({ response, senderName }: PlanApprov
             borderRight={false}
             paddingX={1}
           >
-            <Text>Feedback: {response.feedback}</Text>
+            <Text>反馈：{response.feedback}</Text>
           </Box>
         )}
         <Box marginTop={1}>
-          <Text dimColor>Please revise your plan based on the feedback and call ExitPlanMode again.</Text>
+          <Text dimColor>请根据反馈修改计划，然后再次调用 ExitPlanMode。</Text>
         </Box>
       </Box>
     </Box>
@@ -127,15 +127,15 @@ export function tryRenderPlanApprovalMessage(content: string, senderName: string
 function getPlanApprovalSummary(content: string): string | null {
   const request = isPlanApprovalRequest(content);
   if (request) {
-    return `[Plan Approval Request from ${request.from}]`;
+    return `[来自 ${request.from} 的计划审批请求]`;
   }
 
   const response = isPlanApprovalResponse(content);
   if (response) {
     if (response.approved) {
-      return '[Plan Approved] You can now proceed with implementation';
+      return '[计划已批准] 您现在可以开始实施';
     } else {
-      return `[Plan Rejected] ${response.feedback || 'Please revise your plan'}`;
+      return `[计划已拒绝] ${response.feedback || '请修改您的计划'}`;
     }
   }
 
@@ -146,13 +146,13 @@ function getPlanApprovalSummary(content: string): string | null {
  * 获取 idle notification 的简要摘要文本。
  */
 function getIdleNotificationSummary(msg: IdleNotificationMessage): string {
-  const parts: string[] = ['Agent idle'];
+  const parts: string[] = ['Agent 空闲'];
   if (msg.completedTaskId) {
     const status = msg.completedStatus || 'completed';
-    parts.push(`Task ${msg.completedTaskId} ${status}`);
+    parts.push(`任务 ${msg.completedTaskId} ${status}`);
   }
   if (msg.summary) {
-    parts.push(`Last DM: ${msg.summary}`);
+    parts.push(`最近消息：${msg.summary}`);
   }
   return parts.join(' · ');
 }

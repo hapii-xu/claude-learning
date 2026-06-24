@@ -10,7 +10,7 @@ import type { AnyObjectSchema } from '@modelcontextprotocol/sdk/server/zod-compa
 import { lazySchema } from '../utils/lazySchema.js';
 import { enqueuePendingNotification } from '../utils/messageQueueManager.js';
 
-// Schema for the prompt notification from Chrome extension (JSON-RPC 2.0 format)
+// Chrome 扩展发送的提示通知 Schema（JSON-RPC 2.0 格式）
 const ClaudeInChromePromptNotificationSchema: () => AnyObjectSchema = lazySchema(() =>
   z.object({
     method: z.literal('notifications/message'),
@@ -29,8 +29,8 @@ const ClaudeInChromePromptNotificationSchema: () => AnyObjectSchema = lazySchema
 );
 
 /**
- * A hook that listens for prompt notifications from the Claude for Chrome extension,
- * enqueues them as user prompts, and syncs permission mode changes to the extension.
+ * 监听 Claude for Chrome 扩展发送的提示通知的 Hook，
+ * 将其加入用户提示队列，并将权限模式变更同步到扩展。
  */
 export function usePromptsFromClaudeInChrome(
   mcpClients: MCPServerConnection[],
@@ -55,13 +55,13 @@ export function usePromptsFromClaudeInChrome(
         }
         const { tabId, prompt, image } = notification.params;
 
-        // Process notifications from tabs we're tracking since notifications are broadcasted
+        // 处理我们正在追踪的标签页的通知，因为通知是广播发送的
         if (typeof tabId !== 'number' || !isTrackedClaudeInChromeTabId(tabId)) {
           return;
         }
 
         try {
-          // Build content blocks if there's an image, otherwise just use the prompt string
+          // 如果有图片则构建内容块，否则直接使用提示字符串
           if (image) {
             const contentBlocks: ContentBlockParam[] = [
               { type: 'text', text: prompt },
@@ -88,7 +88,7 @@ export function usePromptsFromClaudeInChrome(
     }
   }, [mcpClients]);
 
-  // Sync permission mode with Chrome extension whenever it changes
+  // 当权限模式变化时，同步更新 Chrome 扩展的权限模式
   useEffect(() => {
     const chromeClient = findChromeClient(mcpClients);
     if (!chromeClient) return;

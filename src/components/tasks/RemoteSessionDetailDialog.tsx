@@ -40,7 +40,7 @@ type Props = {
 export function formatToolUseSummary(name: string, input: unknown): string {
   // plan_ready phase is only reached via ExitPlanMode tool
   if (name === EXIT_PLAN_MODE_V2_TOOL_NAME) {
-    return 'Review the plan in Claude Code on the web';
+    return '在网页版 Claude Code 中查看计划';
   }
   if (!input || typeof input !== 'object') return name;
   // AskUserQuestion: show the question text as a CTA, not the tool name.
@@ -59,7 +59,7 @@ export function formatToolUseSummary(name: string, input: unknown): string {
             : null;
       if (q) {
         const oneLine = q.replace(/\s+/g, ' ').trim();
-        return `Answer in browser: ${truncateToWidth(oneLine, 50)}`;
+        return `在浏览器中回答：${truncateToWidth(oneLine, 50)}`;
       }
     }
   }
@@ -120,13 +120,13 @@ function UltraplanSessionDetail({ session, onDone, onBack, onKill }: Omit<Props,
 
   if (confirmingStop) {
     return (
-      <Dialog title="Stop ultraplan?" onCancel={() => setConfirmingStop(false)} color="background">
+      <Dialog title="停止 Ultraplan？" onCancel={() => setConfirmingStop(false)} color="background">
         <Box flexDirection="column" gap={1}>
-          <Text dimColor>This will terminate the Claude Code on the web session.</Text>
+          <Text dimColor>这将终止网页版 Claude Code 会话。</Text>
           <Select
             options={[
-              { label: 'Terminate session', value: 'stop' as const },
-              { label: 'Back', value: 'back' as const },
+              { label: '终止会话', value: 'stop' as const },
+              { label: '返回', value: 'back' as const },
             ]}
             onChange={v => {
               if (v === 'stop') {
@@ -162,8 +162,7 @@ function UltraplanSessionDetail({ session, onDone, onBack, onKill }: Omit<Props,
       <Box flexDirection="column" gap={1}>
         <Text>
           {phase === 'plan_ready' && <Text color="success">{figures.tick} </Text>}
-          {agentsWorking} {plural(agentsWorking, 'agent')} {phase ? AGENT_VERB[phase] : 'working'} · {toolCalls} tool{' '}
-          {plural(toolCalls, 'call')}
+          {agentsWorking} 个 Agent {phase ? AGENT_VERB[phase] : '工作中'} · {toolCalls} 次工具调用
         </Text>
         {lastToolCall && <Text dimColor>{lastToolCall}</Text>}
         <Link url={sessionUrl}>
@@ -172,11 +171,11 @@ function UltraplanSessionDetail({ session, onDone, onBack, onKill }: Omit<Props,
         <Select
           options={[
             {
-              label: 'Review in Claude Code on the web',
+              label: '在网页版 Claude Code 中查看',
               value: 'open' as const,
             },
-            ...(onKill && running ? [{ label: 'Stop ultraplan', value: 'stop' as const }] : []),
-            { label: 'Back', value: 'back' as const },
+            ...(onKill && running ? [{ label: '停止 Ultraplan', value: 'stop' as const }] : []),
+            { label: '返回', value: 'back' as const },
           ]}
           onChange={v => {
             switch (v) {
@@ -281,16 +280,13 @@ function ReviewSessionDetail({ session, onDone, onBack, onKill }: Omit<Props, 't
 
   if (confirmingStop) {
     return (
-      <Dialog title="Stop ultrareview?" onCancel={() => setConfirmingStop(false)} color="background">
+      <Dialog title="停止 Ultrareview？" onCancel={() => setConfirmingStop(false)} color="background">
         <Box flexDirection="column" gap={1}>
-          <Text dimColor>
-            This archives the remote session and stops local tracking. The review will not complete and any findings so
-            far are discarded.
-          </Text>
+          <Text dimColor>这将归档远程会话并停止本地追踪。审查将不会完成，已发现的内容将被丢弃。</Text>
           <Select
             options={[
-              { label: 'Stop ultrareview', value: 'stop' as const },
-              { label: 'Back', value: 'back' as const },
+              { label: '停止 Ultrareview', value: 'stop' as const },
+              { label: '返回', value: 'back' as const },
             ]}
             onChange={v => {
               if (v === 'stop') {
@@ -308,13 +304,13 @@ function ReviewSessionDetail({ session, onDone, onBack, onKill }: Omit<Props, 't
 
   const options: { label: string; value: MenuAction }[] = completed
     ? [
-        { label: 'Open in Claude Code on the web', value: 'open' },
-        { label: 'Dismiss', value: 'dismiss' },
+        { label: '在网页版 Claude Code 中打开', value: 'open' },
+        { label: '关闭', value: 'dismiss' },
       ]
     : [
-        { label: 'Open in Claude Code on the web', value: 'open' },
-        ...(onKill && running ? [{ label: 'Stop ultrareview', value: 'stop' as const }] : []),
-        { label: 'Back', value: 'back' },
+        { label: '在网页版 Claude Code 中打开', value: 'open' },
+        ...(onKill && running ? [{ label: '停止 Ultrareview', value: 'stop' as const }] : []),
+        { label: '返回', value: 'back' },
       ];
 
   const handleSelect = (action: MenuAction) => {
@@ -353,11 +349,11 @@ function ReviewSessionDetail({ session, onDone, onBack, onKill }: Omit<Props, 't
       color="background"
       inputGuide={exitState =>
         exitState.pending ? (
-          <Text>Press {exitState.keyName} again to exit</Text>
+          <Text>再次按 {exitState.keyName} 退出</Text>
         ) : (
           <Byline>
-            <KeyboardShortcutHint shortcut="Enter" action="select" />
-            <KeyboardShortcutHint shortcut="Esc" action="go back" />
+            <KeyboardShortcutHint shortcut="Enter" action="选择" />
+            <KeyboardShortcutHint shortcut="Esc" action="返回" />
           </Byline>
         )
       }
@@ -451,43 +447,43 @@ export function RemoteSessionDetailDialog({ session, toolUseContext, onDone, onB
   return (
     <Box flexDirection="column" tabIndex={0} autoFocus onKeyDown={handleKeyDown}>
       <Dialog
-        title="Remote session details"
+        title="远程会话详情"
         onCancel={handleClose}
         color="background"
         inputGuide={exitState =>
           exitState.pending ? (
-            <Text>Press {exitState.keyName} again to exit</Text>
+            <Text>再次按 {exitState.keyName} 退出</Text>
           ) : (
             <Byline>
-              {onBack && <KeyboardShortcutHint shortcut="←" action="go back" />}
-              <KeyboardShortcutHint shortcut="Esc/Enter/Space" action="close" />
-              {!isTeleporting && <KeyboardShortcutHint shortcut="t" action="teleport" />}
+              {onBack && <KeyboardShortcutHint shortcut="←" action="返回" />}
+              <KeyboardShortcutHint shortcut="Esc/Enter/Space" action="关闭" />
+              {!isTeleporting && <KeyboardShortcutHint shortcut="t" action="传送" />}
             </Byline>
           )
         }
       >
         <Box flexDirection="column">
           <Text>
-            <Text bold>Status</Text>:{' '}
+            <Text bold>状态</Text>:{' '}
             {displayStatus === 'running' || displayStatus === 'starting' ? (
-              <Text color="background">{displayStatus}</Text>
+              <Text color="background">{displayStatus === 'running' ? '运行中' : '启动中'}</Text>
             ) : displayStatus === 'completed' ? (
-              <Text color="success">{displayStatus}</Text>
+              <Text color="success">已完成</Text>
             ) : (
               <Text color="error">{displayStatus}</Text>
             )}
           </Text>
           <Text>
-            <Text bold>Runtime</Text>: {formatDuration((session.endTime ?? Date.now()) - session.startTime)}
+            <Text bold>运行时长</Text>: {formatDuration((session.endTime ?? Date.now()) - session.startTime)}
           </Text>
           <Text wrap="truncate-end">
-            <Text bold>Title</Text>: {displayTitle}
+            <Text bold>标题</Text>: {displayTitle}
           </Text>
           <Text>
-            <Text bold>Progress</Text>: <RemoteSessionProgress session={session} />
+            <Text bold>进度</Text>: <RemoteSessionProgress session={session} />
           </Text>
           <Text>
-            <Text bold>Session URL</Text>:{' '}
+            <Text bold>会话链接</Text>:{' '}
             <Link url={getRemoteTaskSessionUrl(session.sessionId)}>
               <Text dimColor>{getRemoteTaskSessionUrl(session.sessionId)}</Text>
             </Link>
@@ -498,7 +494,7 @@ export function RemoteSessionDetailDialog({ session, toolUseContext, onDone, onB
         {session.log.length > 0 && (
           <Box flexDirection="column" marginTop={1}>
             <Text>
-              <Text bold>Recent messages</Text>:
+              <Text bold>最近消息</Text>:
             </Text>
             <Box flexDirection="column" height={10} overflowY="hidden">
               {lastMessages.map((msg, i) => (
@@ -522,7 +518,7 @@ export function RemoteSessionDetailDialog({ session, toolUseContext, onDone, onB
             </Box>
             <Box marginTop={1}>
               <Text dimColor italic>
-                Showing last {lastMessages.length} of {session.log.length} messages
+                显示最后 {lastMessages.length} 条，共 {session.log.length} 条消息
               </Text>
             </Box>
           </Box>
@@ -531,12 +527,12 @@ export function RemoteSessionDetailDialog({ session, toolUseContext, onDone, onB
         {/* Teleport error message */}
         {teleportError && (
           <Box marginTop={1}>
-            <Text color="error">Teleport failed: {teleportError}</Text>
+            <Text color="error">传送失败：{teleportError}</Text>
           </Box>
         )}
 
         {/* Teleporting status */}
-        {isTeleporting && <Text color="background">Teleporting to session…</Text>}
+        {isTeleporting && <Text color="background">正在传送到会话…</Text>}
       </Dialog>
     </Box>
   );

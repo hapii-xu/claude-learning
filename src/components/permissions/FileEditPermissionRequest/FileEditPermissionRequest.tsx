@@ -47,11 +47,11 @@ export function FileEditPermissionRequest(props: PermissionRequestProps): React.
       onDone={props.onDone}
       onReject={props.onReject}
       workerBadge={props.workerBadge}
-      title="Edit file"
+      title="编辑文件"
       subtitle={relative(getCwd(), file_path)}
       question={
         <Text>
-          Do you want to make this edit to <Text bold>{basename(file_path)}</Text>?
+          是否对 <Text bold>{basename(file_path)}</Text> 进行此编辑？
         </Text>
       }
       content={

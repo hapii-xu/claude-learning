@@ -44,17 +44,17 @@ export function RemoveWorkspaceDirectory({
   );
 
   return (
-    <Dialog title="Remove directory from workspace?" onCancel={onCancel} color="error">
+    <Dialog title="从工作区移除目录？" onCancel={onCancel} color="error">
       <Box marginX={2} flexDirection="column">
         <Text bold>{directoryPath}</Text>
       </Box>
-      <Text>Claude Code will no longer have access to files in this directory.</Text>
+      <Text>Claude Code 将不再能访问此目录中的文件。</Text>
       <Select
         onChange={handleSelect}
         onCancel={onCancel}
         options={[
-          { label: 'Yes', value: 'yes' },
-          { label: 'No', value: 'no' },
+          { label: '是', value: 'yes' },
+          { label: '否', value: 'no' },
         ]}
       />
     </Dialog>

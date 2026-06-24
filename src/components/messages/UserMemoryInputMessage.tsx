@@ -6,7 +6,7 @@ import { extractTag } from '../../utils/messages.js';
 import { MessageResponse } from '../MessageResponse.js';
 
 function getSavingMessage(): string {
-  return sample(['Got it.', 'Good to know.', 'Noted.']);
+  return sample(['明白了。', '知道了。', '已记录。']);
 }
 
 type Props = {

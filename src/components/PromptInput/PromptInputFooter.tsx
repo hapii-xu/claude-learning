@@ -24,7 +24,7 @@ import { getLastAssistantMessageId, StatusLine, statusLineShouldDisplay } from '
 import { Notifications } from './Notifications.js';
 import { PromptInputFooterLeftSide } from './PromptInputFooterLeftSide.js';
 
-// Inline pipe status is shown only after /pipes sets pipeIpc.statusVisible.
+// 内联 pipe 状态仅在 /pipes 设置 pipeIpc.statusVisible 后才会显示。
 import { PromptInputFooterSuggestions, type SuggestionItem } from './PromptInputFooterSuggestions.js';
 import { PromptInputHelpMenu } from './PromptInputHelpMenu.js';
 
@@ -106,24 +106,22 @@ function PromptInputFooter({
   messagesRef.current = messages;
   const lastAssistantMessageId = useMemo(() => getLastAssistantMessageId(messages), [messages]);
   const isNarrow = columns < 80;
-  // In fullscreen the bottom slot is flexShrink:0, so every row here is a row
-  // stolen from the ScrollBox. Drop the optional StatusLine first. Non-fullscreen
-  // has terminal scrollback to absorb overflow, so we never hide StatusLine there.
+  // 在全屏模式下，底部插槽为 flexShrink:0，因此这里的每一行都会从 ScrollBox 中抢占一行。
+  // 优先移除可选的 StatusLine。非全屏模式有终端滚动缓冲来吸收溢出，所以那里永远不会隐藏 StatusLine。
   const isFullscreen = isFullscreenEnvEnabled();
   const isShort = isFullscreen && rows < 24;
 
-  // Pill highlights when tasks is the active footer item AND no specific
-  // agent row is selected. When coordinatorTaskIndex >= 0 the pointer has
-  // moved into CoordinatorTaskPanel, so the pill should un-highlight.
-  // coordinatorTaskCount === 0 covers the bash-only case (no agent rows
-  // exist, pill is the only selectable item).
+  // 当 tasks 是活动的 footer 项且没有选中具体的 agent 行时，Pill 高亮显示。
+  // 当 coordinatorTaskIndex >= 0 时，指针已移入 CoordinatorTaskPanel，
+  // 此时 pill 应取消高亮。coordinatorTaskCount === 0 涵盖仅有 bash 的情况
+  // （没有 agent 行，pill 是唯一可选项）。
   const coordinatorTaskCount = useCoordinatorTaskCount();
   const coordinatorTaskIndex = useAppState(s => s.coordinatorTaskIndex);
   const pillSelected = tasksSelected && (coordinatorTaskCount === 0 || coordinatorTaskIndex < 0);
 
-  // Hide `? for shortcuts` if the user has a custom status line, or during ctrl-r
+  // 如果用户设置了自定义状态行，或在 ctrl-r 期间，隐藏「? for shortcuts」提示
   const suppressHint = suppressHintFromProps || statusLineShouldDisplay(settings) || isSearching;
-  // Fullscreen: portal data to FullscreenLayout — see promptOverlayContext.tsx
+  // 全屏模式：将数据传送到 FullscreenLayout —— 参见 promptOverlayContext.tsx
   const overlayData = useMemo(
     () => (isFullscreen && suggestions.length ? { suggestions, selectedSuggestion, maxColumnWidth } : null),
     [isFullscreen, suggestions, selectedSuggestion, maxColumnWidth],
@@ -219,7 +217,7 @@ function BridgeStatusIndicator({ bridgeSelected }: BridgeStatusProps): React.Rea
   const reconnecting = useAppState(s => s.replBridgeReconnecting);
   const explicit = useAppState(s => s.replBridgeExplicit);
 
-  // Failed state is surfaced via notification (useReplBridge), not a footer pill.
+  // 失败状态通过通知（useReplBridge）显示，而非 footer pill。
   if (!isBridgeEnabled() || !enabled) return null;
 
   const status = getBridgeStatus({
@@ -229,7 +227,7 @@ function BridgeStatusIndicator({ bridgeSelected }: BridgeStatusProps): React.Rea
     reconnecting,
   });
 
-  // For implicit (config-driven) remote, only show the reconnecting state
+  // 对于隐式（配置驱动的）远程连接，仅显示重连状态
   if (!explicit && status.label !== 'Remote Control reconnecting') {
     return null;
   }
@@ -237,25 +235,24 @@ function BridgeStatusIndicator({ bridgeSelected }: BridgeStatusProps): React.Rea
   return (
     <Text color={bridgeSelected ? 'background' : status.color} inverse={bridgeSelected} wrap="truncate">
       {status.label}
-      {bridgeSelected && <Text dimColor> · Enter to view</Text>}
+      {bridgeSelected && <Text dimColor> · 回车查看</Text>}
     </Text>
   );
 }
 
 /**
- * Inline pipe status panel with interactive checkbox selection.
+ * 带有交互式复选框选择的内联 pipe 状态面板。
  *
- * Shows after /pipes sets statusVisible. Displays:
- * - Header: own pipe info (collapsed mode)
- * - Ctrl+P: toggle expanded mode with sub list + checkboxes
- * - Expanded: ↑↓ to move cursor, Space to toggle, Enter/Esc to collapse
+ * 在 /pipes 设置 statusVisible 后显示。展示内容：
+ * - 头部：自身 pipe 信息（折叠模式）
+ * - Ctrl+P：切换展开模式，含子列表 + 复选框
+ * - 展开模式：↑↓ 移动光标，Space 切换，Enter/Esc 折叠
  *
- * Only uses AppState + Ink — no heavy external imports.
+ * 仅使用 AppState + Ink，无重量级外部依赖。
  */
 function PipeStatusInline(): React.ReactNode {
   if (!feature('UDS_INBOX')) return null;
-  // All hooks must be called before any conditional return to maintain
-  // consistent hook count across renders (React rules of hooks).
+  // 所有 hook 必须在任何条件返回之前调用，以保证每次渲染的 hook 数量一致（React hooks 规则）。
   const pipeIpc = useAppState(s => s.pipeIpc);
   const setAppState = useSetAppState();
   const [cursorIndex, setCursorIndex] = useState(0);
@@ -281,21 +278,21 @@ function PipeStatusInline(): React.ReactNode {
     });
   };
 
-  // Register as modal overlay when selector is open.
-  // This sets isModalOverlayActive=true in PromptInput → TextInput focus=false
-  // → TextInput's useInput is deactivated → ↑↓ no longer trigger history navigation.
-  // Same mechanism used by BackgroundTasksDialog, FuzzyPicker, etc.
+  // 当选择器打开时注册为模态叠加层。
+  // 这会将 PromptInput 中的 isModalOverlayActive 设为 true → TextInput focus=false
+  // → TextInput 的 useInput 被禁用 → ↑↓ 不再触发历史记录导航。
+  // 与 BackgroundTasksDialog、FuzzyPicker 等使用相同机制。
   useRegisterOverlay('pipe-selector', isVisible && selectorOpen);
 
-  // Keyboard handler — must be called every render (hooks rules).
-  // ↑↓ navigate list, Space toggles selection, ←/→ or m switches route mode, Enter/Esc close selector.
-  // No conflict with history nav: useRegisterOverlay above disables TextInput when open.
+  // 键盘处理器 —— 每次渲染都必须调用（hooks 规则）。
+  // ↑↓ 导航列表，Space 切换选中，←/→ 或 m 切换路由模式，Enter/Esc 关闭选择器。
+  // 与历史导航无冲突：上方的 useRegisterOverlay 在打开时会禁用 TextInput。
   useInput((_input, key) => {
     if (!isVisible) return;
 
-    // When collapsed: only ←/→ arrow keys toggle route mode (no overlay,
-    // so printable keys like 'm' would leak into the TextInput).
-    // When expanded: ←/→ and 'm' all work (overlay blocks TextInput).
+    // 折叠时：仅 ←/→ 方向键切换路由模式（无叠加层，
+    // 因此像 'm' 这样的可打印键会泄漏到 TextInput 中）。
+    // 展开时：←/→ 和 'm' 均可使用（叠加层会阻止 TextInput）。
     if (selectedPipes.length > 0) {
       const arrowToggle = key.leftArrow || key.rightArrow;
       const mToggle = selectorOpen && _input.toLowerCase() === 'm';
@@ -329,7 +326,7 @@ function PipeStatusInline(): React.ReactNode {
     }
   });
 
-  // Early return AFTER all hooks
+  // 所有 hook 执行完毕后的提前返回
   if (!isVisible) return null;
 
   if (!selectorOpen) {
@@ -341,7 +338,7 @@ function PipeStatusInline(): React.ReactNode {
         {pipeIpc.localIp && <Text dimColor>{pipeIpc.localIp}</Text>}
         {allPipes.length > 0 && (
           <Text color={selectedRouteActive ? 'success' : undefined} dimColor={selectedPipes.length === 0}>
-            {selectedPipes.length}/{allPipes.length} selected
+            {selectedPipes.length}/{allPipes.length} 已选
           </Text>
         )}
         {pipeIpc && isPipeControlled(pipeIpc) && pipeIpc.attachedBy && (
@@ -353,15 +350,15 @@ function PipeStatusInline(): React.ReactNode {
         {allPipes.length > 0 && (
           <Text color={selectedRouteActive ? 'success' : undefined} dimColor={!selectedRouteActive}>
             {selectedPipes.length > 0
-              ? `${routeMode === 'local' ? 'local main' : 'selected pipes only'} · ←/→ switch · Shift+↓ edit`
-              : 'local main · Shift+↓ select'}
+              ? `${routeMode === 'local' ? '本地主进程' : '仅选中 pipe'} · ←/→ 切换 · Shift+↓ 编辑`
+              : '本地主进程 · Shift+↓ 选择'}
           </Text>
         )}
       </Box>
     );
   }
 
-  // Expanded mode: header + pipe list with checkboxes
+  // 展开模式：头部 + 带复选框的 pipe 列表
   return (
     <Box flexDirection="column">
       <Box height={1} gap={1}>
@@ -369,7 +366,7 @@ function PipeStatusInline(): React.ReactNode {
         <Text bold>{pipeIpc.serverName}</Text>
         <Text dimColor>({displayRole})</Text>
         {pipeIpc.localIp && <Text dimColor>{pipeIpc.localIp}</Text>}
-        <Text color="warning">↑↓ move Space select ←/→ or m route Enter/Esc close Shift+↓ toggle</Text>
+        <Text color="warning">↑↓ 移动 空格 选择 ←/→ 或 m 切换路由 Enter/Esc 关闭 Shift+↓ 切换</Text>
       </Box>
       <Box height={1} paddingLeft={2}>
         <Text dimColor>
@@ -393,7 +390,7 @@ function PipeStatusInline(): React.ReactNode {
               dimColor={!isConnected && !isCursor}
             >
               {isSelected ? '☑' : '☐'} {name}
-              {isConnected ? '' : ' [offline]'}
+              {isConnected ? '' : ' [离线]'}
               {label ? ` (${label})` : ''}
             </Text>
           </Box>
@@ -401,7 +398,7 @@ function PipeStatusInline(): React.ReactNode {
       })}
       {allPipes.length === 0 && (
         <Box height={1} paddingLeft={2}>
-          <Text dimColor>No other pipes found. Start another instance.</Text>
+          <Text dimColor>未找到其他 pipe。请启动另一个实例。</Text>
         </Box>
       )}
     </Box>

@@ -79,19 +79,14 @@ export function InProcessTeammateDetailDialog({
     <Text>
       {teammate.status !== 'running' && (
         <Text color={teammate.status === 'completed' ? 'success' : teammate.status === 'killed' ? 'warning' : 'error'}>
-          {teammate.status === 'completed' ? 'Completed' : teammate.status === 'failed' ? 'Failed' : 'Stopped'}
+          {teammate.status === 'completed' ? '已完成' : teammate.status === 'failed' ? '失败' : '已停止'}
           {' · '}
         </Text>
       )}
       <Text dimColor>
         {elapsedTime}
-        {tokenCount !== undefined && tokenCount > 0 && <> · {formatNumber(tokenCount)} tokens</>}
-        {toolUseCount !== undefined && toolUseCount > 0 && (
-          <>
-            {' '}
-            · {toolUseCount} {toolUseCount === 1 ? 'tool' : 'tools'}
-          </>
-        )}
+        {tokenCount !== undefined && tokenCount > 0 && <> · {formatNumber(tokenCount)} 个 Token</>}
+        {toolUseCount !== undefined && toolUseCount > 0 && <> · {toolUseCount} 个工具</>}
       </Text>
     </Text>
   );
@@ -105,15 +100,13 @@ export function InProcessTeammateDetailDialog({
         color="background"
         inputGuide={exitState =>
           exitState.pending ? (
-            <Text>Press {exitState.keyName} again to exit</Text>
+            <Text>再次按 {exitState.keyName} 退出</Text>
           ) : (
             <Byline>
-              {onBack && <KeyboardShortcutHint shortcut="←" action="go back" />}
-              <KeyboardShortcutHint shortcut="Esc/Enter/Space" action="close" />
-              {teammate.status === 'running' && onKill && <KeyboardShortcutHint shortcut="x" action="stop" />}
-              {teammate.status === 'running' && onForeground && (
-                <KeyboardShortcutHint shortcut="f" action="foreground" />
-              )}
+              {onBack && <KeyboardShortcutHint shortcut="←" action="返回" />}
+              <KeyboardShortcutHint shortcut="Esc/Enter/Space" action="关闭" />
+              {teammate.status === 'running' && onKill && <KeyboardShortcutHint shortcut="x" action="停止" />}
+              {teammate.status === 'running' && onForeground && <KeyboardShortcutHint shortcut="f" action="前台" />}
             </Byline>
           )
         }
@@ -124,7 +117,7 @@ export function InProcessTeammateDetailDialog({
           teammate.progress.recentActivities.length > 0 && (
             <Box flexDirection="column">
               <Text bold dimColor>
-                Progress
+                进度
               </Text>
               {teammate.progress.recentActivities.map((activity, i) => (
                 <Text key={i} dimColor={i < teammate.progress!.recentActivities!.length - 1} wrap="truncate-end">
@@ -138,7 +131,7 @@ export function InProcessTeammateDetailDialog({
         {/* Prompt section */}
         <Box flexDirection="column" marginTop={1}>
           <Text bold dimColor>
-            Prompt
+            提示词
           </Text>
           <Text wrap="wrap">{displayPrompt}</Text>
         </Box>
@@ -147,7 +140,7 @@ export function InProcessTeammateDetailDialog({
         {teammate.status === 'failed' && teammate.error && (
           <Box flexDirection="column" marginTop={1}>
             <Text bold color="error">
-              Error
+              错误
             </Text>
             <Text color="error" wrap="wrap">
               {teammate.error}

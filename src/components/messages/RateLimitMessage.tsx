@@ -28,30 +28,30 @@ export function getUpsellMessage({
 
   if (isMax20x) {
     if (isExtraUsageCommandEnabled) {
-      return '/extra-usage to finish what you\u2019re working on.';
+      return '/extra-usage \u7ee7\u7eed\u5b8c\u6210\u60a8\u6b63\u5728\u8fdb\u884c\u7684\u5de5\u4f5c\u3002';
     }
-    return '/login to switch to an API usage-billed account.';
+    return '/login \u5207\u6362\u5230\u6309 API \u7528\u91cf\u8ba1\u8d39\u8d26\u6237\u3002';
   }
 
   if (shouldAutoOpenRateLimitOptionsMenu) {
-    return 'Opening your options\u2026';
+    return '\u6b63\u5728\u6253\u5f00\u9009\u9879\u2026';
   }
 
   if (!isTeamOrEnterprise && !isExtraUsageCommandEnabled) {
-    return '/upgrade to increase your usage limit.';
+    return '/upgrade \u63d0\u5347\u60a8\u7684\u7528\u91cf\u9650\u5236\u3002';
   }
 
   if (isTeamOrEnterprise) {
     if (!isExtraUsageCommandEnabled) return null;
 
     if (hasBillingAccess) {
-      return '/extra-usage to finish what you\u2019re working on.';
+      return '/extra-usage \u7ee7\u7eed\u5b8c\u6210\u60a8\u6b63\u5728\u8fdb\u884c\u7684\u5de5\u4f5c\u3002';
     }
 
-    return '/extra-usage to request more usage from your admin.';
+    return '/extra-usage \u5411\u7ba1\u7406\u5458\u7533\u8bf7\u66f4\u591a\u7528\u91cf\u3002';
   }
 
-  return '/upgrade or /extra-usage to finish what you\u2019re working on.';
+  return '/upgrade \u6216 /extra-usage \u7ee7\u7eed\u5b8c\u6210\u60a8\u6b63\u5728\u8fdb\u884c\u7684\u5de5\u4f5c\u3002';
 }
 
 type RateLimitMessageProps = {

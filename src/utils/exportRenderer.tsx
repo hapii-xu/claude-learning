@@ -10,9 +10,9 @@ import type { Message } from '../types/message.js';
 import { renderToAnsiString } from './staticRender.js';
 
 /**
- * Minimal keybinding provider for static/headless renders.
- * Provides keybinding context without the ChordInterceptor (which uses useInput
- * and would hang in headless renders with no stdin).
+ * 用于静态/无头渲染的最小键绑定提供器。
+ * 提供键绑定上下文，不含 ChordInterceptor（后者使用 useInput，
+ * 在无 stdin 的无头渲染中会挂起）。
  */
 function StaticKeybindingProvider({ children }: { children: React.ReactNode }): React.ReactNode {
   const { bindings } = loadKeybindingsSyncWithWarnings();
@@ -36,10 +36,10 @@ function StaticKeybindingProvider({ children }: { children: React.ReactNode }): 
   );
 }
 
-// Upper-bound how many NormalizedMessages a Message can produce.
-// normalizeMessages splits one Message with N content blocks into N
-// NormalizedMessages — 1:1 with block count. String content = 1 block.
-// AttachmentMessage etc. have no .message and normalize to ≤1.
+// 估算一条 Message 最多能产生多少 NormalizedMessages 的上界。
+// normalizeMessages 将一条含 N 个内容块的 Message 拆分为 N 条
+// NormalizedMessages — 与块数 1:1 对应。字符串内容 = 1 个块。
+// AttachmentMessage 等没有 .message，规范化后 ≤1。
 function normalizedUpperBound(m: Message): number {
   if (!('message' in m)) return 1;
   const c = m.message!.content;
@@ -47,16 +47,15 @@ function normalizedUpperBound(m: Message): number {
 }
 
 /**
- * Streams rendered messages in chunks, ANSI codes preserved. Each chunk is a
- * fresh renderToAnsiString — yoga layout tree + Ink's screen buffer are sized
- * to the tallest CHUNK instead of the full session. Measured (Mar 2026,
- * 538-msg session): −55% plateau RSS vs a single full render. The sink owns
- * the output — write to stdout for `[` dump-to-scrollback, appendFile for `v`.
+ * 以分块方式流式渲染消息，保留 ANSI 转义码。每个块都是一次
+ * 新鲜的 renderToAnsiString — yoga 布局树 + Ink 屏幕缓冲区的大小
+ * 以最高的 CHUNK 为准，而非整个会话。实测（2026 年 3 月，
+ * 538 条消息会话）：与单次完整渲染相比，RSS 峰值降低 55%。sink 拥有
+ * 输出所有权 — 写入 stdout 用于 `[` 转存到回滚缓冲区，appendFile 用于 `v`。
  *
- * Messages.renderRange slices AFTER normalize→group→collapse, so tool-call
- * grouping stays correct across chunk seams; buildMessageLookups runs on
- * the full normalized array so tool_use↔tool_result resolves regardless of
- * which chunk each landed in.
+ * Messages.renderRange 在 normalize→group→collapse 之后切片，因此工具调用
+ * 分组在块边界处保持正确；buildMessageLookups 在完整规范化数组上运行，
+ * 所以 tool_use↔tool_result 的解析不受各自落在哪个块中的影响。
  */
 export async function streamRenderedMessages(
   messages: Message[],
@@ -99,11 +98,10 @@ export async function streamRenderedMessages(
       columns,
     );
 
-  // renderRange indexes into the post-collapse array whose length we can't
-  // see from here — normalize splits each Message into one NormalizedMessage
-  // per content block (unbounded per message), collapse merges some back.
-  // Ceiling is the exact normalize output count + chunkSize so the loop
-  // always reaches the empty slice where break fires (collapse only shrinks).
+  // renderRange 索引到折叠后数组，其长度在此不可见——normalize 将每条 Message
+  // 按内容块数量拆分为 NormalizedMessage（每条消息数量不限），collapse 将部分合并回去。
+  // 上限为精确的 normalize 输出数量 + chunkSize，使循环
+  // 始终到达触发 break 的空切片（collapse 只会收缩）。
   let ceiling = chunkSize;
   for (const m of messages) ceiling += normalizedUpperBound(m);
   for (let offset = 0; offset < ceiling; offset += chunkSize) {
@@ -115,8 +113,8 @@ export async function streamRenderedMessages(
 }
 
 /**
- * Renders messages to a plain text string suitable for export.
- * Uses the same React rendering logic as the interactive UI.
+ * 将消息渲染为适合导出的纯文本字符串。
+ * 使用与交互式 UI 相同的 React 渲染逻辑。
  */
 export async function renderMessagesToPlainText(
   messages: Message[],

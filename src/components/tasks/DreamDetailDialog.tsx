@@ -45,59 +45,50 @@ export function DreamDetailDialog({ task, onDone, onBack, onKill }: Props): Reac
   return (
     <Box flexDirection="column" tabIndex={0} autoFocus onKeyDown={handleKeyDown}>
       <Dialog
-        title="Memory consolidation"
+        title="记忆整合"
         subtitle={
           <Text dimColor>
-            {elapsedTime} · reviewing {task.sessionsReviewing} {plural(task.sessionsReviewing, 'session')}
-            {task.filesTouched.length > 0 && (
-              <>
-                {' '}
-                · {task.filesTouched.length} {plural(task.filesTouched.length, 'file')} touched
-              </>
-            )}
+            {elapsedTime} · 正在回顾 {task.sessionsReviewing} 个会话
+            {task.filesTouched.length > 0 && <> · {task.filesTouched.length} 个文件已修改</>}
           </Text>
         }
         onCancel={onDone}
         color="background"
         inputGuide={exitState =>
           exitState.pending ? (
-            <Text>Press {exitState.keyName} again to exit</Text>
+            <Text>再次按 {exitState.keyName} 退出</Text>
           ) : (
             <Byline>
-              {onBack && <KeyboardShortcutHint shortcut="←" action="go back" />}
-              <KeyboardShortcutHint shortcut="Esc/Enter/Space" action="close" />
-              {task.status === 'running' && onKill && <KeyboardShortcutHint shortcut="x" action="stop" />}
+              {onBack && <KeyboardShortcutHint shortcut="←" action="返回" />}
+              <KeyboardShortcutHint shortcut="Esc/Enter/Space" action="关闭" />
+              {task.status === 'running' && onKill && <KeyboardShortcutHint shortcut="x" action="停止" />}
             </Byline>
           )
         }
       >
         <Box flexDirection="column" gap={1}>
           <Text>
-            <Text bold>Status:</Text>{' '}
+            <Text bold>状态：</Text>{' '}
             {task.status === 'running' ? (
-              <Text color="background">running</Text>
+              <Text color="background">运行中</Text>
             ) : task.status === 'completed' ? (
-              <Text color="success">{task.status}</Text>
+              <Text color="success">已完成</Text>
             ) : (
               <Text color="error">{task.status}</Text>
             )}
           </Text>
 
           {shown.length === 0 ? (
-            <Text dimColor>{task.status === 'running' ? 'Starting…' : '(no text output)'}</Text>
+            <Text dimColor>{task.status === 'running' ? '启动中…' : '（无文本输出）'}</Text>
           ) : (
             <>
-              {hidden > 0 && (
-                <Text dimColor>
-                  ({hidden} earlier {plural(hidden, 'turn')})
-                </Text>
-              )}
+              {hidden > 0 && <Text dimColor>（还有更早的 {hidden} 轮对话）</Text>}
               {shown.map((turn, i) => (
                 <Box key={i} flexDirection="column">
                   <Text wrap="wrap">{turn.text}</Text>
                   {turn.toolUseCount > 0 && (
                     <Text dimColor>
-                      {'  '}({turn.toolUseCount} {plural(turn.toolUseCount, 'tool')})
+                      {'  '}（{turn.toolUseCount} 个工具）
                     </Text>
                   )}
                 </Box>

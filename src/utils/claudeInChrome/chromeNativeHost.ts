@@ -1,9 +1,9 @@
 // biome-ignore-all lint/suspicious/noConsole: file uses console intentionally
 /**
- * Chrome Native Host - Pure TypeScript Implementation
+ * Chrome 原生宿主 - 纯 TypeScript 实现
  *
- * This module provides the Chrome native messaging host functionality,
- * previously implemented as a Rust NAPI binding but now in pure TypeScript.
+ * 本模块提供 Chrome 原生消息宿主功能，
+ * 原先通过 Rust NAPI 绑定实现，现已改用纯 TypeScript 实现。
  */
 
 import {
@@ -24,7 +24,7 @@ import { jsonParse, jsonStringify } from '../slowOperations.js'
 import { getSecureSocketPath, getSocketDir } from './common.js'
 
 const VERSION = '1.0.0'
-const MAX_MESSAGE_SIZE = 1024 * 1024 // 1MB - Max message size that can be sent to Chrome
+const MAX_MESSAGE_SIZE = 1024 * 1024 // 1MB - 可发送给 Chrome 的最大消息体积
 
 const LOG_FILE =
   process.env.USER_TYPE === 'ant'
@@ -36,16 +36,16 @@ function log(message: string, ...args: unknown[]): void {
     const timestamp = new Date().toISOString()
     const formattedArgs = args.length > 0 ? ' ' + jsonStringify(args) : ''
     const logLine = `[${timestamp}] [Claude Chrome Native Host] ${message}${formattedArgs}\n`
-    // Fire-and-forget: logging is best-effort and callers (including event
-    // handlers) don't await
+    // 即发即忘：日志记录尽力而为，调用方（包括事件
+    // 处理器）不会 await
     void appendFile(LOG_FILE, logLine).catch(() => {
-      // Ignore file write errors
+      // 忽略文件写入错误
     })
   }
   console.error(`[Claude Chrome Native Host] ${message}`, ...args)
 }
 /**
- * Send a message to stdout (Chrome native messaging protocol)
+ * 向 stdout 发送消息（Chrome 原生消息协议）
  */
 export function sendChromeMessage(message: string): void {
   const jsonBytes = Buffer.from(message, 'utf-8')
@@ -62,22 +62,22 @@ export async function runChromeNativeHost(): Promise<void> {
   const host = new ChromeNativeHost()
   const messageReader = new ChromeMessageReader()
 
-  // Start the native host server
+  // 启动原生宿主服务器
   await host.start()
 
-  // Process messages from Chrome until stdin closes
+  // 持续处理来自 Chrome 的消息，直到 stdin 关闭
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     const message = await messageReader.read()
     if (message === null) {
-      // stdin closed, Chrome disconnected
+      // stdin 已关闭，Chrome 已断开连接
       break
     }
 
     await host.handleMessage(message)
   }
 
-  // Stop the server
+  // 停止服务器
   await host.stop()
 }
 
@@ -117,25 +117,25 @@ class ChromeNativeHost {
     if (platform() !== 'win32') {
       const socketDir = getSocketDir()
 
-      // Migrate legacy socket: if socket dir path exists as a file/socket, remove it
+      // 迁移旧版 socket：若 socket 目录路径以文件/socket 形式存在，则将其删除
       try {
         const dirStats = await stat(socketDir)
         if (!dirStats.isDirectory()) {
           await unlink(socketDir)
         }
       } catch {
-        // Doesn't exist, that's fine
+        // 不存在，没问题
       }
 
-      // Create socket directory with secure permissions
+      // 以安全权限创建 socket 目录
       await mkdir(socketDir, { recursive: true, mode: 0o700 })
 
-      // Fix perms if directory already existed
+      // 若目录已存在则修正权限
       await chmod(socketDir, 0o700).catch(() => {
-        // Ignore
+        // 忽略
       })
 
-      // Clean up stale sockets
+      // 清理过期 socket
       try {
         const files = await readdir(socketDir)
         for (const file of files) {
@@ -148,17 +148,17 @@ class ChromeNativeHost {
           }
           try {
             process.kill(pid, 0)
-            // Process is alive, leave it
+            // 进程存活，保留
           } catch {
-            // Process is dead, remove stale socket
+            // 进程已死亡，删除过期 socket
             await unlink(join(socketDir, file)).catch(() => {
-              // Ignore
+              // 忽略
             })
             log(`Removed stale socket for PID ${pid}`)
           }
         }
       } catch {
-        // Ignore errors scanning directory
+        // 忽略扫描目录时的错误
       }
     }
 
@@ -179,7 +179,7 @@ class ChromeNativeHost {
       })
     })
 
-    // Set permissions on Unix (after listen resolves so socket file exists)
+    // 在 Unix 上设置权限（在 listen resolve 之后，此时 socket 文件已存在）
     if (platform() !== 'win32') {
       try {
         await chmod(this.socketPath!, 0o600)
@@ -195,13 +195,13 @@ class ChromeNativeHost {
       return
     }
 
-    // Close all MCP clients
+    // 关闭所有 MCP 客户端
     for (const [, client] of this.mcpClients) {
       client.socket.destroy()
     }
     this.mcpClients.clear()
 
-    // Close server
+    // 关闭服务器
     if (this.server) {
       await new Promise<void>(resolve => {
         this.server!.close(() => resolve())
@@ -209,16 +209,16 @@ class ChromeNativeHost {
       this.server = null
     }
 
-    // Cleanup socket file
+    // 清理 socket 文件
     if (platform() !== 'win32' && this.socketPath) {
       try {
         await unlink(this.socketPath)
         log('Cleaned up socket file')
       } catch {
-        // ENOENT is fine, ignore
+        // ENOENT 是正常情况，忽略
       }
 
-      // Remove directory if empty
+      // 若目录为空则删除
       try {
         const socketDir = getSocketDir()
         const remaining = await readdir(socketDir)
@@ -227,7 +227,7 @@ class ChromeNativeHost {
           log('Removed empty socket directory')
         }
       } catch {
-        // Ignore
+        // 忽略
       }
     }
 
@@ -296,7 +296,7 @@ class ChromeNativeHost {
         if (this.mcpClients.size > 0) {
           log(`Forwarding tool response to ${this.mcpClients.size} MCP clients`)
 
-          // Extract the data portion (everything except 'type')
+          // 提取数据部分（'type' 以外的所有字段）
           const { type: _, ...data } = message
           const responseData = Buffer.from(jsonStringify(data), 'utf-8')
           const lengthBuffer = Buffer.alloc(4)
@@ -318,7 +318,7 @@ class ChromeNativeHost {
         if (this.mcpClients.size > 0) {
           log(`Forwarding notification to ${this.mcpClients.size} MCP clients`)
 
-          // Extract the data portion (everything except 'type')
+          // 提取数据部分（'type' 以外的所有字段）
           const { type: _, ...data } = message
           const notificationData = Buffer.from(jsonStringify(data), 'utf-8')
           const lengthBuffer = Buffer.alloc(4)
@@ -364,7 +364,7 @@ class ChromeNativeHost {
       `MCP client ${clientId} connected. Total clients: ${this.mcpClients.size}`,
     )
 
-    // Notify Chrome of connection
+    // 通知 Chrome 已连接
     sendChromeMessage(
       jsonStringify({
         type: 'mcp_connected',
@@ -374,7 +374,7 @@ class ChromeNativeHost {
     socket.on('data', (data: Buffer) => {
       client.buffer = Buffer.concat([client.buffer, data])
 
-      // Process complete messages
+      // 处理完整消息
       while (client.buffer.length >= 4) {
         const length = client.buffer.readUInt32LE(0)
 
@@ -385,7 +385,7 @@ class ChromeNativeHost {
         }
 
         if (client.buffer.length < 4 + length) {
-          break // Wait for more data
+          break // 等待更多数据
         }
 
         const messageBytes = client.buffer.slice(4, 4 + length)
@@ -399,7 +399,7 @@ class ChromeNativeHost {
             `Forwarding tool request from MCP client ${clientId}: ${request.method}`,
           )
 
-          // Forward to Chrome
+          // 转发给 Chrome
           sendChromeMessage(
             jsonStringify({
               type: 'tool_request',
@@ -423,7 +423,7 @@ class ChromeNativeHost {
       )
       this.mcpClients.delete(clientId)
 
-      // Notify Chrome of disconnection
+      // 通知 Chrome 已断开连接
       sendChromeMessage(
         jsonStringify({
           type: 'mcp_disconnected',
@@ -434,8 +434,8 @@ class ChromeNativeHost {
 }
 
 /**
- * Chrome message reader using async stdin. Synchronous reads can crash Bun, so we use
- * async reads with a buffer.
+ * 使用异步 stdin 的 Chrome 消息读取器。同步读取可能导致 Bun 崩溃，因此
+ * 使用带缓冲区的异步读取。
  */
 class ChromeMessageReader {
   private buffer = Buffer.alloc(0)
@@ -470,7 +470,7 @@ class ChromeMessageReader {
       return
     }
 
-    // Need at least 4 bytes for length prefix
+    // 长度前缀至少需要 4 个字节
     if (this.buffer.length < 4) {
       return
     }
@@ -484,12 +484,12 @@ class ChromeMessageReader {
       return
     }
 
-    // Check if we have the full message
+    // 检查是否已收到完整消息
     if (this.buffer.length < 4 + length) {
-      return // Wait for more data
+      return // 等待更多数据
     }
 
-    // Extract the message
+    // 提取消息
     const messageBytes = this.buffer.subarray(4, 4 + length)
     this.buffer = this.buffer.subarray(4 + length)
 
@@ -503,7 +503,7 @@ class ChromeMessageReader {
       return null
     }
 
-    // Check if we already have a complete message buffered
+    // 检查缓冲区中是否已有完整消息
     if (this.buffer.length >= 4) {
       const length = this.buffer.readUInt32LE(0)
       if (
@@ -517,10 +517,10 @@ class ChromeMessageReader {
       }
     }
 
-    // Wait for more data
+    // 等待更多数据
     return new Promise(resolve => {
       this.pendingResolve = resolve
-      // In case data arrived between check and setting pendingResolve
+      // 防止在检查与设置 pendingResolve 之间有数据到达
       this.tryProcessMessage()
     })
   }

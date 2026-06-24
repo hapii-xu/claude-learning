@@ -333,7 +333,7 @@ export function PreviewQuestionView({
                 maxWidth={previewMaxWidth}
               />
               <Box marginTop={1} flexDirection="row" gap={1}>
-                <Text color="suggestion">Notes:</Text>
+                <Text color="suggestion">备注：</Text>
                 {isInNotesInput ? (
                   <TextInput
                     value={notesValue}
@@ -367,7 +367,7 @@ export function PreviewQuestionView({
               ) : (
                 <Text> </Text>
               )}
-              <Text color={isFooterFocused && footerIndex === 0 ? 'suggestion' : undefined}>Chat about this</Text>
+              <Text color={isFooterFocused && footerIndex === 0 ? 'suggestion' : undefined}>讨论此问题</Text>
             </Box>
             {isInPlanMode && (
               <Box flexDirection="row" gap={1}>

@@ -130,7 +130,7 @@ export function UserTeammateMessage({ addMargin, param: { text }, isTranscriptMo
                 <Text color="success">✓</Text>
                 <Text>
                   {' '}
-                  Completed task #{taskCompleted.taskId}
+                  已完成任务 #{taskCompleted.taskId}
                   {taskCompleted.taskSubject && <Text dimColor> ({taskCompleted.taskSubject})</Text>}
                 </Text>
               </MessageResponse>

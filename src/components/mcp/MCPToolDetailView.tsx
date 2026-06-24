@@ -43,7 +43,7 @@ export function MCPToolDetailView({ tool, server, onBack }: Props): React.ReactN
         );
         setToolDescription(desc);
       } catch {
-        setToolDescription('Failed to load description');
+        setToolDescription('加载描述失败');
       }
     }
     void loadDescription();
@@ -52,9 +52,9 @@ export function MCPToolDetailView({ tool, server, onBack }: Props): React.ReactN
   const titleContent = (
     <>
       {displayName}
-      {isReadOnly && <Text color="success"> [read-only]</Text>}
-      {isDestructive && <Text color="error"> [destructive]</Text>}
-      {isOpenWorld && <Text dimColor> [open-world]</Text>}
+      {isReadOnly && <Text color="success"> [只读]</Text>}
+      {isDestructive && <Text color="error"> [破坏性]</Text>}
+      {isOpenWorld && <Text dimColor> [开放世界]</Text>}
     </>
   );
 
@@ -65,26 +65,26 @@ export function MCPToolDetailView({ tool, server, onBack }: Props): React.ReactN
       onCancel={onBack}
       inputGuide={exitState =>
         exitState.pending ? (
-          <Text>Press {exitState.keyName} again to exit</Text>
+          <Text>再次按下 {exitState.keyName} 退出</Text>
         ) : (
-          <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="go back" />
+          <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="返回" />
         )
       }
     >
       <Box flexDirection="column">
         <Box>
-          <Text bold>Tool name: </Text>
+          <Text bold>工具名称：</Text>
           <Text dimColor>{toolName}</Text>
         </Box>
 
         <Box>
-          <Text bold>Full name: </Text>
+          <Text bold>完整名称：</Text>
           <Text dimColor>{tool.name}</Text>
         </Box>
 
         {toolDescription && (
           <Box flexDirection="column" marginTop={1}>
-            <Text bold>Description:</Text>
+            <Text bold>描述：</Text>
             <Text wrap="wrap">{toolDescription}</Text>
           </Box>
         )}
@@ -93,7 +93,7 @@ export function MCPToolDetailView({ tool, server, onBack }: Props): React.ReactN
           tool.inputJSONSchema.properties &&
           Object.keys(tool.inputJSONSchema.properties).length > 0 && (
             <Box flexDirection="column" marginTop={1}>
-              <Text bold>Parameters:</Text>
+              <Text bold>参数：</Text>
               <Box marginLeft={2} flexDirection="column">
                 {Object.entries(tool.inputJSONSchema.properties).map(([key, value]) => {
                   const required = tool.inputJSONSchema?.required as string[] | undefined;
@@ -101,7 +101,7 @@ export function MCPToolDetailView({ tool, server, onBack }: Props): React.ReactN
                   return (
                     <Text key={key}>
                       • {key}
-                      {isRequired && <Text dimColor> (required)</Text>}:{' '}
+                      {isRequired && <Text dimColor>（必填）</Text>}:{' '}
                       <Text dimColor>
                         {typeof value === 'object' && value && 'type' in value ? String(value.type) : 'unknown'}
                       </Text>

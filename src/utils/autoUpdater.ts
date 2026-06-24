@@ -52,20 +52,20 @@ export type MaxVersionConfig = {
 }
 
 /**
- * Checks if the current version meets the minimum required version from Statsig config
- * Terminates the process with an error message if the version is too old
+ * 检查当前版本是否满足 Statsig 配置中的最低要求版本。
+ * 如果版本过旧则终止进程并显示错误消息。
  *
- * NOTE ON SHA-BASED VERSIONING:
- * We use SemVer-compliant versioning with build metadata format (X.X.X+SHA) for continuous deployment.
- * According to SemVer specs, build metadata (the +SHA part) is ignored when comparing versions.
+ * 关于基于 SHA 的版本控制说明：
+ * 我们使用符合 SemVer 规范的版本控制，采用构建元数据格式（X.X.X+SHA）用于持续部署。
+ * 根据 SemVer 规范，构建元数据（+SHA 部分）在比较版本时会被忽略。
  *
- * Versioning approach:
- * 1. For version requirements/compatibility (assertMinVersion), we use semver comparison that ignores build metadata
- * 2. For updates ('claude update'), we use exact string comparison to detect any change, including SHA
- *    - This ensures users always get the latest build, even when only the SHA changes
- *    - The UI clearly shows both versions including build metadata
+ * 版本控制方法：
+ * 1. 对于版本要求/兼容性检查（assertMinVersion），使用忽略构建元数据的 semver 比较
+ * 2. 对于更新（'claude update'），使用精确字符串比较来检测任何更改，包括 SHA
+ *    - 这确保用户始终获得最新构建，即使只有 SHA 发生变化
+ *    - UI 会清晰地显示包含构建元数据的两个版本
  *
- * This approach keeps version comparison logic simple while maintaining traceability via the SHA.
+ * 该方法保持版本比较逻辑简单，同时通过 SHA 维护可追溯性。
  */
 export async function assertMinVersion(): Promise<void> {
   if (process.env.NODE_ENV === 'test') {
@@ -98,11 +98,11 @@ This will ensure you have access to the latest features and improvements.
 }
 
 /**
- * Returns the maximum allowed version for the current user type.
- * For ants, returns the `ant` field (dev version format).
- * For external users, returns the `external` field (clean semver).
- * This is used as a server-side kill switch to pause auto-updates during incidents.
- * Returns undefined if no cap is configured.
+ * 返回当前用户类型允许的最高版本。
+ * 对于 ant 用户，返回 `ant` 字段（开发版本格式）。
+ * 对于外部用户，返回 `external` 字段（干净的 semver）。
+ * 用作服务端 kill switch 以在事故期间暂停自动更新。
+ * 如果未配置上限则返回 undefined。
  */
 export async function getMaxVersion(): Promise<string | undefined> {
   const config = await getMaxVersionConfig()
@@ -113,8 +113,8 @@ export async function getMaxVersion(): Promise<string | undefined> {
 }
 
 /**
- * Returns the server-driven message explaining the known issue, if configured.
- * Shown in the warning banner when the current version exceeds the max allowed version.
+ * 返回服务端驱动的已知问题说明消息（如果已配置）。
+ * 当当前版本超过允许的最高版本时显示在警告横幅中。
  */
 export async function getMaxVersionMessage(): Promise<string | undefined> {
   const config = await getMaxVersionConfig()
@@ -137,9 +137,9 @@ async function getMaxVersionConfig(): Promise<MaxVersionConfig> {
 }
 
 /**
- * Checks if a target version should be skipped due to user's minimumVersion setting.
- * This is used when switching to stable channel - the user can choose to stay on their
- * current version until stable catches up, preventing downgrades.
+ * 检查是否应因用户的 minimumVersion 设置跳过目标版本。
+ * 用于切换到 stable 渠道时 —— 用户可以选择停留在当前版本，
+ * 直到 stable 追上来，以防止降级。
  */
 export function shouldSkipVersion(targetVersion: string): boolean {
   const settings = getInitialSettings()
@@ -147,7 +147,7 @@ export function shouldSkipVersion(targetVersion: string): boolean {
   if (!minimumVersion) {
     return false
   }
-  // Skip if target version is less than minimum
+  // 如果目标版本低于最低版本则跳过
   const shouldSkip = !gte(targetVersion, minimumVersion)
   if (shouldSkip) {
     logForDebugging(
@@ -157,38 +157,37 @@ export function shouldSkipVersion(targetVersion: string): boolean {
   return shouldSkip
 }
 
-// Lock file for auto-updater to prevent concurrent updates
-const LOCK_TIMEOUT_MS = 5 * 60 * 1000 // 5 minute timeout for locks
+// 自动更新器的锁文件，用于防止并发更新
+const LOCK_TIMEOUT_MS = 5 * 60 * 1000 // 5 分钟锁超时时间
 
 /**
- * Get the path to the lock file
- * This is a function to ensure it's evaluated at runtime after test setup
+ * 获取锁文件路径。
+ * 使用函数形式以确保在测试设置后于运行时求值。
  */
 export function getLockFilePath(): string {
   return join(getClaudeConfigHomeDir(), '.update.lock')
 }
 
 /**
- * Attempts to acquire a lock for auto-updater
- * @returns true if lock was acquired, false if another process holds the lock
+ * 尝试为自动更新器获取锁。
+ * @returns 获取锁成功返回 true，另一进程持有锁则返回 false。
  */
 async function acquireLock(): Promise<boolean> {
   const fs = getFsImplementation()
   const lockPath = getLockFilePath()
 
-  // Check for existing lock: 1 stat() on the happy path (fresh lock or ENOENT),
-  // 2 on stale-lock recovery (re-verify staleness immediately before unlink).
+  // 检查现有锁：正常路径（全新锁或 ENOENT）1 次 stat()，
+  // 陈旧锁恢复时（在 unlink 前立即重新验证过期状态）2 次 stat()。
   try {
     const stats = await fs.stat(lockPath)
     const age = Date.now() - stats.mtimeMs
     if (age < LOCK_TIMEOUT_MS) {
       return false
     }
-    // Lock is stale, remove it before taking over. Re-verify staleness
-    // immediately before unlinking to close a TOCTOU race: if two processes
-    // both observe the stale lock, A unlinks + writes a fresh lock, then B
-    // would unlink A's fresh lock and both believe they hold it. A fresh
-    // lock has a recent mtime, so re-checking staleness makes B back off.
+    // 锁已过期，接管前先移除。在 unlink 前立即重新验证过期状态，
+    // 以关闭 TOCTOU 竞争：如果两个进程都观察到过期锁，A unlink + 写入新锁，
+    // 然后 B 会 unlink A 的新锁，导致双方都认为自己持有锁。
+    // 新锁有近期的 mtime，重新检查过期状态使 B 退出。
     try {
       const recheck = await fs.stat(lockPath)
       if (Date.now() - recheck.mtimeMs < LOCK_TIMEOUT_MS) {
@@ -206,12 +205,11 @@ async function acquireLock(): Promise<boolean> {
       logError(err as Error)
       return false
     }
-    // ENOENT: no lock file, proceed to create one
+    // ENOENT：无锁文件，继续创建一个
   }
 
-  // Create lock file atomically with O_EXCL (flag: 'wx'). If another process
-  // wins the race and creates it first, we get EEXIST and back off.
-  // Lazy-mkdir the config dir on ENOENT.
+  // 使用 O_EXCL（flag: 'wx'）原子地创建锁文件。如果另一个进程
+  // 抢先创建，我们会得到 EEXIST 并退出。ENOENT 时懒惰地创建 config 目录。
   try {
     await writeFile(lockPath, `${process.pid}`, {
       encoding: 'utf8',
@@ -225,9 +223,9 @@ async function acquireLock(): Promise<boolean> {
     }
     if (code === 'ENOENT') {
       try {
-        // fs.mkdir from getFsImplementation() is always recursive:true and
-        // swallows EEXIST internally, so a dir-creation race cannot reach the
-        // catch below — only writeFile's EEXIST (true lock contention) can.
+        // getFsImplementation() 中的 fs.mkdir 始终是 recursive:true 且
+        // 内部吞掉 EEXIST，因此目录创建竞争不会到达下方的 catch ——
+        // 只有 writeFile 的 EEXIST（真正的锁竞争）才会到达。
         await fs.mkdir(getClaudeConfigHomeDir())
         await writeFile(lockPath, `${process.pid}`, {
           encoding: 'utf8',
@@ -248,7 +246,7 @@ async function acquireLock(): Promise<boolean> {
 }
 
 /**
- * Releases the update lock if it's held by this process
+ * 如果此进程持有更新锁则释放它。
  */
 async function releaseLock(): Promise<void> {
   const fs = getFsImplementation()
@@ -267,7 +265,7 @@ async function releaseLock(): Promise<void> {
 }
 
 async function getInstallationPrefix(): Promise<string | null> {
-  // Run from home directory to avoid reading project-level .npmrc/.bunfig.toml
+  // 从 home 目录运行，避免读取项目级 .npmrc/.bunfig.toml
   const isBun = env.isRunningWithBun()
   let prefixResult = null
   if (isBun) {
@@ -320,8 +318,8 @@ export async function getLatestVersion(
 ): Promise<string | null> {
   const npmTag = channel === 'stable' ? 'stable' : 'latest'
 
-  // Run from home directory to avoid reading project-level .npmrc
-  // which could be maliciously crafted to redirect to an attacker's registry
+  // 从 home 目录运行，避免读取项目级 .npmrc，
+  // 该文件可能被恶意构造以重定向到攻击者的 registry
   const result = await execFileNoThrowWithCwd(
     'npm',
     ['view', `${MACRO.PACKAGE_URL}@${npmTag}`, 'version', '--prefer-online'],
@@ -348,11 +346,11 @@ export type NpmDistTags = {
 }
 
 /**
- * Get npm dist-tags (latest and stable versions) from the registry.
- * This is used by the doctor command to show users what versions are available.
+ * 从 registry 获取 npm dist-tags（最新版本和稳定版本）。
+ * 用于 doctor 命令向用户显示可用版本。
  */
 export async function getNpmDistTags(): Promise<NpmDistTags> {
-  // Run from home directory to avoid reading project-level .npmrc
+  // 从 home 目录运行，避免读取项目级 .npmrc
   const result = await execFileNoThrowWithCwd(
     'npm',
     ['view', MACRO.PACKAGE_URL, 'dist-tags', '--json', '--prefer-online'],
@@ -377,8 +375,8 @@ export async function getNpmDistTags(): Promise<NpmDistTags> {
 }
 
 /**
- * Get the latest version from GCS bucket for a given release channel.
- * This is used by installations that don't have npm (e.g. package manager installs).
+ * 从 GCS bucket 获取给定发布渠道的最新版本。
+ * 用于没有 npm 的安装（例如包管理器安装）。
  */
 export async function getLatestVersionFromGcs(
   channel: ReleaseChannel,
@@ -396,8 +394,8 @@ export async function getLatestVersionFromGcs(
 }
 
 /**
- * Get available versions from GCS bucket (for native installations).
- * Fetches both latest and stable channel pointers.
+ * 从 GCS bucket 获取可用版本（用于原生安装）。
+ * 同时获取最新版和稳定版渠道指针。
  */
 export async function getGcsDistTags(): Promise<NpmDistTags> {
   const [latest, stable] = await Promise.all([
@@ -409,28 +407,28 @@ export async function getGcsDistTags(): Promise<NpmDistTags> {
 }
 
 /**
- * Get version history from npm registry (ant-only feature)
- * Returns versions sorted newest-first, limited to the specified count
+ * 从 npm registry 获取版本历史（仅 ant 功能）。
+ * 返回按最新优先排序的版本列表，限制到指定数量。
  *
- * Uses NATIVE_PACKAGE_URL when available because:
- * 1. Native installation is the primary installation method for ant users
- * 2. Not all JS package versions have corresponding native packages
- * 3. This prevents rollback from listing versions that don't have native binaries
+ * 优先使用 NATIVE_PACKAGE_URL 的原因：
+ * 1. 原生安装是 ant 用户的主要安装方式
+ * 2. 并非所有 JS 包版本都有对应的原生包
+ * 3. 这可以防止回滚列出没有原生二进制的版本
  */
 export async function getVersionHistory(limit: number): Promise<string[]> {
   if (process.env.USER_TYPE !== 'ant') {
     return []
   }
 
-  // Use native package URL when available to ensure we only show versions
-  // that have native binaries (not all JS package versions have native builds)
+  // 优先使用原生包 URL，以确保只显示有原生二进制的版本
+  //（并非所有 JS 包版本都有原生构建）
   const packageUrl = MACRO.NATIVE_PACKAGE_URL ?? MACRO.PACKAGE_URL
 
-  // Run from home directory to avoid reading project-level .npmrc
+  // 从 home 目录运行，避免读取项目级 .npmrc
   const result = await execFileNoThrowWithCwd(
     'npm',
     ['view', packageUrl, 'versions', '--json', '--prefer-online'],
-    // Longer timeout for version list
+    // 版本列表使用更长的超时时间
     { abortSignal: AbortSignal.timeout(30000), cwd: homedir() },
   )
 
@@ -444,7 +442,7 @@ export async function getVersionHistory(limit: number): Promise<string[]> {
 
   try {
     const versions = jsonParse(result.stdout.trim()) as string[]
-    // Take last N versions, then reverse to get newest first
+    // 取最后 N 个版本，然后反转以按最新优先排列
     return versions.slice(-limit).reverse()
   } catch (error) {
     logForDebugging(`Failed to parse version history: ${error}`)
@@ -459,7 +457,7 @@ export async function installGlobalPackage(
     logError(
       new AutoUpdaterError('Another process is currently installing an update'),
     )
-    // Log the lock contention
+    // 记录锁竞争事件
     logEvent('tengu_auto_updater_lock_contention', {
       pid: process.pid,
       currentVersion:
@@ -470,7 +468,7 @@ export async function installGlobalPackage(
 
   try {
     await removeClaudeAliasesFromShellConfigs()
-    // Check if we're using npm from Windows path in WSL
+    // 检查是否在 WSL 中使用 Windows 路径下的 npm
     if (!env.isRunningWithBun() && env.isNpmFromWindowsPath()) {
       logError(new Error('Windows NPM detected in WSL environment'))
       logEvent('tengu_auto_updater_windows_npm_in_wsl', {
@@ -496,13 +494,13 @@ To fix this issue:
       return 'no_permissions'
     }
 
-    // Use specific version if provided, otherwise use latest
+    // 如果提供了具体版本则使用该版本，否则使用最新版
     const packageSpec = specificVersion
       ? `${MACRO.PACKAGE_URL}@${specificVersion}`
       : MACRO.PACKAGE_URL
 
-    // Run from home directory to avoid reading project-level .npmrc/.bunfig.toml
-    // which could be maliciously crafted to redirect to an attacker's registry
+    // 从 home 目录运行，避免读取项目级 .npmrc/.bunfig.toml，
+    // 该文件可能被恶意构造以重定向到攻击者的 registry
     const packageManager = env.isRunningWithBun() ? 'bun' : 'npm'
     const installResult = await execFileNoThrowWithCwd(
       packageManager,
@@ -517,7 +515,7 @@ To fix this issue:
       return 'install_failed'
     }
 
-    // Set installMethod to 'global' to track npm global installations
+    // 将 installMethod 设置为 'global' 以跟踪 npm 全局安装
     saveGlobalConfig(current => ({
       ...current,
       installMethod: 'global',
@@ -525,19 +523,19 @@ To fix this issue:
 
     return 'success'
   } finally {
-    // Ensure we always release the lock
+    // 确保始终释放锁
     await releaseLock()
   }
 }
 
 /**
- * Remove claude aliases from shell configuration files
- * This helps clean up old installation methods when switching to native or npm global
+ * 从 shell 配置文件中移除 claude 别名。
+ * 有助于在切换到原生安装或 npm 全局安装时清理旧安装方式。
  */
 async function removeClaudeAliasesFromShellConfigs(): Promise<void> {
   const configMap = getShellConfigPaths()
 
-  // Process each shell config file
+  // 处理每个 shell 配置文件
   for (const [, configFile] of Object.entries(configMap)) {
     try {
       const lines = await readFileLines(configFile)
@@ -550,7 +548,7 @@ async function removeClaudeAliasesFromShellConfigs(): Promise<void> {
         logForDebugging(`Removed claude alias from ${configFile}`)
       }
     } catch (error) {
-      // Don't fail the whole operation if one file can't be processed
+      // 如果某个文件无法处理，不要失败整个操作
       logForDebugging(`Failed to remove alias from ${configFile}: ${error}`, {
         level: 'error',
       })
