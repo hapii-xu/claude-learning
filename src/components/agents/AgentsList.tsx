@@ -43,7 +43,7 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
         <Text color={isCreateNewSelected ? 'suggestion' : undefined}>
           {isCreateNewSelected ? `${figures.pointer} ` : '  '}
         </Text>
-        <Text color={isCreateNewSelected ? 'suggestion' : undefined}>Create new agent</Text>
+        <Text color={isCreateNewSelected ? 'suggestion' : undefined}>创建新 Agent</Text>
       </Box>
     );
   };
@@ -79,13 +79,13 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
         {agent.memory && (
           <Text dimColor={true} color={textColor}>
             {' · '}
-            {agent.memory} memory
+            {agent.memory} 记忆
           </Text>
         )}
         {overriddenBy && (
           <Text dimColor={!isSelected} color={isSelected ? 'warning' : undefined}>
             {' '}
-            {figures.warning} shadowed by {getOverrideSourceLabel(overriddenBy)}
+            {figures.warning} 被 {getOverrideSourceLabel(overriddenBy)} 覆盖
           </Text>
         )}
       </Box>
@@ -168,7 +168,7 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
     }
   };
 
-  const renderBuiltInAgentsSection = (title = 'Built-in (always available):') => {
+  const renderBuiltInAgentsSection = (title = '内置（始终可用）：') => {
     const builtInAgents = sortedAgents.filter(a => a.source === 'built-in');
     return (
       <Box flexDirection="column" marginBottom={1} paddingLeft={2}>
@@ -207,13 +207,13 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
 
   if (hasNoAgents) {
     return (
-      <Dialog title={sourceTitle} subtitle="No agents found" onCancel={onBack} hideInputGuide>
+      <Dialog title={sourceTitle} subtitle="未找到 Agent" onCancel={onBack} hideInputGuide>
         <Box flexDirection="column" gap={1} tabIndex={0} autoFocus onKeyDown={handleKeyDown}>
           {onCreateNew && <Box>{renderCreateNewOption()}</Box>}
-          <Text dimColor>No agents found. Create specialized subagents that Claude can delegate to.</Text>
-          <Text dimColor>Each subagent has its own context window, custom system prompt, and specific tools.</Text>
+          <Text dimColor>未找到 Agent。创建专门的子 Agent 让 Claude 进行任务委派。</Text>
+          <Text dimColor>每个子 Agent 拥有独立的上下文窗口、自定义系统提示词和特定工具。</Text>
           <Text dimColor>
-            Try creating: Code Reviewer, Code Simplifier, Security Reviewer, Tech Lead, or UX Reviewer.
+            推荐创建：代码审查员、代码简化器、安全审查员、技术负责人或 UX 审查员。
           </Text>
           {source !== 'built-in' && sortedAgents.some(a => a.source === 'built-in') && (
             <>
@@ -229,7 +229,7 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
   return (
     <Dialog
       title={sourceTitle}
-      subtitle={`${count(sortedAgents, a => !a.overriddenBy)} agents`}
+      subtitle={`${count(sortedAgents, a => !a.overriddenBy)} 个 Agent`}
       onCancel={onBack}
       hideInputGuide
     >
@@ -253,7 +253,7 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
             {builtInAgents.length > 0 && (
               <Box flexDirection="column" marginBottom={1} paddingLeft={2}>
                 <Text dimColor>
-                  <Text bold>Built-in agents</Text> (always available)
+                  <Text bold>内置 Agent</Text>（始终可用）
                 </Text>
                 {builtInAgents.map(renderAgent)}
               </Box>
@@ -262,7 +262,7 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
         ) : source === 'built-in' ? (
           <>
             <Text dimColor italic>
-              Built-in agents are provided by default and cannot be modified.
+              内置 Agent 为默认提供，不可修改。
             </Text>
             <Box marginTop={1} flexDirection="column">
               {sortedAgents.map(agent => renderAgent(agent))}

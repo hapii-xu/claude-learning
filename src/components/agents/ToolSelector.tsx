@@ -51,7 +51,7 @@ type ToolBuckets = {
 function getToolBuckets(): ToolBuckets {
   return {
     READ_ONLY: {
-      name: 'Read-only tools',
+      name: '只读工具',
       toolNames: new Set([
         GlobTool.name,
         GrepTool.name,
@@ -67,22 +67,22 @@ function getToolBuckets(): ToolBuckets {
       ]),
     },
     EDIT: {
-      name: 'Edit tools',
+      name: '编辑工具',
       toolNames: new Set([FileEditTool.name, FileWriteTool.name, NotebookEditTool.name]),
     },
     EXECUTION: {
-      name: 'Execution tools',
+      name: '执行工具',
       toolNames: new Set(
         [BashTool.name, process.env.USER_TYPE === 'ant' ? TungstenTool.name : undefined].filter(n => n !== undefined),
       ),
     },
     MCP: {
-      name: 'MCP tools',
+      name: 'MCP 工具',
       toolNames: new Set(), // Dynamic - no static list
       isMcp: true,
     },
     OTHER: {
-      name: 'Other tools',
+      name: '其他工具',
       toolNames: new Set(), // Dynamic - catch-all for uncategorized tools
     },
   };
@@ -213,18 +213,18 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
     isHeader?: boolean;
   }> = [];
 
-  // Continue button
+  // 继续按钮
   navigableItems.push({
     id: 'continue',
-    label: 'Continue',
+    label: '继续',
     action: handleConfirm,
     isContinue: true,
   });
 
-  // All tools
+  // 所有工具
   navigableItems.push({
     id: 'bucket-all',
-    label: `${isAllSelected ? figures.checkboxOn : figures.checkboxOff} All tools`,
+    label: `${isAllSelected ? figures.checkboxOn : figures.checkboxOff} 所有工具`,
     action: () => {
       const allToolNames = customAgentTools.map(t => t.name);
       handleToggleTools(allToolNames, !isAllSelected);
@@ -274,11 +274,11 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
     });
   });
 
-  // Toggle button for individual tools
+  // 切换单个工具显示的按钮
   const toggleButtonIndex = navigableItems.length;
   navigableItems.push({
     id: 'toggle-individual',
-    label: showIndividualTools ? 'Hide advanced options' : 'Show advanced options',
+    label: showIndividualTools ? '隐藏高级选项' : '显示高级选项',
     action: () => {
       setShowIndividualTools(!showIndividualTools);
       // If hiding tools and focus is on an individual tool, move focus to toggle button
@@ -298,8 +298,8 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
     if (mcpServerBuckets.length > 0) {
       navigableItems.push({
         id: 'mcp-servers-header',
-        label: 'MCP Servers:',
-        action: () => {}, // No action - just a header
+        label: 'MCP 服务器：',
+        action: () => {}, // 仅作为标题，无操作
         isHeader: true,
       });
 
@@ -309,7 +309,7 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
 
         navigableItems.push({
           id: `mcp-server-${serverName}`,
-          label: `${isFullySelected ? figures.checkboxOn : figures.checkboxOff} ${serverName} (${serverTools.length} ${plural(serverTools.length, 'tool')})`,
+          label: `${isFullySelected ? figures.checkboxOn : figures.checkboxOff} ${serverName}（${serverTools.length} 个${plural(serverTools.length, '工具')}）`,
           action: () => {
             const toolNames = serverTools.map(t => t.name);
             handleToggleTools(toolNames, !isFullySelected);
@@ -317,10 +317,10 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
         });
       });
 
-      // Add separator header before individual tools
+      // 在单个工具前添加分隔标题
       navigableItems.push({
         id: 'tools-header',
-        label: 'Individual Tools:',
+        label: '单个工具：',
         action: () => {},
         isHeader: true,
       });
@@ -380,9 +380,9 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
 
   return (
     <Box flexDirection="column" marginTop={1} tabIndex={0} autoFocus onKeyDown={handleKeyDown}>
-      {/* Render Continue button */}
+      {/* 渲染继续按钮 */}
       <Text color={focusIndex === 0 ? 'suggestion' : undefined} bold={focusIndex === 0}>
-        {focusIndex === 0 ? `${figures.pointer} ` : '  '}[ Continue ]
+        {focusIndex === 0 ? `${figures.pointer} ` : '  '}[ 继续 ]
       </Text>
 
       {/* Separator */}
@@ -416,7 +416,7 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
 
       <Box marginTop={1} flexDirection="column">
         <Text dimColor>
-          {isAllSelected ? 'All tools selected' : `${selectedSet.size} of ${customAgentTools.length} tools selected`}
+          {isAllSelected ? '已选择所有工具' : `已选择 ${selectedSet.size} / ${customAgentTools.length} 个工具`}
         </Text>
       </Box>
     </Box>

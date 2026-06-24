@@ -7,13 +7,13 @@ type Props = {
 };
 
 export function AgentNavigationFooter({
-  instructions = 'Press ↑↓ to navigate · Enter to select · Esc to go back',
+  instructions = '按 ↑↓ 导航 · Enter 选择 · Esc 返回',
 }: Props): React.ReactNode {
   const exitState = useExitOnCtrlCDWithKeybindings();
 
   return (
     <Box marginLeft={2}>
-      <Text dimColor>{exitState.pending ? `Press ${exitState.keyName} again to exit` : instructions}</Text>
+      <Text dimColor>{exitState.pending ? `再次按 ${exitState.keyName} 退出` : instructions}</Text>
     </Box>
   );
 }

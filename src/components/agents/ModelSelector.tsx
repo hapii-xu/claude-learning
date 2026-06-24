@@ -20,7 +20,7 @@ export function ModelSelector({ initialModel, onComplete, onCancel }: ModelSelec
         {
           value: initialModel,
           label: initialModel,
-          description: 'Current model (custom ID)',
+          description: '当前模型（自定义 ID）',
         },
         ...base,
       ];
@@ -33,7 +33,7 @@ export function ModelSelector({ initialModel, onComplete, onCancel }: ModelSelec
   return (
     <Box flexDirection="column">
       <Box marginBottom={1}>
-        <Text dimColor>Model determines the agent&apos;s reasoning capabilities and speed.</Text>
+        <Text dimColor>模型决定了 Agent 的推理能力和速度。</Text>
       </Box>
       <Select
         options={modelOptions}

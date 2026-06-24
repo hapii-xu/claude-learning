@@ -49,7 +49,7 @@ export function FeedbackSurvey({
   if (state === 'submitted') {
     return (
       <Box marginTop={1}>
-        <Text color="success">{'\u2713'} Thanks for sharing your transcript!</Text>
+        <Text color="success">{'\u2713'} \u611f\u8c22\u60a8\u5206\u4eab\u4f1a\u8bdd\u8bb0\u5f55\uff01</Text>
       </Box>
     );
   }
@@ -57,7 +57,7 @@ export function FeedbackSurvey({
   if (state === 'submitting') {
     return (
       <Box marginTop={1}>
-        <Text dimColor>Sharing transcript{'\u2026'}</Text>
+        <Text dimColor>\u6b63\u5728\u5206\u4eab\u4f1a\u8bdd\u8bb0\u5f55{'\u2026'}</Text>
       </Box>
     );
   }
@@ -130,16 +130,16 @@ function FeedbackSurveyThanks({
 
   return (
     <Box marginTop={1} flexDirection="column">
-      <Text color="success">Thanks for the feedback!</Text>
+      <Text color="success">感谢您的反馈！</Text>
       {showFollowUp ? (
         <Text dimColor>
-          (Optional) Press [<Text color="ansi:cyan">1</Text>] to tell us what went well {' \u00b7 '}
+          \uff08\u53ef\u9009\uff09\u6309 [<Text color="ansi:cyan">1</Text>] \u544a\u8bc9\u6211\u4eec\u54ea\u4e9b\u5730\u65b9\u505a\u5f97\u597d {' \u00b7 '}
           {feedbackCommand}
         </Text>
       ) : lastResponse === 'bad' ? (
-        <Text dimColor>Use /issue to report model behavior issues.</Text>
+        <Text dimColor>使用 /issue 报告模型行为问题。</Text>
       ) : (
-        <Text dimColor>Use {feedbackCommand} to share detailed feedback anytime.</Text>
+        <Text dimColor>使用 {feedbackCommand} 随时分享详细反馈。</Text>
       )}
     </Box>
   );

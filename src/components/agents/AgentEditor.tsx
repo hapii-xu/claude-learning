@@ -54,7 +54,7 @@ export function AgentEditor({ agent, tools, onSaved, onBack }: Props): React.Rea
     if (result.error) {
       setError(result.error);
     } else {
-      onSaved(`Opened ${agent.agentType} in editor. If you made edits, restart to load the latest version.`);
+      onSaved(`已在编辑器中打开 ${agent.agentType}。如有修改，请重启以加载最新版本。`);
     }
   }, [agent, onSaved]);
 
@@ -111,10 +111,10 @@ export function AgentEditor({ agent, tools, onSaved, onBack }: Props): React.Rea
           };
         });
 
-        onSaved(`Updated agent: ${chalk.bold(agent.agentType)}`);
+        onSaved(`已更新 Agent：${chalk.bold(agent.agentType)}`);
         return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to save agent');
+        setError(err instanceof Error ? err.message : '保存 Agent 失败');
         return false;
       }
     },
@@ -123,10 +123,10 @@ export function AgentEditor({ agent, tools, onSaved, onBack }: Props): React.Rea
 
   const menuItems = useMemo(
     () => [
-      { label: 'Open in editor', action: handleOpenInEditor },
-      { label: 'Edit tools', action: () => setEditMode('edit-tools') },
-      { label: 'Edit model', action: () => setEditMode('edit-model') },
-      { label: 'Edit color', action: () => setEditMode('edit-color') },
+      { label: '在编辑器中打开', action: handleOpenInEditor },
+      { label: '编辑工具', action: () => setEditMode('edit-tools') },
+      { label: '编辑模型', action: () => setEditMode('edit-model') },
+      { label: '编辑颜色', action: () => setEditMode('edit-color') },
     ],
     [handleOpenInEditor],
   );
@@ -163,7 +163,7 @@ export function AgentEditor({ agent, tools, onSaved, onBack }: Props): React.Rea
 
   const renderMenu = (): React.ReactNode => (
     <Box flexDirection="column" tabIndex={0} autoFocus onKeyDown={handleMenuKeyDown}>
-      <Text dimColor>Source: {getAgentSourceDisplayName(agent.source)}</Text>
+      <Text dimColor>来源：{getAgentSourceDisplayName(agent.source)}</Text>
 
       <Box marginTop={1} flexDirection="column">
         {menuItems.map((item, index) => (

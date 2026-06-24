@@ -36,11 +36,11 @@ export function AgentDetail({ agent, tools, onBack }: Props): React.ReactNode {
 
   function renderToolsList(): React.ReactNode {
     if (resolvedTools.hasWildcard) {
-      return <Text>All tools</Text>;
+      return <Text>所有工具</Text>;
     }
 
     if (!agent.tools || agent.tools.length === 0) {
-      return <Text>None</Text>;
+      return <Text>无</Text>;
     }
 
     return (
@@ -48,7 +48,7 @@ export function AgentDetail({ agent, tools, onBack }: Props): React.ReactNode {
         {resolvedTools.validTools.length > 0 && <Text>{resolvedTools.validTools.join(', ')}</Text>}
         {resolvedTools.invalidTools.length > 0 && (
           <Text color="warning">
-            {figures.warning} Unrecognized: {resolvedTools.invalidTools.join(', ')}
+            {figures.warning} 未识别: {resolvedTools.invalidTools.join(', ')}
           </Text>
         )}
       </>
@@ -61,7 +61,7 @@ export function AgentDetail({ agent, tools, onBack }: Props): React.ReactNode {
 
       <Box flexDirection="column">
         <Text>
-          <Text bold>Description</Text> (tells Claude when to use this agent):
+          <Text bold>描述</Text>（告诉 Claude 何时使用此 Agent）：
         </Text>
         <Box marginLeft={2}>
           <Text>{agent.whenToUse}</Text>
@@ -70,44 +70,44 @@ export function AgentDetail({ agent, tools, onBack }: Props): React.ReactNode {
 
       <Box>
         <Text>
-          <Text bold>Tools</Text>:{' '}
+          <Text bold>工具</Text>:{' '}
         </Text>
         {renderToolsList()}
       </Box>
 
       <Text>
-        <Text bold>Model</Text>: {getAgentModelDisplay(agent.model)}
+        <Text bold>模型</Text>: {getAgentModelDisplay(agent.model)}
       </Text>
 
       {agent.permissionMode && (
         <Text>
-          <Text bold>Permission mode</Text>: {agent.permissionMode}
+          <Text bold>权限模式</Text>: {agent.permissionMode}
         </Text>
       )}
 
       {agent.memory && (
         <Text>
-          <Text bold>Memory</Text>: {getMemoryScopeDisplay(agent.memory)}
+          <Text bold>记忆</Text>: {getMemoryScopeDisplay(agent.memory)}
         </Text>
       )}
 
       {agent.hooks && Object.keys(agent.hooks).length > 0 && (
         <Text>
-          <Text bold>Hooks</Text>: {Object.keys(agent.hooks).join(', ')}
+          <Text bold>钩子</Text>: {Object.keys(agent.hooks).join(', ')}
         </Text>
       )}
 
       {agent.skills && agent.skills.length > 0 && (
         <Text>
-          <Text bold>Skills</Text>:{' '}
-          {agent.skills.length > 10 ? `${agent.skills.length} skills` : agent.skills.join(', ')}
+          <Text bold>技能</Text>:{' '}
+          {agent.skills.length > 10 ? `${agent.skills.length} 个技能` : agent.skills.join(', ')}
         </Text>
       )}
 
       {backgroundColor && (
         <Box>
           <Text>
-            <Text bold>Color</Text>:{' '}
+            <Text bold>颜色</Text>:{' '}
             <Text backgroundColor={backgroundColor} color="inverseText">
               {' '}
               {agent.agentType}{' '}
@@ -120,7 +120,7 @@ export function AgentDetail({ agent, tools, onBack }: Props): React.ReactNode {
         <>
           <Box>
             <Text>
-              <Text bold>System prompt</Text>:
+              <Text bold>系统提示词</Text>：
             </Text>
           </Box>
           <Box marginLeft={2} marginRight={2}>

@@ -1,11 +1,11 @@
 import type { SystemMemorySavedMessage } from '../../types/message.js'
 
 /**
- * Returns the team-memory segment for the memory-saved UI, plus the count so
- * the caller can derive the private count without accessing teamCount itself.
- * Plain function (not a React component) so the React Compiler won't hoist
- * the teamCount property access for memoization. This module is only loaded
- * when feature('TEAMMEM') is true.
+ * 返回记忆已保存 UI 的团队记忆片段，以及计数，
+ * 使调用方无需直接访问 teamCount 即可计算私有计数。
+ * 普通函数（非 React 组件），防止 React Compiler 将
+ * teamCount 属性访问提升做 memoization。
+ * 仅在 feature('TEAMMEM') 为 true 时加载此模块。
  */
 export function teamMemSavedPart(
   message: SystemMemorySavedMessage,

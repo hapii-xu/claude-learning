@@ -2,14 +2,13 @@ import type { Attachment } from 'src/utils/attachments.js'
 import type { Message, NormalizedMessage } from '../../types/message.js'
 
 /**
- * Attachment types that AttachmentMessage renders as `null` unconditionally
- * (no visible output regardless of runtime state). Messages.tsx filters these
- * out BEFORE the render cap / message count so invisible entries don't consume
- * the 200-message render budget (CC-724).
+ * AttachmentMessage 无条件渲染为 `null` 的 Attachment 类型
+ * （无论运行时状态如何都没有可见输出）。Messages.tsx 在渲染上限/消息计数
+ * 之前过滤这些类型，以防隐藏条目消耗 200 条消息的渲染预算（CC-724）。
  *
- * Sync is enforced by TypeScript: AttachmentMessage's switch `default:` branch
- * asserts `attachment.type satisfies NullRenderingAttachmentType`. Adding a new
- * Attachment type without either a case or an entry here will fail typecheck.
+ * TypeScript 强制同步：AttachmentMessage 的 switch `default:` 分支
+ * 断言 `attachment.type satisfies NullRenderingAttachmentType`。
+ * 添加新的 Attachment 类型而不添加对应的 case 或此处的条目将导致类型检查失败。
  */
 const NULL_RENDERING_TYPES = [
   'hook_success',
@@ -52,11 +51,10 @@ const NULL_RENDERING_ATTACHMENT_TYPES: ReadonlySet<Attachment['type']> =
   new Set(NULL_RENDERING_TYPES)
 
 /**
- * True when this message is an attachment that AttachmentMessage renders as
- * null with no visible output. Messages.tsx filters these out before counting
- * and before applying the 200-message render cap, so invisible hook
- * attachments (hook_success, hook_additional_context, hook_cancelled) don't
- * inflate the "N messages" count or eat into the render budget (CC-724).
+ * 当此消息是 AttachmentMessage 渲染为 null（没有可见输出）的 attachment 时返回 true。
+ * Messages.tsx 在计数之前以及应用 200 条消息渲染上限之前过滤这些，
+ * 这样隐藏的 hook 附件（hook_success、hook_additional_context、hook_cancelled）
+ * 不会膨胀 "N 条消息" 计数或占用渲染预算（CC-724）。
  */
 export function isNullRenderingAttachment(
   msg: Message | NormalizedMessage,

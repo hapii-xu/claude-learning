@@ -87,7 +87,7 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
           };
         });
 
-        setChanges(prev => [...prev, `Deleted agent: ${chalk.bold(agent.agentType)}`]);
+        setChanges(prev => [...prev, `已删除 Agent：${chalk.bold(agent.agentType)}`]);
         // Go back to the agents list after deletion
         setModeState({ mode: 'list-agents', source: 'all' });
       } catch (error) {
@@ -163,14 +163,14 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
       const isEditable =
         agentToUse.source !== 'built-in' && agentToUse.source !== 'plugin' && agentToUse.source !== 'flagSettings';
       const menuItems = [
-        { label: 'View agent', value: 'view' },
+        { label: '查看 Agent', value: 'view' },
         ...(isEditable
           ? [
-              { label: 'Edit agent', value: 'edit' },
-              { label: 'Delete agent', value: 'delete' },
+              { label: '编辑 Agent', value: 'edit' },
+              { label: '删除 Agent', value: 'delete' },
             ]
           : []),
-        { label: 'Back', value: 'back' },
+        { label: '返回', value: 'back' },
       ];
 
       const handleMenuSelect = (value: string): void => {
@@ -260,31 +260,31 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
               }
             />
           </Dialog>
-          <AgentNavigationFooter instructions="Press Enter or Esc to go back" />
+          <AgentNavigationFooter instructions="按 Enter 或 Esc 返回" />
         </>
       );
     }
 
     case 'delete-confirm': {
       const deleteOptions = [
-        { label: 'Yes, delete', value: 'yes' },
-        { label: 'No, cancel', value: 'no' },
+        { label: '是，删除', value: 'yes' },
+        { label: '否，取消', value: 'no' },
       ];
 
       return (
         <>
           <Dialog
-            title="Delete agent"
+            title="删除 Agent"
             onCancel={() => {
               if ('previousMode' in modeState) setModeState(modeState.previousMode);
             }}
             color="error"
           >
             <Text>
-              Are you sure you want to delete the agent <Text bold>{modeState.agent.agentType}</Text>?
+              确定要删除 Agent <Text bold>{modeState.agent.agentType}</Text> 吗？
             </Text>
             <Box marginTop={1}>
-              <Text dimColor>Source: {modeState.agent.source}</Text>
+              <Text dimColor>来源：{modeState.agent.source}</Text>
             </Box>
             <Box marginTop={1}>
               <Select
@@ -306,7 +306,7 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
               />
             </Box>
           </Dialog>
-          <AgentNavigationFooter instructions="Press ↑↓ to navigate, Enter to select, Esc to cancel" />
+          <AgentNavigationFooter instructions="按 ↑↓ 导航 · Enter 选择 · Esc 取消" />
         </>
       );
     }
@@ -321,7 +321,7 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
       return (
         <>
           <Dialog
-            title={`Edit agent: ${agentToEdit.agentType}`}
+            title={`编辑 Agent：${agentToEdit.agentType}`}
             onCancel={() => setModeState(modeState.previousMode)}
             hideInputGuide
           >
