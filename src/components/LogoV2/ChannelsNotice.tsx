@@ -46,10 +46,9 @@ export function ChannelsNotice(): React.ReactNode {
   // 这些都仍然未知。
   return (
     <Box paddingLeft={2} flexDirection="column">
-      <Text color="error">Listening for channel messages from: {list}</Text>
+      <Text color="error">正在监听来自以下来源的频道消息：{list}</Text>
       <Text dimColor>
-        Experimental · inbound messages will be pushed into this session, this carries prompt injection risks. Restart
-        Claude Code without {flag} to disable.
+        实验性功能 · 入站消息将被推送到此会话，存在提示词注入风险。不带 {flag} 重启 Claude Code 可禁用。
       </Text>
       {unmatched.map(u => (
         <Text key={`${formatEntry(u.entry)}:${u.why}`} color="warning">

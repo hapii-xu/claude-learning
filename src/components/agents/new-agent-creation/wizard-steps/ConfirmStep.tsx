@@ -139,7 +139,7 @@ export function ConfirmStep({ tools, existingAgents, onSave, onSaveAndEdit, erro
 
         <Box marginTop={2}>
           <Text color="success">
-            Press <Text bold>s</Text> or <Text bold>Enter</Text> to save, <Text bold>e</Text> to save and edit
+            按 <Text bold>s</Text> 或 <Text bold>Enter</Text> 保存，按 <Text bold>e</Text> 保存并编辑
           </Text>
         </Box>
       </Box>

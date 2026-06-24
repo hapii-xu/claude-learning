@@ -29,21 +29,21 @@ export function MemoryStep(): ReactNode {
   const memoryOptions: MemoryOption[] = isUserScope
     ? [
         {
-          label: 'User scope (~/.hclaude/agent-memory/) (Recommended)',
+          label: '用户级别 (~/.hclaude/agent-memory/)（推荐）',
           value: 'user',
         },
-        { label: 'None (no persistent memory)', value: 'none' },
-        { label: 'Project scope (.hclaude/agent-memory/)', value: 'project' },
-        { label: 'Local scope (.hclaude/agent-memory-local/)', value: 'local' },
+        { label: '无（不使用持久化记忆）', value: 'none' },
+        { label: '项目级别 (.hclaude/agent-memory/)', value: 'project' },
+        { label: '本地级别 (.hclaude/agent-memory-local/)', value: 'local' },
       ]
     : [
         {
-          label: 'Project scope (.hclaude/agent-memory/) (Recommended)',
+          label: '项目级别 (.hclaude/agent-memory/)（推荐）',
           value: 'project',
         },
-        { label: 'None (no persistent memory)', value: 'none' },
-        { label: 'User scope (~/.hclaude/agent-memory/)', value: 'user' },
-        { label: 'Local scope (.hclaude/agent-memory-local/)', value: 'local' },
+        { label: '无（不使用持久化记忆）', value: 'none' },
+        { label: '用户级别 (~/.hclaude/agent-memory/)', value: 'user' },
+        { label: '本地级别 (.hclaude/agent-memory-local/)', value: 'local' },
       ];
 
   const handleSelect = (value: string): void => {
