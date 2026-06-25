@@ -112,8 +112,8 @@ type Setting =
       type: 'enum';
     })
   | (SettingBase & {
-      // For enums that are set by a custom component, we don't need to pass options,
-      // but we still need a value to display in the top-level config menu
+      // 对于由自定义组件设置的枚举，我们不需要传入 options，
+      // 但仍需要一个 value 用于在顶级 config 菜单中展示
       value: string;
       onChange(value: string): void;
       type: 'managedEnum';
@@ -154,10 +154,10 @@ export function Config({
   const [isSearchMode, setIsSearchMode] = useState(false);
   const isTerminalFocused = useTerminalFocus();
   const { rows } = useTerminalSize();
-  // contentHeight is set by Settings.tsx (same value passed to Tabs to fix
-  // pane height across all tabs — prevents layout jank when switching).
-  // Reserve ~10 rows for chrome (search box, gaps, footer, scroll hints).
-  // Fallback calc for standalone rendering (tests).
+  // contentHeight 由 Settings.tsx 设置（同一个值会传给 Tabs 以固定所有
+  // tab 的面板高度——切换时避免布局抖动）。
+  // 预留约 10 行给 chrome（搜索框、间距、页脚、滚动提示）。
+  // 这里的回退计算用于独立渲染（测试场景）。
   const paneCap = contentHeight ?? Math.min(Math.floor(rows * 0.8), 30);
   const maxVisible = Math.max(5, paneCap - 10);
   const mainLoopModel = useAppState(s => s.mainLoopModel);
@@ -166,16 +166,16 @@ export function Config({
   const isFastMode = useAppState(s => (isFastModeEnabled() ? s.fastMode : false));
   const promptSuggestionEnabled = useAppState(s => s.promptSuggestionEnabled);
   const currentDefaultPermissionMode = permissionModeFromString(settingsData?.permissions?.defaultMode ?? 'default');
-  // Show auto in the default-mode dropdown when the user has opted in OR the
-  // config is fully 'enabled' — even if currently circuit-broken ('disabled'),
-  // an opted-in user should still see it in settings (it's a temporary state).
+  // 当用户已选择加入或配置完全为 'enabled' 时，在默认模式下拉框中展示 auto——
+  // 即使当前处于熔断状态（'disabled'），已选择的用户也应该能在设置里看到它
+  // （这是一个临时状态）。
   const showAutoInDefaultModePicker = feature('TRANSCRIPT_CLASSIFIER')
     ? hasAutoModeOptInAnySource() || getAutoModeEnabledState() === 'enabled'
     : false;
-  // Chat/Transcript view picker is visible to entitled users (pass the GB
-  // gate) even if they haven't opted in this session — it IS the persistent
-  // opt-in. 'chat' written here is read at next startup by main.tsx which
-  // sets userMsgOptIn if still entitled.
+  // Chat/Transcript 视图选择器对有权限的用户（通过 GB 灰度门控）可见，
+  // 即便他们本次会话还没选择加入——它本身就是持久化的选择入口。
+  // 这里写入的 'chat' 会在下次启动时被 main.tsx 读取，若仍有权限则
+  // 设置 userMsgOptIn。
   /* eslint-disable @typescript-eslint/no-require-imports */
   const showDefaultViewPicker =
     feature('KAIROS') || feature('KAIROS_BRIEF')
@@ -187,16 +187,15 @@ export function Config({
   const setAppState = useSetAppState();
   const [changes, setChanges] = useState<{ [key: string]: unknown }>({});
   const initialThinkingEnabled = React.useRef(thinkingEnabled);
-  // Per-source settings snapshots for revert-on-escape. getInitialSettings()
-  // returns merged-across-sources which can't tell us what to delete vs
-  // restore; per-source snapshots + updateSettingsForSource's
-  // undefined-deletes-key semantics can. Lazy-init via useState (no setter) to
-  // avoid reading settings files on every render — useRef evaluates its arg
-  // eagerly even though only the first result is kept.
+  // 按来源的设置快照，用于 Escape 时回滚。getInitialSettings() 返回的是
+  // 跨来源合并后的结果，无法告诉我们该删除还是该还原；按来源的快照 +
+  // updateSettingsForSource 的 undefined-即-删除语义可以做到。通过
+  // useState 懒初始化（不使用 setter）以避免每次渲染都读取设置文件——
+  // useRef 会立即求值其参数，即便只保留第一个结果。
   const [initialLocalSettings] = useState(() => getSettingsForSource('localSettings'));
   const [initialUserSettings] = useState(() => getSettingsForSource('userSettings'));
   const initialThemeSetting = React.useRef(themeSetting);
-  // AppState fields Config may modify — snapshot once at mount.
+  // Config 可能修改的 AppState 字段——挂载时做一次快照。
   const store = useAppStateStore();
   const [initialAppState] = useState(() => {
     const s = store.getState();
@@ -213,14 +212,13 @@ export function Config({
       settings: s.settings,
     };
   });
-  // Bootstrap state snapshot — userMsgOptIn is outside AppState, so
-  // revertChanges needs to restore it separately. Without this, cycling
-  // defaultView to 'chat' then Escape leaves the tool active while the
-  // display filter reverts — the exact ambient-activation behavior this
-  // PR's entitlement/opt-in split is meant to prevent.
+  // Bootstrap 状态快照——userMsgOptIn 不在 AppState 中，因此
+  // revertChanges 需要单独还原它。若不做这一步，把 defaultView 切换到
+  // 'chat' 再按 Escape 会让工具仍处于激活状态，而显示过滤器却被还原——
+  // 这正是本次 PR 权限/选择加入拆分要规避的"环境激活"行为。
   const [initialUserMsgOptIn] = useState(() => getUserMsgOptIn());
-  // Set on first user-visible change; gates revertChanges() on Escape so
-  // opening-then-closing doesn't trigger redundant disk writes.
+  // 在首次出现用户可见变更时设置；用于控制 Escape 时是否调用 revertChanges()，
+  // 避免打开后直接关闭触发多余的磁盘写入。
   const isDirty = React.useRef(false);
   const [showThinkingWarning, setShowThinkingWarning] = useState(false);
   const [showSubmenu, setShowSubmenu] = useState<SubMenu | null>(null);
@@ -232,14 +230,14 @@ export function Config({
     isActive: isSearchMode && showSubmenu === null && !headerFocused,
     onExit: () => setIsSearchMode(false),
     onExitUp: focusHeader,
-    // Ctrl+C/D must reach Settings' useExitOnCtrlCD; 'd' also avoids
-    // double-action (delete-char + exit-pending).
+    // Ctrl+C/D 必须透传给 Settings 的 useExitOnCtrlCD；'d' 也用于避免
+    // 重复动作（删除字符 + 触发退出挂起）。
     passthroughCtrlKeys: ['c', 'd'],
   });
 
-  // Tell the parent when Config's own Esc handler is active so Settings cedes
-  // confirm:no. Only true when search mode owns the keyboard — not when the
-  // tab header is focused (then Settings must handle Esc-to-close).
+  // 通知父组件 Config 自身的 Esc 处理器何时激活，以便 Settings 让出
+  // confirm:no。仅当搜索模式独占键盘时为 true——当 tab 标题获得焦点时为
+  // false（此时必须由 Settings 处理 Esc 关闭）。
   const ownsEsc = isSearchMode && !headerFocused;
   React.useEffect(() => {
     onIsSearchModeChange?.(ownsEsc);
@@ -268,7 +266,7 @@ export function Config({
     setChanges(prev => {
       const valStr =
         modelDisplayString(value) +
-        (isBilledAsExtraUsage(value, false, isOpus1mMergeEnabled()) ? ' · Billed as extra usage' : '');
+        (isBilledAsExtraUsage(value, false, isOpus1mMergeEnabled()) ? ' · 按额外用量计费' : '');
       if ('model' in prev) {
         const { model, ...rest } = prev;
         return { ...rest, model: valStr };
@@ -278,11 +276,11 @@ export function Config({
   }
 
   function onChangeVerbose(value: boolean): void {
-    // Update the global config to persist the setting
+    // 更新全局配置以持久化该设置
     saveGlobalConfig(current => ({ ...current, verbose: value }));
     setGlobalConfig({ ...getGlobalConfig(), verbose: value });
 
-    // Update the app state for immediate UI feedback
+    // 更新 app state 以获得即时 UI 反馈
     setAppState(prev => ({
       ...prev,
       verbose: value,
@@ -296,12 +294,12 @@ export function Config({
     });
   }
 
-  // TODO: Add MCP servers
+  // TODO: 加入 MCP 服务器
   const settingsItems: Setting[] = [
-    // Global settings
+    // 全局设置
     {
       id: 'autoCompactEnabled',
-      label: 'Auto-compact',
+      label: '自动压缩',
       value: globalConfig.autoCompactEnabled,
       type: 'boolean' as const,
       onChange(autoCompactEnabled: boolean) {
@@ -314,14 +312,14 @@ export function Config({
     },
     {
       id: 'spinnerTipsEnabled',
-      label: 'Show tips',
+      label: '显示提示',
       value: settingsData?.spinnerTipsEnabled ?? true,
       type: 'boolean' as const,
       onChange(spinnerTipsEnabled: boolean) {
         updateSettingsForSource('localSettings', {
           spinnerTipsEnabled,
         });
-        // Update local state to reflect the change immediately
+        // 更新本地 state 以即时反映变更
         setSettingsData(prev => ({
           ...prev,
           spinnerTipsEnabled,
@@ -333,7 +331,7 @@ export function Config({
     },
     {
       id: 'cacheWarningEnabled',
-      label: 'Cache warnings',
+      label: 'Cache 警告',
       value: settingsData?.cacheWarningEnabled ?? true,
       type: 'boolean' as const,
       onChange(cacheWarningEnabled: boolean) {
@@ -351,7 +349,7 @@ export function Config({
     },
     {
       id: 'prefersReducedMotion',
-      label: 'Reduce motion',
+      label: '减弱动效',
       value: settingsData?.prefersReducedMotion ?? false,
       type: 'boolean' as const,
       onChange(prefersReducedMotion: boolean) {
@@ -362,7 +360,7 @@ export function Config({
           ...prev,
           prefersReducedMotion,
         }));
-        // Sync to AppState so components react immediately
+        // 同步到 AppState 以便组件即时响应
         setAppState(prev => ({
           ...prev,
           settings: { ...prev.settings, prefersReducedMotion },
@@ -374,7 +372,7 @@ export function Config({
     },
     {
       id: 'thinkingEnabled',
-      label: 'Thinking mode',
+      label: '思考模式',
       value: thinkingEnabled ?? true,
       type: 'boolean' as const,
       onChange(enabled: boolean) {
@@ -385,12 +383,12 @@ export function Config({
         logEvent('tengu_thinking_toggled', { enabled });
       },
     },
-    // Fast mode toggle (ant-only, eliminated from external builds)
+    // 快速模式开关（仅 ant 内部，外部构建中已移除）
     ...(isFastModeEnabled() && isFastModeAvailable()
       ? [
           {
             id: 'fastMode',
-            label: `Fast mode (${FAST_MODE_MODEL_DISPLAY} only)`,
+            label: `快速模式（仅 ${FAST_MODE_MODEL_DISPLAY}）`,
             value: !!isFastMode,
             type: 'boolean' as const,
             onChange(enabled: boolean) {
@@ -408,14 +406,14 @@ export function Config({
                 setChanges(prev => ({
                   ...prev,
                   model: getFastModeModel(),
-                  'Fast mode': 'ON',
+                  快速模式: 'ON',
                 }));
               } else {
                 setAppState(prev => ({
                   ...prev,
                   fastMode: false,
                 }));
-                setChanges(prev => ({ ...prev, 'Fast mode': 'OFF' }));
+                setChanges(prev => ({ ...prev, 快速模式: 'OFF' }));
               }
             },
           },
@@ -425,7 +423,7 @@ export function Config({
       ? [
           {
             id: 'promptSuggestionEnabled',
-            label: 'Prompt suggestions',
+            label: 'Prompt 建议',
             value: promptSuggestionEnabled,
             type: 'boolean' as const,
             onChange(enabled: boolean) {
@@ -444,7 +442,7 @@ export function Config({
       ? [
           {
             id: 'poorMode',
-            label: 'Poor mode (save tokens)',
+            label: '穷鬼模式（节省 token）',
             value: (() => {
               const PoorMode =
                 require('../../commands/poor/poorMode.js') as typeof import('../../commands/poor/poorMode.js');
@@ -463,12 +461,12 @@ export function Config({
           },
         ]
       : []),
-    // Speculation toggle (ant-only)
+    // 推测执行开关（仅 ant 内部）
     ...(process.env.USER_TYPE === 'ant'
       ? [
           {
             id: 'speculationEnabled',
-            label: 'Speculative execution',
+            label: '推测执行',
             value: globalConfig.speculationEnabled ?? true,
             type: 'boolean' as const,
             onChange(enabled: boolean) {
@@ -494,7 +492,7 @@ export function Config({
       ? [
           {
             id: 'fileCheckpointingEnabled',
-            label: 'Rewind code (checkpoints)',
+            label: '回退代码（检查点）',
             value: globalConfig.fileCheckpointingEnabled,
             type: 'boolean' as const,
             onChange(enabled: boolean) {
@@ -515,14 +513,14 @@ export function Config({
       : []),
     {
       id: 'verbose',
-      label: 'Verbose output',
+      label: '详细输出',
       value: verbose,
       type: 'boolean',
       onChange: onChangeVerbose,
     },
     {
       id: 'terminalProgressBarEnabled',
-      label: 'Terminal progress bar',
+      label: '终端进度条',
       value: globalConfig.terminalProgressBarEnabled,
       type: 'boolean' as const,
       onChange(terminalProgressBarEnabled: boolean) {
@@ -540,7 +538,7 @@ export function Config({
       ? [
           {
             id: 'showStatusInTerminalTab',
-            label: 'Show status in terminal tab',
+            label: '在终端标签页中显示状态',
             value: globalConfig.showStatusInTerminalTab ?? false,
             type: 'boolean' as const,
             onChange(showStatusInTerminalTab: boolean) {
@@ -561,7 +559,7 @@ export function Config({
       : []),
     {
       id: 'showTurnDuration',
-      label: 'Show turn duration',
+      label: '显示单轮耗时',
       value: globalConfig.showTurnDuration,
       type: 'boolean' as const,
       onChange(showTurnDuration: boolean) {
@@ -574,7 +572,7 @@ export function Config({
     },
     {
       id: 'defaultPermissionMode',
-      label: 'Default permission mode',
+      label: '默认权限模式',
       value: currentDefaultPermissionMode,
       options: (() => {
         const priorityOrder: PermissionMode[] = ['default', 'plan'];
@@ -583,8 +581,8 @@ export function Config({
       type: 'enum' as const,
       onChange(mode: string) {
         const parsedMode = permissionModeFromString(mode);
-        // auto is an internal-only mode — store it directly, don't convert
-        // to its external mapping ('default') which would make it invisible.
+        // auto 是仅内部使用的模式——直接存储它，不要转换为
+        // 它的外部映射（'default'），否则会让它在设置中不可见。
         const validatedMode =
           parsedMode === 'auto'
             ? parsedMode
@@ -603,10 +601,10 @@ export function Config({
           return;
         }
 
-        // Update local state to reflect the change immediately.
-        // validatedMode is typed as the wide PermissionMode union but at
-        // runtime is always a PERMISSION_MODES member (the options dropdown
-        // is built from that array above), so this narrowing is sound.
+        // 更新本地 state 以即时反映变更。
+        // validatedMode 的类型是宽泛的 PermissionMode 联合类型，但在
+        // 运行时它一定是 PERMISSION_MODES 的成员（上面的选项下拉是
+        // 基于该数组构建的），所以这里的类型收窄是可靠的。
         setSettingsData(prev => ({
           ...prev,
           permissions: {
@@ -614,7 +612,7 @@ export function Config({
             defaultMode: validatedMode as (typeof PERMISSION_MODES)[number],
           },
         }));
-        // Track changes
+        // 记录变更
         setChanges(prev => ({ ...prev, defaultPermissionMode: mode }));
         logEvent('tengu_config_changed', {
           setting: 'defaultPermissionMode' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -626,7 +624,7 @@ export function Config({
       ? [
           {
             id: 'useAutoModeDuringPlan',
-            label: 'Use auto mode during plan',
+            label: '在 plan 模式期间使用 auto 模式',
             value: (settingsData as { useAutoModeDuringPlan?: boolean } | undefined)?.useAutoModeDuringPlan ?? true,
             type: 'boolean' as const,
             onChange(useAutoModeDuringPlan: boolean) {
@@ -637,9 +635,9 @@ export function Config({
                 ...prev,
                 useAutoModeDuringPlan,
               }));
-              // Internal writes suppress the file watcher, so
-              // applySettingsChange won't fire. Reconcile directly so
-              // mid-plan toggles take effect immediately.
+              // 内部写入会抑制文件监听器，因此
+              // applySettingsChange 不会触发。直接同步以便
+              // plan 进行中的开关立即生效。
               setAppState(prev => {
                 const next = transitionPlanAutoMode(prev.toolPermissionContext);
                 if (next === prev.toolPermissionContext) return prev;
@@ -647,7 +645,7 @@ export function Config({
               });
               setChanges(prev => ({
                 ...prev,
-                'Use auto mode during plan': useAutoModeDuringPlan,
+                '在 plan 模式期间使用 auto 模式': useAutoModeDuringPlan,
               }));
             },
           },
@@ -655,7 +653,7 @@ export function Config({
       : []),
     {
       id: 'respectGitignore',
-      label: 'Respect .gitignore in file picker',
+      label: '在文件选择器中遵守 .gitignore',
       value: globalConfig.respectGitignore,
       type: 'boolean' as const,
       onChange(respectGitignore: boolean) {
@@ -668,7 +666,7 @@ export function Config({
     },
     {
       id: 'copyFullResponse',
-      label: 'Always copy full response (skip /copy picker)',
+      label: '总是复制完整回复（跳过 /copy 选择器）',
       value: globalConfig.copyFullResponse,
       type: 'boolean' as const,
       onChange(copyFullResponse: boolean) {
@@ -680,13 +678,13 @@ export function Config({
         });
       },
     },
-    // Copy-on-select is only meaningful with in-app selection (fullscreen
-    // alt-screen mode). In inline mode the terminal emulator owns selection.
+    // 选中即复制仅对应用内选择（全屏 alt-screen 模式）有意义。
+    // 在 inline 模式下，选择行为由终端模拟器接管。
     ...(isFullscreenEnvEnabled()
       ? [
           {
             id: 'copyOnSelect',
-            label: 'Copy on select',
+            label: '选中即复制',
             value: globalConfig.copyOnSelect ?? true,
             type: 'boolean' as const,
             onChange(copyOnSelect: boolean) {
@@ -700,34 +698,34 @@ export function Config({
           },
         ]
       : []),
-    // autoUpdates setting is hidden - use DISABLE_AUTOUPDATER env var to control
+    // autoUpdates 设置已隐藏——用 DISABLE_AUTOUPDATER 环境变量来控制
     autoUpdaterDisabledReason
       ? {
           id: 'autoUpdatesChannel',
-          label: 'Auto-update channel',
+          label: '自动更新渠道',
           value: 'disabled',
           type: 'managedEnum' as const,
           onChange() {},
         }
       : {
           id: 'autoUpdatesChannel',
-          label: 'Auto-update channel',
+          label: '自动更新渠道',
           value: settingsData?.autoUpdatesChannel ?? 'latest',
           type: 'managedEnum' as const,
           onChange() {
-            // Handled via toggleSetting -> 'ChannelDowngrade'
+            // 由 toggleSetting -> 'ChannelDowngrade' 处理
           },
         },
     {
       id: 'theme',
-      label: 'Theme',
+      label: '主题',
       value: themeSetting,
       type: 'managedEnum',
       onChange: setTheme,
     },
     {
       id: 'notifChannel',
-      label: feature('KAIROS') || feature('KAIROS_PUSH_NOTIFICATION') ? 'Local notifications' : 'Notifications',
+      label: feature('KAIROS') || feature('KAIROS_PUSH_NOTIFICATION') ? '本地通知' : '通知',
       value: globalConfig.preferredNotifChannel,
       options: ['auto', 'iterm2', 'terminal_bell', 'iterm2_with_bell', 'kitty', 'ghostty', 'notifications_disabled'],
       type: 'enum',
@@ -746,7 +744,7 @@ export function Config({
       ? [
           {
             id: 'taskCompleteNotifEnabled',
-            label: 'Push when idle',
+            label: '空闲时推送',
             value: globalConfig.taskCompleteNotifEnabled ?? false,
             type: 'boolean' as const,
             onChange(taskCompleteNotifEnabled: boolean) {
@@ -762,7 +760,7 @@ export function Config({
           },
           {
             id: 'inputNeededNotifEnabled',
-            label: 'Push when input needed',
+            label: '需要输入时推送',
             value: globalConfig.inputNeededNotifEnabled ?? false,
             type: 'boolean' as const,
             onChange(inputNeededNotifEnabled: boolean) {
@@ -778,7 +776,7 @@ export function Config({
           },
           {
             id: 'agentPushNotifEnabled',
-            label: 'Push when Claude decides',
+            label: 'Claude 自行决策时推送',
             value: globalConfig.agentPushNotifEnabled ?? false,
             type: 'boolean' as const,
             onChange(agentPushNotifEnabled: boolean) {
@@ -796,19 +794,19 @@ export function Config({
       : []),
     {
       id: 'outputStyle',
-      label: 'Output style',
+      label: '输出风格',
       value: currentOutputStyle,
       type: 'managedEnum' as const,
-      onChange: () => {}, // handled by OutputStylePicker submenu
+      onChange: () => {}, // 由 OutputStylePicker 子菜单处理
     },
     ...(showDefaultViewPicker
       ? [
           {
             id: 'defaultView',
-            label: 'What you see by default',
-            // 'default' means the setting is unset — currently resolves to
-            // transcript (main.tsx falls through when defaultView !== 'chat').
-            // String() narrows the conditional-schema-spread union to string.
+            label: '默认显示的视图',
+            // 'default' 表示该设置未设置——当前会解析为
+            // transcript（当 defaultView !== 'chat' 时 main.tsx 直接走默认分支）。
+            // String() 将条件 schema 扩展联合类型收窄为 string。
             value: settingsData?.defaultView === undefined ? 'default' : String(settingsData.defaultView),
             options: ['transcript', 'chat', 'default'],
             type: 'enum' as const,
@@ -821,12 +819,12 @@ export function Config({
                 if (prev.isBriefOnly === nextBrief) return prev;
                 return { ...prev, isBriefOnly: nextBrief };
               });
-              // Keep userMsgOptIn in sync so the tool list follows the view.
-              // Two-way now (same as /brief) — accepting a cache invalidation
-              // is better than leaving the tool on after switching away.
-              // Reverted on Escape via initialUserMsgOptIn snapshot.
+              // 让 userMsgOptIn 保持同步，以便工具列表跟随视图变化。
+              // 现在是双向同步（与 /brief 一致）——宁可接受一次 cache 失效，
+              // 也好过切换走之后工具仍处于开启状态。
+              // 通过 initialUserMsgOptIn 快照在 Escape 时还原。
               setUserMsgOptIn(nextBrief);
-              setChanges(prev => ({ ...prev, 'Default view': selected }));
+              setChanges(prev => ({ ...prev, 默认视图: selected }));
               logEvent('tengu_default_view_setting_changed', {
                 value: (defaultView ?? 'unset') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
               });
@@ -836,15 +834,15 @@ export function Config({
       : []),
     {
       id: 'language',
-      label: 'Language',
-      value: currentLanguage ?? 'Default (English)',
+      label: '语言',
+      value: currentLanguage ?? '默认（English）',
       type: 'managedEnum' as const,
-      onChange: () => {}, // handled by LanguagePicker submenu
+      onChange: () => {}, // 由 LanguagePicker 子菜单处理
     },
     {
       id: 'editorMode',
-      label: 'Editor mode',
-      // Convert 'emacs' to 'normal' for backward compatibility
+      label: '编辑器模式',
+      // 出于向后兼容把 'emacs' 转为 'normal'
       value: globalConfig.editorMode === 'emacs' ? 'normal' : globalConfig.editorMode || 'normal',
       options: ['normal', 'vim'],
       type: 'enum',
@@ -866,7 +864,7 @@ export function Config({
     },
     {
       id: 'prStatusFooterEnabled',
-      label: 'Show PR status footer',
+      label: '显示 PR 状态页脚',
       value: globalConfig.prStatusFooterEnabled ?? true,
       type: 'boolean' as const,
       onChange(enabled: boolean) {
@@ -888,8 +886,8 @@ export function Config({
     },
     {
       id: 'model',
-      label: 'Model',
-      value: mainLoopModel === null ? 'Default (recommended)' : mainLoopModel,
+      label: '模型',
+      value: mainLoopModel === null ? '默认（推荐）' : mainLoopModel,
       type: 'managedEnum' as const,
       onChange: onChangeMainModelConfig,
     },
@@ -897,7 +895,7 @@ export function Config({
       ? [
           {
             id: 'diffTool',
-            label: 'Diff tool',
+            label: 'Diff 工具',
             value: globalConfig.diffTool ?? 'auto',
             options: ['terminal', 'auto'],
             type: 'enum' as const,
@@ -923,7 +921,7 @@ export function Config({
       ? [
           {
             id: 'autoConnectIde',
-            label: 'Auto-connect to IDE (external terminal)',
+            label: '自动连接 IDE（外部终端）',
             value: globalConfig.autoConnectIde ?? false,
             type: 'boolean' as const,
             onChange(autoConnectIde: boolean) {
@@ -942,7 +940,7 @@ export function Config({
       ? [
           {
             id: 'autoInstallIdeExtension',
-            label: 'Auto-install IDE extension',
+            label: '自动安装 IDE 扩展',
             value: globalConfig.autoInstallIdeExtension ?? true,
             type: 'boolean' as const,
             onChange(autoInstallIdeExtension: boolean) {
@@ -962,7 +960,7 @@ export function Config({
       : []),
     {
       id: 'claudeInChromeDefaultEnabled',
-      label: 'Claude in Chrome enabled by default',
+      label: '默认启用 Claude in Chrome',
       value: globalConfig.claudeInChromeDefaultEnabled ?? true,
       type: 'boolean' as const,
       onChange(enabled: boolean) {
@@ -979,11 +977,11 @@ export function Config({
         });
       },
     },
-    // Teammate mode (only shown when agent swarms are enabled)
+    // Teammate 模式（仅在启用 agent swarms 时显示）
     ...(isAgentSwarmsEnabled()
       ? (() => {
           const cliOverride = getCliTeammateModeOverride();
-          const label = cliOverride ? `Teammate mode [overridden: ${cliOverride}]` : 'Teammate mode';
+          const label = cliOverride ? `Teammate 模式 [被覆盖：${cliOverride}]` : 'Teammate 模式';
           const isWindows = getPlatform() === 'windows';
           const teammateModeOptions = isWindows
             ? ['auto', 'tmux', 'windows-terminal', 'in-process']
@@ -1002,7 +1000,7 @@ export function Config({
                 if (mode === 'windows-terminal' && !isWindows) {
                   return;
                 }
-                // Clear CLI override and set new mode (pass mode to avoid race condition)
+                // 清除 CLI 覆盖并设置新模式（传入 mode 以避免竞态条件）
                 clearCliTeammateModeOverride(mode);
                 saveGlobalConfig(current => ({
                   ...current,
@@ -1019,7 +1017,7 @@ export function Config({
             },
             {
               id: 'teammateDefaultModel',
-              label: 'Default teammate model',
+              label: '默认 teammate 模型',
               value: teammateModelDisplayString(globalConfig.teammateDefaultModel),
               type: 'managedEnum' as const,
               onChange() {},
@@ -1027,12 +1025,12 @@ export function Config({
           ];
         })()
       : []),
-    // Remote at startup toggle — gated on build flag + GrowthBook + policy
+    // 启动时启用 Remote 的开关——受 build flag + GrowthBook + policy 控制
     ...(feature('BRIDGE_MODE') && isBridgeEnabled()
       ? [
           {
             id: 'remoteControlAtStartup',
-            label: 'Enable Remote Control for all sessions',
+            label: '为所有会话启用 Remote Control',
             value:
               globalConfig.remoteControlAtStartup === undefined
                 ? 'default'
@@ -1041,7 +1039,7 @@ export function Config({
             type: 'enum' as const,
             onChange(selected: string) {
               if (selected === 'default') {
-                // Unset the config key so it falls back to the platform default
+                // 取消设置该 config key，使其回退到平台默认值
                 saveGlobalConfig(current => {
                   if (current.remoteControlAtStartup === undefined) return current;
                   const next = { ...current };
@@ -1063,7 +1061,7 @@ export function Config({
                   remoteControlAtStartup: enabled,
                 });
               }
-              // Sync to AppState so useReplBridge reacts immediately
+              // 同步到 AppState 以便 useReplBridge 即时响应
               const resolved = getRemoteControlAtStartup();
               setAppState(prev => {
                 if (prev.replBridgeEnabled === resolved && !prev.replBridgeOutboundOnly) return prev;
@@ -1081,7 +1079,7 @@ export function Config({
       ? [
           {
             id: 'showExternalIncludesDialog',
-            label: 'External CLAUDE.md includes',
+            label: '外部 CLAUDE.md 引入',
             value: (() => {
               const projectConfig = getCurrentProjectConfig();
               if (projectConfig.hasClaudeMdExternalIncludesApproved) {
@@ -1092,7 +1090,7 @@ export function Config({
             })(),
             type: 'managedEnum' as const,
             onChange() {
-              // Will be handled by toggleSetting function
+              // 将由 toggleSetting 函数处理
             },
           },
         ]
@@ -1103,10 +1101,10 @@ export function Config({
             id: 'apiKey',
             label: (
               <Text>
-                Use custom API key: <Text bold>{normalizeApiKeyForConfig(process.env.ANTHROPIC_API_KEY)}</Text>
+                使用自定义 API key: <Text bold>{normalizeApiKeyForConfig(process.env.ANTHROPIC_API_KEY)}</Text>
               </Text>
             ),
-            searchText: 'Use custom API key',
+            searchText: '使用自定义 API key',
             value: Boolean(
               process.env.ANTHROPIC_API_KEY &&
                 globalConfig.customApiKeyResponses?.approved?.includes(
@@ -1166,7 +1164,7 @@ export function Config({
       : []),
   ];
 
-  // Filter settings based on search query
+  // 根据搜索查询过滤设置项
   const filteredSettingsItems = React.useMemo(() => {
     if (!searchQuery) return settingsItems;
     const lowerQuery = searchQuery.toLowerCase();
@@ -1177,8 +1175,8 @@ export function Config({
     });
   }, [settingsItems, searchQuery]);
 
-  // Adjust selected index when filtered list shrinks, and keep the selected
-  // item visible when maxVisible changes (e.g., terminal resize).
+  // 当过滤后的列表缩短时调整选中索引，并在 maxVisible 变化时（例如终端
+  // 尺寸改变）保持选中项可见。
   React.useEffect(() => {
     if (selectedIndex >= filteredSettingsItems.length) {
       const newIndex = Math.max(0, filteredSettingsItems.length - 1);
@@ -1193,9 +1191,8 @@ export function Config({
     });
   }, [filteredSettingsItems.length, selectedIndex, maxVisible]);
 
-  // Keep the selected item visible within the scroll window.
-  // Called synchronously from navigation handlers to avoid a render frame
-  // where the selected item falls outside the visible window.
+  // 让选中项在滚动窗口中保持可见。
+  // 从导航处理器同步调用，以避免出现选中项落在可见窗口之外的渲染帧。
   const adjustScrollOffset = useCallback(
     (newIndex: number) => {
       setScrollOffset(prev => {
@@ -1207,26 +1204,26 @@ export function Config({
     [maxVisible],
   );
 
-  // Enter: keep all changes (already persisted by onChange handlers), close
-  // with a summary of what changed.
+  // Enter：保留所有变更（已由 onChange 处理器持久化），关闭时附带一份
+  // 变更摘要。
   const handleSaveAndClose = useCallback(() => {
-    // Submenu handling: each submenu has its own Enter/Esc — don't close
-    // the whole panel while one is open.
+    // 子菜单处理：每个子菜单有自己的 Enter/Esc——当某个子菜单打开时
+    // 不要关闭整个面板。
     if (showSubmenu !== null) {
       return;
     }
-    // Log any changes that were made
-    // TODO: Make these proper messages
+    // 记录所发生的变更
+    // TODO: 把这些改成正式的提示文案
     const formattedChanges: string[] = Object.entries(changes).map(([key, value]) => {
       logEvent('tengu_config_changed', {
         key: key as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         value: value as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       });
-      return `Set ${key} to ${chalk.bold(value)}`;
+      return `将 ${key} 设置为 ${chalk.bold(value)}`;
     });
-    // Check for API key changes
-    // On homespace, ANTHROPIC_API_KEY is preserved in process.env for child
-    // processes but ignored by Claude Code itself (see auth.ts).
+    // 检查 API key 变更
+    // 在 homespace 上，ANTHROPIC_API_KEY 会保留在 process.env 中供子进程
+    // 使用，但 Claude Code 自身会忽略它（见 auth.ts）。
     const effectiveApiKey = isRunningOnHomespace() ? undefined : process.env.ANTHROPIC_API_KEY;
     const initialUsingCustomKey = Boolean(
       effectiveApiKey &&
@@ -1237,77 +1234,71 @@ export function Config({
         globalConfig.customApiKeyResponses?.approved?.includes(normalizeApiKeyForConfig(effectiveApiKey)),
     );
     if (initialUsingCustomKey !== currentUsingCustomKey) {
-      formattedChanges.push(`${currentUsingCustomKey ? 'Enabled' : 'Disabled'} custom API key`);
+      formattedChanges.push(`${currentUsingCustomKey ? '已启用' : '已禁用'}自定义 API key`);
       logEvent('tengu_config_changed', {
         key: 'env.ANTHROPIC_API_KEY' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         value: currentUsingCustomKey as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
       });
     }
     if (globalConfig.theme !== initialConfig.current.theme) {
-      formattedChanges.push(`Set theme to ${chalk.bold(globalConfig.theme)}`);
+      formattedChanges.push(`将主题设置为 ${chalk.bold(globalConfig.theme)}`);
     }
     if (globalConfig.preferredNotifChannel !== initialConfig.current.preferredNotifChannel) {
-      formattedChanges.push(`Set notifications to ${chalk.bold(globalConfig.preferredNotifChannel)}`);
+      formattedChanges.push(`将通知设置为 ${chalk.bold(globalConfig.preferredNotifChannel)}`);
     }
     if (currentOutputStyle !== initialOutputStyle.current) {
-      formattedChanges.push(`Set output style to ${chalk.bold(currentOutputStyle)}`);
+      formattedChanges.push(`将输出风格设置为 ${chalk.bold(currentOutputStyle)}`);
     }
     if (currentLanguage !== initialLanguage.current) {
-      formattedChanges.push(`Set response language to ${chalk.bold(currentLanguage ?? 'Default (English)')}`);
+      formattedChanges.push(`将回复语言设置为 ${chalk.bold(currentLanguage ?? '默认（English）')}`);
     }
     if (globalConfig.editorMode !== initialConfig.current.editorMode) {
-      formattedChanges.push(`Set editor mode to ${chalk.bold(globalConfig.editorMode || 'emacs')}`);
+      formattedChanges.push(`将编辑器模式设置为 ${chalk.bold(globalConfig.editorMode || 'emacs')}`);
     }
     if (globalConfig.diffTool !== initialConfig.current.diffTool) {
-      formattedChanges.push(`Set diff tool to ${chalk.bold(globalConfig.diffTool)}`);
+      formattedChanges.push(`将 diff 工具设置为 ${chalk.bold(globalConfig.diffTool)}`);
     }
     if (globalConfig.autoConnectIde !== initialConfig.current.autoConnectIde) {
-      formattedChanges.push(`${globalConfig.autoConnectIde ? 'Enabled' : 'Disabled'} auto-connect to IDE`);
+      formattedChanges.push(`${globalConfig.autoConnectIde ? '已启用' : '已禁用'}自动连接 IDE`);
     }
     if (globalConfig.autoInstallIdeExtension !== initialConfig.current.autoInstallIdeExtension) {
-      formattedChanges.push(
-        `${globalConfig.autoInstallIdeExtension ? 'Enabled' : 'Disabled'} auto-install IDE extension`,
-      );
+      formattedChanges.push(`${globalConfig.autoInstallIdeExtension ? '已启用' : '已禁用'}自动安装 IDE 扩展`);
     }
     if (globalConfig.autoCompactEnabled !== initialConfig.current.autoCompactEnabled) {
-      formattedChanges.push(`${globalConfig.autoCompactEnabled ? 'Enabled' : 'Disabled'} auto-compact`);
+      formattedChanges.push(`${globalConfig.autoCompactEnabled ? '已启用' : '已禁用'}自动压缩`);
     }
     if (globalConfig.respectGitignore !== initialConfig.current.respectGitignore) {
-      formattedChanges.push(
-        `${globalConfig.respectGitignore ? 'Enabled' : 'Disabled'} respect .gitignore in file picker`,
-      );
+      formattedChanges.push(`${globalConfig.respectGitignore ? '已启用' : '已禁用'}文件选择器中遵守 .gitignore`);
     }
     if (globalConfig.copyFullResponse !== initialConfig.current.copyFullResponse) {
-      formattedChanges.push(`${globalConfig.copyFullResponse ? 'Enabled' : 'Disabled'} always copy full response`);
+      formattedChanges.push(`${globalConfig.copyFullResponse ? '已启用' : '已禁用'}总是复制完整回复`);
     }
     if (globalConfig.copyOnSelect !== initialConfig.current.copyOnSelect) {
-      formattedChanges.push(`${globalConfig.copyOnSelect ? 'Enabled' : 'Disabled'} copy on select`);
+      formattedChanges.push(`${globalConfig.copyOnSelect ? '已启用' : '已禁用'}选中即复制`);
     }
     if (globalConfig.terminalProgressBarEnabled !== initialConfig.current.terminalProgressBarEnabled) {
-      formattedChanges.push(
-        `${globalConfig.terminalProgressBarEnabled ? 'Enabled' : 'Disabled'} terminal progress bar`,
-      );
+      formattedChanges.push(`${globalConfig.terminalProgressBarEnabled ? '已启用' : '已禁用'}终端进度条`);
     }
     if (globalConfig.showStatusInTerminalTab !== initialConfig.current.showStatusInTerminalTab) {
-      formattedChanges.push(`${globalConfig.showStatusInTerminalTab ? 'Enabled' : 'Disabled'} terminal tab status`);
+      formattedChanges.push(`${globalConfig.showStatusInTerminalTab ? '已启用' : '已禁用'}终端标签页状态`);
     }
     if (globalConfig.showTurnDuration !== initialConfig.current.showTurnDuration) {
-      formattedChanges.push(`${globalConfig.showTurnDuration ? 'Enabled' : 'Disabled'} turn duration`);
+      formattedChanges.push(`${globalConfig.showTurnDuration ? '已启用' : '已禁用'}单轮耗时显示`);
     }
     if (globalConfig.remoteControlAtStartup !== initialConfig.current.remoteControlAtStartup) {
       const remoteLabel =
         globalConfig.remoteControlAtStartup === undefined
-          ? 'Reset Remote Control to default'
-          : `${globalConfig.remoteControlAtStartup ? 'Enabled' : 'Disabled'} Remote Control for all sessions`;
+          ? '将 Remote Control 重置为默认值'
+          : `${globalConfig.remoteControlAtStartup ? '已启用' : '已禁用'}为所有会话启用 Remote Control`;
       formattedChanges.push(remoteLabel);
     }
     if (settingsData?.autoUpdatesChannel !== initialSettingsData.current?.autoUpdatesChannel) {
-      formattedChanges.push(`Set auto-update channel to ${chalk.bold(settingsData?.autoUpdatesChannel ?? 'latest')}`);
+      formattedChanges.push(`将自动更新渠道设置为 ${chalk.bold(settingsData?.autoUpdatesChannel ?? 'latest')}`);
     }
     if (formattedChanges.length > 0) {
       onClose(formattedChanges.join('\n'));
     } else {
-      onClose('Config dialog dismissed', { display: 'system' });
+      onClose('配置对话框已关闭', { display: 'system' });
     }
   }, [
     showSubmenu,
@@ -1321,22 +1312,21 @@ export function Config({
     onClose,
   ]);
 
-  // Restore all state stores to their mount-time snapshots. Changes are
-  // applied to disk/AppState immediately on toggle, so "cancel" means
-  // actively writing the old values back.
+  // 将所有 state store 还原到挂载时的快照。变更在切换开关时会立即写入
+  // 磁盘/AppState，因此"取消"意味着要主动把旧值写回去。
   const revertChanges = useCallback(() => {
-    // Theme: restores ThemeProvider React state. Must run before the global
-    // config overwrite since setTheme internally calls saveGlobalConfig with
-    // a partial update — we want the full snapshot to be the last write.
+    // Theme：还原 ThemeProvider 的 React state。必须在全局 config 覆盖
+    // 之前执行，因为 setTheme 内部会以增量更新方式调用 saveGlobalConfig——
+    // 我们希望最后一次写入是完整快照。
     if (themeSetting !== initialThemeSetting.current) {
       setTheme(initialThemeSetting.current);
     }
-    // Global config: full overwrite from snapshot. saveGlobalConfig skips if
-    // the returned ref equals current (test mode checks ref; prod writes to
-    // disk but content is identical).
+    // 全局 config：用快照做完整覆盖。当返回的 ref 等于当前 ref 时
+    // saveGlobalConfig 会跳过（测试模式检查 ref；生产环境会写入磁盘，
+    // 但内容完全一致）。
     saveGlobalConfig(() => initialConfig.current);
-    // Settings files: restore each key Config may have touched. undefined
-    // deletes the key (updateSettingsForSource customizer at settings.ts:368).
+    // 设置文件：还原 Config 可能触及的每个 key。undefined 会删除该 key
+    //（settings.ts:368 处 updateSettingsForSource 的 customizer 行为）。
     const il = initialLocalSettings;
     updateSettingsForSource('localSettings', {
       spinnerTipsEnabled: il?.spinnerTipsEnabled,
@@ -1357,19 +1347,19 @@ export function Config({
             useAutoModeDuringPlan: (iu as { useAutoModeDuringPlan?: boolean } | undefined)?.useAutoModeDuringPlan,
           }
         : {}),
-      // ThemePicker's Ctrl+T writes this key directly — include it so the
-      // disk state reverts along with the in-memory AppState.settings restore.
+      // ThemePicker 的 Ctrl+T 会直接写入这个 key——把它包含进来，让磁盘
+      // 状态随内存中的 AppState.settings 还原一起回滚。
       syntaxHighlightingDisabled: iu?.syntaxHighlightingDisabled,
-      // permissions: the defaultMode onChange (above) spreads the MERGED
-      // settingsData.permissions into userSettings — project/policy allow/deny
-      // arrays can leak to disk. Spread the full initial snapshot so the
-      // mergeWith array-customizer (settings.ts:375) replaces leaked arrays.
-      // Explicitly include defaultMode so undefined triggers the customizer's
-      // delete path even when iu.permissions lacks that key.
+      // permissions：上面的 defaultMode onChange 会把合并后的
+      // settingsData.permissions 展开写入 userSettings——project/policy 的
+      // allow/deny 数组可能因此泄漏到磁盘。展开完整的初始快照，这样
+      // mergeWith 的数组 customizer（settings.ts:375）会替换掉泄漏的数组。
+      // 显式包含 defaultMode，这样即便 iu.permissions 缺少该 key，undefined
+      // 也会触发 customizer 的删除路径。
       permissions:
         iu?.permissions === undefined ? undefined : { ...iu.permissions, defaultMode: iu.permissions.defaultMode },
     });
-    // AppState: batch-restore all possibly-touched fields.
+    // AppState：批量还原所有可能被修改过的字段。
     const ia = initialAppState;
     setAppState(prev => ({
       ...prev,
@@ -1383,13 +1373,13 @@ export function Config({
       replBridgeEnabled: ia.replBridgeEnabled,
       replBridgeOutboundOnly: ia.replBridgeOutboundOnly,
       settings: ia.settings,
-      // Reconcile auto-mode state after useAutoModeDuringPlan revert above —
-      // the onChange handler may have activated/deactivated auto mid-plan.
+      // 在上面还原 useAutoModeDuringPlan 后同步 auto-mode 状态——
+      // onChange 处理器可能在 plan 进行中激活/停用了 auto。
       toolPermissionContext: transitionPlanAutoMode(prev.toolPermissionContext),
     }));
-    // Bootstrap state: restore userMsgOptIn. Only touched by the defaultView
-    // onChange above, so no feature() guard needed here (that path only
-    // exists when showDefaultViewPicker is true).
+    // Bootstrap 状态：还原 userMsgOptIn。只被上面的 defaultView onChange
+    // 触及，所以这里不需要 feature() 守卫（该路径仅在
+    // showDefaultViewPicker 为 true 时存在）。
     if (getUserMsgOptIn() !== initialUserMsgOptIn) {
       setUserMsgOptIn(initialUserMsgOptIn);
     }
@@ -1403,7 +1393,7 @@ export function Config({
     setAppState,
   ]);
 
-  // Escape: revert all changes (if any) and close.
+  // Escape：还原所有变更（若有）并关闭。
   const handleEscape = useCallback(() => {
     if (showSubmenu !== null) {
       return;
@@ -1411,25 +1401,25 @@ export function Config({
     if (isDirty.current) {
       revertChanges();
     }
-    onClose('Config dialog dismissed', { display: 'system' });
+    onClose('配置对话框已关闭', { display: 'system' });
   }, [showSubmenu, revertChanges, onClose]);
 
-  // Disable when submenu is open so the submenu's Dialog handles ESC, and in
-  // search mode so the onKeyDown handler (which clears-then-exits search)
-  // wins — otherwise Escape in search would jump straight to revert+close.
+  // 当子菜单打开时禁用，以便子菜单的 Dialog 处理 ESC；在搜索模式下也禁用，
+  // 这样 onKeyDown 处理器（先清空再退出搜索）优先——否则在搜索中按 Escape
+  // 会直接跳到还原+关闭。
   useKeybinding('confirm:no', handleEscape, {
     context: 'Settings',
     isActive: showSubmenu === null && !isSearchMode && !headerFocused,
   });
-  // Save-and-close fires on Enter only when not in search mode (Enter there
-  // exits search to the list — see the isSearchMode branch in handleKeyDown).
+  // 仅在非搜索模式下，Enter 才触发保存并关闭（搜索模式下 Enter 会退出
+  // 搜索回到列表——参见 handleKeyDown 中的 isSearchMode 分支）。
   useKeybinding('settings:close', handleSaveAndClose, {
     context: 'Settings',
     isActive: showSubmenu === null && !isSearchMode && !headerFocused,
   });
 
-  // Settings navigation and toggle actions via configurable keybindings.
-  // Only active when not in search mode and no submenu is open.
+  // 通过可配置的 keybinding 实现设置项导航和切换动作。
+  // 仅在非搜索模式且未打开子菜单时激活。
   const toggleSetting = useCallback(() => {
     const setting = filteredSettingsItems[selectedIndex];
     if (!setting || !setting.onChange) {
@@ -1459,8 +1449,8 @@ export function Config({
       setting.id === 'outputStyle' ||
       setting.id === 'language'
     ) {
-      // managedEnum items open a submenu — isDirty is set by the submenu's
-      // completion callback, not here (submenu may be cancelled).
+      // managedEnum 项会打开一个子菜单——isDirty 由子菜单的完成回调设置，
+      // 而不是在这里（子菜单可能被取消）。
       switch (setting.id) {
         case 'theme':
           setShowSubmenu('Theme');
@@ -1491,18 +1481,18 @@ export function Config({
 
     if (setting.id === 'autoUpdatesChannel') {
       if (autoUpdaterDisabledReason) {
-        // Auto-updates are disabled - show enable dialog instead
+        // 自动更新已被禁用——改为显示启用对话框
         setShowSubmenu('EnableAutoUpdates');
         setTabsHidden(true);
         return;
       }
       const currentChannel = settingsData?.autoUpdatesChannel ?? 'latest';
       if (currentChannel === 'latest') {
-        // Switching to stable - show downgrade dialog
+        // 切换到 stable——显示降级对话框
         setShowSubmenu('ChannelDowngrade');
         setTabsHidden(true);
       } else {
-        // Switching to latest - just do it and clear minimumVersion
+        // 切换到 latest——直接执行并清除 minimumVersion
         isDirty.current = true;
         updateSettingsForSource('userSettings', {
           autoUpdatesChannel: 'latest',
@@ -1546,9 +1536,9 @@ export function Config({
     {
       'select:previous': () => {
         if (selectedIndex === 0) {
-          // ↑ at top enters search mode so users can type-to-filter after
-          // reaching the list boundary. Wheel-up (scroll:lineUp) clamps
-          // instead — overshoot shouldn't move focus away from the list.
+          // 在顶部按 ↑ 会进入搜索模式，方便用户到达列表边界后继续输入过滤。
+          // 滚轮向上（scroll:lineUp）则采用钳制处理——过冲不应让焦点
+          // 离开列表。
           setShowThinkingWarning(false);
           setIsSearchMode(true);
           setScrollOffset(0);
@@ -1557,10 +1547,9 @@ export function Config({
         }
       },
       'select:next': () => moveSelection(1),
-      // Wheel. ScrollKeybindingHandler's scroll:line* returns false (not
-      // consumed) when the ScrollBox content fits — which it always does
-      // here because the list is paginated (slice). The event falls through
-      // to this handler which navigates the list, clamping at boundaries.
+      // 滚轮。当 ScrollBox 内容能完全显示时，ScrollKeybindingHandler 的
+      // scroll:line* 会返回 false（未消费）——这里列表是分页（slice）的，
+      // 所以总是能完全显示。事件会落回到这个处理器上导航列表，并在边界处钳制。
       'scroll:lineUp': () => moveSelection(-1),
       'scroll:lineDown': () => moveSelection(1),
       'select:accept': toggleSetting,
@@ -1577,14 +1566,13 @@ export function Config({
     },
   );
 
-  // Combined key handling across search/list modes. Branch order mirrors
-  // the original useInput gate priority: submenu and header short-circuit
-  // first (their own handlers own input), then search vs. list.
+  // 跨搜索/列表模式的组合按键处理。分支顺序与原 useInput 的门控优先级一致：
+  // 子菜单和标题先短路（由它们自己的处理器接管输入），然后是搜索与列表。
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (showSubmenu !== null) return;
       if (headerFocused) return;
-      // Search mode: Esc clears then exits, Enter/↓ moves to the list.
+      // 搜索模式：Esc 先清空再退出，Enter/↓ 移到列表。
       if (isSearchMode) {
         if (e.key === 'escape') {
           e.preventDefault();
@@ -1603,18 +1591,17 @@ export function Config({
         }
         return;
       }
-      // List mode: left/right/tab cycle the selected option's value. These
-      // keys used to switch tabs; now they only do so when the tab row is
-      // explicitly focused (see headerFocused in Settings.tsx).
+      // 列表模式：left/right/tab 循环切换选中项的值。这些键过去用于切换
+      // tab；现在只有在 tab 行显式获得焦点时才会切换（见 Settings.tsx 的
+      // headerFocused）。
       if (e.key === 'left' || e.key === 'right' || e.key === 'tab') {
         e.preventDefault();
         toggleSetting();
         return;
       }
-      // Fallback: printable characters (other than those bound to actions)
-      // enter search mode. Carve out j/k// — useKeybindings (still on the
-      // useInput path) consumes these via stopImmediatePropagation, but
-      // onKeyDown dispatches independently so we must skip them explicitly.
+      // 兜底：可打印字符（除已绑定到动作的之外）进入搜索模式。排除 j/k// ——
+      // useKeybindings（仍在 useInput 路径上）会通过 stopImmediatePropagation
+      // 消费这些键，但 onKeyDown 是独立派发的，因此必须显式跳过它们。
       if (e.ctrl || e.meta) return;
       if (e.key === 'j' || e.key === 'k' || e.key === '/') return;
       if (e.key.length === 1 && e.key !== ' ') {
@@ -1642,7 +1629,7 @@ export function Config({
               setTabsHidden(false);
             }}
             hideEscToCancel
-            skipExitHandling={true} // Skip exit handling as Config already handles it
+            skipExitHandling={true} // 跳过退出处理，因为 Config 已经处理了
           />
           <Box>
             <Text dimColor italic>
@@ -1652,7 +1639,7 @@ export function Config({
                   action="confirm:no"
                   context="Confirmation"
                   fallback="Esc"
-                  description="cancel"
+                  description="取消"
                 />
               </Byline>
             </Text>

@@ -24,10 +24,10 @@ export function SandboxSettings({ onComplete, depCheck }: Props): React.ReactNod
   const hasWarnings = depCheck.warnings.length > 0;
   const settings = getSettings_DEPRECATED();
   const allowAllUnixSockets = settings.sandbox?.network?.allowAllUnixSockets;
-  // Show warning if seccomp missing AND user hasn't allowed all unix sockets
+  // 当 seccomp 缺失且用户未允许所有 unix sockets 时显示警告
   const showSocketWarning = hasWarnings && !allowAllUnixSockets;
 
-  // Determine current mode
+  // 确定当前模式
   const getCurrentMode = (): SandboxMode => {
     if (!currentEnabled) return 'disabled';
     if (currentAutoAllow) return 'auto-allow';
@@ -35,25 +35,21 @@ export function SandboxSettings({ onComplete, depCheck }: Props): React.ReactNod
   };
 
   const currentMode = getCurrentMode();
-  const currentIndicator = color('success', theme)(`(current)`);
+  const currentIndicator = color('success', theme)(`(当前)`);
 
   const options = [
     {
       label:
-        currentMode === 'auto-allow'
-          ? `Sandbox BashTool, with auto-allow ${currentIndicator}`
-          : 'Sandbox BashTool, with auto-allow',
+        currentMode === 'auto-allow' ? `Sandbox BashTool，自动允许 ${currentIndicator}` : 'Sandbox BashTool，自动允许',
       value: 'auto-allow',
     },
     {
       label:
-        currentMode === 'regular'
-          ? `Sandbox BashTool, with regular permissions ${currentIndicator}`
-          : 'Sandbox BashTool, with regular permissions',
+        currentMode === 'regular' ? `Sandbox BashTool，常规权限 ${currentIndicator}` : 'Sandbox BashTool，常规权限',
       value: 'regular',
     },
     {
-      label: currentMode === 'disabled' ? `No Sandbox ${currentIndicator}` : 'No Sandbox',
+      label: currentMode === 'disabled' ? `无 Sandbox ${currentIndicator}` : '无 Sandbox',
       value: 'disabled',
     },
   ];
@@ -67,21 +63,21 @@ export function SandboxSettings({ onComplete, depCheck }: Props): React.ReactNod
           enabled: true,
           autoAllowBashIfSandboxed: true,
         });
-        onComplete('✓ Sandbox enabled with auto-allow for bash commands');
+        onComplete('✓ Sandbox 已启用，bash 命令自动允许');
         break;
       case 'regular':
         await SandboxManager.setSandboxSettings({
           enabled: true,
           autoAllowBashIfSandboxed: false,
         });
-        onComplete('✓ Sandbox enabled with regular bash permissions');
+        onComplete('✓ Sandbox 已启用，使用常规 bash 权限');
         break;
       case 'disabled':
         await SandboxManager.setSandboxSettings({
           enabled: false,
           autoAllowBashIfSandboxed: false,
         });
-        onComplete('○ Sandbox disabled');
+        onComplete('○ Sandbox 已禁用');
         break;
     }
   }
@@ -94,7 +90,7 @@ export function SandboxSettings({ onComplete, depCheck }: Props): React.ReactNod
   );
 
   const modeTab = (
-    <Tab key="mode" title="Mode">
+    <Tab key="mode" title="模式">
       <SandboxModeTab
         showSocketWarning={showSocketWarning}
         options={options}
@@ -111,18 +107,18 @@ export function SandboxSettings({ onComplete, depCheck }: Props): React.ReactNod
   );
 
   const configTab = (
-    <Tab key="config" title="Config">
+    <Tab key="config" title="配置">
       <SandboxConfigTab />
     </Tab>
   );
 
   const hasErrors = depCheck.errors.length > 0;
 
-  // If required deps missing, only show Dependencies tab
-  // If only optional deps missing, show all tabs
+  // 如果缺少必需依赖，仅显示依赖标签页
+  // 如果仅缺少可选依赖，显示所有标签页
   const tabs = hasErrors
     ? [
-        <Tab key="dependencies" title="Dependencies">
+        <Tab key="dependencies" title="依赖">
           <SandboxDependenciesTab depCheck={depCheck} />
         </Tab>,
       ]
@@ -130,7 +126,7 @@ export function SandboxSettings({ onComplete, depCheck }: Props): React.ReactNod
         modeTab,
         ...(hasWarnings
           ? [
-              <Tab key="dependencies" title="Dependencies">
+              <Tab key="dependencies" title="依赖">
                 <SandboxDependenciesTab depCheck={depCheck} />
               </Tab>,
             ]
@@ -141,7 +137,7 @@ export function SandboxSettings({ onComplete, depCheck }: Props): React.ReactNod
 
   return (
     <Pane color="permission">
-      <Tabs title="Sandbox:" color="permission" defaultTab="Mode">
+      <Tabs title="Sandbox：" color="permission" defaultTab="Mode">
         {tabs}
       </Tabs>
     </Pane>
@@ -164,11 +160,11 @@ function SandboxModeTab({
     <Box flexDirection="column" paddingY={1}>
       {showSocketWarning && (
         <Box marginBottom={1}>
-          <Text color="warning">Cannot block unix domain sockets (see Dependencies tab)</Text>
+          <Text color="warning">无法拦截 unix domain sockets（见"依赖"标签页）</Text>
         </Box>
       )}
       <Box marginBottom={1}>
-        <Text bold>Configure Mode:</Text>
+        <Text bold>配置模式：</Text>
       </Box>
       <Select
         options={options}
@@ -180,13 +176,13 @@ function SandboxModeTab({
       <Box flexDirection="column" marginTop={1} gap={1}>
         <Text dimColor>
           <Text bold dimColor>
-            Auto-allow mode:
+            自动允许模式：
           </Text>{' '}
-          Commands will try to run in the sandbox automatically, and attempts to run outside of the sandbox fallback to
-          regular permissions. Explicit ask/deny rules are always respected.
+          命令会自动尝试在 sandbox 中运行，尝试在 sandbox
+          之外运行的情况会回退到常规权限。显式的允许/拒绝规则始终受尊重。
         </Text>
         <Text dimColor>
-          Learn more: <Link url="https://code.claude.com/docs/en/sandboxing">code.claude.com/docs/en/sandboxing</Link>
+          了解更多：<Link url="https://code.claude.com/docs/en/sandboxing">code.claude.com/docs/en/sandboxing</Link>
         </Text>
       </Box>
     </Box>

@@ -1,26 +1,25 @@
 import type { Message } from 'src/types/message.js'
 
 /**
- * Estimated characters per token (conservative for mixed code/text).
+ * 每个 token 的估算字符数（对代码/文本混合内容保守估计）。
  */
 const CHARS_PER_TOKEN = 4
 
 /**
- * Minimum message count before nudging the model to consider snipping.
+ * 在 nudge 模型考虑 snip 之前的最小消息数量。
  */
 const SNIP_NUDGE_THRESHOLD = 30
 
 /**
- * Text shown to the model as a nudge when the conversation is long enough
- * to benefit from snipping.
+ * 当对话足够长、可从 snip 中受益时，向模型展示的 nudge 文本。
  */
 export const SNIP_NUDGE_TEXT: string =
   'The conversation history is getting long. Consider using the /force-snip command or the snip tool to compress older messages, freeing context window space for continued work.'
 
 /**
- * Check whether a message is an internal snip marker (not user-facing).
- * Snip markers are system messages injected by the snip tool to track
- * which messages have been registered for future removal.
+ * 检查消息是否为内部 snip marker（非用户可见）。
+ * Snip marker 是由 snip tool 注入的 system 消息，用于跟踪
+ * 哪些消息已被登记为未来待删除的对象。
  */
 export function isSnipMarkerMessage(message: Message): boolean {
   if (message.type !== 'system') return false
@@ -28,9 +27,9 @@ export function isSnipMarkerMessage(message: Message): boolean {
 }
 
 /**
- * Estimate the token count of a single message by serialising its content.
- * This is a rough heuristic (~4 chars per token) used to report
- * tokensFreed; it does not need to be exact.
+ * 通过序列化消息内容来估算单条消息的 token 数。
+ * 这是一个粗略的启发式估计（约 4 字符/token），用于上报
+ * tokensFreed，不需要精确。
  */
 function estimateMessageTokens(message: Message): number {
   const content = message.message?.content
@@ -58,27 +57,23 @@ function estimateMessageTokens(message: Message): number {
 }
 
 /**
- * Scan the message array for the last `snip_boundary` system message and,
- * if found, remove all messages whose UUIDs appear in its
- * `snipMetadata.removedUuids`.
+ * 扫描消息数组，找到最后一条 `snip_boundary` system 消息，
+ * 若找到则移除所有 UUID 出现在其 `snipMetadata.removedUuids` 中的消息。
  *
- * This is the core memory-saving function. When a snip boundary exists:
- * 1. All messages listed in `removedUuids` are filtered out.
- * 2. The boundary message itself is kept (it records what was removed).
- * 3. Messages not in `removedUuids` (including post-boundary messages)
- *    are preserved.
+ * 这是核心的内存节省函数。当 snip boundary 存在时：
+ * 1. 所有在 `removedUuids` 中列出的消息会被过滤掉。
+ * 2. boundary 消息本身保留（它记录了被删除的内容）。
+ * 3. 不在 `removedUuids` 中的消息（包括 boundary 之后的消息）被保留。
  *
- * Called from:
- * - `query.ts` — strips snipped messages from the model-facing array
- *   before sending to the API.
- * - `QueryEngine.ts` `snipReplay` — trims `mutableMessages` so the
- *   in-memory store does not grow without bound in long SDK sessions.
+ * 调用方：
+ * - `query.ts` — 在发送到 API 前，从面向模型的消息数组中剔除已 snip 的消息。
+ * - `QueryEngine.ts` `snipReplay` — 裁剪 `mutableMessages`，
+ *   防止长 SDK 会话中内存存储无限增长。
  *
- * @param messages  Full message array (may contain a snip_boundary).
- * @param options   `force` — if true, always execute when a boundary is
- *                  present. Without `force`, the function still executes
- *                  if a boundary is found (the "if needed" refers to
- *                  whether a boundary exists, not a token threshold).
+ * @param messages  完整消息数组（可能包含 snip_boundary）。
+ * @param options   `force` — 若为 true，有 boundary 时总是执行。
+ *                  不带 `force` 时，找到 boundary 同样执行
+ *                  （"if needed" 指的是 boundary 是否存在，而非 token 阈值）。
  */
 export function snipCompactIfNeeded(
   messages: Message[],

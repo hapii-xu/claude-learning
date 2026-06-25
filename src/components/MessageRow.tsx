@@ -19,7 +19,7 @@ import {
 } from '../utils/messages.js';
 import { hasThinkingContent, Message } from './Message.js';
 
-// Narrow the first element of MessageContent to a block with known shape.
+// 把 MessageContent 的第一个元素收窄为具有已知结构的 block。
 type ContentBlock = {
   type: string;
   name?: string;
@@ -41,12 +41,12 @@ import { OffscreenFreeze } from './OffscreenFreeze.js';
 
 export type Props = {
   message: RenderableMessage;
-  /** Whether the previous message in renderableMessages is also a user message. */
+  /** renderableMessages 中上一条消息是否也是用户消息。 */
   isUserContinuation: boolean;
   /**
-   * Whether there is non-skippable content after this message in renderableMessages.
-   * Only needs to be accurate for `collapsed_read_search` messages — used to decide
-   * if the collapsed group spinner should stay active. Pass `false` otherwise.
+   * 此消息之后在 renderableMessages 中是否还有不可跳过的内容。
+   * 只需对 `collapsed_read_search` 消息保证准确 —— 用于决定折叠分组的
+   * spinner 是否应保持活动状态。其他情况传 `false` 即可。
    */
   hasContentAfter: boolean;
   tools: Tools;
@@ -66,14 +66,13 @@ export type Props = {
 };
 
 /**
- * Scans forward from `index+1` to check if any "real" content follows. Used to
- * decide whether a collapsed read/search group should stay in its active
- * (grey dot, present-tense "Reading…") state while the query is still loading.
+ * 从 `index+1` 向前扫描，检查后面是否还有"真正的"内容。用于决定
+ * 一个折叠的读/搜索分组是否应在其活动状态（灰点、现在时 "Reading…"）
+ * 下保持，而查询仍在加载中。
  *
- * Exported so Messages.tsx can compute this once per message and pass the
- * result as a boolean prop — avoids passing the full `renderableMessages` array
- * to each MessageRow (which React Compiler would pin in the fiber's memoCache,
- * accumulating every historical version of the array ≈ 1-2MB over a 7-turn session).
+ * 导出供 Messages.tsx 对每条消息计算一次并以布尔 prop 传入 —— 避免把
+ * 完整的 `renderableMessages` 数组传给每个 MessageRow（React Compiler 会
+ * 把它钉在 fiber 的 memoCache 里，在 7 轮会话中累积约 1-2MB 的历史版本）。
  */
 export function hasContentAfterIndex(
   messages: RenderableMessage[],
@@ -92,9 +91,9 @@ export function hasContentAfterIndex(
         if (getSearchExtraToolsOrReadInfo(content.name!, content.input, tools).isCollapsible) {
           continue;
         }
-        // Non-collapsible tool uses appear in syntheticStreamingToolUseMessages
-        // before their ID is added to inProgressToolUseIDs. Skip while streaming
-        // to avoid briefly finalizing the read group.
+        // 不可折叠的工具调用会先出现在 syntheticStreamingToolUseMessages 中，
+        // 之后其 ID 才会被加入 inProgressToolUseIDs。在流式过程中跳过，
+        // 以避免读分组被短暂地最终化。
         if (streamingToolUseIDs.has(content.id!)) {
           continue;
         }
@@ -104,15 +103,15 @@ export function hasContentAfterIndex(
     if (msg?.type === 'system' || msg?.type === 'attachment') {
       continue;
     }
-    // Tool results arrive while the collapsed group is still being built
+    // 工具结果在折叠分组仍在构建时到达
     if (msg?.type === 'user') {
       const content = firstBlock(msg.message.content);
       if (content?.type === 'tool_result') {
         continue;
       }
     }
-    // Collapsible grouped_tool_use messages arrive transiently before being
-    // merged into the current collapsed group on the next render cycle
+    // 可折叠的 grouped_tool_use 消息会短暂出现，随后在下一个渲染周期
+    // 被合并进当前的折叠分组
     if (msg?.type === 'grouped_tool_use') {
       const firstInput = firstBlock(msg.messages[0]?.message.content)?.input;
       if (getSearchExtraToolsOrReadInfo(msg.toolName, firstInput, tools).isCollapsible) {
@@ -147,10 +146,10 @@ function MessageRowImpl({
   const isGrouped = msg.type === 'grouped_tool_use';
   const isCollapsed = msg.type === 'collapsed_read_search';
 
-  // A collapsed group is "active" (grey dot, present tense "Reading…") when its tools
-  // are still executing OR when the overall query is still running with nothing after it.
-  // hasAnyToolInProgress takes priority: if tools are running, always show active regardless
-  // of what else is in the message list (avoids false finalization during parallel execution).
+  // 一个折叠分组是"活动的"（灰点、现在时 "Reading…"）—— 当其工具仍在执行，
+  // 或整体查询仍在运行且其后没有内容时。hasAnyToolInProgress 优先级最高：
+  // 如果有工具在跑，无论消息列表中还有什么，都始终显示为活动状态
+  // （避免并行执行时被误判为已最终化）。
   const isActiveCollapsedGroup =
     isCollapsed && (hasAnyToolInProgress(msg, inProgressToolUseIDs) || (isLoading && !hasContentAfter));
 
@@ -214,16 +213,16 @@ function MessageRowImpl({
       shouldCollapseDiffs={shouldCollapseDiffs}
     />
   );
-  // OffscreenFreeze: the outer React.memo already bails for static messages,
-  // so this only wraps rows that DO re-render — in-progress tools, collapsed
-  // read/search spinners, bash elapsed timers. When those rows have scrolled
-  // into terminal scrollback (non-fullscreen external builds), any content
-  // change forces log-update.ts into a full terminal reset per tick. Freezing
-  // returns the cached element ref so React bails and produces zero diff.
+  // OffscreenFreeze：外层的 React.memo 对静态消息已经会跳过，
+  // 所以这里只包装那些会重新渲染的行 —— 进行中的工具、折叠的
+  // 读/搜索 spinner、bash 计时器。当这些行已滚入终端 scrollback
+  // （非全屏的外部构建版本）时，任何内容变化都会迫使 log-update.ts
+  // 每个时钟周期做一次完整终端重置。冻结后返回缓存的 element ref，
+  // 让 React 跳过并产出零 diff。
   if (!hasMetadata) {
     return <OffscreenFreeze>{messageEl}</OffscreenFreeze>;
   }
-  // Margin on children, not here — else null items (hook_success etc.) get phantom 1-row spacing.
+  // margin 放在子元素上，而不是这里 —— 否则 null 项（hook_success 等）会出现幽灵式的 1 行间距。
   return (
     <OffscreenFreeze>
       <Box width={columns} flexDirection="column">
@@ -238,8 +237,8 @@ function MessageRowImpl({
 }
 
 /**
- * Checks if a message is "streaming" - i.e., its content may still be changing.
- * Exported for testing.
+ * 检查一条消息是否处于"流式"状态 —— 即其内容可能仍在变化。
+ * 导出供测试使用。
  */
 export function isMessageStreaming(msg: RenderableMessage, streamingToolUseIDs: Set<string>): boolean {
   if (msg.type === 'grouped_tool_use') {
@@ -257,8 +256,8 @@ export function isMessageStreaming(msg: RenderableMessage, streamingToolUseIDs: 
 }
 
 /**
- * Checks if all tools in a message are resolved.
- * Exported for testing.
+ * 检查一条消息中的所有工具是否都已 resolved。
+ * 导出供测试使用。
  */
 export function allToolsResolved(msg: RenderableMessage, resolvedToolUseIDs: Set<string>): boolean {
   if (msg.type === 'grouped_tool_use') {
@@ -282,37 +281,37 @@ export function allToolsResolved(msg: RenderableMessage, resolvedToolUseIDs: Set
 }
 
 /**
- * Conservative memo comparator that only bails out when we're CERTAIN
- * the message won't change. Fails safe by re-rendering when uncertain.
+ * 保守的 memo 比较器：仅当我们确定消息不会变化时才跳过重新渲染。
+ * 不确定时安全地选择重新渲染。
  *
- * Exported for testing.
+ * 导出供测试使用。
  */
 export function areMessageRowPropsEqual(prev: Props, next: Props): boolean {
-  // Different message reference = content may have changed, must re-render
+  // 不同的消息引用 = 内容可能已变化，必须重新渲染
   if (prev.message !== next.message) return false;
 
-  // Screen mode change = re-render
+  // Screen 模式变化 = 重新渲染
   if (prev.screen !== next.screen) return false;
 
-  // Verbose toggle changes thinking block visibility
+  // Verbose 开关会改变 thinking block 的可见性
   if (prev.verbose !== next.verbose) return false;
 
-  // collapsed_read_search is never static in prompt mode (matches shouldRenderStatically)
+  // collapsed_read_search 在 prompt 模式下永远不会是静态的（与 shouldRenderStatically 一致）
   if (prev.message.type === 'collapsed_read_search' && next.screen !== 'transcript') {
     return false;
   }
 
-  // Width change affects Box layout
+  // 宽度变化会影响 Box 布局
   if (prev.columns !== next.columns) return false;
 
-  // latestBashOutputUUID affects rendering (full vs truncated output)
+  // latestBashOutputUUID 影响渲染（完整 vs 截断输出）
   const prevIsLatestBash = prev.latestBashOutputUUID === prev.message.uuid;
   const nextIsLatestBash = next.latestBashOutputUUID === next.message.uuid;
   if (prevIsLatestBash !== nextIsLatestBash) return false;
 
-  // lastThinkingBlockId affects thinking block visibility — but only for
-  // messages that HAVE thinking content. Checking unconditionally busts the
-  // memo for every scrollback message whenever thinking starts/stops (CC-941).
+  // lastThinkingBlockId 影响 thinking block 的可见性 —— 但仅对
+  // 确实包含 thinking 内容的消息生效。无条件检查会让每次 thinking
+  // 开始/停止时所有 scrollback 消息的 memo 都失效（CC-941）。
   if (
     prev.lastThinkingBlockId !== next.lastThinkingBlockId &&
     hasThinkingContent(next.message as Parameters<typeof hasThinkingContent>[0])
@@ -320,14 +319,14 @@ export function areMessageRowPropsEqual(prev: Props, next: Props): boolean {
     return false;
   }
 
-  // Check if this message is still "in flight"
+  // 检查这条消息是否仍"在途"
   const isStreaming = isMessageStreaming(prev.message, prev.streamingToolUseIDs);
   const isResolved = allToolsResolved(prev.message, prev.lookups.resolvedToolUseIDs);
 
-  // Only bail out for truly static messages
+  // 只有真正静态的消息才跳过重新渲染
   if (isStreaming || !isResolved) return false;
 
-  // Static message - safe to skip re-render
+  // 静态消息 —— 可安全跳过重新渲染
   return true;
 }
 

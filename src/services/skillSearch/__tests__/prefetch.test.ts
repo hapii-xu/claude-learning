@@ -44,7 +44,7 @@ afterEach(() => {
       retryDelay: 100,
     })
   } catch {
-    // Windows can keep transient handles after dynamic command loading.
+    // Windows 在动态加载命令后可能保留临时文件句柄。
   }
 })
 

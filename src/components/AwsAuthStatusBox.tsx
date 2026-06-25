@@ -8,17 +8,17 @@ export function AwsAuthStatusBox(): React.ReactNode {
   const [status, setStatus] = useState<AwsAuthStatus>(AwsAuthStatusManager.getInstance().getStatus());
 
   useEffect(() => {
-    // Subscribe to status updates
+    // 订阅状态更新
     const unsubscribe = AwsAuthStatusManager.getInstance().subscribe(setStatus);
     return unsubscribe;
   }, []);
 
-  // Don't show anything if not authenticating and no error
+  // 不在认证中且无错误时不显示任何内容
   if (!status.isAuthenticating && !status.error && status.output.length === 0) {
     return null;
   }
 
-  // Don't show if authentication succeeded (no error and not authenticating)
+  // 认证成功时不显示（无错误且不在认证中）
   if (!status.isAuthenticating && !status.error) {
     return null;
   }
@@ -26,7 +26,7 @@ export function AwsAuthStatusBox(): React.ReactNode {
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="permission" paddingX={1} marginY={1}>
       <Text bold color="permission">
-        Cloud Authentication
+        云端认证
       </Text>
 
       {status.output.length > 0 && (

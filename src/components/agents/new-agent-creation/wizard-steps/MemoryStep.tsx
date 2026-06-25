@@ -24,26 +24,26 @@ export function MemoryStep(): ReactNode {
 
   const isUserScope = wizardData.location === 'userSettings';
 
-  // Build options with the recommended default first, then alternatives
-  // The recommended scope matches the agent's location (project agent → project memory, user agent → user memory)
+  // 构建选项，将推荐的默认值放在最前，然后是其他备选项
+  // 推荐的作用域与 agent 位置对应（项目 agent → 项目记忆，用户 agent → 用户记忆）
   const memoryOptions: MemoryOption[] = isUserScope
     ? [
         {
-          label: 'User scope (~/.hclaude/agent-memory/) (Recommended)',
+          label: '用户作用域（~/.hclaude/agent-memory/）（推荐）',
           value: 'user',
         },
-        { label: 'None (no persistent memory)', value: 'none' },
-        { label: 'Project scope (.hclaude/agent-memory/)', value: 'project' },
-        { label: 'Local scope (.hclaude/agent-memory-local/)', value: 'local' },
+        { label: '无（不使用持久化记忆）', value: 'none' },
+        { label: '项目作用域（.hclaude/agent-memory/）', value: 'project' },
+        { label: '本地作用域（.hclaude/agent-memory-local/）', value: 'local' },
       ]
     : [
         {
-          label: 'Project scope (.hclaude/agent-memory/) (Recommended)',
+          label: '项目作用域（.hclaude/agent-memory/）（推荐）',
           value: 'project',
         },
-        { label: 'None (no persistent memory)', value: 'none' },
-        { label: 'User scope (~/.hclaude/agent-memory/)', value: 'user' },
-        { label: 'Local scope (.hclaude/agent-memory-local/)', value: 'local' },
+        { label: '无（不使用持久化记忆）', value: 'none' },
+        { label: '用户作用域（~/.hclaude/agent-memory/）', value: 'user' },
+        { label: '本地作用域（.hclaude/agent-memory-local/）', value: 'local' },
       ];
 
   const handleSelect = (value: string): void => {
@@ -51,8 +51,8 @@ export function MemoryStep(): ReactNode {
     const agentType = wizardData.finalAgent?.agentType;
     updateWizardData({
       selectedMemory: memory,
-      // Update finalAgent with memory and rewire getSystemPrompt to include memory loading.
-      // Explicitly set memory (not conditional spread) so selecting 'none' after going back clears it.
+      // 更新 finalAgent 中的 memory，并重写 getSystemPrompt 以包含记忆加载逻辑。
+      // 显式设置 memory（不使用条件展开），这样在返回后选择「无」即可清空记忆。
       finalAgent: wizardData.finalAgent
         ? {
             ...wizardData.finalAgent,
@@ -69,7 +69,7 @@ export function MemoryStep(): ReactNode {
 
   return (
     <WizardDialogLayout
-      subtitle="Configure agent memory"
+      subtitle="配置 agent 记忆"
       footerText={
         <Byline>
           <KeyboardShortcutHint shortcut="↑↓" action="navigate" />

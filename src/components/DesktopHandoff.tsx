@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { CommandResultDisplay } from '../commands.js';
-// eslint-disable-next-line custom-rules/prefer-use-keybindings -- raw input for "any key" dismiss and y/n prompt
+// eslint-disable-next-line custom-rules/prefer-use-keybindings -- 原始输入用于"任意键关闭"和 y/n 提示
 import { Box, Text, useInput, LoadingState } from '@anthropic/ink';
 import { getDesktopInstallStatus, openCurrentSessionInDesktop } from '../utils/desktopDeepLink.js';
 import { openBrowser } from '../utils/browser.js';
@@ -31,64 +31,69 @@ export function DesktopHandoff({ onDone }: Props): React.ReactNode {
   const [error, setError] = useState<string | null>(null);
   const [downloadMessage, setDownloadMessage] = useState<string>('');
 
-  // Handle keyboard input for error and prompt-download states
+  // \u5904\u7406\u9519\u8bef\u548c\u4e0b\u8f7d\u63d0\u793a\u72b6\u6001\u4e0b\u7684\u952e\u76d8\u8f93\u5165
   useInput(input => {
     if (state === 'error') {
-      onDone(error ?? 'Unknown error', { display: 'system' });
+      onDone(error ?? '\u672a\u77e5\u9519\u8bef', { display: 'system' });
       return;
     }
     if (state === 'prompt-download') {
       if (input === 'y' || input === 'Y') {
         openBrowser(getDownloadUrl()).catch(() => {});
         onDone(
-          `Starting download. Re-run /desktop once you\u2019ve installed the app.\nLearn more at ${DESKTOP_DOCS_URL}`,
+          `\u5f00\u59cb\u4e0b\u8f7d\u3002\u5b89\u88c5\u5b8c\u6210\u540e\u8bf7\u91cd\u65b0\u8fd0\u884c /desktop\u3002\n\u4e86\u89e3\u66f4\u591a\uff1a${DESKTOP_DOCS_URL}`,
           { display: 'system' },
         );
       } else if (input === 'n' || input === 'N') {
-        onDone(`The desktop app is required for /desktop. Learn more at ${DESKTOP_DOCS_URL}`, { display: 'system' });
+        onDone(
+          `/desktop \u9700\u8981\u684c\u9762\u7aef\u5e94\u7528\u3002\u4e86\u89e3\u66f4\u591a\uff1a${DESKTOP_DOCS_URL}`,
+          { display: 'system' },
+        );
       }
     }
   });
 
   useEffect(() => {
     async function performHandoff(): Promise<void> {
-      // Check Desktop install status
+      // \u68c0\u67e5\u684c\u9762\u7aef\u5b89\u88c5\u72b6\u6001
       setState('checking');
       const installStatus = await getDesktopInstallStatus();
 
       if (installStatus.status === 'not-installed') {
-        setDownloadMessage('Claude Desktop is not installed.');
+        setDownloadMessage('\u672a\u5b89\u88c5 Claude Desktop\u3002');
         setState('prompt-download');
         return;
       }
 
       if (installStatus.status === 'version-too-old') {
-        setDownloadMessage(`Claude Desktop needs to be updated (found v${installStatus.version}, need v1.1.2396+).`);
+        setDownloadMessage(
+          `Claude Desktop \u9700\u8981\u66f4\u65b0\uff08\u68c0\u6d4b\u5230 v${installStatus.version}\uff0c\u9700\u8981 v1.1.2396+\uff09\u3002`,
+        );
         setState('prompt-download');
         return;
       }
 
-      // Flush session storage to ensure transcript is fully written
+      // \u5237\u65b0\u4f1a\u8bdd\u5b58\u50a8\uff0c\u786e\u4fdd\u5bf9\u8bdd\u8bb0\u5f55\u5df2\u5b8c\u6574\u5199\u5165
       setState('flushing');
       await flushSessionStorage();
 
-      // Open the deep link (uses claude-dev:// in dev mode)
+      // \u6253\u5f00 deep link\uff08\u5f00\u53d1\u6a21\u5f0f\u4e0b\u4f7f\u7528 claude-dev://\uff09
       setState('opening');
       const result = await openCurrentSessionInDesktop();
 
       if (!result.success) {
-        setError(result.error ?? 'Failed to open Claude Desktop');
+        setError(result.error ?? '\u6253\u5f00 Claude Desktop \u5931\u8d25');
         setState('error');
         return;
       }
 
-      // Success - exit the CLI
+      // \u6210\u529f \u2014\u2014 \u9000\u51fa CLI
       setState('success');
 
-      // Give the user a moment to see the success message
+      // \u7ed9\u7528\u6237\u4e00\u70b9\u65f6\u95f4\u770b\u5230\u6210\u529f\u63d0\u793a
       setTimeout(
         async (onDone: Props['onDone']) => {
-          onDone('Session transferred to Claude Desktop', { display: 'system' });
+          onDone('\u4f1a\u8bdd\u5df2\u8f6c\u79fb\u5230 Claude Desktop', { display: 'system' });
           await gracefulShutdown(0, 'other');
         },
         500,
@@ -105,8 +110,8 @@ export function DesktopHandoff({ onDone }: Props): React.ReactNode {
   if (state === 'error') {
     return (
       <Box flexDirection="column" paddingX={2}>
-        <Text color="error">Error: {error}</Text>
-        <Text dimColor>Press any key to continue…</Text>
+        <Text color="error">错误：{error}</Text>
+        <Text dimColor>按任意键继续…</Text>
       </Box>
     );
   }
@@ -115,16 +120,16 @@ export function DesktopHandoff({ onDone }: Props): React.ReactNode {
     return (
       <Box flexDirection="column" paddingX={2}>
         <Text>{downloadMessage}</Text>
-        <Text>Download now? (y/n)</Text>
+        <Text>立即下载？(y/n)</Text>
       </Box>
     );
   }
 
   const messages: Record<Exclude<DesktopHandoffState, 'error' | 'prompt-download'>, string> = {
-    checking: 'Checking for Claude Desktop…',
-    flushing: 'Saving session…',
-    opening: 'Opening Claude Desktop…',
-    success: 'Opening in Claude Desktop…',
+    checking: '正在检查 Claude Desktop…',
+    flushing: '正在保存会话…',
+    opening: '正在打开 Claude Desktop…',
+    success: '正在 Claude Desktop 中打开…',
   };
 
   return <LoadingState message={messages[state]} />;

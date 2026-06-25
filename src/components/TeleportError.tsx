@@ -14,10 +14,9 @@ type TeleportErrorProps = {
   errorsToIgnore?: ReadonlySet<TeleportLocalErrorType>;
 };
 
-// Module-level sentinel so the default parameter has stable identity.
-// Previously `= new Set()` created a fresh Set every render, which put
-// a new object in checkErrors' deps and caused the mount effect to
-// re-fire on every render.
+// 模块级哨兵值，保证默认参数拥有稳定的引用身份。
+// 此前 `= new Set()` 每次渲染都会创建一个新的 Set，这会在 checkErrors 的
+// 依赖里放入一个新对象，导致挂载 effect 在每次渲染时都重新触发。
 const EMPTY_ERRORS_TO_IGNORE: ReadonlySet<TeleportLocalErrorType> = new Set();
 
 export function TeleportError({
@@ -27,20 +26,20 @@ export function TeleportError({
   const [currentError, setCurrentError] = useState<TeleportLocalErrorType | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
 
-  // Check for errors on mount and when error resolution occurs
+  // 在挂载时以及错误被解决后检查错误
   const checkErrors = useCallback(async () => {
     const currentErrors = await getTeleportErrors();
     const filteredErrors = new Set(
       Array.from(currentErrors).filter((error: TeleportLocalErrorType) => !errorsToIgnore.has(error)),
     );
 
-    // If no errors remain, call onComplete
+    // 如果没有剩余错误，调用 onComplete
     if (filteredErrors.size === 0) {
       onComplete();
       return;
     }
 
-    // Set current error to handle (prioritize login over git)
+    // 设置当前要处理的错误（login 优先于 git）
     if (filteredErrors.has('needsLogin')) {
       setCurrentError('needsLogin');
     } else if (filteredErrors.has('needsGitStash')) {
@@ -48,7 +47,7 @@ export function TeleportError({
     }
   }, [onComplete, errorsToIgnore]);
 
-  // Check errors on mount
+  // 挂载时检查错误
   useEffect(() => {
     void checkErrors();
   }, [checkErrors]);
@@ -71,7 +70,7 @@ export function TeleportError({
       if (value === 'login') {
         handleLoginWithClaudeAI();
       } else {
-        // User selected exit
+        // 用户选择了退出
         onCancel();
       }
     },
@@ -82,7 +81,7 @@ export function TeleportError({
     void checkErrors();
   }, [checkErrors]);
 
-  // Don't render anything if no current error (onComplete will be called)
+  // 如果没有当前错误则不渲染任何内容（会调用 onComplete）
   if (!currentError) {
     return null;
   }
@@ -97,15 +96,15 @@ export function TeleportError({
       }
 
       return (
-        <Dialog title="Log in to Claude" onCancel={onCancel}>
+        <Dialog title="登录 Claude" onCancel={onCancel}>
           <Box flexDirection="column">
-            <Text dimColor>Teleport requires a Claude.ai account.</Text>
-            <Text dimColor>Your Claude Pro/Max subscription will be used by Claude Code.</Text>
+            <Text dimColor>Teleport 需要一个 Claude.ai 账户。</Text>
+            <Text dimColor>你的 Claude Pro/Max 订阅将由 Claude Code 使用。</Text>
           </Box>
           <Select
             options={[
-              { label: 'Login with Claude account', value: 'login' },
-              { label: 'Exit', value: 'exit' },
+              { label: '使用 Claude 账户登录', value: 'login' },
+              { label: '退出', value: 'exit' },
             ]}
             onChange={handleLoginDialogSelect}
           />
@@ -116,8 +115,8 @@ export function TeleportError({
 }
 
 /**
- * Gets current teleport errors that need to be resolved
- * @returns Set of teleport error types that need to be handled
+ * 获取当前需要解决的 teleport 错误
+ * @returns 需要处理的 teleport 错误类型集合
  */
 export async function getTeleportErrors(): Promise<Set<TeleportLocalErrorType>> {
   const errors = new Set<TeleportLocalErrorType>();

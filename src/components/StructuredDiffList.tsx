@@ -13,7 +13,7 @@ type Props = {
   fileContent?: string;
 };
 
-/** Renders a list of diff hunks with ellipsis separators between them. */
+/** 渲染 diff hunk 列表，各 hunk 之间用省略号分隔。 */
 export function StructuredDiffList({ hunks, dim, width, filePath, firstLine, fileContent }: Props): React.ReactNode {
   return intersperse(
     hunks.map(hunk => (

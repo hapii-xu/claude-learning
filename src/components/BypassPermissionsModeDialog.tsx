@@ -13,8 +13,8 @@ type Props = {
 export function BypassPermissionsModeDialog({ onAccept }: Props): React.ReactNode {
   const [pendingExitCode, setPendingExitCode] = React.useState<number | null>(null);
 
-  // Clear screen before shutdown so residual dialog content doesn't leak
-  // to the terminal. Deferred to next tick so Ink flushes the null render.
+  // 在关闭前清屏，避免残留的对话框内容泄漏到终端。
+  // 延迟到下一个 tick 执行，以便 Ink 先刷新 null 渲染。
   React.useEffect(() => {
     if (pendingExitCode !== null) {
       const code = pendingExitCode;
@@ -54,26 +54,22 @@ export function BypassPermissionsModeDialog({ onAccept }: Props): React.ReactNod
   }
 
   return (
-    <Dialog title="WARNING: Claude Code running in Bypass Permissions mode" color="error" onCancel={handleEscape}>
+    <Dialog title="警告：Claude Code 正运行于 Bypass Permissions 模式" color="error" onCancel={handleEscape}>
       <Box flexDirection="column" gap={1}>
         <Text>
-          In Bypass Permissions mode, Claude Code will not ask for your approval before running potentially dangerous
-          commands.
+          在 Bypass Permissions 模式下，Claude Code 在运行潜在危险命令前不会征求您的批准。
           <Newline />
-          This mode should only be used in a sandboxed container/VM that has restricted internet access and can easily
-          be restored if damaged.
+          此模式仅应在受限网络访问、且易于恢复的沙箱容器/虚拟机中使用。
         </Text>
-        <Text>
-          By proceeding, you accept all responsibility for actions taken while running in Bypass Permissions mode.
-        </Text>
+        <Text>继续即表示您对在 Bypass Permissions 模式下执行的所有操作承担责任。</Text>
 
         <Link url="https://code.claude.com/docs/en/security" />
       </Box>
 
       <Select
         options={[
-          { label: 'No, exit', value: 'decline' },
-          { label: 'Yes, I accept', value: 'accept' },
+          { label: '否，退出', value: 'decline' },
+          { label: '是，我接受', value: 'accept' },
         ]}
         onChange={value => onChange(value as 'accept' | 'decline')}
       />

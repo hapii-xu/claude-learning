@@ -86,8 +86,8 @@ describe('SnapshotUpdateDialog', () => {
     expect(projectPrompt.trim().length).toBeGreaterThan(0);
     expect(projectPrompt).toContain('researcher');
     expect(projectPrompt).toContain('project');
-    expect(projectPrompt.toLowerCase()).toContain('snapshot');
-    expect(projectPrompt.toLowerCase()).toContain('merge');
+    expect(projectPrompt).toContain('快照');
+    expect(projectPrompt).toContain('合并');
     expect(projectPrompt).not.toBe(userPrompt);
     expect(projectPrompt).not.toBe(plannerPrompt);
   });
@@ -101,7 +101,7 @@ describe('SnapshotUpdateDialog', () => {
       onCancel: () => {},
     } as any) as React.ReactElement<{ title: string; subtitle: string; children: React.ReactNode[] }>;
 
-    expect(element.props.title).toBe('Agent memory snapshot update');
+    expect(element.props.title).toBe('Agent 记忆快照更新');
     expect(element.props.subtitle).toContain('researcher');
     expect(element.props.subtitle).toContain('project');
 
@@ -110,9 +110,9 @@ describe('SnapshotUpdateDialog', () => {
     expect(select.type).toBe(Select);
     expect(select.props.options.map((option: { value: string }) => option.value)).toEqual(['merge', 'keep', 'replace']);
     expect(select.props.options.map((option: { label: string }) => option.label)).toEqual([
-      'Merge snapshot into current memory',
-      'Keep current memory',
-      'Replace with snapshot',
+      '将快照合并到当前记忆',
+      '保留当前记忆',
+      '用快照替换',
     ]);
   });
 });

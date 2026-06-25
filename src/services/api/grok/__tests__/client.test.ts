@@ -1,6 +1,6 @@
 import { describe, expect, test, beforeEach, afterEach, mock } from 'bun:test'
 
-// Defensive: agent.test.ts can corrupt Bun's src/* path alias at runtime.
+// 防御性处理：agent.test.ts 可能在运行时破坏 Bun 的 src/* 路径别名。
 mock.module('src/utils/proxy.js', () => ({
   getProxyFetchOptions: () => ({}) as any,
 }))

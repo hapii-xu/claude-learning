@@ -51,7 +51,7 @@ type ToolBuckets = {
 function getToolBuckets(): ToolBuckets {
   return {
     READ_ONLY: {
-      name: 'Read-only tools',
+      name: '只读工具',
       toolNames: new Set([
         GlobTool.name,
         GrepTool.name,
@@ -67,28 +67,28 @@ function getToolBuckets(): ToolBuckets {
       ]),
     },
     EDIT: {
-      name: 'Edit tools',
+      name: '编辑工具',
       toolNames: new Set([FileEditTool.name, FileWriteTool.name, NotebookEditTool.name]),
     },
     EXECUTION: {
-      name: 'Execution tools',
+      name: '执行工具',
       toolNames: new Set(
         [BashTool.name, process.env.USER_TYPE === 'ant' ? TungstenTool.name : undefined].filter(n => n !== undefined),
       ),
     },
     MCP: {
-      name: 'MCP tools',
-      toolNames: new Set(), // Dynamic - no static list
+      name: 'MCP 工具',
+      toolNames: new Set(), // 动态生成 - 无静态列表
       isMcp: true,
     },
     OTHER: {
-      name: 'Other tools',
-      toolNames: new Set(), // Dynamic - catch-all for uncategorized tools
+      name: '其他工具',
+      toolNames: new Set(), // 动态生成 - 用于未分类工具的兜底分组
     },
   };
 }
 
-// Helper to get MCP server buckets dynamically
+// 辅助函数：动态获取 MCP server 分组
 function getMcpServerBuckets(tools: Tools): Array<{
   serverName: string;
   tools: Tools;
@@ -112,10 +112,10 @@ function getMcpServerBuckets(tools: Tools): Array<{
 }
 
 export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Props): React.ReactNode {
-  // Filter tools for custom agents
+  // 为自定义 agent 过滤可用工具
   const customAgentTools = useMemo(() => filterToolsForAgent({ tools, isBuiltIn: false, isAsync: false }), [tools]);
 
-  // Expand wildcard or undefined to explicit tool list for internal state
+  // 将通配符或 undefined 展开为明确的工具列表，用于内部状态
   const expandedInitialTools =
     !initialTools || initialTools.includes('*') ? customAgentTools.map(t => t.name) : initialTools;
 
@@ -123,8 +123,8 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
   const [focusIndex, setFocusIndex] = useState(0);
   const [showIndividualTools, setShowIndividualTools] = useState(false);
 
-  // Filter selectedTools to only include tools that currently exist
-  // This handles MCP tools that disconnect while selected
+  // 过滤 selectedTools，仅保留当前仍存在的工具
+  // 用于处理选中后断开连接的 MCP 工具
   const validSelectedTools = useMemo(() => {
     const toolNames = new Set(customAgentTools.map(t => t.name));
     return selectedTools.filter(name => toolNames.has(name));
@@ -153,7 +153,7 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
   };
 
   const handleConfirm = () => {
-    // Convert to undefined if all tools are selected (for cleaner file format)
+    // 如果选中了全部工具，则转换为 undefined（以便生成更简洁的文件格式）
     const allToolNames = customAgentTools.map(t => t.name);
     const areAllToolsSelected =
       validSelectedTools.length === allToolNames.length &&
@@ -163,7 +163,7 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
     onComplete(finalTools);
   };
 
-  // Group tools by bucket
+  // 按分组归类工具
   const toolsByBucket = useMemo(() => {
     const toolBuckets = getToolBuckets();
     const buckets = {
@@ -175,7 +175,7 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
     };
 
     customAgentTools.forEach(tool => {
-      // Check if it's an MCP tool first
+      // 先判断是否为 MCP 工具
       if (isMcpTool(tool)) {
         buckets.mcp.push(tool);
       } else if (toolBuckets.READ_ONLY.toolNames.has(tool.name)) {
@@ -185,7 +185,7 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
       } else if (toolBuckets.EXECUTION.toolNames.has(tool.name)) {
         buckets.execution.push(tool);
       } else if (tool.name !== AGENT_TOOL_NAME) {
-        // Catch-all for uncategorized tools (except Task)
+        // 兜底处理未分类工具（排除 Task）
         buckets.other.push(tool);
       }
     });
@@ -203,7 +203,7 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
     };
   };
 
-  // Build navigable items (no separators)
+  // 构建可导航的条目列表（无分隔线）
   const navigableItems: Array<{
     id: string;
     label: string;
@@ -213,25 +213,25 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
     isHeader?: boolean;
   }> = [];
 
-  // Continue button
+  // 继续按钮
   navigableItems.push({
     id: 'continue',
-    label: 'Continue',
+    label: '继续',
     action: handleConfirm,
     isContinue: true,
   });
 
-  // All tools
+  // 全部工具
   navigableItems.push({
     id: 'bucket-all',
-    label: `${isAllSelected ? figures.checkboxOn : figures.checkboxOff} All tools`,
+    label: `${isAllSelected ? figures.checkboxOn : figures.checkboxOff} 全部工具`,
     action: () => {
       const allToolNames = customAgentTools.map(t => t.name);
       handleToggleTools(allToolNames, !isAllSelected);
     },
   });
 
-  // Create bucket menu items
+  // 创建分组的菜单条目
   const toolBuckets = getToolBuckets();
   const bucketConfigs = [
     {
@@ -274,14 +274,14 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
     });
   });
 
-  // Toggle button for individual tools
+  // 用于展开/折叠单个工具的切换按钮
   const toggleButtonIndex = navigableItems.length;
   navigableItems.push({
     id: 'toggle-individual',
-    label: showIndividualTools ? 'Hide advanced options' : 'Show advanced options',
+    label: showIndividualTools ? '隐藏高级选项' : '显示高级选项',
     action: () => {
       setShowIndividualTools(!showIndividualTools);
-      // If hiding tools and focus is on an individual tool, move focus to toggle button
+      // 若在折叠工具时焦点位于某个单独工具上，则将焦点移到切换按钮
       if (showIndividualTools && focusIndex > toggleButtonIndex) {
         setFocusIndex(toggleButtonIndex);
       }
@@ -289,17 +289,17 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
     isToggle: true,
   });
 
-  // Memoize MCP server buckets (must be outside conditional for hooks rules)
+  // 对 MCP server 分组做 memoize（必须放在条件外，以满足 hooks 规则）
   const mcpServerBuckets = useMemo(() => getMcpServerBuckets(customAgentTools), [customAgentTools]);
 
-  // Individual tools (only if expanded)
+  // 单个工具（仅在展开时显示）
   if (showIndividualTools) {
-    // Add MCP server buckets if any exist
+    // 如果存在 MCP server 分组则加入
     if (mcpServerBuckets.length > 0) {
       navigableItems.push({
         id: 'mcp-servers-header',
-        label: 'MCP Servers:',
-        action: () => {}, // No action - just a header
+        label: 'MCP Servers：',
+        action: () => {}, // 无操作 - 仅作为标题
         isHeader: true,
       });
 
@@ -309,7 +309,7 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
 
         navigableItems.push({
           id: `mcp-server-${serverName}`,
-          label: `${isFullySelected ? figures.checkboxOn : figures.checkboxOff} ${serverName} (${serverTools.length} ${plural(serverTools.length, 'tool')})`,
+          label: `${isFullySelected ? figures.checkboxOn : figures.checkboxOff} ${serverName}（${serverTools.length} 个${plural(serverTools.length, '工具')}）`,
           action: () => {
             const toolNames = serverTools.map(t => t.name);
             handleToggleTools(toolNames, !isFullySelected);
@@ -317,16 +317,16 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
         });
       });
 
-      // Add separator header before individual tools
+      // 在单个工具前加入分隔标题
       navigableItems.push({
         id: 'tools-header',
-        label: 'Individual Tools:',
+        label: '单个工具：',
         action: () => {},
         isHeader: true,
       });
     }
 
-    // Add individual tools
+    // 加入单个工具
     customAgentTools.forEach(tool => {
       let displayName = tool.name;
       if (tool.name.startsWith('mcp__')) {
@@ -362,7 +362,7 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
     } else if (e.key === 'up') {
       e.preventDefault();
       let newIndex = focusIndex - 1;
-      // Skip headers when navigating up
+      // 向上导航时跳过标题
       while (newIndex > 0 && navigableItems[newIndex]?.isHeader) {
         newIndex--;
       }
@@ -370,7 +370,7 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
     } else if (e.key === 'down') {
       e.preventDefault();
       let newIndex = focusIndex + 1;
-      // Skip headers when navigating down
+      // 向下导航时跳过标题
       while (newIndex < navigableItems.length - 1 && navigableItems[newIndex]?.isHeader) {
         newIndex++;
       }
@@ -380,15 +380,15 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
 
   return (
     <Box flexDirection="column" marginTop={1} tabIndex={0} autoFocus onKeyDown={handleKeyDown}>
-      {/* Render Continue button */}
+      {/* 渲染「继续」按钮 */}
       <Text color={focusIndex === 0 ? 'suggestion' : undefined} bold={focusIndex === 0}>
-        {focusIndex === 0 ? `${figures.pointer} ` : '  '}[ Continue ]
+        {focusIndex === 0 ? `${figures.pointer} ` : '  '}[ 继续 ]
       </Text>
 
-      {/* Separator */}
+      {/* 分隔线 */}
       <Divider width={40} />
 
-      {/* Render all navigable items except Continue (which is at index 0) */}
+      {/* 渲染除「继续」（位于索引 0）以外的所有可导航条目 */}
       {navigableItems.slice(1).map((item, index) => {
         const isCurrentlyFocused = index + 1 === focusIndex;
         const isToggleButton = item.isToggle;
@@ -396,10 +396,10 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
 
         return (
           <React.Fragment key={item.id}>
-            {/* Add separator before toggle button */}
+            {/* 在切换按钮前添加分隔线 */}
             {isToggleButton && <Divider width={40} />}
 
-            {/* Add margin before headers */}
+            {/* 在标题前添加外边距 */}
             {isHeader && index > 0 && <Box marginTop={1} />}
 
             <Text
@@ -416,7 +416,7 @@ export function ToolSelector({ tools, initialTools, onComplete, onCancel }: Prop
 
       <Box marginTop={1} flexDirection="column">
         <Text dimColor>
-          {isAllSelected ? 'All tools selected' : `${selectedSet.size} of ${customAgentTools.length} tools selected`}
+          {isAllSelected ? '已选中全部工具' : `已选中 ${selectedSet.size} / ${customAgentTools.length} 个工具`}
         </Text>
       </Box>
     </Box>

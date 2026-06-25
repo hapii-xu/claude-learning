@@ -38,7 +38,7 @@ export async function fetchReferralEligibility(
   const response = await axios.get(url, {
     headers,
     params: { campaign },
-    timeout: 5000, // 5 second timeout for background fetch
+    timeout: 5000, // 后台拉取 5 秒超时
   })
 
   return response.data
@@ -59,7 +59,7 @@ export async function fetchReferralRedemptions(
   const response = await axios.get<ReferralRedemptionsResponse>(url, {
     headers,
     params: { campaign },
-    timeout: 10000, // 10 second timeout
+    timeout: 10000, // 10 秒超时
   })
 
   return response.data

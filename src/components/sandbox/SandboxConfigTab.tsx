@@ -5,7 +5,7 @@ import { SandboxManager, shouldAllowManagedSandboxDomainsOnly } from '../../util
 export function SandboxConfigTab(): React.ReactNode {
   const isEnabled = SandboxManager.isSandboxingEnabled();
 
-  // Show warnings (e.g., seccomp not available on Linux)
+  // 显示警告（例如 Linux 上 seccomp 不可用）
   const depCheck = SandboxManager.checkDependencies();
   const warningsNote =
     depCheck.warnings.length > 0 ? (
@@ -21,7 +21,7 @@ export function SandboxConfigTab(): React.ReactNode {
   if (!isEnabled) {
     return (
       <Box flexDirection="column" paddingY={1}>
-        <Text color="subtle">Sandbox is not enabled</Text>
+        <Text color="subtle">Sandbox 未启用</Text>
         {warningsNote}
       </Box>
     );
@@ -36,53 +36,53 @@ export function SandboxConfigTab(): React.ReactNode {
 
   return (
     <Box flexDirection="column" paddingY={1}>
-      {/* Excluded Commands */}
+      {/* 排除的命令 */}
       <Box flexDirection="column">
         <Text bold color="permission">
-          Excluded Commands:
+          排除的命令：
         </Text>
-        <Text dimColor>{excludedCommands.length > 0 ? excludedCommands.join(', ') : 'None'}</Text>
+        <Text dimColor>{excludedCommands.length > 0 ? excludedCommands.join(', ') : '无'}</Text>
       </Box>
 
-      {/* Filesystem Read Restrictions */}
+      {/* 文件系统读取限制 */}
       {fsReadConfig.denyOnly.length > 0 && (
         <Box marginTop={1} flexDirection="column">
           <Text bold color="permission">
-            Filesystem Read Restrictions:
+            文件系统读取限制：
           </Text>
-          <Text dimColor>Denied: {fsReadConfig.denyOnly.join(', ')}</Text>
+          <Text dimColor>拒绝：{fsReadConfig.denyOnly.join(', ')}</Text>
           {fsReadConfig.allowWithinDeny && fsReadConfig.allowWithinDeny.length > 0 && (
-            <Text dimColor>Allowed within denied: {fsReadConfig.allowWithinDeny.join(', ')}</Text>
+            <Text dimColor>在拒绝范围内允许：{fsReadConfig.allowWithinDeny.join(', ')}</Text>
           )}
         </Box>
       )}
 
-      {/* Filesystem Write Restrictions */}
+      {/* 文件系统写入限制 */}
       {fsWriteConfig.allowOnly.length > 0 && (
         <Box marginTop={1} flexDirection="column">
           <Text bold color="permission">
-            Filesystem Write Restrictions:
+            文件系统写入限制：
           </Text>
-          <Text dimColor>Allowed: {fsWriteConfig.allowOnly.join(', ')}</Text>
+          <Text dimColor>允许：{fsWriteConfig.allowOnly.join(', ')}</Text>
           {fsWriteConfig.denyWithinAllow.length > 0 && (
-            <Text dimColor>Denied within allowed: {fsWriteConfig.denyWithinAllow.join(', ')}</Text>
+            <Text dimColor>在允许范围内拒绝：{fsWriteConfig.denyWithinAllow.join(', ')}</Text>
           )}
         </Box>
       )}
 
-      {/* Network Restrictions */}
+      {/* 网络限制 */}
       {((networkConfig.allowedHosts && networkConfig.allowedHosts.length > 0) ||
         (networkConfig.deniedHosts && networkConfig.deniedHosts.length > 0)) && (
         <Box marginTop={1} flexDirection="column">
           <Text bold color="permission">
-            Network Restrictions
-            {shouldAllowManagedSandboxDomainsOnly() ? ' (Managed)' : ''}:
+            网络限制
+            {shouldAllowManagedSandboxDomainsOnly() ? '（受管）' : ''}：
           </Text>
           {networkConfig.allowedHosts && networkConfig.allowedHosts.length > 0 && (
-            <Text dimColor>Allowed: {networkConfig.allowedHosts.join(', ')}</Text>
+            <Text dimColor>允许：{networkConfig.allowedHosts.join(', ')}</Text>
           )}
           {networkConfig.deniedHosts && networkConfig.deniedHosts.length > 0 && (
-            <Text dimColor>Denied: {networkConfig.deniedHosts.join(', ')}</Text>
+            <Text dimColor>拒绝：{networkConfig.deniedHosts.join(', ')}</Text>
           )}
         </Box>
       )}
@@ -91,21 +91,21 @@ export function SandboxConfigTab(): React.ReactNode {
       {allowUnixSockets && allowUnixSockets.length > 0 && (
         <Box marginTop={1} flexDirection="column">
           <Text bold color="permission">
-            Allowed Unix Sockets:
+            允许的 Unix Sockets：
           </Text>
           <Text dimColor>{allowUnixSockets.join(', ')}</Text>
         </Box>
       )}
 
-      {/* Linux Glob Pattern Warning */}
+      {/* Linux Glob 模式警告 */}
       {globPatternWarnings.length > 0 && (
         <Box marginTop={1} flexDirection="column">
           <Text bold color="warning">
-            ⚠ Warning: Glob patterns not fully supported on Linux
+            ⚠ 警告：Linux 上不完全支持 Glob 模式
           </Text>
           <Text dimColor>
-            The following patterns will be ignored: {globPatternWarnings.slice(0, 3).join(', ')}
-            {globPatternWarnings.length > 3 && ` (${globPatternWarnings.length - 3} more)`}
+            以下模式将被忽略：{globPatternWarnings.slice(0, 3).join(', ')}
+            {globPatternWarnings.length > 3 && `（还有 ${globPatternWarnings.length - 3} 个）`}
           </Text>
         </Box>
       )}

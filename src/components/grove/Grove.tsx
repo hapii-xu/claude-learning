@@ -40,39 +40,37 @@ function GracePeriodContentBody(): React.ReactNode {
   return (
     <>
       <Text>
-        An update to our Consumer Terms and Privacy Policy will take effect on <Text bold>October 8, 2025</Text>. You
-        can accept the updated terms today.
+        我们对《消费者条款》和《隐私政策》的更新将于 <Text bold>2025 年 10 月 8 日</Text> 生效。你
+        可以立即接受更新后的条款。
       </Text>
 
       <Box flexDirection="column">
-        <Text>What&apos;s changing?</Text>
+        <Text>有哪些变更？</Text>
 
         <Box paddingLeft={1}>
           <Text>
             <Text>· </Text>
-            <Text bold>You can help improve Claude </Text>
+            <Text bold>你可以帮助改进 Claude </Text>
             <Text>
-              — Allow the use of your chats and coding sessions to train and improve Anthropic AI models. Change anytime
-              in your Privacy Settings (<Link url={'https://claude.ai/settings/data-privacy-controls'}></Link>
-              ).
+              — 允许使用你的聊天和编码会话来训练和改进 Anthropic AI 模型。可随时在 隐私设置（
+              <Link url={'https://claude.ai/settings/data-privacy-controls'}></Link>
+              ）中更改。
             </Text>
           </Text>
         </Box>
         <Box paddingLeft={1}>
           <Text>
             <Text>· </Text>
-            <Text bold>Updates to data retention </Text>
-            <Text>
-              — To help us improve our AI models and safety protections, we&apos;re extending data retention to 5 years.
-            </Text>
+            <Text bold>数据留存更新 </Text>
+            <Text>— 为帮助我们改进 AI 模型和安全防护，我们将数据留存期限延长至 5 年。</Text>
           </Text>
         </Box>
       </Box>
 
       <Text>
-        Learn more (<Link url={'https://www.anthropic.com/news/updates-to-our-consumer-terms'}></Link>) or read the
-        updated Consumer Terms (<Link url={'https://anthropic.com/legal/terms'}></Link>) and Privacy Policy (
-        <Link url={'https://anthropic.com/legal/privacy'}></Link>)
+        了解更多（<Link url={'https://www.anthropic.com/news/updates-to-our-consumer-terms'}></Link>）或阅读更新后的
+        《消费者条款》（<Link url={'https://anthropic.com/legal/terms'}></Link>）和《隐私政策》（
+        <Link url={'https://anthropic.com/legal/privacy'}></Link>）
       </Text>
     </>
   );
@@ -81,33 +79,30 @@ function GracePeriodContentBody(): React.ReactNode {
 function PostGracePeriodContentBody(): React.ReactNode {
   return (
     <>
-      <Text>We&apos;ve updated our Consumer Terms and Privacy Policy.</Text>
+      <Text>我们已更新《消费者条款》和《隐私政策》。</Text>
 
       <Box flexDirection="column" gap={1}>
-        <Text>What&apos;s changing?</Text>
+        <Text>有哪些变更？</Text>
 
         <Box flexDirection="column">
-          <Text bold>Help improve Claude</Text>
-          <Text>
-            Allow the use of your chats and coding sessions to train and improve Anthropic AI models. You can change
-            this anytime in Privacy Settings
-          </Text>
+          <Text bold>帮助改进 Claude</Text>
+          <Text>允许使用你的聊天和编码会话来训练和改进 Anthropic AI 模型。你可以随时在 隐私设置中更改</Text>
           <Link url={'https://claude.ai/settings/data-privacy-controls'}></Link>
         </Box>
 
         <Box flexDirection="column">
-          <Text bold>How this affects data retention</Text>
+          <Text bold>这对数据留存的影响</Text>
           <Text>
-            Turning ON the improve Claude setting extends data retention from 30 days to 5 years. Turning it OFF keeps
-            the default 30-day data retention. Delete data anytime.
+            开启"帮助改进 Claude"设置会将数据留存期限从 30 天延长至 5 年。关闭则 保持默认的 30
+            天数据留存。可随时删除数据。
           </Text>
         </Box>
       </Box>
 
       <Text>
-        Learn more (<Link url={'https://www.anthropic.com/news/updates-to-our-consumer-terms'}></Link>) or read the
-        updated Consumer Terms (<Link url={'https://anthropic.com/legal/terms'}></Link>) and Privacy Policy (
-        <Link url={'https://anthropic.com/legal/privacy'}></Link>)
+        了解更多（<Link url={'https://www.anthropic.com/news/updates-to-our-consumer-terms'}></Link>）或阅读更新后的
+        《消费者条款》（<Link url={'https://anthropic.com/legal/terms'}></Link>）和《隐私政策》（
+        <Link url={'https://anthropic.com/legal/privacy'}></Link>）
       </Text>
     </>
   );
@@ -192,17 +187,17 @@ export function GroveDialog({ showIfAlreadyViewed, location, onDone }: Props): R
   const acceptOptions = groveConfig?.domain_excluded
     ? [
         {
-          label: 'Accept terms · Help improve Claude: OFF (for emails with your domain)',
+          label: '接受条款 · 帮助改进 Claude：关闭（针对你所在域名的邮箱）',
           value: 'accept_opt_out',
         },
       ]
     : [
         {
-          label: 'Accept terms · Help improve Claude: ON',
+          label: '接受条款 · 帮助改进 Claude：开启',
           value: 'accept_opt_in',
         },
         {
-          label: 'Accept terms · Help improve Claude: OFF',
+          label: '接受条款 · 帮助改进 Claude：关闭',
           value: 'accept_opt_out',
         },
       ];
@@ -217,16 +212,16 @@ export function GroveDialog({ showIfAlreadyViewed, location, onDone }: Props): R
 
   return (
     <Dialog
-      title="Updates to Consumer Terms and Policies"
+      title="《消费者条款》与政策更新"
       color="professionalBlue"
       onCancel={handleCancel}
       inputGuide={exitState =>
         exitState.pending ? (
-          <Text>Press {exitState.keyName} again to exit</Text>
+          <Text>再次按 {exitState.keyName} 退出</Text>
         ) : (
           <Byline>
-            <KeyboardShortcutHint shortcut="Enter" action="confirm" />
-            <KeyboardShortcutHint shortcut="Esc" action="cancel" />
+            <KeyboardShortcutHint shortcut="Enter" action="确认" />
+            <KeyboardShortcutHint shortcut="Esc" action="取消" />
           </Byline>
         )
       }
@@ -242,15 +237,15 @@ export function GroveDialog({ showIfAlreadyViewed, location, onDone }: Props): R
 
       <Box flexDirection="column" gap={1}>
         <Box flexDirection="column">
-          <Text bold>Please select how you&apos;d like to continue</Text>
-          <Text>Your choice takes effect immediately upon confirmation.</Text>
+          <Text bold>请选择你希望如何继续</Text>
+          <Text>你的选择在确认后立即生效。</Text>
         </Box>
 
         <Select
           options={[
             ...acceptOptions,
-            // 仅在宽限期内显示 "Not now"
-            ...(groveConfig?.notice_is_grace_period ? [{ label: 'Not now', value: 'defer' }] : []),
+            // 仅在宽限期内显示"暂不"
+            ...(groveConfig?.notice_is_grace_period ? [{ label: '暂不', value: 'defer' }] : []),
           ]}
           onChange={value => onChange(value as 'accept_opt_in' | 'accept_opt_out' | 'defer')}
           onCancel={handleCancel}
@@ -288,37 +283,36 @@ export function PrivacySettingsDialog({
 
   let valueComponent = <Text color="error">false</Text>;
   if (domainExcluded) {
-    valueComponent = <Text color="error">false (for emails with your domain)</Text>;
+    valueComponent = <Text color="error">false（针对你所在域名的邮箱）</Text>;
   } else if (groveEnabled) {
     valueComponent = <Text color="success">true</Text>;
   }
 
   return (
     <Dialog
-      title="Data Privacy"
+      title="数据隐私"
       color="professionalBlue"
       onCancel={onDone}
       inputGuide={exitState =>
         exitState.pending ? (
-          <Text>Press {exitState.keyName} again to exit</Text>
+          <Text>再次按 {exitState.keyName} 退出</Text>
         ) : domainExcluded ? (
-          <KeyboardShortcutHint shortcut="Esc" action="cancel" />
+          <KeyboardShortcutHint shortcut="Esc" action="取消" />
         ) : (
           <Byline>
-            <KeyboardShortcutHint shortcut="Enter/Tab/Space" action="toggle" />
-            <KeyboardShortcutHint shortcut="Esc" action="cancel" />
+            <KeyboardShortcutHint shortcut="Enter/Tab/Space" action="切换" />
+            <KeyboardShortcutHint shortcut="Esc" action="取消" />
           </Byline>
         )
       }
     >
       <Text>
-        Review and manage your privacy settings at{' '}
-        <Link url={'https://claude.ai/settings/data-privacy-controls'}></Link>
+        在以下地址查看和管理你的隐私设置 <Link url={'https://claude.ai/settings/data-privacy-controls'}></Link>
       </Text>
 
       <Box>
         <Box width={44}>
-          <Text bold>Help improve Claude</Text>
+          <Text bold>帮助改进 Claude</Text>
         </Box>
         <Box>{valueComponent}</Box>
       </Box>

@@ -4,10 +4,10 @@ import { Box, Text } from '@anthropic/ink';
 import { formatFileSize } from '../utils/format.js';
 
 export function MemoryUsageIndicator(): React.ReactNode {
-  // Ant-only: the /heapdump link is an internal debugging aid. Gating before
-  // the hook means the 10s polling interval is never set up in external builds.
-  // USER_TYPE is a build-time constant, so the hook call below is either always
-  // reached or dead-code-eliminated — never conditional at runtime.
+  // 仅 Ant 内部使用：/heapdump 链接是内部调试辅助。在 hook 之前进行判断意味着
+  // 在外部构建中永远不会设置 10 秒轮询间隔。
+  // USER_TYPE 是构建时常量，因此下面的 hook 调用要么总是执行，
+  // 要么在编译时被消除——运行时永远不会是条件性的。
   if (process.env.USER_TYPE !== 'ant') {
     return null;
   }
@@ -21,7 +21,7 @@ export function MemoryUsageIndicator(): React.ReactNode {
 
   const { heapUsed, status } = memoryUsage;
 
-  // Only show indicator when memory usage is high or critical
+  // 仅在内存使用量为高或临界时显示指示器
   if (status === 'normal') {
     return null;
   }
@@ -32,7 +32,7 @@ export function MemoryUsageIndicator(): React.ReactNode {
   return (
     <Box>
       <Text color={color} wrap="truncate">
-        High memory usage ({formattedSize}) · /heapdump
+        内存使用量较高（{formattedSize}）· /heapdump
       </Text>
     </Box>
   );

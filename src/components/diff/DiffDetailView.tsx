@@ -18,9 +18,9 @@ type Props = {
 };
 
 /**
- * Displays the diff content for a single file.
- * Uses StructuredDiff for word-level diffing and syntax highlighting.
- * No scrolling - renders all lines (max 400 due to parsing limits).
+ * 显示单个文件的 diff 内容。
+ * 使用 StructuredDiff 进行词级 diff 和语法高亮。
+ * 不滚动 — 渲染所有行（因解析限制最多 400 行）。
  */
 export function DiffDetailView({
   filePath,
@@ -32,8 +32,8 @@ export function DiffDetailView({
 }: Props): React.ReactNode {
   const { columns } = useTerminalSize();
 
-  // Read file content for syntax detection and multiline construct handling.
-  // Only computed when this component is rendered (detail view mode).
+  // 读取文件内容以进行语法检测和多行结构处理。
+  // 仅在此组件渲染时（详情视图模式）计算。
   const { firstLine, fileContent } = useMemo(() => {
     if (!filePath) {
       return { firstLine: null, fileContent: undefined };
@@ -46,28 +46,28 @@ export function DiffDetailView({
     };
   }, [filePath]);
 
-  // Handle untracked files
+  // 处理未跟踪文件
   if (isUntracked) {
     return (
       <Box flexDirection="column" width="100%">
         <Box>
           <Text bold>{filePath}</Text>
-          <Text dimColor> (untracked)</Text>
+          <Text dimColor> (未跟踪)</Text>
         </Box>
         <Divider padding={4} />
         <Box flexDirection="column">
           <Text dimColor italic>
-            New file not yet staged.
+            新文件尚未暂存。
           </Text>
           <Text dimColor italic>
-            Run `git add {filePath}` to see line counts.
+            运行 `git add {filePath}` 查看行数统计。
           </Text>
         </Box>
       </Box>
     );
   }
 
-  // Handle binary files
+  // 处理二进制文件
   if (isBinary) {
     return (
       <Box flexDirection="column" width="100%">
@@ -77,14 +77,14 @@ export function DiffDetailView({
         <Divider padding={4} />
         <Box flexDirection="column">
           <Text dimColor italic>
-            Binary file - cannot display diff
+            二进制文件 - 无法显示 diff
           </Text>
         </Box>
       </Box>
     );
   }
 
-  // Handle large files
+  // 处理大文件
   if (isLargeFile) {
     return (
       <Box flexDirection="column" width="100%">
@@ -94,7 +94,7 @@ export function DiffDetailView({
         <Divider padding={4} />
         <Box flexDirection="column">
           <Text dimColor italic>
-            Large file - diff exceeds 1 MB limit
+            大文件 - diff 超过 1 MB 限制
           </Text>
         </Box>
       </Box>
@@ -108,13 +108,13 @@ export function DiffDetailView({
     <Box flexDirection="column" width="100%">
       <Box>
         <Text bold>{filePath}</Text>
-        {isTruncated && <Text dimColor> (truncated)</Text>}
+        {isTruncated && <Text dimColor> (已截断)</Text>}
       </Box>
 
       <Divider padding={4} />
       <Box flexDirection="column">
         {hunks.length === 0 ? (
-          <Text dimColor>No diff content</Text>
+          <Text dimColor>无 diff 内容</Text>
         ) : (
           hunks.map((hunk, index) => (
             <StructuredDiff
@@ -132,7 +132,7 @@ export function DiffDetailView({
 
       {isTruncated && (
         <Text dimColor italic>
-          … diff truncated (exceeded 400 line limit)
+          … diff 已截断（超过 400 行限制）
         </Text>
       )}
     </Box>

@@ -20,7 +20,7 @@ export function WizardDialogLayout({
   footerText,
 }: Props): ReactNode {
   const { currentStepIndex, totalSteps, title: providerTitle, showStepCounter, goBack } = useWizard();
-  const title = titleOverride || providerTitle || 'Wizard';
+  const title = titleOverride || providerTitle || '向导';
   const stepSuffix = showStepCounter !== false ? ` (${currentStepIndex + 1}/${totalSteps})` : '';
 
   return (

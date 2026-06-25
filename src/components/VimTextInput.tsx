@@ -15,7 +15,7 @@ export default function VimTextInput(props: Props): React.ReactNode {
   const [theme] = useTheme();
   const isTerminalFocused = useTerminalFocus();
 
-  // Show hint when terminal regains focus and clipboard has an image
+  // 当终端重新获得焦点且剪贴板中有图片时显示提示
   useClipboardImageHint(isTerminalFocused, !!props.onImagePaste);
 
   const vimInputState = useVimInput({

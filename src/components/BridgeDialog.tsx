@@ -11,7 +11,7 @@ import {
 } from '../bridge/bridgeStatusUtil.js';
 import { BRIDGE_FAILED_INDICATOR, BRIDGE_READY_INDICATOR } from '../constants/figures.js';
 import { useRegisterOverlay } from '../context/overlayContext.js';
-// eslint-disable-next-line custom-rules/prefer-use-keybindings -- raw 'd' key for disconnect, not a configurable keybinding action
+// eslint-disable-next-line custom-rules/prefer-use-keybindings -- 原始 'd' 键用于断开连接，不是可配置的 keybinding 动作
 import { Box, Text, useInput } from '@anthropic/ink';
 import { useKeybindings } from '../keybindings/useKeybinding.js';
 import { useAppState, useSetAppState } from '../state/AppState.js';
@@ -44,17 +44,17 @@ export function BridgeDialog({ onDone }: Props): React.ReactNode {
 
   const repoName = basename(getOriginalCwd());
 
-  // Fetch branch name on mount
+  // 挂载时获取分支名
   useEffect(() => {
     getBranch()
       .then(setBranchName)
       .catch(() => {});
   }, []);
 
-  // The URL to display/QR: session URL when connected, connect URL when ready
+  // 要显示/生成二维码的 URL：已连接时用 session URL，就绪时用 connect URL
   const displayUrl = sessionActive ? sessionUrl : connectUrl;
 
-  // Generate QR code when URL changes or QR is toggled on
+  // 当 URL 变化或二维码开关切换时生成二维码
   useEffect(() => {
     if (!showQR || !displayUrl) {
       setQrText('');
@@ -81,10 +81,10 @@ export function BridgeDialog({ onDone }: Props): React.ReactNode {
 
   useInput(input => {
     if (input === 'd') {
-      // Persist opt-out only for CLI-flag/command-activated bridge.
-      // Config-driven and GB-auto-connect users get session-only disconnect
-      // — writing false would silently undo a Settings choice or opt a
-      // GB-rollout user out permanently.
+      // 仅对通过 CLI flag/命令激活的 bridge 持久化退出选择。
+      // 配置驱动和 GB 自动连接的用户只断开当前会话
+      // —— 写入 false 会悄悄撤销 Settings 中的选择，或让
+      // GB 灰度用户永久退出。
       if (explicit) {
         saveGlobalConfig(current => {
           if (current.remoteControlAtStartup === false) return current;
@@ -108,13 +108,13 @@ export function BridgeDialog({ onDone }: Props): React.ReactNode {
   const indicator = error ? BRIDGE_FAILED_INDICATOR : BRIDGE_READY_INDICATOR;
   const qrLines = qrText ? qrText.split('\n').filter(l => l.length > 0) : [];
 
-  // Build suffix with repo and branch (matches standalone bridge format)
+  // \u6784\u5efa\u5e26\u4ed3\u5e93\u548c\u5206\u652f\u4fe1\u606f\u7684\u540e\u7f00\uff08\u4e0e\u72ec\u7acb bridge \u683c\u5f0f\u4fdd\u6301\u4e00\u81f4\uff09
   const contextParts: string[] = [];
   if (repoName) contextParts.push(repoName);
   if (branchName) contextParts.push(branchName);
   const contextSuffix = contextParts.length > 0 ? ' \u00b7 ' + contextParts.join(' \u00b7 ') : '';
 
-  // Footer text matches standalone bridge
+  // \u9875\u811a\u6587\u672c\u4e0e\u72ec\u7acb bridge \u4fdd\u6301\u4e00\u81f4
   const footerText = error
     ? FAILED_FOOTER_TEXT
     : displayUrl
@@ -134,8 +134,8 @@ export function BridgeDialog({ onDone }: Props): React.ReactNode {
             <Text dimColor>{contextSuffix}</Text>
           </Text>
           {error && <Text color="error">{error}</Text>}
-          {verbose && environmentId && <Text dimColor>Environment: {environmentId}</Text>}
-          {verbose && sessionId && <Text dimColor>Session: {sessionId}</Text>}
+          {verbose && environmentId && <Text dimColor>环境: {environmentId}</Text>}
+          {verbose && sessionId && <Text dimColor>会话: {sessionId}</Text>}
         </Box>
         {showQR && qrLines.length > 0 && (
           <Box flexDirection="column">
@@ -145,7 +145,7 @@ export function BridgeDialog({ onDone }: Props): React.ReactNode {
           </Box>
         )}
         {footerText && <Text dimColor>{footerText}</Text>}
-        <Text dimColor>d to disconnect · space for QR code · Enter/Esc to close</Text>
+        <Text dimColor>d 断开连接 · space 查看二维码 · Enter/Esc 关闭</Text>
       </Box>
     </Dialog>
   );

@@ -27,11 +27,11 @@ export function TeamStatus({ teamsSelected, showHint }: Props): React.ReactNode 
     showHint && teamsSelected ? (
       <>
         <Text dimColor>· </Text>
-        <Text dimColor>Enter to view</Text>
+        <Text dimColor>Enter 查看</Text>
       </>
     ) : null;
 
-  const statusText = `${totalTeammates} ${totalTeammates === 1 ? 'teammate' : 'teammates'}`;
+  const statusText = `${totalTeammates} 名队友`;
 
   return (
     <>

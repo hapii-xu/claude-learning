@@ -41,15 +41,15 @@ export function AgentProgressLine({
   const treeChar = isLast ? '└─' : '├─';
   const isBackgrounded = isAsync && isResolved;
 
-  // Determine the status text
+  // 确定状态文本
   const getStatusText = (): string => {
     if (!isResolved) {
-      return lastToolInfo || 'Initializing…';
+      return lastToolInfo || '初始化中…';
     }
     if (isBackgrounded) {
-      return taskDescription ?? 'Running in the background';
+      return taskDescription ?? '后台运行中';
     }
-    return 'Done';
+    return '完成';
   };
 
   return (
@@ -81,7 +81,7 @@ export function AgentProgressLine({
           {!isBackgrounded && (
             <>
               {' · '}
-              {toolUseCount} tool {toolUseCount === 1 ? 'use' : 'uses'}
+              {toolUseCount} 次工具调用
               {tokens !== null && <> · {formatNumber(tokens)} tokens</>}
             </>
           )}

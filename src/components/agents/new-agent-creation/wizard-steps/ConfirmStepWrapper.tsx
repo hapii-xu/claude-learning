@@ -80,12 +80,12 @@ export function ConfirmStepWrapper({ tools, existingAgents, onComplete }: Props)
         } as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS);
 
         const message = openInEditor
-          ? `Created agent: ${chalk.bold(wizardData.finalAgent.agentType)} and opened in editor. ` +
-            `If you made edits, restart to load the latest version.`
-          : `Created agent: ${chalk.bold(wizardData.finalAgent.agentType)}`;
+          ? `已创建 agent：${chalk.bold(wizardData.finalAgent.agentType)}，并已在编辑器中打开。` +
+            `如果你做了修改，请重启以加载最新版本。`
+          : `已创建 agent：${chalk.bold(wizardData.finalAgent.agentType)}`;
         onComplete(message);
       } catch (err) {
-        setSaveError(err instanceof Error ? err.message : 'Failed to save agent');
+        setSaveError(err instanceof Error ? err.message : '保存 agent 失败');
       }
     },
     [wizardData, onComplete, setAppState],

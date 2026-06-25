@@ -20,52 +20,51 @@ type Props = {
 export function Settings({ onClose, context, defaultTab }: Props): React.ReactNode {
   const [selectedTab, setSelectedTab] = useState<string>(defaultTab);
   const [tabsHidden, setTabsHidden] = useState(false);
-  // True while Config's own Esc handler is active (search mode with content
-  // focused). Settings must cede Esc so search can clear/exit first.
+  // 当 Config 自身的 Esc 处理器激活时（内容获得焦点的搜索模式）为 true。
+  // Settings 必须让出 Esc，以便搜索能先清空/退出。
   const [configOwnsEsc, setConfigOwnsEsc] = useState(false);
-  // Fixed content height so switching tabs doesn't shift the pane height.
-  // Outside modals cap at min(80% viewport, 30). Inside a Modal the modal's
-  // innerSize.rows IS the ScrollBox viewport — the 0.8 multiplier over-
-  // shrinks, leaving empty rows while Config shows "↓ N more below".
+  // 固定内容高度，避免切换 tab 时面板高度跳动。
+  // Modal 外取 min(80% 视口, 30)。在 Modal 内，modal 的 innerSize.rows
+  // 才是 ScrollBox 的视口——0.8 的系数会过度收缩，导致 Config 显示
+  // "↓ 还有 N 项" 时留出空行。
   //
-  // Inside-modal math: Config's paneCap-10 chrome estimate was tuned for
-  // marginY={1} (2 rows) which is stripped inside modals → +2 to recover.
-  // Then -2 for Tabs' header row + its marginTop=1. Plus +1 observed gap
-  // from the paneCap-10 estimate being slightly generous. Net: rows + 1.
+  // Modal 内的计算：Config 的 paneCap-10 chrome 估算值是为 marginY={1}
+  //（2 行）调整的，在 Modal 内被剥离 → +2 补回。再 -2 给 Tabs 的标题行
+  // + marginTop=1。再加上观察到 paneCap-10 估算略微偏大造成的 +1 间隙。
+  // 最终：rows + 1。
   const insideModal = useIsInsideModal();
   const { rows } = useModalOrTerminalSize(useTerminalSize());
   const contentHeight = insideModal ? rows + 1 : Math.max(15, Math.min(Math.floor(rows * 0.8), 30));
-  // Kick off diagnostics once when the pane opens. Status use()s this so
-  // it resolves once per /config invocation — no re-fetch flash when
-  // tabbing back to Status (Tab unmounts children when not selected).
+  // 面板打开时启动一次诊断。Status 会 use() 它，因此每次 /config 调用
+  // 只解析一次——切回 Status 时不会出现重新加载的闪烁（未选中的 Tab 会
+  // 卸载其子组件）。
   const [diagnosticsPromise] = useState(() => buildDiagnostics().catch(() => []));
 
   useExitOnCtrlCDWithKeybindings();
 
-  // Handle escape via keybinding - only when not in submenu
+  // 通过 keybinding 处理 Escape —— 仅在未进入子菜单时
   const handleEscape = () => {
-    // Don't handle escape when a submenu is showing (tabsHidden means submenu is open)
-    // Let the submenu handle escape to return to the main menu
+    // 子菜单显示时（tabsHidden 为 true 表示子菜单已打开）不处理 Escape
+    // 让子菜单自行处理 Escape 以返回主菜单
     if (tabsHidden) {
       return;
     }
-    // TODO: Update to "Settings" dialog once we define '/settings'.
+    // TODO: 等我们定义了 '/settings' 后改为 "Settings" 对话框。
     onClose('Status dialog dismissed', { display: 'system' });
   };
 
-  // Disable when submenu is open so the submenu's Dialog can handle ESC,
-  // and when Config's search mode is active so its useInput handler
-  // (clear query → exit search) processes Escape first.
+  // 子菜单打开时禁用，以便子菜单的 Dialog 处理 ESC；Config 的搜索模式激活
+  // 时也禁用，让其 useInput 处理器（清空查询 → 退出搜索）先处理 Escape。
   useKeybinding('confirm:no', handleEscape, {
     context: 'Settings',
     isActive: !tabsHidden && !(selectedTab === 'Config' && configOwnsEsc),
   });
 
   const tabs = [
-    <Tab key="status" title="Status">
+    <Tab key="status" title="状态">
       <Status context={context} diagnosticsPromise={diagnosticsPromise} />
     </Tab>,
-    <Tab key="config" title="Config">
+    <Tab key="config" title="配置">
       <Suspense fallback={null}>
         <Config
           context={context}
@@ -76,7 +75,7 @@ export function Settings({ onClose, context, defaultTab }: Props): React.ReactNo
         />
       </Suspense>
     </Tab>,
-    <Tab key="usage" title="Usage">
+    <Tab key="usage" title="用量">
       <Usage />
     </Tab>,
   ];
@@ -88,13 +87,13 @@ export function Settings({ onClose, context, defaultTab }: Props): React.ReactNo
         selectedTab={selectedTab}
         onTabChange={setSelectedTab}
         hidden={tabsHidden}
-        // Config has interactive content — start with header unfocused so
-        // left/right/tab cycle option values instead of switching tabs.
+        // Config 包含可交互内容 —— 启动时标题不获得焦点，这样
+        // left/right/tab 会循环切换选项的值，而不是切换 tab。
         initialHeaderFocused={defaultTab !== 'Config'}
-        // Inside a Modal, skip the Tabs-level cap so tall tabs (Status's
-        // MCP list) flow to their natural height for the Modal's ScrollBox
-        // to scroll. Config still gets contentHeight above — it
-        // paginate internally so this only affects Status/Usage.
+        // 在 Modal 内跳过 Tabs 层级的高度上限，让较高的 tab（Status 的
+        // MCP 列表）按自然高度排布，交由 Modal 的 ScrollBox 滚动。
+        // Config 仍使用上面的 contentHeight —— 它内部自行分页，
+        // 因此这里只影响 Status/Usage。
         contentHeight={tabsHidden || insideModal ? undefined : contentHeight}
       >
         {tabs}

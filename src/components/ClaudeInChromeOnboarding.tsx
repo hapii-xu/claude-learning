@@ -34,35 +34,33 @@ export function ClaudeInChromeOnboarding({ onDone }: Props): React.ReactNode {
     <Dialog title="Claude in Chrome (Beta)" onCancel={onDone} color="chromeYellow">
       <Box flexDirection="column" gap={1}>
         <Text>
-          Claude in Chrome works with the Chrome extension to let you control your browser directly from Claude Code.
-          You can navigate websites, fill forms, capture screenshots, record GIFs, and debug with console logs and
-          network requests.
+          Claude in Chrome 配合 Chrome 扩展，让您可以直接从 Claude Code 控制浏览器。
+          您可以浏览网站、填写表单、截图、录制 GIF，并通过控制台日志和网络请求进行调试。
           {!isExtensionInstalled && (
             <>
               <Newline />
               <Newline />
-              Requires the Chrome extension. Get started at <Link url={CHROME_EXTENSION_URL} />
+              需要安装 Chrome 扩展。请在 <Link url={CHROME_EXTENSION_URL} /> 开始使用。
             </>
           )}
         </Text>
 
         <Text dimColor>
-          Site-level permissions are inherited from the Chrome extension. Manage permissions in the Chrome extension
-          settings to control which sites Claude can browse, click, and type on
+          站点级权限继承自 Chrome 扩展。在 Chrome 扩展设置中管理权限，可控制 Claude 能浏览、点击、输入的站点
           {isExtensionInstalled && (
             <>
               {' '}
               (<Link url={CHROME_PERMISSIONS_URL} />)
             </>
           )}
-          .
+          。
         </Text>
         <Text dimColor>
-          For more info, use{' '}
+          了解更多信息，请使用{' '}
           <Text bold color="chromeYellow">
             /chrome
           </Text>{' '}
-          or visit <Link url="https://code.claude.com/docs/en/chrome" />
+          或访问 <Link url="https://code.claude.com/docs/en/chrome" />
         </Text>
       </Box>
     </Dialog>

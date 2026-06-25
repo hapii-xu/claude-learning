@@ -29,14 +29,14 @@ export function SearchExtraToolsHint({ tools, onSelect, onDismiss }: Props): Rea
   }, []);
 
   const options = tools.map(t => ({
-    label: `${t.name} — ${t.description.slice(0, 60)} (score: ${t.score.toFixed(2)})`,
+    label: `${t.name} — ${t.description.slice(0, 60)}（评分：${t.score.toFixed(2)}）`,
     value: t.name,
   }));
 
-  options.push({ label: 'Dismiss', value: '__dismiss__' });
+  options.push({ label: '忽略', value: '__dismiss__' });
 
   return (
-    <PermissionDialog title="Tool Recommendation">
+    <PermissionDialog title="工具推荐">
       <Select
         options={options}
         onChange={value => {

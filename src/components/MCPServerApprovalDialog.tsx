@@ -22,11 +22,11 @@ export function MCPServerApprovalDialog({ serverName, onDone }: Props): React.Re
     switch (value) {
       case 'yes':
       case 'yes_all': {
-        // Get current enabled servers from settings
+        // 从设置中获取当前已启用的服务器
         const currentSettings = getSettings_DEPRECATED() || {};
         const enabledServers = currentSettings.enabledMcpjsonServers || [];
 
-        // Add server if not already enabled
+        // 如果服务器尚未启用，则添加
         if (!enabledServers.includes(serverName)) {
           updateSettingsForSource('localSettings', {
             enabledMcpjsonServers: [...enabledServers, serverName],
@@ -42,11 +42,11 @@ export function MCPServerApprovalDialog({ serverName, onDone }: Props): React.Re
         break;
       }
       case 'no': {
-        // Get current disabled servers from settings
+        // 从设置中获取当前已禁用的服务器
         const currentSettings = getSettings_DEPRECATED() || {};
         const disabledServers = currentSettings.disabledMcpjsonServers || [];
 
-        // Add server if not already disabled
+        // 如果服务器尚未禁用，则添加
         if (!disabledServers.includes(serverName)) {
           updateSettingsForSource('localSettings', {
             disabledMcpjsonServers: [...disabledServers, serverName],
@@ -59,17 +59,17 @@ export function MCPServerApprovalDialog({ serverName, onDone }: Props): React.Re
   }
 
   return (
-    <Dialog title={`New MCP server found in .mcp.json: ${serverName}`} color="warning" onCancel={() => onChange('no')}>
+    <Dialog title={`在 .mcp.json 中发现新的 MCP 服务器：${serverName}`} color="warning" onCancel={() => onChange('no')}>
       <MCPServerDialogCopy />
 
       <Select
         options={[
           {
-            label: `Use this and all future MCP servers in this project`,
+            label: `使用此服务器以及该项目中所有未来的 MCP 服务器`,
             value: 'yes_all',
           },
-          { label: `Use this MCP server`, value: 'yes' },
-          { label: `Continue without using this MCP server`, value: 'no' },
+          { label: `使用此 MCP 服务器`, value: 'yes' },
+          { label: `不使用此 MCP 服务器继续`, value: 'no' },
         ]}
         onChange={value => onChange(value as 'yes_all' | 'yes' | 'no')}
         onCancel={() => onChange('no')}

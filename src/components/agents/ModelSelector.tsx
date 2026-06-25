@@ -12,15 +12,15 @@ interface ModelSelectorProps {
 export function ModelSelector({ initialModel, onComplete, onCancel }: ModelSelectorProps): React.ReactNode {
   const modelOptions = React.useMemo(() => {
     const base = getAgentModelOptions();
-    // If the agent's current model is a full ID (e.g. 'claude-opus-4-5') not
-    // in the alias list, inject it as an option so it can round-trip through
-    // confirm without being overwritten.
+    // 如果 agent 当前模型是一个完整的 ID（例如 'claude-opus-4-5'），
+    // 且不在别名列表中，则将其作为一个选项注入，以便在确认步骤中能够往返，
+    // 而不会被覆盖。
     if (initialModel && !base.some(o => o.value === initialModel)) {
       return [
         {
           value: initialModel,
           label: initialModel,
-          description: 'Current model (custom ID)',
+          description: '当前模型（自定义 ID）',
         },
         ...base,
       ];
@@ -33,7 +33,7 @@ export function ModelSelector({ initialModel, onComplete, onCancel }: ModelSelec
   return (
     <Box flexDirection="column">
       <Box marginBottom={1}>
-        <Text dimColor>Model determines the agent&apos;s reasoning capabilities and speed.</Text>
+        <Text dimColor>模型决定 agent 的推理能力和速度。</Text>
       </Box>
       <Select
         options={modelOptions}

@@ -29,7 +29,7 @@ mock.module('src/services/analytics/growthbook.js', () => ({
   getDynamicConfig_BLOCKS_ON_INIT: async () => undefined,
 }))
 
-// Mock skillSearch/prefetch.js (dependency of searchExtraTools/prefetch.ts)
+// Mock skillSearch/prefetch.js（searchExtraTools/prefetch.ts 的依赖）
 mock.module('src/services/skillSearch/prefetch.js', () => ({
   extractQueryFromMessages: (
     _input: string | null,
@@ -97,7 +97,7 @@ describe('startSearchExtraToolsPrefetch', () => {
     mockSearchTools.mockReturnValue([])
   })
 
-  test('returns tool_discovery attachment for matching tools', async () => {
+  test('对匹配的 tools 返回 tool_discovery attachment', async () => {
     mockSearchTools.mockReturnValue([
       {
         name: 'CronCreateTool',
@@ -122,14 +122,14 @@ describe('startSearchExtraToolsPrefetch', () => {
     expect((result[0] as Record<string, unknown>).tools).toBeDefined()
   })
 
-  test('returns empty array for empty query', async () => {
+  test('query 为空时返回空数组', async () => {
     const result = await startSearchExtraToolsPrefetch([], [
       { type: 'assistant', content: [] },
     ] as never)
     expect(result).toEqual([])
   })
 
-  test('returns empty array when no tools match', async () => {
+  test('无 tools 匹配时返回空数组', async () => {
     mockSearchTools.mockReturnValue([])
     const result = await startSearchExtraToolsPrefetch(
       [],
@@ -138,7 +138,7 @@ describe('startSearchExtraToolsPrefetch', () => {
     expect(result).toEqual([])
   })
 
-  test('returns empty array on error (exception safety)', async () => {
+  test('发生异常时返回空数组（异常安全）', async () => {
     mockGetToolIndex.mockRejectedValue(new Error('index failed'))
     const result = await startSearchExtraToolsPrefetch(
       [],
@@ -149,9 +149,9 @@ describe('startSearchExtraToolsPrefetch', () => {
 })
 
 describe('getTurnZeroSearchExtraToolsPrefetch', () => {
-  // Turn-zero user-input tool recommendations are disabled to avoid frequent
-  // popups. All cases return null regardless of input/match state.
-  test('returns null (feature disabled)', async () => {
+  // 第零轮用户输入工具推荐已禁用，以避免频繁弹窗。
+  // 无论输入或匹配状态如何，所有情况均返回 null。
+  test('返回 null（功能已禁用）', async () => {
     mockGetToolIndex.mockResolvedValue([
       { name: 'index-entry', tokens: ['test'], tfVector: new Map() },
     ] as never)
@@ -174,12 +174,12 @@ describe('getTurnZeroSearchExtraToolsPrefetch', () => {
     expect(result).toBeNull()
   })
 
-  test('returns null for empty input', async () => {
+  test('输入为空时返回 null', async () => {
     const result = await getTurnZeroSearchExtraToolsPrefetch('', [])
     expect(result).toBeNull()
   })
 
-  test('returns null when no tools match', async () => {
+  test('无 tools 匹配时返回 null', async () => {
     mockSearchTools.mockReturnValue([])
     const result = await getTurnZeroSearchExtraToolsPrefetch(
       'quantum physics',
@@ -190,7 +190,7 @@ describe('getTurnZeroSearchExtraToolsPrefetch', () => {
 })
 
 describe('collectSearchExtraToolsPrefetch', () => {
-  test('returns resolved attachment array', async () => {
+  test('返回已 resolve 的 attachment 数组', async () => {
     const attachment = {
       type: 'tool_discovery' as const,
       tools: [],
@@ -208,7 +208,7 @@ describe('collectSearchExtraToolsPrefetch', () => {
     expect(result[0]!.type).toBe('tool_discovery')
   })
 
-  test('returns empty array on rejected promise', async () => {
+  test('promise rejected 时返回空数组', async () => {
     const result = await collectSearchExtraToolsPrefetch(
       Promise.reject(new Error('fail')),
     )
@@ -217,7 +217,7 @@ describe('collectSearchExtraToolsPrefetch', () => {
 })
 
 describe('buildToolDiscoveryAttachment', () => {
-  test('returns attachment with all required fields', () => {
+  test('返回包含所有必填字段的 attachment', () => {
     const tools = [
       {
         name: 'TestTool',

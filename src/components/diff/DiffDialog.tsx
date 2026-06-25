@@ -77,14 +77,14 @@ export function DiffDialog({ messages, onDone }: Props): React.ReactNode {
     return selectedFile ? diffData.hunks.get(selectedFile.path) || [] : [];
   }, [selectedFile, diffData.hunks]);
 
-  // Clamp sourceIndex when sources shrink (e.g., conversation rewind)
+  // 当来源数量减少时（例如对话回退）钳制 sourceIndex
   useEffect(() => {
     if (sourceIndex >= sources.length) {
       setSourceIndex(Math.max(0, sources.length - 1));
     }
   }, [sources.length, sourceIndex]);
 
-  // Reset file selection when source changes
+  // 当来源切换时重置文件选择
   const prevSourceIndex = useRef(sourceIndex);
   useEffect(() => {
     if (prevSourceIndex.current !== sourceIndex) {
@@ -93,23 +93,22 @@ export function DiffDialog({ messages, onDone }: Props): React.ReactNode {
     }
   }, [sourceIndex]);
 
-  // Register as modal overlay so Chat keybindings and CancelRequestHandler
-  // are disabled while DiffDialog is showing
+  // 注册为模态覆盖层，使 Chat 快捷键和 CancelRequestHandler
+  // 在 DiffDialog 显示期间被禁用
   useRegisterOverlay('diff-dialog');
 
-  // Diff dialog navigation keybindings
-  // View-mode dependent: left/right arrows have different behavior based on mode
-  // (source tab switching vs back navigation), and up/down/enter are
-  // context-sensitive to viewMode
+  // Diff 对话框导航快捷键
+  // 依赖于视图模式：左右箭头在不同模式下行为不同
+  // （来源切换 vs 返回导航），上下/回车则根据 viewMode 决定行为
   //
-  // Note: Escape handling (diff:dismiss) is NOT registered here because Dialog's
-  // built-in useKeybinding('confirm:no', handleCancel) already handles it.
-  // Having both would be dead code since Dialog's child effect registers first
-  // and calls stopImmediatePropagation(). The diff:dismiss binding in
-  // defaultBindings.ts is kept for useShortcutDisplay to show the "esc close" hint.
+  // 注意：Escape 处理（diff:dismiss）不在此注册，因为 Dialog 内置的
+  // useKeybinding('confirm:no', handleCancel) 已经处理了它。
+  // 同时注册两者会产生死代码，因为 Dialog 的子 effect 先注册并调用
+  // stopImmediatePropagation()。defaultBindings.ts 中的 diff:dismiss 绑定
+  // 仅为 useShortcutDisplay 显示 "esc 关闭" 提示而保留。
   useKeybindings(
     {
-      // Left arrow: in detail mode goes back, in list mode switches source
+      // 左箭头：详情模式下返回，列表模式下切换来源
       'diff:previousSource': () => {
         if (viewMode === 'detail') {
           setViewMode('list');
@@ -148,28 +147,28 @@ export function DiffDialog({ messages, onDone }: Props): React.ReactNode {
 
   const subtitle = diffData.stats ? (
     <Text dimColor>
-      {diffData.stats.filesCount} {plural(diffData.stats.filesCount, 'file')} changed
+      {diffData.stats.filesCount} 个文件已更改
       {diffData.stats.linesAdded > 0 && <Text color="diffAddedWord"> +{diffData.stats.linesAdded}</Text>}
       {diffData.stats.linesRemoved > 0 && <Text color="diffRemovedWord"> -{diffData.stats.linesRemoved}</Text>}
     </Text>
   ) : null;
 
-  // Build header based on current source
-  const headerTitle = currentTurn ? `Turn ${currentTurn.turnIndex}` : 'Uncommitted changes';
+  // 根据当前来源构建标题
+  const headerTitle = currentTurn ? `第 ${currentTurn.turnIndex} 轮` : '未提交的更改';
   const headerSubtitle = currentTurn
     ? currentTurn.userPromptPreview
       ? `"${currentTurn.userPromptPreview}"`
       : ''
     : '(git diff HEAD)';
 
-  // Source selector pills
+  // 来源选择器标签
   const sourceSelector =
     sources.length > 1 ? (
       <Box>
         {sourceIndex > 0 && <Text dimColor>◀ </Text>}
         {sources.map((source, i) => {
           const isSelected = i === sourceIndex;
-          const label = source.type === 'current' ? 'Current' : `T${source.turn.turnIndex}`;
+          const label = source.type === 'current' ? '当前' : `T${source.turn.turnIndex}`;
           return (
             <Text key={i} dimColor={!isSelected} bold={isSelected}>
               {i > 0 ? ' · ' : ''}
@@ -182,22 +181,22 @@ export function DiffDialog({ messages, onDone }: Props): React.ReactNode {
     ) : null;
 
   const dismissShortcut = useShortcutDisplay('diff:dismiss', 'DiffDialog', 'esc');
-  // Determine the appropriate message when no files are shown
+  // 当没有文件可显示时，确定合适的提示文案
   const emptyMessage = (() => {
     if (diffData.loading) {
-      return 'Loading diff…';
+      return '正在加载 diff…';
     }
     if (currentTurn) {
-      return 'No file changes in this turn';
+      return '本轮没有文件更改';
     }
-    // Check if we have stats but no files (too many files case)
+    // 检查是否存在有统计但无文件的情况（文件过多）
     if (diffData.stats && diffData.stats.filesCount > 0 && diffData.files.length === 0) {
-      return 'Too many files to display details';
+      return '文件过多，无法显示详情';
     }
-    return 'Working tree is clean';
+    return '工作区是干净的';
   })();
 
-  // Build title with header subtitle inline
+  // 构建标题，副标题内联显示
   const title = (
     <Text>
       {headerTitle}
@@ -205,12 +204,12 @@ export function DiffDialog({ messages, onDone }: Props): React.ReactNode {
     </Text>
   );
 
-  // Handle cancel/dismiss - in detail mode goes back, in list mode dismisses
+  // 处理取消/关闭 — 详情模式下返回，列表模式下关闭对话框
   function handleCancel(): void {
     if (viewMode === 'detail') {
       setViewMode('list');
     } else {
-      onDone('Diff dialog dismissed', { display: 'system' });
+      onDone('已关闭 Diff 对话框', { display: 'system' });
     }
   }
 
@@ -221,18 +220,18 @@ export function DiffDialog({ messages, onDone }: Props): React.ReactNode {
       color="background"
       inputGuide={exitState =>
         exitState.pending ? (
-          <Text>Press {exitState.keyName} again to exit</Text>
+          <Text>再按一次 {exitState.keyName} 退出</Text>
         ) : viewMode === 'list' ? (
           <Byline>
-            {sources.length > 1 && <Text>←/→ source</Text>}
-            <Text>↑/↓ select</Text>
-            <Text>Enter view</Text>
-            <Text>{dismissShortcut} close</Text>
+            {sources.length > 1 && <Text>←/→ 来源</Text>}
+            <Text>↑/↓ 选择</Text>
+            <Text>回车 查看</Text>
+            <Text>{dismissShortcut} 关闭</Text>
           </Byline>
         ) : (
           <Byline>
-            <Text>← back</Text>
-            <Text>{dismissShortcut} close</Text>
+            <Text>← 返回</Text>
+            <Text>{dismissShortcut} 关闭</Text>
           </Byline>
         )
       }

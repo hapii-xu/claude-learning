@@ -61,19 +61,19 @@ function makeMockTool(overrides: Partial<MockTool> = {}): MockTool {
 }
 
 describe('parseToolName', () => {
-  test('parses MCP tool names', () => {
+  test('解析 MCP tool 名称', () => {
     const result = parseToolName('mcp__github__create_issue')
     expect(result.isMcp).toBe(true)
     expect(result.parts).toEqual(['github', 'create', 'issue'])
   })
 
-  test('parses built-in tool names', () => {
+  test('解析内置 tool 名称', () => {
     const result = parseToolName('NotebookEditTool')
     expect(result.isMcp).toBe(false)
     expect(result.parts).toEqual(['notebook', 'edit', 'tool'])
   })
 
-  test('parses underscore-separated tool names', () => {
+  test('解析下划线分隔的 tool 名称', () => {
     const result = parseToolName('EnterWorktreeTool')
     expect(result.isMcp).toBe(false)
     expect(result.parts).toContain('enter')
@@ -82,7 +82,7 @@ describe('parseToolName', () => {
 })
 
 describe('buildToolIndex', () => {
-  test('builds index from deferred tools only', async () => {
+  test('仅对延迟 tools 构建索引', async () => {
     const tools = [
       makeMockTool({ name: 'CoreRead', alwaysLoad: true }),
       makeMockTool({
@@ -98,7 +98,7 @@ describe('buildToolIndex', () => {
     ] as unknown as import('../../../Tool.js').Tool[]
 
     const index = await buildToolIndex(tools)
-    // Only non-core, non-alwaysLoad tools should be indexed
+    // 只有非核心、非 alwaysLoad 的 tools 才应被索引
     expect(index.length).toBe(2)
     for (const entry of index) {
       expect(entry.tokens.length).toBeGreaterThan(0)
@@ -106,7 +106,7 @@ describe('buildToolIndex', () => {
     }
   })
 
-  test('returns empty array when all tools are core', async () => {
+  test('所有 tools 均为核心 tools 时返回空数组', async () => {
     const tools = [
       makeMockTool({ name: 'Read', alwaysLoad: true }),
       makeMockTool({ name: 'Edit', alwaysLoad: true }),
@@ -118,7 +118,7 @@ describe('buildToolIndex', () => {
 })
 
 describe('searchTools', () => {
-  test('finds tools matching query', async () => {
+  test('找到与 query 匹配的 tools', async () => {
     const tools = [
       makeMockTool({
         name: 'CronCreateTool',
@@ -135,12 +135,12 @@ describe('searchTools', () => {
     const index = await buildToolIndex(tools)
     const results = searchTools('schedule cron job', index)
     expect(results.length).toBeGreaterThan(0)
-    // CronCreateTool should rank highest for "schedule cron job"
+    // 对于 "schedule cron job"，CronCreateTool 应排名最高
     expect(results[0]!.name).toBe('CronCreateTool')
     expect(results[0]!.score).toBeGreaterThan(0)
   })
 
-  test('returns empty array for empty query', async () => {
+  test('query 为空时返回空数组', async () => {
     const tools = [
       makeMockTool({
         name: 'ConfigTool',
@@ -152,7 +152,7 @@ describe('searchTools', () => {
     expect(searchTools('', index)).toEqual([])
   })
 
-  test('returns empty array when no tools match', async () => {
+  test('无 tools 匹配时返回空数组', async () => {
     const tools = [
       makeMockTool({
         name: 'ConfigTool',
@@ -165,8 +165,8 @@ describe('searchTools', () => {
     expect(results).toEqual([])
   })
 
-  test('CJK tokenization produces bigrams', async () => {
-    // Verify CJK text is tokenized into bigrams (delegated to localSearch.tokenize)
+  test('CJK 分词产生 bigram', async () => {
+    // 验证 CJK 文本被分词为 bigram（委托给 localSearch.tokenize）
     const { tokenizeAndStem } = await import('../../skillSearch/localSearch.js')
     const tokens = tokenizeAndStem('搜索代码')
     expect(tokens).toContain('搜索')
@@ -174,12 +174,12 @@ describe('searchTools', () => {
   })
 })
 
-describe('getToolIndex caching', () => {
+describe('getToolIndex 缓存行为', () => {
   beforeEach(() => {
     clearToolIndexCache()
   })
 
-  test('returns cached index for same tool list', async () => {
+  test('相同 tool 列表时返回缓存的索引', async () => {
     const tools = [
       makeMockTool({
         name: 'ConfigTool',
@@ -189,10 +189,10 @@ describe('getToolIndex caching', () => {
 
     const first = await getToolIndex(tools)
     const second = await getToolIndex(tools)
-    expect(first).toBe(second) // Same reference = cached
+    expect(first).toBe(second) // 相同引用 = 已缓存
   })
 
-  test('rebuilds index after clearToolIndexCache', async () => {
+  test('调用 clearToolIndexCache 后重新构建索引', async () => {
     const tools = [
       makeMockTool({
         name: 'ConfigTool',
@@ -203,6 +203,6 @@ describe('getToolIndex caching', () => {
     const first = await getToolIndex(tools)
     clearToolIndexCache()
     const second = await getToolIndex(tools)
-    expect(first).not.toBe(second) // Different reference = rebuilt
+    expect(first).not.toBe(second) // 不同引用 = 已重建
   })
 })

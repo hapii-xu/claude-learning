@@ -48,17 +48,15 @@ export const RUNTIME_SESSION_ID = 'runtime-session'
 
 let initialized = false
 let runtimeTurn = 0
-// Timestamp watermark for consumed tool-hook observations — enables replay of
-// only the records that arrived since the previous post-sampling pass.
+// tool-hook observations 的消费时间戳水位线——仅重放上一次 post-sampling 之后到达的记录。
 let lastConsumedToolHookTimestamp = ''
 
-// --- H5: LLM call throttle ---
+// --- H5: LLM 调用节流 ---
 let llmCallsThisSession = 0
 let lastLlmCallTimestamp = 0
 
-// --- H6: message watermark dedup ---
-// Key: `${sessionId}:${messageId}` — prevents reprocessing the same message
-// across repeated post-sampling calls in one REPL session.
+// --- H6: 消息水位线去重 ---
+// 键格式：`${sessionId}:${messageId}`——防止在同一 REPL 会话的多次 post-sampling 调用中重复处理同一消息。
 const lastProcessedMessageIds = new Set<string>()
 const MAX_PROCESSED_IDS = 1000
 const TRIM_PROCESSED_IDS_TO = 500
@@ -76,21 +74,18 @@ export function getRuntimeTurn(): number {
 export function initSkillLearning(): void {
   if (initialized) return
   initialized = true
-  // Resolve the active observer backend from SKILL_LEARNING_OBSERVER_BACKEND
-  // env. Without this call the registry stays on whichever backend was
-  // registered first (heuristic) — which means the env switch would silently
-  // be a no-op in production. Swallow registry errors so a typo in the env
-  // variable can never crash startup.
+  // 从 SKILL_LEARNING_OBSERVER_BACKEND 环境变量解析活跃的 observer backend。
+  // 若不调用此函数，注册表会停留在最先注册的 backend（heuristic）上——
+  // 这意味着环境变量的切换在生产环境中会静默失效。
+  // 吞掉注册表错误，防止环境变量拼写错误导致启动崩溃。
   try {
     resolveDefaultObserverBackend()
   } catch {
-    // No backend registered yet, or env points at unknown name — leave the
-    // registry in its existing state.
+    // 尚未注册任何 backend，或环境变量指向未知名称——保留注册表现有状态。
   }
   registerPostSamplingHook(runSkillLearningPostSampling)
-  // Fire-and-forget startup maintenance: ECC parity for confidence decay,
-  // observation purge, pending instinct prune. Errors are swallowed so that
-  // skill-learning maintenance never blocks CLI startup.
+  // fire-and-forget 启动维护：ECC 校验置信度衰减、observation 清理、pending instinct 修剪。
+  // 吞掉错误，确保 skill-learning 维护任务永不阻塞 CLI 启动。
   void runStartupMaintenance().catch(() => {})
 }
 
@@ -119,10 +114,10 @@ export async function runSkillLearningPostSampling(
   context: REPLHookContext,
 ): Promise<void> {
   if (!isSkillLearningEnabled()) return
-  // Self-filter layers in order: env escape hatch, entrypoint (only main REPL
-  // thread — `startsWith` covers 'repl_main_thread:outputStyle:<name>'), sub-
-  // agent skip, and a path guard that prevents feedback loops when the user
-  // hand-edits files inside the skill-learning storage directory itself.
+  // 自过滤层级顺序：env 退出开关、入口点（仅限主 REPL 线程——
+  // `startsWith` 覆盖 'repl_main_thread:outputStyle:<name>'）、
+  // sub-agent 跳过，以及路径守卫（防止用户手动编辑 skill-learning
+  // 存储目录内文件时产生反馈循环）。
   if (process.env.CLAUDE_SKILL_LEARNING_DISABLE) return
   if (!context.querySource?.startsWith('repl_main_thread')) return
   if (context.toolUseContext.agentId) return
@@ -135,9 +130,8 @@ export async function runSkillLearningPostSampling(
 
   const observations: StoredSkillObservation[] = []
 
-  // Always reconstruct from the REPL message stream — it is the only source
-  // that captures user prompts and assistant outcomes (tool-hook observations
-  // cover tool events only).
+  // 始终从 REPL 消息流重建——它是唯一能捕获用户提示和助手输出的来源
+  //（tool-hook observations 仅覆盖 tool 事件）。
   for (const observation of observationsFromMessages(
     context.messages,
     project,
@@ -145,8 +139,8 @@ export async function runSkillLearningPostSampling(
     observations.push(await appendObservation(observation, options))
   }
 
-  // Additionally pull tool-hook observations that arrived since the last
-  // consumption watermark — deterministic records with precise outcomes.
+  // 此外拉取自上次消费水位线以来到达的 tool-hook observations——
+  // 这些是具有精确结果的确定性记录。
   const all = await readObservations(options)
   const fresh = all.filter(
     o =>
@@ -164,8 +158,8 @@ export async function runSkillLearningPostSampling(
 
   if (observations.length === 0) return
 
-  // H5: throttle LLM calls — minimum observation count, per-session cap, and
-  // debounce interval. When any gate fires, fall back to heuristic directly.
+  // H5：节流 LLM 调用——最小 observation 数量、每会话上限及防抖间隔。
+  // 任一门控触发时，直接回退到 heuristic。
   const now = Date.now()
   const minObservations = 5
   const { llm } = getSkillLearningConfig()
@@ -180,7 +174,7 @@ export async function runSkillLearningPostSampling(
     lastLlmCallTimestamp = now
     candidates = await analyzeWithActiveBackend(observations, { project })
   } else {
-    // Fall back to the heuristic backend without consuming an LLM call.
+    // 回退到 heuristic backend，不消耗 LLM 调用额度。
     const { heuristicObserverBackend } = await import('./sessionObserver.js')
     const result = heuristicObserverBackend.analyze(observations, { project })
     candidates = Array.isArray(result) ? result : await result
@@ -268,13 +262,12 @@ function observationsFromMessages(
   }
 
   return messages.flatMap((message): StoredSkillObservation[] => {
-    // H6: watermark dedup — skip messages already processed in this session.
+    // H6：水位线去重——跳过本会话中已处理过的消息。
     const msgKey = `${sessionId}:${String(message.uuid)}`
     if (lastProcessedMessageIds.has(msgKey)) return []
     lastProcessedMessageIds.add(msgKey)
-    // FIFO truncation to keep the set bounded. Drop down to exactly
-    // TRIM_PROCESSED_IDS_TO entries (off-by-one fix: previously left size+1
-    // because the subtraction didn't account for the just-added entry).
+    // FIFO 截断以维持 Set 有界。精确缩减至 TRIM_PROCESSED_IDS_TO 条
+    //（差一修复：之前因减法未计入刚添加的条目而留下 size+1）。
     if (lastProcessedMessageIds.size > MAX_PROCESSED_IDS) {
       const toDrop = lastProcessedMessageIds.size - TRIM_PROCESSED_IDS_TO
       const iter = lastProcessedMessageIds.values()

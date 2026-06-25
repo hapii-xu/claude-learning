@@ -38,7 +38,7 @@ export function TaskListV2({ tasks, isStandalone = false }: Props): React.ReactN
   const [, forceUpdate] = React.useState(0);
   const { rows, columns } = useTerminalSize();
 
-  // Track when each task was last observed transitioning to completed
+  // 跟踪每个任务最后一次被观察到变为 completed 的时间
   const completionTimestampsRef = React.useRef(new Map<string, number>());
   const previousCompletedIdsRef = React.useRef<Set<string> | null>(null);
   if (previousCompletedIdsRef.current === null) {
@@ -46,7 +46,7 @@ export function TaskListV2({ tasks, isStandalone = false }: Props): React.ReactN
   }
   const maxDisplay = rows <= 10 ? 0 : Math.min(10, Math.max(3, rows - 14));
 
-  // Update completion timestamps: reset when a task transitions to completed
+  // 更新 completion timestamps：当任务变为 completed 时重置
   const currentCompletedIds = new Set(tasks.filter(t => t.status === 'completed').map(t => t.id));
   const now = Date.now();
   for (const id of currentCompletedIds) {
@@ -61,9 +61,9 @@ export function TaskListV2({ tasks, isStandalone = false }: Props): React.ReactN
   }
   previousCompletedIdsRef.current = currentCompletedIds;
 
-  // Schedule re-render when the next recent completion expires.
-  // Depend on `tasks` so the timer is only reset when the task list changes,
-  // not on every render (which was causing unnecessary work).
+  // 在下一次最近的 completion 过期时调度重新渲染。
+  // 依赖 `tasks`，这样 timer 只在任务列表变化时重置，
+  // 而不是在每次渲染时都重置（这会造成不必要的开销）。
   React.useEffect(() => {
     if (completionTimestampsRef.current.size === 0) {
       return;
@@ -95,7 +95,7 @@ export function TaskListV2({ tasks, isStandalone = false }: Props): React.ReactN
     return null;
   }
 
-  // Build a map of teammate name -> theme color
+  // 构建 teammate name -> theme color 的映射
   const teammateColors: Record<string, keyof Theme> = {};
   if (isAgentSwarmsEnabled() && teamContext?.teammates) {
     for (const teammate of Object.values(teamContext.teammates)) {
@@ -108,11 +108,11 @@ export function TaskListV2({ tasks, isStandalone = false }: Props): React.ReactN
     }
   }
 
-  // Build a map of teammate name -> current activity description
-  // Map both agentName ("researcher") and agentId ("researcher@team") so
-  // task owners match regardless of which format the model used.
-  // Rolls up consecutive search/read tool uses into a compact summary.
-  // Also track which teammates are still running (not shut down).
+  // 构建 teammate name -> 当前活动描述的映射
+  // 同时映射 agentName（"researcher"）和 agentId（"researcher@team"），这样
+  // 无论 model 使用哪种格式，task owner 都能匹配上。
+  // 将连续的 search/read tool 调用合并为紧凑的摘要。
+  // 同时跟踪哪些 teammates 仍在运行（未关闭）。
   const teammateActivity: Record<string, string> = {};
   const activeTeammates = new Set<string>();
   if (isAgentSwarmsEnabled()) {
@@ -131,21 +131,21 @@ export function TaskListV2({ tasks, isStandalone = false }: Props): React.ReactN
     }
   }
 
-  // Get task counts for display
+  // 获取用于显示的任务计数
   const completedCount = count(tasks, t => t.status === 'completed');
   const pendingCount = count(tasks, t => t.status === 'pending');
   const inProgressCount = tasks.length - completedCount - pendingCount;
-  // Unresolved tasks (open or in_progress) block dependent tasks
+  // 未完成的任务（open 或 in_progress）会阻塞依赖它们的任务
   const unresolvedTaskIds = new Set(tasks.filter(t => t.status !== 'completed').map(t => t.id));
 
-  // Check if we need to truncate
+  // 检查是否需要截断
   const needsTruncation = tasks.length > maxDisplay;
 
   let visibleTasks: Task[];
   let hiddenTasks: Task[];
 
   if (needsTruncation) {
-    // Prioritize: recently completed (within 30s), in-progress, pending, older completed
+    // 优先级：最近完成的（30 秒内）、进行中、待处理、更早完成的
     const recentCompleted: Task[] = [];
     const olderCompleted: Task[] = [];
     for (const task of tasks.filter(t => t.status === 'completed')) {
@@ -174,7 +174,7 @@ export function TaskListV2({ tasks, isStandalone = false }: Props): React.ReactN
     visibleTasks = prioritized.slice(0, maxDisplay);
     hiddenTasks = prioritized.slice(maxDisplay);
   } else {
-    // No truncation needed — sort by ID for stable ordering
+    // 不需要截断 —— 按 ID 排序以获得稳定的顺序
     visibleTasks = [...tasks].sort(byIdAsc);
     hiddenTasks = [];
   }
@@ -186,13 +186,13 @@ export function TaskListV2({ tasks, isStandalone = false }: Props): React.ReactN
     const hiddenInProgress = count(hiddenTasks, t => t.status === 'in_progress');
     const hiddenCompleted = count(hiddenTasks, t => t.status === 'completed');
     if (hiddenInProgress > 0) {
-      parts.push(`${hiddenInProgress} in progress`);
+      parts.push(`${hiddenInProgress} 个进行中`);
     }
     if (hiddenPending > 0) {
-      parts.push(`${hiddenPending} pending`);
+      parts.push(`${hiddenPending} 个待处理`);
     }
     if (hiddenCompleted > 0) {
-      parts.push(`${hiddenCompleted} completed`);
+      parts.push(`${hiddenCompleted} 个已完成`);
     }
     hiddenSummary = ` … +${parts.join(', ')}`;
   }
@@ -220,17 +220,17 @@ export function TaskListV2({ tasks, isStandalone = false }: Props): React.ReactN
         <Box>
           <Text dimColor>
             <Text bold>{tasks.length}</Text>
-            {' tasks ('}
+            {' 个任务（'}
             <Text bold>{completedCount}</Text>
-            {' done, '}
+            {' 已完成，'}
             {inProgressCount > 0 && (
               <>
                 <Text bold>{inProgressCount}</Text>
-                {' in progress, '}
+                {' 进行中，'}
               </>
             )}
             <Text bold>{pendingCount}</Text>
-            {' open)'}
+            {' 待处理）'}
           </Text>
         </Box>
         {content}
@@ -273,16 +273,16 @@ function TaskItem({ task, ownerColor, openBlockers, activity, ownerActive, colum
 
   const showActivity = isInProgress && !isBlocked && activity;
 
-  // Responsive layout: hide owner on narrow screens (<60 cols)
-  // Truncate subject based on available space
+  // 响应式布局：在窄屏幕上隐藏 owner（<60 列）
+  // 根据可用空间截断 subject
   const showOwner = columns >= 60 && task.owner && ownerActive;
   const ownerWidth = showOwner ? stringWidth(` (@${task.owner})`) : 0;
-  // Account for: icon(2) + indentation(~8 when nested under spinner) + owner + safety
-  // Use columns - 15 as a conservative estimate for nested layouts
+  // 计算：icon(2) + 缩进（嵌套在 spinner 下约 8）+ owner + 余量
+  // 使用 columns - 15 作为嵌套布局的保守估计
   const maxSubjectWidth = Math.max(15, columns - 15 - ownerWidth);
   const displaySubject = truncateToWidth(task.subject, maxSubjectWidth);
 
-  // Truncate activity for narrow screens
+  // 在窄屏幕上截断 activity
   const maxActivityWidth = Math.max(15, columns - 15);
   const displayActivity = activity ? truncateToWidth(activity, maxActivityWidth) : undefined;
 
@@ -303,7 +303,7 @@ function TaskItem({ task, ownerColor, openBlockers, activity, ownerActive, colum
         {isBlocked && (
           <Text dimColor>
             {' '}
-            {figures.pointerSmall} blocked by{' '}
+            {figures.pointerSmall} 被以下任务阻塞：{' '}
             {[...openBlockers]
               .sort((a, b) => parseInt(a, 10) - parseInt(b, 10))
               .map(id => `#${id}`)

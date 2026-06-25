@@ -49,7 +49,7 @@ export function ColorPicker({ agentName, currentColor = 'automatic', onConfirm }
               <Text color={isSelected ? 'suggestion' : undefined}>{isSelected ? figures.pointer : ' '}</Text>
 
               {option === 'automatic' ? (
-                <Text bold={isSelected}>Automatic color</Text>
+                <Text bold={isSelected}>自动配色</Text>
               ) : (
                 <Box gap={1}>
                   <Text backgroundColor={AGENT_COLOR_TO_THEME_COLOR[option]} color="inverseText">
@@ -64,7 +64,7 @@ export function ColorPicker({ agentName, currentColor = 'automatic', onConfirm }
       </Box>
 
       <Box marginTop={1}>
-        <Text>Preview: </Text>
+        <Text>预览：</Text>
         {selectedValue === undefined || selectedValue === 'automatic' ? (
           <Text inverse bold>
             {' '}

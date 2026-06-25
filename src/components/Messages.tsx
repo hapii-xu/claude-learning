@@ -52,7 +52,6 @@ import {
   type StreamingToolUse,
   shouldShowUserMessage,
 } from '../utils/messages.js';
-import { plural } from '../utils/stringUtils.js';
 import { renderableSearchText } from '../utils/transcriptSearch.js';
 import { Divider } from '@anthropic/ink';
 import type { UnseenDivider } from './FullscreenLayout.js';
@@ -72,22 +71,21 @@ import type { ToolUseConfirm } from './permissions/PermissionRequest.js';
 import { StatusNotices } from './StatusNotices.js';
 import type { JumpHandle } from './VirtualMessageList.js';
 
-// Memoed logo header: this box is the FIRST sibling before all MessageRows
-// in main-screen mode. If it becomes dirty on every Messages re-render,
-// renderChildren's seenDirtyChild cascade disables prevScreen (blit) for
-// ALL subsequent siblings — every MessageRow re-writes from scratch instead
-// of blitting. In long sessions (~2800 messages) this is 150K+ writes/frame
-// and pegs CPU at 100%. Memo on agentDefinitions so a new messages array
-// doesn't invalidate the logo subtree. LogoV2/StatusNotices internally
-// subscribe to useAppState/useSettings for their own updates.
+// 已 memo 的 logo 头部：在主屏模式下，这个 Box 是所有 MessageRows 之前的第一个兄弟节点。
+// 如果它在每次 Messages 重新渲染时都变脏，renderChildren 的 seenDirtyChild 级联
+// 会为所有后续兄弟节点禁用 prevScreen（blit）—— 每个 MessageRow 都会从零重写
+// 而不是 blit。在长 session（约 2800 条消息）下，这会达到 15 万+ 次/帧的写入，
+// CPU 占用 100%。对 agentDefinitions 做 memo，这样新的 messages 数组
+// 不会让 logo 子树失效。LogoV2/StatusNotices 内部自行
+// 订阅 useAppState/useSettings 以完成各自更新。
 const LogoHeader = React.memo(function LogoHeader({
   agentDefinitions,
 }: {
   agentDefinitions: AgentDefinitionsResult | undefined;
 }): React.ReactNode {
-  // LogoV2 has its own internal OffscreenFreeze (catches its useAppState
-  // re-renders). This outer freeze catches agentDefinitions changes and any
-  // future StatusNotices subscriptions while the header is in scrollback.
+  // LogoV2 自带内部 OffscreenFreeze（捕获其 useAppState
+  // 重新渲染）。这层外层 freeze 捕获 agentDefinitions 变化，以及
+  // 头部处于 scrollback 中时任何未来的 StatusNotices 订阅。
   return (
     <OffscreenFreeze>
       <Box flexDirection="column" gap={1}>
@@ -100,7 +98,7 @@ const LogoHeader = React.memo(function LogoHeader({
   );
 });
 
-// Dead code elimination: conditional import for proactive mode
+// 死代码消除：proactive 模式的条件导入
 /* eslint-disable @typescript-eslint/no-require-imports */
 const proactiveModule = feature('PROACTIVE') || feature('KAIROS') ? require('../proactive/index.js') : null;
 const BRIEF_TOOL_NAME: string | null =
@@ -119,10 +117,10 @@ const SEND_USER_FILE_TOOL_NAME: string | null = feature('KAIROS')
 import { VirtualMessageList } from './VirtualMessageList.js';
 
 /**
- * In brief-only mode, filter messages to show ONLY Brief tool_use blocks,
- * their tool_results, and real user input. All assistant text is dropped —
- * if the model forgets to call Brief, the user sees nothing for that turn.
- * That's on the model to get right; the filter does not second-guess it.
+ * 在 brief-only 模式下，过滤消息只显示 Brief tool_use block、
+ * 其对应的 tool_result，以及真实的用户输入。所有 assistant 文本都被丢弃 ——
+ * 如果模型忘记调用 Brief，用户在该轮将看不到任何内容。
+ * 这由模型自己保证正确；过滤器不会替它做二次判断。
  */
 export function filterForBriefTool<
   T extends {
@@ -146,22 +144,22 @@ export function filterForBriefTool<
   },
 >(messages: T[], briefToolNames: string[]): T[] {
   const nameSet = new Set(briefToolNames);
-  // tool_use always precedes its tool_result in the array, so we can collect
-  // IDs and match against them in a single pass.
+  // tool_use 在数组中总是位于其 tool_result 之前，因此可以在一次遍历中
+  // 收集 ID 并与之匹配。
   const briefToolUseIDs = new Set<string>();
   return messages.filter(msg => {
-    // System messages (attach confirmation, remote errors, compact boundaries)
-    // must stay visible — dropping them leaves the viewer with no feedback.
-    // Exception: api_metrics is per-turn debug noise (TTFT, config writes,
-    // hook timing) that defeats the point of brief mode. Still visible in
-    // transcript mode (ctrl+o) which bypasses this filter.
+    // 系统消息（附件确认、远端错误、compact 边界）
+    // 必须保持可见 —— 丢弃它们会让查看者得不到任何反馈。
+    // 例外：api_metrics 是每轮的调试噪声（TTFT、config 写入、
+    // hook 耗时），会破坏 brief 模式的初衷。在 transcript 模式
+    // （ctrl+o）下仍然可见，该模式会绕过此过滤器。
     if (msg.type === 'system') return msg.subtype !== 'api_metrics';
     const block = msg.message?.content[0];
     if (msg.type === 'assistant') {
-      // API error messages (auth failures, rate limits, etc.) must stay visible
+      // API 错误消息（鉴权失败、限流等）必须保持可见
       if (msg.isApiErrorMessage) return true;
-      // Keep Brief tool_use blocks (renders with standard tool call chrome,
-      // and must be in the list so buildMessageLookups can resolve tool results)
+      // 保留 Brief tool_use block（以标准工具调用样式渲染，
+      // 且必须留在列表中以便 buildMessageLookups 解析工具结果）
       if (block?.type === 'tool_use' && block.name && nameSet.has(block.name)) {
         if ('id' in block) {
           briefToolUseIDs.add((block as { id: string }).id);
@@ -174,16 +172,16 @@ export function filterForBriefTool<
       if (block?.type === 'tool_result') {
         return block.tool_use_id !== undefined && briefToolUseIDs.has(block.tool_use_id);
       }
-      // Real user input only — drop meta/tick messages.
+      // 仅保留真实用户输入 —— 丢弃 meta/tick 消息。
       return !msg.isMeta;
     }
     if (msg.type === 'attachment') {
-      // Human input drained mid-turn arrives as a queued_command attachment
-      // (query.ts mid-chain drain → getQueuedCommandAttachments). Keep it —
-      // it's what the user typed. commandMode === 'prompt' positively
-      // identifies human-typed input; task-notification callers set
-      // mode: 'task-notification' but not origin/isMeta, so the positive
-      // commandMode check is required to exclude them.
+      // 用户在轮次中途输入的内容会作为 queued_command 附件到达
+      // （query.ts 的 mid-chain drain → getQueuedCommandAttachments）。保留它 ——
+      // 这正是用户输入的内容。commandMode === 'prompt' 能正向
+      // 识别人工输入；task-notification 调用方会设置
+      // mode: 'task-notification' 但不设置 origin/isMeta，因此必须用正向
+      // commandMode 检查来排除它们。
       const att = msg.attachment;
       return att?.type === 'queued_command' && att.commandMode === 'prompt' && !att.isMeta && att.origin === undefined;
     }
@@ -192,13 +190,13 @@ export function filterForBriefTool<
 }
 
 /**
- * Full-transcript companion to filterForBriefTool. When the Brief tool is
- * in use, the model's text output is redundant with the SendUserMessage
- * content it wrote right after — drop the text so only the SendUserMessage
- * block shows. Tool calls and their results stay visible.
+ * filterForBriefTool 的完整 transcript 配套函数。当 Brief 工具
+ * 在使用时，模型的文本输出与其紧接着写的 SendUserMessage
+ * 内容重复 —— 丢弃这些文本，只展示 SendUserMessage block。
+ * 工具调用及其结果保持可见。
  *
- * Per-turn: only drops text in turns that actually called Brief. If the
- * model forgets, text still shows — otherwise the user would see nothing.
+ * 按轮次处理：仅在真正调用了 Brief 的轮次中丢弃文本。如果
+ * 模型忘了调用，文本仍然展示 —— 否则用户将什么都看不到。
  */
 export function dropTextInBriefTurns<
   T extends {
@@ -208,8 +206,8 @@ export function dropTextInBriefTurns<
   },
 >(messages: T[], briefToolNames: string[]): T[] {
   const nameSet = new Set(briefToolNames);
-  // First pass: find which turns (bounded by non-meta user messages) contain
-  // a Brief tool_use. Tag each assistant text block with its turn index.
+  // 第一遍：找出哪些轮次（以非 meta 的 user 消息为界）包含
+  // Brief tool_use。为每个 assistant 文本 block 打上其轮次索引。
   const turnsWithBrief = new Set<number>();
   const textIndexToTurn: number[] = [];
   let turn = 0;
@@ -229,7 +227,7 @@ export function dropTextInBriefTurns<
     }
   }
   if (turnsWithBrief.size === 0) return messages;
-  // Second pass: drop text blocks whose turn called Brief.
+  // 第二遍：丢弃其轮次调用了 Brief 的文本 block。
   return messages.filter((_, i) => {
     const t = textIndexToTurn[i];
     return t === undefined || !turnsWithBrief.has(t);
@@ -255,34 +253,34 @@ type Props = {
   showAllInTranscript?: boolean;
   agentDefinitions?: AgentDefinitionsResult;
   onOpenRateLimitOptions?: () => void;
-  /** Hide the logo/header - used for subagent zoom view */
+  /** 隐藏 logo/头部 —— 用于 subagent 缩放视图 */
   hideLogo?: boolean;
   isLoading: boolean;
-  /** In transcript mode, hide all thinking blocks except the last one */
+  /** 在 transcript 模式下，除最后一条外隐藏所有 thinking block */
   hidePastThinking?: boolean;
-  /** Streaming thinking content (live updates, not frozen) */
+  /** 流式 thinking 内容（实时更新，未冻结） */
   streamingThinking?: StreamingThinking | null;
-  /** Streaming text preview (rendered as last item so transition to final message is positionally seamless) */
+  /** 流式文本预览（作为最后一项渲染，使过渡到最终消息时位置无缝衔接） */
   streamingText?: string | null;
-  /** When true, only show Brief tool output (hide everything else) */
+  /** 为 true 时仅显示 Brief 工具输出（隐藏其他所有内容） */
   isBriefOnly?: boolean;
-  /** Fullscreen-mode "─── N new ───" divider. Renders before the first
-   *  renderableMessage derived from firstUnseenUuid (matched by the 24-char
-   *  prefix that deriveUUID preserves). */
+  /** 全屏模式的「─── N 条新消息 ───」分割线。渲染在第一个
+   *  由 firstUnseenUuid 派生的 renderableMessage 之前（通过 deriveUUID
+   *  保留的 24 字符前缀进行匹配）。 */
   unseenDivider?: UnseenDivider;
-  /** Fullscreen-mode ScrollBox handle. Enables React-level virtualization when present. */
+  /** 全屏模式的 ScrollBox handle。存在时启用 React 层虚拟化。 */
   scrollRef?: RefObject<ScrollBoxHandle | null>;
-  /** Fullscreen-mode: enable sticky-prompt tracking (writes via ScrollChromeContext). */
+  /** 全屏模式：启用 sticky-prompt 跟踪（通过 ScrollChromeContext 写入）。 */
   trackStickyPrompt?: boolean;
-  /** Transcript search: jump-to-index + setSearchQuery/nextMatch/prevMatch. */
+  /** Transcript 搜索：jump-to-index + setSearchQuery/nextMatch/prevMatch。 */
   jumpRef?: RefObject<JumpHandle | null>;
-  /** Transcript search: fires when match count/position changes. */
+  /** Transcript 搜索：匹配数量/位置变化时触发。 */
   onSearchMatchesChange?: (count: number, current: number) => void;
-  /** Paint an existing DOM subtree to fresh Screen, scan. Element comes
-   *  from the main tree (all real providers). Message-relative positions. */
+  /** 将既有 DOM 子树绘制到新的 Screen 并扫描。元素来自
+   *  主树（所有真实 provider）。位置相对于 message。 */
   scanElement?: (el: import('@anthropic/ink').DOMElement) => import('@anthropic/ink').MatchPosition[];
-  /** Position-based CURRENT highlight. positions stable (msg-relative),
-   *  rowOffset tracks scroll. null clears. */
+  /** 基于位置的 CURRENT 高亮。positions 稳定（相对于 message），
+   *  rowOffset 跟踪滚动。传 null 清除。 */
   setPositions?: (
     state: {
       positions: import('@anthropic/ink').MatchPosition[];
@@ -290,61 +288,57 @@ type Props = {
       currentIdx: number;
     } | null,
   ) => void;
-  /** Bypass MAX_MESSAGES_WITHOUT_VIRTUALIZATION. For one-shot headless renders
-   *  (e.g. /export via renderToString) where the memory concern doesn't apply
-   *  and the "already in scrollback" justification doesn't hold. */
+  /** 绕过 MAX_MESSAGES_WITHOUT_VIRTUALIZATION。用于一次性 headless 渲染
+   *  （例如 /export 通过 renderToString），此时内存担忧不适用，
+   *  且「已在 scrollback 中」这一理由也不成立。 */
   disableRenderCap?: boolean;
-  /** In-transcript cursor; expanded overrides verbose for selected message. */
+  /** Transcript 内的光标；expanded 会覆盖所选消息的 verbose 设置。 */
   cursor?: MessageActionsState | null;
   setCursor?: (cursor: MessageActionsState | null) => void;
-  /** Passed through to VirtualMessageList (heightCache owns visibility). */
+  /** 透传给 VirtualMessageList（heightCache 拥有可见性）。 */
   cursorNavRef?: React.Ref<MessageActionsNav>;
-  /** Render only collapsed.slice(start, end). For chunked headless export
-   *  (streamRenderedMessages in exportRenderer.tsx): prep runs on the FULL
-   *  messages array so grouping/lookups are correct, but only this slice
-   *  chunk instead of the full session. The logo renders only for chunk 0
-   *  (start === 0); later chunks are mid-stream continuations.
-   *  Measured Mar 2026: 538-msg session, 20 slices → −55% plateau RSS. */
+  /** 仅渲染 collapsed.slice(start, end)。用于分块 headless 导出
+   *  （exportRenderer.tsx 中的 streamRenderedMessages）：prep 在完整的
+   *  messages 数组上运行以保证 grouping/lookups 正确，但只输出这个切片
+   *  而非整个 session。logo 仅在 chunk 0（start === 0）时渲染；
+   *  后续 chunk 是流中延续。
+   *  2026 年 3 月实测：538 条消息的 session，20 个切片 → 平台 RSS 降低 55%。 */
   renderRange?: readonly [start: number, end: number];
 };
 
 const MAX_MESSAGES_TO_SHOW_IN_TRANSCRIPT_MODE = 30;
 
-// Safety cap for the non-virtualized render path (fullscreen off or
-// explicitly disabled). Ink mounts a full fiber tree per message (~250 KB
-// RSS each); yoga layout height grows unbounded; the screen buffer is sized
-// to fit every line. At ~2000 messages this is ~3000-line screens, ~500 MB
-// of fibers, and per-frame write costs that push the process into a GC
-// death spiral (observed: 59 GB RSS, 14k mmap/munmap/sec). Content dropped
-// from this slice has already been printed to terminal scrollback — users
-// can still scroll up natively. VirtualMessageList (the default ant path)
-// bypasses this cap entirely. Headless one-shot renders (e.g. /export)
-// pass disableRenderCap to opt out — they have no scrollback and the
-// memory concern doesn't apply to renderToString.
+// 非虚拟化渲染路径（全屏关闭或被显式禁用）的安全上限。Ink 为每条
+// 消息挂载完整的 fiber 树（每条约 250 KB RSS）；yoga 布局高度无界增长；
+// 屏幕缓冲按容纳所有行来分配。在约 2000 条消息时，这会是约 3000 行的
+// 屏幕、约 500 MB 的 fiber，以及每帧写入成本把进程推入 GC
+// 死亡螺旋（观测到：59 GB RSS，每秒 1.4 万次 mmap/munmap）。从该切片
+// 丢弃的内容早已打印到终端 scrollback —— 用户仍可原生向上滚动。
+// VirtualMessageList（默认 ant 路径）完全绕过此上限。Headless 一次性
+// 渲染（例如 /export）通过 disableRenderCap 主动退出 —— 它们没有
+// scrollback，且内存担忧对 renderToString 不适用。
 //
-// The slice boundary is tracked as a UUID anchor, not a count-derived
-// index. Count-based slicing (slice(-200)) drops one message from the
-// front on every append, shifting scrollback content and forcing a full
-// terminal reset per turn (CC-941). Quantizing to 50-message steps
-// (CC-1154) helped but still shifted on compaction and collapse regrouping
-// since those change collapsed.length without adding messages. The UUID
-// anchor only advances when rendered count genuinely exceeds CAP+STEP —
-// immune to length churn from grouping/compaction (CC-1174).
+// 切片边界以 UUID 锚点跟踪，而非基于计数的索引。基于计数的切片
+// （slice(-200)）每次追加都从前面丢弃一条消息，导致 scrollback 内容
+// 位移并迫使每轮进行完整终端重置（CC-941）。量化为 50 条消息步长
+// （CC-1154）有所改善，但在 compaction 和 collapse 重新分组时仍会位移，
+// 因为它们在不增加消息的情况下改变 collapsed.length。UUID
+// 锚点仅在渲染计数真正超过 CAP+STEP 时才推进 ——
+// 对 grouping/compaction 导致的长度波动免疫（CC-1174）。
 //
-// The anchor stores BOTH uuid and index. Some uuids are unstable between
-// renders: collapseHookSummaries derives the merged uuid from the first
-// summary in a group, but reorderMessagesInUI reshuffles hook adjacency
-// as tool results stream in, changing which summary is first. When the
-// uuid vanishes, falling back to the stored index (clamped) keeps the
-// slice roughly where it was instead of resetting to 0 — which would
-// jump from ~200 rendered messages to the full history, orphaning
-// in-progress badge snapshots in scrollback.
+// 锚点同时存储 uuid 和 index。部分 uuid 在多次渲染间不稳定：
+// collapseHookSummaries 从分组中第一条 summary 派生合并后的 uuid，
+// 但 reorderMessagesInUI 会在工具结果流入时重新调整 hook 邻接关系，
+// 改变哪条 summary 排在第一。当 uuid
+// 消失时，回退到存储的 index（经 clamp 处理）使切片大致保持在原位，
+// 而不是重置为 0 —— 否则会从约 200 条已渲染消息
+// 跳到完整历史，使 scrollback 中进行中的 badge 快照成为孤儿。
 const MAX_MESSAGES_WITHOUT_VIRTUALIZATION = 200;
 const MESSAGE_CAP_STEP = 50;
 
 export type SliceAnchor = { uuid: string; idx: number } | null;
 
-/** Exported for testing. Mutates anchorRef when the window needs to advance. */
+/** 导出用于测试。当窗口需要推进时修改 anchorRef。 */
 export function computeSliceStart(
   collapsed: ReadonlyArray<{ uuid: string }>,
   anchorRef: { current: SliceAnchor },
@@ -353,14 +347,14 @@ export function computeSliceStart(
 ): number {
   const anchor = anchorRef.current;
   const anchorIdx = anchor ? collapsed.findIndex(m => m.uuid === anchor.uuid) : -1;
-  // Anchor found → use it. Anchor lost → fall back to stored index
-  // (clamped) so collapse-regrouping uuid churn doesn't reset to 0.
+  // 找到锚点 → 使用之。锚点丢失 → 回退到存储的 index
+  // （经 clamp），这样 collapse 重新分组导致的 uuid 抖动不会重置为 0。
   let start = anchorIdx >= 0 ? anchorIdx : anchor ? Math.min(anchor.idx, Math.max(0, collapsed.length - cap)) : 0;
   if (collapsed.length - start > cap + step) {
     start = collapsed.length - cap;
   }
-  // Refresh anchor from whatever lives at the current start — heals a
-  // stale uuid after fallback and captures a new one after advancement.
+  // 从当前 start 处的内容刷新锚点 —— 在回退后修复
+  // 过期的 uuid，并在推进后捕获新 uuid。
   const msgAtStart = collapsed[start];
   if (msgAtStart && (anchor?.uuid !== msgAtStart.uuid || anchor.idx !== start)) {
     anchorRef.current = { uuid: msgAtStart.uuid, idx: start };
@@ -409,7 +403,7 @@ const MessagesImpl = ({
 
   const normalizedMessages = useMemo(() => normalizeMessages(messages).filter(isNotEmptyMessage), [messages]);
 
-  // Check if streaming thinking should be visible (streaming or within 30s timeout)
+  // 检查流式 thinking 是否应可见（正在流式输出或处于 30 秒超时窗口内）
   const isStreamingThinkingVisible = useMemo(() => {
     if (!streamingThinking) return false;
     if (streamingThinking.isStreaming) return true;
@@ -419,8 +413,8 @@ const MessagesImpl = ({
     return false;
   }, [streamingThinking]);
 
-  // Find the last thinking block and latest bash output in a single backward pass.
-  // Merged from two separate reverse iterations to reduce total traversals.
+  // 在一次反向遍历中同时找到最后一个 thinking block 和最近的 bash 输出。
+  // 由两次独立的反向遍历合并而来，以减少总遍历次数。
   const { lastThinkingBlockId, latestBashOutputUUID } = useMemo(() => {
     let thinkingId: string | null = null;
     let bashUUID: string | null = null;
@@ -432,7 +426,7 @@ const MessagesImpl = ({
       const msg = normalizedMessages[i];
       if (msg?.type === 'user') {
         const content = msg.message!.content as Array<{ type: string; text?: string }>;
-        // Bash output detection
+        // bash 输出检测
         if (!bashUUID) {
           for (const block of content) {
             if (block.type === 'text') {
@@ -444,7 +438,7 @@ const MessagesImpl = ({
             }
           }
         }
-        // Thinking stop condition — reached a previous user turn without tool result
+        // thinking 停止条件 —— 到达一个不含工具结果的前序 user 轮次
         if (needThinkingScan && !thinkingId) {
           const hasToolResult = content.some(block => block.type === 'tool_result');
           if (!hasToolResult) {
@@ -470,8 +464,8 @@ const MessagesImpl = ({
     return { lastThinkingBlockId: thinkingId, latestBashOutputUUID: bashUUID };
   }, [normalizedMessages, hidePastThinking, isStreamingThinkingVisible]);
 
-  // streamingToolUses updates on every input_json_delta while normalizedMessages
-  // stays stable — precompute the Set so the filter is O(k) not O(n×k) per chunk.
+  // streamingToolUses 在每个 input_json_delta 时更新，而 normalizedMessages
+  // 保持稳定 —— 预先计算 Set，使过滤器在每个 chunk 上为 O(k) 而非 O(n×k)。
   const normalizedToolUseIDs = useMemo(() => getToolUseIDs(normalizedMessages), [normalizedMessages]);
 
   const streamingToolUsesWithoutInProgress = useMemo(
@@ -488,11 +482,11 @@ const MessagesImpl = ({
         const msg = createAssistantMessage({
           content: [streamingToolUse.contentBlock],
         });
-        // Override randomUUID with deterministic value derived from content
-        // block ID to prevent React key changes on every memo recomputation.
-        // Same class of bug fixed in normalizeMessages (commit 383326e613):
-        // fresh randomUUID → unstable React keys → component remounts →
-        // Ink rendering corruption (overlapping text from stale DOM nodes).
+        // 用基于 content block ID 派生的确定性值覆盖 randomUUID，
+        // 避免 memo 每次重算时 React key 发生变化。
+        // 这与 normalizeMessages 中修复的 bug 同类（commit 383326e613）：
+        // 全新 randomUUID → 不稳定的 React key → 组件 remount →
+        // Ink 渲染损坏（旧 DOM 节点导致文字重叠）。
         msg.uuid = deriveUUID(streamingToolUse.contentBlock.id as UUID, 0);
         return normalizeMessages([msg]);
       }),
@@ -500,25 +494,24 @@ const MessagesImpl = ({
   );
 
   const isTranscriptMode = screen === 'transcript';
-  // Hoisted to mount-time — this component re-renders on every scroll.
+  // 提升到挂载时执行 —— 本组件每次滚动都会重渲染。
   const disableVirtualScroll = useMemo(() => isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_VIRTUAL_SCROLL), []);
-  // Virtual scroll replaces the transcript cap: everything is scrollable and
-  // memory is bounded by the mounted-item count, not the total. scrollRef is
-  // only passed when isFullscreenEnvEnabled() is true (REPL.tsx gates it),
-  // so scrollRef's presence is the signal.
+  // 虚拟滚动取代了 transcript cap：所有内容都可滚动，
+  // 内存用量由挂载项数量决定，而非总量。scrollRef 仅在
+  // isFullscreenEnvEnabled() 为 true 时传入（REPL.tsx 控制），
+  // 因此 scrollRef 的存在性即为信号。
   const virtualScrollRuntimeGate = scrollRef != null && !disableVirtualScroll;
   const shouldTruncate = isTranscriptMode && !showAllInTranscript && !virtualScrollRuntimeGate;
 
-  // Anchor for the first rendered message in the non-virtualized cap slice.
-  // Monotonic advance only — mutation during render is idempotent (safe
-  // under StrictMode double-render). See MAX_MESSAGES_WITHOUT_VIRTUALIZATION
-  // comment above for why this replaced count-based slicing.
+  // 非虚拟化 cap 切片中第一个被渲染消息的锚点。
+  // 仅单调推进 —— 渲染期间的 mutation 是幂等的（在 StrictMode
+  // 双重渲染下安全）。关于它为何取代基于计数的切片，参见上文
+  // MAX_MESSAGES_WITHOUT_VIRTUALIZATION 的注释。
   const sliceAnchorRef = useRef<SliceAnchor>(null);
 
-  // Cache for buildMessageLookups: avoids rebuilding 8 Maps/Sets when only
-  // message content changed during streaming (text/thinking deltas). The key
-  // captures only structural info (types, IDs), so content-only deltas skip
-  // the rebuild entirely.
+  // buildMessageLookups 的缓存：当流式传输过程中仅有消息内容变化
+  // （text/thinking delta）时，避免重建 8 个 Map/Set。缓存 key 只
+  // 捕获结构性信息（类型、ID），因此仅内容变化的 delta 会完全跳过重建。
   const lookupsCacheRef = useRef<{
     key: string;
     lookups: MessageLookups;
@@ -527,22 +520,21 @@ const MessagesImpl = ({
     lastAssistantMsgId: string | undefined;
   } | null>(null);
 
-  // Expensive message transforms — filter, reorder, group, collapse, lookups.
-  // All O(n) over 27k messages. Split from the renderRange slice so scrolling
-  // (which only changes renderRange) doesn't re-run these. Previously this
-  // useMemo included renderRange → every scroll rebuilt 6 Maps over 27k
-  // messages + 4 filter/map passes = ~50ms alloc per scroll → GC pressure →
-  // 100-173ms stop-the-world pauses on the 1GB heap.
+  // 耗时的消息变换 —— filter、reorder、group、collapse、lookups。
+  // 在 27k 条消息上全部为 O(n)。与 renderRange 切片分开，这样滚动
+  // （只改变 renderRange）不会重新触发这些。此前本 useMemo 包含
+  // renderRange → 每次滚动都重建 6 个 Map + 4 次 filter/map 传递
+  // = 每次滚动约 50ms 分配 → GC 压力 → 1GB 堆上出现 100-173ms 的
+  // stop-the-world 暂停。
   const { collapsed, lookups, hasTruncatedMessages, hiddenMessageCount } = useMemo(() => {
-    // In fullscreen mode the alt buffer has no native scrollback, so the
-    // compact-boundary filter just hides history the ScrollBox could
-    // otherwise scroll to. Main-screen mode keeps the filter — pre-compact
-    // rows live above the viewport in native scrollback there, and
-    // re-rendering them triggers full resets.
-    // includeSnipped: UI rendering keeps snipped messages for scrollback
-    // (this PR's core goal — full history in UI, filter only for the model).
-    // Also avoids a UUID mismatch: normalizeMessages derives new UUIDs, so
-    // projectSnippedView's check against original removedUuids would fail.
+    // 全屏模式下 alt buffer 没有原生 scrollback，因此 compact-boundary
+    // 过滤器只会隐藏 ScrollBox 本可滚动到的历史。主屏模式保留该过滤器
+    // —— 在那里，compact 之前的行位于原生 scrollback 中视口上方，
+    // 重新渲染它们会触发完整的重置。
+    // includeSnipped：UI 渲染时保留 snipped 消息以供 scrollback 使用
+    // （本 PR 的核心目标 —— UI 中保留完整历史，过滤器仅用于模型）。
+    // 同时避免 UUID 不匹配：normalizeMessages 会派生新的 UUID，
+    // 若不这样做，projectSnippedView 对原始 removedUuids 的检查会失败。
     const compactAwareMessages =
       verbose || isFullscreenEnvEnabled()
         ? normalizedMessages
@@ -553,22 +545,22 @@ const MessagesImpl = ({
     const messagesToShowNotTruncated = reorderMessagesInUI(
       compactAwareMessages.filter(
         (msg): msg is Exclude<NormalizedMessage, ProgressMessageType> =>
-          // CC-724: drop attachment messages that AttachmentMessage renders as
-          // null (hook_success, hook_additional_context, hook_cancelled, etc.)
-          // BEFORE counting/slicing so they don't inflate the "N messages"
-          // count in ctrl-o or consume slots in the 200-message render cap.
+          // CC-724：丢弃被 AttachmentMessage 渲染为 null 的附件消息
+          // （hook_success、hook_additional_context、hook_cancelled 等），
+          // 在计数/切片之前执行，避免它们虚增 ctrl-o 中的「N 条消息」
+          // 计数，或占用 200 条消息渲染上限中的名额。
           msg.type !== 'progress' && !isNullRenderingAttachment(msg) && shouldShowUserMessage(msg, isTranscriptMode),
       ) as Parameters<typeof reorderMessagesInUI>[0],
       syntheticStreamingToolUseMessages,
     );
-    // Three-tier filtering. Transcript mode (ctrl+o screen) is truly unfiltered.
-    // Brief-only: SendUserMessage + user input only. Default: drop redundant
-    // assistant text in turns where SendUserMessage was called (the model's
-    // text is working-notes that duplicate the SendUserMessage content).
+    // 三级过滤。Transcript 模式（ctrl+o 屏幕）是真正不过滤的。
+    // Brief-only：仅 SendUserMessage + 用户输入。默认：在调用了
+    // SendUserMessage 的轮次中丢弃冗余的 assistant 文本（模型的文本
+    // 属于工作笔记，与 SendUserMessage 内容重复）。
     const briefToolNames = [BRIEF_TOOL_NAME, SEND_USER_FILE_TOOL_NAME].filter((n): n is string => n !== null);
-    // dropTextInBriefTurns should only trigger on SendUserMessage turns —
-    // SendUserFile delivers a file without replacement text, so dropping
-    // assistant text for file-only turns would leave the user with no context.
+    // dropTextInBriefTurns 应仅在 SendUserMessage 的轮次触发 ——
+    // SendUserFile 只投递文件而没有替换文本，若在仅文件的轮次丢弃
+    // assistant 文本，用户将得不到任何上下文。
     const dropTextToolNames = [BRIEF_TOOL_NAME].filter((n): n is string => n !== null);
     const briefFiltered =
       briefToolNames.length > 0 && !isTranscriptMode
@@ -607,11 +599,11 @@ const MessagesImpl = ({
       lookupsCacheRef.current &&
       normalizedMessages.length >= lookupsCacheRef.current.normalizedCount &&
       (messagesToShow as MessageType[]).length >= lookupsCacheRef.current.messageCount &&
-      // If lastAssistantMsgId changed, previous "in-progress" assistant may
-      // now be orphaned — force a full rebuild to pick up the new status.
+      // 如果 lastAssistantMsgId 发生变化，此前「进行中」的 assistant
+      // 可能已变为孤儿 —— 强制完整重建以获取新状态。
       lookupsCacheRef.current.lastAssistantMsgId === currentLastAssistantMsgId
     ) {
-      // Try incremental update when only new messages were appended
+      // 仅追加新消息时尝试增量更新
       const updated = updateMessageLookupsIncremental(
         lookupsCacheRef.current.lookups,
         lookupsCacheRef.current.normalizedCount,
@@ -667,15 +659,15 @@ const MessagesImpl = ({
     isBriefOnly,
   ]);
 
-  // Cheap slice — only runs when scroll range or slice config changes.
+  // 廉价的切片 —— 仅在滚动范围或切片配置变化时执行。
   const renderableMessages = useMemo(() => {
-    // Safety cap for the non-virtualized render path. Applied here (not at
-    // the JSX site) so renderMessageRow's index-based lookups and
-    // dividerBeforeIndex compute on the same array. VirtualMessageList
-    // never sees this slice — virtualScrollRuntimeGate is constant for the
-    // component's lifetime (scrollRef is either always passed or never).
-    // renderRange is first: the chunked export path slices the
-    // post-grouping array so each chunk gets correct tool-call grouping.
+    // 非虚拟化渲染路径的安全上限。在此处（而非 JSX 处）应用，以便
+    // renderMessageRow 基于索引的 lookups 和 dividerBeforeIndex
+    // 在同一数组上计算。VirtualMessageList 永远不会看到此切片 ——
+    // virtualScrollRuntimeGate 在组件生命周期内为常量
+    // （scrollRef 要么始终传入，要么始终不传）。
+    // renderRange 优先：分块导出路径对分组后的数组进行切片，
+    // 以确保每个 chunk 都有正确的工具调用分组。
     const capApplies = !virtualScrollRuntimeGate && !disableRenderCap;
     const sliceStart = capApplies ? computeSliceStart(collapsed, sliceAnchorRef) : 0;
     return renderRange
@@ -690,8 +682,8 @@ const MessagesImpl = ({
     [streamingToolUses],
   );
 
-  // Divider insertion point and selected index: combined into a single pass
-  // over renderableMessages to avoid two separate findIndex traversals.
+  // 分割线插入点和选中索引：合并为对 renderableMessages 的一次遍历，
+  // 避免两次独立的 findIndex 遍历。
   const { dividerBeforeIndex, selectedIdx } = useMemo(() => {
     if (!unseenDivider && !cursor) return { dividerBeforeIndex: -1, selectedIdx: -1 };
     let dIdx = -1;
@@ -706,10 +698,10 @@ const MessagesImpl = ({
     return { dividerBeforeIndex: dIdx, selectedIdx: sIdx };
   }, [unseenDivider, cursor, renderableMessages]);
 
-  // Fullscreen: click a message to toggle verbose rendering for it. Keyed by
-  // tool_use_id where available so a tool_use and its tool_result (separate
-  // rows) expand together; falls back to uuid for groups/thinking. Stale keys
-  // are harmless — they never match anything in renderableMessages.
+  // 全屏：点击消息可切换其 verbose 渲染。以 tool_use_id 为 key（若可用），
+  // 使一个 tool_use 与其 tool_result（独立的两行）一起展开；对
+  // 分组/thinking 则回退到 uuid。过期 key 无害 —— 它们永远匹配不到
+  // renderableMessages 中的任何内容。
   const [expandedKeys, setExpandedKeys] = useState<ReadonlySet<string>>(() => new Set());
   const onItemClick = useCallback((msg: RenderableMessage) => {
     const k = expandKey(msg);
@@ -724,13 +716,12 @@ const MessagesImpl = ({
     (msg: RenderableMessage) => expandedKeys.size > 0 && expandedKeys.has(expandKey(msg)),
     [expandedKeys],
   );
-  // Only hover/click messages where the verbose toggle reveals more:
-  // collapsed read/search groups, or tool results that self-report truncation
-  // via isResultTruncated. Callback must be stable across message updates: if
-  // its identity (or return value) flips during streaming, onMouseEnter
-  // attaches after the mouse is already inside → hover never fires. tools is
-  // session-stable; lookups is read via ref so the callback doesn't churn on
-  // every new message.
+  // 仅对 verbose 切换后能展示更多内容的消息应用 hover/click：
+  // 折叠的 read/search 分组，或通过 isResultTruncated 自报为截断的工具
+  // 结果。回调必须在消息更新间保持稳定：如果其身份（或返回值）在流式
+  // 传输中翻转，onMouseEnter 会在鼠标已进入之后才挂载 → hover 永不触发。
+  // tools 在 session 内稳定；lookups 通过 ref 读取，因此回调不会因每条
+  // 新消息而抖动。
   const lookupsRef = useRef(lookups);
   lookupsRef.current = lookups;
   const isItemClickable = useCallback(
@@ -765,7 +756,7 @@ const MessagesImpl = ({
 
   const hasToolsInProgress = inProgressToolUseIDs.size > 0;
 
-  // Report progress to terminal (for terminals that support OSC 9;4)
+  // 向终端报告进度（适用于支持 OSC 9;4 的终端）
   const { progress } = useTerminalNotification();
   const prevProgressState = useRef<string | null>(null);
   const progressEnabled =
@@ -787,17 +778,16 @@ const MessagesImpl = ({
   const renderMessageRow = (msg: RenderableMessage, index: number) => {
     const prevType = index > 0 ? renderableMessages[index - 1]?.type : undefined;
     const isUserContinuation = msg.type === 'user' && prevType === 'user';
-    // hasContentAfter is only consumed for collapsed_read_search groups;
-    // skip the scan for everything else. streamingText is rendered as a
-    // sibling after this map, so it's never in renderableMessages — OR it
-    // in explicitly so the group flips to past tense as soon as text starts
-    // streaming instead of waiting for the block to finalize.
+    // hasContentAfter 仅用于 collapsed_read_search 分组；
+    // 其他情况跳过扫描。streamingText 作为本 map 之后的兄弟节点渲染，
+    // 因此永远不在 renderableMessages 中 —— 显式地 OR 它进来，使分组
+    // 在文本开始流式传输的瞬间翻转为过去时，而无需等待 block 完结。
     const hasContentAfter =
       msg.type === 'collapsed_read_search' &&
       (!!streamingText || hasContentAfterIndex(renderableMessages, index, tools, streamingToolUseIDs));
 
-    // Collapse diffs for messages beyond the latest N messages.
-    // verbose (ctrl+o) overrides and always shows full diffs.
+    // 对超过最新 N 条消息之外的消息折叠 diff。
+    // verbose（ctrl+o）会覆盖该行为并始终显示完整 diff。
     const DIFF_COLLAPSE_DISTANCE = 0;
     const shouldCollapseDiffs = renderableMessages.length - 1 - index > DIFF_COLLAPSE_DISTANCE;
 
@@ -825,8 +815,8 @@ const MessagesImpl = ({
       />
     );
 
-    // Per-row Provider — only 2 rows re-render on selection change.
-    // Wrapped BEFORE divider branch so both return paths get it.
+    // 每行一个 Provider —— 选中项变化时只有 2 行重新渲染。
+    // 在 divider 分支之前包裹，使两条返回路径都获得该 Provider。
     const wrapped = (
       <MessageActionsSelectedContext.Provider key={k} value={index === selectedIdx}>
         {row}
@@ -836,11 +826,7 @@ const MessagesImpl = ({
     if (unseenDivider && index === dividerBeforeIndex) {
       return [
         <Box key="unseen-divider" marginTop={1}>
-          <Divider
-            title={`${unseenDivider.count} new ${plural(unseenDivider.count, 'message')}`}
-            width={columns}
-            color="inactive"
-          />
+          <Divider title={`${unseenDivider.count} 条新消息`} width={columns} color="inactive" />
         </Box>,
         wrapped,
       ];
@@ -848,41 +834,41 @@ const MessagesImpl = ({
     return wrapped;
   };
 
-  // Search indexing: for tool_result messages, look up the Tool and use
-  // its extractSearchText — tool-owned, precise, matches what
-  // renderToolResultMessage shows. Falls back to renderableSearchText
-  // (duck-types toolUseResult) for tools that haven't implemented it,
-  // and for all non-tool-result message types. The drift-catcher test
-  // (searchExtraToolsText.test.tsx) renders + compares to keep these in sync.
+  // 搜索索引：对于 tool_result 消息，查找对应的 Tool 并使用其
+  // extractSearchText —— 由工具拥有、精确、与 renderToolResultMessage
+  // 展示的内容一致。对未实现该方法的工具以及所有非 tool_result 的消息
+  // 类型，回退到 renderableSearchText（对 toolUseResult 做 duck-typing）。
+  // drift-catcher 测试（searchExtraToolsText.test.tsx）会渲染并比较，
+  // 以保持两者同步。
   //
-  // A second-React-root reconcile approach was tried and ruled out
-  // (measured 3.1ms/msg, growing — flushSyncWork processes all roots;
-  // component hooks mutate shared state → main root accumulates updates).
+  // 曾尝试过基于第二个 React root 的调和方案，但被否决
+  // （实测 3.1ms/msg 且持续增长 —— flushSyncWork 处理所有 root；
+  // 组件 hook 会修改共享 state → 主 root 累积更新）。
   const searchTextCache = useRef(new WeakMap<RenderableMessage, string>());
   const extractSearchText = useCallback(
     (msg: RenderableMessage): string => {
       const cached = searchTextCache.current.get(msg);
       if (cached !== undefined) return cached;
       let text = renderableSearchText(msg);
-      // If this is a tool_result message and the tool implements
-      // extractSearchText, prefer that — it's precise (tool-owned)
-      // vs renderableSearchText's field-name heuristic.
+      // 如果这是一条 tool_result 消息，且该工具实现了
+      // extractSearchText，优先使用它 —— 它是精确的（由工具拥有），
+      // 相比 renderableSearchText 的字段名启发式方法。
       if (msg.type === 'user' && msg.toolUseResult && Array.isArray(msg.message.content)) {
         const tr = msg.message.content.find(b => b.type === 'tool_result');
         if (tr && 'tool_use_id' in tr) {
           const tu = lookups.toolUseByToolUseID.get(tr.tool_use_id);
           const tool = tu && findToolByName(tools, tu.name);
           const extracted = tool?.extractSearchText?.(msg.toolUseResult as never);
-          // undefined = tool didn't implement → keep heuristic. Empty
-          // string = tool says "nothing to index" → respect that.
+          // undefined = 工具未实现 → 保留启发式方法。空字符串
+          // = 工具表示「无可索引内容」 → 尊重该结果。
           if (extracted !== undefined) text = extracted;
         }
       }
-      // Cache LOWERED: setSearchQuery's hot loop indexOfs per keystroke.
-      // Lowering here (once, at warm) vs there (every keystroke) trades
-      // ~same steady-state memory for zero per-keystroke alloc. Cache
-      // GC's with messages on transcript exit. Tool methods return raw;
-      // renderableSearchText already lowercases (redundant but cheap).
+      // 缓存已小写化：setSearchQuery 的热循环中每次按键都会 indexOf。
+      // 在此处（预热时一次）转小写 vs 在那里（每次按键）转小写，在
+      // 稳态内存几乎相同的情况下换来零每次按键分配。缓存随消息在
+      // 退出 transcript 时被 GC。工具方法返回原始内容；
+      // renderableSearchText 本身已转小写（冗余但廉价）。
       const lowered = text.toLowerCase();
       searchTextCache.current.set(msg, lowered);
       return lowered;
@@ -895,36 +881,32 @@ const MessagesImpl = ({
       {/* Logo */}
       {!hideLogo && !(renderRange && renderRange[0] > 0) && <LogoHeader agentDefinitions={agentDefinitions} />}
 
-      {/* Truncation indicator */}
+      {/* 截断指示器 */}
       {hasTruncatedMessages && (
-        <Divider
-          title={`${toggleShowAllShortcut} to show ${chalk.bold(hiddenMessageCount)} previous messages`}
-          width={columns}
-        />
+        <Divider title={`${toggleShowAllShortcut} 显示此前 ${chalk.bold(hiddenMessageCount)} 条消息`} width={columns} />
       )}
 
-      {/* Show all indicator */}
+      {/* 「显示全部」指示器 */}
       {isTranscriptMode &&
         showAllInTranscript &&
         hiddenMessageCount > 0 &&
-        // disableRenderCap (e.g. [ dump-to-scrollback) means we're uncapped
-        // as a one-shot escape hatch, not a toggle — ctrl+e is dead and
-        // nothing is actually "hidden" to restore.
+        // disableRenderCap（例如 [ dump-to-scrollback）意味着我们以一次性
+        // 应急通道的方式解除上限，而非可切换的开关 —— 此时 ctrl+e 已失效，
+        // 也没有任何被「隐藏」的内容需要恢复。
         !disableRenderCap && (
           <Divider
-            title={`${toggleShowAllShortcut} to hide ${chalk.bold(hiddenMessageCount)} previous messages`}
+            title={`${toggleShowAllShortcut} 隐藏此前 ${chalk.bold(hiddenMessageCount)} 条消息`}
             width={columns}
           />
         )}
 
-      {/* Messages - rendered as memoized MessageRow components.
-          flatMap inserts the unseen-divider as a separate keyed sibling so
-          (a) non-fullscreen renders pay no per-message Fragment wrap, and
-          (b) divider toggle in fullscreen preserves all MessageRows by key.
-          Pre-compute derived values instead of passing renderableMessages to
-          each row - React Compiler pins props in the fiber's memoCache, so
-          passing the array would accumulate every historical version
-          (~1-2MB over a 7-turn session). */}
+      {/* 消息 —— 以 memo 化的 MessageRow 组件渲染。
+          flatMap 将 unseen-divider 作为独立的带 key 兄弟节点插入，这样
+          (a) 非全屏渲染无需为每条消息包裹 Fragment，且
+          (b) 全屏下切换 divider 时能按 key 保留所有 MessageRow。
+          预先计算派生值，而非把 renderableMessages 传给每一行 ——
+          React Compiler 会把 props 钉在 fiber 的 memoCache 中，因此
+          传入数组会累积每个历史版本（一个 7 轮 session 约为 1-2MB）。 */}
       {virtualScrollRuntimeGate ? (
         <InVirtualListContext.Provider value={true}>
           <VirtualMessageList
@@ -982,17 +964,17 @@ const MessagesImpl = ({
   );
 };
 
-/** Key for click-to-expand: tool_use_id where available (so tool_use + its
- *  tool_result expand together), else uuid for groups/thinking. */
+/** 点击展开用的 key：优先使用 tool_use_id（使 tool_use 与其
+ *  tool_result 一起展开），否则对分组/thinking 使用 uuid。 */
 function expandKey(msg: RenderableMessage): string {
   return (msg.type === 'assistant' || msg.type === 'user' ? getToolUseID(msg) : null) ?? msg.uuid;
 }
 
-// Custom comparator to prevent unnecessary re-renders during streaming.
-// Default React.memo does shallow comparison which fails when:
-// 1. onOpenRateLimitOptions callback is recreated (doesn't affect render output)
-// 2. streamingToolUses array is recreated on every delta, but only contentBlock matters for rendering
-// 3. streamingThinking changes on every delta - we DO want to re-render for this
+// 自定义比较器，避免流式传输过程中不必要的重渲染。
+// 默认 React.memo 做浅比较，在以下情况会失效：
+// 1. onOpenRateLimitOptions 回调被重新创建（不影响渲染输出）
+// 2. streamingToolUses 数组在每次 delta 时重建，但渲染只关心 contentBlock
+// 3. streamingThinking 在每次 delta 时变化 —— 此时确实需要重渲染
 function setsEqual<T>(a: Set<T>, b: Set<T>): boolean {
   if (a.size !== b.size) return false;
   for (const item of a) {
@@ -1043,8 +1025,8 @@ export const Messages = React.memo(MessagesImpl, (prev, next) => {
           continue;
         }
       }
-      // streamingThinking changes frequently - always re-render when it changes
-      // (no special handling needed, default behavior is correct)
+      // streamingThinking 频繁变化 —— 变化时总是重渲染
+      // （无需特殊处理，默认行为即可）
       return false;
     }
   }
@@ -1083,8 +1065,8 @@ export function shouldRenderStatically(
         return false;
       }
 
-      // Check if there are any unresolved PostToolUse hooks for this tool use
-      // If so, keep the message transient so the HookProgressMessage can update
+      // 检查该 tool use 是否存在未解析的 PostToolUse hook。
+      // 若存在，保持消息为瞬态，以便 HookProgressMessage 能更新。
       if (hasUnresolvedHooksFromLookup(toolUseID, 'PostToolUse', lookups)) {
         return false;
       }
@@ -1092,8 +1074,7 @@ export function shouldRenderStatically(
       return every(siblingToolUseIDs, lookups.resolvedToolUseIDs);
     }
     case 'system': {
-      // api errors always render dynamically, since we hide
-      // them as soon as we see another non-error message.
+      // api 错误总是动态渲染，因为一旦看到其他非错误消息就会隐藏它们。
       return message.subtype !== 'api_error';
     }
     case 'grouped_tool_use': {
@@ -1104,8 +1085,8 @@ export function shouldRenderStatically(
       return allResolved;
     }
     case 'collapsed_read_search': {
-      // In prompt mode, never mark as static to prevent flicker between API turns
-      // (In transcript mode, we already returned true at the top of this function)
+      // 在 prompt 模式下，永远不要标记为 static，以避免 API 轮次之间的闪烁
+      // （在 transcript 模式下，已在函数开头返回 true）
       return false;
     }
     default:

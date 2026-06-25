@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-// No mocks needed — multiStore.ts is pure fs, no log/debug/bun:bundle side effects.
+// 无需 mock — multiStore.ts 是纯 fs 操作，没有 log/debug/bun:bundle 副作用。
 
 describe('multiStore', () => {
   let tmpDir: string
@@ -18,37 +18,37 @@ describe('multiStore', () => {
     delete process.env['CLAUDE_CONFIG_DIR']
   })
 
-  test('listStores returns empty when no stores exist', async () => {
+  test('无 store 时 listStores 返回空数组', async () => {
     const { listStores } = await import('../multiStore.js')
     expect(listStores()).toEqual([])
   })
 
-  test('createStore creates a store directory', async () => {
+  test('createStore 创建 store 目录', async () => {
     const { createStore, listStores } = await import('../multiStore.js')
     createStore('my-store')
     expect(listStores()).toContain('my-store')
   })
 
-  test('createStore throws if store already exists', async () => {
+  test('store 已存在时 createStore 抛出异常', async () => {
     const { createStore } = await import('../multiStore.js')
     createStore('duplicate')
     expect(() => createStore('duplicate')).toThrow('already exists')
   })
 
-  test('setEntry and getEntry round-trip', async () => {
+  test('setEntry 与 getEntry 读写一致', async () => {
     const { createStore, setEntry, getEntry } = await import('../multiStore.js')
     createStore('notes')
     setEntry('notes', 'hello', '# Hello\nThis is a note.')
     expect(getEntry('notes', 'hello')).toBe('# Hello\nThis is a note.')
   })
 
-  test('getEntry returns null for missing key', async () => {
+  test('key 不存在时 getEntry 返回 null', async () => {
     const { createStore, getEntry } = await import('../multiStore.js')
     createStore('empty-store')
     expect(getEntry('empty-store', 'nonexistent')).toBeNull()
   })
 
-  test('cross-store isolation: entries in different stores do not bleed', async () => {
+  test('跨 store 隔离：不同 store 中的条目不互相渗透', async () => {
     const { createStore, setEntry, getEntry } = await import('../multiStore.js')
     createStore('store-a')
     createStore('store-b')
@@ -58,7 +58,7 @@ describe('multiStore', () => {
     expect(getEntry('store-b', 'shared-key')).toBe('value-from-b')
   })
 
-  test('listEntries returns keys in a store', async () => {
+  test('listEntries 返回 store 中的所有 key', async () => {
     const { createStore, setEntry, listEntries } = await import(
       '../multiStore.js'
     )
@@ -70,7 +70,7 @@ describe('multiStore', () => {
     expect(entries).toContain('beta')
   })
 
-  test('deleteEntry removes entry and returns true', async () => {
+  test('deleteEntry 删除条目并返回 true', async () => {
     const { createStore, setEntry, deleteEntry, getEntry } = await import(
       '../multiStore.js'
     )
@@ -80,13 +80,13 @@ describe('multiStore', () => {
     expect(getEntry('del-store', 'to-remove')).toBeNull()
   })
 
-  test('deleteEntry returns false for missing entry', async () => {
+  test('条目不存在时 deleteEntry 返回 false', async () => {
     const { createStore, deleteEntry } = await import('../multiStore.js')
     createStore('del-store-2')
     expect(deleteEntry('del-store-2', 'ghost')).toBe(false)
   })
 
-  test('archiveStore renames directory with .archived suffix', async () => {
+  test('archiveStore 将目录重命名并添加 .archived 后缀', async () => {
     const { createStore, archiveStore, listStores, listAllStores } =
       await import('../multiStore.js')
     createStore('to-archive')
@@ -95,7 +95,7 @@ describe('multiStore', () => {
     expect(listAllStores()).toContain('to-archive.archived')
   })
 
-  test('large entry round-trip (>500KB)', async () => {
+  test('大条目读写一致（>500KB）', async () => {
     const { createStore, setEntry, getEntry } = await import('../multiStore.js')
     createStore('large')
     const largeValue = 'A'.repeat(512 * 1024)
@@ -103,18 +103,17 @@ describe('multiStore', () => {
     expect(getEntry('large', 'big-entry')).toBe(largeValue)
   })
 
-  test('Unicode key is rejected (path-safety policy from PR-0a)', async () => {
+  test('Unicode key 被拒绝（PR-0a 的路径安全策略）', async () => {
     const { createStore, setEntry } = await import('../multiStore.js')
     createStore('unicode-store')
-    // Unicode keys are now rejected by validateKey to keep path-safety
-    // semantics OS-portable and to enable safe permission rule contents.
-    // Value can still contain unicode — only the key is constrained.
+    // Unicode key 现在由 validateKey 拒绝，以保持路径安全语义的 OS 可移植性，
+    // 并使权限规则内容安全。value 仍可包含 unicode——只有 key 受约束。
     expect(() =>
       setEntry('unicode-store', '日本語キー', 'value with 日本語'),
     ).toThrow(/invalid key chars/i)
   })
 
-  test('value with unicode is still stored fine (only key is constrained)', async () => {
+  test('包含 unicode 的 value 仍可正常存储（只有 key 受约束）', async () => {
     const { createStore, setEntry, getEntry } = await import('../multiStore.js')
     createStore('unicode-value-store')
     setEntry('unicode-value-store', 'ascii_key', 'value with 日本語 ✓')
@@ -123,11 +122,11 @@ describe('multiStore', () => {
     )
   })
 
-  test('backward compat: pre-existing a_b.md file remains readable as a_b key', async () => {
-    // Simulates the pre-PR-0a state where a user wrote setEntry('s', 'a_b', X)
-    // OR setEntry('s', 'a/b', X) — both produced a_b.md on disk. After PR-0a,
-    // the new validateKey rejects 'a/b' but accepts 'a_b'. Existing a_b.md
-    // files must still load via getEntry('s', 'a_b').
+  test('向后兼容：已存在的 a_b.md 文件仍可通过 a_b key 读取', async () => {
+    // 模拟 PR-0a 之前的状态：用户写了 setEntry('s', 'a_b', X)
+    // 或 setEntry('s', 'a/b', X)——两者都在磁盘上生成 a_b.md。PR-0a 之后，
+    // 新的 validateKey 拒绝 'a/b' 但接受 'a_b'。已有的 a_b.md 文件
+    // 必须仍能通过 getEntry('s', 'a_b') 读取。
     const { createStore, getEntry } = await import('../multiStore.js')
     createStore('compat-store')
     const storeDir = join(tmpDir, 'local-memory', 'compat-store')
@@ -135,20 +134,20 @@ describe('multiStore', () => {
     expect(getEntry('compat-store', 'a_b')).toBe('legacy content')
   })
 
-  test('key collision regression: a/b is rejected, no longer collides with a_b', async () => {
+  test('key 碰撞回归：a/b 被拒绝，不再与 a_b 碰撞', async () => {
     const { createStore, setEntry, getEntry } = await import('../multiStore.js')
     createStore('regression-store')
-    // a_b is valid and stored
+    // a_b 合法，可存储
     setEntry('regression-store', 'a_b', 'value-from-underscore')
-    // a/b is now rejected (would have collided pre-PR-0a)
+    // a/b 现在被拒绝（PR-0a 之前会与 a_b 碰撞）
     expect(() =>
       setEntry('regression-store', 'a/b', 'value-from-slash'),
     ).toThrow(/invalid key chars/i)
-    // a_b still has the correct value (no overwrite happened)
+    // a_b 仍保持正确的值（未被覆盖）
     expect(getEntry('regression-store', 'a_b')).toBe('value-from-underscore')
   })
 
-  test('Windows reserved name NUL is rejected (would silently lose data on Windows)', async () => {
+  test('Windows 保留名称 NUL 被拒绝（在 Windows 上会静默丢失数据）', async () => {
     const { createStore, setEntry } = await import('../multiStore.js')
     createStore('win-reserved')
     expect(() => setEntry('win-reserved', 'NUL', 'lost')).toThrow(
@@ -156,7 +155,7 @@ describe('multiStore', () => {
     )
   })
 
-  test('leading dot key is rejected (.gitconfig)', async () => {
+  test('以点开头的 key 被拒绝（如 .gitconfig）', async () => {
     const { createStore, setEntry } = await import('../multiStore.js')
     createStore('hidden-keys')
     expect(() => setEntry('hidden-keys', '.gitconfig', 'x')).toThrow(
@@ -165,11 +164,11 @@ describe('multiStore', () => {
   })
 })
 
-// ── I3 / E1: Path traversal regression tests ─────────────────────────────────
-// All these MUST throw BEFORE the fix lands (they test the invariant that
-// invalid store names are rejected before any file I/O occurs).
+// ── I3 / E1：路径遍历回归测试 ──────────────────────────────────────────────────
+// 所有这些测试在修复落地之前都必须抛出异常（测试的不变量是：
+// 非法 store 名称在任何文件 I/O 发生之前就被拒绝）。
 
-describe('multiStore: path traversal rejection (E1 regression)', () => {
+describe('multiStore：路径遍历拒绝（E1 回归）', () => {
   let tmpDir: string
 
   beforeEach(() => {
@@ -182,38 +181,38 @@ describe('multiStore: path traversal rejection (E1 regression)', () => {
     delete process.env['CLAUDE_CONFIG_DIR']
   })
 
-  test('store name ".." is rejected', async () => {
+  test('store 名称 ".." 被拒绝', async () => {
     const { setEntry } = await import('../multiStore.js')
     expect(() => setEntry('..', 'key', 'value')).toThrow()
   })
 
-  test('store name "a/b" is rejected', async () => {
+  test('store 名称 "a/b" 被拒绝', async () => {
     const { setEntry } = await import('../multiStore.js')
     expect(() => setEntry('a/b', 'key', 'value')).toThrow()
   })
 
-  test('store name "a\\\\b" is rejected', async () => {
+  test('store 名称 "a\\\\b" 被拒绝', async () => {
     const { setEntry } = await import('../multiStore.js')
     expect(() => setEntry('a\\b', 'key', 'value')).toThrow()
   })
 
-  test('store name with null byte is rejected', async () => {
+  test('包含 null 字节的 store 名称被拒绝', async () => {
     const { setEntry } = await import('../multiStore.js')
     expect(() => setEntry('foo\x00bar', 'key', 'value')).toThrow()
   })
 
-  test('store name "C:hack" (Windows drive prefix) is rejected', async () => {
+  test('store 名称 "C:hack"（Windows 驱动器前缀）被拒绝', async () => {
     const { setEntry } = await import('../multiStore.js')
     expect(() => setEntry('C:hack', 'key', 'value')).toThrow()
   })
 
-  test('store name that resolves outside base dir is rejected', async () => {
+  test('解析后超出 base 目录的 store 名称被拒绝', async () => {
     const { setEntry } = await import('../multiStore.js')
-    // An encoded-style path that could escape
+    // 可能逃逸的编码风格路径
     expect(() => setEntry('../escape', 'key', 'value')).toThrow()
   })
 
-  test('store name too long (>255 chars) is rejected', async () => {
+  test('store 名称过长（>255 字符）被拒绝', async () => {
     const { setEntry } = await import('../multiStore.js')
     const longName = 'a'.repeat(256)
     expect(() => setEntry(longName, 'key', 'value')).toThrow()

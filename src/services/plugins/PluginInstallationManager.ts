@@ -1,8 +1,8 @@
 /**
- * Background plugin and marketplace installation manager
+ * 后台 plugin 和 marketplace 安装管理器
  *
- * This module handles automatic installation of plugins and marketplaces
- * from trusted sources (repository and user settings) without blocking startup.
+ * 本模块负责从可信来源（repository 和用户设置）自动安装 plugin 和 marketplace，
+ * 且不阻塞启动流程。
  */
 
 import type { AppState } from '../../state/AppState.js'
@@ -25,7 +25,7 @@ import { logEvent } from '../analytics/index.js'
 type SetAppState = (f: (prevState: AppState) => AppState) => void
 
 /**
- * Update marketplace installation status in app state
+ * 更新 app state 中的 marketplace 安装状态
  */
 function updateMarketplaceStatus(
   setAppState: SetAppState,
@@ -48,14 +48,13 @@ function updateMarketplaceStatus(
 }
 
 /**
- * Perform background plugin startup checks and installations.
+ * 执行后台 plugin 启动检查和安装。
  *
- * This is a thin wrapper around reconcileMarketplaces() that maps onProgress
- * events to AppState updates for the REPL UI. After marketplaces are
- * reconciled:
- * - New installs → auto-refresh plugins (fixes "plugin-not-found" errors
- *   from the initial cache-only load on fresh homespace/cleared cache)
- * - Updates only → set needsRefresh, show notification for /reload-plugins
+ * 这是 reconcileMarketplaces() 的薄包装层，负责将 onProgress 事件
+ * 映射为 REPL UI 的 AppState 更新。marketplace 协调完成后：
+ * - 新安装 → 自动刷新 plugin（修复新 homespace / 清空缓存时初次仅从缓存加载
+ *   导致的"plugin-not-found"错误）
+ * - 仅更新 → 设置 needsRefresh，展示 /reload-plugins 通知
  */
 export async function performBackgroundPluginInstallations(
   setAppState: SetAppState,
@@ -63,7 +62,7 @@ export async function performBackgroundPluginInstallations(
   logForDebugging('performBackgroundPluginInstallations called')
 
   try {
-    // Compute diff upfront for initial UI status (pending spinners)
+    // 提前计算 diff，用于初始 UI 状态（pending 加载动画）
     const declared = getDeclaredMarketplaces()
     const materialized = await loadKnownMarketplacesConfig().catch(() => ({}))
     const diff = diffMarketplaces(declared, materialized)
@@ -73,9 +72,9 @@ export async function performBackgroundPluginInstallations(
       ...diff.sourceChanged.map(c => c.name),
     ]
 
-    // Initialize AppState with pending status. No per-plugin pending status —
-    // plugin load is fast (cache hit or local copy); marketplace clone is the
-    // slow part worth showing progress for.
+    // 用 pending 状态初始化 AppState。无需 per-plugin 的 pending 状态——
+    // plugin 加载很快（命中缓存或本地副本）；marketplace clone 才是
+    // 值得展示进度的慢操作。
     setAppState(prev => ({
       ...prev,
       plugins: {
@@ -133,11 +132,11 @@ export async function performBackgroundPluginInstallations(
     )
 
     if (result.installed.length > 0) {
-      // New marketplaces were installed — auto-refresh plugins. This fixes
-      // "Plugin not found in marketplace" errors from the initial cache-only
-      // load (e.g., fresh homespace where marketplace cache was empty).
-      // refreshActivePlugins clears all caches, reloads plugins, and bumps
-      // pluginReconnectKey so MCP connections are re-established.
+      // 新 marketplace 已安装——自动刷新 plugin。这修复了从初次仅缓存加载
+      // 时出现的"Plugin not found in marketplace"错误
+      //（例如 marketplace 缓存为空的全新 homespace）。
+      // refreshActivePlugins 会清除所有缓存、重新加载 plugin，
+      // 并递增 pluginReconnectKey 以重建 MCP 连接。
       clearMarketplacesCache()
       logForDebugging(
         `Auto-refreshing plugins after ${result.installed.length} new marketplace(s) installed`,
@@ -145,8 +144,8 @@ export async function performBackgroundPluginInstallations(
       try {
         await refreshActivePlugins(setAppState)
       } catch (refreshError) {
-        // If auto-refresh fails, fall back to needsRefresh notification so
-        // the user can manually run /reload-plugins to recover.
+        // 若自动刷新失败，回退到 needsRefresh 通知，
+        // 让用户可以手动运行 /reload-plugins 来恢复。
         logError(refreshError)
         logForDebugging(
           `Auto-refresh failed, falling back to needsRefresh: ${refreshError}`,
@@ -164,8 +163,8 @@ export async function performBackgroundPluginInstallations(
         })
       }
     } else if (result.updated.length > 0) {
-      // Existing marketplaces updated — notify user to run /reload-plugins.
-      // Updates are less urgent and the user should choose when to apply them.
+      // 已有 marketplace 有更新——通知用户运行 /reload-plugins。
+      // 更新不那么紧迫，用户可自行决定何时应用。
       clearMarketplacesCache()
       clearPluginCache(
         'performBackgroundPluginInstallations: marketplaces reconciled',

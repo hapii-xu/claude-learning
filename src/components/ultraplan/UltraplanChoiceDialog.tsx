@@ -109,13 +109,13 @@ export function UltraplanChoiceDialog({
         case 'here':
           enqueuePendingNotification({
             value: [
-              'Ultraplan approved in browser. Here is the plan:',
+              'Ultraplan 已在浏览器中批准。以下是计划：',
               '',
               '<ultraplan>',
               plan,
               '</ultraplan>',
               '',
-              'The user approved this plan in the remote session. Give them a brief summary, then start implementing.',
+              '用户已在远程会话中批准此计划。先给他们一个简短的总结，然后开始实施。',
             ].join('\n'),
             mode: 'task-notification',
           });
@@ -139,14 +139,14 @@ export function UltraplanChoiceDialog({
             setMessages(prev => [
               ...prev,
               createSystemMessage(
-                `Previous session saved · resume with: claude --resume ${previousSessionId}`,
+                `上一个会话已保存 · 使用以下命令恢复：claude --resume ${previousSessionId}`,
                 'suggestion',
               ),
             ]);
           }
 
           enqueuePendingNotification({
-            value: `Here is the approved implementation plan:\n\n${plan}\n\nImplement this plan.`,
+            value: `以下是已批准的实施计划：\n\n${plan}\n\n请实施此计划。`,
             mode: 'prompt',
           });
           break;
@@ -155,7 +155,7 @@ export function UltraplanChoiceDialog({
           await writeFile(savePath, plan, { encoding: 'utf-8' });
           setMessages(prev => [
             ...prev,
-            createSystemMessage(`Ultraplan rejected · Plan saved to ${toRelativePath(savePath)}`, 'suggestion'),
+            createSystemMessage(`Ultraplan 已被拒绝 · 计划已保存到 ${toRelativePath(savePath)}`, 'suggestion'),
           ]);
           break;
         }
@@ -183,19 +183,19 @@ export function UltraplanChoiceDialog({
   const options: Array<{ label: string; value: ChoiceValue; description: string }> = React.useMemo(
     () => [
       {
-        label: 'Implement here',
+        label: '在当前会话实施',
         value: 'here' as const,
-        description: 'Inject plan into the current conversation',
+        description: '将计划注入当前对话',
       },
       {
-        label: 'Start new session',
+        label: '开启新会话',
         value: 'fresh' as const,
-        description: 'Clear conversation and start with only the plan',
+        description: '清空对话，仅以计划开始',
       },
       {
-        label: 'Cancel',
+        label: '取消',
         value: 'cancel' as const,
-        description: "Don't implement — save plan and return",
+        description: '不实施 — 保存计划并返回',
       },
     ],
     [],
@@ -203,12 +203,7 @@ export function UltraplanChoiceDialog({
 
   // ── 渲染 ─────────────────────────────────────────────────────────
   return (
-    <Dialog
-      title="Ultraplan approved"
-      subtitle="How should the plan be implemented?"
-      onCancel={() => {}}
-      hideInputGuide
-    >
+    <Dialog title="Ultraplan 已批准" subtitle="计划应如何实施？" onCancel={() => {}} hideInputGuide>
       <Box flexDirection="column" marginBottom={1}>
         {/* 计划预览 */}
         <Box flexDirection="column" marginBottom={1}>
@@ -218,9 +213,9 @@ export function UltraplanChoiceDialog({
               {canScrollUp ? figures.arrowUp : ' '}
               {canScrollDown ? figures.arrowDown : ' '} {scrollOffset + 1}–
               {Math.min(scrollOffset + visibleHeight, wrappedLines.length)}
-              {' of '}
+              {' / '}
               {wrappedLines.length}
-              {' · ctrl+u/ctrl+d to scroll'}
+              {' · ctrl+u/ctrl+d 滚动'}
             </Text>
           )}
         </Box>

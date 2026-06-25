@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { isSnipBoundaryMessage, projectSnippedView } from '../snipProjection.js'
 import type { Message } from 'src/types/message.js'
 
-// --- Helpers ---
+// --- 辅助函数 ---
 
 function makeMessage(uuid: string, type: Message['type'] = 'user'): Message {
   return {
@@ -39,7 +39,7 @@ function makeSnipBoundary(uuid: string, removedUuids: string[]): Message {
   })
 }
 
-// --- isSnipBoundaryMessage ---
+// --- isSnipBoundaryMessage 测试 ---
 
 describe('isSnipBoundaryMessage', () => {
   test('returns true for system message with snip_boundary subtype', () => {
@@ -68,13 +68,13 @@ describe('isSnipBoundaryMessage', () => {
   })
 })
 
-// --- projectSnippedView ---
+// --- projectSnippedView 测试 ---
 
 describe('projectSnippedView', () => {
   test('returns same array when no boundaries exist', () => {
     const msgs = [makeMessage('a'), makeMessage('b')]
     const result = projectSnippedView(msgs)
-    expect(result).toBe(msgs) // same reference — no copy
+    expect(result).toBe(msgs) // 相同引用——无拷贝
   })
 
   test('filters out messages listed in removedUuids', () => {

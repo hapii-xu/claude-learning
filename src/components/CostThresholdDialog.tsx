@@ -8,16 +8,16 @@ type Props = {
 
 export function CostThresholdDialog({ onDone }: Props): React.ReactNode {
   return (
-    <Dialog title="You've spent $5 on the Anthropic API this session." onCancel={onDone}>
+    <Dialog title="本次会话您已在 Anthropic API 上消费了 $5。" onCancel={onDone}>
       <Box flexDirection="column">
-        <Text>Learn more about how to monitor your spending:</Text>
+        <Text>了解更多关于如何监控消费的方法：</Text>
         <Link url="https://code.claude.com/docs/en/costs" />
       </Box>
       <Select
         options={[
           {
             value: 'ok',
-            label: 'Got it, thanks!',
+            label: '知道了，谢谢！',
           },
         ]}
         onChange={onDone}

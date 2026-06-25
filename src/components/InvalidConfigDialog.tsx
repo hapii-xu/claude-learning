@@ -20,7 +20,7 @@ interface InvalidConfigDialogProps {
 }
 
 /**
- * Dialog shown when the Claude config file contains invalid JSON
+ * 当 Claude 配置文件包含无效 JSON 时显示的对话框
  */
 function InvalidConfigDialog({
   filePath,
@@ -28,7 +28,7 @@ function InvalidConfigDialog({
   onExit,
   onReset,
 }: InvalidConfigDialogProps): React.ReactNode {
-  // Handler for Select onChange
+  // Select 的 onChange 处理函数
   const handleSelect = (value: string) => {
     if (value === 'exit') {
       onExit();
@@ -38,19 +38,19 @@ function InvalidConfigDialog({
   };
 
   return (
-    <Dialog title="Configuration Error" color="error" onCancel={onExit}>
+    <Dialog title="配置错误" color="error" onCancel={onExit}>
       <Box flexDirection="column" gap={1}>
         <Text>
-          The configuration file at <Text bold>{filePath}</Text> contains invalid JSON.
+          位于 <Text bold>{filePath}</Text> 的配置文件包含无效的 JSON。
         </Text>
         <Text>{errorDescription}</Text>
       </Box>
       <Box flexDirection="column">
-        <Text bold>Choose an option:</Text>
+        <Text bold>请选择一个选项：</Text>
         <Select
           options={[
-            { label: 'Exit and fix manually', value: 'exit' },
-            { label: 'Reset with default configuration', value: 'reset' },
+            { label: '退出并手动修复', value: 'exit' },
+            { label: '重置为默认配置', value: 'reset' },
           ]}
           onChange={handleSelect}
           onCancel={onExit}
@@ -61,19 +61,19 @@ function InvalidConfigDialog({
 }
 
 /**
- * Safe fallback theme name for error dialogs to avoid circular dependency.
- * Uses a hardcoded dark theme that doesn't require reading from config.
+ * 用于错误对话框的安全回退主题名，避免循环依赖。
+ * 使用硬编码的暗色主题，无需从配置读取。
  */
 const SAFE_ERROR_THEME_NAME: ThemeName = 'dark';
 
 export async function showInvalidConfigDialog({ error }: InvalidConfigHandlerProps): Promise<void> {
-  // Extend RenderOptions with theme property for this specific usage
+  // 为此特定用法扩展 RenderOptions，增加 theme 属性
   type SafeRenderOptions = Parameters<typeof render>[1] & { theme?: ThemeName };
 
   const renderOptions: SafeRenderOptions = {
     ...getBaseRenderOptions(false),
-    // IMPORTANT: Use hardcoded theme name to avoid circular dependency with getGlobalConfig()
-    // This allows the error dialog to show even when config file has JSON syntax errors
+    // 重要：使用硬编码的主题名以避免与 getGlobalConfig() 的循环依赖
+    // 这使得即便配置文件有 JSON 语法错误，错误对话框也能正常显示
     theme: SAFE_ERROR_THEME_NAME,
   };
 

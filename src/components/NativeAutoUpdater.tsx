@@ -14,7 +14,7 @@ import { gt } from '../utils/semver.js';
 import { getInitialSettings } from '../utils/settings/settings.js';
 
 /**
- * Categorize error messages for analytics
+ * 对错误消息进行分类，用于分析
  */
 function getErrorType(errorMessage: string): string {
   if (errorMessage.includes('timeout')) {
@@ -66,10 +66,9 @@ export function NativeAutoUpdater({
   const updateSemver = useUpdateNotification(autoUpdaterResult?.version);
   const channel = getInitialSettings()?.autoUpdatesChannel ?? 'latest';
 
-  // Track latest isUpdating value in a ref so the memoized checkForUpdates
-  // callback always sees the current value without changing callback identity
-  // (which would re-trigger the initial-check useEffect below and cause
-  // repeated downloads on remount — the upstream trigger for #22413).
+  // 用 ref 跟踪最新的 isUpdating 值，这样被 memoize 的 checkForUpdates
+  // 回调总能读到当前值，而不会改变回调身份（否则会重新触发下面的初始检查
+  // useEffect，导致重新挂载时重复下载 —— 即 #22413 的上游触发原因）。
   const isUpdatingRef = useRef(isUpdating);
   isUpdatingRef.current = isUpdating;
 
@@ -79,7 +78,7 @@ export function NativeAutoUpdater({
     }
 
     if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
-      logForDebugging('NativeAutoUpdater: Skipping update check in test/dev environment');
+      logForDebugging('NativeAutoUpdater: 在 test/dev 环境中跳过更新检查');
       return;
     }
 
@@ -90,11 +89,11 @@ export function NativeAutoUpdater({
     onChangeIsUpdating(true);
     const startTime = Date.now();
 
-    // Log the start of an auto-update check for funnel analysis
+    // 记录一次自动更新检查的开始，用于漏斗分析
     logEvent('tengu_native_auto_updater_start', {});
 
     try {
-      // Check if current version is above the max allowed version
+      // 检查当前版本是否高于允许的最大版本
       const maxVersion = await getMaxVersion();
       if (maxVersion && gt(MACRO.VERSION, maxVersion)) {
         const msg = await getMaxVersionMessage();
@@ -105,15 +104,15 @@ export function NativeAutoUpdater({
       const currentVersion = MACRO.VERSION;
       const latencyMs = Date.now() - startTime;
 
-      // Handle lock contention gracefully - just return without treating as error
+      // 优雅地处理锁竞争 - 直接返回，不当作错误处理
       if (result.lockFailed) {
         logEvent('tengu_native_auto_updater_lock_contention', {
           latency_ms: latencyMs,
         });
-        return; // Silently skip this update check, will try again later
+        return; // 静默跳过本次更新检查，稍后会再尝试
       }
 
-      // Update versions for display
+      // 更新用于显示的版本信息
       setVersions({ current: currentVersion, latest: result.latestVersion });
 
       if (result.wasUpdated) {
@@ -126,7 +125,7 @@ export function NativeAutoUpdater({
           status: 'success',
         });
       } else {
-        // Already up to date
+        // 已是最新版本
         logEvent('tengu_native_auto_updater_up_to_date', {
           latency_ms: latencyMs,
         });
@@ -155,26 +154,25 @@ export function NativeAutoUpdater({
     } finally {
       onChangeIsUpdating(false);
     }
-    // isUpdating intentionally omitted from deps; we read isUpdatingRef
-    // instead so the guard is always current without changing callback
-    // identity (which would re-trigger the initial-check useEffect below).
+    // isUpdating 有意不放入依赖；我们改为读取 isUpdatingRef，
+    // 这样守卫条件始终是最新值，又不会改变回调身份（否则会重新触发下面的初始检查 useEffect）。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onAutoUpdaterResult, channel]);
 
-  // Initial check
+  // 初始检查
   useEffect(() => {
     void checkForUpdates();
   }, [checkForUpdates]);
 
-  // Check every 30 minutes
+  // 每 30 分钟检查一次
   useInterval(checkForUpdates, 30 * 60 * 1000);
 
   const hasUpdateResult = !!autoUpdaterResult?.version;
   const hasVersionInfo = !!versions.current && !!versions.latest;
-  // Show the component when:
-  // - warning banner needed (above max version), or
-  // - there's an update result to display (success/error), or
-  // - actively checking and we have version info to show
+  // 在以下情况下显示该组件：
+  // - 需要警告横幅（版本高于最大版本），或
+  // - 有需要显示的更新结果（成功/错误），或
+  // - 正在检查且我们有可显示的版本信息
   const shouldRender = !!maxVersionIssue || hasUpdateResult || (isUpdating && hasVersionInfo);
 
   if (!shouldRender) {
@@ -185,13 +183,13 @@ export function NativeAutoUpdater({
     <Box flexDirection="row" gap={1}>
       {verbose && (
         <Text dimColor wrap="truncate">
-          current: {versions.current} &middot; {channel}: {versions.latest}
+          当前: {versions.current} &middot; {channel}: {versions.latest}
         </Text>
       )}
       {isUpdating ? (
         <Box>
           <Text dimColor wrap="truncate">
-            Checking for updates
+            正在检查更新
           </Text>
         </Box>
       ) : (
@@ -199,18 +197,18 @@ export function NativeAutoUpdater({
         showSuccessMessage &&
         updateSemver && (
           <Text color="success" wrap="truncate">
-            ✓ Update installed · Restart to update
+            ✓ 更新已安装 · 重启以应用更新
           </Text>
         )
       )}
       {autoUpdaterResult?.status === 'install_failed' && (
         <Text color="error" wrap="truncate">
-          ✗ Auto-update failed &middot; Try <Text bold>/status</Text>
+          ✗ 自动更新失败 &middot; 请尝试 <Text bold>/status</Text>
         </Text>
       )}
       {maxVersionIssue && process.env.USER_TYPE === 'ant' && (
         <Text color="warning">
-          ⚠ Known issue: {maxVersionIssue} &middot; Run <Text bold>claude rollback --safe</Text> to downgrade
+          ⚠ 已知问题：{maxVersionIssue} &middot; 运行 <Text bold>claude rollback --safe</Text> 以降级
         </Text>
       )}
     </Box>

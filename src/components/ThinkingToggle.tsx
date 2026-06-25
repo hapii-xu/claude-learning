@@ -21,17 +21,17 @@ export function ThinkingToggle({ currentValue, onSelect, onCancel, isMidConversa
   const options = [
     {
       value: 'true',
-      label: 'Enabled',
-      description: 'Claude will think before responding',
+      label: '已启用',
+      description: 'Claude 在回复前会先思考',
     },
     {
       value: 'false',
-      label: 'Disabled',
-      description: 'Claude will respond without extended thinking',
+      label: '已禁用',
+      description: 'Claude 不使用扩展思考直接回复',
     },
   ];
 
-  // Use configurable keybinding for ESC to cancel/go back
+  // 为 ESC 使用可配置的 keybinding，用于取消/返回
   useKeybinding(
     'confirm:no',
     () => {
@@ -44,7 +44,7 @@ export function ThinkingToggle({ currentValue, onSelect, onCancel, isMidConversa
     { context: 'Confirmation' },
   );
 
-  // Use configurable keybinding for Enter to confirm in confirmation mode
+  // 为确认模式下的 Enter 使用可配置的 keybinding
   useKeybinding(
     'confirm:yes',
     () => {
@@ -69,18 +69,17 @@ export function ThinkingToggle({ currentValue, onSelect, onCancel, isMidConversa
       <Box flexDirection="column">
         <Box marginBottom={1} flexDirection="column">
           <Text color="remember" bold>
-            Toggle thinking mode
+            切换思考模式
           </Text>
-          <Text dimColor>Enable or disable thinking for this session.</Text>
+          <Text dimColor>为此会话启用或禁用思考。</Text>
         </Box>
 
         {confirmationPending !== null ? (
           <Box flexDirection="column" marginBottom={1} gap={1}>
             <Text color="warning">
-              Changing thinking mode mid-conversation will increase latency and may reduce quality. For best results,
-              set this at the start of a session.
+              在对话过程中切换思考模式会增加延迟，并可能降低质量。为获得最佳效果， 请在会话开始时设置。
             </Text>
-            <Text color="warning">Do you want to proceed?</Text>
+            <Text color="warning">是否要继续？</Text>
           </Box>
         ) : (
           <Box flexDirection="column" marginBottom={1}>
@@ -97,7 +96,7 @@ export function ThinkingToggle({ currentValue, onSelect, onCancel, isMidConversa
       </Box>
       <Text dimColor italic>
         {exitState.pending ? (
-          <>Press {exitState.keyName} again to exit</>
+          <>再按一次 {exitState.keyName} 退出</>
         ) : confirmationPending !== null ? (
           <Byline>
             <KeyboardShortcutHint shortcut="Enter" action="confirm" />

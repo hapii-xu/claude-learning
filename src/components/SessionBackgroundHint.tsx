@@ -17,12 +17,12 @@ type Props = {
 };
 
 /**
- * Shows a hint when user presses Ctrl+B to background the current session.
- * Uses double-press pattern: first press shows hint, second press within 800ms backgrounds.
+ * 当用户按 Ctrl+B 将当前会话转入后台时显示提示。
+ * 采用双击模式：第一次按下显示提示，800ms 内第二次按下则转入后台。
  *
- * Only activates when:
- * 1. isLoading is true (a query is in progress)
- * 2. No foreground tasks (bash/agent) are running (those take priority for Ctrl+B)
+ * 仅在以下条件满足时激活：
+ * 1. isLoading 为 true（有 query 正在进行）
+ * 2. 没有正在运行的前台任务（bash/agent）（它们对 Ctrl+B 有更高优先级）
  */
 export function SessionBackgroundHint({ onBackgroundSession, isLoading }: Props): React.ReactElement | null {
   const setAppState = useSetAppState();
@@ -33,30 +33,30 @@ export function SessionBackgroundHint({ onBackgroundSession, isLoading }: Props)
   const handleDoublePress = useDoublePress(
     setShowSessionHint,
     onBackgroundSession,
-    () => {}, // First press just shows the hint
+    () => {}, // 第一次按下仅显示提示
   );
 
-  // Handler for task:background - prioritizes foreground tasks, falls back to session backgrounding
-  // Skip all background functionality if background tasks are disabled
+  // task:background 的处理器 —— 优先处理前台任务，回退到会话后台化
+  // 如果禁用了后台任务，则跳过所有后台功能
   const handleBackground = useCallback(() => {
     if (isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_BACKGROUND_TASKS)) {
       return;
     }
     const state = appStateStore.getState();
     if (hasForegroundTasks(state)) {
-      // Existing behavior - background running bash/agent tasks
+      // 现有行为 —— 将正在运行的 bash/agent 任务转入后台
       backgroundAll(() => appStateStore.getState(), setAppState);
       if (!getGlobalConfig().hasUsedBackgroundTask) {
         saveGlobalConfig(c => (c.hasUsedBackgroundTask ? c : { ...c, hasUsedBackgroundTask: true }));
       }
     } else if (isEnvTruthy('false') && isLoading) {
-      // New behavior - double-press to background session (gated)
+      // 新行为 —— 双击将会话转入后台（受开关控制）
       handleDoublePress();
     }
   }, [setAppState, appStateStore, isLoading, handleDoublePress]);
 
-  // Only eat ctrl+b when there's something to background. Without this gate
-  // the binding double-fires with readline backward-char at an idle prompt.
+  // 只在有东西可以转入后台时才吞掉 ctrl+b。如果没有这道门槛，
+  // 绑定会与 readline 的 backward-char 在空闲 prompt 下重复触发。
   const hasForeground = useAppState(hasForegroundTasks);
   const sessionBgEnabled = isEnvTruthy('false');
   useKeybinding('task:background', handleBackground, {
@@ -64,9 +64,9 @@ export function SessionBackgroundHint({ onBackgroundSession, isLoading }: Props)
     isActive: hasForeground || (sessionBgEnabled && isLoading),
   });
 
-  // Get the configured shortcut for task:background
+  // 获取 task:background 的已配置快捷键
   const baseShortcut = useShortcutDisplay('task:background', 'Task', 'ctrl+b');
-  // In tmux, ctrl+b is the prefix key, so users need to press it twice to send ctrl+b
+  // 在 tmux 中，ctrl+b 是前缀键，所以用户需要按两次才能发送 ctrl+b
   const shortcut = env.terminal === 'tmux' && baseShortcut === 'ctrl+b' ? 'ctrl+b ctrl+b' : baseShortcut;
 
   if (!isLoading || !showSessionHint) {

@@ -16,12 +16,12 @@ type Props = {
 };
 
 export function SessionPreview({ log, onExit, onSelect }: Props): React.ReactNode {
-  // fullLog holds the complete log with messages loaded.
-  // The input `log` may be a "lite log" (empty messages array),
-  // so we load the full messages on mount and store them here.
+  // fullLog 保存带有已加载 messages 的完整日志。
+  // 传入的 `log` 可能是一个 "lite log"（messages 数组为空），
+  // 所以我们在挂载时加载完整 messages 并存储在这里。
   const [fullLog, setFullLog] = React.useState<LogOption | null>(null);
 
-  // Load full messages if this is a lite log
+  // 如果是 lite log，则加载完整的 messages
   React.useEffect(() => {
     setFullLog(null);
     if (isLiteLog(log)) {
@@ -33,10 +33,10 @@ export function SessionPreview({ log, onExit, onSelect }: Props): React.ReactNod
   const displayLog = fullLog ?? log;
   const conversationId = getSessionIdFromLog(displayLog) || ('' as UUID);
 
-  // Get all base tools for preview (no permissions needed for read-only view)
+  // 为预览获取所有 base tools（只读视图不需要权限）
   const tools = getAllBaseTools();
 
-  // Handle keyboard input via keybindings
+  // 通过 keybindings 处理键盘输入
   useKeybinding('confirm:no', onExit, { context: 'Confirmation' });
 
   const handleSelect = useCallback(() => {
@@ -45,11 +45,11 @@ export function SessionPreview({ log, onExit, onSelect }: Props): React.ReactNod
 
   useKeybinding('confirm:yes', handleSelect, { context: 'Confirmation' });
 
-  // Show loading state while fetching full log
+  // 获取完整日志时显示加载状态
   if (isLoading) {
     return (
       <Box flexDirection="column" padding={1}>
-        <LoadingState message="Loading session…" />
+        <LoadingState message="正在加载会话…" />
         <Text dimColor>
           <Byline>
             <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="cancel" />
@@ -87,7 +87,7 @@ export function SessionPreview({ log, onExit, onSelect }: Props): React.ReactNod
         paddingLeft={2}
       >
         <Text>
-          {formatRelativeTimeAgo(displayLog.modified)} · {displayLog.messageCount} messages
+          {formatRelativeTimeAgo(displayLog.modified)} · {displayLog.messageCount} 条消息
           {displayLog.gitBranch ? ` · ${displayLog.gitBranch}` : ''}
         </Text>
         <Text dimColor>

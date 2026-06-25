@@ -46,13 +46,13 @@ export type Props = {
   onCancel?: () => void;
   isStandaloneCommand?: boolean;
   showFastModeNotice?: boolean;
-  /** Overrides the dim header line below "Select model". */
+  /** 覆盖 "Select model" 下方的灰色标题行。 */
   headerText?: string;
   /**
-   * When true, skip writing effortLevel to userSettings on selection.
-   * Used by the assistant installer wizard where the model choice is
-   * project-scoped (written to the assistant's .hclaude/settings.json via
-   * install.ts) and should not leak to the user's global ~/.hclaude/settings.
+   * 为 true 时，选择时跳过把 effortLevel 写入 userSettings。
+   * 用于 assistant 安装向导 —— 那里的模型选择是项目级作用域（通过
+   * install.ts 写入 assistant 的 .hclaude/settings.json），不应泄漏到
+   * 用户全局的 ~/.hclaude/settings。
    */
   skipSettingsWrite?: boolean;
 };
@@ -84,9 +84,9 @@ export function ModelPicker({
 
   const handleToggle1M = useCallback(() => {
     if (!focusedValue || focusedValue === NO_PREFERENCE) return;
-    // Key on the base value so lookups in handleSelect / is1MMarked match the
-    // initializer — predefined 1M options arrive with a `[1m]` suffix in
-    // `focusedValue`, which would diverge from the base-value key set.
+    // 以基础值作为 key，这样 handleSelect / is1MMarked 中的查找能与
+    // 初始化器匹配 —— 预定义的 1M 选项在 `focusedValue` 中带有 `[1m]`
+    // 后缀，如果直接用它作 key 会与基础值 key 集合不一致。
     const baseKey = focusedValue.replace(/\[1m\]/i, '');
     setMarked1MValues(prev => {
       const next = new Set(prev);
@@ -105,12 +105,12 @@ export function ModelPicker({
     effortValue !== undefined ? convertEffortValueToLevel(effortValue) : undefined,
   );
 
-  // Memoize all derived values to prevent re-renders
+  // 对所有派生值做记忆化以避免重新渲染
   const modelOptions = useMemo(() => getModelOptions(isFastMode ?? false), [isFastMode]);
 
-  // Ensure the initial value is in the options list
-  // This handles edge cases where the user's current model (e.g., 'haiku' for 3P users)
-  // is not in the base options but should still be selectable and shown as selected
+  // 确保初始值在选项列表中
+  // 这处理了用户当前模型（例如第三方用户的 'haiku'）不在基础选项里、
+  // 但仍应可选并显示为已选中的边界情况
   const optionsWithInitial = useMemo(() => {
     if (initial !== null && !modelOptions.some(opt => opt.value === initial)) {
       return [
@@ -118,7 +118,7 @@ export function ModelPicker({
         {
           value: initial,
           label: modelDisplayString(initial),
-          description: 'Current model',
+          description: '当前模型',
         },
       ];
     }
@@ -150,8 +150,8 @@ export function ModelPicker({
   const focusedSupportsXhigh = focusedModel ? modelSupportsXhighEffort(focusedModel) : false;
   const focusedSupportsMax = focusedModel ? modelSupportsMaxEffort(focusedModel) : false;
   const focusedDefaultEffort = getDefaultEffortLevelForOption(focusedValue);
-  // Clamp display when selected effort isn't supported by the focused model.
-  // resolveAppliedEffort() does the same downgrade at API-send time.
+  // 当选中的 effort 不被聚焦模型支持时，钳制显示值。
+  // resolveAppliedEffort() 在 API 发送时也会做同样的降级。
   const displayEffort =
     effort === 'max' && !focusedSupportsMax
       ? focusedSupportsXhigh
@@ -171,7 +171,7 @@ export function ModelPicker({
     [hasToggledEffort, effortValue],
   );
 
-  // Effort level cycling keybindings
+  // Effort level 循环切换的快捷键
   const handleCycleEffort = useCallback(
     (direction: 'left' | 'right') => {
       if (!focusedSupportsEffort) return;
@@ -197,11 +197,10 @@ export function ModelPicker({
       effort: effort as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     });
     if (!skipSettingsWrite) {
-      // Prior comes from userSettings on disk — NOT merged settings (which
-      // includes project/policy layers that must not leak into the user's
-      // global ~/.hclaude/settings.json), and NOT AppState.effortValue (which
-      // includes session-ephemeral sources like --effort CLI flag).
-      // See resolvePickerEffortPersistence JSDoc.
+      // Prior 来自磁盘上的 userSettings —— 不是合并后的 settings（那会包含
+      // 不得泄漏到用户全局 ~/.hclaude/settings.json 的 project/policy 层），
+      // 也不是 AppState.effortValue（那包含会话临时来源，如 --effort CLI flag）。
+      // 参见 resolvePickerEffortPersistence 的 JSDoc。
       const effortLevel = resolvePickerEffortPersistence(
         effort,
         getDefaultEffortLevelForOption(value),
@@ -221,10 +220,9 @@ export function ModelPicker({
       onSelect(null, selectedEffort);
       return;
     }
-    // Apply or strip [1m] suffix based on user toggle. marked1MValues is keyed
-    // on the base value (see initializer + handleToggle1M), so look up with the
-    // base form — not `value`, which may carry a `[1m]` suffix from predefined
-    // 1M options and would never match.
+    // 根据用户切换应用或剥离 [1m] 后缀。marked1MValues 以基础值为 key
+    // （见初始化器 + handleToggle1M），所以要用基础形式查找 —— 而不是
+    // `value`，它可能携带来自预定义 1M 选项的 `[1m]` 后缀，永远匹配不上。
     const baseValue = value.replace(/\[1m\]/i, '');
     const wants1M = marked1MValues.has(baseValue);
     const finalValue = wants1M ? `${baseValue}[1m]` : baseValue;
@@ -236,16 +234,12 @@ export function ModelPicker({
       <Box flexDirection="column">
         <Box marginBottom={1} flexDirection="column">
           <Text color="remember" bold>
-            Select model
+            选择模型
           </Text>
-          <Text dimColor>
-            {headerText ??
-              'Choose a model for this and future sessions. Use ← → to adjust effort, Space to toggle 1M context.'}
-          </Text>
+          <Text dimColor>{headerText ?? '为本次及后续会话选择模型。用 ← → 调整 effort，Space 切换 1M 上下文。'}</Text>
           {sessionModel && (
             <Text dimColor>
-              Currently using {modelDisplayString(sessionModel)} for this session (set by plan mode). Selecting a model
-              will undo this.
+              当前会话正在使用 {modelDisplayString(sessionModel)}（由 plan 模式设置）。选择模型将撤销此设置。
             </Text>
           )}
         </Box>
@@ -264,7 +258,7 @@ export function ModelPicker({
           </Box>
           {hiddenCount > 0 && (
             <Box paddingLeft={3}>
-              <Text dimColor>and {hiddenCount} more…</Text>
+              <Text dimColor>还有 {hiddenCount} 个…</Text>
             </Box>
           )}
         </Box>
@@ -273,24 +267,24 @@ export function ModelPicker({
           {focusedSupportsEffort ? (
             <Text dimColor>
               <EffortLevelIndicator effort={displayEffort} /> {capitalize(displayEffort)} effort
-              {displayEffort === focusedDefaultEffort ? ` (default)` : ``} <Text color="subtle">← → to adjust</Text>
+              {displayEffort === focusedDefaultEffort ? `（默认）` : ``} <Text color="subtle">← → 调整</Text>
             </Text>
           ) : (
             <Text color="subtle">
-              <EffortLevelIndicator effort={undefined} /> Effort not supported
-              {focusedModelName ? ` for ${focusedModelName}` : ''}
+              <EffortLevelIndicator effort={undefined} /> 不支持 effort
+              {focusedModelName ? `（${focusedModelName}）` : ''}
             </Text>
           )}
           {is1MMarked ? (
             <Text dimColor>
-              <EffortLevelIndicator effort={'high'} /> 1M context on
-              <Text color="subtle"> · Space to toggle</Text>
+              <EffortLevelIndicator effort={'high'} /> 1M 上下文已开启
+              <Text color="subtle"> · Space 切换</Text>
             </Text>
           ) : (
             <Text color="subtle">
-              <EffortLevelIndicator effort={undefined} /> 1M context off
-              {focusedModelName ? ` for ${focusedModelName}` : ''}
-              <Text color="subtle"> · Space to toggle</Text>
+              <EffortLevelIndicator effort={undefined} /> 1M 上下文已关闭
+              {focusedModelName ? `（${focusedModelName}）` : ''}
+              <Text color="subtle"> · Space 切换</Text>
             </Text>
           )}
         </Box>
@@ -299,14 +293,14 @@ export function ModelPicker({
           showFastModeNotice ? (
             <Box marginBottom={1}>
               <Text dimColor>
-                Fast mode is <Text bold>ON</Text> and available with {FAST_MODE_MODEL_DISPLAY} only (/fast). Switching
-                to other models turn off fast mode.
+                Fast 模式已 <Text bold>开启</Text>，仅适用于 {FAST_MODE_MODEL_DISPLAY}（/fast）。切换到其他模型会关闭
+                Fast 模式。
               </Text>
             </Box>
           ) : isFastModeAvailable() && !isFastModeCooldown() ? (
             <Box marginBottom={1}>
               <Text dimColor>
-                Use <Text bold>/fast</Text> to turn on Fast mode ({FAST_MODE_MODEL_DISPLAY} only).
+                使用 <Text bold>/fast</Text> 开启 Fast 模式（仅 {FAST_MODE_MODEL_DISPLAY}）。
               </Text>
             </Box>
           ) : null
@@ -316,11 +310,11 @@ export function ModelPicker({
       {isStandaloneCommand && (
         <Text dimColor italic>
           {exitState.pending ? (
-            <>Press {exitState.keyName} again to exit</>
+            <>再按一次 {exitState.keyName} 退出</>
           ) : (
             <Byline>
-              <KeyboardShortcutHint shortcut="Enter" action="confirm" />
-              <ConfigurableShortcutHint action="select:cancel" context="Select" fallback="Esc" description="exit" />
+              <KeyboardShortcutHint shortcut="Enter" action="确认" />
+              <ConfigurableShortcutHint action="select:cancel" context="Select" fallback="Esc" description="退出" />
             </Byline>
           )}
         </Text>
@@ -357,8 +351,8 @@ function cycleEffortLevel(
     ...(includeXhigh ? (['xhigh'] as const) : []),
     ...(includeMax ? (['max'] as const) : []),
   ];
-  // If the current level isn't in the cycle (e.g. 'max' after switching to a
-  // non-Opus model), clamp to 'high'.
+  // 如果当前 level 不在循环中（例如切换到非 Opus 模型后的 'max'），
+  // 钳制到 'high'。
   const idx = levels.indexOf(current);
   const currentIndex = idx !== -1 ? idx : levels.indexOf('high');
   if (direction === 'right') {

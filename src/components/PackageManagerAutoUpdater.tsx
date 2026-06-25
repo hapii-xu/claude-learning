@@ -44,7 +44,7 @@ export function PackageManagerAutoUpdater({ verbose }: Props): React.ReactNode {
 
     let latest = await getLatestVersionFromGcs(channel);
 
-    // Check if max version is set (server-side kill switch for auto-updates)
+    // 检查是否设置了最大版本（服务端用于禁用自动更新的 kill switch）
     const maxVersion = await getMaxVersion();
 
     if (maxVersion && latest && gt(latest, maxVersion)) {
@@ -70,21 +70,21 @@ export function PackageManagerAutoUpdater({ verbose }: Props): React.ReactNode {
     }
   }, []);
 
-  // Initial check
+  // 初始检查
   React.useEffect(() => {
     void checkForUpdates();
   }, [checkForUpdates]);
 
-  // Check every 30 minutes
+  // 每 30 分钟检查一次
   useInterval(checkForUpdates, 30 * 60 * 1000);
 
   if (!updateAvailable) {
     return null;
   }
 
-  // pacman, deb, and rpm don't get specific commands because they each have
-  // multiple frontends (pacman: yay/paru/makepkg, deb: apt/apt-get/aptitude/nala,
-  // rpm: dnf/yum/zypper)
+  // pacman、deb 和 rpm 没有指定具体命令，因为它们各自都有
+  // 多种前端（pacman: yay/paru/makepkg，deb: apt/apt-get/aptitude/nala，
+  // rpm: dnf/yum/zypper）
   const updateCommand =
     packageManager === 'homebrew'
       ? 'brew upgrade claude-code'
@@ -92,17 +92,17 @@ export function PackageManagerAutoUpdater({ verbose }: Props): React.ReactNode {
         ? 'winget upgrade Anthropic.ClaudeCode'
         : packageManager === 'apk'
           ? 'apk upgrade claude-code'
-          : 'your package manager update command';
+          : '你的包管理器更新命令';
 
   return (
     <>
       {verbose && (
         <Text dimColor wrap="truncate">
-          currentVersion: {MACRO.VERSION}
+          当前版本: {MACRO.VERSION}
         </Text>
       )}
       <Text color="warning" wrap="truncate">
-        Update available! Run: <Text bold>{updateCommand}</Text>
+        有可用更新！请运行：<Text bold>{updateCommand}</Text>
       </Text>
     </>
   );

@@ -226,7 +226,7 @@ export async function getSessionLogs(
   const logs = await fetchSessionLogsFromUrl(sessionId, url, headers)
 
   if (logs && logs.length > 0) {
-    // Update our lastUuid to the last entry's UUID
+    // 将 lastUuid 更新为最后一条 entry 的 UUID
     const lastEntry = logs.at(-1)
     if (lastEntry && 'uuid' in lastEntry && lastEntry.uuid) {
       lastUuidMap.set(sessionId, lastEntry.uuid as UUID)

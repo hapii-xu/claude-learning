@@ -40,18 +40,17 @@ export function getProjectContextPath(projectId: string): string {
   return join(getProjectStorageDir(projectId), 'project.json')
 }
 
-// Per-cwd in-memory cache. `resolveContext` does synchronous `git` forks and
-// `persistProjectContext` does registry/project.json writes on every call —
-// in the tool.call hot path (one wrapper invocation per tool) that cost would
-// accumulate into the hundreds-of-ms range per session. Cache keyed by the
-// exact cwd string so different worktrees still get independent entries.
+// 基于 cwd 的内存缓存。`resolveContext` 会同步 fork `git` 子进程，
+// `persistProjectContext` 每次调用都会写 registry/project.json——
+// 在 tool.call 热路径（每个 tool 调用一次封装器）中，
+// 这些开销会在一次会话中累积到数百毫秒。
+// 缓存以 cwd 字符串为键，确保不同 worktree 各自独立。
 //
-// Bounded with LRU eviction: long-lived processes that traverse many
-// worktrees (e.g. multi-repo build orchestrators) would otherwise grow the
-// cache without limit. Each entry holds a SkillLearningProjectContext
-// (instinct + skill lists), so the cap ensures bounded memory regardless
-// of cwd diversity. `defines.ts` originally flagged this as
-// "无淘汰机制（非 GB 级主因）" — this fix closes that gap.
+// 使用 LRU 淘汰做上界：长时间运行的进程若遍历大量 worktree
+//（如多 repo 构建编排器），否则缓存会无限增长。
+// 每个条目持有一个 SkillLearningProjectContext（instinct + skill 列表），
+// 因此容量上限可确保内存占用有界，不受 cwd 多样性影响。
+// `defines.ts` 原本将此标注为"无淘汰机制（非 GB 级主因）"——此修复弥补了该缺口。
 const PROJECT_CONTEXT_CACHE_MAX = 32
 const PROJECT_CONTEXT_CACHE_TRIM_TO = 24
 const contextCache = new Map<string, SkillLearningProjectContext>()
@@ -80,12 +79,11 @@ export function resolveProjectContext(
 ): SkillLearningProjectContext {
   const cached = contextCache.get(cwd)
   if (cached) {
-    // Refresh insertion order so frequently-accessed cwds survive eviction.
+    // 刷新插入顺序，使频繁访问的 cwd 在淘汰时能够存活。
     contextCache.delete(cwd)
     contextCache.set(cwd, cached)
-    // Still touch the registry so long-lived processes keep `lastSeenAt`
-    // reasonably fresh, but throttle the write so it doesn't fire on every
-    // tool call.
+    // 仍然更新注册表，使长时间运行的进程保持 `lastSeenAt` 相对新鲜，
+    // 但做节流处理，避免每次 tool 调用都触发写操作。
     const now = Date.now()
     if (now - lastPersistAt > PERSIST_INTERVAL_MS) {
       lastPersistAt = now
@@ -239,7 +237,7 @@ function readProjectsRegistry(path: string): SkillLearningProjectsRegistry {
       }
     }
   } catch {
-    // Fall through to a fresh registry. Corrupt state should not block startup.
+    // 跌落至空注册表。损坏的状态不应阻塞启动。
   }
 
   return {

@@ -82,10 +82,9 @@ export function useFeedbackSurvey(
   submitCountRef.current = submitCount;
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
-  // Probability gate: roll once when eligibility conditions are met, not on every
-  // useMemo re-evaluation. Without this, each dependency change (submitCount,
-  // isLoading toggle, etc.) re-rolls Math.random(), making the survey almost
-  // certain to appear after enough renders.
+  // 概率闸门：在满足资格条件时只掷一次骰，而不是每次 useMemo 重新求值都掷。
+  // 若不如此，每次依赖变化（submitCount、isLoading 切换等）都会重新调用
+  // Math.random()，导致在足够多次渲染后调查几乎必然出现。
   const probabilityPassedRef = useRef(false);
   const lastEligibleSubmitCountRef = useRef<number | null>(null);
 
@@ -99,7 +98,7 @@ export function useFeedbackSurvey(
         submitCountAtLastAppearance: submitCountValue,
       };
     });
-    // Persist cross-session pacing state (previously done by onChangeAppState observer)
+    // 持久化跨会话节奏状态（此前由 onChangeAppState 观察者完成）
     if (getGlobalConfig().feedbackSurveyState?.lastShownTime !== timestamp) {
       saveGlobalConfig(current => ({
         ...current,
@@ -152,22 +151,22 @@ export function useFeedbackSurvey(
 
   const shouldShowTranscriptPrompt = useCallback(
     (selected: FeedbackSurveyResponse) => {
-      // Only bad and good ratings trigger the transcript ask
+      // 只有差评和好评会触发 transcript 分享询问
       if (selected !== 'bad' && selected !== 'good') {
         return false;
       }
 
-      // Don't show if user previously chose "Don't ask again"
+      // 若用户之前选过"不再询问"则不显示
       if (getGlobalConfig().transcriptShareDismissed) {
         return false;
       }
 
-      // Don't show if product feedback is blocked by org policy (ZDR)
+      // 若产品反馈被组织策略（ZDR）阻止则不显示
       if (!isPolicyAllowed('allow_product_feedback')) {
         return false;
       }
 
-      // Probability gate from GrowthBook config (separate per rating)
+      // 来自 GrowthBook 配置的概率闸门（按评分分别配置）
       const probability = selected === 'bad' ? badTranscriptAskConfig.probability : goodTranscriptAskConfig.probability;
       return Math.random() <= probability;
     },
@@ -266,12 +265,12 @@ export function useFeedbackSurvey(
       return false;
     }
 
-    // Don't show survey when permission or ask question prompts are visible
+    // 当权限或提问 prompt 可见时不显示调查
     if (hasActivePrompt) {
       return false;
     }
 
-    // Force display for testing
+    // 测试时强制显示
     if (process.env.CLAUDE_FORCE_DISPLAY_SURVEY && !feedbackSurvey.timeLastShown) {
       return true;
     }
@@ -288,19 +287,19 @@ export function useFeedbackSurvey(
       return false;
     }
 
-    // Check if product feedback is allowed by org policy
+    // 检查组织策略是否允许产品反馈
     if (!isPolicyAllowed('allow_product_feedback')) {
       return false;
     }
 
-    // Check session-local pacing
+    // 检查会话内节奏
     if (feedbackSurvey.timeLastShown) {
-      // Check time elapsed since last appearance in this session
+      // 检查距本会话上次出现的经过时间
       const timeSinceLastShown = Date.now() - feedbackSurvey.timeLastShown;
       if (timeSinceLastShown < config.minTimeBetweenFeedbackMs) {
         return false;
       }
-      // Check user turn requirement for subsequent appearances
+      // 检查后续出现所需的用户轮次
       if (
         feedbackSurvey.submitCountAtLastAppearance !== null &&
         submitCount < feedbackSurvey.submitCountAtLastAppearance + config.minUserTurnsBetweenFeedback
@@ -308,7 +307,7 @@ export function useFeedbackSurvey(
         return false;
       }
     } else {
-      // First appearance in this session
+      // 本会话首次出现
       const timeSinceSessionStart = Date.now() - sessionStartTime.current;
       if (timeSinceSessionStart < config.minTimeBeforeFeedbackMs) {
         return false;
@@ -318,8 +317,8 @@ export function useFeedbackSurvey(
       }
     }
 
-    // Probability check: roll once per eligibility window to avoid re-rolling
-    // on every useMemo re-evaluation (which would make triggering near-certain).
+    // 概率检查：每个资格窗口只掷一次骰，避免每次 useMemo 重新求值都
+    // 重新掷骰（否则会使得触发近乎必然）。
     if (lastEligibleSubmitCountRef.current !== submitCount) {
       lastEligibleSubmitCountRef.current = submitCount;
       probabilityPassedRef.current = Math.random() <= (settingsRate ?? config.probability);
@@ -328,8 +327,8 @@ export function useFeedbackSurvey(
       return false;
     }
 
-    // Check global pacing (across all sessions)
-    // Leave this till last because it reads from the filesystem which is expensive.
+    // 检查全局节奏（跨所有会话）
+    // 放到最后才检查，因为它需要读取文件系统，代价较高。
     const globalFeedbackState = getGlobalConfig().feedbackSurveyState;
     if (globalFeedbackState?.lastShownTime) {
       const timeSinceGlobalLastShown = Date.now() - globalFeedbackState.lastShownTime;

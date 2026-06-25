@@ -11,9 +11,8 @@ type Props = {
 };
 
 /**
- * StatusNotices contains the information displayed to users at startup. We have
- * moved neutral or positive status to src/components/Status.tsx instead, which
- * users can access through /status.
+ * StatusNotices 包含启动时显示给用户的信息。我们已将中性或正面的状态
+ * 迁移到 src/components/Status.tsx，用户可以通过 /status 访问。
  */
 export function StatusNotices({ agentDefinitions }: Props = {}): React.ReactNode {
   const context: StatusNoticeContext = {

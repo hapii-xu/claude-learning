@@ -151,7 +151,7 @@ export async function buildToolIndex(tools: Tools): Promise<ToolIndexEntry[]> {
   }
 
   logForDebugging(
-    `[search-extra-tools] indexed ${entries.length} deferred tools from ${tools.length} total tools`,
+    `[search-extra-tools] 已索引 ${entries.length} 个延迟 tools（共 ${tools.length} 个 tools）`,
   )
   return entries
 }
@@ -262,5 +262,5 @@ export async function getToolIndex(tools: Tools): Promise<ToolIndexEntry[]> {
 export function clearToolIndexCache(): void {
   cachedIndex = null
   cachedToolNames = null
-  logForDebugging('[search-extra-tools] index cache cleared')
+  logForDebugging('[search-extra-tools] 索引缓存已清除')
 }

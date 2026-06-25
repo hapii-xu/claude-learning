@@ -1,9 +1,9 @@
 /**
  * prefetch.test.ts
  *
- * Thin subprocess wrapper that runs the actual tests in an isolated bun:test
- * process. This prevents mock.module() leaks from this file's toolIndex.js
- * mock from affecting other test files (e.g., toolIndex.test.ts).
+ * 轻量子进程包装器，在隔离的 bun:test 进程中运行真正的测试。
+ * 这样可以防止本文件对 toolIndex.js 的 mock.module() 泄漏到
+ * 其他测试文件（如 toolIndex.test.ts）中。
  */
 
 import { describe, test, expect } from 'bun:test'

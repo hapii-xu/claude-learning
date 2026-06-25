@@ -31,25 +31,25 @@ export function SelectEventMode({
   onSelectEvent,
   onCancel,
 }: Props): React.ReactNode {
-  const subtitle = `${totalHooksCount} ${plural(totalHooksCount, 'hook')} configured`;
+  const subtitle = `已配置 ${totalHooksCount} 个 hook`;
 
   return (
     <Dialog title="Hooks" subtitle={subtitle} onCancel={onCancel}>
       <Box flexDirection="column" gap={1}>
         {restrictedByPolicy && (
           <Box flexDirection="column">
-            <Text color="suggestion">{figures.info} Hooks Restricted by Policy</Text>
+            <Text color="suggestion">{figures.info} Hook 被策略限制</Text>
             <Text dimColor>
-              Only hooks from managed settings can run. User-defined hooks from ~/.hclaude/settings.json,
-              .hclaude/settings.json, and .hclaude/settings.local.json are blocked.
+              仅允许运行来自托管设置的 hook。来自 ~/.hclaude/settings.json、.hclaude/settings.json 和
+              .hclaude/settings.local.json 的用户自定义 hook 均被阻止。
             </Text>
           </Box>
         )}
 
         <Box flexDirection="column">
           <Text dimColor>
-            {figures.info} This menu is read-only. To add or modify hooks, edit settings.json directly or ask Claude.{' '}
-            <Link url="https://code.claude.com/docs/en/hooks">Learn more</Link>
+            {figures.info} 此菜单为只读。要添加或修改 hook，请直接编辑 settings.json 或让 Claude 帮忙。{' '}
+            <Link url="https://code.claude.com/docs/en/hooks">了解更多</Link>
           </Text>
         </Box>
 

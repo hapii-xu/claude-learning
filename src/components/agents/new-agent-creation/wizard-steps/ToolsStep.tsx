@@ -19,13 +19,13 @@ export function ToolsStep({ tools }: Props): ReactNode {
     goNext();
   };
 
-  // Pass through undefined to preserve "all tools" semantic
-  // ToolSelector will expand it internally for display purposes
+  // 透传 undefined 以保留「全部工具」的语义
+  // ToolSelector 会在内部将其展开以供展示
   const initialTools = wizardData.selectedTools;
 
   return (
     <WizardDialogLayout
-      subtitle="Select tools"
+      subtitle="选择工具"
       footerText={
         <Byline>
           <KeyboardShortcutHint shortcut="Enter" action="toggle selection" />

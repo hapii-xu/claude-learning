@@ -22,17 +22,17 @@ export function NotebookEditToolUseRejectedMessage({
   edit_mode = 'replace',
   verbose,
 }: Props): React.ReactNode {
-  const operation = edit_mode === 'delete' ? 'delete' : `${edit_mode} cell in`;
+  const operation = edit_mode === 'delete' ? '删除' : `在以下位置${edit_mode} 单元格`;
 
   return (
     <MessageResponse>
       <Box flexDirection="column">
         <Box flexDirection="row">
-          <Text color="subtle">User rejected {operation} </Text>
+          <Text color="subtle">用户拒绝了 {operation} </Text>
           <Text bold color="subtle">
             {verbose ? notebook_path : relative(getCwd(), notebook_path)}
           </Text>
-          <Text color="subtle"> at cell {cell_id}</Text>
+          <Text color="subtle"> 中的单元格 {cell_id}</Text>
         </Box>
         {edit_mode !== 'delete' && (
           <Box marginTop={1} flexDirection="column">

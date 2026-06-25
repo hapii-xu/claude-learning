@@ -1,4 +1,4 @@
-// Auto-generated stub — replace with real implementation
+// 自动生成的存根 — 请替换为真实实现
 import type { Message } from '../../types/message.js'
 import type { ToolUseContext } from '../../Tool.js'
 import type { QuerySource } from '../../constants/querySource.js'

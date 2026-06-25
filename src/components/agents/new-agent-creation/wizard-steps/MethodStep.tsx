@@ -11,18 +11,18 @@ export function MethodStep(): ReactNode {
 
   const methodOptions = [
     {
-      label: 'Generate with Claude (recommended)',
+      label: '由 Claude 生成（推荐）',
       value: 'generate',
     },
     {
-      label: 'Manual configuration',
+      label: '手动配置',
       value: 'manual',
     },
   ];
 
   return (
     <WizardDialogLayout
-      subtitle="Creation method"
+      subtitle="选择创建方式"
       footerText={
         <Byline>
           <KeyboardShortcutHint shortcut="↑↓" action="navigate" />
@@ -42,11 +42,11 @@ export function MethodStep(): ReactNode {
               wasGenerated: method === 'generate',
             });
 
-            // Dynamic navigation based on method
+            // 根据选择的方式进行动态导航
             if (method === 'generate') {
-              goNext(); // Go to GenerateStep (index 2)
+              goNext(); // 前往 GenerateStep（索引 2）
             } else {
-              goToStep(3); // Skip to TypeStep (index 3)
+              goToStep(3); // 跳转到 TypeStep（索引 3）
             }
           }}
           onCancel={() => goBack()}

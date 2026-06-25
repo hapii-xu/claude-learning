@@ -23,7 +23,7 @@ const inputToResponse: Record<ResponseInput, FeedbackSurveyResponse> = {
 export const isValidResponseInput = (input: string): input is ResponseInput =>
   (RESPONSE_INPUTS as readonly string[]).includes(input);
 
-const DEFAULT_MESSAGE = 'How is Claude doing this session? (optional)';
+const DEFAULT_MESSAGE = 'Claude 本次会话表现如何？（可选）';
 
 export function FeedbackSurveyView({
   onSelect,
@@ -48,22 +48,22 @@ export function FeedbackSurveyView({
       <Box marginLeft={2}>
         <Box width={10}>
           <Text>
-            <Text color="ansi:cyan">1</Text>: Bad
+            <Text color="ansi:cyan">1</Text>: 差
           </Text>
         </Box>
         <Box width={10}>
           <Text>
-            <Text color="ansi:cyan">2</Text>: Fine
+            <Text color="ansi:cyan">2</Text>: 一般
           </Text>
         </Box>
         <Box width={10}>
           <Text>
-            <Text color="ansi:cyan">3</Text>: Good
+            <Text color="ansi:cyan">3</Text>: 好
           </Text>
         </Box>
         <Box>
           <Text>
-            <Text color="ansi:cyan">0</Text>: Dismiss
+            <Text color="ansi:cyan">0</Text>: 关闭
           </Text>
         </Box>
       </Box>

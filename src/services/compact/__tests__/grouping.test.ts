@@ -9,11 +9,11 @@ function makeMsg(type: 'user' | 'assistant' | 'system', id: string): any {
 }
 
 describe('groupMessagesByApiRound', () => {
-  // Boundary fires when: assistant msg with NEW id AND current group has items
+  // 边界触发条件：assistant 消息具有新 id，且当前 group 已有内容
   test('splits before first assistant if user messages precede it', () => {
     const messages = [makeMsg('user', 'u1'), makeMsg('assistant', 'a1')]
     const groups = groupMessagesByApiRound(messages)
-    // user msgs form group 1, assistant starts group 2
+    // user 消息构成 group 1，assistant 开启 group 2
     expect(groups).toHaveLength(2)
     expect(groups[0]).toHaveLength(1)
     expect(groups[1]).toHaveLength(1)
@@ -66,7 +66,7 @@ describe('groupMessagesByApiRound', () => {
       makeMsg('assistant', 'a3'),
     ]
     const groups = groupMessagesByApiRound(messages)
-    // [u1], [a1, u2], [a2, u3], [a3] = 4 groups
+    // [u1], [a1, u2], [a2, u3], [a3] = 4 个 group
     expect(groups).toHaveLength(4)
   })
 
@@ -96,8 +96,8 @@ describe('groupMessagesByApiRound', () => {
 
   test('handles system messages', () => {
     const messages = [makeMsg('system', 's1'), makeMsg('assistant', 'a1')]
-    // system msg is non-assistant, goes to current. Then assistant a1 is new ID
-    // and current has items, so split.
+    // system 消息不是 assistant，进入当前 group。然后 assistant a1 是新 ID，
+    // 且当前 group 已有内容，因此分割。
     const groups = groupMessagesByApiRound(messages)
     expect(groups).toHaveLength(2)
   })
@@ -106,7 +106,7 @@ describe('groupMessagesByApiRound', () => {
     const messages = [
       makeMsg('assistant', 'a1'),
       makeMsg('user', 'tool_result_1'),
-      makeMsg('assistant', 'a1'), // same ID = no new boundary
+      makeMsg('assistant', 'a1'), // 相同 ID = 不触发新边界
     ]
     const groups = groupMessagesByApiRound(messages)
     expect(groups).toHaveLength(1)

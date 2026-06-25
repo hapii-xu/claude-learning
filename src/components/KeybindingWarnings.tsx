@@ -7,14 +7,13 @@ import {
 } from '../keybindings/loadUserBindings.js';
 
 /**
- * Displays keybinding validation warnings in the UI.
- * Similar to McpParsingWarnings, this provides persistent visibility
- * of configuration issues.
+ * 在 UI 中显示 keybinding 校验警告。
+ * 类似于 McpParsingWarnings，提供对配置问题的持续可见性。
  *
- * Only shown when keybinding customization is enabled (ant users + feature gate).
+ * 仅当 keybinding 自定义功能启用时显示（ant 用户 + feature gate）。
  */
 export function KeybindingWarnings(): React.ReactNode {
-  // Only show warnings when keybinding customization is enabled
+  // 仅当 keybinding 自定义功能启用时才显示警告
   if (!isKeybindingCustomizationEnabled()) {
     return null;
   }
@@ -31,10 +30,10 @@ export function KeybindingWarnings(): React.ReactNode {
   return (
     <Box flexDirection="column" marginTop={1} marginBottom={1}>
       <Text bold color={errors.length > 0 ? 'error' : 'warning'}>
-        Keybinding Configuration Issues
+        Keybinding 配置问题
       </Text>
       <Box>
-        <Text dimColor>Location: </Text>
+        <Text dimColor>位置： </Text>
         <Text dimColor>{getKeybindingsPath()}</Text>
       </Box>
       <Box marginLeft={1} flexDirection="column" marginTop={1}>
@@ -42,7 +41,7 @@ export function KeybindingWarnings(): React.ReactNode {
           <Box key={`error-${i}`} flexDirection="column">
             <Box>
               <Text dimColor>└ </Text>
-              <Text color="error">[Error]</Text>
+              <Text color="error">[错误]</Text>
               <Text dimColor> {error.message}</Text>
             </Box>
             {error.suggestion && (
@@ -56,7 +55,7 @@ export function KeybindingWarnings(): React.ReactNode {
           <Box key={`warning-${i}`} flexDirection="column">
             <Box>
               <Text dimColor>└ </Text>
-              <Text color="warning">[Warning]</Text>
+              <Text color="warning">[警告]</Text>
               <Text dimColor> {warning.message}</Text>
             </Box>
             {warning.suggestion && (

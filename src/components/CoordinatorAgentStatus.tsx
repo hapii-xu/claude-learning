@@ -1,9 +1,9 @@
 /**
- * CoordinatorTaskPanel — Steerable list of background agents.
+ * CoordinatorTaskPanel — 可操控的后台 agent 列表。
  *
- * Renders below the prompt input footer whenever local_agent tasks exist.
- * Visibility is driven by evictAfter: undefined (running/retained) shows
- * always; a timestamp shows until passed. Enter to view/steer, x to dismiss.
+ * 只要存在 local_agent 任务，就在 prompt 输入框下方渲染。
+ * 可见性由 evictAfter 决定：undefined（运行中/保留）始终可见；
+ * 时间戳则在过期前可见。Enter 查看/操控，x 清除。
  */
 
 import figures from 'figures';
@@ -19,12 +19,11 @@ import { evictTerminalTask } from '../utils/task/framework.js';
 import { isTerminalStatus } from './tasks/taskStatusUtils.js';
 
 /**
- * Which panel-managed tasks currently have a visible row.
- * Presence in AppState.tasks IS visibility — the 1s tick in
- * CoordinatorTaskPanel evicts tasks past their evictAfter deadline. The
- * evictAfter !== 0 check handles immediate dismiss (x key) without making
- * the filter time-dependent. Shared by panel render, useCoordinatorTaskCount,
- * and index resolvers so the math can't drift.
+ * 当前哪些面板管理的任务有可见行。
+ * 存在于 AppState.tasks 中即视为可见 —— CoordinatorTaskPanel 的 1 秒
+ * tick 会清除超过 evictAfter 截止时间的任务。evictAfter !== 0 的检查
+ * 用于处理立即清除（x 键），同时避免让过滤器依赖时间。被面板渲染、
+ * useCoordinatorTaskCount 和索引解析器共享，确保计算不会漂移。
  */
 export function getVisibleAgentTasks(tasks: AppState['tasks']): LocalAgentTaskState[] {
   return Object.values(tasks)
@@ -44,9 +43,9 @@ export function CoordinatorTaskPanel(): React.ReactNode {
   const visibleTasks = getVisibleAgentTasks(tasks);
   const hasTasks = Object.values(tasks).some(isPanelAgentTask);
 
-  // 1s tick: re-render for elapsed time + evict tasks past their deadline.
-  // The eviction deletes from prev.tasks, which makes useCoordinatorTaskCount
-  // (and other consumers) see the updated count without their own tick.
+  // 1 秒 tick：为已用时间重新渲染，并清除超过截止时间的任务。
+  // 清除操作会从 prev.tasks 中删除，使 useCoordinatorTaskCount
+  // （及其他消费者）无需自己的 tick 即可看到更新后的计数。
   const tasksRef = React.useRef(tasks);
   tasksRef.current = tasks;
   const [, setTick] = React.useState(0);
@@ -101,9 +100,9 @@ export function CoordinatorTaskPanel(): React.ReactNode {
 }
 
 /**
- * Returns the number of visible coordinator tasks (for selection bounds).
- * The panel's 1s tick evicts expired tasks from prev.tasks, so this count
- * stays accurate without needing its own tick.
+ * 返回可见的 coordinator 任务数量（用于选中范围边界）。
+ * 面板的 1 秒 tick 会从 prev.tasks 中清除过期任务，所以此计数
+ * 无需自己的 tick 即可保持准确。
  */
 export function useCoordinatorTaskCount(): number {
   const tasks = useAppState(s => s.tasks);
@@ -157,16 +156,16 @@ function AgentLine({ task, name, isSelected, isViewed, onClick }: AgentLineProps
   const elapsed = formatDuration(elapsedMs);
   const tokenCount = task.progress?.tokenCount;
 
-  // Derive direction arrow from activity state, same logic as Spinner
+  // 根据活动状态派生方向箭头，逻辑与 Spinner 相同
   const lastActivity = task.progress?.lastActivity;
   const arrow = lastActivity ? figures.arrowDown : figures.arrowUp;
 
   const tokenText = tokenCount !== undefined && tokenCount > 0 ? ` · ${arrow} ${formatNumber(tokenCount)} tokens` : '';
 
   const queuedCount = task.pendingMessages.length;
-  const queuedText = queuedCount > 0 ? ` · ${queuedCount} queued` : '';
+  const queuedText = queuedCount > 0 ? ` · ${queuedCount} 个排队中` : '';
 
-  // Precedence: AI summary > static description (no tool-call activity noise)
+  // 优先级：AI 摘要 > 静态描述（不含工具调用活动的噪音）
   const displayDescription = task.progress?.summary || task.description;
 
   const highlighted = isSelected || hover;
@@ -175,11 +174,11 @@ function AgentLine({ task, name, isSelected, isViewed, onClick }: AgentLineProps
   const dim = !highlighted && !isViewed;
 
   const sep = isRunning ? PLAY_ICON : PAUSE_ICON;
-  // Name is the steering handle — kept out of truncation and undimmed so it
-  // stays readable even when the row is inactive. Short by convention (the
-  // Agent tool prompt asks for "one or two words, lowercase").
+  // name 是操控句柄 —— 不参与截断且不调暗，
+  // 即便该行处于非活跃状态也保持可读。按约定应简短
+  // （Agent 工具 prompt 要求"一两个单词，小写"）。
   const namePart = name ? `${name}: ` : '';
-  const hintPart = isSelected && !isViewed ? ` · x to ${isRunning ? 'stop' : 'clear'}` : '';
+  const hintPart = isSelected && !isViewed ? ` · x 键${isRunning ? '停止' : '清除'}` : '';
   const suffixPart = ` ${sep} ${elapsed}${tokenText}${queuedText}${hintPart}`;
   const availableForDesc =
     columns - stringWidth(prefix) - stringWidth(`${bullet} `) - stringWidth(namePart) - stringWidth(suffixPart);

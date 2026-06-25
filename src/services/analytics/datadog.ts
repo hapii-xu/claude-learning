@@ -10,8 +10,8 @@ import { isAnalyticsDisabled } from './config.js'
 import { getEventMetadata } from './metadata.js'
 
 /**
- * Datadog endpoint and token are configurable via environment variables.
- * If neither is set, Datadog logging is disabled entirely (no data sent).
+ * Datadog 的 endpoint 和 token 通过环境变量配置。
+ * 若两者都未设置，则完全禁用 Datadog 日志（不发送任何数据）。
  *
  *   DATADOG_LOGS_ENDPOINT=https://http-intake.logs.datadoghq.com/api/v2/logs
  *   DATADOG_API_KEY=<your-key>
@@ -139,7 +139,7 @@ export const initializeDatadog = memoize(async (): Promise<boolean> => {
     return false
   }
 
-  // No custom endpoint configured — skip Datadog entirely
+  // 未配置自定义 endpoint —— 完全跳过 Datadog
   if (!DATADOG_LOGS_ENDPOINT || !DATADOG_CLIENT_TOKEN) {
     datadogInitialized = false
     return false
@@ -156,9 +156,9 @@ export const initializeDatadog = memoize(async (): Promise<boolean> => {
 })
 
 /**
- * Flush remaining Datadog logs and shut down.
- * Called from gracefulShutdown() before process.exit() since
- * forceExit() prevents the beforeExit handler from firing.
+ * 排空剩余的 Datadog 日志并关闭。
+ * 在 process.exit() 之前由 gracefulShutdown() 调用，因为
+ * forceExit() 会阻止 beforeExit handler 触发。
  */
 export async function shutdownDatadog(): Promise<void> {
   if (flushTimer) {
@@ -168,7 +168,7 @@ export async function shutdownDatadog(): Promise<void> {
   await flushLogs()
 }
 
-// NOTE: use via src/services/analytics/index.ts > logEvent
+// 注意：通过 src/services/analytics/index.ts > logEvent 使用
 export async function trackDatadogEvent(
   eventName: string,
   properties: { [key: string]: boolean | number | undefined },
@@ -177,12 +177,12 @@ export async function trackDatadogEvent(
     return
   }
 
-  // Don't send events for 3P providers (Bedrock, Vertex, Foundry)
+  // 不为 3P provider（Bedrock、Vertex、Foundry）发送事件
   if (getAPIProvider() !== 'firstParty') {
     return
   }
 
-  // Fast path: use cached result if available to avoid await overhead
+  // 快速路径：如可用则使用缓存结果，避免 await 开销
   let initialized = datadogInitialized
   if (initialized === null) {
     initialized = await initializeDatadog()
@@ -196,7 +196,7 @@ export async function trackDatadogEvent(
       model: properties.model,
       betas: properties.betas,
     })
-    // Destructure to avoid duplicate envContext (once nested, once flattened)
+    // 解构以避免 envContext 重复（一次嵌套、一次展开）
     const { envContext, ...restMetadata } = metadata
     const allData: Record<string, unknown> = {
       ...restMetadata,
@@ -205,7 +205,7 @@ export async function trackDatadogEvent(
       userBucket: getUserBucket(),
     }
 
-    // Normalize MCP tool names to "mcp" for cardinality reduction
+    // 将 MCP tool 名归一化为 "mcp"，以降低 cardinality（基数）
     if (
       typeof allData.toolName === 'string' &&
       allData.toolName.startsWith('mcp__')
@@ -213,14 +213,14 @@ export async function trackDatadogEvent(
       allData.toolName = 'mcp'
     }
 
-    // Normalize model names for cardinality reduction (external users only)
+    // 归一化 model 名以降低 cardinality（仅对外部用户）
     if (process.env.USER_TYPE !== 'ant' && typeof allData.model === 'string') {
       const shortName = getCanonicalName(allData.model.replace(/\[1m]$/i, ''))
       allData.model = shortName in MODEL_COSTS ? shortName : 'other'
     }
 
-    // Truncate dev version to base + date (remove timestamp and sha for cardinality reduction)
-    // e.g. "2.0.53-dev.20251124.t173302.sha526cc6a" -> "2.0.53-dev.20251124"
+    // 将 dev 版本截断为 base + date（移除 timestamp 和 sha 以降低 cardinality）
+    // 例如 "2.0.53-dev.20251124.t173302.sha526cc6a" -> "2.0.53-dev.20251124"
     if (typeof allData.version === 'string') {
       allData.version = allData.version.replace(
         /^(\d+\.\d+\.\d+-dev\.\d{8})\.t\d+\.sha[a-f0-9]+$/,
@@ -228,26 +228,26 @@ export async function trackDatadogEvent(
       )
     }
 
-    // Transform status to http_status and http_status_range to avoid Datadog reserved field
+    // 将 status 转换为 http_status 和 http_status_range，以避开 Datadog 的保留字段
     if (allData.status !== undefined && allData.status !== null) {
       const statusCode = String(allData.status)
       allData.http_status = statusCode
 
-      // Determine status range (1xx, 2xx, 3xx, 4xx, 5xx)
+      // 判断 status 区间（1xx、2xx、3xx、4xx、5xx）
       const firstDigit = statusCode.charAt(0)
       if (firstDigit >= '1' && firstDigit <= '5') {
         allData.http_status_range = `${firstDigit}xx`
       }
 
-      // Remove original status field to avoid conflict with Datadog's reserved field
+      // 移除原始 status 字段，避免与 Datadog 的保留字段冲突
       delete allData.status
     }
 
-    // Build ddtags with high-cardinality fields for filtering.
-    // event:<name> is prepended so the event name is searchable via the
-    // log search API — the `message` field (where eventName also lives)
-    // is a DD reserved field and is NOT queryable from dashboard widget
-    // queries or the aggregation API. See scripts/release/MONITORING.md.
+    // 用高 cardinality 字段构建 ddtags，便于过滤。
+    // 前置 event:<name>，使事件名可通过 log search API 检索——
+    // `message` 字段（eventName 也存放在这里）是 DD 保留字段，
+    // 无法从 dashboard widget 查询或 aggregation API 检索。
+    // 参见 scripts/release/MONITORING.md。
     const allDataRecord = allData
     const tags = [
       `event:${eventName}`,
@@ -266,7 +266,7 @@ export async function trackDatadogEvent(
       env: process.env.USER_TYPE,
     }
 
-    // Add all fields as searchable attributes (not duplicated in tags)
+    // 将所有字段作为可搜索 attribute 加入（不与 tags 重复）
     for (const [key, value] of Object.entries(allData)) {
       if (value !== undefined && value !== null) {
         log[camelToSnakeCase(key)] = value
@@ -275,7 +275,7 @@ export async function trackDatadogEvent(
 
     logBatch.push(log)
 
-    // Flush immediately if batch is full, otherwise schedule
+    // 若批次已满则立即排空，否则调度排空
     if (logBatch.length >= MAX_BATCH_SIZE) {
       if (flushTimer) {
         clearTimeout(flushTimer)
@@ -293,16 +293,15 @@ export async function trackDatadogEvent(
 const NUM_USER_BUCKETS = 30
 
 /**
- * Gets a 'bucket' that the user ID falls into.
+ * 获取 user ID 所属的 'bucket'（桶）。
  *
- * For alerting purposes, we want to alert on the number of users impacted
- * by an issue, rather than the number of events- often a small number of users
- * can generate a large number of events (e.g. due to retries). To approximate
- * this without ruining cardinality by counting user IDs directly, we hash the user ID
- * and assign it to one of a fixed number of buckets.
+ * 出于告警目的，我们希望针对受某问题影响的用户数量告警，
+ * 而非事件数量——少数用户往往会产生大量事件（如因重试）。
+ * 为在不直接计数 user ID（以免破坏 cardinality）的前提下近似这一目标，
+ * 我们对 user ID 做哈希，并将其分配到固定数量的 bucket 之一。
  *
- * This allows us to estimate the number of unique users by counting unique buckets,
- * while preserving user privacy and reducing cardinality.
+ * 这使我们可以通过计数唯一 bucket 来估算唯一用户数，
+ * 同时保护用户隐私并降低 cardinality。
  */
 const getUserBucket = memoize((): number => {
   const userId = getOrCreateUserID()
@@ -311,7 +310,7 @@ const getUserBucket = memoize((): number => {
 })
 
 function getFlushIntervalMs(): number {
-  // Allow tests to override to not block on the default flush interval.
+  // 允许测试覆盖，以免阻塞在默认 flush 间隔上。
   return (
     parseInt(process.env.CLAUDE_CODE_DATADOG_FLUSH_INTERVAL_MS || '', 10) ||
     DEFAULT_FLUSH_INTERVAL_MS

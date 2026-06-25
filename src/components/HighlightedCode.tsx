@@ -9,8 +9,8 @@ import { HighlightedCodeFallback } from './HighlightedCode/Fallback.js';
 import { expectColorFile } from './StructuredDiff/colorDiff.js';
 import type { ColorFile as ColorFileType } from 'color-diff-napi';
 
-// Module-level LRU cache for ColorFile instances to avoid recreating
-// them for the same (filePath, code) across component instances.
+// 模块级 LRU 缓存，用于 ColorFile 实例，避免在不同组件实例间
+// 为相同的 (filePath, code) 重复创建。
 const colorFileCache = new Map<string, { colorFile: ColorFileType; code: string }>();
 const COLOR_FILE_CACHE_MAX = 50;
 
@@ -46,13 +46,13 @@ export const HighlightedCode = memo(function HighlightedCode({
     const cacheKey = `${filePath}\0${code.length}`;
     const cached = colorFileCache.get(cacheKey);
     if (cached && cached.code === code) {
-      // Move to end (most recently used)
+      // 移到末尾（最近使用）
       colorFileCache.delete(cacheKey);
       colorFileCache.set(cacheKey, cached);
       return cached.colorFile;
     }
     const instance = new ColorFile(code, filePath);
-    // Evict oldest entry if cache is full
+    // 缓存已满时淘汰最旧条目
     if (colorFileCache.size >= COLOR_FILE_CACHE_MAX) {
       const oldest = colorFileCache.keys().next().value;
       if (oldest !== undefined) colorFileCache.delete(oldest);
@@ -77,12 +77,11 @@ export const HighlightedCode = memo(function HighlightedCode({
     return colorFile.render(theme, measuredWidth, dim);
   }, [colorFile, theme, measuredWidth, dim]);
 
-  // Gutter width matches ColorFile's layout in lib.rs: space + right-aligned
-  // line number (max_digits = lineCount.toString().length) + space. No marker
-  // column like the diff path. Wrap in <NoSelect> so fullscreen selection
-  // yields clean code without line numbers. Only split in fullscreen mode
-  // (~4× DOM nodes + sliceAnsi cost); non-fullscreen uses terminal-native
-  // selection where noSelect is meaningless.
+  // gutter 宽度与 ColorFile 在 lib.rs 中的布局一致：空格 + 右对齐的
+  // 行号（max_digits = lineCount.toString().length）+ 空格。没有 diff 路径中
+  // 那样的标记符列。用 <NoSelect> 包裹，使全屏选区得到不含行号的干净代码。
+  // 仅在全屏模式下切分（约 4× DOM 节点 + sliceAnsi 开销）；非全屏使用终端
+  // 原生选区，noSelect 无意义。
   const gutterWidth = useMemo(() => {
     if (!isFullscreenEnvEnabled()) return 0;
     const lineCount = countCharInString(code, '\n') + 1;

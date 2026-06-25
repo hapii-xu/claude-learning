@@ -1,33 +1,33 @@
 /**
- * Regression tests for fetchUltrareviewPreflight.
- * Verifies all three action enum states (proceed/confirm/blocked),
- * network/HTTP error handling, and Zod schema mismatch fallback.
+ * fetchUltrareviewPreflight 的回归测试。
+ * 验证三种 action 枚举状态（proceed/confirm/blocked）、
+ * 网络/HTTP 错误处理以及 Zod schema 不匹配时的兜底行为。
  */
 import { afterAll, beforeAll, describe, expect, mock, test } from 'bun:test'
 import { debugMock } from '../../../../tests/mocks/debug.js'
 import { logMock } from '../../../../tests/mocks/log.js'
 import { setupAxiosMock } from '../../../../tests/mocks/axios.js'
 
-// Mock dependency chain before any subject import
+// 在导入被测模块之前先 mock 依赖链
 mock.module('src/utils/debug.ts', debugMock)
 mock.module('src/utils/log.ts', logMock)
 mock.module('src/services/analytics/index.js', () => ({
   logEvent: () => {},
 }))
 
-// Mock auth utilities
+// mock 认证工具函数
 mock.module('src/utils/auth.js', () => ({
   isClaudeAISubscriber: () => true,
   isTeamSubscriber: () => false,
   isEnterpriseSubscriber: () => false,
 }))
 
-// Mock OAuth config
+// mock OAuth 配置
 mock.module('src/constants/oauth.js', () => ({
   getOauthConfig: () => ({ BASE_API_URL: 'https://api.anthropic.com' }),
 }))
 
-// Mock prepareApiRequest and getOAuthHeaders
+// mock prepareApiRequest 和 getOAuthHeaders
 mock.module('src/utils/teleport/api.js', () => ({
   prepareApiRequest: async () => ({
     accessToken: 'test-token',
@@ -40,8 +40,8 @@ mock.module('src/utils/teleport/api.js', () => ({
   }),
 }))
 
-// We'll mock axios at module level.
-// Typed as any in test code (CLAUDE.md: mock data may use as any).
+// 在模块层面 mock axios。
+// 测试代码中使用 as any（CLAUDE.md：mock 数据可以使用 as any）。
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockAxiosPost = mock(async (..._args: any[]): Promise<any> => {
   throw new Error('not configured')

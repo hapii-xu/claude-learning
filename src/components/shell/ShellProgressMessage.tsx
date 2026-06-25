@@ -39,7 +39,7 @@ export function ShellProgressMessage({
     return (
       <MessageResponse>
         <OffscreenFreeze>
-          <Text dimColor>Running… </Text>
+          <Text dimColor>运行中… </Text>
           <ShellTimeDisplay elapsedTimeSeconds={elapsedTimeSeconds} timeoutMs={timeoutMs} />
         </OffscreenFreeze>
       </MessageResponse>
@@ -51,9 +51,9 @@ export function ShellProgressMessage({
   const extraLines = totalLines ? Math.max(0, totalLines - 5) : 0;
   let lineStatus = '';
   if (!verbose && totalBytes && totalLines) {
-    lineStatus = `~${totalLines} lines`;
+    lineStatus = `约 ${totalLines} 行`;
   } else if (!verbose && extraLines > 0) {
-    lineStatus = `+${extraLines} lines`;
+    lineStatus = `+${extraLines} 行`;
   }
 
   return (

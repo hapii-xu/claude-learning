@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
-// Must mock queryHaiku before importing the module under test so the ESM
-// import binding picks up the stub.
+// 必须在导入被测模块之前 mock queryHaiku，这样 ESM
+// import 绑定才能拿到 stub 版本。
 const haikuCalls: Array<{ systemPrompt: unknown; userPrompt: string }> = []
 let haikuResponder: (userPrompt: string) => Promise<unknown> = async () => ({
   message: { content: [{ type: 'text', text: 'optimize code performance' }] },

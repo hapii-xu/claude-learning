@@ -33,21 +33,21 @@ export function FileEditToolUpdatedMessage({
     <Text>
       {numAdditions > 0 ? (
         <>
-          Added <Text bold>{numAdditions}</Text> {numAdditions > 1 ? 'lines' : 'line'}
+          新增 <Text bold>{numAdditions}</Text> 行
         </>
       ) : null}
-      {numAdditions > 0 && numRemovals > 0 ? ', ' : null}
+      {numAdditions > 0 && numRemovals > 0 ? '，' : null}
       {numRemovals > 0 ? (
         <>
-          {numAdditions === 0 ? 'R' : 'r'}emoved <Text bold>{numRemovals}</Text> {numRemovals > 1 ? 'lines' : 'line'}
+          删除 <Text bold>{numRemovals}</Text> 行
         </>
       ) : null}
     </Text>
   );
 
-  // Plan files: invert condensed behavior
-  // - Regular mode: just show the hint (user can type /plan to see full content)
-  // - Condensed mode (subagent view): show the diff
+  // Plan 文件：反转 condensed 行为
+  // - 普通模式：仅显示提示（用户可输入 /plan 查看完整内容）
+  // - Condensed 模式（subagent 视图）：显示 diff
   if (previewHint) {
     if (style !== 'condensed' && !verbose) {
       return (

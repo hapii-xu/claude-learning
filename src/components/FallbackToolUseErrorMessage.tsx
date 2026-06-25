@@ -20,7 +20,7 @@ export function FallbackToolUseErrorMessage({ result, verbose }: Props): React.R
   let error: string;
 
   if (typeof result !== 'string') {
-    error = 'Tool execution failed';
+    error = '工具执行失败';
   } else {
     const extractedError = extractTag(result, 'tool_use_error') ?? result;
     // 从错误显示中移除 sandbox_violations 标签（Claude 仍然能在 tool result 中看到它们）
@@ -29,11 +29,11 @@ export function FallbackToolUseErrorMessage({ result, verbose }: Props): React.R
     const withoutErrorTags = withoutSandboxViolations.replace(/<\/?error>/g, '');
     const trimmed = withoutErrorTags.trim();
     if (!verbose && trimmed.includes('InputValidationError: ')) {
-      error = 'Invalid tool parameters';
+      error = '无效的工具参数';
     } else if (trimmed.startsWith('Error: ') || trimmed.startsWith('Cancelled: ')) {
       error = trimmed;
     } else {
-      error = `Error: ${trimmed}`;
+      error = `错误：${trimmed}`;
     }
   }
 
@@ -49,14 +49,12 @@ export function FallbackToolUseErrorMessage({ result, verbose }: Props): React.R
           // 仔细的 <Text> 布局是为了绕过 dim-bold
           // 渲染 bug
           <Box>
-            <Text dimColor>
-              … +{plusLines} {plusLines === 1 ? 'line' : 'lines'} (
-            </Text>
+            <Text dimColor>… +{plusLines} 行（</Text>
             <Text dimColor bold>
               {transcriptShortcut}
             </Text>
             <Text> </Text>
-            <Text dimColor>to see all)</Text>
+            <Text dimColor>查看全部）</Text>
           </Box>
         )}
       </Box>

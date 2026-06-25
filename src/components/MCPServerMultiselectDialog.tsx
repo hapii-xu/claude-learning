@@ -19,7 +19,7 @@ export function MCPServerMultiselectDialog({ serverNames, onDone }: Props): Reac
     const enabledServers = currentSettings.enabledMcpjsonServers || [];
     const disabledServers = currentSettings.disabledMcpjsonServers || [];
 
-    // Use partition to separate approved and rejected servers
+    // 使用 partition 将已批准和已拒绝的服务器分开
     const [approvedServers, rejectedServers] = partition(serverNames, server => selectedServers.includes(server));
 
     logEvent('tengu_mcp_multidialog_choice', {
@@ -27,7 +27,7 @@ export function MCPServerMultiselectDialog({ serverNames, onDone }: Props): Reac
       rejected: rejectedServers.length,
     });
 
-    // Update settings with approved servers
+    // 使用已批准的服务器更新设置
     if (approvedServers.length > 0) {
       const newEnabledServers = [...new Set([...enabledServers, ...approvedServers])];
       updateSettingsForSource('localSettings', {
@@ -35,7 +35,7 @@ export function MCPServerMultiselectDialog({ serverNames, onDone }: Props): Reac
       });
     }
 
-    // Update settings with rejected servers
+    // 使用已拒绝的服务器更新设置
     if (rejectedServers.length > 0) {
       const newDisabledServers = [...new Set([...disabledServers, ...rejectedServers])];
       updateSettingsForSource('localSettings', {
@@ -46,7 +46,7 @@ export function MCPServerMultiselectDialog({ serverNames, onDone }: Props): Reac
     onDone();
   }
 
-  // Handle ESC to reject all servers
+  // 处理 ESC 拒绝全部服务器
   const handleEscRejectAll = useCallback(() => {
     const currentSettings = getSettings_DEPRECATED() || {};
     const disabledServers = currentSettings.disabledMcpjsonServers || [];
@@ -63,8 +63,8 @@ export function MCPServerMultiselectDialog({ serverNames, onDone }: Props): Reac
   return (
     <>
       <Dialog
-        title={`${serverNames.length} new MCP servers found in .mcp.json`}
-        subtitle="Select any you wish to enable."
+        title={`在 .mcp.json 中发现 ${serverNames.length} 个新的 MCP 服务器`}
+        subtitle="选择你想要启用的服务器。"
         color="warning"
         onCancel={handleEscRejectAll}
         hideInputGuide
@@ -91,7 +91,7 @@ export function MCPServerMultiselectDialog({ serverNames, onDone }: Props): Reac
               action="confirm:no"
               context="Confirmation"
               fallback="Esc"
-              description="reject all"
+              description="全部拒绝"
             />
           </Byline>
         </Text>

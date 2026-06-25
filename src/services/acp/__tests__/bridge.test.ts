@@ -11,7 +11,7 @@ import { markdownEscape, toDisplayPath } from '../utils.js'
 import type { AgentSideConnection, ToolKind } from '@agentclientprotocol/sdk'
 import type { SDKMessage } from '../../../entrypoints/sdk/coreTypes.js'
 
-// ── Helpers ────────────────────────────────────────────────────────
+// ── 辅助函数 ────────────────────────────────────────────────────────
 
 function makeConn(
   overrides: Partial<AgentSideConnection> = {},
@@ -35,7 +35,7 @@ async function* makeWaitingStream(): AsyncGenerator<SDKMessage, void, unknown> {
   await new Promise<never>(() => {})
 }
 
-// ── toolInfoFromToolUse ────────────────────────────────────────────
+// ── toolInfoFromToolUse 测试 ────────────────────────────────────────────
 
 describe('toolInfoFromToolUse', () => {
   const kindCases: Array<[string, ToolKind]> = [
@@ -69,7 +69,7 @@ describe('toolInfoFromToolUse', () => {
     )
   })
 
-  // ── Bash ──────────────────────────────────────────────────────
+  // ── Bash 相关 ──────────────────────────────────────────────────────
 
   test('Bash with command → title shows command', () => {
     const info = toolInfoFromToolUse({
@@ -101,7 +101,7 @@ describe('toolInfoFromToolUse', () => {
     expect(info.content).toEqual([])
   })
 
-  // ── Glob ──────────────────────────────────────────────────────
+  // ── Glob 相关 ──────────────────────────────────────────────────────
 
   test('Glob with pattern → title shows Find', () => {
     const info = toolInfoFromToolUse({
@@ -123,7 +123,7 @@ describe('toolInfoFromToolUse', () => {
     expect(info.locations).toEqual([{ path: '/src' }])
   })
 
-  // ── Task/Agent ────────────────────────────────────────────────
+  // ── Task/Agent 相关 ────────────────────────────────────────────────
 
   test('Task with description and prompt → content has prompt text', () => {
     const info = toolInfoFromToolUse({
@@ -137,7 +137,7 @@ describe('toolInfoFromToolUse', () => {
     ])
   })
 
-  // ── Grep ──────────────────────────────────────────────────────
+  // ── Grep 相关 ──────────────────────────────────────────────────────
 
   test('Grep with full flags', () => {
     const info = toolInfoFromToolUse({
@@ -188,7 +188,7 @@ describe('toolInfoFromToolUse', () => {
     expect(info.title).toContain('-c')
   })
 
-  // ── Write ─────────────────────────────────────────────────────
+  // ── Write 相关 ─────────────────────────────────────────────────────
 
   test('Write with file_path and content → diff content', () => {
     const info = toolInfoFromToolUse({
@@ -214,7 +214,7 @@ describe('toolInfoFromToolUse', () => {
     ])
   })
 
-  // ── Edit ──────────────────────────────────────────────────────
+  // ── Edit 相关 ──────────────────────────────────────────────────────
 
   test('Edit with file_path → diff content', () => {
     const info = toolInfoFromToolUse({
@@ -244,7 +244,7 @@ describe('toolInfoFromToolUse', () => {
     expect(info.content).toEqual([])
   })
 
-  // ── Read ──────────────────────────────────────────────────────
+  // ── Read 相关 ──────────────────────────────────────────────────────
 
   test('Read with file_path → locations include path and line 1', () => {
     const info = toolInfoFromToolUse({
@@ -299,7 +299,7 @@ describe('toolInfoFromToolUse', () => {
     ])
   })
 
-  // ── WebSearch ─────────────────────────────────────────────────
+  // ── WebSearch 相关 ─────────────────────────────────────────────────
 
   test('WebSearch with allowed/blocked domains', () => {
     const info = toolInfoFromToolUse({
@@ -315,7 +315,7 @@ describe('toolInfoFromToolUse', () => {
     expect(info.title).toContain('blocked: b.com')
   })
 
-  // ── TodoWrite ─────────────────────────────────────────────────
+  // ── TodoWrite 相关 ─────────────────────────────────────────────────
 
   test('TodoWrite with todos array → title shows content', () => {
     const info = toolInfoFromToolUse({
@@ -327,7 +327,7 @@ describe('toolInfoFromToolUse', () => {
     expect(info.title).toContain('Task 2')
   })
 
-  // ── ExitPlanMode ──────────────────────────────────────────────
+  // ── ExitPlanMode 相关 ──────────────────────────────────────────────
 
   test('ExitPlanMode with plan → content has plan text', () => {
     const info = toolInfoFromToolUse({
@@ -356,7 +356,7 @@ describe('promptToQueryInput', () => {
   })
 })
 
-// ── toolUpdateFromToolResult ───────────────────────────────────────
+// ── toolUpdateFromToolResult 测试 ───────────────────────────────────────
 
 describe('toolUpdateFromToolResult', () => {
   test('returns empty for Edit success', () => {
@@ -398,7 +398,7 @@ describe('toolUpdateFromToolResult', () => {
     )
     expect(result.content).toBeDefined()
     expect(result.content![0].type).toBe('content')
-    // Should be wrapped in markdown code fence
+    // 应被包裹在 markdown code fence 中
     const text = (
       result.content![0] as {
         type: string
@@ -545,7 +545,7 @@ describe('toolUpdateFromToolResult', () => {
   })
 })
 
-// ── toolUpdateFromEditToolResponse ─────────────────────────────────
+// ── toolUpdateFromEditToolResponse 测试 ─────────────────────────────────
 
 describe('toolUpdateFromEditToolResponse', () => {
   test('returns empty for null/undefined/string', () => {
@@ -652,7 +652,7 @@ describe('toolUpdateFromEditToolResponse', () => {
   })
 })
 
-// ── markdownEscape ─────────────────────────────────────────────────
+// ── markdownEscape 测试 ─────────────────────────────────────────────────
 
 describe('markdownEscape', () => {
   test('wraps basic text in code fence', () => {
@@ -667,7 +667,7 @@ describe('markdownEscape', () => {
   })
 })
 
-// ── toDisplayPath ──────────────────────────────────────────────────
+// ── toDisplayPath 测试 ──────────────────────────────────────────────────
 
 describe('toDisplayPath', () => {
   test('relativizes paths inside cwd', () => {
@@ -695,7 +695,7 @@ describe('toDisplayPath', () => {
   })
 })
 
-// ── forwardSessionUpdates ─────────────────────────────────────────
+// ── forwardSessionUpdates 测试 ─────────────────────────────────────────
 
 describe('nextSdkMessageOrAbort', () => {
   test('returns done:true when aborted while waiting for next message', async () => {

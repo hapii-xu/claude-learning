@@ -27,7 +27,7 @@ const AUTO_DISMISS_MS = 30_000;
 
 export function EffortCallout({ model, onDone }: Props): React.ReactNode {
   const defaultEffortConfig = getOpusDefaultEffortConfig();
-  // Latest-ref pattern — write via effect so React Compiler can memoize.
+  // Latest-ref 模式 —— 通过 effect 写入，以便 React Compiler 能做记忆化。
   const onDoneRef = useRef(onDone);
   useEffect(() => {
     onDoneRef.current = onDone;
@@ -37,12 +37,12 @@ export function EffortCallout({ model, onDone }: Props): React.ReactNode {
     onDoneRef.current('dismiss');
   }, []);
 
-  // Permanently dismiss on mount so it only shows once
+  // 挂载时永久关闭，使其只显示一次
   useEffect(() => {
     markV2Dismissed();
   }, []);
 
-  // 30-second auto-dismiss timer
+  // 30 秒自动关闭计时器
   useEffect(() => {
     const timeoutId = setTimeout(handleCancel, AUTO_DISMISS_MS);
     return () => clearTimeout(timeoutId);
@@ -64,11 +64,11 @@ export function EffortCallout({ model, onDone }: Props): React.ReactNode {
 
   const options: OptionWithDescription<EffortLevel>[] = [
     {
-      label: <EffortOptionLabel level="medium" text="Medium (recommended)" />,
+      label: <EffortOptionLabel level="medium" text="中等（推荐）" />,
       value: 'medium',
     },
-    { label: <EffortOptionLabel level="high" text="High" />, value: 'high' },
-    { label: <EffortOptionLabel level="low" text="Low" />, value: 'low' },
+    { label: <EffortOptionLabel level="high" text="高" />, value: 'high' },
+    { label: <EffortOptionLabel level="low" text="低" />, value: 'low' },
   ];
 
   return (
@@ -79,8 +79,8 @@ export function EffortCallout({ model, onDone }: Props): React.ReactNode {
         </Box>
         <Box marginBottom={1}>
           <Text dimColor>
-            <EffortIndicatorSymbol level="low" /> low {'·'} <EffortIndicatorSymbol level="medium" /> medium {'·'}{' '}
-            <EffortIndicatorSymbol level="high" /> high
+            <EffortIndicatorSymbol level="low" /> 低 {'·'} <EffortIndicatorSymbol level="medium" /> 中等 {'·'}{' '}
+            <EffortIndicatorSymbol level="high" /> 高
           </Text>
         </Box>
         <Select options={options} onChange={handleSelect} onCancel={handleCancel} />
@@ -102,15 +102,15 @@ function EffortOptionLabel({ level, text }: { level: EffortLevel; text: string }
 }
 
 /**
- * Check whether to show the effort callout.
+ * 检查是否应显示 effort 提示弹窗。
  *
- * Audience:
- * - Pro: already had medium default; show unless they saw v1 (effortCalloutDismissed)
- * - Max/Team: getting medium via tengu_grey_step2 config; show when enabled
- * - Everyone else: mark as dismissed so it never shows
+ * 受众：
+ * - Pro：此前默认就是 medium；除非见过 v1（effortCalloutDismissed）否则显示
+ * - Max/Team：通过 tengu_grey_step2 配置获得 medium；启用时显示
+ * - 其他所有人：标记为已关闭，使其永不显示
  */
 export function shouldShowEffortCallout(model: string): boolean {
-  // Only show for Opus 4.6 for now
+  // 目前仅对 Opus 4.6 显示
   const parsed = parseUserSpecifiedModel(model);
   if (!parsed.toLowerCase().includes('opus-4-6')) {
     return false;
@@ -119,15 +119,15 @@ export function shouldShowEffortCallout(model: string): boolean {
   const config = getGlobalConfig();
   if (config.effortCalloutV2Dismissed) return false;
 
-  // Don't show to brand-new users — they never knew the old default, so this
-  // isn't a change for them. Mark as dismissed so it stays suppressed.
+  // 不向全新用户显示 —— 他们从不知道旧默认值，因此对他们而言这不算变更。
+  // 标记为已关闭以保持抑制状态。
   if (config.numStartups <= 1) {
     markV2Dismissed();
     return false;
   }
 
-  // Pro users already had medium default before this PR. Show the new copy,
-  // but skip if they already saw the v1 dialog — no point nagging twice.
+  // Pro 用户在本 PR 之前默认就是 medium。显示新文案，
+  // 但若已看过 v1 对话框则跳过 —— 没必要重复打扰。
   if (isProSubscriber()) {
     if (config.effortCalloutDismissed) {
       markV2Dismissed();
@@ -136,14 +136,13 @@ export function shouldShowEffortCallout(model: string): boolean {
     return getOpusDefaultEffortConfig().enabled;
   }
 
-  // Max/Team are the target of the tengu_grey_step2 config.
-  // Don't mark dismissed when config is disabled — they should see the dialog
-  // once it's enabled for them.
+  // Max/Team 是 tengu_grey_step2 配置的目标受众。
+  // 配置关闭时不标记为已关闭 —— 他们应在启用后看到对话框。
   if (isMaxSubscriber() || isTeamSubscriber()) {
     return getOpusDefaultEffortConfig().enabled;
   }
 
-  // Everyone else (free tier, API key, non-subscribers): not in scope.
+  // 其他所有人（免费层、API key、非订阅者）：不在范围内。
   markV2Dismissed();
   return false;
 }

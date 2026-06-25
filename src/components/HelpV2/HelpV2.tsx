@@ -27,7 +27,7 @@ export function HelpV2({ onClose, commands }: Props): React.ReactNode {
   // 页脚，因为 Tabs 不会收缩以适配。让 modal 插槽处理尺寸。
   const insideModal = useIsInsideModal();
 
-  const close = () => onClose('Help dialog dismissed', { display: 'system' });
+  const close = () => onClose('帮助对话框已关闭', { display: 'system' });
   useKeybinding('help:dismiss', close, { context: 'Help' });
   const exitState = useExitOnCtrlCDWithKeybindings(close);
   const dismissShortcut = useShortcutDisplay('help:dismiss', 'Help', 'esc');
@@ -57,7 +57,7 @@ export function HelpV2({ onClose, commands }: Props): React.ReactNode {
         commands={builtinCommands}
         maxHeight={maxHeight}
         columns={columns}
-        title="Browse default commands:"
+        title="浏览默认命令："
         onCancel={close}
       />
     </Tab>,
@@ -69,8 +69,8 @@ export function HelpV2({ onClose, commands }: Props): React.ReactNode {
         commands={customCommands}
         maxHeight={maxHeight}
         columns={columns}
-        title="Browse custom commands:"
-        emptyMessage="No custom commands found"
+        title="浏览自定义命令："
+        emptyMessage="未找到自定义命令"
         onCancel={close}
       />
     </Tab>,
@@ -83,7 +83,7 @@ export function HelpV2({ onClose, commands }: Props): React.ReactNode {
           commands={antOnlyCommands}
           maxHeight={maxHeight}
           columns={columns}
-          title="Browse ant-only commands:"
+          title="浏览 ant-only 命令："
           onCancel={close}
         />
       </Tab>,
@@ -102,16 +102,13 @@ export function HelpV2({ onClose, commands }: Props): React.ReactNode {
         </Tabs>
         <Box marginTop={1}>
           <Text>
-            For more help: <Link url="https://code.claude.com/docs/en/overview" />
+            获取更多帮助：
+            <Link url="https://code.claude.com/docs/en/overview" />
           </Text>
         </Box>
         <Box marginTop={1}>
           <Text dimColor>
-            {exitState.pending ? (
-              <>Press {exitState.keyName} again to exit</>
-            ) : (
-              <Text italic>{dismissShortcut} to cancel</Text>
-            )}
+            {exitState.pending ? <>再次按 {exitState.keyName} 退出</> : <Text italic>{dismissShortcut} 取消</Text>}
           </Text>
         </Box>
       </Pane>

@@ -1,9 +1,8 @@
 /**
- * ACP Agent implementation — bridges ACP protocol methods to Claude Code's
- * internal QueryEngine / query() pipeline.
+ * ACP Agent 实现——将 ACP 协议方法桥接到 Claude Code 内部的 QueryEngine / query() 流水线。
  *
- * Architecture: Uses internal QueryEngine (not @anthropic-ai/claude-agent-sdk)
- * to directly run queries, with a bridge layer converting SDKMessage → ACP SessionUpdate.
+ * 架构：使用内部 QueryEngine（而非 @anthropic-ai/claude-agent-sdk）直接运行查询，
+ * 通过 bridge 层将 SDKMessage 转换为 ACP SessionUpdate。
  */
 import type {
   Agent,
@@ -83,7 +82,7 @@ import { getMainLoopModel } from '../../utils/model/model.js'
 import { getModelOptions } from '../../utils/model/modelOptions.js'
 import { getSettings_DEPRECATED } from '../../utils/settings/settings.js'
 
-// ── Session state ─────────────────────────────────────────────────
+// ── Session 状态 ─────────────────────────────────────────────────
 
 type AcpSession = {
   queryEngine: QueryEngine
@@ -108,7 +107,7 @@ type PendingPrompt = {
   resolve: (cancelled: boolean) => void
 }
 
-// ── Agent class ───────────────────────────────────────────────────
+// ── Agent 类 ───────────────────────────────────────────────────
 
 export class AcpAgent implements Agent {
   private conn: AgentSideConnection
@@ -119,7 +118,7 @@ export class AcpAgent implements Agent {
     this.conn = conn
   }
 
-  // ── initialize ────────────────────────────────────────────────
+  // ── initialize（初始化）────────────────────────────────────────────
 
   async initialize(params: InitializeRequest): Promise<InitializeResponse> {
     this.clientCapabilities = params.clientCapabilities
@@ -171,16 +170,16 @@ export class AcpAgent implements Agent {
     }
   }
 
-  // ── authenticate ──────────────────────────────────────────────
+  // ── authenticate（鉴权）──────────────────────────────────────────────
 
   async authenticate(
     _params: AuthenticateRequest,
   ): Promise<AuthenticateResponse> {
-    // No authentication required — this is a self-hosted/custom deployment
+    // 无需鉴权——这是自托管/自定义部署
     return {}
   }
 
-  // ── newSession ────────────────────────────────────────────────
+  // ── newSession（新建 session）────────────────────────────────────────────
 
   async newSession(params: NewSessionRequest): Promise<NewSessionResponse> {
     const result = await this.createSession(params)
@@ -188,7 +187,7 @@ export class AcpAgent implements Agent {
     return result
   }
 
-  // ── resumeSession ──────────────────────────────────────────────
+  // ── resumeSession（恢复 session）──────────────────────────────────────────
 
   async unstable_resumeSession(
     params: ResumeSessionRequest,
@@ -198,7 +197,7 @@ export class AcpAgent implements Agent {
     return result
   }
 
-  // ── loadSession ────────────────────────────────────────────────
+  // ── loadSession（加载 session）────────────────────────────────────────────
 
   async loadSession(params: LoadSessionRequest): Promise<LoadSessionResponse> {
     const result = await this.getOrCreateSession(params)
@@ -206,7 +205,7 @@ export class AcpAgent implements Agent {
     return result
   }
 
-  // ── listSessions ───────────────────────────────────────────────
+  // ── listSessions（列出 session）───────────────────────────────────────────
 
   async listSessions(
     params: ListSessionsRequest,
@@ -230,7 +229,7 @@ export class AcpAgent implements Agent {
     return { sessions }
   }
 
-  // ── forkSession ────────────────────────────────────────────────
+  // ── forkSession（fork session）────────────────────────────────────────────
 
   async unstable_forkSession(
     params: ForkSessionRequest,
@@ -244,7 +243,7 @@ export class AcpAgent implements Agent {
     return response
   }
 
-  // ── closeSession ───────────────────────────────────────────────
+  // ── closeSession（关闭 session）───────────────────────────────────────────
 
   async unstable_closeSession(
     params: CloseSessionRequest,
@@ -257,7 +256,7 @@ export class AcpAgent implements Agent {
     return {}
   }
 
-  // ── prompt ────────────────────────────────────────────────────
+  // ── prompt（发送提示）────────────────────────────────────────────────────
 
   async prompt(params: PromptRequest): Promise<PromptResponse> {
     const session = this.sessions.get(params.sessionId)
@@ -265,7 +264,7 @@ export class AcpAgent implements Agent {
       throw new Error(`Session ${params.sessionId} not found`)
     }
 
-    // Extract text/image content from the prompt
+    // 从 prompt 中提取文本/图像内容
     const promptInput = promptToQueryInput(params.prompt)
 
     if (!promptInput.trim()) {
@@ -274,7 +273,7 @@ export class AcpAgent implements Agent {
 
     const promptCancelGeneration = session.cancelGeneration
 
-    // Handle prompt queuing — if a prompt is already running, queue this one
+    // 处理 prompt 队列——如果已有 prompt 正在运行，则将本次排队
     if (session.promptRunning) {
       const promptUuid = randomUUID()
       const cancelled = await new Promise<boolean>(resolve => {
@@ -290,19 +289,19 @@ export class AcpAgent implements Agent {
       return { stopReason: 'cancelled' }
     }
 
-    // Reset cancellation only when this prompt is about to run. Queued prompts
-    // must not clear the cancellation state for the active prompt.
+    // 仅在本次 prompt 即将执行时才重置取消状态。排队中的 prompt
+    // 不能清除当前活跃 prompt 的取消状态。
     session.cancelled = false
     session.promptRunning = true
 
     try {
-      // Reset the query engine's abort controller for a fresh query.
-      // After a previous interrupt(), the internal controller is stuck in
-      // aborted state — without this, submitMessage() fails immediately.
+      // 为新查询重置 query engine 的 abort controller。
+      // 在上一次 interrupt() 之后，内部 controller 处于已中止状态——
+      // 不重置的话，submitMessage() 会立即失败。
       session.queryEngine.resetAbortController()
-      // Switch global session state so recordTranscript writes to the correct
-      // session file. Without this, multi-session scenarios (or creating a new
-      // session after another) write transcript data to the wrong file.
+      // 切换全局 session 状态，确保 recordTranscript 写入正确的 session 文件。
+      // 不切换的话，多 session 场景（或在另一个 session 之后新建 session）
+      // 会将 transcript 数据写入错误的文件。
       switchSession(params.sessionId as SessionId, getSessionProjectDir())
 
       const sdkMessages = session.queryEngine.submitMessage(promptInput)
@@ -318,7 +317,7 @@ export class AcpAgent implements Agent {
         () => session.cancelled,
       )
 
-      // If the session was cancelled during processing, return cancelled
+      // 如果 session 在处理过程中被取消，则返回 cancelled
       if (session.cancelled) {
         return { stopReason: 'cancelled' }
       }
@@ -344,21 +343,19 @@ export class AcpAgent implements Agent {
         return { stopReason: 'cancelled' }
       }
 
-      // Check for process death errors
+      // 检查进程崩溃错误
       if (
         err instanceof Error &&
         (err.message.includes('terminated') ||
           err.message.includes('process exited'))
       ) {
         this.teardownSession(params.sessionId)
-        throw new Error(
-          'The Claude Agent process exited unexpectedly. Please start a new session.',
-        )
+        throw new Error('Claude Agent 进程意外退出，请开启新 session。')
       }
 
       throw err
     } finally {
-      // Resolve next pending prompt if any
+      // 若有排队中的 prompt，则触发下一个
       const nextPrompt = popNextPendingPrompt(session)
       if (nextPrompt) {
         session.promptRunning = true
@@ -369,17 +366,17 @@ export class AcpAgent implements Agent {
     }
   }
 
-  // ── cancel ────────────────────────────────────────────────────
+  // ── cancel（取消）────────────────────────────────────────────────────
 
   async cancel(params: CancelNotification): Promise<void> {
     const session = this.sessions.get(params.sessionId)
     if (!session) return
 
-    // Set cancelled flag — checked by prompt() loop to break out
+    // 设置取消标志——由 prompt() 循环检查以中断执行
     session.cancelled = true
     session.cancelGeneration += 1
 
-    // Cancel any queued prompts
+    // 取消所有排队中的 prompt
     for (const [, pending] of session.pendingMessages) {
       pending.resolve(true)
     }
@@ -387,11 +384,11 @@ export class AcpAgent implements Agent {
     session.pendingQueue = []
     session.pendingQueueHead = 0
 
-    // Interrupt the query engine to abort the current API call
+    // 中断 query engine，终止当前 API 调用
     session.queryEngine.interrupt()
   }
 
-  // ── setSessionMode ──────────────────────────────────────────────
+  // ── setSessionMode（设置 session 模式）──────────────────────────────────────────
 
   async setSessionMode(
     params: SetSessionModeRequest,
@@ -406,7 +403,7 @@ export class AcpAgent implements Agent {
     return {}
   }
 
-  // ── setSessionModel ─────────────────────────────────────────────
+  // ── setSessionModel（设置 session 模型）─────────────────────────────────────────
 
   async unstable_setSessionModel(
     params: SetSessionModelRequest,
@@ -415,14 +412,14 @@ export class AcpAgent implements Agent {
     if (!session) {
       throw new Error('Session not found')
     }
-    // Store the raw value — QueryEngine.submitMessage() calls
-    // parseUserSpecifiedModel() to resolve aliases (e.g. "sonnet" → "glm-5.1-turbo")
+    // 存储原始值——QueryEngine.submitMessage() 会调用
+    // parseUserSpecifiedModel() 解析别名（如 "sonnet" → "glm-5.1-turbo"）
     session.queryEngine.setModel(params.modelId)
     await this.updateConfigOption(params.sessionId, 'model', params.modelId)
     return {}
   }
 
-  // ── setSessionConfigOption ──────────────────────────────────────
+  // ── setSessionConfigOption（设置 session 配置项）──────────────────────────────────────
 
   async setSessionConfigOption(
     params: SetSessionConfigOptionRequest,
@@ -468,7 +465,7 @@ export class AcpAgent implements Agent {
     return { configOptions: session.configOptions }
   }
 
-  // ── Private helpers ─────────────────────────────────────────────
+  // ── 私有辅助方法 ─────────────────────────────────────────────
 
   private async createSession(
     params: NewSessionRequest,
@@ -483,14 +480,13 @@ export class AcpAgent implements Agent {
     const sessionId = opts.sessionId ?? randomUUID()
     const cwd = params.cwd
 
-    // Align the global session state so that transcript persistence,
-    // analytics, and cost tracking use the ACP session ID.
-    // Preserve the projectDir set by getOrCreateSession so that
-    // getSessionProjectDir() continues to resolve correctly.
+    // 同步全局 session 状态，确保 transcript 持久化、analytics 和成本追踪
+    // 使用 ACP session ID。保留由 getOrCreateSession 设置的 projectDir，
+    // 以便 getSessionProjectDir() 能继续正确解析。
     const currentProjectDir = getSessionProjectDir()
     switchSession(sessionId as SessionId, currentProjectDir)
 
-    // Set CWD for the session
+    // 为 session 设置当前工作目录（CWD）
     setOriginalCwd(cwd)
     const previousProcessCwd = process.cwd()
     let processCwdChanged = false
@@ -498,15 +494,15 @@ export class AcpAgent implements Agent {
       process.chdir(cwd)
       processCwdChanged = true
     } catch {
-      // CWD may not exist yet; best-effort
+      // CWD 可能尚不存在；尽力执行即可
     }
 
     try {
-      // Build tools with a permissive permission context.
+      // 使用宽松权限上下文构建 tools。
       const permissionContext = getEmptyToolPermissionContext()
       const tools: Tools = getTools(permissionContext)
 
-      // Parse permission mode from _meta (passed by RCS/acp-link) or settings.
+      // 从 _meta（由 RCS/acp-link 传入）或 settings 中解析权限模式。
       const meta = params._meta as Record<string, unknown> | null | undefined
       const hasMetaPermissionMode = hasOwnField(meta, 'permissionMode')
       const metaPermissionMode = hasMetaPermissionMode
@@ -521,7 +517,7 @@ export class AcpAgent implements Agent {
         settingsPermissionMode,
       )
 
-      // Create the permission bridge canUseTool function
+      // 创建权限桥接的 canUseTool 函数
       const canUseTool = createAcpCanUseTool(
         this.conn,
         sessionId,
@@ -536,15 +532,15 @@ export class AcpAgent implements Agent {
             .isBypassPermissionsModeAvailable ?? false,
       )
 
-      // Parse MCP servers from ACP params
-      // MCP server config is handled separately in the tools system
+      // 从 ACP 参数解析 MCP servers
+      // MCP server 配置在 tools 系统中单独处理
 
-      // ACP clients can expose bypass only when both the process and local config allow it.
+      // 只有在进程和本地配置都允许时，ACP 客户端才能暴露 bypass 模式。
       const isBypassAvailable = isAcpBypassPermissionModeAvailable(
         settingsPermissionMode,
       )
 
-      // Create a mutable AppState for the session
+      // 为 session 创建可变的 AppState
       const appState: AppState = {
         ...getDefaultAppState(),
         toolPermissionContext: {
@@ -554,16 +550,16 @@ export class AcpAgent implements Agent {
         },
       }
 
-      // Load commands and agent definitions for subagent support
+      // 加载 commands 和 agent 定义以支持 subagent
       const [commands, agentDefinitionsResult] = await Promise.all([
         getCommands(cwd),
         getAgentDefinitionsWithOverrides(cwd),
       ])
 
-      // Inject agent definitions into appState
+      // 将 agent 定义注入 appState
       appState.agentDefinitions = agentDefinitionsResult
 
-      // Build QueryEngine config
+      // 构建 QueryEngine 配置
       const engineConfig: QueryEngineConfig = {
         cwd,
         tools,
@@ -584,7 +580,7 @@ export class AcpAgent implements Agent {
 
       const queryEngine = new QueryEngine(engineConfig)
 
-      // Build modes — bypassPermissions is opt-in for ACP clients.
+      // 构建 modes——bypassPermissions 对 ACP 客户端为可选启用。
       const availableModes = [
         {
           id: 'default',
@@ -628,7 +624,7 @@ export class AcpAgent implements Agent {
         availableModes,
       }
 
-      // Build models
+      // 构建 models 列表
       const modelOptions = getModelOptions()
       const currentModel = getMainLoopModel()
       const models: SessionModelState = {
@@ -640,10 +636,10 @@ export class AcpAgent implements Agent {
         currentModelId: currentModel,
       }
 
-      // Set the model on the engine
+      // 在 engine 上设置模型
       queryEngine.setModel(currentModel)
 
-      // Build config options
+      // 构建 config 选项
       const configOptions = buildConfigOptions(modes, models)
 
       const session: AcpSession = {
@@ -723,10 +719,10 @@ export class AcpAgent implements Agent {
       await this.teardownSession(params.sessionId)
     }
 
-    // Locate the session file by sessionId across all project directories.
-    // params.cwd may not match the project directory where the session was
-    // originally created (e.g. client sends a subdirectory path), so we
-    // search by sessionId first and fall back to cwd-based lookup.
+    // 跨所有项目目录通过 sessionId 定位 session 文件。
+    // params.cwd 可能与 session 最初创建时的项目目录不匹配
+    //（例如客户端发送的是子目录路径），因此先按 sessionId 搜索，
+    // 再回退到基于 cwd 的查找。
     const resolved = await resolveSessionFilePath(params.sessionId, params.cwd)
     const projectDir = resolved ? dirname(resolved.filePath) : null
     switchSession(params.sessionId as SessionId, projectDir)
@@ -753,7 +749,7 @@ export class AcpAgent implements Agent {
       { sessionId: params.sessionId, initialMessages },
     )
 
-    // Replay history to client if loaded
+    // 如果加载了历史记录，则向客户端回放
     if (initialMessages && initialMessages.length > 0) {
       const session = this.sessions.get(params.sessionId)
       if (session) {
@@ -785,9 +781,9 @@ export class AcpAgent implements Agent {
   }
 
   /**
-   * Load session history from disk and replay it to the ACP client.
-   * Used when switching back to a session that is already in memory
-   * (the client needs the conversation replayed to display it).
+   * 从磁盘加载 session 历史记录并回放给 ACP 客户端。
+   * 用于切换回已在内存中的 session 时
+   *（客户端需要回放对话以便展示）。
    */
   private async replaySessionHistory(params: {
     sessionId: string
@@ -835,7 +831,7 @@ export class AcpAgent implements Agent {
       }
 
       session.modes = { ...session.modes, currentModeId: modeId }
-      // Sync mode to appState so the permission pipeline sees the correct mode
+      // 将 mode 同步到 appState，使权限流水线看到正确的模式
       session.appState.toolPermissionContext = {
         ...session.appState.toolPermissionContext,
         mode: modeId as PermissionMode,
@@ -912,7 +908,7 @@ export class AcpAgent implements Agent {
     }, 0)
   }
 
-  /** Read a setting from Claude config (simplified — no file watching) */
+  /** 从 Claude 配置中读取设置（简化版——不监听文件变化） */
   private getSetting<T>(key: string): T | undefined {
     const settings = getSettings_DEPRECATED() as Record<string, unknown>
     const value = key.split('.').reduce<unknown>((current, segment) => {
@@ -923,7 +919,7 @@ export class AcpAgent implements Agent {
   }
 }
 
-// ── Helpers ────────────────────────────────────────────────────────
+// ── 辅助函数 ────────────────────────────────────────────────────────
 
 const permissionModeIds: readonly PermissionMode[] = [
   'auto',

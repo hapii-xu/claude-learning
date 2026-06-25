@@ -22,17 +22,17 @@ export function GenerateStep(): ReactNode {
   const model = useMainLoopModel();
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Cancel generation when escape pressed during generation
+  // 在生成过程中按 Esc 时取消生成
   const handleCancelGeneration = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
       setIsGenerating(false);
-      setError('Generation cancelled');
+      setError('已取消生成');
     }
   }, []);
 
-  // Use Settings context so 'n' key doesn't cancel (allows typing 'n' in prompt input)
+  // 使用 Settings 上下文，这样按 'n' 键不会触发取消（允许在提示输入中输入字母 'n'）
   useKeybinding('confirm:no', handleCancelGeneration, {
     context: 'Settings',
     isActive: isGenerating,
@@ -51,7 +51,7 @@ export function GenerateStep(): ReactNode {
     isActive: !isGenerating,
   });
 
-  // Go back when escape pressed while not generating
+  // 非生成状态下按 Esc 时返回上一步
   const handleGoBack = useCallback(() => {
     updateWizardData({
       generationPrompt: '',
@@ -66,7 +66,7 @@ export function GenerateStep(): ReactNode {
     goBack();
   }, [updateWizardData, goBack]);
 
-  // Use Settings context so 'n' key doesn't cancel (allows typing 'n' in prompt input)
+  // 使用 Settings 上下文，这样按 'n' 键不会触发取消（允许在提示输入中输入字母 'n'）
   useKeybinding('confirm:no', handleGoBack, {
     context: 'Settings',
     isActive: !isGenerating,
@@ -75,7 +75,7 @@ export function GenerateStep(): ReactNode {
   const handleGenerate = async (): Promise<void> => {
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt) {
-      setError('Please describe what the agent should do');
+      setError('请描述此 agent 应执行的任务');
       return;
     }
 
@@ -86,7 +86,7 @@ export function GenerateStep(): ReactNode {
       isGenerating: true,
     });
 
-    // Create abort controller for this generation
+    // 为本次生成创建 abort controller
     const controller = createAbortController();
     abortControllerRef.current = controller;
 
@@ -102,14 +102,14 @@ export function GenerateStep(): ReactNode {
         wasGenerated: true,
       });
 
-      // Skip directly to ToolsStep (index 6) - matching original flow
+      // 直接跳转到 ToolsStep（索引 6）- 与原有流程保持一致
       goToStep(6);
     } catch (err) {
-      // Don't show error if it was cancelled (already set in escape handler)
+      // 如果是用户取消，不显示错误（已在 Esc 处理函数中设置）
       if (err instanceof APIUserAbortError) {
-        // User cancelled - no error to show
+        // 用户取消 - 无需显示错误
       } else if (err instanceof Error && !err.message.includes('No assistant message found')) {
-        setError(err.message || 'Failed to generate agent');
+        setError(err.message || '生成 agent 失败');
       }
       updateWizardData({ isGenerating: false });
     } finally {
@@ -118,7 +118,7 @@ export function GenerateStep(): ReactNode {
     }
   };
 
-  const subtitle = 'Describe what this agent should do and when it should be used (be comprehensive for best results)';
+  const subtitle = '描述此 agent 应执行的任务以及何时使用它（描述越详细，效果越好）';
 
   if (isGenerating) {
     return (
@@ -130,7 +130,7 @@ export function GenerateStep(): ReactNode {
       >
         <Box flexDirection="row" alignItems="center">
           <Spinner />
-          <Text color="suggestion"> Generating agent from description...</Text>
+          <Text color="suggestion"> 正在根据描述生成 agent...</Text>
         </Box>
       </WizardDialogLayout>
     );
@@ -162,7 +162,7 @@ export function GenerateStep(): ReactNode {
           value={prompt}
           onChange={setPrompt}
           onSubmit={handleGenerate}
-          placeholder="e.g., Help me write unit tests for my code..."
+          placeholder="例如，帮我为代码编写单元测试..."
           columns={80}
           cursorOffset={cursorOffset}
           onChangeCursorOffset={setCursorOffset}

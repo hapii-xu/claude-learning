@@ -14,7 +14,7 @@ export function PromptStep(): ReactNode {
   const [cursorOffset, setCursorOffset] = useState(systemPrompt.length);
   const [error, setError] = useState<string | null>(null);
 
-  // Handle escape key - use Settings context so 'n' key doesn't cancel (allows typing 'n' in input)
+  // 处理 Esc 键 - 使用 Settings 上下文，这样按 'n' 键不会触发取消（允许在输入中输入字母 'n'）
   useKeybinding('confirm:no', goBack, { context: 'Settings' });
 
   const handleExternalEditor = useCallback(async () => {
@@ -32,7 +32,7 @@ export function PromptStep(): ReactNode {
   const handleSubmit = (): void => {
     const trimmedPrompt = systemPrompt.trim();
     if (!trimmedPrompt) {
-      setError('System prompt is required');
+      setError('系统提示词为必填项');
       return;
     }
 
@@ -43,7 +43,7 @@ export function PromptStep(): ReactNode {
 
   return (
     <WizardDialogLayout
-      subtitle="System prompt"
+      subtitle="系统提示词"
       footerText={
         <Byline>
           <KeyboardShortcutHint shortcut="Type" action="enter text" />
@@ -59,15 +59,15 @@ export function PromptStep(): ReactNode {
       }
     >
       <Box flexDirection="column">
-        <Text>Enter the system prompt for your agent:</Text>
-        <Text dimColor>Be comprehensive for best results</Text>
+        <Text>请输入你的 agent 的系统提示词：</Text>
+        <Text dimColor>描述越详细，效果越好</Text>
 
         <Box marginTop={1}>
           <TextInput
             value={systemPrompt}
             onChange={setSystemPrompt}
             onSubmit={handleSubmit}
-            placeholder="You are a helpful code reviewer who..."
+            placeholder="你是一位乐于助人的代码审查员，会..."
             columns={80}
             cursorOffset={cursorOffset}
             onChangeCursorOffset={setCursorOffset}

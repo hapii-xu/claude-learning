@@ -20,13 +20,13 @@ export function SandboxDoctorSection(): React.ReactNode {
   }
 
   const statusColor = hasErrors ? ('error' as const) : ('warning' as const);
-  const statusText = hasErrors ? 'Missing dependencies' : 'Available (with warnings)';
+  const statusText = hasErrors ? '缺少依赖' : '可用（有警告）';
 
   return (
     <Box flexDirection="column">
       <Text bold>Sandbox</Text>
       <Text>
-        └ Status: <Text color={statusColor}>{statusText}</Text>
+        └ 状态：<Text color={statusColor}>{statusText}</Text>
       </Text>
       {depCheck.errors.map((e, i) => (
         <Text key={i} color="error">
@@ -38,7 +38,7 @@ export function SandboxDoctorSection(): React.ReactNode {
           └ {w}
         </Text>
       ))}
-      {hasErrors && <Text dimColor>└ Run /sandbox for install instructions</Text>}
+      {hasErrors && <Text dimColor>└ 运行 /sandbox 查看安装说明</Text>}
     </Box>
   );
 }

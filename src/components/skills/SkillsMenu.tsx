@@ -96,15 +96,15 @@ export function SkillsMenu({ onExit, commands }: Props): React.ReactNode {
   }, [filteredSkills]);
 
   const handleCancel = (): void => {
-    onExit('Skills dialog dismissed', { display: 'system' });
+    onExit('Skills 对话框已关闭', { display: 'system' });
   };
 
   if (skills.length === 0) {
     return (
-      <Dialog title="Skills" subtitle="No skills found" onCancel={handleCancel} hideInputGuide>
-        <Text dimColor>Create skills in .hclaude/skills/ or ~/.hclaude/skills/</Text>
+      <Dialog title="Skills" subtitle="未找到 skill" onCancel={handleCancel} hideInputGuide>
+        <Text dimColor>在 .hclaude/skills/ 或 ~/.hclaude/skills/ 中创建 skill</Text>
         <Text dimColor italic>
-          <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="close" />
+          <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="关闭" />
         </Text>
       </Dialog>
     );
@@ -114,11 +114,11 @@ export function SkillsMenu({ onExit, commands }: Props): React.ReactNode {
     switch (source) {
       case 'projectSettings':
       case 'localSettings':
-        return { label: 'local', color: 'yellow' };
+        return { label: '本地', color: 'yellow' };
       case 'userSettings':
-        return { label: 'global', color: 'cyan' };
+        return { label: '全局', color: 'cyan' };
       case 'policySettings':
-        return { label: 'managed', color: 'magenta' };
+        return { label: '托管', color: 'magenta' };
       default:
         return undefined;
     }
@@ -147,16 +147,14 @@ export function SkillsMenu({ onExit, commands }: Props): React.ReactNode {
   }, [skillsBySource]);
 
   const subtitle =
-    searchQuery.trim() === ''
-      ? `${skills.length} ${plural(skills.length, 'skill')}`
-      : `${filteredSkills.length}/${skills.length} ${plural(skills.length, 'skill')}`;
+    searchQuery.trim() === '' ? `${skills.length} 个 skill` : `${filteredSkills.length}/${skills.length} 个 skill`;
 
   // Source 分组标题 —— 通过 renderItem 在选择器列表内作为分节标签渲染。
   // 我们为每个项标注其 source，以便检测分组边界变化。
   return (
     <FuzzyPicker
       title="Skills"
-      placeholder="Type to filter skills…"
+      placeholder="输入以过滤 skill…"
       items={orderedFilteredSkills}
       getKey={s => `${s.name}-${s.source}`}
       visibleCount={12}
@@ -166,9 +164,9 @@ export function SkillsMenu({ onExit, commands }: Props): React.ReactNode {
         onExit(`/${getCommandName(skill)}`, { display: 'user' });
       }}
       onCancel={handleCancel}
-      emptyMessage={q => (q.trim() ? `No skills matching "${q.trim()}"` : 'No skills found')}
+      emptyMessage={q => (q.trim() ? `没有匹配 "${q.trim()}" 的 skill` : '未找到 skill')}
       matchLabel={subtitle}
-      selectAction="invoke skill"
+      selectAction="调用 skill"
       renderItem={(skill, isFocused) => renderSkillItem(skill, isFocused)}
     />
   );

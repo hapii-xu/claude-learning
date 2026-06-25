@@ -27,7 +27,7 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
   const [selectedAgent, setSelectedAgent] = React.useState<ResolvedAgent | null>(null);
   const [isCreateNewSelected, setIsCreateNewSelected] = React.useState(true);
 
-  // Sort agents alphabetically by name within each source group
+  // 在每个来源分组内按名称字母序排序
   const sortedAgents = React.useMemo(() => [...agents].sort(compareAgentsByName), [agents]);
 
   const getOverrideInfo = (agent: ResolvedAgent) => {
@@ -43,7 +43,7 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
         <Text color={isCreateNewSelected ? 'suggestion' : undefined}>
           {isCreateNewSelected ? `${figures.pointer} ` : '  '}
         </Text>
-        <Text color={isCreateNewSelected ? 'suggestion' : undefined}>Create new agent</Text>
+        <Text color={isCreateNewSelected ? 'suggestion' : undefined}>创建新 agent</Text>
       </Box>
     );
   };
@@ -79,13 +79,13 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
         {agent.memory && (
           <Text dimColor={true} color={textColor}>
             {' · '}
-            {agent.memory} memory
+            {agent.memory} 记忆
           </Text>
         )}
         {overriddenBy && (
           <Text dimColor={!isSelected} color={isSelected ? 'warning' : undefined}>
             {' '}
-            {figures.warning} shadowed by {getOverrideSourceLabel(overriddenBy)}
+            {figures.warning} 被 {getOverrideSourceLabel(overriddenBy)} 覆盖
           </Text>
         )}
       </Box>
@@ -102,7 +102,7 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
     return nonBuiltIn;
   }, [sortedAgents, source]);
 
-  // Set initial selection
+  // 设置初始选中项
   React.useEffect(() => {
     if (!selectedAgent && !isCreateNewSelected && selectableAgentsInOrder.length > 0) {
       if (onCreateNew) {
@@ -127,13 +127,13 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
     if (e.key !== 'up' && e.key !== 'down') return;
     e.preventDefault();
 
-    // Handle navigation with "Create New Agent" option
+    // 处理带「创建新 agent」选项的导航
     const hasCreateOption = !!onCreateNew;
     const totalItems = selectableAgentsInOrder.length + (hasCreateOption ? 1 : 0);
 
     if (totalItems === 0) return;
 
-    // Calculate current position in list (0 = create new, 1+ = agents)
+    // 计算在列表中的当前位置（0 = 创建新，1+ = 各 agent）
     let currentPosition = 0;
     if (!isCreateNewSelected && selectedAgent) {
       const agentIndex = selectableAgentsInOrder.findIndex(
@@ -144,7 +144,7 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
       }
     }
 
-    // Calculate new position with wrap-around
+    // 计算新位置（循环切换）
     const newPosition =
       e.key === 'up'
         ? currentPosition === 0
@@ -154,7 +154,7 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
           ? 0
           : currentPosition + 1;
 
-    // Update selection based on new position
+    // 根据新位置更新选中项
     if (hasCreateOption && newPosition === 0) {
       setIsCreateNewSelected(true);
       setSelectedAgent(null);
@@ -168,7 +168,7 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
     }
   };
 
-  const renderBuiltInAgentsSection = (title = 'Built-in (always available):') => {
+  const renderBuiltInAgentsSection = (title = '内置（始终可用）：') => {
     const builtInAgents = sortedAgents.filter(a => a.source === 'built-in');
     return (
       <Box flexDirection="column" marginBottom={1} paddingLeft={2}>
@@ -207,14 +207,12 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
 
   if (hasNoAgents) {
     return (
-      <Dialog title={sourceTitle} subtitle="No agents found" onCancel={onBack} hideInputGuide>
+      <Dialog title={sourceTitle} subtitle="未找到 agent" onCancel={onBack} hideInputGuide>
         <Box flexDirection="column" gap={1} tabIndex={0} autoFocus onKeyDown={handleKeyDown}>
           {onCreateNew && <Box>{renderCreateNewOption()}</Box>}
-          <Text dimColor>No agents found. Create specialized subagents that Claude can delegate to.</Text>
-          <Text dimColor>Each subagent has its own context window, custom system prompt, and specific tools.</Text>
-          <Text dimColor>
-            Try creating: Code Reviewer, Code Simplifier, Security Reviewer, Tech Lead, or UX Reviewer.
-          </Text>
+          <Text dimColor>未找到 agent。可以创建 Claude 可委派任务的专用子 agent。</Text>
+          <Text dimColor>每个子 agent 都拥有独立的上下文窗口、自定义系统提示词和专用工具。</Text>
+          <Text dimColor>试试创建：代码审查员、代码简化员、安全审查员、技术负责人或 UX 审查员。</Text>
           {source !== 'built-in' && sortedAgents.some(a => a.source === 'built-in') && (
             <>
               <Divider />
@@ -229,7 +227,7 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
   return (
     <Dialog
       title={sourceTitle}
-      subtitle={`${count(sortedAgents, a => !a.overriddenBy)} agents`}
+      subtitle={`${count(sortedAgents, a => !a.overriddenBy)} 个 agent`}
       onCancel={onBack}
       hideInputGuide
     >
@@ -253,7 +251,7 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
             {builtInAgents.length > 0 && (
               <Box flexDirection="column" marginBottom={1} paddingLeft={2}>
                 <Text dimColor>
-                  <Text bold>Built-in agents</Text> (always available)
+                  <Text bold>内置 agent</Text>（始终可用）
                 </Text>
                 {builtInAgents.map(renderAgent)}
               </Box>
@@ -262,7 +260,7 @@ export function AgentsList({ source, agents, onBack, onSelect, onCreateNew, chan
         ) : source === 'built-in' ? (
           <>
             <Text dimColor italic>
-              Built-in agents are provided by default and cannot be modified.
+              内置 agent 为默认提供，无法修改。
             </Text>
             <Box marginTop={1} flexDirection="column">
               {sortedAgents.map(agent => renderAgent(agent))}

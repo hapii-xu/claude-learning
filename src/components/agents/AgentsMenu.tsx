@@ -45,7 +45,7 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
   const { allAgents, activeAgents: agents } = agentDefinitions;
   const [changes, setChanges] = useState<string[]>([]);
 
-  // Get MCP tools from app state and merge with local tools
+  // 从 app state 获取 MCP 工具并与本地工具合并
   const mergedTools = useMergedTools(tools, mcpTools, toolPermissionContext);
 
   useExitOnCtrlCDWithKeybindings();
@@ -87,8 +87,8 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
           };
         });
 
-        setChanges(prev => [...prev, `Deleted agent: ${chalk.bold(agent.agentType)}`]);
-        // Go back to the agents list after deletion
+        setChanges(prev => [...prev, `已删除 agent：${chalk.bold(agent.agentType)}`]);
+        // 删除后返回 agent 列表
         setModeState({ mode: 'list-agents', source: 'all' });
       } catch (error) {
         logError(toError(error));
@@ -97,7 +97,7 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
     [setAppState],
   );
 
-  // Render based on mode
+  // 根据 mode 渲染
   switch (modeState.mode) {
     case 'list-agents': {
       const agentsToShow =
@@ -113,7 +113,7 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
             ]
           : agentsBySource[modeState.source];
 
-      // Resolve overrides and filter to the agents we want to show
+      // 解析覆盖关系，并过滤出要展示的 agent
       const allResolved = resolveAgentOverrides(agentsToShow, agents);
       const resolvedAgents: ResolvedAgent[] = allResolved;
 
@@ -123,8 +123,8 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
             source={modeState.source}
             agents={resolvedAgents}
             onBack={() => {
-              const exitMessage = changes.length > 0 ? `Agent changes:\n${changes.join('\n')}` : undefined;
-              onExit(exitMessage ?? 'Agents dialog dismissed', {
+              const exitMessage = changes.length > 0 ? `Agent 变更：\n${changes.join('\n')}` : undefined;
+              onExit(exitMessage ?? '已关闭 Agent 对话框', {
                 display: changes.length === 0 ? 'system' : undefined,
               });
             }}
@@ -163,14 +163,14 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
       const isEditable =
         agentToUse.source !== 'built-in' && agentToUse.source !== 'plugin' && agentToUse.source !== 'flagSettings';
       const menuItems = [
-        { label: 'View agent', value: 'view' },
+        { label: '查看 agent', value: 'view' },
         ...(isEditable
           ? [
-              { label: 'Edit agent', value: 'edit' },
-              { label: 'Delete agent', value: 'delete' },
+              { label: '编辑 agent', value: 'edit' },
+              { label: '删除 agent', value: 'delete' },
             ]
           : []),
-        { label: 'Back', value: 'back' },
+        { label: '返回', value: 'back' },
       ];
 
       const handleMenuSelect = (value: string): void => {
@@ -228,7 +228,7 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
     }
 
     case 'view-agent': {
-      // Always use fresh agent data from allAgents
+      // 始终使用来自 allAgents 的最新 agent 数据
       const freshAgent = allAgents.find(
         a => a.agentType === modeState.agent.agentType && a.source === modeState.agent.source,
       );
@@ -260,31 +260,31 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
               }
             />
           </Dialog>
-          <AgentNavigationFooter instructions="Press Enter or Esc to go back" />
+          <AgentNavigationFooter instructions="按回车或 Esc 返回" />
         </>
       );
     }
 
     case 'delete-confirm': {
       const deleteOptions = [
-        { label: 'Yes, delete', value: 'yes' },
-        { label: 'No, cancel', value: 'no' },
+        { label: '是的，删除', value: 'yes' },
+        { label: '不，取消', value: 'no' },
       ];
 
       return (
         <>
           <Dialog
-            title="Delete agent"
+            title="删除 agent"
             onCancel={() => {
               if ('previousMode' in modeState) setModeState(modeState.previousMode);
             }}
             color="error"
           >
             <Text>
-              Are you sure you want to delete the agent <Text bold>{modeState.agent.agentType}</Text>?
+              确定要删除 agent <Text bold>{modeState.agent.agentType}</Text> 吗？
             </Text>
             <Box marginTop={1}>
-              <Text dimColor>Source: {modeState.agent.source}</Text>
+              <Text dimColor>来源：{modeState.agent.source}</Text>
             </Box>
             <Box marginTop={1}>
               <Select
@@ -306,13 +306,13 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
               />
             </Box>
           </Dialog>
-          <AgentNavigationFooter instructions="Press ↑↓ to navigate, Enter to select, Esc to cancel" />
+          <AgentNavigationFooter instructions="按 ↑↓ 导航，回车选择，Esc 取消" />
         </>
       );
     }
 
     case 'edit-agent': {
-      // Always use fresh agent data
+      // 始终使用最新的 agent 数据
       const freshAgent = allAgents.find(
         a => a.agentType === modeState.agent.agentType && a.source === modeState.agent.source,
       );
@@ -321,7 +321,7 @@ export function AgentsMenu({ tools, onExit }: Props): React.ReactNode {
       return (
         <>
           <Dialog
-            title={`Edit agent: ${agentToEdit.agentType}`}
+            title={`编辑 agent：${agentToEdit.agentType}`}
             onCancel={() => setModeState(modeState.previousMode)}
             hideInputGuide
           >

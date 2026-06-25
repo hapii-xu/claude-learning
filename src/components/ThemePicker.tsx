@@ -21,9 +21,9 @@ export type ThemePickerProps = {
   helpText?: string;
   showHelpTextBelow?: boolean;
   hideEscToCancel?: boolean;
-  /** Skip exit handling when running in a context that already has it (e.g., onboarding) */
+  /** 在已经自带退出处理的环境中（例如 onboarding）运行时，跳过退出处理 */
   skipExitHandling?: boolean;
-  /** Called when the user cancels (presses Escape). If skipExitHandling is true and this is provided, it will be called instead of just saving the preview. */
+  /** 当用户取消（按下 Escape）时调用。如果 skipExitHandling 为 true 且提供了此回调，则会调用它而不是仅保存预览。 */
   onCancel?: () => void;
 };
 
@@ -45,7 +45,7 @@ export function ThemePicker({
   const syntaxHighlightingDisabled = useAppState(s => s.settings.syntaxHighlightingDisabled) ?? false;
   const setAppState = useSetAppState();
 
-  // Register ThemePicker context so its keybindings take precedence over Global
+  // 注册 ThemePicker context，使其 keybindings 优先级高于 Global
   useRegisterKeybindingContext('ThemePicker');
 
   const syntaxToggleShortcut = useShortcutDisplay('theme:toggleSyntaxHighlighting', 'ThemePicker', 'ctrl+t');
@@ -66,27 +66,27 @@ export function ThemePicker({
     },
     { context: 'ThemePicker' },
   );
-  // Always call the hook to follow React rules, but conditionally assign the exit handler
+  // 始终调用该 hook 以遵守 React 规则，但条件性地赋值退出处理器
   const exitState = useExitOnCtrlCDWithKeybindings(skipExitHandling ? () => {} : undefined);
 
   const themeOptions: { label: string; value: ThemeSetting }[] = [
-    ...(feature('AUTO_THEME') ? [{ label: 'Auto (match terminal)', value: 'auto' as const }] : []),
-    { label: 'Dark mode', value: 'dark' },
-    { label: 'Light mode', value: 'light' },
+    ...(feature('AUTO_THEME') ? [{ label: '自动（跟随终端）', value: 'auto' as const }] : []),
+    { label: '深色模式', value: 'dark' },
+    { label: '浅色模式', value: 'light' },
     {
-      label: 'Dark mode (colorblind-friendly)',
+      label: '深色模式（色盲友好）',
       value: 'dark-daltonized',
     },
     {
-      label: 'Light mode (colorblind-friendly)',
+      label: '浅色模式（色盲友好）',
       value: 'light-daltonized',
     },
     {
-      label: 'Dark mode (ANSI colors only)',
+      label: '深色模式（仅 ANSI 颜色）',
       value: 'dark-ansi',
     },
     {
-      label: 'Light mode (ANSI colors only)',
+      label: '浅色模式（仅 ANSI 颜色）',
       value: 'light-ansi',
     },
   ];
@@ -95,14 +95,14 @@ export function ThemePicker({
     <Box flexDirection="column" gap={1}>
       <Box flexDirection="column" gap={1}>
         {showIntroText ? (
-          <Text>Let&apos;s get started.</Text>
+          <Text>让我们开始吧。</Text>
         ) : (
           <Text bold color="permission">
-            Theme
+            主题
           </Text>
         )}
         <Box flexDirection="column">
-          <Text bold>Choose the text style that looks best with your terminal</Text>
+          <Text bold>选择在你的终端中看起来最舒服的文本样式</Text>
           {helpText && !showHelpTextBelow && <Text dimColor>{helpText}</Text>}
         </Box>
         <Select
@@ -162,18 +162,18 @@ export function ThemePicker({
         <Text dimColor>
           {' '}
           {colorModuleUnavailableReason === 'env'
-            ? `Syntax highlighting disabled (via CLAUDE_CODE_SYNTAX_HIGHLIGHT=${process.env.CLAUDE_CODE_SYNTAX_HIGHLIGHT})`
+            ? `语法高亮已禁用（通过 CLAUDE_CODE_SYNTAX_HIGHLIGHT=${process.env.CLAUDE_CODE_SYNTAX_HIGHLIGHT}）`
             : syntaxHighlightingDisabled
-              ? `Syntax highlighting disabled (${syntaxToggleShortcut} to enable)`
+              ? `语法高亮已禁用（${syntaxToggleShortcut} 启用）`
               : syntaxTheme
-                ? `Syntax theme: ${syntaxTheme.theme}${syntaxTheme.source ? ` (from ${syntaxTheme.source})` : ''} (${syntaxToggleShortcut} to disable)`
-                : `Syntax highlighting enabled (${syntaxToggleShortcut} to disable)`}
+                ? `语法主题：${syntaxTheme.theme}${syntaxTheme.source ? `（来自 ${syntaxTheme.source}）` : ''}（${syntaxToggleShortcut} 禁用）`
+                : `语法高亮已启用（${syntaxToggleShortcut} 禁用）`}
         </Text>
       </Box>
     </Box>
   );
 
-  // Only wrap in a box when not in onboarding
+  // 仅在不处于 onboarding 时才包裹一层 Box
   if (!showIntroText) {
     return (
       <>
@@ -188,7 +188,7 @@ export function ThemePicker({
             <Box>
               <Text dimColor italic>
                 {exitState.pending ? (
-                  <>Press {exitState.keyName} again to exit</>
+                  <>再按一次 {exitState.keyName} 退出</>
                 ) : (
                   <Byline>
                     <KeyboardShortcutHint shortcut="Enter" action="select" />

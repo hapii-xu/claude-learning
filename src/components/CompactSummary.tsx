@@ -23,7 +23,7 @@ export function CompactSummary({ message, screen }: Props): React.ReactNode {
       }
     | undefined;
 
-  // "Summarize from here" with metadata
+  // \u5e26\u5143\u6570\u636e\u7684"\u4ece\u6b64\u5904\u603b\u7ed3"
   if (metadata) {
     return (
       <Box flexDirection="column" marginTop={1}>
@@ -32,17 +32,17 @@ export function CompactSummary({ message, screen }: Props): React.ReactNode {
             <Text color="text">{BLACK_CIRCLE}</Text>
           </Box>
           <Box flexDirection="column">
-            <Text bold>Summarized conversation</Text>
+            <Text bold>\u5df2\u603b\u7ed3\u7684\u5bf9\u8bdd</Text>
             {!isTranscriptMode && (
               <MessageResponse>
                 <Box flexDirection="column">
                   <Text dimColor>
-                    Summarized {metadata.messagesSummarized} messages{' '}
-                    {metadata.direction === 'up_to' ? 'up to this point' : 'from this point'}
+                    \u5df2\u603b\u7ed3 {metadata.messagesSummarized} \u6761\u6d88\u606f{' '}
+                    {metadata.direction === 'up_to' ? '\u622a\u81f3\u6b64\u5904' : '\u4ece\u6b64\u5904\u5f00\u59cb'}
                   </Text>
                   {metadata.userContext && (
                     <Text dimColor>
-                      Context: {'\u201c'}
+                      \u4e0a\u4e0b\u6587\uff1a{'\u201c'}
                       {metadata.userContext}
                       {'\u201d'}
                     </Text>
@@ -52,7 +52,7 @@ export function CompactSummary({ message, screen }: Props): React.ReactNode {
                       action="app:toggleTranscript"
                       context="Global"
                       fallback="ctrl+o"
-                      description="expand history"
+                      description="\u5c55\u5f00\u5386\u53f2"
                       parens
                     />
                   </Text>
@@ -70,7 +70,7 @@ export function CompactSummary({ message, screen }: Props): React.ReactNode {
     );
   }
 
-  // Default compact summary (auto-compact)
+  // 默认紧凑摘要（自动压缩）
   return (
     <Box flexDirection="column" marginTop={1}>
       <Box flexDirection="row">
@@ -79,7 +79,7 @@ export function CompactSummary({ message, screen }: Props): React.ReactNode {
         </Box>
         <Box flexDirection="column">
           <Text bold>
-            Conversation summarized to free up context
+            对话已总结以释放上下文
             {!isTranscriptMode && (
               <Text dimColor>
                 {' '}
@@ -87,7 +87,7 @@ export function CompactSummary({ message, screen }: Props): React.ReactNode {
                   action="app:toggleTranscript"
                   context="Global"
                   fallback="ctrl+o"
-                  description="view summary"
+                  description="查看摘要"
                   parens
                 />
               </Text>

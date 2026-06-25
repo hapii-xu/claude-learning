@@ -89,7 +89,7 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
   // 为 select 组件创建选项
   const memoryOptions = allMemoryFiles.map(file => {
     const displayPath = getDisplayPath(file.path);
-    const existsLabel = file.exists ? '' : ' (new)';
+    const existsLabel = file.exists ? '' : ' (新建)';
 
     // 根据 parent 计算深度
     const depth = file.parent ? (depths.get(file.parent) ?? 0) + 1 : 0;
@@ -99,9 +99,9 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
     // 根据类型格式化标签
     let label: string;
     if (file.type === 'User' && !file.isNested && file.path === userMemoryPath) {
-      label = `User memory`;
+      label = `用户 memory`;
     } else if (file.type === 'Project' && !file.isNested && file.path === projectMemoryPath) {
-      label = `Project memory`;
+      label = `项目 memory`;
     } else if (depth > 0) {
       // 对于子节点（导入的文件），显示带缩进的 L
       label = `${indent}L ${displayPath}${existsLabel}`;
@@ -115,15 +115,15 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
     const isGit = projectIsInGitRepo(getOriginalCwd());
 
     if (file.type === 'User' && !file.isNested) {
-      description = 'Saved in ~/.hclaude/CLAUDE.md';
+      description = '保存在 ~/.hclaude/CLAUDE.md';
     } else if (file.type === 'Project' && !file.isNested && file.path === projectMemoryPath) {
-      description = `${isGit ? 'Checked in at' : 'Saved in'} ./CLAUDE.md`;
+      description = `${isGit ? '已提交到' : '保存在'} ./CLAUDE.md`;
     } else if (file.parent) {
       // 对于导入的文件（通过 @-import）
-      description = '@-imported';
+      description = '@-import 引入';
     } else if (file.isNested) {
       // 对于嵌套文件（动态加载）
-      description = 'dynamically loaded';
+      description = '动态加载';
     } else {
       description = '';
     }
@@ -146,7 +146,7 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
   if (isAutoMemoryEnabled()) {
     // 始终显示 auto-memory 文件夹选项
     folderOptions.push({
-      label: 'Open auto-memory folder',
+      label: '打开 auto-memory 文件夹',
       value: `${OPEN_FOLDER_PREFIX}${getAutoMemPath()}`,
       description: '',
     });
@@ -154,7 +154,7 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
     // team memory 直接位于 auto-memory 之下（team 目录是 auto 目录的子目录）
     if (feature('TEAMMEM') && teamMemPaths!.isTeamMemoryEnabled()) {
       folderOptions.push({
-        label: 'Open team memory folder',
+        label: '打开 team memory 文件夹',
         value: `${OPEN_FOLDER_PREFIX}${teamMemPaths!.getTeamMemPath()}`,
         description: '',
       });
@@ -165,9 +165,9 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
       if (agent.memory) {
         const agentDir = getAgentMemoryDir(agent.agentType, agent.memory);
         folderOptions.push({
-          label: `Open ${chalk.bold(agent.agentType)} agent memory`,
+          label: `打开 ${chalk.bold(agent.agentType)} agent memory`,
           value: `${OPEN_FOLDER_PREFIX}${agentDir}`,
-          description: `${agent.memory} scope`,
+          description: `${agent.memory} 范围`,
         });
       }
     }
@@ -201,12 +201,12 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
   }, [showDreamRow, isDreamRunning]);
 
   const dreamStatus = isDreamRunning
-    ? 'running'
+    ? '运行中'
     : lastDreamAt === null
       ? '' // stat 进行中
       : lastDreamAt === 0
-        ? 'never'
-        : `last ran ${formatRelativeTimeAgo(new Date(lastDreamAt))}`;
+        ? '从未运行'
+        : `上次运行于 ${formatRelativeTimeAgo(new Date(lastDreamAt))}`;
 
   // null = Select 拥有焦点，0 = auto-memory，1 = auto-dream（当 showDreamRow 为 true 时）
   const [focusedToggle, setFocusedToggle] = useState<number | null>(null);
@@ -258,14 +258,14 @@ export function MemoryFileSelector({ onSelect, onCancel }: Props): React.ReactNo
     <Box flexDirection="column" width="100%">
       <Box flexDirection="column" marginBottom={1}>
         <ListItem isFocused={focusedToggle === 0}>
-          <Text>Auto-memory: {autoMemoryOn ? 'on' : 'off'}</Text>
+          <Text>自动 memory：{autoMemoryOn ? '开' : '关'}</Text>
         </ListItem>
         {showDreamRow && (
           <ListItem isFocused={focusedToggle === 1} styled={false}>
             <Text color={focusedToggle === 1 ? 'suggestion' : undefined}>
-              Auto-dream: {autoDreamOn ? 'on' : 'off'}
+              自动 dream：{autoDreamOn ? '开' : '关'}
               {dreamStatus && <Text dimColor> · {dreamStatus}</Text>}
-              {!isDreamRunning && autoDreamOn && <Text dimColor> · /dream to run</Text>}
+              {!isDreamRunning && autoDreamOn && <Text dimColor> · 使用 /dream 运行</Text>}
             </Text>
           </ListItem>
         )}

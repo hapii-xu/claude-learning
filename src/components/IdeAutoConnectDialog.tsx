@@ -13,7 +13,7 @@ export function IdeAutoConnectDialog({ onComplete }: IdeAutoConnectDialogProps):
     async (value: string) => {
       const autoConnect = value === 'yes';
 
-      // Save the preference and mark dialog as shown
+      // 保存偏好并标记对话框已展示
       saveGlobalConfig(current => ({
         ...current,
         autoConnectIde: autoConnect,
@@ -26,14 +26,14 @@ export function IdeAutoConnectDialog({ onComplete }: IdeAutoConnectDialogProps):
   );
 
   const options = [
-    { label: 'Yes', value: 'yes' },
-    { label: 'No', value: 'no' },
+    { label: '是', value: 'yes' },
+    { label: '否', value: 'no' },
   ];
 
   return (
-    <Dialog title="Do you wish to enable auto-connect to IDE?" color="ide" onCancel={onComplete}>
+    <Dialog title="是否启用自动连接到 IDE？" color="ide" onCancel={onComplete}>
       <Select options={options} onChange={handleSelect} defaultValue={'yes'} />
-      <Text dimColor>You can also configure this in /config or with the --ide flag</Text>
+      <Text dimColor>您也可以在 /config 中或通过 --ide flag 配置此项</Text>
     </Dialog>
   );
 }
@@ -69,14 +69,14 @@ export function IdeDisableAutoConnectDialog({ onComplete }: IdeDisableAutoConnec
   }, [onComplete]);
 
   const options = [
-    { label: 'No', value: 'no' },
-    { label: 'Yes', value: 'yes' },
+    { label: '否', value: 'no' },
+    { label: '是', value: 'yes' },
   ];
 
   return (
     <Dialog
-      title="Do you wish to disable auto-connect to IDE?"
-      subtitle="You can also configure this in /config"
+      title="是否禁用自动连接到 IDE？"
+      subtitle="您也可以在 /config 中配置此项"
       onCancel={handleCancel}
       color="ide"
     >

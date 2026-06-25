@@ -7,9 +7,9 @@ import { logEvent } from '../services/analytics/index.js';
 import type { NormalizedUserMessage, RenderableMessage } from '../types/message.js';
 import { isEmptyMessageText, SYNTHETIC_MESSAGES } from '../utils/messages.js';
 
-// Helper type: narrow the first element of MessageContent to a block with known shape.
-// MessageContent = string | ContentBlockParam[] | ContentBlock[], so indexing gives
-// string | ContentBlockParam | ContentBlock which doesn't expose .type/.text directly.
+// 辅助类型：把 MessageContent 的第一个元素收窄为具有已知结构的 block。
+// MessageContent = string | ContentBlockParam[] | ContentBlock[]，所以索引
+// 得到的是 string | ContentBlockParam | ContentBlock，无法直接暴露 .type/.text。
 type ContentBlock = {
   type: string;
   text?: string;
@@ -39,13 +39,13 @@ export type NavigableType = (typeof NAVIGABLE_TYPES)[number];
 export type NavigableOf<T extends NavigableType> = Extract<RenderableMessage, { type: T }>;
 export type NavigableMessage = RenderableMessage;
 
-// Tier-2 blocklist (tier-1 is height > 0) — things that render but aren't actionable.
+// Tier-2 黑名单（tier-1 是 height > 0）—— 这些会渲染但不可操作。
 export function isNavigableMessage(msg: NavigableMessage): boolean {
   switch (msg.type) {
     case 'assistant': {
       const b = firstBlock(msg.message.content);
-      // Text responses (minus AssistantTextMessage's return-null cases — tier-1
-      // misses unmeasured virtual items), or tool calls with extractable input.
+      // 文本响应（扣除 AssistantTextMessage 返回 null 的情况 —— tier-1
+      // 会漏掉未测量的虚拟项），或带有可提取输入的工具调用。
       return (
         (b?.type === 'text' && !isEmptyMessageText(b.text!) && !SYNTHETIC_MESSAGES.has(b.text!)) ||
         (b?.type === 'tool_use' && b.name! in PRIMARY_INPUT)
@@ -55,10 +55,10 @@ export function isNavigableMessage(msg: NavigableMessage): boolean {
       if (msg.isMeta || msg.isCompactSummary) return false;
       const b = firstBlock(msg.message.content);
       if (b?.type !== 'text') return false;
-      // Interrupt etc. — synthetic, not user-authored.
+      // Interrupt 等 —— 合成内容，并非用户编写。
       if (SYNTHETIC_MESSAGES.has(b.text!)) return false;
-      // Same filter as VirtualMessageList sticky-prompt: XML-wrapped (command
-      // expansions, bash-stdout, etc.) aren't real prompts.
+      // 与 VirtualMessageList sticky-prompt 相同的过滤：XML 包裹的（命令
+      // 展开、bash-stdout 等）不是真正的 prompt。
       return !stripSystemReminders(b.text!).startsWith('<');
     }
     case 'system':
@@ -112,7 +112,7 @@ const PRIMARY_INPUT: Record<string, PrimaryInput> = {
   },
 };
 
-// Only AgentTool has renderGroupedToolUse — Edit/Bash/etc. stay as assistant tool_use blocks.
+// 只有 AgentTool 拥有 renderGroupedToolUse —— Edit/Bash 等仍保持为 assistant tool_use block。
 export function toolCallOf(msg: NavigableMessage): { name: string; input: Record<string, unknown> } | undefined {
   if (msg.type === 'assistant') {
     const b = firstBlock(msg.message.content);
@@ -130,7 +130,7 @@ export type MessageActionCaps = {
   edit: (msg: NormalizedUserMessage) => Promise<void>;
 };
 
-// Identity builder — preserves tuple type so `run`'s param narrows (array literal widens without this).
+// 身份构建器 —— 保留 tuple 类型，使 `run` 的参数能收窄（不加这个的话，数组字面量会被拓宽）。
 function action<const T extends NavigableType, const K extends string>(a: {
   key: K;
   label: string | ((s: MessageActionsState) => string);
@@ -145,28 +145,28 @@ function action<const T extends NavigableType, const K extends string>(a: {
 export const MESSAGE_ACTIONS = [
   action({
     key: 'enter',
-    label: s => (s.expanded ? 'collapse' : 'expand'),
+    label: s => (s.expanded ? '折叠' : '展开'),
     types: ['grouped_tool_use', 'collapsed_read_search', 'attachment', 'system'],
     stays: true,
-    // Empty — `stays` handled inline by dispatch.
+    // 空 —— `stays` 由 dispatch 内联处理。
     run: () => {},
   }),
   action({
     key: 'enter',
-    label: 'edit',
+    label: '编辑',
     types: ['user'],
     run: (m, c) => void c.edit(m),
   }),
   action({
     key: 'c',
-    label: 'copy',
+    label: '复制',
     types: NAVIGABLE_TYPES,
     run: (m, c) => c.copy(copyTextOf(m)),
   }),
   action({
     key: 'p',
-    // `!` safe: applies() guarantees toolName ∈ PRIMARY_INPUT.
-    label: s => `copy ${PRIMARY_INPUT[s.toolName!]!.label}`,
+    // `!` 安全：applies() 保证 toolName ∈ PRIMARY_INPUT。
+    label: s => `复制 ${PRIMARY_INPUT[s.toolName!]!.label}`,
     types: ['grouped_tool_use', 'assistant'],
     applies: s => s.toolName != null && s.toolName in PRIMARY_INPUT,
     run: (m, c) => {
@@ -204,12 +204,12 @@ export type MessageActionsNav = {
 export const MessageActionsSelectedContext = React.createContext(false);
 export const InVirtualListContext = React.createContext(false);
 
-// bg must go on the Box that HAS marginTop (margin stays outside paint) — that's inside each consumer.
+// bg 必须放在拥有 marginTop 的 Box 上（margin 位于绘制区域之外）—— 即每个 consumer 的内部。
 export function useSelectedMessageBg(): 'messageActionsBackground' | undefined {
   return React.useContext(MessageActionsSelectedContext) ? 'messageActionsBackground' : undefined;
 }
 
-// Can't call useKeybindings here — hook runs outside <KeybindingSetup> provider. Returns handlers instead.
+// 不能在这里调用 useKeybindings —— hook 运行在 <KeybindingSetup> provider 之外。改为返回 handlers。
 export function useMessageActions(
   cursor: MessageActionsState | null,
   setCursor: React.Dispatch<React.SetStateAction<MessageActionsState | null>>,
@@ -219,7 +219,7 @@ export function useMessageActions(
   enter: () => void;
   handlers: Record<string, () => void>;
 } {
-  // Refs keep handlers stable — no useKeybindings re-register per message append.
+  // Ref 让 handlers 保持稳定 —— 不会因每条消息追加而重新注册 useKeybindings。
   const cursorRef = useRef(cursor);
   cursorRef.current = cursor;
   const capsRef = useRef(caps);
@@ -234,8 +234,8 @@ export function useMessageActions(
       'messageActions:top': () => navRef.current?.navigateTop(),
       'messageActions:bottom': () => navRef.current?.navigateBottom(),
       'messageActions:escape': () => setCursor(c => (c?.expanded ? { ...c, expanded: false } : null)),
-      // ctrl+c skips the collapse step — from expanded-during-streaming, two-stage
-      // would mean 3 presses to interrupt (collapse→null→cancel).
+      // ctrl+c 跳过折叠步骤 —— 从"流式过程中已展开"状态出发，两段式
+      // 意味着需要按 3 次才能中断（折叠→null→取消）。
       'messageActions:ctrlc': () => setCursor(null),
     };
     for (const key of new Set(MESSAGE_ACTIONS.map(a => a.key))) {
@@ -265,7 +265,7 @@ export function useMessageActions(
   return { enter, handlers };
 }
 
-// Must mount inside <KeybindingSetup>.
+// 必须挂载在 <KeybindingSetup> 内部。
 export function MessageActionsKeybindings({
   handlers,
   isActive,
@@ -277,7 +277,7 @@ export function MessageActionsKeybindings({
   return null;
 }
 
-// borderTop-only Box matches PromptInput's ─── line for stable footer height.
+// 仅 borderTop 的 Box 与 PromptInput 的 ─── 线条匹配，保证底部高度稳定。
 export function MessageActionsBar({ cursor }: { cursor: MessageActionsState }): React.ReactNode {
   const applicable = MESSAGE_ACTIONS.filter(a => isApplicable(a, cursor));
   return (
@@ -289,7 +289,7 @@ export function MessageActionsBar({ cursor }: { cursor: MessageActionsState }): 
           return (
             <React.Fragment key={a.key}>
               {i > 0 && <Text dimColor> · </Text>}
-              {/* dimColor={false} forces SGR 22 — borderDimColor sibling bleeds dim into first cell */}
+              {/* dimColor={false} 强制 SGR 22 —— borderDimColor 兄弟节点会把 dim 效果渗到第一个 cell */}
               <Text bold dimColor={false}>
                 {a.key}
               </Text>
@@ -302,11 +302,11 @@ export function MessageActionsBar({ cursor }: { cursor: MessageActionsState }): 
           {figures.arrowUp}
           {figures.arrowDown}
         </Text>
-        <Text dimColor> navigate · </Text>
+        <Text dimColor> 导航 · </Text>
         <Text bold dimColor={false}>
           esc
         </Text>
-        <Text dimColor> back</Text>
+        <Text dimColor> 返回</Text>
       </Box>
     </Box>
   );

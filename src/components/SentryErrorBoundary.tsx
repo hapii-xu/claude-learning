@@ -5,7 +5,7 @@ import { logError } from 'src/utils/log.js';
 
 interface Props {
   children: React.ReactNode;
-  /** Optional label for identifying which component boundary caught the error */
+  /** 可选标签，用于标识是哪个组件 boundary 捕获了错误 */
   name?: string;
 }
 
@@ -28,7 +28,7 @@ export class SentryErrorBoundary extends React.Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     this.setState({ errorInfo });
 
-    // Log to stderr so the diagnostic info is visible even in production builds
+    // 输出到 stderr，以便诊断信息在生产构建中也能看到
     const boundary = this.props.name || 'SentryErrorBoundary';
     const lines = ['', `[ErrorBoundary:${boundary}] React rendering error caught`, `  Message: ${error.message}`];
     if (errorInfo.componentStack) {
@@ -49,10 +49,10 @@ export class SentryErrorBoundary extends React.Component<Props, State> {
       return (
         <Box flexDirection="column" paddingX={1} paddingY={1}>
           <Text color="error" bold>
-            React Rendering Error
+            React 渲染错误
           </Text>
           <Text color="error">{this.state.error?.message}</Text>
-          {this.props.name && <Text dimColor>Boundary: {this.props.name}</Text>}
+          {this.props.name && <Text dimColor>Boundary：{this.props.name}</Text>}
         </Box>
       );
     }

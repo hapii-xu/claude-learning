@@ -87,35 +87,33 @@ export function UltraplanLaunchDialog({ onChoice }: UltraplanLaunchDialogProps):
   }, [handleChoice]);
 
   const runDescription = isBridgeEnabled
-    ? 'Disable remote control and launch in Claude Code on the web'
-    : 'launch in Claude Code on the web';
+    ? '禁用远程控制并在 Claude Code on the web 中启动'
+    : '在 Claude Code on the web 中启动';
 
   const options = [
     {
-      label: 'Run ultraplan',
+      label: '运行 ultraplan',
       value: 'run' as const,
       description: runDescription,
     },
-    { label: 'Not now', value: 'cancel' as const },
+    { label: '暂不', value: 'cancel' as const },
   ];
 
   return (
-    <Dialog title="Run ultraplan in the cloud?" subtitle={dialogConfig.timeEstimate} onCancel={handleCancel}>
+    <Dialog title="在云端运行 ultraplan？" subtitle={dialogConfig.timeEstimate} onCancel={handleCancel}>
       <Box flexDirection="column" gap={1}>
         <Box flexDirection="column">
           <Text dimColor>{dialogConfig.dialogBody}</Text>
           {showTermsLink ? (
             <Text dimColor>
-              For more information on Claude Code on the web:
+              了解更多关于 Claude Code on the web 的信息：
               <Link url={CCR_TERMS_URL}>{CCR_TERMS_URL}</Link>
             </Text>
           ) : null}
         </Box>
 
         {/* Pipeline 描述（当 bridge 将被断开时隐藏） */}
-        <Text dimColor>
-          {isBridgeEnabled ? 'This will disable Remote Control for this session.' : dialogConfig.dialogPipeline}
-        </Text>
+        <Text dimColor>{isBridgeEnabled ? '这将在本次会话中禁用远程控制。' : dialogConfig.dialogPipeline}</Text>
 
         <Select options={options} onChange={handleChoice} />
       </Box>

@@ -11,35 +11,33 @@ import { MarkdownTable } from './MarkdownTable.js';
 
 type Props = {
   children: string;
-  /** When true, render all text content as dim */
+  /** 为 true 时，所有文本内容以 dim（暗色）渲染 */
   dimColor?: boolean;
 };
 
-// Module-level token cache — marked.lexer is the hot cost on virtual-scroll
-// remounts (~3ms per message). useMemo doesn't survive unmount→remount, so
-// scrolling back to a previously-visible message re-parses. Messages are
-// immutable in history; same content → same tokens. Keyed by hash to avoid
-// retaining full content strings (turn50→turn99 RSS regression, #24180).
+// 模块级 token 缓存 — marked.lexer 是虚拟滚动重新挂载时的热点开销
+//（每条约 ~3ms）。useMemo 在 unmount→remount 间无法存活，因此回滚到之前
+// 可见的消息会重新解析。历史中的消息是不可变的；相同内容 → 相同 token。
+// 用 hash 作为键以避免保留完整内容字符串（turn50→turn99 RSS 回退，#24180）。
 const tokenCache = new LRUCache<string, Token[]>({ max: 500 });
 
-// Characters that indicate markdown syntax. If none are present, skip the
-// ~3ms marked.lexer call entirely — render as a single paragraph. Covers
-// the majority of short assistant responses and user prompts that are
-// plain sentences. Checked via indexOf (not regex) for speed.
-// Single regex: matches any MD marker or ordered-list start (N. at line start).
-// One pass instead of 10× includes scans.
+// 表示 markdown 语法的字符。若不存在这些字符，则完全跳过约 ~3ms 的
+// marked.lexer 调用 — 直接渲染为单个段落。覆盖了大多数纯句子的简短
+// 助手回复和用户输入。用 indexOf（而非正则）检查以提升速度。
+// 单个正则：匹配任意 MD 标记或有序列表起始（行首的 N. ）。
+// 一次扫描替代 10× includes 扫描。
 const MD_SYNTAX_RE = /[#*`|[>\-_~]|\n\n|^\d+\. |\n\d+\. /;
 function hasMarkdownSyntax(s: string): boolean {
-  // Sample first 500 chars — if markdown exists it's usually early (headers,
-  // code fence, list). Long tool outputs are mostly plain text tails.
+  // 取前 500 字符采样 — 若存在 markdown，通常出现在靠前位置（标题、
+  // 代码围栏、列表）。长工具输出大多是纯文本尾部。
   return MD_SYNTAX_RE.test(s.length > 500 ? s.slice(0, 500) : s);
 }
 
 function cachedLexer(content: string): Token[] {
-  // Fast path: plain text with no markdown syntax → single paragraph token.
-  // Skips marked.lexer's full GFM parse (~3ms on long content). Not cached —
-  // reconstruction is a single object allocation, and caching would retain
-  // 4× content in raw/text fields plus the hash key for zero benefit.
+  // 快速路径：无 markdown 语法的纯文本 → 单个段落 token。
+  // 跳过 marked.lexer 的完整 GFM 解析（长内容约 ~3ms）。不缓存 —
+  // 重建只是一个对象分配，而缓存会保留 4× 内容（raw/text 字段）
+  // 加上 hash 键，毫无收益。
   if (!hasMarkdownSyntax(content)) {
     return [
       {
@@ -59,17 +57,17 @@ function cachedLexer(content: string): Token[] {
 }
 
 /**
- * Renders markdown content using a hybrid approach:
- * - Tables are rendered as React components with proper flexbox layout
- * - Other content is rendered as ANSI strings via formatToken
+ * 使用混合方式渲染 markdown 内容：
+ * - 表格作为 React 组件渲染，采用合适的 flexbox 布局
+ * - 其他内容通过 formatToken 渲染为 ANSI 字符串
  */
 export function Markdown(props: Props): React.ReactNode {
   const settings = useSettings();
   if (settings.syntaxHighlightingDisabled) {
     return <MarkdownBody {...props} highlight={null} />;
   }
-  // Suspense fallback renders with highlight=null — plain markdown shows
-  // for ~50ms on first ever render while cli-highlight loads.
+  // Suspense fallback 以 highlight=null 渲染 — 首次渲染时 cli-highlight
+  // 加载期间约 ~50ms 显示纯 markdown。
   return (
     <Suspense fallback={<MarkdownBody {...props} highlight={null} />}>
       <MarkdownWithHighlight {...props} />
@@ -127,42 +125,40 @@ type StreamingProps = {
 };
 
 /**
- * Renders markdown during streaming by splitting at the last top-level block
- * boundary: everything before is stable (memoized, never re-parsed), only the
- * final block is re-parsed per delta. marked.lexer() correctly handles
- * unclosed code fences as a single token, so block boundaries are always safe.
+ * 在流式输出期间渲染 markdown，按最后一个顶层块边界切分：之前的所有内容
+ * 都是稳定的（memoized，永不重新解析），只有最后一个块按每个 delta 重新
+ * 解析。marked.lexer() 会将未闭合的代码围栏正确处理为单个 token，因此块
+ * 边界始终是安全的。
  *
- * The stable boundary only advances (monotonic), so ref mutation during render
- * is idempotent and safe under StrictMode double-rendering. Component unmounts
- * between turns (streamingText → null), resetting the ref.
+ * 稳定边界只会前进（单调），因此渲染期间的 ref 变更是幂等的，在 StrictMode
+ * 双重渲染下也是安全的。组件在轮次之间会卸载（streamingText → null），
+ * 重置 ref。
  */
 export function StreamingMarkdown({ children }: StreamingProps): React.ReactNode {
-  // React Compiler: this component reads and writes stablePrefixRef.current
-  // during render by design. The boundary only advances (monotonic), so
-  // the ref mutation is idempotent under StrictMode double-render — but the
-  // compiler can't prove that, and memoizing around the ref reads would
-  // break the algorithm (stale boundary). Opt out.
+  // React Compiler：此组件按设计在渲染期间读写 stablePrefixRef.current。
+  // 边界只会前进（单调），因此 ref 变更在 StrictMode 双重渲染下是幂等的 —
+  // 但编译器无法证明这一点，而在 ref 读取周围加 memo 会破坏算法
+  //（导致边界过期）。因此主动 opt out。
   'use no memo';
   configureMarked();
 
-  // Strip before boundary tracking so it matches <Markdown>'s stripping
-  // (line 29). When a closing tag arrives, stripped(N+1) is not a prefix
-  // of stripped(N), but the startsWith reset below handles that with a
-  // one-time re-lex on the smaller stripped string.
+  // 在边界跟踪之前先剥离，使其与 <Markdown> 的剥离（第 29 行）一致。
+  // 当闭合标签到达时，stripped(N+1) 不是 stripped(N) 的前缀，但下方的
+  // startsWith 重置会处理这种情况 — 对较小的 stripped 字符串做一次重新词法分析。
   const stripped = stripPromptXMLTags(children);
 
   const stablePrefixRef = useRef('');
 
-  // Reset if text was replaced (defensive; normally unmount handles this)
+  // 若文本被替换则重置（防御性处理；通常由卸载处理）
   if (!stripped.startsWith(stablePrefixRef.current)) {
     stablePrefixRef.current = '';
   }
 
-  // Lex only from current boundary — O(unstable length), not O(full text)
+  // 仅从当前边界开始词法分析 — O(不稳定部分长度)，而非 O(全文长度)
   const boundary = stablePrefixRef.current.length;
   const tokens = marked.lexer(stripped.substring(boundary));
 
-  // Last non-space token is the growing block; everything before is final
+  // 最后一个非空白 token 是正在增长的块；之前的所有内容都是最终的
   let lastContentIdx = tokens.length - 1;
   while (lastContentIdx >= 0 && tokens[lastContentIdx]!.type === 'space') {
     lastContentIdx--;
@@ -178,8 +174,8 @@ export function StreamingMarkdown({ children }: StreamingProps): React.ReactNode
   const stablePrefix = stablePrefixRef.current;
   const unstableSuffix = stripped.substring(stablePrefix.length);
 
-  // stablePrefix is memoized inside <Markdown> via useMemo([children, ...])
-  // so it never re-parses as the unstable suffix grows
+  // stablePrefix 在 <Markdown> 内部通过 useMemo([children, ...]) 被 memo，
+  // 因此随着不稳定后缀增长，它永不重新解析
   return (
     <Box flexDirection="column" gap={1}>
       {stablePrefix && <Markdown>{stablePrefix}</Markdown>}

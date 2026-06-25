@@ -17,10 +17,10 @@ type Props = {
 };
 
 /**
- * Live collapse progress: "x / y summarized". Sub-component so
- * useSyncExternalStore can subscribe to store mutations unconditionally
- * (hooks-in-conditionals would violate React rules). The parent only
- * renders this when feature('CONTEXT_COLLAPSE') + isContextCollapseEnabled().
+ * 实时折叠进度："x / y summarized"。作为子组件，以便
+ * useSyncExternalStore 可以无条件订阅 store 变化
+ * （在条件语句中调用 hooks 会违反 React 规则）。父组件只在
+ * feature('CONTEXT_COLLAPSE') + isContextCollapseEnabled() 为真时才渲染此组件。
  */
 function CollapseLabel({ upgradeMessage }: { upgradeMessage: string | null }): React.ReactNode {
   /* eslint-disable @typescript-eslint/no-require-imports */
@@ -28,9 +28,8 @@ function CollapseLabel({ upgradeMessage }: { upgradeMessage: string | null }): R
     require('../services/contextCollapse/index.js') as typeof import('../services/contextCollapse/index.js');
   /* eslint-enable @typescript-eslint/no-require-imports */
 
-  // Snapshot must be referentially stable across calls when the
-  // underlying counts haven't changed — returning a fresh object every
-  // time would infinite-loop useSyncExternalStore. Encode as a string.
+  // 当底层的计数值未变化时，snapshot 必须在多次调用间保持引用稳定 ——
+  // 每次都返回一个新对象会让 useSyncExternalStore 陷入无限循环。所以编码为字符串。
   const snapshot = useSyncExternalStore(subscribe, () => {
     const s = getStats();
     const idleWarn = s.health.emptySpawnWarningEmitted ? 1 : 0;
@@ -46,9 +45,9 @@ function CollapseLabel({ upgradeMessage }: { upgradeMessage: string | null }): R
   ];
   const total = collapsed + staged;
 
-  // Show error indicator when ctx-agent is failing silently
+  // 当 ctx-agent 静默失败时显示错误指示器
   if (errors > 0 || idleWarn) {
-    const problem = errors > 0 ? `collapse errors: ${errors}` : `collapse idle (${emptySpawns} empty runs)`;
+    const problem = errors > 0 ? `折叠错误：${errors}` : `折叠空闲（${emptySpawns} 次空运行）`;
     return (
       <Text color="warning" wrap="truncate">
         {total > 0 ? `${collapsed} / ${total} summarized \u00b7 ${problem}` : problem}
@@ -58,7 +57,7 @@ function CollapseLabel({ upgradeMessage }: { upgradeMessage: string | null }): R
 
   if (total === 0) return null;
 
-  const label = `${collapsed} / ${total} summarized`;
+  const label = `${collapsed} / ${total} 已摘要`;
   return (
     <Text dimColor wrap="truncate">
       {upgradeMessage ? `${label} \u00b7 ${upgradeMessage}` : label}
@@ -69,7 +68,7 @@ function CollapseLabel({ upgradeMessage }: { upgradeMessage: string | null }): R
 export function TokenWarning({ tokenUsage, model }: Props): React.ReactNode {
   const { percentLeft, isAboveWarningThreshold, isAboveErrorThreshold } = calculateTokenWarningState(tokenUsage, model);
 
-  // Use reactive hook to check if warning should be suppressed
+  // 使用响应式 hook 检查是否应该抑制警告
   const suppressWarning = useCompactWarningSuppression();
 
   if (!isAboveWarningThreshold || suppressWarning) {
@@ -79,13 +78,12 @@ export function TokenWarning({ tokenUsage, model }: Props): React.ReactNode {
   const showAutoCompactWarning = isAutoCompactEnabled();
   const upgradeMessage = getUpgradeMessage('warning');
 
-  // Reactive-only or context-collapse mode: proactive autocompact never
-  // fires, so percentLeft's normal calculation (against the autocompact
-  // threshold) counts down to an event that won't happen. Recompute
-  // against the effective window so the percentage is honest.
+  // 仅响应式或 context-collapse 模式：主动 autocompact 永不触发，
+  // 所以 percentLeft 的常规计算（基于 autocompact 阈值）会倒数到一个
+  // 不会发生的事件。基于有效窗口重新计算，让百分比反映真实情况。
   //
-  // Each feature() block stands alone so the flag strings DCE from
-  // external builds independently.
+  // 每个 feature() 块都独立存在，以便 flag 字符串在外部构建中
+  // 各自独立地进行死代码消除（DCE）。
   let displayPercentLeft = percentLeft;
   let reactiveOnlyMode = false;
   let collapseMode = false;
@@ -108,9 +106,9 @@ export function TokenWarning({ tokenUsage, model }: Props): React.ReactNode {
     displayPercentLeft = Math.max(0, Math.round(((effectiveWindow - tokenUsage) / effectiveWindow) * 100));
   }
 
-  // Collapse mode: delegate to the subscribing sub-component so the
-  // indicator updates live as the ctx-agent stages and commits fire, not
-  // just when the next API response re-renders TokenWarning.
+  // Collapse 模式：委托给订阅 store 的子组件，使指示器随着 ctx-agent
+  // 的 stage 和 commit 实时更新，而不仅仅是在下一次 API response
+  // 重新渲染 TokenWarning 时才更新。
   if (collapseMode && feature('CONTEXT_COLLAPSE')) {
     return (
       <Box flexDirection="row">
@@ -120,8 +118,8 @@ export function TokenWarning({ tokenUsage, model }: Props): React.ReactNode {
   }
 
   const autocompactLabel = reactiveOnlyMode
-    ? `${100 - displayPercentLeft}% context used`
-    : `${displayPercentLeft}% until auto-compact`;
+    ? `已使用 ${100 - displayPercentLeft}% context`
+    : `距离自动 compact 还有 ${displayPercentLeft}%`;
 
   return (
     <Box flexDirection="row">
@@ -132,8 +130,8 @@ export function TokenWarning({ tokenUsage, model }: Props): React.ReactNode {
       ) : (
         <Text color={isAboveErrorThreshold ? 'error' : 'warning'} wrap="truncate">
           {upgradeMessage
-            ? `Context low (${percentLeft}% remaining) \u00b7 ${upgradeMessage}`
-            : `Context low (${percentLeft}% remaining) \u00b7 Run /compact to compact & continue`}
+            ? `Context \u4e0d\u8db3\uff08\u5269\u4f59 ${percentLeft}%\uff09\u00b7 ${upgradeMessage}`
+            : `Context \u4e0d\u8db3\uff08\u5269\u4f59 ${percentLeft}%\uff09\u00b7 \u8fd0\u884c /compact \u8fdb\u884c\u538b\u7f29\u5e76\u7ee7\u7eed`}
         </Text>
       )}
     </Box>

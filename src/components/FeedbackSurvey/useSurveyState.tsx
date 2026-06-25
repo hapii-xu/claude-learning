@@ -68,7 +68,7 @@ export function useSurveyState({
     (selected: FeedbackSurveyResponse): boolean => {
       setLastResponse(selected);
       lastResponseRef.current = selected;
-      // Always fire the survey response event first
+      // 始终先触发调查响应事件
       void onSelect(appearanceId.current, selected);
 
       if (selected === 'dismissed') {

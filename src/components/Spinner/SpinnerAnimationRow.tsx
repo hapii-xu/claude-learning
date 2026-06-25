@@ -16,7 +16,7 @@ import { interpolateColor, toRGBColor } from './utils.js';
 
 const SEP_WIDTH = stringWidth(' · ');
 const THINKING_BARE_WIDTH = stringWidth('thinking');
-const SHOW_TOKENS_AFTER_MS = 30_000;
+const SHOW_TOKENS_AFTER_MS = 30_000; // 超过 30 秒后显示 token 计数
 
 // 思考微光常量。此前位于独立的 ThinkingShimmerText 组件中，并有自己的
 // useAnimationFrame(50) — 此处内联以复用我们现有的 50ms 时钟，并消除冗余的订阅者。
@@ -175,10 +175,11 @@ export function SpinnerAnimationRow({
       ? (foregroundedTeammate.progress?.tokenCount ?? 0)
       : leaderTokens + teammateTokens;
   const tokenCount = formatNumber(totalTokens);
-  const tokensText = hasRunningTeammates ? `${tokenCount} tokens` : `${figures.arrowDown} ${tokenCount} tokens`;
+  const tokensText = hasRunningTeammates ? `${tokenCount} tokens` : `${figures.arrowDown} ${tokenCount} tokens`; // "tokens" 保留英文
   const tokensWidth = stringWidth(tokensText);
 
   // === 思考文本（可能为适应宽度而缩短） ===
+  // "thinking" / "thought for Ns" 是面向用户的 spinner 文案，保留英文词
   let thinkingText =
     thinkingStatus === 'thinking'
       ? `thinking${effortSuffix}`
@@ -266,7 +267,7 @@ export function SpinnerAnimationRow({
   const status =
     foregroundedTeammate && !foregroundedTeammate.isIdle ? (
       <>
-        <Text dimColor>(esc to interrupt </Text>
+        <Text dimColor>(按 esc 中断 </Text>
         <Text color={toInkColor(foregroundedTeammate.identity.color)}>{foregroundedTeammate.identity.agentName}</Text>
         <Text dimColor>)</Text>
       </>

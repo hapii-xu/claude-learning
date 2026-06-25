@@ -64,7 +64,7 @@ type Props = {
   onRestoreCode: (message: UserMessage) => Promise<void>;
   onSummarize: (message: UserMessage, feedback?: string, direction?: PartialCompactDirection) => Promise<void>;
   onClose: () => void;
-  /** Skip pick-list, land on confirm. Caller ran skip-check first. Esc closes fully (no back-to-list). */
+  /** 跳过选择列表，直接进入确认。调用方已先做了跳过检查。Esc 完全关闭（不回到列表）。 */
   preselectedMessage?: UserMessage;
 };
 
@@ -83,7 +83,7 @@ export function MessageSelector({
   const [error, setError] = useState<string | undefined>(undefined);
   const isFileHistoryEnabled = fileHistoryEnabled();
 
-  // Add current prompt as a virtual message
+  // 将当前 prompt 作为虚拟消息添加进去
   const currentUUID = useMemo(randomUUID, []);
   const messageOptions = useMemo(
     () => [
@@ -99,7 +99,7 @@ export function MessageSelector({
   );
   const [selectedIndex, setSelectedIndex] = useState(messageOptions.length - 1);
 
-  // Orient the selected message as the middle of the visible options
+  // 把选中的消息定位到可见选项的中间位置
   const firstVisibleIndex = Math.max(
     0,
     Math.min(selectedIndex - Math.floor(MAX_VISIBLE_MESSAGES / 2), messageOptions.length - MAX_VISIBLE_MESSAGES),
@@ -124,54 +124,54 @@ export function MessageSelector({
   const [isRestoring, setIsRestoring] = useState(false);
   const [restoringOption, setRestoringOption] = useState<RestoreOption | null>(null);
   const [selectedRestoreOption, setSelectedRestoreOption] = useState<RestoreOption>('both');
-  // Per-option feedback state; Select's internal inputValues Map persists
-  // per-option text independently, so sharing one variable would desync.
+  // 每个选项独立的反馈状态；Select 内部的 inputValues Map 会
+  // 为每个选项独立保存文本，所以共用一个变量会造成不同步。
   const [summarizeFromFeedback, setSummarizeFromFeedback] = useState('');
   const [summarizeUpToFeedback, setSummarizeUpToFeedback] = useState('');
 
-  // Generate options with summarize as input type for inline context
+  // 生成选项，其中 summarize 作为输入类型用于内联 context
   function getRestoreOptions(canRestoreCode: boolean): OptionWithDescription<RestoreOption>[] {
     const baseOptions: OptionWithDescription<RestoreOption>[] = canRestoreCode
       ? [
-          { value: 'both', label: 'Restore code and conversation' },
-          { value: 'conversation', label: 'Restore conversation' },
-          { value: 'code', label: 'Restore code' },
+          { value: 'both', label: '恢复代码和对话' },
+          { value: 'conversation', label: '恢复对话' },
+          { value: 'code', label: '恢复代码' },
         ]
-      : [{ value: 'conversation', label: 'Restore conversation' }];
+      : [{ value: 'conversation', label: '恢复对话' }];
 
     const summarizeInputProps = {
       type: 'input' as const,
-      placeholder: 'add context (optional)',
+      placeholder: '添加上下文（可选）',
       initialValue: '',
       allowEmptySubmitToCancel: true,
       showLabelWithValue: true,
-      labelValueSeparator: ': ',
+      labelValueSeparator: '：',
     };
     baseOptions.push({
       value: 'summarize',
-      label: 'Summarize from here',
+      label: '从此处开始压缩',
       ...summarizeInputProps,
       onChange: setSummarizeFromFeedback,
     });
     if (process.env.USER_TYPE === 'ant') {
       baseOptions.push({
         value: 'summarize_up_to',
-        label: 'Summarize up to here',
+        label: '压缩到此处为止',
         ...summarizeInputProps,
         onChange: setSummarizeUpToFeedback,
       });
     }
 
-    baseOptions.push({ value: 'nevermind', label: 'Never mind' });
+    baseOptions.push({ value: 'nevermind', label: '算了' });
     return baseOptions;
   }
 
-  // Log when selector is opened
+  // 记录 selector 打开事件
   useEffect(() => {
     logEvent('tengu_message_selector_opened', {});
   }, []);
 
-  // Helper to restore conversation without confirmation
+  // 不弹确认直接恢复对话的辅助函数
   async function restoreConversationDirectly(message: UserMessage) {
     onPreRestore();
     setIsRestoring(true);
@@ -182,7 +182,7 @@ export function MessageSelector({
     } catch (error) {
       logError(error as Error);
       setIsRestoring(false);
-      setError(`Failed to restore the conversation:\n${error}`);
+      setError(`恢复对话失败：\n${error}`);
     }
   }
 
@@ -196,7 +196,7 @@ export function MessageSelector({
       is_current_prompt: false,
     });
 
-    // Do nothing if the message is not found
+    // 找不到消息则什么都不做
     if (!messages.includes(message)) {
       onClose();
       return;
@@ -217,7 +217,7 @@ export function MessageSelector({
       option: option as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     });
     if (!messageToRestore) {
-      setError('Message not found.');
+      setError('未找到消息。');
       return;
     }
     if (option === 'nevermind') {
@@ -244,7 +244,7 @@ export function MessageSelector({
         setIsRestoring(false);
         setRestoringOption(null);
         setMessageToRestore(undefined);
-        setError(`Failed to summarize:\n${error}`);
+        setError(`压缩失败：\n${error}`);
       }
       return;
     }
@@ -277,15 +277,15 @@ export function MessageSelector({
     setIsRestoring(false);
     setMessageToRestore(undefined);
 
-    // Handle errors
+    // 处理错误
     if (conversationError && codeError) {
-      setError(`Failed to restore the conversation and code:\n${conversationError}\n${codeError}`);
+      setError(`恢复对话和代码失败：\n${conversationError}\n${codeError}`);
     } else if (conversationError) {
-      setError(`Failed to restore the conversation:\n${conversationError}`);
+      setError(`恢复对话失败：\n${conversationError}`);
     } else if (codeError) {
-      setError(`Failed to restore the code:\n${codeError}`);
+      setError(`恢复代码失败：\n${codeError}`);
     } else {
-      // Success - close the selector
+      // 成功 - 关闭 selector
       onClose();
     }
   }
@@ -294,7 +294,7 @@ export function MessageSelector({
 
   const handleEscape = useCallback(() => {
     if (messageToRestore && !preselectedMessage) {
-      // Go back to message list instead of closing entirely
+      // 回到消息列表而不是完全关闭
       setMessageToRestore(undefined);
       return;
     }
@@ -316,13 +316,13 @@ export function MessageSelector({
     }
   }, [messageOptions, selectedIndex, handleSelect]);
 
-  // Escape to close - uses Confirmation context where escape is bound
+  // Escape 关闭 - 使用 Confirmation 上下文，escape 绑定在该上下文
   useKeybinding('confirm:no', handleEscape, {
     context: 'Confirmation',
     isActive: !messageToRestore,
   });
 
-  // Message selector navigation keybindings
+  // 消息选择器导航键位绑定
   useKeybindings(
     {
       'messageSelector:up': moveUp,
@@ -344,7 +344,7 @@ export function MessageSelector({
       if (!isFileHistoryEnabled) {
         return;
       }
-      // Load file snapshot metadata
+      // 加载文件快照元数据
       void Promise.all(
         messageOptions.map(async (userMessage, itemIndex) => {
           if (userMessage.uuid !== currentUUID) {
@@ -386,25 +386,22 @@ export function MessageSelector({
       <Divider color="suggestion" />
       <Box flexDirection="column" marginX={1} gap={1}>
         <Text bold color="suggestion">
-          Rewind
+          回溯
         </Text>
 
         {error && (
           <>
-            <Text color="error">Error: {error}</Text>
+            <Text color="error">错误：{error}</Text>
           </>
         )}
         {!hasMessagesToSelect && (
           <>
-            <Text>Nothing to rewind to yet.</Text>
+            <Text>还没有可回溯的内容。</Text>
           </>
         )}
         {!error && messageToRestore && hasMessagesToSelect && (
           <>
-            <Text>
-              Confirm you want to restore {!diffStatsForRestore && 'the conversation '}to the point before you sent this
-              message:
-            </Text>
+            <Text>确认要恢复到{!diffStatsForRestore && '对话 '}你发送这条消息之前的状态：</Text>
             <Box
               flexDirection="column"
               paddingLeft={1}
@@ -428,7 +425,7 @@ export function MessageSelector({
             {isRestoring && isSummarizeOption(restoringOption) ? (
               <Box flexDirection="row" gap={1}>
                 <Spinner />
-                <Text>Summarizing…</Text>
+                <Text>正在压缩…</Text>
               </Box>
             ) : (
               <Select
@@ -442,7 +439,7 @@ export function MessageSelector({
             )}
             {canRestoreCode && (
               <Box marginBottom={1}>
-                <Text dimColor>{figures.warning} Rewinding does not affect files edited manually or via bash.</Text>
+                <Text dimColor>{figures.warning} 回溯不会影响手动编辑或通过 bash 编辑的文件。</Text>
               </Box>
             )}
           </>
@@ -450,9 +447,9 @@ export function MessageSelector({
         {showPickList && (
           <>
             {isFileHistoryEnabled ? (
-              <Text>Restore the code and/or conversation to the point before…</Text>
+              <Text>将代码和/或对话恢复到以下时间点之前…</Text>
             ) : (
-              <Text>Restore and fork the conversation to the point before…</Text>
+              <Text>将对话恢复并分叉到以下时间点之前…</Text>
             )}
             <Box width="100%" flexDirection="column">
               {messageOptions
@@ -501,17 +498,17 @@ export function MessageSelector({
                                     <>
                                       {numFilesChanged === 1 && metadata.filesChanged![0]
                                         ? `${path.basename(metadata.filesChanged![0])} `
-                                        : `${numFilesChanged} files changed `}
+                                        : `${numFilesChanged} 个文件变更 `}
                                       <DiffStatsText diffStats={metadata} />
                                     </>
                                   ) : (
-                                    <>No code changes</>
+                                    <>无代码变更</>
                                   )}
                                 </Text>
                               </>
                             ) : (
                               <Text dimColor color="warning">
-                                {figures.warning} No code restore
+                                {figures.warning} 无可恢复代码
                               </Text>
                             )}
                           </Box>
@@ -526,9 +523,9 @@ export function MessageSelector({
         {!messageToRestore && (
           <Text dimColor italic>
             {exitState.pending ? (
-              <>Press {exitState.keyName} again to exit</>
+              <>再按一次 {exitState.keyName} 退出</>
             ) : (
-              <>{!error && hasMessagesToSelect && 'Enter to continue · '}Esc to exit</>
+              <>{!error && hasMessagesToSelect && '回车继续 · '}Esc 退出</>
             )}
           </Text>
         )}
@@ -540,15 +537,15 @@ export function MessageSelector({
 function getRestoreOptionConversationText(option: RestoreOption): string {
   switch (option) {
     case 'summarize':
-      return 'Messages after this point will be summarized.';
+      return '此后的消息将被压缩。';
     case 'summarize_up_to':
-      return 'Preceding messages will be summarized. This and subsequent messages will remain unchanged — you will stay at the end of the conversation.';
+      return '此前的消息将被压缩。当前及其后消息保持不变 —— 你仍会停留在对话末尾。';
     case 'both':
     case 'conversation':
-      return 'The conversation will be forked.';
+      return '对话将被分叉。';
     case 'code':
     case 'nevermind':
-      return 'The conversation will be unchanged.';
+      return '对话保持不变。';
   }
 }
 
@@ -570,7 +567,7 @@ function RestoreOptionDescription({
         (showCodeRestore ? (
           <RestoreCodeConfirmation diffStatsForRestore={diffStatsForRestore} />
         ) : (
-          <Text dimColor>The code will be unchanged.</Text>
+          <Text dimColor>代码将保持不变。</Text>
         ))}
     </Box>
   );
@@ -585,7 +582,7 @@ function RestoreCodeConfirmation({
     return undefined;
   }
   if (!diffStatsForRestore.filesChanged || !diffStatsForRestore.filesChanged[0]) {
-    return <Text dimColor>The code has not changed (nothing will be restored).</Text>;
+    return <Text dimColor>代码未变更（无可恢复内容）。</Text>;
   }
 
   const numFilesChanged = diffStatsForRestore.filesChanged.length;
@@ -596,16 +593,18 @@ function RestoreCodeConfirmation({
   } else if (numFilesChanged === 2) {
     const file1 = path.basename(diffStatsForRestore.filesChanged[0] || '');
     const file2 = path.basename(diffStatsForRestore.filesChanged[1] || '');
-    fileLabel = `${file1} and ${file2}`;
+    fileLabel = `${file1} 和 ${file2}`;
   } else {
     const file1 = path.basename(diffStatsForRestore.filesChanged[0] || '');
-    fileLabel = `${file1} and ${diffStatsForRestore.filesChanged.length - 1} other files`;
+    fileLabel = `${file1} 及其他 ${diffStatsForRestore.filesChanged.length - 1} 个文件`;
   }
 
   return (
     <>
       <Text dimColor>
-        The code will be restored <DiffStatsText diffStats={diffStatsForRestore} /> in {fileLabel}.
+        代码将被恢复（
+        <DiffStatsText diffStats={diffStatsForRestore} />
+        ），涉及 {fileLabel}。
       </Text>
     </>
   );
@@ -641,7 +640,7 @@ function UserMessageOption({
     return (
       <Box width="100%">
         <Text italic color={color} dimColor={dimColor}>
-          (current)
+          （当前）
         </Text>
       </Box>
     );
@@ -654,22 +653,22 @@ function UserMessageOption({
       ? content.trim()
       : lastBlock && isTextBlock(lastBlock)
         ? lastBlock.text.trim()
-        : '(no prompt)';
+        : '（无 prompt）';
 
-  // Strip display-unfriendly tags (like <ide_opened_file>) before showing in the list
+  // 显示前先去掉不适合展示的标签（如 <ide_opened_file>）
   const messageText = stripDisplayTags(rawMessageText);
 
   if (isEmptyMessageText(messageText)) {
     return (
       <Box flexDirection="row" width="100%">
         <Text italic color={color} dimColor={dimColor}>
-          ((empty message))
+          （（空消息））
         </Text>
       </Box>
     );
   }
 
-  // Bash inputs
+  // Bash 输入
   if (messageText.includes('<bash-input>')) {
     const input = extractTag(messageText, 'bash-input');
     if (input) {
@@ -685,14 +684,14 @@ function UserMessageOption({
     }
   }
 
-  // Skills and slash commands
+  // Skill 和 slash 命令
   if (messageText.includes(`<${COMMAND_MESSAGE_TAG}>`)) {
     const commandMessage = extractTag(messageText, COMMAND_MESSAGE_TAG);
     const args = extractTag(messageText, 'command-args');
     const isSkillFormat = extractTag(messageText, 'skill-format') === 'true';
     if (commandMessage) {
       if (isSkillFormat) {
-        // Skills: Display as "Skill(name)"
+        // Skill：以 "Skill(name)" 形式展示
         return (
           <Box flexDirection="row" width="100%">
             <Text color={color} dimColor={dimColor}>
@@ -701,7 +700,7 @@ function UserMessageOption({
           </Box>
         );
       } else {
-        // Slash commands: Add "/" prefix and include args
+        // Slash 命令：加上 "/" 前缀并带上参数
         return (
           <Box flexDirection="row" width="100%">
             <Text color={color} dimColor={dimColor}>
@@ -713,7 +712,7 @@ function UserMessageOption({
     }
   }
 
-  // User prompts
+  // 用户 prompt
   return (
     <Box flexDirection="row" width="100%">
       <Text color={color} dimColor={dimColor}>
@@ -726,7 +725,7 @@ function UserMessageOption({
 }
 
 /**
- * Computes the diff stats for all the file edits in-between two messages.
+ * 计算两条消息之间所有文件编辑的 diff 统计信息。
  */
 function computeDiffStatsBetweenMessages(
   messages: Message[],
@@ -806,7 +805,7 @@ export function selectableUserMessagesFilter(message: Message): message is UserM
   const messageText =
     typeof content === 'string' ? content.trim() : lastBlock && isTextBlock(lastBlock) ? lastBlock.text.trim() : '';
 
-  // Filter out non-user-authored messages (command outputs, task notifications, ticks).
+  // 过滤掉非用户编写的消息（命令输出、任务通知、tick 等）。
   if (
     messageText.indexOf(`<${LOCAL_COMMAND_STDOUT_TAG}>`) !== -1 ||
     messageText.indexOf(`<${LOCAL_COMMAND_STDERR_TAG}>`) !== -1 ||
@@ -822,16 +821,16 @@ export function selectableUserMessagesFilter(message: Message): message is UserM
 }
 
 /**
- * Checks if all messages after the given index are synthetic (interruptions, cancels, etc.)
- * or non-meaningful content. Returns true if there's nothing meaningful to confirm -
- * for example, if the user hit enter then immediately cancelled.
+ * 检查给定索引之后的所有消息是否都是合成消息（中断、取消等）
+ * 或无意义内容。如果没有需要确认的有意义内容就返回 true ——
+ * 例如用户按了回车后立即取消的情况。
  */
 export function messagesAfterAreOnlySynthetic(messages: Message[], fromIndex: number): boolean {
   for (let i = fromIndex + 1; i < messages.length; i++) {
     const msg = messages[i];
     if (!msg) continue;
 
-    // Skip known non-meaningful message types
+    // 跳过已知的无意义消息类型
     if (isSyntheticMessage(msg)) continue;
     if (isToolUseResultMessage(msg)) continue;
     if (msg.type === 'progress') continue;
@@ -839,7 +838,7 @@ export function messagesAfterAreOnlySynthetic(messages: Message[], fromIndex: nu
     if (msg.type === 'attachment') continue;
     if (msg.type === 'user' && msg.isMeta) continue;
 
-    // Assistant with actual content = meaningful
+    // 带实际内容的 assistant 消息 = 有意义
     if (msg.type === 'assistant') {
       const content = msg.message!.content;
       if (Array.isArray(content)) {
@@ -851,12 +850,12 @@ export function messagesAfterAreOnlySynthetic(messages: Message[], fromIndex: nu
       continue;
     }
 
-    // User messages that aren't synthetic or meta = meaningful
+    // 非合成、非 meta 的 user 消息 = 有意义
     if (msg.type === 'user') {
       return false;
     }
 
-    // Other types (e.g., tombstone) are non-meaningful, continue
+    // 其他类型（如 tombstone）视为无意义，继续
   }
   return true;
 }

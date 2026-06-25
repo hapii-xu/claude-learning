@@ -20,7 +20,7 @@ interface Props {
 export function IdeOnboardingDialog({ onDone, installationStatus }: Props): React.ReactNode {
   markDialogAsShown();
 
-  // Handle Enter/Escape to dismiss
+  // 处理 Enter/Escape 关闭
   useKeybindings(
     {
       'confirm:yes': onDone,
@@ -43,35 +43,34 @@ export function IdeOnboardingDialog({ onDone, installationStatus }: Props): Reac
         title={
           <>
             <Text color="claude">✻ </Text>
-            <Text>Welcome to Claude Code for {ideName}</Text>
+            <Text>欢迎使用 Claude Code for {ideName}</Text>
           </>
         }
-        subtitle={installedVersion ? `installed ${pluginOrExtension} v${installedVersion}` : undefined}
+        subtitle={installedVersion ? `已安装 ${pluginOrExtension} v${installedVersion}` : undefined}
         color="ide"
         onCancel={onDone}
         hideInputGuide
       >
         <Box flexDirection="column" gap={1}>
           <Text>
-            • Claude has context of <Text color="suggestion">⧉ open files</Text> and{' '}
-            <Text color="suggestion">⧉ selected lines</Text>
+            • Claude 能感知 <Text color="suggestion">⧉ 打开的文件</Text> 和 <Text color="suggestion">⧉ 选中的行</Text>
           </Text>
           <Text>
-            • Review Claude Code&apos;s changes <Text color="diffAddedWord">+11</Text>{' '}
-            <Text color="diffRemovedWord">-22</Text> in the comfort of your IDE
+            • 在您的 IDE 中舒适地审阅 Claude Code 的改动 <Text color="diffAddedWord">+11</Text>{' '}
+            <Text color="diffRemovedWord">-22</Text>
           </Text>
           <Text>
-            • Cmd+Esc<Text dimColor> for Quick Launch</Text>
+            • Cmd+Esc<Text dimColor> 快速启动</Text>
           </Text>
           <Text>
             • {mentionShortcut}
-            <Text dimColor> to reference files or lines in your input</Text>
+            <Text dimColor> 在输入中引用文件或行</Text>
           </Text>
         </Box>
       </Dialog>
       <Box paddingX={1}>
         <Text dimColor italic>
-          Press Enter to continue
+          按 Enter 继续
         </Text>
       </Box>
     </>

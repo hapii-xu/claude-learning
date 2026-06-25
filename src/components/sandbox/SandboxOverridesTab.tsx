@@ -18,7 +18,7 @@ export function SandboxOverridesTab({ onComplete }: Props): React.ReactNode {
   if (!isEnabled) {
     return (
       <Box flexDirection="column" paddingY={1}>
-        <Text color="subtle">Sandbox is not enabled. Enable sandbox to configure override settings.</Text>
+        <Text color="subtle">Sandbox 未启用。启用 sandbox 以配置 override 设置。</Text>
       </Box>
     );
   }
@@ -26,13 +26,9 @@ export function SandboxOverridesTab({ onComplete }: Props): React.ReactNode {
   if (isLocked) {
     return (
       <Box flexDirection="column" paddingY={1}>
-        <Text color="subtle">
-          Override settings are managed by a higher-priority configuration and cannot be changed locally.
-        </Text>
+        <Text color="subtle">Override 设置由更高优先级的配置管理，无法在本地修改。</Text>
         <Box marginTop={1}>
-          <Text dimColor>
-            Current setting: {currentAllowUnsandboxed ? 'Allow unsandboxed fallback' : 'Strict sandbox mode'}
-          </Text>
+          <Text dimColor>当前设置：{currentAllowUnsandboxed ? '允许 unsandboxed fallback' : '严格 sandbox 模式'}</Text>
         </Box>
       </Box>
     );
@@ -41,21 +37,21 @@ export function SandboxOverridesTab({ onComplete }: Props): React.ReactNode {
   return <OverridesSelect onComplete={onComplete} currentMode={currentAllowUnsandboxed ? 'open' : 'closed'} />;
 }
 
-// Split so useTabHeaderFocus() only runs when the Select renders. Calling it
-// above the early returns registers a down-arrow opt-in even when we return
-// static text — pressing ↓ then blurs the header with no way back.
+// 拆分以便 useTabHeaderFocus() 仅在 Select 渲染时运行。在上面提前 return
+// 之前调用它会注册一个下方向键 opt-in，即使我们返回的是静态文本 —— 按下 ↓
+// 会让标题失焦且无法返回。
 function OverridesSelect({ onComplete, currentMode }: Props & { currentMode: OverrideMode }): React.ReactNode {
   const [theme] = useTheme();
   const { headerFocused, focusHeader } = useTabHeaderFocus();
-  const currentIndicator = color('success', theme)(`(current)`);
+  const currentIndicator = color('success', theme)(`(当前)`);
 
   const options = [
     {
-      label: currentMode === 'open' ? `Allow unsandboxed fallback ${currentIndicator}` : 'Allow unsandboxed fallback',
+      label: currentMode === 'open' ? `允许 unsandboxed fallback ${currentIndicator}` : '允许 unsandboxed fallback',
       value: 'open',
     },
     {
-      label: currentMode === 'closed' ? `Strict sandbox mode ${currentIndicator}` : 'Strict sandbox mode',
+      label: currentMode === 'closed' ? `严格 sandbox 模式 ${currentIndicator}` : '严格 sandbox 模式',
       value: 'closed',
     },
   ];
@@ -69,8 +65,8 @@ function OverridesSelect({ onComplete, currentMode }: Props & { currentMode: Ove
 
     const message =
       mode === 'open'
-        ? '✓ Unsandboxed fallback allowed - commands can run outside sandbox when necessary'
-        : '✓ Strict sandbox mode - all commands must run in sandbox or be excluded via the `excludedCommands` option';
+        ? '✓ 已允许 unsandboxed fallback - 命令在需要时可运行在 sandbox 之外'
+        : '✓ 严格 sandbox 模式 - 所有命令必须运行在 sandbox 中，或通过 `excludedCommands` 选项排除';
 
     onComplete(message);
   }
@@ -78,7 +74,7 @@ function OverridesSelect({ onComplete, currentMode }: Props & { currentMode: Ove
   return (
     <Box flexDirection="column" paddingY={1}>
       <Box marginBottom={1}>
-        <Text bold>Configure Overrides:</Text>
+        <Text bold>配置 Overrides：</Text>
       </Box>
       <Select
         options={options}
@@ -90,20 +86,19 @@ function OverridesSelect({ onComplete, currentMode }: Props & { currentMode: Ove
       <Box flexDirection="column" marginTop={1} gap={1}>
         <Text dimColor>
           <Text bold dimColor>
-            Allow unsandboxed fallback:
+            允许 unsandboxed fallback：
           </Text>{' '}
-          When a command fails due to sandbox restrictions, Claude can retry with dangerouslyDisableSandbox to run
-          outside the sandbox (falling back to default permissions).
+          当命令因 sandbox 限制失败时，Claude 可以使用 dangerouslyDisableSandbox 重试，运行在 sandbox 之外
+          （回退到默认权限）。
         </Text>
         <Text dimColor>
           <Text bold dimColor>
-            Strict sandbox mode:
+            严格 sandbox 模式：
           </Text>{' '}
-          All bash commands invoked by the model must run in the sandbox unless they are explicitly listed in
-          excludedCommands.
+          模型调用的所有 bash 命令必须运行在 sandbox 中，除非显式列在 excludedCommands 中。
         </Text>
         <Text dimColor>
-          Learn more:{' '}
+          了解更多：{' '}
           <Link url="https://code.claude.com/docs/en/sandboxing#configure-sandboxing">
             code.claude.com/docs/en/sandboxing#configure-sandboxing
           </Link>

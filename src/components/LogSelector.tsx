@@ -68,17 +68,17 @@ function normalizeAndTruncateToWidth(text: string, maxWidth: number): string {
   return truncateToWidth(normalized, maxWidth);
 }
 
-// Width of prefixes that TreeSelect will add
-const PARENT_PREFIX_WIDTH = 2; // '▼ ' or '▶ '
+// TreeSelect 会添加的前缀宽度
+const PARENT_PREFIX_WIDTH = 2; // '▼ ' 或 '▶ '
 const CHILD_PREFIX_WIDTH = 4; // '  ▸ '
 
-// Deep search constants
+// 深度搜索常量
 const DEEP_SEARCH_MAX_MESSAGES = 2000;
 const DEEP_SEARCH_CROP_SIZE = 1000;
-const DEEP_SEARCH_MAX_TEXT_LENGTH = 50000; // Cap searchable text per session
+const DEEP_SEARCH_MAX_TEXT_LENGTH = 50000; // 每个 session 可搜索文本的上限
 const FUSE_THRESHOLD = 0.3;
-const DATE_TIE_THRESHOLD_MS = 60 * 1000; // 1 minute - use relevance as tie-breaker within this window
-const SNIPPET_CONTEXT_CHARS = 50; // Characters to show before/after match
+const DATE_TIE_THRESHOLD_MS = 60 * 1000; // 1 分钟 —— 在此窗口内使用相关性作为排序兜底
+const SNIPPET_CONTEXT_CHARS = 50; // 匹配项前后展示的字符数
 
 type Snippet = { before: string; match: string; after: string };
 
@@ -87,10 +87,10 @@ function formatSnippet({ before, match, after }: Snippet, highlightColor: (text:
 }
 
 function extractSnippet(text: string, query: string, contextChars: number): Snippet | null {
-  // Find exact query occurrence (case-insensitive).
-  // Note: Fuse does fuzzy matching, so this may miss some fuzzy matches.
-  // This is acceptable for now - in the future we could use Fuse's includeMatches
-  // option and work with the match indices directly.
+  // 查找 query 的精确出现位置（大小写不敏感）。
+  // 注意：Fuse 执行的是模糊匹配，因此可能漏掉部分模糊匹配结果。
+  // 目前可以接受 —— 未来可使用 Fuse 的 includeMatches 选项，
+  // 直接基于匹配索引进行处理。
   const matchIndex = text.toLowerCase().indexOf(query.toLowerCase());
   if (matchIndex === -1) return null;
 
@@ -120,13 +120,12 @@ function buildLogLabel(
 ): string {
   const { isGroupHeader = false, isChild = false, forkCount = 0 } = options || {};
 
-  // TreeSelect will add the prefix, so we just need to account for its width
+  // TreeSelect 会添加前缀，这里只需计算其宽度
   const prefixWidth = isGroupHeader && forkCount > 0 ? PARENT_PREFIX_WIDTH : isChild ? CHILD_PREFIX_WIDTH : 0;
 
-  const sessionCountSuffix =
-    isGroupHeader && forkCount > 0 ? ` (+${forkCount} other ${forkCount === 1 ? 'session' : 'sessions'})` : '';
+  const sessionCountSuffix = isGroupHeader && forkCount > 0 ? `（+${forkCount} 个其他 session）` : '';
 
-  const sidechainSuffix = log.isSidechain ? ' (sidechain)' : '';
+  const sidechainSuffix = log.isSidechain ? '（sidechain）' : '';
 
   const maxSummaryWidth = maxLabelWidth - prefixWidth - sidechainSuffix.length - sessionCountSuffix.length;
   const truncatedSummary = normalizeAndTruncateToWidth(getLogDisplayTitle(log), maxSummaryWidth);
@@ -135,8 +134,8 @@ function buildLogLabel(
 
 function buildLogMetadata(log: LogOption, options?: { isChild?: boolean; showProjectPath?: boolean }): string {
   const { isChild = false, showProjectPath = false } = options || {};
-  // Match the child prefix width for proper alignment
-  const childPadding = isChild ? '    ' : ''; // 4 spaces to match '  ▸ '
+  // 对齐子项前缀宽度
+  const childPadding = isChild ? '    ' : ''; // 4 个空格，对应 '  ▸ '
   const baseMetadata = formatLogMetadata(log);
   const projectSuffix = showProjectPath && log.projectPath ? ` · ${log.projectPath}` : '';
   return childPadding + baseMetadata + projectSuffix;
@@ -178,18 +177,18 @@ export function LogSelector({
   const [renameCursorOffset, setRenameCursorOffset] = React.useState(0);
   const [expandedGroupSessionIds, setExpandedGroupSessionIds] = React.useState<Set<string>>(new Set());
   const [focusedNode, setFocusedNode] = React.useState<LogTreeNode | null>(null);
-  // Track focused index for scroll position display in title
+  // 记录聚焦索引，用于标题中的滚动位置展示
   const [focusedIndex, setFocusedIndex] = React.useState(1);
   const [viewMode, setViewMode] = React.useState<'list' | 'preview' | 'rename' | 'search'>('list');
   const [previewLog, setPreviewLog] = React.useState<LogOption | null>(null);
   const prevFocusedIdRef = React.useRef<string | null>(null);
   const [selectedTagIndex, setSelectedTagIndex] = React.useState(0);
 
-  // Agentic search state
+  // Agentic 搜索状态
   const [agenticSearchState, setAgenticSearchState] = React.useState<AgenticSearchState>({ status: 'idle' });
-  // Track if the "Search deeply using Claude" option is focused
+  // 记录「使用 Claude 深度搜索」选项是否处于聚焦状态
   const [isAgenticSearchOptionFocused, setIsAgenticSearchOptionFocused] = React.useState(false);
-  // AbortController for cancelling agentic search
+  // 用于取消 agentic 搜索的 AbortController
   const agenticSearchAbortRef = React.useRef<AbortController | null>(null);
 
   const {
@@ -210,10 +209,10 @@ export function LogSelector({
     initialQuery: initialSearchQuery || '',
   });
 
-  // Debounce transcript search for performance (title search is instant)
+  // 对 transcript 搜索做防抖以提升性能（标题搜索为即时）
   const deferredSearchQuery = React.useDeferredValue(searchQuery);
 
-  // Additional debounce for deep search - wait 300ms after typing stops
+  // 深度搜索的额外防抖 —— 停止输入后等待 300ms
   const [debouncedDeepSearchQuery, setDebouncedDeepSearchQuery] = React.useState('');
   React.useEffect(() => {
     if (!deferredSearchQuery) {
@@ -224,7 +223,7 @@ export function LogSelector({
     return () => clearTimeout(timeoutId);
   }, [deferredSearchQuery]);
 
-  // State for async deep search results
+  // 异步深度搜索结果状态
   const [deepSearchResults, setDeepSearchResults] = React.useState<{
     results: Array<{ log: LogOption; score?: number; searchableText: string }>;
     query: string;
@@ -238,10 +237,10 @@ export function LogSelector({
     });
   }, [currentCwd]);
 
-  // Memoize searchable text extraction - only recompute when logs change
+  // 缓存可搜索文本提取 —— 仅在 logs 变化时重新计算
   const searchableTextByLog = React.useMemo(() => new Map(logs.map(log => [log, buildSearchableText(log)])), [logs]);
 
-  // Pre-build Fuse index once when logs change (not on every search query)
+  // logs 变化时一次性预构建 Fuse 索引（而非每次搜索时重建）
   const fuseIndex = React.useMemo(() => {
     if (!isDeepSearchEnabled) return null;
 
@@ -260,20 +259,20 @@ export function LogSelector({
     });
   }, [logs, searchableTextByLog, isDeepSearchEnabled]);
 
-  // Compute unique tags from logs (before any filtering)
+  // 从 logs 计算唯一 tag（在任何过滤之前）
   const uniqueTags = React.useMemo(() => getUniqueTags(logs), [logs]);
   const hasTags = uniqueTags.length > 0;
   const tagTabs = React.useMemo(() => (hasTags ? ['All', ...uniqueTags] : []), [hasTags, uniqueTags]);
 
-  // Clamp out-of-bounds index (e.g., after logs change) without an extra render
+  // 限制越界索引（例如 logs 变化后），避免额外渲染
   const effectiveTagIndex = tagTabs.length > 0 && selectedTagIndex < tagTabs.length ? selectedTagIndex : 0;
   const selectedTab = tagTabs[effectiveTagIndex];
   const tagFilter = selectedTab === 'All' ? undefined : selectedTab;
 
-  // Tag tabs are now a single line with horizontal scrolling
+  // Tag 标签栏现为单行，支持横向滚动
   const tagTabsLines = hasTags ? 1 : 0;
 
-  // Base filtering (instant) - applies tag, branch, and resume filters
+  // 基础过滤（即时）—— 应用 tag、branch 和 resume 过滤器
   const baseFilteredLogs = React.useMemo(() => {
     let filtered = logs;
     if (isResumeWithRenameEnabled) {
@@ -281,21 +280,20 @@ export function LogSelector({
         const currentSessionId = getSessionId();
         const logSessionId = getSessionIdFromLog(log);
         const isCurrentSession = currentSessionId && logSessionId === currentSessionId;
-        // Always show current session
+        // 始终展示当前 session
         if (isCurrentSession) {
           return true;
         }
-        // Always show sessions with custom titles (e.g., loop mode sessions)
+        // 始终展示带自定义标题的 session（例如 loop 模式的 session）
         if (log.customTitle) {
           return true;
         }
-        // For full logs, check messages array
+        // 完整 log 则检查 messages 数组
         const fromMessages = getFirstMeaningfulUserMessageTextContent(log.messages);
         if (fromMessages) {
           return true;
         }
-        // All logs reaching this component are enriched — include if
-        // they have a prompt or custom title
+        // 到达此组件的所有 log 都是 enriched —— 有 prompt 或自定义标题则保留
         if (log.firstPrompt || log.customTitle) {
           return true;
         }
@@ -303,7 +301,7 @@ export function LogSelector({
       });
     }
 
-    // Apply tag filter if specified
+    // 如指定了 tag 过滤器则应用
     if (tagFilter !== undefined) {
       filtered = filtered.filter(log => log.tag === tagFilter);
     }
@@ -328,7 +326,7 @@ export function LogSelector({
     currentCwd,
   ]);
 
-  // Instant title/branch/tag/PR filtering (runs on every keystroke, but is fast)
+  // 即时标题/branch/tag/PR 过滤（每次按键都执行，但速度很快）
   const titleFilteredLogs = React.useMemo(() => {
     if (!searchQuery) {
       return baseFilteredLogs;
@@ -343,14 +341,14 @@ export function LogSelector({
     });
   }, [baseFilteredLogs, searchQuery]);
 
-  // Show searching indicator when query is pending debounce
+  // 当 query 处于防抖等待时显示搜索中指示器
   React.useEffect(() => {
     if (isDeepSearchEnabled && deferredSearchQuery && deferredSearchQuery !== debouncedDeepSearchQuery) {
       setIsSearching(true);
     }
   }, [deferredSearchQuery, debouncedDeepSearchQuery, isDeepSearchEnabled]);
 
-  // Async deep search effect - runs after 300ms debounce
+  // 异步深度搜索 effect —— 300ms 防抖后执行
   React.useEffect(() => {
     if (!isDeepSearchEnabled || !debouncedDeepSearchQuery || !fuseIndex) {
       setDeepSearchResults(null);
@@ -358,12 +356,12 @@ export function LogSelector({
       return;
     }
 
-    // Use setTimeout(0) to yield to the event loop - prevents UI freeze
+    // 使用 setTimeout(0) 让出事件循环 —— 避免界面卡顿
     const timeoutId = setTimeout(
       (fuseIndex, debouncedDeepSearchQuery, setDeepSearchResults, setIsSearching) => {
         const results = fuseIndex.search(debouncedDeepSearchQuery);
 
-        // Sort by date (newest first), with relevance as tie-breaker within same minute
+        // 按日期排序（最新优先），同一分钟内用相关性作为兜底
         results.sort((a, b) => {
           const aTime = new Date(a.item.log.modified).getTime();
           const bTime = new Date(b.item.log.modified).getTime();
@@ -371,7 +369,7 @@ export function LogSelector({
           if (Math.abs(timeDiff) > DATE_TIE_THRESHOLD_MS) {
             return timeDiff;
           }
-          // Within same minute window, use relevance score (lower is better)
+          // 同一分钟窗口内使用相关性评分（越小越好）
           return (a.score ?? 1) - (b.score ?? 1);
         });
 
@@ -397,16 +395,16 @@ export function LogSelector({
     };
   }, [debouncedDeepSearchQuery, fuseIndex, isDeepSearchEnabled]);
 
-  // Merge title matches with async deep search results
+  // 合并标题匹配结果与异步深度搜索结果
   const { filteredLogs, snippets } = React.useMemo(() => {
     const snippetMap = new Map<LogOption, Snippet>();
 
-    // Start with instant title matches
+    // 以即时标题匹配结果作为起始
     let filtered = titleFilteredLogs;
 
-    // Merge in deep search results if available and query matches
+    // 若深度搜索结果可用且 query 匹配则合并进来
     if (deepSearchResults && debouncedDeepSearchQuery && deepSearchResults.query === debouncedDeepSearchQuery) {
-      // Extract snippets from deep search results
+      // 从深度搜索结果中提取 snippet
       for (const result of deepSearchResults.results) {
         if (result.searchableText) {
           const snippet = extractSnippet(result.searchableText, debouncedDeepSearchQuery, SNIPPET_CONTEXT_CHARS);
@@ -416,7 +414,7 @@ export function LogSelector({
         }
       }
 
-      // Add transcript-only matches (not already in title matches)
+      // 补充仅 transcript 匹配的结果（即未出现在标题匹配中的结果）
       const titleMatchIds = new Set(filtered.map(log => log.messages[0]?.uuid));
       const transcriptOnlyMatches = deepSearchResults.results
         .map(r => r.log)
@@ -427,7 +425,7 @@ export function LogSelector({
     return { filteredLogs: filtered, snippets: snippetMap };
   }, [titleFilteredLogs, deepSearchResults, debouncedDeepSearchQuery]);
 
-  // Use agentic search results when available and non-empty, otherwise use regular filtered logs
+  // 当 agentic 搜索结果可用且非空时使用之，否则使用常规过滤后的 logs
   const displayedLogs = React.useMemo(() => {
     if (agenticSearchState.status === 'results' && agenticSearchState.results.length > 0) {
       return agenticSearchState.results;
@@ -435,10 +433,10 @@ export function LogSelector({
     return filteredLogs;
   }, [agenticSearchState, filteredLogs]);
 
-  // Calculate available width for the summary text
+  // 计算摘要文本的可用宽度
   const maxLabelWidth = Math.max(30, columns - 4);
 
-  // Build tree nodes for grouped view
+  // 构建分组视图的树节点
   const treeNodes = React.useMemo<LogTreeNode[]>(() => {
     if (!isResumeWithRenameEnabled) {
       return [];
@@ -453,7 +451,7 @@ export function LogSelector({
       const snippetStr = snippet ? formatSnippet(snippet, highlightColor) : null;
 
       if (groupLogs.length === 1) {
-        // Single log - no children
+        // 单条 log —— 无子项
         const metadata = buildLogMetadata(latestLog, {
           showProjectPath: showAllProjects,
         });
@@ -466,7 +464,7 @@ export function LogSelector({
         };
       }
 
-      // Multiple logs - parent with children
+      // 多条 log —— 父项带子项
       const forkCount = groupLogs.length - 1;
       const children: LogTreeNode[] = groupLogs.slice(1).map((log, index) => {
         const childIndexInFiltered = displayedLogs.indexOf(log);
@@ -502,7 +500,7 @@ export function LogSelector({
     });
   }, [isResumeWithRenameEnabled, displayedLogs, maxLabelWidth, showAllProjects, snippets, highlightColor]);
 
-  // Build options for old flat list view
+  // 构建旧版扁平列表视图的选项
   const flatOptions = React.useMemo(() => {
     if (isResumeWithRenameEnabled) {
       return [];
@@ -510,7 +508,7 @@ export function LogSelector({
 
     return displayedLogs.map((log, index) => {
       const rawSummary = getLogDisplayTitle(log);
-      const summaryWithSidechain = rawSummary + (log.isSidechain ? ' (sidechain)' : '');
+      const summaryWithSidechain = rawSummary + (log.isSidechain ? '（sidechain）' : '');
       const summary = normalizeAndTruncateToWidth(summaryWithSidechain, maxLabelWidth);
 
       const baseDescription = formatLogMetadata(log);
@@ -529,7 +527,7 @@ export function LogSelector({
     });
   }, [isResumeWithRenameEnabled, displayedLogs, highlightColor, maxLabelWidth, showAllProjects, snippets]);
 
-  // Derive the focused log from focusedNode
+  // 从 focusedNode 推导当前聚焦的 log
   const focusedLog = focusedNode?.value.log ?? null;
 
   const getExpandCollapseHint = (): string => {
@@ -546,10 +544,10 @@ export function LogSelector({
     const isChildNode = sessionLogs.indexOf(focusedLog) > 0;
 
     if (isChildNode) {
-      return '← to collapse';
+      return '← 折叠';
     }
 
-    return isExpanded ? '← to collapse' : '→ to expand';
+    return isExpanded ? '← 折叠' : '→ 展开';
   };
 
   const handleRenameSubmit = React.useCallback(async () => {
@@ -561,7 +559,7 @@ export function LogSelector({
     }
 
     if (renameValue.trim()) {
-      // Pass fullPath for cross-project sessions (different worktrees)
+      // 为跨项目 session（不同 worktree）传入 fullPath
       await saveCustomTitle(sessionId, renameValue.trim(), focusedLog.fullPath);
       if (isResumeWithRenameEnabled && onLogsChanged) {
         onLogsChanged();
@@ -581,13 +579,13 @@ export function LogSelector({
     logEvent('tengu_session_search_toggled', { enabled: true });
   }, []);
 
-  // Handler for triggering agentic search
+  // 触发 agentic 搜索的处理函数
   const handleAgenticSearch = React.useCallback(async () => {
     if (!searchQuery.trim() || !onAgenticSearch || !isAgenticSearchEnabled) {
       return;
     }
 
-    // Abort any previous search
+    // 中止之前的搜索
     agenticSearchAbortRef.current?.abort();
     const abortController = new AbortController();
     agenticSearchAbortRef.current = abortController;
@@ -599,7 +597,7 @@ export function LogSelector({
 
     try {
       const results = await onAgenticSearch(searchQuery, logs, abortController.signal);
-      // Check if aborted before updating state
+      // 更新 state 前检查是否已被中止
       if (abortController.signal.aborted) {
         return;
       }
@@ -609,13 +607,13 @@ export function LogSelector({
         results_count: results.length,
       });
     } catch (error) {
-      // Don't show error for aborted requests
+      // 已中止的请求不显示错误
       if (abortController.signal.aborted) {
         return;
       }
       setAgenticSearchState({
         status: 'error',
-        message: error instanceof Error ? error.message : 'Search failed',
+        message: error instanceof Error ? error.message : '搜索失败',
       });
       logEvent('tengu_agentic_search_error', {
         query_length: searchQuery.length,
@@ -623,10 +621,10 @@ export function LogSelector({
     }
   }, [searchQuery, onAgenticSearch, isAgenticSearchEnabled, logs]);
 
-  // Clear agentic search results/error when query changes
+  // query 变化时清除 agentic 搜索结果/错误
   React.useEffect(() => {
     if (agenticSearchState.status !== 'idle' && agenticSearchState.status !== 'searching') {
-      // Clear if the query has changed from the one used for results/error
+      // 当 query 与产生结果/错误时的 query 不同时清除
       if (
         (agenticSearchState.status === 'results' && agenticSearchState.query !== searchQuery) ||
         agenticSearchState.status === 'error'
@@ -636,20 +634,20 @@ export function LogSelector({
     }
   }, [searchQuery, agenticSearchState]);
 
-  // Cleanup: abort any in-progress agentic search on unmount
+  // 清理：组件卸载时中止所有进行中的 agentic 搜索
   React.useEffect(() => {
     return () => {
       agenticSearchAbortRef.current?.abort();
     };
   }, []);
 
-  // Focus first item when agentic search completes with results
+  // 当 agentic 搜索完成并返回结果时聚焦到第一项
   const prevAgenticStatusRef = React.useRef(agenticSearchState.status);
   React.useEffect(() => {
     const prevStatus = prevAgenticStatusRef.current;
     prevAgenticStatusRef.current = agenticSearchState.status;
 
-    // When search just completed, focus the first item in the list
+    // 搜索刚完成时，聚焦到列表第一项
     if (prevStatus === 'searching' && agenticSearchState.status === 'results') {
       if (isResumeWithRenameEnabled && treeNodes.length > 0) {
         setFocusedNode(treeNodes[0]!);
@@ -685,7 +683,7 @@ export function LogSelector({
   const handleTreeSelectFocus = React.useCallback(
     (node: LogTreeNode) => {
       setFocusedNode(node);
-      // Update focused index for scroll position display
+      // 更新聚焦索引，用于滚动位置展示
       const index = displayedLogs.findIndex(log => getSessionIdFromLog(log) === getSessionIdFromLog(node.value.log));
       if (index >= 0) {
         setFocusedIndex(index + 1);
@@ -694,7 +692,7 @@ export function LogSelector({
     [displayedLogs],
   );
 
-  // Escape to abort agentic search in progress
+  // Escape 中止进行中的 agentic 搜索
   useKeybinding(
     'confirm:no',
     () => {
@@ -708,8 +706,8 @@ export function LogSelector({
     },
   );
 
-  // Escape in rename mode - exit rename mode
-  // Use Settings context so 'n' key doesn't exit (allows typing 'n' in rename input)
+  // rename 模式下按 Escape —— 退出 rename 模式
+  // 使用 Settings context，这样 'n' 键不会退出（允许在 rename 输入中输入 'n'）
   useKeybinding(
     'confirm:no',
     () => {
@@ -722,7 +720,7 @@ export function LogSelector({
     },
   );
 
-  // Escape when agentic search option focused - clear and cancel
+  // 当 agentic 搜索选项聚焦时按 Escape —— 清除并取消
   useKeybinding(
     'confirm:no',
     () => {
@@ -741,28 +739,28 @@ export function LogSelector({
     },
   );
 
-  // Handle non-escape input
+  // 处理非 Escape 的输入
   useInput(
     (input, key) => {
       if (viewMode === 'preview') {
-        // Preview mode handles its own input
+        // preview 模式自行处理输入
         return;
       }
 
-      // Agentic search abort is now handled via keybinding
+      // agentic 搜索的中止已通过 keybinding 处理
       if (agenticSearchState.status === 'searching') {
         return;
       }
 
       if (viewMode === 'rename') {
-        // Rename mode escape is now handled via keybinding
-        // This branch only handles non-escape input in rename mode (via TextInput)
+        // rename 模式的 Escape 已通过 keybinding 处理
+        // 此分支仅处理 rename 模式下的非 Escape 输入（通过 TextInput）
       } else if (viewMode === 'search') {
-        // Text input is handled by useSearchInput hook
+        // 文本输入由 useSearchInput hook 处理
         if (input.toLowerCase() === 'n' && key.ctrl) {
           exitSearchMode();
         } else if (key.return || key.downArrow) {
-          // Focus agentic search option if applicable
+          // 如适用，聚焦到 agentic 搜索选项
           if (
             searchQuery.trim() &&
             onAgenticSearch &&
@@ -773,26 +771,26 @@ export function LogSelector({
           }
         }
       } else {
-        // Handle agentic search option when focused (escape handled via keybinding)
+        // 聚焦时处理 agentic 搜索选项（Escape 已通过 keybinding 处理）
         if (isAgenticSearchOptionFocused) {
           if (key.return) {
-            // Trigger agentic search
+            // 触发 agentic 搜索
             void handleAgenticSearch();
             setIsAgenticSearchOptionFocused(false);
             return;
           } else if (key.downArrow) {
-            // Move focus to the session list
+            // 将焦点移到 session 列表
             setIsAgenticSearchOptionFocused(false);
             return;
           } else if (key.upArrow) {
-            // Go back to search mode
+            // 返回搜索模式
             setViewMode('search');
             setIsAgenticSearchOptionFocused(false);
             return;
           }
         }
 
-        // Handle tab cycling for tag tabs
+        // 处理 tag 标签的 Tab 循环
         if (hasTags && key.tab) {
           const offset = key.shift ? -1 : 1;
           setSelectedTagIndex(prev => {
@@ -810,7 +808,7 @@ export function LogSelector({
 
         const keyIsNotCtrlOrMeta = !key.ctrl && !key.meta;
         const lowerInput = input.toLowerCase();
-        // Ctrl+letter shortcuts for actions (freeing up plain letters for type-to-search)
+        // Ctrl+字母快捷键用于触发操作（把普通字母键释放给「输入即搜索」）
         if (lowerInput === 'a' && key.ctrl && onToggleAllProjects) {
           onToggleAllProjects();
           logEvent('tengu_session_all_projects_toggled', {
@@ -842,7 +840,7 @@ export function LogSelector({
             messageCount: focusedLog.messageCount,
           });
         } else if (focusedLog && keyIsNotCtrlOrMeta && input.length > 0 && !/^\s+$/.test(input)) {
-          // Any printable character enters search mode and starts typing
+          // 任意可打印字符都会进入搜索模式并开始输入
           setViewMode('search');
           setSearchQuery(input);
           logEvent('tengu_session_search_toggled', { enabled: true });
@@ -857,18 +855,18 @@ export function LogSelector({
     filterIndicators.push(currentBranch);
   }
   if (hasMultipleWorktrees && !showAllWorktrees) {
-    filterIndicators.push('current worktree');
+    filterIndicators.push('当前 worktree');
   }
 
   const showAdditionalFilterLine = filterIndicators.length > 0 && viewMode !== 'search';
 
-  // Search box takes 3 lines (border top, content, border bottom)
+  // 搜索框占 3 行（上边框、内容、下边框）
   const searchBoxLines = 3;
   const headerLines = 5 + searchBoxLines + (showAdditionalFilterLine ? 1 : 0) + tagTabsLines;
   const footerLines = 2;
   const visibleCount = Math.max(1, Math.floor((maxHeight - headerLines - footerLines) / 3));
 
-  // Progressive loading: request more logs when user scrolls near the end
+  // 渐进式加载：当用户滚动到接近底部时请求更多 logs
   React.useEffect(() => {
     if (!onLoadMore) return;
     const buffer = visibleCount * 2;
@@ -877,12 +875,12 @@ export function LogSelector({
     }
   }, [focusedIndex, visibleCount, displayedLogs.length, onLoadMore]);
 
-  // Early return if no logs
+  // 没有 logs 时提前返回
   if (logs.length === 0) {
     return null;
   }
 
-  // Show preview mode if active
+  // 处于激活状态时显示 preview 模式
   if (viewMode === 'preview' && previewLog && isResumeWithRenameEnabled) {
     return (
       <SessionPreview
@@ -915,11 +913,11 @@ export function LogSelector({
       ) : (
         <Box flexShrink={0}>
           <Text bold color="suggestion">
-            Resume Session
+            恢复 Session
             {viewMode === 'list' && displayedLogs.length > visibleCount && (
               <Text dimColor>
                 {' '}
-                ({focusedIndex} of {displayedLogs.length})
+                ({focusedIndex} / {displayedLogs.length})
               </Text>
             )}
           </Text>
@@ -942,44 +940,44 @@ export function LogSelector({
         <Text> </Text>
       </Box>
 
-      {/* Agentic search loading state */}
+      {/* Agentic 搜索加载状态 */}
       {agenticSearchState.status === 'searching' && (
         <Box paddingLeft={1} flexShrink={0}>
           <Spinner />
-          <Text> Searching…</Text>
+          <Text> 搜索中…</Text>
         </Box>
       )}
 
-      {/* Results header when agentic search completed with results */}
+      {/* agentic 搜索完成并返回结果时的结果标题 */}
       {agenticSearchState.status === 'results' && agenticSearchState.results.length > 0 && (
         <Box paddingLeft={1} marginBottom={1} flexShrink={0}>
           <Text dimColor italic>
-            Claude found these results:
+            Claude 找到了以下结果：
           </Text>
         </Box>
       )}
 
-      {/* Fallback message when agentic search found no results and deep search also has nothing */}
+      {/* agentic 搜索无结果、且深度搜索也无结果时的兜底提示 */}
       {agenticSearchState.status === 'results' &&
         agenticSearchState.results.length === 0 &&
         filteredLogs.length === 0 && (
           <Box paddingLeft={1} marginBottom={1} flexShrink={0}>
             <Text dimColor italic>
-              No matching sessions found.
+              未找到匹配的 session。
             </Text>
           </Box>
         )}
 
-      {/* Error message when agentic search failed and deep search also has nothing */}
+      {/* agentic 搜索失败、且深度搜索也无结果时的错误提示 */}
       {agenticSearchState.status === 'error' && filteredLogs.length === 0 && (
         <Box paddingLeft={1} marginBottom={1} flexShrink={0}>
           <Text dimColor italic>
-            No matching sessions found.
+            未找到匹配的 session。
           </Text>
         </Box>
       )}
 
-      {/* Agentic search option - first item in list when searching */}
+      {/* Agentic 搜索选项 —— 搜索时作为列表第一项 */}
       {Boolean(searchQuery.trim()) &&
         onAgenticSearch &&
         isAgenticSearchEnabled &&
@@ -992,23 +990,23 @@ export function LogSelector({
                 {isAgenticSearchOptionFocused ? figures.pointer : ' '}
               </Text>
               <Text color={isAgenticSearchOptionFocused ? 'suggestion' : undefined} bold={isAgenticSearchOptionFocused}>
-                Search deeply using Claude →
+                使用 Claude 深度搜索 →
               </Text>
             </Box>
             <Box height={1} />
           </Box>
         )}
 
-      {/* Hide session list when agentic search is in progress */}
+      {/* agentic 搜索进行中时隐藏 session 列表 */}
       {agenticSearchState.status === 'searching' ? null : viewMode === 'rename' && focusedLog ? (
         <Box paddingLeft={2} flexDirection="column">
-          <Text bold>Rename session:</Text>
+          <Text bold>重命名 session：</Text>
           <Box paddingTop={1}>
             <TextInput
               value={renameValue}
               onChange={setRenameValue}
               onSubmit={handleRenameSubmit}
-              placeholder={getLogDisplayTitle(focusedLog!, 'Enter new session name')}
+              placeholder={getLogDisplayTitle(focusedLog!, '输入新的 session 名称')}
               columns={columns}
               cursorOffset={renameCursorOffset}
               onChangeCursorOffset={setRenameCursorOffset}
@@ -1030,11 +1028,11 @@ export function LogSelector({
           isDisabled={viewMode === 'search' || isAgenticSearchOptionFocused}
           hideIndexes={false}
           isNodeExpanded={nodeId => {
-            // Always expand if in search or branch filter mode
+            // 在搜索或 branch 过滤模式下始终展开
             if (viewMode === 'search' || branchFilterEnabled) {
               return true;
             }
-            // Extract sessionId from node ID (format: "group:sessionId")
+            // 从 node ID 中提取 sessionId（格式为 "group:sessionId"）
             const sessionId = typeof nodeId === 'string' && nodeId.startsWith('group:') ? nodeId.substring(6) : null;
             return sessionId ? expandedGroupSessionIds.has(sessionId) : false;
           }}
@@ -1061,7 +1059,7 @@ export function LogSelector({
         <Select
           options={flatOptions}
           onChange={value => {
-            // Old flat list mode - index directly maps to displayedLogs
+            // 旧版扁平列表模式 —— 索引直接映射到 displayedLogs
             const itemIndex = parseInt(value, 10);
             const log = displayedLogs[itemIndex];
             if (log) {
@@ -1079,77 +1077,54 @@ export function LogSelector({
       )}
       <Box paddingLeft={2}>
         {exitState.pending ? (
-          <Text dimColor>Press {exitState.keyName} again to exit</Text>
+          <Text dimColor>再按一次 {exitState.keyName} 退出</Text>
         ) : viewMode === 'rename' ? (
           <Text dimColor>
             <Byline>
-              <KeyboardShortcutHint shortcut="Enter" action="save" />
-              <ConfigurableShortcutHint
-                action="confirm:no"
-                context="Confirmation"
-                fallback="Esc"
-                description="cancel"
-              />
+              <KeyboardShortcutHint shortcut="Enter" action="保存" />
+              <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="取消" />
             </Byline>
           </Text>
         ) : agenticSearchState.status === 'searching' ? (
           <Text dimColor>
             <Byline>
-              <Text>Searching with Claude…</Text>
-              <ConfigurableShortcutHint
-                action="confirm:no"
-                context="Confirmation"
-                fallback="Esc"
-                description="cancel"
-              />
+              <Text>正在使用 Claude 搜索…</Text>
+              <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="取消" />
             </Byline>
           </Text>
         ) : isAgenticSearchOptionFocused ? (
           <Text dimColor>
             <Byline>
-              <KeyboardShortcutHint shortcut="Enter" action="search" />
-              <KeyboardShortcutHint shortcut="↓" action="skip" />
-              <ConfigurableShortcutHint
-                action="confirm:no"
-                context="Confirmation"
-                fallback="Esc"
-                description="cancel"
-              />
+              <KeyboardShortcutHint shortcut="Enter" action="搜索" />
+              <KeyboardShortcutHint shortcut="↓" action="跳过" />
+              <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="取消" />
             </Byline>
           </Text>
         ) : viewMode === 'search' ? (
           <Text dimColor>
             <Byline>
-              <Text>{isSearching && isDeepSearchEnabled ? 'Searching…' : 'Type to Search'}</Text>
-              <KeyboardShortcutHint shortcut="Enter" action="select" />
-              <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="clear" />
+              <Text>{isSearching && isDeepSearchEnabled ? '搜索中…' : '输入即可搜索'}</Text>
+              <KeyboardShortcutHint shortcut="Enter" action="选择" />
+              <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="清除" />
             </Byline>
           </Text>
         ) : (
           <Text dimColor>
             <Byline>
               {onToggleAllProjects && (
-                <KeyboardShortcutHint
-                  shortcut="Ctrl+A"
-                  action={`show ${showAllProjects ? 'current dir' : 'all projects'}`}
-                />
+                <KeyboardShortcutHint shortcut="Ctrl+A" action={`显示${showAllProjects ? '当前目录' : '全部项目'}`} />
               )}
-              {currentBranch && <KeyboardShortcutHint shortcut="Ctrl+B" action="toggle branch" />}
+              {currentBranch && <KeyboardShortcutHint shortcut="Ctrl+B" action="切换 branch 过滤" />}
               {hasMultipleWorktrees && (
                 <KeyboardShortcutHint
                   shortcut="Ctrl+W"
-                  action={`show ${showAllWorktrees ? 'current worktree' : 'all worktrees'}`}
+                  action={`显示${showAllWorktrees ? '当前 worktree' : '全部 worktree'}`}
                 />
               )}
-              <KeyboardShortcutHint shortcut="Ctrl+V" action="preview" />
-              <KeyboardShortcutHint shortcut="Ctrl+R" action="rename" />
-              <Text>Type to search</Text>
-              <ConfigurableShortcutHint
-                action="confirm:no"
-                context="Confirmation"
-                fallback="Esc"
-                description="cancel"
-              />
+              <KeyboardShortcutHint shortcut="Ctrl+V" action="预览" />
+              <KeyboardShortcutHint shortcut="Ctrl+R" action="重命名" />
+              <Text>输入即可搜索</Text>
+              <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="取消" />
               {getExpandCollapseHint() && <Text>{getExpandCollapseHint()}</Text>}
             </Byline>
           </Text>
@@ -1160,11 +1135,11 @@ export function LogSelector({
 }
 
 /**
- * Extracts searchable text content from a message.
- * Handles both string content and structured content blocks.
+ * 从消息中提取可搜索的文本内容。
+ * 同时处理字符串内容和结构化 content block。
  */
 function extractSearchableText(message: SerializedMessage): string {
-  // Only extract from user and assistant messages that have content
+  // 仅从含有 content 的 user/assistant 消息中提取
   if (message.type !== 'user' && message.type !== 'assistant') {
     return '';
   }
@@ -1172,20 +1147,20 @@ function extractSearchableText(message: SerializedMessage): string {
   const content = 'message' in message ? message.message?.content : undefined;
   if (!content) return '';
 
-  // Handle string content (simple messages)
+  // 处理字符串型 content（简单消息）
   if (typeof content === 'string') {
     return content;
   }
 
-  // Handle array of content blocks
+  // 处理 content block 数组
   if (Array.isArray(content)) {
     return content
       .map(block => {
         if (typeof block === 'string') return block;
         if ('text' in block && typeof block.text === 'string') return block.text;
         return '';
-        // we don't return thinking blocks and tool names here;
-        // they're not useful for search, as they can add noise to the fuzzy matching
+        // 这里不返回 thinking block 和工具名；
+        // 它们对搜索没有帮助，反而会给模糊匹配增加噪声
       })
       .filter(Boolean)
       .join(' ');
@@ -1195,8 +1170,8 @@ function extractSearchableText(message: SerializedMessage): string {
 }
 
 /**
- * Builds searchable text for a log including messages, titles, summaries, and metadata.
- * Crops long transcripts to first/last N messages for performance.
+ * 为一条 log 构建可搜索文本，包含 messages、titles、summaries 和 metadata。
+ * 为性能考虑，长 transcript 仅截取前/后 N 条消息。
  */
 function buildSearchableText(log: LogOption): string {
   const searchableMessages =
@@ -1236,14 +1211,14 @@ function groupLogsBySessionId(filteredLogs: LogOption[]): Map<string, LogOption[
     }
   }
 
-  // Sort logs within each group by modified date (newest first)
+  // 将每个分组内的 logs 按修改日期排序（最新优先）
   groups.forEach(logs => logs.sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime()));
 
   return groups;
 }
 
 /**
- * Get unique tags from a list of logs, sorted alphabetically
+ * 从 log 列表中获取去重后的 tag，按字母顺序排序
  */
 function getUniqueTags(logs: LogOption[]): string[] {
   const tags = new Set<string>();

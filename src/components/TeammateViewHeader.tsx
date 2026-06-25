@@ -7,8 +7,8 @@ import { getViewedTeammateTask } from '../state/selectors.js';
 import { OffscreenFreeze } from './OffscreenFreeze.js';
 
 /**
- * Header shown when viewing a teammate's transcript.
- * Displays teammate name (colored), task description, and exit hint.
+ * 查看 teammate transcript 时显示的头部。
+ * 显示 teammate 名称（带颜色）、任务描述和退出提示。
  */
 export function TeammateViewHeader(): React.ReactNode {
   const viewedTeammate = useAppState(s => getViewedTeammateTask(s));
@@ -23,7 +23,7 @@ export function TeammateViewHeader(): React.ReactNode {
     <OffscreenFreeze>
       <Box flexDirection="column" marginBottom={1}>
         <Box>
-          <Text>Viewing </Text>
+          <Text>正在查看 </Text>
           <Text color={nameColor} bold>
             @{viewedTeammate.identity.agentName}
           </Text>

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { getSlowOperations } from '../bootstrap/state.js';
 import { Text, useInterval } from '@anthropic/ink';
 
-// Show DevBar for dev builds or all ants
+// 开发构建或所有 ant 用户都显示 DevBar
 function shouldShowDevBar(): boolean {
   return process.env.NODE_ENV === 'development' || process.env.USER_TYPE === 'ant';
 }
@@ -25,12 +25,12 @@ export function DevBar(): React.ReactNode {
     shouldShowDevBar() ? 500 : null,
   );
 
-  // Only show when there's something to display
+  // 仅当有内容可展示时才显示
   if (!shouldShowDevBar() || slowOps.length === 0) {
     return null;
   }
 
-  // Single-line format so short terminals don't lose rows to dev noise.
+  // 单行格式，避免矮终端被 dev 噪音挤占行数。
   const recentOps = slowOps
     .slice(-3)
     .map(op => `${op.operation} (${Math.round(op.durationMs)}ms)`)
@@ -38,7 +38,7 @@ export function DevBar(): React.ReactNode {
 
   return (
     <Text wrap="truncate-end" color="warning">
-      [ANT-ONLY] slow sync: {recentOps}
+      [ANT-ONLY] 慢速同步：{recentOps}
     </Text>
   );
 }

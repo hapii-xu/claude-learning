@@ -44,24 +44,24 @@ export function ConfirmStep({ tools, existingAgents, onSave, onSaveAndEdit, erro
   const whenToUsePreview = truncateToWidth(agent.whenToUse, 240);
 
   const getToolsDisplay = (toolNames: string[] | undefined): string => {
-    // undefined means "all tools" per PR semantic
-    if (toolNames === undefined) return 'All tools';
-    if (toolNames.length === 0) return 'None';
-    if (toolNames.length === 1) return toolNames[0] || 'None';
-    if (toolNames.length === 2) return toolNames.join(' and ');
-    return `${toolNames.slice(0, -1).join(', ')}, and ${toolNames[toolNames.length - 1]}`;
+    // undefined 在语义上表示「全部工具」
+    if (toolNames === undefined) return '全部工具';
+    if (toolNames.length === 0) return '无';
+    if (toolNames.length === 1) return toolNames[0] || '无';
+    if (toolNames.length === 2) return toolNames.join(' 和 ');
+    return `${toolNames.slice(0, -1).join('、')} 以及 ${toolNames[toolNames.length - 1]}`;
   };
 
-  // Compute memory display outside JSX
+  // 在 JSX 之外计算记忆的展示内容
   const memoryDisplayElement = isAutoMemoryEnabled() ? (
     <Text>
-      <Text bold>Memory</Text>: {getMemoryScopeDisplay(agent.memory)}
+      <Text bold>记忆</Text>：{getMemoryScopeDisplay(agent.memory)}
     </Text>
   ) : null;
 
   return (
     <WizardDialogLayout
-      subtitle="Confirm and save"
+      subtitle="确认并保存"
       footerText={
         <Byline>
           <KeyboardShortcutHint shortcut="s/Enter" action="save" />
@@ -72,26 +72,26 @@ export function ConfirmStep({ tools, existingAgents, onSave, onSaveAndEdit, erro
     >
       <Box flexDirection="column" tabIndex={0} autoFocus onKeyDown={handleKeyDown}>
         <Text>
-          <Text bold>Name</Text>: {agent.agentType}
+          <Text bold>名称</Text>：{agent.agentType}
         </Text>
         <Text>
-          <Text bold>Location</Text>:{' '}
+          <Text bold>位置</Text>：{' '}
           {getNewRelativeAgentFilePath({
             source: wizardData.location!,
             agentType: agent.agentType,
           })}
         </Text>
         <Text>
-          <Text bold>Tools</Text>: {getToolsDisplay(agent.tools)}
+          <Text bold>工具</Text>：{getToolsDisplay(agent.tools)}
         </Text>
         <Text>
-          <Text bold>Model</Text>: {getAgentModelDisplay(agent.model)}
+          <Text bold>模型</Text>：{getAgentModelDisplay(agent.model)}
         </Text>
         {memoryDisplayElement}
 
         <Box marginTop={1}>
           <Text>
-            <Text bold>Description</Text> (tells Claude when to use this agent):
+            <Text bold>描述</Text>（告诉 Claude 何时使用此 agent）：
           </Text>
         </Box>
         <Box marginLeft={2} marginTop={1}>
@@ -100,7 +100,7 @@ export function ConfirmStep({ tools, existingAgents, onSave, onSaveAndEdit, erro
 
         <Box marginTop={1}>
           <Text>
-            <Text bold>System prompt</Text>:
+            <Text bold>系统提示词</Text>：
           </Text>
         </Box>
         <Box marginLeft={2} marginTop={1}>
@@ -109,7 +109,7 @@ export function ConfirmStep({ tools, existingAgents, onSave, onSaveAndEdit, erro
 
         {validation.warnings.length > 0 && (
           <Box marginTop={1} flexDirection="column">
-            <Text color="warning">Warnings:</Text>
+            <Text color="warning">警告：</Text>
             {validation.warnings.map((warning, i) => (
               <Text key={i} dimColor>
                 {' '}
@@ -121,7 +121,7 @@ export function ConfirmStep({ tools, existingAgents, onSave, onSaveAndEdit, erro
 
         {validation.errors.length > 0 && (
           <Box marginTop={1} flexDirection="column">
-            <Text color="error">Errors:</Text>
+            <Text color="error">错误：</Text>
             {validation.errors.map((err, i) => (
               <Text key={i} color="error">
                 {' '}
@@ -139,7 +139,7 @@ export function ConfirmStep({ tools, existingAgents, onSave, onSaveAndEdit, erro
 
         <Box marginTop={2}>
           <Text color="success">
-            Press <Text bold>s</Text> or <Text bold>Enter</Text> to save, <Text bold>e</Text> to save and edit
+            按 <Text bold>s</Text> 或 <Text bold>回车</Text> 保存，按 <Text bold>e</Text> 保存并在编辑器中打开
           </Text>
         </Box>
       </Box>

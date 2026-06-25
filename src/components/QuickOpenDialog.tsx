@@ -22,14 +22,14 @@ const VISIBLE_RESULTS = 8;
 const PREVIEW_LINES = 20;
 
 /**
- * Quick Open dialog (ctrl+shift+p / cmd+shift+p).
- * Fuzzy file finder with a syntax-highlighted preview of the focused file.
+ * Quick Open 对话框（ctrl+shift+p / cmd+shift+p）。
+ * 模糊文件查找器，带有聚焦文件的语法高亮预览。
  */
 export function QuickOpenDialog({ onDone, onInsert }: Props): React.ReactNode {
   useRegisterOverlay('quick-open');
   const { columns, rows } = useTerminalSize();
-  // Chrome (title + search + hints + pane border + gaps) eats ~14 rows.
-  // Shrink the list on short terminals so the dialog doesn't clip.
+  // 外框（标题 + 搜索 + 提示 + 面板边框 + 间隙）会占用约 14 行。
+  // 在较矮的终端上缩小列表，以免对话框被截断。
   const visibleResults = Math.min(VISIBLE_RESULTS, Math.max(4, rows - 14));
 
   const [results, setResults] = useState<string[]>([]);
@@ -43,29 +43,26 @@ export function QuickOpenDialog({ onDone, onInsert }: Props): React.ReactNode {
   useEffect(() => () => void queryGenRef.current++, []);
 
   const previewOnRight = columns >= 120;
-  // Side preview sits in a fixed-height row alongside the list (visibleCount
-  // rows), so overflowing that height garbles the layout — cap to fit, minus
-  // one for the path header line.
+  // 侧边预览位于列表（visibleCount 行）旁边的固定高度行中，
+  // 超出该高度会打乱布局 —— 因此要做上限裁剪以适应，再减去一行留给路径标题。
   const effectivePreviewLines = previewOnRight ? VISIBLE_RESULTS - 1 : PREVIEW_LINES;
 
-  // A generation counter invalidates stale results if the user types faster
-  // than the index can respond.
+  // 用 generation 计数器使过期结果失效，以防用户输入比索引响应还快。
   const handleQueryChange = (q: string) => {
     setQuery(q);
     const gen = ++queryGenRef.current;
     if (!q.trim()) {
-      // generateFileSuggestions('') returns raw readdir() of cwd (designed for
-      // @-mentions). For Quick Open that's just noise — show the empty state.
+      // generateFileSuggestions('') 返回 cwd 的原始 readdir() 结果（为
+      // @-mentions 设计）。对 Quick Open 来说只是噪音 —— 显示空状态。
       setResults([]);
       return;
     }
     void generateFileSuggestions(q, true).then(items => {
       if (gen !== queryGenRef.current) return;
-      // Filter out directory entries — they come back with a trailing path.sep
-      // from getTopLevelPaths() and would cause readFileInRange to throw EISDIR,
-      // leaving the preview pane stuck on "Loading preview…".
-      // Normalize separators to '/' so truncatePathMiddle (which uses
-      // lastIndexOf('/')) can find the filename on Windows too.
+      // 过滤掉目录项 —— 它们从 getTopLevelPaths() 返回时带有结尾的 path.sep，
+      // 会导致 readFileInRange 抛出 EISDIR，让预览面板卡在"正在加载预览…"。
+      // 将分隔符归一化为 '/'，以便 truncatePathMiddle（使用
+      // lastIndexOf('/')）在 Windows 上也能找到文件名。
       const paths = items
         .filter(i => i.id.startsWith('file-'))
         .map(i => i.displayText)
@@ -75,15 +72,13 @@ export function QuickOpenDialog({ onDone, onInsert }: Props): React.ReactNode {
     });
   };
 
-  // Load a short preview of the focused file. Each navigation aborts the
-  // previous read so holding ↓ doesn't pile up whole-file reads and so a
-  // slow early read can't overwrite a faster later one. The stale preview
-  // stays visible until the new one arrives — renderPreview overlays a dim
-  // loading indicator rather than blanking the pane.
+  // 加载聚焦文件的简短预览。每次导航都会中止上一次读取，
+  // 这样长按 ↓ 不会堆积整文件读取，也不会让早期的慢读取覆盖后来的快读取。
+  // 过期预览会一直可见，直到新预览到达 —— renderPreview 会叠加一个暗色
+  // 加载指示器，而不是让面板空白。
   useEffect(() => {
     if (!focusedPath) {
-      // No results — clear so the empty-state renders instead of a stale
-      // preview from a previous query.
+      // 无结果 —— 清空以渲染空状态，而不是显示上一次查询的过期预览。
       setPreview(null);
       return;
     }
@@ -96,7 +91,7 @@ export function QuickOpenDialog({ onDone, onInsert }: Props): React.ReactNode {
       })
       .catch(() => {
         if (controller.signal.aborted) return;
-        setPreview({ path: focusedPath, content: '(preview unavailable)' });
+        setPreview({ path: focusedPath, content: '（预览不可用）' });
       });
     return () => controller.abort();
   }, [focusedPath, effectivePreviewLines]);
@@ -125,7 +120,7 @@ export function QuickOpenDialog({ onDone, onInsert }: Props): React.ReactNode {
   return (
     <FuzzyPicker
       title="Quick Open"
-      placeholder="Type to search files…"
+      placeholder="输入以搜索文件…"
       items={results}
       getKey={p => p}
       visibleCount={visibleResults}
@@ -136,12 +131,12 @@ export function QuickOpenDialog({ onDone, onInsert }: Props): React.ReactNode {
       onSelect={handleOpen}
       onTab={{ action: 'mention', handler: p => handleInsert(p, true) }}
       onShiftTab={{
-        action: 'insert path',
+        action: '插入路径',
         handler: p => handleInsert(p, false),
       }}
       onCancel={onDone}
-      emptyMessage={q => (q ? 'No matching files' : 'Start typing to search…')}
-      selectAction="open in editor"
+      emptyMessage={q => (q ? '没有匹配的文件' : '开始输入以搜索…')}
+      selectAction="在编辑器中打开"
       renderItem={(p, isFocused) => (
         <Text color={isFocused ? 'suggestion' : undefined}>{truncatePathMiddle(p, maxPathWidth)}</Text>
       )}
@@ -150,14 +145,14 @@ export function QuickOpenDialog({ onDone, onInsert }: Props): React.ReactNode {
           <>
             <Text dimColor>
               {truncatePathMiddle(p, previewWidth)}
-              {preview.path !== p ? ' · loading…' : ''}
+              {preview.path !== p ? ' · 加载中…' : ''}
             </Text>
             {preview.content.split('\n').map((line, i) => (
               <Text key={i}>{highlightMatch(truncateToWidth(line, previewWidth), query)}</Text>
             ))}
           </>
         ) : (
-          <LoadingState message="Loading preview…" dimColor />
+          <LoadingState message="正在加载预览…" dimColor />
         )
       }
     />

@@ -33,12 +33,12 @@ type Props = {
 function buildPrimarySection(): Property[] {
   const sessionId = getSessionId();
   const customTitle = getCurrentSessionTitle(sessionId);
-  const nameValue = customTitle ?? <Text dimColor>/rename to add a name</Text>;
+  const nameValue = customTitle ?? <Text dimColor>使用 /rename 添加名称</Text>;
 
   return [
-    { label: 'Version', value: MACRO.VERSION },
-    { label: 'Session name', value: nameValue },
-    { label: 'Session ID', value: sessionId },
+    { label: '版本', value: MACRO.VERSION },
+    { label: '会话名称', value: nameValue },
+    { label: '会话 ID', value: sessionId },
     { label: 'cwd', value: getCwd() },
     ...buildAccountProperties(),
     ...buildAPIProviderProperties(),
@@ -59,7 +59,7 @@ function buildSecondarySection({
   const modelLabel = getModelDisplayLabel(mainLoopModel);
 
   return [
-    { label: 'Model', value: modelLabel },
+    { label: '模型', value: modelLabel },
     ...buildIDEProperties(mcp.clients, context.options.ideInstallationStatus, theme),
     ...buildMcpProperties(mcp.clients, theme),
     ...buildSandboxProperties(),
@@ -103,21 +103,20 @@ export function Status({ context, diagnosticsPromise }: Props): React.ReactNode 
   const mcp = useAppState(s => s.mcp);
   const [theme] = useTheme();
 
-  // Sections are synchronous — compute in render so they're never empty.
-  // diagnosticsPromise is created once in Settings.tsx so it resolves once
-  // per pane invocation instead of re-fetching on every tab switch (Tab
-  // unmounts children when not selected, which was causing the flash).
+  // 各区块是同步的 —— 在渲染时计算，保证永不为空。
+  // diagnosticsPromise 在 Settings.tsx 中只创建一次，因此每次面板调用
+  // 只解析一次，而不是每次切换 tab 都重新加载（未选中的 Tab 会卸载其
+  // 子组件，曾导致闪烁）。
   const sections = React.useMemo(
     () => [buildPrimarySection(), buildSecondarySection({ mainLoopModel, mcp, theme, context })],
     [mainLoopModel, mcp, theme, context],
   );
 
-  // flexGrow so the "Esc to cancel" footer pins to the bottom of the
-  // Modal's inner ScrollBox when content is short. The ScrollBox content
-  // wrapper has flexGrow:1 (fills at least the viewport), so this stretches
-  // to match. Without it, short Status content floats at the top and the
-  // footer sits mid-modal with 2-3 trailing blank rows below. Outside a
-  // Modal (non-fullscreen), leave layout alone — no ScrollBox to fill.
+  // 使用 flexGrow 让 "Esc 取消" 页脚在内容较短时固定到 Modal 内部
+  // ScrollBox 的底部。ScrollBox 的内容容器具有 flexGrow:1（至少填满
+  // 视口），因此这里会拉伸到与之匹配。若不这样做，较短的 Status 内容
+  // 会浮在顶部，页脚悬在 Modal 中间，下方留出 2-3 行空白。在 Modal
+  // 之外（非全屏）则保持原布局 —— 没有 ScrollBox 需要填充。
   const grow = useIsInsideModal() ? 1 : undefined;
 
   return (
@@ -142,7 +141,7 @@ export function Status({ context, diagnosticsPromise }: Props): React.ReactNode 
         </Suspense>
       </Box>
       <Text dimColor>
-        <ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="cancel" />
+        <ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="取消" />
       </Text>
     </Box>
   );
@@ -153,7 +152,7 @@ function Diagnostics({ promise }: { promise: Promise<Diagnostic[]> }): React.Rea
   if (diagnostics.length === 0) return null;
   return (
     <Box flexDirection="column" paddingBottom={1}>
-      <Text bold>System Diagnostics</Text>
+      <Text bold>系统诊断</Text>
       {diagnostics.map((diagnostic, i) => (
         <Box key={i} flexDirection="row" gap={1} paddingX={1}>
           <Text color="error">{figures.warning}</Text>

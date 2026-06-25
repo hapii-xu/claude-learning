@@ -90,10 +90,9 @@ async function doUpsertInstinct(
   options?: InstinctStoreOptions,
 ): Promise<StoredInstinct> {
   const existing = await loadInstincts(options)
-  // Match by ID first; fall back to (same trigger + contradicting action) so
-  // that a contradictory instinct with a slightly different ID (differing
-  // action/scope) still merges and can drive the conflict-hold transition
-  // instead of silently accumulating as a separate record.
+  // 优先按 ID 匹配；若未找到则回退到（相同 trigger + 矛盾 action）匹配，
+  // 这样 ID 略有不同（action/scope 不同）的矛盾 instinct 也能合并，
+  // 并触发 conflict-hold 状态转换，而不是静默地作为独立记录累积。
   const match =
     existing.find(instinct => instinct.id === incoming.id) ??
     existing.find(
@@ -146,9 +145,9 @@ const DECAY_PER_WEEK = 0.02
 const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000
 
 /**
- * Apply time-based confidence decay to all instincts (ECC parity: -0.02/week).
- * Only decays `pending` and `active` instincts; terminal states
- * (stale/superseded/retired/archived/conflict-hold) do not decay.
+ * 对所有 instinct 应用基于时间的置信度衰减（ECC 校验标准：每周 -0.02）。
+ * 仅衰减 `pending` 和 `active` 状态的 instinct；
+ * 终态（stale/superseded/retired/archived/conflict-hold）不参与衰减。
  */
 export async function decayInstinctConfidence(
   options?: InstinctStoreOptions,
@@ -168,8 +167,7 @@ export async function decayInstinctConfidence(
     const nextConfidence = clampConfidence(instinct.confidence + delta)
     if (nextConfidence === instinct.confidence) continue
 
-    // Bump updatedAt so subsequent maintenance runs don't re-apply the same
-    // elapsed-week delta.
+    // 更新 updatedAt，防止后续维护运行重复应用相同的已过周数衰减。
     await saveInstinct(
       normalizeInstinct({
         ...instinct,

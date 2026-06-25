@@ -45,35 +45,35 @@ export function PluginHintMenu({
     {
       label: (
         <Text>
-          Yes, install <Text bold>{pluginName}</Text>
+          是的，安装 <Text bold>{pluginName}</Text>
         </Text>
       ),
       value: 'yes',
     },
     {
-      label: 'No',
+      label: '否',
       value: 'no',
     },
     {
-      label: "No, and don't show plugin installation hints again",
+      label: '否，并且不再显示插件安装提示',
       value: 'disable',
     },
   ];
 
   return (
-    <PermissionDialog title="Plugin Recommendation">
+    <PermissionDialog title="插件推荐">
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Box marginBottom={1}>
           <Text dimColor>
-            The <Text bold>{sourceCommand}</Text> command suggests installing a plugin.
+            <Text bold>{sourceCommand}</Text> 命令建议安装一个插件。
           </Text>
         </Box>
         <Box>
-          <Text dimColor>Plugin:</Text>
+          <Text dimColor>插件：</Text>
           <Text> {pluginName}</Text>
         </Box>
         <Box>
-          <Text dimColor>Marketplace:</Text>
+          <Text dimColor>Marketplace：</Text>
           <Text> {marketplaceName}</Text>
         </Box>
         {pluginDescription && (
@@ -82,7 +82,7 @@ export function PluginHintMenu({
           </Box>
         )}
         <Box marginTop={1}>
-          <Text>Would you like to install it?</Text>
+          <Text>是否安装？</Text>
         </Box>
         <Box>
           <Select options={options} onChange={onSelect} onCancel={() => onResponse('no')} />

@@ -30,7 +30,7 @@ export function MCPServerDesktopImportDialog({ servers, scope, onDone }: Props):
     for (const serverName of selectedServers) {
       const serverConfig = servers[serverName];
       if (serverConfig) {
-        // If the server name already exists, find a new name with _1, _2, etc.
+        // 如果服务器名称已存在，则使用 _1、_2 等后缀查找新名称
         let finalName = serverName;
         if (existingServers[finalName] !== undefined) {
           let counter = 1;
@@ -50,15 +50,15 @@ export function MCPServerDesktopImportDialog({ servers, scope, onDone }: Props):
 
   const [theme] = useTheme();
 
-  // Define done before using in useCallback
+  // 在 useCallback 中使用前先定义 done
   const done = useCallback(
     (importedCount: number) => {
       if (importedCount > 0) {
         writeToStdout(
-          `\n${color('success', theme)(`Successfully imported ${importedCount} MCP ${plural(importedCount, 'server')} to ${scope} config.`)}\n`,
+          `\n${color('success', theme)(`成功导入了 ${importedCount} 个 MCP ${plural(importedCount, 'server')} 到 ${scope} 配置。`)}\n`,
         );
       } else {
-        writeToStdout('\nNo servers were imported.');
+        writeToStdout('\n未导入任何服务器。');
       }
       onDone();
 
@@ -67,7 +67,7 @@ export function MCPServerDesktopImportDialog({ servers, scope, onDone }: Props):
     [theme, scope, onDone],
   );
 
-  // Handle ESC to cancel (import 0 servers)
+  // 处理 ESC 取消（导入 0 个服务器）
   const handleEscCancel = useCallback(() => {
     done(0);
   }, [done]);
@@ -75,26 +75,23 @@ export function MCPServerDesktopImportDialog({ servers, scope, onDone }: Props):
   return (
     <>
       <Dialog
-        title="Import MCP Servers from Claude Desktop"
-        subtitle={`Found ${serverNames.length} MCP ${plural(serverNames.length, 'server')} in Claude Desktop.`}
+        title="从 Claude Desktop 导入 MCP 服务器"
+        subtitle={`在 Claude Desktop 中发现 ${serverNames.length} 个 MCP ${plural(serverNames.length, 'server')}。`}
         color="success"
         onCancel={handleEscCancel}
         hideInputGuide
       >
         {collisions.length > 0 && (
-          <Text color="warning">
-            Note: Some servers already exist with the same name. If selected, they will be imported with a numbered
-            suffix.
-          </Text>
+          <Text color="warning">注意：部分服务器已存在同名。如果选中，它们将以数字后缀的形式导入。</Text>
         )}
-        <Text>Please select the servers you want to import:</Text>
+        <Text>请选择你想要导入的服务器：</Text>
 
         <SelectMulti
           options={serverNames.map(server => ({
-            label: `${server}${collisions.includes(server) ? ' (already exists)' : ''}`,
+            label: `${server}${collisions.includes(server) ? '（已存在）' : ''}`,
             value: server,
           }))}
-          defaultValue={serverNames.filter(name => !collisions.includes(name))} // Only preselect non-colliding servers
+          defaultValue={serverNames.filter(name => !collisions.includes(name))} // 只预选不冲突的服务器
           onSubmit={onSubmit}
           onCancel={handleEscCancel}
           hideIndexes

@@ -44,19 +44,19 @@ export function ShowInIDEPrompt<A>({
     <Pane color="permission">
       <Box flexDirection="column" gap={1}>
         <Text bold color="permission">
-          Opened changes in {ideName} ⧉
+          已在 {ideName} 中打开更改 ⧉
         </Text>
         {symlinkTarget && (
           <Text color="warning">
             {relative(getCwd(), symlinkTarget).startsWith('..')
-              ? `This will modify ${symlinkTarget} (outside working directory) via a symlink`
-              : `Symlink target: ${symlinkTarget}`}
+              ? `这将通过 symlink 修改 ${symlinkTarget}（工作目录之外）`
+              : `Symlink 目标：${symlinkTarget}`}
           </Text>
         )}
-        {isSupportedVSCodeTerminal() && <Text dimColor>Save file to continue…</Text>}
+        {isSupportedVSCodeTerminal() && <Text dimColor>保存文件以继续…</Text>}
         <Box flexDirection="column">
           <Text>
-            Do you want to make this edit to <Text bold>{basename(filePath)}</Text>?
+            是否要对 <Text bold>{basename(filePath)}</Text> 进行此编辑？
           </Text>
           <Select
             options={options}
@@ -64,13 +64,13 @@ export function ShowInIDEPrompt<A>({
             onChange={value => {
               const selected = options.find(opt => opt.value === value);
               if (selected) {
-                // For reject option
+                // 对于拒绝选项
                 if (selected.option.type === 'reject') {
                   const trimmedFeedback = rejectFeedback.trim();
                   onChange(selected.option, input, trimmedFeedback || undefined);
                   return;
                 }
-                // For accept-once option, pass accept feedback if present
+                // 对于"接受一次"选项，如有则传入 accept feedback
                 if (selected.option.type === 'accept-once') {
                   const trimmedFeedback = acceptFeedback.trim();
                   onChange(selected.option, input, trimmedFeedback || undefined);
@@ -86,9 +86,8 @@ export function ShowInIDEPrompt<A>({
         </Box>
         <Box marginTop={1}>
           <Text dimColor>
-            Esc to cancel
-            {((focusedOption === 'yes' && !yesInputMode) || (focusedOption === 'no' && !noInputMode)) &&
-              ' · Tab to amend'}
+            Esc 取消
+            {((focusedOption === 'yes' && !yesInputMode) || (focusedOption === 'no' && !noInputMode)) && ' · Tab 修改'}
           </Text>
         </Box>
       </Box>

@@ -153,42 +153,40 @@ export function LogoV2(): React.ReactNode {
         {ChannelsNoticeModule && <ChannelsNoticeModule.ChannelsNotice />}
         {isDebugMode() && (
           <Box paddingLeft={2} flexDirection="column">
-            <Text color="warning">Debug mode enabled</Text>
-            <Text dimColor>Logging to: {isDebugToStdErr() ? 'stderr' : getDebugLogPath()}</Text>
+            <Text color="warning">调试模式已启用</Text>
+            <Text dimColor>日志输出到：{isDebugToStdErr() ? 'stderr' : getDebugLogPath()}</Text>
           </Box>
         )}
         <EmergencyTip />
         {process.env.CLAUDE_CODE_TMUX_SESSION && (
           <Box paddingLeft={2} flexDirection="column">
-            <Text dimColor>tmux session: {process.env.CLAUDE_CODE_TMUX_SESSION}</Text>
+            <Text dimColor>tmux 会话：{process.env.CLAUDE_CODE_TMUX_SESSION}</Text>
             <Text dimColor>
               {process.env.CLAUDE_CODE_TMUX_PREFIX_CONFLICTS
-                ? `Detach: ${process.env.CLAUDE_CODE_TMUX_PREFIX} ${process.env.CLAUDE_CODE_TMUX_PREFIX} d (press prefix twice - Claude uses ${process.env.CLAUDE_CODE_TMUX_PREFIX})`
-                : `Detach: ${process.env.CLAUDE_CODE_TMUX_PREFIX} d`}
+                ? `分离：${process.env.CLAUDE_CODE_TMUX_PREFIX} ${process.env.CLAUDE_CODE_TMUX_PREFIX} d（按两次 prefix - Claude 使用了 ${process.env.CLAUDE_CODE_TMUX_PREFIX}）`
+                : `分离：${process.env.CLAUDE_CODE_TMUX_PREFIX} d`}
             </Text>
           </Box>
         )}
         {announcement && (
           <Box paddingLeft={2} flexDirection="column">
             {!process.env.IS_DEMO && config.oauthAccount?.organizationName && (
-              <Text dimColor>Message from {config.oauthAccount.organizationName}:</Text>
+              <Text dimColor>来自 {config.oauthAccount.organizationName} 的消息：</Text>
             )}
             <Text>{announcement}</Text>
           </Box>
         )}
         {process.env.USER_TYPE === 'ant' && !process.env.DEMO_VERSION && (
           <Box paddingLeft={2} flexDirection="column">
-            <Text dimColor>Use /issue to report model behavior issues</Text>
+            <Text dimColor>使用 /issue 报告模型行为问题</Text>
           </Box>
         )}
         {process.env.USER_TYPE === 'ant' && !process.env.DEMO_VERSION && (
           <Box paddingLeft={2} flexDirection="column">
-            <Text color="warning">[ANT-ONLY] Logs:</Text>
-            <Text dimColor>API calls: {getDisplayPath(getDumpPromptsPath())}</Text>
-            <Text dimColor>Debug logs: {getDisplayPath(getDebugLogPath())}</Text>
-            {isDetailedProfilingEnabled() && (
-              <Text dimColor>Startup Perf: {getDisplayPath(getStartupPerfLogPath())}</Text>
-            )}
+            <Text color="warning">[ANT-ONLY] 日志：</Text>
+            <Text dimColor>API 调用：{getDisplayPath(getDumpPromptsPath())}</Text>
+            <Text dimColor>调试日志：{getDisplayPath(getDebugLogPath())}</Text>
+            {isDetailedProfilingEnabled() && <Text dimColor>启动性能：{getDisplayPath(getStartupPerfLogPath())}</Text>}
           </Box>
         )}
         {process.env.USER_TYPE === 'ant' && <GateOverridesWarning />}
@@ -254,7 +252,7 @@ export function LogoV2(): React.ReactNode {
         {ChannelsNoticeModule && <ChannelsNoticeModule.ChannelsNotice />}
         {showSandboxStatus && (
           <Box marginTop={1} flexDirection="column">
-            <Text color="warning">Your bash commands will be sandboxed. Disable with /sandbox.</Text>
+            <Text color="warning">你的 bash 命令将在沙盒中运行。使用 /sandbox 禁用。</Text>
           </Box>
         )}
         {process.env.USER_TYPE === 'ant' && <GateOverridesWarning />}
@@ -353,47 +351,45 @@ export function LogoV2(): React.ReactNode {
       {ChannelsNoticeModule && <ChannelsNoticeModule.ChannelsNotice />}
       {isDebugMode() && (
         <Box paddingLeft={2} flexDirection="column">
-          <Text color="warning">Debug mode enabled</Text>
-          <Text dimColor>Logging to: {isDebugToStdErr() ? 'stderr' : getDebugLogPath()}</Text>
+          <Text color="warning">调试模式已启用</Text>
+          <Text dimColor>日志输出到：{isDebugToStdErr() ? 'stderr' : getDebugLogPath()}</Text>
         </Box>
       )}
       <EmergencyTip />
       {process.env.CLAUDE_CODE_TMUX_SESSION && (
         <Box paddingLeft={2} flexDirection="column">
-          <Text dimColor>tmux session: {process.env.CLAUDE_CODE_TMUX_SESSION}</Text>
+          <Text dimColor>tmux 会话：{process.env.CLAUDE_CODE_TMUX_SESSION}</Text>
           <Text dimColor>
             {process.env.CLAUDE_CODE_TMUX_PREFIX_CONFLICTS
-              ? `Detach: ${process.env.CLAUDE_CODE_TMUX_PREFIX} ${process.env.CLAUDE_CODE_TMUX_PREFIX} d (press prefix twice - Claude uses ${process.env.CLAUDE_CODE_TMUX_PREFIX})`
-              : `Detach: ${process.env.CLAUDE_CODE_TMUX_PREFIX} d`}
+              ? `分离：${process.env.CLAUDE_CODE_TMUX_PREFIX} ${process.env.CLAUDE_CODE_TMUX_PREFIX} d（按两次 prefix - Claude 使用了 ${process.env.CLAUDE_CODE_TMUX_PREFIX}）`
+              : `分离：${process.env.CLAUDE_CODE_TMUX_PREFIX} d`}
           </Text>
         </Box>
       )}
       {announcement && (
         <Box paddingLeft={2} flexDirection="column">
           {!process.env.IS_DEMO && config.oauthAccount?.organizationName && (
-            <Text dimColor>Message from {config.oauthAccount.organizationName}:</Text>
+            <Text dimColor>来自 {config.oauthAccount.organizationName} 的消息：</Text>
           )}
           <Text>{announcement}</Text>
         </Box>
       )}
       {showSandboxStatus && (
         <Box paddingLeft={2} flexDirection="column">
-          <Text color="warning">Your bash commands will be sandboxed. Disable with /sandbox.</Text>
+          <Text color="warning">你的 bash 命令将在沙盒中运行。使用 /sandbox 禁用。</Text>
         </Box>
       )}
       {process.env.USER_TYPE === 'ant' && !process.env.DEMO_VERSION && (
         <Box paddingLeft={2} flexDirection="column">
-          <Text dimColor>Use /issue to report model behavior issues</Text>
+          <Text dimColor>使用 /issue 报告模型行为问题</Text>
         </Box>
       )}
       {process.env.USER_TYPE === 'ant' && !process.env.DEMO_VERSION && (
         <Box paddingLeft={2} flexDirection="column">
-          <Text color="warning">[ANT-ONLY] Logs:</Text>
-          <Text dimColor>API calls: {getDisplayPath(getDumpPromptsPath())}</Text>
-          <Text dimColor>Debug logs: {getDisplayPath(getDebugLogPath())}</Text>
-          {isDetailedProfilingEnabled() && (
-            <Text dimColor>Startup Perf: {getDisplayPath(getStartupPerfLogPath())}</Text>
-          )}
+          <Text color="warning">[ANT-ONLY] 日志：</Text>
+          <Text dimColor>API 调用：{getDisplayPath(getDumpPromptsPath())}</Text>
+          <Text dimColor>调试日志：{getDisplayPath(getDebugLogPath())}</Text>
+          {isDetailedProfilingEnabled() && <Text dimColor>启动性能：{getDisplayPath(getStartupPerfLogPath())}</Text>}
         </Box>
       )}
       {process.env.USER_TYPE === 'ant' && <GateOverridesWarning />}

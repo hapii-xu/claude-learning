@@ -1,17 +1,16 @@
 /**
- * Tests for queryModelOpenAI in index.ts.
+ * index.ts 中 queryModelOpenAI 的测试。
  *
- * Focused on the two bugs fixed:
- *  1. stop_reason was always null in the assembled AssistantMessage because
- *     partialMessage (from message_start) has stop_reason: null, and the
- *     stop_reason captured from message_delta was never applied.
- *  2. partialMessage was not reset to null after message_stop, so the safety
- *     fallback at the end of the loop would yield a second identical
- *     AssistantMessage (causing doubled content in the next API request).
+ * 专注于已修复的两个 bug：
+ *  1. 组装后的 AssistantMessage 中 stop_reason 始终为 null，因为
+ *     partialMessage（来自 message_start）的 stop_reason 为 null，而从
+ *     message_delta 捕获的 stop_reason 从未被应用。
+ *  2. message_stop 后 partialMessage 未被重置为 null，导致循环末尾的安全
+ *     兜底路径会再次 yield 一个相同的 AssistantMessage（使下次 API 请求中的
+ *     内容重复出现）。
  *
- * Strategy: mock getOpenAIClient + adaptOpenAIStreamToAnthropic so we can
- * feed pre-built Anthropic events directly into queryModelOpenAI and inspect
- * what it emits — without any real HTTP calls.
+ * 策略：mock getOpenAIClient + adaptOpenAIStreamToAnthropic，直接将预先构造
+ * 好的 Anthropic 事件传入 queryModelOpenAI，并检查其输出——无任何真实 HTTP 调用。
  */
 import { describe, expect, test, mock, beforeEach, afterEach } from 'bun:test'
 import type { BetaRawMessageStreamEvent } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
@@ -20,9 +19,9 @@ import type {
   StreamEvent,
 } from '../../../../types/message.js'
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
+// ─── 工具函数 ─────────────────────────────────────────────────────────────────
 
-/** Build a minimal message_start event */
+/** 构建最简 message_start 事件 */
 function makeMessageStart(
   overrides: Record<string, any> = {},
 ): BetaRawMessageStreamEvent {
@@ -47,7 +46,7 @@ function makeMessageStart(
   } as any
 }
 
-/** Build a content_block_start event for the given block type */
+/** 为指定 block 类型构建 content_block_start 事件 */
 function makeContentBlockStart(
   index: number,
   type: 'text' | 'tool_use' | 'thinking',
@@ -66,7 +65,7 @@ function makeContentBlockStart(
   } as any
 }
 
-/** Build a text_delta content_block_delta event */
+/** 构建 text_delta 类型的 content_block_delta 事件 */
 function makeTextDelta(index: number, text: string): BetaRawMessageStreamEvent {
   return {
     type: 'content_block_delta',
@@ -75,7 +74,7 @@ function makeTextDelta(index: number, text: string): BetaRawMessageStreamEvent {
   } as any
 }
 
-/** Build an input_json_delta content_block_delta event */
+/** 构建 input_json_delta 类型的 content_block_delta 事件 */
 function makeInputJsonDelta(
   index: number,
   json: string,
@@ -87,7 +86,7 @@ function makeInputJsonDelta(
   } as any
 }
 
-/** Build a thinking_delta content_block_delta event */
+/** 构建 thinking_delta 类型的 content_block_delta 事件 */
 function makeThinkingDelta(
   index: number,
   thinking: string,
@@ -99,12 +98,12 @@ function makeThinkingDelta(
   } as any
 }
 
-/** Build a content_block_stop event */
+/** 构建 content_block_stop 事件 */
 function makeContentBlockStop(index: number): BetaRawMessageStreamEvent {
   return { type: 'content_block_stop', index } as any
 }
 
-/** Build a message_delta event with stop_reason and output_tokens */
+/** 构建携带 stop_reason 和 output_tokens 的 message_delta 事件 */
 function makeMessageDelta(
   stopReason: string,
   outputTokens: number,
@@ -116,24 +115,24 @@ function makeMessageDelta(
   } as any
 }
 
-/** Build a message_stop event */
+/** 构建 message_stop 事件 */
 function makeMessageStop(): BetaRawMessageStreamEvent {
   return { type: 'message_stop' } as any
 }
 
-/** Async generator from a fixed array of events */
+/** 从固定事件数组生成的异步生成器 */
 async function* eventStream(events: BetaRawMessageStreamEvent[]) {
   for (const e of events) yield e
 }
 
-/** Collect all outputs from queryModelOpenAI into typed buckets */
+/** 将 queryModelOpenAI 的所有输出按类型收集到各桶中 */
 async function runQueryModel(
   events: BetaRawMessageStreamEvent[],
   envOverrides: Record<string, string | undefined> = {},
 ) {
-  // Wire events into the mocked stream adapter
+  // 将事件接入 mocked 流适配器
   _nextEvents = events
-  // Save + apply env overrides
+  // 保存并应用环境变量覆盖
   const saved: Record<string, string | undefined> = {}
   for (const [k, v] of Object.entries(envOverrides)) {
     saved[k] = process.env[k]
@@ -142,9 +141,9 @@ async function runQueryModel(
   }
 
   try {
-    // We inline mock.module inside the try block.
-    // Bun resolves mock.module at the call site synchronously (hoisted),
-    // so we register once per test file, then re-import each time.
+    // 在 try 块内内联 mock.module。
+    // Bun 在调用处同步解析 mock.module（提升），
+    // 因此每个测试文件只注册一次，然后每次重新 import。
     const { queryModelOpenAI } = await import('../index.js')
 
     const assistantMessages: AssistantMessage[] = []
@@ -183,7 +182,7 @@ async function runQueryModel(
 
     return { assistantMessages, streamEvents, otherOutputs }
   } finally {
-    // Restore env
+    // 恢复环境变量
     for (const [k, v] of Object.entries(saved)) {
       if (v === undefined) delete process.env[k]
       else process.env[k] = v
@@ -191,14 +190,14 @@ async function runQueryModel(
   }
 }
 
-// ─── mock setup ──────────────────────────────────────────────────────────────
+// ─── mock 设置 ───────────────────────────────────────────────────────────────
 
-// We mock at module level. Bun's mock.module replaces the module for the
-// entire file, so we configure the stream per-test via a shared variable.
+// 在模块层面 mock。Bun 的 mock.module 对整个文件生效，
+// 因此通过共享变量在每个测试中配置流。
 let _nextEvents: BetaRawMessageStreamEvent[] = []
 let _searchExtraToolsEnabled = false
 
-/** Captured arguments from the last chat.completions.create() call */
+/** 记录最后一次 chat.completions.create() 调用的参数 */
 let _lastCreateArgs: Record<string, any> | null = null
 
 mock.module('@ant/model-provider', () => ({
@@ -372,7 +371,7 @@ mock.module('../../../../utils/debug.js', () => ({
   flushDebugLogs: async () => {},
 }))
 
-// ─── tests ───────────────────────────────────────────────────────────────────
+// ─── 测试用例 ────────────────────────────────────────────────────────────────
 
 describe('queryModelOpenAI — stop_reason propagation', () => {
   test('assembled AssistantMessage has stop_reason end_turn (not null)', async () => {
@@ -419,41 +418,41 @@ describe('queryModelOpenAI — stop_reason propagation', () => {
 
     const { assistantMessages } = await runQueryModel(_nextEvents)
 
-    // Two assistant-typed items: the content message + the max_output_tokens error signal.
-    // The error signal is emitted as a synthetic assistant message by createAssistantAPIErrorMessage.
+    // 两个 assistant 类型的条目：内容消息 + max_output_tokens 错误信号。
+    // 错误信号由 createAssistantAPIErrorMessage 作为合成 assistant 消息发出。
     expect(assistantMessages).toHaveLength(2)
     const contentMsg = assistantMessages[0]!
     expect(contentMsg.message.stop_reason).toBe('max_tokens')
-    // Second item is the error signal (has apiError set)
+    // 第二个条目是错误信号（设有 apiError）
     const errorMsg = assistantMessages[1]!.message as any
     expect(errorMsg.apiError).toBe('max_output_tokens')
   })
 
-  test('stop_reason is null when no message_delta was received (safety fallback path)', async () => {
-    // Stream ends without message_stop — triggers the safety fallback branch.
-    // stop_reason stays null since no message_delta was ever seen.
+  test('当未收到 message_delta 时 stop_reason 为 null（安全兜底路径）', async () => {
+    // 流在没有 message_stop 的情况下结束——触发安全兜底分支。
+    // 由于从未收到 message_delta，stop_reason 保持为 null。
     _nextEvents = [
       makeMessageStart(),
       makeContentBlockStart(0, 'text'),
       makeTextDelta(0, 'partial'),
       makeContentBlockStop(0),
-      // No message_delta / message_stop
+      // 无 message_delta / message_stop
     ]
 
     const { assistantMessages } = await runQueryModel(_nextEvents)
 
-    // Safety fallback should yield the partial content
+    // 安全兜底应 yield 部分内容
     expect(assistantMessages).toHaveLength(1)
     expect(assistantMessages[0]!.message.stop_reason).toBeNull()
   })
 })
 
 describe('queryModelOpenAI — usage accumulation', () => {
-  test('usage in assembled message reflects all four fields from message_delta', async () => {
-    // message_start has all fields=0 (trailing-chunk pattern: usage not yet available).
-    // message_delta carries the real values after stream ends.
-    // The spread in the message_delta handler must override all zeros from message_start,
-    // including cache_read_input_tokens which was previously missing from message_delta.
+  test('组装后消息中的 usage 应反映 message_delta 的所有四个字段', async () => {
+    // message_start 中所有字段均为 0（尾块模式：usage 此时尚不可用）。
+    // message_delta 在流结束后携带真实值。
+    // message_delta 处理器中的展开操作必须覆盖 message_start 中的零值，
+    // 包括此前 message_delta 中缺失的 cache_read_input_tokens。
     _nextEvents = [
       makeMessageStart({
         usage: {

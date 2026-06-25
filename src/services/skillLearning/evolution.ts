@@ -42,11 +42,9 @@ export function clusterInstincts(instincts: Instinct[]): EvolutionCandidate[] {
 
   return Array.from(groups.values())
     .filter(group => {
-      // Require the cluster-size floor unconditionally. Single-shot
-      // high-confidence instincts previously bypassed this via the
-      // `|| confidence >= 0.8` OR, which let one message become a
-      // persistent policy — exactly the H15 risk the threshold guards
-      // against. Repeated independent observation is non-negotiable.
+      // 无条件要求满足最小 cluster 数量。之前单次高置信度 instinct 可通过
+      // `|| confidence >= 0.8` 的 OR 绕过此限制，导致一条消息就能变成持久策略——
+      // 这正是此阈值要防范的 H15 风险。重复的独立观察是不可妥协的前提。
       return group.length >= getSkillLearningConfig().minClusterSize
     })
     .map(group => {

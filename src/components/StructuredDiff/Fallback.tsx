@@ -75,7 +75,7 @@ type Props = {
   width: number;
 };
 
-// 阈值：当超过此值时显示整行 diff 而非词级 diffing
+// 阈值：当变更比例超过此值时显示整行 diff 而非词级 diffing
 const CHANGE_THRESHOLD = 0.4;
 
 export function StructuredDiffFallback({ patch, dim, width }: Props): React.ReactNode {

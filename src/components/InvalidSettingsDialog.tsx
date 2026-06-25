@@ -11,8 +11,8 @@ type Props = {
 };
 
 /**
- * Dialog shown when settings files have validation errors.
- * User must choose to continue (skipping invalid files) or exit to fix them.
+ * 当 settings 文件存在校验错误时显示的对话框。
+ * 用户必须选择继续（跳过无效文件）或退出以修复它们。
  */
 export function InvalidSettingsDialog({ settingsErrors, onContinue, onExit }: Props): React.ReactNode {
   function handleSelect(value: string): void {
@@ -24,14 +24,14 @@ export function InvalidSettingsDialog({ settingsErrors, onContinue, onExit }: Pr
   }
 
   return (
-    <Dialog title="Settings Error" onCancel={onExit} color="warning">
+    <Dialog title="设置错误" onCancel={onExit} color="warning">
       <ValidationErrorsList errors={settingsErrors} />
-      <Text dimColor>Files with errors are skipped entirely, not just the invalid settings.</Text>
+      <Text dimColor>出错的文件会被整体跳过，而非仅跳过无效的设置项。</Text>
       <Select
         options={[
-          { label: 'Exit and fix manually', value: 'exit' },
+          { label: '退出并手动修复', value: 'exit' },
           {
-            label: 'Continue without these settings',
+            label: '不使用这些设置继续',
             value: 'continue',
           },
         ]}

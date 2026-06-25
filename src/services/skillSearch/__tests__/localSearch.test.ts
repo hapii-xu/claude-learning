@@ -57,8 +57,8 @@ describe('tokenize — CJK bi-gram + ASCII', () => {
     expect(tokens).toContain('优化')
     expect(tokens).toContain('流程')
     expect(tokens).toContain('refactor')
-    // Adjacent CJK segments are separated by ASCII content, so no cross-segment
-    // bi-gram should appear.
+    // 相邻 CJK 片段之间被 ASCII 内容分隔，因此跨片段的
+    // bi-gram 不应出现。
     expect(tokens).not.toContain('化流')
   })
 

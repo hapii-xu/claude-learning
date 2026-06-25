@@ -14,7 +14,7 @@ export function DescriptionStep(): ReactNode {
   const [cursorOffset, setCursorOffset] = useState(whenToUse.length);
   const [error, setError] = useState<string | null>(null);
 
-  // Handle escape key - use Settings context so 'n' key doesn't cancel (allows typing 'n' in input)
+  // 处理 Esc 键 - 使用 Settings 上下文，这样按 'n' 键不会触发取消（允许在输入中输入字母 'n'）
   useKeybinding('confirm:no', goBack, { context: 'Settings' });
 
   const handleExternalEditor = useCallback(async () => {
@@ -32,7 +32,7 @@ export function DescriptionStep(): ReactNode {
   const handleSubmit = (value: string): void => {
     const trimmedValue = value.trim();
     if (!trimmedValue) {
-      setError('Description is required');
+      setError('描述为必填项');
       return;
     }
 
@@ -43,7 +43,7 @@ export function DescriptionStep(): ReactNode {
 
   return (
     <WizardDialogLayout
-      subtitle="Description (tell Claude when to use this agent)"
+      subtitle="描述（告诉 Claude 何时使用此 agent）"
       footerText={
         <Byline>
           <KeyboardShortcutHint shortcut="Type" action="enter text" />
@@ -59,14 +59,14 @@ export function DescriptionStep(): ReactNode {
       }
     >
       <Box flexDirection="column">
-        <Text>When should Claude use this agent?</Text>
+        <Text>Claude 应在何时使用此 agent？</Text>
 
         <Box marginTop={1}>
           <TextInput
             value={whenToUse}
             onChange={setWhenToUse}
             onSubmit={handleSubmit}
-            placeholder="e.g., use this agent after you're done writing code..."
+            placeholder="例如，在你写完代码后使用此 agent..."
             columns={80}
             cursorOffset={cursorOffset}
             onChangeCursorOffset={setCursorOffset}

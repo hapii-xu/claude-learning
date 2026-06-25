@@ -65,8 +65,8 @@ export function GuestPassesUpsell(): React.ReactNode {
     <Text dimColor>
       <Text color="claude">[✻]</Text> <Text color="claude">[✻]</Text> <Text color="claude">[✻]</Text> ·{' '}
       {reward
-        ? `Share Claude Code and earn ${formatCreditAmount(reward)} of extra usage · /passes`
-        : '3 guest passes at /passes'}
+        ? `分享 Claude Code，赚取 ${formatCreditAmount(reward)} 额外用量 · /passes`
+        : '3 张 guest pass，见 /passes'}
     </Text>
   );
 }

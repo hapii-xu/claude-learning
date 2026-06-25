@@ -14,8 +14,8 @@ export function LanguagePicker({ initialLanguage, onComplete, onCancel }: Props)
   const [language, setLanguage] = useState(initialLanguage);
   const [cursorOffset, setCursorOffset] = useState((initialLanguage ?? '').length);
 
-  // Use configurable keybinding for ESC to cancel
-  // Use Settings context so 'n' key doesn't trigger cancel (allows typing 'n' in input)
+  // 使用可配置的键位绑定，按 ESC 取消
+  // 使用 Settings 上下文，这样按 'n' 键不会触发取消（允许在输入中输入 'n'）
   useKeybinding('confirm:no', onCancel, { context: 'Settings' });
 
   function handleSubmit(): void {
@@ -25,7 +25,7 @@ export function LanguagePicker({ initialLanguage, onComplete, onCancel }: Props)
 
   return (
     <Box flexDirection="column" gap={1}>
-      <Text>Enter your preferred response and voice language:</Text>
+      <Text>请输入你偏好的回复和语音语言：</Text>
       <Box flexDirection="row" gap={1}>
         <Text>{figures.pointer}</Text>
         <TextInput
@@ -34,13 +34,13 @@ export function LanguagePicker({ initialLanguage, onComplete, onCancel }: Props)
           onSubmit={handleSubmit}
           focus={true}
           showCursor={true}
-          placeholder={`e.g., Japanese, 日本語, Español${figures.ellipsis}`}
+          placeholder={`例如：Japanese、日本語、Español${figures.ellipsis}`}
           columns={60}
           cursorOffset={cursorOffset}
           onChangeCursorOffset={setCursorOffset}
         />
       </Box>
-      <Text dimColor>Leave empty for default (English)</Text>
+      <Text dimColor>留空则使用默认语言（English）</Text>
     </Box>
   );
 }

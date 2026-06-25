@@ -1,10 +1,10 @@
 /**
- * CLI command wrappers for plugin operations
+ * plugin 操作的 CLI 命令包装器
  *
- * This module provides thin wrappers around the core plugin operations
- * that handle CLI-specific concerns like console output and process exit.
+ * 本模块为核心 plugin 操作提供薄包装层，
+ * 负责处理 CLI 特有的关注点，如控制台输出和进程退出。
  *
- * For the core operations (without CLI side effects), see pluginOperations.ts
+ * 核心操作（无 CLI 副作用）见 pluginOperations.ts
  */
 import figures from 'figures'
 import { errorMessage } from '../../utils/errors.js'
@@ -46,9 +46,8 @@ type PluginCliCommand =
   | 'update'
 
 /**
- * Generic error handler for plugin CLI commands. Emits
- * tengu_plugin_command_failed before exit so dashboards can compute a
- * success rate against the corresponding success events.
+ * plugin CLI 命令的通用错误处理器。在退出前发出
+ * tengu_plugin_command_failed 事件，以便仪表板可以与对应成功事件计算成功率。
  */
 function handlePluginCommandError(
   error: unknown,
@@ -95,9 +94,9 @@ function handlePluginCommandError(
 }
 
 /**
- * CLI command: Install a plugin non-interactively
- * @param plugin Plugin identifier (name or plugin@marketplace)
- * @param scope Installation scope: user, project, or local (defaults to 'user')
+ * CLI 命令：非交互式安装 plugin
+ * @param plugin plugin 标识符（name 或 plugin@marketplace）
+ * @param scope 安装 scope：user、project 或 local（默认为 'user'）
  */
 export async function installPlugin(
   plugin: string,
@@ -114,10 +113,9 @@ export async function installPlugin(
 
     console.log(`${figures.tick} ${result.message}`)
 
-    // _PROTO_* routes to PII-tagged plugin_name/marketplace_name BQ columns.
-    // Unredacted plugin_id was previously logged to general-access
-    // additional_metadata for all users — dropped in favor of the privileged
-    // column route.
+    // _PROTO_* 路由到 BQ 中带 PII 标记的 plugin_name/marketplace_name 列。
+    // 未脱敏的 plugin_id 此前会对所有用户记录到 additional_metadata 通用列——
+    // 已改为使用特权列路由。
     const { name, marketplace } = parsePluginIdentifier(
       result.pluginId || plugin,
     )
@@ -143,9 +141,9 @@ export async function installPlugin(
 }
 
 /**
- * CLI command: Uninstall a plugin non-interactively
- * @param plugin Plugin name or plugin@marketplace identifier
- * @param scope Uninstall from scope: user, project, or local (defaults to 'user')
+ * CLI 命令：非交互式卸载 plugin
+ * @param plugin plugin name 或 plugin@marketplace 标识符
+ * @param scope 从哪个 scope 卸载：user、project 或 local（默认为 'user'）
  */
 export async function uninstallPlugin(
   plugin: string,
@@ -184,9 +182,9 @@ export async function uninstallPlugin(
 }
 
 /**
- * CLI command: Enable a plugin non-interactively
- * @param plugin Plugin name or plugin@marketplace identifier
- * @param scope Optional scope. If not provided, finds the most specific scope for the current project.
+ * CLI 命令：非交互式启用 plugin
+ * @param plugin plugin name 或 plugin@marketplace 标识符
+ * @param scope 可选 scope。若未提供，则自动找到当前项目最具体的 scope。
  */
 export async function enablePlugin(
   plugin: string,
@@ -224,9 +222,9 @@ export async function enablePlugin(
 }
 
 /**
- * CLI command: Disable a plugin non-interactively
- * @param plugin Plugin name or plugin@marketplace identifier
- * @param scope Optional scope. If not provided, finds the most specific scope for the current project.
+ * CLI 命令：非交互式禁用 plugin
+ * @param plugin plugin name 或 plugin@marketplace 标识符
+ * @param scope 可选 scope。若未提供，则自动找到当前项目最具体的 scope。
  */
 export async function disablePlugin(
   plugin: string,
@@ -264,7 +262,7 @@ export async function disablePlugin(
 }
 
 /**
- * CLI command: Disable all enabled plugins non-interactively
+ * CLI 命令：非交互式禁用所有已启用的 plugin
  */
 export async function disableAllPlugins(): Promise<void> {
   try {
@@ -286,9 +284,9 @@ export async function disableAllPlugins(): Promise<void> {
 }
 
 /**
- * CLI command: Update a plugin non-interactively
- * @param plugin Plugin name or plugin@marketplace identifier
- * @param scope Scope to update
+ * CLI 命令：非交互式更新 plugin
+ * @param plugin plugin name 或 plugin@marketplace 标识符
+ * @param scope 要更新的 scope
  */
 export async function updatePluginCli(
   plugin: string,

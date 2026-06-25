@@ -66,41 +66,41 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
 
   const exitState = useExitOnCtrlCDWithKeybindings();
 
-  // Define all onboarding steps
+  // 定义所有 onboarding 步骤
   const themeStep = (
     <Box marginX={1}>
       <ThemePicker
         onThemeSelect={handleThemeSelection}
         showIntroText={true}
-        helpText="To change this later, run /theme"
+        helpText="稍后可运行 /theme 修改"
         hideEscToCancel={true}
-        skipExitHandling={true} // Skip exit handling as Onboarding already handles it
+        skipExitHandling={true} // 跳过退出处理，因为 Onboarding 已经处理了
       />
     </Box>
   );
 
   const securityStep = (
     <Box flexDirection="column" gap={1} paddingLeft={1}>
-      <Text bold>Before you start, keep in mind:</Text>
+      <Text bold>开始之前，请注意：</Text>
       <Box flexDirection="column" width={70}>
         {/**
-         * OrderedList misnumbers items when rendering conditionally,
-         * so put all items in the if/else
+         * OrderedList 在条件渲染时会编号错误，
+         * 所以把所有项都放在 if/else 中
          */}
         <OrderedList>
           <OrderedList.Item>
-            <Text>Always review changes before accepting</Text>
+            <Text>在接受之前始终审查更改</Text>
             <Text dimColor wrap="wrap">
-              Claude can make mistakes — especially when running commands
+              Claude 可能会犯错 —— 尤其是在运行命令
               <Newline />
-              or editing files. You stay in control of every action.
+              或编辑文件时。你对每个操作都保持完全控制。
               <Newline />
             </Text>
           </OrderedList.Item>
           <OrderedList.Item>
-            <Text>Only use Claude Code on projects you trust</Text>
+            <Text>只在你信任的项目中使用 Claude Code</Text>
             <Text dimColor wrap="wrap">
-              Untrusted code could contain prompt injection attacks.
+              不受信任的代码可能包含 prompt 注入攻击。
               <Newline />
               <Link url="https://code.claude.com/docs/en/security" />
             </Text>
@@ -112,11 +112,11 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
   );
 
   const _preflightStep = <PreflightStep onSuccess={goToNextStep} />;
-  // Create the steps array - determine which steps to include based on reAuth and oauthEnabled
+  // 创建 steps 数组 - 根据 reAuth 和 oauthEnabled 决定要包含哪些步骤
   const apiKeyNeedingApproval = useMemo(() => {
-    // Add API key step if needed
-    // On homespace, ANTHROPIC_API_KEY is preserved in process.env for child
-    // processes but ignored by Claude Code itself (see auth.ts).
+    // 如果需要则添加 API key 步骤
+    // 在 homespace 上，ANTHROPIC_API_KEY 会保留在 process.env 中供子进程使用，
+    // 但 Claude Code 自身会忽略它（见 auth.ts）。
     if (!process.env.ANTHROPIC_API_KEY || isRunningOnHomespace()) {
       return '';
     }
@@ -134,7 +134,7 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
   }
 
   const steps: OnboardingStep[] = [];
-  // Preflight check disabled — users may use third-party API providers
+  // 预检已禁用 —— 用户可能使用第三方 API provider
   // if (oauthEnabled) {
   //   steps.push({ id: 'preflight', component: preflightStep })
   // }
@@ -165,30 +165,26 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
       id: 'terminal-setup',
       component: (
         <Box flexDirection="column" gap={1} paddingLeft={1}>
-          <Text bold>Use Claude Code&apos;s terminal setup?</Text>
+          <Text bold>使用 Claude Code 的终端设置？</Text>
           <Box flexDirection="column" width={70} gap={1}>
             <Text>
-              For the optimal coding experience, enable the recommended settings
-              <Newline />
-              for your terminal:{' '}
-              {env.terminal === 'Apple_Terminal'
-                ? 'Option+Enter for newlines and visual bell'
-                : 'Shift+Enter for newlines'}
+              为获得最佳编码体验，请为你的终端启用推荐设置
+              <Newline />： {env.terminal === 'Apple_Terminal' ? 'Option+Enter 换行和可视响铃' : 'Shift+Enter 换行'}
             </Text>
             <Select
               options={[
                 {
-                  label: 'Yes, use recommended settings',
+                  label: '是，使用推荐设置',
                   value: 'install',
                 },
                 {
-                  label: 'No, maybe later with /terminal-setup',
+                  label: '否，稍后用 /terminal-setup 再设置',
                   value: 'no',
                 },
               ]}
               onChange={value => {
                 if (value === 'install') {
-                  // Errors already logged in setupTerminal, just swallow and proceed
+                  // 错误已在 setupTerminal 中记录，这里直接吞掉并继续
                   void setupTerminal(theme)
                     .catch(() => {})
                     .finally(goToNextStep);
@@ -199,7 +195,7 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
               onCancel={() => goToNextStep()}
             />
             <Text dimColor>
-              {exitState.pending ? <>Press {exitState.keyName} again to exit</> : <>Enter to confirm · Esc to skip</>}
+              {exitState.pending ? <>再按一次 {exitState.keyName} 退出</> : <>Enter 确认 · Esc 跳过</>}
             </Text>
           </Box>
         </Box>
@@ -209,8 +205,8 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
 
   const currentStep = steps[currentStepIndex];
 
-  // Handle Enter on security step and Escape on terminal-setup step
-  // Dependencies match what goToNextStep uses internally
+  // 处理 security 步骤上的 Enter 以及 terminal-setup 步骤上的 Escape
+  // 依赖项与 goToNextStep 内部使用的保持一致
   const handleSecurityContinue = useCallback(() => {
     if (currentStepIndex === steps.length - 1) {
       onDone();
@@ -250,7 +246,7 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
         {currentStep?.component}
         {exitState.pending && (
           <Box padding={1}>
-            <Text dimColor>Press {exitState.keyName} again to exit</Text>
+            <Text dimColor>再按一次 {exitState.keyName} 退出</Text>
           </Box>
         )}
       </Box>

@@ -4,7 +4,7 @@ import { Text } from '@anthropic/ink';
 export function PressEnterToContinue(): React.ReactNode {
   return (
     <Text color="permission">
-      Press <Text bold>Enter</Text> to continue…
+      按 <Text bold>Enter</Text> 继续…
     </Text>
   );
 }

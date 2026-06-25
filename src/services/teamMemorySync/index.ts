@@ -69,51 +69,48 @@ import {
 } from './types.js'
 
 const TEAM_MEMORY_SYNC_TIMEOUT_MS = 30_000
-// Per-entry size cap — server default from anthropic/anthropic#293258.
-// Pre-filtering oversized entries saves bandwidth: the structured 413 for
-// this case doesn't give us anything to learn (one file is just too big).
+// 单文件大小上限 — 来自服务器端默认值（anthropic/anthropic#293258）。
+// 客户端预过滤超大文件可节省带宽：此情况的结构化 413 不提供可学习信息
+//（单个文件就是太大了）。
 const MAX_FILE_SIZE_BYTES = 250_000
-// No client-side DEFAULT_MAX_ENTRIES: the server's entry-count cap is
-// GB-tunable per-org (claude_code_team_memory_limits), so any compile-time
-// constant here will drift.  We only truncate after learning the effective
-// limit from a structured 413's extra_details.max_entries.
-// Gateway body-size cap.  The API gateway rejects PUT bodies over ~256-512KB
-// with an unstructured (HTML) 413 before the request reaches the app server —
-// distinguishable from the app's structured entry-count 413 only by latency
-// (~750ms gateway vs ~2.3s app on comparable payloads).  #21969 removed the
-// client entry-count cap; cold pushes from heavy users then sent 300KB-1.4MB
-// bodies and hit this.  200KB leaves headroom under the observed threshold
-// and keeps a single-entry-at-MAX_FILE_SIZE_BYTES solo batch (~250KB) just
-// under the real gateway limit.  Batches larger than this are split into
-// sequential PUTs — server upsert-merge semantics make that safe.
+// 不设客户端 DEFAULT_MAX_ENTRIES：服务器的 entry-count 上限可通过
+// claude_code_team_memory_limits 按组织动态配置，任何编译期常量都会偏移。
+// 只有在从结构化 413 的 extra_details.max_entries 学到有效上限后才截断。
+// 网关 body 大小上限。API 网关拒绝超过约 256-512KB 的 PUT body，以非结构化
+//（HTML）413 形式返回，在请求到达应用服务器之前就被拒绝 —— 与应用侧的
+// 结构化 entry-count 413 仅能通过延迟区分（网关 ~750ms，应用 ~2.3s）。
+// #21969 移除了客户端 entry-count 上限；重度用户的冷推送发送 300KB-1.4MB
+// body 并命中此限制。200KB 在观测到的实际阈值以下留有余量，
+// 并保持单个大文件（MAX_FILE_SIZE_BYTES=250K）的独立批次（~250KB）
+// 仍在真实网关限制以内。超过此上限的批次会拆分为顺序 PUT —— 服务器
+// upsert-merge 语义使此操作安全。
 const MAX_PUT_BODY_BYTES = 200_000
 const MAX_RETRIES = 3
 const MAX_CONFLICT_RETRIES = 2
 
-// ─── Sync state ─────────────────────────────────────────────
+// ─── 同步状态 ────────────────────────────────────────────────
 
 /**
- * Mutable state for the team memory sync service.
- * Created once per session by the watcher and passed to all sync functions.
- * Tests create a fresh instance per test for isolation.
+ * team memory sync 服务的可变状态。
+ * 由 watcher 在每个会话中创建一次，并传递给所有同步函数。
+ * 测试为每个测试用例创建一个新实例以实现隔离。
  */
 export type SyncState = {
-  /** Last known server checksum (ETag) for conditional requests. */
+  /** 上次已知的服务器校验和（ETag），用于条件请求。 */
   lastKnownChecksum: string | null
   /**
-   * Per-key content hash (`sha256:<hex>`) of what we believe the server
-   * currently holds. Populated from server-provided entryChecksums on pull
-   * and from local hashes on successful push. Used to compute the delta on
-   * push — only keys whose local hash differs are uploaded.
+   * 我们认为服务器当前持有的每个 key 的内容 hash（`sha256:<hex>`）。
+   * 在 pull 时从服务器提供的 entryChecksums 填充，在 push 成功时
+   * 从本地 hash 填充。用于在 push 时计算增量 —— 只上传本地 hash
+   * 与此不同的 key。
    */
   serverChecksums: Map<string, string>
   /**
-   * Server-enforced max_entries cap, learned from a structured 413 response
-   * (anthropic/anthropic#293258 adds error_code + extra_details.max_entries).
-   * Stays null until a 413 is observed — the server's cap is GB-tunable
-   * per-org so there is no correct client-side default.  While null,
-   * readLocalTeamMemory sends everything and lets the server be
-   * authoritative (it rejects atomically).
+   * 服务器强制执行的 max_entries 上限，从结构化 413 响应中学到
+   *（anthropic/anthropic#293258 添加了 error_code + extra_details.max_entries）。
+   * 在观察到 413 之前保持 null —— 服务器的上限可按组织动态配置，
+   * 因此客户端没有正确的默认值。为 null 时，readLocalTeamMemory 发送全部内容
+   * 并让服务器作为最终裁定（服务器原子性拒绝）。
    */
   serverMaxEntries: number | null
 }

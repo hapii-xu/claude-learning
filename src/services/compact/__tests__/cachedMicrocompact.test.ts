@@ -47,9 +47,9 @@ describe('cachedMicrocompact', () => {
       registerToolResult(state, `tool-${i}`)
     }
     const toDelete = getToolResultsToDelete(state)
-    // Should suggest deleting oldest, keeping recent
+    // 应建议删除最旧的，保留最近的
     expect(toDelete.length).toBeGreaterThan(0)
-    // Should not include the most recent tools
+    // 不应包含最近的 tool
     expect(toDelete).not.toContain('tool-11')
     expect(toDelete).not.toContain('tool-10')
   })
@@ -80,12 +80,12 @@ describe('cachedMicrocompact', () => {
       registerToolResult(state, `tool-${i}`)
     }
     const first = getToolResultsToDelete(state)
-    // Simulate deletion
+    // 模拟删除
     for (const id of first) {
       state.deletedRefs.add(id)
     }
     const second = getToolResultsToDelete(state)
-    // Should not re-suggest already deleted
+    // 不应再次建议已删除的 tool
     for (const id of first) {
       expect(second).not.toContain(id)
     }

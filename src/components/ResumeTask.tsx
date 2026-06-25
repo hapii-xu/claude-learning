@@ -36,7 +36,7 @@ export function ResumeTask({ onSelect, onCancel, isEmbedded = false }: Props): R
 
   const [hasCompletedTeleportErrorFlow, setHasCompletedTeleportErrorFlow] = useState(false);
 
-  // Track focused index for scroll position display in title
+  // 跟踪 focused index 以在标题中显示滚动位置
   const [focusedIndex, setFocusedIndex] = useState(1);
 
   const escKey = useShortcutDisplay('confirm:no', 'Confirmation', 'Esc');
@@ -46,14 +46,14 @@ export function ResumeTask({ onSelect, onCancel, isEmbedded = false }: Props): R
       setLoading(true);
       setLoadErrorType(null);
 
-      // Detect current repository
+      // 检测当前仓库
       const detectedRepo = await detectCurrentRepository();
       setCurrentRepo(detectedRepo);
       logForDebugging(`Current repository: ${detectedRepo || 'not detected'}`);
 
       const codeSessions = await fetchCodeSessionsFromSessionsAPI();
 
-      // Filter sessions by current repository if detected
+      // 如果检测到当前仓库，则按仓库过滤会话
       let filteredSessions = codeSessions;
       if (detectedRepo) {
         filteredSessions = codeSessions.filter(session => {
@@ -66,7 +66,7 @@ export function ResumeTask({ onSelect, onCancel, isEmbedded = false }: Props): R
         );
       }
 
-      // Sort by updated_at (newest first)
+      // 按 updated_at 排序（最新的在前）
       const sortedSessions = [...filteredSessions].sort((a, b) => {
         const dateA = new Date(a.updated_at);
         const dateB = new Date(b.updated_at);
@@ -89,25 +89,25 @@ export function ResumeTask({ onSelect, onCancel, isEmbedded = false }: Props): R
     void loadSessions();
   };
 
-  // Handle escape via keybinding
+  // 通过 keybinding 处理 escape
   useKeybinding('confirm:no', onCancel, { context: 'Confirmation' });
 
   useInput((input, key) => {
-    // We need to handle ctrl+c in case we don't render a <Select>
+    // 在没有渲染 <Select> 的情况下需要处理 ctrl+c
     if (key.ctrl && input === 'c') {
       onCancel();
       return;
     }
 
-    // Handle retry in error state with 'ctrl+r'
+    // 在错误状态下用 'ctrl+r' 处理重试
     if (key.ctrl && input === 'r' && loadErrorType) {
       handleRetry();
       return;
     }
 
-    // Handle enter key for error states to allow continuation with regular teleport
+    // 处理错误状态下的 Enter 键，允许继续使用常规 teleport 流程
     if (loadErrorType !== null && key.return) {
-      onCancel(); // This will continue with regular teleport flow
+      onCancel(); // 这会继续使用常规 teleport 流程
       return;
     }
   });
@@ -117,7 +117,7 @@ export function ResumeTask({ onSelect, onCancel, isEmbedded = false }: Props): R
     void loadSessions();
   }, [setHasCompletedTeleportErrorFlow, loadSessions]);
 
-  // Show error dialog if needed
+  // 如有需要则显示错误对话框
   if (!hasCompletedTeleportErrorFlow) {
     return <TeleportError onComplete={handleErrorComplete} />;
   }
@@ -127,9 +127,9 @@ export function ResumeTask({ onSelect, onCancel, isEmbedded = false }: Props): R
       <Box flexDirection="column" padding={1}>
         <Box flexDirection="row">
           <Spinner />
-          <Text bold>Loading Claude Code sessions…</Text>
+          <Text bold>正在加载 Claude Code 会话…</Text>
         </Box>
-        <Text dimColor>{retrying ? 'Retrying…' : 'Fetching your Claude Code sessions…'}</Text>
+        <Text dimColor>{retrying ? '正在重试…' : '正在获取你的 Claude Code 会话…'}</Text>
       </Box>
     );
   }
@@ -138,13 +138,13 @@ export function ResumeTask({ onSelect, onCancel, isEmbedded = false }: Props): R
     return (
       <Box flexDirection="column" padding={1}>
         <Text bold color="error">
-          Error loading Claude Code sessions
+          加载 Claude Code 会话失败
         </Text>
 
         {renderErrorSpecificGuidance(loadErrorType)}
 
         <Text dimColor>
-          Press <Text bold>Ctrl+R</Text> to retry · Press <Text bold>{escKey}</Text> to cancel
+          按 <Text bold>Ctrl+R</Text> 重试 · 按 <Text bold>{escKey}</Text> 取消
         </Text>
       </Box>
     );
@@ -154,12 +154,12 @@ export function ResumeTask({ onSelect, onCancel, isEmbedded = false }: Props): R
     return (
       <Box flexDirection="column" padding={1}>
         <Text bold>
-          No Claude Code sessions found
-          {currentRepo && <Text> for {currentRepo}</Text>}
+          未找到 Claude Code 会话
+          {currentRepo && <Text>（{currentRepo}）</Text>}
         </Text>
         <Box marginTop={1}>
           <Text dimColor>
-            Press <Text bold>{escKey}</Text> to cancel
+            按 <Text bold>{escKey}</Text> 取消
           </Text>
         </Box>
       </Box>
@@ -175,15 +175,15 @@ export function ResumeTask({ onSelect, onCancel, isEmbedded = false }: Props): R
   const options = sessionMetadata.map(({ timeString, title, id }) => {
     const paddedTime = timeString.padEnd(maxTimeStringLength, ' ');
 
-    // TODO: include branch name when API returns it
+    // TODO: 等 API 返回后加入分支名
     return {
       label: `${paddedTime}  ${title}`,
       value: id,
     };
   });
 
-  // Adjust layout for embedded vs full-screen rendering
-  // Overhead: padding (2) + title (1) + marginY (2) + header (1) + footer (1) = 7
+  // 为嵌入式与全屏渲染调整布局
+  // 开销：padding (2) + 标题 (1) + marginY (2) + header (1) + footer (1) = 7
   const layoutOverhead = 7;
   const maxVisibleOptions = Math.max(
     1,
@@ -193,27 +193,27 @@ export function ResumeTask({ onSelect, onCancel, isEmbedded = false }: Props): R
   );
   const maxHeight = maxVisibleOptions + layoutOverhead;
 
-  // Show scroll position in title when list needs scrolling
+  // 列表需要滚动时在标题中显示滚动位置
   const showScrollPosition = sessions.length > maxVisibleOptions;
 
   return (
     <Box flexDirection="column" padding={1} height={maxHeight}>
       <Text bold>
-        Select a session to resume
+        选择要恢复的会话
         {showScrollPosition && (
           <Text dimColor>
             {' '}
-            ({focusedIndex} of {sessions.length})
+            （第 {focusedIndex} 个，共 {sessions.length} 个）
           </Text>
         )}
-        {currentRepo && <Text dimColor> ({currentRepo})</Text>}:
+        {currentRepo && <Text dimColor> （{currentRepo}）</Text>}：
       </Text>
       <Box flexDirection="column" marginTop={1} flexGrow={1}>
         <Box marginLeft={2}>
           <Text bold>
             {UPDATED_STRING.padEnd(maxTimeStringLength, ' ')}
             {SPACE_BETWEEN_TABLE_COLUMNS}
-            {'Session Title'}
+            {'会话标题'}
           </Text>
         </Box>
         <Select
@@ -247,7 +247,7 @@ export function ResumeTask({ onSelect, onCancel, isEmbedded = false }: Props): R
 }
 
 /**
- * Determines the type of error based on the error message
+ * 根据错误消息判断错误类型
  */
 function determineErrorType(errorMessage: string): LoadErrorType {
   const message = errorMessage.toLowerCase();
@@ -277,23 +277,23 @@ function determineErrorType(errorMessage: string): LoadErrorType {
 }
 
 /**
- * Renders error-specific troubleshooting guidance
+ * 渲染针对特定错误的排障指引
  */
 function renderErrorSpecificGuidance(errorType: LoadErrorType): React.ReactNode {
   switch (errorType) {
     case 'network':
       return (
         <Box marginY={1} flexDirection="column">
-          <Text dimColor>Check your internet connection</Text>
+          <Text dimColor>请检查你的网络连接</Text>
         </Box>
       );
 
     case 'auth':
       return (
         <Box marginY={1} flexDirection="column">
-          <Text dimColor>Teleport requires a Claude account</Text>
+          <Text dimColor>Teleport 需要一个 Claude 账户</Text>
           <Text dimColor>
-            Run <Text bold>/login</Text> and select &quot;Claude account with subscription&quot;
+            运行 <Text bold>/login</Text> 并选择 &quot;带订阅的 Claude 账户&quot;
           </Text>
         </Box>
       );
@@ -301,14 +301,14 @@ function renderErrorSpecificGuidance(errorType: LoadErrorType): React.ReactNode 
     case 'api':
       return (
         <Box marginY={1} flexDirection="column">
-          <Text dimColor>Sorry, Claude encountered an error</Text>
+          <Text dimColor>抱歉，Claude 遇到了一个错误</Text>
         </Box>
       );
 
     case 'other':
       return (
         <Box marginY={1} flexDirection="row">
-          <Text dimColor>Sorry, Claude Code encountered an error</Text>
+          <Text dimColor>抱歉，Claude Code 遇到了一个错误</Text>
         </Box>
       );
   }

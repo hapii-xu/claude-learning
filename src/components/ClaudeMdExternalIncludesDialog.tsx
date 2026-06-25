@@ -17,7 +17,7 @@ export function ClaudeMdExternalIncludesDialog({
   externalIncludes,
 }: Props): React.ReactNode {
   React.useEffect(() => {
-    // Log when dialog is shown
+    // 记录对话框显示事件
     logEvent('tengu_claude_md_includes_dialog_shown', {});
   }, []);
 
@@ -25,7 +25,7 @@ export function ClaudeMdExternalIncludesDialog({
     (value: 'yes' | 'no') => {
       if (value === 'no') {
         logEvent('tengu_claude_md_external_includes_dialog_declined', {});
-        // Mark that we've shown the dialog but it was declined
+        // 标记已展示过对话框但用户拒绝了
         saveCurrentProjectConfig(current => ({
           ...current,
           hasClaudeMdExternalIncludesApproved: false,
@@ -51,20 +51,17 @@ export function ClaudeMdExternalIncludesDialog({
 
   return (
     <Dialog
-      title="Allow external CLAUDE.md file imports?"
+      title="是否允许导入外部 CLAUDE.md 文件？"
       color="warning"
       onCancel={handleEscape}
       hideBorder={!isStandaloneDialog}
       hideInputGuide={!isStandaloneDialog}
     >
-      <Text>
-        This project&apos;s CLAUDE.md imports files outside the current working directory. Never allow this for
-        third-party repositories.
-      </Text>
+      <Text>本项目的 CLAUDE.md 导入了当前工作目录之外的文件。对于第三方仓库，切勿允许此操作。</Text>
 
       {externalIncludes && externalIncludes.length > 0 && (
         <Box flexDirection="column">
-          <Text dimColor>External imports:</Text>
+          <Text dimColor>外部导入：</Text>
           {externalIncludes.map((include, i) => (
             <Text key={i} dimColor>
               {'  '}
@@ -75,14 +72,14 @@ export function ClaudeMdExternalIncludesDialog({
       )}
 
       <Text dimColor>
-        Important: Only use Claude Code with files you trust. Accessing untrusted files may pose security risks{' '}
+        重要提示：仅对您信任的文件使用 Claude Code。访问不受信任的文件可能存在安全风险{' '}
         <Link url="https://code.claude.com/docs/en/security" />{' '}
       </Text>
 
       <Select
         options={[
-          { label: 'Yes, allow external imports', value: 'yes' },
-          { label: 'No, disable external imports', value: 'no' },
+          { label: '是，允许外部导入', value: 'yes' },
+          { label: '否，禁用外部导入', value: 'no' },
         ]}
         onChange={value => handleSelection(value as 'yes' | 'no')}
       />

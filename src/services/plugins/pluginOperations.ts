@@ -1,15 +1,15 @@
 /**
- * Core plugin operations (install, uninstall, enable, disable, update)
+ * 核心 plugin 操作（install、uninstall、enable、disable、update）
  *
- * This module provides pure library functions that can be used by both:
- * - CLI commands (`claude plugin install/uninstall/enable/disable/update`)
- * - Interactive UI (ManagePlugins.tsx)
+ * 本模块提供纯库函数，可同时被以下两处使用：
+ * - CLI 命令（`claude plugin install/uninstall/enable/disable/update`）
+ * - 交互式 UI（ManagePlugins.tsx）
  *
- * Functions in this module:
- * - Do NOT call process.exit()
- * - Do NOT write to console
- * - Return result objects indicating success/failure with messages
- * - Can throw errors for unexpected failures
+ * 本模块中的函数：
+ * - 不调用 process.exit()
+ * - 不向 console 写入内容
+ * - 返回包含成功/失败及消息的 result 对象
+ * - 可在意外失败时抛出错误
  */
 import { dirname, join } from 'path'
 import { getOriginalCwd } from '../../bootstrap/state.js'
@@ -68,13 +68,13 @@ import {
 } from '../../utils/settings/settings.js'
 import { plural } from '../../utils/stringUtils.js'
 
-/** Valid installable scopes (excludes 'managed' which can only be installed from managed-settings.json) */
+/** 合法的可安装 scope（不含 'managed'，'managed' 只能通过 managed-settings.json 安装） */
 export const VALID_INSTALLABLE_SCOPES = ['user', 'project', 'local'] as const
 
-/** Installation scope type derived from VALID_INSTALLABLE_SCOPES */
+/** 从 VALID_INSTALLABLE_SCOPES 派生的安装 scope 类型 */
 export type InstallableScope = (typeof VALID_INSTALLABLE_SCOPES)[number]
 
-/** Valid scopes for update operations (includes 'managed' since managed plugins can be updated) */
+/** 更新操作合法的 scope（含 'managed'，因为 managed plugin 可以被更新） */
 export const VALID_UPDATE_SCOPES: readonly PluginScope[] = [
   'user',
   'project',
@@ -83,9 +83,9 @@ export const VALID_UPDATE_SCOPES: readonly PluginScope[] = [
 ] as const
 
 /**
- * Assert that a scope is a valid installable scope at runtime
- * @param scope The scope to validate
- * @throws Error if scope is not a valid installable scope
+ * 在运行时断言 scope 是合法的可安装 scope
+ * @param scope 待校验的 scope
+ * @throws Error 若 scope 不是合法的可安装 scope
  */
 export function assertInstallableScope(
   scope: string,
@@ -98,8 +98,8 @@ export function assertInstallableScope(
 }
 
 /**
- * Type guard to check if a scope is an installable scope (not 'managed').
- * Use this for type narrowing in conditional blocks.
+ * 类型守卫：检查 scope 是否为可安装 scope（非 'managed'）。
+ * 用于条件块中的类型收窄。
  */
 export function isInstallableScope(
   scope: PluginScope,
@@ -108,22 +108,20 @@ export function isInstallableScope(
 }
 
 /**
- * Get the project path for scopes that are project-specific.
- * Returns the original cwd for 'project' and 'local' scopes, undefined otherwise.
+ * 获取 project 特定 scope 的项目路径。
+ * 'project' 和 'local' scope 返回原始 cwd，其他 scope 返回 undefined。
  */
 export function getProjectPathForScope(scope: PluginScope): string | undefined {
   return scope === 'project' || scope === 'local' ? getOriginalCwd() : undefined
 }
 
 /**
- * Is this plugin enabled (value === true) in .hclaude/settings.json?
+ * 该 plugin 在 .hclaude/settings.json 中是否已启用（value === true）？
  *
- * Distinct from V2 installed_plugins.json scope: that file tracks where a
- * plugin was *installed from*, but the same plugin can also be enabled at
- * project scope via settings. The uninstall UI needs to check THIS, because
- * a user-scope install with a project-scope enablement means "uninstall"
- * would succeed at removing the user install while leaving the project
- * enablement active — the plugin keeps running.
+ * 与 V2 的 installed_plugins.json scope 不同：那个文件追踪 plugin 的*安装来源*，
+ * 但同一 plugin 也可以通过 settings 在 project scope 启用。
+ * 卸载 UI 需要检查此项，因为在 user scope 安装而在 project scope 启用意味着
+ * "uninstall"会成功移除 user 级安装，但 project 级启用仍然存在——plugin 继续运行。
  */
 export function isPluginEnabledAtProjectScope(pluginId: string): boolean {
   return (
@@ -132,11 +130,11 @@ export function isPluginEnabledAtProjectScope(pluginId: string): boolean {
 }
 
 // ============================================================================
-// Result Types
+// Result 类型
 // ============================================================================
 
 /**
- * Result of a plugin operation
+ * plugin 操作的结果
  */
 export type PluginOperationResult = {
   success: boolean
@@ -144,12 +142,12 @@ export type PluginOperationResult = {
   pluginId?: string
   pluginName?: string
   scope?: PluginScope
-  /** Plugins that declare this plugin as a dependency (warning on uninstall/disable) */
+  /** 声明了对此 plugin 依赖的 plugin 列表（卸载/禁用时的警告） */
   reverseDependents?: string[]
 }
 
 /**
- * Result of a plugin update operation
+ * plugin 更新操作的结果
  */
 export type PluginUpdateResult = {
   success: boolean
@@ -162,27 +160,25 @@ export type PluginUpdateResult = {
 }
 
 // ============================================================================
-// Helper Functions
+// 辅助函数
 // ============================================================================
 
 /**
- * Search all editable settings scopes for a plugin ID matching the given input.
+ * 在所有可编辑的 settings scope 中搜索与给定输入匹配的 plugin ID。
  *
- * If `plugin` contains `@`, it's treated as a full pluginId and returned if
- * found in any scope. If `plugin` is a bare name, searches for any key
- * starting with `{plugin}@` in any scope.
+ * 若 `plugin` 包含 `@`，视为完整 pluginId，在任意 scope 找到后返回。
+ * 若 `plugin` 是裸名称，则在任意 scope 中搜索以 `{plugin}@` 开头的键。
  *
- * Returns the most specific scope where the plugin is mentioned (regardless
- * of enabled/disabled state) plus the resolved full pluginId.
+ * 返回 plugin 被提及的最具体 scope（无论启用/禁用状态）及已解析的完整 pluginId。
  *
- * Precedence: local > project > user (most specific wins).
+ * 优先级：local > project > user（最具体的优先）。
  */
 function findPluginInSettings(plugin: string): {
   pluginId: string
   scope: InstallableScope
 } | null {
   const hasMarketplace = plugin.includes('@')
-  // Most specific first — first match wins
+  // 最具体的优先——第一个匹配胜出
   const searchOrder: InstallableScope[] = ['local', 'project', 'user']
 
   for (const scope of searchOrder) {
@@ -201,7 +197,7 @@ function findPluginInSettings(plugin: string): {
 }
 
 /**
- * Helper function to find a plugin from loaded plugins
+ * 辅助函数：从已加载的 plugin 中查找指定 plugin
  */
 function findPluginByIdentifier(
   plugin: string,
@@ -210,10 +206,10 @@ function findPluginByIdentifier(
   const { name, marketplace } = parsePluginIdentifier(plugin)
 
   return plugins.find(p => {
-    // Check exact name match
+    // 检查精确名称匹配
     if (p.name === plugin || p.name === name) return true
 
-    // If marketplace specified, check if it matches the source
+    // 若指定了 marketplace，检查是否与 source 匹配
     if (marketplace && p.source) {
       return p.name === name && p.source.includes(`@${marketplace}`)
     }
@@ -223,9 +219,8 @@ function findPluginByIdentifier(
 }
 
 /**
- * Resolve a plugin ID from V2 installed plugins data for a plugin that may
- * have been delisted from its marketplace. Returns null if the plugin is not
- * found in V2 data.
+ * 从 V2 已安装 plugin 数据中解析可能已从 marketplace 下架的 plugin ID。
+ * 若在 V2 数据中未找到该 plugin，返回 null。
  */
 function resolveDelistedPluginId(
   plugin: string,
@@ -233,7 +228,7 @@ function resolveDelistedPluginId(
   const { name } = parsePluginIdentifier(plugin)
   const installedData = loadInstalledPluginsV2()
 
-  // Try exact match first, then search by name
+  // 先精确匹配，再按 name 搜索
   if (installedData.plugins[plugin]?.length) {
     return { pluginId: plugin, pluginName: name }
   }
@@ -251,9 +246,9 @@ function resolveDelistedPluginId(
 }
 
 /**
- * Get the most relevant installation for a plugin from V2 data.
- * For project/local scoped plugins, prioritizes installations matching the current project.
- * Priority order: local (matching project) > project (matching project) > user > first available
+ * 从 V2 数据中获取 plugin 最相关的安装记录。
+ * 对于 project/local scope 的 plugin，优先选择与当前项目匹配的安装记录。
+ * 优先级顺序：local（匹配项目）> project（匹配项目）> user > 第一条可用记录
  */
 export function getPluginInstallationFromV2(pluginId: string): {
   scope: PluginScope
@@ -268,7 +263,7 @@ export function getPluginInstallationFromV2(pluginId: string): {
 
   const currentProjectPath = getOriginalCwd()
 
-  // Find installations by priority: local > project > user > managed
+  // 按优先级查找安装记录：local > project > user > managed
   const localInstall = installations.find(
     inst => inst.scope === 'local' && inst.projectPath === currentProjectPath,
   )
@@ -291,7 +286,7 @@ export function getPluginInstallationFromV2(pluginId: string): {
     return { scope: userInstall.scope }
   }
 
-  // Fall back to first installation (could be managed)
+  // 回退到第一条安装记录（可能是 managed）
   return {
     scope: installations[0]!.scope,
     projectPath: installations[0]!.projectPath,
@@ -299,24 +294,23 @@ export function getPluginInstallationFromV2(pluginId: string): {
 }
 
 // ============================================================================
-// Core Operations
+// 核心操作
 // ============================================================================
 
 /**
- * Install a plugin (settings-first).
+ * 安装 plugin（settings 优先）。
  *
- * Order of operations:
- *   1. Search materialized marketplaces for the plugin
- *   2. Write settings (THE ACTION — declares intent)
- *   3. Cache plugin + record version hint (materialization)
+ * 操作顺序：
+ *   1. 在已物化的 marketplace 中搜索该 plugin
+ *   2. 写入 settings（关键动作——声明意图）
+ *   3. 缓存 plugin + 记录版本提示（物化）
  *
- * Marketplace reconciliation is NOT this function's responsibility — startup
- * reconcile handles declared-but-not-materialized marketplaces. If the
- * marketplace isn't found, "not found" is the correct error.
+ * Marketplace 协调不是本函数的职责——启动时的协调负责处理已声明但未物化的 marketplace。
+ * 若未找到 marketplace，"not found"是正确的错误。
  *
- * @param plugin Plugin identifier (name or plugin@marketplace)
- * @param scope Installation scope: user, project, or local (defaults to 'user')
- * @returns Result indicating success/failure
+ * @param plugin plugin 标识符（name 或 plugin@marketplace）
+ * @param scope 安装 scope：user、project 或 local（默认为 'user'）
+ * @returns 指示成功/失败的结果
  */
 export async function installPluginOp(
   plugin: string,

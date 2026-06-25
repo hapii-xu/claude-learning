@@ -60,11 +60,11 @@ export function useMemorySurvey(
   handleSelect: (selected: FeedbackSurveyResponse) => void;
   handleTranscriptSelect: (selected: TranscriptShareResponse) => void;
 } {
-  // Track assistant message UUIDs that were already evaluated so we don't
-  // re-roll probability on re-renders or re-scan messages for the same turn.
+  // 追踪已评估过的 assistant 消息 UUID，避免在重新渲染时重新掷概率骰，
+  // 或对同一轮重复扫描消息。
   const seenAssistantUuids = useRef<Set<string>>(new Set());
-  // Once a memory file read is observed it stays true for the session —
-  // skip the O(n) scan on subsequent turns.
+  // 一旦观察到读取 memory 文件，本会话内保持为 true ——
+  // 后续轮次跳过 O(n) 扫描。
   const memoryReadSeen = useRef(false);
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
@@ -170,8 +170,8 @@ export function useMemorySurvey(
   useEffect(() => {
     if (!enabled) return;
 
-    // /clear resets messages but REPL stays mounted — reset refs so a memory
-    // read from the previous conversation doesn't leak into the new one.
+    // /clear 会重置消息但 REPL 仍保持挂载 —— 重置 ref，避免上一段对话的
+    // memory 读取泄漏到新对话中。
     if (messages.length === 0) {
       memoryReadSeen.current = false;
       seenAssistantUuids.current.clear();
@@ -182,7 +182,7 @@ export function useMemorySurvey(
       return;
     }
 
-    // 3P default: survey off (no GrowthBook on Bedrock/Vertex/Foundry).
+    // 第三方默认：调查关闭（Bedrock/Vertex/Foundry 上没有 GrowthBook）。
     if (!getFeatureValue_CACHED_MAY_BE_STALE(MEMORY_SURVEY_GATE, false)) {
       return;
     }
@@ -215,9 +215,9 @@ export function useMemorySurvey(
       return;
     }
 
-    // Mark as evaluated before the memory-read scan so a turn that mentions
-    // "memory" but has no memory read doesn't trigger repeated O(n) scans
-    // on subsequent renders with the same last assistant message.
+    // 在 memory 读取扫描之前先标记为已评估，这样一轮里提到 "memory" 但
+    // 实际没有读取 memory 时，不会在后续以相同最后一条 assistant 消息的
+    // 渲染中触发重复的 O(n) 扫描。
     seenAssistantUuids.current.add(lastAssistant.uuid);
 
     if (!memoryReadSeen.current) {

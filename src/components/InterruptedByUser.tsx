@@ -4,11 +4,11 @@ import { Text } from '@anthropic/ink';
 export function InterruptedByUser(): React.ReactNode {
   return (
     <>
-      <Text dimColor>Interrupted </Text>
+      <Text dimColor>已中断 </Text>
       {process.env.USER_TYPE === 'ant' ? (
-        <Text dimColor>· [ANT-ONLY] /issue to report a model issue</Text>
+        <Text dimColor>· [ANT-ONLY] /issue 报告模型问题</Text>
       ) : (
-        <Text dimColor>· What should Claude do instead?</Text>
+        <Text dimColor>· 您希望 Claude 改做什么？</Text>
       )}
     </>
   );

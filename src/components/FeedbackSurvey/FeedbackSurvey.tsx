@@ -49,7 +49,7 @@ export function FeedbackSurvey({
   if (state === 'submitted') {
     return (
       <Box marginTop={1}>
-        <Text color="success">{'\u2713'} Thanks for sharing your transcript!</Text>
+        <Text color="success">{'\u2713'} \u611f\u8c22\u60a8\u5206\u4eab\u60a8\u7684 transcript\uff01</Text>
       </Box>
     );
   }
@@ -57,7 +57,7 @@ export function FeedbackSurvey({
   if (state === 'submitting') {
     return (
       <Box marginTop={1}>
-        <Text dimColor>Sharing transcript{'\u2026'}</Text>
+        <Text dimColor>\u6b63\u5728\u5206\u4eab transcript{'\u2026'}</Text>
       </Box>
     );
   }
@@ -66,7 +66,7 @@ export function FeedbackSurvey({
     if (!handleTranscriptSelect) {
       return null;
     }
-    // Hide prompt if user is typing non-response characters
+    // 当用户正在输入非响应字符时隐藏 prompt
     if (inputValue && !['1', '2', '3'].includes(inputValue)) {
       return null;
     }
@@ -76,9 +76,8 @@ export function FeedbackSurvey({
   }
 
   // state === 'open'
-  // Hide the survey if the user is typing anything other than a survey response.
-  // This prevents the survey from showing up when the user is typing a message,
-  // which can result in accidental survey submissions (e.g. "s3cmd").
+  // 当用户输入的不是调查响应时隐藏调查。
+  // 避免在用户输入消息时调查弹出，从而造成误提交（如 "s3cmd"）。
   if (inputValue && !isValidResponseInput(inputValue)) {
     return null;
   }
@@ -110,7 +109,7 @@ function FeedbackSurveyThanks({
 }: ThanksProps): React.ReactNode {
   const showFollowUp = onRequestFeedback && lastResponse === 'good';
 
-  // Listen for "1" keypress to launch /feedback
+  // 监听 "1" 键按下以启动 /feedback
   useDebouncedDigitInput({
     inputValue,
     setInputValue,
@@ -130,16 +129,17 @@ function FeedbackSurveyThanks({
 
   return (
     <Box marginTop={1} flexDirection="column">
-      <Text color="success">Thanks for the feedback!</Text>
+      <Text color="success">\u611f\u8c22\u60a8\u7684\u53cd\u9988\uff01</Text>
       {showFollowUp ? (
         <Text dimColor>
-          (Optional) Press [<Text color="ansi:cyan">1</Text>] to tell us what went well {' \u00b7 '}
+          \uff08\u53ef\u9009\uff09\u6309 [<Text color="ansi:cyan">1</Text>]
+          \u544a\u8bc9\u6211\u4eec\u54ea\u91cc\u505a\u5f97\u597d {' \u00b7 '}
           {feedbackCommand}
         </Text>
       ) : lastResponse === 'bad' ? (
-        <Text dimColor>Use /issue to report model behavior issues.</Text>
+        <Text dimColor>\u4f7f\u7528 /issue \u62a5\u544a\u6a21\u578b\u884c\u4e3a\u95ee\u9898\u3002</Text>
       ) : (
-        <Text dimColor>Use {feedbackCommand} to share detailed feedback anytime.</Text>
+        <Text dimColor>\u968f\u65f6\u4f7f\u7528 {feedbackCommand} \u5206\u4eab\u8be6\u7ec6\u53cd\u9988\u3002</Text>
       )}
     </Box>
   );

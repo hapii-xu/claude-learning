@@ -99,7 +99,7 @@ export function HooksConfigMenu({ toolNames, onExit }: Props): React.ReactNode {
 
   // 退出对话框的处理器
   const handleExit = useCallback(() => {
-    onExit('Hooks dialog dismissed', { display: 'system' });
+    onExit('已关闭 Hooks 对话框', { display: 'system' });
   }, [onExit]);
 
   // select-event 模式下的 Escape 处理 - 退出菜单
@@ -180,24 +180,24 @@ export function HooksConfigMenu({ toolNames, onExit }: Props): React.ReactNode {
   // 用户可以编辑 settings.json 或让 Claude 帮忙。
   if (hooksDisabled) {
     return (
-      <Dialog title="Hook Configuration - Disabled" onCancel={handleExit} inputGuide={() => <Text>Esc to close</Text>}>
+      <Dialog title="Hook 配置 - 已禁用" onCancel={handleExit} inputGuide={() => <Text>按 Esc 关闭</Text>}>
         <Box flexDirection="column" gap={1}>
           <Box flexDirection="column">
             <Text>
-              All hooks are currently <Text bold>disabled</Text>
-              {disabledByPolicy && ' by a managed settings file'}. You have <Text bold>{totalHooksCount}</Text>{' '}
-              configured {plural(totalHooksCount, 'hook')} that {plural(totalHooksCount, 'is', 'are')} not running.
+              当前所有 hook 均已 <Text bold>禁用</Text>
+              {disabledByPolicy && '（由托管设置文件设定）'}。你有 <Text bold>{totalHooksCount}</Text> 个已配置的 hook
+              未运行。
             </Text>
             <Box marginTop={1}>
-              <Text dimColor>When hooks are disabled:</Text>
+              <Text dimColor>hook 被禁用时：</Text>
             </Box>
-            <Text dimColor>· No hook commands will execute</Text>
-            <Text dimColor>· StatusLine will not be displayed</Text>
-            <Text dimColor>· Tool operations will proceed without hook validation</Text>
+            <Text dimColor>· 不会执行任何 hook 命令</Text>
+            <Text dimColor>· StatusLine 不会显示</Text>
+            <Text dimColor>· 工具操作将跳过 hook 校验直接执行</Text>
           </Box>
           {!disabledByPolicy && (
             <Text dimColor>
-              To re-enable hooks, remove &quot;disableAllHooks&quot; from settings.json or ask Claude.
+              如需重新启用 hook，请从 settings.json 中移除 &quot;disableAllHooks&quot;，或让 Claude 帮忙处理。
             </Text>
           )}
         </Box>

@@ -7,8 +7,8 @@ import { getCwd } from '../utils/cwd.js';
 import type { OptionWithDescription } from './CustomSelect/select.js';
 import { Select } from './CustomSelect/select.js';
 
-const DEFAULT_OUTPUT_STYLE_LABEL = 'Default';
-const DEFAULT_OUTPUT_STYLE_DESCRIPTION = 'Claude completes coding tasks efficiently and provides concise responses';
+const DEFAULT_OUTPUT_STYLE_LABEL = '默认';
+const DEFAULT_OUTPUT_STYLE_DESCRIPTION = 'Claude 高效完成编码任务并提供简洁的回复';
 
 function mapConfigsToOptions(styles: { [styleName: string]: OutputStyleConfig | null }): OptionWithDescription[] {
   return Object.entries(styles).map(([style, config]) => ({
@@ -35,7 +35,7 @@ export function OutputStylePicker({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load all output styles including custom ones
+    // 加载所有输出样式，包括自定义样式
     getAllOutputStyles(getCwd())
       .then(allStyles => {
         const options = mapConfigsToOptions(allStyles);
@@ -43,7 +43,7 @@ export function OutputStylePicker({
         setIsLoading(false);
       })
       .catch(() => {
-        // On error, fall back to built-in styles only
+        // 出错时，仅回退到内置样式
         const builtInOptions = mapConfigsToOptions(OUTPUT_STYLE_CONFIG);
         setStyleOptions(builtInOptions);
         setIsLoading(false);
@@ -60,17 +60,17 @@ export function OutputStylePicker({
 
   return (
     <Dialog
-      title="Preferred output style"
+      title="偏好的输出样式"
       onCancel={onCancel}
       hideInputGuide={!isStandaloneCommand}
       hideBorder={!isStandaloneCommand}
     >
       <Box flexDirection="column" gap={1}>
         <Box marginTop={1}>
-          <Text dimColor>This changes how Claude Code communicates with you</Text>
+          <Text dimColor>这会改变 Claude Code 与你的沟通方式</Text>
         </Box>
         {isLoading ? (
-          <Text dimColor>Loading output styles…</Text>
+          <Text dimColor>正在加载输出样式…</Text>
         ) : (
           <Select
             options={styleOptions}

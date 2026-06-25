@@ -34,12 +34,10 @@ export function Passes({ onDone }: Props): React.ReactNode {
   const [referralLink, setReferralLink] = useState<string | null>(null);
   const [referrerReward, setReferrerReward] = useState<ReferrerRewardInfo | null | undefined>(undefined);
 
-  const exitState = useExitOnCtrlCDWithKeybindings(() =>
-    onDone('Guest passes dialog dismissed', { display: 'system' }),
-  );
+  const exitState = useExitOnCtrlCDWithKeybindings(() => onDone('访客通行证对话框已关闭', { display: 'system' }));
 
   const handleCancel = useCallback(() => {
-    onDone('Guest passes dialog dismissed', { display: 'system' });
+    onDone('访客通行证对话框已关闭', { display: 'system' });
   }, [onDone]);
 
   useKeybinding('confirm:no', handleCancel, { context: 'Confirmation' });
@@ -49,7 +47,7 @@ export function Passes({ onDone }: Props): React.ReactNode {
       void setClipboard(referralLink).then(raw => {
         if (raw) process.stdout.write(raw);
         logEvent('tengu_guest_passes_link_copied', {});
-        onDone(`Referral link copied to clipboard!`);
+        onDone(`推荐链接已复制到剪贴板！`);
       });
     }
   });
@@ -120,9 +118,9 @@ export function Passes({ onDone }: Props): React.ReactNode {
     return (
       <Pane>
         <Box flexDirection="column" gap={1}>
-          <Text dimColor>Loading guest pass information…</Text>
+          <Text dimColor>正在加载访客通行证信息…</Text>
           <Text dimColor italic>
-            {exitState.pending ? <>Press {exitState.keyName} again to exit</> : <>Esc to cancel</>}
+            {exitState.pending ? <>再按一次 {exitState.keyName} 退出</> : <>Esc 取消</>}
           </Text>
         </Box>
       </Pane>
@@ -133,9 +131,9 @@ export function Passes({ onDone }: Props): React.ReactNode {
     return (
       <Pane>
         <Box flexDirection="column" gap={1}>
-          <Text>Guest passes are not currently available.</Text>
+          <Text>当前没有可用的访客通行证。</Text>
           <Text dimColor italic>
-            {exitState.pending ? <>Press {exitState.keyName} again to exit</> : <>Esc to cancel</>}
+            {exitState.pending ? <>再按一次 {exitState.keyName} 退出</> : <>Esc 取消</>}
           </Text>
         </Box>
       </Pane>
@@ -178,7 +176,7 @@ export function Passes({ onDone }: Props): React.ReactNode {
   return (
     <Pane>
       <Box flexDirection="column" gap={1}>
-        <Text color="permission">Guest passes · {availableCount} left</Text>
+        <Text color="permission">访客通行证 · 剩余 {availableCount} 张</Text>
 
         <Box flexDirection="row" marginLeft={2}>
           {sortedPasses.slice(0, 3).map(pass => renderTicket(pass))}
@@ -193,8 +191,8 @@ export function Passes({ onDone }: Props): React.ReactNode {
         <Box flexDirection="column" marginLeft={2}>
           <Text dimColor>
             {referrerReward
-              ? `Share a free week of Claude Code with friends. If they love it and subscribe, you'll get ${formatCreditAmount(referrerReward)} of extra usage to keep building. `
-              : 'Share a free week of Claude Code with friends. '}
+              ? `向朋友分享一周免费的 Claude Code。如果他们喜欢并订阅，你将获得 ${formatCreditAmount(referrerReward)} 额外用量继续构建。 `
+              : `向朋友分享一周免费的 Claude Code。 `}
             <Link
               url={
                 referrerReward
@@ -202,14 +200,14 @@ export function Passes({ onDone }: Props): React.ReactNode {
                   : 'https://support.claude.com/en/articles/12875061-claude-code-guest-passes'
               }
             >
-              Terms apply.
+              适用条款。
             </Link>
           </Text>
         </Box>
 
         <Box>
           <Text dimColor italic>
-            {exitState.pending ? <>Press {exitState.keyName} again to exit</> : <>Enter to copy link · Esc to cancel</>}
+            {exitState.pending ? <>再按一次 {exitState.keyName} 退出</> : <>Enter 复制链接 · Esc 取消</>}
           </Text>
         </Box>
       </Box>

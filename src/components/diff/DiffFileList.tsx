@@ -16,17 +16,17 @@ type Props = {
 export function DiffFileList({ files, selectedIndex }: Props): React.ReactNode {
   const { columns } = useTerminalSize();
 
-  // Calculate scroll window - must be before early return for hooks rules
+  // 计算滚动窗口 — 必须在 early return 之前，以遵守 hooks 规则
   const { startIndex, endIndex } = useMemo(() => {
     if (files.length === 0 || files.length <= MAX_VISIBLE_FILES) {
       return { startIndex: 0, endIndex: files.length };
     }
 
-    // Keep selected item roughly in the middle
+    // 让选中项大致保持在中间
     let start = Math.max(0, selectedIndex - Math.floor(MAX_VISIBLE_FILES / 2));
     let end = start + MAX_VISIBLE_FILES;
 
-    // Adjust if we're at the end
+    // 到达末尾时调整
     if (end > files.length) {
       end = files.length;
       start = Math.max(0, end - MAX_VISIBLE_FILES);
@@ -36,7 +36,7 @@ export function DiffFileList({ files, selectedIndex }: Props): React.ReactNode {
   }, [files.length, selectedIndex]);
 
   if (files.length === 0) {
-    return <Text dimColor>No changed files</Text>;
+    return <Text dimColor>没有已更改的文件</Text>;
   }
 
   const visibleFiles = files.slice(startIndex, endIndex);
@@ -50,9 +50,7 @@ export function DiffFileList({ files, selectedIndex }: Props): React.ReactNode {
 
   return (
     <Box flexDirection="column">
-      {needsPagination && (
-        <Text dimColor>{hasMoreAbove ? ` ↑ ${startIndex} more ${plural(startIndex, 'file')}` : ' '}</Text>
-      )}
+      {needsPagination && <Text dimColor>{hasMoreAbove ? ` ↑ 还有 ${startIndex} 个文件` : ' '}</Text>}
       {visibleFiles.map((file, index) => (
         <FileItem
           key={file.path}
@@ -61,11 +59,7 @@ export function DiffFileList({ files, selectedIndex }: Props): React.ReactNode {
           maxPathWidth={maxPathWidth}
         />
       ))}
-      {needsPagination && (
-        <Text dimColor>
-          {hasMoreBelow ? ` ↓ ${files.length - endIndex} more ${plural(files.length - endIndex, 'file')}` : ' '}
-        </Text>
-      )}
+      {needsPagination && <Text dimColor>{hasMoreBelow ? ` ↓ 还有 ${files.length - endIndex} 个文件` : ' '}</Text>}
     </Box>
   );
 }
@@ -99,25 +93,25 @@ function FileStats({ file, isSelected }: { file: DiffFile; isSelected: boolean }
   if (file.isUntracked) {
     return (
       <Text dimColor={!isSelected} italic>
-        untracked
+        未跟踪
       </Text>
     );
   }
   if (file.isBinary) {
     return (
       <Text dimColor={!isSelected} italic>
-        Binary file
+        二进制文件
       </Text>
     );
   }
   if (file.isLargeFile) {
     return (
       <Text dimColor={!isSelected} italic>
-        Large file modified
+        大文件已修改
       </Text>
     );
   }
-  // Normal or truncated file - show line counts
+  // 普通或截断的文件 - 显示行数统计
   return (
     <Text>
       {file.linesAdded > 0 && (
@@ -131,7 +125,7 @@ function FileStats({ file, isSelected }: { file: DiffFile; isSelected: boolean }
           -{file.linesRemoved}
         </Text>
       )}
-      {file.isTruncated && <Text dimColor={!isSelected}> (truncated)</Text>}
+      {file.isTruncated && <Text dimColor={!isSelected}> (已截断)</Text>}
     </Text>
   );
 }

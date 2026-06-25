@@ -86,7 +86,7 @@ function BuiltinStatusLineInner({
 
       {/* 上下文使用率与 token 计数 */}
       <Separator />
-      <Text dimColor>Context </Text>
+      <Text dimColor>上下文 </Text>
       <Text>{contextUsedPct}%</Text>
       {!narrow && <Text dimColor> ({tokenDisplay})</Text>}
 
@@ -94,7 +94,7 @@ function BuiltinStatusLineInner({
       {hasFiveHour && (
         <>
           <Separator />
-          <Text dimColor>Session </Text>
+          <Text dimColor>会话 </Text>
           <Text>{fiveHourPct}%</Text>
           {!narrow && rateLimits.five_hour!.resets_at > 0 && (
             <Text dimColor> {formatCountdown(rateLimits.five_hour!.resets_at)}</Text>
@@ -106,7 +106,7 @@ function BuiltinStatusLineInner({
       {hasSevenDay && (
         <>
           <Separator />
-          <Text dimColor>Weekly </Text>
+          <Text dimColor>每周 </Text>
           <Text>{sevenDayPct}%</Text>
           {!narrow && rateLimits.seven_day!.resets_at > 0 && (
             <Text dimColor> {formatCountdown(rateLimits.seven_day!.resets_at)}</Text>

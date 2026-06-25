@@ -24,11 +24,10 @@ export type PromotionOptions = {
 }
 
 /**
- * Set bounded with FIFO eviction. # promotions per session is small in
- * practice (single digits), but a long-lived sandbox/daemon could push
- * this if it never restarts. The cap is defensive and the degraded
- * behaviour — re-promote if we exceed N then forget the oldest — is
- * benign because promotion is idempotent at the lifecycle layer.
+ * 使用 FIFO 淘汰的有界 Set。每次会话的晋升次数在实践中很少（个位数），
+ * 但长时间运行的 sandbox/daemon 若从不重启可能会突破此限。
+ * 该上限是防御性的，降级行为——超过 N 条后重新晋升并遗忘最旧的——
+ * 是无害的，因为晋升操作在 lifecycle 层是幂等的。
  */
 const SESSION_PROMOTED_IDS_MAX = 256
 const SESSION_PROMOTED_IDS_TRIM_TO = 192
@@ -173,7 +172,7 @@ function globalProjectContext(rootDir?: string): SkillLearningProjectContext {
   }
 }
 
-// Re-export for consumers that need to inspect the global instincts directory.
+// 重新导出，供需要检查全局 instincts 目录的调用方使用。
 export function getGlobalInstinctsDir(rootDir?: string): string {
   return getInstinctsDir({
     rootDir,

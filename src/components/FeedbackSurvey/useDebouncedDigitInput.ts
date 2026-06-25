@@ -1,19 +1,16 @@
 import { useEffect, useRef } from 'react'
 import { normalizeFullWidthDigits } from '../../utils/stringUtils.js'
 
-// Delay before accepting a digit as a response, to prevent accidental
-// submissions when users start messages with numbers (e.g., numbered lists).
-// Short enough to feel instant for intentional presses, long enough to
-// cancel when the user types more characters.
+// 将数字作为响应接受前的延迟，防止用户以数字开头消息时误提交（如编号列表）。
+// 间隔足够短，让有意按下时感觉即时；又足够长，让用户输入更多字符时可取消。
 const DEFAULT_DEBOUNCE_MS = 400
 
 /**
- * Detects when the user types a single valid digit into the prompt input,
- * debounces to avoid accidental submissions (e.g., "1. First item"),
- * trims the digit from the input, and fires a callback.
+ * 检测用户在 prompt 输入框中键入单个合法数字，
+ * 做防抖以避免误提交（如 "1. 第一项"），
+ * 从输入中移除该数字，并触发回调。
  *
- * Used by survey components that accept numeric responses typed directly
- * into the main prompt input.
+ * 供那些接受直接在主 prompt 输入框中键入数字响应的调查组件使用。
  */
 export function useDebouncedDigitInput<T extends string = string>({
   inputValue,
@@ -36,8 +33,8 @@ export function useDebouncedDigitInput<T extends string = string>({
   const hasTriggeredRef = useRef(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Latest-ref pattern so callers can pass inline callbacks without causing
-  // the effect to re-run (which would reset the debounce timer every render).
+  // Latest-ref 模式：让调用方可以传入内联回调，而不会导致 effect 重新运行
+  // （否则每次渲染都会重置防抖计时器）。
   const callbacksRef = useRef({ setInputValue, isValidDigit, onDigit })
   callbacksRef.current = { setInputValue, isValidDigit, onDigit }
 

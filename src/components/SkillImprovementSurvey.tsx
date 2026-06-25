@@ -27,7 +27,7 @@ export function SkillImprovementSurvey({
     return null;
   }
 
-  // Hide the survey if the user is typing anything other than a survey response
+  // 如果用户输入的不是调查回复，则隐藏调查
   if (inputValue && !isValidResponseInput(inputValue)) {
     return null;
   }
@@ -51,7 +51,7 @@ type ViewProps = {
   setInputValue: (value: string) => void;
 };
 
-// Only 1 (apply) and 0 (dismiss) are valid for this survey
+// 此调查只接受 1（应用）和 0（忽略）
 const VALID_INPUTS = ['0', '1'] as const;
 
 function isValidInput(input: string): boolean {
@@ -72,7 +72,7 @@ function SkillImprovementSurveyView({
       const lastChar = normalizeFullWidthDigits(inputValue.slice(-1));
       if (isValidInput(lastChar)) {
         setInputValue(inputValue.slice(0, -1));
-        // Map: 1 = "good" (apply), 0 = "dismissed"
+        // 映射：1 = "good"（应用），0 = "dismissed"（忽略）
         onSelect(lastChar === '1' ? 'good' : 'dismissed');
       }
     }
@@ -82,7 +82,7 @@ function SkillImprovementSurveyView({
     <Box flexDirection="column" marginTop={1}>
       <Box>
         <Text color="ansi:cyan">{BLACK_CIRCLE} </Text>
-        <Text bold>Skill improvement suggested for &quot;{skillName}&quot;</Text>
+        <Text bold>检测到对 &quot;{skillName}&quot; 的 skill 改进建议</Text>
       </Box>
 
       <Box flexDirection="column" marginLeft={2}>
@@ -96,12 +96,12 @@ function SkillImprovementSurveyView({
       <Box marginLeft={2} marginTop={1}>
         <Box width={12}>
           <Text>
-            <Text color="ansi:cyan">1</Text>: Apply
+            <Text color="ansi:cyan">1</Text>：应用
           </Text>
         </Box>
         <Box width={14}>
           <Text>
-            <Text color="ansi:cyan">0</Text>: Dismiss
+            <Text color="ansi:cyan">0</Text>：忽略
           </Text>
         </Box>
       </Box>

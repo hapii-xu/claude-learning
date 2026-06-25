@@ -35,9 +35,8 @@ export type StoredSkillObservation = Omit<
   messageText?: string
   source?: 'transcript' | 'hook' | 'tool-hook' | 'imported'
   contentHash?: string
-  // Turn index at which the observation was captured. Used by
-  // runtimeObserver to scope tool-hook observations to the current REPL
-  // turn for scoping tool-hook records to the current REPL turn.
+  // 捕获此 observation 时的 turn 索引。runtimeObserver 用它将
+  // tool-hook observations 限定在当前 REPL turn 范围内。
   turn?: number
 }
 
@@ -197,8 +196,8 @@ export async function readObservations(
     try {
       observations.push(JSON.parse(line) as StoredSkillObservation)
     } catch {
-      // Skip corrupt/truncated JSONL lines (e.g. from concurrent append
-      // interleaved with a crash). One bad line must not break the whole read.
+      // 跳过损坏或截断的 JSONL 行（例如并发追加与崩溃交错导致的异常）。
+      // 一行出错不应影响整个文件的读取。
     }
   }
   return observations
@@ -256,8 +255,8 @@ export async function purgeOldObservations(
   }
 
   if (purged === 0) return 0
-  // Atomic write: temp + rename. Direct writeFile leaves a truncated/empty
-  // file if the process crashes mid-write, losing retained observations.
+  // 原子写入：先写临时文件再 rename。直接 writeFile 若进程在写入中途崩溃
+  // 会留下截断或空文件，导致保留的 observation 丢失。
   const tmpPath = `${filePath}.tmp-${process.pid}-${Date.now()}`
   await writeFile(tmpPath, kept.length ? `${kept.join('\n')}\n` : '')
   await rename(tmpPath, filePath)

@@ -48,10 +48,10 @@ import { BuiltinStatusLine } from './BuiltinStatusLine.js';
 import { formatTokens } from 'src/utils/format.js';
 
 // ---------------------------------------------------------------------------
-// CachePill — cache hit-rate + 1-hour TTL countdown pill
+// CachePill —— cache 命中率 + 1 小时 TTL 倒计时胶囊
 // ---------------------------------------------------------------------------
 
-const CACHE_TTL_MS = 60 * 60 * 1000; // 60 minutes
+const CACHE_TTL_MS = 60 * 60 * 1000; // 60 分钟
 
 function padTwo(n: number): string {
   return String(Math.floor(n)).padStart(2, '0');
@@ -74,7 +74,7 @@ function CachePill({ messages }: CachePillProps): React.ReactNode {
 
   const usage = getCurrentUsage(messages);
 
-  // Feed new responses into the in-memory singleton
+  // 将新的 response 喂给内存中的 singleton
   const prevSigRef = useRef<string | null>(null);
   if (usage !== null) {
     const sig = tokenSignature(usage);
@@ -87,19 +87,19 @@ function CachePill({ messages }: CachePillProps): React.ReactNode {
   const cacheState = getCacheStatsState();
   const { lastResetAt, lastHitRate } = cacheState;
 
-  // Derived timing
+  // 派生的时间
   const elapsed = lastResetAt !== null ? now - lastResetAt : null;
   const remaining = elapsed !== null ? CACHE_TTL_MS - elapsed : null;
   const elapsedMin = elapsed !== null ? elapsed / 60_000 : null;
   const isExpired = remaining !== null && remaining <= 0;
 
-  // 1-second countdown ticker
+  // 1 秒倒计时 ticker
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  // 500ms flash in last 5 minutes
+  // 最后 5 分钟以 500ms 闪烁
   const inFlashZone = elapsedMin !== null && elapsedMin >= 55 && !isExpired;
   useEffect(() => {
     if (!inFlashZone) {
@@ -110,7 +110,7 @@ function CachePill({ messages }: CachePillProps): React.ReactNode {
     return () => clearInterval(id);
   }, [inFlashZone]);
 
-  // Load persisted fallback once on mount
+  // 挂载时一次性加载持久化的回退值
   const initDoneRef = useRef(false);
   useEffect(() => {
     if (initDoneRef.current) return;
@@ -121,7 +121,7 @@ function CachePill({ messages }: CachePillProps): React.ReactNode {
 
   const displayHitRate = usage !== null ? computeHitRate(usage) : lastHitRate;
 
-  // No data yet — show placeholder
+  // 暂无数据 —— 显示占位符
   if (displayHitRate === null && lastResetAt === null) {
     return <Text dimColor>{' Cache --% --:--'}</Text>;
   }
@@ -129,7 +129,7 @@ function CachePill({ messages }: CachePillProps): React.ReactNode {
   const countdownText = remaining !== null ? formatCountdown(remaining) : '--:--';
   const hitRateText = displayHitRate !== null ? `${displayHitRate}%` : '--%';
 
-  // Timer color by elapsed bucket — using theme keys
+  // 根据已过时间分桶决定 timer 颜色 —— 使用 theme key
   type TimerThemeKey = 'success' | 'warning' | 'error' | 'inactive';
   let timerColor: TimerThemeKey;
   if (isExpired || elapsedMin === null) {
@@ -142,7 +142,7 @@ function CachePill({ messages }: CachePillProps): React.ReactNode {
     timerColor = 'error';
   }
 
-  // Hit-rate color — using theme keys
+  // 命中率颜色 —— 使用 theme key
   const hitRateColor: 'success' | 'inactive' = displayHitRate !== null && displayHitRate >= 50 ? 'success' : 'inactive';
 
   return (
@@ -203,12 +203,12 @@ function GoalPill(): React.ReactNode {
 }
 
 export function statusLineShouldDisplay(settings: ReadonlySettings): boolean {
-  // Assistant mode: statusline fields (model, permission mode, cwd) reflect the
-  // REPL/daemon process, not what the agent child is actually running. Hide it.
+  // Assistant 模式：statusline 字段（model、permission mode、cwd）反映的是
+  // REPL/daemon 进程，而不是 agent 子进程实际运行的状态。因此隐藏。
   if (feature('KAIROS') && getKairosActive()) return false;
-  // Show the status line when explicitly enabled, or when a statusLine command
-  // is configured (backward compatibility for users who set statusLine.command
-  // without toggling statusLineEnabled). Only hide when explicitly disabled.
+  // 当显式启用时，或配置了 statusLine 命令时显示 status line
+  // （为那些设置了 statusLine.command 但没切换 statusLineEnabled 的用户提供向后兼容）。
+  // 仅在显式禁用时才隐藏。
   if (settings?.statusLineEnabled === false) return false;
   return settings?.statusLineEnabled === true || !!settings?.statusLine?.command;
 }
@@ -315,8 +315,8 @@ function buildStatusLineCommandInput(
 }
 
 type Props = {
-  // messages stays behind a ref (read only in the debounced callback);
-  // lastAssistantMessageId is the actual re-render trigger.
+  // messages 放在 ref 中（只在 debounced 回调中读取）；
+  // lastAssistantMessageId 才是真正触发重新渲染的依据。
   messagesRef: React.RefObject<Message[]>;
   lastAssistantMessageId: string | null;
   vimMode?: VimMode;
@@ -334,12 +334,12 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
   const setAppState = useSetAppState();
   const settings = useSettings();
   const { addNotification } = useNotifications();
-  // AppState-sourced model — same source as API requests. getMainLoopModel()
-  // re-reads settings.json on every call, so another session's /model write
-  // would leak into this session's statusline (anthropics/claude-code#37596).
+  // 来自 AppState 的 model —— 与 API 请求来源相同。getMainLoopModel()
+  // 每次调用都会重新读取 settings.json，所以另一个会话的 /model 写入
+  // 会泄露到本会话的 statusline（anthropics/claude-code#37596）。
   const mainLoopModel = useMainLoopModel();
 
-  // Keep latest values in refs for stable callback access
+  // 把最新值保留在 ref 中，以便在稳定的回调中访问
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
   const vimModeRef = useRef(vimMode);
@@ -351,7 +351,7 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
   const mainLoopModelRef = useRef(mainLoopModel);
   mainLoopModelRef.current = mainLoopModel;
 
-  // Track previous state to detect changes and cache expensive calculations
+  // 跟踪上一次的状态以检测变化，并缓存昂贵的计算
   const previousStateRef = useRef<{
     messageId: string | null;
     exceeds200kTokens: boolean;
@@ -369,12 +369,12 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
   // Debounce timer ref
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // True when the next invocation should log its result (first run or after settings reload)
+  // 为 true 时表示下一次调用应该记录其结果（首次运行或 settings 重新加载后）
   const logNextResultRef = useRef(true);
 
-  // Stable update function — reads latest values from refs
+  // 稳定的更新函数 —— 从 ref 读取最新值
   const doUpdate = useCallback(async () => {
-    // Cancel any in-flight requests
+    // 取消任何进行中的请求
     abortControllerRef.current?.abort();
 
     const controller = new AbortController();
@@ -385,9 +385,9 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
     const logResult = logNextResultRef.current;
     logNextResultRef.current = false;
 
-    // Skip the shell command path entirely when no command is configured.
-    // The top row (BuiltinStatusLine + CachePill) renders unconditionally, so
-    // there's nothing to update here when settings.statusLine is missing.
+    // 未配置命令时完全跳过 shell 命令路径。
+    // 顶行（BuiltinStatusLine + CachePill）是无条件渲染的，所以
+    // 当 settings.statusLine 缺失时这里没有任何需要更新的内容。
     if (!settingsRef.current?.statusLine?.command) {
       return;
     }
@@ -395,7 +395,7 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
     try {
       let exceeds200kTokens = previousStateRef.current.exceeds200kTokens;
 
-      // Only recalculate 200k check if messages changed
+      // 仅在 messages 变化时才重新计算 200k 检查
       const currentMessageId = getLastAssistantMessageId(msgs);
       if (currentMessageId !== previousStateRef.current.messageId) {
         exceeds200kTokens = doesMostRecentAssistantMessageExceed200k(msgs);
@@ -421,11 +421,11 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
         });
       }
     } catch {
-      // Silently ignore errors in status line updates
+      // 静默忽略 status line 更新中的错误
     }
   }, [messagesRef, setAppState]);
 
-  // Stable debounced schedule function — no deps, uses refs
+  // 稳定的 debounced 调度函数 —— 无依赖，使用 ref
   const scheduleUpdate = useCallback(() => {
     if (debounceTimerRef.current !== undefined) {
       clearTimeout(debounceTimerRef.current);
@@ -441,7 +441,7 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
     );
   }, [doUpdate]);
 
-  // Only trigger update when assistant message, permission mode, vim mode, or model actually changes
+  // 仅当 assistant 消息、permission mode、vim mode 或 model 真正变化时才触发更新
   useEffect(() => {
     if (
       lastAssistantMessageId !== previousStateRef.current.messageId ||
@@ -449,8 +449,8 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
       vimMode !== previousStateRef.current.vimMode ||
       mainLoopModel !== previousStateRef.current.mainLoopModel
     ) {
-      // Don't update messageId here — let doUpdate handle it so
-      // exceeds200kTokens is recalculated with the latest messages
+      // 不要在这里更新 messageId —— 让 doUpdate 处理，以便
+      // exceeds200kTokens 基于最新的 messages 重新计算
       previousStateRef.current.permissionMode = permissionMode;
       previousStateRef.current.vimMode = vimMode;
       previousStateRef.current.mainLoopModel = mainLoopModel;
@@ -458,7 +458,7 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
     }
   }, [lastAssistantMessageId, permissionMode, vimMode, mainLoopModel, scheduleUpdate]);
 
-  // When the statusLine command changes (hot reload), log the next result
+  // 当 statusLine 命令变化时（热重载），记录下一次的结果
   const statusLineCommand = settings?.statusLine?.command;
   const isFirstSettingsRender = useRef(true);
   useEffect(() => {
@@ -470,7 +470,7 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
     void doUpdate();
   }, [statusLineCommand, doUpdate]);
 
-  // Separate effect for logging on mount
+  // 在挂载时记录的独立 effect
   useEffect(() => {
     const statusLine = settings?.statusLine;
     if (statusLine) {
@@ -478,17 +478,17 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
         command_length: statusLine.command.length,
         padding: statusLine.padding,
       });
-      // Log if status line is configured but disabled by disableAllHooks
+      // 记录 status line 已配置但被 disableAllHooks 禁用的情况
       if (settings.disableAllHooks === true) {
         logForDebugging('Status line is configured but disableAllHooks is true', { level: 'warn' });
       }
-      // executeStatusLineCommand (hooks.ts) returns undefined when trust is
-      // blocked — statusLineText stays undefined forever, user sees nothing,
-      // and tengu_status_line_mount above fires anyway so telemetry looks fine.
+      // executeStatusLineCommand（hooks.ts）在 trust 被阻止时返回 undefined ——
+      // statusLineText 会一直为 undefined，用户什么都看不到，
+      // 而上面的 tengu_status_line_mount 依然会触发，所以 telemetry 看起来正常。
       if (!checkHasTrustDialogAccepted()) {
         addNotification({
           key: 'statusline-trust-blocked',
-          text: 'statusline skipped · restart to fix',
+          text: 'statusline 已跳过 · 重启以修复',
           color: 'warning',
           priority: 'low',
         });
@@ -496,9 +496,9 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount - settings stable for initial logging
+  }, []); // 仅在挂载时运行一次 —— settings 在初始日志记录时是稳定的
 
-  // Initial update on mount + cleanup on unmount
+  // 挂载时进行初始更新 + 卸载时清理
   useEffect(() => {
     void doUpdate();
 
@@ -509,9 +509,9 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount, not when doUpdate changes
+  }, []); // 仅在挂载时运行一次，不随 doUpdate 变化
 
-  // Get padding from settings or default to 0
+  // 从 settings 获取 padding，默认为 0
   const paddingX = settings?.statusLine?.padding ?? 0;
 
   // ---- Top row data: feed BuiltinStatusLine (model + ctx + 5h + 7d + cost) ---
@@ -546,15 +546,15 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
     }),
   };
 
-  // BuiltinStatusLine + CachePill: only when statusLineEnabled is explicitly true.
-  // Shell command output: only when a statusLine.command is configured.
-  // These are independent — a user can have one, both, or neither.
+  // BuiltinStatusLine + CachePill：仅当 statusLineEnabled 显式为 true 时显示。
+  // Shell 命令输出：仅当配置了 statusLine.command 时显示。
+  // 两者相互独立 —— 用户可以只有其中一个、两者都有，或都没有。
   const showBuiltin = settings?.statusLineEnabled === true;
   const hasShellCommand = !!settings?.statusLine?.command;
 
   return (
     <Box flexDirection="column" paddingX={paddingX}>
-      {/* Top: built-in fork status (model | ctx | 5h | 7d | cost) + Cache pill */}
+      {/* 顶部：内置 fork 状态（model | ctx | 5h | 7d | cost）+ Cache 胶囊 */}
       {showBuiltin && (
         <Box gap={2}>
           <BuiltinStatusLine
@@ -569,7 +569,7 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
           <CachePill messages={messagesRef.current} />
         </Box>
       )}
-      {/* Bottom: user-configured /statusline shell stdout (reserves row in fullscreen) */}
+      {/* 底部：用户配置的 /statusline shell 输出（在全屏模式下保留该行） */}
       {statusLineText ? (
         <Text dimColor wrap="truncate">
           <Ansi>{statusLineText}</Ansi>
@@ -581,7 +581,7 @@ function StatusLineInner({ messagesRef, lastAssistantMessageId, vimMode }: Props
   );
 }
 
-// Parent (PromptInputFooter) re-renders on every setMessages, but StatusLine's
-// own props now only change when lastAssistantMessageId flips — memo keeps it
-// from being dragged along (previously ~18 no-prop-change renders per session).
+// 父组件（PromptInputFooter）在每次 setMessages 时都会重新渲染，但 StatusLine
+// 自身的 props 现在仅在 lastAssistantMessageId 变化时才改变 —— memo 避免它
+// 被牵连重新渲染（此前每个会话约有 18 次 props 无变化的渲染）。
 export const StatusLine = memo(StatusLineInner);

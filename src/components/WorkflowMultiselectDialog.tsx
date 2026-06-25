@@ -18,17 +18,17 @@ type Props = {
 const WORKFLOWS: WorkflowOption[] = [
   {
     value: 'claude' as const,
-    label: '@Claude Code - Tag @claude in issues and PR comments',
+    label: '@Claude Code —— 在 issue 和 PR 评论中 @claude',
   },
   {
     value: 'claude-review' as const,
-    label: 'Claude Code Review - Automated code review on new PRs',
+    label: 'Claude Code Review —— 对新 PR 进行自动化代码审查',
   },
 ];
 
 function renderInputGuide(exitState: ExitState): React.ReactNode {
   if (exitState.pending) {
-    return <Text>Press {exitState.keyName} again to exit</Text>;
+    return <Text>再按一次 {exitState.keyName} 退出</Text>;
   }
   return (
     <Byline>
@@ -59,21 +59,21 @@ export function WorkflowMultiselectDialog({ onSubmit, defaultSelections }: Props
     setShowError(false);
   }, []);
 
-  // Cancel just shows the error - user must select at least one workflow
+  // 取消时仅显示错误 —— 用户必须至少选择一个 workflow
   const handleCancel = useCallback(() => {
     setShowError(true);
   }, []);
 
   return (
     <Dialog
-      title="Select GitHub workflows to install"
-      subtitle="We'll create a workflow file in your repository for each one you select."
+      title="选择要安装的 GitHub workflow"
+      subtitle="我们会为你选择的每一个 workflow 在你的仓库中创建一个 workflow 文件。"
       onCancel={handleCancel}
       inputGuide={renderInputGuide}
     >
       <Box>
         <Text dimColor>
-          More workflow examples (issue triage, CI fixes, etc.) at:{' '}
+          更多 workflow 示例（issue 分诊、CI 修复等）请见：{' '}
           <Link url="https://github.com/anthropics/claude-code-action/blob/main/examples/">
             https://github.com/anthropics/claude-code-action/blob/main/examples/
           </Link>
@@ -94,7 +94,7 @@ export function WorkflowMultiselectDialog({ onSubmit, defaultSelections }: Props
 
       {showError && (
         <Box>
-          <Text color="error">You must select at least one workflow to continue</Text>
+          <Text color="error">必须至少选择一个 workflow 才能继续</Text>
         </Box>
       )}
     </Dialog>

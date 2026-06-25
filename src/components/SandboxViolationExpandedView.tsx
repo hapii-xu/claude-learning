@@ -4,8 +4,8 @@ import type { SandboxViolationEvent } from '../utils/sandbox/sandbox-adapter.js'
 import { SandboxManager } from '../utils/sandbox/sandbox-adapter.js';
 
 /**
- * Format a timestamp as "h:mm:ssa" (e.g., "1:30:45pm").
- * Replaces date-fns format() to avoid pulling in a 39MB dependency for one call.
+ * 将时间戳格式化为 "h:mm:ssa"（例如 "1:30:45pm"）。
+ * 替代 date-fns format()，避免为了一个调用就引入 39MB 的依赖。
  */
 function formatTime(date: Date): string {
   const h = date.getHours() % 12 || 12;
@@ -22,7 +22,7 @@ export function SandboxViolationExpandedView(): ReactNode {
   const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
-    // This is harmless if sandboxing is not enabled
+    // 如果未启用沙盒，这里是安全的无副作用操作
     const store = SandboxManager.getSandboxViolationStore();
     const unsubscribe = store.subscribe((allViolations: SandboxViolationEvent[]) => {
       setViolations(allViolations.slice(-10));
@@ -43,7 +43,7 @@ export function SandboxViolationExpandedView(): ReactNode {
     <Box flexDirection="column" marginTop={1}>
       <Box marginLeft={0}>
         <Text color="permission">
-          ⧈ Sandbox blocked {totalCount} total {totalCount === 1 ? 'operation' : 'operations'}
+          ⧈ Sandbox 已拦截 {totalCount} 次{totalCount === 1 ? '操作' : '操作'}
         </Text>
       </Box>
       {violations.map((v, i) => (
@@ -56,7 +56,7 @@ export function SandboxViolationExpandedView(): ReactNode {
       ))}
       <Box paddingLeft={2}>
         <Text dimColor>
-          … showing last {Math.min(10, violations.length)} of {totalCount}
+          … 显示最近 {Math.min(10, violations.length)} 条，共 {totalCount} 条
         </Text>
       </Box>
     </Box>

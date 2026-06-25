@@ -11,18 +11,18 @@ type Props = {
 };
 
 /**
- * Renders an image reference like [Image #1] as a clickable link.
- * When clicked, opens the stored image file in the default viewer.
+ * 渲染像 [Image #1] 这样的图片引用为可点击链接。
+ * 点击时在默认查看器中打开存储的图片文件。
  *
- * Falls back to styled text if:
- * - Terminal doesn't support hyperlinks
- * - Image file is not found in the store
+ * 在以下情况下回退为带样式的文本：
+ * - 终端不支持超链接
+ * - 存储中找不到图片文件
  */
 export function ClickableImageRef({ imageId, backgroundColor, isSelected = false }: Props): React.ReactNode {
   const imagePath = getStoredImagePath(imageId);
   const displayText = `[Image #${imageId}]`;
 
-  // If we have a stored image and terminal supports hyperlinks, make it clickable
+  // 如果有存储的图片且终端支持超链接，则使其可点击
   if (imagePath && supportsHyperlinks()) {
     const fileUrl = pathToFileURL(imagePath).href;
 
@@ -42,7 +42,7 @@ export function ClickableImageRef({ imageId, backgroundColor, isSelected = false
     );
   }
 
-  // Fallback: styled but not clickable
+  // 回退方案：有样式但不可点击
   return (
     <Text backgroundColor={backgroundColor} inverse={isSelected}>
       {displayText}

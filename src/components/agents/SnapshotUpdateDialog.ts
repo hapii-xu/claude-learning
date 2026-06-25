@@ -11,10 +11,9 @@ interface SnapshotUpdateDialogProps {
   onCancel: () => void
 }
 
-// Ink uses React.createElement instead of JSX here so the real implementation
-// can live in a .ts file (bun's `.js` import resolver picks up .ts before
-// .tsx in this repo's layout, so co-locating both extensions would shadow
-// this module with an empty stub).
+// 这里使用 React.createElement 而非 JSX，以便真正的实现
+// 可以放在 .ts 文件中（本仓库中 bun 的 `.js` import 解析器会优先
+// 加载 .tsx，若两种扩展名并存，会用空的 .tsx 把本模块覆盖掉）。
 export function SnapshotUpdateDialog({
   agentType,
   scope,
@@ -26,37 +25,34 @@ export function SnapshotUpdateDialog({
     React.createElement(
       Text,
       { dimColor: true, key: 'timestamp' },
-      `Snapshot timestamp: ${snapshotTimestamp}`,
+      `快照时间戳：${snapshotTimestamp}`,
     ),
     React.createElement(Select, {
       key: 'select',
       defaultFocusValue: 'merge',
       options: [
         {
-          label: 'Merge snapshot into current memory',
+          label: '将快照合并到当前记忆',
           value: 'merge',
-          description:
-            'Keep current memory and ask Claude to merge in the snapshot changes.',
+          description: '保留当前记忆，并请求 Claude 将快照中的变更合并进来。',
         },
         {
-          label: 'Keep current memory',
+          label: '保留当前记忆',
           value: 'keep',
-          description:
-            'Ignore this snapshot update and continue with current memory.',
+          description: '忽略本次快照更新，继续使用当前记忆。',
         },
         {
-          label: 'Replace with snapshot',
+          label: '用快照替换',
           value: 'replace',
-          description:
-            'Overwrite current memory files with the snapshot contents.',
+          description: '用快照内容覆盖当前的记忆文件。',
         },
       ],
       onChange: onComplete as (value: unknown) => void,
     }),
   ]
   return React.createElement(Dialog, {
-    title: 'Agent memory snapshot update',
-    subtitle: `A newer ${scope} memory snapshot is available for ${agentType}.`,
+    title: 'Agent 记忆快照更新',
+    subtitle: `${agentType} 存在更新的 ${scope} 记忆快照。`,
     onCancel,
     color: 'warning' as const,
     children,
@@ -67,13 +63,13 @@ export function buildMergePrompt(
   agentType: string,
   scope: AgentMemoryScope,
 ): string {
-  return `A newer ${scope} persistent memory snapshot is available for the "${agentType}" agent.
+  return `"${agentType}" agent 存在更新的 ${scope} 持久化记忆快照。
 
-Please merge the snapshot update into the current ${scope} agent memory before continuing:
-- Preserve useful current memory entries.
-- Incorporate newer or more accurate information from the snapshot.
-- Resolve duplicates or conflicts in favor of the most current, specific information.
-- Keep the memory concise and relevant to future runs of this agent.
+请在继续之前，将快照更新合并到当前的 ${scope} agent 记忆中：
+- 保留有用的现有记忆条目。
+- 融入快照中更新的、更准确的信息。
+- 处理重复或冲突时，以最新、最具体的信息为准。
+- 保持记忆简洁，并与该 agent 后续运行相关。
 
-After merging, continue with the user's request.`
+合并完成后，继续处理用户的请求。`
 }

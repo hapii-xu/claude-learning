@@ -3,10 +3,10 @@ import React from 'react';
 import { gracefulShutdown } from '../utils/gracefulShutdown.js';
 import { WorktreeExitDialog } from './WorktreeExitDialog.js';
 
-const GOODBYE_MESSAGES = ['Goodbye!', 'See ya!', 'Bye!', 'Catch you later!'];
+const GOODBYE_MESSAGES = ['再见！', '回见！', '拜拜！', '下次见！'];
 
 function getRandomGoodbyeMessage(): string {
-  return sample(GOODBYE_MESSAGES) ?? 'Goodbye!';
+  return sample(GOODBYE_MESSAGES) ?? '再见！';
 }
 
 type Props = {

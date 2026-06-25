@@ -25,7 +25,7 @@ export function ExportDialog({ content, defaultFilename, onDone }: ExportDialogP
   const [showFilenameInput, setShowFilenameInput] = useState(false);
   const { columns } = useTerminalSize();
 
-  // Handle going back from filename input to option selection
+  // 从文件名输入返回到选项选择
   const handleGoBack = useCallback(() => {
     setShowFilenameInput(false);
     setSelectedOption(null);
@@ -33,10 +33,10 @@ export function ExportDialog({ content, defaultFilename, onDone }: ExportDialogP
 
   const handleSelectOption = async (value: string): Promise<void> => {
     if (value === 'clipboard') {
-      // Copy to clipboard immediately
+      // 立即复制到剪贴板
       const raw = await setClipboard(content);
       if (raw) process.stdout.write(raw);
-      onDone({ success: true, message: 'Conversation copied to clipboard' });
+      onDone({ success: true, message: '对话已复制到剪贴板' });
     } else if (value === 'file') {
       setSelectedOption('file');
       setShowFilenameInput(true);
@@ -54,58 +54,58 @@ export function ExportDialog({ content, defaultFilename, onDone }: ExportDialogP
       });
       onDone({
         success: true,
-        message: `Conversation exported to: ${filepath}`,
+        message: `对话已导出到：${filepath}`,
       });
     } catch (error) {
       onDone({
         success: false,
-        message: `Failed to export conversation: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `导出对话失败：${error instanceof Error ? error.message : '未知错误'}`,
       });
     }
   };
 
-  // Dialog calls onCancel when Escape is pressed. If we are in the filename
-  // input sub-screen, go back to the option list instead of closing entirely.
+  // 按下 Escape 时 Dialog 会调用 onCancel。如果当前处于文件名输入子界面，
+  // 则返回到选项列表，而不是完全关闭。
   const handleCancel = useCallback(() => {
     if (showFilenameInput) {
       handleGoBack();
     } else {
-      onDone({ success: false, message: 'Export cancelled' });
+      onDone({ success: false, message: '导出已取消' });
     }
   }, [showFilenameInput, handleGoBack, onDone]);
 
   const options = [
     {
-      label: 'Copy to clipboard',
+      label: '复制到剪贴板',
       value: 'clipboard',
-      description: 'Copy the conversation to your system clipboard',
+      description: '将对话复制到系统剪贴板',
     },
     {
-      label: 'Save to file',
+      label: '保存到文件',
       value: 'file',
-      description: 'Save the conversation to a file in the current directory',
+      description: '将对话保存到当前目录下的文件',
     },
   ];
 
-  // Custom input guide that changes based on dialog state
+  // 根据对话框状态变化的自定义输入提示
   function renderInputGuide(exitState: ExitState): React.ReactNode {
     if (showFilenameInput) {
       return (
         <Byline>
-          <KeyboardShortcutHint shortcut="Enter" action="save" />
-          <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="go back" />
+          <KeyboardShortcutHint shortcut="Enter" action="保存" />
+          <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="返回" />
         </Byline>
       );
     }
 
     if (exitState.pending) {
-      return <Text>Press {exitState.keyName} again to exit</Text>;
+      return <Text>再按一次 {exitState.keyName} 退出</Text>;
     }
 
-    return <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="cancel" />;
+    return <ConfigurableShortcutHint action="confirm:no" context="Confirmation" fallback="Esc" description="取消" />;
   }
 
-  // Use Settings context so 'n' key doesn't cancel (allows typing 'n' in filename input)
+  // 使用 Settings 上下文，使 'n' 键不会触发取消（允许在文件名输入中输入 'n'）
   useKeybinding('confirm:no', handleCancel, {
     context: 'Settings',
     isActive: showFilenameInput,
@@ -113,8 +113,8 @@ export function ExportDialog({ content, defaultFilename, onDone }: ExportDialogP
 
   return (
     <Dialog
-      title="Export Conversation"
-      subtitle="Select export method:"
+      title="导出对话"
+      subtitle="选择导出方式："
       color="permission"
       onCancel={handleCancel}
       inputGuide={renderInputGuide}
@@ -124,7 +124,7 @@ export function ExportDialog({ content, defaultFilename, onDone }: ExportDialogP
         <Select options={options} onChange={handleSelectOption} onCancel={handleCancel} />
       ) : (
         <Box flexDirection="column">
-          <Text>Enter filename:</Text>
+          <Text>输入文件名：</Text>
           <Box flexDirection="row" gap={1} marginTop={1}>
             <Text>&gt;</Text>
             <TextInput

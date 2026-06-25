@@ -11,8 +11,8 @@ type Props = {
 };
 
 /**
- * Dialog shown when switching from latest to stable channel.
- * Allows user to choose whether to downgrade or stay on current version.
+ * 从 latest 渠道切换到 stable 渠道时显示的对话框。
+ * 让用户选择是否降级或保持当前版本。
  */
 export function ChannelDowngradeDialog({ currentVersion, onChoice }: Props): React.ReactNode {
   function handleSelect(value: ChannelDowngradeChoice): void {
@@ -24,19 +24,17 @@ export function ChannelDowngradeDialog({ currentVersion, onChoice }: Props): Rea
   }
 
   return (
-    <Dialog title="Switch to Stable Channel" onCancel={handleCancel} color="permission" hideBorder hideInputGuide>
-      <Text>
-        The stable channel may have an older version than what you&apos;re currently running ({currentVersion}).
-      </Text>
-      <Text dimColor>How would you like to handle this?</Text>
+    <Dialog title="切换到 Stable 渠道" onCancel={handleCancel} color="permission" hideBorder hideInputGuide>
+      <Text>stable 渠道的版本可能比您当前运行的版本（{currentVersion}）更旧。</Text>
+      <Text dimColor>您希望如何处理？</Text>
       <Select
         options={[
           {
-            label: 'Allow possible downgrade to stable version',
+            label: '允许可能降级到 stable 版本',
             value: 'downgrade' as ChannelDowngradeChoice,
           },
           {
-            label: `Stay on current version (${currentVersion}) until stable catches up`,
+            label: `保持当前版本（${currentVersion}）直到 stable 追赶上`,
             value: 'stay' as ChannelDowngradeChoice,
           },
         ]}

@@ -5,24 +5,24 @@ import type { ValidationError } from '../utils/settings/validation.js';
 import { type TreeNode, treeify } from '../utils/treeify.js';
 
 /**
- * Builds a nested tree structure from dot-notation paths
- * Uses lodash setWith to avoid automatic array creation
+ * 从点分路径构建嵌套树结构
+ * 使用 lodash setWith 以避免自动创建数组
  */
 function buildNestedTree(errors: ValidationError[]): TreeNode {
   const tree: TreeNode = {};
 
   errors.forEach(error => {
     if (!error.path) {
-      // Root level error - use empty string as key
+      // 根级错误 —— 用空字符串作为 key
       tree[''] = error.message;
       return;
     }
 
-    // Try to enhance the path with meaningful values
+    // 尝试用有意义的值增强路径
     const pathParts = error.path.split('.');
     let modifiedPath = error.path;
 
-    // If we have an invalid value, try to make the path more readable
+    // 如果有无效值，尝试让路径更易读
     if (error.invalidValue !== null && error.invalidValue !== undefined && pathParts.length > 0) {
       const newPathParts: string[] = [];
 
@@ -32,9 +32,9 @@ function buildNestedTree(errors: ValidationError[]): TreeNode {
 
         const numericPart = parseInt(part, 10);
 
-        // If this is a numeric index and it's the last part where we have the invalid value
+        // 如果这是一个数字索引，且是我们拥有无效值的最后一部分
         if (!isNaN(numericPart) && i === pathParts.length - 1) {
-          // Format the value for display
+          // 格式化用于显示的值
           let displayValue: string;
           if (typeof error.invalidValue === 'string') {
             displayValue = `"${error.invalidValue}"`;
@@ -48,7 +48,7 @@ function buildNestedTree(errors: ValidationError[]): TreeNode {
 
           newPathParts.push(displayValue);
         } else {
-          // Keep other parts as-is
+          // 其他部分保持不变
           newPathParts.push(part);
         }
       }
@@ -63,7 +63,7 @@ function buildNestedTree(errors: ValidationError[]): TreeNode {
 }
 
 /**
- * Groups and displays validation errors using treeify with deduplication
+ * 使用 treeify 对校验错误分组并显示，同时去重
  */
 export function ValidationErrorsList({ errors }: { errors: ValidationError[] }): React.ReactNode {
   const [themeName] = useTheme();
@@ -72,9 +72,9 @@ export function ValidationErrorsList({ errors }: { errors: ValidationError[] }):
     return null;
   }
 
-  // Group errors by file
+  // 按文件分组错误
   const errorsByFile = errors.reduce<Record<string, ValidationError[]>>((acc, error) => {
-    const file = error.file || '(file not specified)';
+    const file = error.file || '（未指定文件）';
     if (!acc[file]) {
       acc[file] = [];
     }
@@ -82,7 +82,7 @@ export function ValidationErrorsList({ errors }: { errors: ValidationError[] }):
     return acc;
   }, {});
 
-  // Sort files alphabetically
+  // 按字母顺序对文件排序
   const sortedFiles = Object.keys(errorsByFile).sort();
 
   return (
@@ -90,22 +90,22 @@ export function ValidationErrorsList({ errors }: { errors: ValidationError[] }):
       {sortedFiles.map(file => {
         const fileErrors = errorsByFile[file] || [];
 
-        // Sort errors by path
+        // 按路径排序错误
         fileErrors.sort((a, b) => {
           if (!a.path && b.path) return -1;
           if (a.path && !b.path) return 1;
           return (a.path || '').localeCompare(b.path || '');
         });
 
-        // Build nested tree structure from error paths
+        // 从错误路径构建嵌套树结构
         const errorTree = buildNestedTree(fileErrors);
 
-        // Collect unique suggestion+docLink pairs
+        // 收集去重后的 suggestion+docLink 配对
         const suggestionPairs = new Map<string, { suggestion?: string; docLink?: string }>();
 
         fileErrors.forEach(error => {
           if (error.suggestion || error.docLink) {
-            // Create a key from suggestion+docLink combination
+            // 从 suggestion+docLink 组合创建一个 key
             const key = `${error.suggestion || ''}|${error.docLink || ''}`;
             if (!suggestionPairs.has(key)) {
               suggestionPairs.set(key, {
@@ -116,7 +116,7 @@ export function ValidationErrorsList({ errors }: { errors: ValidationError[] }):
           }
         });
 
-        // Render the tree
+        // 渲染树
         const treeOutput = treeify(errorTree, {
           showValues: true,
           themeName,
@@ -133,7 +133,7 @@ export function ValidationErrorsList({ errors }: { errors: ValidationError[] }):
             <Box marginLeft={1}>
               <Text dimColor>{treeOutput}</Text>
             </Box>
-            {/* Display unique suggestion+docLink pairs */}
+            {/* 显示去重后的 suggestion+docLink 配对 */}
             {suggestionPairs.size > 0 && (
               <Box flexDirection="column" marginTop={1}>
                 {Array.from(suggestionPairs.values()).map((pair, index) => (
@@ -145,7 +145,7 @@ export function ValidationErrorsList({ errors }: { errors: ValidationError[] }):
                     )}
                     {pair.docLink && (
                       <Text dimColor wrap="wrap">
-                        Learn more: {pair.docLink}
+                        了解更多：{pair.docLink}
                       </Text>
                     )}
                   </Box>

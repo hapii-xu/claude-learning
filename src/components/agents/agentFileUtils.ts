@@ -15,7 +15,7 @@ import { getErrnoCode } from '../../utils/errors.js'
 import { AGENT_PATHS } from './types.js'
 
 /**
- * Formats agent data as markdown file content
+ * 将 agent 数据格式化为 markdown 文件内容
  */
 export function formatAgentAsMarkdown(
   agentType: string,
@@ -27,16 +27,16 @@ export function formatAgentAsMarkdown(
   memory?: AgentMemoryScope,
   effort?: EffortValue,
 ): string {
-  // For YAML double-quoted strings, we need to escape:
-  // - Backslashes: \ -> \\
-  // - Double quotes: " -> \"
-  // - Newlines: \n -> \\n (so yaml reads it as literal backslash-n, not newline)
+  // 对于 YAML 双引号字符串，需要进行以下转义：
+  // - 反斜杠：\ -> \\
+  // - 双引号：" -> \"
+  // - 换行符：\n -> \\n（使 yaml 将其读取为字面量反斜杠-n，而非换行）
   const escapedWhenToUse = whenToUse
-    .replace(/\\/g, '\\\\') // Escape backslashes first
-    .replace(/"/g, '\\"') // Escape double quotes
-    .replace(/\n/g, '\\\\n') // Escape newlines as \\n so yaml preserves them as \n
+    .replace(/\\/g, '\\\\') // 先转义反斜杠
+    .replace(/"/g, '\\"') // 转义双引号
+    .replace(/\n/g, '\\\\n') // 将换行符转义为 \\n，使 yaml 保留为 \n
 
-  // Omit tools field entirely when tools is undefined or ['*'] (all tools allowed)
+  // 当 tools 为 undefined 或为 ['*']（允许使用全部工具）时，完全省略 tools 字段
   const isAllTools =
     tools === undefined || (tools.length === 1 && tools[0] === '*')
   const toolsLine = isAllTools ? '' : `\ntools: ${tools.join(', ')}`
@@ -55,12 +55,12 @@ ${systemPrompt}
 }
 
 /**
- * Gets the directory path for an agent location
+ * 根据 agent 位置获取目录路径
  */
 function getAgentDirectoryPath(location: SettingSource): string {
   switch (location) {
     case 'flagSettings':
-      throw new Error(`Cannot get directory path for ${location} agents`)
+      throw new Error(`无法获取 ${location} 类型 agent 的目录路径`)
     case 'userSettings':
       return join(getClaudeConfigHomeDir(), AGENT_PATHS.AGENTS_DIR)
     case 'projectSettings':
@@ -86,8 +86,8 @@ function getRelativeAgentDirectoryPath(location: SettingSource): string {
 }
 
 /**
- * Gets the file path for a new agent based on its name
- * Used when creating new agent files
+ * 根据 agent 名称获取新 agent 的文件路径
+ * 用于创建新的 agent 文件时
  */
 export function getNewAgentFilePath(agent: {
   source: SettingSource
@@ -98,15 +98,15 @@ export function getNewAgentFilePath(agent: {
 }
 
 /**
- * Gets the actual file path for an agent (handles filename vs agentType mismatch)
- * Always use this for existing agents to get their real file location
+ * 获取现有 agent 的实际文件路径（处理文件名与 agentType 不一致的情况）
+ * 对于已存在的 agent，始终使用此方法获取其真实文件位置
  */
 export function getActualAgentFilePath(agent: AgentDefinition): string {
   if (agent.source === 'built-in') {
-    return 'Built-in'
+    return '内置'
   }
   if (agent.source === 'plugin') {
-    throw new Error('Cannot get file path for plugin agents')
+    throw new Error('无法获取插件 agent 的文件路径')
   }
 
   const dirPath = getAgentDirectoryPath(agent.source)
@@ -115,32 +115,32 @@ export function getActualAgentFilePath(agent: AgentDefinition): string {
 }
 
 /**
- * Gets the relative file path for a new agent based on its name
- * Used for displaying where new agent files will be created
+ * 根据 agent 名称获取新 agent 的相对文件路径
+ * 用于显示新 agent 文件将被创建的位置
  */
 export function getNewRelativeAgentFilePath(agent: {
   source: SettingSource | 'built-in'
   agentType: string
 }): string {
   if (agent.source === 'built-in') {
-    return 'Built-in'
+    return '内置'
   }
   const dirPath = getRelativeAgentDirectoryPath(agent.source)
   return join(dirPath, `${agent.agentType}.md`)
 }
 
 /**
- * Gets the actual relative file path for an agent (handles filename vs agentType mismatch)
+ * 获取现有 agent 的实际相对文件路径（处理文件名与 agentType 不一致的情况）
  */
 export function getActualRelativeAgentFilePath(agent: AgentDefinition): string {
   if (isBuiltInAgent(agent)) {
-    return 'Built-in'
+    return '内置'
   }
   if (isPluginAgent(agent)) {
-    return `Plugin: ${agent.plugin || 'Unknown'}`
+    return `插件：${agent.plugin || '未知'}`
   }
   if (agent.source === 'flagSettings') {
-    return 'CLI argument'
+    return 'CLI 参数'
   }
 
   const dirPath = getRelativeAgentDirectoryPath(agent.source)
@@ -149,7 +149,7 @@ export function getActualRelativeAgentFilePath(agent: AgentDefinition): string {
 }
 
 /**
- * Ensures the directory for an agent location exists
+ * 确保 agent 位置对应的目录已存在
  */
 async function ensureAgentDirectoryExists(
   source: SettingSource,
@@ -160,8 +160,8 @@ async function ensureAgentDirectoryExists(
 }
 
 /**
- * Saves an agent to the filesystem
- * @param checkExists - If true, throws error if file already exists
+ * 将 agent 保存到文件系统
+ * @param checkExists - 若为 true，当文件已存在时抛出错误
  */
 export async function saveAgentToFile(
   source: SettingSource | 'built-in',
@@ -176,7 +176,7 @@ export async function saveAgentToFile(
   effort?: EffortValue,
 ): Promise<void> {
   if (source === 'built-in') {
-    throw new Error('Cannot save built-in agents')
+    throw new Error('无法保存内置 agent')
   }
 
   await ensureAgentDirectoryExists(source)
@@ -196,14 +196,14 @@ export async function saveAgentToFile(
     await writeFileAndFlush(filePath, content, checkExists ? 'wx' : 'w')
   } catch (e: unknown) {
     if (getErrnoCode(e) === 'EEXIST') {
-      throw new Error(`Agent file already exists: ${filePath}`)
+      throw new Error(`Agent 文件已存在：${filePath}`)
     }
     throw e
   }
 }
 
 /**
- * Updates an existing agent file
+ * 更新已存在的 agent 文件
  */
 export async function updateAgentFile(
   agent: AgentDefinition,
@@ -216,7 +216,7 @@ export async function updateAgentFile(
   newEffort?: EffortValue,
 ): Promise<void> {
   if (agent.source === 'built-in') {
-    throw new Error('Cannot update built-in agents')
+    throw new Error('无法更新内置 agent')
   }
 
   const filePath = getActualAgentFilePath(agent)
@@ -236,13 +236,13 @@ export async function updateAgentFile(
 }
 
 /**
- * Deletes an agent file
+ * 删除 agent 文件
  */
 export async function deleteAgentFromFile(
   agent: AgentDefinition,
 ): Promise<void> {
   if (agent.source === 'built-in') {
-    throw new Error('Cannot delete built-in agents')
+    throw new Error('无法删除内置 agent')
   }
 
   const filePath = getActualAgentFilePath(agent)

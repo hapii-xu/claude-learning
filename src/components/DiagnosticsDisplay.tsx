@@ -15,16 +15,16 @@ type DiagnosticsDisplayProps = {
 };
 
 export function DiagnosticsDisplay({ attachment, verbose }: DiagnosticsDisplayProps): React.ReactNode {
-  // Only show if there are diagnostics to report
+  // 仅当有诊断信息可报告时才显示
   if (attachment.files.length === 0) return null;
 
-  // Count total issues
+  // 统计问题总数
   const totalIssues = attachment.files.reduce((sum, file) => sum + file.diagnostics.length, 0);
 
   const fileCount = attachment.files.length;
 
   if (verbose) {
-    // Show all diagnostics in verbose mode (ctrl+o)
+    // 详细模式下显示所有诊断信息（ctrl+o）
     return (
       <Box flexDirection="column">
         {attachment.files.map((file, fileIndex) => (
@@ -47,7 +47,7 @@ export function DiagnosticsDisplay({ attachment, verbose }: DiagnosticsDisplayPr
                 <Text dimColor wrap="wrap">
                   {'  '}
                   {DiagnosticTrackingService.getSeveritySymbol(diagnostic.severity)}
-                  {' [Line '}
+                  {' [行 '}
                   {diagnostic.range.start.line + 1}:{diagnostic.range.start.character + 1}
                   {'] '}
                   {diagnostic.message}
@@ -61,12 +61,12 @@ export function DiagnosticsDisplay({ attachment, verbose }: DiagnosticsDisplayPr
       </Box>
     );
   } else {
-    // Show summary in normal mode
+    // 普通模式下显示摘要
     return (
       <MessageResponse>
         <Text dimColor wrap="wrap">
-          Found <Text bold>{totalIssues}</Text> new diagnostic {totalIssues === 1 ? 'issue' : 'issues'} in {fileCount}{' '}
-          {fileCount === 1 ? 'file' : 'files'} <CtrlOToExpand />
+          在 {fileCount} 个{fileCount === 1 ? '文件' : '文件'}中发现 <Text bold>{totalIssues}</Text> 个新诊断{' '}
+          {totalIssues === 1 ? '问题' : '问题'} <CtrlOToExpand />
         </Text>
       </MessageResponse>
     );

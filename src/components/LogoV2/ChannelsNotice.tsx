@@ -41,15 +41,15 @@ export function ChannelsNotice(): React.ReactNode {
         ? '--dangerously-load-development-channels'
         : '--channels';
 
-  // "Listening for" 而非 "active" — 此刻我们只知道 allowlist 已设置。
+  // 使用"正在监听"而非"已激活"— 此刻我们只知道 allowlist 已设置。
   // 服务器连接、capability 声明，以及该名称是否匹配到已配置的 MCP 服务器，
   // 这些都仍然未知。
   return (
     <Box paddingLeft={2} flexDirection="column">
-      <Text color="error">Listening for channel messages from: {list}</Text>
+      <Text color="error">正在监听来自以下来源的 channel 消息：{list}</Text>
       <Text dimColor>
-        Experimental · inbound messages will be pushed into this session, this carries prompt injection risks. Restart
-        Claude Code without {flag} to disable.
+        实验性功能 · 入站消息将被推送到此会话中，存在 prompt injection 风险。如需禁用，请在不带 {flag} 的情况下重启
+        Claude Code。
       </Text>
       {unmatched.map(u => (
         <Text key={`${formatEntry(u.entry)}:${u.why}`} color="warning">
@@ -105,12 +105,12 @@ export function findUnmatched(entries: readonly ChannelEntry[], deps?: FindUnmat
   for (const entry of entries) {
     if (entry.kind === 'server') {
       if (!configured.has(entry.name)) {
-        out.push({ entry, why: 'no MCP server configured with that name' });
+        out.push({ entry, why: '未找到该名称对应的已配置 MCP 服务器' });
       }
       continue;
     }
     if (!installedPluginIds.has(`${entry.name}@${entry.marketplace}`)) {
-      out.push({ entry, why: 'plugin not installed' });
+      out.push({ entry, why: '插件未安装' });
     }
   }
   return out;

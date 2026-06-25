@@ -16,7 +16,7 @@ export function ModelStep(): ReactNode {
 
   return (
     <WizardDialogLayout
-      subtitle="Select model"
+      subtitle="选择模型"
       footerText={
         <Byline>
           <KeyboardShortcutHint shortcut="↑↓" action="navigate" />

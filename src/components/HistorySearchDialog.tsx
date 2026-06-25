@@ -84,8 +84,8 @@ export function HistorySearchDialog({ initialQuery, onSelect, onCancel }: Props)
 
   return (
     <FuzzyPicker
-      title="Search prompts"
-      placeholder="Filter history…"
+      title="搜索 prompts"
+      placeholder="筛选历史…"
       initialQuery={initialQuery}
       items={filtered}
       getKey={item => String(item.entry.timestamp)}
@@ -98,8 +98,8 @@ export function HistorySearchDialog({ initialQuery, onSelect, onCancel }: Props)
         void item.entry.resolve().then(onSelect);
       }}
       onCancel={onCancel}
-      emptyMessage={q => (items === null ? 'Loading…' : q ? 'No matching prompts' : 'No history yet')}
-      selectAction="use"
+      emptyMessage={q => (items === null ? '加载中…' : q ? '无匹配的 prompts' : '暂无历史')}
+      selectAction="使用"
       direction="up"
       previewPosition={previewOnRight ? 'right' : 'bottom'}
       renderItem={(item, isFocused) => (
@@ -122,7 +122,7 @@ export function HistorySearchDialog({ initialQuery, onSelect, onCancel }: Props)
                 {row}
               </Text>
             ))}
-            {more > 0 && <Text dimColor>{`… +${more} more lines`}</Text>}
+            {more > 0 && <Text dimColor>{`… +${more} 行更多`}</Text>}
           </Box>
         );
       }}

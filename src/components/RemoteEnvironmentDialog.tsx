@@ -14,8 +14,8 @@ import { ConfigurableShortcutHint } from './ConfigurableShortcutHint.js';
 import { Select } from './CustomSelect/select.js';
 import { Byline, Dialog, KeyboardShortcutHint, LoadingState } from '@anthropic/ink';
 
-const DIALOG_TITLE = 'Select Remote Environment';
-const SETUP_HINT = `Configure environments at: https://claude.ai/code`;
+const DIALOG_TITLE = '选择远程环境';
+const SETUP_HINT = `在以下地址配置环境：https://claude.ai/code`;
 
 type Props = {
   onDone: (message?: string) => void;
@@ -65,7 +65,7 @@ export function RemoteEnvironmentDialog({ onDone }: Props): React.ReactNode {
     const selectedEnv = environments.find(env => env.environment_id === value);
 
     if (!selectedEnv) {
-      onDone('Error: Selected environment not found');
+      onDone('错误：未找到所选环境');
       return;
     }
 
@@ -75,42 +75,42 @@ export function RemoteEnvironmentDialog({ onDone }: Props): React.ReactNode {
       },
     });
 
-    onDone(`Set default remote environment to ${chalk.bold(selectedEnv.name)} (${selectedEnv.environment_id})`);
+    onDone(`已将默认远程环境设为 ${chalk.bold(selectedEnv.name)}（${selectedEnv.environment_id}）`);
   }
 
-  // Loading state
+  // 加载状态
   if (loadingState === 'loading') {
     return (
       <Dialog title={DIALOG_TITLE} onCancel={onDone} hideInputGuide>
-        <LoadingState message="Loading environments…" />
+        <LoadingState message="正在加载环境…" />
       </Dialog>
     );
   }
 
-  // Error state
+  // 错误状态
   if (error) {
     return (
       <Dialog title={DIALOG_TITLE} onCancel={onDone}>
-        <Text color="error">Error: {error}</Text>
+        <Text color="error">错误：{error}</Text>
       </Dialog>
     );
   }
 
-  // No environments available
+  // 没有可用的环境
   if (!selectedEnvironment) {
     return (
       <Dialog title={DIALOG_TITLE} subtitle={SETUP_HINT} onCancel={onDone}>
-        <Text>No remote environments available.</Text>
+        <Text>没有可用的远程环境。</Text>
       </Dialog>
     );
   }
 
-  // Single environment - just show info
+  // 只有一个环境 —— 仅显示信息
   if (environments.length === 1) {
     return <SingleEnvironmentContent environment={selectedEnvironment} onDone={onDone} />;
   }
 
-  // Multiple environments - show selection UI
+  // 多个环境 —— 显示选择 UI
   return (
     <MultipleEnvironmentsContent
       environments={environments}
@@ -126,7 +126,8 @@ export function RemoteEnvironmentDialog({ onDone }: Props): React.ReactNode {
 function EnvironmentLabel({ environment }: { environment: EnvironmentResource }): React.ReactNode {
   return (
     <Text>
-      {figures.tick} Using <Text bold>{environment.name}</Text> <Text dimColor>({environment.environment_id})</Text>
+      {figures.tick} 正在使用 <Text bold>{environment.name}</Text>{' '}
+      <Text dimColor>（{environment.environment_id}）</Text>
     </Text>
   );
 }
@@ -138,7 +139,7 @@ function SingleEnvironmentContent({
   environment: EnvironmentResource;
   onDone: () => void;
 }): React.ReactNode {
-  // Handle Enter to continue
+  // 处理 Enter 以继续
   useKeybinding('confirm:yes', onDone, { context: 'Confirmation' });
 
   return (
@@ -165,12 +166,12 @@ function MultipleEnvironmentsContent({
 }): React.ReactNode {
   const sourceSuffix =
     selectedEnvironmentSource && selectedEnvironmentSource !== 'localSettings'
-      ? ` (from ${getSettingSourceName(selectedEnvironmentSource)} settings)`
+      ? `（来自 ${getSettingSourceName(selectedEnvironmentSource)} 设置）`
       : '';
 
   const subtitle = (
     <Text>
-      Currently using: <Text bold>{selectedEnvironment.name}</Text>
+      当前使用：<Text bold>{selectedEnvironment.name}</Text>
       {sourceSuffix}
     </Text>
   );
@@ -179,13 +180,13 @@ function MultipleEnvironmentsContent({
     <Dialog title={DIALOG_TITLE} subtitle={subtitle} onCancel={onCancel} hideInputGuide>
       <Text dimColor>{SETUP_HINT}</Text>
       {loadingState === 'updating' ? (
-        <LoadingState message="Updating…" />
+        <LoadingState message="正在更新…" />
       ) : (
         <Select
           options={environments.map(env => ({
             label: (
               <Text>
-                {env.name} <Text dimColor>({env.environment_id})</Text>
+                {env.name} <Text dimColor>（{env.environment_id}）</Text>
               </Text>
             ),
             value: env.environment_id,

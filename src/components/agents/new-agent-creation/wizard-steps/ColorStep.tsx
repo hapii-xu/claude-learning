@@ -11,13 +11,13 @@ import type { AgentWizardData } from '../types.js';
 export function ColorStep(): ReactNode {
   const { goNext, goBack, updateWizardData, wizardData } = useWizard<AgentWizardData>();
 
-  // Handle escape key - ColorPicker handles its own escape internally
+  // 处理 Esc 键 - ColorPicker 自身会在内部处理 Esc
   useKeybinding('confirm:no', goBack, { context: 'Confirmation' });
 
   const handleConfirm = (color?: string): void => {
     updateWizardData({
       selectedColor: color,
-      // Prepare final agent for confirmation
+      // 准备用于确认步骤的最终 agent 定义
       finalAgent: {
         agentType: wizardData.agentType!,
         whenToUse: wizardData.whenToUse!,
@@ -33,7 +33,7 @@ export function ColorStep(): ReactNode {
 
   return (
     <WizardDialogLayout
-      subtitle="Choose background color"
+      subtitle="选择背景色"
       footerText={
         <Byline>
           <KeyboardShortcutHint shortcut="↑↓" action="navigate" />

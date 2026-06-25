@@ -158,6 +158,6 @@ describe('computeConfirmOutcome', () => {
 })
 
 test('常量字符串', () => {
-  expect(CANCEL_MESSAGE).toBe('Effort unchanged.')
+  expect(CANCEL_MESSAGE).toBe('Effort 未更改。')
   expect(ULTRACODE_HINT).toContain('/ultracode <context>')
 })

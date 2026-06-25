@@ -24,12 +24,12 @@ export function CtrlOToExpand(): React.ReactNode {
   }
   return (
     <Text dimColor>
-      <KeyboardShortcutHint shortcut={expandShortcut} action="expand" parens />
+      <KeyboardShortcutHint shortcut={expandShortcut} action="展开" parens />
     </Text>
   );
 }
 
 export function ctrlOToExpand(): string {
   const shortcut = getShortcutDisplay('app:toggleTranscript', 'Global', 'ctrl+o');
-  return chalk.dim(`(${shortcut} to expand)`);
+  return chalk.dim(`（${shortcut} 展开）`);
 }

@@ -30,8 +30,8 @@ export function AutoUpdaterWrapper({
 
   React.useEffect(() => {
     async function checkInstallation() {
-      // Skip installation type detection if auto-updates are disabled (ant-only)
-      // This avoids potentially slow package manager detection (spawnSync calls)
+      // 当自动更新被禁用时跳过安装类型检测（仅 ant）
+      // 这可以避免可能较慢的包管理器检测（spawnSync 调用）
       if (feature('SKIP_DETECTION_WHEN_AUTOUPDATES_DISABLED') && isAutoUpdaterDisabled()) {
         logForDebugging('AutoUpdaterWrapper: Skipping detection, auto-updates disabled');
         return;
@@ -46,7 +46,7 @@ export function AutoUpdaterWrapper({
     void checkInstallation();
   }, []);
 
-  // Don't render until we know the installation type
+  // 在确定安装类型之前不渲染
   if (useNativeInstaller === null || isPackageManager === null) {
     return null;
   }

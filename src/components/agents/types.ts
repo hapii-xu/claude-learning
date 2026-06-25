@@ -7,11 +7,11 @@ export const AGENT_PATHS = {
   AGENTS_DIR: 'agents',
 } as const
 
-// Base types for common patterns
+// 常见模式的基础类型
 type WithPreviousMode = { previousMode: ModeState }
 type WithAgent = { agent: AgentDefinition }
 
-// Simplified state type using intersection types
+// 使用交叉类型简化的状态类型
 export type ModeState =
   | { mode: 'main-menu' }
   | { mode: 'list-agents'; source: SettingSource | 'all' | 'built-in' }

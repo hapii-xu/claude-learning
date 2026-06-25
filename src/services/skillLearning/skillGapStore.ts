@@ -38,9 +38,8 @@ export type SkillGapRecord = {
   prompt: string
   count: number
   draftHits: number
-  // Session IDs that have already contributed a draft hit for this gap —
-  // prevents one session from inflating `draftHits` beyond 1 and flipping the
-  // `draftHits >= 2` active-promotion gate by itself.
+  // 已为此 gap 贡献过 draft hit 的 session ID 列表——
+  // 防止单个 session 将 `draftHits` 刷超 1，自行触发 `draftHits >= 2` 的 active 晋升门控。
   draftHitSessions: string[]
   status: SkillGapStatus
   sessionId: string

@@ -12,8 +12,8 @@ type Props = {
 export function DevChannelsDialog({ channels, onAccept }: Props): React.ReactNode {
   const [pendingExitCode, setPendingExitCode] = React.useState<number | null>(null);
 
-  // Clear screen before shutdown so residual dialog content doesn't leak
-  // to the terminal. Deferred to next tick so Ink flushes the null render.
+  // 在关闭前清屏，避免残留的对话框内容泄漏到终端。
+  // 延迟到下一个 tick 执行，以便 Ink 先刷新 null 渲染。
   React.useEffect(() => {
     if (pendingExitCode !== null) {
       const code = pendingExitCode;
@@ -42,15 +42,12 @@ export function DevChannelsDialog({ channels, onAccept }: Props): React.ReactNod
   }
 
   return (
-    <Dialog title="WARNING: Loading development channels" color="error" onCancel={handleEscape}>
+    <Dialog title="警告：正在加载开发渠道" color="error" onCancel={handleEscape}>
       <Box flexDirection="column" gap={1}>
-        <Text>
-          --dangerously-load-development-channels is for local channel development only. Do not use this option to run
-          channels you have downloaded off the internet.
-        </Text>
-        <Text>Please use --channels to run a list of approved channels.</Text>
+        <Text>--dangerously-load-development-channels 仅用于本地渠道开发。请勿使用此选项运行从互联网下载的渠道。</Text>
+        <Text>请使用 --channels 来运行经过审批的渠道列表。</Text>
         <Text dimColor>
-          Channels:{' '}
+          渠道：{' '}
           {channels
             .map(c => (c.kind === 'plugin' ? `plugin:${c.name}@${c.marketplace}` : `server:${c.name}`))
             .join(', ')}
@@ -59,8 +56,8 @@ export function DevChannelsDialog({ channels, onAccept }: Props): React.ReactNod
 
       <Select
         options={[
-          { label: 'I am using this for local development', value: 'accept' },
-          { label: 'Exit', value: 'exit' },
+          { label: '我正在用于本地开发', value: 'accept' },
+          { label: '退出', value: 'exit' },
         ]}
         onChange={value => onChange(value as 'accept' | 'exit')}
       />

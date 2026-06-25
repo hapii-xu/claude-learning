@@ -28,12 +28,12 @@ function LimitBar({ title, limit, maxWidth, showTimeInReset = true, extraSubtext
     return null;
   }
 
-  // Calculate usage percentage
-  const usedText = `${Math.floor(utilization)}% used`;
+  // 计算使用百分比
+  const usedText = `${Math.floor(utilization)}% 已使用`;
 
   let subtext: string | undefined;
   if (resets_at) {
-    subtext = `Resets ${formatResetText(resets_at, true, showTimeInReset)}`;
+    subtext = `重置于 ${formatResetText(resets_at, true, showTimeInReset)}`;
   }
 
   if (extraSubtext) {
@@ -92,7 +92,7 @@ export function Usage(): React.ReactNode {
   const [isLoading, setIsLoading] = useState(true);
   const { columns } = useTerminalSize();
 
-  const availableWidth = columns - 2; // 2 for screen padding
+  const availableWidth = columns - 2; // 2 用于屏幕内边距
   const maxWidth = Math.min(availableWidth, 80);
 
   const loadUtilization = React.useCallback(async () => {
@@ -105,7 +105,7 @@ export function Usage(): React.ReactNode {
       logError(err as Error);
       const axiosError = err as { response?: { data?: unknown } };
       const responseBody = axiosError.response?.data ? jsonStringify(axiosError.response.data) : undefined;
-      setError(responseBody ? `Failed to load usage data: ${responseBody}` : 'Failed to load usage data');
+      setError(responseBody ? `加载用量数据失败：${responseBody}` : '加载用量数据失败');
     } finally {
       setIsLoading(false);
     }
@@ -126,11 +126,11 @@ export function Usage(): React.ReactNode {
   if (error) {
     return (
       <Box flexDirection="column" gap={1}>
-        <Text color="error">Error: {error}</Text>
+        <Text color="error">错误：{error}</Text>
         <Text dimColor>
           <Byline>
-            <ConfigurableShortcutHint action="settings:retry" context="Settings" fallback="r" description="retry" />
-            <ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="cancel" />
+            <ConfigurableShortcutHint action="settings:retry" context="Settings" fallback="r" description="重试" />
+            <ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="取消" />
           </Byline>
         </Text>
       </Box>
@@ -140,34 +140,34 @@ export function Usage(): React.ReactNode {
   if (!utilization) {
     return (
       <Box flexDirection="column" gap={1}>
-        <Text dimColor>Loading usage data…</Text>
+        <Text dimColor>正在加载用量数据…</Text>
         <Text dimColor>
-          <ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="cancel" />
+          <ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="取消" />
         </Text>
       </Box>
     );
   }
 
-  // Only Max and Team plans have a Sonnet limit that differs from the weekly
-  // limit (see rateLimitMessages.ts). For other plans the bar is redundant.
-  // Show for null (unknown plan) to stay consistent with rateLimitMessages.ts,
-  // which labels it "Sonnet limit" in that case.
+  // 只有 Max 和 Team 套餐才有独立于周用量的 Sonnet 限制
+  //（见 rateLimitMessages.ts）。其他套餐下该进度条是多余的。
+  // 对 null（未知套餐）也显示，以保持与 rateLimitMessages.ts 一致——
+  // 那种情况下它会被标注为 "Sonnet limit"。
   const subscriptionType = getSubscriptionType();
   const showSonnetBar = subscriptionType === 'max' || subscriptionType === 'team' || subscriptionType === null;
 
   const limits = [
     {
-      title: 'Current session',
+      title: '当前会话',
       limit: utilization.five_hour,
     },
     {
-      title: 'Current week (all models)',
+      title: '本周（所有模型）',
       limit: utilization.seven_day,
     },
     ...(showSonnetBar
       ? [
           {
-            title: 'Current week (Sonnet only)',
+            title: '本周（仅 Sonnet）',
             limit: utilization.seven_day_sonnet,
           },
         ]
@@ -176,7 +176,7 @@ export function Usage(): React.ReactNode {
 
   return (
     <Box flexDirection="column" gap={1} width="100%">
-      {limits.some(({ limit }) => limit) || <Text dimColor>/usage is only available for subscription plans.</Text>}
+      {limits.some(({ limit }) => limit) || <Text dimColor>/usage 仅对订阅套餐可用。</Text>}
 
       {limits.map(
         ({ title, limit }) => limit && <LimitBar key={title} title={title} limit={limit} maxWidth={maxWidth} />,
@@ -187,7 +187,7 @@ export function Usage(): React.ReactNode {
       {isEligibleForOverageCreditGrant() && <OverageCreditUpsell maxWidth={maxWidth} />}
 
       <Text dimColor>
-        <ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="cancel" />
+        <ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="取消" />
       </Text>
     </Box>
   );
@@ -198,13 +198,13 @@ type ExtraUsageSectionProps = {
   maxWidth: number;
 };
 
-const EXTRA_USAGE_SECTION_TITLE = 'Extra usage';
+const EXTRA_USAGE_SECTION_TITLE = '额外用量';
 
 function ExtraUsageSection({ extraUsage, maxWidth }: ExtraUsageSectionProps): React.ReactNode {
   const subscriptionType = getSubscriptionType();
   const isProOrMax = subscriptionType === 'pro' || subscriptionType === 'max';
   if (!isProOrMax) {
-    // Only show to Pro and Max, consistent with claude.ai non-admin usage settings
+    // 仅对 Pro 和 Max 显示，与 claude.ai 非管理员用量设置保持一致
     return false;
   }
 
@@ -213,7 +213,7 @@ function ExtraUsageSection({ extraUsage, maxWidth }: ExtraUsageSectionProps): Re
       return (
         <Box flexDirection="column">
           <Text bold>{EXTRA_USAGE_SECTION_TITLE}</Text>
-          <Text dimColor>Extra usage not enabled · /extra-usage to enable</Text>
+          <Text dimColor>额外用量未启用 · 使用 /extra-usage 启用</Text>
         </Box>
       );
     }
@@ -225,7 +225,7 @@ function ExtraUsageSection({ extraUsage, maxWidth }: ExtraUsageSectionProps): Re
     return (
       <Box flexDirection="column">
         <Text bold>{EXTRA_USAGE_SECTION_TITLE}</Text>
-        <Text dimColor>Unlimited</Text>
+        <Text dimColor>无限制</Text>
       </Box>
     );
   }
@@ -244,11 +244,11 @@ function ExtraUsageSection({ extraUsage, maxWidth }: ExtraUsageSectionProps): Re
       title={EXTRA_USAGE_SECTION_TITLE}
       limit={{
         utilization: extraUsage.utilization,
-        // Not applicable for enterprises, but for now we don't render this for them
+        // 对企业版不适用，但目前我们也不会为他们渲染此区块
         resets_at: oneMonthReset.toISOString(),
       }}
       showTimeInReset={false}
-      extraSubtext={`${formattedUsedCredits} / ${formattedMonthlyLimit} spent`}
+      extraSubtext={`${formattedUsedCredits} / ${formattedMonthlyLimit} 已使用`}
       maxWidth={maxWidth}
     />
   );

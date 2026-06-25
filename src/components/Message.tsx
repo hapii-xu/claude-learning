@@ -52,8 +52,8 @@ export type Props = {
     | GroupedToolUseMessageType
     | CollapsedReadSearchGroupType;
   lookups: ReturnType<typeof buildMessageLookups>;
-  // TODO: Find a way to remove this, and leave spacing to the consumer
-  /** Absolute width for the container Box. When provided, eliminates a wrapper Box in the caller. */
+  // TODO: 找到办法移除它，把间距处理交给调用方
+  /** 容器 Box 的绝对宽度。提供时，可消除调用方中的一个包装 Box。 */
   containerWidth?: number;
   addMargin: boolean;
   tools: Tools;
@@ -70,11 +70,11 @@ export type Props = {
   onOpenRateLimitOptions?: () => void;
   isActiveCollapsedGroup?: boolean;
   isUserContinuation?: boolean;
-  /** ID of the last thinking block (uuid:index) to show, used for hiding past thinking in transcript mode */
+  /** 要显示的最后一个 thinking block 的 ID（uuid:index），用于在 transcript 模式下隐藏历史 thinking */
   lastThinkingBlockId?: string | null;
-  /** UUID of the latest user bash output message (for auto-expanding) */
+  /** 最新一条用户 bash 输出消息的 UUID（用于自动展开） */
   latestBashOutputUUID?: string | null;
-  /** Whether to collapse diff display for this message */
+  /** 是否折叠此消息的 diff 显示 */
   shouldCollapseDiffs?: boolean;
 };
 
@@ -141,11 +141,10 @@ function MessageImpl({
       if (message.isCompactSummary) {
         return <CompactSummary message={message} screen={isTranscriptMode ? 'transcript' : 'prompt'} />;
       }
-      // Precompute the imageIndex prop for each content block. The previous
-      // version incremented a counter inside the .map() callback, which
-      // React Compiler bails on ("UpdateExpression to variables captured
-      // within lambdas"). A plain for loop keeps the mutation out of a
-      // closure so the compiler can memoize MessageImpl.
+      // 预计算每个 content block 的 imageIndex prop。之前的版本在 .map()
+      // 回调里递增计数器，这会让 React Compiler 放弃优化（"对 lambda 内
+      // 捕获的变量执行 UpdateExpression"）。使用普通 for 循环把变量修改
+      // 移出闭包，编译器才能对 MessageImpl 做记忆化。
       const imageIndices: number[] = [];
       let imagePosition = 0;
       for (const param of message.message.content as Array<{ type: string }>) {
@@ -157,8 +156,8 @@ function MessageImpl({
           imageIndices.push(imagePosition);
         }
       }
-      // Check if this message is the latest bash output - if so, wrap content
-      // with provider so OutputLine can show full output via context
+      // 检查这条消息是否是最新 bash 输出 —— 如果是，用 provider 包装内容，
+      // 这样 OutputLine 就能通过 context 展示完整输出
       const isLatestBashOutput = latestBashOutputUUID === message.uuid;
       const content = (
         <Box flexDirection="column" width={containerWidth ?? '100%'}>
@@ -189,16 +188,16 @@ function MessageImpl({
     }
     case 'system':
       if (message.subtype === 'compact_boundary') {
-        // Fullscreen keeps pre-compact messages in the ScrollBox (REPL.tsx
-        // appends instead of resetting, Messages.tsx skips the boundary
-        // filter) — scroll up for history, no need for the ctrl+o hint.
+        // 全屏模式会在 ScrollBox 中保留 compact 之前的消息（REPL.tsx 采用
+        // 追加而非重置，Messages.tsx 跳过边界过滤）—— 向上滚动即可查看历史，
+        // 无需 ctrl+o 提示。
         if (isFullscreenEnvEnabled()) {
           return null;
         }
         return <CompactBoundaryMessage />;
       }
       if (message.subtype === 'microcompact_boundary') {
-        // Logged at creation time in createMicrocompactBoundaryMessage
+        // 在 createMicrocompactBoundaryMessage 中已记录日志
         return null;
       }
       if (feature('HISTORY_SNIP')) {
@@ -216,8 +215,8 @@ function MessageImpl({
           return <SnipBoundaryMessage message={message} />;
         }
         if (isSnipMarkerMessage(message)) {
-          // Internal registration marker — not user-facing. The boundary
-          // message (above) is what shows when snips actually execute.
+          // 内部注册标记 —— 不向用户展示。上方的边界消息（boundary message）
+          // 才是 snip 实际执行时显示的内容。
           return null;
         }
       }
@@ -250,23 +249,23 @@ function MessageImpl({
         />
       );
     case 'collapsed_read_search':
-      // OffscreenFreeze: the verb flips "Reading…"→"Read" when tools complete.
-      // If the group has scrolled into scrollback by then, the update triggers
-      // a full terminal reset (CC-1155). This component is never marked static
-      // in prompt mode (shouldRenderStatically returns false to allow live
-      // updates between API turns), so the memo can't help. Freeze when
-      // offscreen — scrollback shows whatever state was visible when it left.
+      // OffscreenFreeze：工具完成时动词会从 "Reading…" 翻转为 "Read"。
+      // 如果此时该分组已滚入 scrollback，这次更新会触发整个终端重置
+      // （CC-1155）。这个组件在 prompt 模式下永远不会被标记为静态
+      // （shouldRenderStatically 返回 false 以允许 API 轮次间的实时更新），
+      // 因此 memo 也帮不上忙。在离屏时冻结 —— scrollback 中展示它离开时
+      // 可见的状态即可。
       return (
         <OffscreenFreeze>
           <CollapsedReadSearchContent
             message={message}
             inProgressToolUseIDs={inProgressToolUseIDs}
             shouldAnimate={shouldAnimate}
-            // ctrl+o transcript mode should expand the group the same way
-            // --verbose does, so recalled memories + tool details are visible.
-            // AttachmentMessage.tsx's standalone relevant_memories branch
-            // already checks (verbose || isTranscriptMode); this aligns the
-            // collapsed-group path to match.
+            // ctrl+o transcript 模式应像 --verbose 一样展开该分组，
+            // 这样被唤回的记忆 + 工具细节才能可见。
+            // AttachmentMessage.tsx 中独立的 relevant_memories 分支
+            // 已经检查了 (verbose || isTranscriptMode)；这里让折叠分组
+            // 路径与之保持一致。
             verbose={verbose || isTranscriptMode}
             tools={tools}
             lookups={lookups}
@@ -318,8 +317,8 @@ function UserMessage({
         />
       );
     case 'image':
-      // If previous message is user (text or image), this is a continuation - use connector
-      // Otherwise this image starts a new user turn - use margin
+      // 如果上一条消息是用户消息（文本或图片），这是延续 —— 使用 connector
+      // 否则这张图片开启一个新的用户轮次 —— 使用 margin
       return <UserImageMessage imageId={imageIndex} addMargin={addMargin && !isUserContinuation} />;
     case 'tool_result':
       return (
@@ -382,9 +381,9 @@ function AssistantMessageBlock({
   isTranscriptMode: boolean;
   lookups: ReturnType<typeof buildMessageLookups>;
   onOpenRateLimitOptions?: () => void;
-  /** ID of this content block's message:index for thinking block comparison */
+  /** 此 content block 的 message:index ID，用于 thinking block 比较 */
   thinkingBlockId: string;
-  /** ID of the last thinking block to show, null means show all */
+  /** 要显示的最后一个 thinking block 的 ID，null 表示全部显示 */
   lastThinkingBlockId?: string | null;
   advisorModel?: string;
 }): React.ReactNode {
@@ -440,7 +439,7 @@ function AssistantMessageBlock({
       if (!isTranscriptMode && !verbose) {
         return null;
       }
-      // In transcript mode with hidePastThinking, only show the last thinking block
+      // 在开启 hidePastThinking 的 transcript 模式下，只显示最后一个 thinking block
       const isLastThinking = !lastThinkingBlockId || thinkingBlockId === lastThinkingBlockId;
       return (
         <AssistantThinkingMessage
@@ -467,10 +466,10 @@ function AssistantMessageBlock({
           />
         );
       }
-      logError(new Error(`Unable to render server tool block: ${param.type}`));
+      logError(new Error(`无法渲染 server tool block: ${param.type}`));
       return null;
     default:
-      logError(new Error(`Unable to render message type: ${param.type}`));
+      logError(new Error(`无法渲染消息类型: ${param.type}`));
       return null;
   }
 }
@@ -480,28 +479,28 @@ export function hasThinkingContent(m: { type: string; message?: { content: Array
   return m.message.content.some(b => b.type === 'thinking' || b.type === 'redacted_thinking');
 }
 
-/** Exported for testing */
+/** 导出供测试使用 */
 export function areMessagePropsEqual(prev: Props, next: Props): boolean {
   if (prev.message.uuid !== next.message.uuid) return false;
-  // Only re-render on lastThinkingBlockId change if this message actually
-  // has thinking content — otherwise every message in scrollback re-renders
-  // whenever streaming thinking starts/stops (CC-941).
+  // 仅当这条消息确实包含 thinking 内容时，才在 lastThinkingBlockId 变化时
+  // 重新渲染 —— 否则每当流式 thinking 开始/停止时，scrollback 中的每条消息
+  // 都会重新渲染（CC-941）。
   if (
     prev.lastThinkingBlockId !== next.lastThinkingBlockId &&
     hasThinkingContent(next.message as Parameters<typeof hasThinkingContent>[0])
   ) {
     return false;
   }
-  // Verbose toggle changes thinking block visibility/expansion
+  // Verbose 开关会改变 thinking block 的可见性/展开状态
   if (prev.verbose !== next.verbose) return false;
-  // Only re-render if this message's "is latest bash output" status changed,
-  // not when the global latestBashOutputUUID changes to a different message
+  // 仅当这条消息的"是否为最新 bash 输出"状态发生变化时才重新渲染，
+  // 而不是当全局 latestBashOutputUUID 变成另一条消息时
   const prevIsLatest = prev.latestBashOutputUUID === prev.message.uuid;
   const nextIsLatest = next.latestBashOutputUUID === next.message.uuid;
   if (prevIsLatest !== nextIsLatest) return false;
   if (prev.isTranscriptMode !== next.isTranscriptMode) return false;
-  // containerWidth is an absolute number in the no-metadata path (wrapper
-  // Box is skipped). Static messages must re-render on terminal resize.
+  // containerWidth 在无 metadata 路径下是一个绝对数值（会跳过包装 Box）。
+  // 静态消息必须在终端尺寸变化时重新渲染。
   if (prev.containerWidth !== next.containerWidth) return false;
   if (prev.isStatic && next.isStatic) return true;
   return false;

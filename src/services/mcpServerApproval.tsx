@@ -7,9 +7,9 @@ import { getMcpConfigsByScope } from './mcp/config.js';
 import { getProjectMcpServerStatus } from './mcp/utils.js';
 
 /**
- * Show MCP server approval dialogs for pending project servers.
- * Uses the provided Ink root to render (reusing the existing instance
- * from main.tsx instead of creating a separate one).
+ * 为待审批的 project servers 显示 MCP server 审批对话框。
+ * 使用传入的 Ink root 进行渲染（复用 main.tsx 中的现有实例，
+ * 而非单独创建一个新实例）。
  */
 export async function handleMcpjsonServerApprovals(root: Root): Promise<void> {
   const { servers: projectServers } = getMcpConfigsByScope('project');

@@ -12,11 +12,10 @@ import { ContextSuggestions } from './ContextSuggestions.js';
 const RESERVED_CATEGORY_NAME = 'Autocompact buffer';
 
 /**
- * One-liner for the legend header showing what context-collapse has done.
- * Returns null when nothing's summarized/staged so we don't add visual
- * noise in the common case. This is the one place a user can see that
- * their context was rewritten — the <collapsed> placeholders are isMeta
- * and don't appear in the conversation view.
+ * 图例头部的单行文本，展示 context-collapse 做了什么。
+ * 当没有内容被总结/暂存时返回 null，避免在常见情况下增加视觉噪音。
+ * 这是用户能看到其上下文被改写的唯一位置 —— <collapsed> 占位符是 isMeta，
+ * 不会出现在对话视图中。
  */
 function CollapseStatus(): React.ReactNode {
   if (feature('CONTEXT_COLLAPSE')) {
@@ -31,31 +30,31 @@ function CollapseStatus(): React.ReactNode {
 
     const parts: string[] = [];
     if (s.collapsedSpans > 0) {
-      parts.push(`${s.collapsedSpans} ${plural(s.collapsedSpans, 'span')} summarized (${s.collapsedMessages} msgs)`);
+      parts.push(`${s.collapsedSpans} ${plural(s.collapsedSpans, 'span')} 已总结（${s.collapsedMessages} 条消息）`);
     }
-    if (s.stagedSpans > 0) parts.push(`${s.stagedSpans} staged`);
+    if (s.stagedSpans > 0) parts.push(`${s.stagedSpans} 已暂存`);
     const summary =
       parts.length > 0
         ? parts.join(', ')
         : h.totalSpawns > 0
-          ? `${h.totalSpawns} ${plural(h.totalSpawns, 'spawn')}, nothing staged yet`
-          : 'waiting for first trigger';
+          ? `${h.totalSpawns} ${plural(h.totalSpawns, 'spawn')}，暂无暂存内容`
+          : '等待首次触发';
 
     let line2: React.ReactNode = null;
     if (h.totalErrors > 0) {
       line2 = (
         <Text color="warning">
-          Collapse errors: {h.totalErrors}/{h.totalSpawns} spawns failed
-          {h.lastError ? ` (last: ${h.lastError.slice(0, 60)})` : ''}
+          Collapse 错误：{h.totalErrors}/{h.totalSpawns} 次 spawn 失败
+          {h.lastError ? `（最近：${h.lastError.slice(0, 60)}）` : ''}
         </Text>
       );
     } else if (h.emptySpawnWarningEmitted) {
-      line2 = <Text color="warning">Collapse idle: {h.totalEmptySpawns} consecutive empty runs</Text>;
+      line2 = <Text color="warning">Collapse 空闲：连续 {h.totalEmptySpawns} 次空运行</Text>;
     }
 
     return (
       <>
-        <Text dimColor>Context strategy: collapse ({summary})</Text>
+        <Text dimColor>上下文策略：collapse（{summary}）</Text>
         {line2}
       </>
     );
@@ -63,10 +62,10 @@ function CollapseStatus(): React.ReactNode {
   return null;
 }
 
-// Order for displaying source groups: Project > User > Managed > Plugin > Built-in
+// 显示来源分组的顺序：Project > User > Managed > Plugin > Built-in
 const SOURCE_DISPLAY_ORDER = ['Project', 'User', 'Managed', 'Plugin', 'Built-in'];
 
-/** Group items by source type for display, sorted by tokens descending within each group */
+/** 按来源类型分组展示，每组内按 token 数降序排序 */
 function groupBySource<T extends { source: SettingSource | 'plugin' | 'built-in'; tokens: number }>(
   items: T[],
 ): Map<string, T[]> {
@@ -77,14 +76,14 @@ function groupBySource<T extends { source: SettingSource | 'plugin' | 'built-in'
     existing.push(item);
     groups.set(key, existing);
   }
-  // Sort each group by tokens descending
+  // 每组按 token 数降序排序
   for (const [key, group] of groups.entries()) {
     groups.set(
       key,
       group.sort((a, b) => b.tokens - a.tokens),
     );
   }
-  // Return groups in consistent order
+  // 以一致的顺序返回分组
   const orderedGroups = new Map<string, T[]>();
   for (const source of SOURCE_DISPLAY_ORDER) {
     const group = groups.get(source);
@@ -119,21 +118,21 @@ export function ContextVisualization({ data }: Props): React.ReactNode {
     cacheThreshold,
   } = data;
 
-  // Filter out categories with 0 tokens for the legend, and exclude Free space, Autocompact buffer, and deferred
+  // 过滤掉 token 数为 0 的类别用于图例，并排除 Free space、Autocompact buffer 和延迟加载的类别
   const visibleCategories = categories.filter(
     cat => cat.tokens > 0 && cat.name !== 'Free space' && cat.name !== RESERVED_CATEGORY_NAME && !cat.isDeferred,
   );
-  // Check if MCP tools are deferred (loaded on-demand via tool search)
+  // 检查 MCP 工具是否为延迟加载（通过工具搜索按需加载）
   const hasDeferredMcpTools = categories.some(cat => cat.isDeferred && cat.name.includes('MCP'));
-  // Check if builtin tools are deferred
+  // 检查内置工具是否为延迟加载
   const hasDeferredBuiltinTools = deferredBuiltinTools.length > 0;
   const autocompactCategory = categories.find(cat => cat.name === RESERVED_CATEGORY_NAME);
 
   return (
     <Box flexDirection="column" paddingLeft={1}>
-      <Text bold>Context Usage</Text>
+      <Text bold>上下文使用情况</Text>
       <Box flexDirection="row" gap={2}>
-        {/* Fixed size grid */}
+        {/* 固定大小的网格 */}
         <Box flexDirection="column" flexShrink={0}>
           {gridRows.map((row, rowIndex) => (
             <Box key={rowIndex} flexDirection="row" marginLeft={-1}>
@@ -162,7 +161,7 @@ export function ContextVisualization({ data }: Props): React.ReactNode {
           ))}
         </Box>
 
-        {/* Legend to the right */}
+        {/* 右侧图例 */}
         <Box flexDirection="column" gap={0} flexShrink={0}>
           <Text dimColor>
             {model} · {formatTokens(totalTokens)}/{formatTokens(rawMaxTokens)} tokens ({percentage}%)
@@ -170,21 +169,21 @@ export function ContextVisualization({ data }: Props): React.ReactNode {
           <CollapseStatus />
           {cacheHitRate !== undefined && cacheThreshold !== undefined && (
             <Text color={cacheHitRate < cacheThreshold ? 'warning' : undefined}>
-              Cache hit rate: {cacheHitRate.toFixed(0)}%
-              {cacheHitRate < cacheThreshold ? ` (below ${cacheThreshold}% threshold)` : ''}
+              缓存命中率：{cacheHitRate.toFixed(0)}%
+              {cacheHitRate < cacheThreshold ? `（低于 ${cacheThreshold}% 阈值）` : ''}
             </Text>
           )}
           <Text> </Text>
           <Text dimColor italic>
-            Estimated usage by category
+            按类别的预估用量
           </Text>
           {visibleCategories.map((cat, index) => {
             const tokenDisplay = formatTokens(cat.tokens);
-            // Show "N/A" for deferred categories since they don't count toward context
+            // 延迟加载的类别不计入上下文，所以显示 "N/A"
             const percentDisplay = cat.isDeferred ? 'N/A' : `${((cat.tokens / rawMaxTokens) * 100).toFixed(1)}%`;
             const isReserved = cat.name === RESERVED_CATEGORY_NAME;
             const displayName = cat.name;
-            // Deferred categories don't appear in grid, so show blank instead of symbol
+            // 延迟加载的类别不出现在网格中，所以显示空白代替符号
             const symbol = cat.isDeferred ? ' ' : isReserved ? '⛝' : '⛁';
 
             return (
@@ -200,7 +199,7 @@ export function ContextVisualization({ data }: Props): React.ReactNode {
           {(categories.find(c => c.name === 'Free space')?.tokens ?? 0) > 0 && (
             <Box>
               <Text dimColor>⛶</Text>
-              <Text> Free space: </Text>
+              <Text> 剩余空间： </Text>
               <Text dimColor>
                 {formatTokens(categories.find(c => c.name === 'Free space')?.tokens || 0)} (
                 {(((categories.find(c => c.name === 'Free space')?.tokens || 0) / rawMaxTokens) * 100).toFixed(1)}
@@ -226,13 +225,13 @@ export function ContextVisualization({ data }: Props): React.ReactNode {
         {mcpTools.length > 0 && (
           <Box flexDirection="column" marginTop={1}>
             <Box>
-              <Text bold>MCP tools</Text>
-              <Text dimColor> · /mcp{hasDeferredMcpTools ? ' (loaded on-demand)' : ''}</Text>
+              <Text bold>MCP 工具</Text>
+              <Text dimColor> · /mcp{hasDeferredMcpTools ? '（按需加载）' : ''}</Text>
             </Box>
-            {/* Show loaded tools first */}
+            {/* 已加载的工具优先展示 */}
             {mcpTools.some(t => t.isLoaded) && (
               <Box flexDirection="column" marginTop={1}>
-                <Text dimColor>Loaded</Text>
+                <Text dimColor>已加载</Text>
                 {mcpTools
                   .filter(t => t.isLoaded)
                   .map((tool, i) => (
@@ -243,10 +242,10 @@ export function ContextVisualization({ data }: Props): React.ReactNode {
                   ))}
               </Box>
             )}
-            {/* Show available (deferred) tools */}
+            {/* 展示可用（延迟加载）的工具 */}
             {hasDeferredMcpTools && mcpTools.some(t => !t.isLoaded) && (
               <Box flexDirection="column" marginTop={1}>
-                <Text dimColor>Available</Text>
+                <Text dimColor>可用</Text>
                 {mcpTools
                   .filter(t => !t.isLoaded)
                   .map((tool, i) => (
@@ -256,7 +255,7 @@ export function ContextVisualization({ data }: Props): React.ReactNode {
                   ))}
               </Box>
             )}
-            {/* Show all tools normally when not deferred */}
+            {/* 非延迟加载时正常展示所有工具 */}
             {!hasDeferredMcpTools &&
               mcpTools.map((tool, i) => (
                 <Box key={i}>
@@ -267,16 +266,16 @@ export function ContextVisualization({ data }: Props): React.ReactNode {
           </Box>
         )}
 
-        {/* Show builtin tools: always-loaded + deferred (ant-only) */}
+        {/* 展示内置工具：常驻加载 + 延迟加载（仅 ant） */}
         {((systemTools && systemTools.length > 0) || hasDeferredBuiltinTools) && process.env.USER_TYPE === 'ant' && (
           <Box flexDirection="column" marginTop={1}>
             <Box>
-              <Text bold>[ANT-ONLY] System tools</Text>
-              {hasDeferredBuiltinTools && <Text dimColor> (some loaded on-demand)</Text>}
+              <Text bold>[ANT-ONLY] 系统工具</Text>
+              {hasDeferredBuiltinTools && <Text dimColor>（部分按需加载）</Text>}
             </Box>
-            {/* Always-loaded + deferred-but-loaded tools */}
+            {/* 常驻加载 + 已加载的延迟工具 */}
             <Box flexDirection="column" marginTop={1}>
-              <Text dimColor>Loaded</Text>
+              <Text dimColor>已加载</Text>
               {systemTools?.map((tool, i) => (
                 <Box key={`sys-${i}`}>
                   <Text>└ {tool.name}: </Text>
@@ -292,10 +291,10 @@ export function ContextVisualization({ data }: Props): React.ReactNode {
                   </Box>
                 ))}
             </Box>
-            {/* Deferred (not yet loaded) tools */}
+            {/* 延迟加载（尚未加载）的工具 */}
             {hasDeferredBuiltinTools && deferredBuiltinTools.some(t => !t.isLoaded) && (
               <Box flexDirection="column" marginTop={1}>
-                <Text dimColor>Available</Text>
+                <Text dimColor>可用</Text>
                 {deferredBuiltinTools
                   .filter(t => !t.isLoaded)
                   .map((tool, i) => (
@@ -310,7 +309,7 @@ export function ContextVisualization({ data }: Props): React.ReactNode {
 
         {systemPromptSections && systemPromptSections.length > 0 && process.env.USER_TYPE === 'ant' && (
           <Box flexDirection="column" marginTop={1}>
-            <Text bold>[ANT-ONLY] System prompt sections</Text>
+            <Text bold>[ANT-ONLY] 系统 prompt 区段</Text>
             {systemPromptSections.map((section, i) => (
               <Box key={i}>
                 <Text>└ {section.name}: </Text>
@@ -323,7 +322,7 @@ export function ContextVisualization({ data }: Props): React.ReactNode {
         {agents.length > 0 && (
           <Box flexDirection="column" marginTop={1}>
             <Box>
-              <Text bold>Custom agents</Text>
+              <Text bold>自定义 agents</Text>
               <Text dimColor> · /agents</Text>
             </Box>
             {Array.from(groupBySource(agents).entries()).map(([sourceDisplay, sourceAgents]) => (
@@ -343,7 +342,7 @@ export function ContextVisualization({ data }: Props): React.ReactNode {
         {memoryFiles.length > 0 && (
           <Box flexDirection="column" marginTop={1}>
             <Box>
-              <Text bold>Memory files</Text>
+              <Text bold>记忆文件</Text>
               <Text dimColor> · /memory</Text>
             </Box>
             {memoryFiles.map((file, i) => (
@@ -358,7 +357,7 @@ export function ContextVisualization({ data }: Props): React.ReactNode {
         {skills && skills.tokens > 0 && (
           <Box flexDirection="column" marginTop={1}>
             <Box>
-              <Text bold>Skills</Text>
+              <Text bold>技能</Text>
               <Text dimColor> · /skills</Text>
             </Box>
             {Array.from(groupBySource(skills.skillFrontmatter).entries()).map(([sourceDisplay, sourceSkills]) => (
@@ -377,43 +376,43 @@ export function ContextVisualization({ data }: Props): React.ReactNode {
 
         {messageBreakdown && process.env.USER_TYPE === 'ant' && (
           <Box flexDirection="column" marginTop={1}>
-            <Text bold>[ANT-ONLY] Message breakdown</Text>
+            <Text bold>[ANT-ONLY] 消息细分</Text>
 
             <Box flexDirection="column" marginLeft={1}>
               <Box>
-                <Text>Tool calls: </Text>
+                <Text>工具调用： </Text>
                 <Text dimColor>{formatTokens(messageBreakdown.toolCallTokens)} tokens</Text>
               </Box>
 
               <Box>
-                <Text>Tool results: </Text>
+                <Text>工具结果： </Text>
                 <Text dimColor>{formatTokens(messageBreakdown.toolResultTokens)} tokens</Text>
               </Box>
 
               <Box>
-                <Text>Attachments: </Text>
+                <Text>附件： </Text>
                 <Text dimColor>{formatTokens(messageBreakdown.attachmentTokens)} tokens</Text>
               </Box>
 
               <Box>
-                <Text>Assistant messages (non-tool): </Text>
+                <Text>助手消息（非工具）： </Text>
                 <Text dimColor>{formatTokens(messageBreakdown.assistantMessageTokens)} tokens</Text>
               </Box>
 
               <Box>
-                <Text>User messages (non-tool-result): </Text>
+                <Text>用户消息（非工具结果）： </Text>
                 <Text dimColor>{formatTokens(messageBreakdown.userMessageTokens)} tokens</Text>
               </Box>
             </Box>
 
             {messageBreakdown.toolCallsByType.length > 0 && (
               <Box flexDirection="column" marginTop={1}>
-                <Text bold>[ANT-ONLY] Top tools</Text>
+                <Text bold>[ANT-ONLY] 热门工具</Text>
                 {messageBreakdown.toolCallsByType.slice(0, 5).map((tool, i) => (
                   <Box key={i} marginLeft={1}>
-                    <Text>└ {tool.name}: </Text>
+                    <Text>└ {tool.name}： </Text>
                     <Text dimColor>
-                      calls {formatTokens(tool.callTokens)}, results {formatTokens(tool.resultTokens)}
+                      调用 {formatTokens(tool.callTokens)}，结果 {formatTokens(tool.resultTokens)}
                     </Text>
                   </Box>
                 ))}
@@ -422,7 +421,7 @@ export function ContextVisualization({ data }: Props): React.ReactNode {
 
             {messageBreakdown.attachmentsByType.length > 0 && (
               <Box flexDirection="column" marginTop={1}>
-                <Text bold>[ANT-ONLY] Top attachments</Text>
+                <Text bold>[ANT-ONLY] 热门附件</Text>
                 {messageBreakdown.attachmentsByType.slice(0, 5).map((attachment, i) => (
                   <Box key={i} marginLeft={1}>
                     <Text>└ {attachment.name}: </Text>

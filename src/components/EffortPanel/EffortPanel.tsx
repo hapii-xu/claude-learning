@@ -33,7 +33,7 @@ import {
  */
 const MIN_SEGMENT = 12;
 
-const SUBLABEL_ULTRACODE = 'xhigh + workflows';
+const SUBLABEL_ULTRACODE = 'xhigh + 工作流';
 
 // 颜色：与项目主题对齐（suggestion=Medium blue #5769F7）。
 const COLOR_LABEL_SELECTED = '#5769F7'; // 选中档位（suggestion）
@@ -187,7 +187,7 @@ export function EffortPanel({ appStateEffort, onDone }: Props): React.ReactNode 
       <Text bold color="suggestion">
         Effort
       </Text>
-      {envActive && <Text color="warning">{`⚠ CLAUDE_CODE_EFFORT_LEVEL=${envRaw} overrides this session`}</Text>}
+      {envActive && <Text color="warning">{`⚠ CLAUDE_CODE_EFFORT_LEVEL=${envRaw} 覆盖了本次会话`}</Text>}
       {showingRipple ? (
         <RippleContent
           renderRow={renderRippleRow}
@@ -201,7 +201,7 @@ export function EffortPanel({ appStateEffort, onDone }: Props): React.ReactNode 
         <>
           <PlainContent cursor={cursor} segment={segment} panelWidth={panelWidth} />
           <Box marginTop={1}>
-            <Text color="subtle">←/→ adjust · Enter confirm · Esc cancel</Text>
+            <Text color="subtle">←/→ 调整 · Enter 确认 · Esc 取消</Text>
           </Box>
         </>
       )}
@@ -223,8 +223,8 @@ function PlainContent({
   return (
     <>
       <Box marginTop={1} flexDirection="row" justifyContent="space-between">
-        <Text color="suggestion">Faster</Text>
-        <Text color="suggestion">Smarter</Text>
+        <Text color="suggestion">更快</Text>
+        <Text color="suggestion">更聪明</Text>
       </Box>
       <Text color="subtle">{'─'.repeat(panelWidth)}</Text>
       <Box flexDirection="row">
@@ -293,10 +293,10 @@ function RippleContent({ renderRow, cursor, segment, panelWidth, time }: RippleC
   const labelSelectedColor = rotateHue(COLOR_LABEL_SELECTED, hueShift);
   const labelDefaultColor = rotateHue(COLOR_LABEL_DEFAULT, hueShift);
 
-  const fasterOverlay: Overlay = { text: 'Faster', x: 0, color: overlayColor };
+  const fasterOverlay: Overlay = { text: '更快', x: 0, color: overlayColor };
   const smarterOverlay: Overlay = {
-    text: 'Smarter',
-    x: panelWidth - 'Smarter'.length,
+    text: '更聪明',
+    x: panelWidth - '更聪明'.length,
     color: overlayColor,
   };
   const separatorOverlay: Overlay = {
@@ -339,7 +339,7 @@ function RippleContent({ renderRow, cursor, segment, panelWidth, time }: RippleC
       <RippleRow segments={renderRow(0, labelOverlays)} />
       <RippleRow segments={renderRow(1, [sublabelOverlay])} />
       <RippleRow segments={renderRow(2, [])} />
-      <Text color={COLOR_LABEL_DEFAULT}>←/→ adjust · Enter confirm · Esc cancel</Text>
+      <Text color={COLOR_LABEL_DEFAULT}>←/→ 调整 · Enter 确认 · Esc 取消</Text>
     </>
   );
 }

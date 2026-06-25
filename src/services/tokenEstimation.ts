@@ -1,7 +1,7 @@
 import type { Anthropic } from '@anthropic-ai/sdk'
 import type { BetaMessageParam as MessageParam } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
-// @aws-sdk/client-bedrock-runtime is imported dynamically in countTokensWithBedrock()
-// to defer ~279KB of AWS SDK code until a Bedrock call is actually made
+// @aws-sdk/client-bedrock-runtime 在 countTokensWithBedrock() 中动态导入，
+// 目的是将约 279KB 的 AWS SDK 代码推迟到真正发起 Bedrock 调用时才加载
 import type { CountTokensCommandInput } from '@aws-sdk/client-bedrock-runtime'
 import { getAPIProvider } from 'src/utils/model/providers.js'
 import { VERTEX_COUNT_TOKENS_ALLOWED_BETAS } from '../constants/betas.js'
@@ -184,12 +184,12 @@ export async function countMessagesTokensWithAPI(
       const response = await anthropic.beta.messages.countTokens({
         model: normalizeModelStringForAPI(model),
         messages:
-          // When we pass tools and no messages, we need to pass a dummy message
-          // to get an accurate tool token count.
+          // 当传入 tools 但没有 messages 时，需要传入一个 dummy message
+          // 以获得准确的工具 token 计数。
           messages.length > 0 ? messages : [{ role: 'user', content: 'foo' }],
         tools,
         ...(filteredBetas.length > 0 && { betas: filteredBetas }),
-        // Enable thinking if messages contain thinking blocks
+        // 如果 messages 包含 thinking 块，则启用 thinking
         ...(containsThinking && {
           thinking: {
             type: 'enabled',

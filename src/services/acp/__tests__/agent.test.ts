@@ -9,10 +9,9 @@ import {
   spyOn,
 } from 'bun:test'
 
-// ── Mock infrastructure ──────────────────────────────────────────
-// bun:test mock.module is process-global: it leaks to sibling test files
-// in the same worker. Preserve real exports before partial module mocking
-// so afterAll can restore them, preventing cross-file pollution.
+// ── Mock 基础设施 ──────────────────────────────────────────
+// bun:test 的 mock.module 是进程全局的：它会泄漏到同一 worker 中的兄弟测试文件。
+// 在部分 module mock 前保留真实 exports，以便 afterAll 可以还原，防止跨文件污染。
 
 const _restores: (() => void)[] = []
 const originalCwd = process.cwd()
@@ -39,7 +38,7 @@ afterAll(() => {
   restoreEnv('CLAUDE_CODE_ACP_ALLOW_BYPASS_PERMISSIONS', originalAcpAllowBypass)
 })
 
-// ── Module mocks (must precede any import of the module under test) ──
+// ── Module mock（必须在 import 被测模块之前执行）──
 
 const mockSetModel = mock(() => {})
 const mockSubmitMessage = mock(async function* (_input: string) {})
@@ -190,12 +189,12 @@ mockModulePreservingExports('../../../commands.ts', {
   getCommands: mockGetCommands,
 })
 
-// ── Import after mocks ────────────────────────────────────────────
+// ── 在 mock 之后 import ────────────────────────────────────────────
 
 const { AcpAgent } = await import('../agent.js')
 const { forwardSessionUpdates } = await import('../bridge.js')
 
-// ── Helpers ───────────────────────────────────────────────────────
+// ── 辅助函数 ───────────────────────────────────────────────────────
 
 function makeConn() {
   return {
@@ -227,7 +226,7 @@ function restoreEnv(name: string, value: string | undefined) {
   }
 }
 
-// ── Tests ─────────────────────────────────────────────────────────
+// ── 测试 ─────────────────────────────────────────────────────────
 
 describe('AcpAgent', () => {
   beforeEach(() => {
@@ -1213,7 +1212,7 @@ describe('AcpAgent', () => {
       const { sessionId } = await agent.newSession({ cwd: '/tmp' } as any)
       mockSwitchSession.mockClear()
 
-      // Resume the same session — should still align global state
+      // 恢复同一 session——仍应同步全局状态
       await agent.unstable_resumeSession({
         sessionId,
         cwd: '/tmp',
@@ -1232,8 +1231,8 @@ describe('AcpAgent', () => {
       await agent.newSession({ cwd: '/tmp' } as any)
       mockSwitchSession.mockClear()
 
-      // Prompts must switch global state so recordTranscript writes to
-      // the correct session file in multi-session scenarios.
+      // prompt 必须切换全局状态，以便 recordTranscript 在多 session 场景中
+      // 写入正确的 session 文件。
       const s1 = agent.sessions.keys().next().value
       await agent.prompt({
         sessionId: s1,

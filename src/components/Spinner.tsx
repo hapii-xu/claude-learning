@@ -260,8 +260,8 @@ function SpinnerWithVerbInner({
       <Box flexDirection="column" width="100%" alignItems="flex-start">
         <Box flexDirection="row" flexWrap="wrap" marginTop={1} width="100%">
           <Text dimColor>
-            {TEARDROP_ASTERISK} Idle
-            {!allIdle && ' · teammates running'}
+            {TEARDROP_ASTERISK} 空闲中
+            {!allIdle && ' · teammates 运行中'}
           </Text>
         </Box>
         {showSpinnerTree && (
@@ -270,7 +270,7 @@ function SpinnerWithVerbInner({
             isInSelectionMode={viewSelectionMode === 'selecting-agent'}
             allIdle={allIdle}
             leaderTokenCount={leaderTokenCount}
-            leaderIdleText="Idle"
+            leaderIdleText="空闲中"
           />
         )}
       </Box>
@@ -280,8 +280,8 @@ function SpinnerWithVerbInner({
   // 当查看空闲 teammate 时，显示静态 idle 显示而不是动画 spinner
   if (foregroundedTeammate?.isIdle) {
     const idleText = allIdle
-      ? `${TEARDROP_ASTERISK} Worked for ${formatDuration(Date.now() - foregroundedTeammate.startTime)}`
-      : `${TEARDROP_ASTERISK} Idle`;
+      ? `${TEARDROP_ASTERISK} 已工作 ${formatDuration(Date.now() - foregroundedTeammate.startTime)}`
+      : `${TEARDROP_ASTERISK} 空闲中`;
     return (
       <Box flexDirection="column" width="100%" alignItems="flex-start">
         <Box flexDirection="row" flexWrap="wrap" marginTop={1} width="100%">
@@ -293,7 +293,7 @@ function SpinnerWithVerbInner({
             isInSelectionMode={viewSelectionMode === 'selecting-agent'}
             allIdle={allIdle}
             leaderVerb={leaderIsIdle ? undefined : leaderVerb}
-            leaderIdleText={leaderIsIdle ? 'Idle' : undefined}
+            leaderIdleText={leaderIsIdle ? '空闲中' : undefined}
             leaderTokenCount={leaderTokenCount}
           />
         )}
@@ -312,25 +312,25 @@ function SpinnerWithVerbInner({
   const effectiveTip = contextTipsActive
     ? undefined
     : showClearTip && !nextTask
-      ? 'Use /clear to start fresh when switching topics and free up context'
+      ? '切换话题时使用 /clear 重新开始并释放 context'
       : showBtwTip && !nextTask
-        ? "Use /btw to ask a quick side question without interrupting Claude's current work"
+        ? '使用 /btw 提一个快速的旁支问题，而不会打断 Claude 当前的工作'
         : spinnerTip;
 
-  // Budget 文本（仅 ant）—— 显示在 tip 行上方
+  // Budget 文本（仅 ant）—— 显示在 tip 行上方，基于当前 turn 的 token budget
   let budgetText: string | null = null;
   if (feature('TOKEN_BUDGET')) {
     const budget = getCurrentTurnTokenBudget();
     if (budget !== null && budget > 0) {
       const tokens = getTurnOutputTokens();
       if (tokens >= budget) {
-        budgetText = `Target: ${formatNumber(tokens)} used (${formatNumber(budget)} min ${figures.tick})`;
+        budgetText = `目标：已用 ${formatNumber(tokens)}（最少 ${formatNumber(budget)} ${figures.tick}）`;
       } else {
         const pct = Math.round((tokens / budget) * 100);
         const remaining = budget - tokens;
         const rate = elapsedSnapshot > 5000 && tokens >= 2000 ? tokens / elapsedSnapshot : 0;
         const eta = rate > 0 ? ` \u00B7 ~${formatDuration(remaining / rate, { mostSignificantOnly: true })}` : '';
-        budgetText = `Target: ${formatNumber(tokens)} / ${formatNumber(budget)} (${pct}%)${eta}`;
+        budgetText = `目标：${formatNumber(tokens)} / ${formatNumber(budget)}（${pct}%）${eta}`;
       }
     }
   }
@@ -365,7 +365,7 @@ function SpinnerWithVerbInner({
           isInSelectionMode={viewSelectionMode === 'selecting-agent'}
           allIdle={allIdle}
           leaderVerb={leaderIsIdle ? undefined : leaderVerb}
-          leaderIdleText={leaderIsIdle ? 'Idle' : undefined}
+          leaderIdleText={leaderIsIdle ? '空闲中' : undefined}
           leaderTokenCount={leaderTokenCount}
         />
       ) : showExpandedTodos && tasksV2 && tasksV2.length > 0 ? (
@@ -386,7 +386,7 @@ function SpinnerWithVerbInner({
           )}
           {(nextTask || effectiveTip) && (
             <MessageResponse>
-              <Text dimColor>{nextTask ? `Next: ${nextTask.subject}` : `Tip: ${effectiveTip}`}</Text>
+              <Text dimColor>{nextTask ? `下一个：${nextTask.subject}` : `提示：${effectiveTip}`}</Text>
             </MessageResponse>
           )}
         </Box>
@@ -412,7 +412,7 @@ type BriefSpinnerProps = {
 function BriefSpinner({ mode, overrideMessage }: BriefSpinnerProps): React.ReactNode {
   const settings = useSettings();
   const reducedMotion = settings.prefersReducedMotion ?? false;
-  const [randomVerb] = useState(() => sample(getSpinnerVerbs()) ?? 'Working');
+  const [randomVerb] = useState(() => sample(getSpinnerVerbs()) ?? '工作中');
   const verb = overrideMessage ?? randomVerb;
   const connStatus = useAppState(s => s.remoteConnectionStatus);
 
@@ -438,7 +438,7 @@ function BriefSpinner({ mode, overrideMessage }: BriefSpinnerProps): React.React
   // 连接问题覆盖 verb —— `claude assistant` 是纯 viewer，
   // WS 宕机时没有有用的操作发生。
   const showConnWarning = connStatus === 'reconnecting' || connStatus === 'disconnected';
-  const connText = connStatus === 'reconnecting' ? 'Reconnecting' : 'Disconnected';
+  const connText = connStatus === 'reconnecting' ? '正在重连' : '已断开';
 
   // Dots 填充到固定 3 列，使右对齐的计数在 cycle 推进时
   // 不抖动。
@@ -453,7 +453,7 @@ function BriefSpinner({ mode, overrideMessage }: BriefSpinnerProps): React.React
   const { before, shimmer, after } = computeShimmerSegments(verb, glimmerIndex);
 
   const { columns } = useTerminalSize();
-  const rightText = runningCount > 0 ? `${runningCount} in background` : '';
+  const rightText = runningCount > 0 ? `${runningCount} 个在后台` : '';
   // 通过 space padding 手动右对齐 —— FullscreenLayout
   // `main` slot 内的 flexGrow spacer 无法解析宽度，并导致
   // diff engine 遗漏 dot-frame 更新。
@@ -491,9 +491,9 @@ export function BriefIdleStatus(): React.ReactNode {
   const { columns } = useTerminalSize();
 
   const showConnWarning = connStatus === 'reconnecting' || connStatus === 'disconnected';
-  const connText = connStatus === 'reconnecting' ? 'Reconnecting…' : 'Disconnected';
+  const connText = connStatus === 'reconnecting' ? '正在重连…' : '已断开';
   const leftText = showConnWarning ? connText : '';
-  const rightText = runningCount > 0 ? `${runningCount} in background` : '';
+  const rightText = runningCount > 0 ? `${runningCount} 个在后台` : '';
 
   if (!leftText && !rightText) return <Box height={2} />;
 

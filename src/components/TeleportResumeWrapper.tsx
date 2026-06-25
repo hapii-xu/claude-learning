@@ -20,8 +20,8 @@ interface TeleportResumeWrapperProps {
 }
 
 /**
- * Wrapper component that manages the full teleport resume flow,
- * including session selection, loading state, and error handling
+ * 管理完整 teleport 恢复流程的包装组件，
+ * 包括会话选择、加载状态和错误处理
  */
 export function TeleportResumeWrapper({
   onComplete,
@@ -32,7 +32,7 @@ export function TeleportResumeWrapper({
 }: TeleportResumeWrapperProps): React.ReactNode {
   const { resumeSession, isResuming, error, selectedSession } = useTeleportResume(source);
 
-  // Log when teleport flow starts (for funnel tracking)
+  // 在 teleport 流程开始时记录日志（用于漏斗跟踪）
   useEffect(() => {
     logEvent('tengu_teleport_started', {
       source: source as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -44,11 +44,11 @@ export function TeleportResumeWrapper({
     if (result) {
       onComplete(result);
     } else if (error) {
-      // If there's an error handler provided, use it
+      // 如果提供了错误处理器，则使用它
       if (onError) {
         onError(error.message, error.formattedMessage);
       }
-      // Otherwise the error will be displayed in the UI
+      // 否则错误将显示在 UI 中
     }
   };
 
@@ -57,36 +57,36 @@ export function TeleportResumeWrapper({
     onCancel();
   };
 
-  // Allow Esc to dismiss the error state
+  // 允许用 Esc 关闭错误状态
   useKeybinding('app:interrupt', handleCancel, {
     context: 'Global',
     isActive: !!error && !onError,
   });
 
-  // Show loading spinner when resuming
+  // 恢复时显示加载 spinner
   if (isResuming && selectedSession) {
     return (
       <Box flexDirection="column" padding={1}>
         <Box flexDirection="row">
           <Spinner />
-          <Text bold>Resuming session…</Text>
+          <Text bold>正在恢复会话…</Text>
         </Box>
-        <Text dimColor>Loading &quot;{selectedSession.title}&quot;…</Text>
+        <Text dimColor>正在加载 &quot;{selectedSession.title}&quot;…</Text>
       </Box>
     );
   }
 
-  // Show error if there was a problem resuming
+  // 如果恢复时出现问题，则显示错误
   if (error && !onError) {
     return (
       <Box flexDirection="column" padding={1}>
         <Text bold color="error">
-          Failed to resume session
+          恢复会话失败
         </Text>
         <Text dimColor>{error.message}</Text>
         <Box marginTop={1}>
           <Text dimColor>
-            Press <Text bold>Esc</Text> to cancel
+            按 <Text bold>Esc</Text> 取消
           </Text>
         </Box>
       </Box>

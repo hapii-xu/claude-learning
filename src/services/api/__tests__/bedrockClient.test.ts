@@ -1,6 +1,6 @@
 /**
- * Tests for the Bedrock anthropic_beta body-vs-header workaround
- * (see src/services/api/bedrockClient.ts and anthropics/claude-code#49238).
+ * Bedrock anthropic_beta body-vs-header 绕过方案的测试
+ * （见 src/services/api/bedrockClient.ts 和 anthropics/claude-code#49238）。
  */
 import { describe, expect, test } from 'bun:test'
 import { AnthropicBedrock } from '@anthropic-ai/bedrock-sdk'
@@ -36,8 +36,8 @@ function makeCaptureFetch(): {
       headers: { 'content-type': 'text/event-stream' },
     })
   }
-  // SDK only calls the fetch function form, never the static `preconnect` that
-  // Bun/Node's `typeof fetch` declares. Cast is safe (mirrors openai/client.ts).
+  // SDK 只调用 fetch 函数形式，从不调用 Bun/Node 的 `typeof fetch` 声明的静态 `preconnect`。
+  // 类型断言是安全的（与 openai/client.ts 保持一致）。
   return { fetch: capture as unknown as typeof fetch, get: () => captured }
 }
 
@@ -111,8 +111,8 @@ describe('BedrockClient.buildRequest body.anthropic_beta cleanup', () => {
     const c = get()
     expect(c).not.toBeNull()
     expect(c!.headers.authorization).toBeDefined()
-    // SDK >= 0.80 uses Bearer auth; older versions used AWS4-HMAC-SHA256 SigV4.
-    // Either way the header must be present (i.e. signing was not broken).
+    // SDK >= 0.80 使用 Bearer 认证；旧版本使用 AWS4-HMAC-SHA256 SigV4。
+    // 无论哪种方式，header 都必须存在（即签名未被破坏）。
     expect(
       c!.headers.authorization!.startsWith('AWS4-HMAC-SHA256') ||
         c!.headers.authorization!.startsWith('Bearer '),

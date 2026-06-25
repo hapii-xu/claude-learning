@@ -13,11 +13,11 @@ const MAX_LINES_TO_RENDER = 10;
 type Props = {
   file_path: string;
   operation: 'write' | 'update';
-  // For updates - show diff
+  // 对于更新 —— 显示 diff
   patch?: StructuredPatchHunk[];
   firstLine: string | null;
   fileContent?: string;
-  // For new file creation - show content preview
+  // 对于新文件创建 —— 显示内容预览
   content?: string;
   style?: 'condensed';
   verbose: boolean;
@@ -36,19 +36,19 @@ export function FileEditToolUseRejectedMessage({
   const { columns } = useTerminalSize();
   const text = (
     <Box flexDirection="row">
-      <Text color="subtle">User rejected {operation} to </Text>
+      <Text color="subtle">用户拒绝了 {operation} 操作 </Text>
       <Text bold color="subtle">
         {verbose ? file_path : relative(getCwd(), file_path)}
       </Text>
     </Box>
   );
 
-  // For condensed style, just show the text
+  // condensed 样式下仅显示文本
   if (style === 'condensed' && !verbose) {
     return <MessageResponse>{text}</MessageResponse>;
   }
 
-  // For new file creation, show content preview (dimmed)
+  // 对于新文件创建，显示内容预览（调暗）
   if (operation === 'write' && content !== undefined) {
     const lines = content.split('\n');
     const numLines = lines.length;
@@ -59,14 +59,14 @@ export function FileEditToolUseRejectedMessage({
       <MessageResponse>
         <Box flexDirection="column">
           {text}
-          <HighlightedCode code={truncatedContent || '(No content)'} filePath={file_path} width={columns - 12} dim />
-          {!verbose && plusLines > 0 && <Text dimColor>… +{plusLines} lines</Text>}
+          <HighlightedCode code={truncatedContent || '（无内容）'} filePath={file_path} width={columns - 12} dim />
+          {!verbose && plusLines > 0 && <Text dimColor>… +{plusLines} 行</Text>}
         </Box>
       </MessageResponse>
     );
   }
 
-  // For updates, show diff
+  // 对于更新，显示 diff
   if (!patch || patch.length === 0) {
     return <MessageResponse>{text}</MessageResponse>;
   }

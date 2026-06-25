@@ -17,26 +17,26 @@ type Props = {
 
 export function ViewHookMode({ selectedHook, eventSupportsMatcher, onCancel }: Props): React.ReactNode {
   return (
-    <Dialog title="Hook details" onCancel={onCancel} inputGuide={() => <Text>Esc to go back</Text>}>
+    <Dialog title="Hook 详情" onCancel={onCancel} inputGuide={() => <Text>按 Esc 返回</Text>}>
       <Box flexDirection="column" gap={1}>
         <Box flexDirection="column">
           <Text>
-            Event: <Text bold>{selectedHook.event}</Text>
+            事件：<Text bold>{selectedHook.event}</Text>
           </Text>
           {eventSupportsMatcher && (
             <Text>
-              Matcher: <Text bold>{selectedHook.matcher || '(all)'}</Text>
+              Matcher：<Text bold>{selectedHook.matcher || '(全部)'}</Text>
             </Text>
           )}
           <Text>
-            Type: <Text bold>{selectedHook.config.type}</Text>
+            类型：<Text bold>{selectedHook.config.type}</Text>
           </Text>
           <Text>
-            Source: <Text dimColor>{hookSourceDescriptionDisplayString(selectedHook.source)}</Text>
+            来源：<Text dimColor>{hookSourceDescriptionDisplayString(selectedHook.source)}</Text>
           </Text>
           {selectedHook.pluginName && (
             <Text>
-              Plugin: <Text dimColor>{selectedHook.pluginName}</Text>
+              插件：<Text dimColor>{selectedHook.pluginName}</Text>
             </Text>
           )}
         </Box>
@@ -48,10 +48,10 @@ export function ViewHookMode({ selectedHook, eventSupportsMatcher, onCancel }: P
         </Box>
         {'statusMessage' in selectedHook.config && selectedHook.config.statusMessage && (
           <Text>
-            Status message: <Text dimColor>{selectedHook.config.statusMessage}</Text>
+            状态消息：<Text dimColor>{selectedHook.config.statusMessage}</Text>
           </Text>
         )}
-        <Text dimColor>To modify or remove this hook, edit settings.json directly or ask Claude to help.</Text>
+        <Text dimColor>如需修改或移除此 hook，请直接编辑 settings.json 或让 Claude 帮忙。</Text>
       </Box>
     </Dialog>
   );
@@ -63,11 +63,11 @@ export function ViewHookMode({ selectedHook, eventSupportsMatcher, onCancel }: P
 function getContentFieldLabel(config: IndividualHookConfig['config']): string {
   switch (config.type) {
     case 'command':
-      return 'Command';
+      return '命令';
     case 'prompt':
-      return 'Prompt';
+      return '提示词';
     case 'agent':
-      return 'Prompt';
+      return '提示词';
     case 'http':
       return 'URL';
   }

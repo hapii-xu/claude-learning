@@ -1,11 +1,10 @@
 /**
- * Analytics sink implementation
+ * Analytics sink 实现
  *
- * This module contains the actual analytics routing logic and should be
- * initialized during app startup. It routes events to Datadog and 1P event
- * logging.
+ * 本模块包含实际的 analytics 路由逻辑，应在 app 启动期间初始化。
+ * 它将事件路由到 Datadog 和 1P event logging。
  *
- * Usage: Call initializeAnalyticsSink() during app startup to attach the sink.
+ * 用法：在 app 启动期间调用 initializeAnalyticsSink() 来接入 sink。
  */
 
 import { trackDatadogEvent } from './datadog.js'
@@ -14,17 +13,17 @@ import { checkStatsigFeatureGate_CACHED_MAY_BE_STALE } from './growthbook.js'
 import { attachAnalyticsSink, stripProtoFields } from './index.js'
 import { isSinkKilled } from './sinkKillswitch.js'
 
-// Local type matching the logEvent metadata signature
+// 与 logEvent 的 metadata 签名匹配的本地类型
 type LogEventMetadata = { [key: string]: boolean | number | undefined }
 
 const DATADOG_GATE_NAME = 'tengu_log_datadog_events'
 
-// Module-level gate state - starts undefined, initialized during startup
+// 模块级 gate 状态 - 初始为 undefined，启动期间初始化
 let isDatadogGateEnabled: boolean | undefined
 
 /**
- * Check if Datadog tracking is enabled.
- * Falls back to cached value from previous session if not yet initialized.
+ * 检查是否启用了 Datadog 追踪。
+ * 尚未初始化时，回退到上一个 session 的缓存值。
  */
 function shouldTrackDatadog(): boolean {
   if (isSinkKilled('datadog')) {
@@ -34,7 +33,7 @@ function shouldTrackDatadog(): boolean {
     return isDatadogGateEnabled
   }
 
-  // Fallback to cached value from previous session
+  // 回退到上一个 session 的缓存值
   try {
     return checkStatsigFeatureGate_CACHED_MAY_BE_STALE(DATADOG_GATE_NAME)
   } catch {
@@ -43,39 +42,39 @@ function shouldTrackDatadog(): boolean {
 }
 
 /**
- * Log an event (synchronous implementation)
+ * 记录一个事件（同步实现）
  */
 function logEventImpl(eventName: string, metadata: LogEventMetadata): void {
-  // Check if this event should be sampled
+  // 检查此事件是否应被采样
   const sampleResult = shouldSampleEvent(eventName)
 
-  // If sample result is 0, the event was not selected for logging
+  // 若采样结果为 0，表示该事件未被选中记录
   if (sampleResult === 0) {
     return
   }
 
-  // If sample result is a positive number, add it to metadata
+  // 若采样结果为正数，将其加入 metadata
   const metadataWithSampleRate =
     sampleResult !== null
       ? { ...metadata, sample_rate: sampleResult }
       : metadata
 
   if (shouldTrackDatadog()) {
-    // Datadog is a general-access backend — strip _PROTO_* keys
-    // (unredacted PII-tagged values meant only for the 1P privileged column).
+    // Datadog 是通用访问的后端 —— 剥离 _PROTO_* key
+    //（未脱敏的 PII 标记值仅供 1P 特权列使用）。
     void trackDatadogEvent(eventName, stripProtoFields(metadataWithSampleRate))
   }
 
-  // 1P receives the full payload including _PROTO_* — the exporter
-  // destructures and routes those keys to proto fields itself.
+  // 1P 接收包含 _PROTO_* 的完整 payload —— exporter
+  // 自行解构并将这些 key 路由到 proto 字段。
   logEventTo1P(eventName, metadataWithSampleRate)
 }
 
 /**
- * Log an event (asynchronous implementation)
+ * 记录一个事件（异步实现）
  *
- * With Segment removed the two remaining sinks are fire-and-forget, so this
- * just wraps the sync impl — kept to preserve the sink interface contract.
+ * 移除 Segment 后，剩下的两个 sink 都是 fire-and-forget，因此这里
+ * 只是包装同步实现 —— 保留它是为了维持 sink 接口契约。
  */
 function logEventAsyncImpl(
   eventName: string,
@@ -86,12 +85,12 @@ function logEventAsyncImpl(
 }
 
 /**
- * Initialize analytics gates during startup.
+ * 在启动期间初始化 analytics gate。
  *
- * Updates gate values from server. Early events use cached values from previous
- * session to avoid data loss during initialization.
+ * 从 server 更新 gate 值。早期事件使用上一个 session 的缓存值，
+ * 以避免初始化期间的数据丢失。
  *
- * Called from main.tsx during setupBackend().
+ * 在 setupBackend() 期间由 main.tsx 调用。
  */
 export function initializeAnalyticsGates(): void {
   isDatadogGateEnabled =
@@ -99,12 +98,12 @@ export function initializeAnalyticsGates(): void {
 }
 
 /**
- * Initialize the analytics sink.
+ * 初始化 analytics sink。
  *
- * Call this during app startup to attach the analytics backend.
- * Any events logged before this is called will be queued and drained.
+ * 在 app 启动期间调用以接入 analytics backend。
+ * 在此之前记录的事件都会被入队并随后排空。
  *
- * Idempotent: safe to call multiple times (subsequent calls are no-ops).
+ * 幂等：可安全多次调用（后续调用为 no-op）。
  */
 export function initializeAnalyticsSink(): void {
   attachAnalyticsSink({

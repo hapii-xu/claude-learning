@@ -40,13 +40,13 @@ export function TeleportRepoMismatchDialog({
         return;
       }
 
-      // Path is invalid - remove it from config and update state
+      // 路径无效 —— 从 config 中移除并更新状态
       removePathFromRepo(targetRepo, value);
       const updatedPaths = availablePaths.filter(p => p !== value);
       setAvailablePaths(updatedPaths);
       setValidating(false);
 
-      setErrorMessage(`${getDisplayPath(value)} no longer contains the correct repository. Select another path.`);
+      setErrorMessage(`${getDisplayPath(value)} 不再包含正确的仓库。请选择其他路径。`);
     },
     [targetRepo, availablePaths, onSelectPath, onCancel],
   );
@@ -55,29 +55,29 @@ export function TeleportRepoMismatchDialog({
     ...availablePaths.map(path => ({
       label: (
         <Text>
-          Use <Text bold>{getDisplayPath(path)}</Text>
+          使用 <Text bold>{getDisplayPath(path)}</Text>
         </Text>
       ),
       value: path,
     })),
-    { label: 'Cancel', value: 'cancel' },
+    { label: '取消', value: 'cancel' },
   ];
 
   return (
-    <Dialog title="Teleport to Repo" onCancel={onCancel} color="background">
+    <Dialog title="Teleport 到仓库" onCancel={onCancel} color="background">
       {availablePaths.length > 0 ? (
         <>
           <Box flexDirection="column" gap={1}>
             {errorMessage && <Text color="error">{errorMessage}</Text>}
             <Text>
-              Open Claude Code in <Text bold>{targetRepo}</Text>:
+              在 <Text bold>{targetRepo}</Text> 中打开 Claude Code：
             </Text>
           </Box>
 
           {validating ? (
             <Box>
               <Spinner />
-              <Text> Validating repository…</Text>
+              <Text> 正在校验仓库…</Text>
             </Box>
           ) : (
             <Select options={options} onChange={value => void handleChange(value)} />
@@ -86,7 +86,7 @@ export function TeleportRepoMismatchDialog({
       ) : (
         <Box flexDirection="column" gap={1}>
           {errorMessage && <Text color="error">{errorMessage}</Text>}
-          <Text dimColor>Run claude --teleport from a checkout of {targetRepo}</Text>
+          <Text dimColor>请在 {targetRepo} 的某个检出中运行 claude --teleport</Text>
         </Box>
       )}
     </Dialog>

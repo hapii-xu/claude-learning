@@ -13,7 +13,7 @@ type IdeStatusIndicatorProps = {
 export function IdeStatusIndicator({ ideSelection, mcpClients }: IdeStatusIndicatorProps): React.ReactNode {
   const { status: ideStatus } = useIdeConnectionStatus(mcpClients);
 
-  // Check if we should show the IDE selection indicator
+  // 检查是否应显示 IDE 选中内容指示器
   const shouldShowIdeSelection =
     ideStatus === 'connected' && (ideSelection?.filePath || (ideSelection?.text && ideSelection.lineCount > 0));
 
@@ -24,7 +24,7 @@ export function IdeStatusIndicator({ ideSelection, mcpClients }: IdeStatusIndica
   if (ideSelection.text && ideSelection.lineCount > 0) {
     return (
       <Text color="ide" key="selection-indicator" wrap="truncate">
-        ⧉ {ideSelection.lineCount} {ideSelection.lineCount === 1 ? 'line' : 'lines'} selected
+        ⧉ 已选中 {ideSelection.lineCount} 行
       </Text>
     );
   }
@@ -32,7 +32,7 @@ export function IdeStatusIndicator({ ideSelection, mcpClients }: IdeStatusIndica
   if (ideSelection.filePath) {
     return (
       <Text color="ide" key="selection-indicator" wrap="truncate">
-        ⧉ In {basename(ideSelection.filePath)}
+        ⧉ 位于 {basename(ideSelection.filePath)}
       </Text>
     );
   }

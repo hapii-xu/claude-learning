@@ -49,7 +49,7 @@ function getMessagePreview(messages: InProcessTeammateTaskState['messages']): st
       if ('type' in block && block.type === 'tool_use' && 'name' in block) {
         // 尝试从工具输入中展示有意义的信息
         const input = 'input' in block ? (block.input as Record<string, unknown>) : null;
-        let toolLine = `Using ${block.name}…`;
+        let toolLine = `使用 ${block.name}…`;
         if (input) {
           // 查找常见的描述性字段
           const desc =
@@ -126,7 +126,7 @@ export function TeammateSpinnerLine({
   const displayTime = allIdle
     ? (frozenDurationRef.current ??
       (() => {
-        throw new Error(`frozenDurationRef is null for idle teammate ${teammate.identity.agentName}`);
+        throw new Error(`空闲 teammate 缺少 frozenDurationRef: ${teammate.identity.agentName}`);
       })())
     : idleElapsedTime;
 
@@ -140,11 +140,12 @@ export function TeammateSpinnerLine({
   // 从 progress 中获取统计
   const toolUseCount = teammate.progress?.toolUseCount ?? 0;
   const tokenCount = teammate.progress?.tokenCount ?? 0;
+  // 统计文案中的 "tool uses" / "tokens" 保留英文术语
   const statsText = ` · ${toolUseCount} tool ${toolUseCount === 1 ? 'use' : 'uses'} · ${formatNumber(tokenCount)} tokens`;
   const statsWidth = stringWidth(statsText);
   const selectHintText = ` · ${TEAMMATE_SELECT_HINT}`;
   const selectHintWidth = stringWidth(selectHintText);
-  const viewHintText = ' · enter to view';
+  const viewHintText = ' · 回车查看';
   const viewHintWidth = stringWidth(viewHintText);
 
   // 渐进式响应布局：
@@ -188,10 +189,10 @@ export function TeammateSpinnerLine({
   // 状态渲染逻辑
   const renderStatus = (): React.ReactNode => {
     if (teammate.shutdownRequested) {
-      return <Text dimColor>[stopping]</Text>;
+      return <Text dimColor>[停止中]</Text>;
     }
     if (teammate.awaitingPlanApproval) {
-      return <Text color="warning">[awaiting approval]</Text>;
+      return <Text color="warning">[等待批准]</Text>;
     }
     if (teammate.isIdle) {
       if (allIdle) {
@@ -201,7 +202,7 @@ export function TeammateSpinnerLine({
           </Text>
         );
       }
-      return <Text dimColor>Idle for {idleElapsedTime}</Text>;
+      return <Text dimColor>空闲 {idleElapsedTime}</Text>;
     }
     // 活跃 — 显示 spinner 字形 + 活动描述（仅在未高亮时；
     // 高亮时，上方的主 spinner 已经显示了动词）
@@ -238,7 +239,7 @@ export function TeammateSpinnerLine({
         )}
         {/* 提示：高亮时显示选择提示，选中但未前台时显示查看提示 */}
         {showSelectHint && <Text dimColor> · {TEAMMATE_SELECT_HINT}</Text>}
-        {showViewHint && <Text dimColor> · enter to view</Text>}
+        {showViewHint && <Text dimColor> · 回车查看</Text>}
       </Box>
       {/* 预览行 */}
       {previewLines.map((line, idx) => (

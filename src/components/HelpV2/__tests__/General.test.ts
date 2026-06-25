@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
 /**
- * Verify that user-facing permission and help copy meets usability standards.
- * These are pure string tests — no side effects, no React rendering.
+ * 验证面向用户的权限和帮助文案是否符合可用性标准。
+ * 这些是纯字符串测试 — 无副作用，无 React 渲染。
  */
 
 describe('Permission dialog footer hints', () => {
