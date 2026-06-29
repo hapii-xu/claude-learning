@@ -7,9 +7,9 @@ import type {
 } from './types.js'
 
 /**
- * Opaque host handle. The core side constructs one per tool call, containing toolUseContext/
- * canUseTool/parentMessage, etc. The package never inspects its internals; it only passes it through to the AgentRunner.
- * This is the only coupling seam between the package and the core layer, and it is opaque.
+ * 不透明的宿主句柄。核心层为每次工具调用构造一个，包含 toolUseContext/
+ * canUseTool/parentMessage 等。本包从不检查其内部结构，仅将其透传给 AgentRunner。
+ * 这是本包与核心层之间唯一的耦合接缝，且该接缝是不透明的。
  */
 const HOST_HANDLE = Symbol('workflow.hostHandle')
 
@@ -17,12 +17,12 @@ export type HostBundle = unknown
 
 export type HostHandle = { readonly [HOST_HANDLE]: HostBundle }
 
-/** Used by the core-side hostFactory: wraps any bundle into an opaque handle. */
+/** 由核心层 hostFactory 使用：将任意 bundle 包装成不透明句柄。 */
 export function createHostHandle(bundle: HostBundle): HostHandle {
   return { [HOST_HANDLE]: bundle } as HostHandle
 }
 
-/** Type guard. */
+/** 类型守卫。 */
 export function isHostHandle(value: unknown): value is HostHandle {
   return (
     typeof value === 'object' &&
@@ -31,12 +31,12 @@ export function isHostHandle(value: unknown): value is HostHandle {
   )
 }
 
-/** Used by the core-side adapter: unwraps (only the adapter should call this). */
+/** 由核心层适配器使用：解包（只有适配器应调用此函数）。 */
 export function unwrapHostHandle(handle: HostHandle): HostBundle {
   return (handle as { [k: symbol]: HostBundle })[HOST_HANDLE]
 }
 
-/** Backend for the agent() hook. */
+/** agent() hook 的后端。 */
 export type AgentRunner = {
   runAgentToResult(
     params: AgentRunParams,
@@ -44,16 +44,16 @@ export type AgentRunner = {
   ): Promise<AgentRunResult>
 }
 
-/** Progress event emitter. */
+/** 进度事件发射器。 */
 export type ProgressEmitter = {
   emit(event: ProgressEvent): void
 }
 
-/** Background task lifecycle. */
+/** 后台任务生命周期管理。 */
 export type TaskRegistrar = {
   /**
-   * Register a background task. The adapter creates an AbortController and stores it in task state,
-   * returning runId and signal (for the engine to execute detached + kill to abort).
+   * 注册后台任务。适配器创建 AbortController 并将其存入任务状态，
+   * 返回 runId 和 signal（引擎用于脱离式执行 + kill 时中止）。
    */
   register(
     opts: {
@@ -61,7 +61,7 @@ export type TaskRegistrar = {
       workflowFile?: string
       summary?: string
       toolUseId?: string
-      /** On resume, reuse the existing runId (read its journal). Omit to generate a new id. */
+      /** 恢复时，复用现有 runId（读取其 journal）。省略则生成新 id。 */
       runId?: string
     },
     host: HostHandle,
@@ -70,61 +70,61 @@ export type TaskRegistrar = {
   fail(runId: string, error: string): void
   kill(runId: string): void
   /**
-   * Register an agent-level AbortController. Called by the backend when starting an agent, so that service
-   * .kill(runId, agentId) can precisely abort a single agent (without affecting other agents in the same run).
-   * Idempotent: re-registering with the same agentId overwrites.
+   * 注册 agent 级 AbortController。后端在启动 agent 时调用，使 service
+   * .kill(runId, agentId) 能精确中止单个 agent（不影响同一运行中的其他 agent）。
+   * 幂等：以相同 agentId 重复注册会覆盖。
    */
   registerAgentAbort?(runId: string, agentId: number, ac: AbortController): void
   /**
-   * Unregister an agent-level AbortController (called when the agent completes/fails; idempotent).
+   * 注销 agent 级 AbortController（agent 完成/失败时调用；幂等）。
    */
   unregisterAgentAbort?(runId: string, agentId: number): void
   /**
-   * Abort a single agent. Returns whether it hit (false = agent already completed/does not exist).
-   * Does not affect other agents in the same run; the workflow continues (the aborted agent returns dead → null).
+   * 中止单个 agent。返回是否命中（false = agent 已完成/不存在）。
+   * 不影响同一运行中的其他 agent；workflow 继续执行（被中止的 agent 返回 dead → null）。
    */
   killAgent?(runId: string, agentId: number): boolean
-  /** Returns the current pending skip/retry action, or null. */
+  /** 返回当前待处理的 skip/retry 动作，或 null。 */
   pendingAction(runId: string): { kind: 'skip' | 'retry' } | null
 }
 
-/** Journal persistence. */
+/** journal 持久化。 */
 export type JournalStore = {
   read(runId: string): Promise<JournalEntry[]>
   append(runId: string, entry: JournalEntry): Promise<void>
   truncate(runId: string): Promise<void>
 }
 
-/** Cancellation / permission gate. */
+/** 取消 / 权限门控。 */
 export type PermissionGate = {
   isAborted(host: HostHandle): boolean
 }
 
-/** Logging + telemetry. */
+/** 日志 + 遥测。 */
 export type Logger = {
   debug(msg: string): void
   event(name: string, metadata?: Record<string, unknown>): void
   /**
-   * Warning-level log (e.g. errors swallowed when a single parallel/pipeline item fails).
-   * Optional: old ports implementations may omit it; hooks tolerate it with `?.()`.
+   * 警告级日志（例如单个 parallel/pipeline 条目失败时被吞掉的错误）。
+   * 可选：旧版 ports 实现可省略；hooks 通过 `?.()` 兼容。
    */
   warn?(msg: string): void
 }
 
-/** Ready-to-use context the engine extracts from the host (handle + basic fields). */
+/** 引擎从宿主提取的即用上下文（句柄 + 基本字段）。 */
 export type WorkflowHostContext = {
-  /** Opaque handle passed through to the AgentRunner (contains toolUseContext/canUseTool/parentMessage). */
+  /** 透传给 AgentRunner 的不透明句柄（含 toolUseContext/canUseTool/parentMessage）。 */
   handle: HostHandle
   cwd: string
-  /** Token budget cap; null means unlimited. */
+  /** token 预算上限；null 表示不限。 */
   budgetTotal: number | null
-  /** Core-side tool-use id (passed through to task registration). */
+  /** 核心层的工具使用 id（透传给任务注册）。 */
   toolUseId?: string
 }
 
 /**
- * Provided by the core side: constructs a WorkflowHostContext from the tool call's core context.
- * The arguments are opaque to the package (unknown); the core-side hostFactory knows the real types.
+ * 由核心层提供：从工具调用的核心上下文构造 WorkflowHostContext。
+ * 参数对本包不透明（unknown）；核心层的 hostFactory 知道真实类型。
  */
 export type HostFactory = (args: {
   context: unknown
@@ -132,12 +132,12 @@ export type HostFactory = (args: {
   parentMessage: unknown
 }) => WorkflowHostContext
 
-/** Aggregate of all ports. Injected into createWorkflowTool(ports). */
+/** 所有 port 的聚合。注入到 createWorkflowTool(ports) 中。 */
 export type WorkflowPorts = {
   agentRunner: AgentRunner
   /**
-   * Multi-backend adapter registry. When provided, takes precedence over agentRunner — hooks.agent routes
-   * to adapter.run via the registry; when omitted, falls back to agentRunner (backward compatibility).
+   * 多后端适配器注册表。提供时优先于 agentRunner——hooks.agent 通过注册表路由到 adapter.run；
+   * 省略时回退到 agentRunner（向后兼容）。
    */
   agentAdapterRegistry?: AgentAdapterRegistry
   progressEmitter: ProgressEmitter

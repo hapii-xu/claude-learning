@@ -1,11 +1,11 @@
 import { DEFAULT_MAX_CONCURRENCY, MAX_CONCURRENCY_CAP } from '../constants.js'
 
 /**
- * Async semaphore. acquire() returns a release function; on release the permit is transferred
- * directly to the next waiter (available stays unchanged), and only returned when there is no waiter. The total number of permits is conserved.
+ * 异步信号量。acquire() 返回一个释放函数；释放时许可直接转移给下一个等待者
+ * （available 保持不变），只有无等待者时才归还。许可总数保持守恒。
  *
- * acquire(signal?) supports cancellation: when the signal is already aborted or aborts while waiting, it rejects immediately,
- * the waiter is removed from the queue, and no permit is consumed (to avoid a canceled agent holding a concurrency slot).
+ * acquire(signal?) 支持取消：信号已中止或等待期间中止时立即 reject，
+ * 等待者从队列中移除，不消耗许可（避免已取消的 agent 占据并发槽）。
  */
 export class Semaphore {
   private available: number
@@ -48,24 +48,24 @@ export class Semaphore {
   private release(): void {
     const next = this.waiters.shift()
     if (next) {
-      next.wake() // transfer the permit directly
+      next.wake() // 直接将许可转移给等待者
     } else {
       this.available += 1
     }
   }
 }
 
-/** Default concurrency for the current process (backward-compatible entry; for a specific run, use clampMaxConcurrency to handle user input). */
+/** 当前进程的默认并发数（向后兼容入口；针对具体运行请使用 clampMaxConcurrency 处理用户输入）。 */
 export function maxConcurrency(): number {
   return DEFAULT_MAX_CONCURRENCY
 }
 
 /**
- * Normalize the "user-supplied maxConcurrency" to legal permits.
+ * 将"用户指定的 maxConcurrency"规范化为合法的许可数。
  * - undefined / NaN → DEFAULT_MAX_CONCURRENCY
- * - <1 → 1 (at least one concurrency slot, otherwise the workflow cannot progress)
+ * - <1 → 1（至少一个并发槽，否则 workflow 无法推进）
  * - >MAX_CONCURRENCY_CAP → MAX_CONCURRENCY_CAP
- * - otherwise the truncated original value
+ * - 其他情况：截断后的原始值
  */
 export function clampMaxConcurrency(n: number | undefined): number {
   if (n === undefined || Number.isNaN(n)) return DEFAULT_MAX_CONCURRENCY

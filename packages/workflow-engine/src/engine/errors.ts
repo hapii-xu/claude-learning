@@ -1,4 +1,4 @@
-/** Engine-level expected errors (script errors, caps, nesting). */
+/** 引擎级可预期错误（脚本错误、上限、嵌套）。 */
 export class WorkflowError extends Error {
   constructor(message: string) {
     super(message)
@@ -6,7 +6,7 @@ export class WorkflowError extends Error {
   }
 }
 
-/** workflow was aborted (killed). */
+/** workflow 已中止（killed）。 */
 export class WorkflowAbortedError extends Error {
   constructor() {
     super('workflow has been aborted')

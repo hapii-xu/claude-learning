@@ -1,0 +1,178 @@
+---
+title: "[7] Provider 分流：OpenAI / Gemini / Grok 兼容层"
+description: queryModel 在共享预处理完成后、Anthropic 专属逻辑开始前的一个分叉 —— 如果当前 provider 是 OpenAI/Gemini/Grok，就把控制权交给对应兼容层并提前 return。本文讲清为什么分流点选在这里、三个 provider 各自传 tools 还是 filteredTools 的区别、以及 OpenAI 为何需要完整工具池来在客户端模拟动态工具加载（src/services/api/claude.ts:1621-1662）。
+---
+
+# [7] Provider 分流：OpenAI / Gemini / Grok 兼容层
+
+> 这是 queryModel 里一个**提前 return 的分叉**（`claude.ts:1621-1662`）。Claude Code 支持 7 个 provider，其中 OpenAI/Gemini/Grok 走的是**兼容层**（把第三方 API 格式转成 Anthropic 内部格式）。当检测到这三者之一时，queryModel 把活儿交给对应的 `queryModel*` 函数，然后**直接 return**——本文件后面那一大堆 Anthropic 专属逻辑（betas、thinking、cache breakpoints、流式解析）**全部跳过**。
+
+---
+
+## 一、分流点的位置：为什么是这里
+
+```typescript
+// OpenAI 兼容的 provider：在共享的预处理（消息归一化、工具过滤、
+// 媒体剔除）之后、Anthropic 专属逻辑（betas、thinking、caching）之前，
+// 交给 OpenAI 适配层处理。
+if (getAPIProvider() === 'openai') { ... return }
+```
+
+注释点明了分流点的**精心选址**：
+
+```
+┌─────────────────────────────────────────┐
+│ 共享预处理（所有 provider 都需要）         │
+│  · 工具过滤 [4][5]                         │
+│  · 消息归一化 + 清洗 [6]                    │
+│  · 媒体剔除 [6]                            │
+├─────────────────────────────────────────┤  ← ★ 分流点在这里
+│ Anthropic 专属（只有第一方/Bedrock 需要）  │
+│  · betas / thinking / cache breakpoints   │
+│  · 流式 SSE 解析 [10]-[16]                  │
+└─────────────────────────────────────────┘
+```
+
+把分流点放在**两段之间**，让三个兼容层能**复用**上面所有通用的消息/工具预处理，又不必趟下面那堆 Anthropic 专属的水。这是很经济的设计——不在每个兼容层里重复实现归一化、配对修复、媒体剔除。
+
+---
+
+## 二、三个分流分支
+
+### 2.1 OpenAI（1624-1637）
+
+```typescript
+if (getAPIProvider() === 'openai') {
+  const { queryModelOpenAI } = await import('./openai/index.js')
+  yield* queryModelOpenAI(
+    messagesForAPI,
+    systemPrompt,
+    tools,            // ← 注意：完整 tools，不是 filteredTools
+    signal,
+    options,
+  )
+  return
+}
+```
+
+### 2.2 Gemini（1639-1650）
+
+```typescript
+if (getAPIProvider() === 'gemini') {
+  const { queryModelGemini } = await import('./gemini/index.js')
+  yield* queryModelGemini(
+    messagesForAPI,
+    systemPrompt,
+    filteredTools,    // ← filteredTools
+    signal,
+    options,
+    thinkingConfig,   // ← Gemini 多传了 thinkingConfig
+  )
+  return
+}
+```
+
+### 2.3 Grok（1652-1662）
+
+```typescript
+if (getAPIProvider() === 'grok') {
+  const { queryModelGrok } = await import('./grok/index.js')
+  yield* queryModelGrok(
+    messagesForAPI,
+    systemPrompt,
+    filteredTools,    // ← filteredTools
+    signal,
+    options,
+  )
+  return
+}
+```
+
+---
+
+## 三、⭐ 关键差异：tools vs filteredTools
+
+三个分支传的工具列表**不一样**，这是本节最值得记住的细节：
+
+| Provider | 传的工具 | 原因 |
+|---|---|---|
+| **OpenAI** | **完整 `tools`** | 要在**客户端模拟** Anthropic 的动态工具加载 |
+| **Gemini** | `filteredTools` | 直接用过滤后的工具集 |
+| **Grok** | `filteredTools` | 同上 |
+
+### 3.1 OpenAI 为何要完整工具池
+
+```typescript
+// OpenAI 在客户端模拟 Anthropic 的动态工具加载。它需要完整的工具池，
+// 以便 SearchExtraToolsTool 可以搜索那些被有意从上面的初始 API 工具列表
+// 里过滤掉的延迟 MCP 工具。
+```
+
+回顾 `[4][5]`：Anthropic 路径下，延迟工具被**服务端**机制管理，客户端只发核心工具 + SearchExtraTools。但 OpenAI 协议**没有**这套服务端能力，所以兼容层得**自己在客户端实现**整个"工具搜索/延迟加载"流程。
+
+要模拟它，`SearchExtraToolsTool` 必须能"看到"**所有**延迟工具（才能搜出来），因此 OpenAI 分支必须拿到**完整 `tools`**——而不是已经被剔掉延迟工具的 `filteredTools`。
+
+> 对比 `[5]` 里 `toolToAPISchema` 的同款思路：**真正发送**可以是过滤后的，但**"能搜到什么"的上下文**必须是完整的。OpenAI 把这条原则贯彻到整个查询。
+
+### 3.2 Gemini/Grok 为何用 filteredTools
+
+这两个兼容层的工具处理策略不同，直接消费过滤后的工具集即可（具体实现见各自兼容层 docs）。Gemini 还额外需要 `thinkingConfig`（因为它有自己的思考预算映射）。
+
+---
+
+## 四、`yield*` 委托：流如何穿透
+
+```typescript
+yield* queryModelOpenAI(...)
+return
+```
+
+`yield*`（委托生成器）的作用：把 `queryModelOpenAI` 这个生成器**吐出的每一个值**，原样转发给 queryModel 的消费者。也就是说兼容层产出的 `StreamEvent`/`AssistantMessage`/`错误消息`（同样的三类，见 `[0]`）会**透明地**流到上层——上层完全不知道背后是 OpenAI 还是 Anthropic。
+
+这正是 CLAUDE.md 里说的"**流适配器模式**：将第三方 API 格式转为 Anthropic 内部格式，下游代码完全不改"。`yield*` + `return` 就是这个"完全不改"的实现机制。
+
+---
+
+## 五、动态 import 的好处
+
+```typescript
+const { queryModelOpenAI } = await import('./openai/index.js')
+```
+
+和 `[5]` 的 cachedMicrocompact 同理：三个兼容层用**动态导入**，只在真正用到对应 provider 时才加载其模块。第一方用户（绝大多数）永远不会把 OpenAI/Gemini/Grok 的代码加载进内存——契合 CLAUDE.md 强调的**代码分割 / 按需加载**（减小 RSS）。
+
+---
+
+## 六、谁不在这里：firstParty 与 Bedrock
+
+`getAPIProvider()` 的 7 个值里，这里只拦截 3 个。剩下的：
+
+| Provider | 是否在此分流 | 走向 |
+|---|---|---|
+| `firstParty`（Anthropic 直连） | 否 | 继续往下（`[8]`+） |
+| `bedrock`（AWS） | 否 | 继续往下，但内部有多处 `getAPIProvider()==='bedrock'` 特判 |
+| `vertex`、`foundry` | 否 | 继续往下（走 Anthropic SDK 兼容路径） |
+| `openai` / `gemini` / `grok` | **是** | 兼容层 + return |
+
+所以这之后的所有逻辑（`[8]`~`[16]`）都默认运行在"**Anthropic SDK 协议**"下（含 Bedrock/Vertex 这类仍用 Anthropic 消息格式的网关）。
+
+---
+
+## 七、关键行号书签
+
+| 内容 | 位置 |
+|---|---|
+| 分流点选址注释 | `claude.ts:1621-1623` |
+| OpenAI 分支（传完整 tools） | `claude.ts:1624-1637` |
+| OpenAI 完整工具池注释 | `claude.ts:1626-1628` |
+| Gemini 分支（filteredTools + thinkingConfig） | `claude.ts:1639-1650` |
+| Grok 分支（filteredTools） | `claude.ts:1652-1662` |
+
+---
+
+## 速记口诀
+
+- **分流选址**：放在"共享预处理之后、Anthropic 专属之前"，让兼容层复用通用预处理。
+- **三分支提前 return**：OpenAI/Gemini/Grok 交给兼容层，跳过下面全部 Anthropic 逻辑。
+- **OpenAI 要完整 tools**：因为它在客户端模拟动态工具加载，SearchExtraTools 得能看到全部延迟工具；Gemini/Grok 用 filteredTools。
+- **yield* 透明转发**：流适配器模式，下游不知道也不关心背后是哪个 provider。

@@ -4,16 +4,15 @@ import { join } from 'node:path'
 import { WORKFLOW_RUNS_DIR } from '../constants.js'
 
 /**
- * Persist an inline workflow script to the run directory so the caller can
- * iterate via `scriptPath` + `resumeFromRunId` without resending the full script
- * (the round-trip the ultracode skill promises for the inline entry path).
+ * 将内联 workflow 脚本持久化到运行目录，使调用方能通过 `scriptPath` + `resumeFromRunId` 迭代，
+ * 无需重传完整脚本（ultracode skill 为内联入口路径承诺的往返优化）。
  *
- * Mirrors engine/journal.ts: writes directly via node:fs/promises (no port) to
- * `<cwd>/<WORKFLOW_RUNS_DIR>/<runId>/script.js` — the same directory as
- * journal.jsonl, so journalStore.truncate(runId) cleans it up alongside the journal.
+ * 与 engine/journal.ts 对称：通过 node:fs/promises 直接写入（无 port）到
+ * `<cwd>/<WORKFLOW_RUNS_DIR>/<runId>/script.js` —— 与 journal.jsonl 同目录，
+ * 因此 journalStore.truncate(runId) 会随 journal 一并清理。
  *
- * Fixed filename `script.js`: parseScript ignores the extension and the runId
- * already makes the directory unique, so a stable name aids muscle memory.
+ * 固定文件名 `script.js`：parseScript 忽略扩展名，runId 已使目录唯一，
+ * 稳定命名有助于肌肉记忆。
  */
 export async function persistInlineScript(
   script: string,

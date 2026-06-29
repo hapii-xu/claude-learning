@@ -167,7 +167,7 @@ export function modelSupportsAutoMode(_model: string): boolean {
  * - Vertex AI / Bedrock：tool-search-tool-2025-10-19
  * - 其他所有 provider：advanced-tool-use-2025-11-20
  */
-export function getSearchExtraToolsBetaHeader(): string {
+export function getToolSearchBetaHeader(): string {
   const provider = getAPIProvider()
   if (provider === 'vertex' || provider === 'bedrock') {
     return SEARCH_EXTRA_TOOLS_BETA_HEADER_3P
@@ -180,11 +180,19 @@ export function getSearchExtraToolsBetaHeader(): string {
  * 这些 betas 仅在 firstParty provider 上可用，代理或其他 provider 可能不支持。
  */
 export function shouldIncludeFirstPartyOnlyBetas(): boolean {
-  return (
-    (getAPIProvider() === 'firstParty' || getAPIProvider() === 'foundry') &&
-    !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS) &&
-    isFirstPartyAnthropicBaseUrl()
+  const provider = getAPIProvider()
+  const disabledByEnv = isEnvTruthy(
+    process.env.CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS,
   )
+  const firstPartyUrl = isFirstPartyAnthropicBaseUrl()
+  const result =
+    (provider === 'firstParty' || provider === 'foundry') &&
+    !disabledByEnv &&
+    firstPartyUrl
+  console.error(
+    `[DEBUG betas] shouldIncludeFirstPartyOnlyBetas: provider=${provider} disabledByEnv=${disabledByEnv} firstPartyUrl=${firstPartyUrl} → ${result}`,
+  )
+  return result
 }
 
 /**

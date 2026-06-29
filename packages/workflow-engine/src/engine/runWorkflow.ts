@@ -10,7 +10,7 @@ import { resolveNamedWorkflow } from './namedWorkflows.js'
 import { parseScript, type ParsedScript } from './script.js'
 
 export type RunWorkflowOptions = {
-  /** Already-resolved script source code. */
+  /** 已解析的脚本源代码。 */
   script: string
   args?: unknown
   runId: string
@@ -20,11 +20,11 @@ export type RunWorkflowOptions = {
   signal: AbortSignal
   cwd: string
   budgetTotal: number | null
-  /** Concurrency slots for a single run; undefined → DEFAULT_MAX_CONCURRENCY. */
+  /** 单次运行的并发槽数；undefined → DEFAULT_MAX_CONCURRENCY。 */
   maxConcurrency?: number
-  /** resume: when true, load the existing journal and replay. */
+  /** resume: true 时加载现有 journal 并重放。 */
   resume?: boolean
-  /** Whether the script source hash changed on resume. When true, ignore the journal and re-run everything. */
+  /** 恢复时脚本源 hash 是否变化。true 时忽略 journal 并全部重新运行。 */
   scriptChanged?: boolean
 }
 
@@ -49,7 +49,7 @@ export async function runWorkflow(
 
   const workflowName = opts.workflowName ?? parsed.meta?.name ?? 'workflow'
 
-  // Load the journal (only on resume and when the script is unchanged)
+  // 加载 journal（仅在恢复且脚本未变时）
   let journal: JournalEntry[] = []
   let journalInvalidated = false
   if (opts.resume && !opts.scriptChanged) {
@@ -79,7 +79,7 @@ export async function runWorkflow(
     meta: parsed.meta,
   })
 
-  // Sub-workflow executor: reuses the same ctx (sharing journal/concurrency/budget/counters), temporarily +1 depth
+  // 子 workflow 执行器：复用同一 ctx（共享 journal/并发/预算/计数器），临时 depth +1
   const runSubWorkflow: SubWorkflowRunner = async sub => {
     const script = await resolveSubScript(sub, opts.cwd)
     let subParsed: ParsedScript
@@ -102,9 +102,9 @@ export async function runWorkflow(
 
   const hooks = makeHooks(ctx, runSubWorkflow)
 
-  // hook.phase only emits phase_done for the previous phase when switching phases; when the script ends,
-  // currentPhase is the last phase, and there is no subsequent phase() to trigger its phase_done → the left pane of the UI
-  // would stay running forever (the agent list already shows ✓ done). Emit one before the terminal state — shared by all paths.
+  // hook.phase 仅在切换阶段时为上一阶段发出 phase_done；脚本结束时，
+  // currentPhase 是最后阶段，无后续 phase() 触发其 phase_done → UI 左侧面板会永远显示运行中
+  // （agent 列表已显示 ✓ 完成）。在终态前统一发出一次 —— 所有路径共享。
   const emitTerminalPhaseDone = (): void => {
     if (!ctx.currentPhase) return
     ports.progressEmitter.emit({

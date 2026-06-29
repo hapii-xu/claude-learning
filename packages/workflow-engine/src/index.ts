@@ -1,5 +1,5 @@
 // @claude-code-best/workflow-engine
-// Deterministic JS script orchestration engine. Zero core-layer runtime dependencies; talks to the world via port adapters.
+// 确定性 JS 脚本编排引擎。零核心层运行时依赖；通过 port 适配器与外部世界交互。
 
 export * from './types.js'
 export * from './constants.js'

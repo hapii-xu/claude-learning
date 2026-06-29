@@ -21,7 +21,7 @@ test('Semaphore limits concurrency, permit transfer does not leak', async () => 
     release()
   }
   await Promise.all(Array.from({ length: 6 }, () => task()))
-  expect(peak).toBe(2) // never exceeds permits
+  expect(peak).toBe(2) // 从不超过许可数
 })
 
 test('maxConcurrency returns DEFAULT_MAX_CONCURRENCY (=3)', () => {
@@ -40,7 +40,7 @@ test('clampMaxConcurrency: undefined/NaN→DEFAULT; <1→1; >CAP→CAP; normal v
   expect(clampMaxConcurrency(5)).toBe(5)
   expect(clampMaxConcurrency(1)).toBe(1)
   expect(clampMaxConcurrency(MAX_CONCURRENCY_CAP)).toBe(MAX_CONCURRENCY_CAP)
-  // decimal truncation (Semaphore already does Math.max(1, Math.floor); clampMaxConcurrency explicitly truncs)
+  // 小数截断（Semaphore 已执行 Math.max(1, Math.floor)；clampMaxConcurrency 显式截断）
   expect(clampMaxConcurrency(2.9)).toBe(2)
 })
 
@@ -81,26 +81,26 @@ test('Semaphore wakes up in FIFO order', async () => {
 })
 
 test('Semaphore.acquire with an aborted signal → immediately rejects, no permit consumed', async () => {
-  // Fix L: a queued waiter on abort must reject immediately instead of waiting for a permit.
-  // Otherwise a cancelled agent blocks on acquire(), the permit is consumed (transferred to a dead waiter),
-  // reducing actual concurrency capacity; in the worst case all waiters are cancelled while the semaphore still queues for dead waiters.
+  // 修复 L：中止时排队的等待者必须立即 reject 而非等待许可。
+  // 否则已取消的 agent 阻塞在 acquire()，许可被消耗（转移给死等待者），
+  // 降低实际并发能力；最坏情况下所有等待者已取消，信号量仍为死等待者排队。
   const sem = new Semaphore(1)
   const ac = new AbortController()
 
-  // occupy the only permit
+  // 占据唯一许可
   const first = await sem.acquire()
 
-  // queued waiter
+  // 排队的等待者
   const queued = sem.acquire(ac.signal)
   await new Promise(r => {
     setTimeout(r, 5)
   })
 
-  // abort → waiter should reject immediately
+  // 中止 → 等待者应立即 reject
   ac.abort()
   await expect(queued).rejects.toThrow()
 
-  // no permit leak: after releasing first, a new acquire should get it immediately (no stale waiter preemption)
+  // 无许可泄漏：释放 first 后，新的 acquire 应立即获得（无过期等待者抢占）
   first()
   const third = await sem.acquire()
   expect(third).toBeTypeOf('function')
@@ -111,9 +111,9 @@ test('Semaphore.acquire with an already aborted signal → synchronous reject', 
   const sem = new Semaphore(1)
   const ac = new AbortController()
   ac.abort()
-  // signal already aborted, should not acquire even if a permit is available (semantics: caller already cancelled)
-  // Note: current implementation checks available first and may return directly. This test locks "check abort first".
-  // If the implementation chose "prefer granting when permit available", this test would change to: acquire succeeds, caller checks abort later.
-  // Current implementation chose the former: aborted signal throws immediately, preventing dead agents from grabbing permits.
+  // 信号已中止，即使有许可也不应获取（语义：调用者已取消）
+  // 注意：当前实现先检查 available 并可能直接返回。此测试锁定"优先检查中止"。
+  // 若实现选择"许可可用时优先授予"，此测试将改为：acquire 成功，调用者稍后检查中止。
+  // 当前实现采用前者：中止信号立即抛出，阻止死 agent 抢占许可。
   await expect(sem.acquire(ac.signal)).rejects.toThrow()
 })

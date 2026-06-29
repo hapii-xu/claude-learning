@@ -51,24 +51,50 @@ type AdvisorConfig = {
 }
 
 function getAdvisorConfig(): AdvisorConfig {
-  return getFeatureValue_CACHED_MAY_BE_STALE<AdvisorConfig>(
+  const result = getFeatureValue_CACHED_MAY_BE_STALE<AdvisorConfig>(
     'tengu_sage_compass',
     {},
   )
+  console.error(
+    '[DEBUG advisor] getAdvisorConfig result:',
+    JSON.stringify(result),
+  )
+  return result
 }
 
 export function isAdvisorEnabled(): boolean {
   if (isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL)) {
+    console.error(
+      '[DEBUG advisor] isAdvisorEnabled: false (DISABLE_ADVISOR_TOOL env set)',
+    )
     return false
   }
   // advisor beta 头部仅限第一方（Bedrock/Vertex 会返回 400）。
-  if (!shouldIncludeFirstPartyOnlyBetas()) {
+  if (!shouldIncludeFirstPartyOnlyBetas() && process.env.USER_TYPE !== 'ant') {
+    console.error(
+      '[DEBUG advisor] isAdvisorEnabled: false (shouldIncludeFirstPartyOnlyBetas=false)',
+    )
     return false
   }
-  return getAdvisorConfig().enabled ?? false
+  const config = getAdvisorConfig()
+  console.error(
+    '[DEBUG advisor] isAdvisorEnabled: config.enabled =',
+    config.enabled,
+  )
+  return config.enabled ?? false
 }
 
 export function canUserConfigureAdvisor(): boolean {
+  // ┌──────────────┬──────────────────────────────────────────────────────────────┬────────────────────────────┐
+  // │     字段     │                             含义                             │            例子            │
+  // ├──────────────┼──────────────────────────────────────────────────────────────┼────────────────────────────┤
+  // │ baseModel    │ 基础模型/主模型 —— 当前跑 agent 主循环的那个模型，即"提问方" │ 你现在用的 options.model   │
+  // ├──────────────┼──────────────────────────────────────────────────────────────┼────────────────────────────┤
+  // │ advisorModel │ 顾问模型/reviewer —— 被请教来给建议的更强模型，即"回答方"    │ 想让它充当 reviewer 的模型 │
+  // └──────────────┴──────────────────────────────────────────────────────────────┴────────────────────────────┘
+
+  // 实验的语义是："当用户的主模型正好是 baseModel 时，强制把它的 advisor 覆盖成 advisorModel"。这是 Anthropic 做 A/B
+  // 实验用的——"对跑模型 X 的用户，强制 advisor 用模型 Y，看看效果"。
   return isAdvisorEnabled() && (getAdvisorConfig().canUserConfigure ?? false)
 }
 

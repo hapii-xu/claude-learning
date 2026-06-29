@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>工具搜索（SearchExtraTools）深度学习 — queryModel 请求前的工具按需加载机制</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════ HERO ════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 工具搜索</div>
+  <h1>工具搜索 <span>SearchExtraTools</span> 深度学习</h1>
+  <p class="hero-sub">
+    <strong>queryModel() 请求前的"工具按需加载"机制</strong>完整拆解 —— 为什么过滤工具、三种模式（tst / tst-auto / standard）、检索器三条处理路径、关键词 + TF-IDF 双算法融合、token 消耗精算、跨轮次发现与 prompt 缓存保护。
+  </p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>claude.ts:1417–1480</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>3 种模式</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>3 条检索路径</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>关键词 + TF-IDF 双算法</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、为什么处理工具</a></li>
+    <li><a href="#sec-2">二、claude.ts 逐段</a></li>
+    <li><a href="#sec-3">三、三种模式</a></li>
+    <li><a href="#sec-4">四、检索器三路</a></li>
+    <li><a href="#sec-5">五、双算法</a></li>
+    <li><a href="#sec-6">六、结果引导</a></li>
+    <li><a href="#sec-7">七、跨轮次发现</a></li>
+    <li><a href="#sec-8">八、token 精算</a></li>
+    <li><a href="#sec-9">九、完整调用链</a></li>
+    <li><a href="#sec-10">十、行号书签</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<!-- ════════════════ 一、为什么处理工具 ════════════════ -->
+<section id="sec-1">
+  <h2>一、为什么请求前要"处理工具"</h2>
+
+  <h3>1.1 问题：工具定义很贵</h3>
+  <p>每个工具发给 Claude API 时都要带 <strong>名称 + 描述 + 输入参数 JSON Schema</strong>，单个通常 <strong>几百到上千 token</strong>。接入多个 MCP 服务器后，延迟工具轻松 40+ 个：</p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>维度</th><th>全量内联的代价</th></tr>
+      <tr><td>上下文窗口</td><td>40 工具 × ~500 token ≈ <strong>20000 token</strong>，对话还没开始就被占掉</td></tr>
+      <tr><td>每轮计费</td><td>工具定义算 input token，<strong>每一轮请求都重复付费</strong></td></tr>
+      <tr><td>模型分心</td><td>40 个工具里 38 个与当前任务无关，干扰决策质量</td></tr>
+    </table>
+  </div>
+
+  <h3>1.2 解决方案：核心工具常驻，其余按需发现</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>类别</th><th>数量</th><th>处理方式</th></tr>
+      <tr><td><code>CORE_TOOLS</code> 核心工具</td><td>~30 个</td><td>永远内联，每次请求都带完整 schema</td></tr>
+      <tr><td>Deferred 延迟工具</td><td>其余全部 + 所有 MCP 工具</td><td>默认不发，模型看不见，需用 <code>SearchExtraTools</code> 搜出来</td></tr>
+    </table>
+  </div>
+  <p><code>isDeferredTool(tool)</code> 判定规则极简：<strong>不在 CORE_TOOLS 白名单里 = 延迟工具</strong>。</p>
+
+  <div class="callout">
+    <strong>类比：</strong>图书馆书架上只摆常用书（核心工具），其余几万册放书库（延迟工具）。<code>SearchExtraTools</code> 是检索终端——输关键词，它告诉你"书在 X 区"，再用 <code>ExecuteExtraTool</code> 去取。
+  </div>
+</section>
+
+<!-- ════════════════ 二、claude.ts 逐段 ════════════════ -->
+<section id="sec-2">
+  <h2>二、claude.ts 中的决策与过滤逐段拆解</h2>
+  <p>完整逻辑位于 <code>queryModel()</code> 内，约 <code>claude.ts:1417–1480</code>。</p>
+
+  <div class="flow-steps">
+    <div class="flow-step"><span class="flow-num">1</span><div class="flow-body"><div class="flow-title">决定要不要启用（1417）</div><div class="flow-desc"><code>isSearchExtraToolsEnabled()</code> —— 最终确定性检查：模式 + 工具可用性 + tst-auto 阈值</div></div></div>
+    <div class="flow-step"><span class="flow-num">2</span><div class="flow-body"><div class="flow-title">预计算延迟工具名单（1427）</div><div class="flow-desc">一次性算好存进 Set，避免后面 filter 反复触发 isDeferredTool 的 2 次 GrowthBook 查询</div></div></div>
+    <div class="flow-step"><span class="flow-num">3</span><div class="flow-body"><div class="flow-title">没必要就关掉（1436）</div><div class="flow-desc">无延迟工具 且 无 MCP 在连接 → 搜索无意义，直接关；hasPendingMcpServers 为真则保留</div></div></div>
+    <div class="flow-step"><span class="flow-num">4</span><div class="flow-body"><div class="flow-title">核心过滤动作（1452）★</div><div class="flow-desc">从 API tools 数组剔除所有未发现的延迟工具，只留核心 + SearchExtraTools</div></div></div>
+    <div class="flow-step"><span class="flow-num">5</span><div class="flow-body"><div class="flow-title">加 beta 头（1473）</div><div class="flow-desc">getToolSearchBetaHeader()，bedrock 除外（AWS 网关不认）</div></div></div>
+    <div class="flow-step"><span class="flow-num">6</span><div class="flow-body"><div class="flow-title">确认 API tools 数组（1559）</div><div class="flow-desc">日志确认：延迟工具数永远是 0，全部走 ExecuteExtraTool</div></div></div>
+  </div>
+
+  <h3>2.1 第 ④ 步核心过滤代码（claude.ts:1452）</h3>
+<pre><code><span class="k">let</span> <span class="n">filteredTools</span><span class="p">:</span> <span class="t">Tools</span>
+<span class="k">if</span> (<span class="n">useSearchExtraTools</span>) {
+  <span class="n">filteredTools</span> <span class="p">=</span> <span class="n">tools</span>.<span class="n">filter</span>(<span class="n">tool</span> <span class="p">=&gt;</span> {
+    <span class="c">// 非延迟工具（核心工具）始终包含</span>
+    <span class="k">if</span> (!<span class="n">deferredToolNames</span>.<span class="n">has</span>(<span class="n">tool</span>.<span class="n">name</span>)) <span class="k">return</span> <span class="k">true</span>
+    <span class="c">// SearchExtraToolsTool 始终包含（以便它能发现更多工具）</span>
+    <span class="k">if</span> (<span class="n">toolMatchesName</span>(<span class="n">tool</span>, <span class="n">SEARCH_EXTRA_TOOLS_TOOL_NAME</span>)) <span class="k">return</span> <span class="k">true</span>
+    <span class="c">// 其他延迟工具全部排除 —— 改用 ExecuteExtraTool</span>
+    <span class="k">return</span> <span class="k">false</span>
+  })
+} <span class="k">else</span> {
+  <span class="c">// 关闭搜索：剔除 SearchExtraTools 本身，其余全部内联</span>
+  <span class="n">filteredTools</span> <span class="p">=</span> <span class="n">tools</span>.<span class="n">filter</span>(
+    <span class="n">t</span> <span class="p">=&gt;</span> !<span class="n">toolMatchesName</span>(<span class="n">t</span>, <span class="n">SEARCH_EXTRA_TOOLS_TOOL_NAME</span>),
+  )
+}</code></pre>
+
+  <div class="callout green">
+    <strong>保护 prompt 缓存的精髓：</strong>注释明确写道"保持 tools 数组稳定可以跨轮次保留 prompt 缓存"。Anthropic 的 prompt 缓存按<strong>前缀精确匹配</strong>，tools 数组的 JSON 一变缓存就失效、要重新付全价。所以<strong>已发现的工具绝不被塞回 tools 数组</strong>，而是通过 <code>ExecuteExtraTool</code> 在运行时从全局注册表查出来执行。
+  </div>
+</section>
+
+<!-- ════════════════ 三、三种模式 ════════════════ -->
+<section id="sec-3">
+  <h2>三、三种工具搜索模式</h2>
+  <p>模式由 <code>getSearchExtraToolsMode()</code>（<code>searchExtraTools.ts:169</code>）根据环境变量 <code>ENABLE_SEARCH_EXTRA_TOOLS</code> 决定。</p>
+
+  <div class="mode-grid">
+    <div class="mode-card">
+      <div class="mode-header orange">tst（默认）</div>
+      <div class="mode-body">
+        <p><strong>永远懒加载。</strong>不管装多少工具，非核心工具一律延迟。Claude Code 默认行为。</p>
+        <p class="trigger">true / auto:0 / 不设置</p>
+      </div>
+    </div>
+    <div class="mode-card">
+      <div class="mode-header blue">tst-auto</div>
+      <div class="mode-body">
+        <p><strong>够多了才懒加载。</strong>延迟工具总 token ≥ 上下文窗口 × N%（默认 10%）才延迟，否则全量内联。</p>
+        <p class="trigger">auto / auto:1~99</p>
+      </div>
+    </div>
+    <div class="mode-card">
+      <div class="mode-header purple">standard</div>
+      <div class="mode-body">
+        <p><strong>禁用搜索。</strong>所有工具全量内联，没有 SearchExtraTools 那套。</p>
+        <p class="trigger">false / auto:100 / 全局退出标志</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>3.1 tst-auto 阈值逻辑</h3>
+<pre><code>延迟工具总 token <span class="p">&gt;=</span> 上下文窗口 × N%   →  启用 tst（延迟）
+否则                                  →  退回全量内联</code></pre>
+  <p>例如 200k 窗口 + <code>auto:10</code>，阈值 = 20000 token：延迟工具 25000 token → 走延迟；8000 token → 全量内联（搜索那点开销不划算）。<strong>这正是 tst-auto 存在的意义：工具少时搜索不值。</strong></p>
+
+  <h3>3.2 auto:0 / auto:100 为何是特例</h3>
+<pre><code><span class="k">if</span> (<span class="n">autoPercent</span> <span class="p">===</span> <span class="num">0</span>)   <span class="k">return</span> <span class="s">'tst'</span>       <span class="c">// 阈值 0%，任何量都"超过" = 始终启用</span>
+<span class="k">if</span> (<span class="n">autoPercent</span> <span class="p">===</span> <span class="num">100</span>) <span class="k">return</span> <span class="s">'standard'</span>  <span class="c">// 阈值 100%，永远"达不到" = 关闭</span>
+<span class="k">if</span> (<span class="n">isAutoSearchExtraToolsMode</span>(<span class="n">value</span>)) <span class="k">return</span> <span class="s">'tst-auto'</span></code></pre>
+  <p>与其让 tst-auto 分支算一个必然的结果，不如直接折叠成确定模式——更快、语义更清晰。</p>
+
+  <h3>3.3 完整决策流程</h3>
+  <div class="mermaid-box">getSearchExtraToolsMode()
+│
+├─ CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1?  ─→ standard
+├─ 值 = auto:0?                               ─→ tst
+├─ 值 = auto:100?                             ─→ standard
+├─ 值 = auto / auto:1~99?                     ─→ tst-auto
+├─ 值 = true?                                 ─→ tst
+├─ 值 = false?                                ─→ standard
+└─ 未设置（默认）                             ─→ tst</div>
+</section>
+
+<!-- ════════════════ 四、检索器三路 ════════════════ -->
+<section id="sec-4">
+  <h2>四、SearchExtraTools 检索器：三条处理路径</h2>
+  <p>工具本体在 <code>SearchExtraToolsTool.ts</code> 的 <code>call()</code>（约 349 行），根据 <code>query</code> 格式分三路。</p>
+
+  <div class="card-grid">
+    <div class="card orange">
+      <div class="card-icon">🎯</div>
+      <div class="card-title">select: 直接选定</div>
+      <div class="card-body"><code>select:WebFetch,WebSearch</code><br/>模型已知工具名（如压缩后从历史看到），直接点名。只做名称匹配，<strong>不跑检索</strong>。支持逗号多选。若是核心工具则标记 already_loaded。</div>
+    </div>
+    <div class="card blue">
+      <div class="card-icon">🔍</div>
+      <div class="card-title">discover: 纯探查</div>
+      <div class="card-body"><code>discover:calendar</code><br/>返回名称 + 描述 + schema 文本，但<strong>不真正解锁</strong>。用于"先看看有什么"而不承诺调用。</div>
+    </div>
+    <div class="card green">
+      <div class="card-icon">⚡</div>
+      <div class="card-title">关键词 混合检索（主力）</div>
+      <div class="card-body"><code>send an email</code><br/>并行跑关键词 + TF-IDF 两套算法，再加权融合（0.4 / 0.6）。</div>
+    </div>
+  </div>
+
+  <h3>4.1 主力路径：并行 + 融合（SearchExtraToolsTool.ts:471）</h3>
+<pre><code><span class="k">const</span> [<span class="n">keywordMatches</span>, <span class="n">index</span>] <span class="p">=</span> <span class="k">await</span> <span class="t">Promise</span>.<span class="n">all</span>([
+  <span class="n">searchToolsWithKeywords</span>(<span class="n">query</span>, <span class="n">deferredTools</span>, <span class="n">tools</span>, <span class="n">max_results</span>), <span class="c">// 算法 A</span>
+  <span class="n">getToolIndex</span>(<span class="n">deferredTools</span>),                                       <span class="c">// 构建/取缓存索引</span>
+])
+<span class="k">const</span> <span class="n">tfIdfResults</span> <span class="p">=</span> <span class="n">searchTools</span>(<span class="n">query</span>, <span class="n">index</span>, <span class="n">max_results</span>)          <span class="c">// 算法 B</span>
+
+<span class="c">// 融合：关键词 × 0.4 + TF-IDF × 0.6</span>
+<span class="n">mergedScores</span> <span class="p">=</span> <span class="n">keyword</span> <span class="p">*</span> <span class="n">KEYWORD_WEIGHT</span> <span class="p">+</span> <span class="n">tfidf</span> <span class="p">*</span> <span class="n">TFIDF_WEIGHT</span></code></pre>
+</section>
+
+<!-- ════════════════ 五、双算法 ════════════════ -->
+<section id="sec-5">
+  <h2>五、两套检索算法详解</h2>
+
+  <h3>5.1 算法 A：关键词搜索（基于字面 + 人工权重）</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>匹配位置</th><th>得分</th><th>说明</th></tr>
+      <tr><td>工具名精确部分（MCP）</td><td><strong>12</strong></td><td><code>mcp__Gmail__send</code> 命中 "gmail"</td></tr>
+      <tr><td>工具名精确部分（普通）</td><td>10</td><td></td></tr>
+      <tr><td>工具名部分包含</td><td>5~6</td><td></td></tr>
+      <tr><td><code>searchHint</code> 命中</td><td><strong>4</strong></td><td>人工精选的能力短语，信号强</td></tr>
+      <tr><td>描述命中（词边界）</td><td>2</td><td></td></tr>
+    </table>
+  </div>
+  <p>支持 <code>+</code> 前缀强制必需词（<code>+slack send</code> = 必须含 slack）。擅长<strong>精确命中服务器名 / 动词</strong>。</p>
+
+  <h3>5.2 算法 B：TF-IDF 语义搜索（toolIndex.ts）</h3>
+  <div class="mermaid-box">1. 工具字段加权：名称 × 3.0、searchHint × 2.5、描述 × 1.0
+   → 分词、加权得到 tf 向量（TOOL_FIELD_WEIGHT）
+2. computeIdf：稀有词权重高（出现在所有工具里的词没区分度）
+3. cosineSimilarity：查询向量 vs 每个工具向量，算夹角余弦
+4. 分数 &gt;= 0.10（SEARCH_EXTRA_TOOLS_DISPLAY_MIN_SCORE）才入选</div>
+  <p>擅长<strong>语义 / 模糊匹配</strong>——搜 "schedule a meeting"，即使工具名没这几个词，描述相关也能命中。两个特殊处理：</p>
+  <ul>
+    <li><strong>CJK（中日韩）</strong>：中文 bigram 至少匹配 2 个才算（<code>CJK_MIN_BIGRAM_MATCHES</code>），避免单字误命中</li>
+    <li><strong>全名直接命中</strong>：查询包含完整规范化工具名，分数直接拉到 0.75</li>
+  </ul>
+
+  <div class="callout blue">
+    <strong>为什么双算法融合：</strong>关键词搜索<strong>精确但脆</strong>（没字面词就 0 分），TF-IDF <strong>宽容但模糊</strong>。0.4 / 0.6 加权让二者互补：精确命中排前面，语义相关的也不漏。
+  </div>
+
+  <h3>5.3 索引缓存</h3>
+  <p><code>getToolIndex()</code> 以"延迟工具名排序拼接"为缓存键。工具列表不变就<strong>直接返回缓存索引不重建</strong>——MCP 服务器连接/断开导致工具变化时才失效。</p>
+</section>
+
+<!-- ════════════════ 六、结果引导 ════════════════ -->
+<section id="sec-6">
+  <h2>六、返回结果：引导模型用 ExecuteExtraTool</h2>
+  <p><code>mapToolResultToToolResultBlockParam</code>（约 540 行）把结果转成给模型看的<strong>文本</strong>，而非塞工具 schema。</p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>情况</th><th>返回文本（要点）</th></tr>
+      <tr><td>命中<strong>已是核心工具</strong></td><td>"…已作为核心工具加载——请<strong>直接调用</strong>，不要用 ExecuteExtraTool"</td></tr>
+      <tr><td>命中<strong>延迟工具</strong></td><td>"找到 N 个延迟工具：X, Y。请使用 <strong>ExecuteExtraTool</strong> 调用"</td></tr>
+      <tr><td>无匹配但有 MCP 在连</td><td>"部分 MCP 服务器仍在连接中：…，请稍后再次搜索"</td></tr>
+    </table>
+  </div>
+  <p>这就是为什么模型搜完后下一步是调 <code>ExecuteExtraTool</code>，而不是工具突然出现在工具列表里。</p>
+</section>
+
+<!-- ════════════════ 七、跨轮次发现 ════════════════ -->
+<section id="sec-7">
+  <h2>七、跨轮次工具发现与压缩</h2>
+  <p>模型搜到工具后，后续每轮怎么"记得"它可用？靠 <code>extractDiscoveredToolNames</code>（<code>searchExtraTools.ts:487</code>）扫描消息历史重建发现集。识别三种来源：</p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>来源</th><th>说明</th></tr>
+      <tr><td>压缩边界 <code>compact_boundary</code></td><td>携带 <code>preCompactDiscoveredTools</code> 快照（压缩会删历史，必须把发现集存进边界标记）</td></tr>
+      <tr><td><code>deferred_tools_delta</code> 附件</td><td>声明模型应视为可用的工具（<code>addedNames</code>）</td></tr>
+      <tr><td><code>tool_result</code> 文本</td><td>从 "Found N deferred tool(s): …" 解析工具名</td></tr>
+    </table>
+  </div>
+  <div class="callout">
+    <strong>与过滤器配合：</strong>claude.ts 第 ④ 步过滤时会保留这些"已发现"工具的 schema。模型跨轮次始终能调用它们，<strong>同时 tools 数组的稳定结构不被破坏</strong>。
+  </div>
+</section>
+
+<!-- ════════════════ 八、token 精算 ════════════════ -->
+<section id="sec-8">
+  <h2>八、⭐ token 消耗精算</h2>
+  <p>整套设计的核心：<strong>搜索算法本地跑（免费），只有工具调用往返产生少量 token</strong>。</p>
+
+  <h3>8.1 消耗 token 的部分（走 API，要钱）</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>环节</th><th>token 类型</th><th>大小</th></tr>
+      <tr><td>模型生成 tool_use（query）</td><td>output</td><td>极小，~20 token</td></tr>
+      <tr><td>工具结果回传（引导文本）</td><td>input（下一轮）</td><td>小，~50–150 token</td></tr>
+      <tr><td>SearchExtraTools 自身 schema</td><td>input（每轮常驻）</td><td>中，作为核心工具常驻</td></tr>
+    </table>
+  </div>
+
+  <h3>8.2 不消耗 API token 的部分（本地计算，免费）</h3>
+<pre><code><span class="n">searchToolsWithKeywords</span>()  <span class="c">// 本地 JS 字符串匹配</span>
+<span class="n">searchTools</span>() <span class="p">/</span> TF-IDF     <span class="c">// 本地向量计算</span>
+<span class="n">getToolIndex</span>()             <span class="c">// 本地构建索引（有缓存）</span></code></pre>
+  <p>TF-IDF 构建时调每个工具的 <code>tool.prompt()</code> 拿描述，但那是<strong>读本地工具定义</strong>，不是 API 调用。</p>
+
+  <h3>8.3 算总账：为什么划算</h3>
+  <div class="mermaid-box">假设 40 个延迟工具，每个 ~500 token：
+
+不用搜索（standard）：
+  每轮付 40 × 500 = 20000 input token
+  × 整个对话 N 轮 = 20000N token
+
+用搜索（tst）：
+  常驻 SearchExtraTools schema ~300 token/轮
+  一次搜索往返 ~200 token（一次性）
+  发现 2 个工具后用 ExecuteExtraTool 调用
+  → 总共可能就 1000–2000 token</div>
+  <div class="callout green">
+    <strong>省下的远多于花掉的</strong>——只要延迟工具足够多。这也正是 <code>tst-auto</code> 存在的意义：工具少时搜索那点开销不值，不如全量内联。
+  </div>
+</section>
+
+<!-- ════════════════ 九、完整调用链 ════════════════ -->
+<section id="sec-9">
+  <h2>九、完整调用链串联</h2>
+  <div class="mermaid-box">queryModel() 准备请求
+   │
+   ▼
+isSearchExtraToolsEnabled()  ── 判定模式 + 阈值
+   │
+   ▼ 启用搜索?
+   ├─ 否(standard) ─→ 全量内联所有工具
+   └─ 是(tst/tst-auto)
+        │
+        ▼
+   预计算 deferredToolNames
+        │
+        ▼
+   filteredTools 过滤 ★  ── 只留核心 + SearchExtraTools
+        │
+        ▼
+   加 beta 头 + 发送 API
+        │
+        ▼
+   模型看不到延迟工具 ─→ 调 SearchExtraTools(query)
+        │
+        ▼
+   本地：关键词×0.4 + TF-IDF×0.6  ── 免费检索
+        │
+        ▼
+   返回文本：引导用 ExecuteExtraTool
+        │
+        ▼
+   模型调 ExecuteExtraTool 执行
+        │
+        ▼
+   extractDiscoveredToolNames  ── 记住，跨轮次保持可用
+        │
+        ▼
+   tools 数组不变 → prompt 缓存不破</div>
+
+  <h3>完整案例：用户说"帮我发封邮件"（已接 Gmail MCP）</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>步骤</th><th>发生什么</th><th>token</th></tr>
+      <tr><td>1</td><td>claude.ts 过滤 → 只发 30 核心 + SearchExtraTools（Gmail 15 工具隐身）</td><td>省 ~7500</td></tr>
+      <tr><td>2</td><td>模型看不到 Gmail 工具，调 <code>SearchExtraTools("send email")</code></td><td>~20 out</td></tr>
+      <tr><td>3</td><td>本地跑关键词 + TF-IDF 检索</td><td><strong>免费</strong></td></tr>
+      <tr><td>4</td><td>返回："找到 mcp__Gmail__create_draft，请用 ExecuteExtraTool"</td><td>~80 in</td></tr>
+      <tr><td>5</td><td>模型调 <code>ExecuteExtraTool</code> 执行该工具</td><td>正常</td></tr>
+      <tr><td>6</td><td><code>extractDiscoveredToolNames</code> 记住它，后续轮次保持可用</td><td>—</td></tr>
+      <tr><td>7</td><td>全程 tools 数组不变，prompt 缓存命中</td><td>省全价</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 十、行号书签 ════════════════ -->
+<section id="sec-10">
+  <h2>十、关键行号书签</h2>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>内容</th><th>位置</th></tr>
+      <tr><td><code>isSearchExtraToolsEnabled</code> 调用</td><td><code>claude.ts:1417</code></td></tr>
+      <tr><td>预计算 deferredToolNames</td><td><code>claude.ts:1427</code></td></tr>
+      <tr><td>没必要就关闭</td><td><code>claude.ts:1436</code></td></tr>
+      <tr><td>核心过滤 filteredTools</td><td><code>claude.ts:1452</code></td></tr>
+      <tr><td>beta 头</td><td><code>claude.ts:1473</code></td></tr>
+      <tr><td><code>getSearchExtraToolsMode</code></td><td><code>searchExtraTools.ts:169</code></td></tr>
+      <tr><td><code>isSearchExtraToolsEnabled</code>（确定性检查）</td><td><code>searchExtraTools.ts:294</code></td></tr>
+      <tr><td><code>checkAutoThreshold</code>（阈值计算）</td><td><code>searchExtraTools.ts:671</code></td></tr>
+      <tr><td><code>extractDiscoveredToolNames</code>（跨轮发现）</td><td><code>searchExtraTools.ts:487</code></td></tr>
+      <tr><td><code>buildToolIndex</code> / <code>searchTools</code>（TF-IDF）</td><td><code>toolIndex.ts:80 / 159</code></td></tr>
+      <tr><td><code>SearchExtraToolsTool.call</code>（三路分发）</td><td><code>SearchExtraToolsTool.ts:349</code></td></tr>
+      <tr><td><code>searchToolsWithKeywords</code>（关键词算法）</td><td><code>SearchExtraToolsTool.ts:208</code></td></tr>
+      <tr><td>结果引导 ExecuteExtraTool</td><td><code>SearchExtraToolsTool.ts:540</code></td></tr>
+      <tr><td><code>CORE_TOOLS</code> 白名单</td><td><code>constants/tools.ts:137</code></td></tr>
+    </table>
+  </div>
+
+  <h3>速记口诀</h3>
+  <ul>
+    <li><strong>三种模式</strong>：tst（铁定懒加载）· tst-auto（看 token 量）· standard（铁定全量）</li>
+    <li><strong>核心动作</strong>：过滤 tools 数组，只留核心 + SearchExtraTools，保住 prompt 缓存</li>
+    <li><strong>检索器三路</strong>：select: 直选 · discover: 探查 · 关键词混合检索</li>
+    <li><strong>双算法融合</strong>：关键词 0.4（精确）+ TF-IDF 0.6（语义）</li>
+    <li><strong>token</strong>：搜索算法本地免费，只有调用往返付少量 token，省下的远多于花掉的</li>
+  </ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

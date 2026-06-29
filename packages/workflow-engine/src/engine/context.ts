@@ -4,19 +4,19 @@ import { Budget } from './budget.js'
 import { Semaphore, clampMaxConcurrency } from './concurrency.js'
 
 /**
- * Resources that can be shared by sub-workflows. When nesting, semaphore/budget/agentCountBox are shared by reference,
- * and depth is temporarily +1 while executing a sub-workflow.
+ * 可被子 workflow 共享的资源。嵌套时 semaphore/budget/agentCountBox 按引用共享，
+ * depth 在执行子 workflow 期间临时 +1。
  */
 export type SharedResources = {
   semaphore: Semaphore
   budget: Budget
   agentCountBox: { value: number }
-  /** Increasing sequence number for agent() calls; stamps agent_started/agent_done for precise progress correlation. Shared across sub-workflows. */
+  /** agent() 调用的递增序列号；为 agent_started/agent_done 打戳以精确关联进度。跨子 workflow 共享。 */
   agentIdSeq: { value: number }
   depth: number
 }
 
-/** Execution context for a single workflow run. */
+/** 单次 workflow 运行的执行上下文。 */
 export type EngineContext = {
   ports: WorkflowPorts
   host: HostHandle
@@ -52,7 +52,7 @@ export function createEngineContext(opts: {
   workflowName: string
   cwd: string
   budgetTotal: number | null
-  /** Concurrency slots for a single run; undefined → DEFAULT_MAX_CONCURRENCY. Clamped by clampMaxConcurrency. */
+  /** 单次运行的并发槽数；undefined → DEFAULT_MAX_CONCURRENCY。由 clampMaxConcurrency 收窄。 */
   maxConcurrency?: number
   journal?: JournalEntry[]
 }): EngineContext {

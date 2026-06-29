@@ -1,0 +1,199 @@
+---
+title: "[3] isAgenticQuery、beta 头合并与 advisor 模型解析"
+description: queryModel 在工具处理之前做的请求"身份与能力"准备 —— 用 querySource 判定这是不是 agentic 查询、据此合并 beta 头集合，以及（启用 advisor 时）解析出服务端 advisor 工具要用的模型。本文讲清 agentic vs 非 agentic 的区别为何影响 betas、advisor server tool 的三道校验门、以及实验配置如何覆盖用户选择（src/services/api/claude.ts:1356-1406）。
+---
+
+# [3] isAgenticQuery、beta 头合并与 advisor 模型解析
+
+> 这一段（`claude.ts:1356-1406`）回答两个问题：
+> 1. **这次请求是什么"身份"** → `isAgenticQuery`，并据此算出要带哪些 **beta 头**。
+> 2. **要不要启用 advisor 服务端工具**，用哪个模型当 advisor。
+>
+> 它紧接在 `tool schema build` 计时检查点之后、工具过滤（`[4]`）之前。
+
+---
+
+## 一、isAgenticQuery：请求的"身份"判定
+
+### 1.1 代码
+
+```typescript
+queryCheckpoint('query_tool_schema_build_start')
+const isAgenticQuery =
+  options.querySource.startsWith('repl_main_thread') ||
+  options.querySource.startsWith('agent:') ||
+  options.querySource === 'sdk' ||
+  options.querySource === 'hook_agent' ||
+  options.querySource === 'verification_agent'
+const betas = getMergedBetas(options.model, { isAgenticQuery })
+```
+
+### 1.2 什么叫 "agentic 查询"
+
+`querySource` 标记了"**这次 LLM 调用是为谁发的**"。Claude Code 内部会为各种目的调模型，大致分两类：
+
+| 类别 | querySource 例子 | 特点 |
+|---|---|---|
+| **Agentic（主线工作）** | `repl_main_thread*`、`agent:*`、`sdk`、`hook_agent`、`verification_agent` | 真正在"干活"——有工具、会多轮、用户在等 |
+| **非 Agentic（辅助任务）** | `compact`、`side_question`、`extract_memories`、分享、反馈、分类等 | 一次性后台处理，通常无工具、不需要主线能力 |
+
+`isAgenticQuery` 就是这个二分类的布尔结果。
+
+### 1.3 为什么这个区分重要
+
+很多**能力/beta 头/实验**只对主线工作有意义，对后台辅助任务反而是**浪费甚至有害**：
+
+- 后台任务带上 agentic 专属 beta 头 → 可能打破它们自己的 prompt 缓存（它们有独立的稳定 header 集合，见 `[9]`）。
+- 像 advisor（下文）、AFK mode beta（`[10]`）这类只对"用户正在交互的主线"有意义的功能，都用 `isAgenticQuery` 闸控。
+
+> 注释（在 `[9]` 那段）说得直接：*"按调用维度的闸门（isAgenticQuery）……使非 agentic 查询拥有自己稳定的 header 集合"*——核心还是为了**缓存键稳定**这条暗线。
+
+### 1.4 getMergedBetas
+
+```typescript
+const betas = getMergedBetas(options.model, { isAgenticQuery })
+```
+
+`betas` 是一个**字符串数组**，最终会变成 HTTP 请求头 `anthropic-beta`，告诉 API "我要启用哪些 beta 功能"。`getMergedBetas` 根据模型 + 是否 agentic，合并出基础 beta 集合。后面还会**继续往这个数组 push** 更多动态 beta（advisor、工具搜索、1M 上下文、fast mode、cache editing……分散在 `[4][9][10]` 各处），最后在 `paramsFromContext` 里过滤空串后真正发送。
+
+> 把 `betas` 想成一个**逐步累积的购物车**：这里放进基础款，后面各段按条件再往里加，发送前结一次账（过滤空串）。
+
+---
+
+## 二、advisor beta 头：先于模型解析
+
+```typescript
+// advisor 启用时始终发送 advisor beta 头，使非 agentic 查询
+// （compact、side_question、extract_memories 等）可以解析会话历史中
+// 已有的 advisor server_tool_use 块。
+if (isAdvisorEnabled()) {
+  betas.push(ADVISOR_BETA_HEADER)
+}
+```
+
+注意这里的微妙之处：**只要 advisor 功能开着，就无条件加 beta 头**，连非 agentic 查询也加。
+
+为什么？因为会话历史里可能**已经存在** advisor 产生的 `server_tool_use` 块。如果某次非 agentic 查询（比如 compact 压缩）要处理这段历史，但**没带 advisor beta 头**，API 会因为不认识这些块而**报 400**。所以 beta 头要"宽进"——能解析历史就行；而**真正启用 advisor 工具**则要"严出"，见下文。
+
+---
+
+## 三、advisor 模型解析：三道校验门
+
+```typescript
+let advisorModel: string | undefined
+if (isAgenticQuery && isAdvisorEnabled()) {
+  let advisorOption = options.advisorModel
+
+  // 实验可覆盖
+  const advisorExperiment = getExperimentAdvisorModels()
+  if (advisorExperiment !== undefined) {
+    if (
+      normalizeModelStringForAPI(advisorExperiment.baseModel) ===
+      normalizeModelStringForAPI(options.model)
+    ) {
+      // 只有当用户无法自行配置 advisor 模型时，实验模型才应存在
+      advisorOption = advisorExperiment.advisorModel
+    }
+  }
+
+  if (advisorOption) {
+    const normalizedAdvisorModel = normalizeModelStringForAPI(
+      parseUserSpecifiedModel(advisorOption),
+    )
+    if (!modelSupportsAdvisor(options.model)) {
+      // 门 ①：基础模型不支持 advisor
+      logForDebugging(`[AdvisorTool] Skipping advisor - base model ... does not support advisor`)
+    } else if (!isValidAdvisorModel(normalizedAdvisorModel)) {
+      // 门 ②：advisor 模型本身不合法
+      logForDebugging(`[AdvisorTool] Skipping advisor - ... is not a valid advisor model`)
+    } else {
+      // 三门全过 → 真正启用
+      advisorModel = normalizedAdvisorModel
+      logForDebugging(`[AdvisorTool] Server-side tool enabled with ${advisorModel} ...`)
+    }
+  }
+}
+```
+
+### 3.1 advisor 是什么
+
+advisor 是一个**服务端工具（server tool）**：在生成回复的过程中，模型可以"咨询"另一个（通常更强的）模型来获得建议。它由 API 服务端执行（区别于客户端工具），因此需要在请求里声明 `advisor` 这个 server tool + 指定它用哪个模型（见 `[9]` 把 advisor 加入 `extraToolSchemas`）。
+
+### 3.2 总开关：`isAgenticQuery && isAdvisorEnabled()`
+
+与第二节的"beta 头宽进"不同，**真正启用 advisor 工具**多了一道 `isAgenticQuery`：只有主线工作才用 advisor，后台辅助任务不需要它去"咨询"。
+
+### 3.3 实验覆盖：谁说了算
+
+```typescript
+const advisorExperiment = getExperimentAdvisorModels()
+if (实验存在 && 实验.baseModel === 当前模型) {
+  advisorOption = 实验.advisorModel   // 覆盖用户选择
+}
+```
+
+`getExperimentAdvisorModels()` 是 A/B 实验配置。注释强调：
+
+> *只有当用户无法自行配置 advisor 模型时，实验模型才应该存在。*
+
+也就是说实验覆盖只在"用户没法自己选"的场景生效，避免实验悄悄改掉用户的显式配置。覆盖前还要确认**实验的 baseModel 与当前模型一致**（归一化后比较），不匹配就不覆盖。
+
+### 3.4 三道校验门（决定 advisorModel 是否被赋值）
+
+`advisorModel` 默认 `undefined`（= 不启用）。只有三关全过才被赋值：
+
+| 门 | 检查 | 不过的后果 |
+|---|---|---|
+| 前置 | `advisorOption` 非空（有配置或实验值） | 跳过整段 |
+| ① | `modelSupportsAdvisor(options.model)` —— 基础模型支持 advisor | 记日志，不启用 |
+| ② | `isValidAdvisorModel(normalizedAdvisorModel)` —— advisor 模型合法 | 记日志，不启用 |
+| ③ | 前两门都过 | ✅ `advisorModel = normalizedAdvisorModel` |
+
+每次失败都 `logForDebugging` 写明原因，方便排查"为什么 advisor 没生效"。
+
+### 3.5 `advisorModel` 之后被谁用
+
+`advisorModel`（被赋值时）会在后续多处使用：
+
+| 用途 | 位置 | 文档 |
+|---|---|---|
+| 注入 `ADVISOR_TOOL_INSTRUCTIONS` 到 system prompt | `claude.ts:1724` | `[8]` |
+| 作为 server tool 加入 `extraToolSchemas` | `claude.ts:1773` | `[9]` |
+| 流里检测 advisor 调用/结果，打点 | `claude.ts:2430 / 2466` | `[13]` |
+| 标到每条 assistant 消息上（`advisorModel` 字段） | `claude.ts:2640 / 3070` | `[13][15]` |
+
+---
+
+## 四、整段的两层"宽严"对比
+
+这一段最值得记住的设计是 advisor 的**两层不同闸门**：
+
+| 目的 | 闸门 | 宽严 | 原因 |
+|---|---|---|---|
+| 加 advisor **beta 头** | `isAdvisorEnabled()` | 宽（含非 agentic） | 要能解析历史里已有的 advisor 块，否则 400 |
+| 真正**启用 advisor 工具** | `isAgenticQuery && isAdvisorEnabled()` + 三道门 | 严 | 只主线工作需要，且要模型/配置都合法 |
+
+> 一句话：**解析历史要宽，启用功能要严**。
+
+---
+
+## 五、关键行号书签
+
+| 内容 | 位置 |
+|---|---|
+| `query_tool_schema_build_start` 检查点 | `claude.ts:1356` |
+| `isAgenticQuery` 判定 | `claude.ts:1357-1362` |
+| `getMergedBetas` | `claude.ts:1363` |
+| advisor beta 头（宽进） | `claude.ts:1367-1369` |
+| advisor 模型解析（严出） | `claude.ts:1371-1406` |
+| 实验覆盖 | `claude.ts:1375-1385` |
+| 三道校验门 | `claude.ts:1391-1404` |
+
+---
+
+## 速记口诀
+
+- **isAgenticQuery**：querySource 是不是"主线工作"（repl/agent/sdk/hook/verification）—— 决定带哪些 beta、要不要 advisor。
+- **betas 是购物车**：这里放基础款，后面各段继续加，发送前过滤空串结账。
+- **advisor 两层闸门**：beta 头宽进（解析历史防 400）· 启用功能严出（agentic + 三道校验门）。
+- **实验覆盖有边界**：只在"用户无法自配"且 baseModel 匹配时覆盖。

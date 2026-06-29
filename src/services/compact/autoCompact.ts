@@ -290,8 +290,7 @@ export async function autoCompactIfNeeded(
   }
 
   // 熔断器：连续失败 N 次后停止重试。
-  // 没有这个保护，上下文不可恢复地超过限制的会话会在每一轮
-  // 都向 API 发起注定失败的压缩尝试。
+  // 没有这个保护，上下文不可恢复地超过限制的会话会在每一轮 都向 API 发起注定失败的压缩尝试。
   if (
     tracking?.consecutiveFailures !== undefined &&
     tracking.consecutiveFailures >= MAX_CONSECUTIVE_AUTOCOMPACT_FAILURES

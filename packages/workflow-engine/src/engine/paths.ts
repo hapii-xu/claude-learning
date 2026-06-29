@@ -1,9 +1,9 @@
 import { resolve, sep } from 'node:path'
 
 /**
- * Determine whether target, after resolution, is within base (including equal to base).
- * Relative targets are resolved against base (does not depend on process.cwd).
- * Uses the `sep` boundary to avoid false prefix positives (e.g. `/foo` is not the parent of `/foobar`).
+ * 判断 target 经解析后是否在 base 内（含等于 base）。
+ * 相对路径基于 base 解析（不依赖 process.cwd）。
+ * 使用 `sep` 边界避免假阳性前缀匹配（例如 `/foo` 不是 `/foobar` 的父目录）。
  */
 export function containsPath(base: string, target: string): boolean {
   const resolvedBase = resolve(base)
@@ -13,9 +13,9 @@ export function containsPath(base: string, target: string): boolean {
 }
 
 /**
- * Validate whether the named workflow name is a legal identifier (reject path traversal).
- * Rejects: path separators, null bytes, `.` / `..`.
- * Returns the sanitized name, or null for illegal.
+ * 验证命名 workflow 的名称是否合法（拒绝路径穿越）。
+ * 拒绝：路径分隔符、空字节、`.` / `..`。
+ * 返回清理后的名称，非法则返回 null。
  */
 export function sanitizeWorkflowName(name: string): string | null {
   if (typeof name !== 'string' || name.length === 0) return null

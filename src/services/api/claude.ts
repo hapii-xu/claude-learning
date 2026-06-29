@@ -168,6 +168,7 @@ import {
 import { getAgentContext } from 'src/utils/agentContext.js'
 import { isClaudeAISubscriber } from 'src/utils/auth.js'
 import {
+  getToolSearchBetaHeader,
   modelSupportsStructuredOutputs,
   shouldIncludeFirstPartyOnlyBetas,
   shouldUseGlobalCacheScope,
@@ -332,26 +333,49 @@ export function getExtraBodyParams(betaHeaders?: string[]): JsonObject {
 
 export function getPromptCachingEnabled(model: string): boolean {
   // 全局禁用优先
-  if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING)) return false
+  if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING)) {
+    logForDebugging(
+      `[Hapii][Cache] getPromptCachingEnabled: DISABLED by env DISABLE_PROMPT_CACHING`,
+    )
+    return false
+  }
 
   // 检查是否要对 small/fast 模型禁用
   if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_HAIKU)) {
     const smallFastModel = getSmallFastModel()
-    if (model === smallFastModel) return false
+    if (model === smallFastModel) {
+      logForDebugging(
+        `[Hapii][Cache] getPromptCachingEnabled: DISABLED for small/fast model=${model}`,
+      )
+      return false
+    }
   }
 
   // 检查是否要对默认 Sonnet 禁用
   if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_SONNET)) {
     const defaultSonnet = getDefaultSonnetModel()
-    if (model === defaultSonnet) return false
+    if (model === defaultSonnet) {
+      logForDebugging(
+        `[Hapii][Cache] getPromptCachingEnabled: DISABLED for Sonnet model=${model}`,
+      )
+      return false
+    }
   }
 
   // 检查是否要对默认 Opus 禁用
   if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_OPUS)) {
     const defaultOpus = getDefaultOpusModel()
-    if (model === defaultOpus) return false
+    if (model === defaultOpus) {
+      logForDebugging(
+        `[Hapii][Cache] getPromptCachingEnabled: DISABLED for Opus model=${model}`,
+      )
+      return false
+    }
   }
 
+  logForDebugging(
+    `[Hapii][Cache] getPromptCachingEnabled: ENABLED for model=${model}`,
+  )
   return true
 }
 
@@ -366,11 +390,16 @@ export function getCacheControl({
   ttl?: '1h'
   scope?: CacheScope
 } {
-  return {
-    type: 'ephemeral',
-    ...(should1hCacheTTL(querySource) && { ttl: '1h' }),
-    ...(scope === 'global' && { scope }),
+  const use1hTTL = should1hCacheTTL(querySource)
+  const result = {
+    type: 'ephemeral' as const,
+    ...(use1hTTL && { ttl: '1h' as const }),
+    ...(scope === 'global' && { scope: 'global' as const }),
   }
+  logForDebugging(
+    `[Hapii][Cache] getCacheControl: scope=${scope ?? 'none'} querySource=${querySource ?? 'none'} → ttl=${result.ttl ?? '5m'} scope=${result.scope ?? 'default'}`,
+  )
+  return result
 }
 
 /**
@@ -397,6 +426,9 @@ function should1hCacheTTL(querySource?: QuerySource): boolean {
     getAPIProvider() === 'bedrock' &&
     isEnvTruthy(process.env.ENABLE_PROMPT_CACHING_1H_BEDROCK)
   ) {
+    logForDebugging(
+      `[Hapii][Cache] should1hCacheTTL: ENABLED for Bedrock via env`,
+    )
     return true
   }
 
@@ -409,8 +441,16 @@ function should1hCacheTTL(querySource?: QuerySource): boolean {
       process.env.USER_TYPE === 'ant' ||
       (isClaudeAISubscriber() && !currentLimits.isUsingOverage)
     setPromptCache1hEligible(userEligible)
+    logForDebugging(
+      `[Hapii][Cache] should1hCacheTTL: userEligible=${userEligible} (isAnt=${process.env.USER_TYPE === 'ant'}, isSubscriber=${isClaudeAISubscriber()}, isOverage=${currentLimits.isUsingOverage})`,
+    )
   }
-  if (!userEligible) return false
+  if (!userEligible) {
+    logForDebugging(
+      `[Hapii][Cache] should1hCacheTTL: DISABLED — user not eligible (not ant/subscriber or using overage)`,
+    )
+    return false
+  }
 
   // 将白名单缓存到 bootstrap state 中以保持会话稳定性——防止 GrowthBook
   // 磁盘缓存在请求中途刷新时出现混合的 TTL
@@ -421,16 +461,22 @@ function should1hCacheTTL(querySource?: QuerySource): boolean {
     }>('tengu_prompt_cache_1h_config', {})
     allowlist = config.allowlist ?? []
     setPromptCache1hAllowlist(allowlist)
+    logForDebugging(
+      `[Hapii][Cache] should1hCacheTTL: loaded allowlist from GrowthBook: [${allowlist.join(', ')}]`,
+    )
   }
 
-  return (
+  const matched =
     querySource !== undefined &&
     allowlist.some(pattern =>
       pattern.endsWith('*')
         ? querySource.startsWith(pattern.slice(0, -1))
         : querySource === pattern,
     )
+  logForDebugging(
+    `[Hapii][Cache] should1hCacheTTL: querySource=${querySource ?? 'undefined'} matched=${matched} allowlist=[${allowlist.join(', ')}]`,
   )
+  return matched
 }
 
 /**
@@ -723,35 +769,193 @@ function stripGeminiProviderMetadata<T extends BetaContentBlockParam | string>(
 }
 
 export type Options = {
+  /**
+   * 获取当前工具权限上下文的回调。
+   * 返回 PermissionMode（'default'|'plan'|'bypassPermissions' 等）、
+   * alwaysAllow/alwaysDeny/alwaysAsk 规则列表等，供每个 tool 的 prompt()
+   * 方法根据权限状态生成不同的工具描述文本，也用于日志/分析。
+   */
   getToolPermissionContext: () => Promise<ToolPermissionContext>
+
+  /**
+   * 请求的目标模型 ID（如 'claude-opus-4-7'、'claude-sonnet-4-5'）。
+   * 在 Bedrock 场景下可能是 Inference Profile ARN，会先经过 resolvedModel 解析。
+   * 遇到 529 过载错误时可能被 fallbackModel 替换。
+   */
   model: string
+
+  /**
+   * 工具选择策略：
+   * - { type: 'auto' }：模型自行决定是否使用工具（默认）
+   * - { type: 'tool', name: string }：强制模型调用指定工具
+   * - undefined：由 API 端默认行为处理
+   * 常用于 compact 等辅助查询中限制模型行为。
+   */
   toolChoice?: BetaToolChoiceTool | BetaToolChoiceAuto | undefined
+
+  /**
+   * 是否为非交互式会话。
+   * true = CLI 管道模式（-p flag）或 SDK 调用，使用 AGENT_SDK_PREFIX 系统提示词，
+   *       跳过 API key 验证，不显示缓存警告。
+   * false = 交互式 REPL 终端，使用 DEFAULT_PREFIX 系统提示词。
+   */
   isNonInteractiveSession: boolean
+
+  /**
+   * 追加到标准工具列表之外的额外工具 schema。
+   * 典型用例：advisor 服务端工具（advisor_20260301）、WebSearch 工具等。
+   * 这些工具不来自本地 Tool 注册表，而是由 API 侧直接提供服务。
+   */
   extraToolSchemas?: BetaToolUnion[]
+
+  /**
+   * 覆盖模型默认的最大输出 token 数。
+   * 典型场景：上下文超限恢复、速率限制降级时临时压缩输出长度，
+   * 强制模型给出更短的回复以避免再次触发限制。
+   */
   maxOutputTokensOverride?: number
+
+  /**
+   * 降级模型 ID。当主模型连续返回 529（过载）错误达到阈值时，
+   * withRetry 抛出 FallbackTriggeredError，query.ts 捕获后
+   * 将 currentModel 切换到 fallbackModel 并重试。
+   * 常见组合：主用 Opus → 降级到 Sonnet。
+   */
   fallbackModel?: string
+
+  /**
+   * 流式请求失败、降级到非流式模式时的回调。
+   * 用于通知调用方（如 query.ts）更新 UI 状态或记录降级事件。
+   */
   onStreamingFallback?: () => void
+
+  /**
+   * 标识本次 API 调用的业务来源（如 'repl_main_thread'、'agent:custom'、
+   * 'compact'、'extract_memories' 等）。
+   * 用于：遥测分析、isAgenticQuery 判断、529 重试策略选择、
+   *       缓存 TTL 控制、功能开关（Advisor、AFK 模式等）。
+   */
   querySource: QuerySource
+
+  /**
+   * 当前可用的 agent 定义列表（内置 + 用户自定义 + 插件）。
+   * 传递给 AgentTool 的 prompt() 方法，让模型知道可以 spawn 哪些子代理，
+   * 每个代理的 whenToUse、可用工具、隔离模式等信息。
+   */
   agents: AgentDefinition[]
+
+  /**
+   * agent 类型白名单过滤器。设置后只有列表中的 agent 类型可被 spawn。
+   * 用于策略管控场景（如管理员限制可用代理类型），undefined 表示不限制。
+   */
   allowedAgentTypes?: string[]
+
+  /**
+   * 是否设置了 appendSystemPrompt（附加系统提示词）。
+   * 影响系统提示词前缀选择：
+   * - 非交互 + hasAppendSystemPrompt → AGENT_SDK_CLAUDE_CODE_PRESET_PREFIX
+   * - 非交互 + 无附加提示词 → AGENT_SDK_PREFIX
+   * - 交互模式 → DEFAULT_PREFIX
+   */
   hasAppendSystemPrompt: boolean
+
+  /**
+   * 覆盖 Anthropic SDK 默认的 fetch 函数。
+   * 用于「dump prompts」调试功能——拦截并记录发送给 API 的请求体，
+   * 仅对内部用户（USER_TYPE=ant）启用。
+   */
   fetchOverride?: ClientOptions['fetch']
+
+  /**
+   * 是否启用 Prompt Caching（提示缓存）。
+   * true/false = 显式覆盖；undefined = 自动检测（根据模型/环境变量决定）。
+   * 启用后会在系统提示词和消息上添加 cache_control: { type: 'ephemeral' } 标记。
+   * 可通过 DISABLE_PROMPT_CACHING / DISABLE_PROMPT_CACHING_HAIKU 等环境变量关闭。
+   */
   enablePromptCaching?: boolean
+
+  /**
+   * 跳过缓存写入。为 true 时将缓存断点从最后一条消息移到倒数第二条，
+   * 用于「发射即忘」的子代理调用——这些调用的结果不会被复用，
+   * 写缓存条目是浪费。
+   */
   skipCacheWrite?: boolean
+
+  /**
+   * 覆盖默认温度值（默认 1.0）。
+   * 注意：仅在 thinking（思考模式）关闭时生效，API 要求
+   * thinking 模式下 temperature 必须为 1。
+   * 用于辅助查询（side_question、extract_memories 等）控制创造力。
+   */
   temperatureOverride?: number
+
+  /**
+   * 模型推理力度等级，控制模型「思考多少再回答」。
+   * 可选值：'low' | 'medium' | 'high' | 'xhigh' | 'max' 或数值（内部用户）。
+   * 映射为 API 参数 output_config.effort，通过 /effort 命令或
+   * CLAUDE_CODE_EFFORT_LEVEL 环境变量设置。
+   */
   effortValue?: EffortValue
+
+  /**
+   * MCP（Model Context Protocol）服务器提供的工具列表。
+   * 与内置工具分开管理，独立追加到 API 请求的 tools 数组中。
+   * 还影响缓存策略：MCP 工具是 per-user 的，不能走全局缓存。
+   */
   mcpTools: Tools
+
+  /**
+   * 是否有 MCP 服务器仍在连接中（未完成初始化）。
+   * 为 true 时，即使当前没有延迟加载工具，也保持 SearchExtraTools 可用，
+   * 让模型能发现正在连接中的服务器提供的工具。
+   */
   hasPendingMcpServers?: boolean
+
+  /**
+   * 查询链追踪信息，记录本次调用在整个调用链中的位置。
+   * chainId：整条链的唯一 ID（主线程 → 子代理 → 嵌套子代理共享同一 ID）
+   * depth：嵌套深度（0 = 主线程，1 = 子代理，2 = 嵌套子代理……）
+   * 用于日志关联、分析归因。
+   */
   queryTracking?: QueryChainTracking
-  agentId?: AgentId // 仅用于子 agent
+
+  /** 当前子代理的唯一标识。undefined 表示主线程（非子代理调用）。 */
+  agentId?: AgentId
+
+  /**
+   * 结构化 JSON 输出格式定义（{ type: 'json_schema', schema: {...} }）。
+   * 启用后模型输出必须符合指定 JSON Schema，使用 Anthropic structured outputs beta。
+   * 通过 --json-schema CLI 参数或代码中特定场景（如 queryHaiku）设置。
+   */
   outputFormat?: BetaJSONOutputFormat
+
+  /**
+   * 是否启用 Fast Mode（快速模式）。
+   * 在请求中设置 speed: 'fast'，换取更快的响应速度（可能牺牲质量）。
+   * 需同时满足：功能开关开启 + 模型支持 + 未在限速冷却期 + 用户主动启用。
+   * 限速后可能自动进入冷却期。
+   */
   fastMode?: boolean
+
+  /**
+   * Advisor（顾问）模型 ID。启用后向 API 注册 advisor 服务端工具，
+   * 主模型在推理过程中可以「请教」一个更强的 reviewer 模型获取指导。
+   * 通过 /advisor 命令设置，需要模型支持（如 Opus 4-7+）。
+   */
   advisorModel?: string
+
+  /**
+   * UI 通知推送回调。用于在终端 TUI 中显示横幅警告/信息，
+   * 如 auto-mode 拒绝通知、达到最大轮次警告等。
+   * 非交互场景下为 undefined。
+   */
   addNotification?: (notif: Notification) => void
+
   // API 侧任务预算（output_config.task_budget）。与 tokenBudget.ts 里
   // +50 万的自动续写功能不同——这个会发送给 API，让模型自己掌握节奏。
   // `remaining` 由调用方计算（query.ts 在 agent 循环中递减）。
   taskBudget?: { total: number; remaining?: number }
+
   /** 用于可观测性的 Langfuse 根 trace span。为 null/undefined 时是 no-op。 */
   langfuseTrace?: LangfuseSpan | null
 }
@@ -1114,9 +1318,12 @@ async function* queryModel(
   // 先检查廉价条件——off-switch 的 await 会阻塞 GrowthBook 初始化
   // （约 10ms）。对非 Opus 模型（haiku、sonnet）可以直接跳过 await。
   // 订阅用户根本不会走到这条路径。
+
+  // 段判断本质上是 Opus 模型的"应急容量关闭开关"（off-switch / kill switch）——当 Anthropic 后端
+  // Opus 容量吃紧时，可以远程把一部分用户从 Opus 上挡下来，引导他们切到 Sonnet。
   if (
-    !isClaudeAISubscriber() &&
-    isNonCustomOpusModel(options.model) &&
+    !isClaudeAISubscriber() && // 非订阅用户
+    isNonCustomOpusModel(options.model) && // 用的是官方 Opus 模型
     (
       await getDynamicConfig_BLOCKS_ON_INIT<{ activated: boolean }>(
         'tengu-off-switch',
@@ -1124,7 +1331,7 @@ async function* queryModel(
           activated: false,
         },
       )
-    ).activated
+    ).activated // 开关已激活
   ) {
     logEvent('tengu_off_switch_query', {})
     yield getAssistantMessageFromError(
@@ -1135,8 +1342,7 @@ async function* queryModel(
   }
 
   // 从本查询链中最后一条 assistant 消息推导出上一个 request ID。
-  // 按消息数组做作用域隔离（主线程、子 agent、队友各自独立），
-  // 这样并发 agent 之间不会相互覆盖对方的请求链跟踪。
+  // 按消息数组做作用域隔离（主线程、子 agent、队友各自独立），这样并发 agent 之间不会相互覆盖对方的请求链跟踪。
   // 同时天然支持回滚/撤销——被删除的消息不会出现在数组里。
   const previousRequestId = getPreviousRequestIdFromMessages(messages)
 
@@ -1157,8 +1363,7 @@ async function* queryModel(
   const betas = getMergedBetas(options.model, { isAgenticQuery })
 
   // advisor 启用时始终发送 advisor beta 头，使非 agentic 查询
-  // （compact、side_question、extract_memories 等）可以解析会话历史中
-  // 已有的 advisor server_tool_use 块。
+  // （compact、side_question、extract_memories 等）可以解析会话历史中 - 已有的 advisor server_tool_use 块。
   if (isAdvisorEnabled()) {
     betas.push(ADVISOR_BETA_HEADER)
   }
@@ -1199,9 +1404,14 @@ async function* queryModel(
       }
     }
   }
-
-  // 检查是否启用了工具搜索（检查模式、模型支持以及 auto 模式的阈值）
-  // 是异步的，因为 TstAuto 模式可能需要计算 MCP 工具描述的大小
+  // ------------------------------------------------------
+  /**
+   * 这段代码在做一件事：决定这次请求要把哪些工具的完整定义（schema）真正发给
+    模型。 核心目的是省 token、保住 prompt 缓存——不是所有工具都值得每次都发给 AI。
+    这套机制叫 SearchExtraTools（工具搜索 / 延迟加载）。
+   */
+  // ① 决定要不要启用这套机制 ENABLE_SEARCH_EXTRA_TOOLS=false
+  // 检查是否启用了工具搜索（检查模式、模型支持以及 auto 模式的阈值） 是异步的，因为 TstAuto 模式可能需要计算 MCP 工具描述的大小
   let useSearchExtraTools = await isSearchExtraToolsEnabled(
     options.model,
     tools,
@@ -1210,6 +1420,7 @@ async function* queryModel(
     'query',
   )
 
+  // ② 预计算延迟工具名单
   // 预先计算一次 —— isDeferredTool 每次调用都会做 2 次 GrowthBook 查询
   const deferredToolNames = new Set<string>()
   if (useSearchExtraTools) {
@@ -1219,8 +1430,7 @@ async function* queryModel(
   }
 
   // 即使启用了工具搜索模式，若没有延迟工具且没有 MCP 服务器还在连接中，则跳过。
-  // 当服务器仍在等待时，保留 SearchExtraTools，让模型可以在它们连上后
-  // 发现工具。
+  // 当服务器仍在等待时，保留 SearchExtraTools，让模型可以在它们连上后发现工具。
   if (
     useSearchExtraTools &&
     deferredToolNames.size === 0 &&
@@ -1235,8 +1445,7 @@ async function* queryModel(
   // 动态工具加载：过滤掉尚未被发现的延迟工具
   let filteredTools: Tools
 
-  // 未被发现的延迟工具会从 API 请求中过滤掉——它们的 schema 只有在
-  // SearchExtraTools 发现之后才会被加入。
+  // 未被发现的延迟工具会从 API 请求中过滤掉——它们的 schema 只有在 SearchExtraTools 发现之后才会被加入。
 
   if (useSearchExtraTools) {
     // 永远不要把延迟工具放进 API 的 tools 数组——它们通过 ExecuteExtraTool
@@ -1259,14 +1468,35 @@ async function* queryModel(
   // 工具搜索的 beta 头和 defer_loading 已移除 —— 所有 provider 统一走
   // SearchExtraToolsTool + ExecuteExtraTool 的自建工具搜索。
   // 不再依赖 API 侧的 tool_reference 或 defer_loading 功能。
+  const toolSearchHeader = useSearchExtraTools
+    ? getToolSearchBetaHeader()
+    : null
+  if (toolSearchHeader && getAPIProvider() !== 'bedrock') {
+    if (!betas.includes(toolSearchHeader)) {
+      betas.push(toolSearchHeader)
+    }
+  }
 
   // 判断该模型是否启用了 cached microcompact。
   // 在此（异步上下文）计算一次，由 paramsFromContext 闭包捕获。
-  // beta 头也在此处捕获，避免在顶层导入 ant 专属的
-  // CACHE_EDITING_BETA_HEADER 常量。
+  // beta 头也在此处捕获，避免在顶层导入 ant 专属的 CACHE_EDITING_BETA_HEADER 常量。
   let cachedMCEnabled = false
   let cacheEditingBetaHeader = ''
   if (feature('CACHED_MICROCOMPACT')) {
+    // ┌──────────────────────────┬────────────────────────────────────────────┬──────────┬────────────────────────┐
+    // │           功能           │                    字段                    │   面向   │          状态          │
+    // ├──────────────────────────┼────────────────────────────────────────────┼──────────┼────────────────────────┤
+    // │ Prompt                   │ cache_control 断点                         │ 所有用户 │ 公开 API，正常工作     │
+    // │ caching（提示缓存）      │                                            │          │                        │
+    // ├──────────────────────────┼────────────────────────────────────────────┼──────────┼────────────────────────┤
+    // │ Cache                    │ cache_reference / cache_edits /            │ ant 内部 │ 服务端 beta，header    │
+    // │ editing（缓存编辑）      │ delete_tool_result                         │          │ 未公开                 │
+    // └──────────────────────────┴────────────────────────────────────────────┴──────────┴────────────────────────┘
+
+    // 你日常享受到的"缓存命中省钱"是前者，公开的，谁都能用。
+
+    // CACHED_MICROCOMPACT 用的是后者——不只是读写缓存，而是能从服务端 KV cache 里定向删除某条
+    // tool_result。这是一个更强的能力，属于未公开的 beta。
     const {
       isCachedMicrocompactEnabled,
       isModelSupportedForCacheEditing,
@@ -2136,10 +2366,40 @@ async function* queryModel(
             partialMessage = part.message
             ttftMs = Date.now() - start
             usage = updateUsage(usage, part.message?.usage)
+            const msgUsage = part.message?.usage
             logForDebugging(
               `[API] message_start, id=${partialMessage?.id}, model=${partialMessage?.model}`,
               { level: 'info' },
             )
+            // [Hapii][Cache] Log cache statistics from API response
+            if (msgUsage) {
+              const cacheRead = msgUsage.cache_read_input_tokens ?? 0
+              const cacheCreate = msgUsage.cache_creation_input_tokens ?? 0
+              const inputTokens = msgUsage.input_tokens ?? 0
+              const totalInput = inputTokens + cacheRead + cacheCreate
+              const cacheHitRate =
+                totalInput > 0
+                  ? ((cacheRead / totalInput) * 100).toFixed(1)
+                  : '0'
+              logForDebugging(
+                `[Hapii][Cache] message_start usage: input=${inputTokens} cacheRead=${cacheRead} cacheCreate=${cacheCreate} totalInput=${totalInput} hitRate=${cacheHitRate}%`,
+              )
+              if (cacheRead > 0) {
+                logForDebugging(
+                  `[Hapii][Cache] ✅ CACHE HIT: ${cacheRead} tokens read from cache (${cacheHitRate}% of total input)`,
+                )
+              }
+              if (cacheCreate > 0) {
+                logForDebugging(
+                  `[Hapii][Cache] 💾 CACHE WRITE: ${cacheCreate} tokens written to cache (costs 1.25x, reads cost 0.1x)`,
+                )
+              }
+              if (cacheRead === 0 && cacheCreate === 0) {
+                logForDebugging(
+                  `[Hapii][Cache] ⚠️ NO CACHE: both cacheRead and cacheCreate are 0. Possible reasons: prefix too short (<1024 tokens for Sonnet, <4096 for Opus/Haiku), or caching disabled`,
+                )
+              }
+            }
             // 从 message_start 捕获 research（仅内部）。始终用最新值覆盖。
             if (
               process.env.USER_TYPE === 'ant' &&
@@ -2468,14 +2728,42 @@ async function* queryModel(
             break
           }
           case 'message_stop':
-            logForDebugging(
-              `[Hapii] ClaudeApi.queryModel 流结束 耗时=${Date.now() - start}ms inputTokens=${usage.input_tokens} outputTokens=${usage.output_tokens} cacheRead=${usage.cache_read_input_tokens ?? 0}`,
-              { level: 'info' },
-            )
-            logForDebugging(
-              `[API] 消息完成, 总耗时=${Date.now() - start}ms, usage: input=${usage.input_tokens}, output=${usage.output_tokens}, cache_read=${usage.cache_read_input_tokens ?? 0}`,
-              { level: 'info' },
-            )
+            {
+              const finalCacheRead = usage.cache_read_input_tokens ?? 0
+              const finalCacheCreate = usage.cache_creation_input_tokens ?? 0
+              const finalInputTokens = usage.input_tokens ?? 0
+              const finalTotalInput =
+                finalInputTokens + finalCacheRead + finalCacheCreate
+              const finalCacheHitRate =
+                finalTotalInput > 0
+                  ? ((finalCacheRead / finalTotalInput) * 100).toFixed(1)
+                  : '0'
+              logForDebugging(
+                `[Hapii] ClaudeApi.queryModel 流结束 耗时=${Date.now() - start}ms inputTokens=${finalInputTokens} outputTokens=${usage.output_tokens} cacheRead=${finalCacheRead}`,
+                { level: 'info' },
+              )
+              logForDebugging(
+                `[API] 消息完成, 总耗时=${Date.now() - start}ms, usage: input=${finalInputTokens}, output=${usage.output_tokens}, cache_read=${finalCacheRead}`,
+                { level: 'info' },
+              )
+              // [Hapii][Cache] Final cache statistics summary
+              logForDebugging(
+                `[Hapii][Cache] ====== FINAL CACHE SUMMARY ======`,
+              )
+              logForDebugging(
+                `[Hapii][Cache] Total input tokens: ${finalTotalInput} (uncached=${finalInputTokens} + cacheRead=${finalCacheRead} + cacheCreate=${finalCacheCreate})`,
+              )
+              logForDebugging(
+                `[Hapii][Cache] Cache hit rate: ${finalCacheHitRate}% — ${finalCacheRead > 0 ? '✅ CACHE BENEFIT' : '⚠️ NO CACHE BENEFIT'}`,
+              )
+              if (finalCacheCreate > 0 && finalCacheRead === 0) {
+                logForDebugging(
+                  `[Hapii][Cache] 💡 NOTE: First request wrote ${finalCacheCreate} tokens to cache. Next requests within 5min (or 1h if eligible) will read at 0.1x cost.`,
+                )
+              }
+              logForDebugging(`[Hapii][Cache] ====== END CACHE SUMMARY ======`)
+              break
+            }
             break
         }
 
@@ -3297,9 +3585,9 @@ export function addCacheBreakpoints(
     cachingEnabled: enablePromptCaching,
     skipCacheWrite,
   })
+  logForDebugging(`[Hapii][Cache] ====== addCacheBreakpoints START ======`)
   logForDebugging(
-    `-------------- addCacheBreakpoints 开始 ----------- msgCount=${messages.length} enableCaching=${enablePromptCaching} skipCacheWrite=${skipCacheWrite} useCachedMC=${useCachedMC}`,
-    { level: 'info' },
+    `[Hapii][Cache] addCacheBreakpoints: msgCount=${messages.length} enableCaching=${enablePromptCaching} skipCacheWrite=${skipCacheWrite} useCachedMC=${useCachedMC}`,
   )
 
   // 每次请求只能有一个消息级的 cache_control 标记。Mycro 的轮次间驱逐
@@ -3312,8 +3600,17 @@ export function addCacheBreakpoints(
   // （条目已存在），分叉也不会在 KVCC 中留下自己的尾部。密集页是引用计数的，
   // 无论哪种情况都会通过新哈希存活。
   const markerIndex = skipCacheWrite ? messages.length - 2 : messages.length - 1
+  logForDebugging(
+    `[Hapii][Cache] addCacheBreakpoints: cache_control marker will be placed at message index=${markerIndex} (${skipCacheWrite ? 'skipCacheWrite mode → second-to-last' : 'normal mode → last message'})`,
+  )
+
   const result = messages.map((msg, index) => {
     const addCache = index === markerIndex
+    if (addCache) {
+      logForDebugging(
+        `[Hapii][Cache] addCacheBreakpoints: → Adding cache_control to message[${index}] role=${msg.type} (THIS IS THE CACHE BREAKPOINT)`,
+      )
+    }
     if (msg.type === 'user') {
       return userMessageToMessageParam(
         msg,
@@ -3330,9 +3627,20 @@ export function addCacheBreakpoints(
     )
   })
 
+  logForDebugging(
+    `[Hapii][Cache] addCacheBreakpoints: processed ${result.length} messages, cache breakpoint at index=${markerIndex}`,
+  )
+
   if (!useCachedMC) {
+    logForDebugging(
+      `[Hapii][Cache] addCacheBreakpoints: useCachedMC=false, returning without cache_edits processing`,
+    )
     return result
   }
+
+  logForDebugging(
+    `[Hapii][Cache] addCacheBreakpoints: useCachedMC=true, processing cache_edits for CachedMC optimization`,
+  )
 
   // 跟踪所有正在被删除的 cache_reference，避免跨块重复。
   const seenDeleteRefs = new Set<string>()
@@ -3444,26 +3752,43 @@ export function buildSystemPromptBlocks(
     querySource?: QuerySource
   },
 ): TextBlockParam[] {
+  const totalChars = systemPrompt.reduce((a, s) => a + s.length, 0)
+  logForDebugging(`[Hapii][Cache] ====== buildSystemPromptBlocks START ======`)
   logForDebugging(
-    `[Hapii] ClaudeApi.buildSystemPromptBlocks promptLen=${systemPrompt.reduce((a, s) => a + s.length, 0)} enableCaching=${enablePromptCaching} skipGlobalCache=${options?.skipGlobalCacheForSystemPrompt ?? false}`,
-    { level: 'info' },
+    `[Hapii][Cache] buildSystemPromptBlocks: promptBlockCount=${systemPrompt.length} totalChars=${totalChars} estTokens=~${Math.round(totalChars / 4)} enableCaching=${enablePromptCaching} skipGlobalCache=${options?.skipGlobalCacheForSystemPrompt ?? false}`,
   )
   // 重要：不要为缓存再加任何块，否则会返回 400
-  return splitSysPromptPrefix(systemPrompt, {
+  const blocks = splitSysPromptPrefix(systemPrompt, {
     skipGlobalCacheForSystemPrompt: options?.skipGlobalCacheForSystemPrompt,
-  }).map(block => {
+  })
+  logForDebugging(
+    `[Hapii][Cache] buildSystemPromptBlocks: splitSysPromptPrefix returned ${blocks.length} blocks with scopes=[${blocks.map(b => b.cacheScope ?? 'null').join(', ')}]`,
+  )
+  const result = blocks.map((block, i) => {
+    const willAddCacheControl = enablePromptCaching && block.cacheScope !== null
+    const cacheControlValue = willAddCacheControl
+      ? getCacheControl({
+          scope: block.cacheScope ?? undefined,
+          querySource: options?.querySource,
+        })
+      : null
+    logForDebugging(
+      `[Hapii][Cache] buildSystemPromptBlocks: block[${i}] scope=${block.cacheScope ?? 'null'} chars=${block.text.length} estTokens=~${Math.round(block.text.length / 4)} cache_control=${willAddCacheControl ? JSON.stringify(cacheControlValue) : 'none'}`,
+    )
     return {
       type: 'text' as const,
       text: block.text,
-      ...(enablePromptCaching &&
-        block.cacheScope !== null && {
-          cache_control: getCacheControl({
-            scope: block.cacheScope,
-            querySource: options?.querySource,
-          }),
-        }),
+      ...(willAddCacheControl && {
+        cache_control: cacheControlValue!,
+      }),
     }
   })
+  const totalCacheableBlocks = result.filter(b => b.cache_control).length
+  logForDebugging(
+    `[Hapii][Cache] buildSystemPromptBlocks: result ${result.length} blocks, ${totalCacheableBlocks} with cache_control`,
+  )
+  logForDebugging(`[Hapii][Cache] ====== buildSystemPromptBlocks END ======`)
+  return result
 }
 
 type HaikuOptions = Omit<Options, 'model' | 'getToolPermissionContext'>

@@ -1,0 +1,163 @@
+---
+title: "[12] 流式空闲超时看门狗"
+description: queryModel 在进入事件循环前架设的一个主动防护 —— 流式空闲超时看门狗。若 STREAM_IDLE_TIMEOUT_MS 内没收到任何 chunk，主动 abort 卡住的流，避免静默丢包的连接让会话无限期挂起（SDK 的请求超时只覆盖初始 fetch，不覆盖流式响应体）。本文讲清看门狗与停顿检测的区别、两级定时器（警告/超时）、每个 chunk 重置计时的机制、以及触发后如何降级（src/services/api/claude.ts:2245-2307）。
+---
+
+# [12] 流式空闲超时看门狗
+
+> 拿到流之后、进入事件大循环（`[13]`）之前，queryModel 架设一个**空闲超时看门狗**（`claude.ts:2245-2305`）。它解决一个隐蔽但致命的问题：**SDK 的请求超时只覆盖初始的 `fetch()`，不覆盖流式响应体**——一个静默丢包的连接会让会话**无限期挂起**。看门狗用 `setTimeout` 主动杀掉卡死的流。
+
+---
+
+## 一、为什么需要看门狗
+
+```
+anthropic.messages.create(...).withResponse()
+   ├─ fetch 阶段：SDK 超时覆盖 ✅
+   └─ 流式接收阶段：SDK 超时 ❌ 不管
+        └─ 若服务端/网络静默卡住 → for-await 永远等下一个 chunk → 会话冻结
+```
+
+普通的 HTTP 超时只保证"建立连接、拿到响应头"不会卡太久。但 SSE 流是**长连接**，响应头早就回来了，之后**逐 chunk 推送**。如果连接在中途**静默死掉**（不报错、不关闭，就是不再发数据），`for await` 会**永远阻塞**在等下一个 chunk。看门狗就是为这种"僵尸连接"兜底。
+
+> **类比**：打电话接通后对方突然没声了——既没挂断也不说话。你不能永远举着听筒，得设个"30 秒没声音就挂"的规矩。看门狗就是这个规矩。
+
+---
+
+## 二、看门狗 vs 停顿检测：两种不同机制
+
+代码里有两套监控，别混淆：
+
+| 机制 | 触发方式 | 作用 | 位置 |
+|---|---|---|---|
+| **空闲超时看门狗**（本文） | `setTimeout` **主动**到点开火 | **杀死**卡住的流 | `[12]` |
+| **停顿检测**（stall） | 下一个 chunk 到来时**被动**回看间隔 | 仅**记录**慢，不杀流 | `[13]` |
+
+关键区别：注释说得明白——*与下面的停顿检测（只在下一个 chunk 到来时才触发）不同，这里使用 setTimeout 主动杀死卡住的流*。停顿检测要靠"下一个 chunk"才会触发，可如果根本没有下一个 chunk，它永远不触发；看门狗不依赖 chunk，到点就响。
+
+---
+
+## 三、配置与开关（2250-2255）
+
+```typescript
+const streamWatchdogEnabled = isEnvTruthy(process.env.CLAUDE_ENABLE_STREAM_WATCHDOG)
+const STREAM_IDLE_TIMEOUT_MS = parseInt(process.env.CLAUDE_STREAM_IDLE_TIMEOUT_MS || '', 10) || 90_000
+const STREAM_IDLE_WARNING_MS = STREAM_IDLE_TIMEOUT_MS / 2
+let streamIdleAborted = false
+let streamWatchdogFiredAt: number | null = null   // 触发时刻快照，测 abort 传播延迟
+```
+
+| 配置 | 默认 | 含义 |
+|---|---|---|
+| `CLAUDE_ENABLE_STREAM_WATCHDOG` | 关闭 | 看门狗总开关（**默认不启用**） |
+| `CLAUDE_STREAM_IDLE_TIMEOUT_MS` | 90 秒 | 多久没 chunk 算超时 |
+| warning | 超时的一半（45 秒） | 先发警告日志 |
+
+注意看门狗**默认关闭**，需显式设环境变量开启——是个可选的健壮性增强。
+
+---
+
+## 四、两级定时器（2261-2304）
+
+```typescript
+function clearStreamIdleTimers(): void {
+  if (streamIdleWarningTimer !== null) { clearTimeout(streamIdleWarningTimer); streamIdleWarningTimer = null }
+  if (streamIdleTimer !== null) { clearTimeout(streamIdleTimer); streamIdleTimer = null }
+}
+
+function resetStreamIdleTimer(): void {
+  clearStreamIdleTimers()
+  if (!streamWatchdogEnabled) return
+  // 第一级：警告
+  streamIdleWarningTimer = setTimeout(warnMs => {
+    logForDebugging(`Streaming idle warning: no chunks received for ${warnMs/1000}s`, { level: 'warn' })
+    logForDiagnosticsNoPII('warn', 'cli_streaming_idle_warning')
+  }, STREAM_IDLE_WARNING_MS, STREAM_IDLE_WARNING_MS)
+  // 第二级：超时 → abort
+  streamIdleTimer = setTimeout(() => {
+    streamIdleAborted = true
+    streamWatchdogFiredAt = performance.now()
+    logForDebugging(`Streaming idle timeout: ... aborting stream`, { level: 'error' })
+    logForDiagnosticsNoPII('error', 'cli_streaming_idle_timeout')
+    logEvent('tengu_streaming_idle_timeout', { model, request_id, timeout_ms })
+    releaseStreamResources()    // ← 杀流：取消 Response，for-await 会随之退出
+  }, STREAM_IDLE_TIMEOUT_MS)
+}
+resetStreamIdleTimer()
+```
+
+### 4.1 两级递进
+
+| 级别 | 时间 | 动作 |
+|---|---|---|
+| 警告 | 45 秒无 chunk | 记 warn 日志（还没杀，给个预警） |
+| 超时 | 90 秒无 chunk | 置 `streamIdleAborted=true`、打点、**`releaseStreamResources()` 杀流** |
+
+杀流的手段是 `releaseStreamResources()`（`[10]` 定义）——cancel 掉 Response body，`for await` 因底层流被取消而退出。
+
+### 4.2 ⭐ 每个 chunk 重置计时
+
+`resetStreamIdleTimer()` 在两处调用：
+
+1. **进循环前**调一次（本段末尾，启动看门狗）。
+2. **`[13]` 每收到一个 chunk** 调一次（`claude.ts:2323`）。
+
+这是"空闲"超时的精髓：**只要还有数据流动就不断重置倒计时**，只有真正"静默 N 秒"才触发。像汽车的"熄火延时"——你一踩油门计时就清零。
+
+### 4.3 `streamWatchdogFiredAt`：测量 abort 传播延迟
+
+记录看门狗开火的 `performance.now()` 时刻。`[14]` 会用它算 `exitDelayMs`——从"看门狗下令 abort"到"for-await 真正退出"隔了多久。0-10ms 说明 abort 立即生效；远超 1000ms 说明是别的东西唤醒了循环。这是验证看门狗**真的有效**的遥测。
+
+---
+
+## 五、startSessionActivity（2307）
+
+```typescript
+startSessionActivity('api_call')
+```
+
+标记"会话正在进行 API 调用"（用于活动状态/防休眠等）。与 `[16]` finally 里的 `stopSessionActivity('api_call')` 成对。紧接着就进入 `[13]` 的 `for await` 事件循环。
+
+---
+
+## 六、触发后的去向
+
+看门狗 abort 后并非直接报错给用户，而是走**降级**：
+
+```
+看门狗 90s 开火
+  → releaseStreamResources() 杀流
+  → for-await 退出
+  → [14] 检测 streamIdleAborted=true
+  → throw new Error('Stream idle timeout...')
+  → 落入 [15] catch → 非流式降级重试
+```
+
+也就是说看门狗把"无限挂起"转化成"一个可被降级处理的错误"，让 `[15]` 的非流式兜底有机会救场。
+
+---
+
+## 七、关键行号书签
+
+| 内容 | 位置 |
+|---|---|
+| 看门狗 vs 停顿检测注释 | `claude.ts:2245-2249` |
+| 配置与开关 | `claude.ts:2250-2255` |
+| `clearStreamIdleTimers` | `claude.ts:2261-2270` |
+| `resetStreamIdleTimer`（两级定时器） | `claude.ts:2271-2304` |
+| 超时回调 → `releaseStreamResources` | `claude.ts:2287-2303` |
+| 进循环前启动看门狗 | `claude.ts:2305` |
+| `startSessionActivity('api_call')` | `claude.ts:2307` |
+| chunk 内重置计时（在 [13]） | `claude.ts:2323` |
+| 触发后降级判定（在 [14]） | `claude.ts:2781-2806` |
+
+---
+
+## 速记口诀
+
+- **补 SDK 的盲区**：SDK 超时只管初始 fetch，不管流式体；看门狗管"流中途静默卡死"。
+- **主动 vs 被动**：看门狗 setTimeout 到点主动杀流；停顿检测靠下一个 chunk 被动回看（没 chunk 就不触发）。
+- **两级**：45s 警告（只记日志）→ 90s 超时（杀流 + 打点）。
+- **空闲=可重置**：每个 chunk 都 `resetStreamIdleTimer()`，有数据就清零倒计时。
+- **默认关闭**：需 `CLAUDE_ENABLE_STREAM_WATCHDOG` 显式开启。
+- **转成可降级错误**：触发后 throw，交给 [15] 非流式兜底。

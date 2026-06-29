@@ -1,0 +1,145 @@
+---
+title: "[1] 应急开关（off-switch / kill switch）"
+description: queryModel 的第一段实质逻辑 —— Opus 模型的远程应急容量关闭开关。Anthropic 后端 Opus 容量吃紧时，可远程把一部分非订阅用户从 Opus 上挡下来。本文拆解三道与门的判定逻辑、为什么把廉价条件放前面以跳过会阻塞 ~10ms 的 GrowthBook 初始化、以及 getDynamicConfig_BLOCKS_ON_INIT 的含义（src/services/api/claude.ts:1318-1342）。
+---
+
+# [1] 应急开关（off-switch / kill switch）
+
+> 进入 `queryModel` 后，记完开始日志，**第一段实质代码**就是这个"应急开关"。它本质是 Opus 模型的**远程容量熔断器**：当 Anthropic 后端 Opus 算力吃紧时，运维可以远程激活一个开关，把一部分用户从 Opus 上"劝退"，引导他们改用 Sonnet——避免整个服务雪崩。
+>
+> 位置：`claude.ts:1318-1342`。
+
+---
+
+## 一、完整代码
+
+```typescript
+// 先检查廉价条件——off-switch 的 await 会阻塞 GrowthBook 初始化
+// （约 10ms）。对非 Opus 模型（haiku、sonnet）可以直接跳过 await。
+// 订阅用户根本不会走到这条路径。
+
+// 这段判断本质上是 Opus 模型的"应急容量关闭开关"（off-switch / kill switch）——
+// 当 Anthropic 后端 Opus 容量吃紧时，可以远程把一部分用户从 Opus 上挡下来，
+// 引导他们切到 Sonnet。
+if (
+  !isClaudeAISubscriber() &&            // ① 非订阅用户
+  isNonCustomOpusModel(options.model) && // ② 用的是官方 Opus 模型
+  (
+    await getDynamicConfig_BLOCKS_ON_INIT<{ activated: boolean }>(
+      'tengu-off-switch',
+      { activated: false },
+    )
+  ).activated                            // ③ 开关已激活
+) {
+  logEvent('tengu_off_switch_query', {})
+  yield getAssistantMessageFromError(
+    new Error(CUSTOM_OFF_SWITCH_MESSAGE),
+    options.model,
+  )
+  return
+}
+```
+
+---
+
+## 二、三道"与门"逐条拆解
+
+三个条件用 `&&` 串联，**全部成立**才触发熔断。注意它们是**短路求值**——前一个为假就不算后面的，这正是性能优化的关键。
+
+| 顺序 | 条件 | 含义 | 代价 |
+|---|---|---|---|
+| ① | `!isClaudeAISubscriber()` | 当前**不是**订阅用户（Pro/Max 等付费订阅免疫） | 极廉价（读本地状态） |
+| ② | `isNonCustomOpusModel(options.model)` | 用的是**官方 Opus** 模型（非自定义/非 Sonnet/Haiku） | 廉价（字符串判断） |
+| ③ | `getDynamicConfig_BLOCKS_ON_INIT(...).activated` | 远程动态配置里开关已激活 | **昂贵**（可能阻塞 ~10ms） |
+
+### 2.1 为什么条件顺序如此重要
+
+注释第一句点破了设计动机：
+
+> *先检查廉价条件——off-switch 的 await 会阻塞 GrowthBook 初始化（约 10ms）。*
+
+条件 ③ 里的 `await getDynamicConfig_BLOCKS_ON_INIT` **会阻塞**，最坏情况触发 GrowthBook（动态配置/特性开关系统）的初始化，约 **10ms**。如果把它放第一个判断，那么**每一次** queryModel 调用——包括 Sonnet、Haiku、订阅用户——都要白白等这 10ms。
+
+通过把两个**几乎零成本**的本地判断（①②）放前面，利用 `&&` 短路：
+
+- **订阅用户**：① 直接为假 → 短路，永不 await。
+- **Sonnet/Haiku 用户**：② 为假 → 短路，永不 await。
+- **只有"非订阅 + 官方 Opus"用户**才会真正去 await 远程配置。
+
+> **类比**：进门前先看"是不是 VIP（订阅）"和"走的是不是这扇门（Opus）"，这两步看一眼就知道；只有都对上了，才去翻那本要花时间查的"今天这扇门关没关"的台账（远程配置）。
+
+---
+
+## 三、`getDynamicConfig_BLOCKS_ON_INIT` 是什么
+
+函数名里大写的 **`_BLOCKS_ON_INIT`** 是一种**自我警示命名**——提醒调用者："我可能阻塞，因为我会等动态配置系统初始化完成"。
+
+```typescript
+getDynamicConfig_BLOCKS_ON_INIT<{ activated: boolean }>(
+  'tengu-off-switch',         // 配置键名
+  { activated: false },       // 默认值（拿不到远程配置时用它）
+)
+```
+
+- 泛型 `<{ activated: boolean }>` 声明远程配置的形状。
+- 第二个参数 `{ activated: false }` 是**兜底默认值**：网络失败、配置不存在、初始化超时时，一律按"开关没激活"处理——**默认放行**，绝不因为配置系统抽风就误伤正常请求。
+
+> 这是典型的**安全默认（fail-open）**设计：熔断器宁可漏掉一次该熔断的，也不要在配置不可用时把所有人都挡在外面。
+
+---
+
+## 四、触发后的三件事
+
+一旦三道门全通过（确实要熔断）：
+
+```typescript
+logEvent('tengu_off_switch_query', {})           // 1. 埋点：记录这次熔断
+yield getAssistantMessageFromError(              // 2. 给用户吐一条"错误消息"
+  new Error(CUSTOM_OFF_SWITCH_MESSAGE),
+  options.model,
+)
+return                                           // 3. 直接结束生成器，不发任何 API 请求
+```
+
+| 动作 | 作用 |
+|---|---|
+| `logEvent('tengu_off_switch_query')` | 上报遥测，运维能统计熔断了多少请求 |
+| `yield getAssistantMessageFromError(...)` | 把 `CUSTOM_OFF_SWITCH_MESSAGE`（引导切 Sonnet 的提示文案）包装成一条 assistant 消息流出去，用户在对话里看到 |
+| `return` | **立即退出**，根本不会走到后面构建请求体、调 API 的代码 |
+
+注意这里是 `yield` 一条错误消息后 `return`，**不是 throw**。因为这不是程序错误，而是一个**正常的产品行为**——用户应该收到一段友好提示，而不是看到崩溃堆栈。
+
+---
+
+## 五、谁会被熔断 / 谁免疫
+
+| 用户类型 | 模型 | 开关激活时 |
+|---|---|---|
+| 订阅用户（Pro/Max） | 任意 | ✅ 免疫（① 短路） |
+| 非订阅用户 | Sonnet / Haiku | ✅ 免疫（② 短路） |
+| 非订阅用户 | 自定义 Opus | ✅ 免疫（② 为假） |
+| **非订阅用户** | **官方 Opus** | ⚠️ **被熔断**，引导切 Sonnet |
+
+> 设计意图清晰：**保护已付费订阅用户的体验**，在容量危机时优先让免费/按量的官方 Opus 流量降级。
+
+---
+
+## 六、关键行号书签
+
+| 内容 | 位置 |
+|---|---|
+| 性能注释（廉价条件优先） | `claude.ts:1318` |
+| 三道与门 if | `claude.ts:1324-1335` |
+| 埋点 `tengu_off_switch_query` | `claude.ts:1336` |
+| yield 错误消息 + return | `claude.ts:1337-1341` |
+| `CUSTOM_OFF_SWITCH_MESSAGE` 常量 | 见 `claude.ts` 顶部 import |
+
+---
+
+## 速记口诀
+
+- **本质**：Opus 远程容量熔断器，容量紧张时把非订阅 Opus 用户劝退到 Sonnet。
+- **三道与门**：非订阅 + 官方 Opus + 开关激活，全中才触发。
+- **顺序即性能**：廉价本地判断在前，靠 `&&` 短路避免每次都白等 ~10ms 的远程配置。
+- **fail-open**：拿不到配置默认 `activated:false`，宁漏勿误伤。
+- **是 yield 不是 throw**：友好提示而非崩溃，发完即 return，不碰 API。

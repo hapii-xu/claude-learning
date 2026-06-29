@@ -11,19 +11,19 @@ function isScriptExt(ext: string): ext is Ext {
   )
 }
 
-/** Resolve a named workflow file by priority .ts → .js → .mjs. */
+/** 按优先级 .ts → .js → .mjs 解析命名 workflow 文件。 */
 export async function resolveNamedWorkflow(
   workflowDir: string,
   name: string,
 ): Promise<{ path: string; content: string } | null> {
   for (const ext of WORKFLOW_SCRIPT_EXTENSIONS) {
     const p = resolve(workflowDir, name + ext)
-    // Double safeguard: prevents edge cases missed by the upper-layer sanitize from traversing paths outside workflowDir
+    // 双重保障：防止上层 sanitize 遗漏的边界情况穿越到 workflowDir 外的路径
     if (!containsPath(workflowDir, p)) return null
     try {
       return { path: p, content: await readFile(p, 'utf-8') }
     } catch {
-      // try the next extension
+      // 尝试下一个扩展名
     }
   }
   return null

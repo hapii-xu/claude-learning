@@ -319,10 +319,17 @@ export function splitSysPromptPrefix(
   options?: { skipGlobalCacheForSystemPrompt?: boolean },
 ): SystemPromptBlock[] {
   const useGlobalCacheFeature = shouldUseGlobalCacheScope()
+  logForDebugging(
+    `[Hapii][Cache] splitSysPromptPrefix: useGlobalCacheFeature=${useGlobalCacheFeature} skipGlobalCacheForSystemPrompt=${options?.skipGlobalCacheForSystemPrompt ?? false} promptBlockCount=${systemPrompt.length}`,
+  )
+
   if (useGlobalCacheFeature && options?.skipGlobalCacheForSystemPrompt) {
     logEvent('tengu_sysprompt_using_tool_based_cache', {
       promptBlockCount: systemPrompt.length,
     })
+    logForDebugging(
+      `[Hapii][Cache] splitSysPromptPrefix: MODE=tool_based_cache (no global scope for system prompt)`,
+    )
 
     // 过滤出边界标记，返回没有全局作用域的块
     let attributionHeader: string | undefined
@@ -352,11 +359,19 @@ export function splitSysPromptPrefix(
     if (restJoined) {
       result.push({ text: restJoined, cacheScope: 'org' })
     }
+
+    logForDebugging(
+      `[Hapii][Cache] splitSysPromptPrefix: result blocks=${result.length} scopes=[${result.map(b => b.cacheScope ?? 'null').join(', ')}]`,
+    )
     return result
   }
 
   if (useGlobalCacheFeature) {
     const boundaryIndex = systemPrompt.indexOf(SYSTEM_PROMPT_DYNAMIC_BOUNDARY)
+    logForDebugging(
+      `[Hapii][Cache] splitSysPromptPrefix: checking for DYNAMIC_BOUNDARY at index=${boundaryIndex}`,
+    )
+
     if (boundaryIndex !== -1) {
       let attributionHeader: string | undefined
       let systemPromptPrefix: string | undefined
@@ -389,6 +404,19 @@ export function splitSysPromptPrefix(
       const dynamicJoined = dynamicBlocks.join('\n\n')
       if (dynamicJoined) result.push({ text: dynamicJoined, cacheScope: null })
 
+      logForDebugging(
+        `[Hapii][Cache] splitSysPromptPrefix: MODE=global_cache with boundary`,
+      )
+      logForDebugging(
+        `[Hapii][Cache] splitSysPromptPrefix: staticBlock chars=${staticJoined.length} estTokens=~${Math.round(staticJoined.length / 4)}`,
+      )
+      logForDebugging(
+        `[Hapii][Cache] splitSysPromptPrefix: dynamicBlock chars=${dynamicJoined.length} estTokens=~${Math.round(dynamicJoined.length / 4)}`,
+      )
+      logForDebugging(
+        `[Hapii][Cache] splitSysPromptPrefix: result blocks=${result.length} scopes=[${result.map(b => b.cacheScope ?? 'null').join(', ')}]`,
+      )
+
       logEvent('tengu_sysprompt_boundary_found', {
         blockCount: result.length,
         staticBlockLength: staticJoined.length,
@@ -400,8 +428,16 @@ export function splitSysPromptPrefix(
       logEvent('tengu_sysprompt_missing_boundary_marker', {
         promptBlockCount: systemPrompt.length,
       })
+      logForDebugging(
+        `[Hapii][Cache] splitSysPromptPrefix: DYNAMIC_BOUNDARY not found, falling back to org cache`,
+      )
     }
   }
+
+  // Default mode: org-level cache
+  logForDebugging(
+    `[Hapii][Cache] splitSysPromptPrefix: MODE=org_cache (default/fallback)`,
+  )
   let attributionHeader: string | undefined
   let systemPromptPrefix: string | undefined
   const rest: string[] = []
@@ -425,6 +461,10 @@ export function splitSysPromptPrefix(
     result.push({ text: systemPromptPrefix, cacheScope: 'org' })
   const restJoined = rest.join('\n\n')
   if (restJoined) result.push({ text: restJoined, cacheScope: 'org' })
+
+  logForDebugging(
+    `[Hapii][Cache] splitSysPromptPrefix: result blocks=${result.length} scopes=[${result.map(b => b.cacheScope ?? 'null').join(', ')}] totalChars=${restJoined.length}`,
+  )
   return result
 }
 

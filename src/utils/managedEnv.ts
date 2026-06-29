@@ -126,7 +126,12 @@ export function applySafeConfigEnvironmentVariables(): void {
   // 全局配置（~/.hclaude.json）由用户控制。在 CCD 模式下，
   // filterSettingsEnv 会剥离 spawn env 快照中存在的 key，
   // 防止覆盖桌面宿主机的运营变量（OTEL 等）。
-  Object.assign(process.env, filterSettingsEnv(getGlobalConfig().env))
+  const globalEnv = filterSettingsEnv(getGlobalConfig().env)
+  if (globalEnv.ANTHROPIC_BASE_URL)
+    console.error(
+      `[DEBUG managedEnv] ANTHROPIC_BASE_URL from ~/.hclaude.json env: "${globalEnv.ANTHROPIC_BASE_URL}"`,
+    )
+  Object.assign(process.env, globalEnv)
 
   // 从受信任 setting 来源应用全部 env 变量，policySettings 最后应用。
   // 通过 isSettingSourceEnabled 把关，防止 SDK settingSources: []（隔离模式）
@@ -135,10 +140,12 @@ export function applySafeConfigEnvironmentVariables(): void {
   for (const source of TRUSTED_SETTING_SOURCES) {
     if (source === 'policySettings') continue
     if (!isSettingSourceEnabled(source)) continue
-    Object.assign(
-      process.env,
-      filterSettingsEnv(getSettingsForSource(source)?.env),
-    )
+    const settingsEnv = filterSettingsEnv(getSettingsForSource(source)?.env)
+    if (settingsEnv.ANTHROPIC_BASE_URL)
+      console.error(
+        `[DEBUG managedEnv] ANTHROPIC_BASE_URL from ${source} settings.env: "${settingsEnv.ANTHROPIC_BASE_URL}"`,
+      )
+    Object.assign(process.env, settingsEnv)
   }
 
   // 在 userSettings 和 flagSettings env 已应用后，计算远程托管 settings 资格。

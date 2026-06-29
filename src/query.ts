@@ -284,17 +284,13 @@ function getAutonomyTurnOutcome(params: {
 export type QueryParams = {
   // 对话历史（用户消息 / 助手消息 / 工具结果等）。queryLoop 每次迭代会把新的助手回复 + 工具结果追加进副本，作为下一轮 API 请求的 messages。
   messages: Message[]
-  // 基础系统提示词（SystemPrompt 包装类型）。不含 CLAUDE.md / git 状态等
-  // 动态上下文 —— 那些由 systemContext / userContext 在循环中拼接进来。
+  // 基础系统提示词（SystemPrompt 包装类型）。不含 CLAUDE.md / git 状态等 动态上下文 —— 那些由 systemContext / userContext 在循环中拼接进来。
   systemPrompt: SystemPrompt
-  // 用户侧动态上下文（键值对）。在调用 API 前由 prependUserContext 拼到
-  // messages 最前面，例如当前 CWD、shell、日期等环境信息。
+  // 用户侧动态上下文（键值对）。在调用 API 前由 prependUserContext 拼到 messages 最前面，例如当前 CWD、shell、日期等环境信息。
   userContext: { [k: string]: string }
-  // 系统侧动态上下文（键值对）。在调用 API 前由 appendSystemContext 拼到
-  // systemPrompt 后面，例如 CLAUDE.md 内容、git status 等。
+  // 系统侧动态上下文（键值对）。在调用 API 前由 appendSystemContext 拼到 systemPrompt 后面，例如 CLAUDE.md 内容、git status 等。
   systemContext: { [k: string]: string }
-  // 工具权限回调。每次模型请求调用工具时，先经此函数判断是否允许执行
-  // （会触发权限提示 UI / 命中 allow 规则等）。
+  // 工具权限回调。每次模型请求调用工具时，先经此函数判断是否允许执行（会触发权限提示 UI / 命中 allow 规则等）。
   canUseTool: CanUseToolFn
   // 工具执行上下文：agentId、主循环模型、权限模式、AppState 引用等。
   // 子 agent（agent:*）与主线程（main）共用 queryLoop，靠它区分来源。
@@ -305,22 +301,18 @@ export type QueryParams = {
   //  1. 判断是否持久化工具结果替换（agent: / repl_main_thread 前缀才持久化）
   //  2. Langfuse trace 归属、埋点统计
   querySource: QuerySource
-  // 输出 token 上限覆盖值。优先级高于全局默认；用于 max_tokens 限流恢复、
-  // 200k 超限重试等场景临时缩小输出。
+  // 输出 token 上限覆盖值。优先级高于全局默认；用于 max_tokens 限流恢复、 200k 超限重试等场景临时缩小输出。
   maxOutputTokensOverride?: number
   // queryLoop 最大迭代轮数。未设置时为 ∞（直到模型不再发工具调用）。
   // 用于限制 agent / 子任务的递归深度，防止无限工具调用循环。
   maxTurns?: number
-  // 是否跳过 prompt cache 写入。为 true 时本次请求不写缓存（仅读），
-  // 用于避免一次性大查询污染缓存命中率。
+  // 是否跳过 prompt cache 写入。为 true 时本次请求不写缓存（仅读）， 用于避免一次性大查询污染缓存命中率。
   skipCacheWrite?: boolean
   // API task_budget（output_config.task_budget，beta task-budgets-2026-03-13）。
   // 与 tokenBudget +500k 自动续写特性不同。`total` 是整个 agent 轮次的
-  // 预算；`remaining` 每次迭代根据累计 API 用量计算。见 claude.ts 的
-  // configureTaskBudgetParams。
+  // 预算；`remaining` 每次迭代根据累计 API 用量计算。见 claude.ts 的 configureTaskBudgetParams。
   taskBudget?: { total: number }
-  // 可选依赖注入（microcompact / autocompact 等实现）。测试时替换为 mock，
-  // 未提供时使用 productionDeps()（真实生产实现）。
+  // 可选依赖注入（microcompact / autocompact 等实现）。测试时替换为 mock，未提供时使用 productionDeps()（真实生产实现）。
   deps?: QueryDeps
 }
 
@@ -536,8 +528,7 @@ export async function* query(
 /**
  * query() 的内部循环实现 —— 实际执行 API 调用和工具执行。
  *
- * 使用可变 state 对象管理跨迭代状态（messages、toolUseContext 等），
- * 每次迭代结束时通过 `state = { ... }` 整体更新，避免 9 个独立赋值。
+ * 使用可变 state 对象管理跨迭代状态（messages、toolUseContext 等），每次迭代结束时通过 `state = { ... }` 整体更新，避免 9 个独立赋值。
  *
  * 每次迭代的步骤：
  *   1. 预处理 messages（规范化、注入附件、memory 等）
@@ -551,12 +542,10 @@ async function* queryLoop(
   // params 本身不可变 —— 循环中绝不重新赋值，需要修改的字段都走 State 副本。
   params: QueryParams,
   // 本次 query 期间已被「消费」的命令 uuid 累积列表（由 query 创建后传入、
-  // 循环中往里 push）。query 结束后用它们批量通知 command lifecycle
-  // 「completed」，避免每条命令单独通知。
+  // 循环中往里 push）。query 结束后用它们批量通知 command lifecycle「completed」，避免每条命令单独通知。
   consumedCommandUuids: string[],
   // 本次 query 期间从 autonomy 队列认领并消费掉的命令（prompt /
-  // task-notification 模式）。query 结束后随 trace / 统计一起上报，
-  // 用于还原「这一轮自动执行了哪些注入命令」。
+  // task-notification 模式）。query 结束后随 trace / 统计一起上报， 用于还原「这一轮自动执行了哪些注入命令」。
   consumedAutonomyCommands: QueuedCommand[],
 ): AsyncGenerator<
   | StreamEvent
@@ -1296,13 +1285,10 @@ async function* queryLoop(
               langfuseTrace: toolUseContext.langfuseTrace,
             },
           })) {
-            // 我们不会使用第一次尝试的 tool_calls
-            // 可以用……但那样就得合并 id 不同的 assistant 消息，
-            // 并把完整的 tool_results 翻倍
+            // 我们不会使用第一次尝试的 tool_calls 可以用……但那样就得合并 id 不同的 assistant 消息，并把完整的 tool_results 翻倍
             if (streamingFallbackOccured) {
               // 为孤儿消息 yield tombstone，让它们从 UI 和 transcript 中被移除。
-              // 这些部分消息（尤其是 thinking 块）签名无效，
-              // 会导致 "thinking blocks cannot be modified" API 错误。
+              // 这些部分消息（尤其是 thinking 块）签名无效，会导致 "thinking blocks cannot be modified" API 错误。
               for (const msg of assistantMessages) {
                 yield { type: 'tombstone' as const, message: msg }
               }
@@ -1318,8 +1304,7 @@ async function* queryLoop(
               needsFollowUp = false
 
               // 丢弃失败流式尝试的待处理结果，创建新的 executor。
-              // 防止带旧 tool_use_id 的孤儿 tool_results 在 fallback
-              // 响应到来后仍被 yield。
+              // 防止带旧 tool_use_id 的孤儿 tool_results 在 fallback 响应到来后仍被 yield。
               if (streamingToolExecutor) {
                 streamingToolExecutor.discard()
                 streamingToolExecutor = new StreamingToolExecutor(
@@ -1462,8 +1447,7 @@ async function* queryLoop(
           )
 
           // 使用 API 返回的真实删除 token 数（而非客户端估算）来
-          // yield 延迟的 microcompact 边界消息。整个块由 feature() 门控，
-          // 让被排除的字符串从外部构建中消失。
+          // yield 延迟的 microcompact 边界消息。整个块由 feature() 门控，让被排除的字符串从外部构建中消失。
           if (feature('CACHED_MICROCOMPACT') && pendingCacheEdits) {
             const lastAssistant = assistantMessages.at(-1)
             // API 字段在请求间是累计/粘性的，因此减去本次请求之前捕获的基线以得到增量。
@@ -1848,8 +1832,7 @@ async function* queryLoop(
         return { reason: 'prompt_too_long' }
       }
 
-      // 检查 max_output_tokens 并注入恢复消息。错误已在上方流中
-      // 扣留；仅在恢复耗尽时才暴露。
+      // 检查 max_output_tokens 并注入恢复消息。错误已在上方流中扣留；仅在恢复耗尽时才暴露。
       if (isWithheldMaxOutputTokens(lastMessage)) {
         // 升级重试：如果我们用的是 8k 默认上限并撞到限制，就以 64k
         // 重试同一请求 —— 没有元消息，没有多轮周旋。每轮触发一次

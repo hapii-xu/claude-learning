@@ -1,0 +1,278 @@
+---
+title: "[10] paramsFromContext：最终请求参数构建闭包"
+description: queryModel 把所有材料拼成最终 API 请求体的核心闭包 —— 它会被多次调用（日志、每次重试各一次），按 retryContext 动态生成 thinking（adaptive vs budget）、temperature、betas、context_management、output_config、cache breakpoints 等全部参数。本文讲清为什么用闭包而非一次性对象、adaptive thinking 的敏感性、1M/structured-outputs 等动态 beta 的追加、以及预算标量避免闭包 pin 住整个上下文的内存技巧（src/services/api/claude.ts:1883-2135）。
+---
+
+# [10] paramsFromContext：最终请求参数构建闭包
+
+> 前面 `[1]`~`[9]` 准备好的一切（messages、system、allTools、betas、各种锁存值），到这里被一个**闭包 `paramsFromContext`** 拼成最终的 API 请求体（`claude.ts:1906-2100`）。它**不是只调用一次**——日志要一次、每次重试要一次——所以做成闭包，每次按传入的 `retryContext` 重新生成参数。本文还覆盖闭包前的资源清理函数与 cache edits 消费（1883-1900），以及闭包后的日志标量预算（2102-2135）。
+
+---
+
+## 一、闭包前的两段准备
+
+### 1.1 releaseStreamResources 函数定义（1883-1894）
+
+```typescript
+function releaseStreamResources(): void {
+  cleanupStream(stream)
+  stream = undefined
+  if (streamResponse) {
+    streamResponse.body?.cancel().catch(() => {})
+    streamResponse = undefined
+  }
+}
+```
+
+呼应 `[0]` 的**内存泄漏防护**暗线：`Response` 对象持有 V8 堆外的 TLS/socket 缓冲区（GH #32920），必须显式 cancel。这个函数后面在看门狗（`[12]`）、错误处理（`[15]`）、finally（`[16]`）多处调用。在此提前定义，因为闭包和后续逻辑都要引用它。
+
+### 1.2 cache edits 一次性消费（1896-1900）
+
+```typescript
+// 在定义 paramsFromContext 之前，一次性消费待处理的 cache edits。
+// paramsFromContext 会被多次调用（日志、重试），在其中消费会让第一次
+// 调用偷走后续调用的 edits。
+const consumedCacheEdits = cachedMCEnabled ? consumePendingCacheEdits() : null
+const consumedPinnedEdits = cachedMCEnabled ? getPinnedCacheEdits() : []
+```
+
+⭐ 关键陷阱：`consumePendingCacheEdits()` 是**消费型**操作（取出即清空）。如果放在 `paramsFromContext` **内部**，那么第一次调用（日志用）就会把 edits 取走，真正发请求时就空了。所以**在闭包外消费一次**，把结果存入 `consumedCacheEdits`，闭包每次引用同一份。这是"多次调用的闭包"必须注意的副作用隔离。
+
+---
+
+## 二、paramsFromContext 闭包总览
+
+```typescript
+let lastRequestBetas: string[] | undefined
+
+const paramsFromContext = (retryContext: RetryContext) => {
+  const betasParams = [...betas]   // 复制一份，不污染外层 betas
+  // ... 各种动态追加与配置 ...
+  return { model, messages, system, tools, ..., thinking, temperature, ... }
+}
+```
+
+为什么是闭包而非一次性对象？因为**重试可能改变参数**：
+
+| 场景 | retryContext 带来的变化 |
+|---|---|
+| 普通重试 | 同样参数重发 |
+| 上下文窗口超限重试 | `maxTokensOverride` 减小输出上限 |
+| 模型降级重试 | `retryContext.model` 变成 fallback 模型 |
+| fast mode 冷却 | `retryContext.fastMode` 变化 |
+
+每次重试用最新的 `retryContext` 调一次闭包，拿到**针对这次尝试**的参数。
+
+---
+
+## 三、闭包内逐段拆解
+
+### 3.1 动态 beta 追加
+
+```typescript
+// Sonnet 1M 上下文实验
+if (!betasParams.includes(CONTEXT_1M_BETA_HEADER) && getSonnet1mExpTreatmentEnabled(retryContext.model)) {
+  betasParams.push(CONTEXT_1M_BETA_HEADER)
+}
+// Bedrock 模型相关 betas
+const bedrockBetas = getAPIProvider() === 'bedrock' ? [...getBedrockExtraBodyParamsBetas(retryContext.model)] : []
+const extraBodyParams = getExtraBodyParams(bedrockBetas)
+```
+
+`betasParams` 先复制外层 `betas`，再按本次 retryContext 追加（1M 上下文、Bedrock 专属）。**用 `retryContext.model` 而非 `options.model`**——因为降级后模型可能变了。
+
+### 3.2 effort / task budget / structured outputs
+
+```typescript
+configureEffortParams(effort, outputConfig, extraBodyParams, betasParams, options.model)
+configureTaskBudgetParams(options.taskBudget, outputConfig, betasParams)
+
+if (options.outputFormat && !('format' in outputConfig)) {
+  outputConfig.format = options.outputFormat as BetaJSONOutputFormat
+  if (modelSupportsStructuredOutputs(options.model) && !betasParams.includes(STRUCTURED_OUTPUTS_BETA_HEADER)) {
+    betasParams.push(STRUCTURED_OUTPUTS_BETA_HEADER)
+  }
+}
+```
+
+- `configureEffortParams`：把 `[9]` 解析的 effort 写进 `output_config`。
+- `configureTaskBudgetParams`：任务 token 预算。
+- **结构化输出**（`--json-schema`）：设 `output_config.format`，并在模型支持时追加 `STRUCTURED_OUTPUTS_BETA_HEADER`。
+
+### 3.3 max output tokens
+
+```typescript
+const maxOutputTokens =
+  retryContext?.maxTokensOverride ||
+  options.maxOutputTokensOverride ||
+  getMaxOutputTokensForModel(options.model)
+```
+
+优先级：**重试覆盖 > 选项覆盖 > 模型默认**。注释说重试上下文优先，*因为它会在我们超出上下文窗口限制时尝试纠正*（超限重试时调小，见 `[15]`）。
+
+### 3.4 ⭐ thinking：adaptive vs budget（敏感）
+
+```typescript
+const hasThinking = thinkingConfig.type !== 'disabled' && !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_THINKING)
+let thinking
+if (hasThinking && modelSupportsThinking(options.model)) {
+  if (!isEnvTruthy(DISABLE_ADAPTIVE_THINKING) && modelSupportsAdaptiveThinking(options.model)) {
+    thinking = { type: 'adaptive' }                      // 自适应，无预算
+  } else {
+    let thinkingBudget = getMaxThinkingTokensForModel(options.model)
+    if (thinkingConfig.type === 'enabled' && thinkingConfig.budgetTokens !== undefined) {
+      thinkingBudget = thinkingConfig.budgetTokens
+    }
+    thinkingBudget = Math.min(maxOutputTokens - 1, thinkingBudget)  // 不能超过输出上限
+    thinking = { budget_tokens: thinkingBudget, type: 'enabled' }
+  }
+}
+```
+
+注释带了一句**罕见的严正警告**：
+
+> *重要：不要在未通知模型发布 DRI 和研究团队的情况下修改下面的 adaptive-vs-budget thinking 选择。这是一项敏感设置，会极大影响模型质量和刷榜表现。*
+
+两条路径：
+
+| 路径 | 条件 | thinking 参数 |
+|---|---|---|
+| **adaptive**（自适应） | 模型支持 + 未禁用 | `{ type: 'adaptive' }`，由模型自己决定思考量 |
+| **budget**（固定预算） | 不支持 adaptive | `{ type: 'enabled', budget_tokens: N }`，N 取 `min(maxOutputTokens-1, 预算)` |
+
+### 3.5 context_management / prompt caching
+
+```typescript
+const contextManagement = getAPIContextManagement({ hasThinking, isRedactThinkingActive, clearAllThinking: false })
+const enablePromptCaching = options.enablePromptCaching ?? getPromptCachingEnabled(retryContext.model)
+```
+
+获取 API 侧上下文管理策略；按 retryContext.model 算是否启用 prompt caching。
+
+### 3.6 fast mode：再现"锁存 vs 实时"
+
+```typescript
+let speed
+const isFastModeForRetry = isFastModeEnabled() && isFastModeAvailable() && !isFastModeCooldown()
+  && isFastModeSupportedByModel(options.model) && !!retryContext.fastMode
+if (isFastModeForRetry) { speed = 'fast' }                         // 实时：冷却时不设
+if (fastModeHeaderLatched && !betasParams.includes(FAST_MODE_BETA_HEADER)) {
+  betasParams.push(FAST_MODE_BETA_HEADER)                          // 锁存：一直发头
+}
+```
+
+完美印证 `[9]` 的二分：**header 锁存就一直发（缓存安全），但 `speed='fast'` 实时判定（冷却时不发，真正抑制 fast 请求）**。AFK 和 cache editing 同理：
+
+```typescript
+// AFK mode beta（锁存 + isAgenticQuery 闸控）
+if (feature('TRANSCRIPT_CLASSIFIER') && afkHeaderLatched && shouldIncludeFirstPartyOnlyBetas()
+    && isAgenticQuery && !betasParams.includes(AFK_MODE_BETA_HEADER)) {
+  betasParams.push(AFK_MODE_BETA_HEADER)
+}
+// cache editing beta（header 锁存稳定；useCachedMC 实时控制请求体行为）
+const useCachedMC = cachedMCEnabled && getAPIProvider() === 'firstParty' && options.querySource === 'repl_main_thread'
+if (cacheEditingHeaderLatched && cacheEditingBetaHeader && ... && !betasParams.includes(cacheEditingBetaHeader)) {
+  betasParams.push(cacheEditingBetaHeader)
+}
+```
+
+### 3.7 temperature
+
+```typescript
+const temperature = !hasThinking ? (options.temperatureOverride ?? 1) : undefined
+```
+
+⭐ **只在 thinking 关闭时才发 temperature**。注释：启用 thinking 时 API 要求 `temperature: 1`（已是默认值），所以干脆不发。
+
+### 3.8 过滤空 beta + 返回
+
+```typescript
+const filteredBetas = betasParams.filter(Boolean)   // 剔除空字符串
+lastRequestBetas = filteredBetas
+
+return {
+  model: normalizeModelStringForAPI(options.model),
+  messages: addCacheBreakpoints(messagesForAPI, enablePromptCaching, options.querySource,
+    useCachedMC, consumedCacheEdits, consumedPinnedEdits, options.skipCacheWrite),
+  system,
+  tools: allTools,
+  tool_choice: options.toolChoice,
+  ...(useBetas && { betas: filteredBetas }),
+  metadata: getAPIMetadata(),
+  max_tokens: maxOutputTokens,
+  thinking,
+  ...(temperature !== undefined && { temperature }),
+  ...(contextManagement && useBetas && betasParams.includes(CONTEXT_MANAGEMENT_BETA_HEADER) && { context_management: contextManagement }),
+  ...extraBodyParams,
+  ...(Object.keys(outputConfig).length > 0 && { output_config: outputConfig }),
+  ...(speed !== undefined && { speed }),
+}
+```
+
+- **过滤空 beta**：呼应 `[5]`——`CACHE_EDITING_BETA_HEADER` 等常量在 feature 关闭时是 `''`，空串会产生非法 `anthropic-beta` 头（400）。
+- `lastRequestBetas`：保存这次实际发送的 betas，供日志（`[16]`）使用。
+- **`addCacheBreakpoints`**：在消息里插入 `cache_control` 断点（公开 prompt caching），消费前面准备的 `consumedCacheEdits`/`consumedPinnedEdits`。
+- 大量 `...(cond && { ... })` **条件展开**：只有满足条件的字段才进请求体，保持请求干净。
+
+---
+
+## 四、闭包后：日志标量预算（2102-2135）
+
+```typescript
+let langfuseThinking
+{
+  const queryParams = paramsFromContext({ model: options.model, thinkingConfig })
+  const logMessagesLength = queryParams.messages.length
+  const logBetas = useBetas ? (queryParams.betas ?? []) : []
+  const logEffortValue = queryParams.output_config?.effort
+  if (queryParams.thinking && queryParams.thinking.type !== 'disabled') {
+    langfuseThinking = queryParams.thinking
+  }
+  void options.getToolPermissionContext().then(permissionContext => {
+    logAPIQuery({ model, messagesLength: logMessagesLength, ..., previousRequestId })
+  })
+}
+```
+
+这里**第一次调用** `paramsFromContext`（仅为日志），然后异步打 `logAPIQuery`。
+
+### ⭐ 内存技巧：预算标量，别 pin 闭包
+
+呼应 `[0]` 的**闭包防 pin** 暗线。注释：
+
+> *同步计算日志标量，使触发即忘的 `.then()` 闭包只捕获原始值，而不是 paramsFromContext 完整闭包作用域（messagesForAPI、system、allTools、betas——整个构建请求的上下文），否则这些对象会被一直 pin 到 promise 完成。*
+
+如果 `.then()` 直接引用 `queryParams`，就会通过闭包链 pin 住整个请求上下文（可能几十万 token 的数据）直到权限 Promise 完成。所以**先把需要的标量**（`logMessagesLength`、`logBetas`、`logEffortValue`）抽成原始值，`.then()` 只捕获这些小值——大对象可被及时 GC。
+
+`previousRequestId`（`[2]`）在此首次用于日志，把请求链串起来。
+
+---
+
+## 五、关键行号书签
+
+| 内容 | 位置 |
+|---|---|
+| `releaseStreamResources` 定义 | `claude.ts:1887-1894` |
+| cache edits 一次性消费 | `claude.ts:1899-1900` |
+| `paramsFromContext` 定义 | `claude.ts:1906` |
+| 1M / Bedrock 动态 beta | `claude.ts:1910-1922` |
+| structured outputs | `claude.ts:1944-1953` |
+| maxOutputTokens 优先级 | `claude.ts:1956-1959` |
+| thinking adaptive/budget（敏感警告） | `claude.ts:1966-1995` |
+| fast/AFK/cacheEditing beta 追加 | `claude.ts:2010-2055` |
+| temperature 条件 | `claude.ts:2059-2061` |
+| 过滤空 beta + return | `claude.ts:2067-2099` |
+| `addCacheBreakpoints` | `claude.ts:2072-2080` |
+| 日志标量预算 + logAPIQuery | `claude.ts:2102-2135` |
+
+---
+
+## 速记口诀
+
+- **闭包不是一次性**：日志一次 + 每次重试一次；用 `retryContext`（可能改 model/maxTokens/fastMode）按尝试生成参数。
+- **cache edits 闭包外消费**：消费型操作，放闭包内会被第一次调用偷走。
+- **thinking 两路且敏感**：adaptive（无预算，模型自定）vs budget（固定，min(maxTokens-1,预算)）——改动需通知 DRI/研究团队。
+- **temperature 只在无 thinking 时发**：有 thinking 时 API 强制为 1。
+- **再现锁存 vs 实时**：beta 头锁存照发，speed/useCachedMC 实时判定可停。
+- **过滤空 beta**：空串头会 400。
+- **预算标量防 pin**：`.then()` 只捕获原始值，别让它 pin 住整个请求上下文。

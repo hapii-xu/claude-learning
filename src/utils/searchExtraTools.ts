@@ -151,9 +151,9 @@ const getDeferredToolTokenCount = memoize(
 
 /**
  * 工具搜索模式。决定延迟工具（所有非核心工具）的呈现方式：
- *   - 'tst'：工具搜索工具模式——延迟工具通过 SearchExtraToolsTool 发现（始终启用）
+ *   - 'tst'：工具搜索工具模式——延迟工具通过 SearchExtraToolsTool 发现（始终启用） ------  Tool Search Tool(工具搜索工具)
  *   - 'tst-auto'：自动模式——仅当工具超过阈值时才延迟加载
- *   - 'standard'：禁用工具搜索——所有工具直接内联暴露
+ *   - 'standard'：禁用工具搜索——所有工具直接内联暴露 ------ 完全关闭工具搜索。所有工具(核心 + 非核心 + MCP)全部以完整 schema 内联发给模型。没有 SearchExtraTools 那套东西,模型一开始就看到所有工具。
  */
 export type SearchExtraToolsMode = 'tst' | 'tst-auto' | 'standard'
 
@@ -163,8 +163,18 @@ export type SearchExtraToolsMode = 'tst' | 'tst-auto' | 'standard'
  *   ENABLE_SEARCH_EXTRA_TOOLS    模式
  *   auto / auto:1-99      tst-auto
  *   true / auto:0         tst
- *   false / auto:100      standard
+ *   false / auto:100      standard  
  *   （未设置）             tst（默认：始终延迟非核心工具）
+ * 
+  ┌──────────┬────────────────────┬──────────────────────────────────────┬───────────────────────────────────────────────────────────┐
+  │   模式   │        名称        │          非核心工具怎么处理          │                     触发它的环境变量                      │
+  ├──────────┼────────────────────┼──────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ tst      │ 工具搜索模式 (默认) │ 全部延迟,只发核心 + SearchExtraTools   │ true、auto:0、不设置                                      │
+  ├──────────┼────────────────────┼──────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ tst-auto │ 自动阈值模式        │ 按 token 量动态决定,超过阈值才延迟      │ auto、auto:1~`auto:99`                                    │
+  ├──────────┼────────────────────┼──────────────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ standard │ 标准模式           │ 全部内联, 禁用搜索, 工具全量发            │ false、auto:100、CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1 │
+  └──────────┴────────────────────┴──────────────────────────────────────┴───────────────────────────────────────────────────────────┘
  */
 export function getSearchExtraToolsMode(): SearchExtraToolsMode {
   // CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS 仍作为工具搜索的全局开关，

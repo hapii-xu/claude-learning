@@ -1,8 +1,8 @@
 /**
- * Tool Use Summary Generator
+ * 工具调用摘要生成器
  *
- * Generates human-readable summaries of completed tool batches using Haiku.
- * Used by the SDK to provide high-level progress updates to clients.
+ * 使用 Haiku 模型为已完成的工具批次生成人类可读的摘要。
+ * 供 SDK 使用，向客户端提供高层级的进度更新。
  */
 
 import { E_TOOL_USE_SUMMARY_GENERATION_FAILED } from '../../constants/errorIds.js'
@@ -12,16 +12,16 @@ import { jsonStringify } from '../../utils/slowOperations.js'
 import { asSystemPrompt } from '../../utils/systemPromptType.js'
 import { queryHaiku } from '../api/claude.js'
 
-const TOOL_USE_SUMMARY_SYSTEM_PROMPT = `Write a short summary label describing what these tool calls accomplished. It appears as a single-line row in a mobile app and truncates around 30 characters, so think git-commit-subject, not sentence.
+const TOOL_USE_SUMMARY_SYSTEM_PROMPT = `写一个简短的摘要标签，描述这些工具调用完成了什么。它以单行形式显示在移动应用中，约30个字符后截断，所以要写成 git commit 主题风格，而不是完整句子。
 
-Keep the verb in past tense and the most distinctive noun. Drop articles, connectors, and long location context first.
+动词用过去式，保留最具辨识度的名词。优先省略冠词、连接词和冗长的路径上下文。
 
-Examples:
-- Searched in auth/
-- Fixed NPE in UserService
-- Created signup endpoint
-- Read config.json
-- Ran failing tests`
+示例：
+- 在 auth/ 中搜索
+- 修复 UserService 中的 NPE
+- 创建注册接口
+- 读取 config.json
+- 运行失败的测试`
 
 type ToolInfo = {
   name: string
@@ -37,10 +37,10 @@ export type GenerateToolUseSummaryParams = {
 }
 
 /**
- * Generates a human-readable summary of completed tools.
+ * 为已完成的工具调用生成人类可读的摘要。
  *
- * @param params - Parameters including tools executed and their results
- * @returns A brief summary string, or null if generation fails
+ * @param params - 参数，包含已执行的工具及其结果
+ * @returns 简短摘要字符串，生成失败时返回 null
  */
 export async function generateToolUseSummary({
   tools,
@@ -53,22 +53,22 @@ export async function generateToolUseSummary({
   }
 
   try {
-    // Build a concise representation of what tools did
+    // 构建工具执行情况的简洁描述
     const toolSummaries = tools
       .map(tool => {
         const inputStr = truncateJson(tool.input, 300)
         const outputStr = truncateJson(tool.output, 300)
-        return `Tool: ${tool.name}\nInput: ${inputStr}\nOutput: ${outputStr}`
+        return `工具: ${tool.name}\n输入: ${inputStr}\n输出: ${outputStr}`
       })
       .join('\n\n')
 
     const contextPrefix = lastAssistantText
-      ? `User's intent (from assistant's last message): ${lastAssistantText.slice(0, 200)}\n\n`
+      ? `用户意图（来自助手的最后一条消息）: ${lastAssistantText.slice(0, 200)}\n\n`
       : ''
 
     const response = await queryHaiku({
       systemPrompt: asSystemPrompt([TOOL_USE_SUMMARY_SYSTEM_PROMPT]),
-      userPrompt: `${contextPrefix}Tools completed:\n\n${toolSummaries}\n\nLabel:`,
+      userPrompt: `${contextPrefix}已完成的工具:\n\n${toolSummaries}\n\n标签:`,
       signal,
       options: {
         querySource: 'tool_use_summary_generation',
@@ -90,7 +90,7 @@ export async function generateToolUseSummary({
 
     return summary || null
   } catch (error) {
-    // Log but don't fail - summaries are non-critical
+    // 记录错误但不抛出——摘要生成属于非关键功能
     const err = toError(error)
     err.cause = { errorId: E_TOOL_USE_SUMMARY_GENERATION_FAILED }
     logError(err)
@@ -99,7 +99,7 @@ export async function generateToolUseSummary({
 }
 
 /**
- * Truncates a JSON value to a maximum length for the prompt.
+ * 将 JSON 值截断至提示词中允许的最大长度。
  */
 function truncateJson(value: unknown, maxLength: number): string {
   try {
@@ -109,6 +109,6 @@ function truncateJson(value: unknown, maxLength: number): string {
     }
     return str.slice(0, maxLength - 3) + '...'
   } catch {
-    return '[unable to serialize]'
+    return '[无法序列化]'
   }
 }

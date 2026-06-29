@@ -7,7 +7,7 @@ export class ScriptError extends Error {
   }
 }
 
-/** Shape of the hook functions the engine injects into a script. */
+/** 引擎注入到脚本的 hook 函数集合。 */
 export type WorkflowHooks = {
   agent: (prompt: string, opts?: Record<string, unknown>) => Promise<unknown>
   parallel: <T>(thunks: Array<() => Promise<T>>) => Promise<Array<T | null>>
@@ -28,8 +28,8 @@ export type WorkflowHooks = {
 const META_RE = /export\s+const\s+meta\s*=\s*/
 
 /**
- * Extract the `export const meta = { ... }` pure literal. Returns the meta object and the stripped body.
- * The literal is evaluated with a parameter-less Function — any identifier reference throws ReferenceError → reported as "not a plain literal".
+ * 提取 `export const meta = { ... }` 纯字面量。返回 meta 对象和剥离后的主体。
+ * 字面量通过无参数 Function 执行 —— 任何标识符引用都会抛出 ReferenceError → 报告为"非纯字面量"。
  */
 export function extractMeta(source: string): {
   meta: WorkflowMeta | null
@@ -44,7 +44,7 @@ export function extractMeta(source: string): {
     throw new ScriptError('meta must be an object literal `{ ... }`')
   }
 
-  // Brace matching (handles strings / escapes / nesting)
+  // 花括号匹配（处理字符串 / 转义 / 嵌套）
   let depth = 0
   const start = i
   let inStr: string | null = null
@@ -76,7 +76,7 @@ export function extractMeta(source: string): {
   const literal = source.slice(start, i)
   let metaObj: unknown
   try {
-    // Parameter-less Function: a plain literal can be evaluated; referencing any identifier → ReferenceError
+    // 无参数 Function：纯字面量可执行；引用任何标识符 → ReferenceError
     metaObj = new Function(`return (${literal})`)()
   } catch (e) {
     throw new ScriptError(
@@ -85,7 +85,7 @@ export function extractMeta(source: string): {
   }
   const meta = validateMeta(metaObj)
 
-  // Strip the meta statement (including trailing semicolon and extra blank lines)
+  // 剥离 meta 语句（含尾随分号和多余空行）
   const body =
     source.slice(0, match.index) +
     source.slice(i).replace(/^[ \t]*;[ \t]*\n/, '\n')
@@ -103,11 +103,11 @@ function validateMeta(v: unknown): WorkflowMeta {
   return o as unknown as WorkflowMeta
 }
 
-// ---- Non-determinism sandbox shim ----
+// ---- 非确定性沙箱 shim ----
 class NonDeterministicError extends Error {
   constructor(fn: string) {
     super(
-      `${fn} is not available in workflow scripts (would break resume determinism). Pass timestamps/random seeds via args.`,
+      `${fn} 在 workflow 脚本中不可用（会破坏恢复确定性）。请通过 args 传递时间戳/随机种子。`,
     )
     this.name = 'NonDeterministicError'
   }
@@ -156,11 +156,11 @@ export type ParsedScript = {
   ) => Promise<unknown>
 }
 
-/** Validate + wrap the script as an executable async function (Date/Math are shimmed). */
+/** 验证 + 将脚本封装为可执行的 async 函数（Date/Math 已被 shim）。 */
 /**
- * Detect common violations in the script body (import / extra export) and produce precise errors with guidance.
- * Otherwise it would fall through to AsyncFunction's generic "syntax error", making it hard for the model/user to pinpoint the root cause
- * (the script is a non-ESM function body, hooks are already injected, and the engine does not transpile TS).
+ * 检测脚本主体中的常见违规（import / 多余 export）并产出精确错误和指导。
+ * 否则会降级到 AsyncFunction 的通用"语法错误"，使模型/用户难以定位根本原因
+ * （脚本是非 ESM 函数体，hooks 已注入，引擎不转译 TS）。
  */
 function assertScriptBody(body: string): void {
   if (/^\s*import\b/m.test(body)) {
@@ -169,9 +169,9 @@ function assertScriptBody(body: string): void {
         'agent / parallel / pipeline / phase / log / workflow / args / budget are injected as parameters — use them directly.',
     )
   }
-  // Dynamic import(...) calls: the sandbox only preserves resume determinism, not security, but obvious escape attempts should be blocked.
-  // Not anchored to the start of a line so it can catch `await import(...)`, `return import(...)`, etc.; requires `import` followed by `(` to intercept,
-  // avoiding false positives where the word "import" appears inside a string literal (e.g. agent('please import this module')).
+  // 动态 import(...) 调用：沙箱仅保障恢复确定性而非安全性，但明显的越狱尝试应被阻止。
+  // 不锚定行首以捕获 `await import(...)`、`return import(...)` 等；要求 `import` 后跟 `(` 拦截，
+  // 避免字符串字面量中出现的"import"一词误报（例如 agent('please import this module')）。
   if (/\bimport\s*\(/m.test(body)) {
     throw new ScriptError(
       'dynamic import(...) is forbidden in workflow scripts: it bypasses the Date/Math sandbox and breaks resume determinism. ' +

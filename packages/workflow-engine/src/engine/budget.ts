@@ -6,8 +6,8 @@ export class BudgetExhaustedError extends Error {
 }
 
 /**
- * Token budget accumulator. The script reads via `budget.total / budget.spent() / budget.remaining()`;
- * assertCanSpend() enforces a hard cap before each agent() call.
+ * token 预算累加器。脚本通过 `budget.total / budget.spent() / budget.remaining()` 读取；
+ * assertCanSpend() 在每次 agent() 调用前强制执行硬上限。
  */
 export class Budget {
   private spentTokens = 0

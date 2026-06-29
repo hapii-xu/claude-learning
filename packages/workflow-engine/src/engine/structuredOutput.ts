@@ -3,8 +3,8 @@ import { Ajv, type ValidateFunction } from 'ajv'
 const cache = new WeakMap<object, ValidateFunction>()
 
 /**
- * Validate agent output against a JSON Schema (Ajv, compilation result cached by schema object).
- * The engine performs secondary validation on the schema result returned by the adapter, and uses it for tests.
+ * 根据 JSON Schema 验证 agent 输出（Ajv，按 schema 对象缓存编译结果）。
+ * 引擎对适配器返回的 schema 结果执行二次验证，并用于测试。
  */
 export function validateAgainstSchema(
   value: unknown,

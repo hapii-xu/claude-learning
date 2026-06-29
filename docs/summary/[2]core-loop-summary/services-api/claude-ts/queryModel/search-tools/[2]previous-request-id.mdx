@@ -1,0 +1,155 @@
+---
+title: "[2] previousRequestId 与模型解析"
+description: queryModel 在熔断检查之后做的两件"请求溯源"准备 —— 从消息数组推导上一个 request ID（按消息数组作用域隔离，天然支持并发 agent 与回滚），以及 Bedrock application-inference-profile 的真实底层模型解析。本文讲清为什么按消息数组而非全局单例来追踪请求链，以及推理配置档解析的用途（src/services/api/claude.ts:1344-1354）。
+---
+
+# [2] previousRequestId 与模型解析
+
+> 通过 `[1]` 的应急开关后，queryModel 做两件很短但很讲究的"请求溯源"准备：
+> 1. **`previousRequestId`**：本查询链上一个请求的 ID（`claude.ts:1347`）。
+> 2. **`resolvedModel`**：把 Bedrock 的"推理配置档"翻译成真实底层模型名（`claude.ts:1349-1354`）。
+>
+> 两段代码都不到 10 行，但背后的并发隔离与多 provider 适配的考量值得单独讲。
+
+---
+
+## 一、previousRequestId：请求链追踪
+
+### 1.1 代码
+
+```typescript
+// 从本查询链中最后一条 assistant 消息推导出上一个 request ID。
+// 按消息数组做作用域隔离（主线程、子 agent、队友各自独立），这样并发 agent
+// 之间不会相互覆盖对方的请求链跟踪。
+// 同时天然支持回滚/撤销——被删除的消息不会出现在数组里。
+const previousRequestId = getPreviousRequestIdFromMessages(messages)
+```
+
+### 1.2 它是什么、做什么用
+
+每次 Anthropic API 响应都带一个 **request ID**（服务端日志的关联键）。Claude Code 把"上一个请求的 ID"一路传到日志/遥测里（最终在 `logAPIQuery` / `logAPISuccessAndDuration` / `logAPIError` 中使用，见 `[10][11][15][16]`）。
+
+作用是**把同一条对话链上的连续请求串起来**：当出问题排查时，运维能顺着 `previousRequestId → requestId` 的链路还原整个回合序列，而不是看到一堆孤立的请求。
+
+### 1.3 ⭐ 关键设计：为什么从 `messages` 推导，而不是全局变量
+
+最直觉的实现是搞一个模块级变量 `let lastRequestId`，每次请求完就更新它。但代码**故意不这么做**，而是 `getPreviousRequestIdFromMessages(messages)`——**从传入的消息数组里**找最后一条 assistant 消息，读它的 `requestId`。
+
+注释点出两个理由：
+
+#### 理由 A：并发 agent 隔离
+
+Claude Code 可以同时跑**多条独立的对话链**：
+
+| 链 | 例子 |
+|---|---|
+| 主线程 | 你在 REPL 里的对话 |
+| 子 agent | Task/Agent 工具派生的子任务 |
+| 队友（teammate） | 协作模式下的其他 agent |
+
+它们**并行**调用 queryModel。如果用一个全局 `lastRequestId`，A 链的请求会**覆盖** B 链的追踪值，request ID 链路就乱套了。
+
+而每条链各自持有**自己的 `messages` 数组**，从数组里推导 → 天然按链隔离，互不干扰。
+
+```
+全局单例（错）：           按消息数组（对）：
+  lastRequestId            主线程.messages → 自己的链
+   ↑ 主线程写             子agent.messages → 自己的链
+   ↑ 子agent又写（覆盖！）  队友.messages   → 自己的链
+```
+
+#### 理由 B：天然支持回滚/撤销
+
+用户可能 `/rewind` 撤销几条消息，或编辑历史重发。被删除的消息**不在数组里**，所以从数组推导出的 `previousRequestId` **自动反映回滚后的真实状态**——指向"现在这条链上真正的上一个请求"，而不是某个已被撤销的幽灵请求。
+
+> **类比**：与其在墙上挂一块"最近办的事"的公共白板（全局变量，谁都能擦），不如每个人各自拿自己的工作笔记本（messages 数组）翻到上一页——既不会被别人擦掉，撕掉的页（回滚）也自然不在了。
+
+---
+
+## 二、resolvedModel：Bedrock 推理配置档解析
+
+### 2.1 代码
+
+```typescript
+const resolvedModel =
+  getAPIProvider() === 'bedrock' &&
+  options.model.includes('application-inference-profile')
+    ? ((await getInferenceProfileBackingModel(options.model)) ??
+      options.model)
+    : options.model
+```
+
+### 2.2 解决什么问题
+
+AWS Bedrock 有个概念叫 **application inference profile（应用推理配置档）**：用户配置的不是直接的模型 ID，而是一个**配置档 ARN**，它在 AWS 侧映射到某个真实底层模型（还能附带成本分摊标签等）。
+
+例如 `options.model` 可能是：
+
+```
+arn:aws:bedrock:us-east-1:123456789:application-inference-profile/abc123
+```
+
+这个字符串**不是真实模型名**。而后续代码里有很多地方需要**真实模型**才能正确工作——尤其是**成本计算** `calculateUSDCost(resolvedModel, ...)`（见 `[13][16]`），用 ARN 算不出价格。
+
+### 2.3 逻辑拆解
+
+```
+是 bedrock provider？ ── 否 ──→ resolvedModel = options.model（原样）
+        │ 是
+        ▼
+model 含 'application-inference-profile'？ ── 否 ──→ 原样
+        │ 是
+        ▼
+await getInferenceProfileBackingModel(model)
+        │
+        ├─ 拿到真实底层模型 → 用它
+        └─ 拿不到（?? 兜底）  → 退回 options.model
+```
+
+| 条件 | resolvedModel 取值 |
+|---|---|
+| 非 Bedrock | `options.model`（绝大多数情况，零开销） |
+| Bedrock 但非配置档 | `options.model` |
+| Bedrock + 配置档，解析成功 | 真实底层模型名 |
+| Bedrock + 配置档，解析失败 | `?? options.model` 兜底 |
+
+### 2.4 `resolvedModel` vs `options.model`：别用错
+
+这之后代码里会同时存在两个"模型变量"，用途不同：
+
+| 变量 | 用途 |
+|---|---|
+| **`options.model`** | 发给 API 的模型标识、日志展示、特性判断 —— 保持用户/上层指定的原值（可能是 ARN） |
+| **`resolvedModel`** | **仅用于成本计算**（`calculateUSDCost`），需要真实模型才能查到单价 |
+
+> 这是个容易踩的坑：成本计算必须用 `resolvedModel`，否则 Bedrock 配置档用户的费用会算错。其余地方仍用 `options.model`。
+
+---
+
+## 三、两段代码的共同点
+
+虽然功能不同，但 `previousRequestId` 和 `resolvedModel` 都属于"**进 API 前的溯源/标识准备**"，且都体现了同一类工程审慎：
+
+- **previousRequestId**：在追踪粒度上做隔离（按链，不污染并发）。
+- **resolvedModel**：在标识语义上做归一（把 ARN 还原成真实模型，避免下游算错）。
+- 两者都有**兜底**：找不到上一个 ID 就没有；解析不出底层模型就退回原值。
+
+---
+
+## 四、关键行号书签
+
+| 内容 | 位置 |
+|---|---|
+| `getPreviousRequestIdFromMessages` 调用 | `claude.ts:1347` |
+| resolvedModel 三元表达式 | `claude.ts:1349-1354` |
+| `getInferenceProfileBackingModel` | Bedrock 适配相关模块 |
+| resolvedModel 的实际消费点（成本） | `claude.ts:2685 / 3309`（`calculateUSDCost`） |
+
+---
+
+## 速记口诀
+
+- **previousRequestId**：从 `messages` 数组推导，不用全局变量 —— 并发 agent 各自隔离 + 回滚天然生效。
+- **resolvedModel**：Bedrock 推理配置档（ARN）→ 真实底层模型，**只为算对成本**。
+- **两个模型变量别混**：`options.model` 发请求/打日志，`resolvedModel` 算钱。
+- 都带兜底：拿不到就退回原值，绝不因解析失败而崩。
